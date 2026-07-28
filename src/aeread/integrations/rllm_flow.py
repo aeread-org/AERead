@@ -43,10 +43,15 @@ class GatewayCandidate:
     Keeps a turn log so the flow can reconstruct per-step chat completions.
     """
 
-    def __init__(self, base_url: str, model: str, *, api_key: str = "EMPTY",
+    def __init__(self, base_url: str, model: str, *, api_key: str | None = None,
                  temperature: float = 0.7, max_tokens: int = 1200) -> None:
+        import os
         from openai import OpenAI
-        self._client = OpenAI(base_url=base_url, api_key=api_key)
+        # rLLM's model gateway accepts any key ("EMPTY"); direct provider
+        # endpoints need a real one — resolve from env when not passed.
+        resolved = (api_key or os.environ.get("AEREAD_GATEWAY_API_KEY")
+                    or os.environ.get("OPENAI_API_KEY") or "EMPTY")
+        self._client = OpenAI(base_url=base_url, api_key=resolved)
         self.model = model
         self.temperature = temperature
         self.max_tokens = max_tokens
