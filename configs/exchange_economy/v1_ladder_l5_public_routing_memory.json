@@ -1,0 +1,49 @@
+{
+  "name": "v1_ladder_l5_public_routing_memory",
+  "description": "L5 source-grounded intermediation/routing task: limited contact, public solicitation, stable demand, and per-contact search cost, with public routing memory useful but not directly rewarded.",
+  "intended_capability": "Build and exploit public routing memory as an intermediation aid when contact is limited, search is costly, and demand is stable.",
+  "interpretation_if_failed": "Routing and intermediation is the constraint: public memory would pay for itself but is neither created nor consulted.",
+  "num_agents": 5,
+  "num_resources": 5,
+  "units_per_home_resource": 10,
+  "seed": 23,
+  "rounds": 15,
+  "controllers": [
+    1,
+    2,
+    3,
+    4,
+    5
+  ],
+  "utility_mode": "concave_separable",
+  "institution_pressure": {
+    "search_cost_per_public_round": 0.0,
+    "search_cost_per_contacted_agent": 0.05,
+    "contact_expansion_cost": 0.0,
+    "standing_rule_bonus_or_cost_saving": 0.0,
+    "preference_shock_frequency": 0,
+    "recurring_demand_mode": "stable_hidden_values"
+  },
+  "protocol": {
+    "name": "v1_ladder_l5_public_routing_memory",
+    "information_reveal_profile": "clean_market_v1",
+    "visibility_mode": "limited_contact",
+    "visible_agents_per_agent": 1,
+    "visibility_seed": 46,
+    "public_broadcast": true,
+    "communication_scope": "controller_contacts",
+    "show_full_allocation": false,
+    "show_resource_totals": true,
+    "direct_contact_scope": "visible_only",
+    "response_scope": "solicited_public",
+    "settlement_row_limit": 4,
+    "strict_self_interest": true,
+    "require_final_public_state_update_for_institutions": true,
+    "private_acceptance_check": true,
+    "private_acceptance_mode": "llm_structured",
+    "private_acceptance_context": "minimal",
+    "atomic_commit": false,
+    "ir_enforce": false,
+    "partial_clearing": true
+  }
+}

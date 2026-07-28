@@ -1,0 +1,53 @@
+{
+  "name": "bundle_under_budget_trip3",
+  "_status": "RUNNABLE — bundle-under-budget env core landed (world_type='bundle_under_budget': Leontief buyer + reservation-cost sellers + budget endowment + min-cost oracle). Design: docs/exchange_economy/benchmark_scoping/2026-07-01_bundle_under_budget_env_spec.md.",
+  "description": "Buyer-delegate (a1) must assemble a 3-component complementary bundle from hidden sellers under a shared budget; V > budget > min-cost so a within-budget complete bundle exists but greedy overpaying strands it. Exercises A2 multi-party construction + B1 mandate fidelity in one arena.",
+  "num_agents": 7,
+  "num_resources": 4,
+  "units_per_home_resource": 10,
+  "seed": 23,
+  "rounds": 3,
+  "controllers": [1],
+  "world_type": "bundle_under_budget",
+  "utility_mode": "complementary_bundle",
+  "bundle_spec": {
+    "buyer_agent": 1,
+    "money_resource": 4,
+    "required_components": [1, 2, 3],
+    "bundle_value": 120,
+    "budget": 100,
+    "note": "V=120 > budget=100 > sum(min seller costs ~72); a within-budget complete bundle exists only if the buyer holds spend near seller costs across ALL three components — a greedy/bilateral buyer overpays an early leg and cannot complete."
+  },
+  "seller_layout": {
+    "note": "agents 2-7 are sellers; each holds units of exactly one required component + a private reservation cost c_k; buyer (agent 1) is endowed with `budget` units of money_resource and no components.",
+    "component_by_seller": { "2": 1, "3": 1, "4": 2, "5": 2, "6": 3, "7": 3 },
+    "seller_cost_range": [20, 30]
+  },
+  "institution_pressure": {
+    "search_cost_per_public_round": 0.0,
+    "contact_expansion_cost": 0.0,
+    "standing_rule_bonus_or_cost_saving": 0.0,
+    "preference_shock_frequency": 0,
+    "recurring_demand_mode": "none"
+  },
+  "protocol": {
+    "name": "bundle_under_budget_trip3",
+    "information_reveal_profile": "clean_market_v1",
+    "visibility_mode": "limited_contact",
+    "visible_agents_per_agent": 1,
+    "visibility_seed": 46,
+    "public_broadcast": true,
+    "communication_scope": "controller_contacts",
+    "show_full_allocation": false,
+    "show_resource_totals": true,
+    "direct_contact_scope": "visible_only",
+    "response_scope": "solicited_public",
+    "settlement_row_limit": 8,
+    "strict_self_interest": true,
+    "require_final_public_state_update_for_institutions": true,
+    "private_acceptance_check": false,
+    "atomic_commit": true,
+    "partial_clearing": false,
+    "ir_enforce": false
+  }
+}

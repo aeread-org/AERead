@@ -1,0 +1,38 @@
+{
+  "name": "public_solicitation_institution_pressure_anti_anchor_atomic_commit",
+  "description": "Protocol-simplification ablation for the institution-pressure anti-anchor setting: same economy, one-step atomic commit, no controller amendment phase, no post-finalization private acceptance check.",
+  "num_agents": 10,
+  "num_resources": 10,
+  "units_per_home_resource": 10,
+  "seed": 23,
+  "rounds": 15,
+  "controllers": [1, 3, 5],
+  "utility_mode": "concave_separable",
+  "institution_pressure": {
+    "search_cost_per_public_round": 0.05,
+    "contact_expansion_cost": 0.02,
+    "standing_rule_bonus_or_cost_saving": 0.2,
+    "preference_shock_frequency": 0,
+    "recurring_demand_mode": "stable_hidden_values"
+  },
+  "protocol": {
+    "name": "universal_public_action_limited_contact_institution_pressure_anti_anchor_atomic_commit",
+    "visibility_mode": "limited_contact",
+    "visible_agents_per_agent": 2,
+    "visibility_seed": 911,
+    "public_broadcast": true,
+    "communication_scope": "controller_contacts",
+    "show_full_allocation": false,
+    "show_resource_totals": true,
+    "direct_contact_scope": "visible_only",
+    "response_scope": "all",
+    "settlement_row_limit": 4,
+    "strict_self_interest": true,
+    "require_final_public_state_update_for_institutions": true,
+    "private_acceptance_check": false,
+    "private_acceptance_mode": "llm_structured",
+    "private_acceptance_context": "minimal",
+    "atomic_commit": true,
+    "anti_anchor_mechanism_example": "Mechanism name: Rotating Unanimity Committee for Future Contacts.\nParticipants: the current controller and every agent directly visible/contactable to that controller in the round.\nTiming: before any resource settlement can be finalized, participants spend the round nominating future contact-list members for the next two rounds.\nMessage rule: each participant publicly states one desired future contact and one resource category they might want to discuss later; no private values are required.\nDecision rule: the contact list is adopted only if every participant unanimously approves the same full list in the same round.\nSettlement rule: no resource transfer is allowed in the adoption round; all concrete resource movement is postponed until the next controller turn after the list exists.\nPublic state update: if unanimity is reached, write a public record naming the adopted contact list, its two-round expiration, and the agents allowed to propose through it.\nVerification/enforcement: the compiler verifies only the unanimous public approvals and the expiration date; the list does not authorize future resource debits.\nAmendment/exit: any listed agent may exit by public notice, which retires the list unless the remaining agents unanimously amend it in a later round.\nWhy this is bad-fit here: it consumes the scarce public round, increases contact burden, delays all settlement under search pressure, and gives no immediate private payoff unless agents redesign it into something cheaper."
+  }
+}

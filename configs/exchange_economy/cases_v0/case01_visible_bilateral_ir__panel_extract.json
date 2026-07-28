@@ -1,0 +1,82 @@
+{
+  "controllers": [
+    1,
+    1,
+    1,
+    1
+  ],
+  "description": "Official case v0 #1 (calibration floor): full-visibility bilateral gains-from-trade; the under-test seat drives every round against a frozen panel. Saturation expected for capable models; separates no-op/random from anything that reasons.  [PANEL-SWAP variant: panel seats 2-5 use the deterministic full-info scripted_bilateral_extract policy instead of the frozen-LLM panel.]",
+  "institution_pressure": {
+    "contact_expansion_cost": 0.0,
+    "preference_shock_frequency": 0,
+    "recurring_demand_mode": "none",
+    "search_cost_per_contacted_agent": 0.0,
+    "search_cost_per_public_round": 0.0,
+    "standing_rule_bonus_or_cost_saving": 0.0
+  },
+  "name": "case01_visible_bilateral_ir__panel_extract",
+  "num_agents": 5,
+  "num_resources": 5,
+  "protocol": {
+    "atomic_commit": true,
+    "communication_scope": "controller_contacts",
+    "direct_contact_scope": "unrestricted",
+    "information_reveal_profile": "clean_market_v1",
+    "ir_enforce": false,
+    "name": "case01_visible_bilateral_ir",
+    "partial_clearing": false,
+    "private_acceptance_check": false,
+    "private_acceptance_context": "minimal",
+    "private_acceptance_mode": "llm_structured",
+    "public_broadcast": true,
+    "require_final_public_state_update_for_institutions": true,
+    "response_scope": "visible_only",
+    "settlement_row_limit": 2,
+    "show_full_allocation": true,
+    "show_resource_totals": true,
+    "strict_self_interest": true,
+    "visibility_mode": "full_public",
+    "visibility_seed": 46,
+    "visible_agents_per_agent": null
+  },
+  "roles": {
+    "compiler": {
+      "policy": {
+        "kind": "frozen_llm",
+        "model": "google/gemini-2.5-flash"
+      }
+    },
+    "panel": [
+      {
+        "agents": [
+          2,
+          3,
+          4,
+          5
+        ],
+        "policy": {
+          "kind": "scripted_bilateral_extract"
+        }
+      }
+    ],
+    "under_test": {
+      "agents": [
+        1
+      ],
+      "policy": {
+        "kind": "llm",
+        "model": "google/gemini-2.5-flash"
+      }
+    },
+    "verifier": {
+      "policy": {
+        "kind": "frozen_llm",
+        "model": "google/gemini-2.5-flash"
+      }
+    }
+  },
+  "rounds": 4,
+  "seed": 1101,
+  "units_per_home_resource": 10,
+  "utility_mode": "concave_separable"
+}

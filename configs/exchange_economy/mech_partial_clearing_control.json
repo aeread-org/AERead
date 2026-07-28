@@ -1,0 +1,41 @@
+{
+  "name": "mech_partial_clearing_control",
+  "description": "Mechanism ablation (CONTROL) for partial clearing. Multiparty full-visibility clearing substrate where the best bundles cannot be fully filled by any single counterparty. Control: all-or-nothing settlement (partial_clearing=false). Paired single-knob ablation against mech_partial_clearing_treatment; ONLY protocol.partial_clearing differs. Real-world agentic use case: an order-execution agent that must split a large order across counterparties.",
+  "num_agents": 5,
+  "num_resources": 5,
+  "units_per_home_resource": 10,
+  "seed": 23,
+  "rounds": 8,
+  "controllers": [1, 2, 3, 4, 5],
+  "utility_mode": "concave_separable",
+  "institution_pressure": {
+    "search_cost_per_public_round": 0.0,
+    "search_cost_per_contacted_agent": 0.0,
+    "contact_expansion_cost": 0.0,
+    "standing_rule_bonus_or_cost_saving": 0.0,
+    "preference_shock_frequency": 0,
+    "recurring_demand_mode": "none"
+  },
+  "protocol": {
+    "name": "mech_partial_clearing_control",
+    "information_reveal_profile": "clean_market_v1",
+    "visibility_mode": "full_public",
+    "visible_agents_per_agent": null,
+    "visibility_seed": 46,
+    "public_broadcast": true,
+    "communication_scope": "controller_contacts",
+    "show_full_allocation": true,
+    "show_resource_totals": true,
+    "direct_contact_scope": "unrestricted",
+    "response_scope": "visible_only",
+    "settlement_row_limit": 4,
+    "strict_self_interest": true,
+    "require_final_public_state_update_for_institutions": true,
+    "private_acceptance_check": false,
+    "private_acceptance_mode": "llm_structured",
+    "private_acceptance_context": "minimal",
+    "atomic_commit": false,
+    "ir_enforce": false,
+    "partial_clearing": false
+  }
+}

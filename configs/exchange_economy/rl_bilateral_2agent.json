@@ -1,0 +1,40 @@
+{
+  "name": "rl_bilateral_2agent",
+  "description": "Minimal 2-agent bilateral trade world for the structured-action RL wrapper (sprint/exchange_rl_env.py). No LLM in the loop: propose/accept/reject/no_op actions compile directly to CompiledMechanism, so protocol fields governing free-form text (information_reveal_profile, communication_scope, response_scope) are set to their simplest/inert values.",
+  "num_agents": 2,
+  "num_resources": 4,
+  "units_per_home_resource": 10,
+  "seed": 1,
+  "rounds": 20,
+  "controllers": [1, 2],
+  "utility_mode": "concave_separable",
+  "institution_pressure": {
+    "search_cost_per_public_round": 0.0,
+    "search_cost_per_contacted_agent": 0.0,
+    "contact_expansion_cost": 0.0,
+    "standing_rule_bonus_or_cost_saving": 0.0,
+    "preference_shock_frequency": 0,
+    "recurring_demand_mode": "none"
+  },
+  "protocol": {
+    "name": "rl_bilateral_2agent",
+    "information_reveal_profile": "legacy",
+    "visibility_mode": "full_public",
+    "visible_agents_per_agent": null,
+    "public_broadcast": true,
+    "communication_scope": "all",
+    "show_full_allocation": true,
+    "show_resource_totals": true,
+    "direct_contact_scope": "unrestricted",
+    "response_scope": "visible_only",
+    "settlement_row_limit": 4,
+    "strict_self_interest": true,
+    "require_final_public_state_update_for_institutions": true,
+    "private_acceptance_check": false,
+    "private_acceptance_mode": "llm_structured",
+    "private_acceptance_context": "minimal",
+    "atomic_commit": true,
+    "ir_enforce": false,
+    "partial_clearing": false
+  }
+}

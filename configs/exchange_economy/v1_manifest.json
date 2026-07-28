@@ -1,0 +1,302 @@
+{
+  "frozen_at": "2026-07-06T20:34:14.587243+00:00",
+  "git_commit": "98c799ea732e9ba46137812cce23d378af78007c",
+  "random_samples": 5,
+  "random_seed": 0,
+  "configs": [
+    {
+      "config_name": "v1_ladder_l1_visible_bilateral_ir_trade",
+      "config_path": "configs/exchange_economy/v1_ladder_l1_visible_bilateral_ir_trade.json",
+      "sha256": "b1796aa82036b75e95c68c119da74025375cb18d63a48826031e2075c50bea09",
+      "rounds": 6,
+      "seed": 23,
+      "no_op_gain": 0.0,
+      "random_mean_gain": 30.15097796300794,
+      "greedy_gain": 135.69006549743034,
+      "stronger_heuristic_gain": 135.69006549743034,
+      "information_constrained_gain": 135.69006549743034,
+      "hidden_discovery_gain": 0.0,
+      "greedy_applied_rounds": 6,
+      "stronger_heuristic_applied_rounds": 6,
+      "information_constrained_applied_rounds": 6,
+      "greedy_social_optimum_welfare_gain": 39.031993159458324,
+      "social_optimum_welfare_gain": 74.88972830596276,
+      "ordering": {
+        "random_lt_greedy": {
+          "left_metric": "random_mean_gain",
+          "right_metric": "greedy_gain",
+          "left_value": 30.15097796300794,
+          "right_value": 135.69006549743034,
+          "passed": true
+        },
+        "greedy_lt_stronger_heuristic": {
+          "left_metric": "greedy_gain",
+          "right_metric": "stronger_heuristic_gain",
+          "left_value": 135.69006549743034,
+          "right_value": 135.69006549743034,
+          "passed": false
+        },
+        "stronger_heuristic_lt_information_constrained": {
+          "left_metric": "stronger_heuristic_gain",
+          "right_metric": "information_constrained_gain",
+          "left_value": 135.69006549743034,
+          "right_value": 135.69006549743034,
+          "passed": false
+        }
+      },
+      "ordering_passed": false
+    },
+    {
+      "config_name": "v1_ladder_l2_visible_multiparty_partial_clearing",
+      "config_path": "configs/exchange_economy/v1_ladder_l2_visible_multiparty_partial_clearing.json",
+      "sha256": "9175dad05b60d06b0d37113d38571c986f6ea734670bc7c58f550ac01c4172d9",
+      "rounds": 6,
+      "seed": 23,
+      "no_op_gain": 0.0,
+      "random_mean_gain": 30.15097796300794,
+      "greedy_gain": 135.69006549743034,
+      "stronger_heuristic_gain": 290.5923527203509,
+      "information_constrained_gain": 290.5923527203509,
+      "hidden_discovery_gain": 0.0,
+      "greedy_applied_rounds": 6,
+      "stronger_heuristic_applied_rounds": 6,
+      "information_constrained_applied_rounds": 6,
+      "greedy_social_optimum_welfare_gain": 39.031993159458324,
+      "social_optimum_welfare_gain": 74.88972830596276,
+      "ordering": {
+        "random_lt_greedy": {
+          "left_metric": "random_mean_gain",
+          "right_metric": "greedy_gain",
+          "left_value": 30.15097796300794,
+          "right_value": 135.69006549743034,
+          "passed": true
+        },
+        "greedy_lt_stronger_heuristic": {
+          "left_metric": "greedy_gain",
+          "right_metric": "stronger_heuristic_gain",
+          "left_value": 135.69006549743034,
+          "right_value": 290.5923527203509,
+          "passed": true
+        },
+        "stronger_heuristic_lt_information_constrained": {
+          "left_metric": "stronger_heuristic_gain",
+          "right_metric": "information_constrained_gain",
+          "left_value": 290.5923527203509,
+          "right_value": 290.5923527203509,
+          "passed": false
+        }
+      },
+      "ordering_passed": false
+    },
+    {
+      "config_name": "v1_ladder_l3_hidden_counterparty_solicitation",
+      "config_path": "configs/exchange_economy/v1_ladder_l3_hidden_counterparty_solicitation.json",
+      "sha256": "772e0dd26142bc817ce89c69b5b84394bdf383e64aa671d441cf3a220a9059b0",
+      "rounds": 8,
+      "seed": 23,
+      "no_op_gain": 0.0,
+      "random_mean_gain": 43.64889670274,
+      "greedy_gain": 98.36994068248289,
+      "stronger_heuristic_gain": 98.36994068248289,
+      "information_constrained_gain": 152.47581986008583,
+      "hidden_discovery_gain": 54.105879177602944,
+      "greedy_applied_rounds": 8,
+      "stronger_heuristic_applied_rounds": 8,
+      "information_constrained_applied_rounds": 8,
+      "greedy_social_optimum_welfare_gain": 39.031993159458324,
+      "social_optimum_welfare_gain": 74.88972830596276,
+      "ordering": {
+        "random_lt_greedy": {
+          "left_metric": "random_mean_gain",
+          "right_metric": "greedy_gain",
+          "left_value": 43.64889670274,
+          "right_value": 98.36994068248289,
+          "passed": true
+        },
+        "greedy_lt_stronger_heuristic": {
+          "left_metric": "greedy_gain",
+          "right_metric": "stronger_heuristic_gain",
+          "left_value": 98.36994068248289,
+          "right_value": 98.36994068248289,
+          "passed": false
+        },
+        "stronger_heuristic_lt_information_constrained": {
+          "left_metric": "stronger_heuristic_gain",
+          "right_metric": "information_constrained_gain",
+          "left_value": 98.36994068248289,
+          "right_value": 152.47581986008583,
+          "passed": true
+        }
+      },
+      "ordering_passed": false
+    },
+    {
+      "config_name": "v1_ladder_l4_repeated_dyad_reuse",
+      "config_path": "configs/exchange_economy/v1_ladder_l4_repeated_dyad_reuse.json",
+      "sha256": "d56f780463bde542cc3d2295da99c9150e11edced96865df2f883856b09c3d7e",
+      "rounds": 12,
+      "seed": 23,
+      "no_op_gain": 0.0,
+      "random_mean_gain": 70.94742833686563,
+      "greedy_gain": 236.1439599202826,
+      "stronger_heuristic_gain": 366.70247603803523,
+      "information_constrained_gain": 366.70247603803523,
+      "hidden_discovery_gain": 0.0,
+      "greedy_applied_rounds": 12,
+      "stronger_heuristic_applied_rounds": 12,
+      "information_constrained_applied_rounds": 12,
+      "greedy_social_optimum_welfare_gain": 39.031993159458324,
+      "social_optimum_welfare_gain": 74.88972830596276,
+      "ordering": {
+        "random_lt_greedy": {
+          "left_metric": "random_mean_gain",
+          "right_metric": "greedy_gain",
+          "left_value": 70.94742833686563,
+          "right_value": 236.1439599202826,
+          "passed": true
+        },
+        "greedy_lt_stronger_heuristic": {
+          "left_metric": "greedy_gain",
+          "right_metric": "stronger_heuristic_gain",
+          "left_value": 236.1439599202826,
+          "right_value": 366.70247603803523,
+          "passed": true
+        },
+        "stronger_heuristic_lt_information_constrained": {
+          "left_metric": "stronger_heuristic_gain",
+          "right_metric": "information_constrained_gain",
+          "left_value": 366.70247603803523,
+          "right_value": 366.70247603803523,
+          "passed": false
+        }
+      },
+      "ordering_passed": false
+    },
+    {
+      "config_name": "v1_ladder_l5_public_routing_memory",
+      "config_path": "configs/exchange_economy/v1_ladder_l5_public_routing_memory.json",
+      "sha256": "83118d17651e4a6d3d6221aeac4a04a19747d6c9598a9e454fcf182c6b6f2106",
+      "rounds": 15,
+      "seed": 23,
+      "no_op_gain": 0.0,
+      "random_mean_gain": 72.90056120597063,
+      "greedy_gain": 159.43195440093803,
+      "stronger_heuristic_gain": 159.43195440093803,
+      "information_constrained_gain": 272.72783658459775,
+      "hidden_discovery_gain": 113.29588218365973,
+      "greedy_applied_rounds": 15,
+      "stronger_heuristic_applied_rounds": 15,
+      "information_constrained_applied_rounds": 15,
+      "greedy_social_optimum_welfare_gain": 39.031993159458324,
+      "social_optimum_welfare_gain": 74.88972830596276,
+      "ordering": {
+        "random_lt_greedy": {
+          "left_metric": "random_mean_gain",
+          "right_metric": "greedy_gain",
+          "left_value": 72.90056120597063,
+          "right_value": 159.43195440093803,
+          "passed": true
+        },
+        "greedy_lt_stronger_heuristic": {
+          "left_metric": "greedy_gain",
+          "right_metric": "stronger_heuristic_gain",
+          "left_value": 159.43195440093803,
+          "right_value": 159.43195440093803,
+          "passed": false
+        },
+        "stronger_heuristic_lt_information_constrained": {
+          "left_metric": "stronger_heuristic_gain",
+          "right_metric": "information_constrained_gain",
+          "left_value": 159.43195440093803,
+          "right_value": 272.72783658459775,
+          "passed": true
+        }
+      },
+      "ordering_passed": false
+    },
+    {
+      "config_name": "v1_ladder_l6_institution_private_continuation_value",
+      "config_path": "configs/exchange_economy/v1_ladder_l6_institution_private_continuation_value.json",
+      "sha256": "178166e6ee4a2a7c74ccfeea3a7eb567f5a32d6472f8fd9336096dbb66522752",
+      "rounds": 15,
+      "seed": 23,
+      "no_op_gain": 0.0,
+      "random_mean_gain": 83.66246235260259,
+      "greedy_gain": 286.37090713170875,
+      "stronger_heuristic_gain": 439.18724068228585,
+      "information_constrained_gain": 439.18724068228585,
+      "hidden_discovery_gain": 0.0,
+      "greedy_applied_rounds": 15,
+      "stronger_heuristic_applied_rounds": 15,
+      "information_constrained_applied_rounds": 15,
+      "greedy_social_optimum_welfare_gain": 39.031993159458324,
+      "social_optimum_welfare_gain": 74.88972830596276,
+      "ordering": {
+        "random_lt_greedy": {
+          "left_metric": "random_mean_gain",
+          "right_metric": "greedy_gain",
+          "left_value": 83.66246235260259,
+          "right_value": 286.37090713170875,
+          "passed": true
+        },
+        "greedy_lt_stronger_heuristic": {
+          "left_metric": "greedy_gain",
+          "right_metric": "stronger_heuristic_gain",
+          "left_value": 286.37090713170875,
+          "right_value": 439.18724068228585,
+          "passed": true
+        },
+        "stronger_heuristic_lt_information_constrained": {
+          "left_metric": "stronger_heuristic_gain",
+          "right_metric": "information_constrained_gain",
+          "left_value": 439.18724068228585,
+          "right_value": 439.18724068228585,
+          "passed": false
+        }
+      },
+      "ordering_passed": false
+    },
+    {
+      "config_name": "v1_main",
+      "config_path": "configs/exchange_economy/v1_main.json",
+      "sha256": "faeb5d67cb9bc7dc51bc0f6bcb16e1095b829882fbb43646cf6ff036b80155cc",
+      "rounds": 15,
+      "seed": 23,
+      "no_op_gain": 0.0,
+      "random_mean_gain": 16.44718035707584,
+      "greedy_gain": 41.18670127841135,
+      "stronger_heuristic_gain": 41.18670127841135,
+      "information_constrained_gain": 257.00252535520525,
+      "hidden_discovery_gain": 215.8158240767939,
+      "greedy_applied_rounds": 15,
+      "stronger_heuristic_applied_rounds": 15,
+      "information_constrained_applied_rounds": 15,
+      "greedy_social_optimum_welfare_gain": 91.28230693842048,
+      "social_optimum_welfare_gain": 232.83004746974618,
+      "ordering": {
+        "random_lt_greedy": {
+          "left_metric": "random_mean_gain",
+          "right_metric": "greedy_gain",
+          "left_value": 16.44718035707584,
+          "right_value": 41.18670127841135,
+          "passed": true
+        },
+        "greedy_lt_stronger_heuristic": {
+          "left_metric": "greedy_gain",
+          "right_metric": "stronger_heuristic_gain",
+          "left_value": 41.18670127841135,
+          "right_value": 41.18670127841135,
+          "passed": false
+        },
+        "stronger_heuristic_lt_information_constrained": {
+          "left_metric": "stronger_heuristic_gain",
+          "right_metric": "information_constrained_gain",
+          "left_value": 41.18670127841135,
+          "right_value": 257.00252535520525,
+          "passed": true
+        }
+      },
+      "ordering_passed": false
+    }
+  ]
+}

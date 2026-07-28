@@ -1,0 +1,28 @@
+# caches — never commit LLM response caches (they contain full prompts/responses)
+.cache/
+.gemini_cache/
+src/aeread/.cache/
+src/aeread/.gemini_cache/
+
+# run outputs
+runs/
+submissions/
+sweeps/
+output/
+
+# python
+__pycache__/
+*.pyc
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+
+# env / secrets
+.env
+.env.*
+*.key
+*_credentials.json
+
+# os
+.DS_Store

@@ -1,0 +1,49 @@
+{
+  "name": "v1_ladder_l6_institution_private_continuation_value",
+  "description": "L6 source-grounded institutional-governance upper bound: stable demand and explicit private continuation value for reusable public rules.",
+  "intended_capability": "Create codified public rules (T0 institutions) whose explicit private continuation value exceeds their setup cost.",
+  "interpretation_if_failed": "Institution formation is the constraint: even with an explicit private continuation value on codified public rules, none are created.",
+  "num_agents": 5,
+  "num_resources": 5,
+  "units_per_home_resource": 10,
+  "seed": 23,
+  "rounds": 15,
+  "controllers": [
+    1,
+    2,
+    3,
+    4,
+    5
+  ],
+  "utility_mode": "concave_separable",
+  "institution_pressure": {
+    "search_cost_per_public_round": 0.05,
+    "search_cost_per_contacted_agent": 0.0,
+    "contact_expansion_cost": 0.0,
+    "standing_rule_bonus_or_cost_saving": 0.2,
+    "preference_shock_frequency": 0,
+    "recurring_demand_mode": "stable_hidden_values"
+  },
+  "protocol": {
+    "name": "v1_ladder_l6_institution_private_continuation_value",
+    "information_reveal_profile": "clean_market_v1",
+    "visibility_mode": "limited_contact",
+    "visible_agents_per_agent": 2,
+    "visibility_seed": 46,
+    "public_broadcast": true,
+    "communication_scope": "controller_contacts",
+    "show_full_allocation": false,
+    "show_resource_totals": true,
+    "direct_contact_scope": "visible_only",
+    "response_scope": "solicited_public",
+    "settlement_row_limit": 4,
+    "strict_self_interest": true,
+    "require_final_public_state_update_for_institutions": true,
+    "private_acceptance_check": true,
+    "private_acceptance_mode": "llm_structured",
+    "private_acceptance_context": "minimal",
+    "atomic_commit": false,
+    "ir_enforce": false,
+    "partial_clearing": true
+  }
+}

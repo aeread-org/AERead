@@ -1,0 +1,45 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "aeread"
+version = "0.1.0"
+description = "AERead: an agentic economic environment and benchmark — multi-agent exchange arenas with welfare-based AER scoring, frozen-panel evaluation, verifiable submissions, and RL hooks"
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.10"
+authors = [{ name = "AERead maintainers" }]
+keywords = ["llm", "agents", "benchmark", "economics", "reinforcement-learning", "evaluation"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = [
+    "openai>=1.40",
+    "scipy>=1.10",
+    "numpy>=1.24",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7"]
+
+[project.scripts]
+aeread = "aeread.cli:main"
+
+# rLLM plugin discovery (https://docs.rllm-project.com): with rllm installed,
+# `rllm eval <dataset> --agent aeread` / `rllm train` resolve these by name.
+[project.entry-points."rllm.agents"]
+aeread = "aeread.integrations.rllm_flow:aeread_flow"
+
+[project.entry-points."rllm.evaluators"]
+aeread = "aeread.integrations.rllm_eval:aeread_evaluator"
+
+[project.urls]
+Homepage = "https://aeread.org"
+Repository = "https://github.com/aeread-org/AERead"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/aeread"]
