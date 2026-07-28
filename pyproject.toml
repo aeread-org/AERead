@@ -32,7 +32,7 @@ aeread = "aeread.cli:main"
 # rLLM plugin discovery (https://docs.rllm-project.com): with rllm installed,
 # `rllm eval <dataset> --agent aeread` / `rllm train` resolve these by name.
 [project.entry-points."rllm.agents"]
-aeread = "aeread.integrations.rllm_flow:aeread_flow"
+aeread = "aeread.integrations.rllm_flow:AereadFlow"
 
 [project.entry-points."rllm.evaluators"]
 aeread = "aeread.integrations.rllm_eval:aeread_evaluator"

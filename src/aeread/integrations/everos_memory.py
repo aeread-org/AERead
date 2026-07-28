@@ -1,0 +1,296 @@
+"""EverOS-backed persistent memory for AERead submitted agents (experimental).
+
+`EverOS <https://github.com/EverMind-AI/EverOS>`_ is an open-source,
+markdown-first memory service. This integration turns it into a *treatment
+arm* for AERead: a :class:`MemoryCandidate` satisfies the text-boundary
+submission contract (``act(observation, phase) -> str``) while
+
+- **searching** memory before every action (past episodes in the same case
+  family, extracted agent cases/skills), and
+- **writing** the finished episode transcript + outcome back after scoring,
+
+so realized-welfare deltas between a memory-on and memory-off arm measure
+what persistent cross-episode memory is worth in a decentralized exchange
+economy. Memory is scoped per case family via EverOS ``project_id`` — no
+information crosses the submission info-barrier: the candidate only ever
+remembers what it itself observed through the text boundary.
+
+Run a local server (see the EverOS quickstart; any OpenAI-compatible
+LLM/embedding endpoints work)::
+
+    pip install everos && everos init && everos server start --port 8377
+
+Caveats (deliberate, documented):
+
+- Cross-episode state means a replayed episode sees different memory than
+  the live run; run A/B experiments with ``verify_replay=False`` and treat
+  official replay-verified submissions as memory-off.
+- ``method="vector"`` is the default search mode — it skips EverOS's
+  reranker stage, so no rerank provider is required.
+"""
+from __future__ import annotations
+
+import json
+import re
+import time
+import urllib.error
+import urllib.request
+from pathlib import Path
+from typing import Any, Callable
+
+MEMORY_HEADER = (
+    "PRIOR EXPERIENCE (from your persistent memory of past episodes "
+    "in this case family):")
+
+_SNIPPET_FIELDS = ("summary", "content", "description", "title", "name")
+
+
+class EverOSMemoryError(RuntimeError):
+    """Non-2xx or malformed response from the EverOS server."""
+
+
+class EverOSMemory:
+    """Minimal stdlib client for the EverOS HTTP API (add / flush / search)."""
+
+    def __init__(self, base_url: str = "http://127.0.0.1:8377", *,
+                 app_id: str = "aeread", project_id: str = "default",
+                 timeout: float = 120.0) -> None:
+        self.base_url = base_url.rstrip("/")
+        self.app_id = app_id
+        self.project_id = project_id
+        self.timeout = timeout
+
+    def _post(self, path: str, payload: dict[str, Any]) -> dict[str, Any]:
+        req = urllib.request.Request(
+            self.base_url + path,
+            data=json.dumps(payload).encode("utf-8"),
+            headers={"Content-Type": "application/json"})
+        try:
+            with urllib.request.urlopen(req, timeout=self.timeout) as resp:
+                obj = json.loads(resp.read().decode("utf-8"))
+        except urllib.error.HTTPError as err:  # pragma: no cover - network
+            raise EverOSMemoryError(
+                f"{path} -> HTTP {err.code}: {err.read().decode('utf-8')[:300]}"
+            ) from err
+        data = obj.get("data")
+        if data is None:
+            raise EverOSMemoryError(f"{path} -> missing data envelope: {obj}")
+        return data
+
+    def add(self, session_id: str, messages: list[dict[str, Any]]) -> str:
+        data = self._post("/api/v2/memory/add", {
+            "session_id": session_id, "app_id": self.app_id,
+            "project_id": self.project_id, "messages": messages})
+        return data.get("status", "")
+
+    def flush(self, session_id: str) -> str:
+        data = self._post("/api/v2/memory/flush", {
+            "session_id": session_id, "app_id": self.app_id,
+            "project_id": self.project_id})
+        return data.get("status", "")
+
+    def search(self, query: str, *, user_id: str | None = None,
+               agent_id: str | None = None, method: str = "vector",
+               top_k: int = 4) -> dict[str, Any]:
+        if bool(user_id) == bool(agent_id):
+            raise ValueError("exactly one of user_id / agent_id must be set")
+        payload: dict[str, Any] = {
+            "query": query, "method": method, "top_k": top_k,
+            "app_id": self.app_id, "project_id": self.project_id}
+        if user_id:
+            payload["user_id"] = user_id
+        else:
+            payload["agent_id"] = agent_id
+        return self._post("/api/v2/memory/search", payload)
+
+
+def _snippet(item: dict[str, Any]) -> str:
+    parts = [str(item[f]).strip() for f in _SNIPPET_FIELDS
+             if item.get(f) and str(item[f]).strip()]
+    return " — ".join(dict.fromkeys(parts))
+
+
+class MemoryCandidate:
+    """Text-boundary submitted agent with EverOS persistent memory.
+
+    ``llm_fn(prompt) -> str`` is the policy model (see
+    :func:`build_openrouter_llm_fn`); ``memory`` is an :class:`EverOSMemory`
+    (or any duck-type). Memory failures never fail the episode — the agent
+    degrades to memoryless operation and counts ``memory_errors``.
+    """
+
+    def __init__(self, llm_fn: Callable[[str], str], memory: Any, *,
+                 agent_id: str = "aeread_mem", arena_user_id: str = "arena",
+                 memory_top_k: int = 4, search_method: str = "vector",
+                 clock: Callable[[], float] = time.time) -> None:
+        self.llm_fn = llm_fn
+        self.memory = memory
+        self.agent_id = agent_id
+        self.arena_user_id = arena_user_id
+        self.memory_top_k = memory_top_k
+        self.search_method = search_method
+        self._clock = clock
+        self.label = "episode"
+        self.session_id = f"{agent_id}-episode"
+        self.turns: list[dict[str, str]] = []
+        self.memory_errors = 0
+        self._buffer: list[dict[str, Any]] = []
+        self._last_ts = 0
+
+    def __repr__(self) -> str:  # keeps submission labels readable
+        return f"MemoryCandidate(agent_id={self.agent_id!r})"
+
+    # -- episode lifecycle -------------------------------------------------
+
+    def begin_episode(self, label: str) -> None:
+        self.label = label
+        slug = re.sub(r"[^A-Za-z0-9_.-]+", "-", label).strip("-")[:100]
+        self.session_id = f"{self.agent_id}-{slug}"
+        self._buffer = []
+        self.turns = []
+
+    def end_episode(self, outcome: str) -> None:
+        msgs = list(self._buffer)
+        msgs.append({
+            "sender_id": self.agent_id, "sender_name": "AEReadCandidate",
+            "role": "assistant", "timestamp": self._now_ms(),
+            "content": (
+                f"Episode complete ({self.label}). Outcome: {outcome}. "
+                "Remember which negotiation moves led to executed, "
+                "welfare-positive settlements in this case family and "
+                "which lost value or failed verification.")})
+        try:
+            self.memory.add(self.session_id, msgs)
+            self.memory.flush(self.session_id)
+        except Exception:
+            self.memory_errors += 1
+        self._buffer = []
+
+    # -- acting ------------------------------------------------------------
+
+    def act(self, observation: str, phase: str) -> str:
+        snippets = self.recall(observation, phase)
+        prompt = observation
+        if snippets:
+            block = "\n".join(f"- {s}" for s in snippets)
+            prompt = (f"{observation}\n\n{MEMORY_HEADER}\n{block}\n"
+                      "(Use this experience where it applies; the current "
+                      "episode's own numbers always take precedence.)")
+        text = (self.llm_fn(prompt) or "").strip()
+        self._buffer.append({
+            "sender_id": self.arena_user_id, "role": "user",
+            "timestamp": self._now_ms(),
+            "content": f"[{phase}] {observation}"})
+        self._buffer.append({
+            "sender_id": self.agent_id, "sender_name": "AEReadCandidate",
+            "role": "assistant", "timestamp": self._now_ms(),
+            "content": text})
+        self.turns.append({"phase": phase, "observation": observation,
+                           "response": text})
+        return text
+
+    def recall(self, observation: str, phase: str) -> list[str]:
+        query = f"{self.label} {phase}: {observation[:300]}"
+        snippets: list[str] = []
+        for scope in ({"agent_id": self.agent_id},
+                      {"user_id": self.arena_user_id}):
+            try:
+                data = self.memory.search(
+                    query, method=self.search_method,
+                    top_k=self.memory_top_k, **scope) or {}
+            except Exception:
+                self.memory_errors += 1
+                continue
+            for kind in ("agent_skills", "agent_cases", "episodes"):
+                for item in data.get(kind) or []:
+                    text = _snippet(item)
+                    if text:
+                        snippets.append(text)
+        return list(dict.fromkeys(snippets))[:self.memory_top_k]
+
+    def _now_ms(self) -> int:
+        ts = int(self._clock() * 1000)
+        self._last_ts = max(ts, self._last_ts + 1)
+        return self._last_ts
+
+
+def build_openrouter_llm_fn(model: str, *, base_url: str | None = None,
+                            api_key: str | None = None,
+                            temperature: float = 0.7,
+                            max_tokens: int = 1200) -> Callable[[str], str]:
+    """Chat-completions policy fn for :class:`MemoryCandidate`.
+
+    Defaults to the ``OPENAI_BASE_URL`` / ``OPENAI_API_KEY`` environment
+    (OpenRouter in the AERead reference setup).
+    """
+    import os
+
+    from openai import OpenAI
+
+    client = OpenAI(
+        base_url=base_url or os.environ.get(
+            "OPENAI_BASE_URL", "https://openrouter.ai/api/v1"),
+        api_key=api_key or os.environ.get("OPENAI_API_KEY", "EMPTY"))
+
+    def llm_fn(prompt: str) -> str:
+        resp = client.chat.completions.create(
+            model=model,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=temperature,
+            max_tokens=max_tokens)
+        return (resp.choices[0].message.content or "").strip()
+
+    return llm_fn
+
+
+def run_memory_episode(case_path: str | Path, seed: int,
+                       candidate: MemoryCandidate, *,
+                       agent_label: str = "everos-mem",
+                       max_tokens: int = 1200,
+                       out_root: str | Path | None = None) -> dict[str, Any]:
+    """One seeded episode through the submission harness, with memory hooks.
+
+    Mirrors :func:`aeread.integrations.rllm_flow.run_episode` but drives an
+    externally-owned candidate: ``begin_episode`` before the run,
+    ``end_episode(outcome)`` with the realized score row after. Replay
+    verification is off (cross-episode memory makes replay non-bytewise).
+    """
+    import tempfile
+
+    from aeread import exchange_v1_pilot as pilot
+    from aeread import exchange_v1_runner as runner
+    from aeread import exchange_v1_submit as submit
+
+    case_path = Path(case_path)
+    candidate.begin_episode(f"{case_path.stem}-s{int(seed)}")
+
+    def _run(out: Path) -> dict[str, Any]:
+        prepared = pilot.seeded_case(case_path, int(seed), out / "cases",
+                                     agent_label)
+        sub_dir = submit.run_submission(
+            [prepared], candidate, agent_label=agent_label,
+            out_root=out / "submissions",
+            options=runner.InferenceOptions(max_tokens=max_tokens),
+            verify_replay=False, quiet=True)
+        report = json.loads((sub_dir / "submission_report.json").read_text())
+        return report["cases"][0]
+
+    if out_root is None:
+        with tempfile.TemporaryDirectory() as td:
+            case_row = _run(Path(td))
+    else:
+        case_row = _run(Path(out_root))
+
+    score = case_row.get("score") or {}
+    w_real = score.get("w_real")
+    denom = score.get("denominator")
+    aer = None
+    if w_real is not None and denom and denom > 1e-9:
+        aer = float(w_real) / float(denom)
+    outcome = (f"status={case_row.get('status')} AER="
+               f"{'n/a' if aer is None else format(aer, '.3f')} "
+               f"(w_real={w_real} denominator={denom})")
+    candidate.end_episode(outcome)
+    return {"status": case_row.get("status"), "aer": aer, "w_real": w_real,
+            "denominator": denom, "score": score, "turns": candidate.turns,
+            "memory_errors": candidate.memory_errors}

@@ -102,12 +102,23 @@ validated `roles` table. New cases must pass the provider-free admission gate
 
 Two surfaces:
 
-- **rLLM integration** (`aeread.integrations`, experimental): with
-  [rLLM](https://github.com/rllm-org/rllm) installed, the packaged entry points
-  expose an AgentFlow + evaluator — the seat under test samples through rLLM's
-  model gateway (trainable, traced), the frozen panel stays on its own cached
-  endpoints, and per-episode AER is the reward. GRPO groups rollouts per case,
-  so per-case denominator scale cancels out of the advantage.
+- **rLLM integration** (`aeread.integrations`, smoke-tested against rLLM
+  0.3.0rc0): the packaged entry points expose an AgentFlow + evaluator — the
+  seat under test samples through rLLM's model gateway (trainable, traced), the
+  frozen panel stays on its own cached endpoints, and per-episode AER is the
+  reward. GRPO groups rollouts per case, so per-case denominator scale cancels
+  out of the advantage. Working recipe:
+
+  ```bash
+  pip install "rllm @ git+https://github.com/rllm-org/rllm.git"
+  # upstream skew note: rllm@main needs its gateway from the same tree
+  pip install --force-reinstall --no-deps \
+      "rllm-model-gateway @ git+https://github.com/rllm-org/rllm.git#subdirectory=rllm-model-gateway"
+
+  python -m aeread.integrations.rllm_dataset --register   # dev rows -> ~/.rllm
+  rllm eval aeread --agent aeread --evaluator aeread \
+      --base-url <openai-compatible-endpoint> --model <model>
+  ```
 - **`aeread.exchange_rl_env`**: a structured (LLM-free) bilateral negotiation
   env with `reset()` / `step(agent_id, StructuredAction)` for classical RL and
   unit-testable reward shaping.

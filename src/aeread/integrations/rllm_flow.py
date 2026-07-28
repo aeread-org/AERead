@@ -22,10 +22,15 @@ Design (mirrors rLLM's FrozenLake cookbook shape):
   :func:`aeread.integrations.rllm_eval.aeread_evaluator`. GRPO groups rollouts
   per task, so per-case denominator scale cancels in the advantage.
 
-Status: experimental. Written against the rLLM docs of 2026-07; the Episode /
-Step construction is defensive because the API is evolving. Replay
-verification is skipped inside RL rollouts (``verify_replay=False``) — run
-``aeread submit`` for auditable scoring.
+Status: smoke-tested end-to-end against rLLM 0.3.0rc0 (git main, 2026-07-28):
+``rllm eval aeread --agent aeread --evaluator aeread`` completes with the
+episode AER as reward and only the under-test seat traced. Known upstream
+install skew: rllm@git-main needs the gateway from the same tree —
+``pip install --force-reinstall --no-deps
+"rllm-model-gateway @ git+https://github.com/rllm-org/rllm.git#subdirectory=rllm-model-gateway"``
+(the PyPI 0.1.0 wheel lags and lacks ``local_handler``). Replay verification
+is skipped inside RL rollouts (``verify_replay=False``) — run ``aeread
+submit`` for auditable scoring.
 """
 from __future__ import annotations
 
@@ -86,6 +91,7 @@ def run_episode(case_path: str | Path, seed: int, *, base_url: str,
                                  max_tokens=max_tokens)
     with tempfile.TemporaryDirectory() as td:
         out = Path(td)
+        (out / "cases").mkdir(parents=True, exist_ok=True)
         prepared = pilot.seeded_case(Path(case_path), int(seed),
                                      out / "cases", "rllm")
         sub_dir = submit.run_submission(
@@ -118,6 +124,23 @@ def _episode_types() -> tuple[Any, Any, Any]:
         "aeread rLLM integration: could not locate Episode/Trajectory/Step "
         "in rllm — is rllm installed? (pip install 'rllm @ "
         "git+https://github.com/rllm-org/rllm.git')") from last_err
+
+
+class AereadFlow:
+    """rLLM AgentFlow: one AERead arena episode per task.
+
+    rLLM's loader requires an object with a ``.run(task, config)`` method
+    (a bare function is rejected) — this class is what the ``rllm.agents``
+    entry point exposes; :func:`aeread_flow` remains the functional core.
+    """
+
+    name = "aeread"
+
+    def run(self, task: Any, config: Any) -> Any:
+        return aeread_flow(task, config)
+
+    async def arun(self, task: Any, config: Any) -> Any:
+        return aeread_flow(task, config)
 
 
 def aeread_flow(task: Any, config: Any) -> Any:
