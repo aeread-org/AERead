@@ -1,6 +1,6 @@
 {
   "source_repo": "AERead (private)",
-  "source_commit": "d8cc352f85fc1bfde2478895b36d06e2c966f939",
+  "source_commit": "063be7c219aff9b3565b4ea945045777afe32552",
   "n_files": 94,
   "sha256": {
     "configs/exchange_economy/bundle_under_budget_trip3.json": "512950eda3fe1fd8ec5df8b83ccb705e3cfb00897f114c1cb8828152158abf7e",
@@ -45,7 +45,7 @@
     "configs/exchange_economy/v1_manifest.json": "31897afcbee9da92ea854da6f85cb3633ee181e2929e08ed5bbc0562109dd93f",
     "src/aeread/aer_scorer.py": "8b701846144681a0efaefd8539a2a1dec3b27c3d043fb849a242d6de1c310802",
     "src/aeread/agentecon_oracle.py": "13c709d7352ca79c30182c09e3f7ebbdd5c08fdf16919900ee9711b9620ae566",
-    "src/aeread/bundle_bayes_oracle.py": "29876016397dd9d3a4a41a7bc2337103156e42098275f212d306efc35e34863a",
+    "src/aeread/bundle_bayes_oracle.py": "86d3708751804ac7f43069e072d9482b50d38ed3e01b4b76ccafea739fef4163",
     "src/aeread/capture_share.py": "b8772ec38214b8cf005e73b07c00c1285482c5cd2cc18f959998664c17a9ab5a",
     "src/aeread/delta_inf_oracle.py": "2ca0a072d3af29d4b9b70034c4a4adff81597356a9b9050a7df0a657ee574da1",
     "src/aeread/exchange_counterpart_frozen.py": "c9da1f678bef9bfbad930ed580bb425fa2fdaa786912631a2a194f3a59ba2ac4",

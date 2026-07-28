@@ -157,3 +157,29 @@ def expected_wstar(world, *, seed: int = 0, n_mc: int = 3000) -> float:
         min_cost = sum(min(lo + (hi - lo) * rng.random() for _ in by_comp[c]) for c in comps)
         total += max(0.0, float(spec.bundle_value) - min_cost)   # full-info completes only if profitable
     return total / n_mc
+
+
+def one_sided_wedge(world, *, seed: int = 0, n_mc: int = 3000,
+                    n_boot: int = 400) -> dict:
+    """Constrained wedge estimator enforcing the one-sided bound W_bayes <= E[W*].
+
+    The true information wedge Delta_unc = E[W*] - W_bayes is nonnegative by
+    definition; the unconstrained Monte-Carlo point estimate can come out
+    nominally negative through sampling noise (a validation artifact, not
+    evidence). This reports both: the raw draw (transparency) and the
+    constrained estimate max(0, raw) with its one-sided CI, which is the
+    number fairness claims should cite.
+    """
+    w_bayes, (lo, hi) = bundle_bayes_optimal_welfare(
+        world, seed=seed, n_mc=n_mc, n_boot=n_boot)
+    ew_star = expected_wstar(world, seed=seed, n_mc=n_mc)
+    raw = ew_star - w_bayes
+    return {
+        "e_wstar": ew_star,
+        "w_bayes": w_bayes,
+        "w_bayes_ci": (lo, hi),
+        "wedge_raw": raw,
+        "wedge_constrained": max(0.0, raw),
+        "wedge_upper_95": max(0.0, ew_star - lo),
+        "note": "wedge_constrained enforces W_bayes <= E[W*]; cite it, not wedge_raw",
+    }
