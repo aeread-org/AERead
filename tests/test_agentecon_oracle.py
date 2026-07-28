@@ -159,12 +159,21 @@ def test_bundle_oracle_wstar_matches_solver_and_is_45678():
     assert abs(o.w_star() - 45.678) < 1e-3
 
 
-def test_bundle_oracle_wbayes_is_labeled_fallback():
+def test_bundle_oracle_wbayes_gated_default_fallback_optin_mc(monkeypatch):
+    # DEFAULT: mc_wbayes is gated (ex-ante estimator pending denominator-semantics
+    # decision) -> labeled fallback, reason recorded, never silent (spec §1b).
+    monkeypatch.delenv("AEREAD_MC_WBAYES", raising=False)
     br = BundleCaseOracle(_trip3_world()).w_bayes()
     assert br.tier == TIER_FALLBACK
     assert br.w_bayes == br.w_star and br.denominator() == br.w_star
     assert br.bayesian_score_status == "skipped_with_reason"
-    assert br.scorable is True and br.not_scorable_reason  # reason recorded, never silent
+    assert br.scorable is True and "gated" in br.not_scorable_reason
+    # OPT-IN: with the flag (and the 2026-07-23 seller_layout wiring fix), the
+    # estimator engages on the production config->world path.
+    monkeypatch.setenv("AEREAD_MC_WBAYES", "1")
+    br2 = BundleCaseOracle(_trip3_world()).w_bayes()
+    assert br2.tier == "mc_wbayes"
+    assert br2.bayesian_score_status == "scored"
 
 
 def test_bundle_oracle_realized_and_gate():

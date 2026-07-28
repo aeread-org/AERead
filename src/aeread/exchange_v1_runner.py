@@ -655,6 +655,42 @@ def _build_seat_policy(
     )
 
 
+class _DefectorSeat:
+    """Consent-withholding wrapper for a PANEL seat (protocol.defection_rate, D9 path).
+
+    2026-07-23 wiring fix: defection_rate was dead code under D9 — build_policy
+    returned the composite before the legacy defection branch. Here a seeded
+    fraction of panel seats decline in the response phase and reject at the
+    private-acceptance gate (same semantics as AdversarialCounterpartyPolicy);
+    every other phase delegates to the wrapped seat. Declines are scripted —
+    zero LLM calls. Never applied to under_test or env seats.
+    """
+
+    is_defector_seat = True
+
+    def __init__(self, inner: Any):
+        self._inner = inner
+        self.v1_seat = getattr(inner, "v1_seat", "panel")
+        # OWN empty record list: CompositePolicy dedupes sub-policies by identity,
+        # and panel agents share one policy object — delegating call_records to the
+        # shared inner would double-count its records in the strict funnel check
+        # (the 2026-07-23 a5-rerun 64-vs-36 failure).
+        self.call_records: list = []
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self._inner, name)
+
+    def respond_text(self, world, agent_id, transcript, history):
+        from aeread.exchange_economy_adversarial import _DEFECT_RESPONSE
+
+        return _DEFECT_RESPONSE
+
+    def private_acceptance_text(self, world, agent_id, transcript, mechanism, history):
+        from aeread.exchange_economy_adversarial import _DEFECT_ACCEPTANCE
+
+        return _DEFECT_ACCEPTANCE
+
+
 def build_composite_policy(
     role_table: RoleTable,
     config: ex.ExchangeExperimentConfig,
@@ -673,6 +709,21 @@ def build_composite_policy(
         policy.v1_seat = group.manifest_seat
         for agent_id in group.agents:
             agent_policies[agent_id] = policy
+    defection_rate = getattr(config.protocol, "defection_rate", 0.0)
+    if defection_rate > 0.0:
+        import random as _random
+
+        panel_agents = sorted(
+            aid
+            for group in role_table.agent_groups()
+            if group.seat == "panel"
+            for aid in group.agents
+        )
+        k = min(len(panel_agents), int(round(defection_rate * len(panel_agents))))
+        if k:
+            rng = _random.Random(getattr(config.protocol, "defection_seed", 0))
+            for aid in rng.sample(panel_agents, k):
+                agent_policies[aid] = _DefectorSeat(agent_policies[aid])
     compiler = _build_seat_policy(role_table.group_for("compiler").policy, config, options)
     compiler.v1_seat = "env"
     verifier = _build_seat_policy(role_table.group_for("verifier").policy, config, options)

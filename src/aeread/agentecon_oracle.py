@@ -14,6 +14,8 @@ so charged = inf + ctrl = w_bayes - w_real, and unc + charged telescopes to w_st
 """
 from __future__ import annotations
 
+import os
+
 from dataclasses import dataclass, replace
 from typing import Optional, Protocol, runtime_checkable
 
@@ -191,7 +193,25 @@ class BundleCaseOracle:
         # knowing its mandate + the PRIOR over sellers' costs, sellers accepting iff price >= cost
         # (a best response to rational IR-responders, NOT a Bayesian-Nash fixed point). See
         # bundle_bayes_oracle. Degrades to wstar_fallback for unsupported world structures.
+        #
+        # GATED (2026-07-23): engagement is opt-in via AEREAD_MC_WBAYES=1. W_bayes here is
+        # EX-ANTE (prior-expected; see the no-per-instance-clamp note below), so as a
+        # per-instance DENOMINATOR it can exceed the instance W* — a perfect action then
+        # scores < 1 and scores couple to prior luck. Until the denominator pairing is
+        # settled (per-instance policy evaluation, or ex-ante W_bayes vs E[W*]), production
+        # scoring stays on the labeled wstar_fallback tier. The 2026-07-23 wiring fix
+        # (ExchangeWorld.seller_layout) makes engagement POSSIBLE; this gate makes it a
+        # deliberate decision rather than a silent semantics change.
         ws = self.w_star()
+        if not os.environ.get("AEREAD_MC_WBAYES"):
+            return BayesResult(
+                w_bayes=ws, w_star=ws, tier=TIER_FALLBACK, delta_unc=0.0,
+                bayesian_score_status="skipped_with_reason",
+                not_scorable_reason=(
+                    _BUNDLE_FALLBACK_REASON
+                    + " [mc_wbayes gated: ex-ante estimator pending denominator-semantics "
+                      "decision; set AEREAD_MC_WBAYES=1 to engage]"),
+                oracle_family="bundle_min_cost", oracle_version="v0", scorable=True)
         try:
             wb, ci = _bb.bundle_bayes_optimal_welfare(self.world, seed=seed)
         except Exception as exc:  # never a silent zero: label the reason and fall back to W*

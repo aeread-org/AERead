@@ -238,6 +238,7 @@ class ExchangeWorld:
     institution_pressure: InstitutionPressureConfig = field(default_factory=InstitutionPressureConfig)
     money_good_index: Optional[int] = None
     bundle_utility: Optional[BundleUtilitySpec] = None  # buyer's Leontief objective (bundle worlds)
+    seller_layout: Optional["SellerLayoutConfig"] = None  # cost-prior layout (bundle worlds; mc_wbayes reads the prior)
 
     def __post_init__(self) -> None:
         if not self.allocation:
@@ -584,6 +585,7 @@ def make_bundle_under_budget_world(config: ExchangeExperimentConfig) -> Exchange
         institution_pressure=config.institution_pressure,
         money_good_index=money,
         bundle_utility=spec,
+        seller_layout=layout,
     )
     oracle = solve_bundle_min_cost(world)
     if oracle.min_cost >= spec.budget:

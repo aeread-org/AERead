@@ -422,3 +422,51 @@ def test_scripted_responder_explicitly_accepts_the_concrete_proposal():
     assert "ACCEPT" in text.upper()
     assert "r1" in text and "r2" in text        # the concrete swap, not a generic phrase
     assert "any trade" not in text.lower()      # the old conditional phrasing is gone
+
+
+def test_defection_rate_engages_on_the_composite_roles_path():
+    """A5 wiring fix (2026-07-23): protocol.defection_rate was dead code under D9 —
+    build_policy returned the composite BEFORE the defection branch, so ablation
+    outcomes were byte-identical across 0/0.25/0.50. With the fix, a seeded
+    fraction of PANEL seats (never under_test, never env) become decliners."""
+    from aeread import exchange_v1_runner as runner
+    from aeread import exchange_economy as ex
+
+    config = ex.load_experiment_config(ROOT / "configs/exchange_economy/cases_v0/case01_visible_bilateral_ir.json")
+    import dataclasses
+    proto = dataclasses.replace(config.protocol, defection_rate=0.5, defection_seed=46)
+    config = dataclasses.replace(config, protocol=proto)
+    raw_roles = {
+        "under_test": {"agents": [1], "policy": {"kind": "llm", "model": "google/gemini-2.5-flash"}},
+        "panel": [{"agents": [2, 3, 4, 5], "policy": {"kind": "frozen_llm", "model": "google/gemini-2.5-flash"}}],
+        "compiler": {"policy": {"kind": "frozen_llm", "model": "google/gemini-2.5-flash"}},
+        "verifier": {"policy": {"kind": "frozen_llm", "model": "google/gemini-2.5-flash"}},
+    }
+    table = roles_mod.parse_role_table(raw_roles, config.num_agents)
+    policy = runner.build_policy("live_frozen", config, runner.InferenceOptions(), role_table=table)
+
+    world = ex.make_world_from_config(config)
+    defectors = [a for a in range(1, 6) if getattr(policy._agent_policies[a], "is_defector_seat", False)]
+    assert 1 not in defectors, "the agent under test must never be scripted into defection"
+    assert len(defectors) == 2, f"rate 0.5 over 4 panel seats -> 2 defectors, got {defectors}"
+    # defector responses are scripted declines — NO network dispatch
+    txt = policy.respond_text(world, defectors[0], _dummy_transcript(), [])
+    assert "decline" in txt.lower()
+    pa = policy.private_acceptance_texts(world, defectors, _dummy_transcript(), None, [])
+    assert all('"approve": false' in t for t in pa.values())
+    # funnel accounting: the wrapper must carry its OWN empty call_records —
+    # delegating to the shared panel policy double-counts in the strict funnel
+    wrapper = policy._agent_policies[defectors[0]]
+    assert wrapper.call_records == [] and wrapper.call_records is not wrapper._inner.call_records
+    # rate 0 -> no defector seats
+    p0 = runner.build_policy("live_frozen", dataclasses.replace(
+        config, protocol=dataclasses.replace(proto, defection_rate=0.0)),
+        runner.InferenceOptions(), role_table=table)
+    assert not any(getattr(p, "is_defector_seat", False) for p in p0._agent_policies.values())
+
+
+def _dummy_transcript():
+    from aeread import exchange_economy as ex
+    return ex.RoundTranscript(round_index=1, controller_id=1, communication_texts={},
+                              proposal_text="PUBLIC ACTION\nMESSAGE: hi\nSETTLEMENT: none",
+                              response_texts={}, final_text="")

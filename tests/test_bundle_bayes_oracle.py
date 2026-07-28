@@ -7,6 +7,8 @@ from __future__ import annotations
 
 import types
 
+import pytest
+
 from aeread import exchange_economy as ex  # noqa: E402  (conftest puts sprint/ on the path)
 from aeread import bundle_bayes_oracle as bb  # noqa: E402
 
@@ -85,3 +87,47 @@ def test_expected_wstar_floors_value_destroying_completions():
     wb, _ = bb.bundle_bayes_optimal_welfare(w, seed=7)
     assert ews >= 0.0
     assert 0.0 <= wb <= ews + 0.3
+
+
+def test_production_world_carries_seller_layout_and_mc_wbayes_engages():
+    """Config -> world -> oracle must reach the mc_wbayes tier (not silently
+    degrade to wstar_fallback because the world dropped seller_layout)."""
+    from pathlib import Path
+    from aeread import agentecon_oracle as ao
+    root = Path(__file__).resolve().parents[1]
+    cfg = ex.load_experiment_config(
+        root / "configs/exchange_economy/bundle_under_budget_trip3.json")
+    world = ex.make_world_from_config(cfg)
+    assert getattr(world, "seller_layout", None) is not None, \
+        "make_bundle_under_budget_world must attach the cost-prior layout"
+    import os
+    os.environ.pop("AEREAD_MC_WBAYES", None)
+    assert ao.BundleCaseOracle(world).w_bayes(seed=1).tier == "wstar_fallback"  # gated default
+    os.environ["AEREAD_MC_WBAYES"] = "1"
+    try:
+        br = ao.BundleCaseOracle(world).w_bayes(seed=1)
+        assert br.tier == "mc_wbayes", br.not_scorable_reason
+    finally:
+        os.environ.pop("AEREAD_MC_WBAYES", None)
+
+
+@pytest.mark.xfail(
+    reason="W_bayes is EX-ANTE (prior-expected; deliberate per the no-per-instance-clamp "
+    "note in agentecon_oracle) while W* is instance-conditional, so W_bayes can exceed "
+    "the instance W*. As a per-instance DENOMINATOR that makes perfect actions score <1 "
+    "— the open question gating production engagement (AEREAD_MC_WBAYES).",
+    strict=False)
+def test_mc_wbayes_per_instance_frontier_open_question():
+    import os
+    from pathlib import Path
+    from aeread import agentecon_oracle as ao
+    root = Path(__file__).resolve().parents[1]
+    cfg = ex.load_experiment_config(
+        root / "configs/exchange_economy/bundle_under_budget_trip3.json")
+    world = ex.make_world_from_config(cfg)
+    os.environ["AEREAD_MC_WBAYES"] = "1"
+    try:
+        br = ao.BundleCaseOracle(world).w_bayes(seed=1)
+    finally:
+        os.environ.pop("AEREAD_MC_WBAYES", None)
+    assert 0.0 <= br.w_bayes <= br.w_star + 1e-9  # per-instance 0 <= W_bayes <= W*
