@@ -49,6 +49,19 @@ class EverOSMemoryError(RuntimeError):
     """Non-2xx or malformed response from the EverOS server."""
 
 
+class NullMemory:
+    """Memory-off control: no recall, writes discarded. Same code path."""
+
+    def search(self, query: str, **kw: Any) -> dict[str, Any]:  # noqa: ARG002
+        return {}
+
+    def add(self, session_id: str, messages: list) -> str:  # noqa: ARG002
+        return "discarded"
+
+    def flush(self, session_id: str) -> str:  # noqa: ARG002
+        return "no_extraction"
+
+
 class EverOSMemory:
     """Minimal stdlib client for the EverOS HTTP API (add / flush / search)."""
 
@@ -186,7 +199,8 @@ class MemoryCandidate:
             "role": "assistant", "timestamp": self._now_ms(),
             "content": text})
         self.turns.append({"phase": phase, "observation": observation,
-                           "response": text})
+                           "response": text,
+                           "memory_snippets": len(snippets)})
         return text
 
     def recall(self, observation: str, phase: str) -> list[str]:
@@ -232,14 +246,21 @@ def build_openrouter_llm_fn(model: str, *, base_url: str | None = None,
             "OPENAI_BASE_URL", "https://openrouter.ai/api/v1"),
         api_key=api_key or os.environ.get("OPENAI_API_KEY", "EMPTY"))
 
+    usage = {"calls": 0, "prompt_tokens": 0, "completion_tokens": 0}
+
     def llm_fn(prompt: str) -> str:
         resp = client.chat.completions.create(
             model=model,
             messages=[{"role": "user", "content": prompt}],
             temperature=temperature,
             max_tokens=max_tokens)
+        usage["calls"] += 1
+        if resp.usage is not None:
+            usage["prompt_tokens"] += resp.usage.prompt_tokens or 0
+            usage["completion_tokens"] += resp.usage.completion_tokens or 0
         return (resp.choices[0].message.content or "").strip()
 
+    llm_fn.usage = usage  # type: ignore[attr-defined] - cost reporting
     return llm_fn
 
 
@@ -265,6 +286,7 @@ def run_memory_episode(case_path: str | Path, seed: int,
     candidate.begin_episode(f"{case_path.stem}-s{int(seed)}")
 
     def _run(out: Path) -> dict[str, Any]:
+        (out / "cases").mkdir(parents=True, exist_ok=True)
         prepared = pilot.seeded_case(case_path, int(seed), out / "cases",
                                      agent_label)
         sub_dir = submit.run_submission(

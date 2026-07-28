@@ -15,6 +15,7 @@ import pytest
 from aeread.integrations.everos_memory import (
     EverOSMemory,
     MemoryCandidate,
+    NullMemory,
 )
 
 
@@ -83,6 +84,7 @@ def test_act_injects_recalled_memories():
     assert "panel concedes to 2:1 when countered" in prompts[0]
     assert "counter aggressive opening offers" in prompts[0]
     assert "Round 2 observation." in prompts[0]
+    assert cand.turns[0]["memory_snippets"] == 2
 
 
 def test_search_query_includes_episode_label_and_phase():
@@ -120,6 +122,15 @@ def test_end_episode_posts_transcript_and_flushes():
     assert all(t > 10 ** 12 for t in ts), "timestamps must be epoch ms"
     assert ts == sorted(ts) and len(set(ts)) == len(ts), "strictly increasing"
     assert mem.flush_calls == [session_id]
+
+
+def test_null_memory_is_a_clean_control():
+    cand, prompts = make_candidate(NullMemory())
+    out = cand.act("obs", "proposal")
+    assert out == "PROPOSE trade 2 X for 1 Y"
+    assert prompts[0] == "obs", "control arm must see the raw observation"
+    cand.end_episode("AER=0.2")  # no-op, must not raise
+    assert cand.memory_errors == 0
 
 
 def test_memory_failure_is_nonfatal():

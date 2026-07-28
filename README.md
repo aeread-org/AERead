@@ -127,6 +127,19 @@ For RL sampling, disable the response cache for the trained seat (temperature
 > 0 with a per-sample index, e.g. agent spec `model@t0.7:s2`); frozen seats
 keep temp-0 caching.
 
+## Persistent memory (EverOS)
+
+`aeread.integrations.everos_memory` (experimental) wires
+[EverOS](https://github.com/EverMind-AI/EverOS) — an open-source,
+markdown-first memory service — into the submission harness as a *treatment
+arm*: `MemoryCandidate` satisfies the text-boundary contract, searches memory
+before every action, and writes each finished episode + outcome back, so a
+memory-on vs memory-off A/B measures what persistent cross-episode memory is
+worth in realized welfare. `examples/everos_memory_ab.py` runs the A/B
+(sequential seeds so memory accumulates; `NullMemory` is the control arm;
+replay verification is off because cross-episode state is not
+byte-replayable — official replay-verified submissions remain memory-off).
+
 ## Scoring semantics, in one paragraph
 
 Per episode the scorer records `w_real` (realized welfare gain of the world,
