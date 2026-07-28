@@ -8,7 +8,9 @@ question — *how much of the attainable welfare does an agent actually realize
 when it has to trade with others?* — and measures it with a single auditable
 score.
 
-Results and methodology: https://aeread.org
+Results and methodology: https://aeread.org · **Capability coverage map:**
+[CAPABILITIES.md](CAPABILITIES.md) — what is covered, partial, and planned,
+toward a general evaluation of agent economic capabilities.
 
 ## What makes it a benchmark, not just a sandbox
 
