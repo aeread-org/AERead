@@ -39,8 +39,9 @@ aeread --help
 aeread run --config configs/exchange_economy/cases_v0/case01_visible_bilateral_ir.json \
     --mode offline --seed 7 --out runs/
 
-# provider-free case admission gate (baselines + validity ordering):
-aeread validate-case --configs 'configs/exchange_economy/cases_v0/case0*.json'
+# provider-free baselines + validity orderings for a case (~2 min/case, pure CPU):
+aeread baselines --configs 'configs/exchange_economy/cases_v0/case01_visible_bilateral_ir.json' \
+    --output-md /tmp/case01_baselines.md
 ```
 
 ## Evaluate a model

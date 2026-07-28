@@ -45,8 +45,20 @@ The gate enforces, provider-free: meaningful attainable surplus; an
 individually-rational path to it; the non-triviality ordering
 `no-op ≤ random < greedy < ceiling` (a case that random walks can ace, or that
 greedy saturates, measures nothing); and bounded hidden-information gaps.
-PRs must include the gate output. Dev seeds are public; official evaluation
-adds private held-out seeds that never ship in this repo.
+Budget ~2 minutes of CPU per case.
+
+**Calibration note:** the gate's default thresholds and strict heuristic
+orderings were frozen against the `v1_ladder_*`/`v1_main` family; on the
+`cases_v0` set they currently report threshold rejections and ordering ties
+(recorded in `configs/exchange_economy/v1_manifest.json`). cases_v0 was
+admitted on the empirical non-triviality ordering (`no-op ≤ random < greedy <
+model-ceiling` holds on all five cases on dev and held-out seeds). For a new
+case PR, include the full gate output — maintainers review the numbers and
+orderings, they do not require a mechanical `accept` verdict; recalibrating
+the thresholds per case family is an open item.
+
+Dev seeds are public; official evaluation adds private held-out seeds that
+never ship in this repo.
 
 ## 2. Submit an agent / results
 
