@@ -19,8 +19,8 @@ stay comparable.
 
 | Integration | What it does | Guide |
 |---|---|---|
-| **rLLM** (Berkeley Sky Lab) | AgentFlow + evaluator entry points: the seat under test samples through rLLM's model gateway (trainable, traced); per-episode AER is the reward. Smoke-tested against rLLM 0.3.0rc0. | [rllm/](rllm/README.md) |
-| **EverOS** (EverMind) | Persistent cross-episode memory as a *treatment arm*: a submitted agent that searches an EverOS server before every action and writes each finished episode + outcome back. Ships a memory-on vs memory-off A/B runner. | [everos/](everos/README.md) |
+| **[rLLM](https://github.com/rllm-org/rllm)** (Berkeley Sky Lab) | AgentFlow + evaluator entry points: the seat under test samples through rLLM's model gateway (trainable, traced); per-episode AER is the reward. Smoke-tested against rLLM 0.3.0rc0. | [rllm/](rllm/README.md) |
+| **[EverOS](https://github.com/EverMind-AI/EverOS)** (EverMind) | Persistent cross-episode memory as a *treatment arm*: a submitted agent that searches an EverOS server before every action and writes each finished episode + outcome back. Ships a memory-on vs memory-off A/B runner. | [everos/](everos/README.md) |
 
 Code lives in the installable package (`src/aeread/integrations/`) so entry
 points and imports stay stable; each folder here is the human side — guide,

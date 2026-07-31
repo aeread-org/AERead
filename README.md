@@ -118,16 +118,19 @@ the framework-neutral episode core (`run_episode(...) -> score row`). See
 [integrations/](integrations/README.md) for the contract and the
 add-your-own guide.
 
-- **[rLLM](integrations/rllm/README.md)** (train on AER as reward,
-  smoke-tested against 0.3.0rc0): the seat under test samples through rLLM's
-  model gateway; the frozen panel stays cached and untraced; GRPO groups
-  rollouts per case so denominator scale cancels in the advantage.
-- **[EverOS](integrations/everos/README.md)** (persistent memory as a
-  treatment arm): a submitted agent that searches an EverOS server before
-  every action and writes each finished episode + outcome back; a memory-on
-  vs memory-off A/B measures what cross-episode memory is worth in realized
-  welfare (first result: paired delta **+0.059 [+0.019, +0.103]** on the
-  hidden-discovery family).
+- **[rLLM](integrations/rllm/README.md)**
+  (upstream: [rllm-org/rllm](https://github.com/rllm-org/rllm)) — train on
+  AER as reward, smoke-tested against 0.3.0rc0: the seat under test samples
+  through rLLM's model gateway; the frozen panel stays cached and untraced;
+  GRPO groups rollouts per case so denominator scale cancels in the
+  advantage.
+- **[EverOS](integrations/everos/README.md)**
+  (upstream: [EverMind-AI/EverOS](https://github.com/EverMind-AI/EverOS)) —
+  persistent memory as a treatment arm: a submitted agent that searches an
+  EverOS server before every action and writes each finished episode +
+  outcome back; a memory-on vs memory-off A/B measures what cross-episode
+  memory is worth in realized welfare (first result: paired delta
+  **+0.059 [+0.019, +0.103]** on the hidden-discovery family).
 - **`aeread.exchange_rl_env`**: a structured (LLM-free) bilateral negotiation
   env with `reset()` / `step(agent_id, StructuredAction)` for classical RL
   and unit-testable reward shaping — no external framework needed.
