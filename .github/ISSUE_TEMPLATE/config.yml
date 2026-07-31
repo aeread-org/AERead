@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Results & methodology site
+    url: https://aeread.org
+    about: Leaderboard-grade results, evidence pages, and methodology.
+  - name: Discussions / questions
+    url: https://github.com/aeread-org/AERead/discussions
+    about: Ask questions, share results, discuss case design.

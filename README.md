@@ -1,5 +1,15 @@
 # AERead — an agentic economic environment for LLM agents
 
+[![CI](https://github.com/aeread-org/AERead/actions/workflows/ci.yml/badge.svg)](https://github.com/aeread-org/AERead/actions/workflows/ci.yml)
+[![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](pyproject.toml)
+[![Site](https://img.shields.io/badge/results-aeread.org-black.svg)](https://aeread.org)
+
+**Start here:** [5-minute quickstart](docs/quickstart.md) ·
+[Concepts](docs/concepts.md) · [Submit an agent](docs/submissions.md) ·
+[Integrations (rLLM, EverOS, yours)](integrations/README.md) ·
+[Contribute](CONTRIBUTING.md)
+
 AERead (AgentEcon Readiness) is an open environment + benchmark for studying how
 LLM agents behave in **multi-agent exchange economies**: bilateral trade,
 multiparty clearing, hidden-counterparty discovery, consent under hidden
@@ -100,47 +110,27 @@ validated `roles` table. New cases must pass the provider-free admission gate
 `no-op ≤ random < greedy < ceiling` and rejects degenerate worlds. See
 [CONTRIBUTING.md](CONTRIBUTING.md) and `configs/exchange_economy/cases_v0/README.md`.
 
-## RL
+## Integrations
 
-Two surfaces:
+AERead plugs into other agent stacks through two small seams — the
+text-boundary submitted-agent contract (`act(observation, phase) -> str`) and
+the framework-neutral episode core (`run_episode(...) -> score row`). See
+[integrations/](integrations/README.md) for the contract and the
+add-your-own guide.
 
-- **rLLM integration** (`aeread.integrations`, smoke-tested against rLLM
-  0.3.0rc0): the packaged entry points expose an AgentFlow + evaluator — the
-  seat under test samples through rLLM's model gateway (trainable, traced), the
-  frozen panel stays on its own cached endpoints, and per-episode AER is the
-  reward. GRPO groups rollouts per case, so per-case denominator scale cancels
-  out of the advantage. Working recipe:
-
-  ```bash
-  pip install "rllm @ git+https://github.com/rllm-org/rllm.git"
-  # upstream skew note: rllm@main needs its gateway from the same tree
-  pip install --force-reinstall --no-deps \
-      "rllm-model-gateway @ git+https://github.com/rllm-org/rllm.git#subdirectory=rllm-model-gateway"
-
-  python -m aeread.integrations.rllm_dataset --register   # dev rows -> ~/.rllm
-  rllm eval aeread --agent aeread --evaluator aeread \
-      --base-url <openai-compatible-endpoint> --model <model>
-  ```
+- **[rLLM](integrations/rllm/README.md)** (train on AER as reward,
+  smoke-tested against 0.3.0rc0): the seat under test samples through rLLM's
+  model gateway; the frozen panel stays cached and untraced; GRPO groups
+  rollouts per case so denominator scale cancels in the advantage.
+- **[EverOS](integrations/everos/README.md)** (persistent memory as a
+  treatment arm): a submitted agent that searches an EverOS server before
+  every action and writes each finished episode + outcome back; a memory-on
+  vs memory-off A/B measures what cross-episode memory is worth in realized
+  welfare (first result: paired delta **+0.059 [+0.019, +0.103]** on the
+  hidden-discovery family).
 - **`aeread.exchange_rl_env`**: a structured (LLM-free) bilateral negotiation
-  env with `reset()` / `step(agent_id, StructuredAction)` for classical RL and
-  unit-testable reward shaping.
-
-For RL sampling, disable the response cache for the trained seat (temperature
-> 0 with a per-sample index, e.g. agent spec `model@t0.7:s2`); frozen seats
-keep temp-0 caching.
-
-## Persistent memory (EverOS)
-
-`aeread.integrations.everos_memory` (experimental) wires
-[EverOS](https://github.com/EverMind-AI/EverOS) — an open-source,
-markdown-first memory service — into the submission harness as a *treatment
-arm*: `MemoryCandidate` satisfies the text-boundary contract, searches memory
-before every action, and writes each finished episode + outcome back, so a
-memory-on vs memory-off A/B measures what persistent cross-episode memory is
-worth in realized welfare. `examples/everos_memory_ab.py` runs the A/B
-(sequential seeds so memory accumulates; `NullMemory` is the control arm;
-replay verification is off because cross-episode state is not
-byte-replayable — official replay-verified submissions remain memory-off).
+  env with `reset()` / `step(agent_id, StructuredAction)` for classical RL
+  and unit-testable reward shaping — no external framework needed.
 
 ## Scoring semantics, in one paragraph
 
@@ -168,6 +158,33 @@ private held-out seed set are excluded by design.
 | `GEMINI_API_KEY` | native Gemini path for `google/gemini-*` models |
 | `AEREAD_CACHE_DIR`, `AEREAD_GEMINI_CACHE_DIR` | response-cache locations |
 | `POC_MODEL`, `POC_MT`, `POC_TEMPERATURE` | runner defaults (model, max tokens, temperature) |
+
+## Repository map
+
+```
+src/aeread/            the installable package: arena engine, runner, scorer,
+                       submission harness, baselines, oracles, CLI
+src/aeread/integrations/   rLLM flow/eval/dataset, EverOS memory (importable code)
+integrations/          per-integration guides + examples (human side)
+configs/exchange_economy/  versioned case sets (cases_v0/, …) + variants
+docs/                  quickstart, concepts, submission contract
+examples/              minimal runnable entry points
+tests/                 offline, deterministic; no API keys needed
+CAPABILITIES.md        coverage map: covered / partial / planned capabilities
+export_manifest.json   provenance of every exported module (see Provenance)
+```
+
+## Community & contributing
+
+- **[CONTRIBUTING.md](CONTRIBUTING.md)** — four channels: cases, agents &
+  results, integrations, core code. Cases must pass the admission gate
+  (`no-op ≤ random < greedy < ceiling`); code lands with offline tests.
+- **Issues** — templates for [bugs](.github/ISSUE_TEMPLATE/bug_report.md),
+  [new cases](.github/ISSUE_TEMPLATE/new_case.md), and
+  [new integrations](.github/ISSUE_TEMPLATE/new_integration.md). Replay
+  mismatches are P0.
+- **[Code of Conduct](CODE_OF_CONDUCT.md)** — Contributor Covenant;
+  benchmark disputes are settled with reproducible runs.
 
 ## License & citation
 

@@ -1,6 +1,18 @@
 # Contributing to AERead
 
-Three contribution channels: **cases**, **agents/results**, and **code**.
+Four contribution channels: **cases** (§1), **agents/results** (§2),
+**integrations** (§3), and **code** (§4).
+
+## 0. Dev setup
+
+```bash
+git clone https://github.com/aeread-org/AERead && cd AERead
+pip install -e ".[dev]"     # Python 3.10+
+pytest -q                   # offline, deterministic, no API keys (~3 min)
+```
+
+New to the project? Read [docs/quickstart.md](docs/quickstart.md) (5 minutes,
+rungs 1–2 need no keys) and [docs/concepts.md](docs/concepts.md) first.
 
 ## 1. Contribute a case
 
@@ -91,7 +103,24 @@ What the report contains and how we audit it:
 the replay audit and re-evaluated on the private held-out seed set. PRs are
 labeled accordingly.
 
-## 3. Code
+## 3. Contribute an integration
+
+Connect AERead to another framework, memory system, or training stack. The
+full guide (the two seams, replay semantics for stateful agents, layout
+conventions) is [integrations/README.md](integrations/README.md); the short
+version:
+
+- importable code + offline deterministic tests in the package
+  (`src/aeread/integrations/<name>.py`, `tests/test_<name>.py` — fake the
+  external service and the LLM; `tests/test_everos_memory.py` is the
+  pattern);
+- guide + runnable example in `integrations/<name>/`;
+- your integration drives only the under-test seat — panel/compiler/verifier
+  stay frozen, or results stop being comparable;
+- open a [new-integration issue](.github/ISSUE_TEMPLATE/new_integration.md)
+  first if you want design feedback before building.
+
+## 4. Code
 
 ```bash
 pip install -e '.[dev]'
