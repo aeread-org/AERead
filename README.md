@@ -1,3 +1,7 @@
+<p align="center">
+  <a href="https://aeread.org"><img src="assets/logo.svg" alt="AERead" width="96"></a>
+</p>
+
 # AERead — an agentic economic environment for LLM agents
 
 [![CI](https://github.com/aeread-org/AERead/actions/workflows/ci.yml/badge.svg)](https://github.com/aeread-org/AERead/actions/workflows/ci.yml)
@@ -176,6 +180,20 @@ tests/                 offline, deterministic; no API keys needed
 CAPABILITIES.md        coverage map: covered / partial / planned capabilities
 export_manifest.json   provenance of every exported module (see Provenance)
 ```
+
+## Ecosystem & partnerships
+
+- **[rLLM](https://github.com/rllm-org/rllm)** — Berkeley Sky Lab's agent
+  post-training framework. AERead ships rLLM entry points; the seat under
+  test trains through rLLM's gateway with per-episode AER as reward.
+  ([guide](integrations/rllm/README.md))
+- **[EverOS](https://github.com/EverMind-AI/EverOS)** — EverMind's
+  open-source, markdown-first memory service. The persistent-memory
+  treatment arm is developed in design partnership with the EverOS team.
+  ([guide](integrations/everos/README.md))
+
+Building on AERead, or want your framework listed? Open a
+[new-integration issue](.github/ISSUE_TEMPLATE/new_integration.md).
 
 ## Community & contributing
 
