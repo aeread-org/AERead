@@ -142,6 +142,50 @@ def test_memory_failure_is_nonfatal():
     assert cand.memory_errors >= 2
 
 
+def test_distill_reflection_is_llm_written():
+    mem = FakeMemory()
+    cand, prompts = make_candidate(
+        mem, responses=["counter 2:1", "LESSONS: 1. counter aggressive opens"],
+        distill=True)
+    cand.begin_episode("case01-s7")
+    cand.act("obs one", "proposal")
+    cand.end_episode("AER=0.42")
+    # second llm call is the distillation prompt
+    assert len(prompts) == 2
+    assert "transferable" in prompts[1].lower()
+    assert "AER=0.42" in prompts[1]
+    assert "counter 2:1" in prompts[1], "distill prompt must include own actions"
+    _, msgs = mem.add_calls[0]
+    assert "LESSONS: 1. counter aggressive opens" in msgs[-1]["content"]
+    assert "AER=0.42" in msgs[-1]["content"], "outcome still recorded verbatim"
+
+
+def test_distill_failure_falls_back_to_template():
+    mem = FakeMemory()
+    calls = {"n": 0}
+
+    def llm_fn(prompt):
+        calls["n"] += 1
+        if calls["n"] == 2:
+            raise RuntimeError("provider down")
+        return "act text"
+
+    cand = MemoryCandidate(llm_fn, mem, clock=lambda: 1_700_000_000.0,
+                           distill=True)
+    cand.begin_episode("case01-s8")
+    cand.act("obs", "proposal")
+    cand.end_episode("AER=0.1")  # must not raise
+    _, msgs = mem.add_calls[0]
+    assert "AER=0.1" in msgs[-1]["content"]
+
+
+def test_min_score_passes_through_to_search():
+    mem = FakeMemory()
+    cand, _ = make_candidate(mem, min_score=0.5)
+    cand.act("obs", "proposal")
+    assert all(kw.get("min_score") == 0.5 for _, kw in mem.search_calls)
+
+
 def test_begin_episode_resets_buffer_and_session():
     mem = FakeMemory()
     cand, _ = make_candidate(mem)

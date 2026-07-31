@@ -70,16 +70,18 @@ def pooled(rows: list[dict]) -> float | None:
 
 def run_arm(arm: str, args: argparse.Namespace, out_dir: Path) -> dict:
     case_path = Path(args.case)
-    if arm == "mem":
+    if arm.startswith("mem"):
         memory = EverOSMemory(args.everos_url, app_id="aeread-ab",
-                              project_id=case_path.stem)
+                              project_id=args.memory_project or case_path.stem)
     else:
         memory = NullMemory()
     llm_fn = build_openrouter_llm_fn(
         args.model, temperature=args.temperature, max_tokens=args.max_tokens)
     candidate = MemoryCandidate(llm_fn, memory,
                                 agent_id=f"aeread-{arm}",
-                                memory_top_k=args.top_k)
+                                memory_top_k=args.top_k,
+                                min_score=args.min_score,
+                                distill=args.distill)
 
     arm_dir = out_dir / arm
     arm_dir.mkdir(parents=True, exist_ok=True)
@@ -106,6 +108,11 @@ def run_arm(arm: str, args: argparse.Namespace, out_dir: Path) -> dict:
         rows.append(row)
         with open(results_path, "a") as fh:
             fh.write(json.dumps(row) + "\n")
+        if row.get("status") != "error":
+            turns_dir = arm_dir / "turns"
+            turns_dir.mkdir(exist_ok=True)
+            (turns_dir / f"s{seed}.json").write_text(
+                json.dumps(r["turns"], indent=1))
         print(f"[{arm}] seed {seed}: status={row.get('status')} "
               f"aer={row.get('aer')} snippets={row.get('memory_snippets')} "
               f"({row['secs']}s)", flush=True)
@@ -135,6 +142,11 @@ def main() -> None:
     ap.add_argument("--temperature", type=float, default=0.7)
     ap.add_argument("--max-tokens", type=int, default=1200)
     ap.add_argument("--top-k", type=int, default=4)
+    ap.add_argument("--min-score", type=float, default=None)
+    ap.add_argument("--distill", action="store_true",
+                    help="LLM-written transferable-lessons reflection")
+    ap.add_argument("--memory-project", default=None,
+                    help="EverOS project_id override (fresh memory scope)")
     args = ap.parse_args()
 
     out_dir = Path(args.out)

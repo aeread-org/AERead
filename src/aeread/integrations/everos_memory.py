@@ -104,12 +104,15 @@ class EverOSMemory:
 
     def search(self, query: str, *, user_id: str | None = None,
                agent_id: str | None = None, method: str = "vector",
-               top_k: int = 4) -> dict[str, Any]:
+               top_k: int = 4,
+               min_score: float | None = None) -> dict[str, Any]:
         if bool(user_id) == bool(agent_id):
             raise ValueError("exactly one of user_id / agent_id must be set")
         payload: dict[str, Any] = {
             "query": query, "method": method, "top_k": top_k,
             "app_id": self.app_id, "project_id": self.project_id}
+        if min_score is not None:
+            payload["min_score"] = min_score
         if user_id:
             payload["user_id"] = user_id
         else:
@@ -135,6 +138,7 @@ class MemoryCandidate:
     def __init__(self, llm_fn: Callable[[str], str], memory: Any, *,
                  agent_id: str = "aeread_mem", arena_user_id: str = "arena",
                  memory_top_k: int = 4, search_method: str = "vector",
+                 min_score: float | None = None, distill: bool = False,
                  clock: Callable[[], float] = time.time) -> None:
         self.llm_fn = llm_fn
         self.memory = memory
@@ -142,6 +146,8 @@ class MemoryCandidate:
         self.arena_user_id = arena_user_id
         self.memory_top_k = memory_top_k
         self.search_method = search_method
+        self.min_score = min_score
+        self.distill = distill
         self._clock = clock
         self.label = "episode"
         self.session_id = f"{agent_id}-episode"
@@ -164,20 +170,50 @@ class MemoryCandidate:
 
     def end_episode(self, outcome: str) -> None:
         msgs = list(self._buffer)
+        reflection = (
+            f"Episode complete ({self.label}). Outcome: {outcome}. "
+            "Remember which negotiation moves led to executed, "
+            "welfare-positive settlements in this case family and "
+            "which lost value or failed verification.")
+        if self.distill and self.turns:
+            lessons = self._distill(outcome)
+            if lessons:
+                reflection = (f"Episode complete ({self.label}). "
+                              f"Outcome: {outcome}.\n{lessons}")
         msgs.append({
             "sender_id": self.agent_id, "sender_name": "AEReadCandidate",
             "role": "assistant", "timestamp": self._now_ms(),
-            "content": (
-                f"Episode complete ({self.label}). Outcome: {outcome}. "
-                "Remember which negotiation moves led to executed, "
-                "welfare-positive settlements in this case family and "
-                "which lost value or failed verification.")})
+            "content": reflection})
         try:
             self.memory.add(self.session_id, msgs)
             self.memory.flush(self.session_id)
         except Exception:
             self.memory_errors += 1
         self._buffer = []
+
+    def _distill(self, outcome: str) -> str:
+        """One LLM call turning the episode into transferable lessons.
+
+        World-specific numbers are explicitly excluded — retrieval feeds these
+        lessons into *different* worlds, where this episode's quantities and
+        holdings are false.
+        """
+        moves = "\n".join(f"[{t['phase']}] {t['response'][:400]}"
+                          for t in self.turns[-12:])
+        prompt = (
+            f"You just finished a negotiation episode in the case family "
+            f"'{self.label}'. Final outcome: {outcome}.\n"
+            f"Your actions were:\n{moves}\n\n"
+            "Write 2-4 short, transferable strategy lessons for future "
+            "episodes of this case family. Rules: describe negotiation "
+            "moves and their consequences in general terms; do NOT mention "
+            "specific resource quantities, holdings, or prices (they differ "
+            "in every world); each lesson on its own line starting with "
+            "'Lesson:'.")
+        try:
+            return (self.llm_fn(prompt) or "").strip()
+        except Exception:
+            return ""
 
     # -- acting ------------------------------------------------------------
 
@@ -209,9 +245,11 @@ class MemoryCandidate:
         for scope in ({"agent_id": self.agent_id},
                       {"user_id": self.arena_user_id}):
             try:
-                data = self.memory.search(
-                    query, method=self.search_method,
-                    top_k=self.memory_top_k, **scope) or {}
+                kw: dict[str, Any] = dict(method=self.search_method,
+                                          top_k=self.memory_top_k, **scope)
+                if self.min_score is not None:
+                    kw["min_score"] = self.min_score
+                data = self.memory.search(query, **kw) or {}
             except Exception:
                 self.memory_errors += 1
                 continue
