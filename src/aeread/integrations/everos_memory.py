@@ -42,7 +42,8 @@ MEMORY_HEADER = (
     "PRIOR EXPERIENCE (from your persistent memory of past episodes "
     "in this case family):")
 
-_SNIPPET_FIELDS = ("summary", "content", "description", "title", "name")
+_SNIPPET_FIELDS = ("summary", "content", "description", "task_intent",
+                   "key_insight", "title", "name")
 
 
 class EverOSMemoryError(RuntimeError):
@@ -155,6 +156,7 @@ class MemoryCandidate:
         self.memory_errors = 0
         self._buffer: list[dict[str, Any]] = []
         self._last_ts = 0
+        self._session_outcomes: dict[str, float] = {}
 
     def __repr__(self) -> str:  # keeps submission labels readable
         return f"MemoryCandidate(agent_id={self.agent_id!r})"
@@ -169,6 +171,9 @@ class MemoryCandidate:
         self.turns = []
 
     def end_episode(self, outcome: str) -> None:
+        m = re.search(r"AER=([-+]?[0-9.]+)", outcome)
+        if m:
+            self._session_outcomes[self.session_id] = float(m.group(1))
         msgs = list(self._buffer)
         reflection = (
             f"Episode complete ({self.label}). Outcome: {outcome}. "
@@ -241,7 +246,7 @@ class MemoryCandidate:
 
     def recall(self, observation: str, phase: str) -> list[str]:
         query = f"{self.label} {phase}: {observation[:300]}"
-        snippets: list[str] = []
+        found: list[tuple[str, bool]] = []  # (snippet, from_failed_episode)
         for scope in ({"agent_id": self.agent_id},
                       {"user_id": self.arena_user_id}):
             try:
@@ -256,9 +261,18 @@ class MemoryCandidate:
             for kind in ("agent_skills", "agent_cases", "episodes"):
                 for item in data.get(kind) or []:
                     text = _snippet(item)
-                    if text:
-                        snippets.append(text)
-        return list(dict.fromkeys(snippets))[:self.memory_top_k]
+                    if not text:
+                        continue
+                    aer = self._session_outcomes.get(
+                        str(item.get("session_id") or ""))
+                    found.append((text, aer is not None and aer <= 1e-9))
+        # outcome-aware filter: drop snippets from episodes known to have
+        # realized nothing, unless nothing better survives (fallback, not
+        # amnesia) — failure recaps compounding was the v2 arm's doom loop.
+        kept = [t for t, failed in found if not failed]
+        if not kept:
+            kept = [t for t, _ in found]
+        return list(dict.fromkeys(kept))[:self.memory_top_k]
 
     def _now_ms(self) -> int:
         ts = int(self._clock() * 1000)

@@ -186,6 +186,44 @@ def test_min_score_passes_through_to_search():
     assert all(kw.get("min_score") == 0.5 for _, kw in mem.search_calls)
 
 
+def test_agent_case_items_format_into_snippets():
+    hits = {"agent_cases": [{
+        "task_intent": "Design a mutually beneficial trade",
+        "key_insight": "concrete offers beat vague inquiry",
+        "approach": "1. elicit...", "session_id": "x-s1206"}]}
+    cand, prompts = make_candidate(FakeMemory(hits=hits))
+    cand.act("obs", "proposal")
+    assert "Design a mutually beneficial trade" in prompts[0]
+    assert "concrete offers beat vague inquiry" in prompts[0]
+
+
+def test_recall_drops_snippets_from_failed_episodes():
+    hits = {"episodes": [
+        {"summary": "failed recap", "session_id": "aeread_mem-case03-s1"},
+        {"summary": "winning recap", "session_id": "aeread_mem-case03-s2"},
+    ]}
+    cand, prompts = make_candidate(FakeMemory(hits=hits))
+    cand.begin_episode("case03-s1")
+    cand.end_episode("AER=0.0")            # session s1 realized nothing
+    cand.begin_episode("case03-s2")
+    cand.end_episode("AER=0.2")            # session s2 realized value
+    cand.begin_episode("case03-s3")
+    cand.act("obs", "proposal")
+    assert "winning recap" in prompts[0]
+    assert "failed recap" not in prompts[0]
+
+
+def test_recall_keeps_failed_snippets_when_nothing_else():
+    hits = {"episodes": [
+        {"summary": "failed recap", "session_id": "aeread_mem-case03-s1"}]}
+    cand, prompts = make_candidate(FakeMemory(hits=hits))
+    cand.begin_episode("case03-s1")
+    cand.end_episode("AER=0.0")
+    cand.begin_episode("case03-s2")
+    cand.act("obs", "proposal")
+    assert "failed recap" in prompts[0], "graceful fallback, not amnesia"
+
+
 def test_begin_episode_resets_buffer_and_session():
     mem = FakeMemory()
     cand, _ = make_candidate(mem)
