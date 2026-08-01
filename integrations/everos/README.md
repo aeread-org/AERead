@@ -49,10 +49,17 @@ Episodes run sequentially in seed order so memory accumulates; per-arm output
 is `results.jsonl` + `summary.json` (pooled AER `ΣW/ΣD`, seeded episode
 bootstrap CI, snippet/error counts) and per-episode turn logs under `turns/`.
 
-**First published result** (case03, deepseek-v4-flash candidate, 10 paired dev
-seeds): memory-on **+0.144** vs memory-off **+0.085** pooled AER, paired delta
-**+0.059 [95% CI +0.019, +0.103]** — with the lift concentrated in episodes
-the memoryless control fails to settle at all.
+**Measured results** (case03, deepseek-v4-flash candidate, same 12 dev seeds
+per arm, one sequence each): recap-memory **+0.137** vs control **+0.087**
+(paired delta +0.059 [+0.019, +0.103]) — but two follow-up arms on identical
+seeds landed at **+0.031** (strategy-distilled, failure-seeded) and
+**+0.045** (outcome-filtered recall, containing the best single episode
+recorded on this grid, +0.332). The treatment effect's *sign* is decided by
+retrieval policy and early-sequence luck, not by "memory yes/no" — memory
+compounds whatever the first episodes produced. Full three-arm analysis,
+post-mortems, and design consequences (over-fetch-then-filter,
+outcome-weighted retrieval, multiple sequences per arm) are in the
+integration report on the AERead results site/repo.
 
 ## Caveats (deliberate, documented)
 
