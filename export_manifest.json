@@ -1,6 +1,6 @@
 {
   "source_repo": "AERead (private)",
-  "source_commit": "063be7c219aff9b3565b4ea945045777afe32552",
+  "source_commit": "4669f1917c90602831e69fd0bfdc4048e1f0ced1",
   "n_files": 94,
   "sha256": {
     "configs/exchange_economy/bundle_under_budget_trip3.json": "512950eda3fe1fd8ec5df8b83ccb705e3cfb00897f114c1cb8828152158abf7e",
@@ -66,7 +66,7 @@
     "src/aeread/exchange_v1_validity.py": "758566b992d8bed5ee2ae3102db5f19cb746ef00c4c1df06476f782f858c6d4c",
     "src/aeread/gemini_batch_pool.py": "0b6610c3c2019cf5f22412abc891aec9878363874388be497a080d199cf4c814",
     "src/aeread/gemini_llm.py": "255004f154b515849419cf8691c2f7b074f82437ec1f6494ac887c5d7d3eb5c7",
-    "src/aeread/llm_agent.py": "3e7581b54ba6b16bce51b21592cff333c9e39315f2fe70f31699d7a0504d7b8b",
+    "src/aeread/llm_agent.py": "3a22df554b7324fb73dd7f31638fb66db4a91b75dd1ccb0f0b32c274d2a1d550",
     "src/aeread/nonir_classifier.py": "404f2cb3660785220185886d897d769ba4e3ce8e7bb394674293edf323413e57",
     "tests/test_adversarial_counterparty.py": "b4ad7466449d855dcde49280050622f8b88dad4d2ceb80690e0806b2caa5c6ed",
     "tests/test_aer_scorer.py": "44914ff9e5d717a6a0a3094af8963e90932d42e3ab913aafba8bfe1486235318",
@@ -92,7 +92,7 @@
     "tests/test_exchange_v1_validity.py": "fbe46cc2d1d818d586fe733ba63ea0b7a77495b6a831afc9af062e228cfb47e2",
     "tests/test_gemini_batch_pool.py": "0791da7198f1de18714f67467916a6b135e15ebaa6c06c733df7aca252cdf984",
     "tests/test_gemini_llm.py": "4a2b8e352ebba49b2e81c024ab43f90cabd10355b0ed62ac4880ccf474b87fff",
-    "tests/test_llm_agent.py": "c0fdb487ce40548031a8049189fef6747e159a5265e43e4f95ec969dea941a07",
+    "tests/test_llm_agent.py": "798b1f27fc687e5b9935037c263ee5ca834b6b313213f8a3efa3e99409687a4a",
     "tests/test_money_numeraire.py": "595dda10fabedfee992f4e4d1585e2d71b176cf5b187e40abb84db28934bdd35",
     "tests/test_money_world.py": "affc3739ffeb47537f4a2c9e7bf6b330d865b4975dc014ac0fe7d7d2d56a5b4b",
     "tests/test_nonir_classifier.py": "25e499fff5672e6560e92687461f4ce7e206e60024776ebff9218b18d06b83e9",

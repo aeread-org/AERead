@@ -330,3 +330,18 @@ def test_empty_openrouter_body_is_retryable():
     assert llm_agent._is_retryable_error(err) is True
     # but a real auth error must still NOT be retried
     assert llm_agent._is_retryable_error(Exception("401 invalid api key")) is False
+
+
+def test_openrouter_completion_floor_env(monkeypatch):
+    """Mute-audit fix: OPENROUTER_MIN_COMPLETION_TOKENS lifts small caps."""
+    from aeread import llm_agent as la
+
+    monkeypatch.delenv("OPENROUTER_MIN_COMPLETION_TOKENS", raising=False)
+    assert la._openrouter_completion_token_budget(1200) == 1200
+    monkeypatch.setenv("OPENROUTER_MIN_COMPLETION_TOKENS", "4096")
+    assert la._openrouter_completion_token_budget(1200) == 4096
+    assert la._openrouter_completion_token_budget(8000) == 8000
+    monkeypatch.setenv("OPENROUTER_MIN_COMPLETION_TOKENS", "abc")
+    import pytest
+    with pytest.raises(RuntimeError):
+        la._openrouter_completion_token_budget(1200)

@@ -243,6 +243,26 @@ def _gpt5_completion_token_budget(max_tokens: int) -> int:
     return max(max_tokens, floor_value)
 
 
+def _openrouter_completion_token_budget(max_tokens: int) -> int:
+    """Reasoning headroom for OpenRouter models (2026-08-01 mute audit).
+
+    Reasoning-style models (deepseek-v4-flash, minimax-m3, glm-4.7-flash, ...)
+    spend completion budget on reasoning tokens BEFORE emitting content; with
+    the raw per-phase caps (800/1200) the content comes back empty and lands
+    in the arena as a silent no-op turn. Mirrors the gpt-5 floor: set
+    OPENROUTER_MIN_COMPLETION_TOKENS to lift every OpenRouter call's budget
+    to at least that value. Unset = legacy behavior.
+    """
+    floor = os.environ.get("OPENROUTER_MIN_COMPLETION_TOKENS")
+    if not floor:
+        return max_tokens
+    try:
+        floor_value = int(floor)
+    except ValueError as e:
+        raise RuntimeError("OPENROUTER_MIN_COMPLETION_TOKENS must be an integer") from e
+    return max(max_tokens, floor_value)
+
+
 def _model_price_env_key(model: str, side: str) -> str:
     normalized = re.sub(r"[^A-Za-z0-9]+", "_", model).strip("_").upper()
     return f"LLM_PRICE_{normalized}_{side}_PER_1M"
@@ -631,11 +651,17 @@ def call_llm(
 
     base_url = os.environ.get("OPENAI_BASE_URL", DEFAULT_BASE_URL)
     api_key = os.environ.get("OPENAI_API_KEY")
-    gpt5_budget = _gpt5_completion_token_budget(max_tokens) if "gpt-5" in model.lower() else max_tokens
+    if "gpt-5" in model.lower():
+        effective_budget = _gpt5_completion_token_budget(max_tokens)
+    elif "openrouter.ai" in base_url:
+        effective_budget = _openrouter_completion_token_budget(max_tokens)
+    else:
+        effective_budget = max_tokens
+    gpt5_budget = effective_budget  # gpt-5 branch alias (kept for clarity below)
     cache_options = {
         "base_url": base_url.rstrip("/"),
         "max_tokens": max_tokens,
-        "effective_completion_tokens": gpt5_budget,
+        "effective_completion_tokens": effective_budget,
         "temperature": temperature,
         "sample": sample,
         "openai_gpt5_reasoning_effort": os.environ.get("OPENAI_GPT5_REASONING_EFFORT") if "gpt-5" in model.lower() else None,
@@ -686,7 +712,7 @@ def call_llm(
         # "Expecting value"). Fix: use the SDK for correct chunked TRANSPORT (with_raw_response),
         # but PARSE the body ourselves with the comment-stripping _parse_openrouter_body.
         create_kwargs["temperature"] = temperature
-        create_kwargs["max_tokens"] = max_tokens
+        create_kwargs["max_tokens"] = effective_budget
         _xb: dict[str, Any] = {}
         if os.environ.get("OPENROUTER_REASONING_EFFORT"):
             _xb["reasoning"] = {"effort": os.environ["OPENROUTER_REASONING_EFFORT"]}
@@ -715,16 +741,28 @@ def call_llm(
                 payload.update(extra_body)
             return _post_chat_completions_raw(api_key, base_url, payload)
 
-        try:
-            obj = _with_retry(_openrouter_call)
-        except Exception as e:
-            if not _is_openrouter_transport_error(e):
-                raise
-            obj = _with_retry(_raw_openrouter_call)
-        choice0 = (obj.get("choices") or [{}])[0]
-        text = (choice0.get("message") or {}).get("content") or choice0.get("text") or ""
-        usage = _normalize_openai_usage(obj.get("usage"))
-        resolved_model = obj.get("model")
+        def _openrouter_attempt() -> tuple[str, Any, Any]:
+            try:
+                obj = _with_retry(_openrouter_call)
+            except Exception as e:
+                if not _is_openrouter_transport_error(e):
+                    raise
+                obj = _with_retry(_raw_openrouter_call)
+            choice0 = (obj.get("choices") or [{}])[0]
+            t = (choice0.get("message") or {}).get("content") or choice0.get("text") or ""
+            return t, _normalize_openai_usage(obj.get("usage")), obj.get("model")
+
+        text, usage, resolved_model = _openrouter_attempt()
+        if not text.strip():
+            # Mute guard (2026-08-01 audit): empty content is NOT an error to
+            # the SDK — reasoning consumed the completion budget, or OpenRouter
+            # returned an HTTP-200 error body with no choices. One retry with
+            # an escalated budget; the outcome (still-empty included) is what
+            # gets recorded.
+            create_kwargs["max_tokens"] = max(effective_budget * 2, 8192)
+            text, usage, resolved_model = _openrouter_attempt()
+            if isinstance(usage, dict):
+                usage["empty_retry"] = 1
     elif "gpt-5" in model.lower():
         # OpenAI GPT-5.x reasoning models (direct OpenAI API): use
         # `max_completion_tokens` (they reject `max_tokens`) and the default
