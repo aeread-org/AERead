@@ -337,6 +337,62 @@ def resolve_config(
 # ===============================================================
 
 
+class RunHealthError(RuntimeError):
+    """A run is producing degenerate model output — abort instead of scoring it.
+
+    The 2026-08-01 mute audit: reasoning models returned EMPTY content on up to
+    88% of under-test calls (their reasoning consumed the completion budget).
+    Empty utterances are economically valid no-ops, so 450 episodes scored
+    "ok" and three board cells measured token starvation instead of economic
+    capability. This exception is the circuit breaker that makes the same class
+    of failure LOUD and IMMEDIATE.
+    """
+
+
+class SweepAbort(RuntimeError):
+    """A batch driver's failure budget is exhausted — stop before burning the grid."""
+
+
+class SweepCircuitBreaker:
+    """Driver-level breaker: stop a sweep that is failing systematically.
+
+    Two independent trips: ``max_consecutive`` failures in a row (a provider
+    outage / depleted credits / a broken config), or a failure rate above
+    ``max_failure_rate`` once ``min_jobs`` have been attempted (a slow bleed).
+    Drivers call :meth:`record` after each job and let :class:`SweepAbort`
+    propagate.
+    """
+
+    def __init__(self, *, max_consecutive: int = 5, max_failure_rate: float = 0.5,
+                 min_jobs: int = 10) -> None:
+        self.max_consecutive = max_consecutive
+        self.max_failure_rate = max_failure_rate
+        self.min_jobs = min_jobs
+        self.jobs = 0
+        self.failures = 0
+        self.consecutive = 0
+
+    def record(self, ok: bool) -> None:
+        self.jobs += 1
+        if ok:
+            self.consecutive = 0
+            return
+        self.failures += 1
+        self.consecutive += 1
+        if self.consecutive >= self.max_consecutive:
+            raise SweepAbort(
+                f"{self.consecutive} consecutive job failures — aborting the sweep "
+                f"({self.failures}/{self.jobs} failed overall)"
+            )
+        if self.jobs >= self.min_jobs:
+            rate = self.failures / self.jobs
+            if rate > self.max_failure_rate:
+                raise SweepAbort(
+                    f"job failure rate {rate:.0%} ({self.failures}/{self.jobs}) "
+                    f"exceeds {self.max_failure_rate:.0%} — aborting the sweep"
+                )
+
+
 class ManifestRecorder:
     """Writes inference_manifest.jsonl + per-call response snapshots (llm_cache/).
 
@@ -352,6 +408,9 @@ class ManifestRecorder:
         total_rounds: Optional[int] = None,
         label: str = "live",
         verbose: bool = False,
+        health_min_calls: Optional[int] = None,
+        health_chunk: Optional[int] = None,
+        health_max_empty_rate: Optional[float] = None,
     ) -> None:
         self.manifest_path = run_dir / "inference_manifest.jsonl"
         self.snapshot_dir = run_dir / "llm_cache"
@@ -363,6 +422,20 @@ class ManifestRecorder:
         self.total_cost_usd = 0.0
         self.unpriced_rows = 0
         self.empty_rows = 0
+        self.empty_llm_rows = 0
+        # chunked mute circuit breaker (2026-08-01 audit): checked every
+        # `health_chunk` calls once `health_min_calls` have accumulated, so a
+        # degenerate run dies in seconds instead of scoring 450 silent episodes.
+        self._health_off = bool(os.environ.get("AEREAD_HEALTH_OFF"))
+        self._health_min_calls = int(
+            health_min_calls if health_min_calls is not None
+            else os.environ.get("AEREAD_MUTE_MIN_CALLS", 12))
+        self._health_chunk = max(1, int(
+            health_chunk if health_chunk is not None
+            else os.environ.get("AEREAD_MUTE_CHUNK", 4)))
+        self._health_max_empty_rate = float(
+            health_max_empty_rate if health_max_empty_rate is not None
+            else os.environ.get("AEREAD_MUTE_MAX_RATE", 0.20))
         self._seq: dict[tuple[Any, Any, Any], int] = {}
         self._snapshot_response_sha: dict[str, str] = {}
         # per-seat aggregation (D9): cost split + resolved-model pinning evidence
@@ -464,6 +537,11 @@ class ManifestRecorder:
             # silent no-op in the arena — count it where scores are read
             self.empty_rows += 1
             seat_bucket["empty_rows"] += 1
+            # ...but only a FUNNEL (llm-origin) empty is a provider failure.
+            # A submitted agent returning "" is a policy choice — the no-op
+            # baseline is silent by design — so it must never trip the breaker.
+            if origin == "llm":
+                self.empty_llm_rows += 1
         seat_bucket["estimated_cost_usd"] = round(
             seat_bucket["estimated_cost_usd"] + (cost or 0.0), 10
         )
@@ -486,6 +564,36 @@ class ManifestRecorder:
             )
         self._snapshot_response_sha[replay_key] = row["response_sha256"]
         llm_agent.write_response_snapshot(self.snapshot_dir, replay_key, response)
+        self._check_health()
+
+    def _check_health(self) -> None:
+        """Chunked mute check — raise before a degenerate run can be scored.
+
+        Basis is funnel (llm-origin) calls only: those are the ones where an
+        empty body means the provider failed to speak. Submitted-agent silence
+        is a legitimate policy (the no-op baseline) and is excluded.
+        """
+        if self._health_off or self.funnel_rows < self._health_min_calls:
+            return
+        if self.funnel_rows % self._health_chunk:
+            return
+        rate = self.empty_llm_rows / self.funnel_rows
+        if rate <= self._health_max_empty_rate:
+            return
+        worst = sorted(
+            ((b.get("empty_rows", 0), b.get("rows", 0), s)
+             for s, b in self.seat_totals.items()),
+            reverse=True)[:1]
+        detail = (f"; worst seat {worst[0][2]}={worst[0][0]}/{worst[0][1]}"
+                  if worst else "")
+        raise RunHealthError(
+            f"mute circuit breaker: {self.empty_llm_rows}/{self.funnel_rows} funnel calls "
+            f"({rate:.0%}) returned EMPTY content, above the "
+            f"{self._health_max_empty_rate:.0%} threshold{detail}. The model is "
+            f"likely spending its completion budget on reasoning tokens — raise "
+            f"max_tokens / set OPENROUTER_MIN_COMPLETION_TOKENS, or set "
+            f"AEREAD_HEALTH_OFF=1 to score the run anyway."
+        )
 
     def totals(self) -> dict[str, Any]:
         return {
@@ -495,6 +603,7 @@ class ManifestRecorder:
             "estimated_cost_usd": round(self.total_cost_usd, 10),
             "unpriced_rows": self.unpriced_rows,
             "empty_rows": self.empty_rows,
+            "empty_llm_rows": self.empty_llm_rows,
             "by_seat": {seat: dict(bucket) for seat, bucket in sorted(self.seat_totals.items())},
         }
 

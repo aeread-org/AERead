@@ -134,7 +134,11 @@ def run_job(case_path: Path, agent: str, seed: int, out_root: Path,
                 row["verified"] = False
                 row["verify_error"] = f"{type(err).__name__}: {err}"
     except BaseException as err:  # noqa: BLE001 - one bad job never sinks the pilot
-        row["status"] = "harness_error"
+        # a tripped health breaker is NOT an ordinary harness error: the run was
+        # producing degenerate output (2026-08-01 mute audit). Give it its own
+        # status so drivers can abort the grid instead of banking silent zeros.
+        row["status"] = ("mute_abort" if type(err).__name__ == "RunHealthError"
+                         else "harness_error")
         row["error"] = f"{type(err).__name__}: {err}"
     return row
 

@@ -6,6 +6,8 @@ policy, so these run in CI. Determinism is defined on trace.jsonl BYTES — same
 """
 from __future__ import annotations
 
+import itertools
+
 import dataclasses
 import json
 import sys
@@ -638,3 +640,92 @@ def test_non_strict_mode_completes_with_incomplete_status(
     meta = json.loads((outcome.run_dir / "run_meta.json").read_text())
     assert meta["status"] == "manifest_incomplete"
     assert meta["funnel_check"]["ok"] is False
+
+
+# --- health circuit breaker (2026-08-01 mute audit) -------------------------
+
+class _Resp:
+    """Minimal llm_agent.LLMResponse stand-in for recorder tests."""
+
+    def __init__(self, text: str):
+        self.text = text
+        self.model = "m"
+        self.resolved_model = "m"
+        self.cached = False
+        self.usage = None
+        self.estimated_cost_usd = 0.0
+        self.cost_note = ""
+
+
+_REC_SEQ = itertools.count()
+
+
+def _rec_call(recorder, text: str, origin: str = "llm") -> None:
+    # distinct prompt per call: identical prompts with differing responses trip
+    # the (pre-existing, correct) replay-key collision guard first
+    recorder.record(
+        role="proposal", agent_id=1, round_index=0, system="s",
+        prompt=f"p{next(_REC_SEQ)}",
+        response=_Resp(text), model="m",
+        params={"max_tokens": 100, "temperature": 0.0, "sample": 0},
+        batched=False, seat="under_test", origin=origin,
+    )
+
+
+def test_mute_circuit_breaker_trips_on_chunk_boundary(tmp_path):
+    import pytest
+    rec = runner.ManifestRecorder(
+        tmp_path, health_min_calls=4, health_chunk=2, health_max_empty_rate=0.5)
+    for _ in range(3):
+        _rec_call(rec, "")           # below min_calls (4): no check yet
+    assert rec.empty_rows == 3       # counted, not yet judged
+    # the 4th call reaches the chunk boundary: 3/4 = 75% empty > 50% -> trips
+    with pytest.raises(runner.RunHealthError, match="EMPTY"):
+        _rec_call(rec, "spoken")
+
+
+def test_mute_circuit_breaker_quiet_when_healthy(tmp_path):
+    rec = runner.ManifestRecorder(
+        tmp_path, health_min_calls=2, health_chunk=1, health_max_empty_rate=0.5)
+    for _ in range(10):
+        _rec_call(rec, "real content")
+    assert rec.empty_rows == 0
+    assert rec.totals()["empty_rows"] == 0
+
+
+def test_mute_circuit_breaker_can_be_disabled(tmp_path, monkeypatch):
+    monkeypatch.setenv("AEREAD_HEALTH_OFF", "1")
+    rec = runner.ManifestRecorder(tmp_path, health_min_calls=1, health_chunk=1)
+    for _ in range(6):
+        _rec_call(rec, "")           # 100% empty, breaker disabled
+    assert rec.empty_rows == 6
+    assert rec.empty_llm_rows == 6
+
+
+def test_sweep_circuit_breaker_consecutive_and_rate():
+    import pytest
+    cb = runner.SweepCircuitBreaker(max_consecutive=3, max_failure_rate=0.5,
+                                    min_jobs=4)
+    cb.record(True)
+    cb.record(False)
+    cb.record(False)
+    with pytest.raises(runner.SweepAbort, match="consecutive"):
+        cb.record(False)
+
+    cb2 = runner.SweepCircuitBreaker(max_consecutive=99, max_failure_rate=0.5,
+                                     min_jobs=4)
+    for ok in (True, False, True, False):
+        last = ok
+    cb2.record(True); cb2.record(False); cb2.record(False)
+    with pytest.raises(runner.SweepAbort, match="failure rate"):
+        cb2.record(False)          # 3/4 = 75% > 50% at min_jobs
+
+
+def test_submitted_agent_silence_never_trips_the_breaker(tmp_path):
+    """The no-op baseline is silent BY DESIGN — policy, not provider failure."""
+    rec = runner.ManifestRecorder(
+        tmp_path, health_min_calls=2, health_chunk=1, health_max_empty_rate=0.1)
+    for _ in range(12):
+        _rec_call(rec, "", origin="submitted")
+    assert rec.empty_rows == 12          # diagnostic still counts it
+    assert rec.empty_llm_rows == 0       # breaker basis excludes it
