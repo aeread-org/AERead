@@ -247,6 +247,44 @@ def test_overfetch_expands_search_then_caps_after_filter():
     assert prompts[0].count("- ") <= 2 + prompts[0].count("- obs")
 
 
+def test_llm_fn_retries_empty_with_escalated_budget():
+    from aeread.integrations.everos_memory import build_openrouter_llm_fn
+
+    calls = []
+
+    class _Msg:
+        content = ""
+
+    class _Choice:
+        message = _Msg()
+
+    class _Resp:
+        usage = None
+        choices = [_Choice()]
+
+    class _Completions:
+        def create(self, **kw):
+            calls.append(kw)
+            r = _Resp()
+            r.choices = [_Choice()]
+            r.choices[0].message = _Msg()
+            r.choices[0].message.content = "" if len(calls) == 1 else "spoken"
+            return r
+
+    class _Chat:
+        completions = _Completions()
+
+    class _Client:
+        chat = _Chat()
+
+    fn = build_openrouter_llm_fn("some/model", client=_Client(),
+                                 max_tokens=1200)
+    assert fn("prompt") == "spoken"
+    assert len(calls) == 2, "one retry on empty content"
+    assert calls[1]["max_tokens"] > calls[0]["max_tokens"], "escalated budget"
+    assert fn.usage["empty_retries"] == 1
+
+
 def test_begin_episode_resets_buffer_and_session():
     mem = FakeMemory()
     cand, _ = make_candidate(mem)

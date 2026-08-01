@@ -289,34 +289,48 @@ class MemoryCandidate:
 def build_openrouter_llm_fn(model: str, *, base_url: str | None = None,
                             api_key: str | None = None,
                             temperature: float = 0.7,
-                            max_tokens: int = 1200) -> Callable[[str], str]:
+                            max_tokens: int = 4096,
+                            client: Any = None) -> Callable[[str], str]:
     """Chat-completions policy fn for :class:`MemoryCandidate`.
 
     Defaults to the ``OPENAI_BASE_URL`` / ``OPENAI_API_KEY`` environment
-    (OpenRouter in the AERead reference setup).
+    (OpenRouter in the AERead reference setup). Reasoning-style models spend
+    completion budget on reasoning before emitting content — a too-small
+    ``max_tokens`` silently yields EMPTY responses (the 2026-08-01 mute
+    audit), so the default budget is generous and an empty response is
+    retried once with an escalated budget. ``client`` is injectable for
+    tests.
     """
     import os
 
-    from openai import OpenAI
+    if client is None:
+        from openai import OpenAI
+        client = OpenAI(
+            base_url=base_url or os.environ.get(
+                "OPENAI_BASE_URL", "https://openrouter.ai/api/v1"),
+            api_key=api_key or os.environ.get("OPENAI_API_KEY", "EMPTY"))
 
-    client = OpenAI(
-        base_url=base_url or os.environ.get(
-            "OPENAI_BASE_URL", "https://openrouter.ai/api/v1"),
-        api_key=api_key or os.environ.get("OPENAI_API_KEY", "EMPTY"))
+    usage = {"calls": 0, "prompt_tokens": 0, "completion_tokens": 0,
+             "empty_retries": 0}
 
-    usage = {"calls": 0, "prompt_tokens": 0, "completion_tokens": 0}
-
-    def llm_fn(prompt: str) -> str:
+    def _call(prompt: str, budget: int) -> str:
         resp = client.chat.completions.create(
             model=model,
             messages=[{"role": "user", "content": prompt}],
             temperature=temperature,
-            max_tokens=max_tokens)
+            max_tokens=budget)
         usage["calls"] += 1
         if resp.usage is not None:
             usage["prompt_tokens"] += resp.usage.prompt_tokens or 0
             usage["completion_tokens"] += resp.usage.completion_tokens or 0
         return (resp.choices[0].message.content or "").strip()
+
+    def llm_fn(prompt: str) -> str:
+        text = _call(prompt, max_tokens)
+        if not text:
+            usage["empty_retries"] += 1
+            text = _call(prompt, max(max_tokens * 2, 8192))
+        return text
 
     llm_fn.usage = usage  # type: ignore[attr-defined] - cost reporting
     return llm_fn
