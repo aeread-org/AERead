@@ -51,10 +51,10 @@ bootstrap CI, snippet/error counts) and per-episode turn logs under `turns/`.
 
 **Measured results** (case03, deepseek-v4-flash candidate, same 12 dev seeds
 per arm, one sequence each): recap-memory **+0.137** vs control **+0.087**
-(paired delta +0.059 [+0.019, +0.103]) — but two follow-up arms on identical
-seeds landed at **+0.031** (strategy-distilled, failure-seeded) and
+(paired delta +0.059 [+0.019, +0.103]) — but three follow-up arms on
+identical seeds landed at **+0.031** (strategy-distilled, failure-seeded),
 **+0.045** (outcome-filtered recall, containing the best single episode
-recorded on this grid, +0.332) and **+0.077** (over-fetch-then-filter —
+recorded on this grid, +0.332), and **+0.077** (over-fetch-then-filter —
 injection stays at capacity, zeros drop, and the arm converges to the
 control). The fix ladder is monotone toward neutral: retrieval hygiene
 makes memory *safe*; what the memory contains decides whether it *helps* —
