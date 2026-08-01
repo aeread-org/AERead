@@ -58,7 +58,12 @@ recorded on this grid, +0.332), and **+0.077** (over-fetch-then-filter —
 injection stays at capacity, zeros drop, and the arm converges to the
 control). The fix ladder is monotone toward neutral: retrieval hygiene
 makes memory *safe*; what the memory contains decides whether it *helps* —
-and memory compounds whatever the first episodes produced. Full analysis,
+and memory compounds whatever the first episodes produced. **Caveat
+(post-hoc audit):** ~40% of candidate turns returned empty in every arm —
+a reasoning-tokens-vs-`max_tokens` artifact of the example client, equal
+with and without memory — so paired deltas are internally fair but effect
+sizes are compressed and noisy; a re-run with the cap fixed is required
+before treating any arm's number as settled. Full analysis,
 post-mortems, and design consequences (over-fetch-then-filter,
 outcome-weighted retrieval, multiple sequences per arm) are in the
 integration report on the AERead results site/repo.
