@@ -81,7 +81,8 @@ def run_arm(arm: str, args: argparse.Namespace, out_dir: Path) -> dict:
                                 agent_id=f"aeread-{arm}",
                                 memory_top_k=args.top_k,
                                 min_score=args.min_score,
-                                distill=args.distill)
+                                distill=args.distill,
+                                overfetch=args.overfetch)
 
     arm_dir = out_dir / arm
     arm_dir.mkdir(parents=True, exist_ok=True)
@@ -143,6 +144,8 @@ def main() -> None:
     ap.add_argument("--max-tokens", type=int, default=1200)
     ap.add_argument("--top-k", type=int, default=4)
     ap.add_argument("--min-score", type=float, default=None)
+    ap.add_argument("--overfetch", type=int, default=1,
+                    help="search top_k*overfetch, outcome-filter, cap at top_k")
     ap.add_argument("--distill", action="store_true",
                     help="LLM-written transferable-lessons reflection")
     ap.add_argument("--memory-project", default=None,

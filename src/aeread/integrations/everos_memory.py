@@ -140,6 +140,7 @@ class MemoryCandidate:
                  agent_id: str = "aeread_mem", arena_user_id: str = "arena",
                  memory_top_k: int = 4, search_method: str = "vector",
                  min_score: float | None = None, distill: bool = False,
+                 overfetch: int = 1,
                  clock: Callable[[], float] = time.time) -> None:
         self.llm_fn = llm_fn
         self.memory = memory
@@ -149,6 +150,7 @@ class MemoryCandidate:
         self.search_method = search_method
         self.min_score = min_score
         self.distill = distill
+        self.overfetch = max(1, int(overfetch))
         self._clock = clock
         self.label = "episode"
         self.session_id = f"{agent_id}-episode"
@@ -250,8 +252,12 @@ class MemoryCandidate:
         for scope in ({"agent_id": self.agent_id},
                       {"user_id": self.arena_user_id}):
             try:
-                kw: dict[str, Any] = dict(method=self.search_method,
-                                          top_k=self.memory_top_k, **scope)
+                # over-fetch so the outcome filter can SUBSTITUTE success
+                # material rather than starve injection (v3's failure mode)
+                kw: dict[str, Any] = dict(
+                    method=self.search_method,
+                    top_k=min(100, self.memory_top_k * self.overfetch),
+                    **scope)
                 if self.min_score is not None:
                     kw["min_score"] = self.min_score
                 data = self.memory.search(query, **kw) or {}

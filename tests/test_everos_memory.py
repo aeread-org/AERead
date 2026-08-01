@@ -224,6 +224,29 @@ def test_recall_keeps_failed_snippets_when_nothing_else():
     assert "failed recap" in prompts[0], "graceful fallback, not amnesia"
 
 
+def test_overfetch_expands_search_then_caps_after_filter():
+    hits = {"episodes": (
+        [{"summary": f"failed recap {i}", "session_id": "aeread_mem-case03-s1"}
+         for i in range(6)]
+        + [{"summary": "win recap A", "session_id": "aeread_mem-case03-s2"},
+           {"summary": "win recap B", "session_id": "aeread_mem-case03-s2"}])}
+    mem = FakeMemory(hits=hits)
+    cand, prompts = make_candidate(mem, memory_top_k=2, overfetch=4)
+    cand.begin_episode("case03-s1")
+    cand.end_episode("AER=0.0")
+    cand.begin_episode("case03-s2")
+    cand.end_episode("AER=0.3")
+    cand.begin_episode("case03-s3")
+    cand.act("obs", "proposal")
+    # search asked for top_k * overfetch candidates
+    assert all(kw["top_k"] == 8 for _, kw in mem.search_calls)
+    # failures dropped, wins substituted, cap respected
+    assert "win recap A" in prompts[0]
+    assert "win recap B" in prompts[0]
+    assert "failed recap" not in prompts[0]
+    assert prompts[0].count("- ") <= 2 + prompts[0].count("- obs")
+
+
 def test_begin_episode_resets_buffer_and_session():
     mem = FakeMemory()
     cand, _ = make_candidate(mem)
