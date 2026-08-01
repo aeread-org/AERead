@@ -54,9 +54,11 @@ per arm, one sequence each): recap-memory **+0.137** vs control **+0.087**
 (paired delta +0.059 [+0.019, +0.103]) — but two follow-up arms on identical
 seeds landed at **+0.031** (strategy-distilled, failure-seeded) and
 **+0.045** (outcome-filtered recall, containing the best single episode
-recorded on this grid, +0.332). The treatment effect's *sign* is decided by
-retrieval policy and early-sequence luck, not by "memory yes/no" — memory
-compounds whatever the first episodes produced. Full three-arm analysis,
+recorded on this grid, +0.332) and **+0.077** (over-fetch-then-filter —
+injection stays at capacity, zeros drop, and the arm converges to the
+control). The fix ladder is monotone toward neutral: retrieval hygiene
+makes memory *safe*; what the memory contains decides whether it *helps* —
+and memory compounds whatever the first episodes produced. Full analysis,
 post-mortems, and design consequences (over-fetch-then-filter,
 outcome-weighted retrieval, multiple sequences per arm) are in the
 integration report on the AERead results site/repo.

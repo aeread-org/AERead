@@ -133,9 +133,9 @@ add-your-own guide.
   persistent memory as a treatment arm: a submitted agent that searches an
   EverOS server before every action and writes each finished episode +
   outcome back; a memory-on vs memory-off A/B measures what cross-episode
-  memory is worth in realized welfare. Three arms on identical seeds
-  spanned **−0.053 to +0.059** vs control — retrieval policy decides the
-  sign (see the integration guide).
+  memory is worth in realized welfare. Four arms on identical seeds
+  spanned **−0.053 to +0.059** vs control — retrieval hygiene makes memory
+  safe; content selection decides whether it helps (see the guide).
 - **`aeread.exchange_rl_env`**: a structured (LLM-free) bilateral negotiation
   env with `reset()` / `step(agent_id, StructuredAction)` for classical RL
   and unit-testable reward shaping — no external framework needed.
