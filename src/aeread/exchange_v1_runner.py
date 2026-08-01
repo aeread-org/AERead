@@ -362,6 +362,7 @@ class ManifestRecorder:
         self.funnel_rows = 0
         self.total_cost_usd = 0.0
         self.unpriced_rows = 0
+        self.empty_rows = 0
         self._seq: dict[tuple[Any, Any, Any], int] = {}
         self._snapshot_response_sha: dict[str, str] = {}
         # per-seat aggregation (D9): cost split + resolved-model pinning evidence
@@ -454,9 +455,15 @@ class ManifestRecorder:
             # tallies; submitted-agent actions never touch the LLM funnel
             self.funnel_rows += 1
         seat_bucket = self.seat_totals.setdefault(
-            seat, {"rows": 0, "estimated_cost_usd": 0.0, "unpriced_rows": 0}
+            seat, {"rows": 0, "estimated_cost_usd": 0.0, "unpriced_rows": 0,
+                   "empty_rows": 0}
         )
         seat_bucket["rows"] += 1
+        if not response.text.strip():
+            # mute diagnostic (2026-08-01 audit): an empty utterance is a
+            # silent no-op in the arena — count it where scores are read
+            self.empty_rows += 1
+            seat_bucket["empty_rows"] += 1
         seat_bucket["estimated_cost_usd"] = round(
             seat_bucket["estimated_cost_usd"] + (cost or 0.0), 10
         )
@@ -487,6 +494,7 @@ class ManifestRecorder:
             "submitted_rows": self.rows - self.funnel_rows,
             "estimated_cost_usd": round(self.total_cost_usd, 10),
             "unpriced_rows": self.unpriced_rows,
+            "empty_rows": self.empty_rows,
             "by_seat": {seat: dict(bucket) for seat, bucket in sorted(self.seat_totals.items())},
         }
 

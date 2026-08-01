@@ -229,6 +229,8 @@ def test_call_llm_batch_uses_gemini_batch_price_mode(monkeypatch, tmp_path):
         return [_FakeGeminiResult("A"), _FakeGeminiResult("B")]
 
     monkeypatch.setenv("GEMINI_API_KEY", "test-key")
+    # audit R7: the batch path now requires the explicit ordering-verified flag
+    monkeypatch.setenv("GEMINI_BATCH_ORDERING_VERIFIED", "1")
     monkeypatch.setenv("LLM_PRICE_GOOGLE_GEMINI_3_5_FLASH_BATCH_INPUT_PER_1M", "0.75")
     monkeypatch.setenv("LLM_PRICE_GOOGLE_GEMINI_3_5_FLASH_BATCH_CACHED_INPUT_PER_1M", "0.075")
     monkeypatch.setenv("LLM_PRICE_GOOGLE_GEMINI_3_5_FLASH_BATCH_OUTPUT_PER_1M", "4.50")
@@ -345,3 +347,24 @@ def test_openrouter_completion_floor_env(monkeypatch):
     import pytest
     with pytest.raises(RuntimeError):
         la._openrouter_completion_token_budget(1200)
+
+
+def test_call_llm_batch_length_mismatch_is_loud(monkeypatch, tmp_path):
+    """Audit R7: a shortened batch result must raise, never zip-misalign."""
+    import pytest
+
+    monkeypatch.setenv("GEMINI_API_KEY", "test-key")
+    monkeypatch.setenv("GEMINI_BATCH_ORDERING_VERIFIED", "1")
+
+    class _R:
+        text = "only-one"
+        cached = False
+        usage = None
+
+    monkeypatch.setattr(
+        llm_agent, "_import_call_gemini_batch",
+        lambda: (lambda requests, model, poll_interval=None: [_R()]))
+    with pytest.raises(RuntimeError, match="refusing positional alignment"):
+        llm_agent.call_llm_batch(
+            [{"system": "s", "user": "u1"}, {"system": "s", "user": "u2"}],
+            model="google/gemini-3.5-flash", cache_dir=tmp_path)

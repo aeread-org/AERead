@@ -842,7 +842,16 @@ def call_llm_batch(
         return []
     # In replay mode fall through to the sequential path: call_llm serves every
     # request from the recorded snapshots (and hard-fails on a miss).
-    if _replay_dir_var.get() is None and model.split("/")[-1].startswith("gemini") and os.environ.get("GEMINI_API_KEY") and not os.environ.get("GEMINI_VERTEX"):
+    # SAFETY GATE (2026-08-01 audit R7): Google's Batch API can return inline
+    # responses out of order and does not echo metadata.key, while
+    # call_gemini_batch aligns POSITIONALLY — a misordered batch would assign
+    # agent A's decision to agent B and poison cache + replay snapshots. The
+    # batch pool refuses to start without GEMINI_BATCH_ORDERING_VERIFIED=1;
+    # this direct path previously bypassed that guard. Without the env flag we
+    # now fall back to sequential call_llm (correct, just slower/costlier).
+    if (_replay_dir_var.get() is None and model.split("/")[-1].startswith("gemini")
+            and os.environ.get("GEMINI_API_KEY") and not os.environ.get("GEMINI_VERTEX")
+            and os.environ.get("GEMINI_BATCH_ORDERING_VERIFIED")):
         call_gemini_batch = _import_call_gemini_batch()
         gemini_requests = []
         for item in requests:
@@ -862,6 +871,14 @@ def call_llm_batch(
             model=model,
             poll_interval=poll_interval,
         )
+        if len(raw) != len(requests):
+            # audit R7 companion: gemini_llm filters None slots, and a silent
+            # zip would pair every subsequent request with the previous item's
+            # response — misalignment must be loud, never absorbed.
+            raise RuntimeError(
+                f"gemini batch returned {len(raw)} results for "
+                f"{len(requests)} requests — refusing positional alignment"
+            )
         responses = []
         for item, r in zip(requests, raw):
             cached = bool(getattr(r, "cached", False))
