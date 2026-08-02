@@ -6,6 +6,7 @@ context-local llm_agent hook state keeps concurrent runs' manifests isolated."""
 from __future__ import annotations
 
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -94,3 +95,48 @@ def test_agent_seat_policy_specs():
     assert pilot.agent_seat_policy("google/gemini-2.5-flash@t0.7:s2") == {
         "kind": "llm", "model": "google/gemini-2.5-flash",
         "temperature": 0.7, "sample": 2}
+
+
+# --- mute escalation ladder (2026-08-01: breaker must recover, not just drop) --
+
+def test_mute_floor_ladder_escalates_then_gives_up(monkeypatch):
+    from aeread import exchange_v1_pilot as p
+
+    monkeypatch.delenv("OPENROUTER_MIN_COMPLETION_TOKENS", raising=False)
+    # unset = the run had NO floor at all, so the first rung is the base one
+    assert p._next_mute_floor() == 4096
+    monkeypatch.setenv("OPENROUTER_MIN_COMPLETION_TOKENS", "4096")
+    assert p._next_mute_floor() == 8192
+    monkeypatch.setenv("OPENROUTER_MIN_COMPLETION_TOKENS", "8192")
+    assert p._next_mute_floor() == 16384
+    monkeypatch.setenv("OPENROUTER_MIN_COMPLETION_TOKENS", "16384")
+    assert p._next_mute_floor() == 32768
+    monkeypatch.setenv("OPENROUTER_MIN_COMPLETION_TOKENS", "32768")
+    assert p._next_mute_floor() is None          # ladder exhausted -> give up
+    monkeypatch.setenv("OPENROUTER_MIN_COMPLETION_TOKENS", "99999")
+    assert p._next_mute_floor() is None          # already above the ladder
+
+
+def test_run_job_retries_once_at_a_higher_floor_on_mute_trip(monkeypatch, tmp_path):
+    """A health trip must escalate the budget and re-run, not drop the episode."""
+    from aeread import exchange_v1_pilot as p
+    from aeread import exchange_v1_runner as runner
+
+    monkeypatch.setenv("OPENROUTER_MIN_COMPLETION_TOKENS", "4096")
+    seen_floors = []
+
+    def fake_run_v1(*a, **kw):
+        seen_floors.append(os.environ.get("OPENROUTER_MIN_COMPLETION_TOKENS"))
+        if len(seen_floors) == 1:
+            raise runner.RunHealthError("mute circuit breaker: 9/12 EMPTY")
+        raise RuntimeError("stop-after-retry")   # proves the retry happened
+
+    monkeypatch.setattr(p, "seeded_case", lambda *a, **k: tmp_path / "c.json")
+    monkeypatch.setattr(p, "agent_seat_policy", lambda a: {})
+    monkeypatch.setattr(runner, "run_v1", fake_run_v1)
+
+    row = p.run_job(tmp_path / "c.json", "some/model", 1200, tmp_path, 1200)
+    assert seen_floors == ["4096", "8192"], seen_floors
+    assert row["mute_retry_floor"] == 8192
+    # env restored so the escalation never leaks into the next episode
+    assert os.environ["OPENROUTER_MIN_COMPLETION_TOKENS"] == "4096"

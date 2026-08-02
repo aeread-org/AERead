@@ -83,8 +83,33 @@ def seeded_case(case_path: Path, seed: int, cases_dir: Path, agent: str,
     return out
 
 
+
+_MUTE_FLOOR_LADDER = (4096, 8192, 16384, 32768)
+
+
+def _next_mute_floor() -> Optional[int]:
+    """Next rung of the completion-budget ladder after a mute-breaker trip.
+
+    The 2026-08-01 breaker stops a run whose funnel calls are coming back
+    empty — but aborting alone DROPS the episode, and dropping the hardest
+    episodes biases the pool upward (measured: minimax lost 12 of 150 dev
+    episodes, exactly its most-muting ones). So a trip escalates the budget
+    and re-runs; only an exhausted ladder gives up, and the give-up is
+    recorded rather than silently missing.
+    """
+    cur = os.environ.get("OPENROUTER_MIN_COMPLETION_TOKENS")
+    try:
+        cur_v = int(cur) if cur else 0
+    except ValueError:
+        cur_v = 0
+    for rung in _MUTE_FLOOR_LADDER:
+        if rung > cur_v:
+            return rung
+    return None
+
+
 def run_job(case_path: Path, agent: str, seed: int, out_root: Path,
-            max_tokens: int) -> dict[str, Any]:
+            max_tokens: int, _mute_retry: bool = True) -> dict[str, Any]:
     row: dict[str, Any] = {"case": case_path.stem, "agent": agent, "seed": seed}
     cases_dir = out_root / "cases"
     try:
@@ -134,9 +159,27 @@ def run_job(case_path: Path, agent: str, seed: int, out_root: Path,
                 row["verified"] = False
                 row["verify_error"] = f"{type(err).__name__}: {err}"
     except BaseException as err:  # noqa: BLE001 - one bad job never sinks the pilot
-        # a tripped health breaker is NOT an ordinary harness error: the run was
-        # producing degenerate output (2026-08-01 mute audit). Give it its own
-        # status so drivers can abort the grid instead of banking silent zeros.
+        if isinstance(err, KeyboardInterrupt):
+            raise
+        # A tripped health breaker is NOT an ordinary harness error: the run was
+        # producing degenerate output (2026-08-01 mute audit). First try to
+        # RECOVER it at a higher completion budget — dropping the episode would
+        # bias the pool by removing exactly the hardest worlds.
+        if type(err).__name__ == "RunHealthError" and _mute_retry:
+            nxt = _next_mute_floor()
+            if nxt is not None:
+                prev = os.environ.get("OPENROUTER_MIN_COMPLETION_TOKENS")
+                os.environ["OPENROUTER_MIN_COMPLETION_TOKENS"] = str(nxt)
+                try:
+                    retry = run_job(case_path, agent, seed, out_root, max_tokens,
+                                    _mute_retry=False)
+                finally:
+                    if prev is None:
+                        os.environ.pop("OPENROUTER_MIN_COMPLETION_TOKENS", None)
+                    else:
+                        os.environ["OPENROUTER_MIN_COMPLETION_TOKENS"] = prev
+                retry["mute_retry_floor"] = nxt
+                return retry
         row["status"] = ("mute_abort" if type(err).__name__ == "RunHealthError"
                          else "harness_error")
         row["error"] = f"{type(err).__name__}: {err}"
