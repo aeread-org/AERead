@@ -387,4 +387,8 @@ def run_memory_episode(case_path: str | Path, seed: int,
     candidate.end_episode(outcome)
     return {"status": case_row.get("status"), "aer": aer, "w_real": w_real,
             "denominator": denom, "score": score, "turns": candidate.turns,
-            "memory_errors": candidate.memory_errors}
+            "memory_errors": candidate.memory_errors,
+            # carry the harness's own reason forward: without it a failed
+            # episode lands in results.jsonl as a bare "harness_error" with
+            # no way to tell a mute trip from a provider outage
+            "error": case_row.get("error")}

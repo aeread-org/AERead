@@ -101,6 +101,7 @@ def run_arm(arm: str, args: argparse.Namespace, out_dir: Path) -> dict:
                    "memory_snippets": sum(t.get("memory_snippets", 0)
                                           for t in r["turns"]),
                    "memory_errors": r["memory_errors"],
+                   "error": r.get("error"),
                    "secs": round(time.time() - t0, 1)}
         except Exception as err:  # noqa: BLE001 - keep the sweep alive
             row = {"arm": arm, "case": case_path.stem, "seed": seed,
