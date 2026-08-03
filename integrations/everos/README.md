@@ -49,24 +49,27 @@ Episodes run sequentially in seed order so memory accumulates; per-arm output
 is `results.jsonl` + `summary.json` (pooled AER `ΣW/ΣD`, seeded episode
 bootstrap CI, snippet/error counts) and per-episode turn logs under `turns/`.
 
-**Measured results** (case03, deepseek-v4-flash candidate, same 12 dev seeds
-per arm, one sequence each): recap-memory **+0.137** vs control **+0.087**
-(paired delta +0.059 [+0.019, +0.103]) — but three follow-up arms on
-identical seeds landed at **+0.031** (strategy-distilled, failure-seeded),
-**+0.045** (outcome-filtered recall, containing the best single episode
-recorded on this grid, +0.332), and **+0.077** (over-fetch-then-filter —
-injection stays at capacity, zeros drop, and the arm converges to the
-control). The fix ladder is monotone toward neutral: retrieval hygiene
-makes memory *safe*; what the memory contains decides whether it *helps* —
-and memory compounds whatever the first episodes produced. **Caveat
-(post-hoc audit):** ~40% of candidate turns returned empty in every arm —
-a reasoning-tokens-vs-`max_tokens` artifact of the example client, equal
-with and without memory — so paired deltas are internally fair but effect
-sizes are compressed and noisy; a re-run with the cap fixed is required
-before treating any arm's number as settled. Full analysis,
-post-mortems, and design consequences (over-fetch-then-filter,
-outcome-weighted retrieval, multiple sequences per arm) are in the
-integration report on the AERead results site/repo.
+**Measured results (corrected 2026-08-01).** An earlier version of this guide
+reported a **+0.059 memory lift**. That result was an artifact: it was measured
+through a client that silently dropped ~40% of the candidate's turns (a
+completion-budget defect — reasoning consumed the token cap before any content
+was emitted, and an empty utterance scores as a valid no-op). It has been
+**retracted**.
+
+Re-run on the fixed client with **three independent sequences per condition**
+(case03, deepseek-v4-flash, 12 dev seeds each):
+
+| | control (no memory) | memory (recap) |
+|---|---|---|
+| pooled, 34 paired episodes | **+0.114** | **+0.082** |
+| paired delta | — | **−0.032** [−0.066, +0.002] |
+| per-sequence deltas | — | −0.037, −0.045, −0.012 |
+
+So: *memory helps* is refuted on this benchmark as integrated; *memory hurts*
+is suggested but not established (the CI grazes zero). The control's
+between-sequence SD is 0.014 — worth knowing before reading any
+single-sequence memory comparison, here or elsewhere. Full analysis and the
+retraction notice are in the integration report.
 
 ## Caveats (deliberate, documented)
 
