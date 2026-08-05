@@ -112,6 +112,38 @@ def run_episode(case_path: str | Path, seed: int, *, base_url: str,
             "score": score, "turns": candidate.turns}
 
 
+def _termination_error() -> Any:
+    """rLLM's ERROR termination reason, or None if this rllm lays it out elsewhere."""
+    for mod_name in ("rllm.workflows.workflow", "rllm.workflows", "rllm"):
+        try:
+            return import_module(mod_name).TerminationReason.ERROR  # type: ignore[attr-defined]
+        except (ImportError, AttributeError):
+            continue
+    return None
+
+
+def _unscorable_reason(result: dict[str, Any]) -> str | None:
+    """Why this episode carries no measurement, or None if it does.
+
+    rLLM's runner counts an item as an error only when the episode terminates
+    with ERROR; anything else is read as a score. Without this, an episode
+    where the seat under test never received a model response reports as
+    "Accuracy 0.0%, Errors 0" and reads as a model that played and realised
+    nothing. A real AER of 0.0 (or a negative one) is a measurement and must
+    stay a score.
+    """
+    status = result.get("status")
+    if status != "ok":
+        return (f"aeread episode did not complete: status={status!r}. "
+                "The seat under test produced no scorable run (commonly an "
+                "unreachable or unhealthy --base-url endpoint). This is a "
+                "harness failure, not a score of zero.")
+    if result.get("aer") is None:
+        return (f"aeread episode has no AER: denominator={result.get('denominator')!r}. "
+                "Degenerate denominators are reported, never imputed.")
+    return None
+
+
 def _episode_types() -> tuple[Any, Any, Any]:
     last_err: Exception | None = None
     for mod_name in ("rllm", "rllm.types", "rllm.core.types", "rllm.data.types"):
@@ -179,8 +211,20 @@ def aeread_flow(task: Any, config: Any) -> Any:
     artifacts = {"status": result["status"], "aer": aer,
                  "w_real": result["w_real"],
                  "denominator": result["denominator"]}
+    reason = _unscorable_reason(result)
+    if reason is not None:
+        artifacts["error"] = reason
+    kwargs: dict[str, Any] = {
+        "trajectories": [trajectory],
+        "artifacts": artifacts,
+        "is_correct": bool(aer is not None and aer > 0),
+    }
+    if reason is not None:
+        terminated = _termination_error()
+        if terminated is not None:
+            kwargs["termination_reason"] = terminated
+        kwargs["metadata"] = {"error": {"message": reason}}
     try:
-        return Episode(trajectories=[trajectory], artifacts=artifacts,
-                       is_correct=bool(aer is not None and aer > 0))
+        return Episode(**kwargs)
     except TypeError:
         return Episode(trajectories=[trajectory])

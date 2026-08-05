@@ -22,6 +22,7 @@ this package is installed.
 ## Working recipe (smoke-tested against rLLM 0.3.0rc0)
 
 ```bash
+pip install "aeread @ git+https://github.com/aeread-org/AERead"
 pip install "rllm @ git+https://github.com/rllm-org/rllm.git"
 # upstream skew note: rllm@main needs its gateway from the same tree
 pip install --force-reinstall --no-deps \
@@ -29,8 +30,28 @@ pip install --force-reinstall --no-deps \
 
 python -m aeread.integrations.rllm_dataset --register   # dev rows -> ~/.rllm
 rllm eval aeread --agent aeread --evaluator aeread \
-    --base-url <openai-compatible-endpoint> --model <model>
+    --base-url https://openrouter.ai/api/v1 --model google/gemini-2.5-flash
 ```
+
+Last verified 2026-08-05 against rLLM 0.3.0rc0: one rollout, `status: ok`,
+episode AER returned as the reward, only the seat under test in the trace.
+
+## Choosing `--base-url`
+
+rLLM routes the seat under test through its model gateway, and the gateway
+health-checks the endpoint you give it before routing. Not every
+OpenAI-compatible URL passes that check.
+
+| endpoint | works | note |
+|---|---|---|
+| OpenRouter (`https://openrouter.ai/api/v1`) | yes | verified |
+| a local vLLM / SGLang worker | yes | the intended training path |
+| Gemini's OpenAI-compat shim (`generativelanguage.googleapis.com/v1beta/openai/`) | no | gateway reports `RuntimeError: No healthy workers available` |
+
+If the gateway cannot route, the seat under test gets no model response. The
+run then terminates with rLLM's ERROR reason and the eval report counts it
+under **Errors** rather than showing it as a score of 0.0. If you see that,
+the endpoint is the first thing to check, not the model.
 
 ## Notes
 
