@@ -31,8 +31,10 @@ from aeread.integrations.everos_memory import (
     EverOSMemory,
     MemoryCandidate,
     NullMemory,
+    arm_health,
     build_openrouter_llm_fn,
     run_memory_episode,
+    should_abort_memory_arm,
 )
 
 
@@ -87,6 +89,7 @@ def run_arm(arm: str, args: argparse.Namespace, out_dir: Path) -> dict:
     arm_dir = out_dir / arm
     arm_dir.mkdir(parents=True, exist_ok=True)
     results_path = arm_dir / "results.jsonl"
+    memory_arm = arm.startswith("mem")
     rows: list[dict] = []
     for seed in parse_seeds(args.seeds):
         t0 = time.time()
@@ -98,6 +101,7 @@ def run_arm(arm: str, args: argparse.Namespace, out_dir: Path) -> dict:
                    "status": r["status"], "aer": r["aer"],
                    "w_real": r["w_real"], "denominator": r["denominator"],
                    "turns": len(r["turns"]),
+                   "blank_turns": r["blank_turns"],
                    "memory_snippets": sum(t.get("memory_snippets", 0)
                                           for t in r["turns"]),
                    "memory_errors": r["memory_errors"],
@@ -117,17 +121,36 @@ def run_arm(arm: str, args: argparse.Namespace, out_dir: Path) -> dict:
                 json.dumps(r["turns"], indent=1))
         print(f"[{arm}] seed {seed}: status={row.get('status')} "
               f"aer={row.get('aer')} snippets={row.get('memory_snippets')} "
+              f"blank_turns={row.get('blank_turns')} "
               f"({row['secs']}s)", flush=True)
 
+        # a memory server that is up but returning nothing makes this arm a
+        # second control; stop at 3 episodes rather than paying for 12
+        if memory_arm:
+            reason = should_abort_memory_arm(rows)
+            if reason:
+                print(f"[{arm}] ABORT: {reason}", flush=True)
+                break
+
+    health = arm_health(rows, memory_arm=memory_arm,
+                        max_blank_rate=args.max_blank_rate)
     summary = {"arm": arm, "case": case_path.stem, "model": args.model,
                "n": len(rows),
                "n_ok": sum(1 for r in rows if r.get("status") == "ok"),
                "pooled_aer": pooled(rows), "ci95": boot_ci(rows),
                "memory_errors": sum(r.get("memory_errors", 0) for r in rows),
+               "health": health,
                "llm_usage": getattr(llm_fn, "usage", None)}
     (arm_dir / "summary.json").write_text(json.dumps(summary, indent=1))
+    rate = health["blank_turn_rate"]
     print(f"[{arm}] pooled AER={summary['pooled_aer']} "
-          f"ci95={summary['ci95']} usage={summary['llm_usage']}", flush=True)
+          f"ci95={summary['ci95']} "
+          f"blank_turns={health['blank_turns']}/{health['turns']}"
+          f"{'' if rate is None else f' ({rate:.1%})'} "
+          f"snippets={health['memory_snippets']} "
+          f"usage={summary['llm_usage']}", flush=True)
+    for problem in health["problems"]:
+        print(f"[{arm}] UNHEALTHY: {problem}", flush=True)
     return summary
 
 
@@ -151,6 +174,9 @@ def main() -> None:
                     help="LLM-written transferable-lessons reflection")
     ap.add_argument("--memory-project", default=None,
                     help="EverOS project_id override (fresh memory scope)")
+    ap.add_argument("--max-blank-rate", type=float, default=0.10,
+                    help="fraction of muted turns above which an arm is "
+                         "reported UNHEALTHY and the run exits non-zero")
     args = ap.parse_args()
 
     out_dir = Path(args.out)
@@ -159,6 +185,13 @@ def main() -> None:
                  for arm in args.arms.split(",") if arm.strip()]
     (out_dir / "ab_summary.json").write_text(json.dumps(summaries, indent=1))
     print("A/B complete ->", out_dir / "ab_summary.json")
+
+    # an arm whose validity counters failed must not be quietly poolable:
+    # exit non-zero so a queue script stops instead of banking the number
+    unhealthy = [s["arm"] for s in summaries if s["health"]["problems"]]
+    if unhealthy:
+        print("UNHEALTHY ARMS (do not pool):", ", ".join(unhealthy))
+        raise SystemExit(1)
 
 
 if __name__ == "__main__":
