@@ -44,7 +44,12 @@ toward a general evaluation of agent economic capabilities.
 ## Install
 
 ```bash
-pip install -e '.[dev]'      # from a checkout; PyPI release forthcoming
+# without cloning (a PyPI release is pending):
+pip install "aeread @ git+https://github.com/aeread-org/AERead"
+
+# from a checkout, for development:
+pip install -e '.[dev]'
+
 aeread --help
 ```
 

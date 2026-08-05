@@ -20,12 +20,36 @@ DEFAULT_CASES = "configs/exchange_economy/cases_v0/case0*.json"
 DEFAULT_SEEDS = tuple(range(1200, 1210))
 
 
+def _search_roots() -> list[Path]:
+    """Directories a repo-relative case glob is resolved against, in order.
+
+    A relative glob used to be resolved against the process CWD alone, so the
+    documented ``pip install`` + ``--register`` recipe only worked if you were
+    standing in a checkout. The wheel force-includes ``configs/`` next to the
+    package, so look there first, then at the checkout root (src layout), then
+    at the CWD.
+    """
+    pkg = Path(__file__).resolve().parent.parent      # .../aeread
+    return [pkg, pkg.parents[1], Path.cwd()]          # wheel, checkout root, cwd
+
+
+def _resolve_glob(cases_glob: str) -> list[str]:
+    if Path(cases_glob).is_absolute():
+        return sorted(glob.glob(cases_glob))
+    for root in _search_roots():
+        hits = sorted(glob.glob(str(root / cases_glob)))
+        if hits:
+            return hits
+    return sorted(glob.glob(cases_glob))
+
+
 def build_rows(cases_glob: str = DEFAULT_CASES,
                seeds: tuple[int, ...] = DEFAULT_SEEDS) -> list[dict[str, Any]]:
-    case_paths = sorted(glob.glob(cases_glob))
+    case_paths = _resolve_glob(cases_glob)
     if not case_paths:
+        roots = ", ".join(str(r) for r in _search_roots())
         raise FileNotFoundError(f"no case configs match {cases_glob!r} "
-                                "(run from a repo checkout, or pass an absolute glob)")
+                                f"under any of: {roots}")
     rows = []
     for cp in case_paths:
         stem = Path(cp).stem
