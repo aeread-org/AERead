@@ -16,6 +16,8 @@ from aeread.integrations.everos_memory import (
     EverOSMemory,
     MemoryCandidate,
     NullMemory,
+    arm_health,
+    should_abort_memory_arm,
 )
 
 
@@ -366,3 +368,90 @@ def test_client_search_requires_exactly_one_scope(stub_server):
         client.search("q")
     with pytest.raises(ValueError):
         client.search("q", user_id="u", agent_id="a")
+
+
+# --- run-validity accounting -------------------------------------------
+# These lock the three checks that were done by hand after the 2026-08-01
+# re-run: blank (muted) turns per arm, that the memory treatment actually
+# reached the prompt, and that a dead memory server aborts the arm early
+# instead of quietly producing a second control.
+
+
+def test_blank_turns_counts_empty_and_whitespace_responses():
+    cand, _ = make_candidate(FakeMemory(), responses=["", "a real move", "   "])
+    for phase in ("communication", "proposal", "response"):
+        cand.act("obs", phase)
+    assert len(cand.turns) == 3
+    assert cand.blank_turns == 2
+
+
+def test_blank_turns_is_zero_before_any_turn():
+    cand, _ = make_candidate(FakeMemory())
+    assert cand.blank_turns == 0
+
+
+def _row(**kw):
+    base = {"status": "ok", "turns": 20, "blank_turns": 0,
+            "memory_snippets": 4, "memory_errors": 0}
+    base.update(kw)
+    return base
+
+
+def test_arm_health_is_clean_when_memory_delivered():
+    h = arm_health([_row(), _row()], memory_arm=True)
+    assert h["problems"] == []
+    assert h["turns"] == 40
+    assert h["blank_turns"] == 0
+    assert h["blank_turn_rate"] == 0.0
+    assert h["memory_snippets"] == 8
+
+
+def test_arm_health_flags_undelivered_memory_treatment():
+    h = arm_health([_row(memory_snippets=0) for _ in range(4)],
+                   memory_arm=True)
+    assert any("not delivered" in p for p in h["problems"])
+
+
+def test_arm_health_does_not_require_injection_on_the_control_arm():
+    h = arm_health([_row(memory_snippets=0) for _ in range(4)],
+                   memory_arm=False)
+    assert h["problems"] == []
+
+
+def test_arm_health_flags_a_blank_turn_rate_above_threshold():
+    # 3/20 = 15% muted turns, over the 10% default
+    h = arm_health([_row(blank_turns=3)], memory_arm=False)
+    assert any("blank-turn rate" in p for p in h["problems"])
+    assert h["blank_turn_rate"] == pytest.approx(0.15)
+
+
+def test_arm_health_blank_rate_threshold_is_configurable():
+    assert arm_health([_row(blank_turns=3)], memory_arm=False,
+                      max_blank_rate=0.2)["problems"] == []
+
+
+def test_arm_health_flags_memory_errors():
+    h = arm_health([_row(memory_errors=2)], memory_arm=True)
+    assert any("memory error" in p for p in h["problems"])
+
+
+def test_arm_health_ignores_failed_rows_and_never_divides_by_zero():
+    h = arm_health([{"status": "error", "error": "boom"}], memory_arm=True)
+    assert h["turns"] == 0
+    assert h["blank_turn_rate"] is None
+    assert h["problems"] == []
+
+
+def test_abort_memory_arm_once_enough_episodes_injected_nothing():
+    rows = [_row(memory_snippets=0) for _ in range(3)]
+    assert "0 memory snippets" in (should_abort_memory_arm(rows) or "")
+
+
+def test_abort_waits_for_the_minimum_episode_count():
+    rows = [_row(memory_snippets=0) for _ in range(2)]
+    assert should_abort_memory_arm(rows) is None
+
+
+def test_no_abort_when_snippets_are_flowing():
+    rows = [_row(memory_snippets=0), _row(memory_snippets=0), _row()]
+    assert should_abort_memory_arm(rows) is None

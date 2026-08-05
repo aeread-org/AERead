@@ -163,6 +163,19 @@ class MemoryCandidate:
     def __repr__(self) -> str:  # keeps submission labels readable
         return f"MemoryCandidate(agent_id={self.agent_id!r})"
 
+    @property
+    def blank_turns(self) -> int:
+        """Turns this episode that emitted nothing through the boundary.
+
+        A blank turn scores as a valid no-op, so it is invisible in the AER
+        alone. It is also invisible to the runner's mute circuit breaker,
+        which excludes ``submitted``-origin calls by design (the no-op
+        baseline is silent on purpose). Counting it here is the only place
+        an A/B arm can see it.
+        """
+        return sum(1 for t in self.turns
+                   if not (t.get("response") or "").strip())
+
     # -- episode lifecycle -------------------------------------------------
 
     def begin_episode(self, label: str) -> None:
@@ -336,6 +349,68 @@ def build_openrouter_llm_fn(model: str, *, base_url: str | None = None,
     return llm_fn
 
 
+def arm_health(rows: list[dict[str, Any]], *, memory_arm: bool,
+               max_blank_rate: float = 0.10,
+               max_memory_errors: int = 0) -> dict[str, Any]:
+    """Validity counters an A/B arm must not be allowed to skip.
+
+    Three failure modes here produce a *valid-looking* pooled AER rather
+    than an error, so each has to be counted explicitly:
+
+    - **muted turns** — the candidate returned an empty string and the
+      round scored as a deliberate no-op;
+    - **undelivered treatment** — the memory arm injected nothing, making
+      it a second control while still being reported as the treatment;
+    - **partial degradation** — some episodes lost memory to a transport
+      error and silently ran memoryless.
+
+    ``rows`` are the per-episode result rows. Only ``status == "ok"`` rows
+    count; a failed episode has no turns to judge.
+    """
+    ok = [r for r in rows if r.get("status") == "ok"]
+    turns = sum(int(r.get("turns") or 0) for r in ok)
+    blank = sum(int(r.get("blank_turns") or 0) for r in ok)
+    snippets = sum(int(r.get("memory_snippets") or 0) for r in ok)
+    errors = sum(int(r.get("memory_errors") or 0) for r in ok)
+    rate = (blank / turns) if turns else None
+
+    problems: list[str] = []
+    if memory_arm and ok and snippets == 0:
+        problems.append(
+            f"treatment not delivered: 0 memory snippets injected across "
+            f"{len(ok)} ok episodes")
+    if rate is not None and rate > max_blank_rate:
+        problems.append(
+            f"blank-turn rate {rate:.1%} exceeds {max_blank_rate:.0%} "
+            f"({blank}/{turns} turns muted)")
+    if memory_arm and errors > max_memory_errors:
+        problems.append(
+            f"{errors} memory error(s): the arm degraded to memoryless on "
+            "some turns")
+    return {"episodes": len(ok), "turns": turns, "blank_turns": blank,
+            "blank_turn_rate": rate, "memory_snippets": snippets,
+            "memory_errors": errors, "problems": problems}
+
+
+def should_abort_memory_arm(rows: list[dict[str, Any]], *,
+                            min_episodes: int = 3) -> str | None:
+    """Reason to stop a memory arm early, or ``None`` to keep going.
+
+    A memory server that is up but returning nothing produces a clean run
+    with ``memory_errors == 0`` and no injected context. Catching that at
+    three episodes rather than twelve is the difference between a cheap
+    restart and a full arm's spend on an accidental second control.
+    """
+    ok = [r for r in rows if r.get("status") == "ok"]
+    if len(ok) < min_episodes:
+        return None
+    if sum(int(r.get("memory_snippets") or 0) for r in ok):
+        return None
+    return (f"memory arm injected 0 memory snippets across its first "
+            f"{len(ok)} completed episodes: the memory server is returning "
+            "nothing and this arm is a second control")
+
+
 def run_memory_episode(case_path: str | Path, seed: int,
                        candidate: MemoryCandidate, *,
                        agent_label: str = "everos-mem",
@@ -384,9 +459,11 @@ def run_memory_episode(case_path: str | Path, seed: int,
     outcome = (f"status={case_row.get('status')} AER="
                f"{'n/a' if aer is None else format(aer, '.3f')} "
                f"(w_real={w_real} denominator={denom})")
+    blank = candidate.blank_turns  # before end_episode, which may distill
     candidate.end_episode(outcome)
     return {"status": case_row.get("status"), "aer": aer, "w_real": w_real,
             "denominator": denom, "score": score, "turns": candidate.turns,
+            "blank_turns": blank,
             "memory_errors": candidate.memory_errors,
             # carry the harness's own reason forward: without it a failed
             # episode lands in results.jsonl as a bare "harness_error" with
