@@ -84,8 +84,8 @@ Re-run on the fixed client with **three independent sequences per condition**
 So: *memory helps* is refuted on this benchmark as integrated; *memory hurts*
 is suggested but not established (the CI grazes zero). The control's
 between-sequence SD is 0.014 — worth knowing before reading any
-single-sequence memory comparison, here or elsewhere. Full analysis and the
-retraction notice are in the integration report.
+single-sequence memory comparison, here or elsewhere. What this result does and
+does not license is in [LIMITATIONS.md](LIMITATIONS.md).
 
 ## Caveats (deliberate, documented)
 
@@ -102,5 +102,5 @@ license, is in **[LIMITATIONS.md](LIMITATIONS.md)**. The short version:
   dead memory server silently turns the treatment arm into a second control.
 - **Extraction tracks:** stock EverOS gates its agent-case (strategy) track on
   tool-call rounds, which dialogue-only negotiation episodes never have — see
-  the integration report for the measured consequences and the one-line
-  upstream fix (`AgentCaseExtractor(min_tool_call_rounds=0)`).
+  [LIMITATIONS.md](LIMITATIONS.md) for the measured consequences and the
+  one-line local override (`AgentCaseExtractor(min_tool_call_rounds=0)`).

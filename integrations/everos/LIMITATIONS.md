@@ -105,7 +105,37 @@ specifics is, by its own definition, contamination. A design in which episodes
 repeat the same world would make facts genuinely transferable and would be a
 fair but different test, scored separately from the leaderboard.
 
-## 7. Setup
+## 7. Status, and what is unmeasured
+
+Anyone picking this up should know which claims rest on measurement and which
+do not.
+
+**Measured.** Memory-on vs memory-off, `case03_hidden_discovery`, one model,
+12 dev seeds, three independent sequences per condition, sequential so memory
+accumulates. Reproduce with the command in the guide, adding
+`--memory-project <fresh-scope>` per sequence so scopes do not share state.
+
+**Not measured, in rough order of what would be worth learning:**
+
+| open arm | change required |
+|---|---|
+| write only the distilled lessons, dropping the transcript | one branch in `end_episode`; this is the arm that tests §3 directly |
+| retrieval restricted to procedural content | needs content-type selection at the index, so not reachable client-side today (§2) |
+| a second case family, and a second model | configuration only; the current result is single-family, single-model |
+| repeated episodes on the **same** world | would make facts genuinely transferable, and must be scored separately from the leaderboard for the reason in §6 |
+
+**Before trusting any new arm**, read the `health` block in its `summary.json`.
+The three counters in §5 exist because each of those failure modes produces a
+plausible pooled AER rather than an error. `everos_memory_ab.py` exits non-zero
+when an arm fails them, so a non-zero exit is a result to investigate, not a
+run to retry blindly.
+
+**Also worth knowing:** memory-augmented prompts are substantially larger than
+the control's on identical seeds, so memory arms generate longer, and long
+generations are where streaming-reassembly failures concentrate. Budget wall
+clock accordingly.
+
+## 8. Setup
 
 Python **3.12+**. On 3.11, pip resolves to an older cloud-client package with a
 different surface. The integration searches with `method="vector"`, which does
