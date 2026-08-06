@@ -89,6 +89,9 @@ retraction notice are in the integration report.
 
 ## Caveats (deliberate, documented)
 
+Full detail, including what a result from this integration does and does not
+license, is in **[LIMITATIONS.md](LIMITATIONS.md)**. The short version:
+
 - **Replay:** cross-episode state means a replayed episode's *policy* is not
   reproducible from the manifest alone (byte-replay of recorded actions still
   passes). A/B runs use `verify_replay=False`; official replay-verified
