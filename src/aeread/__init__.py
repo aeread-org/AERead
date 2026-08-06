@@ -9,7 +9,7 @@ consent-under-hidden-information, procurement, bundle worlds) with:
   negatives preserved, denominator tiers never mixed),
 - byte-replayable runs (inference manifest + response snapshots),
 - a text-boundary submission harness for foreign agents, and
-- RL hooks (structured bilateral env, in
+- RL hooks (structured bilateral env; rLLM integration in
   ``aeread.integrations``).
 
 Start with ``aeread --help`` or the README quickstart.

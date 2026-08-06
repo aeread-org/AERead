@@ -418,7 +418,7 @@ def run_memory_episode(case_path: str | Path, seed: int,
                        out_root: str | Path | None = None) -> dict[str, Any]:
     """One seeded episode through the submission harness, with memory hooks.
 
-    Runs one seeded episode but drives an
+    Mirrors :func:`aeread.integrations.rllm_flow.run_episode` but drives an
     externally-owned candidate: ``begin_episode`` before the run,
     ``end_episode(outcome)`` with the realized score row after. Replay
     verification is off (cross-episode memory makes replay non-bytewise).
