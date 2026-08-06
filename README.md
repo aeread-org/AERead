@@ -11,7 +11,7 @@
 
 **Start here:** [5-minute quickstart](docs/quickstart.md) ·
 [Concepts](docs/concepts.md) · [Submit an agent](docs/submissions.md) ·
-[Integrations (EverOS, yours)](integrations/README.md) ·
+[Integrations (rLLM, EverOS, yours)](integrations/README.md) ·
 [Contribute](CONTRIBUTING.md)
 
 AERead (AgentEcon Readiness) is an open environment + benchmark for studying how
@@ -126,6 +126,12 @@ the framework-neutral episode core (`run_episode(...) -> score row`). See
 [integrations/](integrations/README.md) for the contract and the
 add-your-own guide.
 
+- **[rLLM](integrations/rllm/README.md)**
+  (upstream: [rllm-org/rllm](https://github.com/rllm-org/rllm)) — train on
+  AER as reward, smoke-tested against 0.3.0rc0: the seat under test samples
+  through rLLM's model gateway; the frozen panel stays cached and untraced;
+  GRPO groups rollouts per case so denominator scale cancels in the
+  advantage.
 - **[EverOS](integrations/everos/README.md)**
   (upstream: [EverMind-AI/EverOS](https://github.com/EverMind-AI/EverOS)) —
   persistent memory as a treatment arm: a submitted agent that searches an
@@ -172,7 +178,7 @@ private held-out seed set are excluded by design.
 ```
 src/aeread/            the installable package: arena engine, runner, scorer,
                        submission harness, baselines, oracles, CLI
-src/aeread/integrations/   EverOS memory (importable code)
+src/aeread/integrations/   rLLM flow/eval/dataset, EverOS memory (importable code)
 integrations/          per-integration guides + examples (human side)
 configs/exchange_economy/  versioned case sets (cases_v0/, …) + variants
 docs/                  quickstart, concepts, submission contract
@@ -184,6 +190,10 @@ export_manifest.json   provenance of every exported module (see Provenance)
 
 ## Ecosystem & partnerships
 
+- **[rLLM](https://github.com/rllm-org/rllm)** — Berkeley Sky Lab's agent
+  post-training framework. AERead ships rLLM entry points; the seat under
+  test trains through rLLM's gateway with per-episode AER as reward.
+  ([guide](integrations/rllm/README.md))
 - **[EverOS](https://github.com/EverMind-AI/EverOS)** — EverMind's
   open-source, markdown-first memory service. The persistent-memory
   treatment arm is developed in design partnership with the EverOS team.

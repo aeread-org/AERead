@@ -61,5 +61,6 @@ See [submissions.md](submissions.md) for the contract details and
 [concepts.md](concepts.md) for what the score means. From here:
 
 - evaluate across models/seeds → `aeread sweep` (`exchange_v1_sweep`)
+- train on AER as reward → [rLLM integration](../integrations/rllm/README.md)
 - give your agent persistent memory → [EverOS integration](../integrations/everos/README.md)
 - contribute a case → [CONTRIBUTING.md](../CONTRIBUTING.md)
