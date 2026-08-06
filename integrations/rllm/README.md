@@ -22,7 +22,7 @@ this package is installed.
 ## Working recipe (smoke-tested against rLLM 0.3.0rc0)
 
 ```bash
-pip install "aeread @ git+https://github.com/aeread-org/AERead"
+pip install aeread
 pip install "rllm @ git+https://github.com/rllm-org/rllm.git"
 # upstream skew note: rllm@main needs its gateway from the same tree
 pip install --force-reinstall --no-deps \

@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "aeread"
 version = "0.1.0"
-description = "AERead: an agentic economic environment and benchmark — multi-agent exchange arenas with welfare-based AER scoring, frozen-panel evaluation, verifiable submissions, and RL hooks"
+description = "AERead: an agentic economic environment and benchmark. Multi-agent exchange arenas with welfare-based AER scoring, frozen-panel evaluation, verifiable submissions, and RL hooks"
 readme = "README.md"
 license = { file = "LICENSE" }
 requires-python = ">=3.10"
