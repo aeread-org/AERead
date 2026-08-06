@@ -1,7 +1,9 @@
 # rLLM integration
 
 Train and evaluate agents on AERead through
-[rLLM](https://github.com/rllm-org/rllm)'s agent trainer. The packaged entry
+[rLLM](https://github.com/rllm-org/rllm)'s agent trainer. Taking this over or
+extending it? Start with [HANDOVER.md](HANDOVER.md): design rationale, what is
+verified, the traps, and the open work. The packaged entry
 points (see `[project.entry-points]` in `pyproject.toml`) expose an AgentFlow
 and an evaluator under the name `aeread`, so rLLM discovers them by name once
 this package is installed.
