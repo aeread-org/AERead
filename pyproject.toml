@@ -29,22 +29,9 @@ dev = ["pytest>=7"]
 [project.scripts]
 aeread = "aeread.cli:main"
 
-# rLLM plugin discovery (https://docs.rllm-project.com): with rllm installed,
-# `rllm eval <dataset> --agent aeread` / `rllm train` resolve these by name.
-[project.entry-points."rllm.agents"]
-aeread = "aeread.integrations.rllm_flow:AereadFlow"
-
-[project.entry-points."rllm.evaluators"]
-aeread = "aeread.integrations.rllm_eval:aeread_evaluator"
-
 [project.urls]
 Homepage = "https://aeread.org"
 Repository = "https://github.com/aeread-org/AERead"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/aeread"]
-
-# Ship the public case set inside the wheel so `pip install aeread` followed by
-# `rllm eval` works without cloning. rllm_dataset._search_roots() looks here first.
-[tool.hatch.build.targets.wheel.force-include]
-"configs" = "aeread/configs"
