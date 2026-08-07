@@ -9,13 +9,17 @@ import os
 import re
 import sys
 import time
-import tomllib
 import types
 import warnings
 from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
+
+try:
+    import tomllib
+except ModuleNotFoundError:  # Python 3.10: tomllib landed in 3.11
+    import tomli as tomllib
 
 from aeread.integrations import rllm_dataset
 from aeread.integrations.episode_core import (
