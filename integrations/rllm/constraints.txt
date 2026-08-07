@@ -1,0 +1,2 @@
+rllm @ git+https://github.com/rllm-org/rllm.git@1d1109a655e291b3001d8526d7c9ecc5b9328226
+rllm-model-gateway @ git+https://github.com/rllm-org/rllm.git@1d1109a655e291b3001d8526d7c9ecc5b9328226#subdirectory=rllm-model-gateway

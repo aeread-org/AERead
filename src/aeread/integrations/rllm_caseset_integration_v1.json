@@ -1,0 +1,57 @@
+{
+  "manifest_schema_version": 1,
+  "caseset_version": "integration-v1",
+  "protocol_version": "exchange-v1",
+  "generator_version": "exchange_v1_pilot.seeded_case:v1",
+  "scorer_version": "exchange-v1-d15-carveout-v2",
+  "semantic_role": "public-integration-fixture",
+  "caseset_sha256": "4124ea21744ee44109687dc90ed93806a96a70fb22788bd774553ef9fbf243a4",
+  "prompt_spec": {
+    "source": "aeread.exchange_v1_runner",
+    "sha256": "b95630b7f9b17822a24a7822d9483de549463e34e2299c66d78b9607271ff352"
+  },
+  "panel_spec": {
+    "source": "ordered case external-scoring role specifications",
+    "sha256": "02884e8bd1588eed59f75708e0e0b3ebd5e43a85a40c8f22fc4bb9d7d3a6e496"
+  },
+  "cases": [
+    {
+      "row_key": "case01",
+      "case_id": "case01_visible_bilateral_ir",
+      "case_resource": "exchange_economy/cases_v0/case01_visible_bilateral_ir.json",
+      "case_sha256": "9e77459f006baad4109c90c129a96f28323e1c174a1ef60c7d0a87b1e3bd85a1"
+    },
+    {
+      "row_key": "case02",
+      "case_id": "case02_multiparty_clearing",
+      "case_resource": "exchange_economy/cases_v0/case02_multiparty_clearing.json",
+      "case_sha256": "503a74a6c332c04b647cc33990b3ad3ed43f23674bbdd40f132885816b168a28"
+    },
+    {
+      "row_key": "case03",
+      "case_id": "case03_hidden_discovery",
+      "case_resource": "exchange_economy/cases_v0/case03_hidden_discovery.json",
+      "case_sha256": "d3b0941111ff12a9201a9a038bd4c7f8f600661e402e3498e44b8de102e721f2"
+    },
+    {
+      "row_key": "case04",
+      "case_id": "case04_consent_under_hidden_info",
+      "case_resource": "exchange_economy/cases_v0/case04_consent_under_hidden_info.json",
+      "case_sha256": "9d95bb1a2c7b245ec5b3b46443029806a3b5dc8181d3a8961e2d6f8b3f184342"
+    }
+  ],
+  "splits": {
+    "train": {
+      "seeds": [1200, 1201, 1202, 1203],
+      "semantic_role": "public-integration-train"
+    },
+    "dev": {
+      "seeds": [2200, 2201],
+      "semantic_role": "public-development"
+    },
+    "test": {
+      "alias_of": "dev",
+      "semantic_role": "public-development-alias-for-rllm-eval"
+    }
+  }
+}
