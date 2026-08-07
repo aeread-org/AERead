@@ -1,0 +1,17 @@
+{
+  "aeread_version": "0.1.0",
+  "caseset_version": "integration-v1",
+  "caseset_sha256": "4124ea21744ee44109687dc90ed93806a96a70fb22788bd774553ef9fbf243a4",
+  "protocol_version": "exchange-v1",
+  "scorer_version": "exchange-v1-d15-carveout-v2",
+  "prompt_spec_sha256": "b95630b7f9b17822a24a7822d9483de549463e34e2299c66d78b9607271ff352",
+  "panel_spec_sha256": "02884e8bd1588eed59f75708e0e0b3ebd5e43a85a40c8f22fc4bb9d7d3a6e496",
+  "rllm_revision": "1d1109a655e291b3001d8526d7c9ecc5b9328226",
+  "model_gateway": {
+    "package": "rllm-model-gateway",
+    "revision": "1d1109a655e291b3001d8526d7c9ecc5b9328226",
+    "source": "git+https://github.com/rllm-org/rllm.git@1d1109a655e291b3001d8526d7c9ecc5b9328226#subdirectory=rllm-model-gateway"
+  },
+  "python_versions": ["3.10", "3.12"],
+  "integration_tested_python_version": "3.12"
+}

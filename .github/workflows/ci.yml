@@ -4,9 +4,21 @@ on:
   push:
     branches: [main]
   pull_request:
+  schedule:
+    # Weekly rLLM main canary (Workstream 7): surfaces upstream drift before
+    # an adopter reports it, without making a PR depend on an unpinned
+    # branch. See jobs.rllm-canary below.
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+env:
+  # Verified against integrations/rllm/compat.json and
+  # integrations/rllm/constraints.txt. Bump all three together.
+  RLLM_PINNED_REVISION: 1d1109a655e291b3001d8526d7c9ecc5b9328226
 
 jobs:
   test:
+    name: Unit tests (provider-free, no rLLM)
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -20,3 +32,84 @@ jobs:
         run: pip install -e '.[dev]'
       - name: Tests (provider-free)
         run: pytest tests/ -q
+
+  rllm-integration:
+    name: rLLM integration (pinned revision, required)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout AERead
+        uses: actions/checkout@v4
+      - name: Checkout pinned rLLM
+        uses: actions/checkout@v4
+        with:
+          repository: rllm-org/rllm
+          ref: ${{ env.RLLM_PINNED_REVISION }}
+          path: rllm-src
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install AERead
+        run: pip install -e '.[dev]' click
+      - name: Verify the checked-out rLLM commit matches the pinned revision
+        run: |
+          actual="$(git -C rllm-src rev-parse HEAD)"
+          if [ "$actual" != "${{ env.RLLM_PINNED_REVISION }}" ]; then
+            echo "::error::checked-out rLLM commit $actual != pinned ${{ env.RLLM_PINNED_REVISION }}"
+            exit 1
+          fi
+      - name: Full suite (provider-free)
+        run: pytest tests/ -q
+      - name: rLLM-dependent tests against the pinned revision
+        env:
+          PYTHONPATH: ${{ github.workspace }}/rllm-src
+        run: |
+          set -o pipefail
+          pytest tests/test_rllm_integration.py -q -rs | tee rllm-integration.log
+          if grep -Eq '[0-9]+ skipped' rllm-integration.log; then
+            echo "::error::an rLLM-dependent test skipped unexpectedly with the pinned rLLM checkout on PYTHONPATH"
+            exit 1
+          fi
+      - name: Assert the compatibility record matches what was tested
+        run: |
+          python integrations/rllm/check_compat.py \
+            --python-version "3.12" \
+            --rllm-revision "${{ env.RLLM_PINNED_REVISION }}"
+
+  wheel-acceptance:
+    name: Wheel acceptance (installed artifact, no checkout)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install test dependencies
+        run: pip install -e '.[dev]'
+      - name: Build, install into an isolated venv, and preflight outside the checkout
+        run: pytest tests/test_wheel_acceptance.py -m wheel -q
+
+  rllm-canary:
+    name: rLLM main canary (non-blocking, scheduled)
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - name: Checkout AERead
+        uses: actions/checkout@v4
+      - name: Checkout rLLM main
+        uses: actions/checkout@v4
+        with:
+          repository: rllm-org/rllm
+          ref: main
+          path: rllm-src
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install AERead
+        run: pip install -e '.[dev]' click
+      - name: Full suite (provider-free)
+        run: pytest tests/ -q
+      - name: rLLM-dependent tests against rLLM main
+        env:
+          PYTHONPATH: ${{ github.workspace }}/rllm-src
+        run: pytest tests/test_rllm_integration.py -q -rs

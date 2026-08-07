@@ -1,230 +1,406 @@
-"""rLLM AgentFlow for AERead (experimental).
+"""rLLM rollout adapter for AERead (experimental).
 
-With `rllm <https://github.com/rllm-org/rllm>`_ installed, the entry points in
-``pyproject.toml`` expose this flow and its evaluator under the name
-``aeread``::
+The framework-neutral core is :func:`run_episode`. Only the submitted seat
+uses the rLLM model-gateway session; external scoring services remain outside
+the policy trace.
 
-    rllm eval <dataset> --agent aeread --base-url http://localhost:30000/v1 --model <m>
-    rllm train <dataset> --agent aeread ...
-
-Design (mirrors rLLM's FrozenLake cookbook shape):
-
-- Each task row is pure parameters — ``{case_path, seed}`` — and the arena is
-  rebuilt deterministically per rollout.
-- The **seat under test** is a text-boundary submitted agent whose ``act()``
-  calls the OpenAI-compatible endpoint at ``config.base_url``. During training
-  that is rLLM's model gateway, so exactly these calls are traced and
-  trainable.
-- The **frozen panel / compiler / verifier** seats run on their own provider
-  clients with temperature-0 caching, untouched by the gateway — frozen for
-  free.
-- Reward is per-episode AER (raw ``w_real / denominator``), assigned by
-  :func:`aeread.integrations.rllm_eval.aeread_evaluator`. GRPO groups rollouts
-  per task, so per-case denominator scale cancels in the advantage.
-
-Status: smoke-tested end-to-end against rLLM 0.3.0rc0 (git main, 2026-07-28):
-``rllm eval aeread --agent aeread --evaluator aeread`` completes with the
-episode AER as reward and only the under-test seat traced. Known upstream
-install skew: rllm@git-main needs the gateway from the same tree —
-``pip install --force-reinstall --no-deps
-"rllm-model-gateway @ git+https://github.com/rllm-org/rllm.git#subdirectory=rllm-model-gateway"``
-(the PyPI 0.1.0 wheel lags and lacks ``local_handler``). Replay verification
-is skipped inside RL rollouts (``verify_replay=False``) — run ``aeread
-submit`` for auditable scoring.
+Compatibility is pinned to rLLM revision
+``1d1109a655e291b3001d8526d7c9ecc5b9328226``. Import-time feature probes fail
+loudly if the episode contract changes.
 """
 from __future__ import annotations
 
-import json
-import tempfile
-from importlib import import_module
-from pathlib import Path
 from typing import Any
 
+try:
+    import rllm
+    from rllm.types import AgentConfig, Episode, Step, Task, Trajectory
+    from rllm.workflows.workflow import TerminationReason
+except ModuleNotFoundError as err:
+    if err.name != "rllm":
+        raise
+    rllm = None
+    AgentConfig = Episode = Step = Task = Trajectory = Any
+    TerminationReason = Any
+    _RLLM_IMPORT_ERROR: ModuleNotFoundError | None = err
+else:
+    _RLLM_IMPORT_ERROR = None
 
-class GatewayCandidate:
-    """Submitted agent backed by an OpenAI-compatible endpoint.
+from aeread.integrations.episode_core import (
+    DEFAULT_EXTERNAL_SCORING_MAX_TOKENS,
+    DEFAULT_EXTERNAL_SCORING_TEMPERATURE,
+    run_episode,
+)
+from aeread.integrations.failure_taxonomy import (
+    EpisodeMeasurement,
+    FlowTelemetry,
+    IntegrationConfigurationError,
+    normalize_integration_exception,
+)
+from aeread.integrations.gateway_candidate import (
+    NO_ACTION,
+    CandidateTraceMismatch,
+    EmptyModelResponse,
+    GatewayCandidate,
+)
+from aeread.integrations.rllm_dataset import resolve_case_resource
 
-    Satisfies the text-boundary contract: ``act(observation, phase) -> str``.
-    Keeps a turn log so the flow can reconstruct per-step chat completions.
-    """
 
-    def __init__(self, base_url: str, model: str, *, api_key: str | None = None,
-                 temperature: float = 0.7, max_tokens: int = 1200) -> None:
-        import os
-        from openai import OpenAI
-        # rLLM's model gateway accepts any key ("EMPTY"); direct provider
-        # endpoints need a real one — resolve from env when not passed.
-        resolved = (api_key or os.environ.get("AEREAD_GATEWAY_API_KEY")
-                    or os.environ.get("OPENAI_API_KEY") or "EMPTY")
-        self._client = OpenAI(base_url=base_url, api_key=resolved)
-        self.model = model
-        self.temperature = temperature
-        self.max_tokens = max_tokens
-        self.turns: list[dict[str, str]] = []
+RLLM_PINNED_REVISION = "1d1109a655e291b3001d8526d7c9ecc5b9328226"
+RLLM_COMPATIBILITY_MESSAGE = (
+    "AERead requires the rLLM API verified at revision "
+    f"{RLLM_PINNED_REVISION}; install integrations/rllm/constraints.txt"
+)
+_FLOW_TELEMETRY = FlowTelemetry()
 
-    def act(self, observation: str, phase: str) -> str:
-        resp = self._client.chat.completions.create(
-            model=self.model,
-            messages=[{"role": "user", "content": observation}],
-            temperature=self.temperature,
-            max_tokens=self.max_tokens,
+
+class RllmCompatibilityError(RuntimeError):
+    """The installed rLLM API cannot preserve AERead episode semantics."""
+
+
+def _require_rllm_compatibility(
+    *,
+    episode_type: type[Any] | None = None,
+    trajectory_type: type[Any] | None = None,
+    step_type: type[Any] | None = None,
+    agent_config_type: type[Any] | None = None,
+    termination_error: Any = None,
+) -> None:
+    """Feature-probe the complete constructor contract used by the adapter."""
+    episode_type = episode_type or Episode
+    trajectory_type = trajectory_type or Trajectory
+    step_type = step_type or Step
+    agent_config_type = agent_config_type or AgentConfig
+    termination_error = termination_error or TerminationReason.ERROR
+    required_fields = {
+        episode_type: {
+            "trajectories",
+            "artifacts",
+            "termination_reason",
+            "is_correct",
+            "metadata",
+        },
+        trajectory_type: {"name", "steps", "reward"},
+        step_type: {
+            "chat_completions",
+            "model_response",
+            "action",
+            "done",
+        },
+    }
+    try:
+        for model_type, names in required_fields.items():
+            fields = set(model_type.model_fields)
+            missing = sorted(names - fields)
+            if missing:
+                raise TypeError(
+                    f"{model_type.__name__} is missing fields {missing}"
+                )
+        config_fields = set(agent_config_type.__dataclass_fields__)
+        if "sampling_params" not in config_fields:
+            raise TypeError("AgentConfig is missing sampling_params")
+
+        step = step_type(
+            chat_completions=[{"role": "user", "content": "probe"}],
+            model_response="probe",
+            action="probe",
+            done=True,
         )
-        text = (resp.choices[0].message.content or "").strip()
-        self.turns.append({"phase": phase, "observation": observation,
-                           "response": text})
-        return text
+        trajectory = trajectory_type(
+            name="compatibility_probe", steps=[step], reward=-0.25
+        )
+        episode = episode_type(
+            trajectories=[trajectory],
+            artifacts={"aer": -0.25},
+            termination_reason=termination_error,
+            is_correct=False,
+            metadata={"probe": True},
+        )
+        if episode.artifacts.get("aer") != -0.25:
+            raise TypeError("Episode discarded artifacts")
+        if episode.termination_reason != termination_error:
+            raise TypeError("Episode discarded termination_reason")
+        if episode.is_correct is not False:
+            raise TypeError("Episode discarded is_correct")
+        if episode.metadata.get("probe") is not True:
+            raise TypeError("Episode discarded metadata")
+    except Exception as err:
+        raise RllmCompatibilityError(
+            f"{RLLM_COMPATIBILITY_MESSAGE}: {err}"
+        ) from err
 
 
-def run_episode(case_path: str | Path, seed: int, *, base_url: str,
-                model: str, temperature: float = 0.7,
-                max_tokens: int = 1200) -> dict[str, Any]:
-    """Framework-agnostic episode core: returns score row + turn log.
-
-    Usable directly from any RL stack (miles/slime ``generate_rollout``
-    modules can call this and map the return onto their Sample type).
-    """
-    from aeread import exchange_v1_pilot as pilot
-    from aeread import exchange_v1_runner as runner
-    from aeread import exchange_v1_submit as submit
-
-    candidate = GatewayCandidate(base_url, model, temperature=temperature,
-                                 max_tokens=max_tokens)
-    with tempfile.TemporaryDirectory() as td:
-        out = Path(td)
-        (out / "cases").mkdir(parents=True, exist_ok=True)
-        prepared = pilot.seeded_case(Path(case_path), int(seed),
-                                     out / "cases", "rllm")
-        sub_dir = submit.run_submission(
-            [prepared], candidate, agent_label="rllm",
-            out_root=out / "submissions",
-            options=runner.InferenceOptions(max_tokens=max_tokens),
-            verify_replay=False, quiet=True)
-        report = json.loads((sub_dir / "submission_report.json").read_text())
-    case_row = report["cases"][0]
-    score = case_row.get("score") or {}
-    w_real = score.get("w_real")
-    denom = score.get("denominator")
-    aer = None
-    if w_real is not None and denom and denom > 1e-9:
-        aer = float(w_real) / float(denom)
-    return {"status": case_row.get("status"), "aer": aer,
-            "w_real": w_real, "denominator": denom,
-            "score": score, "turns": candidate.turns}
-
-
-def _termination_error() -> Any:
-    """rLLM's ERROR termination reason, or None if this rllm lays it out elsewhere."""
-    for mod_name in ("rllm.workflows.workflow", "rllm.workflows", "rllm"):
-        try:
-            return import_module(mod_name).TerminationReason.ERROR  # type: ignore[attr-defined]
-        except (ImportError, AttributeError):
-            continue
-    return None
+if rllm is not None:
+    _require_rllm_compatibility()
 
 
 def _unscorable_reason(result: dict[str, Any]) -> str | None:
-    """Why this episode carries no measurement, or None if it does.
-
-    rLLM's runner counts an item as an error only when the episode terminates
-    with ERROR; anything else is read as a score. Without this, an episode
-    where the seat under test never received a model response reports as
-    "Accuracy 0.0%, Errors 0" and reads as a model that played and realised
-    nothing. A real AER of 0.0 (or a negative one) is a measurement and must
-    stay a score.
-    """
+    """Describe an unscorable result for diagnostics only."""
     status = result.get("status")
     if status != "ok":
-        return (f"aeread episode did not complete: status={status!r}. "
-                "The seat under test produced no scorable run (commonly an "
-                "unreachable or unhealthy --base-url endpoint). This is a "
-                "harness failure, not a score of zero.")
+        return (
+            f"aeread episode did not complete: status={status!r}. "
+            "The seat under test produced no scorable run. This is a harness "
+            "failure, not a score of zero."
+        )
     if result.get("aer") is None:
-        return (f"aeread episode has no AER: denominator={result.get('denominator')!r}. "
-                "Degenerate denominators are reported, never imputed.")
+        return (
+            "aeread episode has no AER: "
+            f"denominator={result.get('denominator')!r}. Degenerate "
+            "denominators are reported, never imputed."
+        )
     return None
 
 
-def _episode_types() -> tuple[Any, Any, Any]:
-    last_err: Exception | None = None
-    for mod_name in ("rllm", "rllm.types", "rllm.core.types", "rllm.data.types"):
-        try:
-            mod = import_module(mod_name)
-            return mod.Episode, mod.Trajectory, mod.Step  # type: ignore[attr-defined]
-        except (ImportError, AttributeError) as err:
-            last_err = err
-    raise ImportError(
-        "aeread rLLM integration: could not locate Episode/Trajectory/Step "
-        "in rllm — is rllm installed? (pip install 'rllm @ "
-        "git+https://github.com/rllm-org/rllm.git')") from last_err
+def _trace_safe_turns(result: dict[str, Any]) -> tuple[list[dict[str, Any]], int, int]:
+    """Validate the candidate-side one-request/one-step contract."""
+    turns = list(result.get("turns") or [])
+    request_count = int(result.get("candidate_request_count", len(turns)))
+    blank_count = int(result.get("blank_completion_count", 0))
+    if blank_count:
+        raise EmptyModelResponse(
+            request_count=request_count,
+            blank_completion_count=blank_count,
+            completed_turn_count=len(turns),
+        )
+    for turn in turns:
+        if not str(turn.get("response") or "").strip():
+            raise EmptyModelResponse(
+                request_count=request_count,
+                blank_completion_count=1,
+                completed_turn_count=len(turns) - 1,
+            )
+    if result.get("status") == "ok" and request_count != len(turns):
+        raise CandidateTraceMismatch(
+            "successful episode cannot align candidate requests with turns "
+            f"(requests={request_count}, turns={len(turns)})"
+        )
+    return turns, request_count, blank_count
 
 
-class AereadFlow:
-    """rLLM AgentFlow: one AERead arena episode per task.
-
-    rLLM's loader requires an object with a ``.run(task, config)`` method
-    (a bare function is rejected) — this class is what the ``rllm.agents``
-    entry point exposes; :func:`aeread_flow` remains the functional core.
-    """
-
-    name = "aeread"
-
-    def run(self, task: Any, config: Any) -> Any:
-        return aeread_flow(task, config)
-
-    async def arun(self, task: Any, config: Any) -> Any:
-        return aeread_flow(task, config)
-
-
-def aeread_flow(task: Any, config: Any) -> Any:
-    """rLLM AgentFlow entry point (sync ``run`` shape)."""
-    Episode, Trajectory, Step = _episode_types()
-
-    meta = getattr(task, "metadata", None) or {}
+def _build_measured_episode(
+    task: Task | dict[str, Any], config: AgentConfig
+) -> Episode:
+    """Build one measured episode or raise a typed integration failure."""
+    metadata = getattr(task, "metadata", None) or {}
     if isinstance(task, dict):
-        meta = {**task, **meta}
-    case_path = meta.get("case_path")
-    seed = meta.get("seed")
-    if case_path is None or seed is None:
-        raise ValueError(
-            "aeread task rows need `case_path` and `seed` in metadata — "
-            "build them with aeread.integrations.rllm_dataset.build_rows()")
-
-    cfg_meta = getattr(config, "metadata", None) or {}
-    result = run_episode(
-        case_path, seed,
-        base_url=getattr(config, "base_url", None) or cfg_meta.get("base_url"),
-        model=getattr(config, "model", None) or cfg_meta.get("model") or "gateway",
-        temperature=float(cfg_meta.get("temperature", 0.7)),
-        max_tokens=int(cfg_meta.get("max_tokens", 1200)))
-
-    steps = []
-    n = len(result["turns"])
-    for i, turn in enumerate(result["turns"]):
-        steps.append(Step(
-            chat_completions=[{"role": "user", "content": turn["observation"]}],
-            model_response=turn["response"],
-            action=turn["response"],
-            done=(i == n - 1)))
-    aer = result["aer"]
-    trajectory = Trajectory(name="under_test", steps=steps,
-                            reward=float(aer) if aer is not None else 0.0)
-    artifacts = {"status": result["status"], "aer": aer,
-                 "w_real": result["w_real"],
-                 "denominator": result["denominator"]}
-    reason = _unscorable_reason(result)
-    if reason is not None:
-        artifacts["error"] = reason
-    kwargs: dict[str, Any] = {
-        "trajectories": [trajectory],
-        "artifacts": artifacts,
-        "is_correct": bool(aer is not None and aer > 0),
+        metadata = {**task, **metadata}
+    required_row_fields = {
+        "id",
+        "case_id",
+        "case_resource",
+        "case_sha256",
+        "seed",
+        "split",
+        "caseset_version",
+        "caseset_sha256",
+        "protocol_version",
+        "prompt_spec",
+        "panel_spec",
+        "scorer_version",
     }
-    if reason is not None:
-        terminated = _termination_error()
-        if terminated is not None:
-            kwargs["termination_reason"] = terminated
-        kwargs["metadata"] = {"error": {"message": reason}}
+    missing = sorted(required_row_fields - set(metadata))
+    if missing:
+        raise IntegrationConfigurationError(
+            f"aeread task row is missing fields {missing} -- "
+            "build them with aeread.integrations.rllm_dataset.build_rows()"
+        )
+    case_path = resolve_case_resource(metadata)
+    seed = metadata["seed"]
+
+    base_url = config.base_url
+    model = config.model
+    sampling_params = dict(config.sampling_params)
+    config_metadata = config.metadata or {}
+    external_temperature = float(
+        config_metadata.get(
+            "external_scoring_temperature",
+            DEFAULT_EXTERNAL_SCORING_TEMPERATURE,
+        )
+    )
+    external_max_tokens = int(
+        config_metadata.get(
+            "external_scoring_max_tokens",
+            DEFAULT_EXTERNAL_SCORING_MAX_TOKENS,
+        )
+    )
+
+    def candidate_factory() -> GatewayCandidate:
+        return GatewayCandidate(
+            base_url,
+            model,
+            sampling_params=sampling_params,
+        )
+
+    result = run_episode(
+        case_path,
+        int(seed),
+        candidate_factory=candidate_factory,
+        external_scoring_temperature=external_temperature,
+        external_scoring_max_tokens=external_max_tokens,
+    )
+    turns, request_count, blank_count = _trace_safe_turns(result)
+    measurement = EpisodeMeasurement.from_result(result)
+
+    steps: list[Step] = []
+    for index, turn in enumerate(turns):
+        response = str(turn["response"])
+        step_kwargs: dict[str, Any] = {
+            "chat_completions": [
+                {"role": "user", "content": turn["observation"]}
+            ],
+            "model_response": response,
+            "action": response,
+            "done": index == len(turns) - 1,
+            "metadata": {
+                "phase": turn.get("phase"),
+                "candidate_response_id": turn.get("response_id"),
+            },
+        }
+        if turn.get("response_id"):
+            step_kwargs["id"] = str(turn["response_id"])
+        steps.append(Step(**step_kwargs))
+
+    trajectory = Trajectory(
+        name="under_test",
+        steps=steps,
+        reward=measurement.aer,
+    )
+    candidate_sampling = result.get("candidate_sampling") or {
+        "source": "rllm_gateway_session",
+        "params": sampling_params,
+    }
+    expected_sampling = {
+        "source": "rllm_gateway_session",
+        "params": sampling_params,
+    }
+    if candidate_sampling != expected_sampling:
+        raise CandidateTraceMismatch(
+            "recorded candidate sampling does not match the rLLM gateway session"
+        )
+    score = result.get("score") or {}
+    scorer = {
+        "version": metadata["scorer_version"],
+        "tier": score.get("tier"),
+    }
+    dataset_fields = (
+        "id",
+        "case_id",
+        "case_resource",
+        "case_sha256",
+        "seed",
+        "split",
+        "caseset_version",
+        "caseset_sha256",
+        "protocol_version",
+        "prompt_spec",
+        "panel_spec",
+        "scorer_version",
+    )
+    artifacts = {
+        "status": "ok",
+        "aer": measurement.aer,
+        "w_real": measurement.w_real,
+        "denominator": measurement.denominator,
+        "denominator_tier": result.get("denominator_tier"),
+        "candidate_request_count": request_count,
+        "blank_completion_count": blank_count,
+        "completed_turn_count": len(turns),
+        "model": model,
+        "candidate_sampling": candidate_sampling,
+        "caseset_sha256": metadata["caseset_sha256"],
+        "prompt_spec": metadata["prompt_spec"],
+        "panel_spec": metadata["panel_spec"],
+        "scorer_version": metadata["scorer_version"],
+        "scorer": scorer,
+        "external_scoring": result.get("external_scoring")
+        or {
+            "temperature": external_temperature,
+            "max_tokens": external_max_tokens,
+        },
+        "candidate_response_ids": [
+            turn.get("response_id") for turn in turns
+        ],
+        "dataset": {name: metadata[name] for name in dataset_fields},
+        "rllm_revision": RLLM_PINNED_REVISION,
+        "is_validation": bool(config.is_validation),
+    }
+    return Episode(
+        trajectories=[trajectory],
+        artifacts=artifacts,
+        is_correct=measurement.aer > 0.0,
+    )
+
+
+def get_flow_telemetry() -> dict[str, Any]:
+    """Return process-local attempted, measured, and failed counters."""
+    return _FLOW_TELEMETRY.snapshot()
+
+
+def reset_flow_telemetry() -> None:
+    """Reset process-local counters before a bounded audit run."""
+    _FLOW_TELEMETRY.reset()
+
+
+def _aeread_flow_impl(
+    task: Task | dict[str, Any], config: AgentConfig
+) -> Episode:
+    """Run one AERead task and expose measurement/failure counters."""
+    _FLOW_TELEMETRY.record_attempt()
     try:
-        return Episode(**kwargs)
-    except TypeError:
-        return Episode(trajectories=[trajectory])
+        episode = _build_measured_episode(task, config)
+    except Exception as error:
+        typed = normalize_integration_exception(error)
+        flow_counters = _FLOW_TELEMETRY.record_failure(typed.failure_class)
+        typed.telemetry = {
+            "attempt": {
+                "attempted": 1,
+                "measured": 0,
+                "failed": 1,
+                "failed_by_class": {typed.failure_class.value: 1},
+            },
+            "flow": flow_counters,
+        }
+        if typed is error:
+            raise
+        raise typed from error
+
+    flow_counters = _FLOW_TELEMETRY.record_measurement()
+    episode.artifacts["measurement_counters"] = {
+        "attempted": 1,
+        "measured": 1,
+        "failed": 0,
+        "failed_by_class": {},
+    }
+    episode.artifacts["flow_counters"] = flow_counters
+    return episode
+
+
+if rllm is not None:
+    try:
+        aeread_flow = rllm.rollout(name="under_test")(_aeread_flow_impl)
+    except Exception as err:
+        raise RllmCompatibilityError(
+            f"{RLLM_COMPATIBILITY_MESSAGE}: rollout decorator mismatch: {err}"
+        ) from err
+    # rLLM eval honors this hint; training uses prototype_train.yaml's
+    # explicit workflow.n_parallel_tasks setting.
+    aeread_flow.max_concurrent = 2
+else:
+    def aeread_flow(*args: Any, **kwargs: Any) -> Any:
+        raise ModuleNotFoundError(
+            f"{RLLM_COMPATIBILITY_MESSAGE}: rllm is not installed"
+        ) from _RLLM_IMPORT_ERROR
+
+
+__all__ = [
+    "EmptyModelResponse",
+    "GatewayCandidate",
+    "NO_ACTION",
+    "RLLM_PINNED_REVISION",
+    "RllmCompatibilityError",
+    "aeread_flow",
+    "get_flow_telemetry",
+    "reset_flow_telemetry",
+    "run_episode",
+]
