@@ -186,16 +186,36 @@ def train_smoke(model: str = DEFAULT_MODEL, steps: int = 3) -> dict[str, Any]:
         # max_model_len=8192" -- and the same 30720 persisted unchanged
         # after max_model_len was raised to 32768, so it was not derived
         # from max_model_len at all. Traced to
-        # rllm/trainer/config/rllm/base.yaml's own max_response_length:
-        # 30720 default, a namespace (rllm.max_response_length) separate
-        # from data.max_response_length above and not auto-derived from
-        # it (unlike actor_rollout_ref.rollout.response_length, which
-        # does default from data.max_response_length via oc.select).
-        # Setting it to the same 2048 the brief already intended for
-        # data.max_response_length closes the gap: prompt (up to ~8200
-        # tokens per Task 3's probe) plus a 2048-token response budget
-        # stays safely under the model's 32768 context either way.
-        "+rllm.max_response_length=2048",
+        # rllm/trainer/config/rllm/base.yaml, whose data: block (nested
+        # under the rllm: root, not a flat rllm.max_response_length field)
+        # sets max_response_length: 30720. rllm.rollout.train.max_tokens
+        # and rollout.val.max_tokens both interpolate from this exact
+        # nested path (${rllm.data.max_response_length}), so this is the
+        # key that actually needs setting -- a first attempt at
+        # +rllm.max_response_length=2048 (without the data. segment)
+        # composed without error but created an unrelated, unread key;
+        # the max_tokens=30720 error still reproduced on the next run,
+        # which is what exposed the wrong path. Separately, the same
+        # rllm.data.* block also holds train_batch_size (default 64) and
+        # val_batch_size (default -1), neither auto-derived from the
+        # data.* overrides above; left at 64 against a 16-example train
+        # split, the dataloader silently yielded zero batches on the next
+        # run (confirmed: telemetry showed 0 episodes attempted after a
+        # clean exit, no exception). All four rllm.data.* fields are set
+        # here to the same values the brief already intended for data.*.
+        "rllm.data.train_batch_size=4",
+        "rllm.data.val_batch_size=4",
+        "rllm.data.max_prompt_length=4096",
+        "rllm.data.max_response_length=2048",
+        # Same dual-namespace pattern once more: rllm.rollout.n (the
+        # group size build_train_schedule actually reads, per
+        # unified_trainer.py) defaults to 8, independent of
+        # actor_rollout_ref.rollout.n=2 above (the verl-native field that
+        # controls how many completions vLLM actually generates per
+        # prompt). Left mismatched, the training schedule would expect
+        # groups of 8 while only 2 rollouts per task are ever produced.
+        "rllm.rollout.n=2",
+        "rllm.rollout.n_val=1",
         "rllm.compact_filtering.enable=true",
         "rllm.compact_filtering.mask_error=true",
         "rllm.rejection_sample.min_trajs_per_group=2",
@@ -341,12 +361,18 @@ def train_smoke(model: str = DEFAULT_MODEL, steps: int = 3) -> dict[str, Any]:
                     "needed) because a real episode's gateway session "
                     "computed a default sampling budget against the model's "
                     "true context and exceeded 8192; "
-                    "rllm.max_response_length set to 2048 (rllm's own "
-                    "config namespace, separate from data.max_response_length "
-                    "above, defaults to 30720 and is not auto-derived from "
-                    "it) because that 30720 default was requested as "
-                    "max_tokens on a real episode regardless of prompt size "
-                    "or max_model_len; "
+                    "rllm.data.train_batch_size/val_batch_size/"
+                    "max_prompt_length/max_response_length set to the same "
+                    "values already intended for data.* above (rllm's own "
+                    "nested data: block, defaults 64/-1/2048/30720, is not "
+                    "auto-derived from data.*; a first attempt at a flat "
+                    "rllm.max_response_length key composed without error "
+                    "but was unread, and left at 64 the train dataloader "
+                    "silently yielded zero batches against the 16-example "
+                    "train split); rllm.rollout.n/n_val set to match "
+                    "actor_rollout_ref.rollout.n=2 and val_kwargs.n=1 "
+                    "(rllm.rollout.n independently feeds the training "
+                    "schedule's group size and defaults to 8); "
                     "rllm.trainer.total_batches set to the requested step "
                     "count (and rllm.trainer.total_epochs=1, "
                     "rllm.trainer.test_freq=-1) because unified_trainer.py's "
