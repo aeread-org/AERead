@@ -18,8 +18,21 @@ probe would have answered: are advantages actually non-zero anywhere.
 from __future__ import annotations
 
 import os
+import sys
 import time
 from typing import Any
+
+# Modal automounts the local entrypoint script itself as a flat file at
+# /root/train_smoke.py in the remote container -- a separate, un-packaged
+# copy from the full repo baked into the image at /workspace/aeread by
+# modal_app.py's add_local_dir(copy=True) step. Without this, the
+# container's reimport of this module (to reconstruct the decorated
+# train_smoke function) cannot resolve the package-relative import below,
+# because /root has no integrations/ package alongside it. Same guard
+# probe.py already carries for the same reason; this path does not exist
+# on the local machine, so it is a no-op locally.
+if "/workspace/aeread" not in sys.path:
+    sys.path.insert(0, "/workspace/aeread")
 
 from integrations.rllm.modal_b1.modal_app import (
     GPU,
