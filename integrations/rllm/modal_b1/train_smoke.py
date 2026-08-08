@@ -236,7 +236,7 @@ def train_smoke(model: str = DEFAULT_MODEL, steps: int = 3) -> dict[str, Any]:
     return report
 
 
-@app.local_entrypoint()
+@app.local_entrypoint(name="train_smoke_main")
 def main(model: str = DEFAULT_MODEL, steps: int = 3) -> None:
     report = train_smoke.remote(model=model, steps=steps)
     telemetry = report["telemetry"]
