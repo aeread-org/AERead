@@ -13,6 +13,21 @@ AgentFlowEngine natively, which does create the gateway session, so this
 stage both answers B1 (did an optimizer step execute) and, by capturing
 each episode's AER as it is produced, answers the variance question the
 probe would have answered: are advantages actually non-zero anywhere.
+
+This module does NOT call probe.py's _serve_vllm. A real run traced the
+reason: with hybrid_engine=True and actor_rollout_ref.rollout.name=vllm,
+verl's own AgentTrainer launches and manages its own internal vLLM
+rollout engine (visible in the trace as a vLLMHttpServer Ray actor) at
+training time; nothing in the trainer path ever reads VLLM_BASE_URL or
+otherwise talks to an externally pre-served instance. Calling
+_serve_vllm here launched a second, redundant vLLM server on the same
+single A10 at the same gpu_memory_utilization as verl's internal one,
+and the first one to start starved the second: "ValueError: Free memory
+on device cuda:0 (6.67/22.06 GiB) on startup is less than desired GPU
+memory utilization (0.55, 12.13 GiB)." Removing the external server
+call is the fix, not a workaround; probe.py's own use of _serve_vllm
+(driving aeread_flow.run() directly, with no trainer in the loop at
+all) still needs it, and probe.py itself is unchanged.
 """
 
 from __future__ import annotations
@@ -44,7 +59,7 @@ from integrations.rllm.modal_b1.modal_app import (
     openrouter_secret,
     volume,
 )
-from integrations.rllm.modal_b1.probe import DEFAULT_MODEL, VLLM_BASE_URL, _serve_vllm
+from integrations.rllm.modal_b1.probe import DEFAULT_MODEL
 
 # The image_smoke log showed "You are sending unauthenticated requests to the
 # HF Hub" during the cold-container weight download; this raises the rate
@@ -215,7 +230,6 @@ def train_smoke(model: str = DEFAULT_MODEL, steps: int = 3) -> dict[str, Any]:
     rllm_flow_module._build_measured_episode = _capturing_build_episode
 
     reset_flow_telemetry()
-    server = _serve_vllm(model)
     started = time.time()
     error: str | None = None
     try:
@@ -234,7 +248,6 @@ def train_smoke(model: str = DEFAULT_MODEL, steps: int = 3) -> dict[str, Any]:
         raise
     finally:
         rllm_flow_module._build_measured_episode = original_build_episode
-        server.kill()
         gpu_seconds = time.time() - started
         telemetry = get_flow_telemetry()
 
@@ -269,7 +282,11 @@ def train_smoke(model: str = DEFAULT_MODEL, steps: int = 3) -> dict[str, Any]:
                     "actor_rollout_ref.model.override_config.attn_implementation "
                     "forced to sdpa because the image's flash-attn build failed "
                     "(vLLM's own rollout kernels are unaffected, only the FSDP "
-                    "actor's HF model load needed this)"
+                    "actor's HF model load needed this); the brief's probe.py "
+                    "_serve_vllm call was dropped from this trainer path because "
+                    "verl's own hybrid engine launches its own internal vLLM "
+                    "rollout server, and running both on one A10 starved the "
+                    "second server of GPU memory"
                 ),
                 "error": error,
                 "episode_records": episode_records,
