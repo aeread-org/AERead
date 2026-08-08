@@ -94,6 +94,7 @@ def image_smoke() -> dict[str, str]:
     object, so each probe below is wrapped in its own try/except: a failure
     is reported as a string, never raised across the wire.
     """
+    import json
     import subprocess
 
     result: dict[str, str] = {}
@@ -131,13 +132,64 @@ def image_smoke() -> dict[str, str]:
     def rllm_version() -> str:
         import rllm
 
-        from aeread.integrations.rllm_flow import RLLM_PINNED_REVISION, aeread_flow
+        from aeread.integrations.rllm_flow import aeread_flow
 
-        assert RLLM_PINNED_REVISION == RLLM_REVISION, (
-            f"adapter expects rLLM {RLLM_PINNED_REVISION}, image pinned {RLLM_REVISION}"
-        )
         assert hasattr(aeread_flow, "run"), "aeread_flow lost its .run seam"
         return getattr(rllm, "__version__", "unknown")
+
+    def resolve_installed_revision(dist_name: str) -> tuple[bool, str]:
+        """Read the VCS commit pip actually recorded for a direct git-URL install.
+
+        pip writes the exact resolved commit into the installed distribution's
+        ``direct_url.json`` metadata for a ``git+https://...@<rev>`` install. That
+        is the only source that reflects what got installed in this container,
+        as opposed to what the code merely asked for, so this is what a stale
+        wheel, a cache hit, or a resolver substitution would actually corrupt.
+
+        Returns ``(found, value)``. When ``found`` is False, ``value`` is not a
+        commit: it describes exactly what metadata was available instead (the
+        dist-info directory name and the metadata field names), so an absent
+        ``direct_url.json`` is visible in the output rather than silently
+        treated as a pass.
+        """
+        from importlib.metadata import PackageNotFoundError, distribution
+
+        try:
+            dist = distribution(dist_name)
+        except PackageNotFoundError:
+            return False, f"unavailable (distribution {dist_name!r} not installed)"
+
+        raw = dist.read_text("direct_url.json")
+        if not raw:
+            dist_info_dir = getattr(getattr(dist, "_path", None), "name", "unknown")
+            metadata_fields = sorted(set(dist.metadata.keys())) if dist.metadata else []
+            return False, (
+                "unavailable (no direct_url.json, not a direct-URL install); "
+                f"dist-info dir: {dist_info_dir}; metadata fields: {metadata_fields}"
+            )
+
+        info = json.loads(raw)
+        commit = info.get("vcs_info", {}).get("commit_id")
+        if not commit:
+            return False, f"unavailable (direct_url.json has no vcs_info.commit_id: {raw})"
+        return True, str(commit)
+
+    def rllm_installed_revision() -> str:
+        found, value = resolve_installed_revision("rllm")
+        if found:
+            assert value == RLLM_REVISION, (
+                f"installed rllm commit {value} does not match pinned {RLLM_REVISION}"
+            )
+        return value
+
+    def gateway_installed_revision() -> str:
+        found, value = resolve_installed_revision("rllm-model-gateway")
+        if found:
+            assert value == RLLM_REVISION, (
+                f"installed rllm-model-gateway commit {value} does not match pinned "
+                f"{RLLM_REVISION}"
+            )
+        return value
 
     def aeread_version() -> str:
         import aeread
@@ -165,6 +217,8 @@ def image_smoke() -> dict[str, str]:
     record("numpy", numpy_version)
     record("verl", verl_version)
     record("rllm", rllm_version)
+    record("rllm_installed_revision", rllm_installed_revision)
+    record("gateway_installed_revision", gateway_installed_revision)
     record("aeread", aeread_version)
     record("flash_attn", flash_attn_version)
     record("gpu", gpu_name)
