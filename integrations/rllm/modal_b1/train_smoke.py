@@ -211,6 +211,29 @@ def train_smoke(model: str = DEFAULT_MODEL, steps: int = 3) -> dict[str, Any]:
         f"trainer.total_training_steps={steps}",
         "trainer.resume_mode=disable",
         "trainer.default_hdfs_dir=null",
+        # Environment-forced deviation, recorded in the report: the eight
+        # trainer.* overrides directly above are the verl-native namespace
+        # (they correctly configure verl's own FSDP/PPO backend and its LR
+        # scheduler -- verl_backend.py reads trainer.total_training_steps
+        # from exactly this node). But unified_trainer.py's own OWN loop
+        # control (_fit_on_policy: which epoch/batch to stop at, whether to
+        # run a final validation) reads a SEPARATE, parallel node,
+        # rllm.trainer.*, which was never touched by the eight overrides
+        # above and so kept rllm/trainer/config/rllm/base.yaml's own
+        # defaults: total_epochs=10, total_batches=-1 (no early stop),
+        # test_freq=5 (validates on step 0 and unconditionally once more
+        # after the loop ends, which is exactly what produced the
+        # "max_tokens=30720" failure inside _validate_async on a run where
+        # training itself had not even started yet). Left unfixed, a
+        # requested --steps 1 would not actually have bounded how many
+        # optimizer steps ran: total_training_steps only feeds the LR
+        # schedule, not the loop that decides how many batches to consume.
+        # rllm.trainer.total_batches is the field _fit_on_policy actually
+        # checks (trainer_state.global_step >= rllm.trainer.total_batches)
+        # to stop early, so it is set to the same requested step count.
+        f"rllm.trainer.total_batches={steps}",
+        "rllm.trainer.total_epochs=1",
+        "rllm.trainer.test_freq=-1",
     ]
 
     from hydra import compose, initialize_config_dir
@@ -323,7 +346,17 @@ def train_smoke(model: str = DEFAULT_MODEL, steps: int = 3) -> dict[str, Any]:
                     "above, defaults to 30720 and is not auto-derived from "
                     "it) because that 30720 default was requested as "
                     "max_tokens on a real episode regardless of prompt size "
-                    "or max_model_len"
+                    "or max_model_len; "
+                    "rllm.trainer.total_batches set to the requested step "
+                    "count (and rllm.trainer.total_epochs=1, "
+                    "rllm.trainer.test_freq=-1) because unified_trainer.py's "
+                    "own loop control reads rllm.trainer.*, a namespace "
+                    "separate from the eight verl-native trainer.* overrides "
+                    "above; left unset it defaults to total_epochs=10, "
+                    "total_batches=-1 (no early stop), so the brief's "
+                    "trainer.total_training_steps override (which only feeds "
+                    "verl's LR scheduler) would not actually have bounded "
+                    "how many optimizer steps this run performed"
                 ),
                 "error": error,
                 "episode_records": episode_records,
