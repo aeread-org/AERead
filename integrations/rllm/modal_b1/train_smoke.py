@@ -163,7 +163,17 @@ def train_smoke(model: str = DEFAULT_MODEL, steps: int = 3) -> dict[str, Any]:
         "actor_rollout_ref.rollout.tensor_model_parallel_size=1",
         "actor_rollout_ref.rollout.name=vllm",
         "actor_rollout_ref.rollout.mode=async",
-        "actor_rollout_ref.rollout.max_model_len=8192",
+        # 8192 (the brief's literal value) blocked a real episode with
+        # "max_tokens=30720 cannot be greater than max_model_len=8192":
+        # the gateway session computed its default sampling budget from
+        # Qwen2.5-0.5B-Instruct's published 32768-token context, not from
+        # this override, and separately, Task 3's probe already found one
+        # AERead case's prompt alone exceeds 8193 tokens. Task 3 fixed the
+        # identical mismatch for the standalone probe server the same way,
+        # by raising to the model's real context; that value is reused here
+        # for verl's internal rollout engine. Removing the redundant
+        # external server (above) frees the GPU memory this needs.
+        "actor_rollout_ref.rollout.max_model_len=32768",
         "actor_rollout_ref.rollout.temperature=0.7",
         "actor_rollout_ref.rollout.gpu_memory_utilization=0.55",
         "actor_rollout_ref.rollout.n=2",
@@ -286,7 +296,13 @@ def train_smoke(model: str = DEFAULT_MODEL, steps: int = 3) -> dict[str, Any]:
                     "_serve_vllm call was dropped from this trainer path because "
                     "verl's own hybrid engine launches its own internal vLLM "
                     "rollout server, and running both on one A10 starved the "
-                    "second server of GPU memory"
+                    "second server of GPU memory; "
+                    "actor_rollout_ref.rollout.max_model_len raised from the "
+                    "brief's 8192 to 32768 (the model's real published "
+                    "context, and the same value Task 3's probe already "
+                    "needed) because a real episode's gateway session "
+                    "computed a default sampling budget against the model's "
+                    "true context and exceeded 8192"
                 ),
                 "error": error,
                 "episode_records": episode_records,
