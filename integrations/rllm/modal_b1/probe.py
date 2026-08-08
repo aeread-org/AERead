@@ -147,7 +147,16 @@ def _serve_vllm(model: str) -> subprocess.Popen:
         except Exception as exc:  # never let log-reading mask the real error
             return f"(could not read vLLM log: {exc})"
 
-    deadline = time.time() + 120
+    # 120s (this function's original value) covered a warm container where the
+    # model weights were already cached, but a cold container also pays a
+    # fresh HuggingFace download plus full engine init, and the two together
+    # can run past 120s while still progressing normally (verified 2026-08-08:
+    # a real train_smoke run logged steady progress -- APIServer start, model
+    # resolved, engine init begun -- the whole time, then hit this deadline
+    # mid-init, never having crashed). 600s covers a cold download without
+    # weakening the crash-detection below, which still exits immediately
+    # rather than waiting out the budget.
+    deadline = time.time() + 600
     while time.time() < deadline:
         if process.poll() is not None:
             raise RuntimeError(
@@ -161,7 +170,7 @@ def _serve_vllm(model: str) -> subprocess.Popen:
             time.sleep(3)
     process.kill()
     raise RuntimeError(
-        f"vLLM did not become healthy within 120s; tail of {log_path}:\n{_tail_log()}"
+        f"vLLM did not become healthy within 600s; tail of {log_path}:\n{_tail_log()}"
     )
 
 

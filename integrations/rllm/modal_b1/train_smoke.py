@@ -22,6 +22,8 @@ import sys
 import time
 from typing import Any
 
+import modal
+
 # Modal automounts the local entrypoint script itself as a flat file at
 # /root/train_smoke.py in the remote container -- a separate, un-packaged
 # copy from the full repo baked into the image at /workspace/aeread by
@@ -44,6 +46,13 @@ from integrations.rllm.modal_b1.modal_app import (
 )
 from integrations.rllm.modal_b1.probe import DEFAULT_MODEL, VLLM_BASE_URL, _serve_vllm
 
+# The image_smoke log showed "You are sending unauthenticated requests to the
+# HF Hub" during the cold-container weight download; this raises the rate
+# limit and speeds the download. The secret holds one key, HF_TOKEN, read
+# from the project's local .env and created once via `modal secret create`;
+# its value is never printed, logged, or committed anywhere in this repo.
+hf_secret = modal.Secret.from_name("aeread-hf")
+
 # One deliberate deviation from prototype_train.yaml, recorded in the report:
 # n_parallel_tasks is raised from 2 to 4. The 2 guards against training
 # defaults amplifying calls to the external scoring services; at roughly two
@@ -56,11 +65,22 @@ N_PARALLEL_TASKS = 4
     gpu=GPU,
     timeout=7200,
     volumes={RUNS_DIR: volume},
-    secrets=[openrouter_secret],
+    secrets=[openrouter_secret, hf_secret],
 )
 def train_smoke(model: str = DEFAULT_MODEL, steps: int = 3) -> dict[str, Any]:
     """Run a bounded GRPO training loop and report what actually happened."""
     os.chdir("/workspace/aeread")
+
+    # Cache HF downloads (base model weights, tokenizer) in the same runs
+    # volume so a rerun does not pay the cold-container download again. Both
+    # the vLLM subprocess (which inherits this process's environ) and this
+    # process's own huggingface_hub calls (verl's FSDP actor loading the same
+    # base model) read HF_HOME, so setting it once here covers both. The
+    # directory is committed to the volume in the finally block below,
+    # alongside the run report.
+    hf_cache_dir = f"{RUNS_DIR}/hf_cache"
+    os.makedirs(hf_cache_dir, exist_ok=True)
+    os.environ.setdefault("HF_HOME", hf_cache_dir)
 
     from omegaconf import OmegaConf
     from rllm.data import DatasetRegistry
