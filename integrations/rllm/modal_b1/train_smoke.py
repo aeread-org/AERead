@@ -55,11 +55,24 @@ from integrations.rllm.modal_b1.modal_app import (
     GPU,
     RUNS_DIR,
     app,
-    image,
     openrouter_secret,
     volume,
 )
+from integrations.rllm.modal_b1.modal_app import image as _base_image
 from integrations.rllm.modal_b1.probe import DEFAULT_MODEL
+
+# Environment-forced deviation, recorded in the report: a real training
+# batch reached verl's own DataProto.to_tensordict() and failed with
+# "AssertionError: Convert DataProto to TensorDict at least requires
+# tensordict version 0.10" -- the pinned image (modal_app.py, unmodified)
+# installs tensordict==0.9.1 alongside verl==0.8.0 in one combined `uv
+# pip install`, which only proves 0.9.1 satisfied verl's declared install
+# -time constraint, not its runtime assertion in protocol.py. This is not
+# altering the verl==0.8.0 or vllm==0.22.1 pins, or the rLLM revision --
+# it is one additional layer on top of the already-built, cached base
+# image, scoped to this function only; modal_app.py itself is untouched
+# and image_smoke/probe still build and run against the original image.
+image = _base_image.pip_install("tensordict>=0.10")
 
 # The image_smoke log showed "You are sending unauthenticated requests to the
 # HF Hub" during the cold-container weight download; this raises the rate
@@ -372,7 +385,16 @@ def train_smoke(model: str = DEFAULT_MODEL, steps: int = 3) -> dict[str, Any]:
                     "train split); rllm.rollout.n/n_val set to match "
                     "actor_rollout_ref.rollout.n=2 and val_kwargs.n=1 "
                     "(rllm.rollout.n independently feeds the training "
-                    "schedule's group size and defaults to 8); "
+                    "schedule's group size and defaults to 8); the image "
+                    "adds one derived layer, tensordict>=0.10 on top of "
+                    "the pinned base image's tensordict==0.9.1, because a "
+                    "real batch reached verl's own "
+                    "DataProto.to_tensordict() and failed an internal "
+                    "assertion requiring >=0.10 -- 0.9.1 only satisfied "
+                    "verl 0.8.0's declared install-time constraint, not "
+                    "this runtime one; verl==0.8.0, vllm==0.22.1, and the "
+                    "rLLM revision are unchanged, and modal_app.py itself "
+                    "is untouched; "
                     "rllm.trainer.total_batches set to the requested step "
                     "count (and rllm.trainer.total_epochs=1, "
                     "rllm.trainer.test_freq=-1) because unified_trainer.py's "
