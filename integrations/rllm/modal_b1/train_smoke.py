@@ -123,6 +123,20 @@ def train_smoke(model: str = DEFAULT_MODEL, steps: int = 3) -> dict[str, Any]:
         "actor_rollout_ref.model.lora.rank=32",
         "actor_rollout_ref.model.lora.alpha=32",
         "actor_rollout_ref.model.lora.merge=true",
+        # Environment-forced deviation, recorded in the report: the image's
+        # flash-attn build failed (documented in modal_app.py's own image
+        # comments; image_smoke's own probe reports it "absent, fallback
+        # path"). The FSDP actor's HF model load defaults override_config's
+        # attn_implementation to "flash_attention_2" regardless
+        # (verl/workers/config/model.py), which raised ImportError on the
+        # first real train_smoke run: "FlashAttention2 has been toggled on,
+        # but ... the package ... doesn't seem to be installed." vLLM's own
+        # rollout engine is unaffected (it ships its own attention kernels,
+        # not the standalone pip package), so only the actor side needs this.
+        # sdpa is verl's other fully supported path (verl/models/transformers
+        # /qwen2.py dispatches through ALL_ATTENTION_FUNCTIONS for it) and
+        # needs no extra package.
+        "+actor_rollout_ref.model.override_config.attn_implementation=sdpa",
         "actor_rollout_ref.hybrid_engine=True",
         "actor_rollout_ref.actor.optim.lr=1e-6",
         "actor_rollout_ref.actor.ppo_mini_batch_size=4",
@@ -251,7 +265,11 @@ def train_smoke(model: str = DEFAULT_MODEL, steps: int = 3) -> dict[str, Any]:
                 "requested_steps": steps,
                 "n_parallel_tasks": N_PARALLEL_TASKS,
                 "deviation_note": (
-                    "n_parallel_tasks raised from prototype_train.yaml's 2 to 4"
+                    "n_parallel_tasks raised from prototype_train.yaml's 2 to 4; "
+                    "actor_rollout_ref.model.override_config.attn_implementation "
+                    "forced to sdpa because the image's flash-attn build failed "
+                    "(vLLM's own rollout kernels are unaffected, only the FSDP "
+                    "actor's HF model load needed this)"
                 ),
                 "error": error,
                 "episode_records": episode_records,
