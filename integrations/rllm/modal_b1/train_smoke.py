@@ -181,6 +181,21 @@ def train_smoke(model: str = DEFAULT_MODEL, steps: int = 3) -> dict[str, Any]:
         "actor_rollout_ref.ref.log_prob_micro_batch_size_per_gpu=1",
         f"rllm.workflow.n_parallel_tasks={N_PARALLEL_TASKS}",
         "rllm.workflow.retry_limit=3",
+        # Environment-forced deviation, recorded in the report: a real
+        # episode failed with "max_tokens=30720 cannot be greater than
+        # max_model_len=8192" -- and the same 30720 persisted unchanged
+        # after max_model_len was raised to 32768, so it was not derived
+        # from max_model_len at all. Traced to
+        # rllm/trainer/config/rllm/base.yaml's own max_response_length:
+        # 30720 default, a namespace (rllm.max_response_length) separate
+        # from data.max_response_length above and not auto-derived from
+        # it (unlike actor_rollout_ref.rollout.response_length, which
+        # does default from data.max_response_length via oc.select).
+        # Setting it to the same 2048 the brief already intended for
+        # data.max_response_length closes the gap: prompt (up to ~8200
+        # tokens per Task 3's probe) plus a 2048-token response budget
+        # stays safely under the model's 32768 context either way.
+        "rllm.max_response_length=2048",
         "rllm.compact_filtering.enable=true",
         "rllm.compact_filtering.mask_error=true",
         "rllm.rejection_sample.min_trajs_per_group=2",
@@ -302,7 +317,13 @@ def train_smoke(model: str = DEFAULT_MODEL, steps: int = 3) -> dict[str, Any]:
                     "context, and the same value Task 3's probe already "
                     "needed) because a real episode's gateway session "
                     "computed a default sampling budget against the model's "
-                    "true context and exceeded 8192"
+                    "true context and exceeded 8192; "
+                    "rllm.max_response_length set to 2048 (rllm's own "
+                    "config namespace, separate from data.max_response_length "
+                    "above, defaults to 30720 and is not auto-derived from "
+                    "it) because that 30720 default was requested as "
+                    "max_tokens on a real episode regardless of prompt size "
+                    "or max_model_len"
                 ),
                 "error": error,
                 "episode_records": episode_records,
