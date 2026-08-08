@@ -195,7 +195,7 @@ def train_smoke(model: str = DEFAULT_MODEL, steps: int = 3) -> dict[str, Any]:
         # data.max_response_length closes the gap: prompt (up to ~8200
         # tokens per Task 3's probe) plus a 2048-token response budget
         # stays safely under the model's 32768 context either way.
-        "rllm.max_response_length=2048",
+        "+rllm.max_response_length=2048",
         "rllm.compact_filtering.enable=true",
         "rllm.compact_filtering.mask_error=true",
         "rllm.rejection_sample.min_trajs_per_group=2",
