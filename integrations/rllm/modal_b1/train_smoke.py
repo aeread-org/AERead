@@ -278,7 +278,13 @@ def train_smoke(model: str = DEFAULT_MODEL, steps: int = 3) -> dict[str, Any]:
         # external server (above) frees the GPU memory this needs.
         "actor_rollout_ref.rollout.max_model_len=32768",
         "actor_rollout_ref.rollout.temperature=0.7",
-        "actor_rollout_ref.rollout.gpu_memory_utilization=0.55",
+        # 0.55 works for a 0.5B policy but OOMs a 1.7B one: the actor's
+        # log-prob forward asked for 3.48 GiB with only 3.36 GiB free on the
+        # A10 (22.06 GiB total, 18.67 GiB already in use), a shortfall of
+        # roughly 120 MB. Lowering vLLM's reserved share frees about 3.3 GiB
+        # for the FSDP actor, well clear of that gap, and still leaves vLLM
+        # ample KV cache at this model size.
+        "actor_rollout_ref.rollout.gpu_memory_utilization=0.40",
         "actor_rollout_ref.rollout.n=2",
         "actor_rollout_ref.rollout.val_kwargs.n=1",
         # With use_dynamic_bsz=False verl no longer derives these from the
