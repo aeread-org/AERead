@@ -215,7 +215,7 @@ def train_smoke(model: str = DEFAULT_MODEL, steps: int = 3) -> dict[str, Any]:
         "algorithm.adv_estimator=grpo",
         "algorithm.norm_adv_by_std_in_grpo=true",
         "rllm.algorithm.use_rllm=true",
-        "data.train_batch_size=4",
+        "data.train_batch_size=16",
         "data.val_batch_size=4",
         "data.max_prompt_length=4096",
         "data.max_response_length=2048",
@@ -316,7 +316,7 @@ def train_smoke(model: str = DEFAULT_MODEL, steps: int = 3) -> dict[str, Any]:
         # run (confirmed: telemetry showed 0 episodes attempted after a
         # clean exit, no exception). All four rllm.data.* fields are set
         # here to the same values the brief already intended for data.*.
-        "rllm.data.train_batch_size=4",
+        "rllm.data.train_batch_size=16",
         "rllm.data.val_batch_size=4",
         "rllm.data.max_prompt_length=4096",
         "rllm.data.max_response_length=2048",
