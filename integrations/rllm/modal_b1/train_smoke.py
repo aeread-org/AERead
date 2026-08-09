@@ -201,6 +201,10 @@ def train_smoke(model: str = DEFAULT_MODEL, steps: int = 3) -> dict[str, Any]:
         "actor_rollout_ref.rollout.gpu_memory_utilization=0.55",
         "actor_rollout_ref.rollout.n=2",
         "actor_rollout_ref.rollout.val_kwargs.n=1",
+        # With use_dynamic_bsz=False verl no longer derives these from the
+        # token budget, so both the rollout and the ref worker need an
+        # explicit micro batch size or config validation rejects the run.
+        "actor_rollout_ref.rollout.log_prob_micro_batch_size_per_gpu=1",
         "actor_rollout_ref.ref.log_prob_micro_batch_size_per_gpu=1",
         f"rllm.workflow.n_parallel_tasks={N_PARALLEL_TASKS}",
         "rllm.workflow.retry_limit=3",
