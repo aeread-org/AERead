@@ -168,8 +168,18 @@ def train_smoke(model: str = DEFAULT_MODEL, steps: int = 3) -> dict[str, Any]:
         "actor_rollout_ref.hybrid_engine=True",
         "actor_rollout_ref.actor.optim.lr=1e-6",
         "actor_rollout_ref.actor.ppo_mini_batch_size=4",
-        "actor_rollout_ref.actor.use_dynamic_bsz=True",
-        "actor_rollout_ref.actor.ppo_max_token_len_per_gpu=16384",
+        # use_dynamic_bsz packs variable-length sequences, and verl's packing
+        # path calls verl/utils/attention_utils.py unpad_input, whose
+        # _get_attention_functions() imports flash_attn.bert_padding
+        # unconditionally. That import is NOT gated by use_remove_padding
+        # (already false by default here) and has no fallback, so with
+        # flash-attn absent the run dies with ModuleNotFoundError inside the
+        # Ray actor. Disabling dynamic batching keeps the fixed-size micro
+        # batch path, which does not unpad. Sequence packing is a throughput
+        # optimization and this run is a correctness smoke, so the loss is
+        # only speed.
+        "actor_rollout_ref.actor.use_dynamic_bsz=False",
+        "actor_rollout_ref.actor.ppo_micro_batch_size_per_gpu=1",
         "actor_rollout_ref.actor.fsdp_config.param_offload=true",
         "actor_rollout_ref.actor.fsdp_config.optimizer_offload=true",
         "actor_rollout_ref.actor.use_kl_loss=False",
