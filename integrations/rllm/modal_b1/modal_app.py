@@ -37,7 +37,12 @@ image = (
     modal.Image.from_registry(
         "nvidia/cuda:13.0.1-devel-ubuntu24.04", add_python="3.12"
     )
-    .apt_install("git", "build-essential")
+    # clang is required by the flash-attn compile, not optional. CUDA 13.0's
+    # nvcc host-compiler check rejected the build with "The current installed
+    # version of clang++ (0.0.0) is less than the minimum required version by
+    # CUDA 13.0 (7.0)"; 0.0.0 means clang++ was absent entirely. Ubuntu 24.04
+    # ships clang 18, inside nvcc's required >=7.0,<21.0 window.
+    .apt_install("git", "build-essential", "clang")
     .pip_install("uv", "packaging", "ninja", "wheel", "setuptools")
     # Build attempt 1 put verl, vllm, transformers, ray, and qwen-vl-utils in
     # one pip_install layer with three of the five left unpinned. pip's
