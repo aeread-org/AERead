@@ -20,10 +20,25 @@ RUNS_DIR = "/runs"
 
 app = modal.App("aeread-b1")
 
+# CUDA *devel* base, not debian_slim. Two reasons, both established by real
+# runs. First, verl 0.8.0 hard-requires flash_attn
+# (verl/utils/attention_utils.py imports flash_attn.bert_padding with no
+# fallback, reached regardless of use_dynamic_bsz or use_remove_padding), and
+# no prebuilt flash-attn wheel exists for the torch 2.11.0+cu130 that
+# vllm==0.22.1 resolves: upstream cp312 wheels stop at cu13torch2.9, and that
+# wheel fails on this torch with "undefined symbol:
+# _ZN3c104cuda29c10_cuda_check_implementationEiPKcS2_ib". So flash-attn must be
+# built from source, which needs nvcc, which pip's torch wheels do not ship
+# (they carry the CUDA runtime only: nvcc absent, CUDA_HOME unset). Second,
+# debian_slim on the older image builder is bullseye (glibc 2.31), too old for
+# these wheels, which want GLIBC_2.32 or newer. CUDA 13.0 matches torch's
+# cu130 build; ubuntu24.04 carries glibc 2.39.
 image = (
-    modal.Image.debian_slim(python_version="3.12")
+    modal.Image.from_registry(
+        "nvidia/cuda:13.0.1-devel-ubuntu24.04", add_python="3.12"
+    )
     .apt_install("git", "build-essential")
-    .pip_install("uv")
+    .pip_install("uv", "packaging", "ninja", "wheel", "setuptools")
     # Build attempt 1 put verl, vllm, transformers, ray, and qwen-vl-utils in
     # one pip_install layer with three of the five left unpinned. pip's
     # backtracking resolver hit "resolution-too-deep" on that combined graph
@@ -40,11 +55,20 @@ image = (
         "uv pip install --system verl==0.8.0 transformers==5.5.3 "
         "ray==2.56.0 qwen-vl-utils==0.0.13 tensordict==0.9.1"
     )
-    # flash-attn needs an already-installed torch and must not build in an
-    # isolated env, so wheel isolation is disabled here rather than globally.
+    # Source build, and deliberately NOT tolerated with "|| echo" any more.
+    # The earlier tolerant form let the image build green while leaving verl
+    # unable to import flash_attn at training time, which cost several runs to
+    # diagnose. If this fails the image must fail with it.
+    #
+    # --no-build-isolation is required so the build sees the already-installed
+    # torch. TORCH_CUDA_ARCH_LIST and FLASH_ATTN_CUDA_ARCHS are pinned to 8.6,
+    # the A10's compute capability (Ampere GA102), because compiling every
+    # supported architecture is what makes this build take an hour or more.
+    # MAX_JOBS bounds parallel nvcc processes; too high exhausts builder RAM.
     .run_commands(
-        "pip install flash-attn==2.8.3 --no-build-isolation || "
-        "echo 'flash-attn unavailable, verl will fall back'"
+        "MAX_JOBS=16 TORCH_CUDA_ARCH_LIST=8.6 FLASH_ATTN_CUDA_ARCHS=86 "
+        "pip install flash-attn==2.8.3 --no-build-isolation --verbose",
+        gpu=None,
     )
     .pip_install(RLLM_SPEC, GATEWAY_SPEC)
     # copy=True is REQUIRED: with the default copy=False the tree is mounted at
