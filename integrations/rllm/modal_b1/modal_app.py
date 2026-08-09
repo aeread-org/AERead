@@ -15,7 +15,15 @@ GATEWAY_SPEC = (
     f"{RLLM_REVISION}#subdirectory=rllm-model-gateway"
 )
 
-GPU = "A10G"
+# L40S (48 GiB, Ada SM 8.9) rather than A10G (22 GiB, Ampere SM 8.6). A 1.7B
+# policy OOMs the A10 twice over at these sequence lengths: first the actor
+# log-prob forward wanted 3.48 GiB with 3.36 GiB free, and after lowering
+# vLLM's reserved share the actor simply grew into the freed space and died
+# 194 MiB short with 19.47 GiB allocated by PyTorch alone. Moving to a
+# larger card keeps every sequence-length and batch setting identical to the
+# 0.5B run, so the two remain directly comparable; shrinking
+# max_response_length instead would have confounded that comparison.
+GPU = "L40S"
 RUNS_DIR = "/runs"
 
 app = modal.App("aeread-b1")
@@ -70,8 +78,11 @@ image = (
     # the A10's compute capability (Ampere GA102), because compiling every
     # supported architecture is what makes this build take an hour or more.
     # MAX_JOBS bounds parallel nvcc processes; too high exhausts builder RAM.
+    # Both 8.6 (A10) and 8.9 (L40S) are built: a kernel compiled for one
+    # Ampere/Ada arch will not load on the other, and keeping both means the
+    # image still runs the earlier 0.5B A10 result as well as the L40S runs.
     .run_commands(
-        "MAX_JOBS=16 TORCH_CUDA_ARCH_LIST=8.6 FLASH_ATTN_CUDA_ARCHS=86 "
+        "MAX_JOBS=16 TORCH_CUDA_ARCH_LIST='8.6;8.9' FLASH_ATTN_CUDA_ARCHS='86;89' "
         "pip install flash-attn==2.8.3 --no-build-isolation --verbose",
         gpu=None,
     )
