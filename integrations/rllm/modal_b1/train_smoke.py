@@ -72,7 +72,59 @@ from integrations.rllm.modal_b1.probe import DEFAULT_MODEL
 # it is one additional layer on top of the already-built, cached base
 # image, scoped to this function only; modal_app.py itself is untouched
 # and image_smoke/probe still build and run against the original image.
-image = _base_image.pip_install("tensordict>=0.10")
+# verl 0.8.0 hard-requires flash_attn: verl/utils/attention_utils.py
+# _get_attention_functions() imports flash_attn.bert_padding with no fallback,
+# and it is reached on the log-prob path regardless of use_dynamic_bsz or
+# use_remove_padding (both were tried and both still hit it). Upstream ships no
+# wheel for our torch 2.11.0+cu130; the closest is this cu13torch2.9 build.
+# PyTorch does not promise C++ ABI stability across minor versions, so this may
+# fail to import with an undefined symbol. flash_check below tests exactly that
+# before a training run pays for the discovery.
+FLASH_ATTN_WHEEL = (
+    "https://github.com/Dao-AILab/flash-attention/releases/download/v2.8.3.post1/"
+    "flash_attn-2.8.3+cu13torch2.9cxx11abiTRUE-cp312-cp312-linux_x86_64.whl"
+)
+
+image = _base_image.pip_install("tensordict>=0.10").pip_install(FLASH_ATTN_WHEEL)
+
+
+@app.function(image=image, gpu=GPU, timeout=900)
+def flash_check() -> dict[str, str]:
+    """Report whether the torch2.9-built flash_attn imports on torch 2.11."""
+
+    def record(name, fn):
+        try:
+            return str(fn())
+        except Exception as exc:
+            return f"error: {type(exc).__name__}: {exc}"
+
+    out = {}
+    out["torch"] = record("torch", lambda: __import__("torch").__version__)
+    out["flash_attn"] = record(
+        "flash_attn", lambda: __import__("flash_attn").__version__
+    )
+
+    def bert_padding():
+        from flash_attn.bert_padding import unpad_input  # noqa: F401
+
+        return "importable"
+
+    out["bert_padding"] = record("bert_padding", bert_padding)
+
+    def verl_path():
+        from verl.utils.attention_utils import _get_attention_functions
+
+        _get_attention_functions()
+        return "resolved"
+
+    out["verl_attention_utils"] = record("verl_attention_utils", verl_path)
+    return out
+
+
+@app.local_entrypoint(name="flash_check_main")
+def flash_check_entry() -> None:
+    for key, value in flash_check.remote().items():
+        print(f"{key}: {value}")
 
 # The image_smoke log showed "You are sending unauthenticated requests to the
 # HF Hub" during the cold-container weight download; this raises the rate
