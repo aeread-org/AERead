@@ -118,6 +118,24 @@ def flash_check() -> dict[str, str]:
         return "resolved"
 
     out["verl_attention_utils"] = record("verl_attention_utils", verl_path)
+
+    # A source build of flash-attn needs nvcc, which the pip torch wheels do
+    # NOT provide: they ship CUDA runtime libraries only. If nvcc is absent the
+    # build requires re-basing the whole image on a CUDA devel image, which is
+    # a much larger change than adding one build layer.
+    import shutil
+    import subprocess
+
+    nvcc = shutil.which("nvcc")
+    out["nvcc_path"] = str(nvcc or "absent")
+    if nvcc:
+        out["nvcc_version"] = record(
+            "nvcc",
+            lambda: subprocess.run(
+                [nvcc, "--version"], capture_output=True, text=True, check=False
+            ).stdout.strip().splitlines()[-1],
+        )
+    out["cuda_home"] = str(os.environ.get("CUDA_HOME", "unset"))
     return out
 
 
