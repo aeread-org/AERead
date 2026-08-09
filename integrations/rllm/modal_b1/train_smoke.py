@@ -165,6 +165,13 @@ def train_smoke(model: str = DEFAULT_MODEL, steps: int = 3) -> dict[str, Any]:
         # /qwen2.py dispatches through ALL_ATTENTION_FUNCTIONS for it) and
         # needs no extra package.
         "+actor_rollout_ref.model.override_config.attn_implementation=sdpa",
+        # verl's attention_utils.unpad_input imports flash_attn.bert_padding
+        # unconditionally, and the sequence-packing path reaches it whenever
+        # remove-padding is on. rLLM's _generated_agent_ppo_trainer.yaml
+        # defaults this to false, but that file is not necessarily merged
+        # into the composed "unified" config, in which case verl's own
+        # default wins. Set it explicitly rather than trusting the default.
+        "actor_rollout_ref.model.use_remove_padding=False",
         "actor_rollout_ref.hybrid_engine=True",
         "actor_rollout_ref.actor.optim.lr=1e-6",
         "actor_rollout_ref.actor.ppo_mini_batch_size=4",
