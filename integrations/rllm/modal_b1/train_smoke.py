@@ -85,7 +85,10 @@ FLASH_ATTN_WHEEL = (
     "flash_attn-2.8.3+cu13torch2.9cxx11abiTRUE-cp312-cp312-linux_x86_64.whl"
 )
 
-image = _base_image.pip_install("tensordict>=0.10").pip_install(FLASH_ATTN_WHEEL)
+image = _base_image.pip_install("tensordict==0.10.0")  # exact: verl 0.8.0 declares
+# tensordict!=0.9.0,<=0.10.0,>=0.8.0 but asserts >=0.10 at runtime in
+# protocol.py, so 0.10.0 is the only version satisfying both. An
+# unpinned ">=0.10" resolved to 0.13.0 and violated verl's ceiling..pip_install(FLASH_ATTN_WHEEL)
 
 
 @app.function(image=image, gpu=GPU, timeout=900)
