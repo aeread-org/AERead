@@ -116,27 +116,41 @@ eight.
 
 Baselines over 300 seeds: naive 0.836, adaptive 0.843, sd 0.107, optimum 1.000.
 
-Agents in every tenant seat, landlords scripted, 30 seeds per model, 976 calls:
+Agents in every tenant seat, landlords scripted, 30 seeds per model.
 
-| model | efficiency | vs adaptive | 95% CI | significant |
-|---|---|---|---|---|
-| gemini-3.7-flash | 0.932 | +0.076 | [+0.025, +0.128] | yes |
-| deepseek-v4-flash | 0.769 | -0.087 | [-0.134, -0.041] | yes |
+**Report the reasoning setting with any result.** It is not neutral instrumentation.
+Enabling the provider's reasoning flag left one model unchanged and moved the other by
+12 points, which is enough to flip a conclusion.
 
-Paired separation is +0.164, CI [+0.104, +0.223].
+| model | reasoning | efficiency | vs adaptive | 95% CI | significant |
+|---|---|---|---|---|---|
+| gemini-3.7-flash | off | 0.932 | +0.076 | [+0.025, +0.128] | yes |
+| gemini-3.7-flash | **on** | **0.933** | +0.077 | [+0.030, +0.124] | yes |
+| deepseek-v4-flash | off | 0.769 | -0.087 | [-0.134, -0.041] | yes |
+| deepseek-v4-flash | **on** | **0.890** | +0.034 | [-0.010, +0.078] | **no** |
 
-**The multi-round market separates models where the one-shot market does not.** Under
-one-shot sealed bidding neither model was distinguishable from its baseline. The
-negotiation structure is doing the work, which suggests the one-shot format was
-suppressing capability rather than the models lacking it.
+Paired separation is **+0.043, CI [+0.012, +0.074]** with reasoning on, against +0.164
+[+0.104, +0.223] with it off. The case separates these two models either way, but the
+margin is four times smaller in the deployment-realistic condition, and reasoning-on
+should be treated as the reporting standard.
 
-deepseek's failure mode is visible in the process columns: it signed 3.97 leases
-against an optimum of 3.90, more leases than the optimum signs, at lower total
-surplus. It takes low-value deals the efficient allocation leaves unmatched, which is
-a distinct error from failing to match at all.
+**Retracted:** an earlier version of this document stated that deepseek-v4-flash lands
+significantly below the scripted baseline. That holds only with reasoning disabled. With
+it enabled the model reaches 0.890 and is not distinguishable from the baseline. gemini
+is unaffected by the setting (0.932 against 0.933), so this is a property of one model's
+sensitivity to its reasoning budget rather than a general fact about the case.
 
-Health across both models: 0 errors, 0 empty responses, 0 schema failures, and one
-retry after a `finish_reason=length` truncation, which succeeded.
+**Under one-shot sealed bidding neither model was distinguishable from its baseline.**
+The negotiation structure is what produces the signal, which suggests the one-shot format
+was suppressing capability rather than the models lacking it.
+
+deepseek's characteristic error survives the correction: it signed 4.00 leases against an
+optimum of 3.90, more leases than the optimum signs, at lower total surplus. It takes
+low-value deals the efficient allocation leaves unmatched, which is a distinct error from
+failing to match at all.
+
+Health with reasoning on: 908 calls, 1 empty response and 4 schema failures, both from
+deepseek (1.1% of its calls), none from gemini.
 
 ## 6. Metrics
 
