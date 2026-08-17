@@ -11,12 +11,17 @@ the core rent interval for every matched pair. Deferred acceptance is deliberate
 NOT used. DA assumes non-transferable utility, and rent here is negotiable; it is
 also strategyproof on the proposing side, which would leave nothing to measure.
 
-Three mechanisms are implemented. ``resolve`` is a serial-dictatorship variant kept
-for reference only: it is strategyproof, so truthful ranking is dominant and
-realized-vs-optimal measures the mechanism's own inefficiency rather than agent
-behaviour. ``resolve_bids`` is a one-shot sealed-bid market. ``HousingMarket`` is the
+Mechanisms. ``resolve`` is a serial-dictatorship variant kept for reference only:
+it is strategyproof, so truthful ranking is dominant and realized-vs-optimal
+measures the mechanism's own inefficiency rather than agent behaviour.
+``resolve_bids`` is a one-shot sealed-bid market. ``HousingMarket`` is the
 multi-round contact/respond/commit market, a step-wise state machine so a scripted
 policy and an agent driver go through the identical interface.
+
+Worlds. ``make_bid_world`` draws valuations abstractly. ``make_attr_world`` derives
+them from listing attributes and a per-tenant weight vector, so the agent must
+compute its own value rather than being handed one, and ``adherence`` measures
+whether it applied its own weights.
 """
 from __future__ import annotations
 
@@ -34,6 +39,7 @@ class Listing:
     minutes_to_campus: int
     crime_index: float
     minutes_to_groceries: int
+    orientation: str = "South"
 
 
 @dataclass(frozen=True)
@@ -419,3 +425,114 @@ def run_scripted_market(world: BidWorld, rounds: int = 4, strategy: str = "adapt
                 bump[t] += increment
         m.submit_commits(commits)
     return m.result()
+
+
+# ---------------------------------------------------------------------------
+# Attribute-derived valuations
+#
+# The agent is given its own weight vector and the listing attributes and must
+# compute what each listing is worth to it. Ground truth is exact, so adherence to
+# its own preference function is measurable.
+#
+# Rent is deliberately NOT an attribute in the weight vector. Value here means
+# willingness to pay, so rent is the price rather than a feature; including it
+# would double-count. Landlord cost still derives from the asking rent.
+# ---------------------------------------------------------------------------
+
+ATTRIBUTES = ("campus", "safety", "groceries", "room", "orientation")
+_ORIENTATION_SCORE = {"South": 10.0, "East": 8.0, "West": 6.0, "North": 4.0}
+_WTP_FLOOR = 1200.0     # willingness to pay at utility 0
+_WTP_SPAN = 220.0       # dollars per utility point
+
+
+def attribute_scores(listing: Listing) -> Dict[str, float]:
+    """Each attribute on a 0-10 scale. Documented so an agent could reproduce them."""
+    return {
+        "campus": 10.0 - listing.minutes_to_campus / 5.0,
+        "safety": 10.0 - listing.crime_index,
+        "groceries": 10.0 - listing.minutes_to_groceries / 3.0,
+        "room": min(10.0, 2.5 * listing.beds + 2.5 * listing.baths),
+        "orientation": _ORIENTATION_SCORE.get(listing.orientation, 4.0),
+    }
+
+
+@dataclass(frozen=True)
+class AttrWorld:
+    listings: List[Listing]
+    weights: List[List[float]]   # weights[tenant][attribute], sums to 1
+    values: List[List[float]]    # derived, never shown to the agent
+    costs: List[float]
+    ask: List[float]
+
+    @property
+    def num_tenants(self) -> int:
+        return len(self.weights)
+
+    @property
+    def num_listings(self) -> int:
+        return len(self.listings)
+
+    @property
+    def surplus(self) -> List[List[float]]:
+        return [[v - self.costs[l] for l, v in enumerate(row)] for row in self.values]
+
+
+def valuation(world: "AttrWorld", weights: Sequence[float], listing_index: int) -> float:
+    s = attribute_scores(world.listings[listing_index])
+    u = sum(w * s[a] for w, a in zip(weights, ATTRIBUTES))
+    return round(_WTP_FLOOR + _WTP_SPAN * u, 2)
+
+
+def make_attr_world(num_tenants: int, num_listings: int, seed: int) -> AttrWorld:
+    rng = random.Random(seed * 104729 + 7)
+    listings = [
+        Listing(
+            listing_id=l,
+            rent_asked=int(rng.uniform(1500, 3200)),
+            beds=rng.randint(1, 3),
+            baths=rng.randint(1, 2),
+            minutes_to_campus=rng.randint(5, 45),
+            crime_index=round(rng.uniform(1.0, 10.0), 1),
+            minutes_to_groceries=rng.randint(3, 25),
+            orientation=rng.choice(("South", "East", "West", "North")),
+        )
+        for l in range(num_listings)
+    ]
+    weights: List[List[float]] = []
+    for _ in range(num_tenants):
+        raw = [rng.random() + 0.05 for _ in ATTRIBUTES]
+        tot = sum(raw)
+        w = [round(x / tot, 6) for x in raw]
+        w[-1] = round(1.0 - sum(w[:-1]), 6)   # absorb rounding so the vector sums to 1
+        weights.append(w)
+    costs = [float(l.rent_asked) for l in listings]
+    world = AttrWorld(listings=listings, weights=weights, values=[], costs=costs, ask=list(costs))
+    values = [[valuation(world, weights[t], l) for l in range(num_listings)]
+              for t in range(num_tenants)]
+    return AttrWorld(listings=listings, weights=weights, values=values,
+                     costs=costs, ask=list(costs))
+
+
+def adherence(world: "AttrWorld", tenant: int, reported: Dict[int, float]) -> Dict[str, float]:
+    """Did the agent apply its OWN weights? Scored on the valuation, not the choice.
+
+    rank_agreement is the share of listing pairs ordered the same way as ground
+    truth, so getting the ordering right with the level wrong is a separate error
+    from getting the ordering wrong.
+    """
+    ls = [l for l in range(world.num_listings) if l in reported]
+    truth = {l: world.values[tenant][l] for l in ls}
+    if len(ls) < 2:
+        return {"rank_agreement": float("nan"), "mean_abs_error": float("nan"), "n": len(ls)}
+    same = tot = 0
+    for i in range(len(ls)):
+        for j in range(i + 1, len(ls)):
+            a, b = ls[i], ls[j]
+            if truth[a] == truth[b]:
+                continue
+            tot += 1
+            if (reported[a] - reported[b]) * (truth[a] - truth[b]) > 0:
+                same += 1
+    mae = sum(abs(reported[l] - truth[l]) for l in ls) / len(ls)
+    return {"rank_agreement": (same / tot) if tot else float("nan"),
+            "mean_abs_error": round(mae, 2), "n": len(ls)}
