@@ -4,9 +4,9 @@ A two-sided market where tenants compete for a smaller number of listings. It as
 whether an agent can reason about **competition for a scarce resource**, not merely
 optimize its own valuation.
 
-Status: the environment, oracle, and baselines are implemented and tested offline.
-The multi-round negotiation workflow described in §5 is designed but not yet built;
-what ships today is the one-shot sealed-bid market.
+Status: the environment, oracle, baselines, and both the one-shot and multi-round
+markets are implemented and tested offline. `core_rent_error` still requires
+landlords to be live agent seats and is not yet measurable.
 
 ## 1. The market
 
@@ -86,29 +86,57 @@ agent against a baseline, verify the baseline is beatable by searching unilatera
 deviations and counting how many pay. A near-zero rate means the mechanism is a
 formality, and no sample size rescues the experiment.
 
-## 5. Designed, not yet built: the multi-round workflow
+## 5. The multi-round market
 
-The shipped market is one-shot. The full case runs `contact -> respond -> commit` over
-four rounds:
+`HousingMarket` runs `contact -> respond -> commit` over four rounds as a step-wise
+state machine, so a scripted policy and an agent driver go through the same
+interface.
 
-1. **contact.** Each unmatched tenant sends one offer to one landlord:
-   `{"listing_id": 2, "rent": 2350, "term_months": 12}`. One offer per tenant per
-   round is the scarcity that makes choice strategic.
+1. **contact.** Each unmatched tenant sends one offer to one listing:
+   `{"listing_id": 2, "rent": 2350}`. One offer per tenant per round is the scarcity
+   that makes choosing which listing to contest a real decision.
 2. **respond.** Each landlord sees only the offers addressed to it and answers each
    with accept, counter, or reject, accepting at most one per round. Accepting below
-   its own cost is permitted and scored as an error rather than blocked, so a landlord
-   that leases at a loss is measurable.
+   its own cost is permitted and scored as an error rather than blocked, so a
+   landlord that leases at a loss is measurable.
 3. **commit.** A tenant holding an acceptance or counter signs or walks. Signing is
-   binding and ends that tenant's episode.
+   binding and ends that tenant's search.
 
-Tenants see a board of listings each round including a `status` column marking those
-already leased. That column is what makes the market adaptive: without it a later
-round carries no more information than the first.
+Tenants see the board each round with a `status` column marking listings already
+leased. That column is what makes the market adaptive: without it a later round
+carries no more information than the first.
 
 There is **no per-round penalty**. An unmatched tenant already scores zero, so a
-bounded round budget supplies the pressure, and a penalty entering the objective would
-move the optimum and therefore the oracle. Four rounds is measured as sufficient: the
-scripted adaptive baseline saturates at three rounds and gains nothing at six or eight.
+bounded round budget supplies the pressure, and a penalty entering the objective
+would move the optimum and therefore the oracle. Four rounds is measured as
+sufficient: the scripted baseline saturates at three and gains nothing at six or
+eight.
+
+### Baselines and results
+
+Baselines over 300 seeds: naive 0.836, adaptive 0.843, sd 0.107, optimum 1.000.
+
+Agents in every tenant seat, landlords scripted, 30 seeds per model, 976 calls:
+
+| model | efficiency | vs adaptive | 95% CI | significant |
+|---|---|---|---|---|
+| gemini-3.7-flash | 0.932 | +0.076 | [+0.025, +0.128] | yes |
+| deepseek-v4-flash | 0.769 | -0.087 | [-0.134, -0.041] | yes |
+
+Paired separation is +0.164, CI [+0.104, +0.223].
+
+**The multi-round market separates models where the one-shot market does not.** Under
+one-shot sealed bidding neither model was distinguishable from its baseline. The
+negotiation structure is doing the work, which suggests the one-shot format was
+suppressing capability rather than the models lacking it.
+
+deepseek's failure mode is visible in the process columns: it signed 3.97 leases
+against an optimum of 3.90, more leases than the optimum signs, at lower total
+surplus. It takes low-value deals the efficient allocation leaves unmatched, which is
+a distinct error from failing to match at all.
+
+Health across both models: 0 errors, 0 empty responses, 0 schema failures, and one
+retry after a `finish_reason=length` truncation, which succeeded.
 
 ## 6. Metrics
 
@@ -121,7 +149,7 @@ scripted adaptive baseline saturates at three rounds and gains nothing at six or
 Report `matching_error` as the headline. `unmatched_gap` is a diagnostic only: the
 optimum leaves 2.12 tenants unhoused and the naive baseline 2.19, so it separates
 almost nothing. `core_rent_error` requires landlords to be live agent seats rather
-than a highest-bid rule, and is not measurable in the one-shot market.
+than the scripted policy, and is not yet measurable.
 
 Any reported metric should carry the answer rate beside it. A seat that returns an
 empty response cannot bid, and a tenant that cannot bid cannot win, so a change in
