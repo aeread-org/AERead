@@ -152,6 +152,44 @@ failing to match at all.
 Health with reasoning on: 908 calls, 1 empty response and 4 schema failures, both from
 deepseek (1.1% of its calls), none from gemini.
 
+## 5b. Attribute-derived valuations
+
+By default the agent is handed its willingness to pay. `make_attr_world` instead
+derives it: each listing has attributes, each tenant a private weight vector, and the
+agent must compute its own value.
+
+```
+campus      = 10 - (minutes to campus) / 5
+safety      = 10 - (crime index)
+groceries   = 10 - (minutes to groceries) / 3
+room        = min(10, 2.5*bedrooms + 2.5*bathrooms)
+orientation = South 10, East 8, West 6, North 4
+
+utility            = weighted sum using the tenant's own weights
+willingness to pay = 1200 + 220 * utility
+```
+
+**The formulas are published to the agent.** Hiding them would make the task guessing
+the designer's functional form rather than applying stated preferences, so a failure to
+adhere would not mean what it appears to mean.
+
+**Rent is not in the weight vector.** Value here means willingness to pay, so rent is
+the price rather than a feature; including it double-counts.
+
+`adherence(world, tenant, reported)` scores the agent's reported valuations against
+ground truth on two separate axes: `rank_agreement`, the share of listing pairs ordered
+as its own weights imply, and `mean_abs_error` on the levels. A constant offset scores
+perfect ranking and poor error, because ordering and calibration are different failures.
+
+**Adherence is scored on the valuation, never on the choice.** An agent that values a
+listing correctly and then bids elsewhere to avoid competition is playing well, not
+miscomputing, and conflating the two would penalise exactly the behaviour the case
+exists to reward.
+
+Validity gates on this world: **264 of 355 tenants (74.4%) have a profitable unilateral
+deviation**, higher than the 61.7% of the abstract world. Baselines over 300 seeds:
+naive 0.826, adaptive 0.830, sd 0.145, so 34 episodes powers a +0.10 detection.
+
 ## 6. Metrics
 
 | metric | definition |
