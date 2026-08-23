@@ -153,6 +153,13 @@ For a simultaneous phase, the runner freezes every participant's observation fro
 
 Shared fields use strict validation (`extra=forbid`). Family payloads are typed extensions validated by their registered plugin. A case says **what world this is**; the suite and run say **who plays, under what controls, and how observations may be analyzed**.
 
+Reasoning configuration is part of the resolved agent and experiment condition, not an
+unreported provider default. Actions and family outcomes remain primary; reasoning telemetry
+and failure-mechanism labels are secondary diagnostics. The required fields, paired design,
+budget-starvation treatment, and `objective_selection` / `strategic_modeling` /
+`constraint_tracking` / `execution` taxonomy are defined in
+[`reasoning_condition_and_diagnostics.md`](reasoning_condition_and_diagnostics.md).
+
 ### 3.1 Family and case sketch
 
 ```toml
@@ -523,6 +530,18 @@ The existing `exchange_v1_runner.py`, roles, validity, and scoring paths contain
    - Declare world/case clustering and paired seeds in the suite.
 
 The abstraction is credible only when both paths run through the same scheduler, explicit attempts, event log, receipt, cluster metadata, and score envelope without family branches in the kernel.
+
+### First external measurement-validation adapter
+
+After the `exchange_v1` compatibility path and `housing_v1` native path pass the shared
+conformance suite, the first external adapter is the pinned tau3 retail refund/return
+surface. Its role is to prove that the same runner can preserve deterministic
+`property_or_answer` state validation alongside housing's bounded
+`optimizable_outcome`, while retaining the upstream judge-dependent reward as a separate
+compatibility result. The pin, pilot task IDs, component-level parity gate, receipts,
+cluster semantics, saturation language, STATE-Bench follow-on, and native `refund_v1`
+admission rule are specified in
+[`refund_external_benchmark_integration.md`](refund_external_benchmark_integration.md).
 
 ### Minimum gates before calling the runner paper-ready
 

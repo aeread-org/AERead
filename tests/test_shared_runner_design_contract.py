@@ -3,6 +3,8 @@ from pathlib import Path
 
 DESIGN = Path(__file__).parents[1] / "docs" / "shared_runner_design.md"
 CASE_AUDIT = Path(__file__).parents[1] / "docs" / "problem_bound_case_audit.md"
+REFUND_PLAN = Path(__file__).parents[1] / "docs" / "refund_external_benchmark_integration.md"
+REASONING_PLAN = Path(__file__).parents[1] / "docs" / "reasoning_condition_and_diagnostics.md"
 
 
 def test_shared_runner_design_records_frozen_execution_contract() -> None:
@@ -77,3 +79,67 @@ def test_problem_bound_case_audit_covers_survey_and_native_cases() -> None:
 
     assert "Economic task versus economic coordination mechanism" in text
     assert "A feasible policy witnesses `optimum_lower_bound`; it is not an outcome floor" in text
+
+
+def test_refund_external_benchmark_plan_records_adapter_and_measurement_gates() -> None:
+    assert REFUND_PLAN.exists(), "refund external-benchmark integration plan is missing"
+    text = REFUND_PLAN.read_text(encoding="utf-8")
+
+    required_terms = {
+        "pinned tau3 release": "v1.0.1",
+        "pinned tau3 commit": "fc0055dc4e0a316c3f83133267fbd6faaa770992",
+        "retail task split": "retail/base",
+        "legacy repository prohibition": "sierra-research/tau-bench",
+        "deterministic primary estimand": "tau3_retail_db_state",
+        "upstream judge-dependent result": "tau3_upstream_reward",
+        "measurement routing": "property_or_answer",
+        "upstream parity": "component-level parity",
+        "receipt task provenance": "task_sha256",
+        "receipt database provenance": "database_sha256",
+        "receipt simulator provenance": "user_simulator_prompt_sha256",
+        "receipt scorer provenance": "scorer_version",
+        "independent cluster": "task instance",
+        "nested reruns": "nested replicates",
+        "fixed-suite saturation scope": "fixed-suite ceiling exhaustion",
+        "native refund admission gate": "refund_v1",
+    }
+    missing = {meaning: term for meaning, term in required_terms.items() if term not in text}
+    assert not missing, f"refund integration plan is missing contracts: {missing}"
+
+    assert "112 of 114" in text
+    assert "40 of 114" in text
+    assert "18-task pilot" in text
+    assert "universal refund capability" in text
+
+    design = DESIGN.read_text(encoding="utf-8")
+    assert "refund_external_benchmark_integration.md" in design
+
+
+def test_reasoning_condition_plan_keeps_behavior_primary_and_diagnostics_typed() -> None:
+    assert REASONING_PLAN.exists(), "reasoning-condition diagnostic plan is missing"
+    text = REASONING_PLAN.read_text(encoding="utf-8")
+
+    for term in (
+        "reasoning_condition_id",
+        "reasoning_effort",
+        "reasoning_token_budget",
+        "rationale_visibility",
+        "objective_selection",
+        "strategic_modeling",
+        "constraint_tracking",
+        "execution",
+        "reasoning_tokens",
+        "judge_dependent",
+        "post-hoc rationalization",
+        "paired",
+        "task/user seed",
+    ):
+        assert term in text, f"reasoning-condition plan is missing: {term}"
+
+    assert "actions and outcomes remain primary" in text
+    assert "secondary diagnostic surface" in text
+    assert "reasoning on/off" in text
+    assert "must not be scored as an economic no-op" in text
+
+    design = DESIGN.read_text(encoding="utf-8")
+    assert "reasoning_condition_and_diagnostics.md" in design
