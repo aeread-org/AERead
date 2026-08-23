@@ -2,6 +2,7 @@ from pathlib import Path
 
 
 DESIGN = Path(__file__).parents[1] / "docs" / "shared_runner_design.md"
+CASE_AUDIT = Path(__file__).parents[1] / "docs" / "problem_bound_case_audit.md"
 
 
 def test_shared_runner_design_records_frozen_execution_contract() -> None:
@@ -27,9 +28,11 @@ def test_shared_runner_design_records_measurement_contract() -> None:
     text = DESIGN.read_text(encoding="utf-8")
 
     required_terms = {
-        "feasible floor": "feasible_floor",
+        "optimum lower bound": "optimum_lower_bound",
+        "optimum upper bound": "optimum_upper_bound",
         "comparison baseline": "comparison_baseline",
-        "attainable ceiling": "attainable_ceiling",
+        "outcome support": "outcome_support_min",
+        "bound routing": "epsilon_solved",
         "undecidable compressed frontier": "compressed_undecidable",
         "separate social outcome": "social_welfare",
         "separate private outcome": "principal_utility",
@@ -40,6 +43,10 @@ def test_shared_runner_design_records_measurement_contract() -> None:
     assert not missing, f"shared-runner design is missing measurement contracts: {missing}"
 
     assert "cross_family_scalar: disabled" in text
+    assert "V_LB <= V* <= V_UB" in text
+    assert "A feasible policy is not an outcome floor" in text
+    assert "`feasible_floor`" not in text
+    assert "`attainable_ceiling`" not in text
 
 
 def test_shared_runner_design_records_cluster_contract() -> None:
@@ -57,3 +64,16 @@ def test_shared_runner_design_records_cluster_contract() -> None:
 
     assert "resample clusters" in text
     assert "not treat decision rows" in text
+
+
+def test_problem_bound_case_audit_covers_survey_and_native_cases() -> None:
+    text = CASE_AUDIT.read_text(encoding="utf-8")
+
+    assert "# Problem-to-bound audit: 23 papers and five AERead cases" in text
+    assert "22 external papers plus the AERead paper" in text
+    assert "PDF-checked" in text
+    for row_id in [*(f"P{i:02d}" for i in range(1, 24)), *(f"A{i:02d}" for i in range(1, 6))]:
+        assert f"| {row_id} |" in text
+
+    assert "Economic task versus economic coordination mechanism" in text
+    assert "A feasible policy witnesses `optimum_lower_bound`; it is not an outcome floor" in text

@@ -32,7 +32,7 @@ This document is the implementation contract that other branches may cite. It do
 | **Control flow** | The runner owns a declarative `PhaseSpec` schedule. The family supplies pure or auditable phase hooks; it does not receive an unrestricted callback with which to run its own hidden loop. |
 | **Actions** | Observation, parser, action schema, legality rule, and invalid-action consequence are phase- and role-specific. There is no universal role-only action schema. |
 | **Calls and retries** | One logical action contains one or more explicit `CallAttempt` records. No provider or SDK retry may be hidden. |
-| **Scoring** | Every case declares a within-case outcome and executable references. An oracle/ceiling is optional. Social welfare, principal utility, and distributional capture remain separate quantities. |
+| **Scoring** | Every estimand declares its measurement kind, direction, comparison reference, and typed bound evidence. An exact oracle is optional. Social welfare, principal utility, and distributional capture remain separate quantities. |
 | **Cross-family reporting** | There is no default universal score. Family metrics may be displayed together, but scalar pooling is disabled unless a paper supplies and defends a normalization and weighting rule. |
 | **Clusters** | The suite declares the smallest independently sampled, randomized, or assigned unit before execution. Repeated rows inside that unit are not independent samples. |
 | **Evidence** | Stable episode/action/attempt/event identities, write-before-side-effect records, typed visibility, deterministic ordering, and crash/resume semantics are required. |
@@ -177,11 +177,15 @@ testable = false
 scripted_policies = ["fixed_listing_provider_v1"]
 
 [measurement]
-primary_metric = "applicant_realized_utility"
-feasible_floor = "housing_no_action_v1"
+primary_estimand = "applicant_realized_utility"
+measurement_kind = "optimizable_outcome"
+direction = "maximize"
+optimum_lower_bound = "housing_scripted_search_v1"
 comparison_baseline = "housing_scripted_search_v1"
-attainable_ceiling = "housing_exact_assignment_v1"
-ceiling_kind = "exact_attainable_optimum"
+optimum_upper_bound = "housing_exact_assignment_v1"
+optimum_upper_bound_kind = "full_information_relaxation"
+bound_status = "bracketed"
+outcome_support = "undeclared"
 
 [scoring]
 scorer_id = "housing_outcome_v1"
@@ -344,31 +348,53 @@ The `EvaluationReceipt` binds suite/case/plan hashes, cluster identities, resolv
 
 ## 6. Measurement contract
 
-### 6.1 Within-case references, not a universal score
+### 6.1 Route each estimand before selecting references
 
-Every family declares its primary outcome and reference semantics in the same units:
+The routing unit is an estimand, not a domain label. One case can have exact social-welfare bounds while private capture remains comparative.
+
+1. `property_or_answer`: validate a known answer, feasibility condition, axiom, or equilibrium property. Report pass/error or distance; do not invent a policy optimum.
+2. `optimizable_outcome`: define an objective over a feasible policy class, then declare direction, information set, horizon, opponent/control condition, and stochastic expectation before recording bounds.
+3. `comparative_or_human_judged`: name the compared policy, system, human, or rater protocol. Make no optimality claim unless a separate model supplies one.
+
+Minimization metrics are converted to a canonical higher-is-better orientation or carry reversed inequalities explicitly. This prevents metrics such as violation counts from entering a higher-is-better saturation screen backwards.
+
+### 6.2 Typed optimization bounds and comparison references
+
+For a maximization estimand, the contract is:
+
+`V_LB <= V* <= V_UB`
 
 | Field | Meaning | Requirement |
 |---|---|---|
-| `feasible_floor` (`L`) | Outcome from a low-capability but executable family policy, such as no action or a guaranteed feasible fallback. A natural floor qualifies only when a named feasible policy attains it. | Required for every paper case. |
-| `comparison_baseline` (`B`) | Outcome from the named policy or system against which the research comparison is made. It may equal `L`, but that must be explicit. | Required for every paper case. |
-| `attainable_ceiling` (`U`) | Best outcome known to be attainable under the same information, action, budget, and feasibility constraints. | Optional; required for normalized efficiency or saturation claims. |
+| `optimum_lower_bound` (`V_LB`) | Value of a witnessed feasible policy or best-known feasible result. | Required for an optimality-gap claim; implementation, information scope, and result provenance required. |
+| `optimum_upper_bound` (`V_UB`) | Certified relaxation, exact optimization result, or proof that no feasible policy in the declared problem can do better. It may use more information or looser constraints, which must be recorded. | Required for saturation or certified regret claims. |
+| `comparison_baseline` (`B`) | Named executable policy, system, human, or reference used by the scientific comparison. It may also witness `V_LB`, but it is a distinct semantic field. | Required for every comparative claim. |
+| `outcome_support_min`, `outcome_support_max` | Optional bounds applying to every admissible realized outcome. | Both required before claiming a normalization is bounded by its support. |
 
-Thus `L` and `B` are obtainable by executing declared policies for every admitted paper case; `U` is deliberately not promised for every family. An optimization upper bound that may be unattainable is recorded as `certified_upper_bound`, not mislabeled `attainable_ceiling`. A best observed result is `best_known_attained`, not an oracle. Each reference records implementation/version, information set, constraints, proof or validation status, and the cases for which it is valid.
+**A feasible policy is not an outcome floor.** It lower-bounds the unknown optimum; another policy or model can realize a worse outcome. Likewise, a metric maximum is not automatically a problem-specific upper bound. Every bound records objective/version, units, direction, feasible set, information set, horizon, opponent condition, proof type, implementation, and validity domain.
 
-When valid `L < U` exists, a family may report `(M - L) / (U - L)` as a within-case normalized efficiency. It is undefined when the denominator is zero or a reference is invalid. Even then, equal numeric values across families do not automatically have equal scientific meaning, so there is no default universal leaderboard average.
+The strongest valid status is stored per estimand:
 
-### 6.2 Saturation and the Tier-0 screen
+- `exact_solved`: lower and upper bounds coincide;
+- `epsilon_solved`: their certified gap is at most a predeclared epsilon;
+- `bracketed`: both exist with a material gap;
+- `lower_bound_only`: a feasible witness exists without a certified upper bound;
+- `baseline_only`: only a scientific comparison is justified;
+- `descriptive_only`: no valid comparative reference exists.
+
+A best observed result is a feasible witness, not an oracle. A support-normalized score `(M - support_min) / (support_max - support_min)` is permitted only when both support bounds are valid. Bound gaps and baseline improvements otherwise remain in native units. Equal numeric values across families still do not have equal scientific meaning, so `cross_family_scalar: disabled` remains the default. The survey-wide application is documented in [`problem_bound_case_audit.md`](problem_bound_case_audit.md).
+
+### 6.3 Saturation and the Tier-0 screen
 
 Tier 0 is a cheap, measure-aware frontier/headroom screen. It may use the case's primary outcome, score spread, failure/coverage, and improvement over `B` without requiring a case oracle.
 
 - `headroom_visible`: credible systems or conditions still separate on the case measure.
-- `compressed_undecidable`: scores are compressed, but no defensible attainable ceiling exists.
-- `ceiling_exhausted`: performance is close to a valid `attainable_ceiling` with adequate cluster-level uncertainty and coverage.
+- `compressed_undecidable`: scores are compressed, but no defensible `optimum_upper_bound` exists.
+- `ceiling_exhausted`: `V_UB - M_best` is within a predeclared epsilon for the same estimand, with adequate cluster-level uncertainty and coverage.
 
-Only `ceiling_exhausted` supports a saturation claim. Compression by itself does not.
+Only `ceiling_exhausted` supports a saturation claim. A relaxation can certify saturation when its upper-bound gap is already small; it need not itself be attainable. Compression without a valid `optimum_upper_bound` is `compressed_undecidable`.
 
-### 6.3 Welfare, private gain, and distribution are distinct
+### 6.4 Welfare, private gain, and distribution are distinct
 
 The standard outcome vector keeps these quantities separate:
 
@@ -385,11 +411,11 @@ class EconomicOutcome:
 - `social_welfare` asks whether the allocation or agreement creates aggregate value.
 - `principal_utility` asks how much the evaluated seat/client obtains.
 - `capture_by_seat` starts from observed gain `g_i = u_i(outcome) - d_i`, where each disagreement utility `d_i` is declared. It may additionally report shares only when the family defines a valid common surplus denominator.
-- `reference_residual` reports gaps to baselines, bounds, or ceilings.
+- `reference_residual` reports gaps to baselines or typed optimum bounds.
 
 No runner-defined weighted composite resolves a conflict among them. A suite names one primary estimand and reports the others as co-primary or diagnostic outcomes. This prevents high total welfare from hiding extraction from a principal, and prevents high private capture from being mistaken for social efficiency.
 
-### 6.4 Bargaining references
+### 6.5 Bargaining references
 
 Observed private gain and a normative bargaining reference are different objects. `symmetric_nash_par` is permitted only for a fixed realized transferable-utility bargain with a declared status quo/disagreement point, equal bargaining weights, and two symmetric claimants. Under those assumptions it is the equal-gains special case of Nash bargaining; it is not a universal definition of fair capture.
 
@@ -405,11 +431,14 @@ For other structures, the family may declare a method only when its prerequisite
 
 These are family-owned, versioned metrics with provenance—not fallback calculations invented by the runner. If the necessary feasible set, disagreement utilities, weights, or coalition values are unavailable, report observed `capture_by_seat` without a normative bargaining score.
 
-### 6.5 Minimal score record
+### 6.6 Minimal score record
 
 ```python
 class ScoreEnvelope:
     status: Literal["ok", "invalid_measurement"]
+    measurement_kind: str
+    direction: str
+    bound_status: str | None
     primary: MetricValue | None
     metrics: dict[str, MetricValue]
     utility_by_seat: dict[str, float]
@@ -455,7 +484,7 @@ Each family owner supplies:
 | **Observation and privacy** | What each role sees; public, seat-private, evaluator-only fields; expected context size. |
 | **Actions** | Phase/role schema, parser, legality, and consequence of malformed or illegal actions. |
 | **State and termination** | Initial state, randomness, transitions, natural terminal states, budgets, and forfeits. |
-| **Measurement** | Primary estimand, `L`, `B`, optional `U`, welfare/private/capture fields, scorer, and oracle validity domain. |
+| **Measurement** | Primary estimand and kind, direction, `comparison_baseline`, typed optimum/support bounds, welfare/private/capture fields, scorer, and oracle validity domain. |
 | **Sampling** | Independent sampling/assignment unit, pairing, linked cases, replicate nesting, and fixed-vs-sampled panel. |
 | **Generation** | Generator, difficulty knobs, split isolation, external data, and privacy constraints. |
 | **Baselines and admission** | Executable baselines, provider-free fixtures, admission rule, replay, and observability requirements. |
@@ -490,7 +519,7 @@ The existing `exchange_v1_runner.py`, roles, validity, and scoring paths contain
 2. **`housing_v1` clean native plugin**
    - Implement directly against `PhaseSpec` and typed hooks.
    - Include private applicant preferences, structured search/application/allocation actions, and a controlled provider/market policy.
-   - Supply executable `L` and `B`; provide `U` only for case variants with a defensible attainable oracle.
+   - Supply an executable `comparison_baseline` and feasible witness; provide `optimum_upper_bound` only where its objective, information scope, constraints, and proof are defensible.
    - Declare world/case clustering and paired seeds in the suite.
 
 The abstraction is credible only when both paths run through the same scheduler, explicit attempts, event log, receipt, cluster metadata, and score envelope without family branches in the kernel.
@@ -502,7 +531,7 @@ The abstraction is credible only when both paths run through the same scheduler,
 - stable IDs, append order, visibility projections, interrupted resume, and artifact hashes validate;
 - every planned cell reconciles to a valid receipt or typed failure/exclusion;
 - zero/negative outcomes remain distinct from missing measurements;
-- every comparative claim has a valid `B`; normalized/saturation claims additionally have a valid `U`;
+- every comparative claim has a valid `comparison_baseline`; certified regret or saturation claims additionally have a valid `optimum_upper_bound`, while bounded normalization additionally requires valid outcome-support bounds;
 - welfare, principal utility, and capture are reported separately where applicable;
 - cluster-aware analysis matches declared sampling, pairing, and panel semantics;
 - exchange old/new parity is demonstrated and the native housing fixtures pass;
@@ -511,4 +540,4 @@ The abstraction is credible only when both paths run through the same scheduler,
 
 ## Design lineage
 
-The proposal retains the useful taskset (what), harness (how), and runtime (where) separation used by adjacent evaluation frameworks, but AERead defines its own benchmark truth. The runner owns auditable scheduling and execution; families provide declarative economic hooks. AERead additionally requires a joint economic timeline, explicit attempt/failure accounting, typed information projections, within-case measurement references, cluster-aware receipts, and deterministic replay/resume.
+The proposal retains the useful taskset (what), harness (how), and runtime (where) separation used by adjacent evaluation frameworks, but AERead defines its own benchmark truth. The runner owns auditable scheduling and execution; families provide declarative economic hooks. AERead additionally requires a joint economic timeline, explicit attempt/failure accounting, typed information projections, within-case measurement references, cluster-aware receipts, and deterministic replay/resume. The typed measurement route was checked against 22 external papers, the AERead paper, and all five native pilot cases in [`problem_bound_case_audit.md`](problem_bound_case_audit.md).
