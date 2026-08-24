@@ -5,6 +5,7 @@ DESIGN = Path(__file__).parents[1] / "docs" / "shared_runner_design.md"
 CASE_AUDIT = Path(__file__).parents[1] / "docs" / "problem_bound_case_audit.md"
 REFUND_PLAN = Path(__file__).parents[1] / "docs" / "refund_external_benchmark_integration.md"
 REASONING_PLAN = Path(__file__).parents[1] / "docs" / "reasoning_condition_and_diagnostics.md"
+VERIFIER_TAXONOMY = Path(__file__).parents[1] / "docs" / "verifier_taxonomy.md"
 
 
 def test_shared_runner_design_records_frozen_execution_contract() -> None:
@@ -143,3 +144,41 @@ def test_reasoning_condition_plan_keeps_behavior_primary_and_diagnostics_typed()
 
     design = DESIGN.read_text(encoding="utf-8")
     assert "reasoning_condition_and_diagnostics.md" in design
+
+
+def test_verifier_taxonomy_separates_semantics_references_and_validity() -> None:
+    assert VERIFIER_TAXONOMY.exists(), "verifier taxonomy is missing"
+    text = VERIFIER_TAXONOMY.read_text(encoding="utf-8")
+
+    for term in (
+        "VerifierSpec",
+        "canonical_point",
+        "canonical_set",
+        "terminal_state_equivalence",
+        "distance_to_canonical_set",
+        "constraint_satisfaction",
+        "temporal_property",
+        "exact_optimum",
+        "bound_certificate",
+        "baseline_headroom",
+        "outcome_support_normalized",
+        "baseline_delta",
+        "paired_comparison",
+        "head_to_head",
+        "human_rubric",
+        "llm_rubric",
+        "stochastic_estimator",
+        "measurement_validity",
+        "hybrid_gate",
+    ):
+        assert term in text, f"verifier taxonomy is missing: {term}"
+
+    assert "V_LB <= V* <= V_UB" in text
+    assert "max(0, V_LB - V_agent) <= regret <= V_UB - V_agent" in text
+    assert "headroom_capture = (V_agent - B) / (V_UB - B)" in text
+    assert "support_score = (V - S_min) / (S_max - S_min)" in text
+    assert "A feasible policy is not an outcome floor" in text
+    assert "one canonical action sequence" in text
+
+    design = DESIGN.read_text(encoding="utf-8")
+    assert "verifier_taxonomy.md" in design

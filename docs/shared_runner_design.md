@@ -365,6 +365,11 @@ The routing unit is an estimand, not a domain label. One case can have exact soc
 
 Minimization metrics are converted to a canonical higher-is-better orientation or carry reversed inequalities explicitly. This prevents metrics such as violation counts from entering a higher-is-better saturation screen backwards.
 
+`measurement_kind` states the kind of claim. The semantic verifier, reference object,
+stochastic estimation mode, integrity gate, and any hybrid composition are declared
+separately in a versioned `VerifierSpec`. The general families, valid ratio constructions,
+and current case mappings are defined in [`verifier_taxonomy.md`](verifier_taxonomy.md).
+
 ### 6.2 Typed optimization bounds and comparison references
 
 For a maximization estimand, the contract is:
