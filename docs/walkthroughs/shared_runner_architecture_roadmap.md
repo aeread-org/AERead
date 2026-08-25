@@ -467,8 +467,8 @@ The object model is divided by responsibility. Measurement-verifier families rem
 | `FamilyManifest` | Serialized identity, roles, phases, capabilities, measurements, and implementation references for one protocol family/version. | Executable plugin code. |
 | `EnvironmentPlugin` | Registered executable implementation of family state, observation, action, transition, and outcome hooks. | Experiment scheduler, provider client, scorer, reference provider, or generator. |
 | `VerifierPlugin` | Registered deterministic scorer over a family outcome and sealed evidence. | Environment scheduler or candidate/provider caller. |
-| `ReferenceProvider` | Registered exact, bound, baseline, or canonical-reference implementation with a declared validity domain. | A generic oracle label for every reference. |
-| `CaseGenerator` | Registered deterministic or recorded-randomness case producer. | Environment scheduler or analysis plan. |
+| `ReferenceProvider` | Typed reference implementation role; not a separate public Protocol or entry-point group in `0.1`. It may be supplied through a family/verifier implementation with a declared validity domain. | A generic oracle label for every reference. |
+| `CaseGenerator` | Typed generation implementation role; not a separate public Protocol or entry-point group in `0.1`. It may be supplied through family or source-adapter materialization. | Environment scheduler or analysis plan. |
 | `CaseManifest` | One immutable world instance, seats, family-typed payload, split, seed, provenance, and hash. | Agent/model assignment. |
 | upstream task | External benchmark's identifier mapped to one AERead case and retained as `upstream_task_id`. | A second native object parallel to `CaseManifest`. |
 
@@ -567,9 +567,10 @@ never the source of truth. A receipt is not another event log.
 
 Reserve `oracle` for an exact, proven reference inside a declared validity domain. A
 full-information relaxation is a `BoundProvider`, a scripted policy is a
-`BaselineProvider`, and a gold refund state is a `CanonicalReference`. The plugin surface
-should therefore expose reference providers rather than forcing every reference through
-`build_oracle()`.
+`BaselineProvider`, and a gold refund state is a `CanonicalReference`. These are typed
+implementation roles, not promised standalone public Protocols or entry-point groups in
+`0.1`; the measurement surface should preserve them rather than forcing every reference
+through `build_oracle()`.
 
 Verifier, scorer, and validity remain distinct: a verifier establishes a declared property
 against a reference; a scorer constructs the typed metric vector; validity decides whether

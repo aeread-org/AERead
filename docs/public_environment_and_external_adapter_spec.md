@@ -1,6 +1,6 @@
 # AERead Public Environment Interface and External Benchmark Adapter Specification
 
-> **Status:** proposed design delta; implementation has not started
+> **Status:** proposed design delta; authoring, planning, registry, and evidence foundations exist, while the executable kernel remains incomplete
 >
 > **Author:** Codex, for Zeyu Sun
 >
@@ -46,7 +46,7 @@ The work should proceed in two stages:
 1. implement the public SDK and minimum shared-runner kernel, then prove Exchange compatibility and Housing native conformance;
 2. implement three external adapter spikes: EconEvals Procurement, tau3 Retail, and AgenticPay.
 
-External adapters cannot be meaningfully implemented before the minimum kernel exists. This document therefore specifies both, but does not implement either.
+External adapters cannot be meaningfully implemented before the minimum kernel exists. This document specifies the end-state contract; the implementation-status map in Section 11 distinguishes the landed foundation from the missing runtime.
 
 ---
 
@@ -578,10 +578,12 @@ Harbor is a third-party task/dataset and sandbox execution format, not AERead's 
 | `src/aeread/llm_agent.py` | owns provider calls and internal retry loops | move retry ownership to explicit runner attempts for shared-runner paths; legacy behavior remains until parity migration |
 | `src/aeread/cli.py` | hardcodes Exchange verbs in a dispatch dictionary | add namespaced `env`, `benchmark`, `suite`, and `receipt` commands backed by registries |
 | `src/aeread/integrations/rllm_*` | maps Exchange episodes directly into rLLM flow/reward | derive rLLM records from canonical receipts and per-seat trajectory references |
-| `docs/shared_runner_design.md` | normative design only; no corresponding kernel classes exist | retain as baseline and apply the reviewed slot/channel amendment before implementation |
+| `src/aeread/sdk/v1` | implements strict authoring/planning/measurement records plus the proposed environment, agent, verifier, source, and backend protocol skeletons | retain the reviewed public boundary; do not infer that protocol records imply an executable scheduler |
+| `src/aeread/runner/planning.py`, `registry.py`, and `event_store.py` | implement deterministic plan resolution, trusted discovery, and append-only event/artifact foundations | complete execution, recovery, receipt finalization, and replay on top of these reviewed foundations |
+| `docs/shared_runner_design.md` | normative baseline aligned to the implemented SDK foundation and proposed slot/channel action boundary | keep exact public signatures marked proposed until the team accepts the design delta |
 | `tests/test_shared_runner_design_contract.py` | asserts terminology exists in documents | keep as documentation guard; add executable SDK/kernel/conformance tests |
 
-There is currently no `RunPlan`, `EnvironmentPlugin`, `DecisionSlot`, `CallAttempt`, append-only shared event store, `ScoreEnvelope`, `EvaluationReceipt`, or plugin registry implementation in `src/aeread`. The current green test suite validates the existing Exchange system, not the proposed shared runner.
+RunPlan resolution, the trusted registry, the event store, and the artifact store exist in the current branch, together with strict SDK records and protocol skeletons. The scheduler, attempt executor, receipt finalization, replay/resume, and benchmark adapters do not yet exist as executable shared-runner paths. An `EvaluationReceipt` schema is therefore not evidence that receipts can already be finalized, and the current Exchange path still does not run through the proposed kernel.
 
 ---
 

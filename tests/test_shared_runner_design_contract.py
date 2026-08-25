@@ -310,6 +310,75 @@ def test_verifier_case_mapping_gives_one_real_workflow_and_benchmark_per_class()
         )
 
 
+def test_verifier_mapping_marks_primary_leaf_not_full_scalar() -> None:
+    text = VERIFIER_CASE_MAPPING.read_text(encoding="utf-8")
+
+    assert "primary deterministic database leaf, not the full upstream scalar" in text
+    assert "112 of 114" in text
+    assert "NL_ASSERTION" in text
+
+
+def test_state_mapping_separates_machine_state_and_judged_requirements() -> None:
+    text = VERIFIER_CASE_MAPPING.read_text(encoding="utf-8")
+
+    assert "final-state requirements are the official deterministic layer" in text
+    assert "task requirements are evaluated by a locked LLM judge" in text
+    assert "compiled into a versioned predicate over recorded trace evidence" in text
+
+
+def test_econ_and_vending_mapping_preserves_reference_and_admission_limits() -> None:
+    text = VERIFIER_CASE_MAPPING.read_text(encoding="utf-8")
+
+    assert "empirical random-matching baseline, not an exact optimum" in text
+    assert "pinned solver and certificate" in text
+    assert "official V2 code, license, and state contract" in text
+    assert "official adapter parity is blocked" in text
+
+
+def test_terms_and_gdpval_mapping_carries_admission_protocol_caveats() -> None:
+    text = VERIFIER_CASE_MAPPING.read_text(encoding="utf-8")
+
+    assert "AERead-owned TERMS-style conformance" in text
+    assert "official simulator, defaults, and license" in text
+    assert "occupational experts in blinded pairwise comparison" in text
+    assert "dataset license must pass admission" in text
+
+
+def test_housing_mapping_separates_baseline_lower_and_upper_refs() -> None:
+    text = VERIFIER_CASE_MAPPING.read_text(encoding="utf-8")
+
+    assert "`B` is the naive executable comparison baseline" in text
+    assert "`L = 0` is a separate feasible lower-bound witness" in text
+    assert "`U` is a full-information maximum-weight relaxation" in text
+    assert "not one oracle score" in text
+
+
+def test_public_spec_reports_implemented_foundation_and_missing_runtime() -> None:
+    text = PUBLIC_ENVIRONMENT_SPEC.read_text(encoding="utf-8")
+
+    assert (
+        "RunPlan resolution, the trusted registry, the event store, and the artifact store exist"
+        in text
+    )
+    assert (
+        "scheduler, attempt executor, receipt finalization, replay/resume, and benchmark adapters do not yet exist"
+        in text
+    )
+    assert "implementation has not started" not in text
+    assert "There is currently no `RunPlan`" not in text
+
+
+def test_roadmap_does_not_invent_reference_or_generator_plugin_groups() -> None:
+    text = RUNNER_ARCHITECTURE.read_text(encoding="utf-8")
+
+    assert (
+        "implementation role; not a separate public Protocol or entry-point group in `0.1`"
+        in text
+    )
+    assert "aeread.reference_providers" not in text
+    assert "aeread.case_generators" not in text
+
+
 def test_runner_taxonomy_architecture_and_build_roadmap_are_frozen() -> None:
     assert RUNNER_ARCHITECTURE.exists(), "runner architecture walkthrough is missing"
     assert WALKTHROUGH_INDEX.exists(), "walkthrough index is missing"
