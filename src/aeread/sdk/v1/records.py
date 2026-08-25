@@ -21,9 +21,7 @@ from .base import (
 from .errors import BundleValidationError, UntrustedPluginReference
 
 
-_PLUGIN_ID_PATTERN = re.compile(
-    r"^[A-Za-z0-9](?:[A-Za-z0-9_.-]*[A-Za-z0-9])?$"
-)
+_PLUGIN_ID_PATTERN = re.compile(r"^[A-Za-z0-9](?:[A-Za-z0-9_.-]*[A-Za-z0-9])?$")
 _SEMVER_PATTERN = re.compile(
     r"^(0|[1-9][0-9]*)\."
     r"(0|[1-9][0-9]*)\."
@@ -33,6 +31,29 @@ _SEMVER_PATTERN = re.compile(
     r"(?:\+([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?$"
 )
 SHA256 = Annotated[SDKStr, Field(pattern=r"^[0-9a-f]{64}$")]
+RetryCondition = Literal["timeout", "rate_limit", "provider_5xx", "transport", "length"]
+CallObservability = Literal["full", "logical_only", "opaque"]
+ReferenceKind = Literal[
+    "optimum_lower_bound",
+    "optimum_upper_bound",
+    "comparison_baseline",
+    "outcome_support_min",
+    "outcome_support_max",
+]
+BoundStatus = Literal[
+    "exact_solved",
+    "epsilon_solved",
+    "bracketed",
+    "lower_bound_only",
+    "baseline_only",
+    "descriptive_only",
+]
+_MUTABLE_VERSION_ALIASES = {"latest", "current", "default", "stable"}
+
+
+def _require_exact_pin(label: str, value: str) -> None:
+    if not value.strip() or value.strip().lower() in _MUTABLE_VERSION_ALIASES:
+        raise ValueError(f"{label} must be an exact immutable pin")
 
 
 class PluginManifest(StrictModel):
@@ -204,9 +225,7 @@ class ActionBundle(StrictModel):
         return self
 
 
-def validate_action_bundle(
-    bundle: ActionBundle, slot: DecisionSlot
-) -> ActionBundle:
+def validate_action_bundle(bundle: ActionBundle, slot: DecisionSlot) -> ActionBundle:
     """Validate an action bundle against the slot that authorized it."""
 
     return bundle.validate_against(slot)
@@ -279,8 +298,24 @@ class AttemptBudget(StrictModel):
 
 class RetryPolicy(StrictModel):
     max_attempts: SDKInt = Field(default=1, ge=1)
-    retryable_conditions: tuple[SDKStr, ...] = ()
+    retryable_conditions: tuple[RetryCondition, ...] = ()
     length_retry_output_tokens: SDKInt | None = Field(default=None, ge=1)
+
+    @model_validator(mode="after")
+    def validate_retry_policy(self) -> "RetryPolicy":
+        conditions = self.retryable_conditions
+        if len(conditions) != len(set(conditions)):
+            raise ValueError("retryable_conditions must be unique")
+        if "length" not in conditions and self.length_retry_output_tokens is not None:
+            raise ValueError("length retry budget requires the length condition")
+        if self.max_attempts > 1 and not conditions:
+            raise ValueError("multiple attempts require retryable_conditions")
+        if conditions and self.max_attempts < 2:
+            label = "length retry" if "length" in conditions else "retryable_conditions"
+            raise ValueError(f"{label} requires max_attempts >= 2")
+        if "length" in conditions and self.length_retry_output_tokens is None:
+            raise ValueError("length retry requires length_retry_output_tokens")
+        return self
 
 
 class AgentRequest(StrictModel):
@@ -380,6 +415,12 @@ class ImplementationRef(StrictModel):
     content_sha256: SDKStr = Field(pattern=r"^[0-9a-f]{64}$")
 
 
+def _validate_implementation_pin(implementation: ImplementationRef, label: str) -> None:
+    if not implementation.implementation_id.strip():
+        raise ValueError(f"{label} implementation_id must be non-empty")
+    _require_exact_pin(f"{label} version", implementation.version)
+
+
 class OptimizationBoundReference(StrictModel):
     kind: Literal["optimum_lower_bound", "optimum_upper_bound"]
     value: SDKFloat
@@ -426,9 +467,7 @@ class OutcomeSupportReference(StrictModel):
 
 
 ReferenceValue = Annotated[
-    OptimizationBoundReference
-    | ComparisonBaselineReference
-    | OutcomeSupportReference,
+    OptimizationBoundReference | ComparisonBaselineReference | OutcomeSupportReference,
     Field(discriminator="kind"),
 ]
 
@@ -574,8 +613,11 @@ class MeasurementSpec(StrictModel):
     direction: Literal["maximize", "minimize"]
     primary_metric_id: SDKStr
     verifier_plugin_id: SDKStr
-    reference_kinds: tuple[SDKStr, ...] = ()
-    bound_status: SDKStr | None = None
+    bound_status: BoundStatus
+    reference_implementations: ImmutableMapping[ImplementationRef] = Field(
+        default_factory=dict
+    )
+    oracle: ImplementationRef | None = None
 
     @model_validator(mode="after")
     def validate_measurement(self) -> "MeasurementSpec":
@@ -586,8 +628,55 @@ class MeasurementSpec(StrictModel):
         ):
             if not value.strip():
                 raise ValueError("measurement identifiers must be non-empty")
-        if len(self.reference_kinds) != len(set(self.reference_kinds)):
-            raise ValueError("reference_kinds must be unique")
+        kinds = set(self.reference_implementations)
+        allowed_kinds = {
+            "optimum_lower_bound",
+            "optimum_upper_bound",
+            "comparison_baseline",
+            "outcome_support_min",
+            "outcome_support_max",
+        }
+        unknown = kinds - allowed_kinds
+        if unknown:
+            raise ValueError(f"unknown reference kinds: {sorted(unknown)!r}")
+        for kind, implementation in self.reference_implementations.items():
+            _validate_implementation_pin(implementation, kind)
+        if self.oracle is not None:
+            _validate_implementation_pin(self.oracle, "oracle")
+
+        lower_upper = {"optimum_lower_bound", "optimum_upper_bound"}
+        if self.bound_status in {"exact_solved", "epsilon_solved", "bracketed"}:
+            if not lower_upper.issubset(kinds):
+                raise ValueError(
+                    "exact_solved, epsilon_solved, and bracketed require lower and upper bounds"
+                )
+        if (
+            self.bound_status == "lower_bound_only"
+            and "optimum_lower_bound" not in kinds
+        ):
+            raise ValueError("lower_bound_only requires optimum_lower_bound")
+        if self.bound_status == "lower_bound_only" and "optimum_upper_bound" in kinds:
+            raise ValueError("lower_bound_only cannot declare optimum_upper_bound")
+        if self.bound_status == "baseline_only" and "comparison_baseline" not in kinds:
+            raise ValueError("baseline_only requires comparison_baseline")
+        if self.bound_status == "baseline_only" and kinds & lower_upper:
+            raise ValueError("baseline_only cannot make optimality claims")
+        if (
+            self.measurement_kind == "comparative_or_human_judged"
+            and "comparison_baseline" not in kinds
+        ):
+            raise ValueError("comparative_or_human_judged requires comparison_baseline")
+        if self.bound_status == "descriptive_only" and kinds & {
+            "optimum_lower_bound",
+            "optimum_upper_bound",
+            "comparison_baseline",
+        }:
+            raise ValueError(
+                "descriptive_only cannot make optimality/comparison claims"
+            )
+        support_kinds = {"outcome_support_min", "outcome_support_max"}
+        if kinds & support_kinds and not support_kinds.issubset(kinds):
+            raise ValueError("outcome support min/max must be declared as a pair")
         return self
 
 
@@ -601,7 +690,7 @@ class FamilyManifest(StrictModel):
     roles: tuple[RoleSpec, ...]
     measurements: tuple[MeasurementSpec, ...]
     capabilities: CapabilityDeclaration
-    generator: PinnedPluginRef | None = None
+    generator: ImplementationRef | None = None
     upstream_source: UpstreamSourceRef | None = None
     limits: JSONObject = Field(default_factory=dict)
 
@@ -622,6 +711,8 @@ class FamilyManifest(StrictModel):
         ):
             if len(values) != len(set(values)):
                 raise ValueError(f"{label} identifiers must be unique")
+        if self.generator is not None:
+            _validate_implementation_pin(self.generator, "generator")
         return self
 
 
@@ -637,8 +728,9 @@ class SeatSpec(StrictModel):
 
 
 class CaseProvenance(StrictModel):
-    generator_id: SDKStr
-    generator_version: SDKStr
+    source_kind: Literal["generated", "curated"]
+    generator_id: SDKStr | None = None
+    generator_version: SDKStr | None = None
     review_status: SDKStr
     curator_id: SDKStr | None = None
     curator_version: SDKStr | None = None
@@ -649,21 +741,21 @@ class CaseProvenance(StrictModel):
 
     @model_validator(mode="after")
     def validate_provenance(self) -> "CaseProvenance":
-        if any(
-            not value.strip()
-            for value in (
-                self.generator_id,
-                self.generator_version,
-                self.review_status,
-            )
-        ):
-            raise ValueError(
-                "generator identity/version and review status are required"
-            )
+        if not self.review_status.strip():
+            raise ValueError("review_status is required")
         if (self.curator_id is None) != (self.curator_version is None):
             raise ValueError("curator_id and curator_version must be declared together")
-        if not _SEMVER_PATTERN.fullmatch(self.generator_version):
-            raise ValueError("generator_version must be an exact semantic version")
+        if self.source_kind == "generated":
+            if self.generator_id is None or self.generator_version is None:
+                raise ValueError("generated provenance requires generator ID/version")
+            if not self.generator_id.strip() or not _SEMVER_PATTERN.fullmatch(
+                self.generator_version
+            ):
+                raise ValueError("generator_id/generator_version must be exact")
+        elif self.generator_id is not None or self.generator_version is not None:
+            raise ValueError("curated provenance cannot claim a generator")
+        if self.source_kind == "curated" and self.curator_id is None:
+            raise ValueError("curated provenance requires curator identity/version")
         if self.curator_version is not None and not _SEMVER_PATTERN.fullmatch(
             self.curator_version
         ):
@@ -748,6 +840,7 @@ class CaseManifest(StrictModel):
 class EvaluationBlock(StrictModel):
     block_id: SDKStr
     kind: SDKStr
+    estimand_id: SDKStr
     subject_roles: tuple[SDKStr, ...]
     controlled_profile_by_role: ImmutableMapping[SDKStr]
     repetitions: SDKInt = Field(ge=1)
@@ -755,8 +848,12 @@ class EvaluationBlock(StrictModel):
 
     @model_validator(mode="after")
     def validate_block(self) -> "EvaluationBlock":
-        if not self.block_id.strip() or not self.kind.strip():
-            raise ValueError("block_id and kind must be non-empty")
+        if (
+            not self.block_id.strip()
+            or not self.kind.strip()
+            or not self.estimand_id.strip()
+        ):
+            raise ValueError("block_id, kind, and estimand_id must be non-empty")
         if not self.subject_roles or not self.rollout_seeds:
             raise ValueError("blocks require subject roles and rollout seeds")
         if len(self.subject_roles) != len(set(self.subject_roles)):
@@ -801,7 +898,7 @@ class SuiteManifest(StrictModel):
     suite_version: SDKStr
     case_ids: tuple[SDKStr, ...]
     blocks: tuple[EvaluationBlock, ...]
-    cluster: ClusterSpec
+    cluster_by_estimand: ImmutableMapping[ClusterSpec]
     missingness_policy: SDKStr
     aggregation_group_fields: tuple[SDKStr, ...]
     cross_family_scalar: Literal["disabled"] = "disabled"
@@ -816,6 +913,10 @@ class SuiteManifest(StrictModel):
             raise ValueError("suite identity/version/missingness policy are required")
         if not self.case_ids or not self.blocks:
             raise ValueError("suite requires cases and evaluation blocks")
+        if not self.cluster_by_estimand or any(
+            not estimand_id.strip() for estimand_id in self.cluster_by_estimand
+        ):
+            raise ValueError("suite requires estimand-keyed cluster declarations")
         for values, label in (
             (self.case_ids, "case_id"),
             (tuple(block.block_id for block in self.blocks), "block_id"),
@@ -828,43 +929,107 @@ class SuiteManifest(StrictModel):
         return self
 
 
+class ProviderPin(StrictModel):
+    provider_id: SDKStr
+    api_version: SDKStr
+
+    @model_validator(mode="after")
+    def validate_provider(self) -> "ProviderPin":
+        if not self.provider_id.strip():
+            raise ValueError("provider_id must be non-empty")
+        _require_exact_pin("api_version", self.api_version)
+        return self
+
+
+class ModelPin(StrictModel):
+    model_id: SDKStr
+    revision: SDKStr
+
+    @model_validator(mode="after")
+    def validate_model_pin(self) -> "ModelPin":
+        if not self.model_id.strip():
+            raise ValueError("model_id must be non-empty")
+        _require_exact_pin("revision", self.revision)
+        return self
+
+
+class RuntimePin(StrictModel):
+    implementation: ImplementationRef
+    config: JSONObject = Field(default_factory=dict)
+
+
+class SamplingPin(StrictModel):
+    schema_id: SDKStr
+    schema_version: SDKStr
+    content: JSONObject
+
+    @model_validator(mode="after")
+    def validate_sampling(self) -> "SamplingPin":
+        if not self.schema_id.strip():
+            raise ValueError("sampling schema_id must be non-empty")
+        _require_exact_pin("sampling schema_version", self.schema_version)
+        return self
+
+
+class MemoryPin(StrictModel):
+    mode: Literal["none", "ephemeral", "persistent"]
+    policy: ImplementationRef | None = None
+    config: JSONObject = Field(default_factory=dict)
+
+    @model_validator(mode="after")
+    def validate_memory(self) -> "MemoryPin":
+        if self.mode == "none":
+            if self.policy is not None or self.config:
+                raise ValueError("memory mode none cannot declare policy/config")
+        elif self.policy is None:
+            raise ValueError("enabled memory requires a pinned memory policy")
+        return self
+
+
 class AgentProfile(StrictModel):
     spec_version: Literal["aeread.agent_profile/0.1"] = "aeread.agent_profile/0.1"
     profile_id: SDKStr
     profile_version: SDKStr
     adapter: PinnedPluginRef
-    provider: SDKStr
-    model: SDKStr
-    harness: SDKStr
-    runtime: SDKStr
+    call_observability: CallObservability
+    provider: ProviderPin
+    model: ModelPin
+    harness: ImplementationRef
+    runtime: RuntimePin
     prompt_sha256: SDKStr = Field(pattern=r"^[0-9a-f]{64}$")
-    sampling_config: JSONObject
-    tools: tuple[SDKStr, ...]
-    memory_mode: SDKStr
+    sampling: SamplingPin
+    tools: tuple[ImplementationRef, ...]
+    memory: MemoryPin
     attempt_budget: AttemptBudget
     retry_policy: RetryPolicy
 
     @model_validator(mode="after")
     def validate_agent_profile(self) -> "AgentProfile":
-        required = (
-            self.profile_id,
-            self.provider,
-            self.model,
-            self.harness,
-            self.runtime,
-            self.memory_mode,
-        )
+        required = (self.profile_id,)
         if any(
             not value.strip() for value in required
         ) or not _SEMVER_PATTERN.fullmatch(self.profile_version):
             raise ValueError("agent identity and configuration pins must be non-empty")
-        if any(not tool.strip() for tool in self.tools) or len(self.tools) != len(
-            set(self.tools)
-        ):
-            raise ValueError("tools must be unique non-empty identifiers")
+        tool_ids = [
+            (tool.implementation_id, tool.version, tool.content_sha256)
+            for tool in self.tools
+        ]
+        if len(tool_ids) != len(set(tool_ids)):
+            raise ValueError("tool implementation pins must be unique")
+        component_refs = (self.harness, self.runtime.implementation, *self.tools)
+        if self.memory.policy is not None:
+            component_refs = (*component_refs, self.memory.policy)
+        for implementation in component_refs:
+            _validate_implementation_pin(implementation, "agent component")
         conditions = self.retry_policy.retryable_conditions
         if len(conditions) != len(set(conditions)):
             raise ValueError("retryable_conditions must be unique")
+        if self.retry_policy.max_attempts > 1 and not conditions:
+            raise ValueError("multiple attempts require retryable_conditions")
+        if conditions and self.retry_policy.max_attempts < 2:
+            if "length" in conditions:
+                raise ValueError("length retry requires max_attempts >= 2")
+            raise ValueError("retryable_conditions require max_attempts >= 2")
         length_enabled = "length" in conditions
         length_limit = self.retry_policy.length_retry_output_tokens
         if length_enabled:
@@ -916,6 +1081,7 @@ class AdmissionCheck(StrictModel):
     actual_value: SDKStr
     allowed_values: tuple[SDKStr, ...]
     passed: SDKBool
+    profile_id: SDKStr | None = None
 
 
 class AdmissionReport(StrictModel):
@@ -930,6 +1096,8 @@ class EpisodeCell(StrictModel):
     family_id: SDKStr
     family_version: SDKStr
     block_id: SDKStr
+    estimand_id: SDKStr
+    measurement_sha256: SHA256
     subject_role: SDKStr
     subject_seat_id: SDKStr
     repetition_index: SDKInt = Field(ge=0)
@@ -949,7 +1117,9 @@ class EpisodeCell(StrictModel):
     seat_profile_id_by_seat: ImmutableMapping[SDKStr]
     seat_profile_sha256_by_seat: ImmutableMapping[SHA256]
     environment_ref: ImplementationRef
-    verifier_refs: tuple[ImplementationRef, ...]
+    verifier_ref: ImplementationRef
+    reference_refs: ImmutableMapping[ImplementationRef]
+    oracle_ref: ImplementationRef | None = None
     adapter_refs_by_seat: ImmutableMapping[ImplementationRef]
     execution_backend_ref: ImplementationRef
     admission_profile: Literal["paper_primary", "training", "interop_only"]
@@ -964,6 +1134,12 @@ class RunPlan(StrictModel):
     suite_sha256: SDKStr = Field(pattern=r"^[0-9a-f]{64}$")
     run_spec_sha256: SDKStr = Field(pattern=r"^[0-9a-f]{64}$")
     agent_profile_sha256_by_id: ImmutableMapping[SHA256]
+    family: FamilyManifest
+    cases: tuple[CaseManifest, ...]
+    suite: SuiteManifest
+    agent_profiles: tuple[AgentProfile, ...]
+    run_spec: RunSpec
+    adapter_call_observability_by_profile: ImmutableMapping[CallObservability]
     admission_report: AdmissionReport
     cells: tuple[EpisodeCell, ...]
 

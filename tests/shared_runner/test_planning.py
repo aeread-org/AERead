@@ -131,6 +131,7 @@ def test_nested_manifest_identifiers_and_versions_cannot_be_empty_or_floating() 
 
     with pytest.raises(ValidationError, match="generator_version"):
         CaseProvenance(
+            source_kind="generated",
             generator_id="generator",
             generator_version="latest",
             review_status="curated",
@@ -228,7 +229,9 @@ def test_resolver_pins_sorted_cells_and_complete_seat_assignments() -> None:
         for cell in plan.cells
     )
     assert all(cell.environment_ref.version == "1.0.0" for cell in plan.cells)
-    assert all(len(cell.verifier_refs) == 1 for cell in plan.cells)
+    assert all(
+        cell.verifier_ref.implementation_id == "fake_verifier" for cell in plan.cells
+    )
     assert all(cell.observations_per_cluster == 4 for cell in plan.cells)
     assert all(
         dict(cell.pairing_values) == {"rollout_seed": cell.rollout_seed}
@@ -304,7 +307,7 @@ def test_resolution_is_order_independent_but_identity_sensitive() -> None:
             )
         }
     )
-    changed_cluster = inputs.suite.cluster.model_copy(
+    changed_cluster = inputs.suite.cluster_by_estimand["buyer_utility"].model_copy(
         update={"identity_fields": ("case_id", "world_seed", "rollout_seed")}
     )
     variants = (
@@ -317,7 +320,9 @@ def test_resolution_is_order_independent_but_identity_sensitive() -> None:
         ),
         _replace(
             inputs,
-            suite=inputs.suite.model_copy(update={"cluster": changed_cluster}),
+            suite=inputs.suite.model_copy(
+                update={"cluster_by_estimand": {"buyer_utility": changed_cluster}}
+            ),
         ),
     )
     for variant in variants:
@@ -398,25 +403,30 @@ def test_length_retry_requires_declared_condition_attempt_and_larger_budget() ->
 
 def test_cluster_rejects_unknown_field_and_missing_parent_value() -> None:
     inputs = fake_resolution_inputs()
-    bad_cluster = inputs.suite.cluster.model_copy(
+    bad_cluster = inputs.suite.cluster_by_estimand["buyer_utility"].model_copy(
         update={"identity_fields": ("case_id", "unknown_field")}
     )
     with pytest.raises(InvalidClusterDeclaration):
         resolve_run_plan(
             _replace(
-                inputs, suite=inputs.suite.model_copy(update={"cluster": bad_cluster})
+                inputs,
+                suite=inputs.suite.model_copy(
+                    update={"cluster_by_estimand": {"buyer_utility": bad_cluster}}
+                ),
             ),
             _registry(),
         )
 
-    missing_parent = inputs.suite.cluster.model_copy(
+    missing_parent = inputs.suite.cluster_by_estimand["buyer_utility"].model_copy(
         update={"parent_field": "not_available"}
     )
     with pytest.raises(InvalidClusterDeclaration):
         resolve_run_plan(
             _replace(
                 inputs,
-                suite=inputs.suite.model_copy(update={"cluster": missing_parent}),
+                suite=inputs.suite.model_copy(
+                    update={"cluster_by_estimand": {"buyer_utility": missing_parent}}
+                ),
             ),
             _registry(),
         )
@@ -483,7 +493,16 @@ def test_capability_rejection_carries_full_report_without_downgrade() -> None:
         resolve_run_plan(_replace(inputs, family=family), _registry())
 
     assert exc_info.value.report.requested_profile == "paper_primary"
-    assert len(exc_info.value.report.checks) == 7
+    assert (
+        len(
+            [
+                check
+                for check in exc_info.value.report.checks
+                if check.profile_id is None
+            ]
+        )
+        == 7
+    )
     assert {
         check.axis for check in exc_info.value.report.checks if not check.passed
     } == {

@@ -140,6 +140,51 @@ def evaluate_admission(
     )
 
 
+def _evaluate_resolved_admission(
+    capabilities: CapabilityDeclaration,
+    admission_profile: AdmissionProfile,
+    profiles: Mapping[str, AgentProfile],
+    adapter_observability: Mapping[str, str],
+) -> AdmissionReport:
+    family_report = evaluate_admission(capabilities, admission_profile)
+    checks = list(family_report.checks)
+    admission_allowed = (
+        ("full",)
+        if admission_profile in {"paper_primary", "training"}
+        else ("full", "logical_only", "opaque")
+    )
+    for profile_id in sorted(adapter_observability):
+        profile = profiles.get(profile_id)
+        if profile is None:
+            raise IncompleteAgentAssignment(
+                f"adapter metadata references unknown profile {profile_id!r}"
+            )
+        actual = adapter_observability[profile_id]
+        checks.extend(
+            (
+                AdmissionCheck(
+                    axis="agent_adapter.call_observability.pin",
+                    actual_value=actual,
+                    allowed_values=(profile.call_observability,),
+                    passed=actual == profile.call_observability,
+                    profile_id=profile_id,
+                ),
+                AdmissionCheck(
+                    axis="agent_adapter.call_observability.admission",
+                    actual_value=actual,
+                    allowed_values=admission_allowed,
+                    passed=actual in admission_allowed,
+                    profile_id=profile_id,
+                ),
+            )
+        )
+    return AdmissionReport(
+        requested_profile=admission_profile,
+        status="admitted" if all(check.passed for check in checks) else "rejected",
+        checks=tuple(checks),
+    )
+
+
 def _raw_state(value: object) -> object:
     """Expose copied Pydantic state so unchecked model_copy updates are seen."""
 
@@ -179,7 +224,12 @@ def _revalidate_inputs(inputs: ResolutionInputs) -> ResolutionInputs:
         raise ManifestMismatch("ResolutionInputs has missing or unknown fields")
 
     family = cast(FamilyManifest, _validate_model(FamilyManifest, raw["family"]))
-    suite = cast(SuiteManifest, _validate_model(SuiteManifest, raw["suite"]))
+    try:
+        suite = cast(SuiteManifest, _validate_model(SuiteManifest, raw["suite"]))
+    except ManifestMismatch as exc:
+        if "cluster" in str(exc):
+            raise InvalidClusterDeclaration(str(exc)) from exc
+        raise
     run_spec = cast(RunSpec, _validate_model(RunSpec, raw["run_spec"]))
     raw_profiles = raw["agent_profiles"]
     raw_cases = raw["cases"]
@@ -231,8 +281,6 @@ def _family_hash(family: FamilyManifest) -> str:
     basis["measurements"] = sorted(
         basis["measurements"], key=lambda item: item["estimand_id"]
     )
-    for measurement in basis["measurements"]:
-        measurement["reference_kinds"] = sorted(measurement["reference_kinds"])
     graph = basis["phase_graph"]
     graph["phases"] = sorted(graph["phases"], key=lambda item: item["phase_id"])
     for phase in graph["phases"]:
@@ -250,16 +298,23 @@ def _suite_hash(suite: SuiteManifest) -> str:
     for block in basis["blocks"]:
         block["subject_roles"] = sorted(block["subject_roles"])
         block["rollout_seeds"] = sorted(block["rollout_seeds"])
-    cluster = basis["cluster"]
-    cluster["identity_fields"] = sorted(cluster["identity_fields"])
-    cluster["paired_fields"] = sorted(cluster["paired_fields"])
+    for cluster in basis["cluster_by_estimand"].values():
+        cluster["identity_fields"] = sorted(cluster["identity_fields"])
+        cluster["paired_fields"] = sorted(cluster["paired_fields"])
     basis["aggregation_group_fields"] = sorted(basis["aggregation_group_fields"])
     return content_sha256(basis)
 
 
 def _profile_hash(profile: AgentProfile) -> str:
     basis = profile.model_dump(mode="python")
-    basis["tools"] = sorted(basis["tools"])
+    basis["tools"] = sorted(
+        basis["tools"],
+        key=lambda item: (
+            item["implementation_id"],
+            item["version"],
+            item["content_sha256"],
+        ),
+    )
     basis["retry_policy"]["retryable_conditions"] = sorted(
         basis["retry_policy"]["retryable_conditions"]
     )
@@ -268,6 +323,118 @@ def _profile_hash(profile: AgentProfile) -> str:
 
 def _run_hash(run_spec: RunSpec) -> str:
     return content_sha256(run_spec)
+
+
+def _normalized_inputs(inputs: ResolutionInputs) -> ResolutionInputs:
+    phases = tuple(
+        phase.model_copy(update={"next_phases": tuple(sorted(phase.next_phases))})
+        for phase in sorted(
+            inputs.family.phase_graph.phases, key=lambda item: item.phase_id
+        )
+    )
+    phase_graph = inputs.family.phase_graph.model_copy(update={"phases": phases})
+    roles = tuple(
+        role.model_copy(
+            update={
+                "controlled_profile_ids": tuple(sorted(role.controlled_profile_ids))
+            }
+        )
+        for role in sorted(inputs.family.roles, key=lambda item: item.role_id)
+    )
+    upstream_source = inputs.family.upstream_source
+    if upstream_source is not None:
+        upstream_source = upstream_source.model_copy(
+            update={"source_paths": tuple(sorted(upstream_source.source_paths))}
+        )
+    family = inputs.family.model_copy(
+        update={
+            "verifiers": tuple(
+                sorted(
+                    inputs.family.verifiers,
+                    key=lambda item: (
+                        item.plugin.plugin_id,
+                        item.plugin.plugin_version,
+                    ),
+                )
+            ),
+            "phase_graph": phase_graph,
+            "roles": roles,
+            "measurements": tuple(
+                sorted(inputs.family.measurements, key=lambda item: item.estimand_id)
+            ),
+            "upstream_source": upstream_source,
+        }
+    )
+    cases = tuple(
+        case.model_copy(
+            update={
+                "seats": tuple(sorted(case.seats, key=lambda item: item.seat_id)),
+                "terminal_reasons": tuple(sorted(case.terminal_reasons)),
+            }
+        )
+        for case in sorted(inputs.cases, key=lambda item: item.case_id)
+    )
+    blocks = tuple(
+        block.model_copy(
+            update={
+                "subject_roles": tuple(sorted(block.subject_roles)),
+                "rollout_seeds": tuple(sorted(block.rollout_seeds)),
+            }
+        )
+        for block in sorted(inputs.suite.blocks, key=lambda item: item.block_id)
+    )
+    clusters = {
+        estimand_id: cluster.model_copy(
+            update={
+                "identity_fields": tuple(sorted(cluster.identity_fields)),
+                "paired_fields": tuple(sorted(cluster.paired_fields)),
+            }
+        )
+        for estimand_id, cluster in inputs.suite.cluster_by_estimand.items()
+    }
+    suite = inputs.suite.model_copy(
+        update={
+            "case_ids": tuple(sorted(inputs.suite.case_ids)),
+            "blocks": blocks,
+            "cluster_by_estimand": clusters,
+            "aggregation_group_fields": tuple(
+                sorted(inputs.suite.aggregation_group_fields)
+            ),
+        }
+    )
+    profiles = tuple(
+        profile.model_copy(
+            update={
+                "tools": tuple(
+                    sorted(
+                        profile.tools,
+                        key=lambda item: (
+                            item.implementation_id,
+                            item.version,
+                            item.content_sha256,
+                        ),
+                    )
+                ),
+                "retry_policy": profile.retry_policy.model_copy(
+                    update={
+                        "retryable_conditions": tuple(
+                            sorted(profile.retry_policy.retryable_conditions)
+                        )
+                    }
+                ),
+            }
+        )
+        for profile in sorted(inputs.agent_profiles, key=lambda item: item.profile_id)
+    )
+    return ResolutionInputs.model_validate(
+        {
+            "family": family,
+            "cases": cases,
+            "suite": suite,
+            "agent_profiles": profiles,
+            "run_spec": inputs.run_spec,
+        }
+    )
 
 
 def _validate_identities(inputs: ResolutionInputs) -> None:
@@ -304,15 +471,52 @@ def _validate_identities(inputs: ResolutionInputs) -> None:
             )
 
     verifier_ids = {pin.plugin.plugin_id for pin in family.verifiers}
+    measurements = {
+        measurement.estimand_id: measurement for measurement in family.measurements
+    }
     for measurement in family.measurements:
         if measurement.verifier_plugin_id not in verifier_ids:
             raise ManifestMismatch(
                 f"measurement {measurement.estimand_id!r} has no pinned verifier"
             )
+    block_estimands = {block.estimand_id for block in inputs.suite.blocks}
+    unknown_estimands = block_estimands - set(measurements)
+    if unknown_estimands:
+        raise ManifestMismatch(
+            f"suite blocks select undeclared estimands: {sorted(unknown_estimands)!r}"
+        )
+    if set(inputs.suite.cluster_by_estimand) != block_estimands:
+        raise InvalidClusterDeclaration(
+            "cluster_by_estimand must exactly cover suite block estimands"
+        )
+
+    for case in inputs.cases:
+        provenance = case.provenance
+        if provenance.source_kind == "generated":
+            if family.generator is None:
+                raise ManifestMismatch("generated case has no family generator pin")
+            if (
+                provenance.generator_id != family.generator.implementation_id
+                or provenance.generator_version != family.generator.version
+            ):
+                raise ManifestMismatch(
+                    f"case {case.case_id!r} generator does not match family generator"
+                )
 
     profile_ids = [profile.profile_id for profile in inputs.agent_profiles]
     if len(profile_ids) != len(set(profile_ids)):
         raise ManifestMismatch("agent profile IDs must be unique")
+    adapter_pins: dict[tuple[str, str], object] = {}
+    for profile in inputs.agent_profiles:
+        key = (
+            profile.adapter.plugin.plugin_id,
+            profile.adapter.plugin.plugin_version,
+        )
+        prior = adapter_pins.setdefault(key, profile.adapter.implementation)
+        if prior != profile.adapter.implementation:
+            raise ManifestMismatch(
+                f"agent adapter {key!r} has conflicting implementation pins"
+            )
 
     needed_subject_roles = {
         role for block in inputs.suite.blocks for role in block.subject_roles
@@ -333,28 +537,62 @@ def _validate_identities(inputs: ResolutionInputs) -> None:
             )
 
 
-def _resolve_plugins(inputs: ResolutionInputs, registry: PluginRegistry) -> None:
+def _used_profile_ids(inputs: ResolutionInputs) -> set[str]:
+    return set(inputs.run_spec.subject_profile_by_role.values()) | {
+        profile_id
+        for block in inputs.suite.blocks
+        for profile_id in block.controlled_profile_by_role.values()
+    }
+
+
+def _resolve_plugins(
+    inputs: ResolutionInputs, registry: PluginRegistry
+) -> dict[str, str]:
+    adapter_observability: dict[str, str] = {}
     try:
         environment = inputs.family.environment.plugin
         registry.resolve_environment(environment.plugin_id, environment.plugin_version)
         for pin in inputs.family.verifiers:
             registry.resolve_verifier(pin.plugin.plugin_id, pin.plugin.plugin_version)
+        used_profiles = _used_profile_ids(inputs)
         for profile in inputs.agent_profiles:
-            registry.resolve_agent_adapter(
+            if profile.profile_id not in used_profiles:
+                continue
+            adapter = registry.resolve_agent_adapter(
                 profile.adapter.plugin.plugin_id,
                 profile.adapter.plugin.plugin_version,
             )
+            actual = getattr(adapter, "call_observability")
+            if type(actual) is not str or actual not in {
+                "full",
+                "logical_only",
+                "opaque",
+            }:
+                raise UnresolvedImplementation(
+                    f"agent adapter for {profile.profile_id!r} has invalid call_observability"
+                )
+            adapter_observability[profile.profile_id] = actual
         backend = inputs.run_spec.execution_backend.plugin
         registry.resolve_execution_backend(backend.plugin_id, backend.plugin_version)
+    except UnresolvedImplementation:
+        raise
     except PluginRegistryError as exc:
         raise UnresolvedImplementation(str(exc)) from exc
+    except Exception as exc:
+        raise UnresolvedImplementation("plugin metadata inspection failed") from exc
+    return adapter_observability
 
 
-def _cluster_fields(suite: SuiteManifest) -> tuple[str, ...]:
+def _cluster_fields(suite: SuiteManifest, estimand_id: str) -> tuple[str, ...]:
+    cluster = suite.cluster_by_estimand.get(estimand_id)
+    if cluster is None:
+        raise InvalidClusterDeclaration(
+            f"missing cluster declaration for estimand {estimand_id!r}"
+        )
     requested = (
-        tuple(suite.cluster.identity_fields)
-        + tuple(suite.cluster.paired_fields)
-        + ((suite.cluster.parent_field,) if suite.cluster.parent_field else ())
+        tuple(cluster.identity_fields)
+        + tuple(cluster.paired_fields)
+        + ((cluster.parent_field,) if cluster.parent_field else ())
     )
     unknown = set(requested) - SUPPORTED_CLUSTER_FIELDS
     if unknown:
@@ -373,7 +611,7 @@ def _cluster_values(
     subject_seat_id: str,
     subject_profile_id: str,
     rollout_seed: int,
-) -> dict[str, str | int]:
+) -> dict[str, str | int | None]:
     return {
         "family_id": family.family_id,
         "family_version": family.family_version,
@@ -397,29 +635,271 @@ def _plan_digest_basis(plan: RunPlan) -> dict[str, object]:
 
 
 def verify_run_plan_identity(plan: RunPlan) -> bool:
-    """Recompute both deterministic plan identity fields."""
+    """Verify deep plan invariants before accepting the top-level digest."""
 
-    digest = content_sha256(_plan_digest_basis(plan))
-    return plan.run_plan_sha256 == digest and plan.run_plan_id == (
-        "runplan-" + digest[:24]
-    )
+    try:
+        checked = RunPlan.model_validate(_raw_state(plan))
+        embedded = ResolutionInputs(
+            family=checked.family,
+            cases=checked.cases,
+            suite=checked.suite,
+            agent_profiles=checked.agent_profiles,
+            run_spec=checked.run_spec,
+        )
+        normalized = _normalized_inputs(embedded)
+        if (
+            checked.family != normalized.family
+            or checked.cases != normalized.cases
+            or checked.suite != normalized.suite
+            or checked.agent_profiles != normalized.agent_profiles
+            or checked.run_spec != normalized.run_spec
+        ):
+            return False
+        _validate_identities(normalized)
+        for estimand_id in normalized.suite.cluster_by_estimand:
+            _cluster_fields(normalized.suite, estimand_id)
+
+        family_hash = _family_hash(normalized.family)
+        suite_hash = _suite_hash(normalized.suite)
+        run_hash = _run_hash(normalized.run_spec)
+        case_hashes = {case.case_id: case.content_sha256 for case in normalized.cases}
+        profile_hashes = {
+            profile.profile_id: _profile_hash(profile)
+            for profile in normalized.agent_profiles
+        }
+        if checked.family_sha256 != family_hash:
+            return False
+        if dict(checked.case_sha256_by_id) != case_hashes:
+            return False
+        if checked.suite_sha256 != suite_hash or checked.run_spec_sha256 != run_hash:
+            return False
+        if dict(checked.agent_profile_sha256_by_id) != profile_hashes:
+            return False
+
+        profiles = {
+            profile.profile_id: profile for profile in normalized.agent_profiles
+        }
+        cases = {case.case_id: case for case in normalized.cases}
+        blocks = {block.block_id: block for block in normalized.suite.blocks}
+        measurements = {
+            measurement.estimand_id: measurement
+            for measurement in normalized.family.measurements
+        }
+        verifiers = {pin.plugin.plugin_id: pin for pin in normalized.family.verifiers}
+        semantic_key = lambda cell: (
+            cell.case_id,
+            cell.block_id,
+            cell.estimand_id,
+            cell.subject_role,
+            cell.subject_seat_id,
+            cell.repetition_index,
+            cell.rollout_seed,
+            cell.cell_id,
+        )
+        if tuple(checked.cells) != tuple(sorted(checked.cells, key=semantic_key)):
+            return False
+
+        expected_coordinates = {
+            (
+                case.case_id,
+                block.block_id,
+                block.estimand_id,
+                subject_role,
+                subject_seat.seat_id,
+                repetition_index,
+                rollout_seed,
+            )
+            for case in normalized.cases
+            for block in normalized.suite.blocks
+            for subject_role in block.subject_roles
+            for subject_seat in case.seats
+            if subject_seat.role_id == subject_role
+            for repetition_index in range(block.repetitions)
+            for rollout_seed in block.rollout_seeds
+        }
+        actual_coordinates = {
+            (
+                cell.case_id,
+                cell.block_id,
+                cell.estimand_id,
+                cell.subject_role,
+                cell.subject_seat_id,
+                cell.repetition_index,
+                cell.rollout_seed,
+            )
+            for cell in checked.cells
+        }
+        if actual_coordinates != expected_coordinates or len(actual_coordinates) != len(
+            checked.cells
+        ):
+            return False
+
+        cluster_counts = Counter(
+            (cell.estimand_id, cell.cluster_id) for cell in checked.cells
+        )
+        used_profiles: set[str] = set()
+        for cell in checked.cells:
+            case = cases.get(cell.case_id)
+            block = blocks.get(cell.block_id)
+            measurement = measurements.get(cell.estimand_id)
+            if case is None or block is None or measurement is None:
+                return False
+            if block.estimand_id != cell.estimand_id:
+                return False
+            if (
+                cell.family_id != normalized.family.family_id
+                or cell.family_version != normalized.family.family_version
+                or cell.case_sha256 != case.content_sha256
+                or cell.world_seed != case.world_seed
+                or cell.family_sha256 != family_hash
+                or cell.suite_sha256 != suite_hash
+                or cell.run_spec_sha256 != run_hash
+            ):
+                return False
+
+            case_roles = {seat.seat_id: seat.role_id for seat in case.seats}
+            seat_ids = set(case_roles)
+            profile_ids_by_seat = dict(cell.seat_profile_id_by_seat)
+            profile_hashes_by_seat = dict(cell.seat_profile_sha256_by_seat)
+            adapter_refs_by_seat = dict(cell.adapter_refs_by_seat)
+            if (
+                set(profile_ids_by_seat) != seat_ids
+                or set(profile_hashes_by_seat) != seat_ids
+                or set(adapter_refs_by_seat) != seat_ids
+            ):
+                return False
+            if case_roles.get(cell.subject_seat_id) != cell.subject_role:
+                return False
+            subject_profile_id = normalized.run_spec.subject_profile_by_role.get(
+                cell.subject_role
+            )
+            if (
+                subject_profile_id is None
+                or profile_ids_by_seat.get(cell.subject_seat_id) != subject_profile_id
+            ):
+                return False
+
+            for seat_id, role_id in case_roles.items():
+                expected_profile_id = (
+                    subject_profile_id
+                    if seat_id == cell.subject_seat_id
+                    else block.controlled_profile_by_role.get(role_id)
+                )
+                if profile_ids_by_seat.get(seat_id) != expected_profile_id:
+                    return False
+                profile = profiles.get(profile_ids_by_seat[seat_id])
+                if profile is None:
+                    return False
+                used_profiles.add(profile.profile_id)
+                if (
+                    profile_hashes_by_seat[seat_id]
+                    != profile_hashes[profile.profile_id]
+                ):
+                    return False
+                if adapter_refs_by_seat[seat_id] != profile.adapter.implementation:
+                    return False
+            if cell.candidate_agent_config_sha256 != profile_hashes[subject_profile_id]:
+                return False
+            if cell.environment_ref != normalized.family.environment.implementation:
+                return False
+            verifier = verifiers.get(measurement.verifier_plugin_id)
+            if verifier is None or cell.verifier_ref != verifier.implementation:
+                return False
+            if cell.measurement_sha256 != content_sha256(measurement):
+                return False
+            if (
+                dict(cell.reference_refs) != dict(measurement.reference_implementations)
+                or cell.oracle_ref != measurement.oracle
+            ):
+                return False
+            if (
+                cell.execution_backend_ref
+                != normalized.run_spec.execution_backend.implementation
+            ):
+                return False
+            if cell.admission_profile != normalized.run_spec.admission_profile:
+                return False
+
+            cluster = normalized.suite.cluster_by_estimand.get(cell.estimand_id)
+            if cluster is None:
+                return False
+            available = _cluster_values(
+                family=normalized.family,
+                case=case,
+                block_id=block.block_id,
+                subject_role=cell.subject_role,
+                subject_seat_id=cell.subject_seat_id,
+                subject_profile_id=subject_profile_id,
+                rollout_seed=cell.rollout_seed,
+            )
+            identity_values = {
+                field: available[field] for field in cluster.identity_fields
+            }
+            pairing_values = {
+                field: available[field] for field in cluster.paired_fields
+            }
+            if any(value is None for value in identity_values.values()):
+                return False
+            expected_cluster_id = "cluster-" + content_sha256(identity_values)[:24]
+            expected_parent = (
+                available[cluster.parent_field] if cluster.parent_field else None
+            )
+            if (
+                cell.cluster_id != expected_cluster_id
+                or cell.cluster_level != cluster.cluster_level
+                or dict(cell.pairing_values) != pairing_values
+                or cell.cluster_parent_value != expected_parent
+                or cell.panel_mode != cluster.panel_mode
+                or cell.observations_per_cluster
+                != cluster_counts[(cell.estimand_id, cell.cluster_id)]
+            ):
+                return False
+            cell_digest = content_sha256(_cell_digest_basis(cell))
+            if cell.cell_id != "cell-" + cell_digest[:24]:
+                return False
+
+        observability = dict(checked.adapter_call_observability_by_profile)
+        if set(observability) != used_profiles:
+            return False
+        expected_report = _evaluate_resolved_admission(
+            normalized.family.capabilities,
+            normalized.run_spec.admission_profile,
+            profiles,
+            observability,
+        )
+        if (
+            expected_report.status != "admitted"
+            or checked.admission_report != expected_report
+        ):
+            return False
+
+        digest = content_sha256(_plan_digest_basis(checked))
+        return checked.run_plan_sha256 == digest and checked.run_plan_id == (
+            "runplan-" + digest[:24]
+        )
+    except Exception:
+        return False
 
 
 def resolve_run_plan(inputs: ResolutionInputs, registry: PluginRegistry) -> RunPlan:
     """Resolve immutable experiment inputs without invoking any plugin hook."""
 
-    resolved = _revalidate_inputs(inputs)
+    resolved = _normalized_inputs(_revalidate_inputs(inputs))
     _validate_identities(resolved)
-    _cluster_fields(resolved.suite)
-    _resolve_plugins(resolved, registry)
+    for estimand_id in resolved.suite.cluster_by_estimand:
+        _cluster_fields(resolved.suite, estimand_id)
+    adapter_observability = _resolve_plugins(resolved, registry)
 
-    report = evaluate_admission(
-        resolved.family.capabilities, resolved.run_spec.admission_profile
+    profiles = {profile.profile_id: profile for profile in resolved.agent_profiles}
+    report = _evaluate_resolved_admission(
+        resolved.family.capabilities,
+        resolved.run_spec.admission_profile,
+        profiles,
+        adapter_observability,
     )
     if report.status == "rejected":
         raise CapabilityMismatch(report)
 
-    profiles = {profile.profile_id: profile for profile in resolved.agent_profiles}
     profile_hashes = {
         profile_id: _profile_hash(profile) for profile_id, profile in profiles.items()
     }
@@ -428,12 +908,20 @@ def resolve_run_plan(inputs: ResolutionInputs, registry: PluginRegistry) -> RunP
     run_hash = _run_hash(resolved.run_spec)
     case_hashes = {case.case_id: case.content_sha256 for case in resolved.cases}
     roles = {role.role_id: role for role in resolved.family.roles}
+    measurements = {
+        measurement.estimand_id: measurement
+        for measurement in resolved.family.measurements
+    }
+    verifiers = {pin.plugin.plugin_id: pin for pin in resolved.family.verifiers}
 
     draft_cells: list[dict[str, object]] = []
     for case in sorted(resolved.cases, key=lambda item: item.case_id):
         seats = tuple(sorted(case.seats, key=lambda item: item.seat_id))
         roles_present = {seat.role_id for seat in seats}
         for block in sorted(resolved.suite.blocks, key=lambda item: item.block_id):
+            measurement = measurements[block.estimand_id]
+            verifier = verifiers[measurement.verifier_plugin_id]
+            cluster = resolved.suite.cluster_by_estimand[block.estimand_id]
             unknown_controlled = set(block.controlled_profile_by_role) - roles_present
             if unknown_controlled:
                 raise IncompleteAgentAssignment(
@@ -468,7 +956,7 @@ def resolve_run_plan(inputs: ResolutionInputs, registry: PluginRegistry) -> RunP
                                     f"seat {seat.seat_id!r} has no controlled profile"
                                 )
                             allowed = roles[seat.role_id].controlled_profile_ids
-                            if allowed and profile_id not in allowed:
+                            if profile_id not in allowed:
                                 raise IncompleteAgentAssignment(
                                     f"profile {profile_id!r} is not allowed for role {seat.role_id!r}"
                                 )
@@ -491,17 +979,29 @@ def resolve_run_plan(inputs: ResolutionInputs, registry: PluginRegistry) -> RunP
                             )
                             identity_values = {
                                 field: available[field]
-                                for field in resolved.suite.cluster.identity_fields
+                                for field in cluster.identity_fields
                             }
                             pairing_values = {
                                 field: available[field]
-                                for field in resolved.suite.cluster.paired_fields
+                                for field in cluster.paired_fields
                             }
+                            if any(value is None for value in identity_values.values()):
+                                raise InvalidClusterDeclaration(
+                                    "cluster identity field is unavailable for a cell"
+                                )
+                            if any(value is None for value in pairing_values.values()):
+                                raise InvalidClusterDeclaration(
+                                    "cluster pairing field is unavailable for a cell"
+                                )
                             parent_value = (
-                                available[resolved.suite.cluster.parent_field]
-                                if resolved.suite.cluster.parent_field
+                                available[cluster.parent_field]
+                                if cluster.parent_field
                                 else None
                             )
+                            if cluster.parent_field and parent_value is None:
+                                raise InvalidClusterDeclaration(
+                                    "cluster parent field is unavailable for a cell"
+                                )
                             cluster_digest = content_sha256(identity_values)
                             draft_cells.append(
                                 {
@@ -510,17 +1010,19 @@ def resolve_run_plan(inputs: ResolutionInputs, registry: PluginRegistry) -> RunP
                                     "family_id": resolved.family.family_id,
                                     "family_version": resolved.family.family_version,
                                     "block_id": block.block_id,
+                                    "estimand_id": block.estimand_id,
+                                    "measurement_sha256": content_sha256(measurement),
                                     "subject_role": subject_role,
                                     "subject_seat_id": subject_seat.seat_id,
                                     "repetition_index": repetition_index,
                                     "rollout_seed": rollout_seed,
                                     "world_seed": case.world_seed,
                                     "cluster_id": "cluster-" + cluster_digest[:24],
-                                    "cluster_level": resolved.suite.cluster.cluster_level,
+                                    "cluster_level": cluster.cluster_level,
                                     "observations_per_cluster": 1,
                                     "cluster_parent_value": parent_value,
                                     "pairing_values": pairing_values,
-                                    "panel_mode": resolved.suite.cluster.panel_mode,
+                                    "panel_mode": cluster.panel_mode,
                                     "case_sha256": case.content_sha256,
                                     "family_sha256": family_hash,
                                     "suite_sha256": suite_hash,
@@ -534,16 +1036,9 @@ def resolve_run_plan(inputs: ResolutionInputs, registry: PluginRegistry) -> RunP
                                         for seat_id, profile_id in seat_profile_ids.items()
                                     },
                                     "environment_ref": resolved.family.environment.implementation,
-                                    "verifier_refs": tuple(
-                                        pin.implementation
-                                        for pin in sorted(
-                                            resolved.family.verifiers,
-                                            key=lambda item: (
-                                                item.plugin.plugin_id,
-                                                item.plugin.plugin_version,
-                                            ),
-                                        )
-                                    ),
+                                    "verifier_ref": verifier.implementation,
+                                    "reference_refs": measurement.reference_implementations,
+                                    "oracle_ref": measurement.oracle,
                                     "adapter_refs_by_seat": {
                                         seat_id: profiles[
                                             profile_id
@@ -557,10 +1052,15 @@ def resolve_run_plan(inputs: ResolutionInputs, registry: PluginRegistry) -> RunP
 
     if not draft_cells:
         raise ManifestMismatch("resolution produced no episode cells")
-    counts = Counter(cast(str, draft["cluster_id"]) for draft in draft_cells)
+    counts = Counter(
+        (cast(str, draft["estimand_id"]), cast(str, draft["cluster_id"]))
+        for draft in draft_cells
+    )
     cells: list[EpisodeCell] = []
     for draft in draft_cells:
-        draft["observations_per_cluster"] = counts[cast(str, draft["cluster_id"])]
+        draft["observations_per_cluster"] = counts[
+            (cast(str, draft["estimand_id"]), cast(str, draft["cluster_id"]))
+        ]
         pending = EpisodeCell.model_validate(draft)
         digest = content_sha256(_cell_digest_basis(pending))
         complete = pending.model_dump(mode="python")
@@ -571,6 +1071,7 @@ def resolve_run_plan(inputs: ResolutionInputs, registry: PluginRegistry) -> RunP
         key=lambda cell: (
             cell.case_id,
             cell.block_id,
+            cell.estimand_id,
             cell.subject_role,
             cell.subject_seat_id,
             cell.repetition_index,
@@ -587,6 +1088,12 @@ def resolve_run_plan(inputs: ResolutionInputs, registry: PluginRegistry) -> RunP
         "suite_sha256": suite_hash,
         "run_spec_sha256": run_hash,
         "agent_profile_sha256_by_id": profile_hashes,
+        "family": resolved.family,
+        "cases": resolved.cases,
+        "suite": resolved.suite,
+        "agent_profiles": resolved.agent_profiles,
+        "run_spec": resolved.run_spec,
+        "adapter_call_observability_by_profile": adapter_observability,
         "admission_report": report,
         "cells": tuple(cells),
     }

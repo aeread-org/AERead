@@ -26,6 +26,8 @@ from aeread.sdk.v1 import (
     FamilyOutcome,
     LegalityResult,
     MeasurementSpec,
+    MemoryPin,
+    ModelPin,
     ObservationEnvelope,
     ParseResult,
     PhaseGraph,
@@ -34,13 +36,16 @@ from aeread.sdk.v1 import (
     PinnedPluginRef,
     ProviderCallFailure,
     ProviderCallResult,
+    ProviderPin,
     RetryPolicy,
     ResolutionInputs,
     RoleSpec,
     RunSpec,
+    RuntimePin,
     SeatSpec,
     ScoreEnvelope,
     SealedEvidenceView,
+    SamplingPin,
     SuiteManifest,
     TerminalResult,
     TransitionResult,
@@ -310,14 +315,22 @@ def fake_agent_profile(
         profile_id=profile_id,
         profile_version="1.0.0",
         adapter=fake_pin(adapter_id, marker=marker),
-        provider="fake-provider",
-        model=f"fake-model-{profile_id}",
-        harness="minimal_chat/1.0",
-        runtime="in_process/1.0",
+        call_observability="full",
+        provider=ProviderPin(provider_id="fake-provider", api_version="2026-08-01"),
+        model=ModelPin(model_id=f"fake-model-{profile_id}", revision="2026-08-01"),
+        harness=fake_implementation("minimal_chat", marker="7"),
+        runtime=RuntimePin(
+            implementation=fake_implementation("in_process", marker="8"),
+            config={"isolation": "in_process"},
+        ),
         prompt_sha256="5" * 64,
-        sampling_config={"temperature": 0.0},
+        sampling=SamplingPin(
+            schema_id="generation_sampling",
+            schema_version="1.0.0",
+            content={"temperature": 0.0},
+        ),
         tools=(),
-        memory_mode="none",
+        memory=MemoryPin(mode="none"),
         attempt_budget=AttemptBudget(
             timeout_seconds=1.0,
             output_token_limit=64,
@@ -354,8 +367,12 @@ def fake_resolution_inputs() -> ResolutionInputs:
                 direction="maximize",
                 primary_metric_id="buyer_utility",
                 verifier_plugin_id="fake_verifier",
-                reference_kinds=("comparison_baseline",),
                 bound_status="lower_bound_only",
+                reference_implementations={
+                    "optimum_lower_bound": fake_implementation(
+                        "buyer_utility_lower_bound", marker="9"
+                    )
+                },
             ),
         ),
         capabilities=CapabilityDeclaration(
@@ -367,6 +384,7 @@ def fake_resolution_inputs() -> ResolutionInputs:
             privacy_enforcement="runner",
             trainability="per_seat",
         ),
+        generator=fake_implementation("fake_generator", marker="a"),
         limits={"max_rounds": 2},
     )
     case = CaseManifest.from_content(
@@ -384,6 +402,7 @@ def fake_resolution_inputs() -> ResolutionInputs:
         visibility_policy="private_offers/1.0",
         payload={"reserve": 3},
         provenance=CaseProvenance(
+            source_kind="generated",
             generator_id="fake_generator",
             generator_version="1.0.0",
             review_status="curated",
@@ -397,25 +416,28 @@ def fake_resolution_inputs() -> ResolutionInputs:
             EvaluationBlock(
                 block_id="candidate_vs_fixed",
                 kind="fixed_counterpart",
+                estimand_id="buyer_utility",
                 subject_roles=("buyer",),
                 controlled_profile_by_role={"seller": "counterpart"},
                 repetitions=2,
                 rollout_seeds=(7, 3),
             ),
         ),
-        cluster=ClusterSpec(
-            cluster_level="case_seed",
-            identity_fields=("case_id", "world_seed"),
-            paired_fields=("rollout_seed",),
-            parent_field="generator_version",
-            panel_mode="fixed_panel",
-        ),
+        cluster_by_estimand={
+            "buyer_utility": ClusterSpec(
+                cluster_level="case_seed",
+                identity_fields=("case_id", "world_seed"),
+                paired_fields=("rollout_seed",),
+                parent_field="generator_version",
+                panel_mode="fixed_panel",
+            )
+        },
         missingness_policy="report_separately",
         aggregation_group_fields=("family_id", "subject_role"),
         cross_family_scalar="disabled",
     )
     candidate = fake_agent_profile("candidate")
-    counterpart = fake_agent_profile("counterpart", marker="6")
+    counterpart = fake_agent_profile("counterpart")
     run = RunSpec(
         run_id="paper-run",
         run_version="1.0.0",
