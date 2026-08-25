@@ -80,7 +80,7 @@ The kernel MUST NOT import a concrete family or contain `if family == ...` branc
 
 ### 2.1 Declarative phase contract
 
-`PhaseSpec` is runner-readable. It names the eligible actors, whether their actions are sequential or simultaneous, the observation and action contracts, budgets, invalid-action policy, and the possible next phases.
+`PhaseSpec` is runner-readable. It names the eligible decision slots, whether their actions are sequential or simultaneous, the observation and action contracts, budgets, invalid-action policy, and the possible next phases. A decision slot is the unit at which the runner requests one logical agent decision; it is not limited to one channel or one action field.
 
 ```python
 class PhaseSpec:
@@ -94,27 +94,46 @@ class PhaseSpec:
     next_phases: tuple[str, ...]
 
 
+class DecisionSlot:
+    slot_id: str
+    seat: str
+    role: str
+    channels: tuple[str, ...]
+
+
+class ActionChannel:
+    channel_id: str
+    action_schema: SchemaRef
+    required: bool
+
+
+class ActionBundle:
+    slot_id: str
+    actions: Mapping[str, ActionEnvelope]
+
+
 class CaseFamilyPlugin(Protocol):
     def validate_payload(self, payload: Mapping[str, Any]) -> FamilyCase: ...
     def initial_state(self, case: FamilyCase, run: EpisodeCell) -> FamilyState: ...
     def phases(self, case: FamilyCase) -> Sequence[PhaseSpec]: ...
-    def eligible_actors(
+    def decision_slots(
         self, case: FamilyCase, state: FamilyState, phase: PhaseSpec
-    ) -> Sequence[str]: ...
+    ) -> Sequence[DecisionSlot]: ...
     def observe(
-        self, case: FamilyCase, state: FamilyState, seat: str, phase: PhaseSpec
+        self, case: FamilyCase, state: FamilyState, slot: DecisionSlot,
+        phase: PhaseSpec
     ) -> Observation: ...
     def parse_action(
-        self, case: FamilyCase, state: FamilyState, seat: str,
+        self, case: FamilyCase, state: FamilyState, slot: DecisionSlot,
         phase: PhaseSpec, response: CanonicalResponse
-    ) -> ParseResult: ...
+    ) -> Mapping[str, ParseResult]: ...
     def legal(
-        self, case: FamilyCase, state: FamilyState, seat: str,
-        phase: PhaseSpec, action: ActionEnvelope
-    ) -> LegalityResult: ...
+        self, case: FamilyCase, state: FamilyState, slot: DecisionSlot,
+        phase: PhaseSpec, bundle: ActionBundle
+    ) -> Mapping[str, LegalityResult]: ...
     def step(
         self, case: FamilyCase, state: FamilyState, phase: PhaseSpec,
-        actions: Mapping[str, ActionEnvelope]
+        bundles: Mapping[str, ActionBundle]
     ) -> TransitionResult: ...
     def terminal(
         self, case: FamilyCase, state: FamilyState
@@ -131,9 +150,9 @@ class AgentAdapter(Protocol):
     async def act(self, request: AgentRequest) -> CanonicalResponse: ...
 ```
 
-The hooks may be methods or registered functions, but their inputs, outputs, versions, and evidence must be explicit. The runner—not a family-owned coroutine—advances the schedule, enforces budgets, and records every boundary.
+The hooks may be methods or registered functions, but their inputs, outputs, versions, and evidence must be explicit. The runner—not a family-owned coroutine—advances the schedule, enforces budgets, and records every boundary. Every logical action is keyed by `slot_id`; a slot may atomically emit multiple channel actions in one `ActionBundle`. The bundle's channel keys must be declared by the slot's `ActionChannel` definitions, and its cardinality is validated before any transition: each declared required channel appears exactly once, optional channels appear at most once, and undeclared or duplicate channels are invalid. All channel actions from one slot are parsed and closed atomically, so no partial bundle is applied.
 
-For a simultaneous phase, the runner freezes every participant's observation from the same pre-phase state, dispatches in a deterministic recorded order, hides peer actions until the bundle closes, and passes the complete action mapping to one deterministic `step`. Dynamic protocols express conditional transitions through declared `next_phases` plus family hook results.
+For a simultaneous phase, the runner freezes every participant's observation from the same pre-phase state **before any slot response**, dispatches in a deterministic recorded order, hides peer actions until each bundle closes, and passes the complete slot_id-keyed bundle mapping to one deterministic `step`. Logical-action accounting is per decision slot, not per channel: one slot response creates one logical action and one or more channel actions within that bundle. Dynamic protocols express conditional transitions through declared `next_phases` plus family hook results.
 
 ---
 
@@ -271,8 +290,8 @@ The resolver expands case × evaluation block × role × repetition × seed, the
 4. Expand cells and durably write the immutable RunPlan.
 5. Preflight every cell before the first paid or external call.
 6. Create episode_id and episode_attempt_id; open the append-only event log.
-7. Runner selects the current PhaseSpec and eligible actors.
-8. Runner freezes role-specific observations and creates logical_action_id values.
+7. Runner selects the current PhaseSpec and decision slots.
+8. Runner freezes role-specific observations before any slot response and creates per-slot logical_action_id values.
 9. Runner executes explicit CallAttempt records under the resolved retry policy.
 10. Family parse_action and legal hooks classify the canonical response.
 11. Runner applies the declared invalid-action policy or calls one family step.
