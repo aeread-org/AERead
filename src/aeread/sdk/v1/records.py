@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
+import re
 from typing import Annotated, Literal
 
 from pydantic import Field, model_validator
@@ -15,13 +17,52 @@ from .base import (
     SDKStr,
     StrictModel,
 )
-from .errors import BundleValidationError
+from .errors import BundleValidationError, UntrustedPluginReference
+
+
+_PLUGIN_ID_PATTERN = re.compile(
+    r"^[A-Za-z0-9](?:[A-Za-z0-9_.-]*[A-Za-z0-9])?$"
+)
+_SEMVER_PATTERN = re.compile(
+    r"^(0|[1-9][0-9]*)\."
+    r"(0|[1-9][0-9]*)\."
+    r"(0|[1-9][0-9]*)"
+    r"(?:-((?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)"
+    r"(?:\.(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*))*))?"
+    r"(?:\+([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?$"
+)
 
 
 class PluginManifest(StrictModel):
     plugin_id: SDKStr
     plugin_version: SDKStr
     sdk_api: Literal["aeread.sdk/v1"]
+
+
+class PluginRef(StrictModel):
+    """A non-executable, exact plugin registry reference."""
+
+    plugin_id: SDKStr
+    plugin_version: SDKStr
+
+    @model_validator(mode="before")
+    @classmethod
+    def validate_trusted_reference(cls, value: object) -> object:
+        if not isinstance(value, Mapping):
+            raise UntrustedPluginReference("plugin reference must be an object")
+        plugin_id = value.get("plugin_id")
+        plugin_version = value.get("plugin_version")
+        if type(plugin_id) is not str or not _PLUGIN_ID_PATTERN.fullmatch(plugin_id):
+            raise UntrustedPluginReference(
+                "plugin_id must be a stable non-executable registry ID"
+            )
+        if type(plugin_version) is not str or not _SEMVER_PATTERN.fullmatch(
+            plugin_version
+        ):
+            raise UntrustedPluginReference(
+                "plugin_version must be an exact semantic version"
+            )
+        return value
 
 
 class PhaseSpec(StrictModel):

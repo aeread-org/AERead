@@ -11,3 +11,7 @@ class CanonicalizationError(SDKError, ValueError):
 
 class BundleValidationError(SDKError, ValueError):
     """An action bundle does not satisfy its decision slot contract."""
+
+
+class UntrustedPluginReference(SDKError):
+    """A plugin reference is not a safe, version-pinned registry key."""
