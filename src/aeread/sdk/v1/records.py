@@ -471,6 +471,722 @@ def _validate_implementation_pin(implementation: ImplementationRef, label: str) 
     _require_exact_pin(f"{label} version", implementation.version)
 
 
+# Incremental family-owned measurement leaf records. These are intentionally not wired
+# into FamilyManifest until the atomic manifest migration.
+
+EvaluationClass = Literal["deterministic", "stochastic_estimator", "judge_dependent"]
+EstimandInputScope = Literal["answer", "terminal_state", "trajectory", "distribution"]
+
+
+def _require_non_empty(label: str, value: str) -> None:
+    if not value.strip():
+        raise ValueError(f"{label} must be non-empty")
+
+
+def _require_semver(label: str, value: str) -> None:
+    if not _SEMVER_PATTERN.fullmatch(value):
+        raise ValueError(f"{label} must be an exact semantic version")
+
+
+def _artifact_identity(reference: ArtifactRef) -> tuple[str, str, int]:
+    return reference.sha256, reference.media_type, reference.size_bytes
+
+
+def _validate_artifact_tuple(
+    values: tuple[ArtifactRef, ...], label: str, *, required: bool
+) -> None:
+    if required and not values:
+        raise ValueError(f"{label} must be non-empty")
+    identities = [_artifact_identity(value) for value in values]
+    if identities != sorted(set(identities)):
+        raise ValueError(f"{label} must be unique and canonically ordered")
+
+
+def _validate_direct_record_values(record: StrictModel, label: str) -> None:
+    for field_name in type(record).model_fields:
+        value = getattr(record, field_name)
+        if type(value) is str:
+            _require_non_empty(f"{label} {field_name}", value)
+        elif isinstance(value, ImplementationRef):
+            _validate_implementation_pin(value, f"{label} {field_name}")
+
+
+class ValidityDomainSpec(StrictModel):
+    domain_id: SDKStr
+    domain_version: SDKStr
+    schema_ref: SDKStr
+    predicate: ImplementationRef
+    parameters: tuple[ArtifactRef, ...] = ()
+
+    @model_validator(mode="after")
+    def validate_domain(self) -> "ValidityDomainSpec":
+        _validate_direct_record_values(self, "validity domain")
+        _require_semver("domain_version", self.domain_version)
+        _validate_artifact_tuple(self.parameters, "domain parameters", required=False)
+        return self
+
+
+class EstimandSpec(StrictModel):
+    estimand_id: SDKStr
+    estimand_version: SDKStr
+    input_scope: EstimandInputScope
+    direction: Literal["maximize", "minimize", "none"]
+    units: SDKStr
+    quantity_schema_ref: SDKStr
+    validity_domain: ValidityDomainSpec
+
+    @model_validator(mode="after")
+    def validate_estimand(self) -> "EstimandSpec":
+        _validate_direct_record_values(self, "estimand")
+        _require_semver("estimand_version", self.estimand_version)
+        return self
+
+
+class CasePayloadReferenceSource(StrictModel):
+    source_kind: Literal["case_payload"]
+    path: SDKStr
+    schema_ref: SDKStr
+
+    @model_validator(mode="after")
+    def validate_case_payload_path(self) -> "CasePayloadReferenceSource":
+        _validate_direct_record_values(self, "case-payload source")
+        segments = self.path.split("/")
+        if (
+            self.path.startswith("/")
+            or "\\" in self.path
+            or any(segment in {"", ".", ".."} for segment in segments)
+        ):
+            raise ValueError(
+                "case-payload path must be a non-empty relative path without "
+                "empty, dot, or traversal segments"
+            )
+        return self
+
+
+class ArtifactReferenceSource(StrictModel):
+    source_kind: Literal["artifacts"]
+    artifacts: tuple[ArtifactRef, ...]
+
+    @model_validator(mode="after")
+    def validate_artifacts(self) -> "ArtifactReferenceSource":
+        _validate_artifact_tuple(self.artifacts, "reference artifacts", required=True)
+        return self
+
+
+PreOutcomeInput = Literal[
+    "case_manifest", "case_payload", "world_seed", "reference_artifacts"
+]
+
+
+class PreOutcomeComputationSource(StrictModel):
+    source_kind: Literal["pre_outcome_computation"]
+    determinism: Literal["pure_deterministic"]
+    implementation: ImplementationRef
+    allowed_inputs: tuple[PreOutcomeInput, ...]
+    output_schema_ref: SDKStr
+    input_artifacts: tuple[ArtifactRef, ...] = ()
+
+    @model_validator(mode="after")
+    def validate_computation(self) -> "PreOutcomeComputationSource":
+        _validate_direct_record_values(self, "pre-outcome computation")
+        canonical_order = (
+            "case_manifest",
+            "case_payload",
+            "world_seed",
+            "reference_artifacts",
+        )
+        if not self.allowed_inputs:
+            raise ValueError("allowed_inputs must be non-empty")
+        indices = [canonical_order.index(value) for value in self.allowed_inputs]
+        if indices != sorted(set(indices)):
+            raise ValueError("allowed_inputs must be unique and canonically ordered")
+        _validate_artifact_tuple(
+            self.input_artifacts, "computation input_artifacts", required=False
+        )
+        if self.input_artifacts and "reference_artifacts" not in self.allowed_inputs:
+            raise ValueError(
+                "input_artifacts require reference_artifacts in allowed_inputs"
+            )
+        return self
+
+
+ReferenceSource = Annotated[
+    CasePayloadReferenceSource | ArtifactReferenceSource | PreOutcomeComputationSource,
+    Field(discriminator="source_kind"),
+]
+
+
+class _VersionedReference(StrictModel):
+    reference_id: SDKStr
+    reference_version: SDKStr
+    source: ReferenceSource
+
+    @model_validator(mode="after")
+    def validate_reference_identity(self) -> "_VersionedReference":
+        _validate_direct_record_values(self, "reference")
+        _require_semver("reference_version", self.reference_version)
+        return self
+
+
+class AbsoluteToleranceSpec(StrictModel):
+    tolerance_kind: Literal["absolute"]
+    value: SDKFloat = Field(ge=0)
+    units: SDKStr
+
+    @model_validator(mode="after")
+    def validate_units(self) -> "AbsoluteToleranceSpec":
+        _validate_direct_record_values(self, "absolute tolerance")
+        return self
+
+
+class RelativeToleranceSpec(StrictModel):
+    tolerance_kind: Literal["relative"]
+    value: SDKFloat = Field(ge=0)
+
+
+ToleranceSpec = Annotated[
+    AbsoluteToleranceSpec | RelativeToleranceSpec,
+    Field(discriminator="tolerance_kind"),
+]
+
+
+class CanonicalPointReference(_VersionedReference):
+    reference_kind: Literal["canonical_point"]
+    input_scope: Literal["answer", "terminal_state"]
+    input_schema_ref: SDKStr
+    units: SDKStr
+    canonicalizer: ImplementationRef
+    match_kind: Literal["exact"]
+
+
+class CanonicalSetReference(_VersionedReference):
+    reference_kind: Literal["canonical_set"]
+    input_scope: Literal["answer", "terminal_state"]
+    input_schema_ref: SDKStr
+    units: SDKStr
+    canonicalizer: ImplementationRef
+    membership: ImplementationRef
+    match_kind: Literal["exact"]
+
+
+class TerminalStateEquivalenceReference(_VersionedReference):
+    reference_kind: Literal["terminal_state_equivalence"]
+    input_scope: Literal["terminal_state"]
+    input_schema_ref: SDKStr
+    units: SDKStr
+    equivalence: ImplementationRef
+
+
+class DistanceToCanonicalSetReference(_VersionedReference):
+    reference_kind: Literal["distance_to_canonical_set"]
+    input_scope: Literal["answer", "terminal_state"]
+    input_schema_ref: SDKStr
+    units: SDKStr
+    canonicalizer: ImplementationRef
+    distance: ImplementationRef
+    tolerance: ToleranceSpec
+
+
+CanonicalReference = Annotated[
+    CanonicalPointReference
+    | CanonicalSetReference
+    | TerminalStateEquivalenceReference
+    | DistanceToCanonicalSetReference,
+    Field(discriminator="reference_kind"),
+]
+
+
+class CanonicalReferenceVerifier(StrictModel):
+    verifier_family: Literal["canonical_reference"]
+    verifier_id: SDKStr
+    verifier_version: SDKStr
+    reference: CanonicalReference
+
+    @model_validator(mode="after")
+    def validate_verifier(self) -> "CanonicalReferenceVerifier":
+        _validate_direct_record_values(self, "canonical verifier")
+        _require_semver("verifier_version", self.verifier_version)
+        return self
+
+
+RuleInputScope = Literal["answer", "terminal_state", "trajectory"]
+RuleCheckpointScope = Literal[
+    "final_state", "every_state", "every_transition", "whole_trajectory"
+]
+RuleResultSemantics = Literal[
+    "boolean", "pass_vector", "residual", "pass_vector_and_residual"
+]
+
+
+class _RuleReferenceBase(_VersionedReference):
+    input_scope: RuleInputScope
+    checkpoint_scope: RuleCheckpointScope
+    result_schema_ref: SDKStr
+    result_semantics: RuleResultSemantics
+    residual_schema_ref: SDKStr | None = None
+
+    @model_validator(mode="after")
+    def validate_result_semantics(self) -> "_RuleReferenceBase":
+        needs_residual = self.result_semantics in {
+            "residual",
+            "pass_vector_and_residual",
+        }
+        if needs_residual and self.residual_schema_ref is None:
+            raise ValueError("residual result semantics require residual_schema_ref")
+        if not needs_residual and self.residual_schema_ref is not None:
+            raise ValueError(
+                "residual_schema_ref is only legal for residual result semantics"
+            )
+        return self
+
+
+class ConstraintSatisfactionReference(_RuleReferenceBase):
+    reference_kind: Literal["constraint_satisfaction"]
+    predicate: ImplementationRef
+
+
+class StateInvariantReference(_RuleReferenceBase):
+    reference_kind: Literal["state_invariant"]
+    predicate: ImplementationRef
+
+
+class TemporalPropertyReference(_RuleReferenceBase):
+    reference_kind: Literal["temporal_property"]
+    predicate: ImplementationRef
+
+
+class AxiomRelationReference(_RuleReferenceBase):
+    reference_kind: Literal["axiom_relation"]
+    relation: ImplementationRef
+
+
+class MetamorphicRelationReference(_RuleReferenceBase):
+    reference_kind: Literal["metamorphic_relation"]
+    relation: ImplementationRef
+
+
+RuleReference = Annotated[
+    ConstraintSatisfactionReference
+    | StateInvariantReference
+    | TemporalPropertyReference
+    | AxiomRelationReference
+    | MetamorphicRelationReference,
+    Field(discriminator="reference_kind"),
+]
+
+
+class RuleConstraintVerifier(StrictModel):
+    verifier_family: Literal["rule_constraint"]
+    verifier_id: SDKStr
+    verifier_version: SDKStr
+    reference: RuleReference
+
+    @model_validator(mode="after")
+    def validate_verifier(self) -> "RuleConstraintVerifier":
+        _validate_direct_record_values(self, "rule verifier")
+        _require_semver("verifier_version", self.verifier_version)
+        return self
+
+
+class ObjectiveScopeSpec(StrictModel):
+    objective_id: SDKStr
+    objective_version: SDKStr
+    direction: Literal["maximize", "minimize"]
+    source_direction: Literal["maximize", "minimize"]
+    source_to_canonical_rule: Literal["identity", "negate"]
+    units: SDKStr
+    feasible_set: SDKStr
+    information_set: SDKStr
+    horizon: SDKStr
+    environment_condition: SDKStr
+    opponent_condition: SDKStr
+    stochastic_expectation: SDKStr
+    validity_domain: ValidityDomainSpec
+
+    @model_validator(mode="after")
+    def validate_scope(self) -> "ObjectiveScopeSpec":
+        _validate_direct_record_values(self, "objective scope")
+        _require_semver("objective_version", self.objective_version)
+        expected = "identity" if self.direction == self.source_direction else "negate"
+        if self.source_to_canonical_rule != expected:
+            raise ValueError(
+                "source_to_canonical_rule must be identity for aligned directions "
+                "and negate for opposite directions"
+            )
+        return self
+
+
+class _ObjectiveReferenceBase(_VersionedReference):
+    scope: ObjectiveScopeSpec
+    proof_type: SDKStr
+
+
+class ObjectiveExactReference(_ObjectiveReferenceBase):
+    reference_kind: Literal["exact_value"]
+
+
+class ObjectiveLowerBoundReference(_ObjectiveReferenceBase):
+    reference_kind: Literal["lower_bound"]
+
+
+class ObjectiveUpperBoundReference(_ObjectiveReferenceBase):
+    reference_kind: Literal["upper_bound"]
+
+
+class ObjectiveBaselineReference(_ObjectiveReferenceBase):
+    reference_kind: Literal["comparison_baseline"]
+    comparison_id: SDKStr
+    comparison_version: SDKStr
+
+    @model_validator(mode="after")
+    def validate_baseline(self) -> "ObjectiveBaselineReference":
+        _require_non_empty("comparison_id", self.comparison_id)
+        _require_semver("comparison_version", self.comparison_version)
+        return self
+
+
+class ObjectiveSupportMinReference(_ObjectiveReferenceBase):
+    reference_kind: Literal["support_min"]
+
+
+class ObjectiveSupportMaxReference(_ObjectiveReferenceBase):
+    reference_kind: Literal["support_max"]
+
+
+class ObjectiveValueReference(_ObjectiveReferenceBase):
+    reference_kind: Literal["value_only"]
+
+
+class ObjectiveExactClaim(StrictModel):
+    claim_kind: Literal["exact"]
+    certification_rule: Literal["exact_reference_match"]
+    exact: ObjectiveExactReference
+
+
+class ObjectiveBoundClaim(StrictModel):
+    claim_kind: Literal["bound"]
+    bound_status: Literal[
+        "exact_solved", "epsilon_solved", "bracketed", "lower_bound_only"
+    ]
+    certification_rule: Literal[
+        "computed_bound_gap_eq_zero",
+        "computed_bound_gap_lte_epsilon",
+        "certified_lower_le_optimum_le_upper",
+        "feasible_witness_lower_bounds_optimum",
+    ]
+    lower_bound: ObjectiveLowerBoundReference
+    upper_bound: ObjectiveUpperBoundReference | None = None
+    epsilon: SDKFloat | None = Field(default=None, gt=0)
+    epsilon_units: SDKStr | None = None
+
+    @model_validator(mode="after")
+    def validate_bound_claim(self) -> "ObjectiveBoundClaim":
+        expected_rule = {
+            "exact_solved": "computed_bound_gap_eq_zero",
+            "epsilon_solved": "computed_bound_gap_lte_epsilon",
+            "bracketed": "certified_lower_le_optimum_le_upper",
+            "lower_bound_only": "feasible_witness_lower_bounds_optimum",
+        }[self.bound_status]
+        if self.certification_rule != expected_rule:
+            raise ValueError("certification_rule must match bound_status")
+        needs_upper = self.bound_status in {
+            "exact_solved",
+            "epsilon_solved",
+            "bracketed",
+        }
+        if needs_upper and self.upper_bound is None:
+            raise ValueError(f"{self.bound_status} requires an upper bound")
+        if self.bound_status == "lower_bound_only" and self.upper_bound is not None:
+            raise ValueError("lower_bound_only cannot declare an upper bound")
+        if self.bound_status == "epsilon_solved":
+            if self.epsilon is None or self.epsilon_units is None:
+                raise ValueError("epsilon_solved requires epsilon and epsilon_units")
+            _require_non_empty("epsilon_units", self.epsilon_units)
+            if self.epsilon_units != self.lower_bound.scope.units:
+                raise ValueError("epsilon_units must match objective scope units")
+        elif self.epsilon is not None or self.epsilon_units is not None:
+            raise ValueError("epsilon fields are only legal for epsilon_solved")
+        return self
+
+
+class ObjectiveBaselineClaim(StrictModel):
+    claim_kind: Literal["baseline"]
+    certification_rule: Literal["comparison_against_pinned_baseline"]
+    baseline: ObjectiveBaselineReference
+
+
+class ObjectiveSupportClaim(StrictModel):
+    claim_kind: Literal["support"]
+    certification_rule: Literal["support_min_lte_outcome_lte_support_max"]
+    support_min: ObjectiveSupportMinReference
+    support_max: ObjectiveSupportMaxReference
+
+
+class ObjectiveValueOnlyClaim(StrictModel):
+    claim_kind: Literal["value_only"]
+    certification_rule: Literal["no_optimality_or_comparison_claim"]
+    value: ObjectiveValueReference
+
+
+ObjectiveClaim = Annotated[
+    ObjectiveExactClaim
+    | ObjectiveBoundClaim
+    | ObjectiveBaselineClaim
+    | ObjectiveSupportClaim
+    | ObjectiveValueOnlyClaim,
+    Field(discriminator="claim_kind"),
+]
+
+
+class ObjectiveReferenceVerifier(StrictModel):
+    verifier_family: Literal["objective_reference"]
+    verifier_id: SDKStr
+    verifier_version: SDKStr
+    scope: ObjectiveScopeSpec
+    claim: ObjectiveClaim
+
+    @model_validator(mode="after")
+    def validate_verifier(self) -> "ObjectiveReferenceVerifier":
+        _validate_direct_record_values(self, "objective verifier")
+        _require_semver("verifier_version", self.verifier_version)
+        if isinstance(self.claim, ObjectiveExactClaim):
+            references: tuple[_ObjectiveReferenceBase, ...] = (self.claim.exact,)
+        elif isinstance(self.claim, ObjectiveBoundClaim):
+            references = (self.claim.lower_bound,) + (
+                (self.claim.upper_bound,) if self.claim.upper_bound is not None else ()
+            )
+        elif isinstance(self.claim, ObjectiveBaselineClaim):
+            references = (self.claim.baseline,)
+        elif isinstance(self.claim, ObjectiveSupportClaim):
+            references = (self.claim.support_min, self.claim.support_max)
+        else:
+            references = (self.claim.value,)
+        identities = [
+            (reference.reference_id, reference.reference_version)
+            for reference in references
+        ]
+        if len(identities) != len(set(identities)):
+            raise ValueError("objective reference identities must be unique")
+        if any(reference.scope != self.scope for reference in references):
+            raise ValueError("every objective reference scope must match exactly")
+        return self
+
+
+class _ComparativeReferenceBase(_VersionedReference):
+    input_scope: EstimandInputScope
+    comparator: ImplementationRef
+    population_schema_ref: SDKStr
+    role_precondition: SDKStr
+    matching_precondition: SDKStr
+    units: SDKStr
+    direction: Literal["maximize", "minimize"]
+    validity_domain: ValidityDomainSpec
+    provenance_schema_ref: SDKStr
+
+
+class BaselineDeltaReference(_ComparativeReferenceBase):
+    reference_kind: Literal["baseline_delta"]
+
+
+class PairedComparisonReference(_ComparativeReferenceBase):
+    reference_kind: Literal["paired_comparison"]
+
+
+class HeadToHeadReference(_ComparativeReferenceBase):
+    reference_kind: Literal["head_to_head"]
+
+
+class HumanReferenceComparison(_ComparativeReferenceBase):
+    reference_kind: Literal["human_reference"]
+
+
+class FieldRatingReference(_ComparativeReferenceBase):
+    reference_kind: Literal["field_rating"]
+
+
+ComparativeReference = Annotated[
+    BaselineDeltaReference
+    | PairedComparisonReference
+    | HeadToHeadReference
+    | HumanReferenceComparison
+    | FieldRatingReference,
+    Field(discriminator="reference_kind"),
+]
+
+
+class ComparativeReferenceVerifier(StrictModel):
+    verifier_family: Literal["comparative"]
+    verifier_id: SDKStr
+    verifier_version: SDKStr
+    reference: ComparativeReference
+
+    @model_validator(mode="after")
+    def validate_verifier(self) -> "ComparativeReferenceVerifier":
+        _validate_direct_record_values(self, "comparative verifier")
+        _require_semver("verifier_version", self.verifier_version)
+        return self
+
+
+class RaterInputSpec(StrictModel):
+    input_scope: Literal["answer", "outcome", "trajectory"]
+    visibility: Literal["public", "evaluator_authorized"]
+    projection: ImplementationRef
+    renderer: ImplementationRef
+    rendered_schema_ref: SDKStr
+
+    @model_validator(mode="after")
+    def validate_input(self) -> "RaterInputSpec":
+        _validate_direct_record_values(self, "rater input")
+        return self
+
+
+class EvaluatorAgentRaterSource(StrictModel):
+    source_kind: Literal["evaluator_agent"]
+    evaluator_protocol_id: SDKStr
+    evaluator_protocol_version: SDKStr
+    adapter_contract: ImplementationRef
+
+    @model_validator(mode="after")
+    def validate_source(self) -> "EvaluatorAgentRaterSource":
+        _validate_direct_record_values(self, "evaluator-agent source")
+        _require_semver("evaluator_protocol_version", self.evaluator_protocol_version)
+        return self
+
+
+class ImportedHumanRaterSource(StrictModel):
+    source_kind: Literal["imported_human"]
+    evidence_source: ReferenceSource
+    import_validator: ImplementationRef
+    evidence_schema_ref: SDKStr
+
+    @model_validator(mode="after")
+    def validate_source(self) -> "ImportedHumanRaterSource":
+        _validate_direct_record_values(self, "imported-human source")
+        return self
+
+
+RaterSource = Annotated[
+    EvaluatorAgentRaterSource | ImportedHumanRaterSource,
+    Field(discriminator="source_kind"),
+]
+
+
+class BlindOrderSpec(StrictModel):
+    algorithm: ImplementationRef
+    seed_input: Literal["evaluation_seed"]
+    counterbalance_input: Literal["counterbalance_label"]
+    position_schema_ref: SDKStr
+
+    @model_validator(mode="after")
+    def validate_order(self) -> "BlindOrderSpec":
+        _validate_direct_record_values(self, "blind order")
+        return self
+
+
+class RaterJudgeVerifier(StrictModel):
+    verifier_family: Literal["rater_judge"]
+    verifier_id: SDKStr
+    verifier_version: SDKStr
+    protocol_id: SDKStr
+    protocol_version: SDKStr
+    rubric_ref: ArtifactRef
+    prompt_ref: ArtifactRef
+    input: RaterInputSpec
+    rater_source: RaterSource
+    blind_order: BlindOrderSpec
+    calibration_refs: tuple[ArtifactRef, ...]
+    provenance_refs: tuple[ArtifactRef, ...]
+    result_schema_ref: SDKStr
+    valid_tie_schema_ref: SDKStr
+    disagreement_schema_ref: SDKStr
+
+    @model_validator(mode="after")
+    def validate_verifier(self) -> "RaterJudgeVerifier":
+        _validate_direct_record_values(self, "rater verifier")
+        _require_semver("verifier_version", self.verifier_version)
+        _require_semver("protocol_version", self.protocol_version)
+        _validate_artifact_tuple(
+            self.calibration_refs, "calibration_refs", required=True
+        )
+        _validate_artifact_tuple(self.provenance_refs, "provenance_refs", required=True)
+        return self
+
+
+class RaterScoreResult(StrictModel):
+    result_kind: Literal["score"]
+    value: SDKFloat
+    schema_ref: SDKStr
+
+    @model_validator(mode="after")
+    def validate_result(self) -> "RaterScoreResult":
+        _validate_direct_record_values(self, "rater score result")
+        return self
+
+
+class RaterTieResult(StrictModel):
+    result_kind: Literal["valid_tie"]
+    schema_ref: SDKStr
+
+    @model_validator(mode="after")
+    def validate_result(self) -> "RaterTieResult":
+        _validate_direct_record_values(self, "rater tie result")
+        return self
+
+
+RaterResult = Annotated[
+    RaterScoreResult | RaterTieResult,
+    Field(discriminator="result_kind"),
+]
+
+
+VerifierSpec = Annotated[
+    CanonicalReferenceVerifier
+    | RuleConstraintVerifier
+    | ObjectiveReferenceVerifier
+    | ComparativeReferenceVerifier
+    | RaterJudgeVerifier,
+    Field(discriminator="verifier_family"),
+]
+
+
+class MeasurementLeafSpec(StrictModel):
+    leaf_id: SDKStr
+    leaf_version: SDKStr
+    composition_kind: Literal["leaf"]
+    estimand: EstimandSpec
+    verifier: VerifierSpec
+    allowed_evaluation_classes: tuple[EvaluationClass, ...]
+    scorer: ImplementationRef
+
+    @model_validator(mode="after")
+    def validate_leaf(self) -> "MeasurementLeafSpec":
+        _validate_direct_record_values(self, "measurement leaf")
+        _require_semver("leaf_version", self.leaf_version)
+        classes = self.allowed_evaluation_classes
+        canonical_order = (
+            "deterministic",
+            "stochastic_estimator",
+            "judge_dependent",
+        )
+        if not classes:
+            raise ValueError("allowed_evaluation_classes must be non-empty")
+        indices = [canonical_order.index(value) for value in classes]
+        if indices != sorted(set(indices)):
+            raise ValueError(
+                "allowed_evaluation_classes must be unique and canonically ordered"
+            )
+        if self.verifier.verifier_family == "rater_judge":
+            if classes != ("judge_dependent",):
+                raise ValueError(
+                    "rater_judge allows exactly judge_dependent evaluation"
+                )
+        elif "judge_dependent" in classes:
+            raise ValueError(
+                "non-rater measurement leaves cannot allow judge_dependent"
+            )
+        return self
+
+
 class OptimizationBoundReference(StrictModel):
     kind: Literal["optimum_lower_bound", "optimum_upper_bound"]
     value: SDKFloat

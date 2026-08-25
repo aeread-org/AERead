@@ -4,6 +4,8 @@ from datetime import datetime
 from decimal import Decimal
 from enum import IntEnum
 from fractions import Fraction
+import hashlib
+import json
 import os
 from pathlib import Path
 import subprocess
@@ -294,9 +296,7 @@ def test_prebuilt_frozen_json_is_recursive_and_hash_stable() -> None:
     with pytest.raises(TypeError):
         frozen["nested"]["items"][0]["price"] = 7
 
-    assert canonical_json_bytes(frozen) == (
-        b'{"nested":{"items":[{"price":5}]}}'
-    )
+    assert canonical_json_bytes(frozen) == (b'{"nested":{"items":[{"price":5}]}}')
     assert content_sha256(frozen) == direct_digest
     assert content_sha256(action) == record_digest
 
@@ -344,9 +344,7 @@ def test_json_object_type_has_an_object_schema_and_plain_json_dump() -> None:
     adapter = TypeAdapter(JSONObject)
     assert adapter.json_schema()["type"] == "object"
     value = adapter.validate_python({"nested": [1, {"ok": True}]})
-    assert adapter.dump_python(value, mode="json") == {
-        "nested": [1, {"ok": True}]
-    }
+    assert adapter.dump_python(value, mode="json") == {"nested": [1, {"ok": True}]}
 
 
 def test_public_records_are_frozen_and_normalize_lists_to_tuples() -> None:
@@ -776,12 +774,8 @@ def test_typed_reference_variants_round_trip_through_score_envelope() -> None:
     score = _score(references=references)
     round_tripped = ScoreEnvelope.model_validate(score.model_dump(mode="json"))
     assert isinstance(round_tripped.references["upper"], OptimizationBoundReference)
-    assert isinstance(
-        round_tripped.references["baseline"], ComparisonBaselineReference
-    )
-    assert isinstance(
-        round_tripped.references["support_min"], OutcomeSupportReference
-    )
+    assert isinstance(round_tripped.references["baseline"], ComparisonBaselineReference)
+    assert isinstance(round_tripped.references["support_min"], OutcomeSupportReference)
 
 
 def test_optimum_upper_bound_requires_every_binding_field() -> None:
@@ -865,9 +859,7 @@ def test_status_consistency_checks_only_settled_record_contracts() -> None:
 
     execution = EpisodeExecutionResult(
         status="ok",
-        terminal=TerminalResult(
-            status="terminal", reason="allocated", final_state={}
-        ),
+        terminal=TerminalResult(status="terminal", reason="allocated", final_state={}),
         outcome=FamilyOutcome(
             terminal_reason="allocated", payload={}, utility_by_seat={}
         ),
@@ -886,3 +878,105 @@ assert not any(name.startswith('aeread.integrations') for name in sys.modules)
     repo_root = Path(__file__).resolve().parents[2]
     env = {**os.environ, "PYTHONPATH": str(repo_root / "src")}
     subprocess.run([sys.executable, "-c", code], check=True, env=env)
+
+
+def test_legacy_measurement_schema_and_content_hashes_are_unchanged() -> None:
+    from aeread.sdk.v1 import (
+        ComparativeMeasurementSpec,
+        ComparisonBaselineContract,
+        FamilyManifest,
+        OptimizableOutcomeMeasurementSpec,
+        PropertyAnswerMeasurementSpec,
+    )
+    from tests.shared_runner.fakes import (
+        fake_implementation,
+        fake_resolution_inputs,
+    )
+
+    def digest(value: object) -> str:
+        encoded = json.dumps(
+            value,
+            sort_keys=True,
+            separators=(",", ":"),
+            ensure_ascii=False,
+        ).encode("utf-8")
+        return hashlib.sha256(encoded).hexdigest()
+
+    family = fake_resolution_inputs().family
+    optimizable = family.measurements[0]
+    property_spec = PropertyAnswerMeasurementSpec(
+        estimand_id="answer_correctness",
+        direction="maximize",
+        primary_metric_id="correct",
+        verifier_plugin_id="fake_verifier",
+        verifier_semantics_id="exact_answer",
+        verifier_semantics_version="1.0.0",
+        measurement_kind="property_or_answer",
+        property_definition_id="target_property",
+        property_definition_version="1.0.0",
+        answer_schema_ref="answer/1",
+    )
+    comparative = ComparativeMeasurementSpec(
+        estimand_id="preference",
+        direction="maximize",
+        primary_metric_id="preference",
+        verifier_plugin_id="fake_verifier",
+        verifier_semantics_id="human_preference",
+        verifier_semantics_version="1.0.0",
+        measurement_kind="comparative_or_human_judged",
+        comparison_target_id="candidate",
+        comparison_protocol_id="blind_pairwise",
+        comparison_protocol_version="1.0.0",
+        rater_semantics_id="rubric",
+        rater_semantics_version="1.0.0",
+        comparison_baseline=ComparisonBaselineContract(
+            kind="comparison_baseline",
+            comparison_id="human_reference",
+            comparison_version="1.0.0",
+            provenance={"source": "fixture"},
+            objective_id="preference",
+            objective_version="1.0.0",
+            units="points",
+            direction="maximize",
+            feasible_set="declared answers",
+            information_set="public prompt",
+            horizon="one episode",
+            opponent_condition="fixed",
+            stochastic_expectation="none",
+            proof_type="pinned comparator",
+            implementation=fake_implementation("human_reference"),
+            validity_domain="dev",
+            applicability="dev",
+        ),
+        support_contracts={},
+    )
+
+    schema_hashes = {
+        model.__name__: digest(model.model_json_schema())
+        for model in (
+            PropertyAnswerMeasurementSpec,
+            OptimizableOutcomeMeasurementSpec,
+            ComparativeMeasurementSpec,
+            FamilyManifest,
+        )
+    }
+    assert schema_hashes == {
+        "PropertyAnswerMeasurementSpec": "b1c81be89fc0c5967a10a625971a728059d166a5ee9ff347419cf2e40a1abeb0",
+        "OptimizableOutcomeMeasurementSpec": "ba4d0c393acd464bf52759360e773fc4c58d4e5b19e707967013eff2e5d15dc2",
+        "ComparativeMeasurementSpec": "61c01bfbd38dbb7d807d0e0f7471e7c5cdf6ccc4f12de4b16494725f861ce58a",
+        "FamilyManifest": "98fceba5ca2d3da831f548b96c464b1a15ba4087c6476bec94aaa8e960a68ee8",
+    }
+    assert {
+        name: digest(record.model_dump(mode="json"))
+        for name, record in (
+            ("PropertyAnswerMeasurementSpec", property_spec),
+            ("OptimizableOutcomeMeasurementSpec", optimizable),
+            ("ComparativeMeasurementSpec", comparative),
+            ("FamilyManifest", family),
+        )
+    } == {
+        "PropertyAnswerMeasurementSpec": "975d6fd8dd56a37e2bb0de112ebcccb74e14043a9b9439a28c625cb1d085b2e8",
+        "OptimizableOutcomeMeasurementSpec": "0200a339b77fbc3b8cdd058855e1a550b4791ddab2e335375c141326548b2174",
+        "ComparativeMeasurementSpec": "94f3430c8661e79c0266c52ec31ddb4135cc734c83c5e210999ae5147faf7922",
+        "FamilyManifest": "f5aff50f39f667f3b80752953225fcac46c6cf5feb191f0b171625549adf841e",
+    }
