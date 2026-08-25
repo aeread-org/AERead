@@ -31,6 +31,12 @@ welfare, and a judged negotiation outcome are numerically interchangeable.
 Every primary or diagnostic estimand declares one semantic verifier family and the
 applicable modifiers.
 
+For communication, this is a **seven-part operational verification framework**:
+five semantic verifier families plus two cross-cutting layers, stochastic/statistical
+estimation and integrity/admissibility. The seven parts should not be flattened into
+one schema enum because they answer different questions: what claim is established,
+how repeated evidence is estimated, and whether that evidence is admissible.
+
 ### 2.1 Semantic verifier families
 
 | Family | Core question | Typical references |
@@ -282,3 +288,35 @@ The taxonomy therefore tells readers what kind of evidence closes each claim. It
 case-by-case verification while making results reproducible and preventing a property
 check, a bound, a baseline comparison, and a judge score from masquerading as the same
 kind of measurement.
+
+## 13. Deployment-oriented mappings from the 23-paper audit
+
+The examples below prioritize operationally recognizable workflows. They are proposed
+AERead integration routes, not claims that every source paper already implements the
+exact `VerifierSpec`. In particular, a paper may expose the state needed for a
+deterministic verifier while publishing a human-adjudicated or comparative score.
+
+| Operational part | Representative paper and deployable workflow | AERead verifier route | Published-evidence saturation status |
+|---|---|---|---|
+| **canonical/reference** | **P11 FinanceBench**: answer a structured numerical question from a real financial filing | Canonicalize value, currency, unit, period, and evidence reference, then apply exact/tolerance matching. The published full evaluation was manually adjudicated, so this deterministic route is limited to a separately declared structured subset. | `not_demonstrated`: a fixed canonical suite has a correctness ceiling, but the paper does not establish robust ceiling exhaustion for this deterministic subset. |
+| **rule/constraint/temporal** | **P21 AucArena**: execute bids in a procurement-style auction | Replay the trajectory and verify budgets, bid increments, action legality, and declared acquisition goals. Environment enforcement and independent verification remain distinct. | `not_demonstrated`: the published results do not show robust pass-all-runs compliance with cluster-level coverage on a fixed predicate suite. |
+| **objective/optimum/bound** | **P19 Market-Bench**: manage procurement, pricing, inventory, cash, and balance-sheet outcomes | Preserve native profit/net-worth as `objective_value_only`, plus named policy comparisons under the same market condition. | `saturation_undecidable`: no certified policy upper bound is supplied. |
+| **comparative** | **P07 TERMS-Bench**: negotiate a buyer-supplier price against a version-pinned counterpart | Pair agents on identical cases, roles, simulator types, and seeds; report utility, agreement, and failure deltas. Retain the extra-information dynamic program as a separately typed upper bound. | `not_demonstrated`: the published evidence does not certify a predeclared epsilon-small bound gap with cluster-level uncertainty. |
+| **rater/judge** | **P12 GDPval**: produce an analyst report, spreadsheet, presentation, or other professional deliverable | Use blinded expert rubric or pairwise preference records with ties, disagreement, rater provenance, and uncertainty. | `not_applicable` to universal capability saturation: the result is relative to a replaceable expert/reference system and rubric. |
+| **simulation/statistical** | **P23 Vending-Bench**: operate an inventory-and-pricing business under simulated customer demand | Apply the objective verifier per run, then estimate expected net worth, failure risk, and quantiles across declared task clusters and nested seeds. | `saturation_undecidable`: repetition estimates the outcome distribution but does not create the missing policy upper bound. |
+| **integrity/admissibility** | **P02 AERead**: admit an economic-agent episode before any capability score enters analysis | Verify schemas, observation delivery, provider attempts, retries, state transitions, hashes, deterministic replay, and scorer reproducibility. | `not_applicable`: measurement validity is an admission layer, not a capability scale. AERead welfare saturation must be assessed separately against its typed bound. |
+
+The status labels have deliberately narrow meanings:
+
+- `not_demonstrated`: the fixed estimand admits a meaningful ceiling test, but the
+  published evidence does not meet the predeclared gap, independent-cluster uncertainty,
+  coverage, and validity requirements.
+- `saturation_undecidable`: the evidence lacks a defensible upper bound for the declared
+  policy problem, so compression or strong comparative performance cannot establish
+  remaining headroom.
+- `not_applicable`: the row is a moving comparison, judge protocol, or integrity layer
+  rather than a fixed capability ceiling.
+
+None of these seven representative mappings is currently certified as `ceiling_exhausted`.
+This does not mean every case is difficult. It means the available evidence does not
+support the stronger, typed saturation claim.

@@ -194,6 +194,33 @@ def test_verifier_taxonomy_separates_semantics_references_and_validity() -> None
     assert "verifier_taxonomy.md" in design
 
 
+def test_verifier_taxonomy_maps_deployment_cases_and_saturation_claims() -> None:
+    text = VERIFIER_TAXONOMY.read_text(encoding="utf-8")
+
+    assert "seven-part operational verification framework" in text
+    assert "five semantic verifier families plus two cross-cutting layers" in text
+
+    representative_papers = {
+        "canonical/reference": "P11 FinanceBench",
+        "rule/constraint/temporal": "P21 AucArena",
+        "objective/optimum/bound": "P19 Market-Bench",
+        "comparative": "P07 TERMS-Bench",
+        "rater/judge": "P12 GDPval",
+        "simulation/statistical": "P23 Vending-Bench",
+        "integrity/admissibility": "P02 AERead",
+    }
+    missing = {
+        verifier: paper
+        for verifier, paper in representative_papers.items()
+        if verifier not in text or paper not in text
+    }
+    assert not missing, f"deployment verifier mappings are missing: {missing}"
+
+    for status in ("not_demonstrated", "saturation_undecidable", "not_applicable"):
+        assert status in text, f"saturation status is missing: {status}"
+    assert "None of these seven representative mappings is currently certified as `ceiling_exhausted`" in text
+
+
 def test_runner_taxonomy_architecture_and_build_roadmap_are_frozen() -> None:
     assert RUNNER_ARCHITECTURE.exists(), "runner architecture walkthrough is missing"
     assert WALKTHROUGH_INDEX.exists(), "walkthrough index is missing"
