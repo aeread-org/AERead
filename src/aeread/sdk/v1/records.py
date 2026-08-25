@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+from datetime import datetime
 import re
 from typing import Annotated, Literal
 from urllib.parse import urlparse
@@ -242,7 +243,7 @@ class ObservationEnvelope(StrictModel):
 
 class ArtifactRef(StrictModel):
     sha256: SDKStr = Field(pattern=r"^[0-9a-f]{64}$")
-    media_type: SDKStr
+    media_type: SDKStr = Field(min_length=1)
     size_bytes: SDKInt = Field(ge=0)
 
 
@@ -269,16 +270,50 @@ class EpisodeEvent(StrictModel):
     occurred_at: SDKStr
     identity: EventIdentity
     visibility: SDKStr
-    payload: JSONObject
-    prior_event_hash: SDKStr | None = None
-    event_hash: SDKStr
+    payload: JSONObject | None
+    payload_visible: SDKBool = True
+    payload_sha256: SHA256
+    prior_event_hash: SHA256 | None = None
+    event_hash: SHA256
+
+    @model_validator(mode="after")
+    def validate_event_projection(self) -> "EpisodeEvent":
+        if self.visibility not in {"public", "evaluator_only"} and not re.fullmatch(
+            r"seat:[A-Za-z0-9](?:[A-Za-z0-9_.-]*[A-Za-z0-9])?",
+            self.visibility,
+        ):
+            raise ValueError("visibility must be public, evaluator_only, or seat:<id>")
+        try:
+            parsed = datetime.fromisoformat(self.occurred_at.replace("Z", "+00:00"))
+        except ValueError as exc:
+            raise ValueError("occurred_at must be an RFC3339 timestamp") from exc
+        if not self.occurred_at.endswith("Z") or parsed.utcoffset() is None:
+            raise ValueError("occurred_at must be an RFC3339 UTC timestamp ending in Z")
+        if self.payload_visible and self.payload is None:
+            raise ValueError("a visible event must contain its payload")
+        if not self.payload_visible and self.payload is not None:
+            raise ValueError("a redacted event must not contain plaintext payload")
+        if self.payload_visible and content_sha256(self.payload) != self.payload_sha256:
+            raise ValueError("payload_sha256 does not match the visible payload")
+        return self
 
 
 class SealedEvidenceView(StrictModel):
+    audience: SDKStr = "full"
     events: tuple[EpisodeEvent, ...]
     artifacts: tuple[ArtifactRef, ...]
-    event_root_sha256: SDKStr
-    artifact_root_sha256: SDKStr
+    event_root_sha256: SHA256
+    artifact_root_sha256: SHA256
+    is_final: SDKBool = True
+
+    @model_validator(mode="after")
+    def validate_audience(self) -> "SealedEvidenceView":
+        if self.audience not in {"full", "evaluator", "public"} and not re.fullmatch(
+            r"seat:[A-Za-z0-9](?:[A-Za-z0-9_.-]*[A-Za-z0-9])?",
+            self.audience,
+        ):
+            raise ValueError("invalid evidence audience")
+        return self
 
 
 class AgentContext(StrictModel):
