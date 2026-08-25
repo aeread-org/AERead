@@ -94,22 +94,30 @@ class PhaseSpec:
     next_phases: tuple[str, ...]
 
 
+class ActionChannel:
+    channel_id: str
+    action_schema: SchemaRef
+    min_actions: int
+    max_actions: int
+
+
+class ActionEnvelope:
+    action_id: str
+    channel_id: str
+    sequence_index: int
+    payload: Mapping[str, Any]
+
+
 class DecisionSlot:
     slot_id: str
     seat: str
     role: str
-    channels: tuple[str, ...]
-
-
-class ActionChannel:
-    channel_id: str
-    action_schema: SchemaRef
-    required: bool
+    channels: tuple[ActionChannel, ...]
 
 
 class ActionBundle:
     slot_id: str
-    actions: Mapping[str, ActionEnvelope]
+    actions: tuple[ActionEnvelope, ...]
 
 
 class CaseFamilyPlugin(Protocol):
@@ -150,7 +158,7 @@ class AgentAdapter(Protocol):
     async def act(self, request: AgentRequest) -> CanonicalResponse: ...
 ```
 
-The hooks may be methods or registered functions, but their inputs, outputs, versions, and evidence must be explicit. The runner—not a family-owned coroutine—advances the schedule, enforces budgets, and records every boundary. Every logical action is keyed by `slot_id`; a slot may atomically emit multiple channel actions in one `ActionBundle`. The bundle's channel keys must be declared by the slot's `ActionChannel` definitions, and its cardinality is validated before any transition: each declared required channel appears exactly once, optional channels appear at most once, and undeclared or duplicate channels are invalid. All channel actions from one slot are parsed and closed atomically, so no partial bundle is applied.
+The hooks may be methods or registered functions, but their inputs, outputs, versions, and evidence must be explicit. The runner—not a family-owned coroutine—advances the schedule, enforces budgets, and records every boundary. Every logical action is keyed by `slot_id`; one seat may own multiple decision slots in one phase, and one slot may own multiple channels. A slot may atomically emit multiple ordered channel actions in one `ActionBundle`. The adapter MUST preserve upstream call grouping, and the runner MUST NOT merge or split those calls across slots or bundles. Bundle validation uses the slot's declared `ActionChannel` membership and each channel's `min_actions`/`max_actions`: every channel count is within its declared bounds, every action has a declared channel, action IDs are unique, and sequence indices are unique and ordered within the bundle. All channel actions from one slot are parsed and closed atomically, so no partial bundle is applied.
 
 For a simultaneous phase, the runner freezes every participant's observation from the same pre-phase state **before any slot response**, dispatches in a deterministic recorded order, hides peer actions until each bundle closes, and passes the complete slot_id-keyed bundle mapping to one deterministic `step`. Logical-action accounting is per decision slot, not per channel: one slot response creates one logical action and one or more channel actions within that bundle. Dynamic protocols express conditional transitions through declared `next_phases` plus family hook results.
 
