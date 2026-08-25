@@ -289,6 +289,10 @@ case-by-case verification while making results reproducible and preventing a pro
 check, a bound, a baseline comparison, and a judge score from masquerading as the same
 kind of measurement.
 
+A compact one-real-world-example and one-benchmark-per-class crosswalk is maintained in
+[`verifier_case_mapping.md`](verifier_case_mapping.md). The exhaustive paper-by-paper
+reference audit remains in [`problem_bound_case_audit.md`](problem_bound_case_audit.md).
+
 ## 13. Deployment-oriented mappings from the 23-paper audit
 
 The examples below prioritize operationally recognizable workflows. They are proposed

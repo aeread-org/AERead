@@ -6,6 +6,7 @@ CASE_AUDIT = Path(__file__).parents[1] / "docs" / "problem_bound_case_audit.md"
 REFUND_PLAN = Path(__file__).parents[1] / "docs" / "refund_external_benchmark_integration.md"
 REASONING_PLAN = Path(__file__).parents[1] / "docs" / "reasoning_condition_and_diagnostics.md"
 VERIFIER_TAXONOMY = Path(__file__).parents[1] / "docs" / "verifier_taxonomy.md"
+VERIFIER_CASE_MAPPING = Path(__file__).parents[1] / "docs" / "verifier_case_mapping.md"
 RUNNER_ARCHITECTURE = (
     Path(__file__).parents[1]
     / "docs"
@@ -271,6 +272,42 @@ def test_verifier_taxonomy_maps_deployment_cases_and_saturation_claims() -> None
     for status in ("not_demonstrated", "saturation_undecidable", "not_applicable"):
         assert status in text, f"saturation status is missing: {status}"
     assert "None of these seven representative mappings is currently certified as `ceiling_exhausted`" in text
+
+
+def test_verifier_case_mapping_gives_one_real_workflow_and_benchmark_per_class() -> None:
+    assert VERIFIER_CASE_MAPPING.exists(), "verifier-to-case example mapping is missing"
+    text = VERIFIER_CASE_MAPPING.read_text(encoding="utf-8")
+
+    examples = {
+        "canonical/reference": ("retail refund", "tau3-bench"),
+        "rule/constraint/temporal": ("regulated refund process", "STATE-Bench"),
+        "objective/optimum/bound": ("procurement and scheduling", "EconEvals"),
+        "comparative": ("supplier price negotiation", "TERMS-Bench"),
+        "rater/judge": ("professional analyst deliverable", "GDPval"),
+        "simulation/statistical": ("inventory and pricing", "Vending-Bench"),
+        "integrity/admissibility": ("audited agent episode", "AERead EvaluationReceipt"),
+    }
+    for verifier_class, (workflow, benchmark) in examples.items():
+        assert verifier_class in text, f"verifier class is missing: {verifier_class}"
+        assert workflow in text, f"real-world workflow is missing: {workflow}"
+        assert benchmark in text, f"benchmark mapping is missing: {benchmark}"
+
+    assert "five semantic verifier families" in text
+    assert "two cross-cutting layers" in text
+    assert "not a standalone capability benchmark" in text
+    assert "## The 23-paper routing table" not in text
+
+    taxonomy = VERIFIER_TAXONOMY.read_text(encoding="utf-8")
+    audit = CASE_AUDIT.read_text(encoding="utf-8")
+    design = DESIGN.read_text(encoding="utf-8")
+    for source_text, source_name in (
+        (taxonomy, "taxonomy"),
+        (audit, "case audit"),
+        (design, "shared-runner design"),
+    ):
+        assert "verifier_case_mapping.md" in source_text, (
+            f"{source_name} does not link the verifier-to-case mapping"
+        )
 
 
 def test_runner_taxonomy_architecture_and_build_roadmap_are_frozen() -> None:
