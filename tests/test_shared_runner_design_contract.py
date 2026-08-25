@@ -6,6 +6,7 @@ CASE_AUDIT = Path(__file__).parents[1] / "docs" / "problem_bound_case_audit.md"
 REFUND_PLAN = Path(__file__).parents[1] / "docs" / "refund_external_benchmark_integration.md"
 REASONING_PLAN = Path(__file__).parents[1] / "docs" / "reasoning_condition_and_diagnostics.md"
 VERIFIER_TAXONOMY = Path(__file__).parents[1] / "docs" / "verifier_taxonomy.md"
+VERIFIER_CASE_MAPPING = Path(__file__).parents[1] / "docs" / "verifier_case_mapping.md"
 RUNNER_ARCHITECTURE = (
     Path(__file__).parents[1]
     / "docs"
@@ -219,6 +220,50 @@ def test_verifier_taxonomy_maps_deployment_cases_and_saturation_claims() -> None
     for status in ("not_demonstrated", "saturation_undecidable", "not_applicable"):
         assert status in text, f"saturation status is missing: {status}"
     assert "None of these seven representative mappings is currently certified as `ceiling_exhausted`" in text
+
+
+def test_verifier_case_mapping_covers_every_audited_and_paper_target() -> None:
+    assert VERIFIER_CASE_MAPPING.exists(), "verifier-to-case mapping is missing"
+    text = VERIFIER_CASE_MAPPING.read_text(encoding="utf-8")
+
+    for family in (
+        "canonical_reference",
+        "rule_constraint",
+        "objective_reference",
+        "comparative",
+        "rater_judge",
+    ):
+        assert family in text, f"semantic verifier family is missing: {family}"
+
+    for layer in ("stochastic_estimator", "measurement_validity"):
+        assert layer in text, f"cross-cutting verifier layer is missing: {layer}"
+
+    for row_id in [
+        *(f"P{i:02d}" for i in range(1, 24)),
+        *(f"A{i:02d}" for i in range(1, 6)),
+        *(f"M{i:02d}" for i in range(1, 8)),
+    ]:
+        assert f"| {row_id} |" in text, f"verifier mapping is missing row: {row_id}"
+
+    for mixed_id in ("P05", "P10", "P13", "P14", "P15"):
+        row = next(line for line in text.splitlines() if line.startswith(f"| {mixed_id} |"))
+        assert "split_required" in row, f"mixed paper must route below paper level: {mixed_id}"
+
+    assert "The primary mapping unit is the estimand" in text
+    assert "Neither cross-cutting layer is a primary semantic family" in text
+    assert "No row authorizes a cross-family scalar" in text
+
+    taxonomy = VERIFIER_TAXONOMY.read_text(encoding="utf-8")
+    audit = CASE_AUDIT.read_text(encoding="utf-8")
+    design = DESIGN.read_text(encoding="utf-8")
+    for source_text, source_name in (
+        (taxonomy, "taxonomy"),
+        (audit, "case audit"),
+        (design, "shared-runner design"),
+    ):
+        assert "verifier_case_mapping.md" in source_text, (
+            f"{source_name} does not link the verifier-to-case mapping"
+        )
 
 
 def test_runner_taxonomy_architecture_and_build_roadmap_are_frozen() -> None:

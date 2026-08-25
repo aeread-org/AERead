@@ -289,6 +289,11 @@ case-by-case verification while making results reproducible and preventing a pro
 check, a bound, a baseline comparison, and a judge score from masquerading as the same
 kind of measurement.
 
+The complete case-level crosswalk is maintained in
+[`verifier_case_mapping.md`](verifier_case_mapping.md). It maps all 23 audited papers,
+the five AERead pilot families, and the Housing/refund integration targets while marking
+heterogeneous papers `split_required` rather than inventing a paper-level primary class.
+
 ## 13. Deployment-oriented mappings from the 23-paper audit
 
 The examples below prioritize operationally recognizable workflows. They are proposed

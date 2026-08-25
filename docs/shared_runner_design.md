@@ -402,7 +402,9 @@ Minimization metrics are converted to a canonical higher-is-better orientation o
 `measurement_kind` states the kind of claim. The semantic verifier, reference object,
 stochastic estimation mode, integrity gate, and any hybrid composition are declared
 separately in a versioned `VerifierSpec`. The general families, valid ratio constructions,
-and current case mappings are defined in [`verifier_taxonomy.md`](verifier_taxonomy.md).
+and composition rules are defined in [`verifier_taxonomy.md`](verifier_taxonomy.md). The
+audited paper/native/integration crosswalk is frozen in
+[`verifier_case_mapping.md`](verifier_case_mapping.md).
 
 ### 6.2 Typed optimization bounds and comparison references
 
