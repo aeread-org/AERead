@@ -11,6 +11,7 @@ from aeread.sdk.v1 import (
     AgentContext,
     AgentRequest,
     AttemptBudget,
+    AttemptObserver,
     CallAttemptStart,
     CallAttemptToken,
     CanonicalResponse,
@@ -196,7 +197,7 @@ class FakeAgentAdapter:
     call_observability: str = "full"
 
     async def act(
-        self, request: AgentRequest, *, attempts: object
+        self, request: AgentRequest, *, attempts: AttemptObserver
     ) -> CanonicalResponse:
         return VALID_RESPONSE
 

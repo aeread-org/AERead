@@ -102,6 +102,27 @@ def test_registry_rejects_sdk_mismatch_from_unchecked_manifest_copy() -> None:
         PluginRegistry.from_objects(environments=[incompatible])
 
 
+@pytest.mark.parametrize(
+    ("update", "message"),
+    (
+        ({"spec_version": "aeread.sdk_record/2"}, "spec_version"),
+        ({"undeclared_import": "package.module:plugin"}, "manifest"),
+        ({"plugin_id": "package/module"}, "manifest reference"),
+        ({"plugin_version": "latest"}, "manifest reference"),
+    ),
+)
+def test_registry_revalidates_all_unchecked_manifest_state(
+    update: dict[str, object], message: str
+) -> None:
+    environment = FakeEnvironment()
+    unchecked = environment.with_manifest(
+        environment.manifest.model_copy(update=update)
+    )
+
+    with pytest.raises(IncompatiblePlugin, match=message):
+        PluginRegistry.from_objects(environments=[unchecked])
+
+
 def test_registry_rejects_duplicate_id_and_version_within_category() -> None:
     environment = FakeEnvironment()
 
@@ -158,6 +179,105 @@ def test_registry_rejects_missing_or_invalid_manifests() -> None:
 def test_registry_rejects_object_that_does_not_implement_its_category() -> None:
     with pytest.raises(IncompatiblePlugin, match="EnvironmentPlugin"):
         PluginRegistry.from_objects(environments=[MissingStepEnvironment()])
+
+
+def test_registry_rejects_environment_with_incompatible_step_signature() -> None:
+    class BadEnvironment(FakeEnvironment):
+        def step(self, case: object) -> object:
+            return case
+
+    with pytest.raises(IncompatiblePlugin, match="step"):
+        PluginRegistry.from_objects(environments=[BadEnvironment()])
+
+
+def test_registry_rejects_reordered_environment_arguments() -> None:
+    class ReorderedEnvironment(FakeEnvironment):
+        def legal(
+            self,
+            state: object,
+            case: object,
+            phase: object,
+            bundle: object,
+        ) -> object:
+            return {}
+
+    with pytest.raises(IncompatiblePlugin, match="legal"):
+        PluginRegistry.from_objects(environments=[ReorderedEnvironment()])
+
+
+def test_registry_rejects_uninspectable_environment_callable() -> None:
+    class UninspectableCallable:
+        @property
+        def __signature__(self) -> object:
+            raise ValueError("opaque callable")
+
+        def __call__(self, *args: object, **kwargs: object) -> object:
+            return {}
+
+    class BadEnvironment(FakeEnvironment):
+        step = UninspectableCallable()
+
+    with pytest.raises(IncompatiblePlugin, match="step"):
+        PluginRegistry.from_objects(environments=[BadEnvironment()])
+
+
+def test_registry_rejects_async_deterministic_verifier() -> None:
+    class BadVerifier(FakeVerifier):
+        async def score(
+            self, case: object, outcome: object, evidence: object
+        ) -> object:
+            return {}
+
+    with pytest.raises(IncompatiblePlugin, match="score"):
+        PluginRegistry.from_objects(verifiers=[BadVerifier()])
+
+
+def test_registry_rejects_source_with_unsatisfied_required_parameter() -> None:
+    class BadSource(FakeBenchmarkSource):
+        def enumerate_cases(self, split: str, required_extra: object) -> tuple[()]:
+            return ()
+
+    with pytest.raises(IncompatiblePlugin, match="enumerate_cases"):
+        PluginRegistry.from_objects(benchmark_sources=[BadSource()])
+
+
+def test_registry_rejects_sync_agent_act() -> None:
+    class SyncAgent(FakeAgentAdapter):
+        def act(self, request: object, *, attempts: object) -> object:
+            return {}
+
+    with pytest.raises(IncompatiblePlugin, match="act"):
+        PluginRegistry.from_objects(agent_adapters=[SyncAgent()])
+
+
+def test_registry_requires_agent_attempts_to_be_keyword_only() -> None:
+    class PositionalAttemptsAgent(FakeAgentAdapter):
+        async def act(self, request: object, attempts: object) -> object:
+            return {}
+
+    with pytest.raises(IncompatiblePlugin, match="attempts"):
+        PluginRegistry.from_objects(agent_adapters=[PositionalAttemptsAgent()])
+
+
+def test_registry_rejects_unknown_agent_call_observability() -> None:
+    class BadObservabilityAgent(FakeAgentAdapter):
+        call_observability = "provider_maybe"
+
+    with pytest.raises(IncompatiblePlugin, match="call_observability"):
+        PluginRegistry.from_objects(
+            agent_adapters=[
+                BadObservabilityAgent(call_observability="provider_maybe")
+            ]
+        )
+
+
+def test_registry_rejects_sync_execution_backend_method() -> None:
+    class BadBackend(FakeExecutionBackend):
+        def run(self, handle: object, request: object) -> object:
+            return object()
+
+    with pytest.raises(IncompatiblePlugin, match="run"):
+        PluginRegistry.from_objects(execution_backends=[BadBackend()])
 
 
 def test_entry_point_discovery_queries_only_the_five_allowlisted_groups() -> None:

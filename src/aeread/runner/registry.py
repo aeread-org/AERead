@@ -4,7 +4,10 @@ from __future__ import annotations
 
 from collections.abc import Callable, Iterable, Sequence
 from importlib import metadata
+import inspect
 from typing import Protocol, TypeVar, cast
+
+from pydantic import ValidationError
 
 from aeread.sdk.v1 import (
     AgentAdapter,
@@ -78,6 +81,175 @@ _PROTOCOLS: dict[str, type[object]] = {
     "execution_backends": ExecutionBackend,
 }
 
+_SYNC_METHODS: dict[str, dict[str, tuple[str, ...]]] = {
+    "environments": {
+        "validate_case": ("payload",),
+        "initial_state": ("case", "cell"),
+        "phase_graph": ("case",),
+        "decision_slots": ("case", "state", "phase"),
+        "observe": ("case", "state", "phase", "slot"),
+        "parse_action": ("case", "state", "phase", "slot", "response"),
+        "legal": ("case", "state", "phase", "bundle"),
+        "step": ("case", "state", "phase", "bundles"),
+        "terminal": ("case", "state"),
+        "outcome": ("case", "terminal"),
+    },
+    "benchmark_sources": {
+        "source_ref": (),
+        "enumerate_cases": ("split",),
+        "materialize_case": ("ref",),
+        "parity_fixtures": (),
+    },
+    "verifiers": {
+        "score": ("case", "outcome", "evidence"),
+    },
+}
+
+_ASYNC_METHODS: dict[str, dict[str, tuple[str, ...]]] = {
+    "agent_adapters": {"act": ("request",)},
+    "execution_backends": {
+        "start": ("spec",),
+        "run": ("handle", "request"),
+        "read": ("handle", "path"),
+        "write": ("handle", "path", "data"),
+        "stop": ("handle",),
+    },
+}
+
+
+def _validated_manifest(category: str, plugin: object) -> PluginManifest:
+    manifest = getattr(plugin, "manifest", None)
+    if manifest is None:
+        raise IncompatiblePlugin(
+            f"{category} plugin is missing a PluginManifest"
+        )
+    if not isinstance(manifest, PluginManifest):
+        raise IncompatiblePlugin(
+            f"{category} plugin manifest must be a PluginManifest"
+        )
+
+    # model_copy(update=...) deliberately skips validation and model_dump()
+    # omits undeclared copied attributes. Reconstruct from the raw field state
+    # so neither invalid declared fields nor smuggled extras survive admission.
+    raw_state = dict(vars(manifest))
+    pydantic_extra = getattr(manifest, "__pydantic_extra__", None)
+    if pydantic_extra:
+        raw_state.update(pydantic_extra)
+    try:
+        return PluginManifest.model_validate(raw_state)
+    except ValidationError as exc:
+        raise IncompatiblePlugin(
+            f"{category} plugin has an invalid manifest: {exc}"
+        ) from exc
+
+
+def _validate_callable(
+    category: str,
+    plugin: object,
+    method_name: str,
+    positional_names: tuple[str, ...],
+    *,
+    must_be_async: bool,
+    keyword_only_names: tuple[str, ...] = (),
+) -> None:
+    try:
+        method = getattr(plugin, method_name)
+    except Exception as exc:
+        raise IncompatiblePlugin(
+            f"{category} plugin cannot expose {method_name}"
+        ) from exc
+    if not callable(method):
+        raise IncompatiblePlugin(
+            f"{category} plugin {method_name} must be callable"
+        )
+    if inspect.iscoroutinefunction(method) is not must_be_async:
+        expected = "async" if must_be_async else "synchronous"
+        raise IncompatiblePlugin(
+            f"{category} plugin {method_name} must be {expected}"
+        )
+    try:
+        signature = inspect.signature(method)
+    except (TypeError, ValueError) as exc:
+        raise IncompatiblePlugin(
+            f"{category} plugin {method_name} has an uninspectable signature"
+        ) from exc
+
+    parameters = signature.parameters
+    positional_parameters = tuple(
+        parameter.name
+        for parameter in parameters.values()
+        if parameter.kind
+        in (
+            inspect.Parameter.POSITIONAL_ONLY,
+            inspect.Parameter.POSITIONAL_OR_KEYWORD,
+        )
+    )
+    if positional_parameters[: len(positional_names)] != positional_names:
+        raise IncompatiblePlugin(
+            f"{category} plugin {method_name} must accept positional arguments "
+            f"in order {positional_names!r}"
+        )
+    for name in positional_names:
+        parameter = parameters.get(name)
+        if parameter is None or parameter.kind not in (
+            inspect.Parameter.POSITIONAL_ONLY,
+            inspect.Parameter.POSITIONAL_OR_KEYWORD,
+        ):
+            raise IncompatiblePlugin(
+                f"{category} plugin {method_name} must accept positional {name}"
+            )
+    for name in keyword_only_names:
+        parameter = parameters.get(name)
+        if parameter is None or parameter.kind is not inspect.Parameter.KEYWORD_ONLY:
+            raise IncompatiblePlugin(
+                f"{category} plugin {method_name} requires keyword-only {name}"
+            )
+
+    positional_values = [object() for _ in positional_names]
+    keyword_values = {name: object() for name in keyword_only_names}
+    try:
+        signature.bind(*positional_values, **keyword_values)
+    except TypeError as exc:
+        raise IncompatiblePlugin(
+            f"{category} plugin {method_name} has an incompatible signature: {exc}"
+        ) from exc
+
+
+def _validate_contract(category: str, plugin: object) -> None:
+    expected_protocol = _PROTOCOLS[category]
+    if not isinstance(plugin, expected_protocol):
+        raise IncompatiblePlugin(
+            f"{category} plugin does not implement "
+            f"{expected_protocol.__name__}"
+        )
+
+    for method_name, positional_names in _SYNC_METHODS.get(category, {}).items():
+        _validate_callable(
+            category,
+            plugin,
+            method_name,
+            positional_names,
+            must_be_async=False,
+        )
+    for method_name, positional_names in _ASYNC_METHODS.get(category, {}).items():
+        keyword_only_names = ("attempts",) if method_name == "act" else ()
+        _validate_callable(
+            category,
+            plugin,
+            method_name,
+            positional_names,
+            must_be_async=True,
+            keyword_only_names=keyword_only_names,
+        )
+
+    if category == "agent_adapters" and getattr(
+        plugin, "call_observability", None
+    ) not in {"full", "logical_only", "opaque"}:
+        raise IncompatiblePlugin(
+            "agent_adapters plugin call_observability must be one of "
+            "'full', 'logical_only', or 'opaque'"
+        )
+
 
 class PluginRegistry:
     """Registry keyed by category, stable plugin ID, and exact semantic version."""
@@ -126,19 +298,7 @@ class PluginRegistry:
         return cls.from_objects(**discovered)
 
     def _register(self, category: str, plugin: object) -> None:
-        manifest = getattr(plugin, "manifest", None)
-        if manifest is None:
-            raise IncompatiblePlugin(
-                f"{category} plugin is missing a PluginManifest"
-            )
-        if not isinstance(manifest, PluginManifest):
-            raise IncompatiblePlugin(
-                f"{category} plugin manifest must be a PluginManifest"
-            )
-        if manifest.sdk_api != "aeread.sdk/v1":
-            raise IncompatiblePlugin(
-                f"{category} plugin has incompatible sdk_api {manifest.sdk_api!r}"
-            )
+        manifest = _validated_manifest(category, plugin)
         try:
             ref = PluginRef(
                 plugin_id=manifest.plugin_id,
@@ -149,12 +309,7 @@ class PluginRegistry:
                 f"{category} plugin has an invalid manifest reference"
             ) from exc
 
-        expected_protocol = _PROTOCOLS[category]
-        if not isinstance(plugin, expected_protocol):
-            raise IncompatiblePlugin(
-                f"{category} plugin does not implement "
-                f"{expected_protocol.__name__}"
-            )
+        _validate_contract(category, plugin)
 
         key = (ref.plugin_id, ref.plugin_version)
         if key in self._categories[category]:
