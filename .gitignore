@@ -17,6 +17,7 @@ __pycache__/
 dist/
 build/
 .pytest_cache/
+.worktrees/
 
 # env / secrets
 .env
