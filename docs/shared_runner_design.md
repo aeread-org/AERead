@@ -4,7 +4,7 @@
 >
 > **Owner:** Zeyu Sun
 >
-> **Reviewed:** 2026-08-23
+> **Reviewed:** 2026-08-24
 >
 > **Compatibility baseline:** the current `exchange_v1_runner.py` path
 
@@ -16,7 +16,7 @@ The design rule is:
 
 > **Standardize experimental control, evidence, and measurement declarations; keep economic semantics inside versioned family plugins.**
 
-The shared runner owns experiment resolution, phase scheduling, agent execution, explicit retry accounting, durable evidence, replay, receipts, and declared aggregation. A family plugin owns its state, observations, actions, transitions, terminal outcomes, utilities, baselines, scorer, and any oracle.
+The shared runner owns experiment resolution, phase scheduling, agent execution, explicit retry accounting, durable evidence, replay, receipts, and declared aggregation. A family plugin owns its state, observations, actions, transitions, terminal outcomes, utilities, baselines, scorer, and reference providers.
 
 This document is the implementation contract that other branches may cite. It does **not** claim that the shared runner already exists.
 
@@ -31,14 +31,18 @@ This document is the implementation contract that other branches may cite. It do
 | **Primary evaluation block** | Controlled evaluation against a scripted or version-pinned counterpart. Cross-play and self-play/hardness are separate blocks because they measure a joint system. |
 | **Control flow** | The runner owns a declarative `PhaseSpec` schedule. The family supplies pure or auditable phase hooks; it does not receive an unrestricted callback with which to run its own hidden loop. |
 | **Actions** | Observation, parser, action schema, legality rule, and invalid-action consequence are phase- and role-specific. There is no universal role-only action schema. |
-| **Calls and retries** | One logical action contains one or more explicit `CallAttempt` records. No provider or SDK retry may be hidden. |
-| **Scoring** | Every estimand declares its measurement kind, direction, comparison reference, and typed bound evidence. An exact oracle is optional. Social welfare, principal utility, and distributional capture remain separate quantities. |
+| **Calls and retries** | One `LogicalAction` contains one or more explicit `ActionAttempt` records. An attempt may contain multiple atomic `ProviderCall` and `ToolInvocation` records; no provider/SDK retry or tool side effect may be hidden. |
+| **Scoring** | Every estimand declares its measurement kind, direction, comparison reference, and typed bound evidence. Reserve `oracle` for an exact reference inside a declared validity domain; other references are typed separately. Social welfare, principal utility, and distributional capture remain separate quantities. |
 | **Cross-family reporting** | There is no default universal score. Family metrics may be displayed together, but scalar pooling is disabled unless a paper supplies and defends a normalization and weighting rule. |
 | **Clusters** | The suite declares the smallest independently sampled, randomized, or assigned unit before execution. Repeated rows inside that unit are not independent samples. |
 | **Evidence** | Stable episode/action/attempt/event identities, write-before-side-effect records, typed visibility, deterministic ordering, and crash/resume semantics are required. |
 | **Reference paths** | Wrap `exchange_v1` and prove parity; implement `housing_v1` as the first clean native family. |
 
 Case owners do not need to agree on a universal state, action, welfare, or bargaining schema. They do need to implement the versioned hooks and declarations below.
+
+The canonical object hierarchy, exact walkthrough of the current Exchange path,
+compatibility map, and gated implementation sequence are frozen in
+[`walkthroughs/shared_runner_architecture_roadmap.md`](walkthroughs/shared_runner_architecture_roadmap.md).
 
 ---
 
@@ -58,7 +62,7 @@ L3  Shared runner kernel                                      Zeyu owns
 
 L2a Case-family plugins                 L2b Agent execution adapters
     typed phase hooks + scorer              harness + runtime + provider
-    oracle + generator + baselines           Python / HTTP / CLI / container
+    references + generator + baselines       Python / HTTP / CLI / container
 
 L1  Shared authoring formats
     FamilyManifest | CaseManifest | SuiteManifest | RunSpec / AgentProfile
@@ -73,7 +77,7 @@ L1  Shared authoring formats
 | budgets, timeouts, and retry ownership | transitions and economic consequences |
 | `AgentAdapter` dispatch and canonicalization | natural termination and terminal outcome |
 | append-only evidence and artifacts | primary outcome, diagnostics, and rewards |
-| receipt integrity, replay/resume, and coverage | oracle, generators, difficulty knobs, and baselines |
+| receipt integrity, replay/resume, and coverage | reference providers, generators, difficulty knobs, and baselines |
 | declared cluster-aware aggregation and export | family interpretation of each measurement |
 
 The kernel MUST NOT import a concrete family or contain `if family == ...` branches. A trusted registry resolves `family_id` and version to a plugin.
@@ -122,7 +126,7 @@ class ActionBundle:
 
 class CaseFamilyPlugin(Protocol):
     def validate_payload(self, payload: Mapping[str, Any]) -> FamilyCase: ...
-    def initial_state(self, case: FamilyCase, run: EpisodeCell) -> FamilyState: ...
+    def initial_state(self, case: FamilyCase, run: PlanCell) -> FamilyState: ...
     def phases(self, case: FamilyCase) -> Sequence[PhaseSpec]: ...
     def decision_slots(
         self, case: FamilyCase, state: FamilyState, phase: PhaseSpec
@@ -150,7 +154,9 @@ class CaseFamilyPlugin(Protocol):
         self, case: FamilyCase, terminal: TerminalResult
     ) -> FamilyOutcome: ...
     def build_scorer(self, case: FamilyCase) -> FamilyScorer: ...
-    def build_oracle(self, case: FamilyCase) -> Oracle | None: ...
+    def build_reference_providers(
+        self, case: FamilyCase
+    ) -> Sequence[ReferenceProvider]: ...
     def generator(self) -> CaseGenerator | None: ...
 
 
@@ -160,6 +166,13 @@ class AgentAdapter(Protocol):
 
 The hooks may be methods or registered functions, but their inputs, outputs, versions, and evidence must be explicit. The runner—not a family-owned coroutine—advances the schedule, enforces budgets, and records every boundary. Every logical action is keyed by `slot_id`; one seat may own multiple decision slots in one phase, and one slot may own multiple channels. A slot may atomically emit multiple ordered channel actions in one `ActionBundle`. The adapter MUST preserve upstream call grouping, and the runner MUST NOT merge or split those calls across slots or bundles. Bundle validation uses the slot's declared `ActionChannel` membership and each channel's `min_actions`/`max_actions`: every channel count is within its declared bounds, every action has a declared channel, action IDs are unique, and sequence indices are unique and ordered within the bundle. All channel actions from one slot are parsed and closed atomically, so no partial bundle is applied.
 
+`DecisionSlot` → `ActionChannel` → ordered atomic `ActionBundle` describes the
+environment decision topology. It does not replace the execution/evidence lifecycle:
+requesting one slot creates one `LogicalAction`; executing or retrying that request creates
+an `ActionAttempt`; and each attempt records every atomic `ProviderCall` and
+`ToolInvocation`. A successfully parsed logical action closes as exactly one slot-keyed
+`ActionBundle`, which may contain multiple `ActionEnvelope` records.
+
 For a simultaneous phase, the runner freezes every participant's observation from the same pre-phase state **before any slot response**, dispatches in a deterministic recorded order, hides peer actions until each bundle closes, and passes the complete slot_id-keyed bundle mapping to one deterministic `step`. Logical-action accounting is per decision slot, not per channel: one slot response creates one logical action and one or more channel actions within that bundle. Dynamic protocols express conditional transitions through declared `next_phases` plus family hook results.
 
 ---
@@ -168,12 +181,16 @@ For a simultaneous phase, the runner freezes every participant's observation fro
 
 | Record | Purpose | Authored by |
 |---|---|---|
-| `FamilyManifest` | Roles, `PhaseSpec` references, capabilities, measurement declarations, baselines, scorer/oracle/generator, and limits. | Family owner; versioned with plugin. |
+| `FamilyManifest` | Roles, `PhaseSpec` references, capabilities, measurement declarations, baselines, scorer/reference-provider/generator implementations, and limits. | Family owner; versioned with plugin. |
 | `CaseManifest` | One immutable world and family-typed payload. It never selects a model or harness. | Generator or curator. |
-| `SuiteManifest` | Cases, evaluation blocks, pairing, repetitions, cluster semantics, missingness, and aggregation. | Evaluation owner. |
+| `SuiteManifest` | Cases plus references to its sampling, evaluation, and analysis declarations. | Evaluation owner. |
+| `SamplingPlan` | Target population or fixed panel, selection, seeds, pairing, nesting, and replicates. | Evaluation owner. |
+| `EvaluationBlock` | Controlled, cross-play, self-play, or reference comparison with subject and controlled seats. | Evaluation owner. |
+| `AnalysisPlan` | Estimands, inclusion/missingness, aggregation, uncertainty, and sensitivity rules. | Analysis owner. |
 | `AgentProfile` | Model+harness+runtime configuration, including explicit retry policy. | Experiment owner. |
 | `RunSpec` | Agent assignments, execution mode, and budgets. | Experiment owner. |
 | `RunPlan` | Fully resolved, pinned, hashed cells and analysis identities, written before external calls. | Resolver. |
+| `PlanCell` | One planned case × block × seat assignment × seed × replicate execution unit. | Resolver. |
 | `EpisodeEventLog` | Canonical append-only record of attempts, actions, transitions, and scoring. | Runner and registered hooks. |
 | `ScoreEnvelope` | Family measurement vector, reference values, validity, and provenance. | Family scorer. |
 | `EvaluationReceipt` | Final inclusion, cluster, implementation, artifact, replay, and integrity record. | Runner finalizer. |
@@ -297,11 +314,11 @@ The resolver expands case × evaluation block × role × repetition × seed, the
 3. Resolve all defaults, seats, retries, implementations, analysis IDs, and hashes.
 4. Expand cells and durably write the immutable RunPlan.
 5. Preflight every cell before the first paid or external call.
-6. Create episode_id and episode_attempt_id; open the append-only event log.
-7. Runner selects the current PhaseSpec and decision slots.
-8. Runner freezes role-specific observations before any slot response and creates per-slot logical_action_id values.
-9. Runner executes explicit CallAttempt records under the resolved retry policy.
-10. Family parse_action and legal hooks classify the canonical response.
+6. Create the one Episode for each PlanCell, then create episode_id and episode_attempt_id; open the append-only event log.
+7. Runner selects the current PhaseSpec, creates a PhaseInstance, and resolves decision slots.
+8. Runner freezes role-specific observations for every slot before any slot response and creates per-slot logical_action_id values.
+9. Runner executes explicit ActionAttempt records under the resolved retry policy; the adapter records each ProviderCall and ToolInvocation.
+10. Family parse_action and legal hooks classify the CanonicalResponse into one ordered atomic ActionBundle of ActionEnvelope records.
 11. Runner applies the declared invalid-action policy or calls one family step.
 12. Runner records the transition and selects the declared next phase.
 13. On termination, seal state/evidence and compute the family ScoreEnvelope.
@@ -310,28 +327,48 @@ The resolver expands case × evaluation block × role × repetition × seed, the
 16. Optionally derive rLLM, Harbor/ATIF, or Prime Verifiers exports.
 ```
 
-### 4.1 Logical actions and provider attempts
+### 4.1 Logical actions, action attempts, and side effects
 
 ```text
-logical action                         stable logical_action_id
-  └── CallAttempt 1                    always recorded
-      └── zero or one external call
-  └── CallAttempt 2 (if policy allows) explicit reason and parent attempt
-      └── zero or one external call
+LogicalAction                           stable logical_action_id
+  └── ActionAttempt 1                   always recorded
+      ├── ProviderCall 1..n             atomic model-provider requests
+      ├── ToolInvocation 0..n           atomic tool side effects/results
+      └── CanonicalResponse             adapter result for family parsing
+  └── ActionAttempt 2                   only if the declared retry policy allows
+      └── its own calls/tools/response and explicit retry reason
 ```
 
-`minimal_chat/1.0` disables harness-managed tools, persistent memory, and compaction. It does not pretend retries do not exist. A logical action normally has one provider request, but it may have additional attempts only when the `AgentProfile` declares the condition, limit, and changed budget.
+`minimal_chat/1.0` disables harness-managed tools, persistent memory, and compaction. Under
+that profile, one `ActionAttempt` normally contains exactly one `ProviderCall`. This is a
+profile restriction, not the universal architecture: a tool-using attempt can contain
+multiple provider calls and tool invocations without being a retry. A `LogicalAction` has
+additional `ActionAttempt` records only when the `AgentProfile` declares the condition,
+limit, session/restart semantics, and changed budget.
 
-Every `CallAttempt` records at least:
+Every `ActionAttempt` records at least:
 
-- `call_attempt_id`, parent `logical_action_id`, ordinal, and retry reason;
-- request hash, provider/model pins, timeout, and input/output token budgets;
-- start and terminal events around the external side effect;
-- canonical `finish_reason`, empty/truncated flags, token usage, latency, and cost;
-- transport/provider status, raw artifact reference, schema validity, and error class;
-- `retried_for_length` and the prior/new output-token limit when applicable.
+- `action_attempt_id`, parent `logical_action_id`, ordinal, retry reason, and whether the
+  harness session is continued or restarted;
+- resolved harness/profile version, total budget, start/terminal events, final
+  `CanonicalResponse` reference, and typed failure;
+- child `provider_call_id` and `tool_invocation_id` identities in canonical order.
 
-If a successful provider response is empty and `finish_reason == "length"`, the default paper policy may retry once with a declared higher output limit. The first attempt remains in evidence. SDK-level automatic retries MUST be disabled where possible; otherwise the adapter must expose their attempts or declare the observability limitation.
+Every `ProviderCall` records request hash, provider/model pins, timeout, input/output token
+budgets, start and terminal events, canonical `finish_reason`, empty/truncated flags, token
+usage, latency, cost, transport/provider status, raw artifact reference, and error class.
+Every `ToolInvocation` records the tool/version, canonical input hash, idempotency support,
+start and terminal events, result/error artifact, and any declared state-diff reference.
+`retried_for_length` and the prior/new output-token limit live on the retrying action attempt
+and the affected provider-call records.
+
+If a successful final provider response is empty and `finish_reason == "length"`, the
+default paper policy may create one new `ActionAttempt` with a declared higher output limit.
+The first attempt and every child side effect remain in evidence. Provider transport retries
+within an action attempt are separate `ProviderCall` records. SDK-level automatic retries
+MUST be disabled where possible; otherwise the adapter must expose every request or declare
+the observability limitation. A tool side effect with an ambiguous outcome is never silently
+reissued.
 
 ### 4.2 Failure taxonomy
 
@@ -358,7 +395,8 @@ Every event contains:
 ```text
 event_id | sequence | event_type | occurred_at
 run_plan_id | cell_id | episode_id | episode_attempt_id
-phase_id | logical_action_id? | call_attempt_id?
+phase_spec_id | phase_instance_id? | logical_action_id? | action_attempt_id?
+provider_call_id? | tool_invocation_id?
 visibility | payload_ref/hash | prior_event_hash | event_hash
 ```
 
@@ -366,8 +404,11 @@ Identities are stable within a resolved plan. `sequence` supplies a total append
 
 ### Durability rules
 
-1. Append and flush `episode_attempt_started`, `logical_action_started`, and each observable `call_attempt_started` before the relevant side effect.
-2. Append exactly one terminal success, failure, or `outcome_unknown` event for each started attempt.
+1. Append and flush `episode_attempt_started`, `logical_action_started`,
+   `action_attempt_started`, `provider_call_started`, and `tool_invocation_started` before
+   the relevant work or side effect.
+2. Append exactly one terminal success, failure, or `outcome_unknown` event for each
+   started `ActionAttempt`, `ProviderCall`, and `ToolInvocation`.
 3. Record action parsing, legality, transition, termination, scoring, and receipt sealing as separate boundaries.
 4. Score only sealed evidence. A scorer is deterministic and never calls the candidate/provider.
 5. Preserve raw artifacts content-addressably even when canonicalization or parsing fails.
@@ -376,7 +417,7 @@ Identities are stable within a resolved plan. `sequence` supplies a total append
 
 On resume, the runner validates the plan and event hash chain, then reconstructs state by deterministic replay. It never silently reissues an external side effect whose completion is ambiguous. If the provider supports a recorded idempotency key, the adapter may reconcile it; otherwise the attempt becomes `outcome_unknown`, that episode attempt is invalid, and a new `episode_attempt_id` is required. Resume decisions themselves are events.
 
-The `EvaluationReceipt` binds suite/case/plan hashes, cluster identities, resolved agent configurations, parser/environment/scorer/oracle versions, event and artifact roots, observability limits, replay level, score or typed failure, and inclusion status. Paper tables consume validated receipts rather than ad hoc logs.
+The `EvaluationReceipt` binds suite/case/plan hashes, cluster identities, resolved agent configurations, parser/environment/scorer/reference-provider versions, event and artifact roots, observability limits, replay level, score or typed failure, and inclusion status. Paper tables consume validated receipts rather than ad hoc logs.
 
 ---
 
@@ -578,7 +619,8 @@ admission rule are specified in
 ### Minimum gates before calling the runner paper-ready
 
 - phase graph, scheduling, simultaneous observations, and invalid-action policies pass conformance tests;
-- every logical action reconciles to explicit `CallAttempt` records with no hidden retries;
+- every logical action reconciles to explicit `ActionAttempt`, `ProviderCall`, and
+  `ToolInvocation` records with no hidden retries or side effects;
 - stable IDs, append order, visibility projections, interrupted resume, and artifact hashes validate;
 - every planned cell reconciles to a valid receipt or typed failure/exclusion;
 - zero/negative outcomes remain distinct from missing measurements;
