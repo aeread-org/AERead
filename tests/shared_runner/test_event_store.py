@@ -1228,6 +1228,69 @@ def test_pending_claim_with_partial_event_file_fails_closed(
     assert not (tmp_path / "events.jsonl.state.json").exists()
 
 
+@pytest.mark.parametrize(
+    "reserved_relative",
+    (
+        Path("artifacts/event-owner.lock"),
+        Path("artifacts/sha256/events.jsonl"),
+    ),
+)
+def test_event_open_rejects_artifact_namespace_before_any_mutation(
+    tmp_path: Path, reserved_relative: Path
+) -> None:
+    evidence_root = tmp_path / "evidence"
+    artifacts = ArtifactStore.open(
+        evidence_root, identity=IDENTITY, trusted_root=tmp_path
+    )
+    artifact_dir = evidence_root / "artifacts"
+    generation = artifact_dir / "generation.json"
+    generation_before = generation.read_bytes()
+    entries_before = tuple(sorted(path.name for path in artifact_dir.iterdir()))
+    cas_dir = artifact_dir / "sha256"
+    target = evidence_root / reserved_relative
+    opened: EventStore | None = None
+    error: EvidenceStoreError | None = None
+
+    try:
+        opened = EventStore.open(
+            target,
+            artifacts=artifacts,
+            clock=fixed_clock,
+            identity=IDENTITY,
+        )
+    except EvidenceStoreError as exc:
+        error = exc
+    finally:
+        if opened is not None:
+            opened.close()
+
+    assert generation.read_bytes() == generation_before
+    assert tuple(sorted(path.name for path in artifact_dir.iterdir())) == entries_before
+    assert tuple(cas_dir.iterdir()) == ()
+    assert not (target.parent / f"{target.name}.state.json").exists()
+    assert not (target.parent / f"{target.name}.sealed.json").exists()
+    assert isinstance(error, InvalidEvidenceInput)
+
+
+def test_event_log_adjacent_to_artifact_namespace_remains_allowed(
+    tmp_path: Path,
+) -> None:
+    evidence_root = tmp_path / "evidence"
+    artifacts = ArtifactStore.open(
+        evidence_root, identity=IDENTITY, trusted_root=tmp_path
+    )
+    store = EventStore.open(
+        evidence_root / "events.jsonl",
+        artifacts=artifacts,
+        clock=fixed_clock,
+        identity=IDENTITY,
+    )
+
+    event = store.append("allowed", IDENTITY, "public", {})
+    assert store.snapshot().events == (event,)
+    store.close()
+
+
 def test_append_rejects_an_artifact_generation_frozen_behind_the_writer(
     tmp_path: Path,
 ) -> None:

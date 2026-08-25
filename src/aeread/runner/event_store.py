@@ -731,6 +731,11 @@ class ArtifactStore:
         _, parts = self._trusted.relative_path(path)
         if not parts:
             raise InvalidEvidenceInput("event log must be below trusted_root")
+        reserved = self._artifact_anchor.relative
+        if len(parts) >= len(reserved) and parts[: len(reserved)] == reserved:
+            raise InvalidEvidenceInput(
+                "event log cannot occupy the reserved artifact namespace"
+            )
         value = "/".join(parts)
         if not self._is_canonical_event_relpath(value):
             raise InvalidEvidenceInput(
