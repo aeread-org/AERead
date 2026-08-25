@@ -1137,6 +1137,67 @@ def test_deep_verifier_rejects_unchecked_retired_plan_identities(
     assert not verify_run_plan_identity(forged)
 
 
+_MISSING_IDENTITY_FIELD = object()
+
+
+@pytest.mark.parametrize(
+    ("target", "field", "replacement"),
+    (
+        ("cell", "record_type", "episode_cell"),
+        ("cell", "record_type", _MISSING_IDENTITY_FIELD),
+        ("cell", "spec_version", "aeread.episode_cell/0.1"),
+        ("cell", "spec_version", _MISSING_IDENTITY_FIELD),
+        ("plan", "spec_version", "aeread.run_plan/0.1"),
+        ("plan", "spec_version", _MISSING_IDENTITY_FIELD),
+    ),
+)
+def test_model_construct_plan_identity_bypasses_fail_closed(
+    target: str, field: str, replacement: object
+) -> None:
+    plan = resolve_run_plan(fake_resolution_inputs(), _registry())
+    plan_state = dict(vars(plan))
+
+    if target == "cell":
+        cell = plan.cells[0]
+        cell_state = dict(vars(cell))
+        if replacement is _MISSING_IDENTITY_FIELD:
+            cell_state.pop(field)
+        else:
+            cell_state[field] = replacement
+        forged_cell = type(cell).model_construct(**cell_state)
+        plan_state["cells"] = (forged_cell, *plan.cells[1:])
+        identity_holder = forged_cell
+    else:
+        if replacement is _MISSING_IDENTITY_FIELD:
+            plan_state.pop(field)
+        else:
+            plan_state[field] = replacement
+        identity_holder = None
+
+    pending = type(plan).model_construct(**plan_state)
+    basis = pending.model_dump(
+        mode="python",
+        exclude={"run_plan_id", "run_plan_sha256"},
+        warnings=False,
+    )
+    digest = content_sha256(basis)
+    plan_state.update(
+        {
+            "run_plan_id": "runplan-" + digest[:24],
+            "run_plan_sha256": digest,
+        }
+    )
+    forged = type(plan).model_construct(**plan_state)
+    if target == "plan":
+        identity_holder = forged
+
+    if replacement is _MISSING_IDENTITY_FIELD:
+        assert not hasattr(identity_holder, field)
+    else:
+        assert getattr(identity_holder, field) == replacement
+    assert not verify_run_plan_identity(forged)
+
+
 @pytest.mark.parametrize(
     "tamper",
     (
