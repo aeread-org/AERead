@@ -5,6 +5,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import shutil
 import stat
 import threading
 
@@ -18,6 +19,7 @@ from aeread.runner import (
     EventIntegrityError,
     EventStore,
     EvidenceSealedError,
+    EvidenceStoreError,
     InvalidEvidenceInput,
     recompute_event_hash,
 )
@@ -38,7 +40,10 @@ def fixed_clock() -> datetime:
 
 
 def artifact_store(tmp_path: Path) -> ArtifactStore:
-    return ArtifactStore.open(tmp_path / "evidence", identity=IDENTITY)
+    tmp_path.mkdir(parents=True, exist_ok=True)
+    return ArtifactStore.open(
+        tmp_path / "evidence", identity=IDENTITY, trusted_root=tmp_path
+    )
 
 
 def event_store(tmp_path: Path, *, clock=fixed_clock) -> EventStore:
@@ -61,9 +66,9 @@ def test_artifact_put_uses_raw_sha_and_survives_reopen(tmp_path: Path) -> None:
     data = b"\x00raw artifact\n"
 
     first = store.put(data, "application/octet-stream")
-    second = ArtifactStore.open(tmp_path / "evidence", identity=IDENTITY).put(
-        data, "application/octet-stream"
-    )
+    second = ArtifactStore.open(
+        tmp_path / "evidence", identity=IDENTITY, trusted_root=tmp_path
+    ).put(data, "application/octet-stream")
 
     assert first == second
     assert first.sha256 == hashlib.sha256(data).hexdigest()
@@ -548,9 +553,9 @@ def test_artifact_generation_is_frozen_by_final_seal(tmp_path: Path) -> None:
     with pytest.raises(EvidenceSealedError):
         store.artifacts.put(b"after", "text/plain")
     with pytest.raises(EvidenceSealedError):
-        ArtifactStore.open(tmp_path / "evidence", identity=IDENTITY).put(
-            b"after", "text/plain"
-        )
+        ArtifactStore.open(
+            tmp_path / "evidence", identity=IDENTITY, trusted_root=tmp_path
+        ).put(b"after", "text/plain")
 
 
 @pytest.mark.parametrize("failure", ["partial_write", "fsync"])
@@ -643,7 +648,9 @@ def test_deleting_final_marker_never_makes_log_appendable(tmp_path: Path) -> Non
 def test_explicit_empty_identity_changes_empty_event_root(tmp_path: Path) -> None:
     first = EventStore.open(
         tmp_path / "first.jsonl",
-        artifacts=ArtifactStore.open(tmp_path / "first-evidence", identity=IDENTITY),
+        artifacts=ArtifactStore.open(
+            tmp_path / "first-evidence", identity=IDENTITY, trusted_root=tmp_path
+        ),
         clock=fixed_clock,
         identity=IDENTITY,
     ).snapshot()
@@ -651,7 +658,9 @@ def test_explicit_empty_identity_changes_empty_event_root(tmp_path: Path) -> Non
     second = EventStore.open(
         tmp_path / "second.jsonl",
         artifacts=ArtifactStore.open(
-            tmp_path / "second-evidence", identity=second_identity
+            tmp_path / "second-evidence",
+            identity=second_identity,
+            trusted_root=tmp_path,
         ),
         clock=fixed_clock,
         identity=second_identity,
@@ -665,7 +674,9 @@ def test_new_event_store_requires_identity_for_empty_root(tmp_path: Path) -> Non
         EventStore.open(
             tmp_path / "unbound.jsonl",
             artifacts=ArtifactStore.open(
-                tmp_path / "unbound-evidence", identity=IDENTITY
+                tmp_path / "unbound-evidence",
+                identity=IDENTITY,
+                trusted_root=tmp_path,
             ),
             clock=fixed_clock,
         )
@@ -680,10 +691,11 @@ def test_projection_rejects_reordered_joint_chain_even_with_recomputed_root(
     full = store.snapshot()
     reversed_events = tuple(reversed(full.events))
     forged_root = hashlib.sha256(
-        b"aeread.event_root/1\0"
+        b"aeread.event_root/2\0"
         + canonical_json_bytes(
             {
                 "identity": reversed_events[0].identity.model_dump(mode="json"),
+                "evidence_store_id": full.evidence_store_id,
                 "event_count": 2,
                 "event_hashes": [event.event_hash for event in reversed_events],
             }
@@ -752,7 +764,9 @@ def test_artifact_creation_and_temp_cleanup_are_directory_durable(
         real_fsync(fd)
 
     monkeypatch.setattr("aeread.runner.event_store.os.fsync", count_directory_fsync)
-    store = ArtifactStore.open(tmp_path / "new-evidence", identity=IDENTITY)
+    store = ArtifactStore.open(
+        tmp_path / "new-evidence", identity=IDENTITY, trusted_root=tmp_path
+    )
     baseline = directory_fsyncs
     store.put(b"durable", "text/plain")
 
@@ -801,7 +815,11 @@ def test_artifact_open_rejects_symlinked_ancestor_before_external_mkdir(
     linked.symlink_to(external, target_is_directory=True)
 
     with pytest.raises(ArtifactIntegrityError):
-        ArtifactStore.open(linked / "missing" / "evidence", identity=IDENTITY)
+        ArtifactStore.open(
+            linked / "missing" / "evidence",
+            identity=IDENTITY,
+            trusted_root=tmp_path,
+        )
     assert not (external / "missing").exists()
 
 
@@ -868,12 +886,12 @@ def test_snapshot_never_returns_view_missing_a_racing_referenced_artifact(
 
 def test_artifact_generation_is_owned_by_one_event_identity(tmp_path: Path) -> None:
     root = tmp_path / "owned-evidence"
-    first = ArtifactStore.open(root, identity=IDENTITY)
+    first = ArtifactStore.open(root, identity=IDENTITY, trusted_root=tmp_path)
     first.put(b"private", "text/plain")
     other = IDENTITY.model_copy(update={"episode_attempt_id": "attempt-2"})
 
     with pytest.raises(InvalidEvidenceInput):
-        ArtifactStore.open(root, identity=other)
+        ArtifactStore.open(root, identity=other, trusted_root=tmp_path)
     with pytest.raises(InvalidEvidenceInput):
         EventStore.open(
             tmp_path / "other-events.jsonl",
@@ -889,7 +907,7 @@ def test_artifact_store_requires_identity_before_generation_side_effects(
 ) -> None:
     root = tmp_path / "unowned-evidence"
     with pytest.raises(InvalidEvidenceInput):
-        ArtifactStore.open(root)
+        ArtifactStore.open(root, trusted_root=tmp_path)
     assert not root.exists()
 
 
@@ -899,7 +917,9 @@ def test_empty_evidence_view_and_projection_preserve_bound_identity(
     first = event_store(tmp_path / "first-empty")
     other = IDENTITY.model_copy(update={"episode_attempt_id": "attempt-2"})
     second_artifacts = ArtifactStore.open(
-        tmp_path / "second-empty" / "evidence", identity=other
+        tmp_path / "second-empty" / "evidence",
+        identity=other,
+        trusted_root=tmp_path,
     )
     second = EventStore.open(
         tmp_path / "second-empty" / "events.jsonl",
@@ -918,3 +938,299 @@ def test_empty_evidence_view_and_projection_preserve_bound_identity(
     assert first_public.identity == IDENTITY
     assert second_public.identity == other
     assert first_public.event_root_sha256 != second_public.event_root_sha256
+
+
+def test_artifact_open_fails_closed_if_managed_ancestor_is_swapped_after_walk(
+    tmp_path: Path, monkeypatch
+) -> None:
+    root = tmp_path / "managed-evidence"
+    external = tmp_path / "external-artifact-target"
+    (external / "artifacts" / "sha256").mkdir(parents=True)
+    displaced = tmp_path / "displaced-evidence"
+    real_open = os.open
+    swapped = False
+
+    def swap_before_first_managed_file(path, flags, mode=0o777, *, dir_fd=None):
+        nonlocal swapped
+        if not swapped and Path(path).name == "generation.lock":
+            root.rename(displaced)
+            root.symlink_to(external, target_is_directory=True)
+            swapped = True
+        return real_open(path, flags, mode, dir_fd=dir_fd)
+
+    monkeypatch.setattr(
+        "aeread.runner.event_store.os.open", swap_before_first_managed_file
+    )
+
+    with pytest.raises(ArtifactIntegrityError):
+        ArtifactStore.open(root, identity=IDENTITY, trusted_root=tmp_path)
+    assert swapped
+    assert tuple((external / "artifacts").iterdir()) == (
+        external / "artifacts" / "sha256",
+    )
+
+
+def test_event_open_fails_closed_if_managed_ancestor_is_swapped_after_walk(
+    tmp_path: Path, monkeypatch
+) -> None:
+    parent = tmp_path / "managed-events"
+    parent.mkdir()
+    external = tmp_path / "external-event-target"
+    external.mkdir()
+    displaced = tmp_path / "displaced-events"
+    real_open = os.open
+    swapped = False
+
+    def swap_before_event_creation(path, flags, mode=0o777, *, dir_fd=None):
+        nonlocal swapped
+        if not swapped and Path(path).name == "events.jsonl":
+            parent.rename(displaced)
+            parent.symlink_to(external, target_is_directory=True)
+            swapped = True
+        return real_open(path, flags, mode, dir_fd=dir_fd)
+
+    monkeypatch.setattr("aeread.runner.event_store.os.open", swap_before_event_creation)
+    artifacts = ArtifactStore.open(
+        tmp_path / "evidence", identity=IDENTITY, trusted_root=tmp_path
+    )
+
+    with pytest.raises(EventIntegrityError):
+        EventStore.open(
+            parent / "events.jsonl",
+            artifacts=artifacts,
+            clock=fixed_clock,
+            identity=IDENTITY,
+        )
+    assert swapped
+    assert tuple(external.iterdir()) == ()
+
+
+def test_one_artifact_generation_rejects_a_second_event_log(tmp_path: Path) -> None:
+    artifacts = artifact_store(tmp_path)
+    first = EventStore.open(
+        tmp_path / "first.jsonl",
+        artifacts=artifacts,
+        clock=fixed_clock,
+        identity=IDENTITY,
+    )
+    try:
+        with pytest.raises(ConcurrentWriterError):
+            EventStore.open(
+                tmp_path / "second.jsonl",
+                artifacts=ArtifactStore.open(
+                    tmp_path / "evidence",
+                    identity=IDENTITY,
+                    trusted_root=tmp_path,
+                ),
+                clock=fixed_clock,
+                identity=IDENTITY,
+            )
+        assert not (tmp_path / "second.jsonl").exists()
+    finally:
+        first.close()
+
+
+def test_concurrent_distinct_event_logs_have_exactly_one_generation_owner(
+    tmp_path: Path,
+) -> None:
+    first_artifacts = artifact_store(tmp_path)
+    second_artifacts = ArtifactStore.open(
+        tmp_path / "evidence", identity=IDENTITY, trusted_root=tmp_path
+    )
+    barrier = threading.Barrier(2)
+    outcomes: list[object] = []
+    outcome_lock = threading.Lock()
+
+    def compete(path: Path, artifacts: ArtifactStore) -> None:
+        barrier.wait(timeout=2)
+        try:
+            outcome: object = EventStore.open(
+                path,
+                artifacts=artifacts,
+                clock=fixed_clock,
+                identity=IDENTITY,
+            )
+        except Exception as exc:
+            outcome = exc
+        with outcome_lock:
+            outcomes.append(outcome)
+
+    threads = (
+        threading.Thread(
+            target=compete, args=(tmp_path / "first.jsonl", first_artifacts)
+        ),
+        threading.Thread(
+            target=compete, args=(tmp_path / "second.jsonl", second_artifacts)
+        ),
+    )
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join(timeout=2)
+
+    assert all(not thread.is_alive() for thread in threads)
+    winners = [outcome for outcome in outcomes if isinstance(outcome, EventStore)]
+    losers = [
+        outcome for outcome in outcomes if isinstance(outcome, ConcurrentWriterError)
+    ]
+    assert len(winners) == 1
+    assert len(losers) == 1
+    assert (
+        sum(
+            path.exists()
+            for path in (tmp_path / "first.jsonl", tmp_path / "second.jsonl")
+        )
+        == 1
+    )
+    winners[0].close()
+
+
+def test_generation_writer_lease_rejects_a_concurrent_same_id_log_clone(
+    tmp_path: Path,
+) -> None:
+    first = event_store(tmp_path)
+    clone = tmp_path / "clone.jsonl"
+    shutil.copy2(tmp_path / "events.jsonl", clone)
+    shutil.copy2(
+        tmp_path / "events.jsonl.state.json",
+        tmp_path / "clone.jsonl.state.json",
+    )
+
+    try:
+        with pytest.raises(ConcurrentWriterError):
+            EventStore.open(
+                clone,
+                artifacts=ArtifactStore.open(
+                    tmp_path / "evidence",
+                    identity=IDENTITY,
+                    trusted_root=tmp_path,
+                ),
+                clock=fixed_clock,
+                identity=IDENTITY,
+            )
+    finally:
+        first.close()
+
+
+def test_append_rejects_an_artifact_generation_frozen_behind_the_writer(
+    tmp_path: Path,
+) -> None:
+    store = event_store(tmp_path)
+    with store.artifacts._guard():
+        store.artifacts._freeze_unlocked()
+
+    with pytest.raises(EvidenceSealedError):
+        store.append("must-not-write", IDENTITY, "public", {})
+    assert (tmp_path / "events.jsonl").read_bytes() == b""
+
+
+def test_explicit_trusted_root_resolves_only_its_platform_alias(tmp_path: Path) -> None:
+    canonical = tmp_path / "canonical-root"
+    canonical.mkdir()
+    alias = tmp_path / "trusted-alias"
+    alias.symlink_to(canonical, target_is_directory=True)
+
+    store = ArtifactStore.open(
+        alias / "evidence", identity=IDENTITY, trusted_root=alias
+    )
+    assert store.put(b"through alias", "text/plain") in store.list_refs()
+
+    external = tmp_path / "untrusted-target"
+    external.mkdir()
+    (alias / "descendant-link").symlink_to(external, target_is_directory=True)
+    with pytest.raises(ArtifactIntegrityError):
+        ArtifactStore.open(
+            alias / "descendant-link" / "evidence",
+            identity=IDENTITY,
+            trusted_root=alias,
+        )
+    assert tuple(external.iterdir()) == ()
+
+
+def test_trusted_root_is_required_existing_and_has_no_failure_side_effect(
+    tmp_path: Path,
+) -> None:
+    omitted = tmp_path / "omitted-trusted-root"
+    with pytest.raises(InvalidEvidenceInput):
+        ArtifactStore.open(omitted, identity=IDENTITY)
+    assert not omitted.exists()
+
+    missing = tmp_path / "missing-trusted-root"
+    with pytest.raises(InvalidEvidenceInput):
+        ArtifactStore.open(
+            missing / "evidence", identity=IDENTITY, trusted_root=missing
+        )
+    assert not missing.exists()
+
+
+def test_evidence_store_id_and_root_survive_closed_same_generation_relocation(
+    tmp_path: Path,
+) -> None:
+    artifacts = ArtifactStore.open(
+        tmp_path / "evidence", identity=IDENTITY, trusted_root=tmp_path
+    )
+    first = EventStore.open(
+        tmp_path / "events.jsonl",
+        artifacts=artifacts,
+        clock=fixed_clock,
+        identity=IDENTITY,
+    )
+    first_view = first.snapshot()
+    first.close()
+    relocated_path = tmp_path / "relocated-events.jsonl"
+    (tmp_path / "events.jsonl").rename(relocated_path)
+    (tmp_path / "events.jsonl.state.json").rename(
+        tmp_path / "relocated-events.jsonl.state.json"
+    )
+
+    reopened = EventStore.open(
+        relocated_path,
+        artifacts=ArtifactStore.open(
+            tmp_path / "evidence", identity=IDENTITY, trusted_root=tmp_path
+        ),
+        clock=fixed_clock,
+        identity=IDENTITY,
+    )
+    reopened_view = reopened.snapshot()
+
+    assert len(first_view.evidence_store_id) == 32
+    assert reopened_view.evidence_store_id == first_view.evidence_store_id
+    assert reopened_view.event_root_sha256 == first_view.event_root_sha256
+    assert reopened.project(reopened_view, "public").evidence_store_id == (
+        first_view.evidence_store_id
+    )
+
+
+def test_store_close_is_idempotent_and_releases_owned_directory_capabilities(
+    tmp_path: Path,
+) -> None:
+    artifacts = artifact_store(tmp_path)
+    store = EventStore.open(
+        tmp_path / "events.jsonl",
+        artifacts=artifacts,
+        clock=fixed_clock,
+        identity=IDENTITY,
+    )
+    event_fds = (
+        store._directory.fd,
+        store._fd,
+        store._owner_lease_fd,
+    )
+    artifact_fds = (
+        artifacts._trusted._fd,
+        artifacts._root_anchor.fd,
+        artifacts._artifact_anchor.fd,
+        artifacts._object_anchor.fd,
+    )
+
+    store.close()
+    store.close()
+    artifacts.close()
+    artifacts.close()
+
+    for fd in (*event_fds, *artifact_fds):
+        assert fd is not None
+        with pytest.raises(OSError):
+            os.fstat(fd)
+    with pytest.raises(EvidenceStoreError):
+        artifacts.list_refs()

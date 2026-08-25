@@ -30,6 +30,7 @@ from aeread.sdk.v1 import (
 
 
 _DIGEST_RE = re.compile(r"^[0-9a-f]{64}$")
+_STORE_ID_RE = re.compile(r"^[0-9a-f]{32}$")
 _SEAT_AUDIENCE_RE = re.compile(r"^seat:[A-Za-z0-9](?:[A-Za-z0-9_.-]*[A-Za-z0-9])?$")
 _META_SUFFIX = ".meta.json"
 _NOFOLLOW = getattr(os, "O_NOFOLLOW", 0)
@@ -122,70 +123,188 @@ def _artifact_metadata(ref: ArtifactRef) -> dict[str, object]:
     }
 
 
-def _lstat(path: Path) -> os.stat_result | None:
+def _leaf_name(name: str) -> str:
+    if (
+        type(name) is not str
+        or not name
+        or name in {".", ".."}
+        or os.sep in name
+        or (os.altsep is not None and os.altsep in name)
+    ):
+        raise InvalidEvidenceInput("managed file name must be one path component")
+    return name
+
+
+class _ManagedRoot:
+    """Caller-declared trusted root; only this boundary may resolve aliases."""
+
+    def __init__(self, lexical_path: Path, canonical_path: Path, fd: int) -> None:
+        self.lexical_path = lexical_path
+        self.canonical_path = canonical_path
+        self._fd = fd
+        self._closed = False
+
+    @classmethod
+    def open(cls, trusted_root: Path) -> "_ManagedRoot":
+        if not isinstance(trusted_root, Path):
+            raise InvalidEvidenceInput("trusted_root must be a pathlib.Path")
+        lexical = Path(os.path.abspath(trusted_root))
+        try:
+            canonical = trusted_root.resolve(strict=True)
+            fd = os.open(canonical, os.O_RDONLY | os.O_DIRECTORY | _NOFOLLOW)
+            if not stat.S_ISDIR(os.fstat(fd).st_mode):
+                raise OSError("trusted_root is not a directory")
+        except Exception as exc:
+            raise InvalidEvidenceInput(
+                "trusted_root must name an existing trusted directory"
+            ) from exc
+        return cls(lexical, canonical, fd)
+
+    def close(self) -> None:
+        if not self._closed:
+            os.close(self._fd)
+            self._closed = True
+
+    def directory(
+        self,
+        path: Path,
+        *,
+        create: bool,
+        error_type: type[EvidenceStoreError],
+    ) -> "_ManagedDirectory":
+        if self._closed:
+            raise EvidenceStoreError("trusted root anchor is closed")
+        if not isinstance(path, Path):
+            raise InvalidEvidenceInput("managed directory must be a pathlib.Path")
+        lexical = Path(os.path.abspath(path))
+        try:
+            relative = lexical.relative_to(self.lexical_path)
+        except ValueError as exc:
+            raise InvalidEvidenceInput(
+                "managed path must remain beneath trusted_root"
+            ) from exc
+        fd = os.dup(self._fd)
+        consumed: list[str] = []
+        try:
+            for component in relative.parts:
+                _leaf_name(component)
+                try:
+                    child_fd = os.open(
+                        component,
+                        os.O_RDONLY | os.O_DIRECTORY | _NOFOLLOW,
+                        dir_fd=fd,
+                    )
+                except FileNotFoundError:
+                    if not create:
+                        raise
+                    try:
+                        os.mkdir(component, mode=0o755, dir_fd=fd)
+                        os.fsync(fd)
+                        child_fd = os.open(
+                            component,
+                            os.O_RDONLY | os.O_DIRECTORY | _NOFOLLOW,
+                            dir_fd=fd,
+                        )
+                    except OSError as exc:
+                        raise error_type(
+                            f"cannot durably create managed directory {component!r}"
+                        ) from exc
+                except OSError as exc:
+                    raise error_type(
+                        f"managed descendant {component!r} is not a real directory"
+                    ) from exc
+                os.close(fd)
+                fd = child_fd
+                consumed.append(component)
+            return _ManagedDirectory(self, tuple(consumed), fd, lexical)
+        except Exception:
+            os.close(fd)
+            raise
+
+
+class _ManagedDirectory:
+    """Retained directory capability for all descendant leaf operations."""
+
+    def __init__(
+        self,
+        root: _ManagedRoot,
+        relative: tuple[str, ...],
+        fd: int,
+        display_path: Path,
+    ) -> None:
+        self.root = root
+        self.relative = relative
+        self.fd = fd
+        self.display_path = display_path
+        self._closed = False
+
+    def close(self) -> None:
+        if not self._closed:
+            os.close(self.fd)
+            self._closed = True
+
+    def assert_bound(self, error_type: type[EvidenceStoreError]) -> None:
+        if self._closed:
+            raise error_type("managed directory capability is closed")
+        try:
+            current = self.root.directory(
+                self.root.lexical_path.joinpath(*self.relative),
+                create=False,
+                error_type=error_type,
+            )
+        except FileNotFoundError as exc:
+            raise error_type("managed directory binding disappeared") from exc
+        try:
+            expected = os.fstat(self.fd)
+            actual = os.fstat(current.fd)
+            if (expected.st_dev, expected.st_ino) != (actual.st_dev, actual.st_ino):
+                raise error_type("managed directory binding changed during operation")
+        finally:
+            current.close()
+
+
+def _lstat(
+    directory: _ManagedDirectory,
+    name: str,
+    *,
+    error_type: type[EvidenceStoreError] = EvidenceStoreError,
+) -> os.stat_result | None:
+    checked = _leaf_name(name)
     try:
-        return path.lstat()
+        return os.stat(checked, dir_fd=directory.fd, follow_symlinks=False)
     except FileNotFoundError:
         return None
     except OSError as exc:
-        raise EvidenceStoreError(f"cannot inspect {path.name}") from exc
+        raise error_type(f"cannot inspect {checked}") from exc
 
 
 def _require_regular(
-    path: Path, *, label: str, error_type: type[EvidenceStoreError]
+    directory: _ManagedDirectory,
+    name: str,
+    *,
+    label: str,
+    error_type: type[EvidenceStoreError],
 ) -> os.stat_result:
-    try:
-        info = path.lstat()
-    except OSError as exc:
-        raise error_type(f"{label} is missing or unreadable") from exc
+    info = _lstat(directory, name, error_type=error_type)
+    if info is None:
+        raise error_type(f"{label} is missing or unreadable")
     if not stat.S_ISREG(info.st_mode):
         raise error_type(f"{label} must be a non-symlink regular file")
     return info
 
 
-def _fsync_directory(path: Path) -> None:
-    fd = os.open(path, os.O_RDONLY | _NOFOLLOW)
-    try:
-        if not stat.S_ISDIR(os.fstat(fd).st_mode):
-            raise OSError(f"not a directory: {path}")
-        os.fsync(fd)
-    finally:
-        os.close(fd)
+def _fsync_directory(directory: _ManagedDirectory) -> None:
+    os.fsync(directory.fd)
 
 
-def _ensure_real_directory(path: Path, *, error_type: type[EvidenceStoreError]) -> None:
-    absolute = Path(os.path.abspath(path))
-    flags = os.O_RDONLY | os.O_DIRECTORY | _NOFOLLOW
-    try:
-        directory_fd = os.open(absolute.anchor, flags)
-    except OSError as exc:
-        raise error_type("cannot anchor managed directory traversal") from exc
-    try:
-        for component in absolute.parts[1:]:
-            try:
-                child_fd = os.open(component, flags, dir_fd=directory_fd)
-            except FileNotFoundError:
-                try:
-                    os.mkdir(component, mode=0o755, dir_fd=directory_fd)
-                    os.fsync(directory_fd)
-                    child_fd = os.open(component, flags, dir_fd=directory_fd)
-                except OSError as exc:
-                    raise error_type(
-                        f"cannot durably create managed directory component {component!r}"
-                    ) from exc
-            except OSError as exc:
-                raise error_type(
-                    f"managed directory ancestor {component!r} is not a real directory"
-                ) from exc
-            os.close(directory_fd)
-            directory_fd = child_fd
-    finally:
-        os.close(directory_fd)
-
-
-def _exclusive_temp_write(directory: Path, data: bytes) -> Path:
-    temp = directory / f".tmp-{uuid.uuid4().hex}"
-    fd = os.open(temp, os.O_WRONLY | os.O_CREAT | os.O_EXCL | _NOFOLLOW, 0o600)
+def _exclusive_temp_write(directory: _ManagedDirectory, data: bytes) -> str:
+    temp = f".tmp-{uuid.uuid4().hex}"
+    fd = os.open(
+        temp,
+        os.O_WRONLY | os.O_CREAT | os.O_EXCL | _NOFOLLOW,
+        0o600,
+        dir_fd=directory.fd,
+    )
     try:
         try:
             view = memoryview(data)
@@ -197,7 +316,10 @@ def _exclusive_temp_write(directory: Path, data: bytes) -> Path:
                 written += count
             os.fsync(fd)
         except Exception:
-            temp.unlink(missing_ok=True)
+            try:
+                os.unlink(temp, dir_fd=directory.fd)
+            except FileNotFoundError:
+                pass
             _fsync_directory(directory)
             raise
     finally:
@@ -205,42 +327,70 @@ def _exclusive_temp_write(directory: Path, data: bytes) -> Path:
     return temp
 
 
-def _publish_without_overwrite(temp: Path, target: Path) -> None:
-    if _lstat(target) is not None:
+def _publish_without_overwrite(
+    directory: _ManagedDirectory, temp: str, target: str
+) -> None:
+    if _lstat(directory, target) is not None:
         raise FileExistsError(target)
-    os.link(temp, target, follow_symlinks=False)
+    os.link(
+        temp,
+        target,
+        src_dir_fd=directory.fd,
+        dst_dir_fd=directory.fd,
+        follow_symlinks=False,
+    )
 
 
-def _atomic_replace(path: Path, value: object) -> None:
-    existing = _lstat(path)
+def _atomic_replace(
+    directory: _ManagedDirectory,
+    name: str,
+    value: object,
+    *,
+    error_type: type[EvidenceStoreError] = EvidenceStoreError,
+) -> None:
+    checked = _leaf_name(name)
+    existing = _lstat(directory, checked, error_type=error_type)
     if existing is not None and not stat.S_ISREG(existing.st_mode):
-        raise EvidenceStoreError(f"{path.name} must be a regular file")
+        raise error_type(f"{checked} must be a regular file")
     try:
         encoded = canonical_json_bytes(value)
     except Exception as exc:
-        raise InvalidEvidenceInput(f"{path.name} cannot be canonicalized") from exc
-    temp = _exclusive_temp_write(path.parent, encoded)
+        raise InvalidEvidenceInput(f"{checked} cannot be canonicalized") from exc
+    temp = _exclusive_temp_write(directory, encoded)
     replaced = False
     try:
-        current = _lstat(path)
+        current = _lstat(directory, checked, error_type=error_type)
         if current is not None and not stat.S_ISREG(current.st_mode):
-            raise EvidenceStoreError(f"{path.name} must be a regular file")
-        os.replace(temp, path)
+            raise error_type(f"{checked} must be a regular file")
+        os.replace(
+            temp,
+            checked,
+            src_dir_fd=directory.fd,
+            dst_dir_fd=directory.fd,
+        )
         replaced = True
-        _fsync_directory(path.parent)
+        _fsync_directory(directory)
     finally:
         if not replaced:
-            temp.unlink(missing_ok=True)
-            _fsync_directory(path.parent)
+            try:
+                os.unlink(temp, dir_fd=directory.fd)
+            except FileNotFoundError:
+                pass
+            _fsync_directory(directory)
 
 
 def _canonical_object(
-    path: Path, *, label: str, error_type: type[EvidenceStoreError]
+    directory: _ManagedDirectory,
+    name: str,
+    *,
+    label: str,
+    error_type: type[EvidenceStoreError],
 ) -> dict[str, object]:
-    _require_regular(path, label=label, error_type=error_type)
+    checked = _leaf_name(name)
+    _require_regular(directory, checked, label=label, error_type=error_type)
     flags = os.O_RDONLY | _NOFOLLOW
     try:
-        fd = os.open(path, flags)
+        fd = os.open(checked, flags, dir_fd=directory.fd)
         try:
             if not stat.S_ISREG(os.fstat(fd).st_mode):
                 raise error_type(f"{label} must be a regular file")
@@ -264,77 +414,204 @@ def _canonical_object(
 
 
 class ArtifactStore:
-    """Content-addressed artifacts in one sealable episode generation."""
+    """Content-addressed artifacts beneath one explicit trusted filesystem root.
 
-    _GENERATION_VERSION = "aeread.artifact_generation/1"
+    ``trusted_root`` is an existing caller-controlled boundary. Its platform aliases
+    may be resolved once; every managed descendant remains no-follow and dir-fd
+    anchored. This object owns those anchor descriptors until :meth:`close`.
+    """
 
-    def __init__(self, root: Path, identity: EventIdentity) -> None:
+    _GENERATION_VERSION = "aeread.artifact_generation/2"
+    _LOCK_NAME = "generation.lock"
+    _STATE_NAME = "generation.json"
+    _OWNER_LOCK_NAME = "event-owner.lock"
+
+    def __init__(
+        self,
+        root: Path,
+        identity: EventIdentity,
+        trusted: _ManagedRoot,
+        root_anchor: _ManagedDirectory,
+        artifact_anchor: _ManagedDirectory,
+        object_anchor: _ManagedDirectory,
+    ) -> None:
         self.root = root
         self.identity = identity
+        self.trusted_root = trusted.lexical_path
         self.artifact_dir = root / "artifacts"
         self.object_dir = self.artifact_dir / "sha256"
-        self._lock_path = self.artifact_dir / "generation.lock"
-        self._state_path = self.artifact_dir / "generation.json"
+        self._trusted = trusted
+        self._root_anchor = root_anchor
+        self._artifact_anchor = artifact_anchor
+        self._object_anchor = object_anchor
         self._thread_lock = threading.RLock()
         self._poisoned = False
+        self._closed = False
 
     @classmethod
     def open(
-        cls, root: Path, *, identity: EventIdentity | None = None
+        cls,
+        root: Path,
+        *,
+        identity: EventIdentity | None = None,
+        trusted_root: Path | None = None,
     ) -> "ArtifactStore":
+        """Open one identity-bound generation below ``trusted_root``.
+
+        ``root`` must use the same lexical trusted-root prefix. The root path is
+        display metadata only and is never persisted as generation identity.
+        """
         if not isinstance(root, Path):
             raise InvalidEvidenceInput("artifact root must be a pathlib.Path")
         if identity is None:
             raise InvalidEvidenceInput(
                 "ArtifactStore.open requires identity before creating a generation"
             )
+        if trusted_root is None:
+            raise InvalidEvidenceInput(
+                "ArtifactStore.open requires an explicit existing trusted_root"
+            )
         checked_identity = _safe_model(identity, EventIdentity, "artifact identity")
-        for directory in (root, root / "artifacts", root / "artifacts" / "sha256"):
-            _ensure_real_directory(directory, error_type=ArtifactIntegrityError)
-        store = cls(root, checked_identity)
-        for managed_file, label in (
-            (store._lock_path, "artifact generation lock"),
-            (store._state_path, "artifact generation anchor"),
-        ):
-            info = _lstat(managed_file)
-            if info is not None and not stat.S_ISREG(info.st_mode):
-                raise ArtifactIntegrityError(f"{label} must be a regular file")
-        with store._guard():
-            if _lstat(store._state_path) is None:
-                if any(store.object_dir.iterdir()):
-                    raise ArtifactIntegrityError(
-                        "artifact objects exist without a generation anchor"
+        trusted = _ManagedRoot.open(trusted_root)
+        root_anchor: _ManagedDirectory | None = None
+        artifact_anchor: _ManagedDirectory | None = None
+        object_anchor: _ManagedDirectory | None = None
+        store: ArtifactStore | None = None
+        try:
+            root_anchor = trusted.directory(
+                root, create=True, error_type=ArtifactIntegrityError
+            )
+            artifact_anchor = trusted.directory(
+                root / "artifacts", create=True, error_type=ArtifactIntegrityError
+            )
+            object_anchor = trusted.directory(
+                root / "artifacts" / "sha256",
+                create=True,
+                error_type=ArtifactIntegrityError,
+            )
+            store = cls(
+                root,
+                checked_identity,
+                trusted,
+                root_anchor,
+                artifact_anchor,
+                object_anchor,
+            )
+            for name, label in (
+                (cls._LOCK_NAME, "artifact generation lock"),
+                (cls._STATE_NAME, "artifact generation anchor"),
+                (cls._OWNER_LOCK_NAME, "artifact event-owner lock"),
+            ):
+                info = _lstat(artifact_anchor, name, error_type=ArtifactIntegrityError)
+                if info is not None and not stat.S_ISREG(info.st_mode):
+                    raise ArtifactIntegrityError(f"{label} must be a regular file")
+            with store._guard():
+                if (
+                    _lstat(
+                        artifact_anchor,
+                        cls._STATE_NAME,
+                        error_type=ArtifactIntegrityError,
                     )
-                store._write_generation_unlocked(
-                    {
-                        "spec_version": cls._GENERATION_VERSION,
-                        "identity": checked_identity.model_dump(mode="json"),
-                        "status": "open",
-                        "artifact_count": 0,
-                        "artifact_root_sha256": None,
-                    }
-                )
+                    is None
+                ):
+                    if os.listdir(object_anchor.fd):
+                        raise ArtifactIntegrityError(
+                            "artifact objects exist without a generation anchor"
+                        )
+                    store._write_generation_unlocked(
+                        {
+                            "spec_version": cls._GENERATION_VERSION,
+                            "identity": checked_identity.model_dump(mode="json"),
+                            "evidence_store_id": None,
+                            "status": "open",
+                            "artifact_count": 0,
+                            "artifact_root_sha256": None,
+                        }
+                    )
+                else:
+                    store._read_generation_unlocked()
+            store._assert_bindings()
+            return store
+        except Exception:
+            if store is not None:
+                store.close()
             else:
-                store._read_generation_unlocked()
-        return store
+                for anchor in (object_anchor, artifact_anchor, root_anchor):
+                    if anchor is not None:
+                        anchor.close()
+                trusted.close()
+            raise
+
+    def _require_open(self) -> None:
+        if self._closed:
+            raise EvidenceStoreError("artifact store is closed")
+
+    def _assert_bindings(self) -> None:
+        self._require_open()
+        for anchor in (
+            self._root_anchor,
+            self._artifact_anchor,
+            self._object_anchor,
+        ):
+            anchor.assert_bound(ArtifactIntegrityError)
+
+    def _directory_for(
+        self,
+        path: Path,
+        *,
+        create: bool,
+        error_type: type[EvidenceStoreError],
+    ) -> _ManagedDirectory:
+        self._require_open()
+        return self._trusted.directory(path, create=create, error_type=error_type)
 
     @contextmanager
     def _guard(self) -> Iterator[None]:
+        self._require_open()
         with self._thread_lock:
-            info = _lstat(self._lock_path)
+            self._assert_bindings()
+            info = _lstat(
+                self._artifact_anchor,
+                self._LOCK_NAME,
+                error_type=ArtifactIntegrityError,
+            )
             created = info is None
             if info is not None and not stat.S_ISREG(info.st_mode):
                 raise ArtifactIntegrityError("artifact generation lock is not regular")
             flags = os.O_RDWR | _NOFOLLOW
             if created:
                 flags |= os.O_CREAT | os.O_EXCL
-            fd = os.open(self._lock_path, flags, 0o600)
+            try:
+                fd = os.open(
+                    self._LOCK_NAME,
+                    flags,
+                    0o600,
+                    dir_fd=self._artifact_anchor.fd,
+                )
+            except FileExistsError:
+                created = False
+                info = _require_regular(
+                    self._artifact_anchor,
+                    self._LOCK_NAME,
+                    label="artifact generation lock",
+                    error_type=ArtifactIntegrityError,
+                )
+                fd = os.open(
+                    self._LOCK_NAME,
+                    os.O_RDWR | _NOFOLLOW,
+                    dir_fd=self._artifact_anchor.fd,
+                )
+            except OSError as exc:
+                raise ArtifactIntegrityError(
+                    "artifact generation lock cannot be opened"
+                ) from exc
             try:
                 if created:
                     os.fsync(fd)
-                    _fsync_directory(self.artifact_dir)
+                    _fsync_directory(self._artifact_anchor)
                 fcntl.flock(fd, fcntl.LOCK_EX)
                 yield
+                self._assert_bindings()
             finally:
                 try:
                     fcntl.flock(fd, fcntl.LOCK_UN)
@@ -343,7 +620,8 @@ class ArtifactStore:
 
     def _read_generation_unlocked(self) -> dict[str, object]:
         value = _canonical_object(
-            self._state_path,
+            self._artifact_anchor,
+            self._STATE_NAME,
             label="artifact generation anchor",
             error_type=ArtifactIntegrityError,
         )
@@ -352,6 +630,7 @@ class ArtifactStore:
             != {
                 "spec_version",
                 "identity",
+                "evidence_store_id",
                 "status",
                 "artifact_count",
                 "artifact_root_sha256",
@@ -364,6 +643,7 @@ class ArtifactStore:
         status = value.get("status")
         count = value.get("artifact_count")
         root = value.get("artifact_root_sha256")
+        store_id = value.get("evidence_store_id")
         try:
             owner = EventIdentity.model_validate(value.get("identity"))
         except Exception as exc:
@@ -373,6 +653,12 @@ class ArtifactStore:
         if owner != self.identity:
             raise InvalidEvidenceInput(
                 "artifact generation belongs to a different event identity"
+            )
+        if store_id is not None and (
+            type(store_id) is not str or not re.fullmatch(r"[0-9a-f]{32}", store_id)
+        ):
+            raise ArtifactIntegrityError(
+                "artifact generation evidence_store_id is invalid"
             )
         if status not in {"open", "sealed"} or type(count) is not int or count < 0:
             raise ArtifactIntegrityError("artifact generation anchor is invalid")
@@ -390,7 +676,12 @@ class ArtifactStore:
 
     def _write_generation_unlocked(self, value: Mapping[str, object]) -> None:
         try:
-            _atomic_replace(self._state_path, dict(value))
+            _atomic_replace(
+                self._artifact_anchor,
+                self._STATE_NAME,
+                dict(value),
+                error_type=ArtifactIntegrityError,
+            )
         except Exception as exc:
             self._poisoned = True
             if isinstance(exc, InvalidEvidenceInput):
@@ -399,14 +690,17 @@ class ArtifactStore:
                 "artifact generation anchor update failed"
             ) from exc
 
-    def _paths(self, digest: str) -> tuple[Path, Path]:
+    def _paths(self, digest: str) -> tuple[str, str]:
         if type(digest) is not str or not _DIGEST_RE.fullmatch(digest):
             raise InvalidEvidenceInput("artifact digest must be lower-case SHA-256")
-        return self.object_dir / digest, self.object_dir / f"{digest}{_META_SUFFIX}"
+        return digest, f"{digest}{_META_SUFFIX}"
 
-    def _read_metadata(self, path: Path) -> ArtifactRef:
+    def _read_metadata(self, name: str) -> ArtifactRef:
         value = _canonical_object(
-            path, label="artifact metadata", error_type=ArtifactIntegrityError
+            self._object_anchor,
+            name,
+            label="artifact metadata",
+            error_type=ArtifactIntegrityError,
         )
         if set(value) != {"spec_version", "sha256", "media_type", "size_bytes"}:
             raise ArtifactIntegrityError("artifact metadata has unexpected fields")
@@ -424,14 +718,21 @@ class ArtifactStore:
     def _verify_unlocked(self, ref: ArtifactRef) -> None:
         content_path, metadata_path = self._paths(ref.sha256)
         info = _require_regular(
-            content_path, label="artifact content", error_type=ArtifactIntegrityError
+            self._object_anchor,
+            content_path,
+            label="artifact content",
+            error_type=ArtifactIntegrityError,
         )
         stored_ref = self._read_metadata(metadata_path)
         if stored_ref != ref or info.st_size != ref.size_bytes:
             raise ArtifactIntegrityError(
                 "artifact metadata does not match requested ref"
             )
-        fd = os.open(content_path, os.O_RDONLY | _NOFOLLOW)
+        fd = os.open(
+            content_path,
+            os.O_RDONLY | _NOFOLLOW,
+            dir_fd=self._object_anchor.fd,
+        )
         try:
             if not stat.S_ISREG(os.fstat(fd).st_mode):
                 raise ArtifactIntegrityError("artifact content must be regular")
@@ -452,10 +753,9 @@ class ArtifactStore:
 
     def _list_refs_unlocked(self) -> tuple[ArtifactRef, ...]:
         try:
-            entries = tuple(self.object_dir.iterdir())
+            names = set(os.listdir(self._object_anchor.fd))
         except OSError as exc:
             raise ArtifactIntegrityError("artifact directory is unreadable") from exc
-        names = {entry.name for entry in entries}
         for name in names:
             digest = name[: -len(_META_SUFFIX)] if name.endswith(_META_SUFFIX) else name
             if not _DIGEST_RE.fullmatch(digest):
@@ -492,26 +792,34 @@ class ArtifactStore:
                 size_bytes=len(data),
             )
             content_path, metadata_path = self._paths(ref.sha256)
-            content_temp: Path | None = None
-            metadata_temp: Path | None = None
+            content_temp: str | None = None
+            metadata_temp: str | None = None
             try:
-                content_temp = _exclusive_temp_write(self.object_dir, data)
+                content_temp = _exclusive_temp_write(self._object_anchor, data)
                 metadata_temp = _exclusive_temp_write(
-                    self.object_dir, canonical_json_bytes(_artifact_metadata(ref))
+                    self._object_anchor,
+                    canonical_json_bytes(_artifact_metadata(ref)),
                 )
                 try:
-                    _publish_without_overwrite(content_temp, content_path)
+                    _publish_without_overwrite(
+                        self._object_anchor, content_temp, content_path
+                    )
                 except FileExistsError:
                     pass
                 try:
-                    _publish_without_overwrite(metadata_temp, metadata_path)
+                    _publish_without_overwrite(
+                        self._object_anchor, metadata_temp, metadata_path
+                    )
                 except FileExistsError:
                     pass
             finally:
                 for temp in (content_temp, metadata_temp):
                     if temp is not None:
-                        temp.unlink(missing_ok=True)
-                _fsync_directory(self.object_dir)
+                        try:
+                            os.unlink(temp, dir_fd=self._object_anchor.fd)
+                        except FileNotFoundError:
+                            pass
+                _fsync_directory(self._object_anchor)
             self._verify_unlocked(ref)
             return ref
 
@@ -526,7 +834,11 @@ class ArtifactStore:
         with self._guard():
             self._read_generation_unlocked()
             self._verify_unlocked(checked)
-            fd = os.open(self._paths(checked.sha256)[0], os.O_RDONLY | _NOFOLLOW)
+            fd = os.open(
+                self._paths(checked.sha256)[0],
+                os.O_RDONLY | _NOFOLLOW,
+                dir_fd=self._object_anchor.fd,
+            )
             try:
                 chunks: list[bytes] = []
                 while True:
@@ -553,6 +865,10 @@ class ArtifactStore:
 
     def _freeze_unlocked(self) -> tuple[ArtifactRef, ...]:
         generation = self._read_generation_unlocked()
+        if generation["evidence_store_id"] is None:
+            raise ArtifactIntegrityError(
+                "artifact generation must be claimed before final freeze"
+            )
         refs = self._list_refs_unlocked()
         root = _artifact_root(refs)
         if generation["status"] == "sealed":
@@ -566,6 +882,7 @@ class ArtifactStore:
             {
                 "spec_version": self._GENERATION_VERSION,
                 "identity": self.identity.model_dump(mode="json"),
+                "evidence_store_id": generation["evidence_store_id"],
                 "status": "sealed",
                 "artifact_count": len(refs),
                 "artifact_root_sha256": root,
@@ -573,8 +890,108 @@ class ArtifactStore:
         )
         return refs
 
-    def _is_frozen_unlocked(self) -> bool:
-        return self._read_generation_unlocked()["status"] == "sealed"
+    def _claim_event_store_unlocked(self, evidence_store_id: str) -> dict[str, object]:
+        if type(evidence_store_id) is not str or not re.fullmatch(
+            r"[0-9a-f]{32}", evidence_store_id
+        ):
+            raise InvalidEvidenceInput("evidence_store_id must be 32 lower-case hex")
+        generation = self._read_generation_unlocked()
+        claimed = generation["evidence_store_id"]
+        if claimed is not None and claimed != evidence_store_id:
+            raise ConcurrentWriterError(
+                "artifact generation is claimed by another event store"
+            )
+        if claimed is None:
+            if generation["status"] != "open":
+                raise EvidenceSealedError(
+                    "sealed artifact generation has no event-store claim"
+                )
+            updated = dict(generation)
+            updated["identity"] = self.identity.model_dump(mode="json")
+            updated["evidence_store_id"] = evidence_store_id
+            self._write_generation_unlocked(updated)
+            generation = self._read_generation_unlocked()
+        return generation
+
+    def _validate_event_store_unlocked(
+        self, evidence_store_id: str, *, require_open: bool
+    ) -> dict[str, object]:
+        generation = self._claim_event_store_unlocked(evidence_store_id)
+        if require_open and generation["status"] != "open":
+            raise EvidenceSealedError("artifact generation has been sealed")
+        return generation
+
+    def _acquire_owner_lease_unlocked(self) -> int:
+        info = _lstat(
+            self._artifact_anchor,
+            self._OWNER_LOCK_NAME,
+            error_type=ArtifactIntegrityError,
+        )
+        created = info is None
+        flags = os.O_RDWR | _NOFOLLOW
+        if created:
+            flags |= os.O_CREAT | os.O_EXCL
+        try:
+            fd = os.open(
+                self._OWNER_LOCK_NAME,
+                flags,
+                0o600,
+                dir_fd=self._artifact_anchor.fd,
+            )
+        except FileExistsError:
+            created = False
+            _require_regular(
+                self._artifact_anchor,
+                self._OWNER_LOCK_NAME,
+                label="artifact event-owner lock",
+                error_type=ArtifactIntegrityError,
+            )
+            fd = os.open(
+                self._OWNER_LOCK_NAME,
+                os.O_RDWR | _NOFOLLOW,
+                dir_fd=self._artifact_anchor.fd,
+            )
+        try:
+            if created:
+                os.fsync(fd)
+                _fsync_directory(self._artifact_anchor)
+            fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            return fd
+        except OSError as exc:
+            os.close(fd)
+            if exc.errno in {errno.EACCES, errno.EAGAIN}:
+                raise ConcurrentWriterError(
+                    "artifact generation already has an event writer"
+                ) from exc
+            raise ArtifactIntegrityError(
+                "artifact event-owner lease cannot be acquired"
+            ) from exc
+
+    def close(self) -> None:
+        with self._thread_lock:
+            if self._closed:
+                return
+            self._closed = True
+            for anchor in (
+                self._object_anchor,
+                self._artifact_anchor,
+                self._root_anchor,
+            ):
+                anchor.close()
+            self._trusted.close()
+
+    def __enter__(self) -> "ArtifactStore":
+        self._require_open()
+        return self
+
+    def __exit__(self, exc_type, exc, traceback) -> None:
+        self.close()
+
+    def __del__(self) -> None:
+        try:
+            self.close()
+        except Exception:
+            pass
 
 
 def _validate_visibility(value: object, *, allow_full: bool = False) -> str:
@@ -641,15 +1058,17 @@ def _discover_artifact_refs(value: object) -> tuple[ArtifactRef, ...]:
 
 
 def _event_root(
-    events: tuple[EpisodeEvent, ...], identity: EventIdentity | None = None
+    events: tuple[EpisodeEvent, ...],
+    identity: EventIdentity,
+    evidence_store_id: str,
 ) -> str:
-    bound_identity = identity or (events[0].identity if events else None)
+    if not _STORE_ID_RE.fullmatch(evidence_store_id):
+        raise InvalidEvidenceInput("evidence_store_id must be 32 lower-case hex")
     return _domain_digest(
-        b"aeread.event_root/1",
+        b"aeread.event_root/2",
         {
-            "identity": (
-                bound_identity.model_dump(mode="json") if bound_identity else None
-            ),
+            "identity": identity.model_dump(mode="json"),
+            "evidence_store_id": evidence_store_id,
             "event_count": len(events),
             "event_hashes": [event.event_hash for event in events],
         },
@@ -711,20 +1130,21 @@ def _validate_joint_chain(
     return identity
 
 
-_EVENT_STATE_VERSION = "aeread.event_state/1"
+_EVENT_STATE_VERSION = "aeread.event_state/2"
 
 
-def _event_state_path(path: Path) -> Path:
-    return path.with_name(f"{path.name}.state.json")
+def _event_state_name(log_name: str) -> str:
+    return f"{_leaf_name(log_name)}.state.json"
 
 
-def _seal_path(path: Path) -> Path:
-    return path.with_name(f"{path.name}.sealed.json")
+def _seal_name(log_name: str) -> str:
+    return f"{_leaf_name(log_name)}.sealed.json"
 
 
 def _event_state(
     *,
     identity: EventIdentity | None,
+    evidence_store_id: str,
     events: tuple[EpisodeEvent, ...],
     status: str,
     artifact_root_sha256: str | None = None,
@@ -733,16 +1153,20 @@ def _event_state(
         "spec_version": _EVENT_STATE_VERSION,
         "status": status,
         "identity": identity.model_dump(mode="json") if identity else None,
+        "evidence_store_id": evidence_store_id,
         "event_count": len(events),
         "last_event_hash": events[-1].event_hash if events else None,
-        "event_root_sha256": _event_root(events, identity),
+        "event_root_sha256": _event_root(events, identity, evidence_store_id)
+        if identity is not None
+        else None,
         "artifact_root_sha256": artifact_root_sha256,
     }
 
 
-def _read_event_state(path: Path) -> dict[str, object]:
+def _read_event_state(directory: _ManagedDirectory, log_name: str) -> dict[str, object]:
     value = _canonical_object(
-        _event_state_path(path),
+        directory,
+        _event_state_name(log_name),
         label="event high-water anchor",
         error_type=EventIntegrityError,
     )
@@ -750,6 +1174,7 @@ def _read_event_state(path: Path) -> dict[str, object]:
         "spec_version",
         "status",
         "identity",
+        "evidence_store_id",
         "event_count",
         "last_event_hash",
         "event_root_sha256",
@@ -772,6 +1197,9 @@ def _read_event_state(path: Path) -> dict[str, object]:
     if identity is None:
         raise EventIntegrityError("event high-water anchor must bind an identity")
     value["identity"] = identity
+    store_id = value["evidence_store_id"]
+    if type(store_id) is not str or not _STORE_ID_RE.fullmatch(store_id):
+        raise EventIntegrityError("event high-water evidence_store_id is invalid")
     for field in ("last_event_hash", "event_root_sha256", "artifact_root_sha256"):
         item = value[field]
         if item is not None and (
@@ -783,9 +1211,14 @@ def _read_event_state(path: Path) -> dict[str, object]:
     return value
 
 
-def _read_event_rows(path: Path) -> tuple[EpisodeEvent, ...]:
-    _require_regular(path, label="event log", error_type=EventIntegrityError)
-    fd = os.open(path, os.O_RDONLY | _NOFOLLOW)
+def _read_event_rows(
+    directory: _ManagedDirectory, log_name: str
+) -> tuple[EpisodeEvent, ...]:
+    checked = _leaf_name(log_name)
+    _require_regular(
+        directory, checked, label="event log", error_type=EventIntegrityError
+    )
+    fd = os.open(checked, os.O_RDONLY | _NOFOLLOW, dir_fd=directory.fd)
     try:
         if not stat.S_ISREG(os.fstat(fd).st_mode):
             raise EventIntegrityError("event log must be a regular file")
@@ -818,9 +1251,11 @@ def _read_event_rows(path: Path) -> tuple[EpisodeEvent, ...]:
 
 
 def _verify_anchor(
-    path: Path, events: tuple[EpisodeEvent, ...]
+    directory: _ManagedDirectory,
+    log_name: str,
+    events: tuple[EpisodeEvent, ...],
 ) -> tuple[dict[str, object], EventIdentity | None]:
-    state = _read_event_state(path)
+    state = _read_event_state(directory, log_name)
     identity = state["identity"]
     assert identity is None or isinstance(identity, EventIdentity)
     chain_identity = _validate_joint_chain(
@@ -829,7 +1264,8 @@ def _verify_anchor(
     if (
         state["event_count"] != len(events)
         or state["last_event_hash"] != (events[-1].event_hash if events else None)
-        or state["event_root_sha256"] != _event_root(events, chain_identity)
+        or state["event_root_sha256"]
+        != _event_root(events, chain_identity, state["evidence_store_id"])
     ):
         raise EventIntegrityError(
             "event log does not match its durable high-water anchor"
@@ -841,23 +1277,31 @@ def _verify_anchor(
     return state, chain_identity
 
 
-def _seal_marker(path: Path) -> dict[str, object]:
+def _seal_marker(directory: _ManagedDirectory, log_name: str) -> dict[str, object]:
     marker = _canonical_object(
-        _seal_path(path), label="event seal marker", error_type=EventIntegrityError
+        directory,
+        _seal_name(log_name),
+        label="event seal marker",
+        error_type=EventIntegrityError,
     )
     if (
         set(marker)
         != {
             "spec_version",
+            "evidence_store_id",
             "event_count",
             "event_root_sha256",
             "artifact_root_sha256",
         }
-        or marker.get("spec_version") != "aeread.event_seal/1"
+        or marker.get("spec_version") != "aeread.event_seal/2"
     ):
         raise EventIntegrityError("event seal marker has unexpected fields")
     if type(marker["event_count"]) is not int or marker["event_count"] < 0:
         raise EventIntegrityError("event seal count is invalid")
+    if type(marker["evidence_store_id"]) is not str or not _STORE_ID_RE.fullmatch(
+        marker["evidence_store_id"]
+    ):
+        raise EventIntegrityError("event seal evidence_store_id is invalid")
     for field in ("event_root_sha256", "artifact_root_sha256"):
         if type(marker[field]) is not str or not _DIGEST_RE.fullmatch(marker[field]):
             raise EventIntegrityError("event seal root is invalid")
@@ -865,7 +1309,12 @@ def _seal_marker(path: Path) -> dict[str, object]:
 
 
 class EventStore:
-    """Single-writer log with durable high-water and finalization anchors."""
+    """Single-writer log claimed by one path-independent evidence-store ID.
+
+    The retained parent capability and generation-wide writer lease are owned by
+    this instance. Relocation is supported only while closed, and never hashes or
+    persists the source path.
+    """
 
     OPEN = "open"
     POISONED = "poisoned"
@@ -875,19 +1324,27 @@ class EventStore:
     def __init__(
         self,
         path: Path,
+        directory: _ManagedDirectory,
+        log_name: str,
         artifacts: ArtifactStore,
         clock: Callable[[], datetime],
         fd: int | None,
+        owner_lease_fd: int | None,
         events: tuple[EpisodeEvent, ...],
         identity: EventIdentity | None,
+        evidence_store_id: str,
         lifecycle: str,
     ) -> None:
         self.path = path
+        self._directory = directory
+        self._log_name = log_name
         self.artifacts = artifacts
         self._clock = clock
         self._fd = fd
+        self._owner_lease_fd = owner_lease_fd
         self._events = events
         self._identity = identity
+        self._evidence_store_id = evidence_store_id
         self._lifecycle = lifecycle
         self._thread_lock = threading.RLock()
 
@@ -918,48 +1375,130 @@ class EventStore:
             raise InvalidEvidenceInput(
                 "event and artifact stores must share one identity"
             )
-        with artifacts._guard():
-            artifacts._read_generation_unlocked()
-        _ensure_real_directory(path.parent, error_type=EventIntegrityError)
-        path_info = _lstat(path)
-        state_info = _lstat(_event_state_path(path))
-        marker_info = _lstat(_seal_path(path))
-        if path_info is not None and not stat.S_ISREG(path_info.st_mode):
-            raise EventIntegrityError("event log must be a non-symlink regular file")
-        if state_info is not None and not stat.S_ISREG(state_info.st_mode):
-            raise EventIntegrityError("event state must be a non-symlink regular file")
-        if marker_info is not None and not stat.S_ISREG(marker_info.st_mode):
-            raise EventIntegrityError("event seal marker must be a regular file")
-        created = path_info is None
-        if created and (state_info is not None or marker_info is not None):
-            raise EventIntegrityError("event anchors exist without an event log")
-        if not created and state_info is None:
-            raise EventIntegrityError("event log is missing its durable state anchor")
-        flags = os.O_RDWR | os.O_APPEND | _NOFOLLOW
-        if created:
-            flags |= os.O_CREAT | os.O_EXCL
-        fd = os.open(path, flags, 0o600)
+        log_name = _leaf_name(path.name)
+        directory: _ManagedDirectory | None
+        try:
+            directory = artifacts._directory_for(
+                path.parent, create=False, error_type=EventIntegrityError
+            )
+        except FileNotFoundError:
+            directory = None
+        existing_state: dict[str, object] | None = None
+        if directory is not None:
+            path_info = _lstat(directory, log_name, error_type=EventIntegrityError)
+            state_info = _lstat(
+                directory,
+                _event_state_name(log_name),
+                error_type=EventIntegrityError,
+            )
+            marker_info = _lstat(
+                directory, _seal_name(log_name), error_type=EventIntegrityError
+            )
+            if path_info is not None and not stat.S_ISREG(path_info.st_mode):
+                directory.close()
+                raise EventIntegrityError(
+                    "event log must be a non-symlink regular file"
+                )
+            if state_info is not None and not stat.S_ISREG(state_info.st_mode):
+                directory.close()
+                raise EventIntegrityError(
+                    "event state must be a non-symlink regular file"
+                )
+            if marker_info is not None and not stat.S_ISREG(marker_info.st_mode):
+                directory.close()
+                raise EventIntegrityError("event seal marker must be a regular file")
+            if path_info is None and (
+                state_info is not None or marker_info is not None
+            ):
+                directory.close()
+                raise EventIntegrityError("event anchors exist without an event log")
+            if path_info is not None and state_info is None:
+                directory.close()
+                raise EventIntegrityError(
+                    "event log is missing its durable state anchor"
+                )
+            if state_info is not None:
+                existing_state = _read_event_state(directory, log_name)
+        evidence_store_id = (
+            existing_state["evidence_store_id"]
+            if existing_state is not None
+            else uuid.uuid4().hex
+        )
+        assert isinstance(evidence_store_id, str)
+        owner_lease_fd: int | None = None
+        try:
+            with artifacts._guard():
+                generation = artifacts._claim_event_store_unlocked(evidence_store_id)
+                if generation["status"] == "open":
+                    owner_lease_fd = artifacts._acquire_owner_lease_unlocked()
+                elif existing_state is None or existing_state["status"] != "sealed":
+                    if existing_state is not None:
+                        raise EventIntegrityError(
+                            "event state conflicts with sealed artifact generation"
+                        )
+                    raise EvidenceSealedError(
+                        "sealed artifact generation rejects a new event log"
+                    )
+            if directory is None:
+                directory = artifacts._directory_for(
+                    path.parent, create=True, error_type=EventIntegrityError
+                )
+            path_info = _lstat(directory, log_name, error_type=EventIntegrityError)
+            state_info = _lstat(
+                directory,
+                _event_state_name(log_name),
+                error_type=EventIntegrityError,
+            )
+            marker_info = _lstat(
+                directory, _seal_name(log_name), error_type=EventIntegrityError
+            )
+            created = path_info is None
+            if created and (state_info is not None or marker_info is not None):
+                raise EventIntegrityError("event anchors exist without an event log")
+            if not created and state_info is None:
+                raise EventIntegrityError(
+                    "event log is missing its durable state anchor"
+                )
+            flags = os.O_RDWR | os.O_APPEND | _NOFOLLOW
+            if created:
+                flags |= os.O_CREAT | os.O_EXCL
+            fd = os.open(log_name, flags, 0o600, dir_fd=directory.fd)
+        except Exception:
+            if owner_lease_fd is not None:
+                try:
+                    fcntl.flock(owner_lease_fd, fcntl.LOCK_UN)
+                finally:
+                    os.close(owner_lease_fd)
+            if directory is not None:
+                directory.close()
+            raise
         try:
             if not stat.S_ISREG(os.fstat(fd).st_mode):
                 raise EventIntegrityError("event log must be regular")
             if created:
                 os.fsync(fd)
-                _fsync_directory(path.parent)
+                _fsync_directory(directory)
                 try:
                     _atomic_replace(
-                        _event_state_path(path),
+                        directory,
+                        _event_state_name(log_name),
                         _event_state(
                             identity=checked_identity,
+                            evidence_store_id=evidence_store_id,
                             events=(),
                             status="open",
                         ),
+                        error_type=EventIntegrityError,
                     )
                 except Exception:
                     os.close(fd)
                     fd = -1
-                    path.unlink(missing_ok=True)
-                    _event_state_path(path).unlink(missing_ok=True)
-                    _fsync_directory(path.parent)
+                    for name in (log_name, _event_state_name(log_name)):
+                        try:
+                            os.unlink(name, dir_fd=directory.fd)
+                        except FileNotFoundError:
+                            pass
+                    _fsync_directory(directory)
                     raise
             try:
                 fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
@@ -969,55 +1508,62 @@ class EventStore:
                         "event log already has a writer"
                     ) from exc
                 raise
-            events = _read_event_rows(path)
-            state, anchored_identity = _verify_anchor(path, events)
+            events = _read_event_rows(directory, log_name)
+            state, anchored_identity = _verify_anchor(directory, log_name, events)
+            if state["evidence_store_id"] != evidence_store_id:
+                raise EventIntegrityError(
+                    "event state changed its evidence_store_id during open"
+                )
             if checked_identity is not None:
-                if (
-                    anchored_identity is None
-                    and not events
-                    and state["status"] == "open"
-                ):
-                    _atomic_replace(
-                        _event_state_path(path),
-                        _event_state(
-                            identity=checked_identity,
-                            events=(),
-                            status="open",
-                        ),
-                    )
-                    anchored_identity = checked_identity
-                elif anchored_identity != checked_identity:
+                if anchored_identity != checked_identity:
                     raise InvalidEvidenceInput(
                         "opened identity does not match event anchor"
                     )
             if state["status"] == "sealed":
-                cls._verify_final(path, artifacts, events, anchored_identity, state)
+                cls._verify_final(
+                    directory,
+                    log_name,
+                    artifacts,
+                    events,
+                    anchored_identity,
+                    evidence_store_id,
+                    state,
+                )
                 fcntl.flock(fd, fcntl.LOCK_UN)
                 os.close(fd)
                 fd = -1
+                directory.assert_bound(EventIntegrityError)
                 return cls(
                     path,
+                    directory,
+                    log_name,
                     artifacts,
                     clock,
                     None,
+                    None,
                     events,
                     anchored_identity,
+                    evidence_store_id,
                     cls.SEALED,
                 )
             if marker_info is not None:
                 raise EventIntegrityError("open event state conflicts with seal marker")
             with artifacts._guard():
-                if artifacts._is_frozen_unlocked():
-                    raise EventIntegrityError(
-                        "open event log has a frozen artifact generation"
-                    )
+                artifacts._validate_event_store_unlocked(
+                    evidence_store_id, require_open=True
+                )
+            directory.assert_bound(EventIntegrityError)
             return cls(
                 path,
+                directory,
+                log_name,
                 artifacts,
                 clock,
                 fd,
+                owner_lease_fd,
                 events,
                 anchored_identity,
+                evidence_store_id,
                 cls.OPEN,
             )
         except Exception:
@@ -1026,15 +1572,23 @@ class EventStore:
                     fcntl.flock(fd, fcntl.LOCK_UN)
                 finally:
                     os.close(fd)
+            if owner_lease_fd is not None:
+                try:
+                    fcntl.flock(owner_lease_fd, fcntl.LOCK_UN)
+                finally:
+                    os.close(owner_lease_fd)
+            directory.close()
             raise
 
     @classmethod
     def _verify_final(
         cls,
-        path: Path,
+        directory: _ManagedDirectory,
+        log_name: str,
         artifacts: ArtifactStore,
         events: tuple[EpisodeEvent, ...],
         identity: EventIdentity | None,
+        evidence_store_id: str,
         state: Mapping[str, object],
     ) -> SealedEvidenceView:
         if identity is None:
@@ -1043,9 +1597,13 @@ class EventStore:
             raise EventIntegrityError(
                 "event and artifact evidence have different identities"
             )
-        marker = _seal_marker(path)
+        if state.get("evidence_store_id") != evidence_store_id:
+            raise EventIntegrityError("event state has the wrong evidence_store_id")
+        marker = _seal_marker(directory, log_name)
         with artifacts._guard():
-            generation = artifacts._read_generation_unlocked()
+            generation = artifacts._validate_event_store_unlocked(
+                evidence_store_id, require_open=False
+            )
             if generation["status"] != "sealed":
                 raise ArtifactIntegrityError("final evidence requires frozen artifacts")
             refs = artifacts._list_refs_unlocked()
@@ -1056,9 +1614,10 @@ class EventStore:
                 or generation["artifact_root_sha256"] != artifact_root
             ):
                 raise ArtifactIntegrityError("artifact generation final root mismatch")
-        event_root = _event_root(events, identity)
+        event_root = _event_root(events, identity, evidence_store_id)
         if (
-            marker["event_count"] != len(events)
+            marker["evidence_store_id"] != evidence_store_id
+            or marker["event_count"] != len(events)
             or marker["event_root_sha256"] != event_root
             or marker["artifact_root_sha256"] != artifact_root
             or state["event_root_sha256"] != event_root
@@ -1067,6 +1626,7 @@ class EventStore:
             raise EventIntegrityError("final evidence anchors disagree")
         return SealedEvidenceView(
             identity=identity,
+            evidence_store_id=evidence_store_id,
             audience="full",
             events=events,
             artifacts=refs,
@@ -1081,29 +1641,49 @@ class EventStore:
     ) -> tuple[EpisodeEvent, ...]:
         if not isinstance(path, Path) or not isinstance(artifacts, ArtifactStore):
             raise InvalidEvidenceInput("invalid EventStore.verify input")
-        events = _read_event_rows(path)
-        state, identity = _verify_anchor(path, events)
-        if identity is None or artifacts.identity != identity:
-            raise EventIntegrityError(
-                "event and artifact evidence have different identities"
+        directory = artifacts._directory_for(
+            path.parent, create=False, error_type=EventIntegrityError
+        )
+        try:
+            log_name = _leaf_name(path.name)
+            events = _read_event_rows(directory, log_name)
+            state, identity = _verify_anchor(directory, log_name, events)
+            if identity is None or artifacts.identity != identity:
+                raise EventIntegrityError(
+                    "event and artifact evidence have different identities"
+                )
+            store_id = state["evidence_store_id"]
+            assert isinstance(store_id, str)
+            marker_info = _lstat(
+                directory, _seal_name(log_name), error_type=EventIntegrityError
             )
-        marker_info = _lstat(_seal_path(path))
-        if state["status"] == "sealed":
-            if marker_info is None:
-                raise EventIntegrityError("sealed event log is missing final marker")
-            cls._verify_final(path, artifacts, events, identity, state)
-        elif marker_info is not None:
-            raise EventIntegrityError("unsealed event log has a final marker")
-        else:
-            with artifacts._guard():
-                generation = artifacts._read_generation_unlocked()
-                if generation["status"] != "open":
+            if state["status"] == "sealed":
+                if marker_info is None:
                     raise EventIntegrityError(
-                        "open event log has a frozen artifact generation"
+                        "sealed event log is missing final marker"
                     )
-                refs = artifacts._list_refs_unlocked()
-                _verify_referenced_artifacts_unlocked(artifacts, events, refs)
-        return events
+                cls._verify_final(
+                    directory,
+                    log_name,
+                    artifacts,
+                    events,
+                    identity,
+                    store_id,
+                    state,
+                )
+            elif marker_info is not None:
+                raise EventIntegrityError("unsealed event log has a final marker")
+            else:
+                with artifacts._guard():
+                    artifacts._validate_event_store_unlocked(
+                        store_id, require_open=True
+                    )
+                    refs = artifacts._list_refs_unlocked()
+                    _verify_referenced_artifacts_unlocked(artifacts, events, refs)
+            directory.assert_bound(EventIntegrityError)
+            return events
+        finally:
+            directory.close()
 
     def _release_fd(self) -> None:
         if self._fd is not None:
@@ -1113,9 +1693,18 @@ class EventStore:
                 os.close(self._fd)
                 self._fd = None
 
+    def _release_owner_lease(self) -> None:
+        if self._owner_lease_fd is not None:
+            try:
+                fcntl.flock(self._owner_lease_fd, fcntl.LOCK_UN)
+            finally:
+                os.close(self._owner_lease_fd)
+                self._owner_lease_fd = None
+
     def _poison(self) -> None:
         self._lifecycle = self.POISONED
         self._release_fd()
+        self._release_owner_lease()
 
     def _require_appendable(self) -> int:
         if self._lifecycle == self.SEALED:
@@ -1137,6 +1726,7 @@ class EventStore:
     ) -> EpisodeEvent:
         with self._thread_lock:
             fd = self._require_appendable()
+            self._directory.assert_bound(EventIntegrityError)
             if type(event_type) is not str or not event_type:
                 raise InvalidEvidenceInput(
                     "event_type must be a non-empty exact string"
@@ -1147,6 +1737,14 @@ class EventStore:
                 raise InvalidEvidenceInput(
                     "one event log can contain only one identity"
                 )
+            try:
+                with self.artifacts._guard():
+                    self.artifacts._validate_event_store_unlocked(
+                        self._evidence_store_id, require_open=True
+                    )
+            except EvidenceSealedError:
+                self._poison()
+                raise
             sequence = len(self._events)
             occurred_at = _utc_timestamp(self._clock)
             prior_hash = self._events[-1].event_hash if self._events else None
@@ -1179,12 +1777,15 @@ class EventStore:
             new_events = (*self._events, event)
             try:
                 _atomic_replace(
-                    _event_state_path(self.path),
+                    self._directory,
+                    _event_state_name(self._log_name),
                     _event_state(
                         identity=checked_identity,
+                        evidence_store_id=self._evidence_store_id,
                         events=self._events,
                         status="poisoned",
                     ),
+                    error_type=EventIntegrityError,
                 )
             except Exception as exc:
                 self._poison()
@@ -1202,23 +1803,29 @@ class EventStore:
                     written += count
                 os.fsync(fd)
                 _atomic_replace(
-                    _event_state_path(self.path),
+                    self._directory,
+                    _event_state_name(self._log_name),
                     _event_state(
                         identity=checked_identity,
+                        evidence_store_id=self._evidence_store_id,
                         events=new_events,
                         status="open",
                     ),
+                    error_type=EventIntegrityError,
                 )
             except Exception as exc:
                 if write_started:
                     try:
                         _atomic_replace(
-                            _event_state_path(self.path),
+                            self._directory,
+                            _event_state_name(self._log_name),
                             _event_state(
                                 identity=checked_identity,
+                                evidence_store_id=self._evidence_store_id,
                                 events=self._events,
                                 status="poisoned",
                             ),
+                            error_type=EventIntegrityError,
                         )
                     except Exception:
                         pass
@@ -1229,32 +1836,48 @@ class EventStore:
                 raise
             self._events = new_events
             self._identity = checked_identity
+            try:
+                self._directory.assert_bound(EventIntegrityError)
+            except EventIntegrityError:
+                self._poison()
+                raise
             return event
 
     def _open_view(self) -> SealedEvidenceView:
-        events = _read_event_rows(self.path)
-        state, identity = _verify_anchor(self.path, events)
+        self._directory.assert_bound(EventIntegrityError)
+        events = _read_event_rows(self._directory, self._log_name)
+        state, identity = _verify_anchor(self._directory, self._log_name, events)
         if identity is None or self.artifacts.identity != identity:
             raise EventIntegrityError(
                 "event and artifact evidence have different identities"
             )
-        if state["status"] != "open" or _lstat(_seal_path(self.path)) is not None:
+        if state["evidence_store_id"] != self._evidence_store_id:
+            raise EventIntegrityError("event evidence_store_id changed")
+        if (
+            state["status"] != "open"
+            or _lstat(
+                self._directory,
+                _seal_name(self._log_name),
+                error_type=EventIntegrityError,
+            )
+            is not None
+        ):
             raise EventIntegrityError("open snapshot conflicts with final evidence")
         with self.artifacts._guard():
-            generation = self.artifacts._read_generation_unlocked()
-            if generation["status"] != "open":
-                raise EventIntegrityError(
-                    "open event log has a frozen artifact generation"
-                )
+            self.artifacts._validate_event_store_unlocked(
+                self._evidence_store_id, require_open=True
+            )
             refs = self.artifacts._list_refs_unlocked()
             _verify_referenced_artifacts_unlocked(self.artifacts, events, refs)
             artifact_root = _artifact_root(refs)
+        self._directory.assert_bound(EventIntegrityError)
         return SealedEvidenceView(
             identity=identity,
+            evidence_store_id=self._evidence_store_id,
             audience="full",
             events=events,
             artifacts=refs,
-            event_root_sha256=_event_root(events, identity),
+            event_root_sha256=_event_root(events, identity, self._evidence_store_id),
             artifact_root_sha256=artifact_root,
             is_final=False,
         )
@@ -1266,10 +1889,18 @@ class EventStore:
             if self._lifecycle == self.CLOSED:
                 raise EvidenceStoreError("event store is closed")
             if self._lifecycle == self.SEALED:
-                events = _read_event_rows(self.path)
-                state, identity = _verify_anchor(self.path, events)
+                events = _read_event_rows(self._directory, self._log_name)
+                state, identity = _verify_anchor(
+                    self._directory, self._log_name, events
+                )
                 return self._verify_final(
-                    self.path, self.artifacts, events, identity, state
+                    self._directory,
+                    self._log_name,
+                    self.artifacts,
+                    events,
+                    identity,
+                    self._evidence_store_id,
+                    state,
                 )
             return self._open_view()
 
@@ -1282,55 +1913,82 @@ class EventStore:
             if self._lifecycle == self.SEALED:
                 return self.snapshot()
             fd = self._require_appendable()
-            if _lstat(_seal_path(self.path)) is not None:
+            if (
+                _lstat(
+                    self._directory,
+                    _seal_name(self._log_name),
+                    error_type=EventIntegrityError,
+                )
+                is not None
+            ):
                 self._poison()
                 raise EventIntegrityError("unexpected pre-existing seal marker")
             try:
                 os.fsync(fd)
-                events = _read_event_rows(self.path)
+                events = _read_event_rows(self._directory, self._log_name)
                 _validate_joint_chain(
                     events, expected_identity=self._identity, require_visible=True
                 )
                 _atomic_replace(
-                    _event_state_path(self.path),
+                    self._directory,
+                    _event_state_name(self._log_name),
                     _event_state(
                         identity=self._identity,
+                        evidence_store_id=self._evidence_store_id,
                         events=events,
                         status="sealing",
                     ),
+                    error_type=EventIntegrityError,
                 )
                 with self.artifacts._guard():
+                    self.artifacts._validate_event_store_unlocked(
+                        self._evidence_store_id, require_open=True
+                    )
                     refs = self.artifacts._freeze_unlocked()
                     artifact_root = _artifact_root(refs)
-                    event_root = _event_root(events, self._identity)
+                    event_root = _event_root(
+                        events, self._identity, self._evidence_store_id
+                    )
                     marker = {
-                        "spec_version": "aeread.event_seal/1",
+                        "spec_version": "aeread.event_seal/2",
+                        "evidence_store_id": self._evidence_store_id,
                         "event_count": len(events),
                         "event_root_sha256": event_root,
                         "artifact_root_sha256": artifact_root,
                     }
                     temp = _exclusive_temp_write(
-                        self.path.parent, canonical_json_bytes(marker)
+                        self._directory, canonical_json_bytes(marker)
                     )
                     published = False
                     try:
-                        _publish_without_overwrite(temp, _seal_path(self.path))
+                        _publish_without_overwrite(
+                            self._directory,
+                            temp,
+                            _seal_name(self._log_name),
+                        )
                         published = True
-                        _fsync_directory(self.path.parent)
+                        _fsync_directory(self._directory)
                     finally:
-                        temp.unlink(missing_ok=True)
-                        _fsync_directory(self.path.parent)
+                        try:
+                            os.unlink(temp, dir_fd=self._directory.fd)
+                        except FileNotFoundError:
+                            pass
+                        _fsync_directory(self._directory)
                     if not published:
                         raise EventIntegrityError("seal marker publication failed")
                     _atomic_replace(
-                        _event_state_path(self.path),
+                        self._directory,
+                        _event_state_name(self._log_name),
                         _event_state(
                             identity=self._identity,
+                            evidence_store_id=self._evidence_store_id,
                             events=events,
                             status="sealed",
                             artifact_root_sha256=artifact_root,
                         ),
+                        error_type=EventIntegrityError,
                     )
+                self._directory.assert_bound(EventIntegrityError)
             except Exception as exc:
                 self._poison()
                 if isinstance(exc, EventIntegrityError):
@@ -1338,9 +1996,16 @@ class EventStore:
                 raise EventIntegrityError("evidence sealing failed closed") from exc
             self._lifecycle = self.SEALED
             self._release_fd()
-            state = _read_event_state(self.path)
+            self._release_owner_lease()
+            state = _read_event_state(self._directory, self._log_name)
             return self._verify_final(
-                self.path, self.artifacts, events, self._identity, state
+                self._directory,
+                self._log_name,
+                self.artifacts,
+                events,
+                self._identity,
+                self._evidence_store_id,
+                state,
             )
 
     def project(self, view: SealedEvidenceView, audience: str) -> SealedEvidenceView:
@@ -1358,26 +2023,43 @@ class EventStore:
             raise InvalidEvidenceInput(
                 "projection source belongs to a different evidence identity"
             )
+        if checked_view.evidence_store_id != self._evidence_store_id:
+            raise InvalidEvidenceInput(
+                "projection source belongs to a different evidence store"
+            )
         _validate_joint_chain(
             checked_view.events,
             expected_identity=checked_view.identity,
             require_visible=True,
         )
         if (
-            _event_root(checked_view.events, checked_view.identity)
+            _event_root(
+                checked_view.events,
+                checked_view.identity,
+                checked_view.evidence_store_id,
+            )
             != checked_view.event_root_sha256
         ):
             raise EventIntegrityError("source view event root is invalid")
         if _artifact_root(checked_view.artifacts) != checked_view.artifact_root_sha256:
             raise ArtifactIntegrityError("source view artifact root is invalid")
         if checked_view.is_final:
-            events = _read_event_rows(self.path)
-            state, durable_identity = _verify_anchor(self.path, events)
+            events = _read_event_rows(self._directory, self._log_name)
+            state, durable_identity = _verify_anchor(
+                self._directory, self._log_name, events
+            )
             durable = self._verify_final(
-                self.path, self.artifacts, events, durable_identity, state
+                self._directory,
+                self._log_name,
+                self.artifacts,
+                events,
+                durable_identity,
+                self._evidence_store_id,
+                state,
             )
             if (
                 checked_view.identity != durable.identity
+                or checked_view.evidence_store_id != durable.evidence_store_id
                 or checked_view.events != durable.events
                 or checked_view.artifacts != durable.artifacts
                 or checked_view.event_root_sha256 != durable.event_root_sha256
@@ -1424,6 +2106,7 @@ class EventStore:
         try:
             return SealedEvidenceView(
                 identity=checked_view.identity,
+                evidence_store_id=checked_view.evidence_store_id,
                 audience=checked_audience,
                 events=tuple(projected_events),
                 artifacts=projected_artifacts,
@@ -1439,9 +2122,17 @@ class EventStore:
             if self._lifecycle != self.POISONED:
                 self._lifecycle = self.CLOSED
             self._release_fd()
+            self._release_owner_lease()
+            self._directory.close()
 
     def __enter__(self) -> "EventStore":
         return self
 
     def __exit__(self, exc_type, exc, traceback) -> None:
         self.close()
+
+    def __del__(self) -> None:
+        try:
+            self.close()
+        except Exception:
+            pass

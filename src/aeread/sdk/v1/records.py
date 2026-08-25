@@ -300,6 +300,7 @@ class EpisodeEvent(StrictModel):
 
 class SealedEvidenceView(StrictModel):
     identity: EventIdentity
+    evidence_store_id: SDKStr
     audience: SDKStr = "full"
     events: tuple[EpisodeEvent, ...]
     artifacts: tuple[ArtifactRef, ...]
@@ -309,6 +310,8 @@ class SealedEvidenceView(StrictModel):
 
     @model_validator(mode="after")
     def validate_audience(self) -> "SealedEvidenceView":
+        if not re.fullmatch(r"[0-9a-f]{32}", self.evidence_store_id):
+            raise ValueError("evidence_store_id must be 32 lower-case hex")
         if self.audience not in {"full", "evaluator", "public"} and not re.fullmatch(
             r"seat:[A-Za-z0-9](?:[A-Za-z0-9_.-]*[A-Za-z0-9])?",
             self.audience,

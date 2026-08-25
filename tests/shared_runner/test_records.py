@@ -140,6 +140,7 @@ def _evidence() -> SealedEvidenceView:
             episode_id="episode-1",
             episode_attempt_id="attempt-1",
         ),
+        evidence_store_id="a" * 32,
         events=(),
         artifacts=(),
         event_root_sha256="2" * 64,
