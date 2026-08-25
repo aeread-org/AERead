@@ -965,6 +965,9 @@ def test_artifact_open_fails_closed_if_managed_ancestor_is_swapped_after_walk(
     with pytest.raises(ArtifactIntegrityError):
         ArtifactStore.open(root, identity=IDENTITY, trusted_root=tmp_path)
     assert swapped
+    # A retained directory FD may still publish into the displaced inode. The
+    # guarantee is that it never follows the replacement symlink target.
+    assert (displaced / "artifacts" / "generation.lock").is_file()
     assert tuple((external / "artifacts").iterdir()) == (
         external / "artifacts" / "sha256",
     )
@@ -1002,6 +1005,9 @@ def test_event_open_fails_closed_if_managed_ancestor_is_swapped_after_walk(
             identity=IDENTITY,
         )
     assert swapped
+    # Concurrent namespace rewrites are outside the retained-inode boundary;
+    # writes may land on that inode before the diagnostic binding check fails.
+    assert (displaced / "events.jsonl").is_file()
     assert tuple(external.iterdir()) == ()
 
 
@@ -1112,6 +1118,116 @@ def test_generation_writer_lease_rejects_a_concurrent_same_id_log_clone(
         first.close()
 
 
+def test_generation_path_binding_rejects_a_sequential_same_id_log_clone(
+    tmp_path: Path,
+) -> None:
+    first = event_store(tmp_path)
+    first.append("committed", IDENTITY, "public", {"value": 1})
+    first.close()
+    clone = tmp_path / "clone.jsonl"
+    clone_state = tmp_path / "clone.jsonl.state.json"
+    shutil.copy2(tmp_path / "events.jsonl", clone)
+    shutil.copy2(tmp_path / "events.jsonl.state.json", clone_state)
+    before = (clone.read_bytes(), clone_state.read_bytes())
+    clone_artifacts = ArtifactStore.open(
+        tmp_path / "evidence", identity=IDENTITY, trusted_root=tmp_path
+    )
+    opened: EventStore | None = None
+
+    try:
+        with pytest.raises(ConcurrentWriterError):
+            opened = EventStore.open(
+                clone,
+                artifacts=clone_artifacts,
+                clock=fixed_clock,
+                identity=IDENTITY,
+            )
+    finally:
+        if opened is not None:
+            opened.close()
+        clone_artifacts.close()
+
+    assert (clone.read_bytes(), clone_state.read_bytes()) == before
+
+
+def test_pending_pre_log_claim_recovers_original_id_on_same_path(
+    tmp_path: Path, monkeypatch
+) -> None:
+    artifacts = artifact_store(tmp_path)
+    real_open = os.open
+    failed = False
+
+    def fail_first_event_creation(path, flags, mode=0o777, *, dir_fd=None):
+        nonlocal failed
+        if not failed and Path(path).name == "events.jsonl" and flags & os.O_CREAT:
+            failed = True
+            raise OSError("simulated crash before event-log creation")
+        return real_open(path, flags, mode, dir_fd=dir_fd)
+
+    monkeypatch.setattr("aeread.runner.event_store.os.open", fail_first_event_creation)
+    with pytest.raises(OSError, match="simulated crash before event-log creation"):
+        EventStore.open(
+            tmp_path / "events.jsonl",
+            artifacts=artifacts,
+            clock=fixed_clock,
+            identity=IDENTITY,
+        )
+
+    generation = json.loads(
+        (tmp_path / "evidence" / "artifacts" / "generation.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    claimed_id = generation["evidence_store_id"]
+    assert not (tmp_path / "events.jsonl").exists()
+    assert not (tmp_path / "events.jsonl.state.json").exists()
+
+    recovered = EventStore.open(
+        tmp_path / "events.jsonl",
+        artifacts=artifacts,
+        clock=fixed_clock,
+        identity=IDENTITY,
+    )
+    assert recovered.snapshot().evidence_store_id == claimed_id
+    recovered.close()
+
+
+def test_pending_claim_with_partial_event_file_fails_closed(
+    tmp_path: Path, monkeypatch
+) -> None:
+    artifacts = artifact_store(tmp_path)
+    real_open = os.open
+    failed = False
+
+    def fail_first_event_creation(path, flags, mode=0o777, *, dir_fd=None):
+        nonlocal failed
+        if not failed and Path(path).name == "events.jsonl" and flags & os.O_CREAT:
+            failed = True
+            raise OSError("simulated crash before event-log creation")
+        return real_open(path, flags, mode, dir_fd=dir_fd)
+
+    monkeypatch.setattr("aeread.runner.event_store.os.open", fail_first_event_creation)
+    with pytest.raises(OSError, match="simulated crash before event-log creation"):
+        EventStore.open(
+            tmp_path / "events.jsonl",
+            artifacts=artifacts,
+            clock=fixed_clock,
+            identity=IDENTITY,
+        )
+
+    partial = b'{"partial"'
+    (tmp_path / "events.jsonl").write_bytes(partial)
+    with pytest.raises(EventIntegrityError, match="missing its durable state anchor"):
+        EventStore.open(
+            tmp_path / "events.jsonl",
+            artifacts=artifacts,
+            clock=fixed_clock,
+            identity=IDENTITY,
+        )
+    assert (tmp_path / "events.jsonl").read_bytes() == partial
+    assert not (tmp_path / "events.jsonl.state.json").exists()
+
+
 def test_append_rejects_an_artifact_generation_frozen_behind_the_writer(
     tmp_path: Path,
 ) -> None:
@@ -1163,19 +1279,10 @@ def test_trusted_root_is_required_existing_and_has_no_failure_side_effect(
     assert not missing.exists()
 
 
-def test_evidence_store_id_and_root_survive_closed_same_generation_relocation(
+def test_same_generation_event_log_rename_is_rejected(
     tmp_path: Path,
 ) -> None:
-    artifacts = ArtifactStore.open(
-        tmp_path / "evidence", identity=IDENTITY, trusted_root=tmp_path
-    )
-    first = EventStore.open(
-        tmp_path / "events.jsonl",
-        artifacts=artifacts,
-        clock=fixed_clock,
-        identity=IDENTITY,
-    )
-    first_view = first.snapshot()
+    first = event_store(tmp_path)
     first.close()
     relocated_path = tmp_path / "relocated-events.jsonl"
     (tmp_path / "events.jsonl").rename(relocated_path)
@@ -1183,11 +1290,45 @@ def test_evidence_store_id_and_root_survive_closed_same_generation_relocation(
         tmp_path / "relocated-events.jsonl.state.json"
     )
 
+    reopened_artifacts = ArtifactStore.open(
+        tmp_path / "evidence", identity=IDENTITY, trusted_root=tmp_path
+    )
+    with pytest.raises(ConcurrentWriterError):
+        EventStore.open(
+            relocated_path,
+            artifacts=reopened_artifacts,
+            clock=fixed_clock,
+            identity=IDENTITY,
+        )
+    reopened_artifacts.close()
+
+
+def test_evidence_store_id_and_root_survive_closed_whole_tree_relocation(
+    tmp_path: Path,
+) -> None:
+    original = tmp_path / "original-root"
+    original.mkdir()
+    artifacts = ArtifactStore.open(
+        original / "evidence", identity=IDENTITY, trusted_root=original
+    )
+    first = EventStore.open(
+        original / "run" / "events.jsonl",
+        artifacts=artifacts,
+        clock=fixed_clock,
+        identity=IDENTITY,
+    )
+    first_view = first.snapshot()
+    first.close()
+    artifacts.close()
+    relocated = tmp_path / "relocated-root"
+    original.rename(relocated)
+
+    reopened_artifacts = ArtifactStore.open(
+        relocated / "evidence", identity=IDENTITY, trusted_root=relocated
+    )
     reopened = EventStore.open(
-        relocated_path,
-        artifacts=ArtifactStore.open(
-            tmp_path / "evidence", identity=IDENTITY, trusted_root=tmp_path
-        ),
+        relocated / "run" / "events.jsonl",
+        artifacts=reopened_artifacts,
         clock=fixed_clock,
         identity=IDENTITY,
     )
@@ -1199,6 +1340,8 @@ def test_evidence_store_id_and_root_survive_closed_same_generation_relocation(
     assert reopened.project(reopened_view, "public").evidence_store_id == (
         first_view.evidence_store_id
     )
+    reopened.close()
+    reopened_artifacts.close()
 
 
 def test_store_close_is_idempotent_and_releases_owned_directory_capabilities(

@@ -136,7 +136,12 @@ def _leaf_name(name: str) -> str:
 
 
 class _ManagedRoot:
-    """Caller-declared trusted root; only this boundary may resolve aliases."""
+    """Retained trusted-root inode; only admission may resolve platform aliases.
+
+    Descendant operations remain anchored to this inode even if a same-user or
+    administrator concurrently rewrites the surrounding namespace. Lexical path
+    checks below are admission and diagnostics, not post-open containment.
+    """
 
     def __init__(self, lexical_path: Path, canonical_path: Path, fd: int) -> None:
         self.lexical_path = lexical_path
@@ -174,20 +179,11 @@ class _ManagedRoot:
     ) -> "_ManagedDirectory":
         if self._closed:
             raise EvidenceStoreError("trusted root anchor is closed")
-        if not isinstance(path, Path):
-            raise InvalidEvidenceInput("managed directory must be a pathlib.Path")
-        lexical = Path(os.path.abspath(path))
-        try:
-            relative = lexical.relative_to(self.lexical_path)
-        except ValueError as exc:
-            raise InvalidEvidenceInput(
-                "managed path must remain beneath trusted_root"
-            ) from exc
+        lexical, relative = self.relative_path(path)
         fd = os.dup(self._fd)
         consumed: list[str] = []
         try:
-            for component in relative.parts:
-                _leaf_name(component)
+            for component in relative:
                 try:
                     child_fd = os.open(
                         component,
@@ -220,6 +216,23 @@ class _ManagedRoot:
         except Exception:
             os.close(fd)
             raise
+
+    def relative_path(self, path: Path) -> tuple[Path, tuple[str, ...]]:
+        """Return the normalized lexical path admitted beneath this root."""
+
+        if self._closed:
+            raise EvidenceStoreError("trusted root anchor is closed")
+        if not isinstance(path, Path):
+            raise InvalidEvidenceInput("managed path must be a pathlib.Path")
+        lexical = Path(os.path.abspath(path))
+        try:
+            relative = lexical.relative_to(self.lexical_path)
+        except ValueError as exc:
+            raise InvalidEvidenceInput(
+                "managed path must be lexically beneath trusted_root at admission"
+            ) from exc
+        parts = tuple(_leaf_name(component) for component in relative.parts)
+        return lexical, parts
 
 
 class _ManagedDirectory:
@@ -416,12 +429,14 @@ def _canonical_object(
 class ArtifactStore:
     """Content-addressed artifacts beneath one explicit trusted filesystem root.
 
-    ``trusted_root`` is an existing caller-controlled boundary. Its platform aliases
-    may be resolved once; every managed descendant remains no-follow and dir-fd
-    anchored. This object owns those anchor descriptors until :meth:`close`.
+    ``trusted_root`` is an existing caller-controlled inode boundary. Its platform
+    aliases may be resolved once; descendants are then no-follow and dir-fd anchored.
+    A same-user/admin rename may move that retained inode, so lexical binding checks
+    are diagnostics rather than portable namespace-containment guarantees. This
+    object owns the anchor descriptors until :meth:`close`.
     """
 
-    _GENERATION_VERSION = "aeread.artifact_generation/2"
+    _GENERATION_VERSION = "aeread.artifact_generation/3"
     _LOCK_NAME = "generation.lock"
     _STATE_NAME = "generation.json"
     _OWNER_LOCK_NAME = "event-owner.lock"
@@ -523,6 +538,8 @@ class ArtifactStore:
                             "spec_version": cls._GENERATION_VERSION,
                             "identity": checked_identity.model_dump(mode="json"),
                             "evidence_store_id": None,
+                            "event_log_relpath": None,
+                            "event_store_state": "unclaimed",
                             "status": "open",
                             "artifact_count": 0,
                             "artifact_root_sha256": None,
@@ -631,6 +648,8 @@ class ArtifactStore:
                 "spec_version",
                 "identity",
                 "evidence_store_id",
+                "event_log_relpath",
+                "event_store_state",
                 "status",
                 "artifact_count",
                 "artifact_root_sha256",
@@ -644,6 +663,8 @@ class ArtifactStore:
         count = value.get("artifact_count")
         root = value.get("artifact_root_sha256")
         store_id = value.get("evidence_store_id")
+        event_log_relpath = value.get("event_log_relpath")
+        event_store_state = value.get("event_store_state")
         try:
             owner = EventIdentity.model_validate(value.get("identity"))
         except Exception as exc:
@@ -660,6 +681,23 @@ class ArtifactStore:
             raise ArtifactIntegrityError(
                 "artifact generation evidence_store_id is invalid"
             )
+        if event_store_state not in {"unclaimed", "pending", "bound"}:
+            raise ArtifactIntegrityError(
+                "artifact generation event-store state is invalid"
+            )
+        if event_store_state == "unclaimed":
+            if store_id is not None or event_log_relpath is not None:
+                raise ArtifactIntegrityError(
+                    "unclaimed artifact generation cannot name an event store"
+                )
+        elif (
+            store_id is None
+            or type(event_log_relpath) is not str
+            or not self._is_canonical_event_relpath(event_log_relpath)
+        ):
+            raise ArtifactIntegrityError(
+                "claimed artifact generation has an invalid event-log path"
+            )
         if status not in {"open", "sealed"} or type(count) is not int or count < 0:
             raise ArtifactIntegrityError("artifact generation anchor is invalid")
         if status == "open" and (count != 0 or root is not None):
@@ -671,6 +709,32 @@ class ArtifactStore:
         ):
             raise ArtifactIntegrityError(
                 "sealed artifact generation needs a valid root"
+            )
+        if status == "sealed" and event_store_state != "bound":
+            raise ArtifactIntegrityError(
+                "sealed artifact generation requires a bound event store"
+            )
+        return value
+
+    @staticmethod
+    def _is_canonical_event_relpath(value: str) -> bool:
+        if not value or value.startswith("/") or value.endswith("/"):
+            return False
+        parts = value.split("/")
+        try:
+            return all(_leaf_name(part) == part for part in parts)
+        except InvalidEvidenceInput:
+            return False
+
+    def _event_log_relpath(self, path: Path) -> str:
+        self._require_open()
+        _, parts = self._trusted.relative_path(path)
+        if not parts:
+            raise InvalidEvidenceInput("event log must be below trusted_root")
+        value = "/".join(parts)
+        if not self._is_canonical_event_relpath(value):
+            raise InvalidEvidenceInput(
+                "event log path cannot be represented canonically"
             )
         return value
 
@@ -865,9 +929,9 @@ class ArtifactStore:
 
     def _freeze_unlocked(self) -> tuple[ArtifactRef, ...]:
         generation = self._read_generation_unlocked()
-        if generation["evidence_store_id"] is None:
+        if generation["event_store_state"] != "bound":
             raise ArtifactIntegrityError(
-                "artifact generation must be claimed before final freeze"
+                "artifact generation must bind its event log before final freeze"
             )
         refs = self._list_refs_unlocked()
         root = _artifact_root(refs)
@@ -883,6 +947,8 @@ class ArtifactStore:
                 "spec_version": self._GENERATION_VERSION,
                 "identity": self.identity.model_dump(mode="json"),
                 "evidence_store_id": generation["evidence_store_id"],
+                "event_log_relpath": generation["event_log_relpath"],
+                "event_store_state": generation["event_store_state"],
                 "status": "sealed",
                 "artifact_count": len(refs),
                 "artifact_root_sha256": root,
@@ -890,33 +956,108 @@ class ArtifactStore:
         )
         return refs
 
-    def _claim_event_store_unlocked(self, evidence_store_id: str) -> dict[str, object]:
-        if type(evidence_store_id) is not str or not re.fullmatch(
-            r"[0-9a-f]{32}", evidence_store_id
+    def _prepare_event_store_unlocked(
+        self, event_log_relpath: str, existing_store_id: str | None
+    ) -> tuple[str, dict[str, object]]:
+        """Claim or recover one pending path before any event-path side effect."""
+
+        if not self._is_canonical_event_relpath(event_log_relpath):
+            raise InvalidEvidenceInput("event log relative path is invalid")
+        if existing_store_id is not None and (
+            type(existing_store_id) is not str
+            or not _STORE_ID_RE.fullmatch(existing_store_id)
         ):
             raise InvalidEvidenceInput("evidence_store_id must be 32 lower-case hex")
         generation = self._read_generation_unlocked()
-        claimed = generation["evidence_store_id"]
-        if claimed is not None and claimed != evidence_store_id:
-            raise ConcurrentWriterError(
-                "artifact generation is claimed by another event store"
-            )
-        if claimed is None:
+        claim_state = generation["event_store_state"]
+        claimed_path = generation["event_log_relpath"]
+        claimed_id = generation["evidence_store_id"]
+        if claim_state == "unclaimed":
+            if existing_store_id is not None:
+                raise ArtifactIntegrityError(
+                    "event anchors exist without an artifact-generation claim"
+                )
             if generation["status"] != "open":
                 raise EvidenceSealedError(
                     "sealed artifact generation has no event-store claim"
                 )
+            claimed_id = uuid.uuid4().hex
             updated = dict(generation)
             updated["identity"] = self.identity.model_dump(mode="json")
-            updated["evidence_store_id"] = evidence_store_id
+            updated["evidence_store_id"] = claimed_id
+            updated["event_log_relpath"] = event_log_relpath
+            updated["event_store_state"] = "pending"
+            self._write_generation_unlocked(updated)
+            generation = self._read_generation_unlocked()
+            return claimed_id, generation
+        assert isinstance(claimed_id, str)
+        if claimed_path != event_log_relpath:
+            raise ConcurrentWriterError(
+                "artifact generation is bound to another event-log path"
+            )
+        if claim_state == "pending":
+            if existing_store_id is not None and existing_store_id != claimed_id:
+                raise EventIntegrityError(
+                    "pending event state has the wrong evidence_store_id"
+                )
+            return claimed_id, generation
+        if existing_store_id is None:
+            raise EventIntegrityError(
+                "bound event log or state is missing at its claimed path"
+            )
+        if existing_store_id != claimed_id:
+            raise EventIntegrityError(
+                "event state has the wrong generation evidence_store_id"
+            )
+        return claimed_id, generation
+
+    def _bind_event_store_unlocked(
+        self, evidence_store_id: str, event_log_relpath: str
+    ) -> dict[str, object]:
+        generation = self._validate_event_store_unlocked(
+            evidence_store_id,
+            event_log_relpath,
+            require_open=False,
+            allow_pending=True,
+        )
+        if generation["event_store_state"] == "pending":
+            if generation["status"] != "open":
+                raise ArtifactIntegrityError(
+                    "pending event-store claim cannot be bound after freeze"
+                )
+            updated = dict(generation)
+            updated["event_store_state"] = "bound"
             self._write_generation_unlocked(updated)
             generation = self._read_generation_unlocked()
         return generation
 
     def _validate_event_store_unlocked(
-        self, evidence_store_id: str, *, require_open: bool
+        self,
+        evidence_store_id: str,
+        event_log_relpath: str,
+        *,
+        require_open: bool,
+        allow_pending: bool = False,
     ) -> dict[str, object]:
-        generation = self._claim_event_store_unlocked(evidence_store_id)
+        if type(evidence_store_id) is not str or not _STORE_ID_RE.fullmatch(
+            evidence_store_id
+        ):
+            raise InvalidEvidenceInput("evidence_store_id must be 32 lower-case hex")
+        if not self._is_canonical_event_relpath(event_log_relpath):
+            raise InvalidEvidenceInput("event log relative path is invalid")
+        generation = self._read_generation_unlocked()
+        if generation["evidence_store_id"] != evidence_store_id:
+            raise ConcurrentWriterError(
+                "artifact generation is claimed by another event store"
+            )
+        if generation["event_log_relpath"] != event_log_relpath:
+            raise ConcurrentWriterError(
+                "artifact generation is bound to another event-log path"
+            )
+        if generation["event_store_state"] != "bound" and not (
+            allow_pending and generation["event_store_state"] == "pending"
+        ):
+            raise ArtifactIntegrityError("artifact generation event log is not bound")
         if require_open and generation["status"] != "open":
             raise EvidenceSealedError("artifact generation has been sealed")
         return generation
@@ -1309,11 +1450,13 @@ def _seal_marker(directory: _ManagedDirectory, log_name: str) -> dict[str, objec
 
 
 class EventStore:
-    """Single-writer log claimed by one path-independent evidence-store ID.
+    """Single-writer log durably claimed by ID and trusted-root-relative path.
 
     The retained parent capability and generation-wide writer lease are owned by
-    this instance. Relocation is supported only while closed, and never hashes or
-    persists the source path.
+    this instance. V0 permits whole-tree relocation while closed because the
+    relative path remains stable; renaming/rebinding the log within a generation
+    is unsupported. A same-user/admin namespace rewrite may move the retained
+    parent inode, but operations never follow its replacement symlink target.
     """
 
     OPEN = "open"
@@ -1333,6 +1476,7 @@ class EventStore:
         events: tuple[EpisodeEvent, ...],
         identity: EventIdentity | None,
         evidence_store_id: str,
+        event_log_relpath: str,
         lifecycle: str,
     ) -> None:
         self.path = path
@@ -1345,6 +1489,7 @@ class EventStore:
         self._events = events
         self._identity = identity
         self._evidence_store_id = evidence_store_id
+        self._event_log_relpath = event_log_relpath
         self._lifecycle = lifecycle
         self._thread_lock = threading.RLock()
 
@@ -1376,6 +1521,7 @@ class EventStore:
                 "event and artifact stores must share one identity"
             )
         log_name = _leaf_name(path.name)
+        event_log_relpath = artifacts._event_log_relpath(path)
         directory: _ManagedDirectory | None
         try:
             directory = artifacts._directory_for(
@@ -1419,16 +1565,16 @@ class EventStore:
                 )
             if state_info is not None:
                 existing_state = _read_event_state(directory, log_name)
-        evidence_store_id = (
-            existing_state["evidence_store_id"]
-            if existing_state is not None
-            else uuid.uuid4().hex
+        existing_store_id = (
+            existing_state["evidence_store_id"] if existing_state is not None else None
         )
-        assert isinstance(evidence_store_id, str)
+        assert existing_store_id is None or isinstance(existing_store_id, str)
         owner_lease_fd: int | None = None
         try:
             with artifacts._guard():
-                generation = artifacts._claim_event_store_unlocked(evidence_store_id)
+                evidence_store_id, generation = artifacts._prepare_event_store_unlocked(
+                    event_log_relpath, existing_store_id
+                )
                 if generation["status"] == "open":
                     owner_lease_fd = artifacts._acquire_owner_lease_unlocked()
                 elif existing_state is None or existing_state["status"] != "sealed":
@@ -1527,6 +1673,7 @@ class EventStore:
                     events,
                     anchored_identity,
                     evidence_store_id,
+                    event_log_relpath,
                     state,
                 )
                 fcntl.flock(fd, fcntl.LOCK_UN)
@@ -1544,13 +1691,19 @@ class EventStore:
                     events,
                     anchored_identity,
                     evidence_store_id,
+                    event_log_relpath,
                     cls.SEALED,
                 )
             if marker_info is not None:
                 raise EventIntegrityError("open event state conflicts with seal marker")
             with artifacts._guard():
+                artifacts._bind_event_store_unlocked(
+                    evidence_store_id, event_log_relpath
+                )
                 artifacts._validate_event_store_unlocked(
-                    evidence_store_id, require_open=True
+                    evidence_store_id,
+                    event_log_relpath,
+                    require_open=True,
                 )
             directory.assert_bound(EventIntegrityError)
             return cls(
@@ -1564,6 +1717,7 @@ class EventStore:
                 events,
                 anchored_identity,
                 evidence_store_id,
+                event_log_relpath,
                 cls.OPEN,
             )
         except Exception:
@@ -1589,6 +1743,7 @@ class EventStore:
         events: tuple[EpisodeEvent, ...],
         identity: EventIdentity | None,
         evidence_store_id: str,
+        event_log_relpath: str,
         state: Mapping[str, object],
     ) -> SealedEvidenceView:
         if identity is None:
@@ -1602,7 +1757,9 @@ class EventStore:
         marker = _seal_marker(directory, log_name)
         with artifacts._guard():
             generation = artifacts._validate_event_store_unlocked(
-                evidence_store_id, require_open=False
+                evidence_store_id,
+                event_log_relpath,
+                require_open=False,
             )
             if generation["status"] != "sealed":
                 raise ArtifactIntegrityError("final evidence requires frozen artifacts")
@@ -1641,6 +1798,7 @@ class EventStore:
     ) -> tuple[EpisodeEvent, ...]:
         if not isinstance(path, Path) or not isinstance(artifacts, ArtifactStore):
             raise InvalidEvidenceInput("invalid EventStore.verify input")
+        event_log_relpath = artifacts._event_log_relpath(path)
         directory = artifacts._directory_for(
             path.parent, create=False, error_type=EventIntegrityError
         )
@@ -1669,6 +1827,7 @@ class EventStore:
                     events,
                     identity,
                     store_id,
+                    event_log_relpath,
                     state,
                 )
             elif marker_info is not None:
@@ -1676,7 +1835,9 @@ class EventStore:
             else:
                 with artifacts._guard():
                     artifacts._validate_event_store_unlocked(
-                        store_id, require_open=True
+                        store_id,
+                        event_log_relpath,
+                        require_open=True,
                     )
                     refs = artifacts._list_refs_unlocked()
                     _verify_referenced_artifacts_unlocked(artifacts, events, refs)
@@ -1740,7 +1901,9 @@ class EventStore:
             try:
                 with self.artifacts._guard():
                     self.artifacts._validate_event_store_unlocked(
-                        self._evidence_store_id, require_open=True
+                        self._evidence_store_id,
+                        self._event_log_relpath,
+                        require_open=True,
                     )
             except EvidenceSealedError:
                 self._poison()
@@ -1865,7 +2028,9 @@ class EventStore:
             raise EventIntegrityError("open snapshot conflicts with final evidence")
         with self.artifacts._guard():
             self.artifacts._validate_event_store_unlocked(
-                self._evidence_store_id, require_open=True
+                self._evidence_store_id,
+                self._event_log_relpath,
+                require_open=True,
             )
             refs = self.artifacts._list_refs_unlocked()
             _verify_referenced_artifacts_unlocked(self.artifacts, events, refs)
@@ -1900,6 +2065,7 @@ class EventStore:
                     events,
                     identity,
                     self._evidence_store_id,
+                    self._event_log_relpath,
                     state,
                 )
             return self._open_view()
@@ -1942,7 +2108,9 @@ class EventStore:
                 )
                 with self.artifacts._guard():
                     self.artifacts._validate_event_store_unlocked(
-                        self._evidence_store_id, require_open=True
+                        self._evidence_store_id,
+                        self._event_log_relpath,
+                        require_open=True,
                     )
                     refs = self.artifacts._freeze_unlocked()
                     artifact_root = _artifact_root(refs)
@@ -2005,6 +2173,7 @@ class EventStore:
                 events,
                 self._identity,
                 self._evidence_store_id,
+                self._event_log_relpath,
                 state,
             )
 
@@ -2055,6 +2224,7 @@ class EventStore:
                 events,
                 durable_identity,
                 self._evidence_store_id,
+                self._event_log_relpath,
                 state,
             )
             if (
