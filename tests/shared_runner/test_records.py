@@ -872,19 +872,22 @@ def test_sdk_import_does_not_load_family_or_integration_modules() -> None:
     code = """
 import sys
 
-before = set(sys.modules)
+def unexpected_aeread_modules(modules):
+    return sorted(
+        name
+        for name in modules
+        if name.startswith('aeread.')
+        and name != 'aeread.sdk'
+        and not name.startswith('aeread.sdk.')
+    )
+
+unexpected_before = unexpected_aeread_modules(sys.modules)
+assert not unexpected_before, ('pre-import aeread modules', unexpected_before)
+
 import aeread.sdk.v1
 
-loaded = set(sys.modules) - before
-allowed_aeread = {
-    name
-    for name in loaded
-    if name == 'aeread' or name == 'aeread.sdk' or name.startswith('aeread.sdk.')
-}
-unexpected_aeread = sorted(
-    name for name in loaded if name.startswith('aeread.') and name not in allowed_aeread
-)
-assert not unexpected_aeread, unexpected_aeread
+unexpected_after = unexpected_aeread_modules(sys.modules)
+assert not unexpected_after, ('post-import aeread modules', unexpected_after)
 
 for forbidden_prefix in (
     'harbor',
@@ -893,11 +896,31 @@ for forbidden_prefix in (
     'google',
     'anthropic',
 ):
-    assert not any(name.startswith(forbidden_prefix) for name in loaded), forbidden_prefix
+    assert not any(
+        name.startswith(forbidden_prefix) for name in sys.modules
+    ), forbidden_prefix
 """
     repo_root = Path(__file__).resolve().parents[2]
     env = {**os.environ, "PYTHONPATH": str(repo_root / "src")}
     subprocess.run([sys.executable, "-c", code], check=True, env=env)
+
+    polluted_code = (
+        """
+import sys
+import types
+sys.modules['aeread.nonir_classifier'] = types.ModuleType('aeread.nonir_classifier')
+"""
+        + code
+    )
+    polluted = subprocess.run(
+        [sys.executable, "-c", polluted_code],
+        check=False,
+        capture_output=True,
+        env=env,
+        text=True,
+    )
+    assert polluted.returncode != 0
+    assert "pre-import aeread modules" in polluted.stderr
 
 
 def test_legacy_measurement_schema_and_content_hashes_are_unchanged() -> None:
@@ -908,7 +931,7 @@ def test_legacy_measurement_schema_and_content_hashes_are_unchanged() -> None:
         OptimizableOutcomeMeasurementSpec,
         PropertyAnswerMeasurementSpec,
     )
-    from tests.shared_runner.fakes import (
+    from .fakes import (
         fake_implementation,
         fake_resolution_inputs,
     )
