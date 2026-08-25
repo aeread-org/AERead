@@ -1164,6 +1164,12 @@ def test_model_construct_plan_identity_bypasses_fail_closed(
             cell_state.pop(field)
         else:
             cell_state[field] = replacement
+        pending_cell = type(cell).model_construct(**cell_state)
+        cell_basis = pending_cell.model_dump(
+            mode="python", exclude={"cell_id"}, warnings=False
+        )
+        cell_digest = content_sha256(cell_basis)
+        cell_state["cell_id"] = "cell-" + cell_digest[:24]
         forged_cell = type(cell).model_construct(**cell_state)
         plan_state["cells"] = (forged_cell, *plan.cells[1:])
         identity_holder = forged_cell
@@ -1190,6 +1196,13 @@ def test_model_construct_plan_identity_bypasses_fail_closed(
     forged = type(plan).model_construct(**plan_state)
     if target == "plan":
         identity_holder = forged
+    else:
+        forged_cell_basis = identity_holder.model_dump(
+            mode="python", exclude={"cell_id"}, warnings=False
+        )
+        assert identity_holder.cell_id == (
+            "cell-" + content_sha256(forged_cell_basis)[:24]
+        )
 
     if replacement is _MISSING_IDENTITY_FIELD:
         assert not hasattr(identity_holder, field)
