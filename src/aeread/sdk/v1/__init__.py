@@ -1,6 +1,13 @@
 """Stable v1 environment-authoring API for AERead."""
 
-from .base import StrictModel, canonical_json_bytes, content_sha256
+from .base import (
+    FrozenJSONDict,
+    JSONObject,
+    JSONValue,
+    StrictModel,
+    canonical_json_bytes,
+    content_sha256,
+)
 from .errors import BundleValidationError, CanonicalizationError, SDKError
 from .records import (
     ActionBundle,
@@ -13,6 +20,7 @@ from .records import (
     CallAttemptStart,
     CallAttemptToken,
     CanonicalResponse,
+    ComparisonBaselineReference,
     DecisionSlot,
     EpisodeEvent,
     EpisodeExecutionResult,
@@ -23,6 +31,8 @@ from .records import (
     LegalityResult,
     MetricValue,
     ObservationEnvelope,
+    OptimizationBoundReference,
+    OutcomeSupportReference,
     ParseResult,
     PhaseGraph,
     PhaseSpec,
@@ -52,16 +62,22 @@ __all__ = [
     "CallAttemptToken",
     "CanonicalResponse",
     "CanonicalizationError",
+    "ComparisonBaselineReference",
     "DecisionSlot",
     "EpisodeEvent",
     "EpisodeExecutionResult",
     "EvaluationReceipt",
     "EventIdentity",
     "FamilyOutcome",
+    "FrozenJSONDict",
     "ImplementationRef",
     "LegalityResult",
+    "JSONObject",
+    "JSONValue",
     "MetricValue",
     "ObservationEnvelope",
+    "OptimizationBoundReference",
+    "OutcomeSupportReference",
     "ParseResult",
     "PhaseGraph",
     "PhaseSpec",

@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-from typing import Literal
+from typing import Annotated, Literal
 
 from pydantic import Field, FiniteFloat, model_validator
 
-from .base import StrictModel
+from .base import ImmutableMapping, JSONObject, StrictModel
 from .errors import BundleValidationError
 
 
@@ -20,8 +20,8 @@ class PhaseSpec(StrictModel):
     phase_id: str
     actor_selector: str
     mode: Literal["single", "sequential", "simultaneous"]
-    observation_schema_by_role: dict[str, str]
-    action_schema_by_role: dict[str, str]
+    observation_schema_by_role: ImmutableMapping[str]
+    action_schema_by_role: ImmutableMapping[str]
     max_logical_actions: int = Field(ge=1)
     invalid_action_policy: str
     next_phases: tuple[str, ...]
@@ -87,7 +87,7 @@ class ActionEnvelope(StrictModel):
     channel_id: str
     actor_seat_id: str
     sequence_index: int = Field(ge=0)
-    payload: dict[str, object]
+    payload: JSONObject
 
 
 class ActionBundle(StrictModel):
@@ -164,7 +164,7 @@ def validate_action_bundle(
 class ObservationEnvelope(StrictModel):
     schema_ref: str
     slot_id: str
-    visible_payload: dict[str, object]
+    visible_payload: JSONObject
     public_event_refs: tuple[str, ...]
     private_event_refs: tuple[str, ...]
 
@@ -177,9 +177,9 @@ class ArtifactRef(StrictModel):
 
 class CanonicalResponse(StrictModel):
     content: str | None = None
-    tool_calls: tuple[dict[str, object], ...] = ()
+    tool_calls: tuple[JSONObject, ...] = ()
     finish_reason: str | None = None
-    usage: dict[str, int] = Field(default_factory=dict)
+    usage: ImmutableMapping[int] = Field(default_factory=dict)
     raw_artifact_ref: ArtifactRef | None = None
     harness_trace_ref: ArtifactRef | None = None
 
@@ -198,7 +198,7 @@ class EpisodeEvent(StrictModel):
     occurred_at: str
     identity: EventIdentity
     visibility: str
-    payload: dict[str, object]
+    payload: JSONObject
     prior_event_hash: str | None = None
     event_hash: str
 
@@ -217,7 +217,7 @@ class AgentContext(StrictModel):
     model: str
     harness: str
     runtime: str
-    metadata: dict[str, object] = Field(default_factory=dict)
+    metadata: JSONObject = Field(default_factory=dict)
 
 
 class AttemptBudget(StrictModel):
@@ -299,27 +299,27 @@ class LegalityResult(StrictModel):
 
 
 class TransitionResult(StrictModel):
-    state: dict[str, object]
+    state: JSONObject
     next_phase_id: str | None
-    evidence: dict[str, object] = Field(default_factory=dict)
+    evidence: JSONObject = Field(default_factory=dict)
 
 
 class TerminalResult(StrictModel):
     status: Literal["terminal"]
     reason: str
-    final_state: dict[str, object]
+    final_state: JSONObject
 
 
 class FamilyOutcome(StrictModel):
     terminal_reason: str
-    payload: dict[str, object]
-    utility_by_seat: dict[str, FiniteFloat] = Field(default_factory=dict)
+    payload: JSONObject
+    utility_by_seat: ImmutableMapping[FiniteFloat] = Field(default_factory=dict)
 
 
 class MetricValue(StrictModel):
     value: FiniteFloat
     unit: str | None = None
-    metadata: dict[str, object] = Field(default_factory=dict)
+    metadata: JSONObject = Field(default_factory=dict)
 
 
 class ImplementationRef(StrictModel):
@@ -328,12 +328,51 @@ class ImplementationRef(StrictModel):
     content_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
 
 
-class ReferenceValue(StrictModel):
-    kind: str
+class OptimizationBoundReference(StrictModel):
+    kind: Literal["optimum_lower_bound", "optimum_upper_bound"]
     value: FiniteFloat
-    unit: str | None = None
+    objective_id: str
+    objective_version: str
+    units: str
+    direction: Literal["maximize", "minimize"]
+    feasible_set: str
+    information_set: str
+    horizon: str
+    opponent_condition: str
+    proof_type: str
     implementation: ImplementationRef
-    validity_domain: str | None = None
+    validity_domain: str
+
+
+class ComparisonBaselineReference(StrictModel):
+    kind: Literal["comparison_baseline"]
+    value: FiniteFloat
+    comparison_id: str
+    comparison_version: str
+    units: str
+    direction: Literal["maximize", "minimize"]
+    provenance: JSONObject
+    applicability: str
+    implementation: ImplementationRef
+
+
+class OutcomeSupportReference(StrictModel):
+    kind: Literal["outcome_support_min", "outcome_support_max"]
+    value: FiniteFloat
+    objective_id: str
+    objective_version: str
+    units: str
+    direction: Literal["maximize", "minimize"]
+    proof_type: str
+    applicability: str
+
+
+ReferenceValue = Annotated[
+    OptimizationBoundReference
+    | ComparisonBaselineReference
+    | OutcomeSupportReference,
+    Field(discriminator="kind"),
+]
 
 
 class ValidityReport(StrictModel):
@@ -347,11 +386,11 @@ class ScoreEnvelope(StrictModel):
     direction: str
     bound_status: str | None
     primary: MetricValue | None
-    metrics: dict[str, MetricValue]
-    utility_by_seat: dict[str, FiniteFloat]
-    capture_by_seat: dict[str, FiniteFloat]
-    references: dict[str, ReferenceValue]
-    outcome: dict[str, object]
+    metrics: ImmutableMapping[MetricValue]
+    utility_by_seat: ImmutableMapping[FiniteFloat]
+    capture_by_seat: ImmutableMapping[FiniteFloat]
+    references: ImmutableMapping[ReferenceValue]
+    outcome: JSONObject
     validity: ValidityReport
     scorer: ImplementationRef
     oracle: ImplementationRef | None
@@ -385,5 +424,5 @@ class EvaluationReceipt(StrictModel):
     inclusion_status: Literal["included", "excluded"]
     observability_limits: tuple[str, ...] = ()
     replay_level: Literal["deterministic", "score_only", "none"]
-    trajectory_refs: dict[str, ArtifactRef] = Field(default_factory=dict)
+    trajectory_refs: ImmutableMapping[ArtifactRef] = Field(default_factory=dict)
     receipt_sha256: str | None = None

@@ -1,12 +1,13 @@
 from __future__ import annotations
 
+from datetime import datetime
 import os
 from pathlib import Path
 import subprocess
 import sys
 
 import pytest
-from pydantic import ValidationError
+from pydantic import BaseModel, ValidationError
 
 from aeread.sdk.v1 import (
     ActionBundle,
@@ -14,13 +15,19 @@ from aeread.sdk.v1 import (
     ActionEnvelope,
     CanonicalizationError,
     DecisionSlot,
+    EpisodeExecutionResult,
     EvaluationReceipt,
+    FamilyOutcome,
+    ImplementationRef,
     LegalityResult,
+    MetricValue,
     ParseResult,
     PhaseGraph,
     PhaseSpec,
     ScoreEnvelope,
+    SealedEvidenceView,
     TerminalResult,
+    ValidityReport,
     canonical_json_bytes,
     content_sha256,
     validate_action_bundle,
@@ -71,6 +78,61 @@ def _action(
     )
 
 
+def _implementation() -> ImplementationRef:
+    return ImplementationRef(
+        implementation_id="fake_scorer",
+        version="1.0.0",
+        content_sha256="1" * 64,
+    )
+
+
+def _score(*, references: dict[str, object] | None = None) -> ScoreEnvelope:
+    return ScoreEnvelope(
+        status="ok",
+        measurement_kind="optimizable_outcome",
+        direction="maximize",
+        bound_status=None,
+        primary=MetricValue(value=5.0, unit="usd"),
+        metrics={"welfare": MetricValue(value=5.0, unit="usd")},
+        utility_by_seat={"buyer1": 5.0},
+        capture_by_seat={"buyer1": 5.0},
+        references=references or {},
+        outcome={"allocated": True},
+        validity=ValidityReport(status="valid"),
+        scorer=_implementation(),
+        oracle=None,
+        evidence_refs=("event-1",),
+    )
+
+
+def _evidence() -> SealedEvidenceView:
+    return SealedEvidenceView(
+        events=(),
+        artifacts=(),
+        event_root_sha256="2" * 64,
+        artifact_root_sha256="3" * 64,
+    )
+
+
+def _receipt() -> EvaluationReceipt:
+    return EvaluationReceipt(
+        status="ok",
+        run_plan_id="plan-1",
+        cell_id="cell-1",
+        episode_id="episode-1",
+        episode_attempt_id="attempt-1",
+        cluster_id="cluster-1",
+        run_plan_sha256="4" * 64,
+        case_sha256="5" * 64,
+        agent_config_sha256="6" * 64,
+        implementations=(_implementation(),),
+        evidence=_evidence(),
+        score=_score(),
+        inclusion_status="included",
+        replay_level="deterministic",
+    )
+
+
 def test_decision_slot_rejects_unknown_fields() -> None:
     with pytest.raises(ValidationError):
         DecisionSlot.model_validate(
@@ -102,6 +164,95 @@ def test_canonical_bytes_reject_non_finite_float(value: float) -> None:
         canonical_json_bytes({"value": value})
 
 
+@pytest.mark.parametrize(
+    "value",
+    [
+        {1: "x"},
+        {"nested": {1: "x"}},
+        {"unsupported": object()},
+        {"unsupported": {1, 2}},
+    ],
+)
+def test_canonical_bytes_reject_values_outside_strict_json(value: object) -> None:
+    with pytest.raises(CanonicalizationError):
+        canonical_json_bytes(value)
+
+
+def test_non_string_json_keys_cannot_collide_with_string_keys() -> None:
+    with pytest.raises(CanonicalizationError):
+        content_sha256({1: "x"})
+    assert content_sha256({"1": "x"})
+
+
+def test_canonicalization_rejects_pydantic_json_coercion() -> None:
+    class CoercingModel(BaseModel):
+        occurred_at: datetime
+
+    with pytest.raises(CanonicalizationError):
+        canonical_json_bytes(CoercingModel(occurred_at=datetime(2026, 8, 24)))
+
+
+def test_action_payload_rejects_non_string_keys_and_unsupported_values() -> None:
+    with pytest.raises(ValidationError):
+        ActionEnvelope(
+            action_id="bad-key",
+            slot_id="buyer1-round0",
+            channel_id="buyer1-seller1",
+            actor_seat_id="buyer1",
+            sequence_index=0,
+            payload={1: "x"},
+        )
+    with pytest.raises(ValidationError):
+        ActionEnvelope(
+            action_id="bad",
+            slot_id="buyer1-round0",
+            channel_id="buyer1-seller1",
+            actor_seat_id="buyer1",
+            sequence_index=0,
+            payload={"bad": object()},
+        )
+
+
+def test_nested_json_payload_is_deeply_immutable_and_hash_stable() -> None:
+    source = {"nested": {"price": 5}, "items": [{"id": "a"}]}
+    action = ActionEnvelope(
+        action_id="offer-1",
+        slot_id="buyer1-round0",
+        channel_id="buyer1-seller1",
+        actor_seat_id="buyer1",
+        sequence_index=0,
+        payload=source,
+    )
+    digest = content_sha256(action)
+
+    source["nested"]["price"] = 99
+    source["items"].append({"id": "b"})
+    with pytest.raises(TypeError):
+        action.payload["nested"]["price"] = 7
+    with pytest.raises(AttributeError):
+        action.payload["items"].append({"id": "c"})
+
+    assert action.payload["nested"]["price"] == 5
+    assert action.model_dump(mode="json")["payload"] == {
+        "nested": {"price": 5},
+        "items": [{"id": "a"}],
+    }
+    assert content_sha256(action) == digest
+
+
+def test_json_object_type_has_an_object_schema_and_plain_json_dump() -> None:
+    from pydantic import TypeAdapter
+
+    from aeread.sdk.v1 import JSONObject
+
+    adapter = TypeAdapter(JSONObject)
+    assert adapter.json_schema()["type"] == "object"
+    value = adapter.validate_python({"nested": [1, {"ok": True}]})
+    assert adapter.dump_python(value, mode="json") == {
+        "nested": [1, {"ok": True}]
+    }
+
+
 def test_public_records_are_frozen_and_normalize_lists_to_tuples() -> None:
     channel = ActionChannel(
         channel_id="offers",
@@ -111,6 +262,22 @@ def test_public_records_are_frozen_and_normalize_lists_to_tuples() -> None:
     assert channel.recipient_seat_ids == ("seller1",)
     with pytest.raises(ValidationError):
         channel.channel_id = "changed"
+
+
+def test_every_record_serializes_and_hashes_its_version() -> None:
+    action = _action()
+    dumped = action.model_dump(mode="json")
+    assert dumped["spec_version"] == "aeread.sdk_record/1"
+    assert content_sha256(action) != content_sha256(
+        {key: value for key, value in dumped.items() if key != "spec_version"}
+    )
+
+
+def test_record_rejects_a_wrong_serialized_version() -> None:
+    payload = _action().model_dump(mode="json")
+    payload["spec_version"] = "aeread.sdk_record/2"
+    with pytest.raises(ValidationError):
+        ActionEnvelope.model_validate(payload)
 
 
 def test_action_channel_rejects_impossible_cardinality() -> None:
@@ -216,19 +383,111 @@ def test_phase_graph_rejects_duplicate_and_undeclared_phase_edges() -> None:
         PhaseGraph(initial_phase_id="offer", phases=(phase,))
 
 
-@pytest.mark.parametrize(
-    ("model", "status"),
-    [
-        (ParseResult, "unknown"),
-        (LegalityResult, "unknown"),
-        (TerminalResult, "unknown"),
-        (ScoreEnvelope, "unknown"),
-        (EvaluationReceipt, "unknown"),
-    ],
-)
-def test_status_records_reject_unknown_discriminants(model: type, status: str) -> None:
+def test_typed_reference_variants_round_trip_through_score_envelope() -> None:
+    from aeread.sdk.v1 import (
+        ComparisonBaselineReference,
+        OptimizationBoundReference,
+        OutcomeSupportReference,
+    )
+
+    references = {
+        "upper": OptimizationBoundReference(
+            kind="optimum_upper_bound",
+            value=10.0,
+            objective_id="allocation_value",
+            objective_version="1.0.0",
+            units="usd",
+            direction="maximize",
+            feasible_set="declared allocations",
+            information_set="full information",
+            horizon="one episode",
+            opponent_condition="fixed provider",
+            proof_type="exact_solver",
+            implementation=_implementation(),
+            validity_domain="fixture-v1",
+        ),
+        "baseline": ComparisonBaselineReference(
+            kind="comparison_baseline",
+            value=4.0,
+            comparison_id="fixed_policy",
+            comparison_version="1.0.0",
+            units="usd",
+            direction="maximize",
+            provenance={"case_set": "dev-v1"},
+            applicability="fixed provider episodes",
+            implementation=_implementation(),
+        ),
+        "support_min": OutcomeSupportReference(
+            kind="outcome_support_min",
+            value=0.0,
+            objective_id="allocation_value",
+            objective_version="1.0.0",
+            units="usd",
+            direction="maximize",
+            proof_type="enumerated_support",
+            applicability="fixture-v1",
+        ),
+    }
+    score = _score(references=references)
+    round_tripped = ScoreEnvelope.model_validate(score.model_dump(mode="json"))
+    assert isinstance(round_tripped.references["upper"], OptimizationBoundReference)
+    assert isinstance(
+        round_tripped.references["baseline"], ComparisonBaselineReference
+    )
+    assert isinstance(
+        round_tripped.references["support_min"], OutcomeSupportReference
+    )
+
+
+def test_optimum_upper_bound_requires_every_binding_field() -> None:
+    from aeread.sdk.v1 import OptimizationBoundReference
+
     with pytest.raises(ValidationError):
-        model.model_validate({"status": status})
+        OptimizationBoundReference(
+            kind="optimum_upper_bound",
+            value=10.0,
+            implementation=_implementation(),
+        )
+
+
+def test_status_records_reject_unknown_discriminants_from_complete_payloads() -> None:
+    records = (
+        ParseResult(
+            status="ok",
+            bundle=ActionBundle(slot_id="buyer1-round0", actions=(_action(),)),
+        ),
+        LegalityResult(status="legal"),
+        TerminalResult(status="terminal", reason="allocated", final_state={}),
+        _score(),
+        _receipt(),
+    )
+    for record in records:
+        payload = record.model_dump(mode="python")
+        payload["status"] = "unknown"
+        with pytest.raises(ValidationError):
+            type(record).model_validate(payload)
+
+
+def test_status_consistency_checks_only_settled_record_contracts() -> None:
+    with pytest.raises(ValidationError):
+        ParseResult(status="ok", bundle=None)
+    with pytest.raises(ValidationError):
+        ParseResult(
+            status="malformed",
+            bundle=ActionBundle(slot_id="buyer1-round0", actions=(_action(),)),
+        )
+
+    execution = EpisodeExecutionResult(
+        status="ok",
+        terminal=TerminalResult(
+            status="terminal", reason="allocated", final_state={}
+        ),
+        outcome=FamilyOutcome(
+            terminal_reason="allocated", payload={}, utility_by_seat={}
+        ),
+        evidence=_evidence(),
+    )
+    assert execution.status == "ok"
 
 
 def test_sdk_import_does_not_load_family_or_integration_modules() -> None:
