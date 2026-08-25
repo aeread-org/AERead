@@ -14,9 +14,9 @@ AERead needs one runner that can evaluate heterogeneous economic case families�
 
 The design rule is:
 
-> **Standardize experimental control, evidence, and measurement declarations; keep economic semantics inside versioned family plugins.**
+> **Standardize experimental control, evidence, and measurement declarations; keep economic semantics inside versioned environment, verifier, reference, and generator plugins.**
 
-The shared runner owns experiment resolution, phase scheduling, agent execution, explicit retry accounting, durable evidence, replay, receipts, and declared aggregation. A family plugin owns its state, observations, actions, transitions, terminal outcomes, utilities, baselines, scorer, and reference providers.
+The shared runner owns experiment resolution, phase scheduling, agent execution, explicit retry accounting, durable evidence, replay, receipts, and declared aggregation. The `EnvironmentPlugin` owns state, observations, actions, transitions, and terminal outcomes; family-owned verifier, reference-provider, and generator implementations own measurement and case semantics without becoming scheduler callbacks.
 
 This document is the implementation contract that other branches may cite. It does **not** claim that the shared runner already exists.
 
@@ -60,15 +60,15 @@ L3  Shared runner kernel                                      Zeyu owns
     resolve + hash -> RunPlan | phase scheduler | agent calls
     retries | evidence | replay/resume | receipts | coverage
 
-L2a Case-family plugins                 L2b Agent execution adapters
+L2a Environment + measurement plugins  L2b Agent execution adapters
     typed phase hooks + scorer              harness + runtime + provider
-    references + generator + baselines       Python / HTTP / CLI / container
+    references + generator + baselines      Python / HTTP / CLI / container
 
 L1  Shared authoring formats
     FamilyManifest | CaseManifest | SuiteManifest | RunSpec / AgentProfile
 ```
 
-| Shared runner owns | Case-family plugin owns |
+| Shared runner owns | Environment and family-owned measurement plugins own |
 |---|---|
 | schema/version/hash validation | typed state and private types |
 | immutable `RunPlan` resolution | declarative phase definitions |
@@ -98,51 +98,58 @@ class PhaseSpec:
     next_phases: tuple[str, ...]
 
 
-class ActionChannel:
+class ActionChannel(StrictModel):
     channel_id: str
-    action_schema: SchemaRef
-    min_actions: int
-    max_actions: int
+    recipient_seat_ids: tuple[str, ...]
+    action_schema_ref: str
+    min_actions: int = 1
+    max_actions: int | None = 1
 
 
-class ActionEnvelope:
+class ActionEnvelope(StrictModel):
     action_id: str
-    channel_id: str
-    sequence_index: int
-    payload: Mapping[str, Any]
-
-
-class DecisionSlot:
     slot_id: str
-    seat: str
-    role: str
+    channel_id: str
+    actor_seat_id: str
+    sequence_index: int
+    payload: dict[str, object]
+
+
+class DecisionSlot(StrictModel):
+    slot_id: str
+    seat_id: str
     channels: tuple[ActionChannel, ...]
+    observation_schema_ref: str
+    response_schema_ref: str
+    order_key: str
 
 
-class ActionBundle:
+class ActionBundle(StrictModel):
     slot_id: str
     actions: tuple[ActionEnvelope, ...]
 
 
-class CaseFamilyPlugin(Protocol):
-    def validate_payload(self, payload: Mapping[str, Any]) -> FamilyCase: ...
-    def initial_state(self, case: FamilyCase, run: PlanCell) -> FamilyState: ...
-    def phases(self, case: FamilyCase) -> Sequence[PhaseSpec]: ...
+class EnvironmentPlugin(Protocol):
+    manifest: FamilyManifest
+
+    def validate_case(self, payload: Mapping[str, object]) -> FamilyCase: ...
+    def initial_state(self, case: FamilyCase, cell: PlanCell) -> FamilyState: ...
+    def phase_graph(self, case: FamilyCase) -> PhaseGraph: ...
     def decision_slots(
         self, case: FamilyCase, state: FamilyState, phase: PhaseSpec
     ) -> Sequence[DecisionSlot]: ...
     def observe(
-        self, case: FamilyCase, state: FamilyState, slot: DecisionSlot,
-        phase: PhaseSpec
-    ) -> Observation: ...
+        self, case: FamilyCase, state: FamilyState, phase: PhaseSpec,
+        slot: DecisionSlot
+    ) -> ObservationEnvelope: ...
     def parse_action(
-        self, case: FamilyCase, state: FamilyState, slot: DecisionSlot,
-        phase: PhaseSpec, response: CanonicalResponse
-    ) -> Mapping[str, ParseResult]: ...
+        self, case: FamilyCase, state: FamilyState, phase: PhaseSpec,
+        slot: DecisionSlot, response: CanonicalResponse
+    ) -> ParseResult: ...
     def legal(
-        self, case: FamilyCase, state: FamilyState, slot: DecisionSlot,
-        phase: PhaseSpec, bundle: ActionBundle
-    ) -> Mapping[str, LegalityResult]: ...
+        self, case: FamilyCase, state: FamilyState, phase: PhaseSpec,
+        bundle: ActionBundle
+    ) -> LegalityResult: ...
     def step(
         self, case: FamilyCase, state: FamilyState, phase: PhaseSpec,
         bundles: Mapping[str, ActionBundle]
@@ -153,18 +160,25 @@ class CaseFamilyPlugin(Protocol):
     def outcome(
         self, case: FamilyCase, terminal: TerminalResult
     ) -> FamilyOutcome: ...
-    def build_scorer(self, case: FamilyCase) -> FamilyScorer: ...
-    def build_reference_providers(
-        self, case: FamilyCase
-    ) -> Sequence[ReferenceProvider]: ...
-    def generator(self) -> CaseGenerator | None: ...
+
+
+class AttemptObserver(Protocol):
+    def call_started(self, start: ProviderCallStart) -> ProviderCallToken: ...
+    def call_succeeded(
+        self, token: ProviderCallToken, result: ProviderCallResult
+    ) -> None: ...
+    def call_failed(
+        self, token: ProviderCallToken, failure: ProviderCallFailure
+    ) -> None: ...
 
 
 class AgentAdapter(Protocol):
-    async def act(self, request: AgentRequest) -> CanonicalResponse: ...
+    async def act(
+        self, request: AgentRequest, *, attempts: AttemptObserver
+    ) -> CanonicalResponse: ...
 ```
 
-The hooks may be methods or registered functions, but their inputs, outputs, versions, and evidence must be explicit. The runner—not a family-owned coroutine—advances the schedule, enforces budgets, and records every boundary. Every logical action is keyed by `slot_id`; one seat may own multiple decision slots in one phase, and one slot may own multiple channels. A slot may atomically emit multiple ordered channel actions in one `ActionBundle`. The adapter MUST preserve upstream call grouping, and the runner MUST NOT merge or split those calls across slots or bundles. Bundle validation uses the slot's declared `ActionChannel` membership and each channel's `min_actions`/`max_actions`: every channel count is within its declared bounds, every action has a declared channel, action IDs are unique, and sequence indices are unique and ordered within the bundle. All channel actions from one slot are parsed and closed atomically, so no partial bundle is applied.
+The public executable names and call boundaries are defined by [`public_environment_and_external_adapter_spec.md`](public_environment_and_external_adapter_spec.md): the runner invokes an `EnvironmentPlugin`, and an `AgentAdapter` reports provider activity through the runner-owned `AttemptObserver` rather than writing evidence directly. The hooks may be methods or registered functions, but their inputs, outputs, versions, and evidence must be explicit. The runner—not an environment-owned coroutine—advances the schedule, enforces budgets, and records every boundary. Every logical action is keyed by `slot_id`; one seat may own multiple decision slots in one phase, and one slot may own multiple channels. A slot may atomically emit multiple ordered channel actions in one `ActionBundle`. The adapter MUST preserve upstream call grouping, and the runner MUST NOT merge or split those calls across slots or bundles. Bundle validation uses the slot's declared `ActionChannel` membership and each channel's `min_actions`/`max_actions`: every channel count is within its declared bounds, every action has a declared channel, action IDs are unique, and sequence indices are unique and ordered within the bundle. `parse_action()` returns one atomic `ParseResult` for the whole slot response; on success it contains one `ActionBundle`. `legal()` returns one `LegalityResult` for that whole bundle. No partial bundle is applied.
 
 `DecisionSlot` → `ActionChannel` → ordered atomic `ActionBundle` describes the
 environment decision topology. It does not replace the execution/evidence lifecycle:
@@ -240,7 +254,9 @@ outcome_support = "undeclared"
 
 [scoring]
 scorer_id = "housing_outcome_v1"
-oracle_id = "housing_exact_assignment_v1"
+
+[references]
+bound_provider_id = "housing_exact_assignment_v1"
 
 [generator]
 generator_id = "housing_generator_v1"
@@ -332,9 +348,9 @@ The resolver expands case × evaluation block × role × repetition × seed, the
 ```text
 LogicalAction                           stable logical_action_id
   └── ActionAttempt 1                   always recorded
-      ├── ProviderCall 1..n             atomic model-provider requests
+      ├── ProviderCall 0..n             atomic model-provider requests
       ├── ToolInvocation 0..n           atomic tool side effects/results
-      └── CanonicalResponse             adapter result for family parsing
+      └── CanonicalResponse 0..1        adapter result for family parsing
   └── ActionAttempt 2                   only if the declared retry policy allows
       └── its own calls/tools/response and explicit retry reason
 ```
@@ -345,6 +361,10 @@ profile restriction, not the universal architecture: a tool-using attempt can co
 multiple provider calls and tool invocations without being a retry. A `LogicalAction` has
 additional `ActionAttempt` records only when the `AgentProfile` declares the condition,
 limit, session/restart semantics, and changed budget.
+
+An `ActionAttempt` may contain zero `ProviderCall` records when an output is scripted or a
+typed setup/pre-call failure occurs before any provider request. The attempt still receives
+terminal evidence; a failed attempt does not fabricate a provider call or canonical response.
 
 Every `ActionAttempt` records at least:
 
@@ -580,7 +600,7 @@ Provider-free fixtures include:
 - deterministic state/score replay and interrupted-resume fixtures;
 - a small admission pilot separating format failures from bad decisions.
 
-Family owners define economic semantics. The shared-runner owner must not invent their utilities, oracle, coalition game, or legal actions. Family plugins must not implement private provider logging, retry systems, receipt formats, or paper aggregation.
+Family owners define economic semantics. The shared-runner owner must not invent their utilities, oracle, coalition game, or legal actions. Environment and measurement plugins must not implement private provider logging, retry systems, receipt formats, or paper aggregation.
 
 ---
 

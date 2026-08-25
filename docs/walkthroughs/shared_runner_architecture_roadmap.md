@@ -220,7 +220,7 @@ one; blindly repeating the same `run_id` hits `run directory already exists`.
 
 This is the central architectural boundary: the wrapper installs observation/replay hooks,
 then the concrete family engine owns scheduling. The planned architecture inverts that
-ownership: the generic runner owns scheduling and invokes a `FamilyPlugin` one phase at a
+ownership: the generic runner owns scheduling and invokes an `EnvironmentPlugin` one phase at a
 time.
 
 **Mutation:** constructs and later mutates an `ExchangeWorld`; installs execution hooks;
@@ -364,7 +364,7 @@ mechanism → mutated world plus one `RoundEvent`.
     )
 ```
 
-The engine returns an Exchange-specific `RunResult`. The planned `FamilyPlugin.outcome()`
+The engine returns an Exchange-specific `RunResult`. The planned `EnvironmentPlugin.outcome()`
 retains this family object, while the scorer exposes selected estimands through a typed
 `ScoreEnvelope`.
 
@@ -465,7 +465,10 @@ The object model is divided by responsibility. Measurement-verifier families rem
 | Object | Canonical meaning | Must not mean |
 |---|---|---|
 | `FamilyManifest` | Serialized identity, roles, phases, capabilities, measurements, and implementation references for one protocol family/version. | Executable plugin code. |
-| `FamilyPlugin` | Registered executable implementation of family state, observation, action, transition, outcome, scorer, reference, and generator hooks. | Experiment scheduler or provider client. |
+| `EnvironmentPlugin` | Registered executable implementation of family state, observation, action, transition, and outcome hooks. | Experiment scheduler, provider client, scorer, reference provider, or generator. |
+| `VerifierPlugin` | Registered deterministic scorer over a family outcome and sealed evidence. | Environment scheduler or candidate/provider caller. |
+| `ReferenceProvider` | Registered exact, bound, baseline, or canonical-reference implementation with a declared validity domain. | A generic oracle label for every reference. |
+| `CaseGenerator` | Registered deterministic or recorded-randomness case producer. | Environment scheduler or analysis plan. |
 | `CaseManifest` | One immutable world instance, seats, family-typed payload, split, seed, provenance, and hash. | Agent/model assignment. |
 | upstream task | External benchmark's identifier mapped to one AERead case and retained as `upstream_task_id`. | A second native object parallel to `CaseManifest`. |
 
@@ -495,14 +498,17 @@ PlanCell
 └── Episode
     └── EpisodeAttempt
         └── PhaseInstance
-            └── LogicalAction
-                └── ActionAttempt
-                    ├── ProviderCall*
-                    ├── ToolInvocation*
-                    └── CanonicalResponse
-                ├── ParseResult
-                ├── LegalityResult
-                └── ActionEnvelope
+            ├── DecisionSlot 1..n
+            │   ├── ActionChannel 1..n
+            │   └── LogicalAction (exactly one per DecisionSlot)
+            │       ├── ActionAttempt 1..n
+            │       │   ├── ProviderCall*
+            │       │   ├── ToolInvocation*
+            │       │   └── CanonicalResponse 0..1
+            │       ├── ParseResult
+            │       ├── LegalityResult
+            │       └── ActionBundle 0..1
+            │           └── ActionEnvelope 0..n (ordered)
             └── TransitionResult
 ```
 
@@ -512,13 +518,23 @@ PlanCell
 | `EpisodeAttempt` | One operational attempt to realize the episode. Retrying infrastructure does not create a new independent case. |
 | `PhaseSpec` | Reusable declarative phase definition. |
 | `PhaseInstance` | One occurrence of a phase, such as `round_3/contact`. |
-| `LogicalAction` | One economic decision requested from one seat in one phase. |
+| `DecisionSlot` | One runner-requested economic decision opportunity with a stable slot identity. |
+| `ActionChannel` | One typed directed action lane within a decision slot, including minimum and maximum action cardinality. |
+| `LogicalAction` | The evidence identity for the one economic decision requested by one `DecisionSlot`. |
 | `ActionAttempt` | One declared attempt to produce the logical action; a retry creates a new attempt. |
 | `ProviderCall` | One atomic model-provider request, including request/response evidence and provider status. |
 | `ToolInvocation` | One atomic tool side effect or result. Repeated tools are separate invocations. |
+| `AttemptObserver` | Runner-owned interface through which an `AgentAdapter` records each provider call before and after the side effect. |
 | `CanonicalResponse` | Agent-adapter output presented to the family parser. |
-| `ActionEnvelope` | Successfully parsed candidate family action plus evidence references. |
+| `ActionBundle` | One slot-keyed atomic parse result containing ordered channel actions; partial bundles are never applied. |
+| `ActionEnvelope` | One ordered action inside the slot's atomic `ActionBundle`, plus evidence references. |
 | `TransitionResult` | New family state, typed consequences, next-phase choice, and/or termination signal. |
+
+One `DecisionSlot` creates one `LogicalAction`, and one successful logical action closes as one ordered atomic `ActionBundle`.
+`DecisionSlot` and `ActionChannel` define environment decision topology; `LogicalAction`,
+`ActionAttempt`, `ProviderCall`, `ToolInvocation`, and `AttemptObserver` define execution and
+evidence. A scripted output or pre-call failure can therefore produce an `ActionAttempt`
+with zero `ProviderCall` records without losing the slot or logical-action identity.
 
 The earlier `CallAttempt` term is retired before serialization. It conflated an attempt to
 produce an economic action with an atomic provider request. A tool-using action can contain
@@ -601,8 +617,10 @@ FamilyManifest + CaseManifest + SuiteManifest + AgentProfile + RunSpec
   -> resolver / registry / strict validation / canonical hashing
   -> immutable RunPlan
   -> generic runner-owned PhaseSpec scheduler
-       -> FamilyPlugin: state / observe / parse / legal / step / terminal / outcome
-       -> AgentAdapter: ActionAttempt / ProviderCall / ToolInvocation / response
+       -> EnvironmentPlugin: state / observe / parse / legal / step / terminal / outcome
+       -> runner ActionAttempt
+            -> AgentAdapter(request, attempts=runner AttemptObserver)
+                 -> ProviderCall* / ToolInvocation* / CanonicalResponse
   -> canonical Event log + content-addressed Artifact store
   -> VerifierSpec + ScoreEnvelope + ValidityReport
   -> EvaluationReceipt
@@ -612,7 +630,7 @@ FamilyManifest + CaseManifest + SuiteManifest + AgentProfile + RunSpec
 
 The architectural inversion is deliberate: today the concrete Exchange engine runs the
 experiment and the wrapper observes it; planned, the shared kernel runs the experiment and
-a family plugin supplies economic hooks.
+an environment plugin supplies economic hooks.
 
 ### Compatibility mapping
 
@@ -620,7 +638,7 @@ a family plugin supplies economic hooks.
 |---|---|---|
 | resolved Exchange config and roles | `CaseManifest`, `AgentProfile`, `RunSpec`, `RunPlan` | Split world, agent, and experiment concerns; prove the resolved legacy snapshot maps losslessly. |
 | `run_v1()` | `exchange_v1` compatibility adapter plus generic kernel | Keep the public compatibility entry point during migration. |
-| `run_one_round()` stages | `PhaseSpec` and `FamilyPlugin` hooks | Map boundaries without rewriting economic semantics first. |
+| `run_one_round()` stages | `PhaseSpec` and `EnvironmentPlugin` hooks | Map boundaries without rewriting economic semantics first. |
 | `ManifestRecorder` rows | `ProviderCall` projections | Retain legacy schema as a deterministic projection of canonical events/artifacts. |
 | `trace.jsonl` | Exchange public/evaluator projection | Preserve byte parity where possible; canonical events become source of truth. |
 | `llm_cache/` | content-addressed raw response artifacts | Preserve replay keys and response hashes. |
@@ -640,11 +658,11 @@ pass and produces a reviewable artifact.
 | R0 | approved design | Freeze this taxonomy, ownership boundary, identifier hierarchy, compatibility map, and serialization naming. | Contract test green; no unresolved overloaded term. |
 | R1 | R0 | Strict `0.1` authoring schemas and registry: `FamilyManifest`, `CaseManifest`, `SuiteManifest`, `SamplingPlan`, `EvaluationBlock`, `AnalysisPlan`, `AgentProfile`, and `RunSpec`. | Invalid fixtures fail before side effects; unknown fields are rejected. |
 | R2 | R1 | Deterministic resolver producing canonical, hashed `RunPlan` and `PlanCell` records. | Same inputs produce identical bytes/hash; all defaults and implementation pins are explicit. |
-| R3 | R2 | Provider-free generic phase scheduler with a minimal fixture plugin, simultaneous frozen observations, parsing, legality, transitions, and termination. | Phase graph and simultaneous/noninterference conformance tests pass without provider calls. |
+| R3 | R2 | Provider-free generic phase scheduler with a minimal fixture `EnvironmentPlugin`, simultaneous frozen observations, parsing, legality, transitions, and termination. | Phase graph and simultaneous/noninterference conformance tests pass without provider calls. |
 | R4 | R3 | Agent adapter and evidence kernel: `LogicalAction`, `ActionAttempt`, `ProviderCall`, `ToolInvocation`, canonical events, artifacts, typed failures, budgets, and retries. | Every started side effect reconciles to one terminal/unknown event; no hidden retry. |
 | R5 | R4 | `EvaluationReceipt`, deterministic replay, interrupted resume, projections, and coverage reconciliation. | Crash-point tests recover or mark `outcome_unknown`; every planned cell has a receipt or typed exclusion. |
-| R6 | R5 | `exchange_v1` compatibility plugin and scorer bridge. | **exchange_v1 parity** for allocation, `w_real`, denominator/tier, AER, failure class, evidence counts, and replay on provider-free and frozen fixtures. |
-| R7 | R6 plus Housing P0 fixes | Native `housing_v1` plugin, bounded-welfare references, controlled counterpart block, and paired cluster plan. | Same kernel/conformance suite passes; no family branch exists in the kernel. |
+| R6 | R5 | `exchange_v1` compatibility `EnvironmentPlugin` and `VerifierPlugin` bridge. | **exchange_v1 parity** for allocation, `w_real`, denominator/tier, AER, failure class, evidence counts, and replay on provider-free and frozen fixtures. |
+| R7 | R6 plus Housing P0 fixes | Native `housing_v1` `EnvironmentPlugin`, bounded-welfare references, controlled counterpart block, and paired cluster plan. | Same kernel/conformance suite passes; no family branch exists in the kernel. |
 | R8 | R7 | Pinned tau3 retail adapter, 18-task component-parity pilot, then full suite and receipt-driven paper tables. | State/tool/scorer parity, replay, provenance, cluster intervals, and fixed-suite claim language pass. |
 
 ### Stage ownership

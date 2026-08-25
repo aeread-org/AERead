@@ -37,6 +37,34 @@ def test_shared_runner_design_records_frozen_execution_contract() -> None:
     assert "`CallAttempt`" not in text
 
 
+def test_shared_runner_design_uses_authoritative_public_execution_api() -> None:
+    text = DESIGN.read_text(encoding="utf-8")
+
+    assert "class EnvironmentPlugin(Protocol):" in text
+    assert "class CaseFamilyPlugin(Protocol):" not in text
+    assert ") -> ParseResult: ..." in text
+    assert ") -> Mapping[str, ParseResult]: ..." not in text
+    assert ") -> LegalityResult: ..." in text
+    assert ") -> Mapping[str, LegalityResult]: ..." not in text
+    assert "class AttemptObserver(Protocol):" in text
+    assert "*, attempts: AttemptObserver" in text
+
+
+def test_shared_runner_design_allows_zero_provider_calls_per_attempt() -> None:
+    text = DESIGN.read_text(encoding="utf-8")
+
+    assert "ProviderCall 0..n" in text
+    assert "zero `ProviderCall` records" in text
+    assert "ProviderCall 1..n" not in text
+
+
+def test_housing_full_information_relaxation_is_a_bound_not_an_oracle() -> None:
+    text = DESIGN.read_text(encoding="utf-8")
+
+    assert 'bound_provider_id = "housing_exact_assignment_v1"' in text
+    assert 'oracle_id = "housing_exact_assignment_v1"' not in text
+
+
 def test_shared_runner_design_records_measurement_contract() -> None:
     text = DESIGN.read_text(encoding="utf-8")
 
@@ -228,7 +256,7 @@ def test_runner_taxonomy_architecture_and_build_roadmap_are_frozen() -> None:
 
     for term in (
         "FamilyManifest",
-        "FamilyPlugin",
+        "EnvironmentPlugin",
         "CaseManifest",
         "SuiteManifest",
         "SamplingPlan",
@@ -239,11 +267,15 @@ def test_runner_taxonomy_architecture_and_build_roadmap_are_frozen() -> None:
         "PlanCell",
         "EpisodeAttempt",
         "PhaseInstance",
+        "DecisionSlot",
+        "ActionChannel",
         "LogicalAction",
         "ActionAttempt",
         "ProviderCall",
         "ToolInvocation",
+        "AttemptObserver",
         "CanonicalResponse",
+        "ActionBundle",
         "ActionEnvelope",
         "TransitionResult",
         "Artifact",
@@ -282,3 +314,22 @@ def test_runner_taxonomy_architecture_and_build_roadmap_are_frozen() -> None:
 
     design = DESIGN.read_text(encoding="utf-8")
     assert "walkthroughs/shared_runner_architecture_roadmap.md" in design
+
+
+def test_runner_architecture_preserves_public_decision_topology() -> None:
+    text = RUNNER_ARCHITECTURE.read_text(encoding="utf-8")
+
+    for term in (
+        "EnvironmentPlugin",
+        "DecisionSlot",
+        "ActionChannel",
+        "ActionBundle",
+        "AttemptObserver",
+    ):
+        assert term in text, f"runner architecture is missing public topology term: {term}"
+
+    assert "FamilyPlugin" not in text
+    assert (
+        "One `DecisionSlot` creates one `LogicalAction`, and one successful logical "
+        "action closes as one ordered atomic `ActionBundle`."
+    ) in text
