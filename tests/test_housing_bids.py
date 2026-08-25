@@ -1,9 +1,8 @@
 """Sealed-bid housing market.
 
-Replaces the serial-dictatorship probe, under which truthful ranking was a
-dominant strategy (verified exhaustively: 240 tenant-deviations, 0 improvements)
-and the realized-vs-optimal gap measured mechanism inefficiency rather than
-anything about the agent.
+Replaces the serial-dictatorship probe, under which truthful ranking is a dominant
+strategy and the realized-vs-optimal gap measures mechanism inefficiency rather
+than anything about the agent.
 
 Under unit-demand sealed bidding a tenant must choose *which* listing to contest
 and *how much* to bid, so both congestion and shading are live.
