@@ -299,6 +299,7 @@ class EpisodeEvent(StrictModel):
 
 
 class SealedEvidenceView(StrictModel):
+    identity: EventIdentity
     audience: SDKStr = "full"
     events: tuple[EpisodeEvent, ...]
     artifacts: tuple[ArtifactRef, ...]
@@ -321,6 +322,8 @@ class SealedEvidenceView(StrictModel):
                 "evidence artifacts must be unique and canonically ordered"
             )
         for event in self.events:
+            if event.identity != self.identity:
+                raise ValueError("every evidence event must match the view identity")
             allowed = (
                 self.audience in {"full", "evaluator"}
                 or event.visibility == "public"

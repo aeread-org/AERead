@@ -22,6 +22,7 @@ from aeread.sdk.v1 import (
     CanonicalResponse,
     CanonicalizationError,
     DecisionSlot,
+    EventIdentity,
     EpisodeExecutionResult,
     EvaluationReceipt,
     FamilyOutcome,
@@ -133,6 +134,12 @@ def _score(*, references: dict[str, object] | None = None) -> ScoreEnvelope:
 
 def _evidence() -> SealedEvidenceView:
     return SealedEvidenceView(
+        identity=EventIdentity(
+            run_plan_id="plan-1",
+            cell_id="cell-1",
+            episode_id="episode-1",
+            episode_attempt_id="attempt-1",
+        ),
         events=(),
         artifacts=(),
         event_root_sha256="2" * 64,

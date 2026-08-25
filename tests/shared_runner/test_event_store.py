@@ -6,6 +6,7 @@ import json
 import os
 from pathlib import Path
 import stat
+import threading
 
 import pytest
 from pydantic import ValidationError
@@ -37,7 +38,7 @@ def fixed_clock() -> datetime:
 
 
 def artifact_store(tmp_path: Path) -> ArtifactStore:
-    return ArtifactStore.open(tmp_path / "evidence")
+    return ArtifactStore.open(tmp_path / "evidence", identity=IDENTITY)
 
 
 def event_store(tmp_path: Path, *, clock=fixed_clock) -> EventStore:
@@ -60,7 +61,7 @@ def test_artifact_put_uses_raw_sha_and_survives_reopen(tmp_path: Path) -> None:
     data = b"\x00raw artifact\n"
 
     first = store.put(data, "application/octet-stream")
-    second = ArtifactStore.open(tmp_path / "evidence").put(
+    second = ArtifactStore.open(tmp_path / "evidence", identity=IDENTITY).put(
         data, "application/octet-stream"
     )
 
@@ -547,7 +548,9 @@ def test_artifact_generation_is_frozen_by_final_seal(tmp_path: Path) -> None:
     with pytest.raises(EvidenceSealedError):
         store.artifacts.put(b"after", "text/plain")
     with pytest.raises(EvidenceSealedError):
-        ArtifactStore.open(tmp_path / "evidence").put(b"after", "text/plain")
+        ArtifactStore.open(tmp_path / "evidence", identity=IDENTITY).put(
+            b"after", "text/plain"
+        )
 
 
 @pytest.mark.parametrize("failure", ["partial_write", "fsync"])
@@ -640,14 +643,16 @@ def test_deleting_final_marker_never_makes_log_appendable(tmp_path: Path) -> Non
 def test_explicit_empty_identity_changes_empty_event_root(tmp_path: Path) -> None:
     first = EventStore.open(
         tmp_path / "first.jsonl",
-        artifacts=ArtifactStore.open(tmp_path / "first-evidence"),
+        artifacts=ArtifactStore.open(tmp_path / "first-evidence", identity=IDENTITY),
         clock=fixed_clock,
         identity=IDENTITY,
     ).snapshot()
     second_identity = IDENTITY.model_copy(update={"episode_attempt_id": "attempt-2"})
     second = EventStore.open(
         tmp_path / "second.jsonl",
-        artifacts=ArtifactStore.open(tmp_path / "second-evidence"),
+        artifacts=ArtifactStore.open(
+            tmp_path / "second-evidence", identity=second_identity
+        ),
         clock=fixed_clock,
         identity=second_identity,
     ).snapshot()
@@ -659,7 +664,9 @@ def test_new_event_store_requires_identity_for_empty_root(tmp_path: Path) -> Non
     with pytest.raises(InvalidEvidenceInput):
         EventStore.open(
             tmp_path / "unbound.jsonl",
-            artifacts=ArtifactStore.open(tmp_path / "unbound-evidence"),
+            artifacts=ArtifactStore.open(
+                tmp_path / "unbound-evidence", identity=IDENTITY
+            ),
             clock=fixed_clock,
         )
 
@@ -745,7 +752,7 @@ def test_artifact_creation_and_temp_cleanup_are_directory_durable(
         real_fsync(fd)
 
     monkeypatch.setattr("aeread.runner.event_store.os.fsync", count_directory_fsync)
-    store = ArtifactStore.open(tmp_path / "new-evidence")
+    store = ArtifactStore.open(tmp_path / "new-evidence", identity=IDENTITY)
     baseline = directory_fsyncs
     store.put(b"durable", "text/plain")
 
@@ -783,3 +790,131 @@ def test_dangling_event_symlink_is_rejected_before_target_creation(
             identity=IDENTITY,
         )
     assert not target.exists()
+
+
+def test_artifact_open_rejects_symlinked_ancestor_before_external_mkdir(
+    tmp_path: Path,
+) -> None:
+    external = tmp_path / "external-artifacts"
+    external.mkdir()
+    linked = tmp_path / "linked-artifacts"
+    linked.symlink_to(external, target_is_directory=True)
+
+    with pytest.raises(ArtifactIntegrityError):
+        ArtifactStore.open(linked / "missing" / "evidence", identity=IDENTITY)
+    assert not (external / "missing").exists()
+
+
+def test_event_open_rejects_symlinked_ancestor_before_external_mkdir(
+    tmp_path: Path,
+) -> None:
+    external = tmp_path / "external-events"
+    external.mkdir()
+    linked = tmp_path / "linked-events"
+    linked.symlink_to(external, target_is_directory=True)
+
+    with pytest.raises(EventIntegrityError):
+        EventStore.open(
+            linked / "missing" / "events.jsonl",
+            artifacts=artifact_store(tmp_path),
+            clock=fixed_clock,
+            identity=IDENTITY,
+        )
+    assert not (external / "missing").exists()
+
+
+def test_snapshot_never_returns_view_missing_a_racing_referenced_artifact(
+    tmp_path: Path, monkeypatch
+) -> None:
+    late_data = b"late artifact"
+    late_ref = ArtifactRef(
+        sha256=hashlib.sha256(late_data).hexdigest(),
+        media_type="text/plain",
+        size_bytes=len(late_data),
+    )
+    store = event_store(tmp_path)
+    store.append("late-ref", IDENTITY, "public", {"ref": late_ref.model_dump()})
+    before_public_verify = threading.Event()
+    allow_verify = threading.Event()
+    real_verify = store.artifacts.verify
+
+    def gated_verify(ref: ArtifactRef) -> None:
+        before_public_verify.set()
+        assert allow_verify.wait(timeout=2)
+        real_verify(ref)
+
+    monkeypatch.setattr(store.artifacts, "verify", gated_verify)
+    outcome: dict[str, object] = {}
+
+    def take_snapshot() -> None:
+        try:
+            outcome["view"] = store.snapshot()
+        except Exception as exc:
+            outcome["error"] = exc
+
+    thread = threading.Thread(target=take_snapshot)
+    thread.start()
+    if before_public_verify.wait(timeout=0.5):
+        store.artifacts.put(late_data, "text/plain")
+    allow_verify.set()
+    thread.join(timeout=2)
+
+    assert not thread.is_alive()
+    if "view" in outcome:
+        assert late_ref in outcome["view"].artifacts
+    else:
+        assert isinstance(outcome.get("error"), ArtifactIntegrityError)
+
+
+def test_artifact_generation_is_owned_by_one_event_identity(tmp_path: Path) -> None:
+    root = tmp_path / "owned-evidence"
+    first = ArtifactStore.open(root, identity=IDENTITY)
+    first.put(b"private", "text/plain")
+    other = IDENTITY.model_copy(update={"episode_attempt_id": "attempt-2"})
+
+    with pytest.raises(InvalidEvidenceInput):
+        ArtifactStore.open(root, identity=other)
+    with pytest.raises(InvalidEvidenceInput):
+        EventStore.open(
+            tmp_path / "other-events.jsonl",
+            artifacts=first,
+            clock=fixed_clock,
+            identity=other,
+        )
+    assert not (tmp_path / "other-events.jsonl").exists()
+
+
+def test_artifact_store_requires_identity_before_generation_side_effects(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "unowned-evidence"
+    with pytest.raises(InvalidEvidenceInput):
+        ArtifactStore.open(root)
+    assert not root.exists()
+
+
+def test_empty_evidence_view_and_projection_preserve_bound_identity(
+    tmp_path: Path,
+) -> None:
+    first = event_store(tmp_path / "first-empty")
+    other = IDENTITY.model_copy(update={"episode_attempt_id": "attempt-2"})
+    second_artifacts = ArtifactStore.open(
+        tmp_path / "second-empty" / "evidence", identity=other
+    )
+    second = EventStore.open(
+        tmp_path / "second-empty" / "events.jsonl",
+        artifacts=second_artifacts,
+        clock=fixed_clock,
+        identity=other,
+    )
+
+    first_view = first.snapshot()
+    second_view = second.snapshot()
+    first_public = first.project(first_view, "public")
+    second_public = second.project(second_view, "public")
+
+    assert first_view.identity == IDENTITY
+    assert second_view.identity == other
+    assert first_public.identity == IDENTITY
+    assert second_public.identity == other
+    assert first_public.event_root_sha256 != second_public.event_root_sha256

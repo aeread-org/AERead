@@ -154,20 +154,33 @@ def _fsync_directory(path: Path) -> None:
 
 
 def _ensure_real_directory(path: Path, *, error_type: type[EvidenceStoreError]) -> None:
-    info = _lstat(path)
-    if info is not None:
-        if not stat.S_ISDIR(info.st_mode):
-            raise error_type(f"managed path {path} must be a non-symlink directory")
-        return
-    if not path.parent.exists():
-        _ensure_real_directory(path.parent, error_type=error_type)
+    absolute = Path(os.path.abspath(path))
+    flags = os.O_RDONLY | os.O_DIRECTORY | _NOFOLLOW
     try:
-        os.mkdir(path)
-    except FileExistsError:
-        info = _lstat(path)
-        if info is None or not stat.S_ISDIR(info.st_mode):
-            raise error_type(f"managed path {path} is not a real directory")
-    _fsync_directory(path.parent)
+        directory_fd = os.open(absolute.anchor, flags)
+    except OSError as exc:
+        raise error_type("cannot anchor managed directory traversal") from exc
+    try:
+        for component in absolute.parts[1:]:
+            try:
+                child_fd = os.open(component, flags, dir_fd=directory_fd)
+            except FileNotFoundError:
+                try:
+                    os.mkdir(component, mode=0o755, dir_fd=directory_fd)
+                    os.fsync(directory_fd)
+                    child_fd = os.open(component, flags, dir_fd=directory_fd)
+                except OSError as exc:
+                    raise error_type(
+                        f"cannot durably create managed directory component {component!r}"
+                    ) from exc
+            except OSError as exc:
+                raise error_type(
+                    f"managed directory ancestor {component!r} is not a real directory"
+                ) from exc
+            os.close(directory_fd)
+            directory_fd = child_fd
+    finally:
+        os.close(directory_fd)
 
 
 def _exclusive_temp_write(directory: Path, data: bytes) -> Path:
@@ -255,8 +268,9 @@ class ArtifactStore:
 
     _GENERATION_VERSION = "aeread.artifact_generation/1"
 
-    def __init__(self, root: Path) -> None:
+    def __init__(self, root: Path, identity: EventIdentity) -> None:
         self.root = root
+        self.identity = identity
         self.artifact_dir = root / "artifacts"
         self.object_dir = self.artifact_dir / "sha256"
         self._lock_path = self.artifact_dir / "generation.lock"
@@ -265,12 +279,19 @@ class ArtifactStore:
         self._poisoned = False
 
     @classmethod
-    def open(cls, root: Path) -> "ArtifactStore":
+    def open(
+        cls, root: Path, *, identity: EventIdentity | None = None
+    ) -> "ArtifactStore":
         if not isinstance(root, Path):
             raise InvalidEvidenceInput("artifact root must be a pathlib.Path")
+        if identity is None:
+            raise InvalidEvidenceInput(
+                "ArtifactStore.open requires identity before creating a generation"
+            )
+        checked_identity = _safe_model(identity, EventIdentity, "artifact identity")
         for directory in (root, root / "artifacts", root / "artifacts" / "sha256"):
             _ensure_real_directory(directory, error_type=ArtifactIntegrityError)
-        store = cls(root)
+        store = cls(root, checked_identity)
         for managed_file, label in (
             (store._lock_path, "artifact generation lock"),
             (store._state_path, "artifact generation anchor"),
@@ -287,6 +308,7 @@ class ArtifactStore:
                 store._write_generation_unlocked(
                     {
                         "spec_version": cls._GENERATION_VERSION,
+                        "identity": checked_identity.model_dump(mode="json"),
                         "status": "open",
                         "artifact_count": 0,
                         "artifact_root_sha256": None,
@@ -329,6 +351,7 @@ class ArtifactStore:
             set(value)
             != {
                 "spec_version",
+                "identity",
                 "status",
                 "artifact_count",
                 "artifact_root_sha256",
@@ -341,6 +364,16 @@ class ArtifactStore:
         status = value.get("status")
         count = value.get("artifact_count")
         root = value.get("artifact_root_sha256")
+        try:
+            owner = EventIdentity.model_validate(value.get("identity"))
+        except Exception as exc:
+            raise ArtifactIntegrityError(
+                "artifact generation owner identity is invalid"
+            ) from exc
+        if owner != self.identity:
+            raise InvalidEvidenceInput(
+                "artifact generation belongs to a different event identity"
+            )
         if status not in {"open", "sealed"} or type(count) is not int or count < 0:
             raise ArtifactIntegrityError("artifact generation anchor is invalid")
         if status == "open" and (count != 0 or root is not None):
@@ -532,6 +565,7 @@ class ArtifactStore:
         self._write_generation_unlocked(
             {
                 "spec_version": self._GENERATION_VERSION,
+                "identity": self.identity.model_dump(mode="json"),
                 "status": "sealed",
                 "artifact_count": len(refs),
                 "artifact_root_sha256": root,
@@ -627,6 +661,23 @@ def _artifact_root(refs: tuple[ArtifactRef, ...]) -> str:
         b"aeread.artifact_root/1",
         [ref.model_dump(mode="json") for ref in sorted(refs, key=_artifact_sort_key)],
     )
+
+
+def _verify_referenced_artifacts_unlocked(
+    artifacts: ArtifactStore,
+    events: tuple[EpisodeEvent, ...],
+    refs: tuple[ArtifactRef, ...],
+) -> None:
+    """Bind event references to one locked artifact-generation snapshot."""
+
+    committed = {_artifact_sort_key(ref): ref for ref in refs}
+    for event in events:
+        for ref in _discover_artifact_refs(event.payload):
+            if _artifact_sort_key(ref) not in committed:
+                raise ArtifactIntegrityError(
+                    "event references artifact absent from the generation"
+                )
+            artifacts._verify_unlocked(ref)
 
 
 def _validate_joint_chain(
@@ -860,6 +911,15 @@ class EventStore:
                 "EventStore.open requires identity to bind the empty evidence root"
             )
         checked_identity = _safe_model(identity, EventIdentity, "identity")
+        artifact_identity = _safe_model(
+            artifacts.identity, EventIdentity, "artifact identity"
+        )
+        if artifact_identity != checked_identity:
+            raise InvalidEvidenceInput(
+                "event and artifact stores must share one identity"
+            )
+        with artifacts._guard():
+            artifacts._read_generation_unlocked()
         _ensure_real_directory(path.parent, error_type=EventIntegrityError)
         path_info = _lstat(path)
         state_info = _lstat(_event_state_path(path))
@@ -977,12 +1037,19 @@ class EventStore:
         identity: EventIdentity | None,
         state: Mapping[str, object],
     ) -> SealedEvidenceView:
+        if identity is None:
+            raise EventIntegrityError("final evidence is missing its bound identity")
+        if artifacts.identity != identity:
+            raise EventIntegrityError(
+                "event and artifact evidence have different identities"
+            )
         marker = _seal_marker(path)
         with artifacts._guard():
-            refs = artifacts._list_refs_unlocked()
-            if not artifacts._is_frozen_unlocked():
-                raise ArtifactIntegrityError("final evidence requires frozen artifacts")
             generation = artifacts._read_generation_unlocked()
+            if generation["status"] != "sealed":
+                raise ArtifactIntegrityError("final evidence requires frozen artifacts")
+            refs = artifacts._list_refs_unlocked()
+            _verify_referenced_artifacts_unlocked(artifacts, events, refs)
             artifact_root = _artifact_root(refs)
             if (
                 generation["artifact_count"] != len(refs)
@@ -999,6 +1066,7 @@ class EventStore:
         ):
             raise EventIntegrityError("final evidence anchors disagree")
         return SealedEvidenceView(
+            identity=identity,
             audience="full",
             events=events,
             artifacts=refs,
@@ -1015,6 +1083,10 @@ class EventStore:
             raise InvalidEvidenceInput("invalid EventStore.verify input")
         events = _read_event_rows(path)
         state, identity = _verify_anchor(path, events)
+        if identity is None or artifacts.identity != identity:
+            raise EventIntegrityError(
+                "event and artifact evidence have different identities"
+            )
         marker_info = _lstat(_seal_path(path))
         if state["status"] == "sealed":
             if marker_info is None:
@@ -1023,7 +1095,14 @@ class EventStore:
         elif marker_info is not None:
             raise EventIntegrityError("unsealed event log has a final marker")
         else:
-            artifacts.list_refs()
+            with artifacts._guard():
+                generation = artifacts._read_generation_unlocked()
+                if generation["status"] != "open":
+                    raise EventIntegrityError(
+                        "open event log has a frozen artifact generation"
+                    )
+                refs = artifacts._list_refs_unlocked()
+                _verify_referenced_artifacts_unlocked(artifacts, events, refs)
         return events
 
     def _release_fd(self) -> None:
@@ -1153,21 +1232,30 @@ class EventStore:
             return event
 
     def _open_view(self) -> SealedEvidenceView:
-        events = self.verify(self.path, artifacts=self.artifacts)
-        state = _read_event_state(self.path)
-        identity = state["identity"]
-        assert identity is None or isinstance(identity, EventIdentity)
+        events = _read_event_rows(self.path)
+        state, identity = _verify_anchor(self.path, events)
+        if identity is None or self.artifacts.identity != identity:
+            raise EventIntegrityError(
+                "event and artifact evidence have different identities"
+            )
+        if state["status"] != "open" or _lstat(_seal_path(self.path)) is not None:
+            raise EventIntegrityError("open snapshot conflicts with final evidence")
         with self.artifacts._guard():
+            generation = self.artifacts._read_generation_unlocked()
+            if generation["status"] != "open":
+                raise EventIntegrityError(
+                    "open event log has a frozen artifact generation"
+                )
             refs = self.artifacts._list_refs_unlocked()
-        for event in events:
-            for ref in _discover_artifact_refs(event.payload):
-                self.artifacts.verify(ref)
+            _verify_referenced_artifacts_unlocked(self.artifacts, events, refs)
+            artifact_root = _artifact_root(refs)
         return SealedEvidenceView(
+            identity=identity,
             audience="full",
             events=events,
             artifacts=refs,
             event_root_sha256=_event_root(events, identity),
-            artifact_root_sha256=_artifact_root(refs),
+            artifact_root_sha256=artifact_root,
             is_final=False,
         )
 
@@ -1264,10 +1352,21 @@ class EventStore:
         checked_view = _safe_model(view, SealedEvidenceView, "evidence view")
         if checked_view.audience not in {"full", "evaluator"}:
             raise InvalidEvidenceInput("projection source must be a full evidence view")
-        identity = _validate_joint_chain(
-            checked_view.events, expected_identity=None, require_visible=True
+        if checked_view.identity != self.artifacts.identity or (
+            self._identity is not None and checked_view.identity != self._identity
+        ):
+            raise InvalidEvidenceInput(
+                "projection source belongs to a different evidence identity"
+            )
+        _validate_joint_chain(
+            checked_view.events,
+            expected_identity=checked_view.identity,
+            require_visible=True,
         )
-        if _event_root(checked_view.events, identity) != checked_view.event_root_sha256:
+        if (
+            _event_root(checked_view.events, checked_view.identity)
+            != checked_view.event_root_sha256
+        ):
             raise EventIntegrityError("source view event root is invalid")
         if _artifact_root(checked_view.artifacts) != checked_view.artifact_root_sha256:
             raise ArtifactIntegrityError("source view artifact root is invalid")
@@ -1278,7 +1377,8 @@ class EventStore:
                 self.path, self.artifacts, events, durable_identity, state
             )
             if (
-                checked_view.events != durable.events
+                checked_view.identity != durable.identity
+                or checked_view.events != durable.events
                 or checked_view.artifacts != durable.artifacts
                 or checked_view.event_root_sha256 != durable.event_root_sha256
                 or checked_view.artifact_root_sha256 != durable.artifact_root_sha256
@@ -1323,6 +1423,7 @@ class EventStore:
         )
         try:
             return SealedEvidenceView(
+                identity=checked_view.identity,
                 audience=checked_audience,
                 events=tuple(projected_events),
                 artifacts=projected_artifacts,
