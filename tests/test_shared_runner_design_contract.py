@@ -222,36 +222,28 @@ def test_verifier_taxonomy_maps_deployment_cases_and_saturation_claims() -> None
     assert "None of these seven representative mappings is currently certified as `ceiling_exhausted`" in text
 
 
-def test_verifier_case_mapping_covers_every_audited_and_paper_target() -> None:
-    assert VERIFIER_CASE_MAPPING.exists(), "verifier-to-case mapping is missing"
+def test_verifier_case_mapping_gives_one_real_workflow_and_benchmark_per_class() -> None:
+    assert VERIFIER_CASE_MAPPING.exists(), "verifier-to-case example mapping is missing"
     text = VERIFIER_CASE_MAPPING.read_text(encoding="utf-8")
 
-    for family in (
-        "canonical_reference",
-        "rule_constraint",
-        "objective_reference",
-        "comparative",
-        "rater_judge",
-    ):
-        assert family in text, f"semantic verifier family is missing: {family}"
+    examples = {
+        "canonical/reference": ("retail refund", "tau3-bench"),
+        "rule/constraint/temporal": ("regulated refund process", "STATE-Bench"),
+        "objective/optimum/bound": ("procurement and scheduling", "EconEvals"),
+        "comparative": ("supplier price negotiation", "TERMS-Bench"),
+        "rater/judge": ("professional analyst deliverable", "GDPval"),
+        "simulation/statistical": ("inventory and pricing", "Vending-Bench"),
+        "integrity/admissibility": ("audited agent episode", "AERead EvaluationReceipt"),
+    }
+    for verifier_class, (workflow, benchmark) in examples.items():
+        assert verifier_class in text, f"verifier class is missing: {verifier_class}"
+        assert workflow in text, f"real-world workflow is missing: {workflow}"
+        assert benchmark in text, f"benchmark mapping is missing: {benchmark}"
 
-    for layer in ("stochastic_estimator", "measurement_validity"):
-        assert layer in text, f"cross-cutting verifier layer is missing: {layer}"
-
-    for row_id in [
-        *(f"P{i:02d}" for i in range(1, 24)),
-        *(f"A{i:02d}" for i in range(1, 6)),
-        *(f"M{i:02d}" for i in range(1, 8)),
-    ]:
-        assert f"| {row_id} |" in text, f"verifier mapping is missing row: {row_id}"
-
-    for mixed_id in ("P05", "P10", "P13", "P14", "P15"):
-        row = next(line for line in text.splitlines() if line.startswith(f"| {mixed_id} |"))
-        assert "split_required" in row, f"mixed paper must route below paper level: {mixed_id}"
-
-    assert "The primary mapping unit is the estimand" in text
-    assert "Neither cross-cutting layer is a primary semantic family" in text
-    assert "No row authorizes a cross-family scalar" in text
+    assert "five semantic verifier families" in text
+    assert "two cross-cutting layers" in text
+    assert "not a standalone capability benchmark" in text
+    assert "## The 23-paper routing table" not in text
 
     taxonomy = VERIFIER_TAXONOMY.read_text(encoding="utf-8")
     audit = CASE_AUDIT.read_text(encoding="utf-8")

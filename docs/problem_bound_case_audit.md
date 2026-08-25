@@ -31,8 +31,8 @@ bound every admissible realized outcome before they are used for [0,1] normaliza
 
 The paper is the audit unit here. Papers containing heterogeneous sub-benchmarks receive
 a `mixed` result and must be routed again at scenario or estimand level during ingestion.
-The corresponding semantic verifier routes are enumerated in
-[`verifier_case_mapping.md`](verifier_case_mapping.md).
+Representative real-world and benchmark mappings for the operational verifier classes
+are summarized in [`verifier_case_mapping.md`](verifier_case_mapping.md).
 
 | ID | Paper and case structure | Measurement kind | Strongest justified reference status | Consequence for AERead ingestion |
 |---|---|---|---|---|
