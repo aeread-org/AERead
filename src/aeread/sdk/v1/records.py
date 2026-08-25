@@ -497,9 +497,12 @@ def _validate_artifact_tuple(
 ) -> None:
     if required and not values:
         raise ValueError(f"{label} must be non-empty")
+    digests = [value.sha256 for value in values]
+    if len(digests) != len(set(digests)):
+        raise ValueError(f"{label} sha256 values must be unique")
     identities = [_artifact_identity(value) for value in values]
-    if identities != sorted(set(identities)):
-        raise ValueError(f"{label} must be unique and canonically ordered")
+    if identities != sorted(identities):
+        raise ValueError(f"{label} must be canonically ordered")
 
 
 def _validate_direct_record_values(record: StrictModel, label: str) -> None:
@@ -650,13 +653,38 @@ ToleranceSpec = Annotated[
 ]
 
 
+class ExactPointMatchSpec(StrictModel):
+    match_kind: Literal["exact"]
+
+
+class TolerancePointMatchSpec(StrictModel):
+    match_kind: Literal["tolerance"]
+    tolerance: ToleranceSpec
+
+
+PointMatchSpec = Annotated[
+    ExactPointMatchSpec | TolerancePointMatchSpec,
+    Field(discriminator="match_kind"),
+]
+
+
 class CanonicalPointReference(_VersionedReference):
     reference_kind: Literal["canonical_point"]
     input_scope: Literal["answer", "terminal_state"]
     input_schema_ref: SDKStr
     units: SDKStr
     canonicalizer: ImplementationRef
-    match_kind: Literal["exact"]
+    match: PointMatchSpec
+
+    @model_validator(mode="after")
+    def validate_point_match(self) -> "CanonicalPointReference":
+        if (
+            isinstance(self.match, TolerancePointMatchSpec)
+            and isinstance(self.match.tolerance, AbsoluteToleranceSpec)
+            and self.match.tolerance.units != self.units
+        ):
+            raise ValueError("absolute tolerance units must match point units")
+        return self
 
 
 class CanonicalSetReference(_VersionedReference):
@@ -686,6 +714,15 @@ class DistanceToCanonicalSetReference(_VersionedReference):
     distance: ImplementationRef
     tolerance: ToleranceSpec
 
+    @model_validator(mode="after")
+    def validate_distance_units(self) -> "DistanceToCanonicalSetReference":
+        if (
+            isinstance(self.tolerance, AbsoluteToleranceSpec)
+            and self.tolerance.units != self.units
+        ):
+            raise ValueError("absolute tolerance units must match distance units")
+        return self
+
 
 CanonicalReference = Annotated[
     CanonicalPointReference
@@ -709,9 +746,14 @@ class CanonicalReferenceVerifier(StrictModel):
         return self
 
 
-RuleInputScope = Literal["answer", "terminal_state", "trajectory"]
+RuleInputScope = Literal["answer", "terminal_state", "trajectory", "distribution"]
 RuleCheckpointScope = Literal[
-    "final_state", "every_state", "every_transition", "whole_trajectory"
+    "answer",
+    "final_state",
+    "every_state",
+    "every_transition",
+    "whole_trajectory",
+    "related_cases",
 ]
 RuleResultSemantics = Literal[
     "boolean", "pass_vector", "residual", "pass_vector_and_residual"
@@ -744,24 +786,78 @@ class ConstraintSatisfactionReference(_RuleReferenceBase):
     reference_kind: Literal["constraint_satisfaction"]
     predicate: ImplementationRef
 
+    @model_validator(mode="after")
+    def validate_scope_pair(self) -> "ConstraintSatisfactionReference":
+        expected = {
+            "answer": "answer",
+            "terminal_state": "final_state",
+            "trajectory": "every_transition",
+        }
+        if (
+            self.input_scope not in expected
+            or self.checkpoint_scope != expected[self.input_scope]
+        ):
+            raise ValueError(
+                "constraint scope/checkpoint must be answer/answer, "
+                "terminal_state/final_state, or trajectory/every_transition"
+            )
+        return self
+
 
 class StateInvariantReference(_RuleReferenceBase):
     reference_kind: Literal["state_invariant"]
+    input_scope: Literal["terminal_state", "trajectory"]
+    checkpoint_scope: Literal["final_state", "every_state"]
     predicate: ImplementationRef
+
+    @model_validator(mode="after")
+    def validate_scope_pair(self) -> "StateInvariantReference":
+        expected = {
+            "terminal_state": "final_state",
+            "trajectory": "every_state",
+        }
+        if self.checkpoint_scope != expected[self.input_scope]:
+            raise ValueError("state invariant scope/checkpoint are incompatible")
+        return self
 
 
 class TemporalPropertyReference(_RuleReferenceBase):
     reference_kind: Literal["temporal_property"]
+    input_scope: Literal["trajectory"]
+    checkpoint_scope: Literal["whole_trajectory"]
+    ordering: Literal["event_sequence"]
     predicate: ImplementationRef
+
+    @model_validator(mode="after")
+    def validate_ordered_trajectory(self) -> "TemporalPropertyReference":
+        if (
+            self.input_scope != "trajectory"
+            or self.checkpoint_scope != "whole_trajectory"
+            or self.ordering != "event_sequence"
+        ):
+            raise ValueError("temporal property requires ordered trajectory evidence")
+        return self
 
 
 class AxiomRelationReference(_RuleReferenceBase):
     reference_kind: Literal["axiom_relation"]
+    input_scope: Literal["answer", "terminal_state"]
+    checkpoint_scope: Literal["answer", "final_state"]
     relation: ImplementationRef
+
+    @model_validator(mode="after")
+    def validate_scope_pair(self) -> "AxiomRelationReference":
+        expected = {"answer": "answer", "terminal_state": "final_state"}
+        if self.checkpoint_scope != expected[self.input_scope]:
+            raise ValueError("axiom relation scope/checkpoint are incompatible")
+        return self
 
 
 class MetamorphicRelationReference(_RuleReferenceBase):
     reference_kind: Literal["metamorphic_relation"]
+    input_scope: Literal["distribution"]
+    checkpoint_scope: Literal["related_cases"]
+    relation_scope: Literal["related_cases_or_reruns"]
     relation: ImplementationRef
 
 
@@ -791,7 +887,7 @@ class RuleConstraintVerifier(StrictModel):
 class ObjectiveScopeSpec(StrictModel):
     objective_id: SDKStr
     objective_version: SDKStr
-    direction: Literal["maximize", "minimize"]
+    direction: Literal["maximize"]
     source_direction: Literal["maximize", "minimize"]
     source_to_canonical_rule: Literal["identity", "negate"]
     units: SDKStr
@@ -807,11 +903,11 @@ class ObjectiveScopeSpec(StrictModel):
     def validate_scope(self) -> "ObjectiveScopeSpec":
         _validate_direct_record_values(self, "objective scope")
         _require_semver("objective_version", self.objective_version)
-        expected = "identity" if self.direction == self.source_direction else "negate"
+        expected = "identity" if self.source_direction == "maximize" else "negate"
         if self.source_to_canonical_rule != expected:
             raise ValueError(
-                "source_to_canonical_rule must be identity for aligned directions "
-                "and negate for opposite directions"
+                "source_to_canonical_rule must be identity for native maximize and "
+                "negate for native minimize under canonical maximize"
             )
         return self
 
@@ -1184,6 +1280,49 @@ class MeasurementLeafSpec(StrictModel):
             raise ValueError(
                 "non-rater measurement leaves cannot allow judge_dependent"
             )
+        estimand = self.estimand
+        verifier = self.verifier
+        if isinstance(verifier, CanonicalReferenceVerifier):
+            if (
+                estimand.input_scope != verifier.reference.input_scope
+                or estimand.units != verifier.reference.units
+            ):
+                raise ValueError(
+                    "canonical verifier scope and units must match the estimand"
+                )
+        elif isinstance(verifier, RuleConstraintVerifier):
+            if estimand.input_scope != verifier.reference.input_scope:
+                raise ValueError("rule verifier scope must match the estimand")
+        elif isinstance(verifier, ObjectiveReferenceVerifier):
+            if (
+                estimand.direction != verifier.scope.direction
+                or estimand.units != verifier.scope.units
+                or estimand.validity_domain != verifier.scope.validity_domain
+            ):
+                raise ValueError(
+                    "objective direction, units, and validity domain must match "
+                    "the estimand"
+                )
+        elif isinstance(verifier, ComparativeReferenceVerifier):
+            reference = verifier.reference
+            if (
+                estimand.input_scope != reference.input_scope
+                or estimand.direction != reference.direction
+                or estimand.units != reference.units
+                or estimand.validity_domain != reference.validity_domain
+            ):
+                raise ValueError(
+                    "comparative scope, direction, units, and validity domain "
+                    "must match the estimand"
+                )
+        else:
+            rater_scope = (
+                "terminal_state"
+                if verifier.input.input_scope == "outcome"
+                else verifier.input.input_scope
+            )
+            if estimand.input_scope != rater_scope:
+                raise ValueError("rater input scope must match the estimand scope")
         return self
 
 

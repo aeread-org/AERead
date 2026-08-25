@@ -872,8 +872,22 @@ def test_sdk_import_does_not_load_family_or_integration_modules() -> None:
     code = """
 import sys
 import aeread.sdk.v1
-assert 'aeread.exchange_economy' not in sys.modules
-assert not any(name.startswith('aeread.integrations') for name in sys.modules)
+for prefix in (
+    'harbor',
+    'tau',
+    'openai',
+    'google',
+    'anthropic',
+    'aeread.exchange_',
+    'aeread.aer_',
+    'aeread.agentecon_',
+    'aeread.bundle_',
+    'aeread.delta_',
+    'aeread.gemini_',
+    'aeread.llm_',
+    'aeread.integrations',
+):
+    assert not any(name.startswith(prefix) for name in sys.modules), prefix
 """
     repo_root = Path(__file__).resolve().parents[2]
     env = {**os.environ, "PYTHONPATH": str(repo_root / "src")}
