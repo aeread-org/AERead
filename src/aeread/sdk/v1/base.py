@@ -13,7 +13,11 @@ from pydantic import (
     BaseModel,
     BeforeValidator,
     ConfigDict,
+    Field,
     PlainSerializer,
+    StrictBool,
+    StrictInt,
+    StrictStr,
     WithJsonSchema,
 )
 
@@ -136,11 +140,21 @@ ImmutableMapping = Annotated[
     PlainSerializer(_dump_mapping, return_type=dict[str, T]),
 ]
 
+SDKStr = StrictStr
+SDKInt = StrictInt
+SDKBool = StrictBool
+SDKFloat = Annotated[float, Field(strict=True, allow_inf_nan=False)]
+
 
 class StrictModel(BaseModel):
     """Immutable public record that rejects undeclared fields."""
 
-    model_config = ConfigDict(extra="forbid", frozen=True, arbitrary_types_allowed=True)
+    model_config = ConfigDict(
+        extra="forbid",
+        frozen=True,
+        arbitrary_types_allowed=True,
+        validate_default=True,
+    )
 
     spec_version: Literal["aeread.sdk_record/1"] = "aeread.sdk_record/1"
 

@@ -4,31 +4,39 @@ from __future__ import annotations
 
 from typing import Annotated, Literal
 
-from pydantic import Field, FiniteFloat, model_validator
+from pydantic import Field, model_validator
 
-from .base import ImmutableMapping, JSONObject, StrictModel
+from .base import (
+    ImmutableMapping,
+    JSONObject,
+    SDKBool,
+    SDKFloat,
+    SDKInt,
+    SDKStr,
+    StrictModel,
+)
 from .errors import BundleValidationError
 
 
 class PluginManifest(StrictModel):
-    plugin_id: str
-    plugin_version: str
-    sdk_api: str
+    plugin_id: SDKStr
+    plugin_version: SDKStr
+    sdk_api: Literal["aeread.sdk/v1"]
 
 
 class PhaseSpec(StrictModel):
-    phase_id: str
-    actor_selector: str
+    phase_id: SDKStr
+    actor_selector: SDKStr
     mode: Literal["single", "sequential", "simultaneous"]
-    observation_schema_by_role: ImmutableMapping[str]
-    action_schema_by_role: ImmutableMapping[str]
-    max_logical_actions: int = Field(ge=1)
-    invalid_action_policy: str
-    next_phases: tuple[str, ...]
+    observation_schema_by_role: ImmutableMapping[SDKStr]
+    action_schema_by_role: ImmutableMapping[SDKStr]
+    max_logical_actions: SDKInt = Field(ge=1)
+    invalid_action_policy: SDKStr
+    next_phases: tuple[SDKStr, ...]
 
 
 class PhaseGraph(StrictModel):
-    initial_phase_id: str
+    initial_phase_id: SDKStr
     phases: tuple[PhaseSpec, ...]
 
     @model_validator(mode="after")
@@ -50,11 +58,11 @@ class PhaseGraph(StrictModel):
 
 
 class ActionChannel(StrictModel):
-    channel_id: str
-    recipient_seat_ids: tuple[str, ...]
-    action_schema_ref: str
-    min_actions: int = Field(default=1, ge=0)
-    max_actions: int | None = Field(default=1, ge=0)
+    channel_id: SDKStr
+    recipient_seat_ids: tuple[SDKStr, ...]
+    action_schema_ref: SDKStr
+    min_actions: SDKInt = Field(default=1, ge=0)
+    max_actions: SDKInt | None = Field(default=1, ge=0)
 
     @model_validator(mode="after")
     def validate_cardinality(self) -> "ActionChannel":
@@ -66,12 +74,12 @@ class ActionChannel(StrictModel):
 
 
 class DecisionSlot(StrictModel):
-    slot_id: str
-    seat_id: str
+    slot_id: SDKStr
+    seat_id: SDKStr
     channels: tuple[ActionChannel, ...]
-    observation_schema_ref: str
-    response_schema_ref: str
-    order_key: str
+    observation_schema_ref: SDKStr
+    response_schema_ref: SDKStr
+    order_key: SDKStr
 
     @model_validator(mode="after")
     def validate_channel_ids(self) -> "DecisionSlot":
@@ -82,16 +90,16 @@ class DecisionSlot(StrictModel):
 
 
 class ActionEnvelope(StrictModel):
-    action_id: str
-    slot_id: str
-    channel_id: str
-    actor_seat_id: str
-    sequence_index: int = Field(ge=0)
+    action_id: SDKStr
+    slot_id: SDKStr
+    channel_id: SDKStr
+    actor_seat_id: SDKStr
+    sequence_index: SDKInt = Field(ge=0)
     payload: JSONObject
 
 
 class ActionBundle(StrictModel):
-    slot_id: str
+    slot_id: SDKStr
     actions: tuple[ActionEnvelope, ...]
 
     @model_validator(mode="after")
@@ -162,79 +170,79 @@ def validate_action_bundle(
 
 
 class ObservationEnvelope(StrictModel):
-    schema_ref: str
-    slot_id: str
+    schema_ref: SDKStr
+    slot_id: SDKStr
     visible_payload: JSONObject
-    public_event_refs: tuple[str, ...]
-    private_event_refs: tuple[str, ...]
+    public_event_refs: tuple[SDKStr, ...]
+    private_event_refs: tuple[SDKStr, ...]
 
 
 class ArtifactRef(StrictModel):
-    sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
-    media_type: str
-    size_bytes: int = Field(ge=0)
+    sha256: SDKStr = Field(pattern=r"^[0-9a-f]{64}$")
+    media_type: SDKStr
+    size_bytes: SDKInt = Field(ge=0)
 
 
 class CanonicalResponse(StrictModel):
-    content: str | None = None
+    content: SDKStr | None = None
     tool_calls: tuple[JSONObject, ...] = ()
-    finish_reason: str | None = None
-    usage: ImmutableMapping[int] = Field(default_factory=dict)
+    finish_reason: SDKStr | None = None
+    usage: ImmutableMapping[SDKInt] = Field(default_factory=dict)
     raw_artifact_ref: ArtifactRef | None = None
     harness_trace_ref: ArtifactRef | None = None
 
 
 class EventIdentity(StrictModel):
-    run_plan_id: str
-    cell_id: str
-    episode_id: str
-    episode_attempt_id: str
+    run_plan_id: SDKStr
+    cell_id: SDKStr
+    episode_id: SDKStr
+    episode_attempt_id: SDKStr
 
 
 class EpisodeEvent(StrictModel):
-    event_id: str
-    sequence: int = Field(ge=0)
-    event_type: str
-    occurred_at: str
+    event_id: SDKStr
+    sequence: SDKInt = Field(ge=0)
+    event_type: SDKStr
+    occurred_at: SDKStr
     identity: EventIdentity
-    visibility: str
+    visibility: SDKStr
     payload: JSONObject
-    prior_event_hash: str | None = None
-    event_hash: str
+    prior_event_hash: SDKStr | None = None
+    event_hash: SDKStr
 
 
 class SealedEvidenceView(StrictModel):
     events: tuple[EpisodeEvent, ...]
     artifacts: tuple[ArtifactRef, ...]
-    event_root_sha256: str
-    artifact_root_sha256: str
+    event_root_sha256: SDKStr
+    artifact_root_sha256: SDKStr
 
 
 class AgentContext(StrictModel):
-    agent_profile_id: str
-    seat_id: str
-    provider: str
-    model: str
-    harness: str
-    runtime: str
+    agent_profile_id: SDKStr
+    seat_id: SDKStr
+    provider: SDKStr
+    model: SDKStr
+    harness: SDKStr
+    runtime: SDKStr
     metadata: JSONObject = Field(default_factory=dict)
 
 
 class AttemptBudget(StrictModel):
-    timeout_seconds: FiniteFloat = Field(gt=0)
-    input_token_limit: int | None = Field(default=None, ge=1)
-    output_token_limit: int = Field(ge=1)
+    timeout_seconds: SDKFloat = Field(gt=0)
+    input_token_limit: SDKInt | None = Field(default=None, ge=1)
+    output_token_limit: SDKInt = Field(ge=1)
 
 
 class RetryPolicy(StrictModel):
-    max_attempts: int = Field(default=1, ge=1)
-    retryable_conditions: tuple[str, ...] = ()
-    length_retry_output_tokens: int | None = Field(default=None, ge=1)
+    max_attempts: SDKInt = Field(default=1, ge=1)
+    retryable_conditions: tuple[SDKStr, ...] = ()
+    length_retry_output_tokens: SDKInt | None = Field(default=None, ge=1)
 
 
 class AgentRequest(StrictModel):
-    logical_action_id: str
-    phase_id: str
+    logical_action_id: SDKStr
+    phase_id: SDKStr
     slot: DecisionSlot
     observation: ObservationEnvelope
     context: AgentContext
@@ -242,47 +250,48 @@ class AgentRequest(StrictModel):
 
 
 class CallAttemptStart(StrictModel):
-    call_attempt_id: str
-    logical_action_id: str
-    ordinal: int = Field(ge=1)
-    retry_reason: str | None = None
-    request_sha256: str
-    provider: str
-    model: str
-    timeout_seconds: FiniteFloat = Field(gt=0)
-    input_token_limit: int | None = Field(default=None, ge=1)
-    output_token_limit: int = Field(ge=1)
+    call_attempt_id: SDKStr
+    logical_action_id: SDKStr
+    ordinal: SDKInt = Field(ge=1)
+    retry_reason: SDKStr | None = None
+    request_sha256: SDKStr
+    provider: SDKStr
+    model: SDKStr
+    timeout_seconds: SDKFloat = Field(gt=0)
+    input_token_limit: SDKInt | None = Field(default=None, ge=1)
+    output_token_limit: SDKInt = Field(ge=1)
 
 
 class CallAttemptToken(StrictModel):
-    call_attempt_id: str
+    call_attempt_id: SDKStr
 
 
 class ProviderCallResult(StrictModel):
-    provider_request_id: str | None = None
-    finish_reason: str | None = None
-    empty: bool = False
-    truncated: bool = False
-    input_tokens: int | None = Field(default=None, ge=0)
-    output_tokens: int | None = Field(default=None, ge=0)
-    latency_ms: FiniteFloat | None = Field(default=None, ge=0)
-    cost_usd: FiniteFloat | None = Field(default=None, ge=0)
+    provider_request_id: SDKStr | None = None
+    finish_reason: SDKStr | None = None
+    empty: SDKBool = False
+    truncated: SDKBool = False
+    input_tokens: SDKInt | None = Field(default=None, ge=0)
+    output_tokens: SDKInt | None = Field(default=None, ge=0)
+    latency_ms: SDKFloat | None = Field(default=None, ge=0)
+    cost_usd: SDKFloat | None = Field(default=None, ge=0)
     raw_artifact_ref: ArtifactRef | None = None
 
 
 class ProviderCallFailure(StrictModel):
-    error_class: str
-    message: str
-    retryable: bool
-    transport_status: int | None = None
+    error_class: SDKStr
+    message: SDKStr
+    retryable: SDKBool
+    transport_status: SDKInt | None = None
     raw_artifact_ref: ArtifactRef | None = None
 
 
 class ParseResult(StrictModel):
     status: Literal["ok", "malformed"]
     bundle: ActionBundle | None = None
-    error_code: str | None = None
-    message: str | None = None
+    error_code: SDKStr | None = None
+    message: SDKStr | None = None
+    diagnostics: JSONObject = Field(default_factory=dict)
 
     @model_validator(mode="after")
     def validate_status_payload(self) -> "ParseResult":
@@ -295,76 +304,82 @@ class ParseResult(StrictModel):
 
 class LegalityResult(StrictModel):
     status: Literal["legal", "illegal"]
-    reasons: tuple[str, ...] = ()
+    reasons: tuple[SDKStr, ...] = ()
 
 
 class TransitionResult(StrictModel):
     state: JSONObject
-    next_phase_id: str | None
+    next_phase_id: SDKStr | None
     evidence: JSONObject = Field(default_factory=dict)
 
 
 class TerminalResult(StrictModel):
     status: Literal["terminal"]
-    reason: str
+    reason: SDKStr
     final_state: JSONObject
 
 
 class FamilyOutcome(StrictModel):
-    terminal_reason: str
+    terminal_reason: SDKStr
     payload: JSONObject
-    utility_by_seat: ImmutableMapping[FiniteFloat] = Field(default_factory=dict)
+    utility_by_seat: ImmutableMapping[SDKFloat] = Field(default_factory=dict)
 
 
 class MetricValue(StrictModel):
-    value: FiniteFloat
-    unit: str | None = None
+    value: SDKFloat
+    unit: SDKStr | None = None
     metadata: JSONObject = Field(default_factory=dict)
 
 
 class ImplementationRef(StrictModel):
-    implementation_id: str
-    version: str
-    content_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    implementation_id: SDKStr
+    version: SDKStr
+    content_sha256: SDKStr = Field(pattern=r"^[0-9a-f]{64}$")
 
 
 class OptimizationBoundReference(StrictModel):
     kind: Literal["optimum_lower_bound", "optimum_upper_bound"]
-    value: FiniteFloat
-    objective_id: str
-    objective_version: str
-    units: str
+    value: SDKFloat
+    objective_id: SDKStr
+    objective_version: SDKStr
+    units: SDKStr
     direction: Literal["maximize", "minimize"]
-    feasible_set: str
-    information_set: str
-    horizon: str
-    opponent_condition: str
-    proof_type: str
+    feasible_set: SDKStr
+    information_set: SDKStr
+    horizon: SDKStr
+    opponent_condition: SDKStr
+    proof_type: SDKStr
     implementation: ImplementationRef
-    validity_domain: str
+    validity_domain: SDKStr
 
 
 class ComparisonBaselineReference(StrictModel):
     kind: Literal["comparison_baseline"]
-    value: FiniteFloat
-    comparison_id: str
-    comparison_version: str
-    units: str
+    value: SDKFloat
+    comparison_id: SDKStr
+    comparison_version: SDKStr
+    units: SDKStr
     direction: Literal["maximize", "minimize"]
     provenance: JSONObject
-    applicability: str
+    applicability: SDKStr
     implementation: ImplementationRef
 
 
 class OutcomeSupportReference(StrictModel):
     kind: Literal["outcome_support_min", "outcome_support_max"]
-    value: FiniteFloat
-    objective_id: str
-    objective_version: str
-    units: str
+    value: SDKFloat
+    objective_id: SDKStr
+    objective_version: SDKStr
+    units: SDKStr
     direction: Literal["maximize", "minimize"]
-    proof_type: str
-    applicability: str
+    feasible_set: SDKStr
+    information_set: SDKStr
+    horizon: SDKStr
+    opponent_condition: SDKStr
+    proof_type: SDKStr
+    implementation: ImplementationRef
+    validity_domain: SDKStr
+    applicability: SDKStr
 
 
 ReferenceValue = Annotated[
@@ -377,24 +392,24 @@ ReferenceValue = Annotated[
 
 class ValidityReport(StrictModel):
     status: Literal["valid", "invalid"]
-    reasons: tuple[str, ...] = ()
+    reasons: tuple[SDKStr, ...] = ()
 
 
 class ScoreEnvelope(StrictModel):
     status: Literal["ok", "invalid_measurement"]
-    measurement_kind: str
-    direction: str
-    bound_status: str | None
+    measurement_kind: SDKStr
+    direction: SDKStr
+    bound_status: SDKStr | None
     primary: MetricValue | None
     metrics: ImmutableMapping[MetricValue]
-    utility_by_seat: ImmutableMapping[FiniteFloat]
-    capture_by_seat: ImmutableMapping[FiniteFloat]
+    utility_by_seat: ImmutableMapping[SDKFloat]
+    capture_by_seat: ImmutableMapping[SDKFloat]
     references: ImmutableMapping[ReferenceValue]
     outcome: JSONObject
     validity: ValidityReport
     scorer: ImplementationRef
     oracle: ImplementationRef | None
-    evidence_refs: tuple[str, ...]
+    evidence_refs: tuple[SDKStr, ...]
 
 
 class EpisodeExecutionResult(StrictModel):
@@ -402,27 +417,27 @@ class EpisodeExecutionResult(StrictModel):
     terminal: TerminalResult | None
     outcome: FamilyOutcome | None
     evidence: SealedEvidenceView
-    failure_class: str | None = None
-    failure_message: str | None = None
+    failure_class: SDKStr | None = None
+    failure_message: SDKStr | None = None
 
 
 class EvaluationReceipt(StrictModel):
     status: Literal["ok", "invalid_measurement"]
-    run_plan_id: str
-    cell_id: str
-    episode_id: str
-    episode_attempt_id: str
-    cluster_id: str
-    run_plan_sha256: str
-    case_sha256: str
-    agent_config_sha256: str
+    run_plan_id: SDKStr
+    cell_id: SDKStr
+    episode_id: SDKStr
+    episode_attempt_id: SDKStr
+    cluster_id: SDKStr
+    run_plan_sha256: SDKStr
+    case_sha256: SDKStr
+    agent_config_sha256: SDKStr
     implementations: tuple[ImplementationRef, ...]
     evidence: SealedEvidenceView
     score: ScoreEnvelope | None
-    failure_class: str | None = None
-    failure_message: str | None = None
+    failure_class: SDKStr | None = None
+    failure_message: SDKStr | None = None
     inclusion_status: Literal["included", "excluded"]
-    observability_limits: tuple[str, ...] = ()
+    observability_limits: tuple[SDKStr, ...] = ()
     replay_level: Literal["deterministic", "score_only", "none"]
     trajectory_refs: ImmutableMapping[ArtifactRef] = Field(default_factory=dict)
-    receipt_sha256: str | None = None
+    receipt_sha256: SDKStr | None = None

@@ -13,6 +13,10 @@ from aeread.sdk.v1 import (
     ActionBundle,
     ActionChannel,
     ActionEnvelope,
+    AgentContext,
+    ArtifactRef,
+    AttemptBudget,
+    CanonicalResponse,
     CanonicalizationError,
     DecisionSlot,
     EpisodeExecutionResult,
@@ -24,9 +28,11 @@ from aeread.sdk.v1 import (
     ParseResult,
     PhaseGraph,
     PhaseSpec,
+    PluginManifest,
     ScoreEnvelope,
     SealedEvidenceView,
     TerminalResult,
+    TransitionResult,
     ValidityReport,
     canonical_json_bytes,
     content_sha256,
@@ -264,6 +270,53 @@ def test_public_records_are_frozen_and_normalize_lists_to_tuples() -> None:
         channel.channel_id = "changed"
 
 
+@pytest.mark.parametrize(
+    ("record_factory", "field_names"),
+    [
+        (lambda: CanonicalResponse(), ("usage",)),
+        (
+            lambda: AgentContext(
+                agent_profile_id="agent-1",
+                seat_id="buyer1",
+                provider="provider",
+                model="model",
+                harness="harness",
+                runtime="runtime",
+            ),
+            ("metadata",),
+        ),
+        (lambda: ParseResult(status="malformed"), ("diagnostics",)),
+        (lambda: TransitionResult(state={}, next_phase_id=None), ("evidence",)),
+        (
+            lambda: FamilyOutcome(terminal_reason="done", payload={}),
+            ("utility_by_seat",),
+        ),
+        (lambda: MetricValue(value=1.0), ("metadata",)),
+        (
+            _score,
+            (
+                "metrics",
+                "utility_by_seat",
+                "capture_by_seat",
+                "references",
+                "outcome",
+            ),
+        ),
+        (_receipt, ("trajectory_refs",)),
+    ],
+)
+def test_record_mappings_are_immutable_even_when_defaults_are_omitted(
+    record_factory: object, field_names: tuple[str, ...]
+) -> None:
+    record = record_factory()
+    digest = content_sha256(record)
+    for field_name in field_names:
+        mapping = getattr(record, field_name)
+        with pytest.raises(TypeError):
+            mapping["mutation"] = "forbidden"
+    assert content_sha256(record) == digest
+
+
 def test_every_record_serializes_and_hashes_its_version() -> None:
     action = _action()
     dumped = action.model_dump(mode="json")
@@ -278,6 +331,95 @@ def test_record_rejects_a_wrong_serialized_version() -> None:
     payload["spec_version"] = "aeread.sdk_record/2"
     with pytest.raises(ValidationError):
         ActionEnvelope.model_validate(payload)
+
+
+@pytest.mark.parametrize(
+    ("model", "payload"),
+    [
+        (
+            ActionEnvelope,
+            {
+                "action_id": "a",
+                "slot_id": "s",
+                "channel_id": "c",
+                "actor_seat_id": "x",
+                "sequence_index": "0",
+                "payload": {},
+            },
+        ),
+        (MetricValue, {"value": "5"}),
+        (
+            AttemptBudget,
+            {"timeout_seconds": "1.5", "output_token_limit": 8},
+        ),
+        (
+            AttemptBudget,
+            {"timeout_seconds": 1.5, "output_token_limit": "8"},
+        ),
+        (
+            ActionChannel,
+            {
+                "channel_id": "c",
+                "recipient_seat_ids": [],
+                "action_schema_ref": "action/1",
+                "min_actions": "0",
+            },
+        ),
+        (
+            ArtifactRef,
+            {"sha256": "a" * 64, "media_type": "text/plain", "size_bytes": "1"},
+        ),
+        (
+            PluginManifest,
+            {
+                "plugin_id": b"plugin",
+                "plugin_version": "1.0.0",
+                "sdk_api": "aeread.sdk/v1",
+            },
+        ),
+    ],
+)
+def test_public_scalar_fields_reject_coercible_non_json_source_types(
+    model: type, payload: dict[str, object]
+) -> None:
+    with pytest.raises(ValidationError):
+        model.model_validate(payload)
+
+
+def test_json_arrays_still_load_into_tuple_fields() -> None:
+    slot = DecisionSlot.model_validate_json(
+        """
+        {
+          "slot_id": "buyer1-round0",
+          "seat_id": "buyer1",
+          "channels": [{
+            "channel_id": "offers",
+            "recipient_seat_ids": ["seller1"],
+            "action_schema_ref": "offer/1"
+          }],
+          "observation_schema_ref": "obs/1",
+          "response_schema_ref": "reply/1",
+          "order_key": "0001"
+        }
+        """
+    )
+    assert isinstance(slot.channels, tuple)
+    assert isinstance(slot.channels[0].recipient_seat_ids, tuple)
+
+
+def test_plugin_manifest_accepts_only_v1_sdk_api() -> None:
+    manifest = PluginManifest(
+        plugin_id="fake_market",
+        plugin_version="1.0.0",
+        sdk_api="aeread.sdk/v1",
+    )
+    assert manifest.sdk_api == "aeread.sdk/v1"
+    with pytest.raises(ValidationError):
+        PluginManifest(
+            plugin_id="fake_market",
+            plugin_version="1.0.0",
+            sdk_api="aeread.sdk/v2",
+        )
 
 
 def test_action_channel_rejects_impossible_cardinality() -> None:
@@ -424,7 +566,13 @@ def test_typed_reference_variants_round_trip_through_score_envelope() -> None:
             objective_version="1.0.0",
             units="usd",
             direction="maximize",
+            feasible_set="declared allocations",
+            information_set="full information",
+            horizon="one episode",
+            opponent_condition="fixed provider",
             proof_type="enumerated_support",
+            implementation=_implementation(),
+            validity_domain="fixture-v1",
             applicability="fixture-v1",
         ),
     }
@@ -448,6 +596,47 @@ def test_optimum_upper_bound_requires_every_binding_field() -> None:
             value=10.0,
             implementation=_implementation(),
         )
+
+
+def test_outcome_support_requires_every_binding_field() -> None:
+    from aeread.sdk.v1 import OutcomeSupportReference
+
+    complete = {
+        "kind": "outcome_support_max",
+        "value": 10.0,
+        "objective_id": "allocation_value",
+        "objective_version": "1.0.0",
+        "units": "usd",
+        "direction": "maximize",
+        "feasible_set": "declared allocations",
+        "information_set": "full information",
+        "horizon": "one episode",
+        "opponent_condition": "fixed provider",
+        "proof_type": "enumerated_support",
+        "implementation": _implementation(),
+        "validity_domain": "fixture-v1",
+        "applicability": "fixture-v1",
+    }
+    reference = OutcomeSupportReference.model_validate(complete)
+    assert reference.kind == "outcome_support_max"
+
+    for field_name in (
+        "objective_id",
+        "objective_version",
+        "units",
+        "direction",
+        "feasible_set",
+        "information_set",
+        "horizon",
+        "opponent_condition",
+        "proof_type",
+        "implementation",
+        "validity_domain",
+        "applicability",
+    ):
+        missing = {key: value for key, value in complete.items() if key != field_name}
+        with pytest.raises(ValidationError):
+            OutcomeSupportReference.model_validate(missing)
 
 
 def test_status_records_reject_unknown_discriminants_from_complete_payloads() -> None:
