@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 from datetime import datetime
+from decimal import Decimal
+from enum import IntEnum
+from fractions import Fraction
 import os
 from pathlib import Path
 import subprocess
@@ -22,6 +25,7 @@ from aeread.sdk.v1 import (
     EpisodeExecutionResult,
     EvaluationReceipt,
     FamilyOutcome,
+    FrozenJSONDict,
     ImplementationRef,
     LegalityResult,
     MetricValue,
@@ -38,6 +42,22 @@ from aeread.sdk.v1 import (
     content_sha256,
     validate_action_bundle,
 )
+
+
+class _IntegerEnum(IntEnum):
+    ONE = 1
+
+
+class _IntegerSubclass(int):
+    pass
+
+
+class _FloatSubclass(float):
+    pass
+
+
+class _StringSubclass(str):
+    pass
 
 
 def _channel(
@@ -246,6 +266,68 @@ def test_nested_json_payload_is_deeply_immutable_and_hash_stable() -> None:
     assert content_sha256(action) == digest
 
 
+def test_prebuilt_frozen_json_is_recursive_and_hash_stable() -> None:
+    source = {"nested": {"items": [{"price": 5}]}}
+    frozen = FrozenJSONDict(source)
+    direct_digest = content_sha256(frozen)
+    action = ActionEnvelope(
+        action_id="offer-1",
+        slot_id="buyer1-round0",
+        channel_id="buyer1-seller1",
+        actor_seat_id="buyer1",
+        sequence_index=0,
+        payload=frozen,
+    )
+    record_digest = content_sha256(action)
+
+    source["nested"]["items"][0]["price"] = 99
+    with pytest.raises(AttributeError):
+        frozen["nested"]["items"].append({"price": 7})
+    with pytest.raises(TypeError):
+        frozen["nested"]["items"][0]["price"] = 7
+
+    assert canonical_json_bytes(frozen) == (
+        b'{"nested":{"items":[{"price":5}]}}'
+    )
+    assert content_sha256(frozen) == direct_digest
+    assert content_sha256(action) == record_digest
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        {1: "x"},
+        {"unsupported": object()},
+        {"non_finite": float("nan")},
+    ],
+)
+def test_frozen_json_constructor_rejects_invalid_json(value: object) -> None:
+    with pytest.raises(ValueError):
+        FrozenJSONDict(value)
+
+
+@pytest.mark.parametrize(
+    ("exotic", "native"),
+    [
+        (Decimal("1"), 1),
+        (Fraction(1, 1), 1),
+        (_IntegerEnum.ONE, 1),
+        (_IntegerSubclass(1), 1),
+        (_FloatSubclass(1.0), 1.0),
+        (_StringSubclass("one"), "one"),
+    ],
+)
+def test_canonicalization_rejects_non_builtin_scalars_with_native_equivalents(
+    exotic: object, native: object
+) -> None:
+    with pytest.raises(CanonicalizationError):
+        canonical_json_bytes({"value": exotic})
+    with pytest.raises(CanonicalizationError):
+        content_sha256({"value": exotic})
+    assert canonical_json_bytes({"value": native})
+    assert content_sha256({"value": native})
+
+
 def test_json_object_type_has_an_object_schema_and_plain_json_dump() -> None:
     from pydantic import TypeAdapter
 
@@ -380,6 +462,104 @@ def test_record_rejects_a_wrong_serialized_version() -> None:
     ],
 )
 def test_public_scalar_fields_reject_coercible_non_json_source_types(
+    model: type, payload: dict[str, object]
+) -> None:
+    with pytest.raises(ValidationError):
+        model.model_validate(payload)
+
+
+@pytest.mark.parametrize(
+    ("model", "field_name", "base_payload", "exotic_values"),
+    [
+        (
+            ActionEnvelope,
+            "sequence_index",
+            {
+                "action_id": "a",
+                "slot_id": "s",
+                "channel_id": "c",
+                "actor_seat_id": "x",
+                "sequence_index": 0,
+                "payload": {},
+            },
+            (_IntegerEnum.ONE, _IntegerSubclass(1)),
+        ),
+        (
+            MetricValue,
+            "value",
+            {"value": 1.0},
+            (
+                Decimal("1"),
+                Fraction(1, 1),
+                _IntegerEnum.ONE,
+                _IntegerSubclass(1),
+                _FloatSubclass(1.0),
+            ),
+        ),
+        (
+            PluginManifest,
+            "plugin_id",
+            {
+                "plugin_id": "plugin",
+                "plugin_version": "1.0.0",
+                "sdk_api": "aeread.sdk/v1",
+            },
+            (_StringSubclass("plugin"),),
+        ),
+    ],
+)
+def test_public_scalars_require_exact_builtin_source_types(
+    model: type,
+    field_name: str,
+    base_payload: dict[str, object],
+    exotic_values: tuple[object, ...],
+) -> None:
+    for exotic in exotic_values:
+        payload = {**base_payload, field_name: exotic}
+        with pytest.raises(ValidationError):
+            model.model_validate(payload)
+
+
+@pytest.mark.parametrize(
+    ("model", "payload"),
+    [
+        (
+            ActionEnvelope,
+            {
+                "spec_version": _StringSubclass("aeread.sdk_record/1"),
+                "action_id": "a",
+                "slot_id": "s",
+                "channel_id": "c",
+                "actor_seat_id": "x",
+                "sequence_index": 0,
+                "payload": {},
+            },
+        ),
+        (
+            PluginManifest,
+            {
+                "plugin_id": "plugin",
+                "plugin_version": "1.0.0",
+                "sdk_api": _StringSubclass("aeread.sdk/v1"),
+            },
+        ),
+        (
+            PhaseSpec,
+            {
+                "phase_id": "phase",
+                "actor_selector": "actors",
+                "mode": _StringSubclass("single"),
+                "observation_schema_by_role": {},
+                "action_schema_by_role": {},
+                "max_logical_actions": 1,
+                "invalid_action_policy": "forfeit",
+                "next_phases": (),
+            },
+        ),
+        (ParseResult, {"status": _StringSubclass("malformed")}),
+    ],
+)
+def test_string_literal_fields_require_exact_builtin_strings(
     model: type, payload: dict[str, object]
 ) -> None:
     with pytest.raises(ValidationError):

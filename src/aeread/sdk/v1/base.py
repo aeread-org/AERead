@@ -19,6 +19,7 @@ from pydantic import (
     StrictInt,
     StrictStr,
     WithJsonSchema,
+    model_validator,
 )
 
 from .errors import CanonicalizationError
@@ -54,22 +55,27 @@ class _FrozenMapping(Mapping[str, T], Generic[T]):
 class FrozenJSONDict(_FrozenMapping[object]):
     """Recursively immutable, string-keyed JSON object."""
 
+    def __init__(self, value: Mapping[str, object]) -> None:
+        if not isinstance(value, Mapping):
+            raise ValueError("expected a JSON object")
+        if any(type(key) is not str for key in value):
+            raise ValueError("JSON object keys must be exact strings")
+        super().__init__(
+            {key: _freeze_json(item) for key, item in value.items()}
+        )
+
 
 def _freeze_json(value: object) -> object:
-    if value is None or isinstance(value, (str, bool, int)):
+    if value is None or type(value) in (str, bool, int):
         return value
-    if isinstance(value, float):
+    if type(value) is float:
         if not math.isfinite(value):
             raise ValueError("JSON floats must be finite")
         return value
     if isinstance(value, FrozenJSONDict):
         return value
     if isinstance(value, Mapping):
-        if any(not isinstance(key, str) for key in value):
-            raise ValueError("JSON object keys must be strings")
-        return FrozenJSONDict(
-            {key: _freeze_json(item) for key, item in value.items()}
-        )
+        return FrozenJSONDict(value)
     if isinstance(value, (list, tuple)):
         return tuple(_freeze_json(item) for item in value)
     raise ValueError(f"unsupported JSON value type: {type(value).__name__}")
@@ -93,8 +99,8 @@ def _validate_json_object(value: object) -> dict[str, object]:
 def _require_string_mapping(value: object) -> Mapping[str, object]:
     if not isinstance(value, Mapping):
         raise ValueError("expected an object")
-    if any(not isinstance(key, str) for key in value):
-        raise ValueError("object keys must be strings")
+    if any(type(key) is not str for key in value):
+        raise ValueError("object keys must be exact strings")
     return value
 
 
@@ -104,6 +110,30 @@ def _freeze_mapping(value: dict[str, T]) -> _FrozenMapping[T]:
 
 def _dump_mapping(value: Mapping[str, T]) -> dict[str, T]:
     return dict(value.items())
+
+
+def _require_exact_string(value: object) -> str:
+    if type(value) is not str:
+        raise ValueError("value must be an exact string")
+    return value
+
+
+def _require_exact_integer(value: object) -> int:
+    if type(value) is not int:
+        raise ValueError("value must be an exact integer")
+    return value
+
+
+def _require_exact_boolean(value: object) -> bool:
+    if type(value) is not bool:
+        raise ValueError("value must be an exact boolean")
+    return value
+
+
+def _require_exact_number(value: object) -> int | float:
+    if type(value) not in (int, float):
+        raise ValueError("value must be an exact integer or float")
+    return value
 
 
 _JSON_VALUE_SCHEMA: dict[str, object] = {
@@ -140,10 +170,14 @@ ImmutableMapping = Annotated[
     PlainSerializer(_dump_mapping, return_type=dict[str, T]),
 ]
 
-SDKStr = StrictStr
-SDKInt = StrictInt
-SDKBool = StrictBool
-SDKFloat = Annotated[float, Field(strict=True, allow_inf_nan=False)]
+SDKStr = Annotated[StrictStr, BeforeValidator(_require_exact_string)]
+SDKInt = Annotated[StrictInt, BeforeValidator(_require_exact_integer)]
+SDKBool = Annotated[StrictBool, BeforeValidator(_require_exact_boolean)]
+SDKFloat = Annotated[
+    float,
+    BeforeValidator(_require_exact_number),
+    Field(strict=True, allow_inf_nan=False),
+]
 
 
 class StrictModel(BaseModel):
@@ -157,6 +191,20 @@ class StrictModel(BaseModel):
     )
 
     spec_version: Literal["aeread.sdk_record/1"] = "aeread.sdk_record/1"
+
+    @model_validator(mode="before")
+    @classmethod
+    def reject_top_level_scalar_subclasses(cls, value: object) -> object:
+        if isinstance(value, Mapping):
+            for item in value.values():
+                if isinstance(item, (str, int, float, bool)) and type(item) not in (
+                    str,
+                    int,
+                    float,
+                    bool,
+                ):
+                    raise ValueError("record scalars must use exact built-in types")
+        return value
 
 
 def canonical_json_bytes(value: object) -> bytes:
