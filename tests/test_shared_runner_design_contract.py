@@ -21,6 +21,35 @@ PUBLIC_ENVIRONMENT_SPEC = (
 )
 
 
+def _markdown_table_row(
+    text: str, label: str, *, expected_cells: int
+) -> tuple[str, ...]:
+    matches = []
+    for line in text.splitlines():
+        if not line.startswith("|"):
+            continue
+        cells = tuple(cell.strip() for cell in line.strip("|").split("|"))
+        if label in cells:
+            matches.append(cells)
+    assert len(matches) == 1, f"expected one Markdown row for {label!r}: {matches!r}"
+    assert (
+        len(matches[0]) == expected_cells
+    ), f"expected {expected_cells} cells for {label!r}: {matches[0]!r}"
+    return matches[0]
+
+
+def _row_has_semantics(
+    row: tuple[str, ...],
+    *,
+    required: tuple[str, ...],
+    forbidden: tuple[str, ...],
+) -> bool:
+    row_text = " | ".join(row)
+    return all(fragment in row_text for fragment in required) and not any(
+        fragment in row_text for fragment in forbidden
+    )
+
+
 def test_shared_runner_design_records_frozen_execution_contract() -> None:
     text = DESIGN.read_text(encoding="utf-8")
 
@@ -312,36 +341,119 @@ def test_verifier_case_mapping_gives_one_real_workflow_and_benchmark_per_class()
 
 def test_verifier_mapping_marks_primary_leaf_not_full_scalar() -> None:
     text = VERIFIER_CASE_MAPPING.read_text(encoding="utf-8")
+    row = _markdown_table_row(text, "**canonical/reference**", expected_cells=4)
+    required = (
+        "primary deterministic database leaf, not the full upstream scalar",
+        "112 of 114",
+        "DB + NL_ASSERTION",
+        "natural-language assertions remain a separate leaf",
+    )
+    forbidden = (
+        "is the full upstream scalar",
+        "equals the full upstream scalar",
+        "full tau3 parity",
+        "DB-only benchmark",
+    )
 
-    assert "primary deterministic database leaf, not the full upstream scalar" in text
-    assert "112 of 114" in text
-    assert "NL_ASSERTION" in text
+    assert _row_has_semantics(row, required=required, forbidden=forbidden)
+
+    mutated = tuple(
+        cell.replace(
+            "is a primary deterministic database leaf, not the full upstream scalar",
+            "is the full upstream scalar",
+        )
+        for cell in row
+    )
+    assert not _row_has_semantics(mutated, required=required, forbidden=forbidden)
 
 
 def test_state_mapping_separates_machine_state_and_judged_requirements() -> None:
     text = VERIFIER_CASE_MAPPING.read_text(encoding="utf-8")
+    row = _markdown_table_row(text, "**rule/constraint/temporal**", expected_cells=4)
+    required = (
+        "final-state requirements are the official deterministic layer",
+        "non-empty task requirements use the locked task-requirements judge",
+        "empty task-requirement set uses the official deterministic identity shortcut",
+        "does not call a judge",
+        "task 142: 5 state, 0 task",
+        "compiled into a versioned predicate over recorded trace evidence",
+    )
+    forbidden = (
+        "all task requirements are deterministic",
+        "all task requirements use the locked judge",
+        "generic deterministic temporal scorer",
+    )
 
-    assert "final-state requirements are the official deterministic layer" in text
-    assert "task requirements are evaluated by a locked LLM judge" in text
-    assert "compiled into a versioned predicate over recorded trace evidence" in text
+    assert _row_has_semantics(row, required=required, forbidden=forbidden)
+
+    mutated = tuple(
+        cell.replace(
+            "non-empty task requirements use the locked task-requirements judge",
+            "all task requirements use the locked judge",
+        )
+        for cell in row
+    )
+    assert not _row_has_semantics(mutated, required=required, forbidden=forbidden)
 
 
 def test_econ_and_vending_mapping_preserves_reference_and_admission_limits() -> None:
     text = VERIFIER_CASE_MAPPING.read_text(encoding="utf-8")
+    econ_row = _markdown_table_row(
+        text, "**objective/optimum/bound**", expected_cells=4
+    )
+    required = (
+        "empirical random-matching comparison baseline, not an exact optimum",
+        "pinned solver and certificate",
+        "declared validity domain",
+    )
+    forbidden = ("random-matching optimum", "always exact", "seed-only reference")
 
-    assert "empirical random-matching baseline, not an exact optimum" in text
-    assert "pinned solver and certificate" in text
-    assert "official V2 code, license, and state contract" in text
-    assert "official adapter parity is blocked" in text
+    assert _row_has_semantics(econ_row, required=required, forbidden=forbidden)
+
+    mutated = tuple(
+        cell.replace(
+            "empirical random-matching comparison baseline, not an exact optimum",
+            "random-matching optimum",
+        )
+        for cell in econ_row
+    )
+    assert not _row_has_semantics(mutated, required=required, forbidden=forbidden)
+
+    vending_row = _markdown_table_row(
+        text, "**simulation/statistical**", expected_cells=4
+    )
+    assert _row_has_semantics(
+        vending_row,
+        required=(
+            "official V2 code, license, and state contract",
+            "official adapter parity is blocked",
+        ),
+        forbidden=("official adapter parity is available",),
+    )
 
 
 def test_terms_and_gdpval_mapping_carries_admission_protocol_caveats() -> None:
     text = VERIFIER_CASE_MAPPING.read_text(encoding="utf-8")
+    terms_row = _markdown_table_row(text, "**comparative**", expected_cells=4)
+    assert _row_has_semantics(
+        terms_row,
+        required=(
+            "AERead-owned TERMS-style conformance",
+            "official simulator, defaults, and license",
+            "official parity is blocked",
+        ),
+        forbidden=("official TERMS parity",),
+    )
 
-    assert "AERead-owned TERMS-style conformance" in text
-    assert "official simulator, defaults, and license" in text
-    assert "occupational experts in blinded pairwise comparison" in text
-    assert "dataset license must pass admission" in text
+    gdpval_row = _markdown_table_row(text, "**rater/judge**", expected_cells=4)
+    assert _row_has_semantics(
+        gdpval_row,
+        required=(
+            "occupational experts in blinded pairwise comparison",
+            "dataset license must pass admission",
+        ),
+        forbidden=("LLM judge is official expert parity",),
+    )
 
 
 def test_housing_mapping_separates_baseline_lower_and_upper_refs() -> None:
@@ -355,17 +467,77 @@ def test_housing_mapping_separates_baseline_lower_and_upper_refs() -> None:
 
 def test_public_spec_reports_implemented_foundation_and_missing_runtime() -> None:
     text = PUBLIC_ENVIRONMENT_SPEC.read_text(encoding="utf-8")
-
-    assert (
-        "RunPlan resolution, the trusted registry, the event store, and the artifact store exist"
-        in text
+    status_section = text.split("## 11. Mapping to the current repository", 1)[1].split(
+        "## 12. Implementation and review gates", 1
+    )[0]
+    implementation_row = _markdown_table_row(
+        status_section,
+        "`src/aeread/runner/planning.py`, `registry.py`, and `event_store.py`",
+        expected_cells=3,
     )
+
+    assert "exact-version developer registry/discovery foundation" in " | ".join(
+        implementation_row
+    )
+    assert "trusted registry" not in status_section
+    assert "trusted discovery" not in status_section
+    assert "Formal/paper plugin discovery is not implemented" in status_section
+    for requirement in (
+        "allowlist before `entry_point.load()`",
+        "distribution name/version",
+        "source/code pin",
+        "PlanCell and receipt provenance",
+    ):
+        assert requirement in status_section
     assert (
         "scheduler, attempt executor, receipt finalization, replay/resume, and benchmark adapters do not yet exist"
         in text
     )
     assert "implementation has not started" not in text
     assert "There is currently no `RunPlan`" not in text
+
+
+def test_attempt_observer_docs_separate_normative_target_from_current_sdk() -> None:
+    public_text = PUBLIC_ENVIRONMENT_SPEC.read_text(encoding="utf-8")
+    section = public_text.split(
+        "### 3.3 Observation and canonical response boundary", 1
+    )[1].split("### 3.4 Verifier contract", 1)[0]
+    normalized_section = " ".join(section.split())
+
+    assert "Normative target (proposed; not the current import surface)" in section
+    assert "ProviderCallStart" in section
+    assert "ProviderCallToken" in section
+    assert "provider_call_id" in section
+    assert "CallAttemptStart" not in section.split("The current SDK", 1)[0]
+    assert "CallAttemptToken" not in section.split("The current SDK", 1)[0]
+    assert "The current SDK still exports the retired compatibility names" in section
+    assert "`CallAttemptStart` and `CallAttemptToken`" in normalized_section
+    assert "Task 2.1" in section
+
+    design = DESIGN.read_text(encoding="utf-8")
+    roadmap = RUNNER_ARCHITECTURE.read_text(encoding="utf-8")
+    for text in (design, roadmap):
+        assert (
+            "normative ProviderCall target is not yet the current import surface"
+            in text
+        )
+        assert "Task 2.1" in text
+
+
+def test_shared_runner_status_reports_landed_foundation_and_missing_runtime() -> None:
+    status = DESIGN.read_text(encoding="utf-8").splitlines()[2]
+
+    assert "authoring/planning/measurement records" in status
+    assert "evidence foundation" in status
+    for missing in (
+        "scheduler",
+        "executor",
+        "receipt finalization",
+        "replay",
+        "adapters",
+    ):
+        assert missing in status
+    assert "schemas remain to be landed" not in status
 
 
 def test_roadmap_does_not_invent_reference_or_generator_plugin_groups() -> None:

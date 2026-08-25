@@ -536,11 +536,18 @@ One `DecisionSlot` creates one `LogicalAction`, and one successful logical actio
 evidence. A scripted output or pre-call failure can therefore produce an `ActionAttempt`
 with zero `ProviderCall` records without losing the slot or logical-action identity.
 
-The earlier `CallAttempt` term is retired before serialization. It conflated an attempt to
-produce an economic action with an atomic provider request. A tool-using action can contain
-multiple `ProviderCall` and `ToolInvocation` records without being a retry. Under
-`minimal_chat/1.0`, one `ActionAttempt` happens to contain one `ProviderCall`; that is a
-profile constraint, not a universal invariant.
+The earlier `CallAttempt` term is scheduled for retirement before the final `0.1`
+serialized contract. It conflates an attempt to produce an economic action with an atomic
+provider request. A tool-using action can contain multiple `ProviderCall` and
+`ToolInvocation` records without being a retry. Under `minimal_chat/1.0`, one
+`ActionAttempt` happens to contain one `ProviderCall`; that is a profile constraint, not a
+universal invariant.
+
+The normative ProviderCall target is not yet the current import surface. The current SDK
+still exposes `CallAttemptStart` / `CallAttemptToken` with `call_attempt_id` as compatibility
+names. Task 2.1 performs the serialized migration to `ProviderCallStart` /
+`ProviderCallToken` and `provider_call_id`; this roadmap does not claim those target names
+are already importable.
 
 ### 4. Evidence objects
 

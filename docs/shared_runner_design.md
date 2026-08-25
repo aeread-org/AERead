@@ -1,6 +1,6 @@
 # AERead Shared Runner, Measurement, and Case Format
 
-> **Status:** normative design baseline for implementation; concrete `0.1` schemas remain to be landed
+> **Status:** normative design target; authoring/planning/measurement records and the evidence foundation are landed; scheduler, executor, receipt finalization, replay, and adapters are not landed
 >
 > **Owner:** Zeyu Sun
 >
@@ -80,7 +80,10 @@ L1  Shared authoring formats
 | receipt integrity, replay/resume, and coverage | reference providers, generators, difficulty knobs, and baselines |
 | declared cluster-aware aggregation and export | family interpretation of each measurement |
 
-The kernel MUST NOT import a concrete family or contain `if family == ...` branches. A trusted registry resolves `family_id` and version to a plugin.
+The kernel MUST NOT import a concrete family or contain `if family == ...` branches. The
+formal target resolves `family_id` and version through a provenance-attested registry. The
+current exact-version developer registry/discovery foundation is not yet trusted for paper
+mode because it lacks pre-load allowlisting and resolved distribution/source provenance.
 
 ### 2.1 Declarative phase contract
 
@@ -177,6 +180,13 @@ class AgentAdapter(Protocol):
         self, request: AgentRequest, *, attempts: AttemptObserver
     ) -> CanonicalResponse: ...
 ```
+
+The normative ProviderCall target is not yet the current import surface. The current
+`aeread.sdk.v1` compatibility surface still exports `CallAttemptStart` and
+`CallAttemptToken` with `call_attempt_id`; Task 2.1 owns their serialized migration to
+`ProviderCallStart`, `ProviderCallToken`, and `provider_call_id`. The code sketch above is
+the proposed target for new adapter design, not a claim that those target types are already
+importable.
 
 The public executable names and call boundaries are defined by [`public_environment_and_external_adapter_spec.md`](public_environment_and_external_adapter_spec.md): the runner invokes an `EnvironmentPlugin`, and an `AgentAdapter` reports provider activity through the runner-owned `AttemptObserver` rather than writing evidence directly. The hooks may be methods or registered functions, but their inputs, outputs, versions, and evidence must be explicit. The runner—not an environment-owned coroutine—advances the schedule, enforces budgets, and records every boundary. Every logical action is keyed by `slot_id`; one seat may own multiple decision slots in one phase, and one slot may own multiple channels. A slot may atomically emit multiple ordered channel actions in one `ActionBundle`. The adapter MUST preserve upstream call grouping, and the runner MUST NOT merge or split those calls across slots or bundles. Bundle validation uses the slot's declared `ActionChannel` membership and each channel's `min_actions`/`max_actions`: every channel count is within its declared bounds, every action has a declared channel, action IDs are unique, and sequence indices are unique and ordered within the bundle. `parse_action()` returns one atomic `ParseResult` for the whole slot response; on success it contains one `ActionBundle`. `legal()` returns one `LegalityResult` for that whole bundle. No partial bundle is applied.
 

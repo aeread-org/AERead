@@ -1,6 +1,6 @@
 # AERead Public Environment Interface and External Benchmark Adapter Specification
 
-> **Status:** proposed design delta; authoring, planning, registry, and evidence foundations exist, while the executable kernel remains incomplete
+> **Status:** proposed design delta; authoring, planning, exact-version developer registry/discovery, and evidence foundations exist, while formal discovery and the executable kernel remain incomplete
 >
 > **Author:** Codex, for Zeyu Sun
 >
@@ -246,6 +246,10 @@ Contract rules:
 
 ### 3.3 Observation and canonical response boundary
 
+> **Normative target (proposed; not the current import surface):** provider-call
+> write-ahead records use `ProviderCallStart`, `ProviderCallToken`, and
+> `provider_call_id`.
+
 ```python
 class ObservationEnvelope(StrictModel):
     schema_ref: str
@@ -264,13 +268,23 @@ class AgentRequest(StrictModel):
     budget: AttemptBudget
 
 
+class ProviderCallStart(StrictModel):
+    provider_call_id: str
+    logical_action_id: str
+    request_sha256: str
+
+
+class ProviderCallToken(StrictModel):
+    provider_call_id: str
+
+
 class AttemptObserver(Protocol):
-    def call_started(self, start: CallAttemptStart) -> CallAttemptToken: ...
+    def call_started(self, start: ProviderCallStart) -> ProviderCallToken: ...
     def call_succeeded(
-        self, token: CallAttemptToken, result: ProviderCallResult
+        self, token: ProviderCallToken, result: ProviderCallResult
     ) -> None: ...
     def call_failed(
-        self, token: CallAttemptToken, failure: ProviderCallFailure
+        self, token: ProviderCallToken, failure: ProviderCallFailure
     ) -> None: ...
 
 
@@ -279,6 +293,12 @@ class AgentAdapter(Protocol):
         self, request: AgentRequest, *, attempts: AttemptObserver
     ) -> CanonicalResponse: ...
 ```
+
+The current SDK still exports the retired compatibility names `CallAttemptStart` and
+`CallAttemptToken`, with `call_attempt_id` as their serialized identity. Those names are
+not the normative public target and should not be copied into new adapter contracts.
+Task 2.1 owns the serialized migration to the `ProviderCall*` vocabulary and
+`provider_call_id`; this docs-only alignment does not change production SDK imports.
 
 The adapter owns provider/harness-specific wire formats. OpenAI Responses, Chat Completions, Anthropic Messages, a CLI agent, or an rLLM gateway may return different native objects; each adapter normalizes them into `CanonicalResponse` before the family parser or scorer consumes them. `CanonicalResponse` includes normalized content/tool calls, finish reason, usage, raw artifact reference, and an optional harness-trace reference.
 
@@ -366,7 +386,13 @@ my_harness_v1 = "my_package.agent:adapter"
 my_runtime_v1 = "my_package.runtime:backend"
 ```
 
-The trusted registry resolves `(plugin_id, plugin_version, sdk_api)` and records distribution name/version plus source hash. A case manifest may reference a registered ID but may not contain an arbitrary import path or executable code. This prevents a downloaded case file from becoming a code-execution vector.
+The **proposed formal-mode resolver** resolves `(plugin_id, plugin_version, sdk_api)` only
+after attesting the distribution and entry-point provenance. The current implementation
+provides exact-version developer registration/discovery, but it loads an entry point before
+validating the returned plugin object; it is therefore not a trusted paper-mode discovery
+path. A case manifest may reference a registered ID but may not contain an arbitrary import
+path or executable code. That restriction prevents case data itself from naming an import,
+but it does not attest the installed distribution.
 
 Core imports must stay lightweight. tau3, AgenticPay, Gurobi, vLLM, SGLang, Docker, and Harbor dependencies belong in adapter extras or isolated adapter distributions. Importing `aeread.sdk.v1` must not import any of them.
 
@@ -579,11 +605,11 @@ Harbor is a third-party task/dataset and sandbox execution format, not AERead's 
 | `src/aeread/cli.py` | hardcodes Exchange verbs in a dispatch dictionary | add namespaced `env`, `benchmark`, `suite`, and `receipt` commands backed by registries |
 | `src/aeread/integrations/rllm_*` | maps Exchange episodes directly into rLLM flow/reward | derive rLLM records from canonical receipts and per-seat trajectory references |
 | `src/aeread/sdk/v1` | implements strict authoring/planning/measurement records plus the proposed environment, agent, verifier, source, and backend protocol skeletons | retain the reviewed public boundary; do not infer that protocol records imply an executable scheduler |
-| `src/aeread/runner/planning.py`, `registry.py`, and `event_store.py` | implement deterministic plan resolution, trusted discovery, and append-only event/artifact foundations | complete execution, recovery, receipt finalization, and replay on top of these reviewed foundations |
+| `src/aeread/runner/planning.py`, `registry.py`, and `event_store.py` | implement deterministic plan resolution, an exact-version developer registry/discovery foundation, and append-only event/artifact foundations | add formal pre-load provenance admission, then complete execution, recovery, receipt finalization, and replay |
 | `docs/shared_runner_design.md` | normative baseline aligned to the implemented SDK foundation and proposed slot/channel action boundary | keep exact public signatures marked proposed until the team accepts the design delta |
 | `tests/test_shared_runner_design_contract.py` | asserts terminology exists in documents | keep as documentation guard; add executable SDK/kernel/conformance tests |
 
-RunPlan resolution, the trusted registry, the event store, and the artifact store exist in the current branch, together with strict SDK records and protocol skeletons. The scheduler, attempt executor, receipt finalization, replay/resume, and benchmark adapters do not yet exist as executable shared-runner paths. An `EvaluationReceipt` schema is therefore not evidence that receipts can already be finalized, and the current Exchange path still does not run through the proposed kernel.
+RunPlan resolution, exact-version developer registry/discovery, the event store, and the artifact store exist in the current branch, together with strict SDK records and protocol skeletons. Formal/paper plugin discovery is not implemented: it still needs an allowlist before `entry_point.load()`, distribution name/version and entry-point identity, a source/code pin, and binding of the resolved provenance into PlanCell and receipt provenance. The scheduler, attempt executor, receipt finalization, replay/resume, and benchmark adapters do not yet exist as executable shared-runner paths. An `EvaluationReceipt` schema is therefore not evidence that receipts can already be finalized, and the current Exchange path still does not run through the proposed kernel.
 
 ---
 
@@ -592,15 +618,16 @@ RunPlan resolution, the trusted registry, the event store, and the artifact stor
 The implementation order is normative:
 
 1. review and accept the slot/channel and attempt-observer design amendments;
-2. land `aeread.sdk.v1` records, protocols, strict serialization, and trusted registry;
-3. land the minimum kernel: RunPlan, phase scheduler, explicit attempts, event store, sealed score/receipt, replay/resume;
-4. pass provider-free conformance fixtures;
-5. prove legacy Exchange parity;
-6. pass Housing as the first clean native family;
-7. implement EconEvals Procurement;
-8. implement tau3 Retail;
-9. implement AgenticPay 1v1 and 2×2;
-10. only then claim a public third-party contribution path is demonstrated.
+2. land `aeread.sdk.v1` records, protocols, strict serialization, and exact-version developer registry/discovery;
+3. add formal pre-load plugin allowlisting and distribution/source provenance before any paper-mode third-party discovery;
+4. land the minimum kernel: RunPlan, phase scheduler, explicit attempts, event store, sealed score/receipt, replay/resume;
+5. pass provider-free conformance fixtures;
+6. prove legacy Exchange parity;
+7. pass Housing as the first clean native family;
+8. implement EconEvals Procurement;
+9. implement tau3 Retail;
+10. implement AgenticPay 1v1 and 2×2;
+11. only then claim a public third-party contribution path is demonstrated.
 
 The first implementation PR should not include external benchmark dependencies. The public contracts should be exercised by tiny provider-free fake plugins before any upstream adapter is added.
 
@@ -611,7 +638,7 @@ The specification recommends defaults rather than leaving these undefined. Revie
 1. `DecisionSlot` with multi-channel `ActionBundle` replaces seat-keyed action maps.
 2. `AgentAdapter` receives a runner-owned `AttemptObserver`; opaque harnesses declare `logical_only` rather than fabricating provider attempts.
 3. `aeread.sdk.v1` is the stable authoring namespace; Pydantic 2 is the only new core dependency.
-4. plugins are discovered through trusted entry points; manifests cannot import code.
+4. developer plugins use registered entry points; formal mode additionally requires pre-load distribution allowlisting and provenance, while manifests cannot import code.
 5. admission uses independent capability fields plus `paper_primary`, `training`, and `interop_only` profiles.
 6. Exchange parity and Housing conformance remain prerequisites for external adapters.
 7. the three spikes and pins above are the first external coverage set.
@@ -625,7 +652,8 @@ Agreement on these seven points is enough to start the SDK/kernel implementation
 This design was checked against the current remote baseline and repository implementation.
 
 - **No hidden universal schema:** family states, utilities, actions, topology, and termination remain plugin-owned.
-- **No family branch in kernel:** resolution occurs through trusted plugin IDs.
+- **No family branch in kernel:** resolution occurs through exact-version plugin IDs;
+  formal paper claims additionally require attested distribution provenance.
 - **No seat-key collision:** one seat can emit multiple directed channel actions atomically.
 - **No harness assumption:** provider/CLI/framework outputs canonicalize at `AgentAdapter`.
 - **No runtime lock-in:** Harbor/sandbox execution remains optional and orthogonal.
