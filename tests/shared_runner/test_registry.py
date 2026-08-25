@@ -176,6 +176,21 @@ def test_registry_rejects_missing_or_invalid_manifests() -> None:
         PluginRegistry.from_objects(environments=[MappingManifest()])
 
 
+def test_registry_wraps_hostile_manifest_type_inspection() -> None:
+    class HostileManifest:
+        @property
+        def __class__(self) -> type[object]:
+            raise RuntimeError("manifest class exploded")
+
+    class HostileEnvironment:
+        manifest = HostileManifest()
+
+    with pytest.raises(IncompatiblePlugin, match="environments") as exc_info:
+        PluginRegistry.from_objects(environments=[HostileEnvironment()])
+
+    assert isinstance(exc_info.value.__cause__, RuntimeError)
+
+
 def test_registry_rejects_object_that_does_not_implement_its_category() -> None:
     with pytest.raises(IncompatiblePlugin, match="EnvironmentPlugin"):
         PluginRegistry.from_objects(environments=[MissingStepEnvironment()])
@@ -418,6 +433,52 @@ def test_entry_point_discovery_queries_only_the_five_allowlisted_groups() -> Non
     assert registry.resolve_environment("fake_market", "1.0.0") is plugins[
         "aeread.environments"
     ]
+
+
+def test_discovery_wraps_raising_entry_point_load_attribute_safely() -> None:
+    class HostileEntryPoint:
+        @property
+        def name(self) -> str:
+            raise RuntimeError("name exploded")
+
+        @property
+        def load(self) -> object:
+            raise RuntimeError("load attribute exploded")
+
+        def __repr__(self) -> str:
+            raise RuntimeError("repr exploded")
+
+    def entry_points(*, group: str) -> tuple[HostileEntryPoint, ...]:
+        return (HostileEntryPoint(),) if group == "aeread.environments" else ()
+
+    with pytest.raises(IncompatiblePlugin) as exc_info:
+        PluginRegistry.discover(entry_points_provider=entry_points)
+
+    message = str(exc_info.value)
+    assert "environments" in message
+    assert "aeread.environments" in message
+    assert "index=0" in message
+    assert isinstance(exc_info.value.__cause__, RuntimeError)
+
+
+def test_discovery_wraps_entry_point_load_call_failure_with_safe_name() -> None:
+    class BrokenEntryPoint:
+        name = "broken-loader"
+
+        def load(self) -> object:
+            raise OSError("distribution import failed")
+
+    def entry_points(*, group: str) -> tuple[BrokenEntryPoint, ...]:
+        return (BrokenEntryPoint(),) if group == "aeread.environments" else ()
+
+    with pytest.raises(IncompatiblePlugin) as exc_info:
+        PluginRegistry.discover(entry_points_provider=entry_points)
+
+    message = str(exc_info.value)
+    assert "environments" in message
+    assert "aeread.environments" in message
+    assert "broken-loader" in message
+    assert isinstance(exc_info.value.__cause__, OSError)
 
 
 def test_protocols_are_runtime_checkable_and_missing_methods_are_rejected() -> None:

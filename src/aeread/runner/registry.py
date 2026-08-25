@@ -142,7 +142,13 @@ def _validated_manifest(category: str, plugin: object) -> PluginManifest:
         raise IncompatiblePlugin(
             f"{category} plugin is missing a PluginManifest"
         )
-    if not isinstance(manifest, PluginManifest):
+    try:
+        is_manifest = isinstance(manifest, PluginManifest)
+    except Exception as exc:
+        raise IncompatiblePlugin(
+            f"{category} plugin manifest type could not be inspected"
+        ) from exc
+    if not is_manifest:
         raise IncompatiblePlugin(
             f"{category} plugin manifest must be a PluginManifest"
         )
@@ -278,6 +284,18 @@ def _validate_contract(category: str, plugin: object) -> None:
             )
 
 
+def _safe_entry_point_identity(entry_point: object, index: int) -> str:
+    """Return an identity without relying on untrusted repr or descriptors."""
+
+    try:
+        name = getattr(entry_point, "name", None)
+    except Exception:
+        name = None
+    if type(name) is str and name:
+        return f"name={name[:128]!r}, index={index}"
+    return f"index={index}"
+
+
 class PluginRegistry:
     """Registry keyed by category, stable plugin ID, and exact semantic version."""
 
@@ -320,8 +338,17 @@ class PluginRegistry:
             category: [] for _, category in _GROUPS
         }
         for group, category in _GROUPS:
-            for entry_point in provider(group=group):
-                discovered[category].append(entry_point.load())
+            for index, entry_point in enumerate(provider(group=group)):
+                try:
+                    loader = getattr(entry_point, "load")
+                    loaded = loader()
+                except Exception as exc:
+                    identity = _safe_entry_point_identity(entry_point, index)
+                    raise IncompatiblePlugin(
+                        f"{category} plugin entry point {identity} in group "
+                        f"{group!r} failed to load"
+                    ) from exc
+                discovered[category].append(loaded)
         return cls.from_objects(**discovered)
 
     def _register(self, category: str, plugin: object) -> None:
