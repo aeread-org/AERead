@@ -543,11 +543,12 @@ provider request. A tool-using action can contain multiple `ProviderCall` and
 `ActionAttempt` happens to contain one `ProviderCall`; that is a profile constraint, not a
 universal invariant.
 
-The normative ProviderCall target is not yet the current import surface. The current SDK
-still exposes `CallAttemptStart` / `CallAttemptToken` with `call_attempt_id` as compatibility
-names. Task 2.1 performs the serialized migration to `ProviderCallStart` /
-`ProviderCallToken` and `provider_call_id`; this roadmap does not claim those target names
-are already importable.
+ProviderCall target vocabulary is not a frozen field contract. Task 2.1a must define the
+complete typed records and a versioned discriminated parent for `action_attempt`,
+`rater_attempt`, and `lifecycle_operation` ownership. The current SDK's
+`CallAttemptStart` / `CallAttemptToken` surface is a pre-freeze/retired migration import
+surface; it does not create a compatibility promise. This roadmap does not freeze target
+fields or claim that the eventual target records are already importable.
 
 ### 4. Evidence objects
 

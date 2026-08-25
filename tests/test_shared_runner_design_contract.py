@@ -375,13 +375,16 @@ def test_state_mapping_separates_machine_state_and_judged_requirements() -> None
         "non-empty task requirements use the locked task-requirements judge",
         "empty task-requirement set uses the official deterministic identity shortcut",
         "does not call a judge",
-        "task 142: 5 state, 0 task",
+        "customer_support/142-hard_compound_exchange_plus_late_compensation",
+        "5 state requirements and 0 task requirements",
         "compiled into a versioned predicate over recorded trace evidence",
     )
     forbidden = (
         "all task requirements are deterministic",
         "all task requirements use the locked judge",
         "generic deterministic temporal scorer",
+        "task 142:",
+        "task 142 has",
     )
 
     assert _row_has_semantics(row, required=required, forbidden=forbidden)
@@ -438,11 +441,17 @@ def test_terms_and_gdpval_mapping_carries_admission_protocol_caveats() -> None:
     assert _row_has_semantics(
         terms_row,
         required=(
-            "AERead-owned TERMS-style conformance",
+            "public materials support a proposed AERead-owned TERMS-style fixture",
+            "no E0 conformance or E1 adapter/parity result exists",
             "official simulator, defaults, and license",
             "official parity is blocked",
         ),
-        forbidden=("official TERMS parity",),
+        forbidden=(
+            "currently admitted",
+            "E0 conformance is complete",
+            "E1 adapter parity is complete",
+            "official TERMS parity",
+        ),
     )
 
     gdpval_row = _markdown_table_row(text, "**rater/judge**", expected_cells=4)
@@ -503,25 +512,33 @@ def test_attempt_observer_docs_separate_normative_target_from_current_sdk() -> N
         "### 3.3 Observation and canonical response boundary", 1
     )[1].split("### 3.4 Verifier contract", 1)[0]
     normalized_section = " ".join(section.split())
-
-    assert "Normative target (proposed; not the current import surface)" in section
+    assert "Target vocabulary only; field-level Python contract is not frozen" in section
     assert "ProviderCallStart" in section
     assert "ProviderCallToken" in section
-    assert "provider_call_id" in section
-    assert "CallAttemptStart" not in section.split("The current SDK", 1)[0]
-    assert "CallAttemptToken" not in section.split("The current SDK", 1)[0]
-    assert "The current SDK still exports the retired compatibility names" in section
-    assert "`CallAttemptStart` and `CallAttemptToken`" in normalized_section
-    assert "Task 2.1" in section
+    assert "versioned discriminated parent" in section
+    for parent_kind in ("action_attempt", "rater_attempt", "lifecycle_operation"):
+        assert f"`{parent_kind}`" in section
+    assert "class ProviderCallStart" not in section
+    assert "class ProviderCallToken" not in section
+    assert "provider_call_id: str" not in section
+    assert "def call_started" not in section
+    assert "attempts.call_started()" not in section
+    assert "pre-freeze/retired migration import surface" in section
+    assert "does not create a compatibility promise" in normalized_section
+    assert "retired compatibility names" not in section
+    assert "Task 2.1a" in section
 
     design = DESIGN.read_text(encoding="utf-8")
     roadmap = RUNNER_ARCHITECTURE.read_text(encoding="utf-8")
     for text in (design, roadmap):
+        normalized_text = " ".join(text.split())
         assert (
-            "normative ProviderCall target is not yet the current import surface"
-            in text
+            "ProviderCall target vocabulary is not a frozen field contract"
+            in normalized_text
         )
-        assert "Task 2.1" in text
+        assert "pre-freeze/retired migration import surface" in normalized_text
+        assert "does not create a compatibility promise" in normalized_text
+        assert "Task 2.1a" in normalized_text
 
 
 def test_shared_runner_status_reports_landed_foundation_and_missing_runtime() -> None:

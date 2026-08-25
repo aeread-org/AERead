@@ -246,9 +246,9 @@ Contract rules:
 
 ### 3.3 Observation and canonical response boundary
 
-> **Normative target (proposed; not the current import surface):** provider-call
-> write-ahead records use `ProviderCallStart`, `ProviderCallToken`, and
-> `provider_call_id`.
+> **Target vocabulary only; field-level Python contract is not frozen:** provider-call
+> write-ahead evidence will use `ProviderCallStart` / `ProviderCallToken` vocabulary,
+> but Task 2.1a must freeze the complete typed records and serialization.
 
 ```python
 class ObservationEnvelope(StrictModel):
@@ -268,24 +268,9 @@ class AgentRequest(StrictModel):
     budget: AttemptBudget
 
 
-class ProviderCallStart(StrictModel):
-    provider_call_id: str
-    logical_action_id: str
-    request_sha256: str
-
-
-class ProviderCallToken(StrictModel):
-    provider_call_id: str
-
-
 class AttemptObserver(Protocol):
-    def call_started(self, start: ProviderCallStart) -> ProviderCallToken: ...
-    def call_succeeded(
-        self, token: ProviderCallToken, result: ProviderCallResult
-    ) -> None: ...
-    def call_failed(
-        self, token: ProviderCallToken, failure: ProviderCallFailure
-    ) -> None: ...
+    """Runner-owned observer role; exact typed methods are frozen in Task 2.1a."""
+    ...
 
 
 class AgentAdapter(Protocol):
@@ -294,17 +279,22 @@ class AgentAdapter(Protocol):
     ) -> CanonicalResponse: ...
 ```
 
-The current SDK still exports the retired compatibility names `CallAttemptStart` and
-`CallAttemptToken`, with `call_attempt_id` as their serialized identity. Those names are
-not the normative public target and should not be copied into new adapter contracts.
-Task 2.1 owns the serialized migration to the `ProviderCall*` vocabulary and
-`provider_call_id`; this docs-only alignment does not change production SDK imports.
+Task 2.1a will freeze a versioned discriminated parent linking every provider-call record
+to exactly one of `action_attempt`, `rater_attempt`, or `lifecycle_operation`, together
+with the complete identity, request, budget, terminal, and provenance fields. This section
+therefore declares vocabulary and ownership only; it does not define partial record classes.
+
+The current SDK still exports `CallAttemptStart` and `CallAttemptToken` as a
+pre-freeze/retired migration import surface. That surface is implementation evidence, does
+not create a compatibility promise, and should not be copied into new adapter contracts.
+Task 2.1a owns the versioned serialized migration; this docs-only alignment does not change
+production SDK imports.
 
 The adapter owns provider/harness-specific wire formats. OpenAI Responses, Chat Completions, Anthropic Messages, a CLI agent, or an rLLM gateway may return different native objects; each adapter normalizes them into `CanonicalResponse` before the family parser or scorer consumes them. `CanonicalResponse` includes normalized content/tool calls, finish reason, usage, raw artifact reference, and an optional harness-trace reference.
 
 Canonicalization records, rather than erases, meaningful distinctions. It does not force every harness into a shared Python class or provider API internally; an HTTP service, CLI process, rLLM flow, or in-process object may sit behind the adapter.
 
-The runner writes `logical_action_started` and `harness_invocation_started` before invoking `act()`. A direct-model adapter calls `attempts.call_started()` immediately before each provider request, then closes the returned token exactly once. An instrumented multi-turn harness reports every internal provider attempt through the same observer; an interception layer may do this on its behalf. The adapter never writes the event store directly.
+The runner writes `logical_action_started` and `harness_invocation_started` before invoking `act()`. A direct-model adapter reports provider-call start immediately before each provider request and reports exactly one terminal result through the observer boundary. An instrumented multi-turn harness reports every internal provider attempt through the same boundary; an interception layer may do this on its behalf. The adapter never writes the event store directly. Task 2.1a freezes the observer method names together with the record contract.
 
 If invocation throws, the harness invocation and any started provider attempts still exist. If a harness cannot expose internal calls, it declares `call_observability = "logical_only"`; the runner records the outer invocation but does not fabricate provider rows, and the adapter cannot satisfy `paper_primary`. Recording only after `act()` returns loses evidence for exactly the calls most important to benchmark validity.
 
