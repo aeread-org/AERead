@@ -26,6 +26,7 @@ from aeread.sdk.v1 import (
     FamilyManifest,
     FamilyOutcome,
     LegalityResult,
+    LowerBoundOnlyRule,
     MemoryPin,
     ModelPin,
     ObservationEnvelope,
@@ -107,6 +108,20 @@ _REQUEST_EXECUTION_CONFIG = AgentExecutionConfig(
     attempt_budget=AttemptBudget(timeout_seconds=1.0, output_token_limit=64),
     retry_policy=RetryPolicy(max_attempts=1),
 )
+_REQUEST_PROFILE = AgentProfile(
+    profile_id="candidate",
+    profile_version="1.0.0",
+    adapter=PinnedPluginRef(
+        plugin={"plugin_id": "fake_agent", "plugin_version": "1.0.0"},
+        implementation=ImplementationRef(
+            implementation_id="fake_agent",
+            version="1.0.0",
+            content_sha256="3" * 64,
+        ),
+    ),
+    call_observability="full",
+    execution_config=_REQUEST_EXECUTION_CONFIG,
+)
 
 REQUEST = AgentRequest(
     logical_action_id=IDS["logical_action_id"],
@@ -127,9 +142,9 @@ REQUEST = AgentRequest(
         harness="fake-harness",
         runtime="in_process",
     ),
-    agent_profile_sha256="0" * 64,
+    profile=_REQUEST_PROFILE,
+    agent_profile_sha256=content_sha256(_REQUEST_PROFILE),
     execution_config_sha256=content_sha256(_REQUEST_EXECUTION_CONFIG),
-    execution_config=_REQUEST_EXECUTION_CONFIG,
     budget=_REQUEST_EXECUTION_CONFIG.attempt_budget,
 )
 
@@ -415,7 +430,11 @@ def fake_resolution_inputs() -> ResolutionInputs:
                 horizon="two offer rounds",
                 opponent_condition="fixed counterpart/1.0.0",
                 stochastic_expectation="expectation over declared rollout seeds",
-                bound_status="lower_bound_only",
+                validity_domain="fake_market/1.0.0 dev split",
+                reference_applicability="fake_market/1.0.0 declared estimand",
+                claim_rule=LowerBoundOnlyRule(
+                    certification_rule="feasible_witness_lower_bounds_optimum"
+                ),
                 reference_contracts={
                     "optimum_lower_bound": OptimizationReferenceContract(
                         kind="optimum_lower_bound",
@@ -427,11 +446,13 @@ def fake_resolution_inputs() -> ResolutionInputs:
                         information_set="buyer-private observation",
                         horizon="two offer rounds",
                         opponent_condition="fixed counterpart/1.0.0",
+                        stochastic_expectation="expectation over declared rollout seeds",
                         proof_type="executable feasible witness",
                         implementation=fake_implementation(
                             "buyer_utility_lower_bound", marker="9"
                         ),
                         validity_domain="fake_market/1.0.0 dev split",
+                        applicability="fake_market/1.0.0 declared estimand",
                     )
                 },
             ),

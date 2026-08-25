@@ -15,13 +15,16 @@ from aeread.sdk.v1.records import (
     AdmissionCheck,
     AdmissionReport,
     AgentProfile,
+    AgentRequest,
     CapabilityDeclaration,
     CaseManifest,
     ComparativeMeasurementSpec,
+    DecisionSlot,
     EpisodeCell,
     FamilyManifest,
     ImplementationRef,
     MeasurementSpec,
+    ObservationEnvelope,
     OptimizableOutcomeMeasurementSpec,
     ResolutionInputs,
     RunPlan,
@@ -68,6 +71,10 @@ class UnresolvedImplementation(PlanningError):
 
 class InvalidClusterDeclaration(PlanningError):
     """A suite requests an unsupported or unavailable cluster field."""
+
+
+class InvalidAgentRequest(PlanningError):
+    """A request cannot be bound to one exact plan cell, seat, and profile."""
 
 
 _CAPABILITY_VALUES: Mapping[str, tuple[str, ...]] = MappingProxyType(
@@ -943,6 +950,52 @@ def verify_run_plan_identity(plan: RunPlan) -> bool:
         return False
 
 
+def build_agent_request_from_plan(
+    plan: RunPlan,
+    *,
+    cell_id: str,
+    seat_id: str,
+    phase_id: str,
+    logical_action_id: str,
+    slot: DecisionSlot,
+    observation: ObservationEnvelope,
+) -> AgentRequest:
+    """Bind an adapter request to the exact immutable profile assigned by a plan."""
+
+    if not verify_run_plan_identity(plan):
+        raise InvalidAgentRequest("run plan identity is invalid")
+    matching_cells = tuple(cell for cell in plan.cells if cell.cell_id == cell_id)
+    if len(matching_cells) != 1:
+        raise InvalidAgentRequest(f"cell {cell_id!r} is not uniquely present")
+    cell = matching_cells[0]
+    profile_id = cell.seat_profile_id_by_seat.get(seat_id)
+    profile_sha256 = cell.seat_profile_sha256_by_seat.get(seat_id)
+    if profile_id is None or profile_sha256 is None:
+        raise InvalidAgentRequest(f"seat {seat_id!r} is not assigned in the cell")
+    if slot.seat_id != seat_id:
+        raise InvalidAgentRequest("decision slot seat does not match requested seat")
+
+    profiles = {
+        profile.profile_id: profile
+        for profile in plan.agent_profiles
+        if profile.profile_id == profile_id
+    }
+    profile = profiles.get(profile_id)
+    if profile is None:
+        raise InvalidAgentRequest(f"profile {profile_id!r} is absent from the plan")
+    try:
+        return AgentRequest.from_profile(
+            logical_action_id=logical_action_id,
+            phase_id=phase_id,
+            slot=slot,
+            observation=observation,
+            profile=profile,
+            expected_profile_sha256=profile_sha256,
+        )
+    except (ValidationError, ValueError) as exc:
+        raise InvalidAgentRequest("request does not match the planned profile") from exc
+
+
 def resolve_run_plan(inputs: ResolutionInputs, registry: PluginRegistry) -> RunPlan:
     """Resolve immutable experiment inputs without invoking any plugin hook."""
 
@@ -991,12 +1044,14 @@ __all__ = [
     "CapabilityMismatch",
     "ContentHashMismatch",
     "IncompleteAgentAssignment",
+    "InvalidAgentRequest",
     "InvalidClusterDeclaration",
     "ManifestMismatch",
     "PlanningError",
     "SUPPORTED_CLUSTER_FIELDS",
     "UnresolvedImplementation",
     "evaluate_admission",
+    "build_agent_request_from_plan",
     "resolve_run_plan",
     "verify_run_plan_identity",
 ]

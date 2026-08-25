@@ -9,14 +9,17 @@ from pydantic import ValidationError
 from aeread.runner.planning import (
     CapabilityMismatch,
     IncompleteAgentAssignment,
+    InvalidAgentRequest,
     InvalidClusterDeclaration,
     ManifestMismatch,
+    build_agent_request_from_plan,
     resolve_run_plan,
     verify_run_plan_identity,
 )
 from aeread.runner.registry import PluginRegistry
 from aeread.sdk.v1 import (
     AgentExecutionConfig,
+    AgentContext,
     AgentProfile,
     AgentRequest,
     CanonicalResponse,
@@ -25,7 +28,11 @@ from aeread.sdk.v1 import (
     ClusterSpec,
     ComparativeMeasurementSpec,
     ComparisonBaselineContract,
+    BracketedRule,
+    EpsilonSolvedRule,
+    ExactSolvedRule,
     ImplementationRef,
+    LowerBoundOnlyRule,
     MemoryPin,
     ModelPin,
     OptimizableOutcomeMeasurementSpec,
@@ -135,6 +142,111 @@ def test_run_plan_profile_materializes_the_exact_adapter_execution_config() -> N
         )
 
 
+def test_agent_request_rejects_candidate_claims_with_counterpart_config() -> None:
+    plan = resolve_run_plan(fake_resolution_inputs(), _registry())
+    cell = plan.cells[0]
+    profiles = {profile.profile_id: profile for profile in plan.agent_profiles}
+    candidate = profiles["candidate"]
+    counterpart = profiles["counterpart"]
+    counterpart_config = counterpart.execution_config
+
+    with pytest.raises(ValidationError):
+        AgentRequest(
+            logical_action_id="logical-action-forged-profile",
+            phase_id="offers",
+            slot=REQUEST.slot,
+            observation=REQUEST.observation,
+            context=AgentContext(
+                agent_profile_id=candidate.profile_id,
+                seat_id=cell.subject_seat_id,
+                provider=counterpart_config.provider.provider_id,
+                model=counterpart_config.model.model_id,
+                harness=counterpart_config.harness.implementation_id,
+                runtime=counterpart_config.runtime.implementation.implementation_id,
+            ),
+            agent_profile_sha256=cell.candidate_agent_config_sha256,
+            execution_config_sha256=content_sha256(counterpart_config),
+            execution_config=counterpart_config,
+            budget=counterpart_config.attempt_budget,
+        )
+
+
+def test_agent_request_builds_from_the_exact_plan_cell_and_seat() -> None:
+    plan = resolve_run_plan(fake_resolution_inputs(), _registry())
+    cell = plan.cells[0]
+
+    request = build_agent_request_from_plan(
+        plan,
+        cell_id=cell.cell_id,
+        seat_id=cell.subject_seat_id,
+        phase_id="offers",
+        logical_action_id="logical-action-from-plan",
+        slot=REQUEST.slot,
+        observation=REQUEST.observation,
+    )
+
+    assert request.profile.profile_id == "candidate"
+    assert request.agent_profile_sha256 == cell.candidate_agent_config_sha256
+    assert request.execution_config.prompt == "You are the candidate buyer."
+    assert request.context.seat_id == cell.subject_seat_id
+
+
+def test_agent_request_plan_builder_rejects_wrong_plan_cell_seat_and_hash() -> None:
+    plan = resolve_run_plan(fake_resolution_inputs(), _registry())
+    cell = plan.cells[0]
+
+    invalid_plan = plan.model_copy(update={"run_plan_sha256": "f" * 64})
+    with pytest.raises(InvalidAgentRequest, match="plan identity"):
+        build_agent_request_from_plan(
+            invalid_plan,
+            cell_id=cell.cell_id,
+            seat_id=cell.subject_seat_id,
+            phase_id="offers",
+            logical_action_id="logical-action-invalid-plan",
+            slot=REQUEST.slot,
+            observation=REQUEST.observation,
+        )
+
+    with pytest.raises(InvalidAgentRequest, match="cell"):
+        build_agent_request_from_plan(
+            plan,
+            cell_id="cell-missing",
+            seat_id=cell.subject_seat_id,
+            phase_id="offers",
+            logical_action_id="logical-action-missing-cell",
+            slot=REQUEST.slot,
+            observation=REQUEST.observation,
+        )
+
+    with pytest.raises(InvalidAgentRequest, match="seat"):
+        build_agent_request_from_plan(
+            plan,
+            cell_id=cell.cell_id,
+            seat_id="seat-missing",
+            phase_id="offers",
+            logical_action_id="logical-action-missing-seat",
+            slot=REQUEST.slot,
+            observation=REQUEST.observation,
+        )
+
+    forged_hashes = dict(cell.seat_profile_sha256_by_seat)
+    forged_hashes[cell.subject_seat_id] = "e" * 64
+    forged = _replace_first_cell(
+        plan,
+        seat_profile_sha256_by_seat=forged_hashes,
+    )
+    with pytest.raises(InvalidAgentRequest, match="plan identity"):
+        build_agent_request_from_plan(
+            forged,
+            cell_id=forged.cells[0].cell_id,
+            seat_id=cell.subject_seat_id,
+            phase_id="offers",
+            logical_action_id="logical-action-forged-hash",
+            slot=REQUEST.slot,
+            observation=REQUEST.observation,
+        )
+
+
 def test_run_plan_is_self_contained_for_execution() -> None:
     inputs = fake_resolution_inputs()
     plan = resolve_run_plan(inputs, _registry())
@@ -233,9 +345,11 @@ def _optimization_contract(kind: str) -> OptimizationReferenceContract:
         information_set="buyer-private observation",
         horizon="two offer rounds",
         opponent_condition="fixed counterpart/1.0.0",
+        stochastic_expectation="expectation over declared rollout seeds",
         proof_type="executable feasible witness",
         implementation=fake_implementation(f"buyer_utility_{kind}"),
         validity_domain="fake_market/1.0.0 dev split",
+        applicability="fake_market/1.0.0 declared estimand",
     )
 
 
@@ -277,7 +391,9 @@ def test_optimizable_measurement_requires_scope_proof_and_complete_exact_bounds(
         "horizon": "two offer rounds",
         "opponent_condition": "fixed counterpart/1.0.0",
         "stochastic_expectation": "expectation over declared rollout seeds",
-        "bound_status": "exact_solved",
+        "validity_domain": "fake_market/1.0.0 dev split",
+        "reference_applicability": "fake_market/1.0.0 declared estimand",
+        "claim_rule": ExactSolvedRule(certification_rule="computed_bound_gap_eq_zero"),
     }
 
     for missing_field in ("information_set", "horizon"):
@@ -326,12 +442,15 @@ def test_comparative_measurement_requires_a_typed_baseline() -> None:
         kind="comparison_baseline",
         comparison_id="fixed_policy",
         comparison_version="1.0.0",
+        objective_id="preference",
+        objective_version="1.0.0",
         units="preference_rate",
         direction="maximize",
         feasible_set="same cases and action surface",
         information_set="same visible observations",
         horizon="same episode budget",
         opponent_condition="same fixed counterpart",
+        stochastic_expectation="paired-case empirical expectation",
         proof_type="executable pinned policy",
         implementation=fake_implementation("fixed_policy"),
         validity_domain="fake_market/1.0.0 dev split",
@@ -356,6 +475,152 @@ def test_comparative_measurement_requires_a_typed_baseline() -> None:
     assert measurement.comparison_baseline.kind == "comparison_baseline"
 
 
+@pytest.mark.parametrize(
+    ("field", "bad_value"),
+    (
+        ("objective_id", "different_objective"),
+        ("objective_version", "2.0.0"),
+        ("units", "nonsense_units"),
+        ("direction", "minimize"),
+        ("feasible_set", "different feasible set"),
+        ("information_set", "full-information oracle"),
+        ("horizon", "unbounded horizon"),
+        ("opponent_condition", "live opponent"),
+        ("stochastic_expectation", "best observed rollout"),
+        ("validity_domain", "different family"),
+        ("applicability", "different estimand"),
+    ),
+)
+def test_optimization_reference_must_match_every_estimand_scope_field(
+    field: str, bad_value: str
+) -> None:
+    lower = _optimization_contract("optimum_lower_bound")
+    raw_lower = lower.model_dump(mode="python")
+    raw_lower[field] = bad_value
+
+    with pytest.raises(ValidationError, match="reference scope"):
+        OptimizableOutcomeMeasurementSpec(
+            estimand_id="buyer_utility",
+            measurement_kind="optimizable_outcome",
+            direction="maximize",
+            primary_metric_id="buyer_utility",
+            verifier_plugin_id="fake_verifier",
+            verifier_semantics_id="realized_utility",
+            verifier_semantics_version="1.0.0",
+            objective_id="buyer_utility",
+            objective_version="1.0.0",
+            units="utility_points",
+            feasible_set="offers permitted by fake_market/1.0.0",
+            information_set="buyer-private observation",
+            horizon="two offer rounds",
+            opponent_condition="fixed counterpart/1.0.0",
+            stochastic_expectation="expectation over declared rollout seeds",
+            validity_domain="fake_market/1.0.0 dev split",
+            reference_applicability="fake_market/1.0.0 declared estimand",
+            claim_rule=LowerBoundOnlyRule(
+                certification_rule="feasible_witness_lower_bounds_optimum"
+            ),
+            reference_contracts={"optimum_lower_bound": raw_lower},
+        )
+
+
+def test_epsilon_and_bound_statuses_require_typed_certification_rules() -> None:
+    with pytest.raises(ValidationError, match="epsilon"):
+        EpsilonSolvedRule(
+            certification_rule="computed_bound_gap_lte_epsilon",
+            epsilon_units="utility_points",
+        )
+    with pytest.raises(ValidationError, match="greater than 0"):
+        EpsilonSolvedRule(
+            certification_rule="computed_bound_gap_lte_epsilon",
+            epsilon=0.0,
+            epsilon_units="utility_points",
+        )
+    with pytest.raises(ValidationError, match="computed_bound_gap_lte_epsilon"):
+        EpsilonSolvedRule(
+            certification_rule="observed_score_is_close",
+            epsilon=0.1,
+            epsilon_units="utility_points",
+        )
+    with pytest.raises(ValidationError, match="computed_bound_gap_eq_zero"):
+        ExactSolvedRule(certification_rule="bounds_exist")
+    with pytest.raises(ValidationError, match="certified_lower_le_optimum_le_upper"):
+        BracketedRule(certification_rule="bounds_exist")
+
+    base = fake_resolution_inputs().family.measurements[0].model_dump(mode="python")
+    with pytest.raises(ValidationError, match="epsilon units"):
+        OptimizableOutcomeMeasurementSpec.model_validate(
+            {
+                **base,
+                "claim_rule": EpsilonSolvedRule(
+                    certification_rule="computed_bound_gap_lte_epsilon",
+                    epsilon=0.1,
+                    epsilon_units="dollars",
+                ),
+                "reference_contracts": {
+                    "optimum_lower_bound": _optimization_contract(
+                        "optimum_lower_bound"
+                    ),
+                    "optimum_upper_bound": _optimization_contract(
+                        "optimum_upper_bound"
+                    ),
+                },
+            }
+        )
+
+
+def test_baseline_and_support_contracts_cannot_escape_estimand_scope() -> None:
+    base = fake_resolution_inputs().family.measurements[0].model_dump(mode="python")
+    shared = {
+        "objective_id": "buyer_utility",
+        "objective_version": "1.0.0",
+        "units": "utility_points",
+        "direction": "minimize",
+        "feasible_set": "offers permitted by fake_market/1.0.0",
+        "information_set": "buyer-private observation",
+        "horizon": "two offer rounds",
+        "opponent_condition": "fixed counterpart/1.0.0",
+        "stochastic_expectation": "expectation over declared rollout seeds",
+        "proof_type": "pinned executable policy",
+        "validity_domain": "fake_market/1.0.0 dev split",
+        "applicability": "fake_market/1.0.0 declared estimand",
+    }
+    baseline = ComparisonBaselineContract(
+        kind="comparison_baseline",
+        comparison_id="fixed_policy",
+        comparison_version="1.0.0",
+        implementation=fake_implementation("fixed_policy"),
+        provenance={"source": "curated"},
+        **shared,
+    )
+    support_min = OutcomeSupportContract(
+        kind="outcome_support_min",
+        implementation=fake_implementation("support_min"),
+        **shared,
+    )
+    support_max = OutcomeSupportContract(
+        kind="outcome_support_max",
+        implementation=fake_implementation("support_max"),
+        **{**shared, "direction": "maximize"},
+    )
+
+    for references in (
+        {
+            "optimum_lower_bound": _optimization_contract("optimum_lower_bound"),
+            "comparison_baseline": baseline,
+        },
+        {
+            "optimum_lower_bound": _optimization_contract("optimum_lower_bound"),
+            "outcome_support_min": support_min,
+            "outcome_support_max": support_max,
+        },
+    ):
+        with pytest.raises(ValidationError, match="reference scope"):
+            OptimizableOutcomeMeasurementSpec.model_validate(
+                {**base, "reference_contracts": references}
+            )
+
+
 def test_measurement_reference_combinations_are_settled_before_execution() -> None:
     base = fake_resolution_inputs().family.measurements[0].model_dump(mode="python")
     lower = _optimization_contract("optimum_lower_bound")
@@ -370,17 +635,20 @@ def test_measurement_reference_combinations_are_settled_before_execution() -> No
         information_set="buyer-private observation",
         horizon="two offer rounds",
         opponent_condition="fixed counterpart/1.0.0",
+        stochastic_expectation="expectation over declared rollout seeds",
         proof_type="analytical support proof",
         implementation=fake_implementation("support_min", marker="c"),
         validity_domain="fake_market/1.0.0 dev split",
-        applicability="every admissible realized outcome",
+        applicability="fake_market/1.0.0 declared estimand",
     )
 
     with pytest.raises(ValidationError, match="lower.*upper"):
         OptimizableOutcomeMeasurementSpec.model_validate(
             {
                 **base,
-                "bound_status": "exact_solved",
+                "claim_rule": ExactSolvedRule(
+                    certification_rule="computed_bound_gap_eq_zero"
+                ),
                 "reference_contracts": {"optimum_lower_bound": lower},
             }
         )
@@ -388,7 +656,9 @@ def test_measurement_reference_combinations_are_settled_before_execution() -> No
         OptimizableOutcomeMeasurementSpec.model_validate(
             {
                 **base,
-                "bound_status": "bracketed",
+                "claim_rule": BracketedRule(
+                    certification_rule="certified_lower_le_optimum_le_upper"
+                ),
                 "reference_contracts": {
                     "optimum_lower_bound": lower,
                     "optimum_upper_bound": upper,
@@ -400,7 +670,10 @@ def test_measurement_reference_combinations_are_settled_before_execution() -> No
         OptimizableOutcomeMeasurementSpec.model_validate(
             {
                 **base,
-                "bound_status": "invented",
+                "claim_rule": {
+                    "bound_status": "invented",
+                    "certification_rule": "invented",
+                },
             }
         )
 

@@ -596,29 +596,37 @@ class RoleSpec(StrictModel):
 
 
 class _ScopedReferenceContract(StrictModel):
+    objective_id: SDKStr
+    objective_version: SDKStr
     units: SDKStr
     direction: Literal["maximize", "minimize"]
     feasible_set: SDKStr
     information_set: SDKStr
     horizon: SDKStr
     opponent_condition: SDKStr
+    stochastic_expectation: SDKStr
     proof_type: SDKStr
     implementation: ImplementationRef
     validity_domain: SDKStr
+    applicability: SDKStr
 
     @model_validator(mode="after")
     def validate_scope(self) -> "_ScopedReferenceContract":
         for label, value in (
+            ("objective_id", self.objective_id),
             ("units", self.units),
             ("feasible_set", self.feasible_set),
             ("information_set", self.information_set),
             ("horizon", self.horizon),
             ("opponent_condition", self.opponent_condition),
+            ("stochastic_expectation", self.stochastic_expectation),
             ("proof_type", self.proof_type),
             ("validity_domain", self.validity_domain),
+            ("applicability", self.applicability),
         ):
             if not value.strip():
                 raise ValueError(f"{label} must be non-empty")
+        _require_exact_pin("objective_version", self.objective_version)
         _validate_implementation_pin(self.implementation, "reference")
         return self
 
@@ -627,15 +635,6 @@ class OptimizationReferenceContract(_ScopedReferenceContract):
     """Pre-outcome optimum witness/certificate contract; never an observed value."""
 
     kind: Literal["optimum_lower_bound", "optimum_upper_bound"]
-    objective_id: SDKStr
-    objective_version: SDKStr
-
-    @model_validator(mode="after")
-    def validate_objective(self) -> "OptimizationReferenceContract":
-        if not self.objective_id.strip():
-            raise ValueError("objective_id must be non-empty")
-        _require_exact_pin("objective_version", self.objective_version)
-        return self
 
 
 class ComparisonBaselineContract(_ScopedReferenceContract):
@@ -645,12 +644,11 @@ class ComparisonBaselineContract(_ScopedReferenceContract):
     comparison_id: SDKStr
     comparison_version: SDKStr
     provenance: JSONObject
-    applicability: SDKStr
 
     @model_validator(mode="after")
     def validate_comparison(self) -> "ComparisonBaselineContract":
-        if not self.comparison_id.strip() or not self.applicability.strip():
-            raise ValueError("comparison identity/applicability must be non-empty")
+        if not self.comparison_id.strip():
+            raise ValueError("comparison identity must be non-empty")
         _require_exact_pin("comparison_version", self.comparison_version)
         return self
 
@@ -659,16 +657,6 @@ class OutcomeSupportContract(_ScopedReferenceContract):
     """Pre-outcome support claim applying to every admissible realized outcome."""
 
     kind: Literal["outcome_support_min", "outcome_support_max"]
-    objective_id: SDKStr
-    objective_version: SDKStr
-    applicability: SDKStr
-
-    @model_validator(mode="after")
-    def validate_support(self) -> "OutcomeSupportContract":
-        if not self.objective_id.strip() or not self.applicability.strip():
-            raise ValueError("support objective/applicability must be non-empty")
-        _require_exact_pin("objective_version", self.objective_version)
-        return self
 
 
 PreOutcomeReferenceContract = Annotated[
@@ -723,6 +711,55 @@ class PropertyAnswerMeasurementSpec(_MeasurementBase):
         return self
 
 
+class ExactSolvedRule(StrictModel):
+    bound_status: Literal["exact_solved"] = "exact_solved"
+    certification_rule: Literal["computed_bound_gap_eq_zero"]
+
+
+class EpsilonSolvedRule(StrictModel):
+    bound_status: Literal["epsilon_solved"] = "epsilon_solved"
+    certification_rule: Literal["computed_bound_gap_lte_epsilon"]
+    epsilon: SDKFloat = Field(gt=0)
+    epsilon_units: SDKStr
+
+    @model_validator(mode="after")
+    def validate_epsilon_units(self) -> "EpsilonSolvedRule":
+        if not self.epsilon_units.strip():
+            raise ValueError("epsilon_units must be non-empty")
+        return self
+
+
+class BracketedRule(StrictModel):
+    bound_status: Literal["bracketed"] = "bracketed"
+    certification_rule: Literal["certified_lower_le_optimum_le_upper"]
+
+
+class LowerBoundOnlyRule(StrictModel):
+    bound_status: Literal["lower_bound_only"] = "lower_bound_only"
+    certification_rule: Literal["feasible_witness_lower_bounds_optimum"]
+
+
+class BaselineOnlyRule(StrictModel):
+    bound_status: Literal["baseline_only"] = "baseline_only"
+    certification_rule: Literal["comparison_against_pinned_baseline"]
+
+
+class DescriptiveOnlyRule(StrictModel):
+    bound_status: Literal["descriptive_only"] = "descriptive_only"
+    certification_rule: Literal["no_optimality_or_comparison_claim"]
+
+
+BoundClaimRule = Annotated[
+    ExactSolvedRule
+    | EpsilonSolvedRule
+    | BracketedRule
+    | LowerBoundOnlyRule
+    | BaselineOnlyRule
+    | DescriptiveOnlyRule,
+    Field(discriminator="bound_status"),
+]
+
+
 class OptimizableOutcomeMeasurementSpec(_MeasurementBase):
     measurement_kind: Literal["optimizable_outcome"]
     objective_id: SDKStr
@@ -733,7 +770,9 @@ class OptimizableOutcomeMeasurementSpec(_MeasurementBase):
     horizon: SDKStr
     opponent_condition: SDKStr
     stochastic_expectation: SDKStr
-    bound_status: BoundStatus
+    validity_domain: SDKStr
+    reference_applicability: SDKStr
+    claim_rule: BoundClaimRule
     reference_contracts: ImmutableMapping[PreOutcomeReferenceContract] = Field(
         default_factory=dict
     )
@@ -748,6 +787,8 @@ class OptimizableOutcomeMeasurementSpec(_MeasurementBase):
             ("horizon", self.horizon),
             ("opponent_condition", self.opponent_condition),
             ("stochastic_expectation", self.stochastic_expectation),
+            ("validity_domain", self.validity_domain),
+            ("reference_applicability", self.reference_applicability),
         ):
             if not value.strip():
                 raise ValueError(f"{label} must be non-empty")
@@ -755,51 +796,52 @@ class OptimizableOutcomeMeasurementSpec(_MeasurementBase):
         for kind, contract in self.reference_contracts.items():
             if kind != contract.kind:
                 raise ValueError("reference mapping key must match contract kind")
-            if isinstance(
-                contract, (OptimizationReferenceContract, OutcomeSupportContract)
-            ):
-                expected_scope = (
-                    self.objective_id,
-                    self.objective_version,
-                    self.units,
-                    self.direction,
-                    self.feasible_set,
-                    self.information_set,
-                    self.horizon,
-                    self.opponent_condition,
-                )
-                actual_scope = (
-                    contract.objective_id,
-                    contract.objective_version,
-                    contract.units,
-                    contract.direction,
-                    contract.feasible_set,
-                    contract.information_set,
-                    contract.horizon,
-                    contract.opponent_condition,
-                )
-                if actual_scope != expected_scope:
-                    raise ValueError("reference scope must match the estimand contract")
+            expected_scope = (
+                self.objective_id,
+                self.objective_version,
+                self.units,
+                self.direction,
+                self.feasible_set,
+                self.information_set,
+                self.horizon,
+                self.opponent_condition,
+                self.stochastic_expectation,
+                self.validity_domain,
+                self.reference_applicability,
+            )
+            actual_scope = (
+                contract.objective_id,
+                contract.objective_version,
+                contract.units,
+                contract.direction,
+                contract.feasible_set,
+                contract.information_set,
+                contract.horizon,
+                contract.opponent_condition,
+                contract.stochastic_expectation,
+                contract.validity_domain,
+                contract.applicability,
+            )
+            if actual_scope != expected_scope:
+                raise ValueError("reference scope must match the estimand contract")
 
         kinds = set(self.reference_contracts)
+        bound_status = self.claim_rule.bound_status
         lower_upper = {"optimum_lower_bound", "optimum_upper_bound"}
-        if self.bound_status in {"exact_solved", "epsilon_solved", "bracketed"}:
+        if bound_status in {"exact_solved", "epsilon_solved", "bracketed"}:
             if not lower_upper.issubset(kinds):
                 raise ValueError(
                     "exact_solved, epsilon_solved, and bracketed require lower and upper bounds"
                 )
-        if (
-            self.bound_status == "lower_bound_only"
-            and "optimum_lower_bound" not in kinds
-        ):
+        if bound_status == "lower_bound_only" and "optimum_lower_bound" not in kinds:
             raise ValueError("lower_bound_only requires optimum_lower_bound")
-        if self.bound_status == "lower_bound_only" and "optimum_upper_bound" in kinds:
+        if bound_status == "lower_bound_only" and "optimum_upper_bound" in kinds:
             raise ValueError("lower_bound_only cannot declare optimum_upper_bound")
-        if self.bound_status == "baseline_only" and "comparison_baseline" not in kinds:
+        if bound_status == "baseline_only" and "comparison_baseline" not in kinds:
             raise ValueError("baseline_only requires comparison_baseline")
-        if self.bound_status == "baseline_only" and kinds & lower_upper:
+        if bound_status == "baseline_only" and kinds & lower_upper:
             raise ValueError("baseline_only cannot make optimality claims")
-        if self.bound_status == "descriptive_only" and kinds & {
+        if bound_status == "descriptive_only" and kinds & {
             "optimum_lower_bound",
             "optimum_upper_bound",
             "comparison_baseline",
@@ -810,6 +852,10 @@ class OptimizableOutcomeMeasurementSpec(_MeasurementBase):
         support_kinds = {"outcome_support_min", "outcome_support_max"}
         if kinds & support_kinds and not support_kinds.issubset(kinds):
             raise ValueError("outcome support min/max must be declared as a pair")
+        if isinstance(self.claim_rule, EpsilonSolvedRule) and (
+            self.claim_rule.epsilon_units != self.units
+        ):
+            raise ValueError("epsilon units must match the estimand's native units")
         return self
 
 
@@ -1224,14 +1270,20 @@ class AgentRequest(StrictModel):
     slot: DecisionSlot
     observation: ObservationEnvelope
     context: AgentContext
+    profile: AgentProfile
     agent_profile_sha256: SHA256
     execution_config_sha256: SHA256
-    execution_config: AgentExecutionConfig
     budget: AttemptBudget
+
+    @property
+    def execution_config(self) -> AgentExecutionConfig:
+        return self.profile.execution_config
 
     @model_validator(mode="after")
     def validate_resolved_configuration(self) -> "AgentRequest":
-        config = self.execution_config
+        config = self.profile.execution_config
+        if self.agent_profile_sha256 != content_sha256(self.profile):
+            raise ValueError("agent profile hash does not match its content")
         if self.execution_config_sha256 != content_sha256(config):
             raise ValueError("execution config hash does not match its content")
         if self.budget != config.attempt_budget:
@@ -1250,6 +1302,12 @@ class AgentRequest(StrictModel):
         )
         if actual_context != expected_context:
             raise ValueError("agent context must match the resolved execution config")
+        if self.context.agent_profile_id != self.profile.profile_id:
+            raise ValueError("agent context profile ID must match the resolved profile")
+        if self.context.seat_id != self.slot.seat_id:
+            raise ValueError("agent context seat must match the decision slot")
+        if self.observation.slot_id != self.slot.slot_id:
+            raise ValueError("observation slot must match the decision slot")
         return self
 
     @classmethod
@@ -1284,9 +1342,9 @@ class AgentRequest(StrictModel):
                 runtime=config.runtime.implementation.implementation_id,
                 metadata={} if metadata is None else metadata,
             ),
+            profile=profile,
             agent_profile_sha256=actual_profile_sha256,
             execution_config_sha256=content_sha256(config),
-            execution_config=config,
             budget=config.attempt_budget,
         )
 
