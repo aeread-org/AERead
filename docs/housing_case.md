@@ -4,9 +4,10 @@ A two-sided market where tenants compete for a smaller number of listings. It as
 whether an agent can reason about **competition for a scarce resource**, not merely
 optimize its own valuation.
 
-Status: the environment, oracle, baselines, and both the one-shot and multi-round
-markets are implemented and tested offline. `core_rent_error` still requires
-landlords to be live agent seats and is not yet measurable.
+Status: the P0 environment contract, allocation oracle, one-shot market, and
+scripted multi-round baselines are implemented and tested offline. The shared-runner
+adapter, live-model driver, prompt/configuration receipts, and replayable trajectories
+are not in this PR. Therefore no live-model table is a current paper result.
 
 ## 1. The market
 
@@ -35,10 +36,20 @@ efficiency = result.total / optimum.total           # what a submitted agent is 
 
 ## 2. Oracle
 
-The transferable-utility **assignment game**. Max-weight bipartite matching on the
-surplus matrix gives the efficient matching; the LP duals give the core rent interval
-for each matched pair. One linear program yields both a matching benchmark and a
-price benchmark.
+The implemented upper bound `U` is max-weight bipartite matching on the
+transferable-utility surplus matrix. Non-positive matches are dropped. The always
+feasible no-trade outcome is the floor `L = 0`. For worlds with `U > 0`, normalized
+efficiency is therefore `(R - L) / (U - L) = R / U`; worlds with `U = 0` must be
+reported separately rather than divided by zero.
+
+The comparison baseline `B` is a declared executable policy, not another bound. For
+the current multi-round direct-value world, `B` is the deterministic naive scripted
+policy described below. Keeping `L`, `U`, and `B` separate prevents a weak baseline
+from being misreported as a feasibility floor or an optimum.
+
+Core-rent intervals are not implemented. They remain a possible price diagnostic,
+but the present oracle is an allocation/welfare oracle only. The repository must not
+claim a core-price result until an explicit price oracle and contract tests exist.
 
 Deferred acceptance is deliberately not used, for two independent reasons. It assumes
 non-transferable utility, and rent here is negotiable. And it is strategyproof on the
@@ -51,32 +62,29 @@ All computable with no API calls, so the scale exists before any agent is scored
 
 | baseline | efficiency vs optimum |
 |---|---|
-| random: random listing, minimum bid | 0.351 |
-| naive: minimum bid on your own favourite | 0.637 |
-| truthful: full valuation on your own favourite | 0.729 |
+| naive: minimum bid on your own favourite | 0.619 |
+| truthful: full valuation on your own favourite | 0.700 |
 | max-weight optimum | 1.000 |
 
-All measured over 300 seeds at 6 tenants and 4 listings. The naive baseline has
-standard deviation 0.175 across seeds, which is the number to size a run from:
-`n = 2*((1.96+0.84)*sd/delta)^2`, so 30 episodes powers detection of a 0.13
-difference.
+These numbers were regenerated after the P0 privacy correction over 300 seeds at 6
+tenants and 4 listings. The naive baseline standard deviation is 0.173. They describe
+only the pinned generator and policy; they are not evidence of saturation of housing
+reasoning in general.
 
 ## 4. Why this mechanism and not a simpler one
 
 An earlier version used serial dictatorship: tenants submit ranked lists and a public
-priority order resolves collisions. **That mechanism cannot measure anything**, and
-the reason generalizes to any benchmark.
+priority order resolves collisions. **That mechanism cannot measure strategic
+coordination in this interface**, and the reason generalizes to any benchmark.
 
 Serial dictatorship is strategyproof, so ranking by own value is a dominant strategy.
-An exhaustive search over every permutation of every subset of listings, for every
-tenant across 40 worlds, found **0 profitable deviations out of 240**. Three models
-scored exactly at that baseline, one of them emitting the identical ranking on 180 of
-180 calls. That was optimal play, not failure to coordinate, and the gap between
-realized and optimal surplus measured the mechanism's own inefficiency, which no
-agent behaviour could have closed.
+The gap between realized and optimal surplus therefore measures the mechanism's own
+inefficiency, which agent behavior cannot close; matching the truthful baseline is
+optimal play rather than evidence of a coordination failure.
 
-Sealed bidding restores the strategic content: **222 of 360 tenants (61.7%) have a
-profitable unilateral deviation** from the naive strategy.
+Sealed bidding restores live choices over target and price. The earlier profitable-
+deviation count predates the P0 world revision and is withdrawn until its search
+artifact is committed and rerun.
 
 `resolve` (serial dictatorship) is kept in the module for reference, and is not the
 scoring path.
@@ -89,18 +97,47 @@ formality, and no sample size rescues the experiment.
 ## 5. The multi-round market
 
 `HousingMarket` runs `contact -> respond -> commit` over four rounds as a step-wise
-state machine, so a scripted policy and an agent driver go through the same
 interface.
 
 1. **contact.** Each unmatched tenant sends one offer to one listing:
    `{"listing_id": 2, "rent": 2350}`. One offer per tenant per round is the scarcity
    that makes choosing which listing to contest a real decision.
-2. **respond.** Each landlord sees only the offers addressed to it and answers each
-   with accept, counter, or reject, accepting at most one per round. Accepting below
-   its own cost is permitted and scored as an error rather than blocked, so a
-   landlord that leases at a loss is measurable.
-3. **commit.** A tenant holding an acceptance or counter signs or walks. Signing is
-   binding and ends that tenant's search.
+2. **respond.** Each landlord sees only real offers addressed to its listing and may
+   accept or counter at most one. Either action creates one immutable, capacity-
+   reserving `Hold(hold_id, tenant_id, listing_id, rent, round_index)`. A fabricated
+   tenant/offer reference creates no hold. Accepting below private cost remains legal
+   so a loss is measured rather than silently censored.
+3. **commit.** A tenant may submit only `("sign", hold_id)` or
+   `("walk", hold_id)`. Listing and rent are taken from the frozen hold and cannot be
+   resubmitted. All unsigned and invalidly referenced holds expire at the end of the
+   commit phase; only then does the round advance.
+
+Each method applies one deterministic batch against the same pre-phase state and
+returns a typed `PhaseResult`. Every submitted seat action receives an
+`ActionVerdict` with outcome `applied` or `pass` plus a reason. Missing or malformed
+actions are native passes after runner retry policy is exhausted: an invalid contact
+creates no offer, an invalid response creates no hold, and an invalid commit expires
+the hold. Calling phases out of order raises `PhaseOrderError`, because that is a
+harness integration defect rather than an agent decision.
+
+```python
+market = hz.HousingMarket(world, rounds=4)
+contact = market.submit_offers({0: (2, 2350.0)})
+response = market.submit_responses({2: {0: ("accept", None)}})
+hold = response.holds[0]
+commit = market.submit_commits({0: ("sign", hold.hold_id)})
+```
+
+The public board includes ask, attributes (including orientation), and lease status,
+but never reservation cost. A direct-value tenant sees only its own WTP vector; an
+attribute-world tenant sees only its own weights and the published valuation formula,
+not derived WTP. A landlord sees only its own listing, private cost, and inbox. Public
+ask and private cost are independently represented and differ in generated worlds.
+
+`HousingMarket` itself does not choose landlord actions. `run_scripted_market`
+explicitly injects the deterministic policy for the controlled comparison block; a
+runner may instead fill the same response batch from live landlord seats. Scripted and
+live-counterparty results must be reported as separate experimental conditions.
 
 Tenants see the board each round with a `status` column marking listings already
 leased. That column is what makes the market adaptive: without it a later round
@@ -108,49 +145,36 @@ carries no more information than the first.
 
 There is **no per-round penalty**. An unmatched tenant already scores zero, so a
 bounded round budget supplies the pressure, and a penalty entering the objective
-would move the optimum and therefore the oracle. Four rounds is measured as
-sufficient: the scripted baseline saturates at three and gains nothing at six or
-eight.
+would move the optimum and therefore the oracle. Four rounds is the pinned P0
+configuration. The prior saturation claim predates binding one-hold capacity and must
+be rerun before a round-budget ceiling is claimed.
 
-### Baselines and results
+### Current baselines and model-result status
 
-Baselines over 300 seeds: naive 0.836, adaptive 0.843, sd 0.107, optimum 1.000.
+Regenerated over 300 seeds under the binding-hold P0 semantics:
 
-Agents in every tenant seat, landlords scripted, 30 seeds per model.
+| policy | mean efficiency | standard deviation | mean leases |
+|---|---:|---:|---:|
+| naive scripted (`B`) | 0.852 | 0.096 | 3.820 |
+| adaptive scripted diagnostic | 0.849 | 0.100 | 3.640 |
+| max-weight upper bound (`U`) | 1.000 | - | - |
 
-**Report the reasoning setting with any result.** It is not neutral instrumentation.
-Enabling the provider's reasoning flag left one model unchanged and moved the other by
-12 points, which is enough to flip a conclusion.
+The ordering is a useful correction: the old claim that adaptive beats naive depended
+on permissive multi-hold behavior. The policies are retained as distinct diagnostics,
+but naive is the current comparison baseline because it is marginally stronger on the
+pinned panel.
 
-| model | reasoning | efficiency | vs adaptive | 95% CI | significant |
-|---|---|---|---|---|---|
-| gemini-3.7-flash | off | 0.932 | +0.076 | [+0.025, +0.128] | yes |
-| gemini-3.7-flash | **on** | **0.933** | +0.077 | [+0.030, +0.124] | yes |
-| deepseek-v4-flash | off | 0.769 | -0.087 | [-0.134, -0.041] | yes |
-| deepseek-v4-flash | **on** | **0.890** | +0.034 | [-0.010, +0.078] | **no** |
+The previous live-model tables are withdrawn from current evidence. They were produced
+before the binding-hold, phase, privacy, and terminal-accounting corrections, and the
+driver, prompts, raw responses, retry records, and trajectories were not committed.
+They are neither reproducible from this repository nor comparable to the current
+environment.
 
-Paired separation is **+0.043, CI [+0.012, +0.074]** with reasoning on, against +0.164
-[+0.104, +0.223] with it off. The case separates these two models either way, but the
-margin is four times smaller in the deployment-realistic condition, and reasoning-on
-should be treated as the reporting standard.
-
-**Retracted:** an earlier version of this document stated that deepseek-v4-flash lands
-significantly below the scripted baseline. That holds only with reasoning disabled. With
-it enabled the model reaches 0.890 and is not distinguishable from the baseline. gemini
-is unaffected by the setting (0.932 against 0.933), so this is a property of one model's
-sensitivity to its reasoning budget rather than a general fact about the case.
-
-**Under one-shot sealed bidding neither model was distinguishable from its baseline.**
-The negotiation structure is what produces the signal, which suggests the one-shot format
-was suppressing capability rather than the models lacking it.
-
-deepseek's characteristic error survives the correction: it signed 4.00 leases against an
-optimum of 3.90, more leases than the optimum signs, at lower total surplus. It takes
-low-value deals the efficient allocation leaves unmatched, which is a distinct error from
-failing to match at all.
-
-Health with reasoning on: 908 calls, 1 empty response and 4 schema failures, both from
-deepseek (1.1% of its calls), none from gemini.
+For the next run, reasoning mode must be a declared experimental condition and stored
+in the receipt. Actions and outcomes remain primary evidence; reasoning text is only a
+secondary diagnostic surface. Failure coding should distinguish objective selection,
+strategic modeling, constraint tracking, and execution rather than report only
+"reasoning on/off."
 
 ## 5b. Attribute-derived valuations
 
@@ -186,22 +210,30 @@ listing correctly and then bids elsewhere to avoid competition is playing well, 
 miscomputing, and conflating the two would penalise exactly the behaviour the case
 exists to reward.
 
-Validity gates on this world: **264 of 355 tenants (74.4%) have a profitable unilateral
-deviation**, higher than the 61.7% of the abstract world. Baselines over 300 seeds:
-naive 0.826, adaptive 0.830, sd 0.145, so 34 episodes powers a +0.10 detection.
+The earlier profitable-deviation count predates the private-cost and binding-hold P0
+revision and is withdrawn pending a committed rerun. Current four-round results over
+the 299 of 300 generated seeds with `U > 0` are: naive 0.847 (sd 0.122) and adaptive
+0.835 (sd 0.127). These establish executable within-case comparisons, not universal
+scores or evidence that the suite is saturated.
 
 ## 6. Metrics
 
 | metric | definition |
 |---|---|
 | `matching_error` | `1 - realized_surplus / optimal_surplus` |
-| `core_rent_error` | share of signed leases priced outside the core interval |
 | `unmatched_gap` | realized unmatched count minus optimal unmatched count |
+| `tenant_payoff[t]` | signed tenant value minus signed rent; zero if unmatched |
+| `landlord_payoff[l]` | signed rent minus private cost; zero if unmatched |
+| `ir_violations` | signed seats with negative realized payoff |
+| `core_rent_error` | future diagnostic; no implemented price oracle |
 
 Report `matching_error` as the headline. `unmatched_gap` is a diagnostic only: the
-optimum leaves 2.12 tenants unhoused and the naive baseline 2.19, so it separates
-almost nothing. `core_rent_error` requires landlords to be live agent seats rather
-than the scripted policy, and is not yet measurable.
+count can hide large welfare differences. `economics()` preserves signed prices,
+per-seat payoffs, total welfare, and IR violations. Negative-payoff agreements are
+legal outcomes and must be recorded rather than filtered. `core_rent_error` is not yet
+measurable because this repository does not implement or test a price/core oracle;
+making landlords live is necessary for distributional experiments but does not by
+itself supply that oracle.
 
 Any reported metric should carry the answer rate beside it. A seat that returns an
 empty response cannot bid, and a tenant that cannot bid cannot win, so a change in
@@ -213,19 +245,28 @@ different events.
 ## 7. Reproducing the baselines
 
 ```bash
-pytest tests/test_housing_assignment.py tests/test_housing_bids.py -q
+pytest tests/test_housing_assignment.py tests/test_housing_bids.py \
+  tests/test_housing_market.py tests/test_housing_attributes.py -q
 ```
 
 ```python
 import statistics as st
 from aeread import housing_env as hz
 
-ratios = []
+naive, adaptive = [], []
 for seed in range(300):
     w = hz.make_bid_world(6, 4, seed=seed)
     opt = hz.assignment_oracle(w.surplus)
     if opt.total <= 0:
         continue
-    ratios.append(hz.resolve_bids(w, hz.naive_top_bids(w)).total / opt.total)
-print(round(st.mean(ratios), 3), round(st.stdev(ratios), 3))
+    naive.append(hz.run_scripted_market(w, 4, "naive").total / opt.total)
+    adaptive.append(hz.run_scripted_market(w, 4, "adaptive").total / opt.total)
+for name, ratios in (("naive", naive), ("adaptive", adaptive)):
+    print(name, round(st.mean(ratios), 3), round(st.stdev(ratios), 3))
 ```
+
+This reproduces scripted baselines only. A reproducible live-agent result additionally
+requires the shared runner to store the task/policy/database hashes, model and exact
+prompt, reasoning setting, seed, tool/action records, state diffs, retries, scorer
+version, raw responses, and replay result. Until those artifacts are committed or
+addressably archived, a model table must remain preliminary and outside paper claims.

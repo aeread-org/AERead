@@ -5,11 +5,11 @@ willingness to pay per listing and each landlord a private reservation cost, so 
 match is worth ``v[t][l] - c[l]`` and the rent agreed splits that surplus without
 creating it. What varies, and what is scored, is who ends up matched with whom.
 
-The oracle is the transferable-utility assignment game: max-weight bipartite
-matching on the surplus matrix gives the efficient matching, and the LP duals give
-the core rent interval for every matched pair. Deferred acceptance is deliberately
-NOT used. DA assumes non-transferable utility, and rent here is negotiable; it is
-also strategyproof on the proposing side, which would leave nothing to measure.
+The implemented oracle is max-weight bipartite matching on the surplus matrix.
+Core-rent intervals are a possible future price diagnostic, not part of the current
+implementation. Deferred acceptance is deliberately NOT used. DA assumes
+non-transferable utility, and rent here is negotiable; it is also strategyproof on
+the proposing side, which would leave nothing to measure.
 
 Mechanisms. ``resolve`` is a serial-dictatorship variant kept for reference only:
 it is strategyproof, so truthful ranking is dominant and realized-vs-optimal
@@ -25,8 +25,9 @@ whether it applied its own weights.
 """
 from __future__ import annotations
 
+import math
 import random
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 
@@ -206,10 +207,12 @@ def make_bid_world(num_tenants: int, num_listings: int, seed: int,
                    common_weight: float = 0.6) -> BidWorld:
     base = make_housing_world(num_tenants, num_listings, seed, common_weight)
     rng = random.Random(seed * 7919 + 13)
-    costs = [float(l.rent_asked) for l in base.listings]
-    ask = list(costs)
+    ask = [float(l.rent_asked) for l in base.listings]
+    # The ask is public and the reservation cost is private.  Drawing a stable
+    # non-zero markup prevents the public board from revealing the private type.
+    costs = [round(max(0.0, price - rng.uniform(20.0, 80.0)), 2) for price in ask]
     values = [
-        [round(costs[l] + base.surplus[t][l] * 10.0 + rng.uniform(-20, 20), 2)
+        [round(ask[l] + base.surplus[t][l] * 10.0 + rng.uniform(-20, 20), 2)
          for l in range(num_listings)]
         for t in range(num_tenants)
     ]
@@ -268,8 +271,59 @@ def truthful_top_bids(world: BidWorld) -> Dict[int, Tuple[int, float]]:
 # ---------------------------------------------------------------------------
 
 
+class PhaseOrderError(ValueError):
+    """The harness attempted to apply a market phase out of order."""
+
+
+@dataclass(frozen=True)
+class Offer:
+    offer_id: str
+    tenant_id: int
+    listing_id: int
+    rent: float
+    round_index: int
+
+
+@dataclass(frozen=True)
+class Hold:
+    hold_id: str
+    tenant_id: int
+    listing_id: int
+    rent: float
+    round_index: int
+
+
+@dataclass(frozen=True)
+class ActionVerdict:
+    actor_id: int
+    phase: str
+    outcome: str
+    reason: Optional[str] = None
+    reference_id: Optional[str] = None
+
+
+@dataclass(frozen=True)
+class PhaseResult:
+    phase: str
+    verdicts: Dict[int, ActionVerdict]
+    inbox: Dict[int, Tuple[Offer, ...]] = field(default_factory=dict)
+    holds: Dict[int, Hold] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class TerminalEconomics:
+    assignment: Assignment
+    signed_rents: Dict[int, float]
+    tenant_payoffs: Dict[int, float]
+    landlord_payoffs: Dict[int, float]
+    social_welfare: float
+    ir_violations: Tuple[str, ...]
+
+
 class HousingMarket:
     def __init__(self, world: BidWorld, rounds: int = 4):
+        if rounds < 0:
+            raise ValueError("rounds must be non-negative")
         self.world = world
         self.rounds = rounds
         self.round_index = 0
@@ -277,10 +331,11 @@ class HousingMarket:
         self.signed_rent: Dict[int, float] = {}
         self._taken: set = set()
         self._matched: set = set()
-        self._offers: Dict[int, List[Tuple[int, float]]] = {}
-        self._holds: Dict[int, Tuple[int, float]] = {}   # tenant -> (listing, rent it may sign at)
+        self._offers: Dict[int, Tuple[Offer, ...]] = {}
+        self._holds: Dict[int, Hold] = {}
         self.rejected: Dict[int, set] = {t: set() for t in range(world.num_tenants)}
         self.wasted_contacts = 0
+        self.phase = "finished" if self.finished else "contact"
 
     # -- state -------------------------------------------------------------
     @property
@@ -306,78 +361,325 @@ class HousingMarket:
                 "minutes_to_campus": l.minutes_to_campus,
                 "crime_index": l.crime_index,
                 "minutes_to_groceries": l.minutes_to_groceries,
+                "orientation": l.orientation,
                 "status": "LEASED" if l.listing_id in self._taken else "OPEN",
             })
         return out
 
+    def active_holds(self) -> Dict[int, Hold]:
+        """Return a copy of the current tenant-to-hold index."""
+        return dict(self._holds)
+
+    def tenant_observation(self, tenant_id: int) -> Dict[str, Any]:
+        """Information visible to one tenant; other private types are omitted."""
+        if not self._valid_tenant(tenant_id):
+            raise ValueError(f"unknown tenant {tenant_id!r}")
+        out: Dict[str, Any] = {
+            "role": "tenant",
+            "tenant_id": tenant_id,
+            "round_index": self.round_index,
+            "phase": self.phase,
+            "board": self.board(),
+            "rejected_listing_ids": sorted(self.rejected[tenant_id]),
+            "active_hold": self._holds.get(tenant_id),
+        }
+        if hasattr(self.world, "weights"):
+            out["private_weights"] = list(self.world.weights[tenant_id])
+            out["valuation_formula"] = {
+                "attributes": ATTRIBUTES,
+                "attribute_scores": (
+                    "campus=10-minutes_to_campus/5; safety=10-crime_index; "
+                    "groceries=10-minutes_to_groceries/3; "
+                    "room=min(10,2.5*beds+2.5*baths); "
+                    "orientation=South:10,East:8,West:6,North:4"
+                ),
+                "wtp": "1200 + 220 * weighted_attribute_score",
+            }
+        else:
+            out["private_values"] = list(self.world.values[tenant_id])
+        return out
+
+    def landlord_observation(self, listing_id: int) -> Dict[str, Any]:
+        """Information visible to one landlord, including only its own inbox."""
+        if not self._valid_listing(listing_id):
+            raise ValueError(f"unknown listing {listing_id!r}")
+        listing = next(row for row in self.board() if row["listing_id"] == listing_id)
+        return {
+            "role": "landlord",
+            "listing_id": listing_id,
+            "round_index": self.round_index,
+            "phase": self.phase,
+            "listing": listing,
+            "private_cost": self.world.costs[listing_id],
+            "inbox": tuple(self._offers.get(listing_id, ())),
+        }
+
+    @staticmethod
+    def _valid_id(value: Any) -> bool:
+        return isinstance(value, int) and not isinstance(value, bool)
+
+    def _valid_tenant(self, tenant_id: Any) -> bool:
+        return self._valid_id(tenant_id) and 0 <= tenant_id < self.world.num_tenants
+
+    def _valid_listing(self, listing_id: Any) -> bool:
+        return self._valid_id(listing_id) and 0 <= listing_id < self.world.num_listings
+
+    @staticmethod
+    def _valid_rent(rent: Any) -> bool:
+        return (isinstance(rent, (int, float)) and not isinstance(rent, bool)
+                and math.isfinite(float(rent)) and float(rent) >= 0.0)
+
+    def _require_phase(self, expected: str) -> None:
+        if self.phase != expected:
+            raise PhaseOrderError(f"expected phase {expected!r}, current phase is {self.phase!r}")
+
+    @staticmethod
+    def _verdict(actor_id: int, phase: str, outcome: str,
+                 reason: Optional[str] = None,
+                 reference_id: Optional[str] = None) -> ActionVerdict:
+        return ActionVerdict(actor_id, phase, outcome, reason, reference_id)
+
     # -- phases ------------------------------------------------------------
-    def submit_offers(self, offers: Dict[int, Tuple[int, float]]) -> Dict[int, List[Tuple[int, float]]]:
-        """contact: one offer per unmatched tenant. Returns each landlord's inbox."""
-        inbox: Dict[int, List[Tuple[int, float]]] = {}
-        for t in sorted(offers):
+    def submit_offers(self, offers: Dict[int, Any]) -> PhaseResult:
+        """Apply one frozen contact batch; invalid seat actions become passes."""
+        self._require_phase("contact")
+        inbox: Dict[int, List[Offer]] = {}
+        verdicts: Dict[int, ActionVerdict] = {}
+        actor_ids = set(self.unmatched_tenants()) | set(offers)
+        for t in sorted(actor_ids, key=lambda value: (type(value).__name__, repr(value))):
+            if not self._valid_tenant(t):
+                verdicts[t] = self._verdict(t, "contact", "pass", "unknown_tenant")
+                continue
             if t in self._matched:
+                verdicts[t] = self._verdict(t, "contact", "pass", "unavailable_tenant")
                 continue
-            entry = offers[t]
-            if not entry:
+            action = offers.get(t)
+            if action is None:
+                verdicts[t] = self._verdict(t, "contact", "pass", "missing_action")
                 continue
-            l, rent = entry
-            if not (0 <= l < self.world.num_listings) or l in self._taken:
+            if not isinstance(action, (tuple, list)) or len(action) != 2:
+                verdicts[t] = self._verdict(t, "contact", "pass", "invalid_contact")
                 self.wasted_contacts += 1
                 continue
-            inbox.setdefault(l, []).append((t, float(rent)))
-        for l in inbox:
-            inbox[l].sort(key=lambda x: (-x[1], x[0]))
-        self._offers = inbox
-        return inbox
+            listing_id, rent = action
+            if not self._valid_listing(listing_id):
+                verdicts[t] = self._verdict(t, "contact", "pass", "unknown_listing")
+                self.wasted_contacts += 1
+                continue
+            if listing_id in self._taken:
+                verdicts[t] = self._verdict(t, "contact", "pass", "unavailable_listing")
+                self.wasted_contacts += 1
+                continue
+            if not self._valid_rent(rent):
+                verdicts[t] = self._verdict(t, "contact", "pass", "invalid_rent")
+                self.wasted_contacts += 1
+                continue
+            offer = Offer(
+                offer_id=f"offer:r{self.round_index}:t{t}:l{listing_id}",
+                tenant_id=t,
+                listing_id=listing_id,
+                rent=float(rent),
+                round_index=self.round_index,
+            )
+            inbox.setdefault(listing_id, []).append(offer)
+            verdicts[t] = self._verdict(t, "contact", "applied", reference_id=offer.offer_id)
+        for listing_id in inbox:
+            inbox[listing_id].sort(key=lambda offer: (-offer.rent, offer.tenant_id))
+        frozen_inbox = {listing_id: tuple(listing_offers)
+                        for listing_id, listing_offers in inbox.items()}
+        self._offers = frozen_inbox
+        self.phase = "respond"
+        return PhaseResult(phase="contact", verdicts=verdicts, inbox=dict(frozen_inbox))
 
     def submit_responses(
-        self, responses: Dict[int, Dict[int, Tuple[str, Optional[float]]]]
-    ) -> Dict[int, Tuple[int, float]]:
-        """respond: at most one acceptance per landlord. Returns each tenant's hold."""
-        holds: Dict[int, Tuple[int, float]] = {}
-        for l, per_tenant in responses.items():
-            accepted = [t for t, (d, _) in per_tenant.items() if d == "accept"]
-            if len(accepted) > 1:
-                raise ValueError(f"landlord {l} accepted {len(accepted)} offers in one round")
-            offered = {t: rent for t, rent in self._offers.get(l, [])}
-            for t, (decision, counter) in per_tenant.items():
-                if decision == "accept":
-                    holds[t] = (l, offered.get(t, self.world.ask[l]))
-                elif decision == "counter":
-                    holds[t] = (l, float(counter if counter is not None else self.world.ask[l]))
-                else:
-                    self.rejected[t].add(l)
+        self, responses: Dict[int, Any]
+    ) -> PhaseResult:
+        """Apply one landlord response batch and create at most one hold per listing."""
+        self._require_phase("respond")
+        holds: Dict[int, Hold] = {}
+        verdicts: Dict[int, ActionVerdict] = {}
+        actor_ids = set(self._offers) | set(responses)
+        for listing_id in sorted(actor_ids, key=lambda value: (type(value).__name__, repr(value))):
+            if not self._valid_listing(listing_id):
+                verdicts[listing_id] = self._verdict(
+                    listing_id, "respond", "pass", "unknown_listing"
+                )
+                continue
+            offered = {offer.tenant_id: offer for offer in self._offers.get(listing_id, [])}
+            action = responses.get(listing_id)
+            if action is None:
+                verdicts[listing_id] = self._verdict(
+                    listing_id, "respond", "pass", "missing_action"
+                )
+                for tenant_id in offered:
+                    self.rejected[tenant_id].add(listing_id)
                     self.wasted_contacts += 1
-        self._holds = holds
-        return holds
+                continue
+            if not isinstance(action, dict):
+                verdicts[listing_id] = self._verdict(
+                    listing_id, "respond", "pass", "invalid_response"
+                )
+                continue
+            if any(tenant_id not in offered for tenant_id in action):
+                verdicts[listing_id] = self._verdict(
+                    listing_id, "respond", "pass", "unknown_offer"
+                )
+                continue
 
-    def submit_commits(self, commits: Dict[int, Tuple]) -> None:
-        """commit: sign (binding) or walk. Advances the round."""
-        for t in sorted(commits):
-            action = commits[t]
-            if not action or action[0] != "sign":
+            parsed: Dict[int, Tuple[str, Optional[float]]] = {}
+            invalid = False
+            for tenant_id, decision_action in action.items():
+                if (not isinstance(decision_action, (tuple, list))
+                        or len(decision_action) != 2):
+                    invalid = True
+                    break
+                decision, counter = decision_action
+                if decision not in {"accept", "counter", "reject"}:
+                    invalid = True
+                    break
+                if decision == "counter" and not self._valid_rent(counter):
+                    invalid = True
+                    break
+                if decision != "counter" and counter is not None:
+                    invalid = True
+                    break
+                parsed[tenant_id] = (decision, counter)
+            if invalid:
+                verdicts[listing_id] = self._verdict(
+                    listing_id, "respond", "pass", "invalid_response"
+                )
                 continue
-            _, l, rent = action
-            hold = self._holds.get(t)
-            if hold is None or hold[0] != l or l in self._taken or t in self._matched:
+            binding = [tenant_id for tenant_id, (decision, _) in parsed.items()
+                       if decision in {"accept", "counter"}]
+            if len(binding) > 1:
+                verdicts[listing_id] = self._verdict(
+                    listing_id, "respond", "pass", "hold_capacity_exceeded"
+                )
                 continue
-            self._taken.add(l)
-            self._matched.add(t)
-            self.pairs.append((t, l))
-            self.signed_rent[t] = float(rent)
+
+            hold: Optional[Hold] = None
+            if binding:
+                tenant_id = binding[0]
+                decision, counter = parsed[tenant_id]
+                rent = offered[tenant_id].rent if decision == "accept" else float(counter)
+                hold = Hold(
+                    hold_id=f"hold:r{self.round_index}:t{tenant_id}:l{listing_id}",
+                    tenant_id=tenant_id,
+                    listing_id=listing_id,
+                    rent=rent,
+                    round_index=self.round_index,
+                )
+                holds[tenant_id] = hold
+            for tenant_id in offered:
+                if hold is None or tenant_id != hold.tenant_id:
+                    self.rejected[tenant_id].add(listing_id)
+                    self.wasted_contacts += 1
+            verdicts[listing_id] = self._verdict(
+                listing_id, "respond", "applied",
+                reference_id=hold.hold_id if hold is not None else None,
+            )
+        self._holds = holds
+        self.phase = "commit"
+        return PhaseResult(phase="respond", verdicts=verdicts, holds=dict(holds))
+
+    def submit_commits(self, commits: Dict[int, Any]) -> PhaseResult:
+        """Sign or walk an immutable hold by id, then expire all remaining holds."""
+        self._require_phase("commit")
+        verdicts: Dict[int, ActionVerdict] = {}
+        actor_ids = set(self._holds) | set(commits)
+        for tenant_id in sorted(actor_ids, key=lambda value: (type(value).__name__, repr(value))):
+            if not self._valid_tenant(tenant_id):
+                verdicts[tenant_id] = self._verdict(
+                    tenant_id, "commit", "pass", "unknown_tenant"
+                )
+                continue
+            hold = self._holds.get(tenant_id)
+            action = commits.get(tenant_id)
+            if action is None:
+                verdicts[tenant_id] = self._verdict(
+                    tenant_id, "commit", "pass", "missing_action"
+                )
+                if hold is not None:
+                    self.rejected[tenant_id].add(hold.listing_id)
+                continue
+            if not isinstance(action, (tuple, list)) or len(action) != 2:
+                verdicts[tenant_id] = self._verdict(
+                    tenant_id, "commit", "pass", "invalid_commit"
+                )
+                if hold is not None:
+                    self.rejected[tenant_id].add(hold.listing_id)
+                continue
+            decision, hold_id = action
+            if decision not in {"sign", "walk"} or not isinstance(hold_id, str):
+                verdicts[tenant_id] = self._verdict(
+                    tenant_id, "commit", "pass", "invalid_commit"
+                )
+                if hold is not None:
+                    self.rejected[tenant_id].add(hold.listing_id)
+                continue
+            if hold is None or hold.hold_id != hold_id:
+                verdicts[tenant_id] = self._verdict(
+                    tenant_id, "commit", "pass", "unknown_hold"
+                )
+                if hold is not None:
+                    self.rejected[tenant_id].add(hold.listing_id)
+                continue
+            if (hold.round_index != self.round_index or hold.listing_id in self._taken
+                    or tenant_id in self._matched):
+                verdicts[tenant_id] = self._verdict(
+                    tenant_id, "commit", "pass", "unavailable_hold"
+                )
+                continue
+            if decision == "sign":
+                self._taken.add(hold.listing_id)
+                self._matched.add(tenant_id)
+                self.pairs.append((tenant_id, hold.listing_id))
+                self.signed_rent[tenant_id] = hold.rent
+            else:
+                self.rejected[tenant_id].add(hold.listing_id)
+            verdicts[tenant_id] = self._verdict(
+                tenant_id, "commit", "applied", reference_id=hold.hold_id
+            )
         self.pairs.sort()
         self._offers = {}
         self._holds = {}
         self.round_index += 1
+        self.phase = "finished" if self.finished else "contact"
+        return PhaseResult(phase="commit", verdicts=verdicts)
 
     def result(self) -> Assignment:
         total = round(sum(self.world.values[t][l] - self.world.costs[l] for t, l in self.pairs), 2)
         return Assignment(pairs=list(self.pairs), total=total,
                           unhoused=self.world.num_tenants - len(self.pairs))
 
+    def economics(self) -> TerminalEconomics:
+        """Complete terminal allocation and transfer accounting for both sides."""
+        tenant_payoffs = {t: 0.0 for t in range(self.world.num_tenants)}
+        landlord_payoffs = {l: 0.0 for l in range(self.world.num_listings)}
+        ir_violations: List[str] = []
+        for tenant_id, listing_id in self.pairs:
+            rent = self.signed_rent[tenant_id]
+            tenant_payoffs[tenant_id] = round(self.world.values[tenant_id][listing_id] - rent, 2)
+            landlord_payoffs[listing_id] = round(rent - self.world.costs[listing_id], 2)
+            if tenant_payoffs[tenant_id] < 0:
+                ir_violations.append(f"tenant:{tenant_id}")
+            if landlord_payoffs[listing_id] < 0:
+                ir_violations.append(f"landlord:{listing_id}")
+        social_welfare = round(
+            sum(tenant_payoffs.values()) + sum(landlord_payoffs.values()), 2
+        )
+        return TerminalEconomics(
+            assignment=self.result(),
+            signed_rents=dict(self.signed_rent),
+            tenant_payoffs=tenant_payoffs,
+            landlord_payoffs=landlord_payoffs,
+            social_welfare=social_welfare,
+            ir_violations=tuple(ir_violations),
+        )
+
 
 def scripted_landlord_responses(
-    market: HousingMarket, inbox: Dict[int, List[Tuple[int, float]]]
+    market: HousingMarket, inbox: Dict[int, Sequence[Offer]]
 ) -> Dict[int, Dict[int, Tuple[str, Optional[float]]]]:
     """Accept the highest offer at or above cost; counter a below-cost offer at the
     midpoint between it and the ask; never reject outright. Deterministic."""
@@ -385,14 +687,20 @@ def scripted_landlord_responses(
     for l, offers in inbox.items():
         per: Dict[int, Tuple[str, Optional[float]]] = {}
         cost = market.world.costs[l]
-        viable = [(t, r) for t, r in offers if r >= cost]
+        viable = [offer for offer in offers if offer.rent >= cost]
         if viable:
-            best_t = viable[0][0]
-            for t, r in offers:
-                per[t] = ("accept", None) if t == best_t else ("reject", None)
+            best_t = viable[0].tenant_id
+            for offer in offers:
+                per[offer.tenant_id] = (
+                    ("accept", None) if offer.tenant_id == best_t else ("reject", None)
+                )
         else:
-            for t, r in offers:
-                per[t] = ("counter", round((r + market.world.ask[l]) / 2.0, 2))
+            best = offers[0]
+            per[best.tenant_id] = (
+                "counter", round((best.rent + market.world.ask[l]) / 2.0, 2)
+            )
+            for offer in offers[1:]:
+                per[offer.tenant_id] = ("reject", None)
         out[l] = per
     return out
 
@@ -415,13 +723,15 @@ def run_scripted_market(world: BidWorld, rounds: int = 4, strategy: str = "adapt
             if rent > world.values[t][l]:
                 continue
             offers[t] = (l, rent)
-        inbox = m.submit_offers(offers)
-        holds = m.submit_responses(scripted_landlord_responses(m, inbox))
+        contact = m.submit_offers(offers)
+        response = m.submit_responses(scripted_landlord_responses(m, contact.inbox))
         commits: Dict[int, Tuple] = {}
-        for t, (l, rent) in holds.items():
-            commits[t] = ("sign", l, rent) if rent <= world.values[t][l] else ("walk",)
+        for t, hold in response.holds.items():
+            commits[t] = (("sign", hold.hold_id)
+                          if hold.rent <= world.values[t][hold.listing_id]
+                          else ("walk", hold.hold_id))
         for t in m.unmatched_tenants():
-            if t not in holds and strategy == "adaptive":
+            if t not in response.holds and strategy == "adaptive":
                 bump[t] += increment
         m.submit_commits(commits)
     return m.result()
@@ -436,7 +746,7 @@ def run_scripted_market(world: BidWorld, rounds: int = 4, strategy: str = "adapt
 #
 # Rent is deliberately NOT an attribute in the weight vector. Value here means
 # willingness to pay, so rent is the price rather than a feature; including it
-# would double-count. Landlord cost still derives from the asking rent.
+# would double-count. Landlord cost is a separate private type.
 # ---------------------------------------------------------------------------
 
 ATTRIBUTES = ("campus", "safety", "groceries", "room", "orientation")
@@ -505,12 +815,13 @@ def make_attr_world(num_tenants: int, num_listings: int, seed: int) -> AttrWorld
         w = [round(x / tot, 6) for x in raw]
         w[-1] = round(1.0 - sum(w[:-1]), 6)   # absorb rounding so the vector sums to 1
         weights.append(w)
-    costs = [float(l.rent_asked) for l in listings]
-    world = AttrWorld(listings=listings, weights=weights, values=[], costs=costs, ask=list(costs))
+    ask = [float(l.rent_asked) for l in listings]
+    costs = [round(max(0.0, price - rng.uniform(75.0, 250.0)), 2) for price in ask]
+    world = AttrWorld(listings=listings, weights=weights, values=[], costs=costs, ask=ask)
     values = [[valuation(world, weights[t], l) for l in range(num_listings)]
               for t in range(num_tenants)]
     return AttrWorld(listings=listings, weights=weights, values=values,
-                     costs=costs, ask=list(costs))
+                     costs=costs, ask=ask)
 
 
 def adherence(world: "AttrWorld", tenant: int, reported: Dict[int, float]) -> Dict[str, float]:

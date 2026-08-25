@@ -33,6 +33,11 @@ def test_value_is_reproducible_for_a_seed():
     assert a.weights == b.weights
 
 
+def test_public_asks_are_not_private_landlord_costs():
+    w = hz.make_attr_world(6, 4, seed=3)
+    assert any(ask != cost for ask, cost in zip(w.ask, w.costs))
+
+
 def test_value_follows_the_weights_not_a_hidden_draw():
     """A tenant that only cares about campus distance must prefer the closer listing."""
     w = hz.make_attr_world(6, 4, seed=4)
