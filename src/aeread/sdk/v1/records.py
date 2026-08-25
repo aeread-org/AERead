@@ -492,11 +492,18 @@ def _artifact_identity(reference: ArtifactRef) -> tuple[str, str, int]:
     return reference.sha256, reference.media_type, reference.size_bytes
 
 
+def _validate_complete_artifact(reference: ArtifactRef, label: str) -> None:
+    if not reference.media_type.strip():
+        raise ValueError(f"{label} media_type must be non-empty")
+
+
 def _validate_artifact_tuple(
     values: tuple[ArtifactRef, ...], label: str, *, required: bool
 ) -> None:
     if required and not values:
         raise ValueError(f"{label} must be non-empty")
+    for index, value in enumerate(values):
+        _validate_complete_artifact(value, f"{label}[{index}]")
     digests = [value.sha256 for value in values]
     if len(digests) != len(set(digests)):
         raise ValueError(f"{label} sha256 values must be unique")
@@ -1201,6 +1208,8 @@ class RaterJudgeVerifier(StrictModel):
         _validate_direct_record_values(self, "rater verifier")
         _require_semver("verifier_version", self.verifier_version)
         _require_semver("protocol_version", self.protocol_version)
+        _validate_complete_artifact(self.rubric_ref, "rubric_ref")
+        _validate_complete_artifact(self.prompt_ref, "prompt_ref")
         _validate_artifact_tuple(
             self.calibration_refs, "calibration_refs", required=True
         )

@@ -1846,10 +1846,12 @@ def test_every_artifact_tuple_enforces_order_digest_uniqueness_and_cardinality()
             "media_type": "text/plain",
             "size_bytes": first["size_bytes"] + 1,
         }
+        whitespace_media_type = {**first, "media_type": " \t "}
         invalid_values = (
             (second, first),
             (first, first),
             (first, conflicting),
+            (whitespace_media_type, second),
         )
         for values in invalid_values:
             with pytest.raises(ValidationError):
@@ -1860,6 +1862,16 @@ def test_every_artifact_tuple_enforces_order_digest_uniqueness_and_cardinality()
                 model.model_validate(empty)
         else:
             assert model.model_validate(empty)
+
+
+@pytest.mark.parametrize("field_name", ["rubric_ref", "prompt_ref"])
+def test_rater_direct_artifact_refs_reject_whitespace_media_type(
+    field_name: str,
+) -> None:
+    payload = _rater().model_dump(mode="python")
+    payload[field_name]["media_type"] = " \t "
+    with pytest.raises(ValidationError, match="media_type"):
+        RaterJudgeVerifier.model_validate(payload)
 
 
 def test_new_measurement_schema_and_five_family_content_hashes_are_pinned() -> None:

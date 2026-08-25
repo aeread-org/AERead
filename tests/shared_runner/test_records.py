@@ -871,23 +871,29 @@ def test_status_consistency_checks_only_settled_record_contracts() -> None:
 def test_sdk_import_does_not_load_family_or_integration_modules() -> None:
     code = """
 import sys
+
+before = set(sys.modules)
 import aeread.sdk.v1
-for prefix in (
+
+loaded = set(sys.modules) - before
+allowed_aeread = {
+    name
+    for name in loaded
+    if name == 'aeread' or name == 'aeread.sdk' or name.startswith('aeread.sdk.')
+}
+unexpected_aeread = sorted(
+    name for name in loaded if name.startswith('aeread.') and name not in allowed_aeread
+)
+assert not unexpected_aeread, unexpected_aeread
+
+for forbidden_prefix in (
     'harbor',
     'tau',
     'openai',
     'google',
     'anthropic',
-    'aeread.exchange_',
-    'aeread.aer_',
-    'aeread.agentecon_',
-    'aeread.bundle_',
-    'aeread.delta_',
-    'aeread.gemini_',
-    'aeread.llm_',
-    'aeread.integrations',
 ):
-    assert not any(name.startswith(prefix) for name in sys.modules), prefix
+    assert not any(name.startswith(forbidden_prefix) for name in loaded), forbidden_prefix
 """
     repo_root = Path(__file__).resolve().parents[2]
     env = {**os.environ, "PYTHONPATH": str(repo_root / "src")}
