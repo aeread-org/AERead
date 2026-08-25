@@ -5,6 +5,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import stat
 
 import pytest
 from pydantic import ValidationError
@@ -41,7 +42,10 @@ def artifact_store(tmp_path: Path) -> ArtifactStore:
 
 def event_store(tmp_path: Path, *, clock=fixed_clock) -> EventStore:
     return EventStore.open(
-        tmp_path / "events.jsonl", artifacts=artifact_store(tmp_path), clock=clock
+        tmp_path / "events.jsonl",
+        artifacts=artifact_store(tmp_path),
+        clock=clock,
+        identity=IDENTITY,
     )
 
 
@@ -346,7 +350,10 @@ def test_projection_preserves_rows_hashes_and_nested_artifact_privacy(
     public_ref = artifacts.put(b"public", "text/plain")
     private_ref = artifacts.put(b"private", "text/plain")
     store = EventStore.open(
-        tmp_path / "events.jsonl", artifacts=artifacts, clock=fixed_clock
+        tmp_path / "events.jsonl",
+        artifacts=artifacts,
+        clock=fixed_clock,
+        identity=IDENTITY,
     )
     public_event = store.append(
         "public", IDENTITY, "public", {"nested": [public_ref.model_dump()]}
@@ -398,7 +405,10 @@ def test_projection_verifies_hidden_artifacts_that_full_root_commits_to(
     artifacts = artifact_store(tmp_path)
     hidden_ref = artifacts.put(b"private", "text/plain")
     store = EventStore.open(
-        tmp_path / "events.jsonl", artifacts=artifacts, clock=fixed_clock
+        tmp_path / "events.jsonl",
+        artifacts=artifacts,
+        clock=fixed_clock,
+        identity=IDENTITY,
     )
     store.append(
         "private",
@@ -455,3 +465,321 @@ def test_event_records_are_strict_deeply_immutable_and_schema_serializable() -> 
             event_hash="0" * 64,
             unknown=True,
         )
+
+
+def test_failed_seal_publication_is_fail_closed_and_releases_writer(
+    tmp_path: Path, monkeypatch
+) -> None:
+    store = event_store(tmp_path)
+    store.append("first", IDENTITY, "public", {})
+    real_fsync_directory = __import__(
+        "aeread.runner.event_store", fromlist=["_fsync_directory"]
+    )._fsync_directory
+
+    def fail_after_marker_publish(path: Path) -> None:
+        real_fsync_directory(path)
+        if (tmp_path / "events.jsonl.sealed.json").exists():
+            raise OSError("seal directory fsync failed")
+
+    monkeypatch.setattr(
+        "aeread.runner.event_store._fsync_directory", fail_after_marker_publish
+    )
+    with pytest.raises(EventIntegrityError):
+        store.seal()
+    with pytest.raises(EventIntegrityError):
+        store.append("must-not-run", IDENTITY, "public", {})
+
+    monkeypatch.setattr(
+        "aeread.runner.event_store._fsync_directory", real_fsync_directory
+    )
+    with pytest.raises(EventIntegrityError):
+        event_store(tmp_path)
+
+
+def test_sealed_snapshot_and_seal_reverify_instead_of_returning_cache(
+    tmp_path: Path,
+) -> None:
+    store = event_store(tmp_path)
+    event = store.append("first", IDENTITY, "public", {})
+    store.seal()
+    (tmp_path / "events.jsonl").write_bytes(
+        canonical_json_bytes(event.model_copy(update={"payload": {"tampered": True}}))
+        + b"\n"
+    )
+
+    with pytest.raises(EventIntegrityError):
+        store.snapshot()
+    with pytest.raises(EventIntegrityError):
+        store.seal()
+
+
+def test_reopened_sealed_reader_does_not_retain_writer_lock(tmp_path: Path) -> None:
+    store = event_store(tmp_path)
+    store.append("first", IDENTITY, "public", {})
+    store.seal()
+
+    first_reader = event_store(tmp_path)
+    second_reader = event_store(tmp_path)
+    assert first_reader.snapshot() == second_reader.snapshot()
+
+
+def test_existing_seal_marker_must_be_regular_and_never_followed(
+    tmp_path: Path,
+) -> None:
+    store = event_store(tmp_path)
+    store.append("first", IDENTITY, "public", {})
+    store.seal()
+    marker = tmp_path / "events.jsonl.sealed.json"
+    marker.unlink()
+    external = tmp_path / "external-marker"
+    marker.symlink_to(external)
+
+    with pytest.raises(EventIntegrityError):
+        event_store(tmp_path)
+    assert not external.exists()
+
+
+def test_artifact_generation_is_frozen_by_final_seal(tmp_path: Path) -> None:
+    store = event_store(tmp_path)
+    store.artifacts.put(b"before", "text/plain")
+    store.seal()
+
+    with pytest.raises(EvidenceSealedError):
+        store.artifacts.put(b"after", "text/plain")
+    with pytest.raises(EvidenceSealedError):
+        ArtifactStore.open(tmp_path / "evidence").put(b"after", "text/plain")
+
+
+@pytest.mark.parametrize("failure", ["partial_write", "fsync"])
+def test_append_io_failure_poison_closes_writer(
+    tmp_path: Path, monkeypatch, failure: str
+) -> None:
+    store = event_store(tmp_path)
+    event_inode = (tmp_path / "events.jsonl").stat().st_ino
+    if failure == "partial_write":
+        real_write = os.write
+        calls = 0
+
+        def fail_after_partial(fd: int, data: bytes) -> int:
+            nonlocal calls
+            if os.fstat(fd).st_ino != event_inode:
+                return real_write(fd, data)
+            calls += 1
+            if calls == 1:
+                return real_write(fd, data[: max(1, len(data) // 2)])
+            raise OSError("event write interrupted")
+
+        monkeypatch.setattr("aeread.runner.event_store.os.write", fail_after_partial)
+    else:
+        real_fsync = os.fsync
+
+        def fail_event_fsync(fd: int) -> None:
+            if os.fstat(fd).st_ino == event_inode:
+                raise OSError("event fsync interrupted")
+            real_fsync(fd)
+
+        monkeypatch.setattr("aeread.runner.event_store.os.fsync", fail_event_fsync)
+
+    with pytest.raises(EventIntegrityError):
+        store.append("failed", IDENTITY, "public", {})
+    with pytest.raises(EventIntegrityError):
+        store.append("must-not-run", IDENTITY, "public", {})
+
+
+def test_high_water_publish_failure_persists_poisoned_state(
+    tmp_path: Path, monkeypatch
+) -> None:
+    store = event_store(tmp_path)
+    real_fsync_directory = __import__(
+        "aeread.runner.event_store", fromlist=["_fsync_directory"]
+    )._fsync_directory
+
+    def fail_after_open_anchor_replace(path: Path) -> None:
+        real_fsync_directory(path)
+        anchor = tmp_path / "events.jsonl.state.json"
+        if anchor.exists():
+            state = json.loads(anchor.read_bytes())
+            if state["status"] == "open" and state["event_count"] == 1:
+                raise OSError("high-water directory fsync failed")
+
+    monkeypatch.setattr(
+        "aeread.runner.event_store._fsync_directory", fail_after_open_anchor_replace
+    )
+    with pytest.raises(EventIntegrityError):
+        store.append("uncertain", IDENTITY, "public", {})
+    monkeypatch.setattr(
+        "aeread.runner.event_store._fsync_directory", real_fsync_directory
+    )
+
+    with pytest.raises(EventIntegrityError):
+        event_store(tmp_path)
+
+
+def test_unsealed_high_water_rejects_valid_tail_deletion(tmp_path: Path) -> None:
+    store = event_store(tmp_path)
+    store.append("first", IDENTITY, "public", {})
+    store.append("second", IDENTITY, "public", {})
+    store.close()
+    path = tmp_path / "events.jsonl"
+    path.write_bytes(path.read_bytes().splitlines(keepends=True)[0])
+
+    with pytest.raises(EventIntegrityError):
+        EventStore.verify(path, artifacts=artifact_store(tmp_path))
+
+
+def test_deleting_final_marker_never_makes_log_appendable(tmp_path: Path) -> None:
+    store = event_store(tmp_path)
+    store.append("first", IDENTITY, "public", {})
+    store.seal()
+    (tmp_path / "events.jsonl.sealed.json").unlink()
+
+    with pytest.raises(EventIntegrityError):
+        event_store(tmp_path)
+
+
+def test_explicit_empty_identity_changes_empty_event_root(tmp_path: Path) -> None:
+    first = EventStore.open(
+        tmp_path / "first.jsonl",
+        artifacts=ArtifactStore.open(tmp_path / "first-evidence"),
+        clock=fixed_clock,
+        identity=IDENTITY,
+    ).snapshot()
+    second_identity = IDENTITY.model_copy(update={"episode_attempt_id": "attempt-2"})
+    second = EventStore.open(
+        tmp_path / "second.jsonl",
+        artifacts=ArtifactStore.open(tmp_path / "second-evidence"),
+        clock=fixed_clock,
+        identity=second_identity,
+    ).snapshot()
+
+    assert first.event_root_sha256 != second.event_root_sha256
+
+
+def test_new_event_store_requires_identity_for_empty_root(tmp_path: Path) -> None:
+    with pytest.raises(InvalidEvidenceInput):
+        EventStore.open(
+            tmp_path / "unbound.jsonl",
+            artifacts=ArtifactStore.open(tmp_path / "unbound-evidence"),
+            clock=fixed_clock,
+        )
+
+
+def test_projection_rejects_reordered_joint_chain_even_with_recomputed_root(
+    tmp_path: Path,
+) -> None:
+    store = event_store(tmp_path)
+    store.append("first", IDENTITY, "public", {})
+    store.append("second", IDENTITY, "public", {})
+    full = store.snapshot()
+    reversed_events = tuple(reversed(full.events))
+    forged_root = hashlib.sha256(
+        b"aeread.event_root/1\0"
+        + canonical_json_bytes(
+            {
+                "identity": reversed_events[0].identity.model_dump(mode="json"),
+                "event_count": 2,
+                "event_hashes": [event.event_hash for event in reversed_events],
+            }
+        )
+    ).hexdigest()
+    reordered = full.model_copy(
+        update={"events": reversed_events, "event_root_sha256": forged_root}
+    )
+
+    with pytest.raises(EventIntegrityError):
+        store.project(reordered, "public")
+
+
+def test_public_view_record_rejects_evaluator_plaintext(tmp_path: Path) -> None:
+    store = event_store(tmp_path)
+    store.append("secret", IDENTITY, "evaluator_only", {"secret": True})
+    full = store.snapshot()
+
+    with pytest.raises(ValidationError):
+        full.model_copy(update={"audience": "public"}).__class__.model_validate(
+            full.model_copy(update={"audience": "public"}).model_dump(mode="json")
+        )
+
+
+def test_project_rejects_forged_final_snapshot(tmp_path: Path) -> None:
+    store = event_store(tmp_path)
+    store.append("first", IDENTITY, "public", {})
+    forged = store.snapshot().model_copy(update={"is_final": True})
+
+    with pytest.raises(EventIntegrityError):
+        store.project(forged, "public")
+
+
+def test_event_creation_fsyncs_parent_directory(tmp_path: Path, monkeypatch) -> None:
+    artifacts = artifact_store(tmp_path)
+    directory_fsyncs = 0
+    real_fsync = os.fsync
+
+    def count_directory_fsync(fd: int) -> None:
+        nonlocal directory_fsyncs
+        if stat.S_ISDIR(os.fstat(fd).st_mode):
+            directory_fsyncs += 1
+        real_fsync(fd)
+
+    monkeypatch.setattr("aeread.runner.event_store.os.fsync", count_directory_fsync)
+    EventStore.open(
+        tmp_path / "new-events.jsonl",
+        artifacts=artifacts,
+        clock=fixed_clock,
+        identity=IDENTITY,
+    )
+
+    assert directory_fsyncs >= 1
+
+
+def test_artifact_creation_and_temp_cleanup_are_directory_durable(
+    tmp_path: Path, monkeypatch
+) -> None:
+    directory_fsyncs = 0
+    real_fsync = os.fsync
+
+    def count_directory_fsync(fd: int) -> None:
+        nonlocal directory_fsyncs
+        if stat.S_ISDIR(os.fstat(fd).st_mode):
+            directory_fsyncs += 1
+        real_fsync(fd)
+
+    monkeypatch.setattr("aeread.runner.event_store.os.fsync", count_directory_fsync)
+    store = ArtifactStore.open(tmp_path / "new-evidence")
+    baseline = directory_fsyncs
+    store.put(b"durable", "text/plain")
+
+    assert baseline >= 3
+    assert directory_fsyncs >= baseline + 1
+    assert not any(path.name.startswith(".tmp-") for path in store.object_dir.iterdir())
+
+
+def test_hostile_model_copy_is_translated_to_invalid_input(tmp_path: Path) -> None:
+    class Hostile:
+        def __getattribute__(self, name: str):
+            raise RuntimeError("hostile scalar")
+
+    artifacts = artifact_store(tmp_path)
+    ref = ArtifactRef(
+        sha256="0" * 64, media_type="text/plain", size_bytes=0
+    ).model_copy(update={"sha256": Hostile()})
+
+    with pytest.raises(InvalidEvidenceInput):
+        artifacts.verify(ref)
+
+
+def test_dangling_event_symlink_is_rejected_before_target_creation(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "outside-target"
+    path = tmp_path / "events.jsonl"
+    path.symlink_to(target)
+
+    with pytest.raises(EventIntegrityError):
+        EventStore.open(
+            path,
+            artifacts=artifact_store(tmp_path),
+            clock=fixed_clock,
+            identity=IDENTITY,
+        )
+    assert not target.exists()

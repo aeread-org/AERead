@@ -313,6 +313,23 @@ class SealedEvidenceView(StrictModel):
             self.audience,
         ):
             raise ValueError("invalid evidence audience")
+        artifact_keys = [
+            (ref.sha256, ref.media_type, ref.size_bytes) for ref in self.artifacts
+        ]
+        if artifact_keys != sorted(set(artifact_keys)):
+            raise ValueError(
+                "evidence artifacts must be unique and canonically ordered"
+            )
+        for event in self.events:
+            allowed = (
+                self.audience in {"full", "evaluator"}
+                or event.visibility == "public"
+                or event.visibility == self.audience
+            )
+            if event.payload_visible != allowed:
+                raise ValueError(
+                    "event payload visibility does not match the evidence audience"
+                )
         return self
 
 
