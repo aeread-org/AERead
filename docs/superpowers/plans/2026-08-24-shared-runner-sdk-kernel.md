@@ -1,5 +1,12 @@
 # Shared Runner Public SDK and Kernel Implementation Plan
 
+> **Post-sync notice (2026-08-25):** Tasks 1–5 and their review history remain binding.
+> Tasks 6–11 are superseded by
+> [`2026-08-25-shared-runner-post-sync-rebaseline.md`](2026-08-25-shared-runner-post-sync-rebaseline.md)
+> after the approved PR #7 taxonomy/roadmap added five semantic verifier families,
+> `ActionAttempt -> ProviderCall* + ToolInvocation*`, and the 8/25 sync required
+> benchmark-informed compatibility probes. Do not dispatch old Task 6 directly.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Build the versioned `aeread.sdk.v1` authoring API and minimum family-neutral runner kernel, then prove that the legacy Exchange path produces equivalent outcomes through it.
