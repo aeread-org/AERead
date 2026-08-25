@@ -117,8 +117,27 @@ _ASYNC_METHODS: dict[str, dict[str, tuple[str, ...]]] = {
 }
 
 
+_MISSING = object()
+
+
+def _read_plugin_attribute(
+    category: str,
+    plugin: object,
+    attribute: str,
+    default: object = _MISSING,
+) -> object:
+    try:
+        if default is _MISSING:
+            return getattr(plugin, attribute)
+        return getattr(plugin, attribute, default)
+    except Exception as exc:
+        raise IncompatiblePlugin(
+            f"{category} plugin attribute {attribute!r} could not be inspected"
+        ) from exc
+
+
 def _validated_manifest(category: str, plugin: object) -> PluginManifest:
-    manifest = getattr(plugin, "manifest", None)
+    manifest = _read_plugin_attribute(category, plugin, "manifest", None)
     if manifest is None:
         raise IncompatiblePlugin(
             f"{category} plugin is missing a PluginManifest"
@@ -131,10 +150,15 @@ def _validated_manifest(category: str, plugin: object) -> PluginManifest:
     # model_copy(update=...) deliberately skips validation and model_dump()
     # omits undeclared copied attributes. Reconstruct from the raw field state
     # so neither invalid declared fields nor smuggled extras survive admission.
-    raw_state = dict(vars(manifest))
-    pydantic_extra = getattr(manifest, "__pydantic_extra__", None)
-    if pydantic_extra:
-        raw_state.update(pydantic_extra)
+    try:
+        raw_state = dict(vars(manifest))
+        pydantic_extra = getattr(manifest, "__pydantic_extra__", None)
+        if pydantic_extra:
+            raw_state.update(pydantic_extra)
+    except Exception as exc:
+        raise IncompatiblePlugin(
+            f"{category} plugin manifest state could not be inspected"
+        ) from exc
     try:
         return PluginManifest.model_validate(raw_state)
     except ValidationError as exc:
@@ -152,52 +176,25 @@ def _validate_callable(
     must_be_async: bool,
     keyword_only_names: tuple[str, ...] = (),
 ) -> None:
-    try:
-        method = getattr(plugin, method_name)
-    except Exception as exc:
-        raise IncompatiblePlugin(
-            f"{category} plugin cannot expose {method_name}"
-        ) from exc
+    method = _read_plugin_attribute(category, plugin, method_name)
     if not callable(method):
         raise IncompatiblePlugin(
             f"{category} plugin {method_name} must be callable"
         )
-    if inspect.iscoroutinefunction(method) is not must_be_async:
+    try:
+        is_async = inspect.iscoroutinefunction(method)
+        signature = inspect.signature(method)
+    except Exception as exc:
+        raise IncompatiblePlugin(
+            f"{category} plugin {method_name} has an uninspectable signature"
+        ) from exc
+    if is_async is not must_be_async:
         expected = "async" if must_be_async else "synchronous"
         raise IncompatiblePlugin(
             f"{category} plugin {method_name} must be {expected}"
         )
-    try:
-        signature = inspect.signature(method)
-    except (TypeError, ValueError) as exc:
-        raise IncompatiblePlugin(
-            f"{category} plugin {method_name} has an uninspectable signature"
-        ) from exc
 
     parameters = signature.parameters
-    positional_parameters = tuple(
-        parameter.name
-        for parameter in parameters.values()
-        if parameter.kind
-        in (
-            inspect.Parameter.POSITIONAL_ONLY,
-            inspect.Parameter.POSITIONAL_OR_KEYWORD,
-        )
-    )
-    if positional_parameters[: len(positional_names)] != positional_names:
-        raise IncompatiblePlugin(
-            f"{category} plugin {method_name} must accept positional arguments "
-            f"in order {positional_names!r}"
-        )
-    for name in positional_names:
-        parameter = parameters.get(name)
-        if parameter is None or parameter.kind not in (
-            inspect.Parameter.POSITIONAL_ONLY,
-            inspect.Parameter.POSITIONAL_OR_KEYWORD,
-        ):
-            raise IncompatiblePlugin(
-                f"{category} plugin {method_name} must accept positional {name}"
-            )
     for name in keyword_only_names:
         parameter = parameters.get(name)
         if parameter is None or parameter.kind is not inspect.Parameter.KEYWORD_ONLY:
@@ -205,19 +202,43 @@ def _validate_callable(
                 f"{category} plugin {method_name} requires keyword-only {name}"
             )
 
-    positional_values = [object() for _ in positional_names]
+    positional_values = {name: object() for name in positional_names}
     keyword_values = {name: object() for name in keyword_only_names}
     try:
-        signature.bind(*positional_values, **keyword_values)
-    except TypeError as exc:
+        bound = signature.bind(*positional_values.values(), **keyword_values)
+    except Exception as exc:
         raise IncompatiblePlugin(
             f"{category} plugin {method_name} has an incompatible signature: {exc}"
         ) from exc
 
+    expected_by_identity = {
+        id(value): name for name, value in positional_values.items()
+    }
+    for parameter_name, value in bound.arguments.items():
+        parameter = parameters[parameter_name]
+        if parameter.kind is not inspect.Parameter.POSITIONAL_OR_KEYWORD:
+            continue
+        expected_name = expected_by_identity.get(id(value))
+        if (
+            expected_name is not None
+            and parameter_name in positional_names
+            and parameter_name != expected_name
+        ):
+            raise IncompatiblePlugin(
+                f"{category} plugin {method_name} reorders explicit argument "
+                f"{parameter_name!r}; runner supplies {expected_name!r} there"
+            )
+
 
 def _validate_contract(category: str, plugin: object) -> None:
     expected_protocol = _PROTOCOLS[category]
-    if not isinstance(plugin, expected_protocol):
+    try:
+        conforms = isinstance(plugin, expected_protocol)
+    except Exception as exc:
+        raise IncompatiblePlugin(
+            f"{category} plugin protocol surface could not be inspected"
+        ) from exc
+    if not conforms:
         raise IncompatiblePlugin(
             f"{category} plugin does not implement "
             f"{expected_protocol.__name__}"
@@ -242,13 +263,19 @@ def _validate_contract(category: str, plugin: object) -> None:
             keyword_only_names=keyword_only_names,
         )
 
-    if category == "agent_adapters" and getattr(
-        plugin, "call_observability", None
-    ) not in {"full", "logical_only", "opaque"}:
-        raise IncompatiblePlugin(
-            "agent_adapters plugin call_observability must be one of "
-            "'full', 'logical_only', or 'opaque'"
+    if category == "agent_adapters":
+        observability = _read_plugin_attribute(
+            category, plugin, "call_observability", None
         )
+        if type(observability) is not str or observability not in (
+            "full",
+            "logical_only",
+            "opaque",
+        ):
+            raise IncompatiblePlugin(
+                "agent_adapters plugin call_observability must be an exact "
+                "string: 'full', 'logical_only', or 'opaque'"
+            )
 
 
 class PluginRegistry:

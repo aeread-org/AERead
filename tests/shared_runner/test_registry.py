@@ -190,6 +190,41 @@ def test_registry_rejects_environment_with_incompatible_step_signature() -> None
         PluginRegistry.from_objects(environments=[BadEnvironment()])
 
 
+def test_registry_accepts_variadic_environment_call_shape() -> None:
+    class VariadicEnvironment(FakeEnvironment):
+        def step(self, *args: object, **kwargs: object) -> object:
+            return {}
+
+    environment = VariadicEnvironment()
+    registry = PluginRegistry.from_objects(environments=[environment])
+
+    assert registry.resolve_environment("fake_market", "1.0.0") is environment
+
+
+def test_registry_accepts_positional_only_environment_call_shape() -> None:
+    class PositionalOnlyEnvironment(FakeEnvironment):
+        def legal(self, a: object, b: object, c: object, d: object, /) -> object:
+            return {}
+
+    environment = PositionalOnlyEnvironment()
+    registry = PluginRegistry.from_objects(environments=[environment])
+
+    assert registry.resolve_environment("fake_market", "1.0.0") is environment
+
+
+def test_registry_accepts_optional_trailing_plugin_parameter() -> None:
+    class OptionalSource(FakeBenchmarkSource):
+        def enumerate_cases(
+            self, split: str, optional_filter: object = None
+        ) -> tuple[()]:
+            return ()
+
+    source = OptionalSource()
+    registry = PluginRegistry.from_objects(benchmark_sources=[source])
+
+    assert registry.resolve_benchmark_source("fake_source", "1.0.0") is source
+
+
 def test_registry_rejects_reordered_environment_arguments() -> None:
     class ReorderedEnvironment(FakeEnvironment):
         def legal(
@@ -219,6 +254,24 @@ def test_registry_rejects_uninspectable_environment_callable() -> None:
 
     with pytest.raises(IncompatiblePlugin, match="step"):
         PluginRegistry.from_objects(environments=[BadEnvironment()])
+
+
+def test_registry_wraps_plugin_controlled_signature_failure() -> None:
+    class RaisingSignatureCallable:
+        @property
+        def __signature__(self) -> object:
+            raise RuntimeError("signature exploded")
+
+        def __call__(self, *args: object, **kwargs: object) -> object:
+            return {}
+
+    class BadEnvironment(FakeEnvironment):
+        step = RaisingSignatureCallable()
+
+    with pytest.raises(IncompatiblePlugin, match="step") as exc_info:
+        PluginRegistry.from_objects(environments=[BadEnvironment()])
+
+    assert isinstance(exc_info.value.__cause__, RuntimeError)
 
 
 def test_registry_rejects_async_deterministic_verifier() -> None:
@@ -259,6 +312,19 @@ def test_registry_requires_agent_attempts_to_be_keyword_only() -> None:
         PluginRegistry.from_objects(agent_adapters=[PositionalAttemptsAgent()])
 
 
+def test_registry_accepts_variadic_agent_with_keyword_only_attempts() -> None:
+    class VariadicAgent(FakeAgentAdapter):
+        async def act(
+            self, *args: object, attempts: object, **kwargs: object
+        ) -> object:
+            return {}
+
+    agent = VariadicAgent()
+    registry = PluginRegistry.from_objects(agent_adapters=[agent])
+
+    assert registry.resolve_agent_adapter("fake_agent", "1.0.0") is agent
+
+
 def test_registry_rejects_unknown_agent_call_observability() -> None:
     class BadObservabilityAgent(FakeAgentAdapter):
         call_observability = "provider_maybe"
@@ -269,6 +335,48 @@ def test_registry_rejects_unknown_agent_call_observability() -> None:
                 BadObservabilityAgent(call_observability="provider_maybe")
             ]
         )
+
+
+def test_registry_wraps_unhashable_agent_call_observability() -> None:
+    agent = FakeAgentAdapter(call_observability=[])
+
+    with pytest.raises(IncompatiblePlugin, match="call_observability"):
+        PluginRegistry.from_objects(agent_adapters=[agent])
+
+
+def test_registry_wraps_raising_agent_call_observability_property() -> None:
+    class RaisingObservabilityAgent:
+        manifest = FakeAgentAdapter().manifest
+
+        @property
+        def call_observability(self) -> str:
+            raise RuntimeError("observability exploded")
+
+        async def act(
+            self, request: object, *, attempts: object
+        ) -> object:
+            return {}
+
+    with pytest.raises(IncompatiblePlugin, match="agent_adapters") as exc_info:
+        PluginRegistry.from_objects(
+            agent_adapters=[RaisingObservabilityAgent()]
+        )
+
+    assert isinstance(exc_info.value.__cause__, RuntimeError)
+
+
+def test_registry_wraps_raising_manifest_property() -> None:
+    class RaisingManifestEnvironment:
+        @property
+        def manifest(self) -> object:
+            raise RuntimeError("manifest exploded")
+
+    with pytest.raises(IncompatiblePlugin, match="environments") as exc_info:
+        PluginRegistry.from_objects(
+            environments=[RaisingManifestEnvironment()]
+        )
+
+    assert isinstance(exc_info.value.__cause__, RuntimeError)
 
 
 def test_registry_rejects_sync_execution_backend_method() -> None:
