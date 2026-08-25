@@ -247,6 +247,64 @@ def test_agent_request_plan_builder_rejects_wrong_plan_cell_seat_and_hash() -> N
         )
 
 
+@pytest.mark.parametrize(
+    ("slot", "observation"),
+    (
+        (None, REQUEST.observation),
+        (REQUEST.slot, object()),
+        (
+            REQUEST.slot.model_copy(
+                update={
+                    "channels": (
+                        REQUEST.slot.channels[0].model_copy(update={"min_actions": -1}),
+                    )
+                }
+            ),
+            REQUEST.observation,
+        ),
+    ),
+)
+def test_agent_request_builder_normalizes_malformed_slot_and_observation(
+    slot: object, observation: object
+) -> None:
+    plan = resolve_run_plan(fake_resolution_inputs(), _registry())
+    cell = plan.cells[0]
+
+    with pytest.raises(InvalidAgentRequest, match="slot|observation") as exc_info:
+        build_agent_request_from_plan(
+            plan,
+            cell_id=cell.cell_id,
+            seat_id=cell.subject_seat_id,
+            phase_id="offers",
+            logical_action_id="logical-action-malformed-input",
+            slot=slot,
+            observation=observation,
+        )
+
+    assert isinstance(exc_info.value.__cause__, ValidationError)
+
+
+def test_agent_request_builder_wraps_observation_slot_mismatch() -> None:
+    plan = resolve_run_plan(fake_resolution_inputs(), _registry())
+    cell = plan.cells[0]
+    mismatched_observation = REQUEST.observation.model_copy(
+        update={"slot_id": "different-slot"}
+    )
+
+    with pytest.raises(InvalidAgentRequest, match="planned profile") as exc_info:
+        build_agent_request_from_plan(
+            plan,
+            cell_id=cell.cell_id,
+            seat_id=cell.subject_seat_id,
+            phase_id="offers",
+            logical_action_id="logical-action-mismatched-observation",
+            slot=REQUEST.slot,
+            observation=mismatched_observation,
+        )
+
+    assert isinstance(exc_info.value.__cause__, ValidationError)
+
+
 def test_run_plan_is_self_contained_for_execution() -> None:
     inputs = fake_resolution_inputs()
     plan = resolve_run_plan(inputs, _registry())
@@ -379,6 +437,8 @@ def test_optimizable_measurement_requires_scope_proof_and_complete_exact_bounds(
         "estimand_id": "buyer_utility",
         "measurement_kind": "optimizable_outcome",
         "direction": "maximize",
+        "source_direction": "maximize",
+        "source_to_canonical_rule": "identity",
         "primary_metric_id": "buyer_utility",
         "verifier_plugin_id": "fake_verifier",
         "verifier_semantics_id": "realized_utility",
@@ -418,6 +478,63 @@ def test_optimizable_measurement_requires_scope_proof_and_complete_exact_bounds(
                 },
             }
         )
+
+
+def test_optimizable_lower_bound_rejects_noncanonical_minimize_direction() -> None:
+    raw = fake_resolution_inputs().family.measurements[0].model_dump(mode="python")
+    raw["direction"] = "minimize"
+    raw["reference_contracts"]["optimum_lower_bound"]["direction"] = "minimize"
+
+    with pytest.raises(ValidationError, match="direction"):
+        OptimizableOutcomeMeasurementSpec.model_validate(raw)
+
+
+@pytest.mark.parametrize(
+    "missing_field", ("source_direction", "source_to_canonical_rule")
+)
+def test_optimizable_measurement_requires_source_orientation_contract(
+    missing_field: str,
+) -> None:
+    raw = fake_resolution_inputs().family.measurements[0].model_dump(mode="python")
+    del raw[missing_field]
+
+    with pytest.raises(ValidationError, match=missing_field):
+        OptimizableOutcomeMeasurementSpec.model_validate(raw)
+
+
+@pytest.mark.parametrize(
+    ("source_direction", "source_to_canonical_rule"),
+    (("maximize", "negate"), ("minimize", "identity")),
+)
+def test_optimizable_measurement_rejects_misstated_orientation_transform(
+    source_direction: str, source_to_canonical_rule: str
+) -> None:
+    raw = fake_resolution_inputs().family.measurements[0].model_dump(mode="python")
+    raw.update(
+        {
+            "source_direction": source_direction,
+            "source_to_canonical_rule": source_to_canonical_rule,
+        }
+    )
+
+    with pytest.raises(ValidationError, match="source.*canonical"):
+        OptimizableOutcomeMeasurementSpec.model_validate(raw)
+
+
+def test_optimizable_measurement_declares_minimize_source_as_negated_maximize() -> None:
+    raw = fake_resolution_inputs().family.measurements[0].model_dump(mode="python")
+    raw.update(
+        {
+            "source_direction": "minimize",
+            "source_to_canonical_rule": "negate",
+        }
+    )
+
+    measurement = OptimizableOutcomeMeasurementSpec.model_validate(raw)
+
+    assert measurement.direction == "maximize"
+    assert measurement.source_direction == "minimize"
+    assert measurement.source_to_canonical_rule == "negate"
 
 
 def test_comparative_measurement_requires_a_typed_baseline() -> None:
@@ -503,6 +620,8 @@ def test_optimization_reference_must_match_every_estimand_scope_field(
             estimand_id="buyer_utility",
             measurement_kind="optimizable_outcome",
             direction="maximize",
+            source_direction="maximize",
+            source_to_canonical_rule="identity",
             primary_metric_id="buyer_utility",
             verifier_plugin_id="fake_verifier",
             verifier_semantics_id="realized_utility",

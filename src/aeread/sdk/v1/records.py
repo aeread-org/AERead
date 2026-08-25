@@ -762,6 +762,9 @@ BoundClaimRule = Annotated[
 
 class OptimizableOutcomeMeasurementSpec(_MeasurementBase):
     measurement_kind: Literal["optimizable_outcome"]
+    direction: Literal["maximize"]
+    source_direction: Literal["maximize", "minimize"]
+    source_to_canonical_rule: Literal["identity", "negate"]
     objective_id: SDKStr
     objective_version: SDKStr
     units: SDKStr
@@ -779,6 +782,14 @@ class OptimizableOutcomeMeasurementSpec(_MeasurementBase):
 
     @model_validator(mode="after")
     def validate_optimization_contract(self) -> "OptimizableOutcomeMeasurementSpec":
+        expected_orientation_rule = (
+            "identity" if self.source_direction == "maximize" else "negate"
+        )
+        if self.source_to_canonical_rule != expected_orientation_rule:
+            raise ValueError(
+                "source direction and source-to-canonical rule must be "
+                "maximize/identity or minimize/negate"
+            )
         for label, value in (
             ("objective_id", self.objective_id),
             ("units", self.units),

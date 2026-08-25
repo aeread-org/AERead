@@ -972,7 +972,19 @@ def build_agent_request_from_plan(
     profile_sha256 = cell.seat_profile_sha256_by_seat.get(seat_id)
     if profile_id is None or profile_sha256 is None:
         raise InvalidAgentRequest(f"seat {seat_id!r} is not assigned in the cell")
-    if slot.seat_id != seat_id:
+
+    try:
+        checked_slot = DecisionSlot.model_validate(_raw_state(slot))
+    except (ValidationError, SDKError, TypeError, ValueError) as exc:
+        raise InvalidAgentRequest("decision slot is malformed") from exc
+    try:
+        checked_observation = ObservationEnvelope.model_validate(
+            _raw_state(observation)
+        )
+    except (ValidationError, SDKError, TypeError, ValueError) as exc:
+        raise InvalidAgentRequest("observation is malformed") from exc
+
+    if checked_slot.seat_id != seat_id:
         raise InvalidAgentRequest("decision slot seat does not match requested seat")
 
     profiles = {
@@ -987,8 +999,8 @@ def build_agent_request_from_plan(
         return AgentRequest.from_profile(
             logical_action_id=logical_action_id,
             phase_id=phase_id,
-            slot=slot,
-            observation=observation,
+            slot=checked_slot,
+            observation=checked_observation,
             profile=profile,
             expected_profile_sha256=profile_sha256,
         )

@@ -418,6 +418,8 @@ def fake_resolution_inputs() -> ResolutionInputs:
                 estimand_id="buyer_utility",
                 measurement_kind="optimizable_outcome",
                 direction="maximize",
+                source_direction="maximize",
+                source_to_canonical_rule="identity",
                 primary_metric_id="buyer_utility",
                 verifier_plugin_id="fake_verifier",
                 verifier_semantics_id="realized_buyer_utility",
