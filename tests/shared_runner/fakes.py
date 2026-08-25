@@ -9,6 +9,7 @@ from aeread.sdk.v1 import (
     ActionBundle,
     ActionChannel,
     AgentContext,
+    AgentExecutionConfig,
     AgentRequest,
     AttemptBudget,
     AttemptObserver,
@@ -25,10 +26,11 @@ from aeread.sdk.v1 import (
     FamilyManifest,
     FamilyOutcome,
     LegalityResult,
-    MeasurementSpec,
     MemoryPin,
     ModelPin,
     ObservationEnvelope,
+    OptimizableOutcomeMeasurementSpec,
+    OptimizationReferenceContract,
     ParseResult,
     PhaseGraph,
     PhaseSpec,
@@ -50,6 +52,7 @@ from aeread.sdk.v1 import (
     TerminalResult,
     TransitionResult,
     ImplementationRef,
+    content_sha256,
 )
 
 
@@ -76,6 +79,35 @@ _SLOT = DecisionSlot(
     order_key="0001",
 )
 
+_REQUEST_EXECUTION_CONFIG = AgentExecutionConfig(
+    provider=ProviderPin(provider_id="fake", api_version="2026-08-01"),
+    model=ModelPin(model_id="fake-model", revision="2026-08-01"),
+    harness=ImplementationRef(
+        implementation_id="fake-harness",
+        version="1.0.0",
+        content_sha256="1" * 64,
+    ),
+    runtime=RuntimePin(
+        implementation=ImplementationRef(
+            implementation_id="in_process",
+            version="1.0.0",
+            content_sha256="2" * 64,
+        ),
+        config={},
+    ),
+    prompt="You are a fake test agent.",
+    prompt_sha256=content_sha256("You are a fake test agent."),
+    sampling=SamplingPin(
+        schema_id="generation_sampling",
+        schema_version="1.0.0",
+        content={"temperature": 0.0},
+    ),
+    tools=(),
+    memory=MemoryPin(mode="none"),
+    attempt_budget=AttemptBudget(timeout_seconds=1.0, output_token_limit=64),
+    retry_policy=RetryPolicy(max_attempts=1),
+)
+
 REQUEST = AgentRequest(
     logical_action_id=IDS["logical_action_id"],
     phase_id="offers",
@@ -95,7 +127,10 @@ REQUEST = AgentRequest(
         harness="fake-harness",
         runtime="in_process",
     ),
-    budget=AttemptBudget(timeout_seconds=1.0, output_token_limit=64),
+    agent_profile_sha256="0" * 64,
+    execution_config_sha256=content_sha256(_REQUEST_EXECUTION_CONFIG),
+    execution_config=_REQUEST_EXECUTION_CONFIG,
+    budget=_REQUEST_EXECUTION_CONFIG.attempt_budget,
 )
 
 NO_RETRY = RetryPolicy(max_attempts=1)
@@ -316,26 +351,29 @@ def fake_agent_profile(
         profile_version="1.0.0",
         adapter=fake_pin(adapter_id, marker=marker),
         call_observability="full",
-        provider=ProviderPin(provider_id="fake-provider", api_version="2026-08-01"),
-        model=ModelPin(model_id=f"fake-model-{profile_id}", revision="2026-08-01"),
-        harness=fake_implementation("minimal_chat", marker="7"),
-        runtime=RuntimePin(
-            implementation=fake_implementation("in_process", marker="8"),
-            config={"isolation": "in_process"},
+        execution_config=AgentExecutionConfig(
+            provider=ProviderPin(provider_id="fake-provider", api_version="2026-08-01"),
+            model=ModelPin(model_id=f"fake-model-{profile_id}", revision="2026-08-01"),
+            harness=fake_implementation("minimal_chat", marker="7"),
+            runtime=RuntimePin(
+                implementation=fake_implementation("in_process", marker="8"),
+                config={"isolation": "in_process"},
+            ),
+            prompt=f"You are the {profile_id} buyer.",
+            prompt_sha256=content_sha256(f"You are the {profile_id} buyer."),
+            sampling=SamplingPin(
+                schema_id="generation_sampling",
+                schema_version="1.0.0",
+                content={"temperature": 0.0},
+            ),
+            tools=(),
+            memory=MemoryPin(mode="none"),
+            attempt_budget=AttemptBudget(
+                timeout_seconds=1.0,
+                output_token_limit=64,
+            ),
+            retry_policy=RetryPolicy(max_attempts=1),
         ),
-        prompt_sha256="5" * 64,
-        sampling=SamplingPin(
-            schema_id="generation_sampling",
-            schema_version="1.0.0",
-            content={"temperature": 0.0},
-        ),
-        tools=(),
-        memory=MemoryPin(mode="none"),
-        attempt_budget=AttemptBudget(
-            timeout_seconds=1.0,
-            output_token_limit=64,
-        ),
-        retry_policy=RetryPolicy(max_attempts=1),
     )
 
 
@@ -361,16 +399,39 @@ def fake_resolution_inputs() -> ResolutionInputs:
             ),
         ),
         measurements=(
-            MeasurementSpec(
+            OptimizableOutcomeMeasurementSpec(
                 estimand_id="buyer_utility",
                 measurement_kind="optimizable_outcome",
                 direction="maximize",
                 primary_metric_id="buyer_utility",
                 verifier_plugin_id="fake_verifier",
+                verifier_semantics_id="realized_buyer_utility",
+                verifier_semantics_version="1.0.0",
+                objective_id="buyer_utility",
+                objective_version="1.0.0",
+                units="utility_points",
+                feasible_set="offers permitted by fake_market/1.0.0",
+                information_set="buyer-private observation",
+                horizon="two offer rounds",
+                opponent_condition="fixed counterpart/1.0.0",
+                stochastic_expectation="expectation over declared rollout seeds",
                 bound_status="lower_bound_only",
-                reference_implementations={
-                    "optimum_lower_bound": fake_implementation(
-                        "buyer_utility_lower_bound", marker="9"
+                reference_contracts={
+                    "optimum_lower_bound": OptimizationReferenceContract(
+                        kind="optimum_lower_bound",
+                        objective_id="buyer_utility",
+                        objective_version="1.0.0",
+                        units="utility_points",
+                        direction="maximize",
+                        feasible_set="offers permitted by fake_market/1.0.0",
+                        information_set="buyer-private observation",
+                        horizon="two offer rounds",
+                        opponent_condition="fixed counterpart/1.0.0",
+                        proof_type="executable feasible witness",
+                        implementation=fake_implementation(
+                            "buyer_utility_lower_bound", marker="9"
+                        ),
+                        validity_domain="fake_market/1.0.0 dev split",
                     )
                 },
             ),

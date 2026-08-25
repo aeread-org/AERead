@@ -17,6 +17,7 @@ from .base import (
     SDKInt,
     SDKStr,
     StrictModel,
+    content_sha256,
 )
 from .errors import BundleValidationError, UntrustedPluginReference
 
@@ -318,15 +319,6 @@ class RetryPolicy(StrictModel):
         return self
 
 
-class AgentRequest(StrictModel):
-    logical_action_id: SDKStr
-    phase_id: SDKStr
-    slot: DecisionSlot
-    observation: ObservationEnvelope
-    context: AgentContext
-    budget: AttemptBudget
-
-
 class CallAttemptStart(StrictModel):
     call_attempt_id: SDKStr
     logical_action_id: SDKStr
@@ -603,47 +595,193 @@ class RoleSpec(StrictModel):
         return self
 
 
-class MeasurementSpec(StrictModel):
+class _ScopedReferenceContract(StrictModel):
+    units: SDKStr
+    direction: Literal["maximize", "minimize"]
+    feasible_set: SDKStr
+    information_set: SDKStr
+    horizon: SDKStr
+    opponent_condition: SDKStr
+    proof_type: SDKStr
+    implementation: ImplementationRef
+    validity_domain: SDKStr
+
+    @model_validator(mode="after")
+    def validate_scope(self) -> "_ScopedReferenceContract":
+        for label, value in (
+            ("units", self.units),
+            ("feasible_set", self.feasible_set),
+            ("information_set", self.information_set),
+            ("horizon", self.horizon),
+            ("opponent_condition", self.opponent_condition),
+            ("proof_type", self.proof_type),
+            ("validity_domain", self.validity_domain),
+        ):
+            if not value.strip():
+                raise ValueError(f"{label} must be non-empty")
+        _validate_implementation_pin(self.implementation, "reference")
+        return self
+
+
+class OptimizationReferenceContract(_ScopedReferenceContract):
+    """Pre-outcome optimum witness/certificate contract; never an observed value."""
+
+    kind: Literal["optimum_lower_bound", "optimum_upper_bound"]
+    objective_id: SDKStr
+    objective_version: SDKStr
+
+    @model_validator(mode="after")
+    def validate_objective(self) -> "OptimizationReferenceContract":
+        if not self.objective_id.strip():
+            raise ValueError("objective_id must be non-empty")
+        _require_exact_pin("objective_version", self.objective_version)
+        return self
+
+
+class ComparisonBaselineContract(_ScopedReferenceContract):
+    """Pre-outcome executable scientific comparison contract."""
+
+    kind: Literal["comparison_baseline"]
+    comparison_id: SDKStr
+    comparison_version: SDKStr
+    provenance: JSONObject
+    applicability: SDKStr
+
+    @model_validator(mode="after")
+    def validate_comparison(self) -> "ComparisonBaselineContract":
+        if not self.comparison_id.strip() or not self.applicability.strip():
+            raise ValueError("comparison identity/applicability must be non-empty")
+        _require_exact_pin("comparison_version", self.comparison_version)
+        return self
+
+
+class OutcomeSupportContract(_ScopedReferenceContract):
+    """Pre-outcome support claim applying to every admissible realized outcome."""
+
+    kind: Literal["outcome_support_min", "outcome_support_max"]
+    objective_id: SDKStr
+    objective_version: SDKStr
+    applicability: SDKStr
+
+    @model_validator(mode="after")
+    def validate_support(self) -> "OutcomeSupportContract":
+        if not self.objective_id.strip() or not self.applicability.strip():
+            raise ValueError("support objective/applicability must be non-empty")
+        _require_exact_pin("objective_version", self.objective_version)
+        return self
+
+
+PreOutcomeReferenceContract = Annotated[
+    OptimizationReferenceContract | ComparisonBaselineContract | OutcomeSupportContract,
+    Field(discriminator="kind"),
+]
+
+
+class _MeasurementBase(StrictModel):
     estimand_id: SDKStr
-    measurement_kind: Literal[
-        "property_or_answer",
-        "optimizable_outcome",
-        "comparative_or_human_judged",
-    ]
     direction: Literal["maximize", "minimize"]
     primary_metric_id: SDKStr
     verifier_plugin_id: SDKStr
-    bound_status: BoundStatus
-    reference_implementations: ImmutableMapping[ImplementationRef] = Field(
-        default_factory=dict
-    )
+    verifier_semantics_id: SDKStr
+    verifier_semantics_version: SDKStr
     oracle: ImplementationRef | None = None
 
     @model_validator(mode="after")
-    def validate_measurement(self) -> "MeasurementSpec":
-        for value in (
-            self.estimand_id,
-            self.primary_metric_id,
-            self.verifier_plugin_id,
+    def validate_common_measurement(self) -> "_MeasurementBase":
+        for label, value in (
+            ("estimand_id", self.estimand_id),
+            ("primary_metric_id", self.primary_metric_id),
+            ("verifier_plugin_id", self.verifier_plugin_id),
+            ("verifier_semantics_id", self.verifier_semantics_id),
         ):
             if not value.strip():
-                raise ValueError("measurement identifiers must be non-empty")
-        kinds = set(self.reference_implementations)
-        allowed_kinds = {
-            "optimum_lower_bound",
-            "optimum_upper_bound",
-            "comparison_baseline",
-            "outcome_support_min",
-            "outcome_support_max",
-        }
-        unknown = kinds - allowed_kinds
-        if unknown:
-            raise ValueError(f"unknown reference kinds: {sorted(unknown)!r}")
-        for kind, implementation in self.reference_implementations.items():
-            _validate_implementation_pin(implementation, kind)
+                raise ValueError(f"{label} must be non-empty")
+        _require_exact_pin(
+            "verifier_semantics_version", self.verifier_semantics_version
+        )
         if self.oracle is not None:
             _validate_implementation_pin(self.oracle, "oracle")
+        return self
 
+
+class PropertyAnswerMeasurementSpec(_MeasurementBase):
+    measurement_kind: Literal["property_or_answer"]
+    property_definition_id: SDKStr
+    property_definition_version: SDKStr
+    answer_schema_ref: SDKStr
+
+    @model_validator(mode="after")
+    def validate_property_contract(self) -> "PropertyAnswerMeasurementSpec":
+        if (
+            not self.property_definition_id.strip()
+            or not self.answer_schema_ref.strip()
+        ):
+            raise ValueError("property definition and answer schema must be non-empty")
+        _require_exact_pin(
+            "property_definition_version", self.property_definition_version
+        )
+        return self
+
+
+class OptimizableOutcomeMeasurementSpec(_MeasurementBase):
+    measurement_kind: Literal["optimizable_outcome"]
+    objective_id: SDKStr
+    objective_version: SDKStr
+    units: SDKStr
+    feasible_set: SDKStr
+    information_set: SDKStr
+    horizon: SDKStr
+    opponent_condition: SDKStr
+    stochastic_expectation: SDKStr
+    bound_status: BoundStatus
+    reference_contracts: ImmutableMapping[PreOutcomeReferenceContract] = Field(
+        default_factory=dict
+    )
+
+    @model_validator(mode="after")
+    def validate_optimization_contract(self) -> "OptimizableOutcomeMeasurementSpec":
+        for label, value in (
+            ("objective_id", self.objective_id),
+            ("units", self.units),
+            ("feasible_set", self.feasible_set),
+            ("information_set", self.information_set),
+            ("horizon", self.horizon),
+            ("opponent_condition", self.opponent_condition),
+            ("stochastic_expectation", self.stochastic_expectation),
+        ):
+            if not value.strip():
+                raise ValueError(f"{label} must be non-empty")
+        _require_exact_pin("objective_version", self.objective_version)
+        for kind, contract in self.reference_contracts.items():
+            if kind != contract.kind:
+                raise ValueError("reference mapping key must match contract kind")
+            if isinstance(
+                contract, (OptimizationReferenceContract, OutcomeSupportContract)
+            ):
+                expected_scope = (
+                    self.objective_id,
+                    self.objective_version,
+                    self.units,
+                    self.direction,
+                    self.feasible_set,
+                    self.information_set,
+                    self.horizon,
+                    self.opponent_condition,
+                )
+                actual_scope = (
+                    contract.objective_id,
+                    contract.objective_version,
+                    contract.units,
+                    contract.direction,
+                    contract.feasible_set,
+                    contract.information_set,
+                    contract.horizon,
+                    contract.opponent_condition,
+                )
+                if actual_scope != expected_scope:
+                    raise ValueError("reference scope must match the estimand contract")
+
+        kinds = set(self.reference_contracts)
         lower_upper = {"optimum_lower_bound", "optimum_upper_bound"}
         if self.bound_status in {"exact_solved", "epsilon_solved", "bracketed"}:
             if not lower_upper.issubset(kinds):
@@ -661,11 +799,6 @@ class MeasurementSpec(StrictModel):
             raise ValueError("baseline_only requires comparison_baseline")
         if self.bound_status == "baseline_only" and kinds & lower_upper:
             raise ValueError("baseline_only cannot make optimality claims")
-        if (
-            self.measurement_kind == "comparative_or_human_judged"
-            and "comparison_baseline" not in kinds
-        ):
-            raise ValueError("comparative_or_human_judged requires comparison_baseline")
         if self.bound_status == "descriptive_only" and kinds & {
             "optimum_lower_bound",
             "optimum_upper_bound",
@@ -678,6 +811,49 @@ class MeasurementSpec(StrictModel):
         if kinds & support_kinds and not support_kinds.issubset(kinds):
             raise ValueError("outcome support min/max must be declared as a pair")
         return self
+
+
+class ComparativeMeasurementSpec(_MeasurementBase):
+    measurement_kind: Literal["comparative_or_human_judged"]
+    comparison_target_id: SDKStr
+    comparison_protocol_id: SDKStr
+    comparison_protocol_version: SDKStr
+    rater_semantics_id: SDKStr
+    rater_semantics_version: SDKStr
+    comparison_baseline: ComparisonBaselineContract
+    support_contracts: ImmutableMapping[OutcomeSupportContract] = Field(
+        default_factory=dict
+    )
+
+    @model_validator(mode="after")
+    def validate_comparative_contract(self) -> "ComparativeMeasurementSpec":
+        for label, value in (
+            ("comparison_target_id", self.comparison_target_id),
+            ("comparison_protocol_id", self.comparison_protocol_id),
+            ("rater_semantics_id", self.rater_semantics_id),
+        ):
+            if not value.strip():
+                raise ValueError(f"{label} must be non-empty")
+        _require_exact_pin(
+            "comparison_protocol_version", self.comparison_protocol_version
+        )
+        _require_exact_pin("rater_semantics_version", self.rater_semantics_version)
+        for kind, contract in self.support_contracts.items():
+            if kind != contract.kind:
+                raise ValueError("support mapping key must match contract kind")
+        support_kinds = set(self.support_contracts)
+        expected = {"outcome_support_min", "outcome_support_max"}
+        if support_kinds and support_kinds != expected:
+            raise ValueError("outcome support min/max must be declared as a pair")
+        return self
+
+
+MeasurementSpec = Annotated[
+    PropertyAnswerMeasurementSpec
+    | OptimizableOutcomeMeasurementSpec
+    | ComparativeMeasurementSpec,
+    Field(discriminator="measurement_kind"),
+]
 
 
 class FamilyManifest(StrictModel):
@@ -986,22 +1162,51 @@ class MemoryPin(StrictModel):
         return self
 
 
+class AgentExecutionConfig(StrictModel):
+    """Fully materialized provider/harness configuration delivered to an adapter."""
+
+    provider: ProviderPin
+    model: ModelPin
+    harness: ImplementationRef
+    runtime: RuntimePin
+    prompt: SDKStr
+    prompt_sha256: SHA256
+    sampling: SamplingPin
+    tools: tuple[ImplementationRef, ...]
+    memory: MemoryPin
+    attempt_budget: AttemptBudget
+    retry_policy: RetryPolicy
+
+    @model_validator(mode="after")
+    def validate_execution_config(self) -> "AgentExecutionConfig":
+        if not self.prompt:
+            raise ValueError("prompt content must be non-empty")
+        if self.prompt_sha256 != content_sha256(self.prompt):
+            raise ValueError("prompt hash must match canonical prompt content")
+        tool_ids = [(tool.implementation_id, tool.version) for tool in self.tools]
+        if len(tool_ids) != len(set(tool_ids)):
+            raise ValueError("tool implementation identities must be unique")
+        component_refs = (self.harness, self.runtime.implementation, *self.tools)
+        if self.memory.policy is not None:
+            component_refs = (*component_refs, self.memory.policy)
+        for implementation in component_refs:
+            _validate_implementation_pin(implementation, "agent component")
+        length_limit = self.retry_policy.length_retry_output_tokens
+        if "length" in self.retry_policy.retryable_conditions and (
+            length_limit is None
+            or length_limit <= self.attempt_budget.output_token_limit
+        ):
+            raise ValueError("length retry requires a larger output-token limit")
+        return self
+
+
 class AgentProfile(StrictModel):
     spec_version: Literal["aeread.agent_profile/0.1"] = "aeread.agent_profile/0.1"
     profile_id: SDKStr
     profile_version: SDKStr
     adapter: PinnedPluginRef
     call_observability: CallObservability
-    provider: ProviderPin
-    model: ModelPin
-    harness: ImplementationRef
-    runtime: RuntimePin
-    prompt_sha256: SDKStr = Field(pattern=r"^[0-9a-f]{64}$")
-    sampling: SamplingPin
-    tools: tuple[ImplementationRef, ...]
-    memory: MemoryPin
-    attempt_budget: AttemptBudget
-    retry_policy: RetryPolicy
+    execution_config: AgentExecutionConfig
 
     @model_validator(mode="after")
     def validate_agent_profile(self) -> "AgentProfile":
@@ -1010,39 +1215,80 @@ class AgentProfile(StrictModel):
             not value.strip() for value in required
         ) or not _SEMVER_PATTERN.fullmatch(self.profile_version):
             raise ValueError("agent identity and configuration pins must be non-empty")
-        tool_ids = [
-            (tool.implementation_id, tool.version, tool.content_sha256)
-            for tool in self.tools
-        ]
-        if len(tool_ids) != len(set(tool_ids)):
-            raise ValueError("tool implementation pins must be unique")
-        component_refs = (self.harness, self.runtime.implementation, *self.tools)
-        if self.memory.policy is not None:
-            component_refs = (*component_refs, self.memory.policy)
-        for implementation in component_refs:
-            _validate_implementation_pin(implementation, "agent component")
-        conditions = self.retry_policy.retryable_conditions
-        if len(conditions) != len(set(conditions)):
-            raise ValueError("retryable_conditions must be unique")
-        if self.retry_policy.max_attempts > 1 and not conditions:
-            raise ValueError("multiple attempts require retryable_conditions")
-        if conditions and self.retry_policy.max_attempts < 2:
-            if "length" in conditions:
-                raise ValueError("length retry requires max_attempts >= 2")
-            raise ValueError("retryable_conditions require max_attempts >= 2")
-        length_enabled = "length" in conditions
-        length_limit = self.retry_policy.length_retry_output_tokens
-        if length_enabled:
-            if self.retry_policy.max_attempts < 2:
-                raise ValueError("length retry requires max_attempts >= 2")
-            if (
-                length_limit is None
-                or length_limit <= self.attempt_budget.output_token_limit
-            ):
-                raise ValueError("length retry requires a larger output-token limit")
-        elif length_limit is not None:
-            raise ValueError("length retry budget requires the length condition")
         return self
+
+
+class AgentRequest(StrictModel):
+    logical_action_id: SDKStr
+    phase_id: SDKStr
+    slot: DecisionSlot
+    observation: ObservationEnvelope
+    context: AgentContext
+    agent_profile_sha256: SHA256
+    execution_config_sha256: SHA256
+    execution_config: AgentExecutionConfig
+    budget: AttemptBudget
+
+    @model_validator(mode="after")
+    def validate_resolved_configuration(self) -> "AgentRequest":
+        config = self.execution_config
+        if self.execution_config_sha256 != content_sha256(config):
+            raise ValueError("execution config hash does not match its content")
+        if self.budget != config.attempt_budget:
+            raise ValueError("request budget must match the resolved execution config")
+        expected_context = (
+            config.provider.provider_id,
+            config.model.model_id,
+            config.harness.implementation_id,
+            config.runtime.implementation.implementation_id,
+        )
+        actual_context = (
+            self.context.provider,
+            self.context.model,
+            self.context.harness,
+            self.context.runtime,
+        )
+        if actual_context != expected_context:
+            raise ValueError("agent context must match the resolved execution config")
+        return self
+
+    @classmethod
+    def from_profile(
+        cls,
+        *,
+        logical_action_id: str,
+        phase_id: str,
+        slot: DecisionSlot,
+        observation: ObservationEnvelope,
+        profile: AgentProfile,
+        expected_profile_sha256: str,
+        metadata: Mapping[str, object] | None = None,
+    ) -> "AgentRequest":
+        """Build the only profile-bound request form accepted by runner execution."""
+
+        actual_profile_sha256 = content_sha256(profile)
+        if actual_profile_sha256 != expected_profile_sha256:
+            raise ValueError("profile hash does not match the resolved run plan")
+        config = profile.execution_config
+        return cls(
+            logical_action_id=logical_action_id,
+            phase_id=phase_id,
+            slot=slot,
+            observation=observation,
+            context=AgentContext(
+                agent_profile_id=profile.profile_id,
+                seat_id=slot.seat_id,
+                provider=config.provider.provider_id,
+                model=config.model.model_id,
+                harness=config.harness.implementation_id,
+                runtime=config.runtime.implementation.implementation_id,
+                metadata={} if metadata is None else metadata,
+            ),
+            agent_profile_sha256=actual_profile_sha256,
+            execution_config_sha256=content_sha256(config),
+            execution_config=config,
+            budget=config.attempt_budget,
+        )
 
 
 class RunSpec(StrictModel):

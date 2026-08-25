@@ -31,6 +31,7 @@ from aeread.sdk.v1 import (
     ResolutionInputs,
     RetryPolicy,
     UpstreamSourceRef,
+    content_sha256,
 )
 
 from .fakes import (
@@ -280,8 +281,14 @@ def test_resolution_is_order_independent_but_identity_sensitive() -> None:
     assert second.run_plan_sha256 == first.run_plan_sha256
     assert second.cells == first.cells
 
+    changed_config = inputs.agent_profiles[0].execution_config.model_copy(
+        update={
+            "prompt": "A materially different candidate prompt.",
+            "prompt_sha256": content_sha256("A materially different candidate prompt."),
+        }
+    )
     changed_profile = inputs.agent_profiles[0].model_copy(
-        update={"prompt_sha256": "9" * 64}
+        update={"execution_config": changed_config}
     )
     changed = resolve_run_plan(
         _replace(
@@ -357,14 +364,30 @@ def test_resolver_rejects_phase_schema_roles_absent_from_family() -> None:
 @pytest.mark.parametrize(
     "profile",
     (
-        lambda profile: profile.model_copy(update={"model": ""}),
-        lambda profile: profile.model_copy(update={"prompt_sha256": "unpinned"}),
         lambda profile: profile.model_copy(
             update={
-                "retry_policy": RetryPolicy(
-                    max_attempts=2,
-                    retryable_conditions=("length",),
-                    length_retry_output_tokens=32,
+                "execution_config": profile.execution_config.model_copy(
+                    update={"model": ""}
+                )
+            }
+        ),
+        lambda profile: profile.model_copy(
+            update={
+                "execution_config": profile.execution_config.model_copy(
+                    update={"prompt_sha256": "unpinned"}
+                )
+            }
+        ),
+        lambda profile: profile.model_copy(
+            update={
+                "execution_config": profile.execution_config.model_copy(
+                    update={
+                        "retry_policy": RetryPolicy(
+                            max_attempts=2,
+                            retryable_conditions=("length",),
+                            length_retry_output_tokens=32,
+                        )
+                    }
                 )
             }
         ),
@@ -383,7 +406,7 @@ def test_resolver_revalidates_rejected_model_prompt_and_retry_profiles(profile) 
 def test_length_retry_requires_declared_condition_attempt_and_larger_budget() -> None:
     base = fake_agent_profile("candidate")
     raw = base.model_dump(mode="python")
-    raw["retry_policy"] = {
+    raw["execution_config"]["retry_policy"] = {
         "max_attempts": 1,
         "retryable_conditions": ("length",),
         "length_retry_output_tokens": 128,
@@ -392,7 +415,7 @@ def test_length_retry_requires_declared_condition_attempt_and_larger_budget() ->
         AgentProfile.model_validate(raw)
 
     raw = base.model_dump(mode="python")
-    raw["retry_policy"] = {
+    raw["execution_config"]["retry_policy"] = {
         "max_attempts": 2,
         "retryable_conditions": (),
         "length_retry_output_tokens": 128,

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Callable
 
 import pytest
@@ -15,14 +16,22 @@ from aeread.runner.planning import (
 )
 from aeread.runner.registry import PluginRegistry
 from aeread.sdk.v1 import (
+    AgentExecutionConfig,
     AgentProfile,
+    AgentRequest,
+    CanonicalResponse,
     CaseManifest,
     CaseProvenance,
     ClusterSpec,
+    ComparativeMeasurementSpec,
+    ComparisonBaselineContract,
     ImplementationRef,
-    MeasurementSpec,
     MemoryPin,
     ModelPin,
+    OptimizableOutcomeMeasurementSpec,
+    OptimizationReferenceContract,
+    OutcomeSupportContract,
+    PropertyAnswerMeasurementSpec,
     ProviderPin,
     RetryPolicy,
     RuntimePin,
@@ -31,10 +40,13 @@ from aeread.sdk.v1 import (
 )
 
 from .fakes import (
+    REQUEST,
     FakeAgentAdapter,
+    FakeAttemptObserver,
     FakeEnvironment,
     FakeExecutionBackend,
     FakeVerifier,
+    fake_agent_profile,
     fake_implementation,
     fake_resolution_inputs,
 )
@@ -71,6 +83,58 @@ def _replace_first_cell(plan, **updates):
     )
 
 
+def test_run_plan_profile_materializes_the_exact_adapter_execution_config() -> None:
+    plan = resolve_run_plan(fake_resolution_inputs(), _registry())
+    cell = plan.cells[0]
+    profiles = {profile.profile_id: profile for profile in plan.agent_profiles}
+    profile = profiles[cell.seat_profile_id_by_seat[cell.subject_seat_id]]
+
+    request = AgentRequest.from_profile(
+        logical_action_id="logical-action-probe",
+        phase_id="offers",
+        slot=REQUEST.slot,
+        observation=REQUEST.observation,
+        profile=profile,
+        expected_profile_sha256=cell.seat_profile_sha256_by_seat[cell.subject_seat_id],
+    )
+
+    assert isinstance(request.execution_config, AgentExecutionConfig)
+    assert request.execution_config.prompt == "You are the candidate buyer."
+    assert request.execution_config.model.model_id == "fake-model-candidate"
+    assert request.execution_config.model.revision == "2026-08-01"
+    assert request.execution_config.sampling.content["temperature"] == 0.0
+    assert request.execution_config.tools == ()
+    assert request.execution_config.memory.mode == "none"
+    assert request.budget == request.execution_config.attempt_budget
+
+    class ConfigReadingAdapter:
+        async def act(self, incoming, *, attempts):
+            config = incoming.execution_config
+            return CanonicalResponse(
+                content=(
+                    f"{config.prompt}|{config.model.model_id}@{config.model.revision}|"
+                    f"{config.sampling.content['temperature']}|{config.memory.mode}"
+                )
+            )
+
+    response = asyncio.run(
+        ConfigReadingAdapter().act(request, attempts=FakeAttemptObserver())
+    )
+    assert response.content == (
+        "You are the candidate buyer.|fake-model-candidate@2026-08-01|0.0|none"
+    )
+
+    with pytest.raises(ValueError, match="profile hash"):
+        AgentRequest.from_profile(
+            logical_action_id="logical-action-forged",
+            phase_id="offers",
+            slot=REQUEST.slot,
+            observation=REQUEST.observation,
+            profile=profile,
+            expected_profile_sha256="f" * 64,
+        )
+
+
 def test_run_plan_is_self_contained_for_execution() -> None:
     inputs = fake_resolution_inputs()
     plan = resolve_run_plan(inputs, _registry())
@@ -83,18 +147,20 @@ def test_run_plan_is_self_contained_for_execution() -> None:
 
     profiles = {profile.profile_id: profile for profile in plan.agent_profiles}
     candidate = profiles["candidate"]
-    assert candidate.provider.provider_id == "fake-provider"
-    assert candidate.provider.api_version == "2026-08-01"
-    assert candidate.model.model_id == "fake-model-candidate"
-    assert candidate.model.revision == "2026-08-01"
-    assert candidate.harness.content_sha256 == "7" * 64
-    assert candidate.runtime.config["isolation"] == "in_process"
-    assert candidate.prompt_sha256 == "5" * 64
-    assert candidate.sampling.content["temperature"] == 0.0
-    assert candidate.tools == ()
-    assert candidate.memory.mode == "none"
-    assert candidate.attempt_budget.output_token_limit == 64
-    assert candidate.retry_policy.max_attempts == 1
+    config = candidate.execution_config
+    assert config.provider.provider_id == "fake-provider"
+    assert config.provider.api_version == "2026-08-01"
+    assert config.model.model_id == "fake-model-candidate"
+    assert config.model.revision == "2026-08-01"
+    assert config.harness.content_sha256 == "7" * 64
+    assert config.runtime.config["isolation"] == "in_process"
+    assert config.prompt == "You are the candidate buyer."
+    assert config.prompt_sha256 == content_sha256(config.prompt)
+    assert config.sampling.content["temperature"] == 0.0
+    assert config.tools == ()
+    assert config.memory.mode == "none"
+    assert config.attempt_budget.output_token_limit == 64
+    assert config.retry_policy.max_attempts == 1
     assert dict(plan.adapter_call_observability_by_profile) == {
         "candidate": "full",
         "counterpart": "full",
@@ -156,54 +222,186 @@ def test_adapter_observability_must_match_profile_pin() -> None:
     }
 
 
-def test_measurement_reference_combinations_are_settled_before_execution() -> None:
-    lower = fake_implementation("lower_bound", marker="a")
-    upper = fake_implementation("upper_bound", marker="b")
-    baseline = fake_implementation("baseline", marker="c")
+def _optimization_contract(kind: str) -> OptimizationReferenceContract:
+    return OptimizationReferenceContract(
+        kind=kind,
+        objective_id="buyer_utility",
+        objective_version="1.0.0",
+        units="utility_points",
+        direction="maximize",
+        feasible_set="offers permitted by fake_market/1.0.0",
+        information_set="buyer-private observation",
+        horizon="two offer rounds",
+        opponent_condition="fixed counterpart/1.0.0",
+        proof_type="executable feasible witness",
+        implementation=fake_implementation(f"buyer_utility_{kind}"),
+        validity_domain="fake_market/1.0.0 dev split",
+    )
 
-    with pytest.raises(ValidationError, match="lower.*upper"):
-        MeasurementSpec(
-            estimand_id="welfare",
-            measurement_kind="optimizable_outcome",
+
+def test_property_measurement_cannot_claim_policy_optimality() -> None:
+    with pytest.raises(ValidationError):
+        PropertyAnswerMeasurementSpec(
+            estimand_id="equilibrium_property",
+            measurement_kind="property_or_answer",
             direction="maximize",
-            primary_metric_id="welfare",
+            primary_metric_id="property_pass",
             verifier_plugin_id="fake_verifier",
+            verifier_semantics_id="exact_property_check",
+            verifier_semantics_version="1.0.0",
+            property_definition_id="market_clears",
+            property_definition_version="1.0.0",
+            answer_schema_ref="boolean_answer/1.0.0",
             bound_status="exact_solved",
-            reference_implementations={"optimum_lower_bound": lower},
+            reference_contracts={
+                "optimum_lower_bound": _optimization_contract("optimum_lower_bound"),
+                "optimum_upper_bound": _optimization_contract("optimum_upper_bound"),
+            },
         )
+
+
+def test_optimizable_measurement_requires_scope_proof_and_complete_exact_bounds() -> None:
+    base = {
+        "estimand_id": "buyer_utility",
+        "measurement_kind": "optimizable_outcome",
+        "direction": "maximize",
+        "primary_metric_id": "buyer_utility",
+        "verifier_plugin_id": "fake_verifier",
+        "verifier_semantics_id": "realized_utility",
+        "verifier_semantics_version": "1.0.0",
+        "objective_id": "buyer_utility",
+        "objective_version": "1.0.0",
+        "units": "utility_points",
+        "feasible_set": "offers permitted by fake_market/1.0.0",
+        "information_set": "buyer-private observation",
+        "horizon": "two offer rounds",
+        "opponent_condition": "fixed counterpart/1.0.0",
+        "stochastic_expectation": "expectation over declared rollout seeds",
+        "bound_status": "exact_solved",
+    }
+
+    for missing_field in ("information_set", "horizon"):
+        missing_scope = dict(base)
+        del missing_scope[missing_field]
+        with pytest.raises(ValidationError, match=missing_field):
+            OptimizableOutcomeMeasurementSpec.model_validate(missing_scope)
+
+    lower_without_proof = _optimization_contract("optimum_lower_bound").model_dump(
+        mode="python"
+    )
+    del lower_without_proof["proof_type"]
+    with pytest.raises(ValidationError, match="proof_type"):
+        OptimizationReferenceContract.model_validate(lower_without_proof)
+
+    with pytest.raises(ValidationError, match="lower and upper"):
+        OptimizableOutcomeMeasurementSpec.model_validate(
+            {
+                **base,
+                "reference_contracts": {
+                    "optimum_lower_bound": _optimization_contract("optimum_lower_bound")
+                },
+            }
+        )
+
+
+def test_comparative_measurement_requires_a_typed_baseline() -> None:
     with pytest.raises(ValidationError, match="comparison_baseline"):
-        MeasurementSpec(
+        ComparativeMeasurementSpec(
             estimand_id="preference",
             measurement_kind="comparative_or_human_judged",
             direction="maximize",
-            primary_metric_id="preference",
+            primary_metric_id="preference_rate",
             verifier_plugin_id="fake_verifier",
-            bound_status="baseline_only",
-            reference_implementations={},
+            verifier_semantics_id="paired_preference",
+            verifier_semantics_version="1.0.0",
+            comparison_target_id="candidate_vs_baseline",
+            comparison_protocol_id="paired_blind_review",
+            comparison_protocol_version="1.0.0",
+            rater_semantics_id="majority_preference",
+            rater_semantics_version="1.0.0",
+            comparison_baseline=None,
+        )
+
+    baseline = ComparisonBaselineContract(
+        kind="comparison_baseline",
+        comparison_id="fixed_policy",
+        comparison_version="1.0.0",
+        units="preference_rate",
+        direction="maximize",
+        feasible_set="same cases and action surface",
+        information_set="same visible observations",
+        horizon="same episode budget",
+        opponent_condition="same fixed counterpart",
+        proof_type="executable pinned policy",
+        implementation=fake_implementation("fixed_policy"),
+        validity_domain="fake_market/1.0.0 dev split",
+        provenance={"source": "curated baseline"},
+        applicability="paired candidate comparison",
+    )
+    measurement = ComparativeMeasurementSpec(
+        estimand_id="preference",
+        measurement_kind="comparative_or_human_judged",
+        direction="maximize",
+        primary_metric_id="preference_rate",
+        verifier_plugin_id="fake_verifier",
+        verifier_semantics_id="paired_preference",
+        verifier_semantics_version="1.0.0",
+        comparison_target_id="candidate_vs_baseline",
+        comparison_protocol_id="paired_blind_review",
+        comparison_protocol_version="1.0.0",
+        rater_semantics_id="majority_preference",
+        rater_semantics_version="1.0.0",
+        comparison_baseline=baseline,
+    )
+    assert measurement.comparison_baseline.kind == "comparison_baseline"
+
+
+def test_measurement_reference_combinations_are_settled_before_execution() -> None:
+    base = fake_resolution_inputs().family.measurements[0].model_dump(mode="python")
+    lower = _optimization_contract("optimum_lower_bound")
+    upper = _optimization_contract("optimum_upper_bound")
+    support_min = OutcomeSupportContract(
+        kind="outcome_support_min",
+        objective_id="buyer_utility",
+        objective_version="1.0.0",
+        units="utility_points",
+        direction="maximize",
+        feasible_set="offers permitted by fake_market/1.0.0",
+        information_set="buyer-private observation",
+        horizon="two offer rounds",
+        opponent_condition="fixed counterpart/1.0.0",
+        proof_type="analytical support proof",
+        implementation=fake_implementation("support_min", marker="c"),
+        validity_domain="fake_market/1.0.0 dev split",
+        applicability="every admissible realized outcome",
+    )
+
+    with pytest.raises(ValidationError, match="lower.*upper"):
+        OptimizableOutcomeMeasurementSpec.model_validate(
+            {
+                **base,
+                "bound_status": "exact_solved",
+                "reference_contracts": {"optimum_lower_bound": lower},
+            }
         )
     with pytest.raises(ValidationError, match="support"):
-        MeasurementSpec(
-            estimand_id="welfare",
-            measurement_kind="optimizable_outcome",
-            direction="maximize",
-            primary_metric_id="welfare",
-            verifier_plugin_id="fake_verifier",
-            bound_status="bracketed",
-            reference_implementations={
-                "optimum_lower_bound": lower,
-                "optimum_upper_bound": upper,
-                "outcome_support_min": baseline,
-            },
+        OptimizableOutcomeMeasurementSpec.model_validate(
+            {
+                **base,
+                "bound_status": "bracketed",
+                "reference_contracts": {
+                    "optimum_lower_bound": lower,
+                    "optimum_upper_bound": upper,
+                    "outcome_support_min": support_min,
+                },
+            }
         )
     with pytest.raises(ValidationError):
-        MeasurementSpec(
-            estimand_id="welfare",
-            measurement_kind="optimizable_outcome",
-            direction="maximize",
-            primary_metric_id="welfare",
-            verifier_plugin_id="fake_verifier",
-            bound_status="invented",
-            reference_implementations={"invented": baseline},
+        OptimizableOutcomeMeasurementSpec.model_validate(
+            {
+                **base,
+                "bound_status": "invented",
+            }
         )
 
 
@@ -220,7 +418,11 @@ def test_cells_pin_estimand_verifier_references_and_cluster_contract() -> None:
         cell.verifier_ref.implementation_id == "fake_verifier" for cell in plan.cells
     )
     assert all(
-        dict(cell.reference_refs) == dict(measurement.reference_implementations)
+        dict(cell.reference_refs)
+        == {
+            kind: contract.implementation
+            for kind, contract in measurement.reference_contracts.items()
+        }
         for cell in plan.cells
     )
 
@@ -231,14 +433,17 @@ def test_cells_pin_estimand_verifier_references_and_cluster_contract() -> None:
 
 def test_multi_estimand_suite_uses_an_estimand_keyed_cluster_contract() -> None:
     inputs = fake_resolution_inputs()
-    second_measurement = MeasurementSpec(
+    second_measurement = PropertyAnswerMeasurementSpec(
         estimand_id="deal_rate",
         measurement_kind="property_or_answer",
         direction="maximize",
         primary_metric_id="deal_rate",
         verifier_plugin_id="fake_verifier",
-        bound_status="descriptive_only",
-        reference_implementations={},
+        verifier_semantics_id="exact_deal_check",
+        verifier_semantics_version="1.0.0",
+        property_definition_id="terminal_deal",
+        property_definition_version="1.0.0",
+        answer_schema_ref="boolean_answer/1.0.0",
     )
     family = inputs.family.model_copy(
         update={
@@ -290,11 +495,38 @@ def test_controlled_profile_allowlist_is_not_a_wildcard() -> None:
         resolve_run_plan(_replace(inputs, family=family), _registry())
 
 
+def test_declared_controlled_profile_on_subject_role_must_still_resolve() -> None:
+    inputs = fake_resolution_inputs()
+    block = inputs.suite.blocks[0].model_copy(
+        update={
+            "controlled_profile_by_role": {
+                "buyer": "ghost",
+                "seller": "counterpart",
+            }
+        }
+    )
+    suite = inputs.suite.model_copy(update={"blocks": (block,)})
+
+    with pytest.raises(IncompleteAgentAssignment, match="ghost"):
+        resolve_run_plan(_replace(inputs, suite=suite), _registry())
+
+
+def test_unreferenced_agent_profile_is_rejected_before_registry_resolution() -> None:
+    inputs = fake_resolution_inputs()
+    unused = fake_agent_profile("unused", adapter_id="unregistered_agent")
+
+    with pytest.raises(IncompleteAgentAssignment, match="unreferenced"):
+        resolve_run_plan(
+            _replace(inputs, agent_profiles=(*inputs.agent_profiles, unused)),
+            _registry(),
+        )
+
+
 @pytest.mark.parametrize("alias", ("latest", "current", "default", "stable"))
 def test_agent_configuration_rejects_mutable_version_aliases(alias: str) -> None:
     profile = fake_resolution_inputs().agent_profiles[0]
     raw = profile.model_dump(mode="python")
-    raw["model"]["revision"] = alias
+    raw["execution_config"]["model"]["revision"] = alias
 
     with pytest.raises(ValidationError, match="revision"):
         AgentProfile.model_validate(raw)
@@ -318,7 +550,7 @@ def test_agent_configuration_and_retry_taxonomy_are_strict() -> None:
         MemoryPin(mode="persistent", policy=None, config={})
     profile = fake_resolution_inputs().agent_profiles[0]
     raw = profile.model_dump(mode="python")
-    raw["retry_policy"] = {
+    raw["execution_config"]["retry_policy"] = {
         "max_attempts": 2,
         "retryable_conditions": (),
         "length_retry_output_tokens": None,
@@ -375,6 +607,60 @@ def test_curated_case_uses_explicit_no_generator_path() -> None:
         _registry(),
     )
     assert plan.cases[0].provenance.source_kind == "curated"
+
+
+def test_deep_verifier_reconstructs_curated_missing_pair_and_parent_failure() -> None:
+    inputs = fake_resolution_inputs()
+    cluster = inputs.suite.cluster_by_estimand["buyer_utility"].model_copy(
+        update={
+            "paired_fields": ("generator_version",),
+            "parent_field": "generator_version",
+        }
+    )
+    suite = inputs.suite.model_copy(
+        update={"cluster_by_estimand": {"buyer_utility": cluster}}
+    )
+    plan = resolve_run_plan(_replace(inputs, suite=suite), _registry())
+
+    generated = plan.cases[0]
+    case_data = generated.model_dump(
+        mode="python", exclude={"content_sha256", "provenance"}
+    )
+    curated = CaseManifest.from_content(
+        **case_data,
+        provenance=CaseProvenance(
+            source_kind="curated",
+            generator_id=None,
+            generator_version=None,
+            curator_id="curator",
+            curator_version="1.0.0",
+            review_status="curated",
+        ),
+    )
+    forged_cells = []
+    for cell in plan.cells:
+        forged = cell.model_copy(
+            update={
+                "case_sha256": curated.content_sha256,
+                "pairing_values": {"generator_version": None},
+                "cluster_parent_value": None,
+            }
+        )
+        basis = forged.model_dump(mode="python", exclude={"cell_id"})
+        forged_cells.append(
+            forged.model_copy(update={"cell_id": "cell-" + content_sha256(basis)[:24]})
+        )
+    forged_plan = _rehash_top_level(
+        plan.model_copy(
+            update={
+                "cases": (curated,),
+                "case_sha256_by_id": {curated.case_id: curated.content_sha256},
+                "cells": tuple(forged_cells),
+            }
+        )
+    )
+
+    assert not verify_run_plan_identity(forged_plan)
 
 
 def _tamper_cell_id(plan):
