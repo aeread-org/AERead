@@ -6,6 +6,13 @@ CASE_AUDIT = Path(__file__).parents[1] / "docs" / "problem_bound_case_audit.md"
 REFUND_PLAN = Path(__file__).parents[1] / "docs" / "refund_external_benchmark_integration.md"
 REASONING_PLAN = Path(__file__).parents[1] / "docs" / "reasoning_condition_and_diagnostics.md"
 VERIFIER_TAXONOMY = Path(__file__).parents[1] / "docs" / "verifier_taxonomy.md"
+RUNNER_ARCHITECTURE = (
+    Path(__file__).parents[1]
+    / "docs"
+    / "walkthroughs"
+    / "shared_runner_architecture_roadmap.md"
+)
+WALKTHROUGH_INDEX = Path(__file__).parents[1] / "docs" / "walkthroughs" / "README.md"
 
 
 def test_shared_runner_design_records_frozen_execution_contract() -> None:
@@ -14,7 +21,9 @@ def test_shared_runner_design_records_frozen_execution_contract() -> None:
     required_terms = {
         "runner-owned declarative phase schedule": "PhaseSpec",
         "phase-specific parsing": "parse_action",
-        "explicit provider attempt record": "CallAttempt",
+        "explicit action retry record": "ActionAttempt",
+        "atomic provider request": "ProviderCall",
+        "atomic tool side effect": "ToolInvocation",
         "length retry accounting": "retried_for_length",
         "stable event identity": "event_id",
         "crash-safe continuation": "resume",
@@ -25,6 +34,7 @@ def test_shared_runner_design_records_frozen_execution_contract() -> None:
 
     assert "async def run(self, ctx" not in text
     assert "at most one provider request per logical action" not in text
+    assert "`CallAttempt`" not in text
 
 
 def test_shared_runner_design_records_measurement_contract() -> None:
@@ -182,3 +192,66 @@ def test_verifier_taxonomy_separates_semantics_references_and_validity() -> None
 
     design = DESIGN.read_text(encoding="utf-8")
     assert "verifier_taxonomy.md" in design
+
+
+def test_runner_taxonomy_architecture_and_build_roadmap_are_frozen() -> None:
+    assert RUNNER_ARCHITECTURE.exists(), "runner architecture walkthrough is missing"
+    assert WALKTHROUGH_INDEX.exists(), "walkthrough index is missing"
+    text = RUNNER_ARCHITECTURE.read_text(encoding="utf-8")
+
+    for term in (
+        "FamilyManifest",
+        "FamilyPlugin",
+        "CaseManifest",
+        "SuiteManifest",
+        "SamplingPlan",
+        "EvaluationBlock",
+        "AgentProfile",
+        "RunSpec",
+        "RunPlan",
+        "PlanCell",
+        "EpisodeAttempt",
+        "PhaseInstance",
+        "LogicalAction",
+        "ActionAttempt",
+        "ProviderCall",
+        "ToolInvocation",
+        "CanonicalResponse",
+        "ActionEnvelope",
+        "TransitionResult",
+        "Artifact",
+        "Projection",
+        "EvaluationReceipt",
+        "EstimandSpec",
+        "VerifierSpec",
+        "ReferenceSpec",
+        "ScoreEnvelope",
+        "ClusterSpec",
+        "AnalysisPlan",
+        "AggregateResult",
+    ):
+        assert term in text, f"runner architecture taxonomy is missing: {term}"
+
+    for source_ref in (
+        "src/aeread/cli.py:L27-L40",
+        "src/aeread/exchange_v1_runner.py:L950-L1234",
+        "src/aeread/exchange_economy.py:L4919-L5078",
+    ):
+        assert source_ref in text, f"current-flow walkthrough is missing: {source_ref}"
+
+    for stage in range(9):
+        assert f"| R{stage} |" in text, f"build roadmap is missing stage R{stage}"
+
+    assert "one `PlanCell` = one `Episode`" in text
+    assert "Reserve `oracle` for an exact" in text
+    assert "write-before-side-effect" in text
+    assert "run directory already exists" in text
+    assert "exchange_v1 parity" in text
+    assert "housing_v1" in text
+    assert "tau3" in text
+
+    index = WALKTHROUGH_INDEX.read_text(encoding="utf-8")
+    assert "shared_runner_architecture_roadmap.md" in index
+
+    design = DESIGN.read_text(encoding="utf-8")
+    assert "walkthroughs/shared_runner_architecture_roadmap.md" in design
