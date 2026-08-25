@@ -1272,6 +1272,87 @@ def test_event_open_rejects_artifact_namespace_before_any_mutation(
     assert isinstance(error, InvalidEvidenceInput)
 
 
+def test_event_open_rejects_filesystem_equivalent_artifact_namespace_before_mutation(
+    tmp_path: Path,
+) -> None:
+    evidence_root = tmp_path / "evidence"
+    artifacts = ArtifactStore.open(
+        evidence_root, identity=IDENTITY, trusted_root=tmp_path
+    )
+    artifact_dir = evidence_root / "artifacts"
+    alias_dir = evidence_root / "ARTIFACTS"
+    try:
+        alias_info = alias_dir.stat(follow_symlinks=False)
+    except FileNotFoundError:
+        artifacts.close()
+        pytest.skip("filesystem has no case-equivalent artifact-directory alias")
+    artifact_info = artifact_dir.stat(follow_symlinks=False)
+    if (alias_info.st_dev, alias_info.st_ino) != (
+        artifact_info.st_dev,
+        artifact_info.st_ino,
+    ):
+        artifacts.close()
+        pytest.skip("case variant is a distinct directory on this filesystem")
+
+    generation = artifact_dir / "generation.json"
+    generation_before = generation.read_bytes()
+    entries_before = tuple(sorted(path.name for path in artifact_dir.iterdir()))
+    cas_dir = artifact_dir / "sha256"
+    target = alias_dir / "sha256" / "events.jsonl"
+    opened: EventStore | None = None
+    error: EvidenceStoreError | None = None
+
+    try:
+        opened = EventStore.open(
+            target,
+            artifacts=artifacts,
+            clock=fixed_clock,
+            identity=IDENTITY,
+        )
+    except EvidenceStoreError as exc:
+        error = exc
+    finally:
+        if opened is not None:
+            opened.close()
+        artifacts.close()
+
+    assert isinstance(error, InvalidEvidenceInput)
+    assert generation.read_bytes() == generation_before
+    assert tuple(sorted(path.name for path in artifact_dir.iterdir())) == entries_before
+    assert tuple(cas_dir.iterdir()) == ()
+    assert not target.exists()
+    assert not (target.parent / f"{target.name}.state.json").exists()
+    assert not (target.parent / f"{target.name}.sealed.json").exists()
+
+
+def test_event_open_allows_distinct_case_variant_on_case_sensitive_filesystem(
+    tmp_path: Path,
+) -> None:
+    evidence_root = tmp_path / "evidence"
+    artifacts = ArtifactStore.open(
+        evidence_root, identity=IDENTITY, trusted_root=tmp_path
+    )
+    artifact_dir = evidence_root / "artifacts"
+    distinct_dir = evidence_root / "ARTIFACTS"
+    if distinct_dir.exists():
+        artifacts.close()
+        pytest.skip("case variant aliases the artifact namespace on this filesystem")
+
+    store = EventStore.open(
+        distinct_dir / "events.jsonl",
+        artifacts=artifacts,
+        clock=fixed_clock,
+        identity=IDENTITY,
+    )
+
+    event = store.append("allowed-distinct-case", IDENTITY, "public", {})
+    assert store.snapshot().events == (event,)
+    assert distinct_dir.is_dir()
+    assert artifact_dir.is_dir()
+    store.close()
+    artifacts.close()
+
+
 def test_event_log_adjacent_to_artifact_namespace_remains_allowed(
     tmp_path: Path,
 ) -> None:

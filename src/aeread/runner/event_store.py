@@ -732,10 +732,41 @@ class ArtifactStore:
         if not parts:
             raise InvalidEvidenceInput("event log must be below trusted_root")
         reserved = self._artifact_anchor.relative
-        if len(parts) >= len(reserved) and parts[: len(reserved)] == reserved:
-            raise InvalidEvidenceInput(
-                "event log cannot occupy the reserved artifact namespace"
-            )
+        if len(parts) >= len(reserved):
+            candidate_prefix = parts[: len(reserved)]
+            aliases_artifacts = candidate_prefix == reserved
+            candidate_parent: _ManagedDirectory | None = None
+            if not aliases_artifacts:
+                try:
+                    candidate_parent = self._trusted.directory(
+                        self._trusted.lexical_path.joinpath(*candidate_prefix[:-1]),
+                        create=False,
+                        error_type=ArtifactIntegrityError,
+                    )
+                except (FileNotFoundError, ArtifactIntegrityError):
+                    candidate_parent = None
+                if candidate_parent is not None:
+                    try:
+                        candidate_info = _lstat(
+                            candidate_parent,
+                            candidate_prefix[-1],
+                            error_type=ArtifactIntegrityError,
+                        )
+                        artifact_info = os.fstat(self._artifact_anchor.fd)
+                        aliases_artifacts = candidate_info is not None and (
+                            candidate_info.st_dev,
+                            candidate_info.st_ino,
+                        ) == (artifact_info.st_dev, artifact_info.st_ino)
+                    except OSError as exc:
+                        raise ArtifactIntegrityError(
+                            "artifact namespace identity cannot be verified"
+                        ) from exc
+                    finally:
+                        candidate_parent.close()
+            if aliases_artifacts:
+                raise InvalidEvidenceInput(
+                    "event log cannot occupy the reserved artifact namespace"
+                )
         value = "/".join(parts)
         if not self._is_canonical_event_relpath(value):
             raise InvalidEvidenceInput(
