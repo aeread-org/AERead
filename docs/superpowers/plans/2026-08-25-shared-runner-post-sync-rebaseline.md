@@ -6,7 +6,7 @@
 > integration merge is clean at `275a285`, and its design-contract fix/re-review is clean
 > at `388e52b`; neither commit was pushed or merged to GitHub/main. The controller ledger
 > independently authorizes Task 0.3 for dispatch under its controller-issued brief. Dual
-> review of the plan at `4710fc8` is not clean, so Task 1.1a and later tasks remain blocked
+> review of the plan at `4c79777` is not clean, so Task 1.1a and later tasks remain blocked
 > until this correction is independently reviewed and
 > `.superpowers/sdd/2026-08-25-shared-runner-post-sync-rebaseline/progress.md` records a
 > clean verdict; editing this plan does not itself clear that separate gate.
@@ -42,6 +42,8 @@ publication            EvaluationReceipt + projections + aggregate analysis
   a second planned unit or independent statistical cluster.
 - Planned judgment slots are statistical identities; `RaterAttempt` records are
   operational children and never add judgments or denominator counts.
+- Every `PlanCell` closes exactly once in a content-addressed `AttemptChainClosure`, and
+  run close binds the exact expected closure set before post-receipt analysis.
 - Every AERead-initiated or adapter-declared observable atomic side effect has a durable
   start record and exactly one terminal `succeeded`, `failed`, or `outcome_unknown`
   record. An opaque upstream trial promises this only for its outer trial operation and
@@ -100,7 +102,7 @@ merge, push it, or merge it to GitHub/main under this plan.
 ### Task 0.3: Migrate the serialized planning identity to `PlanCell`
 
 **Dependency:** independently dispatchable under the controller ledger ruling and its
-controller-issued Task 0.3 brief. Its authorization does not depend on the round-4 plan
+controller-issued Task 0.3 brief. Its authorization does not depend on the round-5 plan
 review gate for Task 1.1a and later tasks. The Task 0.3 brief is controller-owned; do not
 edit it or use this plan-correction commit to widen its scope.
 
@@ -152,7 +154,7 @@ serialized/public name from returning.
 ### Task 1.1a: Freeze the reusable family measurement leaf and reference-artifact boundary
 
 **Dependency:** Task 0.3 is independently complete and the progress ledger records this
-round-4 plan correction P0/P1/P2 clean. Task 0.3 may proceed under its separate controller
+round-5 plan correction P0/P1/P2 clean. Task 0.3 may proceed under its separate controller
 authorization while this gate remains closed.
 
 **Files:**
@@ -172,15 +174,24 @@ authorization while this gate remains closed.
 
 This slice owns only reusable family semantics. Define the strict replacement target
 `MeasurementLeafSpec`: stable leaf ID/version, one
-`EstimandSpec`, exactly one of the five semantic verifier/reference variants, one allowed
-evaluation-mode class (`deterministic`, `stochastic_estimator`, or `judge_dependent`), a
+`EstimandSpec`, exactly one of the five semantic verifier/reference variants, a non-empty
+unique canonical tuple `allowed_evaluation_classes` drawn from `deterministic`,
+`stochastic_estimator`, and `judge_dependent`, a
 pinned scorer implementation, and `composition_kind: Literal["leaf"]`. The family leaf
 must not contain a panel, sample size, cluster mapping, pairing, planned repetitions,
 judgment slots, concrete evaluator profile, estimator, interval, missingness rule, or
 paper composition. Those are suite-owned in Task 1.1b.
+Evaluation class remains orthogonal to semantic family: a non-`rater_judge` leaf may allow
+`deterministic`, `stochastic_estimator`, or both, but never `judge_dependent`; a
+`rater_judge` leaf permits only `judge_dependent`. The family declares this allowed set;
+the suite selects exactly one member in Task 1.1b.
 Do not wire the new record into or version-bump `FamilyManifest` in this slice; Task 1.1c
 is the sole manifest migration owner, so 1.1a can be reviewed without a half-migrated
-serialized family identity.
+serialized family identity. Preserve the current legacy three-variant `MeasurementSpec`
+and `FamilyManifest` unchanged while incrementally adding the leaf/reference records,
+pin-aware registry, and `ReferenceArtifactView`; Task 1.1a does not modify
+`planning.py`, `PlanCell`, or `RunPlan`. Task 1.1c alone removes that legacy authoring path
+and performs the atomic family/suite/plan migration.
 
 Preserve and make discriminated the reference semantics implementers otherwise would have
 to invent:
@@ -233,12 +244,15 @@ tests reject traversal, non-predeclared reference refs, unreachable store object
 digest/media-type/length mismatch, mutation, store enumeration, and every write/network/
 provider surface. A dependency test rejects any Task 1.1a protocol or export that mentions
 `ResolvedEvaluationBinding`, `RaterAggregateInput`, `ResolvedMeasurementContract`, or
-`BoundVerifier`; those final-boundary names first become legal in Tasks 1.1b/1.1c.
+`BoundVerifier`; those final-boundary names first become legal in Tasks 1.1b/1.1c. Mode
+tests reject an empty/duplicate/noncanonical allowed set, `judge_dependent` on a non-rater
+leaf, and any non-judge class on a `rater_judge` leaf, while accepting one non-rater leaf
+that allows both deterministic and stochastic evaluation.
 
 **Output:** one family-owned `MeasurementLeafSpec` with complete five-family typed
 reference semantics and one read-only predeclared-reference artifact boundary—no suite
-statistical choices, final scorer protocol, post-seal aggregate type, or whole-store
-authority.
+statistical choices or selected evaluation class, final scorer protocol, post-seal
+aggregate type, or whole-store authority.
 
 ### Task 1.1b: Freeze suite-owned statistical and evaluator bindings
 
@@ -255,10 +269,12 @@ authority.
 This slice owns the concrete design under which a leaf is evaluated. Add a strict
 `SuiteMeasurementBinding`: referenced `measurement_leaf_id`, typed sampling population
 and panel/selection rule, `ClusterSpec`, `PairingSpec`, `EpisodeReplicationDesign`,
-evaluation-mode binding, method-specific estimator and interval/test, transformation,
+one discriminated evaluation-mode binding with exactly one `selected_evaluation_class`,
+method-specific estimator and interval/test, transformation,
 missingness, one `EpisodeAttemptInclusionPolicy`, evaluator/imported-evidence assignment
 where required, and an analysis block ID. It contains no family scorer implementation and cannot redefine an estimand,
-verifier, reference, or allowed evaluation class.
+verifier, reference, or allowed evaluation-class set. Task 1.1c exact-matches the selected
+class to the referenced leaf's allowed tuple.
 Do not wire this binding into or version-bump `SuiteManifest`, `PlanCell`, or `RunPlan` in
 this slice; Task 1.1c owns that one atomic serialized migration.
 
@@ -267,8 +283,12 @@ leaf estimator, arm/pair comparison, metamorphic check over declared base/transf
 blocks, or field rating over a declared population/matching graph. Every block names exact
 input block IDs and output schema; comparison binds direction/pairing and optional test;
 metamorphic and field-rating blocks pin a pure `ImplementationRef` plus typed algorithm
-parameters. Unknown/open parameter maps fail. These declarations contain no receipt data
-or execution port; Task 3.12 alone evaluates them after receipt validation.
+parameters and a closed `AnalysisMethodIOSpec`: inputs and outputs are only typed canonical
+integer rationals or categorical values, never host-language floats. An implementation
+that cannot satisfy this portable contract is excluded from V0 `AnalysisRecord` numeric
+output rather than being silently rounded by plugin code. Unknown/open parameter maps
+fail. These declarations contain no receipt data or execution port; Task 3.12 alone
+evaluates them after receipt validation.
 
 Statistical identity is planned rather than inferred from operational rows:
 
@@ -313,9 +333,11 @@ outcome value. Each receipt immutably binds the policy hash and only its local
 `AttemptPolicyEvidence`—ordinal, predecessor attempt ID and terminal event ID/hash when
 present, plus this attempt's terminal event ID/hash and typed retry class—so a later retry
 never requires rewriting an
-earlier receipt. Task 3.12 validates those local claims and produces the canonical
-`AttemptSelectionProof` by
-recomputing the full chain before accepting a selected attempt.
+earlier receipt. After retry control ends, Task 3.11 binds those immutable local records
+and any typed prepublication failures/exclusion into the one complete
+`AttemptChainClosure`; Task 3.12 exact-matches that closure to the run-close manifest and
+produces the canonical `AttemptSelectionProof` by recomputing the full chain before
+accepting a selected attempt.
 
 Every suite-authored V0 numeric parameter used by analysis is a strict reduced
 `CanonicalRational(numerator: int, denominator: PositiveInt)` with positive denominator;
@@ -326,9 +348,16 @@ target enum with a discriminator union:
 - `DifferenceEstimatorSpec` binds subject/comparator arm IDs, comparison direction, and
   exactly one design: paired with its exact `PairingSpec`/pair keys, or unpaired with each
   arm's declared population and `weighting: Literal["uniform"]`;
-- `ProbabilityEstimatorSpec` binds a typed, versioned success predicate and
-  `denominator: Literal["planned", "valid"]`; `planned` counts every resolved planned cell,
-  while `valid` is legal only with the declared partial-missingness estimator;
+- `ProbabilityEstimatorSpec` binds a typed, versioned Boolean success predicate and
+  `denominator: Literal["planned", "valid"]`. `planned` is legal only with
+  `invalidate_required` and produces a semantic probability only when every planned cell
+  has one selected valid Boolean predicate value; any invalid/missing/failed/unknown cell
+  invalidates the numeric result rather than becoming `false`. `valid` is legal only with
+  a predeclared partial-missingness estimator; only selected valid Boolean values enter its
+  denominator, and the result records planned, valid, invalid/missing, and success counts
+  plus the exact invalid/missing cell identities. A probability whose predicate is
+  operational completion or measurement availability must be a separately declared
+  operational-availability `EstimandSpec`, never a semantic-success probability shortcut;
 - `QuantileEstimatorSpec` binds metric, rational `q` strictly in `(0, 1)`, and the V0 R-7
   linear interpolation rule;
 - `PassAllKEstimatorSpec` binds a positive `k`, success predicate, planned-cell group
@@ -341,8 +370,13 @@ Non-uniform estimator weights are deferred from V0 and fail schema resolution. V
 interval is a method-specific union only: `NoIntervalSpec(method="none")` has no
 confidence or resampling fields; `ClusterBootstrapIntervalSpec` requires confidence,
 as a rational strictly in `(0, 1)`, draw count, seed, the percentile/R-7 method version,
-and the resolved cluster-mapping/
-identity fields that define its resampling unit. `PairedRandomizationTestSpec` is a
+and the resolved cluster-mapping/identity fields that define its resampling unit. Its
+`resampling_block_mapping` equals that cluster mapping unless the suite declares a strict
+`LargerAtomicResamplingBlockSpec` whose partition coarsens (never splits) clusters. Every
+indivisible paired-comparison pair and every complete pass-all-k group must be wholly
+nested in one effective resampling block; a cross-cluster pair/group is legal only when
+that larger predeclared block contains all of it, and bootstrap samples those whole blocks.
+`PairedRandomizationTestSpec` is a
 separate hypothesis-test declaration with paired keys,
 `assignment_mechanism: Literal["independent_uniform_within_pair"]`, typed assignment and
 exchangeability provenance refs, two-sided absolute-mean-difference statistic, exhaustive
@@ -356,13 +390,15 @@ the paired test.
 Missingness is fail-closed and typed: `invalidate_required` forbids numeric output when a
 required planned unit is missing/failed/unknown; a predeclared partial estimator names its
 positive minimum valid planned units and denominator treatment. A probability result
-always reports `planned_count`, `valid_count`, and integer `success_count`: under
-`denominator="planned"`, missing units remain in `planned_count` but never become success
-or economic-zero rows; under `denominator="valid"`, only selected cells with a valid
-numeric measurement enter the denominator and the partial rule must authorize that
-treatment. Neither policy may silently drop rows or impute economic zero. A rater binding
-additionally freezes aggregation, valid tie treatment, minimum valid judgment slots,
-disagreement output, and concrete assignment.
+always reports `planned_count`, `valid_boolean_count`, `invalid_or_missing_count`, and
+integer `success_count`. Under `denominator="planned"`, the counts must prove
+`planned_count == valid_boolean_count` before division; otherwise the entire result is
+`invalid_measurement` with no numerator, denominator, or numeric value. Under
+`denominator="valid"`, only selected cells with a valid Boolean predicate enter the
+denominator and the partial rule must authorize that treatment. Neither policy may
+silently drop rows, coerce invalidity to Boolean failure, or impute economic zero. A rater
+binding additionally freezes aggregation, valid tie treatment, minimum valid judgment
+slots, disagreement output, and concrete assignment.
 `EvaluatorAgentAssignment` pins one evaluator profile per judgment slot and its authorized
 projection; `ImportedHumanAssignment` pins the collection/provenance artifact and maps
 records to planned slots. Neither becomes an environment seat.
@@ -378,14 +414,24 @@ randomization accepts only literal independent uniform within-pair assignment pl
 provenance refs and a separate test plus `none`; observational/non-uniform pairs reject
 p-values, and cluster-robust/hierarchical or fake resampling fields fail. Numeric schema
 tests reject non-reduced/zero-denominator rationals, JSON-float numeric parameters, and
-every non-uniform estimator weight; probability tests freeze planned/valid/success counts
-under each permitted missingness rule.
+every non-uniform estimator weight. Probability tests prove one invalid planned cell makes
+`denominator="planned"` reject all numeric numerator/denominator/output, while the
+predeclared `valid` design returns exact planned/valid/invalid/success counts and cell IDs;
+the same fixture cannot relabel semantic failure as operational availability. Bootstrap
+schema tests reject any pair or pass-all-k group split across effective resampling blocks,
+accept only an explicit coarsening block that wholly contains it, and reject a block that
+splits any resolved cluster. Analysis-method tests reject host-float IO and exclude an
+incompatible custom method from V0 portable numeric output.
 Judge variation without a rater protocol, ambiguous `combined`, unauthorized visibility,
 incomplete evaluator/imported-human assignment, implicit drop, and zero imputation all
 fail before evaluator/provider/runtime work. Inclusion-policy tests reject outcome fields,
 unauthorized retry classes, attempt-bound overflow, broken/gapped predecessor chains, a
 successor after a non-retry terminal, noncanonical ordering, two selected attempts, or a
 selection proof that Task 3.12 cannot recompute byte-identically.
+
+Evaluation-class schema tests require exactly one selected discriminator consistent with
+its binding variant and reject suite redefinition of the family-owned allowed tuple; the
+cross-record allowance/hash proof remains in Task 1.1c with the resolver.
 
 **Output:** one suite-owned, strictly typed statistical/evaluation binding whose
 replication design expands only to `PlanCell`, whose planned judgment slots are distinct
@@ -413,7 +459,7 @@ whose V0 interval/test declarations are unambiguous.
 For every evaluation block, resolve exactly one family `MeasurementLeafSpec` plus exactly
 one compatible `SuiteMeasurementBinding` into one immutable
 `ResolvedMeasurementDesign` stored directly in `PlanCell`. It contains the leaf ID/version/
-hash, allowed and selected evaluation classes, exact reference and predeclared-reference
+hash, allowed evaluation-class tuple and selected evaluation class, exact reference and predeclared-reference
 artifact set, sampling/panel, cluster, pair, replication design and judgment-slot
 identities, estimator, interval/test, transformation, missingness, evaluator assignment,
 scorer visibility, the resolved `EpisodeAttemptInclusionPolicy`, analysis-block ID, and two
@@ -485,7 +531,7 @@ side-effect-free. Judge-dependent scoring requires exactly one sealed, valid,
 measurement-bound aggregate; it never falls back to leaf-only scoring.
 
 Validation is exact and rejects rather than overwrites: missing or duplicate leaf/binding,
-estimand mismatch, selected mode outside the leaf allowance, family/suite reference drift,
+estimand mismatch, selected evaluation class outside the leaf allowance, family/suite reference drift,
 incompatible paired estimator, unresolved artifact/profile/implementation, or more than
 one cluster mapping for a leaf/block. Changing a paper panel, repetition count, pairing,
 interval/test, missingness rule, or evaluator assignment must leave the family leaf
@@ -503,8 +549,11 @@ the declaration hash, and `weighted_scalar_status="deferred"`; it does not compu
 publish one official weighted scalar. A future version may enable scalar publication only
 after a finite typed sensitivity grid and its complete execution/result semantics are
 plan-bound and executed. Vector binds output order; hybrid gate binds its typed gate,
-gated blocks, and fallback; judge-augmented binds the judge block, typed combiner, and tie/
-missing rule. Every predicate/transform/combiner is pinned; otherwise keep a vector.
+gated blocks, and fallback; V0 judge-augmented binds ordered component IDs, the one judge
+block, typed dependency edges, required component statuses, and tie/missing disposition,
+but has no numeric combiner, transforms, or scalar output. Any cross-component scalar must
+use `weighted` and remains deferred in V0. Every executable gate predicate or weighted
+transform is pinned; otherwise keep a vector.
 Composition never changes leaf validity/inclusion, never claims
 shared evidence without a separately resolved paired design, and never becomes an
 execution/admission gate. `composition_sha256` is a separate SuiteManifest-owned digest
@@ -542,7 +591,12 @@ unreachable refs, cycles, store enumeration, and aggregate-binding drift; bound-
 tests prove byte-identical provider-free scoring and fail closed for a required absent,
 invalid, wrong-binding, or unsealed aggregate. Weighted composition RED requires the
 ordered vector and declaration hash with `weighted_scalar_status="deferred"` and rejects
-any V0 official weighted scalar.
+any V0 official weighted scalar. Judge-augmented RED freezes only component/dependency/
+status structure and rejects a combiner, transform, weight, or scalar result. Evaluation-
+class RED resolves one dual-allowed non-rater leaf under deterministic and stochastic
+suite bindings, proving identical leaf bytes/hash and distinct suite, resolved-measurement,
+cell, and run hashes; it rejects zero/multiple selections and every selection outside the
+leaf allowance.
 Migration tests assert all four exact versions and reject prior payloads. The unauthorized
 rater preflight remains zero-side-effect evidence only; Tasks 3.5–3.7 own evaluator work.
 
@@ -775,11 +829,14 @@ class TransitionReconciliationRequest(StrictModel):
     prior_state_version: str
     prior_state_sha256: SHA256
 
+StagedArtifactRole = Literal["proof", "canonical_state", "transition_result"]
+
 class StagedArtifactRef(StrictModel):
     evidence_store_id: str
     transition_id: str
     reconciliation_attempt_id: str
     staging_key: str
+    role: StagedArtifactRole
     sha256: SHA256
     media_type: str
     byte_length: NonNegativeInt
@@ -800,7 +857,7 @@ class ReconciliationArtifactStaging(Protocol):
     reconciliation_attempt_id: str
 
     async def stage(
-        self, *, kind: str, canonical_bytes: bytes, media_type: str
+        self, *, role: StagedArtifactRole, canonical_bytes: bytes, media_type: str
     ) -> StagedArtifactRef: ...
 
 class ReconciliationStagingJournal(Protocol):
@@ -866,6 +923,14 @@ CommittedStateMaterialization = Annotated[
     CanonicalStateMaterialization | TransitionResultMaterialization,
     Field(discriminator="materialization_kind"),
 ]
+
+class ReconciliationArtifactView(Protocol):
+    reconciliation_terminal_event_id: str
+    reconciliation_terminal_event_sha256: SHA256
+
+    def resolve_terminal_artifact(
+        self, ref: ArtifactRef, *, role: StagedArtifactRole
+    ) -> bytes: ...
 
 class TransitionReconciliationCommitted(StrictModel):
     status: Literal["committed"]
@@ -990,7 +1055,10 @@ writes them under a runner-chosen `staging_key`, and returns a fully serializabl
 `ArtifactRef`, or call journal completion/resume methods. The journal durably stores the
 canonical typed finding plus its `finding_sha256` and exact scope, and `load_completed()`
 revalidates both before returning it. A staged ref is a serializable locator/integrity
-claim, never a bearer capability or CAS ref.
+claim, never a bearer capability or CAS ref. Its role is exact and immutable: every
+finding proof is `proof`, a canonical-state materialization is `canonical_state`, and a
+transition-result materialization is `transition_result`; one staged ref cannot be reused
+under another role even when bytes/digest happen to match.
 
 After the reconciler returns, the runner validates every staged-ref scope, records and
 fsyncs the completed finding, then reopens each object through the runner-owned staging
@@ -1000,7 +1068,10 @@ It verifies byte length, media type, and SHA-256 from the reopened bytes before
 terminal with `ArtifactRef` values. Recovery performs the identical reopen/verify/publish
 path from journal bytes and the durable staging area; it requires no in-memory object,
 token, handle, closure, or process-local cache. `ReconciliationArtifactView` is scoped to
-the published terminal refs. Neither reconciliation view is a reference/scorer artifact
+the exact proof/materialization `ArtifactRef` values and roles published by one validated
+terminal event. `resolve_terminal_artifact(ref, role=...)` exact-matches both before
+returning verified bytes; the view has no listing, write, staging, reference, scorer,
+provider, or whole-store method. Neither reconciliation view is a reference/scorer artifact
 view or enumerates the store.
 
 Recovery is deterministic at every crash boundary. Before the start, resume may append
@@ -1055,8 +1126,10 @@ zero reconciler calls.
 optional-proof `still_unknown`, and invalid measurement. Fakes reject reconciler-created
 `ArtifactRef`, foreign-policy/event refs, foreign-scope/forged staged refs, journal/finding
 hash mismatch, absolute/traversal/symlink or substituted staging keys, byte-length/media-
-type/digest mismatch, reconciler
-access to journal completion/resume, store enumeration, or terminal append before
+type/digest mismatch, wrong or reused staged roles, a proof/materialization role swap, a
+terminal-view ref not published by that exact terminal, any terminal-view list/write
+surface, and reconciler access to journal completion/resume, store enumeration, or
+terminal append before
 `ArtifactStore.put()` returns validated refs. Reconciliation tests also reject
 committed without restorable materialization or a matching authoritative state,
 kind/schema drift, not-committed prior-state drift, and still-unknown with an authoritative
@@ -1462,9 +1535,12 @@ the attempt executor borrow (never own) sessions, runs the family-neutral schedu
 finalizes each acquired subject exactly once in `finally`. Single-agent, controlled
 counterpart, population, and live-live differ only in resolved `PlanCell`/seat inputs and
 use this same function—no family/type branch or direct adapter call. It finalizes economic
-lifecycles but deliberately leaves the evidence generation open. On the terminal branch it
-hands the open generation and `FamilyOutcome` to Task 3.5/3.7 evaluator work; Task 3.7 is
-the sole later owner of the final evidence seal, and Task 3.11 alone finalizes the receipt.
+lifecycles but deliberately leaves the evidence generation open. Every returned handoff,
+including its execution-failure variant, transfers exactly once to Task 3.7. On the
+terminal branch it carries the open generation and `FamilyOutcome` to that composition
+root, which invokes Task 3.5 evaluator planning through a narrowed borrow-scoped port;
+Task 3.7 is the sole later owner of the final evidence seal, and Task 3.11 alone finalizes
+the receipt.
 Task 3.4 never closes/seals the generation, scores, or creates a receipt.
 
 **RED requirements:** `test_native_runner_capability_mismatch_has_zero_side_effects`
@@ -1474,17 +1550,17 @@ admission drift, missing/extra economic-seat admissions, a direct adapter/sessio
 invocation, a bypass of parse/legality, or a
 family-specific import/branch; and prove scheduler/attempt failure or cancellation still
 finalizes every started lifecycle once without manufacturing an outcome/score. A handoff
-test proves the terminal outcome and open generation reach evaluator planning, Task 3.4
+test proves the terminal outcome and open generation reach Task 3.7, Task 3.4
 does not call close/seal/score/receipt finalization, and a failed handoff remains open for
 the single later seal owner's typed invalid-measurement path.
 
-**Output:** one dispatchable native episode composition root with exact admission,
+**Output:** one dispatchable native economic-execution root with exact admission,
 lifecycle-borrow, scheduler, attempt, open-evidence handoff, and `finally` ownership; no
 second execution path and no premature evidence seal.
 
 ### Task 3.5: Judge plan, authorized input, and evaluator hierarchy
 
-**Dependency:** Tasks 1.1c and 3.4 are independently clean.
+**Dependency:** Tasks 1.1c, 2.1a, and 2.1b are independently clean.
 
 **Files:**
 
@@ -1496,28 +1572,53 @@ second execution path and no premature evidence seal.
   executable final-seal ordering in that document.
 
 Add `EvaluationWork` plus `RaterAttempt`; rater provider calls belong to measurement/
-evaluator work, not candidate `LogicalAction`s. On the terminal branch of Task 3.4's
-`OpenEpisodeHandoff`, `build_evaluation_plan(handoff, measurement) -> EvaluationWorkPlan`
-consumes that exact still-open evidence generation and terminal `FamilyOutcome`. It then
-validates the resolved judge source, concrete assignment, capability, and visibility;
-renders the exact authorized projection; stores/hashes that artifact; and returns work
-while the same evidence generation remains open.
+evaluator work, not candidate `LogicalAction`s. Define the strict typed result
+`EvaluationPlanResult = EvaluationPlanReady | EvaluationPlanNotRequired |
+EvaluationPlanFailed`. The borrow-scoped API
+`build_evaluation_plan(outcome, measurement, planning_port) -> EvaluationPlanResult`
+accepts the terminal `FamilyOutcome`, resolved measurement, and a narrow
+`EvaluationPlanningPort` owned and supplied by Task 3.7. The port may append only the
+authorized planning/render/store events and artifacts for this episode; it cannot seal,
+close, retain the generation, enumerate artifacts, or expose provider/runtime/session
+authority. Task 3.5 never accepts, owns, retains, or returns an `OpenEpisodeHandoff` or an
+open evidence-generation handle.
+
+The result union is closed: `EvaluationPlanReady` carries the canonical work plan/hash;
+`EvaluationPlanNotRequired` carries only `reason="non_judge"`; and
+`EvaluationPlanFailed` carries a strict stage
+`authorization | render | artifact_store`, one stage-compatible failure code
+(`assignment_mismatch | visibility_violation | capability_mismatch`,
+`renderer_failed | rendered_input_invalid`, or
+`artifact_store_failed | artifact_ref_mismatch`), and its hashed failure-event ref. The
+`EvaluationPlanningPort` exposes only
+`record_planning_event(event: EvaluationPlanningEvent) -> HashedEventRef` and
+`store_authorized_input(input: RenderedEvaluatorInput) -> ArtifactRef`; both arguments are
+strict typed records. It has no generic payload/options method.
+
+Planning validates the resolved judge source, concrete assignment, capability, and
+visibility; renders the exact authorized projection; stores/hashes that artifact through
+the narrow port; and returns ready work, a typed non-judge result, or a typed planning/
+render/store failure. Task 3.7 alone calls this API while its handoff remains open and owns
+the enclosing seal finalizer.
 Every work item references one planned judgment slot, resolved measurement hash,
 rubric/protocol, renderer, blind-order seed/counterbalance, and authorized-input artifact.
 
-**RED requirements:** the authoritative spec and static guard reject the old
-terminal-outcome -> immediate-seal path and require terminal outcome -> authorized
-evaluator planning/work while the log is open. Pre-terminal evaluator planning,
-unauthorized fields, assignment/slot drift, or artifact-hash drift fails before any
-`EvaluationWork`, `RaterAttempt`, provider, or tool call. Evaluators never become economic
-seats, a request may not widen the resolved projection, and a closed/sealed or
-failure-branch handoff is rejected without creating evaluator work.
+**RED requirements:** the authoritative spec and static guard reject Task 3.5 ownership or
+receipt of `OpenEpisodeHandoff`, a generation handle, or seal authority. Pre-terminal
+evaluator planning, unauthorized fields, assignment/slot drift, or artifact-hash drift
+returns the exact typed failure before any `EvaluationWork`, `RaterAttempt`, provider, or
+tool call. Evaluators never become economic seats, a request may not widen the resolved
+projection, and a closed planning port fails without creating evaluator work. Named tests
+freeze ready, not-required, planning, render, and store result variants and prove no Task
+3.5 branch seals or closes evidence.
 
 **Output:** a typed, provider-free evaluator work plan over frozen authorized inputs plus
-its runner-owned artifact/event evidence and public pre-seal placement contract; no
-evaluator execution in this task.
+its typed not-required/failure alternatives and narrow runner-owned artifact/event port;
+no open-handoff ownership, evaluator execution, or seal in this task.
 
 ### Task 3.6: Pure recorded-rater aggregation
+
+**Dependency:** Task 3.5 is independently clean.
 
 **Files:** modify `src/aeread/runner/evaluation.py` and
 `tests/shared_runner/test_evaluation.py` only.
@@ -1546,7 +1647,7 @@ unsatisfied partial threshold, and byte-identical repeated aggregation.
 
 ### Task 3.7: Live evaluator execution
 
-**Dependency:** Tasks 3.2, 3.5, and 3.6 are independently clean.
+**Dependency:** Tasks 3.2, 3.4, 3.5, and 3.6 are independently clean.
 
 **Files:**
 
@@ -1561,25 +1662,35 @@ Implement evaluator execution entirely with scripted/fake providers. The sole pu
 flow is:
 
 ```text
-terminal FamilyOutcome
-  -> if judge-dependent: authorized EvaluationWork/RaterAttempt execution under
+Task 3.7 consumes OpenEpisodeHandoff
+  -> if terminal outcome: call Task 3.5 build_evaluation_plan through a narrow planning port
+  -> if ready judge plan: authorized EvaluationWork/RaterAttempt execution under
        evaluator lifecycle leases -> append every judgment terminal -> close work
        -> aggregate_recorded_judgments() -> append typed RaterAggregate while log is open
-  -> if non-judge: no evaluator work or aggregate
-  -> final evidence seal
-  -> build ScorerInputArtifactSet from typed final visible refs
-  -> measurement-bound BoundVerifier.score(
-       case, outcome, sealed evidence, scorer artifact view, typed rater aggregate)
-  -> replay/projections -> EvaluationReceipt
+  -> if not-required/non-judge: no evaluator work or aggregate
+  -> if execution/planning/render/store failure or cancellation: append typed disposition
+  -> finally: invoke the sole final evidence seal exactly once
+  -> if valid terminal outcome plus completed/not-required evaluation:
+       build ScorerInputArtifactSet from typed final visible refs
+       -> measurement-bound BoundVerifier.score(
+            case, outcome, sealed evidence, scorer artifact view, typed rater aggregate)
+  -> otherwise: sealed invalid-measurement result with zero scorer calls
+  -> completed function branches: replay/projections -> EvaluationReceipt
+  -> cancellation branch: re-raise after seal; Task 3.11 binds typed prepublication failure
 ```
 
-`complete_open_episode(handoff, evaluation_plan: EvaluationWorkPlan | None) ->
-SealedEpisodeEvaluation` is the one
-composition API and Task 3.7 is the sole evidence-seal owner. A terminal handoff requiring
-a judge requires the exact plan and follows the full flow above; a non-judge terminal
-requires `None`, seals, and continues to bound scoring with no rater aggregate; a typed
-execution-failure handoff also requires `None`, appends its typed invalid-measurement
-disposition, and seals once with zero evaluator calls. A seal never
+`complete_open_episode(handoff, measurement) -> SealedEpisodeEvaluation` is the one
+composition API and Task 3.7 is the sole owner of the handoff, planning call, evaluator
+execution, and evidence seal. Inside one `try/finally`, it constructs the narrow Task 3.5
+planning port from the owned generation, calls `build_evaluation_plan(...)`, and handles
+every typed result. A ready judge plan follows the full flow above; not-required seals and
+continues to bound scoring with no rater aggregate; a typed execution/planning/render/store
+failure appends its typed invalid-measurement disposition and seals with zero later work.
+Cancellation is recorded when the log is writable, the sole seal finalizer is shielded to
+completion, and cancellation is re-raised only after seal. `seal_once` is invoked exactly
+once on success, no-judge, each declared failure, unexpected exception, and cancellation;
+a seal-publication failure is its own terminal evidence failure and never triggers a
+second seal. A seal never
 precedes required evaluator work, and a sealed store never reopens for judge output. Each
 evaluator-agent work item constructs the exact `EvaluatorLeaseSubject` from
 its episode/evaluation-work/assignment/planned-slot IDs, calls the Task 3.2 coordinator's
@@ -1606,14 +1717,22 @@ under a new `RaterAttempt` identity for
 the same planned judgment slot, at most one accepted contribution per slot, exact
 authorized-input artifact hash, blind ordering, evaluator/imported-human provenance,
 disagreement, valid tie handling, and the partial-estimator threshold.
-The failure-handoff RED proves exactly one Task 3.7 seal, no evaluator call, and no Task
-3.4/3.11 seal; double-seal and an unsealed `SealedEpisodeEvaluation` fail.
+Exact branch tests prove success, no-judge, planning failure, render failure, store failure,
+execution-failure handoff, unexpected exception, and cancellation each transfer the
+handoff once and invoke exactly one Task 3.7 seal; cancellation cannot interrupt the seal
+and is re-raised afterward for Task 3.11's typed prepublication-failure/closure path.
+Failure branches make no unauthorized evaluator/scorer call,
+Task 3.5/3.4/3.11 never seal, and double-seal or an unsealed
+`SealedEpisodeEvaluation` fails.
 
-**Output:** provider-free scripted evaluator execution under assignment-scoped lifecycle
-leases whose typed aggregate is included in the sole final seal and whose scorer-input
-artifact set is then derived before pure scoring, with the public flow guarded statically.
+**Output:** one provider-free composition root that always consumes the open handoff,
+plans/executes evaluator work under assignment-scoped lifecycle leases, includes the typed
+aggregate in the sole final seal, and only then derives the scorer-input artifact set for
+pure scoring, with every success/failure/cancellation seal branch guarded statically.
 
 ### Task 3.8: Deterministic replay validation
+
+**Dependency:** Tasks 1.1c, 2.1b, and 3.7 are independently clean.
 
 **Files:**
 
@@ -1705,6 +1824,8 @@ terminal `RecoveryReport` binding the complete chain, including `not_required` n
 
 ### Task 3.10: Public/private projections
 
+**Dependency:** Tasks 1.1c and 3.7 are independently clean.
+
 **Files:**
 
 - Create `src/aeread/runner/projections.py`.
@@ -1732,12 +1853,16 @@ public and per-seat artifacts that remain reconcilable to canonical event identi
 
 ### Task 3.11: Receipt finalization
 
+**Dependency:** Tasks 2.3 and 3.7–3.10 are independently clean.
+
 **Files:**
 
 - Create `src/aeread/runner/finalize.py`.
 - Modify `src/aeread/sdk/v1/records.py` and `src/aeread/sdk/v1/__init__.py` only for the
-  version-bumped final `EvaluationReceipt` schema/export.
-- Create `tests/shared_runner/test_receipt.py`.
+  version-bumped final `EvaluationReceipt`, `AttemptChainClosure`, and
+  `RunAttemptCoverageManifest` schemas/exports.
+- Create `tests/shared_runner/test_receipt.py` and
+  `tests/shared_runner/test_attempt_closure.py`.
 
 **Consumes:** sealed evidence, the exact `ScorerInputArtifactSet`/hash and sealed typed
 `RaterAggregateInput` when required, pure score/typed measurement failure, Task 3.8
@@ -1745,7 +1870,10 @@ public and per-seat artifacts that remain reconcilable to canonical event identi
 subject-keyed `SubjectExecutionAdmission` values and their runtime-subject evidence, and
 the resolved `RunPlan`/`PlanCell`. **Produces:**
 `finalize_episode(...) -> EvaluationReceipt` and an atomic canonical receipt file whose
-`receipt_sha256` excludes only its own digest field.
+`receipt_sha256` excludes only its own digest field; then, only after retry control for a
+cell has ended, `close_attempt_chain(...) -> AttemptChainClosure`; and, only after every
+planned cell is closed, `close_run_attempt_coverage(...) -> RunAttemptCoverageManifest`.
+Task 3.11 is the sole attempt-chain and run-close owner.
 
 Only after seal/pure score, replay validation, final recovery state, and projections,
 create the immutable receipt. It binds plan/case, candidate, counterpart and judge
@@ -1787,12 +1915,51 @@ admission actually used. Each entry binds the runtime subject, its exact planned
 subjects and each entry must match `PlanCell.subject_admissions`. A single cell-global hash,
 missing evaluator admission, duplicate subject, or unsorted set fails finalization.
 
+Add immutable content-addressed closure records. One
+`aeread.attempt_chain_closure/0.1` `AttemptChainClosure` exists for every exact `PlanCell`
+key/hash after no further `EpisodeAttempt` can be authorized. It binds the resolved
+inclusion-policy hash; the complete canonical ordinal/predecessor chain; every attempt ID
+and terminal event ID/hash; and, for each attempt, exactly one immutable
+`EvaluationReceipt` ID/hash or strict `ReceiptPrepublicationFailure` carrying its terminal
+canonical typed failure-event record/hash and one of `input_contract_incomplete |
+canonicalization_failed | atomic_publication_failed | run_cancelled_before_receipt`. A
+zero-attempt cell instead binds exactly one
+`TypedPlanCellExclusion` with its canonical durable run-control event record/hash and reason
+`preflight_rejected | run_cancelled_before_attempt`; it cannot also carry attempt entries.
+The closure records the final chain-tail attempt ID or `None` and exactly one outcome-blind
+stop reason: `non_retry_terminal | retry_bound_exhausted |
+run_cancelled_after_attempt | no_attempt_preflight_rejected |
+no_attempt_run_cancelled`. Its `closure_sha256` covers every field except itself. Receipt
+bytes remain immutable local attempt evidence; neither a later attempt nor closure rewrites
+them.
+
+One `aeread.run_attempt_coverage/0.1` `RunAttemptCoverageManifest` binds the `RunPlan` ID/
+hash, its exact canonical ordered `PlanCell` key set, the one-to-one ordered closure ID/hash
+set, and `closure_set_sha256` over that canonical pairing. Construction exact-matches the
+plan: a missing, extra, duplicate, reordered, wrong-cell, or wrong-hash closure fails and
+the run remains open. Typed exclusions and prepublication failures must resolve to their
+embedded canonical events by recomputed hash and exact allowed phase/reason; an
+operator-supplied reason or a bare string cannot satisfy coverage.
+
+**Closure RED requirements:** close rejects a gapped/noncanonical predecessor chain,
+attempt without exactly one terminal, receipt/failure double binding, receipt hash or
+terminal mismatch, closure before retry control ends, outcome-derived stop reason, forged
+prepublication failure, forged zero-attempt exclusion, a tail inconsistent with the
+resolved policy, and a second different closure for one PlanCell. Run close rejects every
+missing/extra/duplicate/reordered closure and any PlanCell/hash substitution; the exact
+same canonical set is idempotent. A receipt finalized before a later authorized retry
+remains byte-identical after closure.
+
 **Output:** one immutable, hash-verifiable `EvaluationReceipt` per finalized episode
-attempt, or a typed pre-publication failure if the finalization contract is incomplete.
+attempt, or a typed pre-publication failure if the finalization contract is incomplete or
+run cancellation prevents receipt publication; then exactly one content-addressed
+`AttemptChainClosure` per PlanCell and one exact-set `RunAttemptCoverageManifest` per
+closed run.
 
 ### Task 3.12: Pure post-receipt analysis and composition
 
-**Dependency:** Tasks 1.1c and 3.11 are independently clean.
+**Dependency:** Tasks 1.1c and 3.11, including its attempt-chain/run-close ownership, are
+independently clean.
 
 **Files:**
 
@@ -1807,35 +1974,51 @@ attempt, or a typed pre-publication failure if the finalization contract is inco
   `tests/test_shared_runner_design_contract.py`.
 
 **Consumes:** an immutable `RunPlan`, its resolved suite analysis/composition declarations,
-and canonical-hash-validated `EvaluationReceipt` values. **Produces:**
-`AnalysisEngine.analyze(run_plan, receipts) -> AnalysisRecord`. The engine and every
+its canonical-hash-validated `RunAttemptCoverageManifest` and exact ordered
+`AttemptChainClosure` values, and canonical-hash-validated `EvaluationReceipt` values.
+**Produces:**
+`AnalysisEngine.analyze(run_plan, run_coverage, attempt_closures, receipts) ->
+AnalysisRecord`. The engine and every
 registered `AnalysisMethod` are synchronous, deterministic, provider/runtime/network/
 filesystem/write-free functions. Metamorphic and field-rating declarations resolve their
 exact pinned `ImplementationRef` through a pure registry and receive only typed declared
-leaf/receipt results; an unknown implementation, pin drift, open options, or an attempted
-port access fails. The engine returns canonical bytes with
-`schema_version="aeread.analysis/0.1"` and `analysis_sha256` computed over every field
-except itself; only its caller may publish those returned bytes with `ArtifactStore.put()`.
+canonical-rational or categorical leaf/receipt values and may return only the same closed
+value union. The engine alone applies `aeread.binary64_rne/0.1` to a final rational output;
+a host-float method input/output, unknown implementation, pin drift, open options, or an
+attempted port access fails. A method that cannot implement this contract is absent from
+V0 portable numeric output rather than labeled portable. The engine returns canonical
+bytes with `schema_version="aeread.analysis/0.1"` and `analysis_sha256` computed over every
+field except itself; only its caller may publish those returned bytes with
+`ArtifactStore.put()`.
 
-Validate analysis inputs before arithmetic. Verify each receipt's canonical hash and exact
-run/suite/cell/measurement/composition/artifact-set bindings, sort by `(PlanCell key,
-receipt_sha256)`, group all attempts by PlanCell, and independently recompute the resolved
-`EpisodeAttemptInclusionPolicy` over each complete predecessor chain without reading any
-score, utility, success predicate, action-quality, or other outcome value. Every receipt's
-policy hash and local `AttemptPolicyEvidence` must validate; the engine emits the canonical
-`AttemptSelectionProof` from their recomputed full chain. For each planned key, exactly
-zero or one integrity-complete receipt may be
-selected to provide that cell's measurement disposition, and exactly zero or one valid
-numeric contribution may enter arithmetic. Excluded operational-attempt receipts remain
-traceable inputs but never count. An extra PlanCell, an incomplete/gapped chain, an
-unauthorized retry, or two selected receipts for one key fails. A key with no selected
-valid numeric measurement is named in coverage and follows only the resolved missingness
-rule; analysis never chooses a later attempt because its score is available or favorable.
+Validate analysis inputs before arithmetic. Verify the run-coverage hash and require its
+ordered PlanCell keys to equal the `RunPlan` set exactly; require the supplied ordered
+closure ID/hash set to equal its manifest exactly; then verify every closure hash, cell/
+policy binding, attempt chain, terminal event hash, receipt/prepublication-failure union,
+tail, typed exclusion, and outcome-blind stop reason. Every supplied receipt must appear
+exactly once in its cell closure, every closure receipt ref must be supplied, and every
+typed failure/exclusion must exact-resolve to its durable event and allowed reason. A
+missing, added, duplicate, reordered, substituted, or forged manifest/closure/receipt/
+failure/exclusion fails before arithmetic.
+
+Then verify each receipt's canonical hash and exact run/suite/cell/measurement/composition/
+artifact-set bindings and independently recompute the resolved
+`EpisodeAttemptInclusionPolicy` over each closure's complete predecessor chain without
+reading any score, utility, success predicate, action-quality, or other outcome value.
+Every receipt's policy hash and local `AttemptPolicyEvidence` must validate; the engine
+emits the canonical `AttemptSelectionProof` from the closure and receipt evidence. For each
+planned key, exactly zero or one integrity-complete receipt may be selected to provide that
+cell's measurement disposition, and exactly zero or one valid numeric contribution may
+enter arithmetic. Excluded operational-attempt receipts remain traceable inputs but never
+count. An unauthorized retry, tail/stop mismatch, or two selected receipts for one key
+fails. A key with a typed closure exclusion or no selected valid numeric measurement is
+named in coverage and follows only the resolved missingness rule; analysis never chooses a
+later attempt because its score is available or favorable.
 No `EpisodeAttempt`, `RaterAttempt`, excluded
 receipt, or retry row can fill a missing cell or change a denominator. Each analysis block
 consumes only its declared leaf, arm, pair, group, population, or metamorphic inputs and
-records `planned_count`, `valid_count`, and `success_count` wherever a probability or
-success rate is published.
+records `planned_count`, `valid_boolean_count`, `invalid_or_missing_count`, and
+`success_count` wherever a probability or success rate is published.
 
 Freeze V0 arithmetic and ordering rather than inheriting library defaults. The pure
 numeric policy is `aeread.exact_rational_binary64/0.1`: lift every validated finite input
@@ -1850,8 +2033,12 @@ exact-rational dependency graph before rounding any recorded copy; a rounded out
 feeds a downstream statistic. Thus:
 
 - uniform mean is the exact rational sum divided by `n`; probability reports integer
-  `success_count`, `planned_count`, and `valid_count`, then divides by exactly the declared
-  `planned` or `valid` denominator consistent with the resolved missingness rule; R-7
+  `success_count`, `planned_count`, `valid_boolean_count`, and
+  `invalid_or_missing_count`. A `planned` denominator produces a number only when
+  `planned_count == valid_boolean_count`; otherwise the probability is
+  `invalid_measurement` with no numeric fields. A predeclared `valid` denominator divides
+  only by `valid_boolean_count`. Invalidity is never Boolean `false`, and operational
+  availability is computed only under its separate declared estimand; R-7
   quantile sorts exact lifted values and uses exact `h=(n-1)q`, `j=floor(h)`, and
   `x[j] + (h-j)*(x[j+1]-x[j])` (the sole value for `n=1`);
 - a paired difference applies the declared direction within each exact pair and divides
@@ -1861,19 +2048,25 @@ feeds a downstream statistic. Thus:
   assigns group value `1` iff every resolved success predicate is true and `0` otherwise,
   then reports integer passed-group numerator, declared valid-group denominator, and
   their mean. Missing/extra/duplicate cells invoke missingness and never silently alter k;
-- vector, hybrid-gate, and judge-augmented outputs preserve direct leaf block IDs and never
-  mutate a leaf result or `measurement_sha256`. A V0 weighted declaration preserves only
+- vector and hybrid-gate outputs preserve direct leaf block IDs and never mutate a leaf
+  result or `measurement_sha256`. Judge-augmented output is only its ordered component IDs,
+  dependency edges, component statuses, judge block, and tie/missing disposition; it has no
+  numeric combiner or scalar. A V0 weighted declaration preserves only
   the ordered component vector, `composition_sha256`, exact rational declaration, and
   `weighted_scalar_status="deferred"`; AnalysisEngine neither applies its transforms/
   weights nor publishes an official weighted scalar until a future version binds and
   executes a finite typed sensitivity grid.
 
-`ClusterBootstrapIntervalSpec` uses percentile cluster bootstrap exactly. Group rows into
-one ordered row-block per resolved sorted cluster identity, preserving every validated
-row, pair/group field, and unequal cluster size; require at least two valid
-clusters. For each of B draws, sample C whole cluster row-blocks with replacement and
-recompute the complete declared uniform-weight estimator over all rows with block
-multiplicity. V0 has no cluster-level contribution reduction or weighting shortcut.
+`ClusterBootstrapIntervalSpec` uses percentile cluster bootstrap exactly. First validate
+that each indivisible pair and pass-all-k group is wholly nested in one effective
+resampling block. The effective mapping is the resolved cluster mapping unless the suite's
+strict larger-block partition coarsens clusters and contains each cross-cluster group;
+cross-block partial groups fail. Group rows into one ordered row-block per resolved sorted
+effective identity, preserving every validated row, pair/group field, original cluster
+identity, and unequal block size; require at least two valid effective blocks. For each of
+B draws, sample C whole row-blocks with replacement and recompute the complete declared
+uniform-weight estimator over all rows with block multiplicity. V0 has no cluster-level
+contribution reduction or weighting shortcut.
 Sampling uses SHA-256 counter blocks over
 the canonical domain `(aeread.cluster_bootstrap/0.1, run_plan_sha256, analysis_block_id,
 seed, draw_index, position, retry_counter)`: interpret the digest as an unsigned 256-bit
@@ -1881,7 +2074,8 @@ integer, reject values at or above `2^256 - (2^256 mod C)`, and take `value mod 
 Sort the B finite statistics and compute endpoints at `(1-confidence)/2` and
 `1-(1-confidence)/2` with the same exact-rational R-7 rule and sole output rounding.
 Record confidence, B, seed, C, sampler/
-quantile version, endpoint values, and cluster identities in `AnalysisRecord`.
+quantile version, endpoint values, original cluster identities, effective block mapping,
+and effective block identities in `AnalysisRecord`.
 
 `PairedRandomizationTestSpec` publishes a test, never a confidence interval. From the
 sorted exact pairs, first exact-validate literal
@@ -1898,30 +2092,41 @@ report exact rational `(1 + count(T >= T_obs))/(B + 1)`. Ties use `>=`; the reco
 names exhaustive vs Monte Carlo, pair count/order, B/seed when applicable, statistic, and
 p-value, provenance refs, numeric-policy version, and `NoIntervalSpec(method="none")`.
 
-`AnalysisRecord` binds analysis/run/suite/composition hashes, all sorted receipt ID/hash/
-cell/inclusion-policy/selection-proof refs, exact expected/selected/valid/missing coverage
-and planned/valid/success counts, per-block estimator/comparison/metamorphic/
+`AnalysisRecord` binds analysis/run/suite/composition hashes, the run-coverage manifest ID/
+hash and ordered exact closure ID/hash set, all sorted receipt ID/hash/cell/inclusion-policy/
+selection-proof refs, exact expected/selected/valid/missing coverage and planned/valid-
+Boolean/invalid-or-missing/success counts, per-block estimator/comparison/metamorphic/
 field-rating results, intervals/tests, composition outputs, every analysis implementation
 pin, numeric/sampler versions, and its own digest. The golden fixture freezes complete
 canonical JSON and digest for mean, probability, R-7 quantile, paired/unpaired difference,
-pass-all-k, bootstrap, randomization test, one metamorphic method, one field-rating method,
-and each executable composition variant; the weighted fixture instead freezes its vector,
-deferred-scalar status, declaration hash, canonical JSON, and digest.
+pass-all-k, bootstrap, randomization test, one canonical-rational metamorphic method, one
+categorical field-rating method, and each executable composition variant; judge-augmented
+freezes only its structural component/status result, while the weighted fixture freezes
+its vector, deferred-scalar status, declaration hash, canonical JSON, and digest.
 
 **RED requirements:** `test_analysis_v0_record_matches_golden_bytes_and_hash` covers the
-complete fixture. Named neighboring tests mutate each receipt/ref/pin/PlanCell/group/pair/
-cluster/composition field; reject duplicate selected/extra cells and enforce declared
+complete fixture. Named neighboring tests mutate each run-coverage/closure/receipt/ref/pin/
+PlanCell/group/pair/effective-block/cluster/composition field; reject a missing, added,
+duplicate, reordered, wrong-cell, or wrong-hash closure and a forged typed exclusion or
+prepublication failure; reject duplicate selected/extra cells and enforce declared
 missingness for zero-valid cells; prove excluded operational retries do not change
 coverage, probability denominators, or pass-all-k; reject outcome-dependent selection and
-prove the engine recomputes each attempt chain/proof. Freeze exact-rational input lifting,
+prove the engine recomputes each attempt chain/proof from the exact closure. One invalid
+planned probability cell rejects all numeric planned-denominator fields; the corresponding
+predeclared valid-denominator fixture freezes exact counts/identities, and operational
+availability remains a separate estimand. Freeze exact-rational input lifting,
 the final binary64 bits and canonical JSON for `1/3`; the exact midpoint between bit
 patterns `0x3ff0000000000000` and `0x3ff0000000000001` rounding to the even lower value;
 and the midpoint between `0x3ff0000000000001` and `0x3ff0000000000002` rounding to the
 even upper value. Also freeze
 bootstrap draw indices/endpoints and exhaustive/Monte Carlo randomization p-values; and
 prove paired randomization has no CI fields, rejects observational/non-uniform assignment,
-and requires both provenance refs. Weighted-composition tests reject any V0 official scalar
-or unexecuted-sensitivity claim. Dependency fakes raise on artifact-store
+and requires both provenance refs. Bootstrap tests reject partial pair/pass-all-k groups
+across effective blocks, accept the exact declared coarsening, and sample each whole block
+with multiplicity. Custom-method tests reject a host-float argument or return and prove
+only canonical rational/categorical values enter portable V0 output. Weighted-composition
+tests reject any V0 official scalar or unexecuted-sensitivity claim; judge-augmented tests
+reject any combiner or scalar. Dependency fakes raise on artifact-store
 enumeration, write, file, network, provider, evaluator, lifecycle, tool, runtime, or
 environment access. Reordered input receipts produce byte-identical output; repeated
 analysis produces identical bytes/hash and no side effect.
@@ -1946,15 +2151,21 @@ composition; no analysis mutates receipts or leaf measurement identity.
 library API with named case results and no provider credentials/network dependency.
 
 The provider-free matrix covers strict manifests; all five verifier leaves and three
-evaluation modes; separate read-only reference/scorer/reconciliation artifact boundaries
-and scorer-set hash; exact cluster/pair/sole-`PlanCell`/planned-judgment mapping with
+evaluation modes, including one leaf allowed under two suite-selected non-judge modes;
+separate read-only reference/scorer/reconciliation artifact boundaries, strict staged
+artifact roles, terminal-ref-only reconciliation resolution, and scorer-set hash; exact
+cluster/effective-resampling-block/pair/sole-`PlanCell`/planned-judgment mapping with
 operational attempts excluded; sequential/simultaneous/multi-channel scheduling; channel
 cardinality and atomic bundles; privacy; malformed/illegal/
 missing/timeout actions; the no-mutation-before-parse/legal boundary; actual tool evidence;
 economic-seat/evaluator-subject lifecycle cleanup/isolation; judge visibility, pre-seal
-evaluator work, sealed typed aggregation, final-seal ordering, and fail-closed missingness;
+evaluator planning/work under Task 3.7 handoff ownership, sealed typed aggregation,
+exactly-once final-seal success/failure/cancellation ordering, and fail-closed missingness/
+probability denominators; structural-only judge augmentation and canonical-rational/
+categorical custom analysis methods;
 all transition-policy, sole-query/staging/materialization/reconciliation, and terminal
-recovery-report outcomes; deterministic replay; receipt integrity; pure golden
+recovery-report outcomes; deterministic replay; receipt integrity; exact one-per-PlanCell
+attempt closures and run-close coverage; pure golden
 post-receipt analysis; and valid zero/negative economics.
 
 **RED requirements:** an intentionally broken fixture for each named invariant fails only
@@ -2022,7 +2233,8 @@ Absence of either is a typed blocked preflight, never permission to use an unpin
 **Consumes:** Tasks 3.5–3.12, an evaluator-only fixture with no economic mutation path,
 and the pinned profile/config. **Produces:** one ignored run directory containing the
 canonical events/artifacts, `ReplayReport`, projections, `EvaluationReceipt`, cost record,
-`AnalysisRecord`, and a machine-readable smoke summary.
+`AttemptChainClosure`, `RunAttemptCoverageManifest`, `AnalysisRecord`, and a
+machine-readable smoke summary.
 
 The live envelope is exactly one `RaterAttempt`, at most one provider call, 60 seconds,
 256 output tokens, and USD 0.25; exceeding any bound fails the smoke. The driver has no
@@ -2110,13 +2322,14 @@ For every implementation task: write a meaningful failing test first; implement 
 owning layer; run focused and full suites plus formatting/diff checks; commit one scoped
 change; append report/ledger; request independent review; run at most five fix/re-review
 rounds before declaring a blocker. No dependent stage advances while P0/P1/P2 findings
-remain.
+remain. This correction is round 5 of 5: any unresolved architecture or P0/P1/P2 finding
+is a blocker, not authority for a sixth plan-fix round or hidden implementer discretion.
 
 ## Current dispatch gate
 
 The foundation and local PR #7 integration are clean through `388e52b`; the whole runner
 is not implemented. Under the controller ledger ruling, Task 0.3 is independently
-dispatchable using its controller-issued brief; this round-4 plan review neither revokes
+dispatchable using its controller-issued brief; this round-5 plan review neither revokes
 nor expands that authority, and the controller-owned Task 0.3 brief is not edited here.
 Task 1.1a and
 all later plan work remain blocked until independent review finds this correction P0/P1/P2
