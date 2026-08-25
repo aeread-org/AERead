@@ -5,8 +5,8 @@
 > **Status:** Task 0.1a is independently P0/P1/P2 clean at `9f7255e`. The local PR #7
 > integration merge is clean at `275a285`, and its design-contract fix/re-review is clean
 > at `388e52b`; neither commit was pushed or merged to GitHub/main. Dual independent review
-> of the first plan correction at `0ea339a` is not clean. Do not dispatch Task 0.3+ until
-> this second correction is independently reviewed and
+> of the second plan correction at `a27cad6` is not clean. Do not dispatch Task 0.3+ until
+> this third correction is independently reviewed and
 > `.superpowers/sdd/2026-08-25-shared-runner-post-sync-rebaseline/progress.md`
 > records a clean verdict; editing this plan does not itself clear that gate.
 > **Supersedes:** Tasks 6–11 of `2026-08-24-shared-runner-sdk-kernel.md`; Tasks 1–5 and their review history remain valid
@@ -36,18 +36,22 @@ publication            EvaluationReceipt + projections + aggregate analysis
 - No family-specific branch or import in the kernel.
 - Unsupported versions, source pins, capabilities, runtime, or observability fail before
   external side effects.
-- One `PlanCell` is one intended `Episode`; operational retries create
-  `EpisodeAttempt`, not an independent statistical cluster.
-- Planned `Episode` replicates and judgment slots are statistical identities;
-  `EpisodeAttempt` and `RaterAttempt` are operational children and never add counts.
+- One `PlanCell` is the only planned `Episode`/replicate slot. Suite replication design
+  expands to unique `PlanCell` records; operational retries create `EpisodeAttempt`, never
+  a second planned unit or independent statistical cluster.
+- Planned judgment slots are statistical identities; `RaterAttempt` records are
+  operational children and never add judgments or denominator counts.
 - Every AERead-initiated or adapter-declared observable atomic side effect has a durable
   start record and exactly one terminal `succeeded`, `failed`, or `outcome_unknown`
   record. An opaque upstream trial promises this only for its outer trial operation and
   explicitly declares its internal provider/tool operations unobserved.
 - Valid zero or negative economics never become missing/corrupt evidence.
-- Judge calls are recorded evaluator work; `VerifierPlugin.score()` stays deterministic.
+- Judge calls are recorded evaluator work; their deterministic `RaterAggregate` is sealed
+  before the measurement-bound `VerifierPlugin` scores it.
 - Transition/reconciliation policy and state materialization are resolved and hashed before
   execution; an unknown mutation never implies an authoritative state.
+- Predeclared reference, sealed scorer-input, and reconciliation-staging artifacts have
+  separate typed authority; no consumer enumerates the whole artifact store.
 - Harbor is optional runtime/source interop, not the multi-agent scheduler or core
   dependency.
 - Provider-free conformance and independent review precede live-provider runs.
@@ -206,16 +210,30 @@ content-addressed artifacts, or a pinned pre-outcome deterministic computation�
 `JSONObject` or free-form options field. Every identifier, version, field tuple, and
 artifact reference is non-empty and unique where appropriate.
 
-Add a read-only `AuthorizedArtifactResolver`/`AuthorizedArtifactView`. It is constructed
-from the exact `ArtifactRef` allowlist bound by the measurement contract, verifies digest,
-media type, and byte length against the content-addressed store before returning bytes,
-and rejects undeclared or mismatched references. It exposes no write, provider, runtime,
-tool, or network method. Freeze the pure scoring boundary as an equivalent bind step:
+Separate artifact authority by phase. A read-only `ReferenceArtifactView` is constructed
+only from the exact predeclared `ArtifactRef` values bound into
+`ResolvedMeasurementDesign.measurement_sha256`; it verifies digest, media type, and byte
+length before returning reference bytes. After evidence and any `RaterAggregate` are
+sealed, a `ScorerInputArtifactSet` is the union of those exact predeclared reference refs
+and typed `ArtifactRef` fields reachable through the final visible terminal/evidence/rater
+records allowed by the resolved `ScorerVisibilitySpec`. It recursively follows only
+registered typed artifact-manifest media types, rejects cycles and string-shaped/untyped
+references, and validates every
+referenced object against the content-addressed store. Its sorted, de-duplicated reference
+and evidence refs plus `artifact_set_sha256` are bound into `ScoreEnvelope`, replay, and
+`EvaluationReceipt`. Neither view calls `ArtifactStore.list_refs()` or treats every object
+named by `SealedEvidenceView.artifacts` as authorized. Both expose no write, provider,
+runtime, tool, network, or reconciliation method.
+
+Freeze the pure scoring boundary as a bind step. `ResolvedEvaluationBinding` is the typed
+suite/evaluator portion of the resolved measurement contract, and `RaterAggregateInput`
+is a validated typed view/reference to the sealed aggregate, never an untyped payload:
 
 ```python
 class ResolvedMeasurementContract(Protocol):
     measurement_sha256: SHA256
     leaf: MeasurementLeafSpec
+    evaluation: ResolvedEvaluationBinding
 
 class BoundVerifier(Protocol):
     measurement_sha256: SHA256
@@ -225,7 +243,8 @@ class BoundVerifier(Protocol):
         case: FamilyCase,
         outcome: FamilyOutcome,
         evidence: SealedEvidenceView,
-        artifacts: AuthorizedArtifactView,
+        artifacts: ScorerInputArtifactView,
+        rater_aggregate: RaterAggregateInput | None,
     ) -> ScoreEnvelope: ...
 
 class VerifierPlugin(Protocol):
@@ -234,28 +253,34 @@ class VerifierPlugin(Protocol):
     def bind(
         self,
         measurement: ResolvedMeasurementContract,
-        artifacts: AuthorizedArtifactResolver,
+        references: ReferenceArtifactView,
     ) -> BoundVerifier: ...
 ```
 
 Task 1.1c's `ResolvedMeasurementDesign` satisfies
 `ResolvedMeasurementContract`; binding must reject a leaf/hash/implementation mismatch.
-Both bind and score are provider-free and side-effect-free. Registered verifier fakes and
-conformance probes must raise if a scorer tries to resolve an undeclared artifact or
-touches network/provider/write ports.
+Both bind and score are provider-free and side-effect-free. A judge-dependent binding
+requires exactly one valid sealed aggregate; a failed, missing, wrong-binding, or unsealed
+aggregate invalidates the measurement instead of falling back to a leaf-only score.
+Registered verifier fakes and conformance probes must raise if a scorer tries to resolve
+an undeclared/unreachable artifact or touches network/provider/write ports.
 
 **RED requirements:** schema tests construct all five reference families and every
 reference-kind discriminator above, and reject incompatible or incomplete fields. Each
 objective reference fails on any full-scope mismatch. Rater schemas reject ambiguous
 source, unpinned renderer/order/calibration/provenance, or an untyped visibility payload,
 but accept a valid tie. Registry tests reject an implementation/hash mismatch. Artifact
-tests reject traversal, non-allowlisted refs, digest/media-type/length mismatch, mutation,
-and every write/network/provider surface; a bound fake scores the same sealed inputs and
-authorized bytes byte-identically with zero external calls.
+tests reject traversal, non-predeclared reference refs, untyped runtime refs, unreachable
+store objects, manifest cycles, digest/media-type/length mismatch, mutation, store
+enumeration, and every write/network/provider surface. A bound fake scores the same sealed
+inputs, typed aggregate, and authorized bytes byte-identically with zero external calls;
+changing any final scorer-input ref changes `artifact_set_sha256` and the score, replay,
+and receipt bindings.
 
 **Output:** one family-owned `MeasurementLeafSpec` with complete five-family typed
-reference semantics, a registered pure `BoundVerifier` contract, and a read-only
-content-addressed allowlisted artifact boundary—no suite statistical choices.
+reference semantics, a registered pure `BoundVerifier` contract, and distinct read-only
+predeclared-reference and sealed scorer-input artifact boundaries—no suite statistical
+choices or whole-store authority.
 
 ### Task 1.1b: Freeze suite-owned statistical and evaluator bindings
 
@@ -271,19 +296,30 @@ content-addressed allowlisted artifact boundary—no suite statistical choices.
 
 This slice owns the concrete design under which a leaf is evaluated. Add a strict
 `SuiteMeasurementBinding`: referenced `measurement_leaf_id`, typed sampling population
-and panel/selection rule, `ClusterSpec`, `PairingSpec`, planned episode replicates,
-evaluation-mode binding, method-specific estimator and interval, transformation,
+and panel/selection rule, `ClusterSpec`, `PairingSpec`, `EpisodeReplicationDesign`,
+evaluation-mode binding, method-specific estimator and interval/test, transformation,
 missingness, evaluator/imported-evidence assignment where required, and an analysis block
 ID. It contains no family scorer implementation and cannot redefine an estimand,
 verifier, reference, or allowed evaluation class.
 Do not wire this binding into or version-bump `SuiteManifest`, `PlanCell`, or `RunPlan` in
 this slice; Task 1.1c owns that one atomic serialized migration.
 
+The analysis block ID resolves to one strict suite-owned `AnalysisBlockSpec` discriminator:
+leaf estimator, arm/pair comparison, metamorphic check over declared base/transformed leaf
+blocks, or field rating over a declared population/matching graph. Every block names exact
+input block IDs and output schema; comparison binds direction/pairing and optional test;
+metamorphic and field-rating blocks pin a pure `ImplementationRef` plus typed algorithm
+parameters. Unknown/open parameter maps fail. These declarations contain no receipt data
+or execution port; Task 3.12 alone evaluates them after receipt validation.
+
 Statistical identity is planned rather than inferred from operational rows:
 
-- `PlannedEpisodeReplicate` is one intended `Episode` slot nested in its declared
-  independently sampled cluster. `EpisodeAttempt` is an operational child of that slot;
-  retries never add a replicate, planned episode, pair, or cluster count.
+- `EpisodeReplicationDesign` is suite-authored intent: a non-empty `replication_id`, a
+  positive repetition count, an ordered tuple of rollout seeds of exactly that length,
+  and the declared replicate/pair/cluster grouping fields. Task 1.1c expands it into
+  unique `PlanCell` records; there is no `PlannedEpisodeReplicate` record or second episode
+  identity. `EpisodeAttempt` is an operational child of a `PlanCell`; retries never add a
+  planned episode, pair, group, or cluster count.
 - `PlannedJudgmentSlot` is one intended rating for a leaf/episode/presentation position.
   `RaterAttempt` is an operational child serving that slot. Replacement attempts retain
   the same judgment-slot/cluster identity, and at most one accepted terminal judgment per
@@ -296,22 +332,28 @@ Statistical identity is planned rather than inferred from operational rows:
 Replace the bare estimator target enum with a discriminator union:
 
 - `MeanEstimatorSpec` binds the metric and weighting rule;
-- `DifferenceEstimatorSpec` binds subject/comparator arm IDs, the comparison direction,
-  and the exact `PairingSpec`/pair keys it consumes;
+- `DifferenceEstimatorSpec` binds subject/comparator arm IDs, comparison direction, and
+  exactly one design: paired with its exact `PairingSpec`/pair keys, or unpaired with each
+  arm's declared population and weighting rule;
 - `ProbabilityEstimatorSpec` binds a typed, versioned success predicate and denominator;
-- `QuantileEstimatorSpec` binds metric, `q` strictly in `(0, 1)`, and interpolation rule;
-- `PassAllKEstimatorSpec` binds a positive `k`, success predicate, planned-replicate group
-  keys, and means exactly `1` iff all and exactly the `k` planned episode slots in each
-  complete group succeed; missing or extra slots follow the declared missingness rule and
-  cannot silently change `k`.
+- `QuantileEstimatorSpec` binds metric, `q` strictly in `(0, 1)`, and the V0 R-7 linear
+  interpolation rule;
+- `PassAllKEstimatorSpec` binds a positive `k`, success predicate, planned-cell group
+  keys consumed as `PlanCell` keys after Task 1.1c expansion, and means exactly `1` iff all
+  and exactly the `k` unique cells in each complete group succeed. Missing or extra cells
+  follow the declared missingness rule and cannot silently change `k`; attempts never
+  enter the denominator.
 
 V0 interval is a method-specific union only: `NoIntervalSpec(method="none")` has no
 confidence or resampling fields; `ClusterBootstrapIntervalSpec` requires confidence,
-draw count, seed, and the declared cluster ID as its resampling unit;
-`PairedRandomizationIntervalSpec` requires confidence, exact-or-bounded permutation
-count, seed, test statistic, and the pairing keys/assignment mechanism it randomizes.
-Cluster-robust and hierarchical intervals are deferred. A validator never requires fake
-cluster resampling fields for `none` or paired randomization.
+draw count, seed, the percentile/R-7 method version, and the resolved cluster-mapping/
+identity fields that define its resampling unit. `PairedRandomizationTestSpec` is a
+separate hypothesis-test declaration with paired
+keys, assignment mechanism, two-sided absolute-mean-difference statistic, exhaustive
+threshold, Monte Carlo draw count, and seed; its interval must be `NoIntervalSpec` because
+V0 publishes no randomization confidence interval. Cluster-robust and hierarchical
+intervals are deferred. A validator never requires fake resampling fields for `none` or
+the paired test.
 
 Missingness is fail-closed and typed: `invalidate_required` forbids numeric output when a
 required planned unit is missing/failed/unknown; a predeclared partial estimator names its
@@ -322,18 +364,21 @@ treatment, minimum valid judgment slots, disagreement output, and concrete assig
 projection; `ImportedHumanAssignment` pins the collection/provenance artifact and maps
 records to planned slots. Neither becomes an environment seat.
 
-**RED requirements:** tests reject `EpisodeAttempt`/`RaterAttempt` as replicate or
-judgment identity fields, reject replacement as a new count, and reject more than one
-accepted judgment per planned slot. Each estimator variant fails when its method-specific
-parameter is absent or inconsistent; pass-all-k cases cover complete success, one
-failure, missing, and extra planned slots. Interval tests cover the three exact V0
-variants and reject cluster-robust/hierarchical payloads or fake resampling fields.
+**RED requirements:** tests reject `PlannedEpisodeReplicate` and reject
+`EpisodeAttempt`/`RaterAttempt` as replicate or judgment identity fields, reject seed/count
+mismatches, reject replacement as a new count, and reject more than one accepted judgment
+per planned slot. Each estimator variant fails when its method-specific parameter is
+absent or inconsistent; pass-all-k cases cover complete success, one failure, missing,
+extra, and duplicate cell keys. Interval tests cover the two exact V0 variants; paired
+randomization accepts only a separate test plus `none`, and cluster-robust/hierarchical or
+fake resampling fields fail.
 Judge variation without a rater protocol, ambiguous `combined`, unauthorized visibility,
 incomplete evaluator/imported-human assignment, implicit drop, and zero imputation all
 fail before evaluator/provider/runtime work.
 
-**Output:** one suite-owned, strictly typed statistical/evaluation binding whose planned
-episode and judgment slots are distinct from operational attempt identities.
+**Output:** one suite-owned, strictly typed statistical/evaluation binding whose
+replication design expands only to `PlanCell`, whose planned judgment slots are distinct
+from operational attempts, and whose V0 interval/test declarations are unambiguous.
 
 ### Task 1.1c: Resolve one measurement design, minimal composition, and schema migrations
 
@@ -355,28 +400,48 @@ For every evaluation block, resolve exactly one family `MeasurementLeafSpec` plu
 one compatible `SuiteMeasurementBinding` into one immutable
 `ResolvedMeasurementDesign` stored directly in `PlanCell`. It contains the leaf and suite
 IDs/versions/hashes; allowed and selected evaluation classes; exact reference and
-authorized-artifact set; sampling/panel, cluster, pair, planned episode and judgment-slot
-identities; estimator, interval, transformation, missingness, evaluator assignment, and
-analysis-block ID. Its canonical `measurement_sha256` covers every field, and the
-`BoundVerifier` carries that exact digest.
+predeclared-reference artifact set; sampling/panel, cluster, pair, replication design and
+judgment-slot identities; estimator, interval/test, transformation, missingness, evaluator
+assignment, scorer visibility, and analysis-block ID. Its canonical
+`measurement_sha256` covers every one of those fields, and the `BoundVerifier` carries
+that exact digest. Composition is deliberately outside this record and digest.
+
+The resolver expands each `EpisodeReplicationDesign` into exactly one `PlanCell` per
+declared case × evaluation block × subject/seat assignment × repetition index × rollout
+seed tuple. It rejects duplicate keys and proves exact set equality between expected and
+actual `PlanCell` keys—no missing or extra cell and no `EpisodeAttempt`/retry key may
+satisfy coverage. In the atomic migration, `EvaluationBlock` references one
+`episode_replication_design_id`; legacy inline repetition/rollout-seed fields are rejected
+so the same intent cannot be authored twice. `PlannedJudgmentSlot` remains the only inner
+rating identity.
+
+`SuiteManifest/0.2` owns unique `episode_replication_designs` and `analysis_blocks`
+collections. Every evaluation/binding reference resolves exactly once; unreferenced,
+missing, duplicate, or cross-suite IDs fail rather than creating implicit defaults.
 
 Validation is exact and rejects rather than overwrites: missing or duplicate leaf/binding,
 estimand mismatch, selected mode outside the leaf allowance, family/suite reference drift,
 incompatible paired estimator, unresolved artifact/profile/implementation, or more than
-one cluster mapping for a leaf/block. Changing a paper panel, replicate count, pairing,
-interval, missingness rule, evaluator assignment, or composition must leave the family
-leaf bytes/hash unchanged while changing the suite manifest, resolved measurement,
-`PlanCell`, and `RunPlan` bytes/hashes.
+one cluster mapping for a leaf/block. Changing a paper panel, repetition count, pairing,
+interval/test, missingness rule, or evaluator assignment must leave the family leaf
+bytes/hash unchanged while changing the suite manifest, resolved measurement, `PlanCell`,
+and `RunPlan` bytes/hashes.
 
 Composition is declaration-only in V0. `SuiteManifest.compositions` may declare
 `vector`, `hybrid_gate`, `weighted`, or `judge_augmented` over a non-empty unique tuple of
 existing leaf `block_id` values. A component may not reference another composition, so
 nesting and cycle traversal do not exist. Validate and hash declarations only; aggregate
-execution and scalar publication are deferred. Weighted declarations still bind exact
-rational weights, pinned transforms, units, decision problem, and sensitivity declaration;
-otherwise keep a vector. Composition never changes leaf validity/inclusion, never claims
+execution and scalar publication belong only to post-receipt Task 3.12. Weighted
+declarations still bind exact rational weights, pinned transforms, units, decision problem,
+and sensitivity declaration. Vector binds output order; hybrid gate binds its typed gate,
+gated blocks, and fallback; judge-augmented binds the judge block, typed combiner, and tie/
+missing rule. Every predicate/transform/combiner is pinned; otherwise keep a vector.
+Composition never changes leaf validity/inclusion, never claims
 shared evidence without a separately resolved paired design, and never becomes an
-execution/admission gate.
+execution/admission gate. `composition_sha256` is a separate SuiteManifest-owned digest
+carried by `PlanCell` and `RunPlan`: changing composition changes only composition,
+`SuiteManifest`, `PlanCell`, and `RunPlan` bytes/hashes, never
+`ResolvedMeasurementDesign.measurement_sha256` or the bound leaf digest.
 
 Make the breaking migration explicit with no automatic legacy parser:
 `FamilyManifest` becomes `aeread.family/0.2`, `SuiteManifest` becomes
@@ -388,13 +453,19 @@ Task 0.3 plan versions fail closed.
 resolved field. `test_suite_design_change_does_not_change_family_identity` changes panel
 and interval independently, proves identical family bytes/hash, and proves changed suite,
 measurement, cell, and run-plan hashes. Resolution rejects every duplicate/conflict named
-above. Composition accepts direct leaf block IDs, rejects missing/duplicate/non-leaf
-components and undeclared scalar semantics, and has no executable aggregation port.
+above. `test_plan_cell_expansion_is_an_exact_bijection` compares the complete expected and
+actual key sets, rejects missing/extra/duplicate keys, and proves retries cannot satisfy a
+missing cell. Composition accepts direct leaf block IDs, rejects
+missing/duplicate/non-leaf components and undeclared scalar semantics, has no executable
+aggregation port in planning/resolution, and
+`test_composition_change_preserves_measurement_digest` proves only the
+composition/suite/cell/run hashes change.
 Migration tests assert all four exact versions and reject prior payloads. The unauthorized
 rater preflight remains zero-side-effect evidence only; Tasks 3.5–3.7 own evaluator work.
 
-**Output:** one hashed `ResolvedMeasurementDesign` per `PlanCell`, exact family/suite
-ownership, declaration-only leaf composition, and explicit versioned migrations.
+**Output:** one hashed composition-free `ResolvedMeasurementDesign` per sole episode
+identity `PlanCell`, exact expansion/coverage and family/suite ownership, separately
+hashed declaration-only leaf composition, and explicit versioned migrations.
 
 ### Task 1.2: Add five provider-free measurement fixtures
 
@@ -411,8 +482,9 @@ whose objective/reference is verified by pinned brute-force enumeration; a compa
 baseline evaluated on the same case and seed with exact pair identity; and canned blinded
 rater judgments covering evaluator-agent/imported-human provenance, a valid tie,
 disagreement, and missingness with zero provider calls. Each fixture must canonicalize,
-resolve to a plan, bind the authorized artifacts, and fail its neighboring invalid input
-before filesystem mutation, runtime start, evaluator work, or provider call.
+resolve to a plan, bind its predeclared reference view, derive any scorer-input view only
+from typed sealed refs, and fail its neighboring invalid input before filesystem mutation,
+runtime start, evaluator work, or provider call.
 
 **RED requirements:** each valid fixture selects its intended reference discriminator,
 evaluation binding, cluster/pair/planned-slot identities, and hash; its invalid neighbor
@@ -425,26 +497,27 @@ upstream parity, interval adequacy, or benchmark quality.
 
 ## Stage 2 — correct agent lifecycle and side-effect contracts
 
-### Task 2.1: Replace retired call-attempt vocabulary and freeze transition recovery policy
+### Task 2.1a: Replace retired action/call/tool evidence vocabulary
+
+**Dependency:** Task 1.1c is independently clean.
 
 **Files:**
 
 - Modify `src/aeread/sdk/v1/records.py`, `src/aeread/sdk/v1/protocols.py`, and
   `src/aeread/sdk/v1/__init__.py`.
-- Modify `src/aeread/runner/planning.py` for plan-time transition-policy resolution and
-  hashing only; recovery execution remains Task 3.9.
 - Modify `tests/shared_runner/test_records.py`, `tests/shared_runner/test_registry.py`, and
-  `tests/shared_runner/fakes.py`; modify `tests/shared_runner/test_planning.py` and create
-  `tests/shared_runner/test_transition_contracts.py`.
-- Modify the authoritative `AttemptObserver`, environment materialization boundary, and
-  executable action/recovery examples in
+  `tests/shared_runner/fakes.py`; create
+  `tests/shared_runner/test_action_attempt_contracts.py`.
+- Modify the authoritative `AttemptObserver` and executable action examples in
   `docs/public_environment_and_external_adapter_spec.md`, `docs/shared_runner_design.md`,
   and `docs/walkthroughs/shared_runner_architecture_roadmap.md`; guard them in
   `tests/test_shared_runner_design_contract.py`.
 
 This task owns the public records, discriminated unions, Protocols, stable exports, schema
-versions, and conformance fakes only. Tasks 3.1, 3.3, and 3.9 own scheduler, attempt, and
-transition/reconciliation execution. The only action/mutation path is:
+versions, and conformance fakes for action, provider, tool, and rater attempts only. It
+does not version-bump `PlanCell`/`RunPlan` or own transition/recovery records. Task 2.1b
+owns those; Tasks 3.1 and 3.3 own scheduler/attempt execution. The only action/mutation
+path is:
 
 ```text
 LogicalAction
@@ -468,17 +541,6 @@ EvaluationWork
        -> ProviderCall 0..n
        -> ToolInvocation 0..n
        -> RaterJudgment | typed failure
-
-EnvironmentTransition
-  -> TransitionStart
-  -> TransitionCheckpoint 0..n
-  -> TransitionSucceeded | TransitionFailed | TransitionOutcomeUnknown
-
-TransitionOutcomeUnknown
-  -> TransitionReconciliationStart
-  -> TransitionReconciliationCommitted
-     | TransitionReconciliationNotCommitted
-     | TransitionReconciliationStillUnknown
 ```
 
 The names `CallAttemptStart` and `CallAttemptToken` below are **retired migration names**,
@@ -487,7 +549,7 @@ not compatibility exports: rename their serialized/public executable forms to
 `ActionAttemptStart` plus
 `ActionAttemptSucceeded | ActionAttemptFailed | ActionAttemptOutcomeUnknown`, and the
 analogous strict `succeeded | failed | outcome_unknown` terminal union for each provider
-call, tool, evaluator, and runtime operation. Add
+call, executed tool, and rater attempt. Add
 `ToolInvocationStart` and its strict terminal union, with stable parent
 IDs, canonical hashes, tool/version pins, idempotency/reconciliation capability,
 typed `family_read_only | harness_internal | transactional_preview` execution scope, and
@@ -513,17 +575,51 @@ operations, or deterministic transactional previews. A requested family mutation
 produces `ToolInvocationSucceeded`, and a failed `step()` can never coexist with a
 succeeded tool row claiming that economic mutation committed.
 
+**RED requirements:** retired active executable imports, exports, schema discriminators,
+and authoritative public-spec signatures using `CallAttemptStart`/`CallAttemptToken` fail;
+explicitly labeled historical/negative migration prose may retain the strings. Record
+tests reject mismatched parent IDs, missing pins/hashes, and second terminal construction
+in a conformance fake. The public design-contract RED asserts the exact response -> parse
+-> legality -> transition path and rejects language allowing adapters/attempts/tools to
+create an `ActionEnvelope` or execute a requested family mutation. Task 3.3 owns runtime
+no-envelope/no-tool-success/no-step-before-parse-and-legality RED.
+
+**Output:** one versioned public evidence vocabulary rooted in `ActionAttempt`,
+`ProviderCall`, actual `ToolInvocation`, and `RaterAttempt`, with no active serialized
+`CallAttempt*` identity and exactly one declared parse/legality/mutation path.
+
+### Task 2.1b: Freeze transition, reconciliation, and recovery contracts
+
+**Dependency:** Tasks 1.1c and 2.1a are independently clean.
+
+**Files:**
+
+- Modify `src/aeread/sdk/v1/records.py`, `src/aeread/sdk/v1/protocols.py`, and
+  `src/aeread/sdk/v1/__init__.py` for transition/reconciliation/recovery records only.
+- Modify `src/aeread/runner/planning.py` for plan-time transition-policy resolution and
+  hashing only; recovery execution remains Task 3.9.
+- Modify `tests/shared_runner/test_records.py`, `tests/shared_runner/fakes.py`, and
+  `tests/shared_runner/test_planning.py`; create
+  `tests/shared_runner/test_transition_contracts.py`.
+- Modify the environment materialization/recovery boundaries in
+  `docs/public_environment_and_external_adapter_spec.md`, `docs/shared_runner_design.md`,
+  and `docs/walkthroughs/shared_runner_architecture_roadmap.md`; guard them in
+  `tests/test_shared_runner_design_contract.py`.
+
+This slice owns the plan-bound transition policy, event records, staging contract,
+deterministic materialization, and receipt-facing `RecoveryReport`. It does not execute
+recovery; Task 3.9 does that against these exact contracts.
+
 Before any execution, the resolver must select one strict `TransitionPolicySpec` for every
 `PlanCell`, store it in that cell, and cover it in the `PlanCell`/`RunPlan` canonical hash.
 The policy binds a stable policy ID/version, the pinned `TransitionReconciler`
 `ImplementationRef`, idempotency semantics (`runner_copy_on_write` or
 `external_idempotency_key`), reconciliation-query semantics
-(`deterministic_local_replay`, `same_key_read_only_replay_safe`, or
-`single_query_no_replay`), positive maximum transition and reconciliation attempts, and
-exactly one state-materialization strategy:
+(`single_query` in V0), a positive maximum transition-attempt count, and exactly one
+state-materialization strategy:
 `CanonicalStateArtifactStrategy` with its state schema/version or
 `TransitionResultArtifactStrategy` with its result schema/version. Admission exact-matches
-the selected strategy and query/idempotency semantics to environment capabilities.
+the selected strategy and single-query/idempotency semantics to environment capabilities.
 Unsupported external/database mutation fails preflight; a native environment uses a
 pinned runner-owned reconciler rather than an implicit recovery path.
 
@@ -548,17 +644,12 @@ class TransitionPolicySpec(StrictModel):
     idempotency_semantics: Literal[
         "runner_copy_on_write", "external_idempotency_key"
     ]
-    query_semantics: Literal[
-        "deterministic_local_replay",
-        "same_key_read_only_replay_safe",
-        "single_query_no_replay",
-    ]
+    query_semantics: Literal["single_query"]
     max_transition_attempts: PositiveInt
-    max_reconciliation_attempts: PositiveInt
     state_materialization: StateMaterializationStrategy
 ```
 
-This is a breaking plan migration: after Task 1.1c, `PlanCell` becomes
+This is a breaking plan migration in Task 2.1b: after Task 1.1c, `PlanCell` becomes
 `aeread.plan_cell/0.3` and `RunPlan` becomes `aeread.run_plan/0.4`; no prior payload is
 silently upgraded. The future `EvaluationReceipt` must bind the complete transition
 policy and its canonical hash, not merely the reconciler name.
@@ -583,6 +674,7 @@ terminal:
 class TransitionReconciliationStart(StrictModel):
     reconciliation_attempt_id: str
     transition_id: str
+    outcome_unknown_event_id: str
     transition_idempotency_key: str
     transition_policy_sha256: SHA256
     reconciler: ImplementationRef
@@ -592,9 +684,75 @@ class TransitionReconciliationRequest(StrictModel):
     transition_id: str
     transition_idempotency_key: str
     transition_policy_sha256: SHA256
+    transition_start_event_id: str
+    transition_start_event_sha256: SHA256
     outcome_unknown_event_id: str
+    outcome_unknown_event_sha256: SHA256
     prior_state_version: str
     prior_state_sha256: SHA256
+
+class StagedArtifactToken: ...  # opaque runner-issued capability, never an ArtifactRef
+
+class TransitionReconciliationEventView(Protocol):
+    transition_policy: TransitionPolicySpec
+    transition_policy_sha256: SHA256
+    transition_start_event_id: str
+    transition_start_event_sha256: SHA256
+    outcome_unknown_event_id: str
+    outcome_unknown_event_sha256: SHA256
+
+    def resolve_event_artifact(self, ref: ArtifactRef) -> bytes: ...
+
+class ReconciliationArtifactStaging(Protocol):
+    evidence_store_id: str
+    transition_id: str
+    reconciliation_attempt_id: str
+
+    async def stage(
+        self, *, kind: str, canonical_bytes: bytes, media_type: str
+    ) -> StagedArtifactToken: ...
+
+class ReconciliationStagingJournal(Protocol):
+    async def complete(self, finding: "ReconciliationFinding") -> None: ...
+    async def load_completed(self) -> "ReconciliationFinding | None": ...
+
+class StagedCanonicalStateMaterialization(StrictModel):
+    materialization_kind: Literal["canonical_state_artifact"]
+    artifact: StagedArtifactToken
+    state_schema_ref: str
+
+class StagedTransitionResultMaterialization(StrictModel):
+    materialization_kind: Literal["transition_result_artifact"]
+    artifact: StagedArtifactToken
+    result_schema_ref: str
+
+class ReconciliationCommittedFinding(StrictModel):
+    status: Literal["committed"]
+    proof: StagedArtifactToken
+    state_materialization: Annotated[
+        StagedCanonicalStateMaterialization | StagedTransitionResultMaterialization,
+        Field(discriminator="materialization_kind"),
+    ]
+    authoritative_state_version: str
+    authoritative_state_sha256: SHA256
+
+class ReconciliationNotCommittedFinding(StrictModel):
+    status: Literal["not_committed"]
+    proof: StagedArtifactToken
+    authoritative_prior_state_version: str
+    authoritative_prior_state_sha256: SHA256
+
+class ReconciliationStillUnknownFinding(StrictModel):
+    status: Literal["still_unknown"]
+    proof: StagedArtifactToken | None
+    reason_code: Literal["reconciler_failed", "proof_inconclusive"]
+
+ReconciliationFinding = Annotated[
+    ReconciliationCommittedFinding
+    | ReconciliationNotCommittedFinding
+    | ReconciliationStillUnknownFinding,
+    Field(discriminator="status"),
+]
 
 class CanonicalStateMaterialization(StrictModel):
     materialization_kind: Literal["canonical_state_artifact"]
@@ -632,12 +790,11 @@ class TransitionReconciliationStillUnknown(StrictModel):
     status: Literal["still_unknown"]
     reconciliation_attempt_id: str
     transition_id: str
-    proof_artifact_ref: ArtifactRef
+    proof_artifact_ref: ArtifactRef | None
     reason_code: Literal[
-        "query_not_replay_safe",
+        "query_interrupted_no_result",
         "reconciler_failed",
         "proof_inconclusive",
-        "attempt_bound_exhausted",
     ]
 
 TransitionReconciliationTerminal = Annotated[
@@ -651,8 +808,11 @@ class TransitionReconciler(Protocol):
     implementation: ImplementationRef
 
     async def reconcile(
-        self, request: TransitionReconciliationRequest
-    ) -> TransitionReconciliationTerminal: ...
+        self,
+        request: TransitionReconciliationRequest,
+        events: TransitionReconciliationEventView,
+        staging: ReconciliationArtifactStaging,
+    ) -> ReconciliationFinding: ...
 
 class EnvironmentPlugin(Protocol):
     def materialize_reconciled_state(
@@ -660,7 +820,7 @@ class EnvironmentPlugin(Protocol):
         case: FamilyCase,
         prior_state: FamilyState,
         materialization: CommittedStateMaterialization,
-        artifacts: AuthorizedArtifactView,
+        artifacts: ReconciliationArtifactView,
     ) -> FamilyState: ...
 
 class HashedEventRef(StrictModel):
@@ -714,24 +874,48 @@ RecoveryReport = Annotated[
 ```
 
 `TransitionReconciliationStart` references the original `TransitionOutcomeUnknown` by
-`transition_id`, repeats its exact idempotency key, pins the reconciler, and is durably
-written before any reconciliation query/side effect. One start receives exactly one
-terminal, every terminal binds a content-addressed proof artifact, and the original
-transition terminal is never overwritten. Neither a transition attempt nor a
-reconciliation attempt may publish a second terminal.
+both `transition_id` and event ID, repeats its exact idempotency key, pins the reconciler,
+and is durably written immediately before the one and only V0 reconciliation query. That start is the
+counted query invocation: each unknown transition has exactly one reconciliation start,
+never a replay or second reconciliation-attempt ID. One start receives exactly one
+terminal, and the original transition terminal is never overwritten. Neither a transition
+nor reconciliation start may publish a second terminal.
+
+The runner builds `TransitionReconciliationEventView` from only the exact hashed
+transition start/outcome-unknown events, resolved policy, and typed `ArtifactRef` fields in
+those events; its resolver rejects every other store object. It also creates a durable
+staging journal scoped to `(evidence_store_id, transition_id,
+reconciliation_attempt_id)`, but passes the reconciler only the narrowed stage-only
+`ReconciliationArtifactStaging` port. Only this runner-owned port accepts canonical bytes
+and issues opaque, non-serializable `StagedArtifactToken` values whose constructor is not
+public; the reconciler cannot
+construct `ArtifactRef` values or call journal completion/resume methods. After the
+reconciler returns, the runner validates every token/scope and records the completed typed
+finding through `ReconciliationStagingJournal`, publishes each staged byte object through
+`ArtifactStore.put()`, validates the resulting CAS refs, and only then constructs the
+terminal with `ArtifactRef` values. `ReconciliationArtifactView` is scoped to those
+published terminal refs. Neither reconciliation view is a reference/scorer artifact view
+or enumerates the store.
+
+Recovery is deterministic at every crash boundary. Before the start, resume may append
+the sole start and issue the query. After the start, a completed staged finding is resumed
+through the same journal/CAS publication without another query; an absent completed
+finding becomes `still_unknown(query_interrupted_no_result)` and quarantine. After CAS
+publication but before terminal append, idempotent `put()`/validation resumes and appends
+that terminal. After a terminal, normal recovery continues. `committed` and
+`not_committed` always bind proof refs; only `still_unknown` may omit proof because an
+interrupted query may have produced no bytes.
 
 `committed` carries both the authoritative state version/hash and a restorable canonical
-state or transition-result artifact. The runner allowlist-resolves its bytes, calls only
+state or transition-result artifact. The runner event-scope-resolves its bytes, calls only
 the pinned environment's deterministic `materialize_reconciled_state()` boundary, then
 hashes the returned state and exact-matches the authoritative version/hash before resume;
 it never reissues `step()`. `not_committed` carries the authoritative *prior* state
 version/hash, which the chain validator must prove exactly equal to the original
 `TransitionStart` prior version/hash before a new transition ID/start may be authorized
-under the resolved retry bound. `still_unknown` carries proof and reason only—no
-authoritative state version/hash or materialization—and quarantines/invalidates the cell.
-A query crash may be
-replayed under the same reconciliation-attempt ID only when the plan says the exact query
-is replay-safe; otherwise it becomes `still_unknown`.
+under the resolved retry bound. `still_unknown` carries an optional proof and reason
+only—no authoritative state version/hash or materialization—and always
+quarantines/invalidates the cell; ambiguity is never resolved by re-querying.
 
 Also freeze the terminal receipt-facing recovery union in records. `RecoveryReport` is
 one of `not_required`; `reconciled_committed` with a non-empty ordered transition/
@@ -749,31 +933,33 @@ chain to be non-empty. Each `RecoveryChainLink` has either all three reconciliat
 or none, event refs are unique and ordered by the sealed event sequence, and the terminal
 event IDs/hashes must resolve to the named transition/reconciliation IDs.
 
-**RED requirements:** retired active executable imports, exports, schema discriminators,
-and authoritative public-spec signatures using `CallAttemptStart`/`CallAttemptToken` fail;
-explicitly labeled historical/negative migration prose may retain the strings. Record tests
-reject mismatched parent IDs, missing pins/hashes, second terminal construction in a
-conformance fake, a policy missing any reconciler/idempotency/query/retry/materialization
-field, or a transition whose policy hash differs from its cell. Reconciliation tests
-reject committed without restorable materialization or a matching authoritative state,
-committed materialization whose kind/schema differs from the resolved strategy,
-not-committed whose prior state differs from the original start, and still-unknown with
-any authoritative-state field. Recovery-report tests cover all four terminal variants,
-reject an empty referenced chain where recovery occurred, and reject a not-committed retry
-without one final recorded disposition. Exact schema-version and hash-mutation tests cover
-the Task 1.1c-to-Task 2.1 `PlanCell`/`RunPlan` migration.
-The public design-contract RED asserts the exact response -> parse -> legality ->
-transition path and rejects language allowing adapters/attempts/tools to create an
-`ActionEnvelope` or execute a requested family mutation. Runtime no-envelope/no-tool-
-success/no-step-before-parse-and-legality RED belongs to Tasks 3.1 and 3.3.
+**RED requirements:** record tests reject a policy missing any
+reconciler/idempotency/single-query/materialization field, any
+`max_reconciliation_attempts` or replay-safe query variant, a transition whose policy hash
+differs from its cell, or a second terminal. `test_reconciliation_issues_exactly_one_query`
+proves one unknown -> one durable start -> one reconciler invocation even across resume.
+`test_reconciliation_resume_publishes_staged_result_without_query` crashes after completed
+staging and after CAS publication, then proves same-journal publication and one invocation.
+`test_reconciliation_crash_without_completed_finding_quarantines` proves no replay, an
+optional-proof `still_unknown`, and invalid measurement. Fakes reject reconciler-created
+`ArtifactRef`, foreign-policy/event refs, foreign-scope/forged staged tokens, reconciler
+access to journal completion/resume, store enumeration, or terminal append before
+`ArtifactStore.put()` returns validated refs. Reconciliation tests also reject
+committed without restorable materialization or a matching authoritative state,
+kind/schema drift, not-committed prior-state drift, and still-unknown with an authoritative
+state. Recovery-report tests cover all four variants, non-empty/ordered chains, and the
+final retry disposition. Exact version/hash tests cover the Task 1.1c-to-Task 2.1b
+`PlanCell`/`RunPlan` migration.
 
-**Output:** one versioned public evidence vocabulary rooted in `ActionAttempt`,
-`ProviderCall`, actual `ToolInvocation`, `RaterAttempt`, lifecycle operations, environment
-transitions, append-only reconciliation, a plan-bound transition policy, deterministic
-state materialization, and a terminal `RecoveryReport`, with no active serialized
-`CallAttempt*` or receipt-facing `RecoveryDecision` identity.
+**Output:** one plan-bound, single-query transition/reconciliation contract with
+runner-owned durable artifact staging and CAS publication, deterministic state
+materialization, append-only recovery evidence, and a terminal `RecoveryReport`; no
+receipt-facing `RecoveryDecision`, reconciliation retry count, or store-wide artifact
+authority exists.
 
 ### Task 2.2: Add episode-scoped harness lifecycle
+
+**Dependency:** Task 2.1a is independently clean.
 
 **Files:**
 
@@ -808,15 +994,45 @@ records make the `EpisodeAttempt` finalization choice explicit: exactly one term
 for each live session generation, `close` by default or `reset-consume` only when a next
 attempt has already been authorized.
 
-Backend/setup generations are scoped as explicitly as sessions. The conservative default
-lease key is `(episode_attempt_id, seat_id)` for backend, adapter setup, and session. Reuse
-across seats/cells/attempts requires declared state-containment plus reset/cleanup
-capability, capability preflight, and a receipt-visible treatment declaration covering
-filesystem, process, cache, memory, and tool state. Session isolation alone never proves
-runtime isolation.
+`ExecutionBackendCapabilities` is the sole owner of backend capability facts. Alongside
+lifecycle start/stop/isolation/reset/cleanup, it strictly declares supported execution
+kinds, process isolation, filesystem/network/terminal modes and exact host allowlists,
+tool/version pins, container image digests, secret scopes, and minimum observability.
+Task 2.3 consumes this record for admission and must not introduce a second backend-
+capability model.
 
-Default session scope is `(episode_attempt_id, seat_id)`. Across EpisodeAttempts the
-default is close plus a fresh open. An optional
+Backend/setup generations are scoped as explicitly as sessions. The conservative default
+lease subject is a strict discriminator:
+
+```python
+class EconomicSeatLeaseSubject(StrictModel):
+    subject_kind: Literal["economic_seat"]
+    episode_attempt_id: str
+    seat_id: str
+    seat_kind: Literal["candidate", "counterpart"]
+
+class EvaluatorLeaseSubject(StrictModel):
+    subject_kind: Literal["evaluator"]
+    episode_attempt_id: str
+    evaluation_work_id: str
+    evaluator_assignment_id: str
+    planned_judgment_slot_id: str
+
+LifecycleLeaseSubject = Annotated[
+    EconomicSeatLeaseSubject | EvaluatorLeaseSubject,
+    Field(discriminator="subject_kind"),
+]
+```
+
+The default backend/setup/session lease key is the complete subject tuple. An evaluator is
+never synthesized as a `SeatSpec`, given economic utility, or admitted under candidate/
+counterpart semantics. Reuse across subjects/cells/attempts requires declared
+state-containment plus reset/cleanup capability, capability preflight, and a receipt-
+visible treatment declaration covering filesystem, process, cache, memory, and tool
+state. Session isolation alone never proves runtime isolation.
+
+Default session scope is the exact `LifecycleLeaseSubject`. Across subjects or
+EpisodeAttempts the default is close plus a fresh open. An optional
 `reset(old_session, next_spec) -> new_session_generation` consumes the old handle and
 replaces close/open; every generation is finalized exactly once by either close or a
 successful reset-consume. A failed, timed-out, or outcome-unknown reset never yields a
@@ -843,7 +1059,7 @@ idempotent, runs in `finally`, and quarantines a runtime whose cleanup fails. St
 HTTP adapters use a trivial session; persistent CLI/API adapters use the same boundary.
 
 Define a runner-owned `ToolMediator` port and pass it to `AgentSession.act()`. It validates
-seat/phase tool allowlists for operations that may actually execute inside an attempt,
+lease-subject/work/phase tool allowlists for operations that may execute inside an attempt,
 writes durable starts before those side effects, and reconciles terminal outcome.
 `ExecutionBackend` owns process/file/network/runtime operations only. Harness-internal
 tools never mutate economic state. Only read-only, harness-internal, or deterministic
@@ -859,7 +1075,8 @@ snapshot; mutating actions are staged and committed together only after all slot
 Thus tools cannot create a second untracked environment-mutation path.
 
 **RED requirements for this contract task:** schema/protocol tests reject conflated
-adapter/backend/request capabilities, an unscoped lease key, reuse without containment and
+adapter/backend/request capabilities, an unscoped/incomplete lease subject, evaluator
+work encoded as a seat, evaluator utility/seat-kind fields, reuse without containment and
 reset/cleanup capability, an unobservable continuation policy, or more than one terminal
 choice for a session generation. Scripted fakes expose backend-start, partial-setup,
 open-session, reset, close, cleanup, backend-stop, timeout, failure, and
@@ -868,10 +1085,59 @@ requested family mutation and can execute only read-only, harness-internal, or
 transactional-preview operations. Task 3.2 consumes these fakes for the runtime failure
 matrix.
 
-**Output:** versioned lifecycle/capability/session/tool-mediation contracts and reusable
-scripted fakes, with no coordinator implementation in this task.
+**Output:** versioned lifecycle/capability/session/tool-mediation contracts with distinct
+economic-seat and evaluator-assignment subjects plus reusable scripted fakes, with no
+coordinator implementation in this task.
 
 ### Task 2.3: Freeze whole-trial admission semantics without implementing a protocol
+
+**Dependency:** Tasks 2.1a, 2.1b, and 2.2 are independently clean.
+
+**Files:**
+
+- Modify `src/aeread/sdk/v1/records.py` and `src/aeread/sdk/v1/__init__.py` for strict
+  runtime-requirement and admission records only; consume Task 2.2's sole
+  `ExecutionBackendCapabilities` record unchanged.
+- Modify `src/aeread/runner/planning.py` to add the pure
+  `resolve_execution_admission(...)` function; do not add an upstream adapter Protocol.
+- Modify `tests/shared_runner/test_records.py` and
+  `tests/shared_runner/test_planning.py`; create
+  `tests/shared_runner/test_execution_surface_admission.py`.
+- Modify the execution-surface ownership tables in `docs/shared_runner_design.md` and
+  `docs/public_environment_and_external_adapter_spec.md`; guard them in
+  `tests/test_shared_runner_design_contract.py`.
+
+Add strict `RuntimeRequirementSpec` fields corresponding exactly to Task 2.2's
+`ExecutionBackendCapabilities` for every execution dimension: `execution_kind`
+(`in_process | local_subprocess | container |
+remote_sandbox | upstream_managed`); process isolation; filesystem (`none | read_only |
+read_write`); network (`none | allowlisted | upstream_managed`) plus an exact non-empty
+allowlist when selected; terminal (`none | noninteractive | interactive`); sorted unique
+required tool IDs/version pins; container image digest when `container`; declared secret
+scope (`none | named_scopes | upstream_managed`) without secret values; and minimum
+provider/tool/runtime observability. The existing backend capabilities declare the exact
+supported sets and maxima for the same fields, not an open options map. Unknown enum values,
+missing conditional fields, wildcard tools/hosts/secrets, or an unpinned container fail.
+
+Freeze this provider-free API and its canonical input/report hashes:
+
+```python
+def resolve_execution_admission(
+    *,
+    requested_profile: ExecutionProfile,
+    capabilities: CapabilityDeclaration,
+    runtime_requirements: RuntimeRequirementSpec,
+    backend_capabilities: ExecutionBackendCapabilities,
+) -> ExecutionSurfaceAdmission: ...
+```
+
+The resolver exact-checks schedule control, execution kind, isolation, filesystem,
+network/host allowlist, terminal mode, every tool/version, image digest, secret scope, and
+observability before any backend, file, network, provider, or tool call. The immutable
+`ExecutionSurfaceAdmission` contains requested/resolved profile and schedule control,
+canonical requirement/capability hashes, effective bounds, admission class, and reason;
+its hash is carried into execution evidence and the future receipt. A rejection produces
+only a typed zero-side-effect admission failure.
 
 Reuse the existing `CapabilityDeclaration.schedule_control` discriminator; do not create
 a duplicate `execution_surface` enum or export an unconformed `UpstreamTrialAdapter` in
@@ -881,7 +1147,7 @@ SDK v1. Freeze admission semantics only, and copy resolved capabilities into rec
 |---|---|---|
 | `runner` | native `EnvironmentPlugin` phase/observe/step | may apply for paper/training |
 | `upstream` | stepwise upstream `advance()` | parity/interop until stronger checks |
-| `opaque` | `UpstreamTrialAdapter.run_trial()` | `interop_only` |
+| `opaque` | one opaque upstream trial operation (no SDK Protocol) | `interop_only` |
 
 An opaque trial maps to one AERead `EpisodeAttempt`; its logs/trajectory are imported
 artifacts/projections, never fabricated native events. Only the outer
@@ -889,9 +1155,24 @@ artifacts/projections, never fabricated native events. Only the outer
 Upstream retries must be disabled, exposed one-by-one, or declared opaque; hidden multiple
 trials cannot be presented as one clean attempt. No fake child provider/tool rows.
 
+**RED requirements:** `test_execution_admission_rejects_each_capability_mismatch_without_side_effects`
+mutates each dimension above one at a time and asserts zero backend/file/network/provider/
+tool calls. Named neighboring tests reject missing allowlist/tool version/container digest/
+secret scope, wildcard or unknown capability values, schedule-control/profile mismatch,
+and opaque execution claimed as paper/training eligible. The valid runner, upstream, and
+opaque cases assert exact report hashes and table outcomes. An import/export RED proves no
+`UpstreamTrialAdapter` exists, and opaque evidence accepts only one outer operation with
+no fabricated child rows.
+
+**Output:** one strict hashed runtime-requirement record, exact matching against Task 2.2's
+sole backend-capability record, and one pure admission resolver/report that fails before
+side effects, preserves schedule control, and adds no whole-trial Protocol.
+
 ## Stage 3 — implement execution on the corrected contract
 
 ### Task 3.1: Provider-free phase scheduler against an executor port
+
+**Dependency:** Tasks 2.1a and 2.1b are independently clean.
 
 Create `src/aeread/runner/kernel.py` and `tests/shared_runner/test_kernel.py`. First define
 a small family-neutral `LogicalActionExecutor` port and scripted fake; do not depend on a
@@ -937,6 +1218,8 @@ Task 3.9 alone may reconcile an unknown transition.
 
 ### Task 3.2: Episode/session lifecycle coordinator
 
+**Dependency:** Task 2.2 is independently clean.
+
 **Files:**
 
 - Create `src/aeread/runner/lifecycle.py`.
@@ -945,9 +1228,11 @@ Task 3.9 alone may reconcile an unknown transition.
 
 **Consumes:** Task 2.2's lifecycle capability/policy/operation records, Protocols, and
 scripted fakes. **Produces:** `EpisodeLifecycleCoordinator.preflight(...) ->
-LifecycleLeasePlan`, `start_attempt(...) -> EpisodeLifecycle`,
-`borrow_session(seat_id) -> AgentSessionLease`, and `finalize_attempt(...) ->
-LifecycleFinalization`. This is the only task that implements lifecycle orchestration.
+LifecycleLeasePlan`, `start_attempt(subject: LifecycleLeaseSubject, ...) ->
+EpisodeLifecycle`, `borrow_session(subject) -> AgentSessionLease`, and
+`finalize_attempt(subject, ...) -> LifecycleFinalization`. `preflight` also receives the
+same subject. This is the only task that implements lifecycle orchestration for both
+economic-seat and evaluator-assignment leases.
 
 Implement fail-closed preflight and cleanup ownership with scripted adapters/backends.
 Default isolation closes each session at episode-attempt scope and opens fresh on the next
@@ -956,19 +1241,25 @@ it is never an implicit `ActionAttempt` retry. Action-attempt restart instead us
 coordinator-owned fresh generation plus safe checkpoint/restore or side-effect-free
 canonical prefix replay.
 
-**RED requirements:** capability mismatch causes zero backend/provider/tool calls;
+**RED requirements:** capability mismatch causes zero backend/provider/tool calls; both
+economic-seat and evaluator subjects traverse the same preflight/start/borrow/finalize
+implementation, while incomplete/economic-seat-shaped evaluator subjects fail before
+start. Evaluator leases never create seats, utilities, observations, or actions;
 backend-start, partial-setup, open-session, reset, close, cleanup, and backend-stop
 failure/timeout/`outcome_unknown` paths each close exactly one started lifecycle operation.
 A failed or unknown reset never reuses the old generation. Exactly one finalizer owns each
 live generation; the action executor cannot close/reset/cleanup it. Default lease keys
 prevent backend/setup/session/process/filesystem/cache/memory/tool state from crossing
-seat/cell/attempt boundaries. Native session IDs and secrets never enter public evidence
+subject/cell/attempt boundaries. Native session IDs and secrets never enter public evidence
 or receipts, and action-attempt restart never replays economic/tool side effects.
 
-**Output:** a runner-owned, episode-attempt-scoped coordinator with typed preflight,
-leases, generation consumption, quarantine, and idempotent `finally` cleanup.
+**Output:** a runner-owned, episode-attempt and lease-subject-scoped coordinator for
+economic seats and evaluator assignments, with typed preflight, leases, generation
+consumption, quarantine, and idempotent `finally` cleanup.
 
 ### Task 3.3: Action-attempt executor
+
+**Dependency:** Tasks 2.1a and 3.2 are independently clean.
 
 Create `src/aeread/runner/attempts.py` and
 `tests/shared_runner/test_attempts.py`. Test exception-after-provider-start,
@@ -983,8 +1274,38 @@ failed/unknown child side effect. Failure never manufactures an economic zero.
 
 ### Task 3.4: Scheduler × real executor integration
 
-Integrate Task 3.1's scheduler with Tasks 3.2–3.3 without adding family branches.
-Single-agent, controlled counterpart, population, and live-live use the same kernel.
+**Dependency:** Tasks 2.3 and 3.1–3.3 are independently clean.
+
+**Files:**
+
+- Create `src/aeread/runner/execution.py`.
+- Modify `src/aeread/runner/__init__.py` only to export the completed native runner.
+- Create `tests/shared_runner/test_execution.py`.
+
+**Consumes:** Task 2.3 `ExecutionSurfaceAdmission`, Task 3.1 `PhaseScheduler`, Task 3.2
+`EpisodeLifecycleCoordinator`, and Task 3.3 `ActionAttemptExecutor`. **Produces:**
+`build_native_episode_runner(...) -> NativeEpisodeRunner` and
+`NativeEpisodeRunner.run_episode_attempt(cell, case, environment, admission) ->
+EpisodeAttemptResult`.
+
+The factory wires the scheduler to one lifecycle-backed `LogicalActionExecutor`; it does
+not expose a second adapter/session path. `run_episode_attempt` exact-validates the
+admission/cell hashes and completes execution/lifecycle preflight before starting the
+episode, creates economic-seat lease subjects, starts their authorized lifecycles, lets
+the attempt executor borrow (never own) sessions, runs the family-neutral scheduler, and
+finalizes each acquired subject exactly once in `finally`. Single-agent, controlled
+counterpart, population, and live-live differ only in resolved `PlanCell`/seat inputs and
+use this same function—no family/type branch or direct adapter call.
+
+**RED requirements:** `test_native_runner_capability_mismatch_has_zero_side_effects`
+asserts zero lifecycle/backend/provider/tool/environment calls. Named tests cover all four
+deployment modes through the same factory/executor/scheduler call trace; reject cell/
+admission drift, a direct adapter/session invocation, a bypass of parse/legality, or a
+family-specific import/branch; and prove scheduler/attempt failure or cancellation still
+finalizes every started lifecycle once without manufacturing an outcome/score.
+
+**Output:** one dispatchable native episode composition root with exact admission,
+lifecycle-borrow, scheduler, attempt, and `finally` ownership; no second execution path.
 
 ### Task 3.5: Judge plan, authorized input, and evaluator hierarchy
 
@@ -1046,6 +1367,8 @@ unsatisfied partial threshold, and byte-identical repeated aggregation.
 
 ### Task 3.7: Live evaluator execution
 
+**Dependency:** Tasks 3.2, 3.5, and 3.6 are independently clean.
+
 **Files:**
 
 - Modify `src/aeread/runner/evaluation.py` and
@@ -1060,26 +1383,43 @@ flow is:
 
 ```text
 terminal FamilyOutcome
-  -> authorized EvaluationWork/RaterAttempt execution while event log is open
+  -> authorized EvaluationWork/RaterAttempt execution under evaluator lifecycle leases
   -> append every judgment terminal and close evaluator work
+  -> aggregate_recorded_judgments()
+  -> append typed RaterAggregate record/artifact while event log is open
   -> final evidence seal
-  -> measurement-bound BoundVerifier.score(case, outcome, sealed evidence, authorized artifacts)
+  -> build ScorerInputArtifactSet from typed final visible refs
+  -> measurement-bound BoundVerifier.score(
+       case, outcome, sealed evidence, scorer artifact view, typed rater aggregate)
   -> replay/projections -> EvaluationReceipt
 ```
 
 A seal never precedes required evaluator work, and a sealed store never reopens for judge
-output. No live-provider smoke is authorized by this task.
+output. Each evaluator-agent work item constructs the exact `EvaluatorLeaseSubject` from
+its episode/evaluation-work/assignment/planned-slot IDs, calls the Task 3.2 coordinator's
+preflight/start/borrow APIs, executes provider/tool work with the same full write-ahead
+contract as candidate attempts, and finalizes that subject exactly once in `finally`.
+Evaluator work never borrows an economic-seat lease or receives seat/utility semantics;
+imported-human evidence creates no synthetic session. The aggregate is validated against
+`ResolvedMeasurementContract.evaluation`, recorded, and included in the final seal before
+its typed ref/view is passed to scoring. A missing, failed, unsealed, wrong-binding, or
+invalid aggregate yields `invalid_measurement` and no numeric score. No live-provider
+smoke is authorized by this task.
 
 **RED requirements:** the authoritative public example and static guard require the exact
 order above and reject seal-before-judge, judge-after-seal, provider calls from the bound
-verifier, and receipt-before-score. Execution tests cover failed/missing/
+verifier, scoring without the sealed aggregate/scorer artifact-set hash, and receipt-
+before-score. `test_evaluator_uses_assignment_lifecycle_lease` proves the coordinator
+preflight/start/borrow/finalize trace and full provider/tool write-ahead; neighboring tests
+reject an economic-seat lease and prove `finally` cleanup. Execution tests cover failed/missing/
 `outcome_unknown` judgment attempts, replacement under a new `RaterAttempt` identity for
 the same planned judgment slot, at most one accepted contribution per slot, exact
 authorized-input artifact hash, blind ordering, evaluator/imported-human provenance,
 disagreement, valid tie handling, and the partial-estimator threshold.
 
-**Output:** provider-free scripted evaluator execution whose complete evidence is sealed
-once before pure scoring, with the authoritative public flow guarded statically.
+**Output:** provider-free scripted evaluator execution under assignment-scoped lifecycle
+leases whose typed aggregate is included in the sole final seal and whose scorer-input
+artifact set is then derived before pure scoring, with the public flow guarded statically.
 
 ### Task 3.8: Deterministic replay validation
 
@@ -1089,11 +1429,13 @@ once before pure scoring, with the authoritative public flow guarded statically.
 - Create `tests/shared_runner/test_replay.py`.
 
 **Consumes:** `PlanCell`, including its resolved transition policy and measurement design,
-the full `SealedEvidenceView`, content-addressed artifacts, the pinned
-`EnvironmentPlugin`, and the pure `ScoreEnvelope`. **Produces:**
+the full `SealedEvidenceView`, the exact validated `ScorerInputArtifactSet`/view and sealed
+typed `RaterAggregateInput` when required, the pinned `EnvironmentPlugin`, and the pure
+`ScoreEnvelope`. It never receives a whole-store resolver. **Produces:**
 `validate_replay(...) -> ReplayReport`, where the immutable typed report records
 `status`, requested/achieved replay level, transition/event coverage counts, terminal
-state version/hash, score hash, and an optional typed first divergence. Its canonical
+state version/hash, `artifact_set_sha256`, score hash, and an optional typed first
+divergence. Its canonical
 bytes/hash are staged for Task 3.11; replay never mutates the sealed evidence/artifact
 roots.
 
@@ -1114,51 +1456,56 @@ tests proving replay is deterministic and side-effect-free.
 
 ### Task 3.9: Interrupted-run recovery/resume
 
+**Dependency:** Tasks 2.1b, 3.1, and 3.2 are independently clean.
+
 **Files:**
 
 - Create `src/aeread/runner/recovery.py`.
 - Create `tests/shared_runner/test_recovery.py`.
 
-**Consumes:** Task 2.1 transition/reconciliation records, exact plan-resolved
+**Consumes:** Task 2.1b transition/reconciliation records, exact plan-resolved
 `TransitionPolicySpec`, pinned `TransitionReconciler`, validated open event chain,
-read-only authorized artifact resolver, environment materialization hook, and Task 3.2
-quarantine/lifecycle hooks. **Produces:**
+`TransitionReconciliationEventView`, runner-owned `ReconciliationArtifactStaging`/
+`ReconciliationStagingJournal`, event-scoped `ReconciliationArtifactView`,
+environment materialization hook, and Task 3.2 quarantine/lifecycle hooks. **Produces:**
 `reconcile_transition(...) -> TransitionReconciliationTerminal`, an internal runner-only
 `ResumeInstruction` used immediately by the coordinator, and
 `finalize_recovery(...) -> RecoveryReport`. Normal paths use
 `not_required_recovery(...) -> RecoveryReport(status="not_required")`. The internal
 instruction is not an SDK export, serialized public identity, or receipt input.
 
-Resume only from reconciled durable boundaries. For `committed`, allowlist-resolve the
+Resume only from reconciled durable boundaries. For `committed`, event-scope-resolve the
 declared state/result artifact, invoke `materialize_reconciled_state()` with the original
 prior state, exact-match the returned canonical version/hash, and continue without
 reissuing `EnvironmentPlugin.step()`. For `not_committed`, first prove its authoritative
 prior version/hash equals the original `TransitionStart`; then allow a retry only by
 allocating a new `transition_id`, durably writing a new policy-hash-bound
-`TransitionStart`, and staying within the resolved transition/reconciliation attempt
-bounds. For `still_unknown`, quarantine and invalidate the cell; it has no authoritative
+`TransitionStart`, and staying within `max_transition_attempts`. For `still_unknown`,
+quarantine and invalidate the cell; it has no authoritative
 state to resume, and no retry/new operational attempt may claim the mutation is safe. The
 original `TransitionOutcomeUnknown` remains in the append-only log.
 
-**RED requirements:** parameterize all three terminal outcomes and crash points (before
-reconciliation start; after durable start but before the reconciler call; during/after the
-call but before terminal append; and after terminal append but before control-flow
-continuation). A start without terminal is resumed under the same reconciliation-attempt
-ID only when the *resolved policy* declares the exact same-key query replay-safe;
-otherwise it closes once as `still_unknown` and quarantines. Tests reject retry or resume
-before reconciliation, a second reconciliation start used to evade an unfinished one, a second
-or contradictory transition/reconciliation terminal, terminal overwrite, missing proof,
-changed idempotency key/reconciler/policy pin, committed materialization whose bytes or
-returned state do not match, not-committed prior-state inequality, still-unknown with an
-authoritative state, exhausted bounds, and any `step()` call on the `committed` or
-`still_unknown` paths. The `not_committed` path proves the old transition is not reused,
-the new attempt is recorded before its one allowed `step()`, and its final succeeded or
-failed terminal is referenced by the report. A retry that becomes unknown must complete a
-new allowed reconciliation or yield a quarantined report.
+**RED requirements:** parameterize all three findings/terminals and crash points: before
+start; after durable start but without a completed staged finding; after completed staging
+but before CAS publication; after CAS but before terminal; and after terminal before
+control-flow continuation. V0 always issues exactly one reconciler call per unknown: a
+start without a completed finding closes once as optional-proof
+`still_unknown(query_interrupted_no_result)` and quarantines; a completed finding resumes
+the same staging journal and idempotent CAS publication without calling the reconciler.
+Tests reject query replay, a second reconciliation start used to evade an unfinished one,
+a reconciler-created `ArtifactRef`, foreign/forged staged tokens, terminal-before-CAS, a
+second or contradictory transition/reconciliation terminal, terminal overwrite, missing
+proof on committed/not-committed, changed idempotency key/reconciler/policy pin, committed
+materialization whose bytes or returned state do not match, not-committed prior-state
+inequality, still-unknown with an authoritative state, exhausted transition bounds, and
+any `step()` on committed/still-unknown paths. The not-committed path proves the old
+transition is not reused, the new attempt is recorded before its one allowed `step()`, and
+its final succeeded or failed terminal is referenced by the report. If that new transition
+becomes unknown, it receives its own sole reconciliation query or yields quarantine.
 
-**Output:** append-only, crash-safe recovery that closes each transition and
-reconciliation attempt exactly once and emits one terminal `RecoveryReport` binding the
-complete referenced chain, including `not_required` for normal runs.
+**Output:** append-only, crash-safe recovery that closes each transition and sole-query
+reconciliation exactly once, resumes only staged bytes/result publication, and emits one
+terminal `RecoveryReport` binding the complete chain, including `not_required` normally.
 
 ### Task 3.10: Public/private projections
 
@@ -1196,40 +1543,152 @@ public and per-seat artifacts that remain reconcilable to canonical event identi
   version-bumped final `EvaluationReceipt` schema/export.
 - Create `tests/shared_runner/test_receipt.py`.
 
-**Consumes:** sealed evidence, pure score/typed measurement failure, Task 3.8
-`ReplayReport`, Task 3.9 terminal `RecoveryReport`, Task 3.10 `ProjectionSet`, and the
-resolved `RunPlan`/`PlanCell`. **Produces:** `finalize_episode(...) -> EvaluationReceipt`
-and an atomic canonical receipt file whose `receipt_sha256` excludes only its own digest
-field.
+**Consumes:** sealed evidence, the exact `ScorerInputArtifactSet`/hash and sealed typed
+`RaterAggregateInput` when required, pure score/typed measurement failure, Task 3.8
+`ReplayReport`, Task 3.9 terminal `RecoveryReport`, Task 3.10 `ProjectionSet`, Task 2.3
+`ExecutionSurfaceAdmission`, and the resolved `RunPlan`/`PlanCell`. **Produces:**
+`finalize_episode(...) -> EvaluationReceipt` and an atomic canonical receipt file whose
+`receipt_sha256` excludes only its own digest field.
 
 Only after seal/pure score, replay validation, final recovery state, and projections,
 create the immutable receipt. It binds plan/case, candidate, counterpart and judge
 configurations, runtime/tools, environment/parser/verifier/reference pins, the complete
 resolved measurement and transition-policy hashes, evidence roots, replay result/coverage/
 report hash, the terminal recovery status and referenced transition/reconciliation chain,
-admission/observability, exact planned cluster/pair/episode-replicate/judgment-slot
-identity (never attempt counts), projection and per-seat trajectory refs, score or typed
-failure, and inclusion. Secret/native session identifiers are excluded.
+admission report/capability hashes and observability, `composition_sha256`, the exact sole
+planned `PlanCell` key plus cluster/pair/judgment-slot identity (never attempt counts),
+sorted scorer-input refs and `artifact_set_sha256`, typed rater-aggregate ref/status,
+projection and per-seat trajectory refs, score or typed failure, and inclusion.
+Secret/native session identifiers are excluded, and finalization never enumerates the
+artifact store.
 
 **RED requirements:** finalization rejects unsealed evidence, an unfinished transition or
 reconciliation, a missing/nonterminal `RecoveryReport`, absent/mismatched replay/
 projection/measurement/transition-policy hashes, cluster or plan identity drift,
-an invalid score paired with numeric output, and any secret/native session identifier in
+scorer-artifact-set/rater-aggregate/admission/composition drift, an invalid score paired
+with numeric output, and any secret/native session identifier in
 the public receipt. A scorer/judge/recovery failure produces `invalid_measurement` with no
 numeric zero imputation. Receipt publication is atomic/idempotent for identical canonical
 bytes and refuses a different second receipt for the same episode attempt. Hash mutation
 tests cover every candidate/counterpart/judge/runtime/tool/plugin/reference/evidence/
 replay/recovery-chain/transition-policy/cluster/planned-slot/projection/score/inclusion
-field. The four recovery statuses are receipt-distinct; `quarantined` always has
+field plus the sole PlanCell and artifact-set hashes. The four recovery statuses are
+receipt-distinct; `quarantined` always has
 `invalid_measurement` and no numeric score, while a valid `not_required` report is
 mandatory for an uninterrupted run.
 
 **Output:** one immutable, hash-verifiable `EvaluationReceipt` per finalized episode
 attempt, or a typed pre-publication failure if the finalization contract is incomplete.
 
+### Task 3.12: Pure post-receipt analysis and composition
+
+**Dependency:** Tasks 1.1c and 3.11 are independently clean.
+
+**Files:**
+
+- Create `src/aeread/runner/analysis.py`.
+- Modify `src/aeread/runner/__init__.py` only to export the completed analysis surface;
+  modify `src/aeread/sdk/v1/records.py` and `src/aeread/sdk/v1/__init__.py` only for the
+  versioned `AnalysisRecord`/typed result records.
+- Create `tests/shared_runner/test_analysis.py` and golden input/record pairs under
+  `tests/shared_runner/fixtures/analysis_v0/`.
+- Modify the post-receipt analysis ownership sections in `docs/verifier_taxonomy.md` and
+  `docs/walkthroughs/shared_runner_architecture_roadmap.md`; guard the pure boundary in
+  `tests/test_shared_runner_design_contract.py`.
+
+**Consumes:** an immutable `RunPlan`, its resolved suite analysis/composition declarations,
+and canonical-hash-validated `EvaluationReceipt` values. **Produces:**
+`AnalysisEngine.analyze(run_plan, receipts) -> AnalysisRecord`. The engine and every
+registered `AnalysisMethod` are synchronous, deterministic, provider/runtime/network/
+filesystem/write-free functions. Metamorphic and field-rating declarations resolve their
+exact pinned `ImplementationRef` through a pure registry and receive only typed declared
+leaf/receipt results; an unknown implementation, pin drift, open options, or an attempted
+port access fails. The engine returns canonical bytes with
+`schema_version="aeread.analysis/0.1"` and `analysis_sha256` computed over every field
+except itself; only its caller may publish those returned bytes with `ArtifactStore.put()`.
+
+Validate analysis inputs before arithmetic. Verify each receipt's canonical hash and exact
+run/suite/cell/measurement/composition/artifact-set bindings, sort by `(PlanCell key,
+receipt_sha256)`, and validate each receipt's typed, plan-resolved inclusion disposition.
+For each planned key, exactly zero or one receipt may be included; excluded operational-
+attempt receipts remain traceable inputs but never count. An extra PlanCell or two included
+receipts for one key fails; a key with no included valid receipt is named in coverage and
+follows only the resolved missingness rule. No `EpisodeAttempt`, `RaterAttempt`, excluded
+receipt, or retry row can fill a missing cell or change a denominator. Each analysis block
+consumes only its declared leaf, arm, pair, group, population, or metamorphic inputs.
+
+Freeze V0 arithmetic and ordering rather than inheriting library defaults:
+
+- all inputs/results are finite IEEE-754 binary64 values serialized by the project
+  canonical JSON encoder; stable key ordering is mandatory and non-finite values fail;
+- mean is `math.fsum(values) / n`; probability is the integer success count divided by
+  the declared planned denominator; R-7 quantile sorts values and uses
+  `h=(n-1)q`, `j=floor(h)`, and `x[j] + (h-j)*(x[j+1]-x[j])` (the sole value for `n=1`);
+- a paired difference applies the declared direction within each exact pair and then uses
+  `math.fsum(pair_differences)/n_pairs`; an unpaired difference is the subject-arm mean
+  minus comparator-arm mean in declared direction;
+- pass-all-k groups by declared `PlanCell` group key, requires exactly `k` unique cells,
+  assigns group value `1` iff every resolved success predicate is true and `0` otherwise,
+  then reports integer passed-group numerator, declared valid-group denominator, and
+  their mean. Missing/extra/duplicate cells invoke missingness and never silently alter k;
+- exact rational composition weights and pinned transforms are applied to already computed
+  leaf results; `math.fsum` combines transformed weighted terms. Vector, hybrid-gate,
+  weighted, and judge-augmented outputs preserve direct leaf block IDs and never mutate a
+  leaf result or `measurement_sha256`.
+
+`ClusterBootstrapIntervalSpec` uses percentile cluster bootstrap exactly. Group rows into
+one ordered row-block per resolved sorted cluster identity, preserving every validated
+row, pair/group field, weight, and unequal cluster size; require at least two valid
+clusters. For each of B draws, sample C whole cluster row-blocks with replacement and
+recompute the complete declared estimator with block multiplicity. A scalar cluster-level
+reduction is allowed only when the estimator explicitly declares that reduction and its
+weighting rule. Sampling uses SHA-256 counter blocks over
+the canonical domain `(aeread.cluster_bootstrap/0.1, run_plan_sha256, analysis_block_id,
+seed, draw_index, position, retry_counter)`: interpret the digest as an unsigned 256-bit
+integer, reject values at or above `2^256 - (2^256 mod C)`, and take `value mod C`.
+Sort the B finite statistics and compute endpoints at `(1-confidence)/2` and
+`1-(1-confidence)/2` with the same R-7 rule. Record confidence, B, seed, C, sampler/
+quantile version, endpoint values, and cluster identities in `AnalysisRecord`.
+
+`PairedRandomizationTestSpec` publishes a test, never a confidence interval. From the
+sorted exact pairs compute observed `abs(math.fsum(differences)/n)`. If `2^n` is no larger
+than the declared exhaustive threshold, enumerate sign masks from `0` through `2^n-1`
+in sorted pair order, with bit `0 -> -1` and bit `1 -> +1`, and report
+`count(T >= T_obs)/2^n`. Otherwise, for every `(draw_index, pair_position)` take bit zero
+of the digest over canonical `(aeread.paired_randomization/0.1, run_plan_sha256,
+analysis_block_id, seed, draw_index, pair_position)` with the same sign mapping, then
+report `(1 + count(T >= T_obs))/(B + 1)`. Ties use `>=`; the record
+names exhaustive vs Monte Carlo, pair count/order, B/seed when applicable, statistic, and
+p-value, with `NoIntervalSpec(method="none")`.
+
+`AnalysisRecord` binds analysis/run/suite/composition hashes, all sorted receipt ID/hash/
+cell/inclusion refs, exact expected/included/missing coverage, per-block estimator/comparison/metamorphic/
+field-rating results, intervals/tests, composition outputs, every analysis implementation
+pin, numeric/sampler versions, and its own digest. The golden fixture freezes complete
+canonical JSON and digest for mean, probability, R-7 quantile, paired/unpaired difference,
+pass-all-k, bootstrap, randomization test, one metamorphic method, one field-rating method,
+and each composition variant.
+
+**RED requirements:** `test_analysis_v0_record_matches_golden_bytes_and_hash` covers the
+complete fixture. Named neighboring tests mutate each receipt/ref/pin/PlanCell/group/pair/
+cluster/composition field; reject duplicate included/extra cells and enforce declared
+missingness for zero-included cells; prove excluded operational retries do not change
+coverage or pass-all-k; freeze
+bootstrap draw indices/endpoints and exhaustive/Monte Carlo randomization p-values; and
+prove paired randomization has no CI fields. Dependency fakes raise on artifact-store
+enumeration, write, file, network, provider, evaluator, lifecycle, tool, runtime, or
+environment access. Reordered input receipts produce byte-identical output; repeated
+analysis produces identical bytes/hash and no side effect.
+
+**Output:** one pure content-addressed `AnalysisRecord` over validated receipts with exact
+coverage, V0 numeric/bootstrap/test goldens, declared higher-order methods, and post-leaf
+composition; no analysis mutates receipts or leaf measurement identity.
+
 ## Stage 4 — provider-free conformance
 
 ### Task 4.1: Conformance library
+
+**Dependency:** Tasks 3.1–3.12 are independently clean.
 
 **Files:**
 
@@ -1241,14 +1700,16 @@ attempt, or a typed pre-publication failure if the finalization contract is inco
 library API with named case results and no provider credentials/network dependency.
 
 The provider-free matrix covers strict manifests; all five verifier leaves and three
-evaluation modes; the read-only authorized-artifact scorer boundary; exact cluster/pair/
-planned-episode/planned-judgment mapping with operational attempts excluded; sequential/
-simultaneous/multi-channel scheduling; channel cardinality and atomic bundles; privacy; malformed/illegal/
+evaluation modes; separate read-only reference/scorer/reconciliation artifact boundaries
+and scorer-set hash; exact cluster/pair/sole-`PlanCell`/planned-judgment mapping with
+operational attempts excluded; sequential/simultaneous/multi-channel scheduling; channel
+cardinality and atomic bundles; privacy; malformed/illegal/
 missing/timeout actions; the no-mutation-before-parse/legal boundary; actual tool evidence;
-session cleanup/isolation; judge visibility, pre-seal evaluator work, final-seal ordering,
-and fail-closed missingness; all transition-policy, materialization, reconciliation, and
-terminal recovery-report outcomes; deterministic replay; receipt integrity; and valid
-zero/negative economics.
+economic-seat/evaluator-subject lifecycle cleanup/isolation; judge visibility, pre-seal
+evaluator work, sealed typed aggregation, final-seal ordering, and fail-closed missingness;
+all transition-policy, sole-query/staging/materialization/reconciliation, and terminal
+recovery-report outcomes; deterministic replay; receipt integrity; pure golden
+post-receipt analysis; and valid zero/negative economics.
 
 **RED requirements:** an intentionally broken fixture for each named invariant fails only
 its expected case with a stable failure code; a conforming minimal fixture passes the full
@@ -1312,10 +1773,10 @@ Absence of either is a typed blocked preflight, never permission to use an unpin
   non-secret evaluator/profile/rubric/prompt pins and budgets used for the run.
 - Create `tests/shared_runner/test_live_evaluator_smoke.py` for the driver and guardrails.
 
-**Consumes:** Tasks 3.5–3.11, an evaluator-only fixture with no economic mutation path,
+**Consumes:** Tasks 3.5–3.12, an evaluator-only fixture with no economic mutation path,
 and the pinned profile/config. **Produces:** one ignored run directory containing the
 canonical events/artifacts, `ReplayReport`, projections, `EvaluationReceipt`, cost record,
-and a machine-readable smoke summary.
+`AnalysisRecord`, and a machine-readable smoke summary.
 
 The live envelope is exactly one `RaterAttempt`, at most one provider call, 60 seconds,
 256 output tokens, and USD 0.25; exceeding any bound fails the smoke. The driver has no
@@ -1388,13 +1849,14 @@ source-admission-only until their missing code/license/scorer/judge prerequisite
 - Harbor/tau whole trial: outer envelope only and `interop_only` admission.
 - Harbor runtime backend: same scripted AERead episode has native outcome/score parity.
 - Crash matrix: backend start, partial setup, open session, provider, tool, close,
-  environment transition, every transition-reconciliation/materialization crash point,
-  cleanup, and backend stop failures reconcile to one strict terminal recovery report
-  without overwrite or invented authoritative state.
+  environment transition, every sole-query reconciliation staging/CAS/materialization
+  crash point, cleanup, and backend stop failures reconcile to one strict terminal
+  recovery report without re-query, overwrite, or invented authoritative state.
 - Capability mismatch: zero backend/runtime/provider/tool calls.
 - Privacy: native session IDs and secrets never enter public receipts or projections.
 - Isolation matrix: no session, memory, filesystem, process, cache, tool, or private-state
-  leakage across default backend/setup/session lease keys for seats/cells/attempts.
+  leakage across default backend/setup/session lease subjects for economic seats,
+  evaluator assignments, cells, or attempts.
 
 ## Review workflow
 
@@ -1407,8 +1869,9 @@ remain.
 ## Current dispatch gate
 
 The foundation and local PR #7 integration are clean through `388e52b`; the whole runner
-is not implemented, and dual review found `0ea339a` non-dispatchable. Task 0.3+ remains
-blocked until an independent review finds this second correction P0/P1/P2 clean and the
+is not implemented, and dual review found the second correction at `a27cad6`
+non-dispatchable. Task 0.3+ remains blocked until independent review finds this third
+correction P0/P1/P2 clean and the
 progress ledger records that verdict. Only then may the ignored stale Task 0.3 brief be
 regenerated from the clean plan and dispatched. Thereafter each task advances only through
 its declared RED/GREEN, scoped commit, and independent-review gate; provider-free/static
