@@ -1463,7 +1463,9 @@ class AdmissionReport(StrictModel):
     checks: tuple[AdmissionCheck, ...]
 
 
-class EpisodeCell(StrictModel):
+class PlanCell(StrictModel):
+    spec_version: Literal["aeread.plan_cell/0.1"]
+    record_type: Literal["plan_cell"]
     cell_id: SDKStr
     case_id: SDKStr
     family_id: SDKStr
@@ -1498,8 +1500,12 @@ class EpisodeCell(StrictModel):
     admission_profile: Literal["paper_primary", "training", "interop_only"]
 
 
+# Import-only compatibility alias. It cannot create a second model, schema, or payload.
+EpisodeCell = PlanCell
+
+
 class RunPlan(StrictModel):
-    spec_version: Literal["aeread.run_plan/0.1"] = "aeread.run_plan/0.1"
+    spec_version: Literal["aeread.run_plan/0.2"]
     run_plan_id: SDKStr
     run_plan_sha256: SDKStr = Field(pattern=r"^[0-9a-f]{64}$")
     family_sha256: SDKStr = Field(pattern=r"^[0-9a-f]{64}$")
@@ -1514,7 +1520,7 @@ class RunPlan(StrictModel):
     run_spec: RunSpec
     adapter_call_observability_by_profile: ImmutableMapping[CallObservability]
     admission_report: AdmissionReport
-    cells: tuple[EpisodeCell, ...]
+    cells: tuple[PlanCell, ...]
 
     @model_validator(mode="after")
     def validate_plan(self) -> "RunPlan":

@@ -20,12 +20,12 @@ from aeread.sdk.v1.records import (
     CaseManifest,
     ComparativeMeasurementSpec,
     DecisionSlot,
-    EpisodeCell,
     FamilyManifest,
     ImplementationRef,
     MeasurementSpec,
     ObservationEnvelope,
     OptimizableOutcomeMeasurementSpec,
+    PlanCell,
     ResolutionInputs,
     RunPlan,
     RunSpec,
@@ -675,7 +675,7 @@ def _cluster_values(
     }
 
 
-def _cell_digest_basis(cell: EpisodeCell) -> dict[str, object]:
+def _cell_digest_basis(cell: PlanCell) -> dict[str, object]:
     return cell.model_dump(mode="python", exclude={"cell_id"})
 
 
@@ -686,7 +686,7 @@ def _plan_digest_basis(plan: RunPlan) -> dict[str, object]:
 def _reconstruct_expected_plan_content(
     inputs: ResolutionInputs,
     adapter_observability: Mapping[str, str],
-) -> tuple[AdmissionReport, tuple[EpisodeCell, ...]]:
+) -> tuple[AdmissionReport, tuple[PlanCell, ...]]:
     """Reconstruct the only admissible cell tuple from normalized semantic inputs."""
 
     profiles = {profile.profile_id: profile for profile in inputs.agent_profiles}
@@ -812,6 +812,8 @@ def _reconstruct_expected_plan_content(
                             cluster_digest = content_sha256(identity_values)
                             draft_cells.append(
                                 {
+                                    "spec_version": "aeread.plan_cell/0.1",
+                                    "record_type": "plan_cell",
                                     "cell_id": "pending",
                                     "case_id": case.case_id,
                                     "family_id": inputs.family.family_id,
@@ -860,21 +862,21 @@ def _reconstruct_expected_plan_content(
                             )
 
     if not draft_cells:
-        raise ManifestMismatch("resolution produced no episode cells")
+        raise ManifestMismatch("resolution produced no plan cells")
     counts = Counter(
         (cast(str, draft["estimand_id"]), cast(str, draft["cluster_id"]))
         for draft in draft_cells
     )
-    cells: list[EpisodeCell] = []
+    cells: list[PlanCell] = []
     for draft in draft_cells:
         draft["observations_per_cluster"] = counts[
             (cast(str, draft["estimand_id"]), cast(str, draft["cluster_id"]))
         ]
-        pending = EpisodeCell.model_validate(draft)
+        pending = PlanCell.model_validate(draft)
         digest = content_sha256(_cell_digest_basis(pending))
         complete = pending.model_dump(mode="python")
         complete["cell_id"] = "cell-" + digest[:24]
-        cells.append(EpisodeCell.model_validate(complete))
+        cells.append(PlanCell.model_validate(complete))
 
     cells.sort(
         key=lambda cell: (
@@ -1027,7 +1029,7 @@ def resolve_run_plan(inputs: ResolutionInputs, registry: PluginRegistry) -> RunP
     run_hash = _run_hash(resolved.run_spec)
     case_hashes = {case.case_id: case.content_sha256 for case in resolved.cases}
     plan_data = {
-        "spec_version": "aeread.run_plan/0.1",
+        "spec_version": "aeread.run_plan/0.2",
         "run_plan_id": "pending",
         "run_plan_sha256": "0" * 64,
         "family_sha256": family_hash,

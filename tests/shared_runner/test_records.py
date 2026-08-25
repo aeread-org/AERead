@@ -360,6 +360,15 @@ def test_public_records_are_frozen_and_normalize_lists_to_tuples() -> None:
         channel.channel_id = "changed"
 
 
+def test_plan_cell_is_the_only_stable_planning_record_export() -> None:
+    import aeread.sdk.v1 as sdk_v1
+
+    assert sdk_v1.EpisodeCell is sdk_v1.PlanCell
+    assert "PlanCell" in sdk_v1.__all__
+    assert "EpisodeCell" not in sdk_v1.__all__
+    assert sdk_v1.PlanCell.__name__ == "PlanCell"
+
+
 @pytest.mark.parametrize(
     ("record_factory", "field_names"),
     [

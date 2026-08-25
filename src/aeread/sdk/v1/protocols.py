@@ -29,7 +29,7 @@ from .records import (
 
 FamilyCaseT = TypeVar("FamilyCaseT")
 FamilyStateT = TypeVar("FamilyStateT")
-EpisodeCellT = TypeVar("EpisodeCellT")
+PlanCellT = TypeVar("PlanCellT")
 RuntimeSpecT = TypeVar("RuntimeSpecT")
 RuntimeHandleT = TypeVar("RuntimeHandleT")
 ProgramRequestT = TypeVar("ProgramRequestT")
@@ -43,7 +43,7 @@ ParityReportT = TypeVar("ParityReportT")
 
 
 @runtime_checkable
-class EnvironmentPlugin(Protocol[FamilyCaseT, FamilyStateT, EpisodeCellT]):
+class EnvironmentPlugin(Protocol[FamilyCaseT, FamilyStateT, PlanCellT]):
     """Deterministic economic environment hooks; only ``step`` mutates state."""
 
     manifest: PluginManifest
@@ -51,7 +51,7 @@ class EnvironmentPlugin(Protocol[FamilyCaseT, FamilyStateT, EpisodeCellT]):
     def validate_case(self, payload: Mapping[str, object]) -> FamilyCaseT: ...
 
     def initial_state(
-        self, case: FamilyCaseT, cell: EpisodeCellT
+        self, case: FamilyCaseT, cell: PlanCellT
     ) -> FamilyStateT: ...
 
     def phase_graph(self, case: FamilyCaseT) -> PhaseGraph: ...

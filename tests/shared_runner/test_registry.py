@@ -492,6 +492,7 @@ def test_protocols_are_runtime_checkable_and_missing_methods_are_rejected() -> N
 
 
 def test_protocol_method_boundaries_resolve_and_preserve_call_direction() -> None:
+    initial_state_hints = get_type_hints(EnvironmentPlugin.initial_state)
     environment_hints = get_type_hints(EnvironmentPlugin.parse_action)
     verifier_hints = get_type_hints(VerifierPlugin.score)
     adapter_hints = get_type_hints(AgentAdapter.act)
@@ -507,6 +508,7 @@ def test_protocol_method_boundaries_resolve_and_preserve_call_direction() -> Non
         SealedEvidenceView,
     )
 
+    assert initial_state_hints["cell"].__name__ == "PlanCellT"
     assert environment_hints["response"] is CanonicalResponse
     assert verifier_hints["evidence"] is SealedEvidenceView
     assert adapter_hints["attempts"] is AttemptObserverType

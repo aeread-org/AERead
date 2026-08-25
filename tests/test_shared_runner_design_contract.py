@@ -13,6 +13,11 @@ RUNNER_ARCHITECTURE = (
     / "shared_runner_architecture_roadmap.md"
 )
 WALKTHROUGH_INDEX = Path(__file__).parents[1] / "docs" / "walkthroughs" / "README.md"
+PUBLIC_ENVIRONMENT_SPEC = (
+    Path(__file__).parents[1]
+    / "docs"
+    / "public_environment_and_external_adapter_spec.md"
+)
 
 
 def test_shared_runner_design_records_frozen_execution_contract() -> None:
@@ -48,6 +53,25 @@ def test_shared_runner_design_uses_authoritative_public_execution_api() -> None:
     assert ") -> Mapping[str, LegalityResult]: ..." not in text
     assert "class AttemptObserver(Protocol):" in text
     assert "*, attempts: AttemptObserver" in text
+
+
+def test_public_environment_spec_uses_plan_cell_only() -> None:
+    text = PUBLIC_ENVIRONMENT_SPEC.read_text(encoding="utf-8")
+    unexpected_retired_lines = [
+        line
+        for line in text.splitlines()
+        if ("EpisodeCell" in line or "EpisodeCellT" in line)
+        and not any(
+            label in line.lower()
+            for label in ("retired", "historical", "negative migration")
+        )
+    ]
+
+    assert "PlanCell" in text
+    assert not unexpected_retired_lines, (
+        "authoritative public signatures retain retired plan-cell names: "
+        f"{unexpected_retired_lines}"
+    )
 
 
 def test_shared_runner_design_allows_zero_provider_calls_per_attempt() -> None:

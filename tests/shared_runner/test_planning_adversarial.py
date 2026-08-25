@@ -1115,6 +1115,29 @@ def _tamper_rollout_coordinate_with_rehashed_cell(plan):
 
 
 @pytest.mark.parametrize(
+    ("target", "update"),
+    (
+        ("plan", {"spec_version": "aeread.run_plan/0.1"}),
+        ("cell", {"spec_version": "aeread.episode_cell/0.1"}),
+        ("cell", {"record_type": "episode_cell"}),
+    ),
+)
+def test_deep_verifier_rejects_unchecked_retired_plan_identities(
+    target: str, update: dict[str, str]
+) -> None:
+    plan = resolve_run_plan(fake_resolution_inputs(), _registry())
+    if target == "plan":
+        forged = _rehash_top_level(plan.model_copy(update=update))
+    else:
+        forged_cell = plan.cells[0].model_copy(update=update)
+        forged = _rehash_top_level(
+            plan.model_copy(update={"cells": (forged_cell, *plan.cells[1:])})
+        )
+
+    assert not verify_run_plan_identity(forged)
+
+
+@pytest.mark.parametrize(
     "tamper",
     (
         _tamper_cell_id,

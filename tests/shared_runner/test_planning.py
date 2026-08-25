@@ -8,6 +8,7 @@ import sys
 import pytest
 from pydantic import ValidationError
 
+import aeread.sdk.v1 as sdk_v1
 from aeread.runner.planning import (
     ADMISSION_REQUIREMENTS,
     CapabilityMismatch,
@@ -58,6 +59,21 @@ def _replace(inputs: ResolutionInputs, **updates: object) -> ResolutionInputs:
     return inputs.model_copy(update=updates)
 
 
+def _plan_cell_type() -> type:
+    plan_cell = getattr(sdk_v1, "PlanCell", None)
+    assert plan_cell is not None, "aeread.sdk.v1 must export canonical PlanCell"
+    return plan_cell
+
+
+def _different_implementation(ref, *, marker: str):
+    return ref.model_copy(
+        update={
+            "implementation_id": ref.implementation_id + "_changed",
+            "content_sha256": marker * 64,
+        }
+    )
+
+
 def test_manifest_versions_unknown_fields_and_nested_values_are_strict() -> None:
     inputs = fake_resolution_inputs()
 
@@ -105,6 +121,141 @@ def test_every_manifest_rejects_the_wrong_own_spec_version(
     raw["spec_version"] = wrong_version
     with pytest.raises(ValidationError, match="spec_version"):
         type(record).model_validate(raw)
+
+
+def test_plan_cell_rejects_stale_episode_cell_payloads() -> None:
+    plan_cell_type = _plan_cell_type()
+    plan = resolve_run_plan(fake_resolution_inputs(), _registry())
+    cell_payload = plan.cells[0].model_dump(mode="python")
+
+    assert cell_payload["record_type"] == "plan_cell"
+    assert cell_payload["spec_version"] == "aeread.plan_cell/0.1"
+
+    for field in ("record_type", "spec_version"):
+        missing = dict(cell_payload)
+        del missing[field]
+        with pytest.raises(ValidationError, match=field):
+            plan_cell_type.model_validate(missing)
+
+    for stale_value in ("episode_cell", "EpisodeCell", "cell"):
+        with pytest.raises(ValidationError, match="record_type"):
+            plan_cell_type.model_validate({**cell_payload, "record_type": stale_value})
+
+    for stale_version in (
+        "aeread.sdk_record/1",
+        "aeread.episode_cell/0.1",
+        "aeread.plan_cell/0.0",
+        "aeread.plan_cell/0.2",
+    ):
+        with pytest.raises(ValidationError, match="spec_version"):
+            plan_cell_type.model_validate(
+                {**cell_payload, "spec_version": stale_version}
+            )
+
+    plan_payload = plan.model_dump(mode="python")
+    assert plan_payload["spec_version"] == "aeread.run_plan/0.2"
+    for stale_version in (
+        "aeread.run_plan/0.1",
+        "aeread.run_plan/0.3",
+        "aeread.sdk_record/1",
+    ):
+        with pytest.raises(ValidationError, match="spec_version"):
+            type(plan).model_validate({**plan_payload, "spec_version": stale_version})
+    missing_plan_version = dict(plan_payload)
+    del missing_plan_version["spec_version"]
+    with pytest.raises(ValidationError, match="spec_version"):
+        type(plan).model_validate(missing_plan_version)
+
+
+def test_plan_cell_has_one_serialized_identity_even_through_alias() -> None:
+    plan_cell_type = _plan_cell_type()
+    alias = getattr(sdk_v1, "EpisodeCell", None)
+    assert alias is plan_cell_type
+
+    cell = resolve_run_plan(fake_resolution_inputs(), _registry()).cells[0]
+    alias_cell = alias.model_validate(cell.model_dump(mode="python"))
+
+    assert type(cell) is plan_cell_type
+    assert type(alias_cell) is plan_cell_type
+    assert alias.model_json_schema() == plan_cell_type.model_json_schema()
+    assert alias_cell.model_dump(mode="json")["record_type"] == "plan_cell"
+    assert alias_cell.model_dump(mode="json")["spec_version"] == (
+        "aeread.plan_cell/0.1"
+    )
+    assert content_sha256(
+        alias_cell.model_dump(mode="python", exclude={"cell_id"})
+    ) == content_sha256(cell.model_dump(mode="python", exclude={"cell_id"}))
+
+
+def test_plan_cell_digest_covers_every_scientific_input() -> None:
+    plan_cell_type = _plan_cell_type()
+    cell = resolve_run_plan(fake_resolution_inputs(), _registry()).cells[0]
+    assert type(cell) is plan_cell_type
+
+    scientific_mutations = {
+        "case_id": "case-changed",
+        "family_id": "family-changed",
+        "family_version": "2.0.0",
+        "block_id": "block-changed",
+        "estimand_id": "estimand-changed",
+        "measurement_sha256": "a" * 64,
+        "subject_role": "role-changed",
+        "subject_seat_id": "seat-changed",
+        "repetition_index": cell.repetition_index + 1,
+        "rollout_seed": cell.rollout_seed + 1,
+        "world_seed": cell.world_seed + 1,
+        "cluster_id": "cluster-changed",
+        "cluster_level": "cluster-level-changed",
+        "observations_per_cluster": cell.observations_per_cluster + 1,
+        "cluster_parent_value": "parent-changed",
+        "pairing_values": {"rollout_seed": 999},
+        "panel_mode": (
+            "sampled_panel" if cell.panel_mode == "fixed_panel" else "fixed_panel"
+        ),
+        "case_sha256": "b" * 64,
+        "family_sha256": "c" * 64,
+        "suite_sha256": "d" * 64,
+        "run_spec_sha256": "e" * 64,
+        "candidate_agent_config_sha256": "f" * 64,
+        "seat_profile_id_by_seat": {"buyer-1": "profile-changed"},
+        "seat_profile_sha256_by_seat": {"buyer-1": "1" * 64},
+        "environment_ref": _different_implementation(cell.environment_ref, marker="2"),
+        "verifier_ref": _different_implementation(cell.verifier_ref, marker="3"),
+        "reference_refs": {
+            "optimum_lower_bound": _different_implementation(
+                next(iter(cell.reference_refs.values())), marker="4"
+            )
+        },
+        "oracle_ref": (
+            _different_implementation(cell.environment_ref, marker="5")
+            if cell.oracle_ref is None
+            else _different_implementation(cell.oracle_ref, marker="5")
+        ),
+        "adapter_refs_by_seat": {
+            "buyer-1": _different_implementation(
+                next(iter(cell.adapter_refs_by_seat.values())), marker="6"
+            )
+        },
+        "execution_backend_ref": _different_implementation(
+            cell.execution_backend_ref, marker="7"
+        ),
+        "admission_profile": "training",
+    }
+    expected_scientific_fields = set(plan_cell_type.model_fields) - {
+        "cell_id",
+        "record_type",
+        "spec_version",
+    }
+    assert set(scientific_mutations) == expected_scientific_fields
+
+    original_basis = cell.model_dump(mode="python", exclude={"cell_id"})
+    original_digest = content_sha256(original_basis)
+    for field, changed_value in scientific_mutations.items():
+        changed = plan_cell_type.model_validate(
+            {**cell.model_dump(mode="python"), field: changed_value}
+        )
+        changed_basis = changed.model_dump(mode="python", exclude={"cell_id"})
+        assert content_sha256(changed_basis) != original_digest, field
 
 
 def test_case_factory_computes_hash_and_manifest_rejects_tampering() -> None:
