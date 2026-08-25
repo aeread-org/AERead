@@ -5,8 +5,9 @@ from __future__ import annotations
 from collections.abc import Mapping
 import re
 from typing import Annotated, Literal
+from urllib.parse import urlparse
 
-from pydantic import Field, model_validator
+from pydantic import Field, ValidationInfo, model_validator
 
 from .base import (
     ImmutableMapping,
@@ -31,6 +32,7 @@ _SEMVER_PATTERN = re.compile(
     r"(?:\.(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*))*))?"
     r"(?:\+([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?$"
 )
+SHA256 = Annotated[SDKStr, Field(pattern=r"^[0-9a-f]{64}$")]
 
 
 class PluginManifest(StrictModel):
@@ -482,3 +484,496 @@ class EvaluationReceipt(StrictModel):
     replay_level: Literal["deterministic", "score_only", "none"]
     trajectory_refs: ImmutableMapping[ArtifactRef] = Field(default_factory=dict)
     receipt_sha256: SDKStr | None = None
+
+
+class PinnedPluginRef(StrictModel):
+    """Exact registry reference plus a caller-supplied content pin."""
+
+    plugin: PluginRef
+    implementation: ImplementationRef
+
+    @model_validator(mode="after")
+    def validate_matching_identity(self) -> "PinnedPluginRef":
+        if (
+            self.implementation.implementation_id != self.plugin.plugin_id
+            or self.implementation.version != self.plugin.plugin_version
+        ):
+            raise ValueError(
+                "implementation ID/version must match the plugin reference"
+            )
+        return self
+
+
+class UpstreamSourceRef(StrictModel):
+    repository_url: SDKStr
+    commit: SDKStr = Field(pattern=r"^(?:[0-9a-f]{40}|[0-9a-f]{64})$")
+    release: SDKStr | None = None
+    license_spdx: SDKStr
+    source_paths: tuple[SDKStr, ...]
+    patchset_sha256: SDKStr | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
+    materialized_artifact_hashes: ImmutableMapping[SHA256] = Field(default_factory=dict)
+    upstream_scorer_ref: SDKStr | None = None
+    parity_report_sha256: SDKStr | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
+
+    @model_validator(mode="after")
+    def validate_source(self) -> "UpstreamSourceRef":
+        parsed_url = urlparse(self.repository_url)
+        if (
+            parsed_url.scheme not in {"http", "https", "ssh", "git"}
+            or not parsed_url.netloc
+        ):
+            raise ValueError("repository_url must be an absolute repository URL")
+        if not self.license_spdx.strip():
+            raise ValueError("repository_url and license_spdx must be non-empty")
+        if not self.source_paths or any(not path.strip() for path in self.source_paths):
+            raise ValueError("source_paths must contain non-empty paths")
+        if len(self.source_paths) != len(set(self.source_paths)):
+            raise ValueError("source_paths must be unique")
+        if any(
+            not re.fullmatch(r"[0-9a-f]{64}", value)
+            for value in self.materialized_artifact_hashes.values()
+        ):
+            raise ValueError("materialized artifact hashes must be SHA-256 values")
+        return self
+
+
+class CapabilityDeclaration(StrictModel):
+    schedule_control: Literal["runner", "upstream", "opaque"]
+    observation_visibility: Literal["full", "partial", "opaque"]
+    call_observability: Literal["full", "logical_only", "opaque"]
+    state_replay: Literal["deterministic", "score_only", "none"]
+    score_parity: Literal["exact", "component", "statistical", "none"]
+    privacy_enforcement: Literal["runner", "upstream", "unverified"]
+    trainability: Literal["per_seat", "joint_only", "none"]
+
+
+class RoleSpec(StrictModel):
+    role_id: SDKStr
+    testable: SDKBool
+    trainable: SDKBool
+    controlled_profile_ids: tuple[SDKStr, ...] = ()
+
+    @model_validator(mode="after")
+    def validate_role(self) -> "RoleSpec":
+        if not self.role_id.strip():
+            raise ValueError("role_id must be non-empty")
+        if len(self.controlled_profile_ids) != len(set(self.controlled_profile_ids)):
+            raise ValueError("controlled_profile_ids must be unique")
+        if any(not value.strip() for value in self.controlled_profile_ids):
+            raise ValueError("controlled_profile_ids must be non-empty")
+        return self
+
+
+class MeasurementSpec(StrictModel):
+    estimand_id: SDKStr
+    measurement_kind: Literal[
+        "property_or_answer",
+        "optimizable_outcome",
+        "comparative_or_human_judged",
+    ]
+    direction: Literal["maximize", "minimize"]
+    primary_metric_id: SDKStr
+    verifier_plugin_id: SDKStr
+    reference_kinds: tuple[SDKStr, ...] = ()
+    bound_status: SDKStr | None = None
+
+    @model_validator(mode="after")
+    def validate_measurement(self) -> "MeasurementSpec":
+        for value in (
+            self.estimand_id,
+            self.primary_metric_id,
+            self.verifier_plugin_id,
+        ):
+            if not value.strip():
+                raise ValueError("measurement identifiers must be non-empty")
+        if len(self.reference_kinds) != len(set(self.reference_kinds)):
+            raise ValueError("reference_kinds must be unique")
+        return self
+
+
+class FamilyManifest(StrictModel):
+    spec_version: Literal["aeread.family/0.1"] = "aeread.family/0.1"
+    family_id: SDKStr
+    family_version: SDKStr
+    environment: PinnedPluginRef
+    verifiers: tuple[PinnedPluginRef, ...]
+    phase_graph: PhaseGraph
+    roles: tuple[RoleSpec, ...]
+    measurements: tuple[MeasurementSpec, ...]
+    capabilities: CapabilityDeclaration
+    generator: PinnedPluginRef | None = None
+    upstream_source: UpstreamSourceRef | None = None
+    limits: JSONObject = Field(default_factory=dict)
+
+    @model_validator(mode="after")
+    def validate_family(self) -> "FamilyManifest":
+        if not self.family_id.strip() or not _SEMVER_PATTERN.fullmatch(
+            self.family_version
+        ):
+            raise ValueError("family identity must be non-empty and exact-versioned")
+        if not self.verifiers:
+            raise ValueError("family must pin at least one verifier")
+        if not self.roles or not self.measurements:
+            raise ValueError("family must declare roles and measurements")
+        for values, label in (
+            ([item.plugin.plugin_id for item in self.verifiers], "verifier"),
+            ([item.role_id for item in self.roles], "role"),
+            ([item.estimand_id for item in self.measurements], "estimand"),
+        ):
+            if len(values) != len(set(values)):
+                raise ValueError(f"{label} identifiers must be unique")
+        return self
+
+
+class SeatSpec(StrictModel):
+    seat_id: SDKStr
+    role_id: SDKStr
+
+    @model_validator(mode="after")
+    def validate_seat(self) -> "SeatSpec":
+        if not self.seat_id.strip() or not self.role_id.strip():
+            raise ValueError("seat_id and role_id must be non-empty")
+        return self
+
+
+class CaseProvenance(StrictModel):
+    generator_id: SDKStr
+    generator_version: SDKStr
+    review_status: SDKStr
+    curator_id: SDKStr | None = None
+    curator_version: SDKStr | None = None
+    parent_sha256: SDKStr | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
+    materialization_sha256: SDKStr | None = Field(
+        default=None, pattern=r"^[0-9a-f]{64}$"
+    )
+
+    @model_validator(mode="after")
+    def validate_provenance(self) -> "CaseProvenance":
+        if any(
+            not value.strip()
+            for value in (
+                self.generator_id,
+                self.generator_version,
+                self.review_status,
+            )
+        ):
+            raise ValueError(
+                "generator identity/version and review status are required"
+            )
+        if (self.curator_id is None) != (self.curator_version is None):
+            raise ValueError("curator_id and curator_version must be declared together")
+        if not _SEMVER_PATTERN.fullmatch(self.generator_version):
+            raise ValueError("generator_version must be an exact semantic version")
+        if self.curator_version is not None and not _SEMVER_PATTERN.fullmatch(
+            self.curator_version
+        ):
+            raise ValueError("curator_version must be an exact semantic version")
+        return self
+
+
+def _case_content_basis(value: "CaseManifest") -> dict[str, object]:
+    basis = value.model_dump(mode="python", exclude={"content_sha256"})
+    basis["seats"] = sorted(basis["seats"], key=lambda seat: seat["seat_id"])
+    basis["terminal_reasons"] = sorted(basis["terminal_reasons"])
+    return basis
+
+
+def case_content_sha256(value: "CaseManifest") -> str:
+    """Compute a case digest over semantic content, excluding its digest field."""
+
+    from .base import content_sha256
+
+    return content_sha256(_case_content_basis(value))
+
+
+class CaseManifest(StrictModel):
+    spec_version: Literal["aeread.case/0.1"] = "aeread.case/0.1"
+    case_id: SDKStr
+    family_id: SDKStr
+    family_version: SDKStr
+    split: SDKStr
+    world_seed: SDKInt = Field(ge=0)
+    seats: tuple[SeatSpec, ...]
+    max_logical_actions: SDKInt = Field(ge=1)
+    terminal_reasons: tuple[SDKStr, ...]
+    visibility_policy: SDKStr
+    payload: JSONObject
+    provenance: CaseProvenance
+    content_sha256: SDKStr = Field(pattern=r"^[0-9a-f]{64}$")
+
+    @model_validator(mode="after")
+    def validate_case(self, info: ValidationInfo) -> "CaseManifest":
+        if any(
+            not value.strip()
+            for value in (
+                self.case_id,
+                self.family_id,
+                self.split,
+                self.visibility_policy,
+            )
+        ) or not _SEMVER_PATTERN.fullmatch(self.family_version):
+            raise ValueError(
+                "case identity, split, policy, and family version are required"
+            )
+        if not self.seats or not self.terminal_reasons:
+            raise ValueError("case must declare seats and terminal reasons")
+        seat_ids = [seat.seat_id for seat in self.seats]
+        if len(seat_ids) != len(set(seat_ids)):
+            raise ValueError("seat_id values must be unique")
+        if len(self.terminal_reasons) != len(set(self.terminal_reasons)):
+            raise ValueError("terminal_reasons must be unique")
+        if any(not reason.strip() for reason in self.terminal_reasons):
+            raise ValueError("terminal_reasons must contain non-empty identifiers")
+        if info.context and info.context.get("skip_case_hash_validation"):
+            return self
+        if self.content_sha256 != case_content_sha256(self):
+            raise ValueError("content_sha256 does not match canonical case content")
+        return self
+
+    @classmethod
+    def from_content(cls, **data: object) -> "CaseManifest":
+        """Validate case content and add its required canonical digest."""
+
+        if "content_sha256" in data:
+            raise ValueError("from_content computes content_sha256")
+        candidate = cls.model_validate(
+            {**data, "content_sha256": "0" * 64},
+            context={"skip_case_hash_validation": True},
+        )
+        complete = candidate.model_dump(mode="python")
+        complete["content_sha256"] = case_content_sha256(candidate)
+        return cls.model_validate(complete)
+
+
+class EvaluationBlock(StrictModel):
+    block_id: SDKStr
+    kind: SDKStr
+    subject_roles: tuple[SDKStr, ...]
+    controlled_profile_by_role: ImmutableMapping[SDKStr]
+    repetitions: SDKInt = Field(ge=1)
+    rollout_seeds: tuple[Annotated[SDKInt, Field(ge=0)], ...]
+
+    @model_validator(mode="after")
+    def validate_block(self) -> "EvaluationBlock":
+        if not self.block_id.strip() or not self.kind.strip():
+            raise ValueError("block_id and kind must be non-empty")
+        if not self.subject_roles or not self.rollout_seeds:
+            raise ValueError("blocks require subject roles and rollout seeds")
+        if len(self.subject_roles) != len(set(self.subject_roles)):
+            raise ValueError("subject_roles must be unique")
+        if len(self.rollout_seeds) != len(set(self.rollout_seeds)):
+            raise ValueError("rollout_seeds must be unique")
+        if any(not role.strip() for role in self.subject_roles) or any(
+            not role.strip() or not profile.strip()
+            for role, profile in self.controlled_profile_by_role.items()
+        ):
+            raise ValueError("block role and profile identifiers must be non-empty")
+        return self
+
+
+class ClusterSpec(StrictModel):
+    cluster_level: SDKStr
+    identity_fields: tuple[SDKStr, ...]
+    paired_fields: tuple[SDKStr, ...] = ()
+    parent_field: SDKStr | None = None
+    panel_mode: Literal["fixed_panel", "sampled_panel"]
+
+    @model_validator(mode="after")
+    def validate_cluster(self) -> "ClusterSpec":
+        if not self.cluster_level.strip() or not self.identity_fields:
+            raise ValueError("cluster level and identity fields are required")
+        if len(self.identity_fields) != len(set(self.identity_fields)):
+            raise ValueError("cluster identity_fields must be unique")
+        if len(self.paired_fields) != len(set(self.paired_fields)):
+            raise ValueError("cluster paired_fields must be unique")
+        if any(not field.strip() for field in self.identity_fields) or any(
+            not field.strip() for field in self.paired_fields
+        ):
+            raise ValueError("cluster fields must be non-empty")
+        if self.parent_field is not None and not self.parent_field.strip():
+            raise ValueError("cluster parent_field must be non-empty")
+        return self
+
+
+class SuiteManifest(StrictModel):
+    spec_version: Literal["aeread.suite/0.1"] = "aeread.suite/0.1"
+    suite_id: SDKStr
+    suite_version: SDKStr
+    case_ids: tuple[SDKStr, ...]
+    blocks: tuple[EvaluationBlock, ...]
+    cluster: ClusterSpec
+    missingness_policy: SDKStr
+    aggregation_group_fields: tuple[SDKStr, ...]
+    cross_family_scalar: Literal["disabled"] = "disabled"
+
+    @model_validator(mode="after")
+    def validate_suite(self) -> "SuiteManifest":
+        if (
+            not self.suite_id.strip()
+            or not _SEMVER_PATTERN.fullmatch(self.suite_version)
+            or not self.missingness_policy.strip()
+        ):
+            raise ValueError("suite identity/version/missingness policy are required")
+        if not self.case_ids or not self.blocks:
+            raise ValueError("suite requires cases and evaluation blocks")
+        for values, label in (
+            (self.case_ids, "case_id"),
+            (tuple(block.block_id for block in self.blocks), "block_id"),
+            (self.aggregation_group_fields, "aggregation_group_fields"),
+        ):
+            if len(values) != len(set(values)):
+                raise ValueError(f"{label} values must be unique")
+            if any(not value.strip() for value in values):
+                raise ValueError(f"{label} values must be non-empty")
+        return self
+
+
+class AgentProfile(StrictModel):
+    spec_version: Literal["aeread.agent_profile/0.1"] = "aeread.agent_profile/0.1"
+    profile_id: SDKStr
+    profile_version: SDKStr
+    adapter: PinnedPluginRef
+    provider: SDKStr
+    model: SDKStr
+    harness: SDKStr
+    runtime: SDKStr
+    prompt_sha256: SDKStr = Field(pattern=r"^[0-9a-f]{64}$")
+    sampling_config: JSONObject
+    tools: tuple[SDKStr, ...]
+    memory_mode: SDKStr
+    attempt_budget: AttemptBudget
+    retry_policy: RetryPolicy
+
+    @model_validator(mode="after")
+    def validate_agent_profile(self) -> "AgentProfile":
+        required = (
+            self.profile_id,
+            self.provider,
+            self.model,
+            self.harness,
+            self.runtime,
+            self.memory_mode,
+        )
+        if any(
+            not value.strip() for value in required
+        ) or not _SEMVER_PATTERN.fullmatch(self.profile_version):
+            raise ValueError("agent identity and configuration pins must be non-empty")
+        if any(not tool.strip() for tool in self.tools) or len(self.tools) != len(
+            set(self.tools)
+        ):
+            raise ValueError("tools must be unique non-empty identifiers")
+        conditions = self.retry_policy.retryable_conditions
+        if len(conditions) != len(set(conditions)):
+            raise ValueError("retryable_conditions must be unique")
+        length_enabled = "length" in conditions
+        length_limit = self.retry_policy.length_retry_output_tokens
+        if length_enabled:
+            if self.retry_policy.max_attempts < 2:
+                raise ValueError("length retry requires max_attempts >= 2")
+            if (
+                length_limit is None
+                or length_limit <= self.attempt_budget.output_token_limit
+            ):
+                raise ValueError("length retry requires a larger output-token limit")
+        elif length_limit is not None:
+            raise ValueError("length retry budget requires the length condition")
+        return self
+
+
+class RunSpec(StrictModel):
+    spec_version: Literal["aeread.run/0.1"] = "aeread.run/0.1"
+    run_id: SDKStr
+    run_version: SDKStr
+    admission_profile: Literal["paper_primary", "training", "interop_only"]
+    execution_backend: PinnedPluginRef
+    subject_profile_by_role: ImmutableMapping[SDKStr]
+    execution_mode: SDKStr
+
+    @model_validator(mode="after")
+    def validate_run(self) -> "RunSpec":
+        if (
+            not self.run_id.strip()
+            or not _SEMVER_PATTERN.fullmatch(self.run_version)
+            or not self.execution_mode.strip()
+            or not self.subject_profile_by_role
+        ):
+            raise ValueError("run identity, mode, and subject assignments are required")
+        if any(not value.strip() for value in self.subject_profile_by_role.values()):
+            raise ValueError("subject profile IDs must be non-empty")
+        return self
+
+
+class ResolutionInputs(StrictModel):
+    family: FamilyManifest
+    cases: tuple[CaseManifest, ...]
+    suite: SuiteManifest
+    agent_profiles: tuple[AgentProfile, ...]
+    run_spec: RunSpec
+
+
+class AdmissionCheck(StrictModel):
+    axis: SDKStr
+    actual_value: SDKStr
+    allowed_values: tuple[SDKStr, ...]
+    passed: SDKBool
+
+
+class AdmissionReport(StrictModel):
+    requested_profile: Literal["paper_primary", "training", "interop_only"]
+    status: Literal["admitted", "rejected"]
+    checks: tuple[AdmissionCheck, ...]
+
+
+class EpisodeCell(StrictModel):
+    cell_id: SDKStr
+    case_id: SDKStr
+    family_id: SDKStr
+    family_version: SDKStr
+    block_id: SDKStr
+    subject_role: SDKStr
+    subject_seat_id: SDKStr
+    repetition_index: SDKInt = Field(ge=0)
+    rollout_seed: SDKInt = Field(ge=0)
+    world_seed: SDKInt = Field(ge=0)
+    cluster_id: SDKStr
+    cluster_level: SDKStr
+    observations_per_cluster: SDKInt = Field(ge=1)
+    cluster_parent_value: SDKStr | SDKInt | None = None
+    pairing_values: JSONObject
+    panel_mode: Literal["fixed_panel", "sampled_panel"]
+    case_sha256: SDKStr = Field(pattern=r"^[0-9a-f]{64}$")
+    family_sha256: SDKStr = Field(pattern=r"^[0-9a-f]{64}$")
+    suite_sha256: SDKStr = Field(pattern=r"^[0-9a-f]{64}$")
+    run_spec_sha256: SDKStr = Field(pattern=r"^[0-9a-f]{64}$")
+    candidate_agent_config_sha256: SDKStr = Field(pattern=r"^[0-9a-f]{64}$")
+    seat_profile_id_by_seat: ImmutableMapping[SDKStr]
+    seat_profile_sha256_by_seat: ImmutableMapping[SHA256]
+    environment_ref: ImplementationRef
+    verifier_refs: tuple[ImplementationRef, ...]
+    adapter_refs_by_seat: ImmutableMapping[ImplementationRef]
+    execution_backend_ref: ImplementationRef
+    admission_profile: Literal["paper_primary", "training", "interop_only"]
+
+
+class RunPlan(StrictModel):
+    spec_version: Literal["aeread.run_plan/0.1"] = "aeread.run_plan/0.1"
+    run_plan_id: SDKStr
+    run_plan_sha256: SDKStr = Field(pattern=r"^[0-9a-f]{64}$")
+    family_sha256: SDKStr = Field(pattern=r"^[0-9a-f]{64}$")
+    case_sha256_by_id: ImmutableMapping[SHA256]
+    suite_sha256: SDKStr = Field(pattern=r"^[0-9a-f]{64}$")
+    run_spec_sha256: SDKStr = Field(pattern=r"^[0-9a-f]{64}$")
+    agent_profile_sha256_by_id: ImmutableMapping[SHA256]
+    admission_report: AdmissionReport
+    cells: tuple[EpisodeCell, ...]
+
+    @model_validator(mode="after")
+    def validate_plan(self) -> "RunPlan":
+        if not self.cells:
+            raise ValueError("run plan must contain cells")
+        if self.admission_report.status != "admitted":
+            raise ValueError("run plan requires successful admission")
+        cell_ids = [cell.cell_id for cell in self.cells]
+        if len(cell_ids) != len(set(cell_ids)):
+            raise ValueError("cell_id values must be unique")
+        return self
