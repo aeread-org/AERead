@@ -12,3 +12,6 @@
 - [`shared_runner_r3_phase_scheduler.md`](shared_runner_r3_phase_scheduler.md) —
   exact R3 trace through phase-graph preflight, simultaneous observation isolation, sequential
   transitions, typed invalid actions, deterministic execution IDs, and the R4 evidence boundary.
+- [`shared_runner_r4_execution_and_evidence.md`](shared_runner_r4_execution_and_evidence.md) —
+  complete R1-R4 trace through sealed-plan publication, explicit attempts and provider/tool
+  side effects, canonical event/artifact evidence, retries, cost, and the live model-call CLI.
