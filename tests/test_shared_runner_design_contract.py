@@ -676,15 +676,6 @@ def test_rebaseline_status_names_current_integration_and_next_gate() -> None:
 
 
 def test_existing_attempt_observer_and_agent_adapter_signatures_remain_stable() -> None:
-    protocols = SDK_V1_PROTOCOLS.read_text(encoding="utf-8")
-    for signature in (
-        "def call_started(self, start: CallAttemptStart) -> CallAttemptToken:",
-        "self, token: CallAttemptToken, result: ProviderCallResult",
-        "self, token: CallAttemptToken, failure: ProviderCallFailure",
-        "self, request: AgentRequest, *, attempts: AttemptObserver",
-    ):
-        assert signature in protocols
-
     public_section = PUBLIC_ENVIRONMENT_SPEC.read_text(encoding="utf-8").split(
         "### 3.3 Observation and canonical response boundary", 1
     )[1].split("### 3.4 Verifier contract", 1)[0]
@@ -717,6 +708,13 @@ def test_existing_attempt_observer_and_agent_adapter_signatures_remain_stable() 
         normalized = " ".join(authority.split())
         assert all(fragment in normalized for fragment in required)
         assert "observer signatures must not use" not in normalized
+
+        relocated = normalized.replace(
+            required[0], "stable observer methods are declared elsewhere", 1
+        )
+        relocated += f" Outside this authority: {required[0]}."
+        local_section = relocated.split(" Outside this authority:", 1)[0]
+        assert not all(fragment in local_section for fragment in required)
 
 
 def test_public_spec_reports_implemented_foundation_and_missing_runtime() -> None:

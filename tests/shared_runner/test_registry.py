@@ -538,15 +538,41 @@ def test_protocol_method_boundaries_resolve_and_preserve_call_direction() -> Non
         "return": type(None),
     }
     assert bridge_hints["return"] is ScoreEnvelope
-    assert inspect.signature(AgentAdapter.act).parameters["attempts"].kind is (
-        inspect.Parameter.KEYWORD_ONLY
+    assert {
+        name
+        for name, value in vars(AttemptObserver).items()
+        if not name.startswith("_") and callable(value)
+    } == {"call_started", "call_succeeded", "call_failed"}
+
+    expected_parameters = {
+        AttemptObserver.call_started: ("self", "start"),
+        AttemptObserver.call_succeeded: ("self", "token", "result"),
+        AttemptObserver.call_failed: ("self", "token", "failure"),
+    }
+    for method, expected_names in expected_parameters.items():
+        parameters = tuple(inspect.signature(method).parameters.values())
+        assert tuple(parameter.name for parameter in parameters) == expected_names
+        assert all(
+            parameter.kind is inspect.Parameter.POSITIONAL_OR_KEYWORD
+            and parameter.default is inspect.Parameter.empty
+            for parameter in parameters
+        )
+
+    adapter_parameters = tuple(inspect.signature(AgentAdapter.act).parameters.values())
+    assert tuple(parameter.name for parameter in adapter_parameters) == (
+        "self",
+        "request",
+        "attempts",
     )
-    for method in (
-        AttemptObserver.call_started,
-        AttemptObserver.call_succeeded,
-        AttemptObserver.call_failed,
-    ):
-        assert tuple(inspect.signature(method).parameters)[0] == "self"
+    assert tuple(parameter.kind for parameter in adapter_parameters) == (
+        inspect.Parameter.POSITIONAL_OR_KEYWORD,
+        inspect.Parameter.POSITIONAL_OR_KEYWORD,
+        inspect.Parameter.KEYWORD_ONLY,
+    )
+    assert all(
+        parameter.default is inspect.Parameter.empty
+        for parameter in adapter_parameters
+    )
 
 
 def test_resolution_rejects_malformed_reference_before_lookup() -> None:
