@@ -58,6 +58,14 @@ def _b4b_source(source: str | None = None) -> str:
             encoding="utf-8"
         )
     module = ast.parse(source)
+    rater_summary_indexes = [
+        index
+        for index, node in enumerate(module.body)
+        if isinstance(node, ast.Assign)
+        and len(node.targets) == 1
+        and isinstance(node.targets[0], ast.Name)
+        and node.targets[0].id == "RaterSummarySpec"
+    ]
     starts = [
         node
         for node in module.body
@@ -69,7 +77,14 @@ def _b4b_source(source: str | None = None) -> str:
         if isinstance(node, ast.ClassDef) and node.name == "ValidityDomainSpec"
     ]
     assert len(starts) == len(ends) == 1
+    assert len(rater_summary_indexes) == 1
     assert starts[0].lineno < ends[0].lineno
+    start_index = module.body.index(starts[0])
+    end_index = module.body.index(ends[0])
+    assert start_index == rater_summary_indexes[0] + 1
+    assert end_index > start_index
+    assert isinstance(module.body[end_index - 1], ast.ClassDef)
+    assert module.body[end_index - 1].name == "InferenceCompatibilitySpec"
     lines = source.splitlines(keepends=True)
     return "".join(lines[starts[0].lineno - 1 : ends[0].lineno - 1])
 
@@ -421,6 +436,26 @@ def _assert_b4b_declaration_only(source: str) -> None:
 @pytest.mark.parametrize(
     "mutation",
     [
+        lambda source: source.replace(
+            "class AnalysisSourceRef",
+            '__builtins__["len"] = runtime.provider_hook\n\nclass AnalysisSourceRef',
+            1,
+        ),
+        lambda source: source.replace(
+            "class AnalysisSourceRef",
+            'builtins.__dict__["len"] = runtime.provider_hook\n\nclass AnalysisSourceRef',
+            1,
+        ),
+        lambda source: source.replace(
+            "class AnalysisSourceRef",
+            'vars(__builtins__)["len"] = runtime.provider_hook\n\nclass AnalysisSourceRef',
+            1,
+        ),
+        lambda source: source.replace(
+            "class AnalysisSourceRef",
+            'x = __builtins__\nx["len"] = runtime.provider_hook\n\nclass AnalysisSourceRef',
+            1,
+        ),
         lambda source: source.replace(
             "class AnalysisSourceRef",
             "__builtins__ = runtime.builtins\n\nclass AnalysisSourceRef",
