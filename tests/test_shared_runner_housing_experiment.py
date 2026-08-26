@@ -22,6 +22,7 @@ from aeread.shared_runner.housing_experiment import (
     paired_inference_seed,
     read_condition_results,
     run_condition_batch,
+    run_housing_reasoning_experiment,
     run_paired_batch,
     validate_reasoning_admission,
 )
@@ -260,6 +261,27 @@ class _ChargedFailureTenantProvider:
             "synthetic charged length failure",
             retryable=True,
             provider_result=result,
+        )
+
+
+class _TreatmentAwareTenantProvider:
+    def __init__(self) -> None:
+        self._delegate = HousingScriptedTenantProvider()
+
+    async def complete(self, request: ProviderRequest):
+        translated = dataclasses.replace(request, provider="housing_scripted_tenant")
+        result = await self._delegate.complete(translated)
+        reasoning_tokens = 0 if request.reasoning_effort == "none" else 5
+        return dataclasses.replace(
+            result,
+            resolved_model=DEEPSEEK_REVISION,
+            raw_response={
+                "usage": {
+                    "completion_tokens_details": {
+                        "reasoning_tokens": reasoning_tokens,
+                    }
+                }
+            },
         )
 
 
@@ -678,3 +700,23 @@ def test_paired_batch_stops_after_consecutive_operational_failures(tmp_path) -> 
     assert result["pending_count"] == 6
     assert result["stop_reason"] == "operational_failure_limit_reached"
     assert result["total_cost_usd"] == pytest.approx(0.004)
+
+
+def test_admission_entrypoint_runs_one_full_pair_and_seals_report(tmp_path) -> None:
+    result = asyncio.run(
+        run_housing_reasoning_experiment(
+            mode="admission",
+            output_root=tmp_path,
+            concurrency=2,
+            spend_limit_usd=0.10,
+            tenant_provider=_TreatmentAwareTenantProvider(),
+        )
+    )
+
+    assert result["mode"] == "admission"
+    assert result["batch"]["planned_count"] == 2
+    assert result["batch"]["completed_count"] == 2
+    assert result["admission"]["passed"] is True
+    assert result["admission"]["paired_cell_count"] == 1
+    assert result["total_cost_usd"] == 0.0
+    assert (tmp_path / "experiment_summary.json").is_file()

@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import argparse
 import asyncio
+import dataclasses
 import hashlib
 import json
 import math
@@ -15,8 +17,13 @@ from typing import Any
 import numpy as np
 from scipy import stats
 
-from .execution import EvidenceStore, execute_plan_cell
-from .housing import HousingSmokeSetup, build_housing_smoke
+from .execution import EvidenceStore, OpenRouterChatClient, execute_plan_cell
+from .housing import (
+    HousingScriptedLandlordProvider,
+    HousingScriptedTenantProvider,
+    HousingSmokeSetup,
+    build_housing_smoke,
+)
 from .resolver import canonical_json_bytes
 
 
@@ -919,6 +926,240 @@ def analyze_paired_results(
     }
 
 
+class _ScriptedExperimentTenantProvider:
+    """Zero-cost structural preflight for plans sealed to the OpenRouter adapter."""
+
+    def __init__(self) -> None:
+        self._delegate = HousingScriptedTenantProvider()
+
+    async def complete(self, request: Any) -> Any:
+        translated = dataclasses.replace(request, provider="housing_scripted_tenant")
+        return await self._delegate.complete(translated)
+
+
+def _experiment_setups(
+    *, world_seeds: Sequence[int], replicates: int, small_preflight: bool
+) -> dict[str, HousingSmokeSetup]:
+    common = {
+        "world_seeds": tuple(world_seeds),
+        "replicates": replicates,
+        "tenant_model": "deepseek/deepseek-v4-flash-0731",
+        "tenant_revision": "deepseek/deepseek-v4-flash-20260731",
+        "num_tenants": 2 if small_preflight else 6,
+        "num_listings": 1 if small_preflight else 4,
+        "rounds": 1 if small_preflight else 4,
+        "inference_seed_base": 87001,
+    }
+    return {
+        "reasoning_none_v1": build_housing_condition_setup(
+            condition_id="reasoning_none_v1", reasoning_effort="none", **common
+        ),
+        "reasoning_low_v1": build_housing_condition_setup(
+            condition_id="reasoning_low_v1", reasoning_effort="low", **common
+        ),
+    }
+
+
+async def _run_experiment_phase(
+    *,
+    output_root: Path,
+    world_seeds: Sequence[int],
+    replicates: int,
+    small_preflight: bool,
+    tenant_provider: Any,
+    concurrency: int,
+    spend_limit_usd: float,
+    progress_callback: Any | None,
+) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+    setups = _experiment_setups(
+        world_seeds=world_seeds,
+        replicates=replicates,
+        small_preflight=small_preflight,
+    )
+    batch = await run_paired_batch(
+        setups=setups,
+        output_root=output_root,
+        providers={
+            "openrouter": tenant_provider,
+            "housing_scripted_landlord": HousingScriptedLandlordProvider(),
+        },
+        concurrency=concurrency,
+        spend_limit_usd=spend_limit_usd,
+        max_consecutive_failures=3,
+        progress_callback=progress_callback,
+    )
+    rows: list[dict[str, Any]] = []
+    for condition in ("reasoning_none_v1", "reasoning_low_v1"):
+        rows.extend(
+            read_condition_results(
+                output_root,
+                condition_id=condition,
+                verify_evidence=True,
+            )
+        )
+    return batch, rows
+
+
+async def run_housing_reasoning_experiment(
+    *,
+    mode: str,
+    output_root: str | Path,
+    concurrency: int = 2,
+    spend_limit_usd: float | None = None,
+    tenant_provider: Any | None = None,
+    progress_callback: Any | None = None,
+) -> dict[str, Any]:
+    """Run the locked dry, admission, or 100x2x3 Housing experiment workflow."""
+
+    if mode not in {"dry-run", "admission", "full"}:
+        raise ValueError("mode must be dry-run, admission, or full")
+    output = Path(output_root)
+    output.mkdir(parents=True, exist_ok=True)
+    panel = derive_world_seeds(master_seed=20260826, count=100)
+    if spend_limit_usd is None:
+        spend_limit_usd = {"dry-run": 1.0, "admission": 0.10, "full": 6.0}[mode]
+    if mode == "full" and spend_limit_usd <= 0.10:
+        raise ValueError("full mode requires more than $0.10 for admission plus batch")
+
+    provider = tenant_provider
+    if provider is None:
+        provider = (
+            _ScriptedExperimentTenantProvider()
+            if mode == "dry-run"
+            else OpenRouterChatClient()
+        )
+
+    if mode == "dry-run":
+        batch, rows = await _run_experiment_phase(
+            output_root=output,
+            world_seeds=panel[:2],
+            replicates=1,
+            small_preflight=True,
+            tenant_provider=provider,
+            concurrency=concurrency,
+            spend_limit_usd=spend_limit_usd,
+            progress_callback=progress_callback,
+        )
+        result: dict[str, Any] = {
+            "mode": mode,
+            "design": "2_world_structural_preflight",
+            "batch": batch,
+            "admission": None,
+            "analysis": analyze_paired_results(
+                rows,
+                control_condition="reasoning_none_v1",
+                treatment_condition="reasoning_low_v1",
+                expected_replicates=1,
+                bootstrap_draws=1000,
+                bootstrap_seed=20260826,
+            ),
+            "total_cost_usd": batch["total_cost_usd"],
+        }
+    elif mode == "admission":
+        batch, rows = await _run_experiment_phase(
+            output_root=output,
+            world_seeds=panel[:1],
+            replicates=1,
+            small_preflight=False,
+            tenant_provider=provider,
+            concurrency=concurrency,
+            spend_limit_usd=spend_limit_usd,
+            progress_callback=progress_callback,
+        )
+        admission = validate_reasoning_admission(
+            rows,
+            expected_resolved_model="deepseek/deepseek-v4-flash-20260731",
+            expected_route_provider="DeepInfra",
+        )
+        result = {
+            "mode": mode,
+            "design": "1_world_x_2_conditions_x_1_replicate_full_dimension_gate",
+            "batch": batch,
+            "admission": admission,
+            "analysis": None,
+            "total_cost_usd": batch["total_cost_usd"],
+        }
+    else:
+        admission_batch, admission_rows = await _run_experiment_phase(
+            output_root=output / "admission",
+            world_seeds=panel[:1],
+            replicates=1,
+            small_preflight=False,
+            tenant_provider=provider,
+            concurrency=concurrency,
+            spend_limit_usd=min(0.10, spend_limit_usd),
+            progress_callback=progress_callback,
+        )
+        admission = validate_reasoning_admission(
+            admission_rows,
+            expected_resolved_model="deepseek/deepseek-v4-flash-20260731",
+            expected_route_provider="DeepInfra",
+        )
+        remaining_budget = spend_limit_usd - admission_batch["total_cost_usd"]
+        if remaining_budget <= 0:
+            raise ValueError("admission exhausted the global experiment budget")
+        batch, rows = await _run_experiment_phase(
+            output_root=output / "full",
+            world_seeds=panel,
+            replicates=3,
+            small_preflight=False,
+            tenant_provider=provider,
+            concurrency=concurrency,
+            spend_limit_usd=remaining_budget,
+            progress_callback=progress_callback,
+        )
+        analysis = analyze_paired_results(
+            rows,
+            control_condition="reasoning_none_v1",
+            treatment_condition="reasoning_low_v1",
+            expected_replicates=3,
+            bootstrap_draws=10_000,
+            bootstrap_seed=20260826,
+        )
+        result = {
+            "mode": mode,
+            "design": "100_worlds_x_2_conditions_x_3_nested_replicates",
+            "admission_batch": admission_batch,
+            "admission": admission,
+            "batch": batch,
+            "analysis": analysis,
+            "total_cost_usd": (
+                admission_batch["total_cost_usd"] + batch["total_cost_usd"]
+            ),
+        }
+    _atomic_write_json(output / "experiment_summary.json", _sealed_result(result))
+    return result
+
+
+def _cli_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        description="Run the locked paired Housing reasoning experiment"
+    )
+    parser.add_argument("--mode", choices=("dry-run", "admission", "full"), required=True)
+    parser.add_argument("--output-root", type=Path, required=True)
+    parser.add_argument("--concurrency", type=int, default=2)
+    parser.add_argument("--spend-limit-usd", type=float)
+    return parser
+
+
+def main() -> None:
+    arguments = _cli_parser().parse_args()
+
+    def progress(value: Mapping[str, Any]) -> None:
+        print(canonical_json_bytes({"progress": value}).decode("utf-8"), flush=True)
+
+    result = asyncio.run(
+        run_housing_reasoning_experiment(
+            mode=arguments.mode,
+            output_root=arguments.output_root,
+            concurrency=arguments.concurrency,
+            spend_limit_usd=arguments.spend_limit_usd,
+            progress_callback=progress,
+        )
+    )
+    print(canonical_json_bytes({"result": result}).decode("utf-8"), flush=True)
+
+
 __all__ = [
     "analyze_paired_results",
     "build_housing_condition_setup",
@@ -926,6 +1167,11 @@ __all__ = [
     "paired_inference_seed",
     "read_condition_results",
     "run_condition_batch",
+    "run_housing_reasoning_experiment",
     "run_paired_batch",
     "validate_reasoning_admission",
 ]
+
+
+if __name__ == "__main__":
+    main()
