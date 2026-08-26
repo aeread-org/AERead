@@ -11,6 +11,7 @@ import os
 from pathlib import Path
 import subprocess
 import sys
+from types import FunctionType
 from typing import Annotated, get_type_hints
 
 import pytest
@@ -68,21 +69,10 @@ def _one_metadata(
     metadata: list[object] | tuple[object, ...],
     expected_type: type[object],
 ) -> object:
-    matches = [item for item in metadata if isinstance(item, expected_type)]
+    matches = [item for item in metadata if type(item) is expected_type]
     assert (
         len(matches) == 1
     ), f"expected one {expected_type.__name__} metadata item: {metadata!r}"
-    return matches[0]
-
-
-def _one_metadata_attribute(
-    metadata: list[object] | tuple[object, ...],
-    attribute: str,
-) -> object:
-    matches = [item for item in metadata if hasattr(item, attribute)]
-    assert (
-        len(matches) == 1
-    ), f"expected one metadata item with {attribute!r}: {metadata!r}"
     return matches[0]
 
 
@@ -97,12 +87,27 @@ def _assert_call_attempt_timeout_type_contract(record_type: type[object]) -> Non
     assert exact_number_validator.__module__ == "aeread.sdk.v1.base"
     assert exact_number_validator.__qualname__ == "_require_exact_number"
     assert exact_number_validator.__closure__ is None
+    function_builtins = exact_number_validator.__builtins__
     for name, builtin in (
         ("type", builtins.type),
         ("int", builtins.int),
         ("float", builtins.float),
     ):
-        assert exact_number_validator.__globals__.get(name, builtin) is builtin
+        if name in exact_number_validator.__globals__:
+            resolved = exact_number_validator.__globals__[name]
+        elif isinstance(function_builtins, dict):
+            resolved = function_builtins[name]
+        else:
+            resolved = getattr(function_builtins, name)
+        assert resolved is builtin
+
+    canonical_finite_metadata = [
+        item
+        for item in Field(strict=True, allow_inf_nan=False).metadata
+        if getattr(item, "allow_inf_nan", None) is False
+    ]
+    assert len(canonical_finite_metadata) == 1
+    finite_metadata_type = type(canonical_finite_metadata[0])
 
     declared_type = get_type_hints(record_type, include_extras=True)["timeout_seconds"]
     assert declared_type.__origin__ is float
@@ -119,7 +124,7 @@ def _assert_call_attempt_timeout_type_contract(record_type: type[object]) -> Non
     assert declared_field.annotation is None
     assert len(declared_field.metadata) == 2
     declared_strict = _one_metadata(declared_field.metadata, Strict)
-    declared_finite = _one_metadata_attribute(declared_field.metadata, "allow_inf_nan")
+    declared_finite = _one_metadata(declared_field.metadata, finite_metadata_type)
     assert declared_strict.strict is True
     assert declared_finite.allow_inf_nan is False
 
@@ -131,7 +136,7 @@ def _assert_call_attempt_timeout_type_contract(record_type: type[object]) -> Non
     gt = _one_metadata(field.metadata, Gt)
     model_validator = _one_metadata(field.metadata, BeforeValidator)
     strict = _one_metadata(field.metadata, Strict)
-    finite = _one_metadata_attribute(field.metadata, "allow_inf_nan")
+    finite = _one_metadata(field.metadata, finite_metadata_type)
     assert gt == Gt(gt=0)
     assert model_validator.func is exact_number_validator
     assert (
@@ -1051,6 +1056,115 @@ def test_timeout_contract_rejects_validator_global_type_shadow(
         pass
     else:
         raise AssertionError("validator global type shadow escaped the guard")
+
+
+@pytest.mark.parametrize("shadowed_builtin", ("type", "int", "float"))
+def test_timeout_contract_rejects_validator_function_builtin_shadow(
+    monkeypatch: pytest.MonkeyPatch,
+    shadowed_builtin: str,
+) -> None:
+    from aeread.sdk.v1 import CallAttemptStart
+    from aeread.sdk.v1 import base as sdk_base
+
+    class FloatProtocol:
+        def __float__(self) -> float:
+            return 1.0
+
+    original = sdk_base._require_exact_number
+    function_builtins = dict(vars(builtins))
+    if shadowed_builtin == "type":
+
+        def selective_type(value: object) -> type[object]:
+            if isinstance(value, FloatProtocol):
+                return float
+            return builtins.type(value)
+
+        function_builtins[shadowed_builtin] = selective_type
+    else:
+        function_builtins[shadowed_builtin] = FloatProtocol
+    cloned_validator = FunctionType(
+        original.__code__,
+        {"__builtins__": function_builtins, "__name__": original.__module__},
+        original.__name__,
+    )
+    assert hashlib.sha256(inspect.getsource(cloned_validator).encode()).hexdigest() == (
+        EXACT_NUMBER_VALIDATOR_SOURCE_SHA256
+    )
+    assert cloned_validator.__module__ == "aeread.sdk.v1.base"
+    assert cloned_validator.__qualname__ == "_require_exact_number"
+    assert cloned_validator.__closure__ is None
+    assert not any(
+        name in cloned_validator.__globals__ for name in ("type", "int", "float")
+    )
+    monkeypatch.setattr(sdk_base, "_require_exact_number", cloned_validator)
+    timeout_type = Annotated[
+        float,
+        BeforeValidator(cloned_validator),
+        Field(strict=True, allow_inf_nan=False),
+    ]
+    mutant_record = create_model(
+        f"BuiltinShadow{shadowed_builtin.title()}CallAttemptStart",
+        __base__=CallAttemptStart,
+        timeout_seconds=(timeout_type, Field(gt=0)),
+    )
+    assert (
+        mutant_record(
+            call_attempt_id="call-1",
+            logical_action_id="logical-1",
+            ordinal=1,
+            request_sha256="request-sha",
+            provider="provider",
+            model="model",
+            timeout_seconds=FloatProtocol(),
+            output_token_limit=1,
+        ).timeout_seconds
+        == 1.0
+    )
+    try:
+        _assert_call_attempt_timeout_type_contract(mutant_record)
+    except AssertionError:
+        pass
+    else:
+        raise AssertionError(
+            f"validator function builtin {shadowed_builtin!r} shadow escaped the guard"
+        )
+
+
+def test_timeout_contract_rejects_fake_finite_metadata() -> None:
+    from aeread.sdk.v1 import CallAttemptStart
+    from aeread.sdk.v1 import base as sdk_base
+
+    class FakeFinite:
+        allow_inf_nan = False
+
+    fake_finite_field = Field(strict=True)
+    fake_finite_field.metadata.append(FakeFinite())
+    timeout_type = Annotated[
+        float,
+        BeforeValidator(sdk_base._require_exact_number),
+        fake_finite_field,
+    ]
+    mutant_record = create_model(
+        "FakeFiniteCallAttemptStart",
+        __base__=CallAttemptStart,
+        timeout_seconds=(timeout_type, Field(gt=0)),
+    )
+    assert mutant_record(
+        call_attempt_id="call-1",
+        logical_action_id="logical-1",
+        ordinal=1,
+        request_sha256="request-sha",
+        provider="provider",
+        model="model",
+        timeout_seconds=float("inf"),
+        output_token_limit=1,
+    ).timeout_seconds == float("inf")
+    try:
+        _assert_call_attempt_timeout_type_contract(mutant_record)
+    except AssertionError:
+        pass
+    else:
+        raise AssertionError("fake finite metadata escaped the timeout contract guard")
 
 
 def test_resolution_rejects_malformed_reference_before_lookup() -> None:
