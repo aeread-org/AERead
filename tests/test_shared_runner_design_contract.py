@@ -1,4 +1,5 @@
 import hashlib
+import re
 from pathlib import Path
 
 
@@ -868,8 +869,9 @@ def test_public_sdk_stability_policy_preserves_existing_v1_exports() -> None:
         assert required_compatibility not in relocated.split(" Outside this authority:", 1)[0]
 
 
-def test_rebaseline_status_names_current_integration_and_next_gate() -> None:
-    text = REBASELINE_PLAN.read_text(encoding="utf-8")
+def _assert_rebaseline_status_names_current_integration_and_next_gate(
+    text: str,
+) -> None:
     breaker_baseline = "cd26e7202e0933c57169771d6f4500188407a40f"
     brief_digest = (
         "13371f845ba1a34b0caa82dfca409f0558e0a3556313b13c39794bb56d231648"
@@ -879,6 +881,9 @@ def test_rebaseline_status_names_current_integration_and_next_gate() -> None:
         "### Task 0.2: Integrate the latest approved PR #7 design", 1
     )[1].split("### Task 0.3", 1)[0]
     task_1b = text.split("### Task 1.1b1:", 1)[1].split("### Task 1.1c:", 1)[0]
+    task_1b2_to_1b5 = text.split("### Tasks 1.1b2–1.1b5:", 1)[1].split(
+        "### Task 1.1c:", 1
+    )[0]
     task_1c = text.split("### Task 1.1c:", 1)[1].split("### Task 1.2:", 1)[0]
     task_12 = text.split("### Task 1.2:", 1)[1].split("## Stage 2", 1)[0]
     stage_2_preamble = text.split("## Stage 2", 1)[1].split(
@@ -900,6 +905,22 @@ def test_rebaseline_status_names_current_integration_and_next_gate() -> None:
 
     assert brief_digest in task_1b
     assert brief_digest in dispatch
+    inventory = task_1b.split("**Exact additive public names (11):**", 1)[1].split(
+        "**Ownership:**", 1
+    )[0]
+    assert tuple(re.findall(r"`([A-Za-z]+)`", inventory)) == (
+        "ClusterDesignSpec",
+        "ClusterMembershipSpec",
+        "EpisodeReplicationDesign",
+        "FixedPanelDesignSpec",
+        "PairingSpec",
+        "PanelDesignSpec",
+        "PlannedCoordinateField",
+        "SampledPanelDesignSpec",
+        "SamplingPopulationSpec",
+        "SeededEpisodeReplicationDesign",
+        "UnseededEpisodeReplicationDesign",
+    )
     assert "### Tasks 1.1b2–1.1b5: HOLD" in text
     assert "This HOLD intentionally freezes no final public record names." in task_1b
     assert "HOLD — atomic three-layer resolution" in task_1c
@@ -919,7 +940,12 @@ def test_rebaseline_status_names_current_integration_and_next_gate() -> None:
         normalized_stage_2
     )
     assert "Task 2.1a's mandatory first RED is the one parked compiled-core regression-guard finding" in normalized_stage_2
-    assert "PR #7 is independently clean" not in text
+    for gate_section in (status, task_02, dispatch):
+        assert "pr #7 is independently clean" not in gate_section.casefold()
+
+    for hold_section in (task_1b2_to_1b5, task_1c):
+        assert "is dispatchable for implementation" not in hold_section.casefold()
+    assert "may backfill the hold schema" not in stage_2_preamble.casefold()
 
     gates = " ".join((status, task_02, dispatch))
     for stale in (
@@ -939,6 +965,68 @@ def test_rebaseline_status_names_current_integration_and_next_gate() -> None:
     roadmap = RUNNER_ARCHITECTURE.read_text(encoding="utf-8")
     assert "PR #7 at `155d8fc`" in roadmap
     assert "integrated locally at `b5239cd`" in roadmap
+
+
+def test_rebaseline_status_names_current_integration_and_next_gate() -> None:
+    _assert_rebaseline_status_names_current_integration_and_next_gate(
+        REBASELINE_PLAN.read_text(encoding="utf-8")
+    )
+
+
+def _assert_rebaseline_mutation_is_rejected(mutated: str) -> None:
+    try:
+        _assert_rebaseline_status_names_current_integration_and_next_gate(mutated)
+    except AssertionError:
+        return
+    raise AssertionError("authority guard accepted a forbidden rebaseline mutation")
+
+
+def test_rebaseline_guard_rejects_positive_independently_clean_claim() -> None:
+    text = REBASELINE_PLAN.read_text(encoding="utf-8")
+    status = text.split("## Objective", 1)[0]
+    _assert_rebaseline_mutation_is_rejected(
+        text.replace(status, status + "\n> PR #7 is independently CLEAN.\n", 1)
+    )
+
+
+def test_rebaseline_guard_rejects_unapproved_b1_public_name() -> None:
+    text = REBASELINE_PLAN.read_text(encoding="utf-8")
+    inventory = text.split("**Exact additive public names (11):**", 1)[1].split(
+        "**Ownership:**", 1
+    )[0]
+    _assert_rebaseline_mutation_is_rejected(
+        text.replace(
+            inventory,
+            inventory.replace("UnseededEpisodeReplicationDesign", "FabricatedIdentitySpec"),
+            1,
+        )
+    )
+
+
+def test_rebaseline_guard_rejects_dispatchable_hold_slice() -> None:
+    text = REBASELINE_PLAN.read_text(encoding="utf-8")
+    task_1c = text.split("### Task 1.1c:", 1)[1].split("### Task 1.2:", 1)[0]
+    _assert_rebaseline_mutation_is_rejected(
+        text.replace(
+            task_1c,
+            task_1c + "\nTask 1.1c is dispatchable for implementation.\n",
+            1,
+        )
+    )
+
+
+def test_rebaseline_guard_rejects_stage_2_hold_schema_backfill_permission() -> None:
+    text = REBASELINE_PLAN.read_text(encoding="utf-8")
+    stage_2_preamble = text.split("## Stage 2", 1)[1].split(
+        "### Task 2.1a:", 1
+    )[0]
+    _assert_rebaseline_mutation_is_rejected(
+        text.replace(
+            stage_2_preamble,
+            stage_2_preamble + "\nStage 2 may backfill the HOLD schema.\n",
+            1,
+        )
+    )
 
 
 def test_existing_attempt_observer_and_agent_adapter_signatures_remain_stable() -> None:
