@@ -703,7 +703,103 @@ def _assignment_source_ast(source: str | None = None) -> ast.Module:
     return ast.Module(body=module.body[start:end], type_ignores=[])
 
 
+def _assignment_module_scope_bindings(source: str) -> dict[str, list[str]]:
+    bindings: dict[str, list[str]] = {}
+    try_types = (ast.Try,)
+    if hasattr(ast, "TryStar"):
+        try_types += (ast.TryStar,)
+
+    def record(name: str, origin: str) -> None:
+        bindings.setdefault(name, []).append(origin)
+
+    def record_target(target: ast.expr, origin: str) -> None:
+        if isinstance(target, ast.Name):
+            record(target.id, origin)
+        elif isinstance(target, (ast.Tuple, ast.List)):
+            for element in target.elts:
+                record_target(element, origin)
+
+    def visit_statements(statements: list[ast.stmt]) -> None:
+        for statement in statements:
+            if isinstance(statement, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                record(statement.name, "function")
+            elif isinstance(statement, ast.ClassDef):
+                record(statement.name, "class")
+            elif isinstance(statement, ast.Import):
+                for alias in statement.names:
+                    record(alias.asname or alias.name.split(".")[0], "import")
+            elif isinstance(statement, ast.ImportFrom):
+                assert all(alias.name != "*" for alias in statement.names)
+                for alias in statement.names:
+                    record(
+                        alias.asname or alias.name,
+                        f"import-from:{statement.module}",
+                    )
+            elif isinstance(statement, ast.Assign):
+                for target in statement.targets:
+                    record_target(target, "assign")
+            elif isinstance(statement, ast.AnnAssign):
+                record_target(statement.target, "assign")
+            elif isinstance(statement, ast.AugAssign):
+                record_target(statement.target, "assign")
+            elif isinstance(statement, (ast.For, ast.AsyncFor)):
+                record_target(statement.target, "loop")
+                visit_statements(statement.body)
+                visit_statements(statement.orelse)
+            elif isinstance(statement, (ast.With, ast.AsyncWith)):
+                for item in statement.items:
+                    if item.optional_vars is not None:
+                        record_target(item.optional_vars, "with")
+                visit_statements(statement.body)
+            elif isinstance(statement, ast.If):
+                visit_statements(statement.body)
+                visit_statements(statement.orelse)
+            elif isinstance(statement, try_types):
+                visit_statements(statement.body)
+                visit_statements(statement.orelse)
+                visit_statements(statement.finalbody)
+                for handler in statement.handlers:
+                    if handler.name is not None:
+                        record(handler.name, "except")
+                    visit_statements(handler.body)
+
+    visit_statements(ast.parse(source).body)
+    return bindings
+
+
+def _assert_assignment_external_global_bindings(source: str) -> None:
+    bindings = _assignment_module_scope_bindings(source)
+    expected = {
+        "Annotated": ["import-from:typing"],
+        "Literal": ["import-from:typing"],
+        "Field": ["import-from:pydantic"],
+        "model_validator": ["import-from:pydantic"],
+        "SDKInt": ["import-from:base"],
+        "SDKStr": ["import-from:base"],
+        "SHA256": ["assign"],
+        "ArtifactRef": ["class"],
+        "ImplementationRef": ["class"],
+        "_PlannedIdentityRecord": ["class"],
+        "_require_non_empty": ["function"],
+        "_require_semver": ["function"],
+        "_validate_complete_artifact": ["function"],
+        "_validate_implementation_pin": ["function"],
+        "ValueError": [],
+        "len": [],
+        "set": [],
+        "str": [],
+        "tuple": [],
+        "type": [],
+    }
+    assert {name: bindings.get(name, []) for name in expected} == expected
+
+
 def _assert_assignment_top_level_inventory(source: str | None = None) -> ast.Module:
+    if source is None:
+        source = Path(inspect.getsourcefile(records_module) or "").read_text(
+            encoding="utf-8"
+        )
+    _assert_assignment_external_global_bindings(source)
     module = _assignment_source_ast(source)
     classes = [node for node in module.body if isinstance(node, ast.ClassDef)]
     assert [node.name for node in classes] == [
@@ -893,19 +989,27 @@ def test_added_assignment_authoring_source_is_declaration_only() -> None:
 
 
 @pytest.mark.parametrize(
-    "injected",
+    ("marker", "injected"),
     [
-        "_require_non_empty = runtime.step\n",
-        "model_validator = runtime.provider_hook\n",
+        (
+            "class AssignmentAuthoringRecordRef",
+            "_require_non_empty = runtime.step\n",
+        ),
+        (
+            "class AssignmentAuthoringRecordRef",
+            "model_validator = runtime.provider_hook\n",
+        ),
+        ("class ExecutionDesignSpec", "_require_non_empty = runtime.step\n"),
+        ("class ExecutionDesignSpec", "model_validator = runtime.provider_hook\n"),
     ],
 )
 def test_predeclaration_alias_or_decorator_rebinding_cannot_escape_guard(
+    marker: str,
     injected: str,
 ) -> None:
     source = Path(inspect.getsourcefile(records_module) or "").read_text(
         encoding="utf-8"
     )
-    marker = "class AssignmentAuthoringRecordRef"
     mutated = source.replace(marker, injected + marker, 1)
     with pytest.raises(AssertionError):
         _assert_assignment_top_level_inventory(mutated)
