@@ -6,11 +6,14 @@
 > `155d8fc` is integrated locally by true merge `b5239cd`, with compatibility and
 > executable-guard follow-ups through `c7aca60`; none was pushed or merged to GitHub/main.
 > Task 0.3 is complete. Task 1.1a1 and Task 1.1a2 are complete; the last independently
-> clean implementation baseline is `a7ddbb2`. The PR #7 review-candidate chain is
-> `2654b2d` -> `011475f` -> the current corrective follow-up; it is not independently clean
-> until its fresh review closes. Task 1.1b is the next bounded measurement slice after that
-> gate. The executable scheduler, attempt executor, receipt/replay kernel, and benchmark
-> adapters remain unimplemented.
+> clean implementation baseline is `a7ddbb2`. PR #7 is NOT independently CLEAN at controller
+> breaker baseline `cd26e7202e0933c57169771d6f4500188407a40f`. Task 1.1b1 is the sole next
+> dispatchable schema slice under the controller ruling. It adds planned population/panel/
+> cluster/pairing/replication identity records only. Tasks 1.1b2–1.1b5 and Task 1.1c are
+> HOLD/not dispatchable until the Measurement / Execution-design / Analysis-design separation
+> is rewritten and independently reviewed. Task 1.2 and every task depending on Task 1.1c
+> remain blocked. The executable scheduler, attempt executor, receipt/replay kernel, and
+> benchmark adapters remain unimplemented.
 > **Supersedes:** Tasks 6–11 of `2026-08-24-shared-runner-sdk-kernel.md`; Tasks 1–5 and their review history remain valid
 
 ## Objective
@@ -98,9 +101,11 @@ local APFS volume.
 Complete locally. Latest PR #7 source `155d8fc` is integrated by true merge `b5239cd`, with
 crosswalk/status/stability/ABI-guard follow-ups through `c7aca60`. Task 1.1a1 and Task
 1.1a2 are complete, and the last independently clean implementation baseline is
-`a7ddbb2`. The PR #7 review-candidate chain is `2654b2d` -> `011475f` -> the current
-corrective follow-up; it is not independently clean until its fresh review closes. Task
-1.1b is next only after that gate. Older `275a285`/`388e52b` commits remain historical
+`a7ddbb2`. PR #7 is NOT independently CLEAN at controller breaker baseline
+`cd26e7202e0933c57169771d6f4500188407a40f`. Task 1.1b1 is the sole next dispatchable
+slice under the controller ruling.
+Tasks 1.1b2–1.1b5 and Task 1.1c remain HOLD; this status does not authorize their former
+schema text or any downstream implementation that depends on it. Older `275a285`/`388e52b` commits remain historical
 milestones only. No implementer should repeat either merge, push it, or merge it to
 GitHub/main under this plan.
 
@@ -182,14 +187,16 @@ This slice owns only reusable family semantics. Define the strict replacement ta
 `EstimandSpec`, exactly one of the five semantic verifier/reference variants, a non-empty
 unique canonical tuple `allowed_evaluation_classes` drawn from `deterministic`,
 `stochastic_estimator`, and `judge_dependent`, a
-pinned scorer implementation, and `composition_kind: Literal["leaf"]`. The family leaf
-must not contain a panel, sample size, cluster mapping, pairing, planned repetitions,
-judgment slots, concrete evaluator profile, estimator, interval, missingness rule, or
-paper composition. Those are suite-owned in Task 1.1b.
-Evaluation class remains orthogonal to semantic family: a non-`rater_judge` leaf may allow
-`deterministic`, `stochastic_estimator`, or both, but never `judge_dependent`; a
-`rater_judge` leaf permits only `judge_dependent`. The family declares this allowed set;
-the suite selects exactly one member in Task 1.1b.
+pinned scorer implementation, and `composition_kind: Literal["leaf"]`. The family leaf must not contain a population frame, panel design or realization,
+cluster mapping, pairing, planned repetitions, attempt/retry policy, estimator,
+missingness, interval/test, judgment assignment, or paper analysis declaration.
+Task 1.1b1 owns only additive planned population/panel/cluster/pairing/replication identity
+records. Those records are future SuiteManifest-keyed experiment/analysis design
+identities and never become part of the family leaf or its measurement hash. Selection of
+one evaluation class and all remaining measurement, execution-design, and analysis-design
+composition are HOLD until Tasks 1.1b2–1.1b5 and Task 1.1c are rewritten under the
+three-layer ownership ruling. The family-owned allowed evaluation-class tuple remains
+stable and unresolved by Task 1.1b1.
 Do not wire the new record into or version-bump `FamilyManifest` in this slice; Task 1.1c
 is the sole manifest migration owner, so 1.1a can be reviewed without a half-migrated
 serialized family identity. Preserve the current legacy three-variant `MeasurementSpec`
@@ -216,14 +223,16 @@ to invent:
 - comparative reference: `baseline_delta`, `paired_comparison`, `head_to_head`,
   `human_reference`, or `field_rating`, with typed comparator/reference implementation or
   artifact, population/role/matching preconditions, output units/direction, validity
-  domain, and provenance; suite pairing and concrete panel membership remain Task 1.1b;
+  domain, and provenance; suite pairing intent and fixed-panel identity are authored by Task 1.1b1; sampled-panel
+realization, exact pair formation, and suite resolution remain HOLD for the rewritten
+Task 1.1c;
 - rater reference: rubric and protocol/prompt `ArtifactRef` values, typed answer/outcome/
   trajectory input scope, authorized projection plus pinned renderer, an
   `evaluator_agent | imported_human` source union, blind-order algorithm with declared
   seed/counterbalance inputs, calibration/reference artifacts, provenance requirements,
   result/tie schema, and required disagreement report. An accepted tie is a typed rater
-  result, never corrupt/missing evidence. Concrete evaluator or imported-evidence
-  assignment remains Task 1.1b.
+  result, never corrupt/missing evidence. Concrete evaluator or imported-evidence assignment is outside Task 1.1b1 and remains
+HOLD pending the three-layer redesign
 
 Reference source is a second strict union—case payload path with schema, allowlisted
 content-addressed artifacts, or a pinned pre-outcome deterministic computation—not a
@@ -233,12 +242,11 @@ artifact reference is non-empty and unique where appropriate.
 This slice owns the predeclared artifact side only. A read-only `ReferenceArtifactView` is
 constructed solely from the exact `ArtifactRef` values declared by the leaf/reference
 records; it verifies digest, media type, and byte length before returning bytes and cannot
-list the artifact store. Task 1.1c binds those refs into the final resolved measurement,
-constructs the post-seal scorer-input artifact boundary, and owns the final
-`ResolvedMeasurementContract`/`BoundVerifier`/`VerifierPlugin.bind` signatures after Task
-1.1b has defined evaluator and aggregate-input schemas. Task 1.1a must not import,
-forward-reference, or locally duplicate those later-owned types. The reference view
-exposes no write, provider, runtime, tool, network, reconciliation, or whole-store method.
+list the artifact store. Task 1.1a must not import, forward-reference, or locally duplicate
+later-owned selected, resolved, aggregate, analysis, or bound-verifier types. The reference
+view exposes no write, provider, runtime, tool, network, reconciliation, or whole-store
+method. Final scorer-input artifact, judge-input, resolved binding, and verifier contracts
+remain HOLD for the rewritten Task 1.1c; Task 1.1b1 does not define or consume them.
 
 **RED requirements:** schema tests construct all five reference families and every
 reference-kind discriminator above, and reject incompatible or incomplete fields. Each
@@ -247,9 +255,10 @@ source, unpinned renderer/order/calibration/provenance, or an untyped visibility
 but accept a valid tie. Registry tests reject an implementation/hash mismatch. Artifact
 tests reject traversal, non-predeclared reference refs, unreachable store objects,
 digest/media-type/length mismatch, mutation, store enumeration, and every write/network/
-provider surface. A dependency test rejects any Task 1.1a protocol or export that mentions
-`ResolvedEvaluationBinding`, `RaterAggregateInput`, `ResolvedMeasurementContract`, or
-`BoundVerifier`; those final-boundary names first become legal in Tasks 1.1b/1.1c. Mode
+provider surface. A dependency test rejects any Task 1.1a protocol or export that mentions later selected,
+resolved, aggregate, analysis, or bound-verifier surfaces. Task 1.1b1 adds only the exact
+11 planned-identity names pinned below; all remaining first-public names are HOLD and must
+not be inferred from historical plan prose. Mode
 tests reject an empty/duplicate/noncanonical allowed set, `judge_dependent` on a non-rater
 leaf, and any non-judge class on a `rater_judge` leaf, while accepting one non-rater leaf
 that allows both deterministic and stochastic evaluation.
@@ -259,359 +268,125 @@ reference semantics and one read-only predeclared-reference artifact boundary—
 statistical choices or selected evaluation class, final scorer protocol, post-seal
 aggregate type, or whole-store authority.
 
-### Task 1.1b: Freeze suite-owned statistical and evaluator bindings
+### Task 1.1b1: Freeze additive planned population, panel, cluster, pairing, and replication identities
 
-**Dependency:** Task 1.1a is independently clean.
+**Dependency:** Task 1.1a is independently clean. PR #7 is NOT independently CLEAN at
+controller breaker baseline `cd26e7202e0933c57169771d6f4500188407a40f`; controller
+authorizes only this two-file authority+design-contract-guard migration because it cannot
+touch attempt ABI/guard files, SDK source/records, or shared-runner tests. The one parked
+compiled-core regression-guard finding is Task 2.1a's mandatory first RED.
 
-**Files:**
-
-- Modify `src/aeread/sdk/v1/records.py` and `src/aeread/sdk/v1/__init__.py`.
-- Modify `tests/shared_runner/test_records.py`; create
-  `tests/shared_runner/test_measurement_design.py`.
-- Modify `tests/shared_runner/fakes.py` only for strict suite-design fixtures; do not add
-  resolver or evaluator execution.
-
-This slice owns the concrete design under which a leaf is evaluated. Add a strict
-`SuiteMeasurementBinding`: referenced `measurement_leaf_id`, typed sampling population
-and panel/selection rule, `ClusterSpec`, `PairingSpec`, `EpisodeReplicationDesign`,
-one discriminated evaluation-mode binding with exactly one `selected_evaluation_class`,
-method-specific estimator and interval/test, transformation,
-missingness, one `EpisodeAttemptInclusionPolicy`, evaluator/imported-evidence assignment
-where required, and an analysis block ID. It contains no family scorer implementation and cannot redefine an estimand,
-verifier, reference, or allowed evaluation-class set. Task 1.1c exact-matches the selected
-class to the referenced leaf's allowed tuple.
-Do not wire this binding into or version-bump `SuiteManifest`, `PlanCell`, or `RunPlan` in
-this slice; Task 1.1c owns that one atomic serialized migration.
-
-The analysis block ID resolves to one strict suite-owned `AnalysisBlockSpec` discriminator:
-leaf estimator, arm/pair comparison, metamorphic check over declared base/transformed leaf
-blocks, or field rating over a declared population/matching graph. Every block names exact
-input block IDs and output schema; comparison binds direction/pairing and optional test;
-metamorphic and field-rating blocks pin a pure `ImplementationRef` plus typed algorithm
-parameters and a closed `AnalysisMethodIOSpec`: inputs and outputs are only typed canonical
-integer rationals or categorical values, never host-language floats. An implementation
-that cannot satisfy this portable contract is excluded from V0 `AnalysisRecord` numeric
-output rather than being silently rounded by plugin code. Unknown/open parameter maps
-fail. These declarations contain no receipt data or execution port; Task 3.12 alone
-evaluates them after receipt validation.
-
-Statistical identity is planned rather than inferred from operational rows:
-
-- `EpisodeReplicationDesign` is suite-authored intent: a non-empty `replication_id`, a
-  positive repetition count, an ordered tuple of rollout seeds of exactly that length,
-  and the resolved replicate/pair/cluster-mapping identity fields. Task 1.1c zips each
-  repetition index to the seed at that same index and expands those pairs into
-  unique `PlanCell` records; there is no `PlannedEpisodeReplicate` record or second episode
-  identity. `EpisodeAttempt` is an operational child of a `PlanCell`; retries never add a
-  planned episode, pair, group, or cluster count.
-- `PlannedJudgmentSlot` is one intended rating for a leaf/episode/presentation position.
-  `RaterAttempt` is an operational child serving that slot. Replacement attempts retain
-  the same judgment-slot/cluster identity, and at most one accepted terminal judgment per
-  slot contributes to aggregation.
-- judgment-slot count and evaluator stochasticity exist only in a
-  `JudgeDependentEvaluationBinding` carrying the typed rater protocol. The non-judge
-  `StochasticEstimatorEvaluationBinding.stochastic_sources` is a non-empty set drawn only
-  from `environment | counterpart | candidate`; it has neither `judge` nor `combined`.
-
-This slice also owns the strict `ResolvedEvaluationBinding` union and the typed
-`RaterAggregateInput` record schema needed by the final verifier boundary. The aggregate
-input carries the sealed aggregate record/artifact ref, its canonical hash, measurement/
-assignment/planned-slot bindings, validity, and disagreement/tie disposition; it is never
-an open payload, executor, or artifact resolver. Task 1.1c alone composes these schemas
-with the family leaf into the final resolved contract and Protocol signatures.
-
-Resolve an outcome-blind `EpisodeAttemptInclusionPolicy` before execution. It pins a
-policy ID/version, `max_attempts_per_cell: PositiveInt`, the finite retry-failure classes
-authorized to create a successor,
-canonical attempt ordering `(attempt_ordinal, episode_attempt_id)`, and the V0 selection
-rule `terminal_chain_tail_after_authorized_retries`. Attempts must form one gap-free
-predecessor chain within the bound for the same `PlanCell`; a successor is eligible only
-when its predecessor's typed terminal failure class is allowlisted, and no successor may
-follow a non-retry terminal. The sole selected attempt is the integrity-complete chain tail
-(including an exhausted/abandoned typed failure), never an earlier attempt whose outcome
-looks better. `AttemptSelectionProof` records the ordered
-attempt/event hashes, predecessor links and failure classes, eligibility decisions, and
-the sole selected attempt ID or `None`. Policy resolution and proof verification may use
-only identities, ordering, integrity/completeness, and typed retry-failure classes—never
-measurement validity, score, utility, success-predicate value, action quality, or another
-outcome value. Each receipt immutably binds the policy hash and only its local
-`AttemptPolicyEvidence`—ordinal, predecessor attempt ID and terminal event ID/hash when
-present, plus this attempt's terminal event ID/hash and typed retry class—so a later retry
-never requires rewriting an
-earlier receipt. After retry control ends, Task 3.11 binds those immutable local records
-and any typed prepublication failures/exclusion into the one complete
-`AttemptChainClosure`; Task 3.12 exact-matches that closure to the run-close manifest and
-produces the canonical `AttemptSelectionProof` by recomputing the full chain before
-accepting a selected attempt.
-
-Every suite-authored V0 numeric parameter used by analysis is a strict reduced
-`CanonicalRational(numerator: int, denominator: PositiveInt)` with positive denominator;
-JSON floats or decimal strings are rejected for these fields. Replace the bare estimator
-target enum with a discriminator union:
-
-- `MeanEstimatorSpec` binds the metric and `weighting: Literal["uniform"]`;
-- `DifferenceEstimatorSpec` binds subject/comparator arm IDs, comparison direction, and
-  exactly one design: paired with its exact `PairingSpec`/pair keys, or unpaired with each
-  arm's declared population and `weighting: Literal["uniform"]`;
-- `ProbabilityEstimatorSpec` binds a typed, versioned Boolean success predicate and
-  `denominator: Literal["planned", "valid"]`. `planned` is legal only with
-  `invalidate_required` and produces a semantic probability only when every planned cell
-  has one selected valid Boolean predicate value; any invalid/missing/failed/unknown cell
-  invalidates the numeric result rather than becoming `false`. `valid` is legal only with
-  a predeclared partial-missingness estimator; only selected valid Boolean values enter its
-  denominator, and the result records planned, valid, invalid/missing, and success counts
-  plus the exact invalid/missing cell identities. A probability whose predicate is
-  operational completion or measurement availability must be a separately declared
-  operational-availability `EstimandSpec`, never a semantic-success probability shortcut;
-- `QuantileEstimatorSpec` binds metric, rational `q` strictly in `(0, 1)`, and the V0 R-7
-  linear interpolation rule;
-- `PassAllKEstimatorSpec` binds a positive `k`, success predicate, planned-cell group
-  keys consumed as `PlanCell` keys after Task 1.1c expansion, and means exactly `1` iff all
-  and exactly the `k` unique cells in each complete group succeed. Missing or extra cells
-  follow the declared missingness rule and cannot silently change `k`; attempts never
-  enter the denominator.
-
-Non-uniform estimator weights are deferred from V0 and fail schema resolution. V0
-interval is a method-specific union only: `NoIntervalSpec(method="none")` has no
-confidence or resampling fields; `ClusterBootstrapIntervalSpec` requires confidence,
-as a rational strictly in `(0, 1)`, draw count, seed, the percentile/R-7 method version,
-and the resolved cluster-mapping/identity fields that define its resampling unit. Its
-`resampling_block_mapping` equals that cluster mapping unless the suite declares a strict
-`LargerAtomicResamplingBlockSpec` whose partition coarsens (never splits) clusters. Every
-indivisible paired-comparison pair and every complete pass-all-k group must be wholly
-nested in one effective resampling block; a cross-cluster pair/group is legal only when
-that larger predeclared block contains all of it, and bootstrap samples those whole blocks.
-`PairedRandomizationTestSpec` is a
-separate hypothesis-test declaration with paired keys,
-`assignment_mechanism: Literal["independent_uniform_within_pair"]`, typed assignment and
-exchangeability provenance refs, two-sided absolute-mean-difference statistic, exhaustive
-threshold, Monte Carlo draw count, and seed. Observational or otherwise non-uniform pairs
-may publish the paired effect only and must reject a p-value/test declaration. Its interval
-must be `NoIntervalSpec` because V0 publishes no randomization confidence interval.
-Cluster-robust and hierarchical intervals are deferred. A validator never requires fake
-resampling fields for `none` or
-the paired test.
-
-Missingness is fail-closed and typed: `invalidate_required` forbids numeric output when a
-required planned unit is missing/failed/unknown; a predeclared partial estimator names its
-positive minimum valid planned units and denominator treatment. A probability result
-always reports `planned_count`, `valid_boolean_count`, `invalid_or_missing_count`, and
-integer `success_count`. Under `denominator="planned"`, the counts must prove
-`planned_count == valid_boolean_count` before division; otherwise the entire result is
-`invalid_measurement` with no numerator, denominator, or numeric value. Under
-`denominator="valid"`, only selected cells with a valid Boolean predicate enter the
-denominator and the partial rule must authorize that treatment. Neither policy may
-silently drop rows, coerce invalidity to Boolean failure, or impute economic zero. A rater
-binding additionally freezes aggregation, valid tie treatment, minimum valid judgment
-slots, disagreement output, and concrete assignment.
-`EvaluatorAgentAssignment` pins one evaluator profile per judgment slot and its authorized
-projection; `ImportedHumanAssignment` pins the collection/provenance artifact and maps
-records to planned slots. Neither becomes an environment seat.
-
-**RED requirements:** tests reject `PlannedEpisodeReplicate` and reject
-`EpisodeAttempt`/`RaterAttempt` as replicate or judgment identity fields, reject seed/count
-mismatches, reject a Cartesian repetition/seed expansion, reject replacement as a new
-count, and reject more than one accepted judgment per planned slot. Each estimator variant
-fails when its method-specific parameter is
-absent or inconsistent; pass-all-k cases cover complete success, one failure, missing,
-extra, and duplicate cell keys. Interval tests cover the two exact V0 variants; paired
-randomization accepts only literal independent uniform within-pair assignment plus both
-provenance refs and a separate test plus `none`; observational/non-uniform pairs reject
-p-values, and cluster-robust/hierarchical or fake resampling fields fail. Numeric schema
-tests reject non-reduced/zero-denominator rationals, JSON-float numeric parameters, and
-every non-uniform estimator weight. Probability tests prove one invalid planned cell makes
-`denominator="planned"` reject all numeric numerator/denominator/output, while the
-predeclared `valid` design returns exact planned/valid/invalid/success counts and cell IDs;
-the same fixture cannot relabel semantic failure as operational availability. Bootstrap
-schema tests reject any pair or pass-all-k group split across effective resampling blocks,
-accept only an explicit coarsening block that wholly contains it, and reject a block that
-splits any resolved cluster. Analysis-method tests reject host-float IO and exclude an
-incompatible custom method from V0 portable numeric output.
-Judge variation without a rater protocol, ambiguous `combined`, unauthorized visibility,
-incomplete evaluator/imported-human assignment, implicit drop, and zero imputation all
-fail before evaluator/provider/runtime work. Inclusion-policy tests reject outcome fields,
-unauthorized retry classes, attempt-bound overflow, broken/gapped predecessor chains, a
-successor after a non-retry terminal, noncanonical ordering, two selected attempts, or a
-selection proof that Task 3.12 cannot recompute byte-identically.
-
-Evaluation-class schema tests require exactly one selected discriminator consistent with
-its binding variant and reject suite redefinition of the family-owned allowed tuple; the
-cross-record allowance/hash proof remains in Task 1.1c with the resolver.
-
-**Output:** one suite-owned, strictly typed statistical/evaluation binding whose
-replication design expands only to `PlanCell`, whose planned judgment slots are distinct
-from operational attempts, whose attempt inclusion is plan-bound and outcome-blind, and
-whose V0 interval/test declarations are unambiguous.
-
-### Task 1.1c: Resolve one measurement design, minimal composition, and schema migrations
-
-**Dependency:** Tasks 1.1a and 1.1b are independently clean.
+**Binding implementation authority:**
+`Aug 22 Sync/20260825_task1_1b1_planned_identity_dispatch_codex.md`, normalized self
+SHA-256
+`13371f845ba1a34b0caa82dfca409f0558e0a3556313b13c39794bb56d231648`.
 
 **Files:**
 
-- Modify `src/aeread/runner/planning.py` and `src/aeread/runner/registry.py`.
-- Modify `src/aeread/sdk/v1/records.py`, `src/aeread/sdk/v1/protocols.py`, and
-  `src/aeread/sdk/v1/__init__.py` for the resolved records, final bound-verifier Protocols,
-  composition declarations, and versioned manifest/plan fields; complete
-  `src/aeread/runner/verifier_artifacts.py` for the post-seal scorer-input set.
-- Modify `docs/shared_runner_design.md`, `docs/verifier_taxonomy.md`, and
-  `docs/walkthroughs/shared_runner_architecture_roadmap.md`; guard the ownership,
-  identity, composition, and hash rules in `tests/test_shared_runner_design_contract.py`.
-- Modify `tests/shared_runner/test_planning.py` and
-  `tests/shared_runner/test_planning_adversarial.py`; create
-  `tests/shared_runner/test_measurement_resolution.py`.
+- Modify `src/aeread/sdk/v1/records.py` and `src/aeread/sdk/v1/__init__.py` only for the
+  exact additive records/exports.
+- Modify `tests/shared_runner/test_records.py` only for legacy ABI characterization.
+- Create `tests/shared_runner/test_planned_identity_design.py`.
+- Do not modify manifests, planning, protocols, runner/runtime, family adapters, or
+  `tests/shared_runner/fakes.py`.
 
-For every evaluation block, resolve exactly one family `MeasurementLeafSpec` plus exactly
-one compatible `SuiteMeasurementBinding` into one immutable
-`ResolvedMeasurementDesign` stored directly in `PlanCell`. It contains the leaf ID/version/
-hash, allowed evaluation-class tuple and selected evaluation class, exact reference and predeclared-reference
-artifact set, sampling/panel, cluster, pair, replication design and judgment-slot
-identities, estimator, interval/test, transformation, missingness, evaluator assignment,
-scorer visibility, the resolved `EpisodeAttemptInclusionPolicy`, analysis-block ID, and two
-composition-excluding hashes:
-`suite_measurement_binding_sha256` over only the canonical resolved
-`SuiteMeasurementBinding`, and `analysis_block_sha256` over only its resolved analysis
-block. It must not contain or hash the full `SuiteManifest` or any composition declaration.
-Its canonical `measurement_sha256` covers every listed field, and the `BoundVerifier`
-carries that exact digest. Full `suite_manifest_sha256` and `composition_sha256` are
-separate fields on `PlanCell`, `RunPlan`, and the eventual receipt.
+**Exact additive public names (11):**
 
-The resolver first validates `repetition_count == len(rollout_seeds)`, then expands each
-`EpisodeReplicationDesign` into exactly one `PlanCell` per declared case × evaluation
-block × subject/seat assignment × `enumerate(rollout_seeds)`. Each repetition index is
-zipped to the seed at that same index; repetition indices and seeds are never separate
-Cartesian axes. It rejects duplicate keys and proves exact set equality between expected
-and actual `PlanCell` keys—no missing or extra cell and no `EpisodeAttempt`/retry key may
-satisfy coverage. In the atomic migration, `EvaluationBlock` references one
-`episode_replication_design_id`; legacy inline repetition/rollout-seed fields are rejected
-so the same intent cannot be authored twice. `PlannedJudgmentSlot` remains the only inner
-rating identity.
+`ClusterDesignSpec`, `ClusterMembershipSpec`, `EpisodeReplicationDesign`,
+`FixedPanelDesignSpec`, `PairingSpec`, `PanelDesignSpec`, `PlannedCoordinateField`,
+`SampledPanelDesignSpec`, `SamplingPopulationSpec`,
+`SeededEpisodeReplicationDesign`, and `UnseededEpisodeReplicationDesign`.
 
-`SuiteManifest/0.2` owns unique `episode_replication_designs` and `analysis_blocks`
-collections. Every evaluation/binding reference resolves exactly once; unreferenced,
-missing, duplicate, or cross-suite IDs fail rather than creating implicit defaults.
+**Ownership:** strict pre-run identities for a finite declared population with mandatory
+full-frame artifact reference (seal/content exact resolution is deferred); fixed panel or
+SRSWOR sampled-panel design without realized selected IDs; one-level cluster partition
+declaration; paired/unpaired relation directly naming distinct
+`EvaluationBlock.block_id` values using shared planned coordinates only; and positional
+seeded or honestly upstream-unseeded episode repetition. Local b1 validation requires the
+two block-reference strings to be non-empty and different; future resolution proves they
+exist in the same suite. Same design ID means only the same canonical record bytes/hash;
+different IDs are distinct planned identities and are never implicitly deduplicated.
+Whether IDs share or independently draw a realization, the population+panel realization
+key, and the RNG coupling/domain are later execution-schema decisions, not b1 semantics.
 
-This slice owns the final pure scoring contract after the earlier schema slices exist:
+These are future SuiteManifest-keyed execution/analysis design identities. They are not
+family measurement semantics, are not embedded in a measurement binding/hash, and do not
+migrate SuiteManifest, EvaluationBlock, PlanCell, RunPlan, or planning in this slice.
 
-```python
-class ResolvedMeasurementContract(Protocol):
-    measurement_sha256: SHA256
-    suite_measurement_binding_sha256: SHA256
-    analysis_block_sha256: SHA256
-    leaf: MeasurementLeafSpec
-    evaluation: ResolvedEvaluationBinding
+**Deferred:** sampled selection execution/evidence; population subset/cluster exact-cover/
+pair formation/cell-expansion gates; selected mode, estimator, missingness, interval/test,
+assignment, judge, attempt control/evidence/selection, post-run cluster reporting,
+scheduler, receipt/replay, and adapters. Task 1.1b1 must not create final resolved records
+or public names for those concerns.
 
-class BoundVerifier(Protocol):
-    measurement_sha256: SHA256
+**RED/GREEN and stop conditions:** the digest-pinned dispatch brief is normative. It
+requires exact legacy schema/export preservation, strict local validators, provider-free
+constructor pressure for the five representative verifier sources plus Housing, scoped
+files, meaningful RED, focused/integration/shared/full/format/compile/diff checks, and two
+independent P0/P1/P2 CLEAN reviews. Constructor pressure proves schema expressibility only,
+not A0/O0/E0/E1, execution, or parity.
 
-    def score(
-        self,
-        case: FamilyCase,
-        outcome: FamilyOutcome,
-        evidence: SealedEvidenceView,
-        artifacts: ScorerInputArtifactView,
-        rater_aggregate: RaterAggregateInput | None,
-    ) -> ScoreEnvelope: ...
+**Output:** canonical-hashable planned-identity authoring records only.
 
-class VerifierPlugin(Protocol):
-    implementation: ImplementationRef
+### Tasks 1.1b2–1.1b5: HOLD — three-layer design rewrite required
 
-    def bind(
-        self,
-        measurement: ResolvedMeasurementContract,
-        references: ReferenceArtifactView,
-    ) -> BoundVerifier: ...
-```
+These slices are not dispatchable. Historical names, fields, files, dependencies, and RED
+matrices for selected evaluation mode, estimator/missingness, inference, judge design, or
+analysis composition are research inventory only. Before any implementation, the
+controller must publish a new bounded brief that separates Measurement, Execution design,
+and Analysis design; defines distinct suite-keyed identities and hash boundaries; resolves
+distinct-arm population/panel designs; freezes pre-outcome assignment
+design/realization; reconciles cluster weighting/missingness with final arithmetic; and
+receives independent specification/scientific and quality/adversarial CLEAN reviews.
 
-`ResolvedMeasurementDesign` satisfies `ResolvedMeasurementContract`; bind rejects every
-leaf/evaluation/hash/implementation mismatch. After terminal evidence and any typed
-`RaterAggregateInput` are complete, the runner builds `ScorerInputArtifactSet` as the
-sorted union of exact predeclared reference refs and typed `ArtifactRef` fields recursively
-reachable through only the final visible terminal/evidence/aggregate records authorized by
-`ScorerVisibilitySpec`. It follows only registered typed artifact-manifest media types,
-rejects cycles and string-shaped/untyped refs, validates digest/media type/length, never
-calls `ArtifactStore.list_refs()`, and binds the sorted refs plus
-`artifact_set_sha256` into score, replay, and receipt. Bind and score are provider-free and
-side-effect-free. Judge-dependent scoring requires exactly one sealed, valid,
-measurement-bound aggregate; it never falls back to leaf-only scoring.
+This HOLD intentionally freezes no final public record names.
 
-Validation is exact and rejects rather than overwrites: missing or duplicate leaf/binding,
-estimand mismatch, selected evaluation class outside the leaf allowance, family/suite reference drift,
-incompatible paired estimator, unresolved artifact/profile/implementation, or more than
-one cluster mapping for a leaf/block. Changing a paper panel, repetition count, pairing,
-interval/test, missingness rule, or evaluator assignment must leave the family leaf
-bytes/hash unchanged while changing the suite manifest, resolved measurement, `PlanCell`,
-and `RunPlan` bytes/hashes.
+### Task 1.1c: HOLD — atomic three-layer resolution and schema migration must be redesigned
 
-Composition is declaration-only in V0. `SuiteManifest.compositions` may declare
-`vector`, `hybrid_gate`, `weighted`, or `judge_augmented` over a non-empty unique tuple of
-existing leaf `block_id` values. A component may not reference another composition, so
-nesting and cycle traversal do not exist. Validate and hash declarations only; aggregate
-execution and scalar publication belong only to post-receipt Task 3.12. Weighted
-declarations still bind exact rational weights, pinned transforms, units, decision problem,
-and sensitivity declaration, but V0 analysis publishes only the ordered component vector,
-the declaration hash, and `weighted_scalar_status="deferred"`; it does not compute or
-publish one official weighted scalar. A future version may enable scalar publication only
-after a finite typed sensitivity grid and its complete execution/result semantics are
-plan-bound and executed. Vector binds output order; hybrid gate binds its typed gate,
-gated blocks, and fallback; V0 judge-augmented binds ordered component IDs, the one judge
-block, typed dependency edges, required component statuses, and tie/missing disposition,
-but has no numeric combiner, transforms, or scalar output. Any cross-component scalar must
-use `weighted` and remains deferred in V0. Every executable gate predicate or weighted
-transform is pinned; otherwise keep a vector.
-Composition never changes leaf validity/inclusion, never claims
-shared evidence without a separately resolved paired design, and never becomes an
-execution/admission gate. `composition_sha256` is a separate SuiteManifest-owned digest
-carried by `PlanCell` and `RunPlan`: changing composition changes only composition,
-`SuiteManifest`, `PlanCell`, and `RunPlan` bytes/hashes, never
-`suite_measurement_binding_sha256`, `analysis_block_sha256`,
-`ResolvedMeasurementDesign.measurement_sha256`, or the bound leaf digest.
+**Dependency:** Task 1.1a and Tasks 1.1b1–1.1b5 are each independently clean. Because
+Tasks 1.1b2–1.1b5 are HOLD, this dependency is currently unsatisfied.
 
-Make the breaking migration explicit with no automatic legacy parser:
-`FamilyManifest` becomes `aeread.family/0.2`, `SuiteManifest` becomes
-`aeread.suite/0.2`, `PlanCell` becomes `aeread.plan_cell/0.2`, and `RunPlan` becomes
-`aeread.run_plan/0.3`. Legacy family-owned evaluation/composition payloads and the
-Task 0.3 plan versions fail closed.
+Task 1.1c is not dispatchable. The superseded text mixed semantic measurement,
+population/panel/replication execution design, cluster/pair/estimator analysis design, and
+attempt control in one resolved measurement. Do not implement its historical public names,
+fields, Protocol signatures, hashes, migration versions, files, or RED matrix.
 
-**RED requirements:** construct every allowed leaf/mode binding and mutation-test every
-resolved field. `test_suite_design_change_does_not_change_family_identity` changes panel
-and interval independently, proves identical family bytes/hash, and proves changed suite,
-measurement, cell, and run-plan hashes. Resolution rejects every duplicate/conflict named
-above; inclusion-policy mutation changes measurement/cell/run hashes but never the family
-leaf hash. `test_plan_cell_expansion_is_an_exact_bijection` compares the complete expected and
-actual key sets, rejects missing/extra/duplicate keys, and proves retries cannot satisfy a
-missing cell. Its required `R=2` fixture with seeds `(s0, s1)` produces exactly the two
-unique coordinates `(0, s0)` and `(1, s1)`, never four Cartesian cells; adding an
-`EpisodeAttempt` changes neither expected nor actual coverage. Binding/hash tests mutate
-the suite measurement binding and analysis block independently and require changed
-`measurement_sha256`, while composition and unrelated full-suite-envelope changes preserve
-`suite_measurement_binding_sha256`, `analysis_block_sha256`, and `measurement_sha256` but
-change the appropriate full suite/composition/cell/run hashes. Composition accepts direct
-leaf block IDs, rejects
-missing/duplicate/non-leaf components and undeclared scalar semantics, has no executable
-aggregation port in planning/resolution, and
-`test_composition_change_preserves_measurement_digest` proves only the
-composition/suite/cell/run hashes change. Post-seal artifact tests reject untyped or
-unreachable refs, cycles, store enumeration, and aggregate-binding drift; bound-verifier
-tests prove byte-identical provider-free scoring and fail closed for a required absent,
-invalid, wrong-binding, or unsealed aggregate. Weighted composition RED requires the
-ordered vector and declaration hash with `weighted_scalar_status="deferred"` and rejects
-any V0 official weighted scalar. Judge-augmented RED freezes only component/dependency/
-status structure and rejects a combiner, transform, weight, or scalar result. Evaluation-
-class RED resolves one dual-allowed non-rater leaf under deterministic and stochastic
-suite bindings, proving identical leaf bytes/hash and distinct suite, resolved-measurement,
-cell, and run hashes; it rejects zero/multiple selections and every selection outside the
-leaf allowance.
-Migration tests assert all four exact versions and reject prior payloads. The unauthorized
-rater preflight remains zero-side-effect evidence only; Tasks 3.5–3.7 own evaluator work.
+The replacement design must be independently reviewed before implementation and must at
+minimum:
 
-**Output:** one hashed composition-free `ResolvedMeasurementDesign` per sole episode
-identity `PlanCell`, exact expansion/coverage and family/suite ownership, separately
-hashed declaration-only leaf composition, and explicit versioned migrations.
+1. keep family leaf plus selected/resolved reference/scorer/judge semantics in the
+   Measurement layer;
+2. resolve SuiteManifest-keyed population, full frame, panel realization, replication,
+   EvaluationBlock/seat assignment, and one run/PlanCell attempt policy in the Execution
+   design layer;
+3. resolve SuiteManifest-keyed cluster projection, pairing, estimator, missingness,
+   interval/test, multiplicity, and analysis DAG in the Analysis design layer;
+4. bind separate measurement, execution-design, and analysis-design identities/hashes in
+   plan and receipt records; b1 identities never enter the family leaf/measurement hash;
+5. preserve same-design-ID canonical identity and prohibit implicit dedup of different
+   design IDs; require the later execution schema to declare realization keys,
+   coupling/independence, and RNG domains explicitly, including across arms;
+6. exact-resolve the complete population frame before outcome, execute/import only
+   predeclared SRSWOR realization, and publish selection provenance;
+7. exact-resolve `PairingSpec` sides to distinct `EvaluationBlock.block_id` values and
+   separately declare any assignment mechanism/realization needed for causal or
+   randomization claims;
+8. keep attempt retry authorization in execution control, receipt-local attempt evidence
+   after execution, and outcome-blind attempt selection after complete run closure;
+9. expose narrow typed artifact views/sinks for resolution and scoring without whole-store
+   enumeration;
+10. keep post-run cluster-size/effective-resampling reporting in analysis evidence, not b1.
+
+No downstream task may use historical Task 1.1c text as substitute authority while this
+HOLD is active.
 
 ### Task 1.2: Add five provider-free measurement fixtures
 
 **Dependency:** Task 1.1c is independently clean.
+
+**Current gate:** blocked. Task 1.1c is HOLD, so no fixture may be presented as consuming a
+final resolved measurement/receipt surface. Task 1.1b1 constructor-pressure tests are
+schema prerequisites and do not satisfy Task 1.2.
 
 **Files:** create one valid and one neighboring invalid fixture for each family under
 `tests/shared_runner/fixtures/verifier_families/`, and create
@@ -638,6 +413,15 @@ slots and proves a replacement attempt cannot add a judgment.
 upstream parity, interval adequacy, or benchmark quality.
 
 ## Stage 2 — correct agent lifecycle and side-effect contracts
+
+> **HOLD inheritance:** every Stage 2–5 dependency on Task 1.1c remains blocked. Any
+> downstream references to unresolved measurement/execution/analysis, attempt policy,
+> judge aggregate, receipt, or analysis names are non-dispatchable design inventory until
+> the replacement Task 1.1c authority exact-defines them. Implementers may not use those
+> references to backfill the HOLD schema.
+> Task 2.1a's mandatory first RED is the one parked compiled-core regression-guard finding
+> from breaker baseline `cd26e7202e0933c57169771d6f4500188407a40f`; this migration does
+> not alter its attempt ABI or guard.
 
 ### Task 2.1a: Add precise action/call/tool evidence vocabulary
 
@@ -2407,12 +2191,13 @@ is a blocker, not authority for a sixth plan-fix round or hidden implementer dis
 
 ## Current dispatch gate
 
-Latest PR #7 source `155d8fc` is integrated locally by true merge `b5239cd`, with
-compatibility and executable-guard follow-ups through `c7aca60`; the whole runner is not
-implemented. Task 1.1a1 and Task 1.1a2 are complete, and the last independently clean
-implementation baseline is `a7ddbb2`. The PR #7 review-candidate chain is `2654b2d` ->
-`011475f` -> the current corrective follow-up; it is not independently clean until its
-fresh review closes. Task 1.1b is next only after that gate. Later tasks advance only
-through their declared dependency, RED/GREEN, scoped commit, and independent-review gates.
-Provider-free/static evidence is never reported as live runtime, upstream parity, or
-benchmark-quality evidence.
+PR #7 is NOT independently CLEAN at controller breaker baseline
+`cd26e7202e0933c57169771d6f4500188407a40f`. Under the controller ruling, Task 1.1b1 is
+the sole next dispatchable slice and is governed by the normalized brief digest
+`13371f845ba1a34b0caa82dfca409f0558e0a3556313b13c39794bb56d231648`.
+Tasks 1.1b2–1.1b5 and Task 1.1c are HOLD/not dispatchable pending the three-layer schema
+rewrite and independent review. Task 1.2 and all later dependencies on Task 1.1c remain
+blocked. Provider-free constructor pressure is never reported as runner execution,
+upstream parity, or benchmark-quality evidence. The two-file migration cannot change any
+attempt ABI/guard, SDK source/records, or shared-runner test. No push or GitHub/main merge
+is authorized.

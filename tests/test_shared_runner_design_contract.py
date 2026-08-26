@@ -870,31 +870,68 @@ def test_public_sdk_stability_policy_preserves_existing_v1_exports() -> None:
 
 def test_rebaseline_status_names_current_integration_and_next_gate() -> None:
     text = REBASELINE_PLAN.read_text(encoding="utf-8")
+    breaker_baseline = "cd26e7202e0933c57169771d6f4500188407a40f"
+    brief_digest = (
+        "13371f845ba1a34b0caa82dfca409f0558e0a3556313b13c39794bb56d231648"
+    )
     status = text.split("## Objective", 1)[0]
     task_02 = text.split(
         "### Task 0.2: Integrate the latest approved PR #7 design", 1
     )[1].split("### Task 0.3", 1)[0]
+    task_1b = text.split("### Task 1.1b1:", 1)[1].split("### Task 1.1c:", 1)[0]
+    task_1c = text.split("### Task 1.1c:", 1)[1].split("### Task 1.2:", 1)[0]
+    task_12 = text.split("### Task 1.2:", 1)[1].split("## Stage 2", 1)[0]
+    stage_2_preamble = text.split("## Stage 2", 1)[1].split(
+        "### Task 2.1a:", 1
+    )[0]
     dispatch = text.split("## Current dispatch gate", 1)[1]
 
     for section in (status, task_02, dispatch):
         normalized = " ".join(
             line.removeprefix("> ").strip() for line in section.splitlines()
         )
-        assert "`155d8fc`" in normalized
-        assert "`b5239cd`" in normalized
-        assert "`c7aca60`" in normalized
-        assert (
-            "last independently clean implementation baseline is `a7ddbb2`"
-            in normalized
-        )
-        assert (
-            "review-candidate chain is `2654b2d` -> `011475f` -> the current "
-            "corrective follow-up" in normalized
-        )
-        assert "not independently clean until its fresh review closes" in normalized
-        assert "Task 1.1a1" in normalized
-        assert "Task 1.1a2" in normalized
-        assert "Task 1.1b" in normalized
+        assert f"`{breaker_baseline}`" in normalized
+        assert "PR #7 is NOT independently CLEAN" in normalized
+        assert "Task 1.1b1" in normalized
+        assert "sole next dispatchable" in normalized
+        assert "Tasks 1.1b2–1.1b5" in normalized
+        assert "Task 1.1c" in normalized
+        assert "HOLD" in normalized
+
+    assert brief_digest in task_1b
+    assert brief_digest in dispatch
+    assert "### Tasks 1.1b2–1.1b5: HOLD" in text
+    assert "This HOLD intentionally freezes no final public record names." in task_1b
+    assert "HOLD — atomic three-layer resolution" in task_1c
+    assert "**Dependency:** Task 1.1c is independently clean." in task_12
+    assert "**Current gate:** blocked." in task_12
+    assert "Task 1.1c is HOLD" in task_12
+    assert (
+        "Task 1.1b1 constructor-pressure tests are schema prerequisites and do not "
+        "satisfy Task 1.2." in " ".join(task_12.split())
+    )
+    normalized_stage_2 = " ".join(
+        line.removeprefix("> ").strip() for line in stage_2_preamble.splitlines()
+    )
+    assert "HOLD inheritance" in normalized_stage_2
+    assert "every Stage 2–5 dependency on Task 1.1c remains blocked" in normalized_stage_2
+    assert "Implementers may not use those references to backfill the HOLD schema" in (
+        normalized_stage_2
+    )
+    assert "Task 2.1a's mandatory first RED is the one parked compiled-core regression-guard finding" in normalized_stage_2
+    assert "PR #7 is independently clean" not in text
+
+    gates = " ".join((status, task_02, dispatch))
+    for stale in (
+        "review-candidate chain",
+        "current corrective follow-up",
+        "not independently clean until its fresh review closes",
+        "Task 1.1b is the next bounded",
+        "Task 1.1b is next only after",
+        "<PR7_INDEPENDENTLY_CLEAN_HEAD>",
+    ):
+        assert stale not in gates
+
     assert "Task 1.1a and all later plan work remain blocked" not in dispatch
     assert "Task 1.1a2 is the next" not in text
     assert "with independent review pending" not in text
