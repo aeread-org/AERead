@@ -289,6 +289,16 @@ class _TreatmentAwareTenantProvider:
         )
 
 
+class _RateLimitedTenantProvider:
+    async def complete(self, request: ProviderRequest):
+        raise ProviderFailure(
+            "rate_limit",
+            "synthetic upstream overload",
+            retryable=True,
+            status_code=429,
+        )
+
+
 def _cell_for(setup, *, world_seed: int, replicate_index: int):
     return next(
         cell
@@ -543,6 +553,93 @@ def test_condition_batch_preserves_charged_failure_evidence_and_cost(tmp_path) -
     assert rows[0]["provider_call_count"] == 4
     assert rows[0]["length_retry_count"] == 2
     assert rows[0]["reasoning_tokens"] == 12
+
+
+def test_condition_batch_seals_null_result_provider_failure(tmp_path) -> None:
+    setup = build_housing_condition_setup(
+        condition_id="reasoning_low_v1",
+        reasoning_effort="low",
+        world_seeds=(101,),
+        replicates=1,
+        tenant_model=DEEPSEEK_MODEL,
+        tenant_revision=DEEPSEEK_REVISION,
+        num_tenants=2,
+        num_listings=1,
+        rounds=1,
+        inference_seed_base=87001,
+    )
+    result = asyncio.run(
+        run_condition_batch(
+            setup=setup,
+            condition_id="reasoning_low_v1",
+            output_root=tmp_path,
+            providers=_batch_providers(_RateLimitedTenantProvider()),
+            concurrency=1,
+            spend_limit_usd=1.0,
+        )
+    )
+
+    assert result["executed_count"] == 1
+    assert result["failure_count"] == 1
+    assert result["total_cost_usd"] == 0.0
+    rows = read_condition_results(
+        tmp_path, condition_id="reasoning_low_v1", verify_evidence=True
+    )
+    assert rows[0]["status"] == "operational_failure"
+    assert rows[0]["evidence_verified"] is True
+    assert rows[0]["provider_call_count"] == 2
+    assert rows[0]["reasoning_tokens"] == 0
+
+
+def test_condition_batch_recovers_orphan_attempt_without_rerun(tmp_path) -> None:
+    setup = build_housing_condition_setup(
+        condition_id="reasoning_low_v1",
+        reasoning_effort="low",
+        world_seeds=(101,),
+        replicates=1,
+        tenant_model=DEEPSEEK_MODEL,
+        tenant_revision=DEEPSEEK_REVISION,
+        num_tenants=2,
+        num_listings=1,
+        rounds=1,
+        inference_seed_base=87001,
+    )
+    cell = setup.plan.cells[0]
+    with pytest.raises(Exception):
+        asyncio.run(
+            execute_plan_cell(
+                plan=setup.plan,
+                cell_id=cell.cell_id,
+                registry=setup.registry,
+                evidence_root=tmp_path / "reasoning_low_v1" / "evidence",
+                prompt_sources=setup.prompt_sources,
+                providers=_batch_providers(_ChargedFailureTenantProvider()),
+                pricing=setup.pricing,
+                episode_attempt_ordinal=0,
+            )
+        )
+
+    resume_provider = _RecordingTenantProvider()
+    result = asyncio.run(
+        run_condition_batch(
+            setup=setup,
+            condition_id="reasoning_low_v1",
+            output_root=tmp_path,
+            providers=_batch_providers(resume_provider),
+            concurrency=1,
+            spend_limit_usd=1.0,
+        )
+    )
+
+    assert result["executed_count"] == 0
+    assert result["resumed_count"] == 1
+    assert result["failure_count"] == 1
+    assert resume_provider.requests == []
+    rows = read_condition_results(
+        tmp_path, condition_id="reasoning_low_v1", verify_evidence=True
+    )
+    assert rows[0]["failure_type"] == "OrphanedAttemptRecovered"
+    assert rows[0]["interruption_recovered"] is True
 
 
 def _paired_setups(*, world_seeds=(101, 202), replicates=1):

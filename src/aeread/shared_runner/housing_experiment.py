@@ -161,7 +161,14 @@ def _reasoning_usage(evidence: EvidenceStore) -> tuple[int, bool]:
         if event.event_type not in {"provider_call_succeeded", "provider_call_failed"}:
             continue
         payload = _load_event_payload(evidence, event)
-        raw = payload.get("provider_result", {}).get("raw_response")
+        provider_result = (
+            payload.get("provider_result") if isinstance(payload, Mapping) else None
+        )
+        raw = (
+            provider_result.get("raw_response")
+            if isinstance(provider_result, Mapping)
+            else None
+        )
         if not isinstance(raw, Mapping):
             continue
         usage = raw.get("usage")
@@ -197,6 +204,7 @@ def _event_execution_metrics(evidence: EvidenceStore) -> dict[str, Any]:
     route_providers: set[str] = set()
     resolved_models: set[str] = set()
     total_cost_usd = 0.0
+    unknown_cost_provider_calls = 0
     for event in evidence.read_events():
         payload = _load_event_payload(evidence, event)
         if event.event_type == "logical_action_started" and event.logical_action_id:
@@ -227,6 +235,8 @@ def _event_execution_metrics(evidence: EvidenceStore) -> dict[str, Any]:
             cost = payload.get("cost_usd") if isinstance(payload, Mapping) else None
             if isinstance(cost, (int, float)) and not isinstance(cost, bool):
                 total_cost_usd += float(cost)
+            elif cost == "unknown":
+                unknown_cost_provider_calls += 1
             provider_result = (
                 payload.get("provider_result") if isinstance(payload, Mapping) else None
             )
@@ -257,6 +267,7 @@ def _event_execution_metrics(evidence: EvidenceStore) -> dict[str, Any]:
         "route_providers": sorted(route_providers),
         "resolved_models": sorted(resolved_models),
         "cost_usd": total_cost_usd,
+        "unknown_cost_provider_call_count": unknown_cost_provider_calls,
     }
 
 
@@ -265,10 +276,18 @@ def _failure_evidence_fields(
 ) -> dict[str, Any]:
     cell_root = evidence_root / run_plan_id / cell_id
     if not cell_root.is_dir():
-        return {"evidence_verified": False, "cost_usd": 0.0}
+        return {
+            "evidence_verified": False,
+            "cost_usd": 0.0,
+            "unknown_cost_provider_call_count": 0,
+        }
     attempts = sorted(path for path in cell_root.iterdir() if path.is_dir())
     if len(attempts) != 1:
-        return {"evidence_verified": False, "cost_usd": 0.0}
+        return {
+            "evidence_verified": False,
+            "cost_usd": 0.0,
+            "unknown_cost_provider_call_count": len(attempts),
+        }
     try:
         evidence = EvidenceStore.audit_existing(attempts[0])
     except Exception:
@@ -276,11 +295,61 @@ def _failure_evidence_fields(
             "evidence_dir": str(attempts[0].resolve()),
             "evidence_verified": False,
             "cost_usd": 0.0,
+            "unknown_cost_provider_call_count": 1,
         }
     return {
         "evidence_dir": str(evidence.root.resolve()),
         **_event_execution_metrics(evidence),
     }
+
+
+def _recover_orphan_attempts(
+    *,
+    setup: HousingSmokeSetup,
+    condition_id: str,
+    output_root: Path,
+) -> int:
+    """Seal interrupted evidence as missingness; never rerun an existing attempt."""
+
+    condition_root = output_root / condition_id
+    evidence_root = condition_root / "evidence"
+    results_dir = condition_root / "results"
+    results_dir.mkdir(parents=True, exist_ok=True)
+    recovered = 0
+    for cell in setup.plan.cells:
+        result_path = results_dir / f"{cell.cell_id}.json"
+        if result_path.exists():
+            continue
+        cell_root = evidence_root / setup.plan.run_plan_id / cell.cell_id
+        attempts = (
+            sorted(path for path in cell_root.iterdir() if path.is_dir())
+            if cell_root.is_dir()
+            else []
+        )
+        if not attempts:
+            continue
+        row = {
+            "condition_id": condition_id,
+            "run_plan_id": setup.plan.run_plan_id,
+            "cell_id": cell.cell_id,
+            "case_id": cell.case_id,
+            "cluster_id": cell.cluster_id,
+            "pair_id": cell.pair_id,
+            "world_seed": cell.world_seed,
+            "replicate_index": cell.replicate_index,
+            "status": "operational_failure",
+            "failure_type": "OrphanedAttemptRecovered",
+            "interruption_recovered": True,
+            "within_case_score": None,
+            **_failure_evidence_fields(
+                evidence_root=evidence_root,
+                run_plan_id=setup.plan.run_plan_id,
+                cell_id=cell.cell_id,
+            ),
+        }
+        _atomic_write_json(result_path, _sealed_result(row))
+        recovered += 1
+    return recovered
 
 
 def _result_from_execution(
@@ -467,6 +536,11 @@ async def run_condition_batch(
     evidence_root = condition_root / "evidence"
     results_dir = condition_root / "results"
     results_dir.mkdir(parents=True, exist_ok=True)
+    _recover_orphan_attempts(
+        setup=setup,
+        condition_id=condition_id,
+        output_root=output,
+    )
     existing_rows = read_condition_results(
         output, condition_id=condition_id, verify_evidence=True
     )
@@ -618,6 +692,11 @@ async def run_paired_batch(
     existing_by_condition: dict[str, dict[str, dict[str, Any]]] = {}
     all_existing_rows: list[dict[str, Any]] = []
     for condition in conditions:
+        _recover_orphan_attempts(
+            setup=setups[condition],
+            condition_id=condition,
+            output_root=output,
+        )
         rows = read_condition_results(
             output, condition_id=condition, verify_evidence=True
         )
