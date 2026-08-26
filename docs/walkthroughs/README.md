@@ -20,3 +20,7 @@
   exact Housing V1 trace through isolated simultaneous tenant decisions, a local controlled
   landlord, immutable holds, phase-specific schemas, bounds and payoffs, privacy checks, one
   explicit live length retry, and the boundary between smoke admission and paper evidence.
+- [`housing_reasoning_experiment.md`](housing_reasoning_experiment.md) —
+  pre-outcome audit and locked design for 100 paired Housing worlds, reasoning disabled versus
+  reasoning-low, three nested replicates, cluster-level inference, admission gates, missingness,
+  stopping rules, and scientific-scope limits.
