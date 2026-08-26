@@ -679,17 +679,32 @@ def test_unchecked_top_level_objects_are_explicitly_untrusted() -> None:
         )
 
 
-def _assignment_source_ast() -> ast.Module:
-    source = Path(inspect.getsourcefile(records_module) or "").read_text(
-        encoding="utf-8"
-    )
-    start = source.index("class AssignmentAuthoringRecordRef")
-    end = source.index("class _StrictValueModel", start)
-    return ast.parse(source[start:end])
+def _assignment_source_ast(source: str | None = None) -> ast.Module:
+    if source is None:
+        source = Path(inspect.getsourcefile(records_module) or "").read_text(
+            encoding="utf-8"
+        )
+    module = ast.parse(source)
+    execution_design_indexes = [
+        index
+        for index, node in enumerate(module.body)
+        if isinstance(node, ast.ClassDef) and node.name == "ExecutionDesignSpec"
+    ]
+    strict_value_indexes = [
+        index
+        for index, node in enumerate(module.body)
+        if isinstance(node, ast.ClassDef) and node.name == "_StrictValueModel"
+    ]
+    assert len(execution_design_indexes) == 1
+    assert len(strict_value_indexes) == 1
+    start = execution_design_indexes[0] + 1
+    end = strict_value_indexes[0]
+    assert start < end
+    return ast.Module(body=module.body[start:end], type_ignores=[])
 
 
-def test_added_assignment_authoring_source_is_declaration_only() -> None:
-    module = _assignment_source_ast()
+def _assert_assignment_top_level_inventory(source: str | None = None) -> ast.Module:
+    module = _assignment_source_ast(source)
     classes = [node for node in module.body if isinstance(node, ast.ClassDef)]
     assert [node.name for node in classes] == [
         "AssignmentAuthoringRecordRef",
@@ -749,6 +764,11 @@ def test_added_assignment_authoring_source_is_declaration_only() -> None:
         "Field(discriminator='source_kind')]"
     )
     assert len(module.body) == len(classes) + len(functions) + 1
+    return module
+
+
+def test_added_assignment_authoring_source_is_declaration_only() -> None:
+    module = _assert_assignment_top_level_inventory()
 
     assert not any(
         isinstance(node, (ast.Import, ast.ImportFrom)) for node in ast.walk(module)
@@ -870,6 +890,25 @@ def test_added_assignment_authoring_source_is_declaration_only() -> None:
         "benchmark",
     ):
         assert forbidden not in property_names
+
+
+@pytest.mark.parametrize(
+    "injected",
+    [
+        "_require_non_empty = runtime.step\n",
+        "model_validator = runtime.provider_hook\n",
+    ],
+)
+def test_predeclaration_alias_or_decorator_rebinding_cannot_escape_guard(
+    injected: str,
+) -> None:
+    source = Path(inspect.getsourcefile(records_module) or "").read_text(
+        encoding="utf-8"
+    )
+    marker = "class AssignmentAuthoringRecordRef"
+    mutated = source.replace(marker, injected + marker, 1)
+    with pytest.raises(AssertionError):
+        _assert_assignment_top_level_inventory(mutated)
 
 
 @pytest.mark.parametrize(
