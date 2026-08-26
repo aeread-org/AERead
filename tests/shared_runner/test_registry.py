@@ -1453,7 +1453,7 @@ def test_reference_implementation_registry_has_no_mutation_surface() -> None:
         delattr(registry, "_ReferenceImplementationRegistry__registrations")
 
 
-def test_runner_public_exports_are_the_exact_task_1_1a2_surface() -> None:
+def test_runner_public_exports_are_the_declared_surface() -> None:
     import aeread.runner as runner
 
     expected = {
@@ -1465,6 +1465,9 @@ def test_runner_public_exports_are_the_exact_task_1_1a2_surface() -> None:
         "ContentHashMismatch",
         "ConcurrentWriterError",
         "DuplicateReferenceImplementation",
+        "EpisodeError",
+        "EpisodeResult",
+        "EventAttemptObserver",
         "EventIntegrityError",
         "EventStore",
         "EvidenceSealedError",
@@ -1476,6 +1479,7 @@ def test_runner_public_exports_are_the_exact_task_1_1a2_surface() -> None:
         "InvalidReferenceArtifactInput",
         "InvalidReferenceImplementation",
         "ManifestMismatch",
+        "PhaseOutcome",
         "PlanningError",
         "PluginRegistry",
         "ReferenceArtifactError",
@@ -1488,7 +1492,9 @@ def test_runner_public_exports_are_the_exact_task_1_1a2_surface() -> None:
         "ReferenceImplementationRoleMismatch",
         "ReferenceImplementationVersionMismatch",
         "RegisteredReferenceImplementation",
+        "SlotOutcome",
         "UndeclaredReferenceArtifact",
+        "UnknownPhase",
         "UnknownReferenceImplementation",
         "UnresolvedImplementation",
         "build_agent_request_from_plan",
@@ -1496,11 +1502,12 @@ def test_runner_public_exports_are_the_exact_task_1_1a2_surface() -> None:
         "evaluate_admission",
         "recompute_event_hash",
         "resolve_run_plan",
+        "run_episode",
         "verify_run_plan_identity",
     }
 
     assert set(runner.__all__) == expected
-    assert len(runner.__all__) == 40
+    assert len(runner.__all__) == 47
 
 
 def test_task_1_1a2_surface_guard_accounts_for_authorized_b1_b2_b3_b4a_additions() -> (
