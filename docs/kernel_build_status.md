@@ -11,9 +11,9 @@ Update this file in place; it is a status board, not a plan generator.
 | 2 | R3 episode scheduler: phase schedule, frozen observations, typed verdicts, evidence | done | `6250ce6` |
 | 3 | Housing vertical slice: the real plugin driven by the real scheduler | done | `1e8ef26` |
 | 3b | Close the gaps an independent review found in the scheduler | done | `afefe16` |
-| 4 | Contract-decision comment for PR #7 (not blocking code) | next | |
-| 5 | `ToolInvocation` evidence records (tau3 blocker) | | |
-| 6 | `reasoning_condition`, ID grammar, locked vocabularies | | |
+| 4 | Contract-decision comment for PR #7 (not blocking code) | done | `f977b7a` |
+| 5 | `ToolInvocation` evidence records (tau3 blocker) | done | `7d38c75` |
+| 6 | `reasoning_condition`, ID grammar, locked vocabularies | next | |
 | 7 | R6 `exchange_v1` old/new parity | | |
 | 8 | Split into reviewable PRs (R1 / R2 / R4-5 / R3) | | |
 
