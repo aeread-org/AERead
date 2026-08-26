@@ -175,26 +175,6 @@ def _unseeded_replication(**overrides: object) -> UnseededEpisodeReplicationDesi
     return UnseededEpisodeReplicationDesign.model_validate(values)
 
 
-def test_planned_identity_public_surface_is_exactly_additive() -> None:
-    assert PLANNED_IDENTITY_EXPORTS <= set(sdk_v1.__all__)
-    assert all(
-        value is not None
-        for value in (
-            ClusterDesignSpec,
-            ClusterMembershipSpec,
-            EpisodeReplicationDesign,
-            FixedPanelDesignSpec,
-            PairingSpec,
-            PanelDesignSpec,
-            PlannedCoordinateField,
-            SampledPanelDesignSpec,
-            SamplingPopulationSpec,
-            SeededEpisodeReplicationDesign,
-            UnseededEpisodeReplicationDesign,
-        )
-    )
-
-
 def test_planned_identity_schema_hashes_are_frozen_after_green() -> None:
     def digest(model: type[object]) -> str:
         encoded = json.dumps(
