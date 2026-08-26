@@ -109,7 +109,13 @@ class HousingV1EnvironmentPlugin:
     def phase_graph(self, case: HousingV1CaseArtifact) -> PhaseGraph:
         tenant_actions = max(1, case.provenance.num_tenants)
         landlord_actions = max(1, case.provenance.num_listings)
-        formal_failure_blocker = "formal_failure_disposition_requires_shared_contract"
+        # The case owner ruled on this in PR #6 (2026-08-23): after the runner's
+        # declared retry policy is exhausted, record the typed action failure and
+        # pass for that phase — an invalid contact makes no offer, an invalid
+        # response makes no hold, an invalid commit lets the hold expire — and do
+        # not invalidate the episode. The runner now rejects any other value, so
+        # the earlier placeholder would stop every housing episode.
+        formal_failure_blocker = "pass"
         return PhaseGraph(
             initial_phase_id="contact",
             phases=(

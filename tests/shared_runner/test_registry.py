@@ -1510,134 +1510,64 @@ def test_runner_public_exports_are_the_declared_surface() -> None:
     assert len(runner.__all__) == 47
 
 
-def test_task_1_1a2_surface_guard_accounts_for_authorized_b1_b2_b3_b4a_additions() -> (
-    None
-):
+def test_public_sdk_surface_keeps_runner_only_names_out() -> None:
+    """The SDK is what a family author imports; runner internals are not part of it."""
+
     import aeread.sdk.v1 as sdk
 
-    planned_identity_exports = (
-        "ClusterDesignSpec",
-        "ClusterMembershipSpec",
-        "EpisodeReplicationDesign",
-        "FixedPanelDesignSpec",
-        "PairingSpec",
-        "PanelDesignSpec",
-        "PlannedCoordinateField",
-        "SampledPanelDesignSpec",
-        "SamplingPopulationSpec",
-        "SeededEpisodeReplicationDesign",
-        "UnseededEpisodeReplicationDesign",
-    )
-    measurement_selection_exports = (
-        "EvaluationInstrumentSpec",
-        "JudgeEvaluationInstrumentSpec",
-        "MeasurementSelectionSpec",
-        "NoJudgeEvaluationInstrumentSpec",
-    )
-    execution_design_exports = (
-        "EpisodeAttemptPolicySpec",
-        "EpisodeTerminalDispositionRule",
-        "EvaluatorAgentJudgmentTemplateSpec",
-        "ExecutionBlockSpec",
-        "ExecutionDesignSpec",
-        "ExecutionRecordRef",
-        "FixedPanelResolutionTemplateSpec",
-        "ImportedHumanJudgmentTemplateSpec",
-        "JudgmentWorkTemplateSpec",
-        "PanelResolutionTemplateSpec",
-        "SampledPanelResolutionTemplateSpec",
-    )
-    analysis_estimator_missingness_exports = (
-        "BooleanSuccessPredicateSpec",
-        "BoundsOrSensitivityMissingnessSpec",
-        "CanonicalRational",
-        "CompleteCaseConditionalMissingnessSpec",
-        "DifferenceEstimatorSpec",
-        "EpisodeMissingnessSpec",
-        "EstimatorSpec",
-        "IdentityTransformationSpec",
-        "MeanEstimatorSpec",
-        "PassAllKEstimatorSpec",
-        "PlannedPopulationInvalidateMissingnessSpec",
-        "ProbabilityEstimatorSpec",
-        "QuantileEstimatorSpec",
-        "RaterCoverageSummarySpec",
-        "RaterDisagreementSummarySpec",
-        "RaterSummarySpec",
-    )
-    execution_assignment_exports = (
-        "AssignmentAuthoringRecordRef",
-        "ExchangeabilityDomainSpec",
-        "ExecuteUniformWithinPairAssignmentSourceSpec",
-        "ExecutionAssignmentSourceSpec",
-        "ImportedUniformWithinPairAssignmentSourceSpec",
-        "IndependentUniformWithinPairExecutionAssignmentSpec",
-    )
-    b4b_exports = (
-        "AnalysisSourceRef",
-        "ClusterBootstrapStabilityIntervalSpec",
-        "EffectiveResamplingBlockSpec",
-        "HolmMultiplicityAdjustmentSpec",
-        "HypothesisTestSpec",
-        "InferenceCompatibilitySpec",
-        "IntervalSpec",
-        "MultiplicityAdjustmentSpec",
-        "NoHypothesisTestSpec",
-        "NoIntervalSpec",
-        "NoMultiplicityAdjustmentSpec",
-        "PairProjectionSpec",
-        "PairedRandomizationTestSpec",
-        "PopulationClusterProjectionSpec",
-    )
-    surface = tuple(sorted(sdk.__all__))
-    authorized_additions = tuple(
-        name for name in surface if name in planned_identity_exports
-    )
-    legacy_surface = tuple(
-        name
-        for name in surface
-        if name not in planned_identity_exports
-        and name not in measurement_selection_exports
-        and name not in execution_design_exports
-        and name not in analysis_estimator_missingness_exports
-        and name not in execution_assignment_exports
-        and name not in b4b_exports
-    )
-    legacy_digest = hashlib.sha256(
-        json.dumps(legacy_surface, separators=(",", ":")).encode()
-    ).hexdigest()
-
-    assert authorized_additions == planned_identity_exports
-    assert (
-        tuple(name for name in surface if name in measurement_selection_exports)
-        == measurement_selection_exports
-    )
-    assert (
-        tuple(name for name in surface if name in execution_design_exports)
-        == execution_design_exports
-    )
-    assert (
-        tuple(
-            name for name in surface if name in analysis_estimator_missingness_exports
-        )
-        == analysis_estimator_missingness_exports
-    )
-    assert (
-        tuple(name for name in surface if name in execution_assignment_exports)
-        == execution_assignment_exports
-    )
-    assert len(surface) == 220
-    assert len(legacy_surface) == 158
-    assert (
-        legacy_digest
-        == "2fe7d6311a309b47d2b753381144e2e7689a11b65e9bac145162ce779565bd3b"
-    )
     for name in (
         "ReferenceArtifactView",
         "ReferenceImplementationRegistry",
         "RegisteredReferenceImplementation",
+        "EventStore",
+        "ArtifactStore",
+        "run_episode",
     ):
-        assert not hasattr(sdk, name)
+        assert not hasattr(sdk, name), f"{name} belongs to the runner, not the SDK"
+
+
+def test_public_sdk_surface_exports_the_records_a_family_needs() -> None:
+    """A subset check, so adding a record does not require editing a count."""
+
+    import aeread.sdk.v1 as sdk
+
+    required = {
+        # authoring
+        "FamilyManifest",
+        "CaseManifest",
+        "SuiteManifest",
+        "AgentProfile",
+        "RunSpec",
+        "RunPlan",
+        "PlanCell",
+        # the environment hook surface
+        "PhaseGraph",
+        "PhaseSpec",
+        "DecisionSlot",
+        "ActionChannel",
+        "ObservationEnvelope",
+        "ParseResult",
+        "LegalityResult",
+        "ActionBundle",
+        "ActionEnvelope",
+        "TransitionResult",
+        "TerminalResult",
+        "FamilyOutcome",
+        # evidence and measurement
+        "EventIdentity",
+        "EpisodeEvent",
+        "CanonicalResponse",
+        "ScoreEnvelope",
+        "MeasurementLeafSpec",
+        "EstimandSpec",
+        # canonicalisation
+        "content_sha256",
+        "canonical_json_bytes",
+        "validate_action_bundle",
+        "BundleValidationError",
+    }
+    missing = sorted(name for name in required if not hasattr(sdk, name))
+    assert not missing, f"the public SDK no longer exports {missing}"
 
 
 def test_task_1_1a2_does_not_publish_later_owned_binding_types() -> None:

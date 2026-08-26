@@ -11,7 +11,9 @@ One phase is applied as one deterministic batch:
 Observations for every active slot are frozen from the same pre-phase state
 before any action is requested, so a simultaneous phase cannot give an earlier
 seat a first-mover advantage. Slots are visited in ``order_key`` order so the
-evidence sequence is reproducible.
+evidence sequence is reproducible; ``order_key`` is compared as a string, so a
+plugin with ten or more slots in one phase must zero-pad it to keep the order
+it intends.
 """
 
 from __future__ import annotations
@@ -23,6 +25,7 @@ from typing import Any, Literal
 from ..sdk.v1 import (
     ActionBundle,
     AgentRequest,
+    BundleValidationError,
     CallAttemptStart,
     CallAttemptToken,
     DecisionSlot,
@@ -35,6 +38,7 @@ from ..sdk.v1 import (
     ProviderCallResult,
     TerminalResult,
     content_sha256,
+    validate_action_bundle,
 )
 
 
@@ -47,6 +51,13 @@ class UnknownPhase(EpisodeError):
 
 
 SlotVerdict = Literal["applied", "malformed", "illegal"]
+
+#: What a phase may declare should happen to a seat whose action was not
+#: admitted. `pass` leaves the seat out of this phase's batch; `forfeit` also
+#: records the seat as having forfeited. `PhaseSpec.invalid_action_policy` is a
+#: free string in the record, so the runner checks it here rather than letting a
+#: typo silently choose the milder outcome.
+INVALID_ACTION_POLICIES = frozenset({"pass", "forfeit"})
 
 
 @dataclass(frozen=True)
@@ -171,6 +182,12 @@ def _ordered_slots(
     are plugin defects, so they fail the episode instead of being repaired.
     """
 
+    if phase.invalid_action_policy not in INVALID_ACTION_POLICIES:
+        raise EpisodeError(
+            f"phase {phase.phase_id!r} declares an unknown invalid_action_policy "
+            f"{phase.invalid_action_policy!r}; expected one of "
+            f"{sorted(INVALID_ACTION_POLICIES)}"
+        )
     ordered = tuple(sorted(slots, key=lambda slot: (slot.order_key, slot.slot_id)))
     slot_ids = [slot.slot_id for slot in ordered]
     if len(slot_ids) != len(set(slot_ids)):
@@ -206,6 +223,11 @@ async def run_episode(
     if max_phases < 1:
         raise EpisodeError("max_phases must be at least 1")
 
+    # Opened before the environment is asked for anything, so an attempt that
+    # dies inside initial_state or phase_graph still leaves a record that it
+    # was made.
+    events.append("episode_started", identity, "public", {"max_phases": max_phases})
+
     state = environment.initial_state(case, cell)
     graph = environment.phase_graph(case)
     phase_id: str | None = graph.initial_phase_id
@@ -213,10 +235,10 @@ async def run_episode(
     forfeited: set[str] = set()
 
     events.append(
-        "episode_started",
+        "episode_environment_ready",
         identity,
         "public",
-        {"initial_phase_id": graph.initial_phase_id, "max_phases": max_phases},
+        {"initial_phase_id": graph.initial_phase_id},
     )
 
     for phase_index in range(max_phases):
@@ -400,9 +422,31 @@ async def _run_slot(
         )
 
     if parsed.bundle.slot_id != slot.slot_id:
+        # The parser is handed the slot it is filling, so a mismatch here is the
+        # plugin ignoring its own argument, not anything the agent said.
         raise EpisodeError(
             f"parser returned a bundle for slot {parsed.bundle.slot_id!r} "
             f"while filling slot {slot.slot_id!r}"
+        )
+
+    # The slot declares which channels exist, how many actions each accepts, and
+    # who may act. A parser can carry agent-chosen identifiers into a bundle — a
+    # tenant naming someone else's hold, say — so failing this check is the agent
+    # acting outside the offered decision surface, not a plugin defect.
+    try:
+        validate_action_bundle(parsed.bundle, slot)
+    except BundleValidationError as error:
+        return (
+            _record_verdict(
+                events,
+                identity,
+                logical_action_id,
+                slot,
+                "illegal",
+                str(error),
+                phase.invalid_action_policy,
+            ),
+            None,
         )
 
     legality = environment.legal(case, state, phase, parsed.bundle)

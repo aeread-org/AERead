@@ -86,6 +86,7 @@ class ScriptedEnvironment:
     rounds: int = 2
     max_slots: int = 2
     reject: str | None = None  # "malformed" | "illegal" for seat_b
+    invalid_action_policy: str = "pass"
     observed_states: list[tuple[str, dict[str, Any]]] = field(default_factory=list)
     stepped_bundles: list[tuple[str, tuple[str, ...]]] = field(default_factory=list)
 
@@ -103,7 +104,7 @@ class ScriptedEnvironment:
                     observation_schema_by_role={},
                     action_schema_by_role={},
                     max_logical_actions=self.max_slots,
-                    invalid_action_policy="pass",
+                    invalid_action_policy=self.invalid_action_policy,
                     next_phases=("bid",),
                 ),
             ),
@@ -411,3 +412,229 @@ def test_unknown_next_phase_fails_the_episode(tmp_path: Path) -> None:
 
     with pytest.raises(EpisodeError, match="does not declare"):
         _run(BadNextPhase(rounds=99), _open_events(tmp_path))
+
+
+# ---------------------------------------------------------------------------
+# Gaps found by an independent review of the first scheduler commit: the
+# attempt observer, the forfeit path, per-action evidence ordering, and the
+# edges an environment is allowed to have.
+# ---------------------------------------------------------------------------
+
+
+def _call_start(logical_action_id: str, ordinal: int = 1) -> Any:
+    from aeread.sdk.v1 import CallAttemptStart
+
+    return CallAttemptStart(
+        call_attempt_id=f"{logical_action_id}-c{ordinal}",
+        logical_action_id=logical_action_id,
+        ordinal=ordinal,
+        request_sha256="a" * 64,
+        provider="test-provider",
+        model="test-model",
+        timeout_seconds=30.0,
+        output_token_limit=256,
+    )
+
+
+def _call_result() -> Any:
+    from aeread.sdk.v1 import ProviderCallResult
+
+    return ProviderCallResult(
+        provider_request_id="req-1",
+        finish_reason="stop",
+        input_tokens=64,
+        output_tokens=8,
+    )
+
+
+@dataclass
+class ObservingAdapter:
+    """Registers one provider call per action, the way a real adapter must."""
+
+    seat_id: str
+    leave_open: bool = False
+    start_twice: bool = False
+
+    async def act(self, request: Any, *, attempts: Any) -> CanonicalResponse:
+        start = _call_start(request.slot.slot_id)
+        token = attempts.call_started(start)
+        if self.start_twice:
+            attempts.call_started(start)
+        if not self.leave_open:
+            attempts.call_succeeded(token, _call_result())
+        return CanonicalResponse(content="bid 1", finish_reason="stop")
+
+
+def _run_with(adapters: Mapping[str, Any], environment: Any, events: EventStore) -> Any:
+    return asyncio.run(
+        run_episode(
+            environment=environment,
+            case={},
+            cell=None,
+            adapters=adapters,
+            events=events,
+            identity=IDENTITY,
+            request_factory=_request_factory,
+            max_phases=8,
+        )
+    )
+
+
+def test_provider_calls_are_recorded_around_the_adapter(tmp_path: Path) -> None:
+    events = _open_events(tmp_path)
+    adapters = {
+        "seat_a": ObservingAdapter("seat_a"),
+        "seat_b": ObservingAdapter("seat_b"),
+    }
+    _run_with(adapters, ScriptedEnvironment(rounds=1), events)
+
+    log = [(event.event_type, event.payload) for event in events.snapshot().events]
+    types = [event_type for event_type, _ in log]
+    assert types.count("provider_call_started") == 2
+    assert types.count("provider_call_succeeded") == 2
+    # Each call is opened before the action it belongs to is resolved.
+    for index, (event_type, payload) in enumerate(log):
+        if event_type == "provider_call_started":
+            later = [t for t, p in log[index:] if t == "logical_action_resolved"]
+            assert later, "a provider call was recorded after its action resolved"
+
+
+def test_an_adapter_that_leaves_a_call_open_fails_the_episode(tmp_path: Path) -> None:
+    adapters = {
+        "seat_a": ObservingAdapter("seat_a", leave_open=True),
+        "seat_b": ObservingAdapter("seat_b"),
+    }
+    with pytest.raises(EpisodeError, match="unterminated"):
+        _run_with(adapters, ScriptedEnvironment(rounds=1), _open_events(tmp_path))
+
+
+def test_starting_the_same_provider_call_twice_fails_the_episode(
+    tmp_path: Path,
+) -> None:
+    adapters = {
+        "seat_a": ObservingAdapter("seat_a", start_twice=True),
+        "seat_b": ObservingAdapter("seat_b"),
+    }
+    with pytest.raises(EpisodeError, match="started twice"):
+        _run_with(adapters, ScriptedEnvironment(rounds=1), _open_events(tmp_path))
+
+
+def test_forfeit_policy_records_the_seat_for_the_phase_and_the_episode(
+    tmp_path: Path,
+) -> None:
+    environment = ScriptedEnvironment(
+        rounds=2, reject="malformed", invalid_action_policy="forfeit"
+    )
+    result, _ = _run(environment, _open_events(tmp_path))
+
+    assert result.phases[0].forfeited_seat_ids == ("seat_b",)
+    assert result.forfeited_seat_ids == ("seat_b",)
+    # A passing policy on the same failure records no forfeit at all.
+    passing, _ = _run(
+        ScriptedEnvironment(rounds=1, reject="malformed"), _open_events(tmp_path / "b")
+    )
+    assert passing.phases[0].forfeited_seat_ids == ()
+    assert passing.forfeited_seat_ids == ()
+
+
+def test_an_unknown_invalid_action_policy_fails_the_episode(tmp_path: Path) -> None:
+    environment = ScriptedEnvironment(rounds=1, invalid_action_policy="Forfeit")
+    with pytest.raises(EpisodeError, match="unknown invalid_action_policy"):
+        _run(environment, _open_events(tmp_path))
+
+
+def test_every_action_is_recorded_before_its_own_verdict(tmp_path: Path) -> None:
+    """Per logical action, not merely the first one in the log."""
+
+    events = _open_events(tmp_path)
+    _run(ScriptedEnvironment(rounds=2), events)
+
+    opened: dict[str, int] = {}
+    for event in events.snapshot().events:
+        if event.event_type == "logical_action_started":
+            assert event.payload is not None
+            opened[event.payload["logical_action_id"]] = event.sequence
+        elif event.event_type == "logical_action_resolved":
+            assert event.payload is not None
+            action_id = event.payload["logical_action_id"]
+            assert action_id in opened, f"{action_id} resolved without being started"
+            assert opened.pop(action_id) < event.sequence
+    assert not opened, f"actions started but never resolved: {sorted(opened)}"
+
+
+def test_a_bundle_outside_the_slots_channels_is_illegal_not_applied(
+    tmp_path: Path,
+) -> None:
+    """A parser may carry agent-chosen identifiers into a bundle."""
+
+    class OffChannel(ScriptedEnvironment):
+        def parse_action(self, case, state, phase, slot, response):  # type: ignore[no-untyped-def]
+            bundle = ActionBundle(
+                slot_id=slot.slot_id,
+                actions=(
+                    ActionEnvelope(
+                        action_id=f"{slot.slot_id}-a0",
+                        slot_id=slot.slot_id,
+                        channel_id="a-channel-the-slot-never-offered",
+                        actor_seat_id=slot.seat_id,
+                        sequence_index=0,
+                        payload={"bid": 1},
+                    ),
+                ),
+            )
+            return ParseResult(status="ok", bundle=bundle)
+
+    environment = OffChannel(rounds=1)
+    result, _ = _run(environment, _open_events(tmp_path))
+
+    verdicts = {slot.slot_id: slot.verdict for slot in result.phases[0].slots}
+    assert set(verdicts.values()) == {"illegal"}
+    reasons = [slot.reason for slot in result.phases[0].slots]
+    assert all("undeclared channel" in (reason or "") for reason in reasons)
+    assert environment.stepped_bundles == [("bid", ())]
+
+
+def test_a_phase_may_request_no_decisions_at_all(tmp_path: Path) -> None:
+    class Bookkeeping(ScriptedEnvironment):
+        def decision_slots(self, case, state, phase):  # type: ignore[no-untyped-def]
+            return ()
+
+    environment = Bookkeeping(rounds=1)
+    result, _ = _run(environment, _open_events(tmp_path))
+
+    assert result.status == "terminal"
+    assert result.phases[0].slots == ()
+    assert environment.stepped_bundles == [("bid", ())]
+
+
+def test_an_episode_terminal_from_its_initial_state_runs_no_phase(
+    tmp_path: Path,
+) -> None:
+    environment = ScriptedEnvironment(rounds=0)
+    result, _ = _run(environment, _open_events(tmp_path))
+
+    assert result.status == "terminal"
+    assert result.phases == ()
+    assert environment.stepped_bundles == []
+
+
+def test_a_nonpositive_phase_budget_is_refused(tmp_path: Path) -> None:
+    with pytest.raises(EpisodeError, match="max_phases"):
+        _run(ScriptedEnvironment(rounds=1), _open_events(tmp_path), max_phases=0)
+
+
+def test_one_seat_may_hold_two_slots_in_a_phase(tmp_path: Path) -> None:
+    class DoubleDuty(ScriptedEnvironment):
+        def decision_slots(self, case, state, phase):  # type: ignore[no-untyped-def]
+            return (
+                _slot("slot-1", "seat_a", "10"),
+                _slot("slot-2", "seat_a", "20"),
+            )
+
+    environment = DoubleDuty(rounds=1)
+    adapters = {"seat_a": RecordingAdapter("seat_a")}
+    result = _run_with(adapters, environment, _open_events(tmp_path))
+
+    assert adapters["seat_a"].calls == ["slot-1", "slot-2"]
+    assert environment.stepped_bundles == [("bid", ("slot-1", "slot-2"))]
+    assert result.status == "terminal"

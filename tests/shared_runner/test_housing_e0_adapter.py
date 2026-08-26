@@ -635,9 +635,13 @@ def test_housing_e0_marks_formal_runner_and_measurement_routes_as_blocked() -> N
     assert contract.invalid_measurement_policy == (
         "infrastructure_or_integration_failure_only_if_nonreplayable_or_terminal_score_unavailable"
     )
+    # The runner now owns this vocabulary and rejects anything outside it, so the
+    # phases carry the disposition the case owner ruled on (PR #6, 2026-08-23)
+    # rather than a placeholder. `contract_status` still lists the formal gap:
+    # closing that declaration is the case owner's call.
     assert {
         phase.invalid_action_policy for phase in plugin.phase_graph(case).phases
-    } == {"formal_failure_disposition_requires_shared_contract"}
+    } == {"pass"}
     assert not hasattr(plugin, "measurement_leaves")
     assert "outcome_support" not in case.references.model_dump(mode="python")
 
