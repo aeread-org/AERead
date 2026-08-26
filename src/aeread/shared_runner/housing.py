@@ -15,7 +15,7 @@ import json
 import math
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any, Mapping, Sequence
 
 from aeread import housing_env as hz
 
@@ -635,6 +635,9 @@ def _profile(
     max_logical_actions: int,
     runtime: str,
     world_seed: int,
+    reasoning_condition_id: str = "reasoning_low_v1",
+    reasoning_effort: str | None = "low",
+    request_seed_base: int | None = None,
 ) -> AgentProfile:
     config: dict[str, Any] = {
         "pricing_id": pricing.pricing_id,
@@ -649,6 +652,9 @@ def _profile(
             "max_prompt_price_per_million": "0.08",
             "max_completion_price_per_million": "0.18",
         }
+    if request_seed_base is not None:
+        config["request_seed_source"] = "paired_cell_v1"
+        config["request_seed_base"] = request_seed_base
     return AgentProfile.from_dict(
         {
             "spec_version": "aeread.agent_profile/0.1",
@@ -668,8 +674,8 @@ def _profile(
             "tools": [],
             "memory": {"mode": "disabled"},
             "reasoning": {
-                "condition_id": "reasoning_low_v1",
-                "effort": "low",
+                "condition_id": reasoning_condition_id,
+                "effort": reasoning_effort,
                 "token_budget": None,
                 "rationale_visibility": "hidden",
             },
@@ -677,7 +683,11 @@ def _profile(
                 "temperature": 0.0,
                 "top_p": 1.0 if provider == "openrouter" else None,
                 "max_output_tokens": 512 if provider == "openrouter" else 256,
-                "seed": world_seed if provider == "openrouter" else None,
+                "seed": (
+                    world_seed
+                    if provider == "openrouter" and request_seed_base is None
+                    else None
+                ),
             },
             "budgets": {
                 "max_logical_actions": max_logical_actions,
@@ -703,7 +713,24 @@ def build_housing_smoke(
     num_tenants: int = 2,
     num_listings: int = 1,
     rounds: int = 1,
+    world_seeds: Sequence[int] | None = None,
+    replicates: int = 1,
+    reasoning_condition_id: str = "reasoning_low_v1",
+    reasoning_effort: str | None = "low",
+    inference_seed_base: int | None = None,
 ) -> HousingSmokeSetup:
+    selected_world_seeds = (
+        (world_seed,) if world_seeds is None else tuple(world_seeds)
+    )
+    if not selected_world_seeds:
+        raise ValueError("world_seeds must not be empty")
+    if len(set(selected_world_seeds)) != len(selected_world_seeds):
+        raise ValueError("world_seeds must be unique")
+    if replicates < 1:
+        raise ValueError("replicates must be positive")
+    experiment_mode = world_seeds is not None
+    if experiment_mode and inference_seed_base is None:
+        raise ValueError("experiment plans require inference_seed_base")
     family = FamilyManifest.from_dict(
         {
             "spec_version": "aeread.family/0.1",
@@ -741,57 +768,85 @@ def build_housing_smoke(
         }
     )
     max_actions = rounds * (2 * num_tenants + num_listings)
-    raw_case = {
-        "spec_version": "aeread.case/0.1",
-        "case_id": "housing_v1__smoke__000001",
-        "family_id": "housing_v1",
-        "family_version": "1.0.0",
-        "split": "smoke",
-        "world_seed": world_seed,
-        "seats": [
-            *[{"id": f"tenant_{index}", "role": "tenant"} for index in range(num_tenants)],
-            *[{"id": f"landlord_{index}", "role": "landlord"} for index in range(num_listings)],
-        ],
-        "episode": {
-            "max_logical_actions": max_actions,
-            "termination": ["allocation", "deadline"],
-        },
-        "visibility_policy": "housing_private_preferences_v1",
-        "payload": {
-            "world_kind": "bid",
-            "world_seed": world_seed,
-            "num_tenants": num_tenants,
-            "num_listings": num_listings,
-            "rounds": rounds,
-            "common_weight": 0.6,
-        },
-        "provenance": {
-            "generator_id": "housing_generator_v1",
-            "generator_version": "1.0.0",
-            "review_status": "curated",
-        },
-        "content_sha256": "0" * 64,
-    }
-    raw_case["content_sha256"] = case_content_sha256(raw_case)
-    case = CaseManifest.from_dict(raw_case)
+    cases: list[CaseManifest] = []
+    for index, case_world_seed in enumerate(selected_world_seeds, start=1):
+        raw_case = {
+            "spec_version": "aeread.case/0.1",
+            "case_id": (
+                "housing_v1__smoke__000001"
+                if not experiment_mode
+                else f"housing_v1__experiment__{index:06d}"
+            ),
+            "family_id": "housing_v1",
+            "family_version": "1.0.0",
+            "split": "smoke" if not experiment_mode else "evaluation",
+            "world_seed": case_world_seed,
+            "seats": [
+                *[
+                    {"id": f"tenant_{seat_index}", "role": "tenant"}
+                    for seat_index in range(num_tenants)
+                ],
+                *[
+                    {"id": f"landlord_{seat_index}", "role": "landlord"}
+                    for seat_index in range(num_listings)
+                ],
+            ],
+            "episode": {
+                "max_logical_actions": max_actions,
+                "termination": ["allocation", "deadline"],
+            },
+            "visibility_policy": "housing_private_preferences_v1",
+            "payload": {
+                "world_kind": "bid",
+                "world_seed": case_world_seed,
+                "num_tenants": num_tenants,
+                "num_listings": num_listings,
+                "rounds": rounds,
+                "common_weight": 0.6,
+            },
+            "provenance": {
+                "generator_id": "housing_generator_v1",
+                "generator_version": "1.0.0",
+                "review_status": "curated" if not experiment_mode else "generated",
+            },
+            "content_sha256": "0" * 64,
+        }
+        raw_case["content_sha256"] = case_content_sha256(raw_case)
+        cases.append(CaseManifest.from_dict(raw_case))
     sampling = SamplingPlan.from_dict(
         {
             "spec_version": "aeread.sampling/0.1",
-            "sampling_plan_id": "housing_smoke_sample_v1",
-            "estimand": "fixed_housing_smoke_case",
+            "sampling_plan_id": (
+                "housing_smoke_sample_v1"
+                if not experiment_mode
+                else f"housing_{reasoning_condition_id}_sample_v1"
+            ),
+            "estimand": (
+                "fixed_housing_smoke_case"
+                if not experiment_mode
+                else "generated_housing_case_population"
+            ),
             "target": "housing_generator_v1",
-            "selection": "fixed_curated",
-            "seeds": [world_seed],
-            "replicates": 1,
+            "selection": "fixed_curated" if not experiment_mode else "seeded_simple_random",
+            "seeds": [
+                selected_world_seeds[0]
+                if inference_seed_base is None
+                else inference_seed_base
+            ],
+            "replicates": replicates,
             "cluster_level": "world_seed",
             "cluster_id_fields": ["generator_version", "world_seed"],
             "paired_fields": ["world_seed"],
             "replicate_level": "episode_attempt",
-            "panel_mode": "fixed_panel",
+            "panel_mode": "fixed_panel" if not experiment_mode else "sampled_panel",
         }
     )
     tenant_profile_id = (
-        "housing_deepseek_tenant_v1"
+        (
+            "housing_deepseek_tenant_v1"
+            if not experiment_mode
+            else f"housing_deepseek_tenant_{reasoning_condition_id}"
+        )
         if tenant_provider == "openrouter"
         else "housing_scripted_tenant_v1"
     )
@@ -815,7 +870,10 @@ def build_housing_smoke(
         pricing=tenant_pricing,
         max_logical_actions=2 * num_tenants * rounds,
         runtime="aeread.shared_runner.execution" if tenant_provider == "openrouter" else "aeread.shared_runner.housing",
-        world_seed=world_seed,
+        world_seed=selected_world_seeds[0],
+        reasoning_condition_id=reasoning_condition_id,
+        reasoning_effort=reasoning_effort,
+        request_seed_base=inference_seed_base,
     )
     landlord_profile = _profile(
         profile_id="housing_scripted_landlord_v1",
@@ -828,44 +886,75 @@ def build_housing_smoke(
         pricing=landlord_pricing,
         max_logical_actions=num_listings * rounds,
         runtime="aeread.shared_runner.housing",
-        world_seed=world_seed,
+        world_seed=selected_world_seeds[0],
+        reasoning_condition_id="scripted_no_reasoning_v1",
+        reasoning_effort=None,
     )
     tenant_seats = [f"tenant_{index}" for index in range(num_tenants)]
     landlord_seats = [f"landlord_{index}" for index in range(num_listings)]
     block = EvaluationBlock.from_dict(
         {
             "spec_version": "aeread.evaluation_block/0.1",
-            "block_id": "housing_controlled_landlords_smoke",
+            "block_id": (
+                "housing_controlled_landlords_smoke"
+                if not experiment_mode
+                else "housing_controlled_landlords_experiment"
+            ),
             "kind": "controlled",
             "subject_seats": tenant_seats,
             "controlled_profiles": {
                 seat: "housing_scripted_landlord_v1" for seat in landlord_seats
             },
             "repetitions": 1,
-            "seed_policy": "fixed",
+            "seed_policy": "fixed" if not experiment_mode else "paired",
         }
     )
     analysis = AnalysisPlan.from_dict(
         {
             "spec_version": "aeread.analysis/0.1",
-            "analysis_plan_id": "housing_smoke_analysis_v1",
-            "estimands": ["social_welfare", "tenant_payoff", "landlord_payoff"],
+            "analysis_plan_id": (
+                "housing_smoke_analysis_v1"
+                if not experiment_mode
+                else "housing_reasoning_paired_analysis_v1"
+            ),
+            "estimands": (
+                ["social_welfare", "tenant_payoff", "landlord_payoff"]
+                if not experiment_mode
+                else [
+                    "within_case_score",
+                    "social_welfare",
+                    "tenant_payoff",
+                    "landlord_payoff",
+                ]
+            ),
             "group_by": ["family_id", "subject_role"],
             "missingness": "report_separately",
             "resampling_unit": "cluster_id",
-            "uncertainty": "none",
+            "uncertainty": "none" if not experiment_mode else "cluster_bootstrap_95",
             "multiplicity": "none",
-            "sensitivity": ["report_ir_violations"],
+            "sensitivity": (
+                ["report_ir_violations"]
+                if not experiment_mode
+                else [
+                    "report_ir_violations",
+                    "report_operational_missingness",
+                    "worst_case_score_bounds",
+                ]
+            ),
             "cross_family_scalar": "disabled",
         }
     )
     suite = SuiteManifest.from_dict(
         {
             "spec_version": "aeread.suite/0.1",
-            "suite_id": "housing_smoke_v1",
+            "suite_id": (
+                "housing_smoke_v1"
+                if not experiment_mode
+                else f"housing_{reasoning_condition_id}_experiment_v1"
+            ),
             "version": "1.0.0",
             "family_ids": ["housing_v1"],
-            "case_ids": [case.case_id],
+            "case_ids": [case.case_id for case in cases],
             "sampling_plan_id": sampling.sampling_plan_id,
             "evaluation_block_ids": [block.block_id],
             "analysis_plan_id": analysis.analysis_plan_id,
@@ -878,7 +967,11 @@ def build_housing_smoke(
     run_spec = RunSpec.from_dict(
         {
             "spec_version": "aeread.run_spec/0.1",
-            "run_spec_id": "housing_smoke_run_v1",
+            "run_spec_id": (
+                "housing_smoke_run_v1"
+                if not experiment_mode
+                else f"housing_{reasoning_condition_id}_run_v1"
+            ),
             "suite_id": suite.suite_id,
             "evaluation_block_ids": [block.block_id],
             "agent_profile_ids": [tenant_profile_id, "housing_scripted_landlord_v1"],
@@ -919,7 +1012,7 @@ def build_housing_smoke(
         )
     plan = resolve_run_plan(
         families=(family,),
-        cases=(case,),
+        cases=tuple(cases),
         suite=suite,
         sampling=sampling,
         evaluation_blocks=(block,),

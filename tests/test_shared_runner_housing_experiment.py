@@ -1,12 +1,25 @@
 from __future__ import annotations
 
+import asyncio
+import dataclasses
+
 import pytest
 
+from aeread.shared_runner.execution import ProviderRequest, execute_plan_cell
+from aeread.shared_runner.housing import (
+    HousingScriptedLandlordProvider,
+    HousingScriptedTenantProvider,
+)
 from aeread.shared_runner.housing_experiment import (
     analyze_paired_results,
+    build_housing_condition_setup,
     derive_world_seeds,
     paired_inference_seed,
 )
+
+
+DEEPSEEK_MODEL = "deepseek/deepseek-v4-flash-0731"
+DEEPSEEK_REVISION = "deepseek/deepseek-v4-flash-20260731"
 
 
 def test_world_panel_is_deterministic_unique_and_pre_outcome() -> None:
@@ -145,3 +158,150 @@ def test_paired_analysis_rejects_duplicate_trajectory_identity() -> None:
             bootstrap_draws=100,
             bootstrap_seed=1,
         )
+
+
+def test_condition_plans_pair_worlds_and_replicates_but_seal_distinct_treatments() -> None:
+    common = {
+        "world_seeds": (101, 202, 303),
+        "replicates": 2,
+        "tenant_model": DEEPSEEK_MODEL,
+        "tenant_revision": DEEPSEEK_REVISION,
+        "num_tenants": 6,
+        "num_listings": 4,
+        "rounds": 4,
+        "inference_seed_base": 87001,
+    }
+    disabled = build_housing_condition_setup(
+        condition_id="reasoning_none_v1",
+        reasoning_effort="none",
+        **common,
+    )
+    low = build_housing_condition_setup(
+        condition_id="reasoning_low_v1",
+        reasoning_effort="low",
+        **common,
+    )
+
+    assert len(disabled.plan.cases) == 3
+    assert len(disabled.plan.cells) == 6
+    assert {case.world_seed for case in disabled.plan.cases} == {101, 202, 303}
+    assert disabled.plan.sampling.panel_mode == "sampled_panel"
+    assert disabled.plan.sampling.replicates == 2
+    assert disabled.plan.analysis.uncertainty == "cluster_bootstrap_95"
+    assert all(case.episode.max_logical_actions == 64 for case in disabled.plan.cases)
+
+    disabled_profile = next(
+        profile
+        for profile in disabled.plan.agent_profiles
+        if profile.model.provider == "openrouter"
+    )
+    low_profile = next(
+        profile
+        for profile in low.plan.agent_profiles
+        if profile.model.provider == "openrouter"
+    )
+    assert disabled_profile.profile_id != low_profile.profile_id
+    assert disabled_profile.reasoning.condition_id == "reasoning_none_v1"
+    assert disabled_profile.reasoning.effort == "none"
+    assert low_profile.reasoning.condition_id == "reasoning_low_v1"
+    assert low_profile.reasoning.effort == "low"
+    assert disabled_profile.sampling.seed is None
+    assert disabled_profile.harness.config["request_seed_source"] == "paired_cell_v1"
+    assert disabled_profile.harness.config["request_seed_base"] == 87001
+
+    disabled_cells = {
+        (cell.world_seed, cell.replicate_index): cell for cell in disabled.plan.cells
+    }
+    low_cells = {(cell.world_seed, cell.replicate_index): cell for cell in low.plan.cells}
+    assert set(disabled_cells) == set(low_cells)
+    for identity in disabled_cells:
+        assert disabled_cells[identity].cluster_id == low_cells[identity].cluster_id
+        assert disabled_cells[identity].pair_id == low_cells[identity].pair_id
+
+
+class _RecordingTenantProvider:
+    def __init__(self) -> None:
+        self.requests: list[ProviderRequest] = []
+        self._delegate = HousingScriptedTenantProvider()
+
+    async def complete(self, request: ProviderRequest):
+        self.requests.append(request)
+        translated = dataclasses.replace(request, provider="housing_scripted_tenant")
+        return await self._delegate.complete(translated)
+
+
+def _cell_for(setup, *, world_seed: int, replicate_index: int):
+    return next(
+        cell
+        for cell in setup.plan.cells
+        if cell.world_seed == world_seed and cell.replicate_index == replicate_index
+    )
+
+
+def _execute_recorded(setup, cell, output):
+    recorder = _RecordingTenantProvider()
+    execution = asyncio.run(
+        execute_plan_cell(
+            plan=setup.plan,
+            cell_id=cell.cell_id,
+            registry=setup.registry,
+            evidence_root=output,
+            prompt_sources=setup.prompt_sources,
+            providers={
+                "openrouter": recorder,
+                "housing_scripted_landlord": HousingScriptedLandlordProvider(),
+            },
+            pricing=setup.pricing,
+            episode_attempt_ordinal=0,
+        )
+    )
+    return recorder, execution
+
+
+def test_executor_applies_same_paired_seed_across_conditions_and_new_seed_per_replicate(
+    tmp_path,
+) -> None:
+    common = {
+        "world_seeds": (41001,),
+        "replicates": 2,
+        "tenant_model": DEEPSEEK_MODEL,
+        "tenant_revision": DEEPSEEK_REVISION,
+        "num_tenants": 2,
+        "num_listings": 1,
+        "rounds": 1,
+        "inference_seed_base": 87001,
+    }
+    disabled = build_housing_condition_setup(
+        condition_id="reasoning_none_v1", reasoning_effort="none", **common
+    )
+    low = build_housing_condition_setup(
+        condition_id="reasoning_low_v1", reasoning_effort="low", **common
+    )
+
+    disabled_r0, _ = _execute_recorded(
+        disabled,
+        _cell_for(disabled, world_seed=41001, replicate_index=0),
+        tmp_path / "disabled-r0",
+    )
+    low_r0, _ = _execute_recorded(
+        low,
+        _cell_for(low, world_seed=41001, replicate_index=0),
+        tmp_path / "low-r0",
+    )
+    disabled_r1, _ = _execute_recorded(
+        disabled,
+        _cell_for(disabled, world_seed=41001, replicate_index=1),
+        tmp_path / "disabled-r1",
+    )
+
+    assert {request.reasoning_effort for request in disabled_r0.requests} == {"none"}
+    assert {request.reasoning_effort for request in low_r0.requests} == {"low"}
+    assert len({request.seed for request in disabled_r0.requests}) == 1
+    assert len({request.seed for request in low_r0.requests}) == 1
+    assert disabled_r0.requests[0].seed == low_r0.requests[0].seed
+    assert disabled_r0.requests[0].seed == paired_inference_seed(
+        base_seed=87001,
+        world_seed=41001,
+        replicate_index=0,
+    )
+    assert disabled_r1.requests[0].seed != disabled_r0.requests[0].seed

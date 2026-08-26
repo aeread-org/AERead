@@ -11,6 +11,8 @@ from typing import Any
 import numpy as np
 from scipy import stats
 
+from .housing import HousingSmokeSetup, build_housing_smoke
+
 
 def _derived_nonnegative_int(namespace: str, *values: int) -> int:
     payload = ":".join((namespace, *(str(value) for value in values))).encode("utf-8")
@@ -51,6 +53,45 @@ def paired_inference_seed(
             raise ValueError(f"{name} must be a non-negative integer")
     return _derived_nonnegative_int(
         "housing_inference_seed_v1", base_seed, world_seed, replicate_index
+    )
+
+
+def build_housing_condition_setup(
+    *,
+    condition_id: str,
+    reasoning_effort: str,
+    world_seeds: Sequence[int],
+    replicates: int,
+    tenant_model: str,
+    tenant_revision: str,
+    num_tenants: int = 6,
+    num_listings: int = 4,
+    rounds: int = 4,
+    inference_seed_base: int = 87001,
+) -> HousingSmokeSetup:
+    """Seal one arm of the paired Housing reasoning experiment."""
+
+    expected_effort = {
+        "reasoning_none_v1": "none",
+        "reasoning_low_v1": "low",
+    }
+    if expected_effort.get(condition_id) != reasoning_effort:
+        raise ValueError(
+            "condition_id and reasoning_effort must be one of the locked "
+            "none/low experiment arms"
+        )
+    return build_housing_smoke(
+        tenant_provider="openrouter",
+        tenant_model=tenant_model,
+        tenant_revision=tenant_revision,
+        world_seeds=tuple(world_seeds),
+        replicates=replicates,
+        reasoning_condition_id=condition_id,
+        reasoning_effort=reasoning_effort,
+        inference_seed_base=inference_seed_base,
+        num_tenants=num_tenants,
+        num_listings=num_listings,
+        rounds=rounds,
     )
 
 
@@ -206,6 +247,7 @@ def analyze_paired_results(
 
 __all__ = [
     "analyze_paired_results",
+    "build_housing_condition_setup",
     "derive_world_seeds",
     "paired_inference_seed",
 ]

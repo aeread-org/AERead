@@ -1203,12 +1203,14 @@ class MinimalChatExecutor:
         prompt_sources: Mapping[str, str | bytes],
         providers: Mapping[str, ProviderClient],
         pricing: Mapping[str, TokenPricing],
+        request_seed_by_profile: Mapping[str, int] | None = None,
     ) -> None:
         if not isinstance(evidence, EvidenceStore):
             raise EvidenceIntegrityError("evidence must be an EvidenceStore")
         self.evidence = evidence
         self._providers = dict(providers)
         self._pricing = dict(pricing)
+        self._request_seed_by_profile = dict(request_seed_by_profile or {})
         self._profiles: dict[str, AgentProfile] = {}
         self._prompt_text: dict[str, str] = {}
         self._executions: dict[str, LogicalActionExecution] = {}
@@ -1226,6 +1228,13 @@ class MinimalChatExecutor:
                 source.decode("utf-8") if isinstance(source, bytes) else source
             )
             self._profiles[profile.profile_id] = profile
+        unknown_seed_profiles = sorted(
+            set(self._request_seed_by_profile) - set(self._profiles)
+        )
+        if unknown_seed_profiles:
+            raise EvidenceIntegrityError(
+                f"request seed overrides reference unknown profiles: {unknown_seed_profiles}"
+            )
 
     def _validate_profile(
         self, profile: AgentProfile, prompt_sources: Mapping[str, str | bytes]
@@ -1346,7 +1355,9 @@ class MinimalChatExecutor:
                 profile.harness.config.get("provider_metadata")
                 or profile.harness.config.get("provider_runtime")
             ),
-            seed=profile.sampling.seed,
+            seed=self._request_seed_by_profile.get(
+                profile.profile_id, profile.sampling.seed
+            ),
         ).with_computed_hash()
 
     async def __call__(self, decision: DecisionRequest) -> CanonicalResponse:
@@ -2043,6 +2054,18 @@ class ToolExecutor:
         )
 
 
+def _paired_cell_request_seed(*, base_seed: int, world_seed: int, replicate_index: int) -> int:
+    payload = ":".join(
+        (
+            "housing_inference_seed_v1",
+            str(base_seed),
+            str(world_seed),
+            str(replicate_index),
+        )
+    ).encode("utf-8")
+    return int.from_bytes(hashlib.sha256(payload).digest()[:4], "big") & 0x7FFF_FFFF
+
+
 async def execute_plan_cell(
     *,
     plan: RunPlan,
@@ -2106,6 +2129,27 @@ async def execute_plan_cell(
         profile_by_id[profile_id]
         for profile_id in sorted(set(cell.profile_by_seat.values()))
     )
+    request_seed_by_profile: dict[str, int] = {}
+    for profile in selected_profiles:
+        seed_source = profile.harness.config.get("request_seed_source")
+        if seed_source is None:
+            continue
+        if seed_source != "paired_cell_v1":
+            raise EvidenceIntegrityError(
+                f"unsupported request seed source for {profile.profile_id!r}: "
+                f"{seed_source!r}"
+            )
+        base_seed = profile.harness.config.get("request_seed_base")
+        if isinstance(base_seed, bool) or not isinstance(base_seed, int) or base_seed < 0:
+            raise EvidenceIntegrityError(
+                f"paired_cell_v1 requires a non-negative request_seed_base for "
+                f"{profile.profile_id!r}"
+            )
+        request_seed_by_profile[profile.profile_id] = _paired_cell_request_seed(
+            base_seed=base_seed,
+            world_seed=cell.world_seed,
+            replicate_index=cell.replicate_index,
+        )
     episode_id = episode_id_for_cell(cell)
     episode_attempt_id = _stable_id(
         "episode_attempt",
@@ -2130,6 +2174,7 @@ async def execute_plan_cell(
         prompt_sources=prompt_sources,
         providers=providers,
         pricing=pricing,
+        request_seed_by_profile=request_seed_by_profile,
     )
     result = await run_episode(
         cell=cell,
