@@ -2,13 +2,17 @@
 
 from __future__ import annotations
 
+import ast
 import hashlib
+import inspect
 import json
+from pathlib import Path
 
 from pydantic import TypeAdapter, ValidationError
 import pytest
 
 import aeread.sdk.v1 as sdk_v1
+import aeread.sdk.v1.records as records_module
 from aeread.sdk.v1 import (
     AnalysisSourceRef,
     ClusterBootstrapStabilityIntervalSpec,
@@ -43,6 +47,226 @@ B4B_EXPORTS = {
     "MultiplicityAdjustmentSpec",
     "InferenceCompatibilitySpec",
 }
+
+
+def _b4b_source(source: str | None = None) -> str:
+    if source is None:
+        source = Path(inspect.getsourcefile(records_module) or "").read_text(
+            encoding="utf-8"
+        )
+    module = ast.parse(source)
+    starts = [
+        node
+        for node in module.body
+        if isinstance(node, ast.ClassDef) and node.name == "AnalysisSourceRef"
+    ]
+    ends = [
+        node
+        for node in module.body
+        if isinstance(node, ast.ClassDef) and node.name == "ValidityDomainSpec"
+    ]
+    assert len(starts) == len(ends) == 1
+    assert starts[0].lineno < ends[0].lineno
+    lines = source.splitlines(keepends=True)
+    return "".join(lines[starts[0].lineno - 1 : ends[0].lineno - 1])
+
+
+def _assert_b4b_declaration_only(source: str) -> None:
+    full_module = ast.parse(source)
+    span = ast.parse(_b4b_source(source))
+    class_names = [node.name for node in span.body if isinstance(node, ast.ClassDef)]
+    expected_classes = [
+        "AnalysisSourceRef",
+        "EffectiveResamplingBlockSpec",
+        "PopulationClusterProjectionSpec",
+        "PairProjectionSpec",
+        "NoIntervalSpec",
+        "ClusterBootstrapStabilityIntervalSpec",
+        "NoHypothesisTestSpec",
+        "PairedRandomizationTestSpec",
+        "NoMultiplicityAdjustmentSpec",
+        "HolmMultiplicityAdjustmentSpec",
+        "InferenceCompatibilitySpec",
+    ]
+    assert class_names == expected_classes
+    expected_aliases = [
+        "IntervalSpec",
+        "HypothesisTestSpec",
+        "MultiplicityAdjustmentSpec",
+    ]
+    aliases = [
+        node.targets[0].id
+        for node in span.body
+        if isinstance(node, ast.Assign)
+        and len(node.targets) == 1
+        and isinstance(node.targets[0], ast.Name)
+    ]
+    assert aliases == expected_aliases
+    functions = [node.name for node in span.body if isinstance(node, ast.FunctionDef)]
+    assert functions == ["_validate_analysis_source_ref"]
+    assert len(span.body) == len(expected_classes) + len(expected_aliases) + 1
+    assert not any(
+        isinstance(node, (ast.Import, ast.ImportFrom)) for node in ast.walk(span)
+    )
+    assert all(
+        not node.decorator_list for node in span.body if isinstance(node, ast.ClassDef)
+    )
+    expected_methods = {
+        "AnalysisSourceRef": ["validate_analysis_source_ref"],
+        "EffectiveResamplingBlockSpec": ["validate_effective_resampling_block"],
+        "PopulationClusterProjectionSpec": ["validate_population_cluster_projection"],
+        "PairProjectionSpec": ["validate_pair_projection"],
+        "NoIntervalSpec": [],
+        "ClusterBootstrapStabilityIntervalSpec": [
+            "validate_cluster_bootstrap_stability_interval"
+        ],
+        "NoHypothesisTestSpec": [],
+        "PairedRandomizationTestSpec": ["validate_paired_randomization_test"],
+        "NoMultiplicityAdjustmentSpec": [],
+        "HolmMultiplicityAdjustmentSpec": ["validate_holm_multiplicity_adjustment"],
+        "InferenceCompatibilitySpec": ["validate_inference_compatibility"],
+    }
+    for node in span.body:
+        if isinstance(node, ast.ClassDef):
+            methods = [item for item in node.body if isinstance(item, ast.FunctionDef)]
+            assert [method.name for method in methods] == expected_methods[node.name]
+            assert all(
+                [ast.unparse(item) for item in method.decorator_list]
+                == ["model_validator(mode='after')"]
+                for method in methods
+            )
+    expected_unions = {
+        "IntervalSpec": (
+            "Annotated[NoIntervalSpec | ClusterBootstrapStabilityIntervalSpec, "
+            "Field(discriminator='interval_kind')]"
+        ),
+        "HypothesisTestSpec": (
+            "Annotated[NoHypothesisTestSpec | PairedRandomizationTestSpec, "
+            "Field(discriminator='test_kind')]"
+        ),
+        "MultiplicityAdjustmentSpec": (
+            "Annotated[NoMultiplicityAdjustmentSpec | HolmMultiplicityAdjustmentSpec, "
+            "Field(discriminator='multiplicity_kind')]"
+        ),
+    }
+    for node in span.body:
+        if isinstance(node, ast.Assign):
+            assert ast.unparse(node.value) == expected_unions[node.targets[0].id]
+    forbidden = {
+        "runtime",
+        "resolver",
+        "store",
+        "registry",
+        "artifact",
+        "result",
+        "receipt",
+        "PlanCell",
+        "RunPlan",
+        "ProviderCall",
+        "ResolvedPairedRandomizationBinding",
+        "open",
+        "Path",
+        "random",
+        "secrets",
+        "__import__",
+        "eval",
+        "exec",
+        "getattr",
+        "setattr",
+        "globals",
+        "locals",
+        "importlib",
+        "p_value",
+    }
+    names = {node.id for node in ast.walk(span) if isinstance(node, ast.Name)}
+    attrs = {node.attr for node in ast.walk(span) if isinstance(node, ast.Attribute)}
+    assert not forbidden & (names | attrs)
+    allowed_calls = {
+        "AnalysisSourceRef",
+        "CanonicalRational",
+        "ValueError",
+        "Field",
+        "model_validator",
+        "_require_non_empty",
+        "_require_semver",
+        "_validate_analysis_source_ref",
+        "_validate_canonical_string_tuple",
+        "len",
+        "set",
+        "tuple",
+        "type",
+        "model_dump",
+        "model_validate",
+    }
+    calls = {
+        (
+            node.func.id
+            if isinstance(node.func, ast.Name)
+            else node.func.attr if isinstance(node.func, ast.Attribute) else "<dynamic>"
+        )
+        for node in ast.walk(span)
+        if isinstance(node, ast.Call)
+    }
+    assert calls <= allowed_calls
+    protected = (
+        set(expected_classes)
+        | set(expected_aliases)
+        | {"_validate_analysis_source_ref"}
+    )
+    bindings: dict[str, list[str]] = {}
+    for node in full_module.body:
+        if isinstance(node, ast.ClassDef):
+            bindings.setdefault(node.name, []).append("class")
+        elif isinstance(node, ast.FunctionDef):
+            bindings.setdefault(node.name, []).append("function")
+        elif isinstance(node, (ast.Assign, ast.AnnAssign)):
+            targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+            for target in targets:
+                if isinstance(target, ast.Name):
+                    bindings.setdefault(target.id, []).append("assign")
+    assert {name: bindings.get(name) for name in protected} == {
+        **{name: ["class"] for name in expected_classes},
+        **{name: ["assign"] for name in expected_aliases},
+        "_validate_analysis_source_ref": ["function"],
+    }
+    assert not any(
+        protected & set(node.names)
+        for node in ast.walk(full_module)
+        if isinstance(node, ast.Global)
+    )
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    [
+        lambda source: source.replace(
+            "class AnalysisSourceRef(_PlannedIdentityRecord):\n",
+            "class AnalysisSourceRef(_PlannedIdentityRecord):\n    runtime.call()\n",
+            1,
+        ),
+        lambda source: source.replace(
+            "class AnalysisSourceRef(_PlannedIdentityRecord):\n",
+            "class AnalysisSourceRef(_PlannedIdentityRecord):\n    _local = runtime.value\n",
+            1,
+        ),
+        lambda source: source.replace(
+            "class AnalysisSourceRef(_PlannedIdentityRecord):\n",
+            "class AnalysisSourceRef(_PlannedIdentityRecord):\n    hidden: PlanCell\n",
+            1,
+        ),
+        lambda source: source.replace(
+            "class ValidityDomainSpec",
+            "class AnalysisSourceRef:\n    pass\n\nclass ValidityDomainSpec",
+            1,
+        ),
+    ],
+)
+def test_b4b_source_guard_mutations_must_fail(mutation: object) -> None:
+    source = Path(inspect.getsourcefile(records_module) or "").read_text(
+        encoding="utf-8"
+    )
+    with pytest.raises(AssertionError):
+        _assert_b4b_declaration_only(mutation(source))  # type: ignore[operator]
 
 
 def _sha(label: str) -> str:
@@ -268,6 +492,289 @@ def test_all_concrete_records_admit_one_valid_constructor_shape() -> None:
     assert EffectiveResamplingBlockSpec.model_validate(
         {"effective_block_id": "block.a", "population_cluster_ids": ["a"]}
     )
+
+
+def test_all_six_compatibility_targets_admit_exact_neighboring_shapes() -> None:
+    valid = [
+        _compatibility("planned_panel_descriptive"),
+        _compatibility(
+            "finite_population_probability_sample",
+            panel_basis="sampled_srswor",
+            interval=_no_interval("finite_population_interval_not_supported_v0"),
+        ),
+        _compatibility(
+            "cluster_bootstrap_descriptive_stability",
+            cluster_projection=_cluster_projection(),
+            interval=_stability_interval(),
+        ),
+        _compatibility(
+            "paired_observational_effect",
+            estimator_analysis_unit="pair",
+            pair_projection=_pair_projection(),
+            hypothesis_test=_no_test("observational_pairing"),
+        ),
+        _compatibility(
+            "unpaired_observational_difference",
+            pair_projection=_pair_projection("unpaired"),
+            hypothesis_test=_no_test("unpaired_contrast"),
+        ),
+        _compatibility(
+            "paired_randomized_effect",
+            estimator_analysis_unit="pair",
+            pair_projection=_pair_projection(),
+            interval=_no_interval("paired_randomization_test_has_no_interval"),
+            hypothesis_test=_paired_test(),
+            multiplicity=_holm(),
+        ),
+    ]
+    assert [
+        item.inference_target
+        for item in map(InferenceCompatibilitySpec.model_validate, valid)
+    ] == [
+        "planned_panel_descriptive",
+        "finite_population_probability_sample",
+        "cluster_bootstrap_descriptive_stability",
+        "paired_observational_effect",
+        "unpaired_observational_difference",
+        "paired_randomized_effect",
+    ]
+
+
+def test_b4b_field_order_is_frozen_for_all_eleven_concrete_records() -> None:
+    assert {
+        record.__name__: tuple(record.model_fields)
+        for record in (
+            AnalysisSourceRef,
+            EffectiveResamplingBlockSpec,
+            PopulationClusterProjectionSpec,
+            PairProjectionSpec,
+            NoIntervalSpec,
+            ClusterBootstrapStabilityIntervalSpec,
+            NoHypothesisTestSpec,
+            PairedRandomizationTestSpec,
+            NoMultiplicityAdjustmentSpec,
+            HolmMultiplicityAdjustmentSpec,
+            InferenceCompatibilitySpec,
+        )
+    } == {
+        "AnalysisSourceRef": (
+            "spec_version",
+            "record_type",
+            "source_kind",
+            "record_id",
+            "record_version",
+            "content_sha256",
+        ),
+        "EffectiveResamplingBlockSpec": (
+            "effective_block_id",
+            "population_cluster_ids",
+        ),
+        "PopulationClusterProjectionSpec": (
+            "spec_version",
+            "record_type",
+            "projection_id",
+            "projection_version",
+            "cluster_design_ref",
+            "population_key_field",
+            "replicate_nesting_rule",
+            "coverage_rule",
+            "effective_block_kind",
+            "effective_blocks",
+            "group_integrity_rule",
+            "ordering_rule",
+        ),
+        "PairProjectionSpec": (
+            "spec_version",
+            "record_type",
+            "projection_id",
+            "projection_version",
+            "pairing_ref",
+            "pairing_kind",
+            "coordinate_source",
+            "direction",
+            "formation_rule",
+            "duplicate_rule",
+            "missing_pair_rule",
+            "ordering_rule",
+            "projection_scope",
+        ),
+        "NoIntervalSpec": (
+            "spec_version",
+            "record_type",
+            "interval_kind",
+            "reason",
+            "method",
+        ),
+        "ClusterBootstrapStabilityIntervalSpec": (
+            "spec_version",
+            "record_type",
+            "interval_kind",
+            "interval_id",
+            "interval_version",
+            "method",
+            "coverage_claim",
+            "target",
+            "central_mass",
+            "endpoint_definition",
+            "resample_count",
+            "resampling_seed",
+            "resampling_unit",
+            "effective_block_source",
+            "group_integrity_rule",
+            "estimator_recompute_rule",
+            "sampler_policy",
+            "endpoint_quantile_policy",
+            "minimum_effective_blocks",
+            "claim_boundary",
+        ),
+        "NoHypothesisTestSpec": (
+            "spec_version",
+            "record_type",
+            "test_kind",
+            "reason",
+            "method",
+        ),
+        "PairedRandomizationTestSpec": (
+            "spec_version",
+            "record_type",
+            "test_kind",
+            "test_id",
+            "test_version",
+            "method",
+            "execution_assignment_design_ref",
+            "subject_role",
+            "comparator_role",
+            "role_binding_rule",
+            "statistic",
+            "alternative",
+            "extreme_tie_rule",
+            "pair_eligibility_rule",
+            "missing_pair_rule",
+            "exhaustive_assignment_vector_threshold",
+            "monte_carlo_resample_count",
+            "monte_carlo_seed",
+            "exhaustive_order",
+            "monte_carlo_policy",
+            "monte_carlo_correction",
+            "numeric_policy",
+            "interval_requirement",
+        ),
+        "NoMultiplicityAdjustmentSpec": (
+            "spec_version",
+            "record_type",
+            "multiplicity_kind",
+            "reason",
+            "method",
+        ),
+        "HolmMultiplicityAdjustmentSpec": (
+            "spec_version",
+            "record_type",
+            "multiplicity_kind",
+            "family_id",
+            "family_version",
+            "alpha",
+            "family_membership_source",
+            "minimum_family_size",
+            "family_cardinality_rule",
+            "family_ordering_rule",
+            "method",
+            "threshold_rule",
+            "stop_rule",
+            "adjusted_p_rule",
+            "ineligible_test_rule",
+            "numeric_policy",
+        ),
+        "InferenceCompatibilitySpec": (
+            "spec_version",
+            "record_type",
+            "compatibility_id",
+            "compatibility_version",
+            "inference_target",
+            "panel_basis",
+            "estimator_analysis_unit",
+            "missingness_kind",
+            "cluster_projection",
+            "pair_projection",
+            "interval",
+            "hypothesis_test",
+            "multiplicity",
+            "compatibility_matrix_version",
+        ),
+    }
+
+
+def test_b4b_schema_and_canonical_fixture_hashes_are_frozen() -> None:
+    records = {
+        "AnalysisSourceRef": AnalysisSourceRef.model_validate(
+            _source("cluster_design")
+        ),
+        "EffectiveResamplingBlockSpec": EffectiveResamplingBlockSpec.model_validate(
+            {"effective_block_id": "block.a", "population_cluster_ids": ["a"]}
+        ),
+        "PopulationClusterProjectionSpec": PopulationClusterProjectionSpec.model_validate(
+            _cluster_projection()
+        ),
+        "PairProjectionSpec": PairProjectionSpec.model_validate(_pair_projection()),
+        "NoIntervalSpec": NoIntervalSpec.model_validate(_no_interval()),
+        "ClusterBootstrapStabilityIntervalSpec": ClusterBootstrapStabilityIntervalSpec.model_validate(
+            _stability_interval()
+        ),
+        "NoHypothesisTestSpec": NoHypothesisTestSpec.model_validate(_no_test()),
+        "PairedRandomizationTestSpec": PairedRandomizationTestSpec.model_validate(
+            _paired_test()
+        ),
+        "NoMultiplicityAdjustmentSpec": NoMultiplicityAdjustmentSpec.model_validate(
+            _no_multiplicity()
+        ),
+        "HolmMultiplicityAdjustmentSpec": HolmMultiplicityAdjustmentSpec.model_validate(
+            _holm()
+        ),
+        "InferenceCompatibilitySpec": InferenceCompatibilitySpec.model_validate(
+            _compatibility("planned_panel_descriptive")
+        ),
+    }
+    fixture_digest = {
+        name: hashlib.sha256(
+            json.dumps(
+                record.model_dump(mode="json"), sort_keys=True, separators=(",", ":")
+            ).encode("utf-8")
+        ).hexdigest()
+        for name, record in records.items()
+    }
+    schema_digest = {
+        name: hashlib.sha256(
+            json.dumps(
+                type(record).model_json_schema(), sort_keys=True, separators=(",", ":")
+            ).encode("utf-8")
+        ).hexdigest()
+        for name, record in records.items()
+    }
+    assert fixture_digest == {
+        "AnalysisSourceRef": "5cd95d826e21b12cd9937adc7729797f2faab51ef4273d4ec95c19fb2a907883",
+        "EffectiveResamplingBlockSpec": "e501943ae44afb98c5433c3a5bdc5b527a38b4a0a8cea545ac5cb9a1bc2cd825",
+        "PopulationClusterProjectionSpec": "eb969d7382095547b97e9554dfde8b4d113718febbc7ff2e869b3f4565149734",
+        "PairProjectionSpec": "689a941280b4699f4010a6281a0635f6f2db77ddb23e950d17a05bb1d55ea1da",
+        "NoIntervalSpec": "19d8228ba2a01443edfd7fc83635978f3f29f63dbe055b6fa16b34a475bdc68b",
+        "ClusterBootstrapStabilityIntervalSpec": "1a7f2b9eb990ca364d9bcaea83f337bf6d4047057cae342c24f610cdbff31b1c",
+        "NoHypothesisTestSpec": "dfb958a0188b8b45bcba3e4db3468f5b36740037f6c7293676a2e4f727f4227c",
+        "PairedRandomizationTestSpec": "e05abc2bc73be93492e22347c7e8d954953b4a1db856ef35e38f77bcb0e985fe",
+        "NoMultiplicityAdjustmentSpec": "ba66f43ea54203523b309e9b68f125d267d093929f93576be33e813931268c10",
+        "HolmMultiplicityAdjustmentSpec": "4e2a208a211762571d440c254e9d0b2af5fc01d42c4b293c52eaeb4ea06fe0e1",
+        "InferenceCompatibilitySpec": "7a6e4f586c49cb533dc5a4e7867c485a94b5c470d6cfc049153026b1395e8aa6",
+    }
+    assert schema_digest == {
+        "AnalysisSourceRef": "1161f5d0f607a078b4811581c8998c8287ea6494de895e2d1c357eb9a16ac8d9",
+        "EffectiveResamplingBlockSpec": "d93106fff17ad6d23cc9ca092894c7e469da17edd3cd40093259565ae5d07a6e",
+        "PopulationClusterProjectionSpec": "fe0781d4d81d1b0f19b89ed64dd0d148f5af1c714571cf1590cfdcc9b1936844",
+        "PairProjectionSpec": "fdec65895155f73e245a11e2fba58b8522d7bc5bdb999bba2706688b1ad950a8",
+        "NoIntervalSpec": "56ceaf011d0c5d5d83dbdb93e852b56ce6c0c47b254d041f53899e80ed20edbf",
+        "ClusterBootstrapStabilityIntervalSpec": "fee83f338093bd01c2d6bc218c111e812a983ff8bc4115911ac8a0a93fac9e27",
+        "NoHypothesisTestSpec": "a4c6334ceb4799ef9ae2f8ac3eb6d63ff24b4fa506fe047f35c3eddab7416c0a",
+        "PairedRandomizationTestSpec": "c9715d562886e650abe8b4b173999e487287611aef2e6bb1fe59f490c851913e",
+        "NoMultiplicityAdjustmentSpec": "695af3ad89b61af8f379d2dffbabede398456ea8869951c5f251b1e0ffc20986",
+        "HolmMultiplicityAdjustmentSpec": "412d28e88fe020d7e0c5f90774659d44b3e0e6bba4f86c562a429c4a310be63f",
+        "InferenceCompatibilitySpec": "481358a1e9584398e9c498ebdc7e4cb3e76e3bc7c9fb5f3981a665799772b15f",
+    }
     assert PopulationClusterProjectionSpec.model_validate(_cluster_projection())
     assert PairProjectionSpec.model_validate(_pair_projection())
     assert NoIntervalSpec.model_validate(_no_interval())
@@ -398,4 +905,20 @@ def test_discriminated_unions_normalize_raw_dicts_and_reject_mixed_arms() -> Non
     with pytest.raises(ValidationError):
         TypeAdapter(IntervalSpec).validate_python(
             {**_no_interval(), "interval_id": "unauthorized"}
+        )
+    assert isinstance(
+        TypeAdapter(HypothesisTestSpec).validate_python(_no_test()),
+        NoHypothesisTestSpec,
+    )
+    with pytest.raises(ValidationError):
+        TypeAdapter(HypothesisTestSpec).validate_python(
+            {**_no_test(), "test_id": "unauthorized"}
+        )
+    assert isinstance(
+        TypeAdapter(MultiplicityAdjustmentSpec).validate_python(_no_multiplicity()),
+        NoMultiplicityAdjustmentSpec,
+    )
+    with pytest.raises(ValidationError):
+        TypeAdapter(MultiplicityAdjustmentSpec).validate_python(
+            {**_no_multiplicity(), "family_id": "unauthorized"}
         )

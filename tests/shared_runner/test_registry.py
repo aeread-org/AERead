@@ -673,7 +673,8 @@ def test_protocol_method_boundaries_resolve_and_preserve_call_direction() -> Non
         inspect.Parameter.KEYWORD_ONLY,
     )
     assert all(
-        parameter.default is inspect.Parameter.empty for parameter in adapter_parameters
+        parameter.default is inspect.Parameter.empty
+        for parameter in adapter_parameters
     )
 
 
@@ -737,11 +738,7 @@ def test_legacy_call_attempt_record_schemas_and_validation_remain_stable() -> No
     for field_name in required_fields:
         with pytest.raises(ValidationError):
             CallAttemptStart(
-                **{
-                    key: value
-                    for key, value in valid_start.items()
-                    if key != field_name
-                }
+                **{key: value for key, value in valid_start.items() if key != field_name}
             )
 
     for field_name in (
@@ -791,7 +788,9 @@ def test_legacy_call_attempt_record_schemas_and_validation_remain_stable() -> No
         with pytest.raises(ValidationError):
             CallAttemptToken(call_attempt_id=invalid)
     with pytest.raises(ValidationError):
-        CallAttemptToken(call_attempt_id="call-1", spec_version="aeread.sdk_record/2")
+        CallAttemptToken(
+            call_attempt_id="call-1", spec_version="aeread.sdk_record/2"
+        )
     with pytest.raises(ValidationError):
         CallAttemptToken(call_attempt_id="call-1", unexpected="drift")
     token = CallAttemptToken(call_attempt_id="call-1")
