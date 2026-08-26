@@ -940,10 +940,19 @@ def _assert_rebaseline_status_names_current_integration_and_next_gate(
     gdpval = text.split(TASK_58_HEADING, 1)[1].split(MANDATORY_SPIKES_HEADING, 1)[0]
     dispatch = text.split("## Current dispatch gate", 1)[1]
 
-    for section in (status, task_02, dispatch):
+    gate_sections = (status, task_02, dispatch)
+    gate_section_sha256 = (
+        "e804cecbbef5fb6160cffd1a25de3b66e92d4b5114c36bfe8d9a3f084340c714",
+        "c138b065a5d552ff86a7a04e010e40986cc5649390cc713de947bc56ee7e166d",
+        "38e1a3e044abd8a57280a1bd5e45c9b217d4d8b137f7d1e67dfdd9c2b94e9dd8",
+    )
+    for section, expected_sha256 in zip(
+        gate_sections, gate_section_sha256, strict=True
+    ):
         normalized = " ".join(
             line.removeprefix("> ").strip() for line in section.splitlines()
         )
+        assert hashlib.sha256(normalized.encode()).hexdigest() == expected_sha256
         assert f"`{breaker_baseline}`" in normalized
         assert "PR #7 is NOT independently CLEAN" in normalized
         assert f"`{implementation_baseline}`" in normalized
@@ -1297,6 +1306,15 @@ def test_three_layer_guard_rejects_early_b3_implementation_dispatch() -> None:
             "\nTask 1.1b3 is dispatchable for implementation before Task 1.1b2 is clean.\n",
         )
     )
+
+
+def test_three_layer_guard_rejects_unconditional_migration_clean_and_sdk_dispatch() -> None:
+    text = REBASELINE_PLAN.read_text(encoding="utf-8")
+    contradiction = (
+        "\nThis authority migration is independently CLEAN now.\n"
+        "Task 1.1b2 SDK implementation is authorized immediately.\n"
+    )
+    _assert_rebaseline_mutation_is_rejected(text + contradiction)
 
 
 def test_existing_attempt_observer_and_agent_adapter_signatures_remain_stable() -> None:
