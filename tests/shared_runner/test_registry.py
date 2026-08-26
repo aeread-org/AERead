@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import builtins
 from decimal import Decimal
 from fractions import Fraction
 import inspect
@@ -15,6 +16,8 @@ from typing import Annotated, get_type_hints
 import pytest
 from annotated_types import Gt
 from pydantic import BeforeValidator, Field, TypeAdapter, ValidationError, create_model
+from pydantic.fields import FieldInfo
+from pydantic.types import Strict
 from pydantic_core import PydanticUndefined
 
 from aeread.runner.registry import (
@@ -61,61 +64,82 @@ EXACT_NUMBER_VALIDATOR_SOURCE_SHA256 = (
 )
 
 
+def _one_metadata(
+    metadata: list[object] | tuple[object, ...],
+    expected_type: type[object],
+) -> object:
+    matches = [item for item in metadata if isinstance(item, expected_type)]
+    assert (
+        len(matches) == 1
+    ), f"expected one {expected_type.__name__} metadata item: {metadata!r}"
+    return matches[0]
+
+
+def _one_metadata_attribute(
+    metadata: list[object] | tuple[object, ...],
+    attribute: str,
+) -> object:
+    matches = [item for item in metadata if hasattr(item, attribute)]
+    assert (
+        len(matches) == 1
+    ), f"expected one metadata item with {attribute!r}: {metadata!r}"
+    return matches[0]
+
+
 def _assert_call_attempt_timeout_type_contract(record_type: type[object]) -> None:
     from aeread.sdk.v1 import base as sdk_base
 
-    validator_source = inspect.getsource(sdk_base._require_exact_number).encode()
+    exact_number_validator = sdk_base._require_exact_number
+    validator_source = inspect.getsource(exact_number_validator).encode()
     assert hashlib.sha256(validator_source).hexdigest() == (
         EXACT_NUMBER_VALIDATOR_SOURCE_SHA256
     )
+    assert exact_number_validator.__module__ == "aeread.sdk.v1.base"
+    assert exact_number_validator.__qualname__ == "_require_exact_number"
+    assert exact_number_validator.__closure__ is None
+    for name, builtin in (
+        ("type", builtins.type),
+        ("int", builtins.int),
+        ("float", builtins.float),
+    ):
+        assert exact_number_validator.__globals__.get(name, builtin) is builtin
 
     declared_type = get_type_hints(record_type, include_extras=True)["timeout_seconds"]
     assert declared_type.__origin__ is float
     assert len(declared_type.__metadata__) == 2
-    declared_validator, declared_field = declared_type.__metadata__
-    assert type(declared_validator) is BeforeValidator
-    assert declared_validator.func is sdk_base._require_exact_number
-    assert declared_validator.json_schema_input_type is PydanticUndefined
-    assert (type(declared_field).__module__, type(declared_field).__qualname__) == (
-        "pydantic.fields",
-        "FieldInfo",
+    declared_validator = _one_metadata(declared_type.__metadata__, BeforeValidator)
+    declared_field = _one_metadata(declared_type.__metadata__, FieldInfo)
+    assert declared_validator.func is exact_number_validator
+    assert (
+        getattr(declared_validator, "json_schema_input_type", PydanticUndefined)
+        is PydanticUndefined
     )
     assert declared_field.is_required()
     assert declared_field.default is PydanticUndefined
     assert declared_field.annotation is None
     assert len(declared_field.metadata) == 2
-    declared_strict, declared_finite = declared_field.metadata
-    assert (type(declared_strict).__module__, type(declared_strict).__qualname__) == (
-        "pydantic.types",
-        "Strict",
-    )
+    declared_strict = _one_metadata(declared_field.metadata, Strict)
+    declared_finite = _one_metadata_attribute(declared_field.metadata, "allow_inf_nan")
     assert declared_strict.strict is True
-    assert (type(declared_finite).__module__, type(declared_finite).__qualname__) == (
-        "pydantic._internal._fields",
-        "_general_metadata_cls.<locals>._PydanticGeneralMetadata",
-    )
-    assert vars(declared_finite) == {"allow_inf_nan": False}
+    assert declared_finite.allow_inf_nan is False
 
     field = record_type.model_fields["timeout_seconds"]  # type: ignore[attr-defined]
     assert field.is_required()
     assert field.default is PydanticUndefined
     assert field.annotation is float
     assert len(field.metadata) == 4
-    gt, model_validator, strict, finite = field.metadata
+    gt = _one_metadata(field.metadata, Gt)
+    model_validator = _one_metadata(field.metadata, BeforeValidator)
+    strict = _one_metadata(field.metadata, Strict)
+    finite = _one_metadata_attribute(field.metadata, "allow_inf_nan")
     assert gt == Gt(gt=0)
-    assert type(model_validator) is BeforeValidator
-    assert model_validator.func is sdk_base._require_exact_number
-    assert model_validator.json_schema_input_type is PydanticUndefined
-    assert (type(strict).__module__, type(strict).__qualname__) == (
-        "pydantic.types",
-        "Strict",
+    assert model_validator.func is exact_number_validator
+    assert (
+        getattr(model_validator, "json_schema_input_type", PydanticUndefined)
+        is PydanticUndefined
     )
     assert strict.strict is True
-    assert (type(finite).__module__, type(finite).__qualname__) == (
-        "pydantic._internal._fields",
-        "_general_metadata_cls.<locals>._PydanticGeneralMetadata",
-    )
-    assert vars(finite) == {"allow_inf_nan": False}
+    assert finite.allow_inf_nan is False
 
 
 def test_registry_resolves_exact_environment_version() -> None:
@@ -990,6 +1014,43 @@ def test_timeout_contract_rejects_a_mutated_sdkfloat_authority_alias(
         pass
     else:
         raise AssertionError("mutated SDKFloat authority alias escaped the guard")
+
+
+def test_timeout_contract_rejects_validator_global_type_shadow(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from aeread.sdk.v1 import CallAttemptStart
+    from aeread.sdk.v1 import base as sdk_base
+
+    class FloatProtocol:
+        def __float__(self) -> float:
+            return 1.0
+
+    def selective_type(value: object) -> type[object]:
+        if isinstance(value, FloatProtocol):
+            return float
+        return builtins.type(value)
+
+    monkeypatch.setitem(
+        sdk_base._require_exact_number.__globals__, "type", selective_type
+    )
+    accepted = CallAttemptStart(
+        call_attempt_id="call-1",
+        logical_action_id="logical-1",
+        ordinal=1,
+        request_sha256="request-sha",
+        provider="provider",
+        model="model",
+        timeout_seconds=FloatProtocol(),
+        output_token_limit=1,
+    )
+    assert accepted.timeout_seconds == 1.0
+    try:
+        _assert_call_attempt_timeout_type_contract(CallAttemptStart)
+    except AssertionError:
+        pass
+    else:
+        raise AssertionError("validator global type shadow escaped the guard")
 
 
 def test_resolution_rejects_malformed_reference_before_lookup() -> None:

@@ -91,21 +91,64 @@ STAGE5_SECTION_SHA256 = {
 }
 
 
+def _has_unclosed_html_comment(line: str) -> bool:
+    remainder = line
+    while "<!--" in remainder:
+        comment = remainder.split("<!--", 1)[1]
+        if "-->" not in comment:
+            return True
+        remainder = comment.split("-->", 1)[1]
+    return False
+
+
 def _strict_authoritative_sections(text: str) -> dict[str, str]:
     lines = text.splitlines()
-    positions = {}
+    visible_lines: list[tuple[int, str]] = []
+    fence: tuple[str, int] | None = None
+    in_html_comment = False
+    for index, line in enumerate(lines):
+        if fence is not None:
+            fence_character, minimum_length = fence
+            stripped = line.lstrip(" ")
+            indentation = len(line) - len(stripped)
+            marker_length = len(stripped) - len(stripped.lstrip(fence_character))
+            if (
+                indentation <= 3
+                and marker_length >= minimum_length
+                and not stripped[marker_length:].strip()
+            ):
+                fence = None
+            continue
+
+        if in_html_comment:
+            closing = line.find("-->")
+            if closing >= 0:
+                in_html_comment = _has_unclosed_html_comment(line[closing + 3 :])
+            continue
+
+        stripped = line.lstrip(" ")
+        indentation = len(line) - len(stripped)
+        if indentation <= 3 and stripped[:1] in ("`", "~"):
+            fence_character = stripped[0]
+            marker_length = len(stripped) - len(stripped.lstrip(fence_character))
+            suffix = stripped[marker_length:]
+            if marker_length >= 3 and not (fence_character == "`" and "`" in suffix):
+                fence = (fence_character, marker_length)
+                continue
+
+        if "<!--" in line:
+            in_html_comment = _has_unclosed_html_comment(line)
+            continue
+
+        visible_lines.append((index, line))
+
+    positions: dict[str, int] = {}
     for heading in AUTHORITATIVE_HEADINGS:
-        candidates = [
-            index for index, line in enumerate(lines) if line.strip() == heading
-        ]
+        candidates = [index for index, line in visible_lines if line == heading]
         assert (
             len(candidates) == 1
         ), f"expected one authoritative heading {heading!r}: {candidates!r}"
-        index = candidates[0]
-        assert (
-            lines[index] == heading
-        ), f"authoritative heading must be exact and start at column 0: {heading!r}"
-        positions[heading] = index
+        positions[heading] = candidates[0]
 
     ordered_positions = tuple(positions[heading] for heading in AUTHORITATIVE_HEADINGS)
     assert ordered_positions == tuple(
@@ -1226,6 +1269,46 @@ def test_authoritative_heading_parser_rejects_duplicates_and_relocation() -> Non
             pass
         else:
             raise AssertionError(f"{label} authoritative heading escaped the guard")
+
+
+def test_authoritative_heading_parser_rejects_fenced_authority() -> None:
+    plan = REBASELINE_PLAN.read_text(encoding="utf-8")
+    fenced_mutants = {
+        "four-backtick fence": f"````markdown\n{plan}\n````\n",
+        "five-tilde fence": f"~~~~~\n{plan}\n~~~~~\n",
+        "short closing fence": f"````\n```\n{plan}\n````\n",
+    }
+
+    for label, mutant in fenced_mutants.items():
+        try:
+            _strict_authoritative_sections(mutant)
+        except AssertionError:
+            pass
+        else:
+            raise AssertionError(f"{label} authority escaped the guard")
+
+
+def test_authoritative_heading_parser_rejects_commented_authority() -> None:
+    plan = REBASELINE_PLAN.read_text(encoding="utf-8")
+    commented = f"<!--\n{plan}\n-->\n"
+
+    try:
+        _strict_authoritative_sections(commented)
+    except AssertionError:
+        pass
+    else:
+        raise AssertionError("commented authoritative sections escaped the guard")
+
+
+def test_authoritative_heading_parser_ignores_non_authority_contexts() -> None:
+    plan = REBASELINE_PLAN.read_text(encoding="utf-8")
+    hidden_duplicate = f"\n<!--\n{TASK_54_HEADING}\n-->\n"
+    closed_fence_before_plan = f"```\ndecoy\n````\n{plan}"
+    single_line_comment_before_plan = f"<!-- historical only -->\n{plan}"
+
+    _strict_authoritative_sections(plan + hidden_duplicate)
+    _strict_authoritative_sections(closed_fence_before_plan)
+    _strict_authoritative_sections(single_line_comment_before_plan)
 
 
 def test_public_spec_reports_implemented_foundation_and_missing_runtime() -> None:
