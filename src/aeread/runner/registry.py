@@ -497,9 +497,7 @@ def _read_plugin_attribute(
 def _validated_manifest(category: str, plugin: object) -> PluginManifest:
     manifest = _read_plugin_attribute(category, plugin, "manifest", None)
     if manifest is None:
-        raise IncompatiblePlugin(
-            f"{category} plugin is missing a PluginManifest"
-        )
+        raise IncompatiblePlugin(f"{category} plugin is missing a PluginManifest")
     try:
         is_manifest = isinstance(manifest, PluginManifest)
     except Exception as exc:
@@ -507,9 +505,7 @@ def _validated_manifest(category: str, plugin: object) -> PluginManifest:
             f"{category} plugin manifest type could not be inspected"
         ) from exc
     if not is_manifest:
-        raise IncompatiblePlugin(
-            f"{category} plugin manifest must be a PluginManifest"
-        )
+        raise IncompatiblePlugin(f"{category} plugin manifest must be a PluginManifest")
 
     # model_copy(update=...) deliberately skips validation and model_dump()
     # omits undeclared copied attributes. Reconstruct from the raw field state
@@ -542,9 +538,7 @@ def _validate_callable(
 ) -> None:
     method = _read_plugin_attribute(category, plugin, method_name)
     if not callable(method):
-        raise IncompatiblePlugin(
-            f"{category} plugin {method_name} must be callable"
-        )
+        raise IncompatiblePlugin(f"{category} plugin {method_name} must be callable")
     try:
         is_async = inspect.iscoroutinefunction(method)
         signature = inspect.signature(method)
@@ -554,9 +548,7 @@ def _validate_callable(
         ) from exc
     if is_async is not must_be_async:
         expected = "async" if must_be_async else "synchronous"
-        raise IncompatiblePlugin(
-            f"{category} plugin {method_name} must be {expected}"
-        )
+        raise IncompatiblePlugin(f"{category} plugin {method_name} must be {expected}")
 
     parameters = signature.parameters
     for name in keyword_only_names:
@@ -604,8 +596,7 @@ def _validate_contract(category: str, plugin: object) -> None:
         ) from exc
     if not conforms:
         raise IncompatiblePlugin(
-            f"{category} plugin does not implement "
-            f"{expected_protocol.__name__}"
+            f"{category} plugin does not implement " f"{expected_protocol.__name__}"
         )
 
     for method_name, positional_names in _SYNC_METHODS.get(category, {}).items():
@@ -692,9 +683,7 @@ class PluginRegistry:
         entry_points_provider: EntryPointsProvider | None = None,
     ) -> "PluginRegistry":
         provider = entry_points_provider or metadata.entry_points
-        discovered: dict[str, list[object]] = {
-            category: [] for _, category in _GROUPS
-        }
+        discovered: dict[str, list[object]] = {category: [] for _, category in _GROUPS}
         for group, category in _GROUPS:
             for index, entry_point in enumerate(provider(group=group)):
                 try:
@@ -731,9 +720,7 @@ class PluginRegistry:
             )
         self._categories[category][key] = plugin
 
-    def _resolve(
-        self, category: str, plugin_id: str, plugin_version: str
-    ) -> object:
+    def _resolve(self, category: str, plugin_id: str, plugin_version: str) -> object:
         ref = PluginRef(plugin_id=plugin_id, plugin_version=plugin_version)
         registered = self._categories[category]
         key = (ref.plugin_id, ref.plugin_version)
@@ -754,9 +741,7 @@ class PluginRegistry:
                 ref.plugin_version,
                 versions,
             )
-        raise UnknownPlugin(
-            f"unknown {category} plugin {ref.plugin_id!r}"
-        )
+        raise UnknownPlugin(f"unknown {category} plugin {ref.plugin_id!r}")
 
     def resolve_environment(
         self, plugin_id: str, plugin_version: str
