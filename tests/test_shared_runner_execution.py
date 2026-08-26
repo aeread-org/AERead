@@ -803,6 +803,25 @@ def test_openrouter_classifies_no_text_at_length_ceiling_as_retryable() -> None:
     assert raised.value.provider_result.finish_reason == "length"
 
 
+def test_openrouter_classifies_partial_json_at_length_ceiling_as_retryable() -> None:
+    partial_json = '{"offer":'
+    completions = FakeOpenRouterCompletions(
+        content=partial_json,
+        finish_reason="length",
+    )
+    sdk = SimpleNamespace(chat=SimpleNamespace(completions=completions))
+    client = OpenRouterChatClient(sdk_client=sdk)
+
+    with pytest.raises(ProviderFailure) as raised:
+        asyncio.run(client.complete(_openrouter_request()))
+
+    assert raised.value.condition == "length"
+    assert raised.value.retryable is True
+    assert raised.value.provider_result is not None
+    assert raised.value.provider_result.output_text == partial_json
+    assert raised.value.provider_result.finish_reason == "length"
+
+
 def test_openrouter_adapter_requires_key_before_constructing_default_sdk(
     monkeypatch,
 ) -> None:

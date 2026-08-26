@@ -826,17 +826,20 @@ class OpenRouterChatClient:
                 raw_response=raw_response,
             )
 
-        if not isinstance(content, str):
-            finish_reason = str(choice.get("finish_reason") or "unknown")
-            hit_length_ceiling = finish_reason in {"length", "max_tokens", "max_output_tokens"}
+        finish_reason = str(choice.get("finish_reason") or "unknown")
+        hit_length_ceiling = finish_reason in {"length", "max_tokens", "max_output_tokens"}
+        if hit_length_ceiling:
             raise ProviderFailure(
-                "length" if hit_length_ceiling else "provider_contract",
-                (
-                    "OpenRouter response exhausted its output ceiling before text"
-                    if hit_length_ceiling
-                    else "OpenRouter response choice has no text content"
-                ),
-                retryable=hit_length_ceiling,
+                "length",
+                "OpenRouter response exhausted its output ceiling",
+                retryable=True,
+                provider_result=billable_result(content if isinstance(content, str) else ""),
+            )
+        if not isinstance(content, str):
+            raise ProviderFailure(
+                "provider_contract",
+                "OpenRouter response choice has no text content",
+                retryable=False,
                 provider_result=billable_result(""),
             )
         try:
