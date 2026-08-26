@@ -638,7 +638,8 @@ def test_reference_implementation_registry_resolves_only_an_exact_controller_pin
     registry = ReferenceImplementationRegistry.from_registrations((registration,))
 
     resolved = registry.resolve(ref, role="validity_predicate")
-    assert resolved is registration
+    assert resolved == registration
+    assert resolved is not registration
     assert resolved.function is function
 
 
@@ -700,6 +701,63 @@ def test_reference_implementation_registry_rejects_async_callables() -> None:
             ReferenceImplementationRegistry.from_registrations(
                 (_registration(function=function),)
             )
+
+
+def test_reference_implementation_registry_rejects_async_generators() -> None:
+    async def async_generator(value: object):
+        yield value
+
+    class AsyncGeneratorCallable:
+        async def __call__(self, value: object):
+            yield value
+
+    for function in (async_generator, AsyncGeneratorCallable()):
+        with pytest.raises(InvalidReferenceImplementation, match="synchronous"):
+            ReferenceImplementationRegistry.from_registrations(
+                (_registration(function=function),)
+            )
+
+
+def test_reference_implementation_registry_canonicalizes_subclass_state_once() -> None:
+    sync_function = lambda value: value
+
+    async def switched_function(value: object) -> object:
+        return value
+
+    class LyingImplementationRef(ImplementationRef):
+        def __getattribute__(self, name: str) -> object:
+            if name == "version":
+                return "forged-after-admission"
+            return super().__getattribute__(name)
+
+    class SwitchingRegistration(RegisteredReferenceImplementation):
+        def __getattribute__(self, name: str) -> object:
+            if name == "function":
+                reads = object.__getattribute__(self, "_function_reads")
+                object.__setattr__(self, "_function_reads", reads + 1)
+                if reads:
+                    return switched_function
+            return super().__getattribute__(name)
+
+    lying_ref = LyingImplementationRef(
+        implementation_id="official-scorer",
+        version="1.0.0",
+        content_sha256="1" * 64,
+    )
+    supplied = SwitchingRegistration(
+        role="validity_predicate",
+        ref=lying_ref,
+        function=sync_function,
+    )
+    object.__setattr__(supplied, "_function_reads", 0)
+    registry = ReferenceImplementationRegistry.from_registrations((supplied,))
+
+    resolved = registry.resolve(_reference(), role="validity_predicate")
+
+    assert type(resolved) is RegisteredReferenceImplementation
+    assert type(resolved.ref) is ImplementationRef
+    assert resolved.ref.version == "1.0.0"
+    assert resolved.function is sync_function
 
 
 def test_reference_implementation_registry_never_executes_or_reads_claims() -> None:
@@ -792,6 +850,15 @@ def test_reference_implementation_registry_has_no_mutation_surface() -> None:
     assert not hasattr(ReferenceImplementationRegistry, "resolve_import_path")
     with pytest.raises((InvalidReferenceImplementation, TypeError)):
         ReferenceImplementationRegistry({})  # type: ignore[call-arg]
+    registry = ReferenceImplementationRegistry.from_registrations((_registration(),))
+    with pytest.raises(AttributeError):
+        setattr(
+            registry,
+            "_ReferenceImplementationRegistry__registrations",
+            {},
+        )
+    with pytest.raises(AttributeError):
+        delattr(registry, "_ReferenceImplementationRegistry__registrations")
 
 
 def test_runner_public_exports_are_the_exact_task_1_1a2_surface() -> None:

@@ -224,7 +224,12 @@ def _validate_reference_callable(value: object) -> Callable[..., object]:
             "reference implementation must be callable"
         )
     call_method = getattr(type(value), "__call__", None)
-    if inspect.iscoroutinefunction(value) or inspect.iscoroutinefunction(call_method):
+    if (
+        inspect.iscoroutinefunction(value)
+        or inspect.iscoroutinefunction(call_method)
+        or inspect.isasyncgenfunction(value)
+        or inspect.isasyncgenfunction(call_method)
+    ):
         raise InvalidReferenceImplementation(
             "reference implementation must be synchronous"
         )
@@ -235,6 +240,12 @@ class ReferenceImplementationRegistry:
     """Exact lookup over controller-supplied, fully pinned reference callables."""
 
     __slots__ = ("__registrations",)
+
+    def __setattr__(self, name: str, value: object) -> None:
+        raise AttributeError("ReferenceImplementationRegistry is immutable")
+
+    def __delattr__(self, name: str) -> None:
+        raise AttributeError("ReferenceImplementationRegistry is immutable")
 
     def __init__(
         self,
@@ -249,7 +260,11 @@ class ReferenceImplementationRegistry:
             raise InvalidReferenceImplementation(
                 "reference implementation registry must be built by its factory"
             )
-        self.__registrations = MappingProxyType(dict(registrations))
+        object.__setattr__(
+            self,
+            "_ReferenceImplementationRegistry__registrations",
+            MappingProxyType(dict(registrations)),
+        )
 
     @classmethod
     def from_registrations(
@@ -273,7 +288,7 @@ class ReferenceImplementationRegistry:
                 )
             role = _validate_reference_role(registration.role)
             ref = _validate_implementation_ref(registration.ref)
-            _validate_reference_callable(registration.function)
+            function = _validate_reference_callable(registration.function)
             key = (
                 role,
                 ref.implementation_id,
@@ -286,7 +301,11 @@ class ReferenceImplementationRegistry:
                     f"ID {ref.implementation_id!r}, version {ref.version!r}, "
                     f"and content hash {ref.content_sha256!r}"
                 )
-            admitted[key] = registration
+            admitted[key] = RegisteredReferenceImplementation(
+                role=role,
+                ref=ref,
+                function=function,
+            )
         return cls(admitted, _private_token=_REFERENCE_REGISTRY_TOKEN)
 
     def resolve(
@@ -478,7 +497,9 @@ def _read_plugin_attribute(
 def _validated_manifest(category: str, plugin: object) -> PluginManifest:
     manifest = _read_plugin_attribute(category, plugin, "manifest", None)
     if manifest is None:
-        raise IncompatiblePlugin(f"{category} plugin is missing a PluginManifest")
+        raise IncompatiblePlugin(
+            f"{category} plugin is missing a PluginManifest"
+        )
     try:
         is_manifest = isinstance(manifest, PluginManifest)
     except Exception as exc:
@@ -486,7 +507,9 @@ def _validated_manifest(category: str, plugin: object) -> PluginManifest:
             f"{category} plugin manifest type could not be inspected"
         ) from exc
     if not is_manifest:
-        raise IncompatiblePlugin(f"{category} plugin manifest must be a PluginManifest")
+        raise IncompatiblePlugin(
+            f"{category} plugin manifest must be a PluginManifest"
+        )
 
     # model_copy(update=...) deliberately skips validation and model_dump()
     # omits undeclared copied attributes. Reconstruct from the raw field state
@@ -519,7 +542,9 @@ def _validate_callable(
 ) -> None:
     method = _read_plugin_attribute(category, plugin, method_name)
     if not callable(method):
-        raise IncompatiblePlugin(f"{category} plugin {method_name} must be callable")
+        raise IncompatiblePlugin(
+            f"{category} plugin {method_name} must be callable"
+        )
     try:
         is_async = inspect.iscoroutinefunction(method)
         signature = inspect.signature(method)
@@ -529,7 +554,9 @@ def _validate_callable(
         ) from exc
     if is_async is not must_be_async:
         expected = "async" if must_be_async else "synchronous"
-        raise IncompatiblePlugin(f"{category} plugin {method_name} must be {expected}")
+        raise IncompatiblePlugin(
+            f"{category} plugin {method_name} must be {expected}"
+        )
 
     parameters = signature.parameters
     for name in keyword_only_names:
@@ -577,7 +604,8 @@ def _validate_contract(category: str, plugin: object) -> None:
         ) from exc
     if not conforms:
         raise IncompatiblePlugin(
-            f"{category} plugin does not implement " f"{expected_protocol.__name__}"
+            f"{category} plugin does not implement "
+            f"{expected_protocol.__name__}"
         )
 
     for method_name, positional_names in _SYNC_METHODS.get(category, {}).items():
@@ -664,7 +692,9 @@ class PluginRegistry:
         entry_points_provider: EntryPointsProvider | None = None,
     ) -> "PluginRegistry":
         provider = entry_points_provider or metadata.entry_points
-        discovered: dict[str, list[object]] = {category: [] for _, category in _GROUPS}
+        discovered: dict[str, list[object]] = {
+            category: [] for _, category in _GROUPS
+        }
         for group, category in _GROUPS:
             for index, entry_point in enumerate(provider(group=group)):
                 try:
@@ -701,7 +731,9 @@ class PluginRegistry:
             )
         self._categories[category][key] = plugin
 
-    def _resolve(self, category: str, plugin_id: str, plugin_version: str) -> object:
+    def _resolve(
+        self, category: str, plugin_id: str, plugin_version: str
+    ) -> object:
         ref = PluginRef(plugin_id=plugin_id, plugin_version=plugin_version)
         registered = self._categories[category]
         key = (ref.plugin_id, ref.plugin_version)
@@ -722,7 +754,9 @@ class PluginRegistry:
                 ref.plugin_version,
                 versions,
             )
-        raise UnknownPlugin(f"unknown {category} plugin {ref.plugin_id!r}")
+        raise UnknownPlugin(
+            f"unknown {category} plugin {ref.plugin_id!r}"
+        )
 
     def resolve_environment(
         self, plugin_id: str, plugin_version: str

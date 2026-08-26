@@ -37,6 +37,12 @@ class ReferenceArtifactView:
 
     __slots__ = ("__content",)
 
+    def __setattr__(self, name: str, value: object) -> None:
+        raise AttributeError("ReferenceArtifactView is immutable")
+
+    def __delattr__(self, name: str) -> None:
+        raise AttributeError("ReferenceArtifactView is immutable")
+
     def __init__(
         self,
         content: Mapping[tuple[str, str, int], bytes],
@@ -45,7 +51,11 @@ class ReferenceArtifactView:
     ) -> None:
         if _private_token is not _VIEW_TOKEN:
             raise TypeError("ReferenceArtifactView must be built by its factory")
-        self.__content = MappingProxyType(dict(content))
+        object.__setattr__(
+            self,
+            "_ReferenceArtifactView__content",
+            MappingProxyType(dict(content)),
+        )
 
     def read(self, ref: ArtifactRef) -> bytes:
         checked = _validated_artifact_ref(ref)

@@ -206,6 +206,10 @@ def test_view_is_a_minimal_immutable_snapshot_without_store_or_listing_surface(
         ReferenceArtifactView({})  # type: ignore[call-arg]
     with pytest.raises((AttributeError, TypeError)):
         setattr(view, "extra", object())
+    with pytest.raises(AttributeError):
+        setattr(view, "_ReferenceArtifactView__content", {})
+    with pytest.raises(AttributeError):
+        delattr(view, "_ReferenceArtifactView__content")
 
 
 def test_view_freezes_declared_set_and_rejects_later_store_artifacts(
