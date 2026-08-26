@@ -6,6 +6,7 @@ budgets.  Family plugins continue to own all economic state and semantics.
 """
 from __future__ import annotations
 
+import asyncio
 import copy
 import dataclasses
 import hashlib
@@ -741,6 +742,7 @@ async def run_episode(
                     phase=phase,
                 )
             envelopes: dict[str, ActionEnvelope] = {}
+            action_specs: list[tuple[str, int]] = []
             for seat_id in actors:
                 logical_action_count += 1
                 phase_action_counts[phase.phase_id] = (
@@ -754,7 +756,11 @@ async def run_episode(
                     raise SchedulerContractError(
                         f"phase logical-action budget exceeded for {phase.phase_id!r}"
                     )
-                record = await _request_action(
+                action_specs.append((seat_id, logical_action_count - 1))
+
+            async def request(spec: tuple[str, int]) -> LogicalActionRecord:
+                seat_id, action_ordinal = spec
+                return await _request_action(
                     plugin=plugin,
                     family_case=family_case,
                     state=state,
@@ -765,11 +771,31 @@ async def run_episode(
                     seat_id=seat_id,
                     role=role_by_seat[seat_id],
                     observation=observations[seat_id],
-                    action_ordinal=logical_action_count - 1,
+                    action_ordinal=action_ordinal,
                     response_source=response_source,
                 )
+
+            if phase.mode == "simultaneous":
+                requested = await asyncio.gather(
+                    *(request(spec) for spec in action_specs),
+                    return_exceptions=True,
+                )
+                first_error = next(
+                    (item for item in requested if isinstance(item, BaseException)),
+                    None,
+                )
+                if first_error is not None:
+                    raise first_error
+                records = requested
+            else:
+                records = [await request(spec) for spec in action_specs]
+            for record in records:
+                if not isinstance(record, LogicalActionRecord):
+                    raise SchedulerContractError(
+                        "simultaneous action did not return a logical-action record"
+                    )
                 action_records.append(record)
-                envelopes[seat_id] = record.envelope
+                envelopes[record.seat_id] = record.envelope
             transition = _step(
                 plugin=plugin,
                 family_case=family_case,

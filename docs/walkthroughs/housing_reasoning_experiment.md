@@ -122,6 +122,11 @@ operational evidence and is not part of the analysis sample. Different truncatio
 a real consequence of the revised configured condition and must be reported, not hidden by
 unbounded post hoc retries.
 
+The same admission sequence also showed that a 30-second provider deadline could expire in
+the reasoning-low arm. Both arms therefore use a symmetric 120-second per-call deadline.
+Phases declared simultaneous dispatch their already-frozen actor observations concurrently;
+results remain ordered by the sealed actor order before the family transition is applied.
+
 ### DANGER ZONE D7: controlled counterpart limits the estimand
 
 **MEDIUM — biases toward cleaner, less interactive behavior.** The landlord is deterministic

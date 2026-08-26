@@ -639,6 +639,7 @@ def _profile(
     reasoning_effort: str | None = "low",
     request_seed_base: int | None = None,
     max_output_tokens: int | None = None,
+    timeout_seconds: float | None = None,
 ) -> AgentProfile:
     config: dict[str, Any] = {
         "pricing_id": pricing.pricing_id,
@@ -696,7 +697,9 @@ def _profile(
             },
             "budgets": {
                 "max_logical_actions": max_logical_actions,
-                "timeout_seconds": 30.0,
+                "timeout_seconds": (
+                    timeout_seconds if timeout_seconds is not None else 30.0
+                ),
                 "max_cost_usd": 0.01 if provider == "openrouter" else 0.001,
             },
             "retry_policy": {
@@ -881,6 +884,9 @@ def build_housing_smoke(
         request_seed_base=inference_seed_base,
         max_output_tokens=(
             2048 if tenant_provider == "openrouter" and experiment_mode else None
+        ),
+        timeout_seconds=(
+            120.0 if tenant_provider == "openrouter" and experiment_mode else None
         ),
     )
     landlord_profile = _profile(

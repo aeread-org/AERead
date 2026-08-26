@@ -218,6 +218,8 @@ def test_condition_plans_pair_worlds_and_replicates_but_seal_distinct_treatments
     assert disabled_profile.sampling.seed is None
     assert disabled_profile.sampling.max_output_tokens == 2048
     assert low_profile.sampling.max_output_tokens == 2048
+    assert disabled_profile.budgets.timeout_seconds == 120.0
+    assert low_profile.budgets.timeout_seconds == 120.0
     assert disabled_profile.harness.config["request_seed_source"] == "paired_cell_v1"
     assert disabled_profile.harness.config["request_seed_base"] == 87001
 
@@ -530,17 +532,17 @@ def test_condition_batch_preserves_charged_failure_evidence_and_cost(tmp_path) -
     )
 
     assert result["failure_count"] == 1
-    assert result["total_cost_usd"] == pytest.approx(0.002)
+    assert result["total_cost_usd"] == pytest.approx(0.004)
     rows = read_condition_results(
         tmp_path, condition_id="reasoning_low_v1", verify_evidence=True
     )
     assert rows[0]["status"] == "operational_failure"
     assert rows[0]["failure_type"] == "SchedulerContractError"
-    assert rows[0]["cost_usd"] == pytest.approx(0.002)
+    assert rows[0]["cost_usd"] == pytest.approx(0.004)
     assert rows[0]["evidence_verified"] is True
-    assert rows[0]["provider_call_count"] == 2
-    assert rows[0]["length_retry_count"] == 1
-    assert rows[0]["reasoning_tokens"] == 6
+    assert rows[0]["provider_call_count"] == 4
+    assert rows[0]["length_retry_count"] == 2
+    assert rows[0]["reasoning_tokens"] == 12
 
 
 def _paired_setups(*, world_seeds=(101, 202), replicates=1):
@@ -701,7 +703,7 @@ def test_paired_batch_stops_after_consecutive_operational_failures(tmp_path) -> 
     assert result["failure_count"] == 2
     assert result["pending_count"] == 6
     assert result["stop_reason"] == "operational_failure_limit_reached"
-    assert result["total_cost_usd"] == pytest.approx(0.004)
+    assert result["total_cost_usd"] == pytest.approx(0.008)
 
 
 def test_admission_entrypoint_runs_one_full_pair_and_seals_report(tmp_path) -> None:
