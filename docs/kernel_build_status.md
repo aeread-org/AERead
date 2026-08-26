@@ -9,8 +9,9 @@ Update this file in place; it is a status board, not a plan generator.
 |---|---|---|---|
 | 1 | Remove self-referential process guards (SHA pins, plan-heading guards, AST/export-shape tests) | done | `2c79bd6` |
 | 2 | R3 episode scheduler: phase schedule, frozen observations, typed verdicts, evidence | done | `6250ce6` |
-| 3 | Housing vertical slice through the kernel (shape risk) | next | |
-| 4 | Contract-decision comment for PR #7 (not blocking code) | | |
+| 3 | Housing vertical slice: the real plugin driven by the real scheduler | done | `1e8ef26` |
+| 3b | Close the gaps an independent review found in the scheduler | done | `afefe16` |
+| 4 | Contract-decision comment for PR #7 (not blocking code) | next | |
 | 5 | `ToolInvocation` evidence records (tau3 blocker) | | |
 | 6 | `reasoning_condition`, ID grammar, locked vocabularies | | |
 | 7 | R6 `exchange_v1` old/new parity | | |
@@ -34,7 +35,10 @@ Update this file in place; it is a status board, not a plan generator.
 - Analysis DAG language (graph/node/port/edge, Holm families) — no consumer in
   the current experiment plan; keep internal or drop.
 - Open rulings for Chenyu: `user_simulator` as a seat kind vs a counterpart
-  profile; `CallAttempt*` additive-compatibility path vs rename.
+  profile; `CallAttempt*` additive-compatibility path vs rename; whether
+  housing's `contract_status` should stop listing the action-failure
+  disposition as unresolved now that the runner owns that vocabulary and
+  housing carries the ruled disposition.
 
 ## Known risks carried
 
@@ -44,3 +48,12 @@ Update this file in place; it is a status board, not a plan generator.
 - Canonical JSON determinism is currently a property of the implementation
   (CPython float repr, no unicode normalization), not a written spec with
   golden vectors.
+- `PhaseSpec.mode` is recorded and logged but does not change scheduling: a
+  phase declaring `single` may still return many slots. Either the runner
+  enforces it or the field is documented as descriptive.
+- Adapters are awaited one seat at a time even in a simultaneous phase.
+  Correct, but a real provider will make a wide phase N times slower than it
+  needs to be.
+- Seats cannot be enumerated before an episode runs: a plugin only reveals a
+  phase's slots once the state is in that phase. A resolver that needs every
+  seat up front must read them from the case.
