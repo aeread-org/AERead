@@ -1,6 +1,8 @@
 """Shared-runner bridge for the native B2B procurement/RFQ case."""
 from __future__ import annotations
 
+import argparse
+import asyncio
 import dataclasses
 import hashlib
 import json
@@ -14,10 +16,12 @@ from aeread import procurement_rfq_env as rfq
 
 from .execution import (
     CanonicalResponse,
+    OpenRouterChatClient,
     ProviderFailure,
     ProviderRequest,
     ProviderResult,
     TokenPricing,
+    execute_plan_cell,
 )
 from .registry import PluginRegistry
 from .resolver import (
@@ -798,12 +802,27 @@ def _profile(
     profile_id: str,
     provider: str,
     model: str,
+    revision: str,
     prompt_id: str,
     prompt: str,
     output_schemas: Mapping[str, Mapping[str, Any]],
     pricing: TokenPricing,
     max_logical_actions: int,
+    runtime: str,
 ) -> AgentProfile:
+    config: dict[str, Any] = {
+        "pricing_id": pricing.pricing_id,
+        "pricing_sha256": pricing.content_sha256(),
+        "output_schema_by_action_schema": dict(output_schemas),
+    }
+    if provider == "openrouter":
+        config["provider_metadata"] = {
+            "route_provider": "DeepInfra",
+            "quantization": "fp8",
+            "canonical_model": "deepseek/deepseek-v4-flash-20260731",
+            "max_prompt_price_per_million": "0.08",
+            "max_completion_price_per_million": "0.18",
+        }
     return AgentProfile.from_dict(
         {
             "spec_version": "aeread.agent_profile/0.1",
@@ -811,46 +830,42 @@ def _profile(
             "model": {
                 "provider": provider,
                 "model": model,
-                "revision": "1.0.0",
-                "base_url": None,
+                "revision": revision,
+                "base_url": "https://openrouter.ai/api/v1" if provider == "openrouter" else None,
             },
             "harness": {
                 "id": "minimal_chat",
                 "version": "1.0",
-                "config": {
-                    "pricing_id": pricing.pricing_id,
-                    "pricing_sha256": pricing.content_sha256(),
-                    "output_schema_by_action_schema": dict(output_schemas),
-                },
+                "config": config,
             },
             "prompt": {"prompt_id": prompt_id, "sha256": hashlib.sha256(prompt.encode()).hexdigest()},
             "runtime": {
                 "kind": "python",
-                "implementation": "aeread.shared_runner.procurement_rfq",
+                "implementation": runtime,
                 "version": "0.1.0",
             },
             "tools": [],
             "memory": {"mode": "disabled"},
             "reasoning": {
-                "condition_id": "reasoning_none_v1",
-                "effort": "none",
+                "condition_id": "reasoning_low_v1" if provider == "openrouter" else "reasoning_none_v1",
+                "effort": "low" if provider == "openrouter" else "none",
                 "token_budget": None,
                 "rationale_visibility": "hidden",
             },
             "sampling": {
                 "temperature": 0.0,
-                "top_p": None,
+                "top_p": 1.0 if provider == "openrouter" else None,
                 "max_output_tokens": 512,
-                "seed": None,
+                "seed": 0 if provider == "openrouter" else None,
             },
             "budgets": {
                 "max_logical_actions": max_logical_actions,
                 "timeout_seconds": 30.0,
-                "max_cost_usd": 0.001,
+                "max_cost_usd": 0.01 if provider == "openrouter" else 0.001,
             },
             "retry_policy": {
-                "max_action_attempts": 1,
-                "retryable_conditions": [],
+                "max_action_attempts": 2 if provider == "openrouter" else 1,
+                "retryable_conditions": ["length"] if provider == "openrouter" else [],
                 "session_mode": "restart",
                 "sdk_retries": 0,
             },
@@ -858,7 +873,12 @@ def _profile(
     )
 
 
-def build_procurement_rfq_smoke() -> ProcurementRFQSmokeSetup:
+def build_procurement_rfq_smoke(
+    *,
+    buyer_provider: str = "procurement_scripted_buyer",
+    buyer_model: str = "procurement_scripted_buyer_v1",
+    buyer_revision: str = "1.0.0",
+) -> ProcurementRFQSmokeSetup:
     repository_root = Path(__file__).resolve().parents[3]
     config_path = repository_root / "configs" / "exchange_economy" / "procurement_electronics_q3.json"
     world = procurement.load_procurement_world(config_path)
@@ -964,12 +984,22 @@ def build_procurement_rfq_smoke() -> ProcurementRFQSmokeSetup:
             "panel_mode": "fixed_panel",
         }
     )
-    zero_buyer = TokenPricing(0.0, 0.0, 0.0, "procurement_scripted_buyer_zero_cost_v1")
+    buyer_profile_id = (
+        "procurement_deepseek_buyer_v1"
+        if buyer_provider == "openrouter"
+        else "procurement_scripted_buyer_v1"
+    )
+    buyer_pricing = (
+        TokenPricing(0.08, 0.016, 0.18, "openrouter_deepinfra_2026-08-26_deepseek-v4-flash-0731")
+        if buyer_provider == "openrouter"
+        else TokenPricing(0.0, 0.0, 0.0, "procurement_scripted_buyer_zero_cost_v1")
+    )
     zero_supplier = TokenPricing(0.0, 0.0, 0.0, "procurement_scripted_supplier_zero_cost_v1")
     buyer_profile = _profile(
-        profile_id="procurement_scripted_buyer_v1",
-        provider="procurement_scripted_buyer",
-        model="procurement_scripted_buyer_v1",
+        profile_id=buyer_profile_id,
+        provider=buyer_provider,
+        model=buyer_model,
+        revision=buyer_revision,
         prompt_id="procurement_buyer_v1",
         prompt=PROCUREMENT_BUYER_PROMPT,
         output_schemas={
@@ -978,13 +1008,19 @@ def build_procurement_rfq_smoke() -> ProcurementRFQSmokeSetup:
             "procurement_approval_v1": PROCUREMENT_APPROVAL_OUTPUT_SCHEMA,
             "procurement_award_v1": PROCUREMENT_AWARD_OUTPUT_SCHEMA,
         },
-        pricing=zero_buyer,
+        pricing=buyer_pricing,
         max_logical_actions=4,
+        runtime=(
+            "aeread.shared_runner.execution"
+            if buyer_provider == "openrouter"
+            else "aeread.shared_runner.procurement_rfq"
+        ),
     )
     supplier_profile = _profile(
         profile_id="procurement_scripted_supplier_v1",
         provider="procurement_scripted_supplier",
         model="procurement_scripted_supplier_v1",
+        revision="1.0.0",
         prompt_id="procurement_supplier_v1",
         prompt=PROCUREMENT_SUPPLIER_PROMPT,
         output_schemas={
@@ -993,6 +1029,7 @@ def build_procurement_rfq_smoke() -> ProcurementRFQSmokeSetup:
         },
         pricing=zero_supplier,
         max_logical_actions=2 * max_contacts,
+        runtime="aeread.shared_runner.procurement_rfq",
     )
     supplier_seats = [f"supplier_{seller_id}" for seller_id in seller_ids]
     block = EvaluationBlock.from_dict(
@@ -1040,7 +1077,7 @@ def build_procurement_rfq_smoke() -> ProcurementRFQSmokeSetup:
         }
     )
     assignments = {
-        "buyer_0": "procurement_scripted_buyer_v1",
+        "buyer_0": buyer_profile_id,
         **{seat: "procurement_scripted_supplier_v1" for seat in supplier_seats},
     }
     run_spec = RunSpec.from_dict(
@@ -1050,7 +1087,7 @@ def build_procurement_rfq_smoke() -> ProcurementRFQSmokeSetup:
             "suite_id": suite.suite_id,
             "evaluation_block_ids": [block.block_id],
             "agent_profile_ids": [
-                "procurement_scripted_buyer_v1",
+                buyer_profile_id,
                 "procurement_scripted_supplier_v1",
             ],
             "seat_assignments": assignments,
@@ -1070,7 +1107,7 @@ def build_procurement_rfq_smoke() -> ProcurementRFQSmokeSetup:
     environment_digest = hashlib.sha256(environment_source).hexdigest()
     bridge_digest = hashlib.sha256(bridge_source).hexdigest()
     execution_digest = hashlib.sha256(execution_source).hexdigest()
-    pins = (
+    pins = [
         _pin("aeread.procurement_rfq_v1", "family_plugin", combined),
         _pin("procurement_rfq_outcome_v1", "scorer", combined),
         _pin("procurement_rfq_no_action_v1", "reference", bridge_digest),
@@ -1084,7 +1121,16 @@ def build_procurement_rfq_smoke() -> ProcurementRFQSmokeSetup:
             bridge_digest,
             version="0.1.0",
         ),
-    )
+    ]
+    if buyer_provider == "openrouter":
+        pins.append(
+            _pin(
+                "aeread.shared_runner.execution",
+                "runtime",
+                execution_digest,
+                version="0.1.0",
+            )
+        )
     plan = resolve_run_plan(
         families=(family,),
         cases=(case,),
@@ -1095,7 +1141,7 @@ def build_procurement_rfq_smoke() -> ProcurementRFQSmokeSetup:
         agent_profiles=(buyer_profile, supplier_profile),
         run_spec=run_spec,
         registry=registry,
-        implementation_pins=pins,
+        implementation_pins=tuple(pins),
     )
     return ProcurementRFQSmokeSetup(
         plan=plan,
@@ -1105,10 +1151,67 @@ def build_procurement_rfq_smoke() -> ProcurementRFQSmokeSetup:
             "procurement_supplier_v1": PROCUREMENT_SUPPLIER_PROMPT,
         },
         pricing={
-            "procurement_scripted_buyer_v1": zero_buyer,
+            buyer_model: buyer_pricing,
             "procurement_scripted_supplier_v1": zero_supplier,
         },
     )
+
+
+async def _run_cli(arguments: argparse.Namespace) -> dict[str, Any]:
+    if arguments.provider == "openrouter":
+        buyer_provider = "openrouter"
+        buyer_model = arguments.model or "deepseek/deepseek-v4-flash-0731"
+        buyer_revision = arguments.revision or "deepseek/deepseek-v4-flash-20260731"
+        buyer_client = OpenRouterChatClient()
+    else:
+        buyer_provider = "procurement_scripted_buyer"
+        buyer_model = "procurement_scripted_buyer_v1"
+        buyer_revision = "1.0.0"
+        buyer_client = ProcurementScriptedBuyerProvider()
+    setup = build_procurement_rfq_smoke(
+        buyer_provider=buyer_provider,
+        buyer_model=buyer_model,
+        buyer_revision=buyer_revision,
+    )
+    execution = await execute_plan_cell(
+        plan=setup.plan,
+        cell_id=setup.plan.cells[0].cell_id,
+        registry=setup.registry,
+        evidence_root=arguments.output,
+        prompt_sources=setup.prompt_sources,
+        providers={
+            buyer_provider: buyer_client,
+            "procurement_scripted_supplier": ProcurementScriptedSupplierProvider(),
+        },
+        pricing=setup.pricing,
+        episode_attempt_ordinal=arguments.attempt,
+    )
+    execution.evidence.audit_reconciliation()
+    return {
+        "run_plan_id": execution.run_plan_id,
+        "cell_id": execution.cell_id,
+        "episode_attempt_id": execution.episode_attempt_id,
+        "outcome": execution.episode_result.outcome,
+        "logical_action_count": execution.episode_result.logical_action_count,
+        "total_cost_usd": execution.total_cost_usd,
+        "evidence_dir": str(execution.evidence.root),
+    }
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--provider", choices=("scripted", "openrouter"), default="scripted")
+    parser.add_argument("--model")
+    parser.add_argument("--revision")
+    parser.add_argument("--attempt", type=int, default=0)
+    parser.add_argument("--output", type=Path, required=True)
+    arguments = parser.parse_args(argv)
+    print(canonical_json_bytes(asyncio.run(_run_cli(arguments))).decode("utf-8"))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
 
 
 __all__ = [
@@ -1123,4 +1226,5 @@ __all__ = [
     "ProcurementScriptedBuyerProvider",
     "ProcurementScriptedSupplierProvider",
     "build_procurement_rfq_smoke",
+    "main",
 ]

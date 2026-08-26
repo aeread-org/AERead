@@ -19,6 +19,10 @@ from aeread.shared_runner.procurement_rfq import (
 from aeread.shared_runner.resolver import canonical_json_bytes
 
 
+DEEPSEEK_MODEL = "deepseek/deepseek-v4-flash-0731"
+DEEPSEEK_REVISION = "deepseek/deepseek-v4-flash-20260731"
+
+
 def test_procurement_plugin_declares_real_workflow_and_private_observations() -> None:
     setup = build_procurement_rfq_smoke()
     plugin = ProcurementRFQPlugin()
@@ -81,6 +85,36 @@ def test_procurement_smoke_seals_roles_schemas_and_typed_references() -> None:
             "procurement_counter_v1": PROCUREMENT_COUNTER_OUTPUT_SCHEMA,
         }
     )
+
+
+def test_procurement_live_probe_seals_openrouter_buyer_and_controlled_suppliers() -> None:
+    setup = build_procurement_rfq_smoke(
+        buyer_provider="openrouter",
+        buyer_model=DEEPSEEK_MODEL,
+        buyer_revision=DEEPSEEK_REVISION,
+    )
+
+    profiles = {profile.profile_id: profile for profile in setup.plan.agent_profiles}
+    buyer = profiles["procurement_deepseek_buyer_v1"]
+    assert buyer.model.provider == "openrouter"
+    assert buyer.model.model == DEEPSEEK_MODEL
+    assert buyer.model.revision == DEEPSEEK_REVISION
+    assert buyer.model.base_url == "https://openrouter.ai/api/v1"
+    assert buyer.retry_policy.max_action_attempts == 2
+    assert buyer.retry_policy.retryable_conditions == ("length",)
+    assert buyer.harness.config["provider_metadata"]["route_provider"] == "DeepInfra"
+    assert buyer.budgets.max_cost_usd == 0.01
+
+    supplier = profiles["procurement_scripted_supplier_v1"]
+    assert supplier.model.provider == "procurement_scripted_supplier"
+    assert setup.plan.cells[0].profile_by_seat == {
+        "buyer_0": "procurement_deepseek_buyer_v1",
+        **{
+            f"supplier_{seller_id}": "procurement_scripted_supplier_v1"
+            for seller_id in range(2, 9)
+        },
+    }
+    assert set(setup.pricing) == {DEEPSEEK_MODEL, "procurement_scripted_supplier_v1"}
 
 
 def test_provider_free_procurement_cell_executes_and_reconciles_evidence(tmp_path) -> None:
