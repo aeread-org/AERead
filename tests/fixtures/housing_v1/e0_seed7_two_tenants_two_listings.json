@@ -1,0 +1,128 @@
+{
+  "spec_version": "aeread.housing_case/0.1",
+  "case_id": "housing-v1-e0-seed7-two-tenant-two-listing",
+  "family_id": "housing_v1",
+  "family_version": "0.1.0-spike",
+  "rounds": 1,
+  "world": {
+    "world_kind": "bid",
+    "listings": [
+      {
+        "listing_id": 0,
+        "rent_asked": 2050,
+        "beds": 1,
+        "baths": 2,
+        "minutes_to_campus": 8,
+        "crime_index": 1.7,
+        "minutes_to_groceries": 20,
+        "orientation": "South"
+      },
+      {
+        "listing_id": 1,
+        "rent_asked": 1660,
+        "beds": 3,
+        "baths": 1,
+        "minutes_to_campus": 37,
+        "crime_index": 2.9,
+        "minutes_to_groceries": 5,
+        "orientation": "South"
+      }
+    ],
+    "values": [[2059.07, 1564.78], [2328.63, 1449.42]],
+    "costs": [1994.28, 1615.06],
+    "ask": [2050.0, 1660.0]
+  },
+  "provenance": {
+    "source_kind": "generated",
+    "generator_id": "aeread.housing.make_bid_world",
+    "generator_version": "1.0.0",
+    "generator_commit": "793866b41b0c23a162b7d36d734087c0a4da16fd",
+    "generator_source_sha256": "096b9f8a33dab846f6b525b0af335e3200619806a2e5efeb507661a565552f6b",
+    "seed": 7,
+    "num_tenants": 2,
+    "num_listings": 2,
+    "common_weight": 0.6,
+    "materializer_id": "housing-e0-static-materialization",
+    "materializer_version": "1.0.0"
+  },
+  "contract": {
+    "renderer_status": "provisional_adapter_projection",
+    "executable_scope": "environment_hook_expressibility_e0",
+    "state_validation_status": "structural_only",
+    "identity_scope": "case_artifact_phase_round_slot_local",
+    "exhausted_replayable_action_failure_policy": "invalid_missing_or_timeout_record_typed_failure_then_phase_pass",
+    "invalid_measurement_policy": "infrastructure_or_integration_failure_only_if_nonreplayable_or_terminal_score_unavailable",
+    "paper_primary_admission": "blocked",
+    "unresolved_contract_gaps": [
+      "official_observation_projection_authority",
+      "formal_action_failure_disposition_requires_shared_contract",
+      "timeout_to_native_consequence_requires_policy_pin",
+      "formal_transition_authenticity_requires_event_chain",
+      "formal_measurement_requires_task_1_1c",
+      "run_global_action_identity_requires_task_2_1"
+    ]
+  },
+  "references": {
+    "lower": {
+      "kind": "optimum_lower_bound",
+      "value": 0.0,
+      "objective_id": "housing_social_welfare",
+      "objective_version": "1.0.0",
+      "units": "utility",
+      "direction": "maximize",
+      "feasible_set": "housing_v1_all_legal_outcomes",
+      "information_set": "full_materialized_world",
+      "horizon": "one_round",
+      "opponent_condition": "any_legal_policy",
+      "proof_type": "constructive_no_trade_feasible_witness",
+      "implementation": {
+        "implementation_id": "housing_no_trade_witness",
+        "version": "1.0.0",
+        "content_sha256": "096b9f8a33dab846f6b525b0af335e3200619806a2e5efeb507661a565552f6b"
+      },
+      "validity_domain": "materialized housing_v1 case"
+    },
+    "upper": {
+      "kind": "optimum_upper_bound",
+      "value": 334.35,
+      "objective_id": "housing_social_welfare",
+      "objective_version": "1.0.0",
+      "units": "utility",
+      "direction": "maximize",
+      "feasible_set": "housing_v1_all_legal_outcomes",
+      "information_set": "full_materialized_world",
+      "horizon": "one_round",
+      "opponent_condition": "any_legal_policy",
+      "proof_type": "exact_max_weight_assignment",
+      "implementation": {
+        "implementation_id": "housing_assignment_oracle",
+        "version": "1.0.0",
+        "content_sha256": "096b9f8a33dab846f6b525b0af335e3200619806a2e5efeb507661a565552f6b"
+      },
+      "validity_domain": "materialized housing_v1 case"
+    },
+    "baseline": {
+      "kind": "comparison_baseline",
+      "value": 64.79,
+      "comparison_id": "housing_naive_scripted_market",
+      "comparison_version": "1.0.0",
+      "units": "utility",
+      "direction": "maximize",
+      "provenance": {
+        "generator_commit": "793866b41b0c23a162b7d36d734087c0a4da16fd",
+        "strategy": "naive",
+        "rounds": 1,
+        "landlord_policy": "scripted",
+        "tenant_policy": "naive",
+        "tenant_population_assignment": "all_tenants_naive"
+      },
+      "applicability": "all-naive tenant population against fixed scripted landlords; same materialized case and round horizon",
+      "implementation": {
+        "implementation_id": "housing_run_scripted_market_naive",
+        "version": "1.0.0",
+        "content_sha256": "096b9f8a33dab846f6b525b0af335e3200619806a2e5efeb507661a565552f6b"
+      }
+    }
+  },
+  "artifact_sha256": "2d701c216ee18fc8cab3a65c88f9396f0c94935fb05b99a076b6d37c88622fbc"
+}
