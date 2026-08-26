@@ -829,6 +829,483 @@ class MeasurementSelectionSpec(_PlannedIdentityRecord):
         return self
 
 
+class ExecutionRecordRef(_PlannedIdentityRecord):
+    spec_version: Literal["aeread.execution_record_ref/0.1"]
+    record_type: Literal["execution_record_ref"]
+    ref_kind: Literal[
+        "sampling_population",
+        "panel_design",
+        "episode_replication_design",
+        "measurement_selection",
+        "agent_profile",
+    ]
+    record_id: SDKStr
+    record_version: SDKStr
+    content_sha256: SHA256
+
+    @model_validator(mode="after")
+    def validate_execution_record_ref(self) -> "ExecutionRecordRef":
+        _require_non_empty("record_id", self.record_id)
+        _require_semver("record_version", self.record_version)
+        return self
+
+
+def _validate_execution_record_ref(
+    reference: ExecutionRecordRef, label: str, expected_kind: str
+) -> None:
+    if type(reference) is not ExecutionRecordRef:
+        raise ValueError(f"{label} must use the exact ExecutionRecordRef type")
+    if reference.ref_kind != expected_kind:
+        raise ValueError(f"{label} must have ref_kind {expected_kind!r}")
+
+
+class FixedPanelResolutionTemplateSpec(_PlannedIdentityRecord):
+    spec_version: Literal["aeread.panel_resolution_template/0.1"]
+    record_type: Literal["panel_resolution_template"]
+    resolution_kind: Literal["fixed_panel"]
+    panel_ref: ExecutionRecordRef
+    realization_key: SDKStr
+    realization_coupling: Literal["fixed_exact"]
+    resolution_source: Literal["selected_unit_ids_from_pinned_fixed_panel"]
+    resolution_timing: Literal["before_first_episode_side_effect"]
+    failure_rule: Literal["admission_failure_no_retry"]
+
+    @model_validator(mode="after")
+    def validate_fixed_panel_resolution(
+        self,
+    ) -> "FixedPanelResolutionTemplateSpec":
+        _validate_execution_record_ref(self.panel_ref, "panel_ref", "panel_design")
+        _require_non_empty("realization_key", self.realization_key)
+        return self
+
+
+class SampledPanelResolutionTemplateSpec(_PlannedIdentityRecord):
+    spec_version: Literal["aeread.panel_resolution_template/0.1"]
+    record_type: Literal["panel_resolution_template"]
+    resolution_kind: Literal["sampled_panel"]
+    panel_ref: ExecutionRecordRef
+    realization_key: SDKStr
+    realization_coupling: Literal["shared_exact_key", "independent_rng_domain"]
+    rng_domain: SDKStr | None
+    rng_domain_rule: Literal["not_applicable", "sha256_uint64_be_v1"]
+    realization_source: Literal[
+        "execute_pinned_design", "import_predeclared_realization_artifact"
+    ]
+    imported_realization_ref: ArtifactRef | None
+    imported_realization_schema: Literal["aeread.sampled_panel_realization/0.1"] | None
+    import_validator: ImplementationRef | None
+    resolution_timing: Literal["before_first_episode_side_effect"]
+    failure_rule: Literal["admission_failure_no_retry"]
+    realization_binding_rule: Literal[
+        "bind_frame_design_algorithm_protocol_selected_ids_and_provenance"
+    ]
+    publication_rule: Literal["atomic_idempotent_same_key_same_bytes"]
+
+    @model_validator(mode="after")
+    def validate_sampled_panel_resolution(
+        self,
+    ) -> "SampledPanelResolutionTemplateSpec":
+        _validate_execution_record_ref(self.panel_ref, "panel_ref", "panel_design")
+        _require_non_empty("realization_key", self.realization_key)
+        if self.realization_coupling == "shared_exact_key":
+            if self.rng_domain is not None or self.rng_domain_rule != "not_applicable":
+                raise ValueError(
+                    "shared_exact_key coupling requires rng_domain=None and "
+                    "rng_domain_rule='not_applicable'"
+                )
+        else:
+            if self.rng_domain is None:
+                raise ValueError(
+                    "independent_rng_domain coupling requires a nonblank rng_domain"
+                )
+            _require_non_empty("rng_domain", self.rng_domain)
+            if self.rng_domain_rule != "sha256_uint64_be_v1":
+                raise ValueError(
+                    "independent_rng_domain coupling requires "
+                    "rng_domain_rule='sha256_uint64_be_v1'"
+                )
+
+        imported_realization_ref = self.imported_realization_ref
+        import_validator = self.import_validator
+        import_fields = (
+            imported_realization_ref,
+            self.imported_realization_schema,
+            import_validator,
+        )
+        if self.realization_source == "execute_pinned_design":
+            if any(value is not None for value in import_fields):
+                raise ValueError(
+                    "execute_pinned_design requires all import fields to be None"
+                )
+        else:
+            if (
+                imported_realization_ref is None
+                or self.imported_realization_schema is None
+                or import_validator is None
+            ):
+                raise ValueError(
+                    "import_predeclared_realization_artifact requires all import fields"
+                )
+            _validate_planned_artifact(
+                imported_realization_ref, "imported_realization_ref"
+            )
+            _validate_planned_implementation(import_validator, "import_validator")
+        return self
+
+
+PanelResolutionTemplateSpec = Annotated[
+    FixedPanelResolutionTemplateSpec | SampledPanelResolutionTemplateSpec,
+    Field(discriminator="resolution_kind"),
+]
+
+
+class ExecutionBlockSpec(_PlannedIdentityRecord):
+    spec_version: Literal["aeread.execution_block/0.1"]
+    record_type: Literal["execution_block"]
+    block_id: SDKStr
+    block_version: SDKStr
+    measurement_selection_ref: ExecutionRecordRef
+    role_ids: tuple[SDKStr, ...]
+    subject_roles: tuple[SDKStr, ...]
+    profile_ref_by_role: ImmutableMapping[ExecutionRecordRef]
+    planned_coordinate_fields: tuple[PlannedCoordinateField, ...]
+    judgment_template_id: SDKStr | None
+
+    @model_validator(mode="after")
+    def validate_execution_block(self) -> "ExecutionBlockSpec":
+        _require_non_empty("block_id", self.block_id)
+        _require_semver("block_version", self.block_version)
+        _validate_execution_record_ref(
+            self.measurement_selection_ref,
+            "measurement_selection_ref",
+            "measurement_selection",
+        )
+        _validate_canonical_string_tuple(self.role_ids, "role_ids", required=True)
+        _validate_canonical_string_tuple(
+            self.subject_roles, "subject_roles", required=True
+        )
+        if not set(self.subject_roles) <= set(self.role_ids):
+            raise ValueError("subject_roles must be a subset of role_ids")
+        if set(self.profile_ref_by_role) != set(self.role_ids):
+            raise ValueError("profile_ref_by_role keys must exactly equal role_ids")
+        for role_id, reference in self.profile_ref_by_role.items():
+            _validate_execution_record_ref(
+                reference, f"profile_ref_by_role[{role_id!r}]", "agent_profile"
+            )
+        unseeded = (
+            "population_unit_id",
+            "case_id",
+            "repetition_index",
+            "world_seed",
+        )
+        seeded = (
+            "population_unit_id",
+            "case_id",
+            "repetition_index",
+            "rollout_seed",
+            "world_seed",
+        )
+        if self.planned_coordinate_fields not in (unseeded, seeded):
+            raise ValueError(
+                "planned_coordinate_fields must equal one exact declared coordinate tuple"
+            )
+        if self.judgment_template_id is not None:
+            _require_non_empty("judgment_template_id", self.judgment_template_id)
+        return self
+
+
+def _validate_judgment_template_identity(
+    template_id: str, template_version: str, local_slot_keys: tuple[str, ...]
+) -> None:
+    _require_non_empty("template_id", template_id)
+    _require_semver("template_version", template_version)
+    _validate_canonical_string_tuple(local_slot_keys, "local_slot_keys", required=True)
+
+
+class EvaluatorAgentJudgmentTemplateSpec(_PlannedIdentityRecord):
+    spec_version: Literal["aeread.judgment_work_template/0.1"]
+    record_type: Literal["judgment_work_template"]
+    judgment_source_kind: Literal["evaluator_agent"]
+    template_id: SDKStr
+    template_version: SDKStr
+    local_slot_keys: tuple[SDKStr, ...]
+    primary_profile_ref_by_slot: ImmutableMapping[ExecutionRecordRef]
+    replacement_rule: Literal["none", "predeclared_outcome_blind_successor_profiles"]
+    replacement_profile_refs_by_slot: ImmutableMapping[tuple[ExecutionRecordRef, ...]]
+    replacement_eligibility: ImplementationRef | None
+    replacement_eligibility_input_rule: Literal[
+        "not_applicable",
+        "typed_operational_failure_without_accepted_terminal_result_only",
+    ]
+    assignment_rule: Literal["exact_predeclared_profile_per_local_slot"]
+    lease_subject_template: Literal[
+        "run_plan_cell_measurement_judgment_slot_and_profile"
+    ]
+    materialization_timing: Literal[
+        "after_economic_outcome_before_final_episode_evidence_seal"
+    ]
+
+    @model_validator(mode="after")
+    def validate_evaluator_agent_template(
+        self,
+    ) -> "EvaluatorAgentJudgmentTemplateSpec":
+        _validate_judgment_template_identity(
+            self.template_id, self.template_version, self.local_slot_keys
+        )
+        expected_slots = set(self.local_slot_keys)
+        if set(self.primary_profile_ref_by_slot) != expected_slots:
+            raise ValueError(
+                "primary_profile_ref_by_slot keys must exactly equal local_slot_keys"
+            )
+        if set(self.replacement_profile_refs_by_slot) != expected_slots:
+            raise ValueError(
+                "replacement_profile_refs_by_slot keys must exactly equal "
+                "local_slot_keys"
+            )
+        has_successor = False
+        for slot_key in self.local_slot_keys:
+            primary = self.primary_profile_ref_by_slot[slot_key]
+            _validate_execution_record_ref(
+                primary,
+                f"primary_profile_ref_by_slot[{slot_key!r}]",
+                "agent_profile",
+            )
+            successors = self.replacement_profile_refs_by_slot[slot_key]
+            identities: list[str] = []
+            for index, successor in enumerate(successors):
+                _validate_execution_record_ref(
+                    successor,
+                    f"replacement_profile_refs_by_slot[{slot_key!r}][{index}]",
+                    "agent_profile",
+                )
+                if successor == primary:
+                    raise ValueError(
+                        "replacement chain cannot contain its primary profile"
+                    )
+                identities.append(successor.model_dump_json())
+            if len(identities) != len(set(identities)):
+                raise ValueError("replacement chain cannot contain duplicate profiles")
+            has_successor = has_successor or bool(successors)
+
+        if self.replacement_rule == "none":
+            if has_successor:
+                raise ValueError("replacement_rule='none' requires empty chains")
+            if self.replacement_eligibility is not None:
+                raise ValueError(
+                    "replacement_eligibility must be None when replacement is disabled"
+                )
+            if self.replacement_eligibility_input_rule != "not_applicable":
+                raise ValueError(
+                    "replacement_eligibility_input_rule must be 'not_applicable' "
+                    "when replacement is disabled"
+                )
+        else:
+            if not has_successor:
+                raise ValueError(
+                    "predeclared replacement requires at least one replacement profile"
+                )
+            if self.replacement_eligibility is None:
+                raise ValueError(
+                    "predeclared replacement requires replacement_eligibility"
+                )
+            _validate_planned_implementation(
+                self.replacement_eligibility, "replacement_eligibility"
+            )
+            if (
+                self.replacement_eligibility_input_rule
+                != "typed_operational_failure_without_accepted_terminal_result_only"
+            ):
+                raise ValueError(
+                    "predeclared replacement requires the typed operational failure "
+                    "replacement_eligibility_input_rule"
+                )
+        return self
+
+
+class ImportedHumanJudgmentTemplateSpec(_PlannedIdentityRecord):
+    spec_version: Literal["aeread.judgment_work_template/0.1"]
+    record_type: Literal["judgment_work_template"]
+    judgment_source_kind: Literal["imported_human"]
+    template_id: SDKStr
+    template_version: SDKStr
+    local_slot_keys: tuple[SDKStr, ...]
+    source_binding_rule: Literal[
+        "exact_resolved_rater_source_in_canonical_local_slot_order"
+    ]
+    assignment_rule: Literal["predeclared_import_slot_order"]
+    lease_subject_template: Literal["none"]
+    materialization_timing: Literal[
+        "after_economic_outcome_before_final_episode_evidence_seal"
+    ]
+
+    @model_validator(mode="after")
+    def validate_imported_human_template(
+        self,
+    ) -> "ImportedHumanJudgmentTemplateSpec":
+        _validate_judgment_template_identity(
+            self.template_id, self.template_version, self.local_slot_keys
+        )
+        return self
+
+
+JudgmentWorkTemplateSpec = Annotated[
+    EvaluatorAgentJudgmentTemplateSpec | ImportedHumanJudgmentTemplateSpec,
+    Field(discriminator="judgment_source_kind"),
+]
+
+
+class EpisodeTerminalDispositionRule(_PlannedIdentityRecord):
+    spec_version: Literal["aeread.episode_terminal_disposition_rule/0.1"]
+    record_type: Literal["episode_terminal_disposition_rule"]
+    terminal_class: Literal[
+        "preflight_rejected",
+        "predeclared_population_ineligible",
+        "execution_not_started",
+        "isolated_cow_failed_no_publish",
+        "idempotent_same_operation_proven_not_committed",
+        "transition_outcome_unknown",
+        "committed_valid_economic_outcome",
+        "committed_outcome_measurement_failed",
+        "run_cancelled_proven_no_commit",
+        "run_cancelled_commit_unknown",
+    ]
+    disposition: Literal[
+        "close_run_control_failure",
+        "typed_zero_attempt_exclusion",
+        "successor_if_policy_allows",
+        "successor_same_operation_if_policy_allows",
+        "quarantine",
+        "close_valid",
+        "close_invalid_without_economic_rerun",
+        "close_invalid",
+    ]
+
+    @model_validator(mode="after")
+    def validate_terminal_disposition(self) -> "EpisodeTerminalDispositionRule":
+        expected = dict(_EPISODE_TERMINAL_DISPOSITION_TABLE)[self.terminal_class]
+        if self.disposition != expected:
+            raise ValueError(
+                f"terminal_class {self.terminal_class!r} requires disposition "
+                f"{expected!r}"
+            )
+        return self
+
+
+_EPISODE_TERMINAL_DISPOSITION_TABLE = (
+    ("preflight_rejected", "close_run_control_failure"),
+    ("predeclared_population_ineligible", "typed_zero_attempt_exclusion"),
+    ("execution_not_started", "successor_if_policy_allows"),
+    ("isolated_cow_failed_no_publish", "successor_if_policy_allows"),
+    (
+        "idempotent_same_operation_proven_not_committed",
+        "successor_same_operation_if_policy_allows",
+    ),
+    ("transition_outcome_unknown", "quarantine"),
+    ("committed_valid_economic_outcome", "close_valid"),
+    (
+        "committed_outcome_measurement_failed",
+        "close_invalid_without_economic_rerun",
+    ),
+    ("run_cancelled_proven_no_commit", "close_invalid"),
+    ("run_cancelled_commit_unknown", "quarantine"),
+)
+
+
+class EpisodeAttemptPolicySpec(_PlannedIdentityRecord):
+    spec_version: Literal["aeread.episode_attempt_policy/0.1"]
+    record_type: Literal["episode_attempt_policy"]
+    policy_id: SDKStr
+    policy_version: SDKStr
+    max_episode_attempts: SDKInt = Field(ge=1)
+    terminal_rules: tuple[EpisodeTerminalDispositionRule, ...]
+    successor_eligibility: ImplementationRef
+    population_eligibility: ImplementationRef
+    successor_eligibility_input_rule: Literal[
+        "preoutcome_plan_and_typed_terminal_evidence_only"
+    ]
+    population_eligibility_input_rule: Literal[
+        "preoutcome_population_frame_and_unit_only"
+    ]
+    unknown_transition_rule: Literal["quarantine_without_successor"]
+    economic_outcome_rerun_rule: Literal["never_rerun_committed_economic_outcome"]
+    cancellation_proof_rule: Literal[
+        "typed_proven_no_commit_or_typed_commit_unknown_only"
+    ]
+    first_attempt_estimand_rule: Literal["preserve_first_attempt_separately"]
+    policy_assisted_estimand_rule: Literal[
+        "report_policy_assisted_final_without_overwriting_first_attempt"
+    ]
+
+    @model_validator(mode="after")
+    def validate_episode_attempt_policy(self) -> "EpisodeAttemptPolicySpec":
+        _require_non_empty("policy_id", self.policy_id)
+        _require_semver("policy_version", self.policy_version)
+        actual_table = tuple(
+            (rule.terminal_class, rule.disposition) for rule in self.terminal_rules
+        )
+        if actual_table != _EPISODE_TERMINAL_DISPOSITION_TABLE:
+            raise ValueError(
+                "terminal_rules must contain the exact canonical ten-row table"
+            )
+        _validate_planned_implementation(
+            self.successor_eligibility, "successor_eligibility"
+        )
+        _validate_planned_implementation(
+            self.population_eligibility, "population_eligibility"
+        )
+        return self
+
+
+class ExecutionDesignSpec(_PlannedIdentityRecord):
+    spec_version: Literal["aeread.execution_design/0.1"]
+    record_type: Literal["execution_design"]
+    execution_design_id: SDKStr
+    execution_design_version: SDKStr
+    population_ref: ExecutionRecordRef
+    panel_resolution: PanelResolutionTemplateSpec
+    replication_ref: ExecutionRecordRef
+    blocks: tuple[ExecutionBlockSpec, ...]
+    judgment_templates: tuple[JudgmentWorkTemplateSpec, ...]
+    episode_attempt_policy: EpisodeAttemptPolicySpec
+    cell_expansion_rule: Literal[
+        "resolve_exact_population_panel_replication_block_seat_coordinate_product"
+    ]
+    execution_hash_domain: Literal["aeread.execution_design/1"]
+
+    @model_validator(mode="after")
+    def validate_execution_design(self) -> "ExecutionDesignSpec":
+        _require_non_empty("execution_design_id", self.execution_design_id)
+        _require_semver("execution_design_version", self.execution_design_version)
+        _validate_execution_record_ref(
+            self.population_ref, "population_ref", "sampling_population"
+        )
+        _validate_execution_record_ref(
+            self.replication_ref,
+            "replication_ref",
+            "episode_replication_design",
+        )
+        if not self.blocks:
+            raise ValueError("blocks must be non-empty")
+        block_ids = tuple(block.block_id for block in self.blocks)
+        _validate_canonical_string_tuple(block_ids, "blocks", required=True)
+        template_ids = tuple(
+            template.template_id for template in self.judgment_templates
+        )
+        _validate_canonical_string_tuple(
+            template_ids, "judgment_templates", required=False
+        )
+        referenced_template_ids = {
+            block.judgment_template_id
+            for block in self.blocks
+            if block.judgment_template_id is not None
+        }
+        if referenced_template_ids != set(template_ids):
+            raise ValueError(
+                "judgment_template references must exactly cover declared templates"
+            )
+        return self
+
+
 class ValidityDomainSpec(StrictModel):
     domain_id: SDKStr
     domain_version: SDKStr

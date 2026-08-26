@@ -1503,7 +1503,7 @@ def test_runner_public_exports_are_the_exact_task_1_1a2_surface() -> None:
     assert len(runner.__all__) == 40
 
 
-def test_task_1_1a2_surface_guard_accounts_for_authorized_b1_b2_additions() -> None:
+def test_task_1_1a2_surface_guard_accounts_for_authorized_b1_b2_b3_additions() -> None:
     import aeread.sdk.v1 as sdk
 
     planned_identity_exports = (
@@ -1525,6 +1525,19 @@ def test_task_1_1a2_surface_guard_accounts_for_authorized_b1_b2_additions() -> N
         "MeasurementSelectionSpec",
         "NoJudgeEvaluationInstrumentSpec",
     )
+    execution_design_exports = (
+        "EpisodeAttemptPolicySpec",
+        "EpisodeTerminalDispositionRule",
+        "EvaluatorAgentJudgmentTemplateSpec",
+        "ExecutionBlockSpec",
+        "ExecutionDesignSpec",
+        "ExecutionRecordRef",
+        "FixedPanelResolutionTemplateSpec",
+        "ImportedHumanJudgmentTemplateSpec",
+        "JudgmentWorkTemplateSpec",
+        "PanelResolutionTemplateSpec",
+        "SampledPanelResolutionTemplateSpec",
+    )
     surface = tuple(sorted(sdk.__all__))
     authorized_additions = tuple(
         name for name in surface if name in planned_identity_exports
@@ -1534,6 +1547,7 @@ def test_task_1_1a2_surface_guard_accounts_for_authorized_b1_b2_additions() -> N
         for name in surface
         if name not in planned_identity_exports
         and name not in measurement_selection_exports
+        and name not in execution_design_exports
     )
     legacy_digest = hashlib.sha256(
         json.dumps(legacy_surface, separators=(",", ":")).encode()
@@ -1544,7 +1558,11 @@ def test_task_1_1a2_surface_guard_accounts_for_authorized_b1_b2_additions() -> N
         tuple(name for name in surface if name in measurement_selection_exports)
         == measurement_selection_exports
     )
-    assert len(surface) == 173
+    assert (
+        tuple(name for name in surface if name in execution_design_exports)
+        == execution_design_exports
+    )
+    assert len(surface) == 184
     assert len(legacy_surface) == 158
     assert (
         legacy_digest

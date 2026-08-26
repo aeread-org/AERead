@@ -1025,7 +1025,7 @@ def test_legacy_measurement_schema_and_content_hashes_are_unchanged() -> None:
     }
 
 
-def test_b1_b2_additions_preserve_legacy_schema_and_export_abi() -> None:
+def test_b1_b2_b3_additions_preserve_legacy_schema_and_export_abi() -> None:
     import aeread.sdk.v1 as sdk_v1
     from aeread.sdk.v1 import (
         ClusterSpec,
@@ -1083,6 +1083,19 @@ def test_b1_b2_additions_preserve_legacy_schema_and_export_abi() -> None:
         "MeasurementSelectionSpec",
         "NoJudgeEvaluationInstrumentSpec",
     }
+    execution_design_exports = {
+        "EpisodeAttemptPolicySpec",
+        "EpisodeTerminalDispositionRule",
+        "EvaluatorAgentJudgmentTemplateSpec",
+        "ExecutionBlockSpec",
+        "ExecutionDesignSpec",
+        "ExecutionRecordRef",
+        "FixedPanelResolutionTemplateSpec",
+        "ImportedHumanJudgmentTemplateSpec",
+        "JudgmentWorkTemplateSpec",
+        "PanelResolutionTemplateSpec",
+        "SampledPanelResolutionTemplateSpec",
+    }
     added_exports = tuple(
         name for name in sdk_v1.__all__ if name in planned_identity_exports
     )
@@ -1093,12 +1106,18 @@ def test_b1_b2_additions_preserve_legacy_schema_and_export_abi() -> None:
     )
     assert len(b2_added_exports) == 4
     assert set(b2_added_exports) == measurement_selection_exports
+    b3_added_exports = tuple(
+        name for name in sdk_v1.__all__ if name in execution_design_exports
+    )
+    assert len(b3_added_exports) == 11
+    assert set(b3_added_exports) == execution_design_exports
     legacy_exports = tuple(
         sorted(
             name
             for name in sdk_v1.__all__
             if name not in planned_identity_exports
             and name not in measurement_selection_exports
+            and name not in execution_design_exports
         )
     )
     assert len(legacy_exports) == 158
