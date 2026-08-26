@@ -16,3 +16,7 @@
   complete R1-R4 trace through sealed-plan publication, explicit attempts and provider/tool
   side effects, canonical event/artifact evidence, retries, cost, and the OpenAI-ready,
   route-pinned OpenRouter/DeepSeek, and Claude-live model-call paths.
+- [`shared_runner_housing_r4.md`](shared_runner_housing_r4.md) —
+  exact Housing V1 trace through isolated simultaneous tenant decisions, a local controlled
+  landlord, immutable holds, phase-specific schemas, bounds and payoffs, privacy checks, one
+  explicit live length retry, and the boundary between smoke admission and paper evidence.

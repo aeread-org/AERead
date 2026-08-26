@@ -1,0 +1,182 @@
+{
+  "spec_version": "aeread.r4_admission/0.1",
+  "admission_status": "passed",
+  "executed_at": {
+    "first_event": "2026-08-26T21:31:44.063015Z",
+    "last_event": "2026-08-26T21:32:08.414105Z"
+  },
+  "identities": {
+    "run_plan_id": "runplan_06a186aa72f4886f",
+    "cell_id": "cell_1108d654ae5294433aa9",
+    "episode_attempt_id": "episode_attempt_45c603dee09ba3197b28",
+    "case_id": "housing_v1__smoke__000001",
+    "family_id": "housing_v1",
+    "family_version": "1.0.0",
+    "world_seed": 41001
+  },
+  "case": {
+    "tenants": 2,
+    "listings": 1,
+    "rounds": 1,
+    "phase_order": [
+      "contact",
+      "respond",
+      "commit"
+    ],
+    "tenant_profiles": "live OpenRouter DeepSeek",
+    "landlord_profiles": "local deterministic controlled policy"
+  },
+  "provider": {
+    "transport": "openrouter_chat_completions",
+    "base_url": "https://openrouter.ai/api/v1",
+    "requested_model": "deepseek/deepseek-v4-flash-0731",
+    "revision": "deepseek/deepseek-v4-flash-20260731",
+    "resolved_model": "deepseek/deepseek-v4-flash-20260731",
+    "route_provider": "DeepInfra",
+    "quantization": "fp8",
+    "routing_strategy": "direct",
+    "routing_attempts_per_call": [
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    "routing_region": "SJC",
+    "available_after_filters": 1,
+    "selected_endpoints": 1,
+    "fallbacks_allowed": false,
+    "sdk_retries": 0,
+    "authentication": "existing personal simulator OpenRouter credential; credential not serialized",
+    "tools_enabled": false,
+    "structured_output": true
+  },
+  "sampling_controls": {
+    "reasoning_effort": "low",
+    "temperature": 0.0,
+    "top_p": 1.0,
+    "seed": 41001,
+    "initial_max_output_tokens": 512,
+    "length_retry_max_output_tokens": 1024,
+    "max_action_attempts": 2,
+    "max_cost_usd": 0.01
+  },
+  "execution": {
+    "logical_actions": 5,
+    "action_attempts": 6,
+    "provider_calls_total": 6,
+    "openrouter_calls": 5,
+    "local_controlled_provider_calls": 1,
+    "declared_retries": 1,
+    "retry_conditions": [
+      "length"
+    ],
+    "retry_evidence": {
+      "seat_id": "tenant_0",
+      "phase_id": "contact",
+      "first_finish_reason": "length",
+      "first_max_output_tokens": 512,
+      "second_max_output_tokens": 1024,
+      "session_mode": "restart",
+      "distinct_action_attempts": true,
+      "distinct_provider_calls": true
+    }
+  },
+  "usage": {
+    "input_tokens": 1314,
+    "cached_input_tokens": 0,
+    "output_tokens": 944,
+    "provider_reported_reasoning_tokens": 909,
+    "reported_cost_usd": 0.0002722896,
+    "nominal_pricing_recomputed_cost_usd": 0.00027504,
+    "provider_reported_upstream_inference_cost_usd": 0.00027504,
+    "reported_to_nominal_ratio": 0.99,
+    "pricing_id": "openrouter_deepinfra_2026-08-26_deepseek-v4-flash-0731",
+    "pricing_source": "https://openrouter.ai/api/v1/models/deepseek/deepseek-v4-flash-0731/endpoints"
+  },
+  "outcome": {
+    "valid": true,
+    "reason": "deadline",
+    "assignment_pairs": [
+      [
+        0,
+        0
+      ]
+    ],
+    "signed_rents": [
+      {
+        "tenant_id": 0,
+        "rent": 1700.0
+      }
+    ],
+    "tenant_payoffs": {
+      "tenant_0": 261.22,
+      "tenant_1": 0.0
+    },
+    "landlord_payoffs": {
+      "landlord_0": 128.32
+    },
+    "social_welfare": 389.54,
+    "feasible_floor": 0.0,
+    "baseline_total": 389.54,
+    "oracle_total": 389.54,
+    "within_case_score": 1.0,
+    "bound_semantics": "full_information_allocation_relaxation",
+    "ir_violations": [],
+    "wasted_contacts": 1
+  },
+  "privacy_review": {
+    "external_request_count": 5,
+    "external_request_roles": [
+      "tenant"
+    ],
+    "external_request_visibilities": [
+      "seat:tenant_0",
+      "seat:tenant_1"
+    ],
+    "private_landlord_cost": 1571.68,
+    "private_landlord_cost_present_in_external_requests": false,
+    "landlord_provider": "housing_scripted_landlord_v1",
+    "landlord_execution": "local",
+    "api_key_serialized": false
+  },
+  "evidence": {
+    "chain_verified": true,
+    "reconciliation_verified": true,
+    "event_count": 55,
+    "event_types": [
+      "action_attempt_failed",
+      "action_attempt_started",
+      "action_attempt_succeeded",
+      "action_legality_checked",
+      "action_parsed",
+      "episode_terminated",
+      "family_outcome_recorded",
+      "logical_action_started",
+      "logical_action_succeeded",
+      "phase_instance_started",
+      "phase_instance_succeeded",
+      "provider_call_failed",
+      "provider_call_started",
+      "provider_call_succeeded",
+      "transition_applied"
+    ],
+    "run_plan_sha256": "c9a752135cb48da191215fb456d312a3f7135abe2e9833f053cd1155c2f18c27",
+    "events_jsonl_sha256": "21bcd38b0823b6b8da0ca82694dd146f9b3913e653bbf992040b9107fcc49e72",
+    "final_event_hash": "57c34bc3c9209c9df3c7f71a74169e90a5830e524f4b28acf0471e2bb4f40444"
+  },
+  "implementation_pins": {
+    "execution_sha256": "f08b45e8ce4352e7a52aae5b21c5b79045776599939c41a1419469de7fcc470d",
+    "housing_runner_sha256": "88aa4bfa435027b9be0cbbd39c4bf7d85c898b8c0f4a824bd1198bc42183ca91",
+    "housing_environment_sha256": "096b9f8a33dab846f6b525b0af335e3200619806a2e5efeb507661a565552f6b"
+  },
+  "scope": "R4 Housing instrumentation admission on one fixed 2-tenant, 1-listing, 1-round smoke case; not a paper score, population estimate, robustness result, or saturation claim",
+  "limitations": [
+    "The fixed smoke case has one independent world cluster and cannot estimate variance, robustness, coverage, or model rank.",
+    "Reaching the oracle on this case proves only that the typed Housing path can execute and score a successful allocation.",
+    "The comparison baseline happens to equal the oracle on this fixed case, so the case does not distinguish baseline-relative model quality.",
+    "Reasoning text is retained only as local diagnostic evidence; actions and outcomes are primary, and raw provider responses are not committed.",
+    "The full content-addressed evidence directory remains local and is not committed.",
+    "An earlier pre-fix attempt exposed that a billable length-only provider response was recorded without usage or cost; the adapter and regression tests were corrected before this admitted run."
+  ]
+}

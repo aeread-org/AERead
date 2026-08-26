@@ -4,10 +4,12 @@ A two-sided market where tenants compete for a smaller number of listings. It as
 whether an agent can reason about **competition for a scarce resource**, not merely
 optimize its own valuation.
 
-Status: the P0 environment contract, allocation oracle, one-shot market, and
-scripted multi-round baselines are implemented and tested offline. The shared-runner
-adapter, live-model driver, prompt/configuration receipts, and replayable trajectories
-are not in this PR. Therefore no live-model table is a current paper result.
+Status: the P0 environment contract, allocation oracle, one-shot market, scripted
+multi-round baselines, and R1-R4 shared-runner adapter are implemented and tested.
+One fixed 2-tenant, 1-listing, 1-round OpenRouter/DeepSeek smoke cell has replayable
+content-addressed evidence and a non-secret admission summary. It proves the typed
+execution, privacy, retry, cost, and scoring path; it is not a live-model table or a
+current paper result.
 
 ## 1. The market
 
@@ -169,6 +171,12 @@ before the binding-hold, phase, privacy, and terminal-accounting corrections, an
 driver, prompts, raw responses, retry records, and trajectories were not committed.
 They are neither reproducible from this repository nor comparable to the current
 environment.
+
+The admitted R4 smoke cell is documented separately in
+[`walkthroughs/shared_runner_housing_r4.md`](walkthroughs/shared_runner_housing_r4.md).
+Its single fixed world reached `R = B = U = 389.54`, with no IR violations, one wasted
+contact, and `$0.0002722896` charged cost. That is integration evidence only: one
+cluster cannot estimate uncertainty, robustness, coverage, ranking, or saturation.
 
 For the next run, reasoning mode must be a declared experimental condition and stored
 in the receipt. Actions and outcomes remain primary evidence; reasoning text is only a

@@ -6,8 +6,10 @@ invocations, retry ownership, typed failures, cost accounting, canonical events,
 content-addressed artifacts.
 
 The generic implementation is `src/aeread/shared_runner/execution.py`. The native one-action
-smoke family and CLI are in `src/aeread/shared_runner/smoke.py`. Executable contracts are in
-`tests/test_shared_runner_execution.py` and `tests/test_shared_runner_smoke.py`.
+smoke family and CLI are in `src/aeread/shared_runner/smoke.py`. The first multi-phase economic
+adapter and CLI are in `src/aeread/shared_runner/housing.py`. Executable contracts are in
+`tests/test_shared_runner_execution.py`, `tests/test_shared_runner_smoke.py`, and
+`tests/test_shared_runner_housing.py`.
 
 ## Complete R1-R4 path
 
@@ -203,9 +205,19 @@ metadata; actions and outcomes remain the primary evidence. The full raw respons
 provider-returned reasoning text, remains in the local content-addressed evidence and is not
 committed.
 
+The same R1-R4 path also completed a fixed Housing V1 cell with two live DeepSeek tenant seats
+and one local controlled landlord. Five external calls, including one explicit length retry,
+used the pinned DeepInfra route and cost `$0.0002722896`. The case reached valid welfare
+`389.54 = B = U`, with no IR violations. All external request artifacts were tenant-scoped and
+none contained the landlord's private cost. See the exact
+[`Housing R4 walkthrough`](shared_runner_housing_r4.md) and its
+[`non-secret admission summary`](../evidence/shared_runner_r4_openrouter_deepseek_housing_smoke_2026-08-26.json).
+
 ## Exact R4 boundary
 
 R4 proves that the runner can call a model without hiding retries, side effects, outcomes, or
-cost. It does not yet provide an `EvaluationReceipt`, crash resume, deterministic replay,
-scoring, coverage reconciliation, Exchange compatibility, or Housing semantics. Those remain
-R5-R7. The smoke result is an instrumentation admission result, not a paper measurement.
+cost. The Housing adapter now also proves strict multi-phase case execution and within-case
+scoring through that boundary. The runner does not yet provide a final `EvaluationReceipt`,
+crash resume, deterministic trajectory replay, population coverage reconciliation, or Exchange
+compatibility. Those remain R5-R7. Both smoke results are instrumentation admissions, not paper
+measurements.
