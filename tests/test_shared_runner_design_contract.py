@@ -1086,6 +1086,10 @@ def _assert_rebaseline_status_names_current_integration_and_next_gate(
     normalized_stage_2 = " ".join(
         line.removeprefix("> ").strip() for line in stage_2_preamble.splitlines()
     )
+    stage_2_to_5 = text.split("## Stage 2", 1)[1].split("## Current dispatch gate", 1)[
+        0
+    ]
+    normalized_blocked_stages = " ".join(stage_2_to_5.casefold().split())
     assert "Dependency inheritance" in normalized_stage_2
     assert (
         "every Stage 2–5 dependency on Task 1.1c remains blocked until Task 1.1c is independently CLEAN"
@@ -1099,6 +1103,13 @@ def _assert_rebaseline_status_names_current_integration_and_next_gate(
         "Task 2.1a's mandatory first RED is the one parked compiled-core regression-guard finding"
         in normalized_stage_2
     )
+    for premature_authority in (
+        "code is the sole next dispatch",
+        "implementation starts now",
+        "code is dispatchable for implementation",
+        "implementation is authorized immediately",
+    ):
+        assert premature_authority not in normalized_blocked_stages
     for gate_section in (status, task_02, dispatch):
         assert "pr #7 is independently clean" not in gate_section.casefold()
     assert "pr #7 is independently clean" not in task_1b.casefold()
@@ -1635,6 +1646,26 @@ def test_rebaseline_dispatch_advances_from_clean_b5_brief_to_b5_code() -> None:
     dispatch = " ".join(text.split("## Current dispatch gate", 1)[1].split())
     assert "Task 1.1b5 code is the sole next dispatch" in dispatch
     assert "Task 1.1c, Task 1.2, and Stages 2–5 remain blocked" in dispatch
+
+
+def test_rebaseline_guard_rejects_early_stage_2_implementation_authority() -> None:
+    text = REBASELINE_PLAN.read_text(encoding="utf-8")
+    mutants = (
+        text.replace(
+            "## Stage 2 — correct agent lifecycle and side-effect contracts",
+            "## Stage 2 — correct agent lifecycle and side-effect contracts\n\n"
+            "Task 2.1a implementation starts now.",
+            1,
+        ),
+        text.replace(
+            "### Task 2.1a: Add precise action/call/tool evidence vocabulary",
+            "### Task 2.1a: Add precise action/call/tool evidence vocabulary\n\n"
+            "Task 2.1a code is the sole next dispatch.",
+            1,
+        ),
+    )
+    for mutant in mutants:
+        _assert_rebaseline_mutation_is_rejected(mutant)
 
 
 def _mutate_rebaseline_section(start: str, end: str, addition: str) -> str:
