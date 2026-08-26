@@ -1167,6 +1167,22 @@ def test_task_1_1a1_has_one_exact_public_export_delta() -> None:
         "JudgmentWorkTemplateSpec",
         "PanelResolutionTemplateSpec",
         "SampledPanelResolutionTemplateSpec",
+        "BooleanSuccessPredicateSpec",
+        "BoundsOrSensitivityMissingnessSpec",
+        "CanonicalRational",
+        "CompleteCaseConditionalMissingnessSpec",
+        "DifferenceEstimatorSpec",
+        "EpisodeMissingnessSpec",
+        "EstimatorSpec",
+        "IdentityTransformationSpec",
+        "MeanEstimatorSpec",
+        "PassAllKEstimatorSpec",
+        "PlannedPopulationInvalidateMissingnessSpec",
+        "ProbabilityEstimatorSpec",
+        "QuantileEstimatorSpec",
+        "RaterCoverageSummarySpec",
+        "RaterDisagreementSummarySpec",
+        "RaterSummarySpec",
     }
     exports = set(sdk.__all__)
     assert len(sdk.__all__) == len(exports)

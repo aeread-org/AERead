@@ -329,7 +329,28 @@ def _design(*, with_judge: bool = True, **overrides: object) -> ExecutionDesignS
 
 def test_execution_design_public_surface_is_exactly_additive() -> None:
     assert EXECUTION_DESIGN_EXPORTS <= set(sdk_v1.__all__)
-    assert len(sdk_v1.__all__) == len(set(sdk_v1.__all__)) == 184
+    b4a_exports = {
+        "BooleanSuccessPredicateSpec",
+        "BoundsOrSensitivityMissingnessSpec",
+        "CanonicalRational",
+        "CompleteCaseConditionalMissingnessSpec",
+        "DifferenceEstimatorSpec",
+        "EpisodeMissingnessSpec",
+        "EstimatorSpec",
+        "IdentityTransformationSpec",
+        "MeanEstimatorSpec",
+        "PassAllKEstimatorSpec",
+        "PlannedPopulationInvalidateMissingnessSpec",
+        "ProbabilityEstimatorSpec",
+        "QuantileEstimatorSpec",
+        "RaterCoverageSummarySpec",
+        "RaterDisagreementSummarySpec",
+        "RaterSummarySpec",
+    }
+    surface = tuple(sorted(sdk_v1.__all__))
+    assert len(surface) == len(set(surface)) == 200
+    prior = tuple(name for name in surface if name not in b4a_exports)
+    assert len(prior) == 184
 
 
 def test_execution_design_fields_are_in_exact_canonical_order() -> None:

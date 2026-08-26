@@ -1503,7 +1503,9 @@ def test_runner_public_exports_are_the_exact_task_1_1a2_surface() -> None:
     assert len(runner.__all__) == 40
 
 
-def test_task_1_1a2_surface_guard_accounts_for_authorized_b1_b2_b3_additions() -> None:
+def test_task_1_1a2_surface_guard_accounts_for_authorized_b1_b2_b3_b4a_additions() -> (
+    None
+):
     import aeread.sdk.v1 as sdk
 
     planned_identity_exports = (
@@ -1538,6 +1540,24 @@ def test_task_1_1a2_surface_guard_accounts_for_authorized_b1_b2_b3_additions() -
         "PanelResolutionTemplateSpec",
         "SampledPanelResolutionTemplateSpec",
     )
+    analysis_estimator_missingness_exports = (
+        "BooleanSuccessPredicateSpec",
+        "BoundsOrSensitivityMissingnessSpec",
+        "CanonicalRational",
+        "CompleteCaseConditionalMissingnessSpec",
+        "DifferenceEstimatorSpec",
+        "EpisodeMissingnessSpec",
+        "EstimatorSpec",
+        "IdentityTransformationSpec",
+        "MeanEstimatorSpec",
+        "PassAllKEstimatorSpec",
+        "PlannedPopulationInvalidateMissingnessSpec",
+        "ProbabilityEstimatorSpec",
+        "QuantileEstimatorSpec",
+        "RaterCoverageSummarySpec",
+        "RaterDisagreementSummarySpec",
+        "RaterSummarySpec",
+    )
     surface = tuple(sorted(sdk.__all__))
     authorized_additions = tuple(
         name for name in surface if name in planned_identity_exports
@@ -1548,6 +1568,7 @@ def test_task_1_1a2_surface_guard_accounts_for_authorized_b1_b2_b3_additions() -
         if name not in planned_identity_exports
         and name not in measurement_selection_exports
         and name not in execution_design_exports
+        and name not in analysis_estimator_missingness_exports
     )
     legacy_digest = hashlib.sha256(
         json.dumps(legacy_surface, separators=(",", ":")).encode()
@@ -1562,7 +1583,13 @@ def test_task_1_1a2_surface_guard_accounts_for_authorized_b1_b2_b3_additions() -
         tuple(name for name in surface if name in execution_design_exports)
         == execution_design_exports
     )
-    assert len(surface) == 184
+    assert (
+        tuple(
+            name for name in surface if name in analysis_estimator_missingness_exports
+        )
+        == analysis_estimator_missingness_exports
+    )
+    assert len(surface) == 200
     assert len(legacy_surface) == 158
     assert (
         legacy_digest

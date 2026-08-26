@@ -4,11 +4,13 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from datetime import datetime
+from math import gcd
 import re
 from typing import Annotated, Literal
 from urllib.parse import urlparse
 
 from pydantic import (
+    BaseModel,
     ConfigDict,
     Field,
     ModelWrapValidatorHandler,
@@ -1304,6 +1306,420 @@ class ExecutionDesignSpec(_PlannedIdentityRecord):
                 "judgment_template references must exactly cover declared templates"
             )
         return self
+
+
+class _StrictValueModel(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        frozen=True,
+        validate_default=True,
+        revalidate_instances="always",
+    )
+
+    @model_validator(mode="wrap")
+    @classmethod
+    def reject_subclass_instances(
+        cls,
+        value: object,
+        handler: ModelWrapValidatorHandler["_StrictValueModel"],
+    ) -> "_StrictValueModel":
+        if isinstance(value, _StrictValueModel) and type(value) is not cls:
+            raise ValueError("strict value records must use their exact concrete type")
+        return handler(value)
+
+
+class CanonicalRational(_StrictValueModel):
+    numerator: SDKInt
+    denominator: SDKInt = Field(gt=0)
+
+    @model_validator(mode="after")
+    def validate_canonical_rational(self) -> "CanonicalRational":
+        if gcd(abs(self.numerator), self.denominator) != 1:
+            raise ValueError("canonical rational must be reduced")
+        if self.numerator == 0 and self.denominator != 1:
+            raise ValueError("canonical rational zero must be 0/1")
+        return self
+
+
+class BooleanSuccessPredicateSpec(_PlannedIdentityRecord):
+    spec_version: Literal["aeread.boolean_success_predicate/0.1"]
+    record_type: Literal["boolean_success_predicate"]
+    predicate_id: SDKStr
+    predicate_version: SDKStr
+    input_metric_id: SDKStr
+    input_schema_ref: SDKStr
+    implementation: ImplementationRef
+    output_kind: Literal["boolean"]
+    semantic_scope: Literal["measurement_success_not_operational_availability"]
+
+    @model_validator(mode="after")
+    def validate_boolean_success_predicate(self) -> "BooleanSuccessPredicateSpec":
+        _require_non_empty("predicate_id", self.predicate_id)
+        _require_semver("predicate_version", self.predicate_version)
+        _require_non_empty("input_metric_id", self.input_metric_id)
+        _require_non_empty("input_schema_ref", self.input_schema_ref)
+        _validate_planned_implementation(self.implementation, "implementation")
+        return self
+
+
+def _validate_estimator_identity(
+    estimator_id: str,
+    estimator_version: str,
+    output_metric_id: str,
+) -> None:
+    _require_non_empty("estimator_id", estimator_id)
+    _require_semver("estimator_version", estimator_version)
+    _require_non_empty("output_metric_id", output_metric_id)
+
+
+def _validate_analysis_unit_weighting(
+    analysis_unit: str,
+    weighting: str,
+    within_cluster_reduction: str | None,
+    *,
+    allow_pair: bool,
+) -> None:
+    allowed = {
+        "planned_cell": ("row_uniform", None),
+        "population_cluster": ("cluster_uniform", "mean"),
+    }
+    if allow_pair:
+        allowed["pair"] = ("pair_uniform", None)
+    if allowed.get(analysis_unit) != (weighting, within_cluster_reduction):
+        raise ValueError(
+            "analysis_unit requires its exact weighting and within-cluster reduction"
+        )
+
+
+class MeanEstimatorSpec(_PlannedIdentityRecord):
+    spec_version: Literal["aeread.estimator/0.1"]
+    record_type: Literal["estimator"]
+    estimator_kind: Literal["mean"]
+    estimator_id: SDKStr
+    estimator_version: SDKStr
+    output_metric_id: SDKStr
+    input_numeric_policy: Literal["aeread.exact_rational_binary64/0.1"]
+    output_rounding_policy: Literal["aeread.binary64_rne/0.1"]
+    rounding_stage: Literal["typed_output_only_never_internal"]
+    input_metric_id: SDKStr
+    analysis_unit: Literal["planned_cell", "population_cluster"]
+    weighting: Literal["row_uniform", "cluster_uniform"]
+    within_cluster_reduction: Literal["mean"] | None
+
+    @model_validator(mode="after")
+    def validate_mean_estimator(self) -> "MeanEstimatorSpec":
+        _validate_estimator_identity(
+            self.estimator_id, self.estimator_version, self.output_metric_id
+        )
+        _require_non_empty("input_metric_id", self.input_metric_id)
+        _validate_analysis_unit_weighting(
+            self.analysis_unit,
+            self.weighting,
+            self.within_cluster_reduction,
+            allow_pair=False,
+        )
+        return self
+
+
+class DifferenceEstimatorSpec(_PlannedIdentityRecord):
+    spec_version: Literal["aeread.estimator/0.1"]
+    record_type: Literal["estimator"]
+    estimator_kind: Literal["difference"]
+    estimator_id: SDKStr
+    estimator_version: SDKStr
+    output_metric_id: SDKStr
+    input_numeric_policy: Literal["aeread.exact_rational_binary64/0.1"]
+    output_rounding_policy: Literal["aeread.binary64_rne/0.1"]
+    rounding_stage: Literal["typed_output_only_never_internal"]
+    input_metric_id: SDKStr
+    input_arity: SDKInt
+    operand_order: Literal["subject_minus_comparator"]
+    analysis_unit: Literal["planned_cell", "population_cluster", "pair"]
+    weighting: Literal["row_uniform", "cluster_uniform", "pair_uniform"]
+    within_cluster_reduction: Literal["mean"] | None
+
+    @model_validator(mode="after")
+    def validate_difference_estimator(self) -> "DifferenceEstimatorSpec":
+        _validate_estimator_identity(
+            self.estimator_id, self.estimator_version, self.output_metric_id
+        )
+        _require_non_empty("input_metric_id", self.input_metric_id)
+        if self.input_arity != 2:
+            raise ValueError("difference input_arity must equal 2")
+        _validate_analysis_unit_weighting(
+            self.analysis_unit,
+            self.weighting,
+            self.within_cluster_reduction,
+            allow_pair=True,
+        )
+        return self
+
+
+class ProbabilityEstimatorSpec(_PlannedIdentityRecord):
+    spec_version: Literal["aeread.estimator/0.1"]
+    record_type: Literal["estimator"]
+    estimator_kind: Literal["probability"]
+    estimator_id: SDKStr
+    estimator_version: SDKStr
+    output_metric_id: SDKStr
+    input_numeric_policy: Literal["aeread.exact_rational_binary64/0.1"]
+    output_rounding_policy: Literal["aeread.binary64_rne/0.1"]
+    rounding_stage: Literal["typed_output_only_never_internal"]
+    predicate: BooleanSuccessPredicateSpec
+    analysis_unit: Literal["planned_cell"]
+    weighting: Literal["row_uniform"]
+    denominator_source: Literal["episode_missingness_policy"]
+
+    @model_validator(mode="after")
+    def validate_probability_estimator(self) -> "ProbabilityEstimatorSpec":
+        _validate_estimator_identity(
+            self.estimator_id, self.estimator_version, self.output_metric_id
+        )
+        return self
+
+
+class QuantileEstimatorSpec(_PlannedIdentityRecord):
+    spec_version: Literal["aeread.estimator/0.1"]
+    record_type: Literal["estimator"]
+    estimator_kind: Literal["quantile"]
+    estimator_id: SDKStr
+    estimator_version: SDKStr
+    output_metric_id: SDKStr
+    input_numeric_policy: Literal["aeread.exact_rational_binary64/0.1"]
+    output_rounding_policy: Literal["aeread.binary64_rne/0.1"]
+    rounding_stage: Literal["typed_output_only_never_internal"]
+    input_metric_id: SDKStr
+    analysis_unit: Literal["planned_cell"]
+    weighting: Literal["row_uniform"]
+    q: CanonicalRational
+    interpolation: Literal["r7_linear"]
+
+    @model_validator(mode="after")
+    def validate_quantile_estimator(self) -> "QuantileEstimatorSpec":
+        _validate_estimator_identity(
+            self.estimator_id, self.estimator_version, self.output_metric_id
+        )
+        _require_non_empty("input_metric_id", self.input_metric_id)
+        if not 0 < self.q.numerator < self.q.denominator:
+            raise ValueError("quantile q must be strictly between zero and one")
+        return self
+
+
+class PassAllKEstimatorSpec(_PlannedIdentityRecord):
+    spec_version: Literal["aeread.estimator/0.1"]
+    record_type: Literal["estimator"]
+    estimator_kind: Literal["pass_all_k"]
+    estimator_id: SDKStr
+    estimator_version: SDKStr
+    output_metric_id: SDKStr
+    input_numeric_policy: Literal["aeread.exact_rational_binary64/0.1"]
+    output_rounding_policy: Literal["aeread.binary64_rne/0.1"]
+    rounding_stage: Literal["typed_output_only_never_internal"]
+    predicate: BooleanSuccessPredicateSpec
+    k: SDKInt = Field(gt=0)
+    analysis_unit: Literal["planned_cell_group"]
+    weighting: Literal["group_uniform"]
+    group_key_fields: tuple[PlannedCoordinateField, ...]
+    group_semantics: Literal["exactly_k_unique_plan_cells"]
+    incomplete_group_rule: Literal["typed_missing_not_false"]
+
+    @model_validator(mode="after")
+    def validate_pass_all_k_estimator(self) -> "PassAllKEstimatorSpec":
+        _validate_estimator_identity(
+            self.estimator_id, self.estimator_version, self.output_metric_id
+        )
+        if not self.group_key_fields:
+            raise ValueError("group_key_fields must be non-empty")
+        if len(self.group_key_fields) != len(set(self.group_key_fields)):
+            raise ValueError("group_key_fields must be unique")
+        coordinate_order = {
+            field: index
+            for index, field in enumerate(
+                (
+                    "population_unit_id",
+                    "case_id",
+                    "repetition_index",
+                    "rollout_seed",
+                    "world_seed",
+                )
+            )
+        }
+        if tuple(sorted(self.group_key_fields, key=coordinate_order.__getitem__)) != (
+            self.group_key_fields
+        ):
+            raise ValueError("group_key_fields must use planned-coordinate order")
+        return self
+
+
+EstimatorSpec = Annotated[
+    MeanEstimatorSpec
+    | DifferenceEstimatorSpec
+    | ProbabilityEstimatorSpec
+    | QuantileEstimatorSpec
+    | PassAllKEstimatorSpec,
+    Field(discriminator="estimator_kind"),
+]
+
+
+class IdentityTransformationSpec(_PlannedIdentityRecord):
+    spec_version: Literal["aeread.transformation/0.1"]
+    record_type: Literal["transformation"]
+    transformation_kind: Literal["identity"]
+    input_units: SDKStr
+    output_units: SDKStr
+    unit_rule: Literal["input_and_output_units_must_match"]
+
+    @model_validator(mode="after")
+    def validate_identity_transformation(self) -> "IdentityTransformationSpec":
+        _require_non_empty("input_units", self.input_units)
+        _require_non_empty("output_units", self.output_units)
+        if self.input_units != self.output_units:
+            raise ValueError("identity transformation units must match exactly")
+        return self
+
+
+def _validate_missingness_identity(policy_id: str, policy_version: str) -> None:
+    _require_non_empty("policy_id", policy_id)
+    _require_semver("policy_version", policy_version)
+
+
+class PlannedPopulationInvalidateMissingnessSpec(_PlannedIdentityRecord):
+    spec_version: Literal["aeread.episode_missingness/0.1"]
+    record_type: Literal["episode_missingness"]
+    missingness_kind: Literal["planned_population_invalidate"]
+    policy_id: SDKStr
+    policy_version: SDKStr
+    coverage_unit: Literal["planned_cell"]
+    count_reporting_rule: Literal["planned_valid_missing_invalid_counts_separate"]
+    silent_drop_rule: Literal["forbidden"]
+    zero_attempt_rule: Literal["run_coverage_not_observation"]
+    valid_tie_rule: Literal["valid_measurement_not_missing"]
+    scientific_target: Literal["planned_population_primary"]
+    denominator_treatment: Literal["planned"]
+    ignorability_assumption: Literal["none"]
+    missing_or_invalid_rule: Literal["typed_invalid_primary_analysis"]
+    conditional_secondary_rule: Literal["separate_preregistered_block_only"]
+
+    @model_validator(mode="after")
+    def validate_planned_population_missingness(
+        self,
+    ) -> "PlannedPopulationInvalidateMissingnessSpec":
+        _validate_missingness_identity(self.policy_id, self.policy_version)
+        return self
+
+
+class CompleteCaseConditionalMissingnessSpec(_PlannedIdentityRecord):
+    spec_version: Literal["aeread.episode_missingness/0.1"]
+    record_type: Literal["episode_missingness"]
+    missingness_kind: Literal["complete_case_conditional"]
+    policy_id: SDKStr
+    policy_version: SDKStr
+    coverage_unit: Literal["planned_cell"]
+    count_reporting_rule: Literal["planned_valid_missing_invalid_counts_separate"]
+    silent_drop_rule: Literal["forbidden"]
+    zero_attempt_rule: Literal["run_coverage_not_observation"]
+    valid_tie_rule: Literal["valid_measurement_not_missing"]
+    scientific_target: Literal["complete_case_conditional"]
+    denominator_treatment: Literal["valid_only"]
+    minimum_valid_planned_cells: SDKInt = Field(gt=0)
+    ignorability_assumption: Literal["none_claimed"]
+    missing_or_invalid_rule: Literal["exclude_with_typed_disposition_and_report"]
+    population_primary_claim: Literal["forbidden"]
+
+    @model_validator(mode="after")
+    def validate_complete_case_missingness(
+        self,
+    ) -> "CompleteCaseConditionalMissingnessSpec":
+        _validate_missingness_identity(self.policy_id, self.policy_version)
+        return self
+
+
+class BoundsOrSensitivityMissingnessSpec(_PlannedIdentityRecord):
+    spec_version: Literal["aeread.episode_missingness/0.1"]
+    record_type: Literal["episode_missingness"]
+    missingness_kind: Literal["bounds_or_sensitivity"]
+    policy_id: SDKStr
+    policy_version: SDKStr
+    coverage_unit: Literal["planned_cell"]
+    count_reporting_rule: Literal["planned_valid_missing_invalid_counts_separate"]
+    silent_drop_rule: Literal["forbidden"]
+    zero_attempt_rule: Literal["run_coverage_not_observation"]
+    valid_tie_rule: Literal["valid_measurement_not_missing"]
+    scientific_target: Literal["bounds_or_sensitivity"]
+    denominator_treatment: Literal["planned_with_typed_unobserved_units"]
+    method: ImplementationRef
+    method_input_schema_ref: SDKStr
+    assumption_artifact_ref: ArtifactRef
+    point_estimate_rule: Literal["no_unbounded_complete_case_primary"]
+
+    @model_validator(mode="after")
+    def validate_bounds_missingness(self) -> "BoundsOrSensitivityMissingnessSpec":
+        _validate_missingness_identity(self.policy_id, self.policy_version)
+        _validate_planned_implementation(self.method, "method")
+        _require_non_empty("method_input_schema_ref", self.method_input_schema_ref)
+        _validate_planned_artifact(
+            self.assumption_artifact_ref, "assumption_artifact_ref"
+        )
+        return self
+
+
+EpisodeMissingnessSpec = Annotated[
+    PlannedPopulationInvalidateMissingnessSpec
+    | CompleteCaseConditionalMissingnessSpec
+    | BoundsOrSensitivityMissingnessSpec,
+    Field(discriminator="missingness_kind"),
+]
+
+
+class RaterCoverageSummarySpec(_PlannedIdentityRecord):
+    spec_version: Literal["aeread.rater_summary/0.1"]
+    record_type: Literal["rater_summary"]
+    summary_kind: Literal["coverage"]
+    summary_id: SDKStr
+    summary_version: SDKStr
+    denominator: Literal["planned_judgment_slots"]
+    reported_counts: tuple[
+        Literal["planned_slots"],
+        Literal["valid_slots"],
+        Literal["missing_slots"],
+        Literal["invalid_slots"],
+    ]
+    missing_judgment_score_rule: Literal["never_coerce_to_score_zero"]
+    score_effect: Literal["none_descriptive_only"]
+
+    @model_validator(mode="after")
+    def validate_rater_coverage_summary(self) -> "RaterCoverageSummarySpec":
+        _require_non_empty("summary_id", self.summary_id)
+        _require_semver("summary_version", self.summary_version)
+        return self
+
+
+class RaterDisagreementSummarySpec(_PlannedIdentityRecord):
+    spec_version: Literal["aeread.rater_summary/0.1"]
+    record_type: Literal["rater_summary"]
+    summary_kind: Literal["categorical_pairwise_disagreement"]
+    summary_id: SDKStr
+    summary_version: SDKStr
+    input_rule: Literal["accepted_terminal_categorical_judgments_only"]
+    denominator: Literal["unordered_valid_rater_pairs"]
+    metric: Literal["pairwise_disagreement_probability"]
+    fewer_than_two_rule: Literal["typed_unavailable_not_zero"]
+    tie_rule: Literal["preserve_valid_categorical_tie"]
+    score_effect: Literal["none_descriptive_only"]
+
+    @model_validator(mode="after")
+    def validate_rater_disagreement_summary(
+        self,
+    ) -> "RaterDisagreementSummarySpec":
+        _require_non_empty("summary_id", self.summary_id)
+        _require_semver("summary_version", self.summary_version)
+        return self
+
+
+RaterSummarySpec = Annotated[
+    RaterCoverageSummarySpec | RaterDisagreementSummarySpec,
+    Field(discriminator="summary_kind"),
+]
 
 
 class ValidityDomainSpec(StrictModel):
