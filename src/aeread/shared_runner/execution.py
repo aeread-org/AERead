@@ -353,6 +353,7 @@ class ProviderRequest:
     max_cost_usd: float | None = None
     output_schema: Mapping[str, Any] | None = None
     provider_metadata: Mapping[str, Any] | None = None
+    seed: int | None = None
 
     def with_computed_hash(self) -> "ProviderRequest":
         payload = {
@@ -370,6 +371,7 @@ class ProviderRequest:
             "max_cost_usd": self.max_cost_usd,
             "output_schema": self.output_schema,
             "provider_metadata": self.provider_metadata,
+            "seed": self.seed,
         }
         return dataclasses.replace(
             self, request_sha256=_sha256_bytes(canonical_json_bytes(payload))
@@ -585,6 +587,308 @@ class OpenAIResponsesClient:
             retryable=False,
             status_code=status_code,
         )
+
+
+class OpenRouterChatClient:
+    """OpenRouter Chat Completions adapter with an exact provider route."""
+
+    def __init__(
+        self,
+        *,
+        sdk_client: Any | None = None,
+        base_url: str = "https://openrouter.ai/api/v1",
+    ) -> None:
+        self._base_url = base_url.rstrip("/")
+        if sdk_client is None:
+            try:
+                from openai import AsyncOpenAI
+            except ImportError as error:  # pragma: no cover - dependency error
+                raise EvidenceIntegrityError(
+                    "OpenRouterChatClient requires the openai package"
+                ) from error
+            api_key = os.environ.get("OPENROUTER_API_KEY")
+            if not api_key:
+                raise EvidenceIntegrityError(
+                    "OPENROUTER_API_KEY must be set before constructing the live "
+                    "OpenRouter client"
+                )
+            sdk_client = AsyncOpenAI(
+                api_key=api_key,
+                base_url=self._base_url,
+                max_retries=0,
+            )
+        chat = getattr(sdk_client, "chat", None)
+        if chat is None or not hasattr(chat, "completions"):
+            raise EvidenceIntegrityError(
+                "installed OpenAI SDK does not expose Chat Completions"
+            )
+        self._client = sdk_client
+
+    async def complete(self, request: ProviderRequest) -> ProviderResult:
+        if request.provider != "openrouter":
+            raise ProviderFailure(
+                "provider_contract",
+                f"OpenRouter adapter received provider {request.provider!r}",
+                retryable=False,
+            )
+        requested_base_url = (request.base_url or "").rstrip("/")
+        if requested_base_url != self._base_url:
+            raise ProviderFailure(
+                "provider_contract",
+                f"request base URL {requested_base_url!r} does not match client base URL "
+                f"{self._base_url!r}",
+                retryable=False,
+            )
+        if not isinstance(request.output_schema, Mapping):
+            raise ProviderFailure(
+                "provider_contract",
+                "OpenRouter adapter requires a structured output schema",
+                retryable=False,
+            )
+        metadata = request.provider_metadata
+        if not isinstance(metadata, Mapping):
+            raise ProviderFailure(
+                "provider_contract",
+                "OpenRouter adapter requires sealed provider metadata",
+                retryable=False,
+            )
+        required_metadata = {
+            "route_provider",
+            "quantization",
+            "canonical_model",
+            "max_prompt_price_per_million",
+            "max_completion_price_per_million",
+        }
+        if set(metadata) != required_metadata:
+            raise ProviderFailure(
+                "provider_contract",
+                "OpenRouter provider metadata fields are incomplete or unexpected",
+                retryable=False,
+            )
+        route_provider = metadata["route_provider"]
+        quantization = metadata["quantization"]
+        canonical_model = metadata["canonical_model"]
+        if not all(
+            isinstance(value, str) and value
+            for value in (route_provider, quantization, canonical_model)
+        ):
+            raise ProviderFailure(
+                "provider_contract",
+                "OpenRouter route identity must contain non-empty strings",
+                retryable=False,
+            )
+        if request.revision != canonical_model:
+            raise ProviderFailure(
+                "provider_contract",
+                "OpenRouter canonical model does not match the sealed revision",
+                retryable=False,
+            )
+        if request.seed is None:
+            raise ProviderFailure(
+                "provider_contract",
+                "OpenRouter diagnostic runs require a declared seed",
+                retryable=False,
+            )
+        provider_preferences = {
+            "only": [route_provider],
+            "order": [route_provider],
+            "allow_fallbacks": False,
+            "require_parameters": True,
+            "quantizations": [quantization],
+            "max_price": {
+                "prompt": metadata["max_prompt_price_per_million"],
+                "completion": metadata["max_completion_price_per_million"],
+            },
+        }
+        kwargs: dict[str, Any] = {
+            "model": request.model,
+            "messages": [
+                {"role": "system", "content": request.instructions},
+                {"role": "user", "content": request.input_text},
+            ],
+            "temperature": request.temperature,
+            "top_p": request.top_p,
+            "seed": request.seed,
+            "max_tokens": request.max_output_tokens,
+            "response_format": {
+                "type": "json_schema",
+                "json_schema": {
+                    "name": "aeread_action",
+                    "strict": True,
+                    "schema": request.output_schema,
+                },
+            },
+            "tools": [],
+            "stream": False,
+            "extra_headers": {"X-OpenRouter-Metadata": "enabled"},
+            "extra_body": {
+                "reasoning": {"effort": request.reasoning_effort or "low"},
+                "provider": provider_preferences,
+            },
+        }
+        try:
+            response = await self._client.chat.completions.create(**kwargs)
+        except asyncio.CancelledError:
+            raise
+        except Exception as error:
+            raise OpenAIResponsesClient._classify_error(error) from error
+        try:
+            raw_response = response.model_dump(mode="json")
+        except Exception as error:
+            raise ProviderFailure(
+                "provider_contract",
+                "OpenRouter response could not be serialized",
+                retryable=False,
+            ) from error
+        if not isinstance(raw_response, Mapping):
+            raise ProviderFailure(
+                "provider_contract",
+                "OpenRouter response must be an object",
+                retryable=False,
+            )
+        choices = raw_response.get("choices")
+        if not isinstance(choices, list) or len(choices) != 1:
+            raise ProviderFailure(
+                "provider_contract",
+                "OpenRouter response must contain exactly one choice",
+                retryable=False,
+            )
+        choice = choices[0]
+        message = choice.get("message") if isinstance(choice, Mapping) else None
+        content = message.get("content") if isinstance(message, Mapping) else None
+        if not isinstance(content, str):
+            raise ProviderFailure(
+                "provider_contract",
+                "OpenRouter response choice has no text content",
+                retryable=False,
+            )
+        try:
+            structured_output = json.loads(content)
+        except json.JSONDecodeError as error:
+            raise ProviderFailure(
+                "provider_contract",
+                "OpenRouter structured output is not valid JSON",
+                retryable=False,
+            ) from error
+        usage = raw_response.get("usage")
+        if not isinstance(usage, Mapping):
+            raise ProviderFailure(
+                "provider_contract",
+                "OpenRouter response omitted token and cost usage",
+                retryable=False,
+            )
+
+        def nonnegative_integer(source: Mapping[str, Any], field: str) -> int:
+            value = source.get(field, 0)
+            if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+                raise ProviderFailure(
+                    "provider_contract",
+                    f"OpenRouter usage field {field!r} is invalid",
+                    retryable=False,
+                )
+            return value
+
+        input_tokens = nonnegative_integer(usage, "prompt_tokens")
+        output_tokens = nonnegative_integer(usage, "completion_tokens")
+        input_details = usage.get("prompt_tokens_details")
+        cached_input_tokens = (
+            nonnegative_integer(input_details, "cached_tokens")
+            if isinstance(input_details, Mapping)
+            else 0
+        )
+        cost = usage.get("cost")
+        if (
+            isinstance(cost, bool)
+            or not isinstance(cost, (int, float))
+            or cost < 0
+        ):
+            raise ProviderFailure(
+                "provider_contract",
+                "OpenRouter response cost is invalid",
+                retryable=False,
+            )
+        selected_model = self._verify_route(
+            raw_response.get("openrouter_metadata"),
+            requested_model=request.model,
+            canonical_model=canonical_model,
+            route_provider=route_provider,
+        )
+        response_model = raw_response.get("model")
+        if response_model not in {request.model, canonical_model}:
+            raise ProviderFailure(
+                "provider_contract",
+                f"OpenRouter response model {response_model!r} was not requested",
+                retryable=False,
+            )
+        return ProviderResult(
+            response_id=str(raw_response.get("id") or ""),
+            requested_model=request.model,
+            resolved_model=selected_model,
+            output_text=canonical_json_bytes(structured_output).decode("utf-8"),
+            finish_reason=str(choice.get("finish_reason") or "unknown"),
+            input_tokens=input_tokens,
+            cached_input_tokens=cached_input_tokens,
+            output_tokens=output_tokens,
+            cost_usd=float(cost),
+            raw_response=raw_response,
+        )
+
+    @staticmethod
+    def _verify_route(
+        metadata: Any,
+        *,
+        requested_model: str,
+        canonical_model: str,
+        route_provider: str,
+    ) -> str:
+        if not isinstance(metadata, Mapping):
+            raise ProviderFailure(
+                "provider_contract",
+                "OpenRouter routing metadata is missing",
+                retryable=False,
+            )
+        if metadata.get("requested") != requested_model:
+            raise ProviderFailure(
+                "provider_contract",
+                "OpenRouter routing metadata names a different requested model",
+                retryable=False,
+            )
+        endpoints = metadata.get("endpoints")
+        available = endpoints.get("available") if isinstance(endpoints, Mapping) else None
+        selected = (
+            [item for item in available if isinstance(item, Mapping) and item.get("selected")]
+            if isinstance(available, list)
+            else []
+        )
+        if len(selected) != 1 or selected[0].get("provider") != route_provider:
+            raise ProviderFailure(
+                "provider_contract",
+                f"OpenRouter selected provider does not match {route_provider!r}",
+                retryable=False,
+            )
+        if selected[0].get("model") != canonical_model:
+            raise ProviderFailure(
+                "provider_contract",
+                "OpenRouter selected endpoint model does not match the sealed revision",
+                retryable=False,
+            )
+        attempts = metadata.get("attempts")
+        if attempts is not None:
+            valid_attempts = [
+                item
+                for item in attempts
+                if isinstance(item, Mapping)
+                and item.get("provider") == route_provider
+                and item.get("model") == canonical_model
+                and item.get("status") == 200
+            ]
+            if not isinstance(attempts, list) or len(attempts) != 1 or len(valid_attempts) != 1:
+                raise ProviderFailure(
+                    "provider_contract",
+                    "OpenRouter routing attempts reveal a fallback or failed route",
+                    retryable=False,
+                )
+        return canonical_model
 
 
 CommandRunner = Callable[
@@ -978,7 +1282,11 @@ class MinimalChatExecutor:
             request_sha256="",
             max_cost_usd=profile.budgets.max_cost_usd,
             output_schema=profile.harness.config.get("output_schema"),
-            provider_metadata=profile.harness.config.get("provider_runtime"),
+            provider_metadata=(
+                profile.harness.config.get("provider_metadata")
+                or profile.harness.config.get("provider_runtime")
+            ),
+            seed=profile.sampling.seed,
         ).with_computed_hash()
 
     async def __call__(self, decision: DecisionRequest) -> CanonicalResponse:
@@ -1771,6 +2079,7 @@ __all__ = [
     "LogicalActionExecution",
     "MinimalChatExecutor",
     "OpenAIResponsesClient",
+    "OpenRouterChatClient",
     "ProviderCallRecord",
     "ProviderClient",
     "ProviderFailure",

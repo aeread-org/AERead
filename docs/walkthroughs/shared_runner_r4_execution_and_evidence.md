@@ -91,6 +91,24 @@ than a hidden global assumption: the profile records both the pricing identifier
 SHA-256 digest of the exact canonical pricing record, and execution verifies both before a
 call. Recheck and repin pricing before later experiments.
 
+## OpenRouter DeepSeek adapter
+
+`OpenRouterChatClient` uses OpenRouter's OpenAI-compatible Chat Completions endpoint but does
+not treat a marketplace model name as a sufficient model pin. The DeepSeek diagnostic path
+requests `deepseek/deepseek-v4-flash-0731` and seals the canonical endpoint revision
+`deepseek/deepseek-v4-flash-20260731`, provider `DeepInfra`, and `fp8` quantization. It permits
+only that provider, disables fallbacks and SDK retries, requires every requested parameter,
+and rejects the response unless OpenRouter's opt-in routing metadata identifies exactly one
+successful attempt on the sealed provider and canonical model.
+
+The profile also seals temperature `0`, top-p `1`, seed `71001`, a 512-token output ceiling,
+low reasoning effort, and a strict JSON action schema. The adapter requires response usage and
+OpenRouter's reported cost; the evidence retains the raw response so the reported charge can
+be reconciled independently against the pinned route prices. The 2026-08-26 DeepInfra endpoint
+snapshot lists $0.08 per million prompt tokens, $0.016 per million cached prompt tokens, and
+$0.18 per million completion tokens. Recheck the live endpoint and repin both its identity and
+prices before a later experimental run.
+
 ## Claude Code diagnostic adapter
 
 `ClaudeCodePrintClient` permits an authenticated Claude Code installation to exercise the same
@@ -129,6 +147,17 @@ PYTHONPATH=src python -m aeread.shared_runner.smoke \
   --model gpt-5-nano-2025-08-07 \
   --revision gpt-5-nano-2025-08-07 \
   --output /tmp/aeread-shared-runner-openai-smoke
+```
+
+One live call with the pinned DeepSeek/OpenRouter route:
+
+```bash
+export OPENROUTER_API_KEY=...  # set locally; do not commit or print this value
+PYTHONPATH=src python -m aeread.shared_runner.smoke \
+  --provider openrouter \
+  --model deepseek/deepseek-v4-flash-0731 \
+  --revision deepseek/deepseek-v4-flash-20260731 \
+  --output /tmp/aeread-shared-runner-openrouter-deepseek-smoke
 ```
 
 One live call through an authenticated Claude Code installation using the pinned Haiku snapshot:

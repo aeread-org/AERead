@@ -16,6 +16,7 @@ from aeread.shared_runner.execution import (
     EvidenceStore,
     MinimalChatExecutor,
     OpenAIResponsesClient,
+    OpenRouterChatClient,
     ProviderFailure,
     ProviderRequest,
     ProviderResult,
@@ -476,6 +477,161 @@ def test_openai_adapter_requires_key_before_constructing_default_sdk(
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
     with pytest.raises(EvidenceIntegrityError, match="OPENAI_API_KEY"):
         OpenAIResponsesClient()
+
+
+class FakeOpenRouterCompletions:
+    def __init__(self, *, selected_provider: str = "DeepInfra") -> None:
+        self.kwargs = None
+        self.selected_provider = selected_provider
+
+    async def create(self, **kwargs):
+        self.kwargs = kwargs
+        raw = {
+            "id": "gen_openrouter_fixture",
+            "model": "deepseek/deepseek-v4-flash-0731",
+            "choices": [
+                {
+                    "index": 0,
+                    "finish_reason": "stop",
+                    "message": {"role": "assistant", "content": '{"offer":7}'},
+                }
+            ],
+            "usage": {
+                "prompt_tokens": 123,
+                "completion_tokens": 45,
+                "total_tokens": 168,
+                "prompt_tokens_details": {"cached_tokens": 7},
+                "cost": 0.00001726,
+                "is_byok": False,
+            },
+            "openrouter_metadata": {
+                "requested": "deepseek/deepseek-v4-flash-0731",
+                "strategy": "direct",
+                "region": "iad",
+                "summary": f"available=1, selected={self.selected_provider}",
+                "attempt": 1,
+                "is_byok": False,
+                "endpoints": {
+                    "total": 1,
+                    "available": [
+                        {
+                            "model": "deepseek/deepseek-v4-flash-20260731",
+                            "provider": self.selected_provider,
+                            "selected": True,
+                        }
+                    ],
+                },
+                "attempts": [
+                    {
+                        "model": "deepseek/deepseek-v4-flash-20260731",
+                        "provider": self.selected_provider,
+                        "status": 200,
+                    }
+                ],
+            },
+        }
+        return SimpleNamespace(model_dump=lambda mode: raw)
+
+
+def _openrouter_request() -> ProviderRequest:
+    output_schema = {
+        "type": "object",
+        "properties": {"offer": {"type": "integer", "minimum": 0}},
+        "required": ["offer"],
+        "additionalProperties": False,
+    }
+    return ProviderRequest(
+        provider_call_id="provider_call_openrouter_fixture",
+        provider="openrouter",
+        base_url="https://openrouter.ai/api/v1",
+        model="deepseek/deepseek-v4-flash-0731",
+        revision="deepseek/deepseek-v4-flash-20260731",
+        instructions=SYSTEM_PROMPT,
+        input_text='{"observation":{"private_value":11},"action_schema":"offer_v1"}',
+        temperature=0.0,
+        top_p=1.0,
+        max_output_tokens=512,
+        reasoning_effort="low",
+        timeout_seconds=30.0,
+        request_sha256="",
+        max_cost_usd=0.001,
+        output_schema=output_schema,
+        provider_metadata={
+            "route_provider": "DeepInfra",
+            "quantization": "fp8",
+            "canonical_model": "deepseek/deepseek-v4-flash-20260731",
+            "max_prompt_price_per_million": "0.08",
+            "max_completion_price_per_million": "0.18",
+        },
+        seed=71001,
+    ).with_computed_hash()
+
+
+def test_openrouter_adapter_pins_deepseek_route_and_parses_usage() -> None:
+    completions = FakeOpenRouterCompletions()
+    sdk = SimpleNamespace(chat=SimpleNamespace(completions=completions))
+    client = OpenRouterChatClient(sdk_client=sdk)
+    request = _openrouter_request()
+
+    result = asyncio.run(client.complete(request))
+
+    assert completions.kwargs == {
+        "model": "deepseek/deepseek-v4-flash-0731",
+        "messages": [
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": request.input_text},
+        ],
+        "temperature": 0.0,
+        "top_p": 1.0,
+        "seed": 71001,
+        "max_tokens": 512,
+        "response_format": {
+            "type": "json_schema",
+            "json_schema": {
+                "name": "aeread_action",
+                "strict": True,
+                "schema": request.output_schema,
+            },
+        },
+        "tools": [],
+        "stream": False,
+        "extra_headers": {"X-OpenRouter-Metadata": "enabled"},
+        "extra_body": {
+            "reasoning": {"effort": "low"},
+            "provider": {
+                "only": ["DeepInfra"],
+                "order": ["DeepInfra"],
+                "allow_fallbacks": False,
+                "require_parameters": True,
+                "quantizations": ["fp8"],
+                "max_price": {"prompt": "0.08", "completion": "0.18"},
+            },
+        },
+    }
+    assert result.output_text == '{"offer":7}'
+    assert result.requested_model == "deepseek/deepseek-v4-flash-0731"
+    assert result.resolved_model == "deepseek/deepseek-v4-flash-20260731"
+    assert result.input_tokens == 123
+    assert result.cached_input_tokens == 7
+    assert result.output_tokens == 45
+    assert result.cost_usd == pytest.approx(0.00001726)
+
+
+def test_openrouter_adapter_rejects_an_unpinned_selected_provider() -> None:
+    completions = FakeOpenRouterCompletions(selected_provider="OpenInference")
+    sdk = SimpleNamespace(chat=SimpleNamespace(completions=completions))
+    client = OpenRouterChatClient(sdk_client=sdk)
+
+    with pytest.raises(ProviderFailure, match="selected provider"):
+        asyncio.run(client.complete(_openrouter_request()))
+
+
+def test_openrouter_adapter_requires_key_before_constructing_default_sdk(
+    monkeypatch,
+) -> None:
+    monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
+    with pytest.raises(EvidenceIntegrityError, match="OPENROUTER_API_KEY"):
+        OpenRouterChatClient()
 
 
 def test_claude_code_adapter_pins_runtime_and_parses_structured_usage(tmp_path) -> None:

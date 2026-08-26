@@ -13,6 +13,7 @@ from .execution import (
     CanonicalResponse,
     ClaudeCodePrintClient,
     OpenAIResponsesClient,
+    OpenRouterChatClient,
     ProviderRequest,
     ProviderResult,
     TokenPricing,
@@ -194,6 +195,13 @@ def _pricing_for(model: str) -> TokenPricing:
             output_per_million=5.0,
             pricing_id="anthropic_standard_2026-08-26_claude-haiku-4-5",
         )
+    if model == "deepseek/deepseek-v4-flash-0731":
+        return TokenPricing(
+            input_per_million=0.08,
+            cached_input_per_million=0.016,
+            output_per_million=0.18,
+            pricing_id="openrouter_deepinfra_2026-08-26_deepseek-v4-flash-0731",
+        )
     raise ValueError(
         f"smoke fixture has no reviewed pricing pin for model {model!r}"
     )
@@ -325,6 +333,19 @@ def build_single_offer_smoke(
                 },
             }
         )
+    elif provider == "openrouter":
+        harness_config.update(
+            {
+                "output_schema": SINGLE_OFFER_OUTPUT_SCHEMA,
+                "provider_metadata": {
+                    "route_provider": "DeepInfra",
+                    "quantization": "fp8",
+                    "canonical_model": "deepseek/deepseek-v4-flash-20260731",
+                    "max_prompt_price_per_million": "0.08",
+                    "max_completion_price_per_million": "0.18",
+                },
+            }
+        )
     profile = AgentProfile.from_dict(
         {
             "spec_version": "aeread.agent_profile/0.1",
@@ -334,7 +355,13 @@ def build_single_offer_smoke(
                 "model": model,
                 "revision": revision,
                 "base_url": (
-                    "https://api.openai.com/v1" if provider == "openai" else None
+                    "https://api.openai.com/v1"
+                    if provider == "openai"
+                    else (
+                        "https://openrouter.ai/api/v1"
+                        if provider == "openrouter"
+                        else None
+                    )
                 ),
             },
             "harness": {
@@ -361,8 +388,13 @@ def build_single_offer_smoke(
             },
             "sampling": {
                 "temperature": 0.0,
-                "max_output_tokens": 32_000 if provider == "claude_code" else 80,
-                "seed": None,
+                "max_output_tokens": (
+                    32_000
+                    if provider == "claude_code"
+                    else (512 if provider == "openrouter" else 80)
+                ),
+                "seed": 71001 if provider == "openrouter" else None,
+                "top_p": 1.0 if provider == "openrouter" else None,
             },
             "budgets": {
                 "max_logical_actions": 1,
@@ -456,6 +488,10 @@ async def _run_cli(arguments: argparse.Namespace) -> dict[str, Any]:
         model = arguments.model or "gpt-5-nano-2025-08-07"
         revision = arguments.revision or model
         provider_client = OpenAIResponsesClient()
+    elif arguments.provider == "openrouter":
+        model = arguments.model or "deepseek/deepseek-v4-flash-0731"
+        revision = arguments.revision or "deepseek/deepseek-v4-flash-20260731"
+        provider_client = OpenRouterChatClient()
     else:
         model = arguments.model or "claude-haiku-4-5-20251001"
         revision = arguments.revision or model
@@ -490,7 +526,9 @@ async def _run_cli(arguments: argparse.Namespace) -> dict[str, Any]:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
-        "--provider", choices=("fake", "openai", "claude_code"), default="fake"
+        "--provider",
+        choices=("fake", "openai", "openrouter", "claude_code"),
+        default="fake",
     )
     parser.add_argument("--model")
     parser.add_argument("--revision")

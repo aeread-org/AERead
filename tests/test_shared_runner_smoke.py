@@ -202,3 +202,32 @@ def test_claude_code_smoke_records_only_controls_the_cli_can_apply(tmp_path) -> 
     assert request.temperature is None
     assert request.top_p is None
     assert request.max_output_tokens == 32_000
+
+
+def test_openrouter_deepseek_smoke_seals_exact_route_controls_and_pricing() -> None:
+    setup = build_single_offer_smoke(
+        provider="openrouter",
+        model="deepseek/deepseek-v4-flash-0731",
+        revision="deepseek/deepseek-v4-flash-20260731",
+    )
+
+    profile = setup.plan.agent_profiles[0]
+    assert profile.model.base_url == "https://openrouter.ai/api/v1"
+    assert profile.model.revision == "deepseek/deepseek-v4-flash-20260731"
+    assert profile.sampling.temperature == 0.0
+    assert profile.sampling.top_p == 1.0
+    assert profile.sampling.seed == 71001
+    assert profile.sampling.max_output_tokens == 512
+    assert profile.reasoning.effort == "low"
+    assert profile.budgets.max_cost_usd == 0.001
+    assert profile.harness.config["provider_metadata"] == {
+        "route_provider": "DeepInfra",
+        "quantization": "fp8",
+        "canonical_model": "deepseek/deepseek-v4-flash-20260731",
+        "max_prompt_price_per_million": "0.08",
+        "max_completion_price_per_million": "0.18",
+    }
+    pricing = setup.pricing[profile.model.model]
+    assert pricing.input_per_million == 0.08
+    assert pricing.cached_input_per_million == 0.016
+    assert pricing.output_per_million == 0.18
