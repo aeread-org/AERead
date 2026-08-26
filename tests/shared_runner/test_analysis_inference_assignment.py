@@ -3,15 +3,18 @@
 from __future__ import annotations
 
 import ast
+import builtins
 import hashlib
 import inspect
 import json
 from pathlib import Path
+from typing import Annotated, Literal
 
-from pydantic import TypeAdapter, ValidationError
+from pydantic import Field, TypeAdapter, ValidationError, model_validator
 import pytest
 
 import aeread.sdk.v1 as sdk_v1
+import aeread.sdk.v1.base as sdk_base
 import aeread.sdk.v1.records as records_module
 from aeread.sdk.v1 import (
     AnalysisSourceRef,
@@ -71,8 +74,171 @@ def _b4b_source(source: str | None = None) -> str:
     return "".join(lines[starts[0].lineno - 1 : ends[0].lineno - 1])
 
 
+def _b4b_module_scope_bindings(source: str) -> dict[str, list[str]]:
+    class Collector(ast.NodeVisitor):
+        def __init__(self) -> None:
+            self.bindings: dict[str, list[str]] = {}
+
+        def record(self, name: str, origin: str) -> None:
+            self.bindings.setdefault(name, []).append(origin)
+
+        def target(self, target: ast.expr, origin: str) -> None:
+            if isinstance(target, ast.Name):
+                self.record(target.id, origin)
+            elif isinstance(target, (ast.Tuple, ast.List)):
+                for item in target.elts:
+                    self.target(item, origin)
+
+        def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
+            self.record(node.name, "function")
+            for item in (
+                *node.decorator_list,
+                *node.args.defaults,
+                *node.args.kw_defaults,
+            ):
+                if item is not None:
+                    self.visit(item)
+
+        visit_AsyncFunctionDef = visit_FunctionDef
+
+        def visit_ClassDef(self, node: ast.ClassDef) -> None:
+            self.record(node.name, "class")
+            for item in (*node.decorator_list, *node.bases):
+                self.visit(item)
+            for keyword in node.keywords:
+                self.visit(keyword.value)
+
+        def visit_Import(self, node: ast.Import) -> None:
+            for item in node.names:
+                self.record(item.asname or item.name.split(".")[0], "import")
+
+        def visit_ImportFrom(self, node: ast.ImportFrom) -> None:
+            assert all(item.name != "*" for item in node.names)
+            for item in node.names:
+                self.record(item.asname or item.name, f"import-from:{node.module}")
+
+        def visit_Assign(self, node: ast.Assign) -> None:
+            for target in node.targets:
+                self.target(target, "assign")
+            self.visit(node.value)
+
+        def visit_AnnAssign(self, node: ast.AnnAssign) -> None:
+            self.target(node.target, "assign")
+            self.visit(node.annotation)
+            if node.value is not None:
+                self.visit(node.value)
+
+        def visit_AugAssign(self, node: ast.AugAssign) -> None:
+            self.target(node.target, "augassign")
+            self.visit(node.value)
+
+        def visit_NamedExpr(self, node: ast.NamedExpr) -> None:
+            self.target(node.target, "namedexpr")
+            self.visit(node.value)
+
+        def visit_Delete(self, node: ast.Delete) -> None:
+            for target in node.targets:
+                self.target(target, "delete")
+
+        def visit_For(self, node: ast.For) -> None:
+            self.target(node.target, "for")
+            self.generic_visit(node)
+
+        visit_AsyncFor = visit_For
+
+        def visit_With(self, node: ast.With) -> None:
+            for item in node.items:
+                if item.optional_vars is not None:
+                    self.target(item.optional_vars, "with")
+            self.generic_visit(node)
+
+        visit_AsyncWith = visit_With
+
+        def visit_ExceptHandler(self, node: ast.ExceptHandler) -> None:
+            if node.name:
+                self.record(node.name, "except")
+            self.generic_visit(node)
+
+        def visit_Match(self, node: ast.Match) -> None:
+            for case in node.cases:
+                for item in ast.walk(case.pattern):
+                    if isinstance(item, (ast.MatchAs, ast.MatchStar)) and item.name:
+                        self.record(item.name, "match")
+                    elif isinstance(item, ast.MatchMapping) and item.rest:
+                        self.record(item.rest, "match")
+            self.generic_visit(node)
+
+        def visit_Global(self, node: ast.Global) -> None:
+            for name in node.names:
+                self.record(name, "global")
+
+    collector = Collector()
+    collector.visit(ast.parse(source))
+    return collector.bindings
+
+
+def _assert_b4b_runtime_bindings() -> None:
+    assert records_module.Annotated is Annotated
+    assert records_module.Literal is Literal
+    assert records_module.Field is Field
+    assert records_module.model_validator is model_validator
+    assert records_module.SDKInt is sdk_base.SDKInt
+    assert records_module.SDKStr is sdk_base.SDKStr
+    for name in (
+        "_PlannedIdentityRecord",
+        "_StrictValueModel",
+        "CanonicalRational",
+    ):
+        value = getattr(records_module, name)
+        assert inspect.isclass(value)
+        assert value.__module__ == records_module.__name__
+        assert value.__qualname__ == name
+    for name in (
+        "_require_non_empty",
+        "_require_semver",
+        "_validate_canonical_string_tuple",
+    ):
+        value = getattr(records_module, name)
+        assert inspect.isfunction(value)
+        assert value.__module__ == records_module.__name__
+        assert value.__qualname__ == name
+    for name in ("ValueError", "len", "set", "tuple", "type"):
+        assert records_module.__dict__.get(name, getattr(builtins, name)) is getattr(
+            builtins, name
+        )
+
+
 def _assert_b4b_declaration_only(source: str) -> None:
     full_module = ast.parse(source)
+    bindings = _b4b_module_scope_bindings(source)
+    expected_external = {
+        "Annotated": ["import-from:typing"],
+        "Literal": ["import-from:typing"],
+        "Field": ["import-from:pydantic"],
+        "model_validator": ["import-from:pydantic"],
+        "SDKInt": ["import-from:base"],
+        "SDKStr": ["import-from:base"],
+        "SHA256": ["assign"],
+        "_PlannedIdentityRecord": ["class"],
+        "_StrictValueModel": ["class"],
+        "CanonicalRational": ["class"],
+        "_require_non_empty": ["function"],
+        "_require_semver": ["function"],
+        "_validate_canonical_string_tuple": ["function"],
+        "ValueError": [],
+        "len": [],
+        "set": [],
+        "tuple": [],
+        "type": [],
+    }
+    assert {
+        name: bindings.get(name, []) for name in expected_external
+    } == expected_external
+    assert all(
+        not node.decorator_list
+        for node in full_module.body
+        if isinstance(node, ast.ClassDef) and node.name == "AnalysisSourceRef"
+    )
     span = ast.parse(_b4b_source(source))
     class_names = [node.name for node in span.body if isinstance(node, ast.ClassDef)]
     expected_classes = [
@@ -230,7 +396,7 @@ def _assert_b4b_declaration_only(source: str) -> None:
         "_validate_analysis_source_ref": ["function"],
     }
     assert not any(
-        protected & set(node.names)
+        (protected | set(expected_external)) & set(node.names)
         for node in ast.walk(full_module)
         if isinstance(node, ast.Global)
     )
@@ -239,6 +405,56 @@ def _assert_b4b_declaration_only(source: str) -> None:
 @pytest.mark.parametrize(
     "mutation",
     [
+        lambda source: source.replace(
+            "class AnalysisSourceRef",
+            "model_validator = runtime.provider_hook\n\nclass AnalysisSourceRef",
+            1,
+        ),
+        lambda source: source.replace(
+            "class AnalysisSourceRef",
+            "_require_non_empty = runtime.step\n\nclass AnalysisSourceRef",
+            1,
+        ),
+        lambda source: source.replace(
+            "class AnalysisSourceRef",
+            "(_require_non_empty := runtime.step)\n\nclass AnalysisSourceRef",
+            1,
+        ),
+        lambda source: source.replace(
+            "class AnalysisSourceRef",
+            "match None:\n    case model_validator:\n        pass\n\nclass AnalysisSourceRef",
+            1,
+        ),
+        lambda source: source.replace(
+            "class AnalysisSourceRef",
+            "del _require_non_empty\n\nclass AnalysisSourceRef",
+            1,
+        ),
+        lambda source: source.replace(
+            "class AnalysisSourceRef",
+            "Field = runtime.provider_hook\n\nclass AnalysisSourceRef",
+            1,
+        ),
+        lambda source: source.replace(
+            "class AnalysisSourceRef",
+            "_PlannedIdentityRecord = runtime.base\n\nclass AnalysisSourceRef",
+            1,
+        ),
+        lambda source: source.replace(
+            "class AnalysisSourceRef",
+            "class Attack:\n    global model_validator\n    model_validator = runtime.provider_hook\n\nclass AnalysisSourceRef",
+            1,
+        ),
+        lambda source: source.replace(
+            "class AnalysisSourceRef(_PlannedIdentityRecord):\n",
+            "@runtime.decorator\nclass AnalysisSourceRef(_PlannedIdentityRecord):\n",
+            1,
+        ),
+        lambda source: source.replace(
+            "class AnalysisSourceRef(_PlannedIdentityRecord):\n",
+            "class AnalysisSourceRef(_PlannedIdentityRecord):\n    from runtime import hook\n",
+            1,
+        ),
         lambda source: source.replace(
             "class AnalysisSourceRef(_PlannedIdentityRecord):\n",
             "class AnalysisSourceRef(_PlannedIdentityRecord):\n    runtime.call()\n",
@@ -267,6 +483,14 @@ def test_b4b_source_guard_mutations_must_fail(mutation: object) -> None:
     )
     with pytest.raises(AssertionError):
         _assert_b4b_declaration_only(mutation(source))  # type: ignore[operator]
+
+
+def test_b4b_source_guard_locks_external_bindings_and_runtime_identity() -> None:
+    source = Path(inspect.getsourcefile(records_module) or "").read_text(
+        encoding="utf-8"
+    )
+    _assert_b4b_declaration_only(source)
+    _assert_b4b_runtime_bindings()
 
 
 def _sha(label: str) -> str:
