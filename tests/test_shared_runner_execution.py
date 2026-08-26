@@ -480,12 +480,46 @@ def test_openai_adapter_requires_key_before_constructing_default_sdk(
 
 
 class FakeOpenRouterCompletions:
-    def __init__(self, *, selected_provider: str = "DeepInfra") -> None:
+    def __init__(
+        self,
+        *,
+        selected_provider: str = "DeepInfra",
+        attempt: int = 1,
+        include_attempts: bool = True,
+    ) -> None:
         self.kwargs = None
         self.selected_provider = selected_provider
+        self.attempt = attempt
+        self.include_attempts = include_attempts
 
     async def create(self, **kwargs):
         self.kwargs = kwargs
+        routing_metadata = {
+            "requested": "deepseek/deepseek-v4-flash-0731",
+            "strategy": "direct",
+            "region": "iad",
+            "summary": f"available=1, selected={self.selected_provider}",
+            "attempt": self.attempt,
+            "is_byok": False,
+            "endpoints": {
+                "total": 1,
+                "available": [
+                    {
+                        "model": "deepseek/deepseek-v4-flash-20260731",
+                        "provider": self.selected_provider,
+                        "selected": True,
+                    }
+                ],
+            },
+        }
+        if self.include_attempts:
+            routing_metadata["attempts"] = [
+                {
+                    "model": "deepseek/deepseek-v4-flash-20260731",
+                    "provider": self.selected_provider,
+                    "status": 200,
+                }
+            ]
         raw = {
             "id": "gen_openrouter_fixture",
             "model": "deepseek/deepseek-v4-flash-0731",
@@ -504,31 +538,7 @@ class FakeOpenRouterCompletions:
                 "cost": 0.00001726,
                 "is_byok": False,
             },
-            "openrouter_metadata": {
-                "requested": "deepseek/deepseek-v4-flash-0731",
-                "strategy": "direct",
-                "region": "iad",
-                "summary": f"available=1, selected={self.selected_provider}",
-                "attempt": 1,
-                "is_byok": False,
-                "endpoints": {
-                    "total": 1,
-                    "available": [
-                        {
-                            "model": "deepseek/deepseek-v4-flash-20260731",
-                            "provider": self.selected_provider,
-                            "selected": True,
-                        }
-                    ],
-                },
-                "attempts": [
-                    {
-                        "model": "deepseek/deepseek-v4-flash-20260731",
-                        "provider": self.selected_provider,
-                        "status": 200,
-                    }
-                ],
-            },
+            "openrouter_metadata": routing_metadata,
         }
         return SimpleNamespace(model_dump=lambda mode: raw)
 
@@ -617,12 +627,49 @@ def test_openrouter_adapter_pins_deepseek_route_and_parses_usage() -> None:
     assert result.cost_usd == pytest.approx(0.00001726)
 
 
+def test_openrouter_adapter_serializes_a_frozen_schema_as_plain_json() -> None:
+    completions = FakeOpenRouterCompletions()
+    sdk = SimpleNamespace(chat=SimpleNamespace(completions=completions))
+    client = OpenRouterChatClient(sdk_client=sdk)
+    frozen_schema = MappingProxyType(
+        {
+            "type": "object",
+            "properties": MappingProxyType(
+                {"offer": MappingProxyType({"type": "integer", "minimum": 0})}
+            ),
+            "required": ("offer",),
+            "additionalProperties": False,
+        }
+    )
+    request = replace(_openrouter_request(), output_schema=frozen_schema).with_computed_hash()
+
+    asyncio.run(client.complete(request))
+
+    transmitted_schema = completions.kwargs["response_format"]["json_schema"]["schema"]
+    assert transmitted_schema == {
+        "type": "object",
+        "properties": {"offer": {"type": "integer", "minimum": 0}},
+        "required": ["offer"],
+        "additionalProperties": False,
+    }
+    json.dumps(completions.kwargs)
+
+
 def test_openrouter_adapter_rejects_an_unpinned_selected_provider() -> None:
     completions = FakeOpenRouterCompletions(selected_provider="OpenInference")
     sdk = SimpleNamespace(chat=SimpleNamespace(completions=completions))
     client = OpenRouterChatClient(sdk_client=sdk)
 
     with pytest.raises(ProviderFailure, match="selected provider"):
+        asyncio.run(client.complete(_openrouter_request()))
+
+
+def test_openrouter_adapter_rejects_a_later_route_attempt_without_attempt_details() -> None:
+    completions = FakeOpenRouterCompletions(attempt=2, include_attempts=False)
+    sdk = SimpleNamespace(chat=SimpleNamespace(completions=completions))
+    client = OpenRouterChatClient(sdk_client=sdk)
+
+    with pytest.raises(ProviderFailure, match="fallback"):
         asyncio.run(client.complete(_openrouter_request()))
 
 

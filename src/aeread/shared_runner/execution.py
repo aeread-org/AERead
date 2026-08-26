@@ -700,6 +700,7 @@ class OpenRouterChatClient:
                 "completion": metadata["max_completion_price_per_million"],
             },
         }
+        wire_output_schema = json.loads(canonical_json_bytes(request.output_schema))
         kwargs: dict[str, Any] = {
             "model": request.model,
             "messages": [
@@ -715,7 +716,7 @@ class OpenRouterChatClient:
                 "json_schema": {
                     "name": "aeread_action",
                     "strict": True,
-                    "schema": request.output_schema,
+                    "schema": wire_output_schema,
                 },
             },
             "tools": [],
@@ -853,6 +854,12 @@ class OpenRouterChatClient:
                 "OpenRouter routing metadata names a different requested model",
                 retryable=False,
             )
+        if metadata.get("attempt") != 1:
+            raise ProviderFailure(
+                "provider_contract",
+                "OpenRouter routing metadata reveals a fallback or repeated route attempt",
+                retryable=False,
+            )
         endpoints = metadata.get("endpoints")
         available = endpoints.get("available") if isinstance(endpoints, Mapping) else None
         selected = (
@@ -874,6 +881,12 @@ class OpenRouterChatClient:
             )
         attempts = metadata.get("attempts")
         if attempts is not None:
+            if not isinstance(attempts, list):
+                raise ProviderFailure(
+                    "provider_contract",
+                    "OpenRouter routing attempts are not an array",
+                    retryable=False,
+                )
             valid_attempts = [
                 item
                 for item in attempts
@@ -882,7 +895,7 @@ class OpenRouterChatClient:
                 and item.get("model") == canonical_model
                 and item.get("status") == 200
             ]
-            if not isinstance(attempts, list) or len(attempts) != 1 or len(valid_attempts) != 1:
+            if len(attempts) != 1 or len(valid_attempts) != 1:
                 raise ProviderFailure(
                     "provider_contract",
                     "OpenRouter routing attempts reveal a fallback or failed route",

@@ -1,0 +1,95 @@
+{
+  "spec_version": "aeread.r4_admission/0.1",
+  "admission_status": "passed",
+  "executed_at": {
+    "first_event": "2026-08-26T17:12:39.394225Z",
+    "last_event": "2026-08-26T17:12:43.801868Z"
+  },
+  "identities": {
+    "run_plan_id": "runplan_af232700a6ec7c6c",
+    "cell_id": "cell_8df995d3541813a19dc6",
+    "episode_attempt_id": "episode_attempt_180468296443a29aeb18",
+    "request_sha256": "3213a79b65c182b05039fb9a0e8a9a7178a4876428731e850712842aedf69c58"
+  },
+  "provider": {
+    "transport": "openrouter_chat_completions",
+    "base_url": "https://openrouter.ai/api/v1",
+    "requested_model": "deepseek/deepseek-v4-flash-0731",
+    "revision": "deepseek/deepseek-v4-flash-20260731",
+    "resolved_model": "deepseek/deepseek-v4-flash-20260731",
+    "route_provider": "DeepInfra",
+    "quantization": "fp8",
+    "routing_strategy": "direct",
+    "routing_attempt": 1,
+    "routing_region": "SJC",
+    "available_after_filters": 1,
+    "selected_endpoints": 1,
+    "fallbacks_allowed": false,
+    "sdk_retries": 0,
+    "authentication": "existing personal simulator OpenRouter credential; credential not serialized",
+    "tools_enabled": false,
+    "structured_output": true,
+    "finish_reason": "stop"
+  },
+  "sampling_controls": {
+    "reasoning_effort": "low",
+    "temperature": 0.0,
+    "top_p": 1.0,
+    "seed": 71001,
+    "max_output_tokens": 512,
+    "max_cost_usd": 0.001
+  },
+  "usage": {
+    "input_tokens": 66,
+    "cached_input_tokens": 0,
+    "output_tokens": 165,
+    "provider_reported_reasoning_tokens": 172,
+    "reported_cost_usd": 0.0000346302,
+    "nominal_pricing_recomputed_cost_usd": 0.00003498,
+    "provider_reported_upstream_inference_cost_usd": 0.00003498,
+    "reported_to_nominal_ratio": 0.99,
+    "pricing_id": "openrouter_deepinfra_2026-08-26_deepseek-v4-flash-0731",
+    "pricing_source": "https://openrouter.ai/api/v1/models/deepseek/deepseek-v4-flash-0731/endpoints"
+  },
+  "outcome": {
+    "valid": true,
+    "reason": "submitted",
+    "offer": 5
+  },
+  "evidence": {
+    "chain_verified": true,
+    "reconciliation_verified": true,
+    "event_count": 13,
+    "event_types": [
+      "phase_instance_started",
+      "logical_action_started",
+      "action_attempt_started",
+      "provider_call_started",
+      "provider_call_succeeded",
+      "action_attempt_succeeded",
+      "action_parsed",
+      "action_legality_checked",
+      "logical_action_succeeded",
+      "transition_applied",
+      "phase_instance_succeeded",
+      "episode_terminated",
+      "family_outcome_recorded"
+    ],
+    "run_plan_sha256": "c209371ddd10244e14700201efeb7068d045b526cfec39d8f5e95079b7f11fca",
+    "events_jsonl_sha256": "14f5aaa052341e796daeef5128d22608df370d190ef3172adcae067427c9580a",
+    "final_event_hash": "fbf99828281473da7804d0521c0b0e7a3a45bf3306ad182737263e72bc51b44a"
+  },
+  "implementation_pins": {
+    "execution_and_harness_sha256": "4b3c09628934854a877e0909af8abcacedec3fafb475035e8f99cea698955be3",
+    "family_scorer_generator_sha256": "3b5b33d926448fff5ab85abf0e2a7d7507051c58b0f218de755945a6ef09dd51"
+  },
+  "scope": "R4 instrumentation admission only; not a Housing run, benchmark score, or paper measurement",
+  "limitations": [
+    "The live cell uses the native single_offer_v1 smoke family, not housing_v1.",
+    "OpenRouter omitted the optional detailed attempts array; admission required routing attempt 1 and exactly one selected endpoint matching the sealed provider and canonical model.",
+    "OpenRouter reported 172 reasoning tokens but only 165 completion tokens; provider reasoning accounting is therefore retained as diagnostic metadata and not treated as a measurement variable.",
+    "The charged cost was exactly 99% of the nominal pinned-token and upstream inference cost; both values are retained rather than treated as equal.",
+    "The full content-addressed evidence directory, including provider reasoning text, remains local and is not committed.",
+    "One earlier admission attempt failed before network dispatch because a frozen schema was not converted to a plain JSON object; the regression is now covered by an executable test."
+  ]
+}

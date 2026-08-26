@@ -187,6 +187,22 @@ and $5/M output prices produces the same $0.005975. All 13 event links and paylo
 verified and every started entity reconciled exactly once. The non-secret durable admission
 summary is [`../evidence/shared_runner_r4_claude_smoke_2026-08-26.json`](../evidence/shared_runner_r4_claude_smoke_2026-08-26.json).
 
+The pinned OpenRouter command also completed one sealed cell on 2026-08-26. OpenRouter selected
+DeepInfra on the canonical `deepseek/deepseek-v4-flash-20260731` endpoint with routing attempt
+`1`; the model submitted valid offer `5`. The runner recorded 66 input tokens, no cached input,
+165 completion tokens, and a charged cost of $0.0000346302. The nominal pinned-price
+recomputation is $0.00003498, equal to OpenRouter's reported upstream inference cost; the
+charged cost is exactly 99% of that amount, so the admission retains both rather than claiming
+equality. All 13 event links and payload artifacts verified and every started entity reconciled
+exactly once. The non-secret durable admission summary is
+[`../evidence/shared_runner_r4_openrouter_deepseek_smoke_2026-08-26.json`](../evidence/shared_runner_r4_openrouter_deepseek_smoke_2026-08-26.json).
+
+OpenRouter reported 172 reasoning tokens while reporting 165 completion tokens. Because those
+fields are internally inconsistent, reasoning usage is retained only as provider diagnostic
+metadata; actions and outcomes remain the primary evidence. The full raw response, including
+provider-returned reasoning text, remains in the local content-addressed evidence and is not
+committed.
+
 ## Exact R4 boundary
 
 R4 proves that the runner can call a model without hiding retries, side effects, outcomes, or
