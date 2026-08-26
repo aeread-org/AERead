@@ -6,3 +6,6 @@
 - [`shared_runner_r1_validation_and_registry.md`](shared_runner_r1_validation_and_registry.md) —
   exact R1 trace from an authored Housing family mapping through strict immutable validation,
   trusted plugin admission, exact identity resolution, failure branches, and the R2/R3 boundary.
+- [`shared_runner_r2_plan_resolution.md`](shared_runner_r2_plan_resolution.md) —
+  exact R2 trace from reconciled R1 records through content and implementation pins, deterministic
+  cell expansion, canonical plan sealing, durable publication, and the R3/R4 boundary.
