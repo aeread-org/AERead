@@ -104,7 +104,7 @@ def test_procurement_live_probe_seals_openrouter_buyer_and_controlled_suppliers(
     assert buyer.retry_policy.retryable_conditions == ("length",)
     assert buyer.harness.config["provider_metadata"]["route_provider"] == "DeepInfra"
     assert buyer.budgets.max_cost_usd == 0.01
-    assert buyer.budgets.timeout_seconds == 90.0
+    assert buyer.budgets.timeout_seconds == 180.0
     assert buyer.sampling.max_output_tokens == 2048
 
     supplier = profiles["procurement_scripted_supplier_v1"]
