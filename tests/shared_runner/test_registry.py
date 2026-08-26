@@ -1558,6 +1558,14 @@ def test_task_1_1a2_surface_guard_accounts_for_authorized_b1_b2_b3_b4a_additions
         "RaterDisagreementSummarySpec",
         "RaterSummarySpec",
     )
+    execution_assignment_exports = (
+        "AssignmentAuthoringRecordRef",
+        "ExchangeabilityDomainSpec",
+        "ExecuteUniformWithinPairAssignmentSourceSpec",
+        "ExecutionAssignmentSourceSpec",
+        "ImportedUniformWithinPairAssignmentSourceSpec",
+        "IndependentUniformWithinPairExecutionAssignmentSpec",
+    )
     surface = tuple(sorted(sdk.__all__))
     authorized_additions = tuple(
         name for name in surface if name in planned_identity_exports
@@ -1569,6 +1577,7 @@ def test_task_1_1a2_surface_guard_accounts_for_authorized_b1_b2_b3_b4a_additions
         and name not in measurement_selection_exports
         and name not in execution_design_exports
         and name not in analysis_estimator_missingness_exports
+        and name not in execution_assignment_exports
     )
     legacy_digest = hashlib.sha256(
         json.dumps(legacy_surface, separators=(",", ":")).encode()
@@ -1589,7 +1598,11 @@ def test_task_1_1a2_surface_guard_accounts_for_authorized_b1_b2_b3_b4a_additions
         )
         == analysis_estimator_missingness_exports
     )
-    assert len(surface) == 200
+    assert (
+        tuple(name for name in surface if name in execution_assignment_exports)
+        == execution_assignment_exports
+    )
+    assert len(surface) == 206
     assert len(legacy_surface) == 158
     assert (
         legacy_digest

@@ -54,11 +54,23 @@ ANALYSIS_ESTIMATOR_MISSINGNESS_EXPORTS = {
 
 def test_task_1_1b4a_publishes_one_exact_additive_surface() -> None:
     surface = tuple(sorted(sdk_v1.__all__))
+    b3b_exports = {
+        "AssignmentAuthoringRecordRef",
+        "ExchangeabilityDomainSpec",
+        "ExecuteUniformWithinPairAssignmentSourceSpec",
+        "ExecutionAssignmentSourceSpec",
+        "ImportedUniformWithinPairAssignmentSourceSpec",
+        "IndependentUniformWithinPairExecutionAssignmentSpec",
+    }
 
     assert ANALYSIS_ESTIMATOR_MISSINGNESS_EXPORTS <= set(surface)
-    assert len(surface) == len(set(surface)) == 200
+    assert len(surface) == len(set(surface)) == 206
+    without_b3b = tuple(name for name in surface if name not in b3b_exports)
+    assert len(without_b3b) == 200
     prior = tuple(
-        name for name in surface if name not in ANALYSIS_ESTIMATOR_MISSINGNESS_EXPORTS
+        name
+        for name in without_b3b
+        if name not in ANALYSIS_ESTIMATOR_MISSINGNESS_EXPORTS
     )
     assert len(prior) == 184
     assert (

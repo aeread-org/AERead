@@ -515,6 +515,14 @@ def test_representative_sources_only_pressure_constructor_expression(
 
 
 def test_sdk_export_delta_preserves_b1_and_legacy_surfaces() -> None:
+    b3b_exports = {
+        "AssignmentAuthoringRecordRef",
+        "ExchangeabilityDomainSpec",
+        "ExecuteUniformWithinPairAssignmentSourceSpec",
+        "ExecutionAssignmentSourceSpec",
+        "ImportedUniformWithinPairAssignmentSourceSpec",
+        "IndependentUniformWithinPairExecutionAssignmentSpec",
+    }
     b4a_exports = {
         "BooleanSuccessPredicateSpec",
         "BoundsOrSensitivityMissingnessSpec",
@@ -561,9 +569,12 @@ def test_sdk_export_delta_preserves_b1_and_legacy_surfaces() -> None:
     }
     surface = set(sdk_v1.__all__)
     assert len(surface) == len(sdk_v1.__all__)
+    assert surface & b3b_exports == b3b_exports
+    without_b3b = surface - b3b_exports
     assert surface & b4a_exports == b4a_exports
-    without_b4a = surface - b4a_exports
-    assert len(surface) == 200
+    without_b4a = without_b3b - b4a_exports
+    assert len(surface) == 206
+    assert len(without_b3b) == 200
     assert len(without_b4a) == 184
     assert without_b4a & b3_exports == b3_exports
     without_b3 = without_b4a - b3_exports

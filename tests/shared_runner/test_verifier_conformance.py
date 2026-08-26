@@ -1183,6 +1183,12 @@ def test_task_1_1a1_has_one_exact_public_export_delta() -> None:
         "RaterCoverageSummarySpec",
         "RaterDisagreementSummarySpec",
         "RaterSummarySpec",
+        "AssignmentAuthoringRecordRef",
+        "ExchangeabilityDomainSpec",
+        "ExecuteUniformWithinPairAssignmentSourceSpec",
+        "ExecutionAssignmentSourceSpec",
+        "ImportedUniformWithinPairAssignmentSourceSpec",
+        "IndependentUniformWithinPairExecutionAssignmentSpec",
     }
     exports = set(sdk.__all__)
     assert len(sdk.__all__) == len(exports)

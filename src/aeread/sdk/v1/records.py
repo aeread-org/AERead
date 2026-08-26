@@ -1308,6 +1308,263 @@ class ExecutionDesignSpec(_PlannedIdentityRecord):
         return self
 
 
+class AssignmentAuthoringRecordRef(_PlannedIdentityRecord):
+    spec_version: Literal["aeread.assignment_authoring_record_ref/0.1"]
+    record_type: Literal["assignment_authoring_record_ref"]
+    ref_kind: Literal["execution_design", "pairing_design", "exchangeability_domain"]
+    record_id: SDKStr
+    record_version: SDKStr
+    content_sha256: SHA256
+
+    @model_validator(mode="after")
+    def validate_assignment_authoring_record_ref(
+        self,
+    ) -> "AssignmentAuthoringRecordRef":
+        _require_non_empty("record_id", self.record_id)
+        _require_semver("record_version", self.record_version)
+        return self
+
+
+def _validate_assignment_artifact(reference: ArtifactRef, label: str) -> None:
+    if type(reference) is not ArtifactRef:
+        raise ValueError(f"{label} must use the exact ArtifactRef type")
+    ArtifactRef.model_validate(reference.model_dump(mode="python"))
+    _validate_complete_artifact(reference, label)
+
+
+def _validate_assignment_implementation(
+    implementation: ImplementationRef, label: str
+) -> None:
+    if type(implementation) is not ImplementationRef:
+        raise ValueError(f"{label} must use the exact ImplementationRef type")
+    ImplementationRef.model_validate(implementation.model_dump(mode="python"))
+    _validate_implementation_pin(implementation, label)
+
+
+def _validate_distinct_content_sha256(values: tuple[str, ...], label: str) -> None:
+    if len(values) != len(set(values)):
+        raise ValueError(f"{label} must use distinct content SHA-256 values")
+
+
+def _validate_assignment_record_ref(
+    reference: AssignmentAuthoringRecordRef,
+    label: str,
+    expected_kind: str,
+) -> None:
+    if type(reference) is not AssignmentAuthoringRecordRef:
+        raise ValueError(
+            f"{label} must use the exact AssignmentAuthoringRecordRef type"
+        )
+    AssignmentAuthoringRecordRef.model_validate(reference.model_dump(mode="python"))
+    if reference.ref_kind != expected_kind:
+        raise ValueError(f"{label} must have ref_kind {expected_kind!r}")
+
+
+class ExchangeabilityDomainSpec(_PlannedIdentityRecord):
+    spec_version: Literal["aeread.exchangeability_domain/0.1"]
+    record_type: Literal["exchangeability_domain"]
+    domain_id: SDKStr
+    domain_version: SDKStr
+    domain_artifact_ref: ArtifactRef
+    canonical_schema_ref: ArtifactRef
+    validator: ImplementationRef
+    allocation_unit: Literal["preassignment_pair"]
+    eligible_pair_key_rule: Literal["exact_preassignment_pair_set_keys"]
+    arm_binding_rule: Literal["exact_declared_subject_and_comparator_execution_blocks"]
+    exclusion_rule: Literal["predeclared_only_no_post_assignment_or_outcome_exclusion"]
+    supported_null: Literal[
+        "sharp_no_unit_level_effect_under_declared_within_pair_allocation"
+    ]
+    assumption_status: Literal[
+        "preregistered_scientific_assumption_not_empirically_proven_by_schema"
+    ]
+
+    @model_validator(mode="after")
+    def validate_exchangeability_domain(self) -> "ExchangeabilityDomainSpec":
+        _require_non_empty("domain_id", self.domain_id)
+        _require_semver("domain_version", self.domain_version)
+        _validate_assignment_artifact(self.domain_artifact_ref, "domain_artifact_ref")
+        _validate_assignment_artifact(self.canonical_schema_ref, "canonical_schema_ref")
+        _validate_assignment_implementation(self.validator, "validator")
+        _validate_distinct_content_sha256(
+            (
+                self.domain_artifact_ref.sha256,
+                self.canonical_schema_ref.sha256,
+                self.validator.content_sha256,
+            ),
+            "exchangeability domain pins",
+        )
+        return self
+
+
+class ExecuteUniformWithinPairAssignmentSourceSpec(_PlannedIdentityRecord):
+    spec_version: Literal["aeread.execution_assignment_source/0.1"]
+    record_type: Literal["execution_assignment_source"]
+    source_kind: Literal["execute_pinned"]
+    algorithm: ImplementationRef
+    protocol_ref: ArtifactRef
+    selection_seed: SDKInt = Field(ge=0)
+    seed_provenance_ref: ArtifactRef
+    seed_provenance_schema_ref: ArtifactRef
+    seed_provenance_validator: ImplementationRef
+    seed_generation_rule: Literal[
+        "uniform_integer_over_exact_n_pair_assignment_vectors_committed_preassignment"
+    ]
+    rng_domain: Literal["aeread.independent_uniform_within_pair_assignment/0.1"]
+    bit_rule: Literal["n_low_order_seed_bits_in_canonical_pair_order"]
+    determinism_rule: Literal[
+        "same_claimed_inputs_reproduce_identical_canonical_realization_bytes"
+    ]
+
+    @model_validator(mode="after")
+    def validate_execute_assignment_source(
+        self,
+    ) -> "ExecuteUniformWithinPairAssignmentSourceSpec":
+        _validate_assignment_implementation(self.algorithm, "algorithm")
+        _validate_assignment_artifact(self.protocol_ref, "protocol_ref")
+        _validate_assignment_artifact(self.seed_provenance_ref, "seed_provenance_ref")
+        _validate_assignment_artifact(
+            self.seed_provenance_schema_ref, "seed_provenance_schema_ref"
+        )
+        _validate_assignment_implementation(
+            self.seed_provenance_validator, "seed_provenance_validator"
+        )
+        _validate_distinct_content_sha256(
+            (
+                self.protocol_ref.sha256,
+                self.seed_provenance_ref.sha256,
+                self.seed_provenance_schema_ref.sha256,
+            ),
+            "execute assignment artifact pins",
+        )
+        return self
+
+
+class ImportedUniformWithinPairAssignmentSourceSpec(_PlannedIdentityRecord):
+    spec_version: Literal["aeread.execution_assignment_source/0.1"]
+    record_type: Literal["execution_assignment_source"]
+    source_kind: Literal["import_predeclared"]
+    realization_artifact_ref: ArtifactRef
+    canonical_schema_ref: ArtifactRef
+    validator: ImplementationRef
+    generation_protocol_ref: ArtifactRef
+    randomization_provenance_ref: ArtifactRef
+    randomization_provenance_schema_ref: ArtifactRef
+    randomization_provenance_validator: ImplementationRef
+    assignment_law: Literal[
+        "independent_uniform_one_half_allocation_for_each_exact_preassignment_pair"
+    ]
+    registration_rule: Literal[
+        "content_pinned_before_plan_cell_publication_and_first_side_effect"
+    ]
+
+    @model_validator(mode="after")
+    def validate_imported_assignment_source(
+        self,
+    ) -> "ImportedUniformWithinPairAssignmentSourceSpec":
+        artifacts = (
+            (self.realization_artifact_ref, "realization_artifact_ref"),
+            (self.canonical_schema_ref, "canonical_schema_ref"),
+            (self.generation_protocol_ref, "generation_protocol_ref"),
+            (self.randomization_provenance_ref, "randomization_provenance_ref"),
+            (
+                self.randomization_provenance_schema_ref,
+                "randomization_provenance_schema_ref",
+            ),
+        )
+        for reference, label in artifacts:
+            _validate_assignment_artifact(reference, label)
+        _validate_assignment_implementation(self.validator, "validator")
+        _validate_assignment_implementation(
+            self.randomization_provenance_validator,
+            "randomization_provenance_validator",
+        )
+        _validate_distinct_content_sha256(
+            tuple(reference.sha256 for reference, _ in artifacts),
+            "imported assignment artifact pins",
+        )
+        return self
+
+
+ExecutionAssignmentSourceSpec = Annotated[
+    ExecuteUniformWithinPairAssignmentSourceSpec
+    | ImportedUniformWithinPairAssignmentSourceSpec,
+    Field(discriminator="source_kind"),
+]
+
+
+class IndependentUniformWithinPairExecutionAssignmentSpec(_PlannedIdentityRecord):
+    spec_version: Literal["aeread.execution_assignment_design/0.1"]
+    record_type: Literal["execution_assignment_design"]
+    assignment_design_id: SDKStr
+    assignment_design_version: SDKStr
+    base_execution_design_ref: AssignmentAuthoringRecordRef
+    pairing_ref: AssignmentAuthoringRecordRef
+    exchangeability_domain_ref: AssignmentAuthoringRecordRef
+    subject_execution_block_id: SDKStr
+    comparator_execution_block_id: SDKStr
+    assignment_unit: Literal["pair_key"]
+    assignment_mechanism: Literal["independent_uniform_within_pair"]
+    allocation_probability_rule: Literal["one_half_each_arm_per_pair"]
+    source: ExecutionAssignmentSourceSpec
+    realization_timing: Literal[
+        "before_plan_cell_publication_and_first_execution_side_effect"
+    ]
+    pair_coverage_rule: Literal[
+        "exact_cover_of_task_1_1c_preassignment_pair_set_no_subset"
+    ]
+    reroll_rule: Literal[
+        "one_scope_one_claim_one_realization_new_draw_requires_new_suite_version"
+    ]
+    scope_derivation_rule: Literal[
+        "task_1_1c_derived_not_caller_supplied_excludes_seed_source_design_provenance_and_realization_bytes"
+    ]
+    realization_key_rule: Literal[
+        "task_1_1c_derived_from_scope_and_scope_claim_not_caller_supplied"
+    ]
+    execution_binding_rule: Literal[
+        "resolved_assignment_changes_execution_design_plan_cell_and_receipt_identity"
+    ]
+
+    @model_validator(mode="after")
+    def validate_execution_assignment(
+        self,
+    ) -> "IndependentUniformWithinPairExecutionAssignmentSpec":
+        _require_non_empty("assignment_design_id", self.assignment_design_id)
+        _require_semver("assignment_design_version", self.assignment_design_version)
+        _validate_assignment_record_ref(
+            self.base_execution_design_ref,
+            "base_execution_design_ref",
+            "execution_design",
+        )
+        _validate_assignment_record_ref(
+            self.pairing_ref, "pairing_ref", "pairing_design"
+        )
+        _validate_assignment_record_ref(
+            self.exchangeability_domain_ref,
+            "exchangeability_domain_ref",
+            "exchangeability_domain",
+        )
+        _require_non_empty(
+            "subject_execution_block_id", self.subject_execution_block_id
+        )
+        _require_non_empty(
+            "comparator_execution_block_id", self.comparator_execution_block_id
+        )
+        if self.subject_execution_block_id == self.comparator_execution_block_id:
+            raise ValueError("subject and comparator execution blocks must be distinct")
+        source_types = (
+            ExecuteUniformWithinPairAssignmentSourceSpec,
+            ImportedUniformWithinPairAssignmentSourceSpec,
+        )
+        if type(self.source) not in source_types:
+            raise ValueError(
+                "source must use an exact execution assignment source type"
+            )
+        type(self.source).model_validate(self.source.model_dump(mode="python"))
+        return self
+
+
 class _StrictValueModel(BaseModel):
     model_config = ConfigDict(
         extra="forbid",

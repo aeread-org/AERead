@@ -329,6 +329,14 @@ def _design(*, with_judge: bool = True, **overrides: object) -> ExecutionDesignS
 
 def test_execution_design_public_surface_is_exactly_additive() -> None:
     assert EXECUTION_DESIGN_EXPORTS <= set(sdk_v1.__all__)
+    b3b_exports = {
+        "AssignmentAuthoringRecordRef",
+        "ExchangeabilityDomainSpec",
+        "ExecuteUniformWithinPairAssignmentSourceSpec",
+        "ExecutionAssignmentSourceSpec",
+        "ImportedUniformWithinPairAssignmentSourceSpec",
+        "IndependentUniformWithinPairExecutionAssignmentSpec",
+    }
     b4a_exports = {
         "BooleanSuccessPredicateSpec",
         "BoundsOrSensitivityMissingnessSpec",
@@ -348,8 +356,10 @@ def test_execution_design_public_surface_is_exactly_additive() -> None:
         "RaterSummarySpec",
     }
     surface = tuple(sorted(sdk_v1.__all__))
-    assert len(surface) == len(set(surface)) == 200
-    prior = tuple(name for name in surface if name not in b4a_exports)
+    assert len(surface) == len(set(surface)) == 206
+    without_b3b = tuple(name for name in surface if name not in b3b_exports)
+    assert len(without_b3b) == 200
+    prior = tuple(name for name in without_b3b if name not in b4a_exports)
     assert len(prior) == 184
 
 

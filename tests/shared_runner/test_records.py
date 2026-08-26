@@ -1114,6 +1114,14 @@ def test_b1_b2_b3_b4a_additions_preserve_legacy_schema_and_export_abi() -> None:
         "RaterDisagreementSummarySpec",
         "RaterSummarySpec",
     }
+    execution_assignment_exports = {
+        "AssignmentAuthoringRecordRef",
+        "ExchangeabilityDomainSpec",
+        "ExecuteUniformWithinPairAssignmentSourceSpec",
+        "ExecutionAssignmentSourceSpec",
+        "ImportedUniformWithinPairAssignmentSourceSpec",
+        "IndependentUniformWithinPairExecutionAssignmentSpec",
+    }
     added_exports = tuple(
         name for name in sdk_v1.__all__ if name in planned_identity_exports
     )
@@ -1136,6 +1144,11 @@ def test_b1_b2_b3_b4a_additions_preserve_legacy_schema_and_export_abi() -> None:
     )
     assert len(b4a_added_exports) == 16
     assert set(b4a_added_exports) == analysis_estimator_missingness_exports
+    b3b_added_exports = tuple(
+        name for name in sdk_v1.__all__ if name in execution_assignment_exports
+    )
+    assert len(b3b_added_exports) == 6
+    assert set(b3b_added_exports) == execution_assignment_exports
     legacy_exports = tuple(
         sorted(
             name
@@ -1144,6 +1157,7 @@ def test_b1_b2_b3_b4a_additions_preserve_legacy_schema_and_export_abi() -> None:
             and name not in measurement_selection_exports
             and name not in execution_design_exports
             and name not in analysis_estimator_missingness_exports
+            and name not in execution_assignment_exports
         )
     )
     assert len(legacy_exports) == 158
