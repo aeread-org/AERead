@@ -860,7 +860,7 @@ def _profile(
             },
             "budgets": {
                 "max_logical_actions": max_logical_actions,
-                "timeout_seconds": 30.0,
+                "timeout_seconds": 90.0 if provider == "openrouter" else 30.0,
                 "max_cost_usd": 0.01 if provider == "openrouter" else 0.001,
             },
             "retry_policy": {
