@@ -1209,9 +1209,7 @@ def test_representative_sources_only_pressure_authoring_shapes(
     template_record = (
         _human_template()
         if template == "human"
-        else _evaluator_template()
-        if template == "agent"
-        else None
+        else _evaluator_template() if template == "agent" else None
     )
     block = _block(
         judgment_template_id=(
