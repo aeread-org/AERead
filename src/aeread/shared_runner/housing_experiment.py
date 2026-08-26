@@ -1005,6 +1005,36 @@ def analyze_paired_results(
     }
 
 
+def analyze_paired_results_if_available(
+    rows: Iterable[Mapping[str, Any]],
+    *,
+    control_condition: str,
+    treatment_condition: str,
+    expected_replicates: int,
+    bootstrap_draws: int,
+    bootstrap_seed: int,
+) -> dict[str, Any]:
+    """Return a typed deferred state while an interrupted panel has no full cluster."""
+
+    try:
+        analysis = analyze_paired_results(
+            rows,
+            control_condition=control_condition,
+            treatment_condition=treatment_condition,
+            expected_replicates=expected_replicates,
+            bootstrap_draws=bootstrap_draws,
+            bootstrap_seed=bootstrap_seed,
+        )
+    except ValueError as error:
+        if str(error) != "paired analysis has no complete world clusters":
+            raise
+        return {
+            "status": "deferred_no_complete_world_clusters",
+            "analysis": None,
+        }
+    return {"status": "complete", "analysis": analysis}
+
+
 class _ScriptedExperimentTenantProvider:
     """Zero-cost structural preflight for plans sealed to the OpenRouter adapter."""
 
@@ -1187,7 +1217,7 @@ async def run_housing_reasoning_experiment(
             spend_limit_usd=remaining_budget,
             progress_callback=progress_callback,
         )
-        analysis = analyze_paired_results(
+        analysis_result = analyze_paired_results_if_available(
             rows,
             control_condition="reasoning_none_v1",
             treatment_condition="reasoning_low_v1",
@@ -1201,7 +1231,8 @@ async def run_housing_reasoning_experiment(
             "admission_batch": admission_batch,
             "admission": admission,
             "batch": batch,
-            "analysis": analysis,
+            "analysis_status": analysis_result["status"],
+            "analysis": analysis_result["analysis"],
             "total_cost_usd": (
                 admission_batch["total_cost_usd"] + batch["total_cost_usd"]
             ),
@@ -1241,6 +1272,7 @@ def main() -> None:
 
 __all__ = [
     "analyze_paired_results",
+    "analyze_paired_results_if_available",
     "build_housing_condition_setup",
     "derive_world_seeds",
     "paired_inference_seed",

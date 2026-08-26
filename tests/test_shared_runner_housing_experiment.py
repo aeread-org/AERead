@@ -17,6 +17,7 @@ from aeread.shared_runner.housing import (
 )
 from aeread.shared_runner.housing_experiment import (
     analyze_paired_results,
+    analyze_paired_results_if_available,
     build_housing_condition_setup,
     derive_world_seeds,
     paired_inference_seed,
@@ -168,6 +169,31 @@ def test_paired_analysis_rejects_duplicate_trajectory_identity() -> None:
             bootstrap_draws=100,
             bootstrap_seed=1,
         )
+
+
+def test_partial_paired_analysis_defers_without_complete_world_cluster() -> None:
+    result = analyze_paired_results_if_available(
+        [
+            _row("reasoning_none_v1", 11, 0, 0.5),
+            _row(
+                "reasoning_low_v1",
+                11,
+                0,
+                None,
+                status="operational_failure",
+            ),
+        ],
+        control_condition="reasoning_none_v1",
+        treatment_condition="reasoning_low_v1",
+        expected_replicates=1,
+        bootstrap_draws=100,
+        bootstrap_seed=1,
+    )
+
+    assert result == {
+        "status": "deferred_no_complete_world_clusters",
+        "analysis": None,
+    }
 
 
 def test_condition_plans_pair_worlds_and_replicates_but_seal_distinct_treatments() -> None:
