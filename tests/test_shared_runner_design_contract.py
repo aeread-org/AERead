@@ -660,15 +660,17 @@ def test_rebaseline_status_names_current_integration_and_next_gate() -> None:
     dispatch = text.split("## Current dispatch gate", 1)[1]
 
     for section in (status, task_02, dispatch):
-        assert "`155d8fc`" in section
-        assert "`b5239cd`" in section
-        assert "`c7aca60`" in section
-        assert "`a7ddbb2`" in section
-        assert "Task 1.1a1" in section
-        assert "Task 1.1a2" in section
-        assert "independent review pending" in section
+        normalized = " ".join(section.split())
+        assert "`155d8fc`" in normalized
+        assert "`b5239cd`" in normalized
+        assert "`c7aca60`" in normalized
+        assert "independently clean through `a7ddbb2`" in normalized
+        assert "Task 1.1a1" in normalized
+        assert "Task 1.1a2" in normalized
+        assert "Task 1.1b" in normalized
     assert "Task 1.1a and all later plan work remain blocked" not in dispatch
     assert "Task 1.1a2 is the next" not in text
+    assert "with independent review pending" not in text
 
     roadmap = RUNNER_ARCHITECTURE.read_text(encoding="utf-8")
     assert "PR #7 at `155d8fc`" in roadmap
@@ -724,6 +726,9 @@ def test_future_lifecycle_contract_is_additive_to_stable_agent_adapter() -> None
     rebaseline_section = REBASELINE_PLAN.read_text(encoding="utf-8").split(
         "### Task 2.2: Add episode-scoped harness lifecycle", 1
     )[1].split("### Task 2.3", 1)[0]
+    lifecycle_runtime_section = REBASELINE_PLAN.read_text(encoding="utf-8").split(
+        "### Task 3.2: Episode/session lifecycle coordinator", 1
+    )[1].split("### Task 3.3", 1)[0]
     design_section = DESIGN.read_text(encoding="utf-8").split(
         "class AttemptObserver(Protocol):", 1
     )[1].split("The public executable names", 1)[0]
@@ -766,6 +771,54 @@ def test_future_lifecycle_contract_is_additive_to_stable_agent_adapter() -> None
         "-> AgentAdapter.cleanup",
     ):
         assert legacy_lifecycle_call not in rebaseline_section
+    assert "execute through the stateless wrapper after this task lands" not in (
+        rebaseline_section
+    )
+    normalized_rebaseline = " ".join(rebaseline_section.split())
+    assert "structural conformance" in normalized_rebaseline
+    assert "Task 3.2 owns its production implementation and execution tests" in (
+        normalized_rebaseline
+    )
+    assert "Create `src/aeread/runner/lifecycle.py`" in lifecycle_runtime_section
+    normalized_runtime = " ".join(lifecycle_runtime_section.split())
+    assert "implements the runner-owned stateless compatibility wrapper" in (
+        normalized_runtime
+    )
+    assert "act-only v1 adapter" in normalized_runtime
+
+
+def test_stage5_dispatch_matches_the_locked_five_benchmark_crosswalk() -> None:
+    plan = REBASELINE_PLAN.read_text(encoding="utf-8")
+    stage5 = plan.split(
+        "## Stage 5 — native parity and external compatibility laboratory", 1
+    )[1].split("## Mandatory conformance spikes", 1)[0]
+
+    expected_tasks = {
+        "### Task 5.3: Five-source admission matrix": (
+            "tau3",
+            "STATE-Bench",
+            "EconEvals",
+            "TERMS-Bench",
+            "GDPval",
+        ),
+        "### Task 5.4: tau3 canonical/reference adapter spike": ("O0", "E0", "E1"),
+        "### Task 5.5: STATE rule/constraint adapter spike": ("O0", "E0", "E1"),
+        "### Task 5.6: EconEvals objective adapter spike": (
+            "Scheduling",
+            "Procurement",
+        ),
+        "### Task 5.7: TERMS comparative fixture": ("A0", "E0"),
+        "### Task 5.8: GDPval rater fixture": ("A0", "E0"),
+    }
+    headings = tuple(expected_tasks)
+    for index, heading in enumerate(headings):
+        section = stage5.split(heading, 1)[1]
+        if index + 1 < len(headings):
+            section = section.split(headings[index + 1], 1)[0]
+        assert all(fragment in section for fragment in expected_tasks[heading])
+
+    for stale_dispatch in ("FinanceBench", "AucArena", "Market-Bench"):
+        assert stale_dispatch not in stage5
 
 
 def test_public_spec_reports_implemented_foundation_and_missing_runtime() -> None:

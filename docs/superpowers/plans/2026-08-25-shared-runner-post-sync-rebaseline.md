@@ -6,9 +6,9 @@
 > `155d8fc` is integrated locally by true merge `b5239cd`, with compatibility and
 > executable-guard follow-ups through `c7aca60`; none was pushed or merged to GitHub/main.
 > Task 0.3 is complete. Task 1.1a1 is independently clean through `ca173f4`; Task 1.1a2
-> has candidate fixes through `a7ddbb2`, with independent review pending. The executable
-> scheduler, attempt executor, receipt/replay kernel, and benchmark adapters remain
-> unimplemented.
+> is independently clean through `a7ddbb2`; Task 1.1b is the next bounded measurement
+> slice. The executable scheduler, attempt executor, receipt/replay kernel, and benchmark
+> adapters remain unimplemented.
 > **Supersedes:** Tasks 6–11 of `2026-08-24-shared-runner-sdk-kernel.md`; Tasks 1–5 and their review history remain valid
 
 ## Objective
@@ -95,8 +95,8 @@ local APFS volume.
 
 Complete locally. Latest PR #7 source `155d8fc` is integrated by true merge `b5239cd`, with
 crosswalk/status/stability/ABI-guard follow-ups through `c7aca60`. Task 1.1a1 is
-independently clean through `ca173f4`; Task 1.1a2 has candidate fixes through `a7ddbb2`,
-with independent review pending. Older `275a285`/`388e52b` commits remain
+independently clean through `ca173f4`; Task 1.1a2 is independently clean through
+`a7ddbb2`, and Task 1.1b is next. Older `275a285`/`388e52b` commits remain
 historical milestones only. No implementer should repeat either merge, push it, or merge it
 to GitHub/main under this plan.
 
@@ -1309,8 +1309,9 @@ open-session, reset, close, cleanup, backend-stop, timeout, failure, and
 requested family mutation and can execute only read-only, harness-internal, or
 transactional-preview operations. Task 3.2 consumes these fakes for the runtime failure
 matrix. A pre-Task-2.2 conformance fake that implements only the stable
-`AgentAdapter.act()` Protocol must still pass admission and execute through the stateless
-wrapper after this task lands.
+`AgentAdapter.act()` Protocol must retain structural conformance to `AgentAdapter`; adding
+the separate lifecycle Protocol must not make the legacy adapter invalid. Task 3.2 owns its
+production implementation and execution tests through the stateless wrapper.
 
 **Output:** versioned lifecycle/capability/session/tool-mediation contracts with distinct
 economic-seat and evaluator-assignment subjects plus reusable scripted fakes, with no
@@ -1488,6 +1489,13 @@ EpisodeLifecycle`, `borrow_session(subject) -> AgentSessionLease`, and
 same full runtime subject and rejects unless its `LifecycleLeaseSubjectKey` projection,
 admission version/hash, and PlanCell entry exact-match. This is the only task that
 implements lifecycle orchestration for both economic-seat and evaluator-assignment leases.
+
+`src/aeread/runner/lifecycle.py` also implements the runner-owned stateless compatibility
+wrapper promised by the public design: it presents an act-only v1 adapter as the trivial
+session required by this coordinator without changing the adapter's Protocol. Lifecycle
+tests execute a pre-Task-2.2 act-only v1 adapter through that wrapper and prove identical
+request/observer/response behavior, cleanup on every terminal path, and continued
+`AgentAdapter` admission.
 
 Implement fail-closed preflight and cleanup ownership with scripted adapters/backends.
 Default isolation closes each session at episode-attempt scope and opens fresh on the next
@@ -2286,29 +2294,56 @@ the false `L=0` outcome-floor wording corrected; landlord response-pass conseque
 intentionally defined. Map contact/respond/commit to phases and keep controlled tenant
 results separate from population/live-live blocks.
 
-### Task 5.3: Source-only upstream admission audits
+### Task 5.3: Five-source admission matrix
 
-Audit pins, materialization, license, official scorer/reference availability, interaction
-topology, runtime needs, and execution surface for the five provisional sources. These
-audits may run before native parity but make no execution-compatibility claim. Produce
-five independently reviewable audit artifacts/commit gates—FinanceBench, AucArena,
-Market-Bench, TERMS-Bench, and GDPval—then derive one summary matrix; a blocked source
-does not obscure the status of the other four.
+Produce one independently reviewable A0 row for each locked primary representative:
+tau3, STATE-Bench, EconEvals, TERMS-Bench, and GDPval. Every row records immutable source
+identity, license, materialization, official scorer/reference availability, interaction
+topology, execution/runtime needs, and whether O0, E0, or E1 is currently admissible. A
+blocked row remains typed and does not obscure the other four. Other historical taxonomy
+examples are future candidates, not dispatch items in this plan.
 
-### Task 5.4: tau retail adapter spike
+### Task 5.4: tau3 canonical/reference adapter spike
 
-Explicit dependency: Tasks 5.1 and 5.2 are independently clean through the same kernel.
-Then adapt tau2/tau3 retail pinned to dereferenced `v1.0.1` commit
-`fc0055dc4e0a316c3f83133267fbd6faaa770992`: first 1–3 scripted half-duplex tasks, then
-the declared 18-task component-parity pilot. Full-duplex is interop/future.
+After the relevant measurement leaf and provider-free receipt/replay kernel are
+independently clean, freeze the existing tau3 retail/base O0 fixture at dereferenced
+`v1.0.1` commit `fc0055dc4e0a316c3f83133267fbd6faaa770992`. Build an E0 typed terminal-state
+fixture, then replay the identical cases/actions through the source adapter and official
+verifier bridge for E1 component parity. The two DB-only tasks do not justify a full-suite
+claim: the other 112/114 tasks retain a separate natural-language assertion leaf.
 
-### Task 5.5: Exact objective/tool-loop adapter spike
+### Task 5.5: STATE rule/constraint adapter spike
 
-Explicit dependency: Tasks 5.1 and 5.2 are independently clean through the same kernel.
-Then prefer EconEvals Procurement at
-`e1f2a40fec96f0d27f5414873c4310f2b5c51935` unless Chenyu supplies a more executable
-final representative. FinanceBench, AucArena, Market-Bench, TERMS-Bench, and GDPval stay
-source-admission-only until their missing code/license/scorer/judge prerequisites close.
+Freeze the reviewed STATE-Bench O0 deterministic state-requirement fixture, including its
+exact domain-qualified task identity and source/runtime pins. Build an E0 rule/constraint
+leaf over the same typed requirements and evidence, then compare the same fixture through
+the adapter/bridge at E1. Non-empty task requirements that invoke the locked judge remain a
+separate rater leaf; do not relabel human-authored conversational requirements as a generic
+deterministic temporal predicate.
+
+### Task 5.6: EconEvals objective adapter spike
+
+Use EconEvals Scheduling at commit
+`e1f2a40fec96f0d27f5414873c4310f2b5c51935` for the first objective E0/E1 fixture because
+its provider-free O0 oracle and baseline are already sealed. Add Procurement only after a
+pinned solver, exact optimality status/certificate, deterministic instance materialization,
+and the declared validity domain are all available. An empirical Scheduling baseline is
+not mislabeled as an exact optimum.
+
+### Task 5.7: TERMS comparative fixture
+
+Record TERMS-Bench public materials as A0 only. Build a clearly AERead-owned controlled
+buyer/seller E0 comparative fixture with frozen counterpart, information boundary, utility,
+outside option, and paired seed design. Do not claim official E1 parity until the official
+simulator, defaults/config hash, code pin, and license are published and admitted.
+
+### Task 5.8: GDPval rater fixture
+
+Complete GDPval A0 admission for task/artifact/rubric identities, redistribution/license,
+and the occupational-expert blinded comparison protocol. Then build a canned, provider-free
+E0 rater fixture that proves evaluator assignment, blind order, missing judgment, and
+artifact-view boundaries. A later LLM-judge or live artifact-backend pilot is a distinct
+protocol and never substitutes for the headline human evaluation.
 
 ## Mandatory conformance spikes
 
@@ -2351,8 +2386,9 @@ is a blocker, not authority for a sixth plan-fix round or hidden implementer dis
 
 Latest PR #7 source `155d8fc` is integrated locally by true merge `b5239cd`, with
 compatibility and executable-guard follow-ups through `c7aca60`; the whole runner is not
-implemented. Task 1.1a1 is independently clean through `ca173f4`; Task 1.1a2 has candidate
-fixes through `a7ddbb2`, with independent review pending. Later tasks advance only through
-their declared dependency, RED/GREEN, scoped commit, and independent-review gates.
+implemented. Task 1.1a1 is independently clean through `ca173f4`; Task 1.1a2 is
+independently clean through `a7ddbb2`; Task 1.1b is next. Later tasks
+advance only through their declared dependency, RED/GREEN, scoped commit, and
+independent-review gates.
 Provider-free/static evidence is never reported as live runtime, upstream parity, or
 benchmark-quality evidence.

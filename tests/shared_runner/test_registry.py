@@ -599,16 +599,17 @@ def test_legacy_call_attempt_record_schemas_and_validation_remain_stable() -> No
         ).encode()
         assert hashlib.sha256(schema_bytes).hexdigest() == expected_digest
 
-    start = CallAttemptStart(
-        call_attempt_id="call-1",
-        logical_action_id="logical-1",
-        ordinal=1,
-        request_sha256="request-sha",
-        provider="provider",
-        model="model",
-        timeout_seconds=1.0,
-        output_token_limit=1,
-    )
+    valid_start = {
+        "call_attempt_id": "call-1",
+        "logical_action_id": "logical-1",
+        "ordinal": 1,
+        "request_sha256": "request-sha",
+        "provider": "provider",
+        "model": "model",
+        "timeout_seconds": 1.0,
+        "output_token_limit": 1,
+    }
+    start = CallAttemptStart(**valid_start)
     assert start.model_fields_set == {
         "call_attempt_id",
         "logical_action_id",
@@ -620,19 +621,77 @@ def test_legacy_call_attempt_record_schemas_and_validation_remain_stable() -> No
         "output_token_limit",
     }
     assert CallAttemptToken(call_attempt_id="call-1").call_attempt_id == "call-1"
+    assert start.retry_reason is None
+    assert start.input_token_limit is None
+    assert start.spec_version == "aeread.sdk_record/1"
+    populated_optionals = CallAttemptStart(
+        **(
+            valid_start
+            | {
+                "retry_reason": "transport",
+                "input_token_limit": 1,
+                "timeout_seconds": 1,
+            }
+        )
+    )
+    assert populated_optionals.retry_reason == "transport"
+    assert populated_optionals.input_token_limit == 1
+    assert populated_optionals.timeout_seconds == 1.0
+
+    required_fields = tuple(valid_start)
+    for field_name in required_fields:
+        with pytest.raises(ValidationError):
+            CallAttemptStart(
+                **{key: value for key, value in valid_start.items() if key != field_name}
+            )
+
+    for field_name in (
+        "call_attempt_id",
+        "logical_action_id",
+        "retry_reason",
+        "request_sha256",
+        "provider",
+        "model",
+    ):
+        for invalid in (b"coercion", 1):
+            with pytest.raises(ValidationError):
+                CallAttemptStart(**(valid_start | {field_name: invalid}))
+
+    for field_name in ("ordinal", "input_token_limit", "output_token_limit"):
+        for invalid in ("1", True):
+            with pytest.raises(ValidationError):
+                CallAttemptStart(**(valid_start | {field_name: invalid}))
+
+    for invalid in ("1.0", True):
+        with pytest.raises(ValidationError):
+            CallAttemptStart(**(valid_start | {"timeout_seconds": invalid}))
+
+    for field_name in ("ordinal", "input_token_limit", "output_token_limit"):
+        with pytest.raises(ValidationError):
+            CallAttemptStart(**(valid_start | {field_name: 0}))
     with pytest.raises(ValidationError):
-        CallAttemptStart(
-            call_attempt_id="call-1",
-            logical_action_id="logical-1",
-            ordinal=0,
-            request_sha256="request-sha",
-            provider="provider",
-            model="model",
-            timeout_seconds=1.0,
-            output_token_limit=1,
+        CallAttemptStart(**(valid_start | {"timeout_seconds": 0.0}))
+    with pytest.raises(ValidationError):
+        CallAttemptStart(**(valid_start | {"spec_version": "aeread.sdk_record/2"}))
+    with pytest.raises(ValidationError):
+        CallAttemptStart(**(valid_start | {"unexpected": "drift"}))
+    with pytest.raises(ValidationError):
+        setattr(start, "ordinal", 2)
+
+    with pytest.raises(ValidationError):
+        CallAttemptToken()
+    for invalid in (b"call-1", 1):
+        with pytest.raises(ValidationError):
+            CallAttemptToken(call_attempt_id=invalid)
+    with pytest.raises(ValidationError):
+        CallAttemptToken(
+            call_attempt_id="call-1", spec_version="aeread.sdk_record/2"
         )
     with pytest.raises(ValidationError):
         CallAttemptToken(call_attempt_id="call-1", unexpected="drift")
+    token = CallAttemptToken(call_attempt_id="call-1")
+    with pytest.raises(ValidationError):
+        setattr(token, "call_attempt_id", "call-2")
 
 
 def test_resolution_rejects_malformed_reference_before_lookup() -> None:
