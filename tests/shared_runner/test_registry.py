@@ -56,22 +56,66 @@ from .fakes import (
 )
 
 
-def _assert_call_attempt_timeout_type_contract(record_type: type[object]) -> None:
-    from aeread.sdk.v1.base import SDKFloat
+EXACT_NUMBER_VALIDATOR_SOURCE_SHA256 = (
+    "4ae7c3f529ac45ceeb024f2beee15a082a793adbae6686733085a878dd95a43e"
+)
 
-    assert (
-        get_type_hints(record_type, include_extras=True)["timeout_seconds"] == SDKFloat
+
+def _assert_call_attempt_timeout_type_contract(record_type: type[object]) -> None:
+    from aeread.sdk.v1 import base as sdk_base
+
+    validator_source = inspect.getsource(sdk_base._require_exact_number).encode()
+    assert hashlib.sha256(validator_source).hexdigest() == (
+        EXACT_NUMBER_VALIDATOR_SOURCE_SHA256
     )
+
+    declared_type = get_type_hints(record_type, include_extras=True)["timeout_seconds"]
+    assert declared_type.__origin__ is float
+    assert len(declared_type.__metadata__) == 2
+    declared_validator, declared_field = declared_type.__metadata__
+    assert type(declared_validator) is BeforeValidator
+    assert declared_validator.func is sdk_base._require_exact_number
+    assert declared_validator.json_schema_input_type is PydanticUndefined
+    assert (type(declared_field).__module__, type(declared_field).__qualname__) == (
+        "pydantic.fields",
+        "FieldInfo",
+    )
+    assert declared_field.is_required()
+    assert declared_field.default is PydanticUndefined
+    assert declared_field.annotation is None
+    assert len(declared_field.metadata) == 2
+    declared_strict, declared_finite = declared_field.metadata
+    assert (type(declared_strict).__module__, type(declared_strict).__qualname__) == (
+        "pydantic.types",
+        "Strict",
+    )
+    assert declared_strict.strict is True
+    assert (type(declared_finite).__module__, type(declared_finite).__qualname__) == (
+        "pydantic._internal._fields",
+        "_general_metadata_cls.<locals>._PydanticGeneralMetadata",
+    )
+    assert vars(declared_finite) == {"allow_inf_nan": False}
+
     field = record_type.model_fields["timeout_seconds"]  # type: ignore[attr-defined]
-    sdk_before_validator, sdk_field = SDKFloat.__metadata__
     assert field.is_required()
     assert field.default is PydanticUndefined
     assert field.annotation is float
-    assert tuple(field.metadata) == (
-        Gt(gt=0),
-        sdk_before_validator,
-        *sdk_field.metadata,
+    assert len(field.metadata) == 4
+    gt, model_validator, strict, finite = field.metadata
+    assert gt == Gt(gt=0)
+    assert type(model_validator) is BeforeValidator
+    assert model_validator.func is sdk_base._require_exact_number
+    assert model_validator.json_schema_input_type is PydanticUndefined
+    assert (type(strict).__module__, type(strict).__qualname__) == (
+        "pydantic.types",
+        "Strict",
     )
+    assert strict.strict is True
+    assert (type(finite).__module__, type(finite).__qualname__) == (
+        "pydantic._internal._fields",
+        "_general_metadata_cls.<locals>._PydanticGeneralMetadata",
+    )
+    assert vars(finite) == {"allow_inf_nan": False}
 
 
 def test_registry_resolves_exact_environment_version() -> None:
@@ -725,7 +769,7 @@ def test_legacy_call_attempt_record_schemas_and_validation_remain_stable() -> No
         setattr(token, "call_attempt_id", "call-2")
 
 
-def test_call_attempt_timeout_has_a_closed_world_raw_input_contract() -> None:
+def test_call_attempt_timeout_has_explicit_raw_input_probes() -> None:
     from aeread.sdk.v1 import CallAttemptStart
 
     class IntSubclass(int):
@@ -733,6 +777,18 @@ def test_call_attempt_timeout_has_a_closed_world_raw_input_contract() -> None:
 
     class FloatSubclass(float):
         pass
+
+    class FloatProtocol:
+        def __float__(self) -> float:
+            return 1.0
+
+    class IndexProtocol:
+        def __index__(self) -> int:
+            return 1
+
+    class PathLikeProtocol(os.PathLike[str]):
+        def __fspath__(self) -> str:
+            return "1"
 
     _assert_call_attempt_timeout_type_contract(CallAttemptStart)
     valid_start = {
@@ -761,6 +817,10 @@ def test_call_attempt_timeout_has_a_closed_world_raw_input_contract() -> None:
         complex(1, 0),
         IntSubclass(1),
         FloatSubclass(1.0),
+        Path("1"),
+        FloatProtocol(),
+        IndexProtocol(),
+        PathLikeProtocol(),
         "1.0",
         True,
         Decimal("1.0"),
@@ -879,6 +939,57 @@ def test_timeout_contract_rejects_the_reviewers_selective_bytes_mutant() -> None
         raise AssertionError(
             "selective bytes mutant escaped the timeout contract guard"
         )
+
+
+def test_timeout_contract_rejects_a_mutated_sdkfloat_authority_alias(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from aeread.sdk.v1 import CallAttemptStart
+    from aeread.sdk.v1 import base as sdk_base
+
+    def accept_path_or_exact_number(value: object) -> object:
+        if isinstance(value, Path):
+            return 1.0
+        if type(value) not in (int, float):
+            raise ValueError("expected an exact number")
+        if type(value) is float and not math.isfinite(value):
+            raise ValueError("expected a finite number")
+        return value
+
+    mutated_sdk_float = Annotated[
+        float,
+        BeforeValidator(accept_path_or_exact_number),
+        Field(strict=True, allow_inf_nan=False),
+    ]
+    monkeypatch.setattr(sdk_base, "SDKFloat", mutated_sdk_float)
+    mutant_record = create_model(
+        "MutatedAuthorityCallAttemptStart",
+        __base__=CallAttemptStart,
+        timeout_seconds=(mutated_sdk_float, Field(gt=0)),
+    )
+    assert (
+        mutant_record.model_json_schema()["properties"]["timeout_seconds"]
+        == CallAttemptStart.model_json_schema()["properties"]["timeout_seconds"]
+    )
+    assert (
+        mutant_record(
+            call_attempt_id="call-1",
+            logical_action_id="logical-1",
+            ordinal=1,
+            request_sha256="request-sha",
+            provider="provider",
+            model="model",
+            timeout_seconds=Path("1"),
+            output_token_limit=1,
+        ).timeout_seconds
+        == 1.0
+    )
+    try:
+        _assert_call_attempt_timeout_type_contract(mutant_record)
+    except AssertionError:
+        pass
+    else:
+        raise AssertionError("mutated SDKFloat authority alias escaped the guard")
 
 
 def test_resolution_rejects_malformed_reference_before_lookup() -> None:

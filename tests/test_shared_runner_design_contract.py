@@ -39,6 +39,33 @@ REBASELINE_PLAN = (
     / "2026-08-25-shared-runner-post-sync-rebaseline.md"
 )
 
+TASK_22_HEADING = "### Task 2.2: Add episode-scoped harness lifecycle"
+TASK_23_HEADING = "### Task 2.3: Freeze whole-trial admission semantics without implementing a protocol"
+TASK_32_HEADING = "### Task 3.2: Episode/session lifecycle coordinator"
+TASK_33_HEADING = "### Task 3.3: Action-attempt executor"
+STAGE5_HEADING = "## Stage 5 — native parity and external compatibility laboratory"
+TASK_53_HEADING = "### Task 5.3: Five-source admission matrix"
+TASK_54_HEADING = "### Task 5.4: tau3 canonical/reference adapter spike"
+TASK_55_HEADING = "### Task 5.5: STATE rule/constraint adapter spike"
+TASK_56_HEADING = "### Task 5.6: EconEvals objective adapter spike"
+TASK_57_HEADING = "### Task 5.7: TERMS comparative fixture"
+TASK_58_HEADING = "### Task 5.8: GDPval rater fixture"
+MANDATORY_SPIKES_HEADING = "## Mandatory conformance spikes"
+AUTHORITATIVE_HEADINGS = (
+    TASK_22_HEADING,
+    TASK_23_HEADING,
+    TASK_32_HEADING,
+    TASK_33_HEADING,
+    STAGE5_HEADING,
+    TASK_53_HEADING,
+    TASK_54_HEADING,
+    TASK_55_HEADING,
+    TASK_56_HEADING,
+    TASK_57_HEADING,
+    TASK_58_HEADING,
+    MANDATORY_SPIKES_HEADING,
+)
+
 TASK_22_SECTION_SHA256 = (
     "bc38fb28e40f8148acb15b867776807af6b3b46400f4d2f657d9034d76271917"
 )
@@ -46,22 +73,60 @@ TASK_32_SECTION_SHA256 = (
     "edf21c87a62e4a57f40ea26b19b584cf0907e1112e3c7702c72293aa0c1bca7b"
 )
 STAGE5_SECTION_SHA256 = {
-    "### Task 5.4: tau3 canonical/reference adapter spike": (
+    TASK_54_HEADING: (
         "344063a54256f9a583931e195d5c6afc5ffb483a958a539b5211a1a8e052fc3f"
     ),
-    "### Task 5.5: STATE rule/constraint adapter spike": (
+    TASK_55_HEADING: (
         "472f9a24ab06774beae55ff72079b2e84eda96aa3f713966595223ed9a7c56f6"
     ),
-    "### Task 5.6: EconEvals objective adapter spike": (
+    TASK_56_HEADING: (
         "4332085f3e9db2dcda7c0a6dd29c47c22a5f62c9cafe940c1e88984360632693"
     ),
-    "### Task 5.7: TERMS comparative fixture": (
+    TASK_57_HEADING: (
         "4ab695589186e813152888831da6c9b3d809188785ab1e481efff8cfff408a65"
     ),
-    "### Task 5.8: GDPval rater fixture": (
+    TASK_58_HEADING: (
         "60e2debd1ed40f0a4902ccd3963a71579676f7ababfa6efc1f152940c3abcc00"
     ),
 }
+
+
+def _strict_authoritative_sections(text: str) -> dict[str, str]:
+    lines = text.splitlines()
+    positions = {}
+    for heading in AUTHORITATIVE_HEADINGS:
+        candidates = [
+            index for index, line in enumerate(lines) if line.strip() == heading
+        ]
+        assert (
+            len(candidates) == 1
+        ), f"expected one authoritative heading {heading!r}: {candidates!r}"
+        index = candidates[0]
+        assert (
+            lines[index] == heading
+        ), f"authoritative heading must be exact and start at column 0: {heading!r}"
+        positions[heading] = index
+
+    ordered_positions = tuple(positions[heading] for heading in AUTHORITATIVE_HEADINGS)
+    assert ordered_positions == tuple(
+        sorted(ordered_positions)
+    ), f"authoritative headings are out of order: {ordered_positions!r}"
+
+    section_boundaries = {
+        TASK_22_HEADING: TASK_23_HEADING,
+        TASK_32_HEADING: TASK_33_HEADING,
+        STAGE5_HEADING: MANDATORY_SPIKES_HEADING,
+        TASK_53_HEADING: TASK_54_HEADING,
+        TASK_54_HEADING: TASK_55_HEADING,
+        TASK_55_HEADING: TASK_56_HEADING,
+        TASK_56_HEADING: TASK_57_HEADING,
+        TASK_57_HEADING: TASK_58_HEADING,
+        TASK_58_HEADING: MANDATORY_SPIKES_HEADING,
+    }
+    return {
+        start: "\n".join(lines[positions[start] + 1 : positions[end]])
+        for start, end in section_boundaries.items()
+    }
 
 
 def _assert_normalized_section_snapshot(section: str, expected_sha256: str) -> None:
@@ -180,21 +245,21 @@ def _assert_task_32_production_ownership(section: str) -> None:
 
 def _assert_stage5_evidence_directions(sections: dict[str, str]) -> None:
     expected = {
-        "### Task 5.4: tau3 canonical/reference adapter spike": (
+        TASK_54_HEADING: (
             "**Evidence direction:** `O0 (current) -> E0 (next) -> E1 (after E0 parity gate)`.",
         ),
-        "### Task 5.5: STATE rule/constraint adapter spike": (
+        TASK_55_HEADING: (
             "**Evidence direction:** `O0 (current) -> E0 (next) -> E1 (after E0 parity gate)`.",
         ),
-        "### Task 5.6: EconEvals objective adapter spike": (
+        TASK_56_HEADING: (
             "**Evidence direction:** `Scheduling O0 (current) -> Scheduling E0 (next) "
             "-> Scheduling E1 (after E0 parity gate)`; Procurement remains blocked.",
         ),
-        "### Task 5.7: TERMS comparative fixture": (
+        TASK_57_HEADING: (
             "**Evidence direction:** `A0 (current) -> AERead-owned E0 (next) -> official "
             "E1 blocked` until upstream is admitted.",
         ),
-        "### Task 5.8: GDPval rater fixture": (
+        TASK_58_HEADING: (
             "**Evidence direction:** `A0 (current) -> canned provider-free E0 (next) -> "
             "official E1 blocked` until the official protocol is admitted.",
         ),
@@ -839,15 +904,14 @@ def test_existing_attempt_observer_and_agent_adapter_signatures_remain_stable() 
 
 
 def test_future_lifecycle_contract_is_additive_to_stable_agent_adapter() -> None:
+    authoritative_sections = _strict_authoritative_sections(
+        REBASELINE_PLAN.read_text(encoding="utf-8")
+    )
     public_section = PUBLIC_ENVIRONMENT_SPEC.read_text(encoding="utf-8").split(
         "### 3.3 Observation and canonical response boundary", 1
     )[1].split("### 3.4 Verifier contract", 1)[0]
-    rebaseline_section = REBASELINE_PLAN.read_text(encoding="utf-8").split(
-        "### Task 2.2: Add episode-scoped harness lifecycle", 1
-    )[1].split("### Task 2.3", 1)[0]
-    lifecycle_runtime_section = REBASELINE_PLAN.read_text(encoding="utf-8").split(
-        "### Task 3.2: Episode/session lifecycle coordinator", 1
-    )[1].split("### Task 3.3", 1)[0]
+    rebaseline_section = authoritative_sections[TASK_22_HEADING]
+    lifecycle_runtime_section = authoritative_sections[TASK_32_HEADING]
     design_section = DESIGN.read_text(encoding="utf-8").split(
         "class AttemptObserver(Protocol):", 1
     )[1].split("The public executable names", 1)[0]
@@ -996,33 +1060,30 @@ def test_future_lifecycle_contract_is_additive_to_stable_agent_adapter() -> None
 
 def test_stage5_dispatch_matches_the_locked_five_benchmark_crosswalk() -> None:
     plan = REBASELINE_PLAN.read_text(encoding="utf-8")
-    stage5 = plan.split(
-        "## Stage 5 — native parity and external compatibility laboratory", 1
-    )[1].split("## Mandatory conformance spikes", 1)[0]
+    authoritative_sections = _strict_authoritative_sections(plan)
+    stage5 = authoritative_sections[STAGE5_HEADING]
 
     expected_tasks = {
-        "### Task 5.3: Five-source admission matrix": (
+        TASK_53_HEADING: (
             "tau3",
             "STATE-Bench",
             "EconEvals",
             "TERMS-Bench",
             "GDPval",
         ),
-        "### Task 5.4: tau3 canonical/reference adapter spike": (),
-        "### Task 5.5: STATE rule/constraint adapter spike": (),
-        "### Task 5.6: EconEvals objective adapter spike": (
+        TASK_54_HEADING: (),
+        TASK_55_HEADING: (),
+        TASK_56_HEADING: (
             "Scheduling",
             "Procurement",
         ),
-        "### Task 5.7: TERMS comparative fixture": (),
-        "### Task 5.8: GDPval rater fixture": (),
+        TASK_57_HEADING: (),
+        TASK_58_HEADING: (),
     }
     headings = tuple(expected_tasks)
     sections: dict[str, str] = {}
-    for index, heading in enumerate(headings):
-        section = stage5.split(heading, 1)[1]
-        if index + 1 < len(headings):
-            section = section.split(headings[index + 1], 1)[0]
+    for heading in headings:
+        section = authoritative_sections[heading]
         normalized_section = " ".join(section.split())
         sections[heading] = section
         assert all(
@@ -1033,7 +1094,7 @@ def test_stage5_dispatch_matches_the_locked_five_benchmark_crosswalk() -> None:
         assert stale_dispatch not in stage5
     _assert_stage5_evidence_directions(sections)
 
-    tau3_heading = "### Task 5.4: tau3 canonical/reference adapter spike"
+    tau3_heading = TASK_54_HEADING
     tau3_direction = "**Evidence direction:** `O0 (current) -> E0 (next) -> E1 (after E0 parity gate)`."
     tau3_swap_mutation = dict(sections)
     tau3_swap_mutation[tau3_heading] = tau3_swap_mutation[tau3_heading].replace(
@@ -1106,7 +1167,7 @@ def test_stage5_dispatch_matches_the_locked_five_benchmark_crosswalk() -> None:
         else:
             raise AssertionError(f"reviewer {label} mutant escaped the guard")
 
-    econ_heading = "### Task 5.6: EconEvals objective adapter spike"
+    econ_heading = TASK_56_HEADING
     econ_e3_mutation = dict(sections)
     econ_e3_mutation[econ_heading] = econ_e3_mutation[econ_heading].replace(
         "Scheduling E1", "Scheduling E3", 1
@@ -1117,6 +1178,54 @@ def test_stage5_dispatch_matches_the_locked_five_benchmark_crosswalk() -> None:
         pass
     else:
         raise AssertionError("EconEvals E3 mutation escaped the guard")
+
+
+def test_authoritative_heading_code_block_mutant_is_rejected() -> None:
+    plan = REBASELINE_PLAN.read_text(encoding="utf-8")
+    headings = AUTHORITATIVE_HEADINGS
+    mutated = "\n".join(
+        f"    {line}" if line in headings else line for line in plan.splitlines()
+    )
+    task_22 = mutated.split(headings[0], 1)[1].split(headings[1], 1)[0]
+    task_32 = mutated.split(headings[2], 1)[1].split(headings[3], 1)[0]
+    stage5 = mutated.split(headings[4], 1)[1].split(headings[-1], 1)[0]
+    stage5_sections = {}
+    for index, heading in enumerate(headings[6:11]):
+        section = stage5.split(heading, 1)[1]
+        if index + 1 < len(headings[6:11]):
+            section = section.split(headings[6:11][index + 1], 1)[0]
+        stage5_sections[heading] = section
+
+    _assert_task_22_structural_ownership(task_22)
+    _assert_task_32_production_ownership(task_32)
+    _assert_stage5_evidence_directions(stage5_sections)
+    try:
+        _strict_authoritative_sections(mutated)
+    except AssertionError:
+        pass
+    else:
+        raise AssertionError("indented authoritative headings escaped the guard")
+
+
+def test_authoritative_heading_parser_rejects_duplicates_and_relocation() -> None:
+    plan = REBASELINE_PLAN.read_text(encoding="utf-8")
+    duplicate = plan + f"\n{TASK_54_HEADING}\n"
+    relocated = "\n".join(
+        (
+            TASK_55_HEADING
+            if line == TASK_54_HEADING
+            else TASK_54_HEADING if line == TASK_55_HEADING else line
+        )
+        for line in plan.splitlines()
+    )
+
+    for label, mutant in (("duplicate", duplicate), ("relocated", relocated)):
+        try:
+            _strict_authoritative_sections(mutant)
+        except AssertionError:
+            pass
+        else:
+            raise AssertionError(f"{label} authoritative heading escaped the guard")
 
 
 def test_public_spec_reports_implemented_foundation_and_missing_runtime() -> None:
