@@ -26,6 +26,10 @@ def _money(value: float) -> float:
     return math.ceil(float(value) * 100.0 - 1e-9) / 100.0
 
 
+def _floor_money(value: float) -> float:
+    return math.floor(float(value) * 100.0 + 1e-9) / 100.0
+
+
 def _finite_positive(value: Any) -> bool:
     return (
         isinstance(value, (int, float))
@@ -181,6 +185,54 @@ def _priced_world(
     return replace(world, suppliers=suppliers)
 
 
+def world_to_payload(world: procurement.ProcurementWorld) -> dict[str, Any]:
+    """Serialize evaluator-private world truth into a CaseManifest payload."""
+    return {
+        "name": world.name,
+        "buyer_agent": world.buyer_agent,
+        "suppliers": [asdict(terms) for terms in world.suppliers],
+        "demand": asdict(world.demand),
+        "authorization": asdict(world.authz),
+    }
+
+
+def world_from_payload(raw: Mapping[str, Any]) -> procurement.ProcurementWorld:
+    if set(raw) != {"name", "buyer_agent", "suppliers", "demand", "authorization"}:
+        raise ValueError("procurement world payload fields are incomplete or unexpected")
+    demand = raw["demand"]
+    authorization = raw["authorization"]
+    world = procurement.ProcurementWorld(
+        name=str(raw["name"]),
+        buyer_agent=int(raw["buyer_agent"]),
+        suppliers=[
+            procurement.SupplierTerms(
+                seller_id=int(item["seller_id"]),
+                component=str(item["component"]),
+                unit_cost=float(item["unit_cost"]),
+                capacity=int(item["capacity"]),
+                lead_time_days=int(item["lead_time_days"]),
+                moq=int(item["moq"]),
+                payment_terms_days=int(item["payment_terms_days"]),
+                late_penalty_per_day=float(item["late_penalty_per_day"]),
+            )
+            for item in raw["suppliers"]
+        ],
+        demand=procurement.DemandSpec(
+            units_required={str(key): int(value) for key, value in demand["units_required"].items()},
+            deadline_days=int(demand["deadline_days"]),
+            contract_value=float(demand["contract_value"]),
+        ),
+        authz=procurement.AuthorizationSpec(
+            budget=float(authorization["budget"]),
+            approved_vendors=[int(value) for value in authorization["approved_vendors"]],
+            signoff_threshold=float(authorization["signoff_threshold"]),
+        ),
+    )
+    if not procurement.solve_min_cost_award(world).feasible:
+        raise ValueError("procurement world payload has no feasible approved award")
+    return world
+
+
 def buyer_surplus_upper_bound(
     world: procurement.ProcurementWorld,
     *,
@@ -229,6 +281,71 @@ class ProcurementRFQMarket:
         self.approval: ApprovalDecision | None = None
         self.award_lines: tuple[procurement.AwardLine, ...] = ()
         self.finished = False
+
+    def snapshot(self) -> dict[str, Any]:
+        return {
+            "phase": self.phase,
+            "rfqs": [asdict(item) for item in self.rfqs.values()],
+            "opening_quotes": [asdict(item) for item in self.opening_quotes.values()],
+            "counters": [asdict(item) for item in self.counters.values()],
+            "final_offers": [asdict(item) for item in self.final_offers.values()],
+            "approval": asdict(self.approval) if self.approval is not None else None,
+            "award_lines": [asdict(item) for item in self.award_lines],
+            "finished": self.finished,
+        }
+
+    @classmethod
+    def from_snapshot(
+        cls,
+        world: procurement.ProcurementWorld,
+        *,
+        max_contacts: int,
+        contact_cost: float,
+        disclosure_anchor: float,
+        snapshot: Mapping[str, Any],
+    ) -> "ProcurementRFQMarket":
+        market = cls(
+            world,
+            max_contacts=max_contacts,
+            contact_cost=contact_cost,
+            disclosure_anchor=disclosure_anchor,
+        )
+        market.phase = str(snapshot["phase"])
+        market.rfqs = {
+            item["request_id"]: RFQRequest(**dict(item)) for item in snapshot["rfqs"]
+        }
+        market.opening_quotes = {
+            item["quote_id"]: VendorQuote(**dict(item))
+            for item in snapshot["opening_quotes"]
+        }
+        market.counters = {
+            item["counter_id"]: CounterOffer(**dict(item))
+            for item in snapshot["counters"]
+        }
+        market.final_offers = {
+            item["offer_id"]: FinalOffer(**dict(item))
+            for item in snapshot["final_offers"]
+        }
+        raw_approval = snapshot["approval"]
+        if raw_approval is not None:
+            market.approval = ApprovalDecision(
+                approval_id=str(raw_approval["approval_id"]),
+                approved=bool(raw_approval["approved"]),
+                spend=float(raw_approval["spend"]),
+                violations=tuple(raw_approval["violations"]),
+                selections=tuple(
+                    OfferSelection(**dict(item)) for item in raw_approval["selections"]
+                ),
+                award_lines=tuple(
+                    procurement.AwardLine(**dict(item))
+                    for item in raw_approval["award_lines"]
+                ),
+            )
+        market.award_lines = tuple(
+            procurement.AwardLine(**dict(item)) for item in snapshot["award_lines"]
+        )
+        market.finished = bool(snapshot["finished"])
+        return market
 
     def buyer_observation(self) -> dict[str, Any]:
         directory = [
@@ -284,6 +401,12 @@ class ProcurementRFQMarket:
             "phase": self.phase,
             "seller_id": seller_id,
             "private_unit_cost": terms.unit_cost,
+            "terms": {
+                "capacity": terms.capacity,
+                "lead_time_days": terms.lead_time_days,
+                "moq": terms.moq,
+                "payment_terms_days": terms.payment_terms_days,
+            },
             "rfq": asdict(request),
             "own_opening_quote": asdict(own_quote) if own_quote is not None else None,
             "buyer_counter": asdict(own_counter) if own_counter is not None else None,
@@ -709,7 +832,7 @@ def run_scripted_rfq_baseline(
             CounterDraft(
                 quote.quote_id,
                 quote.max_units,
-                _money(quote.unit_price * 0.8),
+                _floor_money(quote.unit_price * 0.8),
             )
             for quote in market.opening_quotes.values()
         ]
@@ -743,4 +866,6 @@ __all__ = [
     "run_scripted_rfq_baseline",
     "scripted_opening_price",
     "supplier_floor_price",
+    "world_from_payload",
+    "world_to_payload",
 ]
