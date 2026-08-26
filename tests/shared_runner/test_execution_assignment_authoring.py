@@ -36,6 +36,23 @@ ASSIGNMENT_AUTHORING_EXPORTS = {
     "IndependentUniformWithinPairExecutionAssignmentSpec",
 }
 
+B4B_EXPORTS = {
+    "AnalysisSourceRef",
+    "EffectiveResamplingBlockSpec",
+    "PopulationClusterProjectionSpec",
+    "PairProjectionSpec",
+    "NoIntervalSpec",
+    "ClusterBootstrapStabilityIntervalSpec",
+    "IntervalSpec",
+    "NoHypothesisTestSpec",
+    "PairedRandomizationTestSpec",
+    "HypothesisTestSpec",
+    "NoMultiplicityAdjustmentSpec",
+    "HolmMultiplicityAdjustmentSpec",
+    "MultiplicityAdjustmentSpec",
+    "InferenceCompatibilitySpec",
+}
+
 
 def _sha(label: str) -> str:
     return hashlib.sha256(label.encode("utf-8")).hexdigest()
@@ -200,7 +217,7 @@ def _dump(value: object) -> object:
 
 
 def test_task_1_1b3b_publishes_exact_six_name_additive_surface() -> None:
-    surface = tuple(sorted(sdk_v1.__all__))
+    surface = tuple(sorted(name for name in sdk_v1.__all__ if name not in B4B_EXPORTS))
     assert len(surface) == len(set(surface)) == 206
     assert ASSIGNMENT_AUTHORING_EXPORTS <= set(surface)
     prior = tuple(name for name in surface if name not in ASSIGNMENT_AUTHORING_EXPORTS)

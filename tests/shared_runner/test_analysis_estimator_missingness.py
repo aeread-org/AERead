@@ -51,9 +51,26 @@ ANALYSIS_ESTIMATOR_MISSINGNESS_EXPORTS = {
     "RaterSummarySpec",
 }
 
+B4B_EXPORTS = {
+    "AnalysisSourceRef",
+    "EffectiveResamplingBlockSpec",
+    "PopulationClusterProjectionSpec",
+    "PairProjectionSpec",
+    "NoIntervalSpec",
+    "ClusterBootstrapStabilityIntervalSpec",
+    "IntervalSpec",
+    "NoHypothesisTestSpec",
+    "PairedRandomizationTestSpec",
+    "HypothesisTestSpec",
+    "NoMultiplicityAdjustmentSpec",
+    "HolmMultiplicityAdjustmentSpec",
+    "MultiplicityAdjustmentSpec",
+    "InferenceCompatibilitySpec",
+}
+
 
 def test_task_1_1b4a_publishes_one_exact_additive_surface() -> None:
-    surface = tuple(sorted(sdk_v1.__all__))
+    surface = tuple(sorted(name for name in sdk_v1.__all__ if name not in B4B_EXPORTS))
     b3b_exports = {
         "AssignmentAuthoringRecordRef",
         "ExchangeabilityDomainSpec",
@@ -1125,7 +1142,7 @@ def _analysis_declaration_source() -> str:
     end = next(
         node
         for node in tree.body
-        if isinstance(node, ast.ClassDef) and node.name == "ValidityDomainSpec"
+        if isinstance(node, ast.ClassDef) and node.name == "AnalysisSourceRef"
     )
     lines = source.splitlines(keepends=True)
     return "".join(lines[start.lineno - 1 : end.lineno - 1])

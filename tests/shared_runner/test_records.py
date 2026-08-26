@@ -1122,6 +1122,22 @@ def test_b1_b2_b3_b4a_additions_preserve_legacy_schema_and_export_abi() -> None:
         "ImportedUniformWithinPairAssignmentSourceSpec",
         "IndependentUniformWithinPairExecutionAssignmentSpec",
     }
+    b4b_exports = {
+        "AnalysisSourceRef",
+        "EffectiveResamplingBlockSpec",
+        "PopulationClusterProjectionSpec",
+        "PairProjectionSpec",
+        "NoIntervalSpec",
+        "ClusterBootstrapStabilityIntervalSpec",
+        "IntervalSpec",
+        "NoHypothesisTestSpec",
+        "PairedRandomizationTestSpec",
+        "HypothesisTestSpec",
+        "NoMultiplicityAdjustmentSpec",
+        "HolmMultiplicityAdjustmentSpec",
+        "MultiplicityAdjustmentSpec",
+        "InferenceCompatibilitySpec",
+    }
     added_exports = tuple(
         name for name in sdk_v1.__all__ if name in planned_identity_exports
     )
@@ -1158,6 +1174,7 @@ def test_b1_b2_b3_b4a_additions_preserve_legacy_schema_and_export_abi() -> None:
             and name not in execution_design_exports
             and name not in analysis_estimator_missingness_exports
             and name not in execution_assignment_exports
+            and name not in b4b_exports
         )
     )
     assert len(legacy_exports) == 158

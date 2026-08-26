@@ -1979,6 +1979,431 @@ RaterSummarySpec = Annotated[
 ]
 
 
+class AnalysisSourceRef(_PlannedIdentityRecord):
+    spec_version: Literal["aeread.analysis_source_ref/0.1"]
+    record_type: Literal["analysis_source_ref"]
+    source_kind: Literal[
+        "cluster_design", "pairing_design", "execution_assignment_design"
+    ]
+    record_id: SDKStr
+    record_version: SDKStr
+    content_sha256: SHA256
+
+    @model_validator(mode="after")
+    def validate_analysis_source_ref(self) -> "AnalysisSourceRef":
+        _require_non_empty("record_id", self.record_id)
+        _require_semver("record_version", self.record_version)
+        return self
+
+
+def _validate_analysis_source_ref(
+    reference: AnalysisSourceRef, label: str, expected_kind: str
+) -> None:
+    if type(reference) is not AnalysisSourceRef:
+        raise ValueError(f"{label} must use the exact AnalysisSourceRef type")
+    AnalysisSourceRef.model_validate(reference.model_dump(mode="python"))
+    if reference.source_kind != expected_kind:
+        raise ValueError(f"{label} must have source_kind {expected_kind!r}")
+
+
+class EffectiveResamplingBlockSpec(_StrictValueModel):
+    effective_block_id: SDKStr
+    population_cluster_ids: tuple[SDKStr, ...]
+
+    @model_validator(mode="after")
+    def validate_effective_resampling_block(self) -> "EffectiveResamplingBlockSpec":
+        _require_non_empty("effective_block_id", self.effective_block_id)
+        _validate_canonical_string_tuple(
+            self.population_cluster_ids, "population_cluster_ids", required=True
+        )
+        return self
+
+
+class PopulationClusterProjectionSpec(_PlannedIdentityRecord):
+    spec_version: Literal["aeread.cluster_projection/0.1"]
+    record_type: Literal["cluster_projection"]
+    projection_id: SDKStr
+    projection_version: SDKStr
+    cluster_design_ref: AnalysisSourceRef
+    population_key_field: Literal["population_unit_id"]
+    replicate_nesting_rule: Literal["all_plan_cells_for_unit_share_population_cluster"]
+    coverage_rule: Literal["exactly_one_population_cluster_per_planned_cell"]
+    effective_block_kind: Literal["population_cluster", "strict_coarsening"]
+    effective_blocks: tuple[EffectiveResamplingBlockSpec, ...]
+    group_integrity_rule: Literal["pair_and_pass_all_k_groups_wholly_nested"]
+    ordering_rule: Literal["effective_block_id_then_canonical_row_identity"]
+
+    @model_validator(mode="after")
+    def validate_population_cluster_projection(
+        self,
+    ) -> "PopulationClusterProjectionSpec":
+        _require_non_empty("projection_id", self.projection_id)
+        _require_semver("projection_version", self.projection_version)
+        _validate_analysis_source_ref(
+            self.cluster_design_ref, "cluster_design_ref", "cluster_design"
+        )
+        if self.effective_block_kind == "population_cluster":
+            if self.effective_blocks:
+                raise ValueError("population_cluster requires no effective blocks")
+        else:
+            if not self.effective_blocks:
+                raise ValueError("strict_coarsening requires effective blocks")
+            block_ids = tuple(
+                block.effective_block_id for block in self.effective_blocks
+            )
+            _validate_canonical_string_tuple(
+                block_ids, "effective block IDs", required=True
+            )
+            clusters = tuple(
+                cluster
+                for block in self.effective_blocks
+                for cluster in block.population_cluster_ids
+            )
+            if len(clusters) != len(set(clusters)):
+                raise ValueError("effective blocks cannot repeat population clusters")
+        return self
+
+
+class PairProjectionSpec(_PlannedIdentityRecord):
+    spec_version: Literal["aeread.pair_projection/0.1"]
+    record_type: Literal["pair_projection"]
+    projection_id: SDKStr
+    projection_version: SDKStr
+    pairing_ref: AnalysisSourceRef
+    pairing_kind: Literal["paired", "unpaired"]
+    coordinate_source: Literal["resolved_plan_cell_coordinates"]
+    direction: Literal["subject_minus_comparator"]
+    formation_rule: Literal[
+        "one_to_one_equal_pair_keys", "independent_subject_and_comparator_arms"
+    ]
+    duplicate_rule: Literal["reject"]
+    missing_pair_rule: Literal["typed_missing_not_drop"]
+    ordering_rule: Literal[
+        "pair_key_then_subject_then_comparator",
+        "subject_then_comparator_canonical_row_identity",
+    ]
+    projection_scope: Literal["analysis_relation_only"]
+
+    @model_validator(mode="after")
+    def validate_pair_projection(self) -> "PairProjectionSpec":
+        _require_non_empty("projection_id", self.projection_id)
+        _require_semver("projection_version", self.projection_version)
+        _validate_analysis_source_ref(self.pairing_ref, "pairing_ref", "pairing_design")
+        expected = (
+            ("one_to_one_equal_pair_keys", "pair_key_then_subject_then_comparator")
+            if self.pairing_kind == "paired"
+            else (
+                "independent_subject_and_comparator_arms",
+                "subject_then_comparator_canonical_row_identity",
+            )
+        )
+        if (self.formation_rule, self.ordering_rule) != expected:
+            raise ValueError(
+                "pairing kind requires its exact formation and ordering rules"
+            )
+        return self
+
+
+class NoIntervalSpec(_PlannedIdentityRecord):
+    spec_version: Literal["aeread.interval/0.1"]
+    record_type: Literal["interval"]
+    interval_kind: Literal["none"]
+    reason: Literal[
+        "not_requested",
+        "paired_randomization_test_has_no_interval",
+        "finite_population_interval_not_supported_v0",
+    ]
+    method: Literal["none"]
+
+
+class ClusterBootstrapStabilityIntervalSpec(_PlannedIdentityRecord):
+    spec_version: Literal["aeread.interval/0.1"]
+    record_type: Literal["interval"]
+    interval_kind: Literal["cluster_bootstrap_stability"]
+    interval_id: SDKStr
+    interval_version: SDKStr
+    method: Literal["percentile_cluster_bootstrap_stability"]
+    coverage_claim: Literal["none_descriptive_only"]
+    target: Literal["conditional_on_observed_effective_blocks"]
+    central_mass: CanonicalRational
+    endpoint_definition: Literal["equal_tailed_percentile_endpoints"]
+    resample_count: SDKInt = Field(ge=2)
+    resampling_seed: SDKInt = Field(ge=0)
+    resampling_unit: Literal["whole_effective_row_block"]
+    effective_block_source: Literal["population_cluster_projection"]
+    group_integrity_rule: Literal["pair_and_pass_all_k_groups_wholly_nested"]
+    estimator_recompute_rule: Literal[
+        "complete_declared_estimator_over_all_rows_with_block_multiplicity"
+    ]
+    sampler_policy: Literal["aeread.sha256_rejection_uint256_mod_c/0.1"]
+    endpoint_quantile_policy: Literal["r7_linear_exact_rational"]
+    minimum_effective_blocks: Literal[2]
+    claim_boundary: Literal["no_finite_population_or_superpopulation_coverage_claim"]
+
+    @model_validator(mode="after")
+    def validate_cluster_bootstrap_stability_interval(
+        self,
+    ) -> "ClusterBootstrapStabilityIntervalSpec":
+        _require_non_empty("interval_id", self.interval_id)
+        _require_semver("interval_version", self.interval_version)
+        if type(self.central_mass) is not CanonicalRational:
+            raise ValueError("central_mass must use the exact CanonicalRational type")
+        CanonicalRational.model_validate(self.central_mass.model_dump(mode="python"))
+        if not 0 < self.central_mass.numerator < self.central_mass.denominator:
+            raise ValueError("central_mass must be strictly between zero and one")
+        return self
+
+
+IntervalSpec = Annotated[
+    NoIntervalSpec | ClusterBootstrapStabilityIntervalSpec,
+    Field(discriminator="interval_kind"),
+]
+
+
+class NoHypothesisTestSpec(_PlannedIdentityRecord):
+    spec_version: Literal["aeread.hypothesis_test/0.1"]
+    record_type: Literal["hypothesis_test"]
+    test_kind: Literal["none"]
+    reason: Literal[
+        "not_requested",
+        "observational_pairing",
+        "unpaired_contrast",
+        "descriptive_stability_only",
+    ]
+    method: Literal["none"]
+
+
+class PairedRandomizationTestSpec(_PlannedIdentityRecord):
+    spec_version: Literal["aeread.hypothesis_test/0.1"]
+    record_type: Literal["hypothesis_test"]
+    test_kind: Literal["paired_randomization"]
+    test_id: SDKStr
+    test_version: SDKStr
+    method: Literal["paired_sign_flip_randomization"]
+    execution_assignment_design_ref: AnalysisSourceRef
+    subject_role: Literal["subject"]
+    comparator_role: Literal["comparator"]
+    role_binding_rule: Literal[
+        "match_referenced_design_subject_and_comparator_execution_blocks"
+    ]
+    statistic: Literal["absolute_mean_subject_minus_comparator"]
+    alternative: Literal["two_sided"]
+    extreme_tie_rule: Literal["greater_than_or_equal"]
+    pair_eligibility_rule: Literal[
+        "every_preregistered_pair_has_exactly_two_valid_arm_outcomes"
+    ]
+    missing_pair_rule: Literal[
+        "typed_ineligible_no_p_value_no_deletion_replacement_or_reassignment"
+    ]
+    exhaustive_assignment_vector_threshold: SDKInt = Field(ge=2)
+    monte_carlo_resample_count: SDKInt = Field(ge=1)
+    monte_carlo_seed: SDKInt = Field(ge=0)
+    exhaustive_order: Literal["mask_ascending_pair_key_order_bit0_negative"]
+    monte_carlo_policy: Literal["aeread.paired_randomization_sha256_bit/0.1"]
+    monte_carlo_correction: Literal["plus_one_numerator_and_denominator"]
+    numeric_policy: Literal["aeread.exact_rational_binary64/0.1"]
+    interval_requirement: Literal["none"]
+
+    @model_validator(mode="after")
+    def validate_paired_randomization_test(self) -> "PairedRandomizationTestSpec":
+        _require_non_empty("test_id", self.test_id)
+        _require_semver("test_version", self.test_version)
+        _validate_analysis_source_ref(
+            self.execution_assignment_design_ref,
+            "execution_assignment_design_ref",
+            "execution_assignment_design",
+        )
+        return self
+
+
+HypothesisTestSpec = Annotated[
+    NoHypothesisTestSpec | PairedRandomizationTestSpec, Field(discriminator="test_kind")
+]
+
+
+class NoMultiplicityAdjustmentSpec(_PlannedIdentityRecord):
+    spec_version: Literal["aeread.multiplicity/0.1"]
+    record_type: Literal["multiplicity"]
+    multiplicity_kind: Literal["none"]
+    reason: Literal["single_confirmatory_test", "descriptive_only", "not_requested"]
+    method: Literal["none"]
+
+
+class HolmMultiplicityAdjustmentSpec(_PlannedIdentityRecord):
+    spec_version: Literal["aeread.multiplicity/0.1"]
+    record_type: Literal["multiplicity"]
+    multiplicity_kind: Literal["holm_familywise"]
+    family_id: SDKStr
+    family_version: SDKStr
+    alpha: CanonicalRational
+    family_membership_source: Literal["task_1_1b5_immutable_preregistered_test_nodes"]
+    minimum_family_size: Literal[2]
+    family_cardinality_rule: Literal["at_least_two_distinct_preregistered_test_nodes"]
+    family_ordering_rule: Literal[
+        "eligible_raw_p_value_then_test_id_followed_by_ineligible_test_id"
+    ]
+    method: Literal["holm_step_down_familywise"]
+    threshold_rule: Literal[
+        "alpha_over_original_preregistered_family_size_minus_eligible_rank_plus_one"
+    ]
+    stop_rule: Literal["stop_rejecting_after_first_nonrejection"]
+    adjusted_p_rule: Literal["running_max_rank_scaled_clipped_one"]
+    ineligible_test_rule: Literal[
+        "retain_in_preregistered_family_cardinality_no_adjusted_p_no_rejection"
+    ]
+    numeric_policy: Literal["exact_rational"]
+
+    @model_validator(mode="after")
+    def validate_holm_multiplicity_adjustment(
+        self,
+    ) -> "HolmMultiplicityAdjustmentSpec":
+        _require_non_empty("family_id", self.family_id)
+        _require_semver("family_version", self.family_version)
+        if type(self.alpha) is not CanonicalRational:
+            raise ValueError("alpha must use the exact CanonicalRational type")
+        CanonicalRational.model_validate(self.alpha.model_dump(mode="python"))
+        if not 0 < self.alpha.numerator < self.alpha.denominator:
+            raise ValueError("alpha must be strictly between zero and one")
+        return self
+
+
+MultiplicityAdjustmentSpec = Annotated[
+    NoMultiplicityAdjustmentSpec | HolmMultiplicityAdjustmentSpec,
+    Field(discriminator="multiplicity_kind"),
+]
+
+
+class InferenceCompatibilitySpec(_PlannedIdentityRecord):
+    spec_version: Literal["aeread.inference_compatibility/0.1"]
+    record_type: Literal["inference_compatibility"]
+    compatibility_id: SDKStr
+    compatibility_version: SDKStr
+    inference_target: Literal[
+        "planned_panel_descriptive",
+        "finite_population_probability_sample",
+        "cluster_bootstrap_descriptive_stability",
+        "paired_observational_effect",
+        "unpaired_observational_difference",
+        "paired_randomized_effect",
+    ]
+    panel_basis: Literal["fixed_panel", "sampled_srswor"]
+    estimator_analysis_unit: Literal["planned_cell", "population_cluster", "pair"]
+    missingness_kind: Literal[
+        "planned_population_invalidate",
+        "complete_case_conditional",
+        "bounds_or_sensitivity",
+    ]
+    cluster_projection: PopulationClusterProjectionSpec | None
+    pair_projection: PairProjectionSpec | None
+    interval: IntervalSpec
+    hypothesis_test: HypothesisTestSpec
+    multiplicity: MultiplicityAdjustmentSpec
+    compatibility_matrix_version: Literal["aeread.inference_compatibility_matrix/0.2"]
+
+    @model_validator(mode="after")
+    def validate_inference_compatibility(self) -> "InferenceCompatibilitySpec":
+        _require_non_empty("compatibility_id", self.compatibility_id)
+        _require_semver("compatibility_version", self.compatibility_version)
+        if self.cluster_projection is not None:
+            if type(self.cluster_projection) is not PopulationClusterProjectionSpec:
+                raise ValueError("cluster_projection must use its exact concrete type")
+            PopulationClusterProjectionSpec.model_validate(
+                self.cluster_projection.model_dump(mode="python")
+            )
+        if self.pair_projection is not None:
+            if type(self.pair_projection) is not PairProjectionSpec:
+                raise ValueError("pair_projection must use its exact concrete type")
+            PairProjectionSpec.model_validate(
+                self.pair_projection.model_dump(mode="python")
+            )
+        interval_types = (NoIntervalSpec, ClusterBootstrapStabilityIntervalSpec)
+        test_types = (NoHypothesisTestSpec, PairedRandomizationTestSpec)
+        multiplicity_types = (
+            NoMultiplicityAdjustmentSpec,
+            HolmMultiplicityAdjustmentSpec,
+        )
+        if type(self.interval) not in interval_types:
+            raise ValueError("interval must use an exact concrete type")
+        if type(self.hypothesis_test) not in test_types:
+            raise ValueError("hypothesis_test must use an exact concrete type")
+        if type(self.multiplicity) not in multiplicity_types:
+            raise ValueError("multiplicity must use an exact concrete type")
+        target = self.inference_target
+        no_interval = type(self.interval) is NoIntervalSpec
+        no_test = type(self.hypothesis_test) is NoHypothesisTestSpec
+        no_multiplicity = type(self.multiplicity) is NoMultiplicityAdjustmentSpec
+        if target == "planned_panel_descriptive":
+            valid = (
+                self.panel_basis == "fixed_panel"
+                and self.estimator_analysis_unit == "planned_cell"
+                and self.cluster_projection is None
+                and self.pair_projection is None
+                and no_interval
+                and no_test
+                and no_multiplicity
+            )
+        elif target == "finite_population_probability_sample":
+            valid = (
+                self.panel_basis == "sampled_srswor"
+                and self.estimator_analysis_unit == "planned_cell"
+                and self.cluster_projection is None
+                and self.pair_projection is None
+                and type(self.interval) is NoIntervalSpec
+                and self.interval.reason
+                == "finite_population_interval_not_supported_v0"
+                and no_test
+                and no_multiplicity
+                and self.missingness_kind != "complete_case_conditional"
+            )
+        elif target == "cluster_bootstrap_descriptive_stability":
+            valid = (
+                self.estimator_analysis_unit in ("planned_cell", "population_cluster")
+                and self.cluster_projection is not None
+                and self.pair_projection is None
+                and type(self.interval) is ClusterBootstrapStabilityIntervalSpec
+                and no_test
+                and no_multiplicity
+            )
+        elif target == "paired_observational_effect":
+            valid = (
+                self.estimator_analysis_unit == "pair"
+                and self.cluster_projection is None
+                and self.pair_projection is not None
+                and self.pair_projection.pairing_kind == "paired"
+                and no_interval
+                and no_test
+                and self.hypothesis_test.reason == "observational_pairing"
+                and no_multiplicity
+            )
+        elif target == "unpaired_observational_difference":
+            valid = (
+                self.estimator_analysis_unit == "planned_cell"
+                and self.cluster_projection is None
+                and self.pair_projection is not None
+                and self.pair_projection.pairing_kind == "unpaired"
+                and no_interval
+                and no_test
+                and self.hypothesis_test.reason == "unpaired_contrast"
+                and no_multiplicity
+            )
+        else:
+            valid = (
+                self.estimator_analysis_unit == "pair"
+                and self.cluster_projection is None
+                and self.pair_projection is not None
+                and self.pair_projection.pairing_kind == "paired"
+                and self.missingness_kind == "planned_population_invalidate"
+                and type(self.interval) is NoIntervalSpec
+                and self.interval.reason == "paired_randomization_test_has_no_interval"
+                and type(self.hypothesis_test) is PairedRandomizationTestSpec
+            )
+        if not valid:
+            raise ValueError(
+                "inference target requires its exact local compatibility matrix"
+            )
+        return self
+
+
 class ValidityDomainSpec(StrictModel):
     domain_id: SDKStr
     domain_version: SDKStr

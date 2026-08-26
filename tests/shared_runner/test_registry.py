@@ -673,8 +673,7 @@ def test_protocol_method_boundaries_resolve_and_preserve_call_direction() -> Non
         inspect.Parameter.KEYWORD_ONLY,
     )
     assert all(
-        parameter.default is inspect.Parameter.empty
-        for parameter in adapter_parameters
+        parameter.default is inspect.Parameter.empty for parameter in adapter_parameters
     )
 
 
@@ -738,7 +737,11 @@ def test_legacy_call_attempt_record_schemas_and_validation_remain_stable() -> No
     for field_name in required_fields:
         with pytest.raises(ValidationError):
             CallAttemptStart(
-                **{key: value for key, value in valid_start.items() if key != field_name}
+                **{
+                    key: value
+                    for key, value in valid_start.items()
+                    if key != field_name
+                }
             )
 
     for field_name in (
@@ -788,9 +791,7 @@ def test_legacy_call_attempt_record_schemas_and_validation_remain_stable() -> No
         with pytest.raises(ValidationError):
             CallAttemptToken(call_attempt_id=invalid)
     with pytest.raises(ValidationError):
-        CallAttemptToken(
-            call_attempt_id="call-1", spec_version="aeread.sdk_record/2"
-        )
+        CallAttemptToken(call_attempt_id="call-1", spec_version="aeread.sdk_record/2")
     with pytest.raises(ValidationError):
         CallAttemptToken(call_attempt_id="call-1", unexpected="drift")
     token = CallAttemptToken(call_attempt_id="call-1")
@@ -1566,6 +1567,22 @@ def test_task_1_1a2_surface_guard_accounts_for_authorized_b1_b2_b3_b4a_additions
         "ImportedUniformWithinPairAssignmentSourceSpec",
         "IndependentUniformWithinPairExecutionAssignmentSpec",
     )
+    b4b_exports = (
+        "AnalysisSourceRef",
+        "ClusterBootstrapStabilityIntervalSpec",
+        "EffectiveResamplingBlockSpec",
+        "HolmMultiplicityAdjustmentSpec",
+        "HypothesisTestSpec",
+        "InferenceCompatibilitySpec",
+        "IntervalSpec",
+        "MultiplicityAdjustmentSpec",
+        "NoHypothesisTestSpec",
+        "NoIntervalSpec",
+        "NoMultiplicityAdjustmentSpec",
+        "PairProjectionSpec",
+        "PairedRandomizationTestSpec",
+        "PopulationClusterProjectionSpec",
+    )
     surface = tuple(sorted(sdk.__all__))
     authorized_additions = tuple(
         name for name in surface if name in planned_identity_exports
@@ -1578,6 +1595,7 @@ def test_task_1_1a2_surface_guard_accounts_for_authorized_b1_b2_b3_b4a_additions
         and name not in execution_design_exports
         and name not in analysis_estimator_missingness_exports
         and name not in execution_assignment_exports
+        and name not in b4b_exports
     )
     legacy_digest = hashlib.sha256(
         json.dumps(legacy_surface, separators=(",", ":")).encode()
@@ -1602,7 +1620,7 @@ def test_task_1_1a2_surface_guard_accounts_for_authorized_b1_b2_b3_b4a_additions
         tuple(name for name in surface if name in execution_assignment_exports)
         == execution_assignment_exports
     )
-    assert len(surface) == 206
+    assert len(surface) == 220
     assert len(legacy_surface) == 158
     assert (
         legacy_digest

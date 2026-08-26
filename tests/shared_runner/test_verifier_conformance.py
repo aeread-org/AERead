@@ -864,7 +864,9 @@ def test_rater_implementation_and_artifact_pins_fail_closed() -> None:
             RaterJudgeVerifier.model_validate(invalid)
 
 
-def test_round_trip_immutability_schema_discriminators_and_unsafe_revalidation() -> None:
+def test_round_trip_immutability_schema_discriminators_and_unsafe_revalidation() -> (
+    None
+):
     leaf = _leaf(
         CanonicalReferenceVerifier(
             verifier_family="canonical_reference",
@@ -941,7 +943,9 @@ def test_round_trip_immutability_schema_discriminators_and_unsafe_revalidation()
         MeasurementLeafSpec.model_validate(missing_raw)
 
 
-def test_leaf_records_and_exports_do_not_leak_suite_or_later_runtime_ownership() -> None:
+def test_leaf_records_and_exports_do_not_leak_suite_or_later_runtime_ownership() -> (
+    None
+):
     forbidden_exact = {
         "ResolvedEvaluationBinding",
         "RaterAggregateInput",
@@ -1189,6 +1193,20 @@ def test_task_1_1a1_has_one_exact_public_export_delta() -> None:
         "ExecutionAssignmentSourceSpec",
         "ImportedUniformWithinPairAssignmentSourceSpec",
         "IndependentUniformWithinPairExecutionAssignmentSpec",
+        "AnalysisSourceRef",
+        "EffectiveResamplingBlockSpec",
+        "PopulationClusterProjectionSpec",
+        "PairProjectionSpec",
+        "NoIntervalSpec",
+        "ClusterBootstrapStabilityIntervalSpec",
+        "IntervalSpec",
+        "NoHypothesisTestSpec",
+        "PairedRandomizationTestSpec",
+        "HypothesisTestSpec",
+        "NoMultiplicityAdjustmentSpec",
+        "HolmMultiplicityAdjustmentSpec",
+        "MultiplicityAdjustmentSpec",
+        "InferenceCompatibilitySpec",
     }
     exports = set(sdk.__all__)
     assert len(sdk.__all__) == len(exports)
@@ -1889,7 +1907,9 @@ def _canonical_tuple_records() -> tuple[tuple[type, dict[str, object], str, bool
     )
 
 
-def test_every_artifact_tuple_enforces_order_digest_uniqueness_and_cardinality() -> None:
+def test_every_artifact_tuple_enforces_order_digest_uniqueness_and_cardinality() -> (
+    None
+):
     for model, base, field_name, required in _canonical_tuple_records():
         first, second = base[field_name]
         conflicting = {

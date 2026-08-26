@@ -541,6 +541,22 @@ def test_sdk_export_delta_preserves_b1_and_legacy_surfaces() -> None:
         "RaterDisagreementSummarySpec",
         "RaterSummarySpec",
     }
+    b4b_exports = {
+        "AnalysisSourceRef",
+        "EffectiveResamplingBlockSpec",
+        "PopulationClusterProjectionSpec",
+        "PairProjectionSpec",
+        "NoIntervalSpec",
+        "ClusterBootstrapStabilityIntervalSpec",
+        "IntervalSpec",
+        "NoHypothesisTestSpec",
+        "PairedRandomizationTestSpec",
+        "HypothesisTestSpec",
+        "NoMultiplicityAdjustmentSpec",
+        "HolmMultiplicityAdjustmentSpec",
+        "MultiplicityAdjustmentSpec",
+        "InferenceCompatibilitySpec",
+    }
     b3_exports = {
         "EpisodeAttemptPolicySpec",
         "EpisodeTerminalDispositionRule",
@@ -567,8 +583,8 @@ def test_sdk_export_delta_preserves_b1_and_legacy_surfaces() -> None:
         "SeededEpisodeReplicationDesign",
         "UnseededEpisodeReplicationDesign",
     }
-    surface = set(sdk_v1.__all__)
-    assert len(surface) == len(sdk_v1.__all__)
+    assert len(set(sdk_v1.__all__)) == len(sdk_v1.__all__)
+    surface = set(sdk_v1.__all__) - b4b_exports
     assert surface & b3b_exports == b3b_exports
     without_b3b = surface - b3b_exports
     assert surface & b4a_exports == b4a_exports

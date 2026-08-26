@@ -355,7 +355,23 @@ def test_execution_design_public_surface_is_exactly_additive() -> None:
         "RaterDisagreementSummarySpec",
         "RaterSummarySpec",
     }
-    surface = tuple(sorted(sdk_v1.__all__))
+    b4b_exports = {
+        "AnalysisSourceRef",
+        "EffectiveResamplingBlockSpec",
+        "PopulationClusterProjectionSpec",
+        "PairProjectionSpec",
+        "NoIntervalSpec",
+        "ClusterBootstrapStabilityIntervalSpec",
+        "IntervalSpec",
+        "NoHypothesisTestSpec",
+        "PairedRandomizationTestSpec",
+        "HypothesisTestSpec",
+        "NoMultiplicityAdjustmentSpec",
+        "HolmMultiplicityAdjustmentSpec",
+        "MultiplicityAdjustmentSpec",
+        "InferenceCompatibilitySpec",
+    }
+    surface = tuple(sorted(name for name in sdk_v1.__all__ if name not in b4b_exports))
     assert len(surface) == len(set(surface)) == 206
     without_b3b = tuple(name for name in surface if name not in b3b_exports)
     assert len(without_b3b) == 200
