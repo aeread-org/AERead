@@ -8,7 +8,8 @@ call `run_v1()` as a library function
 
 **Source baseline:** `main` at `7aea2687804f8f458ac41061cc649c289ebfb3ef`
 
-**Design baseline:** PR #7 at `fa81b6b8f17ab8ef2f05da0523652395f27794ac`
+**Design baseline:** PR #7 at `155d8fc`, integrated locally at `b5239cd`; the earlier
+`fa81b6b8f17ab8ef2f05da0523652395f27794ac` snapshot is historical only
 
 **Files involved:**
 
@@ -536,19 +537,19 @@ One `DecisionSlot` creates one `LogicalAction`, and one successful logical actio
 evidence. A scripted output or pre-call failure can therefore produce an `ActionAttempt`
 with zero `ProviderCall` records without losing the slot or logical-action identity.
 
-The earlier `CallAttempt` term is scheduled for retirement before the final `0.1`
-serialized contract. It conflates an attempt to produce an economic action with an atomic
-provider request. A tool-using action can contain multiple `ProviderCall` and
-`ToolInvocation` records without being a retry. Under `minimal_chat/1.0`, one
+The earlier `CallAttempt` term conflates an attempt to produce an economic action with an
+atomic provider request. New kernel evidence therefore uses `ActionAttempt`,
+`ProviderCall`, and `ToolInvocation`. A tool-using action can contain multiple provider
+calls and tool invocations without being a retry. Under `minimal_chat/1.0`, one
 `ActionAttempt` happens to contain one `ProviderCall`; that is a profile constraint, not a
 universal invariant.
 
 ProviderCall target vocabulary is not a frozen field contract. Task 2.1a must define the
 complete typed records and a versioned discriminated parent for `action_attempt`,
-`rater_attempt`, and `lifecycle_operation` ownership. The current SDK's
-`CallAttemptStart` / `CallAttemptToken` surface is a pre-freeze/retired migration import
-surface; it does not create a compatibility promise. This roadmap does not freeze target
-fields or claim that the eventual target records are already importable.
+`rater_attempt`, and `lifecycle_operation` ownership. The existing `CallAttemptStart` and
+`CallAttemptToken` remain stable compatibility exports; Task 2.1a may deprecate but cannot
+remove or repurpose them in v1. This roadmap does not freeze new target fields or claim
+that the eventual target records are already importable.
 
 ### 4. Evidence objects
 

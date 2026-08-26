@@ -2,14 +2,12 @@
 
 > **Author:** Codex, for Zeyu Sun  
 > **Date:** 2026-08-25  
-> **Status:** Task 0.1a is independently P0/P1/P2 clean at `9f7255e`. The local PR #7
-> integration merge is clean at `275a285`, and its design-contract fix/re-review is clean
-> at `388e52b`; neither commit was pushed or merged to GitHub/main. The controller ledger
-> independently authorizes Task 0.3 for dispatch under its controller-issued brief. Dual
-> review of the plan at `4c79777` is not clean, so Task 1.1a and later tasks remain blocked
-> until this correction is independently reviewed and
-> `.superpowers/sdd/2026-08-25-shared-runner-post-sync-rebaseline/progress.md` records a
-> clean verdict; editing this plan does not itself clear that separate gate.
+> **Status:** Task 0.1a is independently P0/P1/P2 clean at `9f7255e`. Latest PR #7 source
+> `155d8fc` is integrated locally by true merge `b5239cd`, with documentation/contract
+> follow-ups through `1ea7045`; none was pushed or merged to GitHub/main. Task 0.3 is
+> complete. Task 1.1a1 is independently clean through `ca173f4`; Task 1.1a2 is the next
+> dispatchable slice under its controller brief. The executable scheduler, attempt
+> executor, receipt/replay kernel, and benchmark adapters remain unimplemented.
 > **Supersedes:** Tasks 6–11 of `2026-08-24-shared-runner-sdk-kernel.md`; Tasks 1–5 and their review history remain valid
 
 ## Objective
@@ -94,10 +92,11 @@ local APFS volume.
 
 ### Task 0.2: Integrate the latest approved PR #7 design
 
-Complete locally. Merge commit `275a285` incorporates PR #7 commit `6bb07aa`; corrective
-commit `388e52b` aligns the merged design, public executable boundary, roadmap taxonomy,
-and design-contract tests. The scoped re-review is clean. No implementer should repeat this
-merge, push it, or merge it to GitHub/main under this plan.
+Complete locally. Latest PR #7 source `155d8fc` is integrated by true merge `b5239cd`, with
+crosswalk/status/stability follow-ups through `1ea7045`. Task 1.1a1 is independently clean
+through `ca173f4`, and Task 1.1a2 is next. Older `275a285`/`388e52b` commits remain
+historical milestones only. No implementer should repeat either merge, push it, or merge it
+to GitHub/main under this plan.
 
 ### Task 0.3: Migrate the serialized planning identity to `PlanCell`
 
@@ -634,7 +633,7 @@ upstream parity, interval adequacy, or benchmark quality.
 
 ## Stage 2 — correct agent lifecycle and side-effect contracts
 
-### Task 2.1a: Replace retired action/call/tool evidence vocabulary
+### Task 2.1a: Add precise action/call/tool evidence vocabulary
 
 **Dependency:** Task 1.1c is independently clean.
 
@@ -680,9 +679,10 @@ EvaluationWork
        -> RaterJudgment | typed failure
 ```
 
-The names `CallAttemptStart` and `CallAttemptToken` below are **retired migration names**,
-not compatibility exports: rename their serialized/public executable forms to
-`ProviderCallStart` and `ProviderCallToken`. Add
+The existing `CallAttemptStart` and `CallAttemptToken` remain stable compatibility exports.
+They may be deprecated and excluded from the new kernel path, but their v1 fields,
+validation, and import names cannot be removed or repurposed. Add distinct
+`ProviderCallStart` and `ProviderCallToken` records alongside them, plus
 `ActionAttemptStart` plus
 `ActionAttemptSucceeded | ActionAttemptFailed | ActionAttemptOutcomeUnknown`, and the
 analogous strict `succeeded | failed | outcome_unknown` terminal union for each provider
@@ -712,9 +712,9 @@ operations, or deterministic transactional previews. A requested family mutation
 produces `ToolInvocationSucceeded`, and a failed `step()` can never coexist with a
 succeeded tool row claiming that economic mutation committed.
 
-**RED requirements:** retired active executable imports, exports, schema discriminators,
-and authoritative public-spec signatures using `CallAttemptStart`/`CallAttemptToken` fail;
-explicitly labeled historical/negative migration prose may retain the strings. Record
+**RED requirements:** the new kernel path, authoritative examples, and observer signatures
+must not use `CallAttemptStart`/`CallAttemptToken`; compatibility tests require both legacy
+imports and their schemas to remain unchanged in v1. Record
 tests reject mismatched parent IDs, missing pins/hashes, and second terminal construction
 in a conformance fake. The public design-contract RED asserts the exact response -> parse
 -> legality -> transition path and rejects language allowing adapters/attempts/tools to
@@ -723,8 +723,9 @@ no-envelope/no-tool-success at the executor boundary. Task 3.1 owns runtime pars
 legality, slot/bundle validation, and no-step-before-parse-and-legality RED.
 
 **Output:** one versioned public evidence vocabulary rooted in `ActionAttempt`,
-`ProviderCall`, actual `ToolInvocation`, and `RaterAttempt`, with no active serialized
-`CallAttempt*` identity and exactly one declared parse/legality/mutation path.
+`ProviderCall`, actual `ToolInvocation`, and `RaterAttempt`, with the existing
+`CallAttempt*` records retained only as compatibility exports and exactly one declared
+parse/legality/mutation path.
 
 ### Task 2.1b: Freeze transition, reconciliation, and recovery contracts
 
@@ -2327,13 +2328,9 @@ is a blocker, not authority for a sixth plan-fix round or hidden implementer dis
 
 ## Current dispatch gate
 
-The foundation and local PR #7 integration are clean through `388e52b`; the whole runner
-is not implemented. Under the controller ledger ruling, Task 0.3 is independently
-dispatchable using its controller-issued brief; this round-5 plan review neither revokes
-nor expands that authority, and the controller-owned Task 0.3 brief is not edited here.
-Task 1.1a and
-all later plan work remain blocked until independent review finds this correction P0/P1/P2
-clean and the progress ledger records that separate verdict. Thereafter each task advances
-only through its declared RED/GREEN, scoped commit, and independent-review gate;
-provider-free/static evidence is never reported as live runtime, upstream parity, or
-benchmark-quality evidence.
+Latest PR #7 source `155d8fc` is integrated locally by true merge `b5239cd`, with follow-ups
+through `1ea7045`; the whole runner is not implemented. Task 1.1a1 is independently clean
+through `ca173f4`, and Task 1.1a2 is the next dispatchable slice under its controller-issued
+brief. Later tasks advance only through their declared dependency, RED/GREEN, scoped commit,
+and independent-review gates. Provider-free/static evidence is never reported as live
+runtime, upstream parity, or benchmark-quality evidence.

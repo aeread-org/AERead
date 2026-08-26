@@ -19,6 +19,24 @@ PUBLIC_ENVIRONMENT_SPEC = (
     / "docs"
     / "public_environment_and_external_adapter_spec.md"
 )
+PYPROJECT = Path(__file__).parents[1] / "pyproject.toml"
+SDK_V1_INIT = (
+    Path(__file__).parents[1] / "src" / "aeread" / "sdk" / "v1" / "__init__.py"
+)
+FOUNDATION_PLAN = (
+    Path(__file__).parents[1]
+    / "docs"
+    / "superpowers"
+    / "plans"
+    / "2026-08-24-shared-runner-sdk-kernel.md"
+)
+REBASELINE_PLAN = (
+    Path(__file__).parents[1]
+    / "docs"
+    / "superpowers"
+    / "plans"
+    / "2026-08-25-shared-runner-post-sync-rebaseline.md"
+)
 
 
 def _markdown_table_row(
@@ -581,7 +599,7 @@ def test_housing_mapping_separates_baseline_lower_and_upper_refs() -> None:
     assert not all(fragment in wrong_owner for fragment in required)
 
 
-def test_public_sdk_stability_policy_has_one_release_boundary() -> None:
+def test_public_sdk_stability_policy_preserves_existing_v1_exports() -> None:
     text = PUBLIC_ENVIRONMENT_SPEC.read_text(encoding="utf-8")
     section = text.split("### 3.1 Package and version policy", 1)[1].split(
         "### 3.2 Environment contract", 1
@@ -589,18 +607,53 @@ def test_public_sdk_stability_policy_has_one_release_boundary() -> None:
     normalized = " ".join(section.split())
 
     required = (
-        "pre-release design branch",
-        "stability promise begins only when the final `0.1` contract is frozen "
-        "and released",
-        "`CallAttemptStart`, `CallAttemptToken`, and the attempt lifecycle are "
-        "provisional exceptions before that freeze",
-        "after the `0.1` release, breaking API changes require `aeread.sdk.v2`",
+        "AERead already declares package version `0.1.0`",
+        "`aeread.sdk.v1` is the current stable authoring namespace",
+        "`CallAttemptStart` and `CallAttemptToken` remain stable compatibility exports",
+        "Task 2.1a may deprecate them but must not remove, repurpose, or change",
+        "breaking removal or incompatible serialized change requires `aeread.sdk.v2`",
     )
     assert all(fragment in normalized for fragment in required)
-    assert (
-        "- `aeread.sdk.v1` exports only stable author-facing protocols"
-        not in section
-    )
+    assert 'version = "0.1.0"' in PYPROJECT.read_text(encoding="utf-8")
+
+    sdk_text = SDK_V1_INIT.read_text(encoding="utf-8")
+    assert '"""Stable v1 environment-authoring API for AERead."""' in sdk_text
+    assert '"CallAttemptStart"' in sdk_text
+    assert '"CallAttemptToken"' in sdk_text
+
+    foundation = FOUNDATION_PLAN.read_text(encoding="utf-8")
+    rebaseline = REBASELINE_PLAN.read_text(encoding="utf-8")
+    roadmap = RUNNER_ARCHITECTURE.read_text(encoding="utf-8")
+    design = DESIGN.read_text(encoding="utf-8")
+    for authority in (foundation, rebaseline, roadmap, design):
+        authority_normalized = " ".join(authority.split())
+        assert (
+            "existing `CallAttemptStart` and `CallAttemptToken` remain"
+            in authority_normalized
+        )
+        assert "not compatibility exports" not in authority_normalized
+        assert "does not create a compatibility promise" not in authority_normalized
+
+
+def test_rebaseline_status_names_current_integration_and_next_gate() -> None:
+    text = REBASELINE_PLAN.read_text(encoding="utf-8")
+    status = text.split("## Objective", 1)[0]
+    task_02 = text.split(
+        "### Task 0.2: Integrate the latest approved PR #7 design", 1
+    )[1].split("### Task 0.3", 1)[0]
+    dispatch = text.split("## Current dispatch gate", 1)[1]
+
+    for section in (status, task_02, dispatch):
+        assert "`155d8fc`" in section
+        assert "`b5239cd`" in section
+        assert "`1ea7045`" in section
+        assert "Task 1.1a1" in section
+        assert "Task 1.1a2" in section
+    assert "Task 1.1a and all later plan work remain blocked" not in dispatch
+
+    roadmap = RUNNER_ARCHITECTURE.read_text(encoding="utf-8")
+    assert "PR #7 at `155d8fc`" in roadmap
+    assert "integrated locally at `b5239cd`" in roadmap
 
 
 def test_public_spec_reports_implemented_foundation_and_missing_runtime() -> None:
@@ -652,9 +705,13 @@ def test_attempt_observer_docs_separate_normative_target_from_current_sdk() -> N
     assert "provider_call_id: str" not in section
     assert "def call_started" not in section
     assert "attempts.call_started()" not in section
-    assert "pre-freeze/retired migration import surface" in section
-    assert "does not create a compatibility promise" in normalized_section
-    assert "retired compatibility names" not in section
+    assert (
+        "existing `CallAttemptStart` and `CallAttemptToken` remain stable "
+        "compatibility exports"
+        in normalized_section
+    )
+    assert "may deprecate" in normalized_section
+    assert "may not remove or repurpose" in normalized_section
     assert "Task 2.1a" in section
 
     design = DESIGN.read_text(encoding="utf-8")
@@ -665,8 +722,12 @@ def test_attempt_observer_docs_separate_normative_target_from_current_sdk() -> N
             "ProviderCall target vocabulary is not a frozen field contract"
             in normalized_text
         )
-        assert "pre-freeze/retired migration import surface" in normalized_text
-        assert "does not create a compatibility promise" in normalized_text
+        assert (
+            "existing `CallAttemptStart` and `CallAttemptToken` remain stable "
+            "compatibility exports"
+            in normalized_text
+        )
+        assert "cannot remove or repurpose them in v1" in normalized_text
         assert "Task 2.1a" in normalized_text
 
 

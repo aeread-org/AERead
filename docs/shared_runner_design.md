@@ -179,10 +179,10 @@ class AgentAdapter(Protocol):
 ProviderCall target vocabulary is not a frozen field contract. Task 2.1a must define the
 complete typed records and a versioned discriminated parent for `action_attempt`,
 `rater_attempt`, and `lifecycle_operation` ownership before serialization is frozen. The
-current `aeread.sdk.v1` `CallAttemptStart` / `CallAttemptToken` surface is a
-pre-freeze/retired migration import surface; it does not create a compatibility promise.
-The sketch above preserves only the runner-owned observer role, not importable target
-record classes or fields.
+existing `CallAttemptStart` and `CallAttemptToken` remain stable compatibility exports.
+Task 2.1a may deprecate them but cannot remove or repurpose them in v1; it adds the precise
+new evidence vocabulary alongside them. The sketch above preserves only the runner-owned
+observer role and does not freeze the new target record classes or fields.
 
 The public executable names and call boundaries are defined by [`public_environment_and_external_adapter_spec.md`](public_environment_and_external_adapter_spec.md): the runner invokes an `EnvironmentPlugin`, and an `AgentAdapter` reports provider activity through the runner-owned `AttemptObserver` rather than writing evidence directly. The hooks may be methods or registered functions, but their inputs, outputs, versions, and evidence must be explicit. The runner—not an environment-owned coroutine—advances the schedule, enforces budgets, and records every boundary. Every logical action is keyed by `slot_id`; one seat may own multiple decision slots in one phase, and one slot may own multiple channels. A slot may atomically emit multiple ordered channel actions in one `ActionBundle`. The adapter MUST preserve upstream call grouping, and the runner MUST NOT merge or split those calls across slots or bundles. Bundle validation uses the slot's declared `ActionChannel` membership and each channel's `min_actions`/`max_actions`: every channel count is within its declared bounds, every action has a declared channel, action IDs are unique, and sequence indices are unique and ordered within the bundle. `parse_action()` returns one atomic `ParseResult` for the whole slot response; on success it contains one `ActionBundle`. `legal()` returns one `LegalityResult` for that whole bundle. No partial bundle is applied.
 

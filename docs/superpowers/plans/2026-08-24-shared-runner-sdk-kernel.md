@@ -20,6 +20,9 @@
 ## Global Constraints
 
 - `aeread.sdk.v1` exports only stable author-facing protocols, immutable models, errors, and test helpers.
+- The existing `CallAttemptStart` and `CallAttemptToken` remain stable compatibility
+  exports; additive attempt evidence may deprecate but must not remove or repurpose them
+  within v1.
 - Unknown manifest fields are rejected.
 - Every plugin declares `sdk_api = "aeread.sdk/v1"` and its own semantic version.
 - Canonical bytes use UTF-8 JSON, sorted keys, compact separators, no NaN/Infinity, and algorithm ID `aeread.cjson/1` before SHA-256 hashing.

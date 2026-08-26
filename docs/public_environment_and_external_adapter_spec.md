@@ -6,7 +6,8 @@
 >
 > **Date:** 2026-08-24
 >
-> **Depends on:** [`shared_runner_design.md`](shared_runner_design.md), commit `fa81b6b`
+> **Depends on:** [`shared_runner_design.md`](shared_runner_design.md); current PR #7 design
+> source `155d8fc`, integrated locally at merge `b5239cd`
 
 ## 0. Executive decision
 
@@ -152,23 +153,26 @@ This amendment requires explicit design review because it changes the public act
 
 ### 3.1 Package and version policy
 
-The public authoring API is being designed under `aeread.sdk.v1`. This repository is a
-pre-release design branch: the final `0.1` package contract has not yet been frozen or
-released. The stability promise begins only when the final `0.1` contract is frozen and
-released. Preview manifests retain their independent schema versions such as
-`aeread.case/0.1`, and each serialized record declares its own version.
+AERead already declares package version `0.1.0`, and `aeread.sdk.v1` is the current stable
+authoring namespace. Shared-runner design work may add APIs, but it cannot retroactively
+move the compatibility boundary to a future release. Preview manifests retain their
+independent schema versions such as `aeread.case/0.1`, and each serialized record declares
+its own version.
 
-`CallAttemptStart`, `CallAttemptToken`, and the attempt lifecycle are provisional
-exceptions before that freeze. They may be migrated as part of Task 2.1a and must not be
-treated as released contributor contracts.
+The existing `CallAttemptStart` and `CallAttemptToken` remain stable compatibility exports.
+Task 2.1a may deprecate them but must not remove, repurpose, or change their v1 field and
+validation semantics. The new kernel can add the more precise `ActionAttempt`,
+`ProviderCall`, `ToolInvocation`, and `RaterAttempt` vocabulary alongside them and must not
+use the legacy records for new evidence. Any breaking removal or incompatible serialized
+change requires `aeread.sdk.v2`.
 
 Rules:
 
-- at the final `0.1` release, `aeread.sdk.v1` exports only stable author-facing protocols, immutable models, errors, and test helpers;
+- `aeread.sdk.v1` exports stable author-facing protocols, immutable models, errors, and test helpers;
 - runner implementation details live under `aeread.runner` and are not part of the compatibility promise;
 - unknown manifest fields are rejected;
 - every plugin declares `sdk_api = "aeread.sdk/v1"` and its own semantic version;
-- after the `0.1` release, breaking API changes require `aeread.sdk.v2`; additive optional fields require a schema-version increment and compatibility tests;
+- breaking API changes require `aeread.sdk.v2`; additive optional fields require a schema-version increment and compatibility tests;
 - canonical bytes use UTF-8 JSON, sorted keys, compact separators, no NaN/Infinity, and an explicit `aeread.cjson/1` algorithm identifier before SHA-256 hashing.
 
 The implementation should use Pydantic 2 (`pydantic>=2.8,<3`) for strict validation, immutable records, discriminated unions, and JSON schema export. This is one deliberate new core dependency and must be called out in the implementation PR.
@@ -292,11 +296,10 @@ to exactly one of `action_attempt`, `rater_attempt`, or `lifecycle_operation`, t
 with the complete identity, request, budget, terminal, and provenance fields. This section
 therefore declares vocabulary and ownership only; it does not define partial record classes.
 
-The current SDK still exports `CallAttemptStart` and `CallAttemptToken` as a
-pre-freeze/retired migration import surface. That surface is implementation evidence, does
-not create a compatibility promise, and should not be copied into new adapter contracts.
-Task 2.1a owns the versioned serialized migration; this docs-only alignment does not change
-production SDK imports.
+The existing `CallAttemptStart` and `CallAttemptToken` remain stable compatibility exports,
+but new adapter contracts should use the more precise vocabulary once Task 2.1a adds it.
+Task 2.1a may deprecate the legacy surface and owns the additive versioned records; it may
+not remove or repurpose the v1 exports.
 
 The adapter owns provider/harness-specific wire formats. OpenAI Responses, Chat Completions, Anthropic Messages, a CLI agent, or an rLLM gateway may return different native objects; each adapter normalizes them into `CanonicalResponse` before the family parser or scorer consumes them. `CanonicalResponse` includes normalized content/tool calls, finish reason, usage, raw artifact reference, and an optional harness-trace reference.
 
@@ -635,7 +638,7 @@ The specification recommends defaults rather than leaving these undefined. Revie
 
 1. `DecisionSlot` with multi-channel `ActionBundle` replaces seat-keyed action maps.
 2. `AgentAdapter` receives a runner-owned `AttemptObserver`; opaque harnesses declare `logical_only` rather than fabricating provider attempts.
-3. `aeread.sdk.v1` becomes the stable authoring namespace at the final `0.1` freeze and release; the current attempt lifecycle remains provisional until then. Pydantic 2 is the only new core dependency.
+3. `aeread.sdk.v1` is already the stable authoring namespace; Task 2.1a adds the new attempt lifecycle while retaining the existing `CallAttempt*` compatibility exports, and any breaking removal requires v2. Pydantic 2 is the only new core dependency.
 4. developer plugins use registered entry points; formal mode additionally requires pre-load distribution allowlisting and provenance, while manifests cannot import code.
 5. admission uses independent capability fields plus `paper_primary`, `training`, and `interop_only` profiles.
 6. Exchange parity and Housing conformance remain prerequisites for external adapters.
@@ -667,7 +670,8 @@ The largest remaining architectural risk is not the registry or manifest format.
 
 ## References
 
-- AERead, [`shared_runner_design.md`](shared_runner_design.md), normative baseline at `fa81b6b`.
+- AERead, [`shared_runner_design.md`](shared_runner_design.md), current PR #7 source
+  `155d8fc`, integrated locally at `b5239cd` with reviewed follow-ups.
 - Prime Intellect, [“verifiers v1: Decomposing Tasksets and Harnesses for Agentic RL & Evaluations”](https://www.primeintellect.ai/blog/verifiers-v1), 2026-07-10.
 - Prime Intellect, [“Multi-Agent Systems in PRIME-RL”](https://www.primeintellect.ai/blog/multi-agent-systems), 2026-08-07.
 - Fish et al., [EconEvals official repository](https://github.com/sara-fish/econ-evals-paper), pinned at `e1f2a40fec96f0d27f5414873c4310f2b5c51935`.
