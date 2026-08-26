@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import inspect
+import hashlib
+import json
 import os
 from pathlib import Path
 import subprocess
@@ -10,10 +12,18 @@ from typing import get_type_hints
 import pytest
 
 from aeread.runner.registry import (
+    DuplicateReferenceImplementation,
     DuplicatePluginRegistration,
     IncompatiblePlugin,
+    InvalidReferenceImplementation,
     PluginRegistry,
     PluginVersionMismatch,
+    ReferenceImplementationHashMismatch,
+    ReferenceImplementationRegistry,
+    ReferenceImplementationRoleMismatch,
+    ReferenceImplementationVersionMismatch,
+    RegisteredReferenceImplementation,
+    UnknownReferenceImplementation,
     UnknownPlugin,
 )
 from aeread.sdk.v1 import (
@@ -23,6 +33,7 @@ from aeread.sdk.v1 import (
     EnvironmentPlugin,
     ExecutionBackend,
     OfficialVerifierBridge,
+    ImplementationRef,
     PluginManifest,
     PluginRef,
     UntrustedPluginReference,
@@ -346,9 +357,7 @@ def test_registry_rejects_unknown_agent_call_observability() -> None:
 
     with pytest.raises(IncompatiblePlugin, match="call_observability"):
         PluginRegistry.from_objects(
-            agent_adapters=[
-                BadObservabilityAgent(call_observability="provider_maybe")
-            ]
+            agent_adapters=[BadObservabilityAgent(call_observability="provider_maybe")]
         )
 
 
@@ -367,15 +376,11 @@ def test_registry_wraps_raising_agent_call_observability_property() -> None:
         def call_observability(self) -> str:
             raise RuntimeError("observability exploded")
 
-        async def act(
-            self, request: object, *, attempts: object
-        ) -> object:
+        async def act(self, request: object, *, attempts: object) -> object:
             return {}
 
     with pytest.raises(IncompatiblePlugin, match="agent_adapters") as exc_info:
-        PluginRegistry.from_objects(
-            agent_adapters=[RaisingObservabilityAgent()]
-        )
+        PluginRegistry.from_objects(agent_adapters=[RaisingObservabilityAgent()])
 
     assert isinstance(exc_info.value.__cause__, RuntimeError)
 
@@ -387,9 +392,7 @@ def test_registry_wraps_raising_manifest_property() -> None:
             raise RuntimeError("manifest exploded")
 
     with pytest.raises(IncompatiblePlugin, match="environments") as exc_info:
-        PluginRegistry.from_objects(
-            environments=[RaisingManifestEnvironment()]
-        )
+        PluginRegistry.from_objects(environments=[RaisingManifestEnvironment()])
 
     assert isinstance(exc_info.value.__cause__, RuntimeError)
 
@@ -430,9 +433,10 @@ def test_entry_point_discovery_queries_only_the_five_allowlisted_groups() -> Non
 
     assert queried == list(plugins)
     assert loaded == list(plugins)
-    assert registry.resolve_environment("fake_market", "1.0.0") is plugins[
-        "aeread.environments"
-    ]
+    assert (
+        registry.resolve_environment("fake_market", "1.0.0")
+        is plugins["aeread.environments"]
+    )
 
 
 def test_discovery_wraps_raising_entry_point_load_attribute_safely() -> None:
@@ -547,4 +551,299 @@ assert not any(name.startswith('aeread.integrations') for name in sys.modules)
 """
     repo_root = Path(__file__).resolve().parents[2]
     env = dict(os.environ, PYTHONPATH=str(repo_root / "src"))
+    subprocess.run([sys.executable, "-c", code], check=True, env=env)
+
+
+def _reference(
+    implementation_id: str = "official-scorer",
+    version: str = "1.0.0",
+    marker: str = "1",
+) -> ImplementationRef:
+    return ImplementationRef(
+        implementation_id=implementation_id,
+        version=version,
+        content_sha256=marker * 64,
+    )
+
+
+def _registration(
+    *,
+    role: str = "validity_predicate",
+    ref: ImplementationRef | None = None,
+    function=lambda value: value,
+) -> RegisteredReferenceImplementation:
+    return RegisteredReferenceImplementation(
+        role=role,
+        ref=ref or _reference(),
+        function=function,
+    )
+
+
+def test_reference_implementation_registry_resolves_only_an_exact_controller_pin() -> (
+    None
+):
+    function = lambda value: value
+    ref = _reference()
+    registration = _registration(ref=ref, function=function)
+    registry = ReferenceImplementationRegistry.from_registrations((registration,))
+
+    resolved = registry.resolve(ref, role="validity_predicate")
+    assert resolved is registration
+    assert resolved.function is function
+
+
+def test_reference_implementation_registry_keeps_hashes_and_roles_explicit() -> None:
+    first = lambda value: value
+    second = lambda value: value
+    third = lambda value: value
+    ref_a = _reference(marker="a")
+    ref_b = _reference(marker="b")
+    registry = ReferenceImplementationRegistry.from_registrations(
+        (
+            _registration(ref=ref_a, function=first),
+            _registration(ref=ref_b, function=second),
+            _registration(role="canonicalizer", ref=ref_a, function=third),
+        )
+    )
+
+    assert registry.resolve(ref_a, role="validity_predicate").function is first
+    assert registry.resolve(ref_b, role="validity_predicate").function is second
+    assert registry.resolve(ref_a, role="canonicalizer").function is third
+
+
+def test_reference_implementation_registry_rejects_duplicate_role_and_pin() -> None:
+    registration = _registration()
+
+    with pytest.raises(DuplicateReferenceImplementation):
+        ReferenceImplementationRegistry.from_registrations((registration, registration))
+
+
+@pytest.mark.parametrize(
+    "registration",
+    (
+        _registration(role="not-a-role"),
+        _registration(ref=_reference().model_copy(update={"implementation_id": " "})),
+        _registration(ref=_reference().model_copy(update={"version": "latest"})),
+        _registration(ref=_reference().model_copy(update={"content_sha256": "A" * 64})),
+        _registration(ref=_reference().model_copy(update={"smuggled": "value"})),
+        _registration(ref=ImplementationRef.model_construct()),
+        _registration(function=object()),
+    ),
+)
+def test_reference_implementation_registry_revalidates_admission(
+    registration: RegisteredReferenceImplementation,
+) -> None:
+    with pytest.raises(InvalidReferenceImplementation):
+        ReferenceImplementationRegistry.from_registrations((registration,))
+
+
+def test_reference_implementation_registry_rejects_async_callables() -> None:
+    async def async_function(value: object) -> object:
+        return value
+
+    class AsyncCallable:
+        async def __call__(self, value: object) -> object:
+            return value
+
+    for function in (async_function, AsyncCallable()):
+        with pytest.raises(InvalidReferenceImplementation, match="synchronous"):
+            ReferenceImplementationRegistry.from_registrations(
+                (_registration(function=function),)
+            )
+
+
+def test_reference_implementation_registry_never_executes_or_reads_claims() -> None:
+    calls: list[object] = []
+
+    class Liar:
+        def __getattribute__(self, name: str) -> object:
+            if name in {"manifest", "implementation_id", "version", "content_sha256"}:
+                raise AssertionError(f"self-claim accessed: {name}")
+            return object.__getattribute__(self, name)
+
+        def __call__(self, value: object) -> object:
+            calls.append(value)
+            return value
+
+    registry = ReferenceImplementationRegistry.from_registrations(
+        (_registration(function=Liar()),)
+    )
+
+    assert calls == []
+    assert callable(registry.resolve(_reference(), role="validity_predicate").function)
+    assert calls == []
+
+
+def test_reference_implementation_registry_error_precedence_and_diagnostics() -> None:
+    ref = _reference(version="1.0.0", marker="a")
+    registry = ReferenceImplementationRegistry.from_registrations(
+        (
+            _registration(ref=ref),
+            _registration(ref=_reference(version="1.0.0", marker="b")),
+            _registration(ref=_reference(version="2.0.0", marker="c")),
+            _registration(role="canonicalizer", ref=ref),
+        )
+    )
+
+    with pytest.raises(ReferenceImplementationRoleMismatch) as role_error:
+        registry.resolve(ref, role="rule_predicate")
+    assert role_error.value.available_roles == (
+        "canonicalizer",
+        "validity_predicate",
+    )
+
+    with pytest.raises(ReferenceImplementationHashMismatch) as hash_error:
+        registry.resolve(_reference(marker="d"), role="validity_predicate")
+    assert hash_error.value.available_hashes == ("a" * 64, "b" * 64)
+
+    with pytest.raises(ReferenceImplementationVersionMismatch) as version_error:
+        registry.resolve(
+            _reference(version="3.0.0", marker="e"),
+            role="validity_predicate",
+        )
+    assert version_error.value.available_versions == ("1.0.0", "2.0.0")
+
+    with pytest.raises(UnknownReferenceImplementation):
+        registry.resolve(_reference("unknown"), role="validity_predicate")
+
+
+@pytest.mark.parametrize(
+    ("ref", "role"),
+    (
+        (_reference().model_copy(update={"version": "current"}), "validity_predicate"),
+        (_reference().model_copy(update={"unexpected": True}), "validity_predicate"),
+        (ImplementationRef.model_construct(), "validity_predicate"),
+        (_reference(), "unknown-role"),
+    ),
+)
+def test_reference_implementation_registry_revalidates_resolution_input(
+    ref: ImplementationRef, role: str
+) -> None:
+    registry = ReferenceImplementationRegistry.from_registrations((_registration(),))
+
+    with pytest.raises(InvalidReferenceImplementation):
+        registry.resolve(ref, role=role)
+
+
+def test_reference_implementation_registry_never_invokes_discovery(monkeypatch) -> None:
+    def explode(*args: object, **kwargs: object) -> object:
+        raise AssertionError("entry-point discovery is forbidden")
+
+    monkeypatch.setattr("aeread.runner.registry.metadata.entry_points", explode)
+    registry = ReferenceImplementationRegistry.from_registrations((_registration(),))
+
+    assert callable(registry.resolve(_reference(), role="validity_predicate").function)
+
+
+def test_reference_implementation_registry_has_no_mutation_surface() -> None:
+    assert not hasattr(ReferenceImplementationRegistry, "discover")
+    assert not hasattr(ReferenceImplementationRegistry, "register")
+    assert not hasattr(ReferenceImplementationRegistry, "list")
+    assert not hasattr(ReferenceImplementationRegistry, "resolve_import_path")
+    with pytest.raises((InvalidReferenceImplementation, TypeError)):
+        ReferenceImplementationRegistry({})  # type: ignore[call-arg]
+
+
+def test_runner_public_exports_are_the_exact_task_1_1a2_surface() -> None:
+    import aeread.runner as runner
+
+    expected = {
+        "ADMISSION_REQUIREMENTS",
+        "ArtifactIntegrityError",
+        "ArtifactStore",
+        "CapabilityMismatch",
+        "ConflictingReferenceArtifactDeclaration",
+        "ContentHashMismatch",
+        "ConcurrentWriterError",
+        "DuplicateReferenceImplementation",
+        "EventIntegrityError",
+        "EventStore",
+        "EvidenceSealedError",
+        "EvidenceStoreError",
+        "IncompleteAgentAssignment",
+        "InvalidAgentRequest",
+        "InvalidClusterDeclaration",
+        "InvalidEvidenceInput",
+        "InvalidReferenceArtifactInput",
+        "InvalidReferenceImplementation",
+        "ManifestMismatch",
+        "PlanningError",
+        "PluginRegistry",
+        "ReferenceArtifactError",
+        "ReferenceArtifactUnavailable",
+        "ReferenceArtifactView",
+        "ReferenceImplementationError",
+        "ReferenceImplementationHashMismatch",
+        "ReferenceImplementationRegistry",
+        "ReferenceImplementationRole",
+        "ReferenceImplementationRoleMismatch",
+        "ReferenceImplementationVersionMismatch",
+        "RegisteredReferenceImplementation",
+        "UndeclaredReferenceArtifact",
+        "UnknownReferenceImplementation",
+        "UnresolvedImplementation",
+        "build_agent_request_from_plan",
+        "build_reference_artifact_view",
+        "evaluate_admission",
+        "recompute_event_hash",
+        "resolve_run_plan",
+        "verify_run_plan_identity",
+    }
+
+    assert set(runner.__all__) == expected
+    assert len(runner.__all__) == 40
+
+
+def test_task_1_1a2_does_not_change_or_expand_the_sdk_surface() -> None:
+    import aeread.sdk.v1 as sdk
+
+    surface = tuple(sorted(sdk.__all__))
+    digest = hashlib.sha256(
+        json.dumps(surface, separators=(",", ":")).encode()
+    ).hexdigest()
+
+    assert len(sdk.__all__) == 158
+    assert digest == "2fe7d6311a309b47d2b753381144e2e7689a11b65e9bac145162ce779565bd3b"
+    for name in (
+        "ReferenceArtifactView",
+        "ReferenceImplementationRegistry",
+        "RegisteredReferenceImplementation",
+    ):
+        assert not hasattr(sdk, name)
+
+
+def test_task_1_1a2_does_not_publish_later_owned_binding_types() -> None:
+    import aeread.runner as runner
+
+    for name in (
+        "ResolvedEvaluationBinding",
+        "RaterAggregateInput",
+        "ResolvedMeasurementContract",
+        "ResolvedMeasurementDesign",
+        "BoundVerifier",
+        "ScorerInputArtifactView",
+        "SuiteMeasurementBinding",
+    ):
+        assert not hasattr(runner, name)
+
+
+def test_runner_import_with_task_1_1a2_stays_family_and_provider_free() -> None:
+    code = """
+import sys
+import aeread.runner.registry
+import aeread.runner.verifier_artifacts
+forbidden = (
+    'aeread.exchange_economy', 'tau3', 'agenticpay', 'gurobipy',
+    'vllm', 'sglang', 'docker', 'harbor', 'openai', 'google', 'anthropic',
+)
+assert not any(
+    name == item or name.startswith(item + '.')
+    for item in forbidden
+    for name in sys.modules
+)
+assert not any(name.startswith('aeread.integrations') for name in sys.modules)
+"""
+    repo_root = Path(__file__).resolve().parents[2]
+    env = dict(os.environ, PYTHONPATH=str(repo_root / "src"))
+
     subprocess.run([sys.executable, "-c", code], check=True, env=env)

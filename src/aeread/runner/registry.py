@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Iterable, Sequence
+from dataclasses import dataclass
 from importlib import metadata
 import inspect
-from typing import Protocol, TypeVar, cast
+from types import MappingProxyType
+from typing import Literal, Protocol, TypeVar, cast
 
 from pydantic import ValidationError
 
@@ -14,6 +16,7 @@ from aeread.sdk.v1 import (
     BenchmarkSourceAdapter,
     EnvironmentPlugin,
     ExecutionBackend,
+    ImplementationRef,
     PluginManifest,
     PluginRef,
     UntrustedPluginReference,
@@ -54,6 +57,342 @@ class PluginVersionMismatch(PluginRegistryError):
         super().__init__(
             f"{category} plugin {plugin_id!r} has no exact version "
             f"{plugin_version!r}; available versions: {available_versions!r}"
+        )
+
+
+ReferenceImplementationRole = Literal[
+    "validity_predicate",
+    "pre_outcome_computation",
+    "canonicalizer",
+    "canonical_membership",
+    "terminal_state_equivalence",
+    "canonical_distance",
+    "rule_predicate",
+    "rule_relation",
+    "comparative_comparator",
+    "rater_projection",
+    "rater_renderer",
+    "imported_human_validator",
+    "blind_order",
+]
+
+
+class ReferenceImplementationError(Exception):
+    """Base error for explicit reference-implementation registrations."""
+
+
+class InvalidReferenceImplementation(ReferenceImplementationError):
+    """A supplied role, pin, or callable is invalid."""
+
+
+class DuplicateReferenceImplementation(ReferenceImplementationError):
+    """The same role and full implementation pin was supplied twice."""
+
+
+class UnknownReferenceImplementation(ReferenceImplementationError):
+    """No supplied implementation has the requested implementation ID."""
+
+
+class ReferenceImplementationRoleMismatch(ReferenceImplementationError):
+    """An implementation ID exists, but not under the requested role."""
+
+    def __init__(
+        self,
+        implementation_id: str,
+        role: ReferenceImplementationRole,
+        available_roles: tuple[ReferenceImplementationRole, ...],
+    ) -> None:
+        self.implementation_id = implementation_id
+        self.role = role
+        self.available_roles = available_roles
+        super().__init__(
+            f"reference implementation {implementation_id!r} is not registered "
+            f"for role {role!r}; available roles: {available_roles!r}"
+        )
+
+
+class ReferenceImplementationVersionMismatch(ReferenceImplementationError):
+    """An implementation ID and role exist, but not at the requested version."""
+
+    def __init__(
+        self,
+        implementation_id: str,
+        role: ReferenceImplementationRole,
+        version: str,
+        available_versions: tuple[str, ...],
+    ) -> None:
+        self.implementation_id = implementation_id
+        self.role = role
+        self.version = version
+        self.available_versions = available_versions
+        super().__init__(
+            f"reference implementation {implementation_id!r} for role {role!r} "
+            f"has no exact version {version!r}; available versions: "
+            f"{available_versions!r}"
+        )
+
+
+class ReferenceImplementationHashMismatch(ReferenceImplementationError):
+    """An implementation ID, role, and version exist with other hashes."""
+
+    def __init__(
+        self,
+        implementation_id: str,
+        role: ReferenceImplementationRole,
+        version: str,
+        content_sha256: str,
+        available_hashes: tuple[str, ...],
+    ) -> None:
+        self.implementation_id = implementation_id
+        self.role = role
+        self.version = version
+        self.content_sha256 = content_sha256
+        self.available_hashes = available_hashes
+        super().__init__(
+            f"reference implementation {implementation_id!r} for role {role!r} "
+            f"at version {version!r} has no exact content hash "
+            f"{content_sha256!r}; available hashes: {available_hashes!r}"
+        )
+
+
+@dataclass(frozen=True, slots=True)
+class RegisteredReferenceImplementation:
+    role: ReferenceImplementationRole
+    ref: ImplementationRef
+    function: Callable[..., object]
+
+
+_REFERENCE_IMPLEMENTATION_ROLES = frozenset(
+    (
+        "validity_predicate",
+        "pre_outcome_computation",
+        "canonicalizer",
+        "canonical_membership",
+        "terminal_state_equivalence",
+        "canonical_distance",
+        "rule_predicate",
+        "rule_relation",
+        "comparative_comparator",
+        "rater_projection",
+        "rater_renderer",
+        "imported_human_validator",
+        "blind_order",
+    )
+)
+_SYMBOLIC_REFERENCE_VERSIONS = frozenset(("latest", "current", "default", "stable"))
+_REFERENCE_REGISTRY_TOKEN = object()
+
+
+def _validate_reference_role(value: object) -> ReferenceImplementationRole:
+    if type(value) is not str or value not in _REFERENCE_IMPLEMENTATION_ROLES:
+        raise InvalidReferenceImplementation(
+            "reference implementation role must be a supported exact string"
+        )
+    return cast(ReferenceImplementationRole, value)
+
+
+def _validate_implementation_ref(value: object) -> ImplementationRef:
+    if not isinstance(value, ImplementationRef):
+        raise InvalidReferenceImplementation(
+            "reference implementation pin must be an ImplementationRef"
+        )
+    try:
+        raw_state = dict(vars(value))
+        pydantic_extra = getattr(value, "__pydantic_extra__", None)
+        if pydantic_extra:
+            raw_state.update(pydantic_extra)
+        checked = ImplementationRef.model_validate(raw_state)
+    except Exception as exc:
+        raise InvalidReferenceImplementation(
+            "reference implementation pin is malformed"
+        ) from exc
+    if not checked.implementation_id.strip():
+        raise InvalidReferenceImplementation(
+            "reference implementation ID must be non-empty"
+        )
+    version = checked.version.strip()
+    if not version or version.lower() in _SYMBOLIC_REFERENCE_VERSIONS:
+        raise InvalidReferenceImplementation(
+            "reference implementation version must be an exact non-symbolic pin"
+        )
+    return checked
+
+
+def _validate_reference_callable(value: object) -> Callable[..., object]:
+    if not callable(value):
+        raise InvalidReferenceImplementation(
+            "reference implementation must be callable"
+        )
+    call_method = getattr(type(value), "__call__", None)
+    if inspect.iscoroutinefunction(value) or inspect.iscoroutinefunction(call_method):
+        raise InvalidReferenceImplementation(
+            "reference implementation must be synchronous"
+        )
+    return cast(Callable[..., object], value)
+
+
+class ReferenceImplementationRegistry:
+    """Exact lookup over controller-supplied, fully pinned reference callables."""
+
+    __slots__ = ("__registrations",)
+
+    def __init__(
+        self,
+        registrations: dict[
+            tuple[ReferenceImplementationRole, str, str, str],
+            RegisteredReferenceImplementation,
+        ],
+        *,
+        _private_token: object,
+    ) -> None:
+        if _private_token is not _REFERENCE_REGISTRY_TOKEN:
+            raise InvalidReferenceImplementation(
+                "reference implementation registry must be built by its factory"
+            )
+        self.__registrations = MappingProxyType(dict(registrations))
+
+    @classmethod
+    def from_registrations(
+        cls,
+        registrations: Iterable[RegisteredReferenceImplementation],
+    ) -> "ReferenceImplementationRegistry":
+        admitted: dict[
+            tuple[ReferenceImplementationRole, str, str, str],
+            RegisteredReferenceImplementation,
+        ] = {}
+        try:
+            supplied = tuple(registrations)
+        except Exception as exc:
+            raise InvalidReferenceImplementation(
+                "reference implementation registrations are not iterable"
+            ) from exc
+        for registration in supplied:
+            if not isinstance(registration, RegisteredReferenceImplementation):
+                raise InvalidReferenceImplementation(
+                    "registration must be a RegisteredReferenceImplementation"
+                )
+            role = _validate_reference_role(registration.role)
+            ref = _validate_implementation_ref(registration.ref)
+            _validate_reference_callable(registration.function)
+            key = (
+                role,
+                ref.implementation_id,
+                ref.version,
+                ref.content_sha256,
+            )
+            if key in admitted:
+                raise DuplicateReferenceImplementation(
+                    f"duplicate reference implementation for role {role!r}, "
+                    f"ID {ref.implementation_id!r}, version {ref.version!r}, "
+                    f"and content hash {ref.content_sha256!r}"
+                )
+            admitted[key] = registration
+        return cls(admitted, _private_token=_REFERENCE_REGISTRY_TOKEN)
+
+    def resolve(
+        self,
+        ref: ImplementationRef,
+        *,
+        role: ReferenceImplementationRole,
+    ) -> RegisteredReferenceImplementation:
+        checked_role = _validate_reference_role(role)
+        checked_ref = _validate_implementation_ref(ref)
+        full_key = (
+            checked_role,
+            checked_ref.implementation_id,
+            checked_ref.version,
+            checked_ref.content_sha256,
+        )
+        exact = self.__registrations.get(full_key)
+        if exact is not None:
+            return exact
+
+        matching_full_ref_roles = tuple(
+            sorted(
+                cast(ReferenceImplementationRole, registered_role)
+                for registered_role, implementation_id, version, digest in self.__registrations
+                if (
+                    implementation_id,
+                    version,
+                    digest,
+                )
+                == (
+                    checked_ref.implementation_id,
+                    checked_ref.version,
+                    checked_ref.content_sha256,
+                )
+            )
+        )
+        if matching_full_ref_roles:
+            raise ReferenceImplementationRoleMismatch(
+                checked_ref.implementation_id,
+                checked_role,
+                matching_full_ref_roles,
+            )
+
+        matching_hashes = tuple(
+            sorted(
+                digest
+                for registered_role, implementation_id, version, digest in self.__registrations
+                if (
+                    registered_role,
+                    implementation_id,
+                    version,
+                )
+                == (
+                    checked_role,
+                    checked_ref.implementation_id,
+                    checked_ref.version,
+                )
+            )
+        )
+        if matching_hashes:
+            raise ReferenceImplementationHashMismatch(
+                checked_ref.implementation_id,
+                checked_role,
+                checked_ref.version,
+                checked_ref.content_sha256,
+                matching_hashes,
+            )
+
+        matching_versions = tuple(
+            sorted(
+                {
+                    version
+                    for registered_role, implementation_id, version, _ in self.__registrations
+                    if (
+                        registered_role,
+                        implementation_id,
+                    )
+                    == (checked_role, checked_ref.implementation_id)
+                }
+            )
+        )
+        if matching_versions:
+            raise ReferenceImplementationVersionMismatch(
+                checked_ref.implementation_id,
+                checked_role,
+                checked_ref.version,
+                matching_versions,
+            )
+
+        matching_id_roles = tuple(
+            sorted(
+                {
+                    cast(ReferenceImplementationRole, registered_role)
+                    for registered_role, implementation_id, _, _ in self.__registrations
+                    if implementation_id == checked_ref.implementation_id
+                }
+            )
+        )
+        if matching_id_roles:
+            raise ReferenceImplementationRoleMismatch(
+                checked_ref.implementation_id,
+                checked_role,
+                matching_id_roles,
+            )
+        raise UnknownReferenceImplementation(
+            f"unknown reference implementation {checked_ref.implementation_id!r}"
         )
 
 
@@ -139,9 +478,7 @@ def _read_plugin_attribute(
 def _validated_manifest(category: str, plugin: object) -> PluginManifest:
     manifest = _read_plugin_attribute(category, plugin, "manifest", None)
     if manifest is None:
-        raise IncompatiblePlugin(
-            f"{category} plugin is missing a PluginManifest"
-        )
+        raise IncompatiblePlugin(f"{category} plugin is missing a PluginManifest")
     try:
         is_manifest = isinstance(manifest, PluginManifest)
     except Exception as exc:
@@ -149,9 +486,7 @@ def _validated_manifest(category: str, plugin: object) -> PluginManifest:
             f"{category} plugin manifest type could not be inspected"
         ) from exc
     if not is_manifest:
-        raise IncompatiblePlugin(
-            f"{category} plugin manifest must be a PluginManifest"
-        )
+        raise IncompatiblePlugin(f"{category} plugin manifest must be a PluginManifest")
 
     # model_copy(update=...) deliberately skips validation and model_dump()
     # omits undeclared copied attributes. Reconstruct from the raw field state
@@ -184,9 +519,7 @@ def _validate_callable(
 ) -> None:
     method = _read_plugin_attribute(category, plugin, method_name)
     if not callable(method):
-        raise IncompatiblePlugin(
-            f"{category} plugin {method_name} must be callable"
-        )
+        raise IncompatiblePlugin(f"{category} plugin {method_name} must be callable")
     try:
         is_async = inspect.iscoroutinefunction(method)
         signature = inspect.signature(method)
@@ -196,9 +529,7 @@ def _validate_callable(
         ) from exc
     if is_async is not must_be_async:
         expected = "async" if must_be_async else "synchronous"
-        raise IncompatiblePlugin(
-            f"{category} plugin {method_name} must be {expected}"
-        )
+        raise IncompatiblePlugin(f"{category} plugin {method_name} must be {expected}")
 
     parameters = signature.parameters
     for name in keyword_only_names:
@@ -246,8 +577,7 @@ def _validate_contract(category: str, plugin: object) -> None:
         ) from exc
     if not conforms:
         raise IncompatiblePlugin(
-            f"{category} plugin does not implement "
-            f"{expected_protocol.__name__}"
+            f"{category} plugin does not implement " f"{expected_protocol.__name__}"
         )
 
     for method_name, positional_names in _SYNC_METHODS.get(category, {}).items():
@@ -334,9 +664,7 @@ class PluginRegistry:
         entry_points_provider: EntryPointsProvider | None = None,
     ) -> "PluginRegistry":
         provider = entry_points_provider or metadata.entry_points
-        discovered: dict[str, list[object]] = {
-            category: [] for _, category in _GROUPS
-        }
+        discovered: dict[str, list[object]] = {category: [] for _, category in _GROUPS}
         for group, category in _GROUPS:
             for index, entry_point in enumerate(provider(group=group)):
                 try:
@@ -373,9 +701,7 @@ class PluginRegistry:
             )
         self._categories[category][key] = plugin
 
-    def _resolve(
-        self, category: str, plugin_id: str, plugin_version: str
-    ) -> object:
+    def _resolve(self, category: str, plugin_id: str, plugin_version: str) -> object:
         ref = PluginRef(plugin_id=plugin_id, plugin_version=plugin_version)
         registered = self._categories[category]
         key = (ref.plugin_id, ref.plugin_version)
@@ -396,9 +722,7 @@ class PluginRegistry:
                 ref.plugin_version,
                 versions,
             )
-        raise UnknownPlugin(
-            f"unknown {category} plugin {ref.plugin_id!r}"
-        )
+        raise UnknownPlugin(f"unknown {category} plugin {ref.plugin_id!r}")
 
     def resolve_environment(
         self, plugin_id: str, plugin_version: str
@@ -442,10 +766,20 @@ class PluginRegistry:
 
 
 __all__ = [
+    "DuplicateReferenceImplementation",
     "DuplicatePluginRegistration",
     "IncompatiblePlugin",
+    "InvalidReferenceImplementation",
     "PluginRegistry",
     "PluginRegistryError",
     "PluginVersionMismatch",
+    "ReferenceImplementationError",
+    "ReferenceImplementationHashMismatch",
+    "ReferenceImplementationRegistry",
+    "ReferenceImplementationRole",
+    "ReferenceImplementationRoleMismatch",
+    "ReferenceImplementationVersionMismatch",
+    "RegisteredReferenceImplementation",
+    "UnknownReferenceImplementation",
     "UnknownPlugin",
 ]

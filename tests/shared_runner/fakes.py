@@ -14,6 +14,10 @@ from aeread.sdk.v1 import (
     AttemptBudget,
     AttemptObserver,
     AgentProfile,
+    ArtifactRef,
+    ArtifactReferenceSource,
+    BaselineDeltaReference,
+    BlindOrderSpec,
     CapabilityDeclaration,
     CaseManifest,
     CaseProvenance,
@@ -21,17 +25,29 @@ from aeread.sdk.v1 import (
     CallAttemptStart,
     CallAttemptToken,
     CanonicalResponse,
+    CanonicalPointReference,
+    CanonicalReferenceVerifier,
+    ComparativeReferenceVerifier,
+    ConstraintSatisfactionReference,
     DecisionSlot,
     EvaluationBlock,
+    EstimandSpec,
+    ExactPointMatchSpec,
+    ImportedHumanRaterSource,
     FamilyManifest,
     FamilyOutcome,
     LegalityResult,
     LowerBoundOnlyRule,
+    MeasurementLeafSpec,
     MemoryPin,
     ModelPin,
     ObservationEnvelope,
     OptimizableOutcomeMeasurementSpec,
     OptimizationReferenceContract,
+    ObjectiveScopeSpec,
+    ObjectiveReferenceVerifier,
+    ObjectiveValueOnlyClaim,
+    ObjectiveValueReference,
     ParseResult,
     PhaseGraph,
     PhaseSpec,
@@ -41,6 +57,8 @@ from aeread.sdk.v1 import (
     ProviderCallResult,
     ProviderPin,
     RetryPolicy,
+    RaterInputSpec,
+    RaterJudgeVerifier,
     ResolutionInputs,
     RoleSpec,
     RunSpec,
@@ -52,6 +70,9 @@ from aeread.sdk.v1 import (
     SuiteManifest,
     TerminalResult,
     TransitionResult,
+    ValidityDomainSpec,
+    PreOutcomeComputationSource,
+    RuleConstraintVerifier,
     ImplementationRef,
     content_sha256,
 )
@@ -156,6 +177,312 @@ LENGTH_RETRY_ONCE = RetryPolicy(
 )
 EMPTY_LENGTH_RESPONSE = CanonicalResponse(content="", finish_reason="length")
 VALID_RESPONSE = CanonicalResponse(content='{"offers": []}', finish_reason="stop")
+
+
+def fake_measurement_leaf_with_artifacts(
+    source_artifacts: Sequence[ArtifactRef],
+    *,
+    domain_artifacts: Sequence[ArtifactRef] | None = None,
+) -> MeasurementLeafSpec:
+    """Build a canonical leaf whose only artifact pins are caller supplied."""
+
+    source_refs = tuple(
+        sorted(
+            source_artifacts,
+            key=lambda ref: (ref.sha256, ref.media_type, ref.size_bytes),
+        )
+    )
+    domain_refs = tuple(
+        sorted(
+            domain_artifacts if domain_artifacts is not None else source_refs,
+            key=lambda ref: (ref.sha256, ref.media_type, ref.size_bytes),
+        )
+    )
+    domain = ValidityDomainSpec(
+        domain_id="fake-domain",
+        domain_version="1.0.0",
+        schema_ref="fake-domain/1",
+        predicate=fake_implementation("fake-validity", marker="5"),
+        parameters=domain_refs,
+    )
+    reference = CanonicalPointReference(
+        reference_kind="canonical_point",
+        reference_id="fake-reference",
+        reference_version="1.0.0",
+        source=ArtifactReferenceSource(
+            source_kind="artifacts",
+            artifacts=source_refs,
+        ),
+        input_scope="answer",
+        input_schema_ref="fake-answer/1",
+        units="label",
+        canonicalizer=fake_implementation("fake-canonicalizer", marker="6"),
+        match=ExactPointMatchSpec(match_kind="exact"),
+    )
+    verifier = CanonicalReferenceVerifier(
+        verifier_family="canonical_reference",
+        verifier_id="fake-canonical-verifier",
+        verifier_version="1.0.0",
+        reference=reference,
+    )
+    return MeasurementLeafSpec(
+        leaf_id="fake-measurement-leaf",
+        leaf_version="1.0.0",
+        composition_kind="leaf",
+        estimand=EstimandSpec(
+            estimand_id="fake-correctness",
+            estimand_version="1.0.0",
+            input_scope="answer",
+            direction="none",
+            units="label",
+            quantity_schema_ref="fake-correctness/1",
+            validity_domain=domain,
+        ),
+        verifier=verifier,
+        allowed_evaluation_classes=("deterministic",),
+        scorer=fake_implementation("fake-scorer", marker="7"),
+    )
+
+
+def fake_measurement_leaves_by_family(
+    artifacts: Sequence[ArtifactRef],
+) -> tuple[MeasurementLeafSpec, ...]:
+    """Return one valid leaf per a1 verifier family with every artifact position."""
+
+    refs = tuple(
+        sorted(
+            artifacts,
+            key=lambda ref: (ref.sha256, ref.media_type, ref.size_bytes),
+        )
+    )
+    if len(refs) < 4:
+        raise ValueError("at least four artifact refs are required")
+
+    def domain() -> ValidityDomainSpec:
+        return ValidityDomainSpec(
+            domain_id="fake-domain",
+            domain_version="1.0.0",
+            schema_ref="fake-domain/1",
+            predicate=fake_implementation("fake-validity", marker="5"),
+            parameters=(refs[0],),
+        )
+
+    def estimand(
+        *, input_scope: str, units: str, validity_domain: ValidityDomainSpec
+    ) -> EstimandSpec:
+        return EstimandSpec(
+            estimand_id="fake-estimand",
+            estimand_version="1.0.0",
+            input_scope=input_scope,
+            direction="maximize",
+            units=units,
+            quantity_schema_ref="fake-estimand/1",
+            validity_domain=validity_domain,
+        )
+
+    artifact_source = ArtifactReferenceSource(
+        source_kind="artifacts", artifacts=(refs[1],)
+    )
+    computation_source = PreOutcomeComputationSource(
+        source_kind="pre_outcome_computation",
+        determinism="pure_deterministic",
+        implementation=fake_implementation("fake-precompute", marker="8"),
+        allowed_inputs=("case_payload", "reference_artifacts"),
+        output_schema_ref="fake-computation/1",
+        input_artifacts=(refs[2],),
+    )
+
+    canonical = CanonicalReferenceVerifier(
+        verifier_family="canonical_reference",
+        verifier_id="fake-canonical-verifier",
+        verifier_version="1.0.0",
+        reference=CanonicalPointReference(
+            reference_kind="canonical_point",
+            reference_id="fake-canonical-reference",
+            reference_version="1.0.0",
+            source=artifact_source,
+            input_scope="answer",
+            input_schema_ref="fake-answer/1",
+            units="label",
+            canonicalizer=fake_implementation("fake-canonicalizer", marker="6"),
+            match=ExactPointMatchSpec(match_kind="exact"),
+        ),
+    )
+    canonical_domain = domain()
+    canonical_leaf = MeasurementLeafSpec(
+        leaf_id="fake-canonical-leaf",
+        leaf_version="1.0.0",
+        composition_kind="leaf",
+        estimand=estimand(
+            input_scope="answer", units="label", validity_domain=canonical_domain
+        ),
+        verifier=canonical,
+        allowed_evaluation_classes=("deterministic",),
+        scorer=fake_implementation("fake-canonical-scorer", marker="9"),
+    )
+
+    rule = RuleConstraintVerifier(
+        verifier_family="rule_constraint",
+        verifier_id="fake-rule-verifier",
+        verifier_version="1.0.0",
+        reference=ConstraintSatisfactionReference(
+            reference_kind="constraint_satisfaction",
+            reference_id="fake-rule-reference",
+            reference_version="1.0.0",
+            source=computation_source,
+            input_scope="answer",
+            checkpoint_scope="answer",
+            result_schema_ref="fake-rule-result/1",
+            result_semantics="boolean",
+            predicate=fake_implementation("fake-rule", marker="a"),
+        ),
+    )
+    rule_leaf = MeasurementLeafSpec(
+        leaf_id="fake-rule-leaf",
+        leaf_version="1.0.0",
+        composition_kind="leaf",
+        estimand=estimand(
+            input_scope="answer", units="rule_pass", validity_domain=domain()
+        ),
+        verifier=rule,
+        allowed_evaluation_classes=("deterministic",),
+        scorer=fake_implementation("fake-rule-scorer", marker="b"),
+    )
+
+    objective_scope = ObjectiveScopeSpec(
+        objective_id="fake-objective",
+        objective_version="1.0.0",
+        direction="maximize",
+        source_direction="maximize",
+        source_to_canonical_rule="identity",
+        units="utility_points",
+        feasible_set="declared allocations",
+        information_set="candidate-visible observations",
+        horizon="one episode",
+        environment_condition="fixed test cases",
+        opponent_condition="fixed test policy",
+        stochastic_expectation="declared rollout distribution",
+        validity_domain=domain(),
+    )
+    objective_reference = ObjectiveValueReference(
+        reference_kind="value_only",
+        reference_id="fake-objective-reference",
+        reference_version="1.0.0",
+        source=artifact_source,
+        scope=objective_scope,
+        proof_type="pinned deterministic computation",
+    )
+    objective = ObjectiveReferenceVerifier(
+        verifier_family="objective_reference",
+        verifier_id="fake-objective-verifier",
+        verifier_version="1.0.0",
+        scope=objective_scope,
+        claim=ObjectiveValueOnlyClaim(
+            claim_kind="value_only",
+            certification_rule="no_optimality_or_comparison_claim",
+            value=objective_reference,
+        ),
+    )
+    objective_leaf = MeasurementLeafSpec(
+        leaf_id="fake-objective-leaf",
+        leaf_version="1.0.0",
+        composition_kind="leaf",
+        estimand=estimand(
+            input_scope="terminal_state",
+            units="utility_points",
+            validity_domain=objective_scope.validity_domain,
+        ),
+        verifier=objective,
+        allowed_evaluation_classes=("deterministic",),
+        scorer=fake_implementation("fake-objective-scorer", marker="c"),
+    )
+
+    comparative_domain = domain()
+    comparative = ComparativeReferenceVerifier(
+        verifier_family="comparative",
+        verifier_id="fake-comparative-verifier",
+        verifier_version="1.0.0",
+        reference=BaselineDeltaReference(
+            reference_kind="baseline_delta",
+            reference_id="fake-comparative-reference",
+            reference_version="1.0.0",
+            source=computation_source,
+            input_scope="distribution",
+            comparator=fake_implementation("fake-comparator", marker="d"),
+            population_schema_ref="fake-population/1",
+            role_precondition="candidate role",
+            matching_precondition="same case and counterpart",
+            units="win_probability",
+            direction="maximize",
+            validity_domain=comparative_domain,
+            provenance_schema_ref="fake-provenance/1",
+        ),
+    )
+    comparative_leaf = MeasurementLeafSpec(
+        leaf_id="fake-comparative-leaf",
+        leaf_version="1.0.0",
+        composition_kind="leaf",
+        estimand=estimand(
+            input_scope="distribution",
+            units="win_probability",
+            validity_domain=comparative_domain,
+        ),
+        verifier=comparative,
+        allowed_evaluation_classes=("stochastic_estimator",),
+        scorer=fake_implementation("fake-comparative-scorer", marker="e"),
+    )
+
+    rater = RaterJudgeVerifier(
+        verifier_family="rater_judge",
+        verifier_id="fake-rater-verifier",
+        verifier_version="1.0.0",
+        protocol_id="fake-rater-protocol",
+        protocol_version="1.0.0",
+        rubric_ref=refs[0],
+        prompt_ref=refs[1],
+        input=RaterInputSpec(
+            input_scope="trajectory",
+            visibility="evaluator_authorized",
+            projection=fake_implementation("fake-rater-projection", marker="f"),
+            renderer=fake_implementation("fake-rater-renderer", marker="0"),
+            rendered_schema_ref="fake-rendered-rater-input/1",
+        ),
+        rater_source=ImportedHumanRaterSource(
+            source_kind="imported_human",
+            evidence_source=artifact_source,
+            import_validator=fake_implementation("fake-human-import", marker="1"),
+            evidence_schema_ref="fake-human-evidence/1",
+        ),
+        blind_order=BlindOrderSpec(
+            algorithm=fake_implementation("fake-blind-order", marker="2"),
+            seed_input="evaluation_seed",
+            counterbalance_input="counterbalance_label",
+            position_schema_ref="fake-blind-position/1",
+        ),
+        calibration_refs=(refs[2],),
+        provenance_refs=(refs[3],),
+        result_schema_ref="fake-rater-result/1",
+        valid_tie_schema_ref="fake-rater-tie/1",
+        disagreement_schema_ref="fake-rater-disagreement/1",
+    )
+    rater_leaf = MeasurementLeafSpec(
+        leaf_id="fake-rater-leaf",
+        leaf_version="1.0.0",
+        composition_kind="leaf",
+        estimand=estimand(
+            input_scope="trajectory", units="rubric_points", validity_domain=domain()
+        ),
+        verifier=rater,
+        allowed_evaluation_classes=("judge_dependent",),
+        scorer=fake_implementation("fake-rater-scorer", marker="3"),
+    )
+    return (
+        canonical_leaf,
+        rule_leaf,
+        objective_leaf,
+        comparative_leaf,
+        rater_leaf,
+    )
 
 
 @dataclass(frozen=True)
