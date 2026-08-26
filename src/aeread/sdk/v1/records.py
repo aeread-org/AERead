@@ -8,7 +8,13 @@ import re
 from typing import Annotated, Literal
 from urllib.parse import urlparse
 
-from pydantic import Field, ValidationInfo, model_validator
+from pydantic import (
+    ConfigDict,
+    Field,
+    ModelWrapValidatorHandler,
+    ValidationInfo,
+    model_validator,
+)
 
 from .base import (
     ImmutableMapping,
@@ -534,7 +540,38 @@ def _validate_canonical_string_tuple(
         raise ValueError(f"{label} must be canonically ordered")
 
 
-class SamplingPopulationSpec(StrictModel):
+class _PlannedIdentityRecord(StrictModel):
+    model_config = ConfigDict(revalidate_instances="always")
+
+    @model_validator(mode="wrap")
+    @classmethod
+    def reject_subclass_instances(
+        cls,
+        value: object,
+        handler: ModelWrapValidatorHandler["_PlannedIdentityRecord"],
+    ) -> "_PlannedIdentityRecord":
+        if isinstance(value, _PlannedIdentityRecord) and type(value) is not cls:
+            raise ValueError(
+                "planned identity records must use their exact concrete type"
+            )
+        return handler(value)
+
+
+def _validate_planned_artifact(reference: ArtifactRef, label: str) -> None:
+    if type(reference) is not ArtifactRef:
+        raise ValueError(f"{label} must use the exact ArtifactRef type")
+    _validate_complete_artifact(reference, label)
+
+
+def _validate_planned_implementation(
+    implementation: ImplementationRef, label: str
+) -> None:
+    if type(implementation) is not ImplementationRef:
+        raise ValueError(f"{label} must use the exact ImplementationRef type")
+    _validate_implementation_pin(implementation, label)
+
+
+class SamplingPopulationSpec(_PlannedIdentityRecord):
     population_id: SDKStr
     population_version: SDKStr
     population_kind: Literal["finite_declared_frame"]
@@ -549,14 +586,16 @@ class SamplingPopulationSpec(StrictModel):
         _require_semver("population_version", self.population_version)
         _require_non_empty("unit_schema_ref", self.unit_schema_ref)
         _validate_canonical_string_tuple(self.unit_ids, "unit_ids", required=True)
+        for index, reference in enumerate(self.provenance_refs):
+            _validate_planned_artifact(reference, f"provenance_refs[{index}]")
         _validate_artifact_tuple(
             self.provenance_refs, "provenance_refs", required=False
         )
-        _validate_complete_artifact(self.frame_artifact_ref, "frame_artifact_ref")
+        _validate_planned_artifact(self.frame_artifact_ref, "frame_artifact_ref")
         return self
 
 
-class FixedPanelDesignSpec(StrictModel):
+class FixedPanelDesignSpec(_PlannedIdentityRecord):
     panel_kind: Literal["fixed_panel"]
     panel_design_id: SDKStr
     panel_design_version: SDKStr
@@ -573,7 +612,7 @@ class FixedPanelDesignSpec(StrictModel):
         return self
 
 
-class SampledPanelDesignSpec(StrictModel):
+class SampledPanelDesignSpec(_PlannedIdentityRecord):
     panel_kind: Literal["sampled_panel"]
     panel_design_id: SDKStr
     panel_design_version: SDKStr
@@ -591,8 +630,10 @@ class SampledPanelDesignSpec(StrictModel):
     def validate_sampled_panel(self) -> "SampledPanelDesignSpec":
         _require_non_empty("panel_design_id", self.panel_design_id)
         _require_semver("panel_design_version", self.panel_design_version)
-        _validate_implementation_pin(self.selection_algorithm, "selection_algorithm")
-        _validate_complete_artifact(
+        _validate_planned_implementation(
+            self.selection_algorithm, "selection_algorithm"
+        )
+        _validate_planned_artifact(
             self.selection_protocol_ref, "selection_protocol_ref"
         )
         return self
@@ -604,7 +645,7 @@ PanelDesignSpec = Annotated[
 ]
 
 
-class ClusterMembershipSpec(StrictModel):
+class ClusterMembershipSpec(_PlannedIdentityRecord):
     cluster_id: SDKStr
     population_unit_ids: tuple[SDKStr, ...]
 
@@ -617,7 +658,7 @@ class ClusterMembershipSpec(StrictModel):
         return self
 
 
-class ClusterDesignSpec(StrictModel):
+class ClusterDesignSpec(_PlannedIdentityRecord):
     cluster_design_id: SDKStr
     cluster_design_version: SDKStr
     cluster_level: SDKStr
@@ -651,7 +692,7 @@ PlannedCoordinateField = Literal[
 ]
 
 
-class PairingSpec(StrictModel):
+class PairingSpec(_PlannedIdentityRecord):
     pairing_id: SDKStr
     pairing_version: SDKStr
     pairing_kind: Literal["paired", "unpaired"]
@@ -677,7 +718,7 @@ class PairingSpec(StrictModel):
         return self
 
 
-class SeededEpisodeReplicationDesign(StrictModel):
+class SeededEpisodeReplicationDesign(_PlannedIdentityRecord):
     replication_mode: Literal["seeded"]
     replication_id: SDKStr
     replication_version: SDKStr
@@ -695,7 +736,7 @@ class SeededEpisodeReplicationDesign(StrictModel):
         return self
 
 
-class UnseededEpisodeReplicationDesign(StrictModel):
+class UnseededEpisodeReplicationDesign(_PlannedIdentityRecord):
     replication_mode: Literal["upstream_unseeded"]
     replication_id: SDKStr
     replication_version: SDKStr

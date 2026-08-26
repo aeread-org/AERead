@@ -6,7 +6,7 @@ import json
 
 import aeread.sdk.v1 as sdk_v1
 import pytest
-from pydantic import TypeAdapter, ValidationError
+from pydantic import TypeAdapter, ValidationError, create_model
 
 from aeread.sdk.v1 import (
     ArtifactRef,
@@ -266,6 +266,133 @@ def test_concrete_planned_identity_records_are_strict_frozen_and_hashable(
         record.spec_version = "aeread.sdk_record/1"
     with pytest.raises(ValidationError):
         factory(**extra_payload)
+
+
+@pytest.mark.parametrize(
+    ("model", "factory"),
+    [
+        (SamplingPopulationSpec, _population),
+        (FixedPanelDesignSpec, _fixed_panel),
+        (SampledPanelDesignSpec, _sampled_panel),
+        (
+            ClusterMembershipSpec,
+            lambda: ClusterMembershipSpec(
+                cluster_id="cluster-a", population_unit_ids=("case-001",)
+            ),
+        ),
+        (ClusterDesignSpec, _cluster_design),
+        (PairingSpec, _pairing),
+        (SeededEpisodeReplicationDesign, _seeded_replication),
+        (UnseededEpisodeReplicationDesign, _unseeded_replication),
+    ],
+)
+def test_all_concrete_planned_identity_records_reject_normal_subclass_instances(
+    model: type[object], factory: Callable[[], object]
+) -> None:
+    payload = factory().model_dump(mode="python")
+    plain_subclass = create_model(f"Plain{model.__name__}", __base__=model)
+    extended_subclass = create_model(
+        f"Extended{model.__name__}",
+        __base__=model,
+        unauthorized=(str, "present"),
+    )
+
+    for subclass in (plain_subclass, extended_subclass):
+        instance = subclass.model_validate(payload)
+        with pytest.raises(ValidationError):
+            model.model_validate(instance)
+
+
+def test_nested_artifact_and_implementation_subclasses_cannot_weaken_pins() -> None:
+    class LooseArtifact(ArtifactRef):
+        sha256: str = "not-a-digest"
+
+    class LooseImplementation(ImplementationRef):
+        content_sha256: str = "bad"
+
+    loose_artifact = LooseArtifact(media_type="application/json", size_bytes=1)
+    loose_implementation = LooseImplementation(
+        implementation_id="selector", version="1.0.0"
+    )
+
+    with pytest.raises(ValidationError):
+        _population(frame_artifact_ref=loose_artifact)
+    with pytest.raises(ValidationError):
+        _population(provenance_refs=(loose_artifact,))
+    with pytest.raises(ValidationError):
+        _sampled_panel(selection_protocol_ref=loose_artifact)
+    with pytest.raises(ValidationError):
+        _sampled_panel(selection_algorithm=loose_implementation)
+
+
+@pytest.mark.parametrize(
+    ("adapter", "model", "factory"),
+    [
+        (TypeAdapter(PanelDesignSpec), FixedPanelDesignSpec, _fixed_panel),
+        (TypeAdapter(PanelDesignSpec), SampledPanelDesignSpec, _sampled_panel),
+        (
+            TypeAdapter(EpisodeReplicationDesign),
+            SeededEpisodeReplicationDesign,
+            _seeded_replication,
+        ),
+        (
+            TypeAdapter(EpisodeReplicationDesign),
+            UnseededEpisodeReplicationDesign,
+            _unseeded_replication,
+        ),
+    ],
+)
+def test_planned_identity_unions_reject_extended_variant_instances(
+    adapter: TypeAdapter[object], model: type[object], factory: Callable[[], object]
+) -> None:
+    extended_subclass = create_model(
+        f"UnionExtended{model.__name__}",
+        __base__=model,
+        unauthorized=(str, "present"),
+    )
+    extended = extended_subclass.model_validate(factory().model_dump(mode="python"))
+    with pytest.raises(ValidationError):
+        adapter.validate_python(extended)
+
+
+def test_raw_nested_planned_identity_payloads_revalidate_to_exact_record_types() -> (
+    None
+):
+    population = _population(
+        provenance_refs=(
+            {"sha256": "d" * 64, "media_type": "application/json", "size_bytes": 1},
+        ),
+        frame_artifact_ref={
+            "sha256": "e" * 64,
+            "media_type": "application/json",
+            "size_bytes": 2,
+        },
+    )
+    sampled = _sampled_panel(
+        selection_algorithm={
+            "implementation_id": "reference-srswor",
+            "version": "1.0.0",
+            "content_sha256": "f" * 64,
+        },
+        selection_protocol_ref={
+            "sha256": "1" * 64,
+            "media_type": "application/json",
+            "size_bytes": 3,
+        },
+    )
+    cluster = _cluster_design(
+        memberships=({"cluster_id": "cluster-a", "population_unit_ids": ("case-001",)},)
+    )
+
+    assert type(population.frame_artifact_ref) is ArtifactRef
+    assert all(
+        type(reference) is ArtifactRef for reference in population.provenance_refs
+    )
+    assert type(sampled.selection_algorithm) is ImplementationRef
+    assert type(sampled.selection_protocol_ref) is ArtifactRef
+    assert all(
+        type(membership) is ClusterMembershipSpec for membership in cluster.memberships
+    )
 
 
 @pytest.mark.parametrize(
