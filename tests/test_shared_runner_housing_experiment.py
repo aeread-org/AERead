@@ -23,6 +23,7 @@ from aeread.shared_runner.housing_experiment import (
     read_condition_results,
     run_condition_batch,
     run_paired_batch,
+    validate_reasoning_admission,
 )
 
 
@@ -609,3 +610,71 @@ def test_paired_batch_uses_one_global_budget_and_resumes_without_replacement(
     assert second["completed_count"] == 4
     assert second["pending_count"] == 0
     assert len(second_provider.requests) == 8
+
+
+def _admission_row(condition: str, *, reasoning_tokens: int):
+    effort = "none" if condition == "reasoning_none_v1" else "low"
+    return {
+        "condition_id": condition,
+        "world_seed": 101,
+        "replicate_index": 0,
+        "status": "completed",
+        "evidence_verified": True,
+        "request_seeds": [12345],
+        "reasoning_efforts": [effort],
+        "route_providers": ["DeepInfra"],
+        "resolved_models": [DEEPSEEK_REVISION],
+        "reasoning_tokens": reasoning_tokens,
+        "reasoning_text_present": reasoning_tokens > 0,
+    }
+
+
+def test_reasoning_admission_requires_disabled_control_and_engaged_treatment() -> None:
+    report = validate_reasoning_admission(
+        [
+            _admission_row("reasoning_none_v1", reasoning_tokens=0),
+            _admission_row("reasoning_low_v1", reasoning_tokens=12),
+        ],
+        expected_resolved_model=DEEPSEEK_REVISION,
+        expected_route_provider="DeepInfra",
+    )
+    assert report["passed"] is True
+    assert report["paired_cell_count"] == 1
+
+    with pytest.raises(ValueError, match="disabled arm emitted reasoning"):
+        validate_reasoning_admission(
+            [
+                _admission_row("reasoning_none_v1", reasoning_tokens=1),
+                _admission_row("reasoning_low_v1", reasoning_tokens=12),
+            ],
+            expected_resolved_model=DEEPSEEK_REVISION,
+            expected_route_provider="DeepInfra",
+        )
+    with pytest.raises(ValueError, match="low arm did not emit reasoning"):
+        validate_reasoning_admission(
+            [
+                _admission_row("reasoning_none_v1", reasoning_tokens=0),
+                _admission_row("reasoning_low_v1", reasoning_tokens=0),
+            ],
+            expected_resolved_model=DEEPSEEK_REVISION,
+            expected_route_provider="DeepInfra",
+        )
+
+
+def test_paired_batch_stops_after_consecutive_operational_failures(tmp_path) -> None:
+    result = asyncio.run(
+        run_paired_batch(
+            setups=_paired_setups(world_seeds=(101, 202, 303, 404)),
+            output_root=tmp_path,
+            providers=_batch_providers(_ChargedFailureTenantProvider()),
+            concurrency=1,
+            spend_limit_usd=1.0,
+            max_consecutive_failures=2,
+        )
+    )
+
+    assert result["executed_count"] == 2
+    assert result["failure_count"] == 2
+    assert result["pending_count"] == 6
+    assert result["stop_reason"] == "operational_failure_limit_reached"
+    assert result["total_cost_usd"] == pytest.approx(0.004)

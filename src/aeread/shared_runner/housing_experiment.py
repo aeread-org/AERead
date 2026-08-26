@@ -184,6 +184,11 @@ def _event_execution_metrics(evidence: EvidenceStore) -> dict[str, Any]:
     external_provider_calls = 0
     length_retries = 0
     logical_action_ids: set[str] = set()
+    external_call_ids: set[str] = set()
+    request_seeds: set[int] = set()
+    reasoning_efforts: set[str] = set()
+    route_providers: set[str] = set()
+    resolved_models: set[str] = set()
     total_cost_usd = 0.0
     for event in evidence.read_events():
         payload = _load_event_payload(evidence, event)
@@ -193,6 +198,19 @@ def _event_execution_metrics(evidence: EvidenceStore) -> dict[str, Any]:
             request = payload.get("request") if isinstance(payload, Mapping) else None
             if isinstance(request, Mapping) and request.get("provider") == "openrouter":
                 external_provider_calls += 1
+                if event.provider_call_id:
+                    external_call_ids.add(event.provider_call_id)
+                seed = request.get("seed")
+                if isinstance(seed, int) and not isinstance(seed, bool):
+                    request_seeds.add(seed)
+                effort = request.get("reasoning_effort")
+                if isinstance(effort, str) and effort:
+                    reasoning_efforts.add(effort)
+                metadata = request.get("provider_metadata")
+                if isinstance(metadata, Mapping):
+                    route = metadata.get("route_provider")
+                    if isinstance(route, str) and route:
+                        route_providers.add(route)
         if event.event_type in {
             "provider_call_succeeded",
             "provider_call_failed",
@@ -202,6 +220,16 @@ def _event_execution_metrics(evidence: EvidenceStore) -> dict[str, Any]:
             cost = payload.get("cost_usd") if isinstance(payload, Mapping) else None
             if isinstance(cost, (int, float)) and not isinstance(cost, bool):
                 total_cost_usd += float(cost)
+            provider_result = (
+                payload.get("provider_result") if isinstance(payload, Mapping) else None
+            )
+            if (
+                event.provider_call_id in external_call_ids
+                and isinstance(provider_result, Mapping)
+            ):
+                resolved_model = provider_result.get("resolved_model")
+                if isinstance(resolved_model, str) and resolved_model:
+                    resolved_models.add(resolved_model)
         if event.event_type == "action_attempt_started":
             if isinstance(payload, Mapping) and payload.get("retry_reason") == "length":
                 length_retries += 1
@@ -217,6 +245,10 @@ def _event_execution_metrics(evidence: EvidenceStore) -> dict[str, Any]:
         "length_retry_count": length_retries,
         "reasoning_tokens": reasoning_tokens,
         "reasoning_text_present": reasoning_text_present,
+        "request_seeds": sorted(request_seeds),
+        "reasoning_efforts": sorted(reasoning_efforts),
+        "route_providers": sorted(route_providers),
+        "resolved_models": sorted(resolved_models),
         "cost_usd": total_cost_usd,
     }
 
@@ -244,28 +276,6 @@ def _failure_evidence_fields(
     }
 
 
-def _execution_counts(execution: Any, setup: HousingSmokeSetup) -> dict[str, int]:
-    provider_by_profile = {
-        profile.profile_id: profile.model.provider
-        for profile in setup.plan.agent_profiles
-    }
-    provider_calls = 0
-    external_provider_calls = 0
-    length_retries = 0
-    for logical_action in execution.action_executions:
-        for attempt in logical_action.attempts:
-            provider_calls += len(attempt.provider_calls)
-            if provider_by_profile.get(logical_action.profile_id) == "openrouter":
-                external_provider_calls += len(attempt.provider_calls)
-            if attempt.retry_reason == "length":
-                length_retries += 1
-    return {
-        "provider_call_count": provider_calls,
-        "external_provider_call_count": external_provider_calls,
-        "length_retry_count": length_retries,
-    }
-
-
 def _result_from_execution(
     *,
     setup: HousingSmokeSetup,
@@ -275,8 +285,14 @@ def _result_from_execution(
 ) -> dict[str, Any]:
     outcome = dict(execution.episode_result.outcome)
     evidence = EvidenceStore.audit_existing(execution.evidence.root)
-    events_sha256, final_event_hash = _evidence_fingerprint(evidence)
-    reasoning_tokens, reasoning_text_present = _reasoning_usage(evidence)
+    metrics = _event_execution_metrics(evidence)
+    if not math.isclose(
+        float(metrics["cost_usd"]),
+        float(execution.total_cost_usd),
+        rel_tol=1e-12,
+        abs_tol=1e-12,
+    ):
+        raise ValueError("execution cost does not reconcile to provider evidence")
     return {
         "condition_id": condition_id,
         "run_plan_id": setup.plan.run_plan_id,
@@ -289,9 +305,6 @@ def _result_from_execution(
         "status": "completed",
         "episode_attempt_id": execution.episode_attempt_id,
         "evidence_dir": str(evidence.root.resolve()),
-        "evidence_verified": True,
-        "events_sha256": events_sha256,
-        "final_event_hash": final_event_hash,
         "within_case_score": outcome.get("within_case_score"),
         "social_welfare": outcome.get("social_welfare"),
         "feasible_floor": outcome.get("feasible_floor"),
@@ -301,11 +314,7 @@ def _result_from_execution(
         "landlord_payoffs": outcome.get("landlord_payoffs"),
         "ir_violations": outcome.get("ir_violations"),
         "wasted_contacts": outcome.get("wasted_contacts"),
-        "logical_action_count": execution.episode_result.logical_action_count,
-        "cost_usd": execution.total_cost_usd,
-        "reasoning_tokens": reasoning_tokens,
-        "reasoning_text_present": reasoning_text_present,
-        **_execution_counts(execution, setup),
+        **metrics,
     }
 
 
@@ -341,6 +350,81 @@ def read_condition_results(
                 raise ValueError(f"condition evidence fingerprint mismatch: {path}")
         rows.append(row)
     return rows
+
+
+def validate_reasoning_admission(
+    rows: Iterable[Mapping[str, Any]],
+    *,
+    expected_resolved_model: str,
+    expected_route_provider: str,
+) -> dict[str, Any]:
+    """Prove that the paired provider route applied both reasoning treatments."""
+
+    conditions = ("reasoning_none_v1", "reasoning_low_v1")
+    by_identity: dict[tuple[str, int, int], Mapping[str, Any]] = {}
+    for row in rows:
+        condition = row.get("condition_id")
+        world_seed = row.get("world_seed")
+        replicate_index = row.get("replicate_index")
+        if condition not in conditions:
+            raise ValueError(f"unexpected admission condition: {condition!r}")
+        if row.get("status") != "completed" or row.get("evidence_verified") is not True:
+            raise ValueError("admission requires completed, verified trajectories")
+        if isinstance(world_seed, bool) or not isinstance(world_seed, int):
+            raise ValueError("admission world_seed must be an integer")
+        if isinstance(replicate_index, bool) or not isinstance(replicate_index, int):
+            raise ValueError("admission replicate_index must be an integer")
+        identity = (condition, world_seed, replicate_index)
+        if identity in by_identity:
+            raise ValueError(f"duplicate admission trajectory: {identity}")
+        by_identity[identity] = row
+
+    paired_identities = sorted(
+        {
+            (identity[1], identity[2])
+            for identity in by_identity
+            if all((condition, identity[1], identity[2]) in by_identity for condition in conditions)
+        }
+    )
+    if len(by_identity) != 2 * len(paired_identities) or not paired_identities:
+        raise ValueError("admission trajectories are not complete paired cells")
+
+    low_reasoning_tokens = 0
+    for world_seed, replicate_index in paired_identities:
+        control = by_identity[(conditions[0], world_seed, replicate_index)]
+        treatment = by_identity[(conditions[1], world_seed, replicate_index)]
+        for condition, row, expected_effort in (
+            (conditions[0], control, "none"),
+            (conditions[1], treatment, "low"),
+        ):
+            if row.get("reasoning_efforts") != [expected_effort]:
+                raise ValueError(f"{condition} did not preserve its sealed effort")
+            if row.get("route_providers") != [expected_route_provider]:
+                raise ValueError(f"{condition} used an unexpected provider route")
+            if row.get("resolved_models") != [expected_resolved_model]:
+                raise ValueError(f"{condition} used an unexpected resolved model")
+        if control.get("request_seeds") != treatment.get("request_seeds"):
+            raise ValueError("paired admission cells did not use identical request seeds")
+        if not control.get("request_seeds"):
+            raise ValueError("paired admission cells omitted provider seeds")
+        control_tokens = control.get("reasoning_tokens")
+        if control_tokens != 0 or control.get("reasoning_text_present") is not False:
+            raise ValueError("disabled arm emitted reasoning")
+        treatment_tokens = treatment.get("reasoning_tokens")
+        if not isinstance(treatment_tokens, int) or isinstance(treatment_tokens, bool):
+            raise ValueError("low arm reasoning usage is invalid")
+        if treatment_tokens <= 0 and treatment.get("reasoning_text_present") is not True:
+            raise ValueError("low arm did not emit reasoning")
+        low_reasoning_tokens += treatment_tokens
+    return {
+        "passed": True,
+        "paired_cell_count": len(paired_identities),
+        "control_reasoning_tokens": 0,
+        "treatment_reasoning_tokens": low_reasoning_tokens,
+        "resolved_model": expected_resolved_model,
+        "route_provider": expected_route_provider,
+        "seed_pairing": "identical_within_world_replicate",
+    }
 
 
 async def run_condition_batch(
@@ -502,6 +586,7 @@ async def run_paired_batch(
     providers: Mapping[str, Any],
     concurrency: int,
     spend_limit_usd: float,
+    max_consecutive_failures: int = 3,
     progress_callback: Any | None = None,
 ) -> dict[str, Any]:
     """Run both reasoning arms under one interleaved queue and spend boundary."""
@@ -515,6 +600,12 @@ async def run_paired_batch(
         or spend_limit_usd <= 0
     ):
         raise ValueError("spend_limit_usd must be a positive finite number")
+    if (
+        isinstance(max_consecutive_failures, bool)
+        or not isinstance(max_consecutive_failures, int)
+        or max_consecutive_failures < 1
+    ):
+        raise ValueError("max_consecutive_failures must be a positive integer")
     conditions, identities = _validate_paired_setups(setups)
     output = Path(output_root)
     existing_by_condition: dict[str, dict[str, dict[str, Any]]] = {}
@@ -565,11 +656,14 @@ async def run_paired_batch(
     new_rows: list[dict[str, Any]] = []
     state_lock = asyncio.Lock()
     stop_reason: str | None = None
+    consecutive_failures = 0
 
     async def worker() -> None:
-        nonlocal total_cost, executed_count, stop_reason
+        nonlocal total_cost, executed_count, stop_reason, consecutive_failures
         while True:
             async with state_lock:
+                if stop_reason == "operational_failure_limit_reached":
+                    return
                 if total_cost >= spend_limit_usd:
                     stop_reason = "spend_limit_reached"
                     return
@@ -623,6 +717,12 @@ async def run_paired_batch(
                 new_rows.append(sealed)
                 executed_count += 1
                 total_cost += float(sealed.get("cost_usd") or 0.0)
+                if sealed.get("status") == "completed":
+                    consecutive_failures = 0
+                else:
+                    consecutive_failures += 1
+                    if consecutive_failures >= max_consecutive_failures:
+                        stop_reason = "operational_failure_limit_reached"
                 progress = {
                     "condition_id": condition,
                     "world_seed": cell.world_seed,
@@ -827,4 +927,5 @@ __all__ = [
     "read_condition_results",
     "run_condition_batch",
     "run_paired_batch",
+    "validate_reasoning_admission",
 ]
