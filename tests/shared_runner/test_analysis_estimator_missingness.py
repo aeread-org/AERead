@@ -925,6 +925,7 @@ def _assert_analysis_source_is_declaration_only(source: str) -> None:
         ("alias", "RaterSummarySpec"),
     )
     inventory: list[tuple[str, str]] = []
+    alias_nodes: dict[str, ast.Assign] = {}
     for node in tree.body:
         if isinstance(node, ast.ClassDef):
             inventory.append(("class", node.name))
@@ -935,10 +936,65 @@ def _assert_analysis_source_is_declaration_only(source: str) -> None:
             and len(node.targets) == 1
             and isinstance(node.targets[0], ast.Name)
         ):
-            inventory.append(("alias", node.targets[0].id))
+            alias_name = node.targets[0].id
+            inventory.append(("alias", alias_name))
+            alias_nodes[alias_name] = node
         else:
             raise AssertionError(ast.dump(node, include_attributes=False))
     assert tuple(inventory) == expected_inventory
+
+    def union_arm_names(node: ast.expr) -> tuple[str, ...]:
+        if isinstance(node, ast.Name):
+            return (node.id,)
+        assert isinstance(node, ast.BinOp) and isinstance(node.op, ast.BitOr)
+        return (*union_arm_names(node.left), *union_arm_names(node.right))
+
+    expected_aliases = {
+        "EstimatorSpec": (
+            (
+                "MeanEstimatorSpec",
+                "DifferenceEstimatorSpec",
+                "ProbabilityEstimatorSpec",
+                "QuantileEstimatorSpec",
+                "PassAllKEstimatorSpec",
+            ),
+            "estimator_kind",
+        ),
+        "EpisodeMissingnessSpec": (
+            (
+                "PlannedPopulationInvalidateMissingnessSpec",
+                "CompleteCaseConditionalMissingnessSpec",
+                "BoundsOrSensitivityMissingnessSpec",
+            ),
+            "missingness_kind",
+        ),
+        "RaterSummarySpec": (
+            ("RaterCoverageSummarySpec", "RaterDisagreementSummarySpec"),
+            "summary_kind",
+        ),
+    }
+    assert set(alias_nodes) == set(expected_aliases)
+    for alias_name, (expected_arms, expected_discriminator) in expected_aliases.items():
+        value = alias_nodes[alias_name].value
+        assert (
+            isinstance(value, ast.Subscript)
+            and isinstance(value.value, ast.Name)
+            and value.value.id == "Annotated"
+            and isinstance(value.slice, ast.Tuple)
+            and len(value.slice.elts) == 2
+        )
+        union_node, field_node = value.slice.elts
+        assert union_arm_names(union_node) == expected_arms
+        assert (
+            isinstance(field_node, ast.Call)
+            and isinstance(field_node.func, ast.Name)
+            and field_node.func.id == "Field"
+            and not field_node.args
+            and len(field_node.keywords) == 1
+            and field_node.keywords[0].arg == "discriminator"
+            and isinstance(field_node.keywords[0].value, ast.Constant)
+            and field_node.keywords[0].value.value == expected_discriminator
+        )
 
     allowed_calls = {
         "ConfigDict",
@@ -1061,6 +1117,26 @@ def _analysis_declaration_source() -> str:
     return "".join(lines[start.lineno - 1 : end.lineno - 1])
 
 
+def _replace_top_level_alias(source: str, alias: str, replacement: str) -> str:
+    tree = ast.parse(source)
+    node = next(
+        item
+        for item in tree.body
+        if isinstance(item, ast.Assign)
+        and len(item.targets) == 1
+        and isinstance(item.targets[0], ast.Name)
+        and item.targets[0].id == alias
+    )
+    lines = source.splitlines(keepends=True)
+    return "".join(
+        (
+            *lines[: node.lineno - 1],
+            f"{alias} = {replacement}\n",
+            *lines[node.end_lineno :],
+        )
+    )
+
+
 def test_task_1_1b4a_added_source_is_provider_and_runtime_free() -> None:
     added = _analysis_declaration_source()
     _assert_analysis_source_is_declaration_only(added)
@@ -1091,6 +1167,30 @@ def test_source_guard_rejects_capability_and_inventory_mutations(mutation) -> No
     added = _analysis_declaration_source()
     with pytest.raises(AssertionError):
         _assert_analysis_source_is_declaration_only(mutation(added))
+
+
+@pytest.mark.parametrize(
+    "replacement",
+    [
+        "None",
+        'type("X", (), {})',
+        (
+            "Annotated[DifferenceEstimatorSpec | MeanEstimatorSpec | "
+            "ProbabilityEstimatorSpec | QuantileEstimatorSpec | "
+            "PassAllKEstimatorSpec, Field(discriminator='estimator_kind')]"
+        ),
+        (
+            "Annotated[MeanEstimatorSpec | DifferenceEstimatorSpec | "
+            "ProbabilityEstimatorSpec | QuantileEstimatorSpec | "
+            "PassAllKEstimatorSpec, Field(discriminator='wrong_kind')]"
+        ),
+    ],
+)
+def test_source_guard_rejects_union_alias_rhs_replacement(replacement: str) -> None:
+    added = _analysis_declaration_source()
+    mutation = _replace_top_level_alias(added, "EstimatorSpec", replacement)
+    with pytest.raises(AssertionError):
+        _assert_analysis_source_is_declaration_only(mutation)
 
 
 def _schema_property_names(schema: object) -> set[str]:
