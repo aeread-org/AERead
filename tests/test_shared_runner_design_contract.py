@@ -873,9 +873,12 @@ def _assert_rebaseline_status_names_current_integration_and_next_gate(
     text: str,
 ) -> None:
     breaker_baseline = "cd26e7202e0933c57169771d6f4500188407a40f"
-    implementation_baseline = "289faf5871f2cfe52140a06e7b51c238e4ef498e"
+    b4a_baseline = "b6632d5df7516aa598655f59b7992e9d1157908d"
     brief_digest = "13371f845ba1a34b0caa82dfca409f0558e0a3556313b13c39794bb56d231648"
     design_digest = "4e570d793c350d15e6857aaca87addd14bcd5afff7d70b4db75835e5d49bd879"
+    correction_digest = (
+        "713a0c97e5d4b54afa28cbe940fc075c6265844e6e84209a2c06c84fbd30a104"
+    )
     status = text.split("## Objective", 1)[0]
     task_02 = text.split("### Task 0.2: Integrate the latest approved PR #7 design", 1)[
         1
@@ -884,6 +887,7 @@ def _assert_rebaseline_status_names_current_integration_and_next_gate(
         "### Task 1.1b1:",
         "### Task 1.1b2: Measurement selection and evaluation-instrument declarations",
         "### Task 1.1b3: Execution-design authoring and episode-attempt policy",
+        "### Task 1.1b3b: Execution-assignment overlay authoring",
         "### Task 1.1b4: Analysis primitives",
         "### Task 1.1b5: AnalysisPlan envelope, DAG, and declaration-only composition",
         "### Task 1.1c: Atomic three-layer resolution and schema migration",
@@ -919,16 +923,25 @@ def _assert_rebaseline_status_names_current_integration_and_next_gate(
     }
     task_1b2 = text.split(headings[1], 1)[1].split(headings[2], 1)[0]
     task_1b3 = text.split(headings[2], 1)[1].split(headings[3], 1)[0]
-    task_1b4 = text.split(headings[3], 1)[1].split(headings[4], 1)[0]
-    task_1b5 = text.split(headings[4], 1)[1].split(headings[5], 1)[0]
-    task_1c = text.split(headings[5], 1)[1].split("### Task 1.2:", 1)[0]
-    three_layer_sections = (task_1b2, task_1b3, task_1b4, task_1b5, task_1c)
+    task_1b3b = text.split(headings[3], 1)[1].split(headings[4], 1)[0]
+    task_1b4 = text.split(headings[4], 1)[1].split(headings[5], 1)[0]
+    task_1b5 = text.split(headings[5], 1)[1].split(headings[6], 1)[0]
+    task_1c = text.split(headings[6], 1)[1].split("### Task 1.2:", 1)[0]
+    three_layer_sections = (
+        task_1b2,
+        task_1b3,
+        task_1b3b,
+        task_1b4,
+        task_1b5,
+        task_1c,
+    )
     three_layer_section_sha256 = (
         "53c0bcddcc6dadff455feef4b0de419adf3de30aeaaa9b1f8ffb61e211400a04",
         "1a1c9e0a2eded8549623555f946591322d9539408624140ea9ca0a7b14afbe0d",
-        "9023d57fd1b590921819a406726551d844469531e9031b46e9eb7ce30008a4d6",
-        "275b4395eebbc7aee7b55ec0d1f6d6e4c72f7984cbc27ec6285489bbaa1cf1fd",
-        "6e1e14860da3538ea3f1239f18027747d4ae7edf19483cf192a44443dba2d96a",
+        "76f76fc544428c8e1d6b9f4aad14b5fd185e1684e013091d511d038022c702a2",
+        "d581de887b0322e82d596f51dd0102006e5fdc05537484ee4eb9e6d422cf8bc6",
+        "ce814bc67417aff473b998ac4ac04c2674448c8b847342e38f506e701134aa7b",
+        "2f43744bebba1826dfc15bc9e6b0ac97f674fad8ff5669e5066f4a440ea13455",
     )
     for section, expected_sha256 in zip(
         three_layer_sections, three_layer_section_sha256, strict=True
@@ -942,9 +955,9 @@ def _assert_rebaseline_status_names_current_integration_and_next_gate(
 
     gate_sections = (status, task_02, dispatch)
     gate_section_sha256 = (
-        "e804cecbbef5fb6160cffd1a25de3b66e92d4b5114c36bfe8d9a3f084340c714",
-        "c138b065a5d552ff86a7a04e010e40986cc5649390cc713de947bc56ee7e166d",
-        "38e1a3e044abd8a57280a1bd5e45c9b217d4d8b137f7d1e67dfdd9c2b94e9dd8",
+        "03d2952d3853225422f3b73db96242342a9370670f2def3f04e572215bbc024c",
+        "d17565674fff3867352a0eb6d8bdb2373365f3e261e4a3be51f91a9553a2e044",
+        "07020245555399b27fbe159c83bcc8c1be232cf726954cae8b57853f3ac53d4f",
     )
     for section, expected_sha256 in zip(
         gate_sections, gate_section_sha256, strict=True
@@ -955,12 +968,15 @@ def _assert_rebaseline_status_names_current_integration_and_next_gate(
         assert hashlib.sha256(normalized.encode()).hexdigest() == expected_sha256
         assert f"`{breaker_baseline}`" in normalized
         assert "PR #7 is NOT independently CLEAN" in normalized
-        assert f"`{implementation_baseline}`" in normalized
-        assert "Task 1.1b1 is complete and independently CLEAN" in normalized
-        assert "Task 1.1b2 bounded brief" in normalized
-        assert "sole next dispatchable work" in normalized
+        assert f"`{b4a_baseline}`" in normalized
+        assert "Task 1.1b4a is independently CLEAN" in normalized
+        assert correction_digest in normalized
+        assert (
+            "Task 1.1b3b bounded-brief authoring and independent review" in normalized
+        )
+        assert "sole next dispatch" in normalized
         assert "Task 1.1c" in normalized
-        assert "authority migration is independently CLEAN" in normalized
+        assert "remain blocked" in normalized
 
     dependency = b1_subblocks["**Dependency:**"]
     authority = b1_subblocks["**Binding implementation authority:**"]
@@ -1006,7 +1022,9 @@ def _assert_rebaseline_status_names_current_integration_and_next_gate(
     assert "realized `EvaluationWork`" in " ".join(task_1b3.split())
     assert "transition_outcome_unknown" in task_1b3
     assert "quarantine" in task_1b3
-    assert "analysis_design_sha256" in task_1b4
+    assert correction_digest in task_1b3b
+    assert "execution-assignment authoring only" in task_1b3b
+    assert "analysis_authoring_sha256" in task_1b4
     assert "ignorability" in task_1b4
     assert "analysis_plan_sha256" in task_1b5
     assert "composition_sha256" in task_1b5
@@ -1015,8 +1033,9 @@ def _assert_rebaseline_status_names_current_integration_and_next_gate(
     assert "AnalysisPlanRegistration" in task_1c
     assert "AttemptSelectionProof" in task_1c
     assert "AnalysisRecord" in task_1c
-    assert "no final public record names" in " ".join(
-        (task_1b2, task_1b3, task_1b4, task_1b5)
+    assert "freezes no final public record names" in " ".join(
+        " ".join(section.split())
+        for section in (task_1b2, task_1b3, task_1b3b, task_1b4, task_1b5)
     )
     assert "**Dependency:** Task 1.1c is independently clean." in task_12
     assert "**Current gate:** blocked." in task_12
@@ -1045,7 +1064,14 @@ def _assert_rebaseline_status_names_current_integration_and_next_gate(
         assert "pr #7 is independently clean" not in gate_section.casefold()
     assert "pr #7 is independently clean" not in task_1b.casefold()
 
-    for gated_section in (task_1b2, task_1b3, task_1b4, task_1b5, task_1c):
+    for gated_section in (
+        task_1b2,
+        task_1b3,
+        task_1b3b,
+        task_1b4,
+        task_1b5,
+        task_1c,
+    ):
         assert "is dispatchable for implementation" not in gated_section.casefold()
     assert "may backfill unresolved schema" not in stage_2_preamble.casefold()
     assert "public-material source survey" in terms
@@ -1087,6 +1113,307 @@ def _assert_rebaseline_mutation_is_rejected(mutated: str) -> None:
     except AssertionError:
         return
     raise AssertionError("authority guard accepted a forbidden rebaseline mutation")
+
+
+ASSIGNMENT_AUTHORITY_HEADINGS = (
+    "### Task 1.1b3: Execution-design authoring and episode-attempt policy",
+    "### Task 1.1b3b: Execution-assignment overlay authoring",
+    "### Task 1.1b4: Analysis primitives",
+    "### Task 1.1b5: AnalysisPlan envelope, DAG, and declaration-only composition",
+    "### Task 1.1c: Atomic three-layer resolution and schema migration",
+    "### Task 1.2: Add five provider-free measurement fixtures",
+    "### Task 3.12: Pure post-receipt analysis and composition",
+    "## Stage 4 — provider-free conformance",
+    "## Current dispatch gate",
+)
+
+
+def _assignment_authority_sections(text: str) -> dict[str, str]:
+    lines = text.splitlines()
+    visible_lines: list[tuple[int, str]] = []
+    fence: tuple[str, int] | None = None
+    in_html_comment = False
+    for index, line in enumerate(lines):
+        if fence is not None:
+            fence_character, minimum_length = fence
+            stripped = line.lstrip(" ")
+            indentation = len(line) - len(stripped)
+            marker_length = len(stripped) - len(stripped.lstrip(fence_character))
+            if (
+                indentation <= 3
+                and marker_length >= minimum_length
+                and not stripped[marker_length:].strip()
+            ):
+                fence = None
+            continue
+        if in_html_comment:
+            closing = line.find("-->")
+            if closing >= 0:
+                in_html_comment = _has_unclosed_html_comment(line[closing + 3 :])
+            continue
+        stripped = line.lstrip(" ")
+        indentation = len(line) - len(stripped)
+        if indentation <= 3 and stripped[:1] in ("`", "~"):
+            fence_character = stripped[0]
+            marker_length = len(stripped) - len(stripped.lstrip(fence_character))
+            suffix = stripped[marker_length:]
+            if marker_length >= 3 and not (fence_character == "`" and "`" in suffix):
+                fence = (fence_character, marker_length)
+                continue
+        if "<!--" in line:
+            in_html_comment = _has_unclosed_html_comment(line)
+            continue
+        visible_lines.append((index, line))
+
+    positions: dict[str, int] = {}
+    for heading in ASSIGNMENT_AUTHORITY_HEADINGS:
+        assert text.count(heading) == 1, f"non-unique assignment heading: {heading}"
+        raw_matches = [index for index, line in enumerate(lines) if line == heading]
+        assert (
+            len(raw_matches) == 1
+        ), f"assignment heading is not column-zero: {heading}"
+        matches = [index for index, line in visible_lines if line == heading]
+        assert matches == raw_matches, f"assignment heading is hidden: {heading}"
+        positions[heading] = matches[0]
+    ordered = tuple(positions[heading] for heading in ASSIGNMENT_AUTHORITY_HEADINGS)
+    assert ordered == tuple(
+        sorted(ordered)
+    ), "assignment authority headings are reordered"
+
+    boundaries = {
+        ASSIGNMENT_AUTHORITY_HEADINGS[0]: ASSIGNMENT_AUTHORITY_HEADINGS[1],
+        ASSIGNMENT_AUTHORITY_HEADINGS[1]: ASSIGNMENT_AUTHORITY_HEADINGS[2],
+        ASSIGNMENT_AUTHORITY_HEADINGS[2]: ASSIGNMENT_AUTHORITY_HEADINGS[3],
+        ASSIGNMENT_AUTHORITY_HEADINGS[3]: ASSIGNMENT_AUTHORITY_HEADINGS[4],
+        ASSIGNMENT_AUTHORITY_HEADINGS[4]: ASSIGNMENT_AUTHORITY_HEADINGS[5],
+        ASSIGNMENT_AUTHORITY_HEADINGS[6]: ASSIGNMENT_AUTHORITY_HEADINGS[7],
+    }
+    sections = {
+        start: "\n".join(lines[positions[start] + 1 : positions[end]])
+        for start, end in boundaries.items()
+    }
+    sections[ASSIGNMENT_AUTHORITY_HEADINGS[8]] = "\n".join(
+        lines[positions[ASSIGNMENT_AUTHORITY_HEADINGS[8]] + 1 :]
+    )
+    return sections
+
+
+def _assert_assignment_inference_authority(text: str) -> None:
+    sections = _assignment_authority_sections(text)
+    b3b = sections[ASSIGNMENT_AUTHORITY_HEADINGS[1]]
+    b4 = sections[ASSIGNMENT_AUTHORITY_HEADINGS[2]]
+    b5 = sections[ASSIGNMENT_AUTHORITY_HEADINGS[3]]
+    task_1c = sections[ASSIGNMENT_AUTHORITY_HEADINGS[4]]
+    task_312 = sections[ASSIGNMENT_AUTHORITY_HEADINGS[6]]
+    dispatch = sections[ASSIGNMENT_AUTHORITY_HEADINGS[8]]
+    normalized_b3b = " ".join(b3b.split())
+    normalized_b4 = " ".join(b4.split())
+    normalized_b5 = " ".join(b5.split())
+    normalized_1c = " ".join(task_1c.split())
+    normalized_312 = " ".join(task_312.split())
+    changed_sections = (b3b, b4, b5, task_1c, task_312)
+    markers = (
+        "**Dependency:**",
+        "**Ownership:**",
+        "**Typed records/protocol:**",
+        "**Hash binding:**",
+        "**Stop gate:**",
+        "**Output:**",
+    )
+    for section in changed_sections:
+        assert all(section.count(marker) == 1 for marker in markers)
+        positions = tuple(section.index(marker) for marker in markers)
+        assert positions == tuple(sorted(positions))
+    section_sha256 = (
+        "76f76fc544428c8e1d6b9f4aad14b5fd185e1684e013091d511d038022c702a2",
+        "d581de887b0322e82d596f51dd0102006e5fdc05537484ee4eb9e6d422cf8bc6",
+        "ce814bc67417aff473b998ac4ac04c2674448c8b847342e38f506e701134aa7b",
+        "2f43744bebba1826dfc15bc9e6b0ac97f674fad8ff5669e5066f4a440ea13455",
+        "cd8316815d4fe8d51e792ce0ef3aea59752e644d901de693a8c95dd488651ce5",
+    )
+    for section, expected_sha256 in zip(changed_sections, section_sha256, strict=True):
+        _assert_normalized_section_snapshot(section, expected_sha256)
+    _assert_normalized_section_snapshot(
+        dispatch, "e857f04cc80bbeb6c15b6795431faf3a952df4059aae88ab8fb68e3042934c54"
+    )
+
+    correction_digest = (
+        "713a0c97e5d4b54afa28cbe940fc075c6265844e6e84209a2c06c84fbd30a104"
+    )
+    rejected_digest = "3324ebcf5c2889ffa7a875d36bc59b6e70a07cccd4da93eaeaf65f0a63481cc6"
+    assert correction_digest in b3b
+    assert "execution-assignment authoring only" in normalized_b3b
+    assert "caller-supplied realization key" in normalized_b3b
+    assert "forbidden" in normalized_b3b
+    assert "Task 1.1c is the sole coordinator" in normalized_1c
+    assert "PreAssignmentPairSet" in normalized_1c
+    assert "AssignmentScopeClaim" in normalized_1c
+    assert "ExecutionAssignmentRealization" in normalized_1c
+    assert "ResolvedPairedRandomizationBinding" in normalized_1c
+    assert "AssignmentStagingSink" in normalized_1c
+    assert "claim before realization publication" in normalized_1c
+    assert "same-key/different-bytes" in normalized_1c
+    assert "execution_design_sha256" in normalized_b3b
+    assert "PlanCell and receipt identity" in normalized_b3b
+    assert "execution-assignment design ref" in normalized_b4
+    assert "cannot create, import, execute, relabel, or reroll" in normalized_b4
+    assert "ClusterBootstrapStabilityIntervalSpec" in normalized_b4
+    assert 'coverage_claim="none_descriptive_only"' in normalized_b4
+    assert "analysis_authoring_sha256" in normalized_b5
+    assert "analysis_execution_binding_sha256" in normalized_b5
+    assert "analysis_plan_sha256" in normalized_b5
+    assert "composition_sha256" in normalized_b5
+    assert "cannot contain Task 1.1c outputs" in normalized_b5
+    assert "zero missing pairs" in normalized_312
+    assert "ResolvedPairedRandomizationBinding" in normalized_312
+    assert "descriptive stability" in normalized_312
+    assert "no confidence-coverage claim" in normalized_312
+
+    normalized_dispatch = " ".join(dispatch.split())
+    assert (
+        "Task 1.1b3b bounded-brief authoring and independent review is the sole next "
+        "dispatch" in normalized_dispatch
+    )
+    for blocked in (
+        "b3b code",
+        "Task 1.1b4b",
+        "Task 1.1b5",
+        "Task 1.1c",
+        "Stages 2–5",
+    ):
+        assert blocked in normalized_dispatch
+    assert "remain blocked" in normalized_dispatch
+    assert rejected_digest in normalized_dispatch
+    assert "NOT-CLEAN historical evidence" in normalized_dispatch
+    assert "implementation authority" in normalized_dispatch
+    assert "never implementation authority" in normalized_dispatch
+
+    forbidden = (
+        "analysis-owned assignment",
+        "analysis uses random label orientation",
+        "random label orientation",
+        "assignment bytes leave execution identity unchanged",
+        "authoring embeds a future preassignmentpairset",
+        "task 1.1b4b code is the sole next dispatch",
+        "caller chooses the realization key",
+        "new seed under the same assignment scope",
+        "rerun after realization publication",
+        "missing pairs may still publish a p-value",
+        "fixed blocks prove superpopulation confidence",
+        "SRSWOR uses an ordinary block-bootstrap confidence interval",
+        "Holm membership may be selected after p-values",
+        "rejected b4b draft is implementation authority",
+    )
+    normalized_text = " ".join(text.casefold().split())
+    assert all(fragment.casefold() not in normalized_text for fragment in forbidden)
+
+
+def test_assignment_inference_authority_is_structurally_bound() -> None:
+    _assert_assignment_inference_authority(REBASELINE_PLAN.read_text(encoding="utf-8"))
+
+
+def test_assignment_inference_authority_rejects_scientific_and_structural_mutants() -> (
+    None
+):
+    text = REBASELINE_PLAN.read_text(encoding="utf-8")
+    headings = ASSIGNMENT_AUTHORITY_HEADINGS
+
+    def add(start: str, end: str, claim: str) -> str:
+        section = text.split(start, 1)[1].split(end, 1)[0]
+        return text.replace(section, section + f"\n{claim}\n", 1)
+
+    structural_heading = headings[1]
+    indented = text.replace(structural_heading, f"    {structural_heading}", 1)
+    fenced = text.replace(
+        structural_heading,
+        f"````markdown\n{structural_heading}\n````",
+        1,
+    )
+    commented = text.replace(
+        structural_heading,
+        f"<!--\n{structural_heading}\n-->",
+        1,
+    )
+    reordered = (
+        text.replace(headings[1], "__B3B__", 1)
+        .replace(headings[2], headings[1], 1)
+        .replace("__B3B__", headings[2], 1)
+    )
+    mutants = {
+        "analysis_owned_assignment": add(
+            headings[2], headings[3], "Analysis uses random label orientation."
+        ),
+        "early_b4b_dispatch": text + "\nTask 1.1b4b code is the sole next dispatch.\n",
+        "assignment_hash_independence": add(
+            headings[1],
+            headings[2],
+            "Assignment bytes leave execution identity unchanged.",
+        ),
+        "duplicate_heading": text + f"\n{structural_heading}\nconflict\n",
+        "missing_heading": text.replace(structural_heading, "### Removed b3b", 1),
+        "reordered_headings": reordered,
+        "indented_heading": indented,
+        "fenced_heading": fenced,
+        "commented_heading": commented,
+        "future_output_in_authoring": add(
+            headings[2],
+            headings[3],
+            "Authoring embeds a future PreAssignmentPairSet and realization.",
+        ),
+        "rejected_brief_authority": add(
+            headings[2],
+            headings[3],
+            "The rejected b4b draft is implementation authority.",
+        ),
+        "caller_key": add(
+            headings[1],
+            headings[2],
+            "The caller chooses the realization key and a free-form exchangeability string.",
+        ),
+        "reroll_same_scope": add(
+            headings[1],
+            headings[2],
+            "A new seed under the same assignment scope starts a new draw.",
+        ),
+        "bad_crash_recovery": add(
+            headings[4],
+            headings[5],
+            "Recovery may rerun after realization publication.",
+        ),
+        "missing_pair_pvalue": add(
+            headings[6],
+            headings[7],
+            "Missing pairs may still publish a p-value.",
+        ),
+        "ungrounded_confidence": add(
+            headings[6],
+            headings[7],
+            "Fixed blocks prove superpopulation confidence.",
+        ),
+        "srswor_bootstrap_ci": add(
+            headings[6],
+            headings[7],
+            "SRSWOR uses an ordinary block-bootstrap confidence interval.",
+        ),
+        "post_pvalue_holm": add(
+            headings[3],
+            headings[4],
+            "Holm membership may be selected after p-values.",
+        ),
+        "partial_old_ownership": add(
+            headings[2],
+            headings[3],
+            "Analysis-owned assignment remains authoritative.",
+        ),
+    }
+    accepted: list[str] = []
+    for name, mutant in mutants.items():
+        try:
+            _assert_assignment_inference_authority(mutant)
+        except AssertionError:
+            continue
+        accepted.append(name)
+    assert not accepted, f"assignment authority accepted mutants: {accepted!r}"
 
 
 def test_rebaseline_guard_rejects_positive_independently_clean_claim() -> None:

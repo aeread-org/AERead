@@ -5,17 +5,19 @@
 > **Status:** Task 0.1a is independently P0/P1/P2 clean at `9f7255e`. Latest PR #7 source
 > `155d8fc` is integrated locally by true merge `b5239cd`, with compatibility and
 > executable-guard follow-ups through `c7aca60`; none was pushed or merged to GitHub/main.
-> Task 0.3, Task 1.1a1, Task 1.1a2, and Task 1.1b1 are complete; Task 1.1b1 is complete and
-> independently CLEAN at `289faf5871f2cfe52140a06e7b51c238e4ef498e`. PR #7 is NOT
+> Tasks 0.3, 1.1a1, 1.1a2, 1.1b1, 1.1b2, 1.1b3, and 1.1b4a are complete; Task 1.1b4a is
+> independently CLEAN at `b6632d5df7516aa598655f59b7992e9d1157908d`. PR #7 is NOT
 > independently CLEAN at controller breaker baseline
 > `cd26e7202e0933c57169771d6f4500188407a40f`. The three-layer Measurement /
 > Execution-design / Analysis-design proposal is independently scientific and quality
 > CLEAN at normalized digest
 > `4e570d793c350d15e6857aaca87addd14bcd5afff7d70b4db75835e5d49bd879`.
-> The Task 1.1b2 bounded brief is the sole next dispatchable work only after this docs-only
-> authority migration is independently CLEAN; this migration is not SDK/runtime
-> implementation authorization. Tasks 1.1b3–1.1b5 remain sequentially gated on their
-> predecessor slice, and Task 1.1c remains gated on all four CLEAN slices. Task 1.2 and
+> The independently CLEAN assignment/inference correction is pinned at
+> `Aug 22 Sync/20260826_b3b_b4b_assignment_inference_authority_correction_codex.md`,
+> normalized SHA-256
+> `713a0c97e5d4b54afa28cbe940fc075c6265844e6e84209a2c06c84fbd30a104`.
+> Task 1.1b3b bounded-brief authoring and independent review is the sole next dispatch;
+> b3b code, Task 1.1b4b, Task 1.1b5, and Task 1.1c remain blocked. Task 1.2 and
 > every Stage 2–5 dependency on Task 1.1c remain blocked. The executable scheduler,
 > attempt executor, receipt/replay kernel, and benchmark adapters remain unimplemented.
 > **Supersedes:** Tasks 6–11 of `2026-08-24-shared-runner-sdk-kernel.md`; Tasks 1–5 and their review history remain valid
@@ -103,14 +105,18 @@ local APFS volume.
 ### Task 0.2: Integrate the latest approved PR #7 design
 
 Complete locally. Latest PR #7 source `155d8fc` is integrated by true merge `b5239cd`, with
-crosswalk/status/stability/ABI-guard follow-ups through `c7aca60`. Task 1.1a1, Task 1.1a2,
-and Task 1.1b1 are complete; Task 1.1b1 is complete and independently CLEAN at
-`289faf5871f2cfe52140a06e7b51c238e4ef498e`. PR #7 is NOT independently CLEAN at
+crosswalk/status/stability/ABI-guard follow-ups through `c7aca60`. Tasks 1.1a1, 1.1a2,
+1.1b1, 1.1b2, 1.1b3, and 1.1b4a are complete; Task 1.1b4a is independently CLEAN at
+`b6632d5df7516aa598655f59b7992e9d1157908d`. PR #7 is NOT independently CLEAN at
 controller breaker baseline `cd26e7202e0933c57169771d6f4500188407a40f`. The reviewed
 three-layer design is pinned at normalized digest
 `4e570d793c350d15e6857aaca87addd14bcd5afff7d70b4db75835e5d49bd879`.
-The Task 1.1b2 bounded brief is the sole next dispatchable work only after this authority
-migration is independently CLEAN; Tasks 1.1b3–1.1b5 and Task 1.1c remain dependency-gated.
+The independently CLEAN assignment/inference correction is pinned at
+`Aug 22 Sync/20260826_b3b_b4b_assignment_inference_authority_correction_codex.md`,
+normalized SHA-256
+`713a0c97e5d4b54afa28cbe940fc075c6265844e6e84209a2c06c84fbd30a104`.
+Task 1.1b3b bounded-brief authoring and independent review is the sole next dispatch;
+b3b code, Task 1.1b4b, Task 1.1b5, and Task 1.1c remain blocked.
 This status does not authorize historical mixed-schema text or downstream implementation.
 Older `275a285`/`388e52b` commits remain historical
 milestones only. No implementer should repeat either merge, push it, or merge it to
@@ -390,53 +396,122 @@ record names. Task 1.1b4 remains gated until this slice is independently CLEAN.
 
 **Output:** execution authoring and closed eligibility policy declarations only.
 
+### Task 1.1b3b: Execution-assignment overlay authoring
+
+**Dependency:** Tasks 1.1b3 and 1.1b4a are independently CLEAN. The authority correction
+at `Aug 22 Sync/20260826_b3b_b4b_assignment_inference_authority_correction_codex.md`,
+normalized SHA-256
+`713a0c97e5d4b54afa28cbe940fc075c6265844e6e84209a2c06c84fbd30a104`, is independently
+CLEAN. Implementation remains blocked until a separate digest-pinned bounded Task 1.1b3b
+brief at `Aug 22 Sync/20260826_task1_1b3b_execution_assignment_dispatch_codex.md` is
+independently CLEAN.
+
+**Ownership:** execution-assignment authoring only. This additive overlay does not mutate
+the already-CLEAN Task 1.1b3 records, schema versions, exports, or hashes. It declares the
+actual within-pair policy/block allocation that execution will use; analysis may reference
+that authoring identity but cannot create, relabel, import, draw, or reroll an allocation.
+
+**Typed records/protocol:** the bounded brief must freeze typed refs to the exact base
+`ExecutionDesignSpec` and b1 `PairingSpec`, a content-addressed exchangeability-domain
+declaration, and an independent-uniform-within-pair execution-assignment authoring record.
+The declaration pins both arms, canonical one-half allocation, execute/import source,
+implementation/protocol/artifact identity, a nonnegative execute seed, exact-set coverage,
+and timing before PlanCell publication and the first side effect. A caller-supplied
+realization key or free-form exchangeability string is forbidden. These are authoring
+concepts only; the bounded brief freezes their exact public names and fields.
+
+**Hash binding:** the overlay is separately content-addressed at authoring time. Task 1.1c
+later binds the resolved assignment bytes into `execution_design_sha256`; therefore any
+allocation-only change changes RunPlan, PlanCell and receipt identity. The assignment scope
+excludes seed, source, assignment-design hash, and realization bytes so none can be changed
+to reroll the same preregistered scope.
+
+**Stop gate:** no pair-set resolution, scope claim, realization publication, PlanCell
+expansion, provider/environment side effect, analysis result, interval, p-value, receipt,
+or runtime/store access. Task 1.1c is the sole coordinator for resolution and publication.
+b3b code, Task 1.1b4b, Task 1.1b5, and Task 1.1c remain blocked while the bounded brief is
+not independently CLEAN.
+
+**Output:** author and independently review only the bounded execution-assignment brief at
+`Aug 22 Sync/20260826_task1_1b3b_execution_assignment_dispatch_codex.md`; this section does
+not authorize implementation.
+
 ### Task 1.1b4: Analysis primitives
 
-**Dependency:** Tasks 1.1b2 and 1.1b3 are independently CLEAN and a separate bounded Task
-1.1b4 brief is independently CLEAN. If the reviewed field/test surface is too large, split
-it into b4a estimator/missingness and b4b inference/assignment/multiplicity before code.
+**Dependency:** Task 1.1b4a estimator/missingness declarations are independently CLEAN.
+Task 1.1b4b inference/multiplicity authoring depends on independently CLEAN Task 1.1b3b
+code and a separate corrected digest-pinned b4b brief; neither is currently authorized.
 
-**Ownership:** Analysis design only: resolved cluster/pair projection intent, assignment
-mechanism/realization provenance, exact-rational estimator/transformation/success
-predicate, missingness, interval/resampling/test, multiplicity, and post-receipt rater
-coverage/disagreement summaries. `analysis_design_sha256` is independent of measurement,
-execution outcomes, receipts, and composition.
+**Ownership:** analysis design only. b4a owns exact-rational estimator and missingness
+authoring. Corrected b4b may own observational pair projection, descriptive stability,
+paired-test statistic/enumeration authoring, and multiplicity membership. A randomized
+effect authoring record contains one exact b3b execution-assignment design ref plus required
+subject/comparator roles; it cannot create, import, execute, relabel, or reroll allocation
+and cannot reference future Task 1.1c pair-set, claim, realization, or resolved binding.
+
+**Typed records/protocol:** the corrected bounded brief may freeze an observational pair
+projection, a descriptive `ClusterBootstrapStabilityIntervalSpec` with
+`coverage_claim="none_descriptive_only"`, a `PairedRandomizationTestSpec` that references
+only the b3b execution-assignment design ref and required roles, and immutable Holm-family
+membership with at least two distinct preregistered test nodes. Exact public names remain
+owned by that independently reviewed brief.
+
+**Hash binding:** b4 declarations enter `analysis_authoring_sha256`, independent of
+measurement bytes, execution outcomes, receipts, composition, and all future Task 1.1c
+resolved outputs. Assignment realization affects analysis only later through a separate
+`analysis_execution_binding_sha256`.
 
 Every estimator freezes its analysis unit and within-cluster reduction. Unequal-cluster
 tests distinguish planned-cell/row weighting from equal-cluster weighting and recompute
-the exact declared estimator over whole resampled blocks. Every missingness rule freezes
-planned-population, complete-case-conditional, or bounds/sensitivity estimand plus its
-ignorability assumption; without support for ignorability, a planned-population primary
-is typed invalid or bounded, while a valid-only point estimate is conditional secondary.
+the exact declared estimator over whole resampled blocks. Missingness freezes its target
+estimand and ignorability claim. Whole-block resampling without a pinned superpopulation or
+design-based sampling basis is descriptive stability only, never confidence coverage.
+SRSWOR finite-population targets use typed `NoIntervalSpec` in V0.
 
-**Stop gate:** no runtime arithmetic, analysis result, provider access, or judge leaf
-re-aggregation. This migration freezes no final public record names. Task 1.1b5 remains
-gated until this slice is independently CLEAN.
+**Stop gate:** no runtime arithmetic, assignment realization, future resolved binding,
+analysis result, provider access, judge leaf re-aggregation, or p-value. Task 1.1b5 remains
+blocked until corrected b4b code is independently CLEAN.
 
-**Output:** analysis primitive declarations only.
+**Output:** analysis primitive authoring declarations only; observational pairing carries
+no randomized-effect claim.
 
 ### Task 1.1b5: AnalysisPlan envelope, DAG, and declaration-only composition
 
-**Dependency:** Tasks 1.1b2–1.1b4 are independently CLEAN and a separate bounded Task
-1.1b5 brief is independently CLEAN.
+**Dependency:** Tasks 1.1b2, 1.1b3, 1.1b3b, 1.1b4a, and corrected 1.1b4b are independently
+CLEAN, and a separate bounded Task 1.1b5 brief is independently CLEAN.
 
-**Ownership:** immutable `AnalysisPlan` authoring: closed node/edge IO, eligible
-measurement/execution coordinate refs, analysis-design ref/hash, separately hashed ordered
-composition declaration, attempt estimand, and an envelope
-`analysis_plan_sha256 = H("aeread.analysis_plan/1", coordinate refs, analysis-design
-ref/hash, composition ref/hash, attempt estimand)`. `composition_sha256` remains a separate
-domain. Neither hash enters RunPlan, PlanCell, or an immutable per-attempt receipt.
+**Ownership:** immutable analysis authoring only: closed node/edge IO, eligible authoring
+coordinate refs, b4 estimator/missingness/inference refs, separately hashed ordered
+composition declaration, and attempt estimand. The authoring envelope cannot contain Task
+1.1c outputs. Task 1.1c alone combines it with resolved execution evidence and publishes
+the final resolved analysis-plan envelope before registration/execution.
 
-The V0 weighted scalar remains declaration-only/deferred. A plan becomes preregistered
-only through a later append-only `AnalysisPlanRegistration` ordered before the first
-execution side effect; a later registration is explicitly `post_hoc_exploratory`.
+**Typed records/protocol:** the bounded brief must distinguish an authoring envelope from
+the final resolved analysis-plan envelope. Authoring may name b3b assignment-design refs
+but never `PreAssignmentPairSet`, `AssignmentScopeClaim`,
+`ExecutionAssignmentRealization`, or `ResolvedPairedRandomizationBinding`. Immutable Holm
+membership is preregistered here and cannot be added, dropped, duplicated, or selected
+after any p-value exists.
 
-**Stop gate:** no giant `SuiteMeasurementBinding`, execution, statistical computation,
-receipt finalization, or `AnalysisRecord`. This migration freezes no final public record
-names. Task 1.1c remains gated until this slice is independently CLEAN.
+**Hash binding:** freeze three separate domains:
+`analysis_authoring_sha256 = H("aeread.analysis_authoring/1", authoring coordinate refs,
+b4 refs, DAG authoring refs excluding composition)`;
+`analysis_execution_binding_sha256 = H("aeread.analysis_execution_binding/1",
+execution_design_sha256, required resolved randomized-binding refs/hashes)`; and
+`analysis_plan_sha256 = H("aeread.analysis_plan/1", analysis_authoring_sha256,
+analysis_execution_binding_sha256, composition_sha256, attempt estimand)`.
+`composition_sha256` remains separate. PlanCell and receipt exclude analysis-plan identity.
 
-**Output:** content-addressed analysis-plan envelope, DAG, and declaration-only
-composition authoring.
+The V0 weighted scalar remains declaration-only/deferred. A final plan becomes
+preregistered only through a later append-only `AnalysisPlanRegistration` ordered before
+the first execution side effect; a later registration is `post_hoc_exploratory`.
+
+**Stop gate:** no giant `SuiteMeasurementBinding`, future resolved output, assignment
+publication, execution, statistical computation, receipt finalization, or `AnalysisRecord`.
+Task 1.1c remains blocked until this slice is independently CLEAN.
+
+**Output:** one content-addressed analysis-authoring envelope/DAG and declaration-only
+composition contract; final resolved plan construction is deferred to Task 1.1c.
 
 ### Task 1.1c: Atomic three-layer resolution and schema migration
 
@@ -451,17 +526,63 @@ the predeclared sampled realization, resolves blocks/seats/profiles/judgment tem
 validates cluster cover/pairs/assignment/coarsening/DAG, expands seeded positional or
 honest upstream-unseeded cells, and commits all versioned schemas together.
 
-The migration publishes `FamilyManifest/0.2`, `SuiteManifest/0.2`, `PlanCell/0.2`, and
+**Typed records/protocol:** Task 1.1c solely writes exact versioned
+`PreAssignmentPairSet`, `AssignmentScopeClaim`, `ExecutionAssignmentRealization`, and
+`ResolvedPairedRandomizationBinding` records. A narrow planning-owned
+`AssignmentStagingSink` exposes only `claim_scope_if_absent(...)`,
+`publish_same_key_same_bytes(...)`, and exact `get(...)`; it cannot enumerate, overwrite,
+choose a key/seed, or invoke a provider. The derived scope binds suite authoring ID/version,
+base execution and pairing refs/hashes, the outcome-free pair-set ref/hash, exact arms and
+mechanism, and exchangeability-domain ref/hash. It excludes seed, source, assignment-design
+hash, and realization bytes. `PreAssignmentPairSet` contains the complete sorted pair keys
+and both planned arm identities with no outcomes; the realization must exact-cover it.
+The canonical derivations are:
+
+```text
+assignment_scope_key = H(
+  "aeread.execution_assignment_scope/1",
+  preregistered suite authoring ID/version,
+  base execution-design ref/hash,
+  pairing ref/hash,
+  pre-assignment pair-set ref/hash,
+  exact subject/comparator arms and mechanism,
+  exchangeability-domain ref/hash
+)
+assignment_realization_key = H(
+  "aeread.execution_assignment_realization_key/1",
+  assignment_scope_key,
+  AssignmentScopeClaim ID/hash
+)
+```
+
+`AssignmentScopeClaim` freezes the assignment-design ref/hash, execute/import source pins,
+seed or imported-artifact hash, suite registration version, and claim status, while no
+timestamp or caller token enters canonical identity. A second claim for the same scope
+always fails, even with a new seed, source, or design hash; a new draw requires a new
+preregistered suite authoring version.
+
+**Hash binding:** the migration publishes `FamilyManifest/0.2`, `SuiteManifest/0.2`,
+`PlanCell/0.2`, and
 `RunPlan/0.3`. RunPlan/0.3 removes the canonical `suite` and `suite_sha256` fields and
 replaces them with a typed content-addressed `SuiteExecutionProjection` ref/hash containing
-only measurement/execution authoring bytes. PlanCell and receipt bind only
+only measurement/execution authoring bytes. The projection binds assignment-design,
+pair-set, scope-claim, and realization refs/hashes. The resolved assignment bytes enter
+`execution_design_sha256`; PlanCell gains no parallel assignment field. PlanCell and receipt bind only
 `measurement_sha256` and `execution_design_sha256`; analysis/composition remain in the
 independent AnalysisPlan envelope. Analysis-only changes therefore cannot churn RunPlan,
 PlanCell, receipt, or leaf score identity.
 
+Task 1.1c is the sole coordinator and executes in this order: resolve base authoring; seal
+the outcome-free pair set; derive and durably claim the assignment scope; deterministically
+compute or read the imported realization; publish; build the resolved execution hash,
+PlanCells, and RunPlan; then build `ResolvedPairedRandomizationBinding` and the final
+analysis-plan envelope. This is claim before realization publication. Crash after claim and
+before first publication may recompute the same deterministic bytes; after publication,
+recovery only reads staged bytes. Every same-key/different-bytes result, changed seed/source/
+design under the same scope, partial publication, or re-execution after publication fails.
+
 All stage-only sinks for frame selection, assignment realization, and reconciliation use
-one atomic/idempotent transaction identity and reject same-key/different-bytes, wrong role,
-partial publication, or re-execution after crash. Task 2.1b later owns append-only
+one atomic/idempotent transaction identity and reject wrong role. Task 2.1b later owns append-only
 `AnalysisPlanRegistration`; Task 3.4 emits it before the first execution side effect.
 Receipts carry immutable local `AttemptPolicyEvidence` only. Task 3.12 alone recomputes
 `AttemptSelectionProof` after complete chain/run closure and binds it only in
@@ -480,7 +601,8 @@ historical mixed-schema names. It is not dispatchable until every dependency and
 bounded brief are independently CLEAN.
 
 **Output:** one atomic family/suite/plan migration plus provider-free resolved measurement,
-execution projection, AnalysisPlan, artifact-capability, and sealed aggregate boundaries.
+execution projection, resolved randomized binding, final AnalysisPlan, artifact-capability,
+and sealed aggregate boundaries.
 
 ### Task 1.2: Add five provider-free measurement fixtures
 
@@ -1891,6 +2013,23 @@ closed run.
 **Dependency:** Tasks 1.1c and 3.11, including its attempt-chain/run-close ownership, are
 independently clean.
 
+**Ownership:** pure post-receipt validation and analysis only. The engine consumes the
+already resolved execution/analysis identities and closed evidence; it never authors or
+realizes assignment, changes the preregistered pair set, repairs missing pairs, or selects
+multiplicity membership after seeing outcomes.
+
+**Typed records/protocol:** paired randomization consumes only the exact
+`ResolvedPairedRandomizationBinding` produced by Task 1.1c and requires zero missing pairs.
+Ungrounded whole-block resampling produces `ClusterBootstrapStabilityIntervalSpec`, a
+descriptive stability result conditional on observed effective blocks with no
+confidence-coverage claim. SRSWOR finite-population targets retain `NoIntervalSpec` in V0.
+
+**Hash binding:** `AnalysisRecord` binds the final `analysis_plan_sha256`, its separate
+`analysis_authoring_sha256`, `analysis_execution_binding_sha256`, and `composition_sha256`,
+plus the exact execution design, resolved randomized binding, run coverage, closures,
+receipts, selection proof, result records, method pins, and its own digest. It never rewrites
+RunPlan, PlanCell, receipt, or any pre-execution assignment record.
+
 **Files:**
 
 - Create `src/aeread/runner/analysis.py`.
@@ -1987,7 +2126,10 @@ feeds a downstream statistic. Thus:
   weights nor publishes an official weighted scalar until a future version binds and
   executes a finite typed sensitivity grid.
 
-`ClusterBootstrapIntervalSpec` uses percentile cluster bootstrap exactly. First validate
+`ClusterBootstrapStabilityIntervalSpec` computes descriptive percentile stability over the
+observed effective blocks. It carries `coverage_claim="none_descriptive_only"` and
+`target="conditional_on_observed_effective_blocks"`; it is not a confidence interval and
+does not assert a finite-population or superpopulation coverage property. First validate
 that each indivisible pair and pass-all-k group is wholly nested in one effective
 resampling block. The effective mapping is the resolved cluster mapping unless the suite's
 strict larger-block partition coarsens clusters and contains each cross-cluster group;
@@ -1996,23 +2138,24 @@ effective identity, preserving every validated row, pair/group field, original c
 identity, and unequal block size; require at least two valid effective blocks. For each of
 B draws, sample C whole row-blocks with replacement and recompute the complete declared
 uniform-weight estimator over all rows with block multiplicity. V0 has no cluster-level
-contribution reduction or weighting shortcut.
-Sampling uses SHA-256 counter blocks over
-the canonical domain `(aeread.cluster_bootstrap/0.1, run_plan_sha256, analysis_block_id,
-seed, draw_index, position, retry_counter)`: interpret the digest as an unsigned 256-bit
-integer, reject values at or above `2^256 - (2^256 mod C)`, and take `value mod C`.
-Sort the B finite statistics and compute endpoints at `(1-confidence)/2` and
-`1-(1-confidence)/2` with the same exact-rational R-7 rule and sole output rounding.
-Record confidence, B, seed, C, sampler/
-quantile version, endpoint values, original cluster identities, effective block mapping,
-and effective block identities in `AnalysisRecord`.
+contribution reduction or weighting shortcut. Sampling uses SHA-256 counter blocks over
+the canonical domain `(aeread.cluster_bootstrap_stability/0.1, run_plan_sha256,
+analysis_block_id, seed, draw_index, position, retry_counter)`: interpret the digest as an
+unsigned 256-bit integer, reject values at or above `2^256 - (2^256 mod C)`, and take
+`value mod C`. Sort the B finite statistics and compute the declared central-mass
+percentile endpoints with the same exact-rational R-7 rule and sole output rounding.
+Record coverage claim, target, central mass, B, seed, C, sampler/quantile version, endpoint
+values, original cluster identities, effective block mapping, and effective block
+identities in `AnalysisRecord`.
 
-`PairedRandomizationTestSpec` publishes a test, never a confidence interval. From the
-sorted exact pairs, first exact-validate literal
-`assignment_mechanism="independent_uniform_within_pair"` plus the plan-bound assignment
-and exchangeability provenance; observational or other pair formation may publish the
-paired effect but must produce no p-value. Compute observed absolute exact-rational mean
-difference. If `2^n` is no larger
+`PairedRandomizationTestSpec` publishes a test, never a confidence interval. From the duly
+preregistered exact pairs, first exact-validate the Task 1.1c
+`ResolvedPairedRandomizationBinding`, including the outcome-free pre-assignment pair set,
+scope claim, exact execution-assignment realization, exchangeability domain, actual
+PlanCell/receipt allocation, and zero missing pairs. A missing/invalid arm, incomplete or
+post-outcome pair set, allocation drift, observational pairing, or non-uniform mechanism
+produces a typed invalid test with no p-value. Compute observed absolute exact-rational
+mean difference. If `2^n` is no larger
 than the declared exhaustive threshold, enumerate sign masks from `0` through `2^n-1`
 in sorted pair order, with bit `0 -> -1` and bit `1 -> +1`, and report the exact rational
 `count(T >= T_obs)/2^n`. Otherwise, for every `(draw_index, pair_position)` take bit zero
@@ -2049,9 +2192,10 @@ the final binary64 bits and canonical JSON for `1/3`; the exact midpoint between
 patterns `0x3ff0000000000000` and `0x3ff0000000000001` rounding to the even lower value;
 and the midpoint between `0x3ff0000000000001` and `0x3ff0000000000002` rounding to the
 even upper value. Also freeze
-bootstrap draw indices/endpoints and exhaustive/Monte Carlo randomization p-values; and
+stability draw indices/endpoints and exhaustive/Monte Carlo randomization p-values; and
 prove paired randomization has no CI fields, rejects observational/non-uniform assignment,
-and requires both provenance refs. Bootstrap tests reject partial pair/pass-all-k groups
+requires the complete resolved binding, and emits no p-value unless every preregistered pair
+has two valid arm outcomes. Stability tests reject partial pair/pass-all-k groups
 across effective blocks, accept the exact declared coarsening, and sample each whole block
 with multiplicity. Custom-method tests reject a host-float argument or return and prove
 only canonical rational/categorical values enter portable V0 output. Weighted-composition
@@ -2061,8 +2205,14 @@ enumeration, write, file, network, provider, evaluator, lifecycle, tool, runtime
 environment access. Reordered input receipts produce byte-identical output; repeated
 analysis produces identical bytes/hash and no side effect.
 
+**Stop gate:** no provider, evaluator, agent, environment, lifecycle, tool, filesystem,
+network, artifact-store write, assignment realization, PlanCell construction, receipt
+mutation, or post-outcome change to pair/test-family membership. Invalid randomized-test
+eligibility yields a typed invalid test with no p-value; it never silently falls back to an
+observational analysis.
+
 **Output:** one pure content-addressed `AnalysisRecord` over validated receipts with exact
-coverage, V0 numeric/bootstrap/test goldens, declared higher-order methods, and post-leaf
+coverage, V0 numeric/stability/test goldens, declared higher-order methods, and post-leaf
 composition; no analysis mutates receipts or leaf measurement identity.
 
 ## Stage 4 — provider-free conformance
@@ -2296,15 +2446,25 @@ is a blocker, not authority for a sixth plan-fix round or hidden implementer dis
 ## Current dispatch gate
 
 PR #7 is NOT independently CLEAN at controller breaker baseline
-`cd26e7202e0933c57169771d6f4500188407a40f`. Task 1.1b1 is complete and independently
-CLEAN at `289faf5871f2cfe52140a06e7b51c238e4ef498e`; its normalized brief digest remains
+`cd26e7202e0933c57169771d6f4500188407a40f`. Tasks 1.1b1, 1.1b2, 1.1b3, and 1.1b4a
+are complete; Task 1.1b4a is independently CLEAN at
+`b6632d5df7516aa598655f59b7992e9d1157908d`. The Task 1.1b1 normalized
+brief digest remains
 `13371f845ba1a34b0caa82dfca409f0558e0a3556313b13c39794bb56d231648`.
 The independently CLEAN three-layer proposal is pinned at normalized digest
 `4e570d793c350d15e6857aaca87addd14bcd5afff7d70b4db75835e5d49bd879`.
-The Task 1.1b2 bounded brief is the sole next dispatchable work only after this docs-only
-authority migration is independently CLEAN. Task 1.1b3, Task 1.1b4, Task 1.1b5, and Task
-1.1c remain sequentially dependency-gated; Task 1.2 and all Stage 2–5 dependencies on
-Task 1.1c remain blocked. Provider-free constructor pressure is never runner execution,
+The independently CLEAN assignment/inference correction is pinned at
+`Aug 22 Sync/20260826_b3b_b4b_assignment_inference_authority_correction_codex.md`,
+normalized SHA-256
+`713a0c97e5d4b54afa28cbe940fc075c6265844e6e84209a2c06c84fbd30a104`.
+The rejected draft
+`Aug 22 Sync/20260826_task1_1b4b_inference_assignment_dispatch_codex.md`, digest
+`3324ebcf5c2889ffa7a875d36bc59b6e70a07cccd4da93eaeaf65f0a63481cc6`, is retained only
+as NOT-CLEAN historical evidence and is never implementation authority.
+
+Task 1.1b3b bounded-brief authoring and independent review is the sole next dispatch. b3b
+code, Task 1.1b4b, Task 1.1b5, Task 1.1c, and Stages 2–5 remain blocked. Task 1.2 also
+remains blocked on Task 1.1c. Provider-free constructor pressure is never runner execution,
 upstream parity, or benchmark-quality evidence. This two-file authority migration cannot
 change attempt ABI/guards, SDK/runtime source, or shared-runner behavior. No push or
 GitHub/main merge is authorized.
