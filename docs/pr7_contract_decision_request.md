@@ -79,6 +79,31 @@ runner enforces the declaration, or the field is documented as descriptive with
 sequencing expressed through `next_phases` — and I would rather implement your choice
 than guess. Nothing depends on it today.
 
+**B4. Two vocabularies I started to lock and then did not.** Both are free strings
+that ought to be closed sets, and in both cases the sources disagree, so locking one
+would have been my decision rather than yours.
+
+`EvaluationBlock.kind` has three candidate vocabularies in play: `controlled |
+population | crossplay` from the runner design, "controlled, cross-play, self-play, or
+human/reference comparison" from your design document, and `fixed_counterpart` from the
+fixtures on this branch. They are not the same partition — "fixed counterpart" describes
+the *counterpart*, while "controlled" describes what the block licenses you to say. My
+preference is the second axis, because the field's job is to gate the claim: exactly one
+kind is attributable to a single subject. Your call.
+
+`RunSpec.execution_mode` currently reads `"local"` in the fixtures, which is placement,
+while the existing runner's three modes are `offline | live_frozen | replay`, which is
+recording. Placement is already pinned by `execution_backend`, so as written the field
+either duplicates it or means the recording mode under a misleading name. Say which, and
+I will lock it.
+
+I did lock the identifier grammar, because that one is not a matter of taste: ids that
+leave the repository are `[a-z0-9_.-]`, `__` between levels, no colon. rLLM composes an
+episode id as `f"{task_id}:{rollout_idx}"` and recovers the task with `split(":")[0]`, so
+a colon in a row id silently collapses every training group into one — which is exactly
+what happened in the B1 run, reported as a grouping metric of 1 rather than an error.
+Every existing id already satisfies the grammar; nothing had to be renamed.
+
 ## C. Two rulings still open from the earlier list
 
 **C1. Is `user_simulator` a seat kind or a counterpart profile?** tau3 needs a simulated

@@ -1211,6 +1211,9 @@ def test_task_1_1a1_has_one_exact_public_export_delta() -> None:
         "ToolInvocationResult",
         "ToolInvocationFailure",
         "ToolObserver",
+        "ReasoningCondition",
+        "ExportableId",
+        "is_exportable_id",
     }
     exports = set(sdk.__all__)
     assert len(sdk.__all__) == len(exports)

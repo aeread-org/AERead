@@ -41,6 +41,22 @@ _SEMVER_PATTERN = re.compile(
     r"(?:\+([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?$"
 )
 SHA256 = Annotated[SDKStr, Field(pattern=r"^[0-9a-f]{64}$")]
+
+#: Identifiers that leave this repository — case, suite, block, and profile ids
+#: end up in file names, dataset rows, and export formats. They are lower-case
+#: `[a-z0-9_.-]`, use `__` to separate levels, and **must not contain a colon**.
+#: rLLM composes an episode id as ``f"{task_id}:{rollout_idx}"`` and recovers the
+#: task with ``id.split(":")[0]``, so a colon in a row id silently collapses
+#: every training group into one; that is not a hypothetical, it happened.
+_EXPORTABLE_ID_PATTERN = re.compile(r"^[a-z0-9](?:[a-z0-9_.-]*[a-z0-9])?$")
+
+ExportableId = Annotated[SDKStr, Field(pattern=_EXPORTABLE_ID_PATTERN.pattern)]
+
+
+def is_exportable_id(value: str) -> bool:
+    """Whether an identifier is safe to put in a file name, row, or export."""
+
+    return bool(_EXPORTABLE_ID_PATTERN.fullmatch(value))
 RetryCondition = Literal["timeout", "rate_limit", "provider_5xx", "transport", "length"]
 CallObservability = Literal["full", "logical_only", "opaque"]
 ReferenceKind = Literal[
@@ -3881,10 +3897,12 @@ def case_content_sha256(value: "CaseManifest") -> str:
 
 class CaseManifest(StrictModel):
     spec_version: Literal["aeread.case/0.1"] = "aeread.case/0.1"
-    case_id: SDKStr
-    family_id: SDKStr
+    # These three name the case wherever it goes: a run directory, a dataset
+    # row, an export. See ExportableId for why a colon is not allowed.
+    case_id: ExportableId
+    family_id: ExportableId
     family_version: SDKStr
-    split: SDKStr
+    split: ExportableId
     world_seed: SDKInt = Field(ge=0)
     seats: tuple[SeatSpec, ...]
     max_logical_actions: SDKInt = Field(ge=1)
@@ -3939,7 +3957,10 @@ class CaseManifest(StrictModel):
 
 
 class EvaluationBlock(StrictModel):
-    block_id: SDKStr
+    block_id: ExportableId
+    #: Left a free string on purpose: three sources propose three different
+    #: vocabularies for this field, so locking one is a contract decision
+    #: rather than a kernel decision. See docs/pr7_contract_decision_request.md.
     kind: SDKStr
     estimand_id: SDKStr
     subject_roles: tuple[SDKStr, ...]
@@ -3995,9 +4016,9 @@ class ClusterSpec(StrictModel):
 
 class SuiteManifest(StrictModel):
     spec_version: Literal["aeread.suite/0.1"] = "aeread.suite/0.1"
-    suite_id: SDKStr
+    suite_id: ExportableId
     suite_version: SDKStr
-    case_ids: tuple[SDKStr, ...]
+    case_ids: tuple[ExportableId, ...]
     blocks: tuple[EvaluationBlock, ...]
     cluster_by_estimand: ImmutableMapping[ClusterSpec]
     missingness_policy: SDKStr
@@ -4087,6 +4108,67 @@ class MemoryPin(StrictModel):
         return self
 
 
+class ReasoningCondition(StrictModel):
+    """A versioned reasoning setting, treated as an experimental condition.
+
+    "Reasoning model" is not a stable description of a run: the same model can
+    be served on provider defaults, at a named effort, under a token budget, or
+    with no exposed control at all, and those change the policy, the cost, and
+    what is comparable with what. Every evaluated cell therefore binds one of
+    these, and reports compare complete agent configurations rather than a bare
+    model name.
+
+    Two distinctions the record refuses to blur: `provider_default` is not
+    "off", and a provider exposing no disable switch is `unsupported_control`
+    rather than a control arm. Private chain-of-thought is never required or
+    retained; a provider summary or a task-visible decision record is an
+    observed output that must be declared to be kept.
+    """
+
+    reasoning_condition_id: SDKStr
+    mode: Literal["provider_default", "enabled", "disabled", "unsupported_control"]
+    reasoning_effort: (
+        Literal["low", "medium", "high", "provider_specific"] | None
+    ) = None
+    reasoning_token_budget: SDKInt | None = Field(default=None, ge=0)
+    output_token_budget: SDKInt = Field(ge=1)
+    total_completion_budget: SDKInt | None = Field(default=None, ge=1)
+    provider_parameters: JSONObject = Field(default_factory=dict)
+    rationale_visibility: Literal[
+        "none", "provider_summary", "task_visible_decision_record"
+    ] = "none"
+    rationale_protocol_id: SDKStr | None = None
+    reasoning_content_retained: Literal[False] = False
+
+    @model_validator(mode="after")
+    def validate_reasoning_condition(self) -> "ReasoningCondition":
+        if not self.reasoning_condition_id.strip():
+            raise ValueError("reasoning_condition_id must be non-empty")
+        if self.mode in {"disabled", "unsupported_control"}:
+            if self.reasoning_effort is not None:
+                raise ValueError(
+                    f"mode {self.mode!r} cannot also declare a reasoning effort"
+                )
+            if self.reasoning_token_budget:
+                raise ValueError(
+                    f"mode {self.mode!r} cannot also declare a reasoning budget"
+                )
+        if self.total_completion_budget is not None:
+            declared = self.output_token_budget + (self.reasoning_token_budget or 0)
+            if self.total_completion_budget < declared:
+                raise ValueError(
+                    "total_completion_budget is smaller than the output and "
+                    "reasoning budgets it is meant to contain"
+                )
+        visible = self.rationale_visibility != "none"
+        if visible != (self.rationale_protocol_id is not None):
+            raise ValueError(
+                "a visible rationale needs a declared protocol, and a declared "
+                "protocol needs a visibility other than 'none'"
+            )
+        return self
+
+
 class AgentExecutionConfig(StrictModel):
     """Fully materialized provider/harness configuration delivered to an adapter."""
 
@@ -4101,6 +4183,7 @@ class AgentExecutionConfig(StrictModel):
     memory: MemoryPin
     attempt_budget: AttemptBudget
     retry_policy: RetryPolicy
+    reasoning: ReasoningCondition
 
     @model_validator(mode="after")
     def validate_execution_config(self) -> "AgentExecutionConfig":
@@ -4230,11 +4313,15 @@ class AgentRequest(StrictModel):
 
 class RunSpec(StrictModel):
     spec_version: Literal["aeread.run/0.1"] = "aeread.run/0.1"
-    run_id: SDKStr
+    run_id: ExportableId
     run_version: SDKStr
     admission_profile: Literal["paper_primary", "training", "interop_only"]
     execution_backend: PinnedPluginRef
     subject_profile_by_role: ImmutableMapping[SDKStr]
+    #: Ambiguous today: fixtures set "local", which reads as placement, while
+    #: the existing runner's three modes are offline / live_frozen / replay and
+    #: placement is already pinned by execution_backend. Left free until the
+    #: field's meaning is settled — see docs/pr7_contract_decision_request.md.
     execution_mode: SDKStr
 
     @model_validator(mode="after")

@@ -103,6 +103,7 @@ from .records import (
     ExecutionBlockSpec,
     ExecutionDesignSpec,
     ExecutionRecordRef,
+    ExportableId,
     FamilyManifest,
     FamilyOutcome,
     FieldRatingReference,
@@ -193,6 +194,7 @@ from .records import (
     RaterSource,
     RaterSummarySpec,
     RaterTieResult,
+    ReasoningCondition,
     ReferenceKind,
     ReferenceSource,
     ReferenceValue,
@@ -232,6 +234,7 @@ from .records import (
     ValidityReport,
     VerifierSpec,
     case_content_sha256,
+    is_exportable_id,
     validate_action_bundle,
 )
 
@@ -320,6 +323,7 @@ __all__ = [
     "ExecutionBlockSpec",
     "ExecutionDesignSpec",
     "ExecutionRecordRef",
+    "ExportableId",
     "FamilyManifest",
     "FamilyOutcome",
     "FieldRatingReference",
@@ -414,6 +418,7 @@ __all__ = [
     "RaterSource",
     "RaterSummarySpec",
     "RaterTieResult",
+    "ReasoningCondition",
     "ReferenceKind",
     "ReferenceSource",
     "ReferenceValue",
@@ -460,5 +465,6 @@ __all__ = [
     "canonical_json_bytes",
     "case_content_sha256",
     "content_sha256",
+    "is_exportable_id",
     "validate_action_bundle",
 ]

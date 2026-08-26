@@ -6,6 +6,7 @@ from dataclasses import dataclass, replace
 from typing import Mapping, Sequence
 
 from aeread.sdk.v1 import (
+    ReasoningCondition,
     ActionBundle,
     ActionChannel,
     AgentContext,
@@ -101,6 +102,14 @@ _SLOT = DecisionSlot(
     order_key="0001",
 )
 
+# The paper's fixed harness runs on provider defaults with no visible rationale;
+# a reasoning ablation replaces this whole record rather than editing a flag.
+MINIMAL_CHAT_REASONING = ReasoningCondition(
+    reasoning_condition_id="provider_default_v1",
+    mode="provider_default",
+    output_token_budget=1200,
+)
+
 _REQUEST_EXECUTION_CONFIG = AgentExecutionConfig(
     provider=ProviderPin(provider_id="fake", api_version="2026-08-01"),
     model=ModelPin(model_id="fake-model", revision="2026-08-01"),
@@ -128,6 +137,7 @@ _REQUEST_EXECUTION_CONFIG = AgentExecutionConfig(
     memory=MemoryPin(mode="none"),
     attempt_budget=AttemptBudget(timeout_seconds=1.0, output_token_limit=64),
     retry_policy=RetryPolicy(max_attempts=1),
+reasoning=MINIMAL_CHAT_REASONING,
 )
 _REQUEST_PROFILE = AgentProfile(
     profile_id="candidate",
@@ -715,7 +725,8 @@ def fake_agent_profile(
                 output_token_limit=64,
             ),
             retry_policy=RetryPolicy(max_attempts=1),
-        ),
+        reasoning=MINIMAL_CHAT_REASONING,
+    ),
     )
 
 

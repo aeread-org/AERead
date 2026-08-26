@@ -1060,7 +1060,10 @@ def test_b1_b2_b3_b4a_additions_preserve_legacy_schema_and_export_abi() -> None:
         "EvaluationBlock": "787c63e331b4946b2886952d4705c539104b6786c384d07a8c5652c2d0174a2f",
         "SuiteManifest": "85e16708a5e7695a800448fc28bab618905d7baa1d8ba5e2c41d177409ee0530",
         "PlanCell": "b01e32b42ec0f65a4899fd231197e35ad1b1ad58f2ab115f15879570a697fc25",
-        "RunPlan": "0ebd2ef5ffd9a30632bf5a4943e05fa9e90961ca6b1f60c21081ab0d14c2d31a",
+        # RunPlan embeds AgentProfile, which now binds a reasoning condition. The
+        # other five digests are unchanged: nothing else about the persisted
+        # shapes moved.
+        "RunPlan": "e9015fe438b0978571b9219d48dd6b1c4f323cb064b82286481b17b61a19a3e4",
         "FamilyManifest": "98fceba5ca2d3da831f548b96c464b1a15ba4087c6476bec94aaa8e960a68ee8",
     }
 
@@ -1172,6 +1175,9 @@ def test_b1_b2_b3_b4a_additions_preserve_legacy_schema_and_export_abi() -> None:
         "ToolInvocationResult",
         "ToolInvocationFailure",
         "ToolObserver",
+        "ReasoningCondition",
+        "ExportableId",
+        "is_exportable_id",
     }
     assert tool_evidence_exports <= set(sdk_v1.__all__)
     legacy_exports = tuple(
