@@ -902,6 +902,44 @@ def _assert_analysis_source_is_declaration_only(source: str) -> None:
     assert not any(
         isinstance(node, (ast.Import, ast.ImportFrom)) for node in ast.walk(tree)
     )
+    expected_inventory = (
+        ("class", "_StrictValueModel"),
+        ("class", "CanonicalRational"),
+        ("class", "BooleanSuccessPredicateSpec"),
+        ("function", "_validate_estimator_identity"),
+        ("function", "_validate_analysis_unit_weighting"),
+        ("class", "MeanEstimatorSpec"),
+        ("class", "DifferenceEstimatorSpec"),
+        ("class", "ProbabilityEstimatorSpec"),
+        ("class", "QuantileEstimatorSpec"),
+        ("class", "PassAllKEstimatorSpec"),
+        ("alias", "EstimatorSpec"),
+        ("class", "IdentityTransformationSpec"),
+        ("function", "_validate_missingness_identity"),
+        ("class", "PlannedPopulationInvalidateMissingnessSpec"),
+        ("class", "CompleteCaseConditionalMissingnessSpec"),
+        ("class", "BoundsOrSensitivityMissingnessSpec"),
+        ("alias", "EpisodeMissingnessSpec"),
+        ("class", "RaterCoverageSummarySpec"),
+        ("class", "RaterDisagreementSummarySpec"),
+        ("alias", "RaterSummarySpec"),
+    )
+    inventory: list[tuple[str, str]] = []
+    for node in tree.body:
+        if isinstance(node, ast.ClassDef):
+            inventory.append(("class", node.name))
+        elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            inventory.append(("function", node.name))
+        elif (
+            isinstance(node, ast.Assign)
+            and len(node.targets) == 1
+            and isinstance(node.targets[0], ast.Name)
+        ):
+            inventory.append(("alias", node.targets[0].id))
+        else:
+            raise AssertionError(ast.dump(node, include_attributes=False))
+    assert tuple(inventory) == expected_inventory
+
     allowed_calls = {
         "ConfigDict",
         "Field",
@@ -938,24 +976,94 @@ def _assert_analysis_source_is_declaration_only(source: str) -> None:
         assert isinstance(node.func, ast.Name), ast.unparse(node.func)
         assert node.func.id in allowed_calls, node.func.id
 
+    expected_attributes = {
+        "allowed.get",
+        "coordinate_order.__getitem__",
+        "self.analysis_unit",
+        "self.assumption_artifact_ref",
+        "self.denominator",
+        "self.estimator_id",
+        "self.estimator_version",
+        "self.group_key_fields",
+        "self.implementation",
+        "self.input_arity",
+        "self.input_metric_id",
+        "self.input_schema_ref",
+        "self.input_units",
+        "self.method",
+        "self.method_input_schema_ref",
+        "self.numerator",
+        "self.output_metric_id",
+        "self.output_units",
+        "self.policy_id",
+        "self.policy_version",
+        "self.predicate_id",
+        "self.predicate_version",
+        "self.q",
+        "self.q.denominator",
+        "self.q.numerator",
+        "self.summary_id",
+        "self.summary_version",
+        "self.weighting",
+        "self.within_cluster_reduction",
+    }
+    actual_attributes = {
+        ast.unparse(node) for node in ast.walk(tree) if isinstance(node, ast.Attribute)
+    }
+    assert actual_attributes == expected_attributes
+    forbidden_names = {
+        "__builtins__",
+        "__import__",
+        "builtins",
+        "compile",
+        "delattr",
+        "eval",
+        "exec",
+        "filesystem",
+        "getattr",
+        "globals",
+        "importlib",
+        "locals",
+        "open",
+        "os",
+        "pathlib",
+        "provider",
+        "requests",
+        "runtime",
+        "setattr",
+        "socket",
+        "subprocess",
+        "sys",
+        "vars",
+    }
+    loaded_names = {
+        node.id
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load)
+    }
+    assert loaded_names.isdisjoint(forbidden_names)
+
+
+def _analysis_declaration_source() -> str:
+    source = inspect.getsource(records_module)
+    tree = ast.parse(source)
+    start = next(
+        node
+        for node in tree.body
+        if isinstance(node, ast.ClassDef) and node.name == "_StrictValueModel"
+    )
+    end = next(
+        node
+        for node in tree.body
+        if isinstance(node, ast.ClassDef) and node.name == "ValidityDomainSpec"
+    )
+    lines = source.splitlines(keepends=True)
+    return "".join(lines[start.lineno - 1 : end.lineno - 1])
+
 
 def test_task_1_1b4a_added_source_is_provider_and_runtime_free() -> None:
-    source = inspect.getsource(records_module)
-    added = source[
-        source.index("class _StrictValueModel") : source.index(
-            "class ValidityDomainSpec"
-        )
-    ]
+    added = _analysis_declaration_source()
     _assert_analysis_source_is_declaration_only(added)
-
-    required_declarations = ANALYSIS_ESTIMATOR_MISSINGNESS_EXPORTS | {
-        "_StrictValueModel",
-        "_validate_analysis_unit_weighting",
-        "_validate_estimator_identity",
-        "_validate_missingness_identity",
-    }
-    for name in required_declarations:
-        assert name in added
 
     mutation = added.replace(
         "        return self",
@@ -964,6 +1072,25 @@ def test_task_1_1b4a_added_source_is_provider_and_runtime_free() -> None:
     )
     with pytest.raises(AssertionError):
         _assert_analysis_source_is_declaration_only(mutation)
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    [
+        lambda source: "x = runtime.filesystem\n" + source,
+        lambda source: source.replace(
+            "class CanonicalRational", "@runtime.hook\nclass CanonicalRational", 1
+        ),
+        lambda source: "x = __builtins__.open\n" + source,
+        lambda source: source.replace(
+            "class MeanEstimatorSpec", "class RenamedMeanEstimatorSpec", 1
+        ),
+    ],
+)
+def test_source_guard_rejects_capability_and_inventory_mutations(mutation) -> None:
+    added = _analysis_declaration_source()
+    with pytest.raises(AssertionError):
+        _assert_analysis_source_is_declaration_only(mutation(added))
 
 
 def _schema_property_names(schema: object) -> set[str]:
