@@ -23,6 +23,9 @@ PYPROJECT = Path(__file__).parents[1] / "pyproject.toml"
 SDK_V1_INIT = (
     Path(__file__).parents[1] / "src" / "aeread" / "sdk" / "v1" / "__init__.py"
 )
+SDK_V1_PROTOCOLS = (
+    Path(__file__).parents[1] / "src" / "aeread" / "sdk" / "v1" / "protocols.py"
+)
 FOUNDATION_PLAN = (
     Path(__file__).parents[1]
     / "docs"
@@ -672,6 +675,46 @@ def test_rebaseline_status_names_current_integration_and_next_gate() -> None:
     assert "integrated locally at `b5239cd`" in roadmap
 
 
+def test_existing_attempt_observer_and_agent_adapter_signatures_remain_stable() -> None:
+    protocols = SDK_V1_PROTOCOLS.read_text(encoding="utf-8")
+    for signature in (
+        "def call_started(self, start: CallAttemptStart) -> CallAttemptToken:",
+        "self, token: CallAttemptToken, result: ProviderCallResult",
+        "self, token: CallAttemptToken, failure: ProviderCallFailure",
+        "self, request: AgentRequest, *, attempts: AttemptObserver",
+    ):
+        assert signature in protocols
+
+    public_section = PUBLIC_ENVIRONMENT_SPEC.read_text(encoding="utf-8").split(
+        "### 3.3 Observation and canonical response boundary", 1
+    )[1].split("### 3.4 Verifier contract", 1)[0]
+    rebaseline_section = REBASELINE_PLAN.read_text(encoding="utf-8").split(
+        "### Task 2.1a: Add precise action/call/tool evidence vocabulary", 1
+    )[1].split("### Task 2.1b", 1)[0]
+    design_section = DESIGN.read_text(encoding="utf-8").split(
+        "class AttemptObserver(Protocol):", 1
+    )[1].split("The public executable names", 1)[0]
+    roadmap_section = RUNNER_ARCHITECTURE.read_text(encoding="utf-8").split(
+        "### 3. Execution objects", 1
+    )[1].split("### 4. Evidence objects", 1)[0]
+
+    required = (
+        "existing `AttemptObserver.call_started`, `call_succeeded`, and `call_failed` "
+        "signatures remain stable",
+        "existing `AgentAdapter.act(..., attempts: AttemptObserver)` signature remains stable",
+        "translates those callbacks into the additive `ProviderCall*` evidence records",
+    )
+    for authority in (
+        public_section,
+        rebaseline_section,
+        design_section,
+        roadmap_section,
+    ):
+        normalized = " ".join(authority.split())
+        assert all(fragment in normalized for fragment in required)
+        assert "observer signatures must not use" not in normalized
+
+
 def test_public_spec_reports_implemented_foundation_and_missing_runtime() -> None:
     text = PUBLIC_ENVIRONMENT_SPEC.read_text(encoding="utf-8")
     status_section = text.split("## 11. Mapping to the current repository", 1)[1].split(
@@ -719,7 +762,9 @@ def test_attempt_observer_docs_separate_normative_target_from_current_sdk() -> N
     assert "class ProviderCallStart" not in section
     assert "class ProviderCallToken" not in section
     assert "provider_call_id: str" not in section
-    assert "def call_started" not in section
+    assert "def call_started(self, start: CallAttemptStart)" in section
+    assert "def call_succeeded(" in section
+    assert "def call_failed(" in section
     assert "attempts.call_started()" not in section
     assert (
         "existing `CallAttemptStart` and `CallAttemptToken` remain stable "

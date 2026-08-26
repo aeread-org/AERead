@@ -551,6 +551,12 @@ complete typed records and a versioned discriminated parent for `action_attempt`
 remove or repurpose them in v1. This roadmap does not freeze new target fields or claim
 that the eventual target records are already importable.
 
+The existing `AttemptObserver.call_started`, `call_succeeded`, and `call_failed` signatures
+remain stable. The existing `AgentAdapter.act(..., attempts: AttemptObserver)` signature
+remains stable. A runner-owned compatibility observer translates those callbacks into the
+additive `ProviderCall*` evidence records and supplies the action-attempt parent from
+runner context. A different observer ABI must use an additive Protocol or SDK v2.
+
 ### 4. Evidence objects
 
 | Object | Canonical meaning |

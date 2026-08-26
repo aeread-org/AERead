@@ -691,6 +691,13 @@ call, executed tool, and rater attempt. Add
 IDs, canonical hashes, tool/version pins, idempotency/reconciliation capability,
 typed `family_read_only | harness_internal | transactional_preview` execution scope, and
 result/state-diff artifact refs.
+
+The existing `AttemptObserver.call_started`, `call_succeeded`, and `call_failed` signatures
+remain stable. The existing `AgentAdapter.act(..., attempts: AttemptObserver)` signature
+remains stable. Task 2.1a implements a runner-owned compatibility observer that translates
+those callbacks into the additive `ProviderCall*` evidence records and binds the current
+action-attempt parent from runner context. It does not replace the stable methods. Any
+future incompatible observer contract must be a separately named additive Protocol or v2.
 Every child side effect uses a discriminated parent ref:
 `action_attempt | rater_attempt | lifecycle_operation`. `EvaluationWork` is the frozen
 plan/input unit; `RaterAttempt` is the only operational retry identity for evaluator
@@ -712,9 +719,10 @@ operations, or deterministic transactional previews. A requested family mutation
 produces `ToolInvocationSucceeded`, and a failed `step()` can never coexist with a
 succeeded tool row claiming that economic mutation committed.
 
-**RED requirements:** the new kernel path, authoritative examples, and observer signatures
-must not use `CallAttemptStart`/`CallAttemptToken`; compatibility tests require both legacy
-imports and their schemas to remain unchanged in v1. Record
+**RED requirements:** the new persisted evidence path must not serialize new rows with the
+legacy `CallAttempt*` identities; compatibility tests require their imports, schemas,
+`AttemptObserver` methods, and `AgentAdapter.act` signature to remain unchanged in v1.
+Record
 tests reject mismatched parent IDs, missing pins/hashes, and second terminal construction
 in a conformance fake. The public design-contract RED asserts the exact response -> parse
 -> legality -> transition path and rejects language allowing adapters/attempts/tools to

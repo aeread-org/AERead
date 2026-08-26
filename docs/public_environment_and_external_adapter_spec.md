@@ -281,8 +281,14 @@ class AgentRequest(StrictModel):
 
 
 class AttemptObserver(Protocol):
-    """Runner-owned observer role; exact typed methods are frozen in Task 2.1a."""
-    ...
+    """Stable v1 runner-owned write-ahead provider-call observer."""
+    def call_started(self, start: CallAttemptStart) -> CallAttemptToken: ...
+    def call_succeeded(
+        self, token: CallAttemptToken, result: ProviderCallResult
+    ) -> None: ...
+    def call_failed(
+        self, token: CallAttemptToken, failure: ProviderCallFailure
+    ) -> None: ...
 
 
 class AgentAdapter(Protocol):
@@ -300,6 +306,14 @@ The existing `CallAttemptStart` and `CallAttemptToken` remain stable compatibili
 but new adapter contracts should use the more precise vocabulary once Task 2.1a adds it.
 Task 2.1a may deprecate the legacy surface and owns the additive versioned records; it may
 not remove or repurpose the v1 exports.
+
+The existing `AttemptObserver.call_started`, `call_succeeded`, and `call_failed` signatures
+remain stable. The existing `AgentAdapter.act(..., attempts: AttemptObserver)` signature
+remains stable. For the new kernel, the runner-owned observer implementation translates
+those callbacks into the additive `ProviderCall*` evidence records while binding the
+current action-attempt parent from runner context. This preserves existing adapters without
+making the legacy records the new evidence schema. A future incompatible observer ABI
+requires a separately named additive Protocol or `aeread.sdk.v2`.
 
 The adapter owns provider/harness-specific wire formats. OpenAI Responses, Chat Completions, Anthropic Messages, a CLI agent, or an rLLM gateway may return different native objects; each adapter normalizes them into `CanonicalResponse` before the family parser or scorer consumes them. `CanonicalResponse` includes normalized content/tool calls, finish reason, usage, raw artifact reference, and an optional harness-trace reference.
 
