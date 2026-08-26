@@ -48,6 +48,7 @@ class ProviderFailure(RuntimeError):
         *,
         retryable: bool,
         status_code: int | None = None,
+        provider_result: ProviderResult | None = None,
     ) -> None:
         super().__init__(message)
         if not isinstance(condition, str) or not condition:
@@ -55,6 +56,9 @@ class ProviderFailure(RuntimeError):
         self.condition = condition
         self.retryable = bool(retryable)
         self.status_code = status_code
+        if provider_result is not None and not isinstance(provider_result, ProviderResult):
+            raise TypeError("provider_result must be a ProviderResult")
+        self.provider_result = provider_result
 
 
 def _sha256_bytes(value: bytes) -> str:
@@ -757,20 +761,6 @@ class OpenRouterChatClient:
         choice = choices[0]
         message = choice.get("message") if isinstance(choice, Mapping) else None
         content = message.get("content") if isinstance(message, Mapping) else None
-        if not isinstance(content, str):
-            raise ProviderFailure(
-                "provider_contract",
-                "OpenRouter response choice has no text content",
-                retryable=False,
-            )
-        try:
-            structured_output = json.loads(content)
-        except json.JSONDecodeError as error:
-            raise ProviderFailure(
-                "provider_contract",
-                "OpenRouter structured output is not valid JSON",
-                retryable=False,
-            ) from error
         usage = raw_response.get("usage")
         if not isinstance(usage, Mapping):
             raise ProviderFailure(
@@ -821,6 +811,43 @@ class OpenRouterChatClient:
                 f"OpenRouter response model {response_model!r} was not requested",
                 retryable=False,
             )
+
+        def billable_result(output_text: str) -> ProviderResult:
+            return ProviderResult(
+                response_id=str(raw_response.get("id") or ""),
+                requested_model=request.model,
+                resolved_model=selected_model,
+                output_text=output_text,
+                finish_reason=str(choice.get("finish_reason") or "unknown"),
+                input_tokens=input_tokens,
+                cached_input_tokens=cached_input_tokens,
+                output_tokens=output_tokens,
+                cost_usd=float(cost),
+                raw_response=raw_response,
+            )
+
+        if not isinstance(content, str):
+            finish_reason = str(choice.get("finish_reason") or "unknown")
+            hit_length_ceiling = finish_reason in {"length", "max_tokens", "max_output_tokens"}
+            raise ProviderFailure(
+                "length" if hit_length_ceiling else "provider_contract",
+                (
+                    "OpenRouter response exhausted its output ceiling before text"
+                    if hit_length_ceiling
+                    else "OpenRouter response choice has no text content"
+                ),
+                retryable=hit_length_ceiling,
+                provider_result=billable_result(""),
+            )
+        try:
+            structured_output = json.loads(content)
+        except json.JSONDecodeError as error:
+            raise ProviderFailure(
+                "provider_contract",
+                "OpenRouter structured output is not valid JSON",
+                retryable=False,
+                provider_result=billable_result(content),
+            ) from error
         return ProviderResult(
             response_id=str(raw_response.get("id") or ""),
             requested_model=request.model,
@@ -1279,6 +1306,26 @@ class MinimalChatExecutor:
             and sampling_controls.get("temperature") == "unavailable"
         ):
             temperature = None
+        output_schema = profile.harness.config.get("output_schema")
+        schemas_by_action = profile.harness.config.get(
+            "output_schema_by_action_schema"
+        )
+        if schemas_by_action is not None:
+            if output_schema is not None:
+                raise EvidenceIntegrityError(
+                    "minimal_chat profile cannot declare both output_schema and "
+                    "output_schema_by_action_schema"
+                )
+            if not isinstance(schemas_by_action, Mapping):
+                raise EvidenceIntegrityError(
+                    "output_schema_by_action_schema must be a mapping"
+                )
+            output_schema = schemas_by_action.get(decision.action_schema)
+            if not isinstance(output_schema, Mapping):
+                raise EvidenceIntegrityError(
+                    "no structured output schema declared for action schema "
+                    f"{decision.action_schema!r}"
+                )
         return ProviderRequest(
             provider_call_id=provider_call_id,
             provider=profile.model.provider,
@@ -1294,7 +1341,7 @@ class MinimalChatExecutor:
             timeout_seconds=profile.budgets.timeout_seconds,
             request_sha256="",
             max_cost_usd=profile.budgets.max_cost_usd,
-            output_schema=profile.harness.config.get("output_schema"),
+            output_schema=output_schema,
             provider_metadata=(
                 profile.harness.config.get("provider_metadata")
                 or profile.harness.config.get("provider_runtime")
@@ -1418,6 +1465,8 @@ class MinimalChatExecutor:
                 )
                 if should_retry:
                     retry_reason = failure.condition
+                    if failure.condition == "length":
+                        max_output_tokens *= 2
                     continue
                 raise
             except asyncio.CancelledError:
@@ -1614,19 +1663,37 @@ class MinimalChatExecutor:
         failure: ProviderFailure,
     ) -> bool:
         outcome_unknown = failure.condition in {"timeout", "transport"}
+        result = failure.provider_result
+        if result is not None:
+            pricing = self._pricing[profile.model.model]
+            cost = (
+                result.cost_usd
+                if result.cost_usd is not None
+                else pricing.cost(
+                    input_tokens=result.input_tokens,
+                    cached_input_tokens=result.cached_input_tokens,
+                    output_tokens=result.output_tokens,
+                )
+            )
+            profile_cost = self._cost_by_profile.get(profile.profile_id, 0.0) + cost
+            self._cost_by_profile[profile.profile_id] = profile_cost
+            self.total_cost_usd += cost
+        else:
+            cost = 0.0
+            profile_cost = self._cost_by_profile.get(profile.profile_id, 0.0)
         provider_record = ProviderCallRecord(
             provider_call_id=request.provider_call_id,
             action_attempt_id=action_attempt_id,
             status="outcome_unknown" if outcome_unknown else "failed",
             request_sha256=request.request_sha256,
-            requested_model=request.model,
-            resolved_model=None,
-            response_id=None,
-            finish_reason=None,
-            input_tokens=0,
-            cached_input_tokens=0,
-            output_tokens=0,
-            cost_usd=0.0,
+            requested_model=(result.requested_model if result is not None else request.model),
+            resolved_model=result.resolved_model if result is not None else None,
+            response_id=result.response_id if result is not None else None,
+            finish_reason=result.finish_reason if result is not None else None,
+            input_tokens=result.input_tokens if result is not None else 0,
+            cached_input_tokens=result.cached_input_tokens if result is not None else 0,
+            output_tokens=result.output_tokens if result is not None else 0,
+            cost_usd=cost,
             failure_condition=failure.condition,
         )
         self.evidence.append_event(
@@ -1640,7 +1707,9 @@ class MinimalChatExecutor:
                 "message": str(failure),
                 "retryable": failure.retryable,
                 "status_code": failure.status_code,
-                "cost_usd": "unknown" if outcome_unknown else 0.0,
+                "cost_usd": "unknown" if outcome_unknown else cost,
+                "provider_result": result,
+                "profile_cost_usd": profile_cost,
             },
             phase_instance_id=decision.phase_instance_id,
             logical_action_id=decision.logical_action_id,

@@ -23,7 +23,7 @@ from aeread.shared_runner.execution import (
     TokenPricing,
     ToolExecutor,
 )
-from aeread.shared_runner.resolver import PlanCell, case_content_sha256
+from aeread.shared_runner.resolver import PlanCell, canonical_json_bytes, case_content_sha256
 from aeread.shared_runner.scheduler import (
     DecisionRequest,
     LegalityResult,
@@ -55,7 +55,14 @@ def _profile(
     max_cost_usd: float = 0.05,
     model: str = "fake-model",
     provider: str = "fake",
+    output_schema_by_action_schema: dict | None = None,
 ) -> AgentProfile:
+    harness_config = {
+        "pricing_id": FAKE_PRICING.pricing_id,
+        "pricing_sha256": FAKE_PRICING.content_sha256(),
+    }
+    if output_schema_by_action_schema is not None:
+        harness_config["output_schema_by_action_schema"] = output_schema_by_action_schema
     return AgentProfile.from_dict(
         {
             "spec_version": "aeread.agent_profile/0.1",
@@ -68,10 +75,7 @@ def _profile(
             "harness": {
                 "id": "minimal_chat",
                 "version": "1.0",
-                "config": {
-                    "pricing_id": FAKE_PRICING.pricing_id,
-                    "pricing_sha256": FAKE_PRICING.content_sha256(),
-                },
+                "config": harness_config,
             },
             "prompt": {
                 "prompt_id": "fixture_action_prompt",
@@ -210,6 +214,40 @@ def test_provider_start_is_durable_before_call_and_all_records_reconcile(tmp_pat
     evidence.verify_chain()
 
 
+def test_executor_selects_the_structured_schema_for_the_current_action_phase(
+    tmp_path,
+) -> None:
+    offer_schema = {
+        "type": "object",
+        "properties": {"offer": {"type": "integer"}},
+        "required": ["offer"],
+        "additionalProperties": False,
+    }
+    commit_schema = {
+        "type": "object",
+        "properties": {"decision": {"enum": ["sign", "walk"]}},
+        "required": ["decision"],
+        "additionalProperties": False,
+    }
+    profile = _profile(
+        output_schema_by_action_schema={
+            "offer_v1": offer_schema,
+            "commit_v1": commit_schema,
+        }
+    )
+    provider = InspectingProvider(_evidence(tmp_path).events_path, [])
+    executor = _executor(tmp_path, provider, profile=profile)
+
+    request = executor._request_for(
+        _decision(),
+        profile,
+        action_attempt_id="action_attempt_fixture",
+        max_output_tokens=80,
+    )
+
+    assert canonical_json_bytes(request.output_schema) == canonical_json_bytes(offer_schema)
+
+
 def test_declared_retry_creates_new_action_attempt_and_new_provider_call(tmp_path) -> None:
     evidence = _evidence(tmp_path)
     provider = InspectingProvider(
@@ -242,6 +280,34 @@ def test_declared_retry_creates_new_action_attempt_and_new_provider_call(tmp_pat
     evidence.audit_reconciliation()
 
 
+def test_declared_length_failure_doubles_limit_and_preserves_both_costs(tmp_path) -> None:
+    evidence = _evidence(tmp_path)
+    length_failure = ProviderFailure(
+        "length",
+        "reasoning exhausted output ceiling",
+        retryable=True,
+        provider_result=replace(
+            _success_result(text="", cost=0.001), finish_reason="length"
+        ),
+    )
+    provider = InspectingProvider(
+        evidence.events_path,
+        [length_failure, _success_result(cost=0.002)],
+    )
+    executor = _executor(
+        tmp_path,
+        provider,
+        evidence=evidence,
+        profile=_profile(max_action_attempts=2, retryable_conditions=("length",)),
+    )
+
+    response = asyncio.run(executor(_decision()))
+
+    assert response.text == '{"offer":7}'
+    assert [request.max_output_tokens for request in provider.requests] == [80, 160]
+    assert executor.total_cost_usd == pytest.approx(0.003)
+
+
 def test_nonretryable_provider_failure_is_terminal_and_not_hidden(tmp_path) -> None:
     evidence = _evidence(tmp_path)
     provider = InspectingProvider(
@@ -259,6 +325,35 @@ def test_nonretryable_provider_failure_is_terminal_and_not_hidden(tmp_path) -> N
         asyncio.run(executor(_decision()))
     assert len(provider.requests) == 1
     assert executor.execution_for(_decision().logical_action_id).status == "failed"
+    evidence.audit_reconciliation()
+
+
+def test_billable_provider_contract_failure_records_response_usage_and_cost(
+    tmp_path,
+) -> None:
+    evidence = _evidence(tmp_path)
+    billable_result = _success_result(text="", cost=0.001)
+    failure = ProviderFailure(
+        "provider_contract",
+        "response had no structured text",
+        retryable=False,
+        provider_result=billable_result,
+    )
+    provider = InspectingProvider(evidence.events_path, [failure])
+    executor = _executor(tmp_path, provider, evidence=evidence)
+
+    with pytest.raises(ProviderFailure, match="no structured text"):
+        asyncio.run(executor(_decision()))
+
+    assert executor.total_cost_usd == pytest.approx(0.001)
+    failed_event = next(
+        event
+        for event in evidence.read_events()
+        if event.event_type == "provider_call_failed"
+    )
+    payload = json.loads((evidence.root / failed_event.payload_ref).read_text())
+    assert payload["cost_usd"] == pytest.approx(0.001)
+    assert payload["provider_result"]["raw_response"] == billable_result.raw_response
     evidence.audit_reconciliation()
 
 
@@ -486,11 +581,15 @@ class FakeOpenRouterCompletions:
         selected_provider: str = "DeepInfra",
         attempt: int = 1,
         include_attempts: bool = True,
+        content: str | None = '{"offer":7}',
+        finish_reason: str = "stop",
     ) -> None:
         self.kwargs = None
         self.selected_provider = selected_provider
         self.attempt = attempt
         self.include_attempts = include_attempts
+        self.content = content
+        self.finish_reason = finish_reason
 
     async def create(self, **kwargs):
         self.kwargs = kwargs
@@ -526,8 +625,8 @@ class FakeOpenRouterCompletions:
             "choices": [
                 {
                     "index": 0,
-                    "finish_reason": "stop",
-                    "message": {"role": "assistant", "content": '{"offer":7}'},
+                    "finish_reason": self.finish_reason,
+                    "message": {"role": "assistant", "content": self.content},
                 }
             ],
             "usage": {
@@ -671,6 +770,37 @@ def test_openrouter_adapter_rejects_a_later_route_attempt_without_attempt_detail
 
     with pytest.raises(ProviderFailure, match="fallback"):
         asyncio.run(client.complete(_openrouter_request()))
+
+
+def test_openrouter_preserves_usage_and_raw_response_when_choice_has_no_text() -> None:
+    completions = FakeOpenRouterCompletions(content=None)
+    sdk = SimpleNamespace(chat=SimpleNamespace(completions=completions))
+    client = OpenRouterChatClient(sdk_client=sdk)
+
+    with pytest.raises(ProviderFailure, match="no text content") as raised:
+        asyncio.run(client.complete(_openrouter_request()))
+
+    result = raised.value.provider_result
+    assert result is not None
+    assert result.output_text == ""
+    assert result.input_tokens == 123
+    assert result.output_tokens == 45
+    assert result.cost_usd == pytest.approx(0.00001726)
+    assert result.raw_response["choices"][0]["message"]["content"] is None
+
+
+def test_openrouter_classifies_no_text_at_length_ceiling_as_retryable() -> None:
+    completions = FakeOpenRouterCompletions(content=None, finish_reason="length")
+    sdk = SimpleNamespace(chat=SimpleNamespace(completions=completions))
+    client = OpenRouterChatClient(sdk_client=sdk)
+
+    with pytest.raises(ProviderFailure) as raised:
+        asyncio.run(client.complete(_openrouter_request()))
+
+    assert raised.value.condition == "length"
+    assert raised.value.retryable is True
+    assert raised.value.provider_result is not None
+    assert raised.value.provider_result.finish_reason == "length"
 
 
 def test_openrouter_adapter_requires_key_before_constructing_default_sdk(
