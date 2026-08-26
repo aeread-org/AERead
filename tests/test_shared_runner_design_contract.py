@@ -882,6 +882,9 @@ def _assert_rebaseline_status_names_current_integration_and_next_gate(
     b3b_brief_digest = (
         "857a6bc92b9d9e07217616476630aba737725e3afbfd3c3d809bd1e404b3a3d9"
     )
+    b4b_brief_digest = (
+        "e6254d82df966d3789e6e39d3443288a8f52b20f692f4869d83de39c4ebb0b3f"
+    )
     b3b_production = "c654863c479769a78802530821ca82f9607e068c"
     b3b_clean_head = "99312082d6f8a59ad5723f6e0f6563507fe6a080"
     status = text.split("## Objective", 1)[0]
@@ -944,7 +947,7 @@ def _assert_rebaseline_status_names_current_integration_and_next_gate(
         "53c0bcddcc6dadff455feef4b0de419adf3de30aeaaa9b1f8ffb61e211400a04",
         "1a1c9e0a2eded8549623555f946591322d9539408624140ea9ca0a7b14afbe0d",
         "8c8b20f5ff66ea0983b70ec46a651ce4951d80ad85b7ddbd55c4f75e890108c3",
-        "828d1b425138ccb726a6ef24dbb0eb930237dea8d7f6dd1eef3305434487be74",
+        "f2372b4801bbb74eeb19712457592af018914ca47096dbd047ce40608351c44e",
         "ce814bc67417aff473b998ac4ac04c2674448c8b847342e38f506e701134aa7b",
         "2f43744bebba1826dfc15bc9e6b0ac97f674fad8ff5669e5066f4a440ea13455",
     )
@@ -960,9 +963,9 @@ def _assert_rebaseline_status_names_current_integration_and_next_gate(
 
     gate_sections = (status, task_02, dispatch)
     gate_section_sha256 = (
-        "dd42c701ae4f8ce89e2600c1bb9702041af834dda504ef2631dc3300ef9bceac",
-        "b40f5187bf27b8cb3bbcfb3d48ef63ed423b4bc5a3da94891ce417ca541e4230",
-        "78f6f61f9d13c053ea42bc5bf053acc9afa1ce03026c91ec86879fd36b9dcfc3",
+        "75e497a73a6f1986bca803c522de88cac4acccc9691f36f05de6cf9763eb4bcd",
+        "cef54878a9b2ef372ef59a55bcf2e0ac0c8d5354afaf8c8668bc5d6c700f5877",
+        "2d47f871a2d206d78b59c91e416fe601a1cc018ca340bce9612508388f508b38",
     )
     for section, expected_sha256 in zip(
         gate_sections, gate_section_sha256, strict=True
@@ -980,10 +983,9 @@ def _assert_rebaseline_status_names_current_integration_and_next_gate(
         assert f"`{b3b_production}`" in normalized
         assert f"`{b3b_clean_head}`" in normalized
         assert "Task 1.1b3b is independently CLEAN" in normalized
-        assert (
-            "Corrected Task 1.1b4b bounded-brief authoring and independent review"
-            in normalized
-        )
+        assert b4b_brief_digest in normalized
+        assert "Task 1.1b4b brief is independently CLEAN" in normalized
+        assert "Task 1.1b4b code is the sole next dispatch" in normalized
         assert "sole next dispatch" in normalized
         assert "Task 1.1c" in normalized
         assert "remain blocked" in normalized
@@ -1040,6 +1042,10 @@ def _assert_rebaseline_status_names_current_integration_and_next_gate(
     assert "execution-assignment authoring only" in task_1b3b
     assert "analysis_authoring_sha256" in task_1b4
     assert "ignorability" in task_1b4
+    assert b4b_brief_digest in task_1b4
+    normalized_b4 = " ".join(task_1b4.split())
+    assert "Task 1.1b4b brief is independently CLEAN" in normalized_b4
+    assert "Task 1.1b4b code is the sole next dispatch" in normalized_b4
     assert "analysis_plan_sha256" in task_1b5
     assert "composition_sha256" in task_1b5
     assert "SuiteExecutionProjection" in task_1c
@@ -1240,7 +1246,7 @@ def _assert_assignment_inference_authority(text: str) -> None:
         assert positions == tuple(sorted(positions))
     section_sha256 = (
         "8c8b20f5ff66ea0983b70ec46a651ce4951d80ad85b7ddbd55c4f75e890108c3",
-        "828d1b425138ccb726a6ef24dbb0eb930237dea8d7f6dd1eef3305434487be74",
+        "f2372b4801bbb74eeb19712457592af018914ca47096dbd047ce40608351c44e",
         "ce814bc67417aff473b998ac4ac04c2674448c8b847342e38f506e701134aa7b",
         "2f43744bebba1826dfc15bc9e6b0ac97f674fad8ff5669e5066f4a440ea13455",
         "cd8316815d4fe8d51e792ce0ef3aea59752e644d901de693a8c95dd488651ce5",
@@ -1248,7 +1254,7 @@ def _assert_assignment_inference_authority(text: str) -> None:
     for section, expected_sha256 in zip(changed_sections, section_sha256, strict=True):
         _assert_normalized_section_snapshot(section, expected_sha256)
     _assert_normalized_section_snapshot(
-        dispatch, "22a6c8e2d1ff4aa94817005708ce0e27b1d0da50987435f35b6c9fd7b21b20bc"
+        dispatch, "8d396bb50a749a6053a2cdeda38b652859b2dd8237aca77d075fa4cc81f89e2c"
     )
 
     correction_digest = (
@@ -1284,12 +1290,9 @@ def _assert_assignment_inference_authority(text: str) -> None:
     assert "no confidence-coverage claim" in normalized_312
 
     normalized_dispatch = " ".join(dispatch.split())
-    assert (
-        "Corrected Task 1.1b4b bounded-brief authoring and independent review is the "
-        "sole next dispatch" in normalized_dispatch
-    )
+    assert "Task 1.1b4b brief is independently CLEAN" in normalized_dispatch
+    assert "Task 1.1b4b code is the sole next dispatch" in normalized_dispatch
     for blocked in (
-        "b4b code",
         "Task 1.1b5",
         "Task 1.1c",
         "Stages 2–5",
@@ -1307,7 +1310,7 @@ def _assert_assignment_inference_authority(text: str) -> None:
         "random label orientation",
         "assignment bytes leave execution identity unchanged",
         "authoring embeds a future preassignmentpairset",
-        "task 1.1b4b code is the sole next dispatch",
+        "corrected task 1.1b4b bounded-brief authoring and independent review is the sole next dispatch",
         "caller chooses the realization key",
         "new seed under the same assignment scope",
         "rerun after realization publication",
@@ -1356,7 +1359,8 @@ def test_assignment_inference_authority_rejects_scientific_and_structural_mutant
         "analysis_owned_assignment": add(
             headings[2], headings[3], "Analysis uses random label orientation."
         ),
-        "early_b4b_dispatch": text + "\nTask 1.1b4b code is the sole next dispatch.\n",
+        "stale_b4b_brief_dispatch": text
+        + "\nCorrected Task 1.1b4b bounded-brief authoring and independent review is the sole next dispatch.\n",
         "assignment_hash_independence": add(
             headings[1],
             headings[2],
@@ -1553,10 +1557,7 @@ def test_rebaseline_guard_rejects_second_current_dispatch_gate() -> None:
 def test_rebaseline_guard_rejects_stale_b3b_redispatch() -> None:
     text = REBASELINE_PLAN.read_text(encoding="utf-8")
     dispatch = text.split("## Current dispatch gate", 1)[1]
-    current_normalized = (
-        "Corrected Task 1.1b4b bounded-brief authoring and independent review is the sole "
-        "next dispatch."
-    )
+    current_normalized = "Task 1.1b4b code is the sole next dispatch."
     stale_normalized = (
         "Task 1.1b3b bounded-brief authoring and independent review is the sole next "
         "dispatch."
