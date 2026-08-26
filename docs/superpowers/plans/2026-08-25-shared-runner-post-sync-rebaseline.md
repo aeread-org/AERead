@@ -24,8 +24,10 @@
 > `Aug 22 Sync/20260826_task1_1b4b_inference_assignment_dispatch_v2_codex.md`, normalized
 > SHA-256 `e6254d82df966d3789e6e39d3443288a8f52b20f692f4869d83de39c4ebb0b3f`.
 > Task 1.1b4b is independently CLEAN through production `da0c5a5` and final guard head
-> `45bbe8b`. Task 1.1b5 bounded-brief authoring and independent review is the sole next
-> dispatch; B5 code and Task 1.1c remain blocked.
+> `45bbe8b`. The Task 1.1b5 brief is independently CLEAN at
+> `Aug 22 Sync/20260826_task1_1b5_analysis_plan_authoring_dispatch_codex.md`, normalized
+> SHA-256 `36e64d137b0232dd483c399935897d4451d45ded34e93be953157a7e45cf4568`.
+> Task 1.1b5 code is the sole next dispatch; Task 1.1c remains blocked.
 > Task 1.2 and
 > every Stage 2–5 dependency on Task 1.1c remain blocked. The executable scheduler,
 > attempt executor, receipt/replay kernel, and benchmark adapters remain unimplemented.
@@ -132,8 +134,10 @@ The Task 1.1b4b brief is independently CLEAN at
 `Aug 22 Sync/20260826_task1_1b4b_inference_assignment_dispatch_v2_codex.md`, normalized
 SHA-256 `e6254d82df966d3789e6e39d3443288a8f52b20f692f4869d83de39c4ebb0b3f`.
 Task 1.1b4b is independently CLEAN through production `da0c5a5` and final guard head
-`45bbe8b`. Task 1.1b5 bounded-brief authoring and independent review is the sole next
-dispatch; B5 code and Task 1.1c remain blocked.
+`45bbe8b`. The Task 1.1b5 brief is independently CLEAN at
+`Aug 22 Sync/20260826_task1_1b5_analysis_plan_authoring_dispatch_codex.md`, normalized
+SHA-256 `36e64d137b0232dd483c399935897d4451d45ded34e93be953157a7e45cf4568`.
+Task 1.1b5 code is the sole next dispatch; Task 1.1c remains blocked.
 This status does not authorize historical mixed-schema text or downstream implementation.
 Older `275a285`/`388e52b` commits remain historical
 milestones only. No implementer should repeat either merge, push it, or merge it to
@@ -493,9 +497,11 @@ design-based sampling basis is descriptive stability only, never confidence cove
 SRSWOR finite-population targets use typed `NoIntervalSpec` in V0.
 
 **Stop gate:** no runtime arithmetic, assignment realization, future resolved binding,
-analysis result, provider access, judge leaf re-aggregation, or p-value. Task 1.1b5
-bounded-brief authoring and independent review is the sole next dispatch; B5 code remains
-blocked until that separate digest-pinned brief is independently CLEAN.
+analysis result, provider access, judge leaf re-aggregation, or p-value. The Task 1.1b5
+brief is independently CLEAN at
+`Aug 22 Sync/20260826_task1_1b5_analysis_plan_authoring_dispatch_codex.md`, normalized
+SHA-256 `36e64d137b0232dd483c399935897d4451d45ded34e93be953157a7e45cf4568`.
+Task 1.1b5 code is the sole next dispatch.
 
 **Output:** analysis primitive authoring declarations only; observational pairing carries
 no randomized-effect claim.
@@ -504,8 +510,10 @@ no randomized-effect claim.
 
 **Dependency:** Tasks 1.1b2, 1.1b3, 1.1b3b, 1.1b4a, and corrected 1.1b4b are independently
 CLEAN. Task 1.1b4b is pinned through production `da0c5a5` and final guard head `45bbe8b`.
-Task 1.1b5 bounded-brief authoring and independent review is the sole next dispatch; B5
-code remains blocked until that separate digest-pinned brief is independently CLEAN.
+The Task 1.1b5 brief is independently CLEAN at
+`Aug 22 Sync/20260826_task1_1b5_analysis_plan_authoring_dispatch_codex.md`, normalized
+SHA-256 `36e64d137b0232dd483c399935897d4451d45ded34e93be953157a7e45cf4568`.
+Task 1.1b5 code is the sole next dispatch.
 
 **Ownership:** immutable analysis authoring only: closed node/edge IO, eligible authoring
 coordinate refs, b4 estimator/missingness/inference refs, separately hashed ordered
@@ -2497,9 +2505,11 @@ The Task 1.1b4b brief is independently CLEAN at
 `Aug 22 Sync/20260826_task1_1b4b_inference_assignment_dispatch_v2_codex.md`, normalized
 SHA-256 `e6254d82df966d3789e6e39d3443288a8f52b20f692f4869d83de39c4ebb0b3f`.
 Task 1.1b4b is independently CLEAN through production `da0c5a5` and final guard head
-`45bbe8b`. Task 1.1b5 bounded-brief authoring and independent review is the sole next
-dispatch. B5 code, Task 1.1c, and Stages 2–5 remain blocked. Task 1.2 also
-remains blocked on Task 1.1c. Provider-free constructor pressure is never runner execution,
+`45bbe8b`. The Task 1.1b5 brief is independently CLEAN at
+`Aug 22 Sync/20260826_task1_1b5_analysis_plan_authoring_dispatch_codex.md`, normalized
+SHA-256 `36e64d137b0232dd483c399935897d4451d45ded34e93be953157a7e45cf4568`.
+Task 1.1b5 code is the sole next dispatch. Task 1.1c, Task 1.2, and Stages 2–5 remain
+blocked. Provider-free constructor pressure is never runner execution,
 upstream parity, or benchmark-quality evidence. This two-file authority migration cannot
 change attempt ABI/guards, SDK/runtime source, or shared-runner behavior. No push or
 GitHub/main merge is authorized.
