@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import ast
 from collections.abc import Callable
 import hashlib
-import inspect
 import json
+from pathlib import Path
 
 import aeread.sdk.v1 as sdk_v1
+import aeread.sdk.v1.records as sdk_records
 import pytest
 from pydantic import TypeAdapter, ValidationError, create_model
 
@@ -724,6 +726,14 @@ def test_attempt_policy_accepts_complete_table_and_attempt_bounds(
     )
 
 
+@pytest.mark.parametrize("bad", [0, -1, True, "2", 2.0, None])
+def test_attempt_policy_rejects_nonpositive_or_coercive_attempt_bounds(
+    bad: object,
+) -> None:
+    with pytest.raises(ValidationError, match="max_episode_attempts"):
+        _policy(max_episode_attempts=bad)
+
+
 @pytest.mark.parametrize(
     "mutator",
     [
@@ -1059,28 +1069,72 @@ def test_execution_design_rejects_later_owned_fields(forbidden: str) -> None:
         )
 
 
-def test_execution_declarations_exclude_forbidden_runtime_and_science_coupling() -> (
-    None
-):
-    forbidden = {
-        "analysisrecord",
-        "attemptselectionproof",
-        "benchmark",
-        "clusterdesignspec",
-        "evaluationwork",
-        "familyactionfailuredisposition",
-        "filesystem",
-        "network",
-        "plancell",
-        "providerrequest",
-        "rattempt",
-        "rateraggregateinput",
-        "receipt",
-        "reconciliation",
-        "runplan",
-        "selectionproof",
-        "sessiontoken",
-    }
+_EXECUTION_AUTHORING_SOURCE_NAMES = (
+    "ExecutionRecordRef",
+    "_validate_execution_record_ref",
+    "FixedPanelResolutionTemplateSpec",
+    "SampledPanelResolutionTemplateSpec",
+    "PanelResolutionTemplateSpec",
+    "ExecutionBlockSpec",
+    "_validate_judgment_template_identity",
+    "EvaluatorAgentJudgmentTemplateSpec",
+    "ImportedHumanJudgmentTemplateSpec",
+    "JudgmentWorkTemplateSpec",
+    "EpisodeTerminalDispositionRule",
+    "_EPISODE_TERMINAL_DISPOSITION_TABLE",
+    "EpisodeAttemptPolicySpec",
+    "ExecutionDesignSpec",
+)
+
+_FORBIDDEN_EXECUTION_AUTHORING_TOKENS = {
+    "analysisrecord",
+    "artifactstore",
+    "attemptselectionproof",
+    "benchmark",
+    "clusterdesignspec",
+    "evaluationwork",
+    "eventstore",
+    "familyactionfailuredisposition",
+    "filesystem",
+    "network",
+    "plancell",
+    "providerrequest",
+    "rateraggregateinput",
+    "raterattempt",
+    "receipt",
+    "reconciliation",
+    "runplan",
+    "selectionproof",
+    "sessiontoken",
+}
+
+
+def _execution_authoring_source_spans(source: str) -> str:
+    tree = ast.parse(source)
+    spans: dict[str, str] = {}
+    expected = set(_EXECUTION_AUTHORING_SOURCE_NAMES)
+    for node in tree.body:
+        names: tuple[str, ...] = ()
+        if isinstance(node, (ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)):
+            names = (node.name,)
+        elif isinstance(node, ast.Assign):
+            names = tuple(
+                target.id for target in node.targets if isinstance(target, ast.Name)
+            )
+        elif isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name):
+            names = (node.target.id,)
+        for name in names:
+            if name not in expected:
+                continue
+            assert name not in spans, f"duplicate execution authoring span: {name}"
+            segment = ast.get_source_segment(source, node)
+            assert segment is not None
+            spans[name] = segment
+    assert set(spans) == expected
+    return "\n".join(spans[name] for name in _EXECUTION_AUTHORING_SOURCE_NAMES)
+
+
+def _assert_execution_authoring_surface_has_no_forbidden(source: str) -> None:
     declarations = (
         ExecutionRecordRef,
         FixedPanelResolutionTemplateSpec,
@@ -1092,12 +1146,45 @@ def test_execution_declarations_exclude_forbidden_runtime_and_science_coupling()
         EpisodeAttemptPolicySpec,
         ExecutionDesignSpec,
     )
-    surface = "\n".join(
-        inspect.getsource(declaration)
-        + json.dumps(declaration.model_json_schema(), sort_keys=True)
+    schema_surface = "\n".join(
+        json.dumps(declaration.model_json_schema(), sort_keys=True)
         for declaration in declarations
+    )
+    union_surface = "\n".join(
+        json.dumps(TypeAdapter(alias).json_schema(), sort_keys=True)
+        for alias in (PanelResolutionTemplateSpec, JudgmentWorkTemplateSpec)
+    )
+    surface = (
+        _execution_authoring_source_spans(source)
+        + "\n"
+        + schema_surface
+        + "\n"
+        + union_surface
     ).lower()
-    assert not {token for token in forbidden if token in surface}
+    violations = sorted(
+        token for token in _FORBIDDEN_EXECUTION_AUTHORING_TOKENS if token in surface
+    )
+    assert not violations, f"forbidden execution coupling: {violations}"
+
+
+def test_execution_declarations_exclude_forbidden_runtime_and_science_coupling() -> (
+    None
+):
+    source = Path(sdk_records.__file__).read_text(encoding="utf-8")
+    _assert_execution_authoring_surface_has_no_forbidden(source)
+
+
+def test_forbidden_coupling_guard_covers_private_helper_source_spans() -> None:
+    source = Path(sdk_records.__file__).read_text(encoding="utf-8")
+    mutated = source.replace(
+        "    if type(reference) is not ExecutionRecordRef:\n",
+        "    filesystem.runtime_call()\n"
+        "    if type(reference) is not ExecutionRecordRef:\n",
+        1,
+    )
+    assert mutated != source
+    with pytest.raises(AssertionError, match="filesystem"):
+        _assert_execution_authoring_surface_has_no_forbidden(mutated)
 
 
 @pytest.mark.parametrize(
@@ -1122,7 +1209,9 @@ def test_representative_sources_only_pressure_authoring_shapes(
     template_record = (
         _human_template()
         if template == "human"
-        else _evaluator_template() if template == "agent" else None
+        else _evaluator_template()
+        if template == "agent"
+        else None
     )
     block = _block(
         judgment_template_id=(
