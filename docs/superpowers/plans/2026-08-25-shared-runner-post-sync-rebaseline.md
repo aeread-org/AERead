@@ -1162,6 +1162,8 @@ authority exists.
 
 **Dependency:** Task 2.1a is independently clean.
 
+**Production lifecycle role:** `contract_only`; Task 3.2 is the sole production owner.
+
 **Files:**
 
 - Modify `src/aeread/sdk/v1/records.py`, `src/aeread/sdk/v1/protocols.py`, and
@@ -1174,8 +1176,8 @@ and scripted conformance fakes only. It does **not** create or partially impleme
 lifecycle coordinator; Task 3.2 is the sole owner of orchestration and cleanup execution.
 Task 2.2 declares only the wrapper's structural contract and a scripted conformance fake;
 it does not implement or execute the production wrapper. Task 3.2 alone owns its
-production implementation and execution tests, including creation of
-`src/aeread/runner/lifecycle.py`.
+production implementation and execution tests. The production module path is declared
+only under Task 3.2.
 
 `AgentAdapter` remains the stable act-only v1 Protocol. Task 2.2 must not add required
 lifecycle methods to `AgentAdapter`; `LifecycleAgentAdapter` is a separately named additive
@@ -1482,6 +1484,8 @@ Task 3.9 alone may reconcile an unknown transition.
 ### Task 3.2: Episode/session lifecycle coordinator
 
 **Dependency:** Tasks 2.2 and 2.3 are independently clean.
+
+**Production lifecycle role:** `production_owner`; Task 2.2 is contract-only.
 
 **Files:**
 
@@ -2336,8 +2340,7 @@ deterministic temporal predicate.
 
 ### Task 5.6: EconEvals objective adapter spike
 
-**Evidence direction:** `Scheduling O0 (current) -> Scheduling E0 (next) -> Scheduling E1
-(after E0 parity gate)`; Procurement remains blocked until the requirements below close.
+**Evidence direction:** `Scheduling O0 (current) -> Scheduling E0 (next) -> Scheduling E1 (after E0 parity gate)`; Procurement remains blocked.
 
 Use EconEvals Scheduling at commit
 `e1f2a40fec96f0d27f5414873c4310f2b5c51935` for the first objective E0/E1 fixture because
@@ -2348,8 +2351,7 @@ not mislabeled as an exact optimum.
 
 ### Task 5.7: TERMS comparative fixture
 
-**Evidence direction:** `A0 (current) -> AERead-owned E0 (next) -> official E1 blocked`
-until the upstream materials below are admitted.
+**Evidence direction:** `A0 (current) -> AERead-owned E0 (next) -> official E1 blocked` until upstream is admitted.
 
 Record TERMS-Bench public materials as A0 only. Build a clearly AERead-owned controlled
 buyer/seller E0 comparative fixture with frozen counterpart, information boundary, utility,
@@ -2358,8 +2360,7 @@ simulator, defaults/config hash, code pin, and license are published and admitte
 
 ### Task 5.8: GDPval rater fixture
 
-**Evidence direction:** `A0 (current) -> canned provider-free E0 (next) -> official E1
-blocked` until the official evaluation protocol and execution dependencies are admitted.
+**Evidence direction:** `A0 (current) -> canned provider-free E0 (next) -> official E1 blocked` until the official protocol is admitted.
 
 Complete GDPval A0 admission for task/artifact/rubric identities, redistribution/license,
 and the occupational-expert blinded comparison protocol. Then build a canned, provider-free

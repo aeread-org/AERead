@@ -1,4 +1,5 @@
 from pathlib import Path
+import re
 
 
 DESIGN = Path(__file__).parents[1] / "docs" / "shared_runner_design.md"
@@ -107,21 +108,49 @@ def _markdown_list_item(text: str, marker: str) -> str:
 
 def _assert_task_22_structural_ownership(section: str) -> None:
     normalized = " ".join(section.split())
+    role_lines = [
+        line.strip()
+        for line in section.splitlines()
+        if line.strip().startswith("**Production lifecycle role:**")
+    ]
+    assert role_lines == [
+        "**Production lifecycle role:** `contract_only`; Task 3.2 is the sole "
+        "production owner."
+    ]
     ownership_boundary = (
         "Task 2.2 declares only the wrapper's structural contract and a scripted "
         "conformance fake; it does not implement or execute the production wrapper"
     )
-    files = section.split("**Files:**", 1)[1].split("This task owns", 1)[0]
-
     assert ownership_boundary in normalized
     assert "Task 3.2 alone owns its production implementation and execution tests" in (
         normalized
     )
-    assert "Create `src/aeread/runner/lifecycle.py`" not in files
+    assert "src/aeread/runner/lifecycle.py" not in section
     assert (
         "Task 2.2 implements the runner-owned stateless compatibility wrapper"
         not in normalized
     )
+    assert not re.search(
+        r"Task 2\.2 (?:also )?(?:owns|implements|creates|executes) "
+        r"(?:the )?(?:production|runtime)",
+        normalized,
+        flags=re.IGNORECASE,
+    )
+
+
+def _assert_task_32_production_ownership(section: str) -> None:
+    normalized = " ".join(section.split())
+    role_lines = [
+        line.strip()
+        for line in section.splitlines()
+        if line.strip().startswith("**Production lifecycle role:**")
+    ]
+    assert role_lines == [
+        "**Production lifecycle role:** `production_owner`; Task 2.2 is "
+        "contract-only."
+    ]
+    assert "Create `src/aeread/runner/lifecycle.py`" in section
+    assert "implements the runner-owned stateless compatibility wrapper" in normalized
 
 
 def _assert_stage5_evidence_directions(sections: dict[str, str]) -> None:
@@ -134,19 +163,37 @@ def _assert_stage5_evidence_directions(sections: dict[str, str]) -> None:
         ),
         "### Task 5.6: EconEvals objective adapter spike": (
             "**Evidence direction:** `Scheduling O0 (current) -> Scheduling E0 (next) "
-            "-> Scheduling E1 (after E0 parity gate)`; Procurement remains blocked",
+            "-> Scheduling E1 (after E0 parity gate)`; Procurement remains blocked.",
         ),
         "### Task 5.7: TERMS comparative fixture": (
             "**Evidence direction:** `A0 (current) -> AERead-owned E0 (next) -> official "
-            "E1 blocked`",
+            "E1 blocked` until upstream is admitted.",
         ),
         "### Task 5.8: GDPval rater fixture": (
             "**Evidence direction:** `A0 (current) -> canned provider-free E0 (next) -> "
-            "official E1 blocked`",
+            "official E1 blocked` until the official protocol is admitted.",
         ),
     }
-    for heading, required in expected.items():
-        assert all(fragment in sections[heading] for fragment in required)
+    for heading, fragments in expected.items():
+        section = sections[heading]
+        expected_line = "".join(fragments)
+        nonempty_lines = [line.strip() for line in section.splitlines() if line.strip()]
+        direction_lines = [
+            line for line in nonempty_lines if line.startswith("**Evidence direction:**")
+        ]
+        assert direction_lines == [expected_line]
+        assert nonempty_lines[0] == expected_line
+        without_authority = " ".join(
+            line for line in nonempty_lines if line != expected_line
+        )
+        assert not re.search(
+            r"\b(?:A0|O0|E0|E1|E3)\s*\(current\)", without_authority
+        )
+        assert not re.search(
+            r"\bcurrent evidence\b\s*(?:is|=|:)",
+            without_authority,
+            flags=re.IGNORECASE,
+        )
     assert "E3" not in " ".join(sections.values())
 
 
@@ -836,6 +883,7 @@ def test_future_lifecycle_contract_is_additive_to_stable_agent_adapter() -> None
         "conformance fake; it does not implement or execute the production wrapper"
     )
     _assert_task_22_structural_ownership(rebaseline_section)
+    _assert_task_32_production_ownership(lifecycle_runtime_section)
 
     implementation_mutation = normalized_rebaseline.replace(
         ownership_boundary,
@@ -860,11 +908,38 @@ def test_future_lifecycle_contract_is_additive_to_stable_agent_adapter() -> None
         pass
     else:
         raise AssertionError("Task 2.2 runtime-file mutation escaped the guard")
-    assert "Create `src/aeread/runner/lifecycle.py`" in lifecycle_runtime_section
-    normalized_runtime = " ".join(lifecycle_runtime_section.split())
-    assert "implements the runner-owned stateless compatibility wrapper" in (
-        normalized_runtime
+    outside_files_path_mutation = (
+        rebaseline_section
+        + "\nTask 2.2 also creates `src/aeread/runner/lifecycle.py` in production.\n"
     )
+    try:
+        _assert_task_22_structural_ownership(outside_files_path_mutation)
+    except AssertionError:
+        pass
+    else:
+        raise AssertionError("Task 2.2 path outside Files escaped the guard")
+    paraphrase_mutation = (
+        rebaseline_section
+        + "\nTask 2.2 also owns the production stateless compatibility wrapper.\n"
+    )
+    try:
+        _assert_task_22_structural_ownership(paraphrase_mutation)
+    except AssertionError:
+        pass
+    else:
+        raise AssertionError("Task 2.2 ownership paraphrase escaped the guard")
+    runtime_role_mutation = lifecycle_runtime_section.replace(
+        "`production_owner`; Task 2.2 is contract-only",
+        "`contract_only`; Task 2.2 is contract-only",
+        1,
+    )
+    try:
+        _assert_task_32_production_ownership(runtime_role_mutation)
+    except AssertionError:
+        pass
+    else:
+        raise AssertionError("Task 3.2 production-owner mutation escaped the guard")
+    normalized_runtime = " ".join(lifecycle_runtime_section.split())
     assert "act-only v1 adapter" in normalized_runtime
 
 
@@ -898,7 +973,7 @@ def test_stage5_dispatch_matches_the_locked_five_benchmark_crosswalk() -> None:
         if index + 1 < len(headings):
             section = section.split(headings[index + 1], 1)[0]
         normalized_section = " ".join(section.split())
-        sections[heading] = normalized_section
+        sections[heading] = section
         assert all(
             fragment in normalized_section for fragment in expected_tasks[heading]
         )
@@ -921,6 +996,41 @@ def test_stage5_dispatch_matches_the_locked_five_benchmark_crosswalk() -> None:
         pass
     else:
         raise AssertionError("tau3 O0/E1 direction swap escaped the guard")
+
+    contrary_current_mutation = dict(sections)
+    contrary_current_mutation[tau3_heading] += "\n**Current evidence:** E1.\n"
+    try:
+        _assert_stage5_evidence_directions(contrary_current_mutation)
+    except AssertionError:
+        pass
+    else:
+        raise AssertionError("contrary current-evidence claim escaped the guard")
+
+    relocated_history_mutation = dict(sections)
+    relocated_history_mutation[tau3_heading] = relocated_history_mutation[
+        tau3_heading
+    ].replace(
+        tau3_direction,
+        f"Historical claim, retained only as a rejected example.\n\n{tau3_direction}",
+        1,
+    )
+    try:
+        _assert_stage5_evidence_directions(relocated_history_mutation)
+    except AssertionError:
+        pass
+    else:
+        raise AssertionError("historical evidence relocation escaped the guard")
+
+    duplicate_direction_mutation = dict(sections)
+    duplicate_direction_mutation[tau3_heading] += (
+        "\n**Evidence direction:** `E1 (current) -> E0 (next) -> O0 (blocked)`.\n"
+    )
+    try:
+        _assert_stage5_evidence_directions(duplicate_direction_mutation)
+    except AssertionError:
+        pass
+    else:
+        raise AssertionError("duplicate evidence direction escaped the guard")
 
     econ_heading = "### Task 5.6: EconEvals objective adapter spike"
     econ_e3_mutation = dict(sections)

@@ -5,6 +5,7 @@ from fractions import Fraction
 import inspect
 import hashlib
 import json
+import math
 import os
 from pathlib import Path
 import subprocess
@@ -12,7 +13,7 @@ import sys
 from typing import Annotated, get_type_hints
 
 import pytest
-from pydantic import Field, TypeAdapter, ValidationError
+from pydantic import BeforeValidator, Field, TypeAdapter, ValidationError
 
 from aeread.runner.registry import (
     DuplicateReferenceImplementation,
@@ -669,7 +670,9 @@ def test_legacy_call_attempt_record_schemas_and_validation_remain_stable() -> No
         True,
         Decimal("1.0"),
         Fraction(1, 2),
+        float("nan"),
         float("inf"),
+        float("-inf"),
     ):
         with pytest.raises(ValidationError):
             CallAttemptStart(**(valid_start | {"timeout_seconds": invalid}))
@@ -712,9 +715,35 @@ def test_schema_equivalent_strict_float_is_not_a_timeout_semantics_guard() -> No
     timeout_schema.pop("title")
     assert schema_equivalent_mutant.json_schema() == timeout_schema
 
-    counterexamples = (Decimal("1.0"), Fraction(1, 2), float("inf"))
-    for counterexample in counterexamples:
+    coercion_counterexamples = (Decimal("1.0"), Fraction(1, 2), float("inf"))
+    for counterexample in coercion_counterexamples:
         schema_equivalent_mutant.validate_python(counterexample)
+        with pytest.raises(ValidationError):
+            CallAttemptStart(
+                call_attempt_id="call-1",
+                logical_action_id="logical-1",
+                ordinal=1,
+                request_sha256="request-sha",
+                provider="provider",
+                model="model",
+                timeout_seconds=counterexample,
+                output_token_limit=1,
+            )
+
+    nonfinite_coercing_mutant = TypeAdapter(
+        Annotated[
+            float,
+            Field(strict=True, gt=0),
+            BeforeValidator(
+                lambda value: 1.0
+                if isinstance(value, float) and not math.isfinite(value)
+                else value
+            ),
+        ]
+    )
+    assert nonfinite_coercing_mutant.json_schema() == timeout_schema
+    for counterexample in (float("nan"), float("inf"), float("-inf")):
+        assert nonfinite_coercing_mutant.validate_python(counterexample) == 1.0
         with pytest.raises(ValidationError):
             CallAttemptStart(
                 call_attempt_id="call-1",
