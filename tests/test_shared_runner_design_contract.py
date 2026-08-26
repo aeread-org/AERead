@@ -890,6 +890,28 @@ def _assert_rebaseline_status_names_current_integration_and_next_gate(
         text.index(heading) for heading in headings
     )
     task_1b = text.split("### Task 1.1b1:", 1)[1].split("### Tasks 1.1b2–1.1b5:", 1)[0]
+    assert text.count("## Current dispatch gate") == 1
+    b1_markers = (
+        "**Dependency:**",
+        "**Binding implementation authority:**",
+        "**Files:**",
+        "**Exact additive public names (11):**",
+        "**Ownership:**",
+        "**Deferred:**",
+        "**RED/GREEN and stop conditions:**",
+        "**Output:**",
+    )
+    assert all(task_1b.count(marker) == 1 for marker in b1_markers)
+    marker_positions = [task_1b.index(marker) for marker in b1_markers]
+    assert marker_positions == sorted(marker_positions)
+    b1_subblocks = {
+        marker: task_1b[start:end]
+        for marker, start, end in zip(
+            b1_markers,
+            marker_positions,
+            (*marker_positions[1:], len(task_1b)),
+        )
+    }
     task_1b2_to_1b5 = text.split("### Tasks 1.1b2–1.1b5:", 1)[1].split(
         "### Task 1.1c:", 1
     )[0]
@@ -910,16 +932,10 @@ def _assert_rebaseline_status_names_current_integration_and_next_gate(
         assert "Task 1.1c" in normalized
         assert "HOLD" in normalized
 
-    dependency = task_1b.split("**Dependency:**", 1)[1].split(
-        "**Binding implementation authority:**", 1
-    )[0]
-    authority = task_1b.split("**Binding implementation authority:**", 1)[1].split(
-        "**Files:**", 1
-    )[0]
-    inventory = task_1b.split("**Exact additive public names (11):**", 1)[1].split(
-        "**Ownership:**", 1
-    )[0]
-    ownership = task_1b.split("**Ownership:**", 1)[1].split("**Deferred:**", 1)[0]
+    dependency = b1_subblocks["**Dependency:**"]
+    authority = b1_subblocks["**Binding implementation authority:**"]
+    inventory = b1_subblocks["**Exact additive public names (11):**"]
+    ownership = b1_subblocks["**Ownership:**"]
 
     assert f"`{breaker_baseline}`" in dependency
     assert "PR #7 is NOT independently CLEAN" in dependency
@@ -947,7 +963,7 @@ def _assert_rebaseline_status_names_current_integration_and_next_gate(
         "UnseededEpisodeReplicationDesign",
     )
     assert ownership.startswith(
-        " strict pre-run identities for a finite declared population"
+        "**Ownership:** strict pre-run identities for a finite declared population"
     )
     assert "### Tasks 1.1b2–1.1b5: HOLD" in text
     assert (
@@ -1089,6 +1105,39 @@ def test_rebaseline_guard_rejects_relocated_b1_authority_digest() -> None:
 def test_rebaseline_guard_rejects_duplicate_b1_heading() -> None:
     text = REBASELINE_PLAN.read_text(encoding="utf-8")
     _assert_rebaseline_mutation_is_rejected(text + "\n### Task 1.1b1:\nconflict\n")
+
+
+def test_rebaseline_guard_rejects_second_binding_authority() -> None:
+    text = REBASELINE_PLAN.read_text(encoding="utf-8")
+    task_1b = text.split("### Task 1.1b1:", 1)[1].split("### Tasks 1.1b2–1.1b5:", 1)[0]
+    duplicate = "\n**Binding implementation authority:**\n`wrong/path.md`\n"
+    _assert_rebaseline_mutation_is_rejected(
+        text.replace(task_1b, task_1b + duplicate, 1)
+    )
+
+
+def test_rebaseline_guard_rejects_second_b1_dependency() -> None:
+    text = REBASELINE_PLAN.read_text(encoding="utf-8")
+    task_1b = text.split("### Task 1.1b1:", 1)[1].split("### Tasks 1.1b2–1.1b5:", 1)[0]
+    duplicate = "\n**Dependency:** PR #7 is independently CLEAN.\n"
+    _assert_rebaseline_mutation_is_rejected(
+        text.replace(task_1b, task_1b + duplicate, 1)
+    )
+
+
+def test_rebaseline_guard_rejects_second_b1_inventory() -> None:
+    text = REBASELINE_PLAN.read_text(encoding="utf-8")
+    task_1b = text.split("### Task 1.1b1:", 1)[1].split("### Tasks 1.1b2–1.1b5:", 1)[0]
+    duplicate = "\n**Exact additive public names (11):**\n`FabricatedIdentitySpec`\n"
+    _assert_rebaseline_mutation_is_rejected(
+        text.replace(task_1b, task_1b + duplicate, 1)
+    )
+
+
+def test_rebaseline_guard_rejects_second_current_dispatch_gate() -> None:
+    text = REBASELINE_PLAN.read_text(encoding="utf-8")
+    duplicate = "\n## Current dispatch gate\nTask 1.1b1 is blocked.\n"
+    _assert_rebaseline_mutation_is_rejected(text + duplicate)
 
 
 def test_existing_attempt_observer_and_agent_adapter_signatures_remain_stable() -> None:
