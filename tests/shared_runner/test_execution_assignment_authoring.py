@@ -704,67 +704,136 @@ def _assignment_source_ast(source: str | None = None) -> ast.Module:
 
 
 def _assignment_module_scope_bindings(source: str) -> dict[str, list[str]]:
-    bindings: dict[str, list[str]] = {}
-    try_types = (ast.Try,)
-    if hasattr(ast, "TryStar"):
-        try_types += (ast.TryStar,)
+    class ModuleBindingCollector(ast.NodeVisitor):
+        def __init__(self) -> None:
+            self.bindings: dict[str, list[str]] = {}
 
-    def record(name: str, origin: str) -> None:
-        bindings.setdefault(name, []).append(origin)
+        def record(self, name: str, origin: str) -> None:
+            self.bindings.setdefault(name, []).append(origin)
 
-    def record_target(target: ast.expr, origin: str) -> None:
-        if isinstance(target, ast.Name):
-            record(target.id, origin)
-        elif isinstance(target, (ast.Tuple, ast.List)):
-            for element in target.elts:
-                record_target(element, origin)
+        def record_target(self, target: ast.expr, origin: str) -> None:
+            if isinstance(target, ast.Name):
+                self.record(target.id, origin)
+            elif isinstance(target, (ast.Tuple, ast.List)):
+                for element in target.elts:
+                    self.record_target(element, origin)
 
-    def visit_statements(statements: list[ast.stmt]) -> None:
-        for statement in statements:
-            if isinstance(statement, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                record(statement.name, "function")
-            elif isinstance(statement, ast.ClassDef):
-                record(statement.name, "class")
-            elif isinstance(statement, ast.Import):
-                for alias in statement.names:
-                    record(alias.asname or alias.name.split(".")[0], "import")
-            elif isinstance(statement, ast.ImportFrom):
-                assert all(alias.name != "*" for alias in statement.names)
-                for alias in statement.names:
-                    record(
-                        alias.asname or alias.name,
-                        f"import-from:{statement.module}",
-                    )
-            elif isinstance(statement, ast.Assign):
-                for target in statement.targets:
-                    record_target(target, "assign")
-            elif isinstance(statement, ast.AnnAssign):
-                record_target(statement.target, "assign")
-            elif isinstance(statement, ast.AugAssign):
-                record_target(statement.target, "assign")
-            elif isinstance(statement, (ast.For, ast.AsyncFor)):
-                record_target(statement.target, "loop")
-                visit_statements(statement.body)
-                visit_statements(statement.orelse)
-            elif isinstance(statement, (ast.With, ast.AsyncWith)):
-                for item in statement.items:
-                    if item.optional_vars is not None:
-                        record_target(item.optional_vars, "with")
-                visit_statements(statement.body)
-            elif isinstance(statement, ast.If):
-                visit_statements(statement.body)
-                visit_statements(statement.orelse)
-            elif isinstance(statement, try_types):
-                visit_statements(statement.body)
-                visit_statements(statement.orelse)
-                visit_statements(statement.finalbody)
-                for handler in statement.handlers:
-                    if handler.name is not None:
-                        record(handler.name, "except")
-                    visit_statements(handler.body)
+        def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
+            self.record(node.name, "function")
+            for decorator in node.decorator_list:
+                self.visit(decorator)
+            for default in (*node.args.defaults, *node.args.kw_defaults):
+                if default is not None:
+                    self.visit(default)
 
-    visit_statements(ast.parse(source).body)
-    return bindings
+        visit_AsyncFunctionDef = visit_FunctionDef
+
+        def visit_ClassDef(self, node: ast.ClassDef) -> None:
+            self.record(node.name, "class")
+            for expression in (*node.decorator_list, *node.bases):
+                self.visit(expression)
+            for keyword in node.keywords:
+                self.visit(keyword.value)
+
+        def visit_Lambda(self, node: ast.Lambda) -> None:
+            for default in (*node.args.defaults, *node.args.kw_defaults):
+                if default is not None:
+                    self.visit(default)
+
+        def visit_Import(self, node: ast.Import) -> None:
+            for alias in node.names:
+                self.record(alias.asname or alias.name.split(".")[0], "import")
+
+        def visit_ImportFrom(self, node: ast.ImportFrom) -> None:
+            assert all(alias.name != "*" for alias in node.names)
+            for alias in node.names:
+                self.record(
+                    alias.asname or alias.name,
+                    f"import-from:{node.module}",
+                )
+
+        def visit_Assign(self, node: ast.Assign) -> None:
+            for target in node.targets:
+                self.record_target(target, "assign")
+            self.visit(node.value)
+
+        def visit_AnnAssign(self, node: ast.AnnAssign) -> None:
+            self.record_target(node.target, "assign")
+            self.visit(node.annotation)
+            if node.value is not None:
+                self.visit(node.value)
+
+        def visit_AugAssign(self, node: ast.AugAssign) -> None:
+            self.record_target(node.target, "assign")
+            self.visit(node.value)
+
+        def visit_NamedExpr(self, node: ast.NamedExpr) -> None:
+            self.record_target(node.target, "named-expr")
+            self.visit(node.value)
+
+        def visit_Delete(self, node: ast.Delete) -> None:
+            for target in node.targets:
+                self.record_target(target, "delete")
+
+        def visit_For(self, node: ast.For) -> None:
+            self.record_target(node.target, "loop")
+            self.visit(node.iter)
+            for statement in (*node.body, *node.orelse):
+                self.visit(statement)
+
+        visit_AsyncFor = visit_For
+
+        def visit_With(self, node: ast.With) -> None:
+            for item in node.items:
+                self.visit(item.context_expr)
+                if item.optional_vars is not None:
+                    self.record_target(item.optional_vars, "with")
+            for statement in node.body:
+                self.visit(statement)
+
+        visit_AsyncWith = visit_With
+
+        def visit_ExceptHandler(self, node: ast.ExceptHandler) -> None:
+            if node.name is not None:
+                self.record(node.name, "except")
+            if node.type is not None:
+                self.visit(node.type)
+            for statement in node.body:
+                self.visit(statement)
+
+        def visit_comprehension(self, node: ast.comprehension) -> None:
+            self.visit(node.iter)
+            for condition in node.ifs:
+                self.visit(condition)
+
+        def visit_Match(self, node: ast.Match) -> None:
+            self.visit(node.subject)
+            for case in node.cases:
+                for pattern in ast.walk(case.pattern):
+                    if isinstance(pattern, (ast.MatchAs, ast.MatchStar)):
+                        if pattern.name is not None:
+                            self.record(pattern.name, "match")
+                    elif isinstance(pattern, ast.MatchMapping):
+                        if pattern.rest is not None:
+                            self.record(pattern.rest, "match")
+                if case.guard is not None:
+                    self.visit(case.guard)
+                for statement in case.body:
+                    self.visit(statement)
+
+        def visit_Global(self, node: ast.Global) -> None:
+            for name in node.names:
+                self.record(name, "global")
+
+        def visit_TypeAlias(self, node: ast.AST) -> None:
+            target = getattr(node, "name")
+            if isinstance(target, ast.Name):
+                self.record(target.id, "type-alias")
+            self.visit(getattr(node, "value"))
+
+    collector = ModuleBindingCollector()
+    collector.visit(ast.parse(source))
+    return collector.bindings
 
 
 def _assert_assignment_external_global_bindings(source: str) -> None:
@@ -1001,6 +1070,26 @@ def test_added_assignment_authoring_source_is_declaration_only() -> None:
         ),
         ("class ExecutionDesignSpec", "_require_non_empty = runtime.step\n"),
         ("class ExecutionDesignSpec", "model_validator = runtime.provider_hook\n"),
+        ("class ExecutionDesignSpec", "(_require_non_empty := runtime.step)\n"),
+        ("class ExecutionDesignSpec", "(model_validator := runtime.provider_hook)\n"),
+        (
+            "class ExecutionDesignSpec",
+            "match None:\n    case model_validator:\n        pass\n",
+        ),
+        ("class ExecutionDesignSpec", "del _require_non_empty\n"),
+        (
+            "class ExecutionDesignSpec",
+            "if True:\n    _require_non_empty = runtime.step\n",
+        ),
+        (
+            "class ExecutionDesignSpec",
+            "try:\n    pass\nexcept Exception as model_validator:\n    pass\n",
+        ),
+        ("class ExecutionDesignSpec", "from runtime import *\n"),
+        (
+            "class ExecutionDesignSpec",
+            "_require_non_empty, harmless = runtime.step, None\n",
+        ),
     ],
 )
 def test_predeclaration_alias_or_decorator_rebinding_cannot_escape_guard(
