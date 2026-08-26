@@ -216,6 +216,8 @@ def test_condition_plans_pair_worlds_and_replicates_but_seal_distinct_treatments
     assert low_profile.reasoning.condition_id == "reasoning_low_v1"
     assert low_profile.reasoning.effort == "low"
     assert disabled_profile.sampling.seed is None
+    assert disabled_profile.sampling.max_output_tokens == 2048
+    assert low_profile.sampling.max_output_tokens == 2048
     assert disabled_profile.harness.config["request_seed_source"] == "paired_cell_v1"
     assert disabled_profile.harness.config["request_seed_base"] == 87001
 

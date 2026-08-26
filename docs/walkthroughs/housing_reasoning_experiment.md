@@ -115,8 +115,11 @@ pass-all-three rates are mandatory alongside the complete-pair estimate.
 ### DANGER ZONE D6: output limits are part of the realized treatment
 
 **MEDIUM — may bias against reasoning-low through truncation.** Both arms receive the same
-initial 512-token output limit and one declared length retry at 1,024. Different truncation
-rates are a real consequence of the configured condition and must be reported, not hidden by
+initial 2,048-token output limit and one declared length retry at 4,096. A live admission
+probe showed that reasoning-low exhausted both the earlier 512 and 1,024 ceilings before
+emitting an action, while reasoning-none completed. That failed probe remains preserved as
+operational evidence and is not part of the analysis sample. Different truncation rates are
+a real consequence of the revised configured condition and must be reported, not hidden by
 unbounded post hoc retries.
 
 ### DANGER ZONE D7: controlled counterpart limits the estimand

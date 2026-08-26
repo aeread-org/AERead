@@ -638,6 +638,7 @@ def _profile(
     reasoning_condition_id: str = "reasoning_low_v1",
     reasoning_effort: str | None = "low",
     request_seed_base: int | None = None,
+    max_output_tokens: int | None = None,
 ) -> AgentProfile:
     config: dict[str, Any] = {
         "pricing_id": pricing.pricing_id,
@@ -682,7 +683,11 @@ def _profile(
             "sampling": {
                 "temperature": 0.0,
                 "top_p": 1.0 if provider == "openrouter" else None,
-                "max_output_tokens": 512 if provider == "openrouter" else 256,
+                "max_output_tokens": (
+                    max_output_tokens
+                    if max_output_tokens is not None
+                    else (512 if provider == "openrouter" else 256)
+                ),
                 "seed": (
                     world_seed
                     if provider == "openrouter" and request_seed_base is None
@@ -874,6 +879,9 @@ def build_housing_smoke(
         reasoning_condition_id=reasoning_condition_id,
         reasoning_effort=reasoning_effort,
         request_seed_base=inference_seed_base,
+        max_output_tokens=(
+            2048 if tenant_provider == "openrouter" and experiment_mode else None
+        ),
     )
     landlord_profile = _profile(
         profile_id="housing_scripted_landlord_v1",
