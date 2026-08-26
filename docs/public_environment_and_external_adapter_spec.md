@@ -152,15 +152,23 @@ This amendment requires explicit design review because it changes the public act
 
 ### 3.1 Package and version policy
 
-The public authoring API lives under `aeread.sdk.v1`. Preview manifests retain their independent schema versions such as `aeread.case/0.1`; the Python namespace protects contributors from accidental breaking imports while each serialized record declares its own version.
+The public authoring API is being designed under `aeread.sdk.v1`. This repository is a
+pre-release design branch: the final `0.1` package contract has not yet been frozen or
+released. The stability promise begins only when the final `0.1` contract is frozen and
+released. Preview manifests retain their independent schema versions such as
+`aeread.case/0.1`, and each serialized record declares its own version.
+
+`CallAttemptStart`, `CallAttemptToken`, and the attempt lifecycle are provisional
+exceptions before that freeze. They may be migrated as part of Task 2.1a and must not be
+treated as released contributor contracts.
 
 Rules:
 
-- `aeread.sdk.v1` exports only stable author-facing protocols, immutable models, errors, and test helpers;
+- at the final `0.1` release, `aeread.sdk.v1` exports only stable author-facing protocols, immutable models, errors, and test helpers;
 - runner implementation details live under `aeread.runner` and are not part of the compatibility promise;
 - unknown manifest fields are rejected;
 - every plugin declares `sdk_api = "aeread.sdk/v1"` and its own semantic version;
-- breaking API changes require `aeread.sdk.v2`; additive optional fields require a schema-version increment and compatibility tests;
+- after the `0.1` release, breaking API changes require `aeread.sdk.v2`; additive optional fields require a schema-version increment and compatibility tests;
 - canonical bytes use UTF-8 JSON, sorted keys, compact separators, no NaN/Infinity, and an explicit `aeread.cjson/1` algorithm identifier before SHA-256 hashing.
 
 The implementation should use Pydantic 2 (`pydantic>=2.8,<3`) for strict validation, immutable records, discriminated unions, and JSON schema export. This is one deliberate new core dependency and must be called out in the implementation PR.
@@ -627,7 +635,7 @@ The specification recommends defaults rather than leaving these undefined. Revie
 
 1. `DecisionSlot` with multi-channel `ActionBundle` replaces seat-keyed action maps.
 2. `AgentAdapter` receives a runner-owned `AttemptObserver`; opaque harnesses declare `logical_only` rather than fabricating provider attempts.
-3. `aeread.sdk.v1` is the stable authoring namespace; Pydantic 2 is the only new core dependency.
+3. `aeread.sdk.v1` becomes the stable authoring namespace at the final `0.1` freeze and release; the current attempt lifecycle remains provisional until then. Pydantic 2 is the only new core dependency.
 4. developer plugins use registered entry points; formal mode additionally requires pre-load distribution allowlisting and provenance, while manifests cannot import code.
 5. admission uses independent capability fields plus `paper_primary`, `training`, and `interop_only` profiles.
 6. Exchange parity and Housing conformance remain prerequisites for external adapters.

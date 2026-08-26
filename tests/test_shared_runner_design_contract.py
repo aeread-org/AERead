@@ -50,6 +50,43 @@ def _row_has_semantics(
     )
 
 
+def _row_matches_contract(
+    row: tuple[str, ...],
+    *,
+    verifier_class: str,
+    workflow: str,
+    benchmark: str,
+    caveat: str,
+) -> bool:
+    return (
+        len(row) == 4
+        and verifier_class in row[0]
+        and workflow in row[1]
+        and benchmark in row[2]
+        and caveat in row[3]
+    )
+
+
+def _markdown_list_item(text: str, marker: str) -> str:
+    matches = []
+    lines = text.splitlines()
+    for index, line in enumerate(lines):
+        if not line.startswith("- ") or marker not in line:
+            continue
+        parts = [line[2:].strip()]
+        for continuation in lines[index + 1 :]:
+            if continuation.startswith("- ") or not continuation.strip():
+                break
+            if not continuation.startswith("  "):
+                break
+            parts.append(continuation.strip())
+        matches.append(" ".join(parts))
+    assert len(matches) == 1, (
+        f"expected one Markdown list item for {marker!r}: {matches!r}"
+    )
+    return matches[0]
+
+
 def test_shared_runner_design_records_frozen_execution_contract() -> None:
     text = DESIGN.read_text(encoding="utf-8")
 
@@ -308,18 +345,74 @@ def test_verifier_case_mapping_gives_one_real_workflow_and_benchmark_per_class()
     text = VERIFIER_CASE_MAPPING.read_text(encoding="utf-8")
 
     examples = {
-        "canonical/reference": ("retail refund", "tau3-bench"),
-        "rule/constraint/temporal": ("regulated refund process", "STATE-Bench"),
-        "objective/optimum/bound": ("procurement and scheduling", "EconEvals"),
-        "comparative": ("supplier price negotiation", "TERMS-Bench"),
-        "rater/judge": ("professional analyst deliverable", "GDPval"),
-        "simulation/statistical": ("inventory and pricing", "Vending-Bench"),
-        "integrity/admissibility": ("audited agent episode", "AERead EvaluationReceipt"),
+        "canonical/reference": (
+            "retail refund",
+            "tau3-bench",
+            "primary deterministic database leaf",
+        ),
+        "rule/constraint/temporal": (
+            "regulated refund process",
+            "STATE-Bench",
+            "final-state requirements are the official deterministic layer",
+        ),
+        "objective/optimum/bound": (
+            "procurement and scheduling",
+            "EconEvals",
+            "empirical random-matching comparison baseline",
+        ),
+        "comparative": (
+            "supplier price negotiation",
+            "TERMS-Bench",
+            "no E0 conformance or E1 adapter/parity result exists",
+        ),
+        "rater/judge": (
+            "professional analyst deliverable",
+            "GDPval",
+            "occupational experts in blinded pairwise comparison",
+        ),
+        "simulation/statistical": (
+            "inventory and pricing",
+            "Vending-Bench",
+            "official adapter parity is blocked",
+        ),
+        "integrity/admissibility": (
+            "audited agent episode",
+            "AERead EvaluationReceipt",
+            "measurement_validity",
+        ),
     }
-    for verifier_class, (workflow, benchmark) in examples.items():
-        assert verifier_class in text, f"verifier class is missing: {verifier_class}"
-        assert workflow in text, f"real-world workflow is missing: {workflow}"
-        assert benchmark in text, f"benchmark mapping is missing: {benchmark}"
+    rows = {}
+    for verifier_class, (workflow, benchmark, caveat) in examples.items():
+        row = _markdown_table_row(
+            text, f"**{verifier_class}**", expected_cells=4
+        )
+        rows[verifier_class] = row
+        assert _row_matches_contract(
+            row,
+            verifier_class=verifier_class,
+            workflow=workflow,
+            benchmark=benchmark,
+            caveat=caveat,
+        ), f"mapping row does not bind its four fields: {row!r}"
+
+    tau3_row = rows["canonical/reference"]
+    state_row = rows["rule/constraint/temporal"]
+    tau3_with_state_benchmark = (*tau3_row[:2], state_row[2], tau3_row[3])
+    state_with_tau3_benchmark = (*state_row[:2], tau3_row[2], state_row[3])
+    assert not _row_matches_contract(
+        tau3_with_state_benchmark,
+        verifier_class="canonical/reference",
+        workflow="retail refund",
+        benchmark="tau3-bench",
+        caveat="primary deterministic database leaf",
+    )
+    assert not _row_matches_contract(
+        state_with_tau3_benchmark,
+        verifier_class="rule/constraint/temporal",
+        workflow="regulated refund process",
+        benchmark="STATE-Bench",
+        caveat="final-state requirements are the official deterministic layer",
+    )
 
     assert "five semantic verifier families" in text
     assert "two cross-cutting layers" in text
@@ -467,11 +560,47 @@ def test_terms_and_gdpval_mapping_carries_admission_protocol_caveats() -> None:
 
 def test_housing_mapping_separates_baseline_lower_and_upper_refs() -> None:
     text = VERIFIER_CASE_MAPPING.read_text(encoding="utf-8")
+    item = _markdown_list_item(text, "Native `housing_v1`")
+    required = (
+        "`B` is the naive executable comparison baseline",
+        "`L = 0` is a separate feasible lower-bound witness",
+        "`U` is a full-information maximum-weight relaxation",
+        "three typed references, not one oracle score",
+    )
+    assert all(fragment in item for fragment in required)
 
-    assert "`B` is the naive executable comparison baseline" in text
-    assert "`L = 0` is a separate feasible lower-bound witness" in text
-    assert "`U` is a full-information maximum-weight relaxation" in text
-    assert "not one oracle score" in text
+    relocated = text.replace(required[0], "`B` is declared elsewhere", 1)
+    relocated += f"\n- Unrelated benchmark: {required[0]}.\n"
+    assert required[0] in relocated
+    relocated_item = _markdown_list_item(relocated, "Native `housing_v1`")
+    assert not all(fragment in relocated_item for fragment in required)
+
+    wrong_owner = item.replace(
+        required[0], "`U` is the naive executable comparison baseline"
+    )
+    assert not all(fragment in wrong_owner for fragment in required)
+
+
+def test_public_sdk_stability_policy_has_one_release_boundary() -> None:
+    text = PUBLIC_ENVIRONMENT_SPEC.read_text(encoding="utf-8")
+    section = text.split("### 3.1 Package and version policy", 1)[1].split(
+        "### 3.2 Environment contract", 1
+    )[0]
+    normalized = " ".join(section.split())
+
+    required = (
+        "pre-release design branch",
+        "stability promise begins only when the final `0.1` contract is frozen "
+        "and released",
+        "`CallAttemptStart`, `CallAttemptToken`, and the attempt lifecycle are "
+        "provisional exceptions before that freeze",
+        "after the `0.1` release, breaking API changes require `aeread.sdk.v2`",
+    )
+    assert all(fragment in normalized for fragment in required)
+    assert (
+        "- `aeread.sdk.v1` exports only stable author-facing protocols"
+        not in section
+    )
 
 
 def test_public_spec_reports_implemented_foundation_and_missing_runtime() -> None:
