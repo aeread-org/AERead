@@ -1165,11 +1165,21 @@ def test_b1_b2_b3_b4a_additions_preserve_legacy_schema_and_export_abi() -> None:
     )
     assert len(b3b_added_exports) == 6
     assert set(b3b_added_exports) == execution_assignment_exports
+    tool_evidence_exports = {
+        # Task: tool invocations as first-class evidence (tau3 is entirely tools).
+        "ToolInvocationStart",
+        "ToolInvocationToken",
+        "ToolInvocationResult",
+        "ToolInvocationFailure",
+        "ToolObserver",
+    }
+    assert tool_evidence_exports <= set(sdk_v1.__all__)
     legacy_exports = tuple(
         sorted(
             name
             for name in sdk_v1.__all__
-            if name not in planned_identity_exports
+            if name not in tool_evidence_exports
+            and name not in planned_identity_exports
             and name not in measurement_selection_exports
             and name not in execution_design_exports
             and name not in analysis_estimator_missingness_exports

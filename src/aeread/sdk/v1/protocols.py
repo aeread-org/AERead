@@ -23,6 +23,10 @@ from .records import (
     ScoreEnvelope,
     SealedEvidenceView,
     TerminalResult,
+    ToolInvocationFailure,
+    ToolInvocationResult,
+    ToolInvocationStart,
+    ToolInvocationToken,
     TransitionResult,
 )
 
@@ -121,6 +125,26 @@ class AttemptObserver(Protocol):
 
 
 @runtime_checkable
+class ToolObserver(Protocol):
+    """Runner-owned write-ahead observation of tool calls.
+
+    Additive to :class:`AttemptObserver`, whose three signatures are stable: an
+    adapter that uses no tools is unaffected, and one that does can test for
+    these methods on the observer it was handed.
+    """
+
+    def tool_started(self, start: ToolInvocationStart) -> ToolInvocationToken: ...
+
+    def tool_succeeded(
+        self, token: ToolInvocationToken, result: ToolInvocationResult
+    ) -> None: ...
+
+    def tool_failed(
+        self, token: ToolInvocationToken, failure: ToolInvocationFailure
+    ) -> None: ...
+
+
+@runtime_checkable
 class AgentAdapter(Protocol):
     """Provider- or harness-specific canonical response adapter."""
 
@@ -213,5 +237,6 @@ __all__ = [
     "EnvironmentPlugin",
     "ExecutionBackend",
     "OfficialVerifierBridge",
+    "ToolObserver",
     "VerifierPlugin",
 ]

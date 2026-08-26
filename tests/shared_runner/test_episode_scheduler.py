@@ -638,3 +638,191 @@ def test_one_seat_may_hold_two_slots_in_a_phase(tmp_path: Path) -> None:
     assert adapters["seat_a"].calls == ["slot-1", "slot-2"]
     assert environment.stepped_bundles == [("bid", ("slot-1", "slot-2"))]
     assert result.status == "terminal"
+
+
+# ---------------------------------------------------------------------------
+# Tool invocations. A customer-service action reads an order and then refunds
+# it: one decision, two tool calls, one of which changes the world.
+# ---------------------------------------------------------------------------
+
+
+def _tool_start(
+    logical_action_id: str,
+    invocation_id: str,
+    tool_id: str,
+    effect: str,
+    ordinal: int = 1,
+) -> Any:
+    from aeread.sdk.v1 import ToolInvocationStart
+
+    return ToolInvocationStart(
+        invocation_id=invocation_id,
+        logical_action_id=logical_action_id,
+        ordinal=ordinal,
+        tool_id=tool_id,
+        tool_version="1.0.0",
+        effect=effect,
+        arguments_sha256="b" * 64,
+    )
+
+
+@dataclass
+class ToolUsingAdapter:
+    """Reads, then mutates, then answers — the tau3 shape."""
+
+    seat_id: str
+    leave_open: bool = False
+    fail_the_mutation: bool = False
+
+    async def act(self, request: Any, *, attempts: Any) -> CanonicalResponse:
+        from aeread.sdk.v1 import (
+            ToolInvocationFailure,
+            ToolInvocationResult,
+        )
+
+        action_id = f"la-0000-bid-{request.slot.slot_id}"
+        read = attempts.tool_started(
+            _tool_start(action_id, f"{request.slot.slot_id}-t1", "get_order", "read_only")
+        )
+        attempts.tool_succeeded(
+            read, ToolInvocationResult(result_sha256="c" * 64, state_changed=False)
+        )
+
+        write = attempts.tool_started(
+            _tool_start(
+                action_id,
+                f"{request.slot.slot_id}-t2",
+                "issue_refund",
+                "mutating",
+                ordinal=2,
+            )
+        )
+        if self.fail_the_mutation:
+            attempts.tool_failed(
+                write,
+                ToolInvocationFailure(
+                    error_class="payment_declined",
+                    message="card issuer refused",
+                    retryable=False,
+                    state_changed=False,
+                ),
+            )
+        elif not self.leave_open:
+            attempts.tool_succeeded(
+                write, ToolInvocationResult(result_sha256="d" * 64, state_changed=True)
+            )
+
+        return CanonicalResponse(content="bid 1", finish_reason="stop")
+
+
+def _tool_adapters(**kwargs: Any) -> dict[str, Any]:
+    return {
+        "seat_a": ToolUsingAdapter("seat_a", **kwargs),
+        "seat_b": ToolUsingAdapter("seat_b", **kwargs),
+    }
+
+
+def test_tool_invocations_are_recorded_with_their_effect(tmp_path: Path) -> None:
+    events = _open_events(tmp_path)
+    _run_with(_tool_adapters(), ScriptedEnvironment(rounds=1), events)
+
+    rows = [
+        (event.event_type, event.payload)
+        for event in events.snapshot().events
+        if event.event_type.startswith("tool_invocation_")
+    ]
+    assert len(rows) == 8, "two seats x (one read + one mutation) x start and result"
+    effects = {payload["tool_id"]: payload["effect"] for _, payload in rows}
+    assert effects == {"get_order": "read_only", "issue_refund": "mutating"}
+
+
+def test_two_tool_calls_in_one_action_are_not_a_retry(tmp_path: Path) -> None:
+    events = _open_events(tmp_path)
+    _run_with(_tool_adapters(), ScriptedEnvironment(rounds=1), events)
+
+    log = events.snapshot().events
+    by_action: dict[str, list[str]] = {}
+    for event in log:
+        if event.event_type == "tool_invocation_started":
+            assert event.payload is not None
+            by_action.setdefault(event.payload["logical_action_id"], []).append(
+                event.payload["invocation_id"]
+            )
+    assert all(len(ids) == 2 for ids in by_action.values()), by_action
+    # One logical action, one verdict: several tool calls did not split it.
+    resolved = [e for e in log if e.event_type == "logical_action_resolved"]
+    assert len(resolved) == len(by_action)
+
+
+def test_a_failed_tool_call_is_recorded_and_the_action_still_resolves(
+    tmp_path: Path,
+) -> None:
+    events = _open_events(tmp_path)
+    result = _run_with(
+        _tool_adapters(fail_the_mutation=True), ScriptedEnvironment(rounds=1), events
+    )
+
+    failures = [
+        event
+        for event in events.snapshot().events
+        if event.event_type == "tool_invocation_failed"
+    ]
+    assert len(failures) == 2
+    assert failures[0].payload is not None
+    assert failures[0].payload["record"]["error_class"] == "payment_declined"
+    # A tool refusing is not a harness failure: the decision still stands.
+    assert result.status == "terminal"
+    assert all(
+        slot.verdict == "applied" for phase in result.phases for slot in phase.slots
+    )
+
+
+def test_an_adapter_that_leaves_a_tool_call_open_fails_the_episode(
+    tmp_path: Path,
+) -> None:
+    with pytest.raises(EpisodeError, match="tool invocations unterminated"):
+        _run_with(
+            _tool_adapters(leave_open=True),
+            ScriptedEnvironment(rounds=1),
+            _open_events(tmp_path),
+        )
+
+
+def test_a_tool_call_attributed_to_another_action_fails_the_episode(
+    tmp_path: Path,
+) -> None:
+    class Misattributing:
+        async def act(self, request: Any, *, attempts: Any) -> CanonicalResponse:
+            attempts.tool_started(
+                _tool_start("someone-elses-action", "t1", "get_order", "read_only")
+            )
+            return CanonicalResponse(content="bid 1")
+
+    adapters = {"seat_a": Misattributing(), "seat_b": Misattributing()}
+    with pytest.raises(EpisodeError, match="names logical action"):
+        _run_with(adapters, ScriptedEnvironment(rounds=1), _open_events(tmp_path))
+
+
+def test_a_mutation_must_record_what_it_produced(tmp_path: Path) -> None:
+    from pydantic import ValidationError
+
+    from aeread.sdk.v1 import ToolInvocationResult
+
+    with pytest.raises(ValidationError, match="result digest"):
+        ToolInvocationResult(state_changed=True)
+
+
+def test_starting_the_same_tool_invocation_twice_fails_the_episode(
+    tmp_path: Path,
+) -> None:
+    class DoubleStart:
+        async def act(self, request: Any, *, attempts: Any) -> CanonicalResponse:
+            action_id = f"la-0000-bid-{request.slot.slot_id}"
+            start = _tool_start(action_id, "t1", "get_order", "read_only")
+            attempts.tool_started(start)
+            attempts.tool_started(start)
+            return CanonicalResponse(content="bid 1")
+
+    adapters = {"seat_a": DoubleStart(), "seat_b": DoubleStart()}
+    with pytest.raises(EpisodeError, match="tool invocation .* started twice"):
+        _run_with(adapters, ScriptedEnvironment(rounds=1), _open_events(tmp_path))

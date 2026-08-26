@@ -1204,11 +1204,22 @@ def test_task_1_1a1_has_one_exact_public_export_delta() -> None:
         "MultiplicityAdjustmentSpec",
         "InferenceCompatibilitySpec",
     }
+    tool_evidence_exports = {
+        # Task: tool invocations as first-class evidence (tau3 is entirely tools).
+        "ToolInvocationStart",
+        "ToolInvocationToken",
+        "ToolInvocationResult",
+        "ToolInvocationFailure",
+        "ToolObserver",
+    }
     exports = set(sdk.__all__)
     assert len(sdk.__all__) == len(exports)
     assert expected_added <= exports
     assert authorized_later_added <= exports
-    legacy_exports = exports - expected_added - authorized_later_added
+    assert tool_evidence_exports <= exports
+    legacy_exports = (
+        exports - expected_added - authorized_later_added - tool_evidence_exports
+    )
     legacy_hash = hashlib.sha256(
         json.dumps(sorted(legacy_exports), separators=(",", ":")).encode("utf-8")
     ).hexdigest()

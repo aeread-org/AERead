@@ -422,6 +422,69 @@ class ProviderCallFailure(StrictModel):
     raw_artifact_ref: ArtifactRef | None = None
 
 
+class ToolInvocationStart(StrictModel):
+    """One atomic tool call, declared before it is executed.
+
+    Repeated calls to the same tool are separate invocations, and several
+    invocations inside one action attempt are not a retry: an agent that reads
+    an order, then refunds it, made two invocations of one decision.
+
+    ``effect`` is required because a read and a mutation are different events
+    for a state-comparing verifier: replaying a trajectory must reproduce which
+    calls could have changed the world.
+    """
+
+    invocation_id: SDKStr
+    logical_action_id: SDKStr
+    ordinal: SDKInt = Field(ge=1)
+    tool_id: SDKStr
+    tool_version: SDKStr | None = None
+    effect: Literal["read_only", "mutating"]
+    arguments_sha256: SHA256
+    timeout_seconds: SDKFloat | None = Field(default=None, gt=0)
+
+    @model_validator(mode="after")
+    def validate_invocation_start(self) -> "ToolInvocationStart":
+        if not self.invocation_id.strip() or not self.tool_id.strip():
+            raise ValueError("invocation_id and tool_id must be non-empty")
+        if not self.logical_action_id.strip():
+            raise ValueError("a tool invocation must name its logical action")
+        return self
+
+
+class ToolInvocationToken(StrictModel):
+    invocation_id: SDKStr
+
+
+class ToolInvocationResult(StrictModel):
+    result_sha256: SHA256 | None = None
+    state_changed: SDKBool | None = None
+    latency_ms: SDKFloat | None = Field(default=None, ge=0)
+    raw_artifact_ref: ArtifactRef | None = None
+
+    @model_validator(mode="after")
+    def validate_invocation_result(self) -> "ToolInvocationResult":
+        if self.state_changed and self.result_sha256 is None:
+            raise ValueError(
+                "an invocation that changed state must record its result digest"
+            )
+        return self
+
+
+class ToolInvocationFailure(StrictModel):
+    error_class: SDKStr
+    message: SDKStr
+    retryable: SDKBool
+    state_changed: SDKBool | None = None
+    raw_artifact_ref: ArtifactRef | None = None
+
+    @model_validator(mode="after")
+    def validate_invocation_failure(self) -> "ToolInvocationFailure":
+        if not self.error_class.strip():
+            raise ValueError("error_class must be non-empty")
+        return self
+
+
 class ParseResult(StrictModel):
     status: Literal["ok", "malformed"]
     bundle: ActionBundle | None = None

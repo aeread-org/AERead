@@ -37,6 +37,10 @@ from ..sdk.v1 import (
     ProviderCallFailure,
     ProviderCallResult,
     TerminalResult,
+    ToolInvocationFailure,
+    ToolInvocationResult,
+    ToolInvocationStart,
+    ToolInvocationToken,
     content_sha256,
     validate_action_bundle,
 )
@@ -98,13 +102,22 @@ class EpisodeResult:
 
 @dataclass
 class EventAttemptObserver:
-    """Records every provider call in the episode log before its side effect."""
+    """Records provider calls and tool invocations before their side effects.
+
+    Satisfies both ``AttemptObserver`` and ``ToolObserver``: an adapter that
+    only talks to a model uses three methods, one that also calls tools uses
+    six, and neither has to know which. Nothing may be left open — an adapter
+    that starts a call or an invocation and never closes it fails the episode,
+    because the log would otherwise claim a side effect whose outcome is
+    unknown without saying so.
+    """
 
     events: Any
     identity: EventIdentity
     logical_action_id: str
     seat_id: str
     _open: dict[str, CallAttemptStart] = field(default_factory=dict)
+    _open_tools: dict[str, ToolInvocationStart] = field(default_factory=dict)
 
     def call_started(self, start: CallAttemptStart) -> CallAttemptToken:
         if start.call_attempt_id in self._open:
@@ -154,8 +167,74 @@ class EventAttemptObserver:
             },
         )
 
+    # -- tools (additive; an adapter without tools never calls these) --
+
+    def tool_started(self, start: ToolInvocationStart) -> ToolInvocationToken:
+        if start.invocation_id in self._open_tools:
+            raise EpisodeError(
+                f"tool invocation {start.invocation_id!r} started twice"
+            )
+        if start.logical_action_id != self.logical_action_id:
+            raise EpisodeError(
+                f"tool invocation {start.invocation_id!r} names logical action "
+                f"{start.logical_action_id!r} while filling "
+                f"{self.logical_action_id!r}"
+            )
+        self.events.append(
+            "tool_invocation_started",
+            self.identity,
+            f"seat:{self.seat_id}",
+            {
+                "logical_action_id": self.logical_action_id,
+                "invocation_id": start.invocation_id,
+                "ordinal": start.ordinal,
+                "tool_id": start.tool_id,
+                "tool_version": start.tool_version,
+                "effect": start.effect,
+                "arguments_sha256": start.arguments_sha256,
+            },
+        )
+        token = ToolInvocationToken(invocation_id=start.invocation_id)
+        self._open_tools[start.invocation_id] = start
+        return token
+
+    def tool_succeeded(
+        self, token: ToolInvocationToken, result: ToolInvocationResult
+    ) -> None:
+        self._close_tool(token, "tool_invocation_succeeded", result)
+
+    def tool_failed(
+        self, token: ToolInvocationToken, failure: ToolInvocationFailure
+    ) -> None:
+        self._close_tool(token, "tool_invocation_failed", failure)
+
+    def _close_tool(
+        self, token: ToolInvocationToken, event_type: str, record: Any
+    ) -> None:
+        start = self._open_tools.pop(token.invocation_id, None)
+        if start is None:
+            raise EpisodeError(
+                f"terminal event for unstarted tool invocation "
+                f"{token.invocation_id!r}"
+            )
+        self.events.append(
+            event_type,
+            self.identity,
+            f"seat:{self.seat_id}",
+            {
+                "logical_action_id": self.logical_action_id,
+                "invocation_id": token.invocation_id,
+                "tool_id": start.tool_id,
+                "effect": start.effect,
+                "record": record.model_dump(mode="python"),
+            },
+        )
+
     def unclosed_call_ids(self) -> tuple[str, ...]:
         return tuple(sorted(self._open))
+
+    def unclosed_tool_ids(self) -> tuple[str, ...]:
+        return tuple(sorted(self._open_tools))
 
 
 RequestFactory = Callable[[DecisionSlot, ObservationEnvelope], AgentRequest]
@@ -404,6 +483,11 @@ async def _run_slot(
     if unclosed:
         raise EpisodeError(
             f"adapter left provider calls unterminated: {list(unclosed)}"
+        )
+    unclosed_tools = observer.unclosed_tool_ids()
+    if unclosed_tools:
+        raise EpisodeError(
+            f"adapter left tool invocations unterminated: {list(unclosed_tools)}"
         )
 
     parsed = environment.parse_action(case, state, phase, slot, response)
