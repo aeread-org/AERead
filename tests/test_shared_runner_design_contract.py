@@ -1,5 +1,5 @@
+import hashlib
 from pathlib import Path
-import re
 
 
 DESIGN = Path(__file__).parents[1] / "docs" / "shared_runner_design.md"
@@ -38,6 +38,35 @@ REBASELINE_PLAN = (
     / "plans"
     / "2026-08-25-shared-runner-post-sync-rebaseline.md"
 )
+
+TASK_22_SECTION_SHA256 = (
+    "bc38fb28e40f8148acb15b867776807af6b3b46400f4d2f657d9034d76271917"
+)
+TASK_32_SECTION_SHA256 = (
+    "edf21c87a62e4a57f40ea26b19b584cf0907e1112e3c7702c72293aa0c1bca7b"
+)
+STAGE5_SECTION_SHA256 = {
+    "### Task 5.4: tau3 canonical/reference adapter spike": (
+        "344063a54256f9a583931e195d5c6afc5ffb483a958a539b5211a1a8e052fc3f"
+    ),
+    "### Task 5.5: STATE rule/constraint adapter spike": (
+        "472f9a24ab06774beae55ff72079b2e84eda96aa3f713966595223ed9a7c56f6"
+    ),
+    "### Task 5.6: EconEvals objective adapter spike": (
+        "4332085f3e9db2dcda7c0a6dd29c47c22a5f62c9cafe940c1e88984360632693"
+    ),
+    "### Task 5.7: TERMS comparative fixture": (
+        "4ab695589186e813152888831da6c9b3d809188785ab1e481efff8cfff408a65"
+    ),
+    "### Task 5.8: GDPval rater fixture": (
+        "60e2debd1ed40f0a4902ccd3963a71579676f7ababfa6efc1f152940c3abcc00"
+    ),
+}
+
+
+def _assert_normalized_section_snapshot(section: str, expected_sha256: str) -> None:
+    normalized = " ".join(section.split()).encode()
+    assert hashlib.sha256(normalized).hexdigest() == expected_sha256
 
 
 def _markdown_table_row(
@@ -108,6 +137,7 @@ def _markdown_list_item(text: str, marker: str) -> str:
 
 def _assert_task_22_structural_ownership(section: str) -> None:
     normalized = " ".join(section.split())
+    _assert_normalized_section_snapshot(section, TASK_22_SECTION_SHA256)
     role_lines = [
         line.strip()
         for line in section.splitlines()
@@ -130,16 +160,11 @@ def _assert_task_22_structural_ownership(section: str) -> None:
         "Task 2.2 implements the runner-owned stateless compatibility wrapper"
         not in normalized
     )
-    assert not re.search(
-        r"Task 2\.2 (?:also )?(?:owns|implements|creates|executes) "
-        r"(?:the )?(?:production|runtime)",
-        normalized,
-        flags=re.IGNORECASE,
-    )
 
 
 def _assert_task_32_production_ownership(section: str) -> None:
     normalized = " ".join(section.split())
+    _assert_normalized_section_snapshot(section, TASK_32_SECTION_SHA256)
     role_lines = [
         line.strip()
         for line in section.splitlines()
@@ -176,24 +201,16 @@ def _assert_stage5_evidence_directions(sections: dict[str, str]) -> None:
     }
     for heading, fragments in expected.items():
         section = sections[heading]
+        _assert_normalized_section_snapshot(section, STAGE5_SECTION_SHA256[heading])
         expected_line = "".join(fragments)
         nonempty_lines = [line.strip() for line in section.splitlines() if line.strip()]
         direction_lines = [
-            line for line in nonempty_lines if line.startswith("**Evidence direction:**")
+            line
+            for line in nonempty_lines
+            if line.startswith("**Evidence direction:**")
         ]
         assert direction_lines == [expected_line]
         assert nonempty_lines[0] == expected_line
-        without_authority = " ".join(
-            line for line in nonempty_lines if line != expected_line
-        )
-        assert not re.search(
-            r"\b(?:A0|O0|E0|E1|E3)\s*\(current\)", without_authority
-        )
-        assert not re.search(
-            r"\bcurrent evidence\b\s*(?:is|=|:)",
-            without_authority,
-            flags=re.IGNORECASE,
-        )
     assert "E3" not in " ".join(sections.values())
 
 
@@ -939,6 +956,40 @@ def test_future_lifecycle_contract_is_additive_to_stable_agent_adapter() -> None
         pass
     else:
         raise AssertionError("Task 3.2 production-owner mutation escaped the guard")
+    reviewer_ownership_mutants = {
+        "passive implementation": (
+            rebaseline_section
+            + "\nThe production wrapper is implemented by this task.\n"
+        ),
+        "shared execution owner": (
+            rebaseline_section
+            + "\nProduction execution ownership is shared with Task 2.2.\n"
+        ),
+        "dot path": (
+            rebaseline_section
+            + "\nCreate `src/aeread/runner/./lifecycle.py` in this task.\n"
+        ),
+        "short path": (
+            rebaseline_section + "\nCreate `runner/lifecycle.py` in this task.\n"
+        ),
+    }
+    for label, mutant in reviewer_ownership_mutants.items():
+        try:
+            _assert_task_22_structural_ownership(mutant)
+        except AssertionError:
+            pass
+        else:
+            raise AssertionError(f"reviewer {label} mutant escaped the guard")
+    second_owner_mutation = (
+        lifecycle_runtime_section
+        + "\nProduction execution ownership is shared with Task 2.2.\n"
+    )
+    try:
+        _assert_task_32_production_ownership(second_owner_mutation)
+    except AssertionError:
+        pass
+    else:
+        raise AssertionError("Task 3.2 second-owner mutant escaped the guard")
     normalized_runtime = " ".join(lifecycle_runtime_section.split())
     assert "act-only v1 adapter" in normalized_runtime
 
@@ -1022,15 +1073,38 @@ def test_stage5_dispatch_matches_the_locked_five_benchmark_crosswalk() -> None:
         raise AssertionError("historical evidence relocation escaped the guard")
 
     duplicate_direction_mutation = dict(sections)
-    duplicate_direction_mutation[tau3_heading] += (
-        "\n**Evidence direction:** `E1 (current) -> E0 (next) -> O0 (blocked)`.\n"
-    )
+    duplicate_direction_mutation[
+        tau3_heading
+    ] += "\n**Evidence direction:** `E1 (current) -> E0 (next) -> O0 (blocked)`.\n"
     try:
         _assert_stage5_evidence_directions(duplicate_direction_mutation)
     except AssertionError:
         pass
     else:
         raise AssertionError("duplicate evidence direction escaped the guard")
+
+    reviewer_status_mutants = {
+        "historical preceding direction": (
+            sections[tau3_heading]
+            + "\nThe preceding direction is historical; tau3 has reached E1 today.\n"
+        ),
+        "current direction": (
+            sections[tau3_heading]
+            + "\n**Current direction:** `E1 today; O0 is historical`.\n"
+        ),
+        "as-of-plan status": (
+            sections[tau3_heading] + "\nAs of this plan, tau3 is at E1.\n"
+        ),
+    }
+    for label, mutant in reviewer_status_mutants.items():
+        mutated_sections = dict(sections)
+        mutated_sections[tau3_heading] = mutant
+        try:
+            _assert_stage5_evidence_directions(mutated_sections)
+        except AssertionError:
+            pass
+        else:
+            raise AssertionError(f"reviewer {label} mutant escaped the guard")
 
     econ_heading = "### Task 5.6: EconEvals objective adapter spike"
     econ_e3_mutation = dict(sections)

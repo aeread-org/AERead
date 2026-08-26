@@ -13,7 +13,9 @@ import sys
 from typing import Annotated, get_type_hints
 
 import pytest
-from pydantic import BeforeValidator, Field, TypeAdapter, ValidationError
+from annotated_types import Gt
+from pydantic import BeforeValidator, Field, TypeAdapter, ValidationError, create_model
+from pydantic_core import PydanticUndefined
 
 from aeread.runner.registry import (
     DuplicateReferenceImplementation,
@@ -52,6 +54,24 @@ from .fakes import (
     FakeVerifier,
     MissingStepEnvironment,
 )
+
+
+def _assert_call_attempt_timeout_type_contract(record_type: type[object]) -> None:
+    from aeread.sdk.v1.base import SDKFloat
+
+    assert (
+        get_type_hints(record_type, include_extras=True)["timeout_seconds"] == SDKFloat
+    )
+    field = record_type.model_fields["timeout_seconds"]  # type: ignore[attr-defined]
+    sdk_before_validator, sdk_field = SDKFloat.__metadata__
+    assert field.is_required()
+    assert field.default is PydanticUndefined
+    assert field.annotation is float
+    assert tuple(field.metadata) == (
+        Gt(gt=0),
+        sdk_before_validator,
+        *sdk_field.metadata,
+    )
 
 
 def test_registry_resolves_exact_environment_version() -> None:
@@ -705,6 +725,59 @@ def test_legacy_call_attempt_record_schemas_and_validation_remain_stable() -> No
         setattr(token, "call_attempt_id", "call-2")
 
 
+def test_call_attempt_timeout_has_a_closed_world_raw_input_contract() -> None:
+    from aeread.sdk.v1 import CallAttemptStart
+
+    class IntSubclass(int):
+        pass
+
+    class FloatSubclass(float):
+        pass
+
+    _assert_call_attempt_timeout_type_contract(CallAttemptStart)
+    valid_start = {
+        "call_attempt_id": "call-1",
+        "logical_action_id": "logical-1",
+        "ordinal": 1,
+        "request_sha256": "request-sha",
+        "provider": "provider",
+        "model": "model",
+        "output_token_limit": 1,
+    }
+    for valid in (1, 1.0):
+        timeout = CallAttemptStart(**valid_start, timeout_seconds=valid).timeout_seconds
+        assert type(timeout) is float
+        assert timeout == 1.0
+
+    invalid_raw_values = (
+        b"1",
+        bytearray(b"1"),
+        memoryview(b"1"),
+        None,
+        [1],
+        (1,),
+        {"value": 1},
+        {1},
+        complex(1, 0),
+        IntSubclass(1),
+        FloatSubclass(1.0),
+        "1.0",
+        True,
+        Decimal("1.0"),
+        Fraction(1, 2),
+        float("nan"),
+        float("inf"),
+        float("-inf"),
+        0,
+        0.0,
+        -1,
+        -1.0,
+    )
+    for invalid in invalid_raw_values:
+        with pytest.raises(ValidationError):
+            CallAttemptStart(**valid_start, timeout_seconds=invalid)
+
+
 def test_schema_equivalent_strict_float_is_not_a_timeout_semantics_guard() -> None:
     from aeread.sdk.v1 import CallAttemptStart
 
@@ -735,9 +808,11 @@ def test_schema_equivalent_strict_float_is_not_a_timeout_semantics_guard() -> No
             float,
             Field(strict=True, gt=0),
             BeforeValidator(
-                lambda value: 1.0
-                if isinstance(value, float) and not math.isfinite(value)
-                else value
+                lambda value: (
+                    1.0
+                    if isinstance(value, float) and not math.isfinite(value)
+                    else value
+                )
             ),
         ]
     )
@@ -755,6 +830,55 @@ def test_schema_equivalent_strict_float_is_not_a_timeout_semantics_guard() -> No
                 timeout_seconds=counterexample,
                 output_token_limit=1,
             )
+
+
+def test_timeout_contract_rejects_the_reviewers_selective_bytes_mutant() -> None:
+    from aeread.sdk.v1 import CallAttemptStart
+
+    def accept_bytes_or_exact_number(value: object) -> object:
+        if type(value) is bytes:
+            return 1.0
+        if type(value) not in (int, float):
+            raise ValueError("expected an exact number")
+        if type(value) is float and not math.isfinite(value):
+            raise ValueError("expected a finite number")
+        return value
+
+    timeout_type = Annotated[
+        float,
+        BeforeValidator(accept_bytes_or_exact_number),
+        Field(strict=True, allow_inf_nan=False),
+    ]
+    selective_mutant = create_model(
+        "SelectiveBytesCallAttemptStart",
+        __base__=CallAttemptStart,
+        timeout_seconds=(timeout_type, Field(gt=0)),
+    )
+    assert (
+        selective_mutant.model_json_schema()["properties"]["timeout_seconds"]
+        == CallAttemptStart.model_json_schema()["properties"]["timeout_seconds"]
+    )
+    assert (
+        selective_mutant(
+            call_attempt_id="call-1",
+            logical_action_id="logical-1",
+            ordinal=1,
+            request_sha256="request-sha",
+            provider="provider",
+            model="model",
+            timeout_seconds=b"coercion",
+            output_token_limit=1,
+        ).timeout_seconds
+        == 1.0
+    )
+    try:
+        _assert_call_attempt_timeout_type_contract(selective_mutant)
+    except AssertionError:
+        pass
+    else:
+        raise AssertionError(
+            "selective bytes mutant escaped the timeout contract guard"
+        )
 
 
 def test_resolution_rejects_malformed_reference_before_lookup() -> None:
