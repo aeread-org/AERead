@@ -879,6 +879,11 @@ def _assert_rebaseline_status_names_current_integration_and_next_gate(
     correction_digest = (
         "713a0c97e5d4b54afa28cbe940fc075c6265844e6e84209a2c06c84fbd30a104"
     )
+    b3b_brief_digest = (
+        "857a6bc92b9d9e07217616476630aba737725e3afbfd3c3d809bd1e404b3a3d9"
+    )
+    b3b_production = "c654863c479769a78802530821ca82f9607e068c"
+    b3b_clean_head = "99312082d6f8a59ad5723f6e0f6563507fe6a080"
     status = text.split("## Objective", 1)[0]
     task_02 = text.split("### Task 0.2: Integrate the latest approved PR #7 design", 1)[
         1
@@ -938,8 +943,8 @@ def _assert_rebaseline_status_names_current_integration_and_next_gate(
     three_layer_section_sha256 = (
         "53c0bcddcc6dadff455feef4b0de419adf3de30aeaaa9b1f8ffb61e211400a04",
         "1a1c9e0a2eded8549623555f946591322d9539408624140ea9ca0a7b14afbe0d",
-        "76f76fc544428c8e1d6b9f4aad14b5fd185e1684e013091d511d038022c702a2",
-        "d581de887b0322e82d596f51dd0102006e5fdc05537484ee4eb9e6d422cf8bc6",
+        "8c8b20f5ff66ea0983b70ec46a651ce4951d80ad85b7ddbd55c4f75e890108c3",
+        "828d1b425138ccb726a6ef24dbb0eb930237dea8d7f6dd1eef3305434487be74",
         "ce814bc67417aff473b998ac4ac04c2674448c8b847342e38f506e701134aa7b",
         "2f43744bebba1826dfc15bc9e6b0ac97f674fad8ff5669e5066f4a440ea13455",
     )
@@ -955,9 +960,9 @@ def _assert_rebaseline_status_names_current_integration_and_next_gate(
 
     gate_sections = (status, task_02, dispatch)
     gate_section_sha256 = (
-        "03d2952d3853225422f3b73db96242342a9370670f2def3f04e572215bbc024c",
-        "d17565674fff3867352a0eb6d8bdb2373365f3e261e4a3be51f91a9553a2e044",
-        "07020245555399b27fbe159c83bcc8c1be232cf726954cae8b57853f3ac53d4f",
+        "dd42c701ae4f8ce89e2600c1bb9702041af834dda504ef2631dc3300ef9bceac",
+        "b40f5187bf27b8cb3bbcfb3d48ef63ed423b4bc5a3da94891ce417ca541e4230",
+        "78f6f61f9d13c053ea42bc5bf053acc9afa1ce03026c91ec86879fd36b9dcfc3",
     )
     for section, expected_sha256 in zip(
         gate_sections, gate_section_sha256, strict=True
@@ -971,8 +976,13 @@ def _assert_rebaseline_status_names_current_integration_and_next_gate(
         assert f"`{b4a_baseline}`" in normalized
         assert "Task 1.1b4a is independently CLEAN" in normalized
         assert correction_digest in normalized
+        assert b3b_brief_digest in normalized
+        assert f"`{b3b_production}`" in normalized
+        assert f"`{b3b_clean_head}`" in normalized
+        assert "Task 1.1b3b is independently CLEAN" in normalized
         assert (
-            "Task 1.1b3b bounded-brief authoring and independent review" in normalized
+            "Corrected Task 1.1b4b bounded-brief authoring and independent review"
+            in normalized
         )
         assert "sole next dispatch" in normalized
         assert "Task 1.1c" in normalized
@@ -1023,6 +1033,10 @@ def _assert_rebaseline_status_names_current_integration_and_next_gate(
     assert "transition_outcome_unknown" in task_1b3
     assert "quarantine" in task_1b3
     assert correction_digest in task_1b3b
+    assert b3b_brief_digest in task_1b3b
+    assert f"`{b3b_production}`" in task_1b3b
+    assert f"`{b3b_clean_head}`" in task_1b3b
+    assert "independently CLEAN" in task_1b3b
     assert "execution-assignment authoring only" in task_1b3b
     assert "analysis_authoring_sha256" in task_1b4
     assert "ignorability" in task_1b4
@@ -1225,8 +1239,8 @@ def _assert_assignment_inference_authority(text: str) -> None:
         positions = tuple(section.index(marker) for marker in markers)
         assert positions == tuple(sorted(positions))
     section_sha256 = (
-        "76f76fc544428c8e1d6b9f4aad14b5fd185e1684e013091d511d038022c702a2",
-        "d581de887b0322e82d596f51dd0102006e5fdc05537484ee4eb9e6d422cf8bc6",
+        "8c8b20f5ff66ea0983b70ec46a651ce4951d80ad85b7ddbd55c4f75e890108c3",
+        "828d1b425138ccb726a6ef24dbb0eb930237dea8d7f6dd1eef3305434487be74",
         "ce814bc67417aff473b998ac4ac04c2674448c8b847342e38f506e701134aa7b",
         "2f43744bebba1826dfc15bc9e6b0ac97f674fad8ff5669e5066f4a440ea13455",
         "cd8316815d4fe8d51e792ce0ef3aea59752e644d901de693a8c95dd488651ce5",
@@ -1234,7 +1248,7 @@ def _assert_assignment_inference_authority(text: str) -> None:
     for section, expected_sha256 in zip(changed_sections, section_sha256, strict=True):
         _assert_normalized_section_snapshot(section, expected_sha256)
     _assert_normalized_section_snapshot(
-        dispatch, "e857f04cc80bbeb6c15b6795431faf3a952df4059aae88ab8fb68e3042934c54"
+        dispatch, "22a6c8e2d1ff4aa94817005708ce0e27b1d0da50987435f35b6c9fd7b21b20bc"
     )
 
     correction_digest = (
@@ -1271,12 +1285,11 @@ def _assert_assignment_inference_authority(text: str) -> None:
 
     normalized_dispatch = " ".join(dispatch.split())
     assert (
-        "Task 1.1b3b bounded-brief authoring and independent review is the sole next "
-        "dispatch" in normalized_dispatch
+        "Corrected Task 1.1b4b bounded-brief authoring and independent review is the "
+        "sole next dispatch" in normalized_dispatch
     )
     for blocked in (
-        "b3b code",
-        "Task 1.1b4b",
+        "b4b code",
         "Task 1.1b5",
         "Task 1.1c",
         "Stages 2–5",
@@ -1535,6 +1548,25 @@ def test_rebaseline_guard_rejects_second_current_dispatch_gate() -> None:
     text = REBASELINE_PLAN.read_text(encoding="utf-8")
     duplicate = "\n## Current dispatch gate\nTask 1.1b1 is blocked.\n"
     _assert_rebaseline_mutation_is_rejected(text + duplicate)
+
+
+def test_rebaseline_guard_rejects_stale_b3b_redispatch() -> None:
+    text = REBASELINE_PLAN.read_text(encoding="utf-8")
+    dispatch = text.split("## Current dispatch gate", 1)[1]
+    current_normalized = (
+        "Corrected Task 1.1b4b bounded-brief authoring and independent review is the sole "
+        "next dispatch."
+    )
+    stale_normalized = (
+        "Task 1.1b3b bounded-brief authoring and independent review is the sole next "
+        "dispatch."
+    )
+    normalized_dispatch = " ".join(dispatch.split())
+    assert current_normalized in normalized_dispatch
+    mutated_dispatch = normalized_dispatch.replace(
+        current_normalized, stale_normalized, 1
+    )
+    _assert_rebaseline_mutation_is_rejected(text.replace(dispatch, mutated_dispatch, 1))
 
 
 def _mutate_rebaseline_section(start: str, end: str, addition: str) -> str:
