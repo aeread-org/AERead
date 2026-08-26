@@ -1140,10 +1140,24 @@ def test_task_1_1a1_has_one_exact_public_export_delta() -> None:
         "ValidityDomainSpec",
         "VerifierSpec",
     }
+    authorized_later_added = {
+        "ClusterDesignSpec",
+        "ClusterMembershipSpec",
+        "EpisodeReplicationDesign",
+        "FixedPanelDesignSpec",
+        "PairingSpec",
+        "PanelDesignSpec",
+        "PlannedCoordinateField",
+        "SampledPanelDesignSpec",
+        "SamplingPopulationSpec",
+        "SeededEpisodeReplicationDesign",
+        "UnseededEpisodeReplicationDesign",
+    }
     exports = set(sdk.__all__)
     assert len(sdk.__all__) == len(exports)
     assert expected_added <= exports
-    legacy_exports = exports - expected_added
+    assert authorized_later_added <= exports
+    legacy_exports = exports - expected_added - authorized_later_added
     legacy_hash = hashlib.sha256(
         json.dumps(sorted(legacy_exports), separators=(",", ":")).encode("utf-8")
     ).hexdigest()
