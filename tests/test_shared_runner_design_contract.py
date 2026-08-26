@@ -697,6 +697,9 @@ def test_existing_attempt_observer_and_agent_adapter_signatures_remain_stable() 
     roadmap_section = RUNNER_ARCHITECTURE.read_text(encoding="utf-8").split(
         "### 3. Execution objects", 1
     )[1].split("### 4. Evidence objects", 1)[0]
+    foundation_section = FOUNDATION_PLAN.read_text(encoding="utf-8").split(
+        "## Global Constraints", 1
+    )[1].split("## Execution workflow", 1)[0]
 
     required = (
         "existing `AttemptObserver.call_started`, `call_succeeded`, and `call_failed` "
@@ -709,6 +712,7 @@ def test_existing_attempt_observer_and_agent_adapter_signatures_remain_stable() 
         rebaseline_section,
         design_section,
         roadmap_section,
+        foundation_section,
     ):
         normalized = " ".join(authority.split())
         assert all(fragment in normalized for fragment in required)

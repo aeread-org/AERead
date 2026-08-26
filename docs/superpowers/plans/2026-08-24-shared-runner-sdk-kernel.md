@@ -23,6 +23,11 @@
 - The existing `CallAttemptStart` and `CallAttemptToken` remain stable compatibility
   exports; additive attempt evidence may deprecate but must not remove or repurpose them
   within v1.
+- The existing `AttemptObserver.call_started`, `call_succeeded`, and `call_failed`
+  signatures remain stable. The existing
+  `AgentAdapter.act(..., attempts: AttemptObserver)` signature remains stable. The runner
+  translates those callbacks into the additive `ProviderCall*` evidence records and binds
+  the current action-attempt parent from runner context.
 - Unknown manifest fields are rejected.
 - Every plugin declares `sdk_api = "aeread.sdk/v1"` and its own semantic version.
 - Canonical bytes use UTF-8 JSON, sorted keys, compact separators, no NaN/Infinity, and algorithm ID `aeread.cjson/1` before SHA-256 hashing.

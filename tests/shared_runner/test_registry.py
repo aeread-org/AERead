@@ -500,14 +500,19 @@ def test_protocol_method_boundaries_resolve_and_preserve_call_direction() -> Non
     environment_hints = get_type_hints(EnvironmentPlugin.parse_action)
     verifier_hints = get_type_hints(VerifierPlugin.score)
     adapter_hints = get_type_hints(AgentAdapter.act)
-    observer_hints = get_type_hints(AttemptObserver.call_started)
+    observer_start_hints = get_type_hints(AttemptObserver.call_started)
+    observer_success_hints = get_type_hints(AttemptObserver.call_succeeded)
+    observer_failure_hints = get_type_hints(AttemptObserver.call_failed)
     bridge_hints = get_type_hints(OfficialVerifierBridge.evaluate_aeread)
 
     from aeread.sdk.v1 import (
         AttemptObserver as AttemptObserverType,
+        AgentRequest,
         CallAttemptStart,
         CallAttemptToken,
         CanonicalResponse,
+        ProviderCallFailure,
+        ProviderCallResult,
         ScoreEnvelope,
         SealedEvidenceView,
     )
@@ -515,14 +520,33 @@ def test_protocol_method_boundaries_resolve_and_preserve_call_direction() -> Non
     assert initial_state_hints["cell"].__name__ == "PlanCellT"
     assert environment_hints["response"] is CanonicalResponse
     assert verifier_hints["evidence"] is SealedEvidenceView
+    assert adapter_hints["request"] is AgentRequest
     assert adapter_hints["attempts"] is AttemptObserverType
     assert adapter_hints["return"] is CanonicalResponse
-    assert observer_hints["start"] is CallAttemptStart
-    assert observer_hints["return"] is CallAttemptToken
+    assert observer_start_hints == {
+        "start": CallAttemptStart,
+        "return": CallAttemptToken,
+    }
+    assert observer_success_hints == {
+        "token": CallAttemptToken,
+        "result": ProviderCallResult,
+        "return": type(None),
+    }
+    assert observer_failure_hints == {
+        "token": CallAttemptToken,
+        "failure": ProviderCallFailure,
+        "return": type(None),
+    }
     assert bridge_hints["return"] is ScoreEnvelope
     assert inspect.signature(AgentAdapter.act).parameters["attempts"].kind is (
         inspect.Parameter.KEYWORD_ONLY
     )
+    for method in (
+        AttemptObserver.call_started,
+        AttemptObserver.call_succeeded,
+        AttemptObserver.call_failed,
+    ):
+        assert tuple(inspect.signature(method).parameters)[0] == "self"
 
 
 def test_resolution_rejects_malformed_reference_before_lookup() -> None:
