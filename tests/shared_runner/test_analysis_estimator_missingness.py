@@ -928,8 +928,10 @@ def _assert_analysis_source_is_declaration_only(source: str) -> None:
     alias_nodes: dict[str, ast.Assign] = {}
     for node in tree.body:
         if isinstance(node, ast.ClassDef):
+            assert not node.decorator_list
             inventory.append(("class", node.name))
         elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            assert not node.decorator_list
             inventory.append(("function", node.name))
         elif (
             isinstance(node, ast.Assign)
@@ -1156,6 +1158,11 @@ def test_task_1_1b4a_added_source_is_provider_and_runtime_free() -> None:
         lambda source: "x = runtime.filesystem\n" + source,
         lambda source: source.replace(
             "class CanonicalRational", "@runtime.hook\nclass CanonicalRational", 1
+        ),
+        lambda source: source.replace(
+            "class CanonicalRational",
+            '@model_validator(mode="after")\nclass CanonicalRational',
+            1,
         ),
         lambda source: "x = __builtins__.open\n" + source,
         lambda source: source.replace(
