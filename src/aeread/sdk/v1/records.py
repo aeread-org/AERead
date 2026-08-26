@@ -488,16 +488,30 @@ class ToolInvocationResult(StrictModel):
 
 
 class ToolInvocationFailure(StrictModel):
+    """A tool that refused, or failed after it had already changed something.
+
+    The partial mutation is the case that matters: a refund that times out
+    after the debit posted is the canonical customer-service failure, and a
+    verifier comparing final state has to be able to tell it from a refusal
+    that changed nothing. So a failure that admits a state change carries the
+    same evidence a success would.
+    """
+
     error_class: SDKStr
     message: SDKStr
     retryable: SDKBool
     state_changed: SDKBool | None = None
+    result_sha256: SHA256 | None = None
     raw_artifact_ref: ArtifactRef | None = None
 
     @model_validator(mode="after")
     def validate_invocation_failure(self) -> "ToolInvocationFailure":
         if not self.error_class.strip():
             raise ValueError("error_class must be non-empty")
+        if self.state_changed and self.result_sha256 is None:
+            raise ValueError(
+                "a failure that changed state must record its result digest"
+            )
         return self
 
 
@@ -4144,7 +4158,11 @@ class ReasoningCondition(StrictModel):
     def validate_reasoning_condition(self) -> "ReasoningCondition":
         if not self.reasoning_condition_id.strip():
             raise ValueError("reasoning_condition_id must be non-empty")
-        if self.mode in {"disabled", "unsupported_control"}:
+        if self.mode != "enabled":
+            # Only `enabled` means "we set this deliberately". A default is not
+            # a setting, and a provider with no switch cannot have been tuned;
+            # letting either carry an effort or a budget would describe a
+            # configuration that was never requested.
             if self.reasoning_effort is not None:
                 raise ValueError(
                     f"mode {self.mode!r} cannot also declare a reasoning effort"
@@ -4152,6 +4170,18 @@ class ReasoningCondition(StrictModel):
             if self.reasoning_token_budget:
                 raise ValueError(
                     f"mode {self.mode!r} cannot also declare a reasoning budget"
+                )
+        # W10: the same setting must not arrive through the side channel.
+        if self.mode in {"disabled", "unsupported_control"}:
+            smuggled = sorted(
+                key
+                for key in self.provider_parameters
+                if "reasoning" in key.lower() or "thinking" in key.lower()
+            )
+            if smuggled:
+                raise ValueError(
+                    f"mode {self.mode!r} declares no reasoning, but "
+                    f"provider_parameters carries {smuggled}"
                 )
         if self.total_completion_budget is not None:
             declared = self.output_token_budget + (self.reasoning_token_budget or 0)

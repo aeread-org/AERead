@@ -826,3 +826,103 @@ def test_starting_the_same_tool_invocation_twice_fails_the_episode(
     adapters = {"seat_a": DoubleStart(), "seat_b": DoubleStart()}
     with pytest.raises(EpisodeError, match="tool invocation .* started twice"):
         _run_with(adapters, ScriptedEnvironment(rounds=1), _open_events(tmp_path))
+
+
+# ---------------------------------------------------------------------------
+# Holes an independent review found in the first tool-evidence commit: a
+# mutating call could close with no evidence at all, and a failure that had
+# already changed something could not say so.
+# ---------------------------------------------------------------------------
+
+
+def test_a_mutating_call_must_say_whether_it_changed_anything(
+    tmp_path: Path,
+) -> None:
+    from aeread.sdk.v1 import ToolInvocationResult
+
+    class SilentMutation:
+        async def act(self, request: Any, *, attempts: Any) -> CanonicalResponse:
+            action_id = f"la-0000-bid-{request.slot.slot_id}"
+            token = attempts.tool_started(
+                _tool_start(action_id, "t1", "issue_refund", "mutating")
+            )
+            # An empty result: no digest, no state_changed. Honest about
+            # nothing.
+            attempts.tool_succeeded(token, ToolInvocationResult())
+            return CanonicalResponse(content="bid 1")
+
+    adapters = {"seat_a": SilentMutation(), "seat_b": SilentMutation()}
+    with pytest.raises(EpisodeError, match="whether state changed"):
+        _run_with(adapters, ScriptedEnvironment(rounds=1), _open_events(tmp_path))
+
+
+def test_a_read_only_call_may_close_without_a_state_claim(tmp_path: Path) -> None:
+    """The rule is about mutations; a read has nothing to declare."""
+
+    from aeread.sdk.v1 import ToolInvocationResult
+
+    class QuietRead:
+        async def act(self, request: Any, *, attempts: Any) -> CanonicalResponse:
+            action_id = f"la-0000-bid-{request.slot.slot_id}"
+            token = attempts.tool_started(
+                _tool_start(action_id, "t1", "get_order", "read_only")
+            )
+            attempts.tool_succeeded(token, ToolInvocationResult())
+            return CanonicalResponse(content="bid 1")
+
+    adapters = {"seat_a": QuietRead(), "seat_b": QuietRead()}
+    result = _run_with(adapters, ScriptedEnvironment(rounds=1), _open_events(tmp_path))
+    assert result.status == "terminal"
+
+
+def test_a_partial_mutation_can_be_recorded_honestly(tmp_path: Path) -> None:
+    """A refund that failed after the debit posted is the case that matters."""
+
+    from aeread.sdk.v1 import ToolInvocationFailure
+
+    class PartialMutation:
+        async def act(self, request: Any, *, attempts: Any) -> CanonicalResponse:
+            action_id = f"la-0000-bid-{request.slot.slot_id}"
+            token = attempts.tool_started(
+                _tool_start(action_id, "t1", "issue_refund", "mutating")
+            )
+            attempts.tool_failed(
+                token,
+                ToolInvocationFailure(
+                    error_class="gateway_timeout",
+                    message="timed out after the debit posted",
+                    retryable=False,
+                    state_changed=True,
+                    result_sha256="e" * 64,
+                ),
+            )
+            return CanonicalResponse(content="bid 1")
+
+    events = _open_events(tmp_path)
+    adapters = {"seat_a": PartialMutation(), "seat_b": PartialMutation()}
+    result = _run_with(adapters, ScriptedEnvironment(rounds=1), events)
+
+    assert result.status == "terminal"
+    failures = [
+        event
+        for event in events.snapshot().events
+        if event.event_type == "tool_invocation_failed"
+    ]
+    assert failures and failures[0].payload is not None
+    record = failures[0].payload["record"]
+    assert record["state_changed"] is True
+    assert record["result_sha256"] == "e" * 64
+
+
+def test_a_failure_cannot_claim_a_state_change_without_evidence() -> None:
+    from pydantic import ValidationError
+
+    from aeread.sdk.v1 import ToolInvocationFailure
+
+    with pytest.raises(ValidationError, match="result digest"):
+        ToolInvocationFailure(
+            error_class="gateway_timeout",
+            message="timed out",
+            retryable=False,
+            state_changed=True,
+        )

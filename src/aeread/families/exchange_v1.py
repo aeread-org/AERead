@@ -45,6 +45,7 @@ from ..sdk.v1 import (
     TerminalResult,
     TransitionResult,
     content_sha256,
+    is_exportable_id,
 )
 
 
@@ -80,6 +81,13 @@ class ExchangeV1EnvironmentPlugin:
         if not isinstance(case_id, str) or not isinstance(config_path, str):
             raise ExchangeCompatibilityError(
                 "an exchange case needs a case_id and a config_path"
+            )
+        if not is_exportable_id(case_id):
+            # This id reaches run directories, dataset rows, and exports, so it
+            # obeys the same grammar as an authored case. A colon here would
+            # truncate an rLLM task id exactly as it did in the B1 run.
+            raise ExchangeCompatibilityError(
+                f"case_id {case_id!r} is not an exportable identifier"
             )
         path = Path(config_path)
         if not path.is_file():

@@ -217,6 +217,15 @@ class EventAttemptObserver:
                 f"terminal event for unstarted tool invocation "
                 f"{token.invocation_id!r}"
             )
+        if start.effect == "mutating" and record.state_changed is None:
+            # A call declared as able to change the world must say whether it
+            # did. Silence here would leave a verifier comparing final state
+            # unable to tell this apart from a read.
+            raise EpisodeError(
+                f"tool invocation {token.invocation_id!r} declared "
+                f"effect='mutating' but its outcome does not say whether "
+                f"state changed"
+            )
         self.events.append(
             event_type,
             self.identity,

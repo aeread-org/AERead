@@ -160,3 +160,48 @@ def test_the_condition_is_part_of_the_hashed_agent_configuration() -> None:
         }
     )
     assert content_sha256(baseline) != content_sha256(high)
+
+
+def test_a_reasoning_default_cannot_smuggle_an_explicit_setting() -> None:
+    """`provider_default` means nothing was configured, so nothing was."""
+
+    with pytest.raises(ValidationError, match="reasoning effort"):
+        _condition(mode="provider_default", reasoning_effort="high")
+    with pytest.raises(ValidationError, match="reasoning budget"):
+        _condition(mode="provider_default", reasoning_token_budget=5000)
+
+
+def test_a_disabled_condition_cannot_reintroduce_reasoning_through_provider_parameters() -> (
+    None
+):
+    """The side channel is the same claim by another route."""
+
+    with pytest.raises(ValidationError, match="provider_parameters"):
+        _condition(
+            mode="disabled",
+            provider_parameters={"reasoning_effort": "high", "thinking_budget": 20000},
+        )
+    # An unrelated provider parameter is still fine.
+    ok = _condition(mode="disabled", provider_parameters={"top_p": 0.9})
+    assert dict(ok.provider_parameters) == {"top_p": 0.9}
+
+
+def test_an_exchange_case_id_obeys_the_same_grammar() -> None:
+    """The colon rule was closed in one commit and reopened in the next."""
+
+    from aeread.families.exchange_v1 import (
+        ExchangeCompatibilityError,
+        ExchangeV1EnvironmentPlugin,
+    )
+
+    plugin = ExchangeV1EnvironmentPlugin()
+    with pytest.raises(ExchangeCompatibilityError, match="exportable identifier"):
+        plugin.validate_case(
+            {
+                "case_id": "aeread:integration-v1:case:s7",
+                "config_path": (
+                    "configs/exchange_economy/cases_v0/case01_visible_bilateral_ir.json"
+                ),
+                "seed": 7,
+            }
+        )
