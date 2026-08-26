@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from decimal import Decimal
+from fractions import Fraction
 import inspect
 import hashlib
 import json
@@ -7,10 +9,10 @@ import os
 from pathlib import Path
 import subprocess
 import sys
-from typing import get_type_hints
+from typing import Annotated, get_type_hints
 
 import pytest
-from pydantic import ValidationError
+from pydantic import Field, TypeAdapter, ValidationError
 
 from aeread.runner.registry import (
     DuplicateReferenceImplementation,
@@ -662,7 +664,13 @@ def test_legacy_call_attempt_record_schemas_and_validation_remain_stable() -> No
             with pytest.raises(ValidationError):
                 CallAttemptStart(**(valid_start | {field_name: invalid}))
 
-    for invalid in ("1.0", True):
+    for invalid in (
+        "1.0",
+        True,
+        Decimal("1.0"),
+        Fraction(1, 2),
+        float("inf"),
+    ):
         with pytest.raises(ValidationError):
             CallAttemptStart(**(valid_start | {"timeout_seconds": invalid}))
 
@@ -692,6 +700,32 @@ def test_legacy_call_attempt_record_schemas_and_validation_remain_stable() -> No
     token = CallAttemptToken(call_attempt_id="call-1")
     with pytest.raises(ValidationError):
         setattr(token, "call_attempt_id", "call-2")
+
+
+def test_schema_equivalent_strict_float_is_not_a_timeout_semantics_guard() -> None:
+    from aeread.sdk.v1 import CallAttemptStart
+
+    schema_equivalent_mutant = TypeAdapter(Annotated[float, Field(strict=True, gt=0)])
+    timeout_schema = dict(
+        CallAttemptStart.model_json_schema()["properties"]["timeout_seconds"]
+    )
+    timeout_schema.pop("title")
+    assert schema_equivalent_mutant.json_schema() == timeout_schema
+
+    counterexamples = (Decimal("1.0"), Fraction(1, 2), float("inf"))
+    for counterexample in counterexamples:
+        schema_equivalent_mutant.validate_python(counterexample)
+        with pytest.raises(ValidationError):
+            CallAttemptStart(
+                call_attempt_id="call-1",
+                logical_action_id="logical-1",
+                ordinal=1,
+                request_sha256="request-sha",
+                provider="provider",
+                model="model",
+                timeout_seconds=counterexample,
+                output_token_limit=1,
+            )
 
 
 def test_resolution_rejects_malformed_reference_before_lookup() -> None:

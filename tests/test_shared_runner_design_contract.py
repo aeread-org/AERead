@@ -105,6 +105,51 @@ def _markdown_list_item(text: str, marker: str) -> str:
     return matches[0]
 
 
+def _assert_task_22_structural_ownership(section: str) -> None:
+    normalized = " ".join(section.split())
+    ownership_boundary = (
+        "Task 2.2 declares only the wrapper's structural contract and a scripted "
+        "conformance fake; it does not implement or execute the production wrapper"
+    )
+    files = section.split("**Files:**", 1)[1].split("This task owns", 1)[0]
+
+    assert ownership_boundary in normalized
+    assert "Task 3.2 alone owns its production implementation and execution tests" in (
+        normalized
+    )
+    assert "Create `src/aeread/runner/lifecycle.py`" not in files
+    assert (
+        "Task 2.2 implements the runner-owned stateless compatibility wrapper"
+        not in normalized
+    )
+
+
+def _assert_stage5_evidence_directions(sections: dict[str, str]) -> None:
+    expected = {
+        "### Task 5.4: tau3 canonical/reference adapter spike": (
+            "**Evidence direction:** `O0 (current) -> E0 (next) -> E1 (after E0 parity gate)`.",
+        ),
+        "### Task 5.5: STATE rule/constraint adapter spike": (
+            "**Evidence direction:** `O0 (current) -> E0 (next) -> E1 (after E0 parity gate)`.",
+        ),
+        "### Task 5.6: EconEvals objective adapter spike": (
+            "**Evidence direction:** `Scheduling O0 (current) -> Scheduling E0 (next) "
+            "-> Scheduling E1 (after E0 parity gate)`; Procurement remains blocked",
+        ),
+        "### Task 5.7: TERMS comparative fixture": (
+            "**Evidence direction:** `A0 (current) -> AERead-owned E0 (next) -> official "
+            "E1 blocked`",
+        ),
+        "### Task 5.8: GDPval rater fixture": (
+            "**Evidence direction:** `A0 (current) -> canned provider-free E0 (next) -> "
+            "official E1 blocked`",
+        ),
+    }
+    for heading, required in expected.items():
+        assert all(fragment in sections[heading] for fragment in required)
+    assert "E3" not in " ".join(sections.values())
+
+
 def test_shared_runner_design_records_frozen_execution_contract() -> None:
     text = DESIGN.read_text(encoding="utf-8")
 
@@ -660,11 +705,21 @@ def test_rebaseline_status_names_current_integration_and_next_gate() -> None:
     dispatch = text.split("## Current dispatch gate", 1)[1]
 
     for section in (status, task_02, dispatch):
-        normalized = " ".join(section.split())
+        normalized = " ".join(
+            line.removeprefix("> ").strip() for line in section.splitlines()
+        )
         assert "`155d8fc`" in normalized
         assert "`b5239cd`" in normalized
         assert "`c7aca60`" in normalized
-        assert "independently clean through `a7ddbb2`" in normalized
+        assert (
+            "last independently clean implementation baseline is `a7ddbb2`"
+            in normalized
+        )
+        assert (
+            "review-candidate chain is `2654b2d` -> `011475f` -> the current "
+            "corrective follow-up" in normalized
+        )
+        assert "not independently clean until its fresh review closes" in normalized
         assert "Task 1.1a1" in normalized
         assert "Task 1.1a2" in normalized
         assert "Task 1.1b" in normalized
@@ -776,9 +831,35 @@ def test_future_lifecycle_contract_is_additive_to_stable_agent_adapter() -> None
     )
     normalized_rebaseline = " ".join(rebaseline_section.split())
     assert "structural conformance" in normalized_rebaseline
-    assert "Task 3.2 owns its production implementation and execution tests" in (
-        normalized_rebaseline
+    ownership_boundary = (
+        "Task 2.2 declares only the wrapper's structural contract and a scripted "
+        "conformance fake; it does not implement or execute the production wrapper"
     )
+    _assert_task_22_structural_ownership(rebaseline_section)
+
+    implementation_mutation = normalized_rebaseline.replace(
+        ownership_boundary,
+        "Task 2.2 implements the runner-owned stateless compatibility wrapper",
+        1,
+    )
+    try:
+        _assert_task_22_structural_ownership(implementation_mutation)
+    except AssertionError:
+        pass
+    else:
+        raise AssertionError("implementation-ownership mutation escaped the guard")
+    file_mutation = rebaseline_section.replace(
+        "- Create `tests/shared_runner/test_agent_lifecycle_contract.py`.",
+        "- Create `src/aeread/runner/lifecycle.py`.\n"
+        "- Create `tests/shared_runner/test_agent_lifecycle_contract.py`.",
+        1,
+    )
+    try:
+        _assert_task_22_structural_ownership(file_mutation)
+    except AssertionError:
+        pass
+    else:
+        raise AssertionError("Task 2.2 runtime-file mutation escaped the guard")
     assert "Create `src/aeread/runner/lifecycle.py`" in lifecycle_runtime_section
     normalized_runtime = " ".join(lifecycle_runtime_section.split())
     assert "implements the runner-owned stateless compatibility wrapper" in (
@@ -801,24 +882,57 @@ def test_stage5_dispatch_matches_the_locked_five_benchmark_crosswalk() -> None:
             "TERMS-Bench",
             "GDPval",
         ),
-        "### Task 5.4: tau3 canonical/reference adapter spike": ("O0", "E0", "E1"),
-        "### Task 5.5: STATE rule/constraint adapter spike": ("O0", "E0", "E1"),
+        "### Task 5.4: tau3 canonical/reference adapter spike": (),
+        "### Task 5.5: STATE rule/constraint adapter spike": (),
         "### Task 5.6: EconEvals objective adapter spike": (
             "Scheduling",
             "Procurement",
         ),
-        "### Task 5.7: TERMS comparative fixture": ("A0", "E0"),
-        "### Task 5.8: GDPval rater fixture": ("A0", "E0"),
+        "### Task 5.7: TERMS comparative fixture": (),
+        "### Task 5.8: GDPval rater fixture": (),
     }
     headings = tuple(expected_tasks)
+    sections: dict[str, str] = {}
     for index, heading in enumerate(headings):
         section = stage5.split(heading, 1)[1]
         if index + 1 < len(headings):
             section = section.split(headings[index + 1], 1)[0]
-        assert all(fragment in section for fragment in expected_tasks[heading])
+        normalized_section = " ".join(section.split())
+        sections[heading] = normalized_section
+        assert all(
+            fragment in normalized_section for fragment in expected_tasks[heading]
+        )
 
     for stale_dispatch in ("FinanceBench", "AucArena", "Market-Bench"):
         assert stale_dispatch not in stage5
+    _assert_stage5_evidence_directions(sections)
+
+    tau3_heading = "### Task 5.4: tau3 canonical/reference adapter spike"
+    tau3_direction = "**Evidence direction:** `O0 (current) -> E0 (next) -> E1 (after E0 parity gate)`."
+    tau3_swap_mutation = dict(sections)
+    tau3_swap_mutation[tau3_heading] = tau3_swap_mutation[tau3_heading].replace(
+        tau3_direction,
+        "**Evidence direction:** `E1 (current) -> E0 (next) -> O0 (after E0 parity gate)`.",
+        1,
+    )
+    try:
+        _assert_stage5_evidence_directions(tau3_swap_mutation)
+    except AssertionError:
+        pass
+    else:
+        raise AssertionError("tau3 O0/E1 direction swap escaped the guard")
+
+    econ_heading = "### Task 5.6: EconEvals objective adapter spike"
+    econ_e3_mutation = dict(sections)
+    econ_e3_mutation[econ_heading] = econ_e3_mutation[econ_heading].replace(
+        "Scheduling E1", "Scheduling E3", 1
+    )
+    try:
+        _assert_stage5_evidence_directions(econ_e3_mutation)
+    except AssertionError:
+        pass
+    else:
+        raise AssertionError("EconEvals E3 mutation escaped the guard")
 
 
 def test_public_spec_reports_implemented_foundation_and_missing_runtime() -> None:

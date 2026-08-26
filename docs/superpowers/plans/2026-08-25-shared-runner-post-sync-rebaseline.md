@@ -5,9 +5,11 @@
 > **Status:** Task 0.1a is independently P0/P1/P2 clean at `9f7255e`. Latest PR #7 source
 > `155d8fc` is integrated locally by true merge `b5239cd`, with compatibility and
 > executable-guard follow-ups through `c7aca60`; none was pushed or merged to GitHub/main.
-> Task 0.3 is complete. Task 1.1a1 is independently clean through `ca173f4`; Task 1.1a2
-> is independently clean through `a7ddbb2`; Task 1.1b is the next bounded measurement
-> slice. The executable scheduler, attempt executor, receipt/replay kernel, and benchmark
+> Task 0.3 is complete. Task 1.1a1 and Task 1.1a2 are complete; the last independently
+> clean implementation baseline is `a7ddbb2`. The PR #7 review-candidate chain is
+> `2654b2d` -> `011475f` -> the current corrective follow-up; it is not independently clean
+> until its fresh review closes. Task 1.1b is the next bounded measurement slice after that
+> gate. The executable scheduler, attempt executor, receipt/replay kernel, and benchmark
 > adapters remain unimplemented.
 > **Supersedes:** Tasks 6–11 of `2026-08-24-shared-runner-sdk-kernel.md`; Tasks 1–5 and their review history remain valid
 
@@ -94,11 +96,13 @@ local APFS volume.
 ### Task 0.2: Integrate the latest approved PR #7 design
 
 Complete locally. Latest PR #7 source `155d8fc` is integrated by true merge `b5239cd`, with
-crosswalk/status/stability/ABI-guard follow-ups through `c7aca60`. Task 1.1a1 is
-independently clean through `ca173f4`; Task 1.1a2 is independently clean through
-`a7ddbb2`, and Task 1.1b is next. Older `275a285`/`388e52b` commits remain
-historical milestones only. No implementer should repeat either merge, push it, or merge it
-to GitHub/main under this plan.
+crosswalk/status/stability/ABI-guard follow-ups through `c7aca60`. Task 1.1a1 and Task
+1.1a2 are complete, and the last independently clean implementation baseline is
+`a7ddbb2`. The PR #7 review-candidate chain is `2654b2d` -> `011475f` -> the current
+corrective follow-up; it is not independently clean until its fresh review closes. Task
+1.1b is next only after that gate. Older `275a285`/`388e52b` commits remain historical
+milestones only. No implementer should repeat either merge, push it, or merge it to
+GitHub/main under this plan.
 
 ### Task 0.3: Migrate the serialized planning identity to `PlanCell`
 
@@ -1168,13 +1172,18 @@ authority exists.
 This task owns lifecycle capability/policy/operation records, Protocols, stable exports,
 and scripted conformance fakes only. It does **not** create or partially implement a
 lifecycle coordinator; Task 3.2 is the sole owner of orchestration and cleanup execution.
+Task 2.2 declares only the wrapper's structural contract and a scripted conformance fake;
+it does not implement or execute the production wrapper. Task 3.2 alone owns its
+production implementation and execution tests, including creation of
+`src/aeread/runner/lifecycle.py`.
 
 `AgentAdapter` remains the stable act-only v1 Protocol. Task 2.2 must not add required
 lifecycle methods to `AgentAdapter`; `LifecycleAgentAdapter` is a separately named additive
-Protocol that may extend the act boundary with native lifecycle capabilities. A runner-owned
-stateless compatibility wrapper presents every existing act-only v1 adapter as a trivial
-session. The new Protocol and wrapper are additive; replacing the existing Protocol or
-changing `AgentAdapter.act()` requires SDK v2.
+Protocol that may extend the act boundary with native lifecycle capabilities. The declared
+contract requires a runner-owned stateless compatibility wrapper that presents every
+existing act-only v1 adapter as a trivial session. The new Protocol and wrapper contract
+are additive; replacing the existing Protocol or changing `AgentAdapter.act()` requires
+SDK v2.
 
 Minimum lifecycle:
 
@@ -2305,6 +2314,8 @@ examples are future candidates, not dispatch items in this plan.
 
 ### Task 5.4: tau3 canonical/reference adapter spike
 
+**Evidence direction:** `O0 (current) -> E0 (next) -> E1 (after E0 parity gate)`.
+
 After the relevant measurement leaf and provider-free receipt/replay kernel are
 independently clean, freeze the existing tau3 retail/base O0 fixture at dereferenced
 `v1.0.1` commit `fc0055dc4e0a316c3f83133267fbd6faaa770992`. Build an E0 typed terminal-state
@@ -2313,6 +2324,8 @@ verifier bridge for E1 component parity. The two DB-only tasks do not justify a 
 claim: the other 112/114 tasks retain a separate natural-language assertion leaf.
 
 ### Task 5.5: STATE rule/constraint adapter spike
+
+**Evidence direction:** `O0 (current) -> E0 (next) -> E1 (after E0 parity gate)`.
 
 Freeze the reviewed STATE-Bench O0 deterministic state-requirement fixture, including its
 exact domain-qualified task identity and source/runtime pins. Build an E0 rule/constraint
@@ -2323,6 +2336,9 @@ deterministic temporal predicate.
 
 ### Task 5.6: EconEvals objective adapter spike
 
+**Evidence direction:** `Scheduling O0 (current) -> Scheduling E0 (next) -> Scheduling E1
+(after E0 parity gate)`; Procurement remains blocked until the requirements below close.
+
 Use EconEvals Scheduling at commit
 `e1f2a40fec96f0d27f5414873c4310f2b5c51935` for the first objective E0/E1 fixture because
 its provider-free O0 oracle and baseline are already sealed. Add Procurement only after a
@@ -2332,12 +2348,18 @@ not mislabeled as an exact optimum.
 
 ### Task 5.7: TERMS comparative fixture
 
+**Evidence direction:** `A0 (current) -> AERead-owned E0 (next) -> official E1 blocked`
+until the upstream materials below are admitted.
+
 Record TERMS-Bench public materials as A0 only. Build a clearly AERead-owned controlled
 buyer/seller E0 comparative fixture with frozen counterpart, information boundary, utility,
 outside option, and paired seed design. Do not claim official E1 parity until the official
 simulator, defaults/config hash, code pin, and license are published and admitted.
 
 ### Task 5.8: GDPval rater fixture
+
+**Evidence direction:** `A0 (current) -> canned provider-free E0 (next) -> official E1
+blocked` until the official evaluation protocol and execution dependencies are admitted.
 
 Complete GDPval A0 admission for task/artifact/rubric identities, redistribution/license,
 and the occupational-expert blinded comparison protocol. Then build a canned, provider-free
@@ -2386,9 +2408,10 @@ is a blocker, not authority for a sixth plan-fix round or hidden implementer dis
 
 Latest PR #7 source `155d8fc` is integrated locally by true merge `b5239cd`, with
 compatibility and executable-guard follow-ups through `c7aca60`; the whole runner is not
-implemented. Task 1.1a1 is independently clean through `ca173f4`; Task 1.1a2 is
-independently clean through `a7ddbb2`; Task 1.1b is next. Later tasks
-advance only through their declared dependency, RED/GREEN, scoped commit, and
-independent-review gates.
+implemented. Task 1.1a1 and Task 1.1a2 are complete, and the last independently clean
+implementation baseline is `a7ddbb2`. The PR #7 review-candidate chain is `2654b2d` ->
+`011475f` -> the current corrective follow-up; it is not independently clean until its
+fresh review closes. Task 1.1b is next only after that gate. Later tasks advance only
+through their declared dependency, RED/GREEN, scoped commit, and independent-review gates.
 Provider-free/static evidence is never reported as live runtime, upstream parity, or
 benchmark-quality evidence.
