@@ -1,16 +1,18 @@
 from __future__ import annotations
 
 import ast
+import builtins
 import hashlib
 import inspect
 import json
 from pathlib import Path
-from typing import get_args
+from typing import Annotated, Literal, get_args
 
 import pytest
-from pydantic import TypeAdapter, ValidationError
+from pydantic import Field, TypeAdapter, ValidationError, model_validator
 
 import aeread.sdk.v1 as sdk_v1
+import aeread.sdk.v1.base as sdk_base
 import aeread.sdk.v1.records as records_module
 from aeread.sdk.v1 import (
     ArtifactRef,
@@ -861,14 +863,54 @@ def _assert_assignment_external_global_bindings(source: str) -> None:
         "type": [],
     }
     assert {name: bindings.get(name, []) for name in expected} == expected
+    protected_names = set(expected)
+    assert all(
+        protected_names.isdisjoint(node.names)
+        for node in ast.walk(ast.parse(source))
+        if isinstance(node, ast.Global)
+    )
+
+
+def _assert_assignment_runtime_global_bindings() -> None:
+    assert records_module.Annotated is Annotated
+    assert records_module.Literal is Literal
+    assert records_module.Field is Field
+    assert records_module.model_validator is model_validator
+    assert records_module.SDKInt is sdk_base.SDKInt
+    assert records_module.SDKStr is sdk_base.SDKStr
+
+    for name in ("ArtifactRef", "ImplementationRef", "_PlannedIdentityRecord"):
+        value = getattr(records_module, name)
+        assert inspect.isclass(value)
+        assert value.__module__ == records_module.__name__
+        assert value.__qualname__ == name
+
+    for name in (
+        "_require_non_empty",
+        "_require_semver",
+        "_validate_complete_artifact",
+        "_validate_implementation_pin",
+    ):
+        value = getattr(records_module, name)
+        assert inspect.isfunction(value)
+        assert value.__module__ == records_module.__name__
+        assert value.__qualname__ == name
+
+    for name in ("ValueError", "len", "set", "str", "tuple", "type"):
+        assert records_module.__dict__.get(name, getattr(builtins, name)) is getattr(
+            builtins, name
+        )
 
 
 def _assert_assignment_top_level_inventory(source: str | None = None) -> ast.Module:
+    use_runtime_bindings = source is None
     if source is None:
         source = Path(inspect.getsourcefile(records_module) or "").read_text(
             encoding="utf-8"
         )
     _assert_assignment_external_global_bindings(source)
+    if use_runtime_bindings:
+        _assert_assignment_runtime_global_bindings()
     module = _assignment_source_ast(source)
     classes = [node for node in module.body if isinstance(node, ast.ClassDef)]
     assert [node.name for node in classes] == [
@@ -1089,6 +1131,11 @@ def test_added_assignment_authoring_source_is_declaration_only() -> None:
         (
             "class ExecutionDesignSpec",
             "_require_non_empty, harmless = runtime.step, None\n",
+        ),
+        (
+            "class ExecutionDesignSpec",
+            "class Attack:\n    global model_validator\n"
+            "    model_validator = runtime.provider_hook\n",
         ),
     ],
 )
