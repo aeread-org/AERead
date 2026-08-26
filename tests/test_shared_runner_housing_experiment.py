@@ -22,6 +22,7 @@ from aeread.shared_runner.housing_experiment import (
     paired_inference_seed,
     read_condition_results,
     run_condition_batch,
+    run_paired_batch,
 )
 
 
@@ -515,3 +516,96 @@ def test_condition_batch_preserves_charged_failure_evidence_and_cost(tmp_path) -
     assert rows[0]["provider_call_count"] == 2
     assert rows[0]["length_retry_count"] == 1
     assert rows[0]["reasoning_tokens"] == 6
+
+
+def _paired_setups(*, world_seeds=(101, 202), replicates=1):
+    common = {
+        "world_seeds": world_seeds,
+        "replicates": replicates,
+        "tenant_model": DEEPSEEK_MODEL,
+        "tenant_revision": DEEPSEEK_REVISION,
+        "num_tenants": 2,
+        "num_listings": 1,
+        "rounds": 1,
+        "inference_seed_base": 87001,
+    }
+    return {
+        "reasoning_none_v1": build_housing_condition_setup(
+            condition_id="reasoning_none_v1", reasoning_effort="none", **common
+        ),
+        "reasoning_low_v1": build_housing_condition_setup(
+            condition_id="reasoning_low_v1", reasoning_effort="low", **common
+        ),
+    }
+
+
+def test_paired_batch_keeps_arms_adjacent_and_seed_paired(tmp_path) -> None:
+    provider = _RecordingTenantProvider()
+    result = asyncio.run(
+        run_paired_batch(
+            setups=_paired_setups(),
+            output_root=tmp_path,
+            providers=_batch_providers(provider),
+            concurrency=1,
+            spend_limit_usd=1.0,
+        )
+    )
+
+    chunks: list[tuple[int | None, str | None]] = []
+    for request in provider.requests:
+        identity = (request.seed, request.reasoning_effort)
+        if not chunks or chunks[-1] != identity:
+            chunks.append(identity)
+    assert len(chunks) == 4
+    for offset in (0, 2):
+        first, second = chunks[offset : offset + 2]
+        assert first[0] == second[0]
+        assert {first[1], second[1]} == {"none", "low"}
+    assert result["planned_count"] == 4
+    assert result["completed_count"] == 4
+    assert result["completed_count_by_condition"] == {
+        "reasoning_none_v1": 2,
+        "reasoning_low_v1": 2,
+    }
+
+
+def test_paired_batch_uses_one_global_budget_and_resumes_without_replacement(
+    tmp_path,
+) -> None:
+    setups = _paired_setups()
+    first_provider = _RecordingTenantProvider(cost_per_call=0.001)
+    first = asyncio.run(
+        run_paired_batch(
+            setups=setups,
+            output_root=tmp_path,
+            providers=_batch_providers(first_provider),
+            concurrency=1,
+            spend_limit_usd=0.005,
+        )
+    )
+
+    assert first["executed_count"] == 2
+    assert first["resumed_count"] == 0
+    assert first["completed_count_by_condition"] == {
+        "reasoning_none_v1": 1,
+        "reasoning_low_v1": 1,
+    }
+    assert first["pending_count"] == 2
+    assert first["total_cost_usd"] == pytest.approx(0.008)
+    assert first["stop_reason"] == "spend_limit_reached"
+
+    second_provider = _RecordingTenantProvider(cost_per_call=0.001)
+    second = asyncio.run(
+        run_paired_batch(
+            setups=setups,
+            output_root=tmp_path,
+            providers=_batch_providers(second_provider),
+            concurrency=1,
+            spend_limit_usd=1.0,
+        )
+    )
+    assert second["executed_count"] == 2
+    assert second["resumed_count"] == 2
+    assert second["completed_count"] == 4
+    assert second["pending_count"] == 0
+    assert len(second_provider.requests) == 8

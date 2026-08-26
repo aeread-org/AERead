@@ -471,6 +471,204 @@ async def run_condition_batch(
     }
 
 
+def _validate_paired_setups(
+    setups: Mapping[str, HousingSmokeSetup],
+) -> tuple[tuple[str, str], list[tuple[int, int]]]:
+    expected = ("reasoning_none_v1", "reasoning_low_v1")
+    if set(setups) != set(expected):
+        raise ValueError(f"paired setups must contain exactly {list(expected)}")
+    cells_by_condition = {
+        condition: {
+            (cell.world_seed, cell.replicate_index): cell
+            for cell in setups[condition].plan.cells
+        }
+        for condition in expected
+    }
+    identities = list(cells_by_condition[expected[0]])
+    if set(identities) != set(cells_by_condition[expected[1]]):
+        raise ValueError("paired conditions do not contain identical world replicates")
+    for identity in identities:
+        left = cells_by_condition[expected[0]][identity]
+        right = cells_by_condition[expected[1]][identity]
+        if left.cluster_id != right.cluster_id or left.pair_id != right.pair_id:
+            raise ValueError(f"paired cell identity differs for {identity}")
+    return expected, identities
+
+
+async def run_paired_batch(
+    *,
+    setups: Mapping[str, HousingSmokeSetup],
+    output_root: str | Path,
+    providers: Mapping[str, Any],
+    concurrency: int,
+    spend_limit_usd: float,
+    progress_callback: Any | None = None,
+) -> dict[str, Any]:
+    """Run both reasoning arms under one interleaved queue and spend boundary."""
+
+    if isinstance(concurrency, bool) or not isinstance(concurrency, int) or concurrency < 1:
+        raise ValueError("concurrency must be a positive integer")
+    if (
+        isinstance(spend_limit_usd, bool)
+        or not isinstance(spend_limit_usd, (int, float))
+        or not math.isfinite(float(spend_limit_usd))
+        or spend_limit_usd <= 0
+    ):
+        raise ValueError("spend_limit_usd must be a positive finite number")
+    conditions, identities = _validate_paired_setups(setups)
+    output = Path(output_root)
+    existing_by_condition: dict[str, dict[str, dict[str, Any]]] = {}
+    all_existing_rows: list[dict[str, Any]] = []
+    for condition in conditions:
+        rows = read_condition_results(
+            output, condition_id=condition, verify_evidence=True
+        )
+        valid_cell_ids = {cell.cell_id for cell in setups[condition].plan.cells}
+        by_cell: dict[str, dict[str, Any]] = {}
+        for row in rows:
+            cell_id = row.get("cell_id")
+            if (
+                cell_id not in valid_cell_ids
+                or row.get("run_plan_id") != setups[condition].plan.run_plan_id
+            ):
+                raise ValueError("existing result does not belong to the sealed RunPlan")
+            if cell_id in by_cell:
+                raise ValueError(f"duplicate existing cell result: {cell_id}")
+            by_cell[cell_id] = row
+        existing_by_condition[condition] = by_cell
+        all_existing_rows.extend(rows)
+
+    cells_by_condition = {
+        condition: {
+            (cell.world_seed, cell.replicate_index): cell
+            for cell in setups[condition].plan.cells
+        }
+        for condition in conditions
+    }
+    tasks: list[tuple[str, Any]] = []
+    for world_seed, replicate_index in identities:
+        order = list(conditions)
+        if _derived_nonnegative_int(
+            "housing_condition_order_v1", world_seed, replicate_index
+        ) % 2:
+            order.reverse()
+        for condition in order:
+            cell = cells_by_condition[condition][(world_seed, replicate_index)]
+            if cell.cell_id not in existing_by_condition[condition]:
+                tasks.append((condition, cell))
+
+    queue: asyncio.Queue[Any] = asyncio.Queue()
+    for task in tasks:
+        queue.put_nowait(task)
+    total_cost = sum(float(row.get("cost_usd") or 0.0) for row in all_existing_rows)
+    executed_count = 0
+    new_rows: list[dict[str, Any]] = []
+    state_lock = asyncio.Lock()
+    stop_reason: str | None = None
+
+    async def worker() -> None:
+        nonlocal total_cost, executed_count, stop_reason
+        while True:
+            async with state_lock:
+                if total_cost >= spend_limit_usd:
+                    stop_reason = "spend_limit_reached"
+                    return
+                try:
+                    condition, cell = queue.get_nowait()
+                except asyncio.QueueEmpty:
+                    return
+            setup = setups[condition]
+            evidence_root = output / condition / "evidence"
+            results_dir = output / condition / "results"
+            results_dir.mkdir(parents=True, exist_ok=True)
+            try:
+                execution = await execute_plan_cell(
+                    plan=setup.plan,
+                    cell_id=cell.cell_id,
+                    registry=setup.registry,
+                    evidence_root=evidence_root,
+                    prompt_sources=setup.prompt_sources,
+                    providers=providers,
+                    pricing=setup.pricing,
+                    episode_attempt_ordinal=0,
+                )
+                row = _result_from_execution(
+                    setup=setup,
+                    condition_id=condition,
+                    cell=cell,
+                    execution=execution,
+                )
+            except Exception as error:
+                row = {
+                    "condition_id": condition,
+                    "run_plan_id": setup.plan.run_plan_id,
+                    "cell_id": cell.cell_id,
+                    "case_id": cell.case_id,
+                    "cluster_id": cell.cluster_id,
+                    "pair_id": cell.pair_id,
+                    "world_seed": cell.world_seed,
+                    "replicate_index": cell.replicate_index,
+                    "status": "operational_failure",
+                    "failure_type": type(error).__name__,
+                    "within_case_score": None,
+                    **_failure_evidence_fields(
+                        evidence_root=evidence_root,
+                        run_plan_id=setup.plan.run_plan_id,
+                        cell_id=cell.cell_id,
+                    ),
+                }
+            sealed = _sealed_result(row)
+            _atomic_write_json(results_dir / f"{cell.cell_id}.json", sealed)
+            async with state_lock:
+                new_rows.append(sealed)
+                executed_count += 1
+                total_cost += float(sealed.get("cost_usd") or 0.0)
+                progress = {
+                    "condition_id": condition,
+                    "world_seed": cell.world_seed,
+                    "replicate_index": cell.replicate_index,
+                    "status": sealed.get("status"),
+                    "executed_count": executed_count,
+                    "total_cost_usd": total_cost,
+                }
+            if progress_callback is not None:
+                callback_result = progress_callback(progress)
+                if asyncio.iscoroutine(callback_result):
+                    await callback_result
+            queue.task_done()
+
+    await asyncio.gather(*(worker() for _ in range(concurrency)))
+    all_rows = [*all_existing_rows, *new_rows]
+    completed_by_condition = {
+        condition: sum(
+            row.get("status") == "completed"
+            for row in all_rows
+            if row.get("condition_id") == condition
+        )
+        for condition in conditions
+    }
+    failure_by_condition = {
+        condition: sum(
+            row.get("status") != "completed"
+            for row in all_rows
+            if row.get("condition_id") == condition
+        )
+        for condition in conditions
+    }
+    return {
+        "planned_count": sum(len(setup.plan.cells) for setup in setups.values()),
+        "executed_count": executed_count,
+        "resumed_count": len(all_existing_rows),
+        "completed_count": sum(completed_by_condition.values()),
+        "failure_count": sum(failure_by_condition.values()),
+        "completed_count_by_condition": completed_by_condition,
+        "failure_count_by_condition": failure_by_condition,
+        "pending_count": queue.qsize(),
+        "total_cost_usd": total_cost,
+        "stop_reason": stop_reason,
+    }
+
+
 def _score_row(row: Mapping[str, Any]) -> float | None:
     if row.get("status") != "completed":
         return None
@@ -628,4 +826,5 @@ __all__ = [
     "paired_inference_seed",
     "read_condition_results",
     "run_condition_batch",
+    "run_paired_batch",
 ]
