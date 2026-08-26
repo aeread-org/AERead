@@ -28,6 +28,10 @@
   `AgentAdapter.act(..., attempts: AttemptObserver)` signature remains stable. The runner
   translates those callbacks into the additive `ProviderCall*` evidence records and binds
   the current action-attempt parent from runner context.
+- `AgentAdapter` remains the stable act-only v1 Protocol. Future lifecycle work must not add
+  required lifecycle methods to `AgentAdapter`; `LifecycleAgentAdapter` is a separately named
+  additive Protocol, and a runner-owned stateless compatibility wrapper preserves existing
+  act-only adapters through a trivial session.
 - Unknown manifest fields are rejected.
 - Every plugin declares `sdk_api = "aeread.sdk/v1"` and its own semantic version.
 - Canonical bytes use UTF-8 JSON, sorted keys, compact separators, no NaN/Infinity, and algorithm ID `aeread.cjson/1` before SHA-256 hashing.

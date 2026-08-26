@@ -23,9 +23,6 @@ PYPROJECT = Path(__file__).parents[1] / "pyproject.toml"
 SDK_V1_INIT = (
     Path(__file__).parents[1] / "src" / "aeread" / "sdk" / "v1" / "__init__.py"
 )
-SDK_V1_PROTOCOLS = (
-    Path(__file__).parents[1] / "src" / "aeread" / "sdk" / "v1" / "protocols.py"
-)
 FOUNDATION_PLAN = (
     Path(__file__).parents[1]
     / "docs"
@@ -665,10 +662,13 @@ def test_rebaseline_status_names_current_integration_and_next_gate() -> None:
     for section in (status, task_02, dispatch):
         assert "`155d8fc`" in section
         assert "`b5239cd`" in section
-        assert "`1ea7045`" in section
+        assert "`c7aca60`" in section
+        assert "`a7ddbb2`" in section
         assert "Task 1.1a1" in section
         assert "Task 1.1a2" in section
+        assert "independent review pending" in section
     assert "Task 1.1a and all later plan work remain blocked" not in dispatch
+    assert "Task 1.1a2 is the next" not in text
 
     roadmap = RUNNER_ARCHITECTURE.read_text(encoding="utf-8")
     assert "PR #7 at `155d8fc`" in roadmap
@@ -715,6 +715,57 @@ def test_existing_attempt_observer_and_agent_adapter_signatures_remain_stable() 
         relocated += f" Outside this authority: {required[0]}."
         local_section = relocated.split(" Outside this authority:", 1)[0]
         assert not all(fragment in local_section for fragment in required)
+
+
+def test_future_lifecycle_contract_is_additive_to_stable_agent_adapter() -> None:
+    public_section = PUBLIC_ENVIRONMENT_SPEC.read_text(encoding="utf-8").split(
+        "### 3.3 Observation and canonical response boundary", 1
+    )[1].split("### 3.4 Verifier contract", 1)[0]
+    rebaseline_section = REBASELINE_PLAN.read_text(encoding="utf-8").split(
+        "### Task 2.2: Add episode-scoped harness lifecycle", 1
+    )[1].split("### Task 2.3", 1)[0]
+    design_section = DESIGN.read_text(encoding="utf-8").split(
+        "class AttemptObserver(Protocol):", 1
+    )[1].split("The public executable names", 1)[0]
+    roadmap_section = RUNNER_ARCHITECTURE.read_text(encoding="utf-8").split(
+        "### 3. Execution objects", 1
+    )[1].split("### 4. Evidence objects", 1)[0]
+    foundation_section = FOUNDATION_PLAN.read_text(encoding="utf-8").split(
+        "## Global Constraints", 1
+    )[1].split("## Execution workflow", 1)[0]
+
+    required = (
+        "`AgentAdapter` remains the stable act-only v1 Protocol",
+        "`LifecycleAgentAdapter` is a separately named additive Protocol",
+        "runner-owned stateless compatibility wrapper",
+        "must not add required lifecycle methods to `AgentAdapter`",
+    )
+    for authority in (
+        public_section,
+        rebaseline_section,
+        design_section,
+        roadmap_section,
+        foundation_section,
+    ):
+        normalized = " ".join(authority.split())
+        assert all(fragment in normalized for fragment in required)
+
+        relocated = normalized.replace(
+            required[0], "stable adapter compatibility is declared elsewhere", 1
+        )
+        relocated += f" Outside this authority: {required[0]}."
+        local_section = relocated.split(" Outside this authority:", 1)[0]
+        assert not all(fragment in local_section for fragment in required)
+
+    assert "LifecycleAgentAdapter.setup" in rebaseline_section
+    assert "LifecycleAgentAdapter.open_session" in rebaseline_section
+    assert "LifecycleAgentAdapter.cleanup" in rebaseline_section
+    for legacy_lifecycle_call in (
+        "-> AgentAdapter.setup",
+        "-> AgentAdapter.open_session",
+        "-> AgentAdapter.cleanup",
+    ):
+        assert legacy_lifecycle_call not in rebaseline_section
 
 
 def test_public_spec_reports_implemented_foundation_and_missing_runtime() -> None:

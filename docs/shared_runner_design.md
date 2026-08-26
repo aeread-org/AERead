@@ -197,6 +197,12 @@ remains stable. The runner implementation translates those callbacks into the ad
 new discriminated parent. Existing adapters therefore remain valid while new evidence uses
 the precise vocabulary.
 
+`AgentAdapter` remains the stable act-only v1 Protocol. Task 2.2 must not add required
+lifecycle methods to `AgentAdapter`; `LifecycleAgentAdapter` is a separately named additive
+Protocol for native setup/session/reset/cleanup support. A runner-owned stateless
+compatibility wrapper maps an existing act-only adapter to a trivial session without
+changing its v1 conformance.
+
 The public executable names and call boundaries are defined by [`public_environment_and_external_adapter_spec.md`](public_environment_and_external_adapter_spec.md): the runner invokes an `EnvironmentPlugin`, and an `AgentAdapter` reports provider activity through the runner-owned `AttemptObserver` rather than writing evidence directly. The hooks may be methods or registered functions, but their inputs, outputs, versions, and evidence must be explicit. The runner—not an environment-owned coroutine—advances the schedule, enforces budgets, and records every boundary. Every logical action is keyed by `slot_id`; one seat may own multiple decision slots in one phase, and one slot may own multiple channels. A slot may atomically emit multiple ordered channel actions in one `ActionBundle`. The adapter MUST preserve upstream call grouping, and the runner MUST NOT merge or split those calls across slots or bundles. Bundle validation uses the slot's declared `ActionChannel` membership and each channel's `min_actions`/`max_actions`: every channel count is within its declared bounds, every action has a declared channel, action IDs are unique, and sequence indices are unique and ordered within the bundle. `parse_action()` returns one atomic `ParseResult` for the whole slot response; on success it contains one `ActionBundle`. `legal()` returns one `LegalityResult` for that whole bundle. No partial bundle is applied.
 
 `DecisionSlot` → `ActionChannel` → ordered atomic `ActionBundle` describes the

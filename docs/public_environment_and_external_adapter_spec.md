@@ -315,6 +315,12 @@ current action-attempt parent from runner context. This preserves existing adapt
 making the legacy records the new evidence schema. A future incompatible observer ABI
 requires a separately named additive Protocol or `aeread.sdk.v2`.
 
+`AgentAdapter` remains the stable act-only v1 Protocol. Task 2.2 must not add required
+lifecycle methods to `AgentAdapter`; `LifecycleAgentAdapter` is a separately named additive
+Protocol for adapters that natively own setup, sessions, reset, and cleanup. A runner-owned
+stateless compatibility wrapper presents an existing act-only adapter as a trivial session,
+so installing the lifecycle kernel does not invalidate a current v1 adapter.
+
 The adapter owns provider/harness-specific wire formats. OpenAI Responses, Chat Completions, Anthropic Messages, a CLI agent, or an rLLM gateway may return different native objects; each adapter normalizes them into `CanonicalResponse` before the family parser or scorer consumes them. `CanonicalResponse` includes normalized content/tool calls, finish reason, usage, raw artifact reference, and an optional harness-trace reference.
 
 Canonicalization records, rather than erases, meaningful distinctions. It does not force every harness into a shared Python class or provider API internally; an HTTP service, CLI process, rLLM flow, or in-process object may sit behind the adapter.

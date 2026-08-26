@@ -3,11 +3,12 @@
 > **Author:** Codex, for Zeyu Sun  
 > **Date:** 2026-08-25  
 > **Status:** Task 0.1a is independently P0/P1/P2 clean at `9f7255e`. Latest PR #7 source
-> `155d8fc` is integrated locally by true merge `b5239cd`, with documentation/contract
-> follow-ups through `1ea7045`; none was pushed or merged to GitHub/main. Task 0.3 is
-> complete. Task 1.1a1 is independently clean through `ca173f4`; Task 1.1a2 is the next
-> dispatchable slice under its controller brief. The executable scheduler, attempt
-> executor, receipt/replay kernel, and benchmark adapters remain unimplemented.
+> `155d8fc` is integrated locally by true merge `b5239cd`, with compatibility and
+> executable-guard follow-ups through `c7aca60`; none was pushed or merged to GitHub/main.
+> Task 0.3 is complete. Task 1.1a1 is independently clean through `ca173f4`; Task 1.1a2
+> has candidate fixes through `a7ddbb2`, with independent review pending. The executable
+> scheduler, attempt executor, receipt/replay kernel, and benchmark adapters remain
+> unimplemented.
 > **Supersedes:** Tasks 6–11 of `2026-08-24-shared-runner-sdk-kernel.md`; Tasks 1–5 and their review history remain valid
 
 ## Objective
@@ -93,8 +94,9 @@ local APFS volume.
 ### Task 0.2: Integrate the latest approved PR #7 design
 
 Complete locally. Latest PR #7 source `155d8fc` is integrated by true merge `b5239cd`, with
-crosswalk/status/stability follow-ups through `1ea7045`. Task 1.1a1 is independently clean
-through `ca173f4`, and Task 1.1a2 is next. Older `275a285`/`388e52b` commits remain
+crosswalk/status/stability/ABI-guard follow-ups through `c7aca60`. Task 1.1a1 is
+independently clean through `ca173f4`; Task 1.1a2 has candidate fixes through `a7ddbb2`,
+with independent review pending. Older `275a285`/`388e52b` commits remain
 historical milestones only. No implementer should repeat either merge, push it, or merge it
 to GitHub/main under this plan.
 
@@ -1167,15 +1169,22 @@ This task owns lifecycle capability/policy/operation records, Protocols, stable 
 and scripted conformance fakes only. It does **not** create or partially implement a
 lifecycle coordinator; Task 3.2 is the sole owner of orchestration and cleanup execution.
 
+`AgentAdapter` remains the stable act-only v1 Protocol. Task 2.2 must not add required
+lifecycle methods to `AgentAdapter`; `LifecycleAgentAdapter` is a separately named additive
+Protocol that may extend the act boundary with native lifecycle capabilities. A runner-owned
+stateless compatibility wrapper presents every existing act-only v1 adapter as a trivial
+session. The new Protocol and wrapper are additive; replacing the existing Protocol or
+changing `AgentAdapter.act()` requires SDK v2.
+
 Minimum lifecycle:
 
 ```text
 ExecutionBackend.start
-  -> AgentAdapter.setup
-    -> AgentAdapter.open_session
+  -> LifecycleAgentAdapter.setup
+    -> LifecycleAgentAdapter.open_session
       -> AgentSession.act*
       -> AgentSession.reset / close
-    -> AgentAdapter.cleanup
+    -> LifecycleAgentAdapter.cleanup
   -> ExecutionBackend.stop
 ```
 
@@ -1269,8 +1278,10 @@ session mutation as reconciled and usable; unknown session mutation forbids cont
 Lifecycle/setup/runtime operations are evidence-visible but are not mislabeled as
 economic tool calls. Partial setup/open failures clean up every acquired resource;
 unsupported reset falls back to close/open only when policy permits. Cleanup is
-idempotent, runs in `finally`, and quarantines a runtime whose cleanup fails. Stateless
-HTTP adapters use a trivial session; persistent CLI/API adapters use the same boundary.
+idempotent, runs in `finally`, and quarantines a runtime whose cleanup fails. Existing
+stateless HTTP adapters enter through the runner-owned compatibility wrapper and use a
+trivial session; persistent CLI/API adapters may implement the additive lifecycle Protocol
+directly.
 
 Define a runner-owned `ToolMediator` port and pass it to `AgentSession.act()`. It validates
 lease-subject/work/phase tool allowlists for operations that may execute inside an attempt,
@@ -1297,7 +1308,9 @@ open-session, reset, close, cleanup, backend-stop, timeout, failure, and
 `outcome_unknown` outcomes without orchestrating them. The `ToolMediator` fake rejects a
 requested family mutation and can execute only read-only, harness-internal, or
 transactional-preview operations. Task 3.2 consumes these fakes for the runtime failure
-matrix.
+matrix. A pre-Task-2.2 conformance fake that implements only the stable
+`AgentAdapter.act()` Protocol must still pass admission and execute through the stateless
+wrapper after this task lands.
 
 **Output:** versioned lifecycle/capability/session/tool-mediation contracts with distinct
 economic-seat and evaluator-assignment subjects plus reusable scripted fakes, with no
@@ -2336,9 +2349,10 @@ is a blocker, not authority for a sixth plan-fix round or hidden implementer dis
 
 ## Current dispatch gate
 
-Latest PR #7 source `155d8fc` is integrated locally by true merge `b5239cd`, with follow-ups
-through `1ea7045`; the whole runner is not implemented. Task 1.1a1 is independently clean
-through `ca173f4`, and Task 1.1a2 is the next dispatchable slice under its controller-issued
-brief. Later tasks advance only through their declared dependency, RED/GREEN, scoped commit,
-and independent-review gates. Provider-free/static evidence is never reported as live
-runtime, upstream parity, or benchmark-quality evidence.
+Latest PR #7 source `155d8fc` is integrated locally by true merge `b5239cd`, with
+compatibility and executable-guard follow-ups through `c7aca60`; the whole runner is not
+implemented. Task 1.1a1 is independently clean through `ca173f4`; Task 1.1a2 has candidate
+fixes through `a7ddbb2`, with independent review pending. Later tasks advance only through
+their declared dependency, RED/GREEN, scoped commit, and independent-review gates.
+Provider-free/static evidence is never reported as live runtime, upstream parity, or
+benchmark-quality evidence.

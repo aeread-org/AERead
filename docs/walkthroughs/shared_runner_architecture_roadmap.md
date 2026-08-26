@@ -557,6 +557,11 @@ remains stable. A runner-owned compatibility observer translates those callbacks
 additive `ProviderCall*` evidence records and supplies the action-attempt parent from
 runner context. A different observer ABI must use an additive Protocol or SDK v2.
 
+`AgentAdapter` remains the stable act-only v1 Protocol. Task 2.2 must not add required
+lifecycle methods to `AgentAdapter`; `LifecycleAgentAdapter` is a separately named additive
+Protocol for native setup/session/reset/cleanup support. A runner-owned stateless
+compatibility wrapper supplies the trivial-session path for existing act-only adapters.
+
 ### 4. Evidence objects
 
 | Object | Canonical meaning |

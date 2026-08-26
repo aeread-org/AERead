@@ -10,6 +10,7 @@ import sys
 from typing import get_type_hints
 
 import pytest
+from pydantic import ValidationError
 
 from aeread.runner.registry import (
     DuplicateReferenceImplementation,
@@ -538,6 +539,12 @@ def test_protocol_method_boundaries_resolve_and_preserve_call_direction() -> Non
         "return": type(None),
     }
     assert bridge_hints["return"] is ScoreEnvelope
+    assert inspect.iscoroutinefunction(AgentAdapter.act)
+    assert {
+        name
+        for name, value in vars(AgentAdapter).items()
+        if not name.startswith("_") and callable(value)
+    } == {"act"}
     assert {
         name
         for name, value in vars(AttemptObserver).items()
@@ -573,6 +580,59 @@ def test_protocol_method_boundaries_resolve_and_preserve_call_direction() -> Non
         parameter.default is inspect.Parameter.empty
         for parameter in adapter_parameters
     )
+
+
+def test_legacy_call_attempt_record_schemas_and_validation_remain_stable() -> None:
+    from aeread.sdk.v1 import CallAttemptStart, CallAttemptToken
+
+    expected_schema_digests = {
+        CallAttemptStart: (
+            "4eca45f3315b76e5bf48b5b83cdb922d0d143f794bb18f80aee1ccbe8a6c9ad5"
+        ),
+        CallAttemptToken: (
+            "60c8af077325bdf1a1c7c650f1de619f4e2b7a60d434acd2f4042628ea55e0e8"
+        ),
+    }
+    for record_type, expected_digest in expected_schema_digests.items():
+        schema_bytes = json.dumps(
+            record_type.model_json_schema(), sort_keys=True, separators=(",", ":")
+        ).encode()
+        assert hashlib.sha256(schema_bytes).hexdigest() == expected_digest
+
+    start = CallAttemptStart(
+        call_attempt_id="call-1",
+        logical_action_id="logical-1",
+        ordinal=1,
+        request_sha256="request-sha",
+        provider="provider",
+        model="model",
+        timeout_seconds=1.0,
+        output_token_limit=1,
+    )
+    assert start.model_fields_set == {
+        "call_attempt_id",
+        "logical_action_id",
+        "ordinal",
+        "request_sha256",
+        "provider",
+        "model",
+        "timeout_seconds",
+        "output_token_limit",
+    }
+    assert CallAttemptToken(call_attempt_id="call-1").call_attempt_id == "call-1"
+    with pytest.raises(ValidationError):
+        CallAttemptStart(
+            call_attempt_id="call-1",
+            logical_action_id="logical-1",
+            ordinal=0,
+            request_sha256="request-sha",
+            provider="provider",
+            model="model",
+            timeout_seconds=1.0,
+            output_token_limit=1,
+        )
+    with pytest.raises(ValidationError):
+        CallAttemptToken(call_attempt_id="call-1", unexpected="drift")
 
 
 def test_resolution_rejects_malformed_reference_before_lookup() -> None:
