@@ -515,6 +515,19 @@ def test_representative_sources_only_pressure_constructor_expression(
 
 
 def test_sdk_export_delta_preserves_b1_and_legacy_surfaces() -> None:
+    b3_exports = {
+        "EpisodeAttemptPolicySpec",
+        "EpisodeTerminalDispositionRule",
+        "EvaluatorAgentJudgmentTemplateSpec",
+        "ExecutionBlockSpec",
+        "ExecutionDesignSpec",
+        "ExecutionRecordRef",
+        "FixedPanelResolutionTemplateSpec",
+        "ImportedHumanJudgmentTemplateSpec",
+        "JudgmentWorkTemplateSpec",
+        "PanelResolutionTemplateSpec",
+        "SampledPanelResolutionTemplateSpec",
+    }
     b1_exports = {
         "ClusterDesignSpec",
         "ClusterMembershipSpec",
@@ -530,11 +543,14 @@ def test_sdk_export_delta_preserves_b1_and_legacy_surfaces() -> None:
     }
     surface = set(sdk_v1.__all__)
     assert len(surface) == len(sdk_v1.__all__)
-    assert surface & MEASUREMENT_SELECTION_EXPORTS == MEASUREMENT_SELECTION_EXPORTS
-    without_b2 = surface - MEASUREMENT_SELECTION_EXPORTS
+    assert surface & b3_exports == b3_exports
+    without_b3 = surface - b3_exports
+    assert len(surface) == 184
+    assert len(without_b3) == 173
+    assert without_b3 & MEASUREMENT_SELECTION_EXPORTS == MEASUREMENT_SELECTION_EXPORTS
+    without_b2 = without_b3 - MEASUREMENT_SELECTION_EXPORTS
     assert b1_exports <= without_b2
     legacy = tuple(sorted(without_b2 - b1_exports))
-    assert len(surface) == 173
     assert len(legacy) == 158
     assert (
         hashlib.sha256(json.dumps(legacy, separators=(",", ":")).encode()).hexdigest()
