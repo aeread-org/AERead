@@ -873,22 +873,29 @@ def _assert_rebaseline_status_names_current_integration_and_next_gate(
     text: str,
 ) -> None:
     breaker_baseline = "cd26e7202e0933c57169771d6f4500188407a40f"
-    brief_digest = (
-        "13371f845ba1a34b0caa82dfca409f0558e0a3556313b13c39794bb56d231648"
-    )
+    brief_digest = "13371f845ba1a34b0caa82dfca409f0558e0a3556313b13c39794bb56d231648"
     status = text.split("## Objective", 1)[0]
-    task_02 = text.split(
-        "### Task 0.2: Integrate the latest approved PR #7 design", 1
-    )[1].split("### Task 0.3", 1)[0]
-    task_1b = text.split("### Task 1.1b1:", 1)[1].split("### Task 1.1c:", 1)[0]
+    task_02 = text.split("### Task 0.2: Integrate the latest approved PR #7 design", 1)[
+        1
+    ].split("### Task 0.3", 1)[0]
+    headings = (
+        "### Task 1.1b1:",
+        "### Tasks 1.1b2–1.1b5:",
+        "### Task 1.1c:",
+        "### Task 1.2:",
+        "## Stage 2",
+    )
+    assert all(text.count(heading) == 1 for heading in headings)
+    assert [text.index(heading) for heading in headings] == sorted(
+        text.index(heading) for heading in headings
+    )
+    task_1b = text.split("### Task 1.1b1:", 1)[1].split("### Tasks 1.1b2–1.1b5:", 1)[0]
     task_1b2_to_1b5 = text.split("### Tasks 1.1b2–1.1b5:", 1)[1].split(
         "### Task 1.1c:", 1
     )[0]
     task_1c = text.split("### Task 1.1c:", 1)[1].split("### Task 1.2:", 1)[0]
     task_12 = text.split("### Task 1.2:", 1)[1].split("## Stage 2", 1)[0]
-    stage_2_preamble = text.split("## Stage 2", 1)[1].split(
-        "### Task 2.1a:", 1
-    )[0]
+    stage_2_preamble = text.split("## Stage 2", 1)[1].split("### Task 2.1a:", 1)[0]
     dispatch = text.split("## Current dispatch gate", 1)[1]
 
     for section in (status, task_02, dispatch):
@@ -903,11 +910,29 @@ def _assert_rebaseline_status_names_current_integration_and_next_gate(
         assert "Task 1.1c" in normalized
         assert "HOLD" in normalized
 
-    assert brief_digest in task_1b
-    assert brief_digest in dispatch
+    dependency = task_1b.split("**Dependency:**", 1)[1].split(
+        "**Binding implementation authority:**", 1
+    )[0]
+    authority = task_1b.split("**Binding implementation authority:**", 1)[1].split(
+        "**Files:**", 1
+    )[0]
     inventory = task_1b.split("**Exact additive public names (11):**", 1)[1].split(
         "**Ownership:**", 1
     )[0]
+    ownership = task_1b.split("**Ownership:**", 1)[1].split("**Deferred:**", 1)[0]
+
+    assert f"`{breaker_baseline}`" in dependency
+    assert "PR #7 is NOT independently CLEAN" in dependency
+    assert (
+        "compiled-core regression-guard finding is Task 2.1a's mandatory first RED"
+        in (dependency)
+    )
+    assert (
+        "`Aug 22 Sync/20260825_task1_1b1_planned_identity_dispatch_codex.md`"
+        in authority
+    )
+    assert brief_digest in authority
+    assert brief_digest in dispatch
     assert tuple(re.findall(r"`([A-Za-z]+)`", inventory)) == (
         "ClusterDesignSpec",
         "ClusterMembershipSpec",
@@ -921,8 +946,14 @@ def _assert_rebaseline_status_names_current_integration_and_next_gate(
         "SeededEpisodeReplicationDesign",
         "UnseededEpisodeReplicationDesign",
     )
+    assert ownership.startswith(
+        " strict pre-run identities for a finite declared population"
+    )
     assert "### Tasks 1.1b2–1.1b5: HOLD" in text
-    assert "This HOLD intentionally freezes no final public record names." in task_1b
+    assert (
+        "This HOLD intentionally freezes no final public record names."
+        in task_1b2_to_1b5
+    )
     assert "HOLD — atomic three-layer resolution" in task_1c
     assert "**Dependency:** Task 1.1c is independently clean." in task_12
     assert "**Current gate:** blocked." in task_12
@@ -935,13 +966,19 @@ def _assert_rebaseline_status_names_current_integration_and_next_gate(
         line.removeprefix("> ").strip() for line in stage_2_preamble.splitlines()
     )
     assert "HOLD inheritance" in normalized_stage_2
-    assert "every Stage 2–5 dependency on Task 1.1c remains blocked" in normalized_stage_2
+    assert (
+        "every Stage 2–5 dependency on Task 1.1c remains blocked" in normalized_stage_2
+    )
     assert "Implementers may not use those references to backfill the HOLD schema" in (
         normalized_stage_2
     )
-    assert "Task 2.1a's mandatory first RED is the one parked compiled-core regression-guard finding" in normalized_stage_2
+    assert (
+        "Task 2.1a's mandatory first RED is the one parked compiled-core regression-guard finding"
+        in normalized_stage_2
+    )
     for gate_section in (status, task_02, dispatch):
         assert "pr #7 is independently clean" not in gate_section.casefold()
+    assert "pr #7 is independently clean" not in task_1b.casefold()
 
     for hold_section in (task_1b2_to_1b5, task_1c):
         assert "is dispatchable for implementation" not in hold_section.casefold()
@@ -997,7 +1034,9 @@ def test_rebaseline_guard_rejects_unapproved_b1_public_name() -> None:
     _assert_rebaseline_mutation_is_rejected(
         text.replace(
             inventory,
-            inventory.replace("UnseededEpisodeReplicationDesign", "FabricatedIdentitySpec"),
+            inventory.replace(
+                "UnseededEpisodeReplicationDesign", "FabricatedIdentitySpec"
+            ),
             1,
         )
     )
@@ -1017,9 +1056,7 @@ def test_rebaseline_guard_rejects_dispatchable_hold_slice() -> None:
 
 def test_rebaseline_guard_rejects_stage_2_hold_schema_backfill_permission() -> None:
     text = REBASELINE_PLAN.read_text(encoding="utf-8")
-    stage_2_preamble = text.split("## Stage 2", 1)[1].split(
-        "### Task 2.1a:", 1
-    )[0]
+    stage_2_preamble = text.split("## Stage 2", 1)[1].split("### Task 2.1a:", 1)[0]
     _assert_rebaseline_mutation_is_rejected(
         text.replace(
             stage_2_preamble,
@@ -1027,6 +1064,31 @@ def test_rebaseline_guard_rejects_stage_2_hold_schema_backfill_permission() -> N
             1,
         )
     )
+
+
+def test_rebaseline_guard_rejects_positive_clean_claim_inside_b1() -> None:
+    text = REBASELINE_PLAN.read_text(encoding="utf-8")
+    task_1b = text.split("### Task 1.1b1:", 1)[1].split("### Tasks 1.1b2–1.1b5:", 1)[0]
+    _assert_rebaseline_mutation_is_rejected(
+        text.replace(task_1b, task_1b + "\nPR #7 is independently CLEAN.\n", 1)
+    )
+
+
+def test_rebaseline_guard_rejects_relocated_b1_authority_digest() -> None:
+    text = REBASELINE_PLAN.read_text(encoding="utf-8")
+    digest = "13371f845ba1a34b0caa82dfca409f0558e0a3556313b13c39794bb56d231648"
+    task_1b = text.split("### Task 1.1b1:", 1)[1].split("### Tasks 1.1b2–1.1b5:", 1)[0]
+    authority = task_1b.split("**Binding implementation authority:**", 1)[1].split(
+        "**Files:**", 1
+    )[0]
+    relocated = task_1b.replace(authority, authority.replace(digest, "0" * 64), 1)
+    relocated = relocated.replace("**Deferred:**", f"**Deferred:**\n\n{digest}", 1)
+    _assert_rebaseline_mutation_is_rejected(text.replace(task_1b, relocated, 1))
+
+
+def test_rebaseline_guard_rejects_duplicate_b1_heading() -> None:
+    text = REBASELINE_PLAN.read_text(encoding="utf-8")
+    _assert_rebaseline_mutation_is_rejected(text + "\n### Task 1.1b1:\nconflict\n")
 
 
 def test_existing_attempt_observer_and_agent_adapter_signatures_remain_stable() -> None:
