@@ -9,3 +9,6 @@
 - [`shared_runner_r2_plan_resolution.md`](shared_runner_r2_plan_resolution.md) —
   exact R2 trace from reconciled R1 records through content and implementation pins, deterministic
   cell expansion, canonical plan sealing, durable publication, and the R3/R4 boundary.
+- [`shared_runner_r3_phase_scheduler.md`](shared_runner_r3_phase_scheduler.md) —
+  exact R3 trace through phase-graph preflight, simultaneous observation isolation, sequential
+  transitions, typed invalid actions, deterministic execution IDs, and the R4 evidence boundary.
