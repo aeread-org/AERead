@@ -202,10 +202,25 @@ def _assert_b4b_runtime_bindings() -> None:
         assert inspect.isfunction(value)
         assert value.__module__ == records_module.__name__
         assert value.__qualname__ == name
-    for name in ("ValueError", "len", "set", "tuple", "type"):
-        assert records_module.__dict__.get(name, getattr(builtins, name)) is getattr(
-            builtins, name
-        )
+
+    def resolve_builtin(function: object, name: str) -> object:
+        if name in records_module.__dict__:
+            return records_module.__dict__[name]
+        value = getattr(function, "__func__", function)
+        fallback = getattr(value, "__builtins__")
+        return fallback[name] if isinstance(fallback, dict) else getattr(fallback, name)
+
+    functions = [
+        getattr(records_module, "_validate_analysis_source_ref"),
+        getattr(records_module, "_require_non_empty"),
+        getattr(records_module, "_require_semver"),
+        PopulationClusterProjectionSpec.validate_population_cluster_projection,
+        PairProjectionSpec.validate_pair_projection,
+        InferenceCompatibilitySpec.validate_inference_compatibility,
+    ]
+    for function in functions:
+        for name in ("ValueError", "len", "set", "tuple", "type"):
+            assert resolve_builtin(function, name) is getattr(builtins, name)
 
 
 def _assert_b4b_declaration_only(source: str) -> None:
@@ -225,6 +240,7 @@ def _assert_b4b_declaration_only(source: str) -> None:
         "_require_non_empty": ["function"],
         "_require_semver": ["function"],
         "_validate_canonical_string_tuple": ["function"],
+        "__builtins__": [],
         "ValueError": [],
         "len": [],
         "set": [],
@@ -405,6 +421,11 @@ def _assert_b4b_declaration_only(source: str) -> None:
 @pytest.mark.parametrize(
     "mutation",
     [
+        lambda source: source.replace(
+            "class AnalysisSourceRef",
+            "__builtins__ = runtime.builtins\n\nclass AnalysisSourceRef",
+            1,
+        ),
         lambda source: source.replace(
             "class AnalysisSourceRef",
             "model_validator = runtime.provider_hook\n\nclass AnalysisSourceRef",
