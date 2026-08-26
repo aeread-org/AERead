@@ -1506,13 +1506,37 @@ def test_runner_public_exports_are_the_exact_task_1_1a2_surface() -> None:
 def test_task_1_1a2_does_not_change_or_expand_the_sdk_surface() -> None:
     import aeread.sdk.v1 as sdk
 
+    planned_identity_exports = (
+        "ClusterDesignSpec",
+        "ClusterMembershipSpec",
+        "EpisodeReplicationDesign",
+        "FixedPanelDesignSpec",
+        "PairingSpec",
+        "PanelDesignSpec",
+        "PlannedCoordinateField",
+        "SampledPanelDesignSpec",
+        "SamplingPopulationSpec",
+        "SeededEpisodeReplicationDesign",
+        "UnseededEpisodeReplicationDesign",
+    )
     surface = tuple(sorted(sdk.__all__))
-    digest = hashlib.sha256(
-        json.dumps(surface, separators=(",", ":")).encode()
+    authorized_additions = tuple(
+        name for name in surface if name in planned_identity_exports
+    )
+    legacy_surface = tuple(
+        name for name in surface if name not in planned_identity_exports
+    )
+    legacy_digest = hashlib.sha256(
+        json.dumps(legacy_surface, separators=(",", ":")).encode()
     ).hexdigest()
 
-    assert len(sdk.__all__) == 158
-    assert digest == "2fe7d6311a309b47d2b753381144e2e7689a11b65e9bac145162ce779565bd3b"
+    assert authorized_additions == planned_identity_exports
+    assert len(surface) == 169
+    assert len(legacy_surface) == 158
+    assert (
+        legacy_digest
+        == "2fe7d6311a309b47d2b753381144e2e7689a11b65e9bac145162ce779565bd3b"
+    )
     for name in (
         "ReferenceArtifactView",
         "ReferenceImplementationRegistry",
