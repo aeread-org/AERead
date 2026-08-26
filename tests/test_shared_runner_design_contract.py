@@ -84,10 +84,10 @@ STAGE5_SECTION_SHA256 = {
         "4332085f3e9db2dcda7c0a6dd29c47c22a5f62c9cafe940c1e88984360632693"
     ),
     TASK_57_HEADING: (
-        "4ab695589186e813152888831da6c9b3d809188785ab1e481efff8cfff408a65"
+        "04be39ca00605b8ecaa978121b7a6cc9109fde821ae320b4edcc104d1900773c"
     ),
     TASK_58_HEADING: (
-        "60e2debd1ed40f0a4902ccd3963a71579676f7ababfa6efc1f152940c3abcc00"
+        "c2a489198e78aff21b0488018fa5102419d4875862d8ae8b852c1f6533db8061"
     ),
 }
 
@@ -300,12 +300,12 @@ def _assert_stage5_evidence_directions(sections: dict[str, str]) -> None:
             "-> Scheduling E1 (after E0 parity gate)`; Procurement remains blocked.",
         ),
         TASK_57_HEADING: (
-            "**Evidence direction:** `A0 (current) -> AERead-owned E0 (next) -> official "
-            "E1 blocked` until upstream is admitted.",
+            "**Evidence direction:** `public-material survey (current) -> official A0 "
+            "blocked -> AERead-owned synthetic E0 pending -> official E1 blocked`.",
         ),
         TASK_58_HEADING: (
-            "**Evidence direction:** `A0 (current) -> canned provider-free E0 (next) -> "
-            "official E1 blocked` until the official protocol is admitted.",
+            "**Evidence direction:** `public-material source/rater survey (current) -> "
+            "A0 blocked -> canned provider-free E0 pending -> official E1 blocked`.",
         ),
     }
     for heading, fragments in expected.items():
@@ -873,15 +873,20 @@ def _assert_rebaseline_status_names_current_integration_and_next_gate(
     text: str,
 ) -> None:
     breaker_baseline = "cd26e7202e0933c57169771d6f4500188407a40f"
+    implementation_baseline = "289faf5871f2cfe52140a06e7b51c238e4ef498e"
     brief_digest = "13371f845ba1a34b0caa82dfca409f0558e0a3556313b13c39794bb56d231648"
+    design_digest = "4e570d793c350d15e6857aaca87addd14bcd5afff7d70b4db75835e5d49bd879"
     status = text.split("## Objective", 1)[0]
     task_02 = text.split("### Task 0.2: Integrate the latest approved PR #7 design", 1)[
         1
     ].split("### Task 0.3", 1)[0]
     headings = (
         "### Task 1.1b1:",
-        "### Tasks 1.1b2–1.1b5:",
-        "### Task 1.1c:",
+        "### Task 1.1b2: Measurement selection and evaluation-instrument declarations",
+        "### Task 1.1b3: Execution-design authoring and episode-attempt policy",
+        "### Task 1.1b4: Analysis primitives",
+        "### Task 1.1b5: AnalysisPlan envelope, DAG, and declaration-only composition",
+        "### Task 1.1c: Atomic three-layer resolution and schema migration",
         "### Task 1.2:",
         "## Stage 2",
     )
@@ -889,7 +894,7 @@ def _assert_rebaseline_status_names_current_integration_and_next_gate(
     assert [text.index(heading) for heading in headings] == sorted(
         text.index(heading) for heading in headings
     )
-    task_1b = text.split("### Task 1.1b1:", 1)[1].split("### Tasks 1.1b2–1.1b5:", 1)[0]
+    task_1b = text.split("### Task 1.1b1:", 1)[1].split(headings[1], 1)[0]
     assert text.count("## Current dispatch gate") == 1
     b1_markers = (
         "**Dependency:**",
@@ -912,12 +917,27 @@ def _assert_rebaseline_status_names_current_integration_and_next_gate(
             (*marker_positions[1:], len(task_1b)),
         )
     }
-    task_1b2_to_1b5 = text.split("### Tasks 1.1b2–1.1b5:", 1)[1].split(
-        "### Task 1.1c:", 1
-    )[0]
-    task_1c = text.split("### Task 1.1c:", 1)[1].split("### Task 1.2:", 1)[0]
+    task_1b2 = text.split(headings[1], 1)[1].split(headings[2], 1)[0]
+    task_1b3 = text.split(headings[2], 1)[1].split(headings[3], 1)[0]
+    task_1b4 = text.split(headings[3], 1)[1].split(headings[4], 1)[0]
+    task_1b5 = text.split(headings[4], 1)[1].split(headings[5], 1)[0]
+    task_1c = text.split(headings[5], 1)[1].split("### Task 1.2:", 1)[0]
+    three_layer_sections = (task_1b2, task_1b3, task_1b4, task_1b5, task_1c)
+    three_layer_section_sha256 = (
+        "53c0bcddcc6dadff455feef4b0de419adf3de30aeaaa9b1f8ffb61e211400a04",
+        "1a1c9e0a2eded8549623555f946591322d9539408624140ea9ca0a7b14afbe0d",
+        "9023d57fd1b590921819a406726551d844469531e9031b46e9eb7ce30008a4d6",
+        "275b4395eebbc7aee7b55ec0d1f6d6e4c72f7984cbc27ec6285489bbaa1cf1fd",
+        "6e1e14860da3538ea3f1239f18027747d4ae7edf19483cf192a44443dba2d96a",
+    )
+    for section, expected_sha256 in zip(
+        three_layer_sections, three_layer_section_sha256, strict=True
+    ):
+        _assert_normalized_section_snapshot(section, expected_sha256)
     task_12 = text.split("### Task 1.2:", 1)[1].split("## Stage 2", 1)[0]
     stage_2_preamble = text.split("## Stage 2", 1)[1].split("### Task 2.1a:", 1)[0]
+    terms = text.split(TASK_57_HEADING, 1)[1].split(TASK_58_HEADING, 1)[0]
+    gdpval = text.split(TASK_58_HEADING, 1)[1].split(MANDATORY_SPIKES_HEADING, 1)[0]
     dispatch = text.split("## Current dispatch gate", 1)[1]
 
     for section in (status, task_02, dispatch):
@@ -926,11 +946,12 @@ def _assert_rebaseline_status_names_current_integration_and_next_gate(
         )
         assert f"`{breaker_baseline}`" in normalized
         assert "PR #7 is NOT independently CLEAN" in normalized
-        assert "Task 1.1b1" in normalized
-        assert "sole next dispatchable" in normalized
-        assert "Tasks 1.1b2–1.1b5" in normalized
+        assert f"`{implementation_baseline}`" in normalized
+        assert "Task 1.1b1 is complete and independently CLEAN" in normalized
+        assert "Task 1.1b2 bounded brief" in normalized
+        assert "sole next dispatchable work" in normalized
         assert "Task 1.1c" in normalized
-        assert "HOLD" in normalized
+        assert "authority migration is independently CLEAN" in normalized
 
     dependency = b1_subblocks["**Dependency:**"]
     authority = b1_subblocks["**Binding implementation authority:**"]
@@ -949,6 +970,11 @@ def _assert_rebaseline_status_names_current_integration_and_next_gate(
     )
     assert brief_digest in authority
     assert brief_digest in dispatch
+    assert design_digest in task_1b2
+    assert (
+        "`Aug 22 Sync/20260826_three_layer_measurement_execution_analysis_design_codex.md`"
+        in task_1b2
+    )
     assert tuple(re.findall(r"`([A-Za-z]+)`", inventory)) == (
         "ClusterDesignSpec",
         "ClusterMembershipSpec",
@@ -965,15 +991,27 @@ def _assert_rebaseline_status_names_current_integration_and_next_gate(
     assert ownership.startswith(
         "**Ownership:** strict pre-run identities for a finite declared population"
     )
-    assert "### Tasks 1.1b2–1.1b5: HOLD" in text
-    assert (
-        "This HOLD intentionally freezes no final public record names."
-        in task_1b2_to_1b5
+    assert "measurement_sha256" in task_1b2
+    assert "evaluation_instrument_sha256" in task_1b2
+    assert "planned judgment" in task_1b3
+    assert "realized `EvaluationWork`" in " ".join(task_1b3.split())
+    assert "transition_outcome_unknown" in task_1b3
+    assert "quarantine" in task_1b3
+    assert "analysis_design_sha256" in task_1b4
+    assert "ignorability" in task_1b4
+    assert "analysis_plan_sha256" in task_1b5
+    assert "composition_sha256" in task_1b5
+    assert "SuiteExecutionProjection" in task_1c
+    assert "`suite` and `suite_sha256`" in task_1c
+    assert "AnalysisPlanRegistration" in task_1c
+    assert "AttemptSelectionProof" in task_1c
+    assert "AnalysisRecord" in task_1c
+    assert "no final public record names" in " ".join(
+        (task_1b2, task_1b3, task_1b4, task_1b5)
     )
-    assert "HOLD — atomic three-layer resolution" in task_1c
     assert "**Dependency:** Task 1.1c is independently clean." in task_12
     assert "**Current gate:** blocked." in task_12
-    assert "Task 1.1c is HOLD" in task_12
+    assert "Task 1.1c is not independently complete" in task_12
     assert (
         "Task 1.1b1 constructor-pressure tests are schema prerequisites and do not "
         "satisfy Task 1.2." in " ".join(task_12.split())
@@ -981,12 +1019,14 @@ def _assert_rebaseline_status_names_current_integration_and_next_gate(
     normalized_stage_2 = " ".join(
         line.removeprefix("> ").strip() for line in stage_2_preamble.splitlines()
     )
-    assert "HOLD inheritance" in normalized_stage_2
+    assert "Dependency inheritance" in normalized_stage_2
     assert (
-        "every Stage 2–5 dependency on Task 1.1c remains blocked" in normalized_stage_2
+        "every Stage 2–5 dependency on Task 1.1c remains blocked until Task 1.1c is independently CLEAN"
+        in normalized_stage_2
     )
-    assert "Implementers may not use those references to backfill the HOLD schema" in (
-        normalized_stage_2
+    assert (
+        "Implementers may not use those references to backfill unresolved schema"
+        in normalized_stage_2
     )
     assert (
         "Task 2.1a's mandatory first RED is the one parked compiled-core regression-guard finding"
@@ -996,9 +1036,15 @@ def _assert_rebaseline_status_names_current_integration_and_next_gate(
         assert "pr #7 is independently clean" not in gate_section.casefold()
     assert "pr #7 is independently clean" not in task_1b.casefold()
 
-    for hold_section in (task_1b2_to_1b5, task_1c):
-        assert "is dispatchable for implementation" not in hold_section.casefold()
-    assert "may backfill the hold schema" not in stage_2_preamble.casefold()
+    for gated_section in (task_1b2, task_1b3, task_1b4, task_1b5, task_1c):
+        assert "is dispatchable for implementation" not in gated_section.casefold()
+    assert "may backfill unresolved schema" not in stage_2_preamble.casefold()
+    assert "public-material source survey" in terms
+    assert "official a0 is blocked" in terms.casefold()
+    assert "A0 (current)" not in terms
+    assert "public-material source and rater survey" in gdpval
+    assert "a0 is blocked" in gdpval.casefold()
+    assert "A0 (current)" not in gdpval
 
     gates = " ".join((status, task_02, dispatch))
     for stale in (
@@ -1076,7 +1122,7 @@ def test_rebaseline_guard_rejects_stage_2_hold_schema_backfill_permission() -> N
     _assert_rebaseline_mutation_is_rejected(
         text.replace(
             stage_2_preamble,
-            stage_2_preamble + "\nStage 2 may backfill the HOLD schema.\n",
+            stage_2_preamble + "\nStage 2 may backfill unresolved schema.\n",
             1,
         )
     )
@@ -1084,7 +1130,10 @@ def test_rebaseline_guard_rejects_stage_2_hold_schema_backfill_permission() -> N
 
 def test_rebaseline_guard_rejects_positive_clean_claim_inside_b1() -> None:
     text = REBASELINE_PLAN.read_text(encoding="utf-8")
-    task_1b = text.split("### Task 1.1b1:", 1)[1].split("### Tasks 1.1b2–1.1b5:", 1)[0]
+    task_1b = text.split("### Task 1.1b1:", 1)[1].split(
+        "### Task 1.1b2: Measurement selection and evaluation-instrument declarations",
+        1,
+    )[0]
     _assert_rebaseline_mutation_is_rejected(
         text.replace(task_1b, task_1b + "\nPR #7 is independently CLEAN.\n", 1)
     )
@@ -1093,7 +1142,10 @@ def test_rebaseline_guard_rejects_positive_clean_claim_inside_b1() -> None:
 def test_rebaseline_guard_rejects_relocated_b1_authority_digest() -> None:
     text = REBASELINE_PLAN.read_text(encoding="utf-8")
     digest = "13371f845ba1a34b0caa82dfca409f0558e0a3556313b13c39794bb56d231648"
-    task_1b = text.split("### Task 1.1b1:", 1)[1].split("### Tasks 1.1b2–1.1b5:", 1)[0]
+    task_1b = text.split("### Task 1.1b1:", 1)[1].split(
+        "### Task 1.1b2: Measurement selection and evaluation-instrument declarations",
+        1,
+    )[0]
     authority = task_1b.split("**Binding implementation authority:**", 1)[1].split(
         "**Files:**", 1
     )[0]
@@ -1109,7 +1161,10 @@ def test_rebaseline_guard_rejects_duplicate_b1_heading() -> None:
 
 def test_rebaseline_guard_rejects_second_binding_authority() -> None:
     text = REBASELINE_PLAN.read_text(encoding="utf-8")
-    task_1b = text.split("### Task 1.1b1:", 1)[1].split("### Tasks 1.1b2–1.1b5:", 1)[0]
+    task_1b = text.split("### Task 1.1b1:", 1)[1].split(
+        "### Task 1.1b2: Measurement selection and evaluation-instrument declarations",
+        1,
+    )[0]
     duplicate = "\n**Binding implementation authority:**\n`wrong/path.md`\n"
     _assert_rebaseline_mutation_is_rejected(
         text.replace(task_1b, task_1b + duplicate, 1)
@@ -1118,7 +1173,10 @@ def test_rebaseline_guard_rejects_second_binding_authority() -> None:
 
 def test_rebaseline_guard_rejects_second_b1_dependency() -> None:
     text = REBASELINE_PLAN.read_text(encoding="utf-8")
-    task_1b = text.split("### Task 1.1b1:", 1)[1].split("### Tasks 1.1b2–1.1b5:", 1)[0]
+    task_1b = text.split("### Task 1.1b1:", 1)[1].split(
+        "### Task 1.1b2: Measurement selection and evaluation-instrument declarations",
+        1,
+    )[0]
     duplicate = "\n**Dependency:** PR #7 is independently CLEAN.\n"
     _assert_rebaseline_mutation_is_rejected(
         text.replace(task_1b, task_1b + duplicate, 1)
@@ -1127,7 +1185,10 @@ def test_rebaseline_guard_rejects_second_b1_dependency() -> None:
 
 def test_rebaseline_guard_rejects_second_b1_inventory() -> None:
     text = REBASELINE_PLAN.read_text(encoding="utf-8")
-    task_1b = text.split("### Task 1.1b1:", 1)[1].split("### Tasks 1.1b2–1.1b5:", 1)[0]
+    task_1b = text.split("### Task 1.1b1:", 1)[1].split(
+        "### Task 1.1b2: Measurement selection and evaluation-instrument declarations",
+        1,
+    )[0]
     duplicate = "\n**Exact additive public names (11):**\n`FabricatedIdentitySpec`\n"
     _assert_rebaseline_mutation_is_rejected(
         text.replace(task_1b, task_1b + duplicate, 1)
@@ -1138,6 +1199,104 @@ def test_rebaseline_guard_rejects_second_current_dispatch_gate() -> None:
     text = REBASELINE_PLAN.read_text(encoding="utf-8")
     duplicate = "\n## Current dispatch gate\nTask 1.1b1 is blocked.\n"
     _assert_rebaseline_mutation_is_rejected(text + duplicate)
+
+
+def _mutate_rebaseline_section(start: str, end: str, addition: str) -> str:
+    text = REBASELINE_PLAN.read_text(encoding="utf-8")
+    section = text.split(start, 1)[1].split(end, 1)[0]
+    return text.replace(section, section + addition, 1)
+
+
+def test_three_layer_guard_rejects_analysis_identity_in_execution_receipt() -> None:
+    _assert_rebaseline_mutation_is_rejected(
+        _mutate_rebaseline_section(
+            "### Task 1.1b5: AnalysisPlan envelope, DAG, and declaration-only composition",
+            "### Task 1.1c: Atomic three-layer resolution and schema migration",
+            "\nPlanCell and receipt also bind analysis_design_sha256.\n",
+        )
+    )
+
+
+def test_three_layer_guard_rejects_pre_outcome_realized_evaluation_work() -> None:
+    _assert_rebaseline_mutation_is_rejected(
+        _mutate_rebaseline_section(
+            "### Task 1.1b3: Execution-design authoring and episode-attempt policy",
+            "### Task 1.1b4: Analysis primitives",
+            "\nRealized EvaluationWork is precomputed before any outcome.\n",
+        )
+    )
+
+
+def test_three_layer_guard_rejects_successor_after_unknown_transition() -> None:
+    _assert_rebaseline_mutation_is_rejected(
+        _mutate_rebaseline_section(
+            "### Task 1.1b3: Execution-design authoring and episode-attempt policy",
+            "### Task 1.1b4: Analysis primitives",
+            "\nA predeclared policy may retry transition_outcome_unknown.\n",
+        )
+    )
+
+
+def test_three_layer_guard_rejects_unregistered_preregistered_analysis() -> None:
+    _assert_rebaseline_mutation_is_rejected(
+        _mutate_rebaseline_section(
+            "### Task 1.1b5: AnalysisPlan envelope, DAG, and declaration-only composition",
+            "### Task 1.1c: Atomic three-layer resolution and schema migration",
+            "\nContent hash alone proves the analysis was preregistered.\n",
+        )
+    )
+
+
+def test_three_layer_guard_rejects_legacy_full_suite_in_run_plan() -> None:
+    _assert_rebaseline_mutation_is_rejected(
+        _mutate_rebaseline_section(
+            "### Task 1.1c: Atomic three-layer resolution and schema migration",
+            "### Task 1.2: Add five provider-free measurement fixtures",
+            "\nRunPlan retains suite and suite_sha256 for compatibility.\n",
+        )
+    )
+
+
+def test_three_layer_guard_rejects_unqualified_complete_case_primary() -> None:
+    _assert_rebaseline_mutation_is_rejected(
+        _mutate_rebaseline_section(
+            "### Task 1.1b4: Analysis primitives",
+            "### Task 1.1b5: AnalysisPlan envelope, DAG, and declaration-only composition",
+            "\nValid-only complete-case output is always the primary population estimate.\n",
+        )
+    )
+
+
+def test_three_layer_guard_rejects_relocated_design_authority_digest() -> None:
+    text = REBASELINE_PLAN.read_text(encoding="utf-8")
+    digest = "4e570d793c350d15e6857aaca87addd14bcd5afff7d70b4db75835e5d49bd879"
+    b2_start = (
+        "### Task 1.1b2: Measurement selection and evaluation-instrument declarations"
+    )
+    b3_start = "### Task 1.1b3: Execution-design authoring and episode-attempt policy"
+    task_1b2 = text.split(b2_start, 1)[1].split(b3_start, 1)[0]
+    relocated = task_1b2.replace(digest, "0" * 64, 1)
+    relocated += f"\nHistorical digest only: `{digest}`.\n"
+    _assert_rebaseline_mutation_is_rejected(text.replace(task_1b2, relocated, 1))
+
+
+def test_three_layer_guard_rejects_duplicate_b2_heading() -> None:
+    text = REBASELINE_PLAN.read_text(encoding="utf-8")
+    duplicate = (
+        "\n### Task 1.1b2: Measurement selection and evaluation-instrument declarations"
+        "\nConflicting authority.\n"
+    )
+    _assert_rebaseline_mutation_is_rejected(text + duplicate)
+
+
+def test_three_layer_guard_rejects_early_b3_implementation_dispatch() -> None:
+    _assert_rebaseline_mutation_is_rejected(
+        _mutate_rebaseline_section(
+            "### Task 1.1b3: Execution-design authoring and episode-attempt policy",
+            "### Task 1.1b4: Analysis primitives",
+            "\nTask 1.1b3 is dispatchable for implementation before Task 1.1b2 is clean.\n",
+        )
+    )
 
 
 def test_existing_attempt_observer_and_agent_adapter_signatures_remain_stable() -> None:

@@ -5,15 +5,19 @@
 > **Status:** Task 0.1a is independently P0/P1/P2 clean at `9f7255e`. Latest PR #7 source
 > `155d8fc` is integrated locally by true merge `b5239cd`, with compatibility and
 > executable-guard follow-ups through `c7aca60`; none was pushed or merged to GitHub/main.
-> Task 0.3 is complete. Task 1.1a1 and Task 1.1a2 are complete; the last independently
-> clean implementation baseline is `a7ddbb2`. PR #7 is NOT independently CLEAN at controller
-> breaker baseline `cd26e7202e0933c57169771d6f4500188407a40f`. Task 1.1b1 is the sole next
-> dispatchable schema slice under the controller ruling. It adds planned population/panel/
-> cluster/pairing/replication identity records only. Tasks 1.1b2–1.1b5 and Task 1.1c are
-> HOLD/not dispatchable until the Measurement / Execution-design / Analysis-design separation
-> is rewritten and independently reviewed. Task 1.2 and every task depending on Task 1.1c
-> remain blocked. The executable scheduler, attempt executor, receipt/replay kernel, and
-> benchmark adapters remain unimplemented.
+> Task 0.3, Task 1.1a1, Task 1.1a2, and Task 1.1b1 are complete; Task 1.1b1 is complete and
+> independently CLEAN at `289faf5871f2cfe52140a06e7b51c238e4ef498e`. PR #7 is NOT
+> independently CLEAN at controller breaker baseline
+> `cd26e7202e0933c57169771d6f4500188407a40f`. The three-layer Measurement /
+> Execution-design / Analysis-design proposal is independently scientific and quality
+> CLEAN at normalized digest
+> `4e570d793c350d15e6857aaca87addd14bcd5afff7d70b4db75835e5d49bd879`.
+> The Task 1.1b2 bounded brief is the sole next dispatchable work only after this docs-only
+> authority migration is independently CLEAN; this migration is not SDK/runtime
+> implementation authorization. Tasks 1.1b3–1.1b5 remain sequentially gated on their
+> predecessor slice, and Task 1.1c remains gated on all four CLEAN slices. Task 1.2 and
+> every Stage 2–5 dependency on Task 1.1c remain blocked. The executable scheduler,
+> attempt executor, receipt/replay kernel, and benchmark adapters remain unimplemented.
 > **Supersedes:** Tasks 6–11 of `2026-08-24-shared-runner-sdk-kernel.md`; Tasks 1–5 and their review history remain valid
 
 ## Objective
@@ -99,13 +103,16 @@ local APFS volume.
 ### Task 0.2: Integrate the latest approved PR #7 design
 
 Complete locally. Latest PR #7 source `155d8fc` is integrated by true merge `b5239cd`, with
-crosswalk/status/stability/ABI-guard follow-ups through `c7aca60`. Task 1.1a1 and Task
-1.1a2 are complete, and the last independently clean implementation baseline is
-`a7ddbb2`. PR #7 is NOT independently CLEAN at controller breaker baseline
-`cd26e7202e0933c57169771d6f4500188407a40f`. Task 1.1b1 is the sole next dispatchable
-slice under the controller ruling.
-Tasks 1.1b2–1.1b5 and Task 1.1c remain HOLD; this status does not authorize their former
-schema text or any downstream implementation that depends on it. Older `275a285`/`388e52b` commits remain historical
+crosswalk/status/stability/ABI-guard follow-ups through `c7aca60`. Task 1.1a1, Task 1.1a2,
+and Task 1.1b1 are complete; Task 1.1b1 is complete and independently CLEAN at
+`289faf5871f2cfe52140a06e7b51c238e4ef498e`. PR #7 is NOT independently CLEAN at
+controller breaker baseline `cd26e7202e0933c57169771d6f4500188407a40f`. The reviewed
+three-layer design is pinned at normalized digest
+`4e570d793c350d15e6857aaca87addd14bcd5afff7d70b4db75835e5d49bd879`.
+The Task 1.1b2 bounded brief is the sole next dispatchable work only after this authority
+migration is independently CLEAN; Tasks 1.1b3–1.1b5 and Task 1.1c remain dependency-gated.
+This status does not authorize historical mixed-schema text or downstream implementation.
+Older `275a285`/`388e52b` commits remain historical
 milestones only. No implementer should repeat either merge, push it, or merge it to
 GitHub/main under this plan.
 
@@ -328,65 +335,160 @@ not A0/O0/E0/E1, execution, or parity.
 
 **Output:** canonical-hashable planned-identity authoring records only.
 
-### Tasks 1.1b2–1.1b5: HOLD — three-layer design rewrite required
+### Task 1.1b2: Measurement selection and evaluation-instrument declarations
 
-These slices are not dispatchable. Historical names, fields, files, dependencies, and RED
-matrices for selected evaluation mode, estimator/missingness, inference, judge design, or
-analysis composition are research inventory only. Before any implementation, the
-controller must publish a new bounded brief that separates Measurement, Execution design,
-and Analysis design; defines distinct suite-keyed identities and hash boundaries; resolves
-distinct-arm population/panel designs; freezes pre-outcome assignment
-design/realization; reconciles cluster weighting/missingness with final arithmetic; and
-receives independent specification/scientific and quality/adversarial CLEAN reviews.
+**Dependency:** Task 1.1b1 and this authority migration are independently CLEAN. The sole
+next work is a digest-pinned bounded Task 1.1b2 brief; this section alone does not authorize
+SDK edits.
 
-This HOLD intentionally freezes no final public record names.
+**Binding design authority:**
+`Aug 22 Sync/20260826_three_layer_measurement_execution_analysis_design_codex.md`,
+normalized self SHA-256
+`4e570d793c350d15e6857aaca87addd14bcd5afff7d70b4db75835e5d49bd879`.
 
-### Task 1.1c: HOLD — atomic three-layer resolution and schema migration must be redesigned
+**Ownership:** Measurement only: one family leaf identity/hash, one selected member of its
+allowed evaluation-class set, resolved reference/scorer intent, authorized judge-input
+projection, and the score-determining aggregation/tie/minimum-valid-slot instrument. The
+future `measurement_sha256` binds the resolved leaf, selected class, scorer/reference, and
+`evaluation_instrument_sha256`. It excludes population, panel, replication, seats,
+attempts, provider profiles, estimator, missingness, composition, receipts, and outcomes.
+An accepted tie remains a valid categorical judgment, never missing or numeric zero.
 
-**Dependency:** Task 1.1a and Tasks 1.1b1–1.1b5 are each independently clean. Because
-Tasks 1.1b2–1.1b5 are HOLD, this dependency is currently unsatisfied.
+**Stop gate:** the bounded brief must freeze exact public names, fields, files, validators,
+legacy export preservation, meaningful RED, and dual review. This migration freezes no
+final public record names. Task 1.1b3 and later slices remain gated until Task 1.1b2 code is
+independently CLEAN.
 
-Task 1.1c is not dispatchable. The superseded text mixed semantic measurement,
-population/panel/replication execution design, cluster/pair/estimator analysis design, and
-attempt control in one resolved measurement. Do not implement its historical public names,
-fields, Protocol signatures, hashes, migration versions, files, or RED matrix.
+**Output:** strict measurement selection/instrument authoring declarations only; no
+resolved record, evaluator work, provider execution, receipt, or analysis result.
 
-The replacement design must be independently reviewed before implementation and must at
-minimum:
+### Task 1.1b3: Execution-design authoring and episode-attempt policy
 
-1. keep family leaf plus selected/resolved reference/scorer/judge semantics in the
-   Measurement layer;
-2. resolve SuiteManifest-keyed population, full frame, panel realization, replication,
-   EvaluationBlock/seat assignment, and one run/PlanCell attempt policy in the Execution
-   design layer;
-3. resolve SuiteManifest-keyed cluster projection, pairing, estimator, missingness,
-   interval/test, multiplicity, and analysis DAG in the Analysis design layer;
-4. bind separate measurement, execution-design, and analysis-design identities/hashes in
-   plan and receipt records; b1 identities never enter the family leaf/measurement hash;
-5. preserve same-design-ID canonical identity and prohibit implicit dedup of different
-   design IDs; require the later execution schema to declare realization keys,
-   coupling/independence, and RNG domains explicitly, including across arms;
-6. exact-resolve the complete population frame before outcome, execute/import only
-   predeclared SRSWOR realization, and publish selection provenance;
-7. exact-resolve `PairingSpec` sides to distinct `EvaluationBlock.block_id` values and
-   separately declare any assignment mechanism/realization needed for causal or
-   randomization claims;
-8. keep attempt retry authorization in execution control, receipt-local attempt evidence
-   after execution, and outcome-blind attempt selection after complete run closure;
-9. expose narrow typed artifact views/sinks for resolution and scoring without whole-store
-   enumeration;
-10. keep post-run cluster-size/effective-resampling reporting in analysis evidence, not b1.
+**Dependency:** Task 1.1b2 is independently CLEAN and a separate digest-pinned bounded
+Task 1.1b3 brief is independently CLEAN.
 
-No downstream task may use historical Task 1.1c text as substitute authority while this
-HOLD is active.
+**Ownership:** Execution design only: typed refs to b1 population/frame/panel/replication,
+pre-outcome selection realization identity, blocks/cases/seats/coordinates, pinned
+agent/evaluator provider-model-harness-runtime profiles, planned judgment slots and
+assignment/profile/source/lease-subject templates, and one run-level episode-attempt
+policy. It may author a judgment-work template, but Task 3.5 alone materializes realized
+`EvaluationWork` after the economic outcome is finalized while the evidence log remains
+open. Ephemeral request/session/token/PID/timestamp/credential values are excluded from
+`execution_design_sha256`.
+
+The policy freezes a closed terminal-to-disposition table. In particular,
+`transition_outcome_unknown` maps only to `quarantine`; a successor is permitted only for
+an exact idempotent same-operation proven not committed or an isolated runner-owned COW
+failure proven unpublished. Cancellation proven no-commit and cancellation with unknown
+commit are separate terminal classes with typed durable proof. The analysis must preserve
+first-attempt and policy-assisted-final estimands separately; retry success cannot replace
+first-attempt performance.
+
+**Stop gate:** no b1 payload copy, cell expansion, provider call, failure evidence,
+receipt selection, or `AttemptSelectionProof`. This migration freezes no final public
+record names. Task 1.1b4 remains gated until this slice is independently CLEAN.
+
+**Output:** execution authoring and closed eligibility policy declarations only.
+
+### Task 1.1b4: Analysis primitives
+
+**Dependency:** Tasks 1.1b2 and 1.1b3 are independently CLEAN and a separate bounded Task
+1.1b4 brief is independently CLEAN. If the reviewed field/test surface is too large, split
+it into b4a estimator/missingness and b4b inference/assignment/multiplicity before code.
+
+**Ownership:** Analysis design only: resolved cluster/pair projection intent, assignment
+mechanism/realization provenance, exact-rational estimator/transformation/success
+predicate, missingness, interval/resampling/test, multiplicity, and post-receipt rater
+coverage/disagreement summaries. `analysis_design_sha256` is independent of measurement,
+execution outcomes, receipts, and composition.
+
+Every estimator freezes its analysis unit and within-cluster reduction. Unequal-cluster
+tests distinguish planned-cell/row weighting from equal-cluster weighting and recompute
+the exact declared estimator over whole resampled blocks. Every missingness rule freezes
+planned-population, complete-case-conditional, or bounds/sensitivity estimand plus its
+ignorability assumption; without support for ignorability, a planned-population primary
+is typed invalid or bounded, while a valid-only point estimate is conditional secondary.
+
+**Stop gate:** no runtime arithmetic, analysis result, provider access, or judge leaf
+re-aggregation. This migration freezes no final public record names. Task 1.1b5 remains
+gated until this slice is independently CLEAN.
+
+**Output:** analysis primitive declarations only.
+
+### Task 1.1b5: AnalysisPlan envelope, DAG, and declaration-only composition
+
+**Dependency:** Tasks 1.1b2–1.1b4 are independently CLEAN and a separate bounded Task
+1.1b5 brief is independently CLEAN.
+
+**Ownership:** immutable `AnalysisPlan` authoring: closed node/edge IO, eligible
+measurement/execution coordinate refs, analysis-design ref/hash, separately hashed ordered
+composition declaration, attempt estimand, and an envelope
+`analysis_plan_sha256 = H("aeread.analysis_plan/1", coordinate refs, analysis-design
+ref/hash, composition ref/hash, attempt estimand)`. `composition_sha256` remains a separate
+domain. Neither hash enters RunPlan, PlanCell, or an immutable per-attempt receipt.
+
+The V0 weighted scalar remains declaration-only/deferred. A plan becomes preregistered
+only through a later append-only `AnalysisPlanRegistration` ordered before the first
+execution side effect; a later registration is explicitly `post_hoc_exploratory`.
+
+**Stop gate:** no giant `SuiteMeasurementBinding`, execution, statistical computation,
+receipt finalization, or `AnalysisRecord`. This migration freezes no final public record
+names. Task 1.1c remains gated until this slice is independently CLEAN.
+
+**Output:** content-addressed analysis-plan envelope, DAG, and declaration-only
+composition authoring.
+
+### Task 1.1c: Atomic three-layer resolution and schema migration
+
+**Dependency:** Task 1.1a and Tasks 1.1b1–1.1b5 are each independently CLEAN, and a
+digest-pinned bounded Task 1.1c brief is independently CLEAN.
+
+**Ownership:** one trust boundary may be implemented through private reviewed subslices,
+but it publishes one atomic public migration only. It exact-type/dump revalidates all
+b1–b5 inputs, resolves allowlisted registries/artifacts without store enumeration,
+exact-matches inline population units to the complete sealed frame, executes/imports only
+the predeclared sampled realization, resolves blocks/seats/profiles/judgment templates,
+validates cluster cover/pairs/assignment/coarsening/DAG, expands seeded positional or
+honest upstream-unseeded cells, and commits all versioned schemas together.
+
+The migration publishes `FamilyManifest/0.2`, `SuiteManifest/0.2`, `PlanCell/0.2`, and
+`RunPlan/0.3`. RunPlan/0.3 removes the canonical `suite` and `suite_sha256` fields and
+replaces them with a typed content-addressed `SuiteExecutionProjection` ref/hash containing
+only measurement/execution authoring bytes. PlanCell and receipt bind only
+`measurement_sha256` and `execution_design_sha256`; analysis/composition remain in the
+independent AnalysisPlan envelope. Analysis-only changes therefore cannot churn RunPlan,
+PlanCell, receipt, or leaf score identity.
+
+All stage-only sinks for frame selection, assignment realization, and reconciliation use
+one atomic/idempotent transaction identity and reject same-key/different-bytes, wrong role,
+partial publication, or re-execution after crash. Task 2.1b later owns append-only
+`AnalysisPlanRegistration`; Task 3.4 emits it before the first execution side effect.
+Receipts carry immutable local `AttemptPolicyEvidence` only. Task 3.12 alone recomputes
+`AttemptSelectionProof` after complete chain/run closure and binds it only in
+`AnalysisRecord`; closure/run/analysis failure never rewrites receipt bytes.
+
+**RED requirements:** mutation/property tests cover every version/hash/domain field,
+legacy RunPlan suite fields, frame missing/extra/duplicate/content mismatch, sample and
+cluster/pair errors, R=2 positional zip rather than R-squared, unknown-transition retry,
+registration ordering, all stage-sink crash/idempotency cases, analysis-only and
+composition-only hash independence, outcome-correlated missingness, unequal-cluster
+weighting goldens, and provider/filesystem/network import isolation.
+
+**Stop gate:** this task does not execute providers/evaluators, run statistical analysis,
+finalize receipts, or publish half-migrated schemas. No Stage 2–5 implementation may infer
+historical mixed-schema names. It is not dispatchable until every dependency and its own
+bounded brief are independently CLEAN.
+
+**Output:** one atomic family/suite/plan migration plus provider-free resolved measurement,
+execution projection, AnalysisPlan, artifact-capability, and sealed aggregate boundaries.
 
 ### Task 1.2: Add five provider-free measurement fixtures
 
 **Dependency:** Task 1.1c is independently clean.
 
-**Current gate:** blocked. Task 1.1c is HOLD, so no fixture may be presented as consuming a
-final resolved measurement/receipt surface. Task 1.1b1 constructor-pressure tests are
-schema prerequisites and do not satisfy Task 1.2.
+**Current gate:** blocked. Task 1.1c is not independently complete, so no fixture may be
+presented as consuming a final resolved measurement/receipt surface. Task 1.1b1
+constructor-pressure tests are schema prerequisites and do not satisfy Task 1.2.
 
 **Files:** create one valid and one neighboring invalid fixture for each family under
 `tests/shared_runner/fixtures/verifier_families/`, and create
@@ -414,11 +516,12 @@ upstream parity, interval adequacy, or benchmark quality.
 
 ## Stage 2 — correct agent lifecycle and side-effect contracts
 
-> **HOLD inheritance:** every Stage 2–5 dependency on Task 1.1c remains blocked. Any
+> **Dependency inheritance:** every Stage 2–5 dependency on Task 1.1c remains blocked until
+> Task 1.1c is independently CLEAN. Any
 > downstream references to unresolved measurement/execution/analysis, attempt policy,
 > judge aggregate, receipt, or analysis names are non-dispatchable design inventory until
 > the replacement Task 1.1c authority exact-defines them. Implementers may not use those
-> references to backfill the HOLD schema.
+> references to backfill unresolved schema.
 > Task 2.1a's mandatory first RED is the one parked compiled-core regression-guard finding
 > from breaker baseline `cd26e7202e0933c57169771d6f4500188407a40f`; this migration does
 > not alter its attempt ABI or guard.
@@ -2135,22 +2238,23 @@ not mislabeled as an exact optimum.
 
 ### Task 5.7: TERMS comparative fixture
 
-**Evidence direction:** `A0 (current) -> AERead-owned E0 (next) -> official E1 blocked` until upstream is admitted.
+**Evidence direction:** `public-material survey (current) -> official A0 blocked -> AERead-owned synthetic E0 pending -> official E1 blocked`.
 
-Record TERMS-Bench public materials as A0 only. Build a clearly AERead-owned controlled
-buyer/seller E0 comparative fixture with frozen counterpart, information boundary, utility,
-outside option, and paired seed design. Do not claim official E1 parity until the official
-simulator, defaults/config hash, code pin, and license are published and admitted.
+Record TERMS-Bench as a public-material source survey only. Official A0 is blocked until
+the simulator/code, defaults/config hash, dependency pin, and license are published and
+admitted. A clearly AERead-owned controlled buyer/seller synthetic E0 may later freeze its
+counterpart, information boundary, utility, outside option, and paired seed design, but it
+is not upstream admission or official E1 parity.
 
 ### Task 5.8: GDPval rater fixture
 
-**Evidence direction:** `A0 (current) -> canned provider-free E0 (next) -> official E1 blocked` until the official protocol is admitted.
+**Evidence direction:** `public-material source/rater survey (current) -> A0 blocked -> canned provider-free E0 pending -> official E1 blocked`.
 
-Complete GDPval A0 admission for task/artifact/rubric identities, redistribution/license,
-and the occupational-expert blinded comparison protocol. Then build a canned, provider-free
-E0 rater fixture that proves evaluator assignment, blind order, missing judgment, and
-artifact-view boundaries. A later LLM-judge or live artifact-backend pilot is a distinct
-protocol and never substitutes for the headline human evaluation.
+Treat GDPval as a public-material source and rater survey. A0 is blocked until task/artifact/
+rubric identities, redistribution/license, and the occupational-expert blinded comparison
+protocol are admitted. A later canned provider-free E0 may prove evaluator assignment,
+blind order, missing judgment, and artifact-view boundaries, but an LLM judge or live
+artifact-backend pilot never substitutes for the headline human evaluation.
 
 ## Mandatory conformance spikes
 
@@ -2192,12 +2296,15 @@ is a blocker, not authority for a sixth plan-fix round or hidden implementer dis
 ## Current dispatch gate
 
 PR #7 is NOT independently CLEAN at controller breaker baseline
-`cd26e7202e0933c57169771d6f4500188407a40f`. Under the controller ruling, Task 1.1b1 is
-the sole next dispatchable slice and is governed by the normalized brief digest
+`cd26e7202e0933c57169771d6f4500188407a40f`. Task 1.1b1 is complete and independently
+CLEAN at `289faf5871f2cfe52140a06e7b51c238e4ef498e`; its normalized brief digest remains
 `13371f845ba1a34b0caa82dfca409f0558e0a3556313b13c39794bb56d231648`.
-Tasks 1.1b2–1.1b5 and Task 1.1c are HOLD/not dispatchable pending the three-layer schema
-rewrite and independent review. Task 1.2 and all later dependencies on Task 1.1c remain
-blocked. Provider-free constructor pressure is never reported as runner execution,
-upstream parity, or benchmark-quality evidence. The two-file migration cannot change any
-attempt ABI/guard, SDK source/records, or shared-runner test. No push or GitHub/main merge
-is authorized.
+The independently CLEAN three-layer proposal is pinned at normalized digest
+`4e570d793c350d15e6857aaca87addd14bcd5afff7d70b4db75835e5d49bd879`.
+The Task 1.1b2 bounded brief is the sole next dispatchable work only after this docs-only
+authority migration is independently CLEAN. Task 1.1b3, Task 1.1b4, Task 1.1b5, and Task
+1.1c remain sequentially dependency-gated; Task 1.2 and all Stage 2–5 dependencies on
+Task 1.1c remain blocked. Provider-free constructor pressure is never runner execution,
+upstream parity, or benchmark-quality evidence. This two-file authority migration cannot
+change attempt ABI/guards, SDK/runtime source, or shared-runner behavior. No push or
+GitHub/main merge is authorized.
