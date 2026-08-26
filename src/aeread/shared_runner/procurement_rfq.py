@@ -855,7 +855,7 @@ def _profile(
             "sampling": {
                 "temperature": 0.0,
                 "top_p": 1.0 if provider == "openrouter" else None,
-                "max_output_tokens": 512,
+                "max_output_tokens": 2048 if provider == "openrouter" else 512,
                 "seed": 0 if provider == "openrouter" else None,
             },
             "budgets": {
