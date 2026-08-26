@@ -1023,3 +1023,69 @@ def test_legacy_measurement_schema_and_content_hashes_are_unchanged() -> None:
         "ComparativeMeasurementSpec": "94f3430c8661e79c0266c52ec31ddb4135cc734c83c5e210999ae5147faf7922",
         "FamilyManifest": "f5aff50f39f667f3b80752953225fcac46c6cf5feb191f0b171625549adf841e",
     }
+
+
+def test_planned_identity_addition_preserves_legacy_schema_and_export_abi() -> None:
+    import aeread.sdk.v1 as sdk_v1
+    from aeread.sdk.v1 import (
+        ClusterSpec,
+        EvaluationBlock,
+        FamilyManifest,
+        PlanCell,
+        RunPlan,
+        SuiteManifest,
+    )
+
+    def digest(value: object) -> str:
+        encoded = json.dumps(
+            value,
+            sort_keys=True,
+            separators=(",", ":"),
+            ensure_ascii=False,
+        ).encode("utf-8")
+        return hashlib.sha256(encoded).hexdigest()
+
+    assert {
+        model.__name__: digest(model.model_json_schema())
+        for model in (
+            ClusterSpec,
+            EvaluationBlock,
+            SuiteManifest,
+            PlanCell,
+            RunPlan,
+            FamilyManifest,
+        )
+    } == {
+        "ClusterSpec": "e284fac21824ccd795922b685fbbd76f3c2ecfbddb05d47d7264affadc634ec0",
+        "EvaluationBlock": "787c63e331b4946b2886952d4705c539104b6786c384d07a8c5652c2d0174a2f",
+        "SuiteManifest": "85e16708a5e7695a800448fc28bab618905d7baa1d8ba5e2c41d177409ee0530",
+        "PlanCell": "b01e32b42ec0f65a4899fd231197e35ad1b1ad58f2ab115f15879570a697fc25",
+        "RunPlan": "0ebd2ef5ffd9a30632bf5a4943e05fa9e90961ca6b1f60c21081ab0d14c2d31a",
+        "FamilyManifest": "98fceba5ca2d3da831f548b96c464b1a15ba4087c6476bec94aaa8e960a68ee8",
+    }
+
+    planned_identity_exports = {
+        "ClusterDesignSpec",
+        "ClusterMembershipSpec",
+        "EpisodeReplicationDesign",
+        "FixedPanelDesignSpec",
+        "PairingSpec",
+        "PanelDesignSpec",
+        "PlannedCoordinateField",
+        "SampledPanelDesignSpec",
+        "SamplingPopulationSpec",
+        "SeededEpisodeReplicationDesign",
+        "UnseededEpisodeReplicationDesign",
+    }
+    added_exports = tuple(
+        name for name in sdk_v1.__all__ if name in planned_identity_exports
+    )
+    assert len(added_exports) == 11
+    assert set(added_exports) == planned_identity_exports
+    legacy_exports = tuple(
+        sorted(name for name in sdk_v1.__all__ if name not in planned_identity_exports)
+    )
+    assert len(legacy_exports) == 158
+    assert digest(legacy_exports) == (
+        "2fe7d6311a309b47d2b753381144e2e7689a11b65e9bac145162ce779565bd3b"
+    )

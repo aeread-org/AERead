@@ -521,6 +521,201 @@ def _validate_direct_record_values(record: StrictModel, label: str) -> None:
             _validate_implementation_pin(value, f"{label} {field_name}")
 
 
+def _validate_canonical_string_tuple(
+    values: tuple[str, ...], label: str, *, required: bool
+) -> None:
+    if required and not values:
+        raise ValueError(f"{label} must be non-empty")
+    for index, value in enumerate(values):
+        _require_non_empty(f"{label}[{index}]", value)
+    if len(values) != len(set(values)):
+        raise ValueError(f"{label} values must be unique")
+    if values != tuple(sorted(values)):
+        raise ValueError(f"{label} must be canonically ordered")
+
+
+class SamplingPopulationSpec(StrictModel):
+    population_id: SDKStr
+    population_version: SDKStr
+    population_kind: Literal["finite_declared_frame"]
+    unit_schema_ref: SDKStr
+    unit_ids: tuple[SDKStr, ...]
+    provenance_refs: tuple[ArtifactRef, ...] = ()
+    frame_artifact_ref: ArtifactRef
+
+    @model_validator(mode="after")
+    def validate_population(self) -> "SamplingPopulationSpec":
+        _require_non_empty("population_id", self.population_id)
+        _require_semver("population_version", self.population_version)
+        _require_non_empty("unit_schema_ref", self.unit_schema_ref)
+        _validate_canonical_string_tuple(self.unit_ids, "unit_ids", required=True)
+        _validate_artifact_tuple(
+            self.provenance_refs, "provenance_refs", required=False
+        )
+        _validate_complete_artifact(self.frame_artifact_ref, "frame_artifact_ref")
+        return self
+
+
+class FixedPanelDesignSpec(StrictModel):
+    panel_kind: Literal["fixed_panel"]
+    panel_design_id: SDKStr
+    panel_design_version: SDKStr
+    selected_unit_ids: tuple[SDKStr, ...]
+    inference_scope: Literal["conditional_on_selected_panel"]
+
+    @model_validator(mode="after")
+    def validate_fixed_panel(self) -> "FixedPanelDesignSpec":
+        _require_non_empty("panel_design_id", self.panel_design_id)
+        _require_semver("panel_design_version", self.panel_design_version)
+        _validate_canonical_string_tuple(
+            self.selected_unit_ids, "selected_unit_ids", required=True
+        )
+        return self
+
+
+class SampledPanelDesignSpec(StrictModel):
+    panel_kind: Literal["sampled_panel"]
+    panel_design_id: SDKStr
+    panel_design_version: SDKStr
+    selection_algorithm: ImplementationRef
+    sampling_method: Literal["simple_random_without_replacement"]
+    selection_protocol_ref: ArtifactRef
+    selection_seed: SDKInt = Field(ge=0)
+    sample_size: SDKInt = Field(gt=0)
+    replacement: Literal["without_replacement"]
+    target_inference_scope: Literal[
+        "declared_finite_population_under_probability_sampling"
+    ]
+
+    @model_validator(mode="after")
+    def validate_sampled_panel(self) -> "SampledPanelDesignSpec":
+        _require_non_empty("panel_design_id", self.panel_design_id)
+        _require_semver("panel_design_version", self.panel_design_version)
+        _validate_implementation_pin(self.selection_algorithm, "selection_algorithm")
+        _validate_complete_artifact(
+            self.selection_protocol_ref, "selection_protocol_ref"
+        )
+        return self
+
+
+PanelDesignSpec = Annotated[
+    FixedPanelDesignSpec | SampledPanelDesignSpec,
+    Field(discriminator="panel_kind"),
+]
+
+
+class ClusterMembershipSpec(StrictModel):
+    cluster_id: SDKStr
+    population_unit_ids: tuple[SDKStr, ...]
+
+    @model_validator(mode="after")
+    def validate_membership(self) -> "ClusterMembershipSpec":
+        _require_non_empty("cluster_id", self.cluster_id)
+        _validate_canonical_string_tuple(
+            self.population_unit_ids, "population_unit_ids", required=True
+        )
+        return self
+
+
+class ClusterDesignSpec(StrictModel):
+    cluster_design_id: SDKStr
+    cluster_design_version: SDKStr
+    cluster_level: SDKStr
+    memberships: tuple[ClusterMembershipSpec, ...]
+
+    @model_validator(mode="after")
+    def validate_cluster_design(self) -> "ClusterDesignSpec":
+        _require_non_empty("cluster_design_id", self.cluster_design_id)
+        _require_semver("cluster_design_version", self.cluster_design_version)
+        _require_non_empty("cluster_level", self.cluster_level)
+        if not self.memberships:
+            raise ValueError("memberships must be non-empty")
+        cluster_ids = tuple(item.cluster_id for item in self.memberships)
+        _validate_canonical_string_tuple(cluster_ids, "cluster_ids", required=True)
+        all_unit_ids = tuple(
+            unit_id
+            for membership in self.memberships
+            for unit_id in membership.population_unit_ids
+        )
+        if len(all_unit_ids) != len(set(all_unit_ids)):
+            raise ValueError("population units cannot belong to multiple clusters")
+        return self
+
+
+PlannedCoordinateField = Literal[
+    "population_unit_id",
+    "case_id",
+    "repetition_index",
+    "rollout_seed",
+    "world_seed",
+]
+
+
+class PairingSpec(StrictModel):
+    pairing_id: SDKStr
+    pairing_version: SDKStr
+    pairing_kind: Literal["paired", "unpaired"]
+    subject_block_id: SDKStr
+    comparator_block_id: SDKStr
+    pair_key_fields: tuple[PlannedCoordinateField, ...] = ()
+
+    @model_validator(mode="after")
+    def validate_pairing(self) -> "PairingSpec":
+        _require_non_empty("pairing_id", self.pairing_id)
+        _require_semver("pairing_version", self.pairing_version)
+        _require_non_empty("subject_block_id", self.subject_block_id)
+        _require_non_empty("comparator_block_id", self.comparator_block_id)
+        if self.subject_block_id == self.comparator_block_id:
+            raise ValueError("pairing block IDs must be distinct")
+        _validate_canonical_string_tuple(
+            self.pair_key_fields,
+            "pair_key_fields",
+            required=self.pairing_kind == "paired",
+        )
+        if self.pairing_kind == "unpaired" and self.pair_key_fields:
+            raise ValueError("unpaired designs cannot declare pair_key_fields")
+        return self
+
+
+class SeededEpisodeReplicationDesign(StrictModel):
+    replication_mode: Literal["seeded"]
+    replication_id: SDKStr
+    replication_version: SDKStr
+    repetition_count: SDKInt = Field(gt=0)
+    rollout_seeds: tuple[Annotated[SDKInt, Field(ge=0)], ...]
+    replicate_identity: Literal["repetition_index_and_rollout_seed"]
+    replay_seed_guarantee: Literal["declared_seed_control"]
+
+    @model_validator(mode="after")
+    def validate_seeded_replication(self) -> "SeededEpisodeReplicationDesign":
+        _require_non_empty("replication_id", self.replication_id)
+        _require_semver("replication_version", self.replication_version)
+        if len(self.rollout_seeds) != self.repetition_count:
+            raise ValueError("rollout_seeds length must equal repetition_count")
+        return self
+
+
+class UnseededEpisodeReplicationDesign(StrictModel):
+    replication_mode: Literal["upstream_unseeded"]
+    replication_id: SDKStr
+    replication_version: SDKStr
+    repetition_count: SDKInt = Field(gt=0)
+    replicate_identity: Literal["repetition_index"]
+    replay_seed_guarantee: Literal["none"]
+
+    @model_validator(mode="after")
+    def validate_unseeded_replication(self) -> "UnseededEpisodeReplicationDesign":
+        _require_non_empty("replication_id", self.replication_id)
+        _require_semver("replication_version", self.replication_version)
+        return self
+
+
+EpisodeReplicationDesign = Annotated[
+    SeededEpisodeReplicationDesign | UnseededEpisodeReplicationDesign,
+    Field(discriminator="replication_mode"),
+]
+
+
 class ValidityDomainSpec(StrictModel):
     domain_id: SDKStr
     domain_version: SDKStr
