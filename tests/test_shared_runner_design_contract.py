@@ -621,18 +621,34 @@ def test_public_sdk_stability_policy_preserves_existing_v1_exports() -> None:
     assert '"CallAttemptStart"' in sdk_text
     assert '"CallAttemptToken"' in sdk_text
 
-    foundation = FOUNDATION_PLAN.read_text(encoding="utf-8")
-    rebaseline = REBASELINE_PLAN.read_text(encoding="utf-8")
-    roadmap = RUNNER_ARCHITECTURE.read_text(encoding="utf-8")
-    design = DESIGN.read_text(encoding="utf-8")
+    foundation = FOUNDATION_PLAN.read_text(encoding="utf-8").split(
+        "## Global Constraints", 1
+    )[1].split("## Execution workflow", 1)[0]
+    rebaseline = REBASELINE_PLAN.read_text(encoding="utf-8").split(
+        "### Task 2.1a: Add precise action/call/tool evidence vocabulary", 1
+    )[1].split("### Task 2.1b", 1)[0]
+    roadmap = RUNNER_ARCHITECTURE.read_text(encoding="utf-8").split(
+        "### 3. Execution objects", 1
+    )[1].split("### 4. Evidence objects", 1)[0]
+    design = DESIGN.read_text(encoding="utf-8").split(
+        "class AttemptObserver(Protocol):", 1
+    )[1].split("The public executable names", 1)[0]
+    required_compatibility = (
+        "existing `CallAttemptStart` and `CallAttemptToken` remain"
+    )
     for authority in (foundation, rebaseline, roadmap, design):
         authority_normalized = " ".join(authority.split())
         assert (
-            "existing `CallAttemptStart` and `CallAttemptToken` remain"
-            in authority_normalized
+            required_compatibility in authority_normalized
         )
         assert "not compatibility exports" not in authority_normalized
         assert "does not create a compatibility promise" not in authority_normalized
+
+        relocated = authority_normalized.replace(
+            required_compatibility, "compatibility is declared elsewhere", 1
+        )
+        relocated += f" Outside this authority: {required_compatibility}."
+        assert required_compatibility not in relocated.split(" Outside this authority:", 1)[0]
 
 
 def test_rebaseline_status_names_current_integration_and_next_gate() -> None:
