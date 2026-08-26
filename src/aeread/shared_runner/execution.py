@@ -13,6 +13,7 @@ import hashlib
 import inspect
 import json
 import os
+import shutil
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -349,6 +350,9 @@ class ProviderRequest:
     reasoning_effort: str | None
     timeout_seconds: float
     request_sha256: str
+    max_cost_usd: float | None = None
+    output_schema: Mapping[str, Any] | None = None
+    provider_metadata: Mapping[str, Any] | None = None
 
     def with_computed_hash(self) -> "ProviderRequest":
         payload = {
@@ -363,6 +367,9 @@ class ProviderRequest:
             "max_output_tokens": self.max_output_tokens,
             "reasoning_effort": self.reasoning_effort,
             "timeout_seconds": self.timeout_seconds,
+            "max_cost_usd": self.max_cost_usd,
+            "output_schema": self.output_schema,
+            "provider_metadata": self.provider_metadata,
         }
         return dataclasses.replace(
             self, request_sha256=_sha256_bytes(canonical_json_bytes(payload))
@@ -580,6 +587,267 @@ class OpenAIResponsesClient:
         )
 
 
+CommandRunner = Callable[
+    [tuple[str, ...], bytes], Awaitable[tuple[int, bytes, bytes]]
+]
+
+
+async def _run_subprocess(
+    arguments: tuple[str, ...], standard_input: bytes
+) -> tuple[int, bytes, bytes]:
+    process = await asyncio.create_subprocess_exec(
+        *arguments,
+        stdin=asyncio.subprocess.PIPE,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+    )
+    try:
+        stdout, stderr = await process.communicate(standard_input)
+    except asyncio.CancelledError:
+        process.kill()
+        await process.wait()
+        raise
+    return process.returncode, stdout, stderr
+
+
+class ClaudeCodePrintClient:
+    """Authenticated Claude Code print adapter for diagnostic R4 smokes.
+
+    The adapter deliberately disables tools, session persistence, project
+    customizations, and fallback models.  Its executable version and digest are
+    sealed into each request so a local CLI update cannot silently change a run.
+    """
+
+    def __init__(
+        self,
+        *,
+        executable: str | Path,
+        runtime_version: str,
+        runtime_sha256: str,
+        command_runner: CommandRunner = _run_subprocess,
+    ) -> None:
+        self._executable = Path(executable).resolve()
+        if not self._executable.is_file():
+            raise EvidenceIntegrityError(
+                f"Claude Code executable does not exist: {self._executable}"
+            )
+        if not isinstance(runtime_version, str) or not runtime_version:
+            raise EvidenceIntegrityError("Claude Code runtime version is required")
+        if (
+            not isinstance(runtime_sha256, str)
+            or len(runtime_sha256) != 64
+            or any(character not in "0123456789abcdef" for character in runtime_sha256)
+        ):
+            raise EvidenceIntegrityError(
+                "Claude Code runtime digest must be 64 lowercase hexadecimal characters"
+            )
+        self.runtime_version = runtime_version
+        self.runtime_sha256 = runtime_sha256
+        self._command_runner = command_runner
+
+    @classmethod
+    async def discover(cls, executable: str = "claude") -> "ClaudeCodePrintClient":
+        resolved = shutil.which(executable)
+        if resolved is None:
+            raise EvidenceIntegrityError(
+                f"Claude Code executable is unavailable: {executable!r}"
+            )
+        executable_path = Path(resolved).resolve()
+        digest = _sha256_bytes(executable_path.read_bytes())
+        returncode, stdout, stderr = await _run_subprocess(
+            (str(executable_path), "--version"), b""
+        )
+        if returncode != 0:
+            message = stderr.decode("utf-8", errors="replace").strip()
+            raise EvidenceIntegrityError(
+                f"Claude Code version probe failed with exit {returncode}: {message}"
+            )
+        version_output = stdout.decode("utf-8", errors="strict").strip()
+        version = version_output.split(maxsplit=1)[0] if version_output else ""
+        if not version:
+            raise EvidenceIntegrityError("Claude Code version probe returned no version")
+        return cls(
+            executable=executable_path,
+            runtime_version=version,
+            runtime_sha256=digest,
+        )
+
+    @property
+    def runtime_metadata(self) -> Mapping[str, str]:
+        return MappingProxyType(
+            {
+                "runtime_version": self.runtime_version,
+                "runtime_sha256": self.runtime_sha256,
+            }
+        )
+
+    async def complete(self, request: ProviderRequest) -> ProviderResult:
+        if request.provider != "claude_code":
+            raise ProviderFailure(
+                "provider_contract",
+                f"Claude Code adapter received provider {request.provider!r}",
+                retryable=False,
+            )
+        if request.base_url is not None:
+            raise ProviderFailure(
+                "provider_contract",
+                "Claude Code adapter does not accept a base URL",
+                retryable=False,
+            )
+        if request.revision != request.model:
+            raise ProviderFailure(
+                "provider_contract",
+                "Claude Code diagnostic runs require an exact model snapshot",
+                retryable=False,
+            )
+        if (
+            request.max_cost_usd is None
+            or isinstance(request.max_cost_usd, bool)
+            or request.max_cost_usd <= 0
+        ):
+            raise ProviderFailure(
+                "provider_contract",
+                "Claude Code adapter requires a positive per-profile cost ceiling",
+                retryable=False,
+            )
+        if not isinstance(request.output_schema, Mapping):
+            raise ProviderFailure(
+                "provider_contract",
+                "Claude Code adapter requires a structured output schema",
+                retryable=False,
+            )
+        declared_runtime = request.provider_metadata
+        expected_runtime = dict(self.runtime_metadata)
+        if not isinstance(declared_runtime, Mapping) or dict(declared_runtime) != expected_runtime:
+            raise ProviderFailure(
+                "provider_contract",
+                "sealed Claude Code runtime metadata does not match the adapter",
+                retryable=False,
+            )
+        actual_digest = _sha256_bytes(self._executable.read_bytes())
+        if actual_digest != self.runtime_sha256:
+            raise ProviderFailure(
+                "provider_contract",
+                "Claude Code runtime digest changed after plan resolution",
+                retryable=False,
+            )
+        arguments = (
+            str(self._executable),
+            "--safe-mode",
+            "--print",
+            "--model",
+            request.model,
+            "--effort",
+            request.reasoning_effort or "low",
+            "--tools",
+            "",
+            "--permission-mode",
+            "dontAsk",
+            "--no-session-persistence",
+            "--max-budget-usd",
+            format(request.max_cost_usd, ".12g"),
+            "--output-format",
+            "json",
+            "--system-prompt",
+            request.instructions,
+            "--json-schema",
+            canonical_json_bytes(request.output_schema).decode("utf-8"),
+        )
+        try:
+            returncode, stdout, stderr = await asyncio.wait_for(
+                self._command_runner(arguments, request.input_text.encode("utf-8")),
+                timeout=request.timeout_seconds,
+            )
+        except asyncio.TimeoutError as error:
+            raise ProviderFailure(
+                "timeout", "Claude Code invocation timed out", retryable=True
+            ) from error
+        if returncode != 0:
+            message = stderr.decode("utf-8", errors="replace").strip()
+            raise ProviderFailure(
+                "provider_rejected",
+                f"Claude Code exited with {returncode}: {message}",
+                retryable=False,
+            )
+        try:
+            payload = json.loads(stdout)
+        except (UnicodeDecodeError, json.JSONDecodeError) as error:
+            raise ProviderFailure(
+                "provider_contract",
+                "Claude Code did not return one valid JSON result",
+                retryable=False,
+            ) from error
+        if not isinstance(payload, Mapping):
+            raise ProviderFailure(
+                "provider_contract",
+                "Claude Code result must be an object",
+                retryable=False,
+            )
+        if payload.get("is_error") is not False:
+            raise ProviderFailure(
+                "provider_rejected",
+                str(payload.get("result") or "Claude Code reported an error"),
+                retryable=False,
+            )
+        model_usage = payload.get("modelUsage")
+        if not isinstance(model_usage, Mapping) or len(model_usage) != 1:
+            raise ProviderFailure(
+                "provider_contract",
+                "Claude Code run must report exactly one resolved model",
+                retryable=False,
+            )
+        resolved_model, usage = next(iter(model_usage.items()))
+        if not isinstance(resolved_model, str) or not isinstance(usage, Mapping):
+            raise ProviderFailure(
+                "provider_contract",
+                "Claude Code model usage is malformed",
+                retryable=False,
+            )
+
+        def nonnegative_integer(field: str) -> int:
+            value = usage.get(field, 0)
+            if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+                raise ProviderFailure(
+                    "provider_contract",
+                    f"Claude Code usage field {field!r} is invalid",
+                    retryable=False,
+                )
+            return value
+
+        cost = payload.get("total_cost_usd")
+        if (
+            isinstance(cost, bool)
+            or not isinstance(cost, (int, float))
+            or cost < 0
+        ):
+            raise ProviderFailure(
+                "provider_contract",
+                "Claude Code total_cost_usd is invalid",
+                retryable=False,
+            )
+        structured_output = payload.get("structured_output")
+        if structured_output is None:
+            raise ProviderFailure(
+                "provider_contract",
+                "Claude Code omitted the requested structured output",
+                retryable=False,
+            )
+        return ProviderResult(
+            response_id=str(payload.get("uuid") or payload.get("session_id") or ""),
+            requested_model=request.model,
+            resolved_model=resolved_model,
+            output_text=canonical_json_bytes(structured_output).decode("utf-8"),
+            finish_reason=str(
+                payload.get("stop_reason") or payload.get("terminal_reason") or "unknown"
+            ),
+            input_tokens=nonnegative_integer("inputTokens"),
+            cached_input_tokens=nonnegative_integer("cacheReadInputTokens"),
+            output_tokens=nonnegative_integer("outputTokens"),
+            cost_usd=float(cost),
+            raw_response=payload,
+        )
+
+
 class MinimalChatExecutor:
     """R3 response source for one-call, no-tools, no-memory agent profiles."""
 
@@ -687,6 +955,13 @@ class MinimalChatExecutor:
                 "observation": decision.observation,
             }
         ).decode("utf-8")
+        sampling_controls = profile.harness.config.get("sampling_controls")
+        temperature = profile.sampling.temperature
+        if (
+            isinstance(sampling_controls, Mapping)
+            and sampling_controls.get("temperature") == "unavailable"
+        ):
+            temperature = None
         return ProviderRequest(
             provider_call_id=provider_call_id,
             provider=profile.model.provider,
@@ -695,12 +970,15 @@ class MinimalChatExecutor:
             revision=profile.model.revision,
             instructions=self._prompt_text[profile.profile_id],
             input_text=input_text,
-            temperature=profile.sampling.temperature,
+            temperature=temperature,
             top_p=profile.sampling.top_p,
             max_output_tokens=max_output_tokens,
             reasoning_effort=profile.reasoning.effort,
             timeout_seconds=profile.budgets.timeout_seconds,
             request_sha256="",
+            max_cost_usd=profile.budgets.max_cost_usd,
+            output_schema=profile.harness.config.get("output_schema"),
+            provider_metadata=profile.harness.config.get("provider_runtime"),
         ).with_computed_hash()
 
     async def __call__(self, decision: DecisionRequest) -> CanonicalResponse:
@@ -1485,6 +1763,7 @@ __all__ = [
     "ActionAttemptRecord",
     "ArtifactRef",
     "CanonicalResponse",
+    "ClaudeCodePrintClient",
     "CellExecution",
     "EvidenceIntegrityError",
     "EvidenceStore",

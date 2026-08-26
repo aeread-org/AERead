@@ -11,6 +11,7 @@ import pytest
 
 from aeread.shared_runner.execution import (
     CanonicalResponse,
+    ClaudeCodePrintClient,
     EvidenceIntegrityError,
     EvidenceStore,
     MinimalChatExecutor,
@@ -475,6 +476,136 @@ def test_openai_adapter_requires_key_before_constructing_default_sdk(
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
     with pytest.raises(EvidenceIntegrityError, match="OPENAI_API_KEY"):
         OpenAIResponsesClient()
+
+
+def test_claude_code_adapter_pins_runtime_and_parses_structured_usage(tmp_path) -> None:
+    executable = tmp_path / "claude"
+    executable.write_bytes(b"pinned claude executable")
+    executable.chmod(0o755)
+    executable_sha256 = hashlib.sha256(executable.read_bytes()).hexdigest()
+    calls: list[tuple[tuple[str, ...], bytes]] = []
+    payload = {
+        "is_error": False,
+        "uuid": "result_fixture",
+        "stop_reason": "end_turn",
+        "terminal_reason": "completed",
+        "total_cost_usd": 0.001798,
+        "structured_output": {"offer": 7},
+        "modelUsage": {
+            "claude-haiku-4-5-20251001": {
+                "inputTokens": 1188,
+                "outputTokens": 122,
+                "cacheReadInputTokens": 0,
+                "cacheCreationInputTokens": 0,
+                "costUSD": 0.001798,
+                "canonicalModel": "claude-haiku-4-5",
+                "provider": "firstParty",
+            }
+        },
+    }
+
+    async def command_runner(arguments: tuple[str, ...], standard_input: bytes):
+        calls.append((arguments, standard_input))
+        return 0, json.dumps(payload).encode(), b""
+
+    client = ClaudeCodePrintClient(
+        executable=executable,
+        runtime_version="2.1.241",
+        runtime_sha256=executable_sha256,
+        command_runner=command_runner,
+    )
+    output_schema = {
+        "type": "object",
+        "properties": {"offer": {"type": "integer", "minimum": 0}},
+        "required": ["offer"],
+        "additionalProperties": False,
+    }
+    request = ProviderRequest(
+        provider_call_id="provider_call_claude_fixture",
+        provider="claude_code",
+        base_url=None,
+        model="claude-haiku-4-5-20251001",
+        revision="claude-haiku-4-5-20251001",
+        instructions=SYSTEM_PROMPT,
+        input_text='{"observation":{"private_value":11},"action_schema":"offer_v1"}',
+        temperature=0.0,
+        top_p=None,
+        max_output_tokens=256,
+        reasoning_effort="low",
+        timeout_seconds=30.0,
+        request_sha256="",
+        max_cost_usd=0.01,
+        output_schema=output_schema,
+        provider_metadata={
+            "runtime_version": "2.1.241",
+            "runtime_sha256": executable_sha256,
+        },
+    ).with_computed_hash()
+
+    result = asyncio.run(client.complete(request))
+
+    assert result.output_text == '{"offer":7}'
+    assert result.requested_model == "claude-haiku-4-5-20251001"
+    assert result.resolved_model == "claude-haiku-4-5-20251001"
+    assert result.input_tokens == 1188
+    assert result.output_tokens == 122
+    assert result.cost_usd == pytest.approx(0.001798)
+    assert len(calls) == 1
+    arguments, standard_input = calls[0]
+    assert arguments[0] == str(executable)
+    assert arguments[arguments.index("--model") + 1] == request.model
+    assert arguments[arguments.index("--effort") + 1] == "low"
+    assert arguments[arguments.index("--max-budget-usd") + 1] == "0.01"
+    assert arguments[arguments.index("--json-schema") + 1] == json.dumps(
+        output_schema, sort_keys=True, separators=(",", ":")
+    )
+    assert "--safe-mode" in arguments
+    assert "--no-session-persistence" in arguments
+    assert request.input_text not in arguments
+    assert standard_input == request.input_text.encode("utf-8")
+
+
+def test_claude_code_adapter_rejects_runtime_hash_mismatch_before_call(tmp_path) -> None:
+    executable = tmp_path / "claude"
+    executable.write_bytes(b"changed executable")
+    calls = 0
+
+    async def command_runner(_arguments: tuple[str, ...], _standard_input: bytes):
+        nonlocal calls
+        calls += 1
+        return 0, b"{}", b""
+
+    client = ClaudeCodePrintClient(
+        executable=executable,
+        runtime_version="2.1.241",
+        runtime_sha256="0" * 64,
+        command_runner=command_runner,
+    )
+    request = ProviderRequest(
+        provider_call_id="provider_call_claude_fixture",
+        provider="claude_code",
+        base_url=None,
+        model="claude-haiku-4-5-20251001",
+        revision="claude-haiku-4-5-20251001",
+        instructions=SYSTEM_PROMPT,
+        input_text="{}",
+        temperature=0.0,
+        top_p=None,
+        max_output_tokens=256,
+        reasoning_effort="low",
+        timeout_seconds=30.0,
+        request_sha256="",
+        max_cost_usd=0.01,
+        output_schema={"type": "object"},
+        provider_metadata={
+            "runtime_version": "2.1.241",
+            "runtime_sha256": "0" * 64,
+        },
+    ).with_computed_hash()
+
+    with pytest.raises(ProviderFailure, match="runtime digest"):
+        asyncio.run(client.complete(request))
+    assert calls == 0
 
 
 def _single_case() -> CaseManifest:

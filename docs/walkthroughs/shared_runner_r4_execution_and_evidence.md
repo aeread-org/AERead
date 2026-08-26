@@ -91,6 +91,25 @@ than a hidden global assumption: the profile records both the pricing identifier
 SHA-256 digest of the exact canonical pricing record, and execution verifies both before a
 call. Recheck and repin pricing before later experiments.
 
+## Claude Code diagnostic adapter
+
+`ClaudeCodePrintClient` permits an authenticated Claude Code installation to exercise the same
+R4 provider boundary without serializing a subscription credential. It resolves and hashes the
+actual executable, seals its version and digest into the request, and rechecks the digest before
+every call. The command uses safe mode, one print turn, an exact model snapshot, no tools, no
+session persistence, no fallback model, a JSON schema, and a provider-enforced dollar ceiling.
+The adapter rejects a missing schema, runtime drift, non-JSON result, hidden multi-model usage,
+or a missing structured output.
+
+Claude Code print mode does not expose temperature, top-p, seed, or a configurable output-token
+limit. The plan therefore declares those limitations, the transport records temperature and
+top-p as unavailable, and `max_output_tokens` records the resolved model default rather than a
+control the CLI did not apply. This path is suitable for R4 instrumentation admission, but its
+provider-owned prompt/runtime envelope is not equivalent to a direct API paper run.
+The pinned $1/M input, $0.10/M cache-read input, and $5/M output rates were checked against
+Anthropic's official [Claude pricing](https://platform.claude.com/docs/en/about-claude/pricing)
+page on 2026-08-26.
+
 ## Commands
 
 Zero-cost integration proof from a source checkout:
@@ -112,12 +131,32 @@ PYTHONPATH=src python -m aeread.shared_runner.smoke \
   --output /tmp/aeread-shared-runner-openai-smoke
 ```
 
+One live call through an authenticated Claude Code installation using the pinned Haiku snapshot:
+
+```bash
+PYTHONPATH=src python -m aeread.shared_runner.smoke \
+  --provider claude_code \
+  --model claude-haiku-4-5-20251001 \
+  --revision claude-haiku-4-5-20251001 \
+  --output /tmp/aeread-shared-runner-claude-smoke
+```
+
 After installing the package, the equivalent entry point is `aeread-shared-smoke`; the
 `PYTHONPATH=src python -m ...` form above is for an uninstalled source checkout.
 
 The CLI prints only run/cell/attempt identities, the family outcome, recorded cost, and evidence
 directory. Provider requests and raw responses remain content-addressed local artifacts; no API
 key is serialized.
+
+## Verified live admission
+
+On 2026-08-26 the exact Claude command above completed one sealed cell through R1-R4. The
+resolved model `claude-haiku-4-5-20251001` submitted offer `8`; parsing, legality, transition,
+termination, and outcome all succeeded. The runner recorded 2,000 input tokens, 795 output
+tokens, and $0.005975 cost under a $0.01 ceiling. Recomputing the cost from the pinned $1/M input
+and $5/M output prices produces the same $0.005975. All 13 event links and payload artifacts
+verified and every started entity reconciled exactly once. The non-secret durable admission
+summary is [`../evidence/shared_runner_r4_claude_smoke_2026-08-26.json`](../evidence/shared_runner_r4_claude_smoke_2026-08-26.json).
 
 ## Exact R4 boundary
 

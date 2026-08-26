@@ -11,6 +11,7 @@ from typing import Any, Mapping
 
 from .execution import (
     CanonicalResponse,
+    ClaudeCodePrintClient,
     OpenAIResponsesClient,
     ProviderRequest,
     ProviderResult,
@@ -47,6 +48,12 @@ SINGLE_OFFER_PROMPT = (
     "Return only one JSON object with one integer field named offer. "
     "Do not add markdown or explanation."
 )
+SINGLE_OFFER_OUTPUT_SCHEMA = {
+    "type": "object",
+    "properties": {"offer": {"type": "integer", "minimum": 0}},
+    "required": ["offer"],
+    "additionalProperties": False,
+}
 
 
 class SingleOfferPlugin:
@@ -180,13 +187,24 @@ def _pricing_for(model: str) -> TokenPricing:
             output_per_million=0.40,
             pricing_id="openai_standard_2026-08-26_gpt-5-nano",
         )
+    if model == "claude-haiku-4-5-20251001":
+        return TokenPricing(
+            input_per_million=1.0,
+            cached_input_per_million=0.10,
+            output_per_million=5.0,
+            pricing_id="anthropic_standard_2026-08-26_claude-haiku-4-5",
+        )
     raise ValueError(
         f"smoke fixture has no reviewed pricing pin for model {model!r}"
     )
 
 
 def build_single_offer_smoke(
-    *, provider: str, model: str, revision: str
+    *,
+    provider: str,
+    model: str,
+    revision: str,
+    provider_runtime: Mapping[str, str] | None = None,
 ) -> SmokeSetup:
     """Build and seal one fully pinned R1-R2 plan for the native smoke family."""
     family = FamilyManifest.from_dict(
@@ -290,6 +308,23 @@ def build_single_offer_smoke(
         }
     )
     model_pricing = _pricing_for(model)
+    harness_config: dict[str, Any] = {
+        "pricing_id": model_pricing.pricing_id,
+        "pricing_sha256": model_pricing.content_sha256(),
+    }
+    if provider == "claude_code":
+        if not isinstance(provider_runtime, Mapping):
+            raise ValueError("claude_code smoke requires pinned provider_runtime")
+        harness_config.update(
+            {
+                "output_schema": SINGLE_OFFER_OUTPUT_SCHEMA,
+                "provider_runtime": dict(provider_runtime),
+                "sampling_controls": {
+                    "temperature": "unavailable",
+                    "max_output_tokens": "provider_model_default",
+                },
+            }
+        )
     profile = AgentProfile.from_dict(
         {
             "spec_version": "aeread.agent_profile/0.1",
@@ -305,10 +340,7 @@ def build_single_offer_smoke(
             "harness": {
                 "id": "minimal_chat",
                 "version": "1.0",
-                "config": {
-                    "pricing_id": model_pricing.pricing_id,
-                    "pricing_sha256": model_pricing.content_sha256(),
-                },
+                "config": harness_config,
             },
             "prompt": {
                 "prompt_id": "single_offer_prompt_v1",
@@ -329,13 +361,13 @@ def build_single_offer_smoke(
             },
             "sampling": {
                 "temperature": 0.0,
-                "max_output_tokens": 80,
+                "max_output_tokens": 32_000 if provider == "claude_code" else 80,
                 "seed": None,
             },
             "budgets": {
                 "max_logical_actions": 1,
                 "timeout_seconds": 30.0,
-                "max_cost_usd": 0.001,
+                "max_cost_usd": 0.01 if provider == "claude_code" else 0.001,
             },
             "retry_policy": {
                 "max_action_attempts": 1,
@@ -415,16 +447,25 @@ def build_single_offer_smoke(
 
 
 async def _run_cli(arguments: argparse.Namespace) -> dict[str, Any]:
+    provider_runtime = None
     if arguments.provider == "fake":
         model = arguments.model or "fake-model"
         revision = arguments.revision or "fixed-v1"
         provider_client = FixedResponseProvider(json.dumps({"offer": arguments.offer}))
-    else:
+    elif arguments.provider == "openai":
         model = arguments.model or "gpt-5-nano-2025-08-07"
         revision = arguments.revision or model
         provider_client = OpenAIResponsesClient()
+    else:
+        model = arguments.model or "claude-haiku-4-5-20251001"
+        revision = arguments.revision or model
+        provider_client = await ClaudeCodePrintClient.discover()
+        provider_runtime = provider_client.runtime_metadata
     setup = build_single_offer_smoke(
-        provider=arguments.provider, model=model, revision=revision
+        provider=arguments.provider,
+        model=model,
+        revision=revision,
+        provider_runtime=provider_runtime,
     )
     execution = await execute_plan_cell(
         plan=setup.plan,
@@ -448,7 +489,9 @@ async def _run_cli(arguments: argparse.Namespace) -> dict[str, Any]:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--provider", choices=("fake", "openai"), default="fake")
+    parser.add_argument(
+        "--provider", choices=("fake", "openai", "claude_code"), default="fake"
+    )
     parser.add_argument("--model")
     parser.add_argument("--revision")
     parser.add_argument("--offer", type=int, default=7)
@@ -466,6 +509,7 @@ if __name__ == "__main__":  # pragma: no cover - CLI entry point
 __all__ = [
     "FixedResponseProvider",
     "SINGLE_OFFER_PROMPT",
+    "SINGLE_OFFER_OUTPUT_SCHEMA",
     "SingleOfferPlugin",
     "SmokeSetup",
     "build_single_offer_smoke",

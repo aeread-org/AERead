@@ -1,0 +1,85 @@
+{
+  "spec_version": "aeread.r4_admission/0.1",
+  "admission_status": "passed",
+  "executed_at": {
+    "first_event": "2026-08-26T07:38:16.919059Z",
+    "last_event": "2026-08-26T07:38:27.771525Z"
+  },
+  "identities": {
+    "run_plan_id": "runplan_698be9efe1ec9859",
+    "cell_id": "cell_8df995d3541813a19dc6",
+    "episode_attempt_id": "episode_attempt_92f01b24751565febcc2",
+    "request_sha256": "9c8ccddca2dee40f9a1df77247b4ab024f8f65aa968b72f78a91be640ebc0115"
+  },
+  "provider": {
+    "transport": "claude_code_print",
+    "requested_model": "claude-haiku-4-5-20251001",
+    "revision": "claude-haiku-4-5-20251001",
+    "resolved_model": "claude-haiku-4-5-20251001",
+    "runtime_version": "2.1.241",
+    "runtime_sha256": "1495eb7c42d3b4451f5f1cd38b6d498d22a4a38c802bc2be5c1cf1795e64820d",
+    "authentication": "claude.ai subscription; credential not serialized",
+    "tools_enabled": false,
+    "session_persistence": false,
+    "permission_denials": [],
+    "structured_output": true,
+    "finish_reason": "tool_use"
+  },
+  "sampling_controls": {
+    "reasoning_effort": "low",
+    "temperature": null,
+    "top_p": null,
+    "seed": null,
+    "max_output_tokens": 32000,
+    "max_output_tokens_semantics": "provider model default",
+    "max_cost_usd": 0.01
+  },
+  "usage": {
+    "input_tokens": 2000,
+    "cached_input_tokens": 0,
+    "output_tokens": 795,
+    "reported_cost_usd": 0.005975,
+    "pricing_recomputed_cost_usd": 0.005975,
+    "pricing_id": "anthropic_standard_2026-08-26_claude-haiku-4-5",
+    "pricing_source": "https://platform.claude.com/docs/en/about-claude/pricing"
+  },
+  "outcome": {
+    "valid": true,
+    "reason": "submitted",
+    "offer": 8
+  },
+  "evidence": {
+    "chain_verified": true,
+    "reconciliation_verified": true,
+    "event_count": 13,
+    "event_types": [
+      "phase_instance_started",
+      "logical_action_started",
+      "action_attempt_started",
+      "provider_call_started",
+      "provider_call_succeeded",
+      "action_attempt_succeeded",
+      "action_parsed",
+      "action_legality_checked",
+      "logical_action_succeeded",
+      "transition_applied",
+      "phase_instance_succeeded",
+      "episode_terminated",
+      "family_outcome_recorded"
+    ],
+    "run_plan_sha256": "f18afa35c7736acf85b3d47c1b53217a7f05c6e5a34520c76f361995fa5b09f7",
+    "events_jsonl_sha256": "3272b5cef97b75221a507bf898308bf9ac99e790d4f0768af5aaa26749af841d",
+    "final_event_hash": "09d0c1aa75ebb00e3678719a4c8602c6214c1e80d0cec09569902f7d5f9101bf"
+  },
+  "implementation_pins": {
+    "execution_and_harness_sha256": "d2b63a12b4a899ec31eaf391518a23e8e6e5bf39d6f61d12f71d6e323fa8521b",
+    "family_scorer_generator_sha256": "5eba338756c78e03b4e0bcb176289a3dda5096e7aa6d0d0b436591f3b772d868"
+  },
+  "scope": "R4 instrumentation admission only; not a benchmark score or paper measurement",
+  "limitations": [
+    "Claude Code subscription transport adds provider-owned prompt/runtime behavior.",
+    "Claude Code does not expose temperature, top-p, or seed controls in print mode.",
+    "The JSON-schema transport reports tool_use even though agent tools are disabled.",
+    "The full content-addressed evidence directory remains local and is not committed."
+  ]
+}

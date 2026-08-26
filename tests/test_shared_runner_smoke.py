@@ -26,6 +26,16 @@ class CountingProvider(FixedResponseProvider):
         return await super().complete(request)
 
 
+class CapturingProvider(FixedResponseProvider):
+    def __init__(self, text: str) -> None:
+        super().__init__(text)
+        self.requests = []
+
+    async def complete(self, request):
+        self.requests.append(request)
+        return await super().complete(request)
+
+
 def test_full_r1_to_r4_fake_model_smoke_is_executable_and_reconciled(tmp_path) -> None:
     setup = build_single_offer_smoke(
         provider="fake", model="fake-model", revision="fixed-v1"
@@ -134,3 +144,61 @@ def test_smoke_implementation_pins_are_actual_source_hashes() -> None:
     assert pins["single_offer_generator_v1"] == smoke_sha
     assert pins["minimal_chat"] == execution_sha
     assert pins["aeread.shared_runner.execution"] == execution_sha
+
+
+def test_claude_code_smoke_seals_runtime_schema_and_reviewed_pricing() -> None:
+    runtime_sha256 = "a" * 64
+    setup = build_single_offer_smoke(
+        provider="claude_code",
+        model="claude-haiku-4-5-20251001",
+        revision="claude-haiku-4-5-20251001",
+        provider_runtime={
+            "runtime_version": "2.1.241",
+            "runtime_sha256": runtime_sha256,
+        },
+    )
+
+    profile = setup.plan.agent_profiles[0]
+    assert profile.model.provider == "claude_code"
+    assert profile.model.model == "claude-haiku-4-5-20251001"
+    assert profile.harness.config["provider_runtime"] == {
+        "runtime_version": "2.1.241",
+        "runtime_sha256": runtime_sha256,
+    }
+    assert profile.harness.config["output_schema"]["required"] == ("offer",)
+    pricing = setup.pricing[profile.model.model]
+    assert pricing.input_per_million == 1.0
+    assert pricing.cached_input_per_million == 0.10
+    assert pricing.output_per_million == 5.0
+    assert profile.budgets.max_cost_usd == 0.01
+
+
+def test_claude_code_smoke_records_only_controls_the_cli_can_apply(tmp_path) -> None:
+    setup = build_single_offer_smoke(
+        provider="claude_code",
+        model="claude-haiku-4-5-20251001",
+        revision="claude-haiku-4-5-20251001",
+        provider_runtime={
+            "runtime_version": "2.1.241",
+            "runtime_sha256": "a" * 64,
+        },
+    )
+    provider = CapturingProvider('{"offer":7}')
+
+    asyncio.run(
+        execute_plan_cell(
+            plan=setup.plan,
+            cell_id=setup.plan.cells[0].cell_id,
+            registry=setup.registry,
+            evidence_root=tmp_path / "runs",
+            prompt_sources=setup.prompt_sources,
+            providers={"claude_code": provider},
+            pricing=setup.pricing,
+        )
+    )
+
+    assert len(provider.requests) == 1
+    request = provider.requests[0]
+    assert request.temperature is None
+    assert request.top_p is None
+    assert request.max_output_tokens == 32_000

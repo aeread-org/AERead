@@ -14,4 +14,5 @@
   transitions, typed invalid actions, deterministic execution IDs, and the R4 evidence boundary.
 - [`shared_runner_r4_execution_and_evidence.md`](shared_runner_r4_execution_and_evidence.md) —
   complete R1-R4 trace through sealed-plan publication, explicit attempts and provider/tool
-  side effects, canonical event/artifact evidence, retries, cost, and the live model-call CLI.
+  side effects, canonical event/artifact evidence, retries, cost, and the OpenAI-ready and
+  Claude-live model-call paths.
