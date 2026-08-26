@@ -150,6 +150,21 @@ class EvidenceStore:
                 f"R4 refuses to append to an existing event log: {self.events_path}"
             )
 
+    @classmethod
+    def audit_existing(cls, root: str | Path) -> "EvidenceStore":
+        """Open an immutable evidence directory and verify its full event chain."""
+
+        instance = object.__new__(cls)
+        instance.root = Path(root)
+        instance.artifacts_dir = instance.root / "artifacts" / "sha256"
+        instance.events_path = instance.root / "events.jsonl"
+        if not instance.root.is_dir() or not instance.events_path.is_file():
+            raise EvidenceIntegrityError(
+                f"existing evidence is incomplete at {instance.root}"
+            )
+        instance.audit_reconciliation()
+        return instance
+
     def put_artifact(
         self, value: bytes | str | Any, *, media_type: str = "application/json"
     ) -> ArtifactRef:

@@ -5,7 +5,12 @@ import dataclasses
 
 import pytest
 
-from aeread.shared_runner.execution import ProviderRequest, execute_plan_cell
+from aeread.shared_runner.execution import (
+    ProviderFailure,
+    ProviderRequest,
+    ProviderResult,
+    execute_plan_cell,
+)
 from aeread.shared_runner.housing import (
     HousingScriptedLandlordProvider,
     HousingScriptedTenantProvider,
@@ -15,6 +20,8 @@ from aeread.shared_runner.housing_experiment import (
     build_housing_condition_setup,
     derive_world_seeds,
     paired_inference_seed,
+    read_condition_results,
+    run_condition_batch,
 )
 
 
@@ -220,14 +227,38 @@ def test_condition_plans_pair_worlds_and_replicates_but_seal_distinct_treatments
 
 
 class _RecordingTenantProvider:
-    def __init__(self) -> None:
+    def __init__(self, *, cost_per_call: float = 0.0) -> None:
         self.requests: list[ProviderRequest] = []
         self._delegate = HousingScriptedTenantProvider()
+        self.cost_per_call = cost_per_call
 
     async def complete(self, request: ProviderRequest):
         self.requests.append(request)
         translated = dataclasses.replace(request, provider="housing_scripted_tenant")
-        return await self._delegate.complete(translated)
+        result = await self._delegate.complete(translated)
+        return dataclasses.replace(result, cost_usd=self.cost_per_call)
+
+
+class _ChargedFailureTenantProvider:
+    async def complete(self, request: ProviderRequest):
+        result = ProviderResult(
+            response_id=f"failed-{request.provider_call_id}",
+            requested_model=request.model,
+            resolved_model=request.revision,
+            output_text="",
+            finish_reason="length",
+            input_tokens=10,
+            cached_input_tokens=0,
+            output_tokens=10,
+            cost_usd=0.001,
+            raw_response={"usage": {"completion_tokens_details": {"reasoning_tokens": 3}}},
+        )
+        raise ProviderFailure(
+            "length",
+            "synthetic charged length failure",
+            retryable=True,
+            provider_result=result,
+        )
 
 
 def _cell_for(setup, *, world_seed: int, replicate_index: int):
@@ -305,3 +336,182 @@ def test_executor_applies_same_paired_seed_across_conditions_and_new_seed_per_re
         replicate_index=0,
     )
     assert disabled_r1.requests[0].seed != disabled_r0.requests[0].seed
+
+
+def _batch_providers(recorder: _RecordingTenantProvider):
+    return {
+        "openrouter": recorder,
+        "housing_scripted_landlord": HousingScriptedLandlordProvider(),
+    }
+
+
+def test_condition_batch_writes_verified_cell_summaries_and_resumes_without_calls(
+    tmp_path,
+) -> None:
+    setup = build_housing_condition_setup(
+        condition_id="reasoning_none_v1",
+        reasoning_effort="none",
+        world_seeds=(101, 202),
+        replicates=2,
+        tenant_model=DEEPSEEK_MODEL,
+        tenant_revision=DEEPSEEK_REVISION,
+        num_tenants=2,
+        num_listings=1,
+        rounds=1,
+        inference_seed_base=87001,
+    )
+    first_provider = _RecordingTenantProvider()
+    first = asyncio.run(
+        run_condition_batch(
+            setup=setup,
+            condition_id="reasoning_none_v1",
+            output_root=tmp_path,
+            providers=_batch_providers(first_provider),
+            concurrency=2,
+            spend_limit_usd=1.0,
+        )
+    )
+
+    assert first["planned_count"] == 4
+    assert first["executed_count"] == 4
+    assert first["resumed_count"] == 0
+    assert first["completed_count"] == 4
+    assert first["pending_count"] == 0
+    assert first_provider.requests
+    rows = read_condition_results(
+        tmp_path, condition_id="reasoning_none_v1", verify_evidence=True
+    )
+    assert len(rows) == 4
+    assert all(row["status"] == "completed" for row in rows)
+    assert all(row["evidence_verified"] is True for row in rows)
+    assert {(row["world_seed"], row["replicate_index"]) for row in rows} == {
+        (101, 0),
+        (101, 1),
+        (202, 0),
+        (202, 1),
+    }
+
+    second_provider = _RecordingTenantProvider()
+    second = asyncio.run(
+        run_condition_batch(
+            setup=setup,
+            condition_id="reasoning_none_v1",
+            output_root=tmp_path,
+            providers=_batch_providers(second_provider),
+            concurrency=2,
+            spend_limit_usd=1.0,
+        )
+    )
+    assert second["executed_count"] == 0
+    assert second["resumed_count"] == 4
+    assert second["completed_count"] == 4
+    assert second_provider.requests == []
+
+
+def test_condition_batch_stops_releasing_cells_at_global_spend_boundary(tmp_path) -> None:
+    setup = build_housing_condition_setup(
+        condition_id="reasoning_low_v1",
+        reasoning_effort="low",
+        world_seeds=(101, 202, 303, 404),
+        replicates=1,
+        tenant_model=DEEPSEEK_MODEL,
+        tenant_revision=DEEPSEEK_REVISION,
+        num_tenants=2,
+        num_listings=1,
+        rounds=1,
+        inference_seed_base=87001,
+    )
+    provider = _RecordingTenantProvider(cost_per_call=0.001)
+    result = asyncio.run(
+        run_condition_batch(
+            setup=setup,
+            condition_id="reasoning_low_v1",
+            output_root=tmp_path,
+            providers=_batch_providers(provider),
+            concurrency=1,
+            spend_limit_usd=0.005,
+        )
+    )
+
+    assert result["executed_count"] == 2
+    assert result["completed_count"] == 2
+    assert result["pending_count"] == 2
+    assert result["stop_reason"] == "spend_limit_reached"
+    assert result["total_cost_usd"] == pytest.approx(0.008)
+
+
+def test_condition_result_digest_detects_summary_tampering(tmp_path) -> None:
+    setup = build_housing_condition_setup(
+        condition_id="reasoning_none_v1",
+        reasoning_effort="none",
+        world_seeds=(101,),
+        replicates=1,
+        tenant_model=DEEPSEEK_MODEL,
+        tenant_revision=DEEPSEEK_REVISION,
+        num_tenants=2,
+        num_listings=1,
+        rounds=1,
+        inference_seed_base=87001,
+    )
+    asyncio.run(
+        run_condition_batch(
+            setup=setup,
+            condition_id="reasoning_none_v1",
+            output_root=tmp_path,
+            providers=_batch_providers(_RecordingTenantProvider()),
+            concurrency=1,
+            spend_limit_usd=1.0,
+        )
+    )
+    result_path = next(
+        (tmp_path / "reasoning_none_v1" / "results").glob("*.json")
+    )
+    original = result_path.read_text(encoding="utf-8")
+    result_path.write_text(
+        original.replace('"within_case_score":0.0', '"within_case_score":0.5')
+    )
+
+    with pytest.raises(ValueError, match="result digest mismatch"):
+        read_condition_results(
+            tmp_path,
+            condition_id="reasoning_none_v1",
+            verify_evidence=False,
+        )
+
+
+def test_condition_batch_preserves_charged_failure_evidence_and_cost(tmp_path) -> None:
+    setup = build_housing_condition_setup(
+        condition_id="reasoning_low_v1",
+        reasoning_effort="low",
+        world_seeds=(101,),
+        replicates=1,
+        tenant_model=DEEPSEEK_MODEL,
+        tenant_revision=DEEPSEEK_REVISION,
+        num_tenants=2,
+        num_listings=1,
+        rounds=1,
+        inference_seed_base=87001,
+    )
+    result = asyncio.run(
+        run_condition_batch(
+            setup=setup,
+            condition_id="reasoning_low_v1",
+            output_root=tmp_path,
+            providers=_batch_providers(_ChargedFailureTenantProvider()),
+            concurrency=1,
+            spend_limit_usd=1.0,
+        )
+    )
+
+    assert result["failure_count"] == 1
+    assert result["total_cost_usd"] == pytest.approx(0.002)
+    rows = read_condition_results(
+        tmp_path, condition_id="reasoning_low_v1", verify_evidence=True
+    )
+    assert rows[0]["status"] == "operational_failure"
+    assert rows[0]["failure_type"] == "SchedulerContractError"
+    assert rows[0]["cost_usd"] == pytest.approx(0.002)
+    assert rows[0]["evidence_verified"] is True
+    assert rows[0]["provider_call_count"] == 2
+    assert rows[0]["length_retry_count"] == 1
+    assert rows[0]["reasoning_tokens"] == 6
