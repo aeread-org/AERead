@@ -1503,7 +1503,7 @@ def test_runner_public_exports_are_the_exact_task_1_1a2_surface() -> None:
     assert len(runner.__all__) == 40
 
 
-def test_task_1_1a2_does_not_change_or_expand_the_sdk_surface() -> None:
+def test_task_1_1a2_surface_guard_accounts_for_authorized_b1_b2_additions() -> None:
     import aeread.sdk.v1 as sdk
 
     planned_identity_exports = (
@@ -1519,19 +1519,32 @@ def test_task_1_1a2_does_not_change_or_expand_the_sdk_surface() -> None:
         "SeededEpisodeReplicationDesign",
         "UnseededEpisodeReplicationDesign",
     )
+    measurement_selection_exports = (
+        "EvaluationInstrumentSpec",
+        "JudgeEvaluationInstrumentSpec",
+        "MeasurementSelectionSpec",
+        "NoJudgeEvaluationInstrumentSpec",
+    )
     surface = tuple(sorted(sdk.__all__))
     authorized_additions = tuple(
         name for name in surface if name in planned_identity_exports
     )
     legacy_surface = tuple(
-        name for name in surface if name not in planned_identity_exports
+        name
+        for name in surface
+        if name not in planned_identity_exports
+        and name not in measurement_selection_exports
     )
     legacy_digest = hashlib.sha256(
         json.dumps(legacy_surface, separators=(",", ":")).encode()
     ).hexdigest()
 
     assert authorized_additions == planned_identity_exports
-    assert len(surface) == 169
+    assert (
+        tuple(name for name in surface if name in measurement_selection_exports)
+        == measurement_selection_exports
+    )
+    assert len(surface) == 173
     assert len(legacy_surface) == 158
     assert (
         legacy_digest

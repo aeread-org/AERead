@@ -1025,7 +1025,7 @@ def test_legacy_measurement_schema_and_content_hashes_are_unchanged() -> None:
     }
 
 
-def test_planned_identity_addition_preserves_legacy_schema_and_export_abi() -> None:
+def test_b1_b2_additions_preserve_legacy_schema_and_export_abi() -> None:
     import aeread.sdk.v1 as sdk_v1
     from aeread.sdk.v1 import (
         ClusterSpec,
@@ -1077,13 +1077,29 @@ def test_planned_identity_addition_preserves_legacy_schema_and_export_abi() -> N
         "SeededEpisodeReplicationDesign",
         "UnseededEpisodeReplicationDesign",
     }
+    measurement_selection_exports = {
+        "EvaluationInstrumentSpec",
+        "JudgeEvaluationInstrumentSpec",
+        "MeasurementSelectionSpec",
+        "NoJudgeEvaluationInstrumentSpec",
+    }
     added_exports = tuple(
         name for name in sdk_v1.__all__ if name in planned_identity_exports
     )
     assert len(added_exports) == 11
     assert set(added_exports) == planned_identity_exports
+    b2_added_exports = tuple(
+        name for name in sdk_v1.__all__ if name in measurement_selection_exports
+    )
+    assert len(b2_added_exports) == 4
+    assert set(b2_added_exports) == measurement_selection_exports
     legacy_exports = tuple(
-        sorted(name for name in sdk_v1.__all__ if name not in planned_identity_exports)
+        sorted(
+            name
+            for name in sdk_v1.__all__
+            if name not in planned_identity_exports
+            and name not in measurement_selection_exports
+        )
     )
     assert len(legacy_exports) == 158
     assert digest(legacy_exports) == (

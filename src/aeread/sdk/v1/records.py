@@ -757,6 +757,78 @@ EpisodeReplicationDesign = Annotated[
 ]
 
 
+class NoJudgeEvaluationInstrumentSpec(_PlannedIdentityRecord):
+    spec_version: Literal["aeread.evaluation_instrument/0.1"]
+    record_type: Literal["evaluation_instrument"]
+    instrument_kind: Literal["not_required"]
+
+
+class JudgeEvaluationInstrumentSpec(_PlannedIdentityRecord):
+    spec_version: Literal["aeread.evaluation_instrument/0.1"]
+    record_type: Literal["evaluation_instrument"]
+    instrument_kind: Literal["judge_score"]
+    instrument_id: SDKStr
+    instrument_version: SDKStr
+    aggregation: ImplementationRef
+    aggregation_input: Literal["one_accepted_terminal_result_per_planned_judgment_slot"]
+    slot_coverage_rule: Literal["exact_planned_terminal_slots"]
+    minimum_valid_slots: SDKInt = Field(ge=1)
+    missing_slot_rule: Literal["invalid_measurement"]
+    duplicate_slot_rule: Literal["reject"]
+    invalid_result_rule: Literal["invalid_measurement"]
+    tie_rule: Literal["preserve_valid_categorical_tie"]
+    disagreement_preservation_rule: Literal[
+        "preserve_all_planned_slot_terminal_result_refs_and_dispositions"
+    ]
+    aggregate_result_schema_ref: SDKStr
+
+    @model_validator(mode="after")
+    def validate_judge_instrument(self) -> "JudgeEvaluationInstrumentSpec":
+        _require_non_empty("instrument_id", self.instrument_id)
+        _require_semver("instrument_version", self.instrument_version)
+        _validate_planned_implementation(self.aggregation, "aggregation")
+        _require_non_empty(
+            "aggregate_result_schema_ref", self.aggregate_result_schema_ref
+        )
+        return self
+
+
+EvaluationInstrumentSpec = Annotated[
+    NoJudgeEvaluationInstrumentSpec | JudgeEvaluationInstrumentSpec,
+    Field(discriminator="instrument_kind"),
+]
+
+
+class MeasurementSelectionSpec(_PlannedIdentityRecord):
+    spec_version: Literal["aeread.measurement_selection/0.1"]
+    record_type: Literal["measurement_selection"]
+    selection_id: SDKStr
+    selection_version: SDKStr
+    leaf_id: SDKStr
+    leaf_version: SDKStr
+    leaf_sha256: SHA256
+    selected_evaluation_class: EvaluationClass
+    evaluation_instrument: EvaluationInstrumentSpec
+
+    @model_validator(mode="after")
+    def validate_selection(self) -> "MeasurementSelectionSpec":
+        _require_non_empty("selection_id", self.selection_id)
+        _require_semver("selection_version", self.selection_version)
+        _require_non_empty("leaf_id", self.leaf_id)
+        _require_semver("leaf_version", self.leaf_version)
+        instrument = self.evaluation_instrument
+        expected_type = (
+            JudgeEvaluationInstrumentSpec
+            if self.selected_evaluation_class == "judge_dependent"
+            else NoJudgeEvaluationInstrumentSpec
+        )
+        if type(instrument) is not expected_type:
+            raise ValueError(
+                "selected evaluation class requires its exact evaluation instrument"
+            )
+        return self
+
+
 class ValidityDomainSpec(StrictModel):
     domain_id: SDKStr
     domain_version: SDKStr

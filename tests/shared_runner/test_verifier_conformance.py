@@ -1152,6 +1152,10 @@ def test_task_1_1a1_has_one_exact_public_export_delta() -> None:
         "SamplingPopulationSpec",
         "SeededEpisodeReplicationDesign",
         "UnseededEpisodeReplicationDesign",
+        "EvaluationInstrumentSpec",
+        "JudgeEvaluationInstrumentSpec",
+        "MeasurementSelectionSpec",
+        "NoJudgeEvaluationInstrumentSpec",
     }
     exports = set(sdk.__all__)
     assert len(sdk.__all__) == len(exports)
