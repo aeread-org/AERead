@@ -17,6 +17,8 @@ from typing import Any
 import numpy as np
 from scipy import stats
 
+from aeread import housing_env as hz
+
 from .execution import EvidenceStore, OpenRouterChatClient, execute_plan_cell
 from .housing import (
     HousingScriptedLandlordProvider,
@@ -82,6 +84,36 @@ def paired_inference_seed(
     return _derived_nonnegative_int(
         "housing_inference_seed_v1", base_seed, world_seed, replicate_index
     )
+
+
+def housing_within_case_score_support(
+    *, world_seed: int, num_tenants: int = 6, num_listings: int = 4
+) -> tuple[float, float]:
+    """Return exact legal-outcome support for ``R / U`` on one Housing world.
+
+    ``L = 0`` is a lower bound on the optimum, not on every realized outcome.
+    A legal matching can therefore have negative welfare. The minimum is the
+    negative of the max-weight matching on the negated surplus matrix, with
+    unmatched seats retained as zero-weight options.
+    """
+
+    for name, value in (
+        ("world_seed", world_seed),
+        ("num_tenants", num_tenants),
+        ("num_listings", num_listings),
+    ):
+        if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+            raise ValueError(f"{name} must be a non-negative integer")
+    if num_tenants < 1 or num_listings < 1:
+        raise ValueError("num_tenants and num_listings must be positive")
+    world = hz.make_bid_world(num_tenants, num_listings, seed=world_seed)
+    optimum = hz.assignment_oracle(world.surplus).total
+    if optimum <= 0:
+        raise ValueError("within-case score support requires a positive optimum")
+    worst_magnitude = hz.assignment_oracle(
+        [[-float(value) for value in row] for row in world.surplus]
+    ).total
+    return -float(worst_magnitude) / float(optimum), 1.0
 
 
 def build_housing_condition_setup(
@@ -992,9 +1024,35 @@ def _score_row(row: Mapping[str, Any]) -> float | None:
     if isinstance(score, bool) or not isinstance(score, (int, float)):
         return None
     numeric = float(score)
-    if not math.isfinite(numeric) or not 0.0 <= numeric <= 1.0:
-        raise ValueError("completed within_case_score must be finite and in [0, 1]")
+    if not math.isfinite(numeric) or numeric > 1.0:
+        raise ValueError(
+            "completed within_case_score must be finite and no greater than 1; "
+            "negative legal outcomes are allowed"
+        )
     return numeric
+
+
+def _declared_score_support(
+    score_support_by_world: Mapping[int, Sequence[float]] | None,
+    world_seed: int,
+) -> tuple[float, float] | None:
+    if score_support_by_world is None or world_seed not in score_support_by_world:
+        return None
+    support = score_support_by_world[world_seed]
+    if isinstance(support, (str, bytes)) or len(support) != 2:
+        raise ValueError("score support must contain exactly lower and upper bounds")
+    lower, upper = support
+    if any(
+        isinstance(value, bool) or not isinstance(value, (int, float))
+        for value in (lower, upper)
+    ):
+        raise ValueError("score support bounds must be numeric")
+    numeric_lower, numeric_upper = float(lower), float(upper)
+    if not math.isfinite(numeric_lower) or not math.isfinite(numeric_upper):
+        raise ValueError("score support bounds must be finite")
+    if numeric_lower > numeric_upper or numeric_upper > 1.0:
+        raise ValueError("score support must satisfy lower <= upper <= 1")
+    return numeric_lower, numeric_upper
 
 
 def _percentile_interval(values: np.ndarray) -> list[float]:
@@ -1012,6 +1070,7 @@ def analyze_paired_results(
     expected_replicates: int,
     bootstrap_draws: int = 10_000,
     bootstrap_seed: int = 20260826,
+    score_support_by_world: Mapping[int, Sequence[float]] | None = None,
 ) -> dict[str, Any]:
     """Aggregate nested replicates and compare conditions at the world-cluster level."""
 
@@ -1053,9 +1112,11 @@ def analyze_paired_results(
     complete_treatment: list[float] = []
     lower_differences: list[float] = []
     upper_differences: list[float] = []
+    missing_support_worlds: set[int] = set()
+    support_used: dict[str, list[float]] = {}
 
     for world_seed in worlds:
-        bounds: dict[str, tuple[float, float]] = {}
+        bounds: dict[str, tuple[float, float] | None] = {}
         complete = True
         for condition in (control_condition, treatment_condition):
             scores: list[float] = []
@@ -1078,11 +1139,36 @@ def analyze_paired_results(
                 bounds[condition] = (mean_score, mean_score)
             else:
                 complete = False
-                bounds[condition] = (0.0, 1.0)
-        control_lower, control_upper = bounds[control_condition]
-        treatment_lower, treatment_upper = bounds[treatment_condition]
-        lower_differences.append(treatment_lower - control_upper)
-        upper_differences.append(treatment_upper - control_lower)
+                support = _declared_score_support(
+                    score_support_by_world, world_seed
+                )
+                if support is None:
+                    bounds[condition] = None
+                    missing_support_worlds.add(world_seed)
+                else:
+                    support_lower, support_upper = support
+                    missing_count = expected_replicates - len(scores)
+                    bounds[condition] = (
+                        float(
+                            (sum(scores) + missing_count * support_lower)
+                            / expected_replicates
+                        ),
+                        float(
+                            (sum(scores) + missing_count * support_upper)
+                            / expected_replicates
+                        ),
+                    )
+                    support_used[str(world_seed)] = [
+                        support_lower,
+                        support_upper,
+                    ]
+        control_bounds = bounds[control_condition]
+        treatment_bounds = bounds[treatment_condition]
+        if control_bounds is not None and treatment_bounds is not None:
+            control_lower, control_upper = control_bounds
+            treatment_lower, treatment_upper = treatment_bounds
+            lower_differences.append(treatment_lower - control_upper)
+            upper_differences.append(treatment_upper - control_lower)
         if complete:
             control_mean = condition_world_means[control_condition][world_seed]
             treatment_mean = condition_world_means[treatment_condition][world_seed]
@@ -1111,6 +1197,8 @@ def analyze_paired_results(
     else:
         paired_t_interval = [float(difference_array[0]), float(difference_array[0])]
 
+    missingness_bounds_available = len(lower_differences) == len(worlds)
+
     return {
         "trajectory_count": len(materialized),
         "planned_world_count": len(worlds),
@@ -1124,10 +1212,21 @@ def analyze_paired_results(
         "mean_paired_difference": float(difference_array.mean()),
         "cluster_bootstrap_95": _percentile_interval(draws),
         "paired_t_95": paired_t_interval,
-        "missingness_difference_bounds": [
-            float(np.mean(lower_differences)),
-            float(np.mean(upper_differences)),
-        ],
+        "missingness_difference_bounds": (
+            [
+                float(np.mean(lower_differences)),
+                float(np.mean(upper_differences)),
+            ]
+            if missingness_bounds_available
+            else None
+        ),
+        "missingness_bounds_status": (
+            "available_declared_outcome_support"
+            if missingness_bounds_available
+            else "unavailable_without_declared_outcome_support"
+        ),
+        "missingness_support_by_incomplete_world": support_used,
+        "missingness_support_missing_worlds": sorted(missing_support_worlds),
         "operational_failure_count_by_condition": failures,
         "resampling_unit": "world_seed",
         "bootstrap_draws": bootstrap_draws,
@@ -1143,6 +1242,7 @@ def analyze_paired_results_if_available(
     expected_replicates: int,
     bootstrap_draws: int,
     bootstrap_seed: int,
+    score_support_by_world: Mapping[int, Sequence[float]] | None = None,
 ) -> dict[str, Any]:
     """Return a typed deferred state while an interrupted panel has no full cluster."""
 
@@ -1154,6 +1254,7 @@ def analyze_paired_results_if_available(
             expected_replicates=expected_replicates,
             bootstrap_draws=bootstrap_draws,
             bootstrap_seed=bootstrap_seed,
+            score_support_by_world=score_support_by_world,
         )
     except ValueError as error:
         if str(error) != "paired analysis has no complete world clusters":
@@ -1373,6 +1474,12 @@ async def run_housing_reasoning_experiment(
             expected_replicates=3,
             bootstrap_draws=10_000,
             bootstrap_seed=20260826,
+            score_support_by_world={
+                world_seed: housing_within_case_score_support(
+                    world_seed=world_seed
+                )
+                for world_seed in panel
+            },
         )
         result = {
             "mode": mode,
@@ -1426,6 +1533,7 @@ __all__ = [
     "CONFIRMATORY_EXPERIMENT_ROUTE",
     "build_housing_condition_setup",
     "derive_world_seeds",
+    "housing_within_case_score_support",
     "paired_inference_seed",
     "read_condition_results",
     "run_condition_batch",

@@ -25,6 +25,7 @@ from aeread.shared_runner.housing_experiment import (
     analyze_paired_results_if_available,
     build_housing_condition_setup,
     derive_world_seeds,
+    housing_within_case_score_support,
     paired_inference_seed,
     read_condition_results,
     run_condition_batch,
@@ -169,6 +170,33 @@ def test_paired_analysis_aggregates_replicates_then_resamples_world_clusters() -
     assert result["bootstrap_draws"] == 1000
 
 
+def test_paired_analysis_accepts_negative_valid_within_case_scores() -> None:
+    result = analyze_paired_results(
+        [
+            _row("reasoning_none_v1", 11, 0, -0.25),
+            _row("reasoning_low_v1", 11, 0, -0.10),
+        ],
+        control_condition="reasoning_none_v1",
+        treatment_condition="reasoning_low_v1",
+        expected_replicates=1,
+        bootstrap_draws=100,
+        bootstrap_seed=3,
+    )
+
+    assert result["condition_means"] == {
+        "reasoning_none_v1": pytest.approx(-0.25),
+        "reasoning_low_v1": pytest.approx(-0.10),
+    }
+    assert result["mean_paired_difference"] == pytest.approx(0.15)
+
+
+def test_housing_score_support_uses_a_distinct_negative_outcome_floor() -> None:
+    lower, upper = housing_within_case_score_support(world_seed=0)
+
+    assert lower == pytest.approx(-4.7 / 1764.85)
+    assert upper == pytest.approx(1.0)
+
+
 def test_paired_analysis_excludes_incomplete_world_and_reports_worst_case_bounds() -> None:
     rows: list[dict[str, object]] = []
     for replicate in range(3):
@@ -196,6 +224,7 @@ def test_paired_analysis_excludes_incomplete_world_and_reports_worst_case_bounds
         expected_replicates=3,
         bootstrap_draws=200,
         bootstrap_seed=7,
+        score_support_by_world={12: (0.0, 1.0)},
     )
 
     assert result["planned_world_count"] == 2
@@ -206,7 +235,39 @@ def test_paired_analysis_excludes_incomplete_world_and_reports_worst_case_bounds
         "reasoning_low_v1": 1,
     }
     assert result["mean_paired_difference"] == pytest.approx(0.20)
-    assert result["missingness_difference_bounds"] == pytest.approx([-0.15, 0.35])
+    assert result["missingness_difference_bounds"] == pytest.approx(
+        [1.0 / 12.0, 0.25]
+    )
+    assert result["missingness_bounds_status"] == "available_declared_outcome_support"
+
+
+def test_paired_analysis_does_not_invent_zero_as_an_outcome_floor() -> None:
+    rows = [
+        _row("reasoning_none_v1", 11, 0, -0.20),
+        _row("reasoning_low_v1", 11, 0, 0.10),
+        _row("reasoning_none_v1", 12, 0, 0.50),
+        _row(
+            "reasoning_low_v1",
+            12,
+            0,
+            None,
+            status="operational_failure",
+        ),
+    ]
+
+    result = analyze_paired_results(
+        rows,
+        control_condition="reasoning_none_v1",
+        treatment_condition="reasoning_low_v1",
+        expected_replicates=1,
+        bootstrap_draws=100,
+        bootstrap_seed=7,
+    )
+
+    assert result["missingness_difference_bounds"] is None
+    assert result["missingness_bounds_status"] == (
+        "unavailable_without_declared_outcome_support"
+    )
 
 
 def test_paired_analysis_rejects_duplicate_trajectory_identity() -> None:
