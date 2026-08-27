@@ -20,7 +20,7 @@ from .measurement import (
     MeasurementContractError,
     ScoreEnvelope,
 )
-from .resolver import canonical_json_bytes
+from .resolver import ImplementationPin, canonical_json_bytes
 from .schemas import is_exportable_id
 
 
@@ -122,6 +122,9 @@ class EvaluationReceipt:
     case_sha256: str
     suite_id: str
     suite_version: str
+    block_id: str
+    sampling_plan_id: str
+    analysis_plan_id: str
     episode_id: str
     episode_attempt_id: str
     cluster_id: str
@@ -134,6 +137,7 @@ class EvaluationReceipt:
     panel_mode: str
     agent_profile_sha256_by_seat: Mapping[str, str]
     implementation_refs: tuple[ImplementationRef, ...]
+    plan_implementation_pins: tuple[ImplementationPin, ...]
     evidence: EvidenceSeal
     primary_leaf_id: str
     scores: tuple[ScoreEnvelope, ...]
@@ -162,6 +166,9 @@ class EvaluationReceipt:
             "cell_id",
             "case_id",
             "suite_id",
+            "block_id",
+            "sampling_plan_id",
+            "analysis_plan_id",
             "episode_id",
             "episode_attempt_id",
             "cluster_id",
@@ -202,6 +209,7 @@ class EvaluationReceipt:
             ),
         )
         self._validate_and_freeze_implementations()
+        self._validate_and_freeze_plan_pins()
         self._validate_and_freeze_scores()
         self._validate_evidence()
 
@@ -304,6 +312,50 @@ class EvaluationReceipt:
         if not required.issubset(available):
             raise MeasurementContractError(
                 "implementation_refs must pin every score predicate, reference, and scorer"
+            )
+
+    def _validate_and_freeze_plan_pins(self) -> None:
+        if not isinstance(self.plan_implementation_pins, tuple) or not self.plan_implementation_pins:
+            raise MeasurementContractError(
+                "plan_implementation_pins must be a non-empty tuple"
+            )
+        resolved: dict[str, ImplementationPin] = {}
+        for pin in self.plan_implementation_pins:
+            if not isinstance(pin, ImplementationPin):
+                raise MeasurementContractError(
+                    "plan_implementation_pins must contain only ImplementationPin values"
+                )
+            try:
+                checked = ImplementationPin.from_dict(dataclasses.asdict(pin))
+            except Exception as error:
+                raise MeasurementContractError(
+                    "plan_implementation_pins contain an invalid pin"
+                ) from error
+            if checked.component_id in resolved:
+                raise MeasurementContractError(
+                    "plan_implementation_pins contain duplicate component identities"
+                )
+            resolved[checked.component_id] = checked
+        canonical = tuple(resolved[key] for key in sorted(resolved))
+        object.__setattr__(self, "plan_implementation_pins", canonical)
+
+        available = {
+            (pin.component_id, pin.version, pin.sha256) for pin in canonical
+        }
+        missing = sorted(
+            implementation.implementation_id
+            for implementation in self.implementation_refs
+            if (
+                implementation.implementation_id,
+                implementation.version,
+                implementation.content_sha256,
+            )
+            not in available
+        )
+        if missing:
+            raise MeasurementContractError(
+                "plan_implementation_pins do not match measurement implementations: "
+                + ", ".join(missing)
             )
 
     def _validate_evidence(self) -> None:
