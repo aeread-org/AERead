@@ -231,6 +231,23 @@ def test_evidence_seal_is_persistent_idempotent_and_blocks_new_writes(tmp_path) 
     reopened.close()
 
 
+def test_read_only_audit_recovers_identity_and_verifies_a_sealed_generation(tmp_path) -> None:
+    evidence = _evidence(tmp_path)
+    event = evidence.append_event("first", {"value": 1})
+    seal = evidence.seal()
+    root = evidence.root
+    evidence.close()
+
+    audited = EvidenceStore.audit_existing(root)
+
+    assert audited.read_events() == (event,)
+    assert audited.run_plan_id == seal.run_plan_id
+    assert audited.cell_id == seal.cell_id
+    assert audited.episode_id == seal.episode_id
+    assert audited.episode_attempt_id == seal.episode_attempt_id
+    audited.close()
+
+
 def test_resume_rejects_a_symlink_replacement_for_the_event_log(tmp_path) -> None:
     evidence = _evidence(tmp_path)
     evidence.append_event("first", {"value": 1})
