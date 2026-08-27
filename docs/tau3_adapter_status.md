@@ -23,15 +23,21 @@ actually judges.
 
 ## Evidence
 
-**Pilot parity: 18 of 18 tasks match upstream, component by component.**
-Zero mismatched, zero skipped, zero errored. Both sides execute the same gold
-actions — one directly through upstream's own `Environment.get_response` with
-no plugin or scheduler involved, one through the real kernel-facing path — and
-the two are compared on the initial database, the ordered tool calls, their
-ordered results, the final database, the deterministic DB-reward component, and
-the judged component's *inputs*.
+**Full-corpus parity: all 114 retail tasks match upstream, component by
+component.** Zero mismatched, zero skipped, zero errored — every task upstream
+ships for this domain, not a sample. The 18-task pilot is the same procedure at
+CI granularity and also matches 18 of 18.
 
-Receipt: `docs/tau3_pilot_parity_receipt.json`. Regenerate it with
+Both sides execute the same gold actions — one directly through upstream's own
+`Environment.get_response` with no plugin or scheduler involved, one through the
+real kernel-facing path — and the two are compared on the initial database, the
+ordered tool calls, their ordered results, the final database, the deterministic
+DB-reward component, and the judged component's *inputs*.
+
+Receipts: `docs/tau3_corpus_parity_receipt.json` (all 114) and
+`docs/tau3_pilot_parity_receipt.json` (the 18-task pilot).
+
+Regenerate either with the parity CLI, which exits non-zero on a skip:
 
 ```bash
 PYTHONPATH=src python -m aeread_families.tau3_retail.parity \
@@ -68,13 +74,39 @@ AEREAD_TAU2_BRIDGE_REQUIRED=1 pytest    # fails if a fidelity test skips
 
 See `tools/tau2_bridge/README.md`.
 
+## What it costs to run
+
+Each bridge call spawns a fresh subprocess that imports upstream from scratch,
+measured at **~1.95s per call**, almost entirely import cost rather than work.
+A parity task executes its gold actions twice — once directly through upstream,
+once through the adapter — plus the database, reward, and judge-input
+comparisons, which works out to a **median of ~78s per task**.
+
+Timings vary more than the gold-action count explains: across the full corpus
+the median was 78s while one task took 1032s and another with more gold actions
+took 143s. The cause of the outliers was not isolated, so treat the median as
+the planning figure and expect a long tail. The full 114-task sweep took 5.3
+hours end to end.
+
+That shapes where each belongs: the 18-task pilot is a few minutes and is the
+right granularity for CI; a full 114-task sweep is a multi-hour job to run
+deliberately, not on every push. The obvious optimisation — one persistent
+bridge process instead of a subprocess per call — is not implemented, because
+the current design buys real isolation: no state can leak between calls through
+a long-lived interpreter, which is exactly the property that makes "the adapter
+reproduces upstream" checkable. Worth revisiting only if corpus sweeps become
+routine.
+
 ## Known limits, stated rather than implied
 
 - **The judged leaf's output is never produced here.** Parity compares the
   prompt upstream *would* send, never a verdict; scoring reads already-recorded
   verdicts sealed as evidence. Nothing in this family calls a model.
-- **The pilot is 18 tasks, not 114.** The importer handles all 114; parity has
-  been executed on the 18-task pilot.
+- **Parity is proved on gold trajectories, not on model behaviour.** All 114
+  tasks match, but the trajectory compared is each task's own
+  `evaluation_criteria.actions` — the only reproducible, non-model trajectory
+  tau2-bench ships. That establishes the adapter reproduces upstream's
+  machinery exactly; it says nothing about how any agent scores.
 - **Failed mutating calls were probed, not proved.** Four rejected mutating
   calls each left the database byte-identical, so upstream validates before it
   mutates on those paths. That is four probes across two tools, not a proof for
