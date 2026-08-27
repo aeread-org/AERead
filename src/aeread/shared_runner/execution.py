@@ -209,6 +209,7 @@ class EvidenceStore:
         self._prior_hash: str | None = None
         self._closed = False
         self._sealed = False
+        self._read_only = False
         self._lock_fd: int | None = None
         self._events_inode: tuple[int, int] | None = None
         self._acquire_writer_lock()
@@ -299,6 +300,8 @@ class EvidenceStore:
 
     def _ensure_writable(self) -> None:
         self._ensure_open()
+        if self._read_only:
+            raise EvidenceIntegrityError("audited evidence is read-only")
         if self._sealed or os.path.lexists(self.seal_path):
             self._sealed = True
             raise EvidenceSealedError("sealed evidence cannot accept writes")
@@ -333,13 +336,43 @@ class EvidenceStore:
 
         instance = object.__new__(cls)
         instance.root = Path(root)
+        if instance.root.is_symlink():
+            raise EvidenceIntegrityError("evidence root must be a real directory")
         instance.artifacts_dir = instance.root / "artifacts" / "sha256"
         instance.events_path = instance.root / "events.jsonl"
+        instance.seal_path = instance.root / "events.jsonl.sealed.json"
         if not instance.root.is_dir() or not instance.events_path.is_file():
             raise EvidenceIntegrityError(
                 f"existing evidence is incomplete at {instance.root}"
             )
+        try:
+            info = os.lstat(instance.events_path)
+        except OSError as error:
+            raise EvidenceIntegrityError("event log is missing or unsafe") from error
+        if not stat.S_ISREG(info.st_mode):
+            raise EvidenceIntegrityError("event log must be a non-symlink regular file")
+        instance._events_inode = (info.st_dev, info.st_ino)
+        instance._closed = False
+        instance._sealed = os.path.lexists(instance.seal_path)
+        instance._read_only = True
+        instance._lock_fd = None
+        instance._sequence = 0
+        instance._prior_hash = None
+        events = instance.read_events()
+        if not events:
+            raise EvidenceIntegrityError("existing evidence contains no identity-bearing event")
+        first = events[0]
+        instance.run_plan_id = first.run_plan_id
+        instance.cell_id = first.cell_id
+        instance.episode_id = first.episode_id
+        instance.episode_attempt_id = first.episode_attempt_id
+        instance._sequence = len(events)
+        instance._prior_hash = events[-1].event_hash
         instance.audit_reconciliation()
+        if instance._sealed and instance._load_seal() != instance._compute_seal():
+            raise EvidenceIntegrityError(
+                "seal marker does not match the durable evidence generation"
+            )
         return instance
 
     def put_artifact(
