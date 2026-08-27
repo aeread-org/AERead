@@ -17,7 +17,7 @@ from aeread.shared_runner.housing import (
     OpenRouterRoutePin,
 )
 from aeread.shared_runner.housing_experiment import (
-    OPENINFERENCE_EXPERIMENT_ROUTE,
+    CONFIRMATORY_EXPERIMENT_ROUTE,
     analyze_paired_results,
     analyze_paired_results_if_available,
     build_housing_condition_setup,
@@ -74,10 +74,12 @@ def test_condition_setup_seals_explicit_openrouter_route_and_pricing() -> None:
     assert setup.pricing[DEEPSEEK_MODEL] == route.token_pricing()
 
 
-def test_experiment_route_pins_current_openrouter_endpoint() -> None:
-    assert OPENINFERENCE_EXPERIMENT_ROUTE.provider == "OpenInference"
-    assert OPENINFERENCE_EXPERIMENT_ROUTE.quantization == "fp4"
-    assert OPENINFERENCE_EXPERIMENT_ROUTE.canonical_model == DEEPSEEK_REVISION
+def test_experiment_route_pins_admitted_openrouter_endpoint() -> None:
+    assert CONFIRMATORY_EXPERIMENT_ROUTE.provider == "Parasail"
+    assert CONFIRMATORY_EXPERIMENT_ROUTE.quantization == "fp8"
+    assert CONFIRMATORY_EXPERIMENT_ROUTE.canonical_model == DEEPSEEK_REVISION
+    assert CONFIRMATORY_EXPERIMENT_ROUTE.input_per_million == 0.14
+    assert CONFIRMATORY_EXPERIMENT_ROUTE.output_per_million == 0.28
 
 
 def test_world_panel_is_deterministic_unique_and_pre_outcome() -> None:

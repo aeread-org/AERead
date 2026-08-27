@@ -28,14 +28,14 @@ from .housing import (
 from .resolver import canonical_json_bytes
 
 
-OPENINFERENCE_EXPERIMENT_ROUTE = OpenRouterRoutePin(
-    provider="OpenInference",
-    quantization="fp4",
+CONFIRMATORY_EXPERIMENT_ROUTE = OpenRouterRoutePin(
+    provider="Parasail",
+    quantization="fp8",
     canonical_model="deepseek/deepseek-v4-flash-20260731",
-    input_per_million=0.03,
-    cached_input_per_million=0.007,
-    output_per_million=0.075,
-    pricing_id="openrouter_openinference_2026-08-26_deepseek-v4-flash-0731",
+    input_per_million=0.14,
+    cached_input_per_million=0.07,
+    output_per_million=0.28,
+    pricing_id="openrouter_parasail_2026-08-26_deepseek-v4-flash-0731",
 )
 
 
@@ -93,7 +93,7 @@ def build_housing_condition_setup(
     num_listings: int = 4,
     rounds: int = 4,
     inference_seed_base: int = 87001,
-    openrouter_route: OpenRouterRoutePin = OPENINFERENCE_EXPERIMENT_ROUTE,
+    openrouter_route: OpenRouterRoutePin = CONFIRMATORY_EXPERIMENT_ROUTE,
 ) -> HousingSmokeSetup:
     """Seal one arm of the paired Housing reasoning experiment."""
 
@@ -1138,7 +1138,7 @@ async def run_housing_reasoning_experiment(
     spend_limit_usd: float | None = None,
     tenant_provider: Any | None = None,
     progress_callback: Any | None = None,
-    openrouter_route: OpenRouterRoutePin = OPENINFERENCE_EXPERIMENT_ROUTE,
+    openrouter_route: OpenRouterRoutePin = CONFIRMATORY_EXPERIMENT_ROUTE,
 ) -> dict[str, Any]:
     """Run the locked dry, admission, or 100x2x3 Housing experiment workflow."""
 
@@ -1302,7 +1302,7 @@ def main() -> None:
 __all__ = [
     "analyze_paired_results",
     "analyze_paired_results_if_available",
-    "OPENINFERENCE_EXPERIMENT_ROUTE",
+    "CONFIRMATORY_EXPERIMENT_ROUTE",
     "build_housing_condition_setup",
     "derive_world_seeds",
     "paired_inference_seed",

@@ -54,8 +54,8 @@ other market sizes, other mechanisms, or housing reasoning universally.
 | Replicates per world and condition | 3 | robustness judgment; nested, not added to cluster N |
 | Tenants / listings / rounds | 6 / 4 / 4 | pinned P0 Housing configuration |
 | Model | `deepseek/deepseek-v4-flash-0731` | fixed model listing |
-| Canonical endpoint | `deepseek/deepseek-v4-flash-20260731` | pinned OpenInference route |
-| Quantization | `fp4` | live OpenRouter endpoint metadata captured 2026-08-26 |
+| Canonical endpoint | `deepseek/deepseek-v4-flash-20260731` | pinned Parasail route |
+| Quantization | `fp8` | live OpenRouter endpoint metadata captured 2026-08-26 |
 | Temperature / top-p | 0 / 1 | fixed controls |
 | Inference seeds | paired SHA-256 derivation from world and replicate | deterministic design |
 | Primary estimand | mean world-level difference in within-case score, low minus none | analyst declaration |
@@ -79,9 +79,9 @@ reasoning and must not be used as the control.
 
 **HIGH — bias direction unknown.** A marketplace alias, provider fallback, quantization
 change, or price change could alter one part of the run. Every confirmatory call must resolve
-to the pinned OpenInference FP4 endpoint at routing attempt one, with no fallback; drift
+to the pinned Parasail FP8 endpoint at routing attempt one, with no fallback; drift
 blocks new cells. Earlier DeepInfra FP8 pilot cells are a separate infrastructure condition
-and cannot be pooled with the OpenInference panel.
+and cannot be pooled with the Parasail panel.
 
 ## Step 3: model and analysis
 
@@ -144,13 +144,20 @@ pooled with or used to select the final RunPlan. This classification was made fr
 operational failures before a complete six-trajectory world cluster—and therefore before any
 paired economic estimate—was available.
 
-On 2026-08-26, live OpenRouter endpoint metadata listed OpenInference for the same canonical
-DeepSeek revision with `reasoning_effort`, `seed`, `response_format`, and structured-output
-support, 100% five-minute uptime, and 99.994% thirty-minute uptime. The confirmatory retry is
-therefore repinned to that single provider with fallbacks disabled and price ceilings of
-$0.03/M prompt tokens and $0.075/M completion tokens. This is a route change, not a recovery
-of the DeepInfra RunPlan: a fresh full-dimension reasoning admission pair is mandatory before
-any sample cell is released.
+On 2026-08-26, live OpenRouter endpoint metadata identified several routes for the same
+canonical DeepSeek revision with `reasoning_effort`, `seed`, `response_format`, and
+structured-output support. Fresh full-dimension gates rejected OpenInference because five of
+six simultaneous low-arm calls timed out, then rejected AkashML and Inceptron because at
+least one low-arm action exhausted both the 2,048-token ceiling and its single 4,096-token
+length retry. Each control arm completed with zero reasoning tokens; none of these gates
+released sample cells.
+
+Parasail then passed the same gate with both trajectories complete, identical paired seeds,
+zero control reasoning tokens, 19,273 low-arm reasoning tokens, the exact canonical model,
+and no fallback. The confirmatory RunPlan is therefore pinned to Parasail FP8 with price
+ceilings of $0.14/M prompt tokens and $0.28/M completion tokens. This is a new route, not a
+recovery of any earlier RunPlan, and only its post-admission sample cells may enter the
+confirmatory panel.
 
 ### DANGER ZONE D7: controlled counterpart limits the estimand
 
