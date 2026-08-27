@@ -50,6 +50,16 @@ CASE_ID_PREFIX = "tau3.retail.base"
 # answers Q3.
 VISIBILITY_POLICY = "tau3_retail_user_scenario_private_v1"
 
+# Every reason this family's environment can terminate for, and nothing else.
+# Declared here, next to the manifest that publishes it, and enforced in
+# `environment.py`'s `_set_termination` so the declaration and the behaviour
+# cannot drift apart.
+#
+# `agent_stop` is deliberately absent: upstream's retail LLMAgent never
+# overrides `Participant.is_stop`, which returns False, so only the user
+# simulator can emit a stop signal in this domain.
+TERMINATION_REASONS = ("user_stop", "max_steps", "too_many_errors")
+
 # --------------------------------------------------------------------------
 # Upstream pin constants (spec section 1).
 # --------------------------------------------------------------------------
@@ -263,7 +273,13 @@ def build_case(task: Mapping[str, Any], pins: Mapping[str, Any]) -> dict[str, An
         ],
         "episode": {
             "max_logical_actions": pins["max_steps"],
-            "termination": ["agent_stop", "user_stop", "max_steps", "error"],
+            # Exactly the reasons this family's environment can produce.
+            # `agent_stop` is unreachable in retail -- upstream's LLMAgent
+            # never overrides Participant.is_stop, which returns False -- and
+            # `too_many_errors` was missing, so an episode that hit the tool
+            # error ceiling terminated with a reason absent from its own
+            # declared vocabulary.
+            "termination": TERMINATION_REASONS,
         },
         "visibility_policy": VISIBILITY_POLICY,
         "payload": {"task": task, "pins": dict(pins)},

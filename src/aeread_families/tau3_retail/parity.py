@@ -41,6 +41,7 @@ already independently produced.
 """
 from __future__ import annotations
 
+import argparse
 import asyncio
 import json
 import tempfile
@@ -57,10 +58,14 @@ from aeread.shared_runner.schemas import CaseManifest
 from aeread.shared_runner.scheduler import EpisodeResult, run_episode
 
 from . import measurement as measurement_module
-from .cases import CASE_ID_PREFIX, PILOT_UPSTREAM_TASK_IDS
+from .cases import CASE_ID_PREFIX, PILOT_UPSTREAM_TASK_IDS, UPSTREAM_COMMIT
 from .environment import Tau3RetailPlugin, family_manifest, register_plugin
 from .harness import ScriptedTau3RetailHarness
-from .tau2_bridge import Tau2Bridge
+from .tau2_bridge import (
+    Tau2Bridge,
+    Tau2BridgeUnavailableError,
+    discover_bridge_python,
+)
 
 DEFAULT_CASES_DIR = Path("cases/tau3_retail_base")
 
@@ -537,6 +542,114 @@ def run_pilot(
     return PilotParityReport(tuple(results))
 
 
+def main(argv: list[str] | None = None) -> int:
+    """Run the pilot parity procedure and print a per-task receipt.
+
+    The parity tests assert on two representative tasks; this runs the whole
+    pilot and reports every task explicitly, so "the adapter reproduces
+    upstream" is a result somebody can regenerate rather than a claim in a
+    document. Exits non-zero unless every task ran and matched -- a skipped
+    task is a failure here, because a skip is exactly how this suite hid the
+    fact that its fidelity checks had never executed.
+    """
+    parser = argparse.ArgumentParser(description=main.__doc__)
+    parser.add_argument(
+        "--upstream-root",
+        type=Path,
+        required=True,
+        help=(
+            "path to the pinned tau2-bench checkout "
+            f"(commit {UPSTREAM_COMMIT})"
+        ),
+    )
+    parser.add_argument(
+        "--cases-dir",
+        type=Path,
+        default=DEFAULT_CASES_DIR,
+        help="directory holding the imported case files",
+    )
+    parser.add_argument(
+        "--json",
+        type=Path,
+        default=None,
+        help="also write the full per-task report as JSON to this path",
+    )
+    args = parser.parse_args(argv)
+
+    try:
+        bridge: Tau2Bridge | None = Tau2Bridge(
+            python_executable=discover_bridge_python(upstream_root=args.upstream_root),
+            upstream_root=args.upstream_root,
+        )
+        unavailable_reason = None
+    except Tau2BridgeUnavailableError as error:
+        bridge = None
+        unavailable_reason = str(error)
+
+    report = run_pilot(
+        bridge=bridge,
+        upstream_root=args.upstream_root,
+        cases_dir=args.cases_dir,
+        bridge_unavailable_reason=unavailable_reason,
+    )
+
+    for result in report.results:
+        if result.status == "ran" and result.report is not None:
+            detail = result.report.status
+            if result.report.mismatched_fields:
+                detail += f"  mismatched: {list(result.report.mismatched_fields)}"
+        else:
+            detail = f"{result.status}: {result.reason}"
+        print(f"task {result.upstream_task_id:>4}  {detail}")
+
+    summary = report.summary()
+    print(f"summary: {summary}")
+
+    if args.json is not None:
+        args.json.write_text(
+            json.dumps(
+                {
+                    "upstream_commit": UPSTREAM_COMMIT,
+                    "summary": summary,
+                    "results": [
+                        {
+                            "upstream_task_id": result.upstream_task_id,
+                            "case_id": result.case_id,
+                            "status": result.status,
+                            "reason": result.reason,
+                            "parity_status": (
+                                result.report.status if result.report else None
+                            ),
+                            "mismatched_fields": (
+                                list(result.report.mismatched_fields)
+                                if result.report
+                                else None
+                            ),
+                        }
+                        for result in report.results
+                    ],
+                },
+                indent=2,
+                sort_keys=True,
+            )
+            + "\n"
+        )
+
+    clean = (
+        summary["total"] > 0
+        and summary["matched"] == summary["total"]
+        and summary["mismatched"] == 0
+        and summary["errored"] == 0
+        and summary["skipped"] == 0
+    )
+    print("VERDICT:", "every pilot task matches upstream" if clean else "NOT CLEAN")
+    return 0 if clean else 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
+
+
 __all__ = [
     "ComponentResult",
     "DEFAULT_CASES_DIR",
@@ -544,6 +657,7 @@ __all__ = [
     "ParityRunError",
     "PilotParityReport",
     "PilotTaskResult",
+    "main",
     "run_pilot",
     "run_pilot_task",
 ]

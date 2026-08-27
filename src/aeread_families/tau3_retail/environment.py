@@ -27,6 +27,7 @@ from aeread.shared_runner.scheduler import (
 from .cases import (
     FAMILY_ID,
     FAMILY_VERSION,
+    TERMINATION_REASONS,
     UPSTREAM_COMMIT,
     UPSTREAM_REPO,
 )
@@ -39,6 +40,23 @@ USER_PHASE = "user_turn"
 ASSISTANT_PHASE = "assistant_turn"
 MAX_TOOL_ERRORS = 10
 STOP_SIGNALS = ("###STOP###", "###TRANSFER###", "###OUT-OF-SCOPE###")
+
+
+def _set_termination(state: dict[str, Any], reason: str) -> None:
+    """Record a termination reason, refusing one the case never declared.
+
+    The case manifest publishes ``TERMINATION_REASONS`` as this family's
+    termination vocabulary. Nothing in the kernel cross-checks a terminal
+    reason against that declaration at runtime, so without this the two drift
+    silently -- as they already had: the manifest advertised ``agent_stop``,
+    which retail can never emit, and omitted ``too_many_errors``, which it can.
+    """
+    if reason not in TERMINATION_REASONS:
+        raise ValueError(
+            f"termination reason {reason!r} is not declared by this family; "
+            f"declared reasons are {list(TERMINATION_REASONS)}"
+        )
+    state["termination"] = reason
 
 
 def family_manifest() -> FamilyManifest:
@@ -496,7 +514,7 @@ class Tau3RetailPlugin:
             )
             new_state["upstream_step_count"] += 1
             if any(signal in content for signal in STOP_SIGNALS):
-                new_state["termination"] = "user_stop"
+                _set_termination(new_state, "user_stop")
             self._apply_post_delivery_termination(family_case, new_state)
             return TransitionResult(
                 state=new_state,
@@ -664,9 +682,9 @@ class Tau3RetailPlugin:
         # steps overwrites an existing participant stop, then max errors
         # overwrites max steps.
         if state["upstream_step_count"] >= family_case["pins"]["max_steps"]:
-            state["termination"] = "max_steps"
+            _set_termination(state, "max_steps")
         if state["num_tool_errors"] >= MAX_TOOL_ERRORS:
-            state["termination"] = "too_many_errors"
+            _set_termination(state, "too_many_errors")
 
 
 __all__ = [

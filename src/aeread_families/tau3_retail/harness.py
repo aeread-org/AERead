@@ -7,6 +7,7 @@ from typing import Any, Mapping, Sequence
 from aeread.shared_runner.execution import EvidenceStore
 from aeread.shared_runner.tools import ToolRuntime
 
+from .environment import MAX_TOOL_ERRORS
 from .tau2_bridge import Tau2Bridge
 from .tools import RetailToolSession, build_tool_bindings
 
@@ -94,7 +95,7 @@ class ScriptedTau3RetailHarness:
                     num_tool_errors += 1
             # One ENV hop covers the whole list of calls in this message.
             upstream_step_count += 1
-            if upstream_step_count >= max_steps or num_tool_errors >= 10:
+            if upstream_step_count >= max_steps or num_tool_errors >= MAX_TOOL_ERRORS:
                 terminated_after_tools = True
                 break
         response["messages"] = executed_messages
