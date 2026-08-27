@@ -192,6 +192,37 @@ def test_simultaneous_phase_freezes_private_observations_and_steps_once() -> Non
     assert len(result.phase_instances[0].transitions) == 1
 
 
+def test_simultaneous_phase_dispatches_all_actor_requests_concurrently() -> None:
+    active = 0
+    peak_active = 0
+    all_started = asyncio.Event()
+
+    async def respond(request):
+        nonlocal active, peak_active
+        active += 1
+        peak_active = max(peak_active, active)
+        if active == 2:
+            all_started.set()
+        await asyncio.wait_for(all_started.wait(), timeout=0.25)
+        active -= 1
+        return {"offer": 7 if request.seat_id == "buyer" else 13}
+
+    result = asyncio.run(
+        run_episode(
+            cell=_cell(),
+            case=_case(),
+            plugin=SimultaneousFixturePlugin(),
+            response_source=respond,
+        )
+    )
+
+    assert peak_active == 2
+    assert [action.seat_id for action in result.phase_instances[0].actions] == [
+        "buyer",
+        "seller",
+    ]
+
+
 def test_simultaneous_peer_observation_is_independent_of_other_peer_action() -> None:
     first_requests: list = []
     second_requests: list = []
@@ -387,4 +418,3 @@ def test_phase_budget_stops_an_endless_declared_cycle() -> None:
                 cell=_cell(), case=_case(), plugin=EndlessPlugin(), response_source=respond
             )
         )
-

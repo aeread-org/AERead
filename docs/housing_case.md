@@ -4,12 +4,19 @@ A two-sided market where tenants compete for a smaller number of listings. It as
 whether an agent can reason about **competition for a scarce resource**, not merely
 optimize its own valuation.
 
-Status: the P0 environment contract, allocation oracle, one-shot market, scripted
-multi-round baselines, and R1-R4 shared-runner adapter are implemented and tested.
-One fixed 2-tenant, 1-listing, 1-round OpenRouter/DeepSeek smoke cell has replayable
-content-addressed evidence and a non-secret admission summary. It proves the typed
-execution, privacy, retry, cost, and scoring path; it is not a live-model table or a
-current paper result.
+Status: the P0 environment contract, allocation oracle, scripted multi-round baselines,
+and native shared-runner path through typed measurement, receipts, and deterministic
+state-and-score replay are implemented and tested. The standalone CLI and batch runner
+both finalize successful trajectories and reconciled failures through the same receipt
+contract. The earlier fixed OpenRouter/DeepSeek smoke cell is historical R4 admission
+evidence and predates the new receipt layer; it is not a current paper result.
+
+The finalized 100-world reasoning experiment is now a current, receipt-backed result. Its
+scope is the pinned synthetic generator, DeepSeek V4 Flash on Parasail FP8, and a controlled
+scripted landlord—not housing markets generally.
+
+The finalized receipt path is documented in
+[`walkthroughs/shared_runner_housing_receipts.md`](walkthroughs/shared_runner_housing_receipts.md).
 
 ## 1. The market
 
@@ -40,7 +47,8 @@ efficiency = result.total / optimum.total           # what a submitted agent is 
 
 The implemented upper bound `U` is max-weight bipartite matching on the
 transferable-utility surplus matrix. Non-positive matches are dropped. The always
-feasible no-trade outcome is the floor `L = 0`. For worlds with `U > 0`, normalized
+feasible no-trade policy proves the optimum lower bound `L = 0`; it is not a lower
+bound on every realized agent outcome. For worlds with `U > 0`, normalized
 efficiency is therefore `(R - L) / (U - L) = R / U`; worlds with `U = 0` must be
 reported separately rather than divided by zero.
 
@@ -58,20 +66,18 @@ non-transferable utility, and rent here is negotiable. And it is strategyproof o
 proposing side, so truthful ranking would be a dominant strategy and there would be
 nothing for an agent to get right or wrong.
 
-## 3. Baselines
+## 3. Reference policies
 
-All computable with no API calls, so the scale exists before any agent is scored.
+All references are computable without provider calls, so the scale exists before an
+agent is scored. The receipt comparison baseline `B` is the four-round naive scripted
+policy in Section 5. The adaptive scripted policy is retained as a diagnostic, and the
+max-weight allocation supplies `U`; the current pinned-panel values are reported in
+Section 5a.
 
-| baseline | efficiency vs optimum |
-|---|---|
-| naive: minimum bid on your own favourite | 0.619 |
-| truthful: full valuation on your own favourite | 0.700 |
-| max-weight optimum | 1.000 |
-
-These numbers were regenerated after the P0 privacy correction over 300 seeds at 6
-tenants and 4 listings. The naive baseline standard deviation is 0.173. They describe
-only the pinned generator and policy; they are not evidence of saturation of housing
-reasoning in general.
+The one-shot `naive_top_bids`, `truthful_top_bids`, and `resolve_bids` helpers remain
+useful for unit tests and mechanism probes, but they are not the current multi-round
+receipt comparator. Their historical averages must not be mixed with the P0
+`contact -> respond -> commit` results.
 
 ## 4. Why this mechanism and not a simpler one
 
@@ -178,11 +184,29 @@ Its single fixed world reached `R = B = U = 389.54`, with no IR violations, one 
 contact, and `$0.0002722896` charged cost. That is integration evidence only: one
 cluster cannot estimate uncertainty, robustness, coverage, ranking, or saturation.
 
-For the next run, reasoning mode must be a declared experimental condition and stored
-in the receipt. Actions and outcomes remain primary evidence; reasoning text is only a
-secondary diagnostic surface. Failure coding should distinguish objective selection,
-strategic modeling, constraint tracking, and execution rather than report only
-"reasoning on/off."
+The finalized confirmatory run declared reasoning mode in every plan and receipt. Across 83
+worlds with all three valid replicates in both conditions, reasoning-low raised mean
+within-case score from `0.6671` to `0.8256`: paired difference `+0.1585`, 10,000-draw
+world-cluster bootstrap 95% interval `[0.1294, 0.1882]`. Exact legal-outcome-support bounds
+over all 100 planned worlds were `[0.0992, 0.1787]`.
+
+Operational reliability differed sharply. All 300 reasoning-none trajectories completed,
+while 280/300 reasoning-low trajectories completed: nine exhausted the length policy, eight
+exceeded the per-cell cost budget, and three timed out. The 83 complete worlds fall below the
+90-cluster retention target used to plan for a moderate standardized effect, although the
+observed paired effect was larger and both the primary interval and missingness bounds exclude
+zero. Known recorded admission-plus-sample cost was `$2.2912410906`; billing for the three
+timeout calls is unknown.
+
+On the matched complete panel, reasoning-low nearly matched the naive scripted baseline
+(`0.8256` versus `0.8326`) and cut trajectories with an IR violation from 120/249 to 12/249.
+It also shifted surplus toward landlords: tenant capture fell from 83.1% to 70.3%, while
+landlord capture rose from 16.9% to 29.7%. These economic decompositions are descriptive.
+Actions and outcomes remain primary evidence; reasoning telemetry is a secondary diagnostic
+surface. See the locked design and full decomposition in
+[`walkthroughs/housing_reasoning_experiment.md`](walkthroughs/housing_reasoning_experiment.md)
+and the compact result in
+[`evidence/housing_reasoning_parasail_v12_summary_2026-08-27.json`](evidence/housing_reasoning_parasail_v12_summary_2026-08-27.json).
 
 ## 5b. Attribute-derived valuations
 
@@ -219,15 +243,16 @@ miscomputing, and conflating the two would penalise exactly the behaviour the ca
 exists to reward.
 
 The earlier profitable-deviation count predates the private-cost and binding-hold P0
-revision and is withdrawn pending a committed rerun. Current four-round results over
-the 299 of 300 generated seeds with `U > 0` are: naive 0.847 (sd 0.122) and adaptive
-0.835 (sd 0.127). These establish executable within-case comparisons, not universal
-scores or evidence that the suite is saturated.
+revision and is withdrawn pending a committed rerun. The current four-round results
+are the pinned 300-seed panel in Section 5a. They establish executable within-case
+comparisons, not universal scores or evidence that the suite is saturated.
 
 ## 6. Metrics
 
 | metric | definition |
 |---|---|
+| `social_welfare` | realized tenant plus landlord payoff in native utility units; receipt primary |
+| `within_case_score` | `realized_surplus / optimal_surplus` when `U > 0`; within-case diagnostic |
 | `matching_error` | `1 - realized_surplus / optimal_surplus` |
 | `unmatched_gap` | realized unmatched count minus optimal unmatched count |
 | `tenant_payoff[t]` | signed tenant value minus signed rent; zero if unmatched |
@@ -235,8 +260,10 @@ scores or evidence that the suite is saturated.
 | `ir_violations` | signed seats with negative realized payoff |
 | `core_rent_error` | future diagnostic; no implemented price oracle |
 
-Report `matching_error` as the headline. `unmatched_gap` is a diagnostic only: the
-count can hide large welfare differences. `economics()` preserves signed prices,
+The receipt headline is native-unit `social_welfare`; a predeclared paired analysis may
+use `within_case_score` to compare conditions on identical worlds, but it is not a
+universal cross-family score. `unmatched_gap` is a diagnostic only: the count can hide
+large welfare differences. `economics()` preserves signed prices,
 per-seat payoffs, total welfare, and IR violations. Negative-payoff agreements are
 legal outcomes and must be recorded rather than filtered. `core_rent_error` is not yet
 measurable because this repository does not implement or test a price/core oracle;
@@ -276,5 +303,7 @@ for name, ratios in (("naive", naive), ("adaptive", adaptive)):
 This reproduces scripted baselines only. A reproducible live-agent result additionally
 requires the shared runner to store the task/policy/database hashes, model and exact
 prompt, reasoning setting, seed, tool/action records, state diffs, retries, scorer
-version, raw responses, and replay result. Until those artifacts are committed or
-addressably archived, a model table must remain preliminary and outside paper claims.
+version, raw responses, and replay result. The 2026-08-27 confirmatory run met that contract:
+its compact summary and hashes are committed, and its complete raw evidence is preserved in
+the gitignored local archive identified by the summary. The raw archive is not remote or
+independently durable until it is copied to an addressable evidence store.

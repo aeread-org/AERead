@@ -1,4 +1,10 @@
-# Walkthrough: Housing V1 through the shared runner
+# Walkthrough: Housing V1 R4 live admission
+
+> Historical boundary: this document records the 2026-08-26 R4 live admission. The current
+> code additionally emits typed `ScoreEnvelope` measurements, durable `EvaluationReceipt`
+> files, typed failure exclusions, and deterministic state-and-score replay. See
+> [`shared_runner_housing_receipts.md`](shared_runner_housing_receipts.md). The historical
+> live artifact was not retroactively upgraded and remains instrumentation evidence only.
 
 The Housing adapter is the first multi-seat, multi-phase economic case to execute through the
 generic R1-R4 runner. It preserves the strict environment contract while keeping case semantics
@@ -54,8 +60,9 @@ landlord cost `1571.68` appeared in none of them.
 
 The adapter reports distinct measurement objects rather than calling every reference a bound:
 
-- `L = 0`: the feasible no-trade floor.
-- `B`: the declared adaptive scripted comparison policy on the same frozen world.
+- `L = 0`: the feasible no-trade policy value and lower bound on the optimum, not a floor on
+  realized agent welfare.
+- `B`: the declared naive scripted comparison policy on the same frozen world.
 - `U`: exact max-weight bipartite assignment on full-information transferable surplus.
 - `R`: realized terminal social welfare from signed holds.
 - within-case score: `(R - L) / (U - L)` when `U > L`.

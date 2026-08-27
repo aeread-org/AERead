@@ -15,12 +15,14 @@ import json
 import math
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any, Mapping, Sequence
 
 from aeread import housing_env as hz
 
 from .execution import (
     CanonicalResponse,
+    CellExecution,
+    EvidenceStore,
     OpenRouterChatClient,
     ProviderFailure,
     ProviderRequest,
@@ -29,14 +31,40 @@ from .execution import (
     execute_plan_cell,
 )
 from .registry import PluginRegistry
+from .measurement import (
+    EstimandSpec,
+    ImplementationRef as MeasurementImplementationRef,
+    MeasurementLeafSpec,
+    MetricValue,
+    ObjectiveScopeSpec,
+    ReferenceSpec,
+    ScoreEnvelope,
+    ValidityDomainSpec,
+    ValidityReport,
+    VerifierSpec,
+)
 from .resolver import (
     ImplementationPin,
     RunPlan,
     canonical_json_bytes,
     case_content_sha256,
     resolve_run_plan,
+    verify_run_plan,
 )
-from .scheduler import LegalityResult, ParseResult, PhaseSpec, TransitionResult
+from .receipts import (
+    EvaluationFailure,
+    EvaluationReceipt,
+    seal_evaluation_receipt,
+    verify_evaluation_receipt,
+    write_evaluation_receipt,
+)
+from .scheduler import (
+    ActionEnvelope,
+    LegalityResult,
+    ParseResult,
+    PhaseSpec,
+    TransitionResult,
+)
 from .schemas import (
     AgentProfile,
     AnalysisPlan,
@@ -109,6 +137,244 @@ def _finite_number(value: Any) -> bool:
         isinstance(value, (int, float))
         and not isinstance(value, bool)
         and math.isfinite(float(value))
+    )
+
+
+def _housing_source_digests() -> tuple[str, str, str]:
+    housing_source = Path(hz.__file__).read_bytes()
+    bridge_source = Path(__file__).read_bytes()
+    return (
+        hashlib.sha256(housing_source).hexdigest(),
+        hashlib.sha256(bridge_source).hexdigest(),
+        hashlib.sha256(housing_source + bridge_source).hexdigest(),
+    )
+
+
+def _housing_measurement_leaf(case: Mapping[str, Any]) -> MeasurementLeafSpec:
+    housing_digest, _bridge_digest, combined_digest = _housing_source_digests()
+    source_sha256 = hashlib.sha256(
+        canonical_json_bytes({"surplus": case["world"].surplus})
+    ).hexdigest()
+    validity_domain = ValidityDomainSpec(
+        domain_id="housing_v1_terminal_domain",
+        domain_version="1.0.0",
+        schema_ref="housing_v1/outcome/1",
+        predicate=MeasurementImplementationRef(
+            "housing_outcome_v1", "1.0.0", combined_digest
+        ),
+    )
+    estimand = EstimandSpec(
+        estimand_id="social_welfare",
+        estimand_version="1.0.0",
+        input_scope="terminal_state",
+        direction="maximize",
+        units="utility_points",
+        validity_domain=validity_domain,
+    )
+    return MeasurementLeafSpec(
+        leaf_id="housing_social_welfare_leaf",
+        leaf_version="1.0.0",
+        estimand=estimand,
+        verifier=VerifierSpec(
+            verifier_family="objective_reference",
+            evaluation_class="deterministic",
+            reference=ReferenceSpec(
+                reference_id="housing_exact_assignment_v1",
+                reference_version="1.0.0",
+                reference_kind="objective_upper_bound",
+                input_scope="terminal_state",
+                units="utility_points",
+                source_sha256=source_sha256,
+                implementation=MeasurementImplementationRef(
+                    "housing_exact_assignment_v1", "1.0.0", housing_digest
+                ),
+            ),
+            objective_scope=ObjectiveScopeSpec(
+                objective_id="social_welfare",
+                objective_version="1.0.0",
+                direction="maximize",
+                units="utility_points",
+                feasible_set="one tenant and one landlord per signed lease",
+                information_set="full case values and private landlord costs",
+                horizon="one pinned housing episode",
+                environment_condition="pinned housing world and deadline",
+                opponent_condition="controlled landlord policy declared in the RunPlan",
+                validity_domain=validity_domain,
+            ),
+        ),
+        scorer=MeasurementImplementationRef(
+            "housing_outcome_v1", "1.0.0", combined_digest
+        ),
+    )
+
+
+def _housing_metric_mapping(
+    value: object, *, label: str, expected_ids: Sequence[str], reasons: list[str]
+) -> dict[str, float]:
+    if not isinstance(value, Mapping) or set(value) != set(expected_ids):
+        reasons.append(f"{label} does not match the declared seats")
+        return {}
+    result: dict[str, float] = {}
+    for seat_id in sorted(expected_ids):
+        payoff = value[seat_id]
+        if not _finite_number(payoff):
+            reasons.append(f"{label} contains a non-finite payoff")
+            return {}
+        result[seat_id] = float(payoff)
+    return result
+
+
+def _score_housing_outcome(
+    case: Mapping[str, Any],
+    outcome: Mapping[str, Any],
+    *,
+    evidence_refs: Sequence[str] = (),
+) -> ScoreEnvelope:
+    leaf = _housing_measurement_leaf(case)
+    reasons: list[str] = []
+    if not isinstance(outcome, Mapping):
+        outcome = {}
+        reasons.append("outcome is not a mapping")
+    if outcome.get("valid") is not True:
+        reasons.append("family outcome is not marked valid")
+    if outcome.get("bound_semantics") != "full_information_allocation_relaxation":
+        reasons.append("upper-bound semantics are missing or changed")
+
+    numeric: dict[str, float] = {}
+    for field in ("social_welfare", "feasible_floor", "baseline_total", "oracle_total"):
+        value = outcome.get(field)
+        if not _finite_number(value):
+            reasons.append(f"{field} is missing or non-finite")
+        else:
+            numeric[field] = float(value)
+
+    if "feasible_floor" in numeric and not math.isclose(
+        numeric["feasible_floor"], 0.0, abs_tol=1e-12
+    ):
+        reasons.append("feasible-policy lower bound is not the declared zero policy")
+    if "oracle_total" in numeric and numeric["oracle_total"] < -1e-12:
+        reasons.append("assignment upper bound cannot be negative")
+    if {"feasible_floor", "oracle_total"}.issubset(numeric) and (
+        numeric["feasible_floor"] > numeric["oracle_total"] + 1e-9
+    ):
+        reasons.append("optimum lower bound exceeds the upper bound")
+    if {"baseline_total", "oracle_total"}.issubset(numeric) and (
+        numeric["baseline_total"] > numeric["oracle_total"] + 1e-9
+    ):
+        reasons.append("comparison baseline exceeds the declared upper bound")
+    if {"social_welfare", "oracle_total"}.issubset(numeric) and (
+        numeric["social_welfare"] > numeric["oracle_total"] + 1e-9
+    ):
+        reasons.append("observed welfare exceeds the declared upper bound")
+
+    tenant_ids = tuple(f"tenant_{index}" for index in range(case["num_tenants"]))
+    landlord_ids = tuple(f"landlord_{index}" for index in range(case["num_listings"]))
+    tenant_payoffs = _housing_metric_mapping(
+        outcome.get("tenant_payoffs"),
+        label="tenant_payoffs",
+        expected_ids=tenant_ids,
+        reasons=reasons,
+    )
+    landlord_payoffs = _housing_metric_mapping(
+        outcome.get("landlord_payoffs"),
+        label="landlord_payoffs",
+        expected_ids=landlord_ids,
+        reasons=reasons,
+    )
+    payoffs = {**tenant_payoffs, **landlord_payoffs}
+    if payoffs and "social_welfare" in numeric and not math.isclose(
+        sum(payoffs.values()), numeric["social_welfare"], rel_tol=1e-9, abs_tol=1e-9
+    ):
+        reasons.append("seat payoffs do not sum to social welfare")
+
+    ir_violations = outcome.get("ir_violations")
+    if not isinstance(ir_violations, (list, tuple)) or any(
+        not isinstance(item, str) or not item for item in ir_violations
+    ):
+        reasons.append("ir_violations must be a list of seat identifiers")
+    wasted_contacts = outcome.get("wasted_contacts")
+    if (
+        isinstance(wasted_contacts, bool)
+        or not isinstance(wasted_contacts, int)
+        or wasted_contacts < 0
+    ):
+        reasons.append("wasted_contacts must be a non-negative integer")
+
+    if {"social_welfare", "oracle_total"}.issubset(numeric):
+        declared_ratio = outcome.get("within_case_score")
+        if numeric["oracle_total"] > 0:
+            expected_ratio = numeric["social_welfare"] / numeric["oracle_total"]
+            if not _finite_number(declared_ratio) or not math.isclose(
+                float(declared_ratio), expected_ratio, rel_tol=1e-9, abs_tol=1e-9
+            ):
+                reasons.append("within_case_score does not match welfare over upper bound")
+        elif declared_ratio is not None:
+            reasons.append("within_case_score must be null when the upper bound is zero")
+
+    if reasons:
+        return ScoreEnvelope(
+            status="invalid_measurement",
+            leaf=leaf,
+            primary=None,
+            metrics={},
+            reference_values={},
+            validity=ValidityReport("invalid", tuple(dict.fromkeys(reasons))),
+            evidence_refs=tuple(evidence_refs),
+        )
+
+    welfare = numeric["social_welfare"]
+    lower = numeric["feasible_floor"]
+    baseline = numeric["baseline_total"]
+    upper = numeric["oracle_total"]
+    metrics = {
+        "social_welfare": MetricValue(welfare, "utility_points"),
+        "comparison_baseline_gap": MetricValue(
+            welfare - baseline, "utility_points"
+        ),
+        "upper_bound_gap": MetricValue(upper - welfare, "utility_points"),
+        "ir_violation_count": MetricValue(float(len(ir_violations)), "count"),
+        "wasted_contacts": MetricValue(float(wasted_contacts), "count"),
+    }
+    if upper > 0:
+        metrics["within_case_score"] = MetricValue(welfare / upper, "ratio")
+    references = {
+        "optimum_lower_bound": MetricValue(
+            lower,
+            "utility_points",
+            {"reference_kind": "objective_lower_bound", "policy": "do_nothing"},
+        ),
+        "comparison_baseline": MetricValue(
+            baseline,
+            "utility_points",
+            {"reference_kind": "comparison_baseline", "policy": "naive"},
+        ),
+        "optimum_upper_bound": MetricValue(
+            upper,
+            "utility_points",
+            {
+                "reference_kind": "objective_upper_bound",
+                "semantics": "full_information_allocation_relaxation",
+            },
+        ),
+    }
+    utility = {
+        seat_id: MetricValue(
+            payoff,
+            "utility_points",
+            {"disagreement_utility": 0.0},
+        )
+        for seat_id, payoff in sorted(payoffs.items())
+    }
+    return ScoreEnvelope(
+        status="ok",
+        leaf=leaf,
+        primary=metrics["social_welfare"],
+        metrics=metrics,
+        reference_values=references,
+        validity=ValidityReport("valid"),
+        evidence_refs=tuple(evidence_refs),
+        utility_by_seat=utility,
+        capture_by_seat=utility,
     )
 
 
@@ -447,7 +713,7 @@ class HousingV1Plugin:
         baseline = hz.run_scripted_market(
             market.world,
             rounds=case["rounds"],
-            strategy="adaptive",
+            strategy="naive",
         )
         score = (
             economics.social_welfare / oracle.total if oracle.total > 0 else None
@@ -481,12 +747,19 @@ class HousingV1Plugin:
         return {"valid": True, **dict(terminal)}
 
     def build_scorer(self, case):
-        return lambda outcome: outcome["social_welfare"]
+        def score(
+            outcome: Mapping[str, Any], *, evidence_refs: Sequence[str] = ()
+        ) -> ScoreEnvelope:
+            return _score_housing_outcome(
+                case, outcome, evidence_refs=evidence_refs
+            )
+
+        return score
 
     def build_reference_providers(self, case):
         return (
             "housing_feasible_zero_v1",
-            "housing_adaptive_v1",
+            "housing_naive_v1",
             "housing_exact_assignment_v1",
         )
 
@@ -611,6 +884,523 @@ class HousingSmokeSetup:
     pricing: Mapping[str, TokenPricing]
 
 
+def _housing_receipt_implementations(
+    score: ScoreEnvelope,
+) -> tuple[MeasurementImplementationRef, ...]:
+    return (
+        score.leaf.estimand.validity_domain.predicate,
+        score.leaf.verifier.reference.implementation,
+        score.leaf.scorer,
+    )
+
+
+def _housing_agent_profile_digests(
+    plan: RunPlan, cell: Any
+) -> dict[str, str]:
+    profiles = {profile.profile_id: profile for profile in plan.agent_profiles}
+    return {
+        seat_id: hashlib.sha256(
+            canonical_json_bytes(profiles[profile_id])
+        ).hexdigest()
+        for seat_id, profile_id in sorted(cell.profile_by_seat.items())
+    }
+
+
+def _housing_observability_limits(plan: RunPlan, cell: Any) -> tuple[str, ...]:
+    profile_by_id = {profile.profile_id: profile for profile in plan.agent_profiles}
+    assigned_profiles = tuple(
+        profile_by_id[profile_id]
+        for profile_id in sorted(set(cell.profile_by_seat.values()))
+    )
+    if any(profile.model.provider == "openrouter" for profile in assigned_profiles):
+        return ("provider_internal_reasoning_not_fully_observable",)
+    return ()
+
+
+def _replay_housing_state_from_evidence(
+    *, plugin: HousingV1Plugin, family_case: Mapping[str, Any], evidence: EvidenceStore
+) -> tuple[Mapping[str, Any], Any]:
+    events = evidence.read_events()
+    phase_by_id = {phase.phase_id: phase for phase in plugin.phases(family_case)}
+    state = plugin.initial_state(family_case, run=None)
+    phase_events = tuple(
+        event for event in events if event.event_type == "phase_instance_started"
+    )
+    if not phase_events:
+        raise ValueError("Housing replay contains no phase boundaries")
+
+    for phase_event in phase_events:
+        payload = evidence.read_event_payload(phase_event)
+        if not isinstance(payload, Mapping) or not isinstance(payload.get("phase"), Mapping):
+            raise ValueError("Housing replay phase boundary is malformed")
+        recorded_phase = PhaseSpec(**dict(payload["phase"]))
+        phase = phase_by_id.get(recorded_phase.phase_id)
+        if phase is None or canonical_json_bytes(recorded_phase) != canonical_json_bytes(phase):
+            raise ValueError("Housing replay phase specification changed")
+        pre_state_sha256 = hashlib.sha256(canonical_json_bytes(state)).hexdigest()
+        if payload.get("pre_state_sha256") != pre_state_sha256:
+            raise ValueError("Housing replay pre-state hash mismatch")
+        eligible = tuple(plugin.eligible_actors(family_case, state, phase))
+        if tuple(payload.get("eligible_actors", ())) != eligible:
+            raise ValueError("Housing replay eligible actors changed")
+
+        starts = tuple(
+            event
+            for event in events
+            if event.event_type == "logical_action_started"
+            and event.phase_instance_id == phase_event.phase_instance_id
+        )
+        actions: dict[str, ActionEnvelope] = {}
+        for start in starts:
+            start_payload = evidence.read_event_payload(start)
+            request = (
+                start_payload.get("request")
+                if isinstance(start_payload, Mapping)
+                else None
+            )
+            if not isinstance(request, Mapping):
+                raise ValueError("Housing replay action request is malformed")
+            seat_id = request.get("seat_id")
+            if not isinstance(seat_id, str) or seat_id in actions:
+                raise ValueError("Housing replay action seat identity is invalid")
+            parsed_events = tuple(
+                event
+                for event in events
+                if event.event_type == "action_parsed"
+                and event.logical_action_id == start.logical_action_id
+            )
+            if len(parsed_events) != 1:
+                raise ValueError("Housing replay action lacks one parse result")
+            parsed_payload = evidence.read_event_payload(parsed_events[0])
+            parsed_value = (
+                parsed_payload.get("parse_result")
+                if isinstance(parsed_payload, Mapping)
+                else None
+            )
+            if not isinstance(parsed_value, Mapping):
+                raise ValueError("Housing replay parse result is malformed")
+            parsed = ParseResult(**dict(parsed_value))
+            legality_events = tuple(
+                event
+                for event in events
+                if event.event_type == "action_legality_checked"
+                and event.logical_action_id == start.logical_action_id
+            )
+            legality: LegalityResult | None = None
+            if legality_events:
+                if len(legality_events) != 1:
+                    raise ValueError("Housing replay has duplicate legality results")
+                legality_payload = evidence.read_event_payload(legality_events[0])
+                legality_value = (
+                    legality_payload.get("legality_result")
+                    if isinstance(legality_payload, Mapping)
+                    else None
+                )
+                if not isinstance(legality_value, Mapping):
+                    raise ValueError("Housing replay legality result is malformed")
+                legality = LegalityResult(**dict(legality_value))
+            valid = parsed.ok and legality is not None and legality.legal
+            actions[seat_id] = ActionEnvelope(
+                seat_id=seat_id,
+                valid=valid,
+                action=parsed.action if valid else None,
+                parse=parsed,
+                legality=legality,
+            )
+        if tuple(sorted(actions)) != tuple(sorted(eligible)):
+            raise ValueError("Housing replay action set does not match eligible actors")
+
+        transition_events = tuple(
+            event
+            for event in events
+            if event.event_type == "transition_applied"
+            and event.phase_instance_id == phase_event.phase_instance_id
+        )
+        if len(transition_events) != 1:
+            raise ValueError("Housing replay phase lacks one transition")
+        transition_payload = evidence.read_event_payload(transition_events[0])
+        if not isinstance(transition_payload, Mapping):
+            raise ValueError("Housing replay transition is malformed")
+        replayed = plugin.step(family_case, state, phase, actions)
+        if canonical_json_bytes(transition_payload.get("transition")) != canonical_json_bytes(
+            replayed
+        ):
+            raise ValueError("Housing replay transition differs from sealed evidence")
+        post_state_sha256 = hashlib.sha256(
+            canonical_json_bytes(replayed.state)
+        ).hexdigest()
+        if transition_payload.get("post_state_sha256") != post_state_sha256:
+            raise ValueError("Housing replay post-state hash mismatch")
+        state = replayed.state
+
+    terminal_events = tuple(
+        event for event in events if event.event_type == "episode_terminated"
+    )
+    outcome_events = tuple(
+        event for event in events if event.event_type == "family_outcome_recorded"
+    )
+    if len(terminal_events) != 1 or len(outcome_events) != 1:
+        raise ValueError("Housing replay lacks one terminal outcome boundary")
+    terminal = plugin.terminal(family_case, state)
+    terminal_payload = evidence.read_event_payload(terminal_events[0])
+    outcome_payload = evidence.read_event_payload(outcome_events[0])
+    if (
+        not isinstance(terminal_payload, Mapping)
+        or canonical_json_bytes(terminal_payload.get("terminal"))
+        != canonical_json_bytes(terminal)
+    ):
+        raise ValueError("Housing replay terminal result differs from sealed evidence")
+    outcome = plugin.outcome(family_case, terminal)
+    if (
+        not isinstance(outcome_payload, Mapping)
+        or canonical_json_bytes(outcome_payload.get("outcome"))
+        != canonical_json_bytes(outcome)
+    ):
+        raise ValueError("Housing replay family outcome differs from sealed evidence")
+    return outcome, outcome_events[0]
+
+
+def finalize_housing_execution(
+    *, setup: HousingSmokeSetup, execution: CellExecution
+) -> EvaluationReceipt:
+    """Score one completed Housing execution, seal evidence, and persist its receipt."""
+
+    if not isinstance(setup, HousingSmokeSetup):
+        raise TypeError("setup must be a HousingSmokeSetup")
+    if not isinstance(execution, CellExecution):
+        raise TypeError("execution must be a CellExecution")
+    verify_run_plan(setup.plan)
+    if execution.run_plan_id != setup.plan.run_plan_id:
+        raise ValueError("execution does not belong to the Housing RunPlan")
+    cell = next(
+        (item for item in setup.plan.cells if item.cell_id == execution.cell_id),
+        None,
+    )
+    if cell is None:
+        raise ValueError("execution cell is absent from the Housing RunPlan")
+    case = next(item for item in setup.plan.cases if item.case_id == cell.case_id)
+    family = next(
+        item for item in setup.plan.families if item.family.id == cell.family_id
+    )
+    plugin = setup.registry.resolve_manifest(family)
+    family_case = plugin.validate_payload(case.payload)
+
+    execution.evidence.audit_reconciliation()
+    recorded_outcome, outcome_event = _replay_housing_state_from_evidence(
+        plugin=plugin,
+        family_case=family_case,
+        evidence=execution.evidence,
+    )
+    if canonical_json_bytes(recorded_outcome) != canonical_json_bytes(
+        execution.episode_result.outcome
+    ):
+        raise ValueError("execution outcome does not match the event log")
+
+    score = plugin.build_scorer(family_case)(
+        recorded_outcome,
+        evidence_refs=(outcome_event.event_id,),
+    )
+    execution.evidence.append_event(
+        "score_recorded",
+        {
+            "primary_leaf_id": score.leaf.leaf_id,
+            "outcome_event_id": outcome_event.event_id,
+            "score": score,
+        },
+    )
+    execution.evidence.audit_reconciliation()
+    evidence_seal = execution.evidence.seal()
+
+    if score.status == "ok":
+        receipt_status = "ok"
+        inclusion_status = "included"
+        failure = None
+    else:
+        receipt_status = "invalid_measurement"
+        inclusion_status = "excluded"
+        failure = EvaluationFailure(
+            failure_class="oracle_or_scorer_failure",
+            condition="invalid_housing_measurement",
+            message="; ".join(score.validity.reasons),
+        )
+    receipt = seal_evaluation_receipt(
+        EvaluationReceipt(
+            spec_version=EvaluationReceipt.SPEC_VERSION,
+            receipt_sha256=None,
+            status=receipt_status,
+            inclusion_status=inclusion_status,
+            run_plan_id=setup.plan.run_plan_id,
+            run_plan_sha256=setup.plan.plan_sha256,
+            cell_id=cell.cell_id,
+            case_id=case.case_id,
+            case_sha256=case.content_sha256,
+            suite_id=setup.plan.suite.suite_id,
+            suite_version=setup.plan.suite.version,
+            block_id=cell.block_id,
+            sampling_plan_id=cell.sampling_plan_id,
+            analysis_plan_id=cell.analysis_plan_id,
+            episode_id=evidence_seal.episode_id,
+            episode_attempt_id=execution.episode_attempt_id,
+            cluster_id=cell.cluster_id,
+            cluster_level=cell.cluster_level,
+            observations_per_cluster=cell.observations_per_cluster,
+            parent_cluster_id=None,
+            pair_id=cell.pair_id,
+            paired_fields=cell.paired_fields,
+            replicate_index=cell.replicate_index,
+            panel_mode=cell.panel_mode,
+            agent_profile_sha256_by_seat=_housing_agent_profile_digests(
+                setup.plan, cell
+            ),
+            implementation_refs=_housing_receipt_implementations(score),
+            plan_implementation_pins=setup.plan.implementation_pins,
+            evidence=evidence_seal,
+            primary_leaf_id=score.leaf.leaf_id,
+            scores=(score,),
+            failure=failure,
+            observability_limits=_housing_observability_limits(setup.plan, cell),
+            replay_level="state_and_score",
+        )
+    )
+    write_evaluation_receipt(
+        receipt, execution.evidence.root / "evaluation_receipt.json"
+    )
+    return receipt
+
+
+def finalize_housing_failure(
+    *,
+    setup: HousingSmokeSetup,
+    cell_id: str,
+    evidence_root: str | Path,
+    error: BaseException,
+) -> EvaluationReceipt:
+    """Seal one reconciled failed attempt as a typed receipt exclusion."""
+
+    verify_run_plan(setup.plan)
+    cell = next((item for item in setup.plan.cells if item.cell_id == cell_id), None)
+    if cell is None:
+        raise ValueError("failure cell is absent from the Housing RunPlan")
+    attempt_root = Path(evidence_root) / setup.plan.run_plan_id / cell.cell_id
+    attempts = (
+        sorted(path for path in attempt_root.iterdir() if path.is_dir())
+        if attempt_root.is_dir()
+        else []
+    )
+    if len(attempts) != 1:
+        raise ValueError("Housing failure must resolve to exactly one episode attempt")
+    evidence = EvidenceStore.audit_existing(attempts[0])
+    failure_conditions: list[str] = []
+    for event in evidence.read_events():
+        if event.event_type not in {
+            "provider_call_failed",
+            "provider_call_outcome_unknown",
+            "action_attempt_failed",
+            "action_attempt_outcome_unknown",
+        }:
+            continue
+        payload = evidence.read_event_payload(event)
+        condition = payload.get("failure_condition") if isinstance(payload, Mapping) else None
+        if isinstance(condition, str) and condition:
+            failure_conditions.append(condition)
+    retryable_conditions = {
+        "length",
+        "rate_limit",
+        "provider_5xx",
+        "timeout",
+        "transport",
+    }
+    if any(condition in retryable_conditions for condition in failure_conditions):
+        failure_class = "retryable_infrastructure"
+    elif any(condition == "provider_contract" for condition in failure_conditions):
+        failure_class = "integration_or_configuration"
+    else:
+        failure_class = "environment_failure"
+    condition = failure_conditions[-1] if failure_conditions else "housing_execution_failure"
+    if not all(character.isalnum() or character in "_-" for character in condition):
+        condition = "housing_execution_failure"
+
+    evidence_seal = evidence.seal()
+    case = next(item for item in setup.plan.cases if item.case_id == cell.case_id)
+    family = next(
+        item for item in setup.plan.families if item.family.id == cell.family_id
+    )
+    plugin = setup.registry.resolve_manifest(family)
+    family_case = plugin.validate_payload(case.payload)
+    leaf = _housing_measurement_leaf(family_case)
+    receipt = seal_evaluation_receipt(
+        EvaluationReceipt(
+            spec_version=EvaluationReceipt.SPEC_VERSION,
+            receipt_sha256=None,
+            status="invalid_measurement",
+            inclusion_status="excluded",
+            run_plan_id=setup.plan.run_plan_id,
+            run_plan_sha256=setup.plan.plan_sha256,
+            cell_id=cell.cell_id,
+            case_id=case.case_id,
+            case_sha256=case.content_sha256,
+            suite_id=setup.plan.suite.suite_id,
+            suite_version=setup.plan.suite.version,
+            block_id=cell.block_id,
+            sampling_plan_id=cell.sampling_plan_id,
+            analysis_plan_id=cell.analysis_plan_id,
+            episode_id=evidence_seal.episode_id,
+            episode_attempt_id=evidence_seal.episode_attempt_id,
+            cluster_id=cell.cluster_id,
+            cluster_level=cell.cluster_level,
+            observations_per_cluster=cell.observations_per_cluster,
+            parent_cluster_id=None,
+            pair_id=cell.pair_id,
+            paired_fields=cell.paired_fields,
+            replicate_index=cell.replicate_index,
+            panel_mode=cell.panel_mode,
+            agent_profile_sha256_by_seat=_housing_agent_profile_digests(
+                setup.plan, cell
+            ),
+            implementation_refs=(
+                leaf.estimand.validity_domain.predicate,
+                leaf.verifier.reference.implementation,
+                leaf.scorer,
+            ),
+            plan_implementation_pins=setup.plan.implementation_pins,
+            evidence=evidence_seal,
+            primary_leaf_id=leaf.leaf_id,
+            scores=(),
+            failure=EvaluationFailure(
+                failure_class=failure_class,
+                condition=condition,
+                message=str(error) or type(error).__name__,
+            ),
+            observability_limits=_housing_observability_limits(setup.plan, cell),
+            replay_level="none",
+        )
+    )
+    write_evaluation_receipt(
+        receipt, evidence.root / "evaluation_receipt.json"
+    )
+    evidence.close()
+    return receipt
+
+
+def replay_housing_receipt(
+    *,
+    setup: HousingSmokeSetup,
+    receipt: EvaluationReceipt,
+    evidence_root: str | Path,
+) -> EvaluationReceipt:
+    """Recompute the Housing score from sealed evidence without a provider call."""
+
+    verify_run_plan(setup.plan)
+    verify_evaluation_receipt(receipt)
+    if (
+        receipt.run_plan_id != setup.plan.run_plan_id
+        or receipt.run_plan_sha256 != setup.plan.plan_sha256
+    ):
+        raise ValueError("receipt does not belong to the Housing RunPlan")
+    cell = next(
+        (item for item in setup.plan.cells if item.cell_id == receipt.cell_id),
+        None,
+    )
+    if cell is None or cell.case_sha256 != receipt.case_sha256:
+        raise ValueError("receipt cell/case identity does not match the Housing plan")
+    evidence_path = (
+        Path(evidence_root)
+        / receipt.run_plan_id
+        / receipt.cell_id
+        / receipt.episode_attempt_id
+    )
+    evidence = EvidenceStore.audit_existing(evidence_path)
+    if evidence.verify_seal() != receipt.evidence:
+        raise ValueError("receipt evidence seal does not match durable evidence")
+    receipt_path = evidence_path / "evaluation_receipt.json"
+    if (
+        not receipt_path.is_file()
+        or receipt_path.read_bytes() != canonical_json_bytes(receipt) + b"\n"
+    ):
+        raise ValueError("durable Housing receipt bytes do not match")
+
+    events = evidence.read_events()
+    score_events = tuple(event for event in events if event.event_type == "score_recorded")
+    if len(score_events) != 1:
+        raise ValueError("sealed Housing evidence has incomplete score boundaries")
+    score_payload = evidence.read_event_payload(score_events[0])
+    if not isinstance(score_payload, Mapping):
+        raise ValueError("sealed Housing score evidence is malformed")
+    case = next(item for item in setup.plan.cases if item.case_id == cell.case_id)
+    family = next(
+        item for item in setup.plan.families if item.family.id == cell.family_id
+    )
+    plugin = setup.registry.resolve_manifest(family)
+    family_case = plugin.validate_payload(case.payload)
+    replayed_outcome, outcome_event = _replay_housing_state_from_evidence(
+        plugin=plugin,
+        family_case=family_case,
+        evidence=evidence,
+    )
+    replayed_score = plugin.build_scorer(family_case)(
+        replayed_outcome,
+        evidence_refs=(outcome_event.event_id,),
+    )
+    if canonical_json_bytes(score_payload.get("score")) != canonical_json_bytes(
+        replayed_score
+    ):
+        raise ValueError("recorded Housing score does not replay deterministically")
+    if canonical_json_bytes(receipt.scores) != canonical_json_bytes((replayed_score,)):
+        raise ValueError("receipt Housing score does not replay deterministically")
+    evidence.close()
+    return receipt
+
+
+@dataclass(frozen=True, slots=True)
+class OpenRouterRoutePin:
+    """Exact OpenRouter endpoint identity and price ceiling sealed into a plan."""
+
+    provider: str
+    quantization: str
+    canonical_model: str
+    input_per_million: float
+    cached_input_per_million: float
+    output_per_million: float
+    pricing_id: str
+
+    def __post_init__(self) -> None:
+        for name in ("provider", "quantization", "canonical_model", "pricing_id"):
+            value = getattr(self, name)
+            if not isinstance(value, str) or not value:
+                raise ValueError(f"{name} must be a non-empty string")
+        self.token_pricing()
+
+    def token_pricing(self) -> TokenPricing:
+        return TokenPricing(
+            self.input_per_million,
+            self.cached_input_per_million,
+            self.output_per_million,
+            self.pricing_id,
+        )
+
+    def provider_metadata(self) -> dict[str, str]:
+        return {
+            "route_provider": self.provider,
+            "quantization": self.quantization,
+            "canonical_model": self.canonical_model,
+            "max_prompt_price_per_million": format(self.input_per_million, ".15g"),
+            "max_completion_price_per_million": format(
+                self.output_per_million, ".15g"
+            ),
+        }
+
+
+DEEPINFRA_HOUSING_ROUTE = OpenRouterRoutePin(
+    provider="DeepInfra",
+    quantization="fp8",
+    canonical_model="deepseek/deepseek-v4-flash-20260731",
+    input_per_million=0.08,
+    cached_input_per_million=0.016,
+    output_per_million=0.18,
+    pricing_id="openrouter_deepinfra_2026-08-26_deepseek-v4-flash-0731",
+)
+
+
 def _pin(component_id: str, kind: str, digest: str, version: str = "1.0.0") -> ImplementationPin:
     return ImplementationPin.from_dict(
         {
@@ -635,6 +1425,12 @@ def _profile(
     max_logical_actions: int,
     runtime: str,
     world_seed: int,
+    reasoning_condition_id: str = "reasoning_low_v1",
+    reasoning_effort: str | None = "low",
+    request_seed_base: int | None = None,
+    max_output_tokens: int | None = None,
+    timeout_seconds: float | None = None,
+    openrouter_route: OpenRouterRoutePin = DEEPINFRA_HOUSING_ROUTE,
 ) -> AgentProfile:
     config: dict[str, Any] = {
         "pricing_id": pricing.pricing_id,
@@ -642,13 +1438,10 @@ def _profile(
         "output_schema_by_action_schema": dict(output_schemas),
     }
     if provider == "openrouter":
-        config["provider_metadata"] = {
-            "route_provider": "DeepInfra",
-            "quantization": "fp8",
-            "canonical_model": "deepseek/deepseek-v4-flash-20260731",
-            "max_prompt_price_per_million": "0.08",
-            "max_completion_price_per_million": "0.18",
-        }
+        config["provider_metadata"] = openrouter_route.provider_metadata()
+    if request_seed_base is not None:
+        config["request_seed_source"] = "paired_cell_v1"
+        config["request_seed_base"] = request_seed_base
     return AgentProfile.from_dict(
         {
             "spec_version": "aeread.agent_profile/0.1",
@@ -668,25 +1461,43 @@ def _profile(
             "tools": [],
             "memory": {"mode": "disabled"},
             "reasoning": {
-                "condition_id": "reasoning_low_v1",
-                "effort": "low",
+                "condition_id": reasoning_condition_id,
+                "effort": reasoning_effort,
                 "token_budget": None,
                 "rationale_visibility": "hidden",
             },
             "sampling": {
                 "temperature": 0.0,
                 "top_p": 1.0 if provider == "openrouter" else None,
-                "max_output_tokens": 512 if provider == "openrouter" else 256,
-                "seed": world_seed if provider == "openrouter" else None,
+                "max_output_tokens": (
+                    max_output_tokens
+                    if max_output_tokens is not None
+                    else (512 if provider == "openrouter" else 256)
+                ),
+                "seed": (
+                    world_seed
+                    if provider == "openrouter" and request_seed_base is None
+                    else None
+                ),
             },
             "budgets": {
                 "max_logical_actions": max_logical_actions,
-                "timeout_seconds": 30.0,
+                "timeout_seconds": (
+                    timeout_seconds if timeout_seconds is not None else 30.0
+                ),
                 "max_cost_usd": 0.01 if provider == "openrouter" else 0.001,
             },
             "retry_policy": {
-                "max_action_attempts": 2 if provider == "openrouter" else 1,
-                "retryable_conditions": ["length"] if provider == "openrouter" else [],
+                "max_action_attempts": (
+                    4
+                    if provider == "openrouter" and request_seed_base is not None
+                    else (2 if provider == "openrouter" else 1)
+                ),
+                "retryable_conditions": (
+                    ["length", "rate_limit", "provider_5xx"]
+                    if provider == "openrouter" and request_seed_base is not None
+                    else (["length"] if provider == "openrouter" else [])
+                ),
                 "session_mode": "restart",
                 "sdk_retries": 0,
             },
@@ -703,7 +1514,30 @@ def build_housing_smoke(
     num_tenants: int = 2,
     num_listings: int = 1,
     rounds: int = 1,
+    world_seeds: Sequence[int] | None = None,
+    replicates: int = 1,
+    reasoning_condition_id: str = "reasoning_low_v1",
+    reasoning_effort: str | None = "low",
+    inference_seed_base: int | None = None,
+    openrouter_route: OpenRouterRoutePin = DEEPINFRA_HOUSING_ROUTE,
 ) -> HousingSmokeSetup:
+    selected_world_seeds = (
+        (world_seed,) if world_seeds is None else tuple(world_seeds)
+    )
+    if not selected_world_seeds:
+        raise ValueError("world_seeds must not be empty")
+    if len(set(selected_world_seeds)) != len(selected_world_seeds):
+        raise ValueError("world_seeds must be unique")
+    if replicates < 1:
+        raise ValueError("replicates must be positive")
+    experiment_mode = world_seeds is not None
+    if experiment_mode and inference_seed_base is None:
+        raise ValueError("experiment plans require inference_seed_base")
+    if (
+        tenant_provider == "openrouter"
+        and tenant_revision != openrouter_route.canonical_model
+    ):
+        raise ValueError("tenant_revision must match the sealed OpenRouter route model")
     family = FamilyManifest.from_dict(
         {
             "spec_version": "aeread.family/0.1",
@@ -723,7 +1557,7 @@ def build_housing_smoke(
                 "measurement_kind": "optimizable_outcome",
                 "direction": "maximize",
                 "optimum_lower_bound": "housing_feasible_zero_v1",
-                "comparison_baseline": "housing_adaptive_v1",
+                "comparison_baseline": "housing_naive_v1",
                 "optimum_upper_bound": "housing_exact_assignment_v1",
                 "optimum_upper_bound_kind": "full_information_relaxation",
                 "bound_status": "bracketed",
@@ -732,7 +1566,7 @@ def build_housing_smoke(
             "scoring": {
                 "scorer_id": "housing_outcome_v1",
                 "oracle_id": "housing_exact_assignment_v1",
-                "reference_provider_ids": ["housing_feasible_zero_v1", "housing_adaptive_v1"],
+                "reference_provider_ids": ["housing_feasible_zero_v1", "housing_naive_v1"],
             },
             "generator": {
                 "generator_id": "housing_generator_v1",
@@ -741,62 +1575,90 @@ def build_housing_smoke(
         }
     )
     max_actions = rounds * (2 * num_tenants + num_listings)
-    raw_case = {
-        "spec_version": "aeread.case/0.1",
-        "case_id": "housing_v1__smoke__000001",
-        "family_id": "housing_v1",
-        "family_version": "1.0.0",
-        "split": "smoke",
-        "world_seed": world_seed,
-        "seats": [
-            *[{"id": f"tenant_{index}", "role": "tenant"} for index in range(num_tenants)],
-            *[{"id": f"landlord_{index}", "role": "landlord"} for index in range(num_listings)],
-        ],
-        "episode": {
-            "max_logical_actions": max_actions,
-            "termination": ["allocation", "deadline"],
-        },
-        "visibility_policy": "housing_private_preferences_v1",
-        "payload": {
-            "world_kind": "bid",
-            "world_seed": world_seed,
-            "num_tenants": num_tenants,
-            "num_listings": num_listings,
-            "rounds": rounds,
-            "common_weight": 0.6,
-        },
-        "provenance": {
-            "generator_id": "housing_generator_v1",
-            "generator_version": "1.0.0",
-            "review_status": "curated",
-        },
-        "content_sha256": "0" * 64,
-    }
-    raw_case["content_sha256"] = case_content_sha256(raw_case)
-    case = CaseManifest.from_dict(raw_case)
+    cases: list[CaseManifest] = []
+    for index, case_world_seed in enumerate(selected_world_seeds, start=1):
+        raw_case = {
+            "spec_version": "aeread.case/0.1",
+            "case_id": (
+                "housing_v1__smoke__000001"
+                if not experiment_mode
+                else f"housing_v1__experiment__{index:06d}"
+            ),
+            "family_id": "housing_v1",
+            "family_version": "1.0.0",
+            "split": "smoke" if not experiment_mode else "evaluation",
+            "world_seed": case_world_seed,
+            "seats": [
+                *[
+                    {"id": f"tenant_{seat_index}", "role": "tenant"}
+                    for seat_index in range(num_tenants)
+                ],
+                *[
+                    {"id": f"landlord_{seat_index}", "role": "landlord"}
+                    for seat_index in range(num_listings)
+                ],
+            ],
+            "episode": {
+                "max_logical_actions": max_actions,
+                "termination": ["allocation", "deadline"],
+            },
+            "visibility_policy": "housing_private_preferences_v1",
+            "payload": {
+                "world_kind": "bid",
+                "world_seed": case_world_seed,
+                "num_tenants": num_tenants,
+                "num_listings": num_listings,
+                "rounds": rounds,
+                "common_weight": 0.6,
+            },
+            "provenance": {
+                "generator_id": "housing_generator_v1",
+                "generator_version": "1.0.0",
+                "review_status": "curated" if not experiment_mode else "generated",
+            },
+            "content_sha256": "0" * 64,
+        }
+        raw_case["content_sha256"] = case_content_sha256(raw_case)
+        cases.append(CaseManifest.from_dict(raw_case))
     sampling = SamplingPlan.from_dict(
         {
             "spec_version": "aeread.sampling/0.1",
-            "sampling_plan_id": "housing_smoke_sample_v1",
-            "estimand": "fixed_housing_smoke_case",
+            "sampling_plan_id": (
+                "housing_smoke_sample_v1"
+                if not experiment_mode
+                else f"housing_{reasoning_condition_id}_sample_v1"
+            ),
+            "estimand": (
+                "fixed_housing_smoke_case"
+                if not experiment_mode
+                else "generated_housing_case_population"
+            ),
             "target": "housing_generator_v1",
-            "selection": "fixed_curated",
-            "seeds": [world_seed],
-            "replicates": 1,
+            "selection": "fixed_curated" if not experiment_mode else "seeded_simple_random",
+            "seeds": [
+                selected_world_seeds[0]
+                if inference_seed_base is None
+                else inference_seed_base
+            ],
+            "replicates": replicates,
             "cluster_level": "world_seed",
             "cluster_id_fields": ["generator_version", "world_seed"],
             "paired_fields": ["world_seed"],
             "replicate_level": "episode_attempt",
-            "panel_mode": "fixed_panel",
+            "panel_mode": "fixed_panel" if not experiment_mode else "sampled_panel",
         }
     )
     tenant_profile_id = (
-        "housing_deepseek_tenant_v1"
+        (
+            "housing_deepseek_tenant_v1"
+            if not experiment_mode
+            else f"housing_deepseek_tenant_{reasoning_condition_id}"
+        )
         if tenant_provider == "openrouter"
         else "housing_scripted_tenant_v1"
     )
     tenant_pricing = (
-        TokenPricing(0.08, 0.016, 0.18, "openrouter_deepinfra_2026-08-26_deepseek-v4-flash-0731")
+        openrouter_route.token_pricing()
         if tenant_provider == "openrouter"
         else TokenPricing(0.0, 0.0, 0.0, "housing_scripted_tenant_zero_cost_v1")
     )
@@ -815,7 +1677,17 @@ def build_housing_smoke(
         pricing=tenant_pricing,
         max_logical_actions=2 * num_tenants * rounds,
         runtime="aeread.shared_runner.execution" if tenant_provider == "openrouter" else "aeread.shared_runner.housing",
-        world_seed=world_seed,
+        world_seed=selected_world_seeds[0],
+        reasoning_condition_id=reasoning_condition_id,
+        reasoning_effort=reasoning_effort,
+        request_seed_base=inference_seed_base,
+        max_output_tokens=(
+            4096 if tenant_provider == "openrouter" and experiment_mode else None
+        ),
+        timeout_seconds=(
+            120.0 if tenant_provider == "openrouter" and experiment_mode else None
+        ),
+        openrouter_route=openrouter_route,
     )
     landlord_profile = _profile(
         profile_id="housing_scripted_landlord_v1",
@@ -828,44 +1700,75 @@ def build_housing_smoke(
         pricing=landlord_pricing,
         max_logical_actions=num_listings * rounds,
         runtime="aeread.shared_runner.housing",
-        world_seed=world_seed,
+        world_seed=selected_world_seeds[0],
+        reasoning_condition_id="scripted_no_reasoning_v1",
+        reasoning_effort=None,
     )
     tenant_seats = [f"tenant_{index}" for index in range(num_tenants)]
     landlord_seats = [f"landlord_{index}" for index in range(num_listings)]
     block = EvaluationBlock.from_dict(
         {
             "spec_version": "aeread.evaluation_block/0.1",
-            "block_id": "housing_controlled_landlords_smoke",
+            "block_id": (
+                "housing_controlled_landlords_smoke"
+                if not experiment_mode
+                else "housing_controlled_landlords_experiment"
+            ),
             "kind": "controlled",
             "subject_seats": tenant_seats,
             "controlled_profiles": {
                 seat: "housing_scripted_landlord_v1" for seat in landlord_seats
             },
             "repetitions": 1,
-            "seed_policy": "fixed",
+            "seed_policy": "fixed" if not experiment_mode else "paired",
         }
     )
     analysis = AnalysisPlan.from_dict(
         {
             "spec_version": "aeread.analysis/0.1",
-            "analysis_plan_id": "housing_smoke_analysis_v1",
-            "estimands": ["social_welfare", "tenant_payoff", "landlord_payoff"],
+            "analysis_plan_id": (
+                "housing_smoke_analysis_v1"
+                if not experiment_mode
+                else "housing_reasoning_paired_analysis_v1"
+            ),
+            "estimands": (
+                ["social_welfare", "tenant_payoff", "landlord_payoff"]
+                if not experiment_mode
+                else [
+                    "within_case_score",
+                    "social_welfare",
+                    "tenant_payoff",
+                    "landlord_payoff",
+                ]
+            ),
             "group_by": ["family_id", "subject_role"],
             "missingness": "report_separately",
             "resampling_unit": "cluster_id",
-            "uncertainty": "none",
+            "uncertainty": "none" if not experiment_mode else "cluster_bootstrap_95",
             "multiplicity": "none",
-            "sensitivity": ["report_ir_violations"],
+            "sensitivity": (
+                ["report_ir_violations"]
+                if not experiment_mode
+                else [
+                    "report_ir_violations",
+                    "report_operational_missingness",
+                    "worst_case_score_bounds",
+                ]
+            ),
             "cross_family_scalar": "disabled",
         }
     )
     suite = SuiteManifest.from_dict(
         {
             "spec_version": "aeread.suite/0.1",
-            "suite_id": "housing_smoke_v1",
+            "suite_id": (
+                "housing_smoke_v1"
+                if not experiment_mode
+                else f"housing_{reasoning_condition_id}_experiment_v1"
+            ),
             "version": "1.0.0",
             "family_ids": ["housing_v1"],
-            "case_ids": [case.case_id],
+            "case_ids": [case.case_id for case in cases],
             "sampling_plan_id": sampling.sampling_plan_id,
             "evaluation_block_ids": [block.block_id],
             "analysis_plan_id": analysis.analysis_plan_id,
@@ -878,7 +1781,11 @@ def build_housing_smoke(
     run_spec = RunSpec.from_dict(
         {
             "spec_version": "aeread.run_spec/0.1",
-            "run_spec_id": "housing_smoke_run_v1",
+            "run_spec_id": (
+                "housing_smoke_run_v1"
+                if not experiment_mode
+                else f"housing_{reasoning_condition_id}_run_v1"
+            ),
             "suite_id": suite.suite_id,
             "evaluation_block_ids": [block.block_id],
             "agent_profile_ids": [tenant_profile_id, "housing_scripted_landlord_v1"],
@@ -903,7 +1810,7 @@ def build_housing_smoke(
         _pin("housing_outcome_v1", "scorer", combined_digest),
         _pin("housing_exact_assignment_v1", "reference", housing_digest),
         _pin("housing_feasible_zero_v1", "reference", bridge_digest),
-        _pin("housing_adaptive_v1", "reference", housing_digest),
+        _pin("housing_naive_v1", "reference", housing_digest),
         _pin("housing_generator_v1", "generator", housing_digest),
         _pin("minimal_chat", "harness", execution_digest, version="1.0"),
         _pin("aeread.shared_runner.housing", "runtime", bridge_digest, version="0.1.0"),
@@ -919,7 +1826,7 @@ def build_housing_smoke(
         )
     plan = resolve_run_plan(
         families=(family,),
-        cases=(case,),
+        cases=tuple(cases),
         suite=suite,
         sampling=sampling,
         evaluation_blocks=(block,),
@@ -976,6 +1883,7 @@ async def _run_cli(arguments: argparse.Namespace) -> dict[str, Any]:
         pricing=setup.pricing,
         episode_attempt_ordinal=arguments.attempt,
     )
+    receipt = finalize_housing_execution(setup=setup, execution=execution)
     return {
         "run_plan_id": execution.run_plan_id,
         "cell_id": execution.cell_id,
@@ -984,6 +1892,12 @@ async def _run_cli(arguments: argparse.Namespace) -> dict[str, Any]:
         "logical_action_count": execution.episode_result.logical_action_count,
         "total_cost_usd": execution.total_cost_usd,
         "evidence_dir": str(execution.evidence.root),
+        "measurement_status": receipt.status,
+        "receipt_sha256": receipt.receipt_sha256,
+        "receipt_path": str(
+            (execution.evidence.root / "evaluation_receipt.json").resolve()
+        ),
+        "replay_level": receipt.replay_level,
     }
 
 
@@ -1015,6 +1929,8 @@ __all__ = [
     "HousingScriptedTenantProvider",
     "HousingSmokeSetup",
     "HousingV1Plugin",
+    "OpenRouterRoutePin",
+    "DEEPINFRA_HOUSING_ROUTE",
     "build_housing_smoke",
     "main",
 ]

@@ -1,0 +1,157 @@
+{
+  "artifact_type": "housing_reasoning_confirmatory_summary",
+  "artifact_version": "1.0.0",
+  "created_date": "2026-08-27",
+  "claim_scope": "DeepSeek V4 Flash on the pinned Housing V1 generator with a controlled scripted landlord; reasoning_low_v1 minus reasoning_none_v1",
+  "design": {
+    "world_clusters": 100,
+    "conditions": [
+      "reasoning_none_v1",
+      "reasoning_low_v1"
+    ],
+    "replicates_per_world_condition": 3,
+    "planned_sample_trajectories": 600,
+    "admission_world_clusters": 3,
+    "admission_trajectories": 6,
+    "resampling_unit": "world_seed",
+    "bootstrap_draws": 10000,
+    "bootstrap_seed": 20260826
+  },
+  "model_and_route": {
+    "model_listing": "deepseek/deepseek-v4-flash-0731",
+    "canonical_model": "deepseek/deepseek-v4-flash-20260731",
+    "provider": "Parasail",
+    "quantization": "fp8",
+    "fallback_used": false,
+    "control_reasoning_tokens": 0,
+    "admission_treatment_reasoning_tokens": 42968
+  },
+  "run_plans": {
+    "admission_control": {
+      "run_plan_id": "runplan_15300b92cfa71437",
+      "sha256": "69dd6c92aad8edeac35574fcef39c0221396ca268953b5c2f12907888798b124"
+    },
+    "admission_treatment": {
+      "run_plan_id": "runplan_a2c39483ee3a76e8",
+      "sha256": "429da35093f14d5ad70cb3e4fb6d54246ecc661dcce02f6351dbbe4735f4d272"
+    },
+    "sample_control": {
+      "run_plan_id": "runplan_e8e8356e956966c4",
+      "sha256": "d0ec36e896309d0a3c673e805939cf9eb6a956b2a9a339b65797544fc280eb1b"
+    },
+    "sample_treatment": {
+      "run_plan_id": "runplan_40c138b74d2e3321",
+      "sha256": "40d4da6e2f1065c389f51d9a82f1005bc303825101b03f30c0740ed97dd30e8f"
+    }
+  },
+  "receipt_coverage": {
+    "admission_receipts": 6,
+    "sample_receipts": 600,
+    "sample_included_state_and_score": 580,
+    "sample_excluded_invalid_measurement": 20,
+    "verified_on_zero_call_resume": true
+  },
+  "primary_analysis": {
+    "complete_pair_world_count": 83,
+    "incomplete_world_count": 17,
+    "control_mean_within_case_score": 0.6671406650222662,
+    "treatment_mean_within_case_score": 0.8255925738020611,
+    "mean_paired_difference": 0.15845190877979484,
+    "cluster_bootstrap_95": [
+      0.12937794124948448,
+      0.18820329526918236
+    ],
+    "paired_t_95": [
+      0.12836134331805146,
+      0.18854247424153822
+    ],
+    "paired_difference_sd": 0.13780502726154692,
+    "standardized_paired_effect": 1.1498267656016725,
+    "exact_support_missingness_bounds": [
+      0.09924714550624221,
+      0.1786888979397824
+    ],
+    "missingness_bounds_status": "available_declared_outcome_support"
+  },
+  "operational_results": {
+    "control": {
+      "planned": 300,
+      "completed": 300,
+      "failed": 0,
+      "pass_all_three_worlds": 100,
+      "known_recorded_cost_usd": 0.42623962919999986,
+      "reasoning_tokens": 0,
+      "external_provider_calls": 6864,
+      "length_retry_cells": 0,
+      "length_retry_count": 0
+    },
+    "treatment": {
+      "planned": 300,
+      "completed": 280,
+      "failed": 20,
+      "pass_all_three_worlds": 83,
+      "known_recorded_cost_usd": 1.8464924016000004,
+      "reasoning_tokens": 5845217,
+      "external_provider_calls": 7179,
+      "length_retry_cells": 141,
+      "length_retry_count": 178
+    },
+    "failure_taxonomy": {
+      "cost_budget_exceeded": 8,
+      "length": 9,
+      "timeout": 3
+    },
+    "unknown_cost_provider_calls": 3,
+    "sample_known_recorded_cost_usd": 2.2727320307999994,
+    "admission_known_recorded_cost_usd": 0.018509059799999998,
+    "total_known_recorded_cost_usd": 2.2912410905999994
+  },
+  "secondary_descriptive_complete_world_panel": {
+    "trajectory_count_per_condition": 249,
+    "matched_naive_baseline_mean_score": 0.8325933771269508,
+    "control": {
+      "mean_score_minus_baseline": -0.1654527121046845,
+      "trajectory_share_at_or_above_baseline": 0.1686746987951807,
+      "mean_social_welfare": 1018.039437751004,
+      "ir_violation_trajectories": 120,
+      "ir_violation_seats": 152,
+      "mean_wasted_contacts": 5.755020080321285,
+      "tenant_capture_share": 0.8314568099278313,
+      "landlord_capture_share": 0.16854319007216864
+    },
+    "treatment": {
+      "mean_score_minus_baseline": -0.007000803324889722,
+      "trajectory_share_at_or_above_baseline": 0.5983935742971888,
+      "mean_social_welfare": 1253.1610843373494,
+      "ir_violation_trajectories": 12,
+      "ir_violation_seats": 13,
+      "mean_wasted_contacts": 6.204819277108434,
+      "tenant_capture_share": 0.7026881834663831,
+      "landlord_capture_share": 0.2973118165336167
+    }
+  },
+  "analysis_contract_correction": {
+    "trigger": "Two completed control trajectories had negative but valid realized welfare, exposing an invalid analyzer assumption that within_case_score was bounded below by zero.",
+    "negative_completed_scores": {
+      "control": 2,
+      "treatment": 0
+    },
+    "correction": "Accept finite scores no greater than one; derive each world's exact legal-outcome lower support from minimum-weight matching separately from L=0; bound only missing replicates while retaining observed replicates.",
+    "analysis_commit": "ad808467ee7f86784d7886634fc0c3be062cb91e",
+    "focused_validation": "132 passed",
+    "repository_validation": "596 passed, 3 skipped, 1 xfailed; two loopback tests rerun with loopback permission"
+  },
+  "raw_evidence": {
+    "gitignored_workspace_path": "/Volumes/Macintosh HD/Users/lichenyu/persona_simulator/tmp/aeread-housing-reasoning-100x2x3-parasail-receipts-v12-20260827",
+    "file_count": 103207,
+    "size": "582M",
+    "experiment_summary_sha256": "6be3996b33ae0da2d7764e2b08f86a2dd0ffc7a5619c0e387d33ddcb8f390177",
+    "contains_uncommitted_prompts_and_responses": true
+  },
+  "claim_boundaries": [
+    "The primary contrast is conditional on the pinned synthetic Housing generator, DeepSeek revision, Parasail FP8 route, and controlled scripted landlord.",
+    "The result does not establish a universal benefit of reasoning, performance in real housing markets, or saturation.",
+    "Secondary economic and distributional decompositions are descriptive and are not additional confirmatory hypothesis tests.",
+    "Known recorded cost excludes the billing uncertainty of three timeout calls."
+  ]
+}

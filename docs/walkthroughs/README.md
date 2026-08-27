@@ -23,3 +23,7 @@
 - [`procurement_statistical_readiness.md`](procurement_statistical_readiness.md) —
   Housing's 600-trajectory design versus procurement readiness, a confirmed variable-world
   upper-bound counterexample, generator coverage, and conditional cluster-level sample planning.
+- [`housing_reasoning_experiment.md`](housing_reasoning_experiment.md) —
+  pre-outcome audit, locked design, and completed result for 100 paired Housing worlds,
+  reasoning disabled versus reasoning-low, three nested replicates, cluster-level inference,
+  exact-support missingness bounds, operational decomposition, and scientific-scope limits.

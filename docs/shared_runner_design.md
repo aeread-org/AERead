@@ -603,3 +603,7 @@ admission rule are specified in
 ## Design lineage
 
 The proposal retains the useful taskset (what), harness (how), and runtime (where) separation used by adjacent evaluation frameworks, but AERead defines its own benchmark truth. The runner owns auditable scheduling and execution; families provide declarative economic hooks. AERead additionally requires a joint economic timeline, explicit attempt/failure accounting, typed information projections, within-case measurement references, cluster-aware receipts, and deterministic replay/resume. The typed measurement route was checked against 22 external papers, the AERead paper, and all five native pilot cases in [`problem_bound_case_audit.md`](problem_bound_case_audit.md).
+
+The implemented cross-family kernel boundary, including tool/state evidence and adapter
+parity, is specified in
+[`shared_runner_portability_contract.md`](shared_runner_portability_contract.md).

@@ -1,0 +1,1143 @@
+from __future__ import annotations
+
+import asyncio
+import dataclasses
+from pathlib import Path
+
+import pytest
+
+from aeread.shared_runner import read_evaluation_receipt
+
+from aeread.shared_runner.execution import (
+    ProviderFailure,
+    ProviderRequest,
+    ProviderResult,
+    execute_plan_cell,
+)
+from aeread.shared_runner.housing import (
+    HousingScriptedLandlordProvider,
+    HousingScriptedTenantProvider,
+    OpenRouterRoutePin,
+)
+from aeread.shared_runner.housing_experiment import (
+    CONFIRMATORY_EXPERIMENT_ROUTE,
+    analyze_paired_results,
+    analyze_paired_results_if_available,
+    build_housing_condition_setup,
+    derive_world_seeds,
+    housing_within_case_score_support,
+    paired_inference_seed,
+    read_condition_results,
+    run_condition_batch,
+    run_housing_reasoning_experiment,
+    run_paired_batch,
+    validate_reasoning_admission,
+)
+
+
+DEEPSEEK_MODEL = "deepseek/deepseek-v4-flash-0731"
+DEEPSEEK_REVISION = "deepseek/deepseek-v4-flash-20260731"
+
+
+def test_condition_setup_seals_explicit_openrouter_route_and_pricing() -> None:
+    route = OpenRouterRoutePin(
+        provider="OpenInference",
+        quantization="fp4",
+        canonical_model=DEEPSEEK_REVISION,
+        input_per_million=0.03,
+        cached_input_per_million=0.007,
+        output_per_million=0.075,
+        pricing_id="openrouter_openinference_2026-08-26_deepseek-v4-flash-0731",
+    )
+
+    setup = build_housing_condition_setup(
+        condition_id="reasoning_none_v1",
+        reasoning_effort="none",
+        world_seeds=(41001,),
+        replicates=1,
+        tenant_model=DEEPSEEK_MODEL,
+        tenant_revision=DEEPSEEK_REVISION,
+        num_tenants=2,
+        num_listings=1,
+        rounds=1,
+        openrouter_route=route,
+    )
+
+    tenant = next(
+        profile
+        for profile in setup.plan.agent_profiles
+        if profile.model.provider == "openrouter"
+    )
+    assert tenant.harness.config["provider_metadata"] == {
+        "route_provider": "OpenInference",
+        "quantization": "fp4",
+        "canonical_model": DEEPSEEK_REVISION,
+        "max_prompt_price_per_million": "0.03",
+        "max_completion_price_per_million": "0.075",
+    }
+    assert setup.pricing[DEEPSEEK_MODEL] == route.token_pricing()
+
+
+def test_experiment_route_pins_admitted_openrouter_endpoint() -> None:
+    assert CONFIRMATORY_EXPERIMENT_ROUTE.provider == "Parasail"
+    assert CONFIRMATORY_EXPERIMENT_ROUTE.quantization == "fp8"
+    assert CONFIRMATORY_EXPERIMENT_ROUTE.canonical_model == DEEPSEEK_REVISION
+    assert CONFIRMATORY_EXPERIMENT_ROUTE.input_per_million == 0.14
+    assert CONFIRMATORY_EXPERIMENT_ROUTE.output_per_million == 0.28
+
+
+def test_world_panel_is_deterministic_unique_and_pre_outcome() -> None:
+    first = derive_world_seeds(master_seed=20260826, count=100)
+    second = derive_world_seeds(master_seed=20260826, count=100)
+
+    assert first == second
+    assert len(first) == 100
+    assert len(set(first)) == 100
+    assert all(0 <= seed < 2**31 for seed in first)
+    assert derive_world_seeds(master_seed=20260827, count=100) != first
+
+
+def test_paired_inference_seed_excludes_condition_but_changes_by_world_and_replicate() -> None:
+    seed = paired_inference_seed(
+        base_seed=87001,
+        world_seed=41001,
+        replicate_index=0,
+    )
+
+    assert seed == paired_inference_seed(
+        base_seed=87001,
+        world_seed=41001,
+        replicate_index=0,
+    )
+    assert seed != paired_inference_seed(
+        base_seed=87001,
+        world_seed=41001,
+        replicate_index=1,
+    )
+    assert seed != paired_inference_seed(
+        base_seed=87001,
+        world_seed=41002,
+        replicate_index=0,
+    )
+
+
+def _row(
+    condition: str,
+    world_seed: int,
+    replicate: int,
+    score: float | None,
+    *,
+    status: str = "completed",
+) -> dict[str, object]:
+    return {
+        "condition_id": condition,
+        "world_seed": world_seed,
+        "replicate_index": replicate,
+        "status": status,
+        "within_case_score": score,
+        "social_welfare": None if score is None else score * 100.0,
+        "cost_usd": 0.001,
+        "length_retry_count": 0,
+    }
+
+
+def test_paired_analysis_aggregates_replicates_then_resamples_world_clusters() -> None:
+    rows: list[dict[str, object]] = []
+    for world_seed in (11, 12, 13, 14):
+        for replicate in range(3):
+            rows.append(_row("reasoning_none_v1", world_seed, replicate, 0.50))
+            rows.append(_row("reasoning_low_v1", world_seed, replicate, 0.60))
+
+    result = analyze_paired_results(
+        rows,
+        control_condition="reasoning_none_v1",
+        treatment_condition="reasoning_low_v1",
+        expected_replicates=3,
+        bootstrap_draws=1000,
+        bootstrap_seed=20260826,
+    )
+
+    assert result["trajectory_count"] == 24
+    assert result["planned_world_count"] == 4
+    assert result["complete_pair_world_count"] == 4
+    assert result["condition_means"] == {
+        "reasoning_none_v1": pytest.approx(0.50),
+        "reasoning_low_v1": pytest.approx(0.60),
+    }
+    assert result["mean_paired_difference"] == pytest.approx(0.10)
+    assert result["cluster_bootstrap_95"] == pytest.approx([0.10, 0.10])
+    assert result["resampling_unit"] == "world_seed"
+    assert result["bootstrap_draws"] == 1000
+
+
+def test_paired_analysis_accepts_negative_valid_within_case_scores() -> None:
+    result = analyze_paired_results(
+        [
+            _row("reasoning_none_v1", 11, 0, -0.25),
+            _row("reasoning_low_v1", 11, 0, -0.10),
+        ],
+        control_condition="reasoning_none_v1",
+        treatment_condition="reasoning_low_v1",
+        expected_replicates=1,
+        bootstrap_draws=100,
+        bootstrap_seed=3,
+    )
+
+    assert result["condition_means"] == {
+        "reasoning_none_v1": pytest.approx(-0.25),
+        "reasoning_low_v1": pytest.approx(-0.10),
+    }
+    assert result["mean_paired_difference"] == pytest.approx(0.15)
+
+
+def test_housing_score_support_uses_a_distinct_negative_outcome_floor() -> None:
+    lower, upper = housing_within_case_score_support(world_seed=0)
+
+    assert lower == pytest.approx(-4.7 / 1764.85)
+    assert upper == pytest.approx(1.0)
+
+
+def test_paired_analysis_excludes_incomplete_world_and_reports_worst_case_bounds() -> None:
+    rows: list[dict[str, object]] = []
+    for replicate in range(3):
+        rows.append(_row("reasoning_none_v1", 11, replicate, 0.40))
+        rows.append(_row("reasoning_low_v1", 11, replicate, 0.60))
+        rows.append(_row("reasoning_none_v1", 12, replicate, 0.50))
+    rows.extend(
+        [
+            _row("reasoning_low_v1", 12, 0, 0.70),
+            _row("reasoning_low_v1", 12, 1, 0.70),
+            _row(
+                "reasoning_low_v1",
+                12,
+                2,
+                None,
+                status="operational_failure",
+            ),
+        ]
+    )
+
+    result = analyze_paired_results(
+        rows,
+        control_condition="reasoning_none_v1",
+        treatment_condition="reasoning_low_v1",
+        expected_replicates=3,
+        bootstrap_draws=200,
+        bootstrap_seed=7,
+        score_support_by_world={12: (0.0, 1.0)},
+    )
+
+    assert result["planned_world_count"] == 2
+    assert result["complete_pair_world_count"] == 1
+    assert result["incomplete_worlds"] == [12]
+    assert result["operational_failure_count_by_condition"] == {
+        "reasoning_none_v1": 0,
+        "reasoning_low_v1": 1,
+    }
+    assert result["mean_paired_difference"] == pytest.approx(0.20)
+    assert result["missingness_difference_bounds"] == pytest.approx(
+        [1.0 / 12.0, 0.25]
+    )
+    assert result["missingness_bounds_status"] == "available_declared_outcome_support"
+
+
+def test_paired_analysis_does_not_invent_zero_as_an_outcome_floor() -> None:
+    rows = [
+        _row("reasoning_none_v1", 11, 0, -0.20),
+        _row("reasoning_low_v1", 11, 0, 0.10),
+        _row("reasoning_none_v1", 12, 0, 0.50),
+        _row(
+            "reasoning_low_v1",
+            12,
+            0,
+            None,
+            status="operational_failure",
+        ),
+    ]
+
+    result = analyze_paired_results(
+        rows,
+        control_condition="reasoning_none_v1",
+        treatment_condition="reasoning_low_v1",
+        expected_replicates=1,
+        bootstrap_draws=100,
+        bootstrap_seed=7,
+    )
+
+    assert result["missingness_difference_bounds"] is None
+    assert result["missingness_bounds_status"] == (
+        "unavailable_without_declared_outcome_support"
+    )
+
+
+def test_paired_analysis_rejects_duplicate_trajectory_identity() -> None:
+    duplicate = _row("reasoning_none_v1", 11, 0, 0.50)
+
+    with pytest.raises(ValueError, match="duplicate trajectory identity"):
+        analyze_paired_results(
+            [duplicate, dict(duplicate)],
+            control_condition="reasoning_none_v1",
+            treatment_condition="reasoning_low_v1",
+            expected_replicates=3,
+            bootstrap_draws=100,
+            bootstrap_seed=1,
+        )
+
+
+def test_partial_paired_analysis_defers_without_complete_world_cluster() -> None:
+    result = analyze_paired_results_if_available(
+        [
+            _row("reasoning_none_v1", 11, 0, 0.5),
+            _row(
+                "reasoning_low_v1",
+                11,
+                0,
+                None,
+                status="operational_failure",
+            ),
+        ],
+        control_condition="reasoning_none_v1",
+        treatment_condition="reasoning_low_v1",
+        expected_replicates=1,
+        bootstrap_draws=100,
+        bootstrap_seed=1,
+    )
+
+    assert result == {
+        "status": "deferred_no_complete_world_clusters",
+        "analysis": None,
+    }
+
+
+def test_condition_plans_pair_worlds_and_replicates_but_seal_distinct_treatments() -> None:
+    common = {
+        "world_seeds": (101, 202, 303),
+        "replicates": 2,
+        "tenant_model": DEEPSEEK_MODEL,
+        "tenant_revision": DEEPSEEK_REVISION,
+        "num_tenants": 6,
+        "num_listings": 4,
+        "rounds": 4,
+        "inference_seed_base": 87001,
+    }
+    disabled = build_housing_condition_setup(
+        condition_id="reasoning_none_v1",
+        reasoning_effort="none",
+        **common,
+    )
+    low = build_housing_condition_setup(
+        condition_id="reasoning_low_v1",
+        reasoning_effort="low",
+        **common,
+    )
+
+    assert len(disabled.plan.cases) == 3
+    assert len(disabled.plan.cells) == 6
+    assert {case.world_seed for case in disabled.plan.cases} == {101, 202, 303}
+    assert disabled.plan.sampling.panel_mode == "sampled_panel"
+    assert disabled.plan.sampling.replicates == 2
+    assert disabled.plan.analysis.uncertainty == "cluster_bootstrap_95"
+    assert all(case.episode.max_logical_actions == 64 for case in disabled.plan.cases)
+
+    disabled_profile = next(
+        profile
+        for profile in disabled.plan.agent_profiles
+        if profile.model.provider == "openrouter"
+    )
+    low_profile = next(
+        profile
+        for profile in low.plan.agent_profiles
+        if profile.model.provider == "openrouter"
+    )
+    assert disabled_profile.profile_id != low_profile.profile_id
+    assert disabled_profile.reasoning.condition_id == "reasoning_none_v1"
+    assert disabled_profile.reasoning.effort == "none"
+    assert low_profile.reasoning.condition_id == "reasoning_low_v1"
+    assert low_profile.reasoning.effort == "low"
+    assert disabled_profile.sampling.seed is None
+    assert disabled_profile.sampling.max_output_tokens == 4096
+    assert low_profile.sampling.max_output_tokens == 4096
+    assert disabled_profile.budgets.timeout_seconds == 120.0
+    assert low_profile.budgets.timeout_seconds == 120.0
+    assert disabled_profile.retry_policy.max_action_attempts == 4
+    assert low_profile.retry_policy.max_action_attempts == 4
+    assert set(disabled_profile.retry_policy.retryable_conditions) == {
+        "length",
+        "rate_limit",
+        "provider_5xx",
+    }
+    assert disabled_profile.harness.config["request_seed_source"] == "paired_cell_v1"
+    assert disabled_profile.harness.config["request_seed_base"] == 87001
+
+    disabled_cells = {
+        (cell.world_seed, cell.replicate_index): cell for cell in disabled.plan.cells
+    }
+    low_cells = {(cell.world_seed, cell.replicate_index): cell for cell in low.plan.cells}
+    assert set(disabled_cells) == set(low_cells)
+    for identity in disabled_cells:
+        assert disabled_cells[identity].cluster_id == low_cells[identity].cluster_id
+        assert disabled_cells[identity].pair_id == low_cells[identity].pair_id
+
+
+class _RecordingTenantProvider:
+    def __init__(self, *, cost_per_call: float = 0.0) -> None:
+        self.requests: list[ProviderRequest] = []
+        self._delegate = HousingScriptedTenantProvider()
+        self.cost_per_call = cost_per_call
+
+    async def complete(self, request: ProviderRequest):
+        self.requests.append(request)
+        translated = dataclasses.replace(request, provider="housing_scripted_tenant")
+        result = await self._delegate.complete(translated)
+        return dataclasses.replace(result, cost_usd=self.cost_per_call)
+
+
+class _ChargedFailureTenantProvider:
+    async def complete(self, request: ProviderRequest):
+        result = ProviderResult(
+            response_id=f"failed-{request.provider_call_id}",
+            requested_model=request.model,
+            resolved_model=request.revision,
+            output_text="",
+            finish_reason="length",
+            input_tokens=10,
+            cached_input_tokens=0,
+            output_tokens=10,
+            cost_usd=0.001,
+            raw_response={"usage": {"completion_tokens_details": {"reasoning_tokens": 3}}},
+        )
+        raise ProviderFailure(
+            "length",
+            "synthetic charged length failure",
+            retryable=True,
+            provider_result=result,
+        )
+
+
+class _TreatmentAwareTenantProvider:
+    def __init__(self) -> None:
+        self._delegate = HousingScriptedTenantProvider()
+
+    async def complete(self, request: ProviderRequest):
+        translated = dataclasses.replace(request, provider="housing_scripted_tenant")
+        result = await self._delegate.complete(translated)
+        reasoning_tokens = 0 if request.reasoning_effort == "none" else 5
+        return dataclasses.replace(
+            result,
+            resolved_model=DEEPSEEK_REVISION,
+            raw_response={
+                "usage": {
+                    "completion_tokens_details": {
+                        "reasoning_tokens": reasoning_tokens,
+                    }
+                }
+            },
+        )
+
+
+class _RateLimitedTenantProvider:
+    async def complete(self, request: ProviderRequest):
+        raise ProviderFailure(
+            "rate_limit",
+            "synthetic upstream overload",
+            retryable=True,
+            status_code=429,
+        )
+
+
+class _LowOnlyFailureTenantProvider:
+    def __init__(self) -> None:
+        self._delegate = HousingScriptedTenantProvider()
+
+    async def complete(self, request: ProviderRequest):
+        if request.reasoning_effort == "low":
+            raise ProviderFailure(
+                "provider_contract",
+                "synthetic low-arm-only failure",
+                retryable=False,
+            )
+        translated = dataclasses.replace(request, provider="housing_scripted_tenant")
+        return await self._delegate.complete(translated)
+
+
+class _RecoveringRateLimitTenantProvider:
+    def __init__(self) -> None:
+        self._delegate = HousingScriptedTenantProvider()
+        self.requests: list[ProviderRequest] = []
+        self.remaining_failures = 2
+
+    async def complete(self, request: ProviderRequest):
+        self.requests.append(request)
+        if self.remaining_failures > 0:
+            self.remaining_failures -= 1
+            raise ProviderFailure(
+                "rate_limit",
+                "synthetic transient upstream overload",
+                retryable=True,
+                status_code=429,
+            )
+        translated = dataclasses.replace(request, provider="housing_scripted_tenant")
+        return await self._delegate.complete(translated)
+
+
+def _cell_for(setup, *, world_seed: int, replicate_index: int):
+    return next(
+        cell
+        for cell in setup.plan.cells
+        if cell.world_seed == world_seed and cell.replicate_index == replicate_index
+    )
+
+
+def _execute_recorded(setup, cell, output):
+    recorder = _RecordingTenantProvider()
+    execution = asyncio.run(
+        execute_plan_cell(
+            plan=setup.plan,
+            cell_id=cell.cell_id,
+            registry=setup.registry,
+            evidence_root=output,
+            prompt_sources=setup.prompt_sources,
+            providers={
+                "openrouter": recorder,
+                "housing_scripted_landlord": HousingScriptedLandlordProvider(),
+            },
+            pricing=setup.pricing,
+            episode_attempt_ordinal=0,
+        )
+    )
+    return recorder, execution
+
+
+def test_executor_applies_same_paired_seed_across_conditions_and_new_seed_per_replicate(
+    tmp_path,
+) -> None:
+    common = {
+        "world_seeds": (41001,),
+        "replicates": 2,
+        "tenant_model": DEEPSEEK_MODEL,
+        "tenant_revision": DEEPSEEK_REVISION,
+        "num_tenants": 2,
+        "num_listings": 1,
+        "rounds": 1,
+        "inference_seed_base": 87001,
+    }
+    disabled = build_housing_condition_setup(
+        condition_id="reasoning_none_v1", reasoning_effort="none", **common
+    )
+    low = build_housing_condition_setup(
+        condition_id="reasoning_low_v1", reasoning_effort="low", **common
+    )
+
+    disabled_r0, _ = _execute_recorded(
+        disabled,
+        _cell_for(disabled, world_seed=41001, replicate_index=0),
+        tmp_path / "disabled-r0",
+    )
+    low_r0, _ = _execute_recorded(
+        low,
+        _cell_for(low, world_seed=41001, replicate_index=0),
+        tmp_path / "low-r0",
+    )
+    disabled_r1, _ = _execute_recorded(
+        disabled,
+        _cell_for(disabled, world_seed=41001, replicate_index=1),
+        tmp_path / "disabled-r1",
+    )
+
+    assert {request.reasoning_effort for request in disabled_r0.requests} == {"none"}
+    assert {request.reasoning_effort for request in low_r0.requests} == {"low"}
+    assert len({request.seed for request in disabled_r0.requests}) == 1
+    assert len({request.seed for request in low_r0.requests}) == 1
+    assert disabled_r0.requests[0].seed == low_r0.requests[0].seed
+    assert disabled_r0.requests[0].seed == paired_inference_seed(
+        base_seed=87001,
+        world_seed=41001,
+        replicate_index=0,
+    )
+    assert disabled_r1.requests[0].seed != disabled_r0.requests[0].seed
+
+
+def _batch_providers(recorder: _RecordingTenantProvider):
+    return {
+        "openrouter": recorder,
+        "housing_scripted_landlord": HousingScriptedLandlordProvider(),
+    }
+
+
+def test_condition_batch_writes_verified_cell_summaries_and_resumes_without_calls(
+    tmp_path,
+) -> None:
+    setup = build_housing_condition_setup(
+        condition_id="reasoning_none_v1",
+        reasoning_effort="none",
+        world_seeds=(101, 202),
+        replicates=2,
+        tenant_model=DEEPSEEK_MODEL,
+        tenant_revision=DEEPSEEK_REVISION,
+        num_tenants=2,
+        num_listings=1,
+        rounds=1,
+        inference_seed_base=87001,
+    )
+    first_provider = _RecordingTenantProvider()
+    first = asyncio.run(
+        run_condition_batch(
+            setup=setup,
+            condition_id="reasoning_none_v1",
+            output_root=tmp_path,
+            providers=_batch_providers(first_provider),
+            concurrency=2,
+            spend_limit_usd=1.0,
+        )
+    )
+
+    assert first["planned_count"] == 4
+    assert first["executed_count"] == 4
+    assert first["resumed_count"] == 0
+    assert first["completed_count"] == 4
+    assert first["pending_count"] == 0
+    assert first_provider.requests
+    rows = read_condition_results(
+        tmp_path, condition_id="reasoning_none_v1", verify_evidence=True
+    )
+    assert len(rows) == 4
+    assert all(row["status"] == "completed" for row in rows)
+    assert all(row["evidence_verified"] is True for row in rows)
+    assert all(row["measurement_status"] == "ok" for row in rows)
+    assert all(len(row["receipt_sha256"]) == 64 for row in rows)
+    assert all(Path(row["receipt_path"]).is_file() for row in rows)
+    assert {(row["world_seed"], row["replicate_index"]) for row in rows} == {
+        (101, 0),
+        (101, 1),
+        (202, 0),
+        (202, 1),
+    }
+
+    second_provider = _RecordingTenantProvider()
+    second = asyncio.run(
+        run_condition_batch(
+            setup=setup,
+            condition_id="reasoning_none_v1",
+            output_root=tmp_path,
+            providers=_batch_providers(second_provider),
+            concurrency=2,
+            spend_limit_usd=1.0,
+        )
+    )
+    assert second["executed_count"] == 0
+    assert second["resumed_count"] == 4
+    assert second["completed_count"] == 4
+    assert second_provider.requests == []
+
+
+def test_condition_batch_stops_releasing_cells_at_global_spend_boundary(tmp_path) -> None:
+    setup = build_housing_condition_setup(
+        condition_id="reasoning_low_v1",
+        reasoning_effort="low",
+        world_seeds=(101, 202, 303, 404),
+        replicates=1,
+        tenant_model=DEEPSEEK_MODEL,
+        tenant_revision=DEEPSEEK_REVISION,
+        num_tenants=2,
+        num_listings=1,
+        rounds=1,
+        inference_seed_base=87001,
+    )
+    provider = _RecordingTenantProvider(cost_per_call=0.001)
+    result = asyncio.run(
+        run_condition_batch(
+            setup=setup,
+            condition_id="reasoning_low_v1",
+            output_root=tmp_path,
+            providers=_batch_providers(provider),
+            concurrency=1,
+            spend_limit_usd=0.005,
+        )
+    )
+
+    assert result["executed_count"] == 2
+    assert result["completed_count"] == 2
+    assert result["pending_count"] == 2
+    assert result["stop_reason"] == "spend_limit_reached"
+    assert result["total_cost_usd"] == pytest.approx(0.008)
+
+
+def test_condition_result_digest_detects_summary_tampering(tmp_path) -> None:
+    setup = build_housing_condition_setup(
+        condition_id="reasoning_none_v1",
+        reasoning_effort="none",
+        world_seeds=(101,),
+        replicates=1,
+        tenant_model=DEEPSEEK_MODEL,
+        tenant_revision=DEEPSEEK_REVISION,
+        num_tenants=2,
+        num_listings=1,
+        rounds=1,
+        inference_seed_base=87001,
+    )
+    asyncio.run(
+        run_condition_batch(
+            setup=setup,
+            condition_id="reasoning_none_v1",
+            output_root=tmp_path,
+            providers=_batch_providers(_RecordingTenantProvider()),
+            concurrency=1,
+            spend_limit_usd=1.0,
+        )
+    )
+    result_path = next(
+        (tmp_path / "reasoning_none_v1" / "results").glob("*.json")
+    )
+    original = result_path.read_text(encoding="utf-8")
+    result_path.write_text(
+        original.replace('"within_case_score":0.0', '"within_case_score":0.5')
+    )
+
+    with pytest.raises(ValueError, match="result digest mismatch"):
+        read_condition_results(
+            tmp_path,
+            condition_id="reasoning_none_v1",
+            verify_evidence=False,
+        )
+
+
+def test_condition_reader_detects_durable_receipt_tampering(tmp_path) -> None:
+    setup = build_housing_condition_setup(
+        condition_id="reasoning_none_v1",
+        reasoning_effort="none",
+        world_seeds=(101,),
+        replicates=1,
+        tenant_model=DEEPSEEK_MODEL,
+        tenant_revision=DEEPSEEK_REVISION,
+        num_tenants=2,
+        num_listings=1,
+        rounds=1,
+        inference_seed_base=87001,
+    )
+    asyncio.run(
+        run_condition_batch(
+            setup=setup,
+            condition_id="reasoning_none_v1",
+            output_root=tmp_path,
+            providers=_batch_providers(_RecordingTenantProvider()),
+            concurrency=1,
+            spend_limit_usd=1.0,
+        )
+    )
+    row = read_condition_results(
+        tmp_path, condition_id="reasoning_none_v1", verify_evidence=True
+    )[0]
+    receipt_path = Path(row["receipt_path"])
+    receipt_path.write_text(
+        receipt_path.read_text(encoding="utf-8").replace(
+            '"replay_level":"state_and_score"', '"replay_level":"none"'
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="receipt"):
+        read_condition_results(
+            tmp_path,
+            condition_id="reasoning_none_v1",
+            verify_evidence=True,
+        )
+
+
+def test_condition_batch_preserves_charged_failure_evidence_and_cost(tmp_path) -> None:
+    setup = build_housing_condition_setup(
+        condition_id="reasoning_low_v1",
+        reasoning_effort="low",
+        world_seeds=(101,),
+        replicates=1,
+        tenant_model=DEEPSEEK_MODEL,
+        tenant_revision=DEEPSEEK_REVISION,
+        num_tenants=2,
+        num_listings=1,
+        rounds=1,
+        inference_seed_base=87001,
+    )
+    result = asyncio.run(
+        run_condition_batch(
+            setup=setup,
+            condition_id="reasoning_low_v1",
+            output_root=tmp_path,
+            providers=_batch_providers(_ChargedFailureTenantProvider()),
+            concurrency=1,
+            spend_limit_usd=1.0,
+        )
+    )
+
+    assert result["failure_count"] == 1
+    assert result["total_cost_usd"] == pytest.approx(0.004)
+    rows = read_condition_results(
+        tmp_path, condition_id="reasoning_low_v1", verify_evidence=True
+    )
+    assert rows[0]["status"] == "operational_failure"
+    assert rows[0]["failure_type"] == "SchedulerContractError"
+    assert rows[0]["cost_usd"] == pytest.approx(0.004)
+    assert rows[0]["evidence_verified"] is True
+    assert rows[0]["provider_call_count"] == 4
+    assert rows[0]["length_retry_count"] == 2
+    assert rows[0]["reasoning_tokens"] == 12
+    assert rows[0]["measurement_status"] == "invalid_measurement"
+    assert len(rows[0]["receipt_sha256"]) == 64
+    failure_receipt = read_evaluation_receipt(rows[0]["receipt_path"])
+    assert failure_receipt["inclusion_status"] == "excluded"
+    assert failure_receipt["scores"] == []
+    assert failure_receipt["failure"]["failure_class"] == "retryable_infrastructure"
+
+
+def test_condition_batch_seals_null_result_provider_failure(
+    tmp_path, monkeypatch
+) -> None:
+    async def no_wait(_delay: float) -> None:
+        return None
+
+    monkeypatch.setattr("aeread.shared_runner.execution.asyncio.sleep", no_wait)
+    setup = build_housing_condition_setup(
+        condition_id="reasoning_low_v1",
+        reasoning_effort="low",
+        world_seeds=(101,),
+        replicates=1,
+        tenant_model=DEEPSEEK_MODEL,
+        tenant_revision=DEEPSEEK_REVISION,
+        num_tenants=2,
+        num_listings=1,
+        rounds=1,
+        inference_seed_base=87001,
+    )
+    result = asyncio.run(
+        run_condition_batch(
+            setup=setup,
+            condition_id="reasoning_low_v1",
+            output_root=tmp_path,
+            providers=_batch_providers(_RateLimitedTenantProvider()),
+            concurrency=1,
+            spend_limit_usd=1.0,
+        )
+    )
+
+    assert result["executed_count"] == 1
+    assert result["failure_count"] == 1
+    assert result["total_cost_usd"] == 0.0
+    rows = read_condition_results(
+        tmp_path, condition_id="reasoning_low_v1", verify_evidence=True
+    )
+    assert rows[0]["status"] == "operational_failure"
+    assert rows[0]["evidence_verified"] is True
+    assert rows[0]["measurement_status"] == "invalid_measurement"
+    assert len(rows[0]["receipt_sha256"]) == 64
+    assert rows[0]["provider_call_count"] == 8
+    assert rows[0]["reasoning_tokens"] == 0
+
+
+def test_condition_batch_backs_off_and_recovers_transient_rate_limit(
+    tmp_path, monkeypatch
+) -> None:
+    delays: list[float] = []
+
+    async def no_wait(delay: float) -> None:
+        delays.append(delay)
+
+    monkeypatch.setattr("aeread.shared_runner.execution.asyncio.sleep", no_wait)
+    setup = build_housing_condition_setup(
+        condition_id="reasoning_none_v1",
+        reasoning_effort="none",
+        world_seeds=(101,),
+        replicates=1,
+        tenant_model=DEEPSEEK_MODEL,
+        tenant_revision=DEEPSEEK_REVISION,
+        num_tenants=2,
+        num_listings=1,
+        rounds=1,
+        inference_seed_base=87001,
+    )
+    provider = _RecoveringRateLimitTenantProvider()
+    result = asyncio.run(
+        run_condition_batch(
+            setup=setup,
+            condition_id="reasoning_none_v1",
+            output_root=tmp_path,
+            providers=_batch_providers(provider),
+            concurrency=1,
+            spend_limit_usd=1.0,
+        )
+    )
+
+    assert result["completed_count"] == 1
+    assert result["failure_count"] == 0
+    assert len(delays) == 2
+    assert all(delay >= 2.0 for delay in delays)
+    rows = read_condition_results(
+        tmp_path, condition_id="reasoning_none_v1", verify_evidence=True
+    )
+    assert rows[0]["status"] == "completed"
+    assert rows[0]["provider_call_count"] == 7
+
+
+def test_condition_batch_recovers_orphan_attempt_without_rerun(tmp_path) -> None:
+    setup = build_housing_condition_setup(
+        condition_id="reasoning_low_v1",
+        reasoning_effort="low",
+        world_seeds=(101,),
+        replicates=1,
+        tenant_model=DEEPSEEK_MODEL,
+        tenant_revision=DEEPSEEK_REVISION,
+        num_tenants=2,
+        num_listings=1,
+        rounds=1,
+        inference_seed_base=87001,
+    )
+    cell = setup.plan.cells[0]
+    with pytest.raises(Exception):
+        asyncio.run(
+            execute_plan_cell(
+                plan=setup.plan,
+                cell_id=cell.cell_id,
+                registry=setup.registry,
+                evidence_root=tmp_path / "reasoning_low_v1" / "evidence",
+                prompt_sources=setup.prompt_sources,
+                providers=_batch_providers(_ChargedFailureTenantProvider()),
+                pricing=setup.pricing,
+                episode_attempt_ordinal=0,
+            )
+        )
+
+    resume_provider = _RecordingTenantProvider()
+    result = asyncio.run(
+        run_condition_batch(
+            setup=setup,
+            condition_id="reasoning_low_v1",
+            output_root=tmp_path,
+            providers=_batch_providers(resume_provider),
+            concurrency=1,
+            spend_limit_usd=1.0,
+        )
+    )
+
+    assert result["executed_count"] == 0
+    assert result["resumed_count"] == 1
+    assert result["failure_count"] == 1
+    assert resume_provider.requests == []
+    rows = read_condition_results(
+        tmp_path, condition_id="reasoning_low_v1", verify_evidence=True
+    )
+    assert rows[0]["failure_type"] == "OrphanedAttemptRecovered"
+    assert rows[0]["interruption_recovered"] is True
+    assert rows[0]["measurement_status"] == "invalid_measurement"
+    assert len(rows[0]["receipt_sha256"]) == 64
+
+
+def _paired_setups(*, world_seeds=(101, 202), replicates=1):
+    common = {
+        "world_seeds": world_seeds,
+        "replicates": replicates,
+        "tenant_model": DEEPSEEK_MODEL,
+        "tenant_revision": DEEPSEEK_REVISION,
+        "num_tenants": 2,
+        "num_listings": 1,
+        "rounds": 1,
+        "inference_seed_base": 87001,
+    }
+    return {
+        "reasoning_none_v1": build_housing_condition_setup(
+            condition_id="reasoning_none_v1", reasoning_effort="none", **common
+        ),
+        "reasoning_low_v1": build_housing_condition_setup(
+            condition_id="reasoning_low_v1", reasoning_effort="low", **common
+        ),
+    }
+
+
+def test_paired_batch_keeps_arms_adjacent_and_seed_paired(tmp_path) -> None:
+    provider = _RecordingTenantProvider()
+    result = asyncio.run(
+        run_paired_batch(
+            setups=_paired_setups(),
+            output_root=tmp_path,
+            providers=_batch_providers(provider),
+            concurrency=1,
+            spend_limit_usd=1.0,
+        )
+    )
+
+    chunks: list[tuple[int | None, str | None]] = []
+    for request in provider.requests:
+        identity = (request.seed, request.reasoning_effort)
+        if not chunks or chunks[-1] != identity:
+            chunks.append(identity)
+    assert len(chunks) == 4
+    for offset in (0, 2):
+        first, second = chunks[offset : offset + 2]
+        assert first[0] == second[0]
+        assert {first[1], second[1]} == {"none", "low"}
+    assert result["planned_count"] == 4
+    assert result["completed_count"] == 4
+    assert result["completed_count_by_condition"] == {
+        "reasoning_none_v1": 2,
+        "reasoning_low_v1": 2,
+    }
+
+
+def test_paired_batch_uses_one_global_budget_and_resumes_without_replacement(
+    tmp_path,
+) -> None:
+    setups = _paired_setups()
+    first_provider = _RecordingTenantProvider(cost_per_call=0.001)
+    first = asyncio.run(
+        run_paired_batch(
+            setups=setups,
+            output_root=tmp_path,
+            providers=_batch_providers(first_provider),
+            concurrency=1,
+            spend_limit_usd=0.005,
+        )
+    )
+
+    assert first["executed_count"] == 2
+    assert first["resumed_count"] == 0
+    assert first["completed_count_by_condition"] == {
+        "reasoning_none_v1": 1,
+        "reasoning_low_v1": 1,
+    }
+    assert first["pending_count"] == 2
+    assert first["total_cost_usd"] == pytest.approx(0.008)
+    assert first["stop_reason"] == "spend_limit_reached"
+
+    second_provider = _RecordingTenantProvider(cost_per_call=0.001)
+    second = asyncio.run(
+        run_paired_batch(
+            setups=setups,
+            output_root=tmp_path,
+            providers=_batch_providers(second_provider),
+            concurrency=1,
+            spend_limit_usd=1.0,
+        )
+    )
+    assert second["executed_count"] == 2
+    assert second["resumed_count"] == 2
+    assert second["completed_count"] == 4
+    assert second["pending_count"] == 0
+    assert len(second_provider.requests) == 8
+
+
+def _admission_row(condition: str, *, reasoning_tokens: int):
+    effort = "none" if condition == "reasoning_none_v1" else "low"
+    return {
+        "condition_id": condition,
+        "world_seed": 101,
+        "replicate_index": 0,
+        "status": "completed",
+        "evidence_verified": True,
+        "request_seeds": [12345],
+        "reasoning_efforts": [effort],
+        "route_providers": ["DeepInfra"],
+        "resolved_models": [DEEPSEEK_REVISION],
+        "reasoning_tokens": reasoning_tokens,
+        "reasoning_text_present": reasoning_tokens > 0,
+    }
+
+
+def test_reasoning_admission_requires_disabled_control_and_engaged_treatment() -> None:
+    report = validate_reasoning_admission(
+        [
+            _admission_row("reasoning_none_v1", reasoning_tokens=0),
+            _admission_row("reasoning_low_v1", reasoning_tokens=12),
+        ],
+        expected_resolved_model=DEEPSEEK_REVISION,
+        expected_route_provider="DeepInfra",
+        expected_paired_cell_count=1,
+    )
+    assert report["passed"] is True
+    assert report["paired_cell_count"] == 1
+
+    with pytest.raises(ValueError, match="disabled arm emitted reasoning"):
+        validate_reasoning_admission(
+            [
+                _admission_row("reasoning_none_v1", reasoning_tokens=1),
+                _admission_row("reasoning_low_v1", reasoning_tokens=12),
+            ],
+            expected_resolved_model=DEEPSEEK_REVISION,
+            expected_route_provider="DeepInfra",
+            expected_paired_cell_count=1,
+        )
+    with pytest.raises(ValueError, match="low arm did not emit reasoning"):
+        validate_reasoning_admission(
+            [
+                _admission_row("reasoning_none_v1", reasoning_tokens=0),
+                _admission_row("reasoning_low_v1", reasoning_tokens=0),
+            ],
+            expected_resolved_model=DEEPSEEK_REVISION,
+            expected_route_provider="DeepInfra",
+            expected_paired_cell_count=1,
+        )
+
+    with pytest.raises(ValueError, match="expected 3 paired admission cells"):
+        validate_reasoning_admission(
+            [
+                _admission_row("reasoning_none_v1", reasoning_tokens=0),
+                _admission_row("reasoning_low_v1", reasoning_tokens=12),
+            ],
+            expected_resolved_model=DEEPSEEK_REVISION,
+            expected_route_provider="DeepInfra",
+            expected_paired_cell_count=3,
+        )
+
+
+def test_paired_batch_stops_after_consecutive_operational_failures(tmp_path) -> None:
+    result = asyncio.run(
+        run_paired_batch(
+            setups=_paired_setups(world_seeds=(101, 202, 303, 404)),
+            output_root=tmp_path,
+            providers=_batch_providers(_ChargedFailureTenantProvider()),
+            concurrency=1,
+            spend_limit_usd=1.0,
+            max_consecutive_failures=2,
+        )
+    )
+
+    assert result["executed_count"] == 3
+    assert result["failure_count"] == 3
+    assert result["pending_count"] == 5
+    assert result["stop_reason"] == "operational_failure_limit_reached"
+    assert result["total_cost_usd"] == pytest.approx(0.012)
+
+
+def test_paired_batch_failure_circuit_is_condition_specific(tmp_path) -> None:
+    result = asyncio.run(
+        run_paired_batch(
+            setups=_paired_setups(world_seeds=(101, 102, 103, 106)),
+            output_root=tmp_path,
+            providers=_batch_providers(_LowOnlyFailureTenantProvider()),
+            concurrency=1,
+            spend_limit_usd=1.0,
+            max_consecutive_failures=2,
+        )
+    )
+
+    assert result["failure_count_by_condition"] == {
+        "reasoning_none_v1": 0,
+        "reasoning_low_v1": 2,
+    }
+    assert result["stop_reason"] == "operational_failure_limit_reached"
+    assert result["pending_count"] == 4
+
+
+def test_admission_entrypoint_runs_one_full_pair_and_seals_report(tmp_path) -> None:
+    result = asyncio.run(
+        run_housing_reasoning_experiment(
+            mode="admission",
+            output_root=tmp_path,
+            concurrency=2,
+            spend_limit_usd=0.10,
+            tenant_provider=_TreatmentAwareTenantProvider(),
+        )
+    )
+
+    assert result["mode"] == "admission"
+    assert result["batch"]["planned_count"] == 6
+    assert result["batch"]["completed_count"] == 6
+    assert result["admission"]["passed"] is True
+    assert result["admission"]["paired_cell_count"] == 3
+    assert result["total_cost_usd"] == 0.0
+    assert (tmp_path / "experiment_summary.json").is_file()

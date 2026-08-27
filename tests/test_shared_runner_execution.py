@@ -12,6 +12,8 @@ import pytest
 from aeread.shared_runner.execution import (
     CanonicalResponse,
     ClaudeCodePrintClient,
+    ConcurrentEvidenceWriterError,
+    EvidenceSealedError,
     EvidenceIntegrityError,
     EvidenceStore,
     GeminiGenerateContentClient,
@@ -23,6 +25,7 @@ from aeread.shared_runner.execution import (
     ProviderResult,
     TokenPricing,
     ToolExecutor,
+    ToolFailure,
 )
 from aeread.shared_runner.resolver import PlanCell, canonical_json_bytes, case_content_sha256
 from aeread.shared_runner.scheduler import (
@@ -142,6 +145,17 @@ def _evidence(tmp_path) -> EvidenceStore:
     )
 
 
+def _resume_evidence(tmp_path) -> EvidenceStore:
+    return EvidenceStore(
+        tmp_path / "evidence",
+        run_plan_id="runplan_fixture",
+        cell_id="cell_fixture",
+        episode_id="episode_fixture",
+        episode_attempt_id="episode_attempt_fixture_0",
+        resume=True,
+    )
+
+
 def _success_result(*, text: str = '{"offer":7}', cost: float | None = None):
     return ProviderResult(
         response_id="response_fixture",
@@ -172,6 +186,87 @@ class InspectingProvider:
         if isinstance(outcome, BaseException):
             raise outcome
         return outcome
+
+
+def test_evidence_store_refuses_a_concurrent_writer_before_the_first_event(tmp_path) -> None:
+    first = _evidence(tmp_path)
+
+    with pytest.raises(ConcurrentEvidenceWriterError):
+        _evidence(tmp_path)
+
+    first.close()
+    resumed = _resume_evidence(tmp_path)
+    resumed.append_event("continued", {"ok": True})
+    resumed.close()
+
+
+def test_evidence_store_resume_verifies_and_continues_the_hash_chain(tmp_path) -> None:
+    first = _evidence(tmp_path)
+    initial = first.append_event("first", {"value": 1})
+    first.close()
+
+    resumed = _resume_evidence(tmp_path)
+    second = resumed.append_event("second", {"value": 2})
+
+    assert second.sequence == 1
+    assert second.prior_event_hash == initial.event_hash
+    resumed.verify_chain()
+    resumed.close()
+
+
+def test_evidence_seal_is_persistent_idempotent_and_blocks_new_writes(tmp_path) -> None:
+    evidence = _evidence(tmp_path)
+    evidence.append_event("first", {"value": 1})
+    sealed = evidence.seal()
+
+    assert sealed.event_count == 1
+    assert len(sealed.event_root_sha256) == 64
+    assert len(sealed.artifact_root_sha256) == 64
+    assert evidence.seal() == sealed
+    with pytest.raises(EvidenceSealedError):
+        evidence.append_event("late", {})
+    with pytest.raises(EvidenceSealedError):
+        evidence.put_artifact({"late": True})
+    evidence.close()
+
+    reopened = _resume_evidence(tmp_path)
+    assert reopened.seal() == sealed
+    with pytest.raises(EvidenceSealedError):
+        reopened.append_event("later", {})
+    reopened.close()
+
+
+def test_read_only_audit_recovers_identity_and_verifies_a_sealed_generation(tmp_path) -> None:
+    evidence = _evidence(tmp_path)
+    event = evidence.append_event("first", {"value": 1})
+    seal = evidence.seal()
+    root = evidence.root
+    evidence.close()
+
+    audited = EvidenceStore.audit_existing(root)
+
+    assert audited.read_events() == (event,)
+    assert audited.run_plan_id == seal.run_plan_id
+    assert audited.cell_id == seal.cell_id
+    assert audited.episode_id == seal.episode_id
+    assert audited.episode_attempt_id == seal.episode_attempt_id
+    assert audited.read_event_payload(event) == {"value": 1}
+    assert audited.verify_seal() == seal
+    audited.close()
+
+
+def test_resume_rejects_a_symlink_replacement_for_the_event_log(tmp_path) -> None:
+    evidence = _evidence(tmp_path)
+    evidence.append_event("first", {"value": 1})
+    evidence.close()
+    external = tmp_path / "external.jsonl"
+    external.write_text("untrusted\n", encoding="utf-8")
+    events_path = tmp_path / "evidence" / "events.jsonl"
+    events_path.unlink()
+    events_path.symlink_to(external)
+
+    with pytest.raises(EvidenceIntegrityError, match="regular file"):
+        _resume_evidence(tmp_path)
 
 
 def _executor(tmp_path, provider, *, profile=None, evidence=None):
@@ -475,6 +570,8 @@ def test_tool_executor_records_success_and_unknown_outcome(tmp_path) -> None:
             arguments={"value": 3},
             implementation=successful,
             idempotency_supported=True,
+            effect="read_only",
+            tool_schema_sha256="a" * 64,
         )
     )
     assert result == {"echo": 3}
@@ -492,12 +589,135 @@ def test_tool_executor_records_success_and_unknown_outcome(tmp_path) -> None:
                 arguments={},
                 implementation=cancelled,
                 idempotency_supported=False,
+                effect="read_only",
+                tool_schema_sha256="b" * 64,
             )
         )
     evidence.audit_reconciliation(entity_types=("tool_invocation",))
     assert "tool_invocation_outcome_unknown" in {
         event.event_type for event in evidence.read_events()
     }
+
+
+def test_mutating_tool_requires_a_state_reader(tmp_path) -> None:
+    evidence = _evidence(tmp_path)
+    tools = ToolExecutor(evidence)
+
+    async def mutate(_arguments):
+        return {"status": "updated"}
+
+    with pytest.raises(EvidenceIntegrityError, match="state_reader"):
+        asyncio.run(
+            tools.invoke(
+                action_attempt_id="action_attempt_fixture",
+                tool_id="refund_order",
+                tool_version="1.0.0",
+                arguments={"order_id": "order_1"},
+                implementation=mutate,
+                idempotency_supported=True,
+                effect="mutating",
+                tool_schema_sha256="c" * 64,
+            )
+        )
+    assert evidence.read_events() == ()
+
+
+def test_refund_mutation_records_before_after_and_state_diff(tmp_path) -> None:
+    evidence = _evidence(tmp_path)
+    tools = ToolExecutor(evidence)
+    database = {"orders": {"order_1": {"status": "paid", "refund_usd": 0}}}
+
+    async def refund(_arguments):
+        database["orders"]["order_1"] = {"status": "refunded", "refund_usd": 25}
+        return {"status": "refunded", "amount_usd": 25}
+
+    result, record = asyncio.run(
+        tools.invoke(
+            action_attempt_id="action_attempt_fixture",
+            tool_id="refund_order",
+            tool_version="1.0.0",
+            arguments={"order_id": "order_1", "amount_usd": 25},
+            implementation=refund,
+            idempotency_supported=True,
+            effect="mutating",
+            tool_schema_sha256="d" * 64,
+            state_reader=lambda: database,
+        )
+    )
+
+    assert result["status"] == "refunded"
+    assert record.effect == "mutating"
+    assert record.state_changed is True
+    assert record.state_before_sha256 != record.state_after_sha256
+    assert record.state_diff_sha256 is not None
+    assert record.outcome_known is True
+    evidence.audit_reconciliation(entity_types=("tool_invocation",))
+
+
+def test_supply_chain_failure_after_partial_mutation_is_not_recorded_as_no_op(
+    tmp_path,
+) -> None:
+    evidence = _evidence(tmp_path)
+    tools = ToolExecutor(evidence)
+    ledger = {"inventory": 10, "pending_orders": []}
+
+    async def order_stock(_arguments):
+        ledger["pending_orders"].append("po_7")
+        raise ToolFailure("supplier_timeout", "supplier timed out after accepting PO", retryable=True)
+
+    with pytest.raises(ToolFailure) as captured:
+        asyncio.run(
+            tools.invoke(
+                action_attempt_id="action_attempt_fixture",
+                tool_id="place_purchase_order",
+                tool_version="1.0.0",
+                arguments={"sku": "widget", "quantity": 5},
+                implementation=order_stock,
+                idempotency_supported=False,
+                effect="mutating",
+                tool_schema_sha256="e" * 64,
+                state_reader=lambda: ledger,
+            )
+        )
+
+    record = captured.value.record
+    assert record is not None
+    assert record.status == "failed"
+    assert record.failure_condition == "supplier_timeout"
+    assert record.state_changed is True
+    assert record.state_diff_sha256 is not None
+    assert record.outcome_known is True
+    evidence.audit_reconciliation(entity_types=("tool_invocation",))
+
+
+def test_declared_read_only_tool_cannot_silently_mutate_observed_state(tmp_path) -> None:
+    evidence = _evidence(tmp_path)
+    tools = ToolExecutor(evidence)
+    database = {"balance": 10}
+
+    async def broken_read(_arguments):
+        database["balance"] = 9
+        return {"balance": 9}
+
+    with pytest.raises(ToolFailure, match="read_only") as captured:
+        asyncio.run(
+            tools.invoke(
+                action_attempt_id="action_attempt_fixture",
+                tool_id="get_balance",
+                tool_version="1.0.0",
+                arguments={},
+                implementation=broken_read,
+                idempotency_supported=True,
+                effect="read_only",
+                tool_schema_sha256="f" * 64,
+                state_reader=lambda: database,
+            )
+        )
+
+    assert captured.value.record is not None
+    assert captured.value.record.failure_condition == "tool_effect_violation"
+    assert captured.value.record.state_changed is True
+    evidence.audit_reconciliation(entity_types=("tool_invocation",))
 
 
 class FakeResponsesAPI:
