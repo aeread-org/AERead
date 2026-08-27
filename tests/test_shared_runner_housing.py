@@ -1,8 +1,17 @@
 from __future__ import annotations
 
 import asyncio
+import dataclasses
 
-from aeread.shared_runner import MetricValue, ScoreEnvelope, canonical_json_bytes
+import pytest
+
+from aeread.shared_runner import (
+    EvidenceSealedError,
+    MetricValue,
+    ScoreEnvelope,
+    canonical_json_bytes,
+    verify_evaluation_receipt,
+)
 from aeread.shared_runner.execution import execute_plan_cell
 from aeread.shared_runner.housing import (
     HOUSING_COMMIT_OUTPUT_SCHEMA,
@@ -12,6 +21,8 @@ from aeread.shared_runner.housing import (
     HousingScriptedTenantProvider,
     HousingV1Plugin,
     build_housing_smoke,
+    finalize_housing_execution,
+    replay_housing_receipt,
 )
 
 
@@ -273,3 +284,89 @@ def test_housing_score_replay_is_canonical_for_identical_outcomes() -> None:
     second = scorer(dict(reversed(list(outcome.items()))), evidence_refs=("artifact_outcome",))
 
     assert canonical_json_bytes(first) == canonical_json_bytes(second)
+
+
+def test_housing_finalizer_seals_a_durable_receipt_and_replays_score_from_evidence(
+    tmp_path,
+) -> None:
+    setup = build_housing_smoke(
+        tenant_provider="housing_scripted_tenant",
+        tenant_model="housing_scripted_tenant_v1",
+        tenant_revision="1.0.0",
+    )
+    execution = asyncio.run(
+        execute_plan_cell(
+            plan=setup.plan,
+            cell_id=setup.plan.cells[0].cell_id,
+            registry=setup.registry,
+            evidence_root=tmp_path,
+            prompt_sources=setup.prompt_sources,
+            providers={
+                "housing_scripted_tenant": HousingScriptedTenantProvider(),
+                "housing_scripted_landlord": HousingScriptedLandlordProvider(),
+            },
+            pricing=setup.pricing,
+            episode_attempt_ordinal=0,
+        )
+    )
+
+    receipt = finalize_housing_execution(setup=setup, execution=execution)
+
+    verify_evaluation_receipt(receipt)
+    assert receipt.status == "ok"
+    assert receipt.inclusion_status == "included"
+    assert receipt.replay_level == "score_only"
+    assert receipt.evidence == execution.evidence.seal()
+    assert receipt.plan_implementation_pins == setup.plan.implementation_pins
+    assert receipt.block_id == setup.plan.cells[0].block_id
+    receipt_path = execution.evidence.root / "evaluation_receipt.json"
+    assert receipt_path.read_bytes() == canonical_json_bytes(receipt) + b"\n"
+    assert [
+        event.event_type for event in execution.evidence.read_events()
+    ][-2:] == ["family_outcome_recorded", "score_recorded"]
+    with pytest.raises(EvidenceSealedError):
+        execution.evidence.append_event("late", {})
+
+    replayed = replay_housing_receipt(
+        setup=setup,
+        receipt=receipt,
+        evidence_root=tmp_path,
+    )
+    assert canonical_json_bytes(replayed.scores) == canonical_json_bytes(receipt.scores)
+
+
+def test_housing_finalizer_rejects_an_outcome_not_bound_by_the_event_log(tmp_path) -> None:
+    setup = build_housing_smoke(
+        tenant_provider="housing_scripted_tenant",
+        tenant_model="housing_scripted_tenant_v1",
+        tenant_revision="1.0.0",
+    )
+    execution = asyncio.run(
+        execute_plan_cell(
+            plan=setup.plan,
+            cell_id=setup.plan.cells[0].cell_id,
+            registry=setup.registry,
+            evidence_root=tmp_path,
+            prompt_sources=setup.prompt_sources,
+            providers={
+                "housing_scripted_tenant": HousingScriptedTenantProvider(),
+                "housing_scripted_landlord": HousingScriptedLandlordProvider(),
+            },
+            pricing=setup.pricing,
+            episode_attempt_ordinal=0,
+        )
+    )
+    altered_outcome = {
+        **dict(execution.episode_result.outcome),
+        "social_welfare": execution.episode_result.outcome["social_welfare"] + 1.0,
+    }
+    altered = dataclasses.replace(
+        execution,
+        episode_result=dataclasses.replace(
+            execution.episode_result,
+            outcome=altered_outcome,
+        ),
+    )
+
+    with pytest.raises(ValueError, match="event log"):
+        finalize_housing_execution(setup=setup, execution=altered)

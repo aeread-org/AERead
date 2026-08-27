@@ -21,6 +21,8 @@ from aeread import housing_env as hz
 
 from .execution import (
     CanonicalResponse,
+    CellExecution,
+    EvidenceStore,
     OpenRouterChatClient,
     ProviderFailure,
     ProviderRequest,
@@ -47,6 +49,14 @@ from .resolver import (
     canonical_json_bytes,
     case_content_sha256,
     resolve_run_plan,
+    verify_run_plan,
+)
+from .receipts import (
+    EvaluationFailure,
+    EvaluationReceipt,
+    seal_evaluation_receipt,
+    verify_evaluation_receipt,
+    write_evaluation_receipt,
 )
 from .scheduler import LegalityResult, ParseResult, PhaseSpec, TransitionResult
 from .schemas import (
@@ -144,7 +154,7 @@ def _housing_measurement_leaf(case: Mapping[str, Any]) -> MeasurementLeafSpec:
         domain_version="1.0.0",
         schema_ref="housing_v1/outcome/1",
         predicate=MeasurementImplementationRef(
-            "housing_outcome_validity_v1", "1.0.0", combined_digest
+            "housing_outcome_v1", "1.0.0", combined_digest
         ),
     )
     estimand = EstimandSpec(
@@ -866,6 +876,225 @@ class HousingSmokeSetup:
     registry: PluginRegistry
     prompt_sources: Mapping[str, str]
     pricing: Mapping[str, TokenPricing]
+
+
+def _housing_receipt_implementations(
+    score: ScoreEnvelope,
+) -> tuple[MeasurementImplementationRef, ...]:
+    return (
+        score.leaf.estimand.validity_domain.predicate,
+        score.leaf.verifier.reference.implementation,
+        score.leaf.scorer,
+    )
+
+
+def _housing_agent_profile_digests(
+    plan: RunPlan, cell: Any
+) -> dict[str, str]:
+    profiles = {profile.profile_id: profile for profile in plan.agent_profiles}
+    return {
+        seat_id: hashlib.sha256(
+            canonical_json_bytes(profiles[profile_id])
+        ).hexdigest()
+        for seat_id, profile_id in sorted(cell.profile_by_seat.items())
+    }
+
+
+def finalize_housing_execution(
+    *, setup: HousingSmokeSetup, execution: CellExecution
+) -> EvaluationReceipt:
+    """Score one completed Housing execution, seal evidence, and persist its receipt."""
+
+    if not isinstance(setup, HousingSmokeSetup):
+        raise TypeError("setup must be a HousingSmokeSetup")
+    if not isinstance(execution, CellExecution):
+        raise TypeError("execution must be a CellExecution")
+    verify_run_plan(setup.plan)
+    if execution.run_plan_id != setup.plan.run_plan_id:
+        raise ValueError("execution does not belong to the Housing RunPlan")
+    cell = next(
+        (item for item in setup.plan.cells if item.cell_id == execution.cell_id),
+        None,
+    )
+    if cell is None:
+        raise ValueError("execution cell is absent from the Housing RunPlan")
+    case = next(item for item in setup.plan.cases if item.case_id == cell.case_id)
+    family = next(
+        item for item in setup.plan.families if item.family.id == cell.family_id
+    )
+    plugin = setup.registry.resolve_manifest(family)
+    family_case = plugin.validate_payload(case.payload)
+
+    execution.evidence.audit_reconciliation()
+    outcome_events = tuple(
+        event
+        for event in execution.evidence.read_events()
+        if event.event_type == "family_outcome_recorded"
+    )
+    if len(outcome_events) != 1:
+        raise ValueError("event log must contain exactly one family outcome")
+    outcome_event = outcome_events[0]
+    recorded_payload = execution.evidence.read_event_payload(outcome_event)
+    recorded_outcome = (
+        recorded_payload.get("outcome")
+        if isinstance(recorded_payload, Mapping)
+        else None
+    )
+    if canonical_json_bytes(recorded_outcome) != canonical_json_bytes(
+        execution.episode_result.outcome
+    ):
+        raise ValueError("execution outcome does not match the event log")
+
+    score = plugin.build_scorer(family_case)(
+        recorded_outcome,
+        evidence_refs=(outcome_event.event_id,),
+    )
+    execution.evidence.append_event(
+        "score_recorded",
+        {
+            "primary_leaf_id": score.leaf.leaf_id,
+            "outcome_event_id": outcome_event.event_id,
+            "score": score,
+        },
+    )
+    execution.evidence.audit_reconciliation()
+    evidence_seal = execution.evidence.seal()
+
+    if score.status == "ok":
+        receipt_status = "ok"
+        inclusion_status = "included"
+        failure = None
+    else:
+        receipt_status = "invalid_measurement"
+        inclusion_status = "excluded"
+        failure = EvaluationFailure(
+            failure_class="oracle_or_scorer_failure",
+            condition="invalid_housing_measurement",
+            message="; ".join(score.validity.reasons),
+        )
+    profile_by_id = {
+        profile.profile_id: profile for profile in setup.plan.agent_profiles
+    }
+    assigned_profiles = tuple(
+        profile_by_id[profile_id]
+        for profile_id in sorted(set(cell.profile_by_seat.values()))
+    )
+    observability_limits = (
+        ("provider_internal_reasoning_not_fully_observable",)
+        if any(profile.model.provider == "openrouter" for profile in assigned_profiles)
+        else ()
+    )
+    receipt = seal_evaluation_receipt(
+        EvaluationReceipt(
+            spec_version=EvaluationReceipt.SPEC_VERSION,
+            receipt_sha256=None,
+            status=receipt_status,
+            inclusion_status=inclusion_status,
+            run_plan_id=setup.plan.run_plan_id,
+            run_plan_sha256=setup.plan.plan_sha256,
+            cell_id=cell.cell_id,
+            case_id=case.case_id,
+            case_sha256=case.content_sha256,
+            suite_id=setup.plan.suite.suite_id,
+            suite_version=setup.plan.suite.version,
+            block_id=cell.block_id,
+            sampling_plan_id=cell.sampling_plan_id,
+            analysis_plan_id=cell.analysis_plan_id,
+            episode_id=evidence_seal.episode_id,
+            episode_attempt_id=execution.episode_attempt_id,
+            cluster_id=cell.cluster_id,
+            cluster_level=cell.cluster_level,
+            observations_per_cluster=cell.observations_per_cluster,
+            parent_cluster_id=None,
+            pair_id=cell.pair_id,
+            paired_fields=cell.paired_fields,
+            replicate_index=cell.replicate_index,
+            panel_mode=cell.panel_mode,
+            agent_profile_sha256_by_seat=_housing_agent_profile_digests(
+                setup.plan, cell
+            ),
+            implementation_refs=_housing_receipt_implementations(score),
+            plan_implementation_pins=setup.plan.implementation_pins,
+            evidence=evidence_seal,
+            primary_leaf_id=score.leaf.leaf_id,
+            scores=(score,),
+            failure=failure,
+            observability_limits=observability_limits,
+            replay_level="score_only",
+        )
+    )
+    write_evaluation_receipt(
+        receipt, execution.evidence.root / "evaluation_receipt.json"
+    )
+    return receipt
+
+
+def replay_housing_receipt(
+    *,
+    setup: HousingSmokeSetup,
+    receipt: EvaluationReceipt,
+    evidence_root: str | Path,
+) -> EvaluationReceipt:
+    """Recompute the Housing score from sealed evidence without a provider call."""
+
+    verify_run_plan(setup.plan)
+    verify_evaluation_receipt(receipt)
+    if (
+        receipt.run_plan_id != setup.plan.run_plan_id
+        or receipt.run_plan_sha256 != setup.plan.plan_sha256
+    ):
+        raise ValueError("receipt does not belong to the Housing RunPlan")
+    cell = next(
+        (item for item in setup.plan.cells if item.cell_id == receipt.cell_id),
+        None,
+    )
+    if cell is None or cell.case_sha256 != receipt.case_sha256:
+        raise ValueError("receipt cell/case identity does not match the Housing plan")
+    evidence_path = (
+        Path(evidence_root)
+        / receipt.run_plan_id
+        / receipt.cell_id
+        / receipt.episode_attempt_id
+    )
+    evidence = EvidenceStore.audit_existing(evidence_path)
+    if evidence.verify_seal() != receipt.evidence:
+        raise ValueError("receipt evidence seal does not match durable evidence")
+    receipt_path = evidence_path / "evaluation_receipt.json"
+    if (
+        not receipt_path.is_file()
+        or receipt_path.read_bytes() != canonical_json_bytes(receipt) + b"\n"
+    ):
+        raise ValueError("durable Housing receipt bytes do not match")
+
+    events = evidence.read_events()
+    outcome_events = tuple(
+        event for event in events if event.event_type == "family_outcome_recorded"
+    )
+    score_events = tuple(event for event in events if event.event_type == "score_recorded")
+    if len(outcome_events) != 1 or len(score_events) != 1:
+        raise ValueError("sealed Housing evidence has incomplete score boundaries")
+    outcome_payload = evidence.read_event_payload(outcome_events[0])
+    score_payload = evidence.read_event_payload(score_events[0])
+    if not isinstance(outcome_payload, Mapping) or not isinstance(score_payload, Mapping):
+        raise ValueError("sealed Housing score evidence is malformed")
+    case = next(item for item in setup.plan.cases if item.case_id == cell.case_id)
+    family = next(
+        item for item in setup.plan.families if item.family.id == cell.family_id
+    )
+    plugin = setup.registry.resolve_manifest(family)
+    family_case = plugin.validate_payload(case.payload)
+    replayed_score = plugin.build_scorer(family_case)(
+        outcome_payload.get("outcome"),
+        evidence_refs=(outcome_events[0].event_id,),
+    )
+    if canonical_json_bytes(score_payload.get("score")) != canonical_json_bytes(
+        replayed_score
+    ):
+        raise ValueError("recorded Housing score does not replay deterministically")
+    if canonical_json_bytes(receipt.scores) != canonical_json_bytes((replayed_score,)):
+        raise ValueError("receipt Housing score does not replay deterministically")
+    evidence.close()
+    return receipt
 
 
 @dataclass(frozen=True, slots=True)

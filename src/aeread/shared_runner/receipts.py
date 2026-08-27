@@ -10,7 +10,9 @@ from __future__ import annotations
 
 import dataclasses
 import hashlib
+import os
 from dataclasses import dataclass, field
+from pathlib import Path
 from types import MappingProxyType
 from typing import Any, Mapping
 
@@ -420,9 +422,47 @@ def verify_evaluation_receipt(receipt: EvaluationReceipt) -> EvaluationReceipt:
     return receipt
 
 
+def write_evaluation_receipt(
+    receipt: EvaluationReceipt, destination: str | Path
+) -> Path:
+    """Durably publish canonical receipt bytes without overwriting other content."""
+
+    verify_evaluation_receipt(receipt)
+    path = Path(destination)
+    payload = canonical_json_bytes(receipt) + b"\n"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if path.is_symlink():
+        raise MeasurementContractError("receipt destination must not be a symlink")
+    try:
+        fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    except FileExistsError:
+        if not path.is_file() or path.read_bytes() != payload:
+            raise MeasurementContractError(
+                "refusing to overwrite a different evaluation receipt"
+            )
+        return path
+    try:
+        view = memoryview(payload)
+        while view:
+            written = os.write(fd, view)
+            if written <= 0:
+                raise OSError("short write while persisting evaluation receipt")
+            view = view[written:]
+        os.fsync(fd)
+    finally:
+        os.close(fd)
+    directory_fd = os.open(path.parent, os.O_RDONLY | getattr(os, "O_DIRECTORY", 0))
+    try:
+        os.fsync(directory_fd)
+    finally:
+        os.close(directory_fd)
+    return path
+
+
 __all__ = [
     "EvaluationFailure",
     "EvaluationReceipt",
     "seal_evaluation_receipt",
     "verify_evaluation_receipt",
+    "write_evaluation_receipt",
 ]

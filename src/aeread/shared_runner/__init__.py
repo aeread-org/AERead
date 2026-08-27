@@ -53,6 +53,7 @@ from .receipts import (
     EvaluationReceipt,
     seal_evaluation_receipt,
     verify_evaluation_receipt,
+    write_evaluation_receipt,
 )
 from .resolver import (
     ImplementationPin,
@@ -178,5 +179,6 @@ __all__ = [
     "seal_evaluation_receipt",
     "verify_run_plan",
     "verify_evaluation_receipt",
+    "write_evaluation_receipt",
     "write_run_plan",
 ]
