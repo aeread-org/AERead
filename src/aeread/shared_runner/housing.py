@@ -58,7 +58,13 @@ from .receipts import (
     verify_evaluation_receipt,
     write_evaluation_receipt,
 )
-from .scheduler import LegalityResult, ParseResult, PhaseSpec, TransitionResult
+from .scheduler import (
+    ActionEnvelope,
+    LegalityResult,
+    ParseResult,
+    PhaseSpec,
+    TransitionResult,
+)
 from .schemas import (
     AgentProfile,
     AnalysisPlan,
@@ -911,6 +917,149 @@ def _housing_observability_limits(plan: RunPlan, cell: Any) -> tuple[str, ...]:
     return ()
 
 
+def _replay_housing_state_from_evidence(
+    *, plugin: HousingV1Plugin, family_case: Mapping[str, Any], evidence: EvidenceStore
+) -> tuple[Mapping[str, Any], Any]:
+    events = evidence.read_events()
+    phase_by_id = {phase.phase_id: phase for phase in plugin.phases(family_case)}
+    state = plugin.initial_state(family_case, run=None)
+    phase_events = tuple(
+        event for event in events if event.event_type == "phase_instance_started"
+    )
+    if not phase_events:
+        raise ValueError("Housing replay contains no phase boundaries")
+
+    for phase_event in phase_events:
+        payload = evidence.read_event_payload(phase_event)
+        if not isinstance(payload, Mapping) or not isinstance(payload.get("phase"), Mapping):
+            raise ValueError("Housing replay phase boundary is malformed")
+        recorded_phase = PhaseSpec(**dict(payload["phase"]))
+        phase = phase_by_id.get(recorded_phase.phase_id)
+        if phase is None or canonical_json_bytes(recorded_phase) != canonical_json_bytes(phase):
+            raise ValueError("Housing replay phase specification changed")
+        pre_state_sha256 = hashlib.sha256(canonical_json_bytes(state)).hexdigest()
+        if payload.get("pre_state_sha256") != pre_state_sha256:
+            raise ValueError("Housing replay pre-state hash mismatch")
+        eligible = tuple(plugin.eligible_actors(family_case, state, phase))
+        if tuple(payload.get("eligible_actors", ())) != eligible:
+            raise ValueError("Housing replay eligible actors changed")
+
+        starts = tuple(
+            event
+            for event in events
+            if event.event_type == "logical_action_started"
+            and event.phase_instance_id == phase_event.phase_instance_id
+        )
+        actions: dict[str, ActionEnvelope] = {}
+        for start in starts:
+            start_payload = evidence.read_event_payload(start)
+            request = (
+                start_payload.get("request")
+                if isinstance(start_payload, Mapping)
+                else None
+            )
+            if not isinstance(request, Mapping):
+                raise ValueError("Housing replay action request is malformed")
+            seat_id = request.get("seat_id")
+            if not isinstance(seat_id, str) or seat_id in actions:
+                raise ValueError("Housing replay action seat identity is invalid")
+            parsed_events = tuple(
+                event
+                for event in events
+                if event.event_type == "action_parsed"
+                and event.logical_action_id == start.logical_action_id
+            )
+            if len(parsed_events) != 1:
+                raise ValueError("Housing replay action lacks one parse result")
+            parsed_payload = evidence.read_event_payload(parsed_events[0])
+            parsed_value = (
+                parsed_payload.get("parse_result")
+                if isinstance(parsed_payload, Mapping)
+                else None
+            )
+            if not isinstance(parsed_value, Mapping):
+                raise ValueError("Housing replay parse result is malformed")
+            parsed = ParseResult(**dict(parsed_value))
+            legality_events = tuple(
+                event
+                for event in events
+                if event.event_type == "action_legality_checked"
+                and event.logical_action_id == start.logical_action_id
+            )
+            legality: LegalityResult | None = None
+            if legality_events:
+                if len(legality_events) != 1:
+                    raise ValueError("Housing replay has duplicate legality results")
+                legality_payload = evidence.read_event_payload(legality_events[0])
+                legality_value = (
+                    legality_payload.get("legality_result")
+                    if isinstance(legality_payload, Mapping)
+                    else None
+                )
+                if not isinstance(legality_value, Mapping):
+                    raise ValueError("Housing replay legality result is malformed")
+                legality = LegalityResult(**dict(legality_value))
+            valid = parsed.ok and legality is not None and legality.legal
+            actions[seat_id] = ActionEnvelope(
+                seat_id=seat_id,
+                valid=valid,
+                action=parsed.action if valid else None,
+                parse=parsed,
+                legality=legality,
+            )
+        if tuple(sorted(actions)) != tuple(sorted(eligible)):
+            raise ValueError("Housing replay action set does not match eligible actors")
+
+        transition_events = tuple(
+            event
+            for event in events
+            if event.event_type == "transition_applied"
+            and event.phase_instance_id == phase_event.phase_instance_id
+        )
+        if len(transition_events) != 1:
+            raise ValueError("Housing replay phase lacks one transition")
+        transition_payload = evidence.read_event_payload(transition_events[0])
+        if not isinstance(transition_payload, Mapping):
+            raise ValueError("Housing replay transition is malformed")
+        replayed = plugin.step(family_case, state, phase, actions)
+        if canonical_json_bytes(transition_payload.get("transition")) != canonical_json_bytes(
+            replayed
+        ):
+            raise ValueError("Housing replay transition differs from sealed evidence")
+        post_state_sha256 = hashlib.sha256(
+            canonical_json_bytes(replayed.state)
+        ).hexdigest()
+        if transition_payload.get("post_state_sha256") != post_state_sha256:
+            raise ValueError("Housing replay post-state hash mismatch")
+        state = replayed.state
+
+    terminal_events = tuple(
+        event for event in events if event.event_type == "episode_terminated"
+    )
+    outcome_events = tuple(
+        event for event in events if event.event_type == "family_outcome_recorded"
+    )
+    if len(terminal_events) != 1 or len(outcome_events) != 1:
+        raise ValueError("Housing replay lacks one terminal outcome boundary")
+    terminal = plugin.terminal(family_case, state)
+    terminal_payload = evidence.read_event_payload(terminal_events[0])
+    outcome_payload = evidence.read_event_payload(outcome_events[0])
+    if (
+        not isinstance(terminal_payload, Mapping)
+        or canonical_json_bytes(terminal_payload.get("terminal"))
+        != canonical_json_bytes(terminal)
+    ):
+        raise ValueError("Housing replay terminal result differs from sealed evidence")
+    outcome = plugin.outcome(family_case, terminal)
+    if (
+        not isinstance(outcome_payload, Mapping)
+        or canonical_json_bytes(outcome_payload.get("outcome"))
+        != canonical_json_bytes(outcome)
+    ):
+        raise ValueError("Housing replay family outcome differs from sealed evidence")
+    return outcome, outcome_events[0]
+
+
 def finalize_housing_execution(
     *, setup: HousingSmokeSetup, execution: CellExecution
 ) -> EvaluationReceipt:
@@ -937,19 +1086,10 @@ def finalize_housing_execution(
     family_case = plugin.validate_payload(case.payload)
 
     execution.evidence.audit_reconciliation()
-    outcome_events = tuple(
-        event
-        for event in execution.evidence.read_events()
-        if event.event_type == "family_outcome_recorded"
-    )
-    if len(outcome_events) != 1:
-        raise ValueError("event log must contain exactly one family outcome")
-    outcome_event = outcome_events[0]
-    recorded_payload = execution.evidence.read_event_payload(outcome_event)
-    recorded_outcome = (
-        recorded_payload.get("outcome")
-        if isinstance(recorded_payload, Mapping)
-        else None
+    recorded_outcome, outcome_event = _replay_housing_state_from_evidence(
+        plugin=plugin,
+        family_case=family_case,
+        evidence=execution.evidence,
     )
     if canonical_json_bytes(recorded_outcome) != canonical_json_bytes(
         execution.episode_result.outcome
@@ -1019,7 +1159,7 @@ def finalize_housing_execution(
             scores=(score,),
             failure=failure,
             observability_limits=_housing_observability_limits(setup.plan, cell),
-            replay_level="score_only",
+            replay_level="state_and_score",
         )
     )
     write_evaluation_receipt(
@@ -1180,15 +1320,11 @@ def replay_housing_receipt(
         raise ValueError("durable Housing receipt bytes do not match")
 
     events = evidence.read_events()
-    outcome_events = tuple(
-        event for event in events if event.event_type == "family_outcome_recorded"
-    )
     score_events = tuple(event for event in events if event.event_type == "score_recorded")
-    if len(outcome_events) != 1 or len(score_events) != 1:
+    if len(score_events) != 1:
         raise ValueError("sealed Housing evidence has incomplete score boundaries")
-    outcome_payload = evidence.read_event_payload(outcome_events[0])
     score_payload = evidence.read_event_payload(score_events[0])
-    if not isinstance(outcome_payload, Mapping) or not isinstance(score_payload, Mapping):
+    if not isinstance(score_payload, Mapping):
         raise ValueError("sealed Housing score evidence is malformed")
     case = next(item for item in setup.plan.cases if item.case_id == cell.case_id)
     family = next(
@@ -1196,9 +1332,14 @@ def replay_housing_receipt(
     )
     plugin = setup.registry.resolve_manifest(family)
     family_case = plugin.validate_payload(case.payload)
+    replayed_outcome, outcome_event = _replay_housing_state_from_evidence(
+        plugin=plugin,
+        family_case=family_case,
+        evidence=evidence,
+    )
     replayed_score = plugin.build_scorer(family_case)(
-        outcome_payload.get("outcome"),
-        evidence_refs=(outcome_events[0].event_id,),
+        replayed_outcome,
+        evidence_refs=(outcome_event.event_id,),
     )
     if canonical_json_bytes(score_payload.get("score")) != canonical_json_bytes(
         replayed_score

@@ -315,7 +315,7 @@ def test_housing_finalizer_seals_a_durable_receipt_and_replays_score_from_eviden
     verify_evaluation_receipt(receipt)
     assert receipt.status == "ok"
     assert receipt.inclusion_status == "included"
-    assert receipt.replay_level == "score_only"
+    assert receipt.replay_level == "state_and_score"
     assert receipt.evidence == execution.evidence.seal()
     assert receipt.plan_implementation_pins == setup.plan.implementation_pins
     assert receipt.block_id == setup.plan.cells[0].block_id

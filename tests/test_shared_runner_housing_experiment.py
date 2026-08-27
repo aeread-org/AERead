@@ -669,7 +669,7 @@ def test_condition_reader_detects_durable_receipt_tampering(tmp_path) -> None:
     receipt_path = Path(row["receipt_path"])
     receipt_path.write_text(
         receipt_path.read_text(encoding="utf-8").replace(
-            '"replay_level":"score_only"', '"replay_level":"none"'
+            '"replay_level":"state_and_score"', '"replay_level":"none"'
         ),
         encoding="utf-8",
     )
