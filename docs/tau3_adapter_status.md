@@ -53,6 +53,13 @@ immediately; two survived — a swallowed tool-error counter and a neutered
 replay cross-check — proving those paths had no coverage at all. Both are now
 covered and both mutations are killed.
 
+**Deterministic across runs.** The pilot was executed twice, independently, and
+the two receipts are byte-identical (SHA-256
+`75270a673212fe693c9800be4d017ca7...`, 3674 bytes). Determinism here had been a
+property of the implementation -- CPython float repr, no unicode normalisation
+-- rather than a checked fact; it is now the latter, at least across runs on one
+machine. Cross-machine and cross-Python-version reproduction is untested.
+
 **Independently reviewed.** No critical findings. The review confirmed by
 tracing upstream source, not spec prose, that termination semantics reproduce
 `orchestrator.py`'s role-skip behavior and that the stop signals match
