@@ -7,6 +7,12 @@ Housing action trajectories with reasoning disabled versus low reasoning.
 DeepSeek reasoning conditions, with three nested model replicates per world: 600 total
 trajectories.
 
+**Current status (2026-08-26)**: the Housing instrument now emits typed welfare/reference/
+capture measurements, validated success and failure receipts, and deterministic
+state-and-score replay. The 600-trajectory confirmatory experiment has **not** been run with
+this finalized instrument. A fresh route admission is required before any sample cell is
+released; earlier pilots and the historical R4 smoke remain excluded.
+
 **Files involved**: `src/aeread/shared_runner/housing.py`,
 `src/aeread/shared_runner/housing_experiment.py`,
 `src/aeread/shared_runner/execution.py`, the resulting sealed plans, per-cell evidence,
@@ -102,6 +108,11 @@ replicates in both conditions. Agent actions that are malformed after declared a
 remain family-typed passes and are valid economic outcomes. Provider, harness, or evidence
 failures are operational missingness, are never silently replaced, and are reported by arm.
 No world is replaced after outcomes are observed.
+
+Every completed trajectory must carry an `included` `EvaluationReceipt` whose replay level is
+`state_and_score`. Every reconciled operational failure must carry an `excluded`
+`invalid_measurement` receipt with no economic score. Analysis reads validated receipts rather
+than trusting the compatibility result rows.
 
 The 95% primary interval is the percentile interval from 10,000 paired resamples of world
 differences. A paired t interval is reported as a diagnostic. Sensitivity bounds assign the

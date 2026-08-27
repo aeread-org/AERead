@@ -49,7 +49,7 @@ scientific claims even though they share receipts and analysis infrastructure.
 
 | Family | Primary semantic route | Tool/state route | Required parity fields before publication |
 |---|---|---|---|
-| `housing_v1` | `objective_reference`: realized tenant utility plus separately scoped feasible witness, comparison baseline, and exact/relaxed upper bound where valid | Native phase actions; no external business-tool loop is required for the current case | terminal allocation, utilities, reference values, validity, and legacy/native scorer output where a legacy result exists |
+| `housing_v1` | `objective_reference`: realized social welfare plus separately scoped feasible witness, naive comparison baseline, and full-information allocation upper bound | Native phase actions; no external business-tool loop is required for the current case | terminal allocation, per-seat utility/capture, typed references, validity, receipt admission, and state-and-score replay |
 | `tau3_retail` | `canonical_reference`: terminal database equivalence; optional `rule_constraint` temporal leaves; upstream judge-dependent components remain separate | Bind pinned Tau3 retail tools through `ToolDefinition`; mutating tools require a canonical database `state_reader` | initial DB, ordered calls/results, final DB, state diff, DB component, communication component, pinned judge artifact/configuration, and upstream aggregate |
 | `supply_chain_v1` | usually a vector: `rule_constraint` for authorization/order timing plus `objective_reference` or `comparative` for cost, fill rate, delay, or welfare | Bind inventory, quote, purchase-order, shipment, and cancellation tools through the same `ToolRuntime`; every mutating tool needs a canonical ledger snapshot | initial inventory/orders, ordered calls/results, final inventory/order state, constraint vector, objective inputs/value, and any upstream aggregate |
 
@@ -82,8 +82,9 @@ claim.
 
 1. Land the core portability contracts on top of shared-runner R4; do not introduce the
    parallel `aeread.runner` / `aeread.sdk.v1` kernel from the comparison branch.
-2. Rebase the Housing adapter and express its reported measurements through typed leaves;
-   keep Housing semantics in the Housing PR.
+2. **Implemented on the Housing stack:** rebase the Housing adapter, express its reported
+   measurements through typed leaves, and emit validated receipts while keeping Housing
+   semantics in the Housing PR.
 3. Express Exchange old/new comparisons as a `ParitySpec` and close the complete parity
    matrix before treating the generic path as a replacement.
 4. Implement the pinned Tau3 retail adapter and the 18-task pilot. A provider-free replay

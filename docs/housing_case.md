@@ -4,12 +4,15 @@ A two-sided market where tenants compete for a smaller number of listings. It as
 whether an agent can reason about **competition for a scarce resource**, not merely
 optimize its own valuation.
 
-Status: the P0 environment contract, allocation oracle, one-shot market, scripted
-multi-round baselines, and R1-R4 shared-runner adapter are implemented and tested.
-One fixed 2-tenant, 1-listing, 1-round OpenRouter/DeepSeek smoke cell has replayable
-content-addressed evidence and a non-secret admission summary. It proves the typed
-execution, privacy, retry, cost, and scoring path; it is not a live-model table or a
-current paper result.
+Status: the P0 environment contract, allocation oracle, scripted multi-round baselines,
+and native shared-runner path through typed measurement, receipts, and deterministic
+state-and-score replay are implemented and tested. The standalone CLI and batch runner
+both finalize successful trajectories and reconciled failures through the same receipt
+contract. The earlier fixed OpenRouter/DeepSeek smoke cell is historical R4 admission
+evidence and predates the new receipt layer; it is not a current paper result.
+
+The finalized receipt path is documented in
+[`walkthroughs/shared_runner_housing_receipts.md`](walkthroughs/shared_runner_housing_receipts.md).
 
 ## 1. The market
 
@@ -40,7 +43,8 @@ efficiency = result.total / optimum.total           # what a submitted agent is 
 
 The implemented upper bound `U` is max-weight bipartite matching on the
 transferable-utility surplus matrix. Non-positive matches are dropped. The always
-feasible no-trade outcome is the floor `L = 0`. For worlds with `U > 0`, normalized
+feasible no-trade policy proves the optimum lower bound `L = 0`; it is not a lower
+bound on every realized agent outcome. For worlds with `U > 0`, normalized
 efficiency is therefore `(R - L) / (U - L) = R / U`; worlds with `U = 0` must be
 reported separately rather than divided by zero.
 
@@ -228,6 +232,8 @@ scores or evidence that the suite is saturated.
 
 | metric | definition |
 |---|---|
+| `social_welfare` | realized tenant plus landlord payoff in native utility units; receipt primary |
+| `within_case_score` | `realized_surplus / optimal_surplus` when `U > 0`; within-case diagnostic |
 | `matching_error` | `1 - realized_surplus / optimal_surplus` |
 | `unmatched_gap` | realized unmatched count minus optimal unmatched count |
 | `tenant_payoff[t]` | signed tenant value minus signed rent; zero if unmatched |
@@ -235,8 +241,10 @@ scores or evidence that the suite is saturated.
 | `ir_violations` | signed seats with negative realized payoff |
 | `core_rent_error` | future diagnostic; no implemented price oracle |
 
-Report `matching_error` as the headline. `unmatched_gap` is a diagnostic only: the
-count can hide large welfare differences. `economics()` preserves signed prices,
+The receipt headline is native-unit `social_welfare`; a predeclared paired analysis may
+use `within_case_score` to compare conditions on identical worlds, but it is not a
+universal cross-family score. `unmatched_gap` is a diagnostic only: the count can hide
+large welfare differences. `economics()` preserves signed prices,
 per-seat payoffs, total welfare, and IR violations. Negative-payoff agreements are
 legal outcomes and must be recorded rather than filtered. `core_rent_error` is not yet
 measurable because this repository does not implement or test a price/core oracle;
