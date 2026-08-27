@@ -2,10 +2,11 @@
 """Subprocess driver for tau3_retail's ``Tau2Bridge`` (see ``tau2_bridge.py``).
 
 This script runs under a SEPARATE, already-provisioned Python interpreter
-(>=3.12) that has the pinned upstream tau2-bench package (commit
-``fc0055dc4e0a316c3f83133267fbd6faaa770992``) importable -- never under
-AERead's own interpreter, and never installed or fetched by this script
-itself (no network calls; see docs/tau3_retail_adapter_spec.md rule 2).
+(>=3.12) with tau2-bench's runtime dependencies installed. Source is always
+loaded from the caller-supplied pinned checkout (commit
+``fc0055dc4e0a316c3f83133267fbd6faaa770992``), never from an unrelated tau2
+distribution installed in that interpreter. Nothing is installed or fetched
+by this script (no network calls; see the adapter spec's rule 2).
 
 It exists so ``tools.py`` -- which runs inside AERead's own, older Python
 interpreter that deliberately does not carry tau2-bench's runtime
@@ -52,6 +53,38 @@ written to stdout:
          tool changed nothing) should normalize once, up front, with this
          op -- never by re-deriving the shape difference by hand.
 
+  {"op": "hash_db", "db": <RetailDB.model_dump()-shaped dict>}
+      -> {"ok": true, "db_hash": str}
+
+  {"op": "normalize_messages", "messages": [<upstream message dict>, ...]}
+      -> {"ok": true, "messages": [<upstream model_dump() dict>, ...]}
+
+  {"op": "evaluate_env", "task": <verbatim upstream task dict>,
+   "messages": [<upstream message dict>, ...] (the full episode trajectory,
+   starting from task initial state), "strict_replay": bool (default true)}
+      -> {"ok": true, "reward": float, "db_check": {"db_match": bool,
+          "db_reward": float} | null, "reward_breakdown": {str: float} | null}
+      -- delegates entirely to
+         tau2.evaluator.evaluator_env.EnvironmentEvaluator.calculate_reward:
+         replays the task's gold actions and the given trajectory through
+         upstream's own tool layer and compares upstream's own db hashes.
+         Never recomputes or reimplements that comparison.
+
+  {"op": "evaluate_nl_assertions_from_verdicts", "task": <verbatim upstream
+   task dict>, "verdicts": [{"nl_assertion": str, "met": bool,
+   "justification": str}, ...]}
+      -> {"ok": true, "reward": float,
+          "nl_assertions": [{"nl_assertion": str, "met": bool,
+          "justification": str}, ...]}
+      -- cross-check only (see the function's docstring): runs upstream's
+         real reward reduction over caller-supplied verdicts with the one
+         live-model call monkeypatched out for this subprocess's lifetime.
+         Never the production leaf-2 scoring path.
+
+  {"op": "runtime_info"}
+      -> {"ok": true, "python_version": str, "tau2_package_file": str,
+          "local_model_cost_map": str}
+
   Anything else (bad op, malformed request, import failure, ...)
       -> {"ok": false, "error_type": str, "message": str}, exit code 1.
 """
@@ -59,6 +92,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
 from typing import Any
@@ -67,23 +101,25 @@ from typing import Any
 def _make_upstream_importable(upstream_root: str | None) -> None:
     """Ensure ``import tau2`` resolves to the pinned checkout.
 
-    If the target interpreter already has the pinned package installed
-    (e.g. ``pip install -e <checkout>``), ``import tau2`` already works and
-    this is a no-op. Otherwise, fall back to the same ``sys.path`` injection
-    ``cases.py`` uses so the bridge works against a checkout-only
-    environment too.
+    The checkout path always wins over any unrelated ``tau2`` distribution
+    already installed in the dependency-bearing interpreter. This is
+    deliberate: the bridge interpreter supplies dependencies, while the
+    caller-supplied checkout supplies the pinned source.
     """
-    try:
-        import tau2  # noqa: F401
-        return
-    except ModuleNotFoundError:
-        pass
-    if not upstream_root:
-        raise
-    src_dir = str(Path(upstream_root) / "src")
-    if src_dir not in sys.path:
+    if upstream_root:
+        src_dir = str((Path(upstream_root) / "src").resolve())
+        sys.path[:] = [entry for entry in sys.path if entry != src_dir]
         sys.path.insert(0, src_dir)
-    import tau2  # noqa: F401
+    import tau2
+
+    if upstream_root:
+        expected_package = (Path(upstream_root) / "src" / "tau2").resolve()
+        loaded_file = Path(tau2.__file__).resolve()
+        if not loaded_file.is_relative_to(expected_package):
+            raise RuntimeError(
+                "tau2 import did not resolve under the requested pinned checkout: "
+                f"loaded {loaded_file}, expected under {expected_package}"
+            )
 
 
 def _op_schema() -> dict[str, Any]:
@@ -125,6 +161,7 @@ def _op_call(request: dict[str, Any]) -> dict[str, Any]:
         "ok": True,
         "content": tool_message.content,
         "error": tool_message.error,
+        "tool_message": tool_message.model_dump(),
         "db": environment.tools.db.model_dump(),
         "db_hash": environment.get_db_hash(),
     }
@@ -137,6 +174,155 @@ def _op_normalize(request: dict[str, Any]) -> dict[str, Any]:
     return {"ok": True, "db": db.model_dump()}
 
 
+def _op_hash_db(request: dict[str, Any]) -> dict[str, Any]:
+    from tau2.domains.retail.data_model import RetailDB
+    from tau2.domains.retail.environment import get_environment
+
+    db = RetailDB.model_validate(request["db"])
+    return {"ok": True, "db_hash": get_environment(db=db).get_db_hash()}
+
+
+def _op_evaluate_env(request: dict[str, Any]) -> dict[str, Any]:
+    """Delegate DB-equality scoring to upstream's own EnvironmentEvaluator.
+
+    Never recomputes or reimplements the gold-vs-predicted DB comparison:
+    this calls straight into
+    ``tau2.evaluator.evaluator_env.EnvironmentEvaluator.calculate_reward``,
+    which itself (a) replays ``task.evaluation_criteria.actions`` on a fresh
+    gold environment via upstream's own ``Environment.make_tool_call``, (b)
+    replays the caller-supplied trajectory on a predicted environment via
+    upstream's own ``Environment.set_state``, and (c) compares upstream's own
+    ``get_db_hash()`` values. Only the resulting ``RewardInfo`` is
+    marshalled to JSON here.
+    """
+    from tau2.data_model.message import AssistantMessage, ToolMessage, UserMessage
+    from tau2.data_model.tasks import Task
+    from tau2.domains.retail.environment import get_environment
+    from tau2.evaluator.evaluator_env import EnvironmentEvaluator
+
+    message_types = {
+        "assistant": AssistantMessage,
+        "tool": ToolMessage,
+        "user": UserMessage,
+    }
+    trajectory = [
+        message_types[message["role"]].model_validate(message)
+        for message in request["messages"]
+    ]
+    task = Task.model_validate(request["task"])
+    reward_info = EnvironmentEvaluator.calculate_reward(
+        environment_constructor=get_environment,
+        task=task,
+        full_trajectory=trajectory,
+        solo_mode=False,
+        env_kwargs={},
+        strict_replay=request.get("strict_replay", True),
+    )
+    db_check = None
+    if reward_info.db_check is not None:
+        db_check = {
+            "db_match": reward_info.db_check.db_match,
+            "db_reward": reward_info.db_check.db_reward,
+        }
+    reward_breakdown = None
+    if reward_info.reward_breakdown is not None:
+        reward_breakdown = {
+            key.value: value for key, value in reward_info.reward_breakdown.items()
+        }
+    return {
+        "ok": True,
+        "reward": reward_info.reward,
+        "db_check": db_check,
+        "reward_breakdown": reward_breakdown,
+    }
+
+
+def _op_evaluate_nl_assertions_from_verdicts(request: dict[str, Any]) -> dict[str, Any]:
+    """Cross-check only: run upstream's own NL-assertions reduction offline.
+
+    ``NLAssertionsEvaluator.calculate_reward`` always calls out to a live
+    judge model via ``tau2.utils.llm_utils.generate`` -- forbidden here (no
+    network calls, ever). This op monkeypatches that one call, for the
+    lifetime of this single subprocess only, to return the caller-supplied
+    verdicts verbatim instead of contacting any provider, then runs
+    upstream's real ``reward = 1.0 if all(check.met ...) else 0.0``
+    reduction on top of them. It exists purely so a test can assert the
+    adapter's own local reduction (``measurement.score_nl_assertions``,
+    which never imports tau2 at all) agrees with upstream's real code, not
+    a hand-derived copy of it -- it is never used as the production scoring
+    path (see ``measurement.py``'s module docstring).
+    """
+    import json as _json
+
+    from tau2.data_model.message import AssistantMessage
+    from tau2.data_model.tasks import Task
+    from tau2.evaluator import evaluator_nl_assertions as nl_module
+
+    verdicts = request["verdicts"]
+
+    def _fake_generate(*_args: Any, **_kwargs: Any) -> AssistantMessage:
+        payload = {
+            "results": [
+                {
+                    "expectedOutcome": verdict["nl_assertion"],
+                    "reasoning": verdict["justification"],
+                    "metExpectation": verdict["met"],
+                }
+                for verdict in verdicts
+            ]
+        }
+        return AssistantMessage(role="assistant", content=_json.dumps(payload))
+
+    task = Task.model_validate(request["task"])
+    original_generate = nl_module.generate
+    nl_module.generate = _fake_generate
+    try:
+        reward_info = nl_module.NLAssertionsEvaluator.calculate_reward(
+            task=task, full_trajectory=[]
+        )
+    finally:
+        nl_module.generate = original_generate
+    return {
+        "ok": True,
+        "reward": reward_info.reward,
+        "nl_assertions": [
+            {
+                "nl_assertion": check.nl_assertion,
+                "met": check.met,
+                "justification": check.justification,
+            }
+            for check in (reward_info.nl_assertions or [])
+        ],
+    }
+
+
+def _op_normalize_messages(request: dict[str, Any]) -> dict[str, Any]:
+    from tau2.data_model.message import AssistantMessage, ToolMessage, UserMessage
+
+    message_types = {
+        "assistant": AssistantMessage,
+        "tool": ToolMessage,
+        "user": UserMessage,
+    }
+    normalized = []
+    for message in request["messages"]:
+        message_type = message_types[message["role"]]
+        normalized.append(message_type.model_validate(message).model_dump())
+    return {"ok": True, "messages": normalized}
+
+
+def _op_runtime_info() -> dict[str, Any]:
+    import tau2
+
+    return {
+        "ok": True,
+        "python_version": ".".join(str(part) for part in sys.version_info[:3]),
+        "tau2_package_file": str(Path(tau2.__file__).resolve()),
+        "local_model_cost_map": os.environ.get("LITELLM_LOCAL_MODEL_COST_MAP", ""),
+        "dont_write_bytecode": os.environ.get("PYTHONDONTWRITEBYTECODE", ""),
+    }
+
+
 def _dispatch(request: dict[str, Any]) -> dict[str, Any]:
     op = request.get("op")
     if op == "schema":
@@ -145,6 +331,16 @@ def _dispatch(request: dict[str, Any]) -> dict[str, Any]:
         return _op_call(request)
     if op == "normalize":
         return _op_normalize(request)
+    if op == "hash_db":
+        return _op_hash_db(request)
+    if op == "normalize_messages":
+        return _op_normalize_messages(request)
+    if op == "evaluate_env":
+        return _op_evaluate_env(request)
+    if op == "evaluate_nl_assertions_from_verdicts":
+        return _op_evaluate_nl_assertions_from_verdicts(request)
+    if op == "runtime_info":
+        return _op_runtime_info()
     return {
         "ok": False,
         "error_type": "bad_request",
@@ -157,8 +353,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--upstream-root",
         default=None,
-        help="path to the pinned tau2-bench checkout, used only as a "
-        "sys.path fallback if `tau2` is not already installed",
+        help="path to the pinned tau2-bench checkout whose src directory "
+        "must supply the imported tau2 package",
     )
     args = parser.parse_args(argv)
     try:

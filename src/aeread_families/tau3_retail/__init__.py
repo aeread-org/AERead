@@ -1,8 +1,14 @@
-"""AERead ``tau3.retail`` family package.
+"""AERead ``tau3.retail`` family package."""
 
-This stage only ships :mod:`cases` (the importer that turns the pinned
-upstream tau2-bench retail/base corpus into AERead ``CaseManifest`` records
-plus the pilot manifest).  The plugin registration hook, tool bindings,
-harness, and measurement scorers are built in later stages and are
-deliberately absent here.
-"""
+from .environment import Tau3RetailPlugin, family_manifest, register_plugin
+from .harness import ScriptedTau3RetailHarness
+from .measurement import Tau3RetailScorer, build_leaves
+
+__all__ = [
+    "ScriptedTau3RetailHarness",
+    "Tau3RetailPlugin",
+    "Tau3RetailScorer",
+    "build_leaves",
+    "family_manifest",
+    "register_plugin",
+]

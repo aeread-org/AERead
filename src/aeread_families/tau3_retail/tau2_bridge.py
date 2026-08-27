@@ -14,9 +14,11 @@ derivation -- forbidden outright by
 ``docs/tau3_retail_adapter_spec.md`` -- this module shells out, once per
 call, to a small self-contained driver script (``tau2_bridge_driver.py``)
 run under a SEPARATE, already-provisioned Python interpreter that has the
-pinned upstream package importable. Every retail tool call and every schema
-query in ``tools.py`` goes through this bridge; nothing about tool behavior
-is ever hand-derived here.
+upstream runtime dependencies installed. The driver always imports tau2
+source from the caller-supplied pinned checkout, even if the interpreter has
+another tau2 distribution installed. Every retail tool call and every schema
+query in ``tools.py`` goes through this bridge; nothing about tool behavior is
+ever hand-derived here.
 
 No network call is made by this module or the driver it launches: the
 target interpreter is a pre-existing local environment, located by an
@@ -91,10 +93,9 @@ def discover_bridge_python(*, upstream_root: Path | str | None = None) -> Path:
             return colocated
     raise Tau2BridgeUnavailableError(
         "no pinned upstream tau2-bench Python interpreter found: set "
-        f"${BRIDGE_PYTHON_ENV_VAR} to a python executable that has the "
-        "pinned upstream package (commit "
-        "fc0055dc4e0a316c3f83133267fbd6faaa770992) importable, e.g. "
-        "`pip install -e <checkout>` into a Python >=3.12 venv with "
+        f"${BRIDGE_PYTHON_ENV_VAR} to a Python >=3.12 executable with the "
+        "pinned upstream package's runtime dependencies installed, e.g. "
+        "a pre-provisioned venv with "
         "docstring_parser/loguru/deepdiff/python-dotenv/addict installed. "
         "AERead's own venv intentionally does not carry tau2-bench's "
         "runtime dependencies -- see docs/tau3_retail_adapter_spec.md."
@@ -139,6 +140,15 @@ class Tau2Bridge:
         )
 
     def _run(self, request: Mapping[str, Any]) -> dict[str, Any]:
+        environment = dict(os.environ)
+        # Importing pinned tau2 imports LiteLLM even though this bridge never
+        # invokes a model. Force LiteLLM's bundled cost map so import itself
+        # cannot attempt to refresh that map from GitHub.
+        environment["LITELLM_LOCAL_MODEL_COST_MAP"] = "True"
+        environment["PYTHONDONTWRITEBYTECODE"] = "1"
+        for name in tuple(environment):
+            if name.endswith("_API_KEY"):
+                environment.pop(name)
         try:
             completed = subprocess.run(
                 [
@@ -149,6 +159,7 @@ class Tau2Bridge:
                 ],
                 input=json.dumps(request).encode("utf-8"),
                 capture_output=True,
+                env=environment,
                 timeout=self.timeout_seconds,
             )
         except subprocess.TimeoutExpired as error:
@@ -197,12 +208,13 @@ class Tau2Bridge:
     ) -> dict[str, Any]:
         """Delegate one tool call to upstream's ``Environment.get_response``.
 
-        Returns ``{"content": str, "error": bool, "db": dict, "db_hash":
-        str}``. ``content``/``error`` are upstream's ``ToolMessage`` fields
-        byte-for-byte (including upstream's own error strings -- a tool-
-        level error is a normal, in-band result here, never an exception);
-        ``db`` is the full post-call ``RetailDB.model_dump()``; ``db_hash``
-        is upstream's own ``Environment.get_db_hash()``.
+        Returns ``{"content": str, "error": bool, "tool_message": dict,
+        "db": dict, "db_hash": str}``. ``content``/``error`` and the full
+        ``ToolMessage.model_dump()`` are upstream-produced (including exact
+        upstream error strings -- a tool-level error is a normal, in-band
+        result here, never an exception); ``db`` is the full post-call
+        ``RetailDB.model_dump()``; ``db_hash`` is upstream's own
+        ``Environment.get_db_hash()``.
         """
         response = self._run(
             {
@@ -219,6 +231,7 @@ class Tau2Bridge:
             "error": response["error"],
             "db": response["db"],
             "db_hash": response["db_hash"],
+            "tool_message": response["tool_message"],
         }
 
     def normalize_db(self, db: Mapping[str, Any]) -> dict[str, Any]:
@@ -237,6 +250,93 @@ class Tau2Bridge:
         """
         response = self._run({"op": "normalize", "db": db})
         return response["db"]
+
+    def hash_db(self, db: Mapping[str, Any]) -> str:
+        """Return upstream ``Environment.get_db_hash()`` for ``db``."""
+        response = self._run({"op": "hash_db", "db": db})
+        return response["db_hash"]
+
+    def normalize_messages(
+        self, messages: list[Mapping[str, Any]]
+    ) -> list[dict[str, Any]]:
+        """Validate and dump messages through pinned upstream Pydantic models."""
+        response = self._run({"op": "normalize_messages", "messages": messages})
+        return response["messages"]
+
+    def evaluate_env(
+        self,
+        *,
+        task: Mapping[str, Any],
+        messages: list[Mapping[str, Any]],
+        strict_replay: bool = True,
+    ) -> dict[str, Any]:
+        """Delegate DB-equality scoring to upstream's own ``EnvironmentEvaluator``.
+
+        ``measurement.py``'s leaf-1 (deterministic) scorer calls this instead
+        of comparing hashes itself: the driver replays
+        ``task["evaluation_criteria"]["actions"]`` on a fresh gold
+        environment and ``messages`` (the full episode trajectory, including
+        the pinned greeting) on a predicted environment, both through
+        upstream's real tool layer, and returns upstream's own comparison
+        verbatim -- see ``tau2.evaluator.evaluator_env.EnvironmentEvaluator
+        .calculate_reward``. Never reimplements that comparison.
+
+        Returns ``{"reward": float, "db_check": {"db_match": bool,
+        "db_reward": float} | None, "reward_breakdown": {str: float} |
+        None}``.
+        """
+        response = self._run(
+            {
+                "op": "evaluate_env",
+                "task": dict(task),
+                "messages": messages,
+                "strict_replay": strict_replay,
+            }
+        )
+        return {
+            "reward": response["reward"],
+            "db_check": response["db_check"],
+            "reward_breakdown": response["reward_breakdown"],
+        }
+
+    def evaluate_nl_assertions_from_verdicts(
+        self,
+        *,
+        task: Mapping[str, Any],
+        verdicts: list[Mapping[str, Any]],
+    ) -> dict[str, Any]:
+        """Cross-check only: run upstream's real NL-assertions reduction.
+
+        Used by tests to confirm ``measurement.score_nl_assertions`` (a
+        small local reduction over already-recorded judge verdicts) agrees
+        with upstream's own ``NLAssertionsEvaluator`` reward rule, without
+        making a live judge call -- the driver monkeypatches upstream's one
+        model call for the lifetime of its own subprocess only (see
+        ``tau2_bridge_driver.py``). Never the production leaf-2 scoring
+        path: replay always reads recorded verdicts directly (spec section
+        7/9), never re-derives them through this op.
+        """
+        response = self._run(
+            {
+                "op": "evaluate_nl_assertions_from_verdicts",
+                "task": dict(task),
+                "verdicts": [dict(verdict) for verdict in verdicts],
+            }
+        )
+        return {
+            "reward": response["reward"],
+            "nl_assertions": response["nl_assertions"],
+        }
+
+    def runtime_info(self) -> dict[str, str]:
+        """Report the exact interpreter/package provenance used by the driver."""
+        response = self._run({"op": "runtime_info"})
+        return {
+            "python_version": response["python_version"],
+            "tau2_package_file": response["tau2_package_file"],
+            "local_model_cost_map": response["local_model_cost_map"],
+            "dont_write_bytecode": response["dont_write_bytecode"],
+        }
 
 
 __all__ = [
