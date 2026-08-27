@@ -12,6 +12,8 @@ import pytest
 from aeread.shared_runner.execution import (
     CanonicalResponse,
     ClaudeCodePrintClient,
+    ConcurrentEvidenceWriterError,
+    EvidenceSealedError,
     EvidenceIntegrityError,
     EvidenceStore,
     MinimalChatExecutor,
@@ -138,6 +140,17 @@ def _evidence(tmp_path) -> EvidenceStore:
     )
 
 
+def _resume_evidence(tmp_path) -> EvidenceStore:
+    return EvidenceStore(
+        tmp_path / "evidence",
+        run_plan_id="runplan_fixture",
+        cell_id="cell_fixture",
+        episode_id="episode_fixture",
+        episode_attempt_id="episode_attempt_fixture_0",
+        resume=True,
+    )
+
+
 def _success_result(*, text: str = '{"offer":7}', cost: float | None = None):
     return ProviderResult(
         response_id="response_fixture",
@@ -168,6 +181,68 @@ class InspectingProvider:
         if isinstance(outcome, BaseException):
             raise outcome
         return outcome
+
+
+def test_evidence_store_refuses_a_concurrent_writer_before_the_first_event(tmp_path) -> None:
+    first = _evidence(tmp_path)
+
+    with pytest.raises(ConcurrentEvidenceWriterError):
+        _evidence(tmp_path)
+
+    first.close()
+    resumed = _resume_evidence(tmp_path)
+    resumed.append_event("continued", {"ok": True})
+    resumed.close()
+
+
+def test_evidence_store_resume_verifies_and_continues_the_hash_chain(tmp_path) -> None:
+    first = _evidence(tmp_path)
+    initial = first.append_event("first", {"value": 1})
+    first.close()
+
+    resumed = _resume_evidence(tmp_path)
+    second = resumed.append_event("second", {"value": 2})
+
+    assert second.sequence == 1
+    assert second.prior_event_hash == initial.event_hash
+    resumed.verify_chain()
+    resumed.close()
+
+
+def test_evidence_seal_is_persistent_idempotent_and_blocks_new_writes(tmp_path) -> None:
+    evidence = _evidence(tmp_path)
+    evidence.append_event("first", {"value": 1})
+    sealed = evidence.seal()
+
+    assert sealed.event_count == 1
+    assert len(sealed.event_root_sha256) == 64
+    assert len(sealed.artifact_root_sha256) == 64
+    assert evidence.seal() == sealed
+    with pytest.raises(EvidenceSealedError):
+        evidence.append_event("late", {})
+    with pytest.raises(EvidenceSealedError):
+        evidence.put_artifact({"late": True})
+    evidence.close()
+
+    reopened = _resume_evidence(tmp_path)
+    assert reopened.seal() == sealed
+    with pytest.raises(EvidenceSealedError):
+        reopened.append_event("later", {})
+    reopened.close()
+
+
+def test_resume_rejects_a_symlink_replacement_for_the_event_log(tmp_path) -> None:
+    evidence = _evidence(tmp_path)
+    evidence.append_event("first", {"value": 1})
+    evidence.close()
+    external = tmp_path / "external.jsonl"
+    external.write_text("untrusted\n", encoding="utf-8")
+    events_path = tmp_path / "evidence" / "events.jsonl"
+    events_path.unlink()
+    events_path.symlink_to(external)
+
+    with pytest.raises(EvidenceIntegrityError, match="regular file"):
+        _resume_evidence(tmp_path)
 
 
 def _executor(tmp_path, provider, *, profile=None, evidence=None):
