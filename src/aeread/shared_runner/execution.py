@@ -499,6 +499,23 @@ class EvidenceStore:
         except OSError as error:
             raise EvidenceIntegrityError(f"unsafe or missing artifact: {relative_path}") from error
 
+    def read_event_payload(self, event: Event) -> Any:
+        """Return one verified canonical JSON event payload."""
+
+        if not isinstance(event, Event):
+            raise EvidenceIntegrityError("event payload lookup requires an Event")
+        payload = self._read_artifact(event.payload_ref)
+        if _sha256_bytes(payload) != event.payload_sha256:
+            raise EvidenceIntegrityError(
+                f"payload artifact hash mismatch for {event.event_id}"
+            )
+        try:
+            return json.loads(payload)
+        except json.JSONDecodeError as error:
+            raise EvidenceIntegrityError(
+                f"event payload is not canonical JSON for {event.event_id}"
+            ) from error
+
     def verify_chain(self) -> None:
         prior_hash: str | None = None
         identity = (
@@ -609,6 +626,20 @@ class EvidenceStore:
         _fsync_directory(self.root)
         self._sealed = True
         return computed
+
+    def verify_seal(self) -> EvidenceSeal:
+        """Return the durable seal after checking it against current evidence."""
+
+        self._ensure_open()
+        if not os.path.lexists(self.seal_path):
+            raise EvidenceIntegrityError("evidence generation is not sealed")
+        existing = self._load_seal()
+        if existing != self._compute_seal():
+            raise EvidenceIntegrityError(
+                "seal marker does not match the durable evidence generation"
+            )
+        self._sealed = True
+        return existing
 
     def audit_reconciliation(
         self,

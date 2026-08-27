@@ -51,8 +51,11 @@ from .measurement import (
 from .receipts import (
     EvaluationFailure,
     EvaluationReceipt,
+    read_evaluation_receipt,
     seal_evaluation_receipt,
     verify_evaluation_receipt,
+    verify_serialized_evaluation_receipt,
+    write_evaluation_receipt,
 )
 from .resolver import (
     ImplementationPin,
@@ -174,9 +177,12 @@ __all__ = [
     "case_content_sha256",
     "parse_authoring_record",
     "resolve_run_plan",
+    "read_evaluation_receipt",
     "run_episode",
     "seal_evaluation_receipt",
     "verify_run_plan",
     "verify_evaluation_receipt",
+    "verify_serialized_evaluation_receipt",
+    "write_evaluation_receipt",
     "write_run_plan",
 ]

@@ -10,7 +10,10 @@ from __future__ import annotations
 
 import dataclasses
 import hashlib
+import json
+import os
 from dataclasses import dataclass, field
+from pathlib import Path
 from types import MappingProxyType
 from typing import Any, Mapping
 
@@ -420,9 +423,84 @@ def verify_evaluation_receipt(receipt: EvaluationReceipt) -> EvaluationReceipt:
     return receipt
 
 
+def write_evaluation_receipt(
+    receipt: EvaluationReceipt, destination: str | Path
+) -> Path:
+    """Durably publish canonical receipt bytes without overwriting other content."""
+
+    verify_evaluation_receipt(receipt)
+    path = Path(destination)
+    payload = canonical_json_bytes(receipt) + b"\n"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if path.is_symlink():
+        raise MeasurementContractError("receipt destination must not be a symlink")
+    try:
+        fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    except FileExistsError:
+        if not path.is_file() or path.read_bytes() != payload:
+            raise MeasurementContractError(
+                "refusing to overwrite a different evaluation receipt"
+            )
+        return path
+    try:
+        view = memoryview(payload)
+        while view:
+            written = os.write(fd, view)
+            if written <= 0:
+                raise OSError("short write while persisting evaluation receipt")
+            view = view[written:]
+        os.fsync(fd)
+    finally:
+        os.close(fd)
+    directory_fd = os.open(path.parent, os.O_RDONLY | getattr(os, "O_DIRECTORY", 0))
+    try:
+        os.fsync(directory_fd)
+    finally:
+        os.close(directory_fd)
+    return path
+
+
+def verify_serialized_evaluation_receipt(
+    value: Mapping[str, Any],
+) -> Mapping[str, Any]:
+    """Verify the canonical digest of a receipt loaded from durable JSON."""
+
+    if not isinstance(value, Mapping):
+        raise MeasurementContractError("serialized evaluation receipt must be a mapping")
+    payload = dict(value)
+    if payload.get("spec_version") != EvaluationReceipt.SPEC_VERSION:
+        raise MeasurementContractError("serialized receipt spec_version is unsupported")
+    digest = payload.pop("receipt_sha256", None)
+    _require_sha256(digest, "receipt_sha256")
+    expected = hashlib.sha256(canonical_json_bytes(payload)).hexdigest()
+    if digest != expected:
+        raise MeasurementContractError(
+            "serialized receipt_sha256 does not match receipt content"
+        )
+    return MappingProxyType(dict(value))
+
+
+def read_evaluation_receipt(path: str | Path) -> Mapping[str, Any]:
+    """Read canonical durable receipt JSON and verify its content digest."""
+
+    destination = Path(path)
+    try:
+        raw = destination.read_bytes()
+        value = json.loads(raw)
+    except (OSError, json.JSONDecodeError) as error:
+        raise MeasurementContractError("evaluation receipt is unreadable") from error
+    verified = verify_serialized_evaluation_receipt(value)
+    if raw != canonical_json_bytes(verified) + b"\n":
+        raise MeasurementContractError("evaluation receipt bytes are not canonical")
+    return verified
+
+
 __all__ = [
     "EvaluationFailure",
     "EvaluationReceipt",
     "seal_evaluation_receipt",
+    "read_evaluation_receipt",
     "verify_evaluation_receipt",
+    "verify_serialized_evaluation_receipt",
+    "write_evaluation_receipt",
 ]

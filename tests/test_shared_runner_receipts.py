@@ -20,8 +20,10 @@ from aeread.shared_runner import (
     ValidityDomainSpec,
     ValidityReport,
     VerifierSpec,
+    read_evaluation_receipt,
     seal_evaluation_receipt,
     verify_evaluation_receipt,
+    write_evaluation_receipt,
 )
 
 
@@ -268,3 +270,22 @@ def test_receipt_requires_measurement_code_to_match_the_resolved_run_plan() -> N
 
     with pytest.raises(MeasurementContractError, match="plan_implementation_pins"):
         _receipt(plan_implementation_pins=mismatched)
+
+
+def test_durable_receipt_round_trip_is_canonical_and_tamper_evident(tmp_path) -> None:
+    receipt = seal_evaluation_receipt(_receipt())
+    destination = tmp_path / "evaluation_receipt.json"
+
+    write_evaluation_receipt(receipt, destination)
+    loaded = read_evaluation_receipt(destination)
+
+    assert loaded["receipt_sha256"] == receipt.receipt_sha256
+    write_evaluation_receipt(receipt, destination)
+    destination.write_text(
+        destination.read_text(encoding="utf-8").replace(
+            '"replay_level":"state_and_score"', '"replay_level":"none"'
+        ),
+        encoding="utf-8",
+    )
+    with pytest.raises(MeasurementContractError, match="receipt_sha256"):
+        read_evaluation_receipt(destination)
