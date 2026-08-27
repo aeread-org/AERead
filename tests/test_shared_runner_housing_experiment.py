@@ -246,6 +246,13 @@ def test_condition_plans_pair_worlds_and_replicates_but_seal_distinct_treatments
     assert low_profile.sampling.max_output_tokens == 2048
     assert disabled_profile.budgets.timeout_seconds == 120.0
     assert low_profile.budgets.timeout_seconds == 120.0
+    assert disabled_profile.retry_policy.max_action_attempts == 4
+    assert low_profile.retry_policy.max_action_attempts == 4
+    assert set(disabled_profile.retry_policy.retryable_conditions) == {
+        "length",
+        "rate_limit",
+        "provider_5xx",
+    }
     assert disabled_profile.harness.config["request_seed_source"] == "paired_cell_v1"
     assert disabled_profile.harness.config["request_seed_base"] == 87001
 
@@ -323,6 +330,26 @@ class _RateLimitedTenantProvider:
             retryable=True,
             status_code=429,
         )
+
+
+class _RecoveringRateLimitTenantProvider:
+    def __init__(self) -> None:
+        self._delegate = HousingScriptedTenantProvider()
+        self.requests: list[ProviderRequest] = []
+        self.remaining_failures = 2
+
+    async def complete(self, request: ProviderRequest):
+        self.requests.append(request)
+        if self.remaining_failures > 0:
+            self.remaining_failures -= 1
+            raise ProviderFailure(
+                "rate_limit",
+                "synthetic transient upstream overload",
+                retryable=True,
+                status_code=429,
+            )
+        translated = dataclasses.replace(request, provider="housing_scripted_tenant")
+        return await self._delegate.complete(translated)
 
 
 def _cell_for(setup, *, world_seed: int, replicate_index: int):
@@ -581,7 +608,13 @@ def test_condition_batch_preserves_charged_failure_evidence_and_cost(tmp_path) -
     assert rows[0]["reasoning_tokens"] == 12
 
 
-def test_condition_batch_seals_null_result_provider_failure(tmp_path) -> None:
+def test_condition_batch_seals_null_result_provider_failure(
+    tmp_path, monkeypatch
+) -> None:
+    async def no_wait(_delay: float) -> None:
+        return None
+
+    monkeypatch.setattr("aeread.shared_runner.execution.asyncio.sleep", no_wait)
     setup = build_housing_condition_setup(
         condition_id="reasoning_low_v1",
         reasoning_effort="low",
@@ -613,8 +646,52 @@ def test_condition_batch_seals_null_result_provider_failure(tmp_path) -> None:
     )
     assert rows[0]["status"] == "operational_failure"
     assert rows[0]["evidence_verified"] is True
-    assert rows[0]["provider_call_count"] == 2
+    assert rows[0]["provider_call_count"] == 8
     assert rows[0]["reasoning_tokens"] == 0
+
+
+def test_condition_batch_backs_off_and_recovers_transient_rate_limit(
+    tmp_path, monkeypatch
+) -> None:
+    delays: list[float] = []
+
+    async def no_wait(delay: float) -> None:
+        delays.append(delay)
+
+    monkeypatch.setattr("aeread.shared_runner.execution.asyncio.sleep", no_wait)
+    setup = build_housing_condition_setup(
+        condition_id="reasoning_none_v1",
+        reasoning_effort="none",
+        world_seeds=(101,),
+        replicates=1,
+        tenant_model=DEEPSEEK_MODEL,
+        tenant_revision=DEEPSEEK_REVISION,
+        num_tenants=2,
+        num_listings=1,
+        rounds=1,
+        inference_seed_base=87001,
+    )
+    provider = _RecoveringRateLimitTenantProvider()
+    result = asyncio.run(
+        run_condition_batch(
+            setup=setup,
+            condition_id="reasoning_none_v1",
+            output_root=tmp_path,
+            providers=_batch_providers(provider),
+            concurrency=1,
+            spend_limit_usd=1.0,
+        )
+    )
+
+    assert result["completed_count"] == 1
+    assert result["failure_count"] == 0
+    assert len(delays) == 2
+    assert all(delay >= 2.0 for delay in delays)
+    rows = read_condition_results(
+        tmp_path, condition_id="reasoning_none_v1", verify_evidence=True
+    )
+    assert rows[0]["status"] == "completed"
+    assert rows[0]["provider_call_count"] == 7
 
 
 def test_condition_batch_recovers_orphan_attempt_without_rerun(tmp_path) -> None:

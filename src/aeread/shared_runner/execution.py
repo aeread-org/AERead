@@ -1301,6 +1301,73 @@ class MinimalChatExecutor:
                 f"declared={profile.prompt.sha256}, computed={digest}"
             )
 
+    @staticmethod
+    def _failure_count(
+        attempts: Sequence[ActionAttemptRecord], condition: str
+    ) -> int:
+        count = 0
+        for attempt in attempts:
+            if condition == "length" and (
+                attempt.canonical_response is not None
+                and attempt.canonical_response.truncated
+            ):
+                count += 1
+                continue
+            if any(
+                provider_call.failure_condition == condition
+                for provider_call in attempt.provider_calls
+            ):
+                count += 1
+        return count
+
+    async def _wait_before_provider_retry(
+        self,
+        *,
+        decision: DecisionRequest,
+        request: ProviderRequest,
+        condition: str,
+        ordinal: int,
+    ) -> None:
+        base_seconds = min(30.0, 2.0 * (2**ordinal))
+        jitter_seconds = int(request.provider_call_id[-4:], 16) % 1000 / 1000.0
+        delay_seconds = base_seconds + jitter_seconds
+        self.evidence.append_event(
+            "retry_backoff_started",
+            {
+                "failure_condition": condition,
+                "delay_seconds": delay_seconds,
+                "attempt_ordinal": ordinal,
+            },
+            phase_instance_id=decision.phase_instance_id,
+            logical_action_id=decision.logical_action_id,
+        )
+        try:
+            await asyncio.sleep(delay_seconds)
+        except asyncio.CancelledError:
+            self.evidence.append_event(
+                "logical_action_outcome_unknown",
+                {"failure_condition": "interrupted_during_retry_backoff"},
+                phase_instance_id=decision.phase_instance_id,
+                logical_action_id=decision.logical_action_id,
+            )
+            current = self._executions[decision.logical_action_id]
+            self._executions[decision.logical_action_id] = dataclasses.replace(
+                current,
+                status="outcome_unknown",
+                failure_code="interrupted_during_retry_backoff",
+            )
+            raise
+        self.evidence.append_event(
+            "retry_backoff_completed",
+            {
+                "failure_condition": condition,
+                "delay_seconds": delay_seconds,
+                "attempt_ordinal": ordinal,
+            },
+            phase_instance_id=decision.phase_instance_id,
+            logical_action_id=decision.logical_action_id,
+        )
+
     def _request_for(
         self,
         decision: DecisionRequest,
@@ -1493,6 +1560,13 @@ class MinimalChatExecutor:
                     retry_reason = failure.condition
                     if failure.condition == "length":
                         max_output_tokens *= 2
+                    elif failure.condition in {"rate_limit", "provider_5xx"}:
+                        await self._wait_before_provider_retry(
+                            decision=decision,
+                            request=request,
+                            condition=failure.condition,
+                            ordinal=ordinal,
+                        )
                     continue
                 raise
             except asyncio.CancelledError:
@@ -1616,6 +1690,10 @@ class MinimalChatExecutor:
                 retry_condition is not None
                 and retry_condition in profile.retry_policy.retryable_conditions
                 and ordinal + 1 < profile.retry_policy.max_action_attempts
+                and not (
+                    retry_condition == "length"
+                    and self._failure_count(attempts, "length") >= 1
+                )
             )
             if can_retry_response:
                 attempt = ActionAttemptRecord(
@@ -1765,6 +1843,10 @@ class MinimalChatExecutor:
             failure.retryable
             and failure.condition in profile.retry_policy.retryable_conditions
             and ordinal + 1 < profile.retry_policy.max_action_attempts
+            and not (
+                failure.condition == "length"
+                and self._failure_count(attempts, "length") >= 2
+            )
         )
         if not should_retry:
             self._finish_logical_failure(decision, attempts, failure.condition)

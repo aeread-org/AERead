@@ -127,6 +127,20 @@ the reasoning-low arm. Both arms therefore use a symmetric 120-second per-call d
 Phases declared simultaneous dispatch their already-frozen actor observations concurrently;
 results remain ordered by the sealed actor order before the family transition is applied.
 
+A subsequent infrastructure pilot established that OpenRouter's shared DeepInfra pool can
+return transient upstream 429/5xx failures under sustained load. The final RunPlan therefore
+allows four total action attempts, but still permits at most one length retry. Zero-result
+`rate_limit` and `provider_5xx` failures receive evidenced exponential backoff with
+deterministic jitter; timeout and transport failures remain non-retryable because their
+billing/outcome may be unknown. These reliability retries are identical across arms.
+
+The pre-backoff v3 run is an infrastructure pilot, not part of the confirmatory panel. It
+sealed 91 sample trajectories before the capacity gate stopped: 70 completed and 21 were
+operational failures (16 reasoning-low, 5 reasoning-none). Its economic outcomes must not be
+pooled with or used to select the final RunPlan. This classification was made from typed
+operational failures before a complete six-trajectory world cluster—and therefore before any
+paired economic estimate—was available.
+
 ### DANGER ZONE D7: controlled counterpart limits the estimand
 
 **MEDIUM — biases toward cleaner, less interactive behavior.** The landlord is deterministic

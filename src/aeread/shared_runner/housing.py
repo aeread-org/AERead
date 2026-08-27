@@ -703,8 +703,16 @@ def _profile(
                 "max_cost_usd": 0.01 if provider == "openrouter" else 0.001,
             },
             "retry_policy": {
-                "max_action_attempts": 2 if provider == "openrouter" else 1,
-                "retryable_conditions": ["length"] if provider == "openrouter" else [],
+                "max_action_attempts": (
+                    4
+                    if provider == "openrouter" and request_seed_base is not None
+                    else (2 if provider == "openrouter" else 1)
+                ),
+                "retryable_conditions": (
+                    ["length", "rate_limit", "provider_5xx"]
+                    if provider == "openrouter" and request_seed_base is not None
+                    else (["length"] if provider == "openrouter" else [])
+                ),
                 "session_mode": "restart",
                 "sdk_retries": 0,
             },
