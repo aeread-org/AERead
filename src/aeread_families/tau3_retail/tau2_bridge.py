@@ -328,6 +328,55 @@ class Tau2Bridge:
             "nl_assertions": response["nl_assertions"],
         }
 
+    def fetch_nl_assertions_judge_request(
+        self, *, task: Mapping[str, Any], messages: list[Mapping[str, Any]]
+    ) -> dict[str, Any]:
+        """Capture the exact judge prompt upstream would send for one trajectory.
+
+        Parity tooling only (``parity.py``'s "judged component's inputs"
+        comparison, spec section 8): delegates to the driver's
+        ``nl_assertions_judge_request`` op, which monkeypatches upstream's
+        one live-model call to capture-and-return instead of contacting any
+        provider, then runs the real, unmodified
+        ``NLAssertionsEvaluator.calculate_reward`` prompt-construction code.
+        Never obtains or reproduces an actual judge verdict, and is never
+        the production leaf-2 scoring path (see ``measurement.py``).
+
+        Returns ``{"called": bool, "model": str | None,
+        "messages": [{"role": str, "content": str}, ...] | None,
+        "call_name": str | None, "args": dict | None}``. ``called`` is
+        False only when upstream's own short-circuit (no non-empty
+        ``nl_assertions``) means no judge call would ever be made --
+        matching ``measurement.nl_assertions_present``. ``messages``
+        reports only role/content -- the two fields the judge prompt is
+        actually built from -- never a full ``Message.model_dump()``,
+        whose wall-clock ``timestamp`` field would make two otherwise-
+        identical captures compare as different inputs for a reason
+        unrelated to what was actually sent to the judge.
+        """
+        response = self._run(
+            {
+                "op": "nl_assertions_judge_request",
+                "task": dict(task),
+                "messages": messages,
+            }
+        )
+        if not response.get("called"):
+            return {
+                "called": False,
+                "model": None,
+                "messages": None,
+                "call_name": None,
+                "args": None,
+            }
+        return {
+            "called": True,
+            "model": response["model"],
+            "messages": response["messages"],
+            "call_name": response["call_name"],
+            "args": response["args"],
+        }
+
     def runtime_info(self) -> dict[str, str]:
         """Report the exact interpreter/package provenance used by the driver."""
         response = self._run({"op": "runtime_info"})

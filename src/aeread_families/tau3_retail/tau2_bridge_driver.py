@@ -81,6 +81,27 @@ written to stdout:
          live-model call monkeypatched out for this subprocess's lifetime.
          Never the production leaf-2 scoring path.
 
+  {"op": "nl_assertions_judge_request", "task": <verbatim upstream task
+   dict>, "messages": [<upstream message dict>, ...] (the trajectory that
+   would be judged)}
+      -> {"ok": true, "called": bool, "model": str | null,
+          "messages": [{"role": str, "content": str}, ...] | null,
+          "call_name": str | null, "args": dict | null}
+      -- cross-check/parity only (see the function's docstring): captures
+         the exact system/user judge prompt, model, and args that
+         NLAssertionsEvaluator.calculate_reward would send to
+         tau2.utils.llm_utils.generate, with that one live-model call
+         monkeypatched to capture-and-return instead of contacting any
+         provider. "called" is false only when upstream's own short-circuit
+         (task carries no non-empty nl_assertions) means no judge call would
+         ever be made. "messages" reports only role/content -- the two
+         fields the judge prompt is actually built from -- never the full
+         Message.model_dump(), which carries a wall-clock "timestamp"
+         stamped at construction time and would make two otherwise-
+         identical captures compare as different. Used to compare "the
+         judged component's inputs" across two trajectories without ever
+         invoking a real judge.
+
   {"op": "runtime_info"}
       -> {"ok": true, "python_version": str, "tau2_package_file": str,
           "local_model_cost_map": str}
@@ -296,6 +317,92 @@ def _op_evaluate_nl_assertions_from_verdicts(request: dict[str, Any]) -> dict[st
     }
 
 
+def _op_nl_assertions_judge_request(request: dict[str, Any]) -> dict[str, Any]:
+    """Capture the exact judge request upstream's NLAssertionsEvaluator would
+    send for one trajectory -- system/user prompt construction, model, and
+    args -- without ever calling a model or the network.
+
+    Monkeypatches ``tau2.evaluator.evaluator_nl_assertions.generate`` (the
+    one live-model call inside ``NLAssertionsEvaluator.calculate_reward``)
+    to capture its keyword arguments and return a syntactically valid,
+    empty verdict payload instead of contacting any provider, then lets
+    ``calculate_reward`` run to completion so the *exact*, unmodified
+    upstream prompt-construction code path executes. This is parity
+    tooling only (see ``parity.py``'s "judged component's inputs"
+    comparison): it never obtains or reproduces an actual judge verdict.
+
+    Captured messages report only ``role``/``content`` -- the two fields
+    that are actually joined into the judge prompt text
+    (``NLAssertionsEvaluator`` never reads anything else off a ``Message``)
+    -- never the full ``model_dump()``. ``SystemMessage``/``UserMessage``
+    stamp a wall-clock ``timestamp`` at construction time via
+    ``default_factory``; two otherwise-identical calls captured a few
+    seconds apart in separate subprocesses would then compare as "different
+    inputs" for a reason that has nothing to do with what was actually sent
+    to the judge. Discovered empirically while running the pilot parity
+    procedure against task 108 (see ``docs/tau3_retail_adapter_spec.md``
+    section 8, P4): the two constructed ``system_prompt``/``user_prompt``
+    strings were byte-identical, but the full raw message dumps differed
+    only in ``timestamp``.
+    """
+    import json as _json
+
+    from tau2.data_model.message import AssistantMessage, ToolMessage, UserMessage
+    from tau2.data_model.tasks import Task
+    from tau2.evaluator import evaluator_nl_assertions as nl_module
+
+    message_types = {
+        "assistant": AssistantMessage,
+        "tool": ToolMessage,
+        "user": UserMessage,
+    }
+    trajectory = [
+        message_types[message["role"]].model_validate(message)
+        for message in request["messages"]
+    ]
+    task = Task.model_validate(request["task"])
+
+    captured: dict[str, Any] = {}
+
+    def _capturing_generate(
+        *, model: str, messages: list, call_name: str | None = None, **kwargs: Any
+    ) -> AssistantMessage:
+        captured["model"] = model
+        captured["messages"] = [
+            {"role": message.role, "content": message.content} for message in messages
+        ]
+        captured["call_name"] = call_name
+        captured["args"] = kwargs
+        return AssistantMessage(role="assistant", content=_json.dumps({"results": []}))
+
+    original_generate = nl_module.generate
+    nl_module.generate = _capturing_generate
+    try:
+        nl_module.NLAssertionsEvaluator.calculate_reward(
+            task=task, full_trajectory=trajectory
+        )
+    finally:
+        nl_module.generate = original_generate
+
+    if not captured:
+        return {
+            "ok": True,
+            "called": False,
+            "model": None,
+            "messages": None,
+            "call_name": None,
+            "args": None,
+        }
+    return {
+        "ok": True,
+        "called": True,
+        "model": captured["model"],
+        "messages": captured["messages"],
+        "call_name": captured["call_name"],
+        "args": captured["args"],
+    }
+
+
 def _op_normalize_messages(request: dict[str, Any]) -> dict[str, Any]:
     from tau2.data_model.message import AssistantMessage, ToolMessage, UserMessage
 
@@ -339,6 +446,8 @@ def _dispatch(request: dict[str, Any]) -> dict[str, Any]:
         return _op_evaluate_env(request)
     if op == "evaluate_nl_assertions_from_verdicts":
         return _op_evaluate_nl_assertions_from_verdicts(request)
+    if op == "nl_assertions_judge_request":
+        return _op_nl_assertions_judge_request(request)
     if op == "runtime_info":
         return _op_runtime_info()
     return {
