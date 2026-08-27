@@ -19,6 +19,7 @@ from .execution import (
     ProviderResult,
     TokenPricing,
     ToolExecutor,
+    ToolFailure,
     ToolInvocationRecord,
     execute_plan_cell,
 )
@@ -126,6 +127,7 @@ __all__ = [
     "SuiteManifest",
     "TokenPricing",
     "ToolExecutor",
+    "ToolFailure",
     "ToolInvocationRecord",
     "TransitionResult",
     "ValidityDomainSpec",

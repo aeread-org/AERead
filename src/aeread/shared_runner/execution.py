@@ -57,6 +57,18 @@ class ProviderFailure(RuntimeError):
         self.status_code = status_code
 
 
+class ToolFailure(RuntimeError):
+    """A known tool failure, including failures after a partial mutation."""
+
+    def __init__(self, condition: str, message: str, *, retryable: bool) -> None:
+        super().__init__(message)
+        if not isinstance(condition, str) or not condition:
+            raise ValueError("ToolFailure.condition must be a non-empty string")
+        self.condition = condition
+        self.retryable = bool(retryable)
+        self.record: ToolInvocationRecord | None = None
+
+
 def _sha256_bytes(value: bytes) -> str:
     return hashlib.sha256(value).hexdigest()
 
@@ -467,6 +479,12 @@ class ToolInvocationRecord:
     status: str
     result_sha256: str | None
     failure_condition: str | None
+    effect: str
+    state_before_sha256: str | None
+    state_after_sha256: str | None
+    state_diff_sha256: str | None
+    state_changed: bool | None
+    outcome_known: bool
 
 
 class ProviderClient(Protocol):
@@ -1900,6 +1918,86 @@ class ToolExecutor:
         self.evidence = evidence
         self._ordinal = 0
 
+    async def _snapshot_state(
+        self, state_reader: Callable[[], Any]
+    ) -> tuple[Any, ArtifactRef]:
+        value = state_reader()
+        if inspect.isawaitable(value):
+            value = await value
+        try:
+            snapshot = json.loads(canonical_json_bytes(value))
+        except Exception as error:
+            raise EvidenceIntegrityError(
+                "state_reader must return canonically serializable state"
+            ) from error
+        return snapshot, self.evidence.put_artifact(
+            snapshot, media_type="application/vnd.aeread.state+json"
+        )
+
+    def _state_change(
+        self,
+        before: tuple[Any, ArtifactRef] | None,
+        after: tuple[Any, ArtifactRef] | None,
+    ) -> tuple[bool | None, ArtifactRef | None]:
+        if before is None or after is None:
+            return None, None
+        changed = before[1].sha256 != after[1].sha256
+        if not changed:
+            return False, None
+        return True, self.evidence.put_artifact(
+            {
+                "before_sha256": before[1].sha256,
+                "after_sha256": after[1].sha256,
+                "before": before[0],
+                "after": after[0],
+            },
+            media_type="application/vnd.aeread.state-diff+json",
+        )
+
+    def _record(
+        self,
+        *,
+        tool_invocation_id: str,
+        action_attempt_id: str,
+        tool_id: str,
+        tool_version: str,
+        input_sha256: str,
+        idempotency_supported: bool,
+        effect: str,
+        status: str,
+        result_sha256: str | None,
+        failure_condition: str | None,
+        before: tuple[Any, ArtifactRef] | None,
+        after: tuple[Any, ArtifactRef] | None,
+        state_changed: bool | None,
+        state_diff_ref: ArtifactRef | None,
+        outcome_known: bool,
+    ) -> ToolInvocationRecord:
+        return ToolInvocationRecord(
+            tool_invocation_id=tool_invocation_id,
+            action_attempt_id=action_attempt_id,
+            tool_id=tool_id,
+            tool_version=tool_version,
+            input_sha256=input_sha256,
+            idempotency_supported=idempotency_supported,
+            status=status,
+            result_sha256=result_sha256,
+            failure_condition=failure_condition,
+            effect=effect,
+            state_before_sha256=None if before is None else before[1].sha256,
+            state_after_sha256=None if after is None else after[1].sha256,
+            state_diff_sha256=(
+                None if state_diff_ref is None else state_diff_ref.sha256
+            ),
+            state_changed=state_changed,
+            outcome_known=outcome_known,
+        )
+
+    async def _observed_after(
+        self, state_reader: Callable[[], Any] | None
+    ) -> tuple[Any, ArtifactRef] | None:
+        return None if state_reader is None else await self._snapshot_state(state_reader)
+
     async def invoke(
         self,
         *,
@@ -1909,7 +2007,18 @@ class ToolExecutor:
         arguments: Mapping[str, Any],
         implementation: Callable[[Mapping[str, Any]], Awaitable[Any]],
         idempotency_supported: bool,
+        effect: str,
+        state_reader: Callable[[], Any] | None = None,
     ) -> tuple[Any, ToolInvocationRecord]:
+        if effect not in {"read_only", "mutating"}:
+            raise EvidenceIntegrityError("tool effect must be read_only or mutating")
+        if state_reader is not None and not callable(state_reader):
+            raise EvidenceIntegrityError("state_reader must be callable")
+        if effect == "mutating" and state_reader is None:
+            raise EvidenceIntegrityError(
+                "mutating tool invocation requires a state_reader"
+            )
+        before = await self._observed_after(state_reader)
         ordinal = self._ordinal
         self._ordinal += 1
         tool_invocation_id = _stable_id(
@@ -1929,6 +2038,10 @@ class ToolExecutor:
                 "arguments": arguments,
                 "input_sha256": input_sha256,
                 "idempotency_supported": idempotency_supported,
+                "effect": effect,
+                "state_before_sha256": (
+                    None if before is None else before[1].sha256
+                ),
             },
             action_attempt_id=action_attempt_id,
             tool_invocation_id=tool_invocation_id,
@@ -1938,39 +2051,174 @@ class ToolExecutor:
             if not inspect.isawaitable(pending):
                 raise TypeError("tool implementation must return an awaitable")
             result = await pending
+        except ToolFailure as error:
+            after = await self._observed_after(state_reader)
+            state_changed, state_diff_ref = self._state_change(before, after)
+            self.evidence.append_event(
+                "tool_invocation_failed",
+                {
+                    "failure_condition": error.condition,
+                    "message": str(error),
+                    "retryable": error.retryable,
+                    "effect": effect,
+                    "outcome_known": True,
+                    "state_before_sha256": (
+                        None if before is None else before[1].sha256
+                    ),
+                    "state_after_sha256": None if after is None else after[1].sha256,
+                    "state_changed": state_changed,
+                    "state_diff_sha256": (
+                        None if state_diff_ref is None else state_diff_ref.sha256
+                    ),
+                },
+                action_attempt_id=action_attempt_id,
+                tool_invocation_id=tool_invocation_id,
+            )
+            error.record = self._record(
+                tool_invocation_id=tool_invocation_id,
+                action_attempt_id=action_attempt_id,
+                tool_id=tool_id,
+                tool_version=tool_version,
+                input_sha256=input_sha256,
+                idempotency_supported=idempotency_supported,
+                effect=effect,
+                status="failed",
+                result_sha256=None,
+                failure_condition=error.condition,
+                before=before,
+                after=after,
+                state_changed=state_changed,
+                state_diff_ref=state_diff_ref,
+                outcome_known=True,
+            )
+            raise
         except asyncio.CancelledError:
+            after = await self._observed_after(state_reader)
+            state_changed, state_diff_ref = self._state_change(before, after)
             self.evidence.append_event(
                 "tool_invocation_outcome_unknown",
-                {"failure_condition": "interrupted_during_tool"},
+                {
+                    "failure_condition": "interrupted_during_tool",
+                    "effect": effect,
+                    "outcome_known": False,
+                    "state_before_sha256": (
+                        None if before is None else before[1].sha256
+                    ),
+                    "state_observed_after_sha256": (
+                        None if after is None else after[1].sha256
+                    ),
+                    "state_observed_changed": state_changed,
+                    "state_diff_sha256": (
+                        None if state_diff_ref is None else state_diff_ref.sha256
+                    ),
+                },
                 action_attempt_id=action_attempt_id,
                 tool_invocation_id=tool_invocation_id,
             )
             raise
         except BaseException:
+            after = await self._observed_after(state_reader)
+            state_changed, state_diff_ref = self._state_change(before, after)
             self.evidence.append_event(
                 "tool_invocation_outcome_unknown",
-                {"failure_condition": "unexpected_tool_interruption"},
+                {
+                    "failure_condition": "unexpected_tool_interruption",
+                    "effect": effect,
+                    "outcome_known": False,
+                    "state_before_sha256": (
+                        None if before is None else before[1].sha256
+                    ),
+                    "state_observed_after_sha256": (
+                        None if after is None else after[1].sha256
+                    ),
+                    "state_observed_changed": state_changed,
+                    "state_diff_sha256": (
+                        None if state_diff_ref is None else state_diff_ref.sha256
+                    ),
+                },
                 action_attempt_id=action_attempt_id,
                 tool_invocation_id=tool_invocation_id,
             )
             raise
         result_ref = self.evidence.put_artifact(result)
+        after = await self._observed_after(state_reader)
+        state_changed, state_diff_ref = self._state_change(before, after)
+        if effect == "read_only" and state_changed:
+            failure = ToolFailure(
+                "tool_effect_violation",
+                f"read_only tool {tool_id!r} changed observed state",
+                retryable=False,
+            )
+            self.evidence.append_event(
+                "tool_invocation_failed",
+                {
+                    "failure_condition": failure.condition,
+                    "message": str(failure),
+                    "retryable": False,
+                    "effect": effect,
+                    "outcome_known": True,
+                    "result_sha256": result_ref.sha256,
+                    "state_before_sha256": before[1].sha256,
+                    "state_after_sha256": after[1].sha256,
+                    "state_changed": True,
+                    "state_diff_sha256": state_diff_ref.sha256,
+                },
+                action_attempt_id=action_attempt_id,
+                tool_invocation_id=tool_invocation_id,
+            )
+            failure.record = self._record(
+                tool_invocation_id=tool_invocation_id,
+                action_attempt_id=action_attempt_id,
+                tool_id=tool_id,
+                tool_version=tool_version,
+                input_sha256=input_sha256,
+                idempotency_supported=idempotency_supported,
+                effect=effect,
+                status="failed",
+                result_sha256=result_ref.sha256,
+                failure_condition=failure.condition,
+                before=before,
+                after=after,
+                state_changed=True,
+                state_diff_ref=state_diff_ref,
+                outcome_known=True,
+            )
+            raise failure
         self.evidence.append_event(
             "tool_invocation_succeeded",
-            {"result": result, "result_sha256": result_ref.sha256},
+            {
+                "result": result,
+                "result_sha256": result_ref.sha256,
+                "effect": effect,
+                "outcome_known": True,
+                "state_before_sha256": (
+                    None if before is None else before[1].sha256
+                ),
+                "state_after_sha256": None if after is None else after[1].sha256,
+                "state_changed": state_changed,
+                "state_diff_sha256": (
+                    None if state_diff_ref is None else state_diff_ref.sha256
+                ),
+            },
             action_attempt_id=action_attempt_id,
             tool_invocation_id=tool_invocation_id,
         )
-        return result, ToolInvocationRecord(
+        return result, self._record(
             tool_invocation_id=tool_invocation_id,
             action_attempt_id=action_attempt_id,
             tool_id=tool_id,
             tool_version=tool_version,
             input_sha256=input_sha256,
             idempotency_supported=idempotency_supported,
+            effect=effect,
             status="succeeded",
             result_sha256=result_ref.sha256,
             failure_condition=None,
+            before=before,
+            after=after,
+            state_changed=state_changed,
+            state_diff_ref=state_diff_ref,
+            outcome_known=True,
         )
 
 
@@ -2100,6 +2348,7 @@ __all__ = [
     "ProviderResult",
     "TokenPricing",
     "ToolExecutor",
+    "ToolFailure",
     "ToolInvocationRecord",
     "execute_plan_cell",
 ]

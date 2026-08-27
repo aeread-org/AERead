@@ -22,6 +22,7 @@ from aeread.shared_runner.execution import (
     ProviderResult,
     TokenPricing,
     ToolExecutor,
+    ToolFailure,
 )
 from aeread.shared_runner.resolver import PlanCell, case_content_sha256
 from aeread.shared_runner.scheduler import (
@@ -379,6 +380,7 @@ def test_tool_executor_records_success_and_unknown_outcome(tmp_path) -> None:
             arguments={"value": 3},
             implementation=successful,
             idempotency_supported=True,
+            effect="read_only",
         )
     )
     assert result == {"echo": 3}
@@ -396,12 +398,130 @@ def test_tool_executor_records_success_and_unknown_outcome(tmp_path) -> None:
                 arguments={},
                 implementation=cancelled,
                 idempotency_supported=False,
+                effect="read_only",
             )
         )
     evidence.audit_reconciliation(entity_types=("tool_invocation",))
     assert "tool_invocation_outcome_unknown" in {
         event.event_type for event in evidence.read_events()
     }
+
+
+def test_mutating_tool_requires_a_state_reader(tmp_path) -> None:
+    evidence = _evidence(tmp_path)
+    tools = ToolExecutor(evidence)
+
+    async def mutate(_arguments):
+        return {"status": "updated"}
+
+    with pytest.raises(EvidenceIntegrityError, match="state_reader"):
+        asyncio.run(
+            tools.invoke(
+                action_attempt_id="action_attempt_fixture",
+                tool_id="refund_order",
+                tool_version="1.0.0",
+                arguments={"order_id": "order_1"},
+                implementation=mutate,
+                idempotency_supported=True,
+                effect="mutating",
+            )
+        )
+    assert evidence.read_events() == ()
+
+
+def test_refund_mutation_records_before_after_and_state_diff(tmp_path) -> None:
+    evidence = _evidence(tmp_path)
+    tools = ToolExecutor(evidence)
+    database = {"orders": {"order_1": {"status": "paid", "refund_usd": 0}}}
+
+    async def refund(_arguments):
+        database["orders"]["order_1"] = {"status": "refunded", "refund_usd": 25}
+        return {"status": "refunded", "amount_usd": 25}
+
+    result, record = asyncio.run(
+        tools.invoke(
+            action_attempt_id="action_attempt_fixture",
+            tool_id="refund_order",
+            tool_version="1.0.0",
+            arguments={"order_id": "order_1", "amount_usd": 25},
+            implementation=refund,
+            idempotency_supported=True,
+            effect="mutating",
+            state_reader=lambda: database,
+        )
+    )
+
+    assert result["status"] == "refunded"
+    assert record.effect == "mutating"
+    assert record.state_changed is True
+    assert record.state_before_sha256 != record.state_after_sha256
+    assert record.state_diff_sha256 is not None
+    assert record.outcome_known is True
+    evidence.audit_reconciliation(entity_types=("tool_invocation",))
+
+
+def test_supply_chain_failure_after_partial_mutation_is_not_recorded_as_no_op(
+    tmp_path,
+) -> None:
+    evidence = _evidence(tmp_path)
+    tools = ToolExecutor(evidence)
+    ledger = {"inventory": 10, "pending_orders": []}
+
+    async def order_stock(_arguments):
+        ledger["pending_orders"].append("po_7")
+        raise ToolFailure("supplier_timeout", "supplier timed out after accepting PO", retryable=True)
+
+    with pytest.raises(ToolFailure) as captured:
+        asyncio.run(
+            tools.invoke(
+                action_attempt_id="action_attempt_fixture",
+                tool_id="place_purchase_order",
+                tool_version="1.0.0",
+                arguments={"sku": "widget", "quantity": 5},
+                implementation=order_stock,
+                idempotency_supported=False,
+                effect="mutating",
+                state_reader=lambda: ledger,
+            )
+        )
+
+    record = captured.value.record
+    assert record is not None
+    assert record.status == "failed"
+    assert record.failure_condition == "supplier_timeout"
+    assert record.state_changed is True
+    assert record.state_diff_sha256 is not None
+    assert record.outcome_known is True
+    evidence.audit_reconciliation(entity_types=("tool_invocation",))
+
+
+def test_declared_read_only_tool_cannot_silently_mutate_observed_state(tmp_path) -> None:
+    evidence = _evidence(tmp_path)
+    tools = ToolExecutor(evidence)
+    database = {"balance": 10}
+
+    async def broken_read(_arguments):
+        database["balance"] = 9
+        return {"balance": 9}
+
+    with pytest.raises(ToolFailure, match="read_only") as captured:
+        asyncio.run(
+            tools.invoke(
+                action_attempt_id="action_attempt_fixture",
+                tool_id="get_balance",
+                tool_version="1.0.0",
+                arguments={},
+                implementation=broken_read,
+                idempotency_supported=True,
+                effect="read_only",
+                state_reader=lambda: database,
+            )
+        )
+
+    assert captured.value.record is not None
+    assert captured.value.record.failure_condition == "tool_effect_violation"
+    assert captured.value.record.state_changed is True
+    evidence.audit_reconciliation(entity_types=("tool_invocation",))
 
 
 class FakeResponsesAPI:
