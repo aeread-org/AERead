@@ -3,20 +3,82 @@
 **Entry point**: The measurement-layer paper needs a statistically valid comparison of
 Housing action trajectories with reasoning disabled versus low reasoning.
 
-**Proposed action**: Run 100 independently generated Housing worlds, paired across two
+**Action**: Run 100 independently generated Housing worlds, paired across two
 DeepSeek reasoning conditions, with three nested model replicates per world: 600 total
 trajectories.
 
-**Current status (2026-08-26)**: the Housing instrument now emits typed welfare/reference/
-capture measurements, validated success and failure receipts, and deterministic
-state-and-score replay. The 600-trajectory confirmatory experiment has **not** been run with
-this finalized instrument. A fresh route admission is required before any sample cell is
-released; earlier pilots and the historical R4 smoke remain excluded.
+**Current status (2026-08-27)**: complete. A fresh six-trajectory route admission passed,
+all 600 predeclared sample cells terminated, and all 606 admission and sample receipts were
+verified on a zero-provider-call resume. The primary result is conditional on the pinned
+synthetic generator, DeepSeek revision, Parasail FP8 route, and controlled landlord; earlier
+pilots and the historical R4 smoke remain excluded.
 
 **Files involved**: `src/aeread/shared_runner/housing.py`,
 `src/aeread/shared_runner/housing_experiment.py`,
 `src/aeread/shared_runner/execution.py`, the resulting sealed plans, per-cell evidence,
 and the final cluster-level analysis artifact.
+
+## Confirmatory result (2026-08-27)
+
+The three-world admission completed in both arms, paired inference seeds exactly, returned
+zero control reasoning tokens, and resolved every call to
+`deepseek/deepseek-v4-flash-20260731` on Parasail FP8 without fallback. The full sample then
+terminated all 600 planned trajectories. Of those, 580 produced included
+`state_and_score` receipts and 20 reasoning-low trajectories produced excluded
+`invalid_measurement` receipts. No control trajectory failed.
+
+The predeclared complete-pair analysis retained 83 worlds with all three valid replicates in
+both arms:
+
+| primary quantity | result |
+|---|---:|
+| reasoning-none mean score | 0.6671 |
+| reasoning-low mean score | 0.8256 |
+| mean paired difference, low minus none | **+0.1585** |
+| 10,000-draw world-cluster bootstrap 95% interval | **[0.1294, 0.1882]** |
+| paired-t diagnostic 95% interval | [0.1284, 0.1885] |
+| paired-difference SD / standardized effect | 0.1378 / 1.1498 |
+| exact-support missingness bounds over all 100 worlds | **[0.0992, 0.1787]** |
+
+The exact-support sensitivity result keeps every observed replicate and assigns only missing
+replicates their worst legal arm-specific outcomes. Its positive lower bound means the
+direction does not depend on complete-pair exclusion under that declared support. However,
+83 complete clusters is below the original 90-cluster retention target used to plan power
+for `d=0.3`; the observed effect is much larger, but that does not erase the reliability
+shortfall.
+
+| operational quantity | reasoning none | reasoning low |
+|---|---:|---:|
+| completed / planned trajectories | 300 / 300 | 280 / 300 |
+| pass-all-three worlds | 100 | 83 |
+| reasoning tokens | 0 | 5,845,217 |
+| cells with a length retry | 0 | 141 |
+| total length retries | 0 | 178 |
+| known recorded cost | $0.4262 | $1.8465 |
+
+The 20 low-arm failures were 9 length exhaustions, 8 cost-budget exceedances, and 3
+timeouts. Total known recorded admission-plus-sample cost was `$2.2912410906`; the actual
+provider charge may be higher because the three timeout calls have unknown billing.
+
+On the 83-world matched panel, the naive baseline mean was 0.8326. Reasoning-low nearly
+matched it at 0.8256 (difference -0.0070) and reached or exceeded it on 59.8% of
+trajectories, versus 16.9% for reasoning-none. It also reduced trajectories with an
+individual-rationality violation from 120/249 to 12/249. The tradeoff was distributional:
+tenant capture fell from 83.1% to 70.3%, landlord capture rose from 16.9% to 29.7%, and mean
+wasted contacts rose from 5.76 to 6.20. These decompositions are descriptive, not additional
+confirmatory tests.
+
+The first analysis attempt exposed a contract bug rather than an invalid trajectory: two
+completed control runs produced legal negative welfare and therefore negative scores. `L=0`
+is a feasible lower bound on the *optimum*, not a floor on every realized outcome. Tests were
+written to fail first, then the analyzer was corrected to accept finite scores at or below
+one, derive exact per-world legal lower support, and bound only missing replicates. The
+corrected analysis reused the sealed receipts without rerunning or replacing any cell.
+
+The compact, hash-bound result is
+[`housing_reasoning_parasail_v12_summary_2026-08-27.json`](../evidence/housing_reasoning_parasail_v12_summary_2026-08-27.json).
+Raw prompts, responses, events, artifacts, and receipts remain in the gitignored local archive
+named there; they are not committed because it contains 103,207 files and is 582 MB.
 
 ---
 
@@ -30,7 +92,8 @@ selected before outcomes by SHA-256 counter derivation from master seed `2026082
 The P0 scripted policies were regenerated on 300 seeds. Their within-arm efficiency
 standard deviations were approximately `0.096` and `0.100`, but those values are only
 planning proxies: the relevant power input is the standard deviation of paired live-model
-world differences, which has not yet been measured. All route and robustness admissions are
+world differences. The completed panel measured it as `0.137805`, but that post-outcome value
+was not used to alter the design. All route and robustness admissions are
 instrumentation evidence and contribute no outcome observations to this study.
 
 Power planning uses a two-sided paired comparison at alpha `0.05`, 80% power, and one
@@ -178,9 +241,9 @@ failures, all five in the low arm; 587 cells were never started. The sample port
 $0.0505768032. The failure pattern showed that successful controls could reset the original
 global consecutive-failure circuit and mask repeated low-arm length exhaustion.
 
-Before a new confirmatory panel is released, admission therefore requires pass-all completion
+The eventual confirmatory panel therefore required pass-all completion
 on three fixed worlds drawn from a seed panel disjoint from the 100 analysis worlds. Both arms
-now receive 4,096 tokens initially and one 8,192-token length retry, and the operational
+received 4,096 tokens initially and one 8,192-token length retry, and the operational
 failure circuit counts consecutive failures separately within each arm. These changes are
 declared from typed operational evidence only; no complete world-level economic contrast was
 available or inspected.
@@ -193,8 +256,9 @@ strategic or stochastic counterparties.
 
 ## Step 4: result and decomposition contract
 
-The experiment has no result until all released cells terminate or the declared spend/safety
-boundary stops new work. There is no outcome-based early stopping. The report must decompose:
+The experiment had no result until all released cells terminated or the declared spend/safety
+boundary stopped new work. All 600 released cells terminated, with no outcome-based early
+stopping. The report decomposes:
 
 1. primary mean paired score difference and cluster interval;
 2. world-level distribution and per-condition means;
@@ -249,6 +313,7 @@ part of the result rather than an optional appendix.
 
 ## Honest one-sentence version
 
-This experiment can estimate whether low reasoning changes DeepSeek's average Housing outcome
-on the pinned generated worlds; it cannot establish a universal benefit of reasoning or a
+On the pinned generated Housing worlds with a controlled landlord and Parasail-hosted
+DeepSeek V4 Flash, low reasoning increased the average within-case score by 0.1585; this does
+not establish a universal benefit of reasoning, real-market performance, saturation, or a
 universal measure of housing competence.

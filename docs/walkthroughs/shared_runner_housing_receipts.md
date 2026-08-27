@@ -6,9 +6,9 @@ state-and-score replay. The implementation lives in
 `src/aeread/shared_runner/housing.py`; generic measurement and receipt records live in
 `src/aeread/shared_runner/measurement.py` and `src/aeread/shared_runner/receipts.py`.
 
-This is instrumentation readiness, not a paper result. The earlier one-world live admission
-predates this receipt layer, and the proposed 100-world reasoning experiment has not been run
-with the finalized instrument.
+The earlier one-world live admission predates this receipt layer. The finalized instrument
+has since completed the predeclared 100-world reasoning experiment; the result and its scope
+are reported in `housing_reasoning_experiment.md`.
 
 ## Measurement semantics
 
@@ -74,12 +74,15 @@ when reasoning telemetry differs or is unavailable.
 
 ## Validation and remaining scientific boundary
 
-Provider-free Housing, experiment, receipt, evidence, and portability tests pass. The complete
-repository suite passes `590` tests with `3` skips and `1` expected failure; the two local
-loopback tests that the sandbox blocked also pass when run with loopback permission.
+Provider-free Housing, experiment, receipt, evidence, and portability tests pass. Final
+validation is `596 passed, 3 skipped, 1 xfailed`: the sandboxed full suite produced
+`594 passed, 3 skipped, 1 xfailed` plus two blocked local-loopback binds, and those exact two
+tests passed separately with loopback permission.
 
-The instrument is ready for a fresh admission run. It does not preserve the withdrawn
-pre-P0 model tables, establish performance on real housing markets, supply a price/core
-oracle, or prove saturation. A paper result still requires the predeclared paired world-panel
-run, receipt coverage reconciliation, cluster-level uncertainty, and the distributional and
-operational decompositions in `housing_reasoning_experiment.md`.
+The instrument passed fresh route admission and completed the predeclared paired world panel:
+606/606 admission and sample cells have validated receipts, including typed exclusion receipts
+for 20 operational failures. The analysis reconciles coverage, resamples world clusters, and
+reports distributional and operational decompositions in
+`housing_reasoning_experiment.md`. This does not restore the withdrawn pre-P0 model tables,
+establish performance on real housing markets, supply a price/core oracle, or prove
+saturation.

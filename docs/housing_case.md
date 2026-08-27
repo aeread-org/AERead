@@ -11,6 +11,10 @@ both finalize successful trajectories and reconciled failures through the same r
 contract. The earlier fixed OpenRouter/DeepSeek smoke cell is historical R4 admission
 evidence and predates the new receipt layer; it is not a current paper result.
 
+The finalized 100-world reasoning experiment is now a current, receipt-backed result. Its
+scope is the pinned synthetic generator, DeepSeek V4 Flash on Parasail FP8, and a controlled
+scripted landlord—not housing markets generally.
+
 The finalized receipt path is documented in
 [`walkthroughs/shared_runner_housing_receipts.md`](walkthroughs/shared_runner_housing_receipts.md).
 
@@ -180,11 +184,29 @@ Its single fixed world reached `R = B = U = 389.54`, with no IR violations, one 
 contact, and `$0.0002722896` charged cost. That is integration evidence only: one
 cluster cannot estimate uncertainty, robustness, coverage, ranking, or saturation.
 
-For the next run, reasoning mode must be a declared experimental condition and stored
-in the receipt. Actions and outcomes remain primary evidence; reasoning text is only a
-secondary diagnostic surface. Failure coding should distinguish objective selection,
-strategic modeling, constraint tracking, and execution rather than report only
-"reasoning on/off."
+The finalized confirmatory run declared reasoning mode in every plan and receipt. Across 83
+worlds with all three valid replicates in both conditions, reasoning-low raised mean
+within-case score from `0.6671` to `0.8256`: paired difference `+0.1585`, 10,000-draw
+world-cluster bootstrap 95% interval `[0.1294, 0.1882]`. Exact legal-outcome-support bounds
+over all 100 planned worlds were `[0.0992, 0.1787]`.
+
+Operational reliability differed sharply. All 300 reasoning-none trajectories completed,
+while 280/300 reasoning-low trajectories completed: nine exhausted the length policy, eight
+exceeded the per-cell cost budget, and three timed out. The 83 complete worlds fall below the
+90-cluster retention target used to plan for a moderate standardized effect, although the
+observed paired effect was larger and both the primary interval and missingness bounds exclude
+zero. Known recorded admission-plus-sample cost was `$2.2912410906`; billing for the three
+timeout calls is unknown.
+
+On the matched complete panel, reasoning-low nearly matched the naive scripted baseline
+(`0.8256` versus `0.8326`) and cut trajectories with an IR violation from 120/249 to 12/249.
+It also shifted surplus toward landlords: tenant capture fell from 83.1% to 70.3%, while
+landlord capture rose from 16.9% to 29.7%. These economic decompositions are descriptive.
+Actions and outcomes remain primary evidence; reasoning telemetry is a secondary diagnostic
+surface. See the locked design and full decomposition in
+[`walkthroughs/housing_reasoning_experiment.md`](walkthroughs/housing_reasoning_experiment.md)
+and the compact result in
+[`evidence/housing_reasoning_parasail_v12_summary_2026-08-27.json`](evidence/housing_reasoning_parasail_v12_summary_2026-08-27.json).
 
 ## 5b. Attribute-derived valuations
 
@@ -281,5 +303,7 @@ for name, ratios in (("naive", naive), ("adaptive", adaptive)):
 This reproduces scripted baselines only. A reproducible live-agent result additionally
 requires the shared runner to store the task/policy/database hashes, model and exact
 prompt, reasoning setting, seed, tool/action records, state diffs, retries, scorer
-version, raw responses, and replay result. Until those artifacts are committed or
-addressably archived, a model table must remain preliminary and outside paper claims.
+version, raw responses, and replay result. The 2026-08-27 confirmatory run met that contract:
+its compact summary and hashes are committed, and its complete raw evidence is preserved in
+the gitignored local archive identified by the summary. The raw archive is not remote or
+independently durable until it is copied to an addressable evidence store.
