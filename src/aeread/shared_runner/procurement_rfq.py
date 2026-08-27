@@ -997,33 +997,33 @@ def build_procurement_rfq_smoke(
     cases = []
     for seed, world in zip(seeds, worlds):
         raw_case = {
-        "spec_version": "aeread.case/0.1",
-        "case_id": f"procurement_rfq_v1__evaluation__{seed}" if generated else "procurement_rfq_v1__smoke__000001",
-        "family_id": "procurement_rfq_v1",
-        "family_version": "1.0.0",
-        "split": "evaluation" if generated else "smoke",
-        "world_seed": seed,
-        "seats": [
-            {"id": "buyer_0", "role": "buyer"},
-            *[{"id": f"supplier_{seller_id}", "role": "supplier"} for seller_id in seller_ids],
-        ],
-        "episode": {
-            "max_logical_actions": max_actions,
-            "termination": ["purchase_order", "walk_away"],
-        },
-        "visibility_policy": "procurement_private_supplier_costs_v1",
-        "payload": {
-            "world": rfq.world_to_payload(world),
-            "max_contacts": max_contacts,
-            "contact_cost": contact_cost,
-            "disclosure_anchor": disclosure_anchor,
-        },
-        "provenance": {
-            "generator_id": GENERATOR_ID if generated else "procurement_electronics_q3_curated",
-            "generator_version": GENERATOR_VERSION,
-            "review_status": "generated" if generated else "curated",
-        },
-        "content_sha256": "0" * 64,
+            "spec_version": "aeread.case/0.1",
+            "case_id": f"procurement_rfq_v1__evaluation__{seed}" if generated else "procurement_rfq_v1__smoke__000001",
+            "family_id": "procurement_rfq_v1",
+            "family_version": "1.0.0",
+            "split": "evaluation" if generated else "smoke",
+            "world_seed": seed,
+            "seats": [
+                {"id": "buyer_0", "role": "buyer"},
+                *[{"id": f"supplier_{seller_id}", "role": "supplier"} for seller_id in seller_ids],
+            ],
+            "episode": {
+                "max_logical_actions": max_actions,
+                "termination": ["purchase_order", "walk_away"],
+            },
+            "visibility_policy": "procurement_private_supplier_costs_v1",
+            "payload": {
+                "world": rfq.world_to_payload(world),
+                "max_contacts": max_contacts,
+                "contact_cost": contact_cost,
+                "disclosure_anchor": disclosure_anchor,
+            },
+            "provenance": {
+                "generator_id": GENERATOR_ID if generated else "procurement_electronics_q3_curated",
+                "generator_version": GENERATOR_VERSION,
+                "review_status": "generated" if generated else "curated",
+            },
+            "content_sha256": "0" * 64,
         }
         raw_case["content_sha256"] = case_content_sha256(raw_case)
         cases.append(CaseManifest.from_dict(raw_case))

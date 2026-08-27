@@ -13,7 +13,7 @@ from .execution import CellExecution, EvidenceStore, TokenPricing
 from .measurement import ImplementationRef as MeasurementImplementationRef, MeasurementLeafSpec, ScoreEnvelope
 from .registry import PluginRegistry
 from .resolver import RunPlan, canonical_json_bytes, verify_run_plan
-from .receipts import EvaluationFailure, EvaluationReceipt, seal_evaluation_receipt, verify_evaluation_receipt, write_evaluation_receipt
+from .receipts import EvaluationFailure, EvaluationReceipt, read_evaluation_receipt, seal_evaluation_receipt, verify_evaluation_receipt, write_evaluation_receipt
 from .scheduler import ActionEnvelope, LegalityResult, ParseResult, PhaseSpec
 
 
@@ -486,5 +486,72 @@ def replay_family_receipt(
         raise ValueError("recorded family score does not replay deterministically")
     if canonical_json_bytes(receipt.scores) != canonical_json_bytes((replayed_score,)):
         raise ValueError("receipt family score does not replay deterministically")
+    evidence.close()
+    return receipt
+
+
+def audit_family_receipt(
+    *, setup: EvaluationSetup, receipt_path: str | Path,
+) -> Mapping[str, Any]:
+    """Audit durable JSON on resume, including state/score replay for completed cells.
+
+    Operational exclusions are verified as exclusions, never assigned an economic
+    score. This function performs no provider calls and writes no evidence.
+    """
+    verify_run_plan(setup.plan)
+    receipt_path = Path(receipt_path)
+    receipt = read_evaluation_receipt(receipt_path)
+    cell = next((c for c in setup.plan.cells if c.cell_id == receipt.get("cell_id")), None)
+    if cell is None:
+        raise ValueError("receipt cell is absent from the family plan")
+    expected = {
+        "run_plan_id": setup.plan.run_plan_id,
+        "run_plan_sha256": setup.plan.plan_sha256,
+        "case_id": cell.case_id, "case_sha256": cell.case_sha256,
+        "suite_id": setup.plan.suite.suite_id, "suite_version": setup.plan.suite.version,
+        "block_id": cell.block_id, "sampling_plan_id": cell.sampling_plan_id,
+        "analysis_plan_id": cell.analysis_plan_id, "cluster_id": cell.cluster_id,
+        "cluster_level": cell.cluster_level, "observations_per_cluster": cell.observations_per_cluster,
+        "pair_id": cell.pair_id, "paired_fields": cell.paired_fields,
+        "replicate_index": cell.replicate_index, "panel_mode": cell.panel_mode,
+        "parent_cluster_id": None,
+        "agent_profile_sha256_by_seat": _agent_profile_digests(setup.plan, cell),
+        "plan_implementation_pins": setup.plan.implementation_pins,
+        "observability_limits": _observability_limits(setup.plan, cell),
+    }
+    for key, value in expected.items():
+        if canonical_json_bytes(receipt.get(key)) != canonical_json_bytes(value):
+            raise ValueError(f"receipt {key} does not match the sealed plan")
+    root = receipt_path.parent
+    if (root.name != receipt.get("episode_attempt_id") or root.parent.name != cell.cell_id
+            or root.parent.parent.name != setup.plan.run_plan_id):
+        raise ValueError("receipt directory identity does not match the sealed plan")
+    evidence = EvidenceStore.audit_existing(root)
+    seal = evidence.verify_seal()
+    if (canonical_json_bytes(seal) != canonical_json_bytes(receipt.get("evidence"))
+            or seal.episode_id != receipt.get("episode_id")):
+        raise ValueError("receipt evidence seal mismatch")
+    if receipt.get("scores"):
+        family = next(f for f in setup.plan.families if f.family.id == cell.family_id)
+        case = next(c for c in setup.plan.cases if c.case_id == cell.case_id)
+        plugin = setup.registry.resolve_manifest(family)
+        family_case = plugin.validate_payload(case.payload)
+        outcome, outcome_event = replay_family_state(plugin=plugin, family_case=family_case, evidence=evidence)
+        score = plugin.build_scorer(family_case)(outcome, evidence_refs=(outcome_event.event_id,))
+        events = [e for e in evidence.read_events() if e.event_type == "score_recorded"]
+        if (len(events) != 1 or canonical_json_bytes(evidence.read_event_payload(events[0]).get("score")) != canonical_json_bytes(score)
+                or canonical_json_bytes(receipt["scores"]) != canonical_json_bytes((score,))):
+            raise ValueError("receipt score does not replay deterministically")
+        included = score.status == "ok"
+        if (receipt.get("status") != score.status
+                or receipt.get("inclusion_status") != ("included" if included else "excluded")
+                or receipt.get("replay_level") != "state_and_score"
+                or receipt.get("primary_leaf_id") != score.leaf.leaf_id
+                or canonical_json_bytes(receipt.get("implementation_refs")) != canonical_json_bytes(sorted(set(_receipt_implementations(score)), key=lambda item: (item.implementation_id, item.version, item.content_sha256)))
+                or (included and receipt.get("failure") is not None)):
+            raise ValueError("receipt admission does not match the replayed score")
+    elif (receipt.get("status") != "invalid_measurement" or receipt.get("inclusion_status") != "excluded"
+            or receipt.get("replay_level") != "none" or not isinstance(receipt.get("failure"), Mapping)):
+        raise ValueError("unscored receipt must be a typed operational exclusion")
     evidence.close()
     return receipt

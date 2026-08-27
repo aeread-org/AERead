@@ -7,6 +7,7 @@ import pytest
 from aeread.shared_runner.execution import ProviderFailure, execute_plan_cell
 from aeread.shared_runner.scheduler import SchedulerContractError
 from aeread.shared_runner.family_evaluation import (
+    audit_family_receipt,
     finalize_family_execution,
     finalize_family_failure,
     replay_family_receipt,
@@ -47,6 +48,8 @@ def test_family_neutral_finalizer_replays_housing_without_provider_calls(tmp_pat
     assert receipt.replay_level == "state_and_score"
     assert receipt.plan_implementation_pins == setup.plan.implementation_pins
     assert replay_family_receipt(setup=setup, receipt=receipt, evidence_root=tmp_path) == receipt
+    audited = audit_family_receipt(setup=setup, receipt_path=execution.evidence.root / "evaluation_receipt.json")
+    assert audited["receipt_sha256"] == receipt.receipt_sha256
 
 
 def test_family_finalizer_rejects_an_outcome_different_from_recorded_state(tmp_path):
@@ -76,3 +79,5 @@ def test_family_failure_is_excluded_with_no_economic_score(tmp_path):
     assert receipt.inclusion_status == "excluded"
     assert receipt.scores == ()
     assert receipt.failure.failure_class == "integration_or_configuration"
+    audited = audit_family_receipt(setup=setup, receipt_path=(tmp_path / receipt.run_plan_id / receipt.cell_id / receipt.episode_attempt_id / "evaluation_receipt.json"))
+    assert audited["inclusion_status"] == "excluded"
