@@ -9,6 +9,7 @@ from aeread.shared_runner import (
     EvaluationReceipt,
     EvidenceSeal,
     EstimandSpec,
+    ImplementationPin,
     MeasurementContractError,
     MeasurementImplementationRef,
     MeasurementLeafSpec,
@@ -115,6 +116,23 @@ def _seal() -> EvidenceSeal:
     )
 
 
+def _plan_pins(score: ScoreEnvelope) -> tuple[ImplementationPin, ...]:
+    implementations = (
+        (score.leaf.estimand.validity_domain.predicate, "scorer"),
+        (score.leaf.verifier.reference.implementation, "reference"),
+        (score.leaf.scorer, "scorer"),
+    )
+    return tuple(
+        ImplementationPin(
+            component_id=implementation.implementation_id,
+            kind=kind,
+            version=implementation.version,
+            sha256=implementation.content_sha256,
+        )
+        for implementation, kind in implementations
+    )
+
+
 def _receipt(**changes: object) -> EvaluationReceipt:
     score = _score()
     values: dict[str, object] = {
@@ -129,6 +147,9 @@ def _receipt(**changes: object) -> EvaluationReceipt:
         "case_sha256": "2" * 64,
         "suite_id": "housing_suite_v1",
         "suite_version": "1.0.0",
+        "block_id": "housing_controlled_landlords",
+        "sampling_plan_id": "housing_sample_v1",
+        "analysis_plan_id": "housing_analysis_v1",
         "episode_id": "episode_001",
         "episode_attempt_id": "episode_attempt_001",
         "cluster_id": "housing_world_001",
@@ -145,6 +166,7 @@ def _receipt(**changes: object) -> EvaluationReceipt:
             score.leaf.verifier.reference.implementation,
             score.leaf.scorer,
         ),
+        "plan_implementation_pins": _plan_pins(score),
         "evidence": _seal(),
         "primary_leaf_id": score.leaf.leaf_id,
         "scores": (score,),
@@ -233,3 +255,16 @@ def test_receipt_requires_every_measurement_implementation_pin() -> None:
     score = _score()
     with pytest.raises(MeasurementContractError, match="implementation_refs"):
         _receipt(implementation_refs=(score.leaf.scorer,))
+
+
+def test_receipt_requires_measurement_code_to_match_the_resolved_run_plan() -> None:
+    score = _score()
+    mismatched = tuple(
+        dataclasses.replace(pin, sha256="9" * 64)
+        if pin.component_id == score.leaf.scorer.implementation_id
+        else pin
+        for pin in _plan_pins(score)
+    )
+
+    with pytest.raises(MeasurementContractError, match="plan_implementation_pins"):
+        _receipt(plan_implementation_pins=mismatched)
