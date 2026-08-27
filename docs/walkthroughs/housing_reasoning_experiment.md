@@ -24,8 +24,8 @@ selected before outcomes by SHA-256 counter derivation from master seed `2026082
 The P0 scripted policies were regenerated on 300 seeds. Their within-arm efficiency
 standard deviations were approximately `0.096` and `0.100`, but those values are only
 planning proxies: the relevant power input is the standard deviation of paired live-model
-world differences, which has not yet been measured. The one admitted 2x1x1 live smoke
-cell is instrumentation evidence and contributes no outcome observation to this study.
+world differences, which has not yet been measured. All route and robustness admissions are
+instrumentation evidence and contribute no outcome observations to this study.
 
 Power planning uses a two-sided paired comparison at alpha `0.05`, 80% power, and one
 primary contrast. Exact paired-t planning requires 90 clusters for standardized effect
@@ -50,6 +50,7 @@ other market sizes, other mechanisms, or housing reasoning universally.
 | Input | Value | Provenance |
 |---|---:|---|
 | World clusters | 100 | power-planning judgment, fixed before outcomes |
+| Admission clusters | 3 disjoint worlds | out-of-panel robustness gate |
 | Conditions | `reasoning_none_v1`, `reasoning_low_v1` | experimental contrast |
 | Replicates per world and condition | 3 | robustness judgment; nested, not added to cluster N |
 | Tenants / listings / rounds | 6 / 4 / 4 | pinned P0 Housing configuration |
@@ -118,10 +119,10 @@ pass-all-three rates are mandatory alongside the complete-pair estimate.
 ### DANGER ZONE D6: output limits are part of the realized treatment
 
 **MEDIUM — may bias against reasoning-low through truncation.** Both arms receive the same
-initial 2,048-token output limit and one declared length retry at 4,096. A live admission
-probe showed that reasoning-low exhausted both the earlier 512 and 1,024 ceilings before
-emitting an action, while reasoning-none completed. That failed probe remains preserved as
-operational evidence and is not part of the analysis sample. Different truncation rates are
+initial 4,096-token output limit and one declared length retry at 8,192. Earlier live probes
+showed that reasoning-low could exhaust 512, 1,024, 2,048, and 4,096 ceilings before emitting
+an action, while reasoning-none completed. Those failed probes remain preserved as
+operational evidence and are not part of the analysis sample. Different truncation rates are
 a real consequence of the revised configured condition and must be reported, not hidden by
 unbounded post hoc retries.
 
@@ -158,6 +159,20 @@ and no fallback. The confirmatory RunPlan is therefore pinned to Parasail FP8 wi
 ceilings of $0.14/M prompt tokens and $0.28/M completion tokens. This is a new route, not a
 recovery of any earlier RunPlan, and only its post-admission sample cells may enter the
 confirmatory panel.
+
+That one-world gate was not sufficiently predictive. The first post-gate Parasail attempt was
+paused and classified as an infrastructure pilot before any complete six-trajectory world or
+paired economic estimate existed. It sealed 13 trajectories: 8 completed and 5 operational
+failures, all five in the low arm; 587 cells were never started. The sample portion cost
+$0.0505768032. The failure pattern showed that successful controls could reset the original
+global consecutive-failure circuit and mask repeated low-arm length exhaustion.
+
+Before a new confirmatory panel is released, admission therefore requires pass-all completion
+on three fixed worlds drawn from a seed panel disjoint from the 100 analysis worlds. Both arms
+now receive 4,096 tokens initially and one 8,192-token length retry, and the operational
+failure circuit counts consecutive failures separately within each arm. These changes are
+declared from typed operational evidence only; no complete world-level economic contrast was
+available or inspected.
 
 ### DANGER ZONE D7: controlled counterpart limits the estimand
 
@@ -203,7 +218,7 @@ part of the result rather than an optional appendix.
 ## Load-bearing assumptions
 
 1. `reasoning.effort: "none"` is demonstrated, not merely documented, to disable reasoning
-   on the pinned endpoint.
+   on the pinned endpoint, and all three out-of-panel admission pairs complete.
 2. One hundred preselected world seeds are independent draws from the pinned generator, and
    the paired world-difference variance is small enough for the intended effect size.
 3. Operational missingness is low and sufficiently balanced that complete-pair and worst-case

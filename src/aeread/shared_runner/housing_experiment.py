@@ -447,8 +447,16 @@ def validate_reasoning_admission(
     *,
     expected_resolved_model: str,
     expected_route_provider: str,
+    expected_paired_cell_count: int,
 ) -> dict[str, Any]:
     """Prove that the paired provider route applied both reasoning treatments."""
+
+    if (
+        isinstance(expected_paired_cell_count, bool)
+        or not isinstance(expected_paired_cell_count, int)
+        or expected_paired_cell_count < 1
+    ):
+        raise ValueError("expected_paired_cell_count must be a positive integer")
 
     conditions = ("reasoning_none_v1", "reasoning_low_v1")
     by_identity: dict[tuple[str, int, int], Mapping[str, Any]] = {}
@@ -478,6 +486,11 @@ def validate_reasoning_admission(
     )
     if len(by_identity) != 2 * len(paired_identities) or not paired_identities:
         raise ValueError("admission trajectories are not complete paired cells")
+    if len(paired_identities) != expected_paired_cell_count:
+        raise ValueError(
+            f"expected {expected_paired_cell_count} paired admission cells, "
+            f"received {len(paired_identities)}"
+        )
 
     low_reasoning_tokens = 0
     for world_seed, replicate_index in paired_identities:
@@ -756,10 +769,10 @@ async def run_paired_batch(
     new_rows: list[dict[str, Any]] = []
     state_lock = asyncio.Lock()
     stop_reason: str | None = None
-    consecutive_failures = 0
+    consecutive_failures_by_condition = {condition: 0 for condition in conditions}
 
     async def worker() -> None:
-        nonlocal total_cost, executed_count, stop_reason, consecutive_failures
+        nonlocal total_cost, executed_count, stop_reason
         while True:
             async with state_lock:
                 if stop_reason == "operational_failure_limit_reached":
@@ -818,10 +831,13 @@ async def run_paired_batch(
                 executed_count += 1
                 total_cost += float(sealed.get("cost_usd") or 0.0)
                 if sealed.get("status") == "completed":
-                    consecutive_failures = 0
+                    consecutive_failures_by_condition[condition] = 0
                 else:
-                    consecutive_failures += 1
-                    if consecutive_failures >= max_consecutive_failures:
+                    consecutive_failures_by_condition[condition] += 1
+                    if (
+                        consecutive_failures_by_condition[condition]
+                        >= max_consecutive_failures
+                    ):
                         stop_reason = "operational_failure_limit_reached"
                 progress = {
                     "condition_id": condition,
@@ -863,6 +879,9 @@ async def run_paired_batch(
         "failure_count": sum(failure_by_condition.values()),
         "completed_count_by_condition": completed_by_condition,
         "failure_count_by_condition": failure_by_condition,
+        "consecutive_failure_count_by_condition": dict(
+            consecutive_failures_by_condition
+        ),
         "pending_count": queue.qsize(),
         "total_cost_usd": total_cost,
         "stop_reason": stop_reason,
@@ -1147,6 +1166,9 @@ async def run_housing_reasoning_experiment(
     output = Path(output_root)
     output.mkdir(parents=True, exist_ok=True)
     panel = derive_world_seeds(master_seed=20260826, count=100)
+    admission_panel = derive_world_seeds(master_seed=20260827, count=3)
+    if set(panel) & set(admission_panel):
+        raise ValueError("admission and confirmatory world panels must be disjoint")
     if spend_limit_usd is None:
         spend_limit_usd = {"dry-run": 1.0, "admission": 0.10, "full": 6.0}[mode]
     if mode == "full" and spend_limit_usd <= 0.10:
@@ -1191,7 +1213,7 @@ async def run_housing_reasoning_experiment(
     elif mode == "admission":
         batch, rows = await _run_experiment_phase(
             output_root=output,
-            world_seeds=panel[:1],
+            world_seeds=admission_panel,
             replicates=1,
             small_preflight=False,
             tenant_provider=provider,
@@ -1204,10 +1226,11 @@ async def run_housing_reasoning_experiment(
             rows,
             expected_resolved_model=openrouter_route.canonical_model,
             expected_route_provider=openrouter_route.provider,
+            expected_paired_cell_count=len(admission_panel),
         )
         result = {
             "mode": mode,
-            "design": "1_world_x_2_conditions_x_1_replicate_full_dimension_gate",
+            "design": "3_out_of_panel_worlds_x_2_conditions_x_1_replicate_gate",
             "batch": batch,
             "admission": admission,
             "analysis": None,
@@ -1217,7 +1240,7 @@ async def run_housing_reasoning_experiment(
     else:
         admission_batch, admission_rows = await _run_experiment_phase(
             output_root=output / "admission",
-            world_seeds=panel[:1],
+            world_seeds=admission_panel,
             replicates=1,
             small_preflight=False,
             tenant_provider=provider,
@@ -1230,6 +1253,7 @@ async def run_housing_reasoning_experiment(
             admission_rows,
             expected_resolved_model=openrouter_route.canonical_model,
             expected_route_provider=openrouter_route.provider,
+            expected_paired_cell_count=len(admission_panel),
         )
         remaining_budget = spend_limit_usd - admission_batch["total_cost_usd"]
         if remaining_budget <= 0:

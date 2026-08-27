@@ -291,8 +291,8 @@ def test_condition_plans_pair_worlds_and_replicates_but_seal_distinct_treatments
     assert low_profile.reasoning.condition_id == "reasoning_low_v1"
     assert low_profile.reasoning.effort == "low"
     assert disabled_profile.sampling.seed is None
-    assert disabled_profile.sampling.max_output_tokens == 2048
-    assert low_profile.sampling.max_output_tokens == 2048
+    assert disabled_profile.sampling.max_output_tokens == 4096
+    assert low_profile.sampling.max_output_tokens == 4096
     assert disabled_profile.budgets.timeout_seconds == 120.0
     assert low_profile.budgets.timeout_seconds == 120.0
     assert disabled_profile.retry_policy.max_action_attempts == 4
@@ -379,6 +379,21 @@ class _RateLimitedTenantProvider:
             retryable=True,
             status_code=429,
         )
+
+
+class _LowOnlyFailureTenantProvider:
+    def __init__(self) -> None:
+        self._delegate = HousingScriptedTenantProvider()
+
+    async def complete(self, request: ProviderRequest):
+        if request.reasoning_effort == "low":
+            raise ProviderFailure(
+                "provider_contract",
+                "synthetic low-arm-only failure",
+                retryable=False,
+            )
+        translated = dataclasses.replace(request, provider="housing_scripted_tenant")
+        return await self._delegate.complete(translated)
 
 
 class _RecoveringRateLimitTenantProvider:
@@ -912,6 +927,7 @@ def test_reasoning_admission_requires_disabled_control_and_engaged_treatment() -
         ],
         expected_resolved_model=DEEPSEEK_REVISION,
         expected_route_provider="DeepInfra",
+        expected_paired_cell_count=1,
     )
     assert report["passed"] is True
     assert report["paired_cell_count"] == 1
@@ -924,6 +940,7 @@ def test_reasoning_admission_requires_disabled_control_and_engaged_treatment() -
             ],
             expected_resolved_model=DEEPSEEK_REVISION,
             expected_route_provider="DeepInfra",
+            expected_paired_cell_count=1,
         )
     with pytest.raises(ValueError, match="low arm did not emit reasoning"):
         validate_reasoning_admission(
@@ -933,6 +950,18 @@ def test_reasoning_admission_requires_disabled_control_and_engaged_treatment() -
             ],
             expected_resolved_model=DEEPSEEK_REVISION,
             expected_route_provider="DeepInfra",
+            expected_paired_cell_count=1,
+        )
+
+    with pytest.raises(ValueError, match="expected 3 paired admission cells"):
+        validate_reasoning_admission(
+            [
+                _admission_row("reasoning_none_v1", reasoning_tokens=0),
+                _admission_row("reasoning_low_v1", reasoning_tokens=12),
+            ],
+            expected_resolved_model=DEEPSEEK_REVISION,
+            expected_route_provider="DeepInfra",
+            expected_paired_cell_count=3,
         )
 
 
@@ -948,11 +977,31 @@ def test_paired_batch_stops_after_consecutive_operational_failures(tmp_path) -> 
         )
     )
 
-    assert result["executed_count"] == 2
-    assert result["failure_count"] == 2
-    assert result["pending_count"] == 6
+    assert result["executed_count"] == 3
+    assert result["failure_count"] == 3
+    assert result["pending_count"] == 5
     assert result["stop_reason"] == "operational_failure_limit_reached"
-    assert result["total_cost_usd"] == pytest.approx(0.008)
+    assert result["total_cost_usd"] == pytest.approx(0.012)
+
+
+def test_paired_batch_failure_circuit_is_condition_specific(tmp_path) -> None:
+    result = asyncio.run(
+        run_paired_batch(
+            setups=_paired_setups(world_seeds=(101, 102, 103, 106)),
+            output_root=tmp_path,
+            providers=_batch_providers(_LowOnlyFailureTenantProvider()),
+            concurrency=1,
+            spend_limit_usd=1.0,
+            max_consecutive_failures=2,
+        )
+    )
+
+    assert result["failure_count_by_condition"] == {
+        "reasoning_none_v1": 0,
+        "reasoning_low_v1": 2,
+    }
+    assert result["stop_reason"] == "operational_failure_limit_reached"
+    assert result["pending_count"] == 4
 
 
 def test_admission_entrypoint_runs_one_full_pair_and_seals_report(tmp_path) -> None:
@@ -967,9 +1016,9 @@ def test_admission_entrypoint_runs_one_full_pair_and_seals_report(tmp_path) -> N
     )
 
     assert result["mode"] == "admission"
-    assert result["batch"]["planned_count"] == 2
-    assert result["batch"]["completed_count"] == 2
+    assert result["batch"]["planned_count"] == 6
+    assert result["batch"]["completed_count"] == 6
     assert result["admission"]["passed"] is True
-    assert result["admission"]["paired_cell_count"] == 1
+    assert result["admission"]["paired_cell_count"] == 3
     assert result["total_cost_usd"] == 0.0
     assert (tmp_path / "experiment_summary.json").is_file()

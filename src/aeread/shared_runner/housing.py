@@ -942,7 +942,7 @@ def build_housing_smoke(
         reasoning_effort=reasoning_effort,
         request_seed_base=inference_seed_base,
         max_output_tokens=(
-            2048 if tenant_provider == "openrouter" and experiment_mode else None
+            4096 if tenant_provider == "openrouter" and experiment_mode else None
         ),
         timeout_seconds=(
             120.0 if tenant_provider == "openrouter" and experiment_mode else None
