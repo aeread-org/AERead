@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import dataclasses
+from pathlib import Path
 
 import pytest
 
@@ -539,6 +540,9 @@ def test_condition_batch_writes_verified_cell_summaries_and_resumes_without_call
     assert len(rows) == 4
     assert all(row["status"] == "completed" for row in rows)
     assert all(row["evidence_verified"] is True for row in rows)
+    assert all(row["measurement_status"] == "ok" for row in rows)
+    assert all(len(row["receipt_sha256"]) == 64 for row in rows)
+    assert all(Path(row["receipt_path"]).is_file() for row in rows)
     assert {(row["world_seed"], row["replicate_index"]) for row in rows} == {
         (101, 0),
         (101, 1),
@@ -631,6 +635,48 @@ def test_condition_result_digest_detects_summary_tampering(tmp_path) -> None:
             tmp_path,
             condition_id="reasoning_none_v1",
             verify_evidence=False,
+        )
+
+
+def test_condition_reader_detects_durable_receipt_tampering(tmp_path) -> None:
+    setup = build_housing_condition_setup(
+        condition_id="reasoning_none_v1",
+        reasoning_effort="none",
+        world_seeds=(101,),
+        replicates=1,
+        tenant_model=DEEPSEEK_MODEL,
+        tenant_revision=DEEPSEEK_REVISION,
+        num_tenants=2,
+        num_listings=1,
+        rounds=1,
+        inference_seed_base=87001,
+    )
+    asyncio.run(
+        run_condition_batch(
+            setup=setup,
+            condition_id="reasoning_none_v1",
+            output_root=tmp_path,
+            providers=_batch_providers(_RecordingTenantProvider()),
+            concurrency=1,
+            spend_limit_usd=1.0,
+        )
+    )
+    row = read_condition_results(
+        tmp_path, condition_id="reasoning_none_v1", verify_evidence=True
+    )[0]
+    receipt_path = Path(row["receipt_path"])
+    receipt_path.write_text(
+        receipt_path.read_text(encoding="utf-8").replace(
+            '"replay_level":"score_only"', '"replay_level":"none"'
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="receipt"):
+        read_condition_results(
+            tmp_path,
+            condition_id="reasoning_none_v1",
+            verify_evidence=True,
         )
 
 

@@ -24,8 +24,10 @@ from .housing import (
     HousingSmokeSetup,
     OpenRouterRoutePin,
     build_housing_smoke,
+    finalize_housing_execution,
 )
 from .resolver import canonical_json_bytes
+from .receipts import read_evaluation_receipt
 
 
 CONFIRMATORY_EXPERIMENT_ROUTE = OpenRouterRoutePin(
@@ -374,6 +376,7 @@ def _result_from_execution(
     execution: Any,
 ) -> dict[str, Any]:
     outcome = dict(execution.episode_result.outcome)
+    receipt = finalize_housing_execution(setup=setup, execution=execution)
     evidence = EvidenceStore.audit_existing(execution.evidence.root)
     metrics = _event_execution_metrics(evidence)
     if not math.isclose(
@@ -392,7 +395,15 @@ def _result_from_execution(
         "pair_id": cell.pair_id,
         "world_seed": cell.world_seed,
         "replicate_index": cell.replicate_index,
-        "status": "completed",
+        "status": (
+            "completed" if receipt.inclusion_status == "included" else "invalid_measurement"
+        ),
+        "measurement_status": receipt.status,
+        "receipt_sha256": receipt.receipt_sha256,
+        "receipt_path": str(
+            (execution.evidence.root / "evaluation_receipt.json").resolve()
+        ),
+        "replay_level": receipt.replay_level,
         "episode_attempt_id": execution.episode_attempt_id,
         "evidence_dir": str(evidence.root.resolve()),
         "within_case_score": outcome.get("within_case_score"),
@@ -438,6 +449,38 @@ def read_condition_results(
                 or final_event_hash != row.get("final_event_hash")
             ):
                 raise ValueError(f"condition evidence fingerprint mismatch: {path}")
+        if row.get("status") in {"completed", "invalid_measurement"}:
+            if verify_evidence and row.get("evidence_verified") is not True:
+                raise ValueError(f"condition receipt lacks verified evidence: {path}")
+            receipt_path_value = row.get("receipt_path")
+            evidence_dir_value = row.get("evidence_dir")
+            if not isinstance(receipt_path_value, str) or not isinstance(
+                evidence_dir_value, str
+            ):
+                raise ValueError(f"condition receipt is missing: {path}")
+            receipt_path = Path(receipt_path_value)
+            if receipt_path.resolve() != (
+                Path(evidence_dir_value).resolve() / "evaluation_receipt.json"
+            ):
+                raise ValueError(f"condition receipt path mismatch: {path}")
+            try:
+                receipt = read_evaluation_receipt(receipt_path)
+            except Exception as error:
+                raise ValueError(f"condition receipt verification failed: {path}") from error
+            if (
+                receipt.get("receipt_sha256") != row.get("receipt_sha256")
+                or receipt.get("run_plan_id") != row.get("run_plan_id")
+                or receipt.get("cell_id") != row.get("cell_id")
+                or receipt.get("case_id") != row.get("case_id")
+                or receipt.get("status") != row.get("measurement_status")
+            ):
+                raise ValueError(f"condition receipt identity mismatch: {path}")
+            if verify_evidence:
+                sealed = evidence.verify_seal()
+                if canonical_json_bytes(receipt.get("evidence")) != canonical_json_bytes(
+                    dataclasses.asdict(sealed)
+                ):
+                    raise ValueError(f"condition receipt evidence mismatch: {path}")
         rows.append(row)
     return rows
 
