@@ -20,11 +20,50 @@ from aeread.shared_runner.schemas import (
     RunSpec,
     SamplingPlan,
     SuiteManifest,
+    is_exportable_id,
     parse_authoring_record,
 )
 
 
 SHA256 = "a" * 64
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "housing_v1",
+        "housing_v1__dev__000001",
+        "tau3.retail.base",
+        "supply-chain-order-0001",
+        "a",
+    ],
+)
+def test_shared_runner_identifiers_are_exportable(value: str) -> None:
+    assert is_exportable_id(value)
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "tau3:retail:0001",
+        "Housing_V1",
+        "supply chain",
+        "_leading",
+        "trailing-",
+        "case/0001",
+        "",
+    ],
+)
+def test_shared_runner_rejects_nonportable_identifiers(value: str) -> None:
+    assert not is_exportable_id(value)
+
+
+def test_case_id_rejects_colon_before_rllm_can_truncate_it() -> None:
+    data = case_data()
+    data["case_id"] = "tau3:retail:0001"
+
+    with pytest.raises(AuthoringValidationError, match="valid identifier"):
+        CaseManifest.from_dict(data)
 
 
 def family_data() -> dict:

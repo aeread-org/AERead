@@ -9,11 +9,14 @@ from __future__ import annotations
 
 import asyncio
 import dataclasses
+import fcntl
 import hashlib
 import inspect
 import json
 import os
 import shutil
+import stat
+import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -61,6 +64,26 @@ class ProviderFailure(RuntimeError):
         self.provider_result = provider_result
 
 
+class ToolFailure(RuntimeError):
+    """A known tool failure, including failures after a partial mutation."""
+
+    def __init__(self, condition: str, message: str, *, retryable: bool) -> None:
+        super().__init__(message)
+        if not isinstance(condition, str) or not condition:
+            raise ValueError("ToolFailure.condition must be a non-empty string")
+        self.condition = condition
+        self.retryable = bool(retryable)
+        self.record: ToolInvocationRecord | None = None
+
+
+class ConcurrentEvidenceWriterError(EvidenceIntegrityError):
+    """Another process or object already owns the evidence writer lock."""
+
+
+class EvidenceSealedError(EvidenceIntegrityError):
+    """A sealed evidence generation cannot accept more events or artifacts."""
+
+
 def _sha256_bytes(value: bytes) -> str:
     return hashlib.sha256(value).hexdigest()
 
@@ -71,6 +94,23 @@ def _stable_id(prefix: str, value: Any) -> str:
 
 def _utc_now() -> str:
     return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+def _write_all(fd: int, payload: bytes) -> None:
+    view = memoryview(payload)
+    while view:
+        written = os.write(fd, view)
+        if written <= 0:
+            raise OSError("short write while persisting evidence")
+        view = view[written:]
+
+
+def _fsync_directory(path: Path) -> None:
+    fd = os.open(path, os.O_RDONLY | getattr(os, "O_DIRECTORY", 0))
+    try:
+        os.fsync(fd)
+    finally:
+        os.close(fd)
 
 
 @dataclass(frozen=True, slots=True)
@@ -103,6 +143,18 @@ class Event:
     event_hash: str
 
 
+@dataclass(frozen=True, slots=True)
+class EvidenceSeal:
+    run_plan_id: str
+    cell_id: str
+    episode_id: str
+    episode_attempt_id: str
+    event_count: int
+    artifact_count: int
+    event_root_sha256: str
+    artifact_root_sha256: str
+
+
 def _event_hash_payload(event: Event | Mapping[str, Any]) -> Mapping[str, Any]:
     if dataclasses.is_dataclass(event):
         value = {
@@ -115,7 +167,7 @@ def _event_hash_payload(event: Event | Mapping[str, Any]) -> Mapping[str, Any]:
 
 
 class EvidenceStore:
-    """Append-only event chain plus content-addressed artifacts for one attempt."""
+    """Durable single-writer event chain and content-addressed artifacts."""
 
     _TERMINAL_SUFFIXES = {
         "succeeded",
@@ -123,6 +175,7 @@ class EvidenceStore:
         "outcome_unknown",
         "agent_action_failure",
     }
+    _NOFOLLOW = getattr(os, "O_NOFOLLOW", 0)
 
     def __init__(
         self,
@@ -133,11 +186,20 @@ class EvidenceStore:
         episode_id: str,
         episode_attempt_id: str,
         clock: Callable[[], str] = _utc_now,
+        resume: bool = False,
     ) -> None:
         self.root = Path(root)
+        if self.root.is_symlink():
+            raise EvidenceIntegrityError("evidence root must be a real directory")
+        existed = self.root.exists()
         self.root.mkdir(parents=True, exist_ok=True)
+        if not self.root.is_dir() or self.root.is_symlink():
+            raise EvidenceIntegrityError("evidence root must be a real directory")
+        if not existed:
+            _fsync_directory(self.root.parent)
         self.artifacts_dir = self.root / "artifacts" / "sha256"
         self.events_path = self.root / "events.jsonl"
+        self.seal_path = self.root / "events.jsonl.sealed.json"
         self.run_plan_id = run_plan_id
         self.cell_id = cell_id
         self.episode_id = episode_id
@@ -145,10 +207,125 @@ class EvidenceStore:
         self._clock = clock
         self._sequence = 0
         self._prior_hash: str | None = None
-        if self.events_path.exists():
-            raise EvidenceIntegrityError(
-                f"R4 refuses to append to an existing event log: {self.events_path}"
+        self._closed = False
+        self._sealed = False
+        self._lock_fd: int | None = None
+        self._events_inode: tuple[int, int] | None = None
+        self._acquire_writer_lock()
+        try:
+            self._open_or_create_events(resume=resume)
+            if resume:
+                self.verify_chain()
+                events = self.read_events()
+                self._sequence = len(events)
+                self._prior_hash = None if not events else events[-1].event_hash
+            if os.path.lexists(self.seal_path):
+                self._sealed = True
+                sealed = self._load_seal()
+                if sealed != self._compute_seal():
+                    raise EvidenceIntegrityError(
+                        "seal marker does not match the durable evidence generation"
+                    )
+        except Exception:
+            self.close()
+            raise
+
+    def _acquire_writer_lock(self) -> None:
+        lock_path = self.root / ".writer.lock"
+        try:
+            fd = os.open(
+                lock_path,
+                os.O_RDWR | os.O_CREAT | self._NOFOLLOW,
+                0o600,
             )
+            if not stat.S_ISREG(os.fstat(fd).st_mode):
+                raise OSError("writer lock is not a regular file")
+            try:
+                fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except BlockingIOError as error:
+                os.close(fd)
+                raise ConcurrentEvidenceWriterError(
+                    f"existing event log is owned by another writer: {self.root}"
+                ) from error
+        except ConcurrentEvidenceWriterError:
+            raise
+        except OSError as error:
+            raise EvidenceIntegrityError("cannot acquire evidence writer lock") from error
+        self._lock_fd = fd
+        _fsync_directory(self.root)
+
+    def _open_or_create_events(self, *, resume: bool) -> None:
+        if os.path.lexists(self.events_path):
+            info = os.lstat(self.events_path)
+            if not stat.S_ISREG(info.st_mode):
+                raise EvidenceIntegrityError("event log must be a non-symlink regular file")
+            if not resume:
+                raise EvidenceIntegrityError(
+                    f"refusing to append to an existing event log without resume=True: "
+                    f"{self.events_path}"
+                )
+            self._events_inode = (info.st_dev, info.st_ino)
+
+    def _open_bound_events(self, flags: int) -> int:
+        self._ensure_open()
+        if self._events_inode is None:
+            if not (flags & (os.O_WRONLY | os.O_RDWR)):
+                raise EvidenceIntegrityError("event log has not been created")
+            try:
+                fd = os.open(
+                    self.events_path,
+                    flags | os.O_CREAT | os.O_EXCL | self._NOFOLLOW,
+                    0o600,
+                )
+            except OSError as error:
+                raise EvidenceIntegrityError("cannot create bound event log") from error
+            info = os.fstat(fd)
+            self._events_inode = (info.st_dev, info.st_ino)
+            _fsync_directory(self.root)
+            return fd
+        try:
+            fd = os.open(self.events_path, flags | self._NOFOLLOW)
+        except OSError as error:
+            raise EvidenceIntegrityError("event log is missing or unsafe") from error
+        info = os.fstat(fd)
+        if not stat.S_ISREG(info.st_mode) or (info.st_dev, info.st_ino) != self._events_inode:
+            os.close(fd)
+            raise EvidenceIntegrityError("event log binding changed during execution")
+        return fd
+
+    def _ensure_open(self) -> None:
+        if self._closed:
+            raise EvidenceIntegrityError("evidence store is closed")
+
+    def _ensure_writable(self) -> None:
+        self._ensure_open()
+        if self._sealed or os.path.lexists(self.seal_path):
+            self._sealed = True
+            raise EvidenceSealedError("sealed evidence cannot accept writes")
+
+    def close(self) -> None:
+        if self._closed:
+            return
+        if self._lock_fd is not None:
+            try:
+                fcntl.flock(self._lock_fd, fcntl.LOCK_UN)
+            finally:
+                os.close(self._lock_fd)
+                self._lock_fd = None
+        self._closed = True
+
+    def __enter__(self) -> "EvidenceStore":
+        self._ensure_open()
+        return self
+
+    def __exit__(self, *_args: object) -> None:
+        self.close()
+
+    def __del__(self) -> None:  # pragma: no cover - best-effort process cleanup
+        try:
+            self.close()
+        except Exception:
+            pass
 
     @classmethod
     def audit_existing(cls, root: str | Path) -> "EvidenceStore":
@@ -168,6 +345,7 @@ class EvidenceStore:
     def put_artifact(
         self, value: bytes | str | Any, *, media_type: str = "application/json"
     ) -> ArtifactRef:
+        self._ensure_writable()
         if isinstance(value, bytes):
             payload = value
         elif isinstance(value, str) and media_type.startswith("text/"):
@@ -178,13 +356,28 @@ class EvidenceStore:
         relative_path = Path("artifacts") / "sha256" / digest[:2] / digest
         destination = self.root / relative_path
         destination.parent.mkdir(parents=True, exist_ok=True)
+        if destination.parent.is_symlink():
+            raise EvidenceIntegrityError("artifact directory must not be a symlink")
         try:
-            with destination.open("xb") as handle:
-                handle.write(payload)
-                handle.flush()
-                os.fsync(handle.fileno())
+            fd = os.open(
+                destination,
+                os.O_WRONLY | os.O_CREAT | os.O_EXCL | self._NOFOLLOW,
+                0o600,
+            )
+            try:
+                _write_all(fd, payload)
+                os.fsync(fd)
+            finally:
+                os.close(fd)
+            _fsync_directory(destination.parent)
         except FileExistsError:
-            if destination.read_bytes() != payload:
+            try:
+                fd = os.open(destination, os.O_RDONLY | self._NOFOLLOW)
+                with os.fdopen(fd, "rb") as handle:
+                    existing = handle.read()
+            except OSError as error:
+                raise EvidenceIntegrityError("existing artifact is unsafe") from error
+            if existing != payload:
                 raise EvidenceIntegrityError(
                     f"artifact digest collision or corruption at {destination}"
                 )
@@ -207,6 +400,7 @@ class EvidenceStore:
         tool_invocation_id: str | None = None,
         visibility: str = "evaluator_only",
     ) -> Event:
+        self._ensure_writable()
         if not isinstance(event_type, str) or not event_type:
             raise EvidenceIntegrityError("event_type must be a non-empty string")
         payload_ref = self.put_artifact(payload)
@@ -232,22 +426,30 @@ class EvidenceStore:
         )
         event_hash = _sha256_bytes(canonical_json_bytes(_event_hash_payload(provisional)))
         event = dataclasses.replace(provisional, event_hash=event_hash)
-        line = canonical_json_bytes(event) + b"\n"
-        with self.events_path.open("ab") as handle:
-            handle.write(line)
-            handle.flush()
-            os.fsync(handle.fileno())
+        fd = self._open_bound_events(os.O_WRONLY | os.O_APPEND)
+        try:
+            _write_all(fd, canonical_json_bytes(event) + b"\n")
+            os.fsync(fd)
+        finally:
+            os.close(fd)
         self._sequence += 1
         self._prior_hash = event_hash
         return event
 
     def read_events(self) -> tuple[Event, ...]:
-        if not self.events_path.exists():
+        self._ensure_open()
+        if self._events_inode is None:
+            if os.path.lexists(self.events_path):
+                raise EvidenceIntegrityError("unexpected event log appeared during execution")
             return ()
+        fd = self._open_bound_events(os.O_RDONLY)
+        try:
+            with os.fdopen(fd, "r", encoding="utf-8") as handle:
+                lines = handle.read().splitlines()
+        except Exception as error:
+            raise EvidenceIntegrityError("cannot read event log") from error
         events: list[Event] = []
-        for line_number, line in enumerate(
-            self.events_path.read_text(encoding="utf-8").splitlines(), start=1
-        ):
+        for line_number, line in enumerate(lines, start=1):
             try:
                 events.append(Event(**json.loads(line)))
             except Exception as error:
@@ -256,13 +458,38 @@ class EvidenceStore:
                 ) from error
         return tuple(events)
 
+    def _read_artifact(self, relative_path: str) -> bytes:
+        path = self.root / relative_path
+        try:
+            info = os.lstat(path)
+            if not stat.S_ISREG(info.st_mode):
+                raise OSError("artifact is not a regular file")
+            fd = os.open(path, os.O_RDONLY | self._NOFOLLOW)
+            with os.fdopen(fd, "rb") as handle:
+                return handle.read()
+        except OSError as error:
+            raise EvidenceIntegrityError(f"unsafe or missing artifact: {relative_path}") from error
+
     def verify_chain(self) -> None:
         prior_hash: str | None = None
+        identity = (
+            self.run_plan_id,
+            self.cell_id,
+            self.episode_id,
+            self.episode_attempt_id,
+        )
         for expected_sequence, event in enumerate(self.read_events()):
             if event.sequence != expected_sequence:
                 raise EvidenceIntegrityError(
                     f"event sequence mismatch at {event.event_id}: {event.sequence}"
                 )
+            if (
+                event.run_plan_id,
+                event.cell_id,
+                event.episode_id,
+                event.episode_attempt_id,
+            ) != identity:
+                raise EvidenceIntegrityError(f"event identity mismatch at {event.event_id}")
             if event.prior_event_hash != prior_hash:
                 raise EvidenceIntegrityError(
                     f"prior event hash mismatch at {event.event_id}"
@@ -272,16 +499,87 @@ class EvidenceStore:
             )
             if event.event_hash != expected_hash:
                 raise EvidenceIntegrityError(f"event hash mismatch at {event.event_id}")
-            artifact_path = self.root / event.payload_ref
-            if not artifact_path.is_file():
-                raise EvidenceIntegrityError(
-                    f"missing payload artifact for {event.event_id}: {event.payload_ref}"
-                )
-            if _sha256_bytes(artifact_path.read_bytes()) != event.payload_sha256:
+            artifact = self._read_artifact(event.payload_ref)
+            if _sha256_bytes(artifact) != event.payload_sha256:
                 raise EvidenceIntegrityError(
                     f"payload artifact hash mismatch for {event.event_id}"
                 )
             prior_hash = event.event_hash
+
+    def _artifact_manifest(self) -> tuple[Mapping[str, Any], ...]:
+        if not self.artifacts_dir.exists():
+            return ()
+        if self.artifacts_dir.is_symlink():
+            raise EvidenceIntegrityError("artifact root must not be a symlink")
+        rows: list[Mapping[str, Any]] = []
+        for path in sorted(self.artifacts_dir.glob("*/*")):
+            info = os.lstat(path)
+            if not stat.S_ISREG(info.st_mode):
+                raise EvidenceIntegrityError(f"artifact entry is not a regular file: {path}")
+            payload = self._read_artifact(path.relative_to(self.root).as_posix())
+            digest = _sha256_bytes(payload)
+            if path.name != digest:
+                raise EvidenceIntegrityError(f"artifact filename digest mismatch: {path}")
+            rows.append(
+                {
+                    "sha256": digest,
+                    "size_bytes": len(payload),
+                    "relative_path": path.relative_to(self.root).as_posix(),
+                }
+            )
+        return tuple(rows)
+
+    def _compute_seal(self) -> EvidenceSeal:
+        events = self.read_events()
+        artifacts = self._artifact_manifest()
+        return EvidenceSeal(
+            run_plan_id=self.run_plan_id,
+            cell_id=self.cell_id,
+            episode_id=self.episode_id,
+            episode_attempt_id=self.episode_attempt_id,
+            event_count=len(events),
+            artifact_count=len(artifacts),
+            event_root_sha256=_sha256_bytes(
+                canonical_json_bytes(tuple(event.event_hash for event in events))
+            ),
+            artifact_root_sha256=_sha256_bytes(canonical_json_bytes(artifacts)),
+        )
+
+    def _load_seal(self) -> EvidenceSeal:
+        try:
+            info = os.lstat(self.seal_path)
+            if not stat.S_ISREG(info.st_mode):
+                raise OSError("seal is not a regular file")
+            fd = os.open(self.seal_path, os.O_RDONLY | self._NOFOLLOW)
+            with os.fdopen(fd, "rb") as handle:
+                return EvidenceSeal(**json.loads(handle.read()))
+        except Exception as error:
+            raise EvidenceIntegrityError("seal marker is invalid or unsafe") from error
+
+    def seal(self) -> EvidenceSeal:
+        self._ensure_open()
+        computed = self._compute_seal()
+        if os.path.lexists(self.seal_path):
+            self._sealed = True
+            existing = self._load_seal()
+            if existing != computed:
+                raise EvidenceIntegrityError("seal marker does not match current evidence")
+            return existing
+        temporary = self.root / f".seal-{uuid.uuid4().hex}.tmp"
+        fd = os.open(
+            temporary,
+            os.O_WRONLY | os.O_CREAT | os.O_EXCL | self._NOFOLLOW,
+            0o600,
+        )
+        try:
+            _write_all(fd, canonical_json_bytes(computed) + b"\n")
+            os.fsync(fd)
+        finally:
+            os.close(fd)
+        os.replace(temporary, self.seal_path)
+        _fsync_directory(self.root)
+        self._sealed = True
+        return computed
 
     def audit_reconciliation(
         self,
@@ -481,11 +779,18 @@ class ToolInvocationRecord:
     action_attempt_id: str
     tool_id: str
     tool_version: str
+    tool_schema_sha256: str
     input_sha256: str
     idempotency_supported: bool
     status: str
     result_sha256: str | None
     failure_condition: str | None
+    effect: str
+    state_before_sha256: str | None
+    state_after_sha256: str | None
+    state_diff_sha256: str | None
+    state_changed: bool | None
+    outcome_known: bool
 
 
 class ProviderClient(Protocol):
@@ -2077,6 +2382,88 @@ class ToolExecutor:
         self.evidence = evidence
         self._ordinal = 0
 
+    async def _snapshot_state(
+        self, state_reader: Callable[[], Any]
+    ) -> tuple[Any, ArtifactRef]:
+        value = state_reader()
+        if inspect.isawaitable(value):
+            value = await value
+        try:
+            snapshot = json.loads(canonical_json_bytes(value))
+        except Exception as error:
+            raise EvidenceIntegrityError(
+                "state_reader must return canonically serializable state"
+            ) from error
+        return snapshot, self.evidence.put_artifact(
+            snapshot, media_type="application/vnd.aeread.state+json"
+        )
+
+    def _state_change(
+        self,
+        before: tuple[Any, ArtifactRef] | None,
+        after: tuple[Any, ArtifactRef] | None,
+    ) -> tuple[bool | None, ArtifactRef | None]:
+        if before is None or after is None:
+            return None, None
+        changed = before[1].sha256 != after[1].sha256
+        if not changed:
+            return False, None
+        return True, self.evidence.put_artifact(
+            {
+                "before_sha256": before[1].sha256,
+                "after_sha256": after[1].sha256,
+                "before": before[0],
+                "after": after[0],
+            },
+            media_type="application/vnd.aeread.state-diff+json",
+        )
+
+    def _record(
+        self,
+        *,
+        tool_invocation_id: str,
+        action_attempt_id: str,
+        tool_id: str,
+        tool_version: str,
+        tool_schema_sha256: str,
+        input_sha256: str,
+        idempotency_supported: bool,
+        effect: str,
+        status: str,
+        result_sha256: str | None,
+        failure_condition: str | None,
+        before: tuple[Any, ArtifactRef] | None,
+        after: tuple[Any, ArtifactRef] | None,
+        state_changed: bool | None,
+        state_diff_ref: ArtifactRef | None,
+        outcome_known: bool,
+    ) -> ToolInvocationRecord:
+        return ToolInvocationRecord(
+            tool_invocation_id=tool_invocation_id,
+            action_attempt_id=action_attempt_id,
+            tool_id=tool_id,
+            tool_version=tool_version,
+            tool_schema_sha256=tool_schema_sha256,
+            input_sha256=input_sha256,
+            idempotency_supported=idempotency_supported,
+            status=status,
+            result_sha256=result_sha256,
+            failure_condition=failure_condition,
+            effect=effect,
+            state_before_sha256=None if before is None else before[1].sha256,
+            state_after_sha256=None if after is None else after[1].sha256,
+            state_diff_sha256=(
+                None if state_diff_ref is None else state_diff_ref.sha256
+            ),
+            state_changed=state_changed,
+            outcome_known=outcome_known,
+        )
+
+    async def _observed_after(
+        self, state_reader: Callable[[], Any] | None
+    ) -> tuple[Any, ArtifactRef] | None:
+        return None if state_reader is None else await self._snapshot_state(state_reader)
+
     async def invoke(
         self,
         *,
@@ -2086,7 +2473,27 @@ class ToolExecutor:
         arguments: Mapping[str, Any],
         implementation: Callable[[Mapping[str, Any]], Awaitable[Any]],
         idempotency_supported: bool,
+        effect: str,
+        tool_schema_sha256: str,
+        state_reader: Callable[[], Any] | None = None,
     ) -> tuple[Any, ToolInvocationRecord]:
+        if effect not in {"read_only", "mutating"}:
+            raise EvidenceIntegrityError("tool effect must be read_only or mutating")
+        if state_reader is not None and not callable(state_reader):
+            raise EvidenceIntegrityError("state_reader must be callable")
+        if effect == "mutating" and state_reader is None:
+            raise EvidenceIntegrityError(
+                "mutating tool invocation requires a state_reader"
+            )
+        if (
+            not isinstance(tool_schema_sha256, str)
+            or len(tool_schema_sha256) != 64
+            or any(character not in "0123456789abcdef" for character in tool_schema_sha256)
+        ):
+            raise EvidenceIntegrityError(
+                "tool_schema_sha256 must be 64 lowercase hexadecimal characters"
+            )
+        before = await self._observed_after(state_reader)
         ordinal = self._ordinal
         self._ordinal += 1
         tool_invocation_id = _stable_id(
@@ -2103,9 +2510,14 @@ class ToolExecutor:
             {
                 "tool_id": tool_id,
                 "tool_version": tool_version,
+                "tool_schema_sha256": tool_schema_sha256,
                 "arguments": arguments,
                 "input_sha256": input_sha256,
                 "idempotency_supported": idempotency_supported,
+                "effect": effect,
+                "state_before_sha256": (
+                    None if before is None else before[1].sha256
+                ),
             },
             action_attempt_id=action_attempt_id,
             tool_invocation_id=tool_invocation_id,
@@ -2115,39 +2527,177 @@ class ToolExecutor:
             if not inspect.isawaitable(pending):
                 raise TypeError("tool implementation must return an awaitable")
             result = await pending
+        except ToolFailure as error:
+            after = await self._observed_after(state_reader)
+            state_changed, state_diff_ref = self._state_change(before, after)
+            self.evidence.append_event(
+                "tool_invocation_failed",
+                {
+                    "failure_condition": error.condition,
+                    "message": str(error),
+                    "retryable": error.retryable,
+                    "effect": effect,
+                    "outcome_known": True,
+                    "state_before_sha256": (
+                        None if before is None else before[1].sha256
+                    ),
+                    "state_after_sha256": None if after is None else after[1].sha256,
+                    "state_changed": state_changed,
+                    "state_diff_sha256": (
+                        None if state_diff_ref is None else state_diff_ref.sha256
+                    ),
+                },
+                action_attempt_id=action_attempt_id,
+                tool_invocation_id=tool_invocation_id,
+            )
+            error.record = self._record(
+                tool_invocation_id=tool_invocation_id,
+                action_attempt_id=action_attempt_id,
+                tool_id=tool_id,
+                tool_version=tool_version,
+                tool_schema_sha256=tool_schema_sha256,
+                input_sha256=input_sha256,
+                idempotency_supported=idempotency_supported,
+                effect=effect,
+                status="failed",
+                result_sha256=None,
+                failure_condition=error.condition,
+                before=before,
+                after=after,
+                state_changed=state_changed,
+                state_diff_ref=state_diff_ref,
+                outcome_known=True,
+            )
+            raise
         except asyncio.CancelledError:
+            after = await self._observed_after(state_reader)
+            state_changed, state_diff_ref = self._state_change(before, after)
             self.evidence.append_event(
                 "tool_invocation_outcome_unknown",
-                {"failure_condition": "interrupted_during_tool"},
+                {
+                    "failure_condition": "interrupted_during_tool",
+                    "effect": effect,
+                    "outcome_known": False,
+                    "state_before_sha256": (
+                        None if before is None else before[1].sha256
+                    ),
+                    "state_observed_after_sha256": (
+                        None if after is None else after[1].sha256
+                    ),
+                    "state_observed_changed": state_changed,
+                    "state_diff_sha256": (
+                        None if state_diff_ref is None else state_diff_ref.sha256
+                    ),
+                },
                 action_attempt_id=action_attempt_id,
                 tool_invocation_id=tool_invocation_id,
             )
             raise
         except BaseException:
+            after = await self._observed_after(state_reader)
+            state_changed, state_diff_ref = self._state_change(before, after)
             self.evidence.append_event(
                 "tool_invocation_outcome_unknown",
-                {"failure_condition": "unexpected_tool_interruption"},
+                {
+                    "failure_condition": "unexpected_tool_interruption",
+                    "effect": effect,
+                    "outcome_known": False,
+                    "state_before_sha256": (
+                        None if before is None else before[1].sha256
+                    ),
+                    "state_observed_after_sha256": (
+                        None if after is None else after[1].sha256
+                    ),
+                    "state_observed_changed": state_changed,
+                    "state_diff_sha256": (
+                        None if state_diff_ref is None else state_diff_ref.sha256
+                    ),
+                },
                 action_attempt_id=action_attempt_id,
                 tool_invocation_id=tool_invocation_id,
             )
             raise
         result_ref = self.evidence.put_artifact(result)
+        after = await self._observed_after(state_reader)
+        state_changed, state_diff_ref = self._state_change(before, after)
+        if effect == "read_only" and state_changed:
+            failure = ToolFailure(
+                "tool_effect_violation",
+                f"read_only tool {tool_id!r} changed observed state",
+                retryable=False,
+            )
+            self.evidence.append_event(
+                "tool_invocation_failed",
+                {
+                    "failure_condition": failure.condition,
+                    "message": str(failure),
+                    "retryable": False,
+                    "effect": effect,
+                    "outcome_known": True,
+                    "result_sha256": result_ref.sha256,
+                    "state_before_sha256": before[1].sha256,
+                    "state_after_sha256": after[1].sha256,
+                    "state_changed": True,
+                    "state_diff_sha256": state_diff_ref.sha256,
+                },
+                action_attempt_id=action_attempt_id,
+                tool_invocation_id=tool_invocation_id,
+            )
+            failure.record = self._record(
+                tool_invocation_id=tool_invocation_id,
+                action_attempt_id=action_attempt_id,
+                tool_id=tool_id,
+                tool_version=tool_version,
+                tool_schema_sha256=tool_schema_sha256,
+                input_sha256=input_sha256,
+                idempotency_supported=idempotency_supported,
+                effect=effect,
+                status="failed",
+                result_sha256=result_ref.sha256,
+                failure_condition=failure.condition,
+                before=before,
+                after=after,
+                state_changed=True,
+                state_diff_ref=state_diff_ref,
+                outcome_known=True,
+            )
+            raise failure
         self.evidence.append_event(
             "tool_invocation_succeeded",
-            {"result": result, "result_sha256": result_ref.sha256},
+            {
+                "result": result,
+                "result_sha256": result_ref.sha256,
+                "effect": effect,
+                "outcome_known": True,
+                "state_before_sha256": (
+                    None if before is None else before[1].sha256
+                ),
+                "state_after_sha256": None if after is None else after[1].sha256,
+                "state_changed": state_changed,
+                "state_diff_sha256": (
+                    None if state_diff_ref is None else state_diff_ref.sha256
+                ),
+            },
             action_attempt_id=action_attempt_id,
             tool_invocation_id=tool_invocation_id,
         )
-        return result, ToolInvocationRecord(
+        return result, self._record(
             tool_invocation_id=tool_invocation_id,
             action_attempt_id=action_attempt_id,
             tool_id=tool_id,
             tool_version=tool_version,
+            tool_schema_sha256=tool_schema_sha256,
             input_sha256=input_sha256,
             idempotency_supported=idempotency_supported,
+            effect=effect,
             status="succeeded",
             result_sha256=result_ref.sha256,
             failure_condition=None,
+            before=before,
+            after=after,
+            state_changed=state_changed,
+            state_diff_ref=state_diff_ref,
+            outcome_known=True,
         )
 
 
@@ -2296,8 +2846,11 @@ __all__ = [
     "ArtifactRef",
     "CanonicalResponse",
     "ClaudeCodePrintClient",
+    "ConcurrentEvidenceWriterError",
     "CellExecution",
     "EvidenceIntegrityError",
+    "EvidenceSeal",
+    "EvidenceSealedError",
     "EvidenceStore",
     "Event",
     "LogicalActionExecution",
@@ -2311,6 +2864,7 @@ __all__ = [
     "ProviderResult",
     "TokenPricing",
     "ToolExecutor",
+    "ToolFailure",
     "ToolInvocationRecord",
     "execute_plan_cell",
 ]
