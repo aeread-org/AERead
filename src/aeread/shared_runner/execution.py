@@ -1,9 +1,11 @@
-"""R4 agent execution and append-only evidence for the AERead shared runner.
+"""Agent execution and append-only evidence for the AERead shared runner.
 
 This layer turns an R3 ``DecisionRequest`` into a ``CanonicalResponse`` while
 making logical actions, declared attempts, provider calls, tools, failures,
-budgets, artifacts, and retry ownership explicit.  It does not create receipts,
-resume crashed runs, replay episodes, or score outcomes; those are R5+ stages.
+budgets, artifacts, and retry ownership explicit. It also publishes and verifies
+durable evaluation receipts once a family adapter supplies its typed score or
+failure. Family-specific state reconstruction, transition replay, and scoring remain
+adapter responsibilities.
 """
 from __future__ import annotations
 
