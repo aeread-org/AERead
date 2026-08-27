@@ -59,6 +59,7 @@ from .schemas import (
     RunSpec,
     SamplingPlan,
     SuiteManifest,
+    is_exportable_id,
     parse_authoring_record,
 )
 
@@ -109,6 +110,7 @@ __all__ = [
     "TransitionResult",
     "episode_id_for_cell",
     "execute_plan_cell",
+    "is_exportable_id",
     "canonical_json_bytes",
     "case_content_sha256",
     "parse_authoring_record",
