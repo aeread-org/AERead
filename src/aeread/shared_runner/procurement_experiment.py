@@ -22,6 +22,9 @@ from .procurement_rfq import ProcurementRFQPlugin, ProcurementScriptedBuyerProvi
 from .resolver import canonical_json_bytes
 
 
+OFFLINE_MASTER_SEED = 20260827
+
+
 def derive_procurement_world_seeds(*, master_seed: int, count: int, admission: bool = False) -> tuple[int, ...]:
     if isinstance(master_seed, bool) or not isinstance(master_seed, int) or master_seed < 0:
         raise ValueError("master_seed must be a nonnegative integer")
@@ -97,7 +100,7 @@ def validate_live_admission(rows: Sequence[Mapping[str, Any]], *, setups: Mappin
 
 async def run_procurement_experiment(
     *, output_root: str | Path, mode: str = "offline", world_count: int = 100, replicates: int = 3,
-    master_seed: int = 20260827, inference_seed_base: int = 20260827,
+    master_seed: int | None = None, inference_seed_base: int = 20260827,
     control_effort: str | None = None, treatment_effort: str | None = None,
     spend_limit_usd: float | None = None, bootstrap_draws: int = 10_000,
 ) -> dict[str, Any]:
@@ -109,6 +112,10 @@ async def run_procurement_experiment(
             raise ValueError("live conditions require two explicit, distinct Gemini thinking efforts")
         if isinstance(spend_limit_usd, bool) or not isinstance(spend_limit_usd, (int, float)) or not math.isfinite(spend_limit_usd) or spend_limit_usd <= 0:
             raise ValueError("live runs require an explicit positive total spend budget")
+        if master_seed is None or master_seed == OFFLINE_MASTER_SEED:
+            raise ValueError("live runs require an explicit fresh master seed, not the inspected offline panel seed")
+    if master_seed is None:
+        master_seed = OFFLINE_MASTER_SEED
     panel = derive_procurement_world_seeds(master_seed=master_seed, count=world_count)
     admission = derive_procurement_world_seeds(master_seed=master_seed, count=3, admission=True)
     if set(panel) & set(admission):
@@ -127,6 +134,13 @@ async def run_procurement_experiment(
             inference_seed_base=inference_seed_base) for condition, effort in conditions.items()}
 
     root = Path(output_root)
+    if live:
+        inspected_seeds = set(derive_procurement_world_seeds(master_seed=OFFLINE_MASTER_SEED, count=100))
+        offline_study_path = root / "offline_study.json"
+        if offline_study_path.exists():
+            inspected_seeds.update(json.loads(offline_study_path.read_bytes())["panel_seeds"])
+        if (set(panel) | set(admission)) & inspected_seeds:
+            raise ValueError("live seed panel overlaps inspected offline worlds; choose a fresh master seed")
     study = {
         "spec_version": "aeread.procurement_study/1",
         "source_sha256": hashlib.sha256(Path(__file__).read_bytes() + Path(__file__).with_name("paired_analysis.py").read_bytes()).hexdigest(),
@@ -190,7 +204,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--mode", choices=("offline", "admission", "sample"), default="offline")
     parser.add_argument("--world-count", type=int, default=100)
     parser.add_argument("--replicates", type=int, default=3)
-    parser.add_argument("--master-seed", type=int, default=20260827)
+    parser.add_argument("--master-seed", type=int, help="explicit fresh seed required for live modes; offline defaults to 20260827")
     parser.add_argument("--inference-seed-base", type=int, default=20260827)
     parser.add_argument("--control-effort", choices=("low", "medium", "high"))
     parser.add_argument("--treatment-effort", choices=("low", "medium", "high"))

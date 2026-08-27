@@ -34,7 +34,7 @@ def test_live_sample_requires_admission_and_explicit_condition_budget(tmp_path):
     with pytest.raises(ValueError, match="budget|spend"):
         asyncio.run(run_procurement_experiment(output_root=tmp_path, mode="sample", control_effort="low", treatment_effort="high"))
     with pytest.raises(ValueError, match="admission"):
-        asyncio.run(run_procurement_experiment(output_root=tmp_path, mode="sample", control_effort="low", treatment_effort="high", spend_limit_usd=10))
+        asyncio.run(run_procurement_experiment(output_root=tmp_path, mode="sample", control_effort="low", treatment_effort="high", spend_limit_usd=10, master_seed=20260828))
 
 
 def test_declared_panel_does_not_erase_missing_worlds_or_accept_extra_replicates():
@@ -96,3 +96,11 @@ def test_live_admission_validates_each_condition_seed_and_native_call_identity()
     rows[0]["external_fixture_call_count"] = 1
     with pytest.raises(ValueError, match="scripted"):
         validate_live_admission(rows, setups=setups)
+
+
+@pytest.mark.parametrize("master_seed", [None, 20260827])
+def test_live_run_requires_fresh_explicit_panel_seed(tmp_path, master_seed):
+    with pytest.raises(ValueError, match="fresh|seed"):
+        asyncio.run(run_procurement_experiment(output_root=tmp_path, mode="sample",
+            control_effort="low", treatment_effort="high", spend_limit_usd=10,
+            master_seed=master_seed))
