@@ -310,7 +310,14 @@ def _upstream_root() -> Path:
     root = Path(candidate)
     marker = root / "data" / "tau2" / "domains" / "retail" / "tasks.json"
     if not marker.is_file():
-        pytest.skip(f"pinned upstream tau2-bench checkout not found at {root}")
+        pytest.skip(
+            f"pinned upstream tau2-bench checkout not found at {root}",
+            # Every test in this module needs the checkout, so skipping the
+            # module is the intent. Without this flag pytest treats a
+            # module-level skip as an error and the whole file fails to
+            # collect -- which is what CI hit, since CI has no checkout.
+            allow_module_level=True,
+        )
     return root
 
 

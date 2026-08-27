@@ -9,7 +9,14 @@ if _src.is_dir() and str(_src) not in sys.path:
 
 
 _BRIDGE_REQUIRED_ENV_VAR = "AEREAD_TAU2_BRIDGE_REQUIRED"
-_BRIDGE_SKIP_MARKER = "upstream tau2-bench Python interpreter"
+
+# Both ways the upstream-fidelity tests can go unrun: no interpreter that can
+# import upstream, and no upstream checkout to import. Matching only the first
+# left the second silent, which is the same hole one level up.
+_BRIDGE_SKIP_MARKERS = (
+    "upstream tau2-bench Python interpreter",
+    "upstream tau2-bench checkout not found",
+)
 
 
 def pytest_terminal_summary(terminalreporter, exitstatus, config):
@@ -35,20 +42,25 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config):
     bridge_skips = [
         report
         for report in skipped
-        if _BRIDGE_SKIP_MARKER in str(getattr(report, "longrepr", ""))
+        if any(
+            marker in str(getattr(report, "longrepr", ""))
+            for marker in _BRIDGE_SKIP_MARKERS
+        )
     ]
     if not bridge_skips:
         return
 
     terminalreporter.write_sep("=", "upstream bridge required", red=True)
     terminalreporter.write_line(
-        f"{len(bridge_skips)} upstream-fidelity test(s) skipped because no "
-        "pinned upstream interpreter was found, and "
-        f"${_BRIDGE_REQUIRED_ENV_VAR} is set."
+        f"{len(bridge_skips)} upstream-fidelity test(s) skipped while "
+        f"${_BRIDGE_REQUIRED_ENV_VAR} is set. Reported reasons:"
     )
+    for reason in sorted({str(getattr(r, "longrepr", "")) for r in bridge_skips}):
+        terminalreporter.write_line(f"  {reason}")
     terminalreporter.write_line(
-        "Run tools/tau2_bridge/provision.sh and export "
-        "$AEREAD_TAU2_BRIDGE_PYTHON, or unset "
+        "Provide the pinned upstream checkout (AEREAD_TAU2_UPSTREAM_ROOT) and "
+        "an interpreter for it (tools/tau2_bridge/provision.sh, then export "
+        "$AEREAD_TAU2_BRIDGE_PYTHON), or unset "
         f"${_BRIDGE_REQUIRED_ENV_VAR} to allow skipping."
     )
     session = getattr(terminalreporter, "_session", None)
