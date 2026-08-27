@@ -87,6 +87,7 @@ from .schemas import (
     is_exportable_id,
     parse_authoring_record,
 )
+from .tools import ToolBinding, ToolContractError, ToolDefinition, ToolRuntime
 
 __all__ = [
     "AgentProfile",
@@ -147,7 +148,11 @@ __all__ = [
     "TokenPricing",
     "ToolExecutor",
     "ToolFailure",
+    "ToolBinding",
+    "ToolContractError",
+    "ToolDefinition",
     "ToolInvocationRecord",
+    "ToolRuntime",
     "TransitionResult",
     "ValidityDomainSpec",
     "ValidityReport",

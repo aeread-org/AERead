@@ -760,6 +760,7 @@ class ToolInvocationRecord:
     action_attempt_id: str
     tool_id: str
     tool_version: str
+    tool_schema_sha256: str
     input_sha256: str
     idempotency_supported: bool
     status: str
@@ -2247,6 +2248,7 @@ class ToolExecutor:
         action_attempt_id: str,
         tool_id: str,
         tool_version: str,
+        tool_schema_sha256: str,
         input_sha256: str,
         idempotency_supported: bool,
         effect: str,
@@ -2264,6 +2266,7 @@ class ToolExecutor:
             action_attempt_id=action_attempt_id,
             tool_id=tool_id,
             tool_version=tool_version,
+            tool_schema_sha256=tool_schema_sha256,
             input_sha256=input_sha256,
             idempotency_supported=idempotency_supported,
             status=status,
@@ -2294,6 +2297,7 @@ class ToolExecutor:
         implementation: Callable[[Mapping[str, Any]], Awaitable[Any]],
         idempotency_supported: bool,
         effect: str,
+        tool_schema_sha256: str,
         state_reader: Callable[[], Any] | None = None,
     ) -> tuple[Any, ToolInvocationRecord]:
         if effect not in {"read_only", "mutating"}:
@@ -2303,6 +2307,14 @@ class ToolExecutor:
         if effect == "mutating" and state_reader is None:
             raise EvidenceIntegrityError(
                 "mutating tool invocation requires a state_reader"
+            )
+        if (
+            not isinstance(tool_schema_sha256, str)
+            or len(tool_schema_sha256) != 64
+            or any(character not in "0123456789abcdef" for character in tool_schema_sha256)
+        ):
+            raise EvidenceIntegrityError(
+                "tool_schema_sha256 must be 64 lowercase hexadecimal characters"
             )
         before = await self._observed_after(state_reader)
         ordinal = self._ordinal
@@ -2321,6 +2333,7 @@ class ToolExecutor:
             {
                 "tool_id": tool_id,
                 "tool_version": tool_version,
+                "tool_schema_sha256": tool_schema_sha256,
                 "arguments": arguments,
                 "input_sha256": input_sha256,
                 "idempotency_supported": idempotency_supported,
@@ -2365,6 +2378,7 @@ class ToolExecutor:
                 action_attempt_id=action_attempt_id,
                 tool_id=tool_id,
                 tool_version=tool_version,
+                tool_schema_sha256=tool_schema_sha256,
                 input_sha256=input_sha256,
                 idempotency_supported=idempotency_supported,
                 effect=effect,
@@ -2457,6 +2471,7 @@ class ToolExecutor:
                 action_attempt_id=action_attempt_id,
                 tool_id=tool_id,
                 tool_version=tool_version,
+                tool_schema_sha256=tool_schema_sha256,
                 input_sha256=input_sha256,
                 idempotency_supported=idempotency_supported,
                 effect=effect,
@@ -2494,6 +2509,7 @@ class ToolExecutor:
             action_attempt_id=action_attempt_id,
             tool_id=tool_id,
             tool_version=tool_version,
+            tool_schema_sha256=tool_schema_sha256,
             input_sha256=input_sha256,
             idempotency_supported=idempotency_supported,
             effect=effect,

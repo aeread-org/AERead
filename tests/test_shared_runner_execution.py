@@ -456,6 +456,7 @@ def test_tool_executor_records_success_and_unknown_outcome(tmp_path) -> None:
             implementation=successful,
             idempotency_supported=True,
             effect="read_only",
+            tool_schema_sha256="a" * 64,
         )
     )
     assert result == {"echo": 3}
@@ -474,6 +475,7 @@ def test_tool_executor_records_success_and_unknown_outcome(tmp_path) -> None:
                 implementation=cancelled,
                 idempotency_supported=False,
                 effect="read_only",
+                tool_schema_sha256="b" * 64,
             )
         )
     evidence.audit_reconciliation(entity_types=("tool_invocation",))
@@ -499,6 +501,7 @@ def test_mutating_tool_requires_a_state_reader(tmp_path) -> None:
                 implementation=mutate,
                 idempotency_supported=True,
                 effect="mutating",
+                tool_schema_sha256="c" * 64,
             )
         )
     assert evidence.read_events() == ()
@@ -522,6 +525,7 @@ def test_refund_mutation_records_before_after_and_state_diff(tmp_path) -> None:
             implementation=refund,
             idempotency_supported=True,
             effect="mutating",
+            tool_schema_sha256="d" * 64,
             state_reader=lambda: database,
         )
     )
@@ -556,6 +560,7 @@ def test_supply_chain_failure_after_partial_mutation_is_not_recorded_as_no_op(
                 implementation=order_stock,
                 idempotency_supported=False,
                 effect="mutating",
+                tool_schema_sha256="e" * 64,
                 state_reader=lambda: ledger,
             )
         )
@@ -589,6 +594,7 @@ def test_declared_read_only_tool_cannot_silently_mutate_observed_state(tmp_path)
                 implementation=broken_read,
                 idempotency_supported=True,
                 effect="read_only",
+                tool_schema_sha256="f" * 64,
                 state_reader=lambda: database,
             )
         )
