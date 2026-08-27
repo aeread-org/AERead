@@ -13,6 +13,10 @@ from typing import Any, Mapping, Sequence
 
 from aeread import exchange_procurement as procurement
 from aeread import procurement_rfq_env as rfq
+from aeread.procurement_rfq_cases import GENERATOR_ID, GENERATOR_VERSION, make_procurement_rfq_world
+
+from .family_evaluation import finalize_family_execution
+from .procurement_measurement import procurement_source_digests, score_procurement_outcome
 
 from .execution import (
     CanonicalResponse,
@@ -600,7 +604,9 @@ class ProcurementRFQPlugin:
         return {"valid": True, **dict(terminal)}
 
     def build_scorer(self, case):
-        return lambda outcome: outcome["buyer_surplus"]
+        return lambda outcome, evidence_refs=(): score_procurement_outcome(
+            case, outcome, evidence_refs=evidence_refs
+        )
 
     def build_reference_providers(self, case):
         return (
@@ -610,7 +616,7 @@ class ProcurementRFQPlugin:
         )
 
     def generator(self):
-        return procurement.make_random_procurement_world
+        return make_procurement_rfq_world
 
 
 def _scripted_result(request: ProviderRequest, output: Mapping[str, Any]) -> ProviderResult:
@@ -810,13 +816,22 @@ def _profile(
     pricing: TokenPricing,
     max_logical_actions: int,
     runtime: str,
+    reasoning_effort: str | None = None,
+    condition_id: str | None = None,
+    inference_seed_base: int | None = None,
 ) -> AgentProfile:
     live_provider = provider in {"openrouter", "google"}
+    effort = reasoning_effort or ("low" if live_provider else "none")
+    if provider == "google" and effort not in {"low", "medium", "high"}:
+        raise ValueError("Gemini procurement thinking effort must be low, medium, or high")
     config: dict[str, Any] = {
         "pricing_id": pricing.pricing_id,
         "pricing_sha256": pricing.content_sha256(),
         "output_schema_by_action_schema": dict(output_schemas),
     }
+    if inference_seed_base is not None:
+        config["request_seed_source"] = "paired_cell_v1"
+        config["request_seed_base"] = inference_seed_base
     if provider == "openrouter":
         config["provider_metadata"] = {
             "route_provider": "DeepInfra",
@@ -827,9 +842,9 @@ def _profile(
         }
     elif provider == "google":
         config["provider_metadata"] = {
-            "canonical_model": "gemini-3.7-flash",
-            "catalog_version": "3.7-flash-08-2026",
-            "thinking_level": "low",
+            "canonical_model": model,
+            "catalog_version": revision,
+            "thinking_level": effort,
             "max_input_price_per_million": "0.75",
             "max_cached_input_price_per_million": "0.075",
             "max_output_price_per_million": "3.75",
@@ -867,8 +882,8 @@ def _profile(
             "tools": [],
             "memory": {"mode": "disabled"},
             "reasoning": {
-                "condition_id": "reasoning_low_v1" if live_provider else "reasoning_none_v1",
-                "effort": "low" if live_provider else "none",
+                "condition_id": condition_id or f"reasoning_{effort}_v1",
+                "effort": effort,
                 "token_budget": None,
                 "rationale_visibility": "hidden",
             },
@@ -904,14 +919,30 @@ def build_procurement_rfq_smoke(
     buyer_provider: str = "procurement_scripted_buyer",
     buyer_model: str = "procurement_scripted_buyer_v1",
     buyer_revision: str = "1.0.0",
+    world_seeds: Sequence[int] | None = None,
+    replicates: int = 1,
+    reasoning_effort: str | None = None,
+    condition_id: str | None = None,
+    inference_seed_base: int = 0,
 ) -> ProcurementRFQSmokeSetup:
+    generated = world_seeds is not None
+    seeds = (0,) if world_seeds is None else tuple(world_seeds)
+    if (not seeds or any(isinstance(seed, bool) or not isinstance(seed, int) or seed < 0 for seed in seeds)
+            or len(set(seeds)) != len(seeds)):
+        raise ValueError("world seeds must be distinct nonnegative integers")
+    if isinstance(replicates, bool) or not isinstance(replicates, int) or replicates < 1:
+        raise ValueError("replicates must be a positive integer")
+    if isinstance(inference_seed_base, bool) or not isinstance(inference_seed_base, int) or inference_seed_base < 0:
+        raise ValueError("inference seed base must be a nonnegative integer")
+    effort = reasoning_effort or ("low" if buyer_provider in {"google", "openrouter"} else "none")
+    condition_id = condition_id or f"reasoning_{effort}_v1"
     repository_root = Path(__file__).resolve().parents[3]
     config_path = repository_root / "configs" / "exchange_economy" / "procurement_electronics_q3.json"
-    world = procurement.load_procurement_world(config_path)
+    worlds = [make_procurement_rfq_world(seed=seed) for seed in seeds] if generated else [procurement.load_procurement_world(config_path)]
     max_contacts = 5
     contact_cost = 5.0
     disclosure_anchor = 0.95
-    seller_ids = sorted({terms.seller_id for terms in world.suppliers})
+    seller_ids = sorted({terms.seller_id for terms in worlds[0].suppliers})
     max_actions = 4 + 2 * max_contacts
 
     family = FamilyManifest.from_dict(
@@ -958,18 +989,20 @@ def build_procurement_rfq_smoke(
                 ],
             },
             "generator": {
-                "generator_id": "procurement_rfq_generator_v1",
+                "generator_id": GENERATOR_ID,
                 "difficulty_knobs": ["max_contacts", "contact_cost", "vendor_terms", "approval_policy"],
             },
         }
     )
-    raw_case = {
+    cases = []
+    for seed, world in zip(seeds, worlds):
+        raw_case = {
         "spec_version": "aeread.case/0.1",
-        "case_id": "procurement_rfq_v1__smoke__000001",
+        "case_id": f"procurement_rfq_v1__evaluation__{seed}" if generated else "procurement_rfq_v1__smoke__000001",
         "family_id": "procurement_rfq_v1",
         "family_version": "1.0.0",
-        "split": "smoke",
-        "world_seed": 0,
+        "split": "evaluation" if generated else "smoke",
+        "world_seed": seed,
         "seats": [
             {"id": "buyer_0", "role": "buyer"},
             *[{"id": f"supplier_{seller_id}", "role": "supplier"} for seller_id in seller_ids],
@@ -986,34 +1019,36 @@ def build_procurement_rfq_smoke(
             "disclosure_anchor": disclosure_anchor,
         },
         "provenance": {
-            "generator_id": "procurement_electronics_q3_curated",
-            "generator_version": "1.0.0",
-            "review_status": "curated",
+            "generator_id": GENERATOR_ID if generated else "procurement_electronics_q3_curated",
+            "generator_version": GENERATOR_VERSION,
+            "review_status": "generated" if generated else "curated",
         },
         "content_sha256": "0" * 64,
-    }
-    raw_case["content_sha256"] = case_content_sha256(raw_case)
-    case = CaseManifest.from_dict(raw_case)
+        }
+        raw_case["content_sha256"] = case_content_sha256(raw_case)
+        cases.append(CaseManifest.from_dict(raw_case))
     sampling = SamplingPlan.from_dict(
         {
             "spec_version": "aeread.sampling/0.1",
-            "sampling_plan_id": "procurement_rfq_smoke_sample_v1",
-            "estimand": "fixed_procurement_rfq_smoke_case",
-            "target": "procurement_electronics_q3_curated",
-            "selection": "fixed_curated",
-            "seeds": [0],
-            "replicates": 1,
+            "sampling_plan_id": "procurement_rfq_generated_sample_v1" if generated else "procurement_rfq_smoke_sample_v1",
+            "estimand": "generated_procurement_rfq_population" if generated else "fixed_procurement_rfq_smoke_case",
+            "target": GENERATOR_ID if generated else "procurement_electronics_q3_curated",
+            "selection": "seeded_simple_random" if generated else "fixed_curated",
+            "seeds": [inference_seed_base],
+            "replicates": replicates,
             "cluster_level": "procurement_world",
             "cluster_id_fields": ["generator_version", "world_seed"],
             "paired_fields": ["world_seed"],
             "replicate_level": "episode_attempt",
-            "panel_mode": "fixed_panel",
+            "panel_mode": "sampled_panel" if generated else "fixed_panel",
         }
     )
     buyer_profile_id = {
         "openrouter": "procurement_deepseek_buyer_v1",
         "google": "procurement_gemini37_buyer_v1",
     }.get(buyer_provider, "procurement_scripted_buyer_v1")
+    if generated:
+        buyer_profile_id = f"{buyer_profile_id}_{condition_id}"
     if buyer_provider == "openrouter":
         buyer_pricing = TokenPricing(
             0.08,
@@ -1051,6 +1086,9 @@ def build_procurement_rfq_smoke(
         },
         pricing=buyer_pricing,
         max_logical_actions=4,
+        reasoning_effort=effort,
+        condition_id=condition_id,
+        inference_seed_base=inference_seed_base if generated else None,
         runtime=(
             "aeread.shared_runner.execution"
             if buyer_provider in {"openrouter", "google"}
@@ -1089,7 +1127,7 @@ def build_procurement_rfq_smoke(
     analysis = AnalysisPlan.from_dict(
         {
             "spec_version": "aeread.analysis/0.1",
-            "analysis_plan_id": "procurement_rfq_smoke_analysis_v1",
+            "analysis_plan_id": "procurement_rfq_generated_analysis_v1" if generated else "procurement_rfq_smoke_analysis_v1",
             "estimands": [
                 "buyer_surplus",
                 "social_welfare",
@@ -1099,7 +1137,7 @@ def build_procurement_rfq_smoke(
             "group_by": ["family_id", "subject_role"],
             "missingness": "report_separately",
             "resampling_unit": "cluster_id",
-            "uncertainty": "none",
+            "uncertainty": "cluster_bootstrap_95" if generated else "none",
             "multiplicity": "none",
             "sensitivity": ["report_approval_violations"],
             "cross_family_scalar": "disabled",
@@ -1108,10 +1146,10 @@ def build_procurement_rfq_smoke(
     suite = SuiteManifest.from_dict(
         {
             "spec_version": "aeread.suite/0.1",
-            "suite_id": "procurement_rfq_smoke_v1",
+            "suite_id": "procurement_rfq_generated_v1" if generated else "procurement_rfq_smoke_v1",
             "version": "1.0.0",
             "family_ids": ["procurement_rfq_v1"],
-            "case_ids": [case.case_id],
+            "case_ids": [case.case_id for case in cases],
             "sampling_plan_id": sampling.sampling_plan_id,
             "evaluation_block_ids": [block.block_id],
             "analysis_plan_id": analysis.analysis_plan_id,
@@ -1140,26 +1178,21 @@ def build_procurement_rfq_smoke(
     plugin = ProcurementRFQPlugin()
     registry = PluginRegistry()
     registry.register(family, plugin)
-    substrate_source = Path(procurement.__file__).read_bytes()
-    environment_source = Path(rfq.__file__).read_bytes()
-    bridge_source = Path(__file__).read_bytes()
     execution_source = Path(__file__).with_name("execution.py").read_bytes()
-    combined = hashlib.sha256(substrate_source + environment_source + bridge_source).hexdigest()
-    environment_digest = hashlib.sha256(environment_source).hexdigest()
-    bridge_digest = hashlib.sha256(bridge_source).hexdigest()
+    digests = procurement_source_digests()
     execution_digest = hashlib.sha256(execution_source).hexdigest()
     pins = [
-        _pin("aeread.procurement_rfq_v1", "family_plugin", combined),
-        _pin("procurement_rfq_outcome_v1", "scorer", combined),
-        _pin("procurement_rfq_no_action_v1", "reference", bridge_digest),
-        _pin("procurement_rfq_visible_baseline_v1", "reference", environment_digest),
-        _pin("procurement_rfq_full_info_terms_v1", "reference", environment_digest),
-        _pin("procurement_rfq_generator_v1", "generator", environment_digest),
+        _pin("aeread.procurement_rfq_v1", "family_plugin", digests["combined"]),
+        _pin("procurement_rfq_outcome_v1", "scorer", digests["combined"]),
+        _pin("procurement_rfq_no_action_v1", "reference", digests["reference"]),
+        _pin("procurement_rfq_visible_baseline_v1", "reference", digests["reference"]),
+        _pin("procurement_rfq_full_info_terms_v1", "reference", digests["reference"]),
+        _pin(GENERATOR_ID, "generator", digests["generator"]),
         _pin("minimal_chat", "harness", execution_digest, version="1.0"),
         _pin(
             "aeread.shared_runner.procurement_rfq",
             "runtime",
-            bridge_digest,
+            digests["runtime"],
             version="0.1.0",
         ),
     ]
@@ -1174,7 +1207,7 @@ def build_procurement_rfq_smoke(
         )
     plan = resolve_run_plan(
         families=(family,),
-        cases=(case,),
+        cases=tuple(cases),
         suite=suite,
         sampling=sampling,
         evaluation_blocks=(block,),
@@ -1232,7 +1265,7 @@ async def _run_cli(arguments: argparse.Namespace) -> dict[str, Any]:
         pricing=setup.pricing,
         episode_attempt_ordinal=arguments.attempt,
     )
-    execution.evidence.audit_reconciliation()
+    receipt = finalize_family_execution(setup=setup, execution=execution)
     return {
         "run_plan_id": execution.run_plan_id,
         "cell_id": execution.cell_id,
@@ -1241,6 +1274,10 @@ async def _run_cli(arguments: argparse.Namespace) -> dict[str, Any]:
         "logical_action_count": execution.episode_result.logical_action_count,
         "total_cost_usd": execution.total_cost_usd,
         "evidence_dir": str(execution.evidence.root),
+        "receipt_path": str(execution.evidence.root / "evaluation_receipt.json"),
+        "receipt_sha256": receipt.receipt_sha256,
+        "inclusion_status": receipt.inclusion_status,
+        "replay_level": receipt.replay_level,
     }
 
 

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import asyncio
+import pytest
 
 from aeread.shared_runner.execution import execute_plan_cell
 from aeread.shared_runner.procurement_rfq import (
@@ -17,6 +18,7 @@ from aeread.shared_runner.procurement_rfq import (
     build_procurement_rfq_smoke,
 )
 from aeread.shared_runner.resolver import canonical_json_bytes
+from aeread.shared_runner.family_evaluation import finalize_family_execution, replay_family_receipt
 
 
 DEEPSEEK_MODEL = "deepseek/deepseek-v4-flash-0731"
@@ -194,3 +196,44 @@ def test_provider_free_procurement_cell_executes_and_reconciles_evidence(tmp_pat
     assert result.outcome["bound_semantics"] == "full_information_terms_relaxation"
     assert execution.total_cost_usd == 0.0
     execution.evidence.audit_reconciliation()
+
+
+def test_generated_procurement_plans_pair_worlds_not_repeated_fixture_labels():
+    common = dict(buyer_provider="google", buyer_model=GEMINI_MODEL,
+                  buyer_revision=GEMINI_REVISION, world_seeds=(11, 12), replicates=3)
+    low = build_procurement_rfq_smoke(**common, reasoning_effort="low")
+    high = build_procurement_rfq_smoke(**common, reasoning_effort="high")
+    assert len(low.plan.cases) == 2 and len(low.plan.cells) == 6
+    assert low.plan.run_plan_id != high.plan.run_plan_id
+    assert low.plan.analysis.uncertainty == "cluster_bootstrap_95"
+    assert low.plan.sampling.selection == "seeded_simple_random"
+    assert low.plan.cases[0].payload["world"] != low.plan.cases[1].payload["world"]
+    assert sorted((c.world_seed, c.replicate_index, c.cluster_id, c.pair_id) for c in low.plan.cells) == sorted(
+        (c.world_seed, c.replicate_index, c.cluster_id, c.pair_id) for c in high.plan.cells
+    )
+    for setup, effort in [(low, "low"), (high, "high")]:
+        profile = next(p for p in setup.plan.agent_profiles if p.model.provider == "google")
+        assert profile.reasoning.effort == effort
+        assert profile.harness.config["provider_metadata"]["thinking_level"] == effort
+        assert profile.harness.config["request_seed_source"] == "paired_cell_v1"
+
+
+@pytest.mark.parametrize("seeds", [(), (1, 1), (True,), (-1,), (1.5,)])
+def test_procurement_panel_rejects_bad_world_seeds(seeds):
+    with pytest.raises(ValueError, match="seed"):
+        build_procurement_rfq_smoke(world_seeds=seeds, replicates=3)
+
+
+def test_procurement_uses_shared_typed_receipts_and_no_call_replay(tmp_path):
+    setup = build_procurement_rfq_smoke()
+    execution = asyncio.run(execute_plan_cell(
+        plan=setup.plan, cell_id=setup.plan.cells[0].cell_id, registry=setup.registry,
+        evidence_root=tmp_path, prompt_sources=setup.prompt_sources, pricing=setup.pricing,
+        providers={"procurement_scripted_buyer": ProcurementScriptedBuyerProvider(),
+                   "procurement_scripted_supplier": ProcurementScriptedSupplierProvider()},
+    ))
+    receipt = finalize_family_execution(setup=setup, execution=execution)
+    assert receipt.status == "ok" and receipt.replay_level == "state_and_score"
+    assert receipt.scores[0].primary.value == pytest.approx(728.6)
+    assert receipt.scores[0].leaf.verifier.verifier_family == "objective_reference"
+    assert replay_family_receipt(setup=setup, receipt=receipt, evidence_root=tmp_path) == receipt
