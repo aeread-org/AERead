@@ -75,7 +75,7 @@ when reasoning telemetry differs or is unavailable.
 ## Validation and remaining scientific boundary
 
 Provider-free Housing, experiment, receipt, evidence, and portability tests pass. The complete
-repository suite passes `589` tests with `3` skips and `1` expected failure; the two local
+repository suite passes `590` tests with `3` skips and `1` expected failure; the two local
 loopback tests that the sandbox blocked also pass when run with loopback permission.
 
 The instrument is ready for a fresh admission run. It does not preserve the withdrawn

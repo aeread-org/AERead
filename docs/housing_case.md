@@ -62,20 +62,18 @@ non-transferable utility, and rent here is negotiable. And it is strategyproof o
 proposing side, so truthful ranking would be a dominant strategy and there would be
 nothing for an agent to get right or wrong.
 
-## 3. Baselines
+## 3. Reference policies
 
-All computable with no API calls, so the scale exists before any agent is scored.
+All references are computable without provider calls, so the scale exists before an
+agent is scored. The receipt comparison baseline `B` is the four-round naive scripted
+policy in Section 5. The adaptive scripted policy is retained as a diagnostic, and the
+max-weight allocation supplies `U`; the current pinned-panel values are reported in
+Section 5a.
 
-| baseline | efficiency vs optimum |
-|---|---|
-| naive: minimum bid on your own favourite | 0.619 |
-| truthful: full valuation on your own favourite | 0.700 |
-| max-weight optimum | 1.000 |
-
-These numbers were regenerated after the P0 privacy correction over 300 seeds at 6
-tenants and 4 listings. The naive baseline standard deviation is 0.173. They describe
-only the pinned generator and policy; they are not evidence of saturation of housing
-reasoning in general.
+The one-shot `naive_top_bids`, `truthful_top_bids`, and `resolve_bids` helpers remain
+useful for unit tests and mechanism probes, but they are not the current multi-round
+receipt comparator. Their historical averages must not be mixed with the P0
+`contact -> respond -> commit` results.
 
 ## 4. Why this mechanism and not a simpler one
 
@@ -223,10 +221,9 @@ miscomputing, and conflating the two would penalise exactly the behaviour the ca
 exists to reward.
 
 The earlier profitable-deviation count predates the private-cost and binding-hold P0
-revision and is withdrawn pending a committed rerun. Current four-round results over
-the 299 of 300 generated seeds with `U > 0` are: naive 0.847 (sd 0.122) and adaptive
-0.835 (sd 0.127). These establish executable within-case comparisons, not universal
-scores or evidence that the suite is saturated.
+revision and is withdrawn pending a committed rerun. The current four-round results
+are the pinned 300-seed panel in Section 5a. They establish executable within-case
+comparisons, not universal scores or evidence that the suite is saturated.
 
 ## 6. Metrics
 
