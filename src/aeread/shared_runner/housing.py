@@ -29,6 +29,18 @@ from .execution import (
     execute_plan_cell,
 )
 from .registry import PluginRegistry
+from .measurement import (
+    EstimandSpec,
+    ImplementationRef as MeasurementImplementationRef,
+    MeasurementLeafSpec,
+    MetricValue,
+    ObjectiveScopeSpec,
+    ReferenceSpec,
+    ScoreEnvelope,
+    ValidityDomainSpec,
+    ValidityReport,
+    VerifierSpec,
+)
 from .resolver import (
     ImplementationPin,
     RunPlan,
@@ -109,6 +121,244 @@ def _finite_number(value: Any) -> bool:
         isinstance(value, (int, float))
         and not isinstance(value, bool)
         and math.isfinite(float(value))
+    )
+
+
+def _housing_source_digests() -> tuple[str, str, str]:
+    housing_source = Path(hz.__file__).read_bytes()
+    bridge_source = Path(__file__).read_bytes()
+    return (
+        hashlib.sha256(housing_source).hexdigest(),
+        hashlib.sha256(bridge_source).hexdigest(),
+        hashlib.sha256(housing_source + bridge_source).hexdigest(),
+    )
+
+
+def _housing_measurement_leaf(case: Mapping[str, Any]) -> MeasurementLeafSpec:
+    housing_digest, _bridge_digest, combined_digest = _housing_source_digests()
+    source_sha256 = hashlib.sha256(
+        canonical_json_bytes({"surplus": case["world"].surplus})
+    ).hexdigest()
+    validity_domain = ValidityDomainSpec(
+        domain_id="housing_v1_terminal_domain",
+        domain_version="1.0.0",
+        schema_ref="housing_v1/outcome/1",
+        predicate=MeasurementImplementationRef(
+            "housing_outcome_validity_v1", "1.0.0", combined_digest
+        ),
+    )
+    estimand = EstimandSpec(
+        estimand_id="social_welfare",
+        estimand_version="1.0.0",
+        input_scope="terminal_state",
+        direction="maximize",
+        units="utility_points",
+        validity_domain=validity_domain,
+    )
+    return MeasurementLeafSpec(
+        leaf_id="housing_social_welfare_leaf",
+        leaf_version="1.0.0",
+        estimand=estimand,
+        verifier=VerifierSpec(
+            verifier_family="objective_reference",
+            evaluation_class="deterministic",
+            reference=ReferenceSpec(
+                reference_id="housing_exact_assignment_v1",
+                reference_version="1.0.0",
+                reference_kind="objective_upper_bound",
+                input_scope="terminal_state",
+                units="utility_points",
+                source_sha256=source_sha256,
+                implementation=MeasurementImplementationRef(
+                    "housing_exact_assignment_v1", "1.0.0", housing_digest
+                ),
+            ),
+            objective_scope=ObjectiveScopeSpec(
+                objective_id="social_welfare",
+                objective_version="1.0.0",
+                direction="maximize",
+                units="utility_points",
+                feasible_set="one tenant and one landlord per signed lease",
+                information_set="full case values and private landlord costs",
+                horizon="one pinned housing episode",
+                environment_condition="pinned housing world and deadline",
+                opponent_condition="controlled landlord policy declared in the RunPlan",
+                validity_domain=validity_domain,
+            ),
+        ),
+        scorer=MeasurementImplementationRef(
+            "housing_outcome_v1", "1.0.0", combined_digest
+        ),
+    )
+
+
+def _housing_metric_mapping(
+    value: object, *, label: str, expected_ids: Sequence[str], reasons: list[str]
+) -> dict[str, float]:
+    if not isinstance(value, Mapping) or set(value) != set(expected_ids):
+        reasons.append(f"{label} does not match the declared seats")
+        return {}
+    result: dict[str, float] = {}
+    for seat_id in sorted(expected_ids):
+        payoff = value[seat_id]
+        if not _finite_number(payoff):
+            reasons.append(f"{label} contains a non-finite payoff")
+            return {}
+        result[seat_id] = float(payoff)
+    return result
+
+
+def _score_housing_outcome(
+    case: Mapping[str, Any],
+    outcome: Mapping[str, Any],
+    *,
+    evidence_refs: Sequence[str] = (),
+) -> ScoreEnvelope:
+    leaf = _housing_measurement_leaf(case)
+    reasons: list[str] = []
+    if not isinstance(outcome, Mapping):
+        outcome = {}
+        reasons.append("outcome is not a mapping")
+    if outcome.get("valid") is not True:
+        reasons.append("family outcome is not marked valid")
+    if outcome.get("bound_semantics") != "full_information_allocation_relaxation":
+        reasons.append("upper-bound semantics are missing or changed")
+
+    numeric: dict[str, float] = {}
+    for field in ("social_welfare", "feasible_floor", "baseline_total", "oracle_total"):
+        value = outcome.get(field)
+        if not _finite_number(value):
+            reasons.append(f"{field} is missing or non-finite")
+        else:
+            numeric[field] = float(value)
+
+    if "feasible_floor" in numeric and not math.isclose(
+        numeric["feasible_floor"], 0.0, abs_tol=1e-12
+    ):
+        reasons.append("feasible-policy lower bound is not the declared zero policy")
+    if "oracle_total" in numeric and numeric["oracle_total"] < -1e-12:
+        reasons.append("assignment upper bound cannot be negative")
+    if {"feasible_floor", "oracle_total"}.issubset(numeric) and (
+        numeric["feasible_floor"] > numeric["oracle_total"] + 1e-9
+    ):
+        reasons.append("optimum lower bound exceeds the upper bound")
+    if {"baseline_total", "oracle_total"}.issubset(numeric) and (
+        numeric["baseline_total"] > numeric["oracle_total"] + 1e-9
+    ):
+        reasons.append("comparison baseline exceeds the declared upper bound")
+    if {"social_welfare", "oracle_total"}.issubset(numeric) and (
+        numeric["social_welfare"] > numeric["oracle_total"] + 1e-9
+    ):
+        reasons.append("observed welfare exceeds the declared upper bound")
+
+    tenant_ids = tuple(f"tenant_{index}" for index in range(case["num_tenants"]))
+    landlord_ids = tuple(f"landlord_{index}" for index in range(case["num_listings"]))
+    tenant_payoffs = _housing_metric_mapping(
+        outcome.get("tenant_payoffs"),
+        label="tenant_payoffs",
+        expected_ids=tenant_ids,
+        reasons=reasons,
+    )
+    landlord_payoffs = _housing_metric_mapping(
+        outcome.get("landlord_payoffs"),
+        label="landlord_payoffs",
+        expected_ids=landlord_ids,
+        reasons=reasons,
+    )
+    payoffs = {**tenant_payoffs, **landlord_payoffs}
+    if payoffs and "social_welfare" in numeric and not math.isclose(
+        sum(payoffs.values()), numeric["social_welfare"], rel_tol=1e-9, abs_tol=1e-9
+    ):
+        reasons.append("seat payoffs do not sum to social welfare")
+
+    ir_violations = outcome.get("ir_violations")
+    if not isinstance(ir_violations, (list, tuple)) or any(
+        not isinstance(item, str) or not item for item in ir_violations
+    ):
+        reasons.append("ir_violations must be a list of seat identifiers")
+    wasted_contacts = outcome.get("wasted_contacts")
+    if (
+        isinstance(wasted_contacts, bool)
+        or not isinstance(wasted_contacts, int)
+        or wasted_contacts < 0
+    ):
+        reasons.append("wasted_contacts must be a non-negative integer")
+
+    if {"social_welfare", "oracle_total"}.issubset(numeric):
+        declared_ratio = outcome.get("within_case_score")
+        if numeric["oracle_total"] > 0:
+            expected_ratio = numeric["social_welfare"] / numeric["oracle_total"]
+            if not _finite_number(declared_ratio) or not math.isclose(
+                float(declared_ratio), expected_ratio, rel_tol=1e-9, abs_tol=1e-9
+            ):
+                reasons.append("within_case_score does not match welfare over upper bound")
+        elif declared_ratio is not None:
+            reasons.append("within_case_score must be null when the upper bound is zero")
+
+    if reasons:
+        return ScoreEnvelope(
+            status="invalid_measurement",
+            leaf=leaf,
+            primary=None,
+            metrics={},
+            reference_values={},
+            validity=ValidityReport("invalid", tuple(dict.fromkeys(reasons))),
+            evidence_refs=tuple(evidence_refs),
+        )
+
+    welfare = numeric["social_welfare"]
+    lower = numeric["feasible_floor"]
+    baseline = numeric["baseline_total"]
+    upper = numeric["oracle_total"]
+    metrics = {
+        "social_welfare": MetricValue(welfare, "utility_points"),
+        "comparison_baseline_gap": MetricValue(
+            welfare - baseline, "utility_points"
+        ),
+        "upper_bound_gap": MetricValue(upper - welfare, "utility_points"),
+        "ir_violation_count": MetricValue(float(len(ir_violations)), "count"),
+        "wasted_contacts": MetricValue(float(wasted_contacts), "count"),
+    }
+    if upper > 0:
+        metrics["within_case_score"] = MetricValue(welfare / upper, "ratio")
+    references = {
+        "optimum_lower_bound": MetricValue(
+            lower,
+            "utility_points",
+            {"reference_kind": "objective_lower_bound", "policy": "do_nothing"},
+        ),
+        "comparison_baseline": MetricValue(
+            baseline,
+            "utility_points",
+            {"reference_kind": "comparison_baseline", "policy": "adaptive"},
+        ),
+        "optimum_upper_bound": MetricValue(
+            upper,
+            "utility_points",
+            {
+                "reference_kind": "objective_upper_bound",
+                "semantics": "full_information_allocation_relaxation",
+            },
+        ),
+    }
+    utility = {
+        seat_id: MetricValue(
+            payoff,
+            "utility_points",
+            {"disagreement_utility": 0.0},
+        )
+        for seat_id, payoff in sorted(payoffs.items())
+    }
+    return ScoreEnvelope(
+        status="ok",
+        leaf=leaf,
+        primary=metrics["social_welfare"],
+        metrics=metrics,
+        reference_values=references,
+        validity=ValidityReport("valid"),
+        evidence_refs=tuple(evidence_refs),
+        utility_by_seat=utility,
+        capture_by_seat=utility,
     )
 
 
@@ -481,7 +731,14 @@ class HousingV1Plugin:
         return {"valid": True, **dict(terminal)}
 
     def build_scorer(self, case):
-        return lambda outcome: outcome["social_welfare"]
+        def score(
+            outcome: Mapping[str, Any], *, evidence_refs: Sequence[str] = ()
+        ) -> ScoreEnvelope:
+            return _score_housing_outcome(
+                case, outcome, evidence_refs=evidence_refs
+            )
+
+        return score
 
     def build_reference_providers(self, case):
         return (
