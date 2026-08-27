@@ -1,6 +1,7 @@
 """Red/green contract tests for the production-shaped procurement RFQ case."""
 from __future__ import annotations
 
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
@@ -188,3 +189,48 @@ def test_scripted_baseline_is_executable_and_below_full_information_terms_bound(
     assert 0.0 < baseline.buyer_surplus < baseline.buyer_surplus_upper_bound
     assert 0.8 < baseline.buyer_surplus_score < 1.0
     assert baseline.disclosed_rfq_count == 0
+
+
+def _contact_tradeoff_world() -> procurement.ProcurementWorld:
+    world = procurement.make_random_procurement_world(components=1, seed=0)
+    return replace(
+        world,
+        suppliers=[
+            replace(world.suppliers[0], unit_cost=10.0, lead_time_days=20, moq=1),
+            replace(world.suppliers[1], unit_cost=10.01, lead_time_days=20, moq=1),
+        ],
+    )
+
+
+@pytest.mark.parametrize("max_contacts", [1, 2])
+def test_upper_bound_jointly_optimizes_spend_and_contact_cost(max_contacts) -> None:
+    world = _contact_tradeoff_world()
+    # Splitting costs 1051 + 10 in contacts; vendor 3 alone costs 1052 + 5.
+    assert rfq.buyer_surplus_upper_bound(
+        world, max_contacts=max_contacts, contact_cost=5.0
+    ) == pytest.approx(943.0)
+
+
+def test_executable_single_vendor_purchase_cannot_exceed_bound() -> None:
+    market = rfq.ProcurementRFQMarket(
+        _contact_tradeoff_world(), max_contacts=2, contact_cost=5.0, disclosure_anchor=0.95
+    )
+    market.submit_rfqs([rfq.RFQDraft(3, "c1", 100)])
+    _submit_scripted_quotes(market)
+    _counter_to_supplier_floors(market)
+    offer = next(iter(market.final_offers.values()))
+    approval = market.submit_approval_request([rfq.OfferSelection(offer.offer_id, 100)])
+    assert approval.approved
+    market.submit_award(approval.approval_id)
+    economics = market.economics()
+    assert economics.buyer_surplus == pytest.approx(943.0)
+    assert economics.buyer_surplus <= economics.buyer_surplus_upper_bound
+    assert economics.buyer_surplus_score == pytest.approx(1.0)
+
+
+def test_upper_bound_includes_no_trade_when_contacts_erase_the_gain() -> None:
+    world = _contact_tradeoff_world()
+    world = replace(world, demand=replace(world.demand, contract_value=1000.0))
+    assert rfq.buyer_surplus_upper_bound(
+        world, max_contacts=2, contact_cost=5.0
+    ) == 0.0

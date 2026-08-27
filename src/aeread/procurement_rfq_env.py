@@ -17,6 +17,7 @@ import hashlib
 import json
 import math
 from dataclasses import asdict, dataclass, replace
+from itertools import combinations
 from typing import Any, Mapping, Sequence
 
 from aeread import exchange_procurement as procurement
@@ -239,17 +240,33 @@ def buyer_surplus_upper_bound(
     max_contacts: int,
     contact_cost: float,
 ) -> float:
+    """Exact net-surplus optimum in the full-information floor-price relaxation.
+
+    Vendor contacts are fixed charges, so a minimum purchase-spend allocation
+    alone is insufficient. Enumerate contact sets in the small declared market,
+    solving the integer allocation within each. No trade is always feasible.
+    """
     prices = {
         (terms.seller_id, terms.component): supplier_floor_price(terms)
         for terms in world.suppliers
+        if terms.seller_id in world.authz.approved_vendors
+        and terms.lead_time_days <= world.demand.deadline_days
     }
-    oracle = procurement.solve_min_cost_award(_priced_world(world, prices))
-    if not oracle.feasible:
-        return 0.0
-    contacts = len({line.seller_id for line in oracle.lines})
-    if contacts > max_contacts:
-        return 0.0
-    return world.demand.contract_value - oracle.min_cost - contacts * contact_cost
+    seller_ids = sorted({seller_id for seller_id, _ in prices})
+    best = 0.0
+    for count in range(1, min(max_contacts, len(seller_ids)) + 1):
+        for subset in combinations(seller_ids, count):
+            selected = set(subset)
+            oracle = procurement.solve_min_cost_award(
+                _priced_world(world, {key: value for key, value in prices.items() if key[0] in selected})
+            )
+            if oracle.feasible:
+                used_contacts = len({line.seller_id for line in oracle.lines})
+                best = max(
+                    best,
+                    world.demand.contract_value - oracle.min_cost - used_contacts * contact_cost,
+                )
+    return best
 
 
 class ProcurementRFQMarket:

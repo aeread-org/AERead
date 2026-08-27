@@ -20,3 +20,6 @@
   exact Housing V1 trace through isolated simultaneous tenant decisions, a local controlled
   landlord, immutable holds, phase-specific schemas, bounds and payoffs, privacy checks, one
   explicit live length retry, and the boundary between smoke admission and paper evidence.
+- [`procurement_statistical_readiness.md`](procurement_statistical_readiness.md) —
+  Housing's 600-trajectory design versus procurement readiness, a confirmed variable-world
+  upper-bound counterexample, generator coverage, and conditional cluster-level sample planning.
