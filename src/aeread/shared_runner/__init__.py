@@ -48,6 +48,12 @@ from .measurement import (
     ValidityReport,
     VerifierSpec,
 )
+from .receipts import (
+    EvaluationFailure,
+    EvaluationReceipt,
+    seal_evaluation_receipt,
+    verify_evaluation_receipt,
+)
 from .resolver import (
     ImplementationPin,
     PlanCell,
@@ -102,6 +108,8 @@ __all__ = [
     "ConcurrentEvidenceWriterError",
     "CellExecution",
     "EvaluationBlock",
+    "EvaluationFailure",
+    "EvaluationReceipt",
     "EpisodeResult",
     "EvidenceIntegrityError",
     "EvidenceSeal",
@@ -167,6 +175,8 @@ __all__ = [
     "parse_authoring_record",
     "resolve_run_plan",
     "run_episode",
+    "seal_evaluation_receipt",
     "verify_run_plan",
+    "verify_evaluation_receipt",
     "write_run_plan",
 ]
