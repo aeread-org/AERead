@@ -1883,6 +1883,7 @@ async def _run_cli(arguments: argparse.Namespace) -> dict[str, Any]:
         pricing=setup.pricing,
         episode_attempt_ordinal=arguments.attempt,
     )
+    receipt = finalize_housing_execution(setup=setup, execution=execution)
     return {
         "run_plan_id": execution.run_plan_id,
         "cell_id": execution.cell_id,
@@ -1891,6 +1892,12 @@ async def _run_cli(arguments: argparse.Namespace) -> dict[str, Any]:
         "logical_action_count": execution.episode_result.logical_action_count,
         "total_cost_usd": execution.total_cost_usd,
         "evidence_dir": str(execution.evidence.root),
+        "measurement_status": receipt.status,
+        "receipt_sha256": receipt.receipt_sha256,
+        "receipt_path": str(
+            (execution.evidence.root / "evaluation_receipt.json").resolve()
+        ),
+        "replay_level": receipt.replay_level,
     }
 
 

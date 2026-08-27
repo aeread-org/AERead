@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import asyncio
 import dataclasses
+from argparse import Namespace
+from pathlib import Path
 
 import pytest
 
@@ -23,6 +25,7 @@ from aeread.shared_runner.housing import (
     build_housing_smoke,
     finalize_housing_execution,
     replay_housing_receipt,
+    _run_cli,
 )
 
 
@@ -371,3 +374,26 @@ def test_housing_finalizer_rejects_an_outcome_not_bound_by_the_event_log(tmp_pat
 
     with pytest.raises(ValueError, match="event log"):
         finalize_housing_execution(setup=setup, execution=altered)
+
+
+def test_scripted_housing_cli_returns_the_validated_receipt_identity(tmp_path) -> None:
+    result = asyncio.run(
+        _run_cli(
+            Namespace(
+                provider="scripted",
+                model=None,
+                revision=None,
+                world_seed=41001,
+                tenants=2,
+                listings=1,
+                rounds=1,
+                attempt=0,
+                output=tmp_path,
+            )
+        )
+    )
+
+    assert result["measurement_status"] == "ok"
+    assert result["replay_level"] == "state_and_score"
+    assert len(result["receipt_sha256"]) == 64
+    assert Path(result["receipt_path"]).is_file()
