@@ -346,7 +346,7 @@ def _score_housing_outcome(
         "comparison_baseline": MetricValue(
             baseline,
             "utility_points",
-            {"reference_kind": "comparison_baseline", "policy": "adaptive"},
+            {"reference_kind": "comparison_baseline", "policy": "naive"},
         ),
         "optimum_upper_bound": MetricValue(
             upper,
@@ -713,7 +713,7 @@ class HousingV1Plugin:
         baseline = hz.run_scripted_market(
             market.world,
             rounds=case["rounds"],
-            strategy="adaptive",
+            strategy="naive",
         )
         score = (
             economics.social_welfare / oracle.total if oracle.total > 0 else None
@@ -759,7 +759,7 @@ class HousingV1Plugin:
     def build_reference_providers(self, case):
         return (
             "housing_feasible_zero_v1",
-            "housing_adaptive_v1",
+            "housing_naive_v1",
             "housing_exact_assignment_v1",
         )
 
@@ -1557,7 +1557,7 @@ def build_housing_smoke(
                 "measurement_kind": "optimizable_outcome",
                 "direction": "maximize",
                 "optimum_lower_bound": "housing_feasible_zero_v1",
-                "comparison_baseline": "housing_adaptive_v1",
+                "comparison_baseline": "housing_naive_v1",
                 "optimum_upper_bound": "housing_exact_assignment_v1",
                 "optimum_upper_bound_kind": "full_information_relaxation",
                 "bound_status": "bracketed",
@@ -1566,7 +1566,7 @@ def build_housing_smoke(
             "scoring": {
                 "scorer_id": "housing_outcome_v1",
                 "oracle_id": "housing_exact_assignment_v1",
-                "reference_provider_ids": ["housing_feasible_zero_v1", "housing_adaptive_v1"],
+                "reference_provider_ids": ["housing_feasible_zero_v1", "housing_naive_v1"],
             },
             "generator": {
                 "generator_id": "housing_generator_v1",
@@ -1810,7 +1810,7 @@ def build_housing_smoke(
         _pin("housing_outcome_v1", "scorer", combined_digest),
         _pin("housing_exact_assignment_v1", "reference", housing_digest),
         _pin("housing_feasible_zero_v1", "reference", bridge_digest),
-        _pin("housing_adaptive_v1", "reference", housing_digest),
+        _pin("housing_naive_v1", "reference", housing_digest),
         _pin("housing_generator_v1", "generator", housing_digest),
         _pin("minimal_chat", "harness", execution_digest, version="1.0"),
         _pin("aeread.shared_runner.housing", "runtime", bridge_digest, version="0.1.0"),

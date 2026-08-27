@@ -81,7 +81,7 @@ def test_housing_smoke_seals_phase_schemas_bounds_and_controlled_landlords() -> 
     family = setup.plan.families[0]
     assert family.family.id == "housing_v1"
     assert family.measurement.optimum_lower_bound == "housing_feasible_zero_v1"
-    assert family.measurement.comparison_baseline == "housing_adaptive_v1"
+    assert family.measurement.comparison_baseline == "housing_naive_v1"
     assert family.measurement.optimum_upper_bound == "housing_exact_assignment_v1"
     assert family.measurement.optimum_upper_bound_kind == "full_information_relaxation"
 
@@ -200,6 +200,7 @@ def test_housing_scorer_emits_typed_welfare_references_and_private_capture(
     assert score.reference_values["comparison_baseline"].value == (
         execution.episode_result.outcome["baseline_total"]
     )
+    assert score.reference_values["comparison_baseline"].metadata["policy"] == "naive"
     assert score.reference_values["optimum_upper_bound"].value == (
         execution.episode_result.outcome["oracle_total"]
     )
