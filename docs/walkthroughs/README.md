@@ -23,6 +23,9 @@
 - [`procurement_statistical_readiness.md`](procurement_statistical_readiness.md) —
   Housing's 600-trajectory design versus procurement readiness, a confirmed variable-world
   upper-bound counterexample, generator coverage, and conditional cluster-level sample planning.
+- [`procurement_panel_preflight.md`](procurement_panel_preflight.md) —
+  repaired references, generated RFQ worlds, shared receipt and batch controls, offline panel
+  validation, and the explicit live Gemini comparison/admission gate.
 - [`housing_reasoning_experiment.md`](housing_reasoning_experiment.md) —
   pre-outcome audit, locked design, and completed result for 100 paired Housing worlds,
   reasoning disabled versus reasoning-low, three nested replicates, cluster-level inference,

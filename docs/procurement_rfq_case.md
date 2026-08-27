@@ -2,7 +2,7 @@
 
 ## Status
 
-This is a **Provider-free MVP** for a native AERead procurement case. It is an executable, deterministic benchmark fixture with scripted reference providers. It is not a paper result, a live-model evaluation, or evidence that the case has reached behavioral saturation.
+The original **Provider-free MVP** is now supplemented by a versioned coupled-world generator, native Gemini support, and shared-runner typed receipts, replay, batching, and paired analysis. It is not a paper result or evidence that the case has reached behavioral saturation. One earlier Gemini smoke verified the integration; a provider-free panel rehearsal is not a live-model evaluation.
 
 ## Workflow
 
@@ -32,7 +32,17 @@ The outcome also reports supplier margin, social welfare, contact count and cost
 
 The executable visible-terms baseline filters on public feasibility, does not reveal a target price, counters at a fixed fraction of quoted prices, and selects the cheapest feasible final package. It uses no private cost information.
 
-The oracle is a **full-information terms relaxation**: it prices each supplier at a fixed minimum margin above private cost, solves the exact feasible allocation, and charges the required contact costs. It is an upper-bound reference for this fixture, not a claim that a real buyer can observe costs or force those terms.
+The oracle is a **full-information terms relaxation**: it prices each supplier at a fixed minimum margin above private cost and maximizes net buyer surplus over feasible vendor subsets and integer allocations, jointly accounting for contact charges and the contact limit. It retains no trade as a zero-valued option. It is an upper-bound reference for the controlled supplier policy, not a claim that a real buyer can observe costs or force those terms. Legal realized surplus can be negative after unsuccessful search.
+
+The verifier family is `objective_reference`, evaluation class `deterministic`, reference kind `objective_upper_bound`. The six-phase environment enforces contracts and approval; the measurement layer separately reconciles economics and references. Completed cells are included only through sealed typed receipts and state-and-score replay.
+
+## Generated panel and run gates
+
+`procurement_rfq_coupled_worlds_v1` varies quantities, prices, deadlines, financial slack, vendor IDs, and directory order. Every generated world retains forced split capacity, a late vendor, an off-list vendor, and an incompatible-MOQ alternative. Feasibility is constructed from world truth; seeds are not filtered by model or baseline outcomes. Categories and counterparty policy remain a narrow synthetic electronics grammar.
+
+`python -m aeread.shared_runner.procurement_experiment --output /path/to/new/output` defaults to an offline 100-world, two-scripted-condition, three-repeat rehearsal. Live `admission` and `sample` modes require explicit distinct Gemini thinking efforts, a fresh `--master-seed`, and a total recorded-spend limit. The inspected default offline worlds cannot enter the live panel. The sample additionally requires six verified native-Google admission cells on disjoint worlds. Admission spend counts toward the total limit. The batch stops after an episode crosses its recorded-cost threshold, so it is not a provider-side hard billing cap; recorded unknown billing stops further execution.
+
+Both conditions use the same worlds and per-world/per-repeat inference seeds. Analysis averages repeats within each world and resamples whole worlds. Interrupted or unreconciled attempts are not silently rerun, operational exclusions are not scored as zero, and incomplete panels are not labeled complete. See [the preflight walkthrough](walkthroughs/procurement_panel_preflight.md) for the current result and remaining approval gate.
 
 ## Deterministic smoke result
 

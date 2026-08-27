@@ -7,18 +7,24 @@ and whether Housing's 600-trajectory design should be reused.
 variable-world reference, establish the intended world distribution, and port the current
 receipt/batch/analysis contracts before choosing and sealing the comparison.
 
-This is a readiness audit, not a new experiment or authorization to spend. No live calls
-were made for this assessment and no runtime implementation was changed.
+This initial audit was not an experiment or authorization to spend. No live calls
+were made during it. The pre-fix findings below are historical, at `fb60bbc`;
+the approved implementation follow-up is described separately.
 
 **Implementation follow-up:** After approval to address the gaps, the reference was
 corrected to optimize purchase spend and contact charges jointly, respect the contact
 limit, and retain no trade. Four new regression cases failed before the fix; all 15
 procurement tests then passed. The findings below preserve the pre-fix audit at `fb60bbc`.
-Generator, receipt, and batch readiness remain separate gates.
+The follow-up at `261a15c` also adds a coupled-world generator, typed objective-reference
+scoring, the shared Housing-derived receipt/replay path, shared paired analysis, and a
+paired batch with explicit live-admission and spend gates. See
+[`procurement_panel_preflight.md`](procurement_panel_preflight.md) for validation and the
+remaining live decision. The sections below retain the original pre-fix findings rather
+than silently rewriting the audit history.
 
 ## Step 1: Data sources
 
-Current procurement implementation: `fb60bbc`, in this worktree. Current Housing
+Audited procurement implementation: `fb60bbc`, in this worktree. Audited Housing
 implementation: `043cb2c`, in `/private/tmp/aeread-pr7-verifier-map.2JwoTi`.
 
 - Housing's `docs/walkthroughs/housing_reasoning_experiment.md` and committed evidence
