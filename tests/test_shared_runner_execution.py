@@ -249,6 +249,8 @@ def test_read_only_audit_recovers_identity_and_verifies_a_sealed_generation(tmp_
     assert audited.cell_id == seal.cell_id
     assert audited.episode_id == seal.episode_id
     assert audited.episode_attempt_id == seal.episode_attempt_id
+    assert audited.read_event_payload(event) == {"value": 1}
+    assert audited.verify_seal() == seal
     audited.close()
 
 
