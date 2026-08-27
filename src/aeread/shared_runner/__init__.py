@@ -24,6 +24,14 @@ from .execution import (
     execute_plan_cell,
 )
 from .registry import PluginRegistry
+from .parity import (
+    ParityContractError,
+    ParityField,
+    ParityFieldResult,
+    ParityReport,
+    ParitySpec,
+    compare_projections,
+)
 from .measurement import (
     EstimandSpec,
     ImplementationRef as MeasurementImplementationRef,
@@ -107,6 +115,11 @@ __all__ = [
     "OpenAIResponsesClient",
     "OpenRouterChatClient",
     "ObjectiveScopeSpec",
+    "ParityContractError",
+    "ParityField",
+    "ParityFieldResult",
+    "ParityReport",
+    "ParitySpec",
     "ParseResult",
     "PlanCell",
     "PlanIntegrityError",
@@ -138,6 +151,7 @@ __all__ = [
     "execute_plan_cell",
     "is_exportable_id",
     "canonical_json_bytes",
+    "compare_projections",
     "case_content_sha256",
     "parse_authoring_record",
     "resolve_run_plan",
