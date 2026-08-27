@@ -1,0 +1,156 @@
+{
+  "case_id": "tau3.retail.base.47",
+  "content_sha256": "29039167f0120761b653e933449a3dba63a9ed78ea377a4543d3251cc140c7ce",
+  "episode": {
+    "max_logical_actions": 100,
+    "termination": [
+      "agent_stop",
+      "user_stop",
+      "max_steps",
+      "error"
+    ]
+  },
+  "family_id": "tau3.retail",
+  "family_version": "0.1.0",
+  "payload": {
+    "pins": {
+      "db_bytes": 2811616,
+      "db_sha256": "413a65160adbdb5fde0ffc0015c49b6d70250b10c18128de169b597af7766765",
+      "greeting_message": "Hi! How can I help you today?",
+      "judge_args": {
+        "temperature": 0.0
+      },
+      "judge_model": "gpt-4.1-2025-04-14",
+      "max_steps": 100,
+      "policy_sha256": "2c9652afbce57d6e087768d37cda64d31c53d50b3e3225cfdb791bac66466467",
+      "tasks_sha256": "8e03ebce7901bd6218e7a7dc3105faa9324091a68058f7fe61c65262868812e8",
+      "tool_schema_sha256": null,
+      "tool_schema_sha256_unavailable_reason": "cannot import the pinned upstream tau2 package (looked under '/Users/sunzeyu/Documents/econ benchmark/upstream-tau2/src') to compute tool_schema_sha256 by delegation: No module named 'loguru'",
+      "upstream_commit": "fc0055dc4e0a316c3f83133267fbd6faaa770992",
+      "upstream_repo": "tau2-bench",
+      "user_sim_args": {
+        "temperature": 0.0
+      },
+      "user_sim_guidelines_sha256": "740a29dfa64d7bc08eea3bf7493575b914a63f744acbaf7f199ee07eddaf72d3",
+      "user_sim_model": "gpt-4.1-2025-04-14"
+    },
+    "task": {
+      "description": {
+        "notes": null,
+        "purpose": null,
+        "relevant_policies": null
+      },
+      "evaluation_criteria": {
+        "actions": [
+          {
+            "action_id": "47_0",
+            "arguments": {
+              "first_name": "Daiki",
+              "last_name": "Johnson",
+              "zip": "80273"
+            },
+            "info": null,
+            "name": "find_user_id_by_name_zip"
+          },
+          {
+            "action_id": "47_1",
+            "arguments": {
+              "order_id": "#9502126"
+            },
+            "info": null,
+            "name": "get_order_details"
+          },
+          {
+            "action_id": "47_2",
+            "arguments": {
+              "order_id": "#9502127"
+            },
+            "info": null,
+            "name": "get_order_details"
+          },
+          {
+            "action_id": "47_3",
+            "arguments": {
+              "order_id": "#W9502127"
+            },
+            "info": null,
+            "name": "get_order_details"
+          },
+          {
+            "action_id": "47_4",
+            "arguments": {
+              "expression": "622.12 + 473.43"
+            },
+            "info": null,
+            "name": "calculate"
+          },
+          {
+            "action_id": "47_5",
+            "arguments": {
+              "item_ids": [
+                "2872451762",
+                "9534205511"
+              ],
+              "order_id": "#W9502127",
+              "payment_method_id": "paypal_2433177"
+            },
+            "info": null,
+            "name": "return_delivered_order_items"
+          },
+          {
+            "action_id": "47_6",
+            "arguments": {
+              "expression": "2623.69 - 1095.55"
+            },
+            "info": null,
+            "name": "calculate"
+          }
+        ],
+        "communicate_info": [
+          "1095.55",
+          "1528.14"
+        ],
+        "nl_assertions": [
+          "Agent should tell the user the total refund amount is $1,095.55.",
+          "Agent should tell the user the total paid for remaining items is $1,528.14."
+        ],
+        "reward_basis": [
+          "DB",
+          "NL_ASSERTION"
+        ]
+      },
+      "id": "47",
+      "initial_state": null,
+      "user_scenario": {
+        "instructions": {
+          "domain": "retail",
+          "known_info": "You are daiki_johnson_9523 living in Denver, USA, 80273.",
+          "reason_for_call": "You want to return an air purifier and a vacuum cleaner in your recent order. When asked for order ID, provide 9502126 first. If the agent asks you to double check, then say that you made a mistake and provide 9502127. If that doesn't work, say that you forgot the 'W' at the beginning. If the agent asks you for which vacuum cleaner, mention the canister one.  Ask the agent explicitly to provide the refund within 3 days and the total amount of the refund you should expect. After the return is complete, ask the agent about the total amount you paid for the remaining items in the same order.",
+          "task_instructions": "You are impatient and want the refund as soon as possible.",
+          "unknown_info": "You do not remember your email address."
+        },
+        "persona": null
+      }
+    }
+  },
+  "provenance": {
+    "generator_id": "tau3_retail_importer",
+    "generator_version": "0.1.0",
+    "review_status": "upstream_pinned"
+  },
+  "seats": [
+    {
+      "id": "assistant",
+      "role": "assistant"
+    },
+    {
+      "id": "user",
+      "role": "user"
+    }
+  ],
+  "spec_version": "aeread.case/0.1",
+  "split": "base",
+  "upstream_task_id": "47",
+  "visibility_policy": "tau3_retail_user_scenario_private_v1",
+  "world_seed": 47
+}

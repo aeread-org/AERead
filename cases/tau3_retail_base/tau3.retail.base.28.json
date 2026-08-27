@@ -1,0 +1,195 @@
+{
+  "case_id": "tau3.retail.base.28",
+  "content_sha256": "1869be30056aa7235f5d707d1b0c0a8a9c2ad62a68163487ebe848c33f4378c9",
+  "episode": {
+    "max_logical_actions": 100,
+    "termination": [
+      "agent_stop",
+      "user_stop",
+      "max_steps",
+      "error"
+    ]
+  },
+  "family_id": "tau3.retail",
+  "family_version": "0.1.0",
+  "payload": {
+    "pins": {
+      "db_bytes": 2811616,
+      "db_sha256": "413a65160adbdb5fde0ffc0015c49b6d70250b10c18128de169b597af7766765",
+      "greeting_message": "Hi! How can I help you today?",
+      "judge_args": {
+        "temperature": 0.0
+      },
+      "judge_model": "gpt-4.1-2025-04-14",
+      "max_steps": 100,
+      "policy_sha256": "2c9652afbce57d6e087768d37cda64d31c53d50b3e3225cfdb791bac66466467",
+      "tasks_sha256": "8e03ebce7901bd6218e7a7dc3105faa9324091a68058f7fe61c65262868812e8",
+      "tool_schema_sha256": null,
+      "tool_schema_sha256_unavailable_reason": "cannot import the pinned upstream tau2 package (looked under '/Users/sunzeyu/Documents/econ benchmark/upstream-tau2/src') to compute tool_schema_sha256 by delegation: No module named 'loguru'",
+      "upstream_commit": "fc0055dc4e0a316c3f83133267fbd6faaa770992",
+      "upstream_repo": "tau2-bench",
+      "user_sim_args": {
+        "temperature": 0.0
+      },
+      "user_sim_guidelines_sha256": "740a29dfa64d7bc08eea3bf7493575b914a63f744acbaf7f199ee07eddaf72d3",
+      "user_sim_model": "gpt-4.1-2025-04-14"
+    },
+    "task": {
+      "description": {
+        "notes": null,
+        "purpose": null,
+        "relevant_policies": null
+      },
+      "evaluation_criteria": {
+        "actions": [
+          {
+            "action_id": "28_0",
+            "arguments": {
+              "first_name": "Isabella",
+              "last_name": "Johansson",
+              "zip": "32286"
+            },
+            "info": null,
+            "name": "find_user_id_by_name_zip"
+          },
+          {
+            "action_id": "28_1",
+            "arguments": {
+              "user_id": "isabella_johansson_2152"
+            },
+            "info": null,
+            "name": "get_user_details"
+          },
+          {
+            "action_id": "28_2",
+            "arguments": {
+              "order_id": "#W3792453"
+            },
+            "info": null,
+            "name": "get_order_details"
+          },
+          {
+            "action_id": "28_3",
+            "arguments": {
+              "order_id": "#W7181492"
+            },
+            "info": null,
+            "name": "get_order_details"
+          },
+          {
+            "action_id": "28_4",
+            "arguments": {
+              "order_id": "#W5565470"
+            },
+            "info": null,
+            "name": "get_order_details"
+          },
+          {
+            "action_id": "28_5",
+            "arguments": {
+              "order_id": "#W2575533"
+            },
+            "info": null,
+            "name": "get_order_details"
+          },
+          {
+            "action_id": "28_6",
+            "arguments": {
+              "item_ids": [
+                "4293355847"
+              ],
+              "order_id": "#W3792453",
+              "payment_method_id": "paypal_3024827"
+            },
+            "info": null,
+            "name": "return_delivered_order_items"
+          },
+          {
+            "action_id": "28_7",
+            "arguments": {
+              "item_ids": [
+                "5753502325",
+                "9851293632"
+              ],
+              "order_id": "#W7181492",
+              "payment_method_id": "paypal_3024827"
+            },
+            "info": null,
+            "name": "return_delivered_order_items"
+          },
+          {
+            "action_id": "28_8",
+            "arguments": {
+              "item_ids": [
+                "9570044148",
+                "6857426243"
+              ],
+              "order_id": "#W5565470",
+              "payment_method_id": "paypal_3024827"
+            },
+            "info": null,
+            "name": "return_delivered_order_items"
+          },
+          {
+            "action_id": "28_9",
+            "arguments": {
+              "order_id": "#W2575533"
+            },
+            "info": null,
+            "name": "get_order_details"
+          },
+          {
+            "action_id": "28_10",
+            "arguments": {
+              "expression": "200.8 + 96.35 + 193.38 + 231.37 + 196.53"
+            },
+            "info": null,
+            "name": "calculate"
+          }
+        ],
+        "communicate_info": [
+          "918.43"
+        ],
+        "nl_assertions": [
+          "Agent should tell the user the total refund amount is $918.43."
+        ],
+        "reward_basis": [
+          "DB",
+          "NL_ASSERTION"
+        ]
+      },
+      "id": "28",
+      "initial_state": null,
+      "user_scenario": {
+        "instructions": {
+          "domain": "retail",
+          "known_info": "You are Isabella Johansson, and you live in zipcode 32286.",
+          "reason_for_call": "You want to return the skateboard, garden hose, backpack, keyboard, and bed. You also want to cancel the garden hose from the pending order you just placed (you ONLY want to cancel that hose — if this would require cancelling the entire order, tell the agent not to do it). Make sure ALL the items you want to return are returned: first return the skateboard, then the garden hose and backpack, then the keyboard and bed. Finally, you want to know the total refund amount.",
+          "task_instructions": "You are extremely brief but patient.",
+          "unknown_info": "You don't know your email."
+        },
+        "persona": null
+      }
+    }
+  },
+  "provenance": {
+    "generator_id": "tau3_retail_importer",
+    "generator_version": "0.1.0",
+    "review_status": "upstream_pinned"
+  },
+  "seats": [
+    {
+      "id": "assistant",
+      "role": "assistant"
+    },
+    {
+      "id": "user",
+      "role": "user"
+    }
+  ],
+  "spec_version": "aeread.case/0.1",
+  "split": "base",
+  "upstream_task_id": "28",
+  "visibility_policy": "tau3_retail_user_scenario_private_v1",
+  "world_seed": 28
+}
