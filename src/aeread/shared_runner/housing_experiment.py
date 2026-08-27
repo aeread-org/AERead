@@ -375,6 +375,14 @@ def _recover_orphan_attempts(
         )
         if not attempts:
             continue
+        receipt_fields = _failure_receipt_fields(
+            setup=setup,
+            cell=cell,
+            evidence_root=evidence_root,
+            error=RuntimeError(
+                "interrupted Housing attempt recovered without rerunning side effects"
+            ),
+        )
         row = {
             "condition_id": condition_id,
             "run_plan_id": setup.plan.run_plan_id,
@@ -393,6 +401,7 @@ def _recover_orphan_attempts(
                 run_plan_id=setup.plan.run_plan_id,
                 cell_id=cell.cell_id,
             ),
+            **receipt_fields,
         }
         _atomic_write_json(result_path, _sealed_result(row))
         recovered += 1

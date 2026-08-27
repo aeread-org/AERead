@@ -863,6 +863,8 @@ def test_condition_batch_recovers_orphan_attempt_without_rerun(tmp_path) -> None
     )
     assert rows[0]["failure_type"] == "OrphanedAttemptRecovered"
     assert rows[0]["interruption_recovered"] is True
+    assert rows[0]["measurement_status"] == "invalid_measurement"
+    assert len(rows[0]["receipt_sha256"]) == 64
 
 
 def _paired_setups(*, world_seeds=(101, 202), replicates=1):
