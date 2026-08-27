@@ -309,6 +309,110 @@ def test_scripted_real_task_runs_end_to_end_through_kernel_scheduler(
     assert "The four non-coffee items have been returned." in serialized_user_view
 
 
+def test_step_counts_tool_errors_and_still_records_the_erroring_tool_message(
+    tmp_path: Path,
+) -> None:
+    bridge = _bridge()
+    case = _case()
+    cell = _cell(case)
+    plugin = Tau3RetailPlugin(upstream_root=UPSTREAM_ROOT, bridge=bridge)
+    registry = PluginRegistry()
+    register_plugin(registry, plugin=plugin)
+    resolved_plugin = registry.resolve_manifest(family_manifest())
+
+    raw_db = json.loads(
+        (UPSTREAM_ROOT / "data" / "tau2" / "domains" / "retail" / "db.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    normalized_db = bridge.normalize_db(raw_db)
+    initial_db_hash = bridge.hash_db(normalized_db)
+
+    # Verify empirically -- never assume -- that this call genuinely errors
+    # upstream, and inspect upstream's own real response before building the
+    # trajectory around it: a nonexistent order id upstream itself rejects
+    # in-band (no exception), and (per this real response) leaves the DB
+    # byte-for-byte unchanged since the call never reaches a mutation.
+    probe = bridge.call_tool(
+        db=normalized_db,
+        tool_name="get_order_details",
+        arguments={"order_id": "#W0000000"},
+        tool_call_id="call_bad_order",
+    )
+    assert probe["error"] is True
+    assert probe["content"] == "Error: Order not found"
+    assert probe["db_hash"] == initial_db_hash
+    assert canonical_json_bytes(probe["db"]) == canonical_json_bytes(normalized_db)
+
+    evidence = EvidenceStore(
+        tmp_path / "error_evidence",
+        run_plan_id="runplan_tau3_retail_error",
+        cell_id=cell.cell_id,
+        episode_id="episode_tau3_retail_error",
+        episode_attempt_id="attempt_tau3_retail_error",
+    )
+    scripted = ScriptedTau3RetailHarness(
+        bridge=bridge,
+        initial_db=normalized_db,
+        evidence=evidence,
+        script=[
+            ("user_turn", {"content": "Please check order #W0000000."}),
+            (
+                "assistant_turn",
+                {
+                    "messages": [
+                        {
+                            "tool_calls": [
+                                {
+                                    "id": "call_bad_order",
+                                    "name": "get_order_details",
+                                    "arguments": {"order_id": "#W0000000"},
+                                }
+                            ]
+                        },
+                        {"content": "I could not find that order, sorry."},
+                    ]
+                },
+            ),
+            ("user_turn", {"content": "###STOP###"}),
+        ],
+    )
+
+    result = asyncio.run(
+        run_episode(
+            cell=cell,
+            case=case,
+            plugin=resolved_plugin,
+            response_source=scripted,
+        )
+    )
+
+    assert result.terminal["reason"] == "user_stop"
+    assert result.final_state["num_tool_errors"] == 1
+    assert result.terminal["num_tool_errors"] == 1
+
+    # Upstream records an erroring tool call as an in-band tool result
+    # message; it is never dropped from the transcript.
+    tool_messages = [
+        message for message in result.final_state["messages"] if message["role"] == "tool"
+    ]
+    assert len(tool_messages) == 1
+    assert tool_messages[0]["error"] is True
+    assert tool_messages[0]["content"] == "Error: Order not found"
+    assert tool_messages[0]["id"] == "call_bad_order"
+
+    # The erroring call is verified above to leave upstream's own db_hash
+    # unchanged, so the whole episode's final db_hash still matches the
+    # untouched initial db -- no other tool call ran in this trajectory.
+    assert result.final_state["db_hash"] == initial_db_hash
+
+    evidence.verify_chain()
+    assert [event.event_type for event in evidence.read_events()] == [
+        "tool_invocation_started",
+        "tool_invocation_succeeded",
+    ]
+
+
 def test_step_rejects_a_harness_tool_replay_mismatch(tmp_path: Path) -> None:
     bridge = _bridge()
     case = _case()
@@ -361,6 +465,76 @@ def test_step_rejects_a_harness_tool_replay_mismatch(tmp_path: Path) -> None:
     )
 
     with pytest.raises(SchedulerContractError, match="tool replay result differs"):
+        asyncio.run(
+            run_episode(
+                cell=cell,
+                case=case,
+                plugin=Tau3RetailPlugin(upstream_root=UPSTREAM_ROOT, bridge=bridge),
+                response_source=scripted,
+            )
+        )
+
+
+def test_step_rejects_a_harness_tool_replay_db_hash_mismatch(tmp_path: Path) -> None:
+    bridge = _bridge()
+    case = _case()
+    cell = _cell(case)
+    raw_db = json.loads(
+        (UPSTREAM_ROOT / "data" / "tau2" / "domains" / "retail" / "db.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    initial_db = bridge.normalize_db(raw_db)
+    evidence = EvidenceStore(
+        tmp_path / "hash_tamper_evidence",
+        run_plan_id="runplan_tau3_retail_hash_tamper",
+        cell_id=cell.cell_id,
+        episode_id="episode_tau3_retail_hash_tamper",
+        episode_attempt_id="attempt_tau3_retail_hash_tamper",
+    )
+
+    class HashTamperingHarness(ScriptedTau3RetailHarness):
+        async def __call__(self, request):
+            # Run the real path first (per the sibling result-mismatch test
+            # above) so the recorded execution is upstream-correct in every
+            # field except the one this test deliberately corrupts.
+            response = await super().__call__(request)
+            if request.phase_id == "assistant_turn":
+                recorded = response["tool_executions"][0]["post_db_hash"]
+                assert isinstance(recorded, str) and len(recorded) == 64
+                flipped_first_char = "0" if recorded[0] != "0" else "1"
+                response["tool_executions"][0]["post_db_hash"] = (
+                    flipped_first_char + recorded[1:]
+                )
+            return response
+
+    scripted = HashTamperingHarness(
+        bridge=bridge,
+        initial_db=initial_db,
+        evidence=evidence,
+        script=[
+            ("user_turn", {"content": "Please check order #W5272531."}),
+            (
+                "assistant_turn",
+                {
+                    "messages": [
+                        {
+                            "tool_calls": [
+                                {
+                                    "id": "call_get_order",
+                                    "name": "get_order_details",
+                                    "arguments": {"order_id": "#W5272531"},
+                                }
+                            ]
+                        },
+                        {"content": "I found the order."},
+                    ]
+                },
+            ),
+        ],
+    )
+
+    with pytest.raises(SchedulerContractError, match="tool replay DB hash differs"):
         asyncio.run(
             run_episode(
                 cell=cell,
