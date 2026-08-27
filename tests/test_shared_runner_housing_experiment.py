@@ -14,8 +14,10 @@ from aeread.shared_runner.execution import (
 from aeread.shared_runner.housing import (
     HousingScriptedLandlordProvider,
     HousingScriptedTenantProvider,
+    OpenRouterRoutePin,
 )
 from aeread.shared_runner.housing_experiment import (
+    OPENINFERENCE_EXPERIMENT_ROUTE,
     analyze_paired_results,
     analyze_paired_results_if_available,
     build_housing_condition_setup,
@@ -31,6 +33,51 @@ from aeread.shared_runner.housing_experiment import (
 
 DEEPSEEK_MODEL = "deepseek/deepseek-v4-flash-0731"
 DEEPSEEK_REVISION = "deepseek/deepseek-v4-flash-20260731"
+
+
+def test_condition_setup_seals_explicit_openrouter_route_and_pricing() -> None:
+    route = OpenRouterRoutePin(
+        provider="OpenInference",
+        quantization="fp4",
+        canonical_model=DEEPSEEK_REVISION,
+        input_per_million=0.03,
+        cached_input_per_million=0.007,
+        output_per_million=0.075,
+        pricing_id="openrouter_openinference_2026-08-26_deepseek-v4-flash-0731",
+    )
+
+    setup = build_housing_condition_setup(
+        condition_id="reasoning_none_v1",
+        reasoning_effort="none",
+        world_seeds=(41001,),
+        replicates=1,
+        tenant_model=DEEPSEEK_MODEL,
+        tenant_revision=DEEPSEEK_REVISION,
+        num_tenants=2,
+        num_listings=1,
+        rounds=1,
+        openrouter_route=route,
+    )
+
+    tenant = next(
+        profile
+        for profile in setup.plan.agent_profiles
+        if profile.model.provider == "openrouter"
+    )
+    assert tenant.harness.config["provider_metadata"] == {
+        "route_provider": "OpenInference",
+        "quantization": "fp4",
+        "canonical_model": DEEPSEEK_REVISION,
+        "max_prompt_price_per_million": "0.03",
+        "max_completion_price_per_million": "0.075",
+    }
+    assert setup.pricing[DEEPSEEK_MODEL] == route.token_pricing()
+
+
+def test_experiment_route_pins_current_openrouter_endpoint() -> None:
+    assert OPENINFERENCE_EXPERIMENT_ROUTE.provider == "OpenInference"
+    assert OPENINFERENCE_EXPERIMENT_ROUTE.quantization == "fp4"
+    assert OPENINFERENCE_EXPERIMENT_ROUTE.canonical_model == DEEPSEEK_REVISION
 
 
 def test_world_panel_is_deterministic_unique_and_pre_outcome() -> None:

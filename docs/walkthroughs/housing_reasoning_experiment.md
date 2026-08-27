@@ -54,7 +54,8 @@ other market sizes, other mechanisms, or housing reasoning universally.
 | Replicates per world and condition | 3 | robustness judgment; nested, not added to cluster N |
 | Tenants / listings / rounds | 6 / 4 / 4 | pinned P0 Housing configuration |
 | Model | `deepseek/deepseek-v4-flash-0731` | fixed model listing |
-| Canonical endpoint | `deepseek/deepseek-v4-flash-20260731` | pinned DeepInfra route |
+| Canonical endpoint | `deepseek/deepseek-v4-flash-20260731` | pinned OpenInference route |
+| Quantization | `fp4` | live OpenRouter endpoint metadata captured 2026-08-26 |
 | Temperature / top-p | 0 / 1 | fixed controls |
 | Inference seeds | paired SHA-256 derivation from world and replicate | deterministic design |
 | Primary estimand | mean world-level difference in within-case score, low minus none | analyst declaration |
@@ -77,8 +78,10 @@ reasoning and must not be used as the control.
 ### DANGER ZONE D4: model and route drift
 
 **HIGH — bias direction unknown.** A marketplace alias, provider fallback, quantization
-change, or price change could alter one part of the run. Every call must resolve to the
-pinned DeepInfra endpoint at routing attempt one, with no fallback; drift blocks new cells.
+change, or price change could alter one part of the run. Every confirmatory call must resolve
+to the pinned OpenInference FP4 endpoint at routing attempt one, with no fallback; drift
+blocks new cells. Earlier DeepInfra FP8 pilot cells are a separate infrastructure condition
+and cannot be pooled with the OpenInference panel.
 
 ## Step 3: model and analysis
 
@@ -140,6 +143,14 @@ operational failures (16 reasoning-low, 5 reasoning-none). Its economic outcomes
 pooled with or used to select the final RunPlan. This classification was made from typed
 operational failures before a complete six-trajectory world cluster—and therefore before any
 paired economic estimate—was available.
+
+On 2026-08-26, live OpenRouter endpoint metadata listed OpenInference for the same canonical
+DeepSeek revision with `reasoning_effort`, `seed`, `response_format`, and structured-output
+support, 100% five-minute uptime, and 99.994% thirty-minute uptime. The confirmatory retry is
+therefore repinned to that single provider with fallbacks disabled and price ceilings of
+$0.03/M prompt tokens and $0.075/M completion tokens. This is a route change, not a recovery
+of the DeepInfra RunPlan: a fresh full-dimension reasoning admission pair is mandatory before
+any sample cell is released.
 
 ### DANGER ZONE D7: controlled counterpart limits the estimand
 

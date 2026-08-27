@@ -22,9 +22,21 @@ from .housing import (
     HousingScriptedLandlordProvider,
     HousingScriptedTenantProvider,
     HousingSmokeSetup,
+    OpenRouterRoutePin,
     build_housing_smoke,
 )
 from .resolver import canonical_json_bytes
+
+
+OPENINFERENCE_EXPERIMENT_ROUTE = OpenRouterRoutePin(
+    provider="OpenInference",
+    quantization="fp4",
+    canonical_model="deepseek/deepseek-v4-flash-20260731",
+    input_per_million=0.03,
+    cached_input_per_million=0.007,
+    output_per_million=0.075,
+    pricing_id="openrouter_openinference_2026-08-26_deepseek-v4-flash-0731",
+)
 
 
 def _derived_nonnegative_int(namespace: str, *values: int) -> int:
@@ -81,6 +93,7 @@ def build_housing_condition_setup(
     num_listings: int = 4,
     rounds: int = 4,
     inference_seed_base: int = 87001,
+    openrouter_route: OpenRouterRoutePin = OPENINFERENCE_EXPERIMENT_ROUTE,
 ) -> HousingSmokeSetup:
     """Seal one arm of the paired Housing reasoning experiment."""
 
@@ -105,6 +118,7 @@ def build_housing_condition_setup(
         num_tenants=num_tenants,
         num_listings=num_listings,
         rounds=rounds,
+        openrouter_route=openrouter_route,
     )
 
 
@@ -1047,7 +1061,11 @@ class _ScriptedExperimentTenantProvider:
 
 
 def _experiment_setups(
-    *, world_seeds: Sequence[int], replicates: int, small_preflight: bool
+    *,
+    world_seeds: Sequence[int],
+    replicates: int,
+    small_preflight: bool,
+    openrouter_route: OpenRouterRoutePin,
 ) -> dict[str, HousingSmokeSetup]:
     common = {
         "world_seeds": tuple(world_seeds),
@@ -1058,6 +1076,7 @@ def _experiment_setups(
         "num_listings": 1 if small_preflight else 4,
         "rounds": 1 if small_preflight else 4,
         "inference_seed_base": 87001,
+        "openrouter_route": openrouter_route,
     }
     return {
         "reasoning_none_v1": build_housing_condition_setup(
@@ -1079,11 +1098,13 @@ async def _run_experiment_phase(
     concurrency: int,
     spend_limit_usd: float,
     progress_callback: Any | None,
+    openrouter_route: OpenRouterRoutePin,
 ) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     setups = _experiment_setups(
         world_seeds=world_seeds,
         replicates=replicates,
         small_preflight=small_preflight,
+        openrouter_route=openrouter_route,
     )
     batch = await run_paired_batch(
         setups=setups,
@@ -1117,6 +1138,7 @@ async def run_housing_reasoning_experiment(
     spend_limit_usd: float | None = None,
     tenant_provider: Any | None = None,
     progress_callback: Any | None = None,
+    openrouter_route: OpenRouterRoutePin = OPENINFERENCE_EXPERIMENT_ROUTE,
 ) -> dict[str, Any]:
     """Run the locked dry, admission, or 100x2x3 Housing experiment workflow."""
 
@@ -1148,6 +1170,7 @@ async def run_housing_reasoning_experiment(
             concurrency=concurrency,
             spend_limit_usd=spend_limit_usd,
             progress_callback=progress_callback,
+            openrouter_route=openrouter_route,
         )
         result: dict[str, Any] = {
             "mode": mode,
@@ -1163,6 +1186,7 @@ async def run_housing_reasoning_experiment(
                 bootstrap_seed=20260826,
             ),
             "total_cost_usd": batch["total_cost_usd"],
+            "openrouter_route": dataclasses.asdict(openrouter_route),
         }
     elif mode == "admission":
         batch, rows = await _run_experiment_phase(
@@ -1174,11 +1198,12 @@ async def run_housing_reasoning_experiment(
             concurrency=concurrency,
             spend_limit_usd=spend_limit_usd,
             progress_callback=progress_callback,
+            openrouter_route=openrouter_route,
         )
         admission = validate_reasoning_admission(
             rows,
-            expected_resolved_model="deepseek/deepseek-v4-flash-20260731",
-            expected_route_provider="DeepInfra",
+            expected_resolved_model=openrouter_route.canonical_model,
+            expected_route_provider=openrouter_route.provider,
         )
         result = {
             "mode": mode,
@@ -1187,6 +1212,7 @@ async def run_housing_reasoning_experiment(
             "admission": admission,
             "analysis": None,
             "total_cost_usd": batch["total_cost_usd"],
+            "openrouter_route": dataclasses.asdict(openrouter_route),
         }
     else:
         admission_batch, admission_rows = await _run_experiment_phase(
@@ -1198,11 +1224,12 @@ async def run_housing_reasoning_experiment(
             concurrency=concurrency,
             spend_limit_usd=min(0.10, spend_limit_usd),
             progress_callback=progress_callback,
+            openrouter_route=openrouter_route,
         )
         admission = validate_reasoning_admission(
             admission_rows,
-            expected_resolved_model="deepseek/deepseek-v4-flash-20260731",
-            expected_route_provider="DeepInfra",
+            expected_resolved_model=openrouter_route.canonical_model,
+            expected_route_provider=openrouter_route.provider,
         )
         remaining_budget = spend_limit_usd - admission_batch["total_cost_usd"]
         if remaining_budget <= 0:
@@ -1216,6 +1243,7 @@ async def run_housing_reasoning_experiment(
             concurrency=concurrency,
             spend_limit_usd=remaining_budget,
             progress_callback=progress_callback,
+            openrouter_route=openrouter_route,
         )
         analysis_result = analyze_paired_results_if_available(
             rows,
@@ -1236,6 +1264,7 @@ async def run_housing_reasoning_experiment(
             "total_cost_usd": (
                 admission_batch["total_cost_usd"] + batch["total_cost_usd"]
             ),
+            "openrouter_route": dataclasses.asdict(openrouter_route),
         }
     _atomic_write_json(output / "experiment_summary.json", _sealed_result(result))
     return result
@@ -1273,6 +1302,7 @@ def main() -> None:
 __all__ = [
     "analyze_paired_results",
     "analyze_paired_results_if_available",
+    "OPENINFERENCE_EXPERIMENT_ROUTE",
     "build_housing_condition_setup",
     "derive_world_seeds",
     "paired_inference_seed",

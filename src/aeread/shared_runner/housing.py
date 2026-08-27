@@ -611,6 +611,56 @@ class HousingSmokeSetup:
     pricing: Mapping[str, TokenPricing]
 
 
+@dataclass(frozen=True, slots=True)
+class OpenRouterRoutePin:
+    """Exact OpenRouter endpoint identity and price ceiling sealed into a plan."""
+
+    provider: str
+    quantization: str
+    canonical_model: str
+    input_per_million: float
+    cached_input_per_million: float
+    output_per_million: float
+    pricing_id: str
+
+    def __post_init__(self) -> None:
+        for name in ("provider", "quantization", "canonical_model", "pricing_id"):
+            value = getattr(self, name)
+            if not isinstance(value, str) or not value:
+                raise ValueError(f"{name} must be a non-empty string")
+        self.token_pricing()
+
+    def token_pricing(self) -> TokenPricing:
+        return TokenPricing(
+            self.input_per_million,
+            self.cached_input_per_million,
+            self.output_per_million,
+            self.pricing_id,
+        )
+
+    def provider_metadata(self) -> dict[str, str]:
+        return {
+            "route_provider": self.provider,
+            "quantization": self.quantization,
+            "canonical_model": self.canonical_model,
+            "max_prompt_price_per_million": format(self.input_per_million, ".15g"),
+            "max_completion_price_per_million": format(
+                self.output_per_million, ".15g"
+            ),
+        }
+
+
+DEEPINFRA_HOUSING_ROUTE = OpenRouterRoutePin(
+    provider="DeepInfra",
+    quantization="fp8",
+    canonical_model="deepseek/deepseek-v4-flash-20260731",
+    input_per_million=0.08,
+    cached_input_per_million=0.016,
+    output_per_million=0.18,
+    pricing_id="openrouter_deepinfra_2026-08-26_deepseek-v4-flash-0731",
+)
+
+
 def _pin(component_id: str, kind: str, digest: str, version: str = "1.0.0") -> ImplementationPin:
     return ImplementationPin.from_dict(
         {
@@ -640,6 +690,7 @@ def _profile(
     request_seed_base: int | None = None,
     max_output_tokens: int | None = None,
     timeout_seconds: float | None = None,
+    openrouter_route: OpenRouterRoutePin = DEEPINFRA_HOUSING_ROUTE,
 ) -> AgentProfile:
     config: dict[str, Any] = {
         "pricing_id": pricing.pricing_id,
@@ -647,13 +698,7 @@ def _profile(
         "output_schema_by_action_schema": dict(output_schemas),
     }
     if provider == "openrouter":
-        config["provider_metadata"] = {
-            "route_provider": "DeepInfra",
-            "quantization": "fp8",
-            "canonical_model": "deepseek/deepseek-v4-flash-20260731",
-            "max_prompt_price_per_million": "0.08",
-            "max_completion_price_per_million": "0.18",
-        }
+        config["provider_metadata"] = openrouter_route.provider_metadata()
     if request_seed_base is not None:
         config["request_seed_source"] = "paired_cell_v1"
         config["request_seed_base"] = request_seed_base
@@ -734,6 +779,7 @@ def build_housing_smoke(
     reasoning_condition_id: str = "reasoning_low_v1",
     reasoning_effort: str | None = "low",
     inference_seed_base: int | None = None,
+    openrouter_route: OpenRouterRoutePin = DEEPINFRA_HOUSING_ROUTE,
 ) -> HousingSmokeSetup:
     selected_world_seeds = (
         (world_seed,) if world_seeds is None else tuple(world_seeds)
@@ -747,6 +793,11 @@ def build_housing_smoke(
     experiment_mode = world_seeds is not None
     if experiment_mode and inference_seed_base is None:
         raise ValueError("experiment plans require inference_seed_base")
+    if (
+        tenant_provider == "openrouter"
+        and tenant_revision != openrouter_route.canonical_model
+    ):
+        raise ValueError("tenant_revision must match the sealed OpenRouter route model")
     family = FamilyManifest.from_dict(
         {
             "spec_version": "aeread.family/0.1",
@@ -867,7 +918,7 @@ def build_housing_smoke(
         else "housing_scripted_tenant_v1"
     )
     tenant_pricing = (
-        TokenPricing(0.08, 0.016, 0.18, "openrouter_deepinfra_2026-08-26_deepseek-v4-flash-0731")
+        openrouter_route.token_pricing()
         if tenant_provider == "openrouter"
         else TokenPricing(0.0, 0.0, 0.0, "housing_scripted_tenant_zero_cost_v1")
     )
@@ -896,6 +947,7 @@ def build_housing_smoke(
         timeout_seconds=(
             120.0 if tenant_provider == "openrouter" and experiment_mode else None
         ),
+        openrouter_route=openrouter_route,
     )
     landlord_profile = _profile(
         profile_id="housing_scripted_landlord_v1",
@@ -1130,6 +1182,8 @@ __all__ = [
     "HousingScriptedTenantProvider",
     "HousingSmokeSetup",
     "HousingV1Plugin",
+    "OpenRouterRoutePin",
+    "DEEPINFRA_HOUSING_ROUTE",
     "build_housing_smoke",
     "main",
 ]
