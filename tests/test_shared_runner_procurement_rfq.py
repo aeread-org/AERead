@@ -21,6 +21,8 @@ from aeread.shared_runner.resolver import canonical_json_bytes
 
 DEEPSEEK_MODEL = "deepseek/deepseek-v4-flash-0731"
 DEEPSEEK_REVISION = "deepseek/deepseek-v4-flash-20260731"
+GEMINI_MODEL = "gemini-3.7-flash"
+GEMINI_REVISION = "3.7-flash-08-2026"
 
 
 def test_procurement_plugin_declares_real_workflow_and_private_observations() -> None:
@@ -117,6 +119,42 @@ def test_procurement_live_probe_seals_openrouter_buyer_and_controlled_suppliers(
         },
     }
     assert set(setup.pricing) == {DEEPSEEK_MODEL, "procurement_scripted_supplier_v1"}
+
+
+def test_procurement_gemini_probe_seals_native_buyer_and_controlled_suppliers() -> None:
+    setup = build_procurement_rfq_smoke(
+        buyer_provider="google",
+        buyer_model=GEMINI_MODEL,
+        buyer_revision=GEMINI_REVISION,
+    )
+
+    profiles = {profile.profile_id: profile for profile in setup.plan.agent_profiles}
+    buyer = profiles["procurement_gemini37_buyer_v1"]
+    assert buyer.model.provider == "google"
+    assert buyer.model.model == GEMINI_MODEL
+    assert buyer.model.revision == GEMINI_REVISION
+    assert buyer.model.base_url == "https://generativelanguage.googleapis.com/v1beta"
+    assert buyer.reasoning.effort == "low"
+    assert buyer.sampling.max_output_tokens == 4096
+    assert buyer.budgets.timeout_seconds == 90.0
+    assert buyer.budgets.max_cost_usd == 0.02
+    assert buyer.retry_policy.max_action_attempts == 2
+    assert buyer.retry_policy.retryable_conditions == ("length",)
+    assert buyer.harness.config["provider_metadata"] == {
+        "canonical_model": GEMINI_MODEL,
+        "catalog_version": GEMINI_REVISION,
+        "thinking_level": "low",
+        "max_input_price_per_million": "0.75",
+        "max_cached_input_price_per_million": "0.075",
+        "max_output_price_per_million": "3.75",
+    }
+
+    supplier = profiles["procurement_scripted_supplier_v1"]
+    assert supplier.model.provider == "procurement_scripted_supplier"
+    assert setup.plan.cells[0].profile_by_seat["buyer_0"] == (
+        "procurement_gemini37_buyer_v1"
+    )
+    assert set(setup.pricing) == {GEMINI_MODEL, "procurement_scripted_supplier_v1"}
 
 
 def test_provider_free_procurement_cell_executes_and_reconciles_evidence(tmp_path) -> None:

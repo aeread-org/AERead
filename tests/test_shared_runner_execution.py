@@ -14,6 +14,7 @@ from aeread.shared_runner.execution import (
     ClaudeCodePrintClient,
     EvidenceIntegrityError,
     EvidenceStore,
+    GeminiGenerateContentClient,
     MinimalChatExecutor,
     OpenAIResponsesClient,
     OpenRouterChatClient,
@@ -572,6 +573,124 @@ def test_openai_adapter_requires_key_before_constructing_default_sdk(
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
     with pytest.raises(EvidenceIntegrityError, match="OPENAI_API_KEY"):
         OpenAIResponsesClient()
+
+
+class FakeGeminiResponse:
+    status_code = 200
+    text = "fixture"
+
+    def json(self):
+        return {
+            "responseId": "gemini_response_fixture",
+            "modelVersion": "3.7-flash-08-2026",
+            "candidates": [
+                {
+                    "finishReason": "STOP",
+                    "content": {
+                        "role": "model",
+                        "parts": [{"text": '{"offer":7}'}],
+                    },
+                }
+            ],
+            "usageMetadata": {
+                "promptTokenCount": 123,
+                "cachedContentTokenCount": 7,
+                "candidatesTokenCount": 9,
+                "thoughtsTokenCount": 4,
+                "totalTokenCount": 136,
+            },
+        }
+
+
+class FakeGeminiHTTPClient:
+    def __init__(self) -> None:
+        self.call = None
+
+    async def post(self, url, *, headers, json):
+        self.call = {"url": url, "headers": headers, "json": json}
+        return FakeGeminiResponse()
+
+
+def _gemini_request() -> ProviderRequest:
+    output_schema = {
+        "type": "object",
+        "properties": {"offer": {"type": "integer", "minimum": 0}},
+        "required": ["offer"],
+        "additionalProperties": False,
+    }
+    return ProviderRequest(
+        provider_call_id="provider_call_gemini_fixture",
+        provider="google",
+        base_url="https://generativelanguage.googleapis.com/v1beta",
+        model="gemini-3.7-flash",
+        revision="3.7-flash-08-2026",
+        instructions=SYSTEM_PROMPT,
+        input_text='{"observation":{"private_value":11},"action_schema":"offer_v1"}',
+        temperature=0.0,
+        top_p=1.0,
+        max_output_tokens=4096,
+        reasoning_effort="low",
+        timeout_seconds=90.0,
+        request_sha256="",
+        max_cost_usd=0.02,
+        output_schema=output_schema,
+        provider_metadata={
+            "canonical_model": "gemini-3.7-flash",
+            "catalog_version": "3.7-flash-08-2026",
+            "thinking_level": "low",
+        },
+        seed=0,
+    ).with_computed_hash()
+
+
+def test_gemini_adapter_pins_native_model_schema_thinking_and_usage() -> None:
+    http = FakeGeminiHTTPClient()
+    client = GeminiGenerateContentClient(http_client=http, api_key="test-key")
+    request = _gemini_request()
+
+    result = asyncio.run(client.complete(request))
+
+    assert http.call == {
+        "url": (
+            "https://generativelanguage.googleapis.com/v1beta/models/"
+            "gemini-3.7-flash:generateContent"
+        ),
+        "headers": {
+            "Content-Type": "application/json",
+            "x-goog-api-key": "test-key",
+        },
+        "json": {
+            "systemInstruction": {"parts": [{"text": SYSTEM_PROMPT}]},
+            "contents": [
+                {"role": "user", "parts": [{"text": request.input_text}]}
+            ],
+            "generationConfig": {
+                "temperature": 0.0,
+                "topP": 1.0,
+                "seed": 0,
+                "maxOutputTokens": 4096,
+                "thinkingConfig": {"thinkingLevel": "LOW"},
+                "responseMimeType": "application/json",
+                "responseJsonSchema": request.output_schema,
+            },
+        },
+    }
+    assert result.output_text == '{"offer":7}'
+    assert result.requested_model == "gemini-3.7-flash"
+    assert result.resolved_model == "3.7-flash-08-2026"
+    assert result.finish_reason == "stop"
+    assert result.input_tokens == 123
+    assert result.cached_input_tokens == 7
+    assert result.output_tokens == 13
+    assert result.cost_usd is None
+
+
+def test_gemini_adapter_requires_key_before_constructing_default_client(
+    monkeypatch,
+) -> None:
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    with pytest.raises(EvidenceIntegrityError, match="GEMINI_API_KEY"):
+        GeminiGenerateContentClient()
 
 
 class FakeOpenRouterCompletions:

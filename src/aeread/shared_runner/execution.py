@@ -593,6 +593,275 @@ class OpenAIResponsesClient:
         )
 
 
+class GeminiGenerateContentClient:
+    """Native Gemini GenerateContent adapter with runner-owned retries."""
+
+    def __init__(
+        self,
+        *,
+        http_client: Any | None = None,
+        api_key: str | None = None,
+        base_url: str = "https://generativelanguage.googleapis.com/v1beta",
+    ) -> None:
+        self._base_url = base_url.rstrip("/")
+        resolved_key = api_key or os.environ.get("GEMINI_API_KEY")
+        if not resolved_key:
+            raise EvidenceIntegrityError(
+                "GEMINI_API_KEY must be set before constructing the native Gemini client"
+            )
+        self._api_key = resolved_key
+        if http_client is None:
+            try:
+                import httpx
+            except ImportError as error:  # pragma: no cover - dependency error
+                raise EvidenceIntegrityError(
+                    "GeminiGenerateContentClient requires the httpx package"
+                ) from error
+            http_client = httpx.AsyncClient(timeout=None)
+        if not hasattr(http_client, "post"):
+            raise EvidenceIntegrityError("Gemini HTTP client must expose an async post method")
+        self._client = http_client
+
+    @staticmethod
+    def _plain_mapping(value: Mapping[str, Any]) -> dict[str, Any]:
+        return json.loads(canonical_json_bytes(value))
+
+    @staticmethod
+    def _nonnegative_integer(value: Any, field: str) -> int:
+        if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+            raise ProviderFailure(
+                "provider_contract",
+                f"Gemini response {field} is invalid",
+                retryable=False,
+            )
+        return value
+
+    async def complete(self, request: ProviderRequest) -> ProviderResult:
+        if request.provider != "google":
+            raise ProviderFailure(
+                "provider_contract",
+                f"Gemini adapter received provider {request.provider!r}",
+                retryable=False,
+            )
+        if (request.base_url or "").rstrip("/") != self._base_url:
+            raise ProviderFailure(
+                "provider_contract",
+                "Gemini request base URL does not match the pinned native endpoint",
+                retryable=False,
+            )
+        if not isinstance(request.output_schema, Mapping):
+            raise ProviderFailure(
+                "provider_contract",
+                "Gemini structured output requires a JSON schema",
+                retryable=False,
+            )
+        metadata = request.provider_metadata
+        if not isinstance(metadata, Mapping):
+            raise ProviderFailure(
+                "provider_contract",
+                "Gemini request is missing pinned provider metadata",
+                retryable=False,
+            )
+        canonical_model = metadata.get("canonical_model")
+        catalog_version = metadata.get("catalog_version")
+        thinking_level = metadata.get("thinking_level")
+        if canonical_model != request.model or catalog_version != request.revision:
+            raise ProviderFailure(
+                "provider_contract",
+                "Gemini model or catalog version does not match the pinned profile",
+                retryable=False,
+            )
+        if thinking_level not in {"low", "medium", "high"}:
+            raise ProviderFailure(
+                "provider_contract",
+                "Gemini thinking level must be low, medium, or high",
+                retryable=False,
+            )
+
+        generation_config: dict[str, Any] = {
+            "temperature": request.temperature,
+            "topP": request.top_p,
+            "seed": request.seed,
+            "maxOutputTokens": request.max_output_tokens,
+            "thinkingConfig": {"thinkingLevel": str(thinking_level).upper()},
+            "responseMimeType": "application/json",
+            "responseJsonSchema": self._plain_mapping(request.output_schema),
+        }
+        generation_config = {
+            key: value for key, value in generation_config.items() if value is not None
+        }
+        body = {
+            "systemInstruction": {"parts": [{"text": request.instructions}]},
+            "contents": [
+                {"role": "user", "parts": [{"text": request.input_text}]}
+            ],
+            "generationConfig": generation_config,
+        }
+        url = f"{self._base_url}/models/{request.model}:generateContent"
+        try:
+            response = await self._client.post(
+                url,
+                headers={
+                    "Content-Type": "application/json",
+                    "x-goog-api-key": self._api_key,
+                },
+                json=body,
+            )
+        except asyncio.CancelledError:
+            raise
+        except Exception as error:
+            status_code = getattr(error, "status_code", None)
+            if status_code == 429:
+                condition, retryable = "rate_limit", True
+            elif isinstance(status_code, int) and status_code >= 500:
+                condition, retryable = "server_error", True
+            else:
+                condition, retryable = "transport", True
+            raise ProviderFailure(
+                condition,
+                str(error),
+                retryable=retryable,
+                status_code=status_code,
+            ) from error
+
+        status_code = getattr(response, "status_code", None)
+        if not isinstance(status_code, int):
+            raise ProviderFailure(
+                "provider_contract",
+                "Gemini HTTP response has no status code",
+                retryable=False,
+            )
+        if status_code >= 400:
+            condition = (
+                "rate_limit"
+                if status_code == 429
+                else "server_error" if status_code >= 500 else "provider_error"
+            )
+            raise ProviderFailure(
+                condition,
+                f"Gemini API returned HTTP {status_code}",
+                retryable=status_code == 429 or status_code >= 500,
+                status_code=status_code,
+            )
+        try:
+            raw_response = response.json()
+        except Exception as error:
+            raise ProviderFailure(
+                "provider_contract",
+                "Gemini response is not valid JSON",
+                retryable=False,
+            ) from error
+        if not isinstance(raw_response, Mapping):
+            raise ProviderFailure(
+                "provider_contract",
+                "Gemini response root must be an object",
+                retryable=False,
+            )
+
+        candidates = raw_response.get("candidates")
+        if not isinstance(candidates, list) or len(candidates) != 1:
+            raise ProviderFailure(
+                "provider_contract",
+                "Gemini response must contain exactly one candidate",
+                retryable=False,
+            )
+        candidate = candidates[0]
+        if not isinstance(candidate, Mapping):
+            raise ProviderFailure(
+                "provider_contract",
+                "Gemini candidate must be an object",
+                retryable=False,
+            )
+        raw_finish = str(candidate.get("finishReason") or "UNKNOWN")
+        finish_reason = "length" if raw_finish == "MAX_TOKENS" else raw_finish.lower()
+        content = candidate.get("content")
+        parts = content.get("parts") if isinstance(content, Mapping) else None
+        text_parts = (
+            [
+                part.get("text")
+                for part in parts
+                if isinstance(part, Mapping)
+                and part.get("thought") is not True
+                and isinstance(part.get("text"), str)
+            ]
+            if isinstance(parts, list)
+            else []
+        )
+        output_text = "".join(text_parts)
+        usage = raw_response.get("usageMetadata")
+        if not isinstance(usage, Mapping):
+            raise ProviderFailure(
+                "provider_contract",
+                "Gemini response is missing usage metadata",
+                retryable=False,
+            )
+        input_tokens = self._nonnegative_integer(
+            usage.get("promptTokenCount", 0), "promptTokenCount"
+        )
+        cached_input_tokens = self._nonnegative_integer(
+            usage.get("cachedContentTokenCount", 0), "cachedContentTokenCount"
+        )
+        candidate_tokens = self._nonnegative_integer(
+            usage.get("candidatesTokenCount", 0), "candidatesTokenCount"
+        )
+        thought_tokens = self._nonnegative_integer(
+            usage.get("thoughtsTokenCount", 0), "thoughtsTokenCount"
+        )
+        resolved_model = raw_response.get("modelVersion")
+        permitted_versions = {
+            request.model,
+            request.revision,
+            canonical_model,
+            f"models/{canonical_model}",
+        }
+        if resolved_model not in permitted_versions:
+            raise ProviderFailure(
+                "provider_contract",
+                f"Gemini resolved model {resolved_model!r} does not match the pin",
+                retryable=False,
+            )
+
+        billable = ProviderResult(
+            response_id=str(raw_response.get("responseId") or ""),
+            requested_model=request.model,
+            resolved_model=str(resolved_model),
+            output_text=output_text,
+            finish_reason=finish_reason,
+            input_tokens=input_tokens,
+            cached_input_tokens=cached_input_tokens,
+            output_tokens=candidate_tokens + thought_tokens,
+            cost_usd=None,
+            raw_response=raw_response,
+        )
+        if finish_reason == "length":
+            raise ProviderFailure(
+                "length",
+                "Gemini response exhausted its output ceiling",
+                retryable=True,
+                provider_result=billable,
+            )
+        if raw_finish != "STOP":
+            raise ProviderFailure(
+                "provider_contract",
+                f"Gemini response stopped with {raw_finish}",
+                retryable=False,
+                provider_result=billable,
+            )
+        try:
+            structured_output = json.loads(output_text)
+        except json.JSONDecodeError as error:
+            raise ProviderFailure(
+                "provider_contract",
+                "Gemini structured output is not valid JSON",
+                retryable=False,
+                provider_result=billable,
+            ) from error
+        return dataclasses.replace(
+            billable,
+            output_text=canonical_json_bytes(structured_output).decode("utf-8"),
+        )
+
+
 class OpenRouterChatClient:
     """OpenRouter Chat Completions adapter with an exact provider route."""
 

@@ -16,6 +16,7 @@ from aeread import procurement_rfq_env as rfq
 
 from .execution import (
     CanonicalResponse,
+    GeminiGenerateContentClient,
     OpenRouterChatClient,
     ProviderFailure,
     ProviderRequest,
@@ -810,6 +811,7 @@ def _profile(
     max_logical_actions: int,
     runtime: str,
 ) -> AgentProfile:
+    live_provider = provider in {"openrouter", "google"}
     config: dict[str, Any] = {
         "pricing_id": pricing.pricing_id,
         "pricing_sha256": pricing.content_sha256(),
@@ -823,6 +825,24 @@ def _profile(
             "max_prompt_price_per_million": "0.08",
             "max_completion_price_per_million": "0.18",
         }
+    elif provider == "google":
+        config["provider_metadata"] = {
+            "canonical_model": "gemini-3.7-flash",
+            "catalog_version": "3.7-flash-08-2026",
+            "thinking_level": "low",
+            "max_input_price_per_million": "0.75",
+            "max_cached_input_price_per_million": "0.075",
+            "max_output_price_per_million": "3.75",
+        }
+    base_url = (
+        "https://openrouter.ai/api/v1"
+        if provider == "openrouter"
+        else (
+            "https://generativelanguage.googleapis.com/v1beta"
+            if provider == "google"
+            else None
+        )
+    )
     return AgentProfile.from_dict(
         {
             "spec_version": "aeread.agent_profile/0.1",
@@ -831,7 +851,7 @@ def _profile(
                 "provider": provider,
                 "model": model,
                 "revision": revision,
-                "base_url": "https://openrouter.ai/api/v1" if provider == "openrouter" else None,
+                "base_url": base_url,
             },
             "harness": {
                 "id": "minimal_chat",
@@ -847,25 +867,31 @@ def _profile(
             "tools": [],
             "memory": {"mode": "disabled"},
             "reasoning": {
-                "condition_id": "reasoning_low_v1" if provider == "openrouter" else "reasoning_none_v1",
-                "effort": "low" if provider == "openrouter" else "none",
+                "condition_id": "reasoning_low_v1" if live_provider else "reasoning_none_v1",
+                "effort": "low" if live_provider else "none",
                 "token_budget": None,
                 "rationale_visibility": "hidden",
             },
             "sampling": {
                 "temperature": 0.0,
-                "top_p": 1.0 if provider == "openrouter" else None,
-                "max_output_tokens": 2048 if provider == "openrouter" else 512,
-                "seed": 0 if provider == "openrouter" else None,
+                "top_p": 1.0 if live_provider else None,
+                "max_output_tokens": (
+                    2048 if provider == "openrouter" else 4096 if provider == "google" else 512
+                ),
+                "seed": 0 if live_provider else None,
             },
             "budgets": {
                 "max_logical_actions": max_logical_actions,
-                "timeout_seconds": 180.0 if provider == "openrouter" else 30.0,
-                "max_cost_usd": 0.01 if provider == "openrouter" else 0.001,
+                "timeout_seconds": (
+                    180.0 if provider == "openrouter" else 90.0 if provider == "google" else 30.0
+                ),
+                "max_cost_usd": (
+                    0.01 if provider == "openrouter" else 0.02 if provider == "google" else 0.001
+                ),
             },
             "retry_policy": {
-                "max_action_attempts": 2 if provider == "openrouter" else 1,
-                "retryable_conditions": ["length"] if provider == "openrouter" else [],
+                "max_action_attempts": 2 if live_provider else 1,
+                "retryable_conditions": ["length"] if live_provider else [],
                 "session_mode": "restart",
                 "sdk_retries": 0,
             },
@@ -984,16 +1010,31 @@ def build_procurement_rfq_smoke(
             "panel_mode": "fixed_panel",
         }
     )
-    buyer_profile_id = (
-        "procurement_deepseek_buyer_v1"
-        if buyer_provider == "openrouter"
-        else "procurement_scripted_buyer_v1"
-    )
-    buyer_pricing = (
-        TokenPricing(0.08, 0.016, 0.18, "openrouter_deepinfra_2026-08-26_deepseek-v4-flash-0731")
-        if buyer_provider == "openrouter"
-        else TokenPricing(0.0, 0.0, 0.0, "procurement_scripted_buyer_zero_cost_v1")
-    )
+    buyer_profile_id = {
+        "openrouter": "procurement_deepseek_buyer_v1",
+        "google": "procurement_gemini37_buyer_v1",
+    }.get(buyer_provider, "procurement_scripted_buyer_v1")
+    if buyer_provider == "openrouter":
+        buyer_pricing = TokenPricing(
+            0.08,
+            0.016,
+            0.18,
+            "openrouter_deepinfra_2026-08-26_deepseek-v4-flash-0731",
+        )
+    elif buyer_provider == "google":
+        buyer_pricing = TokenPricing(
+            0.75,
+            0.075,
+            3.75,
+            "google_ai_studio_standard_2026-08-26_gemini-3.7-flash",
+        )
+    else:
+        buyer_pricing = TokenPricing(
+            0.0,
+            0.0,
+            0.0,
+            "procurement_scripted_buyer_zero_cost_v1",
+        )
     zero_supplier = TokenPricing(0.0, 0.0, 0.0, "procurement_scripted_supplier_zero_cost_v1")
     buyer_profile = _profile(
         profile_id=buyer_profile_id,
@@ -1012,7 +1053,7 @@ def build_procurement_rfq_smoke(
         max_logical_actions=4,
         runtime=(
             "aeread.shared_runner.execution"
-            if buyer_provider == "openrouter"
+            if buyer_provider in {"openrouter", "google"}
             else "aeread.shared_runner.procurement_rfq"
         ),
     )
@@ -1122,7 +1163,7 @@ def build_procurement_rfq_smoke(
             version="0.1.0",
         ),
     ]
-    if buyer_provider == "openrouter":
+    if buyer_provider in {"openrouter", "google"}:
         pins.append(
             _pin(
                 "aeread.shared_runner.execution",
@@ -1163,6 +1204,11 @@ async def _run_cli(arguments: argparse.Namespace) -> dict[str, Any]:
         buyer_model = arguments.model or "deepseek/deepseek-v4-flash-0731"
         buyer_revision = arguments.revision or "deepseek/deepseek-v4-flash-20260731"
         buyer_client = OpenRouterChatClient()
+    elif arguments.provider == "gemini":
+        buyer_provider = "google"
+        buyer_model = arguments.model or "gemini-3.7-flash"
+        buyer_revision = arguments.revision or "3.7-flash-08-2026"
+        buyer_client = GeminiGenerateContentClient()
     else:
         buyer_provider = "procurement_scripted_buyer"
         buyer_model = "procurement_scripted_buyer_v1"
@@ -1200,7 +1246,11 @@ async def _run_cli(arguments: argparse.Namespace) -> dict[str, Any]:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--provider", choices=("scripted", "openrouter"), default="scripted")
+    parser.add_argument(
+        "--provider",
+        choices=("scripted", "openrouter", "gemini"),
+        default="scripted",
+    )
     parser.add_argument("--model")
     parser.add_argument("--revision")
     parser.add_argument("--attempt", type=int, default=0)
