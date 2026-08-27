@@ -24,3 +24,7 @@
   pre-outcome audit, locked design, and completed result for 100 paired Housing worlds,
   reasoning disabled versus reasoning-low, three nested replicates, cluster-level inference,
   exact-support missingness bounds, operational decomposition, and scientific-scope limits.
+- [`housing_environment_architecture.md`](housing_environment_architecture.md) —
+  exact end-to-end trace from the paired experiment controller through sealed plans, generic
+  scheduling and provider evidence, Housing private-state transitions, scoring, receipts,
+  provider-free replay, resume behavior, and world-cluster analysis.
