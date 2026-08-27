@@ -900,6 +900,17 @@ def _housing_agent_profile_digests(
     }
 
 
+def _housing_observability_limits(plan: RunPlan, cell: Any) -> tuple[str, ...]:
+    profile_by_id = {profile.profile_id: profile for profile in plan.agent_profiles}
+    assigned_profiles = tuple(
+        profile_by_id[profile_id]
+        for profile_id in sorted(set(cell.profile_by_seat.values()))
+    )
+    if any(profile.model.provider == "openrouter" for profile in assigned_profiles):
+        return ("provider_internal_reasoning_not_fully_observable",)
+    return ()
+
+
 def finalize_housing_execution(
     *, setup: HousingSmokeSetup, execution: CellExecution
 ) -> EvaluationReceipt:
@@ -972,18 +983,6 @@ def finalize_housing_execution(
             condition="invalid_housing_measurement",
             message="; ".join(score.validity.reasons),
         )
-    profile_by_id = {
-        profile.profile_id: profile for profile in setup.plan.agent_profiles
-    }
-    assigned_profiles = tuple(
-        profile_by_id[profile_id]
-        for profile_id in sorted(set(cell.profile_by_seat.values()))
-    )
-    observability_limits = (
-        ("provider_internal_reasoning_not_fully_observable",)
-        if any(profile.model.provider == "openrouter" for profile in assigned_profiles)
-        else ()
-    )
     receipt = seal_evaluation_receipt(
         EvaluationReceipt(
             spec_version=EvaluationReceipt.SPEC_VERSION,
@@ -1019,13 +1018,127 @@ def finalize_housing_execution(
             primary_leaf_id=score.leaf.leaf_id,
             scores=(score,),
             failure=failure,
-            observability_limits=observability_limits,
+            observability_limits=_housing_observability_limits(setup.plan, cell),
             replay_level="score_only",
         )
     )
     write_evaluation_receipt(
         receipt, execution.evidence.root / "evaluation_receipt.json"
     )
+    return receipt
+
+
+def finalize_housing_failure(
+    *,
+    setup: HousingSmokeSetup,
+    cell_id: str,
+    evidence_root: str | Path,
+    error: BaseException,
+) -> EvaluationReceipt:
+    """Seal one reconciled failed attempt as a typed receipt exclusion."""
+
+    verify_run_plan(setup.plan)
+    cell = next((item for item in setup.plan.cells if item.cell_id == cell_id), None)
+    if cell is None:
+        raise ValueError("failure cell is absent from the Housing RunPlan")
+    attempt_root = Path(evidence_root) / setup.plan.run_plan_id / cell.cell_id
+    attempts = (
+        sorted(path for path in attempt_root.iterdir() if path.is_dir())
+        if attempt_root.is_dir()
+        else []
+    )
+    if len(attempts) != 1:
+        raise ValueError("Housing failure must resolve to exactly one episode attempt")
+    evidence = EvidenceStore.audit_existing(attempts[0])
+    failure_conditions: list[str] = []
+    for event in evidence.read_events():
+        if event.event_type not in {
+            "provider_call_failed",
+            "provider_call_outcome_unknown",
+            "action_attempt_failed",
+            "action_attempt_outcome_unknown",
+        }:
+            continue
+        payload = evidence.read_event_payload(event)
+        condition = payload.get("failure_condition") if isinstance(payload, Mapping) else None
+        if isinstance(condition, str) and condition:
+            failure_conditions.append(condition)
+    retryable_conditions = {
+        "length",
+        "rate_limit",
+        "provider_5xx",
+        "timeout",
+        "transport",
+    }
+    if any(condition in retryable_conditions for condition in failure_conditions):
+        failure_class = "retryable_infrastructure"
+    elif any(condition == "provider_contract" for condition in failure_conditions):
+        failure_class = "integration_or_configuration"
+    else:
+        failure_class = "environment_failure"
+    condition = failure_conditions[-1] if failure_conditions else "housing_execution_failure"
+    if not all(character.isalnum() or character in "_-" for character in condition):
+        condition = "housing_execution_failure"
+
+    evidence_seal = evidence.seal()
+    case = next(item for item in setup.plan.cases if item.case_id == cell.case_id)
+    family = next(
+        item for item in setup.plan.families if item.family.id == cell.family_id
+    )
+    plugin = setup.registry.resolve_manifest(family)
+    family_case = plugin.validate_payload(case.payload)
+    leaf = _housing_measurement_leaf(family_case)
+    receipt = seal_evaluation_receipt(
+        EvaluationReceipt(
+            spec_version=EvaluationReceipt.SPEC_VERSION,
+            receipt_sha256=None,
+            status="invalid_measurement",
+            inclusion_status="excluded",
+            run_plan_id=setup.plan.run_plan_id,
+            run_plan_sha256=setup.plan.plan_sha256,
+            cell_id=cell.cell_id,
+            case_id=case.case_id,
+            case_sha256=case.content_sha256,
+            suite_id=setup.plan.suite.suite_id,
+            suite_version=setup.plan.suite.version,
+            block_id=cell.block_id,
+            sampling_plan_id=cell.sampling_plan_id,
+            analysis_plan_id=cell.analysis_plan_id,
+            episode_id=evidence_seal.episode_id,
+            episode_attempt_id=evidence_seal.episode_attempt_id,
+            cluster_id=cell.cluster_id,
+            cluster_level=cell.cluster_level,
+            observations_per_cluster=cell.observations_per_cluster,
+            parent_cluster_id=None,
+            pair_id=cell.pair_id,
+            paired_fields=cell.paired_fields,
+            replicate_index=cell.replicate_index,
+            panel_mode=cell.panel_mode,
+            agent_profile_sha256_by_seat=_housing_agent_profile_digests(
+                setup.plan, cell
+            ),
+            implementation_refs=(
+                leaf.estimand.validity_domain.predicate,
+                leaf.verifier.reference.implementation,
+                leaf.scorer,
+            ),
+            plan_implementation_pins=setup.plan.implementation_pins,
+            evidence=evidence_seal,
+            primary_leaf_id=leaf.leaf_id,
+            scores=(),
+            failure=EvaluationFailure(
+                failure_class=failure_class,
+                condition=condition,
+                message=str(error) or type(error).__name__,
+            ),
+            observability_limits=_housing_observability_limits(setup.plan, cell),
+            replay_level="none",
+        )
+    )
+    write_evaluation_receipt(
+        receipt, evidence.root / "evaluation_receipt.json"
+    )
+    evidence.close()
     return receipt
 
 

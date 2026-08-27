@@ -25,6 +25,7 @@ from .housing import (
     OpenRouterRoutePin,
     build_housing_smoke,
     finalize_housing_execution,
+    finalize_housing_failure,
 )
 from .resolver import canonical_json_bytes
 from .receipts import read_evaluation_receipt
@@ -319,6 +320,36 @@ def _failure_evidence_fields(
     }
 
 
+def _failure_receipt_fields(
+    *,
+    setup: HousingSmokeSetup,
+    cell: Any,
+    evidence_root: Path,
+    error: BaseException,
+) -> dict[str, Any]:
+    try:
+        receipt = finalize_housing_failure(
+            setup=setup,
+            cell_id=cell.cell_id,
+            evidence_root=evidence_root,
+            error=error,
+        )
+    except Exception as receipt_error:
+        return {"receipt_failure_type": type(receipt_error).__name__}
+    attempt_root = (
+        evidence_root
+        / setup.plan.run_plan_id
+        / cell.cell_id
+        / receipt.episode_attempt_id
+    )
+    return {
+        "measurement_status": receipt.status,
+        "receipt_sha256": receipt.receipt_sha256,
+        "receipt_path": str((attempt_root / "evaluation_receipt.json").resolve()),
+        "replay_level": receipt.replay_level,
+    }
+
+
 def _recover_orphan_attempts(
     *,
     setup: HousingSmokeSetup,
@@ -449,7 +480,7 @@ def read_condition_results(
                 or final_event_hash != row.get("final_event_hash")
             ):
                 raise ValueError(f"condition evidence fingerprint mismatch: {path}")
-        if row.get("status") in {"completed", "invalid_measurement"}:
+        if row.get("receipt_sha256") is not None:
             if verify_evidence and row.get("evidence_verified") is not True:
                 raise ValueError(f"condition receipt lacks verified evidence: {path}")
             receipt_path_value = row.get("receipt_path")
@@ -663,6 +694,12 @@ async def run_condition_batch(
                     execution=execution,
                 )
             except Exception as error:
+                receipt_fields = _failure_receipt_fields(
+                    setup=setup,
+                    cell=cell,
+                    evidence_root=evidence_root,
+                    error=error,
+                )
                 row = {
                     "condition_id": condition_id,
                     "run_plan_id": setup.plan.run_plan_id,
@@ -680,6 +717,7 @@ async def run_condition_batch(
                         run_plan_id=setup.plan.run_plan_id,
                         cell_id=cell.cell_id,
                     ),
+                    **receipt_fields,
                 }
             sealed = _sealed_result(row)
             _atomic_write_json(results_dir / f"{cell.cell_id}.json", sealed)
@@ -849,6 +887,12 @@ async def run_paired_batch(
                     execution=execution,
                 )
             except Exception as error:
+                receipt_fields = _failure_receipt_fields(
+                    setup=setup,
+                    cell=cell,
+                    evidence_root=evidence_root,
+                    error=error,
+                )
                 row = {
                     "condition_id": condition,
                     "run_plan_id": setup.plan.run_plan_id,
@@ -866,6 +910,7 @@ async def run_paired_batch(
                         run_plan_id=setup.plan.run_plan_id,
                         cell_id=cell.cell_id,
                     ),
+                    **receipt_fields,
                 }
             sealed = _sealed_result(row)
             _atomic_write_json(results_dir / f"{cell.cell_id}.json", sealed)

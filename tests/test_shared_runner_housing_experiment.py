@@ -6,6 +6,8 @@ from pathlib import Path
 
 import pytest
 
+from aeread.shared_runner import read_evaluation_receipt
+
 from aeread.shared_runner.execution import (
     ProviderFailure,
     ProviderRequest,
@@ -716,6 +718,12 @@ def test_condition_batch_preserves_charged_failure_evidence_and_cost(tmp_path) -
     assert rows[0]["provider_call_count"] == 4
     assert rows[0]["length_retry_count"] == 2
     assert rows[0]["reasoning_tokens"] == 12
+    assert rows[0]["measurement_status"] == "invalid_measurement"
+    assert len(rows[0]["receipt_sha256"]) == 64
+    failure_receipt = read_evaluation_receipt(rows[0]["receipt_path"])
+    assert failure_receipt["inclusion_status"] == "excluded"
+    assert failure_receipt["scores"] == []
+    assert failure_receipt["failure"]["failure_class"] == "retryable_infrastructure"
 
 
 def test_condition_batch_seals_null_result_provider_failure(
@@ -756,6 +764,8 @@ def test_condition_batch_seals_null_result_provider_failure(
     )
     assert rows[0]["status"] == "operational_failure"
     assert rows[0]["evidence_verified"] is True
+    assert rows[0]["measurement_status"] == "invalid_measurement"
+    assert len(rows[0]["receipt_sha256"]) == 64
     assert rows[0]["provider_call_count"] == 8
     assert rows[0]["reasoning_tokens"] == 0
 
