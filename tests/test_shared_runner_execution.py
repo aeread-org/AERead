@@ -1033,6 +1033,7 @@ def test_openrouter_adapter_pins_deepseek_route_and_parses_usage() -> None:
         "top_p": 1.0,
         "seed": 71001,
         "max_tokens": 512,
+        "timeout": 30.0,
         "response_format": {
             "type": "json_schema",
             "json_schema": {

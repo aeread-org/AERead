@@ -32,12 +32,12 @@ DEEPSEEK_ROUTE = OpenRouterRoutePin(
     pricing_id="openrouter_parasail_2026-08-28_deepseek-v4-flash-0731",
 )
 DEEPSEEK_BUYER_LIMITS = {
-    "buyer_max_output_tokens": 8192,
-    "buyer_timeout_seconds": 600.0,
+    "buyer_max_output_tokens": 32768,
+    "buyer_timeout_seconds": 1800.0,
     "buyer_max_cost_usd": .04,
 }
 # Cover the post-call profile stop plus two full-context requests (including a
-# length retry): .04 + 2 * (1048576*.14 + 16384*.28)/1e6 < .4 USD.
+# length retry): .04 + 2 * (1048576*.14 + 65536*.28)/1e6 < .4 USD.
 DEEPSEEK_EPISODE_RESERVE_USD = .4
 
 

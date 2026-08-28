@@ -1370,6 +1370,7 @@ class OpenRouterChatClient:
             "top_p": request.top_p,
             "seed": request.seed,
             "max_tokens": request.max_output_tokens,
+            "timeout": request.timeout_seconds,
             "response_format": {
                 "type": "json_schema",
                 "json_schema": {
