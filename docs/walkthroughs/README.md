@@ -32,6 +32,9 @@
 - [`procurement_sampling_admission.md`](procurement_sampling_admission.md) —
   repetitive admission evidence, common-temperature hypothesis, provider caveats,
   reservation sensitivity, and unchanged sample/spend gates.
+- [`procurement_rate_limit_recovery.md`](procurement_rate_limit_recovery.md) —
+  explicit one-time continuation of a drained upstream-rate-limit stop, retaining
+  all receipts, exclusions and spend while bounding new dispatch.
 - [`housing_reasoning_experiment.md`](housing_reasoning_experiment.md) —
   pre-outcome audit, locked design, and completed result for 100 paired Housing worlds,
   reasoning disabled versus reasoning-low, three nested replicates, cluster-level inference,

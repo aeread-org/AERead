@@ -12,6 +12,7 @@ import hashlib
 import json
 import math
 import os
+import shutil
 import tempfile
 from contextlib import contextmanager
 from pathlib import Path
@@ -202,7 +203,140 @@ def _read_rows(setups: Mapping[str, EvaluationSetup], root: Path, *, recover: bo
 
 def read_family_batch(*, setups: Mapping[str, EvaluationSetup], output_root: str | Path) -> list[dict[str, Any]]:
     """Read only: verify every returned row against sealed evidence and replay."""
-    return _read_rows(setups, Path(output_root), recover=False)
+    root = Path(output_root)
+    rows = _read_rows(setups, root, recover=False)
+    _recovery_checkpoint(root, rows=rows)
+    return rows
+
+
+def _batch_source_sha256() -> str:
+    return hashlib.sha256(Path(__file__).read_bytes()
+        + Path(__file__).with_name("family_evaluation.py").read_bytes()).hexdigest()
+
+
+def _read_sealed(path: Path) -> dict[str, Any]:
+    value = json.loads(path.read_bytes())
+    if not isinstance(value, dict) or value.get("result_sha256") != _seal(value)["result_sha256"]:
+        raise ValueError(f"sealed checkpoint or manifest differs: {path.name}")
+    return value
+
+
+def _rate_limit_recovery_eligible(rows, manifest) -> None:
+    if not rows or any(row["unknown_cost_provider_call_count"] for row in rows):
+        raise ValueError("rate-limit recovery requires known billing for a completed prefix")
+    failures, circuit = {}, False
+    for row in rows:
+        condition = row["condition_id"]
+        if row["status"] != "completed":
+            if (row.get("failure") or {}).get("condition") != "rate_limit":
+                raise ValueError("only rate-limit failures may be acknowledged")
+            failures[condition] = failures.get(condition, 0) + 1
+            circuit |= failures[condition] >= manifest["max_consecutive_failures"]
+        else:
+            failures[condition] = 0
+    if not circuit:
+        raise ValueError("recovery requires an open failure circuit")
+    cost = sum(row["cost_usd"] for row in rows)
+    reserve = manifest["inflight_episode_reserve_usd"]
+    if (cost >= manifest["spend_limit_usd"] or cost + reserve > manifest["spend_limit_usd"]
+            or (reserve and any(row["cost_usd"] > reserve for row in rows))):
+        raise ValueError("recovery cannot reset a spend or reservation budget")
+
+
+def _recovery_checkpoint(root: Path, *, rows=None, for_execution=False):
+    checkpoint_path = root / "recovery_checkpoint.json"
+    if not checkpoint_path.exists():
+        return None
+    checkpoint = _read_sealed(checkpoint_path)
+    parent = _read_sealed(root / "recovery_parent_manifest.json")
+    current = _read_sealed(root / "batch_manifest.json")
+    excluded = {"result_sha256", "batch_source_sha256", "recovery_checkpoint_sha256"}
+    if (checkpoint.get("spec_version") != "aeread.rate_limit_recovery/1"
+            or type(checkpoint.get("max_new_cells_per_invocation")) is not int
+            or checkpoint["max_new_cells_per_invocation"] != 4
+            or checkpoint.get("parent_manifest_sha256") != parent["result_sha256"]
+            or current.get("recovery_checkpoint_sha256") != checkpoint["result_sha256"]
+            or {k: v for k, v in parent.items() if k not in excluded}
+            != {k: v for k, v in current.items() if k not in excluded}):
+        raise ValueError("recovery checkpoint changed the frozen batch policy")
+    hashes = checkpoint.get("prefix_result_sha256s")
+    if not isinstance(hashes, list) or not hashes or any(not isinstance(value, str) for value in hashes):
+        raise ValueError("recovery checkpoint requires a nonempty sealed result prefix")
+    if for_execution and Path(checkpoint["output_root"]).resolve() != root.resolve():
+        raise ValueError("recovery checkpoint belongs to another execution destination")
+    if rows is not None:
+        prefix = rows[:len(hashes)]
+        if [row["result_sha256"] for row in prefix] != hashes:
+            raise ValueError("recovery checkpoint prefix changed or lost a receipt")
+        _rate_limit_recovery_eligible(prefix, parent)
+    return checkpoint
+
+
+def prepare_rate_limit_recovery(
+    *, setups: Mapping[str, EvaluationSetup], source_root: str | Path,
+    output_root: str | Path, expected_manifest_sha256: str, reason: str,
+) -> dict[str, Any]:
+    """Explicit one-time fork of a drained 429 stop; never rerun the acknowledged prefix.
+
+    The original evidence and policy are retained, its only new file is a single-child
+    pointer. The child preserves every receipt, charge and plan. Later failures still
+    latch normally; neither unknown billing nor another recovery can be acknowledged.
+    """
+    if Path(output_root).is_symlink():
+        raise FileExistsError(f"recovery destination is a symlink: {output_root}")
+    source, target = Path(source_root).resolve(), Path(output_root).resolve()
+    if source == target or source in target.parents:
+        raise ValueError("recovery destination must be separate from its source")
+    if not isinstance(reason, str) or not reason.strip():
+        raise ValueError("recovery requires an explicit operator reason")
+    with _batch_lock(source):
+        if (source / "recovery_checkpoint.json").exists():
+            raise ValueError("a recovery cannot acknowledge another failure circuit")
+        parent = _read_sealed(source / "batch_manifest.json")
+        if parent["result_sha256"] != expected_manifest_sha256:
+            raise ValueError("source manifest differs from the acknowledged checkpoint")
+        if parent["plans"] != {condition: setup.plan.plan_sha256 for condition, setup in setups.items()}:
+            raise ValueError("recovery plans differ from the frozen source plans")
+        rows = _read_rows(setups, source, recover=False)
+        schedule = paired_schedule(setups)
+        if ([(r["condition_id"], r["cell_id"]) for r in rows]
+                != [(condition, cell.cell_id) for condition, cell in schedule[:len(rows)]]
+                or len(rows) == len(schedule)):
+            raise ValueError("recovery requires a contiguous unfinished schedule prefix")
+        _rate_limit_recovery_eligible(rows, parent)
+        checkpoint = _seal({
+            "spec_version": "aeread.rate_limit_recovery/1", "source_root": str(source),
+            "output_root": str(target), "parent_manifest_sha256": parent["result_sha256"],
+            "prefix_result_sha256s": [row["result_sha256"] for row in rows],
+            "max_new_cells_per_invocation": 4,
+            "operator_reason": reason.strip(),
+        })
+        pointer_path = source / "recovery_child.json"
+        if pointer_path.exists():
+            pointer = _read_sealed(pointer_path)
+            if (pointer.get("output_root") != str(target)
+                    or pointer.get("checkpoint_sha256") != checkpoint["result_sha256"]):
+                raise ValueError("source already has another recovery child destination")
+            if not target.exists() or _recovery_checkpoint(target) != checkpoint:
+                raise ValueError("existing recovery child is incomplete; manual inspection required")
+            return checkpoint
+        if target.exists():
+            raise FileExistsError(f"recovery destination already exists: {target}")
+        # Claim one destination before copying. A failed copy is left for inspection,
+        # never silently overwritten or turned into a second independently billed fork.
+        atomic_write_json(pointer_path, _seal({"output_root": str(target),
+            "checkpoint_sha256": checkpoint["result_sha256"]}))
+        shutil.copytree(source, target, ignore=shutil.ignore_patterns(".batch.lock", "recovery_child.json"))
+        atomic_write_json(target / "recovery_parent_manifest.json", parent)
+        atomic_write_json(target / "recovery_checkpoint.json", checkpoint)
+        manifest = _seal({**parent, "batch_source_sha256": _batch_source_sha256(),
+                          "recovery_checkpoint_sha256": checkpoint["result_sha256"]})
+        atomic_write_json(target / "batch_manifest.json", manifest)
+        copied = _read_rows(setups, target, recover=False)
+        _recovery_checkpoint(target, rows=copied, for_execution=True)
+        if copied != rows:
+            raise ValueError("recovery copy changed a sealed result")
+        return checkpoint
 
 
 async def run_family_batch(
@@ -230,14 +364,20 @@ async def run_family_batch(
     if set(providers_by_condition) != set(setups):
         raise ValueError("providers must be supplied for both conditions")
     root = Path(output_root)
-    source = Path(__file__).read_bytes() + Path(__file__).with_name("family_evaluation.py").read_bytes()
+    checkpoint = _recovery_checkpoint(root, for_execution=True)
+    if checkpoint:
+        if max_new_cells is None:
+            max_new_cells = checkpoint["max_new_cells_per_invocation"]
+        elif max_new_cells > checkpoint["max_new_cells_per_invocation"]:
+            raise ValueError("recovery is limited to four new cells per invocation")
     manifest = _seal({
-        "spec_version": "aeread.family_batch/1", "batch_source_sha256": hashlib.sha256(source).hexdigest(),
+        "spec_version": "aeread.family_batch/1", "batch_source_sha256": _batch_source_sha256(),
         "plans": {c: s.plan.plan_sha256 for c, s in setups.items()},
         "spend_limit_usd": float(spend_limit_usd), "max_consecutive_failures": max_consecutive_failures,
         "max_concurrency": max_concurrency,
         "inflight_episode_reserve_usd": inflight_episode_reserve_usd,
         "cost_policy": "recorded_cost_stop_after_episode;unknown_cost_stops;not_hard_billing_cap",
+        **({"recovery_checkpoint_sha256": checkpoint["result_sha256"]} if checkpoint else {}),
     })
     with _batch_lock(root):
         manifest_path = root / "batch_manifest.json"
@@ -249,6 +389,8 @@ async def run_family_batch(
                 raise ValueError("existing attempts lack a sealed batch manifest")
             atomic_write_json(manifest_path, manifest)
         rows = _read_rows(setups, root, recover=True)
+        _recovery_checkpoint(root, rows=rows, for_execution=True)
+        acknowledged_prefix = len(checkpoint["prefix_result_sha256s"]) if checkpoint else 0
         by_cell = {(r["condition_id"], r["cell_id"]): r for r in rows}
         failures = {condition: 0 for condition in setups}
         known_cost = sum(r["cost_usd"] for r in rows)
@@ -285,8 +427,9 @@ async def run_family_batch(
                 condition, cell = schedule[cursor]
                 existing = by_cell.get((condition, cell.cell_id))
                 if existing:
-                    failures[condition] = failures[condition] + 1 if existing["status"] != "completed" else 0
-                    failure_circuit_open |= failures[condition] >= max_consecutive_failures
+                    if cursor >= acknowledged_prefix:
+                        failures[condition] = failures[condition] + 1 if existing["status"] != "completed" else 0
+                        failure_circuit_open |= failures[condition] >= max_consecutive_failures
                     cursor += 1
                     continue
                 if unknown_cost:
@@ -327,6 +470,11 @@ async def run_family_batch(
                 failure_circuit_open |= failures[condition] >= max_consecutive_failures
                 reservation_exceeded |= bool(inflight_episode_reserve_usd
                     and row["cost_usd"] > inflight_episode_reserve_usd)
+            if checkpoint and any((row.get("failure") or {}).get("condition") == "rate_limit" for row in outcomes):
+                stop_reason = ("unknown_billing" if unknown_cost else
+                    "inflight_reservation_exceeded" if reservation_exceeded else
+                    "failure_circuit" if failure_circuit_open else "rate_limit_pause")
+                break
             stop_reason = "complete"
         return {
             "planned_cell_count": len(schedule), "attempted_cell_count": len(rows),

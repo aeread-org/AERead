@@ -260,3 +260,177 @@ def test_parallel_failure_circuit_latches_even_if_later_inflight_cells_succeed(t
     calls = buyer.calls
     assert run(tmp_path, setup_map, buyer, **kwargs) == result
     assert buyer.calls == calls
+
+
+class RateLimitedBuyer(CountingBuyer):
+    async def complete(self, request):
+        self.calls += 1
+        raise ProviderFailure("rate_limit", "temporary shared-pool throttling", retryable=True, status_code=429)
+
+
+def prepare_recovery(source, target, setup_map):
+    from aeread.shared_runner.batch import prepare_rate_limit_recovery
+    manifest = json.loads((source / "batch_manifest.json").read_text())
+    return prepare_rate_limit_recovery(
+        setups=setup_map, source_root=source, output_root=target,
+        expected_manifest_sha256=manifest["result_sha256"],
+        reason="Operator reviewed the upstream 429 stop; resume only unattempted cells.")
+
+
+def test_explicit_rate_limit_recovery_preserves_rows_and_never_repeats_attempts(tmp_path):
+    setup_map = setups()
+    source, target = tmp_path / "original", tmp_path / "recovery"
+    first = run(source, setup_map, RateLimitedBuyer(), max_consecutive_failures=1)
+    original_files = {str(p.relative_to(source)): p.read_bytes() for p in source.rglob("*") if p.is_file()}
+    checkpoint = prepare_recovery(source, target, setup_map)
+    assert checkpoint["prefix_result_sha256s"] == [r["result_sha256"] for r in first["rows"]]
+    buyer = CountingBuyer()
+    resumed = run(target, setup_map, buyer, max_consecutive_failures=1, max_new_cells=2)
+    assert resumed["attempted_cell_count"] == 3 and resumed["included_count"] == 2
+    assert resumed["rows"][0] == first["rows"][0] and buyer.calls == 8
+    assert resumed["rows"][0]["within_case_score"] is None
+    complete = run(target, setup_map, buyer, max_consecutive_failures=1)
+    while complete["stop_reason"] == "invocation_cell_limit":
+        complete = run(target, setup_map, buyer, max_consecutive_failures=1)
+    assert complete["attempted_cell_count"] == 8 and complete["excluded_count"] == 1
+    assert buyer.calls == 28
+    assert read_family_batch(setups=setup_map, output_root=target) == complete["rows"]
+    assert all((source / name).read_bytes() == content for name, content in original_files.items())
+
+
+def test_recovery_acknowledges_only_the_old_circuit_and_new_failures_still_latch(tmp_path):
+    setup_map = setups()
+    source, target = tmp_path / "original", tmp_path / "recovery"
+    run(source, setup_map, RateLimitedBuyer(), max_consecutive_failures=1)
+    prepare_recovery(source, target, setup_map)
+    buyer = RateLimitedBuyer()
+    first = run(target, setup_map, buyer, max_consecutive_failures=1)
+    assert first["attempted_cell_count"] == 2 and first["stop_reason"] == "failure_circuit"
+    assert run(target, setup_map, buyer, max_consecutive_failures=1) == first
+    assert buyer.calls == 1
+    with pytest.raises(ValueError, match="recovery|acknowledge"):
+        prepare_recovery(target, tmp_path / "another", setup_map)
+
+
+@pytest.mark.parametrize("condition", ["timeout", "provider_contract"])
+def test_rate_limit_recovery_cannot_acknowledge_other_failures_or_unknown_billing(tmp_path, condition):
+    class Broken(CountingBuyer):
+        async def complete(self, request):
+            self.calls += 1
+            raise ProviderFailure(condition, "test failure", retryable=False)
+    setup_map = setups()
+    source, target = tmp_path / "original", tmp_path / "recovery"
+    run(source, setup_map, Broken(), max_consecutive_failures=1)
+    with pytest.raises(ValueError, match="rate.limit|billing"):
+        prepare_recovery(source, target, setup_map)
+    assert not target.exists()
+
+
+def test_recovery_cannot_reset_spend_or_change_frozen_batch_policy(tmp_path):
+    class SpendThenThrottle(CountingBuyer):
+        async def complete(self, request):
+            if json.loads(request.input_text)["phase_id"] != "rfq":
+                raise ProviderFailure("rate_limit", "test throttling", retryable=True, status_code=429)
+            return replace(await super().complete(request), cost_usd=.0002)
+    setup_map = setups()
+    source, target = tmp_path / "original", tmp_path / "recovery"
+    first = run(source, setup_map, SpendThenThrottle(), max_consecutive_failures=1)
+    prepare_recovery(source, target, setup_map)
+    buyer = CountingBuyer()
+    resumed = run(target, setup_map, buyer, max_consecutive_failures=1, max_new_cells=1)
+    assert resumed["known_cost_usd"] == first["known_cost_usd"] == .0002
+    with pytest.raises(ValueError, match="manifest"):
+        run(target, setup_map, buyer, max_consecutive_failures=2)
+    exhausted = tmp_path / "exhausted"
+    run(exhausted, setup_map, SpendThenThrottle(), max_consecutive_failures=1, spend_limit_usd=.0001)
+    with pytest.raises(ValueError, match="budget|spend"):
+        prepare_recovery(exhausted, tmp_path / "forbidden", setup_map)
+
+
+def test_recovery_is_single_destination_and_never_overwrites_a_collision(tmp_path):
+    setup_map = setups()
+    source, target = tmp_path / "original", tmp_path / "recovery"
+    run(source, setup_map, RateLimitedBuyer(), max_consecutive_failures=1)
+    occupied = tmp_path / "occupied"
+    occupied.mkdir()
+    (occupied / "keep.txt").write_text("user data")
+    with pytest.raises(FileExistsError):
+        prepare_recovery(source, occupied, setup_map)
+    assert (occupied / "keep.txt").read_text() == "user data"
+    checkpoint = prepare_recovery(source, target, setup_map)
+    assert prepare_recovery(source, target, setup_map) == checkpoint
+    with pytest.raises(ValueError, match="destination|child"):
+        prepare_recovery(source, tmp_path / "duplicate", setup_map)
+
+
+def test_recovery_rejects_a_tampered_checkpoint_before_provider_calls(tmp_path):
+    setup_map = setups()
+    source, target = tmp_path / "original", tmp_path / "recovery"
+    run(source, setup_map, RateLimitedBuyer(), max_consecutive_failures=1)
+    prepare_recovery(source, target, setup_map)
+    checkpoint_path = target / "recovery_checkpoint.json"
+    value = json.loads(checkpoint_path.read_text())
+    value["prefix_result_sha256s"] = []
+    checkpoint_path.write_text(json.dumps(value))
+    buyer = CountingBuyer()
+    with pytest.raises(ValueError, match="checkpoint|sealed"):
+        run(target, setup_map, buyer, max_consecutive_failures=1)
+    assert buyer.calls == 0
+
+
+def test_recovery_requires_an_actual_circuit_and_an_unlocked_source(tmp_path):
+    import fcntl
+    setup_map = setups()
+    healthy = tmp_path / "healthy"
+    run(healthy, setup_map, max_new_cells=1)
+    with pytest.raises(ValueError, match="circuit"):
+        prepare_recovery(healthy, tmp_path / "invalid", setup_map)
+    source = tmp_path / "original"
+    run(source, setup_map, RateLimitedBuyer(), max_consecutive_failures=1)
+    with (source / ".batch.lock").open("a") as handle:
+        fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        with pytest.raises(ValueError, match="lock"):
+            prepare_recovery(source, tmp_path / "locked", setup_map)
+
+
+def test_recovery_refuses_a_dangling_destination_symlink(tmp_path):
+    setup_map = setups()
+    source, destination = tmp_path / "original", tmp_path / "link"
+    run(source, setup_map, RateLimitedBuyer(), max_consecutive_failures=1)
+    outside = tmp_path / "not_the_requested_destination"
+    destination.symlink_to(outside)
+    with pytest.raises(FileExistsError):
+        prepare_recovery(source, destination, setup_map)
+    assert not outside.exists()
+
+
+def test_recovery_defaults_to_a_sealed_four_new_cell_limit(tmp_path):
+    setup_map = setups()
+    source, target = tmp_path / "original", tmp_path / "recovery"
+    run(source, setup_map, RateLimitedBuyer(), max_consecutive_failures=1)
+    checkpoint = prepare_recovery(source, target, setup_map)
+    buyer = CountingBuyer()
+    resumed = run(target, setup_map, buyer, max_consecutive_failures=1)
+    assert resumed["attempted_cell_count"] == 5
+    assert resumed["stop_reason"] == "invocation_cell_limit" and buyer.calls == 16
+    assert checkpoint["max_new_cells_per_invocation"] == 4
+    with pytest.raises(ValueError, match="four|limit"):
+        run(target, setup_map, buyer, max_consecutive_failures=1, max_new_cells=5)
+    assert buyer.calls == 16
+
+
+def test_recovery_pauses_on_a_new_rate_limit_without_waiting_for_three_failures(tmp_path):
+    class ThrottleOnce(CountingBuyer):
+        async def complete(self, request):
+            if self.calls == 0:
+                self.calls += 1
+                raise ProviderFailure("rate_limit", "new throttling", retryable=True, status_code=429)
+            return await super().complete(request)
+    setup_map = setups(seeds=(11, 12, 13, 14))
+    source, target = tmp_path / "original", tmp_path / "recovery"
+    first = run(source, setup_map, RateLimitedBuyer())
+    prepare_recovery(source, target, setup_map)
+    buyer = ThrottleOnce()
+    paused = run(target, setup_map, buyer)
+    assert paused["attempted_cell_count"] == first["attempted_cell_count"] + 1
+    assert paused["stop_reason"] == "rate_limit_pause" and buyer.calls == 1

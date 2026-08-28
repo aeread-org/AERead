@@ -1,9 +1,9 @@
 # DeepSeek procurement: 600-episode run plan
 
 Date: 2026-08-28. Request: run 600 procurement episodes with DeepSeek.
-Status: user approved $5 total and continuation to the final result. Three admission
-studies are preserved below; none launched the sample. A common-temperature repair
-is awaiting a fresh admission with all earlier spend carried forward.
+Status: user approved $5 total and continuation to the final result. The temperature-1
+admission passed; its sample stopped at 69 attempts after an upstream rate-limit
+burst. A receipt-preserving continuation for the 531 unattempted cells is being validated.
 
 ## Locked comparison and measurement
 
@@ -169,3 +169,24 @@ Six targeted checks failed before implementation; 95 focused checks then passed.
 The full offline regression passed **701 tests, with 3 skipped and 1 expected
 failure**, in 119.22 seconds. The standalone historical budget/sensitivity checker
 at the third study's `verify_sampling_numbers.py` also passed without provider calls.
+
+### Temperature-1 admission and upstream rate-limit stop
+
+At source `9778c1d`, all six admission episodes completed and replayed, using 24
+native buyer calls with no retries or unknown billing. That admission cost
+$0.0179870922. The sample then attempted 69 cells: 61 included, eight excluded
+because Parasail's upstream shared pool returned HTTP 429. The failure circuit
+stopped further dispatch after the active wave drained. No sample performance
+estimate was produced from this incomplete panel.
+
+Sample cost was $0.2099360142. Across every admission and sample call, total spend
+is **$0.3252523824**, leaving **$4.6747476176**. All 75 admission/sample receipts
+replayed; all 225 checked evidence files were unchanged. Sample summary SHA-256:
+`3a6f23aa16c5fff706f3c18012b00b9e32116130588bc4942d9ff4f8150b463c`.
+
+The proposed [rate-limit continuation](procurement_rate_limit_recovery.md) keeps
+the frozen plan hashes, all past exclusions and charges, and the same 600 identities.
+It acknowledges the drained circuit once in a separate directory, caps new work
+at four cells per invocation and pauses on any new rate limit. It does not retry
+the eight failed cells, change providers, reset billing, or reinterpret failed
+episodes as zero rewards. The original failed-study and sample artifacts remain intact.
