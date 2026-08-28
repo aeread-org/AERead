@@ -85,6 +85,29 @@ def _evidence_fingerprint(root):
     return digest.hexdigest(), len(paths)
 
 
+def audit_prior_spend(authorization):
+    entries = authorization.get("prior_runs")
+    if entries is None:
+        entries = [{"evidence_root": authorization["prior_evidence_root"],
+                    "summary_path": "admission/summary.json",
+                    "summary_sha256": authorization["prior_summary_sha256"],
+                    "recorded_cost_usd": authorization["prior_recorded_cost_usd"]}]
+    total = Decimal("0")
+    for entry in entries:
+        raw = (Path(entry["evidence_root"]) / entry["summary_path"]).read_bytes()
+        if hashlib.sha256(raw).hexdigest() != entry["summary_sha256"]:
+            raise ValueError("prior summary hash changed")
+        cost = Decimal(str(json.loads(raw)["total_known_cost_usd_including_admission"]))
+        if cost != Decimal(str(entry["recorded_cost_usd"])):
+            raise ValueError("prior recorded cost differs from its summary")
+        total += cost
+    if (total != Decimal(str(authorization["prior_recorded_cost_usd"]))
+            or total + Decimal(str(authorization["remaining_run_limit_usd"]))
+            != Decimal(str(authorization["approved_total_usd"]))):
+        raise ValueError("authorization does not carry forward all prior spend")
+    return total
+
+
 def audit_live_run(root):
     from aeread.shared_runner.batch import read_family_batch
     from aeread.shared_runner.execution import _paired_cell_request_seed
@@ -149,7 +172,8 @@ def audit_live_run(root):
                     assert "unit_cost" not in json.dumps(request), "private supplier-cost field in buyer prompt"
                     assert request["model"] == DEEPSEEK_MODEL
                     assert request["reasoning_effort"] == dict(study["ordered_conditions"])[condition]
-                    assert request["max_output_tokens"] in (8192, 16384)
+                    ceiling = study["buyer_runtime_limits"]["buyer_max_output_tokens"]
+                    assert request["max_output_tokens"] in (ceiling, ceiling * 2)
                     calls[phase] += 1
                 if event["event_type"] in {"provider_call_succeeded", "provider_call_failed", "provider_call_outcome_unknown"}:
                     cost = payload.get("cost_usd")
@@ -161,14 +185,14 @@ def audit_live_run(root):
                         assert Decimal(str(usage["cost"])) == Decimal(str(cost))
                         for field in ("prompt_tokens", "completion_tokens"):
                             tokens[field] += usage[field]
-                        tokens["reasoning_tokens"] += (usage.get("completion_tokens_details") or {}).get("reasoning_tokens", 0)
+                        tokens["reasoning_tokens"] += (usage.get("completion_tokens_details") or {}).get("reasoning_tokens", 0) or 0
                 if event["event_type"] == "family_outcome_recorded":
                     outcome = payload["outcome"]
                     if row["status"] == "completed":
                         assert math.isclose(outcome["buyer_surplus"], row["primary_value"], abs_tol=1e-9)
                         assert math.isclose(outcome["buyer_surplus"] / outcome["oracle_total"],
                                             row["within_case_score"], abs_tol=1e-12)
-                    if phase == "sample":
+                    if phase == "sample" and row["status"] == "completed":
                         outcomes[condition]["executed"] += int(outcome["executed"])
                         outcomes[condition]["approval_granted"] += int(outcome["approval_granted"])
                         outcomes[condition]["disclosed_target_price"] += int(outcome["disclosed_rfq_count"] > 0)
@@ -179,11 +203,7 @@ def audit_live_run(root):
         assert abs(phase_cost - Decimal(str(summaries[phase]["batch"]["known_cost_usd"]))) < Decimal("1e-10")
         costs[phase] = phase_cost
 
-    old = Path(authorization["prior_evidence_root"])
-    old_bytes = (old / "admission/summary.json").read_bytes()
-    assert hashlib.sha256(old_bytes).hexdigest() == authorization["prior_summary_sha256"]
-    prior = Decimal(str(json.loads(old_bytes)["total_known_cost_usd_including_admission"]))
-    assert prior == Decimal(str(authorization["prior_recorded_cost_usd"]))
+    prior = audit_prior_spend(authorization)
     total = prior + costs["admission"] + costs["sample"]
     assert total <= Decimal(str(authorization["approved_total_usd"]))
     assert abs(costs["admission"] + costs["sample"] - Decimal(str(

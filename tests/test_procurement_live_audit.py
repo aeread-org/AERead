@@ -1,9 +1,11 @@
 """Independent reporting arithmetic must use worlds, not episode pseudo-replication."""
 import json
+import hashlib
+from decimal import Decimal
 
 import pytest
 
-from examples.verify_procurement_live import audit_live_run, recompute_panel
+from examples.verify_procurement_live import audit_live_run, audit_prior_spend, recompute_panel
 
 
 def panel_rows():
@@ -47,3 +49,22 @@ def test_live_audit_cannot_label_scripted_evidence_as_model_performance(tmp_path
     (tmp_path / "live_study.json").write_text(json.dumps({"evidence_kind": "scripted_instrumentation_only"}))
     with pytest.raises(ValueError, match="native_live_provider"):
         audit_live_run(tmp_path)
+
+
+def test_prior_spend_preserves_every_admission_charge_and_checks_hashes(tmp_path):
+    entries = []
+    for index, cost in enumerate((.01, .02)):
+        directory = tmp_path / str(index)
+        directory.mkdir()
+        raw = json.dumps({"total_known_cost_usd_including_admission": cost}).encode()
+        (directory / "summary.json").write_bytes(raw)
+        entries.append({"evidence_root": str(directory), "summary_path": "summary.json",
+                        "summary_sha256": hashlib.sha256(raw).hexdigest(), "recorded_cost_usd": cost})
+    authorization = {"prior_runs": entries, "prior_recorded_cost_usd": .03,
+                     "remaining_run_limit_usd": 4.97, "approved_total_usd": 5}
+    assert audit_prior_spend(authorization) == Decimal('.03')
+    with pytest.raises(ValueError, match="authorization"):
+        audit_prior_spend({**authorization, "remaining_run_limit_usd": 5})
+    (tmp_path / "0/summary.json").write_text('{}')
+    with pytest.raises(ValueError, match="hash"):
+        audit_prior_spend(authorization)
