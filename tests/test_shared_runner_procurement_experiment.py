@@ -121,6 +121,11 @@ def test_deepseek_admission_uses_shared_batch_with_none_low_and_parasail(tmp_pat
         spend_limit_usd=5))
     assert set(captured["setups"]) == {"reasoning_none_v1", "reasoning_low_v1"}
     assert sum(len(s.plan.cells) for s in captured["setups"].values()) == 6
+    assert captured["max_concurrency"] == 16
+    assert captured["inflight_episode_reserve_usd"] == .4
+    # Include a full-context call and its length retry, even if the first failed
+    # response took recorded profile spend above the post-call budget check.
+    assert .04 + 2 * (1048576 * .14 + 16384 * .28) / 1_000_000 < .4
     for condition, setup in captured["setups"].items():
         buyer = next(p for p in setup.plan.agent_profiles if p.model.provider == "openrouter")
         assert buyer.model.model == "deepseek/deepseek-v4-flash-0731"

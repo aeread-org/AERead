@@ -6,6 +6,7 @@ An interrupted attempt without a verifiable receipt is never automatically rerun
 """
 from __future__ import annotations
 
+import asyncio
 import fcntl
 import hashlib
 import json
@@ -204,6 +205,7 @@ async def run_family_batch(
     providers_by_condition: Mapping[str, Mapping[str, Any]],
     leaf_builder: Callable[[Mapping[str, Any]], MeasurementLeafSpec],
     spend_limit_usd: float, max_consecutive_failures: int = 3, max_new_cells: int | None = None,
+    max_concurrency: int = 1, inflight_episode_reserve_usd: float = 0.0,
 ) -> dict[str, Any]:
     if isinstance(spend_limit_usd, bool) or not isinstance(spend_limit_usd, (int, float)) or not math.isfinite(spend_limit_usd) or spend_limit_usd <= 0:
         raise ValueError("spend_limit_usd must be finite and positive")
@@ -211,6 +213,14 @@ async def run_family_batch(
         raise ValueError("max_consecutive_failures must be a positive integer")
     if max_new_cells is not None and (isinstance(max_new_cells, bool) or not isinstance(max_new_cells, int) or max_new_cells < 0):
         raise ValueError("max_new_cells must be a nonnegative integer")
+    if isinstance(max_concurrency, bool) or not isinstance(max_concurrency, int) or max_concurrency < 1:
+        raise ValueError("max_concurrency must be a positive integer")
+    if (isinstance(inflight_episode_reserve_usd, bool)
+            or not isinstance(inflight_episode_reserve_usd, (int, float))
+            or not math.isfinite(inflight_episode_reserve_usd)
+            or inflight_episode_reserve_usd < 0
+            or (max_concurrency > 1 and inflight_episode_reserve_usd == 0)):
+        raise ValueError("parallel dispatch requires a finite positive episode reservation")
     schedule = paired_schedule(setups)
     if set(providers_by_condition) != set(setups):
         raise ValueError("providers must be supplied for both conditions")
@@ -220,6 +230,8 @@ async def run_family_batch(
         "spec_version": "aeread.family_batch/1", "batch_source_sha256": hashlib.sha256(source).hexdigest(),
         "plans": {c: s.plan.plan_sha256 for c, s in setups.items()},
         "spend_limit_usd": float(spend_limit_usd), "max_consecutive_failures": max_consecutive_failures,
+        "max_concurrency": max_concurrency,
+        "inflight_episode_reserve_usd": inflight_episode_reserve_usd,
         "cost_policy": "recorded_cost_stop_after_episode;unknown_cost_stops;not_hard_billing_cap",
     })
     with _batch_lock(root):
@@ -237,23 +249,11 @@ async def run_family_batch(
         known_cost = sum(r["cost_usd"] for r in rows)
         unknown_cost = sum(r["unknown_cost_provider_call_count"] for r in rows)
         new_cells, stop_reason = 0, "complete"
-        for condition, cell in schedule:
-            existing = by_cell.get((condition, cell.cell_id))
-            if existing:
-                failures[condition] = failures[condition] + 1 if existing["status"] != "completed" else 0
-                continue
-            if unknown_cost:
-                stop_reason = "unknown_billing"
-                break
-            if any(count >= max_consecutive_failures for count in failures.values()):
-                stop_reason = "failure_circuit"
-                break
-            if known_cost >= spend_limit_usd:
-                stop_reason = "recorded_cost_limit"
-                break
-            if max_new_cells is not None and new_cells >= max_new_cells:
-                stop_reason = "invocation_cell_limit"
-                break
+        reservation_exceeded = bool(inflight_episode_reserve_usd and any(
+            row["cost_usd"] > inflight_episode_reserve_usd for row in rows))
+        failure_circuit_open = False
+
+        async def run_cell(condition, cell):
             setup = setups[condition]
             evidence_root, attempt_root, result_path = _paths(root, condition, setup, cell)
             atomic_write_json(result_path.with_suffix(".started"), {"cell_id": cell.cell_id, "run_plan_id": setup.plan.run_plan_id})
@@ -270,11 +270,59 @@ async def run_family_batch(
                 raise ValueError("interrupted attempt has no unique receipt")
             row = _receipt_row(root, condition, setup, cell, receipts[0])
             atomic_write_json(result_path, row)
-            rows.append(row)
-            new_cells += 1
-            known_cost += row["cost_usd"]
-            unknown_cost += row["unknown_cost_provider_call_count"]
-            failures[condition] = failures[condition] + 1 if row["status"] != "completed" else 0
+            return row
+
+        cursor = 0
+        while cursor < len(schedule):
+            wave = []
+            stop_reason = "complete"
+            while cursor < len(schedule) and len(wave) < max_concurrency:
+                condition, cell = schedule[cursor]
+                existing = by_cell.get((condition, cell.cell_id))
+                if existing:
+                    failures[condition] = failures[condition] + 1 if existing["status"] != "completed" else 0
+                    failure_circuit_open |= failures[condition] >= max_consecutive_failures
+                    cursor += 1
+                    continue
+                if unknown_cost:
+                    stop_reason = "unknown_billing"
+                    break
+                if reservation_exceeded:
+                    stop_reason = "inflight_reservation_exceeded"
+                    break
+                if failure_circuit_open:
+                    stop_reason = "failure_circuit"
+                    break
+                if known_cost >= spend_limit_usd:
+                    stop_reason = "recorded_cost_limit"
+                    break
+                if max_new_cells is not None and new_cells + len(wave) >= max_new_cells:
+                    stop_reason = "invocation_cell_limit"
+                    break
+                if inflight_episode_reserve_usd and (
+                        known_cost + (len(wave) + 1) * inflight_episode_reserve_usd > spend_limit_usd):
+                    stop_reason = "budget_reservation"
+                    break
+                wave.append((condition, cell))
+                cursor += 1
+            if not wave:
+                break
+            # Drain the bounded wave before another dispatch. Record failures in
+            # declared schedule order, not whichever API response finishes first.
+            outcomes = await asyncio.gather(*(run_cell(*item) for item in wave), return_exceptions=True)
+            for row in outcomes:
+                if isinstance(row, BaseException):
+                    raise row
+                rows.append(row)
+                new_cells += 1
+                known_cost += row["cost_usd"]
+                unknown_cost += row["unknown_cost_provider_call_count"]
+                condition = row["condition_id"]
+                failures[condition] = failures[condition] + 1 if row["status"] != "completed" else 0
+                failure_circuit_open |= failures[condition] >= max_consecutive_failures
+                reservation_exceeded |= bool(inflight_episode_reserve_usd
+                    and row["cost_usd"] > inflight_episode_reserve_usd)
+            stop_reason = "complete"
         return {
             "planned_cell_count": len(schedule), "attempted_cell_count": len(rows),
             "included_count": sum(r["status"] == "completed" for r in rows),

@@ -177,3 +177,84 @@ def test_openrouter_metrics_verify_selected_route_from_response_metadata():
     assert good["route_providers"] == ["Parasail"] and good["route_verification_failures"] == 0
     bad = event_execution_metrics(Evidence("another_provider"), external_providers={"openrouter"})
     assert bad["route_providers"] == [] and bad["route_verification_failures"] == 1
+
+
+def test_parallel_batch_reserves_budget_and_resumes_without_duplicate_calls(tmp_path):
+    class PricedConcurrent(CountingBuyer):
+        def __init__(self):
+            super().__init__()
+            self.active = self.peak = 0
+
+        async def complete(self, request):
+            self.active += 1
+            self.peak = max(self.peak, self.active)
+            try:
+                await asyncio.sleep(.01)
+                return replace(await super().complete(request), cost_usd=.0002)
+            finally:
+                self.active -= 1
+
+    buyer = PricedConcurrent()
+    setup_map = setups()
+    kwargs = dict(max_concurrency=2, inflight_episode_reserve_usd=.001, spend_limit_usd=.003)
+    result = run(tmp_path, setup_map, buyer, **kwargs)
+    assert buyer.peak == 2 and buyer.calls == 12
+    assert result["included_count"] == 3 and result["stop_reason"] == "budget_reservation"
+    assert result["known_cost_usd"] == pytest.approx(.0024)
+    resumed = run(tmp_path, setup_map, buyer, **kwargs)
+    assert resumed == result and buyer.calls == 12
+    with pytest.raises(ValueError, match="manifest"):
+        run(tmp_path, setup_map, buyer, **{**kwargs, "max_concurrency": 3})
+
+
+@pytest.mark.parametrize("failure, expected", [("provider_contract", "failure_circuit"),
+                                             ("timeout", "unknown_billing")])
+def test_parallel_batch_drains_inflight_failures_but_does_not_start_another_wave(tmp_path, failure, expected):
+    class Broken(CountingBuyer):
+        async def complete(self, request):
+            self.calls += 1
+            await asyncio.sleep(.01)
+            raise ProviderFailure(failure, "test failure", retryable=False)
+    buyer = Broken()
+    result = run(tmp_path, setups(), buyer, max_concurrency=2,
+        inflight_episode_reserve_usd=.01, max_consecutive_failures=1)
+    assert result["stop_reason"] == expected
+    assert result["attempted_cell_count"] == result["excluded_count"] == buyer.calls == 2
+    assert all(row["within_case_score"] is None for row in result["rows"])
+
+
+def test_parallel_batch_refuses_unreserved_dispatch_and_detects_bad_reservation(tmp_path):
+    with pytest.raises(ValueError, match="reserve|reservation"):
+        run(tmp_path, setups(), max_concurrency=2)
+    class Underreserved(CountingBuyer):
+        async def complete(self, request):
+            return replace(await super().complete(request), cost_usd=.0002)
+    result = run(tmp_path, setups(), Underreserved(), max_concurrency=2,
+        inflight_episode_reserve_usd=.0005)
+    assert result["stop_reason"] == "inflight_reservation_exceeded"
+    assert result["attempted_cell_count"] == 2
+
+
+def test_parallel_failure_circuit_latches_even_if_later_inflight_cells_succeed(tmp_path):
+    class FailThenRecover(CountingBuyer):
+        def __init__(self):
+            super().__init__()
+            self.episodes = 0
+
+        async def complete(self, request):
+            if json.loads(request.input_text)["phase_id"] == "rfq":
+                self.episodes += 1
+                if self.episodes <= 6:
+                    self.calls += 1
+                    raise ProviderFailure("provider_contract", "test failure", retryable=False)
+            return await super().complete(request)
+    buyer = FailThenRecover()
+    setup_map = setups(seeds=(11, 12, 13))
+    kwargs = dict(max_concurrency=8, inflight_episode_reserve_usd=.01)
+    result = run(tmp_path, setup_map, buyer, **kwargs)
+    assert result["attempted_cell_count"] == 8
+    assert result["included_count"] == 2 and result["excluded_count"] == 6
+    assert result["stop_reason"] == "failure_circuit"
+    calls = buyer.calls
+    assert run(tmp_path, setup_map, buyer, **kwargs) == result
+    assert buyer.calls == calls

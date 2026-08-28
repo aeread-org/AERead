@@ -36,6 +36,9 @@ DEEPSEEK_BUYER_LIMITS = {
     "buyer_timeout_seconds": 600.0,
     "buyer_max_cost_usd": .04,
 }
+# Cover the post-call profile stop plus two full-context requests (including a
+# length retry): .04 + 2 * (1048576*.14 + 16384*.28)/1e6 < .4 USD.
+DEEPSEEK_EPISODE_RESERVE_USD = .4
 
 
 def derive_procurement_world_seeds(*, master_seed: int, count: int, admission: bool = False) -> tuple[int, ...]:
@@ -172,6 +175,8 @@ async def run_procurement_experiment(
         "provider": provider if live else "scripted",
         "openrouter_route": DEEPSEEK_ROUTE.provider_metadata() if live and provider == "deepseek" else None,
         "buyer_runtime_limits": DEEPSEEK_BUYER_LIMITS if live and provider == "deepseek" else None,
+        "max_concurrency": 16 if live and provider == "deepseek" else 1,
+        "inflight_episode_reserve_usd": DEEPSEEK_EPISODE_RESERVE_USD if live and provider == "deepseek" else 0.0,
         "source_sha256": hashlib.sha256(Path(__file__).read_bytes() + Path(__file__).with_name("paired_analysis.py").read_bytes()).hexdigest(),
         "evidence_kind": "native_live_provider" if live else "scripted_instrumentation_only",
         "panel_seeds": panel, "admission_seeds": admission, "replicates": replicates,
@@ -209,7 +214,9 @@ async def run_procurement_experiment(
     phase_root = root / mode
     batch = await run_family_batch(setups=setups, output_root=phase_root, providers_by_condition=clients,
         leaf_builder=procurement_measurement_leaf,
-        spend_limit_usd=(spend_limit_usd - admission_cost) if live else 1.0)
+        spend_limit_usd=(spend_limit_usd - admission_cost) if live else 1.0,
+        max_concurrency=study["max_concurrency"],
+        inflight_episode_reserve_usd=study["inflight_episode_reserve_usd"])
     live_admission = False
     admission_error = None
     if mode == "admission":
