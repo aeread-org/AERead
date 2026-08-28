@@ -1,4 +1,4 @@
-"""Procurement panel rehearsal and gated native-Gemini paired experiments.
+"""Procurement panel rehearsal and gated Gemini/DeepSeek paired experiments.
 
 Offline is the default and never masquerades as a live model result. Live modes
 require two explicit thinking efforts and a total recorded-spend limit. Sample
@@ -15,7 +15,8 @@ from pathlib import Path
 from typing import Any, Mapping, Sequence
 
 from .batch import _batch_lock, atomic_write_json, paired_schedule, read_family_batch, run_family_batch
-from .execution import GeminiGenerateContentClient, _paired_cell_request_seed
+from .execution import GeminiGenerateContentClient, OpenRouterChatClient, _paired_cell_request_seed
+from .housing import OpenRouterRoutePin
 from .paired_analysis import analyze_paired_results
 from .procurement_measurement import procurement_measurement_leaf, procurement_score_support
 from .procurement_rfq import ProcurementRFQPlugin, ProcurementScriptedBuyerProvider, ProcurementScriptedSupplierProvider, build_procurement_rfq_smoke
@@ -23,6 +24,13 @@ from .resolver import canonical_json_bytes
 
 
 OFFLINE_MASTER_SEED = 20260827
+DEEPSEEK_MODEL = "deepseek/deepseek-v4-flash-0731"
+DEEPSEEK_ROUTE = OpenRouterRoutePin(
+    provider="Parasail", quantization="fp8",
+    canonical_model="deepseek/deepseek-v4-flash-20260731",
+    input_per_million=.14, cached_input_per_million=.05, output_per_million=.28,
+    pricing_id="openrouter_parasail_2026-08-28_deepseek-v4-flash-0731",
+)
 
 
 def derive_procurement_world_seeds(*, master_seed: int, count: int, admission: bool = False) -> tuple[int, ...]:
@@ -83,8 +91,15 @@ def validate_live_admission(rows: Sequence[Mapping[str, Any]], *, setups: Mappin
         seen.add(identity)
         setup, cell = setups[identity[0]], expected[identity]
         profile = next(p for p in setup.plan.agent_profiles if p.profile_id == cell.profile_by_seat["buyer_0"])
-        if profile.model.provider != "google" or profile.model.model != "gemini-3.7-flash":
-            raise ValueError("live admission requires native Google Gemini 3.7 Flash profiles")
+        if (profile.model.provider, profile.model.model) not in {
+                ("google", "gemini-3.7-flash"), ("openrouter", DEEPSEEK_MODEL)}:
+            raise ValueError("live admission requires a supported Gemini or DeepSeek profile")
+        if profile.model.provider == "openrouter":
+            route = profile.harness.config["provider_metadata"]["route_provider"]
+            if (row.get("route_providers") != [route] or row.get("route_verification_failures", 1) != 0):
+                raise ValueError("live admission failed: actual OpenRouter route did not verify")
+            if profile.reasoning.effort == "none" and row.get("reasoning_tokens", 0) != 0:
+                raise ValueError("live admission failed: reasoning-off condition reported reasoning tokens")
         expected_seed = _paired_cell_request_seed(base_seed=profile.harness.config["request_seed_base"],
                                                 world_seed=cell.world_seed, replicate_index=cell.replicate_index)
         if (row.get("status") != "completed" or row.get("receipt_inclusion_status") != "included"
@@ -94,7 +109,7 @@ def validate_live_admission(rows: Sequence[Mapping[str, Any]], *, setups: Mappin
                 or row.get("unknown_cost_provider_call_count", 1) != 0
                 or row.get("request_seeds") != [expected_seed]
                 or row.get("reasoning_efforts") != [profile.reasoning.effort]
-                or row.get("resolved_models") != [profile.model.model]):
+                or row.get("resolved_models") != [profile.model.revision if profile.model.provider == "openrouter" else profile.model.model]):
             raise ValueError("live admission failed: incomplete, scripted, or mismatched provider evidence")
 
 
@@ -103,13 +118,17 @@ async def run_procurement_experiment(
     master_seed: int | None = None, inference_seed_base: int = 20260827,
     control_effort: str | None = None, treatment_effort: str | None = None,
     spend_limit_usd: float | None = None, bootstrap_draws: int = 10_000,
+    provider: str = "gemini",
 ) -> dict[str, Any]:
     if mode not in {"offline", "admission", "sample"}:
         raise ValueError("mode must be offline, admission, or sample")
     live = mode != "offline"
+    if provider not in {"gemini", "deepseek"}:
+        raise ValueError("provider must be gemini or deepseek")
     if live:
-        if control_effort not in {"low", "medium", "high"} or treatment_effort not in {"low", "medium", "high"} or control_effort == treatment_effort:
-            raise ValueError("live conditions require two explicit, distinct Gemini thinking efforts")
+        allowed_efforts = {"low", "medium", "high"} if provider == "gemini" else {"none", "low", "medium", "high"}
+        if control_effort not in allowed_efforts or treatment_effort not in allowed_efforts or control_effort == treatment_effort:
+            raise ValueError("live conditions require two explicit, distinct supported thinking efforts")
         if isinstance(spend_limit_usd, bool) or not isinstance(spend_limit_usd, (int, float)) or not math.isfinite(spend_limit_usd) or spend_limit_usd <= 0:
             raise ValueError("live runs require an explicit positive total spend budget")
         if master_seed is None or master_seed == OFFLINE_MASTER_SEED:
@@ -127,11 +146,11 @@ async def run_procurement_experiment(
 
     def build(seeds, repeats):
         return {condition: build_procurement_rfq_smoke(
-            buyer_provider="google" if live else "procurement_scripted_buyer",
-            buyer_model="gemini-3.7-flash" if live else "procurement_scripted_buyer_v1",
-            buyer_revision="3.7-flash-08-2026" if live else "1.0.0", world_seeds=seeds,
+            buyer_provider=("google" if provider == "gemini" else "openrouter") if live else "procurement_scripted_buyer",
+            buyer_model=("gemini-3.7-flash" if provider == "gemini" else DEEPSEEK_MODEL) if live else "procurement_scripted_buyer_v1",
+            buyer_revision=("3.7-flash-08-2026" if provider == "gemini" else DEEPSEEK_ROUTE.canonical_model) if live else "1.0.0", world_seeds=seeds,
             replicates=repeats, reasoning_effort=effort, condition_id=condition,
-            inference_seed_base=inference_seed_base) for condition, effort in conditions.items()}
+            inference_seed_base=inference_seed_base, openrouter_route=DEEPSEEK_ROUTE) for condition, effort in conditions.items()}
 
     root = Path(output_root)
     if live:
@@ -143,6 +162,8 @@ async def run_procurement_experiment(
             raise ValueError("live seed panel overlaps inspected offline worlds; choose a fresh master seed")
     study = {
         "spec_version": "aeread.procurement_study/1",
+        "provider": provider if live else "scripted",
+        "openrouter_route": DEEPSEEK_ROUTE.provider_metadata() if live and provider == "deepseek" else None,
         "source_sha256": hashlib.sha256(Path(__file__).read_bytes() + Path(__file__).with_name("paired_analysis.py").read_bytes()).hexdigest(),
         "evidence_kind": "native_live_provider" if live else "scripted_instrumentation_only",
         "panel_seeds": panel, "admission_seeds": admission, "replicates": replicates,
@@ -171,8 +192,10 @@ async def run_procurement_experiment(
             raise ValueError("admission already exhausted the total spend budget")
     setups = build(admission if mode == "admission" else panel, 1 if mode == "admission" else replicates)
     # No API client is even constructed until the sample admission gate is satisfied.
+    live_provider = "google" if provider == "gemini" else "openrouter"
+    live_client = GeminiGenerateContentClient if provider == "gemini" else OpenRouterChatClient
     clients = {condition: {
-        "google" if live else "procurement_scripted_buyer": GeminiGenerateContentClient() if live else ProcurementScriptedBuyerProvider(),
+        live_provider if live else "procurement_scripted_buyer": live_client() if live else ProcurementScriptedBuyerProvider(),
         "procurement_scripted_supplier": ProcurementScriptedSupplierProvider(),
     } for condition in conditions}
     phase_root = root / mode
@@ -187,7 +210,7 @@ async def run_procurement_experiment(
             live_admission = True
         except ValueError as error:
             admission_error = str(error)
-    result = {"mode": mode, "live_admission": live_admission, "admission_error": admission_error,
+    result = {"mode": mode, "provider": provider if live else "scripted", "live_admission": live_admission, "admission_error": admission_error,
         "scope": "synthetic electronics RFQ grammar with controlled suppliers; not real vendor procurement",
         "master_seed": master_seed, "inference_seed_base": inference_seed_base,
         "world_seeds": list(admission if mode == "admission" else panel), "conditions": conditions,
@@ -202,12 +225,13 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--mode", choices=("offline", "admission", "sample"), default="offline")
+    parser.add_argument("--provider", choices=("gemini", "deepseek"), default="gemini")
     parser.add_argument("--world-count", type=int, default=100)
     parser.add_argument("--replicates", type=int, default=3)
     parser.add_argument("--master-seed", type=int, help="explicit fresh seed required for live modes; offline defaults to 20260827")
     parser.add_argument("--inference-seed-base", type=int, default=20260827)
-    parser.add_argument("--control-effort", choices=("low", "medium", "high"))
-    parser.add_argument("--treatment-effort", choices=("low", "medium", "high"))
+    parser.add_argument("--control-effort", choices=("none", "low", "medium", "high"))
+    parser.add_argument("--treatment-effort", choices=("none", "low", "medium", "high"))
     parser.add_argument("--spend-limit-usd", type=float)
     args = vars(parser.parse_args(argv))
     args["output_root"] = args.pop("output")

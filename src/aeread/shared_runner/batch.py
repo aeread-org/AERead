@@ -16,7 +16,7 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Callable, Mapping
 
-from .execution import EvidenceStore, execute_plan_cell
+from .execution import EvidenceStore, OpenRouterChatClient, ProviderFailure, execute_plan_cell
 from .family_evaluation import EvaluationSetup, audit_family_receipt, finalize_family_execution, finalize_family_failure
 from .measurement import MeasurementLeafSpec
 from .resolver import canonical_json_bytes, verify_run_plan
@@ -79,6 +79,7 @@ def paired_schedule(setups: Mapping[str, EvaluationSetup]) -> list[tuple[str, An
 def event_execution_metrics(evidence: EvidenceStore, *, external_providers: set[str]) -> dict[str, Any]:
     calls, external_calls, unknown, thoughts, fixture_calls, cost = 0, 0, 0, 0, 0, 0.0
     external_ids, seeds, efforts, models = set(), set(), set(), set()
+    requests, route_providers, route_failures = {}, set(), 0
     for event in evidence.read_events():
         payload = evidence.read_event_payload(event)
         if not isinstance(payload, Mapping):
@@ -88,6 +89,7 @@ def event_execution_metrics(evidence: EvidenceStore, *, external_providers: set[
             if request.get("provider") in external_providers:
                 external_calls += 1
                 external_ids.add(event.provider_call_id)
+                requests[event.provider_call_id] = request
                 seed, effort = request.get("seed"), request.get("reasoning_effort")
                 if isinstance(seed, int) and not isinstance(seed, bool):
                     seeds.add(seed)
@@ -111,12 +113,23 @@ def event_execution_metrics(evidence: EvidenceStore, *, external_providers: set[
             value = usage.get("thoughtsTokenCount", raw.get("usage", {}).get("completion_tokens_details", {}).get("reasoning_tokens", 0))
             if isinstance(value, int) and not isinstance(value, bool) and value >= 0:
                 thoughts += value
+            request = requests[event.provider_call_id]
+            if request.get("provider") == "openrouter" and result:
+                metadata = request.get("provider_metadata") or {}
+                try:
+                    OpenRouterChatClient._verify_route(raw.get("openrouter_metadata"),
+                        requested_model=request["model"], canonical_model=metadata["canonical_model"],
+                        route_provider=metadata["route_provider"])
+                    route_providers.add(metadata["route_provider"])
+                except (ProviderFailure, KeyError, TypeError):
+                    route_failures += 1
     return {
         "provider_call_count": calls, "external_provider_call_count": external_calls,
         "unknown_cost_provider_call_count": unknown, "reasoning_tokens": thoughts,
         "external_fixture_call_count": fixture_calls,
         "cost_usd": cost, "request_seeds": sorted(seeds), "reasoning_efforts": sorted(efforts),
         "resolved_models": sorted(models),
+        "route_providers": sorted(route_providers), "route_verification_failures": route_failures,
     }
 
 

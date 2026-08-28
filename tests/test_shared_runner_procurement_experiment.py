@@ -104,3 +104,49 @@ def test_live_run_requires_fresh_explicit_panel_seed(tmp_path, master_seed):
         asyncio.run(run_procurement_experiment(output_root=tmp_path, mode="sample",
             control_effort="low", treatment_effort="high", spend_limit_usd=10,
             master_seed=master_seed))
+
+
+def test_deepseek_admission_uses_shared_batch_with_none_low_and_parasail(tmp_path, monkeypatch):
+    import aeread.shared_runner.procurement_experiment as experiment
+    captured = {}
+    class FakeClient:
+        pass
+    async def fake_batch(**kwargs):
+        captured.update(kwargs)
+        return {"rows": [], "known_cost_usd": 0}
+    monkeypatch.setattr(experiment, "OpenRouterChatClient", FakeClient, raising=False)
+    monkeypatch.setattr(experiment, "run_family_batch", fake_batch)
+    result = asyncio.run(run_procurement_experiment(output_root=tmp_path, provider="deepseek",
+        mode="admission", master_seed=20260828, control_effort="none", treatment_effort="low",
+        spend_limit_usd=5))
+    assert set(captured["setups"]) == {"reasoning_none_v1", "reasoning_low_v1"}
+    assert sum(len(s.plan.cells) for s in captured["setups"].values()) == 6
+    for condition, setup in captured["setups"].items():
+        buyer = next(p for p in setup.plan.agent_profiles if p.model.provider == "openrouter")
+        assert buyer.model.model == "deepseek/deepseek-v4-flash-0731"
+        assert buyer.harness.config["provider_metadata"]["route_provider"] == "Parasail"
+        assert isinstance(captured["providers_by_condition"][condition]["openrouter"], FakeClient)
+    assert result["live_admission"] is False
+
+
+def test_deepseek_admission_requires_verified_actual_route():
+    from aeread.shared_runner.execution import _paired_cell_request_seed
+    from aeread.shared_runner.housing import OpenRouterRoutePin
+    route = OpenRouterRoutePin("Parasail", "fp8", "deepseek/deepseek-v4-flash-20260731", .14, .05, .28, "test_parasail")
+    setups = {f"reasoning_{effort}_v1": build_procurement_rfq_smoke(
+        buyer_provider="openrouter", buyer_model="deepseek/deepseek-v4-flash-0731",
+        buyer_revision=route.canonical_model, world_seeds=(11, 12, 13), replicates=1,
+        reasoning_effort=effort, openrouter_route=route) for effort in ("none", "low")}
+    rows = [{"condition_id": condition, "world_seed": cell.world_seed, "replicate_index": 0,
+        "status": "completed", "receipt_inclusion_status": "included", "replay_level": "state_and_score",
+        "external_provider_call_count": 4, "external_fixture_call_count": 0,
+        "unknown_cost_provider_call_count": 0,
+        "request_seeds": [_paired_cell_request_seed(base_seed=0, world_seed=cell.world_seed, replicate_index=0)],
+        "reasoning_efforts": [condition.split("_")[1]], "reasoning_tokens": 0,
+        "resolved_models": [route.canonical_model], "route_providers": ["Parasail"],
+        "route_verification_failures": 0}
+        for condition, setup in setups.items() for cell in setup.plan.cells]
+    validate_live_admission(rows, setups=setups)
+    rows[0]["route_providers"] = ["another_provider"]
+    with pytest.raises(ValueError, match="route"):
+        validate_live_admission(rows, setups=setups)
