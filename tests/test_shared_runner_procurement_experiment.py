@@ -131,6 +131,7 @@ def test_deepseek_admission_uses_shared_batch_with_none_low_and_parasail(tmp_pat
         assert buyer.model.model == "deepseek/deepseek-v4-flash-0731"
         assert buyer.harness.config["provider_metadata"]["route_provider"] == "Parasail"
         assert buyer.sampling.max_output_tokens == 32768
+        assert buyer.sampling.temperature == 1.0
         assert buyer.budgets.timeout_seconds == 1800
         assert buyer.budgets.max_cost_usd == .04
         assert isinstance(captured["providers_by_condition"][condition]["openrouter"], FakeClient)
@@ -151,10 +152,15 @@ def test_deepseek_admission_requires_verified_actual_route():
         "unknown_cost_provider_call_count": 0,
         "request_seeds": [_paired_cell_request_seed(base_seed=0, world_seed=cell.world_seed, replicate_index=0)],
         "reasoning_efforts": [condition.split("_")[1]], "reasoning_tokens": 0,
+        "temperatures": [0.0],
         "resolved_models": [route.canonical_model], "route_providers": ["Parasail"],
         "route_verification_failures": 0}
         for condition, setup in setups.items() for cell in setup.plan.cells]
     validate_live_admission(rows, setups=setups)
     rows[0]["route_providers"] = ["another_provider"]
     with pytest.raises(ValueError, match="route"):
+        validate_live_admission(rows, setups=setups)
+    rows[0]["route_providers"] = ["Parasail"]
+    rows[0]["temperatures"] = [1.0]
+    with pytest.raises(ValueError, match="temperature"):
         validate_live_admission(rows, setups=setups)

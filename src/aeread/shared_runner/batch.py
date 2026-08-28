@@ -81,6 +81,7 @@ def event_execution_metrics(evidence: EvidenceStore, *, external_providers: set[
     calls, external_calls, unknown, thoughts, fixture_calls, cost = 0, 0, 0, 0, 0, 0.0
     external_ids, seeds, efforts, models = set(), set(), set(), set()
     requests, route_providers, route_failures = {}, set(), 0
+    temperatures = set()
     for event in evidence.read_events():
         payload = evidence.read_event_payload(event)
         if not isinstance(payload, Mapping):
@@ -92,6 +93,9 @@ def event_execution_metrics(evidence: EvidenceStore, *, external_providers: set[
                 external_ids.add(event.provider_call_id)
                 requests[event.provider_call_id] = request
                 seed, effort = request.get("seed"), request.get("reasoning_effort")
+                temperature = request.get("temperature")
+                if isinstance(temperature, (int, float)) and not isinstance(temperature, bool) and math.isfinite(temperature):
+                    temperatures.add(temperature)
                 if isinstance(seed, int) and not isinstance(seed, bool):
                     seeds.add(seed)
                 if isinstance(effort, str):
@@ -129,6 +133,7 @@ def event_execution_metrics(evidence: EvidenceStore, *, external_providers: set[
         "unknown_cost_provider_call_count": unknown, "reasoning_tokens": thoughts,
         "external_fixture_call_count": fixture_calls,
         "cost_usd": cost, "request_seeds": sorted(seeds), "reasoning_efforts": sorted(efforts),
+        "temperatures": sorted(temperatures),
         "resolved_models": sorted(models),
         "route_providers": sorted(route_providers), "route_verification_failures": route_failures,
     }

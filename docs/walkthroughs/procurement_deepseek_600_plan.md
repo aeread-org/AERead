@@ -1,9 +1,9 @@
 # DeepSeek procurement: 600-episode run plan
 
 Date: 2026-08-28. Request: run 600 procurement episodes with DeepSeek.
-Status: user approved $5 total and continuation to the final result. The latest study is
-`/private/tmp/aeread-procurement-deepseek600-wide.Ejt78y`; its admission gate controls sample
-execution. The two earlier admission studies below are preserved historical evidence.
+Status: user approved $5 total and continuation to the final result. Three admission
+studies are preserved below; none launched the sample. A common-temperature repair
+is awaiting a fresh admission with all earlier spend carried forward.
 
 ## Locked comparison and measurement
 
@@ -22,6 +22,7 @@ execution. The two earlier admission studies below are preserved historical evid
 | Verifier | `objective_reference`, deterministic objective upper bound |
 | Spending limit | User-approved $5 total; includes admission plus sample and any later repair probes |
 | Current buyer limits, both conditions | 32,768 output tokens; one length retry at 65,536; 1,800-second call timeout; $0.04 post-call profile stop |
+| Next admission sampling, both conditions | Temperature 1.0, top-p 1.0; differs from Housing's temperature 0 |
 | Repaired dispatch | Bounded waves, maximum 16 episodes; $0.40 reserved for every in-flight episode |
 
 The world distribution, supplier policy, economic reference, receipts, and shared scheduler
@@ -148,3 +149,23 @@ arithmetic, missingness, duplicate identities, scripted-evidence rejection, and 
 reconciliation. Historical admission replay used the original `fb22aa3` and `9dc4ed5`
 sources: all 11 receipts validated, all 33 checked files were unchanged, and no provider
 calls were made during those audits.
+
+### Third admission outcome and sampling hypothesis
+
+The wide-ceiling admission completed four of six episodes; two low-reasoning
+episodes exhausted their 65,536-token retries. Its cost was $0.0679009518, bringing
+all three studies to **$0.097329276** and leaving **$4.902670724**. Six receipts
+replayed against the frozen source; all 18 checked files were unchanged. The
+temporary operator sample-lock hold was released after the launcher exited.
+No sample call was made. Summary SHA-256:
+`8e96d395619680b906c01592b5355c91c47a4c24dd34898cbbb6501ffc2918eb`.
+
+The next admission changes only the common buyer temperature to 1.0, following
+the official open-weight model-card default. This is a hypothesis about the
+third-party route, not a claim about DeepSeek's native API, which ignores sampling
+in thinking mode. See the [sampling walkthrough](procurement_sampling_admission.md).
+The same three admission worlds and untouched 100-world sample remain frozen.
+Six targeted checks failed before implementation; 95 focused checks then passed.
+The full offline regression passed **701 tests, with 3 skipped and 1 expected
+failure**, in 119.22 seconds. The standalone historical budget/sensitivity checker
+at the third study's `verify_sampling_numbers.py` also passed without provider calls.

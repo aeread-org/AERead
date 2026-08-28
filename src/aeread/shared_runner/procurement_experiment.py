@@ -32,6 +32,7 @@ DEEPSEEK_ROUTE = OpenRouterRoutePin(
     pricing_id="openrouter_parasail_2026-08-28_deepseek-v4-flash-0731",
 )
 DEEPSEEK_BUYER_LIMITS = {
+    "buyer_temperature": 1.0,
     "buyer_max_output_tokens": 32768,
     "buyer_timeout_seconds": 1800.0,
     "buyer_max_cost_usd": .04,
@@ -103,6 +104,8 @@ def validate_live_admission(rows: Sequence[Mapping[str, Any]], *, setups: Mappin
                 ("google", "gemini-3.7-flash"), ("openrouter", DEEPSEEK_MODEL)}:
             raise ValueError("live admission requires a supported Gemini or DeepSeek profile")
         if profile.model.provider == "openrouter":
+            if row.get("temperatures") != [profile.sampling.temperature]:
+                raise ValueError("live admission failed: requested temperature did not verify")
             route = profile.harness.config["provider_metadata"]["route_provider"]
             if (row.get("route_providers") != [route] or row.get("route_verification_failures", 1) != 0):
                 raise ValueError("live admission failed: actual OpenRouter route did not verify")

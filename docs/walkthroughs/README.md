@@ -29,6 +29,9 @@
 - [`procurement_deepseek_600_plan.md`](procurement_deepseek_600_plan.md) —
   requested live DeepSeek off/low follow-up, pinned Parasail route, fresh paired panel,
   admission criteria, and total-spend gate; distinct from the completed offline rehearsal.
+- [`procurement_sampling_admission.md`](procurement_sampling_admission.md) —
+  repetitive admission evidence, common-temperature hypothesis, provider caveats,
+  reservation sensitivity, and unchanged sample/spend gates.
 - [`housing_reasoning_experiment.md`](housing_reasoning_experiment.md) —
   pre-outcome audit, locked design, and completed result for 100 paired Housing worlds,
   reasoning disabled versus reasoning-low, three nested replicates, cluster-level inference,

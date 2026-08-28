@@ -835,6 +835,7 @@ def _profile(
     max_output_tokens: int | None = None,
     timeout_seconds: float | None = None,
     max_cost_usd: float | None = None,
+    temperature: float = 0.0,
 ) -> AgentProfile:
     live_provider = provider in {"openrouter", "google"}
     effort = reasoning_effort or ("low" if live_provider else "none")
@@ -898,7 +899,7 @@ def _profile(
                 "rationale_visibility": "hidden",
             },
             "sampling": {
-                "temperature": 0.0,
+                "temperature": temperature,
                 "top_p": 1.0 if live_provider else None,
                 "max_output_tokens": (
                     max_output_tokens if max_output_tokens is not None else
@@ -941,6 +942,7 @@ def build_procurement_rfq_smoke(
     buyer_max_output_tokens: int | None = None,
     buyer_timeout_seconds: float | None = None,
     buyer_max_cost_usd: float | None = None,
+    buyer_temperature: float = 0.0,
 ) -> ProcurementRFQSmokeSetup:
     generated = world_seeds is not None
     seeds = (0,) if world_seeds is None else tuple(world_seeds)
@@ -1107,6 +1109,7 @@ def build_procurement_rfq_smoke(
         max_output_tokens=buyer_max_output_tokens,
         timeout_seconds=buyer_timeout_seconds,
         max_cost_usd=buyer_max_cost_usd,
+        temperature=buyer_temperature,
         runtime=(
             "aeread.shared_runner.execution"
             if buyer_provider in {"openrouter", "google"}

@@ -165,6 +165,7 @@ def test_openrouter_metrics_verify_selected_route_from_response_metadata():
         def read_events(self):
             return [Event("provider_call_started", {"request": {
                 "provider": "openrouter", "model": "deepseek/deepseek-v4-flash-0731",
+                "temperature": 1.0,
                 "provider_metadata": {"route_provider": "Parasail", "canonical_model": "deepseek/deepseek-v4-flash-20260731"}}}),
                 Event("provider_call_succeeded", {"cost_usd": .001, "provider_result": {
                     "resolved_model": "deepseek/deepseek-v4-flash-20260731", "raw_response": {
@@ -175,6 +176,7 @@ def test_openrouter_metrics_verify_selected_route_from_response_metadata():
             return event.payload
     good = event_execution_metrics(Evidence("Parasail"), external_providers={"openrouter"})
     assert good["route_providers"] == ["Parasail"] and good["route_verification_failures"] == 0
+    assert good["temperatures"] == [1.0]
     bad = event_execution_metrics(Evidence("another_provider"), external_providers={"openrouter"})
     assert bad["route_providers"] == [] and bad["route_verification_failures"] == 1
 

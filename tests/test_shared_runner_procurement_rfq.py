@@ -275,6 +275,19 @@ def test_live_buyer_output_and_runtime_limits_are_explicit_and_sealed():
     assert original.plan.plan_sha256 != setup.plan.plan_sha256
 
 
+@pytest.mark.parametrize("temperature", [.5, 1.0, 1.5])
+def test_buyer_sampling_temperature_is_sealed_without_changing_supplier_policy(temperature):
+    common = dict(buyer_provider="openrouter", buyer_model=DEEPSEEK_MODEL,
+                  buyer_revision=DEEPSEEK_REVISION, world_seeds=(11,))
+    original = build_procurement_rfq_smoke(**common)
+    setup = build_procurement_rfq_smoke(**common, buyer_temperature=temperature)
+    buyer = next(p for p in setup.plan.agent_profiles if p.model.provider == "openrouter")
+    supplier = next(p for p in setup.plan.agent_profiles if p.model.provider == "procurement_scripted_supplier")
+    assert buyer.sampling.temperature == temperature
+    assert supplier.sampling.temperature == 0
+    assert setup.plan.plan_sha256 != original.plan.plan_sha256
+
+
 @pytest.mark.parametrize("world_seeds", [None, (336577221,)])
 @pytest.mark.parametrize("skip_phase, action", [
     ("rfq", {"decision": "pass", "requests": []}),
