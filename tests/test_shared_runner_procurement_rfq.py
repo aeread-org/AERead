@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import pytest
 
 from aeread.shared_runner.execution import execute_plan_cell
@@ -16,6 +17,7 @@ from aeread.shared_runner.procurement_rfq import (
     ProcurementScriptedBuyerProvider,
     ProcurementScriptedSupplierProvider,
     build_procurement_rfq_smoke,
+    _scripted_result,
 )
 from aeread.shared_runner.resolver import canonical_json_bytes
 from aeread.shared_runner.family_evaluation import finalize_family_execution, replay_family_receipt
@@ -257,3 +259,49 @@ def test_deepseek_route_revision_cannot_silently_change():
     with pytest.raises(ValueError, match="revision|route"):
         build_procurement_rfq_smoke(buyer_provider="openrouter", buyer_model=DEEPSEEK_MODEL,
                                    buyer_revision="wrong_revision")
+
+
+@pytest.mark.parametrize("world_seeds", [None, (336577221,)])
+@pytest.mark.parametrize("skip_phase, action", [
+    ("rfq", {"decision": "pass", "requests": []}),
+    ("rfq", {"decision": "submit", "requests": []}),
+    ("negotiate", {"decision": "pass", "counters": []}),
+    ("negotiate", {"decision": "counter", "counters": []}),
+])
+def test_legal_empty_buyer_actions_skip_supplier_phases_and_replay(
+    tmp_path, world_seeds, skip_phase, action,
+):
+    class Buyer(ProcurementScriptedBuyerProvider):
+        def __init__(self):
+            self.observations = {}
+
+        async def complete(self, request):
+            payload = json.loads(request.input_text)
+            phase = payload["phase_id"]
+            self.observations[phase] = payload["observation"]
+            if phase == skip_phase:
+                return _scripted_result(request, action)
+            return await super().complete(request)
+
+    setup = build_procurement_rfq_smoke(world_seeds=world_seeds)
+    buyer = Buyer()
+    execution = asyncio.run(execute_plan_cell(
+        plan=setup.plan, cell_id=setup.plan.cells[0].cell_id, registry=setup.registry,
+        evidence_root=tmp_path, prompt_sources=setup.prompt_sources, pricing=setup.pricing,
+        providers={"procurement_scripted_buyer": buyer,
+                   "procurement_scripted_supplier": ProcurementScriptedSupplierProvider()},
+    ))
+    expected_phases = ["rfq", "negotiate", "approval", "award"]
+    if skip_phase == "negotiate":
+        expected_phases.insert(1, "quote")
+        offers = buyer.observations["approval"]["final_offers"]
+        quotes = buyer.observations["negotiate"]["opening_quotes"]
+        assert offers and len(offers) == len(quotes)
+        assert all(offer["source"] == "opening" for offer in offers)
+    else:
+        assert execution.episode_result.outcome["buyer_surplus"] == 0
+    assert [phase.phase_id for phase in execution.episode_result.phase_instances] == expected_phases
+    assert set(buyer.observations) == {"rfq", "negotiate", "approval", "award"}
+    receipt = finalize_family_execution(setup=setup, execution=execution)
+    assert receipt.inclusion_status == "included" and receipt.replay_level == "state_and_score"
+    assert replay_family_receipt(setup=setup, receipt=receipt, evidence_root=tmp_path) == receipt

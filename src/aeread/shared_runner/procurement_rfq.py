@@ -257,7 +257,7 @@ class ProcurementRFQPlugin:
                 {"buyer": "procurement_rfq_v1"},
                 1,
                 "family_defined",
-                ("quote",),
+                ("quote", "negotiate"),
             ),
             PhaseSpec(
                 "quote",
@@ -277,7 +277,7 @@ class ProcurementRFQPlugin:
                 {"buyer": "procurement_negotiate_v1"},
                 1,
                 "family_defined",
-                ("counter",),
+                ("counter", "approval"),
             ),
             PhaseSpec(
                 "counter",
@@ -528,6 +528,7 @@ class ProcurementRFQPlugin:
     def step(self, case, state, phase, actions) -> TransitionResult:
         market = _market(case, state)
         phase_id = phase.phase_id
+        automatic_empty_phases = []
         if phase_id == "rfq":
             envelope = actions.get("buyer_0")
             drafts = []
@@ -535,6 +536,9 @@ class ProcurementRFQPlugin:
                 drafts = [rfq.RFQDraft(**dict(item)) for item in envelope.action["requests"]]
             result: rfq.PhaseResult | rfq.ApprovalDecision = market.submit_rfqs(drafts)
             next_phase = "quote"
+            if not market.rfqs:
+                automatic_empty_phases.append(_phase_result(market.submit_quotes({})))
+                next_phase = "negotiate"
         elif phase_id == "quote":
             responses = {
                 _seller_id(seat_id): rfq.VendorQuoteAction(**dict(envelope.action))
@@ -550,6 +554,9 @@ class ProcurementRFQPlugin:
                 drafts = [rfq.CounterDraft(**dict(item)) for item in envelope.action["counters"]]
             result = market.submit_counters(drafts)
             next_phase = "counter"
+            if not market.counters:
+                automatic_empty_phases.append(_phase_result(market.submit_counter_responses({})))
+                next_phase = "approval"
         elif phase_id == "counter":
             responses = {
                 _seller_id(seat_id): rfq.CounterResponseAction(**dict(envelope.action))
@@ -576,10 +583,14 @@ class ProcurementRFQPlugin:
             next_phase = None
         else:
             raise ValueError(f"unknown procurement phase: {phase_id!r}")
+        consequences = _phase_result(result)
+        if automatic_empty_phases:
+            # Advance the native market too, but never invent supplier actions.
+            consequences["automatic_empty_phases"] = automatic_empty_phases
         return TransitionResult(
             state=market.snapshot(),
             next_phase_id=next_phase,
-            consequences=_phase_result(result),
+            consequences=consequences,
         )
 
     def terminal(self, case, state) -> dict[str, Any] | None:
