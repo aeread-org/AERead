@@ -125,6 +125,9 @@ def test_deepseek_admission_uses_shared_batch_with_none_low_and_parasail(tmp_pat
         buyer = next(p for p in setup.plan.agent_profiles if p.model.provider == "openrouter")
         assert buyer.model.model == "deepseek/deepseek-v4-flash-0731"
         assert buyer.harness.config["provider_metadata"]["route_provider"] == "Parasail"
+        assert buyer.sampling.max_output_tokens == 8192
+        assert buyer.budgets.timeout_seconds == 600
+        assert buyer.budgets.max_cost_usd == .04
         assert isinstance(captured["providers_by_condition"][condition]["openrouter"], FakeClient)
     assert result["live_admission"] is False
 

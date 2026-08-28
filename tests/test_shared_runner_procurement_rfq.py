@@ -261,6 +261,20 @@ def test_deepseek_route_revision_cannot_silently_change():
                                    buyer_revision="wrong_revision")
 
 
+def test_live_buyer_output_and_runtime_limits_are_explicit_and_sealed():
+    common = dict(buyer_provider="openrouter", buyer_model=DEEPSEEK_MODEL,
+                  buyer_revision=DEEPSEEK_REVISION, world_seeds=(11,))
+    original = build_procurement_rfq_smoke(**common)
+    setup = build_procurement_rfq_smoke(**common, buyer_max_output_tokens=8192,
+        buyer_timeout_seconds=600, buyer_max_cost_usd=.04)
+    buyer = next(p for p in setup.plan.agent_profiles if p.model.provider == "openrouter")
+    supplier = next(p for p in setup.plan.agent_profiles if p.model.provider == "procurement_scripted_supplier")
+    assert buyer.sampling.max_output_tokens == 8192
+    assert buyer.budgets.timeout_seconds == 600 and buyer.budgets.max_cost_usd == .04
+    assert supplier.sampling.max_output_tokens == 512
+    assert original.plan.plan_sha256 != setup.plan.plan_sha256
+
+
 @pytest.mark.parametrize("world_seeds", [None, (336577221,)])
 @pytest.mark.parametrize("skip_phase, action", [
     ("rfq", {"decision": "pass", "requests": []}),

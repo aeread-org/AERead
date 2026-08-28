@@ -31,6 +31,11 @@ DEEPSEEK_ROUTE = OpenRouterRoutePin(
     input_per_million=.14, cached_input_per_million=.05, output_per_million=.28,
     pricing_id="openrouter_parasail_2026-08-28_deepseek-v4-flash-0731",
 )
+DEEPSEEK_BUYER_LIMITS = {
+    "buyer_max_output_tokens": 8192,
+    "buyer_timeout_seconds": 600.0,
+    "buyer_max_cost_usd": .04,
+}
 
 
 def derive_procurement_world_seeds(*, master_seed: int, count: int, admission: bool = False) -> tuple[int, ...]:
@@ -150,7 +155,9 @@ async def run_procurement_experiment(
             buyer_model=("gemini-3.7-flash" if provider == "gemini" else DEEPSEEK_MODEL) if live else "procurement_scripted_buyer_v1",
             buyer_revision=("3.7-flash-08-2026" if provider == "gemini" else DEEPSEEK_ROUTE.canonical_model) if live else "1.0.0", world_seeds=seeds,
             replicates=repeats, reasoning_effort=effort, condition_id=condition,
-            inference_seed_base=inference_seed_base, openrouter_route=DEEPSEEK_ROUTE) for condition, effort in conditions.items()}
+            inference_seed_base=inference_seed_base, openrouter_route=DEEPSEEK_ROUTE,
+            **(DEEPSEEK_BUYER_LIMITS if live and provider == "deepseek" else {}))
+            for condition, effort in conditions.items()}
 
     root = Path(output_root)
     if live:
@@ -164,6 +171,7 @@ async def run_procurement_experiment(
         "spec_version": "aeread.procurement_study/1",
         "provider": provider if live else "scripted",
         "openrouter_route": DEEPSEEK_ROUTE.provider_metadata() if live and provider == "deepseek" else None,
+        "buyer_runtime_limits": DEEPSEEK_BUYER_LIMITS if live and provider == "deepseek" else None,
         "source_sha256": hashlib.sha256(Path(__file__).read_bytes() + Path(__file__).with_name("paired_analysis.py").read_bytes()).hexdigest(),
         "evidence_kind": "native_live_provider" if live else "scripted_instrumentation_only",
         "panel_seeds": panel, "admission_seeds": admission, "replicates": replicates,

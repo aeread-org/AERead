@@ -832,6 +832,9 @@ def _profile(
     condition_id: str | None = None,
     inference_seed_base: int | None = None,
     openrouter_route: OpenRouterRoutePin = DEEPINFRA_HOUSING_ROUTE,
+    max_output_tokens: int | None = None,
+    timeout_seconds: float | None = None,
+    max_cost_usd: float | None = None,
 ) -> AgentProfile:
     live_provider = provider in {"openrouter", "google"}
     effort = reasoning_effort or ("low" if live_provider else "none")
@@ -898,6 +901,7 @@ def _profile(
                 "temperature": 0.0,
                 "top_p": 1.0 if live_provider else None,
                 "max_output_tokens": (
+                    max_output_tokens if max_output_tokens is not None else
                     2048 if provider == "openrouter" else 4096 if provider == "google" else 512
                 ),
                 "seed": 0 if live_provider else None,
@@ -905,9 +909,11 @@ def _profile(
             "budgets": {
                 "max_logical_actions": max_logical_actions,
                 "timeout_seconds": (
+                    timeout_seconds if timeout_seconds is not None else
                     180.0 if provider == "openrouter" else 90.0 if provider == "google" else 30.0
                 ),
                 "max_cost_usd": (
+                    max_cost_usd if max_cost_usd is not None else
                     0.01 if provider == "openrouter" else 0.02 if provider == "google" else 0.001
                 ),
             },
@@ -932,6 +938,9 @@ def build_procurement_rfq_smoke(
     condition_id: str | None = None,
     inference_seed_base: int = 0,
     openrouter_route: OpenRouterRoutePin = DEEPINFRA_HOUSING_ROUTE,
+    buyer_max_output_tokens: int | None = None,
+    buyer_timeout_seconds: float | None = None,
+    buyer_max_cost_usd: float | None = None,
 ) -> ProcurementRFQSmokeSetup:
     generated = world_seeds is not None
     seeds = (0,) if world_seeds is None else tuple(world_seeds)
@@ -1095,6 +1104,9 @@ def build_procurement_rfq_smoke(
         condition_id=condition_id,
         inference_seed_base=inference_seed_base if generated else None,
         openrouter_route=openrouter_route,
+        max_output_tokens=buyer_max_output_tokens,
+        timeout_seconds=buyer_timeout_seconds,
+        max_cost_usd=buyer_max_cost_usd,
         runtime=(
             "aeread.shared_runner.execution"
             if buyer_provider in {"openrouter", "google"}
