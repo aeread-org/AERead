@@ -19,6 +19,7 @@ from aeread.shared_runner.procurement_rfq import (
 )
 from aeread.shared_runner.resolver import canonical_json_bytes
 from aeread.shared_runner.family_evaluation import finalize_family_execution, replay_family_receipt
+from aeread.shared_runner.housing import OpenRouterRoutePin
 
 
 DEEPSEEK_MODEL = "deepseek/deepseek-v4-flash-0731"
@@ -237,3 +238,22 @@ def test_procurement_uses_shared_typed_receipts_and_no_call_replay(tmp_path):
     assert receipt.scores[0].primary.value == pytest.approx(728.6)
     assert receipt.scores[0].leaf.verifier.verifier_family == "objective_reference"
     assert replay_family_receipt(setup=setup, receipt=receipt, evidence_root=tmp_path) == receipt
+
+
+def test_deepseek_generated_panel_can_seal_the_current_parasail_route():
+    route = OpenRouterRoutePin("Parasail", "fp8", DEEPSEEK_REVISION, .14, .05, .28,
+                               "openrouter_parasail_2026-08-28_deepseek-v4-flash-0731")
+    setup = build_procurement_rfq_smoke(buyer_provider="openrouter", buyer_model=DEEPSEEK_MODEL,
+        buyer_revision=DEEPSEEK_REVISION, world_seeds=(11, 12), replicates=3,
+        reasoning_effort="none", openrouter_route=route)
+    buyer = next(p for p in setup.plan.agent_profiles if p.model.provider == "openrouter")
+    assert buyer.reasoning.effort == "none"
+    assert buyer.harness.config["provider_metadata"] == route.provider_metadata()
+    assert setup.pricing[DEEPSEEK_MODEL] == route.token_pricing()
+    assert len(setup.plan.cells) == 6
+
+
+def test_deepseek_route_revision_cannot_silently_change():
+    with pytest.raises(ValueError, match="revision|route"):
+        build_procurement_rfq_smoke(buyer_provider="openrouter", buyer_model=DEEPSEEK_MODEL,
+                                   buyer_revision="wrong_revision")

@@ -16,6 +16,7 @@ from aeread import procurement_rfq_env as rfq
 from aeread.procurement_rfq_cases import GENERATOR_ID, GENERATOR_VERSION, make_procurement_rfq_world
 
 from .family_evaluation import finalize_family_execution
+from .housing import DEEPINFRA_HOUSING_ROUTE, OpenRouterRoutePin
 from .procurement_measurement import procurement_source_digests, score_procurement_outcome
 
 from .execution import (
@@ -819,6 +820,7 @@ def _profile(
     reasoning_effort: str | None = None,
     condition_id: str | None = None,
     inference_seed_base: int | None = None,
+    openrouter_route: OpenRouterRoutePin = DEEPINFRA_HOUSING_ROUTE,
 ) -> AgentProfile:
     live_provider = provider in {"openrouter", "google"}
     effort = reasoning_effort or ("low" if live_provider else "none")
@@ -833,13 +835,7 @@ def _profile(
         config["request_seed_source"] = "paired_cell_v1"
         config["request_seed_base"] = inference_seed_base
     if provider == "openrouter":
-        config["provider_metadata"] = {
-            "route_provider": "DeepInfra",
-            "quantization": "fp8",
-            "canonical_model": "deepseek/deepseek-v4-flash-20260731",
-            "max_prompt_price_per_million": "0.08",
-            "max_completion_price_per_million": "0.18",
-        }
+        config["provider_metadata"] = openrouter_route.provider_metadata()
     elif provider == "google":
         config["provider_metadata"] = {
             "canonical_model": model,
@@ -924,6 +920,7 @@ def build_procurement_rfq_smoke(
     reasoning_effort: str | None = None,
     condition_id: str | None = None,
     inference_seed_base: int = 0,
+    openrouter_route: OpenRouterRoutePin = DEEPINFRA_HOUSING_ROUTE,
 ) -> ProcurementRFQSmokeSetup:
     generated = world_seeds is not None
     seeds = (0,) if world_seeds is None else tuple(world_seeds)
@@ -934,6 +931,8 @@ def build_procurement_rfq_smoke(
         raise ValueError("replicates must be a positive integer")
     if isinstance(inference_seed_base, bool) or not isinstance(inference_seed_base, int) or inference_seed_base < 0:
         raise ValueError("inference seed base must be a nonnegative integer")
+    if buyer_provider == "openrouter" and buyer_revision != openrouter_route.canonical_model:
+        raise ValueError("buyer revision must match the sealed OpenRouter route")
     effort = reasoning_effort or ("low" if buyer_provider in {"google", "openrouter"} else "none")
     condition_id = condition_id or f"reasoning_{effort}_v1"
     repository_root = Path(__file__).resolve().parents[3]
@@ -1050,12 +1049,7 @@ def build_procurement_rfq_smoke(
     if generated:
         buyer_profile_id = f"{buyer_profile_id}_{condition_id}"
     if buyer_provider == "openrouter":
-        buyer_pricing = TokenPricing(
-            0.08,
-            0.016,
-            0.18,
-            "openrouter_deepinfra_2026-08-26_deepseek-v4-flash-0731",
-        )
+        buyer_pricing = openrouter_route.token_pricing()
     elif buyer_provider == "google":
         buyer_pricing = TokenPricing(
             0.75,
@@ -1089,6 +1083,7 @@ def build_procurement_rfq_smoke(
         reasoning_effort=effort,
         condition_id=condition_id,
         inference_seed_base=inference_seed_base if generated else None,
+        openrouter_route=openrouter_route,
         runtime=(
             "aeread.shared_runner.execution"
             if buyer_provider in {"openrouter", "google"}
