@@ -2,7 +2,7 @@
 
 ## Status
 
-The original **Provider-free MVP** is now supplemented by a versioned coupled-world generator, native Gemini support, and shared-runner typed receipts, replay, batching, and paired analysis. It is not a paper result or evidence that the case has reached behavioral saturation. One earlier Gemini smoke verified the integration; a provider-free panel rehearsal is not a live-model evaluation.
+The original **Provider-free MVP** is now supplemented by a versioned coupled-world generator, native Gemini and route-pinned DeepSeek support, and shared-runner typed receipts, replay, batching, and paired analysis. It is not a paper result or evidence that the case has reached behavioral saturation. One earlier Gemini smoke verified the integration; a provider-free panel rehearsal is not a live-model evaluation.
 
 ## Workflow
 
@@ -40,9 +40,11 @@ The verifier family is `objective_reference`, evaluation class `deterministic`, 
 
 `procurement_rfq_coupled_worlds_v1` varies quantities, prices, deadlines, financial slack, vendor IDs, and directory order. Every generated world retains forced split capacity, a late vendor, an off-list vendor, and an incompatible-MOQ alternative. Feasibility is constructed from world truth; seeds are not filtered by model or baseline outcomes. Categories and counterparty policy remain a narrow synthetic electronics grammar.
 
-`python -m aeread.shared_runner.procurement_experiment --output /path/to/new/output` defaults to an offline 100-world, two-scripted-condition, three-repeat rehearsal. Live `admission` and `sample` modes require explicit distinct Gemini thinking efforts, a fresh `--master-seed`, and a total recorded-spend limit. The inspected default offline worlds cannot enter the live panel. The sample additionally requires six verified native-Google admission cells on disjoint worlds. Admission spend counts toward the total limit. The batch stops after an episode crosses its recorded-cost threshold, so it is not a provider-side hard billing cap; recorded unknown billing stops further execution.
+`python -m aeread.shared_runner.procurement_experiment --output /path/to/new/output` defaults to an offline 100-world, two-scripted-condition, three-repeat rehearsal. Live `admission` and `sample` modes accept `--provider gemini` or `--provider deepseek` and require explicit distinct supported thinking efforts, a fresh `--master-seed`, and a total recorded-spend limit. Gemini supports low/medium/high; DeepSeek also supports none. The inspected default offline worlds cannot enter the live panel. The sample additionally requires six verified live admission cells on disjoint worlds, including actual selected-route checks for OpenRouter. Admission spend counts toward the total limit. The batch stops after an episode crosses its recorded-cost threshold, so it is not a provider-side hard billing cap; recorded unknown billing stops further execution.
 
 Both conditions use the same worlds and per-world/per-repeat inference seeds. Analysis averages repeats within each world and resamples whole worlds. Interrupted or unreconciled attempts are not silently rerun, operational exclusions are not scored as zero, and incomplete panels are not labeled complete. See [the preflight walkthrough](walkthroughs/procurement_panel_preflight.md) for the current result and remaining approval gate.
+
+The requested DeepSeek follow-up uses the [600-episode run plan](walkthroughs/procurement_deepseek_600_plan.md), with the same off/low comparison as Housing. It is distinct from the completed offline rehearsal.
 
 ## Deterministic smoke result
 

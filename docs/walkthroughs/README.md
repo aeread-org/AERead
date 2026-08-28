@@ -26,6 +26,9 @@
 - [`procurement_panel_preflight.md`](procurement_panel_preflight.md) —
   repaired references, generated RFQ worlds, shared receipt and batch controls, offline panel
   validation, and the explicit live Gemini comparison/admission gate.
+- [`procurement_deepseek_600_plan.md`](procurement_deepseek_600_plan.md) —
+  requested live DeepSeek off/low follow-up, pinned Parasail route, fresh paired panel,
+  admission criteria, and total-spend gate; distinct from the completed offline rehearsal.
 - [`housing_reasoning_experiment.md`](housing_reasoning_experiment.md) —
   pre-outcome audit, locked design, and completed result for 100 paired Housing worlds,
   reasoning disabled versus reasoning-low, three nested replicates, cluster-level inference,
