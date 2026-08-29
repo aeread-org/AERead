@@ -138,6 +138,50 @@ def test_deepseek_admission_uses_shared_batch_with_none_low_and_parasail(tmp_pat
     assert result["live_admission"] is False
 
 
+def test_deepseek_live_run_seals_bounded_invocation_cells(tmp_path, monkeypatch):
+    import json
+    import aeread.shared_runner.procurement_experiment as experiment
+
+    captured = {}
+
+    class FakeClient:
+        pass
+
+    async def fake_batch(**kwargs):
+        captured.update(kwargs)
+        return {"rows": [], "known_cost_usd": 0}
+
+    monkeypatch.setattr(experiment, "OpenRouterChatClient", FakeClient)
+    monkeypatch.setattr(experiment, "run_family_batch", fake_batch)
+    asyncio.run(run_procurement_experiment(
+        output_root=tmp_path,
+        provider="deepseek",
+        mode="admission",
+        master_seed=2026082901,
+        inference_seed_base=20260829,
+        control_effort="none",
+        treatment_effort="low",
+        spend_limit_usd=4.5,
+        max_new_cells_per_invocation=4,
+    ))
+
+    assert captured["max_new_cells"] == 4
+    study = json.loads((tmp_path / "live_study.json").read_text())
+    assert study["max_new_cells_per_invocation"] == 4
+
+    with pytest.raises(ValueError, match="four|4"):
+        asyncio.run(run_procurement_experiment(
+            output_root=tmp_path / "invalid",
+            provider="deepseek",
+            mode="admission",
+            master_seed=2026082901,
+            control_effort="none",
+            treatment_effort="low",
+            spend_limit_usd=4.5,
+            max_new_cells_per_invocation=5,
+        ))
+
+
 def test_deepseek_admission_requires_verified_actual_route():
     from aeread.shared_runner.execution import _paired_cell_request_seed
     from aeread.shared_runner.housing import OpenRouterRoutePin

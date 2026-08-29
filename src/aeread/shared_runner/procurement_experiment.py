@@ -130,6 +130,7 @@ async def run_procurement_experiment(
     control_effort: str | None = None, treatment_effort: str | None = None,
     spend_limit_usd: float | None = None, bootstrap_draws: int = 10_000,
     provider: str = "gemini",
+    max_new_cells_per_invocation: int | None = None,
 ) -> dict[str, Any]:
     if mode not in {"offline", "admission", "sample"}:
         raise ValueError("mode must be offline, admission, or sample")
@@ -144,6 +145,11 @@ async def run_procurement_experiment(
             raise ValueError("live runs require an explicit positive total spend budget")
         if master_seed is None or master_seed == OFFLINE_MASTER_SEED:
             raise ValueError("live runs require an explicit fresh master seed, not the inspected offline panel seed")
+        if (max_new_cells_per_invocation is not None
+                and (isinstance(max_new_cells_per_invocation, bool)
+                     or not isinstance(max_new_cells_per_invocation, int)
+                     or not 1 <= max_new_cells_per_invocation <= 4)):
+            raise ValueError("live invocation cell limit must be an integer from one to four")
     if master_seed is None:
         master_seed = OFFLINE_MASTER_SEED
     panel = derive_procurement_world_seeds(master_seed=master_seed, count=world_count)
@@ -188,6 +194,7 @@ async def run_procurement_experiment(
         "primary_estimand": "treatment_minus_control_mean_normalized_buyer_surplus",
         "total_recorded_spend_limit_usd": spend_limit_usd if live else 0.0,
         "complete_world_planning_target": 90,
+        "max_new_cells_per_invocation": max_new_cells_per_invocation,
     }
     with _batch_lock(root):
         study_path = root / ("live_study.json" if live else "offline_study.json")
@@ -218,6 +225,7 @@ async def run_procurement_experiment(
     batch = await run_family_batch(setups=setups, output_root=phase_root, providers_by_condition=clients,
         leaf_builder=procurement_measurement_leaf,
         spend_limit_usd=(spend_limit_usd - admission_cost) if live else 1.0,
+        max_new_cells=max_new_cells_per_invocation,
         max_concurrency=study["max_concurrency"],
         inflight_episode_reserve_usd=study["inflight_episode_reserve_usd"])
     live_admission = False
@@ -251,6 +259,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--control-effort", choices=("none", "low", "medium", "high"))
     parser.add_argument("--treatment-effort", choices=("none", "low", "medium", "high"))
     parser.add_argument("--spend-limit-usd", type=float)
+    parser.add_argument("--max-new-cells-per-invocation", type=int, choices=range(1, 5))
     args = vars(parser.parse_args(argv))
     args["output_root"] = args.pop("output")
     result = asyncio.run(run_procurement_experiment(**args))
