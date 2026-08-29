@@ -5,7 +5,10 @@ from dataclasses import replace
 
 import pytest
 
-from aeread.shared_runner.batch import event_execution_metrics, read_family_batch, run_family_batch
+from aeread.shared_runner.batch import (
+    event_execution_metrics, prepare_unknown_billing_recovery, read_family_batch,
+    run_family_batch,
+)
 from aeread.shared_runner.execution import ProviderFailure
 from aeread.shared_runner.procurement_measurement import procurement_measurement_leaf
 from aeread.shared_runner.procurement_rfq import (
@@ -266,6 +269,70 @@ class RateLimitedBuyer(CountingBuyer):
     async def complete(self, request):
         self.calls += 1
         raise ProviderFailure("rate_limit", "temporary shared-pool throttling", retryable=True, status_code=429)
+
+
+class UnknownBillingBuyer(CountingBuyer):
+    async def complete(self, request):
+        self.calls += 1
+        raise ProviderFailure("timeout", "provider outcome is unknown", retryable=True)
+
+
+def prepare_unknown_recovery(source, target, setup_map, **overrides):
+    manifest = json.loads((source / "batch_manifest.json").read_text())
+    arguments = {
+        "setups": setup_map,
+        "source_root": source,
+        "output_root": target,
+        "expected_manifest_sha256": manifest["result_sha256"],
+        "reason": "Operator reconciled the aggregate usage delta and reserved the full unknown-call ceiling.",
+        "account_usage_before_usd": 100.0,
+        "account_usage_after_usd": 100.001,
+        "account_known_cost_usd": 0.0,
+        "unknown_call_reserve_usd_each": 0.01,
+        "request_cost_upper_bounds_usd": [0.002],
+    }
+    arguments.update(overrides)
+    return prepare_unknown_billing_recovery(**arguments)
+
+
+def test_unknown_billing_recovery_preserves_receipts_and_reserves_full_cost(tmp_path):
+    setup_map = setups()
+    source, target = tmp_path / "unknown", tmp_path / "recovery"
+    first = run(source, setup_map, UnknownBillingBuyer())
+    assert first["stop_reason"] == "unknown_billing"
+    assert first["unknown_cost_provider_call_count"] == 1
+    original_files = {str(p.relative_to(source)): p.read_bytes()
+                      for p in source.rglob("*") if p.is_file()}
+
+    checkpoint = prepare_unknown_recovery(source, target, setup_map)
+    assert checkpoint["acknowledged_unknown_cost_provider_call_count"] == 1
+    assert checkpoint["reserved_unknown_cost_usd"] == .01
+    assert checkpoint["account_unexplained_delta_usd"] == pytest.approx(.001)
+
+    buyer = CountingBuyer()
+    resumed = run(target, setup_map, buyer, max_new_cells=2)
+    assert resumed["attempted_cell_count"] == 3
+    assert resumed["included_count"] == 2 and resumed["excluded_count"] == 1
+    assert resumed["unknown_cost_provider_call_count"] == 0
+    assert resumed["acknowledged_unknown_cost_provider_call_count"] == 1
+    assert resumed["reserved_unknown_cost_usd"] == .01
+    assert resumed["conservative_cost_usd"] == .01
+    assert buyer.calls == 8
+    assert read_family_batch(setups=setup_map, output_root=target) == resumed["rows"]
+    assert all((source / name).read_bytes() == content
+               for name, content in original_files.items())
+
+
+def test_unknown_billing_recovery_rejects_underreserved_or_unreconciled_delta(tmp_path):
+    setup_map = setups()
+    source = tmp_path / "unknown"
+    run(source, setup_map, UnknownBillingBuyer())
+    with pytest.raises(ValueError, match="reserve|usage|delta"):
+        prepare_unknown_recovery(source, tmp_path / "underreserved", setup_map,
+            account_usage_after_usd=100.02)
+    with pytest.raises(ValueError, match="bound|reserve"):
+        prepare_unknown_recovery(source, tmp_path / "bad-bound", setup_map,
+            request_cost_upper_bounds_usd=[0.02])
 
 
 def prepare_recovery(source, target, setup_map):

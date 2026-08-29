@@ -121,6 +121,62 @@ def audit_prior_spend(authorization):
     return total
 
 
+def audit_unknown_billing_recovery(phase_root, rows):
+    """Independently validate a sealed unknown-billing prefix and its full reserve."""
+    from aeread.shared_runner.resolver import canonical_json_bytes
+
+    phase_root = Path(phase_root)
+    checkpoint_path = phase_root / "recovery_checkpoint.json"
+    unknown_rows = [row for row in rows if row["unknown_cost_provider_call_count"]]
+    if not checkpoint_path.exists():
+        if unknown_rows:
+            raise ValueError("unknown billing lacks a sealed recovery checkpoint")
+        return {"acknowledged_unknown_cost_provider_call_count": 0,
+                "reserved_unknown_cost_usd": Decimal("0"),
+                "acknowledged_result_sha256s": []}
+    checkpoint = json.loads(checkpoint_path.read_bytes())
+    sealed = {key: value for key, value in checkpoint.items() if key != "result_sha256"}
+    if checkpoint.get("result_sha256") != hashlib.sha256(canonical_json_bytes(sealed)).hexdigest():
+        raise ValueError("unknown-billing recovery checkpoint seal changed")
+    if checkpoint.get("spec_version") != "aeread.unknown_billing_recovery/1":
+        if unknown_rows:
+            raise ValueError("unknown billing is not covered by its recovery type")
+        return {"acknowledged_unknown_cost_provider_call_count": 0,
+                "reserved_unknown_cost_usd": Decimal("0"),
+                "acknowledged_result_sha256s": []}
+    hashes = checkpoint.get("prefix_result_sha256s")
+    if (not isinstance(hashes, list) or not hashes
+            or [row["result_sha256"] for row in rows[:len(hashes)]] != hashes):
+        raise ValueError("unknown-billing recovery prefix differs from the receipts")
+    acknowledged = set(hashes)
+    if any(row["result_sha256"] not in acknowledged for row in unknown_rows):
+        raise ValueError("unknown billing appears outside the acknowledged prefix")
+    if any(row["status"] == "completed"
+           or (row.get("failure") or {}).get("condition") != "timeout"
+           for row in unknown_rows):
+        raise ValueError("only excluded timeout rows may carry acknowledged unknown billing")
+    count = sum(row["unknown_cost_provider_call_count"] for row in unknown_rows)
+    if checkpoint.get("acknowledged_unknown_cost_provider_call_count") != count:
+        raise ValueError("unknown-billing checkpoint count differs from the receipts")
+    each = Decimal(str(checkpoint["unknown_call_reserve_usd_each"]))
+    reserved = Decimal(str(checkpoint["reserved_unknown_cost_usd"]))
+    bounds = [Decimal(str(value)) for value in checkpoint["request_cost_upper_bounds_usd"]]
+    before = Decimal(str(checkpoint["account_usage_before_usd"]))
+    after = Decimal(str(checkpoint["account_usage_after_usd"]))
+    account_known = Decimal(str(checkpoint["account_known_cost_usd"]))
+    unexplained = Decimal(str(checkpoint["account_unexplained_delta_usd"]))
+    if (any(not value.is_finite() or value < 0
+            for value in [each, reserved, before, after, account_known, unexplained, *bounds])
+            or each <= 0 or len(bounds) != count or any(bound > each for bound in bounds)
+            or reserved != count * each
+            or abs(unexplained - (after - before - account_known)) > Decimal("1e-12")
+            or unexplained > reserved):
+        raise ValueError("unknown-billing reserve or account usage delta is invalid")
+    return {"acknowledged_unknown_cost_provider_call_count": count,
+            "reserved_unknown_cost_usd": reserved,
+            "acknowledged_result_sha256s": hashes}
+
+
 def audit_live_run(root):
     from aeread.shared_runner.batch import read_family_batch
     from aeread.shared_runner.execution import _paired_cell_request_seed
@@ -139,7 +195,7 @@ def audit_live_run(root):
     conditions = [condition for condition, _ in study["ordered_conditions"]]
     assert len(study["panel_seeds"]) == 100 and study["replicates"] == 3 and len(conditions) == 2
     assert not set(study["panel_seeds"]) & set(study["admission_seeds"])
-    phase_rows, setup_maps = {}, {}
+    phase_rows, setup_maps, reconciliations = {}, {}, {}
     for phase in summaries:
         setups = {condition: build_procurement_rfq_smoke(
             buyer_provider="openrouter", buyer_model=DEEPSEEK_MODEL,
@@ -153,18 +209,28 @@ def audit_live_run(root):
         assert {r["result_sha256"] for r in rows} == {
             r["result_sha256"] for r in summaries[phase]["batch"]["rows"]}
         assert len(rows) == summaries[phase]["batch"]["attempted_cell_count"]
-        phase_rows[phase], setup_maps[phase] = rows, setups
+        reconciliation = audit_unknown_billing_recovery(root / phase, rows)
+        assert summaries[phase]["batch"].get(
+            "acknowledged_unknown_cost_provider_call_count", 0) == reconciliation[
+                "acknowledged_unknown_cost_provider_call_count"]
+        assert Decimal(str(summaries[phase]["batch"].get(
+            "reserved_unknown_cost_usd", 0))) == reconciliation["reserved_unknown_cost_usd"]
+        phase_rows[phase], setup_maps[phase], reconciliations[phase] = rows, setups, reconciliation
     validate_live_admission(phase_rows["admission"], setups=setup_maps["admission"])
     assert summaries["admission"]["live_admission"] is True
     assert len(phase_rows["sample"]) == 600, "sample has not attempted its full frozen panel"
 
     costs = Counter()
     calls, events, outcomes, tokens = Counter(), Counter(), defaultdict(Counter), Counter()
+    unknown_events = Counter()
     for phase, rows in phase_rows.items():
         phase_cost = Decimal("0")
         for row in rows:
             condition = row["condition_id"]
-            assert row["unknown_cost_provider_call_count"] == row["external_fixture_call_count"] == 0
+            assert row["external_fixture_call_count"] == 0
+            acknowledged_hashes = set(reconciliations[phase]["acknowledged_result_sha256s"])
+            if row["unknown_cost_provider_call_count"]:
+                assert row["result_sha256"] in acknowledged_hashes and row["status"] != "completed"
             if row["status"] == "completed":
                 assert row["external_provider_call_count"] >= 4
                 assert row["route_providers"] == ["Parasail"] and row["route_verification_failures"] == 0
@@ -190,6 +256,11 @@ def audit_live_run(root):
                     calls[phase] += 1
                 if event["event_type"] in {"provider_call_succeeded", "provider_call_failed", "provider_call_outcome_unknown"}:
                     cost = payload.get("cost_usd")
+                    if cost == "unknown":
+                        assert event["event_type"] == "provider_call_outcome_unknown"
+                        assert row["result_sha256"] in acknowledged_hashes
+                        unknown_events[phase] += 1
+                        continue
                     assert isinstance(cost, (int, float)) and not isinstance(cost, bool) and cost >= 0
                     row_cost += Decimal(str(cost))
                     result = payload.get("provider_result") or {}
@@ -214,10 +285,14 @@ def audit_live_run(root):
             assert row_cost <= Decimal(str(study["inflight_episode_reserve_usd"]))
             phase_cost += row_cost
         assert abs(phase_cost - Decimal(str(summaries[phase]["batch"]["known_cost_usd"]))) < Decimal("1e-10")
+        assert unknown_events[phase] == reconciliations[phase][
+            "acknowledged_unknown_cost_provider_call_count"]
         costs[phase] = phase_cost
 
     prior = audit_prior_spend(authorization)
-    total = prior + costs["admission"] + costs["sample"]
+    reserved_unknown = sum((value["reserved_unknown_cost_usd"]
+                            for value in reconciliations.values()), Decimal("0"))
+    total = prior + costs["admission"] + costs["sample"] + reserved_unknown
     assert total <= Decimal(str(authorization["approved_total_usd"]))
     assert abs(costs["admission"] + costs["sample"] - Decimal(str(
         summaries["sample"]["total_known_cost_usd_including_admission"]))) < Decimal("1e-10")
@@ -243,9 +318,11 @@ def audit_live_run(root):
         "sample_included": sum(r["status"] == "completed" for r in phase_rows["sample"]),
         "sample_excluded": sum(r["status"] != "completed" for r in phase_rows["sample"]),
         "external_calls": dict(calls), "audited_events": dict(events), "tokens": dict(tokens),
-        "cost_usd": {"prior_admission": str(prior), **{p: str(v) for p, v in costs.items()}, "all_runs": str(total)},
+        "cost_usd": {"prior_admission": str(prior), **{p: str(v) for p, v in costs.items()},
+                     "reserved_unknown": str(reserved_unknown), "all_runs": str(total)},
         "remaining_authorization_usd": str(Decimal(str(authorization["approved_total_usd"])) - total),
         "privacy_field_check_passed": True, "outcomes_by_condition": dict(outcomes),
+        "acknowledged_unknown_billing_calls": sum(unknown_events.values()),
         "independent_analysis": independent,
         "ninety_complete_world_target_met": independent["complete_world_count"] >= 90,
         "unchanged_evidence_fingerprint": before[0], "unchanged_evidence_file_count": before[1],

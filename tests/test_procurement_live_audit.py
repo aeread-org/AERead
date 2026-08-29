@@ -5,7 +5,11 @@ from decimal import Decimal
 
 import pytest
 
-from examples.verify_procurement_live import audit_live_run, audit_prior_spend, recompute_panel
+from examples.verify_procurement_live import (
+    audit_live_run, audit_prior_spend, audit_unknown_billing_recovery,
+    recompute_panel,
+)
+from aeread.shared_runner.resolver import canonical_json_bytes
 
 
 def panel_rows():
@@ -97,3 +101,44 @@ def test_prior_spend_conservatively_reserves_lost_temporary_evidence():
     }]}
     with pytest.raises(ValueError, match="status"):
         audit_prior_spend(unclassified)
+
+
+def _write_unknown_recovery_checkpoint(root, **changes):
+    checkpoint = {
+        "spec_version": "aeread.unknown_billing_recovery/1",
+        "prefix_result_sha256s": ["included-hash", "unknown-hash"],
+        "acknowledged_unknown_cost_provider_call_count": 1,
+        "unknown_call_reserve_usd_each": .04,
+        "reserved_unknown_cost_usd": .04,
+        "request_cost_upper_bounds_usd": [.01],
+        "account_usage_before_usd": 100.0,
+        "account_usage_after_usd": 100.008,
+        "account_known_cost_usd": .002,
+        "account_unexplained_delta_usd": .006,
+    }
+    checkpoint.update(changes)
+    checkpoint["result_sha256"] = hashlib.sha256(canonical_json_bytes(checkpoint)).hexdigest()
+    (root / "recovery_checkpoint.json").write_bytes(canonical_json_bytes(checkpoint) + b"\n")
+
+
+def test_live_audit_accepts_only_sealed_reserved_unknown_timeout_prefix(tmp_path):
+    rows = [
+        {"result_sha256": "included-hash", "status": "completed",
+         "unknown_cost_provider_call_count": 0, "failure": None},
+        {"result_sha256": "unknown-hash", "status": "operational_failure",
+         "unknown_cost_provider_call_count": 1,
+         "failure": {"condition": "timeout"}},
+    ]
+    _write_unknown_recovery_checkpoint(tmp_path)
+    result = audit_unknown_billing_recovery(tmp_path, rows)
+    assert result["acknowledged_unknown_cost_provider_call_count"] == 1
+    assert result["reserved_unknown_cost_usd"] == Decimal(".04")
+    assert result["acknowledged_result_sha256s"] == ["included-hash", "unknown-hash"]
+
+    _write_unknown_recovery_checkpoint(tmp_path, reserved_unknown_cost_usd=.005)
+    with pytest.raises(ValueError, match="reserve|bound"):
+        audit_unknown_billing_recovery(tmp_path, rows)
+
+    _write_unknown_recovery_checkpoint(tmp_path)
+    with pytest.raises(ValueError, match="timeout|unknown"):
+        audit_unknown_billing_recovery(tmp_path, [rows[0], {**rows[1], "status": "completed"}])

@@ -243,6 +243,43 @@ def _rate_limit_recovery_eligible(rows, manifest) -> None:
         raise ValueError("recovery cannot reset a spend or reservation budget")
 
 
+def _unknown_billing_recovery_eligible(rows, manifest, checkpoint) -> None:
+    unknown_count = sum(row["unknown_cost_provider_call_count"] for row in rows)
+    if not rows or unknown_count < 1:
+        raise ValueError("unknown-billing recovery requires an unknown provider outcome")
+    if any(row["status"] != "completed" and (
+            not row["unknown_cost_provider_call_count"]
+            or (row.get("failure") or {}).get("condition") != "timeout") for row in rows):
+        raise ValueError("only timeout failures with unknown billing may be acknowledged")
+    if checkpoint.get("acknowledged_unknown_cost_provider_call_count") != unknown_count:
+        raise ValueError("unknown-billing recovery call count differs from its receipt prefix")
+    each = checkpoint.get("unknown_call_reserve_usd_each")
+    total = checkpoint.get("reserved_unknown_cost_usd")
+    bounds = checkpoint.get("request_cost_upper_bounds_usd")
+    numeric = lambda value: (isinstance(value, (int, float)) and not isinstance(value, bool)
+                             and math.isfinite(value) and value >= 0)
+    if (not numeric(each) or each <= 0 or not numeric(total)
+            or not math.isclose(total, unknown_count * each, rel_tol=0, abs_tol=1e-12)
+            or not isinstance(bounds, list) or len(bounds) != unknown_count
+            or any(not numeric(bound) or bound > each for bound in bounds)):
+        raise ValueError("unknown-billing recovery reserve does not cover every request bound")
+    before = checkpoint.get("account_usage_before_usd")
+    after = checkpoint.get("account_usage_after_usd")
+    account_known = checkpoint.get("account_known_cost_usd")
+    unexplained = checkpoint.get("account_unexplained_delta_usd")
+    if (any(not numeric(value) for value in (before, after, account_known, unexplained))
+            or not math.isclose(unexplained, after - before - account_known,
+                                rel_tol=0, abs_tol=1e-12)
+            or unexplained > total + 1e-12):
+        raise ValueError("account usage delta is not reconciled by the unknown-call reserve")
+    cost = sum(row["cost_usd"] for row in rows) + total
+    reserve = manifest["inflight_episode_reserve_usd"]
+    if (cost >= manifest["spend_limit_usd"] or cost + reserve > manifest["spend_limit_usd"]
+            or (reserve and (total > unknown_count * reserve
+                             or any(row["cost_usd"] > reserve for row in rows)))):
+        raise ValueError("unknown-billing recovery cannot reset a spend or reservation budget")
+
+
 def _recovery_checkpoint(root: Path, *, rows=None, for_execution=False):
     checkpoint_path = root / "recovery_checkpoint.json"
     if not checkpoint_path.exists():
@@ -251,7 +288,8 @@ def _recovery_checkpoint(root: Path, *, rows=None, for_execution=False):
     parent = _read_sealed(root / "recovery_parent_manifest.json")
     current = _read_sealed(root / "batch_manifest.json")
     excluded = {"result_sha256", "batch_source_sha256", "recovery_checkpoint_sha256"}
-    if (checkpoint.get("spec_version") != "aeread.rate_limit_recovery/1"
+    spec_version = checkpoint.get("spec_version")
+    if (spec_version not in {"aeread.rate_limit_recovery/1", "aeread.unknown_billing_recovery/1"}
             or type(checkpoint.get("max_new_cells_per_invocation")) is not int
             or checkpoint["max_new_cells_per_invocation"] != 4
             or checkpoint.get("parent_manifest_sha256") != parent["result_sha256"]
@@ -268,7 +306,10 @@ def _recovery_checkpoint(root: Path, *, rows=None, for_execution=False):
         prefix = rows[:len(hashes)]
         if [row["result_sha256"] for row in prefix] != hashes:
             raise ValueError("recovery checkpoint prefix changed or lost a receipt")
-        _rate_limit_recovery_eligible(prefix, parent)
+        if spec_version == "aeread.rate_limit_recovery/1":
+            _rate_limit_recovery_eligible(prefix, parent)
+        else:
+            _unknown_billing_recovery_eligible(prefix, parent, checkpoint)
     return checkpoint
 
 
@@ -339,6 +380,91 @@ def prepare_rate_limit_recovery(
         return checkpoint
 
 
+def prepare_unknown_billing_recovery(
+    *, setups: Mapping[str, EvaluationSetup], source_root: str | Path,
+    output_root: str | Path, expected_manifest_sha256: str, reason: str,
+    account_usage_before_usd: float, account_usage_after_usd: float,
+    account_known_cost_usd: float, unknown_call_reserve_usd_each: float,
+    request_cost_upper_bounds_usd: list[float],
+) -> dict[str, Any]:
+    """Fork one drained unknown-billing stop with a full, sealed cost reserve.
+
+    The source receipts remain immutable. The child acknowledges only the existing
+    unknown outcomes, charges their full request-level reserve against the original
+    spend limit, and never reruns their cells.
+    """
+    if Path(output_root).is_symlink():
+        raise FileExistsError(f"recovery destination is a symlink: {output_root}")
+    source, target = Path(source_root).resolve(), Path(output_root).resolve()
+    if source == target or source in target.parents:
+        raise ValueError("recovery destination must be separate from its source")
+    if not isinstance(reason, str) or not reason.strip():
+        raise ValueError("recovery requires an explicit operator reason")
+    with _batch_lock(source):
+        if (source / "recovery_checkpoint.json").exists():
+            raise ValueError("a recovery cannot acknowledge another stopped recovery")
+        parent = _read_sealed(source / "batch_manifest.json")
+        if parent["result_sha256"] != expected_manifest_sha256:
+            raise ValueError("source manifest differs from the acknowledged checkpoint")
+        if parent["plans"] != {condition: setup.plan.plan_sha256 for condition, setup in setups.items()}:
+            raise ValueError("recovery plans differ from the frozen source plans")
+        rows = _read_rows(setups, source, recover=False)
+        schedule = paired_schedule(setups)
+        if ([(row["condition_id"], row["cell_id"]) for row in rows]
+                != [(condition, cell.cell_id) for condition, cell in schedule[:len(rows)]]
+                or len(rows) == len(schedule)):
+            raise ValueError("recovery requires a contiguous unfinished schedule prefix")
+        unknown_count = sum(row["unknown_cost_provider_call_count"] for row in rows)
+        numeric = lambda value: (isinstance(value, (int, float)) and not isinstance(value, bool)
+                                 and math.isfinite(value) and value >= 0)
+        if any(not numeric(value) for value in (
+                account_usage_before_usd, account_usage_after_usd,
+                account_known_cost_usd, unknown_call_reserve_usd_each)):
+            raise ValueError("recovery usage and reserve values must be finite and nonnegative")
+        unexplained = account_usage_after_usd - account_usage_before_usd - account_known_cost_usd
+        checkpoint = _seal({
+            "spec_version": "aeread.unknown_billing_recovery/1",
+            "source_root": str(source), "output_root": str(target),
+            "parent_manifest_sha256": parent["result_sha256"],
+            "prefix_result_sha256s": [row["result_sha256"] for row in rows],
+            "max_new_cells_per_invocation": 4,
+            "acknowledged_unknown_cost_provider_call_count": unknown_count,
+            "unknown_call_reserve_usd_each": unknown_call_reserve_usd_each,
+            "reserved_unknown_cost_usd": unknown_count * unknown_call_reserve_usd_each,
+            "request_cost_upper_bounds_usd": list(request_cost_upper_bounds_usd),
+            "account_usage_before_usd": account_usage_before_usd,
+            "account_usage_after_usd": account_usage_after_usd,
+            "account_known_cost_usd": account_known_cost_usd,
+            "account_unexplained_delta_usd": unexplained,
+            "operator_reason": reason.strip(),
+        })
+        _unknown_billing_recovery_eligible(rows, parent, checkpoint)
+        pointer_path = source / "recovery_child.json"
+        if pointer_path.exists():
+            pointer = _read_sealed(pointer_path)
+            if (pointer.get("output_root") != str(target)
+                    or pointer.get("checkpoint_sha256") != checkpoint["result_sha256"]):
+                raise ValueError("source already has another recovery child destination")
+            if not target.exists() or _recovery_checkpoint(target) != checkpoint:
+                raise ValueError("existing recovery child is incomplete; manual inspection required")
+            return checkpoint
+        if target.exists():
+            raise FileExistsError(f"recovery destination already exists: {target}")
+        atomic_write_json(pointer_path, _seal({"output_root": str(target),
+            "checkpoint_sha256": checkpoint["result_sha256"]}))
+        shutil.copytree(source, target, ignore=shutil.ignore_patterns(".batch.lock", "recovery_child.json"))
+        atomic_write_json(target / "recovery_parent_manifest.json", parent)
+        atomic_write_json(target / "recovery_checkpoint.json", checkpoint)
+        manifest = _seal({**parent, "batch_source_sha256": _batch_source_sha256(),
+                          "recovery_checkpoint_sha256": checkpoint["result_sha256"]})
+        atomic_write_json(target / "batch_manifest.json", manifest)
+        copied = _read_rows(setups, target, recover=False)
+        _recovery_checkpoint(target, rows=copied, for_execution=True)
+        if copied != rows:
+            raise ValueError("recovery copy changed a sealed result")
+        return checkpoint
+
+
 async def run_family_batch(
     *, setups: Mapping[str, EvaluationSetup], output_root: str | Path,
     providers_by_condition: Mapping[str, Mapping[str, Any]],
@@ -391,10 +517,15 @@ async def run_family_batch(
         rows = _read_rows(setups, root, recover=True)
         _recovery_checkpoint(root, rows=rows, for_execution=True)
         acknowledged_prefix = len(checkpoint["prefix_result_sha256s"]) if checkpoint else 0
+        acknowledged_unknown = (checkpoint.get("acknowledged_unknown_cost_provider_call_count", 0)
+                                if checkpoint else 0)
+        reserved_unknown_cost = checkpoint.get("reserved_unknown_cost_usd", 0.0) if checkpoint else 0.0
         by_cell = {(r["condition_id"], r["cell_id"]): r for r in rows}
         failures = {condition: 0 for condition in setups}
         known_cost = sum(r["cost_usd"] for r in rows)
-        unknown_cost = sum(r["unknown_cost_provider_call_count"] for r in rows)
+        unknown_cost = sum(r["unknown_cost_provider_call_count"] for r in rows) - acknowledged_unknown
+        if unknown_cost < 0:
+            raise ValueError("recovery acknowledges more unknown calls than its receipt prefix")
         new_cells, stop_reason = 0, "complete"
         reservation_exceeded = bool(inflight_episode_reserve_usd and any(
             row["cost_usd"] > inflight_episode_reserve_usd for row in rows))
@@ -441,14 +572,15 @@ async def run_family_batch(
                 if failure_circuit_open:
                     stop_reason = "failure_circuit"
                     break
-                if known_cost >= spend_limit_usd:
+                if known_cost + reserved_unknown_cost >= spend_limit_usd:
                     stop_reason = "recorded_cost_limit"
                     break
                 if max_new_cells is not None and new_cells + len(wave) >= max_new_cells:
                     stop_reason = "invocation_cell_limit"
                     break
                 if inflight_episode_reserve_usd and (
-                        known_cost + (len(wave) + 1) * inflight_episode_reserve_usd > spend_limit_usd):
+                        known_cost + reserved_unknown_cost
+                        + (len(wave) + 1) * inflight_episode_reserve_usd > spend_limit_usd):
                     stop_reason = "budget_reservation"
                     break
                 wave.append((condition, cell))
@@ -480,6 +612,10 @@ async def run_family_batch(
             "planned_cell_count": len(schedule), "attempted_cell_count": len(rows),
             "included_count": sum(r["status"] == "completed" for r in rows),
             "excluded_count": sum(r["status"] != "completed" for r in rows),
-            "known_cost_usd": known_cost, "unknown_cost_provider_call_count": unknown_cost,
+            "known_cost_usd": known_cost,
+            "conservative_cost_usd": known_cost + reserved_unknown_cost,
+            "unknown_cost_provider_call_count": unknown_cost,
+            "acknowledged_unknown_cost_provider_call_count": acknowledged_unknown,
+            "reserved_unknown_cost_usd": reserved_unknown_cost,
             "stop_reason": stop_reason, "rows": rows,
         }
