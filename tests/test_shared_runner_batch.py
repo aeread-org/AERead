@@ -375,6 +375,47 @@ def test_unknown_billing_recovery_chain_carries_forward_prefix_and_reserve(tmp_p
             request_cost_upper_bounds_usd=[.002, .002])
 
 
+def test_unknown_billing_recovery_chain_preserves_only_known_rate_limit_exclusions(tmp_path):
+    setup_map = setups()
+    source, first_child, second_child = (
+        tmp_path / "unknown", tmp_path / "first", tmp_path / "second")
+    run(source, setup_map, UnknownBillingBuyer())
+    prepare_unknown_recovery(source, first_child, setup_map)
+    paused = run(first_child, setup_map, RateLimitedBuyer(), max_new_cells=1)
+    assert paused["stop_reason"] == "rate_limit_pause"
+    second_stop = run(first_child, setup_map, UnknownBillingBuyer(), max_new_cells=1)
+    assert second_stop["attempted_cell_count"] == 3
+    assert [row["failure"]["condition"] for row in second_stop["rows"]] == [
+        "timeout", "rate_limit", "timeout"]
+
+    checkpoint = prepare_unknown_recovery(
+        first_child, second_child, setup_map,
+        account_usage_before_usd=100.001,
+        account_usage_after_usd=100.002,
+        request_cost_upper_bounds_usd=[.002, .002],
+    )
+    assert checkpoint["acknowledged_unknown_cost_provider_call_count"] == 2
+    assert read_family_batch(setups=setup_map, output_root=second_child) == second_stop["rows"]
+
+    class ContractFailure(CountingBuyer):
+        async def complete(self, request):
+            self.calls += 1
+            raise ProviderFailure("provider_contract", "known bad response", retryable=False)
+
+    bad_source, bad_child = tmp_path / "bad-unknown", tmp_path / "bad-first"
+    run(bad_source, setup_map, UnknownBillingBuyer())
+    prepare_unknown_recovery(bad_source, bad_child, setup_map)
+    run(bad_child, setup_map, ContractFailure(), max_new_cells=1)
+    run(bad_child, setup_map, UnknownBillingBuyer(), max_new_cells=1)
+    with pytest.raises(ValueError, match="timeout|rate.limit"):
+        prepare_unknown_recovery(
+            bad_child, tmp_path / "bad-second", setup_map,
+            account_usage_before_usd=100.001,
+            account_usage_after_usd=100.002,
+            request_cost_upper_bounds_usd=[.002, .002],
+        )
+
+
 def prepare_recovery(source, target, setup_map):
     from aeread.shared_runner.batch import prepare_rate_limit_recovery
     manifest = json.loads((source / "batch_manifest.json").read_text())

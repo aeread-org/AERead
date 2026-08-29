@@ -248,9 +248,12 @@ def _unknown_billing_recovery_eligible(rows, manifest, checkpoint) -> None:
     if not rows or unknown_count < 1:
         raise ValueError("unknown-billing recovery requires an unknown provider outcome")
     if any(row["status"] != "completed" and (
-            not row["unknown_cost_provider_call_count"]
-            or (row.get("failure") or {}).get("condition") != "timeout") for row in rows):
-        raise ValueError("only timeout failures with unknown billing may be acknowledged")
+            ((row.get("failure") or {}).get("condition") != "timeout"
+             if row["unknown_cost_provider_call_count"]
+             else (row.get("failure") or {}).get("condition") != "rate_limit"))
+            for row in rows):
+        raise ValueError(
+            "only unknown-billing timeouts or known-billing rate-limit failures may be acknowledged")
     if checkpoint.get("acknowledged_unknown_cost_provider_call_count") != unknown_count:
         raise ValueError("unknown-billing recovery call count differs from its receipt prefix")
     each = checkpoint.get("unknown_call_reserve_usd_each")
