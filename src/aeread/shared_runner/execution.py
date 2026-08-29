@@ -21,7 +21,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from types import MappingProxyType
-from typing import Any, Awaitable, Callable, Mapping, Protocol, Sequence
+from typing import TYPE_CHECKING, Any, Awaitable, Callable, Mapping, Protocol, Sequence
 
 from .registry import PluginRegistry, PluginRegistryError
 from .resolver import RunPlan, canonical_json_bytes, verify_run_plan, write_run_plan
@@ -35,6 +35,12 @@ from .scheduler import (
     run_episode,
 )
 from .schemas import AgentProfile
+
+if TYPE_CHECKING:
+    # `harness.py` imports `ProviderRequest`/`ProviderResult` from this module,
+    # so the reverse reference is type-checking only; call sites that need the
+    # classes at runtime (native tool-call construction) import them lazily.
+    from .harness import CanonicalMessage, NativeToolCall, ToolSchema
 
 
 class EvidenceIntegrityError(RuntimeError):
@@ -652,6 +658,14 @@ class ProviderRequest:
     output_schema: Mapping[str, Any] | None = None
     provider_metadata: Mapping[str, Any] | None = None
     seed: int | None = None
+    # Native model protocol (§6, stage 2): additive, excluded from the
+    # request_sha256 payload below by design -- `input_text` already carries
+    # a canonical serialization of `messages`/`tools` for every response
+    # mode, so the identity hash does not need a second source of truth.
+    # `reasoning_token_budget` is wired to a wire request in a later stage.
+    messages: tuple["CanonicalMessage", ...] | None = None
+    tools: tuple["ToolSchema", ...] | None = None
+    reasoning_token_budget: int | None = None
 
     def with_computed_hash(self) -> "ProviderRequest":
         payload = {
@@ -688,6 +702,11 @@ class ProviderResult:
     output_tokens: int
     cost_usd: float | None
     raw_response: Any
+    # Native model protocol (§6, stage 2): additive; None unless the
+    # provider adapter actually reports the field.
+    tool_calls: tuple["NativeToolCall", ...] | None = None
+    reasoning_tokens: int | None = None
+    visible_output_tokens: int | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -812,6 +831,12 @@ class OpenAIResponsesClient:
         self._client = sdk_client
 
     async def complete(self, request: ProviderRequest) -> ProviderResult:
+        if request.messages is not None:
+            raise ProviderFailure(
+                "provider_contract",
+                "OpenAI Responses adapter does not support native chat messages",
+                retryable=False,
+            )
         if request.provider != "openai":
             raise ProviderFailure(
                 "provider_contract",
@@ -944,12 +969,237 @@ class OpenRouterChatClient:
                 f"{self._base_url!r}",
                 retryable=False,
             )
+        if request.messages is not None:
+            return await self._complete_native(request)
         if not isinstance(request.output_schema, Mapping):
             raise ProviderFailure(
                 "provider_contract",
                 "OpenRouter adapter requires a structured output schema",
                 retryable=False,
             )
+        provider_preferences, canonical_model, route_provider = self._route_preferences(
+            request
+        )
+        wire_output_schema = json.loads(canonical_json_bytes(request.output_schema))
+        kwargs: dict[str, Any] = {
+            "model": request.model,
+            "messages": [
+                {"role": "system", "content": request.instructions},
+                {"role": "user", "content": request.input_text},
+            ],
+            "temperature": request.temperature,
+            "top_p": request.top_p,
+            "seed": request.seed,
+            "max_tokens": request.max_output_tokens,
+            "response_format": {
+                "type": "json_schema",
+                "json_schema": {
+                    "name": "aeread_action",
+                    "strict": True,
+                    "schema": wire_output_schema,
+                },
+            },
+            "tools": [],
+            "stream": False,
+            "extra_headers": {"X-OpenRouter-Metadata": "enabled"},
+            "extra_body": {
+                "reasoning": {"effort": request.reasoning_effort or "low"},
+                "provider": provider_preferences,
+            },
+        }
+        response = await self._create(**kwargs)
+        raw_response, choice, message = self._parsed_choice(response)
+        content = message.get("content") if isinstance(message, Mapping) else None
+        if not isinstance(content, str):
+            raise ProviderFailure(
+                "provider_contract",
+                "OpenRouter response choice has no text content",
+                retryable=False,
+            )
+        try:
+            structured_output = json.loads(content)
+        except json.JSONDecodeError as error:
+            raise ProviderFailure(
+                "provider_contract",
+                "OpenRouter structured output is not valid JSON",
+                retryable=False,
+            ) from error
+        input_tokens, cached_input_tokens, output_tokens, cost = self._usage(raw_response)
+        selected_model = self._verify_route(
+            raw_response.get("openrouter_metadata"),
+            requested_model=request.model,
+            canonical_model=canonical_model,
+            route_provider=route_provider,
+        )
+        response_model = raw_response.get("model")
+        if response_model not in {request.model, canonical_model}:
+            raise ProviderFailure(
+                "provider_contract",
+                f"OpenRouter response model {response_model!r} was not requested",
+                retryable=False,
+            )
+        return ProviderResult(
+            response_id=str(raw_response.get("id") or ""),
+            requested_model=request.model,
+            resolved_model=selected_model,
+            output_text=canonical_json_bytes(structured_output).decode("utf-8"),
+            finish_reason=str(choice.get("finish_reason") or "unknown"),
+            input_tokens=input_tokens,
+            cached_input_tokens=cached_input_tokens,
+            output_tokens=output_tokens,
+            cost_usd=float(cost),
+            raw_response=raw_response,
+        )
+
+    async def _complete_native(self, request: ProviderRequest) -> ProviderResult:
+        """§6: `request.messages` set means send chat messages + tools
+        natively instead of the structured-output dialect above."""
+        provider_preferences, canonical_model, route_provider = self._route_preferences(
+            request
+        )
+        wire_messages = [{"role": "system", "content": request.instructions}]
+        for message in request.messages:
+            wire_message: dict[str, Any] = {"role": message.role, "content": message.content}
+            if message.tool_call_id is not None:
+                wire_message["tool_call_id"] = message.tool_call_id
+            if message.name is not None:
+                wire_message["name"] = message.name
+            wire_messages.append(wire_message)
+        wire_tools = [
+            {
+                "type": "function",
+                "function": {
+                    "name": tool.tool_id,
+                    "description": tool.description,
+                    "parameters": json.loads(canonical_json_bytes(tool.input_schema)),
+                },
+            }
+            for tool in (request.tools or ())
+        ]
+        kwargs: dict[str, Any] = {
+            "model": request.model,
+            "messages": wire_messages,
+            "temperature": request.temperature,
+            "top_p": request.top_p,
+            "seed": request.seed,
+            "max_tokens": request.max_output_tokens,
+            "tools": wire_tools,
+            "stream": False,
+            "extra_headers": {"X-OpenRouter-Metadata": "enabled"},
+            "extra_body": {
+                "reasoning": {"effort": request.reasoning_effort or "low"},
+                "provider": provider_preferences,
+            },
+        }
+        response = await self._create(**kwargs)
+        raw_response, choice, message = self._parsed_choice(response)
+        if not isinstance(message, Mapping):
+            raise ProviderFailure(
+                "provider_contract",
+                "OpenRouter response choice has no message",
+                retryable=False,
+            )
+        tool_calls = self._native_tool_calls(message.get("tool_calls"))
+        content = message.get("content")
+        if tool_calls is None and not isinstance(content, str):
+            raise ProviderFailure(
+                "provider_contract",
+                "OpenRouter response choice has neither text nor tool calls",
+                retryable=False,
+            )
+        input_tokens, cached_input_tokens, output_tokens, cost = self._usage(raw_response)
+        selected_model = self._verify_route(
+            raw_response.get("openrouter_metadata"),
+            requested_model=request.model,
+            canonical_model=canonical_model,
+            route_provider=route_provider,
+        )
+        response_model = raw_response.get("model")
+        if response_model not in {request.model, canonical_model}:
+            raise ProviderFailure(
+                "provider_contract",
+                f"OpenRouter response model {response_model!r} was not requested",
+                retryable=False,
+            )
+        return ProviderResult(
+            response_id=str(raw_response.get("id") or ""),
+            requested_model=request.model,
+            resolved_model=selected_model,
+            output_text=content if isinstance(content, str) else "",
+            finish_reason=str(choice.get("finish_reason") or "unknown"),
+            input_tokens=input_tokens,
+            cached_input_tokens=cached_input_tokens,
+            output_tokens=output_tokens,
+            cost_usd=cost,
+            raw_response=raw_response,
+            tool_calls=tool_calls,
+        )
+
+    @staticmethod
+    def _native_tool_calls(raw_tool_calls: Any) -> "tuple[NativeToolCall, ...] | None":
+        """Map the response's `tool_calls` into `NativeToolCall`s, preserving
+        source order -- order is the only correlation a later round has with
+        `source_call_index` (§8), so this must never reorder."""
+        if raw_tool_calls is None:
+            return None
+        if not isinstance(raw_tool_calls, list) or not raw_tool_calls:
+            raise ProviderFailure(
+                "provider_contract",
+                "OpenRouter tool_calls must be a non-empty array",
+                retryable=False,
+            )
+        from .harness import NativeToolCall
+
+        calls: list[NativeToolCall] = []
+        for entry in raw_tool_calls:
+            if not isinstance(entry, Mapping):
+                raise ProviderFailure(
+                    "provider_contract",
+                    "OpenRouter tool_calls entries must be objects",
+                    retryable=False,
+                )
+            call_id = entry.get("id")
+            function = entry.get("function")
+            if not isinstance(call_id, str) or not call_id or not isinstance(function, Mapping):
+                raise ProviderFailure(
+                    "provider_contract",
+                    "OpenRouter tool_calls entry is missing an id or function",
+                    retryable=False,
+                )
+            tool_id = function.get("name")
+            raw_arguments = function.get("arguments")
+            if (
+                not isinstance(tool_id, str)
+                or not tool_id
+                or not isinstance(raw_arguments, str)
+            ):
+                raise ProviderFailure(
+                    "provider_contract",
+                    "OpenRouter tool_calls entry has an invalid function name or arguments",
+                    retryable=False,
+                )
+            try:
+                arguments = json.loads(raw_arguments)
+            except json.JSONDecodeError as error:
+                raise ProviderFailure(
+                    "provider_contract",
+                    "OpenRouter tool_calls arguments are not valid JSON",
+                    retryable=False,
+                ) from error
+            if not isinstance(arguments, Mapping):
+                raise ProviderFailure(
+                    "provider_contract",
+                    "OpenRouter tool_calls arguments must be an object",
+                    retryable=False,
+                )
+            calls.append(NativeToolCall(call_id=call_id, tool_id=tool_id, arguments=arguments))
+        return tuple(calls)
+
+    @staticmethod
+    def _route_preferences(request: ProviderRequest) -> tuple[dict[str, Any], str, str]:
+        """Validate the sealed OpenRouter route pin, shared by both dialects
+        (§6): the response format differs by mode, the pinned backend does
+        not."""
         metadata = request.provider_metadata
         if not isinstance(metadata, Mapping):
             raise ProviderFailure(
@@ -1005,39 +1255,18 @@ class OpenRouterChatClient:
                 "completion": metadata["max_completion_price_per_million"],
             },
         }
-        wire_output_schema = json.loads(canonical_json_bytes(request.output_schema))
-        kwargs: dict[str, Any] = {
-            "model": request.model,
-            "messages": [
-                {"role": "system", "content": request.instructions},
-                {"role": "user", "content": request.input_text},
-            ],
-            "temperature": request.temperature,
-            "top_p": request.top_p,
-            "seed": request.seed,
-            "max_tokens": request.max_output_tokens,
-            "response_format": {
-                "type": "json_schema",
-                "json_schema": {
-                    "name": "aeread_action",
-                    "strict": True,
-                    "schema": wire_output_schema,
-                },
-            },
-            "tools": [],
-            "stream": False,
-            "extra_headers": {"X-OpenRouter-Metadata": "enabled"},
-            "extra_body": {
-                "reasoning": {"effort": request.reasoning_effort or "low"},
-                "provider": provider_preferences,
-            },
-        }
+        return provider_preferences, canonical_model, route_provider
+
+    async def _create(self, **kwargs: Any) -> Any:
         try:
-            response = await self._client.chat.completions.create(**kwargs)
+            return await self._client.chat.completions.create(**kwargs)
         except asyncio.CancelledError:
             raise
         except Exception as error:
             raise OpenAIResponsesClient._classify_error(error) from error
+
+    @staticmethod
+    def _parsed_choice(response: Any) -> tuple[Mapping[str, Any], Mapping[str, Any], Any]:
         try:
             raw_response = response.model_dump(mode="json")
         except Exception as error:
@@ -1061,21 +1290,10 @@ class OpenRouterChatClient:
             )
         choice = choices[0]
         message = choice.get("message") if isinstance(choice, Mapping) else None
-        content = message.get("content") if isinstance(message, Mapping) else None
-        if not isinstance(content, str):
-            raise ProviderFailure(
-                "provider_contract",
-                "OpenRouter response choice has no text content",
-                retryable=False,
-            )
-        try:
-            structured_output = json.loads(content)
-        except json.JSONDecodeError as error:
-            raise ProviderFailure(
-                "provider_contract",
-                "OpenRouter structured output is not valid JSON",
-                retryable=False,
-            ) from error
+        return raw_response, choice, message
+
+    @staticmethod
+    def _usage(raw_response: Mapping[str, Any]) -> tuple[int, int, int, float]:
         usage = raw_response.get("usage")
         if not isinstance(usage, Mapping):
             raise ProviderFailure(
@@ -1113,31 +1331,7 @@ class OpenRouterChatClient:
                 "OpenRouter response cost is invalid",
                 retryable=False,
             )
-        selected_model = self._verify_route(
-            raw_response.get("openrouter_metadata"),
-            requested_model=request.model,
-            canonical_model=canonical_model,
-            route_provider=route_provider,
-        )
-        response_model = raw_response.get("model")
-        if response_model not in {request.model, canonical_model}:
-            raise ProviderFailure(
-                "provider_contract",
-                f"OpenRouter response model {response_model!r} was not requested",
-                retryable=False,
-            )
-        return ProviderResult(
-            response_id=str(raw_response.get("id") or ""),
-            requested_model=request.model,
-            resolved_model=selected_model,
-            output_text=canonical_json_bytes(structured_output).decode("utf-8"),
-            finish_reason=str(choice.get("finish_reason") or "unknown"),
-            input_tokens=input_tokens,
-            cached_input_tokens=cached_input_tokens,
-            output_tokens=output_tokens,
-            cost_usd=float(cost),
-            raw_response=raw_response,
-        )
+        return input_tokens, cached_input_tokens, output_tokens, float(cost)
 
     @staticmethod
     def _verify_route(
@@ -1304,6 +1498,12 @@ class ClaudeCodePrintClient:
         )
 
     async def complete(self, request: ProviderRequest) -> ProviderResult:
+        if request.messages is not None:
+            raise ProviderFailure(
+                "provider_contract",
+                "Claude Code adapter does not support native chat messages",
+                retryable=False,
+            )
         if request.provider != "claude_code":
             raise ProviderFailure(
                 "provider_contract",

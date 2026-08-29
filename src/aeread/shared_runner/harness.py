@@ -274,6 +274,8 @@ class KernelModelPort:
             output_schema=self._profile.harness.config.get("output_schema"),
             provider_metadata=self._profile.harness.config.get("provider_metadata"),
             seed=self._profile.sampling.seed,
+            messages=messages if response_mode == "native_tools" else None,
+            tools=tools if response_mode == "native_tools" and tools else None,
         ).with_computed_hash()
 
         self._evidence.append_event(
@@ -323,6 +325,10 @@ class KernelModelPort:
                 f"provider call {provider_call_id} returned an empty completion",
                 retryable=True,
             )
+        # This always returns a text turn; branching on `response_mode` to
+        # build `ModelTurn(tool_calls=result.tool_calls)` is wired alongside
+        # the `native_tool_chat` harness (stage 4), not here (§6, stage 2
+        # only wires `messages`/`tools` onto the outgoing request).
         return ModelTurn(text=result.output_text, tool_calls=())
 
 

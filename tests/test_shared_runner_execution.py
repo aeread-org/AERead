@@ -26,6 +26,7 @@ from aeread.shared_runner.execution import (
     ToolExecutor,
     ToolFailure,
 )
+from aeread.shared_runner.harness import CanonicalMessage, NativeToolCall, ToolSchema
 from aeread.shared_runner.resolver import PlanCell, case_content_sha256
 from aeread.shared_runner.scheduler import (
     DecisionRequest,
@@ -667,6 +668,38 @@ def test_openai_responses_adapter_uses_explicit_supported_request_fields() -> No
     assert result.output_tokens == 9
 
 
+def test_openai_responses_adapter_refuses_native_chat_messages() -> None:
+    """§6: the Responses adapter never learned native tool calls, so a
+    request built for `native_tool_chat` must fail typed, not silently drop
+    the messages and fall back to `input_text`."""
+    responses = FakeResponsesAPI()
+    sdk = SimpleNamespace(responses=responses)
+    client = OpenAIResponsesClient(sdk_client=sdk)
+    request = replace(
+        ProviderRequest(
+            provider_call_id="provider_call_fixture",
+            provider="openai",
+            base_url="https://api.openai.com/v1",
+            model="gpt-5-nano-2025-08-07",
+            revision="gpt-5-nano-2025-08-07",
+            instructions=SYSTEM_PROMPT,
+            input_text="ignored",
+            temperature=0.0,
+            top_p=None,
+            max_output_tokens=80,
+            reasoning_effort="low",
+            timeout_seconds=5.0,
+            request_sha256="",
+        ),
+        messages=(CanonicalMessage(role="user", content="hi"),),
+    ).with_computed_hash()
+
+    with pytest.raises(ProviderFailure) as captured:
+        asyncio.run(client.complete(request))
+    assert captured.value.condition == "provider_contract"
+    assert responses.kwargs is None
+
+
 def test_openai_adapter_rejects_missing_responses_surface() -> None:
     with pytest.raises(EvidenceIntegrityError, match="Responses API"):
         OpenAIResponsesClient(sdk_client=SimpleNamespace())
@@ -778,6 +811,23 @@ def _openrouter_request() -> ProviderRequest:
     ).with_computed_hash()
 
 
+# --- Golden hash: ProviderRequest.request_sha256 is unaffected by the new
+# native fields (§6, stage 2) -- they default to None and are deliberately
+# excluded from the hash payload, since `input_text` already carries a
+# canonical serialization of messages/tools for every response mode. ---
+
+
+def test_provider_request_sha256_is_unchanged_by_the_new_native_fields() -> None:
+    request = _openrouter_request()
+    assert request.messages is None
+    assert request.tools is None
+    assert request.reasoning_token_budget is None
+    assert (
+        request.request_sha256
+        == "f440c8eb12eb57980096d6f7742b30a707590f15bf3f20065ff1c9f71fc0a03a"
+    )
+
+
 def test_openrouter_adapter_pins_deepseek_route_and_parses_usage() -> None:
     completions = FakeOpenRouterCompletions()
     sdk = SimpleNamespace(chat=SimpleNamespace(completions=completions))
@@ -880,6 +930,169 @@ def test_openrouter_adapter_requires_key_before_constructing_default_sdk(
     monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
     with pytest.raises(EvidenceIntegrityError, match="OPENROUTER_API_KEY"):
         OpenRouterChatClient()
+
+
+# --- §6: native messages + tools, response tool_calls preserved in order (M-E) ---
+
+
+class FakeOpenRouterNativeCompletions:
+    def __init__(self) -> None:
+        self.kwargs = None
+
+    async def create(self, **kwargs):
+        self.kwargs = kwargs
+        raw = {
+            "id": "gen_openrouter_native_fixture",
+            "model": "deepseek/deepseek-v4-flash-0731",
+            "choices": [
+                {
+                    "index": 0,
+                    "finish_reason": "tool_calls",
+                    "message": {
+                        "role": "assistant",
+                        "content": None,
+                        # Deliberately neither call-id-sorted nor
+                        # tool-name-sorted, so a sort-based ordering
+                        # mutation (M-E) cannot pass by accident.
+                        "tool_calls": [
+                            {
+                                "id": "call_bravo",
+                                "type": "function",
+                                "function": {
+                                    "name": "refund_order",
+                                    "arguments": '{"amount_usd":5}',
+                                },
+                            },
+                            {
+                                "id": "call_alpha",
+                                "type": "function",
+                                "function": {
+                                    "name": "get_balance",
+                                    "arguments": '{"customer_id":"c_1"}',
+                                },
+                            },
+                        ],
+                    },
+                }
+            ],
+            "usage": {
+                "prompt_tokens": 88,
+                "completion_tokens": 21,
+                "prompt_tokens_details": {"cached_tokens": 0},
+                "cost": 0.00002,
+            },
+            "openrouter_metadata": {
+                "requested": "deepseek/deepseek-v4-flash-0731",
+                "strategy": "direct",
+                "region": "iad",
+                "summary": "available=1, selected=DeepInfra",
+                "attempt": 1,
+                "is_byok": False,
+                "endpoints": {
+                    "total": 1,
+                    "available": [
+                        {
+                            "model": "deepseek/deepseek-v4-flash-20260731",
+                            "provider": "DeepInfra",
+                            "selected": True,
+                        }
+                    ],
+                },
+                "attempts": [
+                    {
+                        "model": "deepseek/deepseek-v4-flash-20260731",
+                        "provider": "DeepInfra",
+                        "status": 200,
+                    }
+                ],
+            },
+        }
+        return SimpleNamespace(model_dump=lambda mode: raw)
+
+
+def test_openrouter_adapter_translates_native_messages_and_tools_preserving_call_order() -> None:
+    completions = FakeOpenRouterNativeCompletions()
+    sdk = SimpleNamespace(chat=SimpleNamespace(completions=completions))
+    client = OpenRouterChatClient(sdk_client=sdk)
+    request = replace(
+        _openrouter_request(),
+        output_schema=None,
+        messages=(CanonicalMessage(role="user", content="please act"),),
+        tools=(
+            ToolSchema(
+                tool_id="get_balance",
+                description="Look up a customer's balance",
+                input_schema={"type": "object", "properties": {}},
+            ),
+            ToolSchema(
+                tool_id="refund_order",
+                description="Refund an order",
+                input_schema={
+                    "type": "object",
+                    "properties": {"amount_usd": {"type": "number"}},
+                },
+            ),
+        ),
+    ).with_computed_hash()
+
+    result = asyncio.run(client.complete(request))
+
+    assert completions.kwargs["messages"] == [
+        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "user", "content": "please act"},
+    ]
+    assert completions.kwargs["tools"] == [
+        {
+            "type": "function",
+            "function": {
+                "name": "get_balance",
+                "description": "Look up a customer's balance",
+                "parameters": {"type": "object", "properties": {}},
+            },
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "refund_order",
+                "description": "Refund an order",
+                "parameters": {
+                    "type": "object",
+                    "properties": {"amount_usd": {"type": "number"}},
+                },
+            },
+        },
+    ]
+    assert "response_format" not in completions.kwargs
+    assert result.tool_calls == (
+        NativeToolCall(
+            call_id="call_bravo", tool_id="refund_order", arguments={"amount_usd": 5}
+        ),
+        NativeToolCall(
+            call_id="call_alpha", tool_id="get_balance", arguments={"customer_id": "c_1"}
+        ),
+    )
+    assert result.output_text == ""
+    assert result.finish_reason == "tool_calls"
+    assert result.resolved_model == "deepseek/deepseek-v4-flash-20260731"
+
+
+def test_openrouter_adapter_leaves_the_text_path_untouched_when_messages_is_none() -> None:
+    """§6: `messages is None` must behave byte-identically to the pre-stage-2
+    structured-output dialect -- this is the same fixture and assertions as
+    ``test_openrouter_adapter_pins_deepseek_route_and_parses_usage``, run
+    again to pin that the new branch does not leak into the untouched path."""
+    completions = FakeOpenRouterCompletions()
+    sdk = SimpleNamespace(chat=SimpleNamespace(completions=completions))
+    client = OpenRouterChatClient(sdk_client=sdk)
+    request = _openrouter_request()
+    assert request.messages is None
+
+    result = asyncio.run(client.complete(request))
+
+    assert "tool_call_id" not in str(completions.kwargs)
+    assert completions.kwargs["response_format"]["type"] == "json_schema"
+    assert result.tool_calls is None
+    assert result.output_text == '{"offer":7}'
 
 
 def test_claude_code_adapter_pins_runtime_and_parses_structured_usage(tmp_path) -> None:
@@ -1009,6 +1222,58 @@ def test_claude_code_adapter_rejects_runtime_hash_mismatch_before_call(tmp_path)
 
     with pytest.raises(ProviderFailure, match="runtime digest"):
         asyncio.run(client.complete(request))
+    assert calls == 0
+
+
+def test_claude_code_adapter_refuses_native_chat_messages(tmp_path) -> None:
+    """§6: Claude Code print sessions deliberately disable tools; a request
+    built for `native_tool_chat` must fail typed, not silently ignore
+    `messages` and run the text-only session anyway."""
+    executable = tmp_path / "claude"
+    executable.write_bytes(b"pinned claude executable")
+    executable.chmod(0o755)
+    executable_sha256 = hashlib.sha256(executable.read_bytes()).hexdigest()
+    calls = 0
+
+    async def command_runner(_arguments: tuple[str, ...], _standard_input: bytes):
+        nonlocal calls
+        calls += 1
+        return 0, b"{}", b""
+
+    client = ClaudeCodePrintClient(
+        executable=executable,
+        runtime_version="2.1.241",
+        runtime_sha256=executable_sha256,
+        command_runner=command_runner,
+    )
+    request = replace(
+        ProviderRequest(
+            provider_call_id="provider_call_claude_fixture",
+            provider="claude_code",
+            base_url=None,
+            model="claude-haiku-4-5-20251001",
+            revision="claude-haiku-4-5-20251001",
+            instructions=SYSTEM_PROMPT,
+            input_text="ignored",
+            temperature=0.0,
+            top_p=None,
+            max_output_tokens=256,
+            reasoning_effort="low",
+            timeout_seconds=30.0,
+            request_sha256="",
+            max_cost_usd=0.01,
+            output_schema={"type": "object"},
+            provider_metadata={
+                "runtime_version": "2.1.241",
+                "runtime_sha256": executable_sha256,
+            },
+        ),
+        messages=(CanonicalMessage(role="user", content="hi"),),
+    ).with_computed_hash()
+
+    with pytest.raises(ProviderFailure) as captured:
+        asyncio.run(client.complete(request))
+    assert captured.value.condition == "provider_contract"
     assert calls == 0
 
 
