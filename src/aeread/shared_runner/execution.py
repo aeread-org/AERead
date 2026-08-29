@@ -2287,6 +2287,41 @@ class ToolExecutor:
     ) -> tuple[Any, ArtifactRef] | None:
         return None if state_reader is None else await self._snapshot_state(state_reader)
 
+    async def _observed_after_or_mark_unknown(
+        self,
+        *,
+        state_reader: Callable[[], Any] | None,
+        action_attempt_id: str,
+        tool_invocation_id: str,
+        effect: str,
+        before: tuple[Any, ArtifactRef] | None,
+        original_error: BaseException,
+    ) -> tuple[Any, ArtifactRef] | None:
+        """Observe post-effect state, or record the failure as evidence and re-raise
+        *original_error* — never the bookkeeping error — with the bookkeeping error
+        chained as its ``__context__``.  A debit may have posted and gone unobserved;
+        the evidence must say "unknown", never "never attempted"."""
+        try:
+            return await self._observed_after(state_reader)
+        except Exception as bookkeeping_error:
+            self.evidence.append_event(
+                "tool_invocation_outcome_unknown",
+                {
+                    "failure_condition": "bookkeeping_failed",
+                    "effect": effect,
+                    "outcome_known": False,
+                    "state_before_sha256": (
+                        None if before is None else before[1].sha256
+                    ),
+                },
+                action_attempt_id=action_attempt_id,
+                tool_invocation_id=tool_invocation_id,
+            )
+            # Implicit exception chaining sets original_error.__context__ to
+            # bookkeeping_error here, since bookkeeping_error is the exception
+            # currently being handled.
+            raise original_error
+
     async def invoke(
         self,
         *,
@@ -2299,6 +2334,7 @@ class ToolExecutor:
         effect: str,
         tool_schema_sha256: str,
         state_reader: Callable[[], Any] | None = None,
+        tool_invocation_id: str | None = None,
     ) -> tuple[Any, ToolInvocationRecord]:
         if effect not in {"read_only", "mutating"}:
             raise EvidenceIntegrityError("tool effect must be read_only or mutating")
@@ -2316,17 +2352,24 @@ class ToolExecutor:
             raise EvidenceIntegrityError(
                 "tool_schema_sha256 must be 64 lowercase hexadecimal characters"
             )
+        if tool_invocation_id is not None and (
+            not isinstance(tool_invocation_id, str) or not tool_invocation_id
+        ):
+            raise EvidenceIntegrityError(
+                "tool_invocation_id must be a non-empty string when provided"
+            )
         before = await self._observed_after(state_reader)
-        ordinal = self._ordinal
-        self._ordinal += 1
-        tool_invocation_id = _stable_id(
-            "tool_invocation",
-            {
-                "action_attempt_id": action_attempt_id,
-                "tool_id": tool_id,
-                "ordinal": ordinal,
-            },
-        )
+        if tool_invocation_id is None:
+            ordinal = self._ordinal
+            self._ordinal += 1
+            tool_invocation_id = _stable_id(
+                "tool_invocation",
+                {
+                    "action_attempt_id": action_attempt_id,
+                    "tool_id": tool_id,
+                    "ordinal": ordinal,
+                },
+            )
         input_sha256 = _sha256_bytes(canonical_json_bytes(arguments))
         self.evidence.append_event(
             "tool_invocation_started",
@@ -2351,7 +2394,14 @@ class ToolExecutor:
                 raise TypeError("tool implementation must return an awaitable")
             result = await pending
         except ToolFailure as error:
-            after = await self._observed_after(state_reader)
+            after = await self._observed_after_or_mark_unknown(
+                state_reader=state_reader,
+                action_attempt_id=action_attempt_id,
+                tool_invocation_id=tool_invocation_id,
+                effect=effect,
+                before=before,
+                original_error=error,
+            )
             state_changed, state_diff_ref = self._state_change(before, after)
             self.evidence.append_event(
                 "tool_invocation_failed",
@@ -2392,8 +2442,15 @@ class ToolExecutor:
                 outcome_known=True,
             )
             raise
-        except asyncio.CancelledError:
-            after = await self._observed_after(state_reader)
+        except asyncio.CancelledError as cancelled_error:
+            after = await self._observed_after_or_mark_unknown(
+                state_reader=state_reader,
+                action_attempt_id=action_attempt_id,
+                tool_invocation_id=tool_invocation_id,
+                effect=effect,
+                before=before,
+                original_error=cancelled_error,
+            )
             state_changed, state_diff_ref = self._state_change(before, after)
             self.evidence.append_event(
                 "tool_invocation_outcome_unknown",
@@ -2416,8 +2473,15 @@ class ToolExecutor:
                 tool_invocation_id=tool_invocation_id,
             )
             raise
-        except BaseException:
-            after = await self._observed_after(state_reader)
+        except BaseException as unexpected_error:
+            after = await self._observed_after_or_mark_unknown(
+                state_reader=state_reader,
+                action_attempt_id=action_attempt_id,
+                tool_invocation_id=tool_invocation_id,
+                effect=effect,
+                before=before,
+                original_error=unexpected_error,
+            )
             state_changed, state_diff_ref = self._state_change(before, after)
             self.evidence.append_event(
                 "tool_invocation_outcome_unknown",

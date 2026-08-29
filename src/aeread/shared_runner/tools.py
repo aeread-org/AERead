@@ -141,6 +141,7 @@ class ToolRuntime:
         action_attempt_id: str,
         tool_id: str,
         arguments: Mapping[str, Any],
+        tool_invocation_id: str | None = None,
     ) -> tuple[Any, ToolInvocationRecord]:
         try:
             binding = self._bindings[tool_id]
@@ -157,6 +158,7 @@ class ToolRuntime:
             effect=definition.effect,
             tool_schema_sha256=definition.schema_sha256,
             state_reader=binding.state_reader,
+            tool_invocation_id=tool_invocation_id,
         )
 
 
