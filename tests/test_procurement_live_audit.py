@@ -142,3 +142,48 @@ def test_live_audit_accepts_only_sealed_reserved_unknown_timeout_prefix(tmp_path
     _write_unknown_recovery_checkpoint(tmp_path)
     with pytest.raises(ValueError, match="timeout|unknown"):
         audit_unknown_billing_recovery(tmp_path, [rows[0], {**rows[1], "status": "completed"}])
+
+
+def test_live_audit_requires_cumulative_unknown_recovery_predecessor(tmp_path):
+    predecessor, current = tmp_path / "predecessor", tmp_path / "current"
+    predecessor.mkdir()
+    current.mkdir()
+    _write_unknown_recovery_checkpoint(
+        predecessor,
+        prefix_result_sha256s=["old-unknown"],
+        acknowledged_unknown_cost_provider_call_count=1,
+        reserved_unknown_cost_usd=.04,
+        request_cost_upper_bounds_usd=[.01],
+    )
+    previous = json.loads((predecessor / "recovery_checkpoint.json").read_text())
+    rows = [
+        {"result_sha256": "old-unknown", "status": "operational_failure",
+         "unknown_cost_provider_call_count": 1, "failure": {"condition": "timeout"}},
+        {"result_sha256": "new-unknown", "status": "operational_failure",
+         "unknown_cost_provider_call_count": 1, "failure": {"condition": "timeout"}},
+    ]
+    _write_unknown_recovery_checkpoint(
+        current,
+        prefix_result_sha256s=["old-unknown", "new-unknown"],
+        acknowledged_unknown_cost_provider_call_count=2,
+        reserved_unknown_cost_usd=.08,
+        request_cost_upper_bounds_usd=[.01, .01],
+        source_root=str(predecessor),
+        predecessor_checkpoint_sha256=previous["result_sha256"],
+    )
+    result = audit_unknown_billing_recovery(current, rows)
+    assert result["acknowledged_unknown_cost_provider_call_count"] == 2
+    assert result["reserved_unknown_cost_usd"] == Decimal(".08")
+
+    _write_unknown_recovery_checkpoint(
+        current,
+        prefix_result_sha256s=["old-unknown", "new-unknown"],
+        acknowledged_unknown_cost_provider_call_count=2,
+        unknown_call_reserve_usd_each=.02,
+        reserved_unknown_cost_usd=.04,
+        request_cost_upper_bounds_usd=[.01, .01],
+        source_root=str(predecessor),
+        predecessor_checkpoint_sha256=previous["result_sha256"],
+    )
+    with pytest.raises(ValueError, match="predecessor|cumulative|reserve"):
+        audit_unknown_billing_recovery(current, rows)

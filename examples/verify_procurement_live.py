@@ -172,6 +172,27 @@ def audit_unknown_billing_recovery(phase_root, rows):
             or abs(unexplained - (after - before - account_known)) > Decimal("1e-12")
             or unexplained > reserved):
         raise ValueError("unknown-billing reserve or account usage delta is invalid")
+    predecessor_sha = checkpoint.get("predecessor_checkpoint_sha256")
+    if predecessor_sha is not None:
+        predecessor_path = Path(checkpoint["source_root"]) / "recovery_checkpoint.json"
+        predecessor = json.loads(predecessor_path.read_bytes())
+        predecessor_sealed = {key: value for key, value in predecessor.items()
+                              if key != "result_sha256"}
+        previous_count = predecessor.get("acknowledged_unknown_cost_provider_call_count")
+        previous_hashes = predecessor.get("prefix_result_sha256s")
+        previous_bounds = [Decimal(str(value))
+                           for value in predecessor.get("request_cost_upper_bounds_usd", [])]
+        previous_each = Decimal(str(predecessor.get("unknown_call_reserve_usd_each")))
+        previous_reserved = Decimal(str(predecessor.get("reserved_unknown_cost_usd")))
+        if (predecessor.get("result_sha256") != predecessor_sha
+                or predecessor_sha != hashlib.sha256(canonical_json_bytes(predecessor_sealed)).hexdigest()
+                or predecessor.get("spec_version") != "aeread.unknown_billing_recovery/1"
+                or not isinstance(previous_count, int) or previous_count >= count
+                or hashes[:len(previous_hashes)] != previous_hashes
+                or previous_each != each
+                or bounds[:previous_count] != previous_bounds
+                or previous_reserved != previous_count * each):
+            raise ValueError("unknown-billing recovery does not preserve its cumulative predecessor")
     return {"acknowledged_unknown_cost_provider_call_count": count,
             "reserved_unknown_cost_usd": reserved,
             "acknowledged_result_sha256s": hashes}

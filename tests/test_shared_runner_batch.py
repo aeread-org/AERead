@@ -335,6 +335,46 @@ def test_unknown_billing_recovery_rejects_underreserved_or_unreconciled_delta(tm
             request_cost_upper_bounds_usd=[0.02])
 
 
+def test_unknown_billing_recovery_chain_carries_forward_prefix_and_reserve(tmp_path):
+    setup_map = setups()
+    source, first_child, second_child = (
+        tmp_path / "unknown", tmp_path / "first", tmp_path / "second")
+    run(source, setup_map, UnknownBillingBuyer())
+    first_checkpoint = prepare_unknown_recovery(source, first_child, setup_map)
+    second_stop = run(first_child, setup_map, UnknownBillingBuyer(), max_new_cells=1)
+    assert second_stop["attempted_cell_count"] == 2
+    assert second_stop["unknown_cost_provider_call_count"] == 1
+    first_files = {str(p.relative_to(first_child)): p.read_bytes()
+                   for p in first_child.rglob("*") if p.is_file()}
+
+    second_checkpoint = prepare_unknown_recovery(
+        first_child, second_child, setup_map,
+        account_usage_before_usd=100.001,
+        account_usage_after_usd=100.002,
+        request_cost_upper_bounds_usd=[0.002, 0.002],
+    )
+    assert second_checkpoint["predecessor_checkpoint_sha256"] == first_checkpoint["result_sha256"]
+    assert second_checkpoint["acknowledged_unknown_cost_provider_call_count"] == 2
+    assert second_checkpoint["reserved_unknown_cost_usd"] == .02
+    assert second_checkpoint["prefix_result_sha256s"][:1] == first_checkpoint["prefix_result_sha256s"]
+
+    buyer = CountingBuyer()
+    resumed = run(second_child, setup_map, buyer, max_new_cells=1)
+    assert resumed["attempted_cell_count"] == 3
+    assert resumed["included_count"] == 1 and resumed["excluded_count"] == 2
+    assert resumed["acknowledged_unknown_cost_provider_call_count"] == 2
+    assert resumed["unknown_cost_provider_call_count"] == 0
+    assert resumed["reserved_unknown_cost_usd"] == .02
+    assert buyer.calls == 4
+    assert all((first_child / name).read_bytes() == content
+               for name, content in first_files.items())
+
+    with pytest.raises(ValueError, match="reserve|predecessor|cumulative"):
+        prepare_unknown_recovery(first_child, tmp_path / "reset", setup_map,
+            unknown_call_reserve_usd_each=.005,
+            request_cost_upper_bounds_usd=[.002, .002])
+
+
 def prepare_recovery(source, target, setup_map):
     from aeread.shared_runner.batch import prepare_rate_limit_recovery
     manifest = json.loads((source / "batch_manifest.json").read_text())

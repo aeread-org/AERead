@@ -263,6 +263,27 @@ def _unknown_billing_recovery_eligible(rows, manifest, checkpoint) -> None:
             or not isinstance(bounds, list) or len(bounds) != unknown_count
             or any(not numeric(bound) or bound > each for bound in bounds)):
         raise ValueError("unknown-billing recovery reserve does not cover every request bound")
+    predecessor_sha = checkpoint.get("predecessor_checkpoint_sha256")
+    parent_predecessor_sha = manifest.get("recovery_checkpoint_sha256")
+    if predecessor_sha is None and parent_predecessor_sha is not None:
+        raise ValueError("unknown-billing recovery cannot reset its predecessor checkpoint")
+    if predecessor_sha is not None:
+        if predecessor_sha != parent_predecessor_sha:
+            raise ValueError("unknown-billing recovery predecessor differs from its parent manifest")
+        predecessor = _read_sealed(Path(checkpoint["source_root"]) / "recovery_checkpoint.json")
+        previous_count = predecessor.get("acknowledged_unknown_cost_provider_call_count")
+        previous_hashes = predecessor.get("prefix_result_sha256s")
+        previous_bounds = predecessor.get("request_cost_upper_bounds_usd")
+        if (predecessor.get("spec_version") != "aeread.unknown_billing_recovery/1"
+                or predecessor["result_sha256"] != predecessor_sha
+                or not isinstance(previous_count, int) or previous_count >= unknown_count
+                or checkpoint["prefix_result_sha256s"][:len(previous_hashes)] != previous_hashes
+                or not math.isclose(predecessor["unknown_call_reserve_usd_each"], each,
+                                    rel_tol=0, abs_tol=1e-12)
+                or bounds[:previous_count] != previous_bounds
+                or not math.isclose(predecessor["reserved_unknown_cost_usd"],
+                                    previous_count * each, rel_tol=0, abs_tol=1e-12)):
+            raise ValueError("unknown-billing recovery does not carry its cumulative predecessor")
     before = checkpoint.get("account_usage_before_usd")
     after = checkpoint.get("account_usage_after_usd")
     account_known = checkpoint.get("account_known_cost_usd")
@@ -401,8 +422,11 @@ def prepare_unknown_billing_recovery(
     if not isinstance(reason, str) or not reason.strip():
         raise ValueError("recovery requires an explicit operator reason")
     with _batch_lock(source):
+        predecessor = None
         if (source / "recovery_checkpoint.json").exists():
-            raise ValueError("a recovery cannot acknowledge another stopped recovery")
+            predecessor = _read_sealed(source / "recovery_checkpoint.json")
+            if predecessor.get("spec_version") != "aeread.unknown_billing_recovery/1":
+                raise ValueError("only unknown-billing recovery may extend an unknown-billing checkpoint")
         parent = _read_sealed(source / "batch_manifest.json")
         if parent["result_sha256"] != expected_manifest_sha256:
             raise ValueError("source manifest differs from the acknowledged checkpoint")
@@ -422,11 +446,23 @@ def prepare_unknown_billing_recovery(
                 account_known_cost_usd, unknown_call_reserve_usd_each)):
             raise ValueError("recovery usage and reserve values must be finite and nonnegative")
         unexplained = account_usage_after_usd - account_usage_before_usd - account_known_cost_usd
+        hashes = [row["result_sha256"] for row in rows]
+        if predecessor:
+            previous_count = predecessor["acknowledged_unknown_cost_provider_call_count"]
+            previous_hashes = predecessor["prefix_result_sha256s"]
+            previous_bounds = predecessor["request_cost_upper_bounds_usd"]
+            if (unknown_count <= previous_count
+                    or hashes[:len(previous_hashes)] != previous_hashes
+                    or not math.isclose(unknown_call_reserve_usd_each,
+                                        predecessor["unknown_call_reserve_usd_each"],
+                                        rel_tol=0, abs_tol=1e-12)
+                    or request_cost_upper_bounds_usd[:previous_count] != previous_bounds):
+                raise ValueError("cumulative recovery cannot reset its predecessor reserve or prefix")
         checkpoint = _seal({
             "spec_version": "aeread.unknown_billing_recovery/1",
             "source_root": str(source), "output_root": str(target),
             "parent_manifest_sha256": parent["result_sha256"],
-            "prefix_result_sha256s": [row["result_sha256"] for row in rows],
+            "prefix_result_sha256s": hashes,
             "max_new_cells_per_invocation": 4,
             "acknowledged_unknown_cost_provider_call_count": unknown_count,
             "unknown_call_reserve_usd_each": unknown_call_reserve_usd_each,
@@ -437,6 +473,8 @@ def prepare_unknown_billing_recovery(
             "account_known_cost_usd": account_known_cost_usd,
             "account_unexplained_delta_usd": unexplained,
             "operator_reason": reason.strip(),
+            **({"predecessor_checkpoint_sha256": predecessor["result_sha256"]}
+               if predecessor else {}),
         })
         _unknown_billing_recovery_eligible(rows, parent, checkpoint)
         pointer_path = source / "recovery_child.json"
