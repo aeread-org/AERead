@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
+import json
 
 import pytest
 
@@ -614,3 +615,41 @@ def test_two_tool_calls_in_one_turn_match_design_section_8_event_order(tmp_path)
         ]
 
     evidence.audit_reconciliation(entity_types=("action_attempt", "provider_call", "tool_invocation"))
+
+
+def test_model_turn_carries_the_kernel_provider_call_id(tmp_path) -> None:
+    """A harness must be able to correlate a tool call to the model output that
+    requested it using ONLY the port result.
+
+    `ToolPort.invoke` requires `source_provider_call_id`.  Before this, the id
+    existed solely on the `ProviderRequest` the port had already sent, so the
+    only way to reach it was through the provider client's internals -- which a
+    real harness does not have.  A test that reads `provider.requests[...]` is
+    testing around the port, not through it, so this asserts the id arrives on
+    the `ModelTurn` and matches what the kernel actually recorded.
+    """
+
+    evidence = _evidence(tmp_path)
+    provider = ScriptedProvider([_result(text="hello", finish_reason="stop")])
+    port = KernelModelPort(
+        evidence=evidence,
+        provider=provider,
+        pricing=FAKE_PRICING,
+        profile=_profile(),
+        instructions=SYSTEM_PROMPT,
+        action_attempt_id="action_attempt_fixture",
+    )
+
+    turn = asyncio.run(
+        port.complete(
+            messages=(CanonicalMessage(role="user", content="hi"),),
+            response_mode="text",
+        )
+    )
+
+    assert turn.provider_call_id, "the port must return the kernel provider_call_id"
+    # It is the same id the kernel sent and sealed, not a fresh one.
+    assert turn.provider_call_id == provider.requests[0].provider_call_id
+    events = [json.loads(line) for line in evidence.events_path.read_text().splitlines()]
+    started = [e for e in events if e["event_type"] == "provider_call_started"]
+    assert [e["provider_call_id"] for e in started] == [turn.provider_call_id]

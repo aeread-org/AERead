@@ -68,6 +68,13 @@ class ModelTurn:
 
     text: str | None
     tool_calls: tuple[NativeToolCall, ...] = ()
+    provider_call_id: str = ""
+    """The kernel id of the provider call that produced this turn.
+
+    A harness needs it to correlate a tool call back to the model output that
+    requested it (`ToolPort.invoke(source_provider_call_id=...)`, §5.2), and it
+    arrives through the port so a harness never reaches around it into the
+    provider client to recover the id."""
 
     def __post_init__(self) -> None:
         if (self.text is not None) == bool(self.tool_calls):
@@ -329,7 +336,11 @@ class KernelModelPort:
         # build `ModelTurn(tool_calls=result.tool_calls)` is wired alongside
         # the `native_tool_chat` harness (stage 4), not here (§6, stage 2
         # only wires `messages`/`tools` onto the outgoing request).
-        return ModelTurn(text=result.output_text, tool_calls=())
+        return ModelTurn(
+            text=result.output_text,
+            tool_calls=(),
+            provider_call_id=provider_call_id,
+        )
 
 
 # --- The kernel-side ToolPort (§5.2) ---

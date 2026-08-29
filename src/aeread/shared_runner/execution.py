@@ -39,8 +39,9 @@ from .schemas import AgentProfile
 if TYPE_CHECKING:
     # `harness.py` imports `ProviderRequest`/`ProviderResult` from this module,
     # so the reverse reference is type-checking only; call sites that need the
-    # classes at runtime (native tool-call construction) import them lazily.
-    from .harness import CanonicalMessage, NativeToolCall, ToolSchema
+    # classes at runtime (harness registration, native tool-call construction)
+    # import them lazily.
+    from .harness import CanonicalMessage, Harness, NativeToolCall, ToolSchema
 
 
 class EvidenceIntegrityError(RuntimeError):
@@ -2798,6 +2799,7 @@ async def execute_plan_cell(
     providers: Mapping[str, ProviderClient],
     pricing: Mapping[str, TokenPricing],
     episode_attempt_ordinal: int = 0,
+    harnesses: Mapping[str, "Harness"] | None = None,
 ) -> CellExecution:
     """Execute one sealed R2 cell through the R3 scheduler and R4 adapter."""
     verify_run_plan(plan)
