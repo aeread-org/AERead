@@ -1756,6 +1756,26 @@ class MinimalChatExecutor:
                 f"declared={profile.prompt.sha256}, computed={digest}"
             )
 
+    async def _obtain_result(
+        self,
+        *,
+        provider: ProviderClient,
+        request: ProviderRequest,
+        profile: AgentProfile,
+        decision: DecisionRequest,
+    ) -> ProviderResult:
+        """Obtain one provider result for this attempt.
+
+        Extracted so a harness-driven executor can substitute the model loop
+        without duplicating the surrounding attempt lifecycle, whose event
+        order existing receipts depend on.  The default is the single direct
+        call this executor has always made.
+        """
+
+        return await asyncio.wait_for(
+            provider.complete(request), timeout=profile.budgets.timeout_seconds
+        )
+
     def _request_for(
         self,
         decision: DecisionRequest,
@@ -1892,8 +1912,11 @@ class MinimalChatExecutor:
             )
             provider = self._providers[profile.model.provider]
             try:
-                result = await asyncio.wait_for(
-                    provider.complete(request), timeout=profile.budgets.timeout_seconds
+                result = await self._obtain_result(
+                    provider=provider,
+                    request=request,
+                    profile=profile,
+                    decision=decision,
                 )
             except asyncio.TimeoutError as error:
                 failure = ProviderFailure("timeout", str(error), retryable=True)

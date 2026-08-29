@@ -7,6 +7,7 @@ import json
 import pytest
 
 from aeread.shared_runner.execution import (
+    EvidenceIntegrityError,
     EvidenceStore,
     ProviderCallRecord,
     ProviderFailure,
@@ -653,3 +654,88 @@ def test_model_turn_carries_the_kernel_provider_call_id(tmp_path) -> None:
     events = [json.loads(line) for line in evidence.events_path.read_text().splitlines()]
     started = [e for e in events if e["event_type"] == "provider_call_started"]
     assert [e["provider_call_id"] for e in started] == [turn.provider_call_id]
+
+
+def _executor_profile():
+    """The execution-test profile, reused so the two suites cannot drift."""
+
+    from tests.test_shared_runner_execution import _profile
+
+    return _profile()
+
+
+def _executor_prompt() -> str:
+    """The prompt whose hash the reused profile declares."""
+
+    from tests.test_shared_runner_execution import SYSTEM_PROMPT as EXECUTION_PROMPT
+
+    return EXECUTION_PROMPT
+
+
+def _executor_decision():
+    from tests.test_shared_runner_execution import _decision
+
+    return _decision()
+
+
+def test_attempt_executor_drives_a_registered_harness_end_to_end(tmp_path) -> None:
+    """The executor resolves the profile's harness and returns its result.
+
+    This is the stage-3 contract: `minimal_chat/1.0` expressed as a `Harness`
+    over the ports produces the same `CanonicalResponse` the kernel has always
+    produced, through the registered harness rather than a hardcoded loop.
+    """
+
+    from aeread.shared_runner.harness import AttemptExecutor, default_harnesses
+
+    # The evidence store's identity must match the decision's, so build one
+    # around the reused execution-suite decision rather than the local fixture.
+    decision = _executor_decision()
+    evidence = EvidenceStore(
+        tmp_path / "executor_evidence",
+        run_plan_id="runplan_harness_fixture",
+        cell_id=decision.cell_id,
+        episode_id=decision.episode_id,
+        episode_attempt_id="episode_attempt_harness_fixture",
+    )
+    profile = _executor_profile()
+    provider = ScriptedProvider([_result(text="an offer", finish_reason="stop")])
+    executor = AttemptExecutor(
+        evidence=evidence,
+        profiles=[profile],
+        prompt_sources={profile.prompt.prompt_id: _executor_prompt()},
+        providers={profile.model.provider: provider},
+        pricing={profile.model.model: FAKE_PRICING},
+        harnesses=default_harnesses(),
+    )
+
+    response = asyncio.run(executor(decision))
+
+    assert response.text == "an offer"
+    assert response.provider_call_ids, "the attempt must record its provider call"
+    # The attempt lifecycle is the kernel's, unchanged: success is recorded
+    # before the scheduler ever parses the action.
+    events = [json.loads(line) for line in evidence.events_path.read_text().splitlines()]
+    kinds = [e["event_type"] for e in events]
+    assert "action_attempt_succeeded" in kinds
+    assert kinds.index("provider_call_started") < kinds.index("action_attempt_succeeded")
+
+
+def test_attempt_executor_refuses_a_profile_with_no_registered_harness(tmp_path) -> None:
+    """A profile naming an unregistered harness fails before any provider call."""
+
+    from aeread.shared_runner.harness import AttemptExecutor
+
+    evidence = _evidence(tmp_path, "unregistered_evidence")
+    profile = _executor_profile()
+    provider = ScriptedProvider([_result(text="unused")])
+
+    with pytest.raises(EvidenceIntegrityError, match="no harness registered"):
+        AttemptExecutor(
+            evidence=evidence,
+            profiles=[profile],
+            prompt_sources={profile.prompt.prompt_id: _executor_prompt()},
+            providers={profile.model.provider: provider},
+            pricing={profile.model.model: FAKE_PRICING},
+            harnesses={},
+        )

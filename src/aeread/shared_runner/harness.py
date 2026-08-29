@@ -19,11 +19,13 @@ from dataclasses import dataclass
 from typing import Any, Callable, Literal, Mapping, Protocol
 
 from .execution import (
+    CanonicalResponse,
     EvidenceIntegrityError,
     EvidenceStore,
     ProviderClient,
     ProviderFailure,
     ProviderRequest,
+    MinimalChatExecutor,
     ProviderResult,
     TokenPricing,
     ToolFailure,
@@ -224,6 +226,7 @@ class KernelModelPort:
         profile: AgentProfile,
         instructions: str,
         action_attempt_id: str,
+        emit_events: bool = True,
         phase_instance_id: str | None = None,
         logical_action_id: str | None = None,
         visibility: str = "evaluator_only",
@@ -237,7 +240,9 @@ class KernelModelPort:
         self._phase_instance_id = phase_instance_id
         self._logical_action_id = logical_action_id
         self._visibility = visibility
+        self._emit_events = emit_events
         self._round = 0
+        self.last_result: ProviderResult | None = None
 
     async def complete(
         self,
@@ -285,15 +290,16 @@ class KernelModelPort:
             tools=tools if response_mode == "native_tools" and tools else None,
         ).with_computed_hash()
 
-        self._evidence.append_event(
-            "provider_call_started",
-            {"request": request, "round": round_ordinal},
-            phase_instance_id=self._phase_instance_id,
-            logical_action_id=self._logical_action_id,
-            action_attempt_id=self._action_attempt_id,
-            provider_call_id=provider_call_id,
-            visibility=self._visibility,
-        )
+        if self._emit_events:
+            self._evidence.append_event(
+                "provider_call_started",
+                {"request": request, "round": round_ordinal},
+                phase_instance_id=self._phase_instance_id,
+                logical_action_id=self._logical_action_id,
+                action_attempt_id=self._action_attempt_id,
+                provider_call_id=provider_call_id,
+                visibility=self._visibility,
+            )
         result = await self._provider.complete(request)
         if not isinstance(result, ProviderResult):
             raise ProviderFailure(
@@ -310,22 +316,24 @@ class KernelModelPort:
                 output_tokens=result.output_tokens,
             )
         )
-        self._evidence.append_event(
-            "provider_call_succeeded",
-            {
-                # The full raw_response is sealed as part of this artifact.
-                "provider_result": result,
-                "request_sha256": request.request_sha256,
-                "pricing_id": self._pricing.pricing_id,
-                "cost_usd": cost,
-                "round": round_ordinal,
-            },
-            phase_instance_id=self._phase_instance_id,
-            logical_action_id=self._logical_action_id,
-            action_attempt_id=self._action_attempt_id,
-            provider_call_id=provider_call_id,
-            visibility=self._visibility,
-        )
+        if self._emit_events:
+            self._evidence.append_event(
+                "provider_call_succeeded",
+                {
+                    # The full raw_response is sealed as part of this artifact.
+                    "provider_result": result,
+                    "request_sha256": request.request_sha256,
+                    "pricing_id": self._pricing.pricing_id,
+                    "cost_usd": cost,
+                    "round": round_ordinal,
+                },
+                phase_instance_id=self._phase_instance_id,
+                logical_action_id=self._logical_action_id,
+                action_attempt_id=self._action_attempt_id,
+                provider_call_id=provider_call_id,
+                visibility=self._visibility,
+            )
+        self.last_result = result
         if not result.output_text.strip():
             raise ProviderFailure(
                 "empty_completion",
@@ -447,6 +455,214 @@ class KernelToolPort:
         )
 
 
+
+class _KernelAttemptContext:
+    """The `AttemptContext` a harness receives for one action attempt.
+
+    It is a thin aggregate over the ports (§5.2): it owns no policy of its own,
+    so a harness cannot acquire capability by reaching past it -- `tools` is
+    `None` unless the profile declared tools, and `subagents` stays `None`
+    until nested agents are admitted (§13.E, a later stage).
+    """
+
+    __slots__ = ("attempt_id", "seed", "budget", "model", "tools", "subagents", "_evidence")
+
+    def __init__(
+        self,
+        *,
+        attempt_id: str,
+        seed: int,
+        budget: BudgetView,
+        model: ModelPort,
+        tools: ToolPort | None,
+        evidence: EvidenceStore,
+    ) -> None:
+        self.attempt_id = attempt_id
+        self.seed = seed
+        self.budget = budget
+        self.model = model
+        self.tools = tools
+        self.subagents = None
+        self._evidence = evidence
+
+    def note(self, kind: str, payload: Mapping[str, Any]) -> None:
+        """Record a harness-private diagnostic.
+
+        Namespaced so harness notes can never be mistaken for kernel evidence.
+        """
+
+        self._evidence.append_event(
+            "harness_note",
+            {"kind": kind, "payload": payload},
+            action_attempt_id=self.attempt_id,
+        )
+
+
+class MinimalChatHarness:
+    """`minimal_chat/1.0` expressed as a `Harness` over the ports.
+
+    Exactly one model call, no tools, no memory -- the guarantee existing
+    receipts already depend on.  It is the only harness `default_harnesses`
+    registers, so a run never acquires tool capability by default.
+    """
+
+    id = "minimal_chat"
+    version = "1.0"
+    requires = HarnessRequirements(
+        provider=frozenset(),
+        tools="none",
+        memory=frozenset({"disabled"}),
+        owns_retries=False,
+        owns_tools=False,
+        replayable=True,
+        blocking=False,
+        spawns_subagents=False,
+    )
+
+    async def open_episode(self, episode: Any) -> None:
+        return None
+
+    async def close_episode(self, episode: Any) -> None:
+        return None
+
+    def classify_failure(self, exc: BaseException) -> FailureCondition:
+        if isinstance(exc, ProviderFailure):
+            return FailureCondition(exc.condition, retryable=exc.retryable)
+        return FailureCondition("harness_error", retryable=False)
+
+    def state_reader(self) -> Any:
+        return None
+
+    async def act(self, request: Any, ctx: AttemptContext) -> HarnessOutput:
+        turn = await ctx.model.complete(
+            messages=(CanonicalMessage(role="user", content=_request_input_text(request)),),
+            response_mode="text",
+        )
+        return HarnessOutput(
+            action=None,
+            claimed_tool_calls=(),
+            rounds_used=1,
+            notes={},
+        )
+
+
+def _request_input_text(request: Any) -> str:
+    """Render a DecisionRequest the way the kernel has always rendered it."""
+
+    return canonical_json_bytes(
+        {
+            "phase_id": request.phase_id,
+            "seat_id": request.seat_id,
+            "role": request.role,
+            "observation_schema": request.observation_schema,
+            "action_schema": request.action_schema,
+            "observation": request.observation,
+        }
+    ).decode("utf-8")
+
+
+def default_harnesses() -> dict[str, Any]:
+    """The harnesses the kernel registers when a caller supplies none.
+
+    Only `minimal_chat/1.0`: it is the one harness whose guarantee (a single
+    call, no tools, no memory) existing receipts depend on.  Tool-using
+    harnesses must be registered explicitly, so a run can never acquire tool
+    capability by default.
+    """
+
+    return {"minimal_chat/1.0": MinimalChatHarness()}
+
+
+
+class AttemptExecutor(MinimalChatExecutor):
+    """Runs each action attempt through a registered `Harness` (§5.1).
+
+    It inherits the attempt lifecycle -- budgets, retries, the event order that
+    existing receipts depend on, and the scheduler's duck-typed callbacks --
+    and substitutes only what the harness owns: the model loop.  Subclassing
+    rather than reimplementing keeps one lifecycle in the kernel; a second copy
+    would drift from it silently.
+    """
+
+    def __init__(
+        self,
+        *,
+        evidence: EvidenceStore,
+        profiles: Any,
+        prompt_sources: Mapping[str, str | bytes],
+        providers: Mapping[str, ProviderClient],
+        pricing: Mapping[str, TokenPricing],
+        harnesses: Mapping[str, Any],
+    ) -> None:
+        self._harnesses = dict(harnesses)
+        super().__init__(
+            evidence=evidence,
+            profiles=profiles,
+            prompt_sources=prompt_sources,
+            providers=providers,
+            pricing=pricing,
+        )
+
+    @staticmethod
+    def _harness_key(profile: AgentProfile) -> str:
+        return f"{profile.harness.id}/{profile.harness.version}"
+
+    def _validate_profile(
+        self, profile: AgentProfile, prompt_sources: Mapping[str, str | bytes]
+    ) -> None:
+        key = self._harness_key(profile)
+        if key not in self._harnesses:
+            raise EvidenceIntegrityError(f"no harness registered for {key!r}")
+        super()._validate_profile(profile, prompt_sources)
+
+    async def _obtain_result(
+        self,
+        *,
+        provider: ProviderClient,
+        request: ProviderRequest,
+        profile: AgentProfile,
+        decision: Any,
+    ) -> ProviderResult:
+        """Drive the registered harness through a brokered `ModelPort`.
+
+        The port owns the provider call: it seals the request, rejects an empty
+        completion as a typed failure before the harness sees it (§3 invariant
+        1), and terminalizes every call.  The harness only decides what to ask.
+        """
+
+        harness = self._harnesses[self._harness_key(profile)]
+        port = KernelModelPort(
+            evidence=self.evidence,
+            provider=provider,
+            pricing=self._pricing[profile.model.model],
+            profile=profile,
+            instructions=self._prompt_text[profile.profile_id],
+            action_attempt_id=request.provider_call_id,
+            emit_events=False,
+        )
+        context = _KernelAttemptContext(
+            attempt_id=request.provider_call_id,
+            seed=profile.sampling.seed or 0,
+            budget=BudgetView(
+                rounds_left=1,
+                tokens_left=profile.sampling.max_output_tokens,
+                cost_left=profile.budgets.max_cost_usd,
+            ),
+            model=port,
+            tools=None,
+            evidence=self.evidence,
+        )
+        await harness.act(decision, context)
+        result = port.last_result
+        if result is None:
+            raise ProviderFailure(
+                "harness_contract",
+                f"harness {self._harness_key(profile)!r} returned without a model call",
+                retryable=False,
+            )
+        return result
+
+
 __all__ = [
     "AttemptContext",
     "BudgetView",
@@ -465,4 +681,7 @@ __all__ = [
     "ToolExecutionEnvelope",
     "ToolPort",
     "ToolSchema",
+    "AttemptExecutor",
+    "MinimalChatHarness",
+    "default_harnesses",
 ]
