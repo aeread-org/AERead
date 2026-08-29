@@ -101,6 +101,19 @@ def audit_prior_spend(authorization):
         if cost != Decimal(str(entry["recorded_cost_usd"])):
             raise ValueError("prior recorded cost differs from its summary")
         total += cost
+    for entry in authorization.get("lost_prior_runs", []):
+        if entry.get("evidence_status") != "unrecoverable_after_temporary_storage_cleanup":
+            raise ValueError("lost prior evidence status is not recognized")
+        known = Decimal(str(entry["known_recorded_cost_usd"]))
+        unknown_calls = entry["unknown_call_count"]
+        per_call_reserve = Decimal(str(entry["per_call_reserve_usd"]))
+        reserved = Decimal(str(entry["reserved_cost_usd"]))
+        if (not known.is_finite() or known < 0
+                or isinstance(unknown_calls, bool) or not isinstance(unknown_calls, int) or unknown_calls < 0
+                or not per_call_reserve.is_finite() or per_call_reserve <= 0
+                or reserved != known + unknown_calls * per_call_reserve):
+            raise ValueError("lost prior evidence reserve is not conservative")
+        total += reserved
     if (total != Decimal(str(authorization["prior_recorded_cost_usd"]))
             or total + Decimal(str(authorization["remaining_run_limit_usd"]))
             != Decimal(str(authorization["approved_total_usd"]))):

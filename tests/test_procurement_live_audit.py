@@ -68,3 +68,32 @@ def test_prior_spend_preserves_every_admission_charge_and_checks_hashes(tmp_path
     (tmp_path / "0/summary.json").write_text('{}')
     with pytest.raises(ValueError, match="hash"):
         audit_prior_spend(authorization)
+
+
+def test_prior_spend_conservatively_reserves_lost_temporary_evidence():
+    authorization = {
+        "prior_runs": [],
+        "lost_prior_runs": [{
+            "evidence_status": "unrecoverable_after_temporary_storage_cleanup",
+            "known_recorded_cost_usd": .333345078,
+            "unknown_call_count": 2,
+            "per_call_reserve_usd": .04,
+            "reserved_cost_usd": .413345078,
+        }],
+        "prior_recorded_cost_usd": .413345078,
+        "remaining_run_limit_usd": 4.586654922,
+        "approved_total_usd": 5,
+    }
+    assert audit_prior_spend(authorization) == Decimal(".413345078")
+
+    understated = {**authorization, "lost_prior_runs": [{
+        **authorization["lost_prior_runs"][0], "reserved_cost_usd": .40,
+    }]}
+    with pytest.raises(ValueError, match="reserve"):
+        audit_prior_spend(understated)
+
+    unclassified = {**authorization, "lost_prior_runs": [{
+        **authorization["lost_prior_runs"][0], "evidence_status": "missing",
+    }]}
+    with pytest.raises(ValueError, match="status"):
+        audit_prior_spend(unclassified)
