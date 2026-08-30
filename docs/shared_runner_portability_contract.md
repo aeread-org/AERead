@@ -41,6 +41,11 @@ provider or upstream harness
 | `ScoreEnvelope` | Retains the leaf, native-unit metrics, typed references, utilities/capture, validity, and evidence references. |
 | `ParitySpec` / `ParityReport` | Compares declared upstream and adapter projection fields exactly or with a predeclared numeric tolerance. |
 
+The draft [`research_runner_harness.md`](research_runner_harness.md) adds only derived research
+views above these canonical records: complete planned-cell coverage, receipt-attempt rows,
+repeat-equivalence identities, independent operational/domain phase projections, and a
+structural overlap/confounding preflight.
+
 The measurement layer retains a vector and has **no universal scalar**. A canonical refund
 pass, bounded housing utility, and supply-chain cost or service level remain distinct
 scientific claims even though they share receipts and analysis infrastructure.
