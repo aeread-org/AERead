@@ -277,6 +277,12 @@ class UnknownBillingBuyer(CountingBuyer):
         raise ProviderFailure("timeout", "provider outcome is unknown", retryable=True)
 
 
+class TransportUnknownBillingBuyer(CountingBuyer):
+    async def complete(self, request):
+        self.calls += 1
+        raise ProviderFailure("transport", "connection dropped after dispatch", retryable=True)
+
+
 def prepare_unknown_recovery(source, target, setup_map, **overrides):
     manifest = json.loads((source / "batch_manifest.json").read_text())
     arguments = {
@@ -288,6 +294,7 @@ def prepare_unknown_recovery(source, target, setup_map, **overrides):
         "account_usage_before_usd": 100.0,
         "account_usage_after_usd": 100.001,
         "account_known_cost_usd": 0.0,
+        "account_usage_interval_scope": "isolated",
         "unknown_call_reserve_usd_each": 0.01,
         "request_cost_upper_bounds_usd": [0.002],
     }
@@ -323,6 +330,24 @@ def test_unknown_billing_recovery_preserves_receipts_and_reserves_full_cost(tmp_
                for name, content in original_files.items())
 
 
+def test_unknown_billing_recovery_accepts_transport_unknown_outcome(tmp_path):
+    setup_map = setups()
+    source, target = tmp_path / "unknown-transport", tmp_path / "recovery"
+    first = run(source, setup_map, TransportUnknownBillingBuyer())
+    assert first["stop_reason"] == "unknown_billing"
+    assert first["unknown_cost_provider_call_count"] == 1
+    assert first["rows"][0]["failure"]["condition"] == "transport"
+
+    checkpoint = prepare_unknown_recovery(source, target, setup_map)
+    assert checkpoint["acknowledged_unknown_cost_provider_call_count"] == 1
+
+    buyer = CountingBuyer()
+    resumed = run(target, setup_map, buyer, max_new_cells=1)
+    assert resumed["attempted_cell_count"] == 2
+    assert resumed["excluded_count"] == 1
+    assert resumed["unknown_cost_provider_call_count"] == 0
+
+
 def test_unknown_billing_recovery_rejects_underreserved_or_unreconciled_delta(tmp_path):
     setup_map = setups()
     source = tmp_path / "unknown"
@@ -333,6 +358,20 @@ def test_unknown_billing_recovery_rejects_underreserved_or_unreconciled_delta(tm
     with pytest.raises(ValueError, match="bound|reserve"):
         prepare_unknown_recovery(source, tmp_path / "bad-bound", setup_map,
             request_cost_upper_bounds_usd=[0.02])
+
+
+def test_unknown_billing_recovery_records_unisolated_shared_key_usage(tmp_path):
+    setup_map = setups()
+    source, target = tmp_path / "unknown", tmp_path / "shared-key-recovery"
+    run(source, setup_map, UnknownBillingBuyer())
+
+    checkpoint = prepare_unknown_recovery(source, target, setup_map,
+        account_usage_after_usd=100.5,
+        account_usage_interval_scope="shared_key_unisolated")
+
+    assert checkpoint["account_usage_interval_scope"] == "shared_key_unisolated"
+    assert checkpoint["account_unexplained_delta_usd"] == pytest.approx(.5)
+    assert read_family_batch(setups=setup_map, output_root=target)
 
 
 def test_unknown_billing_recovery_chain_carries_forward_prefix_and_reserve(tmp_path):

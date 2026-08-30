@@ -247,13 +247,14 @@ def _unknown_billing_recovery_eligible(rows, manifest, checkpoint) -> None:
     unknown_count = sum(row["unknown_cost_provider_call_count"] for row in rows)
     if not rows or unknown_count < 1:
         raise ValueError("unknown-billing recovery requires an unknown provider outcome")
+    unknown_outcome_conditions = {"timeout", "transport"}
     if any(row["status"] != "completed" and (
-            ((row.get("failure") or {}).get("condition") != "timeout"
+            ((row.get("failure") or {}).get("condition") not in unknown_outcome_conditions
              if row["unknown_cost_provider_call_count"]
              else (row.get("failure") or {}).get("condition") != "rate_limit"))
             for row in rows):
         raise ValueError(
-            "only unknown-billing timeouts or known-billing rate-limit failures may be acknowledged")
+            "only unknown-billing timeouts/transports or known-billing rate-limit failures may be acknowledged")
     if checkpoint.get("acknowledged_unknown_cost_provider_call_count") != unknown_count:
         raise ValueError("unknown-billing recovery call count differs from its receipt prefix")
     each = checkpoint.get("unknown_call_reserve_usd_each")
@@ -291,10 +292,12 @@ def _unknown_billing_recovery_eligible(rows, manifest, checkpoint) -> None:
     after = checkpoint.get("account_usage_after_usd")
     account_known = checkpoint.get("account_known_cost_usd")
     unexplained = checkpoint.get("account_unexplained_delta_usd")
+    interval_scope = checkpoint.get("account_usage_interval_scope", "isolated")
     if (any(not numeric(value) for value in (before, after, account_known, unexplained))
             or not math.isclose(unexplained, after - before - account_known,
                                 rel_tol=0, abs_tol=1e-12)
-            or unexplained > total + 1e-12):
+            or interval_scope not in {"isolated", "shared_key_unisolated"}
+            or (interval_scope == "isolated" and unexplained > total + 1e-12)):
         raise ValueError("account usage delta is not reconciled by the unknown-call reserve")
     cost = sum(row["cost_usd"] for row in rows) + total
     reserve = manifest["inflight_episode_reserve_usd"]
@@ -410,6 +413,7 @@ def prepare_unknown_billing_recovery(
     account_usage_before_usd: float, account_usage_after_usd: float,
     account_known_cost_usd: float, unknown_call_reserve_usd_each: float,
     request_cost_upper_bounds_usd: list[float],
+    account_usage_interval_scope: str = "isolated",
 ) -> dict[str, Any]:
     """Fork one drained unknown-billing stop with a full, sealed cost reserve.
 
@@ -444,6 +448,8 @@ def prepare_unknown_billing_recovery(
         unknown_count = sum(row["unknown_cost_provider_call_count"] for row in rows)
         numeric = lambda value: (isinstance(value, (int, float)) and not isinstance(value, bool)
                                  and math.isfinite(value) and value >= 0)
+        if account_usage_interval_scope not in {"isolated", "shared_key_unisolated"}:
+            raise ValueError("account usage interval scope must be isolated or shared_key_unisolated")
         if any(not numeric(value) for value in (
                 account_usage_before_usd, account_usage_after_usd,
                 account_known_cost_usd, unknown_call_reserve_usd_each)):
@@ -473,6 +479,7 @@ def prepare_unknown_billing_recovery(
             "request_cost_upper_bounds_usd": list(request_cost_upper_bounds_usd),
             "account_usage_before_usd": account_usage_before_usd,
             "account_usage_after_usd": account_usage_after_usd,
+            "account_usage_interval_scope": account_usage_interval_scope,
             "account_known_cost_usd": account_known_cost_usd,
             "account_unexplained_delta_usd": unexplained,
             "operator_reason": reason.strip(),
