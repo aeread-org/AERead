@@ -19,7 +19,8 @@ from .execution import (
     TokenPricing,
     execute_plan_cell,
 )
-from .registry import PluginRegistry
+from .harness import default_harnesses
+from .registry import HarnessRegistry, PluginRegistry, ProviderCapabilities
 from .resolver import (
     ImplementationPin,
     RunPlan,
@@ -204,6 +205,26 @@ def _pricing_for(model: str) -> TokenPricing:
         )
     raise ValueError(
         f"smoke fixture has no reviewed pricing pin for model {model!r}"
+    )
+
+
+def _capabilities_for(provider: str) -> ProviderCapabilities:
+    """Declared capabilities for a smoke provider (§5.3).
+
+    `minimal_chat/1.0` is the only harness this fixture ever admits and its
+    `requires.provider` is empty, so none of these flags gates anything here;
+    they are declared honestly (no unverified claim) rather than left
+    unspecified.
+    """
+
+    return ProviderCapabilities(
+        native_tools=False,
+        structured_output=False,
+        seed=provider == "openrouter",
+        system_prompt=True,
+        reasoning_budget=False,
+        reasoning_token_report=False,
+        max_context_tokens=None,
     )
 
 
@@ -425,6 +446,9 @@ def build_single_offer_smoke(
     plugin = SingleOfferPlugin()
     registry = PluginRegistry()
     registry.register(family, plugin)
+    harness_registry = HarnessRegistry()
+    for harness in default_harnesses().values():
+        harness_registry.register(harness)
     smoke_source_sha256 = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
     execution_source_sha256 = hashlib.sha256(
         Path(__file__).with_name("execution.py").read_bytes()
@@ -469,6 +493,8 @@ def build_single_offer_smoke(
         run_spec=run_spec,
         registry=registry,
         implementation_pins=pins,
+        harness_registry=harness_registry,
+        provider_capabilities={provider: _capabilities_for(provider)},
     )
     return SmokeSetup(
         plan=plan,

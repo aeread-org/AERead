@@ -1,24 +1,29 @@
-"""R4 agent execution and append-only evidence for the AERead shared runner.
+"""Agent execution and append-only evidence for the AERead shared runner.
 
 This layer turns an R3 ``DecisionRequest`` into a ``CanonicalResponse`` while
 making logical actions, declared attempts, provider calls, tools, failures,
-budgets, artifacts, and retry ownership explicit.  It does not create receipts,
-resume crashed runs, replay episodes, or score outcomes; those are R5+ stages.
+budgets, artifacts, and retry ownership explicit. It also publishes and verifies
+durable evaluation receipts once a family adapter supplies its typed score or
+failure. Family-specific state reconstruction, transition replay, and scoring remain
+adapter responsibilities.
 """
 from __future__ import annotations
 
 import asyncio
 import dataclasses
+import fcntl
 import hashlib
 import inspect
 import json
 import os
 import shutil
+import stat
+import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from types import MappingProxyType
-from typing import Any, Awaitable, Callable, Mapping, Protocol, Sequence
+from typing import TYPE_CHECKING, Any, Awaitable, Callable, Mapping, Protocol, Sequence
 
 from .registry import PluginRegistry, PluginRegistryError
 from .resolver import RunPlan, canonical_json_bytes, verify_run_plan, write_run_plan
@@ -32,6 +37,13 @@ from .scheduler import (
     run_episode,
 )
 from .schemas import AgentProfile
+
+if TYPE_CHECKING:
+    # `harness.py` imports `ProviderRequest`/`ProviderResult` from this module,
+    # so the reverse reference is type-checking only; call sites that need the
+    # classes at runtime (harness registration, native tool-call construction)
+    # import them lazily.
+    from .harness import CanonicalMessage, Harness, NativeToolCall, ToolSchema
 
 
 class EvidenceIntegrityError(RuntimeError):
@@ -57,6 +69,26 @@ class ProviderFailure(RuntimeError):
         self.status_code = status_code
 
 
+class ToolFailure(RuntimeError):
+    """A known tool failure, including failures after a partial mutation."""
+
+    def __init__(self, condition: str, message: str, *, retryable: bool) -> None:
+        super().__init__(message)
+        if not isinstance(condition, str) or not condition:
+            raise ValueError("ToolFailure.condition must be a non-empty string")
+        self.condition = condition
+        self.retryable = bool(retryable)
+        self.record: ToolInvocationRecord | None = None
+
+
+class ConcurrentEvidenceWriterError(EvidenceIntegrityError):
+    """Another process or object already owns the evidence writer lock."""
+
+
+class EvidenceSealedError(EvidenceIntegrityError):
+    """A sealed evidence generation cannot accept more events or artifacts."""
+
+
 def _sha256_bytes(value: bytes) -> str:
     return hashlib.sha256(value).hexdigest()
 
@@ -67,6 +99,23 @@ def _stable_id(prefix: str, value: Any) -> str:
 
 def _utc_now() -> str:
     return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+def _write_all(fd: int, payload: bytes) -> None:
+    view = memoryview(payload)
+    while view:
+        written = os.write(fd, view)
+        if written <= 0:
+            raise OSError("short write while persisting evidence")
+        view = view[written:]
+
+
+def _fsync_directory(path: Path) -> None:
+    fd = os.open(path, os.O_RDONLY | getattr(os, "O_DIRECTORY", 0))
+    try:
+        os.fsync(fd)
+    finally:
+        os.close(fd)
 
 
 @dataclass(frozen=True, slots=True)
@@ -99,6 +148,18 @@ class Event:
     event_hash: str
 
 
+@dataclass(frozen=True, slots=True)
+class EvidenceSeal:
+    run_plan_id: str
+    cell_id: str
+    episode_id: str
+    episode_attempt_id: str
+    event_count: int
+    artifact_count: int
+    event_root_sha256: str
+    artifact_root_sha256: str
+
+
 def _event_hash_payload(event: Event | Mapping[str, Any]) -> Mapping[str, Any]:
     if dataclasses.is_dataclass(event):
         value = {
@@ -111,7 +172,7 @@ def _event_hash_payload(event: Event | Mapping[str, Any]) -> Mapping[str, Any]:
 
 
 class EvidenceStore:
-    """Append-only event chain plus content-addressed artifacts for one attempt."""
+    """Durable single-writer event chain and content-addressed artifacts."""
 
     _TERMINAL_SUFFIXES = {
         "succeeded",
@@ -119,6 +180,7 @@ class EvidenceStore:
         "outcome_unknown",
         "agent_action_failure",
     }
+    _NOFOLLOW = getattr(os, "O_NOFOLLOW", 0)
 
     def __init__(
         self,
@@ -129,11 +191,20 @@ class EvidenceStore:
         episode_id: str,
         episode_attempt_id: str,
         clock: Callable[[], str] = _utc_now,
+        resume: bool = False,
     ) -> None:
         self.root = Path(root)
+        if self.root.is_symlink():
+            raise EvidenceIntegrityError("evidence root must be a real directory")
+        existed = self.root.exists()
         self.root.mkdir(parents=True, exist_ok=True)
+        if not self.root.is_dir() or self.root.is_symlink():
+            raise EvidenceIntegrityError("evidence root must be a real directory")
+        if not existed:
+            _fsync_directory(self.root.parent)
         self.artifacts_dir = self.root / "artifacts" / "sha256"
         self.events_path = self.root / "events.jsonl"
+        self.seal_path = self.root / "events.jsonl.sealed.json"
         self.run_plan_id = run_plan_id
         self.cell_id = cell_id
         self.episode_id = episode_id
@@ -141,14 +212,178 @@ class EvidenceStore:
         self._clock = clock
         self._sequence = 0
         self._prior_hash: str | None = None
-        if self.events_path.exists():
-            raise EvidenceIntegrityError(
-                f"R4 refuses to append to an existing event log: {self.events_path}"
+        self._closed = False
+        self._sealed = False
+        self._read_only = False
+        self._lock_fd: int | None = None
+        self._events_inode: tuple[int, int] | None = None
+        self._acquire_writer_lock()
+        try:
+            self._open_or_create_events(resume=resume)
+            if resume:
+                self.verify_chain()
+                events = self.read_events()
+                self._sequence = len(events)
+                self._prior_hash = None if not events else events[-1].event_hash
+            if os.path.lexists(self.seal_path):
+                self._sealed = True
+                sealed = self._load_seal()
+                if sealed != self._compute_seal():
+                    raise EvidenceIntegrityError(
+                        "seal marker does not match the durable evidence generation"
+                    )
+        except Exception:
+            self.close()
+            raise
+
+    def _acquire_writer_lock(self) -> None:
+        lock_path = self.root / ".writer.lock"
+        try:
+            fd = os.open(
+                lock_path,
+                os.O_RDWR | os.O_CREAT | self._NOFOLLOW,
+                0o600,
             )
+            if not stat.S_ISREG(os.fstat(fd).st_mode):
+                raise OSError("writer lock is not a regular file")
+            try:
+                fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except BlockingIOError as error:
+                os.close(fd)
+                raise ConcurrentEvidenceWriterError(
+                    f"existing event log is owned by another writer: {self.root}"
+                ) from error
+        except ConcurrentEvidenceWriterError:
+            raise
+        except OSError as error:
+            raise EvidenceIntegrityError("cannot acquire evidence writer lock") from error
+        self._lock_fd = fd
+        _fsync_directory(self.root)
+
+    def _open_or_create_events(self, *, resume: bool) -> None:
+        if os.path.lexists(self.events_path):
+            info = os.lstat(self.events_path)
+            if not stat.S_ISREG(info.st_mode):
+                raise EvidenceIntegrityError("event log must be a non-symlink regular file")
+            if not resume:
+                raise EvidenceIntegrityError(
+                    f"refusing to append to an existing event log without resume=True: "
+                    f"{self.events_path}"
+                )
+            self._events_inode = (info.st_dev, info.st_ino)
+
+    def _open_bound_events(self, flags: int) -> int:
+        self._ensure_open()
+        if self._events_inode is None:
+            if not (flags & (os.O_WRONLY | os.O_RDWR)):
+                raise EvidenceIntegrityError("event log has not been created")
+            try:
+                fd = os.open(
+                    self.events_path,
+                    flags | os.O_CREAT | os.O_EXCL | self._NOFOLLOW,
+                    0o600,
+                )
+            except OSError as error:
+                raise EvidenceIntegrityError("cannot create bound event log") from error
+            info = os.fstat(fd)
+            self._events_inode = (info.st_dev, info.st_ino)
+            _fsync_directory(self.root)
+            return fd
+        try:
+            fd = os.open(self.events_path, flags | self._NOFOLLOW)
+        except OSError as error:
+            raise EvidenceIntegrityError("event log is missing or unsafe") from error
+        info = os.fstat(fd)
+        if not stat.S_ISREG(info.st_mode) or (info.st_dev, info.st_ino) != self._events_inode:
+            os.close(fd)
+            raise EvidenceIntegrityError("event log binding changed during execution")
+        return fd
+
+    def _ensure_open(self) -> None:
+        if self._closed:
+            raise EvidenceIntegrityError("evidence store is closed")
+
+    def _ensure_writable(self) -> None:
+        self._ensure_open()
+        if self._read_only:
+            raise EvidenceIntegrityError("audited evidence is read-only")
+        if self._sealed or os.path.lexists(self.seal_path):
+            self._sealed = True
+            raise EvidenceSealedError("sealed evidence cannot accept writes")
+
+    def close(self) -> None:
+        if self._closed:
+            return
+        if self._lock_fd is not None:
+            try:
+                fcntl.flock(self._lock_fd, fcntl.LOCK_UN)
+            finally:
+                os.close(self._lock_fd)
+                self._lock_fd = None
+        self._closed = True
+
+    def __enter__(self) -> "EvidenceStore":
+        self._ensure_open()
+        return self
+
+    def __exit__(self, *_args: object) -> None:
+        self.close()
+
+    def __del__(self) -> None:  # pragma: no cover - best-effort process cleanup
+        try:
+            self.close()
+        except Exception:
+            pass
+
+    @classmethod
+    def audit_existing(cls, root: str | Path) -> "EvidenceStore":
+        """Open an immutable evidence directory and verify its full event chain."""
+
+        instance = object.__new__(cls)
+        instance.root = Path(root)
+        if instance.root.is_symlink():
+            raise EvidenceIntegrityError("evidence root must be a real directory")
+        instance.artifacts_dir = instance.root / "artifacts" / "sha256"
+        instance.events_path = instance.root / "events.jsonl"
+        instance.seal_path = instance.root / "events.jsonl.sealed.json"
+        if not instance.root.is_dir() or not instance.events_path.is_file():
+            raise EvidenceIntegrityError(
+                f"existing evidence is incomplete at {instance.root}"
+            )
+        try:
+            info = os.lstat(instance.events_path)
+        except OSError as error:
+            raise EvidenceIntegrityError("event log is missing or unsafe") from error
+        if not stat.S_ISREG(info.st_mode):
+            raise EvidenceIntegrityError("event log must be a non-symlink regular file")
+        instance._events_inode = (info.st_dev, info.st_ino)
+        instance._closed = False
+        instance._sealed = os.path.lexists(instance.seal_path)
+        instance._read_only = True
+        instance._lock_fd = None
+        instance._sequence = 0
+        instance._prior_hash = None
+        events = instance.read_events()
+        if not events:
+            raise EvidenceIntegrityError("existing evidence contains no identity-bearing event")
+        first = events[0]
+        instance.run_plan_id = first.run_plan_id
+        instance.cell_id = first.cell_id
+        instance.episode_id = first.episode_id
+        instance.episode_attempt_id = first.episode_attempt_id
+        instance._sequence = len(events)
+        instance._prior_hash = events[-1].event_hash
+        instance.audit_reconciliation()
+        if instance._sealed and instance._load_seal() != instance._compute_seal():
+            raise EvidenceIntegrityError(
+                "seal marker does not match the durable evidence generation"
+            )
+        return instance
 
     def put_artifact(
         self, value: bytes | str | Any, *, media_type: str = "application/json"
     ) -> ArtifactRef:
+        self._ensure_writable()
         if isinstance(value, bytes):
             payload = value
         elif isinstance(value, str) and media_type.startswith("text/"):
@@ -159,13 +394,28 @@ class EvidenceStore:
         relative_path = Path("artifacts") / "sha256" / digest[:2] / digest
         destination = self.root / relative_path
         destination.parent.mkdir(parents=True, exist_ok=True)
+        if destination.parent.is_symlink():
+            raise EvidenceIntegrityError("artifact directory must not be a symlink")
         try:
-            with destination.open("xb") as handle:
-                handle.write(payload)
-                handle.flush()
-                os.fsync(handle.fileno())
+            fd = os.open(
+                destination,
+                os.O_WRONLY | os.O_CREAT | os.O_EXCL | self._NOFOLLOW,
+                0o600,
+            )
+            try:
+                _write_all(fd, payload)
+                os.fsync(fd)
+            finally:
+                os.close(fd)
+            _fsync_directory(destination.parent)
         except FileExistsError:
-            if destination.read_bytes() != payload:
+            try:
+                fd = os.open(destination, os.O_RDONLY | self._NOFOLLOW)
+                with os.fdopen(fd, "rb") as handle:
+                    existing = handle.read()
+            except OSError as error:
+                raise EvidenceIntegrityError("existing artifact is unsafe") from error
+            if existing != payload:
                 raise EvidenceIntegrityError(
                     f"artifact digest collision or corruption at {destination}"
                 )
@@ -188,6 +438,7 @@ class EvidenceStore:
         tool_invocation_id: str | None = None,
         visibility: str = "evaluator_only",
     ) -> Event:
+        self._ensure_writable()
         if not isinstance(event_type, str) or not event_type:
             raise EvidenceIntegrityError("event_type must be a non-empty string")
         payload_ref = self.put_artifact(payload)
@@ -213,22 +464,30 @@ class EvidenceStore:
         )
         event_hash = _sha256_bytes(canonical_json_bytes(_event_hash_payload(provisional)))
         event = dataclasses.replace(provisional, event_hash=event_hash)
-        line = canonical_json_bytes(event) + b"\n"
-        with self.events_path.open("ab") as handle:
-            handle.write(line)
-            handle.flush()
-            os.fsync(handle.fileno())
+        fd = self._open_bound_events(os.O_WRONLY | os.O_APPEND)
+        try:
+            _write_all(fd, canonical_json_bytes(event) + b"\n")
+            os.fsync(fd)
+        finally:
+            os.close(fd)
         self._sequence += 1
         self._prior_hash = event_hash
         return event
 
     def read_events(self) -> tuple[Event, ...]:
-        if not self.events_path.exists():
+        self._ensure_open()
+        if self._events_inode is None:
+            if os.path.lexists(self.events_path):
+                raise EvidenceIntegrityError("unexpected event log appeared during execution")
             return ()
+        fd = self._open_bound_events(os.O_RDONLY)
+        try:
+            with os.fdopen(fd, "r", encoding="utf-8") as handle:
+                lines = handle.read().splitlines()
+        except Exception as error:
+            raise EvidenceIntegrityError("cannot read event log") from error
         events: list[Event] = []
-        for line_number, line in enumerate(
-            self.events_path.read_text(encoding="utf-8").splitlines(), start=1
-        ):
+        for line_number, line in enumerate(lines, start=1):
             try:
                 events.append(Event(**json.loads(line)))
             except Exception as error:
@@ -237,13 +496,55 @@ class EvidenceStore:
                 ) from error
         return tuple(events)
 
+    def _read_artifact(self, relative_path: str) -> bytes:
+        path = self.root / relative_path
+        try:
+            info = os.lstat(path)
+            if not stat.S_ISREG(info.st_mode):
+                raise OSError("artifact is not a regular file")
+            fd = os.open(path, os.O_RDONLY | self._NOFOLLOW)
+            with os.fdopen(fd, "rb") as handle:
+                return handle.read()
+        except OSError as error:
+            raise EvidenceIntegrityError(f"unsafe or missing artifact: {relative_path}") from error
+
+    def read_event_payload(self, event: Event) -> Any:
+        """Return one verified canonical JSON event payload."""
+
+        if not isinstance(event, Event):
+            raise EvidenceIntegrityError("event payload lookup requires an Event")
+        payload = self._read_artifact(event.payload_ref)
+        if _sha256_bytes(payload) != event.payload_sha256:
+            raise EvidenceIntegrityError(
+                f"payload artifact hash mismatch for {event.event_id}"
+            )
+        try:
+            return json.loads(payload)
+        except json.JSONDecodeError as error:
+            raise EvidenceIntegrityError(
+                f"event payload is not canonical JSON for {event.event_id}"
+            ) from error
+
     def verify_chain(self) -> None:
         prior_hash: str | None = None
+        identity = (
+            self.run_plan_id,
+            self.cell_id,
+            self.episode_id,
+            self.episode_attempt_id,
+        )
         for expected_sequence, event in enumerate(self.read_events()):
             if event.sequence != expected_sequence:
                 raise EvidenceIntegrityError(
                     f"event sequence mismatch at {event.event_id}: {event.sequence}"
                 )
+            if (
+                event.run_plan_id,
+                event.cell_id,
+                event.episode_id,
+                event.episode_attempt_id,
+            ) != identity:
+                raise EvidenceIntegrityError(f"event identity mismatch at {event.event_id}")
             if event.prior_event_hash != prior_hash:
                 raise EvidenceIntegrityError(
                     f"prior event hash mismatch at {event.event_id}"
@@ -253,16 +554,101 @@ class EvidenceStore:
             )
             if event.event_hash != expected_hash:
                 raise EvidenceIntegrityError(f"event hash mismatch at {event.event_id}")
-            artifact_path = self.root / event.payload_ref
-            if not artifact_path.is_file():
-                raise EvidenceIntegrityError(
-                    f"missing payload artifact for {event.event_id}: {event.payload_ref}"
-                )
-            if _sha256_bytes(artifact_path.read_bytes()) != event.payload_sha256:
+            artifact = self._read_artifact(event.payload_ref)
+            if _sha256_bytes(artifact) != event.payload_sha256:
                 raise EvidenceIntegrityError(
                     f"payload artifact hash mismatch for {event.event_id}"
                 )
             prior_hash = event.event_hash
+
+    def _artifact_manifest(self) -> tuple[Mapping[str, Any], ...]:
+        if not self.artifacts_dir.exists():
+            return ()
+        if self.artifacts_dir.is_symlink():
+            raise EvidenceIntegrityError("artifact root must not be a symlink")
+        rows: list[Mapping[str, Any]] = []
+        for path in sorted(self.artifacts_dir.glob("*/*")):
+            info = os.lstat(path)
+            if not stat.S_ISREG(info.st_mode):
+                raise EvidenceIntegrityError(f"artifact entry is not a regular file: {path}")
+            payload = self._read_artifact(path.relative_to(self.root).as_posix())
+            digest = _sha256_bytes(payload)
+            if path.name != digest:
+                raise EvidenceIntegrityError(f"artifact filename digest mismatch: {path}")
+            rows.append(
+                {
+                    "sha256": digest,
+                    "size_bytes": len(payload),
+                    "relative_path": path.relative_to(self.root).as_posix(),
+                }
+            )
+        return tuple(rows)
+
+    def _compute_seal(self) -> EvidenceSeal:
+        events = self.read_events()
+        artifacts = self._artifact_manifest()
+        return EvidenceSeal(
+            run_plan_id=self.run_plan_id,
+            cell_id=self.cell_id,
+            episode_id=self.episode_id,
+            episode_attempt_id=self.episode_attempt_id,
+            event_count=len(events),
+            artifact_count=len(artifacts),
+            event_root_sha256=_sha256_bytes(
+                canonical_json_bytes(tuple(event.event_hash for event in events))
+            ),
+            artifact_root_sha256=_sha256_bytes(canonical_json_bytes(artifacts)),
+        )
+
+    def _load_seal(self) -> EvidenceSeal:
+        try:
+            info = os.lstat(self.seal_path)
+            if not stat.S_ISREG(info.st_mode):
+                raise OSError("seal is not a regular file")
+            fd = os.open(self.seal_path, os.O_RDONLY | self._NOFOLLOW)
+            with os.fdopen(fd, "rb") as handle:
+                return EvidenceSeal(**json.loads(handle.read()))
+        except Exception as error:
+            raise EvidenceIntegrityError("seal marker is invalid or unsafe") from error
+
+    def seal(self) -> EvidenceSeal:
+        self._ensure_open()
+        computed = self._compute_seal()
+        if os.path.lexists(self.seal_path):
+            self._sealed = True
+            existing = self._load_seal()
+            if existing != computed:
+                raise EvidenceIntegrityError("seal marker does not match current evidence")
+            return existing
+        temporary = self.root / f".seal-{uuid.uuid4().hex}.tmp"
+        fd = os.open(
+            temporary,
+            os.O_WRONLY | os.O_CREAT | os.O_EXCL | self._NOFOLLOW,
+            0o600,
+        )
+        try:
+            _write_all(fd, canonical_json_bytes(computed) + b"\n")
+            os.fsync(fd)
+        finally:
+            os.close(fd)
+        os.replace(temporary, self.seal_path)
+        _fsync_directory(self.root)
+        self._sealed = True
+        return computed
+
+    def verify_seal(self) -> EvidenceSeal:
+        """Return the durable seal after checking it against current evidence."""
+
+        self._ensure_open()
+        if not os.path.lexists(self.seal_path):
+            raise EvidenceIntegrityError("evidence generation is not sealed")
+        existing = self._load_seal()
+        if existing != self._compute_seal():
+            raise EvidenceIntegrityError(
+                "seal marker does not match the durable evidence generation"
+            )
+        self._sealed = True
+        return existing
 
     def audit_reconciliation(
         self,
@@ -354,6 +740,14 @@ class ProviderRequest:
     output_schema: Mapping[str, Any] | None = None
     provider_metadata: Mapping[str, Any] | None = None
     seed: int | None = None
+    # Native model protocol (§6, stage 2): additive, excluded from the
+    # request_sha256 payload below by design -- `input_text` already carries
+    # a canonical serialization of `messages`/`tools` for every response
+    # mode, so the identity hash does not need a second source of truth.
+    # `reasoning_token_budget` is wired to a wire request in a later stage.
+    messages: tuple["CanonicalMessage", ...] | None = None
+    tools: tuple["ToolSchema", ...] | None = None
+    reasoning_token_budget: int | None = None
 
     def with_computed_hash(self) -> "ProviderRequest":
         payload = {
@@ -373,6 +767,18 @@ class ProviderRequest:
             "provider_metadata": self.provider_metadata,
             "seed": self.seed,
         }
+        # Native fields join the hash only when set, so a legacy text request
+        # hashes exactly as before while a native call binds the bytes it
+        # actually sends.  Without this, two native requests differing only in
+        # messages or tools share a request_sha256 and replay cannot prove
+        # which one produced a response.
+        for field, value in (
+            ("messages", self.messages),
+            ("tools", self.tools),
+            ("reasoning_token_budget", self.reasoning_token_budget),
+        ):
+            if value is not None:
+                payload[field] = value
         return dataclasses.replace(
             self, request_sha256=_sha256_bytes(canonical_json_bytes(payload))
         )
@@ -390,6 +796,11 @@ class ProviderResult:
     output_tokens: int
     cost_usd: float | None
     raw_response: Any
+    # Native model protocol (§6, stage 2): additive; None unless the
+    # provider adapter actually reports the field.
+    tool_calls: tuple["NativeToolCall", ...] | None = None
+    reasoning_tokens: int | None = None
+    visible_output_tokens: int | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -404,6 +815,13 @@ class CanonicalResponse:
     cached_input_tokens: int
     output_tokens: int
     cost_usd: float
+    # The harness seam (§5.1, stage 4): additive, default None, so every
+    # existing record hashes unchanged. A harness-driven executor carries
+    # HarnessOutput.action here -- opaque to the kernel -- so the scheduler
+    # can hand a family's parse_action the mapping it requires instead of
+    # this response itself. A text harness (minimal_chat) leaves it None and
+    # a family keeps reading `.text` exactly as before.
+    action: Mapping[str, Any] | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -462,15 +880,42 @@ class ToolInvocationRecord:
     action_attempt_id: str
     tool_id: str
     tool_version: str
+    tool_schema_sha256: str
     input_sha256: str
     idempotency_supported: bool
     status: str
     result_sha256: str | None
     failure_condition: str | None
+    effect: str
+    state_before_sha256: str | None
+    state_after_sha256: str | None
+    state_diff_sha256: str | None
+    state_changed: bool | None
+    outcome_known: bool
 
 
 class ProviderClient(Protocol):
     async def complete(self, request: ProviderRequest) -> ProviderResult: ...
+
+
+
+def _reasoning_block(request: "ProviderRequest") -> dict[str, Any]:
+    """The reasoning controls to send, carrying exactly what the profile declared.
+
+    A profile may declare an effort, a token budget, or both.  Substituting a
+    default for an absent control -- the previous `or "low"` -- meant a run
+    labelled with one reasoning condition executed another, which is how a
+    treatment silently fails to be delivered.  Absent controls are simply not
+    sent, so the provider applies its own documented default rather than one
+    this kernel invented.
+    """
+
+    block: dict[str, Any] = {}
+    if request.reasoning_effort is not None:
+        block["effort"] = request.reasoning_effort
+    if request.reasoning_token_budget is not None:
+        block["max_tokens"] = request.reasoning_token_budget
+    return block
 
 
 class OpenAIResponsesClient:
@@ -507,6 +952,12 @@ class OpenAIResponsesClient:
         self._client = sdk_client
 
     async def complete(self, request: ProviderRequest) -> ProviderResult:
+        if request.messages is not None:
+            raise ProviderFailure(
+                "provider_contract",
+                "OpenAI Responses adapter does not support native chat messages",
+                retryable=False,
+            )
         if request.provider != "openai":
             raise ProviderFailure(
                 "provider_contract",
@@ -639,12 +1090,237 @@ class OpenRouterChatClient:
                 f"{self._base_url!r}",
                 retryable=False,
             )
+        if request.messages is not None:
+            return await self._complete_native(request)
         if not isinstance(request.output_schema, Mapping):
             raise ProviderFailure(
                 "provider_contract",
                 "OpenRouter adapter requires a structured output schema",
                 retryable=False,
             )
+        provider_preferences, canonical_model, route_provider = self._route_preferences(
+            request
+        )
+        wire_output_schema = json.loads(canonical_json_bytes(request.output_schema))
+        kwargs: dict[str, Any] = {
+            "model": request.model,
+            "messages": [
+                {"role": "system", "content": request.instructions},
+                {"role": "user", "content": request.input_text},
+            ],
+            "temperature": request.temperature,
+            "top_p": request.top_p,
+            "seed": request.seed,
+            "max_tokens": request.max_output_tokens,
+            "response_format": {
+                "type": "json_schema",
+                "json_schema": {
+                    "name": "aeread_action",
+                    "strict": True,
+                    "schema": wire_output_schema,
+                },
+            },
+            "tools": [],
+            "stream": False,
+            "extra_headers": {"X-OpenRouter-Metadata": "enabled"},
+            "extra_body": {
+                "reasoning": _reasoning_block(request),
+                "provider": provider_preferences,
+            },
+        }
+        response = await self._create(**kwargs)
+        raw_response, choice, message = self._parsed_choice(response)
+        content = message.get("content") if isinstance(message, Mapping) else None
+        if not isinstance(content, str):
+            raise ProviderFailure(
+                "provider_contract",
+                "OpenRouter response choice has no text content",
+                retryable=False,
+            )
+        try:
+            structured_output = json.loads(content)
+        except json.JSONDecodeError as error:
+            raise ProviderFailure(
+                "provider_contract",
+                "OpenRouter structured output is not valid JSON",
+                retryable=False,
+            ) from error
+        input_tokens, cached_input_tokens, output_tokens, cost = self._usage(raw_response)
+        selected_model = self._verify_route(
+            raw_response.get("openrouter_metadata"),
+            requested_model=request.model,
+            canonical_model=canonical_model,
+            route_provider=route_provider,
+        )
+        response_model = raw_response.get("model")
+        if response_model not in {request.model, canonical_model}:
+            raise ProviderFailure(
+                "provider_contract",
+                f"OpenRouter response model {response_model!r} was not requested",
+                retryable=False,
+            )
+        return ProviderResult(
+            response_id=str(raw_response.get("id") or ""),
+            requested_model=request.model,
+            resolved_model=selected_model,
+            output_text=canonical_json_bytes(structured_output).decode("utf-8"),
+            finish_reason=str(choice.get("finish_reason") or "unknown"),
+            input_tokens=input_tokens,
+            cached_input_tokens=cached_input_tokens,
+            output_tokens=output_tokens,
+            cost_usd=float(cost),
+            raw_response=raw_response,
+        )
+
+    async def _complete_native(self, request: ProviderRequest) -> ProviderResult:
+        """§6: `request.messages` set means send chat messages + tools
+        natively instead of the structured-output dialect above."""
+        provider_preferences, canonical_model, route_provider = self._route_preferences(
+            request
+        )
+        wire_messages = [{"role": "system", "content": request.instructions}]
+        for message in request.messages:
+            wire_message: dict[str, Any] = {"role": message.role, "content": message.content}
+            if message.tool_call_id is not None:
+                wire_message["tool_call_id"] = message.tool_call_id
+            if message.name is not None:
+                wire_message["name"] = message.name
+            wire_messages.append(wire_message)
+        wire_tools = [
+            {
+                "type": "function",
+                "function": {
+                    "name": tool.tool_id,
+                    "description": tool.description,
+                    "parameters": json.loads(canonical_json_bytes(tool.input_schema)),
+                },
+            }
+            for tool in (request.tools or ())
+        ]
+        kwargs: dict[str, Any] = {
+            "model": request.model,
+            "messages": wire_messages,
+            "temperature": request.temperature,
+            "top_p": request.top_p,
+            "seed": request.seed,
+            "max_tokens": request.max_output_tokens,
+            "tools": wire_tools,
+            "stream": False,
+            "extra_headers": {"X-OpenRouter-Metadata": "enabled"},
+            "extra_body": {
+                "reasoning": _reasoning_block(request),
+                "provider": provider_preferences,
+            },
+        }
+        response = await self._create(**kwargs)
+        raw_response, choice, message = self._parsed_choice(response)
+        if not isinstance(message, Mapping):
+            raise ProviderFailure(
+                "provider_contract",
+                "OpenRouter response choice has no message",
+                retryable=False,
+            )
+        tool_calls = self._native_tool_calls(message.get("tool_calls"))
+        content = message.get("content")
+        if tool_calls is None and not isinstance(content, str):
+            raise ProviderFailure(
+                "provider_contract",
+                "OpenRouter response choice has neither text nor tool calls",
+                retryable=False,
+            )
+        input_tokens, cached_input_tokens, output_tokens, cost = self._usage(raw_response)
+        selected_model = self._verify_route(
+            raw_response.get("openrouter_metadata"),
+            requested_model=request.model,
+            canonical_model=canonical_model,
+            route_provider=route_provider,
+        )
+        response_model = raw_response.get("model")
+        if response_model not in {request.model, canonical_model}:
+            raise ProviderFailure(
+                "provider_contract",
+                f"OpenRouter response model {response_model!r} was not requested",
+                retryable=False,
+            )
+        return ProviderResult(
+            response_id=str(raw_response.get("id") or ""),
+            requested_model=request.model,
+            resolved_model=selected_model,
+            output_text=content if isinstance(content, str) else "",
+            finish_reason=str(choice.get("finish_reason") or "unknown"),
+            input_tokens=input_tokens,
+            cached_input_tokens=cached_input_tokens,
+            output_tokens=output_tokens,
+            cost_usd=cost,
+            raw_response=raw_response,
+            tool_calls=tool_calls,
+        )
+
+    @staticmethod
+    def _native_tool_calls(raw_tool_calls: Any) -> "tuple[NativeToolCall, ...] | None":
+        """Map the response's `tool_calls` into `NativeToolCall`s, preserving
+        source order -- order is the only correlation a later round has with
+        `source_call_index` (§8), so this must never reorder."""
+        if raw_tool_calls is None:
+            return None
+        if not isinstance(raw_tool_calls, list) or not raw_tool_calls:
+            raise ProviderFailure(
+                "provider_contract",
+                "OpenRouter tool_calls must be a non-empty array",
+                retryable=False,
+            )
+        from .harness import NativeToolCall
+
+        calls: list[NativeToolCall] = []
+        for entry in raw_tool_calls:
+            if not isinstance(entry, Mapping):
+                raise ProviderFailure(
+                    "provider_contract",
+                    "OpenRouter tool_calls entries must be objects",
+                    retryable=False,
+                )
+            call_id = entry.get("id")
+            function = entry.get("function")
+            if not isinstance(call_id, str) or not call_id or not isinstance(function, Mapping):
+                raise ProviderFailure(
+                    "provider_contract",
+                    "OpenRouter tool_calls entry is missing an id or function",
+                    retryable=False,
+                )
+            tool_id = function.get("name")
+            raw_arguments = function.get("arguments")
+            if (
+                not isinstance(tool_id, str)
+                or not tool_id
+                or not isinstance(raw_arguments, str)
+            ):
+                raise ProviderFailure(
+                    "provider_contract",
+                    "OpenRouter tool_calls entry has an invalid function name or arguments",
+                    retryable=False,
+                )
+            try:
+                arguments = json.loads(raw_arguments)
+            except json.JSONDecodeError as error:
+                raise ProviderFailure(
+                    "provider_contract",
+                    "OpenRouter tool_calls arguments are not valid JSON",
+                    retryable=False,
+                ) from error
+            if not isinstance(arguments, Mapping):
+                raise ProviderFailure(
+                    "provider_contract",
+                    "OpenRouter tool_calls arguments must be an object",
+                    retryable=False,
+                )
+            calls.append(NativeToolCall(call_id=call_id, tool_id=tool_id, arguments=arguments))
+        return tuple(calls)
+
+    @staticmethod
+    def _route_preferences(request: ProviderRequest) -> tuple[dict[str, Any], str, str]:
+        """Validate the sealed OpenRouter route pin, shared by both dialects
+        (§6): the response format differs by mode, the pinned backend does
+        not."""
         metadata = request.provider_metadata
         if not isinstance(metadata, Mapping):
             raise ProviderFailure(
@@ -700,39 +1376,18 @@ class OpenRouterChatClient:
                 "completion": metadata["max_completion_price_per_million"],
             },
         }
-        wire_output_schema = json.loads(canonical_json_bytes(request.output_schema))
-        kwargs: dict[str, Any] = {
-            "model": request.model,
-            "messages": [
-                {"role": "system", "content": request.instructions},
-                {"role": "user", "content": request.input_text},
-            ],
-            "temperature": request.temperature,
-            "top_p": request.top_p,
-            "seed": request.seed,
-            "max_tokens": request.max_output_tokens,
-            "response_format": {
-                "type": "json_schema",
-                "json_schema": {
-                    "name": "aeread_action",
-                    "strict": True,
-                    "schema": wire_output_schema,
-                },
-            },
-            "tools": [],
-            "stream": False,
-            "extra_headers": {"X-OpenRouter-Metadata": "enabled"},
-            "extra_body": {
-                "reasoning": {"effort": request.reasoning_effort or "low"},
-                "provider": provider_preferences,
-            },
-        }
+        return provider_preferences, canonical_model, route_provider
+
+    async def _create(self, **kwargs: Any) -> Any:
         try:
-            response = await self._client.chat.completions.create(**kwargs)
+            return await self._client.chat.completions.create(**kwargs)
         except asyncio.CancelledError:
             raise
         except Exception as error:
             raise OpenAIResponsesClient._classify_error(error) from error
+
+    @staticmethod
+    def _parsed_choice(response: Any) -> tuple[Mapping[str, Any], Mapping[str, Any], Any]:
         try:
             raw_response = response.model_dump(mode="json")
         except Exception as error:
@@ -756,21 +1411,10 @@ class OpenRouterChatClient:
             )
         choice = choices[0]
         message = choice.get("message") if isinstance(choice, Mapping) else None
-        content = message.get("content") if isinstance(message, Mapping) else None
-        if not isinstance(content, str):
-            raise ProviderFailure(
-                "provider_contract",
-                "OpenRouter response choice has no text content",
-                retryable=False,
-            )
-        try:
-            structured_output = json.loads(content)
-        except json.JSONDecodeError as error:
-            raise ProviderFailure(
-                "provider_contract",
-                "OpenRouter structured output is not valid JSON",
-                retryable=False,
-            ) from error
+        return raw_response, choice, message
+
+    @staticmethod
+    def _usage(raw_response: Mapping[str, Any]) -> tuple[int, int, int, float]:
         usage = raw_response.get("usage")
         if not isinstance(usage, Mapping):
             raise ProviderFailure(
@@ -808,31 +1452,7 @@ class OpenRouterChatClient:
                 "OpenRouter response cost is invalid",
                 retryable=False,
             )
-        selected_model = self._verify_route(
-            raw_response.get("openrouter_metadata"),
-            requested_model=request.model,
-            canonical_model=canonical_model,
-            route_provider=route_provider,
-        )
-        response_model = raw_response.get("model")
-        if response_model not in {request.model, canonical_model}:
-            raise ProviderFailure(
-                "provider_contract",
-                f"OpenRouter response model {response_model!r} was not requested",
-                retryable=False,
-            )
-        return ProviderResult(
-            response_id=str(raw_response.get("id") or ""),
-            requested_model=request.model,
-            resolved_model=selected_model,
-            output_text=canonical_json_bytes(structured_output).decode("utf-8"),
-            finish_reason=str(choice.get("finish_reason") or "unknown"),
-            input_tokens=input_tokens,
-            cached_input_tokens=cached_input_tokens,
-            output_tokens=output_tokens,
-            cost_usd=float(cost),
-            raw_response=raw_response,
-        )
+        return input_tokens, cached_input_tokens, output_tokens, float(cost)
 
     @staticmethod
     def _verify_route(
@@ -999,6 +1619,12 @@ class ClaudeCodePrintClient:
         )
 
     async def complete(self, request: ProviderRequest) -> ProviderResult:
+        if request.messages is not None:
+            raise ProviderFailure(
+                "provider_contract",
+                "Claude Code adapter does not support native chat messages",
+                retryable=False,
+            )
         if request.provider != "claude_code":
             raise ProviderFailure(
                 "provider_contract",
@@ -1055,7 +1681,7 @@ class ClaudeCodePrintClient:
             "--model",
             request.model,
             "--effort",
-            request.reasoning_effort or "low",
+            request.reasoning_effort or "medium",
             "--tools",
             "",
             "--permission-mode",
@@ -1200,9 +1826,17 @@ class MinimalChatExecutor:
             )
             self._profiles[profile.profile_id] = profile
 
-    def _validate_profile(
-        self, profile: AgentProfile, prompt_sources: Mapping[str, str | bytes]
-    ) -> None:
+    def _validate_harness_profile(self, profile: AgentProfile) -> None:
+        """Checks that belong to THIS executor's harness, not to every harness.
+
+        Split out so a subclass driving other harnesses inherits the universal
+        checks below -- providers, pricing, prompts, sdk_retries -- without
+        also inheriting minimal_chat/1.0's own guarantee that it accepts no
+        tools and no memory. Before the split, an AttemptExecutor bound to a
+        tool-using harness was refused here as "not minimal_chat/1.0", so no
+        tool harness could reach the production entry point at all.
+        """
+
         if profile.harness.id != "minimal_chat" or profile.harness.version != "1.0":
             raise EvidenceIntegrityError(
                 f"profile {profile.profile_id!r} is not minimal_chat/1.0"
@@ -1211,6 +1845,11 @@ class MinimalChatExecutor:
             raise EvidenceIntegrityError("minimal_chat/1.0 does not permit tools")
         if profile.memory.mode != "disabled":
             raise EvidenceIntegrityError("minimal_chat/1.0 requires disabled memory")
+
+    def _validate_profile(
+        self, profile: AgentProfile, prompt_sources: Mapping[str, str | bytes]
+    ) -> None:
+        self._validate_harness_profile(profile)
         if profile.retry_policy.sdk_retries != 0:
             raise EvidenceIntegrityError("SDK retries must be zero")
         if profile.model.provider not in self._providers:
@@ -1249,6 +1888,49 @@ class MinimalChatExecutor:
                 f"prompt hash mismatch for {profile.prompt.prompt_id!r}: "
                 f"declared={profile.prompt.sha256}, computed={digest}"
             )
+
+    async def _obtain_result(
+        self,
+        *,
+        provider: ProviderClient,
+        request: ProviderRequest,
+        profile: AgentProfile,
+        decision: DecisionRequest,
+        action_attempt_id: str,
+    ) -> ProviderResult:
+        """Obtain one provider result for this attempt.
+
+        Extracted so a harness-driven executor can substitute the model loop
+        without duplicating the surrounding attempt lifecycle, whose event
+        order existing receipts depend on.  The default is the single direct
+        call this executor has always made.
+        """
+
+        return await asyncio.wait_for(
+            provider.complete(request), timeout=profile.budgets.timeout_seconds
+        )
+
+    def _harness_action(self, action_attempt_id: str) -> Mapping[str, Any] | None:
+        """The opaque action a harness produced for this attempt, if any.
+
+        Extracted alongside `_obtain_result` so a harness-driven executor can
+        carry `HarnessOutput.action` onto the `CanonicalResponse` it builds
+        without this executor knowing a harness exists.  Text families have
+        no action of their own, so the default is always None.
+        """
+
+        return None
+
+    def _harness_tool_invocation_ids(self, action_attempt_id: str) -> tuple[str, ...]:
+        """The tool invocations a harness made during this attempt.
+
+        A single-call executor makes none, so the default is empty. Without the
+        hook the CanonicalResponse claimed zero tool calls even when the
+        evidence stream recorded two, leaving the attempt record and the
+        evidence disagreeing about the same attempt.
+        """
+
+        return ()
 
     def _request_for(
         self,
@@ -1291,6 +1973,7 @@ class MinimalChatExecutor:
             top_p=profile.sampling.top_p,
             max_output_tokens=max_output_tokens,
             reasoning_effort=profile.reasoning.effort,
+            reasoning_token_budget=profile.reasoning.token_budget,
             timeout_seconds=profile.budgets.timeout_seconds,
             request_sha256="",
             max_cost_usd=profile.budgets.max_cost_usd,
@@ -1386,8 +2069,12 @@ class MinimalChatExecutor:
             )
             provider = self._providers[profile.model.provider]
             try:
-                result = await asyncio.wait_for(
-                    provider.complete(request), timeout=profile.budgets.timeout_seconds
+                result = await self._obtain_result(
+                    provider=provider,
+                    request=request,
+                    profile=profile,
+                    decision=decision,
+                    action_attempt_id=action_attempt_id,
                 )
             except asyncio.TimeoutError as error:
                 failure = ProviderFailure("timeout", str(error), retryable=True)
@@ -1526,11 +2213,14 @@ class MinimalChatExecutor:
                 empty=not bool(result.output_text.strip()),
                 truncated=result.finish_reason in {"length", "max_output_tokens"},
                 provider_call_ids=(request.provider_call_id,),
-                tool_invocation_ids=(),
+                tool_invocation_ids=self._harness_tool_invocation_ids(
+                    action_attempt_id
+                ),
                 input_tokens=result.input_tokens,
                 cached_input_tokens=result.cached_input_tokens,
                 output_tokens=result.output_tokens,
                 cost_usd=cost,
+                action=self._harness_action(action_attempt_id),
             )
             retry_condition = (
                 "length"
@@ -1900,6 +2590,126 @@ class ToolExecutor:
         self.evidence = evidence
         self._ordinal = 0
 
+    async def _snapshot_state(
+        self, state_reader: Callable[[], Any]
+    ) -> tuple[Any, ArtifactRef]:
+        value = state_reader()
+        if inspect.isawaitable(value):
+            value = await value
+        try:
+            snapshot = json.loads(canonical_json_bytes(value))
+        except Exception as error:
+            raise EvidenceIntegrityError(
+                "state_reader must return canonically serializable state"
+            ) from error
+        return snapshot, self.evidence.put_artifact(
+            snapshot, media_type="application/vnd.aeread.state+json"
+        )
+
+    def _state_change(
+        self,
+        before: tuple[Any, ArtifactRef] | None,
+        after: tuple[Any, ArtifactRef] | None,
+    ) -> tuple[bool | None, ArtifactRef | None]:
+        if before is None or after is None:
+            return None, None
+        changed = before[1].sha256 != after[1].sha256
+        if not changed:
+            return False, None
+        return True, self.evidence.put_artifact(
+            {
+                "before_sha256": before[1].sha256,
+                "after_sha256": after[1].sha256,
+                "before": before[0],
+                "after": after[0],
+            },
+            media_type="application/vnd.aeread.state-diff+json",
+        )
+
+    def _record(
+        self,
+        *,
+        tool_invocation_id: str,
+        action_attempt_id: str,
+        tool_id: str,
+        tool_version: str,
+        tool_schema_sha256: str,
+        input_sha256: str,
+        idempotency_supported: bool,
+        effect: str,
+        status: str,
+        result_sha256: str | None,
+        failure_condition: str | None,
+        before: tuple[Any, ArtifactRef] | None,
+        after: tuple[Any, ArtifactRef] | None,
+        state_changed: bool | None,
+        state_diff_ref: ArtifactRef | None,
+        outcome_known: bool,
+    ) -> ToolInvocationRecord:
+        return ToolInvocationRecord(
+            tool_invocation_id=tool_invocation_id,
+            action_attempt_id=action_attempt_id,
+            tool_id=tool_id,
+            tool_version=tool_version,
+            tool_schema_sha256=tool_schema_sha256,
+            input_sha256=input_sha256,
+            idempotency_supported=idempotency_supported,
+            status=status,
+            result_sha256=result_sha256,
+            failure_condition=failure_condition,
+            effect=effect,
+            state_before_sha256=None if before is None else before[1].sha256,
+            state_after_sha256=None if after is None else after[1].sha256,
+            state_diff_sha256=(
+                None if state_diff_ref is None else state_diff_ref.sha256
+            ),
+            state_changed=state_changed,
+            outcome_known=outcome_known,
+        )
+
+    async def _observed_after(
+        self, state_reader: Callable[[], Any] | None
+    ) -> tuple[Any, ArtifactRef] | None:
+        return None if state_reader is None else await self._snapshot_state(state_reader)
+
+    async def _observed_after_or_mark_unknown(
+        self,
+        *,
+        state_reader: Callable[[], Any] | None,
+        action_attempt_id: str,
+        tool_invocation_id: str,
+        effect: str,
+        before: tuple[Any, ArtifactRef] | None,
+        original_error: BaseException,
+    ) -> tuple[Any, ArtifactRef] | None:
+        """Observe post-effect state, or record the failure as evidence and re-raise
+        *original_error* — never the bookkeeping error — with the bookkeeping error
+        chained as its ``__context__``.  A debit may have posted and gone unobserved;
+        the evidence must say "unknown", never "never attempted"."""
+        try:
+            return await self._observed_after(state_reader)
+        except BaseException as bookkeeping_error:
+            # BaseException, not Exception: asyncio.CancelledError is a direct
+            # BaseException subclass, and cancellation is exactly when a
+            # mutating call is most likely to have posted unobserved.
+            self.evidence.append_event(
+                "tool_invocation_outcome_unknown",
+                {
+                    "failure_condition": "bookkeeping_failed",
+                    "effect": effect,
+                    "outcome_known": False,
+                    "state_before_sha256": (
+                        None if before is None else before[1].sha256
+                    ),
+                },
+                action_attempt_id=action_attempt_id,
+                tool_invocation_id=tool_invocation_id,
+            )
+            # Implicit exception chaining sets original_error.__context__ to
+            # bookkeeping_error here, since bookkeeping_error is the exception
+            # currently being handled.
+            raise original_error
+
     async def invoke(
         self,
         *,
@@ -1909,26 +2719,59 @@ class ToolExecutor:
         arguments: Mapping[str, Any],
         implementation: Callable[[Mapping[str, Any]], Awaitable[Any]],
         idempotency_supported: bool,
+        effect: str,
+        tool_schema_sha256: str,
+        state_reader: Callable[[], Any] | None = None,
+        tool_invocation_id: str | None = None,
     ) -> tuple[Any, ToolInvocationRecord]:
-        ordinal = self._ordinal
-        self._ordinal += 1
-        tool_invocation_id = _stable_id(
-            "tool_invocation",
-            {
-                "action_attempt_id": action_attempt_id,
-                "tool_id": tool_id,
-                "ordinal": ordinal,
-            },
-        )
+        if effect not in {"read_only", "mutating"}:
+            raise EvidenceIntegrityError("tool effect must be read_only or mutating")
+        if state_reader is not None and not callable(state_reader):
+            raise EvidenceIntegrityError("state_reader must be callable")
+        if effect == "mutating" and state_reader is None:
+            raise EvidenceIntegrityError(
+                "mutating tool invocation requires a state_reader"
+            )
+        if (
+            not isinstance(tool_schema_sha256, str)
+            or len(tool_schema_sha256) != 64
+            or any(character not in "0123456789abcdef" for character in tool_schema_sha256)
+        ):
+            raise EvidenceIntegrityError(
+                "tool_schema_sha256 must be 64 lowercase hexadecimal characters"
+            )
+        if tool_invocation_id is not None and (
+            not isinstance(tool_invocation_id, str) or not tool_invocation_id
+        ):
+            raise EvidenceIntegrityError(
+                "tool_invocation_id must be a non-empty string when provided"
+            )
+        before = await self._observed_after(state_reader)
+        if tool_invocation_id is None:
+            ordinal = self._ordinal
+            self._ordinal += 1
+            tool_invocation_id = _stable_id(
+                "tool_invocation",
+                {
+                    "action_attempt_id": action_attempt_id,
+                    "tool_id": tool_id,
+                    "ordinal": ordinal,
+                },
+            )
         input_sha256 = _sha256_bytes(canonical_json_bytes(arguments))
         self.evidence.append_event(
             "tool_invocation_started",
             {
                 "tool_id": tool_id,
                 "tool_version": tool_version,
+                "tool_schema_sha256": tool_schema_sha256,
                 "arguments": arguments,
                 "input_sha256": input_sha256,
                 "idempotency_supported": idempotency_supported,
+                "effect": effect,
+                "state_before_sha256": (
+                    None if before is None else before[1].sha256
+                ),
             },
             action_attempt_id=action_attempt_id,
             tool_invocation_id=tool_invocation_id,
@@ -1938,39 +2781,198 @@ class ToolExecutor:
             if not inspect.isawaitable(pending):
                 raise TypeError("tool implementation must return an awaitable")
             result = await pending
-        except asyncio.CancelledError:
+        except ToolFailure as error:
+            after = await self._observed_after_or_mark_unknown(
+                state_reader=state_reader,
+                action_attempt_id=action_attempt_id,
+                tool_invocation_id=tool_invocation_id,
+                effect=effect,
+                before=before,
+                original_error=error,
+            )
+            state_changed, state_diff_ref = self._state_change(before, after)
+            self.evidence.append_event(
+                "tool_invocation_failed",
+                {
+                    "failure_condition": error.condition,
+                    "message": str(error),
+                    "retryable": error.retryable,
+                    "effect": effect,
+                    "outcome_known": True,
+                    "state_before_sha256": (
+                        None if before is None else before[1].sha256
+                    ),
+                    "state_after_sha256": None if after is None else after[1].sha256,
+                    "state_changed": state_changed,
+                    "state_diff_sha256": (
+                        None if state_diff_ref is None else state_diff_ref.sha256
+                    ),
+                },
+                action_attempt_id=action_attempt_id,
+                tool_invocation_id=tool_invocation_id,
+            )
+            error.record = self._record(
+                tool_invocation_id=tool_invocation_id,
+                action_attempt_id=action_attempt_id,
+                tool_id=tool_id,
+                tool_version=tool_version,
+                tool_schema_sha256=tool_schema_sha256,
+                input_sha256=input_sha256,
+                idempotency_supported=idempotency_supported,
+                effect=effect,
+                status="failed",
+                result_sha256=None,
+                failure_condition=error.condition,
+                before=before,
+                after=after,
+                state_changed=state_changed,
+                state_diff_ref=state_diff_ref,
+                outcome_known=True,
+            )
+            raise
+        except asyncio.CancelledError as cancelled_error:
+            after = await self._observed_after_or_mark_unknown(
+                state_reader=state_reader,
+                action_attempt_id=action_attempt_id,
+                tool_invocation_id=tool_invocation_id,
+                effect=effect,
+                before=before,
+                original_error=cancelled_error,
+            )
+            state_changed, state_diff_ref = self._state_change(before, after)
             self.evidence.append_event(
                 "tool_invocation_outcome_unknown",
-                {"failure_condition": "interrupted_during_tool"},
+                {
+                    "failure_condition": "interrupted_during_tool",
+                    "effect": effect,
+                    "outcome_known": False,
+                    "state_before_sha256": (
+                        None if before is None else before[1].sha256
+                    ),
+                    "state_observed_after_sha256": (
+                        None if after is None else after[1].sha256
+                    ),
+                    "state_observed_changed": state_changed,
+                    "state_diff_sha256": (
+                        None if state_diff_ref is None else state_diff_ref.sha256
+                    ),
+                },
                 action_attempt_id=action_attempt_id,
                 tool_invocation_id=tool_invocation_id,
             )
             raise
-        except BaseException:
+        except BaseException as unexpected_error:
+            after = await self._observed_after_or_mark_unknown(
+                state_reader=state_reader,
+                action_attempt_id=action_attempt_id,
+                tool_invocation_id=tool_invocation_id,
+                effect=effect,
+                before=before,
+                original_error=unexpected_error,
+            )
+            state_changed, state_diff_ref = self._state_change(before, after)
             self.evidence.append_event(
                 "tool_invocation_outcome_unknown",
-                {"failure_condition": "unexpected_tool_interruption"},
+                {
+                    "failure_condition": "unexpected_tool_interruption",
+                    "effect": effect,
+                    "outcome_known": False,
+                    "state_before_sha256": (
+                        None if before is None else before[1].sha256
+                    ),
+                    "state_observed_after_sha256": (
+                        None if after is None else after[1].sha256
+                    ),
+                    "state_observed_changed": state_changed,
+                    "state_diff_sha256": (
+                        None if state_diff_ref is None else state_diff_ref.sha256
+                    ),
+                },
                 action_attempt_id=action_attempt_id,
                 tool_invocation_id=tool_invocation_id,
             )
             raise
         result_ref = self.evidence.put_artifact(result)
+        after = await self._observed_after(state_reader)
+        state_changed, state_diff_ref = self._state_change(before, after)
+        if effect == "read_only" and state_changed:
+            failure = ToolFailure(
+                "tool_effect_violation",
+                f"read_only tool {tool_id!r} changed observed state",
+                retryable=False,
+            )
+            self.evidence.append_event(
+                "tool_invocation_failed",
+                {
+                    "failure_condition": failure.condition,
+                    "message": str(failure),
+                    "retryable": False,
+                    "effect": effect,
+                    "outcome_known": True,
+                    "result_sha256": result_ref.sha256,
+                    "state_before_sha256": before[1].sha256,
+                    "state_after_sha256": after[1].sha256,
+                    "state_changed": True,
+                    "state_diff_sha256": state_diff_ref.sha256,
+                },
+                action_attempt_id=action_attempt_id,
+                tool_invocation_id=tool_invocation_id,
+            )
+            failure.record = self._record(
+                tool_invocation_id=tool_invocation_id,
+                action_attempt_id=action_attempt_id,
+                tool_id=tool_id,
+                tool_version=tool_version,
+                tool_schema_sha256=tool_schema_sha256,
+                input_sha256=input_sha256,
+                idempotency_supported=idempotency_supported,
+                effect=effect,
+                status="failed",
+                result_sha256=result_ref.sha256,
+                failure_condition=failure.condition,
+                before=before,
+                after=after,
+                state_changed=True,
+                state_diff_ref=state_diff_ref,
+                outcome_known=True,
+            )
+            raise failure
         self.evidence.append_event(
             "tool_invocation_succeeded",
-            {"result": result, "result_sha256": result_ref.sha256},
+            {
+                "result": result,
+                "result_sha256": result_ref.sha256,
+                "effect": effect,
+                "outcome_known": True,
+                "state_before_sha256": (
+                    None if before is None else before[1].sha256
+                ),
+                "state_after_sha256": None if after is None else after[1].sha256,
+                "state_changed": state_changed,
+                "state_diff_sha256": (
+                    None if state_diff_ref is None else state_diff_ref.sha256
+                ),
+            },
             action_attempt_id=action_attempt_id,
             tool_invocation_id=tool_invocation_id,
         )
-        return result, ToolInvocationRecord(
+        return result, self._record(
             tool_invocation_id=tool_invocation_id,
             action_attempt_id=action_attempt_id,
             tool_id=tool_id,
             tool_version=tool_version,
+            tool_schema_sha256=tool_schema_sha256,
             input_sha256=input_sha256,
             idempotency_supported=idempotency_supported,
+            effect=effect,
             status="succeeded",
             result_sha256=result_ref.sha256,
             failure_condition=None,
+            before=before,
+            after=after,
+            state_changed=state_changed,
+            state_diff_ref=state_diff_ref,
+            outcome_known=True,
         )
 
 
@@ -1984,6 +2986,7 @@ async def execute_plan_cell(
     providers: Mapping[str, ProviderClient],
     pricing: Mapping[str, TokenPricing],
     episode_attempt_ordinal: int = 0,
+    harnesses: Mapping[str, "Harness"] | None = None,
 ) -> CellExecution:
     """Execute one sealed R2 cell through the R3 scheduler and R4 adapter."""
     verify_run_plan(plan)
@@ -2055,12 +3058,15 @@ async def execute_plan_cell(
         episode_id=episode_id,
         episode_attempt_id=episode_attempt_id,
     )
-    executor = MinimalChatExecutor(
+    from .harness import AttemptExecutor, default_harnesses
+
+    executor = AttemptExecutor(
         evidence=evidence,
         profiles=selected_profiles,
         prompt_sources=prompt_sources,
         providers=providers,
         pricing=pricing,
+        harnesses=default_harnesses() if harnesses is None else harnesses,
     )
     result = await run_episode(
         cell=cell,
@@ -2085,8 +3091,11 @@ __all__ = [
     "ArtifactRef",
     "CanonicalResponse",
     "ClaudeCodePrintClient",
+    "ConcurrentEvidenceWriterError",
     "CellExecution",
     "EvidenceIntegrityError",
+    "EvidenceSeal",
+    "EvidenceSealedError",
     "EvidenceStore",
     "Event",
     "LogicalActionExecution",
@@ -2100,6 +3109,7 @@ __all__ = [
     "ProviderResult",
     "TokenPricing",
     "ToolExecutor",
+    "ToolFailure",
     "ToolInvocationRecord",
     "execute_plan_cell",
 ]

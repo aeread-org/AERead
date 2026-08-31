@@ -1,0 +1,147 @@
+{
+  "case_id": "tau3.retail.base.43",
+  "content_sha256": "fbefec2ad9beec467e64991ca53165208ca96f950e01ef6183d6736fb9501cce",
+  "episode": {
+    "max_logical_actions": 100,
+    "termination": [
+      "agent_stop",
+      "user_stop",
+      "max_steps",
+      "error"
+    ]
+  },
+  "family_id": "tau3.retail",
+  "family_version": "0.1.0",
+  "payload": {
+    "pins": {
+      "db_bytes": 2811616,
+      "db_sha256": "413a65160adbdb5fde0ffc0015c49b6d70250b10c18128de169b597af7766765",
+      "greeting_message": "Hi! How can I help you today?",
+      "judge_args": {
+        "temperature": 0.0
+      },
+      "judge_model": "gpt-4.1-2025-04-14",
+      "max_steps": 100,
+      "policy_sha256": "2c9652afbce57d6e087768d37cda64d31c53d50b3e3225cfdb791bac66466467",
+      "tasks_sha256": "8e03ebce7901bd6218e7a7dc3105faa9324091a68058f7fe61c65262868812e8",
+      "tool_schema_sha256": null,
+      "tool_schema_sha256_unavailable_reason": "cannot import the pinned upstream tau2 package (looked under '/Users/sunzeyu/Documents/econ benchmark/upstream-tau2/src') to compute tool_schema_sha256 by delegation: No module named 'loguru'",
+      "upstream_commit": "fc0055dc4e0a316c3f83133267fbd6faaa770992",
+      "upstream_repo": "tau2-bench",
+      "user_sim_args": {
+        "temperature": 0.0
+      },
+      "user_sim_guidelines_sha256": "740a29dfa64d7bc08eea3bf7493575b914a63f744acbaf7f199ee07eddaf72d3",
+      "user_sim_model": "gpt-4.1-2025-04-14"
+    },
+    "task": {
+      "description": {
+        "notes": null,
+        "purpose": null,
+        "relevant_policies": null
+      },
+      "evaluation_criteria": {
+        "actions": [
+          {
+            "action_id": "43_0",
+            "arguments": {
+              "first_name": "Lucas",
+              "last_name": "Santos",
+              "zip": "80239"
+            },
+            "info": null,
+            "name": "find_user_id_by_name_zip"
+          },
+          {
+            "action_id": "43_1",
+            "arguments": {
+              "user_id": "lucas_santos_6600"
+            },
+            "info": null,
+            "name": "get_user_details"
+          },
+          {
+            "action_id": "43_2",
+            "arguments": {
+              "order_id": "#W1588712"
+            },
+            "info": null,
+            "name": "get_order_details"
+          },
+          {
+            "action_id": "43_3",
+            "arguments": {
+              "order_id": "#W7895761"
+            },
+            "info": null,
+            "name": "get_order_details"
+          },
+          {
+            "action_id": "43_4",
+            "arguments": {
+              "address1": "943 Maple Drive",
+              "address2": "Suite 356",
+              "city": "Chicago",
+              "country": "USA",
+              "state": "IL",
+              "user_id": "lucas_santos_6600",
+              "zip": "60621"
+            },
+            "info": null,
+            "name": "modify_user_address"
+          }
+        ],
+        "communicate_info": [
+          "840887978435",
+          "943 Maple Drive",
+          "Suite 356",
+          "Chicago",
+          "IL",
+          "60621",
+          "64GB"
+        ],
+        "nl_assertions": [
+          "Agent should tell the user the tracking number is 840887978435.",
+          "Agent should tell the user the order was shipped to 943 Maple Drive, Suite 356, Chicago, IL 60621.",
+          "Agent should tell the user the tablet storage is 64GB."
+        ],
+        "reward_basis": [
+          "DB",
+          "NL_ASSERTION"
+        ]
+      },
+      "id": "43",
+      "initial_state": null,
+      "user_scenario": {
+        "instructions": {
+          "domain": "retail",
+          "known_info": "You are Lucas (lucas_santos_6600), you live in Denver CO 80239, and your daughter lives in Chicago.",
+          "reason_for_call": "You ordered some things for your daughter but she has not received them, so you want to know which address the order was sent to, the tracking number, and if the order is still in transit. You also want to check if the storage of the tablet you ordered. Lastly, you want to change your default address to your daughter's address so that you don't have to change it every time you order something for her.",
+          "task_instructions": "You are a lonely man and you want to talk to the agent for a while.",
+          "unknown_info": "You do not remember your email address"
+        },
+        "persona": null
+      }
+    }
+  },
+  "provenance": {
+    "generator_id": "tau3_retail_importer",
+    "generator_version": "0.1.0",
+    "review_status": "upstream_pinned"
+  },
+  "seats": [
+    {
+      "id": "assistant",
+      "role": "assistant"
+    },
+    {
+      "id": "user",
+      "role": "user"
+    }
+  ],
+  "spec_version": "aeread.case/0.1",
+  "split": "base",
+  "upstream_task_id": "43",
+  "visibility_policy": "tau3_retail_user_scenario_private_v1",
+  "world_seed": 43
+}

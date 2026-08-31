@@ -1,0 +1,198 @@
+{
+  "case_id": "tau3.retail.base.21",
+  "content_sha256": "673f463269bd92ec8ce54971fcdf96f60701349c4de910247b03b1239f268816",
+  "episode": {
+    "max_logical_actions": 100,
+    "termination": [
+      "agent_stop",
+      "user_stop",
+      "max_steps",
+      "error"
+    ]
+  },
+  "family_id": "tau3.retail",
+  "family_version": "0.1.0",
+  "payload": {
+    "pins": {
+      "db_bytes": 2811616,
+      "db_sha256": "413a65160adbdb5fde0ffc0015c49b6d70250b10c18128de169b597af7766765",
+      "greeting_message": "Hi! How can I help you today?",
+      "judge_args": {
+        "temperature": 0.0
+      },
+      "judge_model": "gpt-4.1-2025-04-14",
+      "max_steps": 100,
+      "policy_sha256": "2c9652afbce57d6e087768d37cda64d31c53d50b3e3225cfdb791bac66466467",
+      "tasks_sha256": "8e03ebce7901bd6218e7a7dc3105faa9324091a68058f7fe61c65262868812e8",
+      "tool_schema_sha256": null,
+      "tool_schema_sha256_unavailable_reason": "cannot import the pinned upstream tau2 package (looked under '/Users/sunzeyu/Documents/econ benchmark/upstream-tau2/src') to compute tool_schema_sha256 by delegation: No module named 'loguru'",
+      "upstream_commit": "fc0055dc4e0a316c3f83133267fbd6faaa770992",
+      "upstream_repo": "tau2-bench",
+      "user_sim_args": {
+        "temperature": 0.0
+      },
+      "user_sim_guidelines_sha256": "740a29dfa64d7bc08eea3bf7493575b914a63f744acbaf7f199ee07eddaf72d3",
+      "user_sim_model": "gpt-4.1-2025-04-14"
+    },
+    "task": {
+      "description": {
+        "notes": null,
+        "purpose": null,
+        "relevant_policies": null
+      },
+      "evaluation_criteria": {
+        "actions": [
+          {
+            "action_id": "21_0",
+            "arguments": {
+              "first_name": "Ethan",
+              "last_name": "Garcia",
+              "zip": "80280"
+            },
+            "info": null,
+            "name": "find_user_id_by_name_zip"
+          },
+          {
+            "action_id": "21_1",
+            "arguments": {
+              "user_id": "ethan_garcia_1261"
+            },
+            "info": null,
+            "name": "get_user_details"
+          },
+          {
+            "action_id": "21_2",
+            "arguments": {
+              "order_id": "#W4967593"
+            },
+            "info": null,
+            "name": "get_order_details"
+          },
+          {
+            "action_id": "21_3",
+            "arguments": {
+              "order_id": "#W9911714"
+            },
+            "info": null,
+            "name": "get_order_details"
+          },
+          {
+            "action_id": "21_4",
+            "arguments": {
+              "order_id": "#W5733668"
+            },
+            "info": null,
+            "name": "get_order_details"
+          },
+          {
+            "action_id": "21_5",
+            "arguments": {
+              "item_id": "4107812777"
+            },
+            "info": null,
+            "name": "get_item_details"
+          },
+          {
+            "action_id": "21_6",
+            "arguments": {
+              "item_id": "1421289881"
+            },
+            "info": null,
+            "name": "get_item_details"
+          },
+          {
+            "action_id": "21_7",
+            "arguments": {
+              "product_id": "1656367028"
+            },
+            "info": null,
+            "name": "get_product_details"
+          },
+          {
+            "action_id": "21_8",
+            "arguments": {
+              "item_id": "4107812777"
+            },
+            "info": null,
+            "name": "get_item_details"
+          },
+          {
+            "action_id": "21_9",
+            "arguments": {
+              "product_id": "6938111410"
+            },
+            "info": null,
+            "name": "get_product_details"
+          },
+          {
+            "action_id": "21_10",
+            "arguments": {
+              "expression": "155.33 - 147.05 + 268.77 - 235.13"
+            },
+            "info": null,
+            "name": "calculate"
+          },
+          {
+            "action_id": "21_11",
+            "arguments": {
+              "item_ids": [
+                "9791469541",
+                "1340995114"
+              ],
+              "new_item_ids": [
+                "4107812777",
+                "1421289881"
+              ],
+              "order_id": "#W9911714",
+              "payment_method_id": "gift_card_4332117"
+            },
+            "info": null,
+            "name": "modify_pending_order_items"
+          }
+        ],
+        "communicate_info": [
+          "44.08"
+        ],
+        "nl_assertions": [
+          "Agent should tell the user their gift card balance is $44.08."
+        ],
+        "reward_basis": [
+          "DB",
+          "NL_ASSERTION"
+        ]
+      },
+      "id": "21",
+      "initial_state": null,
+      "user_scenario": {
+        "instructions": {
+          "domain": "retail",
+          "known_info": "You are Ethan Garcia, and you live in Denver, 80280.",
+          "reason_for_call": "You want to exchange your shoes to item ID 4107812777, and use your gift card to cover possible charges. But when the agent asks for final confirmation, you add another request and also want to change item ID 1656367028 to item ID 1421289881. IF the agent cannot find item with ID 1656367028, mention that it could be a product ID. You are not familiar with the domain and might confuse product and item ids, so ask the agent to figure out the details on its own if needed. You want to know your gift card balance after all these changes are complete.",
+          "task_instructions": "You are a mysterious person and do not want to reveal much about yourself.",
+          "unknown_info": "You do not remember your email address"
+        },
+        "persona": null
+      }
+    }
+  },
+  "provenance": {
+    "generator_id": "tau3_retail_importer",
+    "generator_version": "0.1.0",
+    "review_status": "upstream_pinned"
+  },
+  "seats": [
+    {
+      "id": "assistant",
+      "role": "assistant"
+    },
+    {
+      "id": "user",
+      "role": "user"
+    }
+  ],
+  "spec_version": "aeread.case/0.1",
+  "split": "base",
+  "upstream_task_id": "21",
+  "visibility_policy": "tau3_retail_user_scenario_private_v1",
+  "world_seed": 21
+}
