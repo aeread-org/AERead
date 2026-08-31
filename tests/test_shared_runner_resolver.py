@@ -5,8 +5,15 @@ from pathlib import Path
 
 import pytest
 
-from aeread.shared_runner.registry import PluginRegistry
+from aeread.shared_runner.harness import MinimalChatHarness, NativeToolChatHarness
+from aeread.shared_runner.registry import (
+    HarnessRegistry,
+    HarnessRequirements,
+    PluginRegistry,
+    ProviderCapabilities,
+)
 from aeread.shared_runner.resolver import (
+    CapabilityExclusionError,
     ImplementationPin,
     PlanResolutionError,
     canonical_json_bytes,
@@ -28,6 +35,70 @@ from aeread.shared_runner.schemas import (
 
 
 PROMPT_SHA = "b" * 64
+
+
+class _ScriptedStubHarness:
+    """A minimal `scripted/1.0` stand-in: no real implementation exists yet,
+    only the pin bookkeeping in `_inputs()` references it, so admission only
+    needs `id`/`version`/`requires` to resolve it."""
+
+    id = "scripted"
+    version = "1.0"
+    requires = HarnessRequirements(
+        provider=frozenset(),
+        tools="none",
+        memory=frozenset({"disabled"}),
+        owns_retries=False,
+        owns_tools=False,
+        replayable=True,
+        blocking=False,
+        spawns_subagents=False,
+    )
+
+
+def _capabilities(
+    *,
+    native_tools: bool = False,
+    structured_output: bool = False,
+    seed: bool = False,
+    system_prompt: bool = True,
+    reasoning_budget: bool = False,
+    reasoning_token_report: bool = False,
+    max_context_tokens: int | None = None,
+) -> ProviderCapabilities:
+    return ProviderCapabilities(
+        native_tools=native_tools,
+        structured_output=structured_output,
+        seed=seed,
+        system_prompt=system_prompt,
+        reasoning_budget=reasoning_budget,
+        reasoning_token_report=reasoning_token_report,
+        max_context_tokens=max_context_tokens,
+    )
+
+
+def _default_harness_registry() -> HarnessRegistry:
+    registry = HarnessRegistry()
+    registry.register(MinimalChatHarness())
+    registry.register(_ScriptedStubHarness())
+    return registry
+
+
+def _default_provider_capabilities() -> dict[str, ProviderCapabilities]:
+    return {"openai": _capabilities(), "aeread": _capabilities()}
+
+
+class _CountingProvider:
+    """A provider spy `resolve_run_plan` has no parameter to accept -- it
+    exists only to make explicit, in the exclusion test, that admission never
+    reaches a provider: the function signature admits no client at all."""
+
+    def __init__(self) -> None:
+        self.calls = 0
+
+    async def complete(self, request):  # pragma: no cover - never reachable
+        self.calls += 1
+        raise AssertionError("resolve_run_plan must never call a provider")
 
 
 class HousingFixturePlugin:
@@ -203,10 +274,18 @@ def _analysis() -> AnalysisPlan:
     )
 
 
-def _profile(profile_id: str, *, scripted: bool) -> AgentProfile:
+def _profile(
+    profile_id: str,
+    *,
+    scripted: bool,
+    harness_id: str | None = None,
+    harness_version: str = "1.0",
+    tools: tuple[str, ...] = (),
+    memory_mode: str = "disabled",
+) -> AgentProfile:
     if scripted:
         model = {"provider": "aeread", "model": "fixed_landlord_v1", "revision": "1.0.0"}
-        harness = {"id": "scripted", "version": "1.0", "config": {}}
+        harness = {"id": harness_id or "scripted", "version": harness_version, "config": {}}
         runtime = {
             "kind": "python",
             "implementation": "aeread.fixed_policy",
@@ -214,7 +293,11 @@ def _profile(profile_id: str, *, scripted: bool) -> AgentProfile:
         }
     else:
         model = {"provider": "openai", "model": "test-model", "revision": "pinned"}
-        harness = {"id": "minimal_chat", "version": "1.0", "config": {}}
+        harness = {
+            "id": harness_id or "minimal_chat",
+            "version": harness_version,
+            "config": {},
+        }
         runtime = {
             "kind": "python",
             "implementation": "aeread.gateway_candidate",
@@ -228,8 +311,8 @@ def _profile(profile_id: str, *, scripted: bool) -> AgentProfile:
             "harness": harness,
             "prompt": {"prompt_id": f"{profile_id}_prompt", "sha256": PROMPT_SHA},
             "runtime": runtime,
-            "tools": [],
-            "memory": {"mode": "disabled"},
+            "tools": list(tools),
+            "memory": {"mode": memory_mode},
             "reasoning": {
                 "condition_id": "declared_v1",
                 "effort": None if scripted else "low",
@@ -267,12 +350,19 @@ def _pin(component_id: str, kind: str) -> ImplementationPin:
     )
 
 
-def _inputs(*, plugin: HousingFixturePlugin | None = None) -> dict:
+def _inputs(
+    *,
+    plugin: HousingFixturePlugin | None = None,
+    subject_profile: AgentProfile | None = None,
+    harness_registry: HarnessRegistry | None = None,
+    provider_capabilities: dict[str, ProviderCapabilities] | None = None,
+    tool_bindings: dict[str, frozenset[str]] | None = None,
+) -> dict:
     family = _family()
     cases = (_case(1, 41001), _case(2, 41002))
     block = _block()
     profiles = (
-        _profile("subject_model_v1", scripted=False),
+        subject_profile or _profile("subject_model_v1", scripted=False),
         _profile("fixed_landlord_v1", scripted=True),
     )
     suite = SuiteManifest.from_dict(
@@ -306,14 +396,17 @@ def _inputs(*, plugin: HousingFixturePlugin | None = None) -> dict:
     plugin = plugin or HousingFixturePlugin()
     registry = PluginRegistry()
     registry.register(family, plugin)
+    harness_pins = tuple(
+        _pin(harness_id, "harness")
+        for harness_id in sorted({profile.harness.id for profile in profiles})
+    )
     pins = (
         _pin("aeread.housing_v1", "family_plugin"),
         _pin("housing_outcome_v1", "scorer"),
         _pin("housing_exact_assignment_v1", "reference"),
         _pin("housing_scripted_search_v1", "reference"),
         _pin("housing_generator_v1", "generator"),
-        _pin("minimal_chat", "harness"),
-        _pin("scripted", "harness"),
+        *harness_pins,
         _pin("aeread.gateway_candidate", "runtime"),
         _pin("aeread.fixed_policy", "runtime"),
     )
@@ -328,6 +421,9 @@ def _inputs(*, plugin: HousingFixturePlugin | None = None) -> dict:
         "run_spec": run,
         "registry": registry,
         "implementation_pins": pins,
+        "harness_registry": harness_registry or _default_harness_registry(),
+        "provider_capabilities": provider_capabilities or _default_provider_capabilities(),
+        "tool_bindings": tool_bindings,
     }
 
 
@@ -423,3 +519,148 @@ def test_write_run_plan_is_canonical_durable_and_refuses_overwrite(tmp_path: Pat
     assert destination.read_bytes() == canonical_json_bytes(plan)
     with pytest.raises(FileExistsError):
         write_run_plan(plan, destination)
+
+
+def test_admission_excludes_a_tools_profile_the_provider_cannot_serve() -> None:
+    """§5.3 proof obligation: a tools profile on a provider with neither
+    `native_tools` nor `structured_output` is a typed exclusion, sealed
+    before any provider call is even possible."""
+
+    harness_registry = HarnessRegistry()
+    harness_registry.register(NativeToolChatHarness())
+    harness_registry.register(_ScriptedStubHarness())
+    inputs = _inputs(
+        subject_profile=_profile(
+            "subject_model_v1",
+            scripted=False,
+            harness_id="native_tool_chat",
+            tools=("lookup",),
+        ),
+        harness_registry=harness_registry,
+        provider_capabilities={
+            "openai": _capabilities(native_tools=False, structured_output=False),
+            "aeread": _capabilities(),
+        },
+    )
+    provider = _CountingProvider()
+
+    with pytest.raises(CapabilityExclusionError) as excinfo:
+        resolve_run_plan(**inputs)
+
+    admission = excinfo.value.admission
+    assert admission.profile_id == "subject_model_v1"
+    assert admission.admitted is False
+    assert any("lacks capabilities" in reason for reason in admission.reasons)
+    assert admission.capability_vector == {
+        "provider_calls_observed": False,
+        "tool_calls_observed": False,
+        "native_history_preserved": False,
+        "state_restorable": False,
+        "seed_enforced": False,
+        "policy_re_executable": False,
+        "cost_complete": False,
+    }
+    # `resolve_run_plan` accepts no provider client at all -- the exclusion
+    # above is the only way this test could ever reach one, and it never does.
+    assert provider.calls == 0
+
+
+def test_admission_excludes_declared_tools_with_no_pinned_tool_definition() -> None:
+    harness_registry = HarnessRegistry()
+    harness_registry.register(NativeToolChatHarness())
+    harness_registry.register(_ScriptedStubHarness())
+    inputs = _inputs(
+        subject_profile=_profile(
+            "subject_model_v1",
+            scripted=False,
+            harness_id="native_tool_chat",
+            tools=("lookup",),
+        ),
+        harness_registry=harness_registry,
+        provider_capabilities={
+            "openai": _capabilities(native_tools=True),
+            "aeread": _capabilities(),
+        },
+    )
+
+    with pytest.raises(CapabilityExclusionError) as excinfo:
+        resolve_run_plan(**inputs)
+
+    reasons = excinfo.value.admission.reasons
+    assert any("no pinned ToolDefinition" in reason for reason in reasons)
+    assert not any("lacks capabilities" in reason for reason in reasons)
+
+
+def test_admission_admits_declared_tools_pinned_to_a_tool_definition() -> None:
+    harness_registry = HarnessRegistry()
+    harness_registry.register(NativeToolChatHarness())
+    harness_registry.register(_ScriptedStubHarness())
+    inputs = _inputs(
+        subject_profile=_profile(
+            "subject_model_v1",
+            scripted=False,
+            harness_id="native_tool_chat",
+            tools=("lookup",),
+        ),
+        harness_registry=harness_registry,
+        provider_capabilities={
+            "openai": _capabilities(native_tools=True),
+            "aeread": _capabilities(),
+        },
+        tool_bindings={"subject_model_v1": frozenset({"lookup"})},
+    )
+
+    plan = resolve_run_plan(**inputs)
+
+    by_profile = {admission.profile_id: admission for admission in plan.profile_admissions}
+    admission = by_profile["subject_model_v1"]
+    assert admission.admitted is True
+    assert admission.reasons == ()
+    assert admission.capability_vector["tool_calls_observed"] is True
+    assert admission.capability_vector["native_history_preserved"] is True
+    verify_run_plan(plan)
+
+
+def test_admission_excludes_a_disallowed_memory_mode() -> None:
+    inputs = _inputs(
+        subject_profile=_profile("subject_model_v1", scripted=False, memory_mode="ephemeral"),
+    )
+
+    with pytest.raises(CapabilityExclusionError) as excinfo:
+        resolve_run_plan(**inputs)
+
+    assert "memory mode" in str(excinfo.value)
+    assert excinfo.value.admission.admitted is False
+
+
+def test_admission_excludes_an_unregistered_harness() -> None:
+    inputs = _inputs(
+        subject_profile=_profile("subject_model_v1", scripted=False, harness_id="ghost_harness"),
+    )
+
+    with pytest.raises(CapabilityExclusionError) as excinfo:
+        resolve_run_plan(**inputs)
+
+    assert any("is not registered" in reason for reason in excinfo.value.admission.reasons)
+
+
+def test_admission_seals_a_hashed_profile_admission_for_every_admitted_profile() -> None:
+    plan = resolve_run_plan(**_inputs())
+
+    assert len(plan.profile_admissions) == 2
+    by_profile = {admission.profile_id: admission for admission in plan.profile_admissions}
+    assert set(by_profile) == {"subject_model_v1", "fixed_landlord_v1"}
+    for admission in plan.profile_admissions:
+        assert admission.admitted is True
+        assert admission.reasons == ()
+        assert admission.admission_id.startswith("admission_")
+        assert set(admission.capability_vector) == {
+            "provider_calls_observed",
+            "tool_calls_observed",
+            "native_history_preserved",
+            "state_restorable",
+            "seed_enforced",
+            "policy_re_executable",
+            "cost_complete",
+        }
+    verify_run_plan(plan)

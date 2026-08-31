@@ -17,7 +17,13 @@ from pathlib import Path
 from types import MappingProxyType
 from typing import Any, Mapping, Sequence
 
-from .registry import PluginRegistry, PluginRegistryError
+from .registry import (
+    HarnessRegistry,
+    HarnessResolutionError,
+    PluginRegistry,
+    PluginRegistryError,
+    ProviderCapabilities,
+)
 from .schemas import (
     AgentProfile,
     AnalysisPlan,
@@ -38,6 +44,24 @@ class PlanIntegrityError(ValueError):
     """A sealed run plan no longer matches its declared content digest."""
 
 
+class CapabilityExclusionError(PlanResolutionError):
+    """A profile's harness/provider/tools/memory combination is inadmissible.
+
+    Raised at plan resolution -- before any episode starts, before any
+    provider call is possible -- carrying the sealed `ProfileAdmission`
+    receipt that explains exactly why (`.admission`).  This is the typed
+    exclusion of §5.3: a rejected combination never surfaces as an
+    exception mid-episode, because it never reaches one.
+    """
+
+    def __init__(self, admission: "ProfileAdmission") -> None:
+        self.admission = admission
+        super().__init__(
+            f"profile {admission.profile_id!r} is inadmissible: "
+            + "; ".join(admission.reasons)
+        )
+
+
 _PIN_KINDS = {
     "family_plugin",
     "scorer",
@@ -46,6 +70,34 @@ _PIN_KINDS = {
     "harness",
     "runtime",
 }
+
+# The boolean-valued `ProviderCapabilities` fields a `HarnessRequirements.provider`
+# frozenset may name (§5.3: "⊆ ProviderCapabilities fields").  `max_context_tokens`
+# is excluded: it is an int, not a capability flag a harness can require as a set
+# member.
+_PROVIDER_CAPABILITY_FLAGS = (
+    "native_tools",
+    "structured_output",
+    "seed",
+    "system_prompt",
+    "reasoning_budget",
+    "reasoning_token_report",
+)
+
+# The capability-vector fields sealed on every `ProfileAdmission` (§5.3).  Each
+# is derived only from what admission already knows -- the harness's declared
+# requirements, the provider's declared capabilities, and the profile's own
+# tools/memory/sampling selection -- never from a live provider call, so a
+# rejected profile carries every flag False.
+_CAPABILITY_VECTOR_FIELDS = (
+    "provider_calls_observed",
+    "tool_calls_observed",
+    "native_history_preserved",
+    "state_restorable",
+    "seed_enforced",
+    "policy_re_executable",
+    "cost_complete",
+)
 
 
 def _strict_string(value: Any, path: str) -> str:
@@ -134,6 +186,28 @@ class PlanCell:
 
 
 @dataclass(frozen=True, slots=True)
+class ProfileAdmission:
+    """A sealed capability-admission receipt for one agent profile (§5.3).
+
+    Computed at plan resolution from the resolved harness's declared
+    `HarnessRequirements`, the named provider's declared `ProviderCapabilities`,
+    and the profile's own tools/memory/sampling selection -- never from a live
+    provider call.  Only an admitted (`admitted=True`) receipt is ever sealed
+    into a `RunPlan`; a rejected combination raises `CapabilityExclusionError`
+    carrying this same record instead.
+    """
+
+    admission_id: str
+    profile_id: str
+    harness_id: str
+    harness_version: str
+    provider: str
+    admitted: bool
+    capability_vector: Mapping[str, bool]
+    reasons: tuple[str, ...]
+
+
+@dataclass(frozen=True, slots=True)
 class RunPlan:
     """Canonical benchmark truth written before any provider or tool call."""
 
@@ -151,6 +225,7 @@ class RunPlan:
     implementation_pins: tuple[ImplementationPin, ...]
     input_digests: Mapping[str, str]
     cells: tuple[PlanCell, ...]
+    profile_admissions: tuple[ProfileAdmission, ...]
 
 
 def _canonical_value(value: Any) -> Any:
@@ -302,6 +377,174 @@ def _check_pins(
         )
 
 
+def _capability_vector(
+    *,
+    harness: Any | None,
+    capabilities: ProviderCapabilities | None,
+    profile: AgentProfile,
+    admitted: bool,
+) -> Mapping[str, bool]:
+    """The declared capability vector each reported claim checks against (§5.3).
+
+    Derived only from admission-time facts.  A rejected profile, an
+    unresolved harness, or an unregistered provider carries every flag
+    False -- no claim may borrow a capability from a combination admission
+    refused.
+    """
+
+    if not admitted or harness is None or capabilities is None:
+        return MappingProxyType({name: False for name in _CAPABILITY_VECTOR_FIELDS})
+
+    requires = harness.requires
+    tool_calls_observed = bool(profile.tools) and requires.tools != "none"
+    native_history_preserved = (
+        tool_calls_observed
+        and "native_tools" in requires.provider
+        and capabilities.native_tools
+    )
+    # Stateful replay (§10) needs a state codec no harness here declares
+    # (every registered `requires.memory` is `{"disabled"}`), so neither flag
+    # can be proven true yet.
+    state_restorable = False
+    policy_re_executable = False
+    seed_enforced = bool(capabilities.seed) and profile.sampling.seed is not None
+    # A hidden reasoning token spends cost the receipt cannot see unless the
+    # provider reports it back (§7); no requested budget, no unseen spend.
+    cost_complete = (
+        profile.reasoning.token_budget is None or capabilities.reasoning_token_report
+    )
+    return MappingProxyType(
+        {
+            "provider_calls_observed": not requires.blocking,
+            "tool_calls_observed": tool_calls_observed,
+            "native_history_preserved": native_history_preserved,
+            "state_restorable": state_restorable,
+            "seed_enforced": seed_enforced,
+            "policy_re_executable": policy_re_executable,
+            "cost_complete": cost_complete,
+        }
+    )
+
+
+def _admit_profile(
+    profile: AgentProfile,
+    *,
+    harness_registry: HarnessRegistry,
+    provider_capabilities: Mapping[str, ProviderCapabilities],
+    tool_bindings: Mapping[str, frozenset[str]],
+) -> ProfileAdmission:
+    """Admit one profile against its resolved harness and named provider (§5.3).
+
+    Checks, in order: (1) `harness.requires.provider ⊆` the provider's true
+    `ProviderCapabilities` fields; (2) `profile.tools` non-empty requires
+    `requires.tools != "none"` and every tool id resolving to a pinned
+    `ToolDefinition` in the family bindings; (3) `profile.memory.mode ∈
+    requires.memory`.  Never raises: a failed check is recorded as a reason
+    and the caller decides whether to exclude.
+    """
+
+    reasons: list[str] = []
+    harness: Any | None = None
+    try:
+        harness = harness_registry.resolve(profile.harness.id, profile.harness.version)
+    except HarnessResolutionError as error:
+        reasons.append(str(error))
+
+    capabilities = provider_capabilities.get(profile.model.provider)
+    if capabilities is None:
+        reasons.append(
+            f"no ProviderCapabilities registered for provider "
+            f"{profile.model.provider!r}"
+        )
+
+    if harness is not None and capabilities is not None:
+        requires = harness.requires
+        available = frozenset(
+            name for name in _PROVIDER_CAPABILITY_FLAGS if getattr(capabilities, name)
+        )
+        missing_capabilities = requires.provider - available
+        if missing_capabilities:
+            reasons.append(
+                f"provider {profile.model.provider!r} lacks capabilities required "
+                f"by harness {profile.harness.id}/{profile.harness.version}: "
+                f"{sorted(missing_capabilities)}"
+            )
+        if profile.tools:
+            if requires.tools == "none":
+                reasons.append(
+                    f"profile {profile.profile_id!r} declares tools but harness "
+                    f"{profile.harness.id}/{profile.harness.version} requires.tools "
+                    "== 'none'"
+                )
+            pinned = tool_bindings.get(profile.profile_id, frozenset())
+            unresolved = sorted(set(profile.tools) - pinned)
+            if unresolved:
+                reasons.append(
+                    f"profile {profile.profile_id!r} declares tools with no pinned "
+                    f"ToolDefinition in the family bindings: {unresolved}"
+                )
+        if profile.memory.mode not in requires.memory:
+            reasons.append(
+                f"profile {profile.profile_id!r} memory mode "
+                f"{profile.memory.mode!r} is not permitted by harness "
+                f"{profile.harness.id}/{profile.harness.version} "
+                f"(allowed: {sorted(requires.memory)})"
+            )
+
+    admitted = not reasons
+    capability_vector = _capability_vector(
+        harness=harness, capabilities=capabilities, profile=profile, admitted=admitted
+    )
+    payload = {
+        "profile_id": profile.profile_id,
+        "harness_id": profile.harness.id,
+        "harness_version": profile.harness.version,
+        "provider": profile.model.provider,
+        "admitted": admitted,
+        "capability_vector": capability_vector,
+        "reasons": tuple(reasons),
+    }
+    admission_id = "admission_" + _digest(payload)[:20]
+    return ProfileAdmission(
+        admission_id=admission_id,
+        profile_id=profile.profile_id,
+        harness_id=profile.harness.id,
+        harness_version=profile.harness.version,
+        provider=profile.model.provider,
+        admitted=admitted,
+        capability_vector=capability_vector,
+        reasons=tuple(reasons),
+    )
+
+
+def _admit_profiles(
+    profiles: Sequence[AgentProfile],
+    *,
+    harness_registry: HarnessRegistry,
+    provider_capabilities: Mapping[str, ProviderCapabilities],
+    tool_bindings: Mapping[str, frozenset[str]],
+) -> tuple[ProfileAdmission, ...]:
+    """Admit every profile, before any provider call is possible (§5.3).
+
+    The first inadmissible profile raises `CapabilityExclusionError` carrying
+    its receipt; only when every profile is admitted does a `RunPlan` seal
+    the full set.
+    """
+
+    admissions: list[ProfileAdmission] = []
+    for profile in profiles:
+        admission = _admit_profile(
+            profile,
+            harness_registry=harness_registry,
+            provider_capabilities=provider_capabilities,
+            tool_bindings=tool_bindings,
+        )
+        if not admission.admitted:
+            raise CapabilityExclusionError(admission)
+        admissions.append(admission)
+    return tuple(admissions)
+
+
 def _context_for_cell(
     *,
     case: CaseManifest,
@@ -410,6 +653,7 @@ def _plan_payload(plan: RunPlan) -> Mapping[str, Any]:
         "implementation_pins": plan.implementation_pins,
         "input_digests": plan.input_digests,
         "cells": plan.cells,
+        "profile_admissions": plan.profile_admissions,
     }
 
 
@@ -524,6 +768,9 @@ def resolve_run_plan(
     run_spec: RunSpec,
     registry: PluginRegistry,
     implementation_pins: Sequence[ImplementationPin],
+    harness_registry: HarnessRegistry,
+    provider_capabilities: Mapping[str, ProviderCapabilities],
+    tool_bindings: Mapping[str, frozenset[str]] | None = None,
 ) -> RunPlan:
     """Resolve, preflight, expand, and hash one provider-free R2 run plan."""
     if not isinstance(suite, SuiteManifest):
@@ -536,6 +783,13 @@ def resolve_run_plan(
         raise PlanResolutionError("run_spec must be a RunSpec")
     if not isinstance(registry, PluginRegistry):
         raise PlanResolutionError("registry must be a PluginRegistry")
+    if not isinstance(harness_registry, HarnessRegistry):
+        raise PlanResolutionError("harness_registry must be a HarnessRegistry")
+    for provider_id, capabilities in provider_capabilities.items():
+        if not isinstance(capabilities, ProviderCapabilities):
+            raise PlanResolutionError(
+                f"provider_capabilities[{provider_id!r}] must be ProviderCapabilities"
+            )
 
     family_by_id = _family_index(families)
     case_by_id = _index_unique(cases, "case_id", "case")
@@ -574,6 +828,16 @@ def resolve_run_plan(
 
     required_pins = _required_pin_kinds(selected_families, selected_profiles)
     _check_pins(required_pins, pin_by_id)
+
+    # Capability admission (§5.3): sealed before any family plugin work, any
+    # provider client, or any episode -- a failed combination is a typed
+    # exclusion here, never an exception once an episode is under way.
+    profile_admissions = _admit_profiles(
+        selected_profiles,
+        harness_registry=harness_registry,
+        provider_capabilities=provider_capabilities,
+        tool_bindings=tool_bindings or {},
+    )
 
     plugin_by_family: dict[str, Any] = {}
     for family in selected_families:
@@ -693,6 +957,7 @@ def resolve_run_plan(
         implementation_pins=selected_pins,
         input_digests=input_digests,
         cells=tuple(cells),
+        profile_admissions=profile_admissions,
     )
     plan_sha256 = _digest(_plan_payload(provisional))
     return dataclasses.replace(
@@ -703,7 +968,8 @@ def resolve_run_plan(
 
 
 def verify_run_plan(plan: RunPlan) -> None:
-    """Fail if the plan digest, plan ID, case digests, or cell IDs drifted."""
+    """Fail if the plan digest, plan ID, case digests, cell IDs, or admission
+    IDs drifted."""
     if not isinstance(plan, RunPlan):
         raise TypeError("plan must be a RunPlan")
     expected_plan_sha256 = _digest(_plan_payload(plan))
@@ -732,6 +998,15 @@ def verify_run_plan(plan: RunPlan) -> None:
             raise PlanIntegrityError(
                 f"cell_id mismatch: declared={declared_cell_id!r}, "
                 f"computed={expected_cell_id!r}"
+            )
+    for admission in plan.profile_admissions:
+        admission_payload = _canonical_value(admission)
+        declared_admission_id = admission_payload.pop("admission_id")
+        expected_admission_id = "admission_" + _digest(admission_payload)[:20]
+        if declared_admission_id != expected_admission_id:
+            raise PlanIntegrityError(
+                f"admission_id mismatch: declared={declared_admission_id!r}, "
+                f"computed={expected_admission_id!r}"
             )
 
 
@@ -773,10 +1048,12 @@ def write_run_plan(plan: RunPlan, destination: str | Path) -> Path:
 
 
 __all__ = [
+    "CapabilityExclusionError",
     "ImplementationPin",
     "PlanCell",
     "PlanIntegrityError",
     "PlanResolutionError",
+    "ProfileAdmission",
     "RunPlan",
     "canonical_json_bytes",
     "case_content_sha256",
