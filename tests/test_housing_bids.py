@@ -67,6 +67,7 @@ def test_resolver_contract_names_allocation_welfare_not_tenant_payoff():
         (0, (0, float("nan"))),
         (0, (0, float("inf"))),
         (0, (0, "Infinity")),
+        (0, (0, 10**400)),
     ],
 )
 def test_malformed_bid_is_ignored_without_winning(bad_tenant, bad_bid):
@@ -92,6 +93,15 @@ def test_invalid_tenant_key_does_not_block_an_independent_valid_bid():
     )
 
     assert result.pairs == [(0, 0)]
+
+
+def test_equal_bids_use_numeric_tenant_id_as_the_tie_break():
+    world = hz.make_bid_world(num_tenants=12, num_listings=1, seed=0)
+    amount = math.nextafter(world.ask[0], math.inf)
+
+    result = hz.resolve_bids(world, {10: (0, amount), 2: (0, amount)})
+
+    assert result.pairs == [(2, 0)]
 
 
 def test_unmatched_tenant_earns_nothing_not_a_negative():
