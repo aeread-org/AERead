@@ -17,7 +17,7 @@ class AuthoringValidationError(ValueError):
     """An authored runner record violates its strict versioned contract."""
 
 
-_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.:-]*$")
+_ID_RE = re.compile(r"^[a-z0-9](?:[a-z0-9_.-]*[a-z0-9])?$")
 _SEMVER_RE = re.compile(r"^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:[-+][A-Za-z0-9.-]+)?$")
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 
@@ -54,9 +54,21 @@ def _string(value: Any, path: str) -> str:
     return value
 
 
+def is_exportable_id(value: object) -> bool:
+    """Return whether *value* is safe in row keys, paths, URLs, and rLLM IDs.
+
+    Exported identifiers are lower-case, start and end with an alphanumeric
+    character, and may contain only ``_``, ``-``, and ``.`` internally.  A
+    colon is deliberately excluded because rLLM uses it as the separator
+    between a task ID and rollout index.
+    """
+
+    return isinstance(value, str) and _ID_RE.fullmatch(value) is not None
+
+
 def _identifier(value: Any, path: str) -> str:
     result = _string(value, path)
-    if not _ID_RE.fullmatch(result):
+    if not is_exportable_id(result):
         raise AuthoringValidationError(f"{path} is not a valid identifier: {result!r}")
     return result
 

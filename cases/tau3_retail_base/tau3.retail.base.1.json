@@ -1,0 +1,136 @@
+{
+  "case_id": "tau3.retail.base.1",
+  "content_sha256": "7a3d5436cf74714234fb0bd1924a660b510e168e79a12ece9b1532ab8994bbdf",
+  "episode": {
+    "max_logical_actions": 100,
+    "termination": [
+      "agent_stop",
+      "user_stop",
+      "max_steps",
+      "error"
+    ]
+  },
+  "family_id": "tau3.retail",
+  "family_version": "0.1.0",
+  "payload": {
+    "pins": {
+      "db_bytes": 2811616,
+      "db_sha256": "413a65160adbdb5fde0ffc0015c49b6d70250b10c18128de169b597af7766765",
+      "greeting_message": "Hi! How can I help you today?",
+      "judge_args": {
+        "temperature": 0.0
+      },
+      "judge_model": "gpt-4.1-2025-04-14",
+      "max_steps": 100,
+      "policy_sha256": "2c9652afbce57d6e087768d37cda64d31c53d50b3e3225cfdb791bac66466467",
+      "tasks_sha256": "8e03ebce7901bd6218e7a7dc3105faa9324091a68058f7fe61c65262868812e8",
+      "tool_schema_sha256": null,
+      "tool_schema_sha256_unavailable_reason": "cannot import the pinned upstream tau2 package (looked under '/Users/sunzeyu/Documents/econ benchmark/upstream-tau2/src') to compute tool_schema_sha256 by delegation: No module named 'loguru'",
+      "upstream_commit": "fc0055dc4e0a316c3f83133267fbd6faaa770992",
+      "upstream_repo": "tau2-bench",
+      "user_sim_args": {
+        "temperature": 0.0
+      },
+      "user_sim_guidelines_sha256": "740a29dfa64d7bc08eea3bf7493575b914a63f744acbaf7f199ee07eddaf72d3",
+      "user_sim_model": "gpt-4.1-2025-04-14"
+    },
+    "task": {
+      "description": {
+        "notes": null,
+        "purpose": null,
+        "relevant_policies": null
+      },
+      "evaluation_criteria": {
+        "actions": [
+          {
+            "action_id": "1_0",
+            "arguments": {
+              "first_name": "Yusuf",
+              "last_name": "Rossi",
+              "zip": "19122"
+            },
+            "info": null,
+            "name": "find_user_id_by_name_zip"
+          },
+          {
+            "action_id": "1_1",
+            "arguments": {
+              "order_id": "#W2378156"
+            },
+            "info": null,
+            "name": "get_order_details"
+          },
+          {
+            "action_id": "1_2",
+            "arguments": {
+              "product_id": "1656367028"
+            },
+            "info": null,
+            "name": "get_product_details"
+          },
+          {
+            "action_id": "1_3",
+            "arguments": {
+              "product_id": "4896585277"
+            },
+            "info": null,
+            "name": "get_product_details"
+          },
+          {
+            "action_id": "1_4",
+            "arguments": {
+              "item_ids": [
+                "4983901480"
+              ],
+              "new_item_ids": [
+                "7747408585"
+              ],
+              "order_id": "#W2378156",
+              "payment_method_id": "credit_card_9513926"
+            },
+            "info": null,
+            "name": "exchange_delivered_order_items"
+          }
+        ],
+        "communicate_info": [],
+        "nl_assertions": null,
+        "reward_basis": [
+          "DB",
+          "NL_ASSERTION"
+        ]
+      },
+      "id": "1",
+      "initial_state": null,
+      "user_scenario": {
+        "instructions": {
+          "domain": "retail",
+          "known_info": "You are Yusuf Rossi in zip code 19122.",
+          "reason_for_call": "You received your order #W2378156 and wish to exchange the mechanical keyboard for the same one but with clicky switches and the smart thermostat for one compatible with Google Home instead of Apple HomeKit. If there is no keyboard that is clicky, RGB backlight, full size, you'd rather only exchange the thermostat.",
+          "task_instructions": "You are detail-oriented and want to make sure everything is addressed in one go.",
+          "unknown_info": "You do not remember your email address"
+        },
+        "persona": null
+      }
+    }
+  },
+  "provenance": {
+    "generator_id": "tau3_retail_importer",
+    "generator_version": "0.1.0",
+    "review_status": "upstream_pinned"
+  },
+  "seats": [
+    {
+      "id": "assistant",
+      "role": "assistant"
+    },
+    {
+      "id": "user",
+      "role": "user"
+    }
+  ],
+  "spec_version": "aeread.case/0.1",
+  "split": "base",
+  "upstream_task_id": "1",
+  "visibility_policy": "tau3_retail_user_scenario_private_v1",
+  "world_seed": 1
+}

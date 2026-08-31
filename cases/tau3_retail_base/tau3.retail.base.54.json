@@ -1,0 +1,196 @@
+{
+  "case_id": "tau3.retail.base.54",
+  "content_sha256": "822f6798f4ff2b5bce19d1d3c559d0b9b63006b6b7cb7ef8ab1827b09bedcef4",
+  "episode": {
+    "max_logical_actions": 100,
+    "termination": [
+      "agent_stop",
+      "user_stop",
+      "max_steps",
+      "error"
+    ]
+  },
+  "family_id": "tau3.retail",
+  "family_version": "0.1.0",
+  "payload": {
+    "pins": {
+      "db_bytes": 2811616,
+      "db_sha256": "413a65160adbdb5fde0ffc0015c49b6d70250b10c18128de169b597af7766765",
+      "greeting_message": "Hi! How can I help you today?",
+      "judge_args": {
+        "temperature": 0.0
+      },
+      "judge_model": "gpt-4.1-2025-04-14",
+      "max_steps": 100,
+      "policy_sha256": "2c9652afbce57d6e087768d37cda64d31c53d50b3e3225cfdb791bac66466467",
+      "tasks_sha256": "8e03ebce7901bd6218e7a7dc3105faa9324091a68058f7fe61c65262868812e8",
+      "tool_schema_sha256": null,
+      "tool_schema_sha256_unavailable_reason": "cannot import the pinned upstream tau2 package (looked under '/Users/sunzeyu/Documents/econ benchmark/upstream-tau2/src') to compute tool_schema_sha256 by delegation: No module named 'loguru'",
+      "upstream_commit": "fc0055dc4e0a316c3f83133267fbd6faaa770992",
+      "upstream_repo": "tau2-bench",
+      "user_sim_args": {
+        "temperature": 0.0
+      },
+      "user_sim_guidelines_sha256": "740a29dfa64d7bc08eea3bf7493575b914a63f744acbaf7f199ee07eddaf72d3",
+      "user_sim_model": "gpt-4.1-2025-04-14"
+    },
+    "task": {
+      "description": {
+        "notes": null,
+        "purpose": null,
+        "relevant_policies": null
+      },
+      "evaluation_criteria": {
+        "actions": [
+          {
+            "action_id": "54_0",
+            "arguments": {
+              "email": "silva7872@example.com"
+            },
+            "info": null,
+            "name": "find_user_id_by_email"
+          },
+          {
+            "action_id": "54_1",
+            "arguments": {
+              "email": "amelia.silva7872@example.com"
+            },
+            "info": null,
+            "name": "find_user_id_by_email"
+          },
+          {
+            "action_id": "54_2",
+            "arguments": {
+              "user_id": "amelia_silva_7726"
+            },
+            "info": null,
+            "name": "get_user_details"
+          },
+          {
+            "action_id": "54_3",
+            "arguments": {
+              "order_id": "#W2586676"
+            },
+            "info": null,
+            "name": "get_order_details"
+          },
+          {
+            "action_id": "54_4",
+            "arguments": {
+              "order_id": "#W5400801"
+            },
+            "info": null,
+            "name": "get_order_details"
+          },
+          {
+            "action_id": "54_5",
+            "arguments": {
+              "order_id": "#W4597054"
+            },
+            "info": null,
+            "name": "get_order_details"
+          },
+          {
+            "action_id": "54_6",
+            "arguments": {
+              "order_id": "#W4836353"
+            },
+            "info": null,
+            "name": "get_order_details"
+          },
+          {
+            "action_id": "54_7",
+            "arguments": {
+              "order_id": "#W7773202"
+            },
+            "info": null,
+            "name": "get_order_details"
+          },
+          {
+            "action_id": "54_8",
+            "arguments": {
+              "order_id": "#W7342738"
+            },
+            "info": null,
+            "name": "get_order_details"
+          },
+          {
+            "action_id": "54_9",
+            "arguments": {
+              "order_id": "#W4836353",
+              "reason": "no longer needed"
+            },
+            "info": null,
+            "name": "cancel_pending_order"
+          },
+          {
+            "action_id": "54_10",
+            "arguments": {
+              "order_id": "#W7342738",
+              "reason": "no longer needed"
+            },
+            "info": null,
+            "name": "cancel_pending_order"
+          },
+          {
+            "action_id": "54_11",
+            "arguments": {
+              "item_ids": [
+                "5669664287",
+                "4900990404",
+                "9862136885",
+                "6777246137"
+              ],
+              "order_id": "#W4597054",
+              "payment_method_id": "gift_card_3491931"
+            },
+            "info": null,
+            "name": "return_delivered_order_items"
+          }
+        ],
+        "communicate_info": [
+          "3646.68"
+        ],
+        "nl_assertions": [
+          "Agent should tell the user the total refund amount is $3,646.68."
+        ],
+        "reward_basis": [
+          "DB",
+          "NL_ASSERTION"
+        ]
+      },
+      "id": "54",
+      "initial_state": null,
+      "user_scenario": {
+        "instructions": {
+          "domain": "retail",
+          "known_info": "You are Amelia, and you have two emails: silva7872@example.com and amelia.silva7872@example.com. You live in Philadelphia, and you are a loyal customer.",
+          "reason_for_call": "You recently faced a financial issue and want to cancel or return all possible orders.  Well, except the boots that you really really love, but you are happy to exchange it for boots of the exact same size and material to get maximum money back, but only if they are cheaper than what you have paid. If there are NO cheaper boots available you want the agent to keep the order and cancel the other items. At the end of the day, you ask the agent how much money you will get back.",
+          "task_instructions": "You are now emotional and a bit stress out. You like to talk very tersely.",
+          "unknown_info": null
+        },
+        "persona": null
+      }
+    }
+  },
+  "provenance": {
+    "generator_id": "tau3_retail_importer",
+    "generator_version": "0.1.0",
+    "review_status": "upstream_pinned"
+  },
+  "seats": [
+    {
+      "id": "assistant",
+      "role": "assistant"
+    },
+    {
+      "id": "user",
+      "role": "user"
+    }
+  ],
+  "spec_version": "aeread.case/0.1",
+  "split": "base",
+  "upstream_task_id": "54",
+  "visibility_policy": "tau3_retail_user_scenario_private_v1",
+  "world_seed": 54
+}
