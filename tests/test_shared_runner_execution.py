@@ -10,6 +10,7 @@ from types import MappingProxyType
 import pytest
 
 from aeread.shared_runner.execution import (
+    ArenaChatClient,
     CanonicalResponse,
     ClaudeCodePrintClient,
     ConcurrentEvidenceWriterError,
@@ -895,6 +896,116 @@ def test_openrouter_adapter_pins_deepseek_route_and_parses_usage() -> None:
     assert result.cached_input_tokens == 7
     assert result.output_tokens == 45
     assert result.cost_usd == pytest.approx(0.00001726)
+
+
+class FakeArenaCompletions:
+    def __init__(
+        self,
+        content: str = '{"offer":7}',
+        *,
+        finish_reason: str = "stop",
+        reasoning_content: str | None = None,
+    ) -> None:
+        self.kwargs = None
+        self.content = content
+        self.finish_reason = finish_reason
+        self.reasoning_content = reasoning_content
+
+    async def create(self, **kwargs):
+        self.kwargs = kwargs
+        message = {"role": "assistant", "content": self.content}
+        if self.reasoning_content is not None:
+            message["reasoning_content"] = self.reasoning_content
+        raw = {
+            "id": "arena_fixture",
+            "model": "claude-sonnet-4-6",
+            "choices": [
+                {
+                    "finish_reason": self.finish_reason,
+                    "message": message,
+                }
+            ],
+            "usage": {"prompt_tokens": 100, "completion_tokens": 10},
+        }
+        return SimpleNamespace(model_dump=lambda mode: raw)
+
+
+def test_arena_adapter_uses_compatible_chat_completions_and_parses_json() -> None:
+    completions = FakeArenaCompletions()
+    sdk = SimpleNamespace(chat=SimpleNamespace(completions=completions))
+    client = ArenaChatClient(sdk_client=sdk)
+    request = replace(
+        _openrouter_request(),
+        provider="arena",
+        base_url="https://api.preview.arena.ai/v1",
+        model="claude-sonnet-4-6",
+        revision="claude-sonnet-4-6",
+        top_p=None,
+        seed=None,
+        provider_metadata=None,
+    ).with_computed_hash()
+
+    result = asyncio.run(client.complete(request))
+
+    assert completions.kwargs["model"] == "claude-sonnet-4-6"
+    assert "Return only JSON matching this schema" in completions.kwargs["messages"][0][
+        "content"
+    ]
+    assert "response_format" not in completions.kwargs
+    assert result.output_text == '{"offer":7}'
+    assert result.input_tokens == 100
+    assert result.output_tokens == 10
+    assert result.cost_usd is None
+
+
+@pytest.mark.parametrize(
+    "content",
+    [
+        '```json\n{"offer":7}\n```',
+        '<think>I should return the required object.</think>\n{"offer":7}',
+    ],
+)
+def test_arena_adapter_extracts_json_from_model_wrappers(content: str) -> None:
+    completions = FakeArenaCompletions(content)
+    sdk = SimpleNamespace(chat=SimpleNamespace(completions=completions))
+    client = ArenaChatClient(sdk_client=sdk)
+    request = replace(
+        _openrouter_request(),
+        provider="arena",
+        base_url="https://api.preview.arena.ai/v1",
+        model="deepseek-v4-flash-0731",
+        revision="deepseek-v4-flash-0731",
+        top_p=None,
+        seed=None,
+        provider_metadata=None,
+    ).with_computed_hash()
+
+    result = asyncio.run(client.complete(request))
+
+    assert result.output_text == '{"offer":7}'
+
+
+def test_arena_adapter_identifies_reasoning_budget_exhaustion() -> None:
+    completions = FakeArenaCompletions(
+        "", finish_reason="length", reasoning_content="unfinished reasoning"
+    )
+    sdk = SimpleNamespace(chat=SimpleNamespace(completions=completions))
+    client = ArenaChatClient(sdk_client=sdk)
+    request = replace(
+        _openrouter_request(),
+        provider="arena",
+        base_url="https://api.preview.arena.ai/v1",
+        model="deepseek-v4-flash-0731",
+        revision="deepseek-v4-flash-0731",
+        top_p=None,
+        seed=None,
+        provider_metadata=None,
+    ).with_computed_hash()
+
+    with pytest.raises(ProviderFailure, match="increase --max-output-tokens") as raised:
+        asyncio.run(client.complete(request))
+
+    assert raised.value.condition == "length"
 
 
 def test_openrouter_adapter_serializes_a_frozen_schema_as_plain_json() -> None:

@@ -29,6 +29,7 @@ dev = ["pytest>=7"]
 [project.scripts]
 aeread = "aeread.cli:main"
 aeread-shared-smoke = "aeread.shared_runner.smoke:main"
+aeread-refund = "aeread.shared_runner.refund:main"
 
 # rLLM plugin discovery (https://docs.rllm-project.com): with rllm installed,
 # `rllm eval <dataset> --agent aeread` / `rllm train` resolve these by name.
@@ -49,3 +50,4 @@ packages = ["src/aeread"]
 # `rllm eval` works without cloning. rllm_dataset._search_roots() looks here first.
 [tool.hatch.build.targets.wheel.force-include]
 "configs" = "aeread/configs"
+"cases" = "aeread/cases"
