@@ -620,6 +620,147 @@ def default_harnesses() -> dict[str, Any]:
     return {"minimal_chat/1.0": MinimalChatHarness()}
 
 
+# --- native_tool_chat/1.0: native messages, plural tool calls (§6, §8) ---
+
+
+class _TurnCodec(Protocol):
+    """What a turn codec owns at the wire boundary the shared engine drives:
+    which `response_mode` it asks the model for, and how a dispatched tool's
+    result becomes the next turn's message.  Everything else in the loop --
+    grouped dispatch in source order, the feedback turn, the round budget --
+    is common and lives once in `_run_tool_loop`; `json_dialect/1.0` reuses
+    it with a codec of its own rather than a second loop.
+    """
+
+    response_mode: Literal["native_tools", "json_dialect"]
+
+    def tool_result_message(
+        self, *, call: NativeToolCall, envelope: ToolExecutionEnvelope
+    ) -> CanonicalMessage: ...
+
+
+@dataclass(frozen=True, slots=True)
+class _NativeToolCodec:
+    """The wire dialect a native-tool-calling provider already speaks: a
+    tool's result becomes a `role="tool"` message keyed by the model's own
+    `call_id`, so the model can match the reply to the call it made."""
+
+    response_mode: Literal["native_tools", "json_dialect"] = "native_tools"
+
+    def tool_result_message(
+        self, *, call: NativeToolCall, envelope: ToolExecutionEnvelope
+    ) -> CanonicalMessage:
+        return CanonicalMessage(
+            role="tool",
+            content=canonical_json_bytes(envelope.result).decode("utf-8"),
+            tool_call_id=call.call_id,
+        )
+
+
+async def _run_tool_loop(request: Any, ctx: AttemptContext, *, codec: _TurnCodec) -> HarnessOutput:
+    """The tool loop every turn codec shares (§6, §8): the calls of one model
+    turn are dispatched together, in source order, under that turn's own
+    `provider_call_id` -- one grouped environment hop, matching upstream
+    tau2 -- the grouped results are fed back as the next turn's messages, and
+    the loop stops at text or at the round budget.  Splitting a turn's calls
+    across more than one hop would change `upstream_step_count` and, near
+    `max_steps`, the score -- so this grouping is the one thing a codec may
+    never touch.
+    """
+
+    messages: tuple[CanonicalMessage, ...] = (
+        CanonicalMessage(role="user", content=_request_input_text(request)),
+    )
+    claimed: list[ClaimedToolCall] = []
+    tool_executions: list[Mapping[str, Any]] = []
+    rounds_used = 0
+
+    while True:
+        if rounds_used >= ctx.budget.rounds_left:
+            raise ProviderFailure(
+                "rounds_exhausted",
+                f"the tool loop exceeded its round budget of {ctx.budget.rounds_left}",
+                retryable=False,
+            )
+        turn = await ctx.model.complete(
+            messages=messages, tools=(), response_mode=codec.response_mode
+        )
+        rounds_used += 1
+
+        if turn.text is not None:
+            messages = messages + (CanonicalMessage(role="assistant", content=turn.text),)
+            return HarnessOutput(
+                action={"messages": list(messages), "tool_executions": tool_executions},
+                claimed_tool_calls=tuple(claimed),
+                rounds_used=rounds_used,
+                notes={},
+            )
+
+        if ctx.tools is None:
+            raise ToolFailure(
+                "tools_not_admitted",
+                "the model requested tool calls but no ToolPort was granted",
+                retryable=False,
+            )
+
+        feedback: list[CanonicalMessage] = []
+        for index, call in enumerate(turn.tool_calls):
+            envelope = await ctx.tools.invoke(
+                tool_id=call.tool_id,
+                arguments=call.arguments,
+                source_provider_call_id=turn.provider_call_id,
+                source_call_index=index,
+            )
+            claimed.append(
+                ClaimedToolCall(
+                    tool_id=call.tool_id,
+                    source_provider_call_id=turn.provider_call_id,
+                    source_call_index=index,
+                )
+            )
+            tool_executions.append(dict(envelope.family_reconciliation))
+            feedback.append(codec.tool_result_message(call=call, envelope=envelope))
+        messages = messages + tuple(feedback)
+
+
+class NativeToolChatHarness:
+    """`native_tool_chat/1.0`: native messages, plural tool calls in one turn
+    (§6).  It is the only harness whose reported claim is comparable to
+    upstream tau2 -- every other tool-calling dialect must be labeled
+    non-comparable.  `act` is a thin wrapper over the shared `_run_tool_loop`
+    engine, coded with `_NativeToolCodec`.
+    """
+
+    id = "native_tool_chat"
+    version = "1.0"
+    requires = HarnessRequirements(
+        provider=frozenset({"native_tools"}),
+        tools="declared",
+        memory=frozenset({"disabled"}),
+        owns_retries=False,
+        owns_tools=False,
+        replayable=True,
+        blocking=False,
+        spawns_subagents=False,
+    )
+
+    async def open_episode(self, episode: Any) -> None:
+        return None
+
+    async def close_episode(self, episode: Any) -> None:
+        return None
+
+    def classify_failure(self, exc: BaseException) -> FailureCondition:
+        if isinstance(exc, (ProviderFailure, ToolFailure)):
+            return FailureCondition(exc.condition, retryable=exc.retryable)
+        return FailureCondition("harness_error", retryable=False)
+
+    def state_reader(self) -> Any:
+        return None
+
+    async def act(self, request: Any, ctx: AttemptContext) -> HarnessOutput:
+        return await _run_tool_loop(request, ctx, codec=_NativeToolCodec())
+
 
 class AttemptExecutor(MinimalChatExecutor):
     """Runs each action attempt through a registered `Harness` (§5.1).
@@ -788,6 +929,7 @@ __all__ = [
     "ModelPort",
     "ModelTurn",
     "NativeToolCall",
+    "NativeToolChatHarness",
     "ProviderCapabilities",
     "ToolExecutionEnvelope",
     "ToolPort",

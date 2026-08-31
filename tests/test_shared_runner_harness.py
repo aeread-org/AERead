@@ -1333,3 +1333,241 @@ def test_the_context_carries_the_action_attempt_id_not_a_provider_call_id(
 
     assert seen["attempt_id"].startswith("action_attempt")
     assert not seen["attempt_id"].startswith("provider_call")
+
+
+# --- native_tool_chat/1.0: the tool loop matches design §8 exactly ---
+
+
+def test_native_tool_chat_dispatches_a_grouped_two_call_turn_and_matches_design_section_8_event_order(
+    tmp_path,
+) -> None:
+    """`native_tool_chat/1.0`'s real `act()`, given two rounds of budget,
+    reproduces design §8's event sequence exactly: both tool calls of one
+    model turn are dispatched under that turn's own `provider_call_id`, the
+    results are fed back as one grouped turn, and the attempt is recorded a
+    success before the scheduler would ever parse the action.  The scheduler
+    events themselves (`action_attempt_started`/`succeeded`, `action_parsed`,
+    `action_legality_checked`) are not this harness's to emit -- as in the
+    stage-1 hand-simulation above, they are appended around the real `act()`
+    call the way the executor's lifecycle already does.
+    """
+
+    from aeread.shared_runner.harness import (
+        BudgetView,
+        NativeToolChatHarness,
+        _KernelAttemptContext,
+    )
+
+    evidence = _evidence(tmp_path)
+    runtime, balance_db = _tool_runtime(tmp_path, evidence)
+    profile = _profile()
+    decision = _executor_decision()
+    action_attempt_id = "action_attempt_native_tool_chat"
+
+    provider = ScriptedProvider(
+        [
+            _result(
+                text="",
+                finish_reason="tool_calls",
+                tool_calls=(
+                    NativeToolCall(call_id="call_0", tool_id="get_balance", arguments={}),
+                    NativeToolCall(
+                        call_id="call_1",
+                        tool_id="refund_order",
+                        arguments={"amount_usd": 5},
+                    ),
+                ),
+            ),
+            _result(text="here is your answer", finish_reason="reply"),
+        ]
+    )
+    model_port = KernelModelPort(
+        evidence=evidence,
+        provider=provider,
+        pricing=FAKE_PRICING,
+        profile=profile,
+        instructions=SYSTEM_PROMPT,
+        action_attempt_id=action_attempt_id,
+        logical_action_id="logical_action_fixture",
+        visibility="seat:buyer",
+    )
+    tool_port = KernelToolPort(
+        runtime=runtime, attempt_id="attempt_fixture", action_attempt_id=action_attempt_id
+    )
+    context = _KernelAttemptContext(
+        attempt_id=action_attempt_id,
+        seed=0,
+        budget=BudgetView(rounds_left=2, tokens_left=None, cost_left=None),
+        model=model_port,
+        tools=tool_port,
+        evidence=evidence,
+    )
+    harness = NativeToolChatHarness()
+
+    async def run_attempt() -> HarnessOutput:
+        evidence.append_event(
+            "logical_action_started",
+            {"profile_id": profile.profile_id, "request": {"phase_id": decision.phase_id}},
+            logical_action_id="logical_action_fixture",
+        )
+        evidence.append_event(
+            "action_attempt_started",
+            {
+                "ordinal": 0,
+                "retry_reason": None,
+                "session_mode": profile.retry_policy.session_mode,
+                "rounds_max": context.budget.rounds_left,
+                "seed": profile.sampling.seed,
+            },
+            logical_action_id="logical_action_fixture",
+            action_attempt_id=action_attempt_id,
+        )
+
+        harness_output = await harness.act(decision, context)
+
+        pre_close_events = evidence.read_events()
+        provider_call_ids = list(
+            dict.fromkeys(e.provider_call_id for e in pre_close_events if e.provider_call_id)
+        )
+        tool_invocation_ids = list(
+            dict.fromkeys(e.tool_invocation_id for e in pre_close_events if e.tool_invocation_id)
+        )
+        evidence.append_event(
+            "action_attempt_succeeded",
+            {
+                "provider_call_ids": provider_call_ids,
+                "tool_invocation_ids": tool_invocation_ids,
+                "claimed_tool_calls": len(harness_output.claimed_tool_calls),
+                "reconciled": True,
+                "rounds_used": harness_output.rounds_used,
+                "empty_completions": 0,
+                "malformed_rounds": 0,
+            },
+            logical_action_id="logical_action_fixture",
+            action_attempt_id=action_attempt_id,
+        )
+        evidence.append_event(
+            "action_parsed",
+            {"verdict": "applied"},
+            logical_action_id="logical_action_fixture",
+            action_attempt_id=action_attempt_id,
+        )
+        evidence.append_event(
+            "action_legality_checked",
+            {"legal": True},
+            logical_action_id="logical_action_fixture",
+            action_attempt_id=action_attempt_id,
+        )
+        return harness_output
+
+    output = asyncio.run(run_attempt())
+
+    assert output.rounds_used == 2
+    # Both calls of the one turn share the same provider_call_id -- one
+    # grouped environment hop, in source order.
+    first_call, second_call = output.claimed_tool_calls
+    assert first_call.source_provider_call_id == second_call.source_provider_call_id
+    assert (first_call.source_call_index, second_call.source_call_index) == (0, 1)
+    assert first_call.source_provider_call_id == provider.requests[0].provider_call_id
+    assert output.action["tool_executions"] == [{}, {}]
+
+    events = evidence.read_events()
+    event_types = [event.event_type for event in events]
+    assert event_types == [
+        "logical_action_started",
+        "action_attempt_started",
+        "provider_call_started",
+        "provider_call_succeeded",
+        "tool_dispatch_intended",
+        "tool_invocation_started",
+        "tool_invocation_succeeded",
+        "tool_dispatch_intended",
+        "tool_invocation_started",
+        "tool_invocation_succeeded",
+        "provider_call_started",
+        "provider_call_succeeded",
+        "action_attempt_succeeded",
+        "action_parsed",
+        "action_legality_checked",
+    ]
+
+    provider_call_events = [event for event in events if event.provider_call_id is not None]
+    assert len({event.provider_call_id for event in provider_call_events}) == 2
+    tool_events = [event for event in events if event.tool_invocation_id is not None]
+    tool_ids = {event.tool_invocation_id for event in tool_events}
+    assert len(tool_ids) == 2
+    for tool_invocation_id in tool_ids:
+        subset = [
+            event.event_type for event in tool_events if event.tool_invocation_id == tool_invocation_id
+        ]
+        assert subset == [
+            "tool_dispatch_intended",
+            "tool_invocation_started",
+            "tool_invocation_succeeded",
+        ]
+    # Attempt success is recorded before the scheduler would ever parse.
+    assert event_types.index("action_attempt_succeeded") < event_types.index("action_parsed")
+
+    evidence.audit_reconciliation(entity_types=("action_attempt", "provider_call", "tool_invocation"))
+
+
+def test_native_tool_chat_rounds_budget_exhausted_is_a_typed_failure(tmp_path) -> None:
+    """§8: budgets are port-enforced -- exceeding `rounds_left` closes the
+    attempt as a typed `ProviderFailure("rounds_exhausted", ...)`, the same
+    typed-failure vocabulary the kernel already retries or terminates on,
+    never a bare/untyped exception escaping the loop.  With `rounds_left=1`
+    the loop must stop after the first (tool-calling) round rather than ever
+    asking the provider a second time.
+    """
+
+    from aeread.shared_runner.harness import (
+        BudgetView,
+        NativeToolChatHarness,
+        _KernelAttemptContext,
+    )
+
+    evidence = _evidence(tmp_path)
+    runtime, _ = _tool_runtime(tmp_path, evidence)
+    profile = _profile()
+    decision = _executor_decision()
+    action_attempt_id = "action_attempt_rounds_exhausted"
+
+    provider = ScriptedProvider(
+        [
+            _result(
+                text="",
+                finish_reason="tool_calls",
+                tool_calls=(
+                    NativeToolCall(call_id="call_0", tool_id="get_balance", arguments={}),
+                ),
+            ),
+        ]
+    )
+    model_port = KernelModelPort(
+        evidence=evidence,
+        provider=provider,
+        pricing=FAKE_PRICING,
+        profile=profile,
+        instructions=SYSTEM_PROMPT,
+        action_attempt_id=action_attempt_id,
+    )
+    tool_port = KernelToolPort(
+        runtime=runtime, attempt_id="attempt_fixture", action_attempt_id=action_attempt_id
+    )
+    context = _KernelAttemptContext(
+        attempt_id=action_attempt_id,
+        seed=0,
+        budget=BudgetView(rounds_left=1, tokens_left=None, cost_left=None),
+        model=model_port,
+        tools=tool_port,
+        evidence=evidence,
+    )
+    harness = NativeToolChatHarness()
+
+    with pytest.raises(ProviderFailure) as captured:
+        asyncio.run(harness.act(decision, context))
+
+    assert captured.value.condition == "rounds_exhausted"
+    assert captured.value.retryable is False
+    # The loop stopped before ever asking the provider a second time.
+    assert len(provider.requests) == 1
