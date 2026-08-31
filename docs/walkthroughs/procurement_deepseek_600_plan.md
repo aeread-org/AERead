@@ -1,9 +1,9 @@
 # DeepSeek procurement: 600-episode run plan
 
 Date: 2026-08-28. Request: run 600 procurement episodes with DeepSeek.
-Status: user approved $5 total and continuation to the final result. The temperature-1
-admission passed; its sample stopped at 69 attempts after an upstream rate-limit
-burst. A receipt-preserving continuation for the 531 unattempted cells is being validated.
+Status: complete. The user approved $5 total and continuation to the final result.
+The receipt-preserving recovery chain attempted all 600 planned cells and remained
+within the approved cap. See the [final live result](../experiment_results/procurement_deepseek_600_2026-08-30.md).
 
 ## Locked comparison and measurement
 
