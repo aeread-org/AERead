@@ -934,6 +934,27 @@ class AttemptExecutor(MinimalChatExecutor):
             raise EvidenceIntegrityError(f"no harness registered for {key!r}")
         super()._validate_profile(profile, prompt_sources)
 
+    def _validate_harness_profile(self, profile: AgentProfile) -> None:
+        """Validate the profile against the harness it actually names.
+
+        The base class checks minimal_chat/1.0's own guarantees; inheriting
+        those unchanged meant a tool-using profile was refused as "not
+        minimal_chat/1.0" and no tool harness could reach production. Each
+        harness declares what it accepts, so check against that instead.
+        """
+
+        harness = self._harnesses[self._harness_key(profile)]
+        requires = harness.requires
+        if profile.tools and requires.tools == "none":
+            raise EvidenceIntegrityError(
+                f"harness {self._harness_key(profile)!r} does not permit tools"
+            )
+        if profile.memory.mode not in requires.memory:
+            raise EvidenceIntegrityError(
+                f"harness {self._harness_key(profile)!r} does not permit memory "
+                f"mode {profile.memory.mode!r}"
+            )
+
     async def _obtain_result(
         self,
         *,

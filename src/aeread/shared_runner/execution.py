@@ -1745,9 +1745,17 @@ class MinimalChatExecutor:
             )
             self._profiles[profile.profile_id] = profile
 
-    def _validate_profile(
-        self, profile: AgentProfile, prompt_sources: Mapping[str, str | bytes]
-    ) -> None:
+    def _validate_harness_profile(self, profile: AgentProfile) -> None:
+        """Checks that belong to THIS executor's harness, not to every harness.
+
+        Split out so a subclass driving other harnesses inherits the universal
+        checks below -- providers, pricing, prompts, sdk_retries -- without
+        also inheriting minimal_chat/1.0's own guarantee that it accepts no
+        tools and no memory. Before the split, an AttemptExecutor bound to a
+        tool-using harness was refused here as "not minimal_chat/1.0", so no
+        tool harness could reach the production entry point at all.
+        """
+
         if profile.harness.id != "minimal_chat" or profile.harness.version != "1.0":
             raise EvidenceIntegrityError(
                 f"profile {profile.profile_id!r} is not minimal_chat/1.0"
@@ -1756,6 +1764,11 @@ class MinimalChatExecutor:
             raise EvidenceIntegrityError("minimal_chat/1.0 does not permit tools")
         if profile.memory.mode != "disabled":
             raise EvidenceIntegrityError("minimal_chat/1.0 requires disabled memory")
+
+    def _validate_profile(
+        self, profile: AgentProfile, prompt_sources: Mapping[str, str | bytes]
+    ) -> None:
+        self._validate_harness_profile(profile)
         if profile.retry_policy.sdk_retries != 0:
             raise EvidenceIntegrityError("SDK retries must be zero")
         if profile.model.provider not in self._providers:

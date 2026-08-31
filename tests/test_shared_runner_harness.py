@@ -1800,3 +1800,67 @@ def test_json_dialect_singular_object_is_a_malformed_round_not_a_crash(tmp_path)
 
     event_types = [event.event_type for event in evidence.read_events()]
     assert "harness_note" in event_types, "the malformed round must be recorded, not silent"
+
+
+
+def test_a_tool_using_profile_is_accepted_by_a_tool_capable_harness(tmp_path) -> None:
+    """A tool harness must be reachable through the executor's public API.
+
+    AttemptExecutor inherits MinimalChatExecutor, and inherited its
+    harness-specific validation too: every profile was checked against
+    minimal_chat/1.0's own guarantee, so a profile naming native_tool_chat was
+    refused as "not minimal_chat/1.0". Both tool harnesses S4 built were
+    therefore unreachable from production -- they could only ever be driven by
+    hand in tests. Validation now runs against the harness the profile names.
+    """
+
+    import dataclasses
+
+    from aeread.shared_runner.harness import AttemptExecutor, NativeToolChatHarness
+
+    base = _executor_profile()
+    tools_profile = dataclasses.replace(
+        base,
+        harness=dataclasses.replace(base.harness, id="native_tool_chat"),
+        tools=("get_balance",),
+    )
+    decision = _executor_decision()
+    evidence = EvidenceStore(
+        tmp_path / "tools_profile",
+        run_plan_id="runplan_harness_fixture",
+        cell_id=decision.cell_id,
+        episode_id=decision.episode_id,
+        episode_attempt_id="episode_attempt_harness_fixture",
+    )
+
+    # Construction is the gate that used to reject it; reaching past it proves
+    # the harness is selectable for a real tools-declaring profile.
+    executor = AttemptExecutor(
+        evidence=evidence,
+        profiles=[tools_profile],
+        prompt_sources={base.prompt.prompt_id: _executor_prompt()},
+        providers={base.model.provider: ScriptedProvider([_result(text="ok")])},
+        pricing={base.model.model: FAKE_PRICING},
+        harnesses={"native_tool_chat/1.0": NativeToolChatHarness()},
+    )
+    assert executor._harness_key(tools_profile) == "native_tool_chat/1.0"
+
+    # minimal_chat's own guarantee is untouched: it still refuses tools.
+    from aeread.shared_runner.harness import MinimalChatHarness
+
+    minimal_with_tools = dataclasses.replace(base, tools=("get_balance",))
+    with pytest.raises(EvidenceIntegrityError, match="does not permit tools"):
+        AttemptExecutor(
+            evidence=EvidenceStore(
+                tmp_path / "minimal_with_tools",
+                run_plan_id="runplan_harness_fixture",
+                cell_id=decision.cell_id,
+                episode_id=decision.episode_id,
+                episode_attempt_id="episode_attempt_harness_fixture",
+            ),
+            profiles=[minimal_with_tools],
+            prompt_sources={base.prompt.prompt_id: _executor_prompt()},
+            providers={base.model.provider: ScriptedProvider([_result(text="ok")])},
+            pricing={base.model.model: FAKE_PRICING},
+            harnesses={"minimal_chat/1.0": MinimalChatHarness()},
+        )
