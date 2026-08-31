@@ -2894,12 +2894,15 @@ async def execute_plan_cell(
         episode_id=episode_id,
         episode_attempt_id=episode_attempt_id,
     )
-    executor = MinimalChatExecutor(
+    from .harness import AttemptExecutor, default_harnesses
+
+    executor = AttemptExecutor(
         evidence=evidence,
         profiles=selected_profiles,
         prompt_sources=prompt_sources,
         providers=providers,
         pricing=pricing,
+        harnesses=default_harnesses() if harnesses is None else harnesses,
     )
     result = await run_episode(
         cell=cell,

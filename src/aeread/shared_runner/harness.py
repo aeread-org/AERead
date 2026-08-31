@@ -276,8 +276,8 @@ class KernelModelPort:
             revision=self._profile.model.revision,
             instructions=self._instructions,
             input_text=input_text,
-            temperature=self._profile.sampling.temperature,
-            top_p=self._profile.sampling.top_p,
+            temperature=_sampling_value(self._profile, "temperature"),
+            top_p=_sampling_value(self._profile, "top_p"),
             max_output_tokens=effective_max_output_tokens,
             reasoning_effort=self._profile.reasoning.effort,
             timeout_seconds=self._profile.budgets.timeout_seconds,
@@ -454,6 +454,21 @@ class KernelToolPort:
             family_reconciliation=reconciliation,
         )
 
+
+
+def _sampling_value(profile: AgentProfile, control: str) -> float | None:
+    """The sampling value to send, or None when the harness cannot apply it.
+
+    A profile may declare `harness.config.sampling_controls.<control> =
+    "unavailable"` for a runtime that cannot honour it -- the Claude Code CLI
+    accepts no temperature, for instance.  Sending a value the harness silently
+    ignores would record a control the run never actually applied.
+    """
+
+    controls = profile.harness.config.get("sampling_controls")
+    if isinstance(controls, Mapping) and controls.get(control) == "unavailable":
+        return None
+    return getattr(profile.sampling, control)
 
 
 class _KernelAttemptContext:
