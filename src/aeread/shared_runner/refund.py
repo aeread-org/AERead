@@ -29,7 +29,8 @@ from .execution import (
     TokenPricing,
     execute_plan_cell,
 )
-from .registry import PluginRegistry
+from .harness import default_harnesses
+from .registry import HarnessRegistry, PluginRegistry, ProviderCapabilities
 from .resolver import (
     ImplementationPin,
     RunPlan,
@@ -778,6 +779,29 @@ def build_refund_run(
             version="0.1.0",
         ),
     )
+    harness_registry = HarnessRegistry()
+    for harness in default_harnesses().values():
+        harness_registry.register(harness)
+    provider_capabilities = {
+        provider: ProviderCapabilities(
+            native_tools=False,
+            structured_output=False,
+            seed=provider == "openrouter",
+            system_prompt=True,
+            reasoning_budget=False,
+            reasoning_token_report=False,
+            max_context_tokens=None,
+        ),
+        "scripted": ProviderCapabilities(
+            native_tools=False,
+            structured_output=False,
+            seed=False,
+            system_prompt=True,
+            reasoning_budget=False,
+            reasoning_token_report=False,
+            max_context_tokens=None,
+        ),
+    }
     plan = resolve_run_plan(
         families=(family,),
         cases=cases,
@@ -789,6 +813,8 @@ def build_refund_run(
         run_spec=run_spec,
         registry=registry,
         implementation_pins=pins,
+        harness_registry=harness_registry,
+        provider_capabilities=provider_capabilities,
     )
     pricing = {
         scripted_customer_model: _pricing_for("scripted", scripted_customer_model),
