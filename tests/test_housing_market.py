@@ -5,7 +5,7 @@ import math
 
 import pytest
 
-from aeread import housing_env as hz
+from aeread.housing_v1 import environment as hz
 
 
 def _market(seed=1, tenants=3, listings=2, rounds=4):

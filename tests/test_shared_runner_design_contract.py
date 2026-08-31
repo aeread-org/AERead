@@ -331,8 +331,8 @@ def test_runner_taxonomy_architecture_and_build_roadmap_are_frozen() -> None:
 
     for source_ref in (
         "src/aeread/cli.py:L27-L40",
-        "src/aeread/exchange_v1_runner.py:L950-L1234",
-        "src/aeread/exchange_economy.py:L4919-L5078",
+        "src/aeread/exchange_v1/runner.py:L950-L1234",
+        "src/aeread/exchange_v1/economy.py:L4919-L5078",
     ):
         assert source_ref in text, f"current-flow walkthrough is missing: {source_ref}"
 

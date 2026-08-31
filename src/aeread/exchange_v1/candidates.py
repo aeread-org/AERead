@@ -17,8 +17,8 @@ because greedy IR search needs the world, which the text boundary forbids. A mod
 run uses the `llm` under-test kind the same way.
 
 Usage with the harness CLI:
-    python sprint/exchange_v1_submit.py --cases ... \
-        --agent exchange_v1_candidates:NoOpCandidate
+    python -m aeread.exchange_v1.submit --cases ... \
+        --agent aeread.exchange_v1.candidates:NoOpCandidate
 """
 from __future__ import annotations
 

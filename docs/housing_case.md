@@ -24,7 +24,7 @@ With six tenants and four listings, at least two tenants end up unhoused by
 construction.
 
 ```python
-from aeread import housing_env as hz
+from aeread.housing_v1 import environment as hz
 
 world = hz.make_bid_world(num_tenants=6, num_listings=4, seed=0)
 optimum = hz.assignment_oracle(world.surplus)       # max-weight matching benchmark
@@ -256,7 +256,7 @@ pytest tests/test_housing_assignment.py tests/test_housing_bids.py \
 
 ```python
 import statistics as st
-from aeread import housing_env as hz
+from aeread.housing_v1 import environment as hz
 
 naive, adaptive = [], []
 for seed in range(300):

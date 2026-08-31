@@ -36,9 +36,9 @@ import threading
 from typing import Any, Optional
 
 try:
-    from aeread import gemini_llm
+    from aeread.inference import gemini as gemini_llm
 except ModuleNotFoundError:  # pragma: no cover - package-style import
-    from . import gemini_llm
+    from . import gemini as gemini_llm
 
 
 class _Pending:

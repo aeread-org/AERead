@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import math
 
-from aeread import nonir_classifier as nc
+from aeread.exchange_v1 import nonir_classifier as nc
 
 EPS = 1e-9
 

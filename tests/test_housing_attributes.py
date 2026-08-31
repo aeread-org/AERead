@@ -10,7 +10,7 @@ well, not miscomputing.
 """
 from __future__ import annotations
 
-from aeread import housing_env as hz
+from aeread.housing_v1 import environment as hz
 
 
 def test_each_tenant_gets_a_different_weight_vector():

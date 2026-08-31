@@ -16,7 +16,7 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 
-from aeread import exchange_v1_scoring as scoring  # noqa: E402
+from aeread.exchange_v1 import scoring as scoring  # noqa: E402
 
 
 def _run_dir(tmp_path, *, initial=10.0, final_net=None, final=16.0, optimum=22.0):

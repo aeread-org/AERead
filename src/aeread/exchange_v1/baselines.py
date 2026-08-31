@@ -6,11 +6,11 @@ config, and maintains the freeze manifest that pins the config set by content ha
 Runs entirely without an API key; every quantity is provider-free.
 
 Usage:
-    python sprint/exchange_v1_baselines.py --configs 'configs/exchange_economy/v1_*.json' \
+    python -m aeread.exchange_v1.baselines --configs 'configs/exchange_economy/releases/v1/v1_*.json' \
         --output-json docs/exchange_economy/v1_baselines.json \
         --output-md docs/exchange_economy/v1_baselines.md
-    python sprint/exchange_v1_baselines.py --freeze --configs 'configs/exchange_economy/v1_*.json'
-    python sprint/exchange_v1_baselines.py --check
+    python -m aeread.exchange_v1.baselines --freeze --configs 'configs/exchange_economy/releases/v1/v1_*.json'
+    python -m aeread.exchange_v1.baselines --check
 """
 from __future__ import annotations
 
@@ -24,15 +24,15 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
 
-try:  # Supports both `python sprint/exchange_v1_baselines.py` and `python -m sprint.exchange_v1_baselines`.
-    from aeread import exchange_economy as ex
-    from aeread import exchange_v1_validity as validity
+try:  # Supports installed and source-tree package imports.
+    from aeread.exchange_v1 import economy as ex
+    from aeread.exchange_v1 import validity as validity
 except ModuleNotFoundError:  # pragma: no cover - exercised by module execution.
-    from . import exchange_economy as ex
-    from . import exchange_v1_validity as validity
+    from . import economy as ex
+    from . import validity as validity
 
 
-DEFAULT_MANIFEST_PATH = Path("configs/exchange_economy/v1_manifest.json")
+DEFAULT_MANIFEST_PATH = Path("configs/exchange_economy/releases/v1/v1_manifest.json")
 D1_METADATA_FIELDS = ("description", "intended_capability", "interpretation_if_failed")
 
 
@@ -279,7 +279,7 @@ def records_to_markdown(records: list[BaselineRecord]) -> str:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Deterministic v1 baselines + config freeze (no LLM)")
-    parser.add_argument("--configs", default="configs/exchange_economy/v1_*.json",
+    parser.add_argument("--configs", default="configs/exchange_economy/releases/v1/v1_*.json",
                         help="glob of configs to score/freeze (default: the v1 frozen set)")
     parser.add_argument("--rounds", type=int, default=None, help="override rounds for scoring")
     parser.add_argument("--random-samples", type=int, default=5)

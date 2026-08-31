@@ -13,7 +13,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 
-from aeread import exchange_v1_sweep as sweep  # noqa: E402
+from aeread.exchange_v1 import sweep as sweep  # noqa: E402
 
 
 def _write_config(tmp_path: Path, name: str, **overrides) -> Path:

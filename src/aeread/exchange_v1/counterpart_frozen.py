@@ -27,7 +27,7 @@ import math
 from dataclasses import dataclass
 from typing import Any, Optional
 
-from aeread import exchange_economy as ex
+from aeread.exchange_v1 import economy as ex
 
 
 @dataclass(frozen=True)

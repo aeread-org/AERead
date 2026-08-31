@@ -35,7 +35,7 @@ state + public transcript only) and phase is one of communication / proposal /
 response / finalization / private_acceptance.
 
 Usage:
-    python sprint/exchange_v1_submit.py --cases case_a.json case_b.json \
+    python -m aeread.exchange_v1.submit --cases case_a.json case_b.json \
         --agent mypkg.myagent:MyAgent --out submissions/ [--no-verify-replay]
 """
 
@@ -50,8 +50,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
 
-from aeread.exchange_v1_roles import KIND_SUBMITTED  # noqa: E402
-from aeread.exchange_v1_runner import (  # noqa: E402
+from aeread.exchange_v1.roles import KIND_SUBMITTED  # noqa: E402
+from aeread.exchange_v1.runner import (  # noqa: E402
     InferenceOptions,
     RunnerError,
     run_v1,
@@ -79,7 +79,7 @@ def _score_run(run_dir: Path, summary: dict[str, Any]) -> dict[str, Any]:
     Tier 2: welfare_ratio from the run summary, explicitly labeled provisional.
     """
     try:
-        from aeread.exchange_v1_scoring import score_run as d15_score_run  # C's D15, when it lands
+        from aeread.exchange_v1.scoring import score_run as d15_score_run  # C's D15, when it lands
 
         result = d15_score_run(run_dir)
         return {"tier": SCORER_TIER_D15, **result}
@@ -98,7 +98,7 @@ def _validate_case(case_path: Path, agent_label: str) -> dict[str, Any]:
     across the whole case-set BEFORE anything runs, so a malformed case costs
     zero API spend and leaves no partial submission directory behind.
     """
-    from aeread.exchange_v1_roles import parse_role_table
+    from aeread.exchange_v1.roles import parse_role_table
 
     if not case_path.is_file():
         raise RunnerError(f"{case_path}: case file not found")

@@ -11,7 +11,7 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 
-from aeread import exchange_economy as ex  # noqa: E402
+from aeread.exchange_v1 import economy as ex  # noqa: E402
 
 
 def test_legacy_named_action_stack_is_archived_not_active():
@@ -66,7 +66,7 @@ def test_concave_utility_mode_has_diminishing_marginal_value_and_config_support(
 
 def test_institution_pressure_config_changes_cost_accounting_not_resource_totals():
     cfg = ex.load_experiment_config(
-        ROOT / "configs" / "exchange_economy" / "public_solicitation_institution_pressure.json"
+        ROOT / "configs" / "exchange_economy" / "diagnostics/public_solicitation/public_solicitation_institution_pressure.json"
     )
     world = ex.make_world_from_config(cfg)
     before = world.copy_allocation()
@@ -87,7 +87,7 @@ def test_institution_pressure_config_changes_cost_accounting_not_resource_totals
 
 def test_anti_anchor_config_adds_bad_fit_example_without_locking_in():
     cfg = ex.load_experiment_config(
-        ROOT / "configs" / "exchange_economy" / "public_solicitation_institution_pressure_anti_anchor.json"
+        ROOT / "configs" / "exchange_economy" / "diagnostics/public_solicitation/public_solicitation_institution_pressure_anti_anchor.json"
     )
     world = ex.make_world_from_config(cfg)
 
@@ -116,7 +116,7 @@ def test_anti_anchor_config_adds_bad_fit_example_without_locking_in():
 
 
 def test_current_experiment_config_recreates_existing_full_visibility_setting():
-    cfg = ex.load_experiment_config(ROOT / "configs" / "exchange_economy" / "current_linear_10x10.json")
+    cfg = ex.load_experiment_config(ROOT / "configs" / "exchange_economy" / "baselines/current_linear_10x10.json")
     world = ex.make_world_from_config(cfg)
 
     assert cfg.name == "current_linear_10x10"
@@ -134,7 +134,7 @@ def test_current_experiment_config_recreates_existing_full_visibility_setting():
 
 def test_experiment_config_runtime_overrides_are_explicit_and_immutable():
     cfg = ex.load_experiment_config(
-        ROOT / "configs" / "exchange_economy" / "capability_ladder_01_visible_bilateral_ir_trade.json"
+        ROOT / "configs" / "exchange_economy" / "ladders/capability_ladder_01_visible_bilateral_ir_trade.json"
     )
 
     overridden = ex.override_experiment_config_runtime(cfg, rounds=3, controllers=[1, 2, 3])
@@ -149,7 +149,7 @@ def test_experiment_config_runtime_overrides_are_explicit_and_immutable():
 
 def test_public_solicitation_config_adds_search_pressure_without_named_prompt_leaks():
     cfg = ex.load_experiment_config(
-        ROOT / "configs" / "exchange_economy" / "public_solicitation_search_pressure.json"
+        ROOT / "configs" / "exchange_economy" / "diagnostics/public_solicitation/public_solicitation_search_pressure.json"
     )
     world = ex.make_world_from_config(cfg)
 
@@ -1229,7 +1229,7 @@ def test_prompt_public_prefix_is_shared_before_private_context():
 
 def test_limited_contact_prompt_keeps_cacheable_shared_prefix_before_viewer_specific_context():
     cfg = ex.load_experiment_config(
-        ROOT / "configs" / "exchange_economy" / "public_solicitation_search_pressure.json"
+        ROOT / "configs" / "exchange_economy" / "diagnostics/public_solicitation/public_solicitation_search_pressure.json"
     )
     world = ex.make_world_from_config(cfg)
 
@@ -1249,7 +1249,7 @@ def test_limited_contact_prompt_keeps_cacheable_shared_prefix_before_viewer_spec
 
 def test_anti_anchor_example_and_envelope_are_cacheable_shared_prefix():
     cfg = ex.load_experiment_config(
-        ROOT / "configs" / "exchange_economy" / "public_solicitation_institution_pressure_anti_anchor.json"
+        ROOT / "configs" / "exchange_economy" / "diagnostics/public_solicitation/public_solicitation_institution_pressure_anti_anchor.json"
     )
     world = ex.make_world_from_config(cfg)
 
@@ -1274,7 +1274,7 @@ def test_anti_anchor_example_and_envelope_are_cacheable_shared_prefix():
 
 def test_universal_public_action_schema_addressees_and_response_request_are_cacheable():
     cfg = ex.load_experiment_config(
-        ROOT / "configs" / "exchange_economy" / "treatment_public_solicitation_solicited.json"
+        ROOT / "configs" / "exchange_economy" / "treatments/public_solicitation/treatment_public_solicitation_solicited.json"
     )
     world = ex.make_world_from_config(cfg)
 
@@ -1495,7 +1495,7 @@ def test_strict_self_interest_protocol_adds_private_delta_and_non_leakage_instru
 
 def test_strict_public_solicitation_config_loads_strict_protocol():
     cfg = ex.load_experiment_config(
-        ROOT / "configs" / "exchange_economy" / "public_solicitation_search_pressure_strict.json"
+        ROOT / "configs" / "exchange_economy" / "diagnostics/public_solicitation/public_solicitation_search_pressure_strict.json"
     )
 
     assert cfg.rounds == 15
@@ -1507,7 +1507,7 @@ def test_strict_public_solicitation_config_loads_strict_protocol():
 
 def test_atomic_commit_config_loads_one_step_protocol():
     cfg = ex.load_experiment_config(
-        ROOT / "configs" / "exchange_economy" / "public_solicitation_institution_pressure_anti_anchor_atomic_commit.json"
+        ROOT / "configs" / "exchange_economy" / "diagnostics/public_solicitation/public_solicitation_institution_pressure_anti_anchor_atomic_commit.json"
     )
 
     assert cfg.protocol.atomic_commit is True
@@ -1517,10 +1517,10 @@ def test_atomic_commit_config_loads_one_step_protocol():
 
 def test_clean_main_and_public_solicitation_treatment_configs_are_separate():
     main = ex.load_experiment_config(
-        ROOT / "configs" / "exchange_economy" / "core_atomic_ir_clean.json"
+        ROOT / "configs" / "exchange_economy" / "baselines/core_atomic_ir_clean.json"
     )
     treatment = ex.load_experiment_config(
-        ROOT / "configs" / "exchange_economy" / "treatment_public_solicitation_solicited.json"
+        ROOT / "configs" / "exchange_economy" / "treatments/public_solicitation/treatment_public_solicitation_solicited.json"
     )
 
     assert main.protocol.atomic_commit is True
@@ -1542,10 +1542,10 @@ def test_clean_main_and_public_solicitation_treatment_configs_are_separate():
 
 def test_clean_configs_use_validated_information_reveal_profile():
     config_names = [
-        "core_atomic_ir_clean.json",
-        "treatment_public_solicitation_solicited.json",
-        "treatment_public_solicitation_auto_response_upper_bound.json",
-        "treatment_public_solicitation_with_search_cost.json",
+        "baselines/core_atomic_ir_clean.json",
+        "treatments/public_solicitation/treatment_public_solicitation_solicited.json",
+        "treatments/public_solicitation/treatment_public_solicitation_auto_response_upper_bound.json",
+        "treatments/public_solicitation/treatment_public_solicitation_with_search_cost.json",
     ]
 
     for name in config_names:
@@ -1565,10 +1565,10 @@ def test_clean_configs_use_validated_information_reveal_profile():
 
 def test_treatment_toolbox_catalog_keeps_public_solicitation_stepwise():
     toolbox = json.loads(
-        (ROOT / "configs" / "exchange_economy" / "treatment_toolbox.json").read_text()
+        (ROOT / "configs" / "exchange_economy" / "treatments/treatment_toolbox.json").read_text()
     )
 
-    assert toolbox["main_config"] == "core_atomic_ir_clean.json"
+    assert toolbox["main_config"] == "baselines/core_atomic_ir_clean.json"
     public_solicitation = toolbox["mechanisms"]["public_solicitation"]
     steps = public_solicitation["steps"]
     assert [step["id"] for step in steps] == [
@@ -1589,10 +1589,10 @@ def test_treatment_toolbox_catalog_keeps_public_solicitation_stepwise():
 
 def test_treatment_toolbox_catalog_keeps_t0_pressure_optional_and_detachable():
     toolbox = json.loads(
-        (ROOT / "configs" / "exchange_economy" / "treatment_toolbox.json").read_text()
+        (ROOT / "configs" / "exchange_economy" / "treatments/treatment_toolbox.json").read_text()
     )
 
-    assert toolbox["main_config"] == "core_atomic_ir_clean.json"
+    assert toolbox["main_config"] == "baselines/core_atomic_ir_clean.json"
     assisted = toolbox["mechanisms"]["explicit_rule_savings_affordance"]
     assert assisted["optional_treatment_family"] is True
     assert assisted["do_not_mix_with"] == [
@@ -1617,7 +1617,7 @@ def test_treatment_toolbox_catalog_keeps_t0_pressure_optional_and_detachable():
 
 def test_visibility_gap_treatment_has_one_effective_pressure_channel():
     cfg = ex.load_experiment_config(
-        ROOT / "configs" / "exchange_economy" / "treatment_public_solicitation_visibility_gap.json"
+        ROOT / "configs" / "exchange_economy" / "treatments/public_solicitation/treatment_public_solicitation_visibility_gap.json"
     )
     world = ex.make_world_from_config(cfg)
 
@@ -1667,7 +1667,7 @@ def test_visibility_gap_private_acceptance_treatment_has_no_deterministic_auto_b
         ROOT
         / "configs"
         / "exchange_economy"
-        / "treatment_public_solicitation_visibility_gap_private_acceptance.json"
+        / "treatments/public_solicitation/treatment_public_solicitation_visibility_gap_private_acceptance.json"
     )
 
     assert cfg.rounds == 15
@@ -1684,7 +1684,7 @@ def test_visibility_gap_partial_clearing_treatment_is_one_isolated_knob():
         ROOT
         / "configs"
         / "exchange_economy"
-        / "treatment_public_solicitation_visibility_gap_partial_clearing.json"
+        / "treatments/public_solicitation/treatment_public_solicitation_visibility_gap_partial_clearing.json"
     )
     world = ex.make_world_from_config(cfg)
 
@@ -1711,8 +1711,8 @@ def test_visibility_gap_partial_clearing_treatment_is_one_isolated_knob():
 
 
 def test_t0_recurring_search_configs_are_detachable_pair():
-    control_path = ROOT / "configs" / "exchange_economy" / "treatment_t0_recurring_search_no_rule_savings.json"
-    savings_path = ROOT / "configs" / "exchange_economy" / "treatment_t0_recurring_search_codified_rule_savings.json"
+    control_path = ROOT / "configs" / "exchange_economy" / "treatments/t0/treatment_t0_recurring_search_no_rule_savings.json"
+    savings_path = ROOT / "configs" / "exchange_economy" / "treatments/t0/treatment_t0_recurring_search_codified_rule_savings.json"
     control_raw = json.loads(control_path.read_text())
     savings_raw = json.loads(savings_path.read_text())
     control = ex.load_experiment_config(control_path)
@@ -1752,10 +1752,10 @@ def test_t0_recurring_search_configs_are_detachable_pair():
 
 def test_t0_recurring_search_prompt_discloses_only_active_pressure_knobs():
     control = ex.load_experiment_config(
-        ROOT / "configs" / "exchange_economy" / "treatment_t0_recurring_search_no_rule_savings.json"
+        ROOT / "configs" / "exchange_economy" / "treatments/t0/treatment_t0_recurring_search_no_rule_savings.json"
     )
     savings = ex.load_experiment_config(
-        ROOT / "configs" / "exchange_economy" / "treatment_t0_recurring_search_codified_rule_savings.json"
+        ROOT / "configs" / "exchange_economy" / "treatments/t0/treatment_t0_recurring_search_codified_rule_savings.json"
     )
     forbidden_examples = [
         "auction",
@@ -1816,7 +1816,7 @@ def test_t0_recurring_search_prompt_discloses_only_active_pressure_knobs():
 
 def test_t0_indirect_routing_config_uses_per_contact_cost_without_rule_bonus():
     cfg = ex.load_experiment_config(
-        ROOT / "configs" / "exchange_economy" / "treatment_t0_indirect_routing_per_contact_cost.json"
+        ROOT / "configs" / "exchange_economy" / "treatments/t0/treatment_t0_indirect_routing_per_contact_cost.json"
     )
     world = ex.make_world_from_config(cfg)
     prompt = ex._freeform_proposal_prompt(
@@ -2301,7 +2301,7 @@ def test_solicited_public_response_scope_does_not_expand_on_headings_only():
 
 def test_solicited_public_prompt_reveals_exact_trigger_without_raw_knob_names():
     cfg = ex.load_experiment_config(
-        ROOT / "configs" / "exchange_economy" / "treatment_public_solicitation_solicited.json"
+        ROOT / "configs" / "exchange_economy" / "treatments/public_solicitation/treatment_public_solicitation_solicited.json"
     )
     world = ex.make_world_from_config(cfg)
 
@@ -2329,7 +2329,7 @@ def test_solicited_public_prompt_reveals_exact_trigger_without_raw_knob_names():
 
 def test_information_reveal_text_validator_detects_missing_and_extra_items():
     cfg = ex.load_experiment_config(
-        ROOT / "configs" / "exchange_economy" / "treatment_public_solicitation_solicited.json"
+        ROOT / "configs" / "exchange_economy" / "treatments/public_solicitation/treatment_public_solicitation_solicited.json"
     )
     world = ex.make_world_from_config(cfg)
     prompt = ex._freeform_proposal_prompt(
@@ -2845,7 +2845,7 @@ def test_run_summary_reports_private_acceptance_error_decomposition():
 
 def test_build_run_summary_payload_includes_revision_fields():
     cfg = ex.load_experiment_config(
-        ROOT / "configs" / "exchange_economy" / "public_solicitation_institution_pressure.json"
+        ROOT / "configs" / "exchange_economy" / "diagnostics/public_solicitation/public_solicitation_institution_pressure.json"
     )
     world = ex.make_world_from_config(cfg)
     result = ex.run_exchange_transcript(

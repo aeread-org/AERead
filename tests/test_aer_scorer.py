@@ -14,9 +14,9 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 
-from aeread import exchange_economy as ex  # noqa: E402
-from aeread import exchange_procurement as ep  # noqa: E402
-from aeread.agentecon_oracle import (  # noqa: E402
+from aeread.exchange_v1 import economy as ex  # noqa: E402
+from aeread.exchange_v1 import procurement as ep  # noqa: E402
+from aeread.exchange_v1.agentecon_oracle import (  # noqa: E402
     BayesResult,
     BundleCaseOracle,
     ProcurementCaseOracle,
@@ -24,7 +24,7 @@ from aeread.agentecon_oracle import (  # noqa: E402
     TIER_FALLBACK,
     TIER_MC,
 )
-from aeread.aer_scorer import (  # noqa: E402
+from aeread.exchange_v1.aer_scorer import (  # noqa: E402
     AERReport,
     STATUS_DEGENERATE,
     STATUS_OK,

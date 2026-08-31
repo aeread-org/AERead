@@ -10,8 +10,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 
-from aeread import exchange_v1_submit as submit  # noqa: E402
-from aeread.exchange_v1_candidates import NoOpCandidate, RandomCandidate  # noqa: E402
+from aeread.exchange_v1 import submit as submit  # noqa: E402
+from aeread.exchange_v1.candidates import NoOpCandidate, RandomCandidate  # noqa: E402
 from tests.test_exchange_v1_roles import _roles_block, fake_provider  # noqa: E402,F401
 from tests.test_exchange_v1_runner import _write_config  # noqa: E402
 

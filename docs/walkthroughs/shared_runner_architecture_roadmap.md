@@ -1,7 +1,7 @@
 # Walkthrough: AERead current-to-shared runner architecture and build roadmap
 
 **Entry point:** `src/aeread/cli.py:main()` (line 27), then
-`src/aeread/exchange_v1_runner.py:run_v1()` (line 950)
+`src/aeread/exchange_v1/runner.py:run_v1()` (line 950)
 
 **Trigger:** `aeread run`, or the existing evaluation, sweep, and submission drivers that
 call `run_v1()` as a library function
@@ -13,16 +13,16 @@ call `run_v1()` as a library function
 **Files involved:**
 
 - `src/aeread/cli.py` — dispatches CLI verbs to Exchange-specific modules.
-- `src/aeread/exchange_v1_runner.py` — resolves one Exchange run, selects policies,
+- `src/aeread/exchange_v1/runner.py` — resolves one Exchange run, selects policies,
   records calls and artifacts, delegates the protocol, and finalizes metadata.
-- `src/aeread/exchange_economy.py` — owns the fixed Exchange round protocol and state
+- `src/aeread/exchange_v1/economy.py` — owns the fixed Exchange round protocol and state
   mutations.
-- `src/aeread/exchange_v1_pilot.py` — expands cases, agents, and seeds and handles
+- `src/aeread/exchange_v1/pilot.py` — expands cases, agents, and seeds and handles
   whole-job recovery and aggregation.
-- `src/aeread/exchange_v1_sweep.py` — executes a Cartesian grid and writes CSV results.
-- `src/aeread/exchange_v1_submit.py` — evaluates a submitted agent against frozen
+- `src/aeread/exchange_v1/sweep.py` — executes a Cartesian grid and writes CSV results.
+- `src/aeread/exchange_v1/submit.py` — evaluates a submitted agent against frozen
   panels and verifies replay.
-- `src/aeread/exchange_v1_scoring.py` — converts an Exchange run directory into the
+- `src/aeread/exchange_v1/scoring.py` — converts an Exchange run directory into the
   current AER result.
 - `docs/shared_runner_design.md` — normative planned architecture.
 - `docs/verifier_taxonomy.md` — measurement/verifier taxonomy; it remains separate from
@@ -35,8 +35,8 @@ resolution, phase scheduling, agent execution, attempts, canonical evidence, rec
 analysis into a family-neutral kernel.
 
 The complete one-run compatibility boundary traced below spans
-`src/aeread/exchange_v1_runner.py:L950-L1234`; its concrete protocol boundary spans
-`src/aeread/exchange_economy.py:L4919-L5078`.
+`src/aeread/exchange_v1/runner.py:L950-L1234`; its concrete protocol boundary spans
+`src/aeread/exchange_v1/economy.py:L4919-L5078`.
 
 ---
 
@@ -74,7 +74,7 @@ Step 2 once per grid cell.
 
 ### Step 2: Enter the one-run compatibility spine
 
-`src/aeread/exchange_v1_runner.py:L950-L973`
+`src/aeread/exchange_v1/runner.py:L950-L973`
 
 ```python
 def run_v1(
@@ -113,7 +113,7 @@ that the planned system splits among `CaseManifest`, `AgentProfile`, `RunSpec`, 
 
 ### Step 3: Resolve the Exchange config and claim a run directory
 
-`src/aeread/exchange_v1_runner.py:L999-L1041`
+`src/aeread/exchange_v1/runner.py:L999-L1041`
 
 ```python
     options = options or InferenceOptions()
@@ -174,7 +174,7 @@ one; blindly repeating the same `run_id` hits `run directory already exists`.
 
 ### Step 4: Build the world and delegate control to the Exchange engine
 
-`src/aeread/exchange_v1_runner.py:L1109-L1147`
+`src/aeread/exchange_v1/runner.py:L1109-L1147`
 
 ```python
     try:
@@ -183,7 +183,7 @@ one; blindly repeating the same `run_id` hits `run directory already exists`.
             mode, config, options, role_table=role_table, under_test_agent=under_test_agent
         )
         if mode != "offline":
-            from aeread import llm_agent
+            from aeread.inference import llm_agent
 
             if not quiet:
                 print(
@@ -230,7 +230,7 @@ may make provider calls; writes call artifacts and trace rows.
 
 ### Step 5: Execute the fixed Exchange round protocol
 
-`src/aeread/exchange_economy.py:L4919-L5018`
+`src/aeread/exchange_v1/economy.py:L4919-L5018`
 
 The source sequence is:
 
@@ -331,7 +331,7 @@ mechanism → mutated world plus one `RoundEvent`.
 
 ### Step 6: Repeat rounds and construct an Exchange result
 
-`src/aeread/exchange_economy.py:L5021-L5078`
+`src/aeread/exchange_v1/economy.py:L5021-L5078`
 
 ```python
     for t in range(1, rounds + 1):
@@ -372,7 +372,7 @@ retains this family object, while the scorer exposes selected estimands through 
 
 ### Step 7: Observe provider calls after they return
 
-`src/aeread/exchange_v1_runner.py:L673-L692`
+`src/aeread/exchange_v1/runner.py:L673-L692`
 
 ```python
         def _call(self, role, system, prompt, model, max_tokens, agent_id=None, round_index=None):
@@ -406,7 +406,7 @@ ambiguous outcome existed after a crash. The new kernel requires
 
 ### Step 8: Finalize summary and run status
 
-`src/aeread/exchange_v1_runner.py:L1185-L1211`
+`src/aeread/exchange_v1/runner.py:L1185-L1211`
 
 ```python
     summary = ex.build_run_summary_payload(
@@ -668,10 +668,10 @@ the same kernel.
 
 | # | Location | Risk | Planned mitigation |
 |---|---|---|---|
-| 1 | `exchange_v1_runner.py:L673-L692` | Provider evidence is written only after the call returns; a crash can leave an ambiguous unrecorded side effect. | R4 write-before-side-effect start and terminal/unknown events. |
-| 2 | `exchange_v1_runner.py:L1038-L1041`; `exchange_v1_pilot.py:L161-L182` | The mute retry recursively reuses the same derived run ID after the first attempt created its directory, so real recovery can hit `run directory already exists`; the current test mocks away the filesystem interaction. | `EpisodeAttempt` identity and explicit retry/resume destination; add an end-to-end filesystem regression test before migration. |
-| 3 | `exchange_v1_runner.py:L1109-L1158` | Observer/replay hooks span the engine call and must always be restored; leakage can contaminate later cells. | Adapter-scoped lifecycle and receipt coverage checks in `finally`. |
-| 4 | `exchange_economy.py:L4919-L5018` | Scheduling, observations, provider calls, compilation, verification, and mutation are interleaved in one family function. | R3 runner-owned phase boundaries and pure/auditable family hooks. |
+| 1 | `exchange_v1/runner.py:L673-L692` | Provider evidence is written only after the call returns; a crash can leave an ambiguous unrecorded side effect. | R4 write-before-side-effect start and terminal/unknown events. |
+| 2 | `exchange_v1/runner.py:L1038-L1041`; `exchange_v1/pilot.py:L161-L182` | The mute retry recursively reuses the same derived run ID after the first attempt created its directory, so real recovery can hit `run directory already exists`; the current test mocks away the filesystem interaction. | `EpisodeAttempt` identity and explicit retry/resume destination; add an end-to-end filesystem regression test before migration. |
+| 3 | `exchange_v1/runner.py:L1109-L1158` | Observer/replay hooks span the engine call and must always be restored; leakage can contaminate later cells. | Adapter-scoped lifecycle and receipt coverage checks in `finally`. |
+| 4 | `exchange_v1/economy.py:L4919-L5018` | Scheduling, observations, provider calls, compilation, verification, and mutation are interleaved in one family function. | R3 runner-owned phase boundaries and pure/auditable family hooks. |
 | 5 | current replay path | Replay reruns a completed episode from cached responses but cannot safely continue a partially completed one. | R5 event-chain reconstruction, idempotency reconciliation, and `outcome_unknown`. |
 | 6 | current driver/scorer modules | Failure, missingness, aggregation, and scoring rules are spread across runner, pilot, sweep, submit, and scoring modules. | Typed receipts plus `AnalysisPlan`; invalid measurement never becomes economic zero. |
 | 7 | reference naming | Calling a full-information upper bound an oracle overstates attainable knowledge. | Exact `oracle` reservation plus typed canonical, baseline, bound, comparison, and judge reference providers. |

@@ -6,7 +6,7 @@
 >
 > **Reviewed:** 2026-08-24
 >
-> **Compatibility baseline:** the current `exchange_v1_runner.py` path
+> **Compatibility baseline:** the current `exchange_v1/runner.py` path
 
 ## Purpose and scope
 
@@ -555,7 +555,7 @@ Family owners define economic semantics. The shared-runner owner must not invent
 
 ## 9. Migration and validation
 
-The existing `exchange_v1_runner.py`, roles, validity, and scoring paths contain assets worth preserving: self-contained run directories, offline/live-frozen/replay modes, snapshots, hashes, model pins, call-funnel checks, invalid-measurement handling, and AER semantics.
+The existing `exchange_v1/runner.py`, roles, validity, and scoring paths contain assets worth preserving: self-contained run directories, offline/live-frozen/replay modes, snapshots, hashes, model pins, call-funnel checks, invalid-measurement handling, and AER semantics.
 
 ### Reference implementations
 

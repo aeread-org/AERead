@@ -1,4 +1,4 @@
-"""Tests for the structured, LLM-free 2-agent RL wrapper (sprint/exchange_rl_env.py)."""
+"""Tests for the structured, LLM-free 2-agent RL wrapper (sprint/exchange_v1/rl_env.py)."""
 from __future__ import annotations
 
 import sys
@@ -8,10 +8,10 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 
-from aeread import exchange_economy as ex  # noqa: E402
-from aeread import exchange_rl_env as rl  # noqa: E402
+from aeread.exchange_v1 import economy as ex  # noqa: E402
+from aeread.exchange_v1 import rl_env as rl  # noqa: E402
 
-CONFIG_PATH = ROOT / "configs" / "exchange_economy" / "rl_bilateral_2agent.json"
+CONFIG_PATH = ROOT / "configs" / "exchange_economy" / "baselines/rl_bilateral_2agent.json"
 
 
 def _deterministic_world() -> ex.ExchangeWorld:

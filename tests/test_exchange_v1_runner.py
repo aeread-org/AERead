@@ -17,10 +17,10 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 
-from aeread import exchange_economy as ex  # noqa: E402
-from aeread import exchange_subgame_oracles as sg  # noqa: E402
-from aeread import exchange_v1_runner as runner  # noqa: E402
-from aeread import llm_agent  # noqa: E402
+from aeread.exchange_v1 import economy as ex  # noqa: E402
+from aeread.exchange_v1 import subgame_oracles as sg  # noqa: E402
+from aeread.exchange_v1 import runner as runner  # noqa: E402
+from aeread.inference import llm_agent  # noqa: E402
 
 FAKE_MODEL = "test/fake-model"
 FAKE_RESOLVED_MODEL = "test-fake-model-2026-01-15"
@@ -477,7 +477,7 @@ def test_adversarial_policy_composes_with_manifest(tmp_path, fake_provider):
         "test_adversarial",
         protocol={"name": "test_protocol", "defection_rate": 0.5, "defection_seed": 1},
     )
-    from aeread import exchange_economy_adversarial as adv
+    from aeread.exchange_v1 import economy_adversarial as adv
 
     outcome = runner.run_v1(
         config,

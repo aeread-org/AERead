@@ -8,7 +8,7 @@ import urllib.error
 
 ROOT = Path(__file__).resolve().parents[1]
 
-from aeread import gemini_llm  # noqa: E402
+from aeread.inference import gemini as gemini_llm  # noqa: E402
 
 
 class _FakeHTTPResponse:

@@ -262,7 +262,7 @@ class SubmittedAgentPolicy:
         self.protocol = None
 
     def _act(self, observation: str, phase: str, agent_id: int, round_index: Optional[int]) -> str:
-        from aeread import llm_agent
+        from aeread.inference import llm_agent
 
         key = llm_agent.compute_replay_key(self._model_label, "", observation, 0, 0.0, 0)
         replay_dir = llm_agent.get_replay_dir()
@@ -301,7 +301,7 @@ class SubmittedAgentPolicy:
         return text
 
     def communication_text(self, world, agent_id, round_index, history):
-        from aeread import exchange_economy as ex
+        from aeread.exchange_v1 import economy as ex
 
         observation = ex._freeform_communication_prompt(
             world, agent_id, round_index, history, protocol=self.protocol
@@ -309,7 +309,7 @@ class SubmittedAgentPolicy:
         return self._act(observation, "communication", agent_id, round_index)
 
     def propose_text(self, world, agent_id, round_index, history, communication_texts):
-        from aeread import exchange_economy as ex
+        from aeread.exchange_v1 import economy as ex
 
         observation = ex._freeform_proposal_prompt(
             world, agent_id, round_index, history, communication_texts, protocol=self.protocol
@@ -317,7 +317,7 @@ class SubmittedAgentPolicy:
         return self._act(observation, "proposal", agent_id, round_index)
 
     def respond_text(self, world, agent_id, transcript, history):
-        from aeread import exchange_economy as ex
+        from aeread.exchange_v1 import economy as ex
 
         observation = ex._freeform_response_prompt(
             world, agent_id, transcript, history, protocol=self.protocol
@@ -325,7 +325,7 @@ class SubmittedAgentPolicy:
         return self._act(observation, "response", agent_id, transcript.round_index)
 
     def finalize_text(self, world, agent_id, transcript, history):
-        from aeread import exchange_economy as ex
+        from aeread.exchange_v1 import economy as ex
 
         observation = ex._freeform_finalize_prompt(
             world, agent_id, transcript, history, protocol=self.protocol
@@ -333,7 +333,7 @@ class SubmittedAgentPolicy:
         return self._act(observation, "finalization", agent_id, transcript.round_index)
 
     def private_acceptance_text(self, world, agent_id, transcript, mechanism, history):
-        from aeread import exchange_economy as ex
+        from aeread.exchange_v1 import economy as ex
 
         observation = ex._private_acceptance_prompt(
             world, agent_id, transcript, mechanism, history, protocol=self.protocol
@@ -435,6 +435,6 @@ class CompositePolicy:
 
     def usage_summary(self) -> dict[str, Any]:
         # borrow the canonical aggregation over self.call_records
-        from aeread import exchange_economy as ex
+        from aeread.exchange_v1 import economy as ex
 
         return ex.LLMCompilerVerifierPolicy.usage_summary(self)

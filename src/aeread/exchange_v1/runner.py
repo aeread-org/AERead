@@ -1,6 +1,6 @@
 """Exchange V1 runner — config-agnostic execution + reproducibility spine (Part A).
 
-Wraps the existing 10-phase engine (`exchange_economy.run_exchange_transcript`) without
+Wraps the existing 10-phase engine (`economy.run_exchange_transcript`) without
 re-implementing any game logic. Every invocation produces one self-contained run
 directory that downstream scoring reads and that replay can reproduce:
 
@@ -21,7 +21,7 @@ Modes (selected via the policy object — the single offline/live seam):
                llm_cache; any fresh provider call hard-fails.
 
 Usage:
-    python sprint/exchange_v1_runner.py --config configs/exchange_economy/X.json \
+    python -m aeread.exchange_v1.runner --config configs/exchange_economy/X.json \
         --seed 7 --mode offline --out runs/
 """
 
@@ -39,8 +39,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
 
-from aeread import exchange_economy as ex  # noqa: E402
-from aeread.exchange_v1_roles import (  # noqa: E402
+from aeread.exchange_v1 import economy as ex  # noqa: E402
+from aeread.exchange_v1.roles import (  # noqa: E402
     KIND_FROZEN_LLM,
     KIND_LIVE_LEARNING,
     KIND_LLM,
@@ -482,7 +482,7 @@ class ManifestRecorder:
         seat: str = "env",
         origin: str = "llm",  # "llm" (through the funnel) | "submitted" (foreign agent)
     ) -> None:
-        from aeread import llm_agent
+        from aeread.inference import llm_agent
 
         replay_key = llm_agent.compute_replay_key(
             model, system, prompt,
@@ -798,12 +798,12 @@ class _DefectorSeat:
         return getattr(self._inner, name)
 
     def respond_text(self, world, agent_id, transcript, history):
-        from aeread.exchange_economy_adversarial import _DEFECT_RESPONSE
+        from aeread.exchange_v1.economy_adversarial import _DEFECT_RESPONSE
 
         return _DEFECT_RESPONSE
 
     def private_acceptance_text(self, world, agent_id, transcript, mechanism, history):
-        from aeread.exchange_economy_adversarial import _DEFECT_ACCEPTANCE
+        from aeread.exchange_v1.economy_adversarial import _DEFECT_ACCEPTANCE
 
         return _DEFECT_ACCEPTANCE
 
@@ -874,7 +874,7 @@ def build_policy(
         sample=options.sample,
     )
     if getattr(config.protocol, "defection_rate", 0.0) > 0.0:
-        from aeread.exchange_economy_adversarial import AdversarialCounterpartyPolicy
+        from aeread.exchange_v1.economy_adversarial import AdversarialCounterpartyPolicy
 
         base: type = AdversarialCounterpartyPolicy
         policy_kwargs.update(
@@ -1112,7 +1112,7 @@ def run_v1(
             mode, config, options, role_table=role_table, under_test_agent=under_test_agent
         )
         if mode != "offline":
-            from aeread import llm_agent
+            from aeread.inference import llm_agent
 
             if not quiet:
                 print(

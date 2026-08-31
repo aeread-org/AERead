@@ -16,7 +16,7 @@ from __future__ import annotations
 import random
 from typing import Any, Optional
 
-from aeread import exchange_economy as ex
+from aeread.exchange_v1 import economy as ex
 
 # Freeform decline the compiler reads as "no consent"; and a reject the audit honors.
 _DEFECT_RESPONSE = (

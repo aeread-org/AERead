@@ -1,7 +1,7 @@
 {
   "version": 1,
   "purpose": "Keep the clean main environment separate from mechanism-specific treatment knobs so each result has a clear interpretation.",
-  "main_config": "core_atomic_ir_clean.json",
+  "main_config": "baselines/core_atomic_ir_clean.json",
   "main_invariants": [
     "same 10x10 economy seed and controllers",
     "hidden heterogeneous concave-separable utilities",
@@ -25,37 +25,37 @@
       "steps": [
         {
           "id": "ps0_no_public_response",
-          "config": "core_atomic_ir_clean.json",
+          "config": "baselines/core_atomic_ir_clean.json",
           "single_change_from_previous": "none; main clean baseline",
           "interpretation": "Measures restricted-contact execution without public solicitation."
         },
         {
           "id": "ps1_solicited_public_response",
-          "config": "treatment_public_solicitation_solicited.json",
+          "config": "treatments/public_solicitation/treatment_public_solicitation_solicited.json",
           "single_change_from_previous": "enable public_broadcast and response_scope=solicited_public",
           "interpretation": "Tests whether controllers can choose to create a public opt-in response path."
         },
         {
           "id": "ps1b_solicited_public_response_visibility_gap",
-          "config": "treatment_public_solicitation_visibility_gap.json",
+          "config": "treatments/public_solicitation/treatment_public_solicitation_visibility_gap.json",
           "single_change_from_previous": "tighten the same visibility/contact channel to one weak visible contact per controller",
           "interpretation": "Single-pressure diagnostic: restricted visibility creates a real discovery gap, while public opt-in remains controller-created."
         },
         {
           "id": "ps1c_visibility_gap_partial_clearing_private_acceptance",
-          "config": "treatment_public_solicitation_visibility_gap_partial_clearing.json",
+          "config": "treatments/public_solicitation/treatment_public_solicitation_visibility_gap_partial_clearing.json",
           "single_change_from_previous": "diagnostic bundle from PS1b: use two visible contacts, consent-subset finalization, and LLM private acceptance; deterministic IR auto-blocking remains off",
           "interpretation": "Tests whether hidden responses can convert into execution when independent consented rows may clear without an all-or-nothing failure."
         },
         {
           "id": "ps2_auto_public_response_upper_bound",
-          "config": "treatment_public_solicitation_auto_response_upper_bound.json",
+          "config": "treatments/public_solicitation/treatment_public_solicitation_auto_response_upper_bound.json",
           "single_change_from_previous": "replace solicited_public with response_scope=all",
           "interpretation": "Upper-bound diagnostic: public response is granted automatically, so this should not be used as the main treatment."
         },
         {
           "id": "ps3_solicited_public_response_with_search_cost",
-          "config": "treatment_public_solicitation_with_search_cost.json",
+          "config": "treatments/public_solicitation/treatment_public_solicitation_with_search_cost.json",
           "single_change_from_previous": "add search_cost_per_public_round=0.05 to ps1",
           "interpretation": "Separates gross welfare capture from net welfare after public-search cost accounting."
         }
@@ -73,13 +73,13 @@
       "steps": [
         {
           "id": "t0_recurring_search_no_rule_savings",
-          "config": "treatment_t0_recurring_search_no_rule_savings.json",
+          "config": "treatments/t0/treatment_t0_recurring_search_no_rule_savings.json",
           "single_change_from_previous": "add recurring demand and public-search cost to the PS1c protocol shape, with no payoff savings for codified public rules",
           "interpretation": "Control arm: tests recurring/search pressure without directly making persistent public rules cheaper in later rounds."
         },
         {
           "id": "t0_recurring_search_codified_rule_savings",
-          "config": "treatment_t0_recurring_search_codified_rule_savings.json",
+          "config": "treatments/t0/treatment_t0_recurring_search_codified_rule_savings.json",
           "single_change_from_previous": "same as the no-savings arm, except active codified public rules save 0.2 total coordination cost per later round",
           "interpretation": "Treatment arm: isolates whether a payoff advantage for reusable public state increases T0 codified-rule emergence."
         }
@@ -97,7 +97,7 @@
       "steps": [
         {
           "id": "t0_indirect_routing_per_contact_cost",
-          "config": "treatment_t0_indirect_routing_per_contact_cost.json",
+          "config": "treatments/t0/treatment_t0_indirect_routing_per_contact_cost.json",
           "single_change_from_previous": "replace flat public-round search cost and rule savings with per-contact response cost; persistent public rules receive no direct bonus",
           "interpretation": "Clean emergence arm: public state only helps if agents use it to route later requests to fewer relevant agents."
         }
@@ -108,13 +108,13 @@
       "steps": [
         {
           "id": "pf0_atomic_ir",
-          "config": "core_atomic_ir_clean.json",
+          "config": "baselines/core_atomic_ir_clean.json",
           "single_change_from_previous": "none; clean protocol baseline",
           "interpretation": "Exact consent once plus deterministic IR safety."
         },
         {
           "id": "pf1_brittle_amend_private_accept",
-          "config": "public_solicitation_institution_pressure_anti_anchor.json",
+          "config": "diagnostics/public_solicitation/public_solicitation_institution_pressure_anti_anchor.json",
           "single_change_from_previous": "legacy stress arm with amend/finalize/private-accept and anti-anchor",
           "interpretation": "Stress/robustness comparison only; too confounded for main inference."
         }

@@ -38,10 +38,7 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any, Optional
 
-try:  # Supports both `python sprint/...py` and `python -m sprint...` import styles.
-    from aeread.exchange_counterpart_frozen import FrozenSellerParams
-except ModuleNotFoundError:  # pragma: no cover - exercised by module execution.
-    from .exchange_counterpart_frozen import FrozenSellerParams
+from .counterpart_frozen import FrozenSellerParams
 
 import math
 

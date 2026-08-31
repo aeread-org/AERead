@@ -7,8 +7,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 
-from aeread import exchange_economy as ex  # noqa: E402
-from aeread.exchange_economy_adversarial import AdversarialCounterpartyPolicy  # noqa: E402
+from aeread.exchange_v1 import economy as ex  # noqa: E402
+from aeread.exchange_v1.economy_adversarial import AdversarialCounterpartyPolicy  # noqa: E402
 
 
 def _pol(rate, seed=0):

@@ -1,7 +1,7 @@
 # Housing v1 cases
 
 Housing worlds are generated deterministically at runtime by
-`src/aeread/housing_env.py`; this family intentionally has no static JSON case
+`src/aeread/housing_v1/environment.py`; this family intentionally has no static JSON case
 fixtures. The generator produces the preference and capacity state from the
 case parameters and seed.
 
