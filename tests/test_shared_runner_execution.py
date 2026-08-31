@@ -1415,3 +1415,78 @@ def test_r3_scheduler_drives_r4_executor_and_reconciles_action(tmp_path) -> None
     )
     assert execution.status == "succeeded"
     evidence.audit_reconciliation()
+
+
+
+def test_a_declared_reasoning_budget_reaches_the_wire() -> None:
+    """A profile's reasoning token budget must be sent, not silently dropped.
+
+    ReasoningSpec.token_budget was a sealed profile field that no request
+    builder copied, and the providers substituted effort="low" whenever effort
+    was absent. Two arms declaring different budgets therefore sent identical
+    requests: the run was labelled with one reasoning condition and executed
+    another -- the shape of a treatment that silently fails to be delivered.
+    """
+
+    from aeread.shared_runner.execution import _reasoning_block
+
+    declared = ProviderRequest(
+        provider_call_id="provider_call_fixture",
+        provider="openrouter",
+        base_url=None,
+        model="fake-model",
+        revision=None,
+        instructions="sys",
+        input_text="hi",
+        temperature=None,
+        top_p=None,
+        max_output_tokens=64,
+        reasoning_effort=None,
+        timeout_seconds=30.0,
+        request_sha256="",
+        reasoning_token_budget=4096,
+    ).with_computed_hash()
+
+    block = _reasoning_block(declared)
+    assert block == {"max_tokens": 4096}, "the declared budget must be sent"
+    assert "effort" not in block, "an absent control must not be invented"
+
+
+def test_native_request_fields_bind_the_request_hash() -> None:
+    """Two native requests differing only in messages must not share a hash.
+
+    request_sha256 excluded messages, tools, and the reasoning budget, so
+    replay could not prove which request produced a given response. Legacy
+    text-only requests must still hash exactly as before.
+    """
+
+    from aeread.shared_runner.harness import CanonicalMessage
+
+    def _request(**overrides):
+        base = dict(
+            provider_call_id="provider_call_fixture",
+            provider="openrouter",
+            base_url=None,
+            model="fake-model",
+            revision=None,
+            instructions="sys",
+            input_text="hi",
+            temperature=None,
+            top_p=None,
+            max_output_tokens=64,
+            reasoning_effort=None,
+            timeout_seconds=30.0,
+            request_sha256="",
+        )
+        base.update(overrides)
+        return ProviderRequest(**base).with_computed_hash()
+
+    legacy = _request()
+    first = _request(messages=(CanonicalMessage(role="user", content="alpha"),))
+    second = _request(messages=(CanonicalMessage(role="user", content="bravo"),))
+    budgeted = _request(reasoning_token_budget=4096)
+
+    assert first.request_sha256 != second.request_sha256, "messages must bind the hash"
+    assert budgeted.request_sha256 != legacy.request_sha256
+    # A text-only request is unaffected by the new fields.
+    assert legacy.request_sha256 == _request().request_sha256

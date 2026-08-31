@@ -686,6 +686,18 @@ class ProviderRequest:
             "provider_metadata": self.provider_metadata,
             "seed": self.seed,
         }
+        # Native fields join the hash only when set, so a legacy text request
+        # hashes exactly as before while a native call binds the bytes it
+        # actually sends.  Without this, two native requests differing only in
+        # messages or tools share a request_sha256 and replay cannot prove
+        # which one produced a response.
+        for field, value in (
+            ("messages", self.messages),
+            ("tools", self.tools),
+            ("reasoning_token_budget", self.reasoning_token_budget),
+        ):
+            if value is not None:
+                payload[field] = value
         return dataclasses.replace(
             self, request_sha256=_sha256_bytes(canonical_json_bytes(payload))
         )
@@ -796,6 +808,26 @@ class ToolInvocationRecord:
 
 class ProviderClient(Protocol):
     async def complete(self, request: ProviderRequest) -> ProviderResult: ...
+
+
+
+def _reasoning_block(request: "ProviderRequest") -> dict[str, Any]:
+    """The reasoning controls to send, carrying exactly what the profile declared.
+
+    A profile may declare an effort, a token budget, or both.  Substituting a
+    default for an absent control -- the previous `or "low"` -- meant a run
+    labelled with one reasoning condition executed another, which is how a
+    treatment silently fails to be delivered.  Absent controls are simply not
+    sent, so the provider applies its own documented default rather than one
+    this kernel invented.
+    """
+
+    block: dict[str, Any] = {}
+    if request.reasoning_effort is not None:
+        block["effort"] = request.reasoning_effort
+    if request.reasoning_token_budget is not None:
+        block["max_tokens"] = request.reasoning_token_budget
+    return block
 
 
 class OpenAIResponsesClient:
@@ -1004,7 +1036,7 @@ class OpenRouterChatClient:
             "stream": False,
             "extra_headers": {"X-OpenRouter-Metadata": "enabled"},
             "extra_body": {
-                "reasoning": {"effort": request.reasoning_effort or "low"},
+                "reasoning": _reasoning_block(request),
                 "provider": provider_preferences,
             },
         }
@@ -1088,7 +1120,7 @@ class OpenRouterChatClient:
             "stream": False,
             "extra_headers": {"X-OpenRouter-Metadata": "enabled"},
             "extra_body": {
-                "reasoning": {"effort": request.reasoning_effort or "low"},
+                "reasoning": _reasoning_block(request),
                 "provider": provider_preferences,
             },
         }
@@ -1561,7 +1593,7 @@ class ClaudeCodePrintClient:
             "--model",
             request.model,
             "--effort",
-            request.reasoning_effort or "low",
+            request.reasoning_effort or "medium",
             "--tools",
             "",
             "--permission-mode",
@@ -1818,6 +1850,7 @@ class MinimalChatExecutor:
             top_p=profile.sampling.top_p,
             max_output_tokens=max_output_tokens,
             reasoning_effort=profile.reasoning.effort,
+            reasoning_token_budget=profile.reasoning.token_budget,
             timeout_seconds=profile.budgets.timeout_seconds,
             request_sha256="",
             max_cost_usd=profile.budgets.max_cost_usd,

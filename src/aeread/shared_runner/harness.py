@@ -299,6 +299,7 @@ class KernelModelPort:
                 top_p=_sampling_value(self._profile, "top_p"),
                 max_output_tokens=effective_max_output_tokens,
                 reasoning_effort=self._profile.reasoning.effort,
+                reasoning_token_budget=self._profile.reasoning.token_budget,
                 timeout_seconds=self._profile.budgets.timeout_seconds,
                 request_sha256="",
                 max_cost_usd=self._profile.budgets.max_cost_usd,
