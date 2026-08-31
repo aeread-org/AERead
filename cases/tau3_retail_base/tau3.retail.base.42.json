@@ -1,0 +1,194 @@
+{
+  "case_id": "tau3.retail.base.42",
+  "content_sha256": "077a10579cd6ea0cfed7d8fe5515ac15283b502a3acead38f1ae1fd3698cda5b",
+  "episode": {
+    "max_logical_actions": 100,
+    "termination": [
+      "agent_stop",
+      "user_stop",
+      "max_steps",
+      "error"
+    ]
+  },
+  "family_id": "tau3.retail",
+  "family_version": "0.1.0",
+  "payload": {
+    "pins": {
+      "db_bytes": 2811616,
+      "db_sha256": "413a65160adbdb5fde0ffc0015c49b6d70250b10c18128de169b597af7766765",
+      "greeting_message": "Hi! How can I help you today?",
+      "judge_args": {
+        "temperature": 0.0
+      },
+      "judge_model": "gpt-4.1-2025-04-14",
+      "max_steps": 100,
+      "policy_sha256": "2c9652afbce57d6e087768d37cda64d31c53d50b3e3225cfdb791bac66466467",
+      "tasks_sha256": "8e03ebce7901bd6218e7a7dc3105faa9324091a68058f7fe61c65262868812e8",
+      "tool_schema_sha256": null,
+      "tool_schema_sha256_unavailable_reason": "cannot import the pinned upstream tau2 package (looked under '/Users/sunzeyu/Documents/econ benchmark/upstream-tau2/src') to compute tool_schema_sha256 by delegation: No module named 'loguru'",
+      "upstream_commit": "fc0055dc4e0a316c3f83133267fbd6faaa770992",
+      "upstream_repo": "tau2-bench",
+      "user_sim_args": {
+        "temperature": 0.0
+      },
+      "user_sim_guidelines_sha256": "740a29dfa64d7bc08eea3bf7493575b914a63f744acbaf7f199ee07eddaf72d3",
+      "user_sim_model": "gpt-4.1-2025-04-14"
+    },
+    "task": {
+      "description": {
+        "notes": null,
+        "purpose": null,
+        "relevant_policies": null
+      },
+      "evaluation_criteria": {
+        "actions": [
+          {
+            "action_id": "42_0",
+            "arguments": {
+              "first_name": "Mei",
+              "last_name": "Patel",
+              "zip": "76165"
+            },
+            "info": null,
+            "name": "find_user_id_by_name_zip"
+          },
+          {
+            "action_id": "42_1",
+            "arguments": {
+              "user_id": "mei_patel_7272"
+            },
+            "info": null,
+            "name": "get_user_details"
+          },
+          {
+            "action_id": "42_2",
+            "arguments": {
+              "order_id": "#W9583042"
+            },
+            "info": null,
+            "name": "get_order_details"
+          },
+          {
+            "action_id": "42_3",
+            "arguments": {
+              "order_id": "#W4082615"
+            },
+            "info": null,
+            "name": "get_order_details"
+          },
+          {
+            "action_id": "42_4",
+            "arguments": {
+              "address1": "445 Maple Drive",
+              "address2": "Suite 394",
+              "city": "Fort Worth",
+              "country": "USA",
+              "order_id": "#W9583042",
+              "state": "TX",
+              "zip": "76165"
+            },
+            "info": null,
+            "name": "modify_pending_order_address"
+          },
+          {
+            "action_id": "42_5",
+            "arguments": {
+              "address1": "445 Maple Drive",
+              "address2": "Suite 394",
+              "city": "Fort Worth",
+              "country": "USA",
+              "order_id": "#W4082615",
+              "state": "TX",
+              "zip": "76165"
+            },
+            "info": null,
+            "name": "modify_pending_order_address"
+          },
+          {
+            "action_id": "42_6",
+            "arguments": {
+              "address1": "445 Maple Drive",
+              "address2": "Suite 394",
+              "city": "Fort Worth",
+              "country": "USA",
+              "state": "TX",
+              "user_id": "mei_patel_7272",
+              "zip": "76165"
+            },
+            "info": null,
+            "name": "modify_user_address"
+          },
+          {
+            "action_id": "42_7",
+            "arguments": {
+              "product_id": "1808611083"
+            },
+            "info": null,
+            "name": "get_product_details"
+          },
+          {
+            "action_id": "42_8",
+            "arguments": {
+              "order_id": "#W4082615"
+            },
+            "info": null,
+            "name": "get_order_details"
+          },
+          {
+            "action_id": "42_9",
+            "arguments": {
+              "item_ids": [
+                "9779102705"
+              ],
+              "new_item_ids": [
+                "1096508426"
+              ],
+              "order_id": "#W4082615",
+              "payment_method_id": "paypal_4768213"
+            },
+            "info": null,
+            "name": "modify_pending_order_items"
+          }
+        ],
+        "communicate_info": [],
+        "nl_assertions": null,
+        "reward_basis": [
+          "DB",
+          "NL_ASSERTION"
+        ]
+      },
+      "id": "42",
+      "initial_state": null,
+      "user_scenario": {
+        "instructions": {
+          "domain": "retail",
+          "known_info": "Your name is Mei Patel, and you live in 445 Maple Drive, Suite 394, Fort Worth, Texas, 76165.",
+          "reason_for_call": "You just created your user id mei_patel_7272 and ordered some things, but realized you might have typed your address wrong. You want to check it, and potentially correct all order addresses and your user address. After this, you'd like to check the jigsaw you ordered, and if it's not shipped yet, you want to change it to the easiest jigsaw (easiest level, least pieces) because your kid is too young. By default you use PayPal.",
+          "task_instructions": "You are brief and your memory is not too good sometimes, but you are polite.",
+          "unknown_info": "You do not remember your email address"
+        },
+        "persona": null
+      }
+    }
+  },
+  "provenance": {
+    "generator_id": "tau3_retail_importer",
+    "generator_version": "0.1.0",
+    "review_status": "upstream_pinned"
+  },
+  "seats": [
+    {
+      "id": "assistant",
+      "role": "assistant"
+    },
+    {
+      "id": "user",
+      "role": "user"
+    }
+  ],
+  "spec_version": "aeread.case/0.1",
+  "split": "base",
+  "upstream_task_id": "42",
+  "visibility_policy": "tau3_retail_user_scenario_private_v1",
+  "world_seed": 42
+}

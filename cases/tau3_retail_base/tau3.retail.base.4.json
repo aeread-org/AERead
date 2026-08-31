@@ -1,0 +1,221 @@
+{
+  "case_id": "tau3.retail.base.4",
+  "content_sha256": "672d1460b2ba02001af1d0ea2557c8c703fb8c484dd5af94dbafefe3d62da700",
+  "episode": {
+    "max_logical_actions": 100,
+    "termination": [
+      "agent_stop",
+      "user_stop",
+      "max_steps",
+      "error"
+    ]
+  },
+  "family_id": "tau3.retail",
+  "family_version": "0.1.0",
+  "payload": {
+    "pins": {
+      "db_bytes": 2811616,
+      "db_sha256": "413a65160adbdb5fde0ffc0015c49b6d70250b10c18128de169b597af7766765",
+      "greeting_message": "Hi! How can I help you today?",
+      "judge_args": {
+        "temperature": 0.0
+      },
+      "judge_model": "gpt-4.1-2025-04-14",
+      "max_steps": 100,
+      "policy_sha256": "2c9652afbce57d6e087768d37cda64d31c53d50b3e3225cfdb791bac66466467",
+      "tasks_sha256": "8e03ebce7901bd6218e7a7dc3105faa9324091a68058f7fe61c65262868812e8",
+      "tool_schema_sha256": null,
+      "tool_schema_sha256_unavailable_reason": "cannot import the pinned upstream tau2 package (looked under '/Users/sunzeyu/Documents/econ benchmark/upstream-tau2/src') to compute tool_schema_sha256 by delegation: No module named 'loguru'",
+      "upstream_commit": "fc0055dc4e0a316c3f83133267fbd6faaa770992",
+      "upstream_repo": "tau2-bench",
+      "user_sim_args": {
+        "temperature": 0.0
+      },
+      "user_sim_guidelines_sha256": "740a29dfa64d7bc08eea3bf7493575b914a63f744acbaf7f199ee07eddaf72d3",
+      "user_sim_model": "gpt-4.1-2025-04-14"
+    },
+    "task": {
+      "description": {
+        "notes": null,
+        "purpose": null,
+        "relevant_policies": null
+      },
+      "evaluation_criteria": {
+        "actions": [
+          {
+            "action_id": "4_0",
+            "arguments": {
+              "first_name": "Yusuf",
+              "last_name": "Rossi",
+              "zip": "19122"
+            },
+            "info": null,
+            "name": "find_user_id_by_name_zip"
+          },
+          {
+            "action_id": "4_1",
+            "arguments": {
+              "product_id": "6086499569"
+            },
+            "info": null,
+            "name": "get_product_details"
+          },
+          {
+            "action_id": "4_3",
+            "arguments": {
+              "product_id": "9523456873"
+            },
+            "info": null,
+            "name": "get_product_details"
+          },
+          {
+            "action_id": "4_4",
+            "arguments": {
+              "user_id": "yusuf_rossi_9620"
+            },
+            "info": null,
+            "name": "get_user_details"
+          },
+          {
+            "action_id": "4_5",
+            "arguments": {
+              "order_id": "#W6247578"
+            },
+            "info": null,
+            "name": "get_order_details"
+          },
+          {
+            "action_id": "4_6",
+            "arguments": {
+              "order_id": "#W9711842"
+            },
+            "info": null,
+            "name": "get_order_details"
+          },
+          {
+            "action_id": "4_7",
+            "arguments": {
+              "order_id": "#W4776164"
+            },
+            "info": null,
+            "name": "get_order_details"
+          },
+          {
+            "action_id": "4_8",
+            "arguments": {
+              "order_id": "#W6679257"
+            },
+            "info": null,
+            "name": "get_order_details"
+          },
+          {
+            "action_id": "4_9",
+            "arguments": {
+              "order_id": "#W2378156"
+            },
+            "info": null,
+            "name": "get_order_details"
+          },
+          {
+            "action_id": "4_10",
+            "arguments": {
+              "product_id": "9523456873"
+            },
+            "info": null,
+            "name": "get_product_details"
+          },
+          {
+            "action_id": "4_11",
+            "arguments": {
+              "user_id": "yusuf_rossi_9620"
+            },
+            "info": null,
+            "name": "get_user_details"
+          },
+          {
+            "action_id": "4_12",
+            "arguments": {
+              "item_ids": [
+                "3799046073"
+              ],
+              "new_item_ids": [
+                "9647292434"
+              ],
+              "order_id": "#W6247578",
+              "payment_method_id": "credit_card_9513926"
+            },
+            "info": null,
+            "name": "modify_pending_order_items"
+          },
+          {
+            "action_id": "4_13",
+            "arguments": {
+              "item_ids": [
+                "8349118980"
+              ],
+              "new_item_ids": [
+                "9647292434"
+              ],
+              "order_id": "#W4776164",
+              "payment_method_id": "credit_card_9513926"
+            },
+            "info": null,
+            "name": "modify_pending_order_items"
+          }
+        ],
+        "communicate_info": [
+          "10"
+        ],
+        "nl_assertions": [
+          "Agent should tell the user that there are 10 t-shirt options available."
+        ],
+        "reward_basis": [
+          "DB",
+          "NL_ASSERTION"
+        ]
+      },
+      "id": "4",
+      "initial_state": null,
+      "issues": [
+        {
+          "author_email": "keshav@sierra.ai",
+          "created_at": "2026-01-16",
+          "id": "issue_2b74ee61",
+          "simulation_file": "task_issues/task_4_issue_2b74ee61.json",
+          "status": "open",
+          "title": "Task looks for number 10, but user does not ask for a number. It is happy with \"various\" or a description."
+        }
+      ],
+      "user_scenario": {
+        "instructions": {
+          "domain": "retail",
+          "known_info": "You are Yusuf Rossi in zipcode 19122.",
+          "reason_for_call": "You want to know exactly how many tshirt options are available in the online store right now. You want to modify all your pending tshirts to purple, s size, same v-neck, and prefer polyester.",
+          "task_instructions": "You are a private person that does not want to reveal much about yourself.",
+          "unknown_info": "You do not remember your email address."
+        },
+        "persona": null
+      }
+    }
+  },
+  "provenance": {
+    "generator_id": "tau3_retail_importer",
+    "generator_version": "0.1.0",
+    "review_status": "upstream_pinned"
+  },
+  "seats": [
+    {
+      "id": "assistant",
+      "role": "assistant"
+    },
+    {
+      "id": "user",
+      "role": "user"
+    }
+  ],
+  "spec_version": "aeread.case/0.1",
+  "split": "base",
+  "upstream_task_id": "4",
+  "visibility_policy": "tau3_retail_user_scenario_private_v1",
+  "world_seed": 4
+}

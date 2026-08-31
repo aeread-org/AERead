@@ -1,0 +1,155 @@
+{
+  "case_id": "tau3.retail.base.19",
+  "content_sha256": "a4dfcf5b542bda0721de92b1e906271466014452f6aa9fd2a901086f92337797",
+  "episode": {
+    "max_logical_actions": 100,
+    "termination": [
+      "agent_stop",
+      "user_stop",
+      "max_steps",
+      "error"
+    ]
+  },
+  "family_id": "tau3.retail",
+  "family_version": "0.1.0",
+  "payload": {
+    "pins": {
+      "db_bytes": 2811616,
+      "db_sha256": "413a65160adbdb5fde0ffc0015c49b6d70250b10c18128de169b597af7766765",
+      "greeting_message": "Hi! How can I help you today?",
+      "judge_args": {
+        "temperature": 0.0
+      },
+      "judge_model": "gpt-4.1-2025-04-14",
+      "max_steps": 100,
+      "policy_sha256": "2c9652afbce57d6e087768d37cda64d31c53d50b3e3225cfdb791bac66466467",
+      "tasks_sha256": "8e03ebce7901bd6218e7a7dc3105faa9324091a68058f7fe61c65262868812e8",
+      "tool_schema_sha256": null,
+      "tool_schema_sha256_unavailable_reason": "cannot import the pinned upstream tau2 package (looked under '/Users/sunzeyu/Documents/econ benchmark/upstream-tau2/src') to compute tool_schema_sha256 by delegation: No module named 'loguru'",
+      "upstream_commit": "fc0055dc4e0a316c3f83133267fbd6faaa770992",
+      "upstream_repo": "tau2-bench",
+      "user_sim_args": {
+        "temperature": 0.0
+      },
+      "user_sim_guidelines_sha256": "740a29dfa64d7bc08eea3bf7493575b914a63f744acbaf7f199ee07eddaf72d3",
+      "user_sim_model": "gpt-4.1-2025-04-14"
+    },
+    "task": {
+      "description": {
+        "notes": null,
+        "purpose": null,
+        "relevant_policies": null
+      },
+      "evaluation_criteria": {
+        "actions": [
+          {
+            "action_id": "19_0",
+            "arguments": {
+              "first_name": "Mei",
+              "last_name": "Davis",
+              "zip": "80217"
+            },
+            "info": null,
+            "name": "find_user_id_by_name_zip"
+          },
+          {
+            "action_id": "19_1",
+            "arguments": {
+              "user_id": "mei_davis_8935"
+            },
+            "info": null,
+            "name": "get_user_details"
+          },
+          {
+            "action_id": "19_2",
+            "arguments": {
+              "order_id": "#W2890441"
+            },
+            "info": null,
+            "name": "get_order_details"
+          },
+          {
+            "action_id": "19_3",
+            "arguments": {
+              "order_id": "#W1267569"
+            },
+            "info": null,
+            "name": "get_order_details"
+          },
+          {
+            "action_id": "19_4",
+            "arguments": {
+              "product_id": "2747247837"
+            },
+            "info": null,
+            "name": "get_product_details"
+          },
+          {
+            "action_id": "19_5",
+            "arguments": {
+              "product_id": "4794339885"
+            },
+            "info": null,
+            "name": "get_product_details"
+          },
+          {
+            "action_id": "19_6",
+            "arguments": {
+              "item_ids": [
+                "2366567022"
+              ],
+              "order_id": "#W2890441",
+              "payment_method_id": "credit_card_1061405"
+            },
+            "info": null,
+            "name": "return_delivered_order_items"
+          }
+        ],
+        "communicate_info": [
+          "54.04",
+          "41.64"
+        ],
+        "nl_assertions": [
+          "Agent should tell the user that returning the water bottle gives a refund of $54.04.",
+          "Agent should tell the user that exchanging the pet bed and office chair saves $41.64 total."
+        ],
+        "reward_basis": [
+          "DB",
+          "NL_ASSERTION"
+        ]
+      },
+      "id": "19",
+      "initial_state": null,
+      "user_scenario": {
+        "instructions": {
+          "domain": "retail",
+          "known_info": "You are Mei Davis in zipcode 80217.",
+          "reason_for_call": "You want to return the water bottle, and exchange the pet bed and office chair to the cheapest version. Mention the two things together and you want to get both done. If and only if you can only do one of the two things, you prefer to do whatever saves you most money. Ask the agent how much money you can save in both options.",
+          "task_instructions": "You are in debt and sad today, but very brief.",
+          "unknown_info": "You do not remember your email address"
+        },
+        "persona": null
+      }
+    }
+  },
+  "provenance": {
+    "generator_id": "tau3_retail_importer",
+    "generator_version": "0.1.0",
+    "review_status": "upstream_pinned"
+  },
+  "seats": [
+    {
+      "id": "assistant",
+      "role": "assistant"
+    },
+    {
+      "id": "user",
+      "role": "user"
+    }
+  ],
+  "spec_version": "aeread.case/0.1",
+  "split": "base",
+  "upstream_task_id": "19",
+  "visibility_policy": "tau3_retail_user_scenario_private_v1",
+  "world_seed": 19
+}
