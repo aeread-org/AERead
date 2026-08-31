@@ -10,7 +10,7 @@ import copy
 import dataclasses
 import hashlib
 import inspect
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from types import MappingProxyType
 from typing import Any, Awaitable, Callable, Mapping, Sequence
 
@@ -223,7 +223,7 @@ class TransitionResult:
 
     state: Any
     next_phase_id: str | None
-    consequences: Mapping[str, Any] = MappingProxyType({})
+    consequences: Mapping[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         if self.next_phase_id is not None:
@@ -424,6 +424,56 @@ def _validate_transition(phase: PhaseSpec, transition: Any) -> TransitionResult:
     return transition
 
 
+async def _notify_action_failure(
+    response_source: ResponseSource,
+    logical_action_id: str,
+    failure_code: str,
+) -> None:
+    callback = getattr(response_source, "fail_logical_action", None)
+    if callback is None:
+        return
+    try:
+        pending = callback(logical_action_id, failure_code=failure_code)
+        if inspect.isawaitable(pending):
+            await pending
+    except Exception as error:
+        raise SchedulerContractError(
+            f"response source could not close {logical_action_id}: {error}"
+        ) from error
+
+
+async def _notify_lifecycle(
+    response_source: ResponseSource, callback_name: str, **payload: Any
+) -> None:
+    callback = getattr(response_source, callback_name, None)
+    if callback is None:
+        return
+    try:
+        pending = callback(**payload)
+        if inspect.isawaitable(pending):
+            await pending
+    except Exception as error:
+        raise SchedulerContractError(
+            f"response source lifecycle callback {callback_name!r} failed: {error}"
+        ) from error
+
+
+async def _notify_action_result(
+    response_source: ResponseSource, record: LogicalActionRecord
+) -> None:
+    callback = getattr(response_source, "finalize_action", None)
+    if callback is None:
+        return
+    try:
+        pending = callback(record)
+        if inspect.isawaitable(pending):
+            await pending
+    except Exception as error:
+        raise SchedulerContractError(
+            f"response source could not finalize {record.logical_action_id}: {error}"
+        ) from error
+
+
 async def _request_action(
     *,
     plugin: Any,
@@ -480,10 +530,16 @@ async def _request_action(
             _copy_for_hook(raw_response, "canonical response"),
         )
     except Exception as error:
+        await _notify_action_failure(
+            response_source, logical_action_id, "parse_action_exception"
+        )
         raise SchedulerContractError(
             f"parse_action failed for {logical_action_id}: {error}"
         ) from error
     if not isinstance(parsed, ParseResult):
+        await _notify_action_failure(
+            response_source, logical_action_id, "invalid_parse_result"
+        )
         raise SchedulerContractError(
             f"parse_action for {logical_action_id} must return ParseResult"
         )
@@ -498,20 +554,21 @@ async def _request_action(
                 _copy_for_hook(parsed.action, "parsed action"),
             )
         except Exception as error:
+            await _notify_action_failure(
+                response_source, logical_action_id, "legality_exception"
+            )
             raise SchedulerContractError(
                 f"legal failed for {logical_action_id}: {error}"
             ) from error
         if not isinstance(legality, LegalityResult):
+            await _notify_action_failure(
+                response_source, logical_action_id, "invalid_legality_result"
+            )
             raise SchedulerContractError(
                 f"legal for {logical_action_id} must return LegalityResult"
             )
     valid = parsed.ok and legality is not None and legality.legal
     failure_code = parsed.error_code if not parsed.ok else legality.reason
-    if not valid and phase.invalid_action_policy == "reject":
-        raise SchedulerContractError(
-            f"invalid action for seat {seat_id!r} in phase {phase.phase_id!r}: "
-            f"{failure_code}"
-        )
     envelope = ActionEnvelope(
         seat_id=seat_id,
         valid=valid,
@@ -519,7 +576,7 @@ async def _request_action(
         parse=parsed,
         legality=legality,
     )
-    return LogicalActionRecord(
+    record = LogicalActionRecord(
         logical_action_id=logical_action_id,
         seat_id=seat_id,
         request=request,
@@ -528,6 +585,13 @@ async def _request_action(
         legality=legality,
         envelope=envelope,
     )
+    await _notify_action_result(response_source, record)
+    if not valid and phase.invalid_action_policy == "reject":
+        raise SchedulerContractError(
+            f"invalid action for seat {seat_id!r} in phase {phase.phase_id!r}: "
+            f"{failure_code}"
+        )
+    return record
 
 
 def _observe(
@@ -601,6 +665,15 @@ def _outcome(plugin: Any, family_case: Any, terminal: Any) -> Any:
     return outcome
 
 
+def episode_id_for_cell(cell: PlanCell) -> str:
+    """Derive the R3 episode identity for one sealed R2 plan cell."""
+    if not isinstance(cell, PlanCell):
+        raise TypeError("cell must be a PlanCell")
+    return _stable_id(
+        "episode", {"cell_id": cell.cell_id, "case_sha256": cell.case_sha256}
+    )
+
+
 async def run_episode(
     *,
     cell: PlanCell,
@@ -623,10 +696,7 @@ async def run_episode(
     _content_hash(state, "initial family state")
 
     phase_by_id = {phase.phase_id: phase for phase in phases}
-    episode_id = _stable_id(
-        "episode",
-        {"cell_id": cell.cell_id, "case_sha256": cell.case_sha256},
-    )
+    episode_id = episode_id_for_cell(cell)
     current_phase_id = phases[0].phase_id
     phase_ordinal = 0
     logical_action_count = 0
@@ -646,6 +716,14 @@ async def run_episode(
         )
         actors = _eligible_actors(plugin, family_case, state, phase, role_by_seat)
         pre_state_sha256 = _content_hash(state, "pre-phase state")
+        await _notify_lifecycle(
+            response_source,
+            "phase_started",
+            phase_instance_id=phase_instance_id,
+            phase=phase,
+            eligible_actors=actors,
+            pre_state_sha256=pre_state_sha256,
+        )
         observations: dict[str, Any] = {}
         action_records: list[LogicalActionRecord] = []
         transitions: list[TransitionResult] = []
@@ -701,6 +779,14 @@ async def run_episode(
             )
             transitions.append(transition)
             state = _copy_for_hook(transition.state, "post-transition state")
+            await _notify_lifecycle(
+                response_source,
+                "transition_applied",
+                phase_instance_id=phase_instance_id,
+                phase=phase,
+                transition=transition,
+                post_state_sha256=_content_hash(state, "post-transition state"),
+            )
             terminal = _terminal(plugin, family_case, state)
             next_phase_id = transition.next_phase_id
         else:
@@ -748,6 +834,14 @@ async def run_episode(
                 )
                 transitions.append(transition)
                 state = _copy_for_hook(transition.state, "post-transition state")
+                await _notify_lifecycle(
+                    response_source,
+                    "transition_applied",
+                    phase_instance_id=phase_instance_id,
+                    phase=phase,
+                    transition=transition,
+                    post_state_sha256=_content_hash(state, "post-transition state"),
+                )
                 terminal = _terminal(plugin, family_case, state)
                 next_phase_id = transition.next_phase_id
                 if terminal is not None or next_phase_id is not None:
@@ -756,19 +850,23 @@ async def run_episode(
                     next_phase_id = None
 
         post_state_sha256 = _content_hash(state, "post-phase state")
-        instances.append(
-            PhaseInstance(
-                phase_instance_id=phase_instance_id,
-                phase_id=phase.phase_id,
-                ordinal=phase_ordinal,
-                mode=phase.mode,
-                eligible_actors=actors,
-                pre_state_sha256=pre_state_sha256,
-                post_state_sha256=post_state_sha256,
-                observations=_freeze(observations),
-                actions=tuple(action_records),
-                transitions=tuple(transitions),
-            )
+        instance = PhaseInstance(
+            phase_instance_id=phase_instance_id,
+            phase_id=phase.phase_id,
+            ordinal=phase_ordinal,
+            mode=phase.mode,
+            eligible_actors=actors,
+            pre_state_sha256=pre_state_sha256,
+            post_state_sha256=post_state_sha256,
+            observations=_freeze(observations),
+            actions=tuple(action_records),
+            transitions=tuple(transitions),
+        )
+        instances.append(instance)
+        await _notify_lifecycle(
+            response_source,
+            "phase_completed",
+            phase_instance=instance,
         )
         if terminal is not None:
             break
@@ -780,7 +878,7 @@ async def run_episode(
         phase_ordinal += 1
 
     outcome = _outcome(plugin, family_case, terminal)
-    return EpisodeResult(
+    result = EpisodeResult(
         episode_id=episode_id,
         cell_id=cell.cell_id,
         case_id=case.case_id,
@@ -791,6 +889,12 @@ async def run_episode(
         logical_action_count=logical_action_count,
         phase_instances=tuple(instances),
     )
+    await _notify_lifecycle(
+        response_source,
+        "episode_completed",
+        episode_result=result,
+    )
+    return result
 
 
 __all__ = [
@@ -805,5 +909,6 @@ __all__ = [
     "ResponseSource",
     "SchedulerContractError",
     "TransitionResult",
+    "episode_id_for_cell",
     "run_episode",
 ]

@@ -1,0 +1,813 @@
+{
+  "domain": "retail",
+  "results": [
+    {
+      "case_id": "tau3.retail.base.0",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "0"
+    },
+    {
+      "case_id": "tau3.retail.base.1",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "1"
+    },
+    {
+      "case_id": "tau3.retail.base.2",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "2"
+    },
+    {
+      "case_id": "tau3.retail.base.3",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "3"
+    },
+    {
+      "case_id": "tau3.retail.base.4",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "4"
+    },
+    {
+      "case_id": "tau3.retail.base.5",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "5"
+    },
+    {
+      "case_id": "tau3.retail.base.6",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "6"
+    },
+    {
+      "case_id": "tau3.retail.base.7",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "7"
+    },
+    {
+      "case_id": "tau3.retail.base.8",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "8"
+    },
+    {
+      "case_id": "tau3.retail.base.9",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "9"
+    },
+    {
+      "case_id": "tau3.retail.base.10",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "10"
+    },
+    {
+      "case_id": "tau3.retail.base.11",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "11"
+    },
+    {
+      "case_id": "tau3.retail.base.12",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "12"
+    },
+    {
+      "case_id": "tau3.retail.base.13",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "13"
+    },
+    {
+      "case_id": "tau3.retail.base.14",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "14"
+    },
+    {
+      "case_id": "tau3.retail.base.15",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "15"
+    },
+    {
+      "case_id": "tau3.retail.base.16",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "16"
+    },
+    {
+      "case_id": "tau3.retail.base.17",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "17"
+    },
+    {
+      "case_id": "tau3.retail.base.18",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "18"
+    },
+    {
+      "case_id": "tau3.retail.base.19",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "19"
+    },
+    {
+      "case_id": "tau3.retail.base.20",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "20"
+    },
+    {
+      "case_id": "tau3.retail.base.21",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "21"
+    },
+    {
+      "case_id": "tau3.retail.base.22",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "22"
+    },
+    {
+      "case_id": "tau3.retail.base.23",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "23"
+    },
+    {
+      "case_id": "tau3.retail.base.24",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "24"
+    },
+    {
+      "case_id": "tau3.retail.base.25",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "25"
+    },
+    {
+      "case_id": "tau3.retail.base.26",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "26"
+    },
+    {
+      "case_id": "tau3.retail.base.27",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "27"
+    },
+    {
+      "case_id": "tau3.retail.base.28",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "28"
+    },
+    {
+      "case_id": "tau3.retail.base.29",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "29"
+    },
+    {
+      "case_id": "tau3.retail.base.30",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "30"
+    },
+    {
+      "case_id": "tau3.retail.base.31",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "31"
+    },
+    {
+      "case_id": "tau3.retail.base.32",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "32"
+    },
+    {
+      "case_id": "tau3.retail.base.33",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "33"
+    },
+    {
+      "case_id": "tau3.retail.base.34",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "34"
+    },
+    {
+      "case_id": "tau3.retail.base.35",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "35"
+    },
+    {
+      "case_id": "tau3.retail.base.36",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "36"
+    },
+    {
+      "case_id": "tau3.retail.base.37",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "37"
+    },
+    {
+      "case_id": "tau3.retail.base.38",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "38"
+    },
+    {
+      "case_id": "tau3.retail.base.39",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "39"
+    },
+    {
+      "case_id": "tau3.retail.base.40",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "40"
+    },
+    {
+      "case_id": "tau3.retail.base.41",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "41"
+    },
+    {
+      "case_id": "tau3.retail.base.42",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "42"
+    },
+    {
+      "case_id": "tau3.retail.base.43",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "43"
+    },
+    {
+      "case_id": "tau3.retail.base.44",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "44"
+    },
+    {
+      "case_id": "tau3.retail.base.45",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "45"
+    },
+    {
+      "case_id": "tau3.retail.base.46",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "46"
+    },
+    {
+      "case_id": "tau3.retail.base.47",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "47"
+    },
+    {
+      "case_id": "tau3.retail.base.48",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "48"
+    },
+    {
+      "case_id": "tau3.retail.base.49",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "49"
+    },
+    {
+      "case_id": "tau3.retail.base.50",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "50"
+    },
+    {
+      "case_id": "tau3.retail.base.51",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "51"
+    },
+    {
+      "case_id": "tau3.retail.base.52",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "52"
+    },
+    {
+      "case_id": "tau3.retail.base.53",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "53"
+    },
+    {
+      "case_id": "tau3.retail.base.54",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "54"
+    },
+    {
+      "case_id": "tau3.retail.base.55",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "55"
+    },
+    {
+      "case_id": "tau3.retail.base.56",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "56"
+    },
+    {
+      "case_id": "tau3.retail.base.57",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "57"
+    },
+    {
+      "case_id": "tau3.retail.base.58",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "58"
+    },
+    {
+      "case_id": "tau3.retail.base.59",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "59"
+    },
+    {
+      "case_id": "tau3.retail.base.60",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "60"
+    },
+    {
+      "case_id": "tau3.retail.base.61",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "61"
+    },
+    {
+      "case_id": "tau3.retail.base.62",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "62"
+    },
+    {
+      "case_id": "tau3.retail.base.63",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "63"
+    },
+    {
+      "case_id": "tau3.retail.base.64",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "64"
+    },
+    {
+      "case_id": "tau3.retail.base.65",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "65"
+    },
+    {
+      "case_id": "tau3.retail.base.66",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "66"
+    },
+    {
+      "case_id": "tau3.retail.base.67",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "67"
+    },
+    {
+      "case_id": "tau3.retail.base.68",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "68"
+    },
+    {
+      "case_id": "tau3.retail.base.69",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "69"
+    },
+    {
+      "case_id": "tau3.retail.base.70",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "70"
+    },
+    {
+      "case_id": "tau3.retail.base.71",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "71"
+    },
+    {
+      "case_id": "tau3.retail.base.72",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "72"
+    },
+    {
+      "case_id": "tau3.retail.base.73",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "73"
+    },
+    {
+      "case_id": "tau3.retail.base.74",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "74"
+    },
+    {
+      "case_id": "tau3.retail.base.75",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "75"
+    },
+    {
+      "case_id": "tau3.retail.base.76",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "76"
+    },
+    {
+      "case_id": "tau3.retail.base.77",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "77"
+    },
+    {
+      "case_id": "tau3.retail.base.78",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "78"
+    },
+    {
+      "case_id": "tau3.retail.base.79",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "79"
+    },
+    {
+      "case_id": "tau3.retail.base.80",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "80"
+    },
+    {
+      "case_id": "tau3.retail.base.81",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "81"
+    },
+    {
+      "case_id": "tau3.retail.base.82",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "82"
+    },
+    {
+      "case_id": "tau3.retail.base.83",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "83"
+    },
+    {
+      "case_id": "tau3.retail.base.84",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "84"
+    },
+    {
+      "case_id": "tau3.retail.base.85",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "85"
+    },
+    {
+      "case_id": "tau3.retail.base.86",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "86"
+    },
+    {
+      "case_id": "tau3.retail.base.87",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "87"
+    },
+    {
+      "case_id": "tau3.retail.base.88",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "88"
+    },
+    {
+      "case_id": "tau3.retail.base.89",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "89"
+    },
+    {
+      "case_id": "tau3.retail.base.90",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "90"
+    },
+    {
+      "case_id": "tau3.retail.base.91",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "91"
+    },
+    {
+      "case_id": "tau3.retail.base.92",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "92"
+    },
+    {
+      "case_id": "tau3.retail.base.93",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "93"
+    },
+    {
+      "case_id": "tau3.retail.base.94",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "94"
+    },
+    {
+      "case_id": "tau3.retail.base.95",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "95"
+    },
+    {
+      "case_id": "tau3.retail.base.96",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "96"
+    },
+    {
+      "case_id": "tau3.retail.base.97",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "97"
+    },
+    {
+      "case_id": "tau3.retail.base.98",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "98"
+    },
+    {
+      "case_id": "tau3.retail.base.99",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "99"
+    },
+    {
+      "case_id": "tau3.retail.base.100",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "100"
+    },
+    {
+      "case_id": "tau3.retail.base.101",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "101"
+    },
+    {
+      "case_id": "tau3.retail.base.102",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "102"
+    },
+    {
+      "case_id": "tau3.retail.base.103",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "103"
+    },
+    {
+      "case_id": "tau3.retail.base.104",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "104"
+    },
+    {
+      "case_id": "tau3.retail.base.105",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "105"
+    },
+    {
+      "case_id": "tau3.retail.base.106",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "106"
+    },
+    {
+      "case_id": "tau3.retail.base.107",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "107"
+    },
+    {
+      "case_id": "tau3.retail.base.108",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "108"
+    },
+    {
+      "case_id": "tau3.retail.base.109",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "109"
+    },
+    {
+      "case_id": "tau3.retail.base.110",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "110"
+    },
+    {
+      "case_id": "tau3.retail.base.111",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "111"
+    },
+    {
+      "case_id": "tau3.retail.base.112",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "112"
+    },
+    {
+      "case_id": "tau3.retail.base.113",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "status": "ran",
+      "upstream_task_id": "113"
+    }
+  ],
+  "scope": "full corpus (all 114 tasks), component-level parity",
+  "summary": {
+    "errored": 0,
+    "matched": 114,
+    "mismatched": 0,
+    "skipped": 0,
+    "total": 114
+  },
+  "upstream_commit": "fc0055dc4e0a316c3f83133267fbd6faaa770992",
+  "upstream_repo": "sierra-research/tau2-bench"
+}

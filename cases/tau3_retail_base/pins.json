@@ -1,0 +1,21 @@
+{
+  "db_bytes": 2811616,
+  "db_sha256": "413a65160adbdb5fde0ffc0015c49b6d70250b10c18128de169b597af7766765",
+  "greeting_message": "Hi! How can I help you today?",
+  "judge_args": {
+    "temperature": 0.0
+  },
+  "judge_model": "gpt-4.1-2025-04-14",
+  "max_steps": 100,
+  "policy_sha256": "2c9652afbce57d6e087768d37cda64d31c53d50b3e3225cfdb791bac66466467",
+  "tasks_sha256": "8e03ebce7901bd6218e7a7dc3105faa9324091a68058f7fe61c65262868812e8",
+  "tool_schema_sha256": null,
+  "tool_schema_sha256_unavailable_reason": "cannot import the pinned upstream tau2 package (looked under '/Users/sunzeyu/Documents/econ benchmark/upstream-tau2/src') to compute tool_schema_sha256 by delegation: No module named 'loguru'",
+  "upstream_commit": "fc0055dc4e0a316c3f83133267fbd6faaa770992",
+  "upstream_repo": "tau2-bench",
+  "user_sim_args": {
+    "temperature": 0.0
+  },
+  "user_sim_guidelines_sha256": "740a29dfa64d7bc08eea3bf7493575b914a63f744acbaf7f199ee07eddaf72d3",
+  "user_sim_model": "gpt-4.1-2025-04-14"
+}
