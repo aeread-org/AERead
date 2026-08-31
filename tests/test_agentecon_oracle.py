@@ -16,8 +16,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 
-from aeread import delta_inf_oracle as do  # noqa: E402
-from aeread import agentecon_oracle as ao  # noqa: E402
+from aeread.exchange_v1 import delta_inf_oracle as do  # noqa: E402
+from aeread.exchange_v1 import agentecon_oracle as ao  # noqa: E402
 
 EPS = 1e-6
 
@@ -142,8 +142,8 @@ def test_score_case_reports_tier_and_carveout():
 
 # ---- D14: multi-party welfare oracles (bundle + procurement) ---------------------------------
 
-from aeread import exchange_economy as ex  # noqa: E402
-from aeread.agentecon_oracle import BundleCaseOracle, TIER_FALLBACK  # noqa: E402
+from aeread.exchange_v1 import economy as ex  # noqa: E402
+from aeread.exchange_v1.agentecon_oracle import BundleCaseOracle, TIER_FALLBACK  # noqa: E402
 
 BUNDLE_CFG = "cases/exchange_v1/specialized/bundle_under_budget_trip3.json"
 
@@ -186,8 +186,8 @@ def test_bundle_oracle_realized_and_gate():
     assert o.gate(w.allocation) is False
 
 
-from aeread import exchange_procurement as ep  # noqa: E402
-from aeread.agentecon_oracle import ProcurementCaseOracle  # noqa: E402
+from aeread.exchange_v1 import procurement as ep  # noqa: E402
+from aeread.exchange_v1.agentecon_oracle import ProcurementCaseOracle  # noqa: E402
 
 PROC_CFG = "cases/exchange_v1/specialized/procurement_electronics_q3.json"
 

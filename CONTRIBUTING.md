@@ -45,7 +45,7 @@ The `roles` table is validated strictly (exactly one `under_test`; every agent
 covered exactly once; `compiler`/`verifier` may not be scripted; only
 `under_test` may be `submitted`). Unknown keys elsewhere in the config are
 currently ignored — double-check field names against
-`aeread.exchange_economy.ProtocolConfig`.
+`aeread.exchange_v1.economy.ProtocolConfig`.
 
 **Admission gate (required before opening a PR):**
 
@@ -63,7 +63,7 @@ Budget ~2 minutes of CPU per case.
 **Calibration note:** the gate's default thresholds and strict heuristic
 orderings were frozen against the `v1_ladder_*`/`v1_main` family; on the
 `cases/exchange_v1/v0` set they currently report threshold rejections and ordering ties
-(recorded in `configs/exchange_economy/v1_manifest.json`). Exchange v1/v0 was
+(recorded in `configs/exchange_economy/releases/v1/v1_manifest.json`). Exchange v1/v0 was
 admitted on the empirical non-triviality ordering (`no-op ≤ random < greedy <
 model-ceiling` holds on all four published cases on dev and held-out seeds). For a new
 case PR, include the full gate output — maintainers review the numbers and

@@ -1,8 +1,8 @@
-"""D15 scoring bridge for arena run dirs — the seam `exchange_v1_submit._score_run` imports.
+"""D15 scoring bridge for arena run dirs — the seam `submit._score_run` imports.
 
 Scores one V1 arena run directory under the carve-out contract v2
 (docs/design/2026-07-08_carveout_oracle_unsaturated.md), consistent with
-`sprint/aer_scorer.py` (the case-oracle scorer for bundle/procurement actions):
+`aeread.exchange_v1.aer_scorer` (the case-oracle scorer for bundle/procurement actions):
 
     score = W_real / denominator        (RAW — negatives preserved, may exceed 1)
     W_real      = final_net_welfare - initial_welfare   (net gain; coordination

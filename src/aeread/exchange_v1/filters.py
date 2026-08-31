@@ -15,11 +15,11 @@ Ordering gate modes:
 - "strict": the literal 4-tier strict chain.
 
 Usage:
-    python sprint/exchange_v1_filters.py --from-manifest \
+    python -m aeread.exchange_v1.filters --from-manifest \
         --output-json docs/exchange_economy/v1_filter_decisions.json \
         --output-md docs/exchange_economy/v1_filter_decisions.md
-    python sprint/exchange_v1_filters.py --configs 'configs/exchange_economy/cand_*.json' --gate
-    python sprint/exchange_v1_filters.py --paired control.json treatment.json --conceptual-knob public_broadcast
+    python -m aeread.exchange_v1.filters --configs 'configs/exchange_economy/cand_*.json' --gate
+    python -m aeread.exchange_v1.filters --paired control.json treatment.json --conceptual-knob public_broadcast
 """
 from __future__ import annotations
 
@@ -30,14 +30,14 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Optional
 
-try:  # Supports both `python sprint/exchange_v1_filters.py` and `python -m sprint.exchange_v1_filters`.
-    from aeread import exchange_economy as ex
-    from aeread import exchange_v1_baselines as baselines
-    from aeread import exchange_v1_validity as validity
+try:  # Supports installed and source-tree package imports.
+    from aeread.exchange_v1 import economy as ex
+    from aeread.exchange_v1 import baselines as baselines
+    from aeread.exchange_v1 import validity as validity
 except ModuleNotFoundError:  # pragma: no cover - exercised by module execution.
-    from . import exchange_economy as ex
-    from . import exchange_v1_baselines as baselines
-    from . import exchange_v1_validity as validity
+    from . import economy as ex
+    from . import baselines as baselines
+    from . import validity as validity
 
 
 # Rejection-reason vocabulary, verbatim from the v1 contract's D1b bullet.

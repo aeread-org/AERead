@@ -8,9 +8,9 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 
-from aeread import capture_share as cs  # noqa: E402
-from aeread import exchange_economy as ex  # noqa: E402
-from aeread import exchange_v1_runner as runner  # noqa: E402
+from aeread.exchange_v1 import capture_share as cs  # noqa: E402
+from aeread.exchange_v1 import economy as ex  # noqa: E402
+from aeread.exchange_v1 import runner as runner  # noqa: E402
 
 
 def _apply(world, mechanism):

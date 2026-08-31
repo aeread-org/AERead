@@ -83,9 +83,9 @@ def run_episode(case_path: str | Path, seed: int, *, base_url: str,
     Usable directly from any RL stack (miles/slime ``generate_rollout``
     modules can call this and map the return onto their Sample type).
     """
-    from aeread import exchange_v1_pilot as pilot
-    from aeread import exchange_v1_runner as runner
-    from aeread import exchange_v1_submit as submit
+    from aeread.exchange_v1 import pilot as pilot
+    from aeread.exchange_v1 import runner as runner
+    from aeread.exchange_v1 import submit as submit
 
     candidate = GatewayCandidate(base_url, model, temperature=temperature,
                                  max_tokens=max_tokens)

@@ -19,7 +19,7 @@ import os
 from dataclasses import dataclass, replace
 from typing import Optional, Protocol, runtime_checkable
 
-from aeread import delta_inf_oracle as _do
+from aeread.exchange_v1 import delta_inf_oracle as _do
 
 EPS = 1e-9
 
@@ -149,14 +149,9 @@ def score_case(case: CaseOracle, action, *, seed: int = 0) -> dict:
 # conservative lower bound on true efficiency (W_real/W* <= W_real/W_bayes).
 # ---------------------------------------------------------------------------
 
-try:  # Supports both `python sprint/...py` and `python -m sprint...` import styles.
-    from aeread import exchange_economy as _ex
-    from aeread import exchange_procurement as _ep
-    from aeread import bundle_bayes_oracle as _bb
-except ModuleNotFoundError:  # pragma: no cover - exercised by module execution.
-    from . import exchange_economy as _ex
-    from . import exchange_procurement as _ep
-    from . import bundle_bayes_oracle as _bb
+from . import bundle_bayes_oracle as _bb
+from . import economy as _ex
+from . import procurement as _ep
 
 
 @runtime_checkable

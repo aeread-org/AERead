@@ -1,4 +1,4 @@
-from aeread.exchange_subgame_oracles import (
+from aeread.exchange_v1.subgame_oracles import (
     extract_subgame_episodes,
     summarize_d_dimensions,
     summarize_subgame_episodes,

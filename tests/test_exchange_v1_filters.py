@@ -7,13 +7,14 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 
-from aeread import exchange_economy as ex  # noqa: E402
-from aeread import exchange_v1_baselines as bl  # noqa: E402
-from aeread import exchange_v1_filters as fl  # noqa: E402
-from aeread import exchange_v1_validity as validity  # noqa: E402
+from aeread.exchange_v1 import economy as ex  # noqa: E402
+from aeread.exchange_v1 import baselines as bl  # noqa: E402
+from aeread.exchange_v1 import filters as fl  # noqa: E402
+from aeread.exchange_v1 import validity as validity  # noqa: E402
 
 CONFIG_DIR = ROOT / "configs" / "exchange_economy"
-MANIFEST = CONFIG_DIR / "v1_manifest.json"
+RELEASE_DIR = CONFIG_DIR / "releases" / "v1"
+MANIFEST = RELEASE_DIR / "v1_manifest.json"
 
 
 def _record(
@@ -47,7 +48,7 @@ def _record(
 
 
 def _config(**pressure_overrides):
-    base = ex.load_experiment_config(CONFIG_DIR / "v1_main.json")
+    base = ex.load_experiment_config(RELEASE_DIR / "v1_main.json")
     if pressure_overrides:
         base = ex.replace(
             base,
@@ -180,8 +181,8 @@ def test_strict_mode_rejects_all_frozen_rungs_naming_the_tier():
 
 def test_paired_ablation_passthrough_on_visibility_gap_pair():
     result = fl.paired_ablation_check(
-        CONFIG_DIR / "treatment_public_solicitation_visibility_gap_control.json",
-        CONFIG_DIR / "treatment_public_solicitation_visibility_gap.json",
+        CONFIG_DIR / "treatments/public_solicitation/treatment_public_solicitation_visibility_gap_control.json",
+        CONFIG_DIR / "treatments/public_solicitation/treatment_public_solicitation_visibility_gap.json",
         conceptual_knob="public_solicitation",
     )
     assert result.passed

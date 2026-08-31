@@ -11,7 +11,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 
-from aeread import delta_inf_oracle as do  # noqa: E402
+from aeread.exchange_v1 import delta_inf_oracle as do  # noqa: E402
 
 
 def test_realized_welfare_mutually_ir_positive():

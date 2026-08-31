@@ -31,28 +31,16 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional, Sequence
 
-try:  # Supports both `python sprint/...py` and `python -m sprint...` import styles.
-    from aeread import exchange_economy as _ex
-    from aeread import exchange_procurement as _ep
-    from aeread.agentecon_oracle import (
-        BundleCaseOracle,
-        ProcurementCaseOracle,
-        GatedCaseOracle,
-        EPS,
-        TIER_MC,
-        _clamp01,
-    )
-except ModuleNotFoundError:  # pragma: no cover - exercised by module execution.
-    from . import exchange_economy as _ex
-    from . import exchange_procurement as _ep
-    from .agentecon_oracle import (
-        BundleCaseOracle,
-        ProcurementCaseOracle,
-        GatedCaseOracle,
-        EPS,
-        TIER_MC,
-        _clamp01,
-    )
+from . import economy as _ex
+from . import procurement as _ep
+from .agentecon_oracle import (
+    BundleCaseOracle,
+    ProcurementCaseOracle,
+    GatedCaseOracle,
+    EPS,
+    TIER_MC,
+    _clamp01,
+)
 
 STATUS_OK = "ok"
 STATUS_DEGENERATE = "degenerate_denominator"

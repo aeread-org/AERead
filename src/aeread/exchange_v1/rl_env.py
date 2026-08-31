@@ -1,6 +1,6 @@
 """Structured (LLM-free) 2-agent RL wrapper around the exchange-economy substrate.
 
-`run_one_round` in exchange_economy.py drives every decision through a
+`run_one_round` in `economy.py` drives every decision through a
 duck-typed `policy` object; the only shipped implementation
 (`LLMCompilerVerifierPolicy`) makes that decision via a free-form-text LLM
 call. `StructuredBilateralPolicy` below implements the same duck-typed
@@ -19,7 +19,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Literal, Optional
 
-from aeread import exchange_economy as ex  # noqa: E402
+from aeread.exchange_v1 import economy as ex  # noqa: E402
 
 ActionKind = Literal["propose", "accept", "reject", "no_op"]
 

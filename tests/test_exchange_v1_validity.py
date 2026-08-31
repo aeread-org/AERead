@@ -8,23 +8,23 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 
-from aeread import exchange_economy as ex  # noqa: E402
-from aeread import exchange_v1_validity as v1  # noqa: E402
+from aeread.exchange_v1 import economy as ex  # noqa: E402
+from aeread.exchange_v1 import validity as v1  # noqa: E402
 
 
-CONTROL_CONFIG = ROOT / "configs" / "exchange_economy" / "core_atomic_ir_clean.json"
-SOLICITED_CONFIG = ROOT / "configs" / "exchange_economy" / "treatment_public_solicitation_solicited.json"
+CONTROL_CONFIG = ROOT / "configs" / "exchange_economy" / "baselines/core_atomic_ir_clean.json"
+SOLICITED_CONFIG = ROOT / "configs" / "exchange_economy" / "treatments/public_solicitation/treatment_public_solicitation_solicited.json"
 VISIBILITY_GAP_CONTROL_CONFIG = (
-    ROOT / "configs" / "exchange_economy" / "treatment_public_solicitation_visibility_gap_control.json"
+    ROOT / "configs" / "exchange_economy" / "treatments/public_solicitation/treatment_public_solicitation_visibility_gap_control.json"
 )
 VISIBILITY_GAP_TREATMENT_CONFIG = (
-    ROOT / "configs" / "exchange_economy" / "treatment_public_solicitation_visibility_gap.json"
+    ROOT / "configs" / "exchange_economy" / "treatments/public_solicitation/treatment_public_solicitation_visibility_gap.json"
 )
 VISIBILITY_GAP_RESPONSE_FINALIZATION_CONFIG = (
     ROOT
     / "configs"
     / "exchange_economy"
-    / "treatment_public_solicitation_visibility_gap_response_finalization.json"
+    / "treatments/public_solicitation/treatment_public_solicitation_visibility_gap_response_finalization.json"
 )
 
 
@@ -189,10 +189,10 @@ def test_trace_summary_does_not_count_final_only_public_text_as_response_activat
 # above (which use a fast limited-contact substrate).
 
 PARTIAL_CLEARING_CONTROL = (
-    ROOT / "configs" / "exchange_economy" / "mech_partial_clearing_control.json"
+    ROOT / "configs" / "exchange_economy" / "mechanisms/partial_clearing/mech_partial_clearing_control.json"
 )
 PARTIAL_CLEARING_TREATMENT = (
-    ROOT / "configs" / "exchange_economy" / "mech_partial_clearing_treatment.json"
+    ROOT / "configs" / "exchange_economy" / "mechanisms/partial_clearing/mech_partial_clearing_treatment.json"
 )
 
 

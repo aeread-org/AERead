@@ -1,16 +1,16 @@
 """Lockstep pilot driver: agents x cases x seeds through the D9/D10/D15 pipeline.
 
 Runs every (case, agent, seed) job concurrently (one thread per in-flight run;
-llm_agent's per-run hook state is context-local, so runs cannot cross-contaminate
+`inference.llm_agent` uses context-local per-run hook state, so runs cannot cross-contaminate
 manifests). On the AI-Studio key path all live gemini calls funnel through one
 GeminiBatchPool — Batch API pricing (50%) with batch size == run concurrency. On
 the Vertex path the pool is disabled and runs make plain concurrent calls.
 
 Per job:
-  - submitted agents (noop / random)   -> exchange_v1_submit.run_submission
+  - submitted agents (noop / random)   -> submit.run_submission
     (replay-verified inside the harness)
-  - seat agents (greedy / model names) -> exchange_v1_runner.run_v1 live_frozen
-    + explicit replay byte-diff, scored by exchange_v1_scoring
+  - seat agents (greedy / model names) -> runner.run_v1 live_frozen
+    + explicit replay byte-diff, scored by scoring
 
 Outputs under --out:
   results.jsonl   one row per job (status, verified, w_real, denominator, score)
@@ -19,7 +19,7 @@ Outputs under --out:
   cases/          the seeded case configs actually run
 
 Usage:
-  python sprint/exchange_v1_pilot.py \
+  python -m aeread.exchange_v1.pilot \
       --cases cases/exchange_v1/v0/*.json \
       --agents noop random greedy google/gemini-2.5-flash \
       --seeds 30 --workers 24 --out output/pilot_v0 [--dry-run]
@@ -36,11 +36,11 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Any, Optional
 
-from aeread import exchange_v1_runner as runner  # noqa: E402
-from aeread import exchange_v1_scoring as scoring  # noqa: E402
-from aeread import exchange_v1_submit as submit  # noqa: E402
-from aeread.exchange_v1_candidates import NoOpCandidate, RandomCandidate  # noqa: E402
-from aeread.gemini_batch_pool import GeminiBatchPool  # noqa: E402
+from aeread.exchange_v1 import runner as runner  # noqa: E402
+from aeread.exchange_v1 import scoring as scoring  # noqa: E402
+from aeread.exchange_v1 import submit as submit  # noqa: E402
+from aeread.exchange_v1.candidates import NoOpCandidate, RandomCandidate  # noqa: E402
+from aeread.inference.gemini_batch_pool import GeminiBatchPool  # noqa: E402
 
 EPS = 1e-9
 SUBMITTED_AGENTS = ("noop", "random")

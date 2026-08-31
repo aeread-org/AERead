@@ -1,6 +1,6 @@
 """Exchange V1 sweep harness (D7) — configs x models x seeds, one CSV out.
 
-Runs the cartesian grid through exchange_v1_runner (one self-contained run dir
+Runs the cartesian grid through `runner` (one self-contained run dir
 per cell) and aggregates stable columns into <out>/sweep_results.csv +
 sweep_meta.json. Two invariants:
 
@@ -11,7 +11,7 @@ sweep_meta.json. Two invariants:
   multi-seed runs the default shape of any result.
 
 Usage:
-    python sprint/exchange_v1_sweep.py \
+    python -m aeread.exchange_v1.sweep \
         --configs configs/exchange_economy/a.json configs/exchange_economy/b.json \
         --models google/gemini-3.5-flash --seeds 1 2 3 \
         --mode live_frozen --out sweeps/2026-07-03_smoke/ \
@@ -31,7 +31,7 @@ import traceback
 from pathlib import Path
 from typing import Any, Optional
 
-from aeread.exchange_v1_runner import (  # noqa: E402
+from aeread.exchange_v1.runner import (  # noqa: E402
     InferenceOptions,
     RunnerError,
     run_v1,

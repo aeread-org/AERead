@@ -12,7 +12,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 
-from aeread import nonir_classifier as nc  # noqa: E402
+from aeread.exchange_v1 import nonir_classifier as nc  # noqa: E402
 
 
 def test_mutually_ir_swap():

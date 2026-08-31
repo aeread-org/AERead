@@ -9,8 +9,8 @@ import types
 
 import pytest
 
-from aeread import exchange_economy as ex  # noqa: E402  (conftest puts sprint/ on the path)
-from aeread import bundle_bayes_oracle as bb  # noqa: E402
+from aeread.exchange_v1 import economy as ex  # noqa: E402  (conftest puts sprint/ on the path)
+from aeread.exchange_v1 import bundle_bayes_oracle as bb  # noqa: E402
 
 
 def _stub_world(required, sellers_by_component, cost_range, bundle_value, budget, num_agents):
@@ -93,7 +93,7 @@ def test_production_world_carries_seller_layout_and_mc_wbayes_engages():
     """Config -> world -> oracle must reach the mc_wbayes tier (not silently
     degrade to wstar_fallback because the world dropped seller_layout)."""
     from pathlib import Path
-    from aeread import agentecon_oracle as ao
+    from aeread.exchange_v1 import agentecon_oracle as ao
     root = Path(__file__).resolve().parents[1]
     cfg = ex.load_experiment_config(
         root / "cases/exchange_v1/specialized/bundle_under_budget_trip3.json")
@@ -120,7 +120,7 @@ def test_production_world_carries_seller_layout_and_mc_wbayes_engages():
 def test_mc_wbayes_per_instance_frontier_open_question():
     import os
     from pathlib import Path
-    from aeread import agentecon_oracle as ao
+    from aeread.exchange_v1 import agentecon_oracle as ao
     root = Path(__file__).resolve().parents[1]
     cfg = ex.load_experiment_config(
         root / "cases/exchange_v1/specialized/bundle_under_budget_trip3.json")

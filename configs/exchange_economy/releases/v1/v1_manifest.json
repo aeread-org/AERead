@@ -6,7 +6,7 @@
   "configs": [
     {
       "config_name": "v1_ladder_l1_visible_bilateral_ir_trade",
-      "config_path": "configs/exchange_economy/v1_ladder_l1_visible_bilateral_ir_trade.json",
+      "config_path": "configs/exchange_economy/releases/v1/v1_ladder_l1_visible_bilateral_ir_trade.json",
       "sha256": "b1796aa82036b75e95c68c119da74025375cb18d63a48826031e2075c50bea09",
       "rounds": 6,
       "seed": 23,
@@ -48,7 +48,7 @@
     },
     {
       "config_name": "v1_ladder_l2_visible_multiparty_partial_clearing",
-      "config_path": "configs/exchange_economy/v1_ladder_l2_visible_multiparty_partial_clearing.json",
+      "config_path": "configs/exchange_economy/releases/v1/v1_ladder_l2_visible_multiparty_partial_clearing.json",
       "sha256": "9175dad05b60d06b0d37113d38571c986f6ea734670bc7c58f550ac01c4172d9",
       "rounds": 6,
       "seed": 23,
@@ -90,7 +90,7 @@
     },
     {
       "config_name": "v1_ladder_l3_hidden_counterparty_solicitation",
-      "config_path": "configs/exchange_economy/v1_ladder_l3_hidden_counterparty_solicitation.json",
+      "config_path": "configs/exchange_economy/releases/v1/v1_ladder_l3_hidden_counterparty_solicitation.json",
       "sha256": "772e0dd26142bc817ce89c69b5b84394bdf383e64aa671d441cf3a220a9059b0",
       "rounds": 8,
       "seed": 23,
@@ -132,7 +132,7 @@
     },
     {
       "config_name": "v1_ladder_l4_repeated_dyad_reuse",
-      "config_path": "configs/exchange_economy/v1_ladder_l4_repeated_dyad_reuse.json",
+      "config_path": "configs/exchange_economy/releases/v1/v1_ladder_l4_repeated_dyad_reuse.json",
       "sha256": "d56f780463bde542cc3d2295da99c9150e11edced96865df2f883856b09c3d7e",
       "rounds": 12,
       "seed": 23,
@@ -174,7 +174,7 @@
     },
     {
       "config_name": "v1_ladder_l5_public_routing_memory",
-      "config_path": "configs/exchange_economy/v1_ladder_l5_public_routing_memory.json",
+      "config_path": "configs/exchange_economy/releases/v1/v1_ladder_l5_public_routing_memory.json",
       "sha256": "83118d17651e4a6d3d6221aeac4a04a19747d6c9598a9e454fcf182c6b6f2106",
       "rounds": 15,
       "seed": 23,
@@ -216,7 +216,7 @@
     },
     {
       "config_name": "v1_ladder_l6_institution_private_continuation_value",
-      "config_path": "configs/exchange_economy/v1_ladder_l6_institution_private_continuation_value.json",
+      "config_path": "configs/exchange_economy/releases/v1/v1_ladder_l6_institution_private_continuation_value.json",
       "sha256": "178166e6ee4a2a7c74ccfeea3a7eb567f5a32d6472f8fd9336096dbb66522752",
       "rounds": 15,
       "seed": 23,
@@ -258,7 +258,7 @@
     },
     {
       "config_name": "v1_main",
-      "config_path": "configs/exchange_economy/v1_main.json",
+      "config_path": "configs/exchange_economy/releases/v1/v1_main.json",
       "sha256": "faeb5d67cb9bc7dc51bc0f6bcb16e1095b829882fbb43646cf6ff036b80155cc",
       "rounds": 15,
       "seed": 23,

@@ -9,8 +9,8 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 
-from aeread import exchange_economy as ex  # noqa: E402
-from aeread import exchange_counterpart_frozen as fz  # noqa: E402
+from aeread.exchange_v1 import economy as ex  # noqa: E402
+from aeread.exchange_v1 import counterpart_frozen as fz  # noqa: E402
 
 CONFIG_PATH = (
     ROOT / "cases" / "exchange_v1" / "specialized" / "bundle_under_budget_trip3.json"

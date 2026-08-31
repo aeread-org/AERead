@@ -8,7 +8,7 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 
-from aeread import exchange_procurement as pr  # noqa: E402
+from aeread.exchange_v1 import procurement as pr  # noqa: E402
 
 CONFIG_PATH = (
     ROOT / "cases" / "exchange_v1" / "specialized" / "procurement_electronics_q3.json"

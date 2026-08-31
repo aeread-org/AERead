@@ -126,7 +126,7 @@ still moving. Written against rLLM of 2026-07.
 `src/aeread/integrations/*` and `pyproject.toml` are **canonical in this public
 repo**. They are not produced by the private repo's export tool and do not
 exist in its tree, so edit them here directly. By contrast `cases/exchange_v1/`, `configs/`, and
-`exchange_economy.py` arrive by export and must be changed upstream first.
+`exchange_v1/economy.py` arrive by export and must be changed upstream first.
 
 ## Running the tests
 

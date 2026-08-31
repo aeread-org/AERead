@@ -19,10 +19,10 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 
-from aeread import exchange_economy as ex  # noqa: E402
-from aeread import exchange_v1_baselines as bl  # noqa: E402
+from aeread.exchange_v1 import economy as ex  # noqa: E402
+from aeread.exchange_v1 import baselines as bl  # noqa: E402
 
-CONFIG_DIR = ROOT / "configs" / "exchange_economy"
+CONFIG_DIR = ROOT / "configs" / "exchange_economy" / "releases" / "v1"
 FROZEN_SET = sorted(p for p in CONFIG_DIR.glob("v1_*.json") if p.name != "v1_manifest.json")
 V1_MAIN = CONFIG_DIR / "v1_main.json"
 
@@ -112,7 +112,7 @@ def test_freeze_refuses_and_check_flags_missing_metadata_field(tmp_path):
 
 
 def test_ordering_values_match_validity_result_on_v1_main():
-    from aeread import exchange_v1_validity as validity
+    from aeread.exchange_v1 import validity as validity
 
     record = bl.compute_baselines(V1_MAIN, rounds=2, random_samples=1)
     config = ex.load_experiment_config(V1_MAIN)
@@ -128,7 +128,7 @@ def test_ordering_values_match_validity_result_on_v1_main():
 
 
 def test_ordering_cell_distinguishes_tie_from_inversion():
-    from aeread import exchange_v1_validity as validity
+    from aeread.exchange_v1 import validity as validity
 
     def make_record(ordering):
         return bl.BaselineRecord(

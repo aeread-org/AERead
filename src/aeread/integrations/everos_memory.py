@@ -425,9 +425,9 @@ def run_memory_episode(case_path: str | Path, seed: int,
     """
     import tempfile
 
-    from aeread import exchange_v1_pilot as pilot
-    from aeread import exchange_v1_runner as runner
-    from aeread import exchange_v1_submit as submit
+    from aeread.exchange_v1 import pilot as pilot
+    from aeread.exchange_v1 import runner as runner
+    from aeread.exchange_v1 import submit as submit
 
     case_path = Path(case_path)
     candidate.begin_episode(f"{case_path.stem}-s{int(seed)}")

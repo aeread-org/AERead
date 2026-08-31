@@ -16,11 +16,11 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 
-from aeread import exchange_economy as ex  # noqa: E402
-from aeread import exchange_v1_roles as roles_mod  # noqa: E402
-from aeread import exchange_v1_runner as runner  # noqa: E402
-from aeread import exchange_v1_submit as submit  # noqa: E402
-from aeread import llm_agent  # noqa: E402
+from aeread.exchange_v1 import economy as ex  # noqa: E402
+from aeread.exchange_v1 import roles as roles_mod  # noqa: E402
+from aeread.exchange_v1 import runner as runner  # noqa: E402
+from aeread.exchange_v1 import submit as submit  # noqa: E402
+from aeread.inference import llm_agent  # noqa: E402
 from tests.test_exchange_v1_roles import _roles_block, fake_provider  # noqa: E402,F401
 from tests.test_exchange_v1_runner import _write_config  # noqa: E402
 

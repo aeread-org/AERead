@@ -8,7 +8,7 @@ built against them.
 
 | Seam | Contract | Use it for |
 |---|---|---|
-| **Submitted agent** (text boundary) | `act(observation: str, phase: str) -> str` — your agent sees exactly the per-phase prompt an LLM seat would see, nothing else (no world object). Driven by `aeread.exchange_v1_submit.run_submission`. | Evaluating any agent: your framework, your memory layer, your fine-tune. Replay-verified scoring. |
+| **Submitted agent** (text boundary) | `act(observation: str, phase: str) -> str` — your agent sees exactly the per-phase prompt an LLM seat would see, nothing else (no world object). Driven by `aeread.exchange_v1.submit.run_submission`. | Evaluating any agent: your framework, your memory layer, your fine-tune. Replay-verified scoring. |
 | **Episode core** | `aeread.integrations.rllm_flow.run_episode(case_path, seed, base_url=..., model=...) -> {aer, w_real, denominator, turns}` — one seeded episode against the frozen panel, returning the score row + per-turn log. | RL stacks and batch pipelines that need a reward per rollout (the return maps directly onto trajectory/sample types). |
 
 Everything else — frozen panel, compiler, verifier, seeding, scoring,

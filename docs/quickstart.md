@@ -47,7 +47,7 @@ Wrap your agent in the text-boundary contract and run the exam — every seeded
 case, replay verification, case-set content hash, per-case AER:
 
 ```python
-from aeread.exchange_v1_submit import run_submission
+from aeread.exchange_v1.submit import run_submission
 
 class MyAgent:
     def act(self, observation: str, phase: str) -> str:

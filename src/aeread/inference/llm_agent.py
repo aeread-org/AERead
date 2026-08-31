@@ -593,7 +593,7 @@ def _serve_from_replay_dir(
 
 
 def _import_call_gemini_batch():
-    from aeread.gemini_llm import call_gemini_batch
+    from aeread.inference.gemini import call_gemini_batch
     return call_gemini_batch
 
 
@@ -621,7 +621,7 @@ def call_llm(
 
     # Standardize gemini-* on the native Gemini path (AI Studio free key or Vertex paid token).
     if model.split("/")[-1].startswith("gemini") and (os.environ.get("GEMINI_API_KEY") or os.environ.get("GEMINI_VERTEX")):
-        from aeread.gemini_llm import call_gemini
+        from aeread.inference.gemini import call_gemini
         salt = "" if (temperature == 0.0 and sample == 0) else f"{temperature};{sample}"
         r = call_gemini(system, user, model=model, max_tokens=max_tokens, temperature=temperature, cache_salt=salt)
         cached = bool(getattr(r, "cached", False))

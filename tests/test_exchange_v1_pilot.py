@@ -12,7 +12,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 
-from aeread import exchange_v1_pilot as pilot  # noqa: E402
+from aeread.exchange_v1 import pilot as pilot  # noqa: E402
 from tests.test_exchange_v1_roles import _roles_block, fake_provider  # noqa: E402,F401
 from tests.test_exchange_v1_runner import _write_config  # noqa: E402
 
@@ -100,7 +100,7 @@ def test_agent_seat_policy_specs():
 # --- mute escalation ladder (2026-08-01: breaker must recover, not just drop) --
 
 def test_mute_floor_ladder_escalates_then_gives_up(monkeypatch):
-    from aeread import exchange_v1_pilot as p
+    from aeread.exchange_v1 import pilot as p
 
     monkeypatch.delenv("OPENROUTER_MIN_COMPLETION_TOKENS", raising=False)
     # unset = the run had NO floor at all, so the first rung is the base one
@@ -119,8 +119,8 @@ def test_mute_floor_ladder_escalates_then_gives_up(monkeypatch):
 
 def test_run_job_retries_once_at_a_higher_floor_on_mute_trip(monkeypatch, tmp_path):
     """A health trip must escalate the budget and re-run, not drop the episode."""
-    from aeread import exchange_v1_pilot as p
-    from aeread import exchange_v1_runner as runner
+    from aeread.exchange_v1 import pilot as p
+    from aeread.exchange_v1 import runner as runner
 
     monkeypatch.setenv("OPENROUTER_MIN_COMPLETION_TOKENS", "4096")
     seen_floors = []

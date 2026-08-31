@@ -17,7 +17,7 @@ keeps prompt-facing mechanism substance free-form and envelope-based.
 
 Example Gemini pilot:
   set -a; source .env; set +a
-  python sprint/exchange_economy.py --model google/gemini-3.5-flash --rounds 300
+  python -m aeread.exchange_v1.economy --model google/gemini-3.5-flash --rounds 300
 """
 from __future__ import annotations
 
@@ -46,7 +46,7 @@ if _envf.exists():
 os.environ.setdefault("OPENAI_BASE_URL", "https://openrouter.ai/api/v1")
 
 try:
-    from aeread.llm_agent import call_llm, call_llm_batch  # noqa: E402
+    from aeread.inference.llm_agent import call_llm, call_llm_batch  # noqa: E402
 except Exception:  # pragma: no cover
     call_llm = None  # type: ignore
     call_llm_batch = None  # type: ignore
@@ -5154,7 +5154,7 @@ def main() -> None:
         sample=args.sample,
     )
     if getattr(protocol, "defection_rate", 0.0) > 0.0:
-        from aeread.exchange_economy_adversarial import AdversarialCounterpartyPolicy
+        from aeread.exchange_v1.economy_adversarial import AdversarialCounterpartyPolicy
 
         policy = AdversarialCounterpartyPolicy(
             defection_rate=protocol.defection_rate,

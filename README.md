@@ -142,7 +142,7 @@ add-your-own guide.
   **+0.082**, paired delta **−0.032** [−0.066, +0.002]. An earlier
   **+0.059 lift** reported from this integration was a measurement
   artifact and is **retracted** (see the guide for the full notice).
-- **`aeread.exchange_rl_env`**: a structured (LLM-free) bilateral negotiation
+- **`aeread.exchange_v1.rl_env`**: a structured (LLM-free) bilateral negotiation
   env with `reset()` / `step(agent_id, StructuredAction)` for classical RL
   and unit-testable reward shaping — no external framework needed.
 
@@ -176,12 +176,14 @@ private held-out seed set are excluded by design.
 ## Repository map
 
 ```
-src/aeread/            the installable package: arena engine, runner, scorer,
-                       submission harness, baselines, oracles, CLI
+src/aeread/exchange_v1/   Exchange environments, runners, scoring, and oracles
+src/aeread/housing_v1/    Housing assignment environment and baselines
+src/aeread/inference/     case-independent provider and LLM execution helpers
+src/aeread/shared_runner/ shared execution, evidence, measurement, and research
 src/aeread/integrations/   rLLM flow/eval/dataset, EverOS memory (importable code)
 integrations/          per-integration guides + examples (human side)
 cases/                 canonical case catalog, grouped by family and version/split
-configs/exchange_economy/  experiment, treatment, and protocol configurations
+configs/exchange_economy/  experiment configs grouped by role and frozen release
 docs/                  quickstart, concepts, submission contract
 examples/              minimal runnable entry points
 tests/                 offline, deterministic; no API keys needed

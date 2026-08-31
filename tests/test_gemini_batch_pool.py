@@ -14,9 +14,9 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 
-from aeread import gemini_llm  # noqa: E402
-from aeread import llm_agent  # noqa: E402
-from aeread.gemini_batch_pool import GeminiBatchPool  # noqa: E402
+from aeread.inference import gemini as gemini_llm  # noqa: E402
+from aeread.inference import llm_agent  # noqa: E402
+from aeread.inference.gemini_batch_pool import GeminiBatchPool  # noqa: E402
 
 
 def _r(text):

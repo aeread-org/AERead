@@ -15,9 +15,9 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 
-from aeread import exchange_v1_roles as roles_mod  # noqa: E402
-from aeread import exchange_v1_runner as runner  # noqa: E402
-from aeread import llm_agent  # noqa: E402
+from aeread.exchange_v1 import roles as roles_mod  # noqa: E402
+from aeread.exchange_v1 import runner as runner  # noqa: E402
+from aeread.inference import llm_agent  # noqa: E402
 from tests.test_exchange_v1_runner import (  # noqa: E402
     FAKE_RESOLVED_MODEL,
     _FakeClient,
@@ -319,7 +319,7 @@ def test_config_without_roles_uses_single_policy_path(tmp_path, fake_provider):
 # review fixes: honest run_meta models + scripted-seat IR consent
 # ---------------------------------------------------------------
 
-from aeread import exchange_economy as ex  # noqa: E402
+from aeread.exchange_v1 import economy as ex  # noqa: E402
 
 
 def test_run_meta_models_are_roles_driven_not_harness_defaults(tmp_path, fake_provider):
@@ -429,8 +429,8 @@ def test_defection_rate_engages_on_the_composite_roles_path():
     build_policy returned the composite BEFORE the defection branch, so ablation
     outcomes were byte-identical across 0/0.25/0.50. With the fix, a seeded
     fraction of PANEL seats (never under_test, never env) become decliners."""
-    from aeread import exchange_v1_runner as runner
-    from aeread import exchange_economy as ex
+    from aeread.exchange_v1 import runner as runner
+    from aeread.exchange_v1 import economy as ex
 
     config = ex.load_experiment_config(ROOT / "cases/exchange_v1/v0/case01_visible_bilateral_ir.json")
     import dataclasses
@@ -466,7 +466,7 @@ def test_defection_rate_engages_on_the_composite_roles_path():
 
 
 def _dummy_transcript():
-    from aeread import exchange_economy as ex
+    from aeread.exchange_v1 import economy as ex
     return ex.RoundTranscript(round_index=1, controller_id=1, communication_texts={},
                               proposal_text="PUBLIC ACTION\nMESSAGE: hi\nSETTLEMENT: none",
                               response_texts={}, final_text="")

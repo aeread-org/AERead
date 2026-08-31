@@ -24,7 +24,7 @@ class MyAgent:
 ## Running the exam
 
 ```python
-from aeread.exchange_v1_submit import run_submission
+from aeread.exchange_v1.submit import run_submission
 
 sub_dir = run_submission(
     case_paths,                  # the seeded case set

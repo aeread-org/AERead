@@ -14,7 +14,7 @@ import math
 
 import pytest
 
-from aeread import housing_env as hz
+from aeread.housing_v1 import environment as hz
 
 
 def test_highest_bid_above_ask_wins_the_listing():

@@ -1,9 +1,9 @@
 # Exchange v1 / v0 — the first official AERead case set
 
 Four arena cases, one per headline family, each declaring a full `roles` seat table
-(D9) so the D10 submission harness (`sprint/exchange_v1_submit.py`) can seat one
+(D9) so the D10 submission harness (`sprint/exchange_v1/submit.py`) can seat one
 foreign agent in `under_test` against a **frozen panel** and score it with the D15
-scorer (`sprint/exchange_v1_scoring.py` → carve-out contract v2: raw aggregate,
+scorer (`sprint/exchange_v1/scoring.py` → carve-out contract v2: raw aggregate,
 negatives preserved, `wstar_fallback` denominator tier).
 
 Only the four `case0*.json` files directly in this directory belong to the
@@ -43,7 +43,7 @@ Design decisions:
   4 rounds for case-set cost discipline; its D1b baselines must be recomputed before it
   is used for admission decisions.
 
-Baseline candidates (`sprint/exchange_v1_candidates.py`): `NoOpCandidate` and seeded
+Baseline candidates (`sprint/exchange_v1/candidates.py`): `NoOpCandidate` and seeded
 `RandomCandidate` run as submitted agents; the greedy floor runs as the
 `scripted_bilateral_ir` under-test seat; a model runs as the `llm` under-test seat.
 Non-triviality ordering to demand of every case: `no-op <= random < greedy < model-ceiling`.

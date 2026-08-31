@@ -19,10 +19,7 @@ from pathlib import Path
 from statistics import mean
 from typing import Any
 
-try:  # Supports both `python sprint/exchange_v1_validity.py` and `python -m sprint.exchange_v1_validity`.
-    from aeread import exchange_economy as ex
-except ModuleNotFoundError:  # pragma: no cover - exercised by module execution.
-    from . import exchange_economy as ex
+from . import economy as ex
 
 
 PUBLIC_SOLICITATION_ALLOWED_DIFFS = {
@@ -748,11 +745,11 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--control-config",
-        default="configs/exchange_economy/core_atomic_ir_clean.json",
+        default="configs/exchange_economy/baselines/core_atomic_ir_clean.json",
     )
     parser.add_argument(
         "--treatment-config",
-        default="configs/exchange_economy/treatment_public_solicitation_solicited.json",
+        default="configs/exchange_economy/treatments/public_solicitation/treatment_public_solicitation_solicited.json",
     )
     parser.add_argument("--rounds", type=int, default=None)
     parser.add_argument("--random-samples", type=int, default=5)

@@ -21,10 +21,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Optional, Sequence
 
-try:  # supports both `python sprint/...` and `python -m sprint...`
-    from aeread import exchange_economy as ex
-except ModuleNotFoundError:  # pragma: no cover - exercised by module execution
-    from . import exchange_economy as ex
+from . import economy as ex
 
 EPS = 1e-9
 

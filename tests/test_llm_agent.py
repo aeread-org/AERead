@@ -7,7 +7,7 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 
-from aeread import llm_agent  # noqa: E402
+from aeread.inference import llm_agent  # noqa: E402
 
 
 class _FakeCompletions:
@@ -336,7 +336,7 @@ def test_empty_openrouter_body_is_retryable():
 
 def test_openrouter_completion_floor_env(monkeypatch):
     """Mute-audit fix: OPENROUTER_MIN_COMPLETION_TOKENS lifts small caps."""
-    from aeread import llm_agent as la
+    from aeread.inference import llm_agent as la
 
     monkeypatch.delenv("OPENROUTER_MIN_COMPLETION_TOKENS", raising=False)
     assert la._openrouter_completion_token_budget(1200) == 1200
