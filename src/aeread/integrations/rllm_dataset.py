@@ -269,9 +269,20 @@ def build_rows(
     rows: list[dict[str, Any]] = []
     for case in manifest["cases"]:
         for seed in split_spec["seeds"]:
+            # Dot-delimited, NOT colon-delimited. rLLM reserves ":" for its
+            # own "<task_id>:<rollout_idx>" convention and derives
+            # Episode.task_id as id.split(":")[0], i.e. everything before the
+            # FIRST colon. A colon-separated row id therefore collapses every
+            # row to task_id "aeread", and _build_trajectory_groups
+            # (rllm/trainer/algorithms/transform.py) keys groups on
+            # f"{task_id}:{trajectory.name}", so all rollouts across all cases
+            # and seeds land in ONE GRPO group. That silently defeats the
+            # per-task grouping the integration README relies on when it
+            # argues raw AER is safe because "per-case denominator scale
+            # cancels out of the advantage".
             row_id = (
-                f"aeread:{manifest['caseset_version']}:"
-                f"{case['row_key']}:s{seed}"
+                f"aeread.{manifest['caseset_version']}."
+                f"{case['row_key']}.s{seed}"
             )
             rows.append(
                 {
