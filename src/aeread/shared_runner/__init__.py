@@ -45,7 +45,7 @@ from .harness import (
     ToolPort,
     ToolSchema,
 )
-from .registry import PluginRegistry
+from .registry import HarnessRegistry, PluginRegistry
 from .parity import (
     ParityContractError,
     ParityField,
@@ -68,10 +68,12 @@ from .measurement import (
     VerifierSpec,
 )
 from .resolver import (
+    CapabilityExclusionError,
     ImplementationPin,
     PlanCell,
     PlanIntegrityError,
     PlanResolutionError,
+    ProfileAdmission,
     RunPlan,
     canonical_json_bytes,
     case_content_sha256,
@@ -117,6 +119,7 @@ __all__ = [
     "AttemptContext",
     "AuthoringValidationError",
     "BudgetView",
+    "CapabilityExclusionError",
     "CaseManifest",
     "CanonicalMessage",
     "CanonicalResponse",
@@ -135,6 +138,7 @@ __all__ = [
     "FamilyManifest",
     "Harness",
     "HarnessOutput",
+    "HarnessRegistry",
     "HarnessRequirements",
     "ImplementationPin",
     "DecisionRequest",
@@ -166,6 +170,7 @@ __all__ = [
     "PhaseInstance",
     "PhaseSpec",
     "PluginRegistry",
+    "ProfileAdmission",
     "ProviderCallRecord",
     "ProviderCapabilities",
     "ProviderFailure",
