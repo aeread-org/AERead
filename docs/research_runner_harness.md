@@ -1,6 +1,6 @@
 # Receipt-derived research harness
 
-**Status:** draft implementation for review
+**Status:** implemented
 
 **Stack:** this work sits above the shared-runner portability contracts. It does not replace
 `RunPlan`, canonical events, `EvaluationReceipt`, or any family verifier.
@@ -26,6 +26,10 @@ flowchart TD
     P --> D[Design observations]
     D --> Q[Overlap, alias and cluster preflight]
     L --> T[Derived campaigns / cells / attempts tables]
+    P --> LR[Run row]
+    R --> LT[Task rows]
+    E --> LC[Model-call rows + trajectories]
+    LR --> LT --> LC
 ```
 
 ## Implemented contracts
@@ -102,12 +106,60 @@ These are in-memory deterministic projections. A future Parquet/SQL writer shoul
 these rows and bind its own schema/version hash; it must not become an alternate mutable truth
 store.
 
-## Deliberate non-goals of this draft
+### 5. Run → Task → Model Call loss-analysis dataset
+
+`project_loss_analysis_tables(plan, receipts, evidence_stores)` adds a diagnostic projection
+with three relational grains:
+
+| Table | Grain | Primary relationship |
+|---|---|---|
+| `runs` | one sealed `RunPlan` | `run_id` |
+| `tasks` | one planned `PlanCell` | (`run_id`, `task_id`) |
+| `model_calls` | one started provider call paired with its terminal event | (`run_id`, `task_id`, `call_index`) |
+
+The task table starts from the complete plan, so `not_started` cells remain in coverage.
+`completed` and `error` require receipts; evidence without a receipt is explicitly
+`unreceipted`. A nullable `passed` field is intentional: continuous economic measurements do
+not acquire a fabricated pass threshold merely to fit a generic task table.
+
+Token, cost, exception, and latency values roll upward from `model_calls` to `tasks` and then
+to `runs`. Cached tokens are reported separately and remain a subset of prompt tokens, so
+`total_tokens = prompt_tokens + completion_tokens`. If an executed task lacks its evidence
+store, or a provider outcome is unknown, telemetry totals are null and
+`telemetry_complete=false`; missing usage is never converted into a zero-cost call.
+
+`build_trajectory_record(evidence, receipt)` preserves every canonical event in sequence and
+adds extracted messages, provider inputs/outputs, tool names/arguments/results, usage, phase
+labels, and typed errors. Operational `harness_phase` remains independent of the family-owned
+`domain_phase_id`.
+
+`export_loss_analysis_dataset(...)` writes:
+
+- `runs.csv`, `tasks.csv`, and `model_calls.csv`;
+- `trajectories/selected/<run_id>__<task_id>.json`;
+- `trajectories/trajectory_index.csv` and `trajectories/archive.jsonl`; and
+- `data_dictionary.md`.
+
+Exports are deterministic and idempotent. A repeated export may reuse byte-identical files,
+but the writer refuses to overwrite different content.
+
+The command-line equivalent reads and re-verifies canonical plan, receipt, and evidence
+artifacts before exporting:
+
+```bash
+aeread export-tables \
+  --plan runs/<run_id>/run_plan.json \
+  --receipts runs/<run_id>/receipts/ \
+  --evidence-root runs/<run_id>/ \
+  --output-dir analysis/<run_id>/
+```
+
+## Deliberate non-goals
 
 - No automatic `EvaluationReceipt` finalizer or interrupted-run resume.
-- No CSV, Parquet, database, or remote trajectory storage backend.
-- No cost aggregation or repricing; the campaign view only exposes declared price-catalog
-  identities already present in harness configuration.
+- No Parquet, database, or remote trajectory storage backend.
+- No repricing. Cost fields project the canonical recorded price result; price-catalog identity
+  remains declared in the plan and campaign view.
 - No statistical power calculation, effect model, leaderboard, or universal cross-family
   score.
 - No Housing, Tau3/refund, or supply-chain semantics in the shared module.

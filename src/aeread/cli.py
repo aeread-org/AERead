@@ -21,6 +21,8 @@ VERBS: dict[str, tuple[str, str]] = {
                       "provider-free case admission gate (baselines + validity ordering)"),
     "baselines": ("aeread.exchange_v1_baselines",
                   "no-op / random / greedy baselines and non-triviality ordering"),
+    "export-tables": ("aeread.shared_runner.research",
+                      "export Run -> Task -> Model Call loss-analysis tables"),
 }
 
 
@@ -35,6 +37,10 @@ def main() -> int:
     if verb not in VERBS:
         print(f"aeread: unknown verb {verb!r} (try `aeread --help`)", file=sys.stderr)
         return 2
+    if verb == "export-tables":
+        from aeread.shared_runner.research import main as export_tables_main
+
+        return export_tables_main(argv[1:])
     module = VERBS[verb][0]
     sys.argv = [f"aeread {verb}"] + argv[1:]
     runpy.run_module(module, run_name="__main__")
