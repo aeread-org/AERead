@@ -18,7 +18,7 @@ ROOT = Path(__file__).resolve().parents[1]
 from aeread import exchange_v1_roles as roles_mod  # noqa: E402
 from aeread import exchange_v1_runner as runner  # noqa: E402
 from aeread import llm_agent  # noqa: E402
-from test_exchange_v1_runner import (  # noqa: E402
+from tests.test_exchange_v1_runner import (  # noqa: E402
     FAKE_RESOLVED_MODEL,
     _FakeClient,
     _write_config,

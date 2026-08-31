@@ -21,8 +21,8 @@ from aeread import exchange_v1_roles as roles_mod  # noqa: E402
 from aeread import exchange_v1_runner as runner  # noqa: E402
 from aeread import exchange_v1_submit as submit  # noqa: E402
 from aeread import llm_agent  # noqa: E402
-from test_exchange_v1_roles import _roles_block, fake_provider  # noqa: E402,F401
-from test_exchange_v1_runner import _write_config  # noqa: E402
+from tests.test_exchange_v1_roles import _roles_block, fake_provider  # noqa: E402,F401
+from tests.test_exchange_v1_runner import _write_config  # noqa: E402
 
 
 class ScriptedCandidate:

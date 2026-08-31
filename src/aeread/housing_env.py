@@ -232,10 +232,14 @@ def resolve_bids(world: BidWorld, bids: Dict[int, Tuple[int, float]]) -> Assignm
     resulting matching; it does not evaluate bid shading or individual rationality.
     """
     best: Dict[int, Tuple[float, int]] = {}
-    for t in sorted(bids, key=lambda value: (type(value).__name__, repr(value))):
-        if not (isinstance(t, int) and not isinstance(t, bool)
-                and 0 <= t < world.num_tenants):
-            continue
+    valid_tenants = sorted(
+        t
+        for t in bids
+        if isinstance(t, int)
+        and not isinstance(t, bool)
+        and 0 <= t < world.num_tenants
+    )
+    for t in valid_tenants:
         entry = bids.get(t)
         if not isinstance(entry, (tuple, list)) or len(entry) != 2:
             continue
@@ -243,10 +247,14 @@ def resolve_bids(world: BidWorld, bids: Dict[int, Tuple[int, float]]) -> Assignm
         if not (isinstance(l, int) and not isinstance(l, bool)
                 and 0 <= l < world.num_listings):
             continue
-        if not (isinstance(amount, (int, float)) and not isinstance(amount, bool)
-                and math.isfinite(float(amount))):
+        if not isinstance(amount, (int, float)) or isinstance(amount, bool):
             continue
-        amount = float(amount)
+        try:
+            amount = float(amount)
+        except (OverflowError, TypeError, ValueError):
+            continue
+        if not math.isfinite(amount):
+            continue
         if amount < world.ask[l]:
             continue
         cur = best.get(l)

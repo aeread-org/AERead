@@ -13,8 +13,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 
 from aeread import exchange_v1_pilot as pilot  # noqa: E402
-from test_exchange_v1_roles import _roles_block, fake_provider  # noqa: E402,F401
-from test_exchange_v1_runner import _write_config  # noqa: E402
+from tests.test_exchange_v1_roles import _roles_block, fake_provider  # noqa: E402,F401
+from tests.test_exchange_v1_runner import _write_config  # noqa: E402
 
 
 def test_dry_run_lists_jobs(tmp_path, capsys):
