@@ -35,6 +35,7 @@ from .execution import (
     ToolInvocationRecord,
     _stable_id,
 )
+from .registry import HarnessRequirements, ProviderCapabilities
 from .resolver import canonical_json_bytes
 from .schemas import AgentProfile
 from .tools import ToolContractError, ToolRuntime
@@ -168,29 +169,6 @@ class HarnessOutput:
     claimed_tool_calls: tuple[ClaimedToolCall, ...]
     rounds_used: int
     notes: Mapping[str, Any]
-
-
-@dataclass(frozen=True, slots=True)
-class ProviderCapabilities:
-    native_tools: bool
-    structured_output: bool
-    seed: bool
-    system_prompt: bool
-    reasoning_budget: bool
-    reasoning_token_report: bool
-    max_context_tokens: int | None
-
-
-@dataclass(frozen=True, slots=True)
-class HarnessRequirements:
-    provider: frozenset[str]
-    tools: Literal["none", "declared", "any"]
-    memory: frozenset[str]
-    owns_retries: bool
-    owns_tools: bool
-    replayable: bool
-    blocking: bool
-    spawns_subagents: bool
 
 
 @dataclass(frozen=True, slots=True)
