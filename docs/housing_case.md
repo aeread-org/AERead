@@ -82,9 +82,14 @@ The gap between realized and optimal surplus therefore measures the mechanism's 
 inefficiency, which agent behavior cannot close; matching the truthful baseline is
 optimal play rather than evidence of a coordination failure.
 
-Sealed bidding restores live choices over target and price. The earlier profitable-
-deviation count predates the P0 world revision and is withdrawn until its search
-artifact is committed and rerun.
+Sealed bidding restores live choices over target and price, but the headline welfare
+score measures only the resulting allocation. Because rent is a transfer, an extreme
+overbid can leave a tenant with negative payoff without lowering joint surplus. Welfare
+therefore supports claims about allocation efficiency and congestion management, not
+bid shading, tenant payoff, or individually rational bidding. Those require the signed
+rent, per-seat payoff, and `ir_violations` diagnostics below. The earlier profitable-
+deviation count predates the P0 world revision and is withdrawn until its search artifact
+is committed and rerun.
 
 `resolve` (serial dictatorship) is kept in the module for reference, and is not the
 scoring path.

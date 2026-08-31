@@ -180,6 +180,9 @@ def resolve(world: HousingWorld, rankings: Dict[int, List[int]]) -> Assignment:
 # exhaustively), so realized-vs-optimal measures mechanism inefficiency, not
 # agent behaviour. Under unit-demand sealed bidding a tenant must choose which
 # listing to contest and how much to bid, and losing a contest pays nothing.
+# The returned total is allocation welfare, however, so it can measure whether
+# bids route listings to high-surplus matches but not whether a tenant shaded its
+# bid well or retained a positive private payoff.
 # ---------------------------------------------------------------------------
 
 
@@ -220,18 +223,35 @@ def make_bid_world(num_tenants: int, num_listings: int, seed: int,
 
 
 def resolve_bids(world: BidWorld, bids: Dict[int, Tuple[int, float]]) -> Assignment:
-    """Each listing goes to its highest bidder at or above ask; ties by tenant id."""
+    """Resolve well-formed bids and report allocation welfare, not tenant payoff.
+
+    Each listing goes to its highest bidder at or above ask, with ties broken by
+    tenant id. Malformed tenant ids, listing ids, bid containers, and non-finite
+    amounts are ignored independently so they cannot win or block other bids.
+    Because rent is a transfer, ``Assignment.total`` measures the welfare of the
+    resulting matching; it does not evaluate bid shading or individual rationality.
+    """
     best: Dict[int, Tuple[float, int]] = {}
-    for t in sorted(bids):
+    for t in sorted(bids, key=lambda value: (type(value).__name__, repr(value))):
+        if not (isinstance(t, int) and not isinstance(t, bool)
+                and 0 <= t < world.num_tenants):
+            continue
         entry = bids.get(t)
-        if not entry:
+        if not isinstance(entry, (tuple, list)) or len(entry) != 2:
             continue
         l, amount = entry
-        if not (0 <= l < world.num_listings) or amount < world.ask[l]:
+        if not (isinstance(l, int) and not isinstance(l, bool)
+                and 0 <= l < world.num_listings):
+            continue
+        if not (isinstance(amount, (int, float)) and not isinstance(amount, bool)
+                and math.isfinite(float(amount))):
+            continue
+        amount = float(amount)
+        if amount < world.ask[l]:
             continue
         cur = best.get(l)
         if cur is None or amount > cur[0]:
-            best[l] = (float(amount), t)
+            best[l] = (amount, t)
     pairs = sorted((t, l) for l, (_, t) in best.items())
     total = round(sum(world.values[t][l] - world.costs[l] for t, l in pairs), 2)
     return Assignment(pairs=pairs, total=total, unhoused=world.num_tenants - len(pairs))
