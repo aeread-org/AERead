@@ -16,6 +16,7 @@ losing the effect's own exception.
 from __future__ import annotations
 
 import asyncio
+import json
 
 from dataclasses import dataclass
 from typing import Any, Callable, Literal, Mapping, Protocol
@@ -623,16 +624,32 @@ def default_harnesses() -> dict[str, Any]:
 # --- native_tool_chat/1.0: native messages, plural tool calls (§6, §8) ---
 
 
+@dataclass(frozen=True, slots=True)
+class _MalformedRound:
+    """A round whose decoded turn matched neither of the codec's two legal
+    shapes -- typed and counted (§6), never an exception.  A singular
+    `{"kind":"tool_call", ...}` object is the motivating case for
+    `json_dialect/1.0`: the model's own malformed output must not raise the
+    way a genuine provider or tool contract violation does."""
+
+    raw_text: str
+    reason: str
+
+
 class _TurnCodec(Protocol):
     """What a turn codec owns at the wire boundary the shared engine drives:
-    which `response_mode` it asks the model for, and how a dispatched tool's
-    result becomes the next turn's message.  Everything else in the loop --
-    grouped dispatch in source order, the feedback turn, the round budget --
-    is common and lives once in `_run_tool_loop`; `json_dialect/1.0` reuses
-    it with a codec of its own rather than a second loop.
+    which `response_mode` it asks the model for, how the model's raw turn
+    decodes into a `ModelTurn` (or a typed `_MalformedRound`), and how a
+    dispatched tool's result becomes the next turn's message.  Everything
+    else in the loop -- grouped dispatch in source order, the feedback turn,
+    the round budget -- is common and lives once in `_run_tool_loop`;
+    `json_dialect/1.0` reuses it with a codec of its own rather than a
+    second loop.
     """
 
     response_mode: Literal["native_tools", "json_dialect"]
+
+    def decode(self, turn: ModelTurn) -> "ModelTurn | _MalformedRound": ...
 
     def tool_result_message(
         self, *, call: NativeToolCall, envelope: ToolExecutionEnvelope
@@ -641,11 +658,16 @@ class _TurnCodec(Protocol):
 
 @dataclass(frozen=True, slots=True)
 class _NativeToolCodec:
-    """The wire dialect a native-tool-calling provider already speaks: a
-    tool's result becomes a `role="tool"` message keyed by the model's own
-    `call_id`, so the model can match the reply to the call it made."""
+    """The wire dialect a native-tool-calling provider already speaks: the
+    port has already split `text` from `tool_calls` from the provider's own
+    structured fields, so `decode` is the identity; a tool's result becomes a
+    `role="tool"` message keyed by the model's own `call_id`, so the model
+    can match the reply to the call it made."""
 
     response_mode: Literal["native_tools", "json_dialect"] = "native_tools"
+
+    def decode(self, turn: ModelTurn) -> "ModelTurn | _MalformedRound":
+        return turn
 
     def tool_result_message(
         self, *, call: NativeToolCall, envelope: ToolExecutionEnvelope
@@ -654,6 +676,76 @@ class _NativeToolCodec:
             role="tool",
             content=canonical_json_bytes(envelope.result).decode("utf-8"),
             tool_call_id=call.call_id,
+        )
+
+
+@dataclass(frozen=True, slots=True)
+class _JsonDialectCodec:
+    """The wire dialect for a provider with no native tool-calling: the model
+    is asked (via `output_schema`) for ONE object, plural by construction --
+    `{"kind":"tool_calls","calls":[{"id":...,"name":...,"arguments":{...}},
+    ...]}` or `{"kind":"reply","text":"..."}`.  `KernelModelPort` always hands
+    this codec a turn carrying the raw JSON as `text` (the provider adapter
+    never populates its native `tool_calls` field for this response mode), so
+    `decode` is where the plural shape actually becomes a `ModelTurn`'s text
+    XOR calls -- or, for anything else (a singular `{"kind":"tool_call",
+    ...}` included), a typed `_MalformedRound` rather than a guess."""
+
+    response_mode: Literal["native_tools", "json_dialect"] = "json_dialect"
+
+    def decode(self, turn: ModelTurn) -> "ModelTurn | _MalformedRound":
+        raw_text = turn.text or ""
+        try:
+            payload = json.loads(raw_text)
+        except json.JSONDecodeError:
+            return _MalformedRound(raw_text=raw_text, reason="invalid_json")
+        if not isinstance(payload, Mapping):
+            return _MalformedRound(raw_text=raw_text, reason="not_an_object")
+
+        kind = payload.get("kind")
+        if kind == "reply":
+            text = payload.get("text")
+            if not isinstance(text, str):
+                return _MalformedRound(raw_text=raw_text, reason="reply_missing_text")
+            return ModelTurn(text=text, tool_calls=(), provider_call_id=turn.provider_call_id)
+
+        if kind == "tool_calls":
+            calls = payload.get("calls")
+            if not isinstance(calls, list) or not calls:
+                return _MalformedRound(raw_text=raw_text, reason="tool_calls_missing_calls")
+            decoded_calls: list[NativeToolCall] = []
+            for entry in calls:
+                if not isinstance(entry, Mapping):
+                    return _MalformedRound(raw_text=raw_text, reason="tool_call_entry_not_an_object")
+                call_id, tool_id, arguments = entry.get("id"), entry.get("name"), entry.get("arguments")
+                if (
+                    not isinstance(call_id, str)
+                    or not isinstance(tool_id, str)
+                    or not isinstance(arguments, Mapping)
+                ):
+                    return _MalformedRound(raw_text=raw_text, reason="tool_call_entry_malformed")
+                decoded_calls.append(
+                    NativeToolCall(call_id=call_id, tool_id=tool_id, arguments=arguments)
+                )
+            return ModelTurn(
+                text=None,
+                tool_calls=tuple(decoded_calls),
+                provider_call_id=turn.provider_call_id,
+            )
+
+        # Every other shape -- a singular `{"kind":"tool_call", ...}` among
+        # them -- is malformed by construction: §6 asks for the plural shape
+        # ONLY, so there is no legal singular form to fall back to.
+        return _MalformedRound(raw_text=raw_text, reason=f"unknown_kind:{kind!r}")
+
+    def tool_result_message(
+        self, *, call: NativeToolCall, envelope: ToolExecutionEnvelope
+    ) -> CanonicalMessage:
+        return CanonicalMessage(
+            role="user",
+            content=canonical_json_bytes(
+                {"call_id": call.call_id, "result": envelope.result}
+            ).decode("utf-8"),
         )
 
 
@@ -686,6 +778,24 @@ async def _run_tool_loop(request: Any, ctx: AttemptContext, *, codec: _TurnCodec
             messages=messages, tools=(), response_mode=codec.response_mode
         )
         rounds_used += 1
+
+        decoded = codec.decode(turn)
+        if isinstance(decoded, _MalformedRound):
+            # Typed and counted, never raised: the model's own malformed
+            # output must not crash the attempt the way a genuine provider or
+            # tool contract violation does (§6).  The loop stops here rather
+            # than guessing a repair -- there is no legal singular fallback.
+            ctx.note(
+                "malformed_round",
+                {"round": rounds_used - 1, "raw_text": decoded.raw_text, "reason": decoded.reason},
+            )
+            return HarnessOutput(
+                action={"messages": list(messages), "tool_executions": tool_executions},
+                claimed_tool_calls=tuple(claimed),
+                rounds_used=rounds_used,
+                notes={"malformed_rounds": 1},
+            )
+        turn = decoded
 
         if turn.text is not None:
             messages = messages + (CanonicalMessage(role="assistant", content=turn.text),)
@@ -760,6 +870,46 @@ class NativeToolChatHarness:
 
     async def act(self, request: Any, ctx: AttemptContext) -> HarnessOutput:
         return await _run_tool_loop(request, ctx, codec=_NativeToolCodec())
+
+
+class JsonDialectHarness:
+    """`json_dialect/1.0`: a single plural JSON object via `output_schema`
+    (§6), for a provider with `structured_output` but no native tool-calling.
+    It is a labeled non-comparable fallback -- only `native_tool_chat/1.0`
+    may claim "same setup as upstream" -- and is a thin wrapper over the same
+    shared `_run_tool_loop` engine, coded with `_JsonDialectCodec` rather than
+    a second loop.
+    """
+
+    id = "json_dialect"
+    version = "1.0"
+    requires = HarnessRequirements(
+        provider=frozenset({"structured_output"}),
+        tools="declared",
+        memory=frozenset({"disabled"}),
+        owns_retries=False,
+        owns_tools=False,
+        replayable=True,
+        blocking=False,
+        spawns_subagents=False,
+    )
+
+    async def open_episode(self, episode: Any) -> None:
+        return None
+
+    async def close_episode(self, episode: Any) -> None:
+        return None
+
+    def classify_failure(self, exc: BaseException) -> FailureCondition:
+        if isinstance(exc, (ProviderFailure, ToolFailure)):
+            return FailureCondition(exc.condition, retryable=exc.retryable)
+        return FailureCondition("harness_error", retryable=False)
+
+    def state_reader(self) -> Any:
+        return None
+
+    async def act(self, request: Any, ctx: AttemptContext) -> HarnessOutput:
+        return await _run_tool_loop(request, ctx, codec=_JsonDialectCodec())
 
 
 class AttemptExecutor(MinimalChatExecutor):
@@ -924,6 +1074,7 @@ __all__ = [
     "Harness",
     "HarnessOutput",
     "HarnessRequirements",
+    "JsonDialectHarness",
     "KernelModelPort",
     "KernelToolPort",
     "ModelPort",

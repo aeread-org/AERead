@@ -1571,3 +1571,232 @@ def test_native_tool_chat_rounds_budget_exhausted_is_a_typed_failure(tmp_path) -
     assert captured.value.retryable is False
     # The loop stopped before ever asking the provider a second time.
     assert len(provider.requests) == 1
+
+
+# --- json_dialect/1.0: a thin codec over the same shared tool loop (§6) ---
+
+
+def test_json_dialect_plural_object_matches_native_tool_chat_grouping_and_event_order(
+    tmp_path,
+) -> None:
+    """The same two-call turn `native_tool_chat/1.0` receives natively, here
+    expressed as ONE plural JSON object via `output_schema`
+    (`{"kind":"tool_calls","calls":[...]}` then `{"kind":"reply","text":...}`),
+    must dispatch the same grouped two-call turn and produce the identical
+    event order -- proof that `json_dialect/1.0` is a codec over the same
+    `_run_tool_loop` engine, not a second loop with its own grouping.
+    """
+
+    from aeread.shared_runner.harness import (
+        BudgetView,
+        JsonDialectHarness,
+        _KernelAttemptContext,
+    )
+
+    evidence = _evidence(tmp_path)
+    runtime, balance_db = _tool_runtime(tmp_path, evidence)
+    profile = _profile()
+    decision = _executor_decision()
+    action_attempt_id = "action_attempt_json_dialect"
+
+    tool_calls_text = json.dumps(
+        {
+            "kind": "tool_calls",
+            "calls": [
+                {"id": "call_0", "name": "get_balance", "arguments": {}},
+                {"id": "call_1", "name": "refund_order", "arguments": {"amount_usd": 5}},
+            ],
+        }
+    )
+    reply_text = json.dumps({"kind": "reply", "text": "here is your answer"})
+
+    provider = ScriptedProvider(
+        [
+            _result(text=tool_calls_text, finish_reason="stop"),
+            _result(text=reply_text, finish_reason="stop"),
+        ]
+    )
+    model_port = KernelModelPort(
+        evidence=evidence,
+        provider=provider,
+        pricing=FAKE_PRICING,
+        profile=profile,
+        instructions=SYSTEM_PROMPT,
+        action_attempt_id=action_attempt_id,
+        logical_action_id="logical_action_fixture",
+        visibility="seat:buyer",
+    )
+    tool_port = KernelToolPort(
+        runtime=runtime, attempt_id="attempt_fixture", action_attempt_id=action_attempt_id
+    )
+    context = _KernelAttemptContext(
+        attempt_id=action_attempt_id,
+        seed=0,
+        budget=BudgetView(rounds_left=2, tokens_left=None, cost_left=None),
+        model=model_port,
+        tools=tool_port,
+        evidence=evidence,
+    )
+    harness = JsonDialectHarness()
+
+    async def run_attempt() -> HarnessOutput:
+        evidence.append_event(
+            "logical_action_started",
+            {"profile_id": profile.profile_id, "request": {"phase_id": decision.phase_id}},
+            logical_action_id="logical_action_fixture",
+        )
+        evidence.append_event(
+            "action_attempt_started",
+            {
+                "ordinal": 0,
+                "retry_reason": None,
+                "session_mode": profile.retry_policy.session_mode,
+                "rounds_max": context.budget.rounds_left,
+                "seed": profile.sampling.seed,
+            },
+            logical_action_id="logical_action_fixture",
+            action_attempt_id=action_attempt_id,
+        )
+
+        harness_output = await harness.act(decision, context)
+
+        pre_close_events = evidence.read_events()
+        provider_call_ids = list(
+            dict.fromkeys(e.provider_call_id for e in pre_close_events if e.provider_call_id)
+        )
+        tool_invocation_ids = list(
+            dict.fromkeys(e.tool_invocation_id for e in pre_close_events if e.tool_invocation_id)
+        )
+        evidence.append_event(
+            "action_attempt_succeeded",
+            {
+                "provider_call_ids": provider_call_ids,
+                "tool_invocation_ids": tool_invocation_ids,
+                "claimed_tool_calls": len(harness_output.claimed_tool_calls),
+                "reconciled": True,
+                "rounds_used": harness_output.rounds_used,
+                "empty_completions": 0,
+                "malformed_rounds": 0,
+            },
+            logical_action_id="logical_action_fixture",
+            action_attempt_id=action_attempt_id,
+        )
+        evidence.append_event(
+            "action_parsed",
+            {"verdict": "applied"},
+            logical_action_id="logical_action_fixture",
+            action_attempt_id=action_attempt_id,
+        )
+        evidence.append_event(
+            "action_legality_checked",
+            {"legal": True},
+            logical_action_id="logical_action_fixture",
+            action_attempt_id=action_attempt_id,
+        )
+        return harness_output
+
+    output = asyncio.run(run_attempt())
+
+    assert output.rounds_used == 2
+    # Both calls of the one plural object share the same provider_call_id --
+    # one grouped environment hop, in source order, exactly as native.
+    first_call, second_call = output.claimed_tool_calls
+    assert first_call.source_provider_call_id == second_call.source_provider_call_id
+    assert (first_call.source_call_index, second_call.source_call_index) == (0, 1)
+    assert first_call.source_provider_call_id == provider.requests[0].provider_call_id
+    assert output.action["tool_executions"] == [{}, {}]
+
+    events = evidence.read_events()
+    event_types = [event.event_type for event in events]
+    assert event_types == [
+        "logical_action_started",
+        "action_attempt_started",
+        "provider_call_started",
+        "provider_call_succeeded",
+        "tool_dispatch_intended",
+        "tool_invocation_started",
+        "tool_invocation_succeeded",
+        "tool_dispatch_intended",
+        "tool_invocation_started",
+        "tool_invocation_succeeded",
+        "provider_call_started",
+        "provider_call_succeeded",
+        "action_attempt_succeeded",
+        "action_parsed",
+        "action_legality_checked",
+    ], "json_dialect must match native_tool_chat's event order exactly (§8)"
+
+    provider_call_events = [event for event in events if event.provider_call_id is not None]
+    assert len({event.provider_call_id for event in provider_call_events}) == 2
+    tool_events = [event for event in events if event.tool_invocation_id is not None]
+    tool_ids = {event.tool_invocation_id for event in tool_events}
+    assert len(tool_ids) == 2
+    for tool_invocation_id in tool_ids:
+        subset = [
+            event.event_type for event in tool_events if event.tool_invocation_id == tool_invocation_id
+        ]
+        assert subset == [
+            "tool_dispatch_intended",
+            "tool_invocation_started",
+            "tool_invocation_succeeded",
+        ]
+    assert event_types.index("action_attempt_succeeded") < event_types.index("action_parsed")
+
+    evidence.audit_reconciliation(entity_types=("action_attempt", "provider_call", "tool_invocation"))
+
+
+def test_json_dialect_singular_object_is_a_malformed_round_not_a_crash(tmp_path) -> None:
+    """§6: the model is asked for the PLURAL shape only -- a singular
+    `{"kind":"tool_call", ...}` object has no legal fallback.  It must become
+    a typed, counted `malformed_rounds` outcome, never an exception: the
+    model's own malformed output must not be able to abort the attempt the
+    way a genuine provider or tool contract violation does.
+    """
+
+    from aeread.shared_runner.harness import (
+        BudgetView,
+        JsonDialectHarness,
+        _KernelAttemptContext,
+    )
+
+    evidence = _evidence(tmp_path, "json_dialect_malformed")
+    runtime, _ = _tool_runtime(tmp_path, evidence)
+    profile = _profile()
+    decision = _executor_decision()
+    action_attempt_id = "action_attempt_json_dialect_malformed"
+
+    singular_text = json.dumps(
+        {"kind": "tool_call", "id": "call_0", "name": "get_balance", "arguments": {}}
+    )
+    provider = ScriptedProvider([_result(text=singular_text, finish_reason="stop")])
+    model_port = KernelModelPort(
+        evidence=evidence,
+        provider=provider,
+        pricing=FAKE_PRICING,
+        profile=profile,
+        instructions=SYSTEM_PROMPT,
+        action_attempt_id=action_attempt_id,
+    )
+    tool_port = KernelToolPort(
+        runtime=runtime, attempt_id="attempt_fixture", action_attempt_id=action_attempt_id
+    )
+    context = _KernelAttemptContext(
+        attempt_id=action_attempt_id,
+        seed=0,
+        budget=BudgetView(rounds_left=2, tokens_left=None, cost_left=None),
+        model=model_port,
+        tools=tool_port,
+        evidence=evidence,
+    )
+    harness = JsonDialectHarness()
+
+    output = asyncio.run(harness.act(decision, context))
+
+    assert output.claimed_tool_calls == (), "a malformed round dispatches no tool calls"
+    assert output.rounds_used == 1
+    assert output.notes.get("malformed_rounds") == 1
+    # The loop stopped rather than guessing a repair or asking again.
+    assert len(provider.requests) == 1
+
+    event_types = [event.event_type for event in evidence.read_events()]
+    assert "harness_note" in event_types, "the malformed round must be recorded, not silent"
