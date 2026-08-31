@@ -1,0 +1,206 @@
+{
+  "case_id": "tau3.retail.base.23",
+  "content_sha256": "59dbe0b08fa7522ed118d99bb6547b296e83197d69250bc9e32c46ed711d0ea1",
+  "episode": {
+    "max_logical_actions": 100,
+    "termination": [
+      "agent_stop",
+      "user_stop",
+      "max_steps",
+      "error"
+    ]
+  },
+  "family_id": "tau3.retail",
+  "family_version": "0.1.0",
+  "payload": {
+    "pins": {
+      "db_bytes": 2811616,
+      "db_sha256": "413a65160adbdb5fde0ffc0015c49b6d70250b10c18128de169b597af7766765",
+      "greeting_message": "Hi! How can I help you today?",
+      "judge_args": {
+        "temperature": 0.0
+      },
+      "judge_model": "gpt-4.1-2025-04-14",
+      "max_steps": 100,
+      "policy_sha256": "2c9652afbce57d6e087768d37cda64d31c53d50b3e3225cfdb791bac66466467",
+      "tasks_sha256": "8e03ebce7901bd6218e7a7dc3105faa9324091a68058f7fe61c65262868812e8",
+      "tool_schema_sha256": null,
+      "tool_schema_sha256_unavailable_reason": "cannot import the pinned upstream tau2 package (looked under '/Users/sunzeyu/Documents/econ benchmark/upstream-tau2/src') to compute tool_schema_sha256 by delegation: No module named 'loguru'",
+      "upstream_commit": "fc0055dc4e0a316c3f83133267fbd6faaa770992",
+      "upstream_repo": "tau2-bench",
+      "user_sim_args": {
+        "temperature": 0.0
+      },
+      "user_sim_guidelines_sha256": "740a29dfa64d7bc08eea3bf7493575b914a63f744acbaf7f199ee07eddaf72d3",
+      "user_sim_model": "gpt-4.1-2025-04-14"
+    },
+    "task": {
+      "description": {
+        "notes": null,
+        "purpose": null,
+        "relevant_policies": null
+      },
+      "evaluation_criteria": {
+        "actions": [
+          {
+            "action_id": "23_0",
+            "arguments": {
+              "first_name": "Sofia",
+              "last_name": "Hernandez",
+              "zip": "98193"
+            },
+            "info": null,
+            "name": "find_user_id_by_name_zip"
+          },
+          {
+            "action_id": "23_1",
+            "arguments": {
+              "user_id": "sofia_hernandez_5364"
+            },
+            "info": null,
+            "name": "get_user_details"
+          },
+          {
+            "action_id": "23_2",
+            "arguments": {
+              "order_id": "#W3561391"
+            },
+            "info": null,
+            "name": "get_order_details"
+          },
+          {
+            "action_id": "23_3",
+            "arguments": {
+              "order_id": "#W6876713"
+            },
+            "info": null,
+            "name": "get_order_details"
+          },
+          {
+            "action_id": "23_4",
+            "arguments": {
+              "order_id": "#W9609649"
+            },
+            "info": null,
+            "name": "get_order_details"
+          },
+          {
+            "action_id": "23_5",
+            "arguments": {
+              "order_id": "#W3947049"
+            },
+            "info": null,
+            "name": "get_order_details"
+          },
+          {
+            "action_id": "23_6",
+            "arguments": {
+              "product_id": "7765186836"
+            },
+            "info": null,
+            "name": "get_product_details"
+          },
+          {
+            "action_id": "23_7",
+            "arguments": {
+              "item_ids": [
+                "3358616356"
+              ],
+              "new_item_ids": [
+                "8573379326"
+              ],
+              "order_id": "#W3947049",
+              "payment_method_id": "credit_card_7901829"
+            },
+            "info": null,
+            "name": "exchange_delivered_order_items"
+          },
+          {
+            "action_id": "23_8",
+            "arguments": {
+              "product_id": "5426915165"
+            },
+            "info": null,
+            "name": "get_product_details"
+          },
+          {
+            "action_id": "23_9",
+            "arguments": {
+              "item_ids": [
+                "6301799585"
+              ],
+              "new_item_ids": [
+                "8926329222"
+              ],
+              "order_id": "#W6876713",
+              "payment_method_id": "credit_card_7901829"
+            },
+            "info": null,
+            "name": "exchange_delivered_order_items"
+          },
+          {
+            "action_id": "23_10",
+            "arguments": {
+              "product_id": "6819683148"
+            },
+            "info": null,
+            "name": "get_product_details"
+          },
+          {
+            "action_id": "23_11",
+            "arguments": {
+              "item_ids": [
+                "5946177616"
+              ],
+              "new_item_ids": [
+                "7082455361"
+              ],
+              "order_id": "#W3561391",
+              "payment_method_id": "credit_card_7901829"
+            },
+            "info": null,
+            "name": "modify_pending_order_items"
+          }
+        ],
+        "communicate_info": [],
+        "nl_assertions": null,
+        "reward_basis": [
+          "DB",
+          "NL_ASSERTION"
+        ]
+      },
+      "id": "23",
+      "initial_state": null,
+      "user_scenario": {
+        "instructions": {
+          "domain": "retail",
+          "known_info": "You are Sofia Hernandez, and you live in Seattle, WA, 98193.",
+          "reason_for_call": "You want to exchange the helmet for a medium sized, red, high ventilation type, and you want to exchange the luggage set (in another order) to a two-piece black one with soft material. Lastly, you want to modify the grill you just ordered to the same type as the one you already received.",
+          "task_instructions": ".",
+          "unknown_info": "You do not remember your email address"
+        },
+        "persona": null
+      }
+    }
+  },
+  "provenance": {
+    "generator_id": "tau3_retail_importer",
+    "generator_version": "0.1.0",
+    "review_status": "upstream_pinned"
+  },
+  "seats": [
+    {
+      "id": "assistant",
+      "role": "assistant"
+    },
+    {
+      "id": "user",
+      "role": "user"
+    }
+  ],
+  "spec_version": "aeread.case/0.1",
+  "split": "base",
+  "upstream_task_id": "23",
+  "visibility_policy": "tau3_retail_user_scenario_private_v1",
+  "world_seed": 23
+}

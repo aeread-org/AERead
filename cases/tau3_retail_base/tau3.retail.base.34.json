@@ -1,0 +1,142 @@
+{
+  "case_id": "tau3.retail.base.34",
+  "content_sha256": "5662bfec6a4f4aebb2f20df51ff221f67103b044091eb89856ccfb7bab0f3c1e",
+  "episode": {
+    "max_logical_actions": 100,
+    "termination": [
+      "agent_stop",
+      "user_stop",
+      "max_steps",
+      "error"
+    ]
+  },
+  "family_id": "tau3.retail",
+  "family_version": "0.1.0",
+  "payload": {
+    "pins": {
+      "db_bytes": 2811616,
+      "db_sha256": "413a65160adbdb5fde0ffc0015c49b6d70250b10c18128de169b597af7766765",
+      "greeting_message": "Hi! How can I help you today?",
+      "judge_args": {
+        "temperature": 0.0
+      },
+      "judge_model": "gpt-4.1-2025-04-14",
+      "max_steps": 100,
+      "policy_sha256": "2c9652afbce57d6e087768d37cda64d31c53d50b3e3225cfdb791bac66466467",
+      "tasks_sha256": "8e03ebce7901bd6218e7a7dc3105faa9324091a68058f7fe61c65262868812e8",
+      "tool_schema_sha256": null,
+      "tool_schema_sha256_unavailable_reason": "cannot import the pinned upstream tau2 package (looked under '/Users/sunzeyu/Documents/econ benchmark/upstream-tau2/src') to compute tool_schema_sha256 by delegation: No module named 'loguru'",
+      "upstream_commit": "fc0055dc4e0a316c3f83133267fbd6faaa770992",
+      "upstream_repo": "tau2-bench",
+      "user_sim_args": {
+        "temperature": 0.0
+      },
+      "user_sim_guidelines_sha256": "740a29dfa64d7bc08eea3bf7493575b914a63f744acbaf7f199ee07eddaf72d3",
+      "user_sim_model": "gpt-4.1-2025-04-14"
+    },
+    "task": {
+      "description": {
+        "notes": null,
+        "purpose": null,
+        "relevant_policies": null
+      },
+      "evaluation_criteria": {
+        "actions": [
+          {
+            "action_id": "34_0",
+            "arguments": {
+              "first_name": "Noah",
+              "last_name": "Patel",
+              "zip": "10108"
+            },
+            "info": null,
+            "name": "find_user_id_by_name_zip"
+          },
+          {
+            "action_id": "34_1",
+            "arguments": {
+              "user_id": "noah_patel_6952"
+            },
+            "info": null,
+            "name": "get_user_details"
+          },
+          {
+            "action_id": "34_2",
+            "arguments": {
+              "order_id": "#W6111398"
+            },
+            "info": null,
+            "name": "get_order_details"
+          },
+          {
+            "action_id": "34_3",
+            "arguments": {
+              "order_id": "#W7043598"
+            },
+            "info": null,
+            "name": "get_order_details"
+          },
+          {
+            "action_id": "34_4",
+            "arguments": {
+              "order_id": "#W1845024"
+            },
+            "info": null,
+            "name": "get_order_details"
+          },
+          {
+            "action_id": "34_5",
+            "arguments": {
+              "address1": "224 Elm Street",
+              "address2": "Suite 491",
+              "city": "New York",
+              "country": "USA",
+              "order_id": "#W1845024",
+              "state": "NY",
+              "zip": "10108"
+            },
+            "info": null,
+            "name": "modify_pending_order_address"
+          }
+        ],
+        "communicate_info": [],
+        "nl_assertions": [],
+        "reward_basis": [
+          "DB"
+        ]
+      },
+      "id": "34",
+      "initial_state": null,
+      "user_scenario": {
+        "instructions": {
+          "domain": "retail",
+          "known_info": "You are an interesting guy called Noah Patel, living in the Big Apple in 10108.",
+          "reason_for_call": "You had a work-from-home situation and ordered three home office items along with some hiking items, so that you can go back to your parent's place at Seattle to remote work and enjoy outdoor life. But your company just announced that you will be back to the office soon. If cancelling partial items is possible with the agent, you want to return the office items (your forgot what) and keep the hiking items. You want to know the total amount you will get back, and you want to get the refund on your original payment method. If cancelling partial items is not possible, just change the address to your NYC place and you will return the items later.",
+          "task_instructions": "You are a funny guy but recently the WFH situation made you a bit anxious.",
+          "unknown_info": "You don't have an email"
+        },
+        "persona": null
+      }
+    }
+  },
+  "provenance": {
+    "generator_id": "tau3_retail_importer",
+    "generator_version": "0.1.0",
+    "review_status": "upstream_pinned"
+  },
+  "seats": [
+    {
+      "id": "assistant",
+      "role": "assistant"
+    },
+    {
+      "id": "user",
+      "role": "user"
+    }
+  ],
+  "spec_version": "aeread.case/0.1",
+  "split": "base",
+  "upstream_task_id": "34",
+  "visibility_policy": "tau3_retail_user_scenario_private_v1",
+  "world_seed": 34
+}

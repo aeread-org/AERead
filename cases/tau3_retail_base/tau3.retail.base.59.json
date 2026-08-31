@@ -1,0 +1,142 @@
+{
+  "case_id": "tau3.retail.base.59",
+  "content_sha256": "3bed2cabb8411a6fd03d5851eac5ea406df78516c36cf98a2175dde28f271629",
+  "episode": {
+    "max_logical_actions": 100,
+    "termination": [
+      "agent_stop",
+      "user_stop",
+      "max_steps",
+      "error"
+    ]
+  },
+  "family_id": "tau3.retail",
+  "family_version": "0.1.0",
+  "payload": {
+    "pins": {
+      "db_bytes": 2811616,
+      "db_sha256": "413a65160adbdb5fde0ffc0015c49b6d70250b10c18128de169b597af7766765",
+      "greeting_message": "Hi! How can I help you today?",
+      "judge_args": {
+        "temperature": 0.0
+      },
+      "judge_model": "gpt-4.1-2025-04-14",
+      "max_steps": 100,
+      "policy_sha256": "2c9652afbce57d6e087768d37cda64d31c53d50b3e3225cfdb791bac66466467",
+      "tasks_sha256": "8e03ebce7901bd6218e7a7dc3105faa9324091a68058f7fe61c65262868812e8",
+      "tool_schema_sha256": null,
+      "tool_schema_sha256_unavailable_reason": "cannot import the pinned upstream tau2 package (looked under '/Users/sunzeyu/Documents/econ benchmark/upstream-tau2/src') to compute tool_schema_sha256 by delegation: No module named 'loguru'",
+      "upstream_commit": "fc0055dc4e0a316c3f83133267fbd6faaa770992",
+      "upstream_repo": "tau2-bench",
+      "user_sim_args": {
+        "temperature": 0.0
+      },
+      "user_sim_guidelines_sha256": "740a29dfa64d7bc08eea3bf7493575b914a63f744acbaf7f199ee07eddaf72d3",
+      "user_sim_model": "gpt-4.1-2025-04-14"
+    },
+    "task": {
+      "description": {
+        "notes": null,
+        "purpose": null,
+        "relevant_policies": null
+      },
+      "evaluation_criteria": {
+        "actions": [
+          {
+            "action_id": "59_0",
+            "arguments": {
+              "first_name": "Yusuf",
+              "last_name": "Taylor",
+              "zip": "95154"
+            },
+            "info": null,
+            "name": "find_user_id_by_name_zip"
+          },
+          {
+            "action_id": "59_1",
+            "arguments": {
+              "order_id": "#W2702727"
+            },
+            "info": null,
+            "name": "get_order_details"
+          },
+          {
+            "action_id": "59_2",
+            "arguments": {
+              "order_id": "#W8268610"
+            },
+            "info": null,
+            "name": "get_order_details"
+          },
+          {
+            "action_id": "59_3",
+            "arguments": {
+              "order_id": "#W8268610",
+              "reason": "no longer needed"
+            },
+            "info": null,
+            "name": "cancel_pending_order"
+          },
+          {
+            "action_id": "59_4",
+            "arguments": {
+              "address1": "1234 Elm St",
+              "address2": "",
+              "city": "Springfield",
+              "country": "USA",
+              "order_id": "#W2702727",
+              "state": "IL",
+              "zip": "62701"
+            },
+            "info": null,
+            "name": "modify_pending_order_address"
+          }
+        ],
+        "communicate_info": [
+          "164.28",
+          "625.60"
+        ],
+        "nl_assertions": [
+          "Agent should tell the user the refund for the cancelled desk lamp order is $164.28.",
+          "Agent should tell the user the total price of order #W2702727 is $625.60."
+        ],
+        "reward_basis": [
+          "DB",
+          "NL_ASSERTION"
+        ]
+      },
+      "id": "59",
+      "initial_state": null,
+      "user_scenario": {
+        "instructions": {
+          "domain": "retail",
+          "known_info": "You are Yusuf Taylor from San Jose, CA, 95154.",
+          "reason_for_call": "You recently placed two orders, and now you would like to make several changes and checks. You'll first inquire about the status difference between your two orders, #W2702727 and #W8268610, since both are \"pending,\" but one was placed much earlier in the year. You are considering cancelling the older order as you find the wait time unreasonable. If the agent cannot guarantee the older order will be processed within 5 days, you want to cancel it. You also want to confirm the total price of the refund. \n\n    For order #W2702727, you intend to switch the shipping address to your new home in a different city because you plan to move prior to its delivery next month. Your new address is 1234 Elm St, Springfield, IL, 62701. You want the agent to confirm the change and ensure the order will be delivered to the new address. You also want to confirm the total price of the order after the address change.",
+          "task_instructions": "Your approach will be firm, as you are unhappy with the pending status's duration but try to make all requests in one go and ask for them to be resolved efficiently and correctly in context with each other.",
+          "unknown_info": "You do not remember your email address."
+        },
+        "persona": null
+      }
+    }
+  },
+  "provenance": {
+    "generator_id": "tau3_retail_importer",
+    "generator_version": "0.1.0",
+    "review_status": "upstream_pinned"
+  },
+  "seats": [
+    {
+      "id": "assistant",
+      "role": "assistant"
+    },
+    {
+      "id": "user",
+      "role": "user"
+    }
+  ],
+  "spec_version": "aeread.case/0.1",
+  "split": "base",
+  "upstream_task_id": "59",
+  "visibility_policy": "tau3_retail_user_scenario_private_v1",
+  "world_seed": 59
+}

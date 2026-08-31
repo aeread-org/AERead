@@ -18,7 +18,7 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
 dependencies = [
-    "openai>=1.40",
+    "openai>=1.66.2",
     "scipy>=1.10",
     "numpy>=1.24",
 ]
@@ -28,6 +28,7 @@ dev = ["pytest>=7"]
 
 [project.scripts]
 aeread = "aeread.cli:main"
+aeread-shared-smoke = "aeread.shared_runner.smoke:main"
 
 # rLLM plugin discovery (https://docs.rllm-project.com): with rllm installed,
 # `rllm eval <dataset> --agent aeread` / `rllm train` resolve these by name.

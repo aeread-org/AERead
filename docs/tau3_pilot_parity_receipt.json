@@ -1,0 +1,157 @@
+{
+  "results": [
+    {
+      "case_id": "tau3.retail.base.14",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "reason": null,
+      "status": "ran",
+      "upstream_task_id": "14"
+    },
+    {
+      "case_id": "tau3.retail.base.53",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "reason": null,
+      "status": "ran",
+      "upstream_task_id": "53"
+    },
+    {
+      "case_id": "tau3.retail.base.73",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "reason": null,
+      "status": "ran",
+      "upstream_task_id": "73"
+    },
+    {
+      "case_id": "tau3.retail.base.108",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "reason": null,
+      "status": "ran",
+      "upstream_task_id": "108"
+    },
+    {
+      "case_id": "tau3.retail.base.10",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "reason": null,
+      "status": "ran",
+      "upstream_task_id": "10"
+    },
+    {
+      "case_id": "tau3.retail.base.11",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "reason": null,
+      "status": "ran",
+      "upstream_task_id": "11"
+    },
+    {
+      "case_id": "tau3.retail.base.82",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "reason": null,
+      "status": "ran",
+      "upstream_task_id": "82"
+    },
+    {
+      "case_id": "tau3.retail.base.83",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "reason": null,
+      "status": "ran",
+      "upstream_task_id": "83"
+    },
+    {
+      "case_id": "tau3.retail.base.5",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "reason": null,
+      "status": "ran",
+      "upstream_task_id": "5"
+    },
+    {
+      "case_id": "tau3.retail.base.48",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "reason": null,
+      "status": "ran",
+      "upstream_task_id": "48"
+    },
+    {
+      "case_id": "tau3.retail.base.84",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "reason": null,
+      "status": "ran",
+      "upstream_task_id": "84"
+    },
+    {
+      "case_id": "tau3.retail.base.91",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "reason": null,
+      "status": "ran",
+      "upstream_task_id": "91"
+    },
+    {
+      "case_id": "tau3.retail.base.16",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "reason": null,
+      "status": "ran",
+      "upstream_task_id": "16"
+    },
+    {
+      "case_id": "tau3.retail.base.28",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "reason": null,
+      "status": "ran",
+      "upstream_task_id": "28"
+    },
+    {
+      "case_id": "tau3.retail.base.103",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "reason": null,
+      "status": "ran",
+      "upstream_task_id": "103"
+    },
+    {
+      "case_id": "tau3.retail.base.104",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "reason": null,
+      "status": "ran",
+      "upstream_task_id": "104"
+    },
+    {
+      "case_id": "tau3.retail.base.30",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "reason": null,
+      "status": "ran",
+      "upstream_task_id": "30"
+    },
+    {
+      "case_id": "tau3.retail.base.46",
+      "mismatched_fields": [],
+      "parity_status": "match",
+      "reason": null,
+      "status": "ran",
+      "upstream_task_id": "46"
+    }
+  ],
+  "summary": {
+    "errored": 0,
+    "matched": 18,
+    "mismatched": 0,
+    "ran": 18,
+    "skipped": 0,
+    "total": 18
+  },
+  "upstream_commit": "fc0055dc4e0a316c3f83133267fbd6faaa770992"
+}
