@@ -67,7 +67,7 @@ from .tau2_bridge import (
     discover_bridge_python,
 )
 
-DEFAULT_CASES_DIR = Path("cases/tau3_retail_base")
+DEFAULT_CASES_DIR = Path("cases/tau3_retail/base")
 
 # Shared, literal wording used identically to build BOTH the upstream_direct
 # and the adapter trajectories, so any divergence in a downstream component

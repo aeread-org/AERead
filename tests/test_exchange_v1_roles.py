@@ -432,7 +432,7 @@ def test_defection_rate_engages_on_the_composite_roles_path():
     from aeread import exchange_v1_runner as runner
     from aeread import exchange_economy as ex
 
-    config = ex.load_experiment_config(ROOT / "configs/exchange_economy/cases_v0/case01_visible_bilateral_ir.json")
+    config = ex.load_experiment_config(ROOT / "cases/exchange_v1/v0/case01_visible_bilateral_ir.json")
     import dataclasses
     proto = dataclasses.replace(config.protocol, defection_rate=0.5, defection_seed=46)
     config = dataclasses.replace(config, protocol=proto)

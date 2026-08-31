@@ -56,11 +56,11 @@ aeread --help
 
 ```bash
 # run a case fully offline (scripted policies, no LLM calls):
-aeread run --config configs/exchange_economy/cases_v0/case01_visible_bilateral_ir.json \
+aeread run --config cases/exchange_v1/v0/case01_visible_bilateral_ir.json \
     --mode offline --seed 7 --out runs/
 
 # provider-free baselines + validity orderings for a case (~2 min/case, pure CPU):
-aeread baselines --configs 'configs/exchange_economy/cases_v0/case01_visible_bilateral_ir.json' \
+aeread baselines --configs 'cases/exchange_v1/v0/case01_visible_bilateral_ir.json' \
     --output-md /tmp/case01_baselines.md
 ```
 
@@ -73,7 +73,7 @@ Models route through any OpenAI-compatible endpoint (`OPENAI_API_KEY` +
 ```bash
 export OPENAI_API_KEY=...    # OpenRouter (or set OPENAI_BASE_URL for another provider)
 
-aeread eval --cases 'configs/exchange_economy/cases_v0/case0*.json' \
+aeread eval --cases 'cases/exchange_v1/v0/case0*.json' \
     --agents noop random greedy your-provider/your-model \
     --seeds 5 --seed-base 1200 --workers 8 --out output/my_eval
 # -> output/my_eval/summary.json: pooled AER + bootstrap CI per agent, vs the baselines
@@ -95,7 +95,7 @@ class MyAgent:
 ```
 
 ```bash
-aeread submit --cases configs/exchange_economy/cases_v0/case0*.json \
+aeread submit --cases cases/exchange_v1/v0/case0*.json \
     --agent mypkg.myagent:MyAgent --out submissions/
 # -> submission_report.json: per-case scores, case-set content hash,
 #    replay verification (the run is re-executed with your agent absent and
@@ -116,7 +116,7 @@ communication scope…), an `institution_pressure` block, and a strictly
 validated `roles` table. New cases must pass the provider-free admission gate
 (`aeread validate-case`), which enforces the non-triviality ordering
 `no-op ≤ random < greedy < ceiling` and rejects degenerate worlds. See
-[CONTRIBUTING.md](CONTRIBUTING.md) and `configs/exchange_economy/cases_v0/README.md`.
+[CONTRIBUTING.md](CONTRIBUTING.md) and `cases/exchange_v1/v0/README.md`.
 
 ## Integrations
 
@@ -180,7 +180,8 @@ src/aeread/            the installable package: arena engine, runner, scorer,
                        submission harness, baselines, oracles, CLI
 src/aeread/integrations/   rLLM flow/eval/dataset, EverOS memory (importable code)
 integrations/          per-integration guides + examples (human side)
-configs/exchange_economy/  versioned case sets (cases_v0/, …) + variants
+cases/                 canonical case catalog, grouped by family and version/split
+configs/exchange_economy/  experiment, treatment, and protocol configurations
 docs/                  quickstart, concepts, submission contract
 examples/              minimal runnable entry points
 tests/                 offline, deterministic; no API keys needed

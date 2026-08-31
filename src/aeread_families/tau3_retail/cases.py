@@ -398,7 +398,7 @@ def run_import(upstream_root: Path, output_dir: Path) -> None:
 def _default_output_dir() -> Path:
     # src/aeread_families/tau3_retail/cases.py -> repo root is parents[3]
     repo_root = Path(__file__).resolve().parents[3]
-    return repo_root / "cases" / "tau3_retail_base"
+    return repo_root / "cases" / "tau3_retail" / "base"
 
 
 def main(argv: list[str] | None = None) -> None:

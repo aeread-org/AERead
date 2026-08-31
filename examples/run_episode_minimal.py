@@ -7,7 +7,7 @@ episode core every integration builds on.
 
     export OPENAI_API_KEY=...            # OpenRouter key in the default setup
     python examples/run_episode_minimal.py \
-        --case configs/exchange_economy/cases_v0/case01_visible_bilateral_ir.json \
+        --case cases/exchange_v1/v0/case01_visible_bilateral_ir.json \
         --seed 1200 --model deepseek/deepseek-v4-flash
 """
 from __future__ import annotations

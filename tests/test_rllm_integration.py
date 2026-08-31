@@ -23,8 +23,9 @@ def test_build_rows_does_not_depend_on_cwd(tmp_path, monkeypatch):
     """
     monkeypatch.chdir(tmp_path)
     rows = rllm_dataset.build_rows()
-    assert rows, "default case set resolved to nothing outside a checkout"
+    assert len(rows) == 40, "the four official cases should each expand to ten seeds"
     assert all(Path(r["case_path"]).is_file() for r in rows)
+    assert not any("__panel_" in r["uid"] for r in rows)
 
 
 def test_build_rows_still_honours_an_explicit_glob(tmp_path):

@@ -16,7 +16,7 @@ import glob
 from pathlib import Path
 from typing import Any
 
-DEFAULT_CASES = "configs/exchange_economy/cases_v0/case0*.json"
+DEFAULT_CASES = "cases/exchange_v1/v0/case0*.json"
 DEFAULT_SEEDS = tuple(range(1200, 1210))
 
 
@@ -25,7 +25,7 @@ def _search_roots() -> list[Path]:
 
     A relative glob used to be resolved against the process CWD alone, so the
     documented ``pip install`` + ``--register`` recipe only worked if you were
-    standing in a checkout. The wheel force-includes ``configs/`` next to the
+    standing in a checkout. The wheel force-includes ``cases/`` next to the
     package, so look there first, then at the checkout root (src layout), then
     at the CWD.
     """

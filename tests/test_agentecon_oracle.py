@@ -145,7 +145,7 @@ def test_score_case_reports_tier_and_carveout():
 from aeread import exchange_economy as ex  # noqa: E402
 from aeread.agentecon_oracle import BundleCaseOracle, TIER_FALLBACK  # noqa: E402
 
-BUNDLE_CFG = "configs/exchange_economy/bundle_under_budget_trip3.json"
+BUNDLE_CFG = "cases/exchange_v1/specialized/bundle_under_budget_trip3.json"
 
 
 def _trip3_world():
@@ -189,7 +189,7 @@ def test_bundle_oracle_realized_and_gate():
 from aeread import exchange_procurement as ep  # noqa: E402
 from aeread.agentecon_oracle import ProcurementCaseOracle  # noqa: E402
 
-PROC_CFG = "configs/exchange_economy/procurement_electronics_q3.json"
+PROC_CFG = "cases/exchange_v1/specialized/procurement_electronics_q3.json"
 
 
 def test_procurement_oracle_wstar_and_realized():

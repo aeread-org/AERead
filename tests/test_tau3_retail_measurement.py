@@ -3,7 +3,7 @@
 Two kinds of coverage:
 
 * Pure, provider-free, bridge-free tests against the 114 checked-in case
-  files under ``cases/tau3_retail_base/`` -- these run everywhere and
+  files under ``cases/tau3_retail/base/`` -- these run everywhere and
   exercise the leaf-declaration rules (spec section 7) directly.
 * Bridge-gated tests that call the pinned upstream checkout through
   ``Tau2Bridge`` (see ``tau2_bridge.py``) to prove the deterministic leaf is
@@ -34,7 +34,7 @@ from aeread_families.tau3_retail.tau2_bridge import (
     discover_bridge_python,
 )
 
-CASES_DIR = Path("cases/tau3_retail_base")
+CASES_DIR = Path("cases/tau3_retail/base")
 
 # Chosen from the real 18-task pilot corpus (spec section 3):
 #   "73"  -- reward_basis includes NL_ASSERTION but nl_assertions is null

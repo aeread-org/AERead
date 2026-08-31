@@ -83,7 +83,7 @@ def _bridge() -> Tau2Bridge:
 
 
 def _case(task_id: str = "73") -> CaseManifest:
-    path = Path("cases/tau3_retail_base") / f"tau3.retail.base.{task_id}.json"
+    path = Path("cases/tau3_retail/base") / f"tau3.retail.base.{task_id}.json"
     return CaseManifest.from_dict(json.loads(path.read_text(encoding="utf-8")))
 
 
@@ -334,7 +334,7 @@ def test_replayed_episode_recomputes_leaf_1_by_delegating_to_upstream(
     replayed = asyncio.run(
         replay_episode(cell=cell, case=case, plugin=resolved_plugin, recorded=recorded)
     )
-    task_path = Path("cases/tau3_retail_base") / "tau3.retail.base.73.json"
+    task_path = Path("cases/tau3_retail/base") / "tau3.retail.base.73.json"
     payload = json.loads(task_path.read_text(encoding="utf-8"))["payload"]
     scorer = resolved_plugin.build_scorer(payload)
 
@@ -348,7 +348,7 @@ def test_replay_and_verify_end_to_end_returns_a_matching_report(tmp_path: Path) 
     bridge = _bridge()
     case, cell, resolved_plugin, original = _run_live(bridge, tmp_path, suffix="e2e")
     recorded = record_episode(original)
-    task_path = Path("cases/tau3_retail_base") / "tau3.retail.base.73.json"
+    task_path = Path("cases/tau3_retail/base") / "tau3.retail.base.73.json"
     payload = json.loads(task_path.read_text(encoding="utf-8"))["payload"]
     scorer = resolved_plugin.build_scorer(payload)
 
