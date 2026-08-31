@@ -1,10 +1,14 @@
-# cases_v0 — the first official AERead case set (D9/D10 pipeline)
+# Exchange v1 / v0 — the first official AERead case set
 
 Four arena cases, one per headline family, each declaring a full `roles` seat table
 (D9) so the D10 submission harness (`sprint/exchange_v1_submit.py`) can seat one
 foreign agent in `under_test` against a **frozen panel** and score it with the D15
 scorer (`sprint/exchange_v1_scoring.py` → carve-out contract v2: raw aggregate,
 negatives preserved, `wstar_fallback` denominator tier).
+
+Only the four `case0*.json` files directly in this directory belong to the
+official scored set. `diagnostics/` contains panel-analysis artifacts and is
+deliberately excluded from the default case glob and case-set hash.
 
 | Case | Family | Seed | Rounds | Unsaturated? |
 |---|---|---|---|---|
@@ -48,4 +52,4 @@ Non-triviality ordering to demand of every case: `no-op <= random < greedy < mod
 `eval_dev` cases (market pricing / surfacing / negotiation-vs-frozen-seller / strategic
 disclosure). Those need per-case Bayes denominators (`mc_wbayes`) or bespoke oracle
 adapters, and land as
-`cases_v1` without disturbing this set's content hash.
+`cases/exchange_v1/v1` without disturbing this set's content hash.

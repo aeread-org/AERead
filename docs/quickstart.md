@@ -16,7 +16,7 @@ Scripted policies through the full arena — world building, negotiation
 phases, settlement, scoring:
 
 ```bash
-aeread run --config configs/exchange_economy/cases_v0/case01_visible_bilateral_ir.json \
+aeread run --config cases/exchange_v1/v0/case01_visible_bilateral_ir.json \
     --mode offline --seed 7 --out runs/
 ```
 
@@ -26,7 +26,7 @@ Provider-free baselines (no-op, random, greedy) and the validity orderings
 that make a case admissible (`no-op ≤ random < greedy < ceiling`):
 
 ```bash
-aeread baselines --configs 'configs/exchange_economy/cases_v0/*.json' --output-md baselines.md
+aeread baselines --configs 'cases/exchange_v1/v0/*.json' --output-md baselines.md
 ```
 
 ## 3. One live episode (first API call)
@@ -37,7 +37,7 @@ Your model in the under-test seat, frozen panel everywhere else
 ```bash
 export OPENAI_API_KEY=sk-or-...   # any OpenAI-compatible provider
 python examples/run_episode_minimal.py \
-    --case configs/exchange_economy/cases_v0/case01_visible_bilateral_ir.json \
+    --case cases/exchange_v1/v0/case01_visible_bilateral_ir.json \
     --seed 1200 --model deepseek/deepseek-v4-flash
 ```
 

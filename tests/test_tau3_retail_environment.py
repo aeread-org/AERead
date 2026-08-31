@@ -74,7 +74,7 @@ def _bridge() -> Tau2Bridge:
 
 
 def _case(task_id: str = "73") -> CaseManifest:
-    path = Path("cases/tau3_retail_base") / f"tau3.retail.base.{task_id}.json"
+    path = Path("cases/tau3_retail/base") / f"tau3.retail.base.{task_id}.json"
     return CaseManifest.from_dict(json.loads(path.read_text(encoding="utf-8")))
 
 

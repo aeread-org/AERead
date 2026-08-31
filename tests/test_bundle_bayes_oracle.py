@@ -96,7 +96,7 @@ def test_production_world_carries_seller_layout_and_mc_wbayes_engages():
     from aeread import agentecon_oracle as ao
     root = Path(__file__).resolve().parents[1]
     cfg = ex.load_experiment_config(
-        root / "configs/exchange_economy/bundle_under_budget_trip3.json")
+        root / "cases/exchange_v1/specialized/bundle_under_budget_trip3.json")
     world = ex.make_world_from_config(cfg)
     assert getattr(world, "seller_layout", None) is not None, \
         "make_bundle_under_budget_world must attach the cost-prior layout"
@@ -123,7 +123,7 @@ def test_mc_wbayes_per_instance_frontier_open_question():
     from aeread import agentecon_oracle as ao
     root = Path(__file__).resolve().parents[1]
     cfg = ex.load_experiment_config(
-        root / "configs/exchange_economy/bundle_under_budget_trip3.json")
+        root / "cases/exchange_v1/specialized/bundle_under_budget_trip3.json")
     world = ex.make_world_from_config(cfg)
     os.environ["AEREAD_MC_WBAYES"] = "1"
     try:

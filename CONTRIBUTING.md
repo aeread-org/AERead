@@ -16,8 +16,9 @@ rungs 1–2 need no keys) and [docs/concepts.md](docs/concepts.md) first.
 
 ## 1. Contribute a case
 
-A case is one JSON file under `configs/exchange_economy/` (case sets live in
-versioned subdirectories, e.g. `cases_v0/`). Anatomy:
+A case is one JSON file under `cases/<family>/<version-or-split>/`. For
+example, the official Exchange v1 set lives in `cases/exchange_v1/v0/`.
+Anatomy:
 
 ```jsonc
 {
@@ -49,8 +50,8 @@ currently ignored — double-check field names against
 **Admission gate (required before opening a PR):**
 
 ```bash
-aeread baselines --configs 'configs/exchange_economy/your_case.json' --output-md /tmp/b.md
-aeread validate-case --configs 'configs/exchange_economy/your_case.json' --strict --gate
+aeread baselines --configs 'cases/exchange_v1/v0/your_case.json' --output-md /tmp/b.md
+aeread validate-case --configs 'cases/exchange_v1/v0/your_case.json' --strict --gate
 ```
 
 The gate enforces, provider-free: meaningful attainable surplus; an
@@ -61,10 +62,10 @@ Budget ~2 minutes of CPU per case.
 
 **Calibration note:** the gate's default thresholds and strict heuristic
 orderings were frozen against the `v1_ladder_*`/`v1_main` family; on the
-`cases_v0` set they currently report threshold rejections and ordering ties
-(recorded in `configs/exchange_economy/v1_manifest.json`). cases_v0 was
+`cases/exchange_v1/v0` set they currently report threshold rejections and ordering ties
+(recorded in `configs/exchange_economy/v1_manifest.json`). Exchange v1/v0 was
 admitted on the empirical non-triviality ordering (`no-op ≤ random < greedy <
-model-ceiling` holds on all five cases on dev and held-out seeds). For a new
+model-ceiling` holds on all four published cases on dev and held-out seeds). For a new
 case PR, include the full gate output — maintainers review the numbers and
 orderings, they do not require a mechanical `accept` verdict; recalibrating
 the thresholds per case family is an open item.
@@ -87,7 +88,7 @@ run your agent — a pip-installable package exposing `module:Class`, or a model
 name on a public endpoint):
 
 ```bash
-aeread submit --cases configs/exchange_economy/cases_v0/case0*.json \
+aeread submit --cases cases/exchange_v1/v0/case0*.json \
     --agent mypkg.myagent:MyAgent --out submissions/
 ```
 

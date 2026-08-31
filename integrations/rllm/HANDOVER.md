@@ -117,7 +117,7 @@ still moving. Written against rLLM of 2026-07.
    (`model@t0.7:s2` per-sample indices bypass the temp-0 cache for the trained
    seat) but it has not been exercised across a full training run.
 5. **`validate-case` calibration.** The strict gate mechanically rejects
-   `cases_v0` because its thresholds were frozen on the v1 ladder family. Known,
+   `cases/exchange_v1/v0` because its thresholds were frozen on the v1 ladder family. Known,
    documented in CONTRIBUTING, unrelated to rLLM but it will confuse anyone who
    runs the gate on the public case set.
 
@@ -125,7 +125,7 @@ still moving. Written against rLLM of 2026-07.
 
 `src/aeread/integrations/*` and `pyproject.toml` are **canonical in this public
 repo**. They are not produced by the private repo's export tool and do not
-exist in its tree, so edit them here directly. By contrast `configs/` and
+exist in its tree, so edit them here directly. By contrast `cases/exchange_v1/`, `configs/`, and
 `exchange_economy.py` arrive by export and must be changed upstream first.
 
 ## Running the tests

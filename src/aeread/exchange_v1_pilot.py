@@ -20,7 +20,7 @@ Outputs under --out:
 
 Usage:
   python sprint/exchange_v1_pilot.py \
-      --cases configs/exchange_economy/cases_v0/*.json \
+      --cases cases/exchange_v1/v0/*.json \
       --agents noop random greedy google/gemini-2.5-flash \
       --seeds 30 --workers 24 --out output/pilot_v0 [--dry-run]
 """

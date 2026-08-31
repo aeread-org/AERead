@@ -49,7 +49,7 @@ aeread_families/tau3_retail/
     recorder.py       # episode record schema + exporter to upstream SimulationRun format
     replay.py         # offline replayer (zero network)
     parity.py         # pilot parity runner + report
-cases/tau3_retail_base/
+cases/tau3_retail/base/
     tau3.retail.base.0.json ... tau3.retail.base.113.json
     pins.json
 ```

@@ -45,7 +45,8 @@ Repository = "https://github.com/aeread-org/AERead"
 [tool.hatch.build.targets.wheel]
 packages = ["src/aeread"]
 
-# Ship the public case set inside the wheel so `pip install aeread` followed by
+# Ship the public case catalog inside the wheel so `pip install aeread` followed by
 # `rllm eval` works without cloning. rllm_dataset._search_roots() looks here first.
 [tool.hatch.build.targets.wheel.force-include]
 "configs" = "aeread/configs"
+"cases" = "aeread/cases"

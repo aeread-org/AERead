@@ -33,8 +33,8 @@ from aeread.aer_scorer import (  # noqa: E402
     score_submission,
 )
 
-BUNDLE_CFG = "configs/exchange_economy/bundle_under_budget_trip3.json"
-PROC_CFG = "configs/exchange_economy/procurement_electronics_q3.json"
+BUNDLE_CFG = "cases/exchange_v1/specialized/bundle_under_budget_trip3.json"
+PROC_CFG = "cases/exchange_v1/specialized/procurement_electronics_q3.json"
 
 
 def _trip3():
