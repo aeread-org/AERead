@@ -336,7 +336,11 @@ class KernelModelPort:
         self.last_result = result
         if not result.output_text.strip():
             raise ProviderFailure(
-                "empty_completion",
+                # "empty_response" is the condition name the kernel's retry
+                # policy already matches (execution.py, retry_condition).  A
+                # new name here would silently stop retrying for every profile
+                # that declares the existing one in retryable_conditions.
+                "empty_response",
                 f"provider call {provider_call_id} returned an empty completion",
                 retryable=True,
             )

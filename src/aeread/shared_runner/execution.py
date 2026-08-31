@@ -2527,7 +2527,10 @@ class ToolExecutor:
         the evidence must say "unknown", never "never attempted"."""
         try:
             return await self._observed_after(state_reader)
-        except Exception as bookkeeping_error:
+        except BaseException as bookkeeping_error:
+            # BaseException, not Exception: asyncio.CancelledError is a direct
+            # BaseException subclass, and cancellation is exactly when a
+            # mutating call is most likely to have posted unobserved.
             self.evidence.append_event(
                 "tool_invocation_outcome_unknown",
                 {

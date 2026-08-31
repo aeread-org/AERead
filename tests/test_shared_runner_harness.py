@@ -229,7 +229,7 @@ def test_model_port_rejects_empty_completion_before_returning_a_model_turn(tmp_p
                 response_mode="text",
             )
         )
-    assert captured.value.condition == "empty_completion"
+    assert captured.value.condition == "empty_response"  # the kernel retry vocabulary
 
     events = [event.event_type for event in evidence.read_events()]
     assert events == ["provider_call_started", "provider_call_succeeded"]
@@ -459,6 +459,54 @@ def test_bookkeeping_failure_after_a_tool_failure_preserves_the_original_excepti
     ]
     assert payloads[-1]["failure_condition"] == "bookkeeping_failed"
 
+
+
+def test_bookkeeping_failure_that_is_a_base_exception_is_still_recorded(tmp_path) -> None:
+    """A cancellation during post-effect observation must not escape the guard.
+
+    `asyncio.CancelledError` is a direct `BaseException` subclass, so a guard
+    catching only `Exception` misses exactly the case where a mutating call is
+    most likely to have posted unobserved: the run being torn down mid-tool.
+    The evidence must still say "unknown", and the ORIGINAL tool failure must
+    still be the exception that propagates.
+    """
+
+    from aeread.shared_runner.execution import ToolExecutor
+
+    evidence = _evidence(tmp_path, "base_exception_evidence")
+    tools = ToolExecutor(evidence)
+    calls = {"n": 0}
+
+    def cancelling_reader():
+        calls["n"] += 1
+        if calls["n"] == 1:
+            return {"balance": 10}
+        raise asyncio.CancelledError()
+
+    async def order_stock(_arguments):
+        raise ToolFailure("supplier_timeout", "supplier timed out", retryable=True)
+
+    with pytest.raises(ToolFailure) as captured:
+        asyncio.run(
+            tools.invoke(
+                action_attempt_id="action_attempt_fixture",
+                tool_id="place_purchase_order",
+                tool_version="1.0.0",
+                arguments={"sku": "widget"},
+                implementation=order_stock,
+                idempotency_supported=False,
+                effect="mutating",
+                tool_schema_sha256="e" * 64,
+                state_reader=cancelling_reader,
+            )
+        )
+
+    error = captured.value
+    assert error.condition == "supplier_timeout", "the original failure must propagate"
+    assert isinstance(error.__context__, asyncio.CancelledError)
+
+    event_types = [event.event_type for event in evidence.read_events()]
+    assert event_types == ["tool_invocation_started", "tool_invocation_outcome_unknown"]
 
 # --- Design §8: two tools in one turn, exact event order ---
 
