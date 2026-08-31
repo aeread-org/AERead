@@ -334,7 +334,9 @@ class KernelModelPort:
                 visibility=self._visibility,
             )
         self.last_result = result
-        if not result.output_text.strip():
+        tool_calls = result.tool_calls or ()
+        text = result.output_text.strip()
+        if not text and not tool_calls:
             raise ProviderFailure(
                 # "empty_response" is the condition name the kernel's retry
                 # policy already matches (execution.py, retry_condition).  A
@@ -344,13 +346,18 @@ class KernelModelPort:
                 f"provider call {provider_call_id} returned an empty completion",
                 retryable=True,
             )
-        # This always returns a text turn; branching on `response_mode` to
-        # build `ModelTurn(tool_calls=result.tool_calls)` is wired alongside
-        # the `native_tool_chat` harness (stage 4), not here (§6, stage 2
-        # only wires `messages`/`tools` onto the outgoing request).
+        if text and tool_calls:
+            # §6: a turn is text XOR calls. Both would leave the harness to
+            # guess which the model meant, and the guess would be silent.
+            raise ProviderFailure(
+                "provider_contract",
+                f"provider call {provider_call_id} returned both text and tool "
+                "calls; a model turn must be one or the other",
+                retryable=False,
+            )
         return ModelTurn(
-            text=result.output_text,
-            tool_calls=(),
+            text=result.output_text if text else None,
+            tool_calls=tool_calls,
             provider_call_id=provider_call_id,
         )
 

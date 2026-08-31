@@ -19,6 +19,7 @@ from aeread.shared_runner.execution import (
     _sha256_bytes,
 )
 from aeread.shared_runner.harness import (
+    NativeToolCall,
     CanonicalMessage,
     KernelModelPort,
     KernelToolPort,
@@ -92,8 +93,11 @@ def _evidence(tmp_path, name: str = "evidence") -> EvidenceStore:
     )
 
 
-def _result(*, text: str, finish_reason: str = "stop") -> ProviderResult:
+def _result(
+    *, text: str, finish_reason: str = "stop", tool_calls=None
+) -> ProviderResult:
     return ProviderResult(
+        tool_calls=tool_calls,
         response_id="response_fixture",
         requested_model="fake-model",
         resolved_model="fake-model-v1",
@@ -842,3 +846,67 @@ def test_attempt_context_exposes_no_tool_port_until_a_tools_harness_is_admitted(
     assert seen["tools"] is None, "a no-tools profile must not receive a tool port"
     assert seen["subagents"] is None, "nested agents are not admitted before stage 11"
     assert set(default_harnesses()) == {"minimal_chat/1.0"}
+
+
+
+def test_model_port_returns_a_tool_call_turn_without_calling_it_empty(tmp_path) -> None:
+    """A native tool-call turn carries no text; it must not be judged empty.
+
+    OpenRouter returns `output_text=""` with a populated `tool_calls` list when
+    the model asks for tools. Judging emptiness on text alone rejected exactly
+    that shape as `empty_response`, so a native tool call could never reach a
+    harness -- the tools would silently never be dispatched.
+    """
+
+    evidence = _evidence(tmp_path, "tool_turn_evidence")
+    call = NativeToolCall(call_id="call_alpha", tool_id="get_balance", arguments={})
+    provider = ScriptedProvider(
+        [_result(text="", finish_reason="tool_calls", tool_calls=(call,))]
+    )
+    port = KernelModelPort(
+        evidence=evidence,
+        provider=provider,
+        pricing=FAKE_PRICING,
+        profile=_profile(),
+        instructions=SYSTEM_PROMPT,
+        action_attempt_id="action_attempt_fixture",
+    )
+
+    turn = asyncio.run(
+        port.complete(
+            messages=(CanonicalMessage(role="user", content="check my balance"),),
+            response_mode="native_tools",
+        )
+    )
+
+    assert turn.text is None
+    assert turn.tool_calls == (call,), "the ordered calls must reach the harness"
+    assert turn.provider_call_id
+
+
+def test_model_port_refuses_a_turn_carrying_both_text_and_tool_calls(tmp_path) -> None:
+    """A model turn is text XOR calls; both would make the harness guess."""
+
+    evidence = _evidence(tmp_path, "both_evidence")
+    call = NativeToolCall(call_id="call_alpha", tool_id="get_balance", arguments={})
+    provider = ScriptedProvider(
+        [_result(text="thinking", finish_reason="tool_calls", tool_calls=(call,))]
+    )
+    port = KernelModelPort(
+        evidence=evidence,
+        provider=provider,
+        pricing=FAKE_PRICING,
+        profile=_profile(),
+        instructions=SYSTEM_PROMPT,
+        action_attempt_id="action_attempt_fixture",
+    )
+
+    with pytest.raises(ProviderFailure) as captured:
+        asyncio.run(
+            port.complete(
+                messages=(CanonicalMessage(role="user", content="hi"),),
+                response_mode="native_tools",
+            )
+        )
+    assert captured.value.condition == "provider_contract"
+    assert captured.value.retryable is False
