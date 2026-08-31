@@ -787,3 +787,58 @@ def test_attempt_executor_refuses_a_profile_with_no_registered_harness(tmp_path)
             pricing={profile.model.model: FAKE_PRICING},
             harnesses={},
         )
+
+
+
+def test_attempt_context_exposes_no_tool_port_until_a_tools_harness_is_admitted(
+    tmp_path,
+) -> None:
+    """Stage 3 deliberately hands every harness `tools=None`.
+
+    Only `minimal_chat/1.0` is registered, and it declares `tools="none"`, so
+    there is no admitted tool-using profile yet: a live `ToolPort` here would be
+    capability nobody asked for. Stage 4 introduces the tool harnesses and the
+    admission that grants the port, and this test is what fails if that wiring
+    is added without also granting the port -- or if a tool port is ever handed
+    to a harness whose profile declares no tools.
+    """
+
+    from aeread.shared_runner.harness import (
+        AttemptExecutor,
+        MinimalChatHarness,
+        default_harnesses,
+    )
+
+    assert MinimalChatHarness.requires.tools == "none"
+
+    seen = {}
+
+    class RecordingHarness(MinimalChatHarness):
+        async def act(self, request, ctx):
+            seen["tools"] = ctx.tools
+            seen["subagents"] = ctx.subagents
+            return await super().act(request, ctx)
+
+    decision = _executor_decision()
+    evidence = EvidenceStore(
+        tmp_path / "tools_boundary",
+        run_plan_id="runplan_harness_fixture",
+        cell_id=decision.cell_id,
+        episode_id=decision.episode_id,
+        episode_attempt_id="episode_attempt_harness_fixture",
+    )
+    profile = _executor_profile()
+    executor = AttemptExecutor(
+        evidence=evidence,
+        profiles=[profile],
+        prompt_sources={profile.prompt.prompt_id: _executor_prompt()},
+        providers={profile.model.provider: ScriptedProvider([_result(text="ok")])},
+        pricing={profile.model.model: FAKE_PRICING},
+        harnesses={"minimal_chat/1.0": RecordingHarness()},
+    )
+
+    asyncio.run(executor(decision))
+
+    assert seen["tools"] is None, "a no-tools profile must not receive a tool port"
+    assert seen["subagents"] is None, "nested agents are not admitted before stage 11"
+    assert set(default_harnesses()) == {"minimal_chat/1.0"}
