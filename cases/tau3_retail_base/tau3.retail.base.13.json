@@ -1,0 +1,133 @@
+{
+  "case_id": "tau3.retail.base.13",
+  "content_sha256": "6c1d83de70e62aebb422d04422a31a92e90554b8da51eda53a91cdcfec0bcd31",
+  "episode": {
+    "max_logical_actions": 100,
+    "termination": [
+      "agent_stop",
+      "user_stop",
+      "max_steps",
+      "error"
+    ]
+  },
+  "family_id": "tau3.retail",
+  "family_version": "0.1.0",
+  "payload": {
+    "pins": {
+      "db_bytes": 2811616,
+      "db_sha256": "413a65160adbdb5fde0ffc0015c49b6d70250b10c18128de169b597af7766765",
+      "greeting_message": "Hi! How can I help you today?",
+      "judge_args": {
+        "temperature": 0.0
+      },
+      "judge_model": "gpt-4.1-2025-04-14",
+      "max_steps": 100,
+      "policy_sha256": "2c9652afbce57d6e087768d37cda64d31c53d50b3e3225cfdb791bac66466467",
+      "tasks_sha256": "8e03ebce7901bd6218e7a7dc3105faa9324091a68058f7fe61c65262868812e8",
+      "tool_schema_sha256": null,
+      "tool_schema_sha256_unavailable_reason": "cannot import the pinned upstream tau2 package (looked under '/Users/sunzeyu/Documents/econ benchmark/upstream-tau2/src') to compute tool_schema_sha256 by delegation: No module named 'loguru'",
+      "upstream_commit": "fc0055dc4e0a316c3f83133267fbd6faaa770992",
+      "upstream_repo": "tau2-bench",
+      "user_sim_args": {
+        "temperature": 0.0
+      },
+      "user_sim_guidelines_sha256": "740a29dfa64d7bc08eea3bf7493575b914a63f744acbaf7f199ee07eddaf72d3",
+      "user_sim_model": "gpt-4.1-2025-04-14"
+    },
+    "task": {
+      "description": {
+        "notes": null,
+        "purpose": null,
+        "relevant_policies": null
+      },
+      "evaluation_criteria": {
+        "actions": [
+          {
+            "action_id": "13_0",
+            "arguments": {
+              "email": "mia.garcia2723@example.com"
+            },
+            "info": null,
+            "name": "find_user_id_by_email"
+          },
+          {
+            "action_id": "13_1",
+            "arguments": {
+              "user_id": "mia_garcia_4516"
+            },
+            "info": null,
+            "name": "get_user_details"
+          },
+          {
+            "action_id": "13_2",
+            "arguments": {
+              "order_id": "#W5490111"
+            },
+            "info": null,
+            "name": "get_order_details"
+          },
+          {
+            "action_id": "13_3",
+            "arguments": {
+              "order_id": "#W7387996"
+            },
+            "info": null,
+            "name": "get_order_details"
+          },
+          {
+            "action_id": "13_4",
+            "arguments": {
+              "item_ids": [
+                "4579334072",
+                "6117189161",
+                "4947717507"
+              ],
+              "order_id": "#W5490111",
+              "payment_method_id": "credit_card_3124723"
+            },
+            "info": null,
+            "name": "return_delivered_order_items"
+          }
+        ],
+        "communicate_info": [],
+        "nl_assertions": null,
+        "reward_basis": [
+          "DB",
+          "NL_ASSERTION"
+        ]
+      },
+      "id": "13",
+      "initial_state": null,
+      "user_scenario": {
+        "instructions": {
+          "domain": "retail",
+          "known_info": "You are mia_garcia_4516 with email mia.garcia2723@example.com",
+          "reason_for_call": "You just got into gaming and want to cancel or return everything not associated with it. (Everything except a keyboard and a mouse, but do not reveal it to the agent). PayPal is prefered for refund, but otherwise credit card can be accepted.",
+          "task_instructions": "You are into gaming but realized the importance of studying hard.",
+          "unknown_info": null
+        },
+        "persona": null
+      }
+    }
+  },
+  "provenance": {
+    "generator_id": "tau3_retail_importer",
+    "generator_version": "0.1.0",
+    "review_status": "upstream_pinned"
+  },
+  "seats": [
+    {
+      "id": "assistant",
+      "role": "assistant"
+    },
+    {
+      "id": "user",
+      "role": "user"
+    }
+  ],
+  "spec_version": "aeread.case/0.1",
+  "split": "base",
+  "upstream_task_id": "13",
+  "visibility_policy": "tau3_retail_user_scenario_private_v1",
+  "world_seed": 13
+}

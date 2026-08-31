@@ -23,7 +23,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from types import MappingProxyType
-from typing import Any, Awaitable, Callable, Mapping, Protocol, Sequence
+from typing import TYPE_CHECKING, Any, Awaitable, Callable, Mapping, Protocol, Sequence
 
 from .registry import PluginRegistry, PluginRegistryError
 from .resolver import RunPlan, canonical_json_bytes, verify_run_plan, write_run_plan
@@ -37,6 +37,13 @@ from .scheduler import (
     run_episode,
 )
 from .schemas import AgentProfile
+
+if TYPE_CHECKING:
+    # `harness.py` imports `ProviderRequest`/`ProviderResult` from this module,
+    # so the reverse reference is type-checking only; call sites that need the
+    # classes at runtime (harness registration, native tool-call construction)
+    # import them lazily.
+    from .harness import CanonicalMessage, Harness, NativeToolCall, ToolSchema
 
 
 class EvidenceIntegrityError(RuntimeError):
@@ -733,6 +740,14 @@ class ProviderRequest:
     output_schema: Mapping[str, Any] | None = None
     provider_metadata: Mapping[str, Any] | None = None
     seed: int | None = None
+    # Native model protocol (§6, stage 2): additive, excluded from the
+    # request_sha256 payload below by design -- `input_text` already carries
+    # a canonical serialization of `messages`/`tools` for every response
+    # mode, so the identity hash does not need a second source of truth.
+    # `reasoning_token_budget` is wired to a wire request in a later stage.
+    messages: tuple["CanonicalMessage", ...] | None = None
+    tools: tuple["ToolSchema", ...] | None = None
+    reasoning_token_budget: int | None = None
 
     def with_computed_hash(self) -> "ProviderRequest":
         payload = {
@@ -752,6 +767,18 @@ class ProviderRequest:
             "provider_metadata": self.provider_metadata,
             "seed": self.seed,
         }
+        # Native fields join the hash only when set, so a legacy text request
+        # hashes exactly as before while a native call binds the bytes it
+        # actually sends.  Without this, two native requests differing only in
+        # messages or tools share a request_sha256 and replay cannot prove
+        # which one produced a response.
+        for field, value in (
+            ("messages", self.messages),
+            ("tools", self.tools),
+            ("reasoning_token_budget", self.reasoning_token_budget),
+        ):
+            if value is not None:
+                payload[field] = value
         return dataclasses.replace(
             self, request_sha256=_sha256_bytes(canonical_json_bytes(payload))
         )
@@ -769,6 +796,11 @@ class ProviderResult:
     output_tokens: int
     cost_usd: float | None
     raw_response: Any
+    # Native model protocol (§6, stage 2): additive; None unless the
+    # provider adapter actually reports the field.
+    tool_calls: tuple["NativeToolCall", ...] | None = None
+    reasoning_tokens: int | None = None
+    visible_output_tokens: int | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -783,6 +815,13 @@ class CanonicalResponse:
     cached_input_tokens: int
     output_tokens: int
     cost_usd: float
+    # The harness seam (§5.1, stage 4): additive, default None, so every
+    # existing record hashes unchanged. A harness-driven executor carries
+    # HarnessOutput.action here -- opaque to the kernel -- so the scheduler
+    # can hand a family's parse_action the mapping it requires instead of
+    # this response itself. A text harness (minimal_chat) leaves it None and
+    # a family keeps reading `.text` exactly as before.
+    action: Mapping[str, Any] | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -859,6 +898,26 @@ class ProviderClient(Protocol):
     async def complete(self, request: ProviderRequest) -> ProviderResult: ...
 
 
+
+def _reasoning_block(request: "ProviderRequest") -> dict[str, Any]:
+    """The reasoning controls to send, carrying exactly what the profile declared.
+
+    A profile may declare an effort, a token budget, or both.  Substituting a
+    default for an absent control -- the previous `or "low"` -- meant a run
+    labelled with one reasoning condition executed another, which is how a
+    treatment silently fails to be delivered.  Absent controls are simply not
+    sent, so the provider applies its own documented default rather than one
+    this kernel invented.
+    """
+
+    block: dict[str, Any] = {}
+    if request.reasoning_effort is not None:
+        block["effort"] = request.reasoning_effort
+    if request.reasoning_token_budget is not None:
+        block["max_tokens"] = request.reasoning_token_budget
+    return block
+
+
 class OpenAIResponsesClient:
     """OpenAI Responses API adapter with SDK-level retries disabled."""
 
@@ -893,6 +952,12 @@ class OpenAIResponsesClient:
         self._client = sdk_client
 
     async def complete(self, request: ProviderRequest) -> ProviderResult:
+        if request.messages is not None:
+            raise ProviderFailure(
+                "provider_contract",
+                "OpenAI Responses adapter does not support native chat messages",
+                retryable=False,
+            )
         if request.provider != "openai":
             raise ProviderFailure(
                 "provider_contract",
@@ -1025,12 +1090,237 @@ class OpenRouterChatClient:
                 f"{self._base_url!r}",
                 retryable=False,
             )
+        if request.messages is not None:
+            return await self._complete_native(request)
         if not isinstance(request.output_schema, Mapping):
             raise ProviderFailure(
                 "provider_contract",
                 "OpenRouter adapter requires a structured output schema",
                 retryable=False,
             )
+        provider_preferences, canonical_model, route_provider = self._route_preferences(
+            request
+        )
+        wire_output_schema = json.loads(canonical_json_bytes(request.output_schema))
+        kwargs: dict[str, Any] = {
+            "model": request.model,
+            "messages": [
+                {"role": "system", "content": request.instructions},
+                {"role": "user", "content": request.input_text},
+            ],
+            "temperature": request.temperature,
+            "top_p": request.top_p,
+            "seed": request.seed,
+            "max_tokens": request.max_output_tokens,
+            "response_format": {
+                "type": "json_schema",
+                "json_schema": {
+                    "name": "aeread_action",
+                    "strict": True,
+                    "schema": wire_output_schema,
+                },
+            },
+            "tools": [],
+            "stream": False,
+            "extra_headers": {"X-OpenRouter-Metadata": "enabled"},
+            "extra_body": {
+                "reasoning": _reasoning_block(request),
+                "provider": provider_preferences,
+            },
+        }
+        response = await self._create(**kwargs)
+        raw_response, choice, message = self._parsed_choice(response)
+        content = message.get("content") if isinstance(message, Mapping) else None
+        if not isinstance(content, str):
+            raise ProviderFailure(
+                "provider_contract",
+                "OpenRouter response choice has no text content",
+                retryable=False,
+            )
+        try:
+            structured_output = json.loads(content)
+        except json.JSONDecodeError as error:
+            raise ProviderFailure(
+                "provider_contract",
+                "OpenRouter structured output is not valid JSON",
+                retryable=False,
+            ) from error
+        input_tokens, cached_input_tokens, output_tokens, cost = self._usage(raw_response)
+        selected_model = self._verify_route(
+            raw_response.get("openrouter_metadata"),
+            requested_model=request.model,
+            canonical_model=canonical_model,
+            route_provider=route_provider,
+        )
+        response_model = raw_response.get("model")
+        if response_model not in {request.model, canonical_model}:
+            raise ProviderFailure(
+                "provider_contract",
+                f"OpenRouter response model {response_model!r} was not requested",
+                retryable=False,
+            )
+        return ProviderResult(
+            response_id=str(raw_response.get("id") or ""),
+            requested_model=request.model,
+            resolved_model=selected_model,
+            output_text=canonical_json_bytes(structured_output).decode("utf-8"),
+            finish_reason=str(choice.get("finish_reason") or "unknown"),
+            input_tokens=input_tokens,
+            cached_input_tokens=cached_input_tokens,
+            output_tokens=output_tokens,
+            cost_usd=float(cost),
+            raw_response=raw_response,
+        )
+
+    async def _complete_native(self, request: ProviderRequest) -> ProviderResult:
+        """§6: `request.messages` set means send chat messages + tools
+        natively instead of the structured-output dialect above."""
+        provider_preferences, canonical_model, route_provider = self._route_preferences(
+            request
+        )
+        wire_messages = [{"role": "system", "content": request.instructions}]
+        for message in request.messages:
+            wire_message: dict[str, Any] = {"role": message.role, "content": message.content}
+            if message.tool_call_id is not None:
+                wire_message["tool_call_id"] = message.tool_call_id
+            if message.name is not None:
+                wire_message["name"] = message.name
+            wire_messages.append(wire_message)
+        wire_tools = [
+            {
+                "type": "function",
+                "function": {
+                    "name": tool.tool_id,
+                    "description": tool.description,
+                    "parameters": json.loads(canonical_json_bytes(tool.input_schema)),
+                },
+            }
+            for tool in (request.tools or ())
+        ]
+        kwargs: dict[str, Any] = {
+            "model": request.model,
+            "messages": wire_messages,
+            "temperature": request.temperature,
+            "top_p": request.top_p,
+            "seed": request.seed,
+            "max_tokens": request.max_output_tokens,
+            "tools": wire_tools,
+            "stream": False,
+            "extra_headers": {"X-OpenRouter-Metadata": "enabled"},
+            "extra_body": {
+                "reasoning": _reasoning_block(request),
+                "provider": provider_preferences,
+            },
+        }
+        response = await self._create(**kwargs)
+        raw_response, choice, message = self._parsed_choice(response)
+        if not isinstance(message, Mapping):
+            raise ProviderFailure(
+                "provider_contract",
+                "OpenRouter response choice has no message",
+                retryable=False,
+            )
+        tool_calls = self._native_tool_calls(message.get("tool_calls"))
+        content = message.get("content")
+        if tool_calls is None and not isinstance(content, str):
+            raise ProviderFailure(
+                "provider_contract",
+                "OpenRouter response choice has neither text nor tool calls",
+                retryable=False,
+            )
+        input_tokens, cached_input_tokens, output_tokens, cost = self._usage(raw_response)
+        selected_model = self._verify_route(
+            raw_response.get("openrouter_metadata"),
+            requested_model=request.model,
+            canonical_model=canonical_model,
+            route_provider=route_provider,
+        )
+        response_model = raw_response.get("model")
+        if response_model not in {request.model, canonical_model}:
+            raise ProviderFailure(
+                "provider_contract",
+                f"OpenRouter response model {response_model!r} was not requested",
+                retryable=False,
+            )
+        return ProviderResult(
+            response_id=str(raw_response.get("id") or ""),
+            requested_model=request.model,
+            resolved_model=selected_model,
+            output_text=content if isinstance(content, str) else "",
+            finish_reason=str(choice.get("finish_reason") or "unknown"),
+            input_tokens=input_tokens,
+            cached_input_tokens=cached_input_tokens,
+            output_tokens=output_tokens,
+            cost_usd=cost,
+            raw_response=raw_response,
+            tool_calls=tool_calls,
+        )
+
+    @staticmethod
+    def _native_tool_calls(raw_tool_calls: Any) -> "tuple[NativeToolCall, ...] | None":
+        """Map the response's `tool_calls` into `NativeToolCall`s, preserving
+        source order -- order is the only correlation a later round has with
+        `source_call_index` (§8), so this must never reorder."""
+        if raw_tool_calls is None:
+            return None
+        if not isinstance(raw_tool_calls, list) or not raw_tool_calls:
+            raise ProviderFailure(
+                "provider_contract",
+                "OpenRouter tool_calls must be a non-empty array",
+                retryable=False,
+            )
+        from .harness import NativeToolCall
+
+        calls: list[NativeToolCall] = []
+        for entry in raw_tool_calls:
+            if not isinstance(entry, Mapping):
+                raise ProviderFailure(
+                    "provider_contract",
+                    "OpenRouter tool_calls entries must be objects",
+                    retryable=False,
+                )
+            call_id = entry.get("id")
+            function = entry.get("function")
+            if not isinstance(call_id, str) or not call_id or not isinstance(function, Mapping):
+                raise ProviderFailure(
+                    "provider_contract",
+                    "OpenRouter tool_calls entry is missing an id or function",
+                    retryable=False,
+                )
+            tool_id = function.get("name")
+            raw_arguments = function.get("arguments")
+            if (
+                not isinstance(tool_id, str)
+                or not tool_id
+                or not isinstance(raw_arguments, str)
+            ):
+                raise ProviderFailure(
+                    "provider_contract",
+                    "OpenRouter tool_calls entry has an invalid function name or arguments",
+                    retryable=False,
+                )
+            try:
+                arguments = json.loads(raw_arguments)
+            except json.JSONDecodeError as error:
+                raise ProviderFailure(
+                    "provider_contract",
+                    "OpenRouter tool_calls arguments are not valid JSON",
+                    retryable=False,
+                ) from error
+            if not isinstance(arguments, Mapping):
+                raise ProviderFailure(
+                    "provider_contract",
+                    "OpenRouter tool_calls arguments must be an object",
+                    retryable=False,
+                )
+            calls.append(NativeToolCall(call_id=call_id, tool_id=tool_id, arguments=arguments))
+        return tuple(calls)
+
+    @staticmethod
+    def _route_preferences(request: ProviderRequest) -> tuple[dict[str, Any], str, str]:
+        """Validate the sealed OpenRouter route pin, shared by both dialects
+        (§6): the response format differs by mode, the pinned backend does
+        not."""
         metadata = request.provider_metadata
         if not isinstance(metadata, Mapping):
             raise ProviderFailure(
@@ -1086,39 +1376,18 @@ class OpenRouterChatClient:
                 "completion": metadata["max_completion_price_per_million"],
             },
         }
-        wire_output_schema = json.loads(canonical_json_bytes(request.output_schema))
-        kwargs: dict[str, Any] = {
-            "model": request.model,
-            "messages": [
-                {"role": "system", "content": request.instructions},
-                {"role": "user", "content": request.input_text},
-            ],
-            "temperature": request.temperature,
-            "top_p": request.top_p,
-            "seed": request.seed,
-            "max_tokens": request.max_output_tokens,
-            "response_format": {
-                "type": "json_schema",
-                "json_schema": {
-                    "name": "aeread_action",
-                    "strict": True,
-                    "schema": wire_output_schema,
-                },
-            },
-            "tools": [],
-            "stream": False,
-            "extra_headers": {"X-OpenRouter-Metadata": "enabled"},
-            "extra_body": {
-                "reasoning": {"effort": request.reasoning_effort or "low"},
-                "provider": provider_preferences,
-            },
-        }
+        return provider_preferences, canonical_model, route_provider
+
+    async def _create(self, **kwargs: Any) -> Any:
         try:
-            response = await self._client.chat.completions.create(**kwargs)
+            return await self._client.chat.completions.create(**kwargs)
         except asyncio.CancelledError:
             raise
         except Exception as error:
             raise OpenAIResponsesClient._classify_error(error) from error
+
+    @staticmethod
+    def _parsed_choice(response: Any) -> tuple[Mapping[str, Any], Mapping[str, Any], Any]:
         try:
             raw_response = response.model_dump(mode="json")
         except Exception as error:
@@ -1142,21 +1411,10 @@ class OpenRouterChatClient:
             )
         choice = choices[0]
         message = choice.get("message") if isinstance(choice, Mapping) else None
-        content = message.get("content") if isinstance(message, Mapping) else None
-        if not isinstance(content, str):
-            raise ProviderFailure(
-                "provider_contract",
-                "OpenRouter response choice has no text content",
-                retryable=False,
-            )
-        try:
-            structured_output = json.loads(content)
-        except json.JSONDecodeError as error:
-            raise ProviderFailure(
-                "provider_contract",
-                "OpenRouter structured output is not valid JSON",
-                retryable=False,
-            ) from error
+        return raw_response, choice, message
+
+    @staticmethod
+    def _usage(raw_response: Mapping[str, Any]) -> tuple[int, int, int, float]:
         usage = raw_response.get("usage")
         if not isinstance(usage, Mapping):
             raise ProviderFailure(
@@ -1194,31 +1452,7 @@ class OpenRouterChatClient:
                 "OpenRouter response cost is invalid",
                 retryable=False,
             )
-        selected_model = self._verify_route(
-            raw_response.get("openrouter_metadata"),
-            requested_model=request.model,
-            canonical_model=canonical_model,
-            route_provider=route_provider,
-        )
-        response_model = raw_response.get("model")
-        if response_model not in {request.model, canonical_model}:
-            raise ProviderFailure(
-                "provider_contract",
-                f"OpenRouter response model {response_model!r} was not requested",
-                retryable=False,
-            )
-        return ProviderResult(
-            response_id=str(raw_response.get("id") or ""),
-            requested_model=request.model,
-            resolved_model=selected_model,
-            output_text=canonical_json_bytes(structured_output).decode("utf-8"),
-            finish_reason=str(choice.get("finish_reason") or "unknown"),
-            input_tokens=input_tokens,
-            cached_input_tokens=cached_input_tokens,
-            output_tokens=output_tokens,
-            cost_usd=float(cost),
-            raw_response=raw_response,
-        )
+        return input_tokens, cached_input_tokens, output_tokens, float(cost)
 
     @staticmethod
     def _verify_route(
@@ -1385,6 +1619,12 @@ class ClaudeCodePrintClient:
         )
 
     async def complete(self, request: ProviderRequest) -> ProviderResult:
+        if request.messages is not None:
+            raise ProviderFailure(
+                "provider_contract",
+                "Claude Code adapter does not support native chat messages",
+                retryable=False,
+            )
         if request.provider != "claude_code":
             raise ProviderFailure(
                 "provider_contract",
@@ -1441,7 +1681,7 @@ class ClaudeCodePrintClient:
             "--model",
             request.model,
             "--effort",
-            request.reasoning_effort or "low",
+            request.reasoning_effort or "medium",
             "--tools",
             "",
             "--permission-mode",
@@ -1586,9 +1826,17 @@ class MinimalChatExecutor:
             )
             self._profiles[profile.profile_id] = profile
 
-    def _validate_profile(
-        self, profile: AgentProfile, prompt_sources: Mapping[str, str | bytes]
-    ) -> None:
+    def _validate_harness_profile(self, profile: AgentProfile) -> None:
+        """Checks that belong to THIS executor's harness, not to every harness.
+
+        Split out so a subclass driving other harnesses inherits the universal
+        checks below -- providers, pricing, prompts, sdk_retries -- without
+        also inheriting minimal_chat/1.0's own guarantee that it accepts no
+        tools and no memory. Before the split, an AttemptExecutor bound to a
+        tool-using harness was refused here as "not minimal_chat/1.0", so no
+        tool harness could reach the production entry point at all.
+        """
+
         if profile.harness.id != "minimal_chat" or profile.harness.version != "1.0":
             raise EvidenceIntegrityError(
                 f"profile {profile.profile_id!r} is not minimal_chat/1.0"
@@ -1597,6 +1845,11 @@ class MinimalChatExecutor:
             raise EvidenceIntegrityError("minimal_chat/1.0 does not permit tools")
         if profile.memory.mode != "disabled":
             raise EvidenceIntegrityError("minimal_chat/1.0 requires disabled memory")
+
+    def _validate_profile(
+        self, profile: AgentProfile, prompt_sources: Mapping[str, str | bytes]
+    ) -> None:
+        self._validate_harness_profile(profile)
         if profile.retry_policy.sdk_retries != 0:
             raise EvidenceIntegrityError("SDK retries must be zero")
         if profile.model.provider not in self._providers:
@@ -1635,6 +1888,49 @@ class MinimalChatExecutor:
                 f"prompt hash mismatch for {profile.prompt.prompt_id!r}: "
                 f"declared={profile.prompt.sha256}, computed={digest}"
             )
+
+    async def _obtain_result(
+        self,
+        *,
+        provider: ProviderClient,
+        request: ProviderRequest,
+        profile: AgentProfile,
+        decision: DecisionRequest,
+        action_attempt_id: str,
+    ) -> ProviderResult:
+        """Obtain one provider result for this attempt.
+
+        Extracted so a harness-driven executor can substitute the model loop
+        without duplicating the surrounding attempt lifecycle, whose event
+        order existing receipts depend on.  The default is the single direct
+        call this executor has always made.
+        """
+
+        return await asyncio.wait_for(
+            provider.complete(request), timeout=profile.budgets.timeout_seconds
+        )
+
+    def _harness_action(self, action_attempt_id: str) -> Mapping[str, Any] | None:
+        """The opaque action a harness produced for this attempt, if any.
+
+        Extracted alongside `_obtain_result` so a harness-driven executor can
+        carry `HarnessOutput.action` onto the `CanonicalResponse` it builds
+        without this executor knowing a harness exists.  Text families have
+        no action of their own, so the default is always None.
+        """
+
+        return None
+
+    def _harness_tool_invocation_ids(self, action_attempt_id: str) -> tuple[str, ...]:
+        """The tool invocations a harness made during this attempt.
+
+        A single-call executor makes none, so the default is empty. Without the
+        hook the CanonicalResponse claimed zero tool calls even when the
+        evidence stream recorded two, leaving the attempt record and the
+        evidence disagreeing about the same attempt.
+        """
+
+        return ()
 
     def _request_for(
         self,
@@ -1677,6 +1973,7 @@ class MinimalChatExecutor:
             top_p=profile.sampling.top_p,
             max_output_tokens=max_output_tokens,
             reasoning_effort=profile.reasoning.effort,
+            reasoning_token_budget=profile.reasoning.token_budget,
             timeout_seconds=profile.budgets.timeout_seconds,
             request_sha256="",
             max_cost_usd=profile.budgets.max_cost_usd,
@@ -1772,8 +2069,12 @@ class MinimalChatExecutor:
             )
             provider = self._providers[profile.model.provider]
             try:
-                result = await asyncio.wait_for(
-                    provider.complete(request), timeout=profile.budgets.timeout_seconds
+                result = await self._obtain_result(
+                    provider=provider,
+                    request=request,
+                    profile=profile,
+                    decision=decision,
+                    action_attempt_id=action_attempt_id,
                 )
             except asyncio.TimeoutError as error:
                 failure = ProviderFailure("timeout", str(error), retryable=True)
@@ -1912,11 +2213,14 @@ class MinimalChatExecutor:
                 empty=not bool(result.output_text.strip()),
                 truncated=result.finish_reason in {"length", "max_output_tokens"},
                 provider_call_ids=(request.provider_call_id,),
-                tool_invocation_ids=(),
+                tool_invocation_ids=self._harness_tool_invocation_ids(
+                    action_attempt_id
+                ),
                 input_tokens=result.input_tokens,
                 cached_input_tokens=result.cached_input_tokens,
                 output_tokens=result.output_tokens,
                 cost_usd=cost,
+                action=self._harness_action(action_attempt_id),
             )
             retry_condition = (
                 "length"
@@ -2368,6 +2672,44 @@ class ToolExecutor:
     ) -> tuple[Any, ArtifactRef] | None:
         return None if state_reader is None else await self._snapshot_state(state_reader)
 
+    async def _observed_after_or_mark_unknown(
+        self,
+        *,
+        state_reader: Callable[[], Any] | None,
+        action_attempt_id: str,
+        tool_invocation_id: str,
+        effect: str,
+        before: tuple[Any, ArtifactRef] | None,
+        original_error: BaseException,
+    ) -> tuple[Any, ArtifactRef] | None:
+        """Observe post-effect state, or record the failure as evidence and re-raise
+        *original_error* — never the bookkeeping error — with the bookkeeping error
+        chained as its ``__context__``.  A debit may have posted and gone unobserved;
+        the evidence must say "unknown", never "never attempted"."""
+        try:
+            return await self._observed_after(state_reader)
+        except BaseException as bookkeeping_error:
+            # BaseException, not Exception: asyncio.CancelledError is a direct
+            # BaseException subclass, and cancellation is exactly when a
+            # mutating call is most likely to have posted unobserved.
+            self.evidence.append_event(
+                "tool_invocation_outcome_unknown",
+                {
+                    "failure_condition": "bookkeeping_failed",
+                    "effect": effect,
+                    "outcome_known": False,
+                    "state_before_sha256": (
+                        None if before is None else before[1].sha256
+                    ),
+                },
+                action_attempt_id=action_attempt_id,
+                tool_invocation_id=tool_invocation_id,
+            )
+            # Implicit exception chaining sets original_error.__context__ to
+            # bookkeeping_error here, since bookkeeping_error is the exception
+            # currently being handled.
+            raise original_error
+
     async def invoke(
         self,
         *,
@@ -2380,6 +2722,7 @@ class ToolExecutor:
         effect: str,
         tool_schema_sha256: str,
         state_reader: Callable[[], Any] | None = None,
+        tool_invocation_id: str | None = None,
     ) -> tuple[Any, ToolInvocationRecord]:
         if effect not in {"read_only", "mutating"}:
             raise EvidenceIntegrityError("tool effect must be read_only or mutating")
@@ -2397,17 +2740,24 @@ class ToolExecutor:
             raise EvidenceIntegrityError(
                 "tool_schema_sha256 must be 64 lowercase hexadecimal characters"
             )
+        if tool_invocation_id is not None and (
+            not isinstance(tool_invocation_id, str) or not tool_invocation_id
+        ):
+            raise EvidenceIntegrityError(
+                "tool_invocation_id must be a non-empty string when provided"
+            )
         before = await self._observed_after(state_reader)
-        ordinal = self._ordinal
-        self._ordinal += 1
-        tool_invocation_id = _stable_id(
-            "tool_invocation",
-            {
-                "action_attempt_id": action_attempt_id,
-                "tool_id": tool_id,
-                "ordinal": ordinal,
-            },
-        )
+        if tool_invocation_id is None:
+            ordinal = self._ordinal
+            self._ordinal += 1
+            tool_invocation_id = _stable_id(
+                "tool_invocation",
+                {
+                    "action_attempt_id": action_attempt_id,
+                    "tool_id": tool_id,
+                    "ordinal": ordinal,
+                },
+            )
         input_sha256 = _sha256_bytes(canonical_json_bytes(arguments))
         self.evidence.append_event(
             "tool_invocation_started",
@@ -2432,7 +2782,14 @@ class ToolExecutor:
                 raise TypeError("tool implementation must return an awaitable")
             result = await pending
         except ToolFailure as error:
-            after = await self._observed_after(state_reader)
+            after = await self._observed_after_or_mark_unknown(
+                state_reader=state_reader,
+                action_attempt_id=action_attempt_id,
+                tool_invocation_id=tool_invocation_id,
+                effect=effect,
+                before=before,
+                original_error=error,
+            )
             state_changed, state_diff_ref = self._state_change(before, after)
             self.evidence.append_event(
                 "tool_invocation_failed",
@@ -2473,8 +2830,15 @@ class ToolExecutor:
                 outcome_known=True,
             )
             raise
-        except asyncio.CancelledError:
-            after = await self._observed_after(state_reader)
+        except asyncio.CancelledError as cancelled_error:
+            after = await self._observed_after_or_mark_unknown(
+                state_reader=state_reader,
+                action_attempt_id=action_attempt_id,
+                tool_invocation_id=tool_invocation_id,
+                effect=effect,
+                before=before,
+                original_error=cancelled_error,
+            )
             state_changed, state_diff_ref = self._state_change(before, after)
             self.evidence.append_event(
                 "tool_invocation_outcome_unknown",
@@ -2497,8 +2861,15 @@ class ToolExecutor:
                 tool_invocation_id=tool_invocation_id,
             )
             raise
-        except BaseException:
-            after = await self._observed_after(state_reader)
+        except BaseException as unexpected_error:
+            after = await self._observed_after_or_mark_unknown(
+                state_reader=state_reader,
+                action_attempt_id=action_attempt_id,
+                tool_invocation_id=tool_invocation_id,
+                effect=effect,
+                before=before,
+                original_error=unexpected_error,
+            )
             state_changed, state_diff_ref = self._state_change(before, after)
             self.evidence.append_event(
                 "tool_invocation_outcome_unknown",
@@ -2615,6 +2986,7 @@ async def execute_plan_cell(
     providers: Mapping[str, ProviderClient],
     pricing: Mapping[str, TokenPricing],
     episode_attempt_ordinal: int = 0,
+    harnesses: Mapping[str, "Harness"] | None = None,
 ) -> CellExecution:
     """Execute one sealed R2 cell through the R3 scheduler and R4 adapter."""
     verify_run_plan(plan)
@@ -2686,12 +3058,15 @@ async def execute_plan_cell(
         episode_id=episode_id,
         episode_attempt_id=episode_attempt_id,
     )
-    executor = MinimalChatExecutor(
+    from .harness import AttemptExecutor, default_harnesses
+
+    executor = AttemptExecutor(
         evidence=evidence,
         profiles=selected_profiles,
         prompt_sources=prompt_sources,
         providers=providers,
         pricing=pricing,
+        harnesses=default_harnesses() if harnesses is None else harnesses,
     )
     result = await run_episode(
         cell=cell,

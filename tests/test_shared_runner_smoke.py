@@ -231,3 +231,60 @@ def test_openrouter_deepseek_smoke_seals_exact_route_controls_and_pricing() -> N
     assert pricing.input_per_million == 0.08
     assert pricing.cached_input_per_million == 0.016
     assert pricing.output_per_million == 0.18
+
+
+def test_execute_plan_cell_drives_the_registered_harness(tmp_path) -> None:
+    """Production dispatch resolves the profile's harness, not a hardcoded loop.
+
+    `execute_plan_cell` used to construct `MinimalChatExecutor` directly, so a
+    registered harness could never reach a real run.  It now selects the
+    executor from the harness registry; passing an explicit registry proves the
+    seam is live rather than incidental.
+    """
+
+    from aeread.shared_runner.harness import default_harnesses
+
+    setup = build_single_offer_smoke(
+        provider="fake", model="fake-model", revision="fixed-v1"
+    )
+    provider = CountingProvider('{"offer":7}')
+
+    execution = asyncio.run(
+        execute_plan_cell(
+            plan=setup.plan,
+            cell_id=setup.plan.cells[0].cell_id,
+            registry=setup.registry,
+            evidence_root=tmp_path / "runs",
+            prompt_sources=setup.prompt_sources,
+            providers={"fake": provider},
+            pricing=setup.pricing,
+            harnesses=default_harnesses(),
+        )
+    )
+
+    assert provider.calls == 1
+    assert execution.episode_result.final_state["offer"] == 7
+
+
+def test_execute_plan_cell_refuses_a_profile_with_no_registered_harness(tmp_path) -> None:
+    """An empty registry fails before any provider call, not mid-episode."""
+
+    setup = build_single_offer_smoke(
+        provider="fake", model="fake-model", revision="fixed-v1"
+    )
+    provider = CountingProvider('{"offer":7}')
+
+    with pytest.raises(EvidenceIntegrityError, match="no harness registered"):
+        asyncio.run(
+            execute_plan_cell(
+                plan=setup.plan,
+                cell_id=setup.plan.cells[0].cell_id,
+                registry=setup.registry,
+                evidence_root=tmp_path / "runs",
+                prompt_sources=setup.prompt_sources,
+                providers={"fake": provider},
+                pricing=setup.pricing,
+                harnesses={},
+            )
+        )
+    assert provider.calls == 0, "the refusal must precede any provider call"

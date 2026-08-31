@@ -1,0 +1,36 @@
+# Runtime dependencies of the pinned upstream tau2-bench checkout
+# (commit fc0055dc4e0a316c3f83133267fbd6faaa770992).
+#
+# Upstream declares these as open ranges in its pyproject. They are frozen here
+# to the exact versions the adapter's upstream-fidelity suite was verified
+# against, because "the adapter reproduces upstream exactly" is a claim about a
+# specific interpreter, not about a dependency range.
+#
+# This set is installed into a dedicated interpreter that ONLY imports upstream.
+# It is deliberately not merged into the project's own dependencies: upstream
+# needs Python >= 3.12 while the project runs on 3.11.
+#
+# litellm is present because upstream's package import graph reaches it. The
+# adapter never calls a provider: the one live-model call on the NL-assertions
+# judge path is monkeypatched to capture-and-return, and no scoring path invokes
+# a judge. See src/aeread_families/tau3_retail/tau2_bridge.py.
+
+addict==2.4.0
+deepdiff==9.1.0
+docstring_parser==0.18.0
+fastapi==0.141.1
+httpx==0.28.1
+litellm==1.82.6
+loguru==0.7.3
+numpy==2.5.2
+pandas==3.0.5
+psutil==7.2.2
+python-dotenv==1.2.3
+PyYAML==6.0.3
+requests==2.34.2
+rich==15.0.0
+tabulate==0.10.0
+tenacity==9.1.4
+toml==0.10.2
+typer==0.27.1
+uvicorn==0.52.4

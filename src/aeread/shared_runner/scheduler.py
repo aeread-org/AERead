@@ -10,7 +10,7 @@ import copy
 import dataclasses
 import hashlib
 import inspect
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from types import MappingProxyType
 from typing import Any, Awaitable, Callable, Mapping, Sequence
 
@@ -223,7 +223,7 @@ class TransitionResult:
 
     state: Any
     next_phase_id: str | None
-    consequences: Mapping[str, Any] = MappingProxyType({})
+    consequences: Mapping[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         if self.next_phase_id is not None:

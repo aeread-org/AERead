@@ -1,0 +1,132 @@
+{
+  "case_id": "tau3.retail.base.60",
+  "content_sha256": "bb5f19550c096d3bec6630b16d78dd413c00fc506a138b02024a1b60773aaddd",
+  "episode": {
+    "max_logical_actions": 100,
+    "termination": [
+      "agent_stop",
+      "user_stop",
+      "max_steps",
+      "error"
+    ]
+  },
+  "family_id": "tau3.retail",
+  "family_version": "0.1.0",
+  "payload": {
+    "pins": {
+      "db_bytes": 2811616,
+      "db_sha256": "413a65160adbdb5fde0ffc0015c49b6d70250b10c18128de169b597af7766765",
+      "greeting_message": "Hi! How can I help you today?",
+      "judge_args": {
+        "temperature": 0.0
+      },
+      "judge_model": "gpt-4.1-2025-04-14",
+      "max_steps": 100,
+      "policy_sha256": "2c9652afbce57d6e087768d37cda64d31c53d50b3e3225cfdb791bac66466467",
+      "tasks_sha256": "8e03ebce7901bd6218e7a7dc3105faa9324091a68058f7fe61c65262868812e8",
+      "tool_schema_sha256": null,
+      "tool_schema_sha256_unavailable_reason": "cannot import the pinned upstream tau2 package (looked under '/Users/sunzeyu/Documents/econ benchmark/upstream-tau2/src') to compute tool_schema_sha256 by delegation: No module named 'loguru'",
+      "upstream_commit": "fc0055dc4e0a316c3f83133267fbd6faaa770992",
+      "upstream_repo": "tau2-bench",
+      "user_sim_args": {
+        "temperature": 0.0
+      },
+      "user_sim_guidelines_sha256": "740a29dfa64d7bc08eea3bf7493575b914a63f744acbaf7f199ee07eddaf72d3",
+      "user_sim_model": "gpt-4.1-2025-04-14"
+    },
+    "task": {
+      "description": {
+        "notes": null,
+        "purpose": null,
+        "relevant_policies": null
+      },
+      "evaluation_criteria": {
+        "actions": [
+          {
+            "action_id": "60_0",
+            "arguments": {
+              "first_name": "Chen",
+              "last_name": "Johnson",
+              "zip": "77004"
+            },
+            "info": null,
+            "name": "find_user_id_by_name_zip"
+          },
+          {
+            "action_id": "60_1",
+            "arguments": {
+              "order_id": "#W5061109"
+            },
+            "info": null,
+            "name": "get_order_details"
+          },
+          {
+            "action_id": "60_2",
+            "arguments": {
+              "product_id": "9924732112"
+            },
+            "info": null,
+            "name": "get_product_details"
+          },
+          {
+            "action_id": "60_3",
+            "arguments": {
+              "item_ids": [
+                "3694871183"
+              ],
+              "new_item_ids": [
+                "6077640618"
+              ],
+              "order_id": "#W5061109",
+              "payment_method_id": "paypal_3742148"
+            },
+            "info": null,
+            "name": "modify_pending_order_items"
+          }
+        ],
+        "communicate_info": [
+          "242.92"
+        ],
+        "nl_assertions": [
+          "Agent should tell the user the price of the new earbuds is $242.92."
+        ],
+        "reward_basis": [
+          "DB",
+          "NL_ASSERTION"
+        ]
+      },
+      "id": "60",
+      "initial_state": null,
+      "user_scenario": {
+        "instructions": {
+          "domain": "retail",
+          "known_info": "You are Chen Johnson from Houston TX, 77004.",
+          "reason_for_call": "You want to change your wireless earbuds in order W5061109 to a blue colored one. Provide all details upfront in your very first message and ask the agent to resolve as soon as possible. You want the price to be the same or lower, which you want the agent to verify explicitly. If and only if the agent provides several options, you want the option without water resistance.",
+          "task_instructions": ".",
+          "unknown_info": "You do not remember your email address"
+        },
+        "persona": null
+      }
+    }
+  },
+  "provenance": {
+    "generator_id": "tau3_retail_importer",
+    "generator_version": "0.1.0",
+    "review_status": "upstream_pinned"
+  },
+  "seats": [
+    {
+      "id": "assistant",
+      "role": "assistant"
+    },
+    {
+      "id": "user",
+      "role": "user"
+    }
+  ],
+  "spec_version": "aeread.case/0.1",
+  "split": "base",
+  "upstream_task_id": "60",
+  "visibility_policy": "tau3_retail_user_scenario_private_v1",
+  "world_seed": 60
+}

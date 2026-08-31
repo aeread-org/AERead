@@ -1,0 +1,154 @@
+{
+  "case_id": "tau3.retail.base.35",
+  "content_sha256": "6e40b90d41ccab9fbd1831b9e8644bf8764af6fe2f43ae1af75b86fa4c072a64",
+  "episode": {
+    "max_logical_actions": 100,
+    "termination": [
+      "agent_stop",
+      "user_stop",
+      "max_steps",
+      "error"
+    ]
+  },
+  "family_id": "tau3.retail",
+  "family_version": "0.1.0",
+  "payload": {
+    "pins": {
+      "db_bytes": 2811616,
+      "db_sha256": "413a65160adbdb5fde0ffc0015c49b6d70250b10c18128de169b597af7766765",
+      "greeting_message": "Hi! How can I help you today?",
+      "judge_args": {
+        "temperature": 0.0
+      },
+      "judge_model": "gpt-4.1-2025-04-14",
+      "max_steps": 100,
+      "policy_sha256": "2c9652afbce57d6e087768d37cda64d31c53d50b3e3225cfdb791bac66466467",
+      "tasks_sha256": "8e03ebce7901bd6218e7a7dc3105faa9324091a68058f7fe61c65262868812e8",
+      "tool_schema_sha256": null,
+      "tool_schema_sha256_unavailable_reason": "cannot import the pinned upstream tau2 package (looked under '/Users/sunzeyu/Documents/econ benchmark/upstream-tau2/src') to compute tool_schema_sha256 by delegation: No module named 'loguru'",
+      "upstream_commit": "fc0055dc4e0a316c3f83133267fbd6faaa770992",
+      "upstream_repo": "tau2-bench",
+      "user_sim_args": {
+        "temperature": 0.0
+      },
+      "user_sim_guidelines_sha256": "740a29dfa64d7bc08eea3bf7493575b914a63f744acbaf7f199ee07eddaf72d3",
+      "user_sim_model": "gpt-4.1-2025-04-14"
+    },
+    "task": {
+      "description": {
+        "notes": null,
+        "purpose": null,
+        "relevant_policies": null
+      },
+      "evaluation_criteria": {
+        "actions": [
+          {
+            "action_id": "35_0",
+            "arguments": {
+              "email": "aarav.santos8321@example.com"
+            },
+            "info": null,
+            "name": "find_user_id_by_email"
+          },
+          {
+            "action_id": "35_1",
+            "arguments": {
+              "email": "aarav.santos8320@example.com"
+            },
+            "info": null,
+            "name": "find_user_id_by_email"
+          },
+          {
+            "action_id": "35_2",
+            "arguments": {
+              "user_id": "aarav_santos_2259"
+            },
+            "info": null,
+            "name": "get_user_details"
+          },
+          {
+            "action_id": "35_3",
+            "arguments": {
+              "order_id": "#W9672333"
+            },
+            "info": null,
+            "name": "get_order_details"
+          },
+          {
+            "action_id": "35_4",
+            "arguments": {
+              "product_id": "4760268021"
+            },
+            "info": null,
+            "name": "get_product_details"
+          },
+          {
+            "action_id": "35_5",
+            "arguments": {
+              "item_ids": [
+                "6704763132"
+              ],
+              "order_id": "#W8528674",
+              "payment_method_id": "paypal_7664977"
+            },
+            "info": null,
+            "name": "return_delivered_order_items"
+          },
+          {
+            "action_id": "35_6",
+            "arguments": {
+              "item_ids": [
+                "1684786391"
+              ],
+              "new_item_ids": [
+                "5052031638"
+              ],
+              "order_id": "#W9672333",
+              "payment_method_id": "paypal_7664977"
+            },
+            "info": null,
+            "name": "modify_pending_order_items"
+          }
+        ],
+        "communicate_info": [],
+        "nl_assertions": null,
+        "reward_basis": [
+          "DB",
+          "NL_ASSERTION"
+        ]
+      },
+      "id": "35",
+      "initial_state": null,
+      "user_scenario": {
+        "instructions": {
+          "domain": "retail",
+          "known_info": "You are aarav_santos_2259 and aarav.santos8321@example.com and aarav.santos8320@example.com.",
+          "reason_for_call": "You want to return the speaker that is more expensive yet not resistent to water. Also, You want to modify the 17-inch laptop to the 13-inch version in another order. If no exact item is available, you want to know all available 13-inch options, and you prefer i5 over i7, and prefer silver and black than other colors.",
+          "task_instructions": "You are a rude person.",
+          "unknown_info": null
+        },
+        "persona": null
+      }
+    }
+  },
+  "provenance": {
+    "generator_id": "tau3_retail_importer",
+    "generator_version": "0.1.0",
+    "review_status": "upstream_pinned"
+  },
+  "seats": [
+    {
+      "id": "assistant",
+      "role": "assistant"
+    },
+    {
+      "id": "user",
+      "role": "user"
+    }
+  ],
+  "spec_version": "aeread.case/0.1",
+  "split": "base",
+  "upstream_task_id": "35",
+  "visibility_policy": "tau3_retail_user_scenario_private_v1",
+  "world_seed": 35
+}
