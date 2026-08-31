@@ -734,6 +734,13 @@ class CanonicalResponse:
     cached_input_tokens: int
     output_tokens: int
     cost_usd: float
+    # The harness seam (§5.1, stage 4): additive, default None, so every
+    # existing record hashes unchanged. A harness-driven executor carries
+    # HarnessOutput.action here -- opaque to the kernel -- so the scheduler
+    # can hand a family's parse_action the mapping it requires instead of
+    # this response itself. A text harness (minimal_chat) leaves it None and
+    # a family keeps reading `.text` exactly as before.
+    action: Mapping[str, Any] | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -1809,6 +1816,17 @@ class MinimalChatExecutor:
             provider.complete(request), timeout=profile.budgets.timeout_seconds
         )
 
+    def _harness_action(self, action_attempt_id: str) -> Mapping[str, Any] | None:
+        """The opaque action a harness produced for this attempt, if any.
+
+        Extracted alongside `_obtain_result` so a harness-driven executor can
+        carry `HarnessOutput.action` onto the `CanonicalResponse` it builds
+        without this executor knowing a harness exists.  Text families have
+        no action of their own, so the default is always None.
+        """
+
+        return None
+
     def _request_for(
         self,
         decision: DecisionRequest,
@@ -2095,6 +2113,7 @@ class MinimalChatExecutor:
                 cached_input_tokens=result.cached_input_tokens,
                 output_tokens=result.output_tokens,
                 cost_usd=cost,
+                action=self._harness_action(action_attempt_id),
             )
             retry_condition = (
                 "length"

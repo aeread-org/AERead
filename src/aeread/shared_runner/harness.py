@@ -640,8 +640,11 @@ class AttemptExecutor(MinimalChatExecutor):
         providers: Mapping[str, ProviderClient],
         pricing: Mapping[str, TokenPricing],
         harnesses: Mapping[str, Any],
+        tool_runtimes: Mapping[str, ToolRuntime] | None = None,
     ) -> None:
         self._harnesses = dict(harnesses)
+        self._tool_runtimes = dict(tool_runtimes) if tool_runtimes else {}
+        self._pending_actions: dict[str, Mapping[str, Any] | None] = {}
         super().__init__(
             evidence=evidence,
             profiles=profiles,
@@ -689,6 +692,23 @@ class AttemptExecutor(MinimalChatExecutor):
             emit_events=False,
             sealed_request=request,
         )
+        tools_port: Any = None
+        if profile.tools and harness.requires.tools != "none":
+            # A live port is only ever handed to a harness whose profile
+            # actually declared tools -- the guarantee
+            # `test_attempt_context_exposes_no_tool_port_until_a_tools_harness_is_admitted`
+            # pins for every harness that declares `requires.tools == "none"`.
+            runtime = self._tool_runtimes.get(profile.profile_id)
+            if runtime is None:
+                raise EvidenceIntegrityError(
+                    f"profile {profile.profile_id!r} declares tools but no "
+                    "ToolRuntime is registered"
+                )
+            tools_port = KernelToolPort(
+                runtime=runtime,
+                attempt_id=action_attempt_id,
+                action_attempt_id=action_attempt_id,
+            )
         context = _KernelAttemptContext(
             attempt_id=action_attempt_id,
             seed=profile.sampling.seed or 0,
@@ -698,7 +718,7 @@ class AttemptExecutor(MinimalChatExecutor):
                 cost_left=profile.budgets.max_cost_usd,
             ),
             model=port,
-            tools=None,
+            tools=tools_port,
             evidence=self.evidence,
         )
         try:
@@ -741,7 +761,17 @@ class AttemptExecutor(MinimalChatExecutor):
                 },
                 action_attempt_id=request.provider_call_id,
             )
+
+        # Carried to the CanonicalResponse this attempt builds (§5.1): the
+        # base executor's `_harness_action` hook reads it back by this same
+        # `action_attempt_id` once the provider result above is accepted.
+        self._pending_actions[action_attempt_id] = (
+            output.action if output is not None else None
+        )
         return result
+
+    def _harness_action(self, action_attempt_id: str) -> Mapping[str, Any] | None:
+        return self._pending_actions.get(action_attempt_id)
 
 
 __all__ = [

@@ -7,6 +7,7 @@ import json
 import pytest
 
 from aeread.shared_runner.execution import (
+    CanonicalResponse,
     EvidenceIntegrityError,
     EvidenceStore,
     ProviderCallRecord,
@@ -21,6 +22,7 @@ from aeread.shared_runner.execution import (
 from aeread.shared_runner.harness import (
     ClaimedToolCall,
     HarnessOutput,
+    HarnessRequirements,
     NativeToolCall,
     CanonicalMessage,
     KernelModelPort,
@@ -210,6 +212,30 @@ def test_provider_call_and_tool_invocation_record_hashes_are_unchanged() -> None
     assert (
         _sha256_bytes(canonical_json_bytes(tool_record))
         == "5c7ae9090e4ff7c4415163d9d9d0a80a0a24c6feb211e0b0f19e3d222e3017dd"
+    )
+
+
+def test_canonical_response_hash_is_unchanged_when_no_harness_sets_an_action() -> None:
+    """§5.1 adds `CanonicalResponse.action`, defaulting to None, so a caller
+    that never touches the harness seam -- every fixture built the way the
+    kernel has always built one -- still hashes to the value pinned here."""
+
+    canonical = CanonicalResponse(
+        text="an offer",
+        finish_reason="stop",
+        empty=False,
+        truncated=False,
+        provider_call_ids=("provider_call_fixture",),
+        tool_invocation_ids=(),
+        input_tokens=20,
+        cached_input_tokens=0,
+        output_tokens=5,
+        cost_usd=0.001,
+    )
+    assert canonical.action is None
+    assert (
+        _sha256_bytes(canonical_json_bytes(canonical))
+        == "88d7146edd88c1fedd7ff092aa67f4478aab49a1fffd025f005438995dab572c"
     )
 
 
@@ -766,6 +792,7 @@ def test_attempt_executor_drives_a_registered_harness_end_to_end(tmp_path) -> No
     response = asyncio.run(executor(decision))
 
     assert response.text == "an offer"
+    assert response.action is None, "a text harness carries no action of its own"
     assert response.provider_call_ids, "the attempt must record its provider call"
     # The attempt lifecycle is the kernel's, unchanged: success is recorded
     # before the scheduler ever parses the action.
@@ -773,6 +800,52 @@ def test_attempt_executor_drives_a_registered_harness_end_to_end(tmp_path) -> No
     kinds = [e["event_type"] for e in events]
     assert "action_attempt_succeeded" in kinds
     assert kinds.index("provider_call_started") < kinds.index("action_attempt_succeeded")
+
+
+def test_attempt_executor_carries_a_harness_action_onto_the_canonical_response(
+    tmp_path,
+) -> None:
+    """§5.1: `HarnessOutput.action` reaches the `CanonicalResponse` the
+    executor hands back, so the scheduler can hand a family's `parse_action`
+    the Mapping it requires instead of reading `.text`."""
+
+    from aeread.shared_runner.harness import AttemptExecutor, MinimalChatHarness
+
+    class ActionHarness(MinimalChatHarness):
+        async def act(self, request, ctx):
+            await ctx.model.complete(
+                messages=(CanonicalMessage(role="user", content="hi"),),
+                response_mode="text",
+            )
+            return HarnessOutput(
+                action={"decision": "accept", "amount_usd": 12.5},
+                claimed_tool_calls=(),
+                rounds_used=1,
+                notes={},
+            )
+
+    decision = _executor_decision()
+    evidence = EvidenceStore(
+        tmp_path / "action_evidence",
+        run_plan_id="runplan_harness_fixture",
+        cell_id=decision.cell_id,
+        episode_id=decision.episode_id,
+        episode_attempt_id="episode_attempt_harness_fixture",
+    )
+    profile = _executor_profile()
+    executor = AttemptExecutor(
+        evidence=evidence,
+        profiles=[profile],
+        prompt_sources={profile.prompt.prompt_id: _executor_prompt()},
+        providers={profile.model.provider: ScriptedProvider([_result(text="an offer")])},
+        pricing={profile.model.model: FAKE_PRICING},
+        harnesses={"minimal_chat/1.0": ActionHarness()},
+    )
+
+    response = asyncio.run(executor(decision))
+
+    assert response.action == {"decision": "accept", "amount_usd": 12.5}
+    assert response.text == "an offer"
 
 
 def test_attempt_executor_refuses_a_profile_with_no_registered_harness(tmp_path) -> None:
@@ -849,6 +922,186 @@ def test_attempt_context_exposes_no_tool_port_until_a_tools_harness_is_admitted(
     assert seen["subagents"] is None, "nested agents are not admitted before stage 11"
     assert set(default_harnesses()) == {"minimal_chat/1.0"}
 
+
+def _tools_capable_requirements() -> HarnessRequirements:
+    return HarnessRequirements(
+        provider=frozenset(),
+        tools="declared",
+        memory=frozenset({"disabled"}),
+        owns_retries=False,
+        owns_tools=False,
+        replayable=True,
+        blocking=False,
+        spawns_subagents=False,
+    )
+
+
+def test_attempt_context_grants_a_live_tool_port_when_profile_and_harness_admit_tools(
+    tmp_path,
+) -> None:
+    """Stage 4: the port withheld above is granted once both halves admit
+    tools -- the profile declares them (`_profile()`'s `tools=["get_balance",
+    "refund_order"]`) and the registered harness's `requires.tools != "none"`.
+
+    `_validate_profile` still hard-requires `minimal_chat/1.0` with no tools
+    (that gate is unchanged by this stage), so this exercises the admission
+    at `_obtain_result` directly rather than through `executor(decision)`,
+    the same way `_profile()` already exists for `KernelModelPort`-level
+    tests below rather than for the full executor.
+    """
+
+    from aeread.shared_runner.harness import AttemptExecutor, MinimalChatHarness
+
+    seen = {}
+
+    class ToolCapableHarness(MinimalChatHarness):
+        requires = _tools_capable_requirements()
+
+        async def act(self, request, ctx):
+            seen["tools"] = ctx.tools
+            return await super().act(request, ctx)
+
+    decision = _executor_decision()
+    evidence = EvidenceStore(
+        tmp_path / "tools_admitted",
+        run_plan_id="runplan_harness_fixture",
+        cell_id=decision.cell_id,
+        episode_id=decision.episode_id,
+        episode_attempt_id="episode_attempt_harness_fixture",
+    )
+    profile = _profile()
+    runtime, _ = _tool_runtime(tmp_path, evidence)
+    executor = AttemptExecutor(
+        evidence=evidence,
+        profiles=[],
+        prompt_sources={},
+        providers={profile.model.provider: ScriptedProvider([_result(text="ok")])},
+        pricing={profile.model.model: FAKE_PRICING},
+        harnesses={"native_tool_chat/1.0": ToolCapableHarness()},
+        tool_runtimes={profile.profile_id: runtime},
+    )
+    executor._prompt_text[profile.profile_id] = SYSTEM_PROMPT
+    action_attempt_id = "action_attempt_tools_admitted"
+    request = executor._request_for(
+        decision,
+        profile,
+        action_attempt_id=action_attempt_id,
+        max_output_tokens=profile.sampling.max_output_tokens,
+    )
+
+    asyncio.run(
+        executor._obtain_result(
+            provider=executor._providers[profile.model.provider],
+            request=request,
+            profile=profile,
+            decision=decision,
+            action_attempt_id=action_attempt_id,
+        )
+    )
+
+    assert isinstance(seen["tools"], KernelToolPort)
+
+
+def test_attempt_context_withholds_the_tool_port_for_a_no_tools_profile_even_with_a_tools_capable_harness(
+    tmp_path,
+) -> None:
+    """A harness's own capability is necessary but not sufficient: without a
+    profile that declares tools, the port stays withheld regardless."""
+
+    from aeread.shared_runner.harness import AttemptExecutor, MinimalChatHarness
+
+    seen = {}
+
+    class ToolCapableHarness(MinimalChatHarness):
+        requires = _tools_capable_requirements()
+
+        async def act(self, request, ctx):
+            seen["tools"] = ctx.tools
+            return await super().act(request, ctx)
+
+    decision = _executor_decision()
+    evidence = EvidenceStore(
+        tmp_path / "tools_capable_harness_no_tools_profile",
+        run_plan_id="runplan_harness_fixture",
+        cell_id=decision.cell_id,
+        episode_id=decision.episode_id,
+        episode_attempt_id="episode_attempt_harness_fixture",
+    )
+    profile = _executor_profile()
+    executor = AttemptExecutor(
+        evidence=evidence,
+        profiles=[profile],
+        prompt_sources={profile.prompt.prompt_id: _executor_prompt()},
+        providers={profile.model.provider: ScriptedProvider([_result(text="ok")])},
+        pricing={profile.model.model: FAKE_PRICING},
+        harnesses={"minimal_chat/1.0": ToolCapableHarness()},
+    )
+
+    asyncio.run(executor(decision))
+
+    assert seen["tools"] is None, (
+        "a no-tools profile must not receive a tool port even from a "
+        "tools-capable harness"
+    )
+
+
+def test_attempt_context_withholds_the_tool_port_when_the_harness_declares_tools_none(
+    tmp_path,
+) -> None:
+    """The profile's own tools declaration is necessary but not sufficient:
+    a registered harness that still declares `requires.tools == "none"`
+    must not be handed a live port, even for a tools-declaring profile."""
+
+    from aeread.shared_runner.harness import AttemptExecutor, MinimalChatHarness
+
+    seen = {}
+
+    class NoToolsHarness(MinimalChatHarness):
+        async def act(self, request, ctx):
+            seen["tools"] = ctx.tools
+            return await super().act(request, ctx)
+
+    assert NoToolsHarness.requires.tools == "none"
+
+    decision = _executor_decision()
+    evidence = EvidenceStore(
+        tmp_path / "no_tools_harness_tools_profile",
+        run_plan_id="runplan_harness_fixture",
+        cell_id=decision.cell_id,
+        episode_id=decision.episode_id,
+        episode_attempt_id="episode_attempt_harness_fixture",
+    )
+    profile = _profile()
+    executor = AttemptExecutor(
+        evidence=evidence,
+        profiles=[],
+        prompt_sources={},
+        providers={profile.model.provider: ScriptedProvider([_result(text="ok")])},
+        pricing={profile.model.model: FAKE_PRICING},
+        harnesses={"native_tool_chat/1.0": NoToolsHarness()},
+    )
+    executor._prompt_text[profile.profile_id] = SYSTEM_PROMPT
+    action_attempt_id = "action_attempt_no_tools_harness"
+    request = executor._request_for(
+        decision,
+        profile,
+        action_attempt_id=action_attempt_id,
+        max_output_tokens=profile.sampling.max_output_tokens,
+    )
+
+    asyncio.run(
+        executor._obtain_result(
+            provider=executor._providers[profile.model.provider],
+            request=request,
+            profile=profile,
+            decision=decision,
+            action_attempt_id=action_attempt_id,
+        )
+    )
+
+    assert seen["tools"] is None, (
+        'a harness declaring tools="none" must not receive a live port'
+    )
 
 
 def test_model_port_returns_a_tool_call_turn_without_calling_it_empty(tmp_path) -> None:
