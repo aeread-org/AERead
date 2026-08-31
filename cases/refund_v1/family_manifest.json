@@ -1,0 +1,55 @@
+{
+  "environment": {
+    "needs_sandbox": false,
+    "needs_tools": false,
+    "phase_specs": [
+      "customer_message",
+      "support_response"
+    ],
+    "topology": "two_party_negotiation_private_customer_truth"
+  },
+  "family": {
+    "id": "refund_v1",
+    "plugin_id": "aeread.refund_v1",
+    "version": "1.0.0"
+  },
+  "generator": {
+    "difficulty_knobs": [
+      "category",
+      "days_since_delivery",
+      "price",
+      "trust_band",
+      "return_received"
+    ],
+    "generator_id": "refund_curated_generator_v1"
+  },
+  "measurement": {
+    "comparison_baseline": "refund_naive_direct_threshold_v1",
+    "direction": "maximize",
+    "measurement_kind": "optimizable_outcome",
+    "outcome_support": "case_specific",
+    "primary_estimand": "joint_utility"
+  },
+  "roles": {
+    "customer": {
+      "scripted_policies": [
+        "refund_customer_llm_profile_v1"
+      ],
+      "testable": false
+    },
+    "support_agent": {
+      "scripted_policies": [
+        "refund_oracle_policy_v1"
+      ],
+      "testable": true
+    }
+  },
+  "scoring": {
+    "oracle_id": "refund_policy_oracle_v1",
+    "reference_provider_ids": [
+      "refund_oracle_policy_v1"
+    ],
+    "scorer_id": "refund_operation_exact_match_v1"
+  },
+  "spec_version": "aeread.family/0.1"
+}
