@@ -925,6 +925,18 @@ def test_openrouter_adapter_serializes_a_frozen_schema_as_plain_json() -> None:
     json.dumps(completions.kwargs)
 
 
+def test_openrouter_adapter_omits_unavailable_sampling_controls() -> None:
+    completions = FakeOpenRouterCompletions()
+    sdk = SimpleNamespace(chat=SimpleNamespace(completions=completions))
+    client = OpenRouterChatClient(sdk_client=sdk)
+    request = replace(_openrouter_request(), temperature=None, top_p=None).with_computed_hash()
+
+    asyncio.run(client.complete(request))
+
+    assert "temperature" not in completions.kwargs
+    assert "top_p" not in completions.kwargs
+
+
 def test_openrouter_adapter_rejects_an_unpinned_selected_provider() -> None:
     completions = FakeOpenRouterCompletions(selected_provider="OpenInference")
     sdk = SimpleNamespace(chat=SimpleNamespace(completions=completions))
@@ -941,6 +953,38 @@ def test_openrouter_adapter_rejects_a_later_route_attempt_without_attempt_detail
 
     with pytest.raises(ProviderFailure, match="fallback"):
         asyncio.run(client.complete(_openrouter_request()))
+
+
+def test_openrouter_adapter_rejects_choice_level_provider_error() -> None:
+    class ChoiceErrorCompletions:
+        async def create(self, **_kwargs):
+            raw = {
+                "id": "gen_choice_error",
+                "model": "deepseek/deepseek-v4-flash-0731",
+                "choices": [
+                    {
+                        "index": 0,
+                        "finish_reason": "error",
+                        "error": {
+                            "code": 502,
+                            "message": "upstream JSON generation failed",
+                        },
+                        "message": {"role": "assistant", "content": "1.0"},
+                    }
+                ],
+            }
+            return SimpleNamespace(model_dump=lambda mode: raw)
+
+    sdk = SimpleNamespace(
+        chat=SimpleNamespace(completions=ChoiceErrorCompletions())
+    )
+    client = OpenRouterChatClient(sdk_client=sdk)
+
+    with pytest.raises(ProviderFailure, match="upstream JSON generation failed") as caught:
+        asyncio.run(client.complete(_openrouter_request()))
+
+    assert caught.value.condition == "provider_5xx"
+    assert caught.value.retryable is True
 
 
 def test_openrouter_adapter_requires_key_before_constructing_default_sdk(

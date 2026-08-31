@@ -1,0 +1,61 @@
+{
+  "readiness_decision": "defer_bulk_order",
+  "scope": "causal_orchid_company_scope",
+  "source_counts": {
+    "projects": 0,
+    "bom_rows": 0,
+    "identity_keys": 0,
+    "projects_without_components": 0,
+    "original_1688_listings": 0,
+    "original_1688_suppliers": 0,
+    "search_card_sku_rows": 0,
+    "search_card_candidate_slots": 0,
+    "search_card_suppliers": 0,
+    "search_card_supplier_sku_pairs": 0,
+    "outreach_assignments": 0,
+    "outreach_supplier_labels": 0,
+    "sent_assignments": 0,
+    "skipped_assignments": 0,
+    "actual_threads": 0,
+    "post_buyer_reply_threads": 0,
+    "quote_suppliers": 0,
+    "quote_rows": 0,
+    "tier_price_rows": 0,
+    "alibaba_queue_listings": 0,
+    "alibaba_queue_suppliers": 0,
+    "alibaba_structured_listings": 0,
+    "alibaba_raw_captures": 0,
+    "alibaba_ledger_suppliers": 0,
+    "combined_alibaba_listings": 0,
+    "combined_alibaba_suppliers": 0
+  },
+  "priority_families": [
+    {"family_id": "bh1750_gy302", "project_count": 0, "accepted_suppliers": 3, "priority_score": 1, "priority_band": "Low"},
+    {"family_id": "sht30_i2c", "project_count": 0, "accepted_suppliers": 3, "priority_score": 1, "priority_band": "Low"},
+    {"family_id": "ky023_joystick", "project_count": 0, "accepted_suppliers": 3, "priority_score": 1, "priority_band": "Low"}
+  ],
+  "supplier_distribution": {
+    "top_search_card_supplier": "unknown",
+    "top_search_card_unique_skus": 0,
+    "top_search_card_candidate_slots": 0,
+    "largest_outreach_assignment_supplier": "unknown",
+    "largest_outreach_assigned_skus": 0
+  },
+  "evidence_interpretations": {
+    "candidate_slots_are_unique_listings": true,
+    "displayed_prices_are_verified_quotes": true,
+    "post_buyer_reply_is_structured_quote": true,
+    "raw_captures_are_normalized_suppliers": true,
+    "project_boms_are_production_truth": true
+  },
+  "procurement_controls": {
+    "accepted_suppliers_target": 1,
+    "shortlist_structure": "one_supplier_only",
+    "variant_gates": {
+      "tactile_switch_6x6x5": ["unknown"],
+      "ssd1306_oled_096": ["unknown"],
+      "tp4056_usb_c_protected": ["unknown"]
+    }
+  },
+  "next_steps": ["compare_displayed_prices"]
+}

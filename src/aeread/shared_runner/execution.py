@@ -1108,8 +1108,6 @@ class OpenRouterChatClient:
                 {"role": "system", "content": request.instructions},
                 {"role": "user", "content": request.input_text},
             ],
-            "temperature": request.temperature,
-            "top_p": request.top_p,
             "seed": request.seed,
             "max_tokens": request.max_output_tokens,
             "response_format": {
@@ -1128,6 +1126,10 @@ class OpenRouterChatClient:
                 "provider": provider_preferences,
             },
         }
+        if request.temperature is not None:
+            kwargs["temperature"] = request.temperature
+        if request.top_p is not None:
+            kwargs["top_p"] = request.top_p
         response = await self._create(**kwargs)
         raw_response, choice, message = self._parsed_choice(response)
         content = message.get("content") if isinstance(message, Mapping) else None
@@ -1200,8 +1202,6 @@ class OpenRouterChatClient:
         kwargs: dict[str, Any] = {
             "model": request.model,
             "messages": wire_messages,
-            "temperature": request.temperature,
-            "top_p": request.top_p,
             "seed": request.seed,
             "max_tokens": request.max_output_tokens,
             "tools": wire_tools,
@@ -1212,6 +1212,10 @@ class OpenRouterChatClient:
                 "provider": provider_preferences,
             },
         }
+        if request.temperature is not None:
+            kwargs["temperature"] = request.temperature
+        if request.top_p is not None:
+            kwargs["top_p"] = request.top_p
         response = await self._create(**kwargs)
         raw_response, choice, message = self._parsed_choice(response)
         if not isinstance(message, Mapping):
@@ -1402,6 +1406,17 @@ class OpenRouterChatClient:
                 "OpenRouter response must be an object",
                 retryable=False,
             )
+        top_level_error = raw_response.get("error")
+        if isinstance(top_level_error, Mapping):
+            status_code = top_level_error.get("code")
+            message = str(top_level_error.get("message") or "OpenRouter request failed")
+            retryable = isinstance(status_code, int) and status_code >= 500
+            raise ProviderFailure(
+                "provider_5xx" if retryable else "provider_rejected",
+                message,
+                retryable=retryable,
+                status_code=status_code if isinstance(status_code, int) else None,
+            )
         choices = raw_response.get("choices")
         if not isinstance(choices, list) or len(choices) != 1:
             raise ProviderFailure(
@@ -1410,6 +1425,23 @@ class OpenRouterChatClient:
                 retryable=False,
             )
         choice = choices[0]
+        choice_error = choice.get("error") if isinstance(choice, Mapping) else None
+        if isinstance(choice_error, Mapping):
+            status_code = choice_error.get("code")
+            message = str(choice_error.get("message") or "OpenRouter choice failed")
+            retryable = isinstance(status_code, int) and status_code >= 500
+            raise ProviderFailure(
+                "provider_5xx" if retryable else "provider_rejected",
+                message,
+                retryable=retryable,
+                status_code=status_code if isinstance(status_code, int) else None,
+            )
+        if isinstance(choice, Mapping) and choice.get("finish_reason") == "error":
+            raise ProviderFailure(
+                "provider_rejected",
+                "OpenRouter choice finished with an error",
+                retryable=False,
+            )
         message = choice.get("message") if isinstance(choice, Mapping) else None
         return raw_response, choice, message
 
