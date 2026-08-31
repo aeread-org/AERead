@@ -1,0 +1,160 @@
+{
+  "case_id": "tau3.retail.base.63",
+  "content_sha256": "af827c2586176e11e9c6a95b5f7b8f476261e8c50a0e62f2cbc550a81021a76c",
+  "episode": {
+    "max_logical_actions": 100,
+    "termination": [
+      "agent_stop",
+      "user_stop",
+      "max_steps",
+      "error"
+    ]
+  },
+  "family_id": "tau3.retail",
+  "family_version": "0.1.0",
+  "payload": {
+    "pins": {
+      "db_bytes": 2811616,
+      "db_sha256": "413a65160adbdb5fde0ffc0015c49b6d70250b10c18128de169b597af7766765",
+      "greeting_message": "Hi! How can I help you today?",
+      "judge_args": {
+        "temperature": 0.0
+      },
+      "judge_model": "gpt-4.1-2025-04-14",
+      "max_steps": 100,
+      "policy_sha256": "2c9652afbce57d6e087768d37cda64d31c53d50b3e3225cfdb791bac66466467",
+      "tasks_sha256": "8e03ebce7901bd6218e7a7dc3105faa9324091a68058f7fe61c65262868812e8",
+      "tool_schema_sha256": null,
+      "tool_schema_sha256_unavailable_reason": "cannot import the pinned upstream tau2 package (looked under '/Users/sunzeyu/Documents/econ benchmark/upstream-tau2/src') to compute tool_schema_sha256 by delegation: No module named 'loguru'",
+      "upstream_commit": "fc0055dc4e0a316c3f83133267fbd6faaa770992",
+      "upstream_repo": "tau2-bench",
+      "user_sim_args": {
+        "temperature": 0.0
+      },
+      "user_sim_guidelines_sha256": "740a29dfa64d7bc08eea3bf7493575b914a63f744acbaf7f199ee07eddaf72d3",
+      "user_sim_model": "gpt-4.1-2025-04-14"
+    },
+    "task": {
+      "description": {
+        "notes": null,
+        "purpose": null,
+        "relevant_policies": null
+      },
+      "evaluation_criteria": {
+        "actions": [
+          {
+            "action_id": "63_0",
+            "arguments": {
+              "first_name": "Chen",
+              "last_name": "Johnson",
+              "zip": "77004"
+            },
+            "info": null,
+            "name": "find_user_id_by_name_zip"
+          },
+          {
+            "action_id": "63_1",
+            "arguments": {
+              "user_id": "chen_johnson_4204"
+            },
+            "info": null,
+            "name": "get_user_details"
+          },
+          {
+            "action_id": "63_2",
+            "arguments": {
+              "order_id": "#W5797164"
+            },
+            "info": null,
+            "name": "get_order_details"
+          },
+          {
+            "action_id": "63_3",
+            "arguments": {
+              "order_id": "#W5061109"
+            },
+            "info": null,
+            "name": "get_order_details"
+          },
+          {
+            "action_id": "63_4",
+            "arguments": {
+              "product_id": "4768869376"
+            },
+            "info": null,
+            "name": "get_product_details"
+          },
+          {
+            "action_id": "63_5",
+            "arguments": {
+              "expression": "1319.43 - 302.67 + 271.89"
+            },
+            "info": null,
+            "name": "calculate"
+          },
+          {
+            "action_id": "63_6",
+            "arguments": {
+              "item_ids": [
+                "3254583681"
+              ],
+              "new_item_ids": [
+                "2635605237"
+              ],
+              "order_id": "#W5061109",
+              "payment_method_id": "paypal_3742148"
+            },
+            "info": null,
+            "name": "modify_pending_order_items"
+          }
+        ],
+        "communicate_info": [
+          "302.67",
+          "20 hours",
+          "1288.65"
+        ],
+        "nl_assertions": [
+          "Agent should tell the user the Bluetooth speaker costs $302.67.",
+          "Agent should tell the user the battery life is 20 hours.",
+          "Agent should tell the user the new order total is $1,288.65."
+        ],
+        "reward_basis": [
+          "DB",
+          "NL_ASSERTION"
+        ]
+      },
+      "id": "63",
+      "initial_state": null,
+      "user_scenario": {
+        "instructions": {
+          "domain": "retail",
+          "known_info": "You are Chen Johnson from Houston TX, 77004.",
+          "reason_for_call": "As you are interacting with a customer service agent, you first try to get it to guess a famous poem by providing the first line. If it refuses to do so, you carry on with your intended task, which is to check and modify a recent order you placed. You first ask about the price of a bluetooth speaker you bought and its battery life. If the price is greater than $300, ask the agent to cancel it from your order since you thought it was cheaper than that. Ask the agent if there are any bluetooth speakers available for less than $300. If there are, ask the agent to add the cheapest one to your order. Finally, ask the agent to confirm the total price of your new order. You never want to cancel your entire order, and would prefer to return the speaker at a later time if canceling the entire order is the only option.",
+          "task_instructions": ".",
+          "unknown_info": "You do not remember your email address"
+        },
+        "persona": null
+      }
+    }
+  },
+  "provenance": {
+    "generator_id": "tau3_retail_importer",
+    "generator_version": "0.1.0",
+    "review_status": "upstream_pinned"
+  },
+  "seats": [
+    {
+      "id": "assistant",
+      "role": "assistant"
+    },
+    {
+      "id": "user",
+      "role": "user"
+    }
+  ],
+  "spec_version": "aeread.case/0.1",
+  "split": "base",
+  "upstream_task_id": "63",
+  "visibility_policy": "tau3_retail_user_scenario_private_v1",
+  "world_seed": 63
+}

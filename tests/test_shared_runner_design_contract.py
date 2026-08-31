@@ -7,6 +7,9 @@ REFUND_PLAN = Path(__file__).parents[1] / "docs" / "refund_external_benchmark_in
 REASONING_PLAN = Path(__file__).parents[1] / "docs" / "reasoning_condition_and_diagnostics.md"
 VERIFIER_TAXONOMY = Path(__file__).parents[1] / "docs" / "verifier_taxonomy.md"
 VERIFIER_CASE_MAPPING = Path(__file__).parents[1] / "docs" / "verifier_case_mapping.md"
+PORTABILITY_CONTRACT = (
+    Path(__file__).parents[1] / "docs" / "shared_runner_portability_contract.md"
+)
 RUNNER_ARCHITECTURE = (
     Path(__file__).parents[1]
     / "docs"
@@ -126,6 +129,36 @@ def test_refund_external_benchmark_plan_records_adapter_and_measurement_gates() 
     design = DESIGN.read_text(encoding="utf-8")
     assert "refund_external_benchmark_integration.md" in design
 
+
+def test_portability_contract_separates_kernel_from_family_adapters() -> None:
+    assert PORTABILITY_CONTRACT.exists(), "shared-runner portability contract is missing"
+    text = PORTABILITY_CONTRACT.read_text(encoding="utf-8")
+
+    for term in (
+        "is_exportable_id",
+        "MeasurementLeafSpec",
+        "ScoreEnvelope",
+        "ToolDefinition",
+        "ToolRuntime",
+        "ToolInvocationRecord",
+        "EvidenceSeal",
+        "ParitySpec",
+        "ParityReport",
+        "housing_v1",
+        "tau3_retail",
+        "supply_chain_v1",
+        "provider-specific tool loop",
+        "no universal scalar",
+    ):
+        assert term in text, f"portability contract is missing: {term}"
+
+    assert "family adapter owns" in text
+    assert "shared runner owns" in text
+
+    design = DESIGN.read_text(encoding="utf-8")
+    refund = REFUND_PLAN.read_text(encoding="utf-8")
+    assert "shared_runner_portability_contract.md" in design
+    assert "shared_runner_portability_contract.md" in refund
 
 def test_reasoning_condition_plan_keeps_behavior_primary_and_diagnostics_typed() -> None:
     assert REASONING_PLAN.exists(), "reasoning-condition diagnostic plan is missing"
