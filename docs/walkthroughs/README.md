@@ -20,6 +20,21 @@
   exact Housing V1 trace through isolated simultaneous tenant decisions, a local controlled
   landlord, immutable holds, phase-specific schemas, bounds and payoffs, privacy checks, one
   explicit live length retry, and the boundary between smoke admission and paper evidence.
+- [`procurement_statistical_readiness.md`](procurement_statistical_readiness.md) —
+  Housing's 600-trajectory design versus procurement readiness, a confirmed variable-world
+  upper-bound counterexample, generator coverage, and conditional cluster-level sample planning.
+- [`procurement_panel_preflight.md`](procurement_panel_preflight.md) —
+  repaired references, generated RFQ worlds, shared receipt and batch controls, offline panel
+  validation, and the explicit live Gemini comparison/admission gate.
+- [`procurement_deepseek_600_plan.md`](procurement_deepseek_600_plan.md) —
+  requested live DeepSeek off/low follow-up, pinned Parasail route, fresh paired panel,
+  admission criteria, and total-spend gate; distinct from the completed offline rehearsal.
+- [`procurement_sampling_admission.md`](procurement_sampling_admission.md) —
+  repetitive admission evidence, common-temperature hypothesis, provider caveats,
+  reservation sensitivity, and unchanged sample/spend gates.
+- [`procurement_rate_limit_recovery.md`](procurement_rate_limit_recovery.md) —
+  explicit one-time continuation of a drained upstream-rate-limit stop, retaining
+  all receipts, exclusions and spend while bounding new dispatch.
 - [`housing_reasoning_experiment.md`](housing_reasoning_experiment.md) —
   pre-outcome audit, locked design, and completed result for 100 paired Housing worlds,
   reasoning disabled versus reasoning-low, three nested replicates, cluster-level inference,

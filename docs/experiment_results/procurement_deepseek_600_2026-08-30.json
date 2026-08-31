@@ -1,0 +1,84 @@
+{
+  "spec_version": "aeread.procurement_live_result/1",
+  "date": "2026-08-30",
+  "status": "complete",
+  "evidence_kind": "native_live_provider",
+  "scope": "Synthetic electronics RFQ grammar with controlled suppliers; not real vendor procurement.",
+  "execution_source_commit": "ad670179acfd1f60bdd593bbb6f8a78b2be21207",
+  "provider": "openrouter",
+  "requested_model": "deepseek/deepseek-v4-flash-0731",
+  "resolved_model": "deepseek/deepseek-v4-flash-20260731",
+  "route_provider": "Parasail",
+  "route_quantization": "fp8",
+  "route_fallback": false,
+  "route_verification_failures": 0,
+  "master_seed": 2026082901,
+  "inference_seed_base": 20260829,
+  "temperature": 1.0,
+  "max_output_tokens": 32768,
+  "conditions": {
+    "reasoning_none_v1": "none",
+    "reasoning_low_v1": "low"
+  },
+  "run_plan_ids": {
+    "reasoning_none_v1": "runplan_b129b25fa02b2ed1",
+    "reasoning_low_v1": "runplan_f1f68557c4c5e425"
+  },
+  "design": {
+    "world_count": 100,
+    "condition_count": 2,
+    "replicates": 3,
+    "planned_cells": 600,
+    "attempted_cells": 600,
+    "included_cells": 583,
+    "excluded_cells": 17,
+    "unattempted_cells": 0,
+    "complete_pair_world_count": 87,
+    "ninety_complete_world_planning_target_met": false
+  },
+  "analysis": {
+    "estimand": "treatment_minus_control_mean_normalized_buyer_surplus",
+    "condition_means": {
+      "reasoning_none_v1": -0.030354263933757793,
+      "reasoning_low_v1": 0.27844027520089215
+    },
+    "mean_paired_difference": 0.30879453913464994,
+    "cluster_bootstrap_95": [
+      0.2631935953524823,
+      0.3537654025366903
+    ],
+    "paired_t_95": [
+      0.2629545144974346,
+      0.35463456377186525
+    ],
+    "missingness_difference_bounds": [
+      0.28601695078367956,
+      0.34537864180269184
+    ],
+    "missingness_bounds_status": "available_declared_outcome_support",
+    "resampling_unit": "world_seed",
+    "bootstrap_draws": 10000,
+    "bootstrap_seed": 20260827,
+    "operational_failure_count_by_condition": {
+      "reasoning_none_v1": 0,
+      "reasoning_low_v1": 17
+    }
+  },
+  "billing": {
+    "batch_known_cost_usd": 1.9566923310000006,
+    "total_known_cost_usd_including_admission": 1.9768713030000007,
+    "acknowledged_unknown_provider_calls": 13,
+    "unresolved_unknown_provider_calls": 0,
+    "reserved_unknown_cost_usd": 0.52,
+    "prior_replacement_reserve_usd": 0.413345078,
+    "all_in_conservative_spend_usd": 2.910216381,
+    "approved_cap_usd": 5.0,
+    "remaining_authorization_usd": 2.089783619
+  },
+  "artifact_commitments": {
+    "final_summary_sha256": "5d1417b205b8de68225dc6e1da2eccebb4812f7493cdf7aaf900a26b77925e7c",
+    "final_batch_manifest_sha256": "33bdff7738127bf10da7222fdb8290803ba8120469024af0f7e651be60549783",
+    "final_recovery_checkpoint_sha256": "9894cc983c80bd9e128454c3a45b864aa3cf283a2dfaec2d4354480442ec050d",
+    "final_recovery_parent_manifest_sha256": "30e9ca2a1bc33aea21c040b87d94377d7c032fad719fa87e6712e6533b72d3a3"
+  }
+}

@@ -1,0 +1,91 @@
+{
+  "spec_version": "aeread.procurement_preflight_report/1",
+  "date": "2026-08-27",
+  "evidence_kind": "scripted_instrumentation_only",
+  "measurement_batch_commit": "261a15c",
+  "final_seed_guard_commit": "b838ef1",
+  "generator_id": "procurement_rfq_coupled_worlds_v1",
+  "master_seed": 20260827,
+  "world_count": 100,
+  "condition_count": 2,
+  "replicates": 3,
+  "conditions": {
+    "scripted_control_v1": "none",
+    "scripted_repeat_v1": "none"
+  },
+  "planned_episodes": 600,
+  "included_episodes": 600,
+  "excluded_episodes": 0,
+  "complete_world_clusters": 100,
+  "external_provider_calls": 0,
+  "known_cost_usd": 0,
+  "unknown_cost_provider_calls": 0,
+  "analysis": {
+    "bootstrap_draws": 10000,
+    "bootstrap_seed": 20260827,
+    "cluster_bootstrap_95": [
+      0,
+      0
+    ],
+    "complete_pair_world_count": 100,
+    "condition_means": {
+      "scripted_control_v1": 0.905153312793627,
+      "scripted_repeat_v1": 0.905153312793627
+    },
+    "expected_replicates": 3,
+    "incomplete_worlds": [],
+    "mean_paired_difference": 0,
+    "missingness_bounds_status": "available_declared_outcome_support",
+    "missingness_difference_bounds": [
+      0,
+      0
+    ],
+    "missingness_support_by_incomplete_world": {},
+    "missingness_support_missing_worlds": [],
+    "operational_failure_count_by_condition": {
+      "scripted_control_v1": 0,
+      "scripted_repeat_v1": 0
+    },
+    "paired_t_95": [
+      0,
+      0
+    ],
+    "planned_world_count": 100,
+    "resampling_unit": "world_seed",
+    "trajectory_count": 600
+  },
+  "score_range": [
+    0.8616819202210327,
+    0.9342829987747485
+  ],
+  "full_suite": {
+    "passed": 674,
+    "skipped": 3,
+    "expected_failures": 1,
+    "seconds": 377.52
+  },
+  "independent_checks": {
+    "numerical_design_checks_passed": 36,
+    "receipt_hashes_checked": 600,
+    "buyer_requests_checked_for_private_cost_fields": 2400,
+    "private_cost_field_leaks": 0
+  },
+  "run_plan_ids": {
+    "scripted_control_v1": "runplan_ae93440b25e0dd31",
+    "scripted_repeat_v1": "runplan_7ce123a4d00859b6"
+  },
+  "evidence_root": "/private/tmp/aeread-procurement-offline600.Ro87cp/offline",
+  "summary_sha256": "ab7fa48de11e9cff0d808f3f2b88fa20c12daa772bf1d97f76023f0bd392e3ee",
+  "study_sha256": "8ed6ee79b72842c9ce1e695bf4927b037c640235add537965b43037a70541a6e",
+  "batch_manifest_sha256": "142e58416f5fc76606c5db1dc14c63db41c5c7816a585f8d4cf5e33cbaae9190",
+  "live_admission": false,
+  "live_sample_run": false,
+  "scope_limit": "Synthetic electronics procurement with controlled suppliers; no live model performance inference.",
+  "remaining_live_gate": "Choose comparison, authorize total recorded-spend limit and fresh master seed, pass six disjoint native-Google admission episodes.",
+  "no_call_resume": {
+    "resumed_included_cells": 600,
+    "provider_calls": 0,
+    "unchanged_result_and_event_files": 1200,
+    "fingerprint_sha256": "e5aefdfcfe46f39b462b5e45c988f7e4ad26aa05440a3e4e235041b82fbca406"
+  }
+}
