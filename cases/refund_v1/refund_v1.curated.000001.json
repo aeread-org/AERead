@@ -1,0 +1,148 @@
+{
+  "case_id": "refund_v1.curated.000001",
+  "content_sha256": "367aeb5f6f51f2eb2f1633eb84326c7e988907fb4aede712187ce77a00bcc376",
+  "episode": {
+    "max_logical_actions": 8,
+    "termination": [
+      "resolved",
+      "invalid_operation"
+    ]
+  },
+  "family_id": "refund_v1",
+  "family_version": "1.0.0",
+  "payload": {
+    "case_id": "refund_v1.curated.000001",
+    "ground_truth": {
+      "decision": {
+        "automatic_threshold": 70.0,
+        "decision": "approve_direct",
+        "maximum_refund_limit": 150.0,
+        "reason_codes": [
+          "spoiled"
+        ],
+        "refund_amount": 28.99,
+        "refund_method": "original_payment",
+        "requires_human_review": false
+      },
+      "utility": {
+        "customer_utility": 26.99,
+        "joint_utility": 3.8,
+        "penalty": 2.0,
+        "reason_codes": [
+          "spoiled"
+        ],
+        "relationship_surplus": 5.8,
+        "support_agent_utility": -23.19,
+        "transfer_amount": 28.99
+      }
+    },
+    "policy": {
+      "categories": {
+        "apparel": {
+          "base_auto_threshold": 75.0,
+          "category": "apparel",
+          "evidence_required": false,
+          "high_trust_auto_threshold": 175.0,
+          "max_refund": 250.0,
+          "restocking_fee_rate": 0.0,
+          "return_required": true,
+          "timeframe_days": 30
+        },
+        "consumer_electronics": {
+          "base_auto_threshold": 150.0,
+          "category": "consumer_electronics",
+          "evidence_required": false,
+          "high_trust_auto_threshold": 400.0,
+          "max_refund": 1000.0,
+          "restocking_fee_rate": 0.15,
+          "return_required": true,
+          "timeframe_days": 30
+        },
+        "perishable_goods": {
+          "base_auto_threshold": 35.0,
+          "category": "perishable_goods",
+          "evidence_required": true,
+          "high_trust_auto_threshold": 70.0,
+          "max_refund": 150.0,
+          "restocking_fee_rate": 0.0,
+          "return_required": false,
+          "timeframe_days": 2
+        },
+        "software": {
+          "base_auto_threshold": 80.0,
+          "category": "software",
+          "evidence_required": false,
+          "high_trust_auto_threshold": 150.0,
+          "max_refund": 300.0,
+          "restocking_fee_rate": 0.0,
+          "return_required": false,
+          "timeframe_days": 14
+        }
+      },
+      "currency": "USD",
+      "general_rules": [
+        "Refunds are capped by the product category maximum even when the order price is higher.",
+        "Direct automatic refunds are allowed only when the final refund amount is at or below the customer's automatic threshold.",
+        "Amounts above the automatic threshold must be escalated to human review before money is returned.",
+        "Fraud-watch customers require human review for any monetary refund.",
+        "Physical goods that require return must be received before a direct refund unless the policy explicitly waives return."
+      ],
+      "policy_id": "omnichannel_refund_policy_v1",
+      "trust_rules": {
+        "fraud_watch": "credit_score < 580 or chargebacks_12m > 0 or prior_refunds_12m >= 5",
+        "good_trust": "credit_score >= 660, loyalty tier silver or higher, chargebacks_12m == 0, prior_refunds_12m <= 3",
+        "high_trust": "credit_score >= 720, loyalty tier gold or platinum, chargebacks_12m == 0, prior_refunds_12m <= 2",
+        "standard": "all customers not otherwise classified"
+      },
+      "version": "1.0.0"
+    },
+    "private_customer_truth": {
+      "activated": false,
+      "condition": "spoiled",
+      "evidence_provided": true,
+      "issue_type": "spoiled",
+      "return_received": false,
+      "subscription_days_used": null,
+      "usage_minutes": 0
+    },
+    "public_order": {
+      "customer": {
+        "chargebacks_12m": 0,
+        "credit_score": 742,
+        "customer_id": "cust_001",
+        "loyalty_tier": "gold",
+        "prior_refunds_12m": 1,
+        "years_active": 5
+      },
+      "product": {
+        "category": "perishable_goods",
+        "days_since_delivery": 1,
+        "name": "Organic berry box",
+        "price": 28.99,
+        "product_id": "p_berry_12"
+      },
+      "requested_amount": 28.99
+    },
+    "world_seed": 1001
+  },
+  "provenance": {
+    "generator_id": "refund_curated_generator_v1",
+    "generator_version": "1.0.0",
+    "review_status": "curated"
+  },
+  "seats": [
+    {
+      "id": "customer",
+      "role": "customer"
+    },
+    {
+      "id": "support_agent",
+      "role": "support_agent"
+    }
+  ],
+  "spec_version": "aeread.case/0.1",
+  "split": "curated",
+  "upstream_task_id": null,
+  "visibility_policy": "refund_customer_request_private_v1",
+  "world_seed": 1001
+}

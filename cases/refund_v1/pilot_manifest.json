@@ -1,0 +1,16 @@
+{
+  "case_ids": [
+    "refund_v1.curated.000001",
+    "refund_v1.curated.000002",
+    "refund_v1.curated.000003",
+    "refund_v1.curated.000004",
+    "refund_v1.curated.000005",
+    "refund_v1.curated.000006",
+    "refund_v1.curated.000007",
+    "refund_v1.curated.000008"
+  ],
+  "content_sha256": "4baf36d2076bb79e311b750f1f3e25920a67b690ffb08dac2bd3ba35f6dc5bce",
+  "family_id": "refund_v1",
+  "pilot_id": "refund_curated_pilot_v1",
+  "split": "curated"
+}

@@ -1,0 +1,149 @@
+{
+  "case_id": "refund_v1.curated.000007",
+  "content_sha256": "3648ac57a8ae878d73d7f29d912d50c9a24e9515be6f0a1f20240161532d9ab1",
+  "episode": {
+    "max_logical_actions": 8,
+    "termination": [
+      "resolved",
+      "invalid_operation"
+    ]
+  },
+  "family_id": "refund_v1",
+  "family_version": "1.0.0",
+  "payload": {
+    "case_id": "refund_v1.curated.000007",
+    "ground_truth": {
+      "decision": {
+        "automatic_threshold": 0.0,
+        "decision": "escalate",
+        "maximum_refund_limit": 250.0,
+        "reason_codes": [
+          "apparel_resalable_return",
+          "human_review_required"
+        ],
+        "refund_amount": 139.0,
+        "refund_method": "original_payment_after_review",
+        "requires_human_review": true
+      },
+      "utility": {
+        "customer_utility": 132.0,
+        "joint_utility": 12.8,
+        "penalty": 10.0,
+        "reason_codes": [
+          "apparel_resalable_return"
+        ],
+        "relationship_surplus": 27.8,
+        "support_agent_utility": -119.2,
+        "transfer_amount": 139.0
+      }
+    },
+    "policy": {
+      "categories": {
+        "apparel": {
+          "base_auto_threshold": 75.0,
+          "category": "apparel",
+          "evidence_required": false,
+          "high_trust_auto_threshold": 175.0,
+          "max_refund": 250.0,
+          "restocking_fee_rate": 0.0,
+          "return_required": true,
+          "timeframe_days": 30
+        },
+        "consumer_electronics": {
+          "base_auto_threshold": 150.0,
+          "category": "consumer_electronics",
+          "evidence_required": false,
+          "high_trust_auto_threshold": 400.0,
+          "max_refund": 1000.0,
+          "restocking_fee_rate": 0.15,
+          "return_required": true,
+          "timeframe_days": 30
+        },
+        "perishable_goods": {
+          "base_auto_threshold": 35.0,
+          "category": "perishable_goods",
+          "evidence_required": true,
+          "high_trust_auto_threshold": 70.0,
+          "max_refund": 150.0,
+          "restocking_fee_rate": 0.0,
+          "return_required": false,
+          "timeframe_days": 2
+        },
+        "software": {
+          "base_auto_threshold": 80.0,
+          "category": "software",
+          "evidence_required": false,
+          "high_trust_auto_threshold": 150.0,
+          "max_refund": 300.0,
+          "restocking_fee_rate": 0.0,
+          "return_required": false,
+          "timeframe_days": 14
+        }
+      },
+      "currency": "USD",
+      "general_rules": [
+        "Refunds are capped by the product category maximum even when the order price is higher.",
+        "Direct automatic refunds are allowed only when the final refund amount is at or below the customer's automatic threshold.",
+        "Amounts above the automatic threshold must be escalated to human review before money is returned.",
+        "Fraud-watch customers require human review for any monetary refund.",
+        "Physical goods that require return must be received before a direct refund unless the policy explicitly waives return."
+      ],
+      "policy_id": "omnichannel_refund_policy_v1",
+      "trust_rules": {
+        "fraud_watch": "credit_score < 580 or chargebacks_12m > 0 or prior_refunds_12m >= 5",
+        "good_trust": "credit_score >= 660, loyalty tier silver or higher, chargebacks_12m == 0, prior_refunds_12m <= 3",
+        "high_trust": "credit_score >= 720, loyalty tier gold or platinum, chargebacks_12m == 0, prior_refunds_12m <= 2",
+        "standard": "all customers not otherwise classified"
+      },
+      "version": "1.0.0"
+    },
+    "private_customer_truth": {
+      "activated": false,
+      "condition": "unworn_with_tags",
+      "evidence_provided": true,
+      "issue_type": "remorse",
+      "return_received": true,
+      "subscription_days_used": null,
+      "usage_minutes": 0
+    },
+    "public_order": {
+      "customer": {
+        "chargebacks_12m": 1,
+        "credit_score": 566,
+        "customer_id": "cust_007",
+        "loyalty_tier": "silver",
+        "prior_refunds_12m": 2,
+        "years_active": 3
+      },
+      "product": {
+        "category": "apparel",
+        "days_since_delivery": 9,
+        "name": "Waterproof commuter jacket",
+        "price": 139.0,
+        "product_id": "p_jacket_22"
+      },
+      "requested_amount": 139.0
+    },
+    "world_seed": 1007
+  },
+  "provenance": {
+    "generator_id": "refund_curated_generator_v1",
+    "generator_version": "1.0.0",
+    "review_status": "curated"
+  },
+  "seats": [
+    {
+      "id": "customer",
+      "role": "customer"
+    },
+    {
+      "id": "support_agent",
+      "role": "support_agent"
+    }
+  ],
+  "spec_version": "aeread.case/0.1",
+  "split": "curated",
+  "upstream_task_id": null,
+  "visibility_policy": "refund_customer_request_private_v1",
+  "world_seed": 1007
+}

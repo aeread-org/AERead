@@ -1,0 +1,149 @@
+{
+  "case_id": "refund_v1.curated.000003",
+  "content_sha256": "491767adffda49bee7dc208db15ea43b155f0118d77af9bcf3139d2740645caa",
+  "episode": {
+    "max_logical_actions": 8,
+    "termination": [
+      "resolved",
+      "invalid_operation"
+    ]
+  },
+  "family_id": "refund_v1",
+  "family_version": "1.0.0",
+  "payload": {
+    "case_id": "refund_v1.curated.000003",
+    "ground_truth": {
+      "decision": {
+        "automatic_threshold": 400.0,
+        "decision": "escalate",
+        "maximum_refund_limit": 1000.0,
+        "reason_codes": [
+          "electronics_defect",
+          "human_review_required"
+        ],
+        "refund_amount": 449.0,
+        "refund_method": "original_payment_after_review",
+        "requires_human_review": true
+      },
+      "utility": {
+        "customer_utility": 442.0,
+        "joint_utility": 35.0,
+        "penalty": 10.0,
+        "reason_codes": [
+          "electronics_defect"
+        ],
+        "relationship_surplus": 50.0,
+        "support_agent_utility": -407.0,
+        "transfer_amount": 449.0
+      }
+    },
+    "policy": {
+      "categories": {
+        "apparel": {
+          "base_auto_threshold": 75.0,
+          "category": "apparel",
+          "evidence_required": false,
+          "high_trust_auto_threshold": 175.0,
+          "max_refund": 250.0,
+          "restocking_fee_rate": 0.0,
+          "return_required": true,
+          "timeframe_days": 30
+        },
+        "consumer_electronics": {
+          "base_auto_threshold": 150.0,
+          "category": "consumer_electronics",
+          "evidence_required": false,
+          "high_trust_auto_threshold": 400.0,
+          "max_refund": 1000.0,
+          "restocking_fee_rate": 0.15,
+          "return_required": true,
+          "timeframe_days": 30
+        },
+        "perishable_goods": {
+          "base_auto_threshold": 35.0,
+          "category": "perishable_goods",
+          "evidence_required": true,
+          "high_trust_auto_threshold": 70.0,
+          "max_refund": 150.0,
+          "restocking_fee_rate": 0.0,
+          "return_required": false,
+          "timeframe_days": 2
+        },
+        "software": {
+          "base_auto_threshold": 80.0,
+          "category": "software",
+          "evidence_required": false,
+          "high_trust_auto_threshold": 150.0,
+          "max_refund": 300.0,
+          "restocking_fee_rate": 0.0,
+          "return_required": false,
+          "timeframe_days": 14
+        }
+      },
+      "currency": "USD",
+      "general_rules": [
+        "Refunds are capped by the product category maximum even when the order price is higher.",
+        "Direct automatic refunds are allowed only when the final refund amount is at or below the customer's automatic threshold.",
+        "Amounts above the automatic threshold must be escalated to human review before money is returned.",
+        "Fraud-watch customers require human review for any monetary refund.",
+        "Physical goods that require return must be received before a direct refund unless the policy explicitly waives return."
+      ],
+      "policy_id": "omnichannel_refund_policy_v1",
+      "trust_rules": {
+        "fraud_watch": "credit_score < 580 or chargebacks_12m > 0 or prior_refunds_12m >= 5",
+        "good_trust": "credit_score >= 660, loyalty tier silver or higher, chargebacks_12m == 0, prior_refunds_12m <= 3",
+        "high_trust": "credit_score >= 720, loyalty tier gold or platinum, chargebacks_12m == 0, prior_refunds_12m <= 2",
+        "standard": "all customers not otherwise classified"
+      },
+      "version": "1.0.0"
+    },
+    "private_customer_truth": {
+      "activated": false,
+      "condition": "opened_good",
+      "evidence_provided": true,
+      "issue_type": "defective",
+      "return_received": true,
+      "subscription_days_used": null,
+      "usage_minutes": 0
+    },
+    "public_order": {
+      "customer": {
+        "chargebacks_12m": 0,
+        "credit_score": 781,
+        "customer_id": "cust_003",
+        "loyalty_tier": "platinum",
+        "prior_refunds_12m": 0,
+        "years_active": 8
+      },
+      "product": {
+        "category": "consumer_electronics",
+        "days_since_delivery": 12,
+        "name": "10-inch tablet",
+        "price": 449.0,
+        "product_id": "p_tablet_07"
+      },
+      "requested_amount": 449.0
+    },
+    "world_seed": 1003
+  },
+  "provenance": {
+    "generator_id": "refund_curated_generator_v1",
+    "generator_version": "1.0.0",
+    "review_status": "curated"
+  },
+  "seats": [
+    {
+      "id": "customer",
+      "role": "customer"
+    },
+    {
+      "id": "support_agent",
+      "role": "support_agent"
+    }
+  ],
+  "spec_version": "aeread.case/0.1",
+  "split": "curated",
+  "upstream_task_id": null,
+  "visibility_policy": "refund_customer_request_private_v1",
+  "world_seed": 1003
+}

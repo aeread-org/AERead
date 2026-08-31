@@ -1,0 +1,148 @@
+{
+  "artifact_type": "refund_live_coverage_pilot_summary",
+  "artifact_version": "1.0.0",
+  "created_date": "2026-08-31",
+  "claim_scope": "DeepSeek V4 Flash through Arena on a fixed, oracle-stratified 20-case Refund V1 coverage panel with a deterministic scripted customer",
+  "design": {
+    "world_clusters": 20,
+    "categories_per_panel": {
+      "apparel": 5,
+      "consumer_electronics": 5,
+      "perishable_goods": 5,
+      "software": 5
+    },
+    "oracle_decisions": {
+      "approve_direct": 6,
+      "deny": 6,
+      "escalate": 5,
+      "request_return": 3
+    },
+    "trust_bands": {
+      "fraud_watch": 6,
+      "good_trust": 3,
+      "high_trust": 1,
+      "standard": 10
+    },
+    "condition_labels": [
+      "none",
+      "low"
+    ],
+    "replicates_per_world_condition": 3,
+    "planned_trajectories": 120,
+    "selection": "fixed oracle-stratified coverage panel; not an outcome-blind population sample",
+    "world_seeds": [
+      209,
+      46,
+      2,
+      31,
+      14,
+      324,
+      3,
+      8,
+      94,
+      1,
+      257,
+      7,
+      135,
+      6752,
+      30,
+      24,
+      9,
+      0,
+      12,
+      68
+    ]
+  },
+  "model_and_provider": {
+    "requested_model": "deepseek-v4-flash-0731",
+    "resolved_external_model": "accounts/fireworks/models/deepseek-v4-flash-0731",
+    "provider": "arena",
+    "max_output_tokens": 4096,
+    "route_provider": null,
+    "fallback_status": "not_verifiable",
+    "reasoning_treatment_status": "invalid_for_causal_contrast: the Arena adapter recorded but did not transmit the none/low control, and both arms returned reasoning tokens"
+  },
+  "coverage": {
+    "included_trajectories": 100,
+    "excluded_operational_failures": 20,
+    "evidence_audited_trajectories": 120,
+    "complete_pair_worlds": 8,
+    "incomplete_worlds": 12,
+    "evaluation_receipts_emitted": 0,
+    "zero_call_resume_verified": false
+  },
+  "diagnostic_arm_comparison": {
+    "status": "descriptive_only; not a reasoning-effect estimate",
+    "none_label_mean_joint_utility": -75.26124999999999,
+    "low_label_mean_joint_utility": -76.09458333333333,
+    "paired_difference_low_minus_none": -0.833333333333335,
+    "world_cluster_bootstrap_95": [
+      -3.958333333333336,
+      2.125
+    ],
+    "paired_t_diagnostic_95": [
+      -4.695362161121481,
+      3.0286954944548103
+    ],
+    "missingness_bounds": null,
+    "missingness_status": "unavailable without declared finite per-world joint-utility support"
+  },
+  "operational_results": {
+    "none_label": {
+      "completed": 51,
+      "failed": 9,
+      "pass_all_three_worlds": 13,
+      "external_provider_calls": 126,
+      "reasoning_tokens": 141748,
+      "length_retry_cells": 7,
+      "length_retries": 8,
+      "unknown_cost_provider_calls": 7
+    },
+    "low_label": {
+      "completed": 49,
+      "failed": 11,
+      "pass_all_three_worlds": 12,
+      "external_provider_calls": 130,
+      "reasoning_tokens": 149021,
+      "length_retry_cells": 6,
+      "length_retries": 7,
+      "unknown_cost_provider_calls": 10
+    },
+    "failure_taxonomy": {
+      "opaque_scheduler_or_provider_failure": 13,
+      "length": 3,
+      "rate_limit": 4
+    },
+    "known_recorded_cost_usd": 0.0,
+    "cost_note": "Arena responses do not expose a price schedule here; dashboard billing is authoritative, and 17 calls have unknown outcome/billing status."
+  },
+  "secondary_descriptive": {
+    "none_label": {
+      "oracle_decision_exact_rate": 0.5294117647058824,
+      "mean_absolute_refund_amount_error": 66.01137254901961,
+      "mean_logical_actions": 4.117647058823529,
+      "mean_revealed_private_fields": 2.235294117647059
+    },
+    "low_label": {
+      "oracle_decision_exact_rate": 0.42857142857142855,
+      "mean_absolute_refund_amount_error": 58.419183673469384,
+      "mean_logical_actions": 4.346938775510204,
+      "mean_revealed_private_fields": 2.3469387755102042
+    }
+  },
+  "raw_evidence": {
+    "local_path": "/private/tmp/aeread_refund_deepseek_coverage20",
+    "size": "27M",
+    "event_logs": 120,
+    "source_experiment_summary_sha256": "700e5c543206de8a10dbfea65b21db1707299e979a1084abd8a7310dc64345d1",
+    "contains_uncommitted_prompts_and_responses": true
+  },
+  "claim_boundaries": [
+    "This is an instrumentation and behavioral-coverage pilot, not a confirmatory population estimate.",
+    "The oracle-stratified panel supports claims about these fixed cases, not the generator population or real refund traffic.",
+    "The labeled-arm comparison does not identify a reasoning effect because Arena reasoning controls were not transmitted or admitted.",
+    "Operational exclusions are missing measurements and were not converted to economic outcomes or silently replaced.",
+    "The full-information policy oracle is a reference upper bound, not necessarily an attainable same-information optimum under gradual disclosure.",
+    "No universal cross-family AER comparison is made with Housing or other benchmark families."
+  ]
+}
