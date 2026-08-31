@@ -199,3 +199,133 @@ def test_an_inadmissible_profile_is_excluded_before_any_provider_call(
     # The refusal is typed, not an incidental crash.
     assert isinstance(captured.value, (CapabilityExclusionError, Exception))
     assert "harness" in str(captured.value).lower()
+
+
+
+def test_a_tool_using_attempt_runs_through_the_executor_and_seals_its_evidence(
+    tmp_path,
+) -> None:
+    """The tool path, driven through AttemptExecutor rather than by hand.
+
+    Everything else about the tool harnesses is proven at the port or the
+    harness seam. This drives a real multi-round attempt -- ask, dispatch two
+    tools, feed the results back, reply -- through the executor's public API,
+    and checks the evidence a published number would rest on: both invocations
+    correlated to the provider call that requested them, the mutating tool's
+    state change recorded, and no started call left without a terminal event.
+    """
+
+    import dataclasses
+
+    from aeread.shared_runner.execution import EvidenceStore
+    from aeread.shared_runner.harness import (
+        AttemptExecutor,
+        NativeToolCall,
+        NativeToolChatHarness,
+    )
+
+    from tests.test_shared_runner_execution import _decision, _profile
+    from tests.test_shared_runner_harness import (
+        FAKE_PRICING,
+        ScriptedProvider,
+        _result,
+        _tool_runtime,
+    )
+    from tests.test_shared_runner_execution import SYSTEM_PROMPT as EXEC_PROMPT
+
+    decision = _decision()
+    evidence = EvidenceStore(
+        tmp_path / "tool_attempt",
+        run_plan_id="runplan_fixture",
+        cell_id=decision.cell_id,
+        episode_id=decision.episode_id,
+        episode_attempt_id="episode_attempt_fixture",
+    )
+    runtime, balance_db = _tool_runtime(tmp_path, evidence)
+
+    base = _profile()
+    profile = dataclasses.replace(
+        base,
+        harness=dataclasses.replace(
+            base.harness,
+            id="native_tool_chat",
+            config={**dict(base.harness.config), "max_rounds": 4},
+        ),
+        tools=("get_balance", "refund_order"),
+    )
+
+    # One turn asking for two tools, then a reply once their results come back.
+    provider = ScriptedProvider(
+        [
+            _result(
+                text="",
+                finish_reason="tool_calls",
+                tool_calls=(
+                    NativeToolCall(
+                        call_id="call_0", tool_id="get_balance", arguments={}
+                    ),
+                    NativeToolCall(
+                        call_id="call_1",
+                        tool_id="refund_order",
+                        arguments={"amount_usd": 5},
+                    ),
+                ),
+            ),
+            _result(text='{"offer":7}', finish_reason="stop"),
+        ]
+    )
+
+    executor = AttemptExecutor(
+        evidence=evidence,
+        profiles=[profile],
+        prompt_sources={profile.prompt.prompt_id: EXEC_PROMPT},
+        providers={profile.model.provider: provider},
+        pricing={profile.model.model: FAKE_PRICING},
+        harnesses={"native_tool_chat/1.0": NativeToolChatHarness()},
+        tool_runtimes={profile.profile_id: runtime},
+    )
+
+    response = asyncio.run(executor(decision))
+
+    # The loop completed: two provider calls, both tools dispatched, and the
+    # mutating tool actually moved the world.
+    assert len(provider.requests) == 2
+    assert balance_db["balance"] == 15, "the mutating tool must have run for real"
+    assert response.tool_invocation_ids, "the attempt must record its tool calls"
+
+    events = [
+        json.loads(line) for line in evidence.events_path.read_text().splitlines()
+    ]
+    kinds = [e["event_type"] for e in events]
+
+    # Both invocations belong to the ONE provider call that requested them.
+    intents = [e for e in events if e["event_type"] == "tool_dispatch_intended"]
+    assert len(intents) == 2
+    sources = set()
+    for intent in intents:
+        payload = json.loads((evidence.root / intent["payload_ref"]).read_bytes())
+        sources.add(payload["source_provider_call_id"])
+    assert len(sources) == 1, "a two-call turn is one environment hop, not two"
+
+    # Every started call reached a terminal event.
+    # Every started call has a terminal partner -- the invariant that matters,
+    # whichever round opened it.
+    assert kinds.count("provider_call_started") == kinds.count(
+        "provider_call_succeeded"
+    )
+    assert kinds.count("provider_call_started") >= 1
+    assert kinds.count("tool_invocation_started") == 2
+    assert kinds.count("tool_invocation_succeeded") == 2
+
+    # Every tool invocation and provider call this attempt opened is closed.
+    # (The logical action itself is closed by the scheduler's finalize_action
+    # callback, which this test bypasses by calling the executor directly, so
+    # a whole-store audit_reconciliation would fail on that alone -- the
+    # scheduler-driven path is covered by the smoke tests above.)
+    for entity in ("tool_invocation", "provider_call"):
+        opened = kinds.count(f"{entity}_started")
+        closed = sum(
+            kinds.count(f"{entity}_{suffix}")
+            for suffix in ("succeeded", "failed", "outcome_unknown")
+        )
+        assert opened == closed, f"{entity}: {opened} opened, {closed} closed"

@@ -1840,6 +1840,17 @@ class MinimalChatExecutor:
 
         return None
 
+    def _harness_tool_invocation_ids(self, action_attempt_id: str) -> tuple[str, ...]:
+        """The tool invocations a harness made during this attempt.
+
+        A single-call executor makes none, so the default is empty. Without the
+        hook the CanonicalResponse claimed zero tool calls even when the
+        evidence stream recorded two, leaving the attempt record and the
+        evidence disagreeing about the same attempt.
+        """
+
+        return ()
+
     def _request_for(
         self,
         decision: DecisionRequest,
@@ -2121,7 +2132,9 @@ class MinimalChatExecutor:
                 empty=not bool(result.output_text.strip()),
                 truncated=result.finish_reason in {"length", "max_output_tokens"},
                 provider_call_ids=(request.provider_call_id,),
-                tool_invocation_ids=(),
+                tool_invocation_ids=self._harness_tool_invocation_ids(
+                    action_attempt_id
+                ),
                 input_tokens=result.input_tokens,
                 cached_input_tokens=result.cached_input_tokens,
                 output_tokens=result.output_tokens,

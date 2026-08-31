@@ -390,6 +390,12 @@ class KernelToolPort:
         self._max_invocations = max_invocations
         self._family_reconciliation = family_reconciliation
         self._invocations = 0
+        self.invocation_ids: list[str] = []
+        """Every invocation this port recorded, in dispatch order.
+
+        The attempt record needs them: without it a CanonicalResponse claims
+        zero tool calls while the evidence stream shows two, and the two
+        accounts of the same attempt disagree."""
 
     async def invoke(
         self,
@@ -459,12 +465,36 @@ class KernelToolPort:
             if self._family_reconciliation is None
             else self._family_reconciliation(tool_id, result, record)
         )
+        self.invocation_ids.append(tool_invocation_id)
         return ToolExecutionEnvelope(
             result=result,
             invocation_record=record,
             family_reconciliation=reconciliation,
         )
 
+
+
+
+def _rounds_budget(profile: AgentProfile) -> int:
+    """How many model calls one attempt may make.
+
+    A single-call harness needs exactly one; a tool loop needs at least three
+    (ask, feed results back, reply), so hardcoding 1 meant a tool-using attempt
+    could never finish through the executor -- it always hit rounds_exhausted
+    on the round that fed the results back. The ceiling is declared per profile
+    in `harness.config.max_rounds`, the same place output_schema and
+    sampling_controls are declared, and defaults to 1 so an undeclared profile
+    keeps exactly today's single-call behaviour.
+    """
+
+    declared = profile.harness.config.get("max_rounds")
+    if declared is None:
+        return 1
+    if not isinstance(declared, int) or isinstance(declared, bool) or declared < 1:
+        raise EvidenceIntegrityError(
+            f"harness.config.max_rounds must be a positive integer, got {declared!r}"
+        )
+    return declared
 
 
 def _sampling_value(profile: AgentProfile, control: str) -> float | None:
@@ -914,6 +944,7 @@ class AttemptExecutor(MinimalChatExecutor):
         self._harnesses = dict(harnesses)
         self._tool_runtimes = dict(tool_runtimes) if tool_runtimes else {}
         self._pending_actions: dict[str, Mapping[str, Any] | None] = {}
+        self._pending_tool_ids: dict[str, tuple[str, ...]] = {}
         super().__init__(
             evidence=evidence,
             profiles=profiles,
@@ -1003,7 +1034,7 @@ class AttemptExecutor(MinimalChatExecutor):
             attempt_id=action_attempt_id,
             seed=profile.sampling.seed or 0,
             budget=BudgetView(
-                rounds_left=1,
+                rounds_left=_rounds_budget(profile),
                 tokens_left=profile.sampling.max_output_tokens,
                 cost_left=profile.budgets.max_cost_usd,
             ),
@@ -1058,10 +1089,16 @@ class AttemptExecutor(MinimalChatExecutor):
         self._pending_actions[action_attempt_id] = (
             output.action if output is not None else None
         )
+        self._pending_tool_ids[action_attempt_id] = (
+            tuple(tools_port.invocation_ids) if tools_port is not None else ()
+        )
         return result
 
     def _harness_action(self, action_attempt_id: str) -> Mapping[str, Any] | None:
         return self._pending_actions.get(action_attempt_id)
+
+    def _harness_tool_invocation_ids(self, action_attempt_id: str) -> tuple[str, ...]:
+        return self._pending_tool_ids.get(action_attempt_id, ())
 
 
 __all__ = [
