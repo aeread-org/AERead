@@ -1763,6 +1763,7 @@ class MinimalChatExecutor:
         request: ProviderRequest,
         profile: AgentProfile,
         decision: DecisionRequest,
+        action_attempt_id: str,
     ) -> ProviderResult:
         """Obtain one provider result for this attempt.
 
@@ -1917,6 +1918,7 @@ class MinimalChatExecutor:
                     request=request,
                     profile=profile,
                     decision=decision,
+                    action_attempt_id=action_attempt_id,
                 )
             except asyncio.TimeoutError as error:
                 failure = ProviderFailure("timeout", str(error), retryable=True)

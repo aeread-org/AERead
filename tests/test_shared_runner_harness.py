@@ -19,6 +19,8 @@ from aeread.shared_runner.execution import (
     _sha256_bytes,
 )
 from aeread.shared_runner.harness import (
+    ClaimedToolCall,
+    HarnessOutput,
     NativeToolCall,
     CanonicalMessage,
     KernelModelPort,
@@ -959,3 +961,122 @@ def test_the_sealed_request_is_the_request_actually_sent(tmp_path) -> None:
         "the sealed request hash must equal the hash of what was sent"
     )
     assert recorded["input_text"] == sent.input_text
+
+
+
+def _executor_with(harness, provider, tmp_path, name):
+    """An AttemptExecutor wired to one harness, sharing the executor fixtures."""
+
+    from aeread.shared_runner.harness import AttemptExecutor
+
+    decision = _executor_decision()
+    evidence = EvidenceStore(
+        tmp_path / name,
+        run_plan_id="runplan_harness_fixture",
+        cell_id=decision.cell_id,
+        episode_id=decision.episode_id,
+        episode_attempt_id="episode_attempt_harness_fixture",
+    )
+    profile = _executor_profile()
+    executor = AttemptExecutor(
+        evidence=evidence,
+        profiles=[profile],
+        prompt_sources={profile.prompt.prompt_id: _executor_prompt()},
+        providers={profile.model.provider: provider},
+        pricing={profile.model.model: FAKE_PRICING},
+        harnesses={"minimal_chat/1.0": harness},
+    )
+    return executor, decision, evidence
+
+
+def test_a_harness_that_never_returns_is_bounded_by_the_profile_timeout(tmp_path) -> None:
+    """A hung provider or a runaway loop must not block the episode forever.
+
+    The base executor bounds its single provider call with asyncio.wait_for.
+    A harness owns a loop, so overriding that hook dropped the bound entirely:
+    timeout_seconds became a field nobody enforced.
+    """
+
+    from aeread.shared_runner.harness import MinimalChatHarness
+
+    class HangingHarness(MinimalChatHarness):
+        async def act(self, request, ctx):
+            await asyncio.sleep(30)
+
+    provider = ScriptedProvider([_result(text="never reached")])
+    executor, decision, _ = _executor_with(
+        HangingHarness(), provider, tmp_path, "timeout_evidence"
+    )
+
+    with pytest.raises(ProviderFailure) as captured:
+        asyncio.run(executor(decision))
+    assert captured.value.condition == "timeout"
+
+
+def test_a_harness_claim_that_disagrees_with_the_kernel_is_recorded(tmp_path) -> None:
+    """A harness's claim is reconciled against what the kernel recorded.
+
+    The kernel's count is the truth. A divergence is written as evidence
+    rather than raised: a buggy harness must not be able to abort an episode,
+    but it must not pass unnoticed either.
+    """
+
+    from aeread.shared_runner.harness import MinimalChatHarness
+
+    class LyingHarness(MinimalChatHarness):
+        async def act(self, request, ctx):
+            output = await super().act(request, ctx)
+            return HarnessOutput(
+                action=output.action,
+                claimed_tool_calls=(
+                    ClaimedToolCall(
+                        tool_id="get_balance",
+                        source_provider_call_id="call_ghost",
+                        source_call_index=0,
+                    ),
+                ),
+                rounds_used=output.rounds_used,
+                notes=output.notes,
+            )
+
+    provider = ScriptedProvider([_result(text="an offer")])
+    executor, decision, evidence = _executor_with(
+        LyingHarness(), provider, tmp_path, "claim_evidence"
+    )
+
+    asyncio.run(executor(decision))
+
+    kinds = [
+        json.loads(line)["event_type"]
+        for line in evidence.events_path.read_text().splitlines()
+    ]
+    assert "harness_claim_unreconciled" in kinds
+
+
+def test_the_context_carries_the_action_attempt_id_not_a_provider_call_id(
+    tmp_path,
+) -> None:
+    """§5.2: AttemptContext.attempt_id identifies the attempt.
+
+    It previously carried the provider_call_id, so every id a harness derived
+    from it -- and every tool invocation id minted from it -- was scoped to one
+    provider call rather than to the attempt.
+    """
+
+    from aeread.shared_runner.harness import MinimalChatHarness
+
+    seen = {}
+
+    class RecordingHarness(MinimalChatHarness):
+        async def act(self, request, ctx):
+            seen["attempt_id"] = ctx.attempt_id
+            return await super().act(request, ctx)
+
+    provider = ScriptedProvider([_result(text="an offer")])
+    executor, decision, _ = _executor_with(
+        RecordingHarness(), provider, tmp_path, "attempt_id_evidence"
+    )
+    asyncio.run(executor(decision))
+
+    assert seen["attempt_id"].startswith("action_attempt")
+    assert not seen["attempt_id"].startswith("provider_call")

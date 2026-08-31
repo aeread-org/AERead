@@ -15,6 +15,8 @@ losing the effect's own exception.
 """
 from __future__ import annotations
 
+import asyncio
+
 from dataclasses import dataclass
 from typing import Any, Callable, Literal, Mapping, Protocol
 
@@ -244,6 +246,12 @@ class KernelModelPort:
         self._emit_events = emit_events
         self._sealed_request = sealed_request
         self._round = 0
+        self.tool_calls_dispatched = 0
+        """How many tool calls this port actually returned to the harness.
+
+        The kernel's own count, used to reconcile the harness's claim: the
+        harness reports what it believes it did, the kernel knows what it
+        recorded, and a divergence is evidence rather than an exception."""
         self.last_result: ProviderResult | None = None
 
     async def complete(
@@ -366,6 +374,7 @@ class KernelModelPort:
                 "calls; a model turn must be one or the other",
                 retryable=False,
             )
+        self.tool_calls_dispatched += len(tool_calls)
         return ModelTurn(
             text=result.output_text if text else None,
             tool_calls=tool_calls,
@@ -659,6 +668,7 @@ class AttemptExecutor(MinimalChatExecutor):
         request: ProviderRequest,
         profile: AgentProfile,
         decision: Any,
+        action_attempt_id: str,
     ) -> ProviderResult:
         """Drive the registered harness through a brokered `ModelPort`.
 
@@ -679,7 +689,7 @@ class AttemptExecutor(MinimalChatExecutor):
             sealed_request=request,
         )
         context = _KernelAttemptContext(
-            attempt_id=request.provider_call_id,
+            attempt_id=action_attempt_id,
             seed=profile.sampling.seed or 0,
             budget=BudgetView(
                 rounds_left=1,
@@ -690,13 +700,45 @@ class AttemptExecutor(MinimalChatExecutor):
             tools=None,
             evidence=self.evidence,
         )
-        await harness.act(decision, context)
+        try:
+            output = await asyncio.wait_for(
+                harness.act(decision, context),
+                timeout=profile.budgets.timeout_seconds,
+            )
+        except asyncio.TimeoutError as error:
+            # The base executor bounds its single provider call this way; a
+            # harness owns a loop, so the bound belongs around the whole act().
+            # Without it a hung provider -- or a harness that never stops
+            # looping -- blocks the episode forever.
+            raise ProviderFailure(
+                "timeout",
+                f"harness {self._harness_key(profile)!r} exceeded "
+                f"{profile.budgets.timeout_seconds}s",
+                retryable=True,
+            ) from error
+
         result = port.last_result
         if result is None:
             raise ProviderFailure(
                 "harness_contract",
                 f"harness {self._harness_key(profile)!r} returned without a model call",
                 retryable=False,
+            )
+
+        # Reconcile the harness's claim against what the kernel actually
+        # recorded.  The kernel's count is the truth; a mismatch is recorded,
+        # never raised, because a lying or buggy harness must not be able to
+        # abort an episode -- but it must not pass unnoticed either.
+        claimed = len(output.claimed_tool_calls) if output is not None else 0
+        if claimed != port.tool_calls_dispatched:
+            self.evidence.append_event(
+                "harness_claim_unreconciled",
+                {
+                    "harness": self._harness_key(profile),
+                    "claimed_tool_calls": claimed,
+                    "recorded_tool_calls": port.tool_calls_dispatched,
+                },
+                action_attempt_id=request.provider_call_id,
             )
         return result
 
