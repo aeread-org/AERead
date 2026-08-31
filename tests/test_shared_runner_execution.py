@@ -1490,3 +1490,44 @@ def test_native_request_fields_bind_the_request_hash() -> None:
     assert budgeted.request_sha256 != legacy.request_sha256
     # A text-only request is unaffected by the new fields.
     assert legacy.request_sha256 == _request().request_sha256
+
+
+
+def test_protocol_records_serialize_their_full_current_shape() -> None:
+    """The canonical serializer emits every field, including new ones set to None.
+
+    Consequence, recorded deliberately rather than papered over: a
+    ProviderResult persisted before the native fields existed hashes
+    differently if re-serialized now, because the bytes gain "tool_calls":null
+    and the two reasoning counters. Nothing in the runner re-serializes a
+    persisted record -- artifacts are written once and read back as bytes -- so
+    no stored evidence is invalidated today.
+
+    Suppressing None globally would change the hash of every record in the
+    system, which is a larger break than the one it fixes. The real answer is a
+    versioned canonical encoding with golden byte vectors (the canonical-JSON
+    spec task); this test pins the CURRENT shape so that work starts from a
+    measured baseline and any accidental drift fails here first.
+    """
+
+    from aeread.shared_runner.resolver import canonical_json_bytes
+
+    result = ProviderResult(
+        response_id="response_fixture",
+        requested_model="fake-model",
+        resolved_model="fake-model-v1",
+        output_text="hello",
+        finish_reason="stop",
+        input_tokens=20,
+        cached_input_tokens=0,
+        output_tokens=5,
+        cost_usd=None,
+        raw_response={"output_text": "hello"},
+    )
+    payload = canonical_json_bytes(result).decode("utf-8")
+
+    for field in ("tool_calls", "reasoning_tokens", "visible_output_tokens"):
+        assert f'"{field}":null' in payload, (
+            f"{field} must serialize explicitly; if this changes, the canonical "
+            "encoding has been versioned and the golden vectors must be updated"
+        )
