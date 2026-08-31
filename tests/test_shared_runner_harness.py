@@ -910,3 +910,52 @@ def test_model_port_refuses_a_turn_carrying_both_text_and_tool_calls(tmp_path) -
         )
     assert captured.value.condition == "provider_contract"
     assert captured.value.retryable is False
+
+
+
+def test_the_sealed_request_is_the_request_actually_sent(tmp_path) -> None:
+    """Evidence must record the bytes that were sent, not a second request.
+
+    The executor seals a ProviderRequest and emits provider_call_started for
+    it, then hands control to the harness through the port. When the port built
+    its own request instead of reusing the sealed one, the provider received
+    bytes no event ever recorded: replay would faithfully replay a call that
+    never happened, and the mismatch would be invisible because both requests
+    look well-formed.
+    """
+
+    from aeread.shared_runner.harness import AttemptExecutor, default_harnesses
+
+    decision = _executor_decision()
+    evidence = EvidenceStore(
+        tmp_path / "sealed_request",
+        run_plan_id="runplan_harness_fixture",
+        cell_id=decision.cell_id,
+        episode_id=decision.episode_id,
+        episode_attempt_id="episode_attempt_harness_fixture",
+    )
+    profile = _executor_profile()
+    provider = ScriptedProvider([_result(text="an offer", finish_reason="stop")])
+    executor = AttemptExecutor(
+        evidence=evidence,
+        profiles=[profile],
+        prompt_sources={profile.prompt.prompt_id: _executor_prompt()},
+        providers={profile.model.provider: provider},
+        pricing={profile.model.model: FAKE_PRICING},
+        harnesses=default_harnesses(),
+    )
+
+    asyncio.run(executor(decision))
+
+    sent = provider.requests[-1]
+    events = [json.loads(line) for line in evidence.events_path.read_text().splitlines()]
+    started = [e for e in events if e["event_type"] == "provider_call_started"]
+    assert len(started) == 1, "exactly one provider call must be recorded"
+
+    payload = json.loads((evidence.root / started[0]["payload_ref"]).read_bytes())
+    recorded = payload["request"]
+    assert recorded["provider_call_id"] == sent.provider_call_id
+    assert recorded["request_sha256"] == sent.request_sha256, (
+        "the sealed request hash must equal the hash of what was sent"
+    )
+    assert recorded["input_text"] == sent.input_text

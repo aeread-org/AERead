@@ -227,6 +227,7 @@ class KernelModelPort:
         instructions: str,
         action_attempt_id: str,
         emit_events: bool = True,
+        sealed_request: ProviderRequest | None = None,
         phase_instance_id: str | None = None,
         logical_action_id: str | None = None,
         visibility: str = "evaluator_only",
@@ -241,6 +242,7 @@ class KernelModelPort:
         self._logical_action_id = logical_action_id
         self._visibility = visibility
         self._emit_events = emit_events
+        self._sealed_request = sealed_request
         self._round = 0
         self.last_result: ProviderResult | None = None
 
@@ -261,34 +263,43 @@ class KernelModelPort:
 
         round_ordinal = self._round
         self._round += 1
-        provider_call_id = _stable_id(
-            "provider_call",
-            {"action_attempt_id": self._action_attempt_id, "round": round_ordinal},
-        )
-        input_text = canonical_json_bytes(
-            {"messages": messages, "tools": tools, "response_mode": response_mode}
-        ).decode("utf-8")
-        request = ProviderRequest(
-            provider_call_id=provider_call_id,
-            provider=self._profile.model.provider,
-            base_url=self._profile.model.base_url,
-            model=self._profile.model.model,
-            revision=self._profile.model.revision,
-            instructions=self._instructions,
-            input_text=input_text,
-            temperature=_sampling_value(self._profile, "temperature"),
-            top_p=_sampling_value(self._profile, "top_p"),
-            max_output_tokens=effective_max_output_tokens,
-            reasoning_effort=self._profile.reasoning.effort,
-            timeout_seconds=self._profile.budgets.timeout_seconds,
-            request_sha256="",
-            max_cost_usd=self._profile.budgets.max_cost_usd,
-            output_schema=self._profile.harness.config.get("output_schema"),
-            provider_metadata=self._profile.harness.config.get("provider_metadata"),
-            seed=self._profile.sampling.seed,
-            messages=messages if response_mode == "native_tools" else None,
-            tools=tools if response_mode == "native_tools" and tools else None,
-        ).with_computed_hash()
+
+        if self._sealed_request is not None and round_ordinal == 0:
+            # The executor already sealed this request and emitted
+            # provider_call_started for it.  Building a second one here would
+            # send bytes the evidence never recorded, so replay would replay a
+            # call that was never made.  Reuse the sealed request verbatim.
+            request = self._sealed_request
+            provider_call_id = request.provider_call_id
+        else:
+            provider_call_id = _stable_id(
+                "provider_call",
+                {"action_attempt_id": self._action_attempt_id, "round": round_ordinal},
+            )
+            input_text = canonical_json_bytes(
+                {"messages": messages, "tools": tools, "response_mode": response_mode}
+            ).decode("utf-8")
+            request = ProviderRequest(
+                provider_call_id=provider_call_id,
+                provider=self._profile.model.provider,
+                base_url=self._profile.model.base_url,
+                model=self._profile.model.model,
+                revision=self._profile.model.revision,
+                instructions=self._instructions,
+                input_text=input_text,
+                temperature=_sampling_value(self._profile, "temperature"),
+                top_p=_sampling_value(self._profile, "top_p"),
+                max_output_tokens=effective_max_output_tokens,
+                reasoning_effort=self._profile.reasoning.effort,
+                timeout_seconds=self._profile.budgets.timeout_seconds,
+                request_sha256="",
+                max_cost_usd=self._profile.budgets.max_cost_usd,
+                output_schema=self._profile.harness.config.get("output_schema"),
+                provider_metadata=self._profile.harness.config.get("provider_metadata"),
+                seed=self._profile.sampling.seed,
+                messages=messages if response_mode == "native_tools" else None,
+                tools=tools if response_mode == "native_tools" and tools else None,
+            ).with_computed_hash()
 
         if self._emit_events:
             self._evidence.append_event(
@@ -665,6 +676,7 @@ class AttemptExecutor(MinimalChatExecutor):
             instructions=self._prompt_text[profile.profile_id],
             action_attempt_id=request.provider_call_id,
             emit_events=False,
+            sealed_request=request,
         )
         context = _KernelAttemptContext(
             attempt_id=request.provider_call_id,
