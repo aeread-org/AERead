@@ -1,5 +1,15 @@
 """AERead shared-runner contracts and implementation stages."""
 
+from .campaign import (
+    CAMPAIGN_GATE_SEQUENCE,
+    CampaignGateError,
+    CampaignGateRecord,
+    CampaignPromotionDecision,
+    append_campaign_gate,
+    campaign_gate_record_sha256,
+    campaign_promotion_decision,
+)
+
 from .execution import (
     ActionAttemptRecord,
     ArtifactRef,
@@ -80,14 +90,18 @@ from .receipts import (
 )
 from .research import (
     AttemptResearchRow,
+    BenchmarkResultFactRecord,
     CampaignResearchRow,
+    CanonicalFactTables,
     CellResearchRow,
     DesignAudit,
     DesignIssue,
     DesignObservation,
     EventResearchRow,
     LossAnalysisTables,
+    ModelFeatureFactRecord,
     ModelCallRecord,
+    ProfileFactRecord,
     ResearchContractError,
     ResearchLedger,
     RunRecord,
@@ -98,7 +112,9 @@ from .research import (
     build_trajectory_record,
     build_research_ledger,
     export_loss_analysis_dataset,
+    export_canonical_fact_tables,
     project_evidence_events,
+    project_canonical_fact_tables,
     project_loss_analysis_tables,
     research_tables,
 )
@@ -146,6 +162,10 @@ from .schemas import (
 from .tools import ToolBinding, ToolContractError, ToolDefinition, ToolRuntime
 
 __all__ = [
+    "CAMPAIGN_GATE_SEQUENCE",
+    "CampaignGateError",
+    "CampaignGateRecord",
+    "CampaignPromotionDecision",
     "AgentProfile",
     "ActionEnvelope",
     "ActionAttemptRecord",
@@ -254,21 +274,30 @@ __all__ = [
     "verify_serialized_evaluation_receipt",
     "write_evaluation_receipt",
     "write_run_plan",
+    "append_campaign_gate",
+    "campaign_gate_record_sha256",
+    "campaign_promotion_decision",
     "AttemptResearchRow",
+    "BenchmarkResultFactRecord",
     "CampaignResearchRow",
+    "CanonicalFactTables",
     "CellResearchRow",
     "DesignAudit",
     "DesignIssue",
     "DesignObservation",
     "EventResearchRow",
     "LossAnalysisTables",
+    "ModelFeatureFactRecord",
     "ModelCallRecord",
+    "ProfileFactRecord",
     "ResearchContractError",
     "ResearchLedger",
     "RunRecord",
     "TaskRecord",
     "TrajectoryRecord",
     "TrajectoryStep",
+    "export_canonical_fact_tables",
+    "project_canonical_fact_tables",
     "audit_experimental_design",
     "build_trajectory_record",
     "build_research_ledger",

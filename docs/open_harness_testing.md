@@ -8,6 +8,11 @@ model route, prompt, action schema, inference seed, budgets, and retry policy
 fixed. It produces a separate leaderboard for each case family. It does not
 combine unlike family scores into a universal scalar.
 
+All campaigns follow the machine-checkable
+[experiment campaign SOP](experiment_campaign_sop.md). This page supplies the
+harness-specific treatment and readiness rules; the SOP owns promotion,
+confirmatory freeze, and canonical fact-table reporting.
+
 To measure opponent-model, opponent-policy, seat-composition, cross-play, or
 self-play effects while holding the harness fixed, use the separate
 [multi-agent model interaction protocol](multiagent_experiment_design.md).
@@ -161,7 +166,7 @@ measure them as a separate harness condition.
 
 ### 5. Use staged gates
 
-Run these gates in order:
+Map this family qualification into the shared campaign gates and run in order:
 
 1. provider-free scripted execution and replay;
 2. three single-action calls per harness to validate serialization and schema;

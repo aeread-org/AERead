@@ -10,7 +10,8 @@
 [![Site](https://img.shields.io/badge/results-aeread.org-black.svg)](https://aeread.org)
 
 **Start here:** [5-minute quickstart](docs/quickstart.md) ·
-[Concepts](docs/concepts.md) · [Submit an agent](docs/submissions.md) ·
+[Concepts](docs/concepts.md) · [Experiment SOP](docs/experiment_campaign_sop.md) ·
+[Submit an agent](docs/submissions.md) ·
 [Integrations (rLLM, EverOS, yours)](integrations/README.md) ·
 [Contribute](CONTRIBUTING.md)
 

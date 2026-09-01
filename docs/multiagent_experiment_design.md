@@ -14,6 +14,10 @@ Every live model still executes through a declared harness. “Without a harness
 experiment” therefore means **without harness identity as an experimental
 factor**, not execution without a harness or evidence boundary.
 
+Use the shared [experiment campaign SOP](experiment_campaign_sop.md) for ordered
+promotion and fact-table publication. This document defines the multi-agent
+treatment, opponent, and attribution choices within that common sequence.
+
 ## 1. Questions this design can answer
 
 The experiment must declare one bounded construct before any live call:

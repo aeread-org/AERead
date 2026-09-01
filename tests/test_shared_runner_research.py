@@ -31,6 +31,7 @@ from aeread.shared_runner import (
     episode_id_for_cell,
     export_loss_analysis_dataset,
     project_evidence_events,
+    project_canonical_fact_tables,
     project_loss_analysis_tables,
     research_tables,
     resolve_run_plan,
@@ -573,6 +574,32 @@ def test_loss_analysis_counts_completed_benchmark_failure(tmp_path) -> None:
     evidence.close()
 
 
+def test_canonical_fact_projection_qualifies_features_and_results(tmp_path) -> None:
+    plan = _housing_plan()
+    evidence = _loss_evidence(plan, tmp_path)
+    receipt = _receipt_for_evidence(plan, evidence)
+
+    facts = project_canonical_fact_tables(plan, (receipt,))
+
+    assert len(facts.profiles) == len(plan.agent_profiles)
+    assert {row.profile_id for row in facts.profiles} == {
+        profile.profile_id for profile in plan.agent_profiles
+    }
+    assert facts.model_features
+    assert {row.evidence_class for row in facts.model_features} == {
+        "admission_derived"
+    }
+    assert all(row.source_kind == "profile_admission" for row in facts.model_features)
+    assert all(row.reportable for row in facts.model_features)
+    assert {row.metric_role for row in facts.benchmark_results} == {
+        "primary",
+        "metric",
+    }
+    assert all(row.reportable for row in facts.benchmark_results)
+    assert all(row.source_sha256 == receipt.receipt_sha256 for row in facts.benchmark_results)
+    evidence.close()
+
+
 def test_loss_analysis_preserves_unknown_call_telemetry_as_null(tmp_path) -> None:
     plan = _plan()
     cell = plan.cells[0]
@@ -659,9 +686,13 @@ def test_loss_analysis_export_writes_relational_and_trajectory_files(tmp_path) -
     )
 
     assert set(paths) == {
+        "benchmark_results",
         "runs",
         "tasks",
         "model_calls",
+        "model_features",
+        "profiles",
+        "fact_manifest",
         "trajectory_index",
         "trajectory_archive",
         "data_dictionary",
@@ -673,9 +704,18 @@ def test_loss_analysis_export_writes_relational_and_trajectory_files(tmp_path) -
         task_rows = list(csv.DictReader(handle))
     with paths["model_calls"].open(newline="") as handle:
         call_rows = list(csv.DictReader(handle))
+    with paths["model_features"].open(newline="") as handle:
+        feature_rows = list(csv.DictReader(handle))
+    with paths["benchmark_results"].open(newline="") as handle:
+        result_rows = list(csv.DictReader(handle))
     assert len(run_rows) == 1
     assert len(task_rows) == len(plan.cells)
     assert len(call_rows) == 2
+    assert feature_rows
+    assert {row["evidence_class"] for row in feature_rows} == {
+        "admission_derived"
+    }
+    assert {row["reportable"] for row in result_rows} == {"true"}
     assert sum(int(row["call_count"]) for row in task_rows) == int(run_rows[0]["call_count"])
     assert sum(int(row["prompt_tokens"] or 0) for row in task_rows) == int(
         run_rows[0]["prompt_tokens"]
@@ -688,6 +728,13 @@ def test_loss_analysis_export_writes_relational_and_trajectory_files(tmp_path) -
     archive_rows = [json.loads(line) for line in paths["trajectory_archive"].read_text().splitlines()]
     assert archive_rows == [selected_payload]
     assert "Outcome-unknown calls" in paths["data_dictionary"].read_text()
+    manifest = json.loads(paths["fact_manifest"].read_text())
+    manifest_sha256 = manifest.pop("manifest_sha256")
+    assert hashlib.sha256(canonical_json_bytes(manifest)).hexdigest() == manifest_sha256
+    for table_name in ("profiles", "model_features", "benchmark_results"):
+        assert hashlib.sha256(paths[table_name].read_bytes()).hexdigest() == (
+            manifest["tables"][table_name]["sha256"]
+        )
     # Exact reruns are idempotent; a different export is never overwritten.
     assert export_loss_analysis_dataset(
         plan, (receipt,), {receipt.episode_attempt_id: evidence}, output

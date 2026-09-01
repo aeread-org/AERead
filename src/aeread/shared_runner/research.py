@@ -853,6 +853,345 @@ class LossAnalysisTables:
     model_calls: tuple[ModelCallRecord, ...]
 
 
+@dataclass(frozen=True, slots=True)
+class ProfileFactRecord:
+    """One sealed execution profile, flattened for reuse and comparison."""
+
+    run_id: str
+    run_plan_sha256: str
+    profile_id: str
+    profile_sha256: str
+    admission_id: str
+    admitted: bool
+    provider: str
+    requested_model: str
+    model_revision: str | None
+    model_base_url: str | None
+    harness_id: str
+    harness_version: str
+    harness_config: Mapping[str, Any]
+    prompt_id: str
+    prompt_sha256: str
+    runtime_kind: str
+    runtime_implementation: str
+    runtime_version: str
+    tools: tuple[str, ...]
+    memory_mode: str
+    memory_implementation: str | None
+    reasoning_condition_id: str
+    reasoning_effort: str | None
+    reasoning_token_budget: int | None
+    rationale_visibility: str
+    temperature: float
+    top_p: float | None
+    seed: int | None
+    max_output_tokens: int
+    max_logical_actions: int
+    timeout_seconds: float
+    max_cost_usd: float | None
+    max_action_attempts: int
+    retryable_conditions: tuple[str, ...]
+    retry_session_mode: str
+    sdk_retries: int
+
+
+@dataclass(frozen=True, slots=True)
+class ModelFeatureFactRecord:
+    """One long-form, provenance-qualified model/profile feature fact."""
+
+    fact_id: str
+    run_id: str
+    profile_id: str
+    profile_sha256: str
+    provider: str
+    requested_model: str
+    model_revision: str | None
+    harness_id: str
+    feature_name: str
+    feature_value: bool
+    evidence_class: str
+    source_kind: str
+    source_id: str
+    source_sha256: str
+    reportable: bool
+
+
+@dataclass(frozen=True, slots=True)
+class BenchmarkResultFactRecord:
+    """One typed metric from one verified evaluation-receipt attempt."""
+
+    fact_id: str
+    run_id: str
+    task_id: str
+    case_id: str
+    family_id: str
+    block_id: str
+    episode_attempt_id: str
+    receipt_sha256: str
+    inclusion_status: str
+    leaf_id: str
+    leaf_version: str
+    estimand_id: str
+    estimand_version: str
+    metric_role: str
+    metric_name: str
+    seat_id: str | None
+    value: float | None
+    unit: str | None
+    metric_metadata: Mapping[str, Any]
+    score_status: str
+    validity_status: str
+    validity_reasons: tuple[str, ...]
+    evidence_refs: tuple[str, ...]
+    source_kind: str
+    source_id: str
+    source_sha256: str
+    reportable: bool
+
+
+@dataclass(frozen=True, slots=True)
+class CanonicalFactTables:
+    """Digest-ready fact projections; sealed inputs remain authoritative."""
+
+    profiles: tuple[ProfileFactRecord, ...]
+    model_features: tuple[ModelFeatureFactRecord, ...]
+    benchmark_results: tuple[BenchmarkResultFactRecord, ...]
+
+
+def _fact_id(prefix: str, payload: Mapping[str, Any]) -> str:
+    return f"{prefix}_" + hashlib.sha256(canonical_json_bytes(payload)).hexdigest()[:24]
+
+
+def _profile_fact(
+    plan: RunPlan,
+    profile: AgentProfile,
+    admission: ProfileAdmission,
+) -> ProfileFactRecord:
+    profile_sha256 = hashlib.sha256(canonical_json_bytes(profile)).hexdigest()
+    return ProfileFactRecord(
+        run_id=plan.run_plan_id,
+        run_plan_sha256=plan.plan_sha256,
+        profile_id=profile.profile_id,
+        profile_sha256=profile_sha256,
+        admission_id=admission.admission_id,
+        admitted=admission.admitted,
+        provider=profile.model.provider,
+        requested_model=profile.model.model,
+        model_revision=profile.model.revision,
+        model_base_url=profile.model.base_url,
+        harness_id=profile.harness.id,
+        harness_version=profile.harness.version,
+        harness_config=profile.harness.config,
+        prompt_id=profile.prompt.prompt_id,
+        prompt_sha256=profile.prompt.sha256,
+        runtime_kind=profile.runtime.kind,
+        runtime_implementation=profile.runtime.implementation,
+        runtime_version=profile.runtime.version,
+        tools=profile.tools,
+        memory_mode=profile.memory.mode,
+        memory_implementation=profile.memory.implementation,
+        reasoning_condition_id=profile.reasoning.condition_id,
+        reasoning_effort=profile.reasoning.effort,
+        reasoning_token_budget=profile.reasoning.token_budget,
+        rationale_visibility=profile.reasoning.rationale_visibility,
+        temperature=profile.sampling.temperature,
+        top_p=profile.sampling.top_p,
+        seed=profile.sampling.seed,
+        max_output_tokens=profile.sampling.max_output_tokens,
+        max_logical_actions=profile.budgets.max_logical_actions,
+        timeout_seconds=profile.budgets.timeout_seconds,
+        max_cost_usd=profile.budgets.max_cost_usd,
+        max_action_attempts=profile.retry_policy.max_action_attempts,
+        retryable_conditions=profile.retry_policy.retryable_conditions,
+        retry_session_mode=profile.retry_policy.session_mode,
+        sdk_retries=profile.retry_policy.sdk_retries,
+    )
+
+
+def _model_feature_facts(
+    plan: RunPlan,
+    profile: AgentProfile,
+    admission: ProfileAdmission,
+) -> tuple[ModelFeatureFactRecord, ...]:
+    profile_sha256 = hashlib.sha256(canonical_json_bytes(profile)).hexdigest()
+    rows: list[ModelFeatureFactRecord] = []
+    for feature_name, feature_value in sorted(admission.capability_vector.items()):
+        identity = {
+            "admission_id": admission.admission_id,
+            "feature_name": feature_name,
+            "feature_value": feature_value,
+        }
+        rows.append(
+            ModelFeatureFactRecord(
+                fact_id=_fact_id("feature", identity),
+                run_id=plan.run_plan_id,
+                profile_id=profile.profile_id,
+                profile_sha256=profile_sha256,
+                provider=profile.model.provider,
+                requested_model=profile.model.model,
+                model_revision=profile.model.revision,
+                harness_id=profile.harness.id,
+                feature_name=feature_name,
+                feature_value=feature_value,
+                evidence_class="admission_derived",
+                source_kind="profile_admission",
+                source_id=admission.admission_id,
+                source_sha256=plan.plan_sha256,
+                reportable=admission.admitted,
+            )
+        )
+    return tuple(rows)
+
+
+def _result_fact(
+    receipt: EvaluationReceipt,
+    *,
+    family_id: str,
+    score: ScoreEnvelope,
+    metric_role: str,
+    metric_name: str,
+    metric: MetricValue | None,
+    seat_id: str | None,
+) -> BenchmarkResultFactRecord:
+    assert receipt.receipt_sha256 is not None
+    identity = {
+        "receipt_sha256": receipt.receipt_sha256,
+        "leaf_id": score.leaf.leaf_id,
+        "metric_role": metric_role,
+        "metric_name": metric_name,
+        "seat_id": seat_id,
+    }
+    return BenchmarkResultFactRecord(
+        fact_id=_fact_id("result", identity),
+        run_id=receipt.run_plan_id,
+        task_id=receipt.cell_id,
+        case_id=receipt.case_id,
+        family_id=family_id,
+        block_id=receipt.block_id,
+        episode_attempt_id=receipt.episode_attempt_id,
+        receipt_sha256=receipt.receipt_sha256,
+        inclusion_status=receipt.inclusion_status,
+        leaf_id=score.leaf.leaf_id,
+        leaf_version=score.leaf.leaf_version,
+        estimand_id=score.leaf.estimand.estimand_id,
+        estimand_version=score.leaf.estimand.estimand_version,
+        metric_role=metric_role,
+        metric_name=metric_name,
+        seat_id=seat_id,
+        value=None if metric is None else metric.value,
+        unit=None if metric is None else metric.unit,
+        metric_metadata=MappingProxyType(
+            {} if metric is None else dict(metric.metadata)
+        ),
+        score_status=score.status,
+        validity_status=score.validity.status,
+        validity_reasons=score.validity.reasons,
+        evidence_refs=score.evidence_refs,
+        source_kind="evaluation_receipt",
+        source_id=receipt.episode_attempt_id,
+        source_sha256=receipt.receipt_sha256,
+        reportable=(
+            receipt.inclusion_status == "included"
+            and score.status == "ok"
+            and score.validity.status == "valid"
+        ),
+    )
+
+
+def _benchmark_result_facts(
+    receipt: EvaluationReceipt,
+    family_id: str,
+) -> tuple[BenchmarkResultFactRecord, ...]:
+    rows: list[BenchmarkResultFactRecord] = []
+    for score in sorted(receipt.scores, key=lambda item: item.leaf.leaf_id):
+        score_row_count = len(rows)
+        if score.primary is not None:
+            rows.append(
+                _result_fact(
+                    receipt,
+                    family_id=family_id,
+                    score=score,
+                    metric_role="primary",
+                    metric_name=score.leaf.estimand.estimand_id,
+                    metric=score.primary,
+                    seat_id=None,
+                )
+            )
+        for role, values in (
+            ("metric", score.metrics),
+            ("reference", score.reference_values),
+            ("utility", score.utility_by_seat),
+            ("capture", score.capture_by_seat),
+        ):
+            for name, metric in sorted(values.items()):
+                rows.append(
+                    _result_fact(
+                        receipt,
+                        family_id=family_id,
+                        score=score,
+                        metric_role=role,
+                        metric_name=name,
+                        metric=metric,
+                        seat_id=name if role in {"utility", "capture"} else None,
+                    )
+                )
+        if len(rows) == score_row_count:
+            rows.append(
+                _result_fact(
+                    receipt,
+                    family_id=family_id,
+                    score=score,
+                    metric_role="status",
+                    metric_name="invalid_measurement",
+                    metric=None,
+                    seat_id=None,
+                )
+            )
+    return tuple(rows)
+
+
+def project_canonical_fact_tables(
+    plan: RunPlan,
+    receipts: Sequence[EvaluationReceipt],
+) -> CanonicalFactTables:
+    """Project reusable, long-form facts from verified plans and receipts.
+
+    Profile feature rows are explicitly admission-derived. They must not be
+    interpreted as observations from a live provider call.
+    """
+
+    receipt_values = tuple(receipts)
+    build_research_ledger(plan, receipt_values)
+    admissions = {item.profile_id: item for item in plan.profile_admissions}
+    profiles = {item.profile_id: item for item in plan.agent_profiles}
+    if set(admissions) != set(profiles):
+        raise ResearchContractError(
+            "canonical profile facts require exactly one admission per profile"
+        )
+    profile_rows = tuple(
+        _profile_fact(plan, profiles[profile_id], admissions[profile_id])
+        for profile_id in sorted(profiles)
+    )
+    feature_rows = tuple(
+        row
+        for profile_id in sorted(profiles)
+        for row in _model_feature_facts(
+            plan, profiles[profile_id], admissions[profile_id]
+        )
+    )
+    family_by_cell = {cell.cell_id: cell.family_id for cell in plan.cells}
+    result_rows = tuple(
+        row
+        for receipt in sorted(
+            receipt_values, key=lambda item: (item.cell_id, item.episode_attempt_id)
+        )
+        for row in _benchmark_result_facts(
+            receipt, family_by_cell[receipt.cell_id]
+        )
+    )
+    return CanonicalFactTables(profile_rows, feature_rows, result_rows)
+
+
 def _seat_from_event(event: Event, payload: Any) -> str | None:
     if event.visibility.startswith("seat:"):
         return event.visibility.split(":", 1)[1] or None
@@ -1561,6 +1900,71 @@ def _publish_export(path: Path, payload: bytes) -> Path:
     return path
 
 
+def export_canonical_fact_tables(
+    plan: RunPlan,
+    receipts: Sequence[EvaluationReceipt],
+    output_dir: Path | str,
+) -> dict[str, Path]:
+    """Write deterministic profile, feature, and result fact tables.
+
+    The manifest digest covers its core metadata and every table digest. It is
+    intentionally not a new source of truth: each row points back to the sealed
+    RunPlan or EvaluationReceipt from which it was projected.
+    """
+
+    tables = project_canonical_fact_tables(plan, receipts)
+    destination = Path(output_dir)
+    if destination.is_symlink():
+        raise ResearchContractError("output_dir must not be a symlink")
+    destination.mkdir(parents=True, exist_ok=True)
+    payloads = {
+        "profiles": _csv_bytes(ProfileFactRecord, tables.profiles),
+        "model_features": _csv_bytes(
+            ModelFeatureFactRecord, tables.model_features
+        ),
+        "benchmark_results": _csv_bytes(
+            BenchmarkResultFactRecord, tables.benchmark_results
+        ),
+    }
+    filenames = {
+        "profiles": "profiles.csv",
+        "model_features": "model_features.csv",
+        "benchmark_results": "benchmark_results.csv",
+    }
+    paths = {
+        name: _publish_export(destination / filenames[name], payload)
+        for name, payload in payloads.items()
+    }
+    manifest_core = {
+        "schema_version": "aeread.canonical_fact_tables/0.1",
+        "run_id": plan.run_plan_id,
+        "run_plan_sha256": plan.plan_sha256,
+        "source_truth": ["RunPlan", "EvaluationReceipt"],
+        "projection_semantics": (
+            "deterministic reportable view; sealed source records remain authoritative"
+        ),
+        "tables": {
+            name: {
+                "path": filenames[name],
+                "row_count": len(getattr(tables, name)),
+                "sha256": hashlib.sha256(payloads[name]).hexdigest(),
+            }
+            for name in filenames
+        },
+    }
+    manifest = {
+        **manifest_core,
+        "manifest_sha256": hashlib.sha256(
+            canonical_json_bytes(manifest_core)
+        ).hexdigest(),
+    }
+    paths["fact_manifest"] = _publish_export(
+        destination / "fact_manifest.json",
+        canonical_json_bytes(manifest) + b"\n",
+    )
+    return paths
+
+
 _DATA_DICTIONARY = """# AERead loss-analysis data dictionary
 
 This dataset is a derived view. `RunPlan`, `EvaluationReceipt`, and sealed
@@ -1571,6 +1975,39 @@ This dataset is a derived view. `RunPlan`, `EvaluationReceipt`, and sealed
 - `runs.run_id` -> `tasks.run_id`
 - (`tasks.run_id`, `tasks.task_id`) -> (`model_calls.run_id`, `model_calls.task_id`)
 - (`runs.run_id`, `tasks.task_id`) -> `trajectories/trajectory_index.csv`
+- `profiles.profile_id` -> `model_features.profile_id`
+- (`benchmark_results.run_id`, `benchmark_results.task_id`) -> (`tasks.run_id`, `tasks.task_id`)
+
+## Canonical fact-table projections
+
+`fact_manifest.json` binds the three reusable fact tables to their sealed
+`RunPlan` and to the SHA-256 digest of every CSV. The manifest's own digest is
+computed over the manifest without the `manifest_sha256` field. These tables
+are canonical *projections* for analysis and reporting; they do not supersede
+the source plan or receipts.
+
+### `profiles.csv`
+
+One row per sealed `AgentProfile`, including model route, harness and prompt
+pins, runtime, tools, memory, reasoning and sampling settings, budgets, retry
+policy, profile digest, and admission identity. This is the configuration table
+that must be joined into any model or harness comparison.
+
+### `model_features.csv`
+
+One long-form row per `ProfileAdmission.capability_vector` entry. Every row is
+labeled `evidence_class=admission_derived`: it describes the sealed admission
+decision produced from declared harness requirements, provider capabilities,
+and profile configuration. It is not evidence that a live provider call
+exhibited the feature. Live behavior remains in `model_calls.csv` and receipts.
+
+### `benchmark_results.csv`
+
+One row per typed receipt metric, reference, utility, or capture value, plus an
+explicit status row for a measurement leaf with no numeric outputs. All verified
+attempts remain present. `reportable=true` only when the receipt was included
+and the score and validity statuses both passed; analysis must still obey the
+sealed `AnalysisPlan` rather than treating metric rows as independent samples.
 
 ## `runs.csv`
 
@@ -1662,7 +2099,7 @@ def export_loss_analysis_dataset(
     evidence_stores: Mapping[str, EvidenceStore],
     output_dir: Path | str,
 ) -> dict[str, Path]:
-    """Write relational CSVs, selected trajectories, an archive, and schema docs."""
+    """Write relational/fact CSVs, selected trajectories, and schema docs."""
 
     tables = project_loss_analysis_tables(plan, receipts, evidence_stores)
     evidence_by_cell = _evidence_by_cell(plan, evidence_stores)
@@ -1686,6 +2123,7 @@ def export_loss_analysis_dataset(
             _csv_bytes(ModelCallRecord, tables.model_calls),
         ),
     }
+    paths.update(export_canonical_fact_tables(plan, receipts, destination))
     trajectories: list[TrajectoryRecord] = []
     index_rows: list[Mapping[str, Any]] = []
     for task_id, evidence in sorted(evidence_by_cell.items()):
@@ -2110,14 +2548,18 @@ def main(argv: Sequence[str] | None = None) -> int:
 
 __all__ = [
     "AttemptResearchRow",
+    "BenchmarkResultFactRecord",
     "CampaignResearchRow",
+    "CanonicalFactTables",
     "CellResearchRow",
     "DesignAudit",
     "DesignIssue",
     "DesignObservation",
     "EventResearchRow",
     "LossAnalysisTables",
+    "ModelFeatureFactRecord",
     "ModelCallRecord",
+    "ProfileFactRecord",
     "ResearchContractError",
     "ResearchLedger",
     "RunRecord",
@@ -2128,9 +2570,11 @@ __all__ = [
     "build_trajectory_record",
     "build_research_ledger",
     "export_loss_analysis_dataset",
+    "export_canonical_fact_tables",
     "main",
     "project_evidence_events",
     "project_loss_analysis_tables",
+    "project_canonical_fact_tables",
     "research_tables",
 ]
 
