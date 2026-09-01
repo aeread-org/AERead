@@ -243,9 +243,16 @@ class EvaluationReceipt:
                 raise MeasurementContractError(
                     "invalid_measurement receipt must be excluded"
                 )
-            if primary is not None and primary.status != "invalid_measurement":
+            invalid_scores = tuple(
+                score for score in self.scores if score.status == "invalid_measurement"
+            )
+            if (
+                primary is not None
+                and primary.status != "invalid_measurement"
+                and not invalid_scores
+            ):
                 raise MeasurementContractError(
-                    "excluded receipt cannot contain a valid primary measurement"
+                    "excluded receipt with a valid primary must contain an invalid leaf"
                 )
             if self.failure is None:
                 raise MeasurementContractError(

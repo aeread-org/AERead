@@ -58,3 +58,21 @@ def test_procurement_grounding_development_case_is_discoverable() -> None:
     assert sorted(path.name for path in (family / "dev").glob("*.json")) == [
         "procurement_grounding_231_projects.json"
     ]
+
+
+def test_procurement_allocation_development_case_is_discoverable() -> None:
+    family = CASES / "procurement_allocation_v1"
+
+    assert (family / "README.md").is_file()
+    assert sorted(path.name for path in (family / "dev").glob("*.json")) == [
+        "quality_speed_margin.json"
+    ]
+
+
+def test_datacenter_development_cases_are_discoverable() -> None:
+    family = CASES / "datacenter_development_v1"
+
+    assert (family / "README.md").is_file()
+    assert (family / "dev" / "service_loan_bankability_001.json").is_file()
+    assert (family / "v1" / "power_epc_bankability_001.json").is_file()
+    assert (family / "v2" / "full_stack_amendment_001.json").is_file()

@@ -56,6 +56,7 @@ from .parity import (
 )
 from .measurement import (
     EstimandSpec,
+    FamilyScoreSet,
     ImplementationRef as MeasurementImplementationRef,
     MeasurementContractError,
     MeasurementLeafSpec,
@@ -66,6 +67,7 @@ from .measurement import (
     ValidityDomainSpec,
     ValidityReport,
     VerifierSpec,
+    normalize_family_score_set,
 )
 from .receipts import (
     EvaluationFailure,
@@ -171,6 +173,7 @@ __all__ = [
     "Event",
     "FailureCondition",
     "FamilyManifest",
+    "FamilyScoreSet",
     "Harness",
     "HarnessOutput",
     "HarnessRegistry",
@@ -237,6 +240,7 @@ __all__ = [
     "episode_id_for_cell",
     "execute_plan_cell",
     "is_exportable_id",
+    "normalize_family_score_set",
     "canonical_json_bytes",
     "compare_projections",
     "case_content_sha256",
