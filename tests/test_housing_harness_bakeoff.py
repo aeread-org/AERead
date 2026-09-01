@@ -78,6 +78,9 @@ def test_external_harness_identity_is_sealed_in_housing_plan(
 
 
 def test_langgraph_gate_is_one_explicit_structured_decision_node() -> None:
+    pytest.importorskip("langchain_core")
+    pytest.importorskip("langgraph")
+
     class FakeStructuredModel:
         def __init__(self) -> None:
             self.messages = None
