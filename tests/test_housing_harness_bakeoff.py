@@ -8,15 +8,19 @@ from aeread.shared_runner.housing_harness_bakeoff import (
     GLM_MODEL,
     GLM_REVISION,
     LangChainProviderStrategyHarness,
+    LangGraphStructuredOutputHarness,
     SmolagentsToolCallingHarness,
     _atomic_write_json,
     _condition_summary,
+    _event_framework_metrics,
     _public_failure_summary,
     _read_sealed_row,
     _sealed_row,
     _summed_usage,
     derive_world_seeds,
 )
+from aeread.shared_runner.open_harnesses import _run_langgraph_structured_decision
+from aeread.shared_runner.execution import ProviderRequest
 
 
 def test_harness_panel_seeds_are_deterministic_and_unique() -> None:
@@ -32,6 +36,7 @@ def test_harness_panel_seeds_are_deterministic_and_unique() -> None:
     ("harness", "required_capability"),
     [
         (LangChainProviderStrategyHarness(), "structured_output"),
+        (LangGraphStructuredOutputHarness(), "structured_output"),
         (SmolagentsToolCallingHarness(), "native_tools"),
     ],
 )
@@ -72,6 +77,52 @@ def test_external_harness_identity_is_sealed_in_housing_plan(
     assert tenant.harness.config["retry_backoff"] == "exponential_jitter_v1"
 
 
+def test_langgraph_gate_is_one_explicit_structured_decision_node() -> None:
+    class FakeStructuredModel:
+        def __init__(self) -> None:
+            self.messages = None
+
+        def invoke(self, messages):
+            self.messages = messages
+            return {"parsed": {"decision": "pass", "listing_id": None, "rent": None}}
+
+    request = ProviderRequest(
+        provider_call_id="provider_call_langgraph_fixture",
+        provider="openrouter",
+        base_url="https://openrouter.ai/api/v1",
+        model=GLM_MODEL,
+        revision=GLM_REVISION,
+        instructions="Return one valid Housing action.",
+        input_text='{"observation": {}}',
+        temperature=0.0,
+        top_p=1.0,
+        max_output_tokens=250,
+        reasoning_effort="low",
+        timeout_seconds=30.0,
+        request_sha256="",
+        output_schema={
+            "type": "object",
+            "properties": {
+                "decision": {"type": "string"},
+                "listing_id": {"type": ["integer", "null"]},
+                "rent": {"type": ["number", "null"]},
+            },
+            "required": ["decision", "listing_id", "rent"],
+            "additionalProperties": False,
+        },
+        provider_metadata={},
+        seed=1,
+    ).with_computed_hash()
+    model = FakeStructuredModel()
+
+    action, trace = _run_langgraph_structured_decision(model, request)
+
+    assert action == {"decision": "pass", "listing_id": None, "rent": None}
+    assert trace == {"graph_node_count": 1, "structured_model_calls": 1}
+    assert model.messages is not None
+    assert [message.type for message in model.messages] == ["system", "human"]
+
+
 def test_framework_usage_is_exact_only_when_every_response_reports_cost() -> None:
     complete = _summed_usage(
         [
@@ -110,6 +161,45 @@ def test_framework_usage_is_exact_only_when_every_response_reports_cost() -> Non
     )
     assert incomplete["cost_usd"] is None
     assert incomplete["provider_cost_complete"] is False
+
+
+def test_framework_event_metrics_count_captured_model_requests() -> None:
+    class Event:
+        event_type = "provider_call_succeeded"
+
+    class Evidence:
+        def read_events(self):
+            return [Event()]
+
+        def read_event_payload(self, _event):
+            return {
+                "provider_result": {
+                    "raw_response": {
+                        "framework": "langgraph_structured_output",
+                        "framework_version": "1.2.11",
+                        "framework_model_request_count": 1,
+                        "provider_cost_complete": True,
+                        "provider_responses": [
+                            {
+                                "openrouter_metadata": {
+                                    "endpoints": {
+                                        "available": [
+                                            {"provider": "DeepInfra", "selected": True}
+                                        ]
+                                    }
+                                }
+                            }
+                        ],
+                    }
+                }
+            }
+
+    assert _event_framework_metrics(Evidence()) == {
+        "framework_model_request_count": 1,
+        "framework_versions": ["1.2.11"],
+        "framework_route_verified": True,
+        "framework_provider_cost_complete": True,
+    }
 
 
 def test_bakeoff_result_resume_requires_a_valid_digest(tmp_path) -> None:

@@ -53,6 +53,20 @@ python -m aeread_families.procurement_grounding.bakeoff \
   --max-spend-usd 0.15
 ```
 
+Run only the active open-weight matrix, which excludes previously rejected slow
+routes:
+
+```bash
+python -m aeread_families.procurement_grounding.bakeoff \
+  --open-weight-only \
+  --execute \
+  --output outputs/procurement-grounding-open-weight \
+  --replicates 3 \
+  --warmups 1 \
+  --concurrency 4 \
+  --max-spend-usd 0.05
+```
+
 The runner verifies the live endpoint catalog before dispatch, pins provider,
 revision, quantization, and price ceilings, disables fallbacks and exact-response
 caching, warms each standard model before parallel fan-out, and records score,
@@ -68,3 +82,39 @@ scored perfectly at $0.00170 per result, but the grouped job took about 485 seco
 so it is reserved for deferred bulk work. See the committed
 [`procurement_grounding_openrouter_bakeoff_2026-08-31.json`](../../docs/evidence/procurement_grounding_openrouter_bakeoff_2026-08-31.json)
 for the complete protocol, failures, limitations, and hashes of the local raw logs.
+
+The follow-up open-weight bake-off excludes DeepSeek from active dispatch. It selected
+`glm53_flash` as the open-source route with 3/3 perfect measured responses, a
+9.64-second median, and $0.00037 median cost. `mistral_small4` also passed all three
+measured calls but had one malformed warmup response, a 21.81-second median, and
+$0.00140 median cost. Qwen 3.8 Flash and MiniMax M3 failed the measured runtime
+contract. See
+[`procurement_grounding_open_weight_bakeoff_2026-08-31.json`](../../docs/evidence/procurement_grounding_open_weight_bakeoff_2026-08-31.json)
+for license classes, endpoint pins, failure classes, limitations, and the raw-result
+hash.
+
+## Harness probe
+
+The paired harness probe holds the frozen case, GLM 5.3 Flash DeepInfra FP8 route,
+inference seeds, retry policy, and token budgets fixed. It varies only the AERead
+Minimal Chat and LangChain Provider Strategy execution layers. Planning is offline:
+
+```bash
+python -m aeread_families.procurement_grounding.harness_bakeoff \
+  --output outputs/procurement-grounding-harness-probe \
+  --replicates 3
+```
+
+Install the exact optional framework versions and set `OPENROUTER_API_KEY` locally
+before adding `--execute`. The runner preflights the pinned endpoint, enforces a
+conservative spend ceiling, rotates arm order across paired seeds, writes atomic
+per-run records, and requires receipt replay for every completed result. These are
+descriptive repeated-inference measurements on one frozen case, not independent
+procurement cases or population-level evidence.
+
+The first live probe and a separately labeled paced diagnostic found perfect
+scores on every completed call, but DeepInfra shared-pool overload excluded seven
+of twelve planned calls. The two complete pairs favored AERead Minimal Chat on
+latency and LangChain slightly on token cost. See
+[`procurement_grounding_harness_probe_2026-08-31.md`](../../docs/evidence/procurement_grounding_harness_probe_2026-08-31.md)
+for the measurement boundary, receipt audit, hashes, and interpretation limits.

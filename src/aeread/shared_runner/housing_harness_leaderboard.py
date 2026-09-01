@@ -18,9 +18,11 @@ from .resolver import canonical_json_bytes
 DISPLAY_NAMES = {
     "aeread_minimal_chat_v1": "AERead Minimal Chat",
     "langchain_provider_strategy_v1": "LangChain Provider Strategy",
+    "langgraph_structured_output_v1": "LangGraph Structured Output",
     "smolagents_tool_calling_agent_v1": "smolagents Tool-Calling Agent",
     "aeread_minimal_chat": "AERead Minimal Chat",
     "langchain_provider_strategy": "LangChain Provider Strategy",
+    "langgraph_structured_output": "LangGraph Structured Output",
     "pydantic_ai_native_output": "PydanticAI Native Output",
     "smolagents_tool_calling_agent": "smolagents Tool-Calling Agent",
 }

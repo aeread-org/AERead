@@ -10,12 +10,26 @@ until the declared qualification gates are satisfied.
 from __future__ import annotations
 
 import copy
+import hashlib
 import json
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, Mapping
 
 from aeread.shared_runner.execution import CanonicalResponse
+from aeread.shared_runner.measurement import (
+    EstimandSpec,
+    ImplementationRef as MeasurementImplementationRef,
+    MeasurementLeafSpec,
+    MetricValue,
+    ReferenceSpec,
+    ScoreEnvelope,
+    ValidityDomainSpec,
+    ValidityReport,
+    VerifierSpec,
+)
 from aeread.shared_runner.registry import PluginRegistry
+from aeread.shared_runner.resolver import canonical_json_bytes
 from aeread.shared_runner.schemas import FamilyManifest
 from aeread.shared_runner.scheduler import (
     LegalityResult,
@@ -264,6 +278,127 @@ class ProcurementGroundingScorer:
         }
 
 
+def procurement_measurement_leaf(
+    family_case: Mapping[str, Any],
+) -> MeasurementLeafSpec:
+    """Declare the deterministic accuracy measurement used by receipts."""
+
+    source_digest = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
+    oracle_digest = hashlib.sha256(
+        canonical_json_bytes(family_case["oracle"])
+    ).hexdigest()
+    validity_domain = ValidityDomainSpec(
+        domain_id="procurement_grounding_outcome_domain",
+        domain_version="1.0.0",
+        schema_ref="procurement_grounding_v1/outcome/1",
+        predicate=MeasurementImplementationRef(
+            SCORER_ID, "1.0.0", source_digest
+        ),
+    )
+    estimand = EstimandSpec(
+        estimand_id="procurement_grounding_accuracy",
+        estimand_version="1.0.0",
+        input_scope="terminal_state",
+        direction="maximize",
+        units="ratio",
+        validity_domain=validity_domain,
+    )
+    return MeasurementLeafSpec(
+        leaf_id="procurement_grounding_accuracy_leaf",
+        leaf_version="1.0.0",
+        estimand=estimand,
+        verifier=VerifierSpec(
+            verifier_family="canonical_reference",
+            evaluation_class="deterministic",
+            reference=ReferenceSpec(
+                reference_id="procurement_grounding_oracle_v1",
+                reference_version="1.0.0",
+                reference_kind="canonical_point",
+                input_scope="terminal_state",
+                units="ratio",
+                source_sha256=oracle_digest,
+                implementation=MeasurementImplementationRef(
+                    "procurement_grounding_oracle_v1", "1.0.0", source_digest
+                ),
+            ),
+        ),
+        scorer=MeasurementImplementationRef(SCORER_ID, "1.0.0", source_digest),
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class ProcurementGroundingMeasurementScorer:
+    """Wrap the family outcome in AERead's portable measurement envelope."""
+
+    family_case: Mapping[str, Any]
+
+    def __call__(
+        self,
+        outcome: Mapping[str, Any],
+        *,
+        evidence_refs: tuple[str, ...] = (),
+    ) -> ScoreEnvelope:
+        leaf = procurement_measurement_leaf(self.family_case)
+        reasons: list[str] = []
+        if not isinstance(outcome, Mapping):
+            reasons.append("procurement outcome must be an object")
+            outcome = {}
+        score = outcome.get("score")
+        total_points = outcome.get("total_points")
+        max_points = outcome.get("max_points")
+        valid_action = outcome.get("valid")
+        mismatches = outcome.get("mismatched_fields")
+        if (
+            isinstance(score, bool)
+            or not isinstance(score, (int, float))
+            or not 0.0 <= float(score) <= 1.0
+        ):
+            reasons.append("score must be a ratio in [0, 1]")
+        if (
+            isinstance(total_points, bool)
+            or not isinstance(total_points, int)
+            or not 0 <= total_points <= 100
+        ):
+            reasons.append("total_points must be an integer in [0, 100]")
+        if max_points != 100:
+            reasons.append("max_points must equal 100")
+        if not isinstance(valid_action, bool):
+            reasons.append("valid must be boolean")
+        if not isinstance(mismatches, (list, tuple)) or any(
+            not isinstance(item, str) for item in mismatches
+        ):
+            reasons.append("mismatched_fields must be an array of strings")
+        if not reasons and total_points != round(float(score) * 100):
+            reasons.append("score and total_points disagree")
+
+        if reasons:
+            return ScoreEnvelope(
+                status="invalid_measurement",
+                leaf=leaf,
+                primary=None,
+                metrics={},
+                reference_values={},
+                validity=ValidityReport("invalid", tuple(reasons)),
+                evidence_refs=evidence_refs,
+            )
+
+        return ScoreEnvelope(
+            status="ok",
+            leaf=leaf,
+            primary=MetricValue(float(score), "ratio"),
+            metrics={
+                "total_points": MetricValue(float(total_points), "points"),
+                "valid_action": MetricValue(1.0 if valid_action else 0.0, "indicator"),
+                "mismatched_field_count": MetricValue(
+                    float(len(mismatches)), "count"
+                ),
+            },
+            reference_values={"perfect_score": MetricValue(1.0, "ratio")},
+            validity=ValidityReport("valid"),
+            evidence_refs=evidence_refs,
+        )
+
+
 def family_manifest() -> FamilyManifest:
     return FamilyManifest.from_dict(
         {
@@ -286,7 +421,10 @@ def family_manifest() -> FamilyManifest:
                 "direction": "maximize",
                 "outcome_support": "unit_interval",
             },
-            "scoring": {"scorer_id": SCORER_ID},
+            "scoring": {
+                "scorer_id": SCORER_ID,
+                "oracle_id": "procurement_grounding_oracle_v1",
+            },
         }
     )
 
@@ -466,8 +604,10 @@ class ProcurementGroundingPlugin:
         result["failure_code"] = None
         return result
 
-    def build_scorer(self, family_case: Mapping[str, Any]) -> ProcurementGroundingScorer:
-        return ProcurementGroundingScorer(family_case["oracle"])
+    def build_scorer(
+        self, family_case: Mapping[str, Any]
+    ) -> ProcurementGroundingMeasurementScorer:
+        return ProcurementGroundingMeasurementScorer(family_case)
 
     def build_reference_providers(self, family_case: Mapping[str, Any]) -> tuple[Any, ...]:
         del family_case
@@ -485,8 +625,10 @@ __all__ = [
     "PLUGIN_ID",
     "REPORT_FIELDS",
     "SCORER_ID",
+    "ProcurementGroundingMeasurementScorer",
     "ProcurementGroundingPlugin",
     "ProcurementGroundingScorer",
     "family_manifest",
+    "procurement_measurement_leaf",
     "register_plugin",
 ]

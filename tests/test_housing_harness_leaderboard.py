@@ -97,3 +97,12 @@ def test_renderers_preserve_unranked_operational_failure() -> None:
     assert "known lower bounds" in markdown
     assert "≥$0.004463" in markdown
     assert "$≥" not in markdown
+
+
+def test_langgraph_condition_has_a_stable_display_name() -> None:
+    from aeread.shared_runner.housing_harness_leaderboard import DISPLAY_NAMES
+
+    assert (
+        DISPLAY_NAMES["langgraph_structured_output_v1"]
+        == "LangGraph Structured Output"
+    )

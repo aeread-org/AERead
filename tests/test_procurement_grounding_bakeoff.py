@@ -3,7 +3,9 @@ from __future__ import annotations
 import pytest
 
 from aeread_families.procurement_grounding.bakeoff import (
+    ALL_CANDIDATES,
     DEFAULT_CANDIDATES,
+    OPEN_WEIGHT_CANDIDATES,
     OpenRouterBatchClient,
     conservative_cost_ceiling,
     planned_matrix,
@@ -35,7 +37,7 @@ def test_wire_schema_is_strict_without_serializing_oracle_values() -> None:
 
 
 def test_openrouter_setup_seals_route_schema_seed_and_cost() -> None:
-    candidate = DEFAULT_CANDIDATES[0]
+    candidate = OPEN_WEIGHT_CANDIDATES[0]
     setup = build_openrouter_setup(
         candidate.route,
         seed=71003,
@@ -53,9 +55,9 @@ def test_openrouter_setup_seals_route_schema_seed_and_cost() -> None:
     assert profile.harness.config["provider_metadata"] == {
         "route_provider": "DeepInfra",
         "quantization": "fp8",
-        "canonical_model": "deepseek/deepseek-v4-flash-20260731",
-        "max_prompt_price_per_million": "0.08",
-        "max_completion_price_per_million": "0.18",
+        "canonical_model": "z-ai/glm-5.3-flash-20260826",
+        "max_prompt_price_per_million": "0.075",
+        "max_completion_price_per_million": "0.25",
     }
     assert profile.harness.config["output_schema"]["additionalProperties"] is False
 
@@ -85,8 +87,24 @@ def test_no_batch_selection_removes_only_batch_variant() -> None:
     assert len(selected) == len(DEFAULT_CANDIDATES) - 1
 
 
+def test_open_weight_selection_excludes_slow_or_proprietary_candidates() -> None:
+    selected = selected_candidates(open_weight_only=True)
+
+    assert selected == OPEN_WEIGHT_CANDIDATES
+    assert all(candidate.access_class.startswith("open_") for candidate in selected)
+    assert all("deepseek" not in candidate.candidate_id for candidate in ALL_CANDIDATES)
+    assert {candidate.license_id for candidate in selected} == {
+        "MIT",
+        "Apache-2.0",
+        "custom",
+    }
+    assert len(ALL_CANDIDATES) == len(DEFAULT_CANDIDATES) + len(
+        OPEN_WEIGHT_CANDIDATES
+    )
+
+
 def test_preflight_rejects_a_price_increase(monkeypatch) -> None:
-    candidate = DEFAULT_CANDIDATES[0]
+    candidate = OPEN_WEIGHT_CANDIDATES[0]
     endpoint = {
         "name": f"{candidate.route.route_provider} | {candidate.route.revision}",
         "provider_name": candidate.route.route_provider,

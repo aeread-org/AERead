@@ -39,6 +39,9 @@ class BakeoffCandidate:
     candidate_id: str
     route: OpenRouterRoute
     lane: str
+    access_class: str
+    license_id: str | None
+    model_card_url: str | None
     timeout_seconds: float = 180.0
 
 
@@ -55,6 +58,9 @@ def _candidate(
     max_prompt_price_per_million: float | None = None,
     max_completion_price_per_million: float | None = None,
     lane: str = "standard",
+    access_class: str = "hosted_proprietary",
+    license_id: str | None = None,
+    model_card_url: str | None = None,
     reasoning_effort: str | None = "low",
     temperature_supported: bool = True,
     timeout_seconds: float = 180.0,
@@ -88,32 +94,14 @@ def _candidate(
         candidate_id=candidate_id,
         route=route,
         lane=lane,
+        access_class=access_class,
+        license_id=license_id,
+        model_card_url=model_card_url,
         timeout_seconds=timeout_seconds,
     )
 
 
 DEFAULT_CANDIDATES = (
-    _candidate(
-        "deepseek_v4_flash",
-        model="deepseek/deepseek-v4-flash-0731",
-        revision="deepseek/deepseek-v4-flash-20260731",
-        route_provider="DeepInfra",
-        quantization="fp8",
-        input_per_million=0.08,
-        cached_input_per_million=0.016,
-        output_per_million=0.18,
-    ),
-    _candidate(
-        "qwen35_flash",
-        model="qwen/qwen3.5-flash-02-23",
-        revision="qwen/qwen3.5-flash-20260224",
-        route_provider="Alibaba",
-        quantization="unknown",
-        input_per_million=0.065,
-        cached_input_per_million=0.065,
-        output_per_million=0.26,
-        reasoning_effort=None,
-    ),
     _candidate(
         "gpt56_luna",
         model="openai/gpt-5.6-luna",
@@ -162,17 +150,94 @@ DEFAULT_CANDIDATES = (
 )
 
 
+OPEN_WEIGHT_CANDIDATES = (
+    _candidate(
+        "glm53_flash",
+        model="z-ai/glm-5.3-flash",
+        revision="z-ai/glm-5.3-flash-20260826",
+        route_provider="DeepInfra",
+        quantization="fp8",
+        input_per_million=0.075,
+        cached_input_per_million=0.015,
+        output_per_million=0.25,
+        access_class="open_source",
+        license_id="MIT",
+        model_card_url="https://huggingface.co/zai-org/GLM-5.3-Flash",
+    ),
+    _candidate(
+        "mistral_small4",
+        model="mistralai/mistral-small-2603",
+        revision="mistralai/mistral-small-2603",
+        route_provider="Mistral",
+        quantization="unknown",
+        input_per_million=0.15,
+        cached_input_per_million=0.015,
+        output_per_million=0.60,
+        access_class="open_source",
+        license_id="Apache-2.0",
+        model_card_url=(
+            "https://huggingface.co/mistralai/Mistral-Small-4-119B-2603"
+        ),
+    ),
+    _candidate(
+        "qwen38_flash",
+        model="qwen/qwen3.8-flash",
+        revision="qwen/qwen3.8-flash-20260826",
+        route_provider="Alibaba",
+        quantization="unknown",
+        input_per_million=0.15,
+        cached_input_per_million=0.016,
+        output_per_million=0.47,
+        access_class="open_weight_custom_license",
+        license_id="custom",
+        model_card_url="https://huggingface.co/Qwen/Qwen3.8-Flash-Next",
+        reasoning_effort=None,
+    ),
+    _candidate(
+        "minimax_m3",
+        model="minimax/minimax-m3",
+        revision="minimax/minimax-m3-20260531",
+        route_provider="CoreWeave",
+        quantization="fp4",
+        input_per_million=0.23,
+        cached_input_per_million=0.05,
+        output_per_million=0.96,
+        access_class="open_weight_custom_license",
+        license_id="custom",
+        model_card_url="https://huggingface.co/MiniMaxAI/MiniMax-M3",
+        reasoning_effort=None,
+    ),
+)
+
+ALL_CANDIDATES = DEFAULT_CANDIDATES + OPEN_WEIGHT_CANDIDATES
+
+
 def selected_candidates(
-    candidate_ids: Iterable[str] | None = None, *, include_batch: bool = True
+    candidate_ids: Iterable[str] | None = None,
+    *,
+    include_batch: bool = True,
+    open_weight_only: bool = False,
 ) -> tuple[BakeoffCandidate, ...]:
     requested = set(candidate_ids or ())
-    available = {candidate.candidate_id for candidate in DEFAULT_CANDIDATES}
+    available = {candidate.candidate_id for candidate in ALL_CANDIDATES}
     unknown = sorted(requested - available)
     if unknown:
         raise ValueError(f"unknown candidate ids: {unknown}")
+    pool = OPEN_WEIGHT_CANDIDATES if open_weight_only else (
+        ALL_CANDIDATES if requested else DEFAULT_CANDIDATES
+    )
+    if open_weight_only:
+        open_weight_ids = {
+            candidate.candidate_id for candidate in OPEN_WEIGHT_CANDIDATES
+        }
+        non_open_weight = sorted(requested - open_weight_ids)
+        if non_open_weight:
+            raise ValueError(
+                f"candidate ids are not open-weight: {non_open_weight}"
+            )
     selected = tuple(
         candidate
-        for candidate in DEFAULT_CANDIDATES
+        for candidate in pool
         if (not requested or candidate.candidate_id in requested)
         and (include_batch or candidate.lane == "standard")
     )
@@ -680,7 +745,7 @@ def _percentile_95(values: list[float]) -> float:
 def summarize_rows(rows: Iterable[Mapping[str, Any]]) -> dict[str, Any]:
     measured = [row for row in rows if not row.get("warmup")]
     summaries: list[dict[str, Any]] = []
-    for candidate in DEFAULT_CANDIDATES:
+    for candidate in ALL_CANDIDATES:
         candidate_rows = [
             row for row in measured if row.get("candidate_id") == candidate.candidate_id
         ]
@@ -917,6 +982,9 @@ def planned_matrix(
             {
                 "candidate_id": candidate.candidate_id,
                 "lane": candidate.lane,
+                "access_class": candidate.access_class,
+                "license_id": candidate.license_id,
+                "model_card_url": candidate.model_card_url,
                 "model": candidate.route.model,
                 "revision": candidate.route.revision,
                 "route_provider": candidate.route.route_provider,
@@ -941,10 +1009,13 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--concurrency", type=int, default=4)
     parser.add_argument("--max-spend-usd", type=float, default=0.15)
     parser.add_argument("--no-batch", action="store_true")
+    parser.add_argument("--open-weight-only", action="store_true")
     parser.add_argument("--candidate", action="append", dest="candidates")
     arguments = parser.parse_args(argv)
     candidates = selected_candidates(
-        arguments.candidates, include_batch=not arguments.no_batch
+        arguments.candidates,
+        include_batch=not arguments.no_batch,
+        open_weight_only=arguments.open_weight_only,
     )
     if not arguments.execute:
         print(
@@ -989,7 +1060,9 @@ if __name__ == "__main__":  # pragma: no cover
 
 __all__ = [
     "BakeoffCandidate",
+    "ALL_CANDIDATES",
     "DEFAULT_CANDIDATES",
+    "OPEN_WEIGHT_CANDIDATES",
     "conservative_cost_ceiling",
     "planned_matrix",
     "preflight_candidate",

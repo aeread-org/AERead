@@ -1,0 +1,166 @@
+{
+  "spec_version": "aeread.procurement_open_weight_bakeoff_evidence/1.0",
+  "evidence_status": "development_measurement",
+  "executed_at": "2026-09-01T00:21:47.067919+00:00",
+  "case": {
+    "case_id": "procurement_grounding_v1.dev.231_projects",
+    "content_sha256": "34c11a4b192bef777e438b4d1aa00a62357eb397c1bb85bc99459a3bb9930670"
+  },
+  "provider": {
+    "transport": "openrouter_chat_completions",
+    "catalog_retrieved_at": "2026-08-31",
+    "catalog_source": "https://openrouter.ai/api/v1/models",
+    "fallbacks_allowed": false,
+    "response_cache": "disabled",
+    "authentication": "existing local OpenRouter credential; credential not serialized"
+  },
+  "active_policy": {
+    "selection": "open_weight_only",
+    "excluded_model_families": [
+      {
+        "model_family": "DeepSeek",
+        "reason": "excluded from future dispatch after the earlier route's 29.52-second median latency and one failure in three measured calls"
+      }
+    ],
+    "historical_results_retained": true
+  },
+  "protocol": {
+    "standard_lane": "one unmeasured sequential warmup per candidate, then three measured replicates in randomized order",
+    "parallel_concurrency": 4,
+    "measured_replicates_per_candidate": 3,
+    "quality_gate": {
+      "measured_failure_count": 0,
+      "measured_valid_rate": 1.0,
+      "minimum_measured_score": 0.9
+    },
+    "balance_rule": "lowest geometric mean of median-cost and median-latency ratios among quality-qualified candidates",
+    "conservative_cost_ceiling_usd": 0.03248,
+    "hard_spend_cap_usd": 0.05,
+    "provider_reported_spend_usd": 0.0058117257
+  },
+  "candidates": [
+    {
+      "rank": 1,
+      "candidate_id": "glm53_flash",
+      "model": "z-ai/glm-5.3-flash",
+      "revision": "z-ai/glm-5.3-flash-20260826",
+      "route_provider": "DeepInfra",
+      "quantization": "fp8",
+      "access_class": "open_source",
+      "license_id": "MIT",
+      "model_card_url": "https://huggingface.co/zai-org/GLM-5.3-Flash",
+      "model_card_revision_sha": "03eb5366286afd40d2221b1d9c63a6dd1ba4832e",
+      "warmup_status": "completed",
+      "completed_measured_runs": 3,
+      "requested_measured_runs": 3,
+      "measured_failure_count": 0,
+      "measured_valid_rate": 1.0,
+      "mean_score": 1.0,
+      "minimum_score": 1.0,
+      "median_latency_seconds": 9.64336295897374,
+      "p95_latency_seconds": 10.007073695893633,
+      "median_cost_usd": 0.00037107675,
+      "provider_prompt_cache_rate": 0.0,
+      "quality_qualified": true,
+      "balanced_index": 1.0,
+      "decision": "default_open_source_route"
+    },
+    {
+      "rank": 2,
+      "candidate_id": "mistral_small4",
+      "model": "mistralai/mistral-small-2603",
+      "revision": "mistralai/mistral-small-2603",
+      "route_provider": "Mistral",
+      "quantization": "unknown",
+      "access_class": "open_source",
+      "license_id": "Apache-2.0",
+      "model_card_url": "https://huggingface.co/mistralai/Mistral-Small-4-119B-2603",
+      "model_card_revision_sha": "a11f36bebf709121056b1dbcc943d1c6afbe494d",
+      "warmup_status": "failed_invalid_json",
+      "completed_measured_runs": 3,
+      "requested_measured_runs": 3,
+      "measured_failure_count": 0,
+      "measured_valid_rate": 1.0,
+      "mean_score": 0.9933333333333333,
+      "minimum_score": 0.99,
+      "median_latency_seconds": 21.810342375014443,
+      "p95_latency_seconds": 29.134874850307824,
+      "median_cost_usd": 0.0013984839,
+      "provider_prompt_cache_rate": 0.9916102841677943,
+      "quality_qualified": true,
+      "balanced_index": 2.919536091000115,
+      "decision": "fallback_only_due_to_warmup_failure_cost_and_latency"
+    },
+    {
+      "rank": null,
+      "candidate_id": "qwen38_flash",
+      "model": "qwen/qwen3.8-flash",
+      "revision": "qwen/qwen3.8-flash-20260826",
+      "route_provider": "Alibaba",
+      "quantization": "unknown",
+      "access_class": "open_weight_custom_license",
+      "license_id": "custom",
+      "model_card_url": "https://huggingface.co/Qwen/Qwen3.8-Flash-Next",
+      "model_card_revision_sha": "de4b8e4d43b917e7706784d8bb445c9af86a3540",
+      "warmup_status": "failed_empty_content",
+      "completed_measured_runs": 0,
+      "requested_measured_runs": 3,
+      "measured_failure_count": 3,
+      "measured_failure_classes": [
+        "upstream_rate_limit",
+        "invalid_json",
+        "empty_content"
+      ],
+      "quality_qualified": false,
+      "decision": "reject"
+    },
+    {
+      "rank": null,
+      "candidate_id": "minimax_m3",
+      "model": "minimax/minimax-m3",
+      "revision": "minimax/minimax-m3-20260531",
+      "route_provider": "CoreWeave",
+      "quantization": "fp4",
+      "access_class": "open_weight_custom_license",
+      "license_id": "custom",
+      "model_card_url": "https://huggingface.co/MiniMaxAI/MiniMax-M3",
+      "model_card_revision_sha": "f0e1c1e04d40177e4673a22097036854f536e9c0",
+      "warmup_status": "failed_no_eligible_runtime_endpoint",
+      "completed_measured_runs": 0,
+      "requested_measured_runs": 3,
+      "measured_failure_count": 3,
+      "measured_failure_classes": [
+        "no_eligible_runtime_endpoint"
+      ],
+      "quality_qualified": false,
+      "decision": "reject"
+    }
+  ],
+  "recommendation": {
+    "default_open_source_candidate_id": "glm53_flash",
+    "fallback_open_source_candidate_id": "mistral_small4",
+    "comparison_to_previous_interactive_default": {
+      "cost_reduction_fraction": 0.5756634062,
+      "latency_increase_fraction": 0.3895773256,
+      "score_change": 0.0133333333
+    },
+    "execution_policy": [
+      "Use GLM 5.3 Flash for the low-cost open-source lane.",
+      "Keep exact-response caching disabled during evaluation replicates.",
+      "Do not dispatch DeepSeek, Qwen 3.8 Flash, or MiniMax M3 in this case configuration.",
+      "Treat Mistral Small 4 as a fallback requiring retry handling because its warmup response was malformed."
+    ]
+  },
+  "raw_local_evidence": {
+    "path": "outputs/procurement_grounding_open_weight_bakeoff_2026-08-31_v1/results.json",
+    "sha256": "d1648685dd11ec70a19d02204df97097655701c78188d61684e02047940d478f"
+  },
+  "limitations": [
+    "Three measured replicates per candidate support a development routing decision, not production qualification or stable tail-latency estimation.",
+    "Warmups are excluded from the formal measured quality gate but are reported because they expose first-request reliability.",
+    "Open source and open weight are recorded separately; custom-license weights must be reviewed before self-hosting or redistribution.",
+    "Model availability, endpoints, prices, and license metadata are dated snapshots and must be refreshed before a later run.",
+    "Failed provider calls reported no cost; provider-reported spend may therefore omit upstream charges associated with failed requests.",
+    "Full content-addressed provider evidence remains local and is not committed."
+  ]
+}

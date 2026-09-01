@@ -47,6 +47,18 @@ PYTHONPATH=src python -m aeread.shared_runner.housing_harness_bakeoff \
   --arms smolagents_tool_calling_agent_v1
 ```
 
+Run LangGraph as its own one-world qualification before adding it to the paired
+panel. This condition uses one explicit graph node, provider-native structured
+output, and no tools, memory, subagents, or framework-owned retries:
+
+```bash
+PYTHONPATH=src python -m aeread.shared_runner.housing_harness_bakeoff \
+  --output outputs/housing-langgraph-gate \
+  --world-count 1 \
+  --master-seed 20260831 \
+  --arms langgraph_structured_output_v1
+```
+
 After qualification, run the paired panel. AERead and LangChain rotate first
 position across worlds to reduce ordering effects:
 
