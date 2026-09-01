@@ -15,12 +15,12 @@
 [Contribute](CONTRIBUTING.md)
 
 AERead (AgentEcon Readiness) is an open environment + benchmark for studying how
-LLM agents behave in **multi-agent exchange economies**: bilateral trade,
-multiparty clearing, hidden-counterparty discovery, consent under hidden
-information, procurement, and bundle-purchase worlds. It asks a deployment
-question — *how much of the attainable welfare does an agent actually realize
-when it has to trade with others?* — and measures it with a single auditable
-score.
+LLM agents behave in **economic and stateful decision environments**: bilateral
+trade, multiparty clearing, hidden-counterparty discovery, consent under hidden
+information, procurement, housing allocation, bundle-purchase worlds, and
+refund/return tasks. It asks deployment questions about attainable welfare,
+policy-correct state changes, and evidence-grounded decisions, then records the
+case-native result in an auditable receipt.
 
 Results and methodology: https://aeread.org · **Capability coverage map:**
 [CAPABILITIES.md](CAPABILITIES.md) — what is covered, partial, and planned,
@@ -28,15 +28,17 @@ toward a general evaluation of agent economic capabilities.
 
 ## What makes it a benchmark, not just a sandbox
 
-- **Deterministic seeded cases.** A case is a JSON config (world + protocol +
-  role table). Same config + seed ⇒ same world, byte-for-byte.
+- **Resolved, reproducible cases.** Static JSON cases, generated worlds, and
+  pinned upstream tasks are content-bound before execution. The same resolved
+  inputs + seed produce the same world byte-for-byte.
 - **One seat under test, frozen everything else.** The other seats are a frozen
   LLM panel (temperature 0, cached, model-pinned) or scripted policies, so the
   score isolates the candidate.
-- **AER scoring.** `AER = W_real / denominator` — realized welfare gain over the
-  attainable welfare gain, pooled as `ΣW/ΣD`. Raw ratio: negatives are
-  preserved, values can exceed 1, denominator tiers are never mixed, degenerate
-  denominators are reported instead of imputed.
+- **Typed, case-native scoring.** Welfare families use
+  `AER = W_real / denominator`, pooled as `ΣW/ΣD`; stateful families can instead
+  use deterministic property or answer checks. Unlike estimands and denominator
+  tiers are never silently pooled, and degenerate denominators are reported
+  instead of imputed.
 - **Byte-replayable runs.** Every LLM call lands in an inference manifest with
   response snapshots; `--mode replay` re-executes a run with zero live calls and
   must reproduce the trace byte-identically. Submissions are verified this way.
@@ -81,6 +83,21 @@ aeread eval --cases 'cases/exchange_v1/v0/case0*.json' \
 
 Note: for configs with a `roles` block, the under-test model comes from the
 role table (or the `--agents` spec in `aeread eval`), not `aeread run --model`.
+
+## Included case families
+
+The canonical [case catalog](cases/README.md) includes these economic and
+stateful-agent evaluations:
+
+| Case | What it measures | Current scope |
+|---|---|---|
+| **Procurement** | Evidence-grounded sourcing decisions without treating search cards, displayed prices, or supplier messages as verified offers | [`procurement_grounding_v1`](cases/procurement_grounding_v1/) is a runnable 231-project development case with a deterministic verifier. The catalog also includes the specialized [`procurement_electronics_q3`](cases/exchange_v1/specialized/procurement_electronics_q3.json) exchange case. |
+| **Housing** | Multi-round housing search and assignment under private tenant preferences and listing capacity | [`housing_v1`](cases/housing_v1/) generates deterministic worlds from case parameters and seeds; it intentionally has no static JSON fixtures. |
+| **Refund and return** | Policy-constrained customer-service actions, exact final database state, required communication, and unintended mutations | [`tau3_retail`](cases/tau3_retail/) pins 114 upstream retail tasks and an [18-task refund/return pilot](cases/tau3_retail/base/pilot_manifest.json). The [integration plan](docs/refund_external_benchmark_integration.md) keeps deterministic database-state results separate from judge-dependent assertions. |
+
+Case-specific READMEs document the authoritative runner, scorer, provenance,
+and maturity status. Results from unlike families are reported separately; they
+are not collapsed into a universal cross-family score.
 
 ## Submit an agent
 
@@ -178,6 +195,7 @@ private held-out seed set are excluded by design.
 ```
 src/aeread/exchange_v1/   Exchange environments, runners, scoring, and oracles
 src/aeread/housing_v1/    Housing assignment environment and baselines
+src/aeread_families/      Procurement grounding and pinned tau3 retail plugins
 src/aeread/inference/     case-independent provider and LLM execution helpers
 src/aeread/shared_runner/ shared execution, evidence, measurement, and research
 src/aeread/integrations/   rLLM flow/eval/dataset, EverOS memory (importable code)
