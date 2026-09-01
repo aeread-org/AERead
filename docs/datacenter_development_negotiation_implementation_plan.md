@@ -1,6 +1,7 @@
 # Data-center development negotiation implementation plan
 
-**Status:** V0/V1/V2 provider-free development fixtures are executable; no live-model benchmark results exist yet
+**Status:** V0/V1/V2 provider-free fixtures and exploratory live-model probes
+are executable; no qualified paired harness panel exists yet
 
 **Decision:** build an AERead-native `datacenter_development_v1` family on the
 shared runner. Start with a customer service agreement followed by a construction
@@ -443,8 +444,17 @@ tokens, cost, retries, and failures as separate columns.
 12 scripted actions. V2 is pinned as family version `2.0.0` with 18 scripted
 actions, including an explicit land amendment that identifies the superseded
 offer, exact amended fields, and precedence index. Both fixtures use the shared
-runner, seal five leaves, and replay without provider calls. This does not
-satisfy the live qualification or paired-panel gates above.
+runner, seal five leaves, and replay without provider calls.
+
+**Implemented live conditions:** `build_stack_openrouter_setup` preserves the
+controlled-counterparty baseline while replacing only the developer with a
+live harness profile. `build_stack_model_to_model_setup` creates a separate
+`self_play` block in which the developer and every counterparty are distinct
+live profiles behind the same declared harness. The counterparty observation
+contains only the active agreement's private policy, and every role has a
+phase-specific strict output schema. Exploratory GLM probes have produced
+sealed, replayed valid-poor and invalid-action outcomes, but they do not satisfy
+the three-call admission gate or paired-panel requirements above.
 
 ## 11. Required regression tests
 
