@@ -940,6 +940,7 @@ class AttemptExecutor(MinimalChatExecutor):
         pricing: Mapping[str, TokenPricing],
         harnesses: Mapping[str, Any],
         tool_runtimes: Mapping[str, ToolRuntime] | None = None,
+        request_seed_by_profile: Mapping[str, int] | None = None,
     ) -> None:
         self._harnesses = dict(harnesses)
         self._tool_runtimes = dict(tool_runtimes) if tool_runtimes else {}
@@ -951,6 +952,7 @@ class AttemptExecutor(MinimalChatExecutor):
             prompt_sources=prompt_sources,
             providers=providers,
             pricing=pricing,
+            request_seed_by_profile=request_seed_by_profile,
         )
 
     @staticmethod

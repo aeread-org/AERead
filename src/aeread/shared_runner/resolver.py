@@ -407,7 +407,11 @@ def _capability_vector(
     # can be proven true yet.
     state_restorable = False
     policy_re_executable = False
-    seed_enforced = bool(capabilities.seed) and profile.sampling.seed is not None
+    seed_declared = (
+        profile.sampling.seed is not None
+        or profile.harness.config.get("request_seed_source") == "paired_cell_v1"
+    )
+    seed_enforced = bool(capabilities.seed) and seed_declared
     # A hidden reasoning token spends cost the receipt cannot see unless the
     # provider reports it back (§7); no requested budget, no unseen spend.
     cost_complete = (

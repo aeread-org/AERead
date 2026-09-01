@@ -1834,6 +1834,7 @@ class MinimalChatExecutor:
         prompt_sources: Mapping[str, str | bytes],
         providers: Mapping[str, ProviderClient],
         pricing: Mapping[str, TokenPricing],
+        request_seed_by_profile: Mapping[str, int] | None = None,
     ) -> None:
         if not isinstance(evidence, EvidenceStore):
             raise EvidenceIntegrityError("evidence must be an EvidenceStore")
@@ -1845,6 +1846,7 @@ class MinimalChatExecutor:
         self._executions: dict[str, LogicalActionExecution] = {}
         self._logical_actions_by_profile: dict[str, int] = {}
         self._cost_by_profile: dict[str, float] = {}
+        self._request_seed_by_profile = dict(request_seed_by_profile or {})
         self.total_cost_usd = 0.0
         for profile in profiles:
             if not isinstance(profile, AgentProfile):
@@ -1857,6 +1859,14 @@ class MinimalChatExecutor:
                 source.decode("utf-8") if isinstance(source, bytes) else source
             )
             self._profiles[profile.profile_id] = profile
+        unknown_seed_profiles = set(self._request_seed_by_profile) - set(
+            self._profiles
+        )
+        if unknown_seed_profiles:
+            raise EvidenceIntegrityError(
+                "request seeds reference unknown profiles: "
+                f"{sorted(unknown_seed_profiles)}"
+            )
 
     def _validate_harness_profile(self, profile: AgentProfile) -> None:
         """Checks that belong to THIS executor's harness, not to every harness.
@@ -1993,6 +2003,26 @@ class MinimalChatExecutor:
             and sampling_controls.get("temperature") == "unavailable"
         ):
             temperature = None
+        output_schema = profile.harness.config.get("output_schema")
+        schemas_by_action = profile.harness.config.get(
+            "output_schema_by_action_schema"
+        )
+        if schemas_by_action is not None:
+            if output_schema is not None:
+                raise EvidenceIntegrityError(
+                    "a profile cannot declare both output_schema and "
+                    "output_schema_by_action_schema"
+                )
+            if not isinstance(schemas_by_action, Mapping):
+                raise EvidenceIntegrityError(
+                    "output_schema_by_action_schema must be a mapping"
+                )
+            output_schema = schemas_by_action.get(decision.action_schema)
+            if not isinstance(output_schema, Mapping):
+                raise EvidenceIntegrityError(
+                    "no structured output schema declared for action schema "
+                    f"{decision.action_schema!r}"
+                )
         return ProviderRequest(
             provider_call_id=provider_call_id,
             provider=profile.model.provider,
@@ -2009,12 +2039,14 @@ class MinimalChatExecutor:
             timeout_seconds=profile.budgets.timeout_seconds,
             request_sha256="",
             max_cost_usd=profile.budgets.max_cost_usd,
-            output_schema=profile.harness.config.get("output_schema"),
+            output_schema=output_schema,
             provider_metadata=(
                 profile.harness.config.get("provider_metadata")
                 or profile.harness.config.get("provider_runtime")
             ),
-            seed=profile.sampling.seed,
+            seed=self._request_seed_by_profile.get(
+                profile.profile_id, profile.sampling.seed
+            ),
         ).with_computed_hash()
 
     async def __call__(self, decision: DecisionRequest) -> CanonicalResponse:
@@ -2121,6 +2153,13 @@ class MinimalChatExecutor:
                     failure,
                 )
                 if should_retry:
+                    await self._wait_before_provider_retry(
+                        decision=decision,
+                        request=request,
+                        profile=profile,
+                        condition=failure.condition,
+                        ordinal=ordinal,
+                    )
                     retry_reason = failure.condition
                     continue
                 raise failure from error
@@ -2136,6 +2175,13 @@ class MinimalChatExecutor:
                     failure,
                 )
                 if should_retry:
+                    await self._wait_before_provider_retry(
+                        decision=decision,
+                        request=request,
+                        profile=profile,
+                        condition=failure.condition,
+                        ordinal=ordinal,
+                    )
                     retry_reason = failure.condition
                     continue
                 raise
@@ -2323,6 +2369,60 @@ class MinimalChatExecutor:
             return canonical
 
         raise EvidenceIntegrityError("action attempt loop exhausted without terminal record")
+
+    async def _wait_before_provider_retry(
+        self,
+        *,
+        decision: DecisionRequest,
+        request: ProviderRequest,
+        profile: AgentProfile,
+        condition: str,
+        ordinal: int,
+    ) -> None:
+        policy = profile.harness.config.get("retry_backoff")
+        if policy is None:
+            return
+        if policy != "exponential_jitter_v1":
+            raise EvidenceIntegrityError(f"unsupported retry backoff policy: {policy!r}")
+        base_seconds = min(30.0, 2.0 * (2**ordinal))
+        jitter_seconds = int(request.provider_call_id[-4:], 16) % 1000 / 1000.0
+        delay_seconds = base_seconds + jitter_seconds
+        self.evidence.append_event(
+            "retry_backoff_started",
+            {
+                "failure_condition": condition,
+                "delay_seconds": delay_seconds,
+                "attempt_ordinal": ordinal,
+            },
+            phase_instance_id=decision.phase_instance_id,
+            logical_action_id=decision.logical_action_id,
+        )
+        try:
+            await asyncio.sleep(delay_seconds)
+        except asyncio.CancelledError:
+            self.evidence.append_event(
+                "logical_action_outcome_unknown",
+                {"failure_condition": "interrupted_during_retry_backoff"},
+                phase_instance_id=decision.phase_instance_id,
+                logical_action_id=decision.logical_action_id,
+            )
+            current = self._executions[decision.logical_action_id]
+            self._executions[decision.logical_action_id] = dataclasses.replace(
+                current,
+                status="outcome_unknown",
+                failure_code="interrupted_during_retry_backoff",
+            )
+            raise
+        self.evidence.append_event(
+            "retry_backoff_completed",
+            {
+                "failure_condition": condition,
+                "delay_seconds": delay_seconds,
+                "attempt_ordinal": ordinal,
+            },
+            phase_instance_id=decision.phase_instance_id,
+            logical_action_id=decision.logical_action_id,
+        )
 
     def _record_provider_failure(
         self,
@@ -3008,6 +3108,20 @@ class ToolExecutor:
         )
 
 
+def _paired_cell_request_seed(
+    *, base_seed: int, world_seed: int, replicate_index: int
+) -> int:
+    payload = ":".join(
+        (
+            "paired_cell_request_seed_v1",
+            str(base_seed),
+            str(world_seed),
+            str(replicate_index),
+        )
+    ).encode("utf-8")
+    return int.from_bytes(hashlib.sha256(payload).digest()[:4], "big") & 0x7FFF_FFFF
+
+
 async def execute_plan_cell(
     *,
     plan: RunPlan,
@@ -3072,6 +3186,31 @@ async def execute_plan_cell(
         profile_by_id[profile_id]
         for profile_id in sorted(set(cell.profile_by_seat.values()))
     )
+    request_seed_by_profile: dict[str, int] = {}
+    for profile in selected_profiles:
+        seed_source = profile.harness.config.get("request_seed_source")
+        if seed_source is None:
+            continue
+        if seed_source != "paired_cell_v1":
+            raise EvidenceIntegrityError(
+                f"unsupported request seed source for {profile.profile_id!r}: "
+                f"{seed_source!r}"
+            )
+        base_seed = profile.harness.config.get("request_seed_base")
+        if (
+            isinstance(base_seed, bool)
+            or not isinstance(base_seed, int)
+            or base_seed < 0
+        ):
+            raise EvidenceIntegrityError(
+                "paired_cell_v1 requires a non-negative request_seed_base for "
+                f"{profile.profile_id!r}"
+            )
+        request_seed_by_profile[profile.profile_id] = _paired_cell_request_seed(
+            base_seed=base_seed,
+            world_seed=cell.world_seed,
+            replicate_index=cell.replicate_index,
+        )
     episode_id = episode_id_for_cell(cell)
     episode_attempt_id = _stable_id(
         "episode_attempt",
@@ -3099,6 +3238,7 @@ async def execute_plan_cell(
         providers=providers,
         pricing=pricing,
         harnesses=default_harnesses() if harnesses is None else harnesses,
+        request_seed_by_profile=request_seed_by_profile,
     )
     result = await run_episode(
         cell=cell,
