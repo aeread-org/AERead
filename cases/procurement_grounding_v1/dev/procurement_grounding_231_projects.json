@@ -1,0 +1,198 @@
+{
+  "spec_version": "aeread.case/0.1",
+  "case_id": "procurement_grounding_v1.dev.231_projects",
+  "family_id": "procurement_grounding_v1",
+  "family_version": "1.0.0",
+  "split": "dev",
+  "world_seed": 2310831,
+  "seats": [
+    {
+      "id": "analyst",
+      "role": "analyst"
+    }
+  ],
+  "episode": {
+    "max_logical_actions": 1,
+    "termination": [
+      "submitted",
+      "invalid_submission"
+    ]
+  },
+  "visibility_policy": "procurement_grounding_evidence_only_v1",
+  "payload": {
+    "snapshot": {
+      "as_of": "2026-08-31",
+      "source_kind": "frozen_verified_workbook_snapshot",
+      "workbook_sha256": "1488985150e3afc9c5dc8bf4753200fd60dc504ce0f8468aa99e3d325a284504",
+      "workbook_bytes": 139785,
+      "source_notes": [
+        "The original findings and rejections CSVs were iCloud dataless placeholders at final build time; the workbook reused its previously verified normalized 51-listing table.",
+        "The Alibaba conversation ledger was live-growing, so this case freezes the workbook counts rather than rereading mutable source files.",
+        "Causal Orchid is pilot evidence; EasyCircuit is the platform and procurement scope."
+      ],
+      "source_hashes": {
+        "findings": "bc7d551de96c316942f6f1f51b8ec93ba4d341cf3a70ea2236bda88e5462cc03",
+        "rejections": "a8b7c9bc8b922526cf130f2cfaa6c1c5baccf9b7b3d1b080ec88df2c6e83efcb",
+        "alibaba_ledger": "fc9d81259dd607775c984d1f38d1c55f9211312ac9c1cc35f41482fb1f9d03ad",
+        "alibaba_queue": "97e9b1099ef16e6a31f17087b66d5c82d259fb8bfed90b7b02857a6d3747252c",
+        "projects": "5eeb90934af5229bfd839881fb2f8b9d6df7b7993705a56443b9c4e31126c757",
+        "project_summary": "5a18cefc17c30bbd6edbd71044ea7eda47ed48fd9945a9fa8550818ef9d4b9e5",
+        "search_cards": "d6f645344af9db6b0c25f6a2c52da443542d7c346159550895069c76dcc26c8e",
+        "outreach": "c63a3d731a20228055d7ce1e8fea6935911e24515fb5d4fb57f7b96678084fba",
+        "quotes_received": "b38a9be93179c8bdccb892dfaae70416abbc2c332245c8e483177a1846729ca4"
+      }
+    },
+    "visible_evidence": {
+      "objective": "Use the 231-project demand proxies to identify the most important supplier-readiness gaps. Preserve each source denominator, qualify one primary plus two independently orderable backups per priority family, and do not declare bulk-order readiness until exact variants and commercial terms are verified.",
+      "decision_rule": "Rank the three High-band families by priority_score descending. Search breadth is discovery evidence only. A supplier counts toward accepted depth only after the original exact-variant screen. The correct procurement state may be to defer ordering.",
+      "report_vocabulary": {
+        "scope_id": "easycircuit_platform_causal_orchid_pilot",
+        "shortlist_structure_id": "one_primary_two_independent_backups",
+        "next_step_ids": [
+          "verify_exact_variants",
+          "request_common_quantity_quotes",
+          "capture_moq",
+          "capture_lead_time",
+          "capture_shipping_terms",
+          "validate_golden_samples"
+        ]
+      },
+      "source_coverage": [
+        {"metric_id": "projects", "value": 231, "unit": "projects", "definition": "Complete public Community corpus; unverified benchmark fixtures"},
+        {"metric_id": "bom_rows", "value": 1156, "unit": "rows", "definition": "Component rows across all 231 records"},
+        {"metric_id": "identity_keys", "value": 576, "unit": "identities", "definition": "Most specific available canonical ID, slug, part number, or name"},
+        {"metric_id": "projects_without_components", "value": 38, "unit": "projects", "definition": "Do not contribute to procurement demand"},
+        {"metric_id": "original_1688_listings", "value": 51, "unit": "urls", "definition": "Findings and rejections deduplicated by listing URL"},
+        {"metric_id": "original_1688_suppliers", "value": 44, "unit": "supplier_names", "definition": "Chinese supplier strings in the canonical exact-variant screen"},
+        {"metric_id": "search_card_sku_rows", "value": 497, "unit": "skus", "definition": "Catalog SKUs with search-card evidence"},
+        {"metric_id": "search_card_candidate_slots", "value": 1219, "unit": "slots", "definition": "Nonempty rank-1/rank-2/rank-3 cards; not deduplicated listing URLs"},
+        {"metric_id": "search_card_suppliers", "value": 341, "unit": "supplier_names", "definition": "Unique named companies in search cards"},
+        {"metric_id": "search_card_supplier_sku_pairs", "value": 978, "unit": "pairs", "definition": "Unique company coverage summed across SKUs"},
+        {"metric_id": "outreach_assignments", "value": 252, "unit": "sku_assignments", "definition": "Supplier assignment rows, not separate messages"},
+        {"metric_id": "outreach_supplier_labels", "value": 28, "unit": "labels", "definition": "Includes a brand-locked placeholder"},
+        {"metric_id": "sent_assignments", "value": 236, "unit": "sku_assignments", "definition": "SKU coverage marked sent"},
+        {"metric_id": "skipped_assignments", "value": 16, "unit": "sku_assignments", "definition": "SKU coverage marked skipped"},
+        {"metric_id": "actual_threads", "value": 30, "unit": "threads", "definition": "Distinct captured supplier conversations"},
+        {"metric_id": "post_buyer_reply_threads", "value": 25, "unit": "threads", "definition": "At least one supplier message after the first buyer message"},
+        {"metric_id": "quote_suppliers", "value": 9, "unit": "suppliers", "definition": "Suppliers represented in structured quote-received rows"},
+        {"metric_id": "quote_rows", "value": 44, "unit": "rows", "definition": "Structured product price records"},
+        {"metric_id": "tier_price_rows", "value": 1, "unit": "rows", "definition": "Structured rows with a nonblank tier-pricing field"},
+        {"metric_id": "alibaba_queue_listings", "value": 30, "unit": "urls", "definition": "Resume-queue listing records"},
+        {"metric_id": "alibaba_queue_suppliers", "value": 27, "unit": "supplier_names", "definition": "Resume-queue supplier strings"},
+        {"metric_id": "alibaba_structured_listings", "value": 33, "unit": "urls", "definition": "Structured, transmission-verified conversation records"},
+        {"metric_id": "alibaba_raw_captures", "value": 24, "unit": "captures", "definition": "Not normalized to supplier/listing fields"},
+        {"metric_id": "alibaba_ledger_suppliers", "value": 32, "unit": "supplier_names", "definition": "Structured ledger only"},
+        {"metric_id": "combined_alibaba_listings", "value": 63, "unit": "urls", "definition": "Queue plus structured ledger; zero URL overlap"},
+        {"metric_id": "combined_alibaba_suppliers", "value": 58, "unit": "supplier_names", "definition": "Queue plus structured ledger; one exact-name overlap"}
+      ],
+      "priority_matrix": [
+        {"family_id": "tactile_switch_6x6x5", "family": "6x6x5mm four-pin normally-open tactile switch", "projects": 39, "bom_rows": 81, "demand_evidence": "functional_proxy", "original_listings": 11, "accepted": 0, "conditional": 4, "rejected": 7, "queue_suppliers": 3, "recent_search_suppliers": 3, "priority_score": 79, "priority_band": "High"},
+        {"family_id": "ssd1306_oled_096", "family": "0.96-inch 128x64 four-pin SSD1306 OLED", "projects": 49, "bom_rows": 49, "demand_evidence": "exact_identifier", "original_listings": 14, "accepted": 1, "conditional": 6, "rejected": 7, "queue_suppliers": 3, "recent_search_suppliers": 3, "priority_score": 69, "priority_band": "High"},
+        {"family_id": "tp4056_usb_c_protected", "family": "Protected USB-C TP4056 charger", "projects": 17, "bom_rows": 18, "demand_evidence": "family_proxy", "original_listings": 5, "accepted": 0, "conditional": 3, "rejected": 2, "queue_suppliers": 3, "recent_search_suppliers": 3, "priority_score": 52, "priority_band": "High"},
+        {"family_id": "mosfet_low_side_3v3", "family": "3.3V logic-level low-side MOSFET driver", "projects": 7, "bom_rows": 14, "demand_evidence": "functional_proxy", "original_listings": 3, "accepted": 0, "conditional": 0, "rejected": 3, "queue_suppliers": 3, "recent_search_suppliers": 5, "priority_score": 47, "priority_band": "Medium"},
+        {"family_id": "ky040_encoder", "family": "EC11 / KY-040 encoder module", "projects": 7, "bom_rows": 8, "demand_evidence": "family_proxy", "original_listings": 6, "accepted": 0, "conditional": 0, "rejected": 6, "queue_suppliers": 3, "recent_search_suppliers": 4, "priority_score": 42, "priority_band": "Medium"},
+        {"family_id": "esp32_s3_n8r8", "family": "ESP32-S3-DevKitC-1 N8R8", "projects": 3, "bom_rows": 3, "demand_evidence": "family_proxy", "original_listings": 0, "accepted": 0, "conditional": 0, "rejected": 0, "queue_suppliers": 3, "recent_search_suppliers": 2, "priority_score": 38, "priority_band": "Medium"},
+        {"family_id": "ky023_joystick", "family": "KY-023 dual-axis joystick module", "projects": 7, "bom_rows": 8, "demand_evidence": "exact_identifier", "original_listings": 0, "accepted": 0, "conditional": 0, "rejected": 0, "queue_suppliers": 3, "recent_search_suppliers": 2, "priority_score": 37, "priority_band": "Medium"},
+        {"family_id": "ds3231_at24c32", "family": "DS3231 + AT24C32 RTC", "projects": 3, "bom_rows": 3, "demand_evidence": "exact_identifier", "original_listings": 6, "accepted": 0, "conditional": 3, "rejected": 3, "queue_suppliers": 3, "recent_search_suppliers": 2, "priority_score": 33, "priority_band": "Medium"},
+        {"family_id": "bh1750_gy302", "family": "BH1750 / GY-302 lux sensor", "projects": 2, "bom_rows": 3, "demand_evidence": "exact_identifier", "original_listings": 0, "accepted": 0, "conditional": 0, "rejected": 0, "queue_suppliers": 3, "recent_search_suppliers": 3, "priority_score": 32, "priority_band": "Medium"},
+        {"family_id": "sht30_i2c", "family": "SHT30 I2C temperature/humidity sensor", "projects": 1, "bom_rows": 2, "demand_evidence": "exact_identifier", "original_listings": 6, "accepted": 0, "conditional": 4, "rejected": 2, "queue_suppliers": 2, "recent_search_suppliers": 3, "priority_score": 31, "priority_band": "Medium"}
+      ],
+      "search_card_supplier_distribution": [
+        {"rank_by_unique_skus": 1, "supplier": "深圳市深名扬电子科技有限公司", "unique_skus": 66, "candidate_slots": 81},
+        {"rank_by_unique_skus": 2, "supplier": "深圳市再现电子有限公司", "unique_skus": 65, "candidate_slots": 95},
+        {"rank_by_unique_skus": 3, "supplier": "东莞市智创电子科技有限公司", "unique_skus": 39, "candidate_slots": 42},
+        {"rank_by_unique_skus": 4, "supplier": "深圳市中展芯微电子科技有限公司", "unique_skus": 34, "candidate_slots": 47},
+        {"rank_by_unique_skus": 5, "supplier": "深圳市骏显电子科技有限公司", "unique_skus": 26, "candidate_slots": 26}
+      ],
+      "outreach_probe": {
+        "largest_assignment": {"supplier": "深圳深天创科技有限公司", "assigned_skus": 61, "post_buyer_reply": false, "quote_rows": 0},
+        "interpretation": "Assignment concentration was introduced by the outreach plan. It is not evidence that this supplier can fulfill 61 SKUs.",
+        "reply_funnel": {"actual_threads": 30, "post_buyer_reply_threads": 25, "quote_suppliers": 9, "quote_rows": 44, "tier_price_rows": 1}
+      },
+      "variant_requirements": {
+        "tactile_switch_6x6x5": ["6x6x5mm", "four_pin", "normally_open"],
+        "ssd1306_oled_096": ["128x64", "four_pin_i2c", "ssd1306_not_sh1106_or_ssd1315"],
+        "tp4056_usb_c_protected": ["usb_c", "dw01a_8205a_protection", "separate_battery_and_output_terminals"]
+      },
+      "evidence_boundaries": [
+        "Search-card candidate slots are not unique listings.",
+        "Displayed marketplace prices are provisional and are not verified quotes.",
+        "A supplier reply is not a structured quote.",
+        "Raw conversation captures are not normalized supplier/listing records.",
+        "The 231-project BOM corpus provides demand proxies, not production demand truth."
+      ]
+    },
+    "oracle": {
+      "source_counts": {
+        "projects": 231,
+        "bom_rows": 1156,
+        "identity_keys": 576,
+        "projects_without_components": 38,
+        "original_1688_listings": 51,
+        "original_1688_suppliers": 44,
+        "search_card_sku_rows": 497,
+        "search_card_candidate_slots": 1219,
+        "search_card_suppliers": 341,
+        "search_card_supplier_sku_pairs": 978,
+        "outreach_assignments": 252,
+        "outreach_supplier_labels": 28,
+        "sent_assignments": 236,
+        "skipped_assignments": 16,
+        "actual_threads": 30,
+        "post_buyer_reply_threads": 25,
+        "quote_suppliers": 9,
+        "quote_rows": 44,
+        "tier_price_rows": 1,
+        "alibaba_queue_listings": 30,
+        "alibaba_queue_suppliers": 27,
+        "alibaba_structured_listings": 33,
+        "alibaba_raw_captures": 24,
+        "alibaba_ledger_suppliers": 32,
+        "combined_alibaba_listings": 63,
+        "combined_alibaba_suppliers": 58
+      },
+      "priority_families": [
+        {"family_id": "tactile_switch_6x6x5", "project_count": 39, "accepted_suppliers": 0, "priority_score": 79, "priority_band": "High"},
+        {"family_id": "ssd1306_oled_096", "project_count": 49, "accepted_suppliers": 1, "priority_score": 69, "priority_band": "High"},
+        {"family_id": "tp4056_usb_c_protected", "project_count": 17, "accepted_suppliers": 0, "priority_score": 52, "priority_band": "High"}
+      ],
+      "supplier_distribution": {
+        "top_search_card_supplier": "深圳市深名扬电子科技有限公司",
+        "top_search_card_unique_skus": 66,
+        "top_search_card_candidate_slots": 81,
+        "largest_outreach_assignment_supplier": "深圳深天创科技有限公司",
+        "largest_outreach_assigned_skus": 61
+      },
+      "evidence_interpretations": {
+        "candidate_slots_are_unique_listings": false,
+        "displayed_prices_are_verified_quotes": false,
+        "post_buyer_reply_is_structured_quote": false,
+        "raw_captures_are_normalized_suppliers": false,
+        "project_boms_are_production_truth": false
+      },
+      "accepted_suppliers_target": 3,
+      "shortlist_structure": "one_primary_two_independent_backups",
+      "variant_gates": {
+        "tactile_switch_6x6x5": ["6x6x5mm", "four_pin", "normally_open"],
+        "ssd1306_oled_096": ["128x64", "four_pin_i2c", "ssd1306_not_sh1106_or_ssd1315"],
+        "tp4056_usb_c_protected": ["usb_c", "dw01a_8205a_protection", "separate_battery_and_output_terminals"]
+      },
+      "scope": "easycircuit_platform_causal_orchid_pilot",
+      "readiness_decision": "defer_bulk_order",
+      "next_steps": [
+        "verify_exact_variants",
+        "request_common_quantity_quotes",
+        "capture_moq",
+        "capture_lead_time",
+        "capture_shipping_terms",
+        "validate_golden_samples"
+      ]
+    }
+  },
+  "provenance": {
+    "generator_id": "procurement_grounding_snapshot_builder",
+    "generator_version": "1.0.0",
+    "review_status": "curated"
+  },
+  "content_sha256": "34c11a4b192bef777e438b4d1aa00a62357eb397c1bb85bc99459a3bb9930670"
+}

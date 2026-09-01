@@ -49,3 +49,12 @@ def test_tau3_base_split_has_all_cases_and_provenance() -> None:
 
 def test_generated_housing_family_is_discoverable() -> None:
     assert (CASES / "housing_v1" / "README.md").is_file()
+
+
+def test_procurement_grounding_development_case_is_discoverable() -> None:
+    family = CASES / "procurement_grounding_v1"
+
+    assert (family / "README.md").is_file()
+    assert sorted(path.name for path in (family / "dev").glob("*.json")) == [
+        "procurement_grounding_231_projects.json"
+    ]

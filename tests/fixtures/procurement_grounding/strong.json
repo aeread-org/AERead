@@ -1,0 +1,68 @@
+{
+  "readiness_decision": "defer_bulk_order",
+  "scope": "easycircuit_platform_causal_orchid_pilot",
+  "source_counts": {
+    "projects": 231,
+    "bom_rows": 1156,
+    "identity_keys": 576,
+    "projects_without_components": 38,
+    "original_1688_listings": 51,
+    "original_1688_suppliers": 44,
+    "search_card_sku_rows": 497,
+    "search_card_candidate_slots": 1219,
+    "search_card_suppliers": 341,
+    "search_card_supplier_sku_pairs": 978,
+    "outreach_assignments": 252,
+    "outreach_supplier_labels": 28,
+    "sent_assignments": 236,
+    "skipped_assignments": 16,
+    "actual_threads": 30,
+    "post_buyer_reply_threads": 25,
+    "quote_suppliers": 9,
+    "quote_rows": 44,
+    "tier_price_rows": 1,
+    "alibaba_queue_listings": 30,
+    "alibaba_queue_suppliers": 27,
+    "alibaba_structured_listings": 33,
+    "alibaba_raw_captures": 24,
+    "alibaba_ledger_suppliers": 32,
+    "combined_alibaba_listings": 63,
+    "combined_alibaba_suppliers": 58
+  },
+  "priority_families": [
+    {"family_id": "tactile_switch_6x6x5", "project_count": 39, "accepted_suppliers": 0, "priority_score": 79, "priority_band": "High"},
+    {"family_id": "ssd1306_oled_096", "project_count": 49, "accepted_suppliers": 1, "priority_score": 69, "priority_band": "High"},
+    {"family_id": "tp4056_usb_c_protected", "project_count": 17, "accepted_suppliers": 0, "priority_score": 52, "priority_band": "High"}
+  ],
+  "supplier_distribution": {
+    "top_search_card_supplier": "深圳市深名扬电子科技有限公司",
+    "top_search_card_unique_skus": 66,
+    "top_search_card_candidate_slots": 81,
+    "largest_outreach_assignment_supplier": "深圳深天创科技有限公司",
+    "largest_outreach_assigned_skus": 61
+  },
+  "evidence_interpretations": {
+    "candidate_slots_are_unique_listings": false,
+    "displayed_prices_are_verified_quotes": false,
+    "post_buyer_reply_is_structured_quote": false,
+    "raw_captures_are_normalized_suppliers": false,
+    "project_boms_are_production_truth": false
+  },
+  "procurement_controls": {
+    "accepted_suppliers_target": 3,
+    "shortlist_structure": "one_primary_two_independent_backups",
+    "variant_gates": {
+      "tactile_switch_6x6x5": ["6x6x5mm", "four_pin", "normally_open"],
+      "ssd1306_oled_096": ["128x64", "four_pin_i2c", "ssd1306_not_sh1106_or_ssd1315"],
+      "tp4056_usb_c_protected": ["usb_c", "dw01a_8205a_protection", "separate_battery_and_output_terminals"]
+    }
+  },
+  "next_steps": [
+    "verify_exact_variants",
+    "request_common_quantity_quotes",
+    "capture_moq",
+    "capture_lead_time",
+    "capture_shipping_terms",
+    "validate_golden_samples"
+  ]
+}
