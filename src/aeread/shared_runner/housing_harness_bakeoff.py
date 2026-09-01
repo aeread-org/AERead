@@ -69,6 +69,35 @@ HARNESS_ARM_IDS = (
     "langgraph_structured_output_v1",
     "smolagents_tool_calling_agent_v1",
 )
+MODEL_LANDLORD_PROFILE_ID = "housing_glm_landlord_fixed_v1"
+
+
+class HousingRoleRoutingProviderClient:
+    """Keep the tenant harness treatment out of fixed model-landlord calls."""
+
+    def __init__(self, *, tenant: Any, landlord: Any) -> None:
+        self._tenant = tenant
+        self._landlord = landlord
+
+    async def complete(self, request: ProviderRequest) -> ProviderResult:
+        try:
+            payload = json.loads(request.input_text)
+        except json.JSONDecodeError as error:
+            raise ProviderFailure(
+                "provider_contract",
+                "Housing role router requires the canonical decision request",
+                retryable=False,
+            ) from error
+        role = payload.get("role") if isinstance(payload, Mapping) else None
+        if role == "tenant":
+            return await self._tenant.complete(request)
+        if role == "landlord":
+            return await self._landlord.complete(request)
+        raise ProviderFailure(
+            "provider_contract",
+            f"Housing role router received unknown role {role!r}",
+            retryable=False,
+        )
 
 
 class SmolagentsToolCallingHarness(FrameworkOneCallHarness):
@@ -338,6 +367,10 @@ def _condition_summary(
     total_output = complete_total("output_tokens")
     total_requests = complete_total("framework_model_request_count")
     total_retries = complete_total("effective_retry_count")
+    total_subject_calls = complete_total("subject_provider_call_count")
+    total_opponent_calls = complete_total("opponent_provider_call_count")
+    total_subject_cost = complete_total("subject_cost_usd")
+    total_opponent_cost = complete_total("opponent_cost_usd")
     route_verified = complete_panel and all(
         row.get("framework_route_verified") is True for row in completed
     )
@@ -367,6 +400,18 @@ def _condition_summary(
         ),
         "effective_retry_count": (
             int(total_retries) if total_retries is not None else None
+        ),
+        "total_subject_provider_calls": (
+            int(total_subject_calls) if total_subject_calls is not None else None
+        ),
+        "total_opponent_provider_calls": (
+            int(total_opponent_calls) if total_opponent_calls is not None else None
+        ),
+        "total_subject_cost_usd": (
+            float(total_subject_cost) if total_subject_cost is not None else None
+        ),
+        "total_opponent_cost_usd": (
+            float(total_opponent_cost) if total_opponent_cost is not None else None
         ),
         "route_verified": route_verified,
         "provider_cost_complete": provider_cost_complete,
@@ -462,6 +507,50 @@ def _event_framework_metrics(evidence: Any) -> dict[str, Any]:
     }
 
 
+def _execution_role_metrics(
+    execution: Any, *, landlord_profile_id: str
+) -> dict[str, int | float]:
+    subject_calls = []
+    opponent_calls = []
+    for action in execution.action_executions:
+        destination = (
+            opponent_calls
+            if action.profile_id == landlord_profile_id
+            else subject_calls
+        )
+        for attempt in action.attempts:
+            destination.extend(attempt.provider_calls)
+
+    def metrics(calls: Sequence[Any]) -> dict[str, int | float]:
+        return {
+            "provider_call_count": len(calls),
+            "input_tokens": sum(call.input_tokens for call in calls),
+            "output_tokens": sum(call.output_tokens for call in calls),
+            "cost_usd": sum(call.cost_usd for call in calls),
+        }
+
+    subject = metrics(subject_calls)
+    opponent = metrics(opponent_calls)
+    return {
+        **{f"subject_{key}": value for key, value in subject.items()},
+        **{f"opponent_{key}": value for key, value in opponent.items()},
+    }
+
+
+def _framework_versions(arms: Sequence[HarnessArm]) -> dict[str, str]:
+    packages = {"openai"}
+    for arm in arms:
+        if isinstance(arm.harness, LangChainProviderStrategyHarness):
+            packages.update({"langchain", "langchain-openai"})
+        elif isinstance(arm.harness, LangGraphStructuredOutputHarness):
+            packages.update({"langchain-openai", "langgraph"})
+        elif isinstance(arm.harness, SmolagentsToolCallingHarness):
+            packages.add("smolagents")
+    return {
+        package: importlib.metadata.version(package) for package in sorted(packages)
+    }
+
+
 async def run_bakeoff(
     *,
     output_root: Path,
@@ -470,6 +559,8 @@ async def run_bakeoff(
     num_listings: int = 4,
     rounds: int = 4,
     inference_seed_base: int = 87001,
+    model_landlords: bool = False,
+    landlord_inference_seed_base: int = 97001,
     arm_ids: Sequence[str] | None = None,
 ) -> dict[str, Any]:
     implementation_sha256 = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
@@ -533,6 +624,24 @@ async def run_bakeoff(
                 else "aeread.shared_runner.execution"
             ),
             tenant_implementation_sha256=(implementation_sha256 if external else None),
+            landlord_provider=(
+                "openrouter" if model_landlords else "housing_scripted_landlord"
+            ),
+            landlord_model=(
+                GLM_MODEL if model_landlords else "housing_scripted_landlord_v1"
+            ),
+            landlord_revision=(
+                GLM_REVISION if model_landlords else "1.0.0"
+            ),
+            landlord_profile_id_override=(
+                MODEL_LANDLORD_PROFILE_ID if model_landlords else None
+            ),
+            landlord_inference_seed_base=(
+                landlord_inference_seed_base if model_landlords else None
+            ),
+            landlord_openrouter_route=(
+                GLM_DEEPINFRA_ROUTE if model_landlords else None
+            ),
         )
 
     output_root.mkdir(parents=True, exist_ok=True)
@@ -555,16 +664,27 @@ async def run_bakeoff(
                 continue
             started = time.perf_counter()
             try:
+                tenant_provider = arm_by_condition[condition].provider
+                providers = (
+                    {
+                        "openrouter": HousingRoleRoutingProviderClient(
+                            tenant=tenant_provider,
+                            landlord=OpenRouterChatClient(),
+                        )
+                    }
+                    if model_landlords
+                    else {
+                        "openrouter": tenant_provider,
+                        "housing_scripted_landlord": HousingScriptedLandlordProvider(),
+                    }
+                )
                 execution = await execute_plan_cell(
                     plan=setup.plan,
                     cell_id=cell.cell_id,
                     registry=setup.registry,
                     evidence_root=output_root / condition / "evidence",
                     prompt_sources=setup.prompt_sources,
-                    providers={
-                        "openrouter": arm_by_condition[condition].provider,
-                        "housing_scripted_landlord": HousingScriptedLandlordProvider(),
-                    },
+                    providers=providers,
                     pricing=setup.pricing,
                     harnesses=setup.harnesses,
                 )
@@ -600,6 +720,14 @@ async def run_bakeoff(
                     "evidence_root": _relative_evidence_root(
                         evidence_root=execution.evidence.root,
                         output_root=output_root,
+                    ),
+                    **_execution_role_metrics(
+                        execution,
+                        landlord_profile_id=(
+                            MODEL_LANDLORD_PROFILE_ID
+                            if model_landlords
+                            else "housing_scripted_landlord_v1"
+                        ),
                     ),
                     **_event_framework_metrics(execution.evidence),
                 }
@@ -653,6 +781,25 @@ async def run_bakeoff(
             "temperature": 0.0,
             "top_p": 1.0,
         },
+        "opponent": {
+            "mode": "fixed_model" if model_landlords else "scripted",
+            "profile_id": (
+                MODEL_LANDLORD_PROFILE_ID
+                if model_landlords
+                else "housing_scripted_landlord_v1"
+            ),
+            "requested_model": GLM_MODEL if model_landlords else None,
+            "canonical_model": GLM_REVISION if model_landlords else None,
+            "provider": GLM_DEEPINFRA_ROUTE.provider if model_landlords else None,
+            "quantization": (
+                GLM_DEEPINFRA_ROUTE.quantization if model_landlords else None
+            ),
+            "harness": "minimal_chat/1.0" if model_landlords else "scripted",
+            "reasoning_effort": "low" if model_landlords else None,
+            "inference_seed_base": (
+                landlord_inference_seed_base if model_landlords else None
+            ),
+        },
         "environment": {
             "family": "housing_v1",
             "world_seeds": list(world_seeds),
@@ -661,14 +808,9 @@ async def run_bakeoff(
             "listings": num_listings,
             "max_rounds": rounds,
             "controlled_landlords": True,
+            "landlord_policy": "fixed_model" if model_landlords else "scripted",
         },
-        "framework_versions": {
-            "openai": importlib.metadata.version("openai"),
-            "langchain": importlib.metadata.version("langchain"),
-            "langchain-openai": importlib.metadata.version("langchain-openai"),
-            "langgraph": importlib.metadata.version("langgraph"),
-            "smolagents": importlib.metadata.version("smolagents"),
-        },
+        "framework_versions": _framework_versions(arms),
         "measurement_boundary": {
             "housing_scheduler_and_scorer": "AERead authoritative",
             "external_framework_wire_execution": (
@@ -699,6 +841,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--listings", type=int, default=4)
     parser.add_argument("--rounds", type=int, default=4)
     parser.add_argument(
+        "--model-landlords",
+        action="store_true",
+        help="use a fixed minimal-chat GLM profile for every landlord seat",
+    )
+    parser.add_argument("--landlord-inference-seed-base", type=int, default=97001)
+    parser.add_argument(
         "--arms",
         nargs="+",
         choices=HARNESS_ARM_IDS,
@@ -713,6 +861,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             num_tenants=args.tenants,
             num_listings=args.listings,
             rounds=args.rounds,
+            model_landlords=args.model_landlords,
+            landlord_inference_seed_base=args.landlord_inference_seed_base,
             arm_ids=args.arms,
         )
     )
@@ -728,6 +878,8 @@ __all__ = [
     "GLM_DEEPINFRA_ROUTE",
     "GLM_MODEL",
     "GLM_REVISION",
+    "HousingRoleRoutingProviderClient",
+    "MODEL_LANDLORD_PROFILE_ID",
     "LangChainProviderClient",
     "LangChainProviderStrategyHarness",
     "LangGraphProviderClient",

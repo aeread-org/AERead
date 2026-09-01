@@ -1,5 +1,10 @@
 from __future__ import annotations
 
+import asyncio
+import json
+import sys
+import types
+
 import pytest
 
 from aeread.shared_runner.housing import build_housing_smoke
@@ -7,10 +12,13 @@ from aeread.shared_runner.housing_harness_bakeoff import (
     GLM_DEEPINFRA_ROUTE,
     GLM_MODEL,
     GLM_REVISION,
+    MODEL_LANDLORD_PROFILE_ID,
+    HousingRoleRoutingProviderClient,
     LangChainProviderStrategyHarness,
     LangGraphStructuredOutputHarness,
     SmolagentsToolCallingHarness,
     _atomic_write_json,
+    _capture_http_client,
     _condition_summary,
     _event_framework_metrics,
     _public_failure_summary,
@@ -20,7 +28,7 @@ from aeread.shared_runner.housing_harness_bakeoff import (
     derive_world_seeds,
 )
 from aeread.shared_runner.open_harnesses import _run_langgraph_structured_decision
-from aeread.shared_runner.execution import ProviderRequest
+from aeread.shared_runner.execution import ProviderRequest, ProviderResult
 
 
 def test_harness_panel_seeds_are_deterministic_and_unique() -> None:
@@ -75,6 +83,108 @@ def test_external_harness_identity_is_sealed_in_housing_plan(
     assert f"{harness.id}/{harness.version}" in setup.harnesses
     assert tenant.harness.config["request_seed_source"] == "paired_cell_v1"
     assert tenant.harness.config["retry_backoff"] == "exponential_jitter_v1"
+
+
+def test_model_landlord_profile_is_fixed_and_paired_in_housing_plan() -> None:
+    setup = build_housing_smoke(
+        tenant_provider="openrouter",
+        tenant_model=GLM_MODEL,
+        tenant_revision=GLM_REVISION,
+        landlord_provider="openrouter",
+        landlord_model=GLM_MODEL,
+        landlord_revision=GLM_REVISION,
+        landlord_profile_id_override=MODEL_LANDLORD_PROFILE_ID,
+        landlord_inference_seed_base=97001,
+        landlord_openrouter_route=GLM_DEEPINFRA_ROUTE,
+        world_seeds=(41001,),
+        replicates=1,
+        inference_seed_base=87001,
+        num_tenants=2,
+        num_listings=1,
+        rounds=2,
+        openrouter_route=GLM_DEEPINFRA_ROUTE,
+    )
+
+    profiles = {profile.profile_id: profile for profile in setup.plan.agent_profiles}
+    landlord = profiles[MODEL_LANDLORD_PROFILE_ID]
+    assert landlord.model.provider == "openrouter"
+    assert landlord.model.revision == GLM_REVISION
+    assert (landlord.harness.id, landlord.harness.version) == ("minimal_chat", "1.0")
+    assert landlord.harness.config["request_seed_source"] == "paired_cell_v1"
+    assert landlord.harness.config["request_seed_base"] == 97001
+    assert setup.plan.cells[0].profile_by_seat["landlord_0"] == MODEL_LANDLORD_PROFILE_ID
+    assert setup.plan.evaluation_blocks[0].controlled_profiles == {
+        "landlord_0": MODEL_LANDLORD_PROFILE_ID
+    }
+
+
+def test_housing_role_router_keeps_landlord_out_of_tenant_harness() -> None:
+    class FakeProvider:
+        def __init__(self, label: str) -> None:
+            self.label = label
+            self.requests = []
+
+        async def complete(self, request: ProviderRequest) -> ProviderResult:
+            self.requests.append(request)
+            return ProviderResult(
+                response_id=self.label,
+                requested_model=request.model,
+                resolved_model=request.revision,
+                output_text='{"decision":"pass","listing_id":null,"rent":null}',
+                finish_reason="stop",
+                input_tokens=1,
+                cached_input_tokens=0,
+                output_tokens=1,
+                cost_usd=0.0,
+                raw_response={"fixture": True},
+            )
+
+    def request(role: str) -> ProviderRequest:
+        return ProviderRequest(
+            provider_call_id=f"provider_call_{role}",
+            provider="openrouter",
+            base_url="https://openrouter.ai/api/v1",
+            model=GLM_MODEL,
+            revision=GLM_REVISION,
+            instructions="Return one action.",
+            input_text=json.dumps({"role": role}),
+            temperature=0.0,
+            top_p=1.0,
+            max_output_tokens=128,
+            reasoning_effort="low",
+            timeout_seconds=30.0,
+            request_sha256="",
+            output_schema={"type": "object"},
+            provider_metadata={},
+            seed=1,
+        ).with_computed_hash()
+
+    tenant = FakeProvider("tenant")
+    landlord = FakeProvider("landlord")
+    router = HousingRoleRoutingProviderClient(tenant=tenant, landlord=landlord)
+
+    assert asyncio.run(router.complete(request("tenant"))).response_id == "tenant"
+    assert asyncio.run(router.complete(request("landlord"))).response_id == "landlord"
+    assert len(tenant.requests) == 1
+    assert len(landlord.requests) == 1
+
+
+def test_openai_v2_capture_client_never_uses_httpx2(monkeypatch) -> None:
+    class ForbiddenClient:
+        def __init__(self, *args, **kwargs) -> None:
+            raise AssertionError("OpenAI SDK 2.x must use httpx.Client")
+
+    monkeypatch.setitem(
+        sys.modules,
+        "httpx2",
+        types.SimpleNamespace(Client=ForbiddenClient),
+    )
+
+    client = _capture_http_client([])
+    try:
+        assert client.__class__.__module__.split(".", 1)[0] == "httpx"
+    finally:
+        client.close()
 
 
 def test_langgraph_gate_is_one_explicit_structured_decision_node() -> None:

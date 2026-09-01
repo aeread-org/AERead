@@ -8,6 +8,10 @@ model route, prompt, action schema, inference seed, budgets, and retry policy
 fixed. It produces a separate leaderboard for each case family. It does not
 combine unlike family scores into a universal scalar.
 
+To measure opponent-model, opponent-policy, seat-composition, cross-play, or
+self-play effects while holding the harness fixed, use the separate
+[multi-agent model interaction protocol](multiagent_experiment_design.md).
+
 ## Reproduce the Housing comparison
 
 Install the benchmark and the pinned optional harness packages:

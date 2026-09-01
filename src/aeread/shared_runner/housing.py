@@ -1144,6 +1144,9 @@ def build_housing_smoke(
     tenant_provider: str,
     tenant_model: str,
     tenant_revision: str,
+    landlord_provider: str = "housing_scripted_landlord",
+    landlord_model: str = "housing_scripted_landlord_v1",
+    landlord_revision: str = "1.0.0",
     world_seed: int = 41001,
     num_tenants: int = 2,
     num_listings: int = 1,
@@ -1159,6 +1162,9 @@ def build_housing_smoke(
     tenant_profile_id_override: str | None = None,
     tenant_runtime: str | None = None,
     tenant_implementation_sha256: str | None = None,
+    landlord_profile_id_override: str | None = None,
+    landlord_inference_seed_base: int | None = None,
+    landlord_openrouter_route: OpenRouterRoutePin | None = None,
 ) -> HousingSmokeSetup:
     selected_world_seeds = (world_seed,) if world_seeds is None else tuple(world_seeds)
     if not selected_world_seeds:
@@ -1175,6 +1181,22 @@ def build_housing_smoke(
         and tenant_revision != openrouter_route.canonical_model
     ):
         raise ValueError("tenant_revision must match the sealed OpenRouter route model")
+    resolved_landlord_route = landlord_openrouter_route or openrouter_route
+    if (
+        landlord_provider == "openrouter"
+        and landlord_revision != resolved_landlord_route.canonical_model
+    ):
+        raise ValueError(
+            "landlord_revision must match the sealed OpenRouter route model"
+        )
+    if (
+        experiment_mode
+        and landlord_provider == "openrouter"
+        and landlord_inference_seed_base is None
+    ):
+        raise ValueError(
+            "model-landlord experiment plans require landlord_inference_seed_base"
+        )
     family = FamilyManifest.from_dict(
         {
             "spec_version": "aeread.family/0.1",
@@ -1317,8 +1339,17 @@ def build_housing_smoke(
         if tenant_provider == "openrouter"
         else TokenPricing(0.0, 0.0, 0.0, "housing_scripted_tenant_zero_cost_v1")
     )
-    landlord_pricing = TokenPricing(
-        0.0, 0.0, 0.0, "housing_scripted_landlord_zero_cost_v1"
+    landlord_profile_id = landlord_profile_id_override or (
+        "housing_model_landlord_v1"
+        if landlord_provider == "openrouter"
+        else "housing_scripted_landlord_v1"
+    )
+    landlord_pricing = (
+        resolved_landlord_route.token_pricing()
+        if landlord_provider == "openrouter"
+        else TokenPricing(
+            0.0, 0.0, 0.0, "housing_scripted_landlord_zero_cost_v1"
+        )
     )
     tenant_profile = _profile(
         profile_id=tenant_profile_id,
@@ -1357,19 +1388,41 @@ def build_housing_smoke(
         harness_config=tenant_harness_config,
     )
     landlord_profile = _profile(
-        profile_id="housing_scripted_landlord_v1",
-        provider="housing_scripted_landlord",
-        model="housing_scripted_landlord_v1",
-        revision="1.0.0",
+        profile_id=landlord_profile_id,
+        provider=landlord_provider,
+        model=landlord_model,
+        revision=landlord_revision,
         prompt_id="housing_landlord_v1",
         prompt=HOUSING_LANDLORD_PROMPT,
         output_schemas={"housing_respond_v1": HOUSING_RESPOND_OUTPUT_SCHEMA},
         pricing=landlord_pricing,
         max_logical_actions=num_listings * rounds,
-        runtime="aeread.shared_runner.housing",
+        runtime=(
+            "aeread.shared_runner.execution"
+            if landlord_provider == "openrouter"
+            else "aeread.shared_runner.housing"
+        ),
         world_seed=selected_world_seeds[0],
-        reasoning_condition_id="scripted_no_reasoning_v1",
-        reasoning_effort=None,
+        reasoning_condition_id=(
+            "fixed_model_opponent_v1"
+            if landlord_provider == "openrouter"
+            else "scripted_no_reasoning_v1"
+        ),
+        reasoning_effort=(
+            reasoning_effort if landlord_provider == "openrouter" else None
+        ),
+        request_seed_base=landlord_inference_seed_base,
+        max_output_tokens=(
+            4096
+            if landlord_provider == "openrouter" and experiment_mode
+            else None
+        ),
+        timeout_seconds=(
+            120.0
+            if landlord_provider == "openrouter" and experiment_mode
+            else None
+        ),
+        openrouter_route=resolved_landlord_route,
     )
     tenant_seats = [f"tenant_{index}" for index in range(num_tenants)]
     landlord_seats = [f"landlord_{index}" for index in range(num_listings)]
@@ -1377,14 +1430,22 @@ def build_housing_smoke(
         {
             "spec_version": "aeread.evaluation_block/0.1",
             "block_id": (
-                "housing_controlled_landlords_smoke"
-                if not experiment_mode
-                else "housing_controlled_landlords_experiment"
+                "housing_controlled_model_landlords_smoke"
+                if landlord_provider == "openrouter" and not experiment_mode
+                else (
+                    "housing_controlled_model_landlords_experiment"
+                    if landlord_provider == "openrouter"
+                    else (
+                        "housing_controlled_landlords_smoke"
+                        if not experiment_mode
+                        else "housing_controlled_landlords_experiment"
+                    )
+                )
             ),
             "kind": "controlled",
             "subject_seats": tenant_seats,
             "controlled_profiles": {
-                seat: "housing_scripted_landlord_v1" for seat in landlord_seats
+                seat: landlord_profile_id for seat in landlord_seats
             },
             "repetitions": 1,
             "seed_policy": "fixed" if not experiment_mode else "paired",
@@ -1443,7 +1504,7 @@ def build_housing_smoke(
     )
     assignments = {
         **{seat: tenant_profile_id for seat in tenant_seats},
-        **{seat: "housing_scripted_landlord_v1" for seat in landlord_seats},
+        **{seat: landlord_profile_id for seat in landlord_seats},
     }
     run_spec = RunSpec.from_dict(
         {
@@ -1455,7 +1516,7 @@ def build_housing_smoke(
             ),
             "suite_id": suite.suite_id,
             "evaluation_block_ids": [block.block_id],
-            "agent_profile_ids": [tenant_profile_id, "housing_scripted_landlord_v1"],
+            "agent_profile_ids": [tenant_profile_id, landlord_profile_id],
             "seat_assignments": assignments,
             "execution_mode": "evaluate",
             "replicate_override": None,
@@ -1502,7 +1563,6 @@ def build_housing_smoke(
         _pin("housing_naive_v1", "reference", housing_digest),
         _pin("housing_generator_v1", "generator", housing_digest),
         _pin("minimal_chat", "harness", execution_digest, version="1.0"),
-        _pin("aeread.shared_runner.housing", "runtime", bridge_digest, version="0.1.0"),
     ]
     if resolved_tenant_harness.id != "minimal_chat":
         if tenant_implementation_sha256 is None:
@@ -1517,12 +1577,20 @@ def build_housing_smoke(
                 version=resolved_tenant_harness.version,
             )
         )
-    resolved_tenant_runtime = tenant_profile.runtime.implementation
-    if resolved_tenant_runtime != "aeread.shared_runner.housing":
+    for resolved_runtime in sorted(
+        {
+            tenant_profile.runtime.implementation,
+            landlord_profile.runtime.implementation,
+        }
+    ):
         runtime_digest = (
-            execution_digest
-            if resolved_tenant_runtime == "aeread.shared_runner.execution"
-            else tenant_implementation_sha256
+            bridge_digest
+            if resolved_runtime == "aeread.shared_runner.housing"
+            else (
+                execution_digest
+                if resolved_runtime == "aeread.shared_runner.execution"
+                else tenant_implementation_sha256
+            )
         )
         if runtime_digest is None:
             raise ValueError(
@@ -1530,7 +1598,7 @@ def build_housing_smoke(
             )
         pins.append(
             _pin(
-                resolved_tenant_runtime,
+                resolved_runtime,
                 "runtime",
                 runtime_digest,
                 version="0.1.0",
@@ -1559,7 +1627,7 @@ def build_housing_smoke(
         },
         pricing={
             tenant_model: tenant_pricing,
-            "housing_scripted_landlord_v1": landlord_pricing,
+            landlord_model: landlord_pricing,
         },
         harnesses={
             f"{minimal_harness.id}/{minimal_harness.version}": minimal_harness,
