@@ -16,5 +16,9 @@ Those files tune runs; they are not the canonical case catalog. The former
 `configs/exchange_economy/cases_v0` path is retained as a compatibility link to
 `cases/exchange_v1/v0` for existing scripts.
 
+To compare agent frameworks on any family, follow the staged pairing, evidence,
+and leaderboard protocol in
+[`docs/open_harness_testing.md`](../docs/open_harness_testing.md).
+
 Moving a case does not change its content hash. Adding, removing, or editing a
 case inside a scored set does, and should therefore land as a new version.

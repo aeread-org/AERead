@@ -1,0 +1,388 @@
+{
+  "artifact_sha256": "aaf77e952c59f2a24383a738007ef299ac0072d80758f2cfd620bd34a016f602",
+  "comparisons": {
+    "langchain_score_delta": -0.13295715257233698,
+    "langchain_score_delta_percent_of_aeread_mean": -15.407971460477698,
+    "langchain_total_cost_delta_percent": 12.323328569159898,
+    "langchain_total_input_token_delta_percent": 13.235013181522937,
+    "langchain_total_model_request_delta_percent": 13.33333333333333,
+    "langchain_total_output_token_delta_percent": 9.814230634419907
+  },
+  "conclusion": {
+    "operational": "LangChain admitted after adapter fix; smolagents failed 1 of 22 attempted tenant actions after internal recovery attempts",
+    "quality": "AERead higher mean on 3 worlds, but interval crosses zero",
+    "recommendation": "Keep AERead minimal as default. LangChain is a viable validation arm. Do not admit smolagents without a separately labeled retry-enabled policy and new gate."
+  },
+  "condition_summaries": {
+    "aeread_minimal_chat_v1": {
+      "completed_worlds": 3,
+      "effective_retry_count": 0,
+      "mean_elapsed_seconds": 52.90693454166952,
+      "mean_within_case_score": 0.8629114670505423,
+      "provider_cost_complete": true,
+      "route_verified": true,
+      "total_cost_usd": 0.0026494627500000005,
+      "total_input_tokens": 26173,
+      "total_output_tokens": 2853,
+      "total_provider_model_requests": 60
+    },
+    "langchain_provider_strategy_v1": {
+      "completed_worlds": 3,
+      "effective_retry_count": 0,
+      "mean_elapsed_seconds": 47.16848980563615,
+      "mean_within_case_score": 0.7299543144782054,
+      "provider_cost_complete": true,
+      "route_verified": true,
+      "total_cost_usd": 0.0029759647500000003,
+      "total_input_tokens": 29637,
+      "total_output_tokens": 3133,
+      "total_provider_model_requests": 68
+    }
+  },
+  "created_date": "2026-08-31",
+  "environment": {
+    "controlled_landlords": true,
+    "family": "housing_v1",
+    "listings": 4,
+    "max_rounds": 4,
+    "replicates": 1,
+    "tenants": 6,
+    "world_seeds": [
+      1910861273,
+      1227372147,
+      1231681186
+    ]
+  },
+  "excluded_adapter_warmup": {
+    "condition_id": "langchain_provider_strategy_v1",
+    "failure": "shallow mappingproxy schema was not JSON serializable",
+    "provider_call_count": 0,
+    "resolution": "canonical schema materialization; corrected full trajectory included",
+    "status": "excluded_pre_provider_adapter_bug"
+  },
+  "excluded_rate_limit_expansion": {
+    "cells_with_recorded_429_failure": [
+      {
+        "condition_id": "aeread_minimal_chat_v1",
+        "elapsed_seconds": 80.1639367089956,
+        "failure_condition": "provider_rate_limit",
+        "failure_status_code": 429,
+        "failure_type": "SchedulerContractError",
+        "status": "operational_failure",
+        "world_seed": 1910861273
+      },
+      {
+        "condition_id": "aeread_minimal_chat_v1",
+        "elapsed_seconds": 0.44298224995145574,
+        "failure_condition": "provider_rate_limit",
+        "failure_status_code": 429,
+        "failure_type": "SchedulerContractError",
+        "status": "operational_failure",
+        "world_seed": 1227372147
+      },
+      {
+        "condition_id": "aeread_minimal_chat_v1",
+        "elapsed_seconds": 0.7854326670058072,
+        "failure_condition": "provider_rate_limit",
+        "failure_status_code": 429,
+        "failure_type": "SchedulerContractError",
+        "status": "operational_failure",
+        "world_seed": 1231681186
+      },
+      {
+        "condition_id": "langchain_provider_strategy_v1",
+        "elapsed_seconds": 0.5856589170289226,
+        "failure_condition": "provider_rate_limit",
+        "failure_status_code": 429,
+        "failure_type": "SchedulerContractError",
+        "status": "operational_failure",
+        "world_seed": 1231681186
+      },
+      {
+        "condition_id": "langchain_provider_strategy_v1",
+        "elapsed_seconds": 10.829908167012036,
+        "failure_condition": "execution_cancelled",
+        "failure_status_code": null,
+        "failure_type": "CancelledError",
+        "status": "operational_failure",
+        "world_seed": 508590415
+      },
+      {
+        "condition_id": "langchain_provider_strategy_v1",
+        "elapsed_seconds": 1.1165497920010239,
+        "failure_condition": "provider_rate_limit",
+        "failure_status_code": 429,
+        "failure_type": "SchedulerContractError",
+        "status": "operational_failure",
+        "world_seed": 1910861273
+      },
+      {
+        "condition_id": "langchain_provider_strategy_v1",
+        "elapsed_seconds": 33.40959587501129,
+        "failure_condition": "execution_cancelled",
+        "failure_status_code": null,
+        "failure_type": "CancelledError",
+        "status": "operational_failure",
+        "world_seed": 1227372147
+      }
+    ],
+    "inclusion_in_quality_analysis": false,
+    "note": "these cells used the pre-backoff current-runner behavior and were not resumed",
+    "status": "stopped_after_shared_pool_saturation"
+  },
+  "framework_versions": {
+    "langchain": "1.3.18",
+    "langchain-openai": "1.6.0",
+    "langgraph": "1.2.11",
+    "openai": "3.6.0",
+    "smolagents": "1.26.0"
+  },
+  "measurement_boundary": {
+    "external_framework_wire_execution": "nested inside action-level provider adapter",
+    "framework_failed_action_billing": "unknown when parsing failed after paid internal calls",
+    "housing_scheduler_and_scorer": "AERead authoritative",
+    "raw_provider_responses": "embedded in evidence for every successful external action"
+  },
+  "model_route": {
+    "canonical_model": "z-ai/glm-5.3-flash-20260826",
+    "inference_seed_base": 87001,
+    "provider": "DeepInfra",
+    "quantization": "fp8",
+    "reasoning_effort": "low",
+    "requested_model": "z-ai/glm-5.3-flash",
+    "temperature": 0.0,
+    "top_p": 1.0
+  },
+  "paired_analysis": {
+    "bootstrap_draws": 10000,
+    "bootstrap_seed": 20260831,
+    "cluster_bootstrap_95": [
+      -0.30131336511287843,
+      0.08302743070515584
+    ],
+    "complete_pair_world_count": 3,
+    "condition_means": {
+      "aeread_minimal_chat_v1": 0.8629114670505423,
+      "langchain_provider_strategy_v1": 0.7299543144782054
+    },
+    "expected_replicates": 1,
+    "incomplete_worlds": [],
+    "mean_paired_difference": -0.13295715257233698,
+    "missingness_bounds_status": "available_declared_outcome_support",
+    "missingness_difference_bounds": [
+      -0.13295715257233698,
+      -0.13295715257233698
+    ],
+    "missingness_support_by_incomplete_world": {},
+    "missingness_support_missing_worlds": [],
+    "operational_failure_count_by_condition": {
+      "aeread_minimal_chat_v1": 0,
+      "langchain_provider_strategy_v1": 0
+    },
+    "paired_t_95": [
+      -0.6212075039108154,
+      0.35529319876614146
+    ],
+    "planned_world_count": 3,
+    "resampling_unit": "world_seed",
+    "trajectory_count": 6
+  },
+  "paired_rows": [
+    {
+      "condition_id": "aeread_minimal_chat_v1",
+      "cost_usd": 0.00078301575,
+      "effective_retry_count": 0,
+      "elapsed_seconds": 88.41354129102547,
+      "evidence_root": "aeread_minimal_chat_v1/evidence/runplan_5b0f8786def0abf3/cell_584eda6b1119080c1514/episode_attempt_9f2c8be01406aa3e80a5",
+      "framework_model_request_count": 18,
+      "framework_provider_cost_complete": true,
+      "framework_route_verified": true,
+      "framework_versions": [],
+      "input_tokens": 7889,
+      "ir_violation_count": 0,
+      "landlord_payoff": 172.24,
+      "logical_action_count": 23,
+      "output_tokens": 797,
+      "provider_model_request_count": 18,
+      "rate_limit_failure_count": 0,
+      "receipt_sha256": "d13db75993e1d5cdd4e520e4475fe1d68100e9dc3f8e4842f6cb2da7d0e53e22",
+      "replicate_index": 0,
+      "result_sha256": "9d5e23d031e9e4c5e01c4384c53aee43a88c4fb4a7fe013568034c51b4a80db3",
+      "retry_backoff_count": 0,
+      "social_welfare": 1634.37,
+      "status": "completed",
+      "tenant_payoff": 1462.1299999999999,
+      "wasted_contacts": 4,
+      "within_case_score": 0.9454275153148879,
+      "world_seed": 1227372147
+    },
+    {
+      "condition_id": "langchain_provider_strategy_v1",
+      "cost_usd": 0.0008637750000000001,
+      "effective_retry_count": 0,
+      "elapsed_seconds": 33.26592520799022,
+      "evidence_root": "langchain_provider_strategy_v1/evidence/runplan_bc6f3feeeba2ccea/cell_8a41302ef199be8dfe59/episode_attempt_6a926e5ea76644b50dae",
+      "framework_model_request_count": 20,
+      "framework_provider_cost_complete": true,
+      "framework_route_verified": true,
+      "framework_versions": [
+        "1.3.18"
+      ],
+      "input_tokens": 8750,
+      "ir_violation_count": 0,
+      "landlord_payoff": 220.23999999999998,
+      "logical_action_count": 26,
+      "output_tokens": 865,
+      "provider_model_request_count": 20,
+      "rate_limit_failure_count": 0,
+      "receipt_sha256": "761cbbc236a73760a2e159a377ed6d7204dca9b3b9eacf573f9df2c8ac667bc1",
+      "replicate_index": 0,
+      "result_sha256": "99287ff2352d2604f549b2c9edb97cb324df39f0447d461f7c7567b0f5aad77b",
+      "retry_backoff_count": 0,
+      "social_welfare": 1322.19,
+      "status": "completed",
+      "tenant_payoff": 1101.9499999999998,
+      "wasted_contacts": 6,
+      "within_case_score": 0.7648419920055995,
+      "world_seed": 1227372147
+    },
+    {
+      "condition_id": "aeread_minimal_chat_v1",
+      "cost_usd": 0.0009979447500000002,
+      "effective_retry_count": 0,
+      "elapsed_seconds": 36.78725074999966,
+      "evidence_root": "aeread_minimal_chat_v1/evidence/runplan_10e0a31566b59fb1/cell_abfdf028cb2471f5ef4b/episode_attempt_e2f96fb4d224211ae885",
+      "framework_model_request_count": 22,
+      "framework_provider_cost_complete": true,
+      "framework_route_verified": true,
+      "framework_versions": [],
+      "input_tokens": 9567,
+      "ir_violation_count": 0,
+      "landlord_payoff": 267.03999999999996,
+      "logical_action_count": 29,
+      "output_tokens": 1162,
+      "provider_model_request_count": 22,
+      "rate_limit_failure_count": 0,
+      "receipt_sha256": "131cf4396964dadc61bf3b1899de2ca3e92b09a7c5b9c12315676da9db5336b5",
+      "replicate_index": 0,
+      "result_sha256": "d6d90ccbd437c1fee278166ecf680eb46b04687b2bc159e12c8f27a315265010",
+      "retry_backoff_count": 0,
+      "social_welfare": 1421.99,
+      "status": "completed",
+      "tenant_payoff": 1154.95,
+      "wasted_contacts": 7,
+      "within_case_score": 0.8168835272152808,
+      "world_seed": 1231681186
+    },
+    {
+      "condition_id": "langchain_provider_strategy_v1",
+      "cost_usd": 0.00123297075,
+      "effective_retry_count": 0,
+      "elapsed_seconds": 55.09564266697271,
+      "evidence_root": "langchain_provider_strategy_v1/evidence/runplan_a87b75f968a09b27/cell_f36a29c71236215df647/episode_attempt_d789fc0d5141c0e22dd1",
+      "framework_model_request_count": 28,
+      "framework_provider_cost_complete": true,
+      "framework_route_verified": true,
+      "framework_versions": [
+        "1.3.18"
+      ],
+      "input_tokens": 12169,
+      "ir_violation_count": 0,
+      "landlord_payoff": 291.03999999999996,
+      "logical_action_count": 36,
+      "output_tokens": 1331,
+      "provider_model_request_count": 28,
+      "rate_limit_failure_count": 0,
+      "receipt_sha256": "2c8c775263b01d6707e1bfabe7cd6ad1302822bab78b147b8de774a1fb527858",
+      "replicate_index": 0,
+      "result_sha256": "70e12f09702d39af2c3a9b1a3c277676a74717294f030d9836dc89ae33d70255",
+      "retry_backoff_count": 0,
+      "social_welfare": 1566.52,
+      "status": "completed",
+      "tenant_payoff": 1275.48,
+      "wasted_contacts": 8,
+      "within_case_score": 0.8999109579204366,
+      "world_seed": 1231681186
+    },
+    {
+      "condition_id": "aeread_minimal_chat_v1",
+      "cost_usd": 0.00086850225,
+      "effective_retry_count": 0,
+      "elapsed_seconds": 33.52001158398343,
+      "evidence_root": "aeread_minimal_chat_v1/evidence/runplan_bb61895ada512cce/cell_5b829423b7a29d2e49b0/episode_attempt_3b8c328141a7062a0b5d",
+      "framework_model_request_count": 0,
+      "framework_provider_cost_complete": true,
+      "framework_route_verified": true,
+      "framework_versions": [],
+      "input_tokens": 8717,
+      "ir_violation_count": 0,
+      "landlord_payoff": 150.51,
+      "logical_action_count": 26,
+      "output_tokens": 894,
+      "provider_model_request_count": 20,
+      "rate_limit_failure_count": 0,
+      "receipt_sha256": "b21fe372aefb8578b57272d2da8124537430178b8e816117dff4dbe828977a6f",
+      "replicate_index": 0,
+      "result_sha256": "a4c9a1eead009e35a970397d8afe8e9eeeff0760c52e8d4c6e8688d96018d66a",
+      "retry_backoff_count": 0,
+      "social_welfare": 1260.37,
+      "status": "completed",
+      "tenant_payoff": 1109.8600000000001,
+      "wasted_contacts": 6,
+      "within_case_score": 0.8264233586214583,
+      "world_seed": 1910861273
+    },
+    {
+      "condition_id": "langchain_provider_strategy_v1",
+      "cost_usd": 0.0008792190000000001,
+      "effective_retry_count": 0,
+      "elapsed_seconds": 53.143901541945525,
+      "evidence_root": "langchain_provider_strategy_v1/evidence/runplan_9846c0023683364d/cell_f40ceef18893f1439f9e/episode_attempt_469aef80e9242f058a89",
+      "framework_model_request_count": 20,
+      "framework_provider_cost_complete": true,
+      "framework_route_verified": true,
+      "framework_versions": [
+        "1.3.18"
+      ],
+      "input_tokens": 8718,
+      "ir_violation_count": 0,
+      "landlord_payoff": 133.51,
+      "logical_action_count": 26,
+      "output_tokens": 937,
+      "provider_model_request_count": 20,
+      "rate_limit_failure_count": 0,
+      "receipt_sha256": "24143d0fb7169d4f6bee8ff9ddc3d50734a4155c2c143a0af5b66c25bc906c49",
+      "replicate_index": 0,
+      "result_sha256": "3fdb895e8f2844859517d23b541b2c6e19d9253f4ed825ffd79b3d764100ef92",
+      "retry_backoff_count": 0,
+      "social_welfare": 800.84,
+      "status": "completed",
+      "tenant_payoff": 667.3299999999999,
+      "wasted_contacts": 6,
+      "within_case_score": 0.5251099935085799,
+      "world_seed": 1910861273
+    }
+  ],
+  "schema_version": "aeread.housing_open_harness_bakeoff/0.1",
+  "scope": "exploratory paired full Housing trajectories; not confirmatory",
+  "smolagents_full_trajectory_gate": {
+    "captured_internal_model_requests": 35,
+    "condition_id": "smolagents_tool_calling_agent_v1",
+    "elapsed_seconds": 198.27659104199847,
+    "evidence_root": "smolagents_tool_calling_agent_v1/evidence/runplan_4504ed1c29eea4d7/cell_770c16b23f07d7cbd84d/episode_attempt_8e112c8e73fe22b60565",
+    "failed_tenant_action_count": 1,
+    "failing_action_billing_status": "unknown_not_captured_after_framework_parse_failure",
+    "failure_condition": "provider_contract",
+    "failure_message": "framework returned no structured action",
+    "failure_type": "SchedulerContractError",
+    "known_prefix_cost_usd": 0.0044625240000000016,
+    "known_prefix_input_tokens": 53398,
+    "known_prefix_output_tokens": 2011,
+    "status": "operational_failure",
+    "successful_scripted_landlord_actions_before_failure": 6,
+    "successful_tenant_actions_before_failure": 21,
+    "world_seed": 1910861273
+  },
+  "capture_base_revision": "ea46762e070f3ae73255f9231469039cd24a2535",
+  "capture_source_status": "uncommitted worktree; implementation is included in this change"
+}

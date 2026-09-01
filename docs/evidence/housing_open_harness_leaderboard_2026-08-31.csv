@@ -1,0 +1,4 @@
+rank,scope,harness_id,harness,status,completed,attempted,reliability,mean_within_case_score,mean_elapsed_seconds,mean_cost_usd,cost_qualifier,mean_input_tokens,mean_output_tokens,mean_model_requests,notes
+1,full_trajectory,aeread_minimal_chat_v1,AERead Minimal Chat,ranked,3,3,1.0,0.8629114670505423,52.90693454166952,0.0008831542500000001,exact,8724.333333333334,951.0,20.0,
+2,full_trajectory,langchain_provider_strategy_v1,LangChain Provider Strategy,ranked,3,3,1.0,0.7299543144782054,47.16848980563615,0.0009919882500000002,exact,9879.0,1044.3333333333333,22.666666666666668,
+,full_trajectory,smolagents_tool_calling_agent_v1,smolagents Tool-Calling Agent,disqualified_operational_failure,0,1,0.0,,198.27659104199847,0.0044625240000000016,lower_bound,53398,2011,35,Failed after 21 successful tenant actions; the failing action's billing was not captured.
