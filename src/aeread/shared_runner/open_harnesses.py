@@ -145,13 +145,10 @@ def _route_body(request: ProviderRequest) -> dict[str, Any]:
 
 def _capture_http_client(captured: list[dict[str, Any]]) -> Any:
     openai_major = int(importlib.metadata.version("openai").split(".", 1)[0])
-    if openai_major >= 2:
-        import httpx
+    if openai_major >= 3:
+        import httpx2 as httpx
     else:
-        try:
-            import httpx2 as httpx
-        except ImportError:
-            import httpx
+        import httpx
 
     def capture(response: Any) -> None:
         response.read()

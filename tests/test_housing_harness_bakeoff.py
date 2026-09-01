@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import importlib.metadata
 import json
 import sys
 import types
@@ -170,10 +171,29 @@ def test_housing_role_router_keeps_landlord_out_of_tenant_harness() -> None:
 
 
 def test_openai_v2_capture_client_never_uses_httpx2(monkeypatch) -> None:
+    selected = []
+
+    class ExpectedClient:
+        def __init__(self, *args, **kwargs) -> None:
+            selected.append("httpx")
+
+        def close(self) -> None:
+            return None
+
     class ForbiddenClient:
         def __init__(self, *args, **kwargs) -> None:
             raise AssertionError("OpenAI SDK 2.x must use httpx.Client")
 
+    monkeypatch.setattr(
+        importlib.metadata,
+        "version",
+        lambda package: "2.45.0" if package == "openai" else "0.0.0",
+    )
+    monkeypatch.setitem(
+        sys.modules,
+        "httpx",
+        types.SimpleNamespace(Client=ExpectedClient),
+    )
     monkeypatch.setitem(
         sys.modules,
         "httpx2",
@@ -182,7 +202,44 @@ def test_openai_v2_capture_client_never_uses_httpx2(monkeypatch) -> None:
 
     client = _capture_http_client([])
     try:
-        assert client.__class__.__module__.split(".", 1)[0] == "httpx"
+        assert selected == ["httpx"]
+    finally:
+        client.close()
+
+
+def test_openai_v3_capture_client_uses_httpx2(monkeypatch) -> None:
+    selected = []
+
+    class ExpectedClient:
+        def __init__(self, *args, **kwargs) -> None:
+            selected.append("httpx2")
+
+        def close(self) -> None:
+            return None
+
+    class ForbiddenClient:
+        def __init__(self, *args, **kwargs) -> None:
+            raise AssertionError("OpenAI SDK 3.x must use httpx2.Client")
+
+    monkeypatch.setattr(
+        importlib.metadata,
+        "version",
+        lambda package: "3.6.0" if package == "openai" else "0.0.0",
+    )
+    monkeypatch.setitem(
+        sys.modules,
+        "httpx",
+        types.SimpleNamespace(Client=ForbiddenClient),
+    )
+    monkeypatch.setitem(
+        sys.modules,
+        "httpx2",
+        types.SimpleNamespace(Client=ExpectedClient),
+    )
+
+    client = _capture_http_client([])
+    try:
+        assert selected == ["httpx2"]
     finally:
         client.close()
 
