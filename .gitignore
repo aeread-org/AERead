@@ -9,6 +9,10 @@ runs/
 submissions/
 sweeps/
 output/
+outputs/
+
+# local editor settings
+.vscode/
 
 # python
 __pycache__/
