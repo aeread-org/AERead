@@ -358,3 +358,49 @@ value, not a hand-derived one. This is the measurement-level bridge-gated cross-
 `tau3_retail.measurement` performs against `EnvironmentEvaluator`; the full
 reproducibility-under-re-execution `parity.py`/`test_agenticpay_bilateral_parity.py` module
 section 3/5 describes is still Milestone 3 scope, not built here.
+
+## 9. Milestone 3 implementation note (scripted harness, end-to-end, replay)
+
+Delivered as `harness.py` (`ScriptedAgenticpayBilateralHarness`) and `replay.py`
+(`RecordedDecision`/`RecordedEpisode`/`RecordedResponseSource`/`replay_episode`/
+`compare_episode_results`/`assert_replay_matches`/`score_replayed_episode`/
+`replay_and_verify`), plus `tests/test_agenticpay_bilateral_replay.py`. `parity.py` (this
+document's proposed module layout, section 3) remains unbuilt -- see
+`docs/agenticpay_adapter_status.md`'s "known limits" for what that leaves unproven.
+
+**Forced deviation from `tau3_retail.harness.ScriptedTau3RetailHarness`'s exact shape:**
+this family declares no tool-call surface at all (`tools.py`: none), so
+`ScriptedAgenticpayBilateralHarness` has nothing to hand a `ToolRuntime` to seal evidence
+through. It instead seals one `agenticpay_bilateral_decision_served` event per served
+decision directly through `EvidenceStore.append_event` -- the same primitive
+`aeread.shared_runner.family_evaluation` already uses for its own non-tool evidence
+(`episode_terminated`/`family_outcome_recorded`/`score_recorded`), not an invented
+mechanism. This is a narrowing of the constructor signature (`evidence`, `script` -- no
+`bridge`/`initial_db` parameters, since the harness itself never calls the bridge; only
+`environment.py`'s own `step()` does, for the seller phase of each round), never a change
+of what "sealed evidence" means.
+
+**A real strengthening over `tau3_retail.replay`'s guarantee, verified rather than
+assumed:** that module's own `compare_episode_results` needs a raw/content-only split
+because upstream re-stamps a wall-clock `timestamp` on every replayed message. This
+family's pinned upstream and bridge code were checked directly (`grep` for
+`datetime`/`time.time`/`random`/`uuid` across `agenticpay/core.py`, the pinned
+`single_buyer_product_seller` env files, and this adapter's own bridge/bridge-driver
+modules) and introduce none of that anywhere in the replayed path, so
+`agenticpay_bilateral.replay.StateComparison` asserts genuinely byte-identical final state
+(`canonical_json_bytes(replayed.final_state) == canonical_json_bytes(original.final_state)`),
+confirmed empirically for a two-round basic negotiation replayed through a second,
+independent `AgenticpayBridge`/plugin instance from a JSON-round-tripped record.
+
+**Scoring recomputation needs no bridge call**, unlike tau3.retail's DB-equivalence leaf
+(which re-invokes `Tau2Bridge.evaluate_env` against the replayed database): every leaf this
+family declares is a pure function of `EpisodeResult.terminal`/`round_trace`, both already
+fully determined by the real, bridge-backed `step()` calls replay re-runs, so
+`score_replayed_episode` takes only a scorer and the replayed episode.
+
+Two full episodes were verified end to end with sealed evidence this milestone: a
+two-round basic negotiation (`agenticpay.bilateral.basic.task1`) and a one-round
+contract-mode negotiation (`agenticpay.bilateral.realistic.s01_beauty_product`), covering
+both branches of `is_contract_mode` and exercising the `agenticpay_contract_legality` leaf
+under replay. The remaining 26 pinned cases were validated at the payload/importer level in
+Milestones 1-2 but not driven through a full scripted episode this milestone.
