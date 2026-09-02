@@ -9,11 +9,10 @@ never an LLM). Which phase starts is an episode attribute (the opener ``chi``
 frozen into the case payload), not a fixed property of the phase graph, so
 ``phases()`` orders the two phases per case.
 
-This milestone builds the environment only: cases + phase graph + counterpart
-kernel + scripted harness. The scorer (measurement leaves for SE+/CSE+/AGR+/
-FAGR-/CritViol%) is a separate milestone; ``build_scorer`` raises
-``NotImplementedError`` until then, exactly like an unimplemented hook that no
-test in this milestone calls.
+Milestone 1 built the environment only: cases + phase graph + counterpart
+kernel + scripted harness. Milestone 2 (docs/termsbench_adapter_spec.md
+section 2) adds the 4 measurement leaves (SE+/AGR+/FAGR-/CritViol%) in
+``measurement.py``; ``build_scorer`` below wires them in.
 """
 from __future__ import annotations
 
@@ -31,6 +30,7 @@ from aeread.shared_runner.scheduler import (
 
 from . import kernel as k
 from .cases import FAMILY_ID, FAMILY_VERSION, TERMINATION_REASONS
+from .measurement import TermsBenchScorer, build_scorer as build_measurement_scorer
 
 PLUGIN_ID = "termsbench_environment"
 SCORER_ID = "termsbench_scorer"
@@ -550,16 +550,15 @@ class TermsBenchPlugin:
 
     # -- build_scorer / build_reference_providers / generator -------------------
 
-    def build_scorer(self, family_case: Mapping[str, Any]) -> Any:
-        """Milestone 2 builds the 4 measurement leaves (spec section 2).
-
-        No test in this milestone calls this hook; it exists only so the
-        plugin satisfies ``PluginRegistry``'s required-hooks contract.
+    def build_scorer(self, family_case: Mapping[str, Any]) -> TermsBenchScorer:
+        """Return the declared measurement leaves plus their scorers
+        (``measurement.py``, spec section 2): 3 leaves for an Overlap-regime
+        case, 2 for a No-deal-regime case. The current kernel does not yet
+        call ``build_scorer`` itself (mirrors ``Tau3RetailPlugin``'s
+        identical note), so ``measurement.py``'s ``score_*`` functions are
+        also exercised directly by tests today.
         """
-        del family_case
-        raise NotImplementedError(
-            "termsbench measurement leaves are not implemented in this milestone"
-        )
+        return build_measurement_scorer(family_case)
 
     def build_reference_providers(self, family_case: Mapping[str, Any]) -> tuple[Any, ...]:
         # Appendix D's Oracle-Cue Bayes-optimal DP is explicitly deferred
