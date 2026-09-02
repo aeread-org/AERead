@@ -167,13 +167,14 @@ def test_recorded_episode_round_trips_through_plain_json() -> None:
         phase_id=BUYER_PHASE, seat_id="buyer", response={"message": "### BUYER_PRICE($90) ###"}
     )
     episode = RecordedEpisode(
-        case_id="agenticpay.bilateral.basic.task1", decisions=(decision,)
+        case_id="agenticpay.bilateral.basic.task1", case_sha256="a" * 64, decisions=(decision,)
     )
 
     text = episode.to_json()
     restored = RecordedEpisode.from_json(text)
 
     assert restored.case_id == episode.case_id
+    assert restored.case_sha256 == episode.case_sha256
     assert len(restored.decisions) == 1
     assert restored.decisions[0].phase_id == BUYER_PHASE
     assert restored.decisions[0].seat_id == "buyer"
@@ -275,7 +276,8 @@ def test_a_basic_negotiation_runs_end_to_end_with_sealed_evidence(tmp_path: Path
     # One sealed decision per logical action: 2 rounds x (buyer + seller) = 4.
     assert len(served) == 4 == result.logical_action_count
     sealed_responses = [evidence.read_event_payload(e)["response"] for e in served]
-    recorded = record_episode(result)
+    recorded = record_episode(result, case=case)
+    assert recorded.case_sha256 == case.content_sha256
     assert [decision.response for decision in recorded.decisions] == sealed_responses
 
 
@@ -311,7 +313,7 @@ def test_replay_from_a_json_round_tripped_record_reproduces_the_live_run_byte_id
     )
     evidence.seal()
 
-    recorded = record_episode(original)
+    recorded = record_episode(original, case=case)
     # Force a genuine round trip through plain JSON text -- proves replay never
     # depends on reusing the original run's in-memory Python objects.
     recorded = RecordedEpisode.from_json(recorded.to_json())
@@ -349,7 +351,7 @@ def test_replayed_episode_recomputes_every_leaf_from_replayed_state(tmp_path: Pa
         bridge, tmp_path, case_id="agenticpay.bilateral.basic.task1", suffix="score", rounds=_BASIC_ROUNDS
     )
     evidence.seal()
-    recorded = record_episode(original)
+    recorded = record_episode(original, case=case)
 
     replayed = asyncio.run(
         replay_episode(cell=cell, case=case, plugin=resolved_plugin, recorded=recorded)
@@ -382,7 +384,7 @@ def test_replayed_contract_mode_episode_recomputes_the_contract_legality_leaf(
         rounds=[(_CONTRACT, _CONTRACT)],
     )
     evidence.seal()
-    recorded = record_episode(original)
+    recorded = record_episode(original, case=case)
 
     replayed = asyncio.run(
         replay_episode(cell=cell, case=case, plugin=resolved_plugin, recorded=recorded)
@@ -401,7 +403,7 @@ def test_replay_and_verify_end_to_end_returns_a_matching_report(tmp_path: Path) 
         bridge, tmp_path, case_id="agenticpay.bilateral.basic.task1", suffix="e2e", rounds=_BASIC_ROUNDS
     )
     evidence.seal()
-    recorded = record_episode(original)
+    recorded = record_episode(original, case=case)
     family_case = json.loads(canonical_json_bytes(case.payload))
     scorer = build_scorer(family_case)
 
@@ -427,14 +429,70 @@ def test_replay_case_mismatch_raises_a_typed_replay_error(tmp_path: Path) -> Non
         bridge, tmp_path, case_id="agenticpay.bilateral.basic.task1", suffix="mismatch", rounds=_BASIC_ROUNDS
     )
     evidence.seal()
-    recorded = record_episode(original)
+    recorded = record_episode(original, case=case)
     wrong_case_recorded = RecordedEpisode(
-        case_id="agenticpay.bilateral.basic.task2", decisions=recorded.decisions
+        case_id="agenticpay.bilateral.basic.task2",
+        case_sha256=recorded.case_sha256,
+        decisions=recorded.decisions,
     )
 
     with pytest.raises(ReplayError, match="recorded episode is for case"):
         asyncio.run(
             replay_episode(cell=cell, case=case, plugin=resolved_plugin, recorded=wrong_case_recorded)
+        )
+
+
+def test_replay_rejects_a_case_with_the_same_id_but_different_content(tmp_path: Path) -> None:
+    """Second-review regression (Codex finding 3): a record must bind to the exact
+    case content it was captured against, not just the ``case_id`` string. Before
+    this fix, a record could be replayed against a freshly hashed ``CaseManifest``
+    that shares the original's ``case_id`` but has tampered reservation prices (a
+    different ``content_sha256``, paired with a matching new ``PlanCell``), and
+    nothing rejected it -- the tampered case was silently replayed and scored as if
+    it were the original.
+    """
+    bridge = _bridge()
+    case, cell, resolved_plugin, original, evidence, _harness = _run_live(
+        bridge, tmp_path, case_id="agenticpay.bilateral.basic.task1", suffix="tamper", rounds=_BASIC_ROUNDS
+    )
+    evidence.seal()
+    recorded = record_episode(original, case=case)
+
+    from aeread.shared_runner.resolver import case_content_sha256
+
+    tampered_payload = json.loads(canonical_json_bytes(case.payload))
+    tampered_payload["constructor_kwargs"]["buyer_max_price"] = 999.0
+    draft = {
+        "spec_version": CaseManifest.SPEC_VERSION,
+        "case_id": case.case_id,
+        "family_id": case.family_id,
+        "family_version": case.family_version,
+        "split": case.split,
+        "world_seed": case.world_seed,
+        "seats": [{"id": seat.id, "role": seat.role} for seat in case.seats],
+        "episode": {
+            "max_logical_actions": case.episode.max_logical_actions,
+            "termination": list(case.episode.termination),
+        },
+        "visibility_policy": case.visibility_policy,
+        "payload": tampered_payload,
+        "provenance": {
+            "generator_id": case.provenance.generator_id,
+            "generator_version": case.provenance.generator_version,
+            "review_status": case.provenance.review_status,
+        },
+        "content_sha256": "0" * 64,
+    }
+    digest = case_content_sha256({**draft, "content_sha256": "0" * 64})
+    tampered_case = CaseManifest.from_dict({**draft, "content_sha256": digest})
+    assert tampered_case.content_sha256 != case.content_sha256
+    tampered_cell = _cell(tampered_case, suffix="tamper_cell")
+
+    with pytest.raises(ReplayError, match="content"):
+        asyncio.run(
+            replay_episode(
+                cell=tampered_cell, case=tampered_case, plugin=resolved_plugin, recorded=recorded
+            )
         )
 
 
@@ -447,7 +505,7 @@ def test_replay_without_an_original_run_still_replays_and_scores(tmp_path: Path)
     evidence.seal()
     # Round-trip through JSON text -- the record now stands alone, exactly as it
     # would if read back from a durable file with no original run in memory.
-    recorded = RecordedEpisode.from_json(record_episode(original).to_json())
+    recorded = RecordedEpisode.from_json(record_episode(original, case=case).to_json())
     family_case = json.loads(canonical_json_bytes(case.payload))
     scorer = build_scorer(family_case)
 
@@ -457,6 +515,10 @@ def test_replay_without_an_original_run_still_replays_and_scores(tmp_path: Path)
         )
     )
 
+    # Second-review regression (Codex finding 3): with no `original` to compare
+    # against, `comparison` is `None` -- there was genuinely no comparison made, so
+    # `status` must say so explicitly (`"not_comparable"`), never the same `"match"`
+    # a real, checked byte-identical comparison reports.
     assert report.comparison is None
-    assert report.status == "match"
+    assert report.status == "not_comparable"
     assert report.scores.deal_reached.primary.value == 1.0

@@ -108,14 +108,24 @@ class RecordedDecision:
 
 @dataclass(frozen=True, slots=True)
 class RecordedEpisode:
-    """The complete, plain-JSON-serializable ordered decision log for one episode."""
+    """The complete, plain-JSON-serializable ordered decision log for one episode.
+
+    ``case_sha256`` binds this record to the exact case content it was captured
+    against, not merely its ``case_id`` string (second-review Codex finding 3): a
+    case manifest with the same ``case_id`` but tampered constructor kwargs (e.g.
+    different reservation prices) hashes to a different ``content_sha256``, and
+    ``replay_episode`` refuses to replay a record against a case whose content it
+    was never captured against, even when the ``case_id`` strings coincide.
+    """
 
     case_id: str
+    case_sha256: str
     decisions: tuple[RecordedDecision, ...]
 
     def to_dict(self) -> dict[str, Any]:
         return {
             "case_id": self.case_id,
+            "case_sha256": self.case_sha256,
             "decisions": [decision.to_dict() for decision in self.decisions],
         }
 
@@ -127,6 +137,7 @@ class RecordedEpisode:
     def from_dict(cls, value: Mapping[str, Any]) -> "RecordedEpisode":
         return cls(
             case_id=value["case_id"],
+            case_sha256=value["case_sha256"],
             decisions=tuple(
                 RecordedDecision.from_dict(decision) for decision in value["decisions"]
             ),
@@ -137,14 +148,24 @@ class RecordedEpisode:
         return cls.from_dict(json.loads(text))
 
 
-def record_episode(result: EpisodeResult) -> RecordedEpisode:
+def record_episode(result: EpisodeResult, *, case: CaseManifest) -> RecordedEpisode:
     """Extract the ordered decision log from one already-completed ``EpisodeResult``.
 
     Pulls exactly the raw ``LogicalActionRecord.response`` for every action, in the
     order the scheduler requested them -- nothing about the bridge call, scoring, or
     state is captured here; replay regenerates all of that independently through
-    ``step()``.
+    ``step()``. ``case`` is the exact ``CaseManifest`` this episode was run against
+    (the scheduler's own ``run_episode`` already validated ``result.case_id ==
+    case.case_id`` before producing ``result``); its ``content_sha256`` is stamped
+    onto the record so ``replay_episode`` can later reject a case whose content
+    differs, not just one whose ``case_id`` string differs (second-review Codex
+    finding 3).
     """
+    if case.case_id != result.case_id:
+        raise ReplayError(
+            f"record_episode's case argument is {case.case_id!r}, but result.case_id "
+            f"is {result.case_id!r}"
+        )
     decisions: list[RecordedDecision] = []
     for instance in result.phase_instances:
         for action in instance.actions:
@@ -155,7 +176,9 @@ def record_episode(result: EpisodeResult) -> RecordedEpisode:
                     response=action.response,
                 )
             )
-    return RecordedEpisode(case_id=result.case_id, decisions=tuple(decisions))
+    return RecordedEpisode(
+        case_id=result.case_id, case_sha256=case.content_sha256, decisions=tuple(decisions)
+    )
 
 
 class RecordedResponseSource:
@@ -214,11 +237,21 @@ async def replay_episode(
     -- a genuine domain divergence would surface in the replayed terminal/outcome, which
     ``compare_episode_results``/``assert_replay_matches`` check explicitly. This
     function raises ``ReplayError`` only for replay-harness-level problems (wrong case,
-    ordering mismatch, unconsumed record).
+    tampered case content, ordering mismatch, unconsumed record).
     """
     if recorded.case_id != case.case_id:
         raise ReplayError(
             f"recorded episode is for case {recorded.case_id!r}, not {case.case_id!r}"
+        )
+    if recorded.case_sha256 != case.content_sha256:
+        # Same case_id, different content (e.g. tampered reservation prices) --
+        # second-review Codex finding 3: a record must bind to the exact case
+        # content it was captured against, not just the case_id string.
+        raise ReplayError(
+            f"recorded episode was captured against case {case.case_id!r} content "
+            f"{recorded.case_sha256!r}, but the case supplied for replay hashes to "
+            f"{case.content_sha256!r} -- refusing to replay a record against "
+            "different case content"
         )
     response_source = RecordedResponseSource(recorded.decisions)
     result = await run_episode(
@@ -375,9 +408,19 @@ class ReplayReport:
 
     @property
     def status(self) -> str:
-        if self.comparison is not None and not self.comparison.matches:
-            return "mismatch"
-        return "match"
+        """``"match"``/``"mismatch"`` when a real comparison was made, else
+        ``"not_comparable"``.
+
+        Second-review Codex finding 3: ``comparison is None`` means no comparison
+        was ever made (no ``original`` run was supplied to ``replay_and_verify``)
+        -- an explicit, typed "not comparable", never the same ``"match"`` a real,
+        checked byte-identical comparison reports. Collapsing the two previously
+        let a genuinely unverified replay report ``"match"`` with no comparison
+        behind it.
+        """
+        if self.comparison is None:
+            return "not_comparable"
+        return "match" if self.comparison.matches else "mismatch"
 
 
 async def replay_and_verify(
