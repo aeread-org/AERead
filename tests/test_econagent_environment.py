@@ -186,11 +186,22 @@ def test_parse_action_and_legal_reject_a_seat_phase_mismatch() -> None:
     assert legal_seat.legal
 
 
-def test_build_scorer_is_a_declared_stub_this_pass() -> None:
+def test_build_scorer_declares_the_three_measurement_leaves() -> None:
+    # Built in milestone 2 (measurement.py) -- see
+    # tests/test_econagent_measurement.py for the leaf-declaration and
+    # scoring coverage; this only confirms the environment plugin wires the
+    # hook through rather than leaving it a stub.
     plugin = EconAgentV1Plugin(upstream_root=UPSTREAM_ROOT)
     family_case = plugin.validate_payload(_case().payload)
-    with pytest.raises(NotImplementedError, match="milestone 1"):
-        plugin.build_scorer(family_case)
+    scorer = plugin.build_scorer(family_case)
+    assert len(scorer.leaves) == 3
+    assert scorer.budget_identity_leaf.estimand.estimand_id == "econagent_budget_identity"
+    assert (
+        scorer.tax_bracket_leaf.estimand.estimand_id == "econagent_tax_bracket_arithmetic"
+    )
+    assert (
+        scorer.macro_trajectory_leaf.estimand.estimand_id == "econagent_macro_trajectory"
+    )
 
 
 def test_build_reference_providers_and_generator_are_empty_this_pass() -> None:

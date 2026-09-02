@@ -72,18 +72,46 @@ state and shared RNG stream, not a JSON-serializable snapshot).
           "income": {...}, "consumption": {...}, "saving": {...},
           "endogenous": {...}, "skill": float, "expected_skill": float,
           "production": float}}, "world": {"price": float,
-          "interest_rate": float, "timestep": int}}
+          "interest_rate": float, "timestep": int, "period": int}}
       -- a JSON-safe read of the live agent/world state after the most
          recent "reset" or "step_month", for the environment plugin's
          per-seat ``observe()``/``terminal()``/``outcome()``. No upstream
          computation happens here; this only reads already-computed
-         attributes.
+         attributes. "period" is ``env.world.period`` (the world-level
+         yearly cycle length SimpleSaving/PeriodicBracketTax's
+         GDP/unemployment bookkeeping key off -- distinct from
+         PeriodicBracketTax's *own* "period" kwarg, which is 1 in the
+         pinned config), added in milestone 2 so measurement.py can
+         identify saving-interest months without hardcoding the pinned
+         config's value.
 
   {"op": "dense_log"}
       -> {"ok": true, "dense_log": {...}}
       -- the full, JSON-safe ``env.dense_log`` accumulated so far
          (``config.yaml``'s ``dense_log_frequency: 1`` means every step is
          recorded). Verbatim upstream data; no field is recomputed here.
+         Per-component logs (e.g. "PeriodicTax", the per-agent-per-month
+         income/tax_paid/lump_sum/marginal_rate/effective_rate dicts) are
+         only backfilled by upstream's own ``_finalize_logs()`` when the
+         episode's LAST "step_month" completes (``done`` is true) --
+         calling this op before that point omits them; the environment
+         plugin therefore calls this exactly once, right after the
+         terminal "step_month" and before "shutdown".
+
+  {"op": "recompute_tax", "incomes": {agent_idx: float, ...}}
+      -> {"ok": true, "results": {agent_idx: {"tax_due": float,
+          "marginal_rate": float}, ...}}
+      -- milestone 2 addition for ``econagent_tax_bracket_arithmetic``
+         (spec section 2): re-invokes upstream's own
+         ``PeriodicBracketTax.taxes_due``/``marginal_rate`` methods on
+         caller-supplied incomes -- never a reimplemented piecewise
+         formula. Stateless (does not require a prior "reset"): the
+         "us-federal-single-filer-2018-scaled" bracket schedule is a pure
+         function of the pinned config (no RNG, no dependency on
+         n_agents/world_seed), so a throwaway env constructed just for
+         this call reproduces the real episode's own component exactly.
+         May be sent to a driver process that is then closed without ever
+         calling "reset", exactly like "resolve_env_config".
 
   {"op": "shutdown"}
       -> {"ok": true}
@@ -250,6 +278,13 @@ def _op_agent_snapshot(request: dict[str, Any]) -> dict[str, Any]:
             else None
         ),
         "timestep": int(env.world.timestep),
+        # Verbatim upstream config constant (SimpleSaving/PeriodicBracketTax's
+        # own world-level cycle length -- distinct from PeriodicBracketTax's
+        # *own* "period" kwarg, which is 1 in the pinned config). Exposed so
+        # measurement.py can identify which months SimpleSaving actually
+        # fires on (``timestep % period == 0``) without guessing or
+        # hardcoding the pinned config's value.
+        "period": int(env.world.period),
     }
     return {"ok": True, "agents": agents, "world": world}
 
@@ -257,6 +292,48 @@ def _op_agent_snapshot(request: dict[str, Any]) -> dict[str, Any]:
 def _op_dense_log() -> dict[str, Any]:
     session = _require_session()
     return {"ok": True, "dense_log": _to_jsonable(session["env"].dense_log)}
+
+
+def _op_recompute_tax(request: dict[str, Any], upstream_root: Path) -> dict[str, Any]:
+    """Re-invoke upstream's OWN ``PeriodicBracketTax`` bracket method (never a
+    reimplemented piecewise formula) on caller-supplied incomes.
+
+    Stateless, like ``resolve_env_config``: does not require a prior
+    "reset" and does not touch ``_SESSION``. The bracket schedule for the
+    pinned ``us-federal-single-filer-2018-scaled`` tax model is a pure
+    function of the config (``bracket_cutoffs`` from ``usd_scaling``,
+    ``curr_marginal_rates`` from the fixed schedule clipped by
+    ``rate_max`` -- no RNG, no dependency on ``n_agents``/``world_seed``),
+    so a freshly-constructed throwaway env yields byte-identical
+    ``taxes_due``/``marginal_rate`` results to the real episode's own
+    component -- confirmed empirically against a live episode run while
+    building this op (see the econagent measurement module and spec
+    milestone-2 corrections).
+    """
+    import ai_economist.foundation as foundation
+
+    env_config = _resolve_env_config(upstream_root)
+    # n_agents/episode_length/seed are irrelevant to the bracket schedule
+    # (see docstring); fixed, valid placeholders satisfy upstream's own
+    # constructor assertions (n_agents >= 2, seed > 0) without claiming any
+    # particular episode identity for this stateless op.
+    env_config["n_agents"] = 2
+    env_config["episode_length"] = 1
+    env_config["seed"] = 1
+    env = foundation.make_env_instance(**env_config)
+    component = env.get_component("PeriodicBracketTax")
+
+    incomes = request["incomes"]
+    if not isinstance(incomes, dict):
+        raise ValueError("recompute_tax requires a mapping of agent_idx -> income")
+    results = {
+        agent_idx: {
+            "tax_due": _to_jsonable(component.taxes_due(float(income))),
+            "marginal_rate": _to_jsonable(component.marginal_rate(float(income))),
+        }
+        for agent_idx, income in incomes.items()
+    }
+    return {"ok": True, "results": results}
 
 
 def _op_shutdown() -> dict[str, Any]:
@@ -276,6 +353,8 @@ def _dispatch(request: dict[str, Any], upstream_root: Path) -> tuple[dict[str, A
         return _op_agent_snapshot(request), True
     if op == "dense_log":
         return _op_dense_log(), True
+    if op == "recompute_tax":
+        return _op_recompute_tax(request, upstream_root), True
     if op == "shutdown":
         return _op_shutdown(), False
     return (

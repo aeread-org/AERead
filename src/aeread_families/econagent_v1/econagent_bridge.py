@@ -202,6 +202,35 @@ class EconAgentBridge:
         response = self._parse_response_line(stdout, stderr, op="resolve_env_config")
         return response["env_config"]
 
+    def recompute_tax(self, incomes: Mapping[str, float]) -> dict[str, dict[str, float]]:
+        """One-shot, stateless re-invocation of upstream's own bracket method.
+
+        Mirrors ``resolve_env_config``: spawns a short-lived subprocess,
+        sends one request, and closes the pipe -- never requires
+        ``start_episode`` and is safe to call on any instance regardless of
+        episode state (including after the episode's own session has been
+        closed), because the pinned tax model's bracket schedule is a pure
+        function of the config, not of any particular episode (see
+        ``econagent_bridge_driver.py``'s ``_op_recompute_tax`` docstring).
+        Used by ``measurement.py``'s ``econagent_tax_bracket_arithmetic``
+        leaf -- never a reimplemented piecewise tax formula.
+        """
+        process = self._spawn()
+        try:
+            stdout, stderr = process.communicate(
+                input=json.dumps({"op": "recompute_tax", "incomes": dict(incomes)}) + "\n",
+                timeout=self.timeout_seconds,
+            )
+        except subprocess.TimeoutExpired as error:
+            process.kill()
+            process.communicate(timeout=self.timeout_seconds)
+            raise EconAgentBridgeError(
+                f"bridge subprocess timed out after {self.timeout_seconds}s "
+                "for op='recompute_tax'"
+            ) from error
+        response = self._parse_response_line(stdout, stderr, op="recompute_tax")
+        return response["results"]
+
     def start_episode(
         self,
         *,
@@ -257,7 +286,15 @@ class EconAgentBridge:
         return {"agents": response["agents"], "world": response["world"]}
 
     def dense_log(self) -> dict[str, Any]:
-        """Return the full, JSON-safe ``env.dense_log`` accumulated so far."""
+        """Return the full, JSON-safe ``env.dense_log`` accumulated so far.
+
+        Per-component logs (e.g. ``"PeriodicTax"``) are only backfilled by
+        upstream's own ``_finalize_logs()`` once the episode's LAST
+        ``step_month`` completes -- callers that need the complete,
+        per-component dense log (measurement.py's leaves) must call this
+        exactly once, right after the terminal ``step_month`` response and
+        before ``close()``.
+        """
         response = self._request({"op": "dense_log"})
         return response["dense_log"]
 

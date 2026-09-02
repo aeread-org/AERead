@@ -37,6 +37,7 @@ from .cases import (
     UPSTREAM_COMMIT,
     UPSTREAM_REPO,
 )
+from . import measurement
 from .econagent_bridge import EconAgentBridge
 
 PLUGIN_ID = "econagent_v1_environment"
@@ -303,6 +304,12 @@ class EconAgentV1Plugin:
             "agents": snapshot["agents"],
             "world": snapshot["world"],
             "month_actions": [],
+            # Populated only at termination (see step()) -- the full,
+            # per-component upstream dense log (spec section 2's
+            # rule_constraint leaves read every term from this, never
+            # recomputing accounting independently). None until then, never
+            # a fabricated placeholder.
+            "dense_log": None,
         }
 
     def phases(self, family_case: Mapping[str, Any]) -> tuple[PhaseSpec, ...]:
@@ -419,6 +426,15 @@ class EconAgentV1Plugin:
         new_state["month_actions"] = list(new_state["month_actions"]) + [result["actions"]]
 
         if result["done"] or new_state["timestep"] >= new_state["episode_length"]:
+            # Upstream's own per-component dense log (e.g. "PeriodicTax") is
+            # only backfilled by env's _finalize_logs() once this LAST
+            # step_month() has completed -- must be read now, before the
+            # session closes (see econagent_bridge.py's dense_log()
+            # docstring). Read before close(): a bridge failure fetching it
+            # must surface as the same typed EconAgentBridgeError a mid-
+            # episode failure would, never a silently-terminal episode with
+            # missing evidence.
+            new_state["dense_log"] = bridge.dense_log()
             _set_termination(new_state, "episode_length_reached")
             bridge.close()
             self._sessions.pop(new_state["bridge_session_id"], None)
@@ -444,6 +460,7 @@ class EconAgentV1Plugin:
             "final_agents": state["agents"],
             "final_world": state["world"],
             "month_actions": state["month_actions"],
+            "dense_log": state["dense_log"],
         }
 
     def outcome(
@@ -461,19 +478,19 @@ class EconAgentV1Plugin:
         }
 
     def build_scorer(self, family_case: Mapping[str, Any]) -> Any:
-        """Not built this pass -- see docs/econagent_adapter_spec.md sections 2/4.
+        """Return the one ``EconAgentV1Scorer`` declaring this case's leaves.
 
-        Milestone 1 is cases + environment only; the two ``rule_constraint``
-        accounting leaves and the ``baseline_only`` macro diagnostics are a
-        later milestone's work. Present and callable (satisfying
-        ``REQUIRED_FAMILY_PLUGIN_HOOKS``) but always raises -- never a
-        fabricated or partial scorer.
+        Built in milestone 2 (measurement.py) -- the two ``rule_constraint``
+        accounting leaves and the ``baseline_only`` macro diagnostics (spec
+        section 2). Only the leaves are declared here; scoring itself
+        happens against a terminated episode's ``terminal()`` output (see
+        ``measurement.score_budget_identity``/``score_tax_bracket_arithmetic``/
+        ``score_macro_trajectory``, mirroring ``tau3_retail``'s identical
+        split between "declare the leaves" and "score a specific episode").
         """
-        del family_case
-        raise NotImplementedError(
-            "econagent_v1's scorer is not built yet (milestone 1 is cases + "
-            "environment only); see docs/econagent_adapter_spec.md sections 2/4"
-        )
+        scenario = family_case["scenario"]
+        pins = family_case["pins"]
+        return measurement.build_scorer(scenario, pins)
 
     def build_reference_providers(self, family_case: Mapping[str, Any]) -> tuple[Any, ...]:
         del family_case
