@@ -142,6 +142,83 @@ gaps surfaced during milestone-1 implementation, all confirmed directly against 
    map to two distinct upstream seeds, and nothing about the case's own declared identity
    or content digest depends on this offset.
 
+### Milestone 2 corrections (recon gaps found while building measurement.py/goldens/parity)
+
+Same ground rule as milestone 1: update the spec in the same commit reality forces a
+deviation. Five gaps surfaced while building §2's three leaves, §4's goldens, and §5's
+parity harness, all confirmed directly against the pinned `bfada09` checkout and against a
+real bridge-driven episode.
+
+1. **`labor_income` must be sourced from `dense_log["PeriodicTax"][...]["income"]`, not
+   `dense_log["states"][...][agent_id]["income"]["Coin"]`.** Both are upstream-recorded, but
+   `SimpleLabor.component_step` only assigns `agent.income["Coin"] = payoff` inside its
+   `if 1 <= action <= num_labor_hours:` branch -- on a month an agent's `complex_actions`-
+   chosen labor action is 0, that field is never reset and keeps showing the last month's
+   positive value ("last positive income", not "this month's income"). `PeriodicBracketTax`'s
+   own `income` field (`agent.state["production"] - last_coin`, a production delta) correctly
+   reads 0 on that same no-op month, because `agent.state["production"]` is only incremented
+   inside the identical branch. Confirmed empirically: sourcing from `states[...]["income"]`
+   produced large spurious `econagent_budget_identity` residuals on any no-op-labor month;
+   sourcing from `PeriodicTax[...]["income"]` produces an exact-zero residual instead.
+2. **`consumption_spend` has the identical staleness problem, one component later, and it is
+   not hypothetical -- it fired in the very first `n_agents=2` degenerate-golden run built for
+   §4.** `SimpleConsumption.component_step` also does `if action == 0: continue` for its own
+   consumption action; `agent.consumption["Coin"]` is never reset on that branch either. Unlike
+   `labor_income`, there is no substitute upstream-recorded field analogous to the tax
+   component's production-delta, so the fix instead reads the actual action `complex_actions`
+   chose that month -- `month_actions[month-1][agent_id][1]` (upstream's own returned
+   `[labor, consumption]` pair, already reported back by the bridge's `step_month` response for
+   exactly this kind of audit, per milestone-1 correction 4) -- and treats `consumption_spend`
+   as `0` whenever that action is `0`. `measurement.py`'s `compute_budget_identity_residuals`
+   and `compute_macro_trajectory` both take `month_actions` as a required argument now, not an
+   optional one.
+3. **`saving_interest` has no upstream-recorded value anywhere to read.**
+   `SimpleSaving.component_step` adds the interest payoff straight to
+   `agent.state["inventory"]["Coin"]`; `agent.state["saving"]` is a vestigial field upstream
+   initializes to 0 and never mutates (confirmed empirically: it reads 0 in every recorded
+   month of every probed episode), and no dense-log entry captures the payoff either.
+   `econagent_budget_identity`'s sixth term is therefore derived as the closing residual of
+   the other five already-recorded terms, not read directly. This is not a weaker check: by
+   upstream's own component ORDER (`SimpleLabor`, `PeriodicBracketTax`, `SimpleConsumption`,
+   `SimpleSaving` always last) and its own documented `timestep % world.period == 0` gate on
+   `SimpleSaving.component_step`, the residual is a real, falsifiable invariant -- exactly `0`
+   on every month that is not a `world.period` boundary, and (since upstream's own interest
+   rate is clamped `>= 0`) never negative on a boundary month. `world.period` itself (distinct
+   from `PeriodicBracketTax`'s *own* `"period"` config field, which is `1`) is exposed by a
+   milestone-2 addition to `econagent_bridge_driver.py`'s `agent_snapshot` op rather than
+   hardcoded.
+4. **`econagent_tax_bracket_arithmetic`'s "re-invoke upstream's own component method" requirement
+   cannot use the episode's own bridge session, because that session is already closed by the
+   time post-episode scoring runs** (`environment.py`'s `step()` calls `bridge.close()` as soon
+   as the episode terminates). Resolution: `econagent_bridge_driver.py` gained a new, stateless
+   op, `recompute_tax` -- constructs a throwaway env from the pinned config alone (no `reset`
+   required) and calls the live `PeriodicBracketTax.taxes_due`/`marginal_rate` methods directly.
+   This is sound because the `"us-federal-single-filer-2018-scaled"` bracket schedule is a pure
+   function of config (no RNG, no dependency on `n_agents`/`world_seed`/prior episode state) --
+   confirmed empirically: a freshly-constructed component with different `n_agents`/seed than
+   the real episode reproduced its `tax_paid` values exactly. Separately, upstream's own
+   `effective_taxes = min(inventory, tax_due)` clipping means a recorded `tax_paid` can
+   legitimately be *less than* the recomputed bracket amount; the leaf enforces the one
+   direction that is always a bug (`tax_paid` exceeding `tax_due`) and reports clipping as a
+   diagnostic, never a violation.
+5. **Per-component dense logs (e.g. `"PeriodicTax"`) are only backfilled by upstream's own
+   `_finalize_logs()` once the episode's LAST `step_month` completes** -- confirmed empirically:
+   calling the bridge's `dense_log` op mid-episode returns only `"world"`/`"states"`/
+   `"actions"`/`"rewards"`, never the per-component keys, until the final step. `environment.py`'s
+   `step()` therefore fetches the complete dense log exactly once, immediately after the
+   terminal `step_month` response and before `bridge.close()` -- a sequencing detail load-bearing
+   enough to note here for whoever next touches `step()`.
+
+§4's two goldens flagged in milestone 1 as needing re-derivation are now built, concretely:
+"invalid or unauthorized" is realized at both the kernel layer (an illegal/malformed seat
+action never reaches `step()`, and `step()` itself refuses an incomplete actions mapping
+without touching the bridge) and the bridge-protocol layer (a hand-crafted extra field on a
+raw `step_month` request has provably zero effect, since the driver never reads any
+caller-supplied action field); "degenerate reference" uses `n_agents=2` (upstream's actual
+floor), confirming `PeriodicBracketTax`'s lump-sum redistribution is well-defined, evenly
+split, and reported as the real computed value rather than suppressed. See
+`tests/test_econagent_goldens.py` for both.
+
 ---
 
 ## 1. Pinned source and corpus enumeration (QC Gate 1)
@@ -300,37 +377,51 @@ All five run through the bridge (they depend on the real upstream engine for the
 tax arithmetic) and are therefore skipped, never faked, without a provisioned bridge venv —
 guarded by `AEREAD_ECONAGENT_BRIDGE_REQUIRED`.
 
-**Not built this pass; two goldens need re-derivation first.** No golden fixture is
-implemented in milestone 1 (cases + environment only). Before §4 is built: "Invalid or
-unauthorized" as written assumes a seat submits a `consumption` action index the harness
-can corrupt, which milestone-1 correction 4 rules out for the scripted-only pass (the seat
-action is an acknowledgment; the real decision is computed inside the bridge) — it needs a
-different concrete illegal-input instance (e.g. a malformed `step_month` request, or an
-out-of-range value fed to the bridge driver directly, bypassing `complex_actions`, as the
-second half of the original cell already anticipated). "Degenerate reference" as written
-needs a different scenario per milestone-1 correction 7 (`n_agents=1` cannot construct).
+**Built in milestone 2 (`tests/test_econagent_goldens.py`) — this row records the two
+literal-text goldens above that needed re-derivation, and how, rather than pretending the
+table above was ever executable verbatim.** No golden fixture was implemented in milestone 1
+(cases + environment only). "Invalid or unauthorized" as originally written assumes a seat
+submits a `consumption` action index the harness can corrupt, which milestone-1 correction 4
+rules out for the scripted-only pass (the seat action is an acknowledgment; the real decision
+is computed inside the bridge); the built golden instead demonstrates illegality/
+unauthorization at both layers where it can actually occur — a malformed/unauthorized seat
+action rejected by `legal()`/`parse_action()` before `step()` is ever called (kernel layer),
+and a hand-crafted extra field on a raw `step_month` request proven to have zero effect
+because the driver never reads any caller-supplied action field at all (bridge-protocol
+layer). "Degenerate reference" as originally written needs a different scenario per
+milestone-1 correction 7 (`n_agents=1` cannot construct); the built golden uses `n_agents=2`,
+upstream's actual floor. See "Milestone 2 corrections" above for the full reasoning trail.
 
 ## 5. Test plan — e2e, replay, parity
 
-- **e2e** (`tests/test_econagent_e2e.py`): run the scheduler end-to-end over
-  `econagent.pilot.small10x12.seed0` and `.seed1` through the real bridge; assert episode
-  completion, dense_log length, and all three scenario ids' manifests round-trip through
-  the importer byte-identically on a second run (import determinism, mirroring tau3 §8 P1).
-- **replay** (`tests/test_econagent_replay.py`): record one full episode's decision log
-  (per-slot observation, `complex_actions` output, tool/bridge call, resulting state hash);
-  replay offline with the bridge process disabled entirely; assert every per-step state hash
-  and the two `rule_constraint` leaves reproduce exactly with zero live calls.
-- **parity** (`tests/test_econagent_parity.py`, since upstream code executes via the bridge):
-  for each of the three pilot scenarios, independently invoke upstream's own
-  `foundation.make_env_instance` + `complex_actions` loop directly inside the bridge venv
-  (an "oracle" driver script, not through the adapter's `step()`), and require the
-  adapter's per-agent terminal `inventory["Coin"]`, cumulative `tax_paid`, and dense_log
-  length match the oracle's exactly. This is the delegate-not-reimplement proof: the adapter
-  must not silently diverge from a bare call into the same upstream code.
-- **golden fixtures** (`tests/test_econagent_goldens.py`): the five §4 instances as
-  individually named, always-run structural assertions (schema/typing checks that do not
-  require the bridge) plus bridge-gated numeric assertions (skipped/required per
-  `AEREAD_ECONAGENT_BRIDGE_REQUIRED`, same convention as tau3).
+- **e2e** (`tests/test_econagent_e2e.py`) — **not built this pass** (deferred to milestone 3
+  alongside replay): run the scheduler end-to-end over `econagent.pilot.small10x12.seed0` and
+  `.seed1` through the real bridge; assert episode completion, dense_log length, and all
+  three scenario ids' manifests round-trip through the importer byte-identically on a second
+  run (import determinism, mirroring tau3 §8 P1). `tests/test_econagent_goldens.py`'s
+  "successful" golden already exercises an equivalent full end-to-end run of
+  `small10x12.seed0`, but does not yet check import-determinism round-tripping.
+- **replay** (`tests/test_econagent_replay.py`) — **not built this pass** (milestone 3):
+  record one full episode's decision log (per-slot observation, `complex_actions` output,
+  tool/bridge call, resulting state hash); replay offline with the bridge process disabled
+  entirely; assert every per-step state hash and the two `rule_constraint` leaves reproduce
+  exactly with zero live calls.
+- **parity** (`tests/test_econagent_parity.py`, since upstream code executes via the bridge)
+  — **built in milestone 2**: for each of the three pilot scenarios, independently invoke
+  upstream's own `foundation.make_env_instance` + `complex_actions` loop directly inside the
+  bridge venv (`parity.py`'s inline oracle script, run via `python -c` -- never importing
+  `econagent_bridge_driver.py`, so agreement is not the driver agreeing with itself), and
+  require the adapter's per-agent terminal `inventory["Coin"]`, cumulative `tax_paid`, and
+  dense_log length match the oracle's exactly. This is the delegate-not-reimplement proof:
+  the adapter must not silently diverge from a bare call into the same upstream code. A
+  mutation test (two runs with different `world_seed`s) confirms the comparison actually
+  detects real divergence, not just agreement.
+- **golden fixtures** (`tests/test_econagent_goldens.py`) — **built in milestone 2**: the
+  five §4 instances (two re-derived per the note above), run against the real bridge and
+  skipped, honestly, without a provisioned bridge interpreter -- following the same
+  `_require_bridge()` convention as every other econagent test file, not literally gated by
+  `AEREAD_ECONAGENT_BRIDGE_REQUIRED` (that env var still has no enforcement hook generalized
+  beyond tau2 in the shared root `conftest.py`; see the econagent ledger).
 
 ## 6. Stated limits
 
