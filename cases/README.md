@@ -8,6 +8,7 @@ remain stable and comparable results keep their meaning.
 |---|---|---|---|
 | Exchange v1 | scored + specialized | [`exchange_v1/`](exchange_v1/) | Four official v0 cases, diagnostics, and two specialized worlds |
 | Housing v1 | generated | [`housing_v1/`](housing_v1/) | Deterministic generated worlds; no static JSON fixtures |
+| negarena | development | [`negarena/`](negarena/) | Six authored bilateral-negotiation scenarios (buy/sell, ultimatum) over a pinned upstream engine |
 | Procurement grounding v1 | development | [`procurement_grounding_v1/`](procurement_grounding_v1/) | One evidence-grounded 231-project sourcing case with a deterministic verifier |
 | tau3 retail | imported base split | [`tau3_retail/`](tau3_retail/) | 114 pinned retail tasks plus provenance files |
 
