@@ -47,6 +47,15 @@ replay without a live bridge (spec section 5's "no bridge subprocess
 spawned") lands in a later milestone; the two ``MeasurementLeafSpec``s per
 track (spec section 2) are declared in ``measurement.py`` and wired in
 through ``build_scorer`` below, as of this milestone.
+
+Milestone 3 of 3 adds the scripted harness that actually produces the
+``tool_executions`` this module's own ``step`` cross-checks
+(``harness.ScriptedEconevalsHarness``, driving the kernel ``ToolRuntime``
+through tool bindings declared in ``tools.py`` -- both delegate to this
+module's own ``dispatch_read_only``/``dispatch_submit`` and
+``advance_period``, never a second tool-body implementation) and the
+offline replayer (``replay.py``) that reproduces a recorded episode's
+final state and both measurement leaves with zero further model calls.
 """
 from __future__ import annotations
 
@@ -80,7 +89,7 @@ SEAT_ID = "agent"
 ROLE_ID = "assistant"
 
 # Track -> (read-only tool names, submit tool name, submit argument name).
-_TRACK_TOOLS: Mapping[str, Mapping[str, Any]] = {
+TRACK_TOOLS: Mapping[str, Mapping[str, Any]] = {
     "procurement": {
         "read_only": (
             "get_previous_purchase_data",
@@ -133,6 +142,25 @@ def _set_termination(state: dict[str, Any], reason: str) -> None:
             f"declared reasons are {list(TERMINATION_REASONS)}"
         )
     state["termination"] = reason
+
+
+def advance_period(family_case: Mapping[str, Any], state: dict[str, Any]) -> None:
+    """Apply one period's completion bookkeeping: increment the period
+    counter, and set ``"max_periods"`` termination once the case's own
+    pinned ``pins.max_steps`` is reached.
+
+    Public (milestone 3): this is the ONE place this bookkeeping is ever
+    written. ``step`` calls it as the FSM's own authoritative per-period
+    advance; ``tools.EconevalsToolSession.advance_period`` (the scripted
+    harness's mirror state, ``harness.py``) calls the SAME function after
+    executing a period's tool-call burst, so the harness's mirror never
+    diverges from what a live FSM would independently compute for the next
+    period's read-only responses (``get_attempt_number``,
+    ``get_previous_*``).
+    """
+    state["period"] += 1
+    if state["period"] >= family_case["pins"]["max_steps"]:
+        _set_termination(state, "max_periods")
 
 
 def _plain(value: Any) -> Any:
@@ -290,8 +318,20 @@ class EconevalsPlugin:
                 phase_id=PERIOD_PHASE,
                 actor_selector=SEAT_ID,
                 mode="single",
-                observation_schema_by_role={SEAT_ID: "econevals_period_observation_v1"},
-                action_schema_by_role={SEAT_ID: "econevals_period_action_v1"},
+                # Keyed by ROLE (``role_by_seat[actor]``, scheduler.py's own
+                # ``_eligible_actors`` contract), not by seat id -- the case
+                # manifest's one seat is ``SeatSpec(id="agent",
+                # role="assistant")`` (spec section 1), so ``ROLE_ID`` and
+                # ``SEAT_ID`` are deliberately different strings here (unlike
+                # tau3.retail, whose seat ids and roles happen to coincide).
+                # Milestone 3 build note: this was keyed by ``SEAT_ID``
+                # through milestone 2, undetected because no test drove a
+                # real episode through the kernel scheduler
+                # (``run_episode``/``_eligible_actors``) until this
+                # milestone's harness did; fixed here as part of this
+                # family's own code, not filed to the ledger.
+                observation_schema_by_role={ROLE_ID: "econevals_period_observation_v1"},
+                action_schema_by_role={ROLE_ID: "econevals_period_action_v1"},
                 max_logical_actions=max_actions,
                 invalid_action_policy="reject",
                 next_phases=(PERIOD_PHASE,),
@@ -321,7 +361,7 @@ class EconevalsPlugin:
         if phase.phase_id != PERIOD_PHASE or seat_id != SEAT_ID:
             raise ValueError(f"seat {seat_id!r} is not active in phase {phase.phase_id!r}")
         track = family_case["track"]
-        tools = _TRACK_TOOLS[track]
+        tools = TRACK_TOOLS[track]
         return {
             "track": track,
             "period": state["period"],
@@ -359,7 +399,7 @@ class EconevalsPlugin:
             return ParseResult.failure("tool_execution_count_mismatch")
 
         track = family_case["track"]
-        submit_tool = _TRACK_TOOLS[track]["submit_tool"]
+        submit_tool = TRACK_TOOLS[track]["submit_tool"]
         parsed_calls: list[dict[str, Any]] = []
         for index, tool_call in enumerate(tool_calls):
             if not isinstance(tool_call, dict):
@@ -439,9 +479,9 @@ class EconevalsPlugin:
             arguments = tool_call["arguments"]
             is_last = index == len(tool_calls) - 1
             if is_last:
-                computed = self._dispatch_submit(track, family_case, new_state, name, arguments)
+                computed = self.dispatch_submit(track, family_case, new_state, name, arguments)
             else:
-                computed = self._dispatch_read_only(track, family_case, new_state, name, arguments)
+                computed = self.dispatch_read_only(track, family_case, new_state, name, arguments)
             recorded = tool_executions[index]["result"]
             # Compare through the same plain (unfrozen) shape on both sides:
             # ``recorded`` came out of ``ParseResult``'s freeze (nested
@@ -455,9 +495,7 @@ class EconevalsPlugin:
                     f"{name!r}: recorded {recorded!r}, computed {computed!r}"
                 )
 
-        new_state["period"] += 1
-        if new_state["period"] >= family_case["pins"]["max_steps"]:
-            _set_termination(new_state, "max_periods")
+        advance_period(family_case, new_state)
 
         return TransitionResult(
             state=new_state,
@@ -508,13 +546,21 @@ class EconevalsPlugin:
         return None
 
     # -- tool dispatch (AERead-owned; spec section 3) --------------------
+    #
+    # Public (milestone 3): ``dispatch_read_only``/``dispatch_submit`` are
+    # this adapter's ONE tool-body implementation -- ``step`` calls them to
+    # independently re-derive a period's results from its own FSM state, and
+    # ``tools.build_tool_bindings`` (``harness.py``'s scripted harness)
+    # calls the SAME two methods, on its own live mirror state, to actually
+    # produce a period's tool results in the first place. No tool body is
+    # ever written twice.
 
     def _require_bridge(self) -> EconevalsBridge:
         if self.bridge is None:
             raise RuntimeError("econevals execution requires a provisioned EconevalsBridge")
         return self.bridge
 
-    def _dispatch_read_only(
+    def dispatch_read_only(
         self,
         track: str,
         family_case: Mapping[str, Any],
@@ -534,7 +580,7 @@ class EconevalsPlugin:
         name: str,
         arguments: Mapping[str, Any],
     ) -> dict[str, Any]:
-        if name not in _TRACK_TOOLS[track]["read_only"]:
+        if name not in TRACK_TOOLS[track]["read_only"]:
             return {"error": "invalid_tool", "message": f"invalid tool {name!r} for track {track!r}"}
         if name == "get_attempt_number":
             return {"attempt_number": len(state["attempts"])}
@@ -577,7 +623,7 @@ class EconevalsPlugin:
                 return {"previous_attempts": state["attempts"]}
         raise AssertionError(f"declared read-only tool {name!r} has no dispatch for {track!r}")
 
-    def _dispatch_submit(
+    def dispatch_submit(
         self,
         track: str,
         family_case: Mapping[str, Any],
@@ -585,7 +631,7 @@ class EconevalsPlugin:
         name: str,
         arguments: Mapping[str, Any],
     ) -> dict[str, Any]:
-        expected = _TRACK_TOOLS[track]["submit_tool"]
+        expected = TRACK_TOOLS[track]["submit_tool"]
         if name != expected:
             content = {"error": "invalid_tool", "message": f"expected {expected!r}, got {name!r}"}
             return {"content": content, "error": True}
@@ -608,7 +654,7 @@ class EconevalsPlugin:
         self, family_case: Mapping[str, Any], state: dict[str, Any], arguments: Mapping[str, Any]
     ) -> dict[str, Any]:
         instance = family_case["generated_instance"]
-        arg_name = _TRACK_TOOLS["procurement"]["submit_arg"]
+        arg_name = TRACK_TOOLS["procurement"]["submit_arg"]
         raw = arguments.get(arg_name)
         try:
             submitted = _parse_dict(raw)
@@ -671,7 +717,7 @@ class EconevalsPlugin:
         self, family_case: Mapping[str, Any], state: dict[str, Any], arguments: Mapping[str, Any]
     ) -> dict[str, Any]:
         instance = family_case["generated_instance"]
-        arg_name = _TRACK_TOOLS["scheduling"]["submit_arg"]
+        arg_name = TRACK_TOOLS["scheduling"]["submit_arg"]
         raw = arguments.get(arg_name)
         try:
             matching = _parse_dict(raw)
@@ -721,7 +767,7 @@ class EconevalsPlugin:
         self, family_case: Mapping[str, Any], state: dict[str, Any], arguments: Mapping[str, Any]
     ) -> dict[str, Any]:
         instance = family_case["generated_instance"]
-        arg_name = _TRACK_TOOLS["pricing"]["submit_arg"]
+        arg_name = TRACK_TOOLS["pricing"]["submit_arg"]
         raw = arguments.get(arg_name)
         if isinstance(raw, (int, float)) and not isinstance(raw, bool):
             attempt = {
@@ -783,7 +829,9 @@ __all__ = [
     "ROLE_ID",
     "SCORER_ID",
     "SEAT_ID",
+    "TRACK_TOOLS",
     "EconevalsPlugin",
+    "advance_period",
     "family_manifest",
     "register_plugin",
 ]

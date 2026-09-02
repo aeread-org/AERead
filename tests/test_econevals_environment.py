@@ -6,17 +6,30 @@ the plugin's ``step`` -- which delegates to the pinned upstream scoring
 primitives via the bridge for a period's terminating submit call -- run for
 real when a bridge interpreter is provisioned, and are skipped otherwise
 (mirroring ``tests/test_econevals_cases.py``'s ``_bridge()`` convention).
+
+The trailing section (milestone 3) drives full, multi-period episodes
+through the REAL kernel scheduler (``run_episode``) with
+``harness.ScriptedEconevalsHarness`` -- never ``plugin.step`` called
+directly, unlike every test above it -- which is what caught this file's
+own ``phases()`` role-vs-seat-id key bug (see the ``observation_schema_by_role``
+build note in ``environment.py``): nothing above this section ever went
+through ``scheduler._eligible_actors``, so it went undetected through
+milestones 1 and 2.
 """
 from __future__ import annotations
 
+import asyncio
 import json
 from pathlib import Path
+from types import MappingProxyType
 
 import pytest
 
+from aeread.shared_runner.execution import EvidenceStore
 from aeread.shared_runner.registry import REQUIRED_FAMILY_PLUGIN_HOOKS, PluginRegistry
+from aeread.shared_runner.resolver import PlanCell, case_content_sha256
 from aeread.shared_runner.schemas import CaseManifest
-from aeread.shared_runner.scheduler import ActionEnvelope
+from aeread.shared_runner.scheduler import ActionEnvelope, run_episode
 from aeread_families.econevals.econevals_bridge import (
     EconevalsBridge,
     EconevalsBridgeUnavailableError,
@@ -30,6 +43,7 @@ from aeread_families.econevals.environment import (
     family_manifest,
     register_plugin,
 )
+from aeread_families.econevals.harness import ScriptedEconevalsHarness
 
 CASES_DIR = Path("cases/econevals")
 
@@ -471,3 +485,225 @@ def test_step_rejects_a_harness_tool_replay_mismatch() -> None:
     }
     with pytest.raises(RuntimeError, match="tool replay result differs"):
         _run_one_period(plugin, family_case, response)
+
+
+# ---------------------------------------------------------------------------
+# Milestone 3: full multi-period episodes through the REAL kernel scheduler.
+# ---------------------------------------------------------------------------
+
+
+def _shrunk_case(split: str, case_id: str, *, max_steps: int) -> CaseManifest:
+    """A test-scoped copy of a real, pinned pilot case with a much smaller
+    ``pins.max_steps``/``episode.max_logical_actions``.
+
+    Keeps the real ``generated_instance``/``gold_optimum`` payload data (so
+    every period still drives a real bridge call, exactly as the full
+    100-period case would) and only shrinks the episode length, so a test
+    can reach a genuine ``"max_periods"`` termination in a handful of
+    periods rather than the full pilot budget. ``content_sha256`` is never
+    hand-typed -- it is recomputed the same way the real importer does,
+    through the kernel's own ``case_content_sha256`` resolver, so
+    ``run_episode``'s own cross-check (``case content hash changed after
+    plan resolution``) passes for the right reason.
+    """
+    path = CASES_DIR / split / f"{case_id}.json"
+    raw = json.loads(path.read_text(encoding="utf-8"))
+    raw["payload"] = dict(raw["payload"])
+    raw["payload"]["pins"] = dict(raw["payload"]["pins"])
+    raw["payload"]["pins"]["max_steps"] = max_steps
+    raw["episode"] = dict(raw["episode"])
+    raw["episode"]["max_logical_actions"] = max_steps
+    raw["content_sha256"] = case_content_sha256(raw)
+    return CaseManifest.from_dict(raw)
+
+
+def _cell(case: CaseManifest, *, suffix: str) -> PlanCell:
+    return PlanCell(
+        spec_version="aeread.run_plan/0.1",
+        cell_id=f"cell_econevals_environment_{suffix}",
+        case_id=case.case_id,
+        case_sha256=case.content_sha256,
+        family_id=case.family_id,
+        family_version=case.family_version,
+        suite_id="suite_econevals_environment",
+        suite_version="0.1.0",
+        block_id="block_econevals_environment",
+        sampling_plan_id="sampling_econevals_environment",
+        analysis_plan_id="analysis_econevals_environment",
+        world_seed=case.world_seed,
+        sampling_seed=case.world_seed,
+        block_repetition=0,
+        sampling_replicate=0,
+        replicate_index=0,
+        cluster_id=f"cluster_econevals_environment_{suffix}",
+        cluster_level="case",
+        observations_per_cluster=1,
+        pair_id=None,
+        paired_fields=MappingProxyType({}),
+        panel_mode="independent",
+        profile_by_seat=MappingProxyType({SEAT_ID: "scripted_agent"}),
+        execution_mode="evaluate",
+        case_max_logical_actions=case.episode.max_logical_actions,
+    )
+
+
+def _run_scripted_episode(bridge, case, script, *, tmp_path: Path, suffix: str):
+    plugin = EconevalsPlugin(bridge=bridge)
+    registry = PluginRegistry()
+    register_plugin(registry, plugin=plugin)
+    resolved_plugin = registry.resolve_manifest(family_manifest())
+    family_case = plugin.validate_payload(case.payload)
+
+    cell = _cell(case, suffix=suffix)
+    evidence = EvidenceStore(
+        tmp_path / f"evidence_{suffix}",
+        run_plan_id=f"runplan_econevals_environment_{suffix}",
+        cell_id=cell.cell_id,
+        episode_id=f"episode_econevals_environment_{suffix}",
+        episode_attempt_id="attempt_1",
+    )
+    harness = ScriptedEconevalsHarness(
+        plugin=resolved_plugin, family_case=family_case, evidence=evidence, script=script
+    )
+    result = asyncio.run(
+        run_episode(cell=cell, case=case, plugin=resolved_plugin, response_source=harness)
+    )
+    evidence.seal()
+    return harness, result
+
+
+def test_procurement_full_episode_runs_through_the_real_kernel_scheduler(
+    tmp_path: Path,
+) -> None:
+    """Info tools -> notes -> one ``submit_purchase_plan`` call, every
+    period, driven end to end through ``run_episode`` (not ``plugin.step``
+    called directly) -- the REAL shared-runner path."""
+    bridge = _bridge()
+    case = _shrunk_case("procurement_basic", "econevals.procurement.basic.0", max_steps=3)
+
+    script = [
+        [
+            {"id": "1", "name": "get_budget", "arguments": {}},
+            {"id": "2", "name": "get_equipment_information", "arguments": {}},
+            {"id": "3", "name": "write_notes", "arguments": {"notes": f"period {period}"}},
+            {
+                "id": "4",
+                "name": "submit_purchase_plan",
+                "arguments": {"purchase_plan": {}},
+            },
+        ]
+        for period in range(3)
+    ]
+
+    harness, result = _run_scripted_episode(
+        bridge, case, script, tmp_path=tmp_path, suffix="procurement"
+    )
+
+    assert harness.exhausted is True
+    assert result.logical_action_count == 3
+    assert [instance.phase_id for instance in result.phase_instances] == [PERIOD_PHASE] * 3
+    assert result.terminal["reason"] == "max_periods"
+    assert result.terminal["num_attempts"] == 3
+    assert all(attempt["is_feasible"] for attempt in result.final_state["attempts"])
+
+
+def test_scheduling_full_episode_runs_through_the_real_kernel_scheduler(
+    tmp_path: Path,
+) -> None:
+    bridge = _bridge()
+    case = _shrunk_case("scheduling_basic", "econevals.scheduling.basic.0", max_steps=2)
+    family_case_probe = EconevalsPlugin(bridge=bridge).validate_payload(case.payload)
+    instance = family_case_probe["generated_instance"]
+    matching = dict(zip(instance["worker_ids"], instance["task_ids"]))
+
+    script = [
+        [
+            {"id": "1", "name": "get_worker_ids", "arguments": {}},
+            {"id": "2", "name": "get_task_ids", "arguments": {}},
+            {"id": "3", "name": "submit_assignment", "arguments": {"assignment": matching}},
+        ]
+        for _ in range(2)
+    ]
+
+    harness, result = _run_scripted_episode(
+        bridge, case, script, tmp_path=tmp_path, suffix="scheduling"
+    )
+
+    assert harness.exhausted is True
+    assert result.logical_action_count == 2
+    assert result.terminal["reason"] == "max_periods"
+    assert all(attempt["valid"] for attempt in result.final_state["attempts"])
+
+
+def test_pricing_full_episode_runs_through_the_real_kernel_scheduler(tmp_path: Path) -> None:
+    bridge = _bridge()
+    case = _shrunk_case("pricing_basic", "econevals.pricing.basic.0", max_steps=2)
+    family_case_probe = EconevalsPlugin(bridge=bridge).validate_payload(case.payload)
+    product_ids = family_case_probe["generated_instance"]["product_ids"]
+    prices = {product_id: 1.0 for product_id in product_ids}
+
+    script = [
+        [
+            {"id": "1", "name": "get_product_ids", "arguments": {}},
+            {"id": "2", "name": "read_notes", "arguments": {"attempt_number": 0}},
+            {"id": "3", "name": "set_prices", "arguments": {"prices_dict_str": prices}},
+        ]
+        for _ in range(2)
+    ]
+
+    harness, result = _run_scripted_episode(
+        bridge, case, script, tmp_path=tmp_path, suffix="pricing"
+    )
+
+    assert harness.exhausted is True
+    assert result.logical_action_count == 2
+    assert result.terminal["reason"] == "max_periods"
+    assert [attempt["prices"] for attempt in result.final_state["attempts"]] == [prices, prices]
+
+
+def test_scripted_harness_seals_one_tool_invocation_event_per_declared_tool_call(
+    tmp_path: Path,
+) -> None:
+    """The harness's evidence is genuinely sealed (spec's "sealed evidence"):
+    once ``EvidenceStore.seal()`` is called, the store round-trips to the
+    same seal and every scripted tool call left a
+    ``tool_invocation_started``/``tool_invocation_succeeded`` event pair."""
+    bridge = _bridge()
+    case = _shrunk_case("pricing_basic", "econevals.pricing.basic.0", max_steps=1)
+    family_case_probe = EconevalsPlugin(bridge=bridge).validate_payload(case.payload)
+    product_ids = family_case_probe["generated_instance"]["product_ids"]
+    prices = {product_id: 1.0 for product_id in product_ids}
+
+    script = [
+        [
+            {"id": "1", "name": "get_product_ids", "arguments": {}},
+            {"id": "2", "name": "set_prices", "arguments": {"prices_dict_str": prices}},
+        ]
+    ]
+
+    plugin = EconevalsPlugin(bridge=bridge)
+    registry = PluginRegistry()
+    register_plugin(registry, plugin=plugin)
+    resolved_plugin = registry.resolve_manifest(family_manifest())
+    family_case = plugin.validate_payload(case.payload)
+    cell = _cell(case, suffix="sealed_evidence")
+    evidence = EvidenceStore(
+        tmp_path / "evidence_sealed",
+        run_plan_id="runplan_econevals_environment_sealed_evidence",
+        cell_id=cell.cell_id,
+        episode_id="episode_econevals_environment_sealed_evidence",
+        episode_attempt_id="attempt_1",
+    )
+    harness = ScriptedEconevalsHarness(
+        plugin=resolved_plugin, family_case=family_case, evidence=evidence, script=script
+    )
+    asyncio.run(
+        run_episode(cell=cell, case=case, plugin=resolved_plugin, response_source=harness)
+    )
+
+    seal = evidence.seal()
+    assert seal == evidence.seal()
+
+    event_types = [event.event_type for event in evidence.read_events()]
+    assert event_types.count("tool_invocation_started") == 2
+    assert event_types.count("tool_invocation_succeeded") == 2
