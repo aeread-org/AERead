@@ -24,6 +24,7 @@ different, non-fidelity test selection) without this test failing first.
 """
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 _CI_WORKFLOW = Path(__file__).resolve().parent.parent / ".github" / "workflows" / "ci.yml"
@@ -41,9 +42,30 @@ def _workflow_text() -> str:
     return _CI_WORKFLOW.read_text(encoding="utf-8")
 
 
+def _workflow_code() -> str:
+    """The workflow with comments stripped.
+
+    The variable's name also appears in a comment explaining why the switch
+    exists, so a substring search over the raw file passes even when the
+    operative assignment is deleted -- the comment alone keeps it green.
+    Everything asserted below reads this instead.
+    """
+
+    lines = []
+    for line in _workflow_text().splitlines():
+        code = line.split("#", 1)[0]
+        if code.strip():
+            lines.append(code)
+    return "\n".join(lines)
+
+
 def test_ci_sets_the_agenticpay_bridge_required_switch() -> None:
-    text = _workflow_text()
-    assert "AEREAD_AGENTICPAY_BRIDGE_REQUIRED" in text, (
+    text = _workflow_code()
+    assert re.search(
+        r"^\s*AEREAD_AGENTICPAY_BRIDGE_REQUIRED\s*:\s*[\"']?1[\"']?\s*$",
+        text,
+        re.MULTILINE,
+    ), (
         "no CI step sets AEREAD_AGENTICPAY_BRIDGE_REQUIRED: without it, "
         "conftest.py's skip-to-failure hook stays off by default, and CI can go "
         "green while every agenticpay upstream-fidelity assertion silently skipped "
@@ -52,7 +74,7 @@ def test_ci_sets_the_agenticpay_bridge_required_switch() -> None:
 
 
 def test_ci_actually_runs_every_agenticpay_fidelity_test_file_under_the_bridge_gate() -> None:
-    text = _workflow_text()
+    text = _workflow_code()
     for test_file in _FIDELITY_TEST_FILES:
         assert test_file in text, (
             f"no CI job invokes {test_file}; requiring the bridge is meaningless if "
