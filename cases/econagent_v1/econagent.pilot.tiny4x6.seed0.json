@@ -1,8 +1,8 @@
 {
   "case_id": "econagent.pilot.tiny4x6.seed0",
-  "content_sha256": "50e03a87e6d11b03c8b9e21156aa382349604c83f2d3ffb4a2eb43d81f5c567f",
+  "content_sha256": "4c336c893e1ed4e56c4e43f71d8cc4feaac6b0e0c7cd2a401f2a55381a7ba2c5",
   "episode": {
-    "max_logical_actions": 6,
+    "max_logical_actions": 24,
     "termination": [
       "episode_length_reached"
     ]

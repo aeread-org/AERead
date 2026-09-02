@@ -103,7 +103,14 @@ def test_phases_is_one_self_looping_simultaneous_phase() -> None:
     assert phase.mode == "simultaneous"
     assert phase.actor_selector == "all_agents"
     assert phase.next_phases == (AGENT_MONTH_PHASE,)
-    assert phase.max_logical_actions == family_case["scenario"]["episode_length"]
+    # One logical action per agent seat per month (milestone-3 correction --
+    # see cases.py's `build_case` docstring comment for the
+    # SchedulerContractError a plain `episode_length` budget produced the
+    # first time an episode ran through the real scheduler).
+    assert (
+        phase.max_logical_actions
+        == family_case["scenario"]["n_agents"] * family_case["scenario"]["episode_length"]
+    )
 
 
 def test_eligible_actors_is_every_agent_seat_every_month() -> None:

@@ -314,6 +314,7 @@ class EconAgentV1Plugin:
 
     def phases(self, family_case: Mapping[str, Any]) -> tuple[PhaseSpec, ...]:
         episode_length = int(family_case["scenario"]["episode_length"])
+        n_agents = int(family_case["scenario"]["n_agents"])
         return (
             PhaseSpec(
                 phase_id=AGENT_MONTH_PHASE,
@@ -321,7 +322,14 @@ class EconAgentV1Plugin:
                 mode="simultaneous",
                 observation_schema_by_role={"agent": "econagent_v1_month_observation_v1"},
                 action_schema_by_role={"agent": "econagent_v1_month_ack_v1"},
-                max_logical_actions=episode_length,
+                # One logical action per agent seat per month (this
+                # self-looping phase covers all `episode_length` months) --
+                # matches `cases.py`'s identical `n_agents * episode_length`
+                # budget and `housing_v1`'s `num_tenants * rounds` convention
+                # for its own simultaneous, self-looping phases. See
+                # cases.py's `build_case` docstring comment (milestone-3
+                # correction) for the SchedulerContractError this fixes.
+                max_logical_actions=n_agents * episode_length,
                 invalid_action_policy="reject",
                 next_phases=(AGENT_MONTH_PHASE,),
             ),

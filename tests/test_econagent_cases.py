@@ -222,13 +222,16 @@ def test_case_ids_family_split_and_world_seed(imported) -> None:
     assert len(small0["seats"]) == 10
     assert {seat["id"] for seat in small0["seats"]} == {f"agent_{i}" for i in range(10)}
     assert {seat["role"] for seat in small0["seats"]} == {"agent"}
-    assert small0["episode"]["max_logical_actions"] == 12
+    # One logical action per agent seat per month (milestone-3 correction --
+    # the `agent_month` phase is `mode="simultaneous"` with all 10 seats
+    # acting every month; see cases.py's `build_case` docstring comment).
+    assert small0["episode"]["max_logical_actions"] == 10 * 12
     assert small0["episode"]["termination"] == ("episode_length_reached",)
 
     tiny0 = cases["econagent.pilot.tiny4x6.seed0"]
     assert tiny0["world_seed"] == 0  # same seed as small0, different shape -- allowed
     assert len(tiny0["seats"]) == 4
-    assert tiny0["episode"]["max_logical_actions"] == 6
+    assert tiny0["episode"]["max_logical_actions"] == 4 * 6
 
 
 def test_case_record_round_trips_through_the_strict_r1_grammar(imported) -> None:

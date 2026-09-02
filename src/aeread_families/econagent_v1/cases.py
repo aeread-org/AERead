@@ -304,7 +304,23 @@ def build_case(scenario: Mapping[str, Any], pins: Mapping[str, Any]) -> dict[str
         "world_seed": world_seed,
         "seats": seats,
         "episode": {
-            "max_logical_actions": episode_length,
+            # Milestone-3 correction (found running the first real episode
+            # through aeread.shared_runner.scheduler.run_episode): the
+            # kernel counts one logical action per SEAT per phase instance,
+            # not one per month -- the `agent_month` phase is
+            # `mode="simultaneous"` with all `n_agents` seats acting every
+            # month (see environment.py's `phases()`), so the true per-
+            # episode ceiling is `n_agents * episode_length`, matching
+            # `housing_v1`'s identical `num_tenants * rounds` convention for
+            # its own simultaneous, self-looping phases
+            # (src/aeread/shared_runner/housing.py). The literal
+            # `episode_length` value used through milestones 1-2 was never
+            # exercised against the real scheduler (every prior test called
+            # `EconAgentV1Plugin`'s hooks directly) and undercounts by a
+            # factor of `n_agents`, making every pinned scenario with
+            # `n_agents > 1` fail before its first month with
+            # `SchedulerContractError: case logical-action budget exceeded`.
+            "max_logical_actions": n_agents * episode_length,
             "termination": TERMINATION_REASONS,
         },
         "visibility_policy": VISIBILITY_POLICY,
