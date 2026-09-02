@@ -519,15 +519,20 @@ def test_terminal_is_none_before_the_episode_ends() -> None:
 
 
 # ---------------------------------------------------------------------------
-# Deferred scorer (this milestone excludes measurement.py).
+# build_scorer (measurement.py's five leaves; see test_govsim_measurement.py
+# for the full leaf-declaration/scoring/golden coverage -- this file only
+# checks the hook wiring itself, mirroring test_tau3_retail_environment.py's
+# identical split).
 # ---------------------------------------------------------------------------
 
 
-def test_build_scorer_is_deliberately_not_implemented_yet() -> None:
+def test_build_scorer_returns_the_five_measurement_leaves() -> None:
     plugin = _plugin()
     family_case = _family_case(num_agents=1)
-    with pytest.raises(NotImplementedError, match="measurement leaves"):
-        plugin.build_scorer(family_case)
+    scorer = plugin.build_scorer(family_case)
+    assert len(scorer.leaves) == 5
+    assert scorer.num_agents == 1
+    assert scorer.max_num_rounds == 12
 
 
 def test_build_reference_providers_is_empty_no_certified_bound() -> None:

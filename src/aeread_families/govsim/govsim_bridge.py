@@ -237,6 +237,27 @@ class GovsimBridge:
             )
         return response
 
+    def call_upstream_gini(self, array: Sequence[float]) -> float:
+        """Call upstream's own, real ``gini()`` function (spec section 5's P4).
+
+        Never used by ``measurement.py``'s own scoring path -- that module
+        vendors this same function verbatim with a provenance header
+        instead, since delegating every score to a subprocess would make
+        the deterministic ``govsim_equality_gini`` leaf pointlessly slow.
+        This method exists solely so a parity test can prove the vendored
+        copy agrees with upstream's real, unmodified code (see
+        ``govsim_bridge_driver.py``'s ``_op_call_upstream_gini``).
+        """
+        response = self._run(
+            {"op": "call_upstream_gini", "array": [float(value) for value in array]}
+        )
+        if not response.get("ok"):
+            raise GovsimBridgeError(
+                f"bridge subprocess reported an infrastructure failure for "
+                f"call_upstream_gini: {response!r}"
+            )
+        return float(response["gini"])
+
     def runtime_info(self) -> dict[str, str]:
         """Report the exact interpreter/package provenance used by the driver."""
         response = self._run({"op": "runtime_info"})

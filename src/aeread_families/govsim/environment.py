@@ -40,7 +40,7 @@ from aeread.shared_runner.scheduler import (
     TransitionResult,
 )
 
-from . import policies
+from . import measurement, policies
 from .cases import (
     ENV_CFG_FIELDS,
     FAMILY_ID,
@@ -286,6 +286,11 @@ class GovsimPlugin:
             "projection": projection,
             "termination": None,
             "operational_failure": None,
+            # Per-round record consumed only by measurement.py's trajectory-
+            # scoped leaves (govsim_no_collapse, govsim_threshold_adherence);
+            # see step()'s HARVEST/REFLECT branches for how each entry is
+            # assembled.
+            "round_trace": [],
         }
 
     def phases(self, family_case: Mapping[str, Any]) -> tuple[PhaseSpec, ...]:
@@ -486,6 +491,42 @@ class GovsimPlugin:
         projection.pop("ok", None)
         new_state["action_history"] = history
         new_state["projection"] = projection
+        if phase.phase_id == HARVEST_PHASE:
+            # Stash this round's harvest-phase snapshot (wanted_resource --
+            # upstream's own `_assign_resource()` output, already finalized
+            # by the time the 2N-action batch above returns -- and the
+            # sustainability_threshold that was in effect for it, i.e. the
+            # value regeneration computed at the END of the PREVIOUS round,
+            # or upstream's own reset() default for round 0) so it can be
+            # merged into one round_trace entry once REFLECT closes this
+            # round out. Read straight off upstream's own recorded state,
+            # never re-derived (spec section 2's "never re-derived
+            # independently of upstream's own state").
+            new_state["_pending_round_snapshot"] = {
+                "wanted_resource": dict(projection["wanted_resource"]),
+                "sustainability_threshold": int(projection["sustainability_threshold"]),
+            }
+        elif phase.phase_id == REFLECT_PHASE:
+            # Merge the pending harvest-phase snapshot with this round's
+            # close-out (upstream's own post-regeneration resource_in_pool
+            # and its own `terminations` flag, computed by upstream BEFORE
+            # regeneration -- see concurrent_env.py's step()) into exactly
+            # one round_trace entry. `collapsed_or_horizon` is upstream's own
+            # flag, not re-derived: this environment already halts the
+            # episode the first round it is True (see below), so it can
+            # only ever be True on the LAST entry appended.
+            pending = new_state.pop("_pending_round_snapshot", {}) or {}
+            round_trace = list(new_state.get("round_trace", []))
+            round_trace.append(
+                {
+                    "round_index": len(round_trace),
+                    "wanted_resource": dict(pending.get("wanted_resource", {})),
+                    "sustainability_threshold": pending.get("sustainability_threshold"),
+                    "resource_in_pool_after_regen": projection["resource_in_pool"],
+                    "collapsed_or_horizon": bool(all(projection["terminations"].values())),
+                }
+            )
+            new_state["round_trace"] = round_trace
         if all(projection["terminations"].values()):
             _set_termination(new_state, "collapse_or_horizon")
             next_phase = None
@@ -508,6 +549,14 @@ class GovsimPlugin:
             "num_round": projection["num_round"],
             "resource_in_pool": projection["resource_in_pool"],
             "collected_resource": dict(projection["collected_resource"]),
+            # measurement.py's trajectory-scoped leaves (govsim_no_collapse,
+            # govsim_threshold_adherence) read this; see step()'s HARVEST/
+            # REFLECT branches for how each entry is assembled. Possibly
+            # short one entry for the in-progress round on an
+            # "operational_failure" termination (the round never reached
+            # REFLECT) -- measurement.py never scores that termination
+            # reason regardless (see its module docstring).
+            "round_trace": [dict(entry) for entry in state.get("round_trace", [])],
         }
         if reason == "operational_failure":
             result["operational_failure"] = dict(state["operational_failure"])
@@ -533,24 +582,19 @@ class GovsimPlugin:
             result["operational_failure"] = dict(terminal["operational_failure"])
         return result
 
-    def build_scorer(self, family_case: Mapping[str, Any]) -> Any:
-        """Deferred: the five measurement leaves land in a later milestone.
+    def build_scorer(self, family_case: Mapping[str, Any]) -> measurement.GovsimScorer:
+        """Return the five declared measurement leaves for this case.
 
-        Per this milestone's scope ("Do NOT build the scorer yet"), this
-        hook exists only to satisfy ``PluginRegistry.register``'s
-        callable-hook check (it never actually invokes this during
-        registration -- only ``callable(plugin.build_scorer)`` is checked).
-        Calling it before then is a programming error, not a recoverable
-        family-owned outcome, so it raises rather than returning a stub
-        scorer that would silently produce meaningless leaves.
+        Delegates entirely to ``measurement.py`` (spec section 2), mirroring
+        ``tau3_retail``'s identical convention of keeping every estimand/
+        reference/scorer declaration in that one module and having this hook
+        just wire it in. The current kernel only checks
+        ``callable(plugin.build_scorer)`` at registration time and does not
+        yet invoke it (``registry.py``'s ``REQUIRED_FAMILY_PLUGIN_HOOKS``), so
+        ``measurement.py``'s scorers are also exercised directly by
+        ``tests/test_govsim_measurement.py`` today.
         """
-        del family_case
-        raise NotImplementedError(
-            "govsim measurement leaves (govsim_no_collapse, "
-            "govsim_threshold_adherence, govsim_survival_months, "
-            "govsim_total_harvest, govsim_equality_gini) are not built yet "
-            "-- see docs/govsim_adapter_spec.md section 2"
-        )
+        return measurement.build_scorer(family_case)
 
     def build_reference_providers(self, family_case: Mapping[str, Any]) -> tuple[Any, ...]:
         del family_case

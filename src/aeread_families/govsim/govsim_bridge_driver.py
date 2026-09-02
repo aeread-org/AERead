@@ -59,6 +59,24 @@ written to stdout:
           "pandas_version": str, "omegaconf_version": str,
           "pettingzoo_version": str}
 
+  {"op": "call_upstream_gini", "array": [float, ...]}
+      -> {"ok": true, "gini": float}
+      -- Used only by the measurement parity test (spec section 5's P4):
+         proves the copy of ``gini()`` vendored verbatim into
+         ``measurement.py`` agrees with upstream's real, unmodified function,
+         byte-for-byte, on the same sample array. Loads upstream's own
+         ``simulation/analysis/plots.py::gini`` by extracting its literal
+         source text via ``ast`` and executing that (never
+         ``import simulation.analysis.plots`` directly): that module's own
+         top-level imports (``plotly``, ``dash``, ``dash_mantine_components``,
+         ``statsmodels``) are not installed in this bridge venv and are not
+         needed for this one pure-numpy function -- the same style of
+         controlled avoidance as this file's own
+         ``_make_upstream_importable`` stub-package workaround for
+         ``simulation.persona.common``, just via source extraction instead of
+         a package-``__init__`` stub, since ``plots.py`` is the module itself,
+         not a package with siblings to route around.
+
   Anything else (bad op, malformed request, an upstream assertion raised by a
   malformed action, ...)
       -> {"ok": false, "error_type": str, "message": str,
@@ -99,7 +117,7 @@ _ENV_CFG_FIELDS = (
 )
 
 
-def _make_upstream_importable(upstream_root: str) -> None:
+def _make_upstream_importable(upstream_root: str) -> str:
     """Import only ``ConcurrentEnv``/``env.py``/``persona.common`` (spec §3.2).
 
     ``simulation.persona.common`` (plain dataclass-style action/observation
@@ -112,6 +130,10 @@ def _make_upstream_importable(upstream_root: str) -> None:
     points at the real upstream directories -- lets
     ``import simulation.persona.common`` resolve that one submodule directly
     without ever executing ``simulation/persona/__init__.py``.
+
+    Returns the resolved, absolute upstream root -- ``_op_call_upstream_gini``
+    needs it too (to locate ``simulation/analysis/plots.py`` without importing
+    it), and this is the one place that already resolves and normalizes it.
     """
     root = str(Path(upstream_root).resolve())
     sys.path[:] = [entry for entry in sys.path if entry != root]
@@ -125,6 +147,7 @@ def _make_upstream_importable(upstream_root: str) -> None:
         persona_pkg = types.ModuleType("simulation.persona")
         persona_pkg.__path__ = [str(Path(root) / "simulation" / "persona")]
         sys.modules["simulation.persona"] = persona_pkg
+    return root
 
 
 def _import_env_class(scenario: str):
@@ -263,12 +286,48 @@ def _op_runtime_info() -> dict[str, Any]:
     }
 
 
-def _dispatch(request: dict[str, Any]) -> dict[str, Any]:
+def _load_upstream_gini(upstream_root: str):
+    """Load upstream's real ``gini()`` function object without importing
+    ``simulation.analysis.plots`` (see this file's module docstring's
+    ``call_upstream_gini`` op entry for why)."""
+    import ast
+
+    plots_path = Path(upstream_root) / "simulation" / "analysis" / "plots.py"
+    source = plots_path.read_text(encoding="utf-8")
+    tree = ast.parse(source, filename=str(plots_path))
+    segment = None
+    for node in tree.body:
+        if isinstance(node, ast.FunctionDef) and node.name == "gini":
+            segment = ast.get_source_segment(source, node)
+            break
+    if segment is None:
+        raise ValueError(
+            f"gini() function not found in upstream {plots_path} -- has the "
+            "pinned checkout drifted from the commit this bridge expects?"
+        )
+    namespace: dict[str, Any] = {"np": __import__("numpy")}
+    exec(  # noqa: S102 - executing upstream's own pinned source, not user input
+        compile(segment, filename=str(plots_path), mode="exec"), namespace
+    )
+    return namespace["gini"]
+
+
+def _op_call_upstream_gini(request: dict[str, Any], upstream_root: str) -> dict[str, Any]:
+    import numpy as np
+
+    gini_fn = _load_upstream_gini(upstream_root)
+    array = np.array(request["array"], dtype=float)
+    return {"ok": True, "gini": float(gini_fn(array))}
+
+
+def _dispatch(request: dict[str, Any], upstream_root: str) -> dict[str, Any]:
     op = request.get("op")
     if op == "run_actions":
         return _op_run_actions(request)
     if op == "runtime_info":
         return _op_runtime_info()
+    if op == "call_upstream_gini":
+        return _op_call_upstream_gini(request, upstream_root)
     return {
         "ok": False,
         "error_type": "bad_request",
@@ -287,11 +346,11 @@ def main(argv: list[str] | None = None) -> int:
     )
     args = parser.parse_args(argv)
     try:
-        _make_upstream_importable(args.upstream_root)
+        resolved_upstream_root = _make_upstream_importable(args.upstream_root)
         request = json.loads(sys.stdin.read())
         if not isinstance(request, dict):
             raise ValueError("request must be a JSON object")
-        response = _dispatch(request)
+        response = _dispatch(request, resolved_upstream_root)
     except Exception as error:  # noqa: BLE001 - reported as a structured infra failure
         response = {
             "ok": False,
