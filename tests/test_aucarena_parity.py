@@ -169,3 +169,80 @@ def test_mutated_recorded_hammer_consequence_is_caught_by_the_independent_recomp
         m.AucArenaMeasurementError, match="but independent record_bid/check_hammer"
     ):
         scorer.score_hammer_rule(result=mutated_result)
+
+
+def test_hammer_rule_does_not_silently_trust_a_forged_envelope_valid_flag() -> None:
+    """``aucarena_hammer_rule`` must not depend on ``record.envelope.valid``
+    for its own accept/reject partition (``docs/aucarena_review_claude.md``
+    WARNING 1): a hypothetical bug in ``environment.py.legal()`` that
+    incorrectly accepted an illegal bid must still be caught by this leaf
+    alone, not only by ``score_bid_legality``.
+
+    golden 3's agent bid (``150``, below the item's starting bid) is
+    genuinely illegal. This forges the exact shape a buggy ``legal()`` would
+    have produced -- ``envelope.valid=True`` for that same illegal bid, plus
+    the recorded consequences a buggy ``step()`` would have derived from
+    trusting that forged flag (including the bogus bid raises this round's
+    bid count from 1 to 2, which flips ``check_hammer``'s own "won this
+    round" determination from sold to unsold -- vendored
+    ``check_hammer``'s own branch, not an arbitrary mutation) -- so a
+    scorer that itself reads ``envelope.valid`` would find these forged
+    "recorded" and "recomputed" sides in tautological agreement and never
+    raise. The independent ``bid_sanity_check`` recompute this leaf now
+    performs must still reject the bid on its own terms and therefore still
+    disagree with the forged (unsold) consequences.
+    """
+    result, family_case = _run("invalid_unauthorized")
+    scorer = m.build_scorer(family_case)
+
+    phase_instance = result.phase_instances[0]
+    agent_index, agent_record = next(
+        (idx, record)
+        for idx, record in enumerate(phase_instance.actions)
+        if record.seat_id == "agent"
+    )
+    assert agent_record.parse.ok is True
+    assert agent_record.parse.action["bid_price"] == 150
+    assert agent_record.legality is not None and agent_record.legality.legal is False
+    assert agent_record.envelope.valid is False
+
+    forged_envelope = dataclasses.replace(
+        agent_record.envelope, valid=True, action=agent_record.parse.action
+    )
+    forged_legality = LegalityResult.legal_action()
+    forged_record = dataclasses.replace(
+        agent_record, envelope=forged_envelope, legality=forged_legality
+    )
+    forged_actions = tuple(
+        forged_record if idx == agent_index else existing
+        for idx, existing in enumerate(phase_instance.actions)
+    )
+
+    transition = phase_instance.transitions[0]
+    assert transition.consequences == {
+        "item_id": 1,
+        "bid_round": 0,
+        "sold": True,
+        "winner": "field_high",
+        "hammer_price": 1000,
+    }
+    # What a genuinely buggy step() would have recorded had it trusted the
+    # forged envelope: field_high's 1000 plus the now-"accepted" 150 raises
+    # num_bid_this_round from 1 to 2, so vendored check_hammer's own
+    # ``prev_round_max_bid < 0 and num_bid_this_round == 1`` branch no
+    # longer applies -- the round is left undecided (unsold), exactly
+    # mirroring environment.py's own unsold consequences shape (spec
+    # section 3: no "winner"/"hammer_price" keys when undecided).
+    forged_consequences = {"item_id": 1, "bid_round": 0, "sold": False}
+    forged_transition = dataclasses.replace(transition, consequences=forged_consequences)
+    forged_phase_instance = dataclasses.replace(
+        phase_instance, actions=forged_actions, transitions=(forged_transition,)
+    )
+    forged_result = dataclasses.replace(
+        result, phase_instances=(forged_phase_instance,) + result.phase_instances[1:]
+    )
+
+    with pytest.raises(
+        m.AucArenaMeasurementError, match="but independent record_bid/check_hammer"
+    ):
+        scorer.score_hammer_rule(result=forged_result)

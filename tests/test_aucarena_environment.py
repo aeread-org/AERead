@@ -263,6 +263,7 @@ def test_golden_4_agents_gibberish_is_malformed_not_illegal() -> None:
     assert record.envelope.valid is False
 
     assert result.outcome["seats"]["agent"]["budget"] == 3200
+    assert result.outcome["seats"]["agent"]["profit"] == 0
     assert result.outcome["items"][0]["winner"] == "field_high"
 
 

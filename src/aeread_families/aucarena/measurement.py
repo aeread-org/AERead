@@ -33,6 +33,11 @@ folds them into one blended number.
   calls for: the environment produces its recorded outcome by calling these
   same vendored functions once, live, during ``step()``; this scorer calls
   them again, independently, from nothing but the sealed episode evidence.
+  The accept/reject partition feeding that replay is itself independently
+  recomputed from each action's own recorded parse and pre-round
+  observation (``_independently_accepted_bid``), never read from
+  ``record.envelope.valid`` -- this leaf's independence does not depend on
+  ``environment.py``'s own legality gate having already run correctly.
 * **``aucarena_profit_vs_field`` (``comparative`` / ``head_to_head``,
   terminal-state-scoped).** The tested seat's terminal profit against the
   *named, declared* field of frozen rule-bidder seats in the same scenario
@@ -442,6 +447,37 @@ def score_bid_legality(
     )
 
 
+def _independently_accepted_bid(record: Any) -> bool:
+    """Recompute round-acceptance from the recorded parse plus a fresh
+    ``bid_sanity_check`` call -- never from ``record.envelope.valid`` or
+    ``record.legality`` (the environment's own accept/reject decision).
+
+    ``environment.py.step()`` only ever appends a parsed, independently-legal
+    bid to its own ``round_bids`` (malformed responses and bids that fail
+    ``bid_sanity_check`` are both skipped via ``if not envelope.valid:
+    continue``), so this reproduces that same partition from nothing but
+    this action's own recorded parse and frozen pre-round observation --
+    the same recompute ``score_bid_legality`` performs, reused here so
+    ``score_hammer_rule``'s "independent" claim does not silently depend on
+    ``environment.py``'s own legality gate having already run correctly
+    (see ``docs/aucarena_review_claude.md`` WARNING 1).
+    """
+    if not record.parse.ok:
+        return False
+    bid_price = record.parse.action["bid_price"]
+    if bid_price < 0:
+        return True  # withdraw: bid_sanity_check always treats bid<0 as legal
+    observation = record.request.observation
+    fail_reason = vendored.bid_sanity_check(
+        bid_price,
+        observation["highest_bid"],
+        observation["cur_item"]["price"],
+        observation["own_budget"],
+        observation["min_markup_pct"],
+    )
+    return fail_reason is None
+
+
 def _recompute_round(
     *,
     round_bids: Sequence[Mapping[str, Any]],
@@ -501,6 +537,13 @@ def score_hammer_rule(
     docstring) rather than being folded into a soft failing score -- so a
     successful return always means every recorded round matched exactly and
     this leaf's ``primary`` is unconditionally ``1.0``.
+
+    The round's accept/reject partition itself is independently recomputed
+    too (``_independently_accepted_bid``), never read from
+    ``record.envelope.valid`` -- so this leaf's independence does not rest
+    on ``environment.py``'s own legality gate having already run correctly;
+    it recomputes both *which* bids counted and *what they resolved to*
+    from nothing but the sealed episode evidence.
     """
     world_seed = result.final_state["world_seed"]
     enable_discount = result.final_state["enable_discount"]
@@ -520,9 +563,9 @@ def score_hammer_rule(
             current_item_id = item_id
 
         round_bids = [
-            {"bidder": record.seat_id, "bid": record.envelope.action["bid_price"]}
+            {"bidder": record.seat_id, "bid": record.parse.action["bid_price"]}
             for record in phase_instance.actions
-            if record.envelope.valid
+            if _independently_accepted_bid(record)
         ]
         hammer, highest_bid, highest_bidder = _recompute_round(
             round_bids=round_bids,
