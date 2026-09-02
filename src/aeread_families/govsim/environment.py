@@ -27,6 +27,7 @@ state a ``step`` call returned.
 """
 from __future__ import annotations
 
+import json
 import subprocess
 from pathlib import Path
 from typing import Any, Mapping
@@ -49,8 +50,83 @@ from .cases import (
     TERMINATION_REASONS,
     UPSTREAM_COMMIT,
     UPSTREAM_REPO,
+    _concurrent_env_path,
+    _persona_common_path,
+    _scenario_env_path,
+    _sha256_file,
 )
 from .govsim_bridge import GovsimActionError, GovsimBridge
+
+# cases.py's own convention: src/aeread_families/govsim/environment.py -> repo
+# root is parents[3] (identical offset to cases.py's `_default_output_dir`,
+# a sibling module in this same directory).
+_PINS_PATH = Path(__file__).resolve().parents[3] / "cases" / "govsim" / "v1" / "pins.json"
+
+
+def _verify_source_and_dependency_pins(
+    upstream_root: Path, bridge: GovsimBridge | None
+) -> None:
+    """Confirm the pinned upstream source bytes -- and, when a bridge is
+    available, its resolved runtime dependency versions -- match
+    ``cases/govsim/v1/pins.json`` exactly (triage Finding 4).
+
+    A clean git checkout at the pinned commit (``validate_payload``'s own
+    ``git rev-parse``/``git status`` checks, immediately above this call)
+    is not itself proof that the SPECIFIC files this adapter executes, or
+    the interpreter running them, still match what the corpus was
+    generated against: a checkout can be clean-and-at-the-right-commit
+    while the individual pinned files have been altered outside git's view
+    (e.g. an untracked overlay), and a bridge interpreter can resolve a
+    different NumPy/pandas/OmegaConf/PettingZoo version than the one the
+    corpus was pinned against without git ever noticing either. Raises
+    ``ValueError`` naming every mismatch found, never just the first.
+    """
+    pins = json.loads(_PINS_PATH.read_text(encoding="utf-8"))
+    mismatches: list[str] = []
+
+    actual_concurrent = _sha256_file(_concurrent_env_path(upstream_root))
+    if actual_concurrent != pins["concurrent_env_sha256"]:
+        mismatches.append(
+            "concurrent_env.py sha256 mismatch: pinned="
+            f"{pins['concurrent_env_sha256']}, actual={actual_concurrent}"
+        )
+
+    actual_persona_common = _sha256_file(_persona_common_path(upstream_root))
+    if actual_persona_common != pins["persona_common_sha256"]:
+        mismatches.append(
+            "simulation/persona/common.py sha256 mismatch: pinned="
+            f"{pins['persona_common_sha256']}, actual={actual_persona_common}"
+        )
+
+    for scenario, pinned_sha256 in pins["scenario_env_sha256"].items():
+        actual_sha256 = _sha256_file(_scenario_env_path(upstream_root, scenario))
+        if actual_sha256 != pinned_sha256:
+            mismatches.append(
+                f"{scenario} env.py sha256 mismatch: pinned={pinned_sha256}, "
+                f"actual={actual_sha256}"
+            )
+
+    pinned_versions = pins.get("bridge_versions")
+    # Nothing to compare against when the corpus was generated without a
+    # bridge interpreter (pins.json's own "bridge_versions_unavailable_reason"
+    # convention, cases.py's build_pins), and nothing to run the comparison
+    # against when this plugin instance has no bridge configured at all
+    # (e.g. a schema-only validate_payload call) -- neither case fabricates
+    # a pass or a failure it cannot actually support.
+    if pinned_versions is not None and bridge is not None:
+        actual_versions = bridge.runtime_info()
+        for key, pinned_value in pinned_versions.items():
+            actual_value = actual_versions.get(key)
+            if actual_value != pinned_value:
+                mismatches.append(
+                    f"{key} mismatch: pinned={pinned_value}, actual={actual_value}"
+                )
+
+    if mismatches:
+        raise ValueError(
+            f"pinned source/dependency verification failed against {_PINS_PATH}: "
+            + "; ".join(mismatches)
+        )
 
 PLUGIN_ID = "govsim_environment"
 SCORER_ID = "govsim_scorer"
@@ -277,6 +353,7 @@ class GovsimPlugin:
         )
         if status.returncode != 0 or status.stdout:
             raise ValueError("upstream checkout must be clean at the pinned revision")
+        _verify_source_and_dependency_pins(self.upstream_root, self.bridge)
         return data
 
     # ------------------------------------------------------------------
@@ -600,10 +677,12 @@ class GovsimPlugin:
         Delegates entirely to ``measurement.py`` (spec section 2), mirroring
         ``tau3_retail``'s identical convention of keeping every estimand/
         reference/scorer declaration in that one module and having this hook
-        just wire it in. The current kernel only checks
-        ``callable(plugin.build_scorer)`` at registration time and does not
-        yet invoke it (``registry.py``'s ``REQUIRED_FAMILY_PLUGIN_HOOKS``), so
-        ``measurement.py``'s scorers are also exercised directly by
+        just wire it in. ``family_evaluation.py``'s ``finalize_family_execution``
+        calls the returned ``GovsimScorer`` directly
+        (``plugin.build_scorer(family_case)(recorded_outcome,
+        evidence_refs=(...))``); ``measurement.py``'s ``GovsimScorer.__call__``
+        is the seam that satisfies that call. The other four (non-primary)
+        leaves' named methods are still exercised directly by
         ``tests/test_govsim_measurement.py`` today.
         """
         return measurement.build_scorer(family_case)

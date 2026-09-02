@@ -23,6 +23,7 @@ from aeread.shared_runner.registry import PluginRegistry
 from aeread.shared_runner.schemas import FamilyManifest
 from aeread.shared_runner.scheduler import ActionEnvelope, LegalityResult, ParseResult
 from aeread_families.govsim import cases as govsim_cases
+from aeread_families.govsim import environment
 from aeread_families.govsim.environment import (
     DISCUSS_PHASE,
     GovsimPlugin,
@@ -287,6 +288,85 @@ def test_validate_payload_accepts_a_generated_case_at_the_pinned_revision() -> N
     payload = _family_case()
     validated = plugin.validate_payload(payload)
     assert validated == payload
+
+
+# ---------------------------------------------------------------------------
+# Recorded source/dependency pins are enforced (triage Finding 4). No bridge
+# subprocess needed: these drive ``_verify_source_and_dependency_pins``
+# directly against a fabricated source tree / a fake ``runtime_info()``, so
+# they run everywhere and do not depend on the real pinned checkout being on
+# disk (except the one test that deliberately does need it, to isolate a
+# dependency-version mismatch from a source mismatch).
+# ---------------------------------------------------------------------------
+
+
+def _write_pinned_source_tree(root: Path, *, concurrent_env_text: str, persona_common_text: str, scenario_env_text: str) -> None:
+    common_dir = root / "simulation" / "scenarios" / "common" / "environment"
+    common_dir.mkdir(parents=True)
+    (common_dir / "concurrent_env.py").write_text(concurrent_env_text, encoding="utf-8")
+    persona_dir = root / "simulation" / "persona"
+    persona_dir.mkdir(parents=True)
+    (persona_dir / "common.py").write_text(persona_common_text, encoding="utf-8")
+    for scenario in govsim_cases.SCENARIOS:
+        scenario_dir = root / "simulation" / "scenarios" / scenario / "environment"
+        scenario_dir.mkdir(parents=True)
+        (scenario_dir / "env.py").write_text(scenario_env_text, encoding="utf-8")
+
+
+def test_verify_source_and_dependency_pins_rejects_tampered_source_bytes(
+    tmp_path: Path,
+) -> None:
+    """Closes triage Finding 4's source-hash half: altered source bytes in
+    a checkout git itself would still consider clean at the pinned commit
+    (this fabricated tree has no git repo at all -- the point is that
+    ``git status``/``git rev-parse`` alone cannot catch this) are rejected
+    by name and by which file, never silently accepted."""
+    _write_pinned_source_tree(
+        tmp_path,
+        concurrent_env_text="# tampered concurrent_env.py\n",
+        persona_common_text="# tampered persona/common.py\n",
+        scenario_env_text="# tampered scenario env.py\n",
+    )
+
+    with pytest.raises(ValueError, match="concurrent_env.py sha256 mismatch"):
+        environment._verify_source_and_dependency_pins(tmp_path, None)
+
+
+def test_verify_source_and_dependency_pins_accepts_the_real_pinned_checkout() -> None:
+    if not _REAL_UPSTREAM_ROOT.is_dir():
+        pytest.skip(f"pinned upstream govsim checkout not found at {_REAL_UPSTREAM_ROOT}")
+    # Must not raise: the real, unmodified checkout's source bytes are
+    # exactly what cases/govsim/v1/pins.json records.
+    environment._verify_source_and_dependency_pins(_REAL_UPSTREAM_ROOT, None)
+
+
+class _WrongVersionBridge:
+    """Reports a runtime dependency set that does not match pins.json --
+    never a real bridge subprocess."""
+
+    def runtime_info(self) -> dict[str, str]:
+        return {
+            "python_version": "9.9.9",
+            "numpy_version": "1.24.4",
+            "pandas_version": "2.0.3",
+            "omegaconf_version": "2.3.0",
+            "pettingzoo_version": "1.24.2",
+        }
+
+
+def test_verify_source_and_dependency_pins_rejects_a_runtime_dependency_mismatch() -> None:
+    """Closes triage Finding 4's dependency-version half: a clean checkout
+    at the pinned commit says nothing about the INTERPRETER executing it --
+    a bridge resolving NumPy 2.x (or, here, a mismatched Python version)
+    instead of the recorded 1.24.4 must be rejected, never silently
+    accepted because the source bytes alone matched."""
+    if not _REAL_UPSTREAM_ROOT.is_dir():
+        pytest.skip(f"pinned upstream govsim checkout not found at {_REAL_UPSTREAM_ROOT}")
+
+    with pytest.raises(ValueError, match="python_version mismatch"):
+        environment._verify_source_and_dependency_pins(
+            _REAL_UPSTREAM_ROOT, _WrongVersionBridge()
+        )
 
 
 # ---------------------------------------------------------------------------
