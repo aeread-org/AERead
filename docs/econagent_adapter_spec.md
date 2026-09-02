@@ -11,8 +11,12 @@ invoked upstream engine, never a paper reproduction of the full 100-agent x 240-
 - `simulate.py` has no module-level LLM import. `simulate_utils.get_completion` does
   `import openai` lazily, inside the function body, called only from `gpt_actions`, which
   `main()` reaches only when `policy_model=='gpt'`. The **`complex` policy path**
-  (`simulate_utils.complex_actions`) is pure `numpy` arithmetic over wealth/income/price —
-  no network, no LLM, no API key, ever. This adapter drives the `complex` path exclusively.
+  (`simulate.complex_actions` — **not** `simulate_utils.complex_actions`; see the
+  milestone-1 correction below) is `numpy` arithmetic over wealth/income/price, but it also
+  reads and mutates the live `env`/agent objects directly (`env.get_agent(idx).endogenous`,
+  `env.world.price`, `env._components_dict['SimpleLabor']`), not just the returned `obs`
+  dict — no network, no LLM, no API key, ever. This adapter drives the `complex` path
+  exclusively.
 - `config.yaml` is an RLlib training config; only its `env` block is consumed by
   `foundation.make_env_instance(**env_config)`. Relevant fields: `scenario_name:
   one-step-economy`, `n_agents`, `episode_length` (months), `period: 1`,
@@ -40,6 +44,103 @@ invoked upstream engine, never a paper reproduction of the full 100-agent x 240-
   Per ground rules, none of these may be installed into the project venv, so an **isolated
   bridge venv** is required — not for a Python-version mismatch (upstream declares none),
   purely for package isolation.
+
+### Milestone 1 corrections (recon gaps found while building `cases.py`/`environment.py`)
+
+Ground rule: "if reality forces a deviation, update the spec in the same commit." Eight
+gaps surfaced during milestone-1 implementation, all confirmed directly against the pinned
+`bfada09` checkout:
+
+1. **`complex_actions` lives in `simulate.py`, not `simulate_utils.py`.** `simulate_utils.py`
+   contains only `get_completion`/`get_multiple_completion`/`prettify_document`/format
+   helpers — no `complex_actions` def anywhere in it. `complex_actions` (and `gpt_actions`,
+   `main`) are defined directly in `simulate.py` (line 148). Every place below that said
+   "imports … `simulate_utils.complex_actions` directly (never `simulate.py`, which has the
+   cwd-relative top-level `config.yaml` read)" was therefore describing an import path that
+   cannot reach the function it names. Resolution: the bridge driver **does** import
+   `complex_actions` from `simulate.py` (`from simulate import complex_actions`), which
+   necessarily executes `simulate.py`'s module-level `with open('config.yaml') as f: ...`
+   (line 19) as a side effect. This is harmless — not a new risk — only if the driver's
+   process `cwd` is the upstream checkout root when the import happens, which turns out to
+   be required anyway (next point), so the two cwd-relative reads are satisfied by the same
+   one fix rather than compounding into two problems.
+2. **`data/profiles.json` is *also* read via a bare, cwd-relative `open('data/profiles.json')`
+   from inside the engine itself**, not only from `simulate.py`'s top-level `config.yaml`
+   read as the bullet above originally implied. `ai_economist/foundation/scenarios/
+   one_step_economy/one_step_economy.py`'s `set_offer` and `reset_agent_states` (both called
+   from `env.reset()`) each do a bare `open('data/profiles.json', 'r')`. Resolution: the
+   bridge driver subprocess must be spawned with `cwd=<upstream_root>` (never AERead's own
+   cwd) for the entire lifetime of an episode — one `cwd` fix covers both this and point 1,
+   and matches this spec's own already-stated principle that AERead never reads
+   `config.yaml` relative to a mutable cwd the way `simulate.py` does.
+3. **The bridge cannot be "one short-lived subprocess per call" like `tau2_bridge.py`.**
+   That pattern works for tau2 because `RetailDB` is a plain, fully JSON-serializable
+   Pydantic model — the whole call is stateless, with all state traveling in the request/
+   response payload. `complex_actions` needs the *live* `env` object (agent objects with
+   mutable `endogenous` dict entries it caches across months — `consumption_fun_idx`/
+   `work_fun_idx`, assigned once via `np.random.choice` the first time an agent is seen —
+   plus `env.world.price`/`interest_rate` history and the shared numpy global RNG stream
+   advancing in a fixed per-agent order), none of which is a clean JSON round-trip target
+   without either reimplementing upstream's RNG-driven formula selection ourselves
+   (forbidden — this adapter never reimplements upstream arithmetic) or re-deriving it by
+   replaying every prior month from scratch on every call (unnecessary complexity given the
+   simpler fix). Resolution: **the bridge subprocess is persistent for the lifetime of one
+   episode** — spawned once at `initial_state()`, held open (stdin/stdout newline-delimited
+   JSON, one request per month) across all `episode_length` months, and closed at
+   `terminal()`. This is a deliberate, documented divergence from the tau2 bridge's
+   per-call-subprocess pattern, not an oversight; see `econagent_bridge.py`.
+4. **Per-seat action decomposition is deferred; this pass's seats acknowledge rather than
+   decide.** `complex_actions(env, obs, beta, gamma, h)` computes every agent's `[labor,
+   consumption]` pair in one function call against the one live `env`/shared-RNG state; it
+   is not decomposable into independently-invoked per-seat calls without either breaking the
+   spec-5 parity requirement (the adapter's own run must match a bare oracle call to
+   `complex_actions` exactly, agent-by-agent) or reimplementing upstream's formula-selection
+   RNG draws on the AERead side (forbidden). Since the `gpt` (LLM) policy path is explicitly
+   out of scope for this pass (§6) and `complex` is the only wired policy, each `agent_i`
+   seat's declared action schema this pass is a trivial acknowledgment
+   (`econagent_v1_month_ack_v1`) rather than a real `[labor, consumption]` decision;
+   `step()` asks the persistent bridge to run the *real* `complex_actions` **and** `env.step`
+   together for the month (exactly mirroring `main()`'s loop), then reports the resulting
+   per-agent `[labor, consumption]` split back through `outcome()`/dense-log surfaces for
+   audit. A decomposed, harness-authored per-seat action schema is deferred to whenever an
+   LLM-driven agent seat is actually wired (already out of scope per §6); wiring one will
+   also have to resolve how a non-scripted policy's action is supposed to interleave with
+   upstream's own shared-RNG-driven formula selection, which is a new design question, not
+   one this pass answers.
+5. **`fire` is missing from the bridge `requirements.txt`.** `simulate.py` does
+   `import fire` at module scope (line 3); reaching `complex_actions` via `from simulate
+   import complex_actions` therefore requires `fire` in the bridge venv too, alongside the
+   `pyyaml`/`pandas`/`seaborn`/`matplotlib`/`python-dateutil` already listed. Also note
+   `simulate.py` itself (not only `simulate_utils.py`) does module-level `import
+   matplotlib.pyplot`, `import yaml`, and `from dateutil.relativedelta import
+   relativedelta` — the set of required packages is a union across both files, not
+   `simulate_utils.py` alone. `tools/econagent_bridge/requirements.txt` includes `fire`.
+6. **The "no two share a `world_seed`" Gate-1 check (§1) must be scoped per
+   scenario shape, not global.** The pinned scenario table itself reuses
+   `world_seed=0` across `econagent.pilot.small10x12.seed0` (10 agents, 12
+   months) and `econagent.pilot.tiny4x6.seed0` (4 agents, 6 months) --
+   different shapes entirely. A literal global uniqueness check would reject
+   the very table it is meant to admit. `cases.py`'s `import_all_cases` scopes
+   the duplicate/near-duplicate check to `(n_agents, episode_length,
+   world_seed)` instead, which still catches a genuinely duplicated run
+   (same shape, same seed) without rejecting two unrelated shapes that
+   happen to reuse a seed value.
+7. **Golden #5 (§4) as literally written cannot run.** `BaseEnvironment.__init__` asserts
+   `n_agents >= 2` (`ai_economist/foundation/base/base_env.py`); an `n_agents=1` scenario
+   fails upstream's own constructor assertion before any degenerate-redistribution behavior
+   could be observed. This is a Gate-2/goldens (later milestone) problem, flagged here rather
+   than silently fixed, since no golden fixtures are built this pass: whoever builds §4
+   needs a different concrete degenerate case (e.g. `n_agents=2`, the actual floor) or must
+   accept upstream's assertion itself as the observed "degenerate" behavior and assert that.
+8. **`world_seed=0` cannot be passed to upstream's own seeding verbatim.**
+   `BaseEnvironment.seed()` (called from `__init__` when given a non-`None` `seed=` kwarg)
+   asserts `seed > 0`; the pinned scenario table uses `world_seed=0` for two of the three
+   scenarios. AERead's own `world_seed` is (and stays) zero-based -- `CaseManifest.
+   world_seed`'s grammar allows `0`, and neither the case id nor the manifest field changes.
+   The bridge driver applies a fixed `+1` offset only at the point it hands the seed to
+   upstream (`env_config["seed"] = world_seed + 1`); two distinct `world_seed` values still
+   map to two distinct upstream seeds, and nothing about the case's own declared identity
+   or content digest depends on this offset.
 
 ---
 
@@ -136,11 +237,12 @@ AERead owns:
   (never reading `config.yaml` relative to a mutable cwd, unlike upstream's own
   `simulate.py`, which does `open('config.yaml')` at *module import time* — a defect in
   upstream's own script, not ours, worth a ledger note only if it were our code);
-- the bridge driver that calls `foundation.make_env_instance`, seeds it, and drives
-  `env.step(complex_actions(env, obs, **params))` for `episode_length` steps — this driver
-  is AERead-owned orchestration, not a copy of `simulate.py`'s `main()` (which also builds
-  gpt dialog state, matplotlib figures, and pickle dumps this adapter does not need);
-  it reproduces only the step-loop *shape*, never the tax/consumption arithmetic;
+- the bridge driver that calls `foundation.make_env_instance`, seeds it via `env.seed(...)`
+  /the constructor's own `seed=` kwarg, and drives `env.step(complex_actions(env, obs,
+  **params))` for `episode_length` steps — this driver is AERead-owned orchestration, not a
+  copy of `simulate.py`'s `main()` (which also builds gpt dialog state, matplotlib figures,
+  and pickle dumps this adapter does not need); it reproduces only the step-loop *shape*,
+  never the tax/consumption arithmetic;
 - the `PhaseSpec`/seat model, canonical events, replay, receipts, and the four typed
   measurement leaves in §2;
 - the two `rule_constraint` scorers, which call back into the same bridge process to
@@ -155,22 +257,31 @@ sends every agent's action into one `env.step(actions_dict)` call) — this is M
 instances; `actor_selector="all_agents"`; terminal fires at `episode_length`. There is no
 planner seat — `simulate.py` always submits `actions['p'] = [0]` (the null planner action);
 `config.yaml`'s `planner_policy`/`trainer` blocks back an RL training loop this adapter
-never runs and are not modeled as a seat.
+never runs and are not modeled as a seat. Per milestone-1 correction 4 above, each
+`agent_i` seat's declared action this pass is an acknowledgment
+(`econagent_v1_month_ack_v1`), not a decomposed `[labor, consumption]` decision — the real
+`complex_actions` computation happens inside the bridge, once per month, against the one
+live `env`/RNG state it holds for the whole episode.
 
-**Bridge.** `ai_economist.foundation` needs `numpy`/`scipy`/`lz4`; `simulate_utils.py`
-additionally needs `pandas`/`seaborn`/`matplotlib`/`python-dateutil` at import scope.
-None may enter the project venv. Following the `tools/tau2_bridge/provision.sh` pattern,
-provision an isolated venv at `/Users/sunzeyu/Documents/econ benchmark/bridges/
-econagent-venv` (any Python 3.11+ — no version floor from upstream, unlike tau2's 3.12+),
-installing a pinned `requirements.txt` (`numpy`, `scipy`, `lz4`, `pyyaml`, `pandas`,
-`seaborn`, `matplotlib`, `python-dateutil`). A `tau2_bridge_driver.py`-style subprocess
-script (`econagent_bridge_driver.py`, AERead-owned plumbing) runs inside that venv, adds
-the upstream checkout to `sys.path`, imports `ai_economist.foundation` and
-`simulate_utils.complex_actions` directly (never `simulate.py`, which has the cwd-relative
-top-level `config.yaml` read), and exchanges JSON-serializable requests/responses with the
-project-venv adapter over stdin/stdout — mirroring `tau2_bridge.py`/`tau2_bridge_driver.py`.
-An `AEREAD_ECONAGENT_BRIDGE_REQUIRED=1` env var (mirroring `AEREAD_TAU2_BRIDGE_REQUIRED`)
-turns a missing-bridge skip into a failure for CI and any fidelity-certifying run.
+**Bridge.** `ai_economist.foundation` needs `numpy`/`scipy`/`lz4`; `simulate.py` and
+`simulate_utils.py` together additionally need `pandas`/`seaborn`/`matplotlib`/
+`python-dateutil`/`pyyaml`/`fire` at import scope (milestone-1 correction 5). None may
+enter the project venv. Following the `tools/tau2_bridge/provision.sh` pattern, provision
+an isolated venv at `/Users/sunzeyu/Documents/econ benchmark/bridges/econagent-venv` (any
+Python 3.11+ — no version floor from upstream, unlike tau2's 3.12+), installing a pinned
+`requirements.txt` (`numpy`, `scipy`, `lz4`, `pyyaml`, `pandas`, `seaborn`, `matplotlib`,
+`python-dateutil`, `fire`). Unlike `tau2_bridge.py`/`tau2_bridge_driver.py`'s one-fresh-
+subprocess-per-call design, `econagent_bridge_driver.py` runs as **one persistent
+subprocess per episode** (milestone-1 correction 3): spawned with `cwd=<upstream_root>`
+(correction 1+2), it adds the upstream checkout to `sys.path`, imports
+`ai_economist.foundation` and `complex_actions` from `simulate.py` (**not**
+`simulate_utils.py`) once, then serves newline-delimited JSON requests over stdin/stdout
+for the lifetime of one episode — `reset` once, then one `step_month` request per month,
+then `shutdown`. An `AEREAD_ECONAGENT_BRIDGE_REQUIRED=1` env var (mirroring
+`AEREAD_TAU2_BRIDGE_REQUIRED`) is intended to turn a missing-bridge skip into a failure for
+CI and any fidelity-certifying run, matching tau2's convention; as built today that
+enforcement is wired only for tau2 in the shared root `conftest.py` (see the econagent
+ledger) and would need the same generalization tau2's own hook does not yet have.
 
 ## 4. QC Gate 2 goldens
 
@@ -188,6 +299,16 @@ five goldens against `econagent.pilot.small10x12.seed0`:
 All five run through the bridge (they depend on the real upstream engine for the budget and
 tax arithmetic) and are therefore skipped, never faked, without a provisioned bridge venv —
 guarded by `AEREAD_ECONAGENT_BRIDGE_REQUIRED`.
+
+**Not built this pass; two goldens need re-derivation first.** No golden fixture is
+implemented in milestone 1 (cases + environment only). Before §4 is built: "Invalid or
+unauthorized" as written assumes a seat submits a `consumption` action index the harness
+can corrupt, which milestone-1 correction 4 rules out for the scripted-only pass (the seat
+action is an acknowledgment; the real decision is computed inside the bridge) — it needs a
+different concrete illegal-input instance (e.g. a malformed `step_month` request, or an
+out-of-range value fed to the bridge driver directly, bypassing `complex_actions`, as the
+second half of the original cell already anticipated). "Degenerate reference" as written
+needs a different scenario per milestone-1 correction 7 (`n_agents=1` cannot construct).
 
 ## 5. Test plan — e2e, replay, parity
 
@@ -213,9 +334,10 @@ guarded by `AEREAD_ECONAGENT_BRIDGE_REQUIRED`.
 
 ## 6. Stated limits
 
-- **Scale.** Only 10-agent x 12-month (and one 4x6, one 1-agent degenerate) scenarios are
-  gated. The paper's 100-agent x 240-month configuration is declared in the manifest but
-  explicitly `not_run`; no claim about that scale's behavior is made.
+- **Scale.** Only 10-agent x 12-month and 4-agent x 6-month scenarios are gated (see
+  milestone-1 correction 7 for why a literal 1-agent scenario is not constructible upstream).
+  The paper's 100-agent x 240-month configuration is declared in the manifest but explicitly
+  `not_run`; no claim about that scale's behavior is made.
 - **License posture.** No LICENSE file exists at the upstream repo root; only the copied
   `ai_economist/foundation/*` files carry BSD-3-Clause headers. This adapter never vendors
   any upstream file (import-only via bridge `sys.path`), which sidesteps redistribution
@@ -230,6 +352,16 @@ guarded by `AEREAD_ECONAGENT_BRIDGE_REQUIRED`.
   non-LLM path) exclusively. The `gpt` policy path exists upstream and is provider-free at
   import time, but wiring an actual LLM-driven agent seat is out of scope for tonight and
   is not addressed by any test here.
+- **Seat action is an acknowledgment, not a decision, this pass.** Per milestone-1
+  correction 4, `agent_i` seats submit a trivial `econagent_v1_month_ack_v1` action rather
+  than a `[labor, consumption]` decision the environment then validates; the bridge computes
+  and applies the real `complex_actions` result each month. This keeps the adapter's own run
+  bit-identical to a bare oracle call (spec-5's parity requirement) without reimplementing
+  upstream's RNG-driven formula-selection on the AERead side, but it also means this pass's
+  `PhaseSpec`/seat plumbing does not yet exercise a genuine per-seat decision surface — that
+  only becomes meaningful once a non-scripted (e.g. LLM) policy is wired, which is already
+  out of scope here and raises its own unresolved question about how such a policy's action
+  is supposed to interleave with upstream's shared-RNG-driven formula selection.
 - **Gate 2 hard-gate not wired.** The two `rule_constraint` leaves are declared
   `hybrid_gate`-eligible but no invalidating gate currently blocks a budget-identity
   violation from reaching the diagnostic leaves — logged as a limit, not silently assumed
