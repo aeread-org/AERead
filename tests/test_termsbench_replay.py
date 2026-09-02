@@ -135,6 +135,58 @@ def _run_live_nodeal(tmp_path: Path, *, suffix: str):
     return case, cell, plugin, evidence, result
 
 
+def _run_live_overlap_immediate_accept(tmp_path: Path, *, suffix: str, price: float):
+    """A one-round overlap deal: the agent opens at ``price`` and the
+    counterpart accepts it immediately (``u_accept=0.0`` forces acceptance
+    for any positive acceptance probability). Gives an independently
+    hand-derivable ``final_price`` (the agent's own scripted offer),
+    unlike ``_run_live_overlap``'s multi-round "moving closer" scenario."""
+    case = _case(OVERLAP_CASE_ID)
+    cell = _cell(case, suffix=suffix)
+    evidence = EvidenceStore(
+        tmp_path / f"evidence_{suffix}",
+        run_plan_id=f"runplan_termsbench_replay_{suffix}",
+        cell_id=cell.cell_id,
+        episode_id=f"episode_termsbench_replay_{suffix}",
+        episode_attempt_id="attempt_1",
+    )
+    script = [{"decision": "offer", "price": price, "message": "opening"}]
+    draws = {1: {"u_accept": 0.0, "opening_noise": 0.0, "sentiment_noise": 0.0}}
+    harness = ScriptedTermsBenchHarness(
+        world_seed=case.world_seed, script=script, counterpart_draws_by_round=draws, evidence=evidence
+    )
+    registry = PluginRegistry()
+    plugin = register_plugin(registry)
+    result = asyncio.run(run_episode(cell=cell, case=case, plugin=plugin, response_source=harness))
+    evidence.seal()
+    return case, cell, plugin, evidence, result
+
+
+def _run_live_overlap_agreement_violation(tmp_path: Path, *, suffix: str):
+    """Golden 3's scenario (spec section 4) replayed through the evidence
+    store: an unauthorized Accept with no counterpart offer observed yet --
+    a critical protocol violation (``invalid_action``), unlike every other
+    replay fixture in this file."""
+    case = _case(OVERLAP_CASE_ID)
+    cell = _cell(case, suffix=suffix)
+    evidence = EvidenceStore(
+        tmp_path / f"evidence_{suffix}",
+        run_plan_id=f"runplan_termsbench_replay_{suffix}",
+        cell_id=cell.cell_id,
+        episode_id=f"episode_termsbench_replay_{suffix}",
+        episode_attempt_id="attempt_1",
+    )
+    script = [{"decision": "accept", "price": None, "message": "premature"}]
+    harness = ScriptedTermsBenchHarness(
+        world_seed=case.world_seed, script=script, evidence=evidence
+    )
+    registry = PluginRegistry()
+    plugin = register_plugin(registry)
+    result = asyncio.run(run_episode(cell=cell, case=case, plugin=plugin, response_source=harness))
+    evidence.seal()
+    return case, cell, plugin, evidence, result
+
+
 def _scorer_for(case: CaseManifest):
     plugin = TermsBenchPlugin()
     family_case = plugin.validate_payload(case.payload)
@@ -288,6 +340,75 @@ def test_replayed_episode_recomputes_every_leaf_the_same_way(tmp_path: Path) -> 
     assert replayed_scores.protocol_compliance.primary.value == pytest.approx(
         original_scores.protocol_compliance.primary.value
     )
+
+
+def test_replayed_episode_surplus_efficiency_matches_an_independently_derived_value(
+    tmp_path: Path,
+) -> None:
+    """The test above only compares ``original_scores`` against
+    ``replayed_scores`` -- a regression that made
+    ``score_surplus_efficiency`` always return e.g. 0 would break both
+    sides identically and stay green there (Codex review finding 6). This
+    re-derives eq. 56 (``SE+_i = u_A(f_i) / Delta_i``) directly from the
+    case's own numbers -- never by calling ``score_surplus_efficiency`` a
+    second time -- and checks both sides against that independent value."""
+    price = 165.0
+    case, cell, plugin, evidence, original = _run_live_overlap_immediate_accept(
+        tmp_path, suffix="indep_se", price=price
+    )
+    evidence.close()
+    assert original.terminal["reason"] == "counterpart_accept"
+    assert original.terminal["final_price"] == pytest.approx(price)
+
+    recorded = record_episode(original)
+    registry = PluginRegistry()
+    replay_plugin = register_plugin(registry)
+    replayed = asyncio.run(replay_episode(cell=cell, case=case, plugin=replay_plugin, recorded=recorded))
+
+    scorer = _scorer_for(case)
+    original_scores = score_replayed_episode(scorer=scorer, replayed=original)
+    replayed_scores = score_replayed_episode(scorer=scorer, replayed=replayed)
+
+    r_a = float(case.payload["agent"]["r_a"])
+    r_b = float(case.payload["t_b"]["r_b"])
+    assert case.payload["agent"]["role"] == "buyer"
+    expected_se = (r_a - price) / (r_a - r_b)  # eq. 56, u_A(f)=r_a-f for a buyer agent
+
+    assert original_scores.surplus_efficiency.primary.value == pytest.approx(expected_se)
+    assert replayed_scores.surplus_efficiency.primary.value == pytest.approx(expected_se)
+
+
+def test_replayed_episode_protocol_compliance_matches_an_independently_derived_violation_flag(
+    tmp_path: Path,
+) -> None:
+    """Companion to the surplus-efficiency test above, for leaf 4: a
+    regression that made ``score_protocol_compliance`` ignore violations
+    (e.g. always return 0) would break both ``original_scores`` and
+    ``replayed_scores`` identically and stay green under an
+    original-vs-replayed-only comparison (Codex review finding 6). Uses a
+    scenario with a genuine critical violation (golden 3's unauthorized
+    Accept) and re-derives eq. 66's 0/1 indicator directly from the
+    outcome's own ``critical_violations`` dict -- never by calling
+    ``score_protocol_compliance`` a second time."""
+    case, cell, plugin, evidence, original = _run_live_overlap_agreement_violation(tmp_path, suffix="indep_cv")
+    evidence.close()
+    assert original.terminal["reason"] == "agreement_violation"
+    assert original.terminal["critical_violations"]["invalid_action"] is True
+
+    recorded = record_episode(original)
+    registry = PluginRegistry()
+    replay_plugin = register_plugin(registry)
+    replayed = asyncio.run(replay_episode(cell=cell, case=case, plugin=replay_plugin, recorded=recorded))
+
+    scorer = _scorer_for(case)
+    original_scores = score_replayed_episode(scorer=scorer, replayed=original)
+    replayed_scores = score_replayed_episode(scorer=scorer, replayed=replayed)
+
+    expected_cv = 1.0 if any(original.outcome["critical_violations"].values()) else 0.0
+    assert expected_cv == 1.0  # sanity: this scenario carries a genuine violation
+
+    assert original_scores.protocol_compliance.primary.value == expected_cv
+    assert replayed_scores.protocol_compliance.primary.value == expected_cv
 
 
 def test_replay_and_verify_end_to_end_returns_a_matching_report_for_the_nodeal_case(
