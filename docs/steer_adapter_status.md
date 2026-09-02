@@ -156,7 +156,7 @@ tests.
   claim that every admitted case has been individually run through it.
 - All limits already stated in `docs/steer_adapter_spec.md` section 6
   (8/48 elements, head-N not stratified, manual branch assignment, no
-  `canonical_set` variant for `pure_nash`'s legitimate multi-equilibrium
+  `canonical_set` variant for `dsic_mechanism`'s 5 genuinely multi-correct
   questions, no cross-part consistency check, no upstream scoring parity
   claim) are unchanged by this milestone and still apply.
 

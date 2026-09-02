@@ -41,17 +41,22 @@ answer, one score.
   |---|---|---|---|---|---|
   | `transitivity` | utility_theory | 16,610 | 16,452 | 158 | 0 |
   | `certainty_effect` | utility_theory | 8,030 | 7,970 | 60 | 0 |
-  | `pure_nash` | game_theory | 18,597 | 6,047 | 550 | 12,000 |
+  | `pure_nash` | game_theory | 18,597 | 6,047 | 12,550 | 0 |
   | `backward_induction` | game_theory | 23,810 | 23,260 | 550 | 0 |
   | `plurality_voting` | social_choice | 10,020 | 10,020 | 0 | 0 |
   | `borda_count` | social_choice | 15,030 | 15,030 | 0 | 0 |
   | `dsic_mechanism` | mechanism_design | 2,417 | 652 | 1,760 | 5 |
   | `ir_mechanism` | mechanism_design | 435 | 195 | 240 | 0 |
 
-  `pure_nash`'s multi-correct rate (64.5%) is largely real (many questions legitimately
-  admit more than one equilibrium, which `canonical_point` cannot score — excluded at
-  Gate 1, never mis-scored, §6); `dsic_mechanism`'s zero-correct rate (72.8%) means most
-  of its raw questions have no gold answer at all in `Answers`.
+  `pure_nash`'s zero-correct rate (67.5%) is dominated by an upstream `NaN` placeholder in
+  the `correct` column — 60,000 of its 66,047 non-``False`` rows are `NaN`, never a real
+  true/false mark — which the importer treats as not-correct, matching how a human reading
+  the raw frame would read an unmarked row; a pandas `.astype(bool)` coercion once misread
+  every `NaN` row as correct instead, which relabeled these same 12,000 already-excluded
+  question_ids as multi-correct without ever admitting a wrong one (fixed; regression-guarded
+  by `tests/test_steer_cases.py::test_pure_nash_nan_correct_values_are_not_counted_as_truthy`).
+  `dsic_mechanism`'s zero-correct rate (72.8%) means most of its raw questions have no gold
+  answer at all in `Answers`.
 - `dsic_mechanism` (1,016/1,395 base ids) and `ir_mechanism` (2/433) contain multi-part
   `question_id`s (`<base_id>_<sub_id>`, `sub_id > 0`). Upstream's README separately flags
   that *some* elements (its own example: `independence`, not declared tonight) are graded
@@ -236,9 +241,11 @@ that the sealed `ScoreEnvelope`'s leaf/units/direction match §2.
 - Branch assignment was manual (element name + README), not derived from upstream's own
   `taxonomy.pkl` (also an unfetched LFS pointer) — flagged, not silently asserted as
   upstream's structure.
-- `pure_nash`'s real multi-correct-option questions (legitimately multiple Nash equilibria)
-  are excluded at Gate 1, not scored under a weakened match rule; a `canonical_set`
-  variant for such elements is future work, not implemented tonight.
+- `dsic_mechanism`'s 5 genuinely multi-correct-option questions are excluded at Gate 1,
+  not scored under a weakened match rule; a `canonical_set` variant for such elements is
+  future work, not implemented tonight. (`pure_nash` reports zero multi-correct questions
+  under the corrected NaN-as-not-correct classification above — this bullet no longer
+  applies to it.)
 - No upstream scoring code exists to delegate to or achieve parity against — unlike
   tau3/econevals, there is no "upstream reproduces our score" parity claim in this family.
 - `Answers` schema drift (`correct` vs `correct_answer`; `pure_nash` carries both) is real

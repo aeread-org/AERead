@@ -9,8 +9,10 @@ per taxonomy branch (`utility_theory/`, `game_theory/`, `social_choice/`,
 The corpus has no repo license: no question, option, or explanation text is
 committed here. Every case's `payload` carries only `element`, `question_id`,
 `options_count`, `source_sha256`, and the shared `pins` record. The real text
-is cached outside version control at `bridges/steer-data/`, keyed by
-`source_sha256`.
+is cached outside version control at `bridges/steer-data/<element>/cases.jsonl`,
+scanned linearly for a matching `question_id` at runtime (not keyed/indexed by
+`source_sha256` -- `source_sha256` is the runtime integrity check against that
+row's own content, recomputed from it, never the cache's lookup key).
 
 The importer is `src/aeread_families/steer/cases.py`; its default output
 directory is this `cases/steer/` directory. Regenerating it requires the
@@ -19,4 +21,8 @@ regenerated output must be reviewed as a content change, since `pins.json`
 and `corpus_manifest.json` preserve upstream provenance and case-set
 identity.
 
-Scoring is not implemented yet -- see `docs/steer_adapter_spec.md` section 2.
+Scoring is implemented: `src/aeread_families/steer/measurement.py` declares
+the one `canonical_point` leaf per case (spec section 2) and
+`SteerPlugin.build_scorer` wires it to the cached row; see
+`tests/test_steer_goldens.py` for the five QC Gate-2 goldens that score real
+scripted episodes end to end.

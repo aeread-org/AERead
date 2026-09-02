@@ -21,7 +21,7 @@ from types import MappingProxyType
 
 import pytest
 
-from aeread.shared_runner.resolver import PlanCell
+from aeread.shared_runner.resolver import PlanCell, canonical_json_bytes
 from aeread.shared_runner.schemas import CaseManifest
 from aeread.shared_runner.scheduler import run_episode
 from aeread_families.steer import cases as steer_cases
@@ -177,7 +177,12 @@ def test_golden_3_invalid_unauthorized_earns_no_credit_and_changes_no_state() ->
     coerced to option 0 or silently recorded as a legitimate wrong answer:
     no protected state (the episode's own selected_option_id) is ever set,
     and the scorer awards no credit at all -- not even the "valid but
-    wrong" 0.0 golden 2 earns."""
+    wrong" 0.0 golden 2 earns.
+
+    This also checks the claim against the FULL ``final_state``, not just
+    the narrow ``outcome()`` projection (a review suggestion: ``outcome()``
+    structurally cannot see whether ``question_text``/``options`` were
+    mutated by the illegal-action path, only ``selected_option_id``)."""
     element = "borda_count"
     row = _first_admitted_row(element)
     out_of_range_option_id = len(row["options"])
@@ -193,6 +198,15 @@ def test_golden_3_invalid_unauthorized_earns_no_credit_and_changes_no_state() ->
     assert result.outcome["failure_code"] == "option_id_out_of_range"
     # No protected state changed: no option was ever recorded as selected.
     assert result.outcome["selected_option_id"] is None
+    # The full final_state, not just outcome()'s narrower projection:
+    # question_text and options are exactly what was cached, untouched by
+    # the illegal-action path.
+    assert canonical_json_bytes(result.final_state["question_text"]) == canonical_json_bytes(
+        row["question_text"]
+    )
+    assert canonical_json_bytes(result.final_state["options"]) == canonical_json_bytes(
+        row["options"]
+    )
     # No credit earned: never scored, not even at 0.0 -- a typed invalidity.
     assert envelope.status == "invalid_measurement"
     assert envelope.primary is None
