@@ -230,6 +230,30 @@ def test_an_unavailable_field_never_lets_the_report_claim_match() -> None:
     assert by_id["db_reward"].adapted_sha256 is not None
 
 
+def test_zero_tolerance_compares_exactly_beyond_float_precision() -> None:
+    spec = ParitySpec(
+        parity_id="exact_numeric_fixture",
+        parity_version="1.0.0",
+        fields=(
+            ParityField(
+                "settlement_total",
+                ("total",),
+                ("total",),
+                comparison="numeric_tolerance",
+                absolute_tolerance=0.0,
+            ),
+        ),
+    )
+
+    differing = compare_projections({"total": 2**53}, {"total": 2**53 + 1}, spec)
+    assert differing.status == "mismatch"
+    assert differing.mismatched_fields == ("settlement_total",)
+    assert differing.field_results[0].absolute_error == 1.0
+
+    equal = compare_projections({"total": 2**53}, {"total": 2**53}, spec)
+    assert equal.status == "match"
+
+
 def test_parity_report_names_each_mismatch_instead_of_hiding_it_in_one_boolean() -> None:
     spec = ParitySpec(
         parity_id="refund_failure_fixture",

@@ -204,8 +204,18 @@ def compare_projections(
                 raise ParityContractError(
                     f"numeric_tolerance field {field.field_id!r} requires finite numbers"
                 )
-            absolute_error = abs(float(source) - float(target))
-            matched = absolute_error <= field.absolute_tolerance
+            if isinstance(source, int) and isinstance(target, int):
+                difference = abs(source - target)
+            else:
+                difference = abs(float(source) - float(target))
+            absolute_error = float(difference)
+            if field.absolute_tolerance == 0:
+                # Exactness must compare exactly: Python's cross-type numeric
+                # equality is exact, while conversion through float silently
+                # equates integers differing past 2**53.
+                matched = source == target
+            else:
+                matched = difference <= field.absolute_tolerance
         results.append(
             ParityFieldResult(
                 field_id=field.field_id,
