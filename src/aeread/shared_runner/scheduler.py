@@ -708,142 +708,109 @@ async def run_episode(
         raise SchedulerContractError(f"family preflight failed: {error}") from error
     _content_hash(state, "initial family state")
 
-    phase_by_id = {phase.phase_id: phase for phase in phases}
-    episode_id = episode_id_for_cell(cell)
-    current_phase_id = phases[0].phase_id
-    phase_ordinal = 0
-    logical_action_count = 0
-    phase_action_counts: dict[str, int] = {}
-    instances: list[PhaseInstance] = []
-    terminal = _terminal(plugin, family_case, state)
+    family_closed = False
 
-    while terminal is None:
-        phase = phase_by_id[current_phase_id]
-        phase_instance_id = _stable_id(
-            "phase_instance",
-            {
-                "episode_id": episode_id,
-                "phase_id": phase.phase_id,
-                "ordinal": phase_ordinal,
-            },
-        )
-        actors = _eligible_actors(plugin, family_case, state, phase, role_by_seat)
-        pre_state_sha256 = _content_hash(state, "pre-phase state")
-        await _notify_lifecycle(
-            response_source,
-            "phase_started",
-            phase_instance_id=phase_instance_id,
-            phase=phase,
-            eligible_actors=actors,
-            pre_state_sha256=pre_state_sha256,
-        )
-        observations: dict[str, Any] = {}
-        action_records: list[LogicalActionRecord] = []
-        transitions: list[TransitionResult] = []
-        next_phase_id: str | None = None
+    def _close_family() -> None:
+        """Invoke the plugin's optional teardown hook at most once.
 
-        if phase.mode in {"single", "simultaneous"}:
-            # Freeze every view before dispatch. Even a response source with
-            # synchronous side effects cannot change a peer's observation.
-            for seat_id in actors:
-                observations[seat_id] = _observe(
-                    plugin=plugin,
-                    family_case=family_case,
-                    state=state,
-                    seat_id=seat_id,
-                    phase=phase,
-                )
-            envelopes: dict[str, ActionEnvelope] = {}
-            for seat_id in actors:
-                logical_action_count += 1
-                phase_action_counts[phase.phase_id] = (
-                    phase_action_counts.get(phase.phase_id, 0) + 1
-                )
-                if logical_action_count > cell.case_max_logical_actions:
-                    raise SchedulerContractError(
-                        "case logical-action budget exceeded before termination"
-                    )
-                if phase_action_counts[phase.phase_id] > phase.max_logical_actions:
-                    raise SchedulerContractError(
-                        f"phase logical-action budget exceeded for {phase.phase_id!r}"
-                    )
-                record = await _request_action(
-                    plugin=plugin,
-                    family_case=family_case,
-                    state=state,
-                    cell=cell,
-                    episode_id=episode_id,
-                    phase=phase,
-                    phase_instance_id=phase_instance_id,
-                    seat_id=seat_id,
-                    role=role_by_seat[seat_id],
-                    observation=observations[seat_id],
-                    action_ordinal=logical_action_count - 1,
-                    response_source=response_source,
-                )
-                action_records.append(record)
-                envelopes[seat_id] = record.envelope
-            transition = _step(
-                plugin=plugin,
-                family_case=family_case,
-                state=state,
-                phase=phase,
-                actions=envelopes,
+        A family owning a long-lived external process (a daemon subprocess
+        holding live upstream state, say) needs a kernel-provided signal for
+        when to tear it down; families without a close hook are untouched.
+        """
+        nonlocal family_closed
+        if family_closed:
+            return
+        family_closed = True
+        close_hook = getattr(plugin, "close", None)
+        if not callable(close_hook):
+            return
+        try:
+            close_hook(family_case, state)
+        except Exception as error:
+            raise SchedulerContractError(f"family close failed: {error}") from error
+
+    try:
+        phase_by_id = {phase.phase_id: phase for phase in phases}
+        episode_id = episode_id_for_cell(cell)
+        current_phase_id = phases[0].phase_id
+        phase_ordinal = 0
+        logical_action_count = 0
+        phase_action_counts: dict[str, int] = {}
+        instances: list[PhaseInstance] = []
+        terminal = _terminal(plugin, family_case, state)
+
+        while terminal is None:
+            phase = phase_by_id[current_phase_id]
+            phase_instance_id = _stable_id(
+                "phase_instance",
+                {
+                    "episode_id": episode_id,
+                    "phase_id": phase.phase_id,
+                    "ordinal": phase_ordinal,
+                },
             )
-            transitions.append(transition)
-            state = _copy_for_hook(transition.state, "post-transition state")
+            actors = _eligible_actors(plugin, family_case, state, phase, role_by_seat)
+            pre_state_sha256 = _content_hash(state, "pre-phase state")
             await _notify_lifecycle(
                 response_source,
-                "transition_applied",
+                "phase_started",
                 phase_instance_id=phase_instance_id,
                 phase=phase,
-                transition=transition,
-                post_state_sha256=_content_hash(state, "post-transition state"),
+                eligible_actors=actors,
+                pre_state_sha256=pre_state_sha256,
             )
-            terminal = _terminal(plugin, family_case, state)
-            next_phase_id = transition.next_phase_id
-        else:
-            for actor_index, seat_id in enumerate(actors):
-                observations[seat_id] = _observe(
-                    plugin=plugin,
-                    family_case=family_case,
-                    state=state,
-                    seat_id=seat_id,
-                    phase=phase,
-                )
-                logical_action_count += 1
-                phase_action_counts[phase.phase_id] = (
-                    phase_action_counts.get(phase.phase_id, 0) + 1
-                )
-                if logical_action_count > cell.case_max_logical_actions:
-                    raise SchedulerContractError(
-                        "case logical-action budget exceeded before termination"
+            observations: dict[str, Any] = {}
+            action_records: list[LogicalActionRecord] = []
+            transitions: list[TransitionResult] = []
+            next_phase_id: str | None = None
+
+            if phase.mode in {"single", "simultaneous"}:
+                # Freeze every view before dispatch. Even a response source with
+                # synchronous side effects cannot change a peer's observation.
+                for seat_id in actors:
+                    observations[seat_id] = _observe(
+                        plugin=plugin,
+                        family_case=family_case,
+                        state=state,
+                        seat_id=seat_id,
+                        phase=phase,
                     )
-                if phase_action_counts[phase.phase_id] > phase.max_logical_actions:
-                    raise SchedulerContractError(
-                        f"phase logical-action budget exceeded for {phase.phase_id!r}"
+                envelopes: dict[str, ActionEnvelope] = {}
+                for seat_id in actors:
+                    logical_action_count += 1
+                    phase_action_counts[phase.phase_id] = (
+                        phase_action_counts.get(phase.phase_id, 0) + 1
                     )
-                record = await _request_action(
-                    plugin=plugin,
-                    family_case=family_case,
-                    state=state,
-                    cell=cell,
-                    episode_id=episode_id,
-                    phase=phase,
-                    phase_instance_id=phase_instance_id,
-                    seat_id=seat_id,
-                    role=role_by_seat[seat_id],
-                    observation=observations[seat_id],
-                    action_ordinal=logical_action_count - 1,
-                    response_source=response_source,
-                )
-                action_records.append(record)
+                    if logical_action_count > cell.case_max_logical_actions:
+                        raise SchedulerContractError(
+                            "case logical-action budget exceeded before termination"
+                        )
+                    if phase_action_counts[phase.phase_id] > phase.max_logical_actions:
+                        raise SchedulerContractError(
+                            f"phase logical-action budget exceeded for {phase.phase_id!r}"
+                        )
+                    record = await _request_action(
+                        plugin=plugin,
+                        family_case=family_case,
+                        state=state,
+                        cell=cell,
+                        episode_id=episode_id,
+                        phase=phase,
+                        phase_instance_id=phase_instance_id,
+                        seat_id=seat_id,
+                        role=role_by_seat[seat_id],
+                        observation=observations[seat_id],
+                        action_ordinal=logical_action_count - 1,
+                        response_source=response_source,
+                    )
+                    action_records.append(record)
+                    envelopes[seat_id] = record.envelope
                 transition = _step(
                     plugin=plugin,
                     family_case=family_case,
                     state=state,
                     phase=phase,
-                    actions={seat_id: record.envelope},
+                    actions=envelopes,
                 )
                 transitions.append(transition)
                 state = _copy_for_hook(transition.state, "post-transition state")
@@ -857,58 +824,123 @@ async def run_episode(
                 )
                 terminal = _terminal(plugin, family_case, state)
                 next_phase_id = transition.next_phase_id
-                if terminal is not None or next_phase_id is not None:
-                    break
-                if actor_index == len(actors) - 1:
-                    next_phase_id = None
+            else:
+                for actor_index, seat_id in enumerate(actors):
+                    observations[seat_id] = _observe(
+                        plugin=plugin,
+                        family_case=family_case,
+                        state=state,
+                        seat_id=seat_id,
+                        phase=phase,
+                    )
+                    logical_action_count += 1
+                    phase_action_counts[phase.phase_id] = (
+                        phase_action_counts.get(phase.phase_id, 0) + 1
+                    )
+                    if logical_action_count > cell.case_max_logical_actions:
+                        raise SchedulerContractError(
+                            "case logical-action budget exceeded before termination"
+                        )
+                    if phase_action_counts[phase.phase_id] > phase.max_logical_actions:
+                        raise SchedulerContractError(
+                            f"phase logical-action budget exceeded for {phase.phase_id!r}"
+                        )
+                    record = await _request_action(
+                        plugin=plugin,
+                        family_case=family_case,
+                        state=state,
+                        cell=cell,
+                        episode_id=episode_id,
+                        phase=phase,
+                        phase_instance_id=phase_instance_id,
+                        seat_id=seat_id,
+                        role=role_by_seat[seat_id],
+                        observation=observations[seat_id],
+                        action_ordinal=logical_action_count - 1,
+                        response_source=response_source,
+                    )
+                    action_records.append(record)
+                    transition = _step(
+                        plugin=plugin,
+                        family_case=family_case,
+                        state=state,
+                        phase=phase,
+                        actions={seat_id: record.envelope},
+                    )
+                    transitions.append(transition)
+                    state = _copy_for_hook(transition.state, "post-transition state")
+                    await _notify_lifecycle(
+                        response_source,
+                        "transition_applied",
+                        phase_instance_id=phase_instance_id,
+                        phase=phase,
+                        transition=transition,
+                        post_state_sha256=_content_hash(state, "post-transition state"),
+                    )
+                    terminal = _terminal(plugin, family_case, state)
+                    next_phase_id = transition.next_phase_id
+                    if terminal is not None or next_phase_id is not None:
+                        break
+                    if actor_index == len(actors) - 1:
+                        next_phase_id = None
 
-        post_state_sha256 = _content_hash(state, "post-phase state")
-        instance = PhaseInstance(
-            phase_instance_id=phase_instance_id,
-            phase_id=phase.phase_id,
-            ordinal=phase_ordinal,
-            mode=phase.mode,
-            eligible_actors=actors,
-            pre_state_sha256=pre_state_sha256,
-            post_state_sha256=post_state_sha256,
-            observations=_freeze(observations),
-            actions=tuple(action_records),
-            transitions=tuple(transitions),
+            post_state_sha256 = _content_hash(state, "post-phase state")
+            instance = PhaseInstance(
+                phase_instance_id=phase_instance_id,
+                phase_id=phase.phase_id,
+                ordinal=phase_ordinal,
+                mode=phase.mode,
+                eligible_actors=actors,
+                pre_state_sha256=pre_state_sha256,
+                post_state_sha256=post_state_sha256,
+                observations=_freeze(observations),
+                actions=tuple(action_records),
+                transitions=tuple(transitions),
+            )
+            instances.append(instance)
+            await _notify_lifecycle(
+                response_source,
+                "phase_completed",
+                phase_instance=instance,
+            )
+            if terminal is not None:
+                break
+            if next_phase_id is None:
+                raise SchedulerContractError(
+                    f"nonterminal phase {phase.phase_id!r} did not select a next phase"
+                )
+            current_phase_id = next_phase_id
+            phase_ordinal += 1
+
+        outcome = _outcome(plugin, family_case, terminal)
+        result = EpisodeResult(
+            episode_id=episode_id,
+            cell_id=cell.cell_id,
+            case_id=case.case_id,
+            family_id=case.family_id,
+            final_state=_freeze(state),
+            terminal=_freeze(terminal),
+            outcome=_freeze(outcome),
+            logical_action_count=logical_action_count,
+            phase_instances=tuple(instances),
+            world_seed=case.world_seed,
         )
-        instances.append(instance)
+        _close_family()
         await _notify_lifecycle(
             response_source,
-            "phase_completed",
-            phase_instance=instance,
+            "episode_completed",
+            episode_result=result,
         )
-        if terminal is not None:
-            break
-        if next_phase_id is None:
-            raise SchedulerContractError(
-                f"nonterminal phase {phase.phase_id!r} did not select a next phase"
-            )
-        current_phase_id = next_phase_id
-        phase_ordinal += 1
-
-    outcome = _outcome(plugin, family_case, terminal)
-    result = EpisodeResult(
-        episode_id=episode_id,
-        cell_id=cell.cell_id,
-        case_id=case.case_id,
-        family_id=case.family_id,
-        final_state=_freeze(state),
-        terminal=_freeze(terminal),
-        outcome=_freeze(outcome),
-        logical_action_count=logical_action_count,
-        phase_instances=tuple(instances),
-        world_seed=case.world_seed,
-    )
-    await _notify_lifecycle(
-        response_source,
-        "episode_completed",
-        episode_result=result,
-    )
-    return result
+        return result
+    except BaseException as episode_error:
+        # Teardown still runs when the episode fails, but a close failure
+        # must never replace the in-flight episode error; it rides along as
+        # __context__ instead.
+        try:
+            _close_family()
+        except BaseException:
+            raise episode_error
+        raise
 
 
 __all__ = [

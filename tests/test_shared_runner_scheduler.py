@@ -400,6 +400,76 @@ def test_phase_budget_stops_an_endless_declared_cycle() -> None:
         )
 
 
+class ClosingPlugin(SimultaneousFixturePlugin):
+    def __init__(self) -> None:
+        super().__init__()
+        self.close_calls: list = []
+
+    def close(self, case, state):
+        self.close_calls.append((case, state))
+
+
+def test_optional_close_hook_runs_once_after_terminal_with_the_final_state() -> None:
+    plugin = ClosingPlugin()
+
+    async def respond(request):
+        return {"offer": 7 if request.seat_id == "buyer" else 13}
+
+    result = asyncio.run(
+        run_episode(
+            cell=_cell(), case=_case(), plugin=plugin, response_source=respond
+        )
+    )
+
+    assert len(plugin.close_calls) == 1
+    closed_case, closed_state = plugin.close_calls[0]
+    assert closed_case == plugin.validate_payload(_case().payload)
+    assert closed_state == result.final_state
+    assert result.terminal == {"reason": "settled"}
+
+
+def test_close_hook_failure_is_a_typed_scheduler_error() -> None:
+    class BrokenClosePlugin(ClosingPlugin):
+        def close(self, case, state):
+            raise RuntimeError("daemon refused to die")
+
+    async def respond(request):
+        return {"offer": 7 if request.seat_id == "buyer" else 13}
+
+    with pytest.raises(SchedulerContractError, match="family close failed"):
+        asyncio.run(
+            run_episode(
+                cell=_cell(),
+                case=_case(),
+                plugin=BrokenClosePlugin(),
+                response_source=respond,
+            )
+        )
+
+
+def test_close_hook_runs_on_episode_failure_and_never_masks_it() -> None:
+    close_attempts: list = []
+
+    class ClosingEndlessPlugin(EndlessPlugin):
+        def close(self, case, state):
+            close_attempts.append(state)
+            raise RuntimeError("teardown also failed")
+
+    async def respond(_request):
+        return {"increment": 1}
+
+    with pytest.raises(SchedulerContractError, match="phase logical-action budget"):
+        asyncio.run(
+            run_episode(
+                cell=_cell(),
+                case=_case(),
+                plugin=ClosingEndlessPlugin(),
+                response_source=respond,
+            )
+        )
+    assert len(close_attempts) == 1, "teardown must be attempted on failure"
+
+
 class RecurringPairPlugin(SimultaneousFixturePlugin):
     """Both seats act each instance and the phase cycles back to itself."""
 
