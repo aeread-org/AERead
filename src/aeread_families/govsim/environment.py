@@ -138,6 +138,18 @@ def family_manifest() -> FamilyManifest:
                 # measurement.py's job, deferred to a later milestone (see
                 # `build_scorer` below).
                 "primary_estimand": "govsim_survival_months",
+                # "comparative_or_human_judged" is the closest legal value in
+                # schemas.py's MeasurementDeclaration enum
+                # ({"property_or_answer", "optimizable_outcome",
+                # "comparative_or_human_judged"} -- no bare "comparative"
+                # bucket exists there); every leaf in measurement.py declares
+                # evaluation_class="deterministic" with no rater/judge/rubric
+                # field anywhere, so this family is NOT human-judged despite
+                # the enum label. A consumer must branch on each leaf's own
+                # verifier_family/evaluation_class, never on this
+                # family-level field, to decide whether rater-provenance is
+                # required (ledger_entries/govsim.md #6: this is a kernel
+                # schema imprecision, not something fixable here).
                 "measurement_kind": "comparative_or_human_judged",
                 "direction": "maximize",
                 "comparison_baseline": "govsim_sustainable_v1",

@@ -127,3 +127,33 @@ byte-for-byte on five sample arrays plus the negative-shift and NaN-removal bran
 **Suggested fix:** none -- this is a working pattern, recorded here only so a future adapter
 facing the same "need one pure function from an otherwise-heavy upstream module" problem does
 not have to rediscover it.
+
+## 6. low | src/aeread/shared_runner/schemas.py | `MeasurementDeclaration.measurement_kind`'s
+enum has no bare "comparative" value, forcing a fully-deterministic, non-judged family to
+declare `"comparative_or_human_judged"`
+
+**What:** `MeasurementDeclaration.from_dict`'s `measurement_kind` enum is exactly
+`{"property_or_answer", "optimizable_outcome", "comparative_or_human_judged"}` -- there is no
+value for "comparative, but never human/judge-scored". `govsim`'s family manifest
+(`src/aeread_families/govsim/environment.py`'s `family_manifest()`) is comparative-only (three
+of its five leaves are `verifier_family="comparative"`/`reference_kind="baseline_delta"`) and
+fully deterministic (every leaf in `measurement.py` declares
+`evaluation_class="deterministic"`, none references a rater/judge/rubric), yet must pick the
+"...or_human_judged" bucket anyway because it is the only legal value close to "comparative".
+This was flagged during independent review (`docs/govsim_review_claude.md`'s S1) as a
+pre-existing kernel schema limitation, not something introduced by that adapter's diff.
+
+**Evidence:** `src/aeread/shared_runner/schemas.py:279-282`'s `_enum(data["measurement_kind"],
+..., {"property_or_answer", "optimizable_outcome", "comparative_or_human_judged"})`; every leaf
+returned by `src/aeread_families/govsim/measurement.py::build_leaves()` declares
+`evaluation_class="deterministic"` (confirmed by
+`tests/test_govsim_measurement.py::test_build_leaves_returns_exactly_five_leaves_matching_the_spec_table`),
+and no leaf's `verifier_family`/fields reference a judge, rater, or rubric anywhere in that
+module.
+
+**Suggested fix:** split the enum into a bare `"comparative"` value distinct from
+`"human_judged"` (or add a separate boolean/field such as `requires_rater_provenance`), so a
+downstream consumer branching on family-level `measurement_kind` to decide whether
+rater-provenance fields (rubric hash, rater identity, replicate count -- per
+`docs/verifier_taxonomy.md` section 7) are required does not have to also read every leaf's own
+`evaluation_class` to avoid a false positive for deterministic-only families like this one.

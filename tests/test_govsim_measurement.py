@@ -474,8 +474,23 @@ def test_golden_invalid_unauthorized_rejected_before_any_bridge_call_no_credit(
 
     assert result.legal is False
     assert result.reason == "seat_phase_mismatch"
-    # No protected state changed and no credit earned: legal() never
-    # touches the bridge at all.
+    # The only claim this specific assertion supports: this call to legal()
+    # made no additional bridge call (it is architecturally side-effect-free
+    # -- environment.py's legal() `del`s its own `action` argument and never
+    # touches `self`/bridge state, regardless of what this test checks).
+    # This does NOT exercise what the real kernel's run_episode does with an
+    # illegal action for a reject-policy phase -- it cannot: legal() is
+    # called directly here, never through run_episode, and the scheduler
+    # only ever requests an action from a seat plugin.eligible_actors()
+    # already names (run_episode's own `actors = _eligible_actors(...)`), so
+    # a request from an ineligible seat is not a reachable path through the
+    # real scheduler for this family. See
+    # tests/test_govsim_replay.py's
+    # test_a_malformed_first_harvest_response_aborts_the_real_scheduler_with_a_reject_policy
+    # for the govsim-specific, run_episode-driven proof of the
+    # invalid_action_policy="reject" contract for the path that IS
+    # reachable (a legitimately-requested seat answering with a value
+    # parse_action itself rejects).
     assert counting_bridge.call_count == calls_after_reset
 
 
@@ -558,6 +573,43 @@ def test_golden_degenerate_reference_num_agents_1_flags_the_comparison(
     no_collapse = scorer.score_no_collapse(terminal=greedy_terminal)
     assert no_collapse.status == "ok"
     assert no_collapse.primary.metadata == {}
+
+
+# ---------------------------------------------------------------------------
+# Cross-scenario coverage (review finding W1): every golden above hard-codes
+# "fishing", so a regression that only breaks `sheep`/`pollution` (2 of the
+# 3 declared `cases.SCENARIOS`) -- e.g. a bug in `SheepConcurrentEnv`/
+# `PollutionConcurrentEnv`'s own `env.py`, or in `_SCENARIO_ENV_CLASSES`/
+# `POOL_LOCATION_BY_SCENARIO` (govsim_bridge_driver.py/cases.py) -- would
+# stay invisible to this suite. `cases.py`'s own "governing facts" claim
+# (spec section 0) is that all three scenarios share one arithmetic core;
+# this drives all three, for the same seed and policy, through the REAL
+# bridge and asserts their terminal states match exactly, so a future
+# scenario-specific divergence is actually caught, not just manually
+# recon'd once.
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("scenario", [s for s in govsim_cases.SCENARIOS if s != "fishing"])
+def test_sheep_and_pollution_match_fishings_terminal_state_exactly_for_the_same_seed_and_policy(
+    bridge: GovsimBridge, scenario: str
+) -> None:
+    plugin = GovsimPlugin(upstream_root=UPSTREAM_ROOT, bridge=bridge)
+
+    fishing_sustainable = _drive_episode(
+        plugin, _family_case("fishing", "sustainable_v1", num_agents=5)
+    )
+    other_sustainable = _drive_episode(
+        plugin, _family_case(scenario, "sustainable_v1", num_agents=5)
+    )
+    assert other_sustainable == fishing_sustainable
+
+    # And again on the greedy policy, which additionally exercises the
+    # collapse-before-horizon path for the non-fishing scenario.
+    fishing_greedy = _drive_episode(plugin, _family_case("fishing", "greedy_v1", num_agents=5))
+    other_greedy = _drive_episode(plugin, _family_case(scenario, "greedy_v1", num_agents=5))
+    assert other_greedy == fishing_greedy
+    assert other_greedy["num_round"] < 12  # collapsed well before the horizon, same as fishing
 
 
 # ---------------------------------------------------------------------------

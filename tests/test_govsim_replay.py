@@ -39,7 +39,7 @@ from aeread.shared_runner.execution import EvidenceStore
 from aeread.shared_runner.registry import PluginRegistry
 from aeread.shared_runner.resolver import PlanCell, canonical_json_bytes
 from aeread.shared_runner.schemas import CaseManifest
-from aeread.shared_runner.scheduler import EpisodeResult, run_episode
+from aeread.shared_runner.scheduler import EpisodeResult, SchedulerContractError, run_episode
 from aeread_families.govsim import measurement as m
 from aeread_families.govsim.environment import (
     DISCUSS_PHASE,
@@ -677,3 +677,58 @@ def test_replay_of_a_tampered_response_diverges_from_the_original_and_is_caught_
     assert comparison.matches is False
     with pytest.raises(ReplayError, match="diverged from the original run"):
         assert_replay_matches(comparison)
+
+
+async def _malformed_first_harvest_response(request: Any) -> dict[str, Any]:
+    """Answers the very FIRST ``harvest``-phase request with a value
+    ``GovsimPlugin.parse_action`` itself rejects (a negative ``quantity``).
+
+    ``HARVEST_PHASE`` is the case's first phase (``environment.py``'s
+    ``phases()``) and runs in ``"simultaneous"`` mode, so this is the first
+    request ``run_episode`` ever issues -- no fallback branch for later
+    requests is needed, because the scheduler raises
+    ``SchedulerContractError`` from inside ``_request_action`` as soon as
+    this one invalid response is processed, before any further seat is
+    asked (see ``scheduler.py``'s ``invalid_action_policy == "reject"``
+    check).
+    """
+    assert request.phase_id == HARVEST_PHASE
+    return {"quantity": -1}
+
+
+def test_a_malformed_first_harvest_response_aborts_the_real_scheduler_with_a_reject_policy(
+    bridge: GovsimBridge,
+) -> None:
+    """Closes review finding W2: the QC Gate 2 "invalid-unauthorized" golden
+    (``tests/test_govsim_measurement.py``'s
+    ``test_golden_invalid_unauthorized_rejected_before_any_bridge_call_no_credit``)
+    calls ``GovsimPlugin.legal()`` directly and never drives ``run_episode``
+    -- and, because the real scheduler only ever requests an action from a
+    seat ``plugin.eligible_actors()`` already names (``run_episode``'s own
+    ``actors = _eligible_actors(...)`` loop), a request from a seat OUTSIDE
+    that set is not a path the scheduler itself can ever take for this
+    family; there is no legitimate way to reproduce that exact golden
+    end-to-end through ``run_episode``.
+
+    What IS reachable, and is this family's own govsim-specific proof of the
+    ``invalid_action_policy="reject"`` contract (spec section 4's
+    "no credit earned" claim, generically covered only by
+    ``tests/test_shared_runner_scheduler.py`` otherwise): a legitimately
+    -requested seat answers with a value ``parse_action`` itself rejects.
+    ``HARVEST_PHASE``'s ``invalid_action_policy="reject"`` (environment.py's
+    ``phases()``) must abort the WHOLE episode through the real scheduler,
+    never silently continue or score a zero.
+    """
+    case = _case("govsim.fishing.sustainable.0")
+    cell = _cell(case, suffix="malformed_first_harvest")
+    resolved_plugin = _resolved_plugin(bridge)
+
+    with pytest.raises(SchedulerContractError, match="invalid action"):
+        asyncio.run(
+            run_episode(
+                cell=cell,
+                case=case,
+                plugin=resolved_plugin,
+                response_source=_malformed_first_harvest_response,
+            )
+        )
