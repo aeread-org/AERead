@@ -10,6 +10,7 @@ remain stable and comparable results keep their meaning.
 | Housing v1 | generated | [`housing_v1/`](housing_v1/) | Deterministic generated worlds; no static JSON fixtures |
 | Procurement grounding v1 | development | [`procurement_grounding_v1/`](procurement_grounding_v1/) | One evidence-grounded 231-project sourcing case with a deterministic verifier |
 | tau3 retail | imported base split | [`tau3_retail/`](tau3_retail/) | 114 pinned retail tasks plus provenance files |
+| STEER | imported pilot corpus, cases only | [`steer/`](steer/) | 1,595 one-shot MCQA cases (200 per element, capped at availability) across 8 declared elements / 4 taxonomy branches; no scorer yet |
 
 `configs/` remains the home of experiment, treatment, and protocol settings.
 Those files tune runs; they are not the canonical case catalog. The former
