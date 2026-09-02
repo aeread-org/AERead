@@ -102,6 +102,66 @@ def test_supply_chain_parity_can_map_different_record_shapes() -> None:
     assert compare_projections(upstream, adapted, spec).status == "match"
 
 
+def test_a_missing_field_yields_a_typed_unavailable_verdict_not_a_dead_report() -> None:
+    spec = ParitySpec(
+        parity_id="refund_partial_fixture",
+        parity_version="1.0.0",
+        fields=(
+            ParityField("final_state", ("final",), ("state",)),
+            ParityField("db_reward", ("db_reward",), ("score",)),
+            ParityField("judge_artifact", ("judge_sha256",), ("judge", "sha256")),
+        ),
+    )
+
+    report = compare_projections(
+        {
+            "final": {"status": "refunded"},
+            "db_reward": 1.0,
+            "judge_sha256": "a" * 64,
+        },
+        # judge is entirely absent on the adapted side; db_reward disagrees.
+        {"state": {"status": "refunded"}, "score": 0.0},
+        spec,
+    )
+
+    assert report.status == "mismatch"
+    assert report.mismatched_fields == ("db_reward",)
+    assert report.unavailable_fields == ("judge_artifact",)
+    assert len(report.field_results) == 3
+    by_id = {result.field_id: result for result in report.field_results}
+    assert by_id["final_state"].matched is True
+    assert by_id["judge_artifact"].status == "unavailable"
+    assert by_id["judge_artifact"].matched is False
+    assert by_id["judge_artifact"].unavailable_sides == ("adapted",)
+    assert by_id["judge_artifact"].upstream_sha256 is not None
+    assert by_id["judge_artifact"].adapted_sha256 is None
+
+
+def test_an_unavailable_field_never_lets_the_report_claim_match() -> None:
+    spec = ParitySpec(
+        parity_id="refund_unavailable_fixture",
+        parity_version="1.0.0",
+        fields=(
+            ParityField("final_state", ("final",), ("state",)),
+            ParityField("db_reward", ("db_reward",), ("score",)),
+        ),
+    )
+
+    report = compare_projections(
+        {"final": {"status": "refunded"}},
+        {"state": {"status": "refunded"}, "score": 1.0},
+        spec,
+    )
+
+    assert report.status == "unavailable"
+    assert report.mismatched_fields == ()
+    assert report.unavailable_fields == ("db_reward",)
+    by_id = {result.field_id: result for result in report.field_results}
+    assert by_id["db_reward"].unavailable_sides == ("upstream",)
+    assert by_id["db_reward"].upstream_sha256 is None
+    assert by_id["db_reward"].adapted_sha256 is not None
+
+
 def test_parity_report_names_each_mismatch_instead_of_hiding_it_in_one_boolean() -> None:
     spec = ParitySpec(
         parity_id="refund_failure_fixture",

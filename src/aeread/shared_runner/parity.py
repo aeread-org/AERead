@@ -33,12 +33,18 @@ def _path(value: object, label: str) -> tuple[str, ...]:
     return value
 
 
-def _extract(value: Mapping[str, Any], path: tuple[str, ...], label: str) -> Any:
+_MISSING = object()
+
+
+def _lookup(value: Mapping[str, Any], path: tuple[str, ...]) -> Any:
+    """Follow *path* into *value*, returning ``_MISSING`` instead of raising.
+
+    A missing field is a parity finding for that one field, never grounds to
+    destroy every other field's verdict."""
     current: Any = value
     for component in path:
         if not isinstance(current, Mapping) or component not in current:
-            dotted = ".".join(path)
-            raise ParityContractError(f"{label} projection is missing {dotted!r}")
+            return _MISSING
         current = current[component]
     return current
 
@@ -94,9 +100,11 @@ class ParityFieldResult:
     field_id: str
     matched: bool
     comparison: str
-    upstream_sha256: str
-    adapted_sha256: str
+    upstream_sha256: str | None
+    adapted_sha256: str | None
     absolute_error: float | None
+    status: str = "compared"
+    unavailable_sides: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -106,6 +114,7 @@ class ParityReport:
     status: str
     field_results: tuple[ParityFieldResult, ...]
     mismatched_fields: tuple[str, ...]
+    unavailable_fields: tuple[str, ...]
     upstream_projection_sha256: str
     adapted_projection_sha256: str
     report_sha256: str
@@ -132,8 +141,31 @@ def compare_projections(
     upstream_projection: dict[str, Any] = {}
     adapted_projection: dict[str, Any] = {}
     for field in spec.fields:
-        source = _extract(upstream, field.upstream_path, "upstream")
-        target = _extract(adapted, field.adapted_path, "adapted")
+        source = _lookup(upstream, field.upstream_path)
+        target = _lookup(adapted, field.adapted_path)
+        unavailable_sides = tuple(
+            side
+            for side, value in (("upstream", source), ("adapted", target))
+            if value is _MISSING
+        )
+        if unavailable_sides:
+            if source is not _MISSING:
+                upstream_projection[field.field_id] = source
+            if target is not _MISSING:
+                adapted_projection[field.field_id] = target
+            results.append(
+                ParityFieldResult(
+                    field_id=field.field_id,
+                    matched=False,
+                    comparison=field.comparison,
+                    upstream_sha256=None if source is _MISSING else _digest(source),
+                    adapted_sha256=None if target is _MISSING else _digest(target),
+                    absolute_error=None,
+                    status="unavailable",
+                    unavailable_sides=unavailable_sides,
+                )
+            )
+            continue
         upstream_projection[field.field_id] = source
         adapted_projection[field.field_id] = target
         source_digest = _digest(source)
@@ -165,13 +197,27 @@ def compare_projections(
                 absolute_error=absolute_error,
             )
         )
-    mismatches = tuple(result.field_id for result in results if not result.matched)
+    mismatches = tuple(
+        result.field_id
+        for result in results
+        if result.status == "compared" and not result.matched
+    )
+    unavailable = tuple(
+        result.field_id for result in results if result.status == "unavailable"
+    )
+    if mismatches:
+        status = "mismatch"
+    elif unavailable:
+        status = "unavailable"
+    else:
+        status = "match"
     basis = {
         "parity_id": spec.parity_id,
         "parity_version": spec.parity_version,
-        "status": "match" if not mismatches else "mismatch",
+        "status": status,
         "field_results": tuple(results),
         "mismatched_fields": mismatches,
+        "unavailable_fields": unavailable,
         "upstream_projection_sha256": _digest(upstream_projection),
         "adapted_projection_sha256": _digest(adapted_projection),
     }
