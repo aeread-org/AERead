@@ -15,7 +15,6 @@ real, full 300-round trajectory.
 from __future__ import annotations
 
 import asyncio
-import dataclasses
 from types import MappingProxyType
 from typing import Any, Mapping
 
