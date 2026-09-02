@@ -3,9 +3,78 @@ import os
 import sys
 from pathlib import Path
 
+import pytest
+
 _src = Path(__file__).resolve().parent / "src"
 if _src.is_dir() and str(_src) not in sys.path:
     sys.path.insert(0, str(_src))
+
+
+# ---------------------------------------------------------------------------
+# Codex-review finding 6 (amazonbarg): a missing upstream checkout must skip
+# only the tests that actually need it, not every test in a
+# `test_amazonbarg_*.py` module wholesale.
+#
+# Every one of the six `test_amazonbarg_*.py` files computed its own
+# `UPSTREAM_ROOT` at *module import time* and called
+# `pytest.skip(..., allow_module_level=True)` when the pinned checkout was
+# missing -- which skips the whole module, including pure declaration/logic
+# tests that never touch `upstream_root` at all (e.g.
+# `test_amazonbarg_measurement.py`'s five `build_*_leaf` tests). A green run's
+# "106/106 passed" headline figure then gave no signal that those numbers
+# depended on one personal, absolute checkout path existing on the machine
+# that ran them -- on any other machine the true count was "0 ran, N
+# skipped," silently, with no failure.
+#
+# The fix: each of those six files' `_upstream_root()` no longer skips at
+# import time (see each file for the updated helper); this hook skips
+# individual, already-collected test items instead, at the *item* level, so
+# only the tests that actually reference the upstream checkout are skipped --
+# a test opts out of this by carrying the `no_upstream_checkout_required`
+# marker, applied only to tests independently verified to need no real
+# upstream bytes.
+# ---------------------------------------------------------------------------
+
+_AMAZONBARG_UPSTREAM_ENV_VAR = "AEREAD_AMAZONBARG_UPSTREAM_ROOT"
+_AMAZONBARG_UPSTREAM_DEFAULT = "/Users/sunzeyu/Documents/econ benchmark/upstream-amazonbarg"
+_AMAZONBARG_UPSTREAM_MARKER = ("data", "AmazonHistoryPrice", "home-kitchen.json")
+_AMAZONBARG_NO_UPSTREAM_MARKER = "no_upstream_checkout_required"
+
+
+def _amazonbarg_upstream_root() -> Path:
+    return Path(os.environ.get(_AMAZONBARG_UPSTREAM_ENV_VAR, _AMAZONBARG_UPSTREAM_DEFAULT))
+
+
+def _amazonbarg_upstream_available() -> bool:
+    marker = _amazonbarg_upstream_root()
+    for part in _AMAZONBARG_UPSTREAM_MARKER:
+        marker = marker / part
+    return marker.is_file()
+
+
+def pytest_configure(config):
+    config.addinivalue_line(
+        "markers",
+        f"{_AMAZONBARG_NO_UPSTREAM_MARKER}: "
+        "this amazonbarg test needs no real upstream checkout bytes, so it "
+        "must still run even when AEREAD_AMAZONBARG_UPSTREAM_ROOT is missing.",
+    )
+
+
+def pytest_collection_modifyitems(config, items):
+    if _amazonbarg_upstream_available():
+        return
+    reason = (
+        "pinned upstream AmazonPriceHistory checkout not found at "
+        f"{_amazonbarg_upstream_root()} (set {_AMAZONBARG_UPSTREAM_ENV_VAR})"
+    )
+    skip_marker = pytest.mark.skip(reason=reason)
+    for item in items:
+        if "test_amazonbarg_" not in item.fspath.basename:
+            continue
+        if item.get_closest_marker(_AMAZONBARG_NO_UPSTREAM_MARKER) is not None:
+            continue
+        item.add_marker(skip_marker)
 
 
 _BRIDGE_REQUIRED_ENV_VAR = "AEREAD_TAU2_BRIDGE_REQUIRED"

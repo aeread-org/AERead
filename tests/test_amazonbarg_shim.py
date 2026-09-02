@@ -17,18 +17,21 @@ from aeread_families.amazonbarg import upstream_shim as shim
 
 
 def _upstream_root() -> Path:
+    """The pinned upstream checkout path -- may not exist on disk.
+
+    Unlike this function's pre-fix form, this never skips at import time
+    (codex-review finding 6): a missing checkout is caught per-test by
+    ``conftest.py``'s ``pytest_collection_modifyitems`` hook instead, which
+    skips only the tests that actually need it -- tests marked
+    ``@pytest.mark.no_upstream_checkout_required`` (verified independently to
+    touch no upstream bytes) still run and pass even when this path does not
+    exist.
+    """
     candidate = os.environ.get(
         "AEREAD_AMAZONBARG_UPSTREAM_ROOT",
         "/Users/sunzeyu/Documents/econ benchmark/upstream-amazonbarg",
     )
-    root = Path(candidate)
-    marker = root / "data" / "AmazonHistoryPrice" / "home-kitchen.json"
-    if not marker.is_file():
-        pytest.skip(
-            f"pinned upstream AmazonPriceHistory checkout not found at {root}",
-            allow_module_level=True,
-        )
-    return root
+    return Path(candidate)
 
 
 UPSTREAM_ROOT = _upstream_root()
@@ -45,6 +48,7 @@ UPSTREAM_ROOT = _upstream_root()
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.no_upstream_checkout_required
 def test_global_miss_counter_starts_at_zero_in_a_fresh_process() -> None:
     assert shim.miss_count() == 0
     assert shim.miss_paths() == ()
@@ -68,6 +72,7 @@ def test_delegated_import_of_session_never_touches_the_network() -> None:
     assert callable(parse_reply)
 
 
+@pytest.mark.no_upstream_checkout_required
 def test_no_network_guard_blocks_a_real_connect_attempt() -> None:
     with shim._no_network_guard():
         with pytest.raises(shim.UpstreamShimMissError, match="live network connection"):
@@ -162,6 +167,7 @@ def test_two_delegated_parse_reply_imports_are_independent_callables() -> None:
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.no_upstream_checkout_required
 def test_stub_attribute_read_alone_never_raises_or_records_a_miss() -> None:
     counter = shim._MissCounter()
     stub = shim._StubModule("aeread_test_stub_pkg", counter=counter)
@@ -174,6 +180,7 @@ def test_stub_attribute_read_alone_never_raises_or_records_a_miss() -> None:
     assert counter.count == 0
 
 
+@pytest.mark.no_upstream_checkout_required
 def test_calling_a_stub_placeholder_raises_and_records_exactly_one_miss() -> None:
     counter = shim._MissCounter()
     stub = shim._StubModule("aeread_test_stub_pkg", counter=counter)
@@ -185,6 +192,7 @@ def test_calling_a_stub_placeholder_raises_and_records_exactly_one_miss() -> Non
     assert counter.paths == ("aeread_test_stub_pkg.get",)
 
 
+@pytest.mark.no_upstream_checkout_required
 def test_stub_installer_prefers_a_really_importable_package_over_a_stub() -> None:
     with shim._install_missing_stub_modules(("re",)):
         import re as delegated_re
@@ -193,6 +201,7 @@ def test_stub_installer_prefers_a_really_importable_package_over_a_stub() -> Non
     assert "re" in sys.modules  # never evicted -- it was real, not stubbed
 
 
+@pytest.mark.no_upstream_checkout_required
 def test_stub_installer_only_installs_and_evicts_the_actually_absent_names() -> None:
     marker = "aeread_test_definitely_absent_pkg"
     assert marker not in sys.modules

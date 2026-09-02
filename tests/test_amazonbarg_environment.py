@@ -34,18 +34,21 @@ from aeread_families.amazonbarg.environment import (
 
 
 def _upstream_root() -> Path:
+    """The pinned upstream checkout path -- may not exist on disk.
+
+    Unlike this function's pre-fix form, this never skips at import time
+    (codex-review finding 6): a missing checkout is caught per-test by
+    ``conftest.py``'s ``pytest_collection_modifyitems`` hook instead, which
+    skips only the tests that actually need it -- tests marked
+    ``@pytest.mark.no_upstream_checkout_required`` (verified independently to
+    touch no upstream bytes) still run and pass even when this path does not
+    exist.
+    """
     candidate = os.environ.get(
         "AEREAD_AMAZONBARG_UPSTREAM_ROOT",
         "/Users/sunzeyu/Documents/econ benchmark/upstream-amazonbarg",
     )
-    root = Path(candidate)
-    marker = root / "data" / "AmazonHistoryPrice" / "home-kitchen.json"
-    if not marker.is_file():
-        pytest.skip(
-            f"pinned upstream AmazonPriceHistory checkout not found at {root}",
-            allow_module_level=True,
-        )
-    return root
+    return Path(candidate)
 
 
 UPSTREAM_ROOT = _upstream_root()
@@ -444,6 +447,7 @@ def test_eligible_actors_are_exactly_one_seat_per_phase() -> None:
     assert plugin.eligible_actors(family_case, state, seller_phase) == ("seller",)
 
 
+@pytest.mark.no_upstream_checkout_required
 def test_family_manifest_declares_no_tools_and_no_sandbox() -> None:
     manifest = family_manifest()
     assert manifest.environment.needs_tools is False

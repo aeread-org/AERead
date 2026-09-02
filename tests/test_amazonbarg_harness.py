@@ -43,18 +43,21 @@ from aeread_families.amazonbarg.harness import (
 
 
 def _upstream_root() -> Path:
+    """The pinned upstream checkout path -- may not exist on disk.
+
+    Unlike this function's pre-fix form, this never skips at import time
+    (codex-review finding 6): a missing checkout is caught per-test by
+    ``conftest.py``'s ``pytest_collection_modifyitems`` hook instead, which
+    skips only the tests that actually need it -- tests marked
+    ``@pytest.mark.no_upstream_checkout_required`` (verified independently to
+    touch no upstream bytes) still run and pass even when this path does not
+    exist.
+    """
     candidate = os.environ.get(
         "AEREAD_AMAZONBARG_UPSTREAM_ROOT",
         "/Users/sunzeyu/Documents/econ benchmark/upstream-amazonbarg",
     )
-    root = Path(candidate)
-    marker = root / "data" / "AmazonHistoryPrice" / "home-kitchen.json"
-    if not marker.is_file():
-        pytest.skip(
-            f"pinned upstream AmazonPriceHistory checkout not found at {root}",
-            allow_module_level=True,
-        )
-    return root
+    return Path(candidate)
 
 
 UPSTREAM_ROOT = _upstream_root()
@@ -379,6 +382,7 @@ def test_harness_raises_when_the_script_is_exhausted_before_termination(
         )
 
 
+@pytest.mark.no_upstream_checkout_required
 def test_seal_is_idempotent_across_repeated_episode_completed_calls(tmp_path: Path) -> None:
     """``episode_completed`` fires exactly once from a real ``run_episode``
     run, but the harness's own guard against re-sealing is tested directly

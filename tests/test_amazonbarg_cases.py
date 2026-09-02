@@ -20,18 +20,21 @@ from aeread_families.amazonbarg import cases as amazonbarg_cases
 
 
 def _upstream_root() -> Path:
+    """The pinned upstream checkout path -- may not exist on disk.
+
+    Unlike this function's pre-fix form, this never skips at import time
+    (codex-review finding 6): a missing checkout is caught per-test by
+    ``conftest.py``'s ``pytest_collection_modifyitems`` hook instead, which
+    skips only the tests that actually need it -- tests marked
+    ``@pytest.mark.no_upstream_checkout_required`` (verified independently to
+    touch no upstream bytes) still run and pass even when this path does not
+    exist.
+    """
     candidate = os.environ.get(
         "AEREAD_AMAZONBARG_UPSTREAM_ROOT",
         "/Users/sunzeyu/Documents/econ benchmark/upstream-amazonbarg",
     )
-    root = Path(candidate)
-    marker = root / "data" / "AmazonHistoryPrice" / "home-kitchen.json"
-    if not marker.is_file():
-        pytest.skip(
-            f"pinned upstream AmazonPriceHistory checkout not found at {root}",
-            allow_module_level=True,
-        )
-    return root
+    return Path(candidate)
 
 
 UPSTREAM_ROOT = _upstream_root()
@@ -107,6 +110,7 @@ def test_sanitize_is_the_identity_on_every_one_of_the_930_real_codenames() -> No
     assert mismatches == []
 
 
+@pytest.mark.no_upstream_checkout_required
 @pytest.mark.parametrize(
     "raw",
     ["café_1", "a:b", "ABC_1", "home-kitchen_2", "toys-games_22", "已经_9"],
@@ -116,6 +120,7 @@ def test_sanitize_desanitize_round_trips_synthetic_counter_examples(raw: str) ->
     assert amazonbarg_cases.desanitize(sanitized) == raw
 
 
+@pytest.mark.no_upstream_checkout_required
 def test_sanitize_escapes_a_colon_so_the_case_id_never_contains_one() -> None:
     sanitized = amazonbarg_cases.sanitize("a:b")
     assert ":" not in sanitized
@@ -144,6 +149,7 @@ def test_sanitize_escapes_a_colon_so_the_case_id_never_contains_one() -> None:
     )
 
 
+@pytest.mark.no_upstream_checkout_required
 def test_case_id_grammar_rejects_a_naive_colon_joined_codename() -> None:
     # A naive "family:codename" join (the obvious way to key a case by
     # upstream codename) is exactly what the kernel's identifier grammar
@@ -357,6 +363,7 @@ def test_pilot_manifest_hash_changes_if_the_id_list_changes(pilot_cases) -> None
     assert mutated_digest != manifest["content_sha256"]
 
 
+@pytest.mark.no_upstream_checkout_required
 def test_build_pilot_manifest_raises_when_case_count_is_not_45() -> None:
     with pytest.raises(ValueError, match="expected 45 cases"):
         amazonbarg_cases.build_pilot_manifest({})

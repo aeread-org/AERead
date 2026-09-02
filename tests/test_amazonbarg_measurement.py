@@ -48,18 +48,21 @@ from aeread_families.amazonbarg.environment import (
 
 
 def _upstream_root() -> Path:
+    """The pinned upstream checkout path -- may not exist on disk.
+
+    Unlike this function's pre-fix form, this never skips at import time
+    (codex-review finding 6): a missing checkout is caught per-test by
+    ``conftest.py``'s ``pytest_collection_modifyitems`` hook instead, which
+    skips only the tests that actually need it -- tests marked
+    ``@pytest.mark.no_upstream_checkout_required`` (verified independently to
+    touch no upstream bytes) still run and pass even when this path does not
+    exist.
+    """
     candidate = os.environ.get(
         "AEREAD_AMAZONBARG_UPSTREAM_ROOT",
         "/Users/sunzeyu/Documents/econ benchmark/upstream-amazonbarg",
     )
-    root = Path(candidate)
-    marker = root / "data" / "AmazonHistoryPrice" / "home-kitchen.json"
-    if not marker.is_file():
-        pytest.skip(
-            f"pinned upstream AmazonPriceHistory checkout not found at {root}",
-            allow_module_level=True,
-        )
-    return root
+    return Path(candidate)
 
 
 UPSTREAM_ROOT = _upstream_root()
@@ -159,6 +162,7 @@ def _run_transcript(codename: str, script: list[tuple[str, str, str]]) -> tuple[
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.no_upstream_checkout_required
 def test_build_leaves_declares_exactly_five_leaves_every_time() -> None:
     leaves = m.build_leaves()
     assert len(leaves) == 5
@@ -174,6 +178,7 @@ def test_build_leaves_declares_exactly_five_leaves_every_time() -> None:
         assert leaf.verifier.evaluation_class == "deterministic"
 
 
+@pytest.mark.no_upstream_checkout_required
 def test_deal_authenticity_leaf_is_a_delegated_rule_constraint() -> None:
     leaf = m.build_deal_authenticity_leaf()
     assert leaf.verifier.verifier_family == "rule_constraint"
@@ -182,6 +187,7 @@ def test_deal_authenticity_leaf_is_a_delegated_rule_constraint() -> None:
     assert leaf.verifier.objective_scope is None
 
 
+@pytest.mark.no_upstream_checkout_required
 def test_zopa_membership_leaf_is_a_rule_constraint_distinct_from_authenticity() -> None:
     authenticity = m.build_deal_authenticity_leaf()
     zopa = m.build_zopa_membership_leaf()
@@ -195,6 +201,7 @@ def test_zopa_membership_leaf_is_a_rule_constraint_distinct_from_authenticity() 
     )
 
 
+@pytest.mark.no_upstream_checkout_required
 def test_bound_leaves_are_two_separate_objective_reference_leaves() -> None:
     lower = m.build_deal_lower_bound_leaf()
     upper = m.build_deal_upper_bound_leaf()
@@ -212,6 +219,7 @@ def test_bound_leaves_are_two_separate_objective_reference_leaves() -> None:
         assert scope.direction == leaf.estimand.direction
 
 
+@pytest.mark.no_upstream_checkout_required
 def test_bargained_ratio_leaf_is_comparative_with_no_objective_scope() -> None:
     leaf = m.build_bargained_ratio_leaf()
     assert leaf.verifier.verifier_family == "comparative"
@@ -224,6 +232,7 @@ def test_bargained_ratio_leaf_is_comparative_with_no_objective_scope() -> None:
     assert m.SCRIPTED_COUNTERPART_POLICY_ID in leaf.estimand.validity_domain.domain_id
 
 
+@pytest.mark.no_upstream_checkout_required
 def test_bound_leaf_direction_is_a_documented_placeholder_not_a_real_kernel_none() -> None:
     """The kernel's real ObjectiveScopeSpec has no directionless option.
 
@@ -550,6 +559,7 @@ def _family_case(interest: str, cost: float = 10.0, budget: float = 20.0) -> dic
     return {"derived": {"interest": interest, "cost": cost, "budget": budget}}
 
 
+@pytest.mark.no_upstream_checkout_required
 def test_gate_is_none_when_a_real_deal_can_be_reported() -> None:
     gate = m._measurement_gate(  # noqa: SLF001 - unit-testing the private gate directly
         family_case=_family_case("mutual"),
@@ -558,6 +568,7 @@ def test_gate_is_none_when_a_real_deal_can_be_reported() -> None:
     assert gate is None
 
 
+@pytest.mark.no_upstream_checkout_required
 def test_gate_reports_action_error_prefix_on_wrong_action() -> None:
     gate = m._measurement_gate(
         family_case=_family_case("mutual"), metrics_output={"wrongAction": 1, "closeADeal": 0}
@@ -566,6 +577,7 @@ def test_gate_reports_action_error_prefix_on_wrong_action() -> None:
     assert any(reason.startswith(f"{m.REASON_ACTION_ERROR}:") for reason in gate)
 
 
+@pytest.mark.no_upstream_checkout_required
 def test_gate_reports_degenerate_prefix_when_cost_exceeds_budget() -> None:
     gate = m._measurement_gate(
         family_case=_family_case("conflicting", cost=20.0, budget=10.0),
@@ -575,6 +587,7 @@ def test_gate_reports_degenerate_prefix_when_cost_exceeds_budget() -> None:
     assert any(reason.startswith(f"{m.REASON_DEGENERATE_NO_ZOPA}:") for reason in gate)
 
 
+@pytest.mark.no_upstream_checkout_required
 def test_gate_reports_no_deal_prefix_when_no_deal_closed() -> None:
     gate = m._measurement_gate(
         family_case=_family_case("mutual"), metrics_output={"wrongAction": 0, "closeADeal": 0}
@@ -583,6 +596,7 @@ def test_gate_reports_no_deal_prefix_when_no_deal_closed() -> None:
     assert any(reason.startswith(f"{m.REASON_NO_DEAL}:") for reason in gate)
 
 
+@pytest.mark.no_upstream_checkout_required
 def test_gate_reports_no_evidence_prefix_when_metrics_never_ran() -> None:
     gate = m._measurement_gate(family_case=_family_case("mutual"), metrics_output={})
     assert gate == (
@@ -591,6 +605,7 @@ def test_gate_reports_no_evidence_prefix_when_metrics_never_ran() -> None:
     )
 
 
+@pytest.mark.no_upstream_checkout_required
 def test_score_bargained_ratio_rejects_an_unknown_tested_seat() -> None:
     leaf = m.build_bargained_ratio_leaf()
     with pytest.raises(ValueError, match="tested_seat"):

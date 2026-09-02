@@ -54,18 +54,21 @@ from aeread_families.amazonbarg.replay import (
 
 
 def _upstream_root() -> Path:
+    """The pinned upstream checkout path -- may not exist on disk.
+
+    Unlike this function's pre-fix form, this never skips at import time
+    (codex-review finding 6): a missing checkout is caught per-test by
+    ``conftest.py``'s ``pytest_collection_modifyitems`` hook instead, which
+    skips only the tests that actually need it -- tests marked
+    ``@pytest.mark.no_upstream_checkout_required`` (verified independently to
+    touch no upstream bytes) still run and pass even when this path does not
+    exist.
+    """
     candidate = os.environ.get(
         "AEREAD_AMAZONBARG_UPSTREAM_ROOT",
         "/Users/sunzeyu/Documents/econ benchmark/upstream-amazonbarg",
     )
-    root = Path(candidate)
-    marker = root / "data" / "AmazonHistoryPrice" / "home-kitchen.json"
-    if not marker.is_file():
-        pytest.skip(
-            f"pinned upstream AmazonPriceHistory checkout not found at {root}",
-            allow_module_level=True,
-        )
-    return root
+    return Path(candidate)
 
 
 UPSTREAM_ROOT = _upstream_root()
@@ -177,6 +180,7 @@ def _run_live(codename: str, script, tmp_path: Path, *, suffix: str):
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.no_upstream_checkout_required
 def test_recorded_episode_round_trips_through_plain_json() -> None:
     decision = RecordedDecision(
         phase_id=BUYER_PHASE, seat_id="buyer", response={"content": "hello"}
@@ -193,6 +197,7 @@ def test_recorded_episode_round_trips_through_plain_json() -> None:
     assert restored.decisions[0].response == {"content": "hello"}
 
 
+@pytest.mark.no_upstream_checkout_required
 def test_recorded_response_source_enforces_ordering_and_reports_exhaustion() -> None:
     decisions = (
         RecordedDecision(phase_id=BUYER_PHASE, seat_id="buyer", response={"content": "hi"}),
@@ -211,6 +216,7 @@ def test_recorded_response_source_enforces_ordering_and_reports_exhaustion() -> 
         asyncio.run(source(_Request()))
 
 
+@pytest.mark.no_upstream_checkout_required
 def test_recorded_response_source_rejects_phase_seat_mismatch() -> None:
     decisions = (
         RecordedDecision(phase_id=SELLER_PHASE, seat_id="seller", response={"content": "ok"}),
@@ -225,6 +231,7 @@ def test_recorded_response_source_rejects_phase_seat_mismatch() -> None:
         asyncio.run(source(_Request()))
 
 
+@pytest.mark.no_upstream_checkout_required
 def test_compare_episode_results_reports_specific_mismatches_not_one_boolean() -> None:
     """A synthetic mismatch (mutated terminal, identical state hashes)."""
 
