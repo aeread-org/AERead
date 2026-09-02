@@ -127,11 +127,15 @@ are never literal `reference_kind` values.
 
 | Claim pattern | Built from | Permitted claim |
 |---|---|---|
-| exact optimum | one `exact_optimum` leaf | exact regret or optimality ratio within its validity domain |
-| bound certificate | one `objective_lower_bound` leaf plus one `objective_upper_bound` leaf | certified regret interval and bound status |
-| baseline headroom | one `comparison_baseline` leaf plus one `objective_upper_bound` leaf | fraction of that declared headroom captured (derived, section 5.3) |
-| support-normalized outcome | one `outcome_support_min` leaf plus one `outcome_support_max` leaf | bounded support position (derived, section 5.3) |
-| objective value only | no `objective_reference` leaf is constructible | descriptive value; no optimality claim |
+| exact_optimum (also a settable kind) | one `exact_optimum` leaf | exact regret or optimality ratio within its validity domain |
+| bound_certificate | one `objective_lower_bound` leaf plus one `objective_upper_bound` leaf | certified regret interval and bound status |
+| baseline_headroom | one `comparison_baseline` leaf plus one `objective_upper_bound` leaf | fraction of that declared headroom captured (derived, section 5.3) |
+| outcome_support_normalized | one `outcome_support_min` leaf plus one `outcome_support_max` leaf | bounded support position (derived, section 5.3) |
+| objective_value_only | no `objective_reference` leaf is constructible | descriptive value; no optimality claim |
+
+Only `exact_optimum` above is also a settable `reference_kind`; the other four
+pattern names are labels for derived quantities and are never valid
+`reference_kind` values.
 
 **A feasible policy is not an outcome floor.** Its value witnesses a lower bound on the
 unknown optimum; another policy may do worse. Likewise, an objective's nominal maximum is
