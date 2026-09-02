@@ -248,7 +248,18 @@ def _op_run_actions(request: dict[str, Any]) -> dict[str, Any]:
         persona_action = _build_action(env, action)
         try:
             result = env.step(persona_action)
-        except Exception as error:  # noqa: BLE001 - reported, not swallowed
+        except AssertionError as error:
+            # The one intended path (spec section 4's "malformed-operational"
+            # golden): upstream validates every action with a bare `assert`
+            # (see `simulation/scenarios/common/environment/concurrent_env.py`'s
+            # `step()`), never a typed exception -- this is the only
+            # exception type this function ever downgrades to a typed,
+            # index-carrying action failure. Any OTHER exception (KeyError,
+            # AttributeError, ...) is a genuine adapter/upstream
+            # incompatibility, not a malformed action, and must propagate
+            # uncaught here so `main()`'s outer handler reports it as an
+            # infrastructure failure (`failed_action_index: null`) instead
+            # of being indistinguishable from this branch.
             return {
                 "ok": False,
                 "error_type": type(error).__name__,
