@@ -21,6 +21,7 @@ state (see the spec's corrected governing fact on ``run.py``'s
 from __future__ import annotations
 
 import argparse
+import copy
 import hashlib
 import json
 from pathlib import Path
@@ -282,7 +283,14 @@ def build_case(cell: Mapping[str, Any]) -> dict[str, Any]:
                 "policy_assignment": dict(cell["policy_assignment"]),
             },
             "supply_schedule": supply_schedule,
-            "personas": PERSONAS,
+            # A defensive deep copy, never the shared module-level `PERSONAS`
+            # object aliased by reference: every case built by this function
+            # must own its own independent payload, so a future code path
+            # that mutates one case's `payload["personas"]` in place can
+            # never silently corrupt every other case sharing the same
+            # object (including ones already loaded in a long-lived
+            # process).
+            "personas": copy.deepcopy(PERSONAS),
             "seat_order": list(SEAT_ORDER),
             "starting_state": {
                 "balance": STARTING_BALANCE,

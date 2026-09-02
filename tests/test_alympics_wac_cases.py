@@ -156,6 +156,26 @@ def test_every_case_declares_5_seats_with_the_shared_role(built) -> None:
         assert seat_roles == {"player"}
 
 
+def test_each_cases_personas_payload_is_an_independent_object_not_a_shared_alias() -> None:
+    # Regression: `build_case` must never alias the shared module-level
+    # `PERSONAS` mapping by reference into a case's payload -- mutating one
+    # case's `payload["personas"]` in place must never corrupt another
+    # case's (or the module constant's own) copy. Builds its own fresh cases
+    # here (never the module-scoped `built` fixture other tests share) so
+    # the in-place mutation below cannot leak into other tests in this file.
+    reference = copy.deepcopy(wac_cases.PERSONAS)
+    own_cases = wac_cases.build_all_cases()
+    one = own_cases["alympics.wac.reference_baseline"]
+    other = own_cases["alympics.wac.generous_supply"]
+    assert one["payload"]["personas"] is not wac_cases.PERSONAS
+    assert one["payload"]["personas"] is not other["payload"]["personas"]
+
+    one["payload"]["personas"]["alex"]["requirement"] = 999_999
+
+    assert other["payload"]["personas"]["alex"]["requirement"] != 999_999
+    assert wac_cases.PERSONAS == reference
+
+
 def test_every_case_provenance_is_curated_not_upstream_pinned(built) -> None:
     # AERead authors this corpus itself (no upstream task bank exists to
     # import); "upstream_pinned" would misdescribe that (schemas.py:441-444

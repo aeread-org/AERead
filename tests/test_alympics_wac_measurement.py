@@ -416,6 +416,67 @@ def test_golden_3_over_balance_bid_becomes_invalid_measurement_never_a_legal_los
     assert bob_legality.primary.value == 1.0
 
 
+def test_golden_3_over_balance_bid_end_to_end_through_run_episode_becomes_invalid_measurement() -> None:
+    """Same claim as the unit-level golden above, but driven through the
+    real Mode C phase graph via `run_episode` (spec section 5's e2e
+    requirement) instead of a hand-constructed ``round_log`` -- proves the
+    invariant survives the actual `observe`/`parse_action`/`legal`/`step`
+    wiring, not just the isolated `_delegate_round` helper (see
+    ``tests/test_alympics_wac_environment.py``'s
+    ``test_over_balance_bid_is_flagged_illegal_through_a_real_run_episode_step``
+    for the trajectory-level half of this same claim)."""
+    case = _case("reference_baseline")
+
+    async def _response_source(request):
+        if request.seat_id == "alex":
+            # Exceeds any balance alex could ever accrue this episode.
+            return {"bid": 999_999}
+        return {"bid": 3 * request.observation["requirement"]}
+
+    final_players, round_log, terminal = _run(case, _response_source)
+    panel_policy_ids = {s: "proportional" for s in SEAT_ORDER if s != "alex"}
+
+    legality_leaf = m.build_bid_legality_leaf()
+    legality = m.score_bid_legality(
+        legality_leaf, focal_seat="alex", round_log=round_log, termination_reason=terminal["reason"]
+    )
+    assert legality.status == "invalid_measurement"
+    assert legality.primary is None
+    assert "bid_exceeds_balance" in legality.validity.reasons[0]
+
+    wealth_leaf = m.build_terminal_wealth_leaf(focal_seat="alex", panel_policy_ids=panel_policy_ids)
+    wealth = m.score_terminal_wealth(
+        wealth_leaf,
+        focal_seat="alex",
+        actual_final_players=final_players,
+        actual_round_log=round_log,
+        actual_termination_reason=terminal["reason"],
+        baseline_final_players=final_players,
+    )
+    assert wealth.status == "invalid_measurement"
+    assert wealth.primary is None
+
+    survival_leaf = m.build_survival_leaf(focal_seat="alex", panel_policy_ids=panel_policy_ids)
+    survival = m.score_survival(
+        survival_leaf,
+        focal_seat="alex",
+        actual_round_log=round_log,
+        actual_final_players=final_players,
+        actual_termination_reason=terminal["reason"],
+        baseline_round_log=round_log,
+        baseline_final_players=final_players,
+    )
+    assert survival.status == "invalid_measurement"
+    assert survival.primary is None
+
+    # A seat whose bid stayed legal every round it played is unaffected by
+    # alex's real, scheduler-driven violation.
+    bob_legality = m.score_bid_legality(
+        legality_leaf, focal_seat="bob", round_log=round_log, termination_reason=terminal["reason"]
+    )
+    assert bob_legality.status == "ok"
+
+
 # ---------------------------------------------------------------------------
 # Golden 4 -- malformed/operational failure.
 # ---------------------------------------------------------------------------

@@ -348,6 +348,54 @@ def test_legal_hook_never_rejects_an_over_balance_bid_action() -> None:
     assert legality.legal is True
 
 
+def test_over_balance_bid_is_flagged_illegal_through_a_real_run_episode_step() -> None:
+    # Unlike the two tests above (which call `_delegate_round`/`legal`
+    # directly), this drives golden 3 through the actual Mode C phase graph
+    # -- `observe` -> `parse_action` -> `legal` -> `step` -- via `run_episode`,
+    # so the `bids`-from-`actions` assembly, the `players_before` snapshot,
+    # and the round-log entry `step` itself writes (spec section 5's e2e
+    # requirement) are the ones actually exercised, not a hand-constructed
+    # stand-in for them.
+    plugin = _plugin()
+    case = _case("reference_baseline")
+    cell = _cell(case)
+
+    async def _response_source(request):
+        if request.seat_id == "alex":
+            # 999,999 exceeds any balance alex could ever accrue this
+            # episode (daily_salary tops out at 120/round for 20 rounds),
+            # so the over-balance bid stays illegal for every round.
+            return {"bid": 999_999}
+        return {"bid": 3 * request.observation["requirement"]}
+
+    result = asyncio.run(
+        run_episode(
+            cell=cell,
+            case=case,
+            plugin=plugin,
+            response_source=_response_source,
+        )
+    )
+
+    round_log = result.final_state["round_log"]
+    assert round_log, "expected at least one round to be recorded"
+    rounds_with_alex = [entry for entry in round_log if "alex" in entry["bid_legal"]]
+    assert rounds_with_alex, "alex must be alive and bidding in at least one round"
+    for entry in rounds_with_alex:
+        assert entry["bid_legal"]["alex"] is False
+        assert "alex" not in entry["winners"]
+        # A silent exclusion is not a settlement error: every other
+        # (still-alive) seat's legality is untouched by alex's violation --
+        # only alex's own bid was ever illegal.
+        for seat, legal in entry["bid_legal"].items():
+            if seat != "alex":
+                assert legal is True
+    final_players = result.final_state["players"]
+    assert not final_players["alex"]["alive"]
+    assert "alex" in result.final_state["eliminated_order"]
+    assert result.terminal["reason"] in ("rounds_exhausted", "all_seats_eliminated")
+
+
 # ---------------------------------------------------------------------------
 # Golden 4 -- malformed/operational failure.
 # ---------------------------------------------------------------------------
