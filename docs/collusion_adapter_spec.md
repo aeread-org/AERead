@@ -62,25 +62,47 @@ arXiv `2404.00806v6`. No commit to pin — the paper text is the entire source.
 cost). Case id: `collusion.duopoly.<demand_tag>.alpha<v>.seed<n>`, e.g.
 `collusion.duopoly.asymmetric-quality.alpha3p2.seed0` (`3.2`→`3p2`, no colons).
 
-**Build procedure per cell** (pure Python + numpy, project venv — no bridge, §3):
+**Build procedure per cell** (pure Python, project venv — no bridge, §3; numpy
+turned out unnecessary, the solver below is plain-float arithmetic only):
 materialize params + seeded k; solve p^Nash, π^Nash, p^M, π^M
-with an adapter-owned deterministic bisection (not `scipy.optimize` — bit-exact
-cross-version reproducibility isn't guaranteed there); run twice, require
-bit-identical output before admission; validate p^Nash < p^M and
-ceiling > p^M; freeze `payload={demand_params, cost_scale, horizon, seed,
-ceiling_k, gold_reference:{p_nash, pi_nash, p_monopoly, pi_monopoly, solver:{...}},
+with an adapter-owned deterministic best-response bisection (not
+`scipy.optimize` — bit-exact cross-version reproducibility isn't guaranteed
+there; fixed iteration counts, never a tolerance-based early exit, for the
+same bit-exactness reason); run twice, require bit-identical output before
+admission; validate p^Nash < p^M and ceiling > p^M; freeze
+`payload={demand_params, cost_scale, horizon, seed, ceiling_k,
+gold_reference:{p_nash, pi_nash, p_monopoly, pi_monopoly, solver:{...}},
 pins:{paper_arxiv_id, paper_html_sha256, paper_pdf_sha256}}` into one
 `CaseManifest` (`aeread.case/0.1`). `content_sha256` covers the whole manifest,
 so a future solver bug changes the digest rather than silently redefining gold
-values in place.
+values in place. **Implementation note:** `gold_reference`'s four fields are
+each `{firm_a: <float>, firm_b: <float>}` (not bare scalars) — the symmetric
+baseline's two values are equal by construction, but the asymmetric-quality
+treatment's two firms genuinely solve to different prices/profits (verified
+this session: Firm 2 prices and profits above Firm 1's, matching App. A.2's
+confirmed direction), so one shared schema covers both rather than special-
+casing symmetry. The per-firm ceiling used by leaf 1 and by this
+environment's own `legal()` is `ceiling_k · p^M_seat` — each firm's *own*
+joint-monopoly price — since the paper's fn 18 ceiling formula is stated only
+for the symmetric baseline's single scalar `p^M`; extending it per-firm for
+the asymmetric-quality cells is this adapter's own choice, not paper-derived
+(§6).
 
 **Case-manifest fields:** `family_id`/`family_version` = `collusion`/`0.1.0`;
 `split`="duopoly_pilot"; `world_seed`=the seed axis value; `seats`=
 `(SeatSpec(id="firm_a", role="pricing_agent"), SeatSpec(id="firm_b", role="pricing_agent"))`
 (symmetric roles — both seats face the same decision each round, unlike tau3's
-assistant/user pair); `episode`=`EpisodeSpec(max_logical_actions=300,
+assistant/user pair); `episode`=`EpisodeSpec(max_logical_actions=600,
 termination=("max_periods","legality_violation","retry_exhausted","error"))`
-(one logical action = one simultaneous price round); `visibility_policy`=
+(**amended during implementation**: a simultaneous phase's real dispatch loop
+in `scheduler.py`'s `run_episode` increments `logical_action_count` once per
+*seat* per phase instance, not once per round — the same convention
+tau3.retail's own `max_steps` already uses for its two-seat alternating
+phases — so a 300-round episode needs a 600-action budget, two per round
+(one per seat), not 300; the draft text above materialized before this
+session traced the scheduler's actual counting and said "one logical action
+= one simultaneous price round", which is incorrect for this kernel);
+`visibility_policy`=
 `public-prices-private-payoff` (full price vector public, own quantity/profit
 private, per §2 above); `provenance`=`ProvenanceSpec(generator_id=
 "collusion_importer", generator_version="0.1.0", review_status="upstream_pinned")`
@@ -162,7 +184,8 @@ itself cites in §4); corpus construction/digestion; the three leaves and
 scorers; receipts and replay.
 
 **Phase graph.** One self-looping phase, `price_round`, `mode="simultaneous"`,
-`eligible_actors=("firm_a","firm_b")`, budget `max_logical_actions=300`. Per
+`eligible_actors=("firm_a","firm_b")`, budget `max_logical_actions=600` (two
+per round, one per seat — see the amended case-manifest note above). Per
 the scheduler's simultaneous-phase contract (`shared_runner_design.md`, "For a
 simultaneous phase..."): both seats' observations freeze from the same
 pre-round state and **each seat's price is hidden from the other until both
@@ -212,6 +235,23 @@ terminal leaf values reproduce exactly.
 phase loop, asserting `simultaneous` peer-hiding, the legality gate's
 round-of-violation cutoff, and the retry-then-`invalid_measurement` path.
 
+**Milestone note (added during implementation):** this repo builds the
+collusion adapter across three milestones — (1) cases + environment, (2)
+scorer, (3) harness/scripted policies/goldens/replay. Milestone 1 (this
+session) implements Gate 1 (`tests/test_collusion_cases.py`, including the
+never-skip arithmetic-parity regression above) and the environment's own
+mechanics (`tests/test_collusion_environment.py`): plugin registration, the
+phase graph, price parsing/legality, and the demand/profit transition, driven
+directly through `run_episode` with inline scripted responses rather than a
+built `ScriptedCollusionHarness`. It does **not** build `build_scorer`
+(raises `NotImplementedError`), the four leaves, the `invalid_measurement`
+classification, or the five golden fixtures of §4 — those need the scorer
+and land in milestone 2/3. The environment's own termination reasons
+(`retry_exhausted`, `legality_violation`, `max_periods`, `error`) are
+mechanical facts about *why the episode stopped*; `invalid_measurement` is a
+later, scorer-owned classification derived from those reasons, not a
+synonym for them.
+
 ## 6. Stated limits
 
 - **No upstream code exists**; "parity" is hand-verified arithmetic against the
@@ -219,7 +259,21 @@ round-of-violation cutoff, and the retry-then-`invalid_measurement` path.
   the two-way agreement above and by never letting that regression skip (§5).
 - **Ceiling and floor are AERead's own construction**, not paper-sourced (the
   paper's ceiling is advisory, never enforced, §2.2 fn 18); do not read leaf 1
-  as reproducing a paper-verified rule.
+  as reproducing a paper-verified rule. The paper's own fn 18 states the
+  ceiling as `2.34·p^M`, a single scalar, because its main/symmetric
+  experiment has `p^M_1 == p^M_2`; this adapter applies the multiplier
+  per-firm (`ceiling_k · p^M_seat`) so the same formula still makes sense for
+  the asymmetric-quality cells, where the two firms' monopoly prices differ —
+  an extension, not a citation.
+- **A malformed price is treated, at the environment level, as an already-
+  retry-exhausted event**: `parse_action` never itself retries (spec section
+  "Governing facts"'s "retried up to 10 times" describes a harness/
+  response_source concern upstream of this hook, not built in this milestone,
+  §5's milestone note); any parse failure that reaches `step()` immediately
+  terminates with `retry_exhausted`, on the assumption that retrying already
+  happened before the final response arrived here. A future harness that
+  wants finer-grained retry-count telemetry must track it itself and only
+  hand `parse_action` the final (successful-or-exhausted) response.
 - **Scripted policies are AERead-authored**, not paper-specified — the paper's
   agents are always LLM-driven.
 - **No long-run oracle exists** (P04) — `collusion_long_run_profit` stays
