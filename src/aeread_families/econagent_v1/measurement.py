@@ -306,7 +306,10 @@ class BudgetIdentityResidual:
 
 
 def compute_budget_identity_residuals(
-    dense_log: Mapping[str, Any], n_agents: int, world_period: int
+    dense_log: Mapping[str, Any],
+    n_agents: int,
+    world_period: int,
+    month_actions: Sequence[Mapping[str, Sequence[float]]],
 ) -> tuple[BudgetIdentityResidual, ...]:
     """Derive, per agent-month, the budget identity's closing residual.
 
@@ -314,7 +317,7 @@ def compute_budget_identity_residuals(
     re-arranges five already-recorded terms
     (``inventory_coin[t-1]``, ``labor_income``, ``tax_paid``, ``lump_sum``,
     ``consumption_spend``, ``inventory_coin[t]``) read verbatim from
-    ``dense_log`` to isolate the sixth, ``saving_interest``:
+    ``dense_log``/``month_actions`` to isolate the sixth, ``saving_interest``:
 
         residual := inventory_coin[t]
             - (inventory_coin[t-1] + labor_income - tax_paid
@@ -354,9 +357,31 @@ def compute_budget_identity_residuals(
     ``PeriodicTax[...]["income"]`` produces an exact-zero (to float
     precision) residual on every non-boundary month.
 
+    **Why ``consumption_spend`` needs ``month_actions``, not a direct read
+    of ``dense_log["states"][...]["consumption"]["Coin"]``.** The exact
+    same staleness problem recurs one component later:
+    ``SimpleConsumption.component_step`` also does ``if action == 0:
+    continue`` for its own (separate) consumption action -- on a month
+    where ``complex_actions`` chooses a consumption action of 0 for an
+    agent, ``agent.consumption["Coin"]`` is never reset and keeps showing
+    the last month's positive consumption value, even though *no coin was
+    actually deducted from inventory this month*. There is no
+    production-delta-style substitute field for consumption the way
+    ``PeriodicBracketTax`` incidentally provides one for income, so this
+    reads the actual action ``complex_actions`` chose that month instead
+    (``month_actions[month-1][agent_id][1]``, upstream's own returned
+    ``[labor, consumption]`` action pair, verbatim, reported back by the
+    bridge's own ``step_month`` response -- never reimplemented or
+    guessed): a consumption action of exactly 0 means upstream's own
+    ``SimpleConsumption`` took its own NO-OP branch, so the true
+    ``consumption_spend`` for that month is 0, not the stale field value.
+    Confirmed empirically against a real 2-agent bridge-driven episode
+    while building this leaf (an agent with a 0 consumption action).
+
     Raises ``ValueError``/``KeyError`` on a structurally malformed
-    ``dense_log`` -- callers (:func:`score_budget_identity`) turn that into
-    a typed ``invalid_measurement`` result, never a silent pass.
+    ``dense_log``/``month_actions`` -- callers (:func:`score_budget_identity`)
+    turn that into a typed ``invalid_measurement`` result, never a silent
+    pass.
     """
     states = dense_log["states"]
     tax_log = dense_log["PeriodicTax"]
@@ -367,18 +392,29 @@ def compute_budget_identity_residuals(
             f"len(PeriodicTax) + 1 (post-reset state plus one per month), "
             f"got len(states)={len(states)} len(PeriodicTax)={episode_length}"
         )
+    if len(month_actions) != episode_length:
+        raise ValueError(
+            "month_actions is inconsistent: expected one entry per month, "
+            f"got len(month_actions)={len(month_actions)} episode_length={episode_length}"
+        )
     residuals: list[BudgetIdentityResidual] = []
     for month in range(1, episode_length + 1):
         prev_state = states[month - 1]
         cur_state = states[month]
         tax_month = tax_log[month - 1]
+        actions_month = month_actions[month - 1]
         for agent_id in _agent_ids(n_agents):
             inv_prev = float(prev_state[agent_id]["inventory"]["Coin"])
             inv_cur = float(cur_state[agent_id]["inventory"]["Coin"])
             labor_income = float(tax_month[agent_id]["income"])
             tax_paid = float(tax_month[agent_id]["tax_paid"])
             lump_sum = float(tax_month[agent_id]["lump_sum"])
-            consumption_spend = float(cur_state[agent_id]["consumption"]["Coin"])
+            consumption_action = float(actions_month[agent_id][1])
+            consumption_spend = (
+                0.0
+                if consumption_action == 0.0
+                else float(cur_state[agent_id]["consumption"]["Coin"])
+            )
             residual = inv_cur - (
                 inv_prev + labor_income - tax_paid + lump_sum - consumption_spend
             )
@@ -401,6 +437,7 @@ def score_budget_identity(
     dense_log: Mapping[str, Any] | None,
     n_agents: int,
     world_period: int,
+    month_actions: Sequence[Mapping[str, Sequence[float]]],
     evidence_refs: tuple[str, ...] = (),
 ) -> ScoreEnvelope:
     """Score leaf 1 from an already-terminated episode's dense log.
@@ -409,6 +446,11 @@ def score_budget_identity(
     exposed by ``econagent_bridge_driver.py``'s ``agent_snapshot`` op) --
     read, not guessed, and used only to identify which months
     ``SimpleSaving`` fires on, mirroring its own documented gate.
+    ``month_actions`` is ``terminal()``'s own ``month_actions`` list -- the
+    verbatim, upstream-computed ``[labor, consumption]`` pair the bridge
+    reported back for each month (see
+    :func:`compute_budget_identity_residuals`'s docstring for why this is
+    required, not optional, to source ``consumption_spend`` correctly).
     """
     usable = _require_dense_log(dense_log)
     if usable is None:
@@ -419,8 +461,10 @@ def score_budget_identity(
             evidence_refs=evidence_refs,
         )
     try:
-        residuals = compute_budget_identity_residuals(usable, n_agents, world_period)
-    except (KeyError, ValueError, TypeError) as error:
+        residuals = compute_budget_identity_residuals(
+            usable, n_agents, world_period, month_actions
+        )
+    except (KeyError, ValueError, TypeError, IndexError) as error:
         return _invalid(
             leaf, f"malformed dense_log: {type(error).__name__}: {error}",
             evidence_refs=evidence_refs,
@@ -583,21 +627,40 @@ class MacroTrajectory:
     unemployment_rate_by_month: tuple[float, ...]
 
 
-def compute_macro_trajectory(dense_log: Mapping[str, Any], n_agents: int) -> MacroTrajectory:
+def compute_macro_trajectory(
+    dense_log: Mapping[str, Any],
+    n_agents: int,
+    month_actions: Sequence[Mapping[str, Sequence[float]]],
+) -> MacroTrajectory:
     """Derive the three descriptive time series from an episode's dense log.
 
-    Every value is read verbatim from ``dense_log`` (aggregate consumption,
-    price, and job status), never recomputed from upstream's own GDP/
-    unemployment bookkeeping (``world.nominal_gdp``/``world.unemployment``,
-    which this module deliberately does not touch -- the spec's own
-    "GDP-proxy (aggregate consumption)" wording names a proxy, not upstream's
-    own GDP figure, precisely so this stays a simple, auditable sum over
-    already-recorded per-agent consumption rather than a second, competing
-    definition of GDP).
+    Every value is read verbatim from ``dense_log``/``month_actions``
+    (aggregate consumption, price, and job status), never recomputed from
+    upstream's own GDP/unemployment bookkeeping
+    (``world.nominal_gdp``/``world.unemployment``, which this module
+    deliberately does not touch -- the spec's own "GDP-proxy (aggregate
+    consumption)" wording names a proxy, not upstream's own GDP figure,
+    precisely so this stays a simple, auditable sum over already-recorded
+    per-agent consumption rather than a second, competing definition of
+    GDP).
+
+    ``month_actions`` is required for the same reason
+    :func:`compute_budget_identity_residuals` needs it: a month where an
+    agent's consumption action is 0 leaves
+    ``dense_log["states"][...][agent_id]["consumption"]["Coin"]`` holding a
+    stale prior-month value (upstream's own ``SimpleConsumption`` never
+    resets it on its own NO-OP branch) -- summing that stale value into
+    "aggregate consumption" would overstate the GDP-proxy on any month with
+    a no-op consumer.
     """
     states = dense_log["states"]
     world = dense_log["world"]
     episode_length = len(dense_log["PeriodicTax"])
+    if len(month_actions) != episode_length:
+        raise ValueError(
+            "month_actions is inconsistent: expected one entry per month, "
+            f"got len(month_actions)={len(month_actions)} episode_length={episode_length}"
+        )
     agent_ids = _agent_ids(n_agents)
 
     gdp_proxy: list[float] = []
@@ -605,9 +668,13 @@ def compute_macro_trajectory(dense_log: Mapping[str, Any], n_agents: int) -> Mac
     unemployment_rate: list[float] = []
     for month in range(1, episode_length + 1):
         state_month = states[month]
-        gdp_proxy.append(
-            sum(float(state_month[agent_id]["consumption"]["Coin"]) for agent_id in agent_ids)
-        )
+        actions_month = month_actions[month - 1]
+        total_consumption = 0.0
+        for agent_id in agent_ids:
+            consumption_action = float(actions_month[agent_id][1])
+            if consumption_action != 0.0:
+                total_consumption += float(state_month[agent_id]["consumption"]["Coin"])
+        gdp_proxy.append(total_consumption)
         price_level.append(float(world[month]["Price"]))
         unemployed = sum(
             1 for agent_id in agent_ids if state_month[agent_id]["endogenous"]["job"] == "Unemployment"
@@ -625,6 +692,7 @@ def score_macro_trajectory(
     *,
     dense_log: Mapping[str, Any] | None,
     n_agents: int,
+    month_actions: Sequence[Mapping[str, Sequence[float]]],
     evidence_refs: tuple[str, ...] = (),
 ) -> ScoreEnvelope:
     """Score leaf 3: descriptive time series, never a pass/fail claim.
@@ -645,8 +713,8 @@ def score_macro_trajectory(
             evidence_refs=evidence_refs,
         )
     try:
-        trajectory = compute_macro_trajectory(usable, n_agents)
-    except (KeyError, ValueError, TypeError, ZeroDivisionError) as error:
+        trajectory = compute_macro_trajectory(usable, n_agents, month_actions)
+    except (KeyError, ValueError, TypeError, ZeroDivisionError, IndexError) as error:
         return _invalid(
             leaf, f"malformed dense_log: {type(error).__name__}: {error}",
             evidence_refs=evidence_refs,
@@ -714,6 +782,7 @@ class EconAgentV1Scorer:
         dense_log: Mapping[str, Any] | None,
         n_agents: int,
         world_period: int,
+        month_actions: Sequence[Mapping[str, Sequence[float]]],
         evidence_refs: tuple[str, ...] = (),
     ) -> ScoreEnvelope:
         return score_budget_identity(
@@ -721,6 +790,7 @@ class EconAgentV1Scorer:
             dense_log=dense_log,
             n_agents=n_agents,
             world_period=world_period,
+            month_actions=month_actions,
             evidence_refs=evidence_refs,
         )
 
@@ -745,12 +815,14 @@ class EconAgentV1Scorer:
         *,
         dense_log: Mapping[str, Any] | None,
         n_agents: int,
+        month_actions: Sequence[Mapping[str, Sequence[float]]],
         evidence_refs: tuple[str, ...] = (),
     ) -> ScoreEnvelope:
         return score_macro_trajectory(
             self.macro_trajectory_leaf,
             dense_log=dense_log,
             n_agents=n_agents,
+            month_actions=month_actions,
             evidence_refs=evidence_refs,
         )
 

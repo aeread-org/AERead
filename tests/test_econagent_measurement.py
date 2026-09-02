@@ -202,9 +202,25 @@ def _synthetic_dense_log() -> dict[str, Any]:
     }
 
 
+def _synthetic_month_actions() -> list[dict[str, list[float]]]:
+    """Both agents take a nonzero labor and consumption action every month.
+
+    Matches ``_synthetic_dense_log``'s own assumption that every recorded
+    ``consumption["Coin"]`` value is fresh, not stale -- see
+    ``test_score_budget_identity_ignores_a_stale_consumption_field_on_a_noop_month``
+    for the fixture that exercises the opposite case.
+    """
+    return [
+        {"0": [1, 1], "1": [1, 1]},
+        {"0": [1, 1], "1": [1, 1]},
+    ]
+
+
 def test_compute_budget_identity_residuals_is_hand_verifiable() -> None:
     dense_log = _synthetic_dense_log()
-    residuals = m.compute_budget_identity_residuals(dense_log, n_agents=2, world_period=3)
+    residuals = m.compute_budget_identity_residuals(
+        dense_log, n_agents=2, world_period=3, month_actions=_synthetic_month_actions()
+    )
 
     assert len(residuals) == 4  # 2 agents x 2 months
     for entry in residuals:
@@ -219,7 +235,9 @@ def test_compute_budget_identity_residuals_flags_a_saving_interest_boundary_mont
     # exactly what a positive saving_interest term would look like.
     dense_log["states"][2]["0"]["inventory"]["Coin"] = 154.0 + 3.08
 
-    residuals = m.compute_budget_identity_residuals(dense_log, n_agents=2, world_period=2)
+    residuals = m.compute_budget_identity_residuals(
+        dense_log, n_agents=2, world_period=2, month_actions=_synthetic_month_actions()
+    )
     by_key = {(entry.month, entry.agent_id): entry for entry in residuals}
 
     assert by_key[(1, "0")].is_boundary_month is False
@@ -236,7 +254,11 @@ def test_compute_budget_identity_residuals_flags_a_saving_interest_boundary_mont
 def test_score_budget_identity_passes_on_the_synthetic_fixture() -> None:
     leaf = m.build_budget_identity_leaf(_pins())
     score = m.score_budget_identity(
-        leaf, dense_log=_synthetic_dense_log(), n_agents=2, world_period=3
+        leaf,
+        dense_log=_synthetic_dense_log(),
+        n_agents=2,
+        world_period=3,
+        month_actions=_synthetic_month_actions(),
     )
     assert score.status == "ok"
     assert score.primary.value == 1.0
@@ -260,7 +282,13 @@ def test_score_budget_identity_detects_a_fabricated_off_cycle_violation() -> Non
     dense_log["states"][2]["1"]["inventory"]["Coin"] += 1000.0  # corrupt month-2 agent-1
 
     leaf = m.build_budget_identity_leaf(_pins())
-    score = m.score_budget_identity(leaf, dense_log=dense_log, n_agents=2, world_period=3)
+    score = m.score_budget_identity(
+        leaf,
+        dense_log=dense_log,
+        n_agents=2,
+        world_period=3,
+        month_actions=_synthetic_month_actions(),
+    )
 
     assert score.status == "ok"
     assert score.primary.value == 0.0
@@ -276,7 +304,13 @@ def test_score_budget_identity_detects_a_negative_boundary_month_residual() -> N
     dense_log["states"][2]["0"]["inventory"]["Coin"] -= 50.0
 
     leaf = m.build_budget_identity_leaf(_pins())
-    score = m.score_budget_identity(leaf, dense_log=dense_log, n_agents=2, world_period=2)
+    score = m.score_budget_identity(
+        leaf,
+        dense_log=dense_log,
+        n_agents=2,
+        world_period=2,
+        month_actions=_synthetic_month_actions(),
+    )
 
     assert score.primary.value == 0.0
     assert score.metrics["violation_count"].value == 1.0
@@ -285,9 +319,39 @@ def test_score_budget_identity_detects_a_negative_boundary_month_residual() -> N
     )
 
 
+def test_score_budget_identity_ignores_a_stale_consumption_field_on_a_noop_month() -> None:
+    """A 0 consumption action must zero consumption_spend, not the stale field.
+
+    Regression fixture for the real 2-agent discovery made while building
+    this leaf (see ``compute_budget_identity_residuals``'s own docstring):
+    ``SimpleConsumption`` never resets ``agent.consumption["Coin"]`` on its
+    own NO-OP branch, so trusting the raw field on a 0-consumption-action
+    month would fabricate a nonzero spend that was never actually deducted.
+    """
+    dense_log = _synthetic_dense_log()
+    # Leave month-2 agent-1's *recorded* consumption field at its stale
+    # month-1 value (30.0, not the "fresh" 35.0 the fixture otherwise uses)
+    # and correct its inventory so the identity holds when consumption_spend
+    # is correctly treated as 0 for that no-op month.
+    dense_log["states"][2]["1"]["consumption"]["Coin"] = 30.0  # stale, unused value
+    dense_log["states"][2]["1"]["inventory"]["Coin"] = 240.0 + 90.0 - 18.0 + 6.0 - 0.0
+
+    month_actions = _synthetic_month_actions()
+    month_actions[1]["1"] = [1, 0]  # month 2, agent 1: consumption action is 0 (NO-OP)
+
+    leaf = m.build_budget_identity_leaf(_pins())
+    score = m.score_budget_identity(
+        leaf, dense_log=dense_log, n_agents=2, world_period=3, month_actions=month_actions
+    )
+    assert score.primary.value == 1.0
+    assert score.metrics["violation_count"].value == 0.0
+
+
 def test_score_budget_identity_reports_invalid_measurement_when_dense_log_is_none() -> None:
     leaf = m.build_budget_identity_leaf(_pins())
-    score = m.score_budget_identity(leaf, dense_log=None, n_agents=2, world_period=12)
+    score = m.score_budget_identity(
+        leaf, dense_log=None, n_agents=2, world_period=12, month_actions=[]
+    )
     assert score.status == "invalid_measurement"
     assert score.primary is None
     assert score.validity.status == "invalid"
@@ -297,7 +361,7 @@ def test_score_budget_identity_reports_invalid_measurement_when_dense_log_is_non
 def test_score_budget_identity_reports_invalid_measurement_on_malformed_dense_log() -> None:
     leaf = m.build_budget_identity_leaf(_pins())
     score = m.score_budget_identity(
-        leaf, dense_log={"states": []}, n_agents=2, world_period=12
+        leaf, dense_log={"states": []}, n_agents=2, world_period=12, month_actions=[]
     )
     assert score.status == "invalid_measurement"
     assert score.primary is None
@@ -305,7 +369,9 @@ def test_score_budget_identity_reports_invalid_measurement_on_malformed_dense_lo
 
 def test_compute_macro_trajectory_is_hand_verifiable() -> None:
     dense_log = _synthetic_dense_log()
-    trajectory = m.compute_macro_trajectory(dense_log, n_agents=2)
+    trajectory = m.compute_macro_trajectory(
+        dense_log, n_agents=2, month_actions=_synthetic_month_actions()
+    )
 
     assert trajectory.gdp_proxy_by_month == (20.0 + 30.0, 25.0 + 35.0)
     assert trajectory.price_level_by_month == (101.0, 103.0)
@@ -313,17 +379,35 @@ def test_compute_macro_trajectory_is_hand_verifiable() -> None:
     assert trajectory.unemployment_rate_by_month == (0.0, 0.0)
 
 
+def test_compute_macro_trajectory_ignores_a_stale_consumption_field_on_a_noop_month() -> None:
+    dense_log = _synthetic_dense_log()
+    month_actions = _synthetic_month_actions()
+    month_actions[1]["1"] = [1, 0]  # month 2, agent 1: consumption action is 0 (NO-OP)
+
+    trajectory = m.compute_macro_trajectory(dense_log, n_agents=2, month_actions=month_actions)
+    # Agent 1's month-2 recorded consumption (35.0) must be excluded --
+    # only agent 0's 25.0 counts.
+    assert trajectory.gdp_proxy_by_month == (20.0 + 30.0, 25.0)
+
+
 def test_compute_macro_trajectory_reports_a_real_unemployment_fraction() -> None:
     dense_log = _synthetic_dense_log()
     dense_log["states"][1]["0"]["endogenous"]["job"] = "Unemployment"
 
-    trajectory = m.compute_macro_trajectory(dense_log, n_agents=2)
+    trajectory = m.compute_macro_trajectory(
+        dense_log, n_agents=2, month_actions=_synthetic_month_actions()
+    )
     assert trajectory.unemployment_rate_by_month == (0.5, 0.0)
 
 
 def test_score_macro_trajectory_never_produces_a_pass_fail_claim() -> None:
     leaf = m.build_macro_trajectory_leaf(_pins())
-    score = m.score_macro_trajectory(leaf, dense_log=_synthetic_dense_log(), n_agents=2)
+    score = m.score_macro_trajectory(
+        leaf,
+        dense_log=_synthetic_dense_log(),
+        n_agents=2,
+        month_actions=_synthetic_month_actions(),
+    )
 
     assert score.status == "ok"
     assert score.primary.unit == "coin"
@@ -334,7 +418,7 @@ def test_score_macro_trajectory_never_produces_a_pass_fail_claim() -> None:
 
 def test_score_macro_trajectory_reports_invalid_measurement_when_dense_log_is_none() -> None:
     leaf = m.build_macro_trajectory_leaf(_pins())
-    score = m.score_macro_trajectory(leaf, dense_log=None, n_agents=2)
+    score = m.score_macro_trajectory(leaf, dense_log=None, n_agents=2, month_actions=[])
     assert score.status == "invalid_measurement"
     assert score.primary is None
 
@@ -359,7 +443,10 @@ def test_score_budget_identity_holds_exactly_for_a_real_tiny_episode() -> None:
         "econagent.pilot.tiny4x6.seed0"
     )
     score = scorer.score_budget_identity(
-        dense_log=terminal["dense_log"], n_agents=n_agents, world_period=world_period
+        dense_log=terminal["dense_log"],
+        n_agents=n_agents,
+        world_period=world_period,
+        month_actions=terminal["month_actions"],
     )
     assert score.status == "ok"
     assert score.primary.value == 1.0
@@ -378,7 +465,10 @@ def test_score_budget_identity_holds_exactly_across_a_saving_interest_boundary_m
         "econagent.pilot.small10x12.seed0"
     )
     score = scorer.score_budget_identity(
-        dense_log=terminal["dense_log"], n_agents=n_agents, world_period=world_period
+        dense_log=terminal["dense_log"],
+        n_agents=n_agents,
+        world_period=world_period,
+        month_actions=terminal["month_actions"],
     )
     assert score.status == "ok"
     assert score.primary.value == 1.0
@@ -433,7 +523,11 @@ def test_score_macro_trajectory_reports_real_descriptive_series() -> None:
     terminal, scorer, n_agents, _world_period = _run_episode_and_score(
         "econagent.pilot.tiny4x6.seed0"
     )
-    score = scorer.score_macro_trajectory(dense_log=terminal["dense_log"], n_agents=n_agents)
+    score = scorer.score_macro_trajectory(
+        dense_log=terminal["dense_log"],
+        n_agents=n_agents,
+        month_actions=terminal["month_actions"],
+    )
     assert score.status == "ok"
     episode_length = terminal["episode_length"]
     assert f"gdp_proxy_month_{episode_length:02d}" in score.metrics

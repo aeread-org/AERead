@@ -1,0 +1,466 @@
+"""QC Gate 2 goldens for econagent_v1 (docs/econagent_adapter_spec.md section 4).
+
+Per ``docs/benchmark_qc.md``'s Gate 2 ("Environment and verifier"), every
+family maintains five goldens: successful, valid-but-poor, invalid-or-
+unauthorized, malformed-or-operational-failure, and degenerate-reference.
+Milestone 1's spec left two of these flagged as needing re-derivation before
+they could be built (section 4's "Not built this pass" note); the concrete
+instances below resolve both, and are recorded here (rather than only in the
+spec) as the actual, executable goldens:
+
+* **Invalid or unauthorized** -- the literal spec text ("a hand-crafted
+  out-of-range consumption action fed to the bridge's step call") assumed a
+  seat that submits a real ``[labor, consumption]`` decision. Milestone-1
+  correction 4 rules that out for this scripted-only pass: every seat
+  submits a trivial acknowledgment, and the real decision is computed
+  entirely inside the bridge. This golden instead demonstrates, at BOTH
+  layers a real illegal/unauthorized input could appear:
+    (a) kernel layer -- ``legal()``/``parse_action()`` reject a malformed
+        seat action before ``step()`` is ever called, and ``step()`` itself
+        refuses an incomplete/extra actions mapping without touching the
+        bridge or any protected state;
+    (b) bridge-protocol layer -- a hand-crafted extra field on a raw
+        ``step_month`` request (attempting to inject an action, bypassing
+        ``complex_actions`` entirely) has provably zero effect, because the
+        driver's ``_op_step_month`` never reads any caller-supplied action
+        field at all.
+* **Degenerate reference** -- milestone-1 correction 7: a literal
+  ``n_agents=1`` scenario fails upstream's own ``BaseEnvironment.__init__``
+  assertion before any degenerate behavior could be observed. This uses
+  ``n_agents=2``, upstream's actual floor, where ``PeriodicBracketTax``'s
+  lump-sum redistribution is well-defined but degenerate (self-funding: two
+  agents fully fund each other's redistribution).
+
+All five goldens run through the real bridge (they depend on the real
+upstream engine for budget/tax arithmetic) and are skipped, honestly, when
+no provisioned bridge interpreter is available -- following
+``tests/test_econagent_environment.py``'s ``_require_bridge()`` convention.
+"""
+from __future__ import annotations
+
+import json
+import os
+from pathlib import Path
+from typing import Any, Mapping
+
+import pytest
+
+from aeread.shared_runner.registry import PluginRegistry
+from aeread.shared_runner.schemas import CaseManifest
+from aeread_families.econagent_v1.econagent_bridge import (
+    EconAgentBridge,
+    EconAgentBridgeError,
+    EconAgentBridgeUnavailableError,
+    discover_bridge_python,
+)
+from aeread_families.econagent_v1.environment import EconAgentV1Plugin, register_plugin
+
+
+def _upstream_root() -> Path:
+    candidate = os.environ.get(
+        "AEREAD_ECONAGENT_UPSTREAM_ROOT",
+        "/Users/sunzeyu/Documents/econ benchmark/upstream-econagent",
+    )
+    root = Path(candidate)
+    if not (root / "config.yaml").is_file():
+        pytest.skip(
+            f"pinned upstream EconAgent checkout not found at {root}",
+            allow_module_level=True,
+        )
+    return root
+
+
+UPSTREAM_ROOT = _upstream_root()
+
+try:
+    BRIDGE_PYTHON = discover_bridge_python(upstream_root=UPSTREAM_ROOT)
+except EconAgentBridgeUnavailableError as error:
+    BRIDGE_PYTHON = None
+    _BRIDGE_SKIP_REASON = str(error)
+else:
+    _BRIDGE_SKIP_REASON = ""
+
+
+def _require_bridge() -> None:
+    if BRIDGE_PYTHON is None:
+        pytest.skip(_BRIDGE_SKIP_REASON or "bridge python unavailable")
+    os.environ["AEREAD_ECONAGENT_BRIDGE_PYTHON"] = str(BRIDGE_PYTHON)
+
+
+def _case(case_id: str = "econagent.pilot.small10x12.seed0") -> CaseManifest:
+    path = Path("cases/econagent_v1") / f"{case_id}.json"
+    return CaseManifest.from_dict(json.loads(path.read_text(encoding="utf-8")))
+
+
+def _scenario_payload(
+    *,
+    case_id: str,
+    n_agents: int,
+    episode_length: int,
+    world_seed: int,
+    beta: float = 0.1,
+    gamma: float = 0.1,
+    h: float = 1.0,
+    pins: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Build an ad hoc payload for a scenario shape not in cases.py's pinned table.
+
+    Pins never depend on n_agents/episode_length/beta/gamma/h (they pin the
+    upstream source, not a specific scenario instance), so reusing a real
+    case's pins is faithful, not a shortcut -- mirrors
+    ``test_econagent_environment.py``'s existing tamper-payload pattern.
+    """
+    real_pins = dict(pins if pins is not None else _case().payload["pins"])
+    return {
+        "scenario": {
+            "case_id": case_id,
+            "n_agents": n_agents,
+            "episode_length": episode_length,
+            "world_seed": world_seed,
+            "beta": beta,
+            "gamma": gamma,
+            "h": h,
+            "purpose": "golden test fixture",
+        },
+        "pins": real_pins,
+    }
+
+
+def _run_episode(
+    plugin: EconAgentV1Plugin, payload: Mapping[str, Any]
+) -> tuple[dict[str, Any], dict[str, Any], int]:
+    """Run one episode to termination; return (family_case, terminal, n_agents)."""
+    family_case = plugin.validate_payload(payload)
+    phase = plugin.phases(family_case)[0]
+    state = plugin.initial_state(family_case, cell=None)
+    n_agents = family_case["scenario"]["n_agents"]
+    while state["termination"] is None:
+        actors = plugin.eligible_actors(family_case, state, phase)
+        actions = {
+            seat: plugin.parse_action(family_case, state, seat, phase, {"acknowledge": True})
+            for seat in actors
+        }
+        transition = plugin.step(family_case, state, phase, actions)
+        state = transition.state
+    terminal = plugin.terminal(family_case, state)
+    return family_case, terminal, n_agents
+
+
+# ---------------------------------------------------------------------------
+# Golden 1: successful.
+# ---------------------------------------------------------------------------
+
+
+def test_golden_successful_full_run_holds_every_accounting_identity_exactly() -> None:
+    """Full 12-month complex run, 10 agents, default beta=gamma=0.1, h=1.
+
+    Assert: every month's per-agent budget identity holds exactly (leaf 1),
+    every tax_paid matches upstream's own bracket computation (leaf 2),
+    dense_log length == 12, no bridge error.
+    """
+    _require_bridge()
+    plugin = EconAgentV1Plugin(upstream_root=UPSTREAM_ROOT)
+    registry = PluginRegistry()
+    register_plugin(registry, plugin=plugin)
+
+    case = _case("econagent.pilot.small10x12.seed0")
+    family_case, terminal, n_agents = _run_episode(plugin, case.payload)
+
+    assert terminal["reason"] == "episode_length_reached"
+    assert terminal["episode_length"] == 12
+    assert len(terminal["dense_log"]["PeriodicTax"]) == 12
+    assert len(terminal["dense_log"]["states"]) == 13  # post-reset + 12 months
+
+    scorer = plugin.build_scorer(family_case)
+    world_period = terminal["final_world"]["period"]
+    budget_score = scorer.score_budget_identity(
+        dense_log=terminal["dense_log"],
+        n_agents=n_agents,
+        world_period=world_period,
+        month_actions=terminal["month_actions"],
+    )
+    assert budget_score.status == "ok"
+    assert budget_score.primary.value == 1.0
+    assert budget_score.metrics["violation_count"].value == 0.0
+
+    bridge = EconAgentBridge.discover(UPSTREAM_ROOT)
+    tax_score = scorer.score_tax_bracket_arithmetic(
+        dense_log=terminal["dense_log"], n_agents=n_agents, bridge=bridge
+    )
+    assert tax_score.status == "ok"
+    assert tax_score.primary.value == 1.0
+    assert tax_score.metrics["violation_count"].value == 0.0
+
+
+# ---------------------------------------------------------------------------
+# Golden 2: valid but poor.
+# ---------------------------------------------------------------------------
+
+
+def test_golden_valid_but_poor_stays_fully_accounted_and_never_scored_as_a_failure() -> None:
+    """Same scenario, beta=5.0 -- depresses consumption without breaking legality.
+
+    Assert: the trajectory stays legal and fully accounted (budget/tax
+    leaves still pass exactly); the macro diagnostic (leaf 3) shows
+    depressed GDP-proxy relative to the default-beta run -- recorded as a
+    diagnostic outcome, never a failure (leaf 3 has no pass/fail meaning at
+    all; only its comparatively lower native value is asserted).
+    """
+    _require_bridge()
+    plugin = EconAgentV1Plugin(upstream_root=UPSTREAM_ROOT)
+    registry = PluginRegistry()
+    register_plugin(registry, plugin=plugin)
+
+    case = _case("econagent.pilot.small10x12.seed0")
+
+    default_family_case, default_terminal, n_agents = _run_episode(plugin, case.payload)
+    poor_payload = _scenario_payload(
+        case_id="econagent.golden.poor10x12.seed0",
+        n_agents=10,
+        episode_length=12,
+        world_seed=0,
+        beta=5.0,
+        pins=case.payload["pins"],
+    )
+    poor_family_case, poor_terminal, _n_agents = _run_episode(plugin, poor_payload)
+
+    assert poor_terminal["reason"] == "episode_length_reached"  # stayed legal to completion
+
+    default_scorer = plugin.build_scorer(default_family_case)
+    poor_scorer = plugin.build_scorer(poor_family_case)
+    world_period = poor_terminal["final_world"]["period"]
+
+    for scorer, terminal in (
+        (default_scorer, default_terminal),
+        (poor_scorer, poor_terminal),
+    ):
+        budget_score = scorer.score_budget_identity(
+            dense_log=terminal["dense_log"],
+            n_agents=n_agents,
+            world_period=world_period,
+            month_actions=terminal["month_actions"],
+        )
+        assert budget_score.primary.value == 1.0
+        bridge = EconAgentBridge.discover(UPSTREAM_ROOT)
+        tax_score = scorer.score_tax_bracket_arithmetic(
+            dense_log=terminal["dense_log"], n_agents=n_agents, bridge=bridge
+        )
+        assert tax_score.primary.value == 1.0
+
+    default_macro = default_scorer.score_macro_trajectory(
+        dense_log=default_terminal["dense_log"],
+        n_agents=n_agents,
+        month_actions=default_terminal["month_actions"],
+    )
+    poor_macro = poor_scorer.score_macro_trajectory(
+        dense_log=poor_terminal["dense_log"],
+        n_agents=n_agents,
+        month_actions=poor_terminal["month_actions"],
+    )
+    # Diagnostic only -- both remain "ok", neither is a scored failure.
+    assert default_macro.status == "ok"
+    assert poor_macro.status == "ok"
+    assert poor_macro.primary.value < default_macro.primary.value  # depressed GDP-proxy
+
+
+# ---------------------------------------------------------------------------
+# Golden 3: invalid or unauthorized.
+# ---------------------------------------------------------------------------
+
+
+def test_golden_invalid_action_never_reaches_step_and_touches_no_protected_state() -> None:
+    """Kernel layer: an illegal/malformed seat action never mutates state."""
+    plugin = EconAgentV1Plugin(upstream_root=UPSTREAM_ROOT)
+    case = _case("econagent.pilot.tiny4x6.seed0")
+    family_case = plugin.validate_payload(case.payload)
+    phase = plugin.phases(family_case)[0]
+
+    malformed = plugin.parse_action(family_case, {}, "agent_0", phase, {"acknowledge": False})
+    assert not malformed.ok  # rejected before it could ever become an "action"
+
+    unauthorized_seat = plugin.parse_action(
+        family_case, {}, "planner", phase, {"acknowledge": True}
+    )
+    legality = plugin.legal(family_case, {}, "planner", phase, {"acknowledge": True})
+    assert not unauthorized_seat.ok
+    assert not legality.legal
+
+    # Simulate "if this illegal/unauthorized action had incorrectly been
+    # forwarded to step()": submit fewer seats than required (as if the
+    # rejected seat's contribution were simply dropped, the correct
+    # behavior). step() must refuse outright and must never call the
+    # bridge/mutate the passed-in state object.
+    _require_bridge()
+    registry_plugin = EconAgentV1Plugin(upstream_root=UPSTREAM_ROOT)
+    registry = PluginRegistry()
+    register_plugin(registry, plugin=registry_plugin)
+    state = registry_plugin.initial_state(family_case, cell=None)
+    n_agents = family_case["scenario"]["n_agents"]
+    actors = registry_plugin.eligible_actors(family_case, state, phase)
+    incomplete_actions = {
+        seat: registry_plugin.parse_action(family_case, state, seat, phase, {"acknowledge": True})
+        for seat in list(actors)[: n_agents - 1]  # missing exactly one seat
+    }
+    original_state_snapshot = dict(state)
+    with pytest.raises(RuntimeError, match="expected acknowledgments from all"):
+        registry_plugin.step(family_case, state, phase, incomplete_actions)
+    # Protected state (agents/world/bridge session) is completely unchanged --
+    # step() raised before ever calling the bridge.
+    assert state == original_state_snapshot
+    assert state["timestep"] == 0
+
+    # Clean up the still-open session this test started.
+    for session_id in list(registry_plugin._sessions):
+        registry_plugin._sessions[session_id].close()
+        registry_plugin._sessions.pop(session_id)
+
+
+def test_golden_a_hand_crafted_bridge_request_cannot_bypass_complex_actions() -> None:
+    """Bridge-protocol layer: an injected 'actions' field on step_month is a no-op.
+
+    Sends a raw, hand-crafted request directly to the bridge subprocess
+    (bypassing the ``EconAgentBridge.step_month()`` public API entirely,
+    which accepts no caller-supplied action at all) carrying an
+    out-of-range, invented action payload. Compares the resulting state
+    against an untampered parallel run with the identical seed: the driver's
+    own ``_op_step_month`` never reads any caller-supplied action field, so
+    the tampered request must produce byte-identical results to a clean one
+    -- proof, not assertion, that no hand-crafted input can reach
+    ``env.step`` except through the real ``complex_actions`` computation.
+    """
+    _require_bridge()
+
+    clean = EconAgentBridge.discover(UPSTREAM_ROOT)
+    clean.start_episode(n_agents=4, episode_length=2, world_seed=0, beta=0.1, gamma=0.1, h=1.0)
+    clean.step_month()
+    clean_snapshot = clean.agent_snapshot()
+    clean.close()
+
+    tampered = EconAgentBridge.discover(UPSTREAM_ROOT)
+    tampered.start_episode(n_agents=4, episode_length=2, world_seed=0, beta=0.1, gamma=0.1, h=1.0)
+    # Reach past the public API on purpose: a hand-crafted, out-of-contract
+    # request the real client never sends.
+    response = tampered._request(
+        {
+            "op": "step_month",
+            "actions": {"0": [999, 999], "1": [-5, -5]},  # out-of-range, invented
+        }
+    )
+    assert response["ok"] is True  # driver ignored the extra field, did not error
+    tampered_snapshot = tampered.agent_snapshot()
+    tampered.close()
+
+    assert tampered_snapshot["agents"] == clean_snapshot["agents"]
+    assert tampered_snapshot["world"] == clean_snapshot["world"]
+
+
+# ---------------------------------------------------------------------------
+# Golden 4: malformed or operational failure.
+# ---------------------------------------------------------------------------
+
+
+def test_golden_bridge_killed_mid_episode_yields_a_typed_failure_never_a_scored_zero() -> None:
+    """SIGKILL the bridge subprocess between months; assert a typed failure.
+
+    Assert: step() raises a typed ``EconAgentBridgeError`` (never a
+    fabricated zero-credit result on any leaf), and the episode's own
+    ``state["termination"]`` remains ``None`` -- no partial, silently-
+    committed state is ever treated as terminal.
+    """
+    _require_bridge()
+    plugin = EconAgentV1Plugin(upstream_root=UPSTREAM_ROOT)
+    registry = PluginRegistry()
+    register_plugin(registry, plugin=plugin)
+
+    case = _case("econagent.pilot.small10x12.seed0")
+    family_case = plugin.validate_payload(case.payload)
+    phase = plugin.phases(family_case)[0]
+    state = plugin.initial_state(family_case, cell=None)
+    n_agents = family_case["scenario"]["n_agents"]
+
+    # Run months 1-5 normally.
+    for _ in range(5):
+        actors = plugin.eligible_actors(family_case, state, phase)
+        actions = {
+            seat: plugin.parse_action(family_case, state, seat, phase, {"acknowledge": True})
+            for seat in actors
+        }
+        transition = plugin.step(family_case, state, phase, actions)
+        state = transition.state
+        assert state["termination"] is None
+
+    # Kill the bridge subprocess out from under the plugin, between month 5
+    # and month 6.
+    bridge = plugin._sessions[state["bridge_session_id"]]
+    bridge._process.kill()
+    bridge._process.wait(timeout=10)
+
+    actors = plugin.eligible_actors(family_case, state, phase)
+    actions = {
+        seat: plugin.parse_action(family_case, state, seat, phase, {"acknowledge": True})
+        for seat in actors
+    }
+    pre_failure_state = dict(state)
+    with pytest.raises(EconAgentBridgeError):
+        plugin.step(family_case, state, phase, actions)
+
+    # The original state object (the one the scheduler would still be
+    # holding) is untouched -- no partial commit, no silent termination.
+    assert state == pre_failure_state
+    assert state["termination"] is None
+    assert state["timestep"] == 5
+
+    # Clean up (the process is already dead; this just drops the handle).
+    plugin._sessions.pop(state["bridge_session_id"], None)
+
+
+# ---------------------------------------------------------------------------
+# Golden 5: degenerate reference.
+# ---------------------------------------------------------------------------
+
+
+def test_golden_degenerate_two_agent_lump_sum_reports_the_real_computed_value() -> None:
+    """n_agents=2 (upstream's actual floor, per milestone-1 correction 7).
+
+    ``PeriodicBracketTax``'s redistribution divides collected tax by
+    ``n_agents``; with exactly two agents this is a well-defined but
+    degenerate (mutually self-funding) special case. Assert the adapter
+    reports the actual computed lump_sum rather than suppressing or
+    replacing this edge case, and that the budget identity still holds
+    exactly at this floor.
+    """
+    _require_bridge()
+    plugin = EconAgentV1Plugin(upstream_root=UPSTREAM_ROOT)
+    registry = PluginRegistry()
+    register_plugin(registry, plugin=plugin)
+
+    payload = _scenario_payload(
+        case_id="econagent.golden.degenerate2x3.seed0",
+        n_agents=2,
+        episode_length=3,
+        world_seed=0,
+    )
+    family_case, terminal, n_agents = _run_episode(plugin, payload)
+    assert n_agents == 2
+    assert terminal["reason"] == "episode_length_reached"
+
+    dense_log = terminal["dense_log"]
+    for month_tax in dense_log["PeriodicTax"]:
+        lump_sum_0 = month_tax["0"]["lump_sum"]
+        lump_sum_1 = month_tax["1"]["lump_sum"]
+        # Real, finite, computed values -- never suppressed/replaced/None.
+        assert isinstance(lump_sum_0, float)
+        assert lump_sum_0 == lump_sum_1  # net_tax_revenue split two ways, evenly
+        assert lump_sum_0 >= 0.0
+
+    scorer = plugin.build_scorer(family_case)
+    world_period = terminal["final_world"]["period"]
+    budget_score = scorer.score_budget_identity(
+        dense_log=dense_log,
+        n_agents=n_agents,
+        world_period=world_period,
+        month_actions=terminal["month_actions"],
+    )
+    assert budget_score.status == "ok"
+    assert budget_score.primary.value == 1.0
+    assert budget_score.metrics["checked_agent_months"].value == 2 * 3
