@@ -748,6 +748,109 @@ def test_snapshot_failure_after_unexpected_error_preserves_the_original_error(
     assert payload["outcome_known"] is False
 
 
+def _fail_append_for(evidence, event_type: str, failures: dict) -> None:
+    original_append = evidence.append_event
+
+    def failing_append(kind, payload, **kwargs):
+        if kind == event_type:
+            error = RuntimeError("evidence write failure")
+            failures["bookkeeping"] = error
+            raise error
+        return original_append(kind, payload, **kwargs)
+
+    evidence.append_event = failing_append
+
+
+def test_failed_event_write_failure_preserves_the_original_tool_failure(
+    tmp_path,
+) -> None:
+    evidence = _evidence(tmp_path)
+    tools = ToolExecutor(evidence)
+    ledger = {"inventory": 10}
+    failures: dict = {}
+    _fail_append_for(evidence, "tool_invocation_failed", failures)
+
+    async def order_stock(_arguments):
+        ledger["inventory"] = 5
+        raise ToolFailure("supplier_timeout", "supplier timed out", retryable=True)
+
+    with pytest.raises(ToolFailure) as captured:
+        asyncio.run(
+            tools.invoke(
+                action_attempt_id="action_attempt_fixture",
+                tool_id="place_purchase_order",
+                tool_version="1.0.0",
+                arguments={"sku": "widget"},
+                implementation=order_stock,
+                idempotency_supported=False,
+                effect="mutating",
+                tool_schema_sha256="d" * 64,
+                state_reader=lambda: dict(ledger),
+            )
+        )
+
+    assert captured.value.condition == "supplier_timeout"
+    assert captured.value.__context__ is failures["bookkeeping"]
+
+
+def test_unknown_event_write_failure_preserves_the_cancellation(tmp_path) -> None:
+    evidence = _evidence(tmp_path)
+    tools = ToolExecutor(evidence)
+    ledger = {"inventory": 10}
+    failures: dict = {}
+    _fail_append_for(evidence, "tool_invocation_outcome_unknown", failures)
+
+    async def cancelled_mutation(_arguments):
+        ledger["inventory"] = 5
+        raise asyncio.CancelledError()
+
+    with pytest.raises(asyncio.CancelledError) as captured:
+        asyncio.run(
+            tools.invoke(
+                action_attempt_id="action_attempt_fixture",
+                tool_id="place_purchase_order",
+                tool_version="1.0.0",
+                arguments={"sku": "widget"},
+                implementation=cancelled_mutation,
+                idempotency_supported=False,
+                effect="mutating",
+                tool_schema_sha256="e" * 64,
+                state_reader=lambda: dict(ledger),
+            )
+        )
+
+    assert captured.value.__context__ is failures["bookkeeping"]
+
+
+def test_unknown_event_write_failure_preserves_the_unexpected_error(tmp_path) -> None:
+    evidence = _evidence(tmp_path)
+    tools = ToolExecutor(evidence)
+    ledger = {"inventory": 10}
+    failures: dict = {}
+    _fail_append_for(evidence, "tool_invocation_outcome_unknown", failures)
+
+    async def crashing_mutation(_arguments):
+        ledger["inventory"] = 5
+        raise ValueError("implementation bug")
+
+    with pytest.raises(ValueError, match="implementation bug") as captured:
+        asyncio.run(
+            tools.invoke(
+                action_attempt_id="action_attempt_fixture",
+                tool_id="place_purchase_order",
+                tool_version="1.0.0",
+                arguments={"sku": "widget"},
+                implementation=crashing_mutation,
+                idempotency_supported=False,
+                effect="mutating",
+                tool_schema_sha256="f" * 64,
+                state_reader=lambda: dict(ledger),
+            )
+        )
+
+    assert captured.value.__context__ is failures["bookkeeping"]
+
+
 class FakeResponsesAPI:
     def __init__(self) -> None:
         self.kwargs = None

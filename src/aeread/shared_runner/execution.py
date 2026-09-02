@@ -2922,45 +2922,53 @@ class ToolExecutor:
                 before=before,
                 original_error=error,
             )
-            state_changed, state_diff_ref = self._state_change(before, after)
-            self.evidence.append_event(
-                "tool_invocation_failed",
-                {
-                    "failure_condition": error.condition,
-                    "message": str(error),
-                    "retryable": error.retryable,
-                    "effect": effect,
-                    "outcome_known": True,
-                    "state_before_sha256": (
-                        None if before is None else before[1].sha256
-                    ),
-                    "state_after_sha256": None if after is None else after[1].sha256,
-                    "state_changed": state_changed,
-                    "state_diff_sha256": (
-                        None if state_diff_ref is None else state_diff_ref.sha256
-                    ),
-                },
-                action_attempt_id=action_attempt_id,
-                tool_invocation_id=tool_invocation_id,
-            )
-            error.record = self._record(
-                tool_invocation_id=tool_invocation_id,
-                action_attempt_id=action_attempt_id,
-                tool_id=tool_id,
-                tool_version=tool_version,
-                tool_schema_sha256=tool_schema_sha256,
-                input_sha256=input_sha256,
-                idempotency_supported=idempotency_supported,
-                effect=effect,
-                status="failed",
-                result_sha256=None,
-                failure_condition=error.condition,
-                before=before,
-                after=after,
-                state_changed=state_changed,
-                state_diff_ref=state_diff_ref,
-                outcome_known=True,
-            )
+            try:
+                state_changed, state_diff_ref = self._state_change(before, after)
+                self.evidence.append_event(
+                    "tool_invocation_failed",
+                    {
+                        "failure_condition": error.condition,
+                        "message": str(error),
+                        "retryable": error.retryable,
+                        "effect": effect,
+                        "outcome_known": True,
+                        "state_before_sha256": (
+                            None if before is None else before[1].sha256
+                        ),
+                        "state_after_sha256": None if after is None else after[1].sha256,
+                        "state_changed": state_changed,
+                        "state_diff_sha256": (
+                            None if state_diff_ref is None else state_diff_ref.sha256
+                        ),
+                    },
+                    action_attempt_id=action_attempt_id,
+                    tool_invocation_id=tool_invocation_id,
+                )
+                error.record = self._record(
+                    tool_invocation_id=tool_invocation_id,
+                    action_attempt_id=action_attempt_id,
+                    tool_id=tool_id,
+                    tool_version=tool_version,
+                    tool_schema_sha256=tool_schema_sha256,
+                    input_sha256=input_sha256,
+                    idempotency_supported=idempotency_supported,
+                    effect=effect,
+                    status="failed",
+                    result_sha256=None,
+                    failure_condition=error.condition,
+                    before=before,
+                    after=after,
+                    state_changed=state_changed,
+                    state_diff_ref=state_diff_ref,
+                    outcome_known=True,
+                )
+            except BaseException:
+                # A bookkeeping failure here must not replace the tool's own
+                # failure: retry dispatch keys on error.condition.  The durable
+                # tool_invocation_started event already marks this invocation
+                # unterminated for audit; re-raise the original with the
+                # bookkeeping error chained as its __context__.
+                raise error
             raise
         except asyncio.CancelledError as cancelled_error:
             after = await self._observed_after_or_mark_unknown(
@@ -2971,27 +2979,33 @@ class ToolExecutor:
                 before=before,
                 original_error=cancelled_error,
             )
-            state_changed, state_diff_ref = self._state_change(before, after)
-            self.evidence.append_event(
-                "tool_invocation_outcome_unknown",
-                {
-                    "failure_condition": "interrupted_during_tool",
-                    "effect": effect,
-                    "outcome_known": False,
-                    "state_before_sha256": (
-                        None if before is None else before[1].sha256
-                    ),
-                    "state_observed_after_sha256": (
-                        None if after is None else after[1].sha256
-                    ),
-                    "state_observed_changed": state_changed,
-                    "state_diff_sha256": (
-                        None if state_diff_ref is None else state_diff_ref.sha256
-                    ),
-                },
-                action_attempt_id=action_attempt_id,
-                tool_invocation_id=tool_invocation_id,
-            )
+            try:
+                state_changed, state_diff_ref = self._state_change(before, after)
+                self.evidence.append_event(
+                    "tool_invocation_outcome_unknown",
+                    {
+                        "failure_condition": "interrupted_during_tool",
+                        "effect": effect,
+                        "outcome_known": False,
+                        "state_before_sha256": (
+                            None if before is None else before[1].sha256
+                        ),
+                        "state_observed_after_sha256": (
+                            None if after is None else after[1].sha256
+                        ),
+                        "state_observed_changed": state_changed,
+                        "state_diff_sha256": (
+                            None if state_diff_ref is None else state_diff_ref.sha256
+                        ),
+                    },
+                    action_attempt_id=action_attempt_id,
+                    tool_invocation_id=tool_invocation_id,
+                )
+            except BaseException:
+                # Cancellation must surface as cancellation even when the
+                # bookkeeping write fails; chain the bookkeeping error as
+                # __context__ instead of replacing the cancellation.
+                raise cancelled_error
             raise
         except BaseException as unexpected_error:
             after = await self._observed_after_or_mark_unknown(
@@ -3002,27 +3016,33 @@ class ToolExecutor:
                 before=before,
                 original_error=unexpected_error,
             )
-            state_changed, state_diff_ref = self._state_change(before, after)
-            self.evidence.append_event(
-                "tool_invocation_outcome_unknown",
-                {
-                    "failure_condition": "unexpected_tool_interruption",
-                    "effect": effect,
-                    "outcome_known": False,
-                    "state_before_sha256": (
-                        None if before is None else before[1].sha256
-                    ),
-                    "state_observed_after_sha256": (
-                        None if after is None else after[1].sha256
-                    ),
-                    "state_observed_changed": state_changed,
-                    "state_diff_sha256": (
-                        None if state_diff_ref is None else state_diff_ref.sha256
-                    ),
-                },
-                action_attempt_id=action_attempt_id,
-                tool_invocation_id=tool_invocation_id,
-            )
+            try:
+                state_changed, state_diff_ref = self._state_change(before, after)
+                self.evidence.append_event(
+                    "tool_invocation_outcome_unknown",
+                    {
+                        "failure_condition": "unexpected_tool_interruption",
+                        "effect": effect,
+                        "outcome_known": False,
+                        "state_before_sha256": (
+                            None if before is None else before[1].sha256
+                        ),
+                        "state_observed_after_sha256": (
+                            None if after is None else after[1].sha256
+                        ),
+                        "state_observed_changed": state_changed,
+                        "state_diff_sha256": (
+                            None if state_diff_ref is None else state_diff_ref.sha256
+                        ),
+                    },
+                    action_attempt_id=action_attempt_id,
+                    tool_invocation_id=tool_invocation_id,
+                )
+            except BaseException:
+                # Same contract as the handlers above: the implementation's own
+                # error is the finding; a bookkeeping failure rides along as
+                # __context__, it never replaces it.
+                raise unexpected_error
             raise
         result_ref = self.evidence.put_artifact(result)
         after = await self._observed_after(state_reader)
