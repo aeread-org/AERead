@@ -219,6 +219,66 @@ floor), confirming `PeriodicBracketTax`'s lump-sum redistribution is well-define
 split, and reported as the real computed value rather than suppressed. See
 `tests/test_econagent_goldens.py` for both.
 
+### Milestone 3 correction (found building the scripted harness/e2e/replay pass)
+
+Same ground rule as milestones 1 and 2. One gap surfaced immediately on the first attempt
+to run a pinned scenario through the REAL shared-runner path
+(`aeread.shared_runner.scheduler.run_episode`) rather than by calling `EconAgentV1Plugin`'s
+hooks directly in a hand-wired loop, which is how every milestone-1/2 test (cases,
+environment, measurement, goldens, parity) exercises the family:
+
+1. **`episode.max_logical_actions`/`PhaseSpec.max_logical_actions` were set to
+   `episode_length`, undercounting by a factor of `n_agents`.** The kernel counts one
+   logical action per *seat* per phase instance, not one per phase instance overall — for
+   `agent_month` (`mode="simultaneous"`, all `n_agents` seats acting every month, self-looping
+   for `episode_length` months), the true per-episode ceiling is `n_agents * episode_length`,
+   exactly mirroring `housing_v1`'s own `num_tenants * rounds`/`num_listings * rounds`
+   convention for its simultaneous, self-looping phases
+   (`src/aeread/shared_runner/housing.py`). A literal `episode_length` budget (`12` for
+   `small10x12`, `6` for `tiny4x6`) made `run_episode` raise `SchedulerContractError: case
+   logical-action budget exceeded before termination` partway through the very first month
+   for every pinned scenario with `n_agents > 1` — undetected through milestones 1-2 because
+   nothing in those tests ever drove an episode through the real scheduler. Fixed in
+   `cases.py`'s `build_case` and `environment.py`'s `phases()`; the on-disk case files under
+   `cases/econagent_v1/` were regenerated (their `content_sha256` changed as a direct
+   consequence — no other field changed), and the two milestone-1/2 tests that had hardcoded
+   the old, wrong value (`test_econagent_cases.py`, `test_econagent_environment.py`) were
+   corrected alongside. See `tests/test_econagent_e2e.py` for the first test that actually
+   exercises `run_episode` for this family, and the econagent ledger for the corresponding
+   kernel-side observation (no static Gate-1/Gate-2 check cross-validates a case's declared
+   logical-action budget against its phases' seat cardinality without actually running a full
+   episode).
+2. **A live episode's raw, byte-exact state never matches its own replay, because
+   `EconAgentV1Plugin.initial_state` mints a fresh `uuid.uuid4().hex` `bridge_session_id`
+   bookkeeping key on every call.** That key is never surfaced through `terminal()`/
+   `outcome()` and is never causally relevant to any accounting leaf, but it IS part of the
+   full per-phase `state` the scheduler hashes into `pre_state_sha256`/`post_state_sha256` and
+   freezes into `final_state` — discovered building `replay.py` (a live run replayed from its
+   own exact recorded bridge call log still did not raw-hash-match itself). Resolution:
+   `replay.py`'s `StateComparison` reports both the raw, byte-exact fields (documented to
+   always read `False` across any two independent runs, replay or not — not a bug in the
+   comparator) and a session-id-stripped content comparison
+   (`final_state_content_matches`/`_strip_bridge_session_id`), and `.matches` uses only the
+   latter — the same *shape* of split `tau3_retail/replay.py`'s
+   `_strip_message_timestamps`/`final_state_content_matches` already uses, for an unrelated,
+   adapter-specific cause (there a per-message wall-clock timestamp; here a per-episode random
+   UUID bookkeeping key). Deliberately not "fixed" by making `bridge_session_id` deterministic
+   (e.g. derived from the `PlanCell`'s own `cell_id`, which `initial_state` currently ignores
+   entirely — `del cell`): that would touch a method every milestone-1/2 test already exercises
+   with `cell=None`, for a benefit (raw byte-exact equality) no test or claim in this spec
+   actually needs beyond what the content comparison already proves.
+
+Milestone 3 built: `harness.py` (`ScriptedEconAgentHarness`, a provider-free
+`ResponseSource` — every `agent_i` seat gets the fixed acknowledgment every month, per
+milestone-1 correction 4, so there is no tool/action content to script, unlike
+`tau3_retail`'s harness); `tests/test_econagent_e2e.py` (two full pilot episodes —
+`small10x12.seed0` and `.seed1` — through the real scheduler, plus the importer's
+byte-identical-on-a-second-run determinism check for all three scenario ids, per section 5's
+e2e bullet); and `replay.py`/`tests/test_econagent_replay.py` (offline replay with the real
+bridge subprocess disabled entirely, per section 5's replay bullet — see `replay.py`'s own
+module docstring for why the seam that gets replayed here is the *bridge*, not the response
+source, unlike `tau3_retail`).
+
 ---
 
 ## 1. Pinned source and corpus enumeration (QC Gate 1)
@@ -394,18 +454,35 @@ upstream's actual floor. See "Milestone 2 corrections" above for the full reason
 
 ## 5. Test plan — e2e, replay, parity
 
-- **e2e** (`tests/test_econagent_e2e.py`) — **not built this pass** (deferred to milestone 3
-  alongside replay): run the scheduler end-to-end over `econagent.pilot.small10x12.seed0` and
-  `.seed1` through the real bridge; assert episode completion, dense_log length, and all
-  three scenario ids' manifests round-trip through the importer byte-identically on a second
-  run (import determinism, mirroring tau3 §8 P1). `tests/test_econagent_goldens.py`'s
-  "successful" golden already exercises an equivalent full end-to-end run of
-  `small10x12.seed0`, but does not yet check import-determinism round-tripping.
-- **replay** (`tests/test_econagent_replay.py`) — **not built this pass** (milestone 3):
-  record one full episode's decision log (per-slot observation, `complex_actions` output,
-  tool/bridge call, resulting state hash); replay offline with the bridge process disabled
-  entirely; assert every per-step state hash and the two `rule_constraint` leaves reproduce
-  exactly with zero live calls.
+- **e2e** (`tests/test_econagent_e2e.py`) — **built in milestone 3**: runs both
+  `econagent.pilot.small10x12.seed0` and `.seed1` through the REAL shared-runner path
+  (`aeread.shared_runner.scheduler.run_episode` + `PluginRegistry.resolve_manifest`, driven by
+  the new `ScriptedEconAgentHarness` — never the hand-wired plugin-hook loop every milestone-1/
+  2 test uses); asserts episode completion, per-phase-instance seat/mode shape, dense_log
+  length, and that all three scenario ids' manifests round-trip through the importer
+  byte-identically on a second run, including against the actually-committed case files
+  (import determinism, mirroring tau3 §8 P1). Running a real episode through the scheduler for
+  the first time immediately surfaced the milestone-3 `max_logical_actions` gap documented
+  above; `tests/test_econagent_goldens.py`'s "successful" golden exercises an equivalent full
+  run but never through `run_episode` itself.
+- **replay** (`tests/test_econagent_replay.py`) — **built in milestone 3**: records one full
+  live episode's bridge call log (`replay.py`'s `RecordingEconAgentBridge`, injected through
+  `EconAgentV1Plugin`'s existing `bridge_factory` seam — start_episode/step_month/
+  agent_snapshot/dense_log/close, in call order) and one live tax-bracket-scoring call log
+  (`recompute_tax`), then replays both through the real scheduler with the real bridge
+  subprocess never spawned (`RecordedEconAgentBridge`, proven by monkeypatching
+  `EconAgentBridge._spawn` to raise during a passing replay). Asserts the replayed episode's
+  terminal/outcome/final-state *content* reproduces the live run's exactly, and that all three
+  measurement leaves recomputed from the replay equal the live run's `ScoreEnvelope`s exactly,
+  with zero live bridge subprocess calls. One caveat found building this, stated rather than
+  implied: `EconAgentV1Plugin.initial_state` mints a fresh `uuid.uuid4().hex`
+  `bridge_session_id` bookkeeping key on every call, so the scheduler's own raw, byte-exact
+  per-phase state hashes and frozen `final_state` do **not** match between a live run and its
+  replay (`StateComparison.state_hashes_match`/`final_state_matches` are both `False`, always,
+  by construction) — only the session-id-stripped content comparison
+  (`final_state_content_matches`) is the real guarantee, exactly the same *shape* of finding as
+  `tau3_retail/replay.py`'s message-timestamp non-determinism, with a different, adapter-
+  internal cause. See `replay.py`'s module and `StateComparison` docstrings.
 - **parity** (`tests/test_econagent_parity.py`, since upstream code executes via the bridge)
   — **built in milestone 2**: for each of the three pilot scenarios, independently invoke
   upstream's own `foundation.make_env_instance` + `complex_actions` loop directly inside the
