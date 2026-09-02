@@ -1,0 +1,235 @@
+{
+  "case_id": "agenticpay.bilateral.realistic.s16_food_delivery_1",
+  "content_sha256": "273bed97e142554d214e3e8ac2158d449529cccbe2760522d2cccb06b606d9a4",
+  "episode": {
+    "max_logical_actions": 20,
+    "termination": [
+      "agreed",
+      "timeout"
+    ]
+  },
+  "family_id": "agenticpay.bilateral",
+  "family_version": "0.1.0",
+  "payload": {
+    "constructor_kwargs": {
+      "buyer_max_price": 10.35,
+      "environment_info": {
+        "contract_config": {
+          "buyer_preferences": {
+            "continuous_weights": {},
+            "discrete_weights": {
+              "delivery_speed": {
+                "batched": -2.0,
+                "rush": 3.0,
+                "standard": 0.0
+              },
+              "extra_condiments": {
+                "false": 0.0,
+                "true": 1.5
+              },
+              "user_product_preference": {
+                "mismatch_or_uncertain": -0.25,
+                "partial_match": 0.12,
+                "strong_match": 0.3
+              }
+            },
+            "v_base": 10.35,
+            "weight_descriptions": {
+              "discrete_weights.delivery_speed": "How much each delivery speed option changes your utility, measured in dollars. Positive numbers are good for you; negative numbers are bad for you.",
+              "discrete_weights.extra_condiments": "How much receiving extra condiments changes your utility, measured in dollars.",
+              "discrete_weights.user_product_preference": "How much each level of match to your stated plating or piece-size preference changes your utility, measured in dollars. Positive numbers are good for you; negative numbers are bad for you.",
+              "v_base": "Your private maximum value for this all-in food delivery order before delivery speed and condiment terms, measured in dollars. A lower price is better for you because every dollar paid reduces your utility by 1 dollar."
+            }
+          },
+          "continuous_bounds": {},
+          "contrainfo": {
+            "contract_completion_requirement": "A valid offer must explicitly fill price, discrete_terms.delivery_speed, discrete_terms.extra_condiments, and discrete_terms.user_product_preference.",
+            "initial_contract_status": "No all-in price, delivery speed, extra condiments option, or user product preference match has been selected or agreed before negotiation starts.",
+            "product_request": "I want Karaage Chicken with yuzu marmalade from Izakaya, delivered. I also prefer the fried chicken pieces to look mostly uniform in size rather than a mix of crumbs and a few huge chunks."
+          },
+          "discrete_options": {
+            "delivery_speed": [
+              "rush",
+              "standard",
+              "batched"
+            ],
+            "extra_condiments": [
+              true,
+              false
+            ],
+            "user_product_preference": [
+              "strong_match",
+              "partial_match",
+              "mismatch_or_uncertain"
+            ]
+          },
+          "field_descriptions": {
+            "discrete_terms.delivery_speed": "The fulfillment speed for the DoorDash order. `rush` means prioritized delivery; `standard` means normal delivery; `batched` means slower grouped delivery.",
+            "discrete_terms.extra_condiments": "Whether the order includes extra condiments, sauces, or small sides requested by the buyer.",
+            "discrete_terms.user_product_preference": "How well the listing dish matches the buyer's stated preference for fried chicken pieces that look mostly uniform in size rather than a mix of crumbs and a few huge chunks. Use `strong_match` when pieces look consistently sized, `partial_match` when sizing is mixed but acceptable, and `mismatch_or_uncertain` when it is mostly crumbs or highly uneven or cannot be confirmed.",
+            "price": "The all-in order total the buyer pays, measured in US dollars, including the food item and mandatory delivery-related fees."
+          },
+          "seller_preferences": {
+            "c_base": 8.54,
+            "continuous_weights": {},
+            "discrete_weights": {
+              "delivery_speed": {
+                "batched": 3.5,
+                "rush": -4.0,
+                "standard": 0.0
+              },
+              "extra_condiments": {
+                "false": 0.0,
+                "true": -0.5
+              },
+              "user_product_preference": {
+                "mismatch_or_uncertain": 0.01,
+                "partial_match": -0.04,
+                "strong_match": -0.08
+              }
+            },
+            "weight_descriptions": {
+              "c_base": "Your private minimum cost for fulfilling this all-in food delivery order before delivery speed and condiment terms, measured in dollars. A higher price is better for you because every dollar received increases your utility by 1 dollar.",
+              "discrete_weights.delivery_speed": "How much each delivery speed option changes your utility, measured in dollars. Positive numbers are good for you; negative numbers are bad for you.",
+              "discrete_weights.extra_condiments": "How much including extra condiments changes your utility, measured in dollars.",
+              "discrete_weights.user_product_preference": "How much each level of commitment to the buyer's stated dish-appearance preference changes your utility, measured in dollars. Stronger commitments carry a small nonzero risk or handling cost."
+            }
+          }
+        },
+        "delivery_distance_km": 5.1,
+        "delivery_distance_miles": 3.2,
+        "delivery_fee": 2.49,
+        "estimated_delivery_time": "25-35 minutes",
+        "market_type": "Food Delivery",
+        "menu_price": 9.0,
+        "platform": "DoorDash",
+        "pricing_rule": "Negotiated price should be treated as the all-in order total including the food item and mandatory delivery-related fees.",
+        "quoted_total_price": 12.78,
+        "restaurant_address": "318 Gray St, Houston, TX 77002, USA",
+        "restaurant_price_range": "$$",
+        "service_fee": 1.29
+      },
+      "max_rounds": 20,
+      "price_tolerance": 0.0,
+      "reward_weights": {
+        "buyer_savings": 1.0,
+        "seller_profit": 1.0,
+        "time_cost": 0.1
+      },
+      "seller_min_price": 8.54
+    },
+    "description": {
+      "category": "Food Delivery",
+      "scenario": "Karaage Chicken order from Izakaya",
+      "task": "Task19_s16_food_delivery_1"
+    },
+    "env_class": "Task1BasicPriceNegotiation",
+    "env_module": "agenticpay.envs.single_buyer_product_seller.Task1_basic_price_negotiation",
+    "kind": "realistic",
+    "pins": {
+      "bridge_deps": [
+        "loguru==0.7.3",
+        "numpy==2.4.6"
+      ],
+      "bridge_python": "3.11",
+      "enumerated_counts": {
+        "basic_bilateral": 3,
+        "basic_total": 31,
+        "realistic_bilateral": 25,
+        "realistic_total_examples_dir": 200,
+        "text_only_bilateral": 25
+      },
+      "env_source_sha256": {
+        "Task1_basic_price_negotiation.py": "48a318de02980d5ddc6172e5b9c24eef2f6a25b4a610b4a87128ce00576fc86a",
+        "Task2_close_price_negotiation.py": "599fe749b569a306bc40d7c947c1a470a0d6952c264f8a77b1ef32cb1f4ff576",
+        "Task3_close_to_market_price_negotiation.py": "5929236df946ead41bcc4f0a6bf51c4efeb9e5ff13fa723b79e90c3839dafb8e"
+      },
+      "scenario_extraction_sha256": {
+        "s01_beauty_product": "60d6eb84a6f3ec2f7681d83637a269a884ed9a18359bfb7aa6fabcd78c78a7c7",
+        "s02_toothpaste": "f78372a7c0bcaa623701a0c86cfc3803f949490d4a72f670cc2b32c1b186b284",
+        "s03_riflescope": "2a586c8e81909b1240a295aaa8d0a2fff0627a370ae4a72e54ea99af580b101b",
+        "s04_headphones": "709a07dc497721e230e0b36554c9e7d55a710168a190798582e2f14374e68243",
+        "s05_wall_lantern": "2129b38f5575cd8882b9a90ddcd0395c77d3f8a291dc5b0452d76972290c4bf0",
+        "s06_bookshelf": "e4ee3aa570ea051fe4ac870a8a3d5af7f11185fbfb2d7a60da6640fcad40ed97",
+        "s07_sandals": "38c24f6b81d307dbe70b7ad1e4c37e453547589450fdee1842a1709f895e618d",
+        "s08_jeans": "7f3e66a5fcd5fa66cb74365858d2af3a01d4b10f5f6857929e2ab47dca497cbe",
+        "s09_beverage": "75e136d85c5a40c58c818bede565755a2d3c6278b8a6257e7f190b646365c57c",
+        "s10_food_color": "4a8d40d0dd655f75cd07d155fa3f69e6a1926c6f3c0f542e07441d2616145e38",
+        "s11_taxi_1": "a6388a29491d69449db8968a8a07532ee1625f6cfbba664473898d56e4de6cab",
+        "s12_taxi_2": "8026c4e6d7d9762a3699ba61f4565845571a7876c1aa7c2dc962e25ff2b06fcf",
+        "s13_taxi_3": "f1e4c499652bb880616dfd4c3ecce124e22aa0d44c88d7c863cf42bb69f3585f",
+        "s14_taxi_4": "9e368fd9e88b7ea8ef1115caf78c95b99966eefc143dc2d6c4bb279575d88892",
+        "s15_taxi_5": "66a45e09f7ff2956af801bd9991c725172596b303607c48637cc12488194d668",
+        "s16_food_delivery_1": "e77bba8885beae9c6832aaa28c636b8534f1dd6c4c8794fc56a1367f371af3f5",
+        "s17_food_delivery_2": "2ad765ca76409249dd3929212fcd3a9e116cc6203453aa3a6632370896f613bb",
+        "s18_food_delivery_3": "c655d0a4bbf6496f99e2b47b33906b1fd91720de69393ddc91cb29bf72d01a1a",
+        "s19_food_delivery_4": "a6508e18ebadabfe6f19ca25ad4598f3ba577e58875214afe18c4898bc9c8e3c",
+        "s20_food_delivery_5": "6111b910c1f2157bd6c95e985d502c2924f91432a0254ce256d39d61e20c947c",
+        "s21_rent_house_1": "9060b801d7eb8b8b153657cbcd9ee4925110ec6e12d229b135ce271cc26683d9",
+        "s22_rent_house_2": "1bb651bf0cd742220ca5be6fef001fe60240b1b5bdab5421c3723a645b78a8e7",
+        "s23_rent_house_3": "90c19eb6f6147b3e1c0054123798b01b129ee815cc89b0c651b1219f817ad9cb",
+        "s24_rent_house_4": "5f171b9c3a7962432d1e6c2682fc07dbd0e6b839711c4f4ccdd88dcff86b1376",
+        "s25_rent_house_5": "57faa8276bf1f4b4d01beef96f914d5f0cbd9e559593865cfe00cfc1a735ad4d"
+      },
+      "upstream_commit": "1ff4e1a2686eac6a07ff559df6d50329c6fd9f69",
+      "upstream_license": "MIT",
+      "upstream_repo": "SafeRL-Lab/AgenticPay"
+    },
+    "provenance_files": {
+      "driver_source": {
+        "path": "agenticpay/examples/single_buyer_product_seller/Task19_s16_food_delivery_1.py",
+        "sha256": "8cef684b873d1ce0d97c5d75c6ac23dcb2ca9d5c56add15b5d190ece87446a6a"
+      },
+      "env_source": {
+        "path": "agenticpay/envs/single_buyer_product_seller/Task1_basic_price_negotiation.py",
+        "sha256": "48a318de02980d5ddc6172e5b9c24eef2f6a25b4a610b4a87128ce00576fc86a"
+      }
+    },
+    "reset_kwargs": {
+      "product_info": {
+        "asin": "DD-HOU-IZAKAYA-KARAAGE-CHICKEN",
+        "average_rating": 4.66,
+        "brand": "Izakaya",
+        "condition": "Prepared fresh to order",
+        "delivery_distance_km": 5.1,
+        "delivery_distance_miles": 3.2,
+        "delivery_fee": 2.49,
+        "flavor": "Spicy yuzu peel marmalade",
+        "full_description": "Fried chicken bites served as a Japanese small plate with spicy yuzu peel marmalade. The restaurant is located at 318 Gray St, Houston, TX 77002, USA, about 3.2 miles (5.1 km) from the customer. Menu price is $9.00, with a $2.49 delivery fee and $1.29 service fee for an all-in quoted total of $12.78. Menu data shows this item listed by Izakaya, a Houston ramen restaurant on DoorDash.",
+        "image_url": "https://img.cdn4dd.com/cdn-cgi/image/fit=contain,width=1200,height=672,format=auto/https://doordash-static.s3.amazonaws.com/media/photosV2/3fb24687-e36e-4ad6-b9d0-62ce9d9d8b2e-retina-large.JPG",
+        "name": "Karaage Chicken",
+        "original_price": 9.0,
+        "product_category": "Food Delivery › Japanese › Small Plates",
+        "quoted_total_price": 12.78,
+        "restaurant_address": "318 Gray St, Houston, TX 77002, USA",
+        "seller_name": "Izakaya",
+        "service_fee": 1.29,
+        "size": "Single appetizer portion",
+        "total_reviews": 1041
+      },
+      "user_profile": null,
+      "user_requirement": "I want Karaage Chicken with yuzu marmalade from Izakaya, delivered. I also prefer the fried chicken pieces to look mostly uniform in size rather than a mix of crumbs and a few huge chunks."
+    },
+    "scenario_id": "s16_food_delivery_1"
+  },
+  "provenance": {
+    "generator_id": "agenticpay_bilateral_importer",
+    "generator_version": "0.1.0",
+    "review_status": "upstream_pinned"
+  },
+  "seats": [
+    {
+      "id": "buyer",
+      "role": "buyer"
+    },
+    {
+      "id": "seller",
+      "role": "seller"
+    }
+  ],
+  "spec_version": "aeread.case/0.1",
+  "split": "realistic",
+  "upstream_task_id": "Task19_s16_food_delivery_1",
+  "visibility_policy": "agenticpay_bilateral_private_reservation_v1",
+  "world_seed": 16
+}
