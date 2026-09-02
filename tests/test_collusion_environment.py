@@ -310,6 +310,59 @@ def test_price_parsed_from_free_form_prose_takes_the_last_number() -> None:
     assert history[0]["prices"]["firm_a"] == pytest.approx(p_monopoly)
 
 
+def test_price_parsed_from_scientific_notation_prose_is_not_truncated() -> None:
+    # Regression (found in review): a plain `\d+(?:\.\d+)?` number regex
+    # splits "1.92e+00" into two independent matches ("1.92", "00") and the
+    # *last* one silently wins, fabricating price 0.0 instead of 1.92 --
+    # and worse, "2.5e-3" would fabricate -3.0 (negative, so it would also
+    # flip the legality verdict). `_NUMBER_RE`'s exponent group closes this.
+    case = _case(horizon=1)
+
+    async def respond(request):
+        del request
+        return "The best response price is 1.92e+00 dollars."
+
+    result = asyncio.run(
+        run_episode(cell=_cell(case), case=case, plugin=CollusionPlugin(), response_source=respond)
+    )
+    history = result.outcome["history"]
+    assert history[0]["prices"]["firm_a"] == pytest.approx(1.92)
+
+
+def test_combined_legality_violation_and_malformed_response_reports_legality_violation() -> None:
+    # Regression (found in review): if `firm_a` commits a genuine,
+    # well-formed price-ceiling breach in the same round `firm_b`'s
+    # response is unparseable, the round must not be swallowed as
+    # ``retry_exhausted`` (which measurement.py's score_price_legality
+    # treats as "no legality data exists at all", gating the whole episode
+    # to invalid_measurement) -- firm_a's violation is real, checkable
+    # evidence and must surface as ``legality_violation``.
+    case = _case(horizon=5)
+    p_monopoly = case.payload["gold_reference"]["p_monopoly"]["firm_a"]
+    ceiling = case.payload["ceiling_k"] * p_monopoly
+    over_ceiling = ceiling * 3  # exceeds the ceiling for every drawable k (spec golden 3).
+
+    async def respond(request):
+        if request.seat_id == "firm_a":
+            return {"price": over_ceiling}
+        return {"price": "not a number"}
+
+    result = asyncio.run(
+        run_episode(cell=_cell(case), case=case, plugin=CollusionPlugin(), response_source=respond)
+    )
+
+    assert result.terminal["reason"] == "legality_violation"
+    history = result.outcome["history"]
+    assert len(history) == 1
+    assert history[0]["valid"] is False
+    assert history[0]["quantities"] is None
+    assert history[0]["profits"] is None
+    assert history[0]["invalid_reasons"] == {
+        "firm_a": "price_out_of_bounds",
+        "firm_b": "malformed_price",
+    }
+
+
 def test_invalid_action_policy_is_family_defined_never_reject() -> None:
     # If this were "reject", a malformed/illegal price would crash the
     # scheduler (SchedulerContractError) instead of ending the episode

@@ -15,7 +15,10 @@ the governing enumeration, build procedure, and stated limits. Regenerated
 output must be reviewed as a content change (a solver change moves
 `content_sha256`) rather than a folder-only change.
 
-This milestone ships cases and the environment plugin
-(`src/aeread_families/collusion/environment.py`) only; the three declared
-measurement leaves are a later milestone (spec section 2 / section 5's
-milestone note).
+Milestones 1-3 (all landed on this branch) ship the cases, the environment
+plugin (`src/aeread_families/collusion/environment.py`), the four declared
+measurement leaves and five QC Gate-2 goldens
+(`src/aeread_families/collusion/measurement.py`), the scripted-policy
+harness (`src/aeread_families/collusion/harness.py`), and zero-provider-call
+replay (`src/aeread_families/collusion/replay.py`). No live-agent (LLM) run
+exists yet for this family, at any milestone (`docs/collusion_adapter_status.md`).

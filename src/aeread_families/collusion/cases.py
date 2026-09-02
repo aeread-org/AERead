@@ -93,12 +93,17 @@ def case_id(demand_tag: str, alpha: float, seed: int) -> str:
 def ceiling_multiplier(seed: int) -> float:
     """Draw ``2.34`` (here: the per-cell multiplier) from ``Unif([1.5, 2.5])``.
 
-    Deterministic per seed (``random.Random(seed)``'s Mersenne Twister
-    arithmetic is a stable, documented part of the stdlib -- no external
-    dependency needed for one scalar draw). The pilot enumerates the single
-    ``seed=0`` cell rather than sampling across runs (spec section "Governing
-    facts" / fn 13's "with equal probability" draw; section 6's stated
-    limit).
+    Deterministic per seed within one CPython build (``random.Random(seed)``'s
+    Mersenne Twister arithmetic has been practically stable across releases
+    for a long time, so no external dependency is needed for one scalar
+    draw) -- but this is a convention, not a documented cross-version/
+    cross-implementation contract (found in review: the comment previously
+    overstated this as a guarantee). Self-defending regardless: this
+    module's own ``test_committed_corpus_on_disk_matches_the_builder``
+    would catch a divergence the moment the suite runs on a different
+    interpreter. The pilot enumerates the single ``seed=0`` cell rather
+    than sampling across runs (spec section "Governing facts" / fn 13's
+    "with equal probability" draw; section 6's stated limit).
     """
     return random.Random(seed).uniform(CEILING_UNIFORM_LOW, CEILING_UNIFORM_HIGH)
 

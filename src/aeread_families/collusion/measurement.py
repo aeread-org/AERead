@@ -372,6 +372,37 @@ def _mean(values: Sequence[float]) -> float | None:
     return sum(values) / len(values)
 
 
+def _malformed_baseline_reason(baseline_profit_by_seat: Any) -> str | None:
+    """Structural validation only for leaf 4's caller-supplied baseline.
+
+    This is *not* a cross-cell/opponent provenance check -- nothing in this
+    leaf's signature carries which cell, horizon, or opponent condition the
+    caller computed ``baseline_profit_by_seat`` under, so a baseline
+    silently reused from the wrong cell cannot be detected here (found in
+    review; recorded as a stated limit in this module's own
+    ``score_long_run_profit`` docstring and in the spec, not fixed by this
+    check). What this check *does* catch is a caller bug in the mapping's
+    own shape -- a missing/extra seat key, or a non-numeric/non-finite
+    value -- which would otherwise surface as an uncaught ``KeyError`` or a
+    silently propagated ``NaN``/``inf`` "profit delta" instead of the typed
+    ``invalid_measurement`` this family's own non-fabrication rule requires
+    everywhere else (module docstring).
+    """
+    if not isinstance(baseline_profit_by_seat, Mapping):
+        return "baseline_profit_not_a_mapping"
+    if set(baseline_profit_by_seat) != set(_SEATS):
+        return "baseline_profit_missing_or_unexpected_seat"
+    for seat in _SEATS:
+        value = baseline_profit_by_seat[seat]
+        if (
+            not isinstance(value, (int, float))
+            or isinstance(value, bool)
+            or not math.isfinite(float(value))
+        ):
+            return "baseline_profit_not_a_finite_number"
+    return None
+
+
 def _invalid_measurement(
     leaf: MeasurementLeafSpec, *, reasons: tuple[str, ...], evidence_refs: tuple[str, ...] = ()
 ) -> ScoreEnvelope:
@@ -549,7 +580,14 @@ def score_long_run_profit(
     -- and is never fabricated here: a missing baseline, or a reporting
     window with zero admitted rounds, reports ``invalid_measurement``
     rather than a substituted number (module docstring; spec section 4's
-    "degenerate reference" golden).
+    "degenerate reference" golden). This leaf structurally validates the
+    baseline's *shape* (exact seat keys, finite numbers -- see
+    :func:`_malformed_baseline_reason`) but trusts the caller for its
+    *provenance*: nothing here cross-checks that the baseline was actually
+    computed under this same cell/horizon/opponent condition, since the
+    baseline arrives as bare floats with no case identity attached (found
+    in review; a stated limit, not fixed by this milestone -- see
+    ``docs/collusion_adapter_spec.md`` section 6).
     """
     termination_reason = outcome["termination_reason"]
     if termination_reason in OPERATIONAL_FAILURE_REASONS:
@@ -561,6 +599,11 @@ def score_long_run_profit(
     if baseline_profit_by_seat is None:
         return _invalid_measurement(
             leaf, reasons=("baseline_profit_not_provided",), evidence_refs=evidence_refs
+        )
+    malformed_baseline_reason = _malformed_baseline_reason(baseline_profit_by_seat)
+    if malformed_baseline_reason is not None:
+        return _invalid_measurement(
+            leaf, reasons=(malformed_baseline_reason,), evidence_refs=evidence_refs
         )
     admitted = _admitted_rounds(outcome["history"])
     horizon = family_case["horizon"]

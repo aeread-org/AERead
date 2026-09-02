@@ -146,12 +146,23 @@ policy's own realized profit (periods 251–300 mean, mirroring App. A.4's
 reporting window) under the *same* cell, horizon, and opponent condition. The
 opponent condition has no first-class schema field at this verifier family
 (`ObjectiveScopeSpec.opponent_condition` exists only for `objective_reference`);
-it rides in the leaf/case identity instead (`reference_id` and
-`payload.opponent_policy_id` both name the fixed counterpart), the same way
-`econevals_adapter_spec.md` §2 let a tolerance ride in a scorer's
-`ImplementationRef` hash rather than invent a schema field. No
-`objective_reference`/`exact_optimum` leaf is declared here — that would
-misrepresent the paper's own finding that no such oracle exists.
+it rides in the leaf/case identity instead, named through `reference_id`
+(`collusion_nash_play_baseline_v1`, `measurement.py`'s `BASELINE_POLICY_ID`),
+the same way `econevals_adapter_spec.md` §2 let a tolerance ride in a
+scorer's `ImplementationRef` hash rather than invent a schema field. **Documented
+deviation** (found in review — an earlier draft of this section named a
+second, `payload.opponent_policy_id` field as also carrying this identity;
+no such `CaseManifest.payload` field exists or is validated by
+`environment.py`'s `_PAYLOAD_FIELDS`, and adding one would re-digest the
+already-committed milestone-1 corpus's `content_sha256` for no behavior
+change, so `reference_id` alone is the identity binding this milestone
+ships): `score_long_run_profit`'s `baseline_profit_by_seat` argument is
+structurally validated (exact seat keys, finite numbers) but its
+*provenance* — that it was actually computed under this same
+cell/horizon/opponent condition — is trusted from the caller, not verified
+in code (§6's stated limits). No `objective_reference`/`exact_optimum` leaf
+is declared here — that would misrepresent the paper's own finding that no
+such oracle exists.
 
 ```python
 MeasurementLeafSpec(leaf_id="collusion_price_legality", leaf_version="0.1.0",
@@ -280,6 +291,16 @@ synonym for them.
   `comparative`/`baseline_delta` permanently; never promote it to
   `objective_reference`, and never read the stage-game leaves as a long-run
   ceiling.
+- **`score_long_run_profit`'s `baseline_profit_by_seat` is a trusted, not a
+  verified, input.** The leaf validates the mapping's shape (exact seat
+  keys, finite numbers) but has no case-identity field to check that the
+  caller actually computed it under this trajectory's own cell, horizon,
+  and opponent condition (§2, leaf 4's documented deviation) — a caller bug
+  that hands this leaf the wrong cell's baseline (e.g. a different `alpha`)
+  would still score without error. Closing this gap fully would need a
+  case-identity token threaded alongside the baseline value, which no
+  caller in this milestone (no live-agent harness exists yet, §5) needs
+  today; revisit when one is built.
 - α is enumerated (3 values) rather than drawn "with equal probability"
   per run (fn 13) — a pilot-determinism choice, not a claim the paper's own
   randomization is unimportant at full scope.
