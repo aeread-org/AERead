@@ -399,3 +399,47 @@ def test_phase_budget_stops_an_endless_declared_cycle() -> None:
             )
         )
 
+
+class RecurringPairPlugin(SimultaneousFixturePlugin):
+    """Both seats act each instance and the phase cycles back to itself."""
+
+    def phases(self, case):
+        return (
+            replace(
+                super().phases(case)[0],
+                max_logical_actions=5,
+                next_phases=("submit",),
+            ),
+        )
+
+    def step(self, case, state, phase, actions):
+        return TransitionResult(state=state, next_phase_id="submit")
+
+    def terminal(self, case, state):
+        return None
+
+
+def test_phase_budget_sums_across_recurring_instances_never_resets_per_round() -> None:
+    """max_logical_actions is a whole-episode cap per phase_id: two actions per
+    instance against a cap of five must trip on the sixth action (third
+    instance), even though every single instance stays under the cap. A
+    per-instance reset would instead run on to the case budget and fail with a
+    different error."""
+
+    requests: list = []
+
+    async def respond(request):
+        requests.append(request)
+        return {"offer": 7 if request.seat_id == "buyer" else 13}
+
+    with pytest.raises(SchedulerContractError, match="phase logical-action budget"):
+        asyncio.run(
+            run_episode(
+                cell=_cell(),
+                case=_case(),
+                plugin=RecurringPairPlugin(),
+                response_source=respond,
+            )
+        )
+    assert len(requests) == 5, "the sixth action must be refused before dispatch"
+

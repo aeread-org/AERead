@@ -97,7 +97,15 @@ def _freeze_string_mapping(value: Mapping[str, str], path: str) -> Mapping[str, 
 
 @dataclass(frozen=True, slots=True)
 class PhaseSpec:
-    """Runner-readable declaration for one reusable family phase."""
+    """Runner-readable declaration for one reusable family phase.
+
+    ``max_logical_actions`` is a whole-episode cap per ``phase_id``: the count
+    is summed across every instance of this phase over the episode and is
+    never reset per round or instance. A recurring phase therefore declares
+    the total it may consume, not a per-visit allowance — the cap is a
+    runaway guard, and a per-instance reset would let a declared cycle burn
+    actions up to the case budget unchecked.
+    """
 
     phase_id: str
     actor_selector: str
