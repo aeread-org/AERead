@@ -1007,6 +1007,75 @@ def test_resumed_executor_never_reuses_a_minted_tool_invocation_id(tmp_path) -> 
     resumed.audit_reconciliation(entity_types=("tool_invocation",))
 
 
+def test_two_live_executors_over_one_store_never_mint_the_same_id(tmp_path) -> None:
+    evidence = _evidence(tmp_path)
+    first_executor = ToolExecutor(evidence)
+    second_executor = ToolExecutor(evidence)
+
+    first_id = _minted_invocation_id(first_executor, value=1)
+    second_id = _minted_invocation_id(second_executor, value=2)
+
+    assert first_id != second_id
+    evidence.audit_reconciliation(entity_types=("tool_invocation",))
+
+
+def test_legacy_ids_are_resume_stable_when_mixed_with_explicit_id_traffic(
+    tmp_path,
+) -> None:
+    """KernelToolPort passes explicit ids; those invocations append started
+    events too. A legacy mint after explicit traffic must produce the same id
+    whether the run was uninterrupted or resumed past the explicit call."""
+
+    def explicit_invocation(tools: ToolExecutor) -> None:
+        asyncio.run(
+            tools.invoke(
+                action_attempt_id="action_attempt_fixture",
+                tool_id="echo",
+                tool_version="1.0.0",
+                arguments={"value": 0},
+                implementation=_echo_tool,
+                idempotency_supported=True,
+                effect="read_only",
+                tool_schema_sha256="a" * 64,
+                tool_invocation_id="tool_invocation_explicit_0",
+            )
+        )
+
+    uninterrupted = EvidenceStore(
+        tmp_path / "uninterrupted",
+        run_plan_id="runplan_fixture",
+        cell_id="cell_fixture",
+        episode_id="episode_fixture",
+        episode_attempt_id="episode_attempt_fixture_0",
+    )
+    tools = ToolExecutor(uninterrupted)
+    explicit_invocation(tools)
+    expected = _minted_invocation_id(tools, value=1)
+    uninterrupted.close()
+
+    interrupted = EvidenceStore(
+        tmp_path / "interrupted",
+        run_plan_id="runplan_fixture",
+        cell_id="cell_fixture",
+        episode_id="episode_fixture",
+        episode_attempt_id="episode_attempt_fixture_0",
+    )
+    explicit_invocation(ToolExecutor(interrupted))
+    interrupted.close()
+    resumed = EvidenceStore(
+        tmp_path / "interrupted",
+        run_plan_id="runplan_fixture",
+        cell_id="cell_fixture",
+        episode_id="episode_fixture",
+        episode_attempt_id="episode_attempt_fixture_0",
+        resume=True,
+    )
+    actual = _minted_invocation_id(ToolExecutor(resumed), value=1)
+    resumed.close()
+
+    assert actual == expected
+
+
 def test_resumed_executor_reproduces_the_uninterrupted_id_sequence(tmp_path) -> None:
     uninterrupted = EvidenceStore(
         tmp_path / "uninterrupted",
