@@ -447,6 +447,89 @@ def test_close_hook_failure_is_a_typed_scheduler_error() -> None:
         )
 
 
+def test_close_hook_runs_when_preflight_fails_after_the_case_validates() -> None:
+    """validate_payload is where a family would spawn its long-lived process;
+    a later preflight failure must still reach teardown, or the hook leaks
+    exactly the resource it exists to release."""
+
+    closed: list = []
+
+    class PreflightFailurePlugin(ClosingPlugin):
+        def phases(self, case):
+            raise RuntimeError("phase graph could not be built")
+
+        def close(self, case, state):
+            closed.append((case, state))
+
+    async def respond(_request):
+        raise AssertionError("no action may be requested")
+
+    with pytest.raises(SchedulerContractError, match="family preflight failed"):
+        asyncio.run(
+            run_episode(
+                cell=_cell(),
+                case=_case(),
+                plugin=PreflightFailurePlugin(),
+                response_source=respond,
+            )
+        )
+
+    assert len(closed) == 1
+    closed_case, closed_state = closed[0]
+    assert closed_case == PreflightFailurePlugin().validate_payload(_case().payload)
+    assert closed_state is None, "no state exists yet when phases() fails"
+
+
+def test_close_is_skipped_when_the_family_case_itself_never_validated() -> None:
+    """Nothing to tear down that the kernel could name: the plugin never
+    received a validated case, so no per-episode resource is keyed to one."""
+
+    closed: list = []
+
+    class ValidationFailurePlugin(ClosingPlugin):
+        def validate_payload(self, payload):
+            raise RuntimeError("payload rejected")
+
+        def close(self, case, state):
+            closed.append((case, state))
+
+    async def respond(_request):
+        raise AssertionError("no action may be requested")
+
+    with pytest.raises(SchedulerContractError, match="family preflight failed"):
+        asyncio.run(
+            run_episode(
+                cell=_cell(),
+                case=_case(),
+                plugin=ValidationFailurePlugin(),
+                response_source=respond,
+            )
+        )
+    assert closed == []
+
+
+def test_a_close_attribute_with_the_wrong_arity_is_a_named_contract_error() -> None:
+    """A plugin inheriting an unrelated zero-argument close() must fail with a
+    message that names the collision, not an opaque TypeError."""
+
+    class UnrelatedClosePlugin(SimultaneousFixturePlugin):
+        def close(self):
+            return None
+
+    async def respond(request):
+        return {"offer": 7 if request.seat_id == "buyer" else 13}
+
+    with pytest.raises(SchedulerContractError, match="close\\(family_case, state\\)"):
+        asyncio.run(
+            run_episode(
+                cell=_cell(),
+                case=_case(),
+                plugin=UnrelatedClosePlugin(),
+                response_source=respond,
+            )
+        )
+
+
 def test_close_hook_runs_on_episode_failure_and_never_masks_it() -> None:
     close_attempts: list = []
 

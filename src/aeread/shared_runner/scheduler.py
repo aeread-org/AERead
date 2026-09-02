@@ -698,16 +698,13 @@ async def run_episode(
     role_by_seat = _validate_cell_case(cell, case)
     if not callable(response_source):
         raise SchedulerContractError("response_source must be callable")
-    try:
-        family_case = plugin.validate_payload(_copy_for_hook(case.payload, "case payload"))
-        phases = _validate_phase_graph(plugin.phases(family_case))
-        state = plugin.initial_state(family_case, cell)
-    except SchedulerContractError:
-        raise
-    except Exception as error:
-        raise SchedulerContractError(f"family preflight failed: {error}") from error
-    _content_hash(state, "initial family state")
-
+    # Bound before the teardown-protected block so the hook can run even when
+    # preflight fails: validate_payload is exactly where a family would spawn
+    # the long-lived process the hook exists to release.  A family_case of
+    # None means the plugin never received a validated case, so there is no
+    # per-episode resource the kernel could name — teardown is skipped.
+    family_case: Any = None
+    state: Any = None
     family_closed = False
 
     def _close_family() -> None:
@@ -718,18 +715,42 @@ async def run_episode(
         when to tear it down; families without a close hook are untouched.
         """
         nonlocal family_closed
-        if family_closed:
+        if family_closed or family_case is None:
             return
         family_closed = True
         close_hook = getattr(plugin, "close", None)
         if not callable(close_hook):
             return
         try:
+            signature = inspect.signature(close_hook)
+            signature.bind(family_case, state)
+        except TypeError as error:
+            # A plugin carrying an unrelated close() — inherited from a
+            # resource-owning base class, say — must fail with the collision
+            # named, not with an opaque TypeError from a wrong-arity call.
+            raise SchedulerContractError(
+                f"family plugin defines close but not close(family_case, state): {error}"
+            ) from error
+        except (ValueError, TypeError):  # pragma: no cover - unintrospectable callable
+            pass
+        try:
             close_hook(family_case, state)
         except Exception as error:
             raise SchedulerContractError(f"family close failed: {error}") from error
 
     try:
+        try:
+            family_case = plugin.validate_payload(
+                _copy_for_hook(case.payload, "case payload")
+            )
+            phases = _validate_phase_graph(plugin.phases(family_case))
+            state = plugin.initial_state(family_case, cell)
+        except SchedulerContractError:
+            raise
+        except Exception as error:
+            raise SchedulerContractError(f"family preflight failed: {error}") from error
+        _content_hash(state, "initial family state")
+
         phase_by_id = {phase.phase_id: phase for phase in phases}
         episode_id = episode_id_for_cell(cell)
         current_phase_id = phases[0].phase_id
