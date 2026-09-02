@@ -12,6 +12,7 @@ a run meant to certify this corpus.
 from __future__ import annotations
 
 import json
+import os
 import re
 from pathlib import Path
 
@@ -27,7 +28,16 @@ from aeread_families.econevals.econevals_bridge import (
     discover_bridge_python,
 )
 
-UPSTREAM_ROOT = Path("/Users/sunzeyu/Documents/econ benchmark/upstream-econevals")
+# Mirrors tools/econevals_bridge/provision.sh's own
+# $AEREAD_ECONEVALS_UPSTREAM_ROOT convention (that script already reads this
+# exact env var), so a CI machine with a different checkout layout can point
+# this file at the right place the same way it points the bridge itself.
+UPSTREAM_ROOT = Path(
+    os.environ.get(
+        "AEREAD_ECONEVALS_UPSTREAM_ROOT",
+        "/Users/sunzeyu/Documents/econ benchmark/upstream-econevals",
+    )
+)
 CASES_DIR = Path("cases/econevals")
 
 _NO_COLON_RE = re.compile(r"^[a-z0-9](?:[a-z0-9_.-]*[a-z0-9])?$")
@@ -76,10 +86,38 @@ def test_module_sha256_table_has_the_seven_governing_modules() -> None:
         assert re.fullmatch(r"[0-9a-f]{64}", digest)
 
 
-@pytest.mark.skipif(not _upstream_available(), reason="pinned upstream checkout not found")
+@pytest.mark.skipif(
+    not _upstream_available(),
+    reason=f"pinned upstream econ-evals checkout not found at {UPSTREAM_ROOT}",
+)
 def test_module_sha256_table_matches_the_checkout_on_disk() -> None:
     mismatches = econevals_cases.verify_module_sha256(UPSTREAM_ROOT)
     assert mismatches == {}
+
+
+def test_conftest_bridge_gate_marker_covers_this_files_checkout_skip_reason() -> None:
+    """Regression for the second-reviewer finding: ``conftest.py``'s
+    ``AEREAD_ECONEVALS_BRIDGE_REQUIRED`` marker tuple must match THIS file's
+    own checkout-not-found skip reason (the one above), not just the
+    bridge-python-unavailable one -- otherwise a CI machine with a working
+    bridge interpreter but the wrong checkout path silently skips
+    ``test_module_sha256_table_matches_the_checkout_on_disk`` and
+    ``pytest_terminal_summary`` never notices."""
+    import conftest
+
+    econevals_entries = [
+        markers
+        for env_var, _hint, markers in conftest._BRIDGE_FAMILIES
+        if env_var == "AEREAD_ECONEVALS_BRIDGE_REQUIRED"
+    ]
+    assert econevals_entries, "conftest.py must declare an econevals bridge-gate entry"
+    (markers,) = econevals_entries
+    checkout_skip_reason = f"pinned upstream econ-evals checkout not found at {UPSTREAM_ROOT}"
+    assert any(marker in checkout_skip_reason for marker in markers), (
+        "conftest.py's econevals markers do not cover this file's own "
+        "checkout-not-found skip reason -- AEREAD_ECONEVALS_BRIDGE_REQUIRED=1 "
+        "would silently miss it"
+    )
 
 
 def test_seed_lists_match_the_spec() -> None:

@@ -29,9 +29,14 @@ _BRIDGE_FAMILIES = (
     (
         "AEREAD_ECONEVALS_BRIDGE_REQUIRED",
         "Provision the bridge interpreter (tools/econevals_bridge/provision.sh, "
-        "then export $AEREAD_ECONEVALS_BRIDGE_PYTHON), or unset "
-        "$AEREAD_ECONEVALS_BRIDGE_REQUIRED to allow skipping.",
-        ("pinned upstream econ-evals Python interpreter",),
+        "then export $AEREAD_ECONEVALS_BRIDGE_PYTHON) and the pinned upstream "
+        "checkout (set $AEREAD_ECONEVALS_UPSTREAM_ROOT if it is not at the "
+        "default path), or unset $AEREAD_ECONEVALS_BRIDGE_REQUIRED to allow "
+        "skipping.",
+        (
+            "pinned upstream econ-evals Python interpreter",
+            "pinned upstream econ-evals checkout not found",
+        ),
     ),
 )
 
