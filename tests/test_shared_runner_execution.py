@@ -851,6 +851,73 @@ def test_unknown_event_write_failure_preserves_the_unexpected_error(tmp_path) ->
     assert captured.value.__context__ is failures["bookkeeping"]
 
 
+async def _echo_tool(arguments):
+    return {"echo": arguments.get("value")}
+
+
+def _minted_invocation_id(tools: ToolExecutor, value: int) -> str:
+    _, record = asyncio.run(
+        tools.invoke(
+            action_attempt_id="action_attempt_fixture",
+            tool_id="echo",
+            tool_version="1.0.0",
+            arguments={"value": value},
+            implementation=_echo_tool,
+            idempotency_supported=True,
+            effect="read_only",
+            tool_schema_sha256="a" * 64,
+        )
+    )
+    return record.tool_invocation_id
+
+
+def test_resumed_executor_never_reuses_a_minted_tool_invocation_id(tmp_path) -> None:
+    evidence = _evidence(tmp_path)
+    first_id = _minted_invocation_id(ToolExecutor(evidence), value=1)
+    evidence.close()
+
+    resumed = _resume_evidence(tmp_path)
+    second_id = _minted_invocation_id(ToolExecutor(resumed), value=2)
+
+    assert first_id != second_id
+    resumed.audit_reconciliation(entity_types=("tool_invocation",))
+
+
+def test_resumed_executor_reproduces_the_uninterrupted_id_sequence(tmp_path) -> None:
+    uninterrupted = EvidenceStore(
+        tmp_path / "uninterrupted",
+        run_plan_id="runplan_fixture",
+        cell_id="cell_fixture",
+        episode_id="episode_fixture",
+        episode_attempt_id="episode_attempt_fixture_0",
+    )
+    tools = ToolExecutor(uninterrupted)
+    expected = [_minted_invocation_id(tools, value=1), _minted_invocation_id(tools, value=2)]
+    uninterrupted.close()
+
+    interrupted = EvidenceStore(
+        tmp_path / "interrupted",
+        run_plan_id="runplan_fixture",
+        cell_id="cell_fixture",
+        episode_id="episode_fixture",
+        episode_attempt_id="episode_attempt_fixture_0",
+    )
+    first = _minted_invocation_id(ToolExecutor(interrupted), value=1)
+    interrupted.close()
+    resumed = EvidenceStore(
+        tmp_path / "interrupted",
+        run_plan_id="runplan_fixture",
+        cell_id="cell_fixture",
+        episode_id="episode_fixture",
+        episode_attempt_id="episode_attempt_fixture_0",
+        resume=True,
+    )
+    second = _minted_invocation_id(ToolExecutor(resumed), value=2)
+    resumed.close()
+
+    assert [first, second] == expected
+
+
 class FakeResponsesAPI:
     def __init__(self) -> None:
         self.kwargs = None

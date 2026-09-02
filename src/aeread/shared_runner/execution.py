@@ -2720,7 +2720,18 @@ class ToolExecutor:
 
     def __init__(self, evidence: EvidenceStore) -> None:
         self.evidence = evidence
-        self._ordinal = 0
+        # The minting ordinal continues the durable evidence chain rather than
+        # restarting at zero: a fresh store yields 0 (ids unchanged for
+        # uninterrupted runs), while an executor over a resumed store counts
+        # the invocations already started, so two physically distinct
+        # invocations can never share a minted id across crash/resume — the
+        # same invariant KernelToolPort gets from
+        # (attempt_id, source_provider_call_id, source_call_index).
+        self._ordinal = sum(
+            1
+            for event in evidence.read_events()
+            if event.event_type == "tool_invocation_started"
+        )
 
     async def _snapshot_state(
         self, state_reader: Callable[[], Any]
