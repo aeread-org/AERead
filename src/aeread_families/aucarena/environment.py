@@ -325,6 +325,15 @@ class AucArenaPlugin:
         if not isinstance(response, str):
             return ParseResult.failure("response_not_text")
         if "-1" in response:
+            # Substring check, not exact-match, mirroring upstream's own
+            # ``if '-1' in result:`` (``auctioneer_base.py:196``) verbatim.
+            # A raw response like "$-15" is classified as a withdraw here,
+            # not parsed as -15 -- an inherited upstream quirk, not new to
+            # this adapter (docs/aucarena_review_claude.md SUGGESTION 2). No
+            # scripted policy in this family emits a response containing a
+            # literal "-1" substring for a non-withdraw reason; a future
+            # policy author adding one should be aware of this before
+            # relying on the last-\\$?\\d+-match branch below instead.
             bid_price = -1
         else:
             matches = vendored.BID_NUMBER_RE.findall(response.replace(",", ""))
