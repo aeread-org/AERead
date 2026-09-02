@@ -6,8 +6,8 @@ seat -- the agent observes one question and every one of its options (full
 observability; no hidden information) and submits exactly one ``option_id``.
 
 Scoring (the ``MeasurementLeafSpec``/``canonical_point`` verifier declared in
-spec section 2) is a later milestone; ``build_scorer`` below is a declared,
-callable placeholder only -- see its own docstring.
+spec section 2) is built in ``measurement.py``; ``build_scorer`` below wires
+this plugin's cached row to it -- see its own docstring.
 """
 from __future__ import annotations
 
@@ -35,6 +35,7 @@ from .cases import (
     UPSTREAM_COMMIT,
     UPSTREAM_REPO,
 )
+from .measurement import SteerScorer, build_scorer as build_measurement_scorer
 
 PLUGIN_ID = "steer_environment"
 SCORER_ID = "steer_scorer"
@@ -329,22 +330,25 @@ class SteerPlugin:
             "failure_code": terminal["failure_code"],
         }
 
-    def build_scorer(self, family_case: Mapping[str, Any]) -> Any:
-        """Not implemented in this milestone.
+    def build_scorer(self, family_case: Mapping[str, Any]) -> SteerScorer:
+        """Build this case's declared verifier leaf and scorer.
 
-        The declared verifier (``MeasurementLeafSpec`` +
-        ``canonical_point``, spec section 2) reads the same cached JSONL
-        this plugin reads for ``initial_state`` to recover the gold
-        ``correct_option_id`` and compare it to ``outcome()``'s
-        ``selected_option_id``. Building it is a later milestone; this hook
-        must stay callable (``PluginRegistry.register`` requires it) but
-        deliberately raises rather than fabricate a scorer.
+        Reads the same cached row ``initial_state`` reads (never pandas,
+        never the bridge subprocess, never the network) to recover the gold
+        ``correct_option_id`` and the per-question ``source_sha256`` the
+        declared reference pins (spec section 2), and re-verifies
+        ``source_sha256`` against the payload's declared value exactly the
+        way ``initial_state`` does. Mirrors
+        ``tau3_retail.environment.Tau3RetailPlugin.build_scorer``'s
+        contract: return the scorer built by ``measurement.py``.
         """
-        del family_case
-        raise NotImplementedError(
-            "steer scoring (MeasurementLeafSpec + canonical_point scorer) is "
-            "not implemented yet; see docs/steer_adapter_spec.md section 2"
-        )
+        row = self._load_cached_row(family_case["element"], family_case["question_id"])
+        if row["source_sha256"] != family_case["source_sha256"]:
+            raise ValueError(
+                "cached source_sha256 does not match the payload's declared value "
+                f"for {family_case['element']}/{family_case['question_id']}"
+            )
+        return build_measurement_scorer(row)
 
     def build_reference_providers(
         self, family_case: Mapping[str, Any]

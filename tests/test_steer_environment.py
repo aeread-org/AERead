@@ -393,14 +393,24 @@ def test_terminal_is_none_before_a_submission_is_stepped() -> None:
 
 
 # ---------------------------------------------------------------------------
-# build_scorer is a declared, callable milestone-2 placeholder.
+# build_scorer wiring (real coverage lives in tests/test_steer_measurement.py
+# and tests/test_steer_goldens.py; this just pins the environment.py hook
+# itself never silently regresses back to the milestone-1 placeholder).
 # ---------------------------------------------------------------------------
 
 
-def test_build_scorer_is_callable_but_not_implemented_yet() -> None:
+def test_build_scorer_returns_a_scorer_for_this_cases_own_question() -> None:
     plugin, family_case, _state, _phase = _prepared()
-    with pytest.raises(NotImplementedError):
-        plugin.build_scorer(family_case)
+    scorer = plugin.build_scorer(family_case)
+    assert scorer.question_id == family_case["question_id"]
+    assert scorer.leaf.leaf_id == "steer_answer_key"
+
+
+def test_build_scorer_rejects_a_source_sha256_mismatch() -> None:
+    plugin, family_case, _state, _phase = _prepared()
+    mutated = {**family_case, "source_sha256": "0" * 64}
+    with pytest.raises(ValueError, match="source_sha256 does not match"):
+        plugin.build_scorer(mutated)
 
 
 def test_build_reference_providers_and_generator_are_empty() -> None:
