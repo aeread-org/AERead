@@ -30,7 +30,7 @@ track's scoring primitive (``evaluate_alloc`` / ``is_valid_matching`` +
 per spec section 3's adapter boundary ("Upstream owns ... scoring
 primitives ... all invoked through the bridge, never reimplemented").
 
-Scope note (this is milestone 1 of 3 -- see
+Scope note (this is milestone 2 of 3 -- see
 ``docs/econevals_adapter_spec.md``): this module implements the live
 period-loop only. It deliberately does NOT implement upstream's exact
 per-track retry-until-structurally-valid submission loop (e.g. scheduling's
@@ -44,9 +44,9 @@ tau3.retail's environment does not itself retry a malformed tool call --
 matching structural retries are a harness concern to revisit if exact
 per-period retry-count parity with upstream is ever required. Offline
 replay without a live bridge (spec section 5's "no bridge subprocess
-spawned") and the two ``MeasurementLeafSpec``s per track (spec section 2)
-are later-milestone work; ``build_scorer`` raises ``NotImplementedError``
-until that lands.
+spawned") lands in a later milestone; the two ``MeasurementLeafSpec``s per
+track (spec section 2) are declared in ``measurement.py`` and wired in
+through ``build_scorer`` below, as of this milestone.
 """
 from __future__ import annotations
 
@@ -70,6 +70,8 @@ from .cases import (
     TRACKS,
 )
 from .econevals_bridge import EconevalsBridge
+from .measurement import EconevalsScorer
+from .measurement import build_scorer as _build_measurement_scorer
 
 PLUGIN_ID = "econevals_environment"
 SCORER_ID = "econevals_scorer"
@@ -486,20 +488,14 @@ class EconevalsPlugin:
             "num_attempts": terminal["num_attempts"],
         }
 
-    def build_scorer(self, family_case: Mapping[str, Any]) -> Any:
-        """Two-leaf verifier declarations land in a later milestone.
+    def build_scorer(self, family_case: Mapping[str, Any]) -> EconevalsScorer:
+        """Build this case's two-leaf verifier declarations (spec section 2).
 
-        See this module's docstring: the ``MeasurementLeafSpec``/
-        ``ScoreEnvelope`` objects (spec section 2) are deliberately not
-        built yet. Still callable (satisfies
-        ``PluginRegistry.REQUIRED_FAMILY_PLUGIN_HOOKS``), but raises rather
-        than fabricate a score.
+        Delegates entirely to ``measurement.build_scorer``: this hook is
+        just the ``PluginRegistry``-facing entry point, never a second
+        place that declares or computes a leaf.
         """
-        del family_case
-        raise NotImplementedError(
-            "econevals measurement.py (the two-leaf verifier declarations) "
-            "lands in a later milestone"
-        )
+        return _build_measurement_scorer(family_case)
 
     def build_reference_providers(
         self, family_case: Mapping[str, Any]

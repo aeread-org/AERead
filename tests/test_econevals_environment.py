@@ -102,12 +102,25 @@ def test_registering_the_same_family_version_twice_is_refused() -> None:
         register_plugin(registry, plugin=EconevalsPlugin(bridge=None))
 
 
-def test_build_scorer_is_deferred_to_a_later_milestone() -> None:
+@pytest.mark.parametrize(
+    "split,case_id",
+    [
+        ("procurement_basic", "econevals.procurement.basic.0"),
+        ("scheduling_basic", "econevals.scheduling.basic.0"),
+        ("pricing_basic", "econevals.pricing.basic.0"),
+    ],
+)
+def test_build_scorer_declares_exactly_a_gate_leaf_and_an_objective_leaf(
+    split, case_id
+) -> None:
+    """See ``tests/test_econevals_measurement.py`` for the full leaf/scoring contract."""
     plugin = EconevalsPlugin(bridge=None)
-    case = _case("procurement_basic", "econevals.procurement.basic.0")
+    case = _case(split, case_id)
     family_case = plugin.validate_payload(case.payload)
-    with pytest.raises(NotImplementedError):
-        plugin.build_scorer(family_case)
+    scorer = plugin.build_scorer(family_case)
+    assert len(scorer.leaves) == 2
+    assert scorer.gate_leaf.verifier.verifier_family == "rule_constraint"
+    assert scorer.objective_leaf.verifier.verifier_family == "objective_reference"
 
 
 # ---------------------------------------------------------------------------
