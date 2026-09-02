@@ -222,6 +222,21 @@ class SteerBridge:
         response = self._run({"op": "fetch", "element": element})
         return list(response["fetched"])
 
+    def raw_answer_rows(self, element: str, question_id: str) -> list[dict[str, Any]]:
+        """One question_id's RAW ``answers`` frame rows, unclassified.
+
+        Never reuses ``flatten_element``'s own admission classification --
+        exists so a caller can independently re-derive ground truth from a
+        genuinely different code path (docs/steer_codex_triage.md finding
+        4). Returns ``[{"option_id": int, "correct_repr": str}, ...]``,
+        sorted by ``option_id``; ``correct_repr`` is ``repr()`` of the raw
+        cell value, left for the caller to interpret.
+        """
+        response = self._run(
+            {"op": "raw_answer_rows", "element": element, "question_id": question_id}
+        )
+        return list(response["rows"])
+
 
 __all__ = [
     "BRIDGE_PYTHON_ENV_VAR",

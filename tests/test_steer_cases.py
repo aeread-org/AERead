@@ -304,6 +304,75 @@ def test_bridge_refuses_an_upstream_root_that_is_not_a_git_checkout(tmp_path: Pa
 
 
 # ---------------------------------------------------------------------------
+# Finding 4 (docs/steer_codex_triage.md): circular golden oracles. Goldens
+# 1/2 in test_steer_goldens.py only ever check that the scorer agrees with
+# whatever correct_option_id the flatten classification already wrote into
+# the cache -- an internal-consistency check, never a check against
+# upstream's actual, independently-verified answer. This test closes that
+# gap: it re-derives ground truth for the EXACT question golden 1 uses from
+# the RAW answers frame, through the bridge's "raw_answer_rows" op -- a
+# genuinely different code path from _op_flatten's own
+# fillna(False).astype(bool) classification -- and cross-checks it against
+# the cached correct_option_id golden 1 relies on.
+# ---------------------------------------------------------------------------
+
+
+def _first_admitted_cache_row(element: str) -> dict:
+    path = CACHE_ROOT / element / "cases.jsonl"
+    with path.open("r", encoding="utf-8") as handle:
+        return json.loads(handle.readline())
+
+
+def _independently_truthy(correct_repr: str) -> bool:
+    """A from-scratch reinterpretation of one raw cell's ``repr()``,
+    deliberately NOT reusing ``_correct_column``'s own
+    ``.fillna(False).astype(bool)`` idiom -- upstream's own per-element
+    schema drift (docs/steer_adapter_spec.md's Governing facts) means this
+    column is sometimes ``bool`` (``"True"``/``"False"``) and sometimes an
+    integer ``correct_answer`` (``"1"``/``"0"``); either way, a missing
+    value (``"nan"``/``"None"``) must never read as truthy.
+    """
+    if correct_repr in ("nan", "None", "NaN"):
+        return False
+    if correct_repr in ("True", "False"):
+        return correct_repr == "True"
+    return int(correct_repr) != 0
+
+
+def test_independently_truthy_treats_a_missing_value_as_not_correct() -> None:
+    """Demonstrates the exact bug class this check exists to catch (the
+    pure_nash ``.astype(bool)`` finding referenced by
+    docs/steer_review_disposition.md's M1): a NaN placeholder must never
+    read as truthy, in either the bool-column or the integer-column schema
+    variant. Needs no upstream checkout -- pure unit coverage of the helper
+    itself."""
+    assert _independently_truthy("nan") is False
+    assert _independently_truthy("None") is False
+    assert _independently_truthy("True") is True
+    assert _independently_truthy("False") is False
+    assert _independently_truthy("1") is True
+    assert _independently_truthy("0") is False
+
+
+def test_golden_1s_gold_option_is_independently_verified_against_the_raw_upstream_frame() -> None:
+    element = "transitivity"
+    row = _first_admitted_cache_row(element)
+
+    raw_rows = _bridge().raw_answer_rows(element, row["question_id"])
+
+    # Independent ground truth: a genuinely different code path from
+    # _op_flatten's own classification (see `_independently_truthy`'s
+    # docstring) -- exactly the check goldens 1/2 never performed
+    # (docs/steer_codex_triage.md finding 4).
+    independently_correct_option_ids = [
+        entry["option_id"]
+        for entry in raw_rows
+        if _independently_truthy(entry["correct_repr"])
+    ]
+    assert independently_correct_option_ids == [row["correct_option_id"]]
+
+
+# ---------------------------------------------------------------------------
 # CaseManifest construction (spec section 1's case-manifest field table).
 # ---------------------------------------------------------------------------
 

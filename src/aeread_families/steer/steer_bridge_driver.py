@@ -53,6 +53,17 @@ written to stdout:
          network-touching op in this driver; never invoked automatically by
          ``cases.py``, the environment plugin, or any test.
 
+  {"op": "raw_answer_rows", "element": str, "question_id": str}
+      -> {"ok": true, "element": str, "question_id": str,
+          "rows": [{"option_id": int, "correct_repr": str}, ...]}
+      -- the RAW ``answers`` frame rows for exactly one question_id, sorted
+         by ``option_id``, with the correct/correct_answer cell rendered via
+         ``repr()`` -- never coerced, filled, or classified. Exists so a
+         caller can independently re-derive ground truth from a genuinely
+         different code path than the "flatten" op's own admission
+         classification (a critical review finding, tests/test_steer_cases.py's
+         ``test_golden_1s_gold_option_is_independently_verified_against_the_raw_upstream_frame``).
+
   else -> {"ok": false, "error_type": "bad_request", "message": str}
 
 Any raised exception is caught at the top level and reported as
@@ -206,6 +217,38 @@ def _correct_column(answers: Any) -> str:
     )
 
 
+def _op_raw_answer_rows(
+    upstream_root: Path, cache_root: Path, request: dict[str, Any]
+) -> dict[str, Any]:
+    """Return one question_id's RAW answers-frame rows, unclassified.
+
+    Exists so a caller can independently re-derive "is this question's gold
+    option really correct" from a genuinely different code path than
+    ``_op_flatten``'s own admission classification -- a critical review
+    finding (``docs/steer_codex_triage.md`` finding 4): golden 1/2 only ever
+    checked the pipeline's self-agreement with whatever ``correct_option_id``
+    the (possibly-buggy) flatten classification already wrote into the
+    cache, never an independent ground truth. ``correct_repr`` is
+    ``repr()`` of the raw cell value -- never coerced, filled, or classified
+    here -- so the caller decides for itself what counts as truthy.
+    """
+    element = request["element"]
+    question_id = request["question_id"]
+    frames, _file_hashes = _verify_and_load_frames(upstream_root, cache_root, element)
+    answers = frames["answers"]
+    correct_column = _correct_column(answers)
+    matching = answers[answers["question_id"] == question_id]
+    rows = [
+        {
+            "option_id": int(row.option_id),
+            "correct_repr": repr(getattr(row, correct_column)),
+        }
+        for row in matching.itertuples(index=False)
+    ]
+    rows.sort(key=lambda row: row["option_id"])
+    return {"ok": True, "element": element, "question_id": question_id, "rows": rows}
+
+
 def _op_flatten(upstream_root: Path, cache_root: Path, request: dict[str, Any]) -> dict[str, Any]:
     element = request["element"]
     head_n = request["head_n"]
@@ -329,6 +372,8 @@ def _dispatch(upstream_root: Path, cache_root: Path, request: dict[str, Any]) ->
         return _op_flatten(upstream_root, cache_root, request)
     if op == "fetch":
         return _op_fetch(upstream_root, cache_root, request)
+    if op == "raw_answer_rows":
+        return _op_raw_answer_rows(upstream_root, cache_root, request)
     return {
         "ok": False,
         "error_type": "bad_request",
