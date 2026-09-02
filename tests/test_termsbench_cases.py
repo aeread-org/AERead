@@ -115,6 +115,88 @@ def test_difficulty_score_is_a_pure_function_of_the_generator_draw() -> None:
     assert "state" not in source and "outcome" not in source and "terminal" not in source
 
 
+def test_difficulty_score_is_unaffected_by_an_actually_completed_production_episode() -> None:
+    """Behavioral companion to the substring check above (Codex review
+    finding 5): that check only greps ``generate_payload``'s own source text
+    for ``state``/``outcome``/``terminal`` -- it would miss impurity hidden
+    behind an innocuously-named helper (e.g. one that reads a module-level
+    cache a real episode run populated), and would false-fail on an
+    unrelated local variable that happens to share one of those names.
+
+    This drives a real ``(state, outcome, terminal)`` triple into existence
+    through the actual production scheduler -- ``run_episode`` +
+    ``TermsBenchPlugin`` + ``ScriptedTermsBenchHarness``, exactly the path
+    every other termsbench test exercises, not a re-derivation of
+    ``generate_payload``'s own logic -- and confirms regenerating the same
+    ``(family, regime, world_seed)`` payload afterwards is still
+    byte-identical to before that episode ever ran. A regression that
+    computed ``difficulty_score`` from a post-episode global/cached
+    trajectory would change the second value even though generate_payload's
+    only formal inputs are unchanged.
+    """
+    import asyncio
+    from types import MappingProxyType
+
+    from aeread.shared_runner.registry import PluginRegistry
+    from aeread.shared_runner.resolver import PlanCell
+    from aeread.shared_runner.scheduler import run_episode
+    from aeread_families.termsbench.environment import register_plugin
+    from aeread_families.termsbench.harness import ScriptedTermsBenchHarness
+
+    family, regime, world_seed = "candid", "overlap", 1000046
+    before = tb_cases.generate_payload(family, regime, world_seed)
+
+    case = CaseManifest.from_dict(tb_cases.build_case(family, regime, world_seed))
+    assert case.payload["chi"] == "counterpart_opens"  # round 1 is the counterpart's opening offer
+    cell = PlanCell(
+        spec_version="aeread.run_plan/0.1",
+        cell_id="cell_termsbench_cases_purity",
+        case_id=case.case_id,
+        case_sha256=case.content_sha256,
+        family_id=case.family_id,
+        family_version=case.family_version,
+        suite_id="suite_termsbench_cases_purity",
+        suite_version="0.1.0",
+        block_id="block_termsbench_cases_purity",
+        sampling_plan_id="sampling_termsbench_cases_purity",
+        analysis_plan_id="analysis_termsbench_cases_purity",
+        world_seed=case.world_seed,
+        sampling_seed=case.world_seed,
+        block_repetition=0,
+        sampling_replicate=0,
+        replicate_index=0,
+        cluster_id="cluster_termsbench_cases_purity",
+        cluster_level="case",
+        observations_per_cluster=1,
+        pair_id=None,
+        paired_fields=MappingProxyType({}),
+        panel_mode="independent",
+        profile_by_seat=MappingProxyType(
+            {"agent": "scripted_agent", "counterpart": "termsbench_counterpart_kernel_v1"}
+        ),
+        execution_mode="evaluate",
+        case_max_logical_actions=case.episode.max_logical_actions,
+    )
+    registry = PluginRegistry()
+    plugin = register_plugin(registry)
+    harness = ScriptedTermsBenchHarness(
+        world_seed=case.world_seed,
+        script=[{"decision": "reject", "price": None, "message": "no deal"}],
+    )
+    result = asyncio.run(run_episode(cell=cell, case=case, plugin=plugin, response_source=harness))
+    # Sanity: a real state/outcome/terminal triple genuinely came into
+    # existence for this exact world_seed.
+    assert result.terminal["reason"] == "agent_reject"
+    assert result.outcome["termination_reason"] == "agent_reject"
+    # Round 1 was the counterpart's opening offer (chi=counterpart_opens);
+    # the agent's Reject is its round-2 response.
+    assert result.final_state["round"] == 2
+
+    after = tb_cases.generate_payload(family, regime, world_seed)
+    assert after == before
+    assert after["difficulty_score"] == before["difficulty_score"]
+
+
 def test_overlap_difficulty_increases_as_zopa_narrows() -> None:
     wide = k.overlap_difficulty(delta=100.0, price_range=200.0, kappa_agent=0.5, kappa_counterpart=0.5, eta_b="neutral")
     narrow = k.overlap_difficulty(delta=20.0, price_range=200.0, kappa_agent=0.5, kappa_counterpart=0.5, eta_b="neutral")
