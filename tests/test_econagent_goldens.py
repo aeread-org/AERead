@@ -38,22 +38,30 @@ no provisioned bridge interpreter is available -- following
 """
 from __future__ import annotations
 
+import asyncio
 import json
 import os
 from pathlib import Path
+from types import MappingProxyType
 from typing import Any, Mapping
 
 import pytest
 
 from aeread.shared_runner.registry import PluginRegistry
+from aeread.shared_runner.resolver import PlanCell
 from aeread.shared_runner.schemas import CaseManifest
+from aeread.shared_runner.scheduler import SchedulerContractError, run_episode
 from aeread_families.econagent_v1.econagent_bridge import (
     EconAgentBridge,
     EconAgentBridgeError,
     EconAgentBridgeUnavailableError,
     discover_bridge_python,
 )
-from aeread_families.econagent_v1.environment import EconAgentV1Plugin, register_plugin
+from aeread_families.econagent_v1.environment import (
+    EconAgentV1Plugin,
+    family_manifest,
+    register_plugin,
+)
 
 
 def _upstream_root() -> Path:
@@ -90,6 +98,42 @@ def _require_bridge() -> None:
 def _case(case_id: str = "econagent.pilot.small10x12.seed0") -> CaseManifest:
     path = Path("cases/econagent_v1") / f"{case_id}.json"
     return CaseManifest.from_dict(json.loads(path.read_text(encoding="utf-8")))
+
+
+def _cell(case: CaseManifest, *, suffix: str) -> PlanCell:
+    """Mirrors ``test_econagent_e2e.py``'s ``_cell`` -- a real ``PlanCell``
+    for driving this case through the real scheduler (``run_episode``)."""
+    n_agents = case.payload["scenario"]["n_agents"]
+    profile_by_seat = {
+        f"agent_{index}": "econagent_v1_scripted_complex" for index in range(n_agents)
+    }
+    return PlanCell(
+        spec_version="aeread.run_plan/0.1",
+        cell_id=f"cell_econagent_golden_{suffix}",
+        case_id=case.case_id,
+        case_sha256=case.content_sha256,
+        family_id=case.family_id,
+        family_version=case.family_version,
+        suite_id="suite_econagent_golden",
+        suite_version="0.1.0",
+        block_id="block_econagent_golden",
+        sampling_plan_id="sampling_econagent_golden",
+        analysis_plan_id="analysis_econagent_golden",
+        world_seed=case.world_seed,
+        sampling_seed=case.world_seed,
+        block_repetition=0,
+        sampling_replicate=0,
+        replicate_index=0,
+        cluster_id=f"cluster_econagent_golden_{suffix}",
+        cluster_level="case",
+        observations_per_cluster=1,
+        pair_id=None,
+        paired_fields=MappingProxyType({}),
+        panel_mode="independent",
+        profile_by_seat=MappingProxyType(profile_by_seat),
+        execution_mode="evaluate",
+        case_max_logical_actions=case.episode.max_logical_actions,
+    )
 
 
 def _scenario_payload(
@@ -313,6 +357,64 @@ def test_golden_invalid_action_never_reaches_step_and_touches_no_protected_state
     for session_id in list(registry_plugin._sessions):
         registry_plugin._sessions[session_id].close()
         registry_plugin._sessions.pop(session_id)
+
+
+def test_golden_invalid_action_never_reaches_step_via_the_real_scheduler() -> None:
+    """Strengthens the golden above: the claim ("an illegal seat action never
+    reaches step()/mutates protected state") is proven here against the REAL
+    scheduler path (``aeread.shared_runner.scheduler.run_episode``), not
+    only the hand-wired plugin-hook loop the previous golden exercises.
+
+    One seat (``agent_0``) submits a malformed response (``parse_action``
+    rejects it, per milestone-1 correction 4's acknowledgment-only
+    contract); the real scheduler's ``invalid_action_policy="reject"``
+    (``environment.py``'s ``AGENT_MONTH_PHASE``) must raise
+    ``SchedulerContractError`` from inside its per-seat action loop, before
+    it ever reaches the phase's single post-loop ``step()`` call. Proven,
+    not merely asserted, by making ``EconAgentV1Plugin.step`` itself raise
+    if it is ever invoked -- if the scheduler's own reject-before-step
+    ordering ever regressed, this test would fail on a mismatched exception
+    message (``"step failed for phase"`` instead of ``"invalid action for
+    seat"``), not silently pass.
+    """
+    _require_bridge()
+    case = _case("econagent.pilot.tiny4x6.seed0")
+    cell = _cell(case, suffix="illegal-seat-real-scheduler")
+
+    plugin = EconAgentV1Plugin(upstream_root=UPSTREAM_ROOT)
+    registry = PluginRegistry()
+    register_plugin(registry, plugin=plugin)
+    resolved_plugin = registry.resolve_manifest(family_manifest())
+
+    def _step_must_not_be_called(*_args: Any, **_kwargs: Any) -> Any:
+        raise AssertionError(
+            "run_episode must never call step() when a seat's action is illegal"
+        )
+
+    async def _one_illegal_seat_response_source(request: Any) -> dict[str, Any]:
+        if request.seat_id == "agent_0":
+            return {"acknowledge": False}  # malformed -- parse_action rejects it
+        return {"acknowledge": True}
+
+    original_step = EconAgentV1Plugin.step
+    EconAgentV1Plugin.step = _step_must_not_be_called  # type: ignore[assignment]
+    try:
+        with pytest.raises(SchedulerContractError, match="invalid action for seat"):
+            asyncio.run(
+                run_episode(
+                    cell=cell,
+                    case=case,
+                    plugin=resolved_plugin,
+                    response_source=_one_illegal_seat_response_source,
+                )
+            )
+    finally:
+        EconAgentV1Plugin.step = original_step  # type: ignore[assignment]
+        # Clean up the still-open session `initial_state` opened before the
+        # illegal action was ever discovered.
+        for session_id in list(plugin._sessions):
+            plugin._sessions[session_id].close()
+            plugin._sessions.pop(session_id)
 
 
 def test_golden_a_hand_crafted_bridge_request_cannot_bypass_complex_actions() -> None:

@@ -207,7 +207,7 @@ class RecordedEconAgentBridge:
         self._calls = tuple(calls)
         self._cursor = 0
 
-    def _next(self, method: str) -> Any:
+    def _next(self, method: str, args: Mapping[str, Any] | None = None) -> Any:
         if self._cursor >= len(self._calls):
             raise ReplayError(
                 f"recorded bridge calls exhausted before a {method!r} call was requested"
@@ -219,6 +219,14 @@ class RecordedEconAgentBridge:
                 "recorded bridge call order does not match the replayed request: "
                 f"expected {call.method!r}, got {method!r}"
             )
+        if args is not None:
+            replayed_args = _plain(args)
+            if replayed_args != call.args:
+                raise ReplayError(
+                    "recorded bridge call arguments do not match the replayed "
+                    f"request: {method!r} was recorded with args={call.args!r}, "
+                    f"replayed with args={replayed_args!r}"
+                )
         return call.response
 
     def start_episode(self, **kwargs: Any) -> Any:
@@ -235,8 +243,19 @@ class RecordedEconAgentBridge:
         return self._next("dense_log")
 
     def recompute_tax(self, incomes: Mapping[str, float]) -> Any:
-        del incomes
-        return self._next("recompute_tax")
+        """Serve the next recorded ``recompute_tax`` response.
+
+        Unlike the other replayed methods, ``incomes`` is not discarded: it
+        is the replayed episode's own re-derivation of each agent-month's
+        income (``score_tax_bracket_arithmetic``'s ``incomes`` dict, built
+        fresh from the replayed ``dense_log``), so it must equal the
+        original live scoring call's own recorded ``args["incomes"]`` --
+        otherwise a divergence in the replayed ``dense_log`` could silently
+        reuse a stale recorded ``tax_due`` against different incomes and
+        still report leaf 2 as ``"ok"`` (see this module's own review
+        trail; call order alone cannot catch that class of bug).
+        """
+        return self._next("recompute_tax", args={"incomes": incomes})
 
     def close(self) -> None:
         # A recorded "close" entry is optional tail bookkeeping (the real

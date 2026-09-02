@@ -197,6 +197,40 @@ def test_recorded_bridge_rejects_a_method_order_mismatch() -> None:
         bridge.agent_snapshot()
 
 
+def test_recorded_bridge_rejects_a_recompute_tax_income_mismatch() -> None:
+    """Regression guard: unlike every other replayed method, `recompute_tax`
+    must not serve its recorded response purely by call order -- the
+    replayed `incomes` argument (re-derived from the replayed episode's own
+    dense_log) has to equal what the original live scoring call actually
+    recorded, or a dense_log/income divergence introduced elsewhere could
+    silently reuse a stale recorded `tax_due` against different incomes."""
+    calls = (
+        RecordedBridgeCall(
+            method="recompute_tax",
+            args={"incomes": {"0": 1000.0}},
+            response={"0": {"tax_due": 1.0}},
+        ),
+    )
+    bridge = RecordedEconAgentBridge(calls)
+
+    with pytest.raises(ReplayError, match="arguments do not match"):
+        bridge.recompute_tax({"0": 2000.0})
+
+
+def test_recorded_bridge_serves_recompute_tax_when_incomes_match() -> None:
+    calls = (
+        RecordedBridgeCall(
+            method="recompute_tax",
+            args={"incomes": {"0": 1000.0}},
+            response={"0": {"tax_due": 1.0}},
+        ),
+    )
+    bridge = RecordedEconAgentBridge(calls)
+
+    assert bridge.recompute_tax({"0": 1000.0}) == {"0": {"tax_due": 1.0}}
+    assert bridge.exhausted is True
+
+
 def test_compare_episode_results_reports_specific_mismatches_not_one_boolean() -> None:
     """A synthetic mismatch (mutated terminal) must be visible per-component."""
 
@@ -337,6 +371,43 @@ def test_replay_recomputes_all_three_leaves_with_zero_live_calls() -> None:
     assert scores.budget_identity == original_budget
     assert scores.tax_bracket_arithmetic == original_tax
     assert scores.macro_trajectory == original_macro
+
+
+def test_replay_leaf2_detects_a_recorded_recompute_tax_income_mismatch() -> None:
+    """Mutation check for the "recompute_tax replays by call order alone"
+    gap: a `RecordedEconAgentBridge` double served purely by call order
+    would silently reuse a stale recorded `tax_due` against incomes that no
+    longer match what generated it. Tampering one recorded
+    `recompute_tax` call's own `args["incomes"]` (never its response, and
+    never call order/count) must be caught -- proving leaf 2's replay path
+    actually checks its own recorded inputs, not just their sequence."""
+    _require_bridge()
+    case, cell, original, recorded = _run_live(suffix="tax-income-mismatch")
+    scorer = _scorer_for(case)
+    dense_log = original.terminal["dense_log"]
+    n_agents = original.terminal["n_agents"]
+    _tax_score, tax_calls = score_tax_bracket_arithmetic_and_record(
+        scorer, dense_log=dense_log, n_agents=n_agents, upstream_root=UPSTREAM_ROOT
+    )
+
+    tampered_tax_calls = list(tax_calls)
+    first_call = tampered_tax_calls[0]
+    tampered_incomes = dict(first_call.args["incomes"])
+    some_agent = next(iter(tampered_incomes))
+    tampered_incomes[some_agent] = tampered_incomes[some_agent] + 1234.0
+    tampered_tax_calls[0] = RecordedBridgeCall(
+        method=first_call.method,
+        args={"incomes": tampered_incomes},
+        response=first_call.response,
+    )
+
+    replayed = asyncio.run(
+        replay_episode(cell=cell, case=case, upstream_root=UPSTREAM_ROOT, recorded=recorded)
+    )
+    with pytest.raises(ReplayError, match="arguments do not match"):
+        score_replayed_episode(
+            scorer=scorer, replayed=replayed, tax_recompute_calls=tuple(tampered_tax_calls)
+        )
 
 
 def test_replay_and_verify_end_to_end_returns_a_matching_report() -> None:
