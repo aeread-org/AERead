@@ -362,6 +362,34 @@ def test_replay_raises_when_a_recorded_tool_result_is_tampered_with(tmp_path: Pa
         )
 
 
+def test_replay_requires_a_live_bridge_it_is_not_bridge_free(tmp_path: Path) -> None:
+    """Pins down the corrected spec section 5 claim: "offline replay" means
+    zero further MODEL calls, not zero bridge subprocess calls -- step()'s
+    own tool-replay cross-check (exercised above by the tamper test) always
+    re-derives every recorded tool result from a live bridge call, replay
+    included, exactly like tau3_retail's replay re-executing tool calls
+    through its own bridge. A plugin built with no bridge at all must fail
+    loudly on replay, the same way a live run would -- never silently
+    "succeed" by trusting the recorded evidence alone."""
+    bridge = _bridge()
+    case, cell, _resolved_plugin, family_case, original = _run_live(
+        bridge, tmp_path, suffix="no_bridge"
+    )
+    recorded = record_episode(original)
+
+    bridge_free_plugin = EconevalsPlugin(bridge=None)
+    registry = PluginRegistry()
+    register_plugin(registry, plugin=bridge_free_plugin)
+    resolved_bridge_free_plugin = registry.resolve_manifest(family_manifest())
+
+    with pytest.raises(RuntimeError, match="requires a provisioned EconevalsBridge"):
+        asyncio.run(
+            replay_episode(
+                cell=cell, case=case, plugin=resolved_bridge_free_plugin, recorded=recorded
+            )
+        )
+
+
 def test_replay_case_mismatch_raises_a_typed_replay_error(tmp_path: Path) -> None:
     bridge = _bridge()
     case, cell, resolved_plugin, family_case, original = _run_live(

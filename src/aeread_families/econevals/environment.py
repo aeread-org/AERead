@@ -43,8 +43,13 @@ simplification of a harness-level retry policy, analogous to how
 tau3.retail's environment does not itself retry a malformed tool call --
 matching structural retries are a harness concern to revisit if exact
 per-period retry-count parity with upstream is ever required. Offline
-replay without a live bridge (spec section 5's "no bridge subprocess
-spawned") lands in a later milestone; the two ``MeasurementLeafSpec``s per
+replay (spec section 5) lands in milestone 3 (``replay.py``) -- it is
+"offline" in the sense of zero further model calls, NOT in the sense of
+avoiding the bridge subprocess: ``step()``'s own tool-replay cross-check
+below independently re-derives every recorded tool result from a live
+bridge call every period, replay included (spec section 6's milestone-3
+build note on this corrects an earlier, incorrect draft of this sentence).
+The two ``MeasurementLeafSpec``s per
 track (spec section 2) are declared in ``measurement.py`` and wired in
 through ``build_scorer`` below, as of this milestone.
 
