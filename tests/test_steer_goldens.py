@@ -266,7 +266,17 @@ def _dsic_zero_correct_sample_question_id() -> str:
 def test_golden_5_degenerate_reference_question_id_is_a_real_zero_correct_row() -> None:
     """The fixture itself is real upstream data, not fabricated: one of
     dsic_mechanism's own 1,760/2,417 zero-correct question_ids, recorded in
-    pins.json by the same Gate-1 importer run that built the corpus."""
+    pins.json by the same Gate-1 importer run that built the corpus.
+
+    This only checks the sample's SHAPE (a real, non-empty question_id) --
+    it trusts the driver's own zero_correct label. For the independent
+    check that this specific question really has zero correct options,
+    re-derived from the raw upstream answers frame through a genuinely
+    different code path than the driver's own classification (a critical
+    review finding, docs/steer_codex_triage.md finding 7), see
+    tests/test_steer_cases.py's
+    ``test_golden_5s_sample_is_independently_verified_to_have_zero_correct_options``.
+    """
     sample = _dsic_zero_correct_sample_question_id()
     assert isinstance(sample, str) and sample
 

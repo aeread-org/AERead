@@ -374,6 +374,42 @@ def test_golden_1s_gold_option_is_independently_verified_against_the_raw_upstrea
 
 
 # ---------------------------------------------------------------------------
+# Finding 7 (docs/steer_codex_triage.md): a vacuous Golden 5.
+# ``test_steer_goldens.py``'s Golden 5 only ever checked that the recorded
+# sample is a non-empty string (``isinstance(sample, str) and sample``) --
+# it trusted the driver's own ``zero_correct`` label rather than
+# independently confirming the row actually has zero correct options. The
+# other two golden-5 tests (checking the sample is absent from admitted
+# rows/case files) are tautological BY CONSTRUCTION given
+# ``_op_flatten``'s own control flow, so nothing in Golden 5 as it stood
+# could ever distinguish "the exclusion logic is right" from "the exclusion
+# logic is self-consistent." This test closes that gap the same way
+# finding 4 does for golden 1: re-derive ground truth for the exact sampled
+# question from the RAW answers frame, through a genuinely different code
+# path than _op_flatten's own classification.
+# ---------------------------------------------------------------------------
+
+
+def test_golden_5s_sample_is_independently_verified_to_have_zero_correct_options() -> None:
+    pins_path = CASES_DIR / "pins.json"
+    if not pins_path.is_file():
+        pytest.skip(f"pins.json not built yet at {pins_path}")
+    pins = json.loads(pins_path.read_text(encoding="utf-8"))
+    sample = pins["zero_correct_sample_by_element"]["dsic_mechanism"]
+    if sample is None:
+        pytest.skip("dsic_mechanism has no recorded zero-correct sample in pins.json")
+
+    raw_rows = _bridge().raw_answer_rows("dsic_mechanism", sample)
+    # The question_id genuinely exists in the raw upstream frame -- not a
+    # fabricated identifier.
+    assert raw_rows
+    # Independent ground truth (see `_independently_truthy`'s docstring):
+    # not one option of this question is truthy under a from-scratch
+    # reinterpretation, never _op_flatten's own classification re-asked.
+    assert not any(_independently_truthy(row["correct_repr"]) for row in raw_rows)
+
+
+# ---------------------------------------------------------------------------
 # Finding 6 (docs/steer_codex_triage.md): missing exclusion records. Before
 # this fix, the flatten response (and pins.json) only ever carried
 # aggregate zero_correct/multi_correct COUNTS plus one arbitrary
