@@ -304,6 +304,16 @@ class EconAgentV1Plugin:
             "agents": snapshot["agents"],
             "world": snapshot["world"],
             "month_actions": [],
+            # One entry appended per step() call, before that month's
+            # mutation (see step()'s own comment) -- the world_interest_rate
+            # that will actually be applied to compute *this* month's
+            # saving-interest payoff, per measurement.py's
+            # econagent_budget_identity leaf. Reading it back out of a
+            # finished dense_log instead would be wrong for any boundary
+            # month past the first: upstream's own SimpleSaving may already
+            # have advanced world.interest_rate to the *next* boundary
+            # month's rate by the time dense_log is read.
+            "world_interest_rate_by_month": [],
             # Populated only at termination (see step()) -- the full,
             # per-component upstream dense log (spec section 2's
             # rule_constraint leaves read every term from this, never
@@ -425,6 +435,15 @@ class EconAgentV1Plugin:
 
         new_state = _plain(state)
         bridge = self._require_session(new_state["bridge_session_id"])
+        # Captured BEFORE bridge.step_month() mutates anything: this is the
+        # rate upstream's own SimpleSaving is about to apply for THIS month
+        # (whether or not this month is actually a saving-interest boundary
+        # month), i.e. `state["world"]["interest_rate"]` as of the end of
+        # the previous month -- see measurement.py's
+        # `compute_budget_identity_residuals` docstring for why reading it
+        # back out of the finished dense_log instead would be wrong for any
+        # boundary month past the first.
+        pre_step_interest_rate = new_state["world"]["interest_rate"]
         result = bridge.step_month()
         snapshot = bridge.agent_snapshot()
 
@@ -432,6 +451,9 @@ class EconAgentV1Plugin:
         new_state["agents"] = snapshot["agents"]
         new_state["world"] = snapshot["world"]
         new_state["month_actions"] = list(new_state["month_actions"]) + [result["actions"]]
+        new_state["world_interest_rate_by_month"] = list(
+            new_state["world_interest_rate_by_month"]
+        ) + [pre_step_interest_rate]
 
         if result["done"] or new_state["timestep"] >= new_state["episode_length"]:
             # Upstream's own per-component dense log (e.g. "PeriodicTax") is
@@ -468,6 +490,7 @@ class EconAgentV1Plugin:
             "final_agents": state["agents"],
             "final_world": state["world"],
             "month_actions": state["month_actions"],
+            "world_interest_rate_by_month": state["world_interest_rate_by_month"],
             "dense_log": state["dense_log"],
         }
 

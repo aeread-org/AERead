@@ -222,6 +222,7 @@ def test_golden_successful_full_run_holds_every_accounting_identity_exactly() ->
         n_agents=n_agents,
         world_period=world_period,
         month_actions=terminal["month_actions"],
+        world_interest_rate_by_month=terminal["world_interest_rate_by_month"],
     )
     assert budget_score.status == "ok"
     assert budget_score.primary.value == 1.0
@@ -283,6 +284,7 @@ def test_golden_valid_but_poor_stays_fully_accounted_and_never_scored_as_a_failu
             n_agents=n_agents,
             world_period=world_period,
             month_actions=terminal["month_actions"],
+            world_interest_rate_by_month=terminal["world_interest_rate_by_month"],
         )
         assert budget_score.primary.value == 1.0
         bridge = EconAgentBridge.discover(UPSTREAM_ROOT)
@@ -562,6 +564,7 @@ def test_golden_degenerate_two_agent_lump_sum_reports_the_real_computed_value() 
         n_agents=n_agents,
         world_period=world_period,
         month_actions=terminal["month_actions"],
+        world_interest_rate_by_month=terminal["world_interest_rate_by_month"],
     )
     assert budget_score.status == "ok"
     assert budget_score.primary.value == 1.0

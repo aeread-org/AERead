@@ -341,11 +341,13 @@ def test_replay_recomputes_all_three_leaves_with_zero_live_calls() -> None:
     original_n_agents = original.terminal["n_agents"]
     original_month_actions = original.terminal["month_actions"]
     original_world_period = original.terminal["final_world"]["period"]
+    original_world_interest_rate_by_month = original.terminal["world_interest_rate_by_month"]
     original_budget = scorer.score_budget_identity(
         dense_log=original_dense_log,
         n_agents=original_n_agents,
         world_period=original_world_period,
         month_actions=original_month_actions,
+        world_interest_rate_by_month=original_world_interest_rate_by_month,
     )
     original_macro = scorer.score_macro_trajectory(
         dense_log=original_dense_log,

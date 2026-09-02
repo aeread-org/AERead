@@ -297,12 +297,23 @@ def _require_dense_log(dense_log: Mapping[str, Any] | None) -> Mapping[str, Any]
 
 @dataclass(frozen=True, slots=True)
 class BudgetIdentityResidual:
-    """One agent-month's closing residual for the six-term budget identity."""
+    """One agent-month's closing residual for the six-term budget identity.
+
+    ``expected_saving_interest`` is 0.0 on every non-boundary month (the
+    identity's own invariant: no interest term can legitimately appear
+    outside a ``world.period`` boundary) and ``world_interest_rate *
+    closing_balance_before_interest`` on a boundary month -- the one formula
+    upstream's own ``SimpleSaving.component_step`` actually applies, using
+    upstream's own recorded rate for that month, never a reimplemented
+    Taylor-rule computation. ``residual`` must equal this value exactly (to
+    tolerance) for the identity to hold; see :func:`score_budget_identity`.
+    """
 
     month: int
     agent_id: str
     residual: float
     is_boundary_month: bool
+    expected_saving_interest: float
 
 
 def compute_budget_identity_residuals(
@@ -310,6 +321,7 @@ def compute_budget_identity_residuals(
     n_agents: int,
     world_period: int,
     month_actions: Sequence[Mapping[str, Sequence[float]]],
+    world_interest_rate_by_month: Sequence[float],
 ) -> tuple[BudgetIdentityResidual, ...]:
     """Derive, per agent-month, the budget identity's closing residual.
 
@@ -336,8 +348,16 @@ def compute_budget_identity_residuals(
     (Labor, Tax, Consumption, Saving -- SimpleSaving always runs last), and
     exactly 0 on every other month by upstream's own documented
     ``timestep % world.period == 0`` gate on ``SimpleSaving.component_step``
-    -- :func:`score_budget_identity` checks both of those facts, not a
-    reimplemented interest formula.
+    -- :func:`score_budget_identity` checks the residual against exactly
+    this formula (via ``expected_saving_interest`` below), never merely that
+    a boundary-month residual is non-negative. ``world_interest_rate_by_month``
+    supplies the one input that formula needs per month:
+    ``environment.py``'s ``step()`` captures ``state["world"]["interest_rate"]``
+    -- upstream's own recorded rate, read from the live bridge immediately
+    *before* that month's ``step_month()`` call, i.e. before that same
+    month's ``SimpleSaving`` could have advanced it to the *next* boundary
+    month's rate -- and carries it forward per month, never a reimplemented
+    Taylor-rule computation of the rate itself.
 
     **Why ``dense_log["PeriodicTax"][...]["income"]``, not
     ``dense_log["states"][...]["income"]["Coin"]``, for ``labor_income``.**
@@ -397,12 +417,19 @@ def compute_budget_identity_residuals(
             "month_actions is inconsistent: expected one entry per month, "
             f"got len(month_actions)={len(month_actions)} episode_length={episode_length}"
         )
+    if len(world_interest_rate_by_month) != episode_length:
+        raise ValueError(
+            "world_interest_rate_by_month is inconsistent: expected one entry "
+            f"per month, got len(world_interest_rate_by_month)="
+            f"{len(world_interest_rate_by_month)} episode_length={episode_length}"
+        )
     residuals: list[BudgetIdentityResidual] = []
     for month in range(1, episode_length + 1):
         prev_state = states[month - 1]
         cur_state = states[month]
         tax_month = tax_log[month - 1]
         actions_month = month_actions[month - 1]
+        is_boundary_month = world_period > 0 and (month % world_period) == 0
         for agent_id in _agent_ids(n_agents):
             inv_prev = float(prev_state[agent_id]["inventory"]["Coin"])
             inv_cur = float(cur_state[agent_id]["inventory"]["Coin"])
@@ -415,8 +442,14 @@ def compute_budget_identity_residuals(
                 if consumption_action == 0.0
                 else float(cur_state[agent_id]["consumption"]["Coin"])
             )
-            residual = inv_cur - (
+            closing_balance_before_interest = (
                 inv_prev + labor_income - tax_paid + lump_sum - consumption_spend
+            )
+            residual = inv_cur - closing_balance_before_interest
+            expected_saving_interest = (
+                float(world_interest_rate_by_month[month - 1]) * closing_balance_before_interest
+                if is_boundary_month
+                else 0.0
             )
             residuals.append(
                 BudgetIdentityResidual(
@@ -425,7 +458,8 @@ def compute_budget_identity_residuals(
                     residual=residual,
                     # Real check, not a guess: mirrors SimpleSaving's own
                     # documented `timestep % world.period == 0` gate.
-                    is_boundary_month=world_period > 0 and (month % world_period) == 0,
+                    is_boundary_month=is_boundary_month,
+                    expected_saving_interest=expected_saving_interest,
                 )
             )
     return tuple(residuals)
@@ -438,6 +472,7 @@ def score_budget_identity(
     n_agents: int,
     world_period: int,
     month_actions: Sequence[Mapping[str, Sequence[float]]],
+    world_interest_rate_by_month: Sequence[float],
     evidence_refs: tuple[str, ...] = (),
 ) -> ScoreEnvelope:
     """Score leaf 1 from an already-terminated episode's dense log.
@@ -451,6 +486,13 @@ def score_budget_identity(
     reported back for each month (see
     :func:`compute_budget_identity_residuals`'s docstring for why this is
     required, not optional, to source ``consumption_spend`` correctly).
+    ``world_interest_rate_by_month`` is ``terminal()``'s own
+    ``world_interest_rate_by_month`` list (``environment.py``'s ``step()``
+    captures it once per month, before that month's mutation, from the live
+    bridge's own ``state["world"]["interest_rate"]``) -- required so a
+    boundary-month residual can be checked against the exact formula
+    upstream's own ``SimpleSaving`` applies, not merely against "not
+    negative" (see :func:`compute_budget_identity_residuals`'s docstring).
     """
     usable = _require_dense_log(dense_log)
     if usable is None:
@@ -462,7 +504,7 @@ def score_budget_identity(
         )
     try:
         residuals = compute_budget_identity_residuals(
-            usable, n_agents, world_period, month_actions
+            usable, n_agents, world_period, month_actions, world_interest_rate_by_month
         )
     except (KeyError, ValueError, TypeError, IndexError) as error:
         return _invalid(
@@ -473,31 +515,31 @@ def score_budget_identity(
     violations: list[dict[str, Any]] = []
     boundary_residuals = 0
     for entry in residuals:
-        if not entry.is_boundary_month:
-            if abs(entry.residual) > BUDGET_IDENTITY_TOLERANCE:
-                violations.append(
-                    {
-                        "month": entry.month,
-                        "agent_id": entry.agent_id,
-                        "residual": entry.residual,
-                        "reason": "nonzero residual on a non-saving-interest month",
-                    }
-                )
-        else:
+        if entry.is_boundary_month:
             boundary_residuals += 1
-            # SimpleSaving's interest rate is upstream's own recorded,
-            # config-derived constant, always >= 0 (`max(interest_rate, 0)`
-            # upstream-side) -- a negative residual on a boundary month can
-            # only mean an accounting error, never a legitimate outcome.
-            if entry.residual < -BUDGET_IDENTITY_TOLERANCE:
-                violations.append(
-                    {
-                        "month": entry.month,
-                        "agent_id": entry.agent_id,
-                        "residual": entry.residual,
-                        "reason": "negative residual on a saving-interest month",
-                    }
-                )
+        # One uniform, exact check for every month: a non-boundary month's
+        # expected_saving_interest is always 0.0 (no interest can
+        # legitimately appear off-cycle), and a boundary month's is
+        # `world_interest_rate * closing_balance_before_interest` -- the
+        # actual formula upstream's own SimpleSaving applies, never merely
+        # "not negative" (docs/econagent_codex_triage.md finding 1: an
+        # arbitrary, unexplained positive residual on a boundary month used
+        # to pass unconditionally).
+        if abs(entry.residual - entry.expected_saving_interest) > BUDGET_IDENTITY_TOLERANCE:
+            violations.append(
+                {
+                    "month": entry.month,
+                    "agent_id": entry.agent_id,
+                    "residual": entry.residual,
+                    "expected_saving_interest": entry.expected_saving_interest,
+                    "reason": (
+                        "boundary-month residual does not match "
+                        "world_interest_rate * closing_balance_before_interest"
+                        if entry.is_boundary_month
+                        else "nonzero residual on a non-saving-interest month"
+                    ),
+                }
+            )
 
     all_pass = not violations
     metrics: dict[str, MetricValue] = {
@@ -783,6 +825,7 @@ class EconAgentV1Scorer:
         n_agents: int,
         world_period: int,
         month_actions: Sequence[Mapping[str, Sequence[float]]],
+        world_interest_rate_by_month: Sequence[float],
         evidence_refs: tuple[str, ...] = (),
     ) -> ScoreEnvelope:
         return score_budget_identity(
@@ -791,6 +834,7 @@ class EconAgentV1Scorer:
             n_agents=n_agents,
             world_period=world_period,
             month_actions=month_actions,
+            world_interest_rate_by_month=world_interest_rate_by_month,
             evidence_refs=evidence_refs,
         )
 

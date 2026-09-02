@@ -577,12 +577,14 @@ def score_replayed_episode(
     n_agents = terminal["n_agents"]
     world_period = terminal["final_world"]["period"]
     month_actions = terminal["month_actions"]
+    world_interest_rate_by_month = terminal["world_interest_rate_by_month"]
 
     budget_identity = scorer.score_budget_identity(
         dense_log=dense_log,
         n_agents=n_agents,
         world_period=world_period,
         month_actions=month_actions,
+        world_interest_rate_by_month=world_interest_rate_by_month,
     )
     tax_bridge = RecordedEconAgentBridge(tax_recompute_calls)
     tax_bracket_arithmetic = scorer.score_tax_bracket_arithmetic(

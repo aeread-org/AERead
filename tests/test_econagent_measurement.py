@@ -219,7 +219,11 @@ def _synthetic_month_actions() -> list[dict[str, list[float]]]:
 def test_compute_budget_identity_residuals_is_hand_verifiable() -> None:
     dense_log = _synthetic_dense_log()
     residuals = m.compute_budget_identity_residuals(
-        dense_log, n_agents=2, world_period=3, month_actions=_synthetic_month_actions()
+        dense_log,
+        n_agents=2,
+        world_period=3,
+        month_actions=_synthetic_month_actions(),
+        world_interest_rate_by_month=[0.0, 0.0],
     )
 
     assert len(residuals) == 4  # 2 agents x 2 months
@@ -232,11 +236,17 @@ def test_compute_budget_identity_residuals_flags_a_saving_interest_boundary_mont
     dense_log = _synthetic_dense_log()
     # world_period=2: month 2 is a boundary month. Bump agent 0's month-2
     # inventory by exactly 3.08 above the identity's closing balance --
-    # exactly what a positive saving_interest term would look like.
+    # exactly what a positive saving_interest term would look like (0.02 --
+    # upstream's own default SimpleSaving `saving_rate` -- times the 154.0
+    # closing balance).
     dense_log["states"][2]["0"]["inventory"]["Coin"] = 154.0 + 3.08
 
     residuals = m.compute_budget_identity_residuals(
-        dense_log, n_agents=2, world_period=2, month_actions=_synthetic_month_actions()
+        dense_log,
+        n_agents=2,
+        world_period=2,
+        month_actions=_synthetic_month_actions(),
+        world_interest_rate_by_month=[0.0, 0.02],
     )
     by_key = {(entry.month, entry.agent_id): entry for entry in residuals}
 
@@ -244,6 +254,7 @@ def test_compute_budget_identity_residuals_flags_a_saving_interest_boundary_mont
     assert by_key[(1, "0")].residual == pytest.approx(0.0, abs=1e-9)
     assert by_key[(2, "0")].is_boundary_month is True
     assert by_key[(2, "0")].residual == pytest.approx(3.08, abs=1e-9)
+    assert by_key[(2, "0")].expected_saving_interest == pytest.approx(3.08, abs=1e-9)
     # Agent 1's month-2 state was never mutated -- residual stays 0, but
     # the month is still flagged as a boundary month (a legitimate 0
     # saving-interest outcome is not a violation).
@@ -259,6 +270,7 @@ def test_score_budget_identity_passes_on_the_synthetic_fixture() -> None:
         n_agents=2,
         world_period=3,
         month_actions=_synthetic_month_actions(),
+        world_interest_rate_by_month=[0.0, 0.0],
     )
     assert score.status == "ok"
     assert score.primary.value == 1.0
@@ -288,6 +300,7 @@ def test_score_budget_identity_detects_a_fabricated_off_cycle_violation() -> Non
         n_agents=2,
         world_period=3,
         month_actions=_synthetic_month_actions(),
+        world_interest_rate_by_month=[0.0, 0.0],
     )
 
     assert score.status == "ok"
@@ -300,7 +313,8 @@ def test_score_budget_identity_detects_a_fabricated_off_cycle_violation() -> Non
 def test_score_budget_identity_detects_a_negative_boundary_month_residual() -> None:
     dense_log = _synthetic_dense_log()
     # A negative residual on a boundary month cannot be legitimate saving
-    # interest (upstream's own rate is always >= 0) -- must be flagged.
+    # interest (upstream's own rate is always >= 0, and the fixture's own
+    # recorded rate for this month is 0.0) -- must be flagged.
     dense_log["states"][2]["0"]["inventory"]["Coin"] -= 50.0
 
     leaf = m.build_budget_identity_leaf(_pins())
@@ -310,13 +324,84 @@ def test_score_budget_identity_detects_a_negative_boundary_month_residual() -> N
         n_agents=2,
         world_period=2,
         month_actions=_synthetic_month_actions(),
+        world_interest_rate_by_month=[0.0, 0.0],
     )
 
     assert score.primary.value == 0.0
     assert score.metrics["violation_count"].value == 1.0
     assert score.primary.metadata["first_violation"]["reason"] == (
-        "negative residual on a saving-interest month"
+        "boundary-month residual does not match "
+        "world_interest_rate * closing_balance_before_interest"
     )
+
+
+def test_score_budget_identity_accepts_a_legitimate_boundary_month_interest_residual() -> None:
+    """A boundary-month residual that exactly equals the recorded
+    ``world_interest_rate`` times the pre-interest closing balance is
+    legitimate saving interest, not corruption -- must still pass.
+
+    Guards against an overly strict fix for the "boundary-month inventory
+    corruption passes" finding: the check must be an exact formula match,
+    not merely "reject every positive residual".
+    """
+    dense_log = _synthetic_dense_log()
+    # Agent 0's month-2 closing balance before interest is 154.0 (see
+    # test_compute_budget_identity_residuals_flags_a_saving_interest_boundary_month);
+    # 0.02 * 154.0 == 3.08, matching upstream's own default SimpleSaving
+    # ``saving_rate``. Agent 1's month-2 closing balance before interest is
+    # 283.0; 0.02 * 283.0 == 5.66. Both agents share the same boundary
+    # month's rate (SimpleSaving applies one world-level rate to every
+    # agent), so both must earn their own correctly-computed interest for
+    # this to be a genuinely legitimate boundary month, not merely one
+    # agent's residual happening to match by coincidence.
+    dense_log["states"][2]["0"]["inventory"]["Coin"] = 154.0 + 3.08
+    dense_log["states"][2]["1"]["inventory"]["Coin"] = 283.0 + 5.66
+
+    leaf = m.build_budget_identity_leaf(_pins())
+    score = m.score_budget_identity(
+        leaf,
+        dense_log=dense_log,
+        n_agents=2,
+        world_period=2,
+        month_actions=_synthetic_month_actions(),
+        world_interest_rate_by_month=[0.0, 0.02],
+    )
+    assert score.status == "ok"
+    assert score.primary.value == 1.0
+    assert score.metrics["violation_count"].value == 0.0
+
+
+def test_score_budget_identity_rejects_a_boundary_month_residual_that_does_not_match_the_recorded_interest_rate() -> None:
+    """Regression test for the "boundary-month inventory corruption passes"
+    finding (docs/econagent_codex_triage.md finding 1): the scorer used to
+    accept ANY positive residual on a boundary month as legitimate interest,
+    checking only that it was not negative. An arbitrarily large, unexplained
+    positive residual -- the exact reproduction from the review (+1,000,000
+    Coin) -- must now be rejected because it does not equal
+    ``world_interest_rate * closing_balance_before_interest``, the one
+    formula upstream's own ``SimpleSaving`` component actually applies.
+    """
+    dense_log = _synthetic_dense_log()
+    # Agent 1 earns its own correctly-computed interest (see the "accepts a
+    # legitimate" test above) so the one violation this test asserts on is
+    # isolated to agent 0's own corrupted residual, not a side effect of
+    # agent 1 never having been given its own legitimate interest.
+    dense_log["states"][2]["1"]["inventory"]["Coin"] = 283.0 + 5.66
+    dense_log["states"][2]["0"]["inventory"]["Coin"] += 1_000_000.0
+
+    leaf = m.build_budget_identity_leaf(_pins())
+    score = m.score_budget_identity(
+        leaf,
+        dense_log=dense_log,
+        n_agents=2,
+        world_period=2,
+        month_actions=_synthetic_month_actions(),
+        world_interest_rate_by_month=[0.0, 0.02],
+    )
+    assert score.primary.value == 0.0
+    assert score.metrics["violation_count"].value == 1.0
+    assert score.primary.metadata["first_violation"]["agent_id"] == "0"
+    assert score.primary.metadata["first_violation"]["month"] == 2
 
 
 def test_score_budget_identity_ignores_a_stale_consumption_field_on_a_noop_month() -> None:
@@ -341,7 +426,12 @@ def test_score_budget_identity_ignores_a_stale_consumption_field_on_a_noop_month
 
     leaf = m.build_budget_identity_leaf(_pins())
     score = m.score_budget_identity(
-        leaf, dense_log=dense_log, n_agents=2, world_period=3, month_actions=month_actions
+        leaf,
+        dense_log=dense_log,
+        n_agents=2,
+        world_period=3,
+        month_actions=month_actions,
+        world_interest_rate_by_month=[0.0, 0.0],
     )
     assert score.primary.value == 1.0
     assert score.metrics["violation_count"].value == 0.0
@@ -350,7 +440,12 @@ def test_score_budget_identity_ignores_a_stale_consumption_field_on_a_noop_month
 def test_score_budget_identity_reports_invalid_measurement_when_dense_log_is_none() -> None:
     leaf = m.build_budget_identity_leaf(_pins())
     score = m.score_budget_identity(
-        leaf, dense_log=None, n_agents=2, world_period=12, month_actions=[]
+        leaf,
+        dense_log=None,
+        n_agents=2,
+        world_period=12,
+        month_actions=[],
+        world_interest_rate_by_month=[],
     )
     assert score.status == "invalid_measurement"
     assert score.primary is None
@@ -361,7 +456,12 @@ def test_score_budget_identity_reports_invalid_measurement_when_dense_log_is_non
 def test_score_budget_identity_reports_invalid_measurement_on_malformed_dense_log() -> None:
     leaf = m.build_budget_identity_leaf(_pins())
     score = m.score_budget_identity(
-        leaf, dense_log={"states": []}, n_agents=2, world_period=12, month_actions=[]
+        leaf,
+        dense_log={"states": []},
+        n_agents=2,
+        world_period=12,
+        month_actions=[],
+        world_interest_rate_by_month=[],
     )
     assert score.status == "invalid_measurement"
     assert score.primary is None
@@ -447,6 +547,7 @@ def test_score_budget_identity_holds_exactly_for_a_real_tiny_episode() -> None:
         n_agents=n_agents,
         world_period=world_period,
         month_actions=terminal["month_actions"],
+        world_interest_rate_by_month=terminal["world_interest_rate_by_month"],
     )
     assert score.status == "ok"
     assert score.primary.value == 1.0
@@ -469,6 +570,7 @@ def test_score_budget_identity_holds_exactly_across_a_saving_interest_boundary_m
         n_agents=n_agents,
         world_period=world_period,
         month_actions=terminal["month_actions"],
+        world_interest_rate_by_month=terminal["world_interest_rate_by_month"],
     )
     assert score.status == "ok"
     assert score.primary.value == 1.0
