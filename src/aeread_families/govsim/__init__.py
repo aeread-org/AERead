@@ -1,4 +1,5 @@
-"""AERead ``govsim`` family package (cases + environment; scorer deferred)."""
+"""AERead ``govsim`` family package (cases, environment, measurement,
+scripted harness, and offline replay)."""
 
 from .cases import (
     FAMILY_ID,
@@ -33,7 +34,24 @@ from .govsim_bridge import (
     GovsimBridgeUnavailableError,
     discover_bridge_python,
 )
+from .harness import ScriptedGovsimHarness
+from .measurement import GovsimScorer, build_leaves, build_scorer
 from .policies import POLICY_ID_SHORT_NAME, SCRIPTED_POLICIES
+from .replay import (
+    RecordedDecision,
+    RecordedEpisode,
+    RecordedResponseSource,
+    ReplayError,
+    ReplayReport,
+    ReplayScoreResult,
+    StateComparison,
+    assert_replay_matches,
+    compare_episode_results,
+    record_episode,
+    replay_and_verify,
+    replay_episode,
+    score_replayed_episode,
+)
 
 __all__ = [
     "BRIDGE_PYTHON_ENV_VAR",
@@ -45,24 +63,41 @@ __all__ = [
     "GovsimBridgeError",
     "GovsimBridgeUnavailableError",
     "GovsimPlugin",
+    "GovsimScorer",
     "HARVEST_PHASE",
     "PLUGIN_ID",
     "POLICY_ID_SHORT_NAME",
     "POOL_LOCATION_BY_SCENARIO",
     "REFLECT_PHASE",
+    "RecordedDecision",
+    "RecordedEpisode",
+    "RecordedResponseSource",
+    "ReplayError",
+    "ReplayReport",
+    "ReplayScoreResult",
     "SCENARIOS",
     "SCORER_ID",
     "SCRIPTED_POLICIES",
+    "ScriptedGovsimHarness",
+    "StateComparison",
     "TERMINATION_REASONS",
     "UPSTREAM_COMMIT",
     "UPSTREAM_REPO",
+    "assert_replay_matches",
     "build_case",
     "build_corpus",
     "build_corpus_manifest",
+    "build_leaves",
     "build_pins",
+    "build_scorer",
+    "compare_episode_results",
     "discover_bridge_python",
     "family_manifest",
+    "record_episode",
     "register_plugin",
+    "replay_and_verify",
+    "replay_episode",
     "run_import",
+    "score_replayed_episode",
     "write_cases",
 ]
