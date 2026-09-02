@@ -106,12 +106,21 @@ def test_registering_the_same_family_version_twice_is_refused() -> None:
         register_plugin(registry)
 
 
-def test_build_scorer_is_callable_but_not_yet_implemented() -> None:
+def test_build_scorer_returns_the_four_declared_leaves() -> None:
+    # Milestone 2 (docs/collusion_adapter_spec.md section 2): build_scorer no
+    # longer raises NotImplementedError -- see tests/test_collusion_measurement.py
+    # for the scorer's own coverage; this only confirms the environment's hook
+    # wires through to it.
     plugin = CollusionPlugin()
     case = _case()
     family_case = plugin.validate_payload(case.payload)
-    with pytest.raises(NotImplementedError):
-        plugin.build_scorer(family_case)
+    scorer = plugin.build_scorer(family_case)
+    assert [leaf.leaf_id for leaf in scorer.leaves] == [
+        "collusion_price_legality",
+        "collusion_distance_to_nash_price",
+        "collusion_distance_to_monopoly_price",
+        "collusion_long_run_profit",
+    ]
 
 
 # ---------------------------------------------------------------------------
@@ -135,11 +144,25 @@ def test_validate_payload_rejects_unknown_fields() -> None:
         plugin.validate_payload(payload)
 
 
-def test_validate_payload_rejects_ceiling_at_or_below_monopoly() -> None:
+def test_validate_payload_accepts_ceiling_exactly_at_monopoly() -> None:
+    # Closed interval, spec section 4's "degenerate reference" golden: k=1
+    # makes ceiling == p_monopoly exactly, which is admissible (the same
+    # "at-ceiling-is-legal" convention legal() enforces per round), not
+    # rejected. See tests/test_collusion_measurement.py's degenerate-ceiling
+    # golden for the full end-to-end exercise of this boundary.
     plugin = CollusionPlugin()
     case = _case()
     payload = dict(case.payload)
-    payload["ceiling_k"] = 1.0  # k=1 makes ceiling == p_monopoly exactly, not >.
+    payload["ceiling_k"] = 1.0
+    family_case = plugin.validate_payload(payload)
+    assert family_case["ceiling_k"] == 1.0
+
+
+def test_validate_payload_rejects_ceiling_strictly_below_monopoly() -> None:
+    plugin = CollusionPlugin()
+    case = _case()
+    payload = dict(case.payload)
+    payload["ceiling_k"] = 0.999  # ceiling < p_monopoly: monopoly-play would be illegal.
     with pytest.raises(ValueError, match="ceiling"):
         plugin.validate_payload(payload)
 

@@ -9,13 +9,11 @@ contract). ``step()`` computes each firm's quantity and profit from the
 closed bundle of both prices, appends one history entry, and advances the
 round counter.
 
-This module implements only the environment (spec section 3): the
-simulator, the phase graph, the price-legality gate, and the price floor/
-ceiling AERead itself designed (spec section 6). It deliberately does
-**not** implement the three declared measurement leaves (spec section 2) --
-``build_scorer`` raises ``NotImplementedError`` until that milestone lands,
-the same way the registry only requires the hook to be callable, not
-functional, to accept a plugin (``PluginRegistry.register``).
+This module implements the environment (spec section 3): the simulator,
+the phase graph, the price-legality gate, and the price floor/ceiling
+AERead itself designed (spec section 6). ``build_scorer`` delegates to
+``measurement.py``'s four declared leaves (spec section 2) -- see
+``measurement.py``'s module docstring for the scorer itself.
 """
 from __future__ import annotations
 
@@ -35,6 +33,7 @@ from aeread.shared_runner.scheduler import (
 )
 
 from . import economics
+from . import measurement
 from .cases import (
     FAMILY_ID,
     FAMILY_VERSION,
@@ -167,10 +166,10 @@ def family_manifest() -> FamilyManifest:
             },
             "measurement": {
                 # The only declared leaf with a direction (spec section 2,
-                # leaf 4); the other two leaves are diagnostics, never
-                # promoted to a primary optimum (P04's warning, spec section
-                # 6). Measurement itself is a later milestone -- this is the
-                # minimal honest declaration needed to register a plugin.
+                # leaf 4); the other two (distance) leaves are diagnostics,
+                # never promoted to a primary optimum (P04's warning, spec
+                # section 6). See ``measurement.py``'s ``build_leaves`` for
+                # the full four-leaf declaration.
                 "primary_estimand": "collusion_long_run_profit",
                 "measurement_kind": "comparative_or_human_judged",
                 "direction": "maximize",
@@ -242,9 +241,22 @@ class CollusionPlugin:
                     f"payload.gold_reference violates p_nash < p_monopoly for {seat!r}"
                 )
             ceiling = data["ceiling_k"] * gold["p_monopoly"][seat]
-            if not ceiling > gold["p_monopoly"][seat]:
+            # Closed interval: ceiling == p_monopoly is admissible (this is
+            # the same "at-ceiling-is-legal" convention ``legal()`` enforces
+            # per round, spec section 2/6), and is deliberately exercised by
+            # the hand-authored ``degenerate-ceiling`` golden
+            # (``docs/collusion_adapter_spec.md`` section 4's "degenerate
+            # reference" row: ``ceiling_k`` forced to ``1`` on purpose,
+            # never resampled away). Only a ceiling strictly *below*
+            # p_monopoly -- which would make monopoly-play itself illegal --
+            # is rejected. The 6 pilot cells never approach this boundary:
+            # ``ceiling_k`` is always drawn from ``Unif([1.5, 2.5])`` (spec
+            # section "Governing facts"), so this relaxation from a strict
+            # ``>`` never weakens any check the pilot corpus relies on.
+            if not ceiling >= gold["p_monopoly"][seat]:
                 raise ValueError(
-                    f"payload.ceiling_k must place the ceiling above p_monopoly for {seat!r}"
+                    f"payload.ceiling_k must place the ceiling at or above "
+                    f"p_monopoly for {seat!r}"
                 )
 
         pins = _require_exact_fields(data["pins"], _PINS_FIELDS, "payload.pins")
@@ -503,21 +515,19 @@ class CollusionPlugin:
             "history": terminal["history"],
         }
 
-    def build_scorer(self, family_case: Mapping[str, Any]) -> Any:
-        """Not built yet -- callable to satisfy ``PluginRegistry``, never functional.
+    def build_scorer(self, family_case: Mapping[str, Any]) -> measurement.CollusionScorer:
+        """Return the four declared measurement leaves plus their scorers.
 
-        The three declared measurement leaves (spec section 2:
-        ``collusion_price_legality``, ``collusion_distance_to_nash_price``,
-        ``collusion_distance_to_monopoly_price``, and
-        ``collusion_long_run_profit``) are a later milestone. Calling this
-        before then is a programming error, not a recoverable condition.
+        See ``measurement.py`` (spec section 2): ``collusion_price_legality``,
+        ``collusion_distance_to_nash_price``, ``collusion_distance_to_monopoly_price``,
+        and ``collusion_long_run_profit`` are declared for every case. The
+        current kernel does not yet call ``build_scorer`` itself through the
+        generic single-callable path (see ``measurement.py``'s
+        ``CollusionScorer`` docstring, mirroring ``tau3_retail``'s identical
+        note); this makes the declaration and all four scorers live the day
+        it does.
         """
-        del family_case
-        raise NotImplementedError(
-            "the collusion scorer (docs/collusion_adapter_spec.md section 2) "
-            "is a later milestone; this plugin implements only the "
-            "environment (section 3) so far"
-        )
+        return measurement.build_scorer(family_case)
 
     def build_reference_providers(self, family_case: Mapping[str, Any]) -> tuple[Any, ...]:
         del family_case

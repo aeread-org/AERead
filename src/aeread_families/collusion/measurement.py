@@ -1,0 +1,731 @@
+"""Measurement declarations for the ``collusion`` adapter (spec section 2).
+
+Four leaves, reported as an admitted vector (``hybrid_gate``,
+``docs/verifier_taxonomy.md`` section 10) -- never collapsed to one score:
+
+* **Leaf 1 -- ``collusion_price_legality`` (deterministic, rule_constraint /
+  constraint_satisfaction).** Every round's price for both seats must lie in
+  the closed interval ``[0, ceiling_k * p_monopoly_seat]`` (spec section 2,
+  leaf 1). A violation gates the episode: the violating round and every
+  later round are excluded from leaves 2-4 (spec section 2 / golden 3,
+  section 4) -- enforced here simply by never looking past the first
+  invalid ``outcome["history"]`` entry (:func:`_admitted_rounds`), since
+  ``environment.py``'s own ``step()`` already stops the episode there and
+  never records a later round.
+* **Leaves 2/3 -- ``collusion_distance_to_nash_price`` /
+  ``collusion_distance_to_monopoly_price`` (deterministic,
+  canonical_reference / canonical_point).** Price-only stage-game distance
+  diagnostics, per firm and averaged, against the paper's own closed-form
+  Nash/monopoly references (``economics.py``'s solver, frozen into each
+  case's ``gold_reference``). Single-period static-game references --
+  diagnostics only, never a long-run ceiling (P04, spec section 6).
+* **Leaf 4 -- ``collusion_long_run_profit`` (deterministic, comparative /
+  baseline_delta).** Realized own profit (periods 251-300 mean, App. A.4's
+  reporting window) minus a named, versioned scripted baseline policy's own
+  realized profit under the same cell/horizon/opponent condition (spec
+  section 2, leaf 4). Never promoted to ``objective_reference`` -- no
+  long-run oracle exists against an endogenous rival (P04, spec section 6).
+
+This module never re-implements the environment's own per-round legality
+check (``environment.py``'s ``legal()`` already gates every action live,
+during the episode); it only *summarizes* the sealed trajectory
+(``outcome["history"]``) after the fact. It also never fabricates a value
+over an empty or otherwise degenerate window -- for example the App. A.4
+profit-reporting window intersecting zero admitted rounds after an early
+legality failure: such a leaf reports ``status="invalid_measurement"`` with
+a typed reason instead of substituting a number computed over a different,
+undeclared window (spec section 4's "degenerate reference" golden;
+``docs/verifier_taxonomy.md`` section 9).
+
+Malformed-response or infrastructure-failure terminations (environment
+termination reasons ``retry_exhausted``, ``error``) gate **every** leaf to
+``invalid_measurement`` -- a malformed response is not admissible evidence
+for *any* claim, deterministic or not (spec section 4's "malformed or
+operational failure" golden; ``docs/verifier_taxonomy.md`` section 9: "An
+invalid or missing observation must not be scored as an economic zero").
+This is a stronger gate than leaf 1's own price-legality predicate: a
+well-formed but out-of-bound price still lets leaves 2-4 score the admitted
+prefix (golden 3), but a response that never resolved to a well-formed
+price at all admits no leaf (golden 4).
+"""
+from __future__ import annotations
+
+import hashlib
+import math
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, Mapping, Sequence
+
+from aeread.shared_runner.measurement import (
+    EstimandSpec,
+    ImplementationRef,
+    MeasurementLeafSpec,
+    MetricValue,
+    ReferenceSpec,
+    ScoreEnvelope,
+    ValidityDomainSpec,
+    ValidityReport,
+    VerifierSpec,
+)
+from aeread.shared_runner.resolver import canonical_json_bytes
+
+LEAF_VERSION = "0.1.0"
+ESTIMAND_VERSION = "0.1.0"
+REFERENCE_VERSION = "0.1.0"
+IMPLEMENTATION_VERSION = "0.1.0"
+
+DOMAIN_ID = "collusion_duopoly_v1"
+DOMAIN_VERSION = "0.1.0"
+
+# Leaf/estimand ids intentionally match spec section 2's own code snippet
+# (leaf_id == estimand_id for this family, unlike tau3_retail's distinct
+# ``<x>`` / ``<x>_leaf`` convention).
+PRICE_LEGALITY_ESTIMAND_ID = "collusion_price_legality"
+PRICE_LEGALITY_LEAF_ID = "collusion_price_legality"
+PRICE_LEGALITY_REFERENCE_ID = "collusion_price_ceiling_gate"
+PRICE_LEGALITY_SCORER_ID = "collusion.legality_gate"
+
+DISTANCE_TO_NASH_ESTIMAND_ID = "collusion_distance_to_nash_price"
+DISTANCE_TO_NASH_LEAF_ID = "collusion_distance_to_nash_price"
+DISTANCE_TO_NASH_REFERENCE_ID = "collusion_nash_price_reference"
+DISTANCE_TO_NASH_SCORER_ID = "collusion.nash_distance"
+
+DISTANCE_TO_MONOPOLY_ESTIMAND_ID = "collusion_distance_to_monopoly_price"
+DISTANCE_TO_MONOPOLY_LEAF_ID = "collusion_distance_to_monopoly_price"
+DISTANCE_TO_MONOPOLY_REFERENCE_ID = "collusion_monopoly_price_reference"
+DISTANCE_TO_MONOPOLY_SCORER_ID = "collusion.monopoly_distance"
+
+LONG_RUN_PROFIT_ESTIMAND_ID = "collusion_long_run_profit"
+LONG_RUN_PROFIT_LEAF_ID = "collusion_long_run_profit"
+LONG_RUN_PROFIT_REFERENCE_ID = "collusion_nash_play_baseline_v1"
+LONG_RUN_PROFIT_SCORER_ID = "collusion.long_run_profit_delta"
+
+# The named, versioned scripted baseline policy leaf 4 compares against
+# (spec section 2, leaf 4: "the opponent condition ... rides in the
+# leaf/case identity instead ... reference_id and payload.opponent_policy_id
+# both name the fixed counterpart"). This milestone names the counterpart
+# through ``reference_id``/this constant rather than a new
+# ``CaseManifest.payload`` field, so the already-committed milestone-1
+# corpus (and its frozen ``content_sha256``) never needs to be re-digested
+# (documented deviation, see this adapter's PR notes). Both firms playing
+# the paper's own closed-form Nash-equilibrium price every round is a
+# stationary policy, so its own realized profit under itself as the
+# opponent condition is exactly ``gold_reference.pi_nash`` -- verified as a
+# cross-check in ``tests/test_collusion_measurement.py`` rather than
+# assumed.
+BASELINE_POLICY_ID = "collusion_nash_play_baseline_v1"
+
+_SEATS = ("firm_a", "firm_b")
+
+# Environment-level termination reasons that gate *every* leaf to
+# ``invalid_measurement`` (see module docstring / spec section 4's
+# "malformed or operational failure" golden).
+OPERATIONAL_FAILURE_REASONS = frozenset({"retry_exhausted", "error"})
+
+# Appendix C's own convergence definition (spec "Governing facts"): "in
+# periods 201-300, the 90th/10th percentile prices are within 5% of p" --
+# the last 100 periods of a 300-period run.
+CONVERGENCE_WINDOW_PERIODS = 100
+CONVERGENCE_TOLERANCE = 0.05
+
+# Appendix A.4's own profit-reporting window (spec section 2, leaf 4):
+# periods 251-300 -- the last 50 periods of a 300-period run.
+PROFIT_REPORT_WINDOW_PERIODS = 50
+
+
+def _file_sha256(name: str) -> str:
+    return hashlib.sha256(Path(__file__).with_name(name).read_bytes()).hexdigest()
+
+
+def _implementation(implementation_id: str, filename: str) -> ImplementationRef:
+    """Pin one adapter source file as the concrete code behind a claim.
+
+    Mirrors ``tau3_retail/measurement.py``'s identical convention: hash the
+    actual sibling module that performs the referenced step, so the pin
+    changes exactly when that code changes.
+    """
+    return ImplementationRef(
+        implementation_id=implementation_id,
+        version=IMPLEMENTATION_VERSION,
+        content_sha256=_file_sha256(filename),
+    )
+
+
+def _validity_domain() -> ValidityDomainSpec:
+    return ValidityDomainSpec(
+        domain_id=DOMAIN_ID,
+        domain_version=DOMAIN_VERSION,
+        schema_ref="collusion/0.1.0/case_payload",
+        predicate=_implementation("collusion_duopoly_domain_predicate", "environment.py"),
+    )
+
+
+def _source_sha256(value: Any) -> str:
+    return hashlib.sha256(canonical_json_bytes(value)).hexdigest()
+
+
+# ---------------------------------------------------------------------------
+# Leaf declarations (spec section 2).
+# ---------------------------------------------------------------------------
+
+
+def build_price_legality_leaf(family_case: Mapping[str, Any]) -> MeasurementLeafSpec:
+    """Leaf 1: every round's price lies in ``[0, ceiling_k * p_monopoly_seat]``."""
+    gold = family_case["gold_reference"]
+    estimand = EstimandSpec(
+        estimand_id=PRICE_LEGALITY_ESTIMAND_ID,
+        estimand_version=ESTIMAND_VERSION,
+        input_scope="trajectory",
+        direction="none",
+        units="pass",
+        validity_domain=_validity_domain(),
+    )
+    reference = ReferenceSpec(
+        reference_id=PRICE_LEGALITY_REFERENCE_ID,
+        reference_version=REFERENCE_VERSION,
+        reference_kind="constraint_satisfaction",
+        input_scope="trajectory",
+        units="pass",
+        source_sha256=_source_sha256(
+            {"ceiling_k": family_case["ceiling_k"], "p_monopoly": gold["p_monopoly"]}
+        ),
+        implementation=_implementation("collusion_price_ceiling_predicate", "environment.py"),
+    )
+    verifier = VerifierSpec(
+        verifier_family="rule_constraint",
+        evaluation_class="deterministic",
+        reference=reference,
+    )
+    return MeasurementLeafSpec(
+        leaf_id=PRICE_LEGALITY_LEAF_ID,
+        leaf_version=LEAF_VERSION,
+        estimand=estimand,
+        verifier=verifier,
+        scorer=_implementation(PRICE_LEGALITY_SCORER_ID, "measurement.py"),
+    )
+
+
+def _build_distance_leaf(
+    family_case: Mapping[str, Any],
+    *,
+    estimand_id: str,
+    leaf_id: str,
+    reference_id: str,
+    scorer_id: str,
+    target_key: str,
+) -> MeasurementLeafSpec:
+    gold = family_case["gold_reference"]
+    estimand = EstimandSpec(
+        estimand_id=estimand_id,
+        estimand_version=ESTIMAND_VERSION,
+        input_scope="trajectory",
+        direction="none",
+        units="price",
+        validity_domain=_validity_domain(),
+    )
+    reference = ReferenceSpec(
+        reference_id=reference_id,
+        reference_version=REFERENCE_VERSION,
+        reference_kind="canonical_point",
+        input_scope="trajectory",
+        units="price",
+        source_sha256=_source_sha256(gold[target_key]),
+        implementation=_implementation(f"collusion_{target_key}_solver", "economics.py"),
+    )
+    verifier = VerifierSpec(
+        verifier_family="canonical_reference",
+        evaluation_class="deterministic",
+        reference=reference,
+    )
+    return MeasurementLeafSpec(
+        leaf_id=leaf_id,
+        leaf_version=LEAF_VERSION,
+        estimand=estimand,
+        verifier=verifier,
+        scorer=_implementation(scorer_id, "measurement.py"),
+    )
+
+
+def build_distance_to_nash_leaf(family_case: Mapping[str, Any]) -> MeasurementLeafSpec:
+    """Leaf 2: raw per-round price gap to the paper's own closed-form Nash price."""
+    return _build_distance_leaf(
+        family_case,
+        estimand_id=DISTANCE_TO_NASH_ESTIMAND_ID,
+        leaf_id=DISTANCE_TO_NASH_LEAF_ID,
+        reference_id=DISTANCE_TO_NASH_REFERENCE_ID,
+        scorer_id=DISTANCE_TO_NASH_SCORER_ID,
+        target_key="p_nash",
+    )
+
+
+def build_distance_to_monopoly_leaf(family_case: Mapping[str, Any]) -> MeasurementLeafSpec:
+    """Leaf 3: raw per-round price gap to the paper's own closed-form monopoly price."""
+    return _build_distance_leaf(
+        family_case,
+        estimand_id=DISTANCE_TO_MONOPOLY_ESTIMAND_ID,
+        leaf_id=DISTANCE_TO_MONOPOLY_LEAF_ID,
+        reference_id=DISTANCE_TO_MONOPOLY_REFERENCE_ID,
+        scorer_id=DISTANCE_TO_MONOPOLY_SCORER_ID,
+        target_key="p_monopoly",
+    )
+
+
+def build_long_run_profit_leaf(family_case: Mapping[str, Any]) -> MeasurementLeafSpec:
+    """Leaf 4: own profit (periods 251-300 mean) minus the named baseline's own."""
+    del family_case
+    estimand = EstimandSpec(
+        estimand_id=LONG_RUN_PROFIT_ESTIMAND_ID,
+        estimand_version=ESTIMAND_VERSION,
+        input_scope="trajectory",
+        direction="maximize",
+        units="profit",
+        validity_domain=_validity_domain(),
+    )
+    reference = ReferenceSpec(
+        reference_id=LONG_RUN_PROFIT_REFERENCE_ID,
+        reference_version=REFERENCE_VERSION,
+        reference_kind="baseline_delta",
+        input_scope="trajectory",
+        units="profit",
+        source_sha256=_source_sha256(BASELINE_POLICY_ID),
+        implementation=_implementation(
+            "collusion_nash_play_baseline_policy", "measurement.py"
+        ),
+    )
+    verifier = VerifierSpec(
+        verifier_family="comparative",
+        evaluation_class="deterministic",
+        reference=reference,
+    )
+    return MeasurementLeafSpec(
+        leaf_id=LONG_RUN_PROFIT_LEAF_ID,
+        leaf_version=LEAF_VERSION,
+        estimand=estimand,
+        verifier=verifier,
+        scorer=_implementation(LONG_RUN_PROFIT_SCORER_ID, "measurement.py"),
+    )
+
+
+def build_leaves(family_case: Mapping[str, Any]) -> tuple[MeasurementLeafSpec, ...]:
+    """The four leaves this family always declares (spec section 2)."""
+    return (
+        build_price_legality_leaf(family_case),
+        build_distance_to_nash_leaf(family_case),
+        build_distance_to_monopoly_leaf(family_case),
+        build_long_run_profit_leaf(family_case),
+    )
+
+
+# ---------------------------------------------------------------------------
+# Trajectory helpers -- pure, no re-implementation of environment.py's own
+# legality check (module docstring).
+# ---------------------------------------------------------------------------
+
+
+def _admitted_rounds(history: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
+    """The valid-round prefix (spec section 2, leaf 1's gate).
+
+    Stops at the first invalid round rather than filtering invalid entries
+    out of the whole sequence: ``environment.py``'s own ``step()`` always
+    terminates the episode at the first invalid round, so nothing after it
+    is ever recorded in the first place -- this is simply the identity for
+    the trajectories this environment can actually produce, made explicit
+    rather than assumed.
+    """
+    admitted: list[dict[str, Any]] = []
+    for entry in history:
+        if not entry["valid"]:
+            break
+        admitted.append(dict(entry))
+    return admitted
+
+
+def _percentile(values: Sequence[float], pct: float) -> float:
+    """Linear-interpolation percentile over a nonempty sequence.
+
+    No numpy dependency, mirroring ``economics.py``'s own "numpy turned out
+    unnecessary" choice for this family.
+    """
+    ordered = sorted(values)
+    n = len(ordered)
+    if n == 1:
+        return ordered[0]
+    rank = (pct / 100.0) * (n - 1)
+    lower = math.floor(rank)
+    upper = math.ceil(rank)
+    if lower == upper:
+        return ordered[int(rank)]
+    fraction = rank - lower
+    return ordered[lower] * (1 - fraction) + ordered[upper] * fraction
+
+
+def _window(
+    rounds: Sequence[Mapping[str, Any]], *, horizon: int, window_periods: int
+) -> list[Mapping[str, Any]]:
+    start_round = horizon - window_periods
+    return [entry for entry in rounds if entry["round"] >= start_round]
+
+
+def _mean(values: Sequence[float]) -> float | None:
+    if not values:
+        return None
+    return sum(values) / len(values)
+
+
+def _invalid_measurement(
+    leaf: MeasurementLeafSpec, *, reasons: tuple[str, ...], evidence_refs: tuple[str, ...] = ()
+) -> ScoreEnvelope:
+    return ScoreEnvelope(
+        status="invalid_measurement",
+        leaf=leaf,
+        primary=None,
+        metrics={},
+        reference_values={},
+        validity=ValidityReport("invalid", reasons=reasons),
+        evidence_refs=evidence_refs,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Scorers.
+# ---------------------------------------------------------------------------
+
+
+def score_price_legality(
+    leaf: MeasurementLeafSpec,
+    *,
+    outcome: Mapping[str, Any],
+    evidence_refs: tuple[str, ...] = (),
+) -> ScoreEnvelope:
+    """Leaf 1: pass iff every recorded round was legal.
+
+    A malformed-response termination never reaches this predicate at all
+    (module docstring): it is gated to ``invalid_measurement`` before the
+    price-legality question is even asked, since a malformed response was
+    never checked against ``legal()`` in the first place
+    (``environment.py``'s ``step()`` only classifies a round as
+    ``legality_violation`` when every seat's response parsed).
+    """
+    termination_reason = outcome["termination_reason"]
+    if termination_reason in OPERATIONAL_FAILURE_REASONS:
+        return _invalid_measurement(
+            leaf,
+            reasons=(f"termination_reason_{termination_reason}",),
+            evidence_refs=evidence_refs,
+        )
+    violation = next((entry for entry in outcome["history"] if not entry["valid"]), None)
+    if violation is not None:
+        return ScoreEnvelope(
+            status="ok",
+            leaf=leaf,
+            primary=MetricValue(
+                0.0,
+                "pass",
+                metadata={
+                    "violation_round": violation["round"],
+                    "invalid_reasons": dict(violation["invalid_reasons"]),
+                },
+            ),
+            metrics={},
+            reference_values={},
+            validity=ValidityReport("valid"),
+            evidence_refs=evidence_refs,
+        )
+    return ScoreEnvelope(
+        status="ok",
+        leaf=leaf,
+        primary=MetricValue(1.0, "pass"),
+        metrics={},
+        reference_values={},
+        validity=ValidityReport("valid"),
+        evidence_refs=evidence_refs,
+    )
+
+
+def _score_distance(
+    leaf: MeasurementLeafSpec,
+    *,
+    family_case: Mapping[str, Any],
+    outcome: Mapping[str, Any],
+    target_key: str,
+    evidence_refs: tuple[str, ...] = (),
+) -> ScoreEnvelope:
+    termination_reason = outcome["termination_reason"]
+    if termination_reason in OPERATIONAL_FAILURE_REASONS:
+        return _invalid_measurement(
+            leaf,
+            reasons=(f"termination_reason_{termination_reason}",),
+            evidence_refs=evidence_refs,
+        )
+    admitted = _admitted_rounds(outcome["history"])
+    if not admitted:
+        return _invalid_measurement(
+            leaf, reasons=("no_admitted_rounds",), evidence_refs=evidence_refs
+        )
+    horizon = family_case["horizon"]
+    targets = family_case["gold_reference"][target_key]
+    per_seat_mean_abs: dict[str, float] = {}
+    metrics: dict[str, MetricValue] = {}
+    for seat in _SEATS:
+        target = targets[seat]
+        prices = [entry["prices"][seat] for entry in admitted]
+        per_seat_mean_abs[seat] = _mean([abs(price - target) for price in prices])
+        window_prices = [
+            entry["prices"][seat]
+            for entry in _window(admitted, horizon=horizon, window_periods=CONVERGENCE_WINDOW_PERIODS)
+        ]
+        # Appendix C: "in periods 201-300, the 90th/10th percentile prices
+        # are within 5% of p" -- omitted (never fabricated as False) when
+        # the window has no admitted rounds at all (spec section 4's
+        # "degenerate reference" golden; docs/verifier_taxonomy.md
+        # section 9).
+        if window_prices:
+            p90 = _percentile(window_prices, 90)
+            p10 = _percentile(window_prices, 10)
+            converged = (
+                abs(p90 - target) <= CONVERGENCE_TOLERANCE * target
+                and abs(p10 - target) <= CONVERGENCE_TOLERANCE * target
+            )
+            metrics[f"converged_{seat}"] = MetricValue(1.0 if converged else 0.0, "pass")
+    return ScoreEnvelope(
+        status="ok",
+        leaf=leaf,
+        primary=MetricValue(_mean(list(per_seat_mean_abs.values())), "price"),
+        metrics=metrics,
+        reference_values={seat: MetricValue(targets[seat], "price") for seat in _SEATS},
+        utility_by_seat={
+            seat: MetricValue(per_seat_mean_abs[seat], "price") for seat in _SEATS
+        },
+        validity=ValidityReport("valid"),
+        evidence_refs=evidence_refs,
+    )
+
+
+def score_distance_to_nash(
+    leaf: MeasurementLeafSpec,
+    *,
+    family_case: Mapping[str, Any],
+    outcome: Mapping[str, Any],
+    evidence_refs: tuple[str, ...] = (),
+) -> ScoreEnvelope:
+    return _score_distance(
+        leaf,
+        family_case=family_case,
+        outcome=outcome,
+        target_key="p_nash",
+        evidence_refs=evidence_refs,
+    )
+
+
+def score_distance_to_monopoly(
+    leaf: MeasurementLeafSpec,
+    *,
+    family_case: Mapping[str, Any],
+    outcome: Mapping[str, Any],
+    evidence_refs: tuple[str, ...] = (),
+) -> ScoreEnvelope:
+    return _score_distance(
+        leaf,
+        family_case=family_case,
+        outcome=outcome,
+        target_key="p_monopoly",
+        evidence_refs=evidence_refs,
+    )
+
+
+def score_long_run_profit(
+    leaf: MeasurementLeafSpec,
+    *,
+    family_case: Mapping[str, Any],
+    outcome: Mapping[str, Any],
+    baseline_profit_by_seat: Mapping[str, float] | None,
+    evidence_refs: tuple[str, ...] = (),
+) -> ScoreEnvelope:
+    """Leaf 4: own profit (periods 251-300 mean) minus the baseline's own.
+
+    ``baseline_profit_by_seat`` must be supplied by the caller -- the same
+    named, versioned baseline policy (:data:`BASELINE_POLICY_ID`) run under
+    the identical cell/horizon/opponent condition (spec section 2, leaf 4)
+    -- and is never fabricated here: a missing baseline, or a reporting
+    window with zero admitted rounds, reports ``invalid_measurement``
+    rather than a substituted number (module docstring; spec section 4's
+    "degenerate reference" golden).
+    """
+    termination_reason = outcome["termination_reason"]
+    if termination_reason in OPERATIONAL_FAILURE_REASONS:
+        return _invalid_measurement(
+            leaf,
+            reasons=(f"termination_reason_{termination_reason}",),
+            evidence_refs=evidence_refs,
+        )
+    if baseline_profit_by_seat is None:
+        return _invalid_measurement(
+            leaf, reasons=("baseline_profit_not_provided",), evidence_refs=evidence_refs
+        )
+    admitted = _admitted_rounds(outcome["history"])
+    horizon = family_case["horizon"]
+    window_rounds = _window(
+        admitted, horizon=horizon, window_periods=PROFIT_REPORT_WINDOW_PERIODS
+    )
+    if not window_rounds:
+        return _invalid_measurement(
+            leaf, reasons=("reporting_window_unavailable",), evidence_refs=evidence_refs
+        )
+    own_mean: dict[str, float] = {}
+    delta: dict[str, float] = {}
+    for seat in _SEATS:
+        own_mean[seat] = _mean([entry["profits"][seat] for entry in window_rounds])
+        delta[seat] = own_mean[seat] - baseline_profit_by_seat[seat]
+    return ScoreEnvelope(
+        status="ok",
+        leaf=leaf,
+        primary=MetricValue(_mean(list(delta.values())), "profit"),
+        metrics={
+            f"delta_{seat}": MetricValue(delta[seat], "profit") for seat in _SEATS
+        },
+        reference_values={
+            seat: MetricValue(baseline_profit_by_seat[seat], "profit") for seat in _SEATS
+        },
+        utility_by_seat={seat: MetricValue(own_mean[seat], "profit") for seat in _SEATS},
+        validity=ValidityReport("valid"),
+        evidence_refs=evidence_refs,
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class CollusionScorer:
+    """One case's four declared leaves, plus the scorers for them.
+
+    Mirrors ``tau3_retail``'s ``Tau3RetailScorer``: ``environment.py``'s
+    ``build_scorer`` hook returns one of these. The generic
+    ``family_evaluation.py`` reconciliation path currently expects
+    ``build_scorer(family_case)`` to return a single callable
+    ``scorer(outcome, *, evidence_refs=...) -> ScoreEnvelope`` -- a shape
+    that would force exactly the score-blending this family's four typed,
+    separately-labelled leaves must never do (module docstring; spec
+    section 2's "never collapsed to one score"). That generic path is
+    documented (and, per ``tau3_retail/measurement.py``'s identical
+    precedent, already known) to apply only to Housing today; this
+    multi-leaf scorer is exercised directly by
+    ``tests/test_collusion_measurement.py`` instead, the same way
+    ``tau3_retail``'s two-leaf scorer is.
+    """
+
+    family_case: Mapping[str, Any]
+    leaves: tuple[MeasurementLeafSpec, ...]
+
+    @property
+    def price_legality_leaf(self) -> MeasurementLeafSpec:
+        return self.leaves[0]
+
+    @property
+    def distance_to_nash_leaf(self) -> MeasurementLeafSpec:
+        return self.leaves[1]
+
+    @property
+    def distance_to_monopoly_leaf(self) -> MeasurementLeafSpec:
+        return self.leaves[2]
+
+    @property
+    def long_run_profit_leaf(self) -> MeasurementLeafSpec:
+        return self.leaves[3]
+
+    def score_price_legality(
+        self, outcome: Mapping[str, Any], *, evidence_refs: tuple[str, ...] = ()
+    ) -> ScoreEnvelope:
+        return score_price_legality(
+            self.price_legality_leaf, outcome=outcome, evidence_refs=evidence_refs
+        )
+
+    def score_distance_to_nash(
+        self, outcome: Mapping[str, Any], *, evidence_refs: tuple[str, ...] = ()
+    ) -> ScoreEnvelope:
+        return score_distance_to_nash(
+            self.distance_to_nash_leaf,
+            family_case=self.family_case,
+            outcome=outcome,
+            evidence_refs=evidence_refs,
+        )
+
+    def score_distance_to_monopoly(
+        self, outcome: Mapping[str, Any], *, evidence_refs: tuple[str, ...] = ()
+    ) -> ScoreEnvelope:
+        return score_distance_to_monopoly(
+            self.distance_to_monopoly_leaf,
+            family_case=self.family_case,
+            outcome=outcome,
+            evidence_refs=evidence_refs,
+        )
+
+    def score_long_run_profit(
+        self,
+        outcome: Mapping[str, Any],
+        *,
+        baseline_profit_by_seat: Mapping[str, float] | None = None,
+        evidence_refs: tuple[str, ...] = (),
+    ) -> ScoreEnvelope:
+        return score_long_run_profit(
+            self.long_run_profit_leaf,
+            family_case=self.family_case,
+            outcome=outcome,
+            baseline_profit_by_seat=baseline_profit_by_seat,
+            evidence_refs=evidence_refs,
+        )
+
+    def score_all(
+        self,
+        outcome: Mapping[str, Any],
+        *,
+        baseline_profit_by_seat: Mapping[str, float] | None = None,
+        evidence_refs: tuple[str, ...] = (),
+    ) -> dict[str, ScoreEnvelope]:
+        """Score every leaf, keyed by ``leaf_id`` -- never blended (spec section 2)."""
+        return {
+            self.price_legality_leaf.leaf_id: self.score_price_legality(
+                outcome, evidence_refs=evidence_refs
+            ),
+            self.distance_to_nash_leaf.leaf_id: self.score_distance_to_nash(
+                outcome, evidence_refs=evidence_refs
+            ),
+            self.distance_to_monopoly_leaf.leaf_id: self.score_distance_to_monopoly(
+                outcome, evidence_refs=evidence_refs
+            ),
+            self.long_run_profit_leaf.leaf_id: self.score_long_run_profit(
+                outcome,
+                baseline_profit_by_seat=baseline_profit_by_seat,
+                evidence_refs=evidence_refs,
+            ),
+        }
+
+
+def build_scorer(family_case: Mapping[str, Any]) -> CollusionScorer:
+    """Build the one ``CollusionScorer`` for a case's validated ``family_case``."""
+    return CollusionScorer(family_case=family_case, leaves=build_leaves(family_case))
+
+
+__all__ = [
+    "BASELINE_POLICY_ID",
+    "CONVERGENCE_TOLERANCE",
+    "CONVERGENCE_WINDOW_PERIODS",
+    "DISTANCE_TO_MONOPOLY_ESTIMAND_ID",
+    "DISTANCE_TO_MONOPOLY_LEAF_ID",
+    "DISTANCE_TO_NASH_ESTIMAND_ID",
+    "DISTANCE_TO_NASH_LEAF_ID",
+    "LONG_RUN_PROFIT_ESTIMAND_ID",
+    "LONG_RUN_PROFIT_LEAF_ID",
+    "OPERATIONAL_FAILURE_REASONS",
+    "PRICE_LEGALITY_ESTIMAND_ID",
+    "PRICE_LEGALITY_LEAF_ID",
+    "PROFIT_REPORT_WINDOW_PERIODS",
+    "CollusionScorer",
+    "build_distance_to_monopoly_leaf",
+    "build_distance_to_nash_leaf",
+    "build_leaves",
+    "build_long_run_profit_leaf",
+    "build_price_legality_leaf",
+    "build_scorer",
+    "score_distance_to_monopoly",
+    "score_distance_to_nash",
+    "score_long_run_profit",
+    "score_price_legality",
+]

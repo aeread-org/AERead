@@ -13,6 +13,7 @@ from .cases import (
     case_id,
 )
 from .environment import CollusionPlugin, family_manifest, register_plugin
+from .measurement import CollusionScorer, build_leaves, build_scorer
 
 __all__ = [
     "FAMILY_ID",
@@ -21,9 +22,12 @@ __all__ = [
     "SPLIT",
     "TERMINATION_REASONS",
     "CollusionPlugin",
+    "CollusionScorer",
     "build_all_cases",
     "build_case",
     "build_case_payload",
+    "build_leaves",
+    "build_scorer",
     "case_id",
     "economics",
     "family_manifest",
