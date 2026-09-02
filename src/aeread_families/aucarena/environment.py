@@ -383,7 +383,20 @@ class AucArenaPlugin:
         highest_bid = new_state["highest_bid"]
         highest_bidder = new_state["highest_bidder"]
         round_bids: list[dict[str, Any]] = []
-        call_index = 0
+        # One continuous RNG stream for the whole round -- not one freshly
+        # reseeded ``random.Random`` per call. ``vendored.record_bid``
+        # rescans the *entire* ``round_bids`` list on every call (including
+        # entries already resolved on an earlier call this same round); a
+        # fresh reseed per call restarts the pseudorandom sequence each
+        # time, so a tie already resolved earlier this round could be
+        # silently re-flipped the moment a later bidder is appended -- see
+        # ``docs/aucarena_codex_triage.md`` Finding 4. One ``random.Random``
+        # instance, seeded once per round and threaded through every call,
+        # keeps the family's own documented invariant ("same seed -> same
+        # tie-break outcome every time",
+        # ``tests/test_aucarena_vendored_upstream.py``) self-consistent
+        # across an entire round, not just within one call.
+        rng = random.Random(f"{world_seed}_{cur_item['id']}_{bid_round}")
 
         # Roster order (not dict-iteration order), matching upstream's
         # bidder_list processing order in auction_workflow.py -- record_bid's
@@ -401,8 +414,6 @@ class AucArenaPlugin:
                 seat["rule_bid_cnt"] = action["rule_bid_cnt"]
             seat["withdraw"] = vendored.set_withdraw(bid_price)
             round_bids.append({"bidder": seat_id, "bid": bid_price})
-            rng = random.Random(f"{world_seed}_{cur_item['id']}_{bid_round}_{call_index}")
-            call_index += 1
             highest_bid, highest_bidder = vendored.record_bid(
                 round_bids, highest_bid, highest_bidder, rng=rng
             )

@@ -229,12 +229,15 @@ All five use the same 3-seat roster unless noted: `agent` (tested), `field_low` 
 `budget=2000`), `field_high` (rule, `budget=9000`); `min_markup_pct=0.1`, `max_bid_cnt=4`,
 `enable_discount=False`; items from `data/pseudo_items.jsonl` ids 1-4 (`Widget A`..`Doodad D`,
 price 1000 / true_value 2000 each) unless noted. This section never fixed `agent`'s own budget;
-`cases.py` sets it to 3200 (see that constant's comment) because that is the value that makes
-golden 1's "always bid the legal minimum markup" seat win items 1-2 and lose 3-4 under this
-family's deterministic tie-break RNG — found by running the environment, not derived by hand.
+`cases.py` sets it to 3200 (see that constant's comment) — a starting point verified by running
+the environment, not a value hand-picked to force a particular win count. Under this family's
+deterministic tie-break RNG (one continuous per-round RNG stream, not one freshly reseeded
+`random.Random` per bidder call — `docs/aucarena_codex_triage.md` Finding 4), budget=3200 funds
+exactly one win (item 1, at $1700) before the remaining $1500 can no longer keep pace with
+`field_high` on items 2-4 (each resolving at $1500-$1600).
 
 1. **`successful_01`.** `agent` bids the legal minimum markup on every round it stays in,
-   winning 2 of 4 items and losing 2 to `field_high`; `field_low` withdraws immediately every
+   winning 1 of 4 items and losing 3 to `field_high`; `field_low` withdraws immediately every
    time. All three `rule_constraint` leaves pass on every recorded bid/hammer event;
    `aucarena_profit_vs_field` reports a finite, non-trivial (mixed-sign per-item) delta against
    `{field_low, field_high}`.

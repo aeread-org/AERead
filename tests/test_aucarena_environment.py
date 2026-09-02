@@ -29,9 +29,10 @@ import pytest
 
 from aeread.shared_runner.execution import EvidenceSealedError, EvidenceStore
 from aeread.shared_runner.registry import REQUIRED_FAMILY_PLUGIN_HOOKS, PluginRegistry
-from aeread.shared_runner.resolver import PlanCell, canonical_json_bytes
+from aeread.shared_runner.resolver import PlanCell, canonical_json_bytes, case_content_sha256
 from aeread.shared_runner.schemas import CaseManifest
 from aeread.shared_runner.scheduler import EpisodeResult, run_episode
+from aeread_families.aucarena import environment
 from aeread_families.aucarena.environment import (
     AucArenaPlugin,
     BID_ROUND_PHASE,
@@ -169,22 +170,30 @@ def test_build_scorer_returns_the_four_declared_leaves() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_golden_1_agent_wins_items_1_and_2_loses_3_and_4() -> None:
+def test_golden_1_agent_wins_item_1_loses_2_3_and_4() -> None:
+    """Numbers below are the corrected, re-measured golden-1 outcome after
+    ``docs/aucarena_codex_triage.md`` Finding 4's fix (one continuous
+    per-round RNG stream, not one freshly reseeded ``random.Random`` per
+    bidder call, threaded through ``vendored.record_bid``'s tie-break) --
+    ``budget=3200`` was never re-tuned to chase a particular win count
+    (spec section 5's own "found by running the environment, not derived
+    by hand" already anticipates that these numbers are whatever the
+    (correct) environment produces, not a hand-authored target)."""
     result = _run(_case("successful"), _min_markup_policy)
 
     assert result.terminal["reason"] == "auction_complete"
     items_by_id = {entry["item_id"]: entry for entry in result.outcome["items"]}
     assert items_by_id[1]["winner"] == "agent"
-    assert items_by_id[2]["winner"] == "agent"
+    assert items_by_id[2]["winner"] == "field_high"
     assert items_by_id[3]["winner"] == "field_high"
     assert items_by_id[4]["winner"] == "field_high"
     assert all(entry["sold"] for entry in result.outcome["items"])
 
     seats = result.outcome["seats"]
-    assert seats["agent"]["profit"] == 800  # (2000-1600) x 2
-    assert seats["agent"]["budget"] == 0
+    assert seats["agent"]["profit"] == 300  # 2000-1700
+    assert seats["agent"]["budget"] == 1500
     assert seats["field_low"]["profit"] == 0  # withdraws immediately every time
-    assert seats["field_high"]["profit"] == 2000  # (2000-1000) x 2
+    assert seats["field_high"]["profit"] == 1300  # (2000-1600)+(2000-1600)+(2000-1500)
 
     # aucarena_bid_legality / aucarena_hammer_rule invariants: every recorded
     # action this episode is legal and well-formed.
@@ -310,6 +319,86 @@ def test_golden_1_is_deterministic_across_repeated_runs() -> None:
     second = _run(case, _min_markup_policy)
     assert first.outcome == second.outcome
     assert first.final_state == second.final_state
+
+
+# ---------------------------------------------------------------------------
+# Finding 4 (docs/aucarena_codex_triage.md): a fresh ``random.Random`` per
+# bidder call would let an already-resolved tie be silently re-flipped the
+# moment a later bidder is appended to ``round_bids`` this same round --
+# ``vendored.record_bid`` rescans the *entire* list on every call. One
+# continuous RNG stream per round (not one per call) is the fix.
+# ---------------------------------------------------------------------------
+
+
+def _three_way_tie_case(world_seed: int) -> CaseManifest:
+    """A synthetic, non-golden case: three ``scripted`` seats, one item,
+    each scripted to bid the identical legal starting price in round 0 --
+    a genuine multi-way tie every one of the five QC Gate-2 goldens avoids
+    (``field_low`` always withdraws immediately in every one of them, per
+    the spec). Reuses the pinned ``successful_01`` item pool/provenance
+    unchanged; only the roster, case_id, and world_seed are synthetic."""
+    path = CASES_DIR / "aucarena.pilot.successful_01.json"
+    raw = json.loads(path.read_text(encoding="utf-8"))
+    raw["case_id"] = "aucarena.pilot.synthetic_three_way_tie_01"
+    raw["world_seed"] = world_seed
+    raw["seats"] = [
+        {"id": seat_id, "role": "bidder"} for seat_id in ("alpha", "bravo", "charlie")
+    ]
+    payload = dict(raw["payload"])
+    payload["item_ids"] = [1]
+    payload["items"] = [item for item in payload["items"] if item["id"] == 1]
+    payload["roster"] = [
+        {"seat_id": seat_id, "model_name": "scripted", "budget": 5000, "max_bid_cnt": 4}
+        for seat_id in ("alpha", "bravo", "charlie")
+    ]
+    raw["payload"] = payload
+    raw["content_sha256"] = case_content_sha256(raw)
+    return CaseManifest.from_dict(raw)
+
+
+def _all_bid_starting_price_policy(seat_id: str, observation: Any) -> str:
+    del seat_id
+    return str(observation["cur_item"]["price"])
+
+
+def test_step_seeds_one_continuous_rng_per_round_not_per_bidder_call(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The production path (``run_episode`` -> ``AucArenaPlugin.step``)
+    must construct exactly one ``random.Random`` for the one round in
+    which all three seats tie -- not one per bidder processed, which is
+    what would let an earlier call's tie resolution be silently
+    overturned by a later bidder's arrival this same round."""
+    constructed_seeds: list[str] = []
+    real_random = environment.random.Random
+
+    def _spy(seed: str) -> Any:
+        constructed_seeds.append(seed)
+        return real_random(seed)
+
+    monkeypatch.setattr(environment.random, "Random", _spy)
+
+    case = _three_way_tie_case(world_seed=4242)
+    plugin = AucArenaPlugin()
+    registry = PluginRegistry()
+    register_plugin(registry, plugin=plugin)
+    resolved = registry.resolve_manifest(family_manifest())
+    cell = _cell(case)
+    harness = ScriptedAucArenaHarness(_all_bid_starting_price_policy)
+    result = asyncio.run(
+        run_episode(cell=cell, case=case, plugin=resolved, response_source=harness)
+    )
+
+    assert result.terminal["reason"] == "auction_complete"
+    # All three seats bid the same legal starting price in round 0 -- a
+    # genuine three-way tie was live. Exactly one RNG instance is
+    # constructed per round (``phase_instance``), not one per bidder
+    # processed within it: the buggy per-call scheme would instead
+    # construct one instance per *valid* bid recorded (three, for round 0
+    # alone), a count that does not line up with "one per round" the
+    # moment a round records more than one bid.
+    assert len(constructed_seeds) == len(result.phase_instances)
+    assert len(result.phase_instances) >= 2  # round 0 (the tie) + >=1 more
 
 
 # ---------------------------------------------------------------------------

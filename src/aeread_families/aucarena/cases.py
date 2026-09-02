@@ -138,15 +138,18 @@ class GoldenScenario:
 # normal rule bidder with room to contest four rounds.
 _FIELD_LOW = RosterSeat(seat_id="field_low", model_name="rule", budget=2000, max_bid_cnt=0)
 _FIELD_HIGH = RosterSeat(seat_id="field_high", model_name="rule", budget=9000, max_bid_cnt=4)
-# 3200 is not an upstream-given number -- it is the budget that makes a
-# seat scripted to "always bid the legal minimum markup, else withdraw"
-# (tests/test_aucarena_environment.py's `agent_min_markup` policy) win
-# exactly items 1-2 and lose items 3-4 against `_FIELD_HIGH` under this
-# family's deterministic tie-break RNG (verified by running the
-# environment, not derived by hand): each contested item resolves at
-# $1600, so budget=3200 funds exactly two wins before item 3 finds the
-# seat unable to afford even the starting bid -- reproducing golden 1's
-# narrated "wins 2 of 4, loses 2" (spec section 5) exactly.
+# 3200 is not an upstream-given number -- it is the budget a seat scripted
+# to "always bid the legal minimum markup, else withdraw"
+# (tests/test_aucarena_environment.py's `agent_min_markup` policy) starts
+# with against `_FIELD_HIGH` under this family's deterministic tie-break
+# RNG (verified by running the environment, not derived by hand; the
+# concrete win/loss split is whatever that run produces, never a
+# hand-picked target -- see docs/aucarena_codex_triage.md Finding 4 on why
+# a per-round, not per-call, tie-break RNG stream is the fix this budget
+# was re-verified against). Item 1 resolves at $1700, leaving $1500 --
+# enough to keep pace through $1500 but not the $1600+ item 2 needs, so
+# the seat wins exactly item 1 and withdraws on items 2-4, reproducing
+# golden 1's narrated "wins 1 of 4, loses 3" (spec section 5) exactly.
 _AGENT = RosterSeat(seat_id="agent", model_name="scripted", budget=3200, max_bid_cnt=4)
 _SHARED_ROSTER = (_AGENT, _FIELD_LOW, _FIELD_HIGH)
 

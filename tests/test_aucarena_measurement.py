@@ -178,12 +178,12 @@ def test_golden_1_profit_vs_field_is_finite_and_mixed_sign() -> None:
     score = scorer.score_profit_vs_field(result=result)
 
     assert score.status == "ok"
-    # agent profit=800 (test_aucarena_environment.py's own established
-    # golden-1 numbers); field_low never wins (profit 0), field_high wins
-    # items 3-4 (profit 2000).
-    assert score.metrics["delta_vs_field_low"].value == 800.0
-    assert score.metrics["delta_vs_field_high"].value == -1200.0
-    assert score.primary.value == pytest.approx((800.0 - 1200.0) / 2.0)
+    # agent profit=300 (test_aucarena_environment.py's own established
+    # golden-1 numbers, post Finding-4 RNG fix); field_low never wins
+    # (profit 0), field_high wins items 2-4 (profit 1300).
+    assert score.metrics["delta_vs_field_low"].value == 300.0
+    assert score.metrics["delta_vs_field_high"].value == -1000.0
+    assert score.primary.value == pytest.approx((300.0 - 1000.0) / 2.0)
 
 
 # ---------------------------------------------------------------------------
