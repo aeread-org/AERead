@@ -12,10 +12,28 @@ trajectories only, no network, no API keys, no LLM calls.
 environment** — `cases.py` (importer, pins, sanitization, the 45-session pilot), `environment.py`
 (phase graph, `AmazonbargPlugin`, registration), and `upstream_shim.py` (§3.1's delegation
 mechanism, needed already because the phase graph's own action parsing delegates to
-`session.parseReply`). `AmazonbargPlugin.build_scorer` raises `NotImplementedError` on purpose —
-milestone 2 builds the five measurement leaves (§2) against delegated `eval.py:Metrics`;
-milestone 3 is expected to cover the scripted counterpart harness, parity, and replay (§3, §5
-P3-P5), mirroring `tau3_retail`'s own `harness.py`/`parity.py`/`replay.py` split.
+`session.parseReply`). **Milestone 2 (done, 2026-09-02): measurement** — `measurement.py`'s
+five leaves (§2), each delegated to upstream's own `eval.py:Metrics`, wired into
+`AmazonbargPlugin.build_scorer`, and verified against all five QC Gate-2 goldens (§4) with a
+component-parity check (two independent delegated `Metrics` calls on the identical recorded
+transcript must agree byte-for-byte). **Milestone 3 (done, 2026-09-02): harness, end-to-end,
+replay** — `harness.py`'s `ScriptedAmazonbargHarness` drives full episodes through the real
+`run_episode`/`AmazonbargPlugin`/`PluginRegistry` path (never a hand-wired shortcut) and seals
+every served decision as a durable, hash-chained `EvidenceStore`; `replay.py` reproduces a sealed
+episode's state and score with zero further model/network calls (see
+`docs/amazonbarg_adapter_status.md` for the full evidence). One deliberate scope decision versus
+the original three-milestone sketch: unlike `tau3_retail` (whose pinned upstream ships a
+directly callable `Environment.get_response` entirely outside any AERead code, making a
+genuinely separate "upstream_direct" trajectory buildable for `parity.py` to compare against the
+adapter path), amazonbarg's only entry point into upstream's negotiation semantics *is*
+`session.parseReply`/`utils.Action.ActionParser` — the exact functions `AmazonbargPlugin.step()`
+already calls. There is no separate upstream orchestration loop to run side-by-side without
+either reimplementing upstream's own `Agent2AgentSession` (which needs live buyer/seller agent
+objects that do not exist in a provider-free, tool-free phase graph) or merely calling the same
+delegated function twice — which is exactly what milestone 2's component-parity check and
+milestone 3's replay-vs-original score-equality check (`tests/test_amazonbarg_replay.py`)
+already do. No standalone `parity.py` module was built for this reason; flagged here for
+reviewer sign-off alongside §3.1's own flagged deviation.
 
 **Governing facts** (verified by direct exploration of the pinned checkout; do not re-derive):
 
