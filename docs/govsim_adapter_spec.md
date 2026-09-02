@@ -248,3 +248,84 @@ local IPC, the same standing `tau2_bridge` already has in a "provider-free" suit
   statistics) — a follow-up, mirroring how the tau3 pilot preceded its 114-task expansion.
 - No upstream bug equivalent to tau3's `modify_pending_order_items` was found; if one surfaces
   during implementation, add a P5-equivalent bug-preservation test then.
+
+## 7. Milestone 1 implementation notes (cases + environment; reality-forced deviations)
+
+This section records where building `src/aeread_families/govsim/` against the plan above
+forced a concrete decision the earlier sections left open, per the rule that reality-forced
+deviations are recorded in the spec, not silently improvised.
+
+**Bridge protocol is per-call stateless replay, not raw state passing.** §3.2 said the
+subprocess driver would "mirror `tau2_bridge_driver.py`" without settling the wire protocol.
+tau2's bridge passes `db` (a plain dict that fully describes `RetailDB`) in and out of a
+stateless per-call subprocess. Upstream's `ConcurrentEnv` cannot be handed back and forth the
+same way: `internal_global_state["next_time"]` holds `datetime` values and
+`internal_global_state["action"]` holds live `PersonaAction` instances, neither JSON-safe --
+and the kernel's own `TransitionResult.state` must be canonical-JSON-freezable
+(`scheduler.py`'s `_freeze`/`_content_hash`, which call `canonical_json_bytes`). The
+implemented design (`govsim_bridge.py`/`govsim_bridge_driver.py`) instead sends the complete
+ordered action history for the episode on every call; the driver subprocess replays
+`reset(seed=...)` followed by every recorded action, in order, then applies the newest one.
+Verified during implementation (not merely assumed): upstream's own `np.random.RandomState` is
+seeded once by `reset` and consumes draws in the exact same call sequence on every replay (its
+`get_state()`/`set_state()` round-trip byte-for-byte after a JSON round-trip too, confirmed by
+direct probe, though the shipped design does not need that path since it never serializes
+`RandomState` at all -- replay reproduces its draws for free). This keeps the same per-call,
+no-daemon subprocess discipline as `tau2_bridge.py` (one subprocess, one call, complete state in
+and out) at the cost of O(n) upstream `step()` calls replayed per bridge call instead of O(1); a
+full 12-round, 5-agent episode is ~192 kernel-level `step()` calls and took ~108s end-to-end
+against the real bridge during verification -- noticeable, not disqualifying for this milestone,
+and a documented follow-up (an O(1) design round-tripping `RandomState.get_state()` plus
+hand-serialized `datetime`/`PersonaAction` fields) if the replay/parity milestone's wall-clock
+cost becomes a bottleneck. See `ledger_entries/govsim.md` for the related kernel-contract
+observation this design sidesteps (no plugin teardown hook exists for a daemon-shaped
+alternative).
+
+**Operational-failure handling.** §4's malformed-operational golden ("the adapter must catch
+the resulting error and record a typed operational failure... never crash the harness") named
+the required behavior but not the mechanism. The kernel's `outcome_unknown` machinery
+(`shared_runner_portability_contract.md` §4) is wired through `ToolRuntime`/`ToolPort`, which
+this family does not use (native phase actions, no external tool loop, matching `housing_v1`).
+Implemented instead: a new declared termination reason, `operational_failure` (alongside
+`collapse_or_horizon`, which covers upstream's single `resource_in_pool < 5 or num_round >=
+max_num_rounds` test -- a collapsed episode is a valid, scoreable trial, not a distinct failure
+mode). `GovsimPlugin.step` catches `GovsimActionError` from the bridge, sets this reason, and
+returns a normal `TransitionResult` with `next_phase_id=None` rather than raising (a raised
+exception from `step()` is a hard `SchedulerContractError`, not a graceful outcome, per
+`scheduler.py`'s `_step` wrapper). `outcome()` reports `outcome_status: "outcome_unknown"` for
+this reason and `"known"` otherwise.
+
+**Phase logical-action budget is per-phase, whole-episode, and distinct from the bridge's own
+per-round action-dict count.** `scheduler.py`'s `phase_action_counts` accumulates across every
+instance of a phase over the whole episode, never resetting per round (see
+`ledger_entries/govsim.md`), so `PhaseSpec.max_logical_actions` for `harvest`/`reflect` is
+`num_agents * max_num_rounds` and for `discuss` is `1 * max_num_rounds` -- three different
+values, not one shared constant the way `tau3_retail`'s two phases share `max_steps`. This is
+the kernel-level logical-action count (one per seat per phase-instance); it is distinct from
+the bridge-level action-dict count `step()` submits per call (`2*num_agents` for harvest -- N
+real quantities plus N `pool_after_harvesting` dummies -- `1` for discuss, `num_agents` for
+reflect), which is `3*num_agents+1` per round, not `2*num_agents+1`. `cases.py`'s
+`episode.max_logical_actions` (the case-level budget) uses the kernel-level total,
+`(2*num_agents+1) * max_num_rounds`.
+
+**Corpus location and format.** Cases are committed (not purely code-generated at runtime like
+`housing_v1`) under `cases/govsim/v1/`: 9 case files (`govsim.<scenario>.<policy>.<world_seed>
+.json`), `pins.json`, and `corpus_manifest.json` (an index of all 9 case ids, mirroring
+`tau3_retail`'s `pilot_manifest.json` but covering the whole corpus rather than a subset, since
+govsim has no train/test split). `pins.json`'s `bridge_versions` field is populated only when
+`cases.py`'s CLI is run with `--bridge-python`; otherwise it records an explicit
+`bridge_versions_unavailable_reason`, mirroring `tau3_retail`'s identical convention for
+`tool_schema_sha256`.
+
+**`docs/benchmark_qc.md`.** The QC Gate 1/2 terminology this spec uses is self-defined within
+this file (section 1 and section 4 respectively); the referenced `docs/benchmark_qc.md` does
+not exist on this branch or on `main` as of this milestone (it exists only on an unmerged
+sibling branch/commit -- see `ledger_entries/govsim.md` for the exact commit and reconciliation
+note). Nothing in this milestone depends on that file's contents beyond the two section
+headings already defined here.
+
+**Scorer deferred.** Per this milestone's scope, `GovsimPlugin.build_scorer` raises
+`NotImplementedError` rather than returning a stub scorer; it exists only to satisfy
+`PluginRegistry.register`'s callable-hook check (`registry.py`'s
+`REQUIRED_FAMILY_PLUGIN_HOOKS`), which checks `callable(...)`, never invokes the hook, at
+registration time. `measurement.py` (the five leaves in section 2) lands in a later milestone.

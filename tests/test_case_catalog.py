@@ -51,6 +51,15 @@ def test_generated_housing_family_is_discoverable() -> None:
     assert (CASES / "housing_v1" / "README.md").is_file()
 
 
+def test_govsim_v1_corpus_has_all_9_cells_and_provenance() -> None:
+    v1 = CASES / "govsim" / "v1"
+
+    assert len(list(v1.glob("govsim.*.json"))) == 9
+    assert (v1 / "pins.json").is_file()
+    assert (v1 / "corpus_manifest.json").is_file()
+    assert (CASES / "govsim" / "README.md").is_file()
+
+
 def test_procurement_grounding_development_case_is_discoverable() -> None:
     family = CASES / "procurement_grounding_v1"
 
