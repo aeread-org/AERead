@@ -851,6 +851,43 @@ def test_unknown_event_write_failure_preserves_the_unexpected_error(tmp_path) ->
     assert captured.value.__context__ is failures["bookkeeping"]
 
 
+def test_composed_snapshot_and_event_write_failure_still_preserves_the_original(
+    tmp_path,
+) -> None:
+    """Both bookkeeping layers fail: the post-effect snapshot raises AND the
+    outcome_unknown event write raises. The caller must still see the tool's
+    own failure, never either bookkeeping error."""
+
+    evidence = _evidence(tmp_path)
+    tools = ToolExecutor(evidence)
+    ledger = {"inventory": 10}
+    reader_failures: dict = {}
+    append_failures: dict = {}
+    _fail_append_for(evidence, "tool_invocation_outcome_unknown", append_failures)
+
+    async def order_stock(_arguments):
+        ledger["inventory"] = 5
+        raise ToolFailure("supplier_timeout", "supplier timed out", retryable=True)
+
+    with pytest.raises(ToolFailure) as captured:
+        asyncio.run(
+            tools.invoke(
+                action_attempt_id="action_attempt_fixture",
+                tool_id="place_purchase_order",
+                tool_version="1.0.0",
+                arguments={"sku": "widget"},
+                implementation=order_stock,
+                idempotency_supported=False,
+                effect="mutating",
+                tool_schema_sha256="9" * 64,
+                state_reader=_reader_failing_after_first_call(ledger, reader_failures),
+            )
+        )
+
+    assert captured.value.condition == "supplier_timeout"
+    assert "bookkeeping" in append_failures, "the unknown-event write must have failed"
+
+
 def test_stub_state_reader_on_a_nonidempotent_mutation_leaves_a_typed_trace(
     tmp_path,
 ) -> None:

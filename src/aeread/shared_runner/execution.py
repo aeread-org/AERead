@@ -2835,19 +2835,26 @@ class ToolExecutor:
             # BaseException, not Exception: asyncio.CancelledError is a direct
             # BaseException subclass, and cancellation is exactly when a
             # mutating call is most likely to have posted unobserved.
-            self.evidence.append_event(
-                "tool_invocation_outcome_unknown",
-                {
-                    "failure_condition": "bookkeeping_failed",
-                    "effect": effect,
-                    "outcome_known": False,
-                    "state_before_sha256": (
-                        None if before is None else before[1].sha256
-                    ),
-                },
-                action_attempt_id=action_attempt_id,
-                tool_invocation_id=tool_invocation_id,
-            )
+            try:
+                self.evidence.append_event(
+                    "tool_invocation_outcome_unknown",
+                    {
+                        "failure_condition": "bookkeeping_failed",
+                        "effect": effect,
+                        "outcome_known": False,
+                        "state_before_sha256": (
+                            None if before is None else before[1].sha256
+                        ),
+                    },
+                    action_attempt_id=action_attempt_id,
+                    tool_invocation_id=tool_invocation_id,
+                )
+            except BaseException:
+                # Even with both bookkeeping layers down (snapshot AND event
+                # write), the caller must see the tool's own failure; the
+                # durable started event already leaves the invocation
+                # unterminated for audit.
+                raise original_error
             # Implicit exception chaining sets original_error.__context__ to
             # bookkeeping_error here, since bookkeeping_error is the exception
             # currently being handled.
