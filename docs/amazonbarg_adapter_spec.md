@@ -249,7 +249,12 @@ All five use real pilot-corpus numbers (`budget_ratio = 0.8`), each isolating on
    Scripted `SELL $480 → BUY $480 → DEAL $480` (matches the seller's own prior offer exactly,
    so `amazonbarg_deal_authenticity` **passes** — upstream calls this a legitimate deal) but
    `$480 < cost`, so `amazonbarg_zopa_membership` **fails**: the case upstream's own scorer
-   does not catch and AERead's added check exists specifically to catch.
+   does not catch and AERead's added check exists specifically to catch. This golden proves
+   scoring-layer detection of an environment-permitted illegal deal, not state-layer
+   prevention — no economic legality is live at the state layer (governing fact above), so
+   the below-cost `DEAL` genuinely closes and mutates terminal state; only scoring catches it
+   after the fact. See golden 4 for the adapter's actual "no protected state changed on
+   invalid input" proof.
 4. **malformed-operational** — `home-kitchen_4` (Bean Bag). Scripted buyer reply omits the
    `Action:` line entirely; `parseReply` yields `action=''`, `ActionParser` raises
    `RuntimeError("No action in text")`, upstream's own `action_error` path terminates the
