@@ -23,6 +23,7 @@ from aeread.shared_runner.resolver import PlanCell, canonical_json_bytes
 from aeread.shared_runner.schemas import AuthoringValidationError, CaseManifest
 from aeread.shared_runner.scheduler import DecisionRequest, SchedulerContractError, run_episode
 from aeread_families.amazonbarg import cases as amazonbarg_cases
+from aeread_families.amazonbarg import measurement as amazonbarg_measurement
 from aeread_families.amazonbarg.environment import (
     BUYER_PHASE,
     SELLER_PHASE,
@@ -162,12 +163,27 @@ def test_plugin_registers_every_required_hook_through_normal_registry() -> None:
     ]
 
 
-def test_build_scorer_is_deferred_to_the_next_milestone() -> None:
+def test_build_scorer_returns_the_five_declared_measurement_leaves() -> None:
+    """Milestone 2: ``build_scorer`` is wired to ``measurement.py`` for real.
+
+    See ``tests/test_amazonbarg_measurement.py`` for the five leaves'
+    declaration rules and the QC Gate-2 golden scoring tests themselves;
+    this only proves the plugin hook returns the same leaves
+    ``measurement.build_scorer`` does, mirroring
+    ``tau3_retail``'s own ``test_plugin_build_scorer_hook_returns_the_same
+    _leaves_as_measurement_py``.
+    """
     plugin = AmazonbargPlugin(upstream_root=UPSTREAM_ROOT)
     case = _case("home-kitchen_2")
     family_case = plugin.validate_payload(case.payload)
-    with pytest.raises(NotImplementedError, match="milestone 2"):
-        plugin.build_scorer(family_case)
+
+    scorer = plugin.build_scorer(family_case)
+
+    expected = amazonbarg_measurement.build_leaves(family_case)
+    assert tuple(leaf.leaf_id for leaf in scorer.leaves) == tuple(
+        leaf.leaf_id for leaf in expected
+    )
+    assert len(scorer.leaves) == 5
 
 
 # ---------------------------------------------------------------------------

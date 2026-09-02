@@ -120,6 +120,7 @@ _UPSTREAM_MODULE_NAMES: tuple[str, ...] = (
     "SellerAgent",
     "api_setting",
     "product",
+    "eval",
     "utils",
     "utils.Action",
     "utils.ActionNarrator",
@@ -178,14 +179,38 @@ class _StubModule(types.ModuleType):
     :func:`miss_count` reports; the parameter exists only so a test can
     exercise the miss-detection mechanism itself against an isolated
     counter without polluting the real, suite-wide P2(b) assertion.
+
+    ``__path__`` is set to a real (empty) list, never left to
+    ``__getattr__``'s lazy ``_StubUse`` placeholder: milestone 2's
+    ``eval.py`` delegation discovered that Python's import machinery reads
+    a package's ``__path__`` directly (never through ``__getattr__``) when
+    resolving a dotted submodule import (``import matplotlib.pyplot``), and
+    a non-list placeholder there crashes the finder with a confusing
+    ``TypeError`` instead of the intended, silent stub behaviour. An empty
+    list is enough -- see :data:`_STUB_SUBMODULES` for how the specific
+    dotted submodules this adapter's delegated imports actually need
+    (``matplotlib.pyplot``) get their own pre-registered stub instead of
+    relying on that empty path ever resolving anything.
     """
 
     def __init__(self, name: str, *, counter: _MissCounter | None = None) -> None:
         super().__init__(name)
         self._counter = counter if counter is not None else _MISS_COUNTER
+        self.__path__: list[str] = []
 
     def __getattr__(self, item: str) -> _StubUse:
         return _StubUse(f"{self.__name__}.{item}", self._counter)
+
+
+# Every stub candidate is imported bare (``import requests``) except
+# ``matplotlib``, which upstream's ``eval.py`` imports as
+# ``import matplotlib.pyplot as plt`` -- a dotted submodule form. Python's
+# import system checks ``sys.modules['matplotlib.pyplot']`` directly and
+# never falls back to ``matplotlib``'s own ``__getattr__``, so that exact
+# key needs its own pre-registered stub alongside the parent's.
+_STUB_SUBMODULES: dict[str, tuple[str, ...]] = {
+    "matplotlib": ("matplotlib.pyplot",),
+}
 
 
 def _module_is_really_importable(name: str) -> bool:
@@ -205,8 +230,16 @@ def _install_missing_stub_modules(names: tuple[str, ...]) -> Iterator[None]:
                 continue
             if _module_is_really_importable(name):
                 continue
-            sys.modules[name] = _StubModule(name)
+            parent = _StubModule(name)
+            sys.modules[name] = parent
             installed.append(name)
+            for submodule_name in _STUB_SUBMODULES.get(name, ()):
+                if submodule_name in sys.modules:
+                    continue
+                submodule = _StubModule(submodule_name)
+                sys.modules[submodule_name] = submodule
+                installed.append(submodule_name)
+                setattr(parent, submodule_name.rpartition(".")[2], submodule)
         yield
     finally:
         for name in installed:
@@ -354,6 +387,25 @@ def import_action_parser(upstream_root: Path) -> tuple[type, type]:
         return _Action, _ActionParser
 
 
+def import_metrics(upstream_root: Path) -> type:
+    """Delegate to the pinned checkout's ``eval.Metrics`` (spec section 2, milestone 2).
+
+    ``eval.py`` imports ``utils.Action`` directly (zero third-party deps of
+    its own) plus five of the six stub-candidate packages
+    (``jsonlines``, ``matplotlib``, ``seaborn``, ``pandas``, ``fire`` --
+    every one of them used only by ``Evaluate``/plotting/CLI code this
+    adapter never calls, never by ``Metrics`` itself) -- so this needs
+    :func:`delegated_import`, not :func:`direct_import`, even though
+    ``Metrics`` itself never touches ``session``/``api_setting``/``openai``.
+    Returns the real upstream ``Metrics`` class -- never a hand-written
+    reimplementation of its legality/profit arithmetic (adapter rule 2).
+    """
+    with delegated_import(upstream_root):
+        import eval as _eval  # type: ignore[import-not-found]
+
+        return _eval.Metrics
+
+
 __all__ = [
     "STUB_CANDIDATE_NAMES",
     "UpstreamShimMissError",
@@ -361,6 +413,7 @@ __all__ = [
     "direct_import",
     "import_action_parser",
     "import_camel_amazon_inventories",
+    "import_metrics",
     "import_parse_reply",
     "miss_count",
     "miss_paths",

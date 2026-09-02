@@ -12,10 +12,11 @@ free-text reply parsed by upstream's own extraction grammar
 (``session.parseReply`` + ``utils.Action.ActionParser``), never
 reimplemented here (spec section 3).
 
-Milestone note: this module implements cases + environment only.
-``build_scorer`` is intentionally deferred to the next milestone (spec
-section 2's five measurement leaves, delegated to upstream's own
-``eval.py:Metrics``) -- see its docstring below.
+Milestone note: milestone 1 built cases + environment only, with
+``build_scorer`` deferred (spec section 2's five measurement leaves).
+Milestone 2 (this update) wires ``build_scorer`` to
+``measurement.build_scorer`` -- see that module for the five leaves
+themselves, each delegated to upstream's own ``eval.py:Metrics``.
 """
 from __future__ import annotations
 
@@ -32,7 +33,7 @@ from aeread.shared_runner.scheduler import (
     TransitionResult,
 )
 
-from . import upstream_shim
+from . import measurement, upstream_shim
 from .cases import (
     BUDGET_RATIO,
     FAMILY_ID,
@@ -518,22 +519,19 @@ class AmazonbargPlugin:
             "message_count": terminal["message_count"],
         }
 
-    def build_scorer(self, family_case: Mapping[str, Any]) -> Any:
-        """Deferred to milestone 2 (spec section 2).
+    def build_scorer(self, family_case: Mapping[str, Any]) -> measurement.AmazonbargScorer:
+        """Return the five declared measurement leaves plus their scorers.
 
-        The five declared measurement leaves (``amazonbarg_deal_authenticity``,
-        ``amazonbarg_zopa_membership``, the two bound leaves, and
-        ``amazonbarg_bargained_ratio``) delegate to upstream's own
-        ``eval.py:Metrics`` for legality/profit arithmetic; this milestone
-        builds cases and the environment phase graph only. Raising loudly
-        here is preferable to a placeholder scorer that would silently seal
-        a fabricated ``ScoreEnvelope``.
+        See ``measurement.py`` (spec section 2): every leaf is declared for
+        every case (unlike ``tau3_retail``, none are conditional). The
+        actual delegated ``eval.py:Metrics`` call
+        (``measurement.compute_upstream_metrics``, which needs
+        ``upstream_root`` and a recorded transcript) happens separately, at
+        score time -- mirroring ``Tau3RetailScorer``'s own
+        bridge-passed-at-call-time pattern rather than binding
+        ``upstream_root`` into the scorer object itself.
         """
-        del family_case
-        raise NotImplementedError(
-            "amazonbarg measurement leaves are not implemented yet -- see "
-            "docs/amazonbarg_adapter_spec.md section 2 (milestone 2)"
-        )
+        return measurement.build_scorer(family_case)
 
     def build_reference_providers(
         self, family_case: Mapping[str, Any]
