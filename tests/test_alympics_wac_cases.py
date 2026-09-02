@@ -91,6 +91,58 @@ def test_grid_has_exactly_7_cells() -> None:
     assert len(set(case_ids)) == 7
 
 
+def test_build_all_cases_rejects_near_duplicate_grid_cells() -> None:
+    # Gate 1 requires rejecting "duplicates/near-duplicates," not just
+    # literal case_id collisions (spec section 1's quoted Gate 1 text).
+    # Two distinctly-named cells sharing an identical (supply_regime,
+    # rounds, seed, policy_assignment) tuple must be rejected even though
+    # `build_all_cases` never sees a repeated `case_id`.
+    all_proportional = {seat: "proportional" for seat in wac_cases.SEAT_ORDER}
+    near_duplicate_grid = (
+        {
+            "case_id": "alympics.wac.near_dup_a",
+            "supply_regime": {"kind": "uniform", "lower": 10, "upper": 20},
+            "rounds": 5,
+            "supply_schedule_seed": 0,
+            "policy_assignment": dict(all_proportional),
+        },
+        {
+            "case_id": "alympics.wac.near_dup_b",
+            "supply_regime": {"kind": "uniform", "lower": 10, "upper": 20},
+            "rounds": 5,
+            "supply_schedule_seed": 0,
+            "policy_assignment": dict(all_proportional),
+        },
+    )
+    with pytest.raises(wac_cases.GridValidationError, match="near-duplicate"):
+        wac_cases.build_all_cases(near_duplicate_grid)
+
+
+def test_build_all_cases_allows_disjoint_seed_cells_that_otherwise_match() -> None:
+    # The real grid's own mixed_policies_a / _seed2 pairing (same regime,
+    # rounds, policy_assignment, deliberately disjoint seed) must never be
+    # flagged as a near-duplicate.
+    all_proportional = {seat: "proportional" for seat in wac_cases.SEAT_ORDER}
+    disjoint_seed_grid = (
+        {
+            "case_id": "alympics.wac.disjoint_a",
+            "supply_regime": {"kind": "uniform", "lower": 10, "upper": 20},
+            "rounds": 5,
+            "supply_schedule_seed": 0,
+            "policy_assignment": dict(all_proportional),
+        },
+        {
+            "case_id": "alympics.wac.disjoint_b",
+            "supply_regime": {"kind": "uniform", "lower": 10, "upper": 20},
+            "rounds": 5,
+            "supply_schedule_seed": 1,
+            "policy_assignment": dict(all_proportional),
+        },
+    )
+    result = wac_cases.build_all_cases(disjoint_seed_grid)
+    assert set(result) == {"alympics.wac.disjoint_a", "alympics.wac.disjoint_b"}
+
+
 def test_grid_case_ids_match_the_spec_table(built) -> None:
     expected = {
         "alympics.wac.reference_baseline",

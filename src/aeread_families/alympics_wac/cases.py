@@ -245,6 +245,21 @@ def _validate_grid_cell(cell: Mapping[str, Any]) -> None:
         raise GridValidationError(f"undeclared policy id(s) {bad_policies}: {cell!r}")
 
 
+def _grid_cell_dedup_key(cell: Mapping[str, Any]) -> tuple[Any, ...]:
+    """Canonical ``(supply_regime, rounds, seed, policy_assignment)`` tuple.
+
+    Gate 1 (quoted in this module's own docstring / spec section 1) asks to
+    "reject duplicates/near-duplicates," not just literal ``case_id``
+    collisions: two cells that authored different names but the same actual
+    scenario would silently double-count as if they were independent
+    clusters. ``supply_regime`` and ``policy_assignment`` are flattened to
+    sorted-item tuples so dict key order never affects the comparison.
+    """
+    regime = tuple(sorted(cell["supply_regime"].items()))
+    policy_assignment = tuple(sorted(cell["policy_assignment"].items()))
+    return (regime, cell["rounds"], cell["supply_schedule_seed"], policy_assignment)
+
+
 def build_case(cell: Mapping[str, Any]) -> dict[str, Any]:
     """Build one ``CaseManifest`` dict for one authored grid cell."""
     _validate_grid_cell(cell)
@@ -324,13 +339,30 @@ def build_case(cell: Mapping[str, Any]) -> dict[str, Any]:
     return data
 
 
-def build_all_cases() -> dict[str, dict[str, Any]]:
-    """Build every grid-cell case, keyed by case id, in declared grid order."""
+def build_all_cases(
+    grid: tuple[Mapping[str, Any], ...] = GRID,
+) -> dict[str, dict[str, Any]]:
+    """Build every grid-cell case, keyed by case id, in declared grid order.
+
+    ``grid`` defaults to the module's own declared 7-cell :data:`GRID`;
+    accepting it as a parameter (never a hidden module-global lookup only)
+    lets tests exercise the near-duplicate check below against a synthetic
+    grid without mutating the real production grid.
+    """
     cases: dict[str, dict[str, Any]] = {}
-    for cell in GRID:
+    dedup_key_by_case_id: dict[tuple[Any, ...], str] = {}
+    for cell in grid:
         case = build_case(cell)
         if case["case_id"] in cases:
             raise GridValidationError(f"duplicate case_id: {case['case_id']!r}")
+        dedup_key = _grid_cell_dedup_key(cell)
+        if dedup_key in dedup_key_by_case_id:
+            raise GridValidationError(
+                "near-duplicate grid cells share an identical (supply_regime, "
+                "rounds, seed, policy_assignment) tuple: "
+                f"{dedup_key_by_case_id[dedup_key]!r} and {case['case_id']!r}"
+            )
+        dedup_key_by_case_id[dedup_key] = case["case_id"]
         cases[case["case_id"]] = case
     return cases
 
