@@ -29,6 +29,7 @@ import pytest
 from aeread.shared_runner.registry import PluginRegistry
 from aeread.shared_runner.resolver import PlanCell, canonical_json_bytes
 from aeread.shared_runner.schemas import CaseManifest
+from aeread.shared_runner.scheduler import SchedulerContractError
 from aeread_families.econagent_v1 import econagent_bridge as econagent_bridge_module
 from aeread_families.econagent_v1.econagent_bridge import (
     EconAgentBridgeUnavailableError,
@@ -175,7 +176,11 @@ def test_recorded_econagent_episode_round_trips_through_plain_json() -> None:
 
 def test_recorded_bridge_enforces_call_order_and_reports_exhaustion() -> None:
     calls = (
-        RecordedBridgeCall(method="start_episode", args={}, response={"ok": True}),
+        RecordedBridgeCall(
+            method="start_episode",
+            args={"n_agents": 4, "episode_length": 1, "world_seed": 0},
+            response={"ok": True},
+        ),
         RecordedBridgeCall(method="step_month", args={}, response={"timestep": 1, "done": False}),
     )
     bridge = RecordedEconAgentBridge(calls)
@@ -195,6 +200,42 @@ def test_recorded_bridge_rejects_a_method_order_mismatch() -> None:
 
     with pytest.raises(ReplayError, match="does not match"):
         bridge.agent_snapshot()
+
+
+def test_recorded_bridge_rejects_a_start_episode_argument_mismatch() -> None:
+    """Regression guard for the "replay ignores episode-start arguments"
+    finding (docs/econagent_codex_triage.md finding 2): ``start_episode``
+    used to discard its own ``kwargs`` entirely (``del kwargs``) and serve
+    the recorded response purely by call order, so a replayed episode's
+    genuinely different scenario parameters (``n_agents``/``episode_length``/
+    ``world_seed``/``beta``/``gamma``/``h``) went unchecked -- a record made
+    for a 4-agent, seed-0 episode could be replayed as a 99-agent, seed-999
+    episode and still succeed."""
+    calls = (
+        RecordedBridgeCall(
+            method="start_episode",
+            args={"n_agents": 4, "world_seed": 0},
+            response={"ok": True},
+        ),
+    )
+    bridge = RecordedEconAgentBridge(calls)
+
+    with pytest.raises(ReplayError, match="arguments do not match"):
+        bridge.start_episode(n_agents=99, world_seed=999)
+
+
+def test_recorded_bridge_serves_start_episode_when_arguments_match() -> None:
+    calls = (
+        RecordedBridgeCall(
+            method="start_episode",
+            args={"n_agents": 4, "world_seed": 0},
+            response={"ok": True},
+        ),
+    )
+    bridge = RecordedEconAgentBridge(calls)
+
+    assert bridge.start_episode(n_agents=4, world_seed=0) == {"ok": True}
+    assert bridge.exhausted is True
 
 
 def test_recorded_bridge_rejects_a_recompute_tax_income_mismatch() -> None:
@@ -409,6 +450,45 @@ def test_replay_leaf2_detects_a_recorded_recompute_tax_income_mismatch() -> None
     with pytest.raises(ReplayError, match="arguments do not match"):
         score_replayed_episode(
             scorer=scorer, replayed=replayed, tax_recompute_calls=tuple(tampered_tax_calls)
+        )
+
+
+def test_replay_rejects_a_recorded_start_episode_argument_mismatch() -> None:
+    """Mutation check for the "replay ignores episode-start arguments"
+    finding (docs/econagent_codex_triage.md finding 2), exercised through the
+    REAL production path (``replay_episode`` -> ``run_episode`` ->
+    ``EconAgentV1Plugin.initial_state`` -> the replay bridge's own
+    ``start_episode``), never a hand-constructed ``RecordedEconAgentBridge``
+    in isolation: tampering one recorded ``start_episode`` call's own
+    ``args["world_seed"]`` (never its response, never call order/count) must
+    be caught when the *same* case/cell -- whose own scenario still supplies
+    the real, untampered ``world_seed`` -- is replayed against it."""
+    _require_bridge()
+    case, cell, _original, recorded = _run_live(suffix="start-episode-mismatch")
+
+    tampered_calls = list(recorded.session_calls)
+    first_call = tampered_calls[0]
+    assert first_call.method == "start_episode"
+    tampered_args = dict(first_call.args)
+    tampered_args["world_seed"] = tampered_args["world_seed"] + 1
+    tampered_calls[0] = RecordedBridgeCall(
+        method=first_call.method, args=tampered_args, response=first_call.response
+    )
+    tampered = RecordedEconAgentEpisode(
+        case_id=recorded.case_id, session_calls=tuple(tampered_calls)
+    )
+
+    # start_episode runs inside EconAgentV1Plugin.initial_state, which the
+    # real scheduler's own run_episode() calls during preflight -- any
+    # exception raised there (including this ReplayError) is therefore
+    # surfaced wrapped as a SchedulerContractError ("family preflight
+    # failed: ..."), unlike the leaf-2 recompute_tax mismatch (raised
+    # directly by measurement.py, outside the scheduler's own call), which
+    # is why this asserts a different exception type than the recompute_tax
+    # mutation test above despite both being "arguments do not match".
+    with pytest.raises(SchedulerContractError, match="arguments do not match"):
+        asyncio.run(
+            replay_episode(cell=cell, case=case, upstream_root=UPSTREAM_ROOT, recorded=tampered)
         )
 
 

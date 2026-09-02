@@ -230,8 +230,18 @@ class RecordedEconAgentBridge:
         return call.response
 
     def start_episode(self, **kwargs: Any) -> Any:
-        del kwargs
-        return self._next("start_episode")
+        """Serve the next recorded ``start_episode`` response.
+
+        Unlike ``step_month``/``agent_snapshot``/``dense_log`` (which take
+        no arguments at all), the replayed episode's own scenario parameters
+        (``n_agents``/``episode_length``/``world_seed``/``beta``/``gamma``/
+        ``h``) must equal what the original live episode was actually
+        started with, or a record made for one scenario could be replayed
+        against a case with genuinely different parameters and still
+        succeed (docs/econagent_codex_triage.md finding 2) -- call order
+        alone cannot catch that class of mismatch.
+        """
+        return self._next("start_episode", args=kwargs)
 
     def step_month(self) -> Any:
         return self._next("step_month")
@@ -245,9 +255,10 @@ class RecordedEconAgentBridge:
     def recompute_tax(self, incomes: Mapping[str, float]) -> Any:
         """Serve the next recorded ``recompute_tax`` response.
 
-        Unlike the other replayed methods, ``incomes`` is not discarded: it
-        is the replayed episode's own re-derivation of each agent-month's
-        income (``score_tax_bracket_arithmetic``'s ``incomes`` dict, built
+        Like ``start_episode``, and unlike ``step_month``/``agent_snapshot``/
+        ``dense_log`` (which take no arguments at all), ``incomes`` is not
+        discarded: it is the replayed episode's own re-derivation of each
+        agent-month's income (``score_tax_bracket_arithmetic``'s ``incomes`` dict, built
         fresh from the replayed ``dense_log``), so it must equal the
         original live scoring call's own recorded ``args["incomes"]`` --
         otherwise a divergence in the replayed ``dense_log`` could silently
