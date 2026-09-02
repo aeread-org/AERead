@@ -186,12 +186,39 @@ def test_build_case_degenerate_reference_golden_num_agents_1() -> None:
     # of the committed 9-cell corpus -- constructed ad hoc here and by the
     # environment tests that exercise it.
     case = govsim_cases.build_case("fishing", "sustainable_v1", 0, num_agents=1)
-    assert case["case_id"] == "govsim.fishing.sustainable.0"
+    # Closes triage Finding 6: a non-default num_agents is part of case_id,
+    # never silently collapsed onto the 5-agent default's case_id (see
+    # test_case_id_differs_for_different_num_agents_same_scenario_policy_seed
+    # below for the direct collision proof).
+    assert case["case_id"] == "govsim.fishing.sustainable.0.n1"
     assert [seat["id"] for seat in case["seats"]] == ["persona_0"]
     assert case["payload"]["env_cfg"]["num_agents"] == 1
     assert case["payload"]["personas"] == ["John"]
     assert case["episode"]["max_logical_actions"] == (2 * 1 + 1) * 12
     CaseManifest.from_dict(case)
+
+
+def test_case_id_differs_for_different_num_agents_same_scenario_policy_seed() -> None:
+    """Closes triage Finding 6: ``num_agents`` is explicitly configurable
+    and changes seats, environment configuration, action budget, payload,
+    and content hash -- ``case_id`` must never collapse two such
+    semantically different manifests onto the same name. Before the fix,
+    ``fishing/sustainable_v1/seed=0`` built with 5 agents and again with 1
+    agent produced equal case IDs but unequal content hashes."""
+    five_agents = govsim_cases.build_case("fishing", "sustainable_v1", 0, num_agents=5)
+    one_agent = govsim_cases.build_case("fishing", "sustainable_v1", 0, num_agents=1)
+
+    assert five_agents["case_id"] != one_agent["case_id"]
+    assert five_agents["content_sha256"] != one_agent["content_sha256"]
+    # The default (pinned baseline, matching the committed 9-cell corpus)
+    # keeps its existing, unsuffixed case_id grammar exactly as before.
+    assert five_agents["case_id"] == "govsim.fishing.sustainable.0"
+
+
+def test_default_num_agents_case_id_is_unsuffixed_matching_the_committed_corpus() -> None:
+    assert govsim_cases.DEFAULT_NUM_AGENTS == 5
+    case = govsim_cases.build_case("fishing", "sustainable_v1", 0)
+    assert case["case_id"] == "govsim.fishing.sustainable.0"
 
 
 def test_build_case_rejects_out_of_range_num_agents() -> None:

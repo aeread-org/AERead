@@ -99,6 +99,16 @@ ENV_CFG: Mapping[str, Any] = {
 }
 ENV_CFG_FIELDS: tuple[str, ...] = tuple(ENV_CFG)
 
+# The pinned baseline `num_agents` (spec section 0's "governing facts") --
+# every committed 9-cell corpus case uses this default, so its case_id
+# grammar stays exactly as before (no suffix). Any OTHER num_agents (e.g.
+# the QC Gate 2 degenerate-reference golden, num_agents=1) gets an explicit
+# `.n{num_agents}` case_id suffix instead (see build_case's own docstring):
+# `num_agents` changes seats, env_cfg, action budget, payload, and
+# content_sha256, so two cases differing only in `num_agents` must never
+# collide on the same case_id.
+DEFAULT_NUM_AGENTS: int = ENV_CFG["num_agents"]
+
 PERSONA_NAMES: tuple[str, ...] = ("John", "Kate", "Jack", "Emma", "Luke")
 
 
@@ -186,6 +196,15 @@ def build_case(
     for the QC Gate 2 "degenerate-reference" golden (``num_agents=1``,
     spec section 4), which is deliberately never part of the committed
     9-cell corpus (``build_corpus``) below.
+
+    ``num_agents`` changes seats, environment configuration, action
+    budget, payload, and content hash, so it is also part of ``case_id``
+    whenever it differs from ``DEFAULT_NUM_AGENTS`` -- otherwise
+    ``fishing/sustainable_v1/seed=0`` built with 5 agents and again with 1
+    agent would produce the same ``case_id`` for two semantically
+    different manifests. The committed 9-cell corpus (always
+    ``DEFAULT_NUM_AGENTS``) keeps its existing, unsuffixed ``case_id``
+    grammar exactly as before.
     """
     if scenario not in SCENARIOS:
         raise ValueError(f"unknown scenario {scenario!r}; expected one of {SCENARIOS}")
@@ -210,6 +229,8 @@ def build_case(
     max_logical_actions = (2 * num_agents + 1) * max_num_rounds
 
     case_id = f"{CASE_ID_PREFIX}.{scenario}.{policies.POLICY_ID_SHORT_NAME[policy_id]}.{world_seed}"
+    if num_agents != DEFAULT_NUM_AGENTS:
+        case_id = f"{case_id}.n{num_agents}"
     data: dict[str, Any] = {
         "spec_version": CaseManifest.SPEC_VERSION,
         "case_id": case_id,
