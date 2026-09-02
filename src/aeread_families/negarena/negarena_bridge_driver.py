@@ -62,6 +62,17 @@ written to stdout:
          tau2_bridge_driver.py's "a tool-level error is not an infra
          failure" convention. The caller (``environment.py``) turns this
          into ``malformed_action``, never lets the process crash.
+      -- also returned (``parse_error_type": "missing_required_tag"``) when
+         upstream's own ``get_tag_indices`` (``negotiationarena/utils.py``)
+         reports a required tag absent from the raw response. Upstream's
+         parsers never raise in this case -- ``get_tag_indices`` returns
+         ``-1``/``-1`` and the subsequent slice silently yields a garbage
+         substring instead (docs/negarena_review_claude.md CRITICAL-1;
+         reproduced live: a response missing ``<player answer>`` parsed
+         clean with a garbage ``"player answer"`` value). Checked here,
+         before ``parser.parse()`` runs, by calling upstream's own
+         ``get_tag_indices`` directly on every tag its parser unconditionally
+         extracts for this ``game_kind`` -- never a hand-rolled tag grammar.
 
   {"op": "check_trade", "direction": "offer"|"accept",
    "give": {agent_label: resource_dict, agent_label: resource_dict},
@@ -311,8 +322,54 @@ def _resources_json(value: Any) -> Any:
     return value
 
 
+def _required_tags_for(game_kind: str) -> tuple[str, ...]:
+    """The exact tag set upstream's own parser unconditionally extracts.
+
+    Mirrors ``BuySellGameDefaultParser.parse``/``UltimatumGameDefaultParser.
+    parse`` (``games/buy_sell_game/game.py``, ``games/ultimatum/
+    interface.py``) call-for-call -- read directly from upstream source at
+    the pinned commit, never guessed. Every one of these tags is extracted
+    via ``get_tag_contents``/``get_tag_indices`` regardless of whether the
+    tag is actually present in the raw response (docs/negarena_review_claude
+    .md CRITICAL-1), which is exactly why presence has to be checked here
+    first.
+    """
+    from negotiationarena.constants import (
+        GOALS_TAG,
+        MESSAGE_TAG,
+        PLAYER_ANSWER_TAG,
+        PROPOSAL_COUNT_TAG,
+        PROPOSED_TRADE_TAG,
+        REASONING_TAG,
+        RESOURCES_TAG,
+        TURN_OR_MOVE_TAG,
+    )
+
+    if game_kind == "buy_sell":
+        return (
+            RESOURCES_TAG,
+            GOALS_TAG,
+            REASONING_TAG,
+            PLAYER_ANSWER_TAG,
+            MESSAGE_TAG,
+            PROPOSAL_COUNT_TAG,
+            PROPOSED_TRADE_TAG,
+        )
+    if game_kind == "ultimatum":
+        return (
+            TURN_OR_MOVE_TAG,
+            RESOURCES_TAG,
+            PLAYER_ANSWER_TAG,
+            REASONING_TAG,
+            MESSAGE_TAG,
+            PROPOSED_TRADE_TAG,
+        )
+    raise ValueError(f"unknown game_kind: {game_kind!r}")
+
+
 def _op_parse_response(request: dict[str, Any]) -> dict[str, Any]:
     from negotiationarena.constants import PROPOSED_TRADE_TAG, RESOURCES_TAG
+    from negotiationarena.utils import get_tag_indices
 
     game_kind = request.get("game_kind")
     response = request.get("response")
@@ -328,6 +385,22 @@ def _op_parse_response(request: dict[str, Any]) -> dict[str, Any]:
             "error_type": "bad_request",
             "message": "response must be a string",
         }
+
+    # Upstream's own tag-boundary lookup (``get_tag_indices``) returns
+    # ``-1``/``-1`` -- never raises -- for an absent tag, and every required
+    # tag is unconditionally extracted anyway, so a missing tag would
+    # otherwise parse "clean" with a garbage value instead of surfacing as
+    # malformed (docs/negarena_review_claude.md CRITICAL-1). Delegates to
+    # upstream's own function, never a hand-rolled tag-presence check.
+    for tag in _required_tags_for(game_kind):
+        start_index, end_index, _ = get_tag_indices(response, tag)
+        if start_index == -1 or end_index == -1:
+            return {
+                "ok": True,
+                "parsed": False,
+                "parse_error_type": "missing_required_tag",
+                "parse_error_message": f"required tag <{tag}> not found in raw response",
+            }
 
     parser = _parser_for(game_kind)
     try:

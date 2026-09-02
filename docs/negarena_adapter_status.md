@@ -138,7 +138,17 @@ notes the same effect at ~1.95s/call under lower contention).
 - **Upstream's ultimatum outcome reduction is asymmetric between seats**
   (RED reports absolute final holdings, BLUE reports a delta from its own
   initial holdings) — numerically coincidental for this corpus because every
-  ultimatum case gives the responder seat a zero initial endowment, but would
-  diverge for a future scenario that does not. See
-  `ledger_entries/negarena.md` for the full upstream-code citation; no
-  AERead-side fix is needed for tonight's corpus.
+  ultimatum case gives the responder seat a zero initial endowment. See
+  `ledger_entries/negarena.md` for the full upstream-code citation. Fixed in
+  the review pass (docs/negarena_review_claude.md WARNING-2):
+  `validate_payload` now rejects any ultimatum case whose BLUE seat starts
+  with a nonzero `money_token` balance, so a future scenario-grid edit that
+  would silently reintroduce the asymmetry fails at Gate-1 admission instead
+  of scoring two incomparable numbers under the same `head_to_head` estimand.
+- **Malformed-response detection now covers every required tag, not only
+  the trade tag.** `negarena_bridge_driver.py`'s `parse_response` op checks
+  upstream's own `get_tag_indices` for every tag the pinned parser
+  unconditionally extracts, before calling `parser.parse()` — closing a gap
+  where a response missing e.g. `<player answer>` used to parse "clean"
+  with a garbage value instead of surfacing as `malformed_action`
+  (docs/negarena_review_claude.md CRITICAL-1).

@@ -188,6 +188,22 @@ def test_validate_payload_rejects_seats_missing_a_color(plugin) -> None:
         plugin.validate_payload(payload)
 
 
+def test_validate_payload_rejects_a_nonzero_blue_ultimatum_endowment(plugin) -> None:
+    """Regression for docs/negarena_review_claude.md WARNING-2.
+
+    Upstream's after_game_ends() reports RED's outcome as its absolute
+    final holdings but BLUE's as a *delta* from BLUE's own starting
+    holdings; the two are only comparable under the same head_to_head
+    estimand when BLUE starts at 0. Every authored case does, but nothing
+    used to stop a future one from silently reintroducing the asymmetry.
+    """
+    case = _load_case("negarena.ultimatum.0", "ultimatum")
+    payload = json.loads(json.dumps(case["payload"]))
+    payload["scenario"]["seats"]["blue"]["starting_resources"]["Dollars"] = 10
+    with pytest.raises(ValueError, match="starting_resources.Dollars must be 0"):
+        plugin.validate_payload(payload)
+
+
 # ---------------------------------------------------------------------------
 # Golden 1 -- successful (spec section 4): reproduces upstream's own shipped
 # example_logs/buysell/1707347676639/ transcript turn-for-turn.
@@ -358,6 +374,65 @@ def test_golden_4_missing_trade_tag_is_caught_not_a_crash(plugin) -> None:
         "<my goals> goal </my goals>\n"
         "<reason> r </reason>\n"
         "<proposal count> 1 </proposal count>"
+    )
+    parsed = plugin.parse_action(family_case, state, "red", phase, {"response": text})
+    assert not parsed.ok
+    assert parsed.error_code == "malformed_action"
+
+
+def test_golden_4_missing_player_answer_tag_is_caught_not_a_crash(plugin) -> None:
+    """Regression for docs/negarena_review_claude.md CRITICAL-1.
+
+    Upstream's own ``get_tag_indices`` (``negotiationarena/utils.py``) never
+    raises on an absent tag -- it returns ``-1``/``-1`` and the resulting
+    slice is a garbage substring of the surrounding response, silently
+    populated into ``public["player answer"]`` -- so a response missing
+    *any* required tag other than the trade tag used to parse through as a
+    clean, legal, non-terminal turn instead of being flagged
+    ``malformed_action``.
+    """
+    case = _load_case("negarena.buy_sell.0", "buy_sell")
+    family_case = plugin.validate_payload(case["payload"])
+    phase = plugin.phases(family_case)[0]
+    state = plugin.initial_state(family_case, None)
+
+    # Well-formed <message>/<newly proposed trade>/<my resources>, but no
+    # <player answer> tag at all.
+    text = (
+        "<message> hi </message>\n"
+        "<newly proposed trade> Player RED Gives X: 1 | Player BLUE Gives ZUP: 40 "
+        "</newly proposed trade>\n"
+        "<my resources> X: 1 </my resources>\n"
+        "<my goals> goal </my goals>\n"
+        "<reason> r </reason>\n"
+        "<proposal count> 1 </proposal count>"
+    )
+    parsed = plugin.parse_action(family_case, state, "red", phase, {"response": text})
+    assert not parsed.ok
+    assert parsed.error_code == "malformed_action"
+
+    envelope = ActionEnvelope(seat_id="red", valid=False, action=None, parse=parsed, legality=None)
+    transition = plugin.step(family_case, state, phase, {"red": envelope})
+    assert transition.next_phase_id is None
+    terminal = plugin.terminal(family_case, transition.state)
+    assert terminal["reason"] == "malformed_action"
+
+
+def test_golden_4_missing_player_answer_tag_is_caught_for_ultimatum_too(plugin) -> None:
+    """Same regression as above, for the other family split (ultimatum)."""
+    case = _load_case("negarena.ultimatum.0", "ultimatum")
+    family_case = plugin.validate_payload(case["payload"])
+    phase = plugin.phases(family_case)[0]
+    state = plugin.initial_state(family_case, None)
+
+    # No <player answer> tag at all.
+    text = (
+        "<move> 1 </move>\n"
+        "<my resources> Dollars: 100 </my resources>\n"
+        "<reason> r </reason>\n"
+        "<message> m </message>\n"
+        "<newly proposed trade> Player RED Gives Dollars: 40 | Player BLUE Gives Dollars: 0 "
+        "</newly proposed trade>"
     )
     parsed = plugin.parse_action(family_case, state, "red", phase, {"response": text})
     assert not parsed.ok

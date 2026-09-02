@@ -175,6 +175,25 @@ class NegarenaPlugin:
                 if not isinstance(seat, dict) or set(seat) != _ULTIMATUM_SEAT_KEYS:
                     raise ValueError(f"ultimatum seat {seat_id!r} must declare {sorted(_ULTIMATUM_SEAT_KEYS)}")
                 _validate_resources(seat["starting_resources"], f"seats.{seat_id}.starting_resources")
+            # Upstream's own after_game_ends() (games/ultimatum/game.py) is
+            # asymmetric across seats: RED's reported outcome is its
+            # absolute final holdings, but BLUE's is a *delta* from BLUE's
+            # own starting holdings (see docs/negarena_review_claude.md
+            # WARNING-2, ledger_entries/negarena.md). Both leaves in
+            # measurement.py treat "own_value" as one comparable number per
+            # seat, which only holds if delta == absolute for BLUE, i.e. a
+            # zero starting money_token balance. Reject anything else here
+            # rather than let a future scenario silently produce two
+            # incomparable numbers under the same head_to_head estimand.
+            money_token = scenario["money_token"]
+            blue_balance = seats[BLUE]["starting_resources"].get(money_token, 0)
+            if blue_balance != 0:
+                raise ValueError(
+                    f"ultimatum seats.{BLUE}.starting_resources.{money_token} must be 0: "
+                    "upstream's after_game_ends() reports blue's outcome as a delta from "
+                    "its own starting holdings, not an absolute value like red's, so a "
+                    "nonzero starting balance would make the two seats' outcomes incomparable"
+                )
 
         self._verify_upstream_checkout()
         return data
