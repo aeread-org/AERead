@@ -197,6 +197,73 @@ def test_k_walk_matches_ceil_half_horizon() -> None:
 
 
 # ---------------------------------------------------------------------------
+# Appendix C.2.3: the terminal round still draws (a_k, omega_k) together --
+# a positive walk-away hazard must still be sampled at round_k=horizon, not
+# short-circuited straight to Timeout (Codex review finding 1).
+# ---------------------------------------------------------------------------
+
+
+def test_resolve_counterpart_turn_still_samples_walkaway_at_the_terminal_round() -> None:
+    """horizon=10, round_k=10, delta_bar=-0.2 (agent_price=60 vs r_b=100,
+    price_range=200, seller counterpart): acceptance_probability's delta_bar
+    hard-gate makes a_k=0 regardless of u_accept, so u_accept=0.5 never
+    accepts. walkaway_hazard(round_k=10, horizon=10, delta_bar=-0.2) is
+    strictly positive (round 10 is past k_walk=5's grace period and the
+    offer is not individually rational for the counterpart) -- with
+    u_walkaway=0.0, sampling that hazard must resolve to Reject
+    (walk-away), not Timeout: the round-limit disagreement case is only for
+    the *remaining* mass once accept/walk-away have both been drawn and
+    neither fires, never a substitute for skipping the walk-away draw.
+    """
+    hazard = k.walkaway_hazard(round_k=10, horizon=10, delta_bar=-0.2)
+    assert hazard > 0.0  # sanity: this scenario's hazard is genuinely positive
+
+    decision = k.resolve_counterpart_turn(
+        round_k=10,
+        horizon=10,
+        family="candid",
+        agent_role="buyer",
+        counterpart_role="seller",
+        r_b=100.0,
+        kappa_b=0.5,
+        eta_b="neutral",
+        p_min=0.0,
+        p_max=200.0,
+        opening_harshness=0.5,
+        agent_offers=(60.0,),
+        counterpart_offers=(),
+        draws={"u_accept": 0.5, "u_walkaway": 0.0, "sentiment_noise": 0.0},
+    )
+    assert decision.resolved == "reject"
+
+
+def test_resolve_counterpart_turn_times_out_at_the_terminal_round_only_when_the_hazard_does_not_fire() -> None:
+    """Same terminal-round scenario, but ``u_walkaway`` is high enough that
+    the (still-sampled) hazard does not fire -- only *then* does the
+    round-limit disagreement (Timeout) case apply."""
+    hazard = k.walkaway_hazard(round_k=10, horizon=10, delta_bar=-0.2)
+    assert hazard < 1.0  # sanity: a u_walkaway just under 1.0 must not fire
+
+    decision = k.resolve_counterpart_turn(
+        round_k=10,
+        horizon=10,
+        family="candid",
+        agent_role="buyer",
+        counterpart_role="seller",
+        r_b=100.0,
+        kappa_b=0.5,
+        eta_b="neutral",
+        p_min=0.0,
+        p_max=200.0,
+        opening_harshness=0.5,
+        agent_offers=(60.0,),
+        counterpart_offers=(),
+        draws={"u_accept": 0.5, "u_walkaway": 0.9999999, "sentiment_noise": 0.0},
+    )
+    assert decision.resolved == "timeout"
+
+
+# ---------------------------------------------------------------------------
 # Appendix C.5.3: family-specific cue collapse for Taciturn.
 # ---------------------------------------------------------------------------
 

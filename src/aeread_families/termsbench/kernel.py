@@ -691,15 +691,20 @@ def resolve_counterpart_turn(
         cues = _cues("accept", agent_price, prior_counterpart_price)
         return CounterpartDecision("accept", agent_price, cues.sentiment_cue, cues.strategic_cue)
 
-    if round_k >= horizon:
-        # App. C.2.3: at the terminal round, remaining non-accept/non-walk-away
-        # mass is assigned to round-limit disagreement, not a K+1-th offer.
-        return CounterpartDecision("timeout", None, None, None)
-
+    # Eq. 5, 7 draw (a_k, omega_k) together every round, including the
+    # terminal one -- the walk-away hazard must be sampled here regardless
+    # of round_k, or a genuinely positive omega_k at k=horizon is silently
+    # discarded (Codex review finding 1).
     omega_k = walkaway_hazard(round_k=round_k, horizon=horizon, delta_bar=delta_bar)
     if omega_k > 0.0 and _require("u_walkaway") < omega_k:
         cues = _cues("reject", None, prior_counterpart_price)
         return CounterpartDecision("reject", None, cues.sentiment_cue, cues.strategic_cue)
+
+    if round_k >= horizon:
+        # App. C.2.3: at the terminal round, once accept/walk-away have both
+        # been drawn and neither fires, remaining mass is assigned to
+        # round-limit disagreement, not a K+1-th offer.
+        return CounterpartDecision("timeout", None, None, None)
 
     if counterpart_offers:
         lambda_b = concession_rate(
