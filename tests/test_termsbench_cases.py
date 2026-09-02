@@ -1,0 +1,219 @@
+"""Tests for the termsbench generator foundation stage: draws, digests, pilot.
+
+There is no upstream corpus (the paper's own repository link is dead), so
+Gate 1 check #1's "source" re-resolution target is our own deterministic
+generator: regenerating from the same ``(generator_version, world_seed)``
+must be byte-identical. See docs/termsbench_adapter_spec.md section 1.
+"""
+from __future__ import annotations
+
+import copy
+
+import pytest
+
+from aeread.shared_runner.resolver import case_content_sha256
+from aeread.shared_runner.schemas import AuthoringValidationError, CaseManifest, is_exportable_id
+from aeread_families.termsbench import cases as tb_cases
+from aeread_families.termsbench import kernel as k
+
+
+# ---------------------------------------------------------------------------
+# Generator determinism (Gate 1 check #1).
+# ---------------------------------------------------------------------------
+
+
+def test_generate_payload_is_byte_identical_across_two_calls() -> None:
+    first = tb_cases.generate_payload("candid", "overlap", 1000046)
+    second = tb_cases.generate_payload("candid", "overlap", 1000046)
+    assert first == second
+
+
+def test_generate_payload_differs_across_seeds() -> None:
+    first = tb_cases.generate_payload("candid", "overlap", 1000046)
+    second = tb_cases.generate_payload("candid", "overlap", 1000047)
+    assert first != second
+
+
+def test_build_case_is_byte_identical_across_two_calls() -> None:
+    first = tb_cases.build_case("expressive", "nodeal", 1210007)
+    second = tb_cases.build_case("expressive", "nodeal", 1210007)
+    assert first == second
+
+
+@pytest.mark.parametrize("family", k.FAMILIES)
+@pytest.mark.parametrize("regime", tb_cases.REGIMES)
+def test_build_case_round_trips_through_the_strict_r1_grammar(family: str, regime: str) -> None:
+    case = tb_cases.build_case(family, regime, 1000046)
+    manifest = CaseManifest.from_dict(case)
+    assert manifest.case_id == case["case_id"]
+    assert manifest.family_id == tb_cases.FAMILY_ID
+    assert manifest.upstream_task_id is None
+    assert manifest.provenance.review_status == "generated"
+
+
+def test_case_content_sha256_matches_the_kernel_resolver_computation() -> None:
+    case = tb_cases.build_case("candid", "overlap", 1000046)
+    assert case_content_sha256(case) == case["content_sha256"]
+
+    mutated = copy.deepcopy(case)
+    mutated["payload"]["t_b"]["kappa_b"] = 0.999999
+    assert case_content_sha256(mutated) != case["content_sha256"]
+
+
+# ---------------------------------------------------------------------------
+# Case identifiers never contain a colon (a colon once collapsed GRPO
+# grouping downstream).
+# ---------------------------------------------------------------------------
+
+
+def test_case_id_grammar_forbids_colons() -> None:
+    case = tb_cases.build_case("taciturn", "nodeal", 1110003)
+    assert ":" not in case["case_id"]
+    assert is_exportable_id(case["case_id"])
+    assert case["case_id"] == f"termsbench.taciturn.nodeal.1110003"
+
+
+def test_case_id_grammar_rejects_a_naive_colon_joined_id() -> None:
+    with pytest.raises(AuthoringValidationError, match="valid identifier"):
+        CaseManifest.from_dict(
+            {
+                "spec_version": "aeread.case/0.1",
+                "case_id": "termsbench:candid:overlap:7",
+                "family_id": "termsbench",
+                "family_version": "0.1.0",
+                "split": "candid",
+                "world_seed": 7,
+                "seats": [{"id": "agent", "role": "agent"}],
+                "episode": {"max_logical_actions": 1, "termination": ["timeout"]},
+                "visibility_policy": "x",
+                "payload": {},
+                "provenance": {
+                    "generator_id": "g",
+                    "generator_version": "0.1.0",
+                    "review_status": "generated",
+                },
+                "content_sha256": "0" * 64,
+            }
+        )
+
+
+# ---------------------------------------------------------------------------
+# Gate 1 check #3: difficulty is computed only from pre-interaction
+# properties, never from realized play.
+# ---------------------------------------------------------------------------
+
+
+def test_difficulty_score_is_a_pure_function_of_the_generator_draw() -> None:
+    payload_a = tb_cases.generate_payload("candid", "overlap", 1000046)
+    payload_b = tb_cases.generate_payload("candid", "overlap", 1000046)
+    assert payload_a["difficulty_score"] == payload_b["difficulty_score"]
+    # generate_payload never touches an episode/trajectory object at all --
+    # there is no "realized play" input it could depend on even accidentally.
+    import inspect
+
+    source = inspect.getsource(tb_cases.generate_payload)
+    assert "state" not in source and "outcome" not in source and "terminal" not in source
+
+
+def test_overlap_difficulty_increases_as_zopa_narrows() -> None:
+    wide = k.overlap_difficulty(delta=100.0, price_range=200.0, kappa_agent=0.5, kappa_counterpart=0.5, eta_b="neutral")
+    narrow = k.overlap_difficulty(delta=20.0, price_range=200.0, kappa_agent=0.5, kappa_counterpart=0.5, eta_b="neutral")
+    assert narrow > wide
+
+
+def test_nodeal_difficulty_increases_as_gap_shrinks_toward_zero() -> None:
+    near_feasible = k.nodeal_difficulty(delta=-1.0, sigma_scale=200.0, cue_channel="accurate", eta_b="neutral")
+    far_infeasible = k.nodeal_difficulty(delta=-100.0, sigma_scale=200.0, cue_channel="accurate", eta_b="neutral")
+    assert near_feasible > far_infeasible
+
+
+# ---------------------------------------------------------------------------
+# Pilot manifest (30 = 3 families x 2 regimes x 5 difficulty bins).
+# ---------------------------------------------------------------------------
+
+
+def test_pilot_cells_enumerate_30_unique_stratified_seeds() -> None:
+    cells = tb_cases.pilot_cells()
+    assert len(cells) == 30
+    seeds = [seed for *_rest, seed in cells]
+    assert len(set(seeds)) == 30, "Gate 1 check #5: world_seed must be unique per case"
+
+    strata = [(family, regime, difficulty_bin) for family, regime, difficulty_bin, _seed in cells]
+    assert len(set(strata)) == 30, "Gate 1 check #5: one case per (family, regime, difficulty_bin) stratum"
+
+    families = {family for family, _r, _b, _s in cells}
+    regimes = {regime for _f, regime, _b, _s in cells}
+    bins = {difficulty_bin for _f, _r, difficulty_bin, _s in cells}
+    assert families == set(k.FAMILIES)
+    assert regimes == set(tb_cases.REGIMES)
+    assert bins == set(range(5))
+
+
+def test_pilot_cell_difficulty_bins_are_ascending_in_difficulty_score() -> None:
+    for family in k.FAMILIES:
+        for regime in tb_cases.REGIMES:
+            scores = []
+            for difficulty_bin in range(5):
+                seed = tb_cases.select_pilot_cell_seed(family, regime, difficulty_bin)
+                payload = tb_cases.generate_payload(family, regime, seed)
+                scores.append(payload["difficulty_score"])
+            assert scores == sorted(scores), f"{family}/{regime} bins are not ascending: {scores}"
+
+
+def test_build_pilot_manifest_has_30_cases_and_stable_hash() -> None:
+    cases = tb_cases.build_pilot_cases()
+    assert len(cases) == 30
+    manifest = tb_cases.build_pilot_manifest(cases)
+    assert manifest["family_id"] == tb_cases.FAMILY_ID
+    assert len(manifest["case_ids"]) == 30
+    assert len(set(manifest["case_ids"])) == 30
+    assert len(manifest["content_sha256"]) == 64
+    int(manifest["content_sha256"], 16)
+
+    manifest_again = tb_cases.build_pilot_manifest(cases)
+    assert manifest_again == manifest
+
+
+def test_pilot_manifest_hash_changes_if_the_case_id_list_changes() -> None:
+    cases = tb_cases.build_pilot_cases()
+    manifest = tb_cases.build_pilot_manifest(cases)
+    mutated = dict(manifest)
+    mutated["case_ids"] = list(manifest["case_ids"][:-1]) + ["termsbench.candid.overlap.999999999"]
+    mutated_digest = tb_cases._pilot_content_sha256(mutated)
+    assert mutated_digest != manifest["content_sha256"]
+
+
+def test_build_pilot_manifest_raises_on_unresolved_pilot_id() -> None:
+    with pytest.raises(ValueError, match="not found"):
+        tb_cases.build_pilot_manifest({})
+
+
+# ---------------------------------------------------------------------------
+# P1 -- generation determinism: two generator runs must be byte-identical.
+# ---------------------------------------------------------------------------
+
+
+def test_run_generate_is_byte_identical_across_two_runs(tmp_path) -> None:
+    out_a = tmp_path / "run_a"
+    out_b = tmp_path / "run_b"
+
+    tb_cases.run_generate(out_a)
+    tb_cases.run_generate(out_b)
+
+    files_a = sorted(p.relative_to(out_a) for p in out_a.rglob("*.json"))
+    files_b = sorted(p.relative_to(out_b) for p in out_b.rglob("*.json"))
+    assert files_a == files_b
+    # 30 case files + pilot_manifest.json
+    assert len(files_a) == 31
+
+    for rel in files_a:
+        assert (out_a / rel).read_bytes() == (out_b / rel).read_bytes(), f"{rel} differs across two runs"
+
+
+def test_run_generate_writes_the_committed_pilot_corpus(tmp_path) -> None:
+    out_dir = tmp_path / "run"
+    tb_cases.run_generate(out_dir)
+    case_files = sorted(out_dir.glob("termsbench.*.json"))
+    assert len(case_files) == 30
+    pilot = __import__("json").loads((out_dir / "pilot_manifest.json").read_text(encoding="utf-8"))
+    assert len(pilot["case_ids"]) == 30
