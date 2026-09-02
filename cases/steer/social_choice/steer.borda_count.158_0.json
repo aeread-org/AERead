@@ -1,6 +1,6 @@
 {
   "case_id": "steer.borda_count.158_0",
-  "content_sha256": "d98e604d6f423c45c14d3522a7000a063adce4f94daa48f585704b81666718e9",
+  "content_sha256": "09126bceb6cf8270b5e3c5c97eb2aa20e6e3b91e8b1059ca801197a046b9ccb9",
   "episode": {
     "max_logical_actions": 1,
     "termination": [
@@ -63,9 +63,9 @@
         },
         "pure_nash": {
           "exactly_one_correct": 6047,
-          "multi_correct": 12000,
+          "multi_correct": 0,
           "total": 18597,
-          "zero_correct": 550
+          "zero_correct": 12550
         },
         "transitivity": {
           "exactly_one_correct": 16452,

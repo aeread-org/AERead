@@ -12,12 +12,14 @@ this plugin's cached row to it -- see its own docstring.
 from __future__ import annotations
 
 import copy
+import hashlib
 import json
 from pathlib import Path
 from typing import Any, Mapping
 
 from aeread.shared_runner.execution import CanonicalResponse
 from aeread.shared_runner.registry import PluginRegistry
+from aeread.shared_runner.resolver import canonical_json_bytes
 from aeread.shared_runner.schemas import FamilyManifest
 from aeread.shared_runner.scheduler import (
     LegalityResult,
@@ -65,6 +67,29 @@ def _plain(value: Any) -> Any:
     if isinstance(value, (list, tuple)):
         return [_plain(item) for item in value]
     return copy.deepcopy(value)
+
+
+def _recomputed_source_sha256(row: Mapping[str, Any]) -> str:
+    """Recompute a cached row's own content digest from its own fields.
+
+    Mirrors ``steer_bridge_driver._op_flatten``'s construction exactly: sha256
+    of the canonical JSON ``{question_text, options: [option_text, ...] (in
+    option_id order), correct_option_id}``. This is deliberately NOT a
+    comparison of ``row["source_sha256"]`` against itself -- that stored
+    field is just another value written once by the importer and never
+    touched again, so comparing it to the payload's declared value only
+    proves the cache and the case agree about what they *think* the digest
+    is, never that it matches the content sitting right next to it in the
+    same cached row (a critical review finding: a tampered/corrupted cache
+    with the ``source_sha256`` field left byte-identical went undetected).
+    """
+    ordered_options = sorted(row["options"], key=lambda option: option["option_id"])
+    payload = {
+        "question_text": row["question_text"],
+        "options": [option["option_text"] for option in ordered_options],
+        "correct_option_id": row["correct_option_id"],
+    }
+    return hashlib.sha256(canonical_json_bytes(payload)).hexdigest()
 
 
 def family_manifest() -> FamilyManifest:
@@ -121,8 +146,9 @@ class SteerPlugin:
     ``steer_data_root/<element>/cases.jsonl`` (never pandas, never the
     bridge subprocess, never the network) to recover the real question text
     and options a case's license-constrained ``payload`` cannot carry, and
-    re-verifies ``source_sha256`` against the payload's declared value every
-    time it does (spec section 1).
+    recomputes ``source_sha256`` from the row's own fields to verify it
+    against the payload's declared value every time it does (spec section
+    1; see :func:`_recomputed_source_sha256`).
     """
 
     def __init__(self, *, steer_data_root: Path | str) -> None:
@@ -166,7 +192,7 @@ class SteerPlugin:
     def initial_state(self, family_case: Mapping[str, Any], cell: Any) -> dict[str, Any]:
         del cell
         row = self._load_cached_row(family_case["element"], family_case["question_id"])
-        if row["source_sha256"] != family_case["source_sha256"]:
+        if _recomputed_source_sha256(row) != family_case["source_sha256"]:
             raise ValueError(
                 "cached source_sha256 does not match the payload's declared value "
                 f"for {family_case['element']}/{family_case['question_id']}"
@@ -336,14 +362,14 @@ class SteerPlugin:
         Reads the same cached row ``initial_state`` reads (never pandas,
         never the bridge subprocess, never the network) to recover the gold
         ``correct_option_id`` and the per-question ``source_sha256`` the
-        declared reference pins (spec section 2), and re-verifies
-        ``source_sha256`` against the payload's declared value exactly the
-        way ``initial_state`` does. Mirrors
-        ``tau3_retail.environment.Tau3RetailPlugin.build_scorer``'s
+        declared reference pins (spec section 2), and recomputes
+        ``source_sha256`` from the row's own fields to verify it against the
+        payload's declared value exactly the way ``initial_state`` does.
+        Mirrors ``tau3_retail.environment.Tau3RetailPlugin.build_scorer``'s
         contract: return the scorer built by ``measurement.py``.
         """
         row = self._load_cached_row(family_case["element"], family_case["question_id"])
-        if row["source_sha256"] != family_case["source_sha256"]:
+        if _recomputed_source_sha256(row) != family_case["source_sha256"]:
             raise ValueError(
                 "cached source_sha256 does not match the payload's declared value "
                 f"for {family_case['element']}/{family_case['question_id']}"

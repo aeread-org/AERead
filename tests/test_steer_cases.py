@@ -96,7 +96,7 @@ def _bridge() -> SteerBridge:
 EXPECTED_COUNTS = {
     "transitivity": {"total": 16610, "exactly_one_correct": 16452, "zero_correct": 158, "multi_correct": 0},
     "certainty_effect": {"total": 8030, "exactly_one_correct": 7970, "zero_correct": 60, "multi_correct": 0},
-    "pure_nash": {"total": 18597, "exactly_one_correct": 6047, "zero_correct": 550, "multi_correct": 12000},
+    "pure_nash": {"total": 18597, "exactly_one_correct": 6047, "zero_correct": 12550, "multi_correct": 0},
     "backward_induction": {"total": 23810, "exactly_one_correct": 23260, "zero_correct": 550, "multi_correct": 0},
     "plurality_voting": {"total": 10020, "exactly_one_correct": 10020, "zero_correct": 0, "multi_correct": 0},
     "borda_count": {"total": 15030, "exactly_one_correct": 15030, "zero_correct": 0, "multi_correct": 0},
@@ -182,6 +182,24 @@ def test_admission_counts_reproduce_the_governing_facts_table(element: str) -> N
         counts["exactly_one_correct"] + counts["zero_correct"] + counts["multi_correct"]
         == counts["total"]
     )
+
+
+def test_pure_nash_nan_correct_values_are_not_counted_as_truthy() -> None:
+    """Regression test for a major review finding: ``pure_nash`` is the only
+    declared element whose ``correct`` column mixes real bool values with
+    NaN placeholders (60,000 of its 66,047 non-null-looking rows). A bare
+    ``.astype(bool)`` on that object-dtype column silently reads a NaN row
+    as ``True`` (Python's own ``bool(float("nan")) is True``), which
+    misclassifies 12,000 already-excluded question_ids as multi-correct
+    instead of zero-correct without ever admitting a wrong one -- still a
+    corrupted count, not a cosmetic one, since the table in
+    ``docs/steer_adapter_spec.md`` reports it as fact. This pins the
+    NaN-safe reading directly, not just through the full
+    ``EXPECTED_COUNTS`` table above."""
+    response = _bridge().flatten_element("pure_nash", head_n=steer_cases.HEAD_N)
+    counts = response["counts"]
+    assert counts["zero_correct"] == 12550
+    assert counts["multi_correct"] == 0
 
 
 @pytest.mark.parametrize("element", steer_cases.DECLARED_ELEMENTS)

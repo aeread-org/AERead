@@ -1,6 +1,6 @@
 {
   "case_id": "steer.pure_nash.138_0",
-  "content_sha256": "b0c9b6713e29944f465305d7e3f10d356d6c45725780c3fa2f4bc50b73c352dd",
+  "content_sha256": "3422ee154e32a28de05bd48603180c353a0185bceb931d5ba88057a843fbc87b",
   "episode": {
     "max_logical_actions": 1,
     "termination": [
@@ -63,9 +63,9 @@
         },
         "pure_nash": {
           "exactly_one_correct": 6047,
-          "multi_correct": 12000,
+          "multi_correct": 0,
           "total": 18597,
-          "zero_correct": 550
+          "zero_correct": 12550
         },
         "transitivity": {
           "exactly_one_correct": 16452,

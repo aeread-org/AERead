@@ -178,7 +178,14 @@ def _op_flatten(upstream_root: Path, cache_root: Path, request: dict[str, Any]) 
     questions, options, answers = frames["questions"], frames["options"], frames["answers"]
 
     correct_column = _correct_column(answers)
-    truthy = answers[correct_column].astype(bool)
+    # A NaN placeholder in an object-dtype column must never count as
+    # truthy: pandas' own `.astype(bool)` applies Python's `bool(float(
+    # "nan")) is True` element-wise on object columns, so a bare
+    # `.astype(bool)` silently marks every "unknown" row correct (verified
+    # against `pure_nash`'s own `correct` column, the only declared
+    # element whose Answers frame mixes real bool values with NaN). Fill
+    # NaN with False first so only a genuine True/1 row is ever admitted.
+    truthy = answers[correct_column].fillna(False).astype(bool)
     correct_rows = answers[truthy]
     per_question_correct_count = correct_rows.groupby("question_id").size()
 

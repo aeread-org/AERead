@@ -1,6 +1,6 @@
 {
   "case_id": "steer.certainty_effect.68_0",
-  "content_sha256": "82c10bab3732b49e36fbb0e2f627d910e3576cc139fdd460a566d01042788bd6",
+  "content_sha256": "bac505ac4910345eaf95e0536c3d1b3dff19e2d6501af243a06f7f86907c446b",
   "episode": {
     "max_logical_actions": 1,
     "termination": [
@@ -63,9 +63,9 @@
         },
         "pure_nash": {
           "exactly_one_correct": 6047,
-          "multi_correct": 12000,
+          "multi_correct": 0,
           "total": 18597,
-          "zero_correct": 550
+          "zero_correct": 12550
         },
         "transitivity": {
           "exactly_one_correct": 16452,

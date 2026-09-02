@@ -1,6 +1,6 @@
 {
   "case_id": "steer.plurality_voting.111_0",
-  "content_sha256": "ef793e5a2169820b94aebd45210cfaf3e7f1f3263236a5d1231e8db3f6ff073f",
+  "content_sha256": "f0595fe4e5f9e51d1024605c45192ff7d7716219061026a383ff728238d7b132",
   "episode": {
     "max_logical_actions": 1,
     "termination": [
@@ -63,9 +63,9 @@
         },
         "pure_nash": {
           "exactly_one_correct": 6047,
-          "multi_correct": 12000,
+          "multi_correct": 0,
           "total": 18597,
-          "zero_correct": 550
+          "zero_correct": 12550
         },
         "transitivity": {
           "exactly_one_correct": 16452,

@@ -205,6 +205,44 @@ def test_initial_state_rejects_a_source_sha256_mismatch() -> None:
         plugin.initial_state(family_case, cell=None)
 
 
+def test_initial_state_and_build_scorer_reject_a_tampered_row_whose_own_source_sha256_field_agrees(
+    tmp_path: Path,
+) -> None:
+    """Critical review finding: the cache's own ``source_sha256`` FIELD is a
+    bare stored value copied once at import time, never recomputed --
+    comparing it to the payload's declared value proves nothing about the
+    content sitting right next to it. ``initial_state``/``build_scorer``
+    must recompute the digest from the row's own
+    ``question_text``/``options``/``correct_option_id`` and compare THAT,
+    so a cache row tampered (or corrupted) without also updating its own
+    ``source_sha256`` field is actually caught."""
+    element = "transitivity"
+    question_id = _first_admitted_question_id(element)
+    case = _case(element, question_id)
+    plugin = _plugin()
+    family_case = plugin.validate_payload(case.payload)
+    original_row = plugin._load_cached_row(element, question_id)
+
+    tampered_row = {**original_row, "question_text": "TAMPERED QUESTION TEXT"}
+    # The tampering leaves the row's own stored source_sha256 untouched --
+    # exactly the scenario the bare self-comparison could never catch.
+    assert tampered_row["source_sha256"] == original_row["source_sha256"]
+
+    tampered_cache_root = tmp_path / "steer-data"
+    element_dir = tampered_cache_root / element
+    element_dir.mkdir(parents=True)
+    (element_dir / "cases.jsonl").write_text(
+        json.dumps(tampered_row, ensure_ascii=False, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    tampered_plugin = SteerPlugin(steer_data_root=tampered_cache_root)
+
+    with pytest.raises(ValueError, match="source_sha256 does not match"):
+        tampered_plugin.initial_state(family_case, cell=None)
+    with pytest.raises(ValueError, match="source_sha256 does not match"):
+        tampered_plugin.build_scorer(family_case)
+
+
 def test_observe_rejects_a_seat_not_active_in_this_family() -> None:
     case = _case("transitivity", _first_admitted_question_id("transitivity"))
     plugin = _plugin()

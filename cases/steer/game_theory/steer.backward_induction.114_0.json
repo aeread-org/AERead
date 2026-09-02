@@ -1,6 +1,6 @@
 {
   "case_id": "steer.backward_induction.114_0",
-  "content_sha256": "c73acfc2881b483a9fb829680b25fd33f7171ad2ba1760e7b80d61a94f54d80a",
+  "content_sha256": "0ca113757157fb35d85589e1364cadbc6e7df437b6b2c627119257280130746f",
   "episode": {
     "max_logical_actions": 1,
     "termination": [
@@ -63,9 +63,9 @@
         },
         "pure_nash": {
           "exactly_one_correct": 6047,
-          "multi_correct": 12000,
+          "multi_correct": 0,
           "total": 18597,
-          "zero_correct": 550
+          "zero_correct": 12550
         },
         "transitivity": {
           "exactly_one_correct": 16452,

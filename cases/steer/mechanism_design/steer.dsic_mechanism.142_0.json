@@ -1,6 +1,6 @@
 {
   "case_id": "steer.dsic_mechanism.142_0",
-  "content_sha256": "07b51ac933e5d4fa6e32bce2473f18628810dac212044a4c502b07921c665380",
+  "content_sha256": "2c4b6fb26a589b51c79672226769f8e4071d388842c945dc702c5283c97e84f5",
   "episode": {
     "max_logical_actions": 1,
     "termination": [
@@ -63,9 +63,9 @@
         },
         "pure_nash": {
           "exactly_one_correct": 6047,
-          "multi_correct": 12000,
+          "multi_correct": 0,
           "total": 18597,
-          "zero_correct": 550
+          "zero_correct": 12550
         },
         "transitivity": {
           "exactly_one_correct": 16452,

@@ -1,6 +1,6 @@
 {
   "case_id": "steer.transitivity.190_0",
-  "content_sha256": "a1043574e3924970268669f1601e4c8ce87222d5d24b9cf06bfd343c5bfa4d21",
+  "content_sha256": "818d8b00c26e4fcaf7a986ff0b3a2c26b0da0ef0600d5c45c4b4198080684ef6",
   "episode": {
     "max_logical_actions": 1,
     "termination": [
@@ -63,9 +63,9 @@
         },
         "pure_nash": {
           "exactly_one_correct": 6047,
-          "multi_correct": 12000,
+          "multi_correct": 0,
           "total": 18597,
-          "zero_correct": 550
+          "zero_correct": 12550
         },
         "transitivity": {
           "exactly_one_correct": 16452,

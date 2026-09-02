@@ -1,6 +1,6 @@
 {
   "case_id": "steer.ir_mechanism.423_1",
-  "content_sha256": "c2ed5555ef14701a6150c465dd7abb53f7ae6ae51da5d0fc73457e54d033ed74",
+  "content_sha256": "80fc65143183c1c217f4af15519962bb8175e55089b747df754321823dd1a451",
   "episode": {
     "max_logical_actions": 1,
     "termination": [
@@ -63,9 +63,9 @@
         },
         "pure_nash": {
           "exactly_one_correct": 6047,
-          "multi_correct": 12000,
+          "multi_correct": 0,
           "total": 18597,
-          "zero_correct": 550
+          "zero_correct": 12550
         },
         "transitivity": {
           "exactly_one_correct": 16452,
