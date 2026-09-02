@@ -1,0 +1,78 @@
+{
+  "case_id": "amazonbarg.bilateral.toys-games_7",
+  "content_sha256": "5deca4c6d646102a50404ec5a0d5e61a4f5753958c20f1a79b1693adde771b2e",
+  "episode": {
+    "max_logical_actions": 12,
+    "termination": [
+      "deal",
+      "quit",
+      "action_error",
+      "turn_limit"
+    ]
+  },
+  "family_id": "amazonbarg.bilateral",
+  "family_version": "0.1.0",
+  "payload": {
+    "derived": {
+      "budget": 12.792000000000002,
+      "category": "toys-games",
+      "category_file": "toys-games.json",
+      "codename": "toys-games_7",
+      "cost": 10.49,
+      "description": "Become the mayor of your own mini-metropolis! Buy buildings to attract residents, increase their happiness, and earn an income. But plan carefully! You’ll need money to grow, but only the satisfaction of your citizens counts towards your final score. Strike the perfect balance to build the happiest city in town! Proudly Brought To You by Gamewright!",
+      "index_in_file": 6,
+      "interest": "mutual",
+      "price": 15.99,
+      "title": "Gamewright - Happy City - Build Your Mini-Metropolis! A Delightful Building Card Game"
+    },
+    "pins": {
+      "budget_ratio": 0.8,
+      "category_file_bytes": 58777,
+      "category_file_sha256": "18c4ddf974468b896c3877a147ad00b1d86f22964ceabd936848a9fd310cb91f",
+      "license": "Apache-2.0",
+      "max_turns": 6,
+      "upstream_commit": "834ad9066d0627f0332504d5fa6d236706f2402b",
+      "upstream_repo": "TianXiaSJTU/AmazonPriceHistory"
+    },
+    "product": {
+      "amazon_link": "https://www.amazon.com/dp/B09B5L1JXR",
+      "amazon_title": "Gamewright - Happy City - Build Your Mini-Metropolis! A Delightful Building Card Game",
+      "average_price": "$14.75",
+      "badge": "Best Price",
+      "camel_img": "https://m.media-amazon.com/images/I/61b5o9jWpaL._UL320_.jpg",
+      "category": "toys-games",
+      "current_price": "$10.49",
+      "current_price_date": "Nov 17, 2023",
+      "description": "Become the mayor of your own mini-metropolis! Buy buildings to attract residents, increase their happiness, and earn an income. But plan carefully! You’ll need money to grow, but only the satisfaction of your citizens counts towards your final score. Strike the perfect balance to build the happiest city in town! Proudly Brought To You by Gamewright!",
+      "features": "Happy City - NEW *2021* Become The Mayor Of Your Own Mini-Metropolis! Buy, Sell, Attract Residents, Earn Income! Family Friendly Building Strategy Card Game by Gamewright\nBuy, Sell, Attract Residents, Earn Income!\nEngage Your Creativity and Challenge Your Entrepreneurial Abilities! Create and Manage a Community to Ensure Yours is The Happiest City Around!\nRecommended for Ages 10 + Years\nApproximate Game Play Time 30 Minutes",
+      "highest_price": "$15.99",
+      "highest_price_date": "Jul 31, 2022",
+      "img": "https://m.media-amazon.com/images/I/91Q227+0qWL._AC_SY300_SX300_.jpg",
+      "link": "https://camelcamelcamel.com/product/B09B5L1JXR?active=price_amazon&context=popular",
+      "list_price": "$14.99",
+      "lowest_price": "$10.49",
+      "lowest_price_date": "Nov 28, 2021",
+      "title": "Gamewright - Happy City - Build Your Mini-Metropolis! A Delightful Building Card Game"
+    }
+  },
+  "provenance": {
+    "generator_id": "amazonbarg_importer",
+    "generator_version": "0.1.0",
+    "review_status": "upstream_pinned"
+  },
+  "seats": [
+    {
+      "id": "buyer",
+      "role": "buyer"
+    },
+    {
+      "id": "seller",
+      "role": "seller"
+    }
+  ],
+  "spec_version": "aeread.case/0.1",
+  "split": "pilot",
+  "upstream_task_id": "toys-games_7",
+  "visibility_policy": "amazonbarg_seller_cost_private_v1",
+  "world_seed": 907
+}

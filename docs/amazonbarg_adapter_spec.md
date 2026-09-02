@@ -8,6 +8,15 @@ paper's main strength. Tonight's build is **one category-pair pilot (45 sessions
 enumeration is declared (Gate 1) but explicitly **not run**. Provider-free: scripted/gold
 trajectories only, no network, no API keys, no LLM calls.
 
+**Implementation status.** Built in three milestones. **Milestone 1 (done, 2026-09-02): cases +
+environment** — `cases.py` (importer, pins, sanitization, the 45-session pilot), `environment.py`
+(phase graph, `AmazonbargPlugin`, registration), and `upstream_shim.py` (§3.1's delegation
+mechanism, needed already because the phase graph's own action parsing delegates to
+`session.parseReply`). `AmazonbargPlugin.build_scorer` raises `NotImplementedError` on purpose —
+milestone 2 builds the five measurement leaves (§2) against delegated `eval.py:Metrics`;
+milestone 3 is expected to cover the scripted counterpart harness, parity, and replay (§3, §5
+P3-P5), mirroring `tau3_retail`'s own `harness.py`/`parity.py`/`replay.py` split.
+
 **Governing facts** (verified by direct exploration of the pinned checkout; do not re-derive):
 
 - The corpus is 18 category JSON files under `data/AmazonHistoryPrice/`; a **session = one
@@ -38,6 +47,26 @@ trajectories only, no network, no API keys, no LLM calls.
   exclusively by code paths (`API.ChatCompletion`, `HistoryManager.save_history_jsonl`,
   `eval_all_jsonl`/plotting) this adapter never calls.
 
+  **Implementation update (milestone 1, 2026-09-02):** this last claim needed one correction,
+  found by attempting the import for real rather than assuming it: `api_setting.py` (pulled in
+  transitively by `session.py` via `BuyerAgent`/`SellerAgent`) builds `api_pool =
+  API(temperature=0.0)` at *module import time*, and `API.__init__` calls
+  `openai.OpenAI(api_key='', base_url=...)` verbatim. Against the `openai==2.53.0` actually
+  installed in this project's venv, an explicit empty-string `api_key` raises `OpenAIError:
+  Missing credentials` *locally* — never a network call, but also before the import that only
+  wants `parseReply` can complete. `upstream_shim.py` (§3.1) works around this by temporarily
+  substituting a subclass of the *real* `openai.OpenAI` that fills in a placeholder key only
+  when the caller passed a falsy one, restoring the original class immediately after the
+  delegated import completes; a dedicated no-network test proves construction still never
+  touches a socket either way. `utils/Action.py`/`product.py` import exactly as cleanly as
+  claimed (verified, not just asserted) — no correction needed there.
+- **`max_turns` pin (added in milestone 1, missing from the original draft):** upstream's own
+  `run_session.py:main` defaults to `max_turns=6`, and neither `run_2stages.sh` nor
+  `run_3stages.sh` overrides it — read from the pinned checkout, never executed, exactly like
+  `tau3_retail`'s own `MAX_STEPS` pin. This adapter pins the same value; each episode's
+  `CaseManifest.episode.max_logical_actions = 2 * max_turns = 12` (buyer + seller message per
+  round, up to 6 rounds).
+
 ---
 
 ## 1. Pinned source, corpus enumeration, and content digest (QC Gate 1)
@@ -49,6 +78,7 @@ trajectories only, no network, no API keys, no LLM calls.
 | license | Apache-2.0 |
 | corpus root | `data/AmazonHistoryPrice/` (18 files, listed below) |
 | `budget_ratio` (pinned) | `0.8` |
+| `max_turns` (pinned) | `6` (upstream `run_session.py:main` default, never overridden) |
 
 The importer (`cases.py`) is declared over every one of the 18 pinned category files
 (`automotive.json, baby-products.json, beauty.json, books.json, electronics.json,
@@ -159,18 +189,26 @@ the malformed action *is* the evidence being checked.
 ### 3.1 Delegation mechanism — in-process import shim (no bridge venv, no vendored copy)
 
 Unlike `tau3_retail`, the Python version is not the blocker (upstream targets 3.11 fine); the
-only blocker is five packages (`requests`, `jsonlines`, `matplotlib`, `seaborn`, `pandas`,
+only blocker is six packages (`requests`, `jsonlines`, `matplotlib`, `seaborn`, `pandas`,
 `fire`) used exclusively by code this adapter never calls. A full second venv (the
 `tools/tau2_bridge/provision.sh` pattern) to work around unused imports was judged heavier than
 the problem; vendoring a copy of `eval.py::Metrics` would duplicate exactly the class "never
 reimplement" most wants delegated. Instead, `upstream_shim.py`: (1) installs minimal stub
 modules into `sys.modules` for those six names, **only** for whichever are actually absent
-(`openai` is real, installed, unused beyond construction — no stub needed); (2) each stub's
-`__getattr__` raises `UpstreamShimMissError` instead of returning a fake value, and a
-session-scoped counter records every access; (3) imports `session.py` (for `parseReply`) and
-`eval.py` (for `Metrics`) unmodified from the pinned checkout under these stubs, then removes
-them from `sys.modules`; (4) `utils/Action.py` and `product.py` import directly with **no
-shim** — zero third-party imports of their own.
+(`openai` is real, installed, unused beyond construction — no stub needed); (2) **(implementation
+update, milestone 1)** each stub's attribute access returns an inert placeholder rather than
+raising immediately — `api_setting.py` writes a plain (non-`from __future__ import annotations`)
+`-> requests.Response` return-type annotation that Python evaluates *eagerly* at
+class-definition time, so a stub that raised on every read would make even the intended,
+provider-free delegation (`session.parseReply`) impossible to import. Only *calling* a stub
+placeholder — the one thing that could otherwise silently fake a real behavioural result —
+raises `UpstreamShimMissError`, and the session-scoped counter records exactly those calls, not
+bare reads; (3) imports `session.py` (for `parseReply`) and `eval.py` (for `Metrics`) unmodified
+from the pinned checkout under these stubs, then removes them from `sys.modules`; (4)
+`utils/Action.py` and `product.py` import directly with **no shim** — zero third-party imports
+of their own. See `upstream_shim.py`'s own module docstring for the two deviations above (stub
+read-vs-call semantics; the `openai` empty-api-key construction gate from the Governing Facts
+note above) in full.
 
 A dedicated test asserts the miss-counter is `0` across the entire suite (§5, P2) — turning a
 silent behavioral gap into a loud failure the moment upstream code touches a stubbed symbol on
