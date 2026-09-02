@@ -1,8 +1,8 @@
 {
   "case_id": "agenticpay.bilateral.realistic.s10_food_color",
-  "content_sha256": "d4f68abcd585f36553c38a283ec3bbf20813a9ced710d584c8eff12f757b50aa",
+  "content_sha256": "ee3cc9d9a4be700b28f732359b6134a4fcd39107adf2b67747609d6558d6089d",
   "episode": {
-    "max_logical_actions": 20,
+    "max_logical_actions": 42,
     "termination": [
       "agreed",
       "timeout"

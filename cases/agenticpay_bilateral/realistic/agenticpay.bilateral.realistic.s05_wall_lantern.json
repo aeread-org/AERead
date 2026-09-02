@@ -1,8 +1,8 @@
 {
   "case_id": "agenticpay.bilateral.realistic.s05_wall_lantern",
-  "content_sha256": "5fec99302219ff055fa3a007e7c578dfe08b3a1d1c5fd587d971646ce9c1e7ba",
+  "content_sha256": "bf41f9a1a36290e51717612b470795821693340fe383f2b85f7f57059c117e2a",
   "episode": {
-    "max_logical_actions": 20,
+    "max_logical_actions": 42,
     "termination": [
       "agreed",
       "timeout"

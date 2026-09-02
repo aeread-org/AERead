@@ -1,8 +1,8 @@
 {
   "case_id": "agenticpay.bilateral.realistic.s09_beverage",
-  "content_sha256": "a1491a97ad8e4c6bcd0ae2a564f3de0e262fd64de9fe381e1f42d14b3a44691a",
+  "content_sha256": "0f7eb9df577d54ae989daeab4ea0fd1e12355d676d053141a6efa7e881ff7650",
   "episode": {
-    "max_logical_actions": 20,
+    "max_logical_actions": 42,
     "termination": [
       "agreed",
       "timeout"

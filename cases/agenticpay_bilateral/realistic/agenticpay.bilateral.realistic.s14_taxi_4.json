@@ -1,8 +1,8 @@
 {
   "case_id": "agenticpay.bilateral.realistic.s14_taxi_4",
-  "content_sha256": "2224d9aee837ddd38e15ec790d1d316101db2ab7e4267f9a1e2cab384a055f11",
+  "content_sha256": "7b105de066262e3a15d901e2c33d09f7ef2fa5df8aaa2e883da6711b38706dab",
   "episode": {
-    "max_logical_actions": 20,
+    "max_logical_actions": 42,
     "termination": [
       "agreed",
       "timeout"

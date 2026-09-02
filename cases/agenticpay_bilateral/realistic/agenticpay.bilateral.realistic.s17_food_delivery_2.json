@@ -1,8 +1,8 @@
 {
   "case_id": "agenticpay.bilateral.realistic.s17_food_delivery_2",
-  "content_sha256": "ae7d27297ce986fe1dc3446871dff4b993bfb78692a4a037bbd5ac246c73d494",
+  "content_sha256": "5d9a84bd554c4f0544694633a6cfa6d16e7e58191e2b2acc617ae191e724bc22",
   "episode": {
-    "max_logical_actions": 20,
+    "max_logical_actions": 42,
     "termination": [
       "agreed",
       "timeout"

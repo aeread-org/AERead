@@ -296,7 +296,13 @@ class AgenticpayBilateralPlugin:
         }
 
     def phases(self, family_case: Mapping[str, Any]) -> tuple[PhaseSpec, ...]:
-        max_actions = int(family_case["constructor_kwargs"]["max_rounds"])
+        # Per-phase cap: each seat can act at most once per real upstream
+        # round, and a non-converging negotiation actually plays
+        # `max_rounds + 1` real rounds before upstream's own `step()` fires
+        # `"timeout"` (see `cases.py`'s identical comment on the
+        # case-level, total-episode budget this per-phase cap composes
+        # with).
+        max_actions = int(family_case["constructor_kwargs"]["max_rounds"]) + 1
         return (
             PhaseSpec(
                 phase_id=BUYER_PHASE,

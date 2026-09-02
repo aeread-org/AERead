@@ -268,18 +268,28 @@ history before applying the newly requested round — O(rounds) per call, fine a
 that same history plus a `pending_buyer_message` buffer (the buyer phase's `step` only
 buffers; only the seller phase's `step` calls the bridge and can terminate the episode).
 
-**Two upstream quirks discovered and worked around in `agenticpay_bridge_driver.py` (not
-fixed, not ledgered — both are upstream-library behavior, not a defect in AERead's own
+**Three upstream quirks discovered and worked around in this adapter (not fixed, not
+ledgered — all three are upstream-library behavior, not a defect in AERead's own
 runner/kernel):**
 - `_calculate_reward`/`_calculate_seller_reward`/`_calculate_buyer_reward` call `print(...)`
   unconditionally on every terminal round, corrupting the driver's one-JSON-object-on-stdout
-  protocol unless upstream's own stdout is redirected for the duration of every call.
+  protocol unless upstream's own stdout is redirected for the duration of every call
+  (`agenticpay_bridge_driver.py`).
 - `info["buyer_utility"]`/`info["seller_utility"]` are always `null` in the dict `step()`
   returns, even on a terminal round with a real, non-degenerate contract utility: `_get_info()`
   reads `self.state.metadata.get("buyer_utility")` *before* the score-calculation methods that
   are the only place upstream ever populates it run. The driver reads the correct,
   already-computed values off `env.state.metadata` after `step()` returns instead of
-  recalculating `u_b`/`u_s` itself — see `_overlay_contract_utilities`.
+  recalculating `u_b`/`u_s` itself — see `_overlay_contract_utilities`
+  (`agenticpay_bridge_driver.py`).
+- `Task1BasicPriceNegotiation.step`'s own truncation check
+  (`elif self.current_round >= self.max_rounds`) reads `current_round` *before* that round's
+  own increment, so a non-converging negotiation actually plays `max_rounds + 1` real rounds
+  (verified empirically against the pinned checkout: with `max_rounds=20`, upstream's own
+  `"timeout"` fires with `info["round"] == 21`, not 20) before upstream's own `"timeout"`
+  termination reason appears. `cases.py`'s `episode.max_logical_actions` accounts for this
+  (`2 * (max_rounds + 1)`, not `2 * max_rounds`), and `environment.py`'s `phases()` sizes each
+  phase's own per-seat cap to `max_rounds + 1` for the same reason.
 
 **A third, adapter-side normalization (not an upstream defect):** two of the 25 realistic
 scenarios (`s16`–`s20`'s `extra_condiments`, `s21`–`s25`'s `include_utilities`) declare a

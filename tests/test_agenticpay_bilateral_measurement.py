@@ -17,9 +17,19 @@ own split:
   executable tests, plus a component parity check that the surplus-share
   leaves recombine (via upstream's own published ``Q = 4 * u_b * u_s``
   formula) to upstream's own recorded ``GlobalScore`` for the same scripted
-  trajectory -- "our recorded scoring equals upstream computed scoring",
-  the same class of check ``test_tau3_retail_measurement.py`` performs
-  against ``tau2.evaluator.evaluator_env.EnvironmentEvaluator``.
+  trajectory -- "our recorded scoring equals upstream computed scoring".
+  The basic-mode variant of that check is the same class of independent
+  cross-check ``test_tau3_retail_measurement.py`` performs against
+  ``tau2.evaluator.evaluator_env.EnvironmentEvaluator``: ``u_b``/``u_s`` are
+  recomputed here from ``agreed_price`` alone, never read back off
+  upstream's own state. The contract-mode variant is weaker and is *not*
+  independent in the same sense: contract-mode ``u_b``/``u_s`` are upstream's
+  own ``buyer_utility``/``seller_utility`` read back verbatim off
+  ``state.metadata`` (see ``measurement.py``'s ``_score_surplus_share``),
+  the exact inputs upstream itself just used to compute ``GlobalScore``, so
+  equality holds by construction; it can only catch a typo in this
+  adapter's own copy of the weights/discount/``Q`` formula, never an error
+  in upstream's own MAUT utility calculation. See that test's own docstring.
 """
 from __future__ import annotations
 
@@ -506,6 +516,17 @@ def test_golden_3_invalid_or_unauthorized_contract_offer() -> None:
     assert legality.metrics["round_2_seller_contract_legal"].value == 1.0
     assert "round_2_buyer_contract_legal" not in legality.metrics
 
+    # The round-1 leaf check above proves "no mutation" only indirectly,
+    # through score_contract_legality's own definition of "accepted"
+    # (measurement.py's `seller_contract_before == seller_contract_after`);
+    # assert the underlying round_trace fields directly here too, so this
+    # golden's "no protected state changed" claim is self-evident from the
+    # test body and does not silently change meaning if that definition is
+    # ever refactored.
+    round_1 = result.terminal["round_trace"][0]
+    assert round_1["seller_contract_after"] is None
+    assert round_1["seller_contract_after"] == round_1["seller_contract_before"]
+
     # The deal and both surplus shares are unaffected by the rejected round.
     deal = scorer.score_deal_reached(terminal=result.terminal)
     buyer_share = scorer.score_buyer_surplus_share(terminal=result.terminal)
@@ -590,6 +611,19 @@ def test_surplus_share_leaves_recombine_to_upstream_recorded_global_score_basic_
 
 
 def test_surplus_share_leaves_recombine_to_upstream_recorded_global_score_contract_mode() -> None:
+    """Weaker than its basic-mode sibling above: contract-mode ``u_b``/``u_s``
+    (``terminal["buyer_utility"]``/``terminal["seller_utility"]``) are
+    upstream's own values, carried forward verbatim off ``state.metadata``
+    (upstream never stores them for price-only mode, so the basic-mode test
+    above recomputes them independently from ``agreed_price`` instead). This
+    test therefore multiplies the exact numbers upstream itself just used to
+    compute ``GlobalScore`` back through the same disclosed ``Q`` formula, so
+    equality holds by construction -- it proves this adapter's own copy of the
+    weights/discount/``Q`` formula is correct, not that upstream's own MAUT
+    utility calculation (``u_b``, ``u_s``, ``z_max``) is. See spec sections
+    5/9: no separate gold oracle exists for contract-mode utilities, so
+    replay parity (not this test) is the correctness oracle for those.
+    """
     case = _case(REALISTIC_CASE_ID)
     result, scorer = _run(case, rounds=[(_LEGAL_CONTRACT, _LEGAL_CONTRACT)])
     buyer_share = scorer.score_buyer_surplus_share(terminal=result.terminal).primary.value

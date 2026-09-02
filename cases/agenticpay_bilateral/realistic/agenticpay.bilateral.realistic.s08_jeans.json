@@ -1,8 +1,8 @@
 {
   "case_id": "agenticpay.bilateral.realistic.s08_jeans",
-  "content_sha256": "d7da4ce07109e2b5439050f8dcdd3f1f0b0d1d6aec2d7248b6f09711d7fa086d",
+  "content_sha256": "01b9c4b994290005aed2ade5a3caafffdfd751478e4abcaf258660b77e3044f7",
   "episode": {
-    "max_logical_actions": 20,
+    "max_logical_actions": 42,
     "termination": [
       "agreed",
       "timeout"

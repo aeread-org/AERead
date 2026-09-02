@@ -1,8 +1,8 @@
 {
   "case_id": "agenticpay.bilateral.realistic.s02_toothpaste",
-  "content_sha256": "8b4cb346bb06332a859ba25d29df53caedc67982ea66a2cd88e3b3204da8bd11",
+  "content_sha256": "ad798a0f50ac9e12d16543438d89254d657144fa28505745af867f421ca9f466",
   "episode": {
-    "max_logical_actions": 20,
+    "max_logical_actions": 42,
     "termination": [
       "agreed",
       "timeout"

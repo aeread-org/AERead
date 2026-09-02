@@ -1,8 +1,8 @@
 {
   "case_id": "agenticpay.bilateral.realistic.s01_beauty_product",
-  "content_sha256": "f5ea610db019e95409a8aee30bf3267f29519e96fdb8b07763dbb892ca8b932a",
+  "content_sha256": "554351dae83b6f2664a25c7c216cdf47c5a748bab70835a37a47d7c9283162c5",
   "episode": {
-    "max_logical_actions": 20,
+    "max_logical_actions": 42,
     "termination": [
       "agreed",
       "timeout"

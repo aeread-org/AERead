@@ -1,8 +1,8 @@
 {
   "case_id": "agenticpay.bilateral.realistic.s03_riflescope",
-  "content_sha256": "416d3ea2930ee0ec8840ed64e682b0ec3b85c8e6d0befaf181f7768fc95859af",
+  "content_sha256": "cb216fae87b0a848c904b7fd0c128a5e34561393c4f39e329c7c742a4717c9ae",
   "episode": {
-    "max_logical_actions": 20,
+    "max_logical_actions": 42,
     "termination": [
       "agreed",
       "timeout"

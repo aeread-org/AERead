@@ -1,8 +1,8 @@
 {
   "case_id": "agenticpay.bilateral.realistic.s04_headphones",
-  "content_sha256": "c546980b721bb7f8ff026b4250715630f42f1bd705a28b10fd1b0f6f42c7320c",
+  "content_sha256": "ce78caa45efe92bdf923bffc6143ae2f3abb5b407b4e34e0b3bc010eeb40286b",
   "episode": {
-    "max_logical_actions": 20,
+    "max_logical_actions": 42,
     "termination": [
       "agreed",
       "timeout"

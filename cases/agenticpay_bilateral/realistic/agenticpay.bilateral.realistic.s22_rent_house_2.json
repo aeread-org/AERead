@@ -1,8 +1,8 @@
 {
   "case_id": "agenticpay.bilateral.realistic.s22_rent_house_2",
-  "content_sha256": "73323e94d34ef2e38437b1c8f9ff1aaeb267bd5428abac22400092d631f2342f",
+  "content_sha256": "0cd18096052870545c60345434b9645771cc0a30c31b1df53ccd406822d84aec",
   "episode": {
-    "max_logical_actions": 20,
+    "max_logical_actions": 42,
     "termination": [
       "agreed",
       "timeout"

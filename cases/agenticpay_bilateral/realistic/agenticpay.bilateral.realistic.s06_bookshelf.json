@@ -1,8 +1,8 @@
 {
   "case_id": "agenticpay.bilateral.realistic.s06_bookshelf",
-  "content_sha256": "6eef20eae0b6d802cfb0f7915c06b8cdd9ee54078f6f3fd5dc036325bbdb7c9a",
+  "content_sha256": "5c07af508809c245bd8813addaa4eb66f875f1a29fa736ad2320dd64ca435b51",
   "episode": {
-    "max_logical_actions": 20,
+    "max_logical_actions": 42,
     "termination": [
       "agreed",
       "timeout"

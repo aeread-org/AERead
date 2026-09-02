@@ -1,8 +1,8 @@
 {
   "case_id": "agenticpay.bilateral.basic.task2",
-  "content_sha256": "5895b6643f1365d215c114303d3b776d0ee18eaf06a60455992ceed618ba18ed",
+  "content_sha256": "82a2665f4bda94583046ec9ee9ece7122e0015d365bb836ea22c1e5760f8069c",
   "episode": {
-    "max_logical_actions": 20,
+    "max_logical_actions": 42,
     "termination": [
       "agreed",
       "timeout"

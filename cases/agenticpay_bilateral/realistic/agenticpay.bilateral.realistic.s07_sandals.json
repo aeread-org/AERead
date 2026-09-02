@@ -1,8 +1,8 @@
 {
   "case_id": "agenticpay.bilateral.realistic.s07_sandals",
-  "content_sha256": "36719c520469b5bf99c4f7c84ca38c54cfab508b8cbc72214fdf9132d01f5c99",
+  "content_sha256": "9cf289f1a055da7cfae43a73bbf29bf4aa6b7d581cbb07f4fe3865fab58d2ece",
   "episode": {
-    "max_logical_actions": 20,
+    "max_logical_actions": 42,
     "termination": [
       "agreed",
       "timeout"

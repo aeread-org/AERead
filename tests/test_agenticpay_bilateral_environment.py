@@ -340,3 +340,32 @@ def test_realistic_food_delivery_boolean_discrete_term_reaches_a_real_utility() 
     assert result.terminal["buyer_utility"] == pytest.approx(2.265)
     assert result.terminal["seller_utility"] == pytest.approx(2.265)
     assert result.terminal["global_score"] == pytest.approx(100.0)
+
+
+# ---------------------------------------------------------------------------
+# Golden -- non-converging negotiation reaches upstream's own real timeout
+# round instead of the scheduler crashing with `SchedulerContractError`
+# before then. Regression test for the case-level `max_logical_actions`
+# budget: the kernel spends one buyer logical action and one seller
+# logical action per upstream round, and upstream's own `step()` only
+# truncates when `current_round >= max_rounds` is checked *before* that
+# round's own increment, so a non-converging negotiation actually plays
+# `max_rounds + 1` real rounds before `"timeout"` fires. The per-episode
+# budget must be `2 * (max_rounds + 1)`, not `2 * max_rounds` and not
+# `max_rounds` itself.
+# ---------------------------------------------------------------------------
+
+
+def test_golden_non_converging_negotiation_reaches_real_timeout_not_a_scheduler_crash() -> None:
+    case = _case("agenticpay.bilateral.basic.task1")
+    max_rounds = int(case.payload["constructor_kwargs"]["max_rounds"])
+    real_timeout_round = max_rounds + 1
+    assert case.episode.max_logical_actions == 2 * real_timeout_round
+    # $90 vs $130 never lands within this case's $0 price tolerance, so
+    # every one of the scripted rounds below fails to agree and upstream's
+    # own truncation must fire on round `max_rounds + 1`.
+    rounds = [("### BUYER_PRICE($90) ###", "### SELLER_PRICE($130) ###")] * real_timeout_round
+    result = _run(case, rounds=rounds)
+    assert result.terminal["reason"] == "timeout"
+    assert result.terminal["rounds"] == real_timeout_round
+    assert result.logical_action_count == 2 * real_timeout_round

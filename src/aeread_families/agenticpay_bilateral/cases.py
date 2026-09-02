@@ -586,7 +586,24 @@ def build_basic_case(
             {"id": "seller", "role": "seller"},
         ],
         "episode": {
-            "max_logical_actions": int(extraction.constructor_kwargs["max_rounds"]),
+            # The kernel alternates one buyer logical action and one seller
+            # logical action per upstream round (`environment.py`'s module
+            # docstring); this case-level budget is a total-action ceiling
+            # across the whole episode (`scheduler.py`'s
+            # `case_logical_actions exceeded` check), not a per-phase cap.
+            # Mirrors `housing.py`'s `2 * num_tenants * rounds` convention
+            # for the same multi-seat-per-round budget shape, with one
+            # extra round folded in: upstream's own `step()` only truncates
+            # when `current_round >= max_rounds` is checked *before* that
+            # round's own increment, so a non-converging negotiation
+            # actually plays `max_rounds + 1` real rounds (verified
+            # empirically against the pinned checkout: with
+            # `max_rounds=20`, upstream's own `"timeout"` fires with
+            # `info["round"] == 21`, not 20) before upstream's own
+            # `"timeout"` termination reason appears. Using `2 * max_rounds`
+            # here (without the `+ 1`) would still crash the scheduler one
+            # round short of upstream's real timeout.
+            "max_logical_actions": 2 * (int(extraction.constructor_kwargs["max_rounds"]) + 1),
             "termination": TERMINATION_REASONS,
         },
         "visibility_policy": VISIBILITY_POLICY,
@@ -658,7 +675,12 @@ def build_realistic_case(
             {"id": "seller", "role": "seller"},
         ],
         "episode": {
-            "max_logical_actions": int(extraction.constructor_kwargs["max_rounds"]),
+            # See `build_basic_case`'s identical comment: this is a
+            # total-episode budget (buyer + seller logical actions across
+            # `max_rounds + 1` real rounds, upstream's actual round count
+            # before its own truncation fires), not upstream's own
+            # per-round `max_rounds` and not `2 * max_rounds` either.
+            "max_logical_actions": 2 * (int(extraction.constructor_kwargs["max_rounds"]) + 1),
             "termination": TERMINATION_REASONS,
         },
         "visibility_policy": VISIBILITY_POLICY,
