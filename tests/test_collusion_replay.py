@@ -31,6 +31,7 @@ from aeread_families.collusion.harness import (
     ScriptedCollusionHarness,
     constant_policy,
     monopoly_play_policy,
+    nash_play_policy,
     tit_for_tat_policy,
 )
 from aeread_families.collusion.replay import (
@@ -117,6 +118,22 @@ def _run_with_harness(
     return cell, result
 
 
+def _profit_report_window_mean(
+    family_case: Mapping[str, Any], outcome: Mapping[str, Any], *, seat: str
+) -> float:
+    """One seat's own App. A.4 profit-reporting-window mean (periods
+    251-300, ``measurement.PROFIT_REPORT_WINDOW_PERIODS``) -- mirrors
+    ``measurement.py``'s own leaf-4 reduction (reused here, not
+    reimplemented, only to compute a genuinely correct leaf-4 baseline
+    value for a test, never to duplicate the scorer's own logic).
+    """
+    admitted = m._admitted_rounds(outcome["history"])
+    window = m._window(
+        admitted, horizon=family_case["horizon"], window_periods=m.PROFIT_REPORT_WINDOW_PERIODS
+    )
+    return m._mean([entry["profits"][seat] for entry in window])
+
+
 # ---------------------------------------------------------------------------
 # Pure, no scheduler: RecordedDecision/RecordedEpisode structural round-tripping.
 # ---------------------------------------------------------------------------
@@ -127,13 +144,18 @@ def test_recorded_episode_round_trips_through_plain_json() -> None:
         phase_id="price_round", seat_id="firm_a", response={"price": 1.5}
     )
     episode = RecordedEpisode(
-        case_id="collusion.duopoly.baseline-symmetric.alpha1.seed0", decisions=(decision,)
+        case_id="collusion.duopoly.baseline-symmetric.alpha1.seed0",
+        case_content_sha256="a" * 64,
+        decisions=(decision,),
+        expected_final_outcome_sha256="b" * 64,
     )
 
     text = episode.to_json()
     restored = RecordedEpisode.from_json(text)
 
     assert restored.case_id == episode.case_id
+    assert restored.case_content_sha256 == "a" * 64
+    assert restored.expected_final_outcome_sha256 == "b" * 64
     assert len(restored.decisions) == 1
     assert restored.decisions[0].phase_id == "price_round"
     assert restored.decisions[0].seat_id == "firm_a"
@@ -205,12 +227,48 @@ def test_replay_case_mismatch_raises_a_typed_replay_error_before_touching_the_sc
     case = _short_case(horizon=1)
     wrong = RecordedEpisode(
         case_id="collusion.duopoly.does-not-exist",
+        case_content_sha256=case.content_sha256,
         decisions=(RecordedDecision(phase_id="price_round", seat_id="firm_a", response={"price": 1.0}),),
+        expected_final_outcome_sha256="0" * 64,
     )
     with pytest.raises(ReplayError, match="not"):
         asyncio.run(
             replay_episode(
                 cell=_cell(case, suffix="mismatch"), case=case, plugin=CollusionPlugin(), recorded=wrong
+            )
+        )
+
+
+def test_replay_case_content_mismatch_raises_a_typed_replay_error_even_with_a_matching_case_id(
+    tmp_path: Any,
+) -> None:
+    """The concrete failure scenario from the collusion codex triage's
+    Finding 4: retain a matching ``case_id``, but let the case's own
+    content digest have changed since this episode was recorded (e.g. the
+    case's economics were rebuilt) -- ``replay_episode`` must reject this,
+    not just a changed ``case_id``.
+    """
+    case = _short_case(horizon=1)
+    cell, original = _run_with_harness(
+        case,
+        tmp_path=tmp_path,
+        suffix="content_mismatch",
+        policy_by_seat={
+            "firm_a": constant_policy(case.payload["gold_reference"]["p_nash"]["firm_a"]),
+            "firm_b": constant_policy(case.payload["gold_reference"]["p_nash"]["firm_b"]),
+        },
+    )
+    recorded = record_episode(original, case=case)
+    stale = RecordedEpisode(
+        case_id=recorded.case_id,
+        case_content_sha256="f" * 64,  # a case_id-matching but stale/changed digest.
+        decisions=recorded.decisions,
+        expected_final_outcome_sha256=recorded.expected_final_outcome_sha256,
+    )
+    with pytest.raises(ReplayError, match="content digest"):
+        asyncio.run(
+            replay_episode(
+                cell=cell, case=case, plugin=CollusionPlugin(), recorded=stale
             )
         )
 
@@ -237,7 +295,7 @@ def test_replay_of_a_tampered_recording_is_detected_as_a_divergence(tmp_path: An
             "firm_b": constant_policy(p_monopoly["firm_b"]),
         },
     )
-    recorded = record_episode(original)
+    recorded = record_episode(original, case=case)
 
     tampered_decisions = list(recorded.decisions)
     for index, decision in enumerate(tampered_decisions):
@@ -248,7 +306,12 @@ def test_replay_of_a_tampered_recording_is_detected_as_a_divergence(tmp_path: An
                 response={"price": decision.response["price"] + 0.01},
             )
             break
-    tampered = RecordedEpisode(case_id=recorded.case_id, decisions=tuple(tampered_decisions))
+    tampered = RecordedEpisode(
+        case_id=recorded.case_id,
+        case_content_sha256=recorded.case_content_sha256,
+        decisions=tuple(tampered_decisions),
+        expected_final_outcome_sha256=recorded.expected_final_outcome_sha256,
+    )
 
     replayed = asyncio.run(
         replay_episode(cell=cell, case=case, plugin=CollusionPlugin(), recorded=tampered)
@@ -260,6 +323,69 @@ def test_replay_of_a_tampered_recording_is_detected_as_a_divergence(tmp_path: An
     assert comparison.matches is False
     with pytest.raises(ReplayError, match="state hashes differ"):
         assert_replay_matches(comparison)
+
+
+def test_offline_replay_of_a_tampered_recording_with_no_original_in_memory_reports_mismatch_not_a_fabricated_match(
+    tmp_path: Any,
+) -> None:
+    """The concrete failure scenario from the collusion codex triage's
+    Finding 3: edit one stored price, drop the in-memory ``original``, and
+    replay purely from the (tampered) recording, through the real
+    ``replay_and_verify`` entry point (not the raw ``compare_episode_
+    results`` shortcut the sibling test above uses) -- ``status`` must not
+    report "match" just because there is no live ``original`` to compare
+    against; the sealed ``expected_final_outcome_sha256`` recorded
+    alongside the (untampered) original episode must catch the divergence
+    instead.
+    """
+    case = _short_case(horizon=5)
+    p_monopoly = case.payload["gold_reference"]["p_monopoly"]
+
+    cell, original = _run_with_harness(
+        case,
+        tmp_path=tmp_path,
+        suffix="offline_tamper_original",
+        policy_by_seat={
+            "firm_a": constant_policy(p_monopoly["firm_a"]),
+            "firm_b": constant_policy(p_monopoly["firm_b"]),
+        },
+    )
+    recorded = record_episode(original, case=case)
+
+    tampered_decisions = list(recorded.decisions)
+    for index, decision in enumerate(tampered_decisions):
+        if decision.phase_id == "price_round" and decision.seat_id == "firm_a":
+            tampered_decisions[index] = RecordedDecision(
+                phase_id=decision.phase_id,
+                seat_id=decision.seat_id,
+                response={"price": decision.response["price"] + 0.01},
+            )
+            break
+    tampered = RecordedEpisode(
+        case_id=recorded.case_id,
+        case_content_sha256=recorded.case_content_sha256,
+        decisions=tuple(tampered_decisions),
+        expected_final_outcome_sha256=recorded.expected_final_outcome_sha256,
+    )
+
+    family_case = CollusionPlugin().validate_payload(case.payload)
+    scorer = m.build_scorer(family_case)
+
+    report = asyncio.run(
+        replay_and_verify(
+            cell=cell,
+            case=case,
+            plugin=CollusionPlugin(),
+            scorer=scorer,
+            recorded=tampered,
+            original=None,  # genuinely offline: nothing in memory to compare against.
+            baseline_profit_by_seat=dict(p_monopoly),
+        )
+    )
+
+    assert report.comparison is None
+    assert report.digest_verified is False
+    assert report.status == "mismatch"
 
 
 def test_replay_without_an_original_reports_no_comparison_but_still_scores(tmp_path: Any) -> None:
@@ -278,7 +404,7 @@ def test_replay_without_an_original_reports_no_comparison_but_still_scores(tmp_p
             "firm_b": constant_policy(p_nash["firm_b"]),
         },
     )
-    recorded = RecordedEpisode.from_json(record_episode(original).to_json())
+    recorded = RecordedEpisode.from_json(record_episode(original, case=case).to_json())
     family_case = CollusionPlugin().validate_payload(case.payload)
     scorer = m.build_scorer(family_case)
 
@@ -295,6 +421,7 @@ def test_replay_without_an_original_reports_no_comparison_but_still_scores(tmp_p
     )
 
     assert report.comparison is None
+    assert report.digest_verified is True
     assert report.status == "match"
     assert set(report.scores) == {
         m.PRICE_LEGALITY_LEAF_ID,
@@ -346,6 +473,62 @@ def shared_asymmetric_original(shared_asymmetric_case: CaseManifest, tmp_path_fa
     return cell, result
 
 
+@pytest.fixture(scope="module")
+def shared_asymmetric_same_opponent_baseline_profit(
+    shared_asymmetric_case: CaseManifest, tmp_path_factory: Any
+) -> dict[str, float]:
+    """The economically correct leaf-4 baseline for
+    ``shared_asymmetric_original``'s own trajectory.
+
+    ``measurement.py``'s own ``BASELINE_POLICY_ID`` docstring: Nash-vs-Nash
+    ``pi_nash`` is only a valid stand-in for the named baseline's realized
+    profit when the *actual* opponent condition is also Nash. Here it is
+    not -- ``shared_asymmetric_original`` is monopoly-play (firm_a) versus
+    tit-for-tat (firm_b) -- so the correct baseline is each seat playing
+    the named Nash-play policy against the *same* real opponent policy the
+    live trajectory actually used, not against a Nash-playing opponent
+    (collusion codex triage, Finding 2: "profit baseline uses the wrong
+    opponent condition"). Computed by re-running the real scheduler twice
+    (once per seat) through ``ScriptedCollusionHarness``/``run_episode`` --
+    the production path, not an approximation -- swapping only the seat
+    under test to Nash-play while keeping the *other* seat's real policy
+    function unchanged.
+    """
+    gold = shared_asymmetric_case.payload["gold_reference"]
+    p_nash = gold["p_nash"]
+    p_monopoly = gold["p_monopoly"]
+    tmp_path = tmp_path_factory.mktemp("collusion_replay_asymmetric_baseline")
+
+    # firm_a's baseline: firm_a plays Nash, firm_b keeps its real policy
+    # (tit-for-tat) -- the same opponent condition firm_a's live trajectory
+    # actually faced.
+    _cell_a, result_a = _run_with_harness(
+        shared_asymmetric_case,
+        tmp_path=tmp_path,
+        suffix="asymmetric_baseline_firm_a",
+        policy_by_seat={
+            "firm_a": nash_play_policy(p_nash["firm_a"]),
+            "firm_b": tit_for_tat_policy(seat_id="firm_b", opening_price=p_nash["firm_b"]),
+        },
+    )
+    # firm_b's baseline: firm_b plays Nash, firm_a keeps its real policy
+    # (persistent monopoly-play) -- the exact scenario the finding names.
+    _cell_b, result_b = _run_with_harness(
+        shared_asymmetric_case,
+        tmp_path=tmp_path,
+        suffix="asymmetric_baseline_firm_b",
+        policy_by_seat={
+            "firm_a": monopoly_play_policy(p_monopoly["firm_a"]),
+            "firm_b": nash_play_policy(p_nash["firm_b"]),
+        },
+    )
+    family_case = CollusionPlugin().validate_payload(shared_asymmetric_case.payload)
+    return {
+        "firm_a": _profit_report_window_mean(family_case, result_a.outcome, seat="firm_a"),
+        "firm_b": _profit_report_window_mean(family_case, result_b.outcome, seat="firm_b"),
+    }
+
+
 def test_shared_full_episode_reaches_max_periods_with_the_expected_tit_for_tat_shape(
     shared_asymmetric_case: CaseManifest, shared_asymmetric_original: Any
 ) -> None:
@@ -367,16 +550,49 @@ def test_shared_full_episode_reaches_max_periods_with_the_expected_tit_for_tat_s
         assert entry["prices"] == {"firm_a": p_monopoly_a, "firm_b": p_monopoly_a}
 
 
+def test_same_opponent_condition_baseline_differs_from_nash_vs_nash_pi_nash_for_an_asymmetric_opponent(
+    shared_asymmetric_case: CaseManifest,
+    shared_asymmetric_same_opponent_baseline_profit: Mapping[str, float],
+) -> None:
+    """The concrete failure scenario from the collusion codex triage's
+    Finding 2: firm_b is evaluated against firm_a's persistent
+    monopoly-price policy; firm_b's correct leaf-4 baseline is firm_b
+    playing Nash against that *same* monopoly-price opponent -- not
+    Nash-vs-Nash ``pi_nash``. Proves the two are not interchangeable
+    whenever the real opponent condition is not itself Nash (they need not
+    differ in general, but do here, materially, for both seats).
+    """
+    gold_pi_nash = shared_asymmetric_case.payload["gold_reference"]["pi_nash"]
+    correct = shared_asymmetric_same_opponent_baseline_profit
+    for seat in _SEATS:
+        assert abs(correct[seat] - gold_pi_nash[seat]) > 0.01 * abs(gold_pi_nash[seat])
+
+
 def test_replay_and_verify_reproduces_state_and_score_byte_identically_with_zero_provider_calls(
-    shared_asymmetric_case: CaseManifest, shared_asymmetric_original: Any
+    shared_asymmetric_case: CaseManifest,
+    shared_asymmetric_original: Any,
+    shared_asymmetric_same_opponent_baseline_profit: Mapping[str, float],
 ) -> None:
     cell, original = shared_asymmetric_original
     case = shared_asymmetric_case
     family_case = CollusionPlugin().validate_payload(case.payload)
-    gold = family_case["gold_reference"]
-    baseline_profit_by_seat = dict(gold["pi_nash"])
+    # The correct leaf-4 baseline for *this* trajectory (monopoly-play vs.
+    # tit-for-tat) is each seat playing Nash against the same real opponent
+    # it actually faced -- not gold["pi_nash"] (Nash-vs-Nash), which is only
+    # a valid stand-in when the real opponent condition is also Nash
+    # (found in review, collusion codex triage Finding 2; see
+    # ``shared_asymmetric_same_opponent_baseline_profit``'s own docstring).
+    baseline_profit_by_seat = dict(shared_asymmetric_same_opponent_baseline_profit)
+    # Pin this test's own baseline to the correct, same-opponent-condition
+    # value, not the wrong Nash-vs-Nash pi_nash this test used before the
+    # fix (would fail this assertion, per the sibling proof test above).
+    gold_pi_nash = family_case["gold_reference"]["pi_nash"]
+    for seat in _SEATS:
+        assert abs(baseline_profit_by_seat[seat] - gold_pi_nash[seat]) > 0.01 * abs(
+            gold_pi_nash[seat]
+        )
 
-    recorded = record_episode(original)
+    recorded = record_episode(original, case=case)
     # Force a genuine round trip through plain JSON text -- proves replay
     # never depends on reusing the original run's in-memory Python objects.
     recorded = RecordedEpisode.from_json(recorded.to_json())

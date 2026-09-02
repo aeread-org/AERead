@@ -57,6 +57,15 @@ class ReplayError(RuntimeError):
     """
 
 
+def _outcome_sha256(outcome: Mapping[str, Any]) -> str:
+    """The one digest function both the seal (:func:`record_episode`) and
+    the verification (:func:`replay_and_verify`) use, so "the same outcome"
+    always means "the same hash of the canonical JSON bytes" in exactly one
+    place.
+    """
+    return hashlib.sha256(canonical_json_bytes(outcome)).hexdigest()
+
+
 def _plain(value: Any) -> Any:
     """Detach mapping proxies/tuples into ordinary JSON-shaped containers.
 
@@ -98,15 +107,39 @@ class RecordedDecision:
 
 @dataclass(frozen=True, slots=True)
 class RecordedEpisode:
-    """The complete, plain-JSON-serializable ordered decision log for one episode."""
+    """The complete, plain-JSON-serializable ordered decision log for one episode.
+
+    Two identity/integrity fields beyond ``case_id`` and ``decisions``
+    (found missing in review):
+
+    * ``case_content_sha256`` -- the exact case content this recording was
+      produced against (``CaseManifest.content_sha256``), not merely its
+      ``case_id``. A ``case_id`` alone survives a content edit (same id,
+      different demand/cost/ceiling parameters, a recomputed but still
+      valid manifest digest) -- ``replay_episode`` rejects a mismatch on
+      either field, not just ``case_id`` (collusion codex triage, Finding
+      4: "replay identity is bound only to case ID").
+    * ``expected_final_outcome_sha256`` -- a seal over the *original* run's
+      own terminal outcome, captured once at record time. A genuinely
+      offline replay (no ``original`` ``EpisodeResult`` held in memory to
+      compare against) has nothing else to verify a tampered recording
+      against; without this seal, ``ReplayReport.status`` could only ever
+      report "match" when there is no comparison to make, not a real
+      verification (collusion codex triage, Finding 3: "unverified offline
+      replay reports match").
+    """
 
     case_id: str
+    case_content_sha256: str
     decisions: tuple[RecordedDecision, ...]
+    expected_final_outcome_sha256: str
 
     def to_dict(self) -> dict[str, Any]:
         return {
             "case_id": self.case_id,
+            "case_content_sha256": self.case_content_sha256,
             "decisions": [decision.to_dict() for decision in self.decisions],
+            "expected_final_outcome_sha256": self.expected_final_outcome_sha256,
         }
 
     def to_json(self) -> str:
@@ -117,9 +150,11 @@ class RecordedEpisode:
     def from_dict(cls, value: Mapping[str, Any]) -> "RecordedEpisode":
         return cls(
             case_id=value["case_id"],
+            case_content_sha256=value["case_content_sha256"],
             decisions=tuple(
                 RecordedDecision.from_dict(decision) for decision in value["decisions"]
             ),
+            expected_final_outcome_sha256=value["expected_final_outcome_sha256"],
         )
 
     @classmethod
@@ -127,15 +162,20 @@ class RecordedEpisode:
         return cls.from_dict(json.loads(text))
 
 
-def record_episode(result: EpisodeResult) -> RecordedEpisode:
+def record_episode(result: EpisodeResult, *, case: CaseManifest) -> RecordedEpisode:
     """Extract the ordered decision log from one already-completed
-    ``EpisodeResult``.
+    ``EpisodeResult``, sealed against the exact case it was produced under.
 
     Pulls exactly the raw ``LogicalActionRecord.response`` for every
     logical action, in the order the scheduler requested them (spec
     section 3's phase graph: both seats per round, ``firm_a`` then
     ``firm_b``) -- nothing about the transition or scoring is captured
     here; replay regenerates all of that independently through ``step()``.
+    ``case`` binds this recording to ``case.content_sha256`` (not merely
+    ``case.case_id``) and seals ``result.outcome`` as
+    ``expected_final_outcome_sha256`` -- both read back by
+    ``replay_episode``/``replay_and_verify`` (see ``RecordedEpisode``'s own
+    docstring; collusion codex triage findings 3 and 4).
     """
     decisions: list[RecordedDecision] = []
     for instance in result.phase_instances:
@@ -147,7 +187,12 @@ def record_episode(result: EpisodeResult) -> RecordedEpisode:
                     response=action.response,
                 )
             )
-    return RecordedEpisode(case_id=result.case_id, decisions=tuple(decisions))
+    return RecordedEpisode(
+        case_id=result.case_id,
+        case_content_sha256=case.content_sha256,
+        decisions=tuple(decisions),
+        expected_final_outcome_sha256=_outcome_sha256(result.outcome),
+    )
 
 
 class RecordedResponseSource:
@@ -200,13 +245,27 @@ async def replay_episode(
     Rebuilds ``initial_state`` from the pinned case/cell (exactly as the
     original run did) and folds the recorded decisions through the real
     scheduler. Raises ``ReplayError`` only for replay-harness-level problems
-    (wrong case, ordering mismatch, unconsumed record); a genuine
-    transition-level contract violation would instead surface unmodified
-    from ``run_episode`` itself (module docstring).
+    (wrong case, changed case content, ordering mismatch, unconsumed
+    record); a genuine transition-level contract violation would instead
+    surface unmodified from ``run_episode`` itself (module docstring).
+
+    Checks both ``case_id`` *and* ``case_content_sha256`` -- a case_id
+    match alone does not prove the case's own economics are unchanged
+    (collusion codex triage, Finding 4: same case_id, different demand/cost
+    parameters, a recomputed but still valid manifest digest, would
+    otherwise pass this check and replay the old decisions against the
+    wrong economics).
     """
     if recorded.case_id != case.case_id:
         raise ReplayError(
             f"recorded episode is for case {recorded.case_id!r}, not {case.case_id!r}"
+        )
+    if recorded.case_content_sha256 != case.content_sha256:
+        raise ReplayError(
+            f"recorded episode's case content digest {recorded.case_content_sha256!r} "
+            f"does not match case {case.case_id!r}'s current content digest "
+            f"{case.content_sha256!r} -- the case content changed since this "
+            "episode was recorded"
         )
     response_source = RecordedResponseSource(recorded.decisions)
     result = await run_episode(
@@ -337,16 +396,32 @@ def score_replayed_episode(
 
 @dataclass(frozen=True, slots=True)
 class ReplayReport:
-    """The complete, auditable result of replaying and re-scoring one episode."""
+    """The complete, auditable result of replaying and re-scoring one episode.
+
+    ``digest_verified`` closes a gap found in review (collusion codex
+    triage, Finding 3): when ``comparison`` is ``None`` (a genuinely
+    offline replay, no ``original`` ``EpisodeResult`` held in memory),
+    ``status`` used to report "match" unconditionally -- a tampered
+    recording replayed with no ``original`` around to catch it would still
+    be reported as verified. ``digest_verified`` instead compares the
+    freshly replayed outcome's own ``final_outcome_sha256`` against
+    ``RecordedEpisode.expected_final_outcome_sha256`` -- a seal captured
+    from the *original* run at record time (:func:`record_episode`) -- so a
+    tampered recording is caught even with no live ``original`` to compare
+    against.
+    """
 
     case_id: str
     replayed: EpisodeResult
     comparison: StateComparison | None
     scores: Mapping[str, ScoreEnvelope]
     final_outcome_sha256: str
+    digest_verified: bool
 
     @property
     def status(self) -> str:
+        if not self.digest_verified:
+            return "mismatch"
         if self.comparison is not None and not self.comparison.matches:
             return "mismatch"
         return "match"
@@ -369,7 +444,13 @@ async def replay_and_verify(
     level agreement; when absent (e.g. a genuinely offline replay from a
     previously-written record, with no original run in memory), replay
     still runs and re-scores, and ``comparison`` is ``None`` -- an explicit,
-    typed "not comparable" rather than a fabricated match.
+    typed "not comparable" rather than a fabricated match. Either way,
+    ``recorded.expected_final_outcome_sha256`` (sealed at record time) is
+    always checked against the freshly replayed outcome, so ``status`` can
+    report a genuine "mismatch" even with ``comparison is None`` (found in
+    review: an offline replay of a tampered recording must not be reported
+    as "match" just because there was nothing live to compare against --
+    collusion codex triage, Finding 3).
     """
     replayed = await replay_episode(cell=cell, case=case, plugin=plugin, recorded=recorded)
     comparison = (
@@ -380,13 +461,15 @@ async def replay_and_verify(
         replayed=replayed,
         baseline_profit_by_seat=baseline_profit_by_seat,
     )
-    final_outcome_sha256 = hashlib.sha256(canonical_json_bytes(replayed.outcome)).hexdigest()
+    final_outcome_sha256 = _outcome_sha256(replayed.outcome)
+    digest_verified = final_outcome_sha256 == recorded.expected_final_outcome_sha256
     return ReplayReport(
         case_id=case.case_id,
         replayed=replayed,
         comparison=comparison,
         scores=scores,
         final_outcome_sha256=final_outcome_sha256,
+        digest_verified=digest_verified,
     )
 
 
