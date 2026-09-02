@@ -406,14 +406,15 @@ class NegarenaPlugin:
         self, family_case: Mapping[str, Any], state: Mapping[str, Any]
     ) -> dict[str, Any] | None:
         del family_case
-        # NOTE for the future scorer (spec section 2): when `reason ==
-        # "accepted"`, `state["last_trade"]` is the ACCEPTING turn's own
-        # trade tag, which upstream's own accept grammar always sets to
-        # "NONE" (see the reference transcript). The trade that actually
-        # gets executed is the one proposed on the turn *before* the accept
-        # (upstream's `after_game_ends()`: `game_state[-2]`, i.e.
+        # NOTE for the scorer (spec section 2, see measurement.py's
+        # ``_accepted_trade_give``): when `reason == "accepted"`,
+        # `state["last_trade"]` is the ACCEPTING turn's own trade tag, which
+        # upstream's own accept grammar always sets to "NONE" (see the
+        # reference transcript). The trade that actually gets executed is
+        # the one proposed on the turn *before* the accept (upstream's
+        # `after_game_ends()`: `game_state[-2]`, i.e.
         # `state["history"][-2]["public"]["newly proposed trade"]` here) --
-        # never this field. No settlement is computed in this milestone, so
+        # never this field. This function itself never computes settlement;
         # this field is reported as-is (a structural fact, not a payoff).
         reason = state["termination"]
         if reason is None:
