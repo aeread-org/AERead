@@ -383,6 +383,44 @@ def test_tool_port_rejects_an_undeclared_tool_before_tool_runtime_ever_sees_it(t
     assert "tool_invocation_started" not in event_types
 
 
+def test_tool_port_rejects_a_dispatch_outside_the_granted_set(tmp_path) -> None:
+    """The family runtime may declare more tools than one profile is granted;
+    admissibility must be enforced at the port, not left to the family."""
+
+    evidence = _evidence(tmp_path)
+    runtime, balance_db = _tool_runtime(tmp_path, evidence)
+    port = KernelToolPort(
+        runtime=runtime,
+        attempt_id="attempt_fixture",
+        action_attempt_id="action_attempt_fixture",
+        granted_tools=frozenset({"get_balance"}),
+    )
+
+    with pytest.raises(ToolFailure) as captured:
+        asyncio.run(
+            port.invoke(
+                tool_id="refund_order",
+                arguments={"amount_usd": 5},
+                source_provider_call_id="provider_call_pc_0",
+                source_call_index=0,
+            )
+        )
+    assert captured.value.condition == "tool_not_granted"
+    event_types = [event.event_type for event in evidence.read_events()]
+    assert event_types == ["tool_dispatch_intended", "tool_dispatch_rejected"]
+    assert "tool_invocation_started" not in event_types
+
+    envelope = asyncio.run(
+        port.invoke(
+            tool_id="get_balance",
+            arguments={},
+            source_provider_call_id="provider_call_pc_0",
+            source_call_index=1,
+        )
+    )
+    assert envelope.invocation_record.status == "succeeded"
+
+
 def test_tool_port_rejects_a_dispatch_past_its_invocation_budget(tmp_path) -> None:
     evidence = _evidence(tmp_path)
     runtime, _ = _tool_runtime(tmp_path, evidence)
