@@ -93,6 +93,18 @@ def family_manifest() -> FamilyManifest:
                 },
             },
             "measurement": {
+                # Declared only for Overlap-regime cases -- per
+                # ``measurement.py``'s regime-conditional ``build_leaves``,
+                # No-deal cases never emit this leaf (only
+                # ``termsbench_no_deal_agreement`` +
+                # ``termsbench_protocol_compliance``). The kernel resolver
+                # only checks that the suite's AnalysisPlan *knows about*
+                # this id (``resolver.py``'s ``missing_estimands`` check),
+                # never that every case actually emits it, so this is a
+                # legal declaration -- but a suite-level report keyed on
+                # "the family's primary estimand" will be silently empty
+                # for the No-deal half of any termsbench corpus unless the
+                # analysis/reporting layer is aware of the regime split.
                 "primary_estimand": "termsbench_surplus_efficiency",
                 "measurement_kind": "comparative_or_human_judged",
                 "direction": "maximize",

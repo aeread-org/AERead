@@ -168,6 +168,25 @@ def test_leaf_families_and_directions_match_the_spec_verifier_table() -> None:
         assert leaf.composition_kind == "leaf"
 
 
+def test_protocol_compliance_reference_hash_changes_with_the_agent_ir_anchor() -> None:
+    """``_case_constants_sha256``'s docstring claims it pins "price bounds,
+    agent role/IR anchor, and horizon"; the IR anchor is ``agent["r_a"]``,
+    the value ``environment.py``'s ``_step_agent`` individual-rationality
+    check tests against. Two payloads sharing ``price_bounds``/
+    ``agent_role``/``horizon`` but differing only in ``r_a`` (which happens
+    routinely -- ``r_a`` is drawn per-seed in ``cases.generate_payload``)
+    must get different reference hashes, or the hash cannot do its job of
+    letting a consumer detect "the rule set this leaf was checked against
+    changed"."""
+    payload_a = _common_setup_payload(regime="overlap", chi="agent_opens", r_a=150.0, r_b=100.0)
+    payload_b = _common_setup_payload(regime="overlap", chi="agent_opens", r_a=50.0, r_b=100.0)
+
+    leaf_a = m.build_protocol_compliance_leaf(payload_a)
+    leaf_b = m.build_protocol_compliance_leaf(payload_b)
+
+    assert leaf_a.verifier.reference.source_sha256 != leaf_b.verifier.reference.source_sha256
+
+
 def test_plugin_build_scorer_hook_returns_the_same_leaves_as_measurement_py() -> None:
     payload = _common_setup_payload(regime="overlap", chi="agent_opens", r_a=150.0, r_b=100.0)
     plugin = TermsBenchPlugin()
@@ -296,6 +315,12 @@ def test_golden3_invalid_unauthorized_accept_earns_no_credit_but_stays_valid() -
     assert result.terminal["final_price"] is None
     assert result.terminal["malformed_action_schema"] is False
     assert result.terminal["critical_violations"]["invalid_action"] is True
+    # The invariant golden 3 exists to demonstrate: "no protected state
+    # (price, DB) is touched" is the ledger, not just the terminal reason.
+    assert result.final_state["round"] == 1
+    assert result.final_state["agent_offers"] == ()
+    assert result.final_state["counterpart_offers"] == ()
+    assert result.final_state["transcript"] == ()
 
     scorer = _scorer_for(case)
     se = scorer.score_surplus_efficiency(outcome=result.outcome)

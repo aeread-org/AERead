@@ -194,6 +194,12 @@ def test_golden3_accept_without_counterpart_offer_is_agreement_violation() -> No
     assert result.terminal["final_price"] is None
     assert result.terminal["critical_violations"]["invalid_action"] is True
     assert result.terminal["malformed_action_schema"] is False
+    # Golden 3's own invariant (spec section 4): no protected state (price,
+    # DB) is touched on the illegal-Accept path.
+    assert result.final_state["round"] == 1
+    assert result.final_state["agent_offers"] == ()
+    assert result.final_state["counterpart_offers"] == ()
+    assert result.final_state["transcript"] == ()
 
 
 def test_golden4_malformed_action_is_agreement_violation_and_flagged_malformed() -> None:

@@ -156,6 +156,7 @@ def _case_constants_sha256(payload: Mapping[str, Any]) -> str:
     rule_payload = {
         "price_bounds": dict(payload["price_bounds"]),
         "agent_role": payload["agent"]["role"],
+        "agent_r_a": float(payload["agent"]["r_a"]),
         "horizon": payload["horizon"],
     }
     return hashlib.sha256(canonical_json_bytes(rule_payload)).hexdigest()

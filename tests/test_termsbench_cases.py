@@ -160,6 +160,30 @@ def test_pilot_cell_difficulty_bins_are_ascending_in_difficulty_score() -> None:
             assert scores == sorted(scores), f"{family}/{regime} bins are not ascending: {scores}"
 
 
+def test_select_pilot_cell_seed_picks_first_rank_not_smallest_seed_within_a_bin(monkeypatch) -> None:
+    """``select_pilot_cell_seed`` returns the seed at the *first rank*
+    (lowest ``difficulty_score``) whose computed bin matches -- not the
+    numerically smallest seed among every candidate that lands in that bin.
+    Rigged scores make the two readings diverge (offset 1 gets the lower
+    score but is the larger seed) so a regression to "smallest seed in the
+    bin" would be caught here."""
+    family, regime = "candid", "overlap"
+    base = tb_cases._candidate_seed_base(family, regime)
+    pool_size = 8
+    # offsets {0, 1} are the two lowest scores (both bin 0, since
+    # rank*5//8 == 0 for rank in {0, 1}), but the lower-scored offset (1) is
+    # the larger seed -- the opposite of "smallest seed in the bin".
+    scores = {0: 1.0, 1: 0.0, 2: 2.0, 3: 3.0, 4: 4.0, 5: 5.0, 6: 6.0, 7: 7.0}
+
+    def fake_score(fam: str, reg: str, world_seed: int) -> float:
+        assert (fam, reg) == (family, regime)
+        return scores[world_seed - base]
+
+    monkeypatch.setattr(tb_cases, "_difficulty_score_only", fake_score)
+    seed = tb_cases.select_pilot_cell_seed(family, regime, difficulty_bin=0, pool_size=pool_size)
+    assert seed == base + 1  # first rank (lowest score), not base + 0 (smallest seed in the bin)
+
+
 def test_build_pilot_manifest_has_30_cases_and_stable_hash() -> None:
     cases = tb_cases.build_pilot_cases()
     assert len(cases) == 30

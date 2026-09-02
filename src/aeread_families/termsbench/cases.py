@@ -251,8 +251,13 @@ def select_pilot_cell_seed(
     family: str, regime: str, difficulty_bin: int, *, pool_size: int = POOL_SIZE
 ) -> int:
     """Return the one world_seed representing (family, regime, difficulty_bin)
-    in the pilot: the smallest candidate seed whose quantile bin, computed
-    over the cell's own candidate pool, equals difficulty_bin."""
+    in the pilot: candidates are ranked ascending by ``difficulty_score``
+    over the cell's own candidate pool, binned into ``NUM_DIFFICULTY_BINS``
+    quantile bins by that rank, and this returns the seed at the *first
+    rank* (lowest ``difficulty_score``, ties broken by ``sorted``'s
+    stability, i.e. by ascending seed) whose bin equals ``difficulty_bin`` --
+    not necessarily the numerically smallest seed among every candidate that
+    lands in that bin."""
     if not 0 <= difficulty_bin < NUM_DIFFICULTY_BINS:
         raise ValueError(f"difficulty_bin must be in [0, {NUM_DIFFICULTY_BINS}); got {difficulty_bin}")
     base = _candidate_seed_base(family, regime)
