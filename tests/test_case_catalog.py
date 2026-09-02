@@ -76,3 +76,13 @@ def test_datacenter_development_cases_are_discoverable() -> None:
     assert (family / "dev" / "service_loan_bankability_001.json").is_file()
     assert (family / "v1" / "power_epc_bankability_001.json").is_file()
     assert (family / "v2" / "full_stack_amendment_001.json").is_file()
+
+
+def test_commercial_state_calibration_pilot_is_discoverable() -> None:
+    family = CASES / "commercial_state_calibration_v1"
+    pilot = family / "pilot"
+
+    assert (family / "README.md").is_file()
+    assert (pilot / "manifest.json").is_file()
+    assert (pilot / "cases.jsonl").is_file()
+    assert (pilot / "source_catalog_private.json").is_file()
