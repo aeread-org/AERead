@@ -46,6 +46,7 @@ from aeread_families.amazonbarg.replay import (
     assert_replay_matches,
     compare_episode_results,
     record_episode,
+    record_episode_from_evidence,
     replay_and_verify,
     replay_episode,
     score_replayed_episode,
@@ -277,6 +278,67 @@ def test_replay_case_mismatch_raises_a_typed_replay_error(tmp_path: Path) -> Non
         )
 
 
+def test_record_episode_from_evidence_reads_the_sealed_disk_store_not_memory(
+    tmp_path: Path,
+) -> None:
+    """Codex-review finding 3: replay's own production path must actually
+    read the durable, hash-chained ``EvidenceStore`` -- not only the live
+    process's own in-memory ``EpisodeResult``.
+
+    ``docs/amazonbarg_adapter_spec.md:22`` claims ``replay.py`` "reproduces a
+    sealed episode's state and score with zero further model/network
+    calls" -- before this fix, nothing in ``replay.py`` ever imported,
+    opened, or read an ``EvidenceStore`` at all, so that claim was not
+    backed by any read of the durable evidence. This test reopens the
+    evidence directory as a wholly independent, read-only store
+    (``EvidenceStore.audit_existing``, never the harness's own live
+    object) and drives the real replay from that read alone -- the
+    production path itself, not the in-memory shortcut.
+    """
+    case, cell, resolved_plugin, _plugin, original = _run_live(
+        "home-kitchen_2", GOLDEN_1_SCRIPT, tmp_path, suffix="from_evidence"
+    )
+    evidence_root = tmp_path / "evidence_from_evidence"
+
+    audited = EvidenceStore.audit_existing(evidence_root)
+    recorded = record_episode_from_evidence(audited, case_id=case.case_id)
+
+    # Must agree exactly with the in-memory shortcut -- proving the two
+    # really do reconstruct the same decision log, not merely asserting the
+    # new path works in isolation.
+    from_memory = record_episode(original)
+    assert recorded.to_dict() == from_memory.to_dict()
+
+    _replay_registry, resolved_replay_plugin, _replay_plugin = _registry_plugin()
+    replayed = asyncio.run(
+        replay_episode(cell=cell, case=case, plugin=resolved_replay_plugin, recorded=recorded)
+    )
+    comparison = compare_episode_results(original, replayed)
+    assert_replay_matches(comparison)  # never raises for a genuine disk-sourced replay
+
+
+def test_record_episode_from_evidence_detects_tampering_on_disk(tmp_path: Path) -> None:
+    """The concrete failure scenario finding 3 named: "corrupting or
+    deleting the sealed EvidenceStore on disk after a test run would not
+    affect any assertion." Tampering with one sealed artifact's bytes on
+    disk must now be caught loudly, not silently accepted."""
+    case, _cell, _resolved_plugin, _plugin, _original = _run_live(
+        "home-kitchen_2", GOLDEN_1_SCRIPT, tmp_path, suffix="tamper_evidence"
+    )
+    evidence_root = tmp_path / "evidence_tamper_evidence"
+    artifact_paths = sorted((evidence_root / "artifacts" / "sha256").glob("*/*"))
+    assert artifact_paths, "expected at least one sealed decision artifact on disk"
+    artifact_paths[0].write_bytes(artifact_paths[0].read_bytes() + b"\ntampered")
+
+    # Caught the moment the tampered store is opened/audited at all (before
+    # `record_episode_from_evidence` even gets a chance to read an event
+    # payload) -- exactly the concrete failure this finding named as
+    # currently undetectable.
+    with pytest.raises(Exception):
+        audited = EvidenceStore.audit_existing(evidence_root)
+        record_episode_from_evidence(audited, case_id=case.case_id)
+
+
 # ---------------------------------------------------------------------------
 # Live, end-to-end: two full episodes, sealed, recorded, replayed by a
 # SECOND, independent plugin instance, with zero further model calls.
@@ -500,6 +562,44 @@ def test_replay_and_verify_end_to_end_returns_a_matching_report(tmp_path: Path) 
     assert report.scores["amazonbarg_bargained_ratio_leaf"].primary.value == pytest.approx(
         0.49, abs=0.01
     )
+
+
+def test_replay_and_verify_reports_not_comparable_rather_than_a_fabricated_match(
+    tmp_path: Path,
+) -> None:
+    """Codex-review finding 4: a genuinely offline replay (no ``original``
+    run in memory to compare against) must report a distinct, honest
+    status -- never the same ``"match"`` string a byte-identical
+    state-hash comparison reports. ``replay_and_verify``'s own docstring
+    already promised this ("an explicit, typed 'not comparable' rather
+    than a fabricated match"); ``ReplayReport.status`` previously
+    contradicted it by falling through to ``"match"`` whenever
+    ``comparison is None``."""
+    case, cell, _resolved_plugin, plugin, original = _run_live(
+        "home-kitchen_2", GOLDEN_1_SCRIPT, tmp_path, suffix="e2e_offline"
+    )
+    recorded = record_episode(original)
+    family_case = plugin.validate_payload(case.payload)
+    scorer = plugin.build_scorer(family_case)
+
+    _replay_registry, resolved_replay_plugin, _replay_plugin = _registry_plugin()
+
+    report = asyncio.run(
+        replay_and_verify(
+            cell=cell,
+            case=case,
+            plugin=resolved_replay_plugin,
+            upstream_root=UPSTREAM_ROOT,
+            scorer=scorer,
+            recorded=recorded,
+            tested_seat="buyer",
+            original=None,
+        )
+    )
+
+    assert report.comparison is None
+    assert report.status == "not_comparable"
+    assert report.status != "match"
 
 
 # ---------------------------------------------------------------------------

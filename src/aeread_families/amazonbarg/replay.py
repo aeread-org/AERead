@@ -42,12 +42,14 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
+from aeread.shared_runner.execution import EvidenceStore
 from aeread.shared_runner.measurement import ScoreEnvelope
 from aeread.shared_runner.resolver import PlanCell, canonical_json_bytes
 from aeread.shared_runner.schemas import CaseManifest
 from aeread.shared_runner.scheduler import EpisodeResult, run_episode
 
 from . import measurement
+from .harness import EVENT_TYPE_DECISION_SERVED
 from .measurement import AmazonbargScorer
 
 
@@ -153,6 +155,45 @@ def record_episode(result: EpisodeResult) -> RecordedEpisode:
                 )
             )
     return RecordedEpisode(case_id=result.case_id, decisions=tuple(decisions))
+
+
+def record_episode_from_evidence(evidence: EvidenceStore, *, case_id: str) -> RecordedEpisode:
+    """Reconstruct the ordered decision log from a SEALED, durable ``EvidenceStore``.
+
+    Codex-review finding 3: unlike :func:`record_episode` (which reads only
+    the live process's own in-memory ``EpisodeResult`` -- convenient right
+    after a run happens in the same process, but never touches durable
+    evidence at all), this is the actual "replay a sealed episode" path
+    ``docs/amazonbarg_adapter_spec.md`` section 3 claims: it verifies the
+    evidence chain and its own seal marker first (so a corrupted or
+    tampered-with sealed store is caught here, loudly, rather than silently
+    accepted), then reads back every ``EVENT_TYPE_DECISION_SERVED`` event's
+    own content-addressed payload artifact (hash-checked by
+    ``EvidenceStore.read_event_payload``), in the exact sequence order
+    ``ScriptedAmazonbargHarness`` wrote them, and rebuilds one
+    ``RecordedDecision`` per served decision. ``case_id`` is supplied by the
+    caller rather than read off the store itself: an ``EvidenceStore``
+    identifies a ``(run_plan_id, cell_id, episode_id, episode_attempt_id)``
+    execution, not a family case directly (a cell's ``case_id`` is a
+    property of the ``PlanCell``/``CaseManifest`` pairing the caller already
+    holds, exactly as :func:`replay_episode` itself requires both a
+    ``recorded`` decision log and the ``case`` it claims to be for).
+    """
+    evidence.verify_chain()
+    evidence.verify_seal()
+    decisions: list[RecordedDecision] = []
+    for event in evidence.read_events():
+        if event.event_type != EVENT_TYPE_DECISION_SERVED:
+            continue
+        payload = evidence.read_event_payload(event)
+        decisions.append(
+            RecordedDecision(
+                phase_id=payload["phase_id"],
+                seat_id=payload["seat_id"],
+                response=payload["response"],
+            )
+        )
+    return RecordedEpisode(case_id=case_id, decisions=tuple(decisions))
 
 
 class RecordedResponseSource:
@@ -387,9 +428,23 @@ class ReplayReport:
 
     @property
     def status(self) -> str:
-        if self.comparison is not None and not self.comparison.matches:
-            return "mismatch"
-        return "match"
+        """``"match"`` / ``"mismatch"`` / ``"not_comparable"``.
+
+        Codex-review finding 4: a genuinely offline replay (``comparison is
+        None`` -- no ``original`` run in memory to compare against) must
+        report a distinct, honest ``"not_comparable"`` rather than falling
+        through to the same ``"match"`` string a real, byte-identical
+        state-hash comparison reports (this property previously did exactly
+        that, directly contradicting :func:`replay_and_verify`'s own
+        docstring promise of "an explicit, typed 'not comparable' rather
+        than a fabricated match"). A caller that treats ``"match"`` as
+        "byte-identical to a genuine prior run" -- its meaning in every
+        other codepath -- must never see it here when nothing was actually
+        compared to anything.
+        """
+        if self.comparison is None:
+            return "not_comparable"
+        return "match" if self.comparison.matches else "mismatch"
 
 
 async def replay_and_verify(
@@ -441,6 +496,7 @@ __all__ = [
     "assert_replay_matches",
     "compare_episode_results",
     "record_episode",
+    "record_episode_from_evidence",
     "replay_and_verify",
     "replay_episode",
     "score_replayed_episode",

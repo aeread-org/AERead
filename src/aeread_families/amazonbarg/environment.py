@@ -21,6 +21,7 @@ themselves, each delegated to upstream's own ``eval.py:Metrics``.
 from __future__ import annotations
 
 import copy
+import subprocess
 from pathlib import Path
 from typing import Any, Mapping
 
@@ -168,6 +169,39 @@ class AmazonbargPlugin:
             raise ValueError("payload pins the wrong budget_ratio")
         if pins.get("max_turns") != MAX_TURNS:
             raise ValueError("payload pins the wrong max_turns")
+
+        # Codex-review finding 1: the checks above only compare the payload's
+        # own declared pin *strings* against constants -- they never touch the
+        # actual bytes at `upstream_root`. Verify the real checkout itself is
+        # at the pinned commit and clean (mirrors tau3_retail's identical
+        # check), so an operator (or a compromised dependency) editing the
+        # on-disk checkout in place is caught here rather than silently
+        # delegated into by `upstream_shim`/`measurement.compute_upstream_metrics`.
+        revision = subprocess.run(
+            ["git", "-C", str(self.upstream_root), "rev-parse", "HEAD"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if revision.returncode != 0:
+            raise ValueError(
+                "upstream_root is not a readable git checkout: "
+                f"{revision.stderr.strip()}"
+            )
+        if revision.stdout.strip() != UPSTREAM_COMMIT:
+            raise ValueError(
+                "upstream checkout revision mismatch: "
+                f"expected {UPSTREAM_COMMIT}, got {revision.stdout.strip()}"
+            )
+        status = subprocess.run(
+            ["git", "-C", str(self.upstream_root), "status", "--porcelain"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if status.returncode != 0 or status.stdout:
+            raise ValueError("upstream checkout must be clean at the pinned revision")
+
         category_file_sha256 = pins.get("category_file_sha256")
         if not isinstance(category_file_sha256, str) or len(category_file_sha256) != 64:
             raise ValueError("payload.pins.category_file_sha256 is malformed")

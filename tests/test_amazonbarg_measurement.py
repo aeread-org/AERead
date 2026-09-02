@@ -504,6 +504,43 @@ def test_conflicting_interest_session_whose_scripted_trajectory_still_closes_a_d
         assert m.reasons_include(envelope.validity, m.REASON_DEGENERATE_NO_ZOPA)
 
 
+def test_narrow_bargaining_room_does_not_let_a_deal_above_the_real_budget_pass_zopa() -> None:
+    """Codex-review finding 2: upstream's own room-widening quirk must not
+    leak into ``amazonbarg_zopa_membership``.
+
+    Upstream's own ``eval.py:Metrics.evaluate`` silently replaces its
+    internal ``B``/``C`` (budget/cost) whenever the raw bargaining room is
+    under $1 (``room = budget - cost``; ``0 <= room < 1`` forces
+    ``B = C + 1``, i.e. a wider budget than the buyer's real one).
+    ``home-kitchen_20`` has ``derived.budget=47.992``, ``derived.cost=47.99``
+    (``room=0.002``), so upstream's delegated ``B`` becomes ``48.99``. A
+    deal at ``$48.50`` sits inside upstream's widened ``[47.99, 48.99]`` but
+    is *above* the buyer's genuine ``$47.992`` budget -- a false ZOPA pass
+    if this leaf trusts delegated ``B`` verbatim instead of the case's own
+    genuine ``derived.budget``."""
+    script = [
+        (BUYER_PHASE, "buyer", "Thought: t\nTalk: hi\nAction: [BUY] $48.5 (1x home-kitchen_20)"),
+        (SELLER_PHASE, "seller", "Thought: t\nTalk: ok\nAction: [DEAL] $48.5 (1x home-kitchen_20)"),
+    ]
+    case, family_case, history = _run_transcript("home-kitchen_20", script)
+    assert family_case["derived"]["budget"] == pytest.approx(47.992)
+    assert family_case["derived"]["cost"] == pytest.approx(47.99)
+
+    metrics_output = m.compute_upstream_metrics(
+        upstream_root=UPSTREAM_ROOT, family_case=family_case, history=history
+    )
+    assert metrics_output["D"] == pytest.approx(48.5)
+    # Upstream's own delegated B really is widened past the deal price --
+    # confirming the reproduction, not just asserting the fixed outcome.
+    assert metrics_output["B"] == pytest.approx(48.99)
+    assert metrics_output["D"] > family_case["derived"]["budget"]
+
+    scorer = m.build_scorer(family_case)
+    envelope = scorer.score_zopa_membership(metrics_output=metrics_output)
+    assert envelope.status == "ok"
+    assert envelope.primary.value == 0.0  # above the buyer's genuine budget: not in ZOPA
+
+
 # ---------------------------------------------------------------------------
 # The measurement validity gate itself, directly.
 # ---------------------------------------------------------------------------

@@ -12,12 +12,16 @@ reimplemented -- adapter rule 2):
   declared need? Sealed ``status="ok"`` even when it fails (spec section 4
   golden 4): the malformed/inauthentic action itself is the evidence.
 * **``amazonbarg_zopa_membership`` (AERead-owned, rule_constraint).** Is the
-  realized deal price inside ``[cost, budget]``, computed from delegated
-  ``B``/``C``/``D`` (never upstream's own arithmetic -- only a new
-  comparison layered over it)? Reports a typed ``invalid_measurement`` with
-  a ``"degenerate_no_zopa: ..."`` reason (never a computed pass/fail) when
-  ``cost > budget`` -- see this module's ``_measurement_gate`` docstring for
-  why the kernel's own two-value ``ScoreEnvelope.status`` enum has no third
+  realized deal price (delegated ``D``) inside the case's genuine
+  ``[derived.cost, derived.budget]`` -- never upstream's own, sometimes
+  internally widened, ``B``/``C`` (see ``score_zopa_membership``'s own
+  docstring: upstream silently widens its internal budget/cost whenever the
+  raw bargaining room is under $1, a private detail of its own legality
+  check, not a genuine relaxation of this case's bracket)? Reports a typed
+  ``invalid_measurement`` with a ``"degenerate_no_zopa: ..."`` reason (never
+  a computed pass/fail) when ``cost > budget`` -- see this module's
+  ``_measurement_gate`` docstring for why the kernel's own two-value
+  ``ScoreEnvelope.status`` enum has no third
   "degenerate" state and how this module works around that (also logged to
   the ledger).
 * **``amazonbarg_deal_lower_bound`` / ``amazonbarg_deal_upper_bound``
@@ -665,25 +669,50 @@ def score_zopa_membership(
     metrics_output: Mapping[str, Any],
     evidence_refs: tuple[str, ...] = (),
 ) -> ScoreEnvelope:
-    """Score leaf 2: is the delegated deal price ``D`` inside ``[C, B]``?
+    """Score leaf 2: is the delegated deal price ``D`` inside the case's
+    genuine ``[cost, budget]``?
 
-    ``B``/``C``/``D`` are read verbatim from upstream's own delegated
-    ``Metrics`` output -- never recomputed -- and only compared here (an
-    AERead-added check upstream itself never performs; spec section 2's
-    golden 3 is exactly the below-cost deal this check exists to catch).
+    ``D`` is read verbatim from upstream's own delegated ``Metrics``
+    output -- never recomputed. The ZOPA bracket itself, however, is the
+    case's own genuine ``derived.cost``/``derived.budget`` -- *not*
+    upstream's own delegated ``C``/``B``. Upstream's own
+    ``eval.py:Metrics.evaluate`` silently widens ``B``/``C`` whenever the
+    raw bargaining room (``budget - cost``) is under $1 in absolute value
+    (``0 <= room < 1`` forces ``budget = cost + 1`` before recording
+    ``self.B``; the mirror branch for ``-1 < room < 0`` forces
+    ``cost = budget - 1`` before recording ``self.C``) -- a private detail
+    of its own internal legality check, not a genuine relaxation of this
+    case's buyer budget / seller cost. Trusting that widened value here
+    would let a deal above the buyer's real budget (or below the seller's
+    real cost) pass as "inside the ZOPA" on any narrow-room case (codex
+    review finding 2, reproduced on ``home-kitchen_20``: ``derived.budget
+    =47.992``, ``derived.cost=47.99``, delegated ``B=48.99`` -- a deal at
+    ``$48.50`` is above the real budget but inside upstream's widened
+    bracket). Upstream's own (possibly widened) ``B``/``C`` are still
+    recorded verbatim in ``metrics`` for audit, never used for the
+    ``in_zopa`` comparison itself.
     """
     gate_reasons = _measurement_gate(family_case=family_case, metrics_output=metrics_output)
     if gate_reasons is not None:
         return _invalid(leaf, gate_reasons, evidence_refs)
+    derived = family_case["derived"]
     lower, upper, deal_price = (
-        float(metrics_output["C"]),
-        float(metrics_output["B"]),
+        float(derived["cost"]),
+        float(derived["budget"]),
         float(metrics_output["D"]),
     )
     in_zopa = lower <= deal_price <= upper
     metrics = {
-        "delegated_budget": MetricValue(upper, "usd", metadata={"upstream_field": "B"}),
-        "delegated_cost": MetricValue(lower, "usd", metadata={"upstream_field": "C"}),
+        "genuine_cost": MetricValue(lower, "usd", metadata={"source": "family_case.derived.cost"}),
+        "genuine_budget": MetricValue(
+            upper, "usd", metadata={"source": "family_case.derived.budget"}
+        ),
+        "delegated_budget": MetricValue(
+            float(metrics_output["B"]), "usd", metadata={"upstream_field": "B"}
+        ),
+        "delegated_cost": MetricValue(
+            float(metrics_output["C"]), "usd", metadata={"upstream_field": "C"}
+        ),
         "deal_price": MetricValue(deal_price, "usd", metadata={"upstream_field": "D"}),
     }
     return ScoreEnvelope(

@@ -246,6 +246,53 @@ def test_validate_payload_rejects_missing_top_level_keys() -> None:
         plugin.validate_payload(payload)
 
 
+def test_validate_payload_rejects_an_upstream_checkout_edited_in_place(tmp_path: Path) -> None:
+    """Codex-review finding 1: the runtime pin must verify the actual bytes at
+    ``upstream_root``, not only the payload's own ``pins.upstream_commit`` string.
+
+    A payload's declared pin is untouched by an operator editing the on-disk
+    checkout in place (e.g. widening upstream's own ``eval.py:Metrics.evaluate``);
+    without this check, ``validate_payload`` would pass and every downstream
+    delegated import/score would silently run the tampered source.
+    """
+    import shutil
+
+    dirty_root = tmp_path / "upstream"
+    shutil.copytree(UPSTREAM_ROOT, dirty_root)
+    eval_path = dirty_root / "eval.py"
+    eval_path.write_text(
+        eval_path.read_text(encoding="utf-8") + "\n# tampered in place\n", encoding="utf-8"
+    )
+
+    plugin = AmazonbargPlugin(upstream_root=dirty_root)
+    case = _case("home-kitchen_2")
+    with pytest.raises(ValueError, match="must be clean at the pinned revision"):
+        plugin.validate_payload(case.payload)
+
+
+def test_validate_payload_rejects_an_upstream_checkout_at_the_wrong_revision(
+    tmp_path: Path,
+) -> None:
+    """Codex-review finding 1: a checkout whose actual git HEAD does not equal
+    ``UPSTREAM_COMMIT`` must be rejected even if it is otherwise byte-identical
+    and even if the payload's own declared pin string is (still) correct."""
+    import shutil
+    import subprocess
+
+    other_root = tmp_path / "upstream"
+    shutil.copytree(UPSTREAM_ROOT, other_root)
+    subprocess.run(
+        ["git", "-C", str(other_root), "commit", "--allow-empty", "-m", "not the pinned commit"],
+        check=True,
+        capture_output=True,
+    )
+
+    plugin = AmazonbargPlugin(upstream_root=other_root)
+    case = _case("home-kitchen_2")
+    with pytest.raises(ValueError, match="checkout revision mismatch"):
+        plugin.validate_payload(case.payload)
+
+
 # ---------------------------------------------------------------------------
 # QC Gate-2 goldens (spec section 4), run through the real scheduler.
 # ---------------------------------------------------------------------------
