@@ -9,6 +9,8 @@ from __future__ import annotations
 import os
 import socket
 import sys
+import threading
+import time
 from pathlib import Path
 
 import pytest
@@ -209,3 +211,56 @@ def test_stub_installer_only_installs_and_evicts_the_actually_absent_names() -> 
         assert marker in sys.modules
         assert isinstance(sys.modules[marker], shim._StubModule)
     assert marker not in sys.modules
+
+
+# ---------------------------------------------------------------------------
+# Codex-review finding 10: `direct_import`/`delegated_import` mutate genuinely
+# global, process-wide state (`sys.modules`, `sys.path`, `socket.socket
+# .connect`, `openai.OpenAI`) with no synchronization -- two concurrent
+# imports on different threads could interleave, one call's `finally` evicting
+# state a still-in-flight second call expects present.
+# ---------------------------------------------------------------------------
+
+
+def test_direct_import_calls_are_serialized_across_threads() -> None:
+    """A second thread's critical section must not open before the first
+    thread's closes, even when the two genuinely overlap in wall-clock time.
+
+    Without a lock serializing `direct_import`, thread two -- released the
+    moment thread one has entered its own critical section -- would race
+    ahead and enter its own `with shim.direct_import(...)` block while
+    thread one is still inside its (deliberately lengthened, via
+    ``time.sleep``) critical section, producing an interleaved order. A
+    real lock forces thread two to block until thread one's `with` block
+    has fully exited (including its own eviction/path-cleanup `finally`),
+    so the only order ever observed is strictly first-enter, first-exit,
+    second-enter.
+    """
+    order: list[str] = []
+    order_lock = threading.Lock()
+    first_entered = threading.Event()
+
+    def _append(label: str) -> None:
+        with order_lock:
+            order.append(label)
+
+    def _first() -> None:
+        with shim.direct_import(UPSTREAM_ROOT):
+            _append("first_enter")
+            first_entered.set()
+            time.sleep(0.2)
+            _append("first_exit")
+
+    def _second() -> None:
+        first_entered.wait()
+        with shim.direct_import(UPSTREAM_ROOT):
+            _append("second_enter")
+
+    first_thread = threading.Thread(target=_first)
+    second_thread = threading.Thread(target=_second)
+    first_thread.start()
+    second_thread.start()
+    first_thread.join(timeout=5)
+    second_thread.join(timeout=5)
+
+    assert order == ["first_enter", "first_exit", "second_enter"]

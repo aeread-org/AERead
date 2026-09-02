@@ -178,6 +178,37 @@ def test_case_id_grammar_rejects_a_naive_colon_joined_codename() -> None:
         )
 
 
+@pytest.mark.no_upstream_checkout_required
+def test_sanitize_does_not_collide_a_real_colon_with_a_literal_escape_marker() -> None:
+    """Codex-review finding 8: ``sanitize`` must be injective, not merely the
+    identity on today's fixed 930-codename corpus.
+
+    ``sanitize`` passes every character in ``[a-z0-9_.-]`` through unchanged
+    and escapes everything else as ``_x{ord:04x}_`` -- but the literal
+    characters ``_``, ``x``, and hex digits are themselves inside that
+    passthrough set, so a codename that already happens to *contain* the
+    literal marker text (e.g. ``"a_x003a_b"``) was previously left
+    untouched and became indistinguishable from the escaped form of
+    ``"a:b"`` (both produced ``"a_x003a_b"``) -- a real ``case_id``
+    collision between two distinct real codenames, exactly the property
+    ``sanitize``'s own docstring claims ("produce a safe, unique id") but
+    did not meet."""
+    colon_form = "a:b"
+    lookalike_form = "a_x003a_b"  # already looks like the escaped form of colon_form
+    assert colon_form != lookalike_form
+
+    sanitized_colon = amazonbarg_cases.sanitize(colon_form)
+    sanitized_lookalike = amazonbarg_cases.sanitize(lookalike_form)
+
+    assert sanitized_colon != sanitized_lookalike
+    assert amazonbarg_cases.desanitize(sanitized_colon) == colon_form
+    assert amazonbarg_cases.desanitize(sanitized_lookalike) == lookalike_form
+    assert (
+        amazonbarg_cases.case_id_for_codename(colon_form)
+        != amazonbarg_cases.case_id_for_codename(lookalike_form)
+    )
+
+
 # ---------------------------------------------------------------------------
 # pins.json
 # ---------------------------------------------------------------------------
@@ -367,6 +398,33 @@ def test_pilot_manifest_hash_changes_if_the_id_list_changes(pilot_cases) -> None
 def test_build_pilot_manifest_raises_when_case_count_is_not_45() -> None:
     with pytest.raises(ValueError, match="expected 45 cases"):
         amazonbarg_cases.build_pilot_manifest({})
+
+
+@pytest.mark.no_upstream_checkout_required
+def test_pilot_manifest_digest_is_independent_of_insertion_order() -> None:
+    """Codex-review finding 9: the digest represents pilot *membership* (a
+    set of 45 case_ids), so two callers assembling the identical set in a
+    different sequence must get the identical digest for what is the same
+    content -- ``case_ids`` (an incidental total order) must not leak into
+    ``content_sha256`` even though the manifest's own ``case_ids`` field
+    keeps reporting whichever order its caller actually built."""
+    case_ids = [amazonbarg_cases.case_id_for_codename(f"home-kitchen_{i}") for i in range(1, 24)]
+    case_ids += [amazonbarg_cases.case_id_for_codename(f"toys-games_{i}") for i in range(1, 23)]
+    assert len(case_ids) == 45
+
+    forward_cases = {case_id: {} for case_id in case_ids}
+    reversed_cases = {case_id: {} for case_id in reversed(case_ids)}
+    assert list(forward_cases) != list(reversed_cases)  # same set, different order
+
+    forward_manifest = amazonbarg_cases.build_pilot_manifest(forward_cases)
+    reversed_manifest = amazonbarg_cases.build_pilot_manifest(reversed_cases)
+
+    assert set(forward_manifest["case_ids"]) == set(reversed_manifest["case_ids"])
+    assert forward_manifest["content_sha256"] == reversed_manifest["content_sha256"]
+    # The manifest's own case_ids field is untouched -- still whichever
+    # order its caller actually built, never silently re-sorted.
+    assert forward_manifest["case_ids"] == case_ids
+    assert reversed_manifest["case_ids"] == list(reversed(case_ids))
 
 
 # ---------------------------------------------------------------------------

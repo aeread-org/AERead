@@ -50,7 +50,7 @@
     "home-kitchen.json",
     "toys-games.json"
   ],
-  "content_sha256": "023c509c049281c68f268a90aad9aea57355ad0faf484d17f2f89a8773a652f5",
+  "content_sha256": "ce7f09a7eea8aab1b22a215c2eb3fa7fac2c35b550b9be42ff85d05d0c587be0",
   "family_id": "amazonbarg.bilateral",
   "pilot_id": "amazonbarg_pilot_v1",
   "split": "pilot"

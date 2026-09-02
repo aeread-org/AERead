@@ -56,6 +56,7 @@ from __future__ import annotations
 
 import socket
 import sys
+import threading
 import types
 from contextlib import contextmanager
 from pathlib import Path
@@ -95,6 +96,22 @@ class _MissCounter:
 
 
 _MISS_COUNTER = _MissCounter()
+
+# Codex-review finding 10: `_install_missing_stub_modules` (mutates
+# `sys.modules`), `_no_network_guard` (reassigns the *class* attribute
+# `socket.socket.connect`, process-wide), `_lenient_openai_construction`
+# (reassigns the module attribute `openai.OpenAI`), and `_insert_path`/
+# `_remove_path` (mutate `sys.path`) all operate on genuinely global,
+# process-wide mutable state. `direct_import`/`delegated_import` compose
+# these with no synchronization of their own -- two genuinely concurrent
+# imports on different threads (e.g. two episodes scored via a
+# `ThreadPoolExecutor`) could interleave, one call's `finally` evicting
+# `sys.modules`/`sys.path`/patched globals a still-in-flight second call
+# expects present. This lock serializes the entire critical section (patch,
+# import, restore) of both context managers, so only one thread is ever
+# inside that window at a time -- turning a latent hazard into an enforced
+# property instead of merely a documented one.
+_IMPORT_LOCK = threading.Lock()
 
 # The complete stub candidate set (spec section 3.1): every package used
 # exclusively by upstream code paths this adapter never calls. Only
@@ -309,16 +326,24 @@ def direct_import(upstream_root: Path) -> Iterator[None]:
     ``openai`` patch, no miss counter, nothing to shim. Still applies the
     no-network guard as a belt-and-braces check, and evicts every name in
     :data:`_UPSTREAM_MODULE_NAMES` from ``sys.modules`` on exit.
+
+    Codex-review finding 10: the whole critical section -- from the
+    ``sys.path`` insert through the caller's own ``with`` body to the
+    ``sys.modules``/``sys.path`` cleanup -- runs under :data:`_IMPORT_LOCK`,
+    so a second, genuinely concurrent call on another thread blocks until
+    this one has fully exited, rather than racing it over the same global
+    state.
     """
-    src = str(upstream_root)
-    inserted = _insert_path(src)
-    try:
-        with _no_network_guard():
-            yield
-    finally:
-        for name in _UPSTREAM_MODULE_NAMES:
-            sys.modules.pop(name, None)
-        _remove_path(src, inserted)
+    with _IMPORT_LOCK:
+        src = str(upstream_root)
+        inserted = _insert_path(src)
+        try:
+            with _no_network_guard():
+                yield
+        finally:
+            for name in _UPSTREAM_MODULE_NAMES:
+                sys.modules.pop(name, None)
+            _remove_path(src, inserted)
 
 
 @contextmanager
@@ -330,17 +355,22 @@ def delegated_import(upstream_root: Path) -> Iterator[None]:
     ``openai`` empty-api-key construction gate -- all for the duration of
     the ``with`` block only. Every name in :data:`_UPSTREAM_MODULE_NAMES` is
     evicted from ``sys.modules`` on exit regardless of how the block exits.
+
+    Codex-review finding 10: see :func:`direct_import`'s own docstring --
+    the same :data:`_IMPORT_LOCK` serializes this context manager's entire
+    critical section too.
     """
-    src = str(upstream_root)
-    inserted = _insert_path(src)
-    try:
-        with _no_network_guard(), _lenient_openai_construction():
-            with _install_missing_stub_modules(STUB_CANDIDATE_NAMES):
-                yield
-    finally:
-        for name in _UPSTREAM_MODULE_NAMES:
-            sys.modules.pop(name, None)
-        _remove_path(src, inserted)
+    with _IMPORT_LOCK:
+        src = str(upstream_root)
+        inserted = _insert_path(src)
+        try:
+            with _no_network_guard(), _lenient_openai_construction():
+                with _install_missing_stub_modules(STUB_CANDIDATE_NAMES):
+                    yield
+        finally:
+            for name in _UPSTREAM_MODULE_NAMES:
+                sys.modules.pop(name, None)
+            _remove_path(src, inserted)
 
 
 def import_parse_reply(upstream_root: Path) -> Callable[[str], tuple[str, str, str, str]]:

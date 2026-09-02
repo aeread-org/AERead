@@ -301,6 +301,23 @@ def _score_and_check_parity(codename: str, script: list[tuple[str, str, str]]) -
     reproduces byte-identical output (proves determinism -- test plan P3),
     and every number this module's five ``ScoreEnvelope``s seal is read
     verbatim from that same delegated output, never recomputed or altered.
+
+    **Documented limitation (codex-review finding 7).** This proves wiring
+    (no cross-call caching, no wrong-dict-key/rounding slip reading
+    upstream's own fields) -- it can never prove the delegated arithmetic
+    *inside* ``eval.py:Metrics`` itself is correct, because both calls run
+    the exact same upstream code on the exact same input and will agree on
+    whatever that code computes, bug or not. Concretely: upstream's own
+    room-widening quirk (see ``score_zopa_membership``'s docstring) would
+    reproduce byte-identically across both calls here and pass every
+    assertion below even though the resulting ZOPA verdict was
+    substantively wrong (this is exactly how the finding-2 bug went
+    uncaught by this check). None of the five goldens below has a narrow
+    (``< $1``) bargaining room, so this parity check alone never exercises
+    that case class; the manual, non-parity-based oracle check that does
+    is ``test_narrow_bargaining_room_does_not_let_a_deal_above_the_real
+    _budget_pass_zopa`` below, which asserts the sealed primary against a
+    hand-derived correct answer, never against a second delegated call.
     """
     case, family_case, history = _run_transcript(codename, script)
 

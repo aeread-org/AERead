@@ -118,6 +118,24 @@ PILOT_ID = "amazonbarg_pilot_v1"
 _SANITIZE_PASSTHROUGH_RE = re.compile(r"[a-z0-9_.\-]")
 _SANITIZE_MARKER_RE = re.compile(r"_x([0-9a-f]{4})_")
 
+# Codex-review finding 8: the literal characters `_`, `x`, and hex digits
+# are themselves inside `_SANITIZE_PASSTHROUGH_RE`'s passthrough set, so a
+# codename that already happens to *contain* the literal marker text (e.g.
+# "a_x003a_b") was previously left untouched and became indistinguishable
+# from the escaped form of "a:b" (both produced "a_x003a_b") -- sanitize was
+# the identity on today's fixed 930-codename corpus but not a true injection
+# in general, contradicting its own docstring's "safe, unique id" intent.
+# `sanitize` cannot simply stop passing `_` through unchanged (real
+# codenames like "home-kitchen_2" rely on that passthrough for a stable,
+# human-readable case_id -- see `test_sanitize_is_the_identity_on_every_one
+# _of_the_930_real_codenames`); instead, only a raw underscore that would
+# otherwise combine with the literal text immediately following it in the
+# INPUT to form something indistinguishable from a genuine escape marker is
+# itself escaped. This matches exactly one marker shape and needs one
+# character of lookahead into the *raw, unescaped* input, never into
+# already-produced output.
+_DANGEROUS_UNDERSCORE_LOOKAHEAD_RE = re.compile(r"x[0-9a-f]{4}_")
+
 
 def sanitize(codename: str) -> str:
     """Pass ``[a-z0-9_.-]`` through unchanged; escape everything else.
@@ -126,14 +144,29 @@ def sanitize(codename: str) -> str:
     codenames in this corpus already satisfy the export grammar (verified
     below, not assumed), so this is the identity function on every case
     built tonight; it exists so a future non-conforming category name does
-    not silently produce a colon-bearing or otherwise unsafe id.
+    not silently produce a colon-bearing or otherwise unsafe id. A raw
+    underscore that would otherwise be followed by text shaped exactly like
+    the rest of a genuine escape marker (``x{4 hex digits}_``) is itself
+    escaped too, rather than passed through, so this function stays
+    injective even on an adversarial or coincidentally marker-shaped input
+    (codex-review finding 8) -- every real codename in the pinned corpus has
+    no such lookalike substring, so this changes nothing for any case built
+    tonight.
     """
     out: list[str] = []
-    for character in codename:
-        if _SANITIZE_PASSTHROUGH_RE.fullmatch(character):
+    index = 0
+    length = len(codename)
+    while index < length:
+        character = codename[index]
+        if character == "_" and _DANGEROUS_UNDERSCORE_LOOKAHEAD_RE.match(
+            codename, index + 1
+        ):
+            out.append(f"_x{ord('_'):04x}_")
+        elif _SANITIZE_PASSTHROUGH_RE.fullmatch(character):
             out.append(character)
         else:
             out.append(f"_x{ord(character):04x}_")
+        index += 1
     return "".join(out)
 
 
@@ -446,7 +479,12 @@ def build_pilot_manifest(cases: Mapping[str, Mapping[str, Any]]) -> dict[str, An
     """Build the 45-session pilot manifest and its own content hash."""
     # Preserve insertion order (home-kitchen_1..23, then toys-games_1..22)
     # rather than sorting -- `import_pilot_cases` already builds `cases` in
-    # that natural, human-readable order and Python dicts preserve it.
+    # that natural, human-readable order and Python dicts preserve it. This
+    # is purely a readability choice, not a determinism requirement:
+    # `_pilot_content_sha256` digests a sorted copy of `case_ids` (codex-
+    # review finding 9), so a caller that assembled the identical 45-case
+    # set in a different sequence would still get the identical
+    # `content_sha256` for what is the same membership.
     case_ids = list(cases)
     if len(case_ids) != 45:
         raise ValueError(f"pilot manifest expected 45 cases, got {len(case_ids)}")
@@ -465,8 +503,21 @@ def build_pilot_manifest(cases: Mapping[str, Mapping[str, Any]]) -> dict[str, An
 
 
 def _pilot_content_sha256(value: Mapping[str, Any]) -> str:
+    """Digest the manifest's *membership*, never its incidental list order.
+
+    Codex-review finding 9: ``case_ids`` represents pilot membership (a set
+    of 45 sessions), not a meaningful total order -- two callers assembling
+    the identical 45-case set in a different sequence must get the
+    identical digest for what is the same content. Only the copy fed to
+    the digest is sorted here; the manifest's own ``case_ids`` field (see
+    :func:`build_pilot_manifest`) is left exactly as its caller built it,
+    still the natural, human-readable corpus order every real caller
+    produces today.
+    """
     normalized = dict(value)
     normalized["content_sha256"] = "0" * 64
+    if "case_ids" in normalized:
+        normalized["case_ids"] = sorted(normalized["case_ids"])
     return _sha256_bytes(canonical_json_bytes(normalized))
 
 
