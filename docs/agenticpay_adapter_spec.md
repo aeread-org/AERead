@@ -299,3 +299,62 @@ These are not globally unique across the two splits (`agenticpay.bilateral.basic
 `agenticpay.bilateral.realistic.s01_beauty_product` both carry `world_seed=1`) — harmless,
 since `case_id` (not `world_seed`) disambiguates identity everywhere the kernel checks it, but
 noted here since tau3's single-split corpus never had to make this choice.
+
+## 8. Milestone 2 implementation note (measurement + goldens)
+
+Delivered as `measurement.py` (the four sanctioned leaves from section 2's table --
+`agenticpay_deal_reached`, `agenticpay_contract_legality`, `agenticpay_buyer_surplus_share`,
+`agenticpay_seller_surplus_share` -- plus their scorers and a `build_action_diagnostics`
+helper) and `tests/test_agenticpay_bilateral_measurement.py` (pure leaf/scorer unit tests, the
+five QC Gate-2 goldens, and two component-parity tests). `environment.py`'s `build_scorer`
+now delegates to `measurement.build_scorer`; `harness.py`, `parity.py`, and `replay.py` remain
+unbuilt (Milestone 3).
+
+**Two forced deviations from this document's literal section 2 table**, both because the
+kernel's real `VerifierSpec`/`ReferenceSpec` enums (`aeread.shared_runner.measurement`) are
+stricter than this spec's prose, exactly the class of deviation `tau3_retail.measurement`
+already documents for its own "transcript" -> "trajectory" case -- not a re-reading of the
+estimand's meaning:
+
+- `agenticpay_contract_legality` declares `input_scope="trajectory"`, not `"action"` (the
+  kernel's `EstimandSpec` only accepts `{"answer", "terminal_state", "trajectory",
+  "distribution"}`). The leaf still evaluates one action's legality per round; "trajectory"
+  names the ordered per-round sequence it is drawn from.
+- `agenticpay_buyer_surplus_share`/`agenticpay_seller_surplus_share` declare
+  `reference_kind="outcome_support_max"`, not `"outcome_support_normalized"` (the kernel's
+  `ReferenceSpec` only accepts, for an `objective_reference` verifier, `{"exact_optimum",
+  "objective_lower_bound", "objective_upper_bound", "comparison_baseline",
+  "outcome_support_min", "outcome_support_max"}`). `S_min=0` is recorded as a fixed
+  `reference_values` entry on every score, not as a second `ReferenceSpec` (`VerifierSpec`
+  carries exactly one).
+
+**`environment.py` grew one new field this milestone, not just `measurement.py`:** a
+per-round `round_trace` (before/after `buyer_price`/`seller_price`/`buyer_contract`/
+`seller_contract`, plus a shallow "attempted a contract" heuristic -- a `<contract>` tag in
+the raw message, never a re-implementation of `_extract_contract`'s JSON parsing), exposed
+through `terminal()`/`outcome()`. This was necessary to satisfy section 3's explicit "AERead
+owns... detection of malformed/unparseable action text" and "the contract/action legality
+leaf" without re-deriving upstream's own `_extract_price`/`_extract_contract`/
+`_validate_contract` logic: every completed round already calls upstream's `step()` once
+through the bridge and gets back a fresh `info` dict for exactly that round, so retaining it
+costs nothing extra against upstream (no new bridge calls), only a small, additive state
+field.
+
+**Malformed-text detection is a necessary, not sufficient, heuristic:** `measurement.py`'s
+`_could_not_have_parsed_a_price` flags a message only when it contains zero digit
+characters -- provably unable to satisfy any of upstream's own `_extract_price` regex
+patterns (all require at least one digit), so this never produces a false negative. It
+cannot detect every parse failure (e.g. a digit-bearing message in a format upstream's regex
+still rejects), which is the intentionally weaker, honestly-labeled claim: a `parse_failure`
+diagnostic, never promoted to a leaf's primary measurement, per section 4 golden 4's own
+"upstream's own trace is indistinguishable from 'buyer chose not to move'" framing.
+
+**Component parity (spec section 5's "our recorded scoring equals upstream computed
+scoring"):** `test_surplus_share_leaves_recombine_to_upstream_recorded_global_score_{basic,
+contract}_mode` recombine the two surplus-share leaves' own scorer output through upstream's
+published `Q = 4 * u_b * u_s` formula and its actual current default weights (`D=10, W=80,
+E=10, γ=0.99`) and assert equality with `info["global_score"]` -- a real, bridge-executed
+value, not a hand-derived one. This is the measurement-level bridge-gated cross-check
+`tau3_retail.measurement` performs against `EnvironmentEvaluator`; the full
+reproducibility-under-re-execution `parity.py`/`test_agenticpay_bilateral_parity.py` module
+section 3/5 describes is still Milestone 3 scope, not built here.
