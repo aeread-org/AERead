@@ -33,19 +33,46 @@ estimand, not incidental run configuration.
   call `after_game_ends()` and stop; else flip `turn` (`0 ↔ 1`). Two single-actor seats, strict
   alternation, self-contained per-turn text action — the same shape as tau3's phase graph, mapped
   onto AERead's **Mode B** (turn-based, single eligible actor per phase, no environment seat).
-- `Trade.from_string` calls Python `eval()` on the trade text; `write_game_state` wraps parsing in
-  `try/except` that **re-raises** on failure — upstream has no in-band malformed-action recovery
-  (unlike tau2's tool-error path). `execute_trade` never calls the sibling
-  `Resources.check_transaction_legal` / `Trade.can_offer`/`can_accept` methods — upstream itself does
-  not gate a trade proposal against the offering seat's actual holdings before executing it. Both are
-  adapter-owned admission gates, not upstream behavior to preserve as "correct."
+- `Trade.from_string` calls Python `eval()` on the trade text, but **correction (found during
+  implementation): this classmethod is dead code, never called by the live parse path.** The parser
+  actually used (`ExchangeGameDefaultParser.parse_trade` → `parse_proposed_trade`,
+  `negotiationarena/parser.py`) parses the `<newly proposed trade>` tag content by hand
+  (`"Player X Gives K: V | ..."` string splitting), never `eval()`. A malformed proposal (missing
+  `Player`/`Gives`/`:` structure, or a non-numeric amount) still raises — `IndexError`/`ValueError`
+  from that hand-parsing, not a `SyntaxError` from `eval()` — so golden 4 (malformed-operational,
+  section 4) still holds, just via a different concrete exception type than originally stated.
+  Separately, `write_game_state` wraps parsing in `try/except` that **re-raises** on failure —
+  upstream has no in-band malformed-action recovery (unlike tau2's tool-error path). `execute_trade`
+  never calls the sibling `Resources.check_transaction_legal` / `Trade.can_offer`/`can_accept` methods
+  — upstream itself does not gate a trade proposal against the offering seat's actual holdings before
+  executing it. Both are adapter-owned admission gates, not upstream behavior to preserve as "correct."
 - Reference scenario (from upstream's own `runner/buysell_main.py` and its shipped
   `example_logs/buysell/1707347676639/`): seller (RED) cost `X:40`, buyer (BLUE) willingness-to-pay
   `X:60`, starting resources `{X:1}` / `{ZUP:1000}`, `iterations=10`. The shipped transcript settles
   at `40 ZUP`; upstream's own recorded outcome is `[0, 20]`. This is used as the parity anchor below.
   `runner/one_shot_ultimatum.py` imports `games.ultimatum.one_shot_ultimatum.game.UltimatumOneShotGame`,
-  which **does not exist** at this pin — that runner script is stale; the adapter targets the working
-  `games.ultimatum.game.MultiTurnUltimatumGame`, exercised successfully by `runner/ultimatum_main.py`.
+  which **does not exist** at this pin — that runner script is stale; the adapter targets
+  `games.ultimatum.game.MultiTurnUltimatumGame` instead.
+- **Correction (found during implementation, milestone 1): `runner/ultimatum_main.py` does NOT in
+  fact import cleanly at this pin, contrary to this spec's original claim.** `games/ultimatum/interface.py`
+  (imported by `games/ultimatum/game.py`, imported by `runner/ultimatum_main.py`) does
+  `from negotiationarena.agent_message import AgentMessageInterface` at module scope, but
+  `negotiationarena/agent_message.py` at this exact pinned commit defines only `AgentMessage`, never
+  `AgentMessageInterface` — verified as a reproducible `ImportError` in a venv with `openai`/`anthropic`
+  installed (i.e. not the poisoned-import problem above; a second, independent break). `git log`/`git
+  show` confirm this is not a pin-selection accident: `negotiationarena/agent_message.py` was added
+  whole by commit `eb23274e` ("changing the name") already named `AgentMessage`, but the two importers
+  that reference the old name (`games/ultimatum/interface.py` and `games/trading_game/interface.py`)
+  were never updated to match; `eb23274e` is an ancestor of `c447fafd...` on `main`, and `origin/main`'s
+  HEAD *is* `c447fafd...` — so this is a permanent defect in upstream's current `main`, not something a
+  different pin would avoid. `games.trading_game.*` is out of scope (stated limits below) so this only
+  blocks `ultimatum`. The bridge driver (`negarena_bridge_driver.py`) works around it with a narrow,
+  documented compatibility alias — `negotiationarena.agent_message.AgentMessageInterface =
+  negotiationarena.agent_message.AgentMessage`, injected into the already-imported module's namespace
+  immediately before importing any `ultimatum` interface module — never touching the read-only upstream
+  checkout and never reimplementing `AgentMessage`'s body. See `ledger_entries/negarena.md` for the full
+  evidence trail; this is recorded here too because it directly falsifies this spec's own prior claim
+  ("exercised successfully... at this pin").
 
 ---
 
@@ -73,9 +100,13 @@ ledger); this section states the convention this spec follows, reconstructed fro
   `after_game_ends()` (which lives in `games/*/game.py`, not `game_objects/`) without also vendoring
   the class bodies verbatim — strictly more surface than provisioning one venv.
 - **Corpus enumeration.** Upstream ships no task bank, so AERead authors the scenario grid and is
-  the corpus's provenance owner (`ProvenanceSpec.review_status="aeread_authored"`, not
-  `"upstream_pinned"` — the inverse of tau3). Tonight's corpus: **6 scenarios** — 3 per family,
-  each a `CaseManifest` (spec `"aeread.case/0.1"`):
+  the corpus's provenance owner. **Correction (found during implementation):**
+  `ProvenanceSpec.review_status` (`src/aeread/shared_runner/schemas.py`) only accepts
+  `{"generated", "reviewed", "curated", "upstream_pinned"}` — `"aeread_authored"`, this spec's
+  original proposal, is not a legal value and construction raises `AuthoringValidationError` for it.
+  `"curated"` is used instead (the closest of the four to "AERead hand-authored, not
+  upstream-sourced"), still the inverse of tau3's `"upstream_pinned"`. Tonight's corpus:
+  **6 scenarios** — 3 per family, each a `CaseManifest` (spec `"aeread.case/0.1"`):
   - `negarena.buy_sell.0` — the verified reference scenario above (RED cost 40, BLUE max-pay 60,
     `X:1`/`ZUP:1000`, `iterations=10`). Doubles as the parity anchor.
   - `negarena.buy_sell.1` — thin-ZOPA variant (RED cost 55, BLUE max-pay 60): only a narrow

@@ -1,0 +1,104 @@
+#!/usr/bin/env bash
+#
+# Provision the interpreter the negarena adapter uses to talk to upstream
+# NegotiationArena.
+#
+# Unlike tau3_retail's bridge, the blocker here is not a Python-version floor
+# (upstream's pyproject.toml declares no [project] table at all) -- it is
+# that importing ANY upstream negarena module, including the "pure"
+# game-object arithmetic, transitively imports `openai`+`anthropic`
+# (negotiationarena/utils.py imports negotiationarena.agents at module
+# scope; see docs/negarena_adapter_spec.md's governing facts). The project's
+# own venv must never have those installed, so this script builds a
+# dedicated, isolated venv instead.
+#
+# Without this interpreter the upstream-fidelity tests do not fail -- they
+# skip. See tools/tau2_bridge/provision.sh's README for why that is the
+# failure mode worth guarding against.
+#
+# Usage:
+#   tools/negarena_bridge/provision.sh [venv-path]
+#
+# Then export what it prints, or add it to your shell profile.
+
+set -euo pipefail
+
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+VENV="${1:-/Users/sunzeyu/Documents/econ benchmark/bridges/negarena-venv}"
+REQS="${HERE}/requirements.txt"
+
+find_python() {
+  for candidate in python3.12 python3.11 python3.13 python3; do
+    if command -v "$candidate" >/dev/null 2>&1; then
+      command -v "$candidate"
+      return 0
+    fi
+  done
+  return 1
+}
+
+if ! PYTHON="$(find_python)"; then
+  echo "error: no python3 on PATH." >&2
+  exit 1
+fi
+
+echo "interpreter : ${PYTHON} ($("${PYTHON}" -c 'import platform; print(platform.python_version())'))"
+echo "venv        : ${VENV}"
+
+"${PYTHON}" -m venv "${VENV}"
+"${VENV}/bin/pip" install --quiet --disable-pip-version-check --upgrade pip
+
+# Installed one line at a time, not as one `pip install -r`: anthropic==0.5.0
+# (old-API pin, needed for the legacy HUMAN_PROMPT/AI_PROMPT names claude.py
+# imports) declares `anyio<4`, while a modern openai (needed for the
+# `from openai import OpenAI` client-class import chatgpt.py actually uses at
+# this pin) pulls in `anyio>=4`. Resolving both together in one pip call is
+# a hard ResolutionImpossible; installing them as two calls only leaves a
+# non-fatal warning, and this bridge never imports anything that exercises
+# the conflicting anyio behavior (no network call, no async client use).
+while IFS= read -r requirement; do
+  case "$requirement" in
+    ""|\#*) continue ;;
+  esac
+  "${VENV}/bin/pip" install --quiet --disable-pip-version-check "${requirement}"
+done < "${REQS}"
+
+# Prove the interpreter can actually do the one job it has, rather than
+# reporting success because pip exited zero.
+UPSTREAM_ROOT="${AEREAD_NEGARENA_UPSTREAM_ROOT:-$(cd "${HERE}/../../../.." && pwd)/upstream-negarena}"
+if [ -d "${UPSTREAM_ROOT}/negotiationarena" ]; then
+  if "${VENV}/bin/python" - "${UPSTREAM_ROOT}" >/dev/null 2>&1 <<'PY'
+import sys
+sys.path.insert(0, sys.argv[1])
+from games.buy_sell_game.game import BuySellGame, BuySellGameDefaultParser
+from negotiationarena.game_objects.resource import Resources
+from negotiationarena.game_objects.trade import Trade
+from negotiationarena.game_objects.valuation import Valuation
+from negotiationarena.game_objects.goal import BuyerGoal, SellerGoal, UltimatumGoal
+# games/ultimatum/interface.py references a name upstream's own module never
+# defines at this pin (see docs/negarena_adapter_spec.md's "Correction" note
+# and ledger_entries/negarena.md); negarena_bridge_driver.py carries the same
+# alias at runtime, never touching the read-only upstream checkout.
+import negotiationarena.agent_message as _agent_message
+_agent_message.AgentMessageInterface = _agent_message.AgentMessage
+from games.ultimatum.game import MultiTurnUltimatumGame
+from games.ultimatum.interface import UltimatumGameDefaultParser
+sys.exit(0)
+PY
+  then
+    echo "verified    : upstream buy_sell/ultimatum game classes import cleanly"
+  else
+    echo "error: the venv was built but cannot import upstream's game classes." >&2
+    echo "       Checked upstream root: ${UPSTREAM_ROOT}" >&2
+    exit 1
+  fi
+else
+  echo "note        : upstream checkout not found at ${UPSTREAM_ROOT}; skipped the import check"
+  echo "              set AEREAD_NEGARENA_UPSTREAM_ROOT and re-run to verify"
+fi
+
+echo
+echo "Export this to make the fidelity tests run instead of skip:"
+echo
+echo "    export AEREAD_NEGARENA_BRIDGE_PYTHON=${VENV}/bin/python"
+echo
