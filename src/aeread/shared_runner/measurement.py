@@ -255,6 +255,14 @@ class VerifierSpec:
             )
         if self.verifier_family == "rater_judge" and self.evaluation_class != "judge_dependent":
             raise MeasurementContractError("rater_judge verifier must be judge_dependent")
+        if (
+            self.reference.reference_kind == "field_rating"
+            and self.evaluation_class == "deterministic"
+        ):
+            raise MeasurementContractError(
+                "field_rating references are rater-produced; the verifier cannot "
+                "claim a deterministic evaluation_class"
+            )
 
 
 @dataclass(frozen=True, slots=True)

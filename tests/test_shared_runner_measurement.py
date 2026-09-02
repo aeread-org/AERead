@@ -33,6 +33,32 @@ def _domain(identifier: str = "retail_base_v1") -> ValidityDomainSpec:
     )
 
 
+def test_field_rating_verifier_cannot_claim_deterministic_evaluation() -> None:
+    reference = ReferenceSpec(
+        reference_id="marketplace_field_rating",
+        reference_version="1.0.0",
+        reference_kind="field_rating",
+        input_scope="answer",
+        units="rating",
+        source_sha256="b" * 64,
+        implementation=_implementation("field_rating_reference", "c"),
+    )
+
+    with pytest.raises(MeasurementContractError, match="field_rating"):
+        VerifierSpec(
+            verifier_family="comparative",
+            evaluation_class="deterministic",
+            reference=reference,
+        )
+
+    judged = VerifierSpec(
+        verifier_family="comparative",
+        evaluation_class="judge_dependent",
+        reference=reference,
+    )
+    assert judged.evaluation_class == "judge_dependent"
+
+
 def test_refund_terminal_state_is_a_typed_canonical_leaf() -> None:
     domain = _domain()
     estimand = EstimandSpec(
