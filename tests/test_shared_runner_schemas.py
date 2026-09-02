@@ -6,6 +6,9 @@ import pytest
 
 from aeread.shared_runner.registry import (
     DuplicatePluginError,
+    HarnessRegistry,
+    HarnessRegistryError,
+    HarnessRequirements,
     IncompletePluginError,
     PluginRegistry,
     PluginResolutionError,
@@ -436,3 +439,71 @@ def test_registry_rejects_duplicate_or_incomplete_plugins() -> None:
     incomplete = object()
     with pytest.raises(IncompletePluginError, match="validate_payload"):
         PluginRegistry().register(manifest, incomplete)
+
+
+def _harness_requirements(memory: frozenset[str]) -> HarnessRequirements:
+    return HarnessRequirements(
+        provider=frozenset({"structured_output"}),
+        tools="none",
+        memory=memory,
+        owns_retries=False,
+        owns_tools=False,
+        replayable=True,
+        blocking=False,
+        spawns_subagents=False,
+    )
+
+
+class _ProtocolCompleteHarness:
+    id = "fixture_chat"
+    version = "1.0"
+    requires = _harness_requirements(frozenset({"disabled"}))
+
+    async def open_episode(self, episode):
+        return None
+
+    async def act(self, request, ctx):
+        raise NotImplementedError
+
+    async def close_episode(self, episode):
+        return None
+
+    def classify_failure(self, exc):
+        raise NotImplementedError
+
+    def state_reader(self):
+        return None
+
+
+def test_harness_registry_rejects_a_protocol_incomplete_harness() -> None:
+    class MissingHooks:
+        id = "fixture_chat"
+        version = "1.0"
+        requires = _harness_requirements(frozenset({"disabled"}))
+
+        async def act(self, request, ctx):
+            raise NotImplementedError
+
+    with pytest.raises(HarnessRegistryError, match="open_episode"):
+        HarnessRegistry().register(MissingHooks())
+
+    registry = HarnessRegistry()
+    registry.register(_ProtocolCompleteHarness())
+    assert registry.resolve("fixture_chat", "1.0") is not None
+
+
+def test_harness_registry_requires_state_reader_only_with_memory_enabled() -> None:
+    class MemoryWithoutReader(_ProtocolCompleteHarness):
+        requires = _harness_requirements(frozenset({"session"}))
+        state_reader = None
+
+    with pytest.raises(HarnessRegistryError, match="state_reader"):
+        HarnessRegistry().register(MemoryWithoutReader())
+
+    class DisabledMemoryWithoutReader(_ProtocolCompleteHarness):
+        id = "fixture_chat_no_reader"
+        state_reader = None
+
+    registry = HarnessRegistry()
+    registry.register(DisabledMemoryWithoutReader())
+    assert registry.resolve("fixture_chat_no_reader", "1.0") is not None
