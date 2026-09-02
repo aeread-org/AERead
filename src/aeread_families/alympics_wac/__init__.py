@@ -20,6 +20,8 @@ from .cases import (
     build_corpus_manifest,
 )
 from .environment import AlympicsWacPlugin, family_manifest, register_plugin
+from .measurement import AlympicsWacScorer, build_leaves
+from .parity import ReferenceBaselineParityReport, run_reference_baseline_parity
 
 __all__ = [
     "FAMILY_ID",
@@ -31,9 +33,13 @@ __all__ = [
     "UPSTREAM_COMMIT",
     "UPSTREAM_REPO",
     "AlympicsWacPlugin",
+    "AlympicsWacScorer",
+    "ReferenceBaselineParityReport",
     "build_all_cases",
     "build_case",
     "build_corpus_manifest",
+    "build_leaves",
     "family_manifest",
     "register_plugin",
+    "run_reference_baseline_parity",
 ]

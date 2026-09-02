@@ -585,6 +585,17 @@ class AlympicsWacPlugin:
             seat for seat in SEAT_ORDER if new_state["players"][seat]["alive"]
         )
         bids = {seat: actions[seat].action["bid"] for seat in alive_seats}
+        # Sealed pre-round snapshot (spec section 2 leaf 4 / section 5's
+        # Gate 2 requirement 2: "reconstruct transitions from sealed
+        # observations ... and pre-state"). Captured here, before
+        # `_delegate_round` runs, so milestone 2's `measurement.py` can
+        # shadow-recompute this exact round from evidence alone, never by
+        # reading back through the mutated live state.
+        players_before = {
+            seat: dict(new_state["players"][seat]) for seat in alive_seats
+        }
+        for snapshot in players_before.values():
+            snapshot.pop("alive", None)
 
         upstream = self._require_upstream()
         outcome = _delegate_round(
@@ -604,6 +615,8 @@ class AlympicsWacPlugin:
                     "bids": bids,
                     "status": "malformed_action",
                     "error": outcome.error,
+                    "players_before": players_before,
+                    "players_after": None,
                 }
             )
             _set_termination(new_state, "malformed_action")
@@ -627,6 +640,8 @@ class AlympicsWacPlugin:
                 "winners": list(outcome.winners),
                 "eliminated_this_round": list(outcome.eliminated_this_round),
                 "status": outcome.status,
+                "players_before": players_before,
+                "players_after": dict(outcome.players),
             }
         )
 
@@ -669,15 +684,21 @@ class AlympicsWacPlugin:
             "eliminated_order": terminal["eliminated_order"],
         }
 
-    # -- scoring (built in milestone 2; see docs/alympics_adapter_spec.md §2) --
+    # -- scoring (spec section 2; leaves built in measurement.py) --
 
     def build_scorer(self, family_case: Mapping[str, Any]) -> Any:
-        del family_case
-        raise NotImplementedError(
-            "alympics.wac measurement leaves (terminal wealth, survival, bid "
-            "legality, settlement exactness) are built in milestone 2 -- see "
-            "docs/alympics_adapter_spec.md section 2."
-        )
+        # Deferred import: measurement.py imports `_delegate_round` from
+        # this module at its own top level (leaf 4's shadow-recompute needs
+        # it), so importing measurement.py back at *this* module's top
+        # level would be circular. By the time anything actually calls
+        # `build_scorer`, this module has already finished importing, so
+        # the deferred import here resolves cleanly (mirrors
+        # ``tau3_retail``'s top-level import, which has no such cycle to
+        # avoid because its measurement.py never imports its
+        # environment.py).
+        from .measurement import build_scorer as build_measurement_scorer
+
+        return build_measurement_scorer(family_case)
 
     def build_reference_providers(
         self, family_case: Mapping[str, Any]

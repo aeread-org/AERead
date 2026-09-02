@@ -130,13 +130,23 @@ def test_plugin_registers_every_required_hook_through_normal_registry() -> None:
     }
 
 
-def test_build_scorer_is_not_yet_implemented_by_design() -> None:
-    # Milestone 1 scope: cases + environment only (docs/alympics_adapter_spec.md).
+def test_build_scorer_hook_wires_to_measurement_pys_alympics_wac_scorer() -> None:
+    # Milestone 2 scope: build_scorer now returns the real measurement
+    # leaves instead of raising (see tests/test_alympics_wac_measurement.py
+    # for full leaf/golden coverage; this only pins the hook wiring).
+    from aeread_families.alympics_wac.measurement import AlympicsWacScorer
+
     plugin = _plugin()
     case = _case("reference_baseline")
     family_case = plugin.validate_payload(case.payload)
-    with pytest.raises(NotImplementedError):
-        plugin.build_scorer(family_case)
+    scorer = plugin.build_scorer(family_case)
+    assert isinstance(scorer, AlympicsWacScorer)
+    assert scorer.family_case == family_case
+    leaves = scorer.leaves_for_focal_seat("alex")
+    assert len(leaves) == 4
+    assert scorer.panel_policy_ids("alex") == {
+        seat: "proportional" for seat in SEAT_ORDER if seat != "alex"
+    }
 
 
 def test_phases_is_one_self_looping_simultaneous_bid_phase() -> None:
