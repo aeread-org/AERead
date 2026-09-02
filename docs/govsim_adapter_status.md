@@ -86,18 +86,20 @@ from_the_original_and_is_caught_by_comparison` mutates one recorded
 `quantity` and confirms the replay's resulting state genuinely diverges and
 `assert_replay_matches` raises rather than silently passing.
 
-**Suite: 98 passed, 0 failed, 0 skipped** running the entire family test
+**Suite: 101 passed, 0 failed, 0 skipped** running the entire family test
 file set (`tests/test_govsim_cases.py`, `tests/test_govsim_environment.py`,
 `tests/test_govsim_measurement.py`, `tests/test_govsim_replay.py`) plus
 `tests/test_shared_runner_smoke.py`, with `$AEREAD_GOVSIM_BRIDGE_PYTHON`
 pointed at the provisioned `bridges/govsim-venv/bin/python` — every
 bridge-gated fidelity test (the five QC Gate-2 goldens against the real
-upstream checkout, the gini parity check, both replay episodes) actually
-ran, none merely skipped past. Without the bridge set, the same command
-reports 80 passed / 18 skipped — the skips are exactly the bridge-gated
-tests above, each with a `pytest.skip` reason naming
-`$AEREAD_GOVSIM_BRIDGE_PYTHON` and `tools/govsim_bridge/provision.sh`, never
-a silent pass.
+upstream checkout, the gini parity check, both replay episodes, and —
+following the independent review's fix pass (`docs/govsim_review_
+disposition.md`) — the `sheep`/`pollution` cross-scenario parity check and
+the `run_episode`-driven reject-policy abort test) actually ran, none merely
+skipped past. Without the bridge set, the same command reports 80 passed /
+21 skipped — the skips are exactly the bridge-gated tests above, each with a
+`pytest.skip` reason naming `$AEREAD_GOVSIM_BRIDGE_PYTHON` and
+`tools/govsim_bridge/provision.sh`, never a silent pass.
 
 ```bash
 export AEREAD_GOVSIM_BRIDGE_PYTHON=<bridges/govsim-venv path>
@@ -111,10 +113,11 @@ pytest tests/test_govsim_cases.py tests/test_govsim_environment.py \
 Each bridge call spawns a fresh subprocess that replays `reset(seed=...)`
 plus the full ordered action history to date (O(n) upstream `step()` calls
 per bridge call, not O(1) — see `docs/govsim_adapter_spec.md` section 7),
-so cost grows with episode length. The full bridge-required run above (98
+so cost grows with episode length. The full bridge-required run above (101
 tests, including two full episodes driven live and then independently
-replayed, plus every gini-parity and golden-scenario bridge call) took
-**~146s wall-clock**. No persistent bridge daemon is used; the same
+replayed, plus every gini-parity, golden-scenario, and cross-scenario
+parity bridge call) took **~206s wall-clock**. No persistent bridge daemon
+is used; the same
 per-call isolation tradeoff `tau2_bridge.py` makes is repeated here
 deliberately, for the same reason — no state can leak between calls through
 a long-lived interpreter.
