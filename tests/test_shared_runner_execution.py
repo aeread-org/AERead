@@ -851,6 +851,93 @@ def test_unknown_event_write_failure_preserves_the_unexpected_error(tmp_path) ->
     assert captured.value.__context__ is failures["bookkeeping"]
 
 
+def test_stub_state_reader_on_a_nonidempotent_mutation_leaves_a_typed_trace(
+    tmp_path,
+) -> None:
+    evidence = _evidence(tmp_path)
+    tools = ToolExecutor(evidence)
+    accounts = {"balance": 100}
+
+    async def debit(_arguments):
+        accounts["balance"] = 70
+        return {"debited": 30}
+
+    _, record = asyncio.run(
+        tools.invoke(
+            action_attempt_id="action_attempt_fixture",
+            tool_id="debit_account",
+            tool_version="1.0.0",
+            arguments={"amount": 30},
+            implementation=debit,
+            idempotency_supported=False,
+            effect="mutating",
+            tool_schema_sha256="a" * 64,
+            state_reader=lambda: {"balance": 100},
+        )
+    )
+
+    assert record.status == "succeeded"
+    assert record.state_changed is False
+    events = evidence.read_events()
+    unobserved = [
+        event
+        for event in events
+        if event.event_type == "tool_invocation_mutation_unobserved"
+    ]
+    assert len(unobserved) == 1
+    assert unobserved[0].tool_invocation_id == record.tool_invocation_id
+    payload = json.loads(evidence._read_artifact(unobserved[0].payload_ref))
+    assert payload["condition"] == "mutation_unobserved"
+    assert payload["tool_id"] == "debit_account"
+    evidence.audit_reconciliation(entity_types=("tool_invocation",))
+
+
+def test_an_observed_change_or_declared_idempotency_leaves_no_unobserved_trace(
+    tmp_path,
+) -> None:
+    evidence = _evidence(tmp_path)
+    tools = ToolExecutor(evidence)
+    accounts = {"balance": 100}
+
+    async def debit(_arguments):
+        accounts["balance"] = 70
+        return {"debited": 30}
+
+    asyncio.run(
+        tools.invoke(
+            action_attempt_id="action_attempt_fixture",
+            tool_id="debit_account",
+            tool_version="1.0.0",
+            arguments={"amount": 30},
+            implementation=debit,
+            idempotency_supported=False,
+            effect="mutating",
+            tool_schema_sha256="a" * 64,
+            state_reader=lambda: dict(accounts),
+        )
+    )
+
+    async def idempotent_noop(_arguments):
+        return {"already": "cancelled"}
+
+    asyncio.run(
+        tools.invoke(
+            action_attempt_id="action_attempt_fixture",
+            tool_id="cancel_order",
+            tool_version="1.0.0",
+            arguments={"order_id": "order_1"},
+            implementation=idempotent_noop,
+            idempotency_supported=True,
+            effect="mutating",
+            tool_schema_sha256="b" * 64,
+            state_reader=lambda: dict(accounts),
+        )
+    )
+
+    event_types = {event.event_type for event in evidence.read_events()}
+    assert "tool_invocation_mutation_unobserved" not in event_types
+
+
 async def _echo_tool(arguments):
     return {"echo": arguments.get("value")}
 

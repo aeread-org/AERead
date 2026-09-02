@@ -3100,6 +3100,26 @@ class ToolExecutor:
                 outcome_known=True,
             )
             raise failure
+        if effect == "mutating" and state_changed is False and not idempotency_supported:
+            # A non-idempotent mutating tool that succeeds while the reader
+            # observes no state change is the blind-reader signature (a real
+            # debit once recorded state_changed=False through a constant
+            # stub).  The kernel cannot check the reader against ground
+            # truth, so it leaves a typed, durable trace for QC to gate on
+            # instead of letting the run stay silently plausible.
+            self.evidence.append_event(
+                "tool_invocation_mutation_unobserved",
+                {
+                    "condition": "mutation_unobserved",
+                    "tool_id": tool_id,
+                    "effect": effect,
+                    "idempotency_supported": idempotency_supported,
+                    "state_before_sha256": before[1].sha256,
+                    "state_after_sha256": after[1].sha256,
+                },
+                action_attempt_id=action_attempt_id,
+                tool_invocation_id=tool_invocation_id,
+            )
         self.evidence.append_event(
             "tool_invocation_succeeded",
             {
