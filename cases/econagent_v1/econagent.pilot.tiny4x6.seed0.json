@@ -1,0 +1,62 @@
+{
+  "case_id": "econagent.pilot.tiny4x6.seed0",
+  "content_sha256": "50e03a87e6d11b03c8b9e21156aa382349604c83f2d3ffb4a2eb43d81f5c567f",
+  "episode": {
+    "max_logical_actions": 6,
+    "termination": [
+      "episode_length_reached"
+    ]
+  },
+  "family_id": "econagent_v1",
+  "family_version": "0.1.0",
+  "payload": {
+    "pins": {
+      "bracket_schedule": "us-federal-single-filer-2018-scaled",
+      "config_yaml_bytes": 2889,
+      "config_yaml_sha256": "b721e8662b7ae68e6b6df192213c4dc959b7f1b43d7bd5e364a8149585a22f0e",
+      "env_config_sha256": "93efb6faf18466b22c3f0018380f9449155968745f12eb77587234c370fc73bf",
+      "policy_model": "complex",
+      "profiles_json_bytes": 7429,
+      "profiles_json_sha256": "1bc90a92ef8e32f3da6e474f787207b79b1c82cc0b7b13c5ea3bd6cd1439b223",
+      "upstream_commit": "bfada09",
+      "upstream_repo": "tsinghua-fib-lab/ACL24-EconAgent"
+    },
+    "scenario": {
+      "beta": 0.1,
+      "case_id": "econagent.pilot.tiny4x6.seed0",
+      "episode_length": 6,
+      "gamma": 0.1,
+      "h": 1.0,
+      "n_agents": 4,
+      "purpose": "fast-running smoke/degenerate-edge case",
+      "world_seed": 0
+    }
+  },
+  "provenance": {
+    "generator_id": "econagent_v1_importer",
+    "generator_version": "0.1.0",
+    "review_status": "upstream_pinned"
+  },
+  "seats": [
+    {
+      "id": "agent_0",
+      "role": "agent"
+    },
+    {
+      "id": "agent_1",
+      "role": "agent"
+    },
+    {
+      "id": "agent_2",
+      "role": "agent"
+    },
+    {
+      "id": "agent_3",
+      "role": "agent"
+    }
+  ],
+  "spec_version": "aeread.case/0.1",
+  "split": "pilot",
+  "visibility_policy": "econagent_v1_agent_private_v1",
+  "world_seed": 0
+}
