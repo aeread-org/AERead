@@ -61,7 +61,13 @@ written to stdout:
          (raising if any of those rounds unexpectedly terminates the
          episode early), then applies the newly requested round and
          returns upstream's own ``step()`` result verbatim (after
-         recursively converting dataclasses/Enums to plain JSON).
+         recursively converting dataclasses/Enums to plain JSON). In
+         contract mode, ``info`` is additionally overlaid with
+         ``buyer_contract_valid``/``seller_contract_valid`` -- upstream's
+         own ``_validate_contract`` verdict for *this round's* attempted
+         submission, called again (never reimplemented) because upstream
+         itself never records that verdict in ``state`` (see
+         ``_overlay_contract_validity``).
 
   {"op": "runtime_info"}
       -> {"ok": true, "python_version": str, "agenticpay_package_file": str}
@@ -242,6 +248,39 @@ def _overlay_contract_utilities(env: Any, info: dict[str, Any]) -> dict[str, Any
     return info
 
 
+def _overlay_contract_validity(env: Any, request: dict[str, Any], info: dict[str, Any]) -> dict[str, Any]:
+    """Report whether *this round's* attempted contract submission was valid.
+
+    Upstream's own ``step()`` decides "accepted" internally (``_validate_contract``)
+    but never records that decision anywhere in ``self.state`` -- only its effect
+    (whether ``state.metadata["buyer_contract"]``/``["seller_contract"]`` gets
+    overwritten). That effect is indistinguishable from "nothing happened" when a
+    seat *repeats* an already-accepted contract verbatim: the stored value does not
+    visibly change either way, so a before/after state comparison alone cannot tell
+    "repeated a legal contract" from "rejected an illegal one" (second-review Codex
+    finding 4 -- reproduced directly against the pinned checkout). Rather than
+    reimplement upstream's bounds-checking ourselves, this calls upstream's own
+    ``_extract_contract``/``_validate_contract`` methods again, on the exact same
+    raw text ``step()`` itself just used to reach its own accept/reject decision for
+    this round -- both are pure (no side effects on ``env``), so this reproduces
+    upstream's own verdict exactly, never a re-derivation of it. Skipped entirely
+    outside contract mode, and left unset (not overlaid) when extraction itself
+    found nothing to validate (no ``<contract>`` tag, or unparsable JSON) -- exactly
+    mirroring upstream's own "nothing written" outcome for those cases.
+    """
+    if not getattr(env, "use_contract_mode", False):
+        return info
+    for seat, action_key in (("buyer", "buyer_action"), ("seller", "seller_action")):
+        action_text = request.get(action_key)
+        if action_text is None:
+            continue
+        contract = env._extract_contract(action_text)
+        if contract is None:
+            continue
+        info[f"{seat}_contract_valid"] = bool(env._validate_contract(contract))
+    return info
+
+
 def _op_replay_round(request: dict[str, Any]) -> dict[str, Any]:
     env, observation, info = _build_env(request)
     for index, prior in enumerate(request.get("history", [])):
@@ -260,6 +299,7 @@ def _op_replay_round(request: dict[str, Any]) -> dict[str, Any]:
         seller_action=request.get("seller_action"),
     )
     info = _overlay_contract_utilities(env, info)
+    info = _overlay_contract_validity(env, request, info)
     return {
         "ok": True,
         "observation": _json_safe(observation),

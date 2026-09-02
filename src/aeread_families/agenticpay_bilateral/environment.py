@@ -23,14 +23,16 @@ completed round already calls upstream's ``step()`` once (through
 ``AgenticpayBridge.replay_round``) and gets back a fresh ``info`` dict for
 exactly that round -- this module now also appends one ``round_trace``
 entry per completed round (before/after ``buyer_price``/``seller_price``/
-``buyer_contract``/``seller_contract``, plus a shallow, adapter-owned
-"attempted a contract" heuristic: a ``<contract>`` tag in the raw message,
-never a re-implementation of upstream's own ``_extract_contract`` JSON
-parsing). ``measurement.py`` reads this trace to score the contract-
-legality leaf and to flag malformed/unparseable action text (spec section 3,
-section 4 goldens 3/4) -- it never re-derives upstream's own extraction or
-validation logic, only compares upstream's own recorded before/after
-values.
+``buyer_contract``/``seller_contract``, upstream's own per-round
+``buyer_contract_valid``/``seller_contract_valid`` accept/reject verdict --
+see ``agenticpay_bridge_driver.py``'s ``_overlay_contract_validity`` --
+plus a shallow, adapter-owned "attempted a contract" heuristic: a
+``<contract>`` tag in the raw message, never a re-implementation of
+upstream's own ``_extract_contract`` JSON parsing). ``measurement.py`` reads
+this trace to score the contract-legality leaf and to flag
+malformed/unparseable action text (spec section 3, section 4 goldens 3/4)
+-- it never re-derives upstream's own extraction or validation logic, only
+reads upstream's own recorded verdict and before/after values.
 """
 from __future__ import annotations
 
@@ -147,6 +149,19 @@ def _round_trace_entry(
         "buyer_contract_after": new_info.get("buyer_contract"),
         "seller_contract_before": prior_info.get("seller_contract"),
         "seller_contract_after": new_info.get("seller_contract"),
+        # Upstream's own accept/reject verdict for *this* round's attempted
+        # submission (``AgenticpayBridge.replay_round``'s own
+        # ``_overlay_contract_validity``, which calls upstream's own
+        # ``_validate_contract`` again on the same raw text -- never a
+        # re-derivation of it). Absent (``None``) whenever extraction itself
+        # found nothing to validate this round. ``measurement.py``'s
+        # contract-legality leaf reads this, never the before/after
+        # comparison alone: a repeated, already-accepted legal contract
+        # leaves ``*_contract_before == *_contract_after`` exactly like a
+        # rejected one would, so that comparison alone cannot distinguish
+        # the two (spec section 4, second-review Codex finding 4).
+        "buyer_contract_valid": new_info.get("buyer_contract_valid"),
+        "seller_contract_valid": new_info.get("seller_contract_valid"),
         "buyer_price_before": prior_info.get("buyer_price"),
         "buyer_price_after": new_info.get("buyer_price"),
         "seller_price_before": prior_info.get("seller_price"),

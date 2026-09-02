@@ -215,9 +215,11 @@ def test_score_contract_legality_flags_only_the_rejected_round() -> None:
             "buyer_contract_attempted": True,
             "buyer_contract_before": None,
             "buyer_contract_after": {"price": 5.39},
+            "buyer_contract_valid": True,
             "seller_contract_attempted": True,
             "seller_contract_before": None,
             "seller_contract_after": None,  # rejected: unchanged
+            "seller_contract_valid": False,
         },
         {
             "round": 2,
@@ -225,6 +227,7 @@ def test_score_contract_legality_flags_only_the_rejected_round() -> None:
             "seller_contract_attempted": True,
             "seller_contract_before": None,
             "seller_contract_after": {"price": 5.39},  # accepted: changed
+            "seller_contract_valid": True,
         },
     ]
     envelope = m.score_contract_legality(leaf, round_trace=round_trace)
@@ -233,6 +236,31 @@ def test_score_contract_legality_flags_only_the_rejected_round() -> None:
     assert envelope.metrics["round_1_seller_contract_legal"].value == 0.0
     assert envelope.metrics["round_2_seller_contract_legal"].value == 1.0
     assert "round_2_buyer_contract_legal" not in envelope.metrics
+
+
+def test_score_contract_legality_uses_upstreams_valid_verdict_not_a_before_after_diff() -> None:
+    """Second-review regression (Codex finding 4), unit-level: a repeated,
+    already-accepted contract leaves ``*_contract_before == *_contract_after``
+    (upstream's own state slot does not visibly change) yet must still be scored
+    legal, because upstream's own ``*_contract_valid`` verdict for that round says
+    so. This is the pure-fixture sibling of
+    ``test_repeating_an_already_accepted_legal_contract_is_not_marked_illegal``
+    (which drives the real bridge).
+    """
+    leaf = m.build_contract_legality_leaf(_family_case(REALISTIC_CASE_ID))
+    assert leaf is not None
+    round_trace = [
+        {
+            "round": 1,
+            "buyer_contract_attempted": True,
+            "buyer_contract_before": {"price": 5.39},
+            "buyer_contract_after": {"price": 5.39},  # unchanged: repeated verbatim
+            "buyer_contract_valid": True,  # ...but upstream re-validated and accepted it
+        },
+    ]
+    envelope = m.score_contract_legality(leaf, round_trace=round_trace)
+    assert envelope.metrics["round_1_buyer_contract_legal"].value == 1.0
+    assert envelope.primary.value == 1.0
 
 
 def test_score_contract_legality_is_vacuously_1_when_nothing_attempted() -> None:
@@ -490,6 +518,15 @@ _ILLEGAL_CONTRACT = (
     '"discrete_terms": {"return_policy": "lifetime", "packaging": "protective", '
     '"user_product_preference": "strong_match"}}</contract>'
 )
+# Individually legal (satisfies s01's declared bounds) but incompatible with
+# _LEGAL_CONTRACT's `delivery_days: 1` -- upstream's own `_contracts_compatible`
+# requires equal `continuous_terms`, so pairing this with _LEGAL_CONTRACT never
+# reaches agreement on its own (second-review Codex finding 4 below).
+_ANOTHER_LEGAL_CONTRACT = (
+    '<contract>{"price": 5.39, "continuous_terms": {"delivery_days": 3}, '
+    '"discrete_terms": {"return_policy": "none", "packaging": "protective", '
+    '"user_product_preference": "strong_match"}}</contract>'
+)
 
 
 def test_golden_3_invalid_or_unauthorized_contract_offer() -> None:
@@ -536,6 +573,47 @@ def test_golden_3_invalid_or_unauthorized_contract_offer() -> None:
     assert seller_share.primary.value == pytest.approx(0.5)
 
 
+# ---- Second-review regression: repeated legal contract ---------------------
+
+
+def test_repeating_an_already_accepted_legal_contract_is_not_marked_illegal() -> None:
+    """Second-review regression (Codex finding 4): "accepted" must not be inferred
+    from whether upstream's stored contract *value* changed round to round.
+    Upstream assigns every parsed, validated contract to state on every round it
+    validates, even when it equals the previous value (``Task1_basic_price_
+    negotiation.py``'s ``step()``: ``if buyer_contract and self._validate_
+    contract(buyer_contract): self.state.metadata["buyer_contract"] =
+    buyer_contract`` -- unconditional on whether the value changed). Round 1: the
+    buyer submits a legal contract C; the seller submits a different, individually
+    legal but incompatible contract D (different ``delivery_days``), so no
+    agreement forms yet. Round 2: the buyer repeats C verbatim (still legal, but
+    upstream's own state slot for it does not visibly change) while the seller
+    submits C too (now compatible) and the deal is reached. Before this fix, the
+    buyer's round-2 resubmission was marked illegal purely because
+    ``buyer_contract_before == buyer_contract_after``.
+    """
+    case = _case(REALISTIC_CASE_ID)
+    result, scorer = _run(
+        case,
+        rounds=[
+            (_LEGAL_CONTRACT, _ANOTHER_LEGAL_CONTRACT),
+            (_LEGAL_CONTRACT, _LEGAL_CONTRACT),
+        ],
+    )
+    assert result.terminal["reason"] == "agreed"
+    assert result.terminal["rounds"] == 2
+
+    legality = scorer.score_contract_legality(round_trace=result.terminal["round_trace"])
+    assert legality.metrics["round_1_buyer_contract_legal"].value == 1.0
+    assert legality.metrics["round_1_seller_contract_legal"].value == 1.0
+    assert legality.metrics["round_2_seller_contract_legal"].value == 1.0
+    # The regression: round 2's buyer resubmission of the same legal contract C
+    # must still be scored legal, not illegal just because the stored value did
+    # not visibly change.
+    assert legality.metrics["round_2_buyer_contract_legal"].value == 1.0
+    assert legality.primary.value == 1.0  # nothing anywhere was ever rejected
+
+
 # ---- Golden 4: malformed / operational failure -----------------------------
 
 
@@ -580,6 +658,41 @@ def test_golden_5_degenerate_reference_never_fabricates_a_share() -> None:
     for envelope in (buyer_share, seller_share):
         assert envelope.status == "invalid_measurement"
         assert envelope.validity.reasons == ("denominator_degenerate",)
+        assert envelope.primary is None
+
+
+# ---- Second-review regression: out-of-declared-range agreement -------------
+
+
+def test_surplus_share_rejects_an_agreed_price_outside_the_declared_zopa_bounds() -> None:
+    """Second-review regression (Codex finding 2): a positive ZOPA denominator alone
+    is not enough to publish a share in ``[0, 1]``. Upstream's own scoring
+    (``Task1_basic_price_negotiation.py``'s ``_calculate_global_score``) additionally
+    requires ``seller_min_price <= final_price <= buyer_max_price`` before it will
+    treat a deal as a success -- an agreement outside that declared range is exactly
+    the ``valid_range=False`` branch upstream itself falls back to a failure penalty
+    for. Driven through the real scheduler + real bridge (production path, not a
+    hand-built ``terminal`` fixture): both parties submit $200 for task1
+    (buyer_max=150, seller_min=80), a price neither reservation would ever legitimately
+    accept, so upstream's own text-matching negotiation still reaches ``"agreed"`` at
+    $200. Before this fix, ``score_buyer_surplus_share``/``score_seller_surplus_share``
+    published ``status="ok"`` with shares (buyer -50/70, seller 120/70) outside their
+    own declared ``[0, 1]`` support -- this asserts ``invalid_measurement`` instead.
+    """
+    case = _case(BASIC_CASE_ID)  # buyer_max=150, seller_min=80 -> Z=70
+    result, scorer = _run(
+        case,
+        rounds=[("### BUYER_PRICE($200) ###", "### SELLER_PRICE($200) ###")],
+    )
+    assert result.terminal["reason"] == "agreed"
+    assert result.terminal["agreed_price"] == 200.0
+
+    buyer_share = scorer.score_buyer_surplus_share(terminal=result.terminal)
+    seller_share = scorer.score_seller_surplus_share(terminal=result.terminal)
+
+    for envelope in (buyer_share, seller_share):
+        assert envelope.status == "invalid_measurement"
+        assert envelope.validity.reasons == ("agreed_price_out_of_declared_range",)
         assert envelope.primary is None
 
 

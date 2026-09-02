@@ -21,7 +21,12 @@ never blended into one number:
   cases (upstream's own already-computed MAUT utilities, never
   recalculated here). Reported ``invalid_measurement`` with reason
   ``"denominator_degenerate"`` whenever the ZOPA denominator is not
-  strictly positive -- never a fabricated share (spec section 4 golden 5).
+  strictly positive -- never a fabricated share (spec section 4 golden 5) --
+  and, for basic (price-only) cases, with reason
+  ``"agreed_price_out_of_declared_range"`` whenever ``agreed_price`` falls
+  outside ``[seller_min_price, buyer_max_price]`` (the same ``valid_range``
+  condition upstream's own ``_calculate_global_score`` requires before
+  treating a deal as a success -- second-review Codex finding 2).
 
 ``GlobalScore``/``BuyerScore``/``SellerScore`` are **not** declared as a
 ``MeasurementLeafSpec`` here: per spec section 2, upstream's weighted
@@ -332,14 +337,22 @@ def score_contract_legality(
 
     For every round in which a seat attempted a contract submission
     (``f"{seat}_contract_attempted"``), "accepted" is upstream's own
-    ``f"{seat}_contract"`` value changing from immediately-before to
-    immediately-after that round -- upstream's ``_validate_contract``
-    rejection leaves that value exactly unchanged (spec section 4 golden 3),
-    never re-derived here. ``primary`` is 1.0 iff no attempted submission was
-    rejected anywhere in the trajectory (vacuously 1.0 if nothing was ever
-    attempted); every attempted submission's own pass/fail is retained in
-    ``metrics`` so a downstream analysis can see exactly which round failed,
-    per the taxonomy's "declared aggregation rule" requirement.
+    ``f"{seat}_contract_valid"`` verdict for that round -- upstream's own
+    ``_validate_contract`` result, called again by the bridge driver on the
+    exact same raw text (never re-derived here; see
+    ``agenticpay_bridge_driver.py``'s ``_overlay_contract_validity``).
+    Deliberately *not* "did ``f'{seat}_contract'`` change from
+    immediately-before to immediately-after": upstream assigns every
+    validated contract to state unconditionally, even when it exactly
+    repeats the previous value, so a repeated, already-accepted legal
+    contract leaves that value unchanged too -- indistinguishable from a
+    rejection by a before/after comparison alone (spec section 4 golden 3,
+    second-review Codex finding 4). ``primary`` is 1.0 iff no attempted
+    submission was rejected anywhere in the trajectory (vacuously 1.0 if
+    nothing was ever attempted); every attempted submission's own pass/fail
+    is retained in ``metrics`` so a downstream analysis can see exactly
+    which round failed, per the taxonomy's "declared aggregation rule"
+    requirement.
     """
     metrics: dict[str, MetricValue] = {}
     any_rejected = False
@@ -347,7 +360,7 @@ def score_contract_legality(
         for seat in ("buyer", "seller"):
             if not entry.get(f"{seat}_contract_attempted"):
                 continue
-            accepted = entry[f"{seat}_contract_before"] != entry[f"{seat}_contract_after"]
+            accepted = bool(entry.get(f"{seat}_contract_valid"))
             metrics[f"round_{entry['round']}_{seat}_contract_legal"] = MetricValue(
                 1.0 if accepted else 0.0, "pass"
             )
@@ -511,6 +524,17 @@ def _score_surplus_share(
         agreed_price = terminal.get("agreed_price")
         if agreed_price is None:
             return _invalid_surplus_share(leaf, "no_agreement_reached", evidence_refs)
+        # Upstream's own `_calculate_global_score` additionally requires
+        # `seller_min_price <= final_price <= buyer_max_price` before it will
+        # treat a deal as a success (`valid_range`, Task1_basic_price_negotiation.py);
+        # an agreement outside that declared range is the same `valid_range=False`
+        # branch upstream itself falls back to a failure penalty for, and this leaf
+        # must never publish a share outside its own declared [0, 1] support for it
+        # (second-review Codex finding 2).
+        if not (seller_min_price <= agreed_price <= buyer_max_price):
+            return _invalid_surplus_share(
+                leaf, "agreed_price_out_of_declared_range", evidence_refs
+            )
         share = (
             (buyer_max_price - agreed_price) / zopa
             if side == "buyer"
