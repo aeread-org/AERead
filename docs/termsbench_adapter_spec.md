@@ -248,3 +248,56 @@ upstream package, no network, no venv.
   `treatment−control`) and enforces `within_case_score≤1` — both satisfied by feeding it
   maximize-oriented complements for the two `minimize` leaves (§2), the paper's own `SafeTerm`
   convention, not a workaround.
+
+## 7. Milestone 1 amendment (cases + environment): reality-forced deviations
+
+Built: `src/aeread_families/termsbench/{kernel,cases,environment,harness}.py`,
+`cases/termsbench/pilot/` (30 cases + `pilot_manifest.json`), and
+`tests/test_termsbench_{cases,counterpart,environment}.py`. **Not built yet**: the 4
+measurement leaves (`build_scorer` raises `NotImplementedError`, deferred to milestone 2) and
+`replay.py`'s standalone sealed-draw replay harness (deferred; `step()` itself already
+re-executes `kernel.resolve_counterpart_turn` on the recorded draws and raises on mismatch —
+see §3.1 and `TermsBenchPlugin._step_counterpart`).
+
+Every deviation below is an **AERead-owned engineering decision** translating a paper
+mechanism into code (§3's ownership split), not a change to what the paper itself specifies:
+
+- **Regime-generator numeric ranges are an AERead choice, not a paper default.** Table 10
+  ("regime-specific task generation parameters ... are provided in Table 10 in Section H")
+  and Appendix C.6 ("regime-specific task generation parameters used in experiments are
+  provided in Table 10 in Section H") cross-reference **each other** for the concrete values
+  of `(ακ, βκ, α_shifted, β_shifted, Δmin, Δmax, gmin, gmax)`; neither section actually
+  contains the numbers, in both the pinned `paper.html` and `paper.pdf` renderings. This is a
+  gap in the published paper itself, confirmed by reading both pinned artifacts directly, not
+  an extraction bug. `kernel.py` freezes concrete values once (`P_MIN=0, P_MAX=200` reusing
+  this spec's own §4 golden common-setup scale; `ZOPA_WIDTH_MIN/MAX=20/100` so the golden's
+  `Δ=50` sits centrally; `NODEAL_GAP_MIN/MAX=20/100` symmetric; `Beta(2, 2)` for the baseline
+  urgency law, symmetric with mean 0.5 matching the golden's `κ_B=0.5`), documented at each
+  constant's definition. `K=10` is not part of this gap — it is confirmed independently in
+  Appendix D's backward-induction sizing note ("With N≈300, M=50, K=10, ...").
+- **Small numerical-stability constants** `ε_κ, ε_σ, ε_d, ε_c` (App. G.2, C.5) are named by
+  the paper but never assigned a value; `kernel.py` sets each to `1e-6`.
+- **Pilot fixes `agent_role="buyer"`** for all 30 cases. The full paper design balances agent
+  role and opener role in a 2x2 within each regime-family cell across a much larger main suite
+  (§4.1/H.1.2); the pilot instead only alternates opener `χ` by seed parity (already specified
+  in §1) and holds role fixed to keep the 30-cell design exactly as specified. Role-balancing
+  is deferred to a future corpus expansion, not silently dropped.
+- **Round index `k` under mixed opener roles.** The paper shares one subscript `k` between
+  the agent's `k`-th offer and the counterpart's `k`-th response, and confirms `k=1` for the
+  boundary case worked in golden 1 (agent opens). It does not fully disambiguate `k`'s
+  bookkeeping when the counterpart opens and then also produces the *next* substantive
+  response — there is no reference implementation to check against (dead repository link).
+  `environment.py`/`kernel.py` operationalize `k` as **the counterpart's own invocation
+  counter** (starts at 1, increments by exactly 1 every time the counterpart acts — opening or
+  responding — and never on an agent move); this coincides with the paper's own text for every
+  configuration the goldens exercise and is the natural reading of a shared per-round `k` for
+  an alternating-offer protocol.
+- **Termination vocabulary is lower_snake_case** (`agent_accept`, `counterpart_accept`,
+  `agent_reject`, `counterpart_walk_away`, `timeout`, `agreement_violation`), not the paper's
+  PascalCase (`AgentAccept`, ...): `CaseManifest.episode.termination` values must satisfy the
+  identifier grammar, which forbids uppercase. The mapping to the paper's own vocabulary
+  (App. C.2.3) is 1:1 and total; see `cases.TERMINATION_REASONS`.
+- **`docs/benchmark_qc.md` does not exist in this repository.** The build instructions for
+  this milestone named it as the source for QC Gate 1/2 definitions; this spec's own §1 and §4
+  already restate every Gate 1 check (#1, #3, #5, #6) and the Gate 2 golden conventions inline,
+  cited to this document, so no gate definition was actually missing — only the filename.
