@@ -35,6 +35,7 @@ import copy
 from typing import Any, Mapping, Sequence
 
 from aeread.shared_runner.execution import EvidenceStore
+from aeread.shared_runner.scheduler import EpisodeResult
 
 
 def _plain(value: Any) -> Any:
@@ -98,4 +99,98 @@ class ScriptedNegarenaHarness:
         return self._cursor == len(self._script)
 
 
-__all__ = ["ScriptedNegarenaHarness"]
+def record_full_evidence_lifecycle(
+    *, evidence: EvidenceStore, plugin: Any, family_case: Mapping[str, Any], result: EpisodeResult
+) -> None:
+    """Seal one already-completed episode's full generic evidence lifecycle.
+
+    ``ScriptedNegarenaHarness`` (this module) only ever appends its own
+    ``negarena_decision_served`` event -- it is a ``response_source``, and
+    ``run_episode`` never hands a ``response_source`` the phase/parse/
+    legality/transition/terminal/outcome facts it computes internally, so
+    there was nothing for the harness to record them from *during* serving
+    (docs/negarena_codex_triage.md Finding 3). Those facts already exist,
+    completely and correctly, on the ``EpisodeResult`` the scheduler returns
+    once the episode finishes; this function's only job is to translate that
+    already-computed result into the same durable event types/payloads the
+    shared kernel's own ``MinimalChatExecutor`` (``aeread.shared_runner.execution``)
+    would have appended live, so ``family_evaluation.replay_family_state`` --
+    the same generic replay ``finalize_family_execution``/
+    ``replay_family_receipt``/``audit_family_receipt`` all use -- can read
+    this evidence back exactly like any other family's. It recomputes
+    nothing: every payload below is either taken verbatim from ``result`` or
+    is the record's own already-produced ``ParseResult``/``LegalityResult``/
+    ``TransitionResult``.
+
+    Call once, after ``run_episode`` returns a terminated ``EpisodeResult``,
+    against the same ``EvidenceStore`` the harness used to serve decisions.
+    """
+    phase_by_id = {phase.phase_id: phase for phase in plugin.phases(family_case)}
+    for instance in result.phase_instances:
+        evidence.append_event(
+            "phase_instance_started",
+            {
+                "phase": phase_by_id[instance.phase_id],
+                "eligible_actors": instance.eligible_actors,
+                "pre_state_sha256": instance.pre_state_sha256,
+            },
+            phase_instance_id=instance.phase_instance_id,
+        )
+        for action in instance.actions:
+            evidence.append_event(
+                "logical_action_started",
+                {"profile_id": action.request.profile_id, "request": action.request},
+                phase_instance_id=instance.phase_instance_id,
+                logical_action_id=action.logical_action_id,
+                visibility=f"seat:{action.seat_id}",
+            )
+            envelope = action.envelope
+            evidence.append_event(
+                "action_parsed",
+                {"parse_result": envelope.parse},
+                phase_instance_id=instance.phase_instance_id,
+                logical_action_id=action.logical_action_id,
+                visibility=f"seat:{action.seat_id}",
+            )
+            if envelope.legality is not None:
+                evidence.append_event(
+                    "action_legality_checked",
+                    {"legality_result": envelope.legality},
+                    phase_instance_id=instance.phase_instance_id,
+                    logical_action_id=action.logical_action_id,
+                )
+            failure_code = None
+            if not envelope.valid:
+                failure_code = (
+                    envelope.parse.error_code
+                    if not envelope.parse.ok
+                    else envelope.legality.reason
+                )
+            event_type = (
+                "logical_action_succeeded"
+                if envelope.valid
+                else "logical_action_agent_action_failure"
+            )
+            evidence.append_event(
+                event_type,
+                {"valid": envelope.valid, "failure_code": failure_code},
+                logical_action_id=action.logical_action_id,
+            )
+        for transition in instance.transitions:
+            evidence.append_event(
+                "transition_applied",
+                {
+                    "phase_id": instance.phase_id,
+                    "transition": transition,
+                    "post_state_sha256": instance.post_state_sha256,
+                },
+                phase_instance_id=instance.phase_instance_id,
+            )
+    evidence.append_event(
+        "episode_terminated",
+        {"terminal": result.terminal, "logical_action_count": result.logical_action_count},
+    )
+    evidence.append_event("family_outcome_recorded", {"outcome": result.outcome})
+
+
+__all__ = ["ScriptedNegarenaHarness", "record_full_evidence_lifecycle"]

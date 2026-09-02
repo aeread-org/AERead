@@ -61,6 +61,34 @@ def _plain(value: Any) -> Any:
     return copy.deepcopy(value)
 
 
+def _measurement_reference_provider_ids() -> list[str]:
+    """Every implementation id either declared leaf actually references.
+
+    Derived from ``measurement.py``'s own leaf builders (never a duplicated
+    literal here) so this list can never drift from what the leaves really
+    declare. Required so ``resolve_run_plan`` reserves and admits an
+    ``ImplementationPin`` for each one: without this,
+    ``EvaluationReceipt``'s own pin/implementation cross-check
+    (``receipts.py``'s ``_validate_and_freeze_plan_pins``) rejects every
+    negarena receipt outright, since none of these ids were ever declared
+    anywhere a plan's required pins are computed from
+    (docs/negarena_codex_triage.md Finding 1's regression test is the first
+    thing in this repo to actually seal a negarena
+    ``EvaluationReceipt`` and is what surfaced this gap).
+    """
+    seat_leaf = measurement.build_seat_outcome_leaf()
+    agreement_leaf = measurement.build_agreement_reached_leaf()
+    return sorted(
+        {
+            seat_leaf.estimand.validity_domain.predicate.implementation_id,
+            seat_leaf.verifier.reference.implementation.implementation_id,
+            seat_leaf.scorer.implementation_id,
+            agreement_leaf.verifier.reference.implementation.implementation_id,
+            agreement_leaf.scorer.implementation_id,
+        }
+    )
+
+
 def family_manifest() -> FamilyManifest:
     """Return the strict family declaration used by the trusted registry."""
     return FamilyManifest.from_dict(
@@ -88,7 +116,10 @@ def family_manifest() -> FamilyManifest:
                 "measurement_kind": "comparative_or_human_judged",
                 "direction": "maximize",
             },
-            "scoring": {"scorer_id": SCORER_ID},
+            "scoring": {
+                "scorer_id": SCORER_ID,
+                "reference_provider_ids": _measurement_reference_provider_ids(),
+            },
         }
     )
 
@@ -218,8 +249,22 @@ class NegarenaPlugin:
 
     # -- phase graph ----------------------------------------------------
 
-    def initial_state(self, family_case: Mapping[str, Any], cell: Any) -> dict[str, Any]:
-        del cell
+    def initial_state(self, family_case: Mapping[str, Any], run: Any) -> dict[str, Any]:
+        # Named ``run`` (not ``cell``) to match the shared kernel's own two
+        # call conventions for this hook: ``scheduler.run_episode`` calls it
+        # positionally (``plugin.initial_state(family_case, cell)``, so the
+        # parameter name here is cosmetic), but
+        # ``family_evaluation.replay_family_state`` -- the shared replay path
+        # every ``finalize_family_execution``/``replay_family_receipt``/
+        # ``audit_family_receipt`` call reaches -- calls it by keyword as
+        # ``plugin.initial_state(family_case, run=None)`` (mirroring
+        # ``HousingV1Plugin.initial_state``'s identical ``run`` parameter).
+        # Before this rename, any negarena ``CellExecution`` reaching that
+        # shared replay path raised ``TypeError: initial_state() got an
+        # unexpected keyword argument 'run'`` before evidence could ever be
+        # sealed or scored (docs/negarena_codex_triage.md Finding 1's
+        # regression test exercises this call path directly).
+        del run
         return {
             "iteration": 0,
             "termination": None,

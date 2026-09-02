@@ -434,6 +434,50 @@ class NegarenaScorer:
     def agreement_leaf(self) -> MeasurementLeafSpec:
         return self.leaves[1]
 
+    def __call__(
+        self, outcome: Mapping[str, Any], *, evidence_refs: tuple[str, ...] = ()
+    ) -> ScoreEnvelope:
+        """Conform to the shared kernel's single-outcome scorer call.
+
+        ``family_evaluation.py``'s ``finalize_family_execution``/
+        ``replay_family_receipt``/``audit_family_receipt`` all call
+        ``plugin.build_scorer(family_case)(outcome, evidence_refs=...)``
+        directly -- before this method existed, any completed negarena
+        ``CellExecution`` reaching that call site raised
+        ``TypeError: 'NegarenaScorer' object is not callable`` before
+        ``score_recorded`` was ever appended, before evidence was ever
+        sealed, and before a receipt was ever written
+        (docs/negarena_codex_triage.md Finding 1).
+
+        That generic call site passes only the plugin's own ``outcome()``
+        dict and a tuple of evidence refs -- never the ``NegarenaBridge``,
+        never which seat is the tested subject, never the fixed opponent's
+        policy id. Real per-seat scoring (``score_seat_outcome``) needs all
+        three: which seat is realizing a value depends on a RunPlan cell's
+        ``profile_by_seat``/``EvaluationBlock.subject_seats`` -- context this
+        single-outcome call site does not carry and this method must not
+        guess at (spec section 2: "never a computed zero payoff ... An
+        invalid or missing observation must not be scored as an economic
+        zero"). So this always reports the declared primary leaf
+        (``negarena_seat_outcome``) as ``invalid_measurement`` here, with a
+        typed reason rather than a fabricated score -- ``finalize_family_execution``
+        already has a well-formed ``invalid_measurement`` receipt path (score
+        recorded, evidence sealed, receipt written, ``inclusion_status="excluded"``)
+        that this now reaches instead of crashing. A caller that needs the
+        real per-seat/agreement scores must call
+        ``score_seat_outcome``/``score_agreement_reached`` directly, exactly
+        as ``tests/test_negarena_harness.py`` already does (mirroring
+        ``tau3_retail``'s identical ``Tau3RetailScorer`` convention, whose own
+        docstring notes the kernel does not yet invoke ``build_scorer`` with
+        per-seat context either).
+        """
+        del outcome
+        return _invalid_envelope(
+            self.seat_outcome_leaf,
+            "negarena_kernel_finalizer_lacks_seat_pairing_context",
+            evidence_refs,
+        )
+
     def score_seat_outcome(
         self,
         *,
