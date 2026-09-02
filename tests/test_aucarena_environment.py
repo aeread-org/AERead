@@ -7,12 +7,10 @@ this family (spec section 4): the whole per-round decision is "one seat's
 raw bid text", so a thin per-test policy function is enough.
 
 These tests assert mechanical correctness of the environment (legality,
-hammer determination, budget/profit bookkeeping, termination) -- the four
-declared ``MeasurementLeafSpec`` leaves and their scorer are not built this
-milestone (``AucArenaPlugin.build_scorer`` raises ``NotImplementedError``;
-see ``environment.py``), so no leaf-result assertions appear here. That
-coverage lands with ``measurement.py`` in a later milestone
-(``tests/test_aucarena_measurement.py``).
+hammer determination, budget/profit bookkeeping, termination) -- leaf-result
+assertions for the four declared ``MeasurementLeafSpec`` leaves live in
+``tests/test_aucarena_measurement.py`` instead, against
+``AucArenaPlugin.build_scorer``'s real scorer (``measurement.py``).
 """
 from __future__ import annotations
 
@@ -21,8 +19,6 @@ import json
 from pathlib import Path
 from types import MappingProxyType
 from typing import Any, Callable
-
-import pytest
 
 from aeread.shared_runner.registry import REQUIRED_FAMILY_PLUGIN_HOOKS, PluginRegistry
 from aeread.shared_runner.resolver import PlanCell, canonical_json_bytes
@@ -170,12 +166,12 @@ def test_phase_graph_is_one_self_looping_phase() -> None:
     ]
 
 
-def test_build_scorer_is_not_built_this_milestone() -> None:
+def test_build_scorer_returns_the_four_declared_leaves() -> None:
     plugin = AucArenaPlugin()
     case = _case("successful")
     family_case = plugin.validate_payload(case.payload)
-    with pytest.raises(NotImplementedError):
-        plugin.build_scorer(family_case)
+    scorer = plugin.build_scorer(family_case)
+    assert len(scorer.leaves) == 4
 
 
 # ---------------------------------------------------------------------------

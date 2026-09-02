@@ -41,6 +41,7 @@ from .cases import (
     MAX_LOGICAL_ACTIONS,
     TERMINATION_REASONS,
 )
+from .measurement import AucArenaScorer, build_scorer as build_measurement_scorer
 
 PLUGIN_ID = "aucarena_environment"
 SCORER_ID = "aucarena_scorer"
@@ -524,26 +525,21 @@ class AucArenaPlugin:
         }
 
     # ---------------------------------------------------------------- #
-    # Measurement (not built this milestone; see docs/aucarena_adapter_spec.md).
+    # Measurement (docs/aucarena_adapter_spec.md section 2).
     # ---------------------------------------------------------------- #
 
-    def build_scorer(self, family_case: Mapping[str, Any]) -> Any:
-        """Not built this milestone.
+    def build_scorer(self, family_case: Mapping[str, Any]) -> AucArenaScorer:
+        """Return the four declared measurement leaves plus their scorers.
 
-        The four declared leaves (``aucarena_budget_invariant``,
-        ``aucarena_bid_legality``, ``aucarena_hammer_rule``,
-        ``aucarena_profit_vs_field``; spec section 2) land with
-        ``measurement.py`` in a later milestone. ``PluginRegistry`` only
-        requires this hook be callable -- the kernel does not call it yet
-        (mirrors ``tau3_retail.Tau3RetailPlugin.build_scorer``'s own
-        docstring).
+        See ``measurement.py`` (spec section 2): ``aucarena_budget_invariant``,
+        ``aucarena_bid_legality``, ``aucarena_hammer_rule``, and
+        ``aucarena_profit_vs_field`` are declared for every case -- no
+        ``objective_reference`` leaf, no scalar collapse. The current kernel
+        does not yet call ``build_scorer`` itself (mirrors
+        ``tau3_retail.Tau3RetailPlugin.build_scorer``'s own docstring); this
+        makes the declaration and all four scorers live the day it does.
         """
-        del family_case
-        raise NotImplementedError(
-            "aucarena measurement leaves are not built yet; see "
-            "docs/aucarena_adapter_spec.md section 2 and the module docstring "
-            "of measurement.py once it lands"
-        )
+        return build_measurement_scorer(family_case)
 
     def build_reference_providers(self, family_case: Mapping[str, Any]) -> tuple[Any, ...]:
         del family_case
