@@ -11,16 +11,32 @@ Per ``docs/agenticpay_adapter_spec.md`` section 2, ``GlobalScore``/
 ``BuyerScore``/``SellerScore`` are a labeled compatibility result, never
 AERead's primary estimand -- this module carries them forward verbatim
 (inside ``terminal``/``outcome``) exactly as upstream computed them, and
-never recomputes or approximates them. The two support-normalized surplus-
-share leaves and the contract/action legality leaf the spec declares are not
-implemented here: ``measurement.py`` (Milestone 2) is where a
-``MeasurementLeafSpec``/scorer is declared, per this milestone's scope
-("cases + environment"; do not build the scorer yet).
+never recomputes or approximates them.
+
+Milestone 2 adds ``measurement.py``'s four sanctioned leaves
+(``agenticpay_deal_reached``, ``agenticpay_contract_legality``,
+``agenticpay_buyer_surplus_share``, ``agenticpay_seller_surplus_share``) and
+wires ``build_scorer`` to it. Scoring those leaves needs one thing this
+module alone can observe cheaply: per-round evidence of whether a seat's
+message actually moved upstream's own tracked price/contract state. Every
+completed round already calls upstream's ``step()`` once (through
+``AgenticpayBridge.replay_round``) and gets back a fresh ``info`` dict for
+exactly that round -- this module now also appends one ``round_trace``
+entry per completed round (before/after ``buyer_price``/``seller_price``/
+``buyer_contract``/``seller_contract``, plus a shallow, adapter-owned
+"attempted a contract" heuristic: a ``<contract>`` tag in the raw message,
+never a re-implementation of upstream's own ``_extract_contract`` JSON
+parsing). ``measurement.py`` reads this trace to score the contract-
+legality leaf and to flag malformed/unparseable action text (spec section 3,
+section 4 goldens 3/4) -- it never re-derives upstream's own extraction or
+validation logic, only compares upstream's own recorded before/after
+values.
 """
 from __future__ import annotations
 
 import copy
 import hashlib
+import re
 import subprocess
 from pathlib import Path
 from typing import Any, Mapping
@@ -34,6 +50,7 @@ from aeread.shared_runner.scheduler import (
     TransitionResult,
 )
 
+from . import measurement
 from .agenticpay_bridge import AgenticpayBridge
 from .cases import (
     FAMILY_ID,
@@ -50,6 +67,7 @@ BUYER_PHASE = "buyer_turn"
 SELLER_PHASE = "seller_turn"
 
 _PUBLIC_CONTRACT_FIELDS = ("continuous_bounds", "discrete_options", "field_descriptions", "contrainfo")
+_CONTRACT_TAG_RE = re.compile(r"<contract>", re.IGNORECASE)
 
 
 def _set_termination(state: dict[str, Any], reason: str) -> None:
@@ -97,6 +115,45 @@ def _role_contract_view(contract_config: Mapping[str, Any] | None, role: str) ->
     return view
 
 
+def _round_trace_entry(
+    *,
+    round_number: int,
+    buyer_action: str,
+    seller_action: str,
+    prior_info: Mapping[str, Any],
+    new_info: Mapping[str, Any],
+) -> dict[str, Any]:
+    """One completed round's before/after price and contract signal.
+
+    ``measurement.py``'s contract-legality leaf and its malformed-action
+    diagnostic (spec section 3's "detection of malformed/unparseable action
+    text" and "the contract/action legality leaf") are both built from this
+    entry, never by re-deriving upstream's own ``_extract_price``/
+    ``_extract_contract``/``_validate_contract`` regex or JSON logic: this
+    only compares upstream's own recorded ``buyer_price``/``seller_price``/
+    ``buyer_contract``/``seller_contract`` fields from immediately before and
+    immediately after the round upstream itself just computed.
+    "``<seat>_contract_attempted``" is a shallow, adapter-owned heuristic --
+    presence of a ``<contract>`` tag in the raw message -- never a
+    re-implementation of ``_extract_contract``'s JSON parsing.
+    """
+    return {
+        "round": round_number,
+        "buyer_action": buyer_action,
+        "seller_action": seller_action,
+        "buyer_contract_attempted": bool(_CONTRACT_TAG_RE.search(buyer_action)),
+        "seller_contract_attempted": bool(_CONTRACT_TAG_RE.search(seller_action)),
+        "buyer_contract_before": prior_info.get("buyer_contract"),
+        "buyer_contract_after": new_info.get("buyer_contract"),
+        "seller_contract_before": prior_info.get("seller_contract"),
+        "seller_contract_after": new_info.get("seller_contract"),
+        "buyer_price_before": prior_info.get("buyer_price"),
+        "buyer_price_after": new_info.get("buyer_price"),
+        "seller_price_before": prior_info.get("seller_price"),
+        "seller_price_after": new_info.get("seller_price"),
+    }
+
+
 def family_manifest() -> FamilyManifest:
     """Return the strict family declaration used by the trusted registry."""
     return FamilyManifest.from_dict(
@@ -114,12 +171,12 @@ def family_manifest() -> FamilyManifest:
                 "seller": {"testable": True, "scripted_policies": ["scripted"]},
             },
             "measurement": {
-                # Placeholder declaration: the concrete MeasurementLeafSpec
-                # pair (agenticpay_buyer_surplus_share /
-                # agenticpay_seller_surplus_share, spec section 2) lands
-                # with measurement.py in Milestone 2. Declared now only so
-                # FamilyManifest.from_dict (which requires "measurement")
-                # validates; build_scorer below raises until then.
+                # This is the coarse, family-level MeasurementDeclaration the
+                # registry requires (mirrors tau3_retail's own
+                # "retail_task_reward" label, which never matches either of
+                # its two real leaf ids either) -- not the same object as
+                # the four concrete MeasurementLeafSpec declarations
+                # measurement.py builds per case (build_scorer, below).
                 "primary_estimand": "agenticpay_bilateral_surplus_share",
                 "measurement_kind": "optimizable_outcome",
                 "direction": "maximize",
@@ -231,6 +288,7 @@ class AgenticpayBilateralPlugin:
         )
         return {
             "history": [],
+            "round_trace": [],
             "pending_buyer_message": None,
             "termination": None,
             "last_observation": result["observation"],
@@ -360,6 +418,7 @@ class AgenticpayBilateralPlugin:
         seller_message = actions["seller"].action["message"]
 
         bridge = self._require_bridge()
+        prior_info = new_state["last_info"]
         result = bridge.replay_round(
             env_module=family_case["env_module"],
             env_class=family_case["env_class"],
@@ -369,8 +428,18 @@ class AgenticpayBilateralPlugin:
             buyer_action=buyer_message,
             seller_action=seller_message,
         )
+        round_number = len(new_state["history"]) + 1
         new_state["history"] = new_state["history"] + [
             {"buyer_action": buyer_message, "seller_action": seller_message}
+        ]
+        new_state["round_trace"] = new_state["round_trace"] + [
+            _round_trace_entry(
+                round_number=round_number,
+                buyer_action=buyer_message,
+                seller_action=seller_message,
+                prior_info=prior_info,
+                new_info=result["info"],
+            )
         ]
         new_state["pending_buyer_message"] = None
         new_state["last_observation"] = result["observation"]
@@ -410,6 +479,10 @@ class AgenticpayBilateralPlugin:
             "global_score": info.get("global_score"),
             "buyer_score": info.get("buyer_score"),
             "seller_score": info.get("seller_score"),
+            # Per-round before/after evidence for measurement.py's
+            # contract-legality leaf and malformed-action diagnostic (spec
+            # section 3, section 4 goldens 3/4) -- see ``_round_trace_entry``.
+            "round_trace": list(state["round_trace"]),
         }
 
     def outcome(self, family_case: Mapping[str, Any], terminal: Mapping[str, Any]) -> dict[str, Any]:
@@ -417,21 +490,15 @@ class AgenticpayBilateralPlugin:
         return dict(terminal)
 
     def build_scorer(self, family_case: Mapping[str, Any]) -> Any:
-        """Not implemented in Milestone 1 ("cases + environment").
+        """Return this case's measurement leaves and scorers (spec section 2).
 
-        The two support-normalized surplus-share leaves and the contract/
-        action legality leaf (spec section 2) are declared in
-        ``measurement.py``, which does not exist yet -- see this package's
-        ``__init__.py`` docstring. ``build_scorer`` must still be a callable
-        attribute for ``PluginRegistry.register`` to accept this plugin
-        (``REQUIRED_FAMILY_PLUGIN_HOOKS``); it must not be called before
-        measurement.py lands.
+        Delegates entirely to ``measurement.build_scorer`` -- the four
+        sanctioned leaves (``agenticpay_deal_reached``,
+        ``agenticpay_contract_legality`` when contract mode applies,
+        ``agenticpay_buyer_surplus_share``, ``agenticpay_seller_surplus_share``)
+        are declared and scored there, never here.
         """
-        del family_case
-        raise NotImplementedError(
-            "agenticpay.bilateral measurement leaves are not implemented yet "
-            "(Milestone 2, measurement.py); do not call build_scorer yet"
-        )
+        return measurement.build_scorer(family_case)
 
     def build_reference_providers(self, family_case: Mapping[str, Any]) -> tuple[Any, ...]:
         del family_case

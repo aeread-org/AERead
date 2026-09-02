@@ -153,11 +153,15 @@ def test_plugin_registers_every_required_hook_through_normal_registry() -> None:
     ]
 
 
-def test_build_scorer_raises_until_measurement_py_lands() -> None:
+def test_build_scorer_returns_measurement_pys_leaves_for_a_basic_case() -> None:
+    # Milestone 2: build_scorer delegates to measurement.py -- see
+    # tests/test_agenticpay_bilateral_measurement.py for full leaf/scorer
+    # coverage; this only checks the environment.py hook wiring itself.
     plugin = AgenticpayBilateralPlugin(upstream_root=UPSTREAM_ROOT, bridge=None)
     family_case = json.loads(canonical_json_bytes(_case("agenticpay.bilateral.basic.task1").payload))
-    with pytest.raises(NotImplementedError):
-        plugin.build_scorer(family_case)
+    scorer = plugin.build_scorer(family_case)
+    assert scorer.contract_legality_leaf is None
+    assert len(scorer.leaves) == 3
 
 
 def test_validate_payload_accepts_the_checked_in_basic_case() -> None:
