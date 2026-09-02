@@ -267,8 +267,8 @@ def build_case(
             # to the spec's originally-proposed "aeread_authored", which is
             # not one of ``ProvenanceSpec``'s four allowed values
             # (``generated``/``reviewed``/``curated``/``upstream_pinned`` --
-            # see docs/negarena_adapter_spec.md's "Deviations from the
-            # original spec text" note).
+            # see docs/negarena_adapter_spec.md section 1's "Correction
+            # (found during implementation)" note).
             "review_status": "curated",
         },
         "content_sha256": "0" * 64,

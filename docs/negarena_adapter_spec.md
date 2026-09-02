@@ -167,8 +167,14 @@ episode is never silently averaged into the payoff leaderboard as a "loss" (taxo
 "an invalid or missing observation must not be scored as ... a dominated policy").
 
 `measurement_validity` (integrity layer, not a capability score) additionally checks: parseable
-scripted response (tag schema), in-bounds trade (adapter-owned `check_transaction_legal` gate, see
-§3), and iteration-count/turn-alternation replay consistency.
+scripted response (tag schema) and in-bounds trade (adapter-owned `check_transaction_legal` gate,
+see §3) — both surfaced as their own named `ValidityReport("invalid", ...)` (`malformed_action` /
+`invalid_measurement`) a consumer of the receipt can inspect. **Correction (found during review,
+docs/negarena_review_claude.md SUGGESTION-4):** iteration-count/turn-alternation replay consistency
+is *not* a separate, itemized check with its own pass/fail status — the invariant holds only
+implicitly, via the phase graph's `next_phases` wiring (`environment.py`) and the scheduler's own
+bookkeeping. Not a scoring bug (the invariant does hold), but this section's original wording
+promised more granular admission evidence than `measurement.py` actually emits.
 
 ## 3. Adapter boundary (mirrors `refund_external_benchmark_integration.md` §4)
 
