@@ -238,3 +238,64 @@ inside `_calculate_global_score`; a corpus/doc footnote, not a scored discrepanc
   header instead of re-executing `step()`)? This spec assumes bridge-dependent replay is
   acceptable for now; revisit if the paper requires network-free replay on the project's own
   3.11 interpreter without any subprocess.
+
+## 7. Milestone 1 implementation note (cases + environment)
+
+Delivered as `src/aeread_families/agenticpay_bilateral/{__init__,cases,environment,
+agenticpay_bridge,agenticpay_bridge_driver}.py`, `cases/agenticpay_bilateral/{basic,
+realistic}/*.json`, `cases/agenticpay_bilateral/pins.json` (one shared pin record for both
+splits, not duplicated per split — the pin fields are family-wide, unlike tau3's single-split
+`base/pins.json`), and `tools/agenticpay_bridge/{provision.sh,requirements.txt,README.md}`.
+`measurement.py`, `harness.py`, `parity.py`, and `replay.py` are not built yet (Milestones
+2/3); `build_scorer` raises `NotImplementedError` until `measurement.py` lands, satisfying
+`PluginRegistry`'s structural requirement without implementing the leaves.
+
+**Deviation from §3's proposed module layout:** the ScriptedAgent shim and the
+bridge-subprocess call into upstream `env.step()` live in their own top-level modules,
+`agenticpay_bridge.py`/`agenticpay_bridge_driver.py` — mirroring tau3_retail's
+`tau2_bridge.py`/`tau2_bridge_driver.py` split exactly — rather than inside `harness.py` as
+originally sketched. `harness.py` (when built) is reserved for a scripted-policy test driver
+in tau3_retail's sense (exercises the kernel plugin API end to end for tests), not the bridge
+itself; the bridge is required infrastructure for `environment.py`'s `step()` to do anything
+real, independent of any test harness.
+
+**Bridge state model:** upstream's environment object is not JSON-serializable (a live
+`ConversationMemory`/`NegotiationState`/`Enum`-valued status, not a plain dict the way
+tau2-bench's `RetailDB` is), so `agenticpay_bridge.replay_round` reconstructs the environment
+from scratch on every call and replays the full ordered `(buyer_action, seller_action)`
+history before applying the newly requested round — O(rounds) per call, fine against
+`max_rounds=20` for scripted trajectories. `environment.py`'s own kernel-level state carries
+that same history plus a `pending_buyer_message` buffer (the buyer phase's `step` only
+buffers; only the seller phase's `step` calls the bridge and can terminate the episode).
+
+**Two upstream quirks discovered and worked around in `agenticpay_bridge_driver.py` (not
+fixed, not ledgered — both are upstream-library behavior, not a defect in AERead's own
+runner/kernel):**
+- `_calculate_reward`/`_calculate_seller_reward`/`_calculate_buyer_reward` call `print(...)`
+  unconditionally on every terminal round, corrupting the driver's one-JSON-object-on-stdout
+  protocol unless upstream's own stdout is redirected for the duration of every call.
+- `info["buyer_utility"]`/`info["seller_utility"]` are always `null` in the dict `step()`
+  returns, even on a terminal round with a real, non-degenerate contract utility: `_get_info()`
+  reads `self.state.metadata.get("buyer_utility")` *before* the score-calculation methods that
+  are the only place upstream ever populates it run. The driver reads the correct,
+  already-computed values off `env.state.metadata` after `step()` returns instead of
+  recalculating `u_b`/`u_s` itself — see `_overlay_contract_utilities`.
+
+**A third, adapter-side normalization (not an upstream defect):** two of the 25 realistic
+scenarios (`s16`–`s20`'s `extra_condiments`, `s21`–`s25`'s `include_utilities`) declare a
+boolean-valued discrete contract term, so their literal `discrete_weights` dicts use Python
+`True`/`False` as dict keys in source. A case manifest can only hold string dict keys (JSON
+has no other kind); the importer coerces `True`/`False` -> `"true"`/`"false"` the same way
+`json.dumps` itself would (`cases._json_dict_key`), and the bridge driver restores the exact
+Python bool a live upstream call needs, scoped narrowly to `discrete_weights[term]` where the
+paired `discrete_options[term]` is itself boolean-valued
+(`agenticpay_bridge_driver._restore_bool_discrete_keys`). Left unhandled, the string key would
+silently miss upstream's own `dw.get(value, 0.0)` lookup for a real (JSON-parsed) boolean
+contract value and corrupt the utility calculation for exactly these two terms.
+
+**`world_seed`:** basic cases use the env class's numeral (`Task1BasicPriceNegotiation` ->
+`1`); realistic cases use the scenario number (`s01` -> `1`, `s16_food_delivery_1` -> `16`).
+These are not globally unique across the two splits (`agenticpay.bilateral.basic.task1` and
+`agenticpay.bilateral.realistic.s01_beauty_product` both carry `world_seed=1`) — harmless,
+since `case_id` (not `world_seed`) disambiguates identity everywhere the kernel checks it, but
+noted here since tau3's single-split corpus never had to make this choice.
