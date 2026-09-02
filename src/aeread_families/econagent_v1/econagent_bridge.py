@@ -63,8 +63,41 @@ class EconAgentBridgeError(RuntimeError):
     """The bridge subprocess ran but reported an infrastructure failure.
 
     This covers a malformed request, a protocol violation (closed pipe, non-
-    JSON output), or an exception raised by the driver's own dispatch --
-    never a silent, partially-applied episode step.
+    JSON output), or an exception raised by the driver's own dispatch. Never
+    a *fabricated* result -- but see
+    :class:`EconAgentBridgeMutationOutcomeUnknownError` for the one case
+    where this class's own guarantee ("the caller can tell whether the step
+    actually happened") does not hold.
+    """
+
+
+class EconAgentBridgeMutationOutcomeUnknownError(EconAgentBridgeError):
+    """A ``step_month`` request's outcome could not be confirmed.
+
+    The driver runs the real, mutating ``env.step(actions)`` (inside
+    ``_op_step_month``) BEFORE it writes and flushes its response
+    (``econagent_bridge_driver.py``'s ``main()`` loop only serializes and
+    writes a response after ``_dispatch`` returns). If the subprocess or the
+    pipe fails in that window -- after the month executed upstream, before
+    the response reached this caller -- the month may already have run even
+    though no result was ever observed here. This is never safe to treat the
+    same as "the month was never attempted": a caller retrying the same
+    ``step_month`` request against a fresh session could double-apply it,
+    and a caller assuming it never happened could silently lose that
+    month's real state. The only safe response is to abandon this episode's
+    session for good -- never resumed, never retried on the same or a new
+    session -- which is exactly what ``EconAgentV1Plugin.step()`` already
+    does for any bridge failure (one ``EconAgentBridge``/subprocess serves
+    exactly one episode; see ``environment.py``). This distinct exception
+    type makes that "abandon, never retry" contract explicit and machine-
+    checkable, rather than an accident of no retry logic existing today.
+
+    Raised only for ``step_month`` -- the one request that is genuinely
+    mutating and stateful in a way that cannot be safely repeated
+    (``recompute_tax``/``resolve_env_config`` are pure functions of their
+    inputs and safe to retry; a lost ``reset``/``start_episode`` response
+    means the episode never meaningfully began from this caller's
+    perspective, not an ambiguous partial mutation).
     """
 
 
@@ -342,11 +375,18 @@ class EconAgentBridge:
         line = process.stdout.readline()
         if not line:
             stderr_tail = process.stderr.read() if process.stderr else ""
-            raise EconAgentBridgeError(
+            message = (
                 f"bridge subprocess produced no response for "
                 f"op={request.get('op')!r} (exit={process.poll()}); "
                 f"stderr:\n{stderr_tail}"
             )
+            if request.get("op") == "step_month":
+                raise EconAgentBridgeMutationOutcomeUnknownError(
+                    "step_month's outcome could not be confirmed -- the month "
+                    f"may have already executed upstream even though no "
+                    f"response was ever received: {message}"
+                )
+            raise EconAgentBridgeError(message)
         return self._parse_response_line(line, None, op=str(request.get("op")))
 
     def _parse_response_line(
@@ -373,6 +413,7 @@ __all__ = [
     "DEFAULT_VENV_PYTHON",
     "EconAgentBridge",
     "EconAgentBridgeError",
+    "EconAgentBridgeMutationOutcomeUnknownError",
     "EconAgentBridgeUnavailableError",
     "discover_bridge_python",
 ]

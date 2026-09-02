@@ -39,6 +39,7 @@ no provisioned bridge interpreter is available -- following
 from __future__ import annotations
 
 import asyncio
+import io
 import json
 import os
 from pathlib import Path
@@ -54,6 +55,7 @@ from aeread.shared_runner.scheduler import SchedulerContractError, run_episode
 from aeread_families.econagent_v1.econagent_bridge import (
     EconAgentBridge,
     EconAgentBridgeError,
+    EconAgentBridgeMutationOutcomeUnknownError,
     EconAgentBridgeUnavailableError,
     discover_bridge_python,
 )
@@ -516,6 +518,112 @@ def test_golden_bridge_killed_mid_episode_yields_a_typed_failure_never_a_scored_
 
     # Clean up (the process is already dead; this just drops the handle).
     plugin._sessions.pop(state["bridge_session_id"], None)
+
+
+def test_request_raises_a_distinctly_typed_error_when_a_step_month_response_never_arrives() -> None:
+    """Pure, no subprocess: ``EconAgentBridge._request``'s own dispatch logic
+    must raise :class:`EconAgentBridgeMutationOutcomeUnknownError` -- never
+    the plain :class:`EconAgentBridgeError` an ordinary bridge failure
+    raises -- specifically for a ``step_month`` request whose response never
+    arrives (docs/econagent_codex_triage.md finding 3: the driver's real
+    mutation runs before it writes and flushes a response, so this ambiguity
+    can never be safely treated the same as "the month was never
+    attempted"). A minimal fake process double (write succeeds, then EOF on
+    read) exercises the real, unmodified ``_request`` method deterministically.
+    """
+
+    class _EOFStdout:
+        def readline(self) -> str:
+            return ""  # EOF: no response ever arrives
+
+    class _FakeProcess:
+        def __init__(self) -> None:
+            self.stdin = io.StringIO()
+            self.stdout = _EOFStdout()
+            self.stderr = io.StringIO("simulated crash")
+
+        def poll(self) -> int:
+            return -9  # simulated SIGKILL exit code
+
+    bridge = EconAgentBridge(
+        python_executable=Path("/nonexistent/python"),
+        upstream_root=UPSTREAM_ROOT,
+    )
+    bridge._process = _FakeProcess()  # type: ignore[assignment]
+
+    with pytest.raises(EconAgentBridgeMutationOutcomeUnknownError):
+        bridge._request({"op": "step_month"})
+
+
+def test_request_raises_the_generic_error_when_a_non_mutating_response_never_arrives() -> None:
+    """Companion guard: an op other than ``step_month`` hitting the exact
+    same "no response ever arrives" branch must still raise the plain,
+    generic ``EconAgentBridgeError`` -- proving the new, more specific
+    exception type is scoped to the one genuinely ambiguous, mutating
+    request, not applied indiscriminately to every bridge failure."""
+
+    class _EOFStdout:
+        def readline(self) -> str:
+            return ""
+
+    class _FakeProcess:
+        def __init__(self) -> None:
+            self.stdin = io.StringIO()
+            self.stdout = _EOFStdout()
+            self.stderr = io.StringIO("simulated crash")
+
+        def poll(self) -> int:
+            return -9
+
+    bridge = EconAgentBridge(
+        python_executable=Path("/nonexistent/python"),
+        upstream_root=UPSTREAM_ROOT,
+    )
+    bridge._process = _FakeProcess()  # type: ignore[assignment]
+
+    with pytest.raises(EconAgentBridgeError) as excinfo:
+        bridge._request({"op": "agent_snapshot"})
+    assert not isinstance(excinfo.value, EconAgentBridgeMutationOutcomeUnknownError)
+
+
+def test_golden_a_lost_step_month_response_is_a_distinctly_typed_mutation_outcome_unknown_error() -> None:
+    """Regression test for the "mutation can precede every durable outcome"
+    finding (docs/econagent_codex_triage.md finding 3):
+    ``econagent_bridge_driver.py`` calls the real, mutating
+    ``env.step(actions)`` before writing and flushing its response; if the
+    process crashes in that window, upstream has already executed the month
+    even though the caller never receives a result -- a retry could not
+    distinguish "not executed" from "executed, response lost".
+
+    A hand-crafted, test-only fault-injection marker on an otherwise-real
+    ``step_month`` request (``_test_crash_before_responding``, reachable
+    only by this test, never by any real caller -- see
+    ``econagent_bridge_driver.py``'s own docstring) performs the exact same
+    real mutation ``_op_step_month`` performs and then exits immediately
+    without responding, deterministically reproducing this exact race
+    through the real upstream engine, never a mock. Assert the caller
+    receives the distinctly-typed
+    :class:`EconAgentBridgeMutationOutcomeUnknownError`, never the generic
+    :class:`EconAgentBridgeError`, so this ambiguity can never be silently
+    mistaken for "the month was never attempted".
+    """
+    _require_bridge()
+    bridge = EconAgentBridge.discover(UPSTREAM_ROOT)
+    bridge.start_episode(n_agents=4, episode_length=6, world_seed=0, beta=0.1, gamma=0.1, h=1.0)
+    try:
+        with pytest.raises(EconAgentBridgeMutationOutcomeUnknownError):
+            bridge._request(
+                {"op": "step_month", "_test_crash_before_responding": True}
+            )
+    finally:
+        # The process already exited on its own (os._exit inside the
+        # driver's crash op) -- mirrors the "bridge killed mid-episode"
+        # golden's own cleanup: calling bridge.close() here would try to
+        # write another request into an already-broken pipe, so just reap
+        # the dead process and drop the handle instead.
+        if bridge._process is not None:
+            bridge._process.wait(timeout=10)
+            bridge._process = None
 
 
 # ---------------------------------------------------------------------------

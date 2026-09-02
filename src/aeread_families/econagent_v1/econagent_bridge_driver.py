@@ -122,11 +122,22 @@ state and shared RNG stream, not a JSON-serializable snapshot).
       -> {"ok": false, "error_type": str, "message": str}, and the driver
          exits (a request-level error ends the whole session -- never
          silently recovered with unrelated state).
+
+  {"op": "step_month", "_test_crash_before_responding": true}
+      -- NOT part of the real protocol above and never sent by
+         ``EconAgentBridge``'s public API: a test-only fault-injection
+         marker on an otherwise-real ``step_month`` request (performs the
+         real mutation, then exits without responding) that exists solely
+         to reproduce docs/econagent_codex_triage.md's finding 3 ("mutation
+         can precede every durable outcome") deterministically for
+         ``tests/test_econagent_goldens.py``, through the real upstream
+         engine, never a mock.
 """
 from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
 from typing import Any
@@ -250,6 +261,32 @@ def _op_step_month(request: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+_TEST_CRASH_BEFORE_RESPONDING_KEY = "_test_crash_before_responding"
+
+
+def _op_step_month_and_crash_before_responding(request: dict[str, Any]) -> None:
+    """Test-only fault injection -- deterministically reproduces
+    docs/econagent_codex_triage.md finding 3 through the real upstream
+    engine, never a mock: performs the exact same mutation
+    ``_op_step_month`` performs (the real, mutating ``env.step(actions)``),
+    then exits immediately, without ever writing or flushing a response.
+
+    Not part of this driver's real protocol and not reachable through
+    ``EconAgentBridge``'s public API at all -- only reachable via a
+    hand-crafted raw ``{"op": "step_month", "_test_crash_before_responding":
+    true}`` request past the public API, exactly like this module's
+    existing ``_op_step_month`` bypass golden (the "invalid or
+    unauthorized" golden's bridge-protocol-layer case), so that the request
+    ``EconAgentBridge`` actually sees still has ``op="step_month"`` --
+    ``tests/test_econagent_goldens.py``'s regression test for finding 3
+    exercises the exact same client-side branch a real lost ``step_month``
+    response would hit, not a fake op name the client has no reason to know
+    about.
+    """
+    _op_step_month(request)  # the real mutation; its result is discarded on purpose
+    os._exit(1)  # no response is ever written -- the crash IS the point
+
+
 def _op_agent_snapshot(request: dict[str, Any]) -> dict[str, Any]:
     del request
     session = _require_session()
@@ -348,6 +385,9 @@ def _dispatch(request: dict[str, Any], upstream_root: Path) -> tuple[dict[str, A
     if op == "reset":
         return _op_reset(request, upstream_root), True
     if op == "step_month":
+        if request.get(_TEST_CRASH_BEFORE_RESPONDING_KEY):
+            _op_step_month_and_crash_before_responding(request)  # never returns
+            raise AssertionError("unreachable: the process above always exits first")
         return _op_step_month(request), True
     if op == "agent_snapshot":
         return _op_agent_snapshot(request), True
