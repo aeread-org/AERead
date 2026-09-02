@@ -289,6 +289,11 @@ class EpisodeResult:
     outcome: Any
     logical_action_count: int
     phase_instances: tuple[PhaseInstance, ...]
+    # Trailing with a default so pre-existing constructions stay valid. The
+    # case manifest's seed rides along so a scorer that must independently
+    # reproduce seeded randomness has a kernel-guaranteed route to it instead
+    # of every family stashing the seed inside its own state.
+    world_seed: int | None = None
 
 
 ResponseSource = Callable[[DecisionRequest], Awaitable[Any]]
@@ -888,6 +893,7 @@ async def run_episode(
         outcome=_freeze(outcome),
         logical_action_count=logical_action_count,
         phase_instances=tuple(instances),
+        world_seed=case.world_seed,
     )
     await _notify_lifecycle(
         response_source,

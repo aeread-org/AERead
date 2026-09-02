@@ -192,6 +192,17 @@ def test_simultaneous_phase_freezes_private_observations_and_steps_once() -> Non
     assert len(result.phase_instances[0].transitions) == 1
 
 
+def test_episode_result_carries_the_world_seed_for_score_time_replay() -> None:
+    """A scorer that must independently reproduce seeded randomness needs a
+    kernel-guaranteed route to the seed; the per-family workaround of stashing
+    it inside state is not a contract."""
+
+    requests: list = []
+    result = asyncio.run(_offers(requests))
+
+    assert result.world_seed == 41001
+
+
 def test_simultaneous_peer_observation_is_independent_of_other_peer_action() -> None:
     first_requests: list = []
     second_requests: list = []
