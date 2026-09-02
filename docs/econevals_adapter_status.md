@@ -2,6 +2,12 @@
 
 Branch `zeyu/econevals-adapter`. Last verified 2026-09-02.
 
+A second-reviewer fix pass ran against `docs/econevals_review_claude.md`
+(`docs/econevals_review_codex.md` was never produced) this session; see
+`docs/econevals_review_disposition.md` for the per-finding verification and
+fix record. Nothing found was a kernel/runner defect, so no
+`ledger_entries/econevals.md` entry was added on this pass.
+
 ## What the adapter claims
 
 For each of the 28 pilot instances (8 procurement + 12 scheduling + 8 pricing,
@@ -27,7 +33,7 @@ against the pinned bridge and hard-fails on any divergence.
 
 ## Evidence
 
-**101 passed, 0 failed**, the full econevals family test file set plus
+**107 passed, 0 failed**, the full econevals family test file set plus
 `tests/test_shared_runner_smoke.py`:
 
 ```bash
@@ -35,11 +41,17 @@ PYTHONPATH=src pytest \
   tests/test_econevals_cases.py tests/test_econevals_environment.py \
   tests/test_econevals_measurement.py tests/test_econevals_tools.py \
   tests/test_econevals_replay.py tests/test_shared_runner_smoke.py -q
-# 101 passed in 178.52s (0:02:58)
+# 107 passed in 154.80s (0:02:34)
 ```
 
-Breakdown: cases 21, environment 25, measurement 24, tools 12, replay 9,
-shared-runner smoke 10.
+Breakdown: cases 22, environment 29, measurement 24, tools 12, replay 10,
+shared-runner smoke 10. The delta from the previous 101 (cases 21,
+environment 25, replay 9) is the second-reviewer fix pass
+(`docs/econevals_review_disposition.md`): a `conftest.py` marker-coverage
+regression test in `test_econevals_cases.py`; four goldens (1, 2, 3, 5)
+driven through the real `step()` path in `test_econevals_environment.py`;
+and a bridge-required-during-replay regression test in
+`test_econevals_replay.py`.
 
 **Milestone 3 additions, specifically:**
 
@@ -90,6 +102,16 @@ checked-in pilot corpus, the scheduler path, or any scoring rule.
 
 ## Known limits, stated rather than implied
 
+- **The five QC Gate-2 goldens now have `step()`-level coverage but are not
+  yet individually sealed and offline-replayed.** `docs/econevals_review_disposition.md`
+  finding 2: each golden is now driven through a real `parse_action`/
+  `legal`/`step` period (`tests/test_econevals_environment.py`), not merely
+  a hand-typed `attempt` dict fed to the scorer, but spec section 5's
+  literal "replay each of the 5 goldens from its sealed episode record" is
+  not yet wired up for all five — `tests/test_econevals_replay.py` replays
+  one live pricing episode end to end, and the same already-proven
+  machinery would need to be pointed at each golden's own scripted
+  trajectory. Left for a follow-up pass.
 - **No mutation testing was performed this milestone.** `tau3_retail`'s own
   status doc reports two coverage gaps mutation testing found; the same
   exercise has not been run against this family's harness/replay/step
