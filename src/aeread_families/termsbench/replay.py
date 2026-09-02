@@ -403,7 +403,13 @@ class ReplayReport:
 
     @property
     def status(self) -> str:
-        if self.comparison is not None and not self.comparison.matches:
+        if self.comparison is None:
+            # A genuinely offline replay (no original ``EpisodeResult`` in
+            # memory) never performed any original-vs-replayed comparison --
+            # an explicit, typed "not comparable", never a fabricated
+            # "match" (Codex review finding 3).
+            return "not_comparable"
+        if not self.comparison.matches:
             return "mismatch"
         return "match"
 

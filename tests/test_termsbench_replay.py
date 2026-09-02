@@ -311,6 +311,33 @@ def test_replay_and_verify_end_to_end_returns_a_matching_report_for_the_nodeal_c
     assert report.scores.feasible_agreement is None
 
 
+def test_replay_and_verify_without_an_original_is_not_comparable_not_a_fabricated_match(
+    tmp_path: Path,
+) -> None:
+    """Exercises the genuinely offline entrypoint itself (``replay_and_verify``
+    with no ``original``), not a hand-built ``ReplayReport`` -- a previously
+    recorded (or tampered) episode replayed with no in-memory
+    ``EpisodeResult`` to diff against never had any original-vs-replayed
+    comparison performed, so ``status`` must say so explicitly rather than
+    reporting the same ``"match"`` a real, checked agreement would report
+    (Codex review finding 3)."""
+    case, cell, plugin, evidence, original = _run_live_nodeal(tmp_path, suffix="offline")
+    evidence.close()
+    recorded = record_episode(original)
+    scorer = _scorer_for(case)
+
+    registry = PluginRegistry()
+    replay_plugin = register_plugin(registry)
+
+    report = asyncio.run(
+        replay_and_verify(cell=cell, case=case, plugin=replay_plugin, scorer=scorer, recorded=recorded)
+    )
+
+    assert report.comparison is None
+    assert report.status == "not_comparable"
+    assert report.status != "match"
+
+
 def test_sealed_evidence_draws_match_the_recorded_response_draws(tmp_path: Path) -> None:
     """Ties the two milestone-3 claims together: what the harness sealed
     into EvidenceStore per round is exactly what record_episode/replay later
