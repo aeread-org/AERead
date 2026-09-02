@@ -66,6 +66,27 @@ def test_case_id_rejects_colon_before_rllm_can_truncate_it() -> None:
         CaseManifest.from_dict(data)
 
 
+def test_upstream_task_id_rejects_colon_before_rllm_can_collapse_grouping() -> None:
+    data = case_data()
+    data["upstream_task_id"] = "retail:14"
+
+    with pytest.raises(AuthoringValidationError, match="valid identifier"):
+        CaseManifest.from_dict(data)
+
+
+def test_upstream_task_id_must_pass_the_identifier_grammar_when_present() -> None:
+    data = case_data()
+    data["upstream_task_id"] = "Task 14"
+    with pytest.raises(AuthoringValidationError, match="valid identifier"):
+        CaseManifest.from_dict(data)
+
+    data["upstream_task_id"] = "tau2_retail.14"
+    assert CaseManifest.from_dict(data).upstream_task_id == "tau2_retail.14"
+
+    del data["upstream_task_id"]
+    assert CaseManifest.from_dict(data).upstream_task_id is None
+
+
 def family_data() -> dict:
     return {
         "spec_version": "aeread.family/0.1",

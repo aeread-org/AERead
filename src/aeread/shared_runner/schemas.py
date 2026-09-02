@@ -124,6 +124,10 @@ def _optional_string(value: Any, path: str) -> str | None:
     return None if value is None else _string(value, path)
 
 
+def _optional_identifier(value: Any, path: str) -> str | None:
+    return None if value is None else _identifier(value, path)
+
+
 def _optional_integer(
     value: Any, path: str, *, minimum: int | None = None
 ) -> int | None:
@@ -517,7 +521,11 @@ class CaseManifest:
                 data["provenance"], "CaseManifest.provenance"
             ),
             content_sha256=_sha256(data["content_sha256"], "CaseManifest.content_sha256"),
-            upstream_task_id=_optional_string(
+            # External benchmark ids ride into rLLM row ids and GRPO group
+            # keys; a colon here once collapsed grouping into one group, so
+            # the exportable-identifier grammar applies (adapters normalize
+            # foreign ids and keep the raw value in provenance/payload).
+            upstream_task_id=_optional_identifier(
                 data.get("upstream_task_id"), "CaseManifest.upstream_task_id"
             ),
         )
