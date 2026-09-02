@@ -1,35 +1,44 @@
 """Provider-free scheduler coverage for the ``aucarena`` environment plugin.
 
 Drives all five QC Gate-2 goldens (spec section 5) through the real kernel
-phase scheduler (``aeread.shared_runner.scheduler.run_episode``) with a
-scripted, in-test response source -- there is no ``harness.py`` module for
-this family (spec section 4): the whole per-round decision is "one seat's
-raw bid text", so a thin per-test policy function is enough.
+phase scheduler (``aeread.shared_runner.scheduler.run_episode``) with the
+shipped ``ScriptedAucArenaHarness`` (``harness.py``, milestone 3 -- promoted
+from an in-test class milestone 1 defined here, back when no shipped module
+existed yet; see that spec section's milestone-1 note): the whole per-round
+decision is "one seat's raw bid text", so a thin per-test policy function
+plus that harness is enough.
 
 These tests assert mechanical correctness of the environment (legality,
 hammer determination, budget/profit bookkeeping, termination) -- leaf-result
 assertions for the four declared ``MeasurementLeafSpec`` leaves live in
 ``tests/test_aucarena_measurement.py`` instead, against
-``AucArenaPlugin.build_scorer``'s real scorer (``measurement.py``).
+``AucArenaPlugin.build_scorer``'s real scorer (``measurement.py``). Sealed,
+tamper-evident evidence for a real, multi-episode run through this harness
+is covered at the bottom of this module; replaying such a run offline lives
+in ``tests/test_aucarena_replay.py``.
 """
 from __future__ import annotations
 
 import asyncio
 import json
 from pathlib import Path
-from types import MappingProxyType
-from typing import Any, Callable
+from types import MappingProxyType, SimpleNamespace
+from typing import Any
 
+import pytest
+
+from aeread.shared_runner.execution import EvidenceSealedError, EvidenceStore
 from aeread.shared_runner.registry import REQUIRED_FAMILY_PLUGIN_HOOKS, PluginRegistry
 from aeread.shared_runner.resolver import PlanCell, canonical_json_bytes
 from aeread.shared_runner.schemas import CaseManifest
-from aeread.shared_runner.scheduler import DecisionRequest, EpisodeResult, run_episode
+from aeread.shared_runner.scheduler import EpisodeResult, run_episode
 from aeread_families.aucarena.environment import (
     AucArenaPlugin,
     BID_ROUND_PHASE,
     family_manifest,
     register_plugin,
 )
+from aeread_families.aucarena.harness import Policy, ScriptedAucArenaHarness
 
 CASES_DIR = Path("cases/aucarena/pilot")
 
@@ -68,25 +77,6 @@ def _cell(case: CaseManifest) -> PlanCell:
         execution_mode="evaluate",
         case_max_logical_actions=case.episode.max_logical_actions,
     )
-
-
-Policy = Callable[[str, Any], str]
-
-
-class ScriptedAucArenaHarness:
-    """Minimal provider-free ``ResponseSource``: one text policy per seat_id.
-
-    A "rule" seat's raw response is accepted but never inspected by
-    ``parse_action`` (its bid is computed internally from the vendored
-    ``bid_rule``), so this harness always returns ``""`` for any seat the
-    policy does not recognize.
-    """
-
-    def __init__(self, policy: Policy) -> None:
-        self._policy = policy
-
-    async def __call__(self, request: DecisionRequest) -> str:
-        return self._policy(request.seat_id, request.observation)
 
 
 def _min_markup_policy(seat_id: str, observation: Any) -> str:
@@ -308,7 +298,8 @@ def test_golden_5_single_seat_withdraws_and_item_fails_to_sell() -> None:
 # ---------------------------------------------------------------------------
 # Determinism / replay-readiness: same case, same policy, same seed -> the
 # same terminal outcome every time (no upstream import, no network; this is
-# what lets replay.py be exact by construction in a later milestone).
+# what lets replay.py be exact by construction -- see replay.py and
+# tests/test_aucarena_replay.py, milestone 3).
 # ---------------------------------------------------------------------------
 
 
@@ -318,3 +309,112 @@ def test_golden_1_is_deterministic_across_repeated_runs() -> None:
     second = _run(case, _min_markup_policy)
     assert first.outcome == second.outcome
     assert first.final_state == second.final_state
+
+
+# ---------------------------------------------------------------------------
+# Milestone 3: the shipped ``ScriptedAucArenaHarness`` seals every bid
+# decision it serves into a real ``EvidenceStore`` -- a tamper-evident,
+# hash-chained log of the one externally-supplied input this family's
+# environment ever consumes. Two full episodes (goldens 1 and 3, chosen for
+# distinct shapes: a full 4-item multi-round auction vs. a single illegal-bid
+# episode) each drive their own sealed evidence generation through the real
+# kernel scheduler -- not a hand-wired shortcut around ``run_episode``.
+# ---------------------------------------------------------------------------
+
+
+def _run_sealed(
+    case: CaseManifest, policy: Policy, evidence: EvidenceStore
+) -> tuple[EpisodeResult, ScriptedAucArenaHarness]:
+    plugin = AucArenaPlugin()
+    registry = PluginRegistry()
+    register_plugin(registry, plugin=plugin)
+    resolved = registry.resolve_manifest(family_manifest())
+    cell = _cell(case)
+    harness = ScriptedAucArenaHarness(policy, evidence=evidence)
+    result = asyncio.run(
+        run_episode(cell=cell, case=case, plugin=resolved, response_source=harness)
+    )
+    return result, harness
+
+
+def test_two_full_episodes_each_produce_independently_sealed_evidence(
+    tmp_path: Path,
+) -> None:
+    golden_1_evidence = EvidenceStore(
+        tmp_path / "golden_1_evidence",
+        run_plan_id="runplan_aucarena_sealed",
+        cell_id="cell_aucarena_sealed_golden_1",
+        episode_id="episode_aucarena_sealed_golden_1",
+        episode_attempt_id="attempt_1",
+    )
+    golden_1_result, golden_1_harness = _run_sealed(
+        _case("successful"), _min_markup_policy, golden_1_evidence
+    )
+
+    golden_3_evidence = EvidenceStore(
+        tmp_path / "golden_3_evidence",
+        run_plan_id="runplan_aucarena_sealed",
+        cell_id="cell_aucarena_sealed_golden_3",
+        episode_id="episode_aucarena_sealed_golden_3",
+        episode_attempt_id="attempt_1",
+    )
+    golden_3_result, golden_3_harness = _run_sealed(
+        _case("invalid_unauthorized"), _illegal_150_policy, golden_3_evidence
+    )
+
+    # Both episodes actually ran, end to end, through the real scheduler.
+    assert golden_1_result.terminal["reason"] == "auction_complete"
+    assert golden_3_result.terminal["reason"] == "auction_complete"
+    assert len(golden_1_harness.requests) == golden_1_result.logical_action_count
+    assert len(golden_3_harness.requests) == golden_3_result.logical_action_count
+
+    for evidence, result in (
+        (golden_1_evidence, golden_1_result),
+        (golden_3_evidence, golden_3_result),
+    ):
+        evidence.verify_chain()
+        events = evidence.read_events()
+        assert [event.event_type for event in events] == (
+            ["bid_decision_served"] * result.logical_action_count
+        )
+        # Sealing is durable and independently re-verifiable: a second call
+        # returns the identical seal, and a fresh audit-only handle on the
+        # same directory verifies it too -- this is the tamper-evident
+        # guarantee, not just an in-memory claim.
+        seal = evidence.seal()
+        assert evidence.seal() == seal
+        audited = EvidenceStore.audit_existing(evidence.root)
+        assert audited.verify_seal() == seal
+
+    # Every recorded event actually carries the response the harness served,
+    # keyed to the same phase_instance_id/logical_action_id the scheduler
+    # itself assigned -- not an empty or placeholder payload.
+    first_event = golden_3_evidence.read_events()[0]
+    payload = golden_3_evidence.read_event_payload(first_event)
+    assert payload["seat_id"] == "agent"
+    assert payload["response"] == "150"
+    assert first_event.phase_instance_id == golden_3_result.phase_instances[0].phase_instance_id
+
+
+def test_sealed_evidence_rejects_further_writes(tmp_path: Path) -> None:
+    evidence = EvidenceStore(
+        tmp_path / "sealed_rejects_writes",
+        run_plan_id="runplan_aucarena_sealed_reject",
+        cell_id="cell_aucarena_sealed_reject",
+        episode_id="episode_aucarena_sealed_reject",
+        episode_attempt_id="attempt_1",
+    )
+    _run_sealed(_case("valid_but_poor"), _always_withdraw_policy, evidence)
+    evidence.seal()
+
+    harness = ScriptedAucArenaHarness(_always_withdraw_policy, evidence=evidence)
+    fake_request = SimpleNamespace(
+        phase_id=BID_ROUND_PHASE,
+        seat_id="agent",
+        observation={},
+        phase_instance_id="phase_instance_fake",
+        logical_action_id="logical_action_fake",
+    )
+
+    with pytest.raises(EvidenceSealedError):
+        asyncio.run(harness(fake_request))
