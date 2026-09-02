@@ -339,9 +339,17 @@ class ReplayReport:
 
     @property
     def status(self) -> str:
-        if self.comparison is not None and not self.comparison.matches:
-            return "mismatch"
-        return "match"
+        """``"match"``/``"mismatch"`` when compared against a live run;
+        ``"not_compared"`` when no comparison was ever performed (``original``
+        was not supplied to :func:`replay_and_verify`) -- never a fabricated
+        ``"match"`` for a comparison that never happened. ``"match"`` is an
+        authenticated claim (a live original genuinely agreed), not merely
+        the absence of a disagreement (a critical review finding:
+        ``docs/steer_codex_triage.md`` finding 3).
+        """
+        if self.comparison is None:
+            return "not_compared"
+        return "match" if self.comparison.matches else "mismatch"
 
 
 async def replay_and_verify(

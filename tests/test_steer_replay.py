@@ -406,8 +406,59 @@ def test_replay_and_verify_with_no_original_is_still_scored_but_not_compared(
     )
 
     assert report.comparison is None
-    assert report.status == "match"  # no comparison means nothing to disagree with
+    # Finding 3 (docs/steer_codex_triage.md): a replay never compared against
+    # a live run must never report "match" -- that is an authenticated claim
+    # ("this replay agreed with a real original run"), not merely the
+    # absence of a disagreement. "not_compared" is the explicit, typed
+    # third state; see
+    # test_replay_report_status_distinguishes_an_uncompared_replay_from_a_verified_match
+    # below for the direct regression coverage.
+    assert report.status == "not_compared"
     assert report.score.primary.value == 1.0
+
+
+def test_replay_report_status_distinguishes_an_uncompared_replay_from_a_verified_match(
+    tmp_path: Path,
+) -> None:
+    """Finding 3 (docs/steer_codex_triage.md): before this fix,
+    ``ReplayReport.status`` returned ``"match"`` whenever ``comparison`` was
+    ``None`` -- exactly the same value a genuinely-compared, genuinely
+    matching replay reports. A caller that gates on ``status == "match"``
+    (this family's own sibling ``tau3_retail.parity`` does exactly that)
+    could not tell "verified against a live run" from "never compared at
+    all." The two must never collapse to the same status.
+    """
+    element = "transitivity"
+    row = _first_admitted_row(element)
+    case = _case(element, row["question_id"])
+    cell = _cell(case, suffix="status_distinct")
+    respond_text = json.dumps({"option_id": row["correct_option_id"]})
+
+    plugin, original = _run_original(
+        case, cell, respond_text, tmp_path=tmp_path, suffix="status_distinct"
+    )
+    recorded = record_episode(original)
+    scorer = plugin.build_scorer(plugin.validate_payload(case.payload))
+
+    compared_report = asyncio.run(
+        replay_and_verify(
+            cell=cell,
+            case=case,
+            plugin=plugin,
+            scorer=scorer,
+            recorded=recorded,
+            original=original,
+        )
+    )
+    uncompared_report = asyncio.run(
+        replay_and_verify(cell=cell, case=case, plugin=plugin, scorer=scorer, recorded=recorded)
+    )
+
+    assert compared_report.comparison is not None
+    assert compared_report.status == "match"
+    assert uncompared_report.comparison is None
+    assert uncompared_report.status == "not_compared"
+    assert uncompared_report.status != compared_report.status
 
 
 def test_replay_of_a_tampered_record_diverges_and_is_caught_by_comparison(
