@@ -183,6 +183,37 @@ unbuilt this milestone, per the run instruction that produced it: `measurement.p
 `tests/test_aucarena_vendored_upstream.py` (plain hand-computed-trace unit tests, not the
 richer parity-report runner this section names).
 
+**Implementation note (milestone 3).** `harness.py` and `replay.py` landed as shipped
+modules; `parity.py` remains intentionally unbuilt (unchanged from the milestone-1 decision
+above) — `tests/test_aucarena_parity.py` already covers the same component-parity claim
+directly, against the two independent code paths (`environment.py`'s own `step()` vs.
+`measurement.py`'s independent recompute), and a third module reimplementing that comparison
+would add indirection, not coverage.
+
+`harness.py`'s `ScriptedAucArenaHarness` is the milestone-1 in-test class, moved verbatim in
+behavior (`tests/test_aucarena_environment.py` now imports it) plus one addition: an optional
+`evidence: EvidenceStore | None = None` constructor argument (default `None`, so every
+existing call site is unaffected). When supplied, every served decision is sealed into the
+`EvidenceStore` as one `bid_decision_served` event, keyed by the scheduler's own
+`phase_instance_id`/`logical_action_id` — this family's analogue of `tau3_retail`'s
+tool-invocation evidence, applied to the one externally-supplied input this environment ever
+consumes (there is no delegated tool call to seal instead).
+
+`replay.py` mirrors `tau3_retail.replay`'s shape (`RecordedDecision`/`RecordedEpisode`/
+`RecordedResponseSource`/`replay_episode`/`compare_episode_results`/`score_replayed_episode`/
+`replay_and_verify`) but is simpler in one load-bearing way: this family has no bridge process
+and no wall-clock content anywhere in its state, so replay reproduces the final state
+**byte-identically**, not merely in content (`tau3_retail` must document and specifically work
+around a per-message timestamp field that never round-trips). `tests/test_aucarena_replay.py`
+found, empirically, that this family's `"simultaneous"` phase mode makes eligibility for the
+*next* round state-derived (the current highest bidder and each seat's withdraw flag, both set
+by the very bid values under test) — so corrupting a well-formed, still-legal recorded bid from
+the one informative seat (`"agent"`) does not quietly drift into a different terminal state, it
+changes which seat the scheduler must request next, and `RecordedResponseSource` catches that
+(surfaced as `SchedulerContractError` by the kernel scheduler's own response-source wrapping)
+before the replayed episode can complete at all — a stronger, earlier-failing integrity property
+than `tau3_retail`'s tool-hash check gives, discovered rather than designed in.
+
 Example provenance header (in `_vendored_upstream.py`, one per function):
 
 ```python
