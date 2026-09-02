@@ -26,6 +26,7 @@ from aeread.shared_runner.schemas import AuthoringValidationError, CaseManifest,
 from aeread_families.steer import cases as steer_cases
 from aeread_families.steer.steer_bridge import (
     SteerBridge,
+    SteerBridgeError,
     SteerBridgeUnavailableError,
     discover_bridge_python,
 )
@@ -82,10 +83,17 @@ pytestmark = pytest.mark.skipif(
 
 def _bridge() -> SteerBridge:
     assert BRIDGE_PYTHON is not None
+    # `expected_commit` is threaded through on every real bridge invocation
+    # this module makes, so the whole file's existing coverage doubles as
+    # regression coverage for the positive case: every one of these tests
+    # only passes today because the real, pinned upstream checkout's actual
+    # `git rev-parse HEAD` genuinely matches `UPSTREAM_COMMIT` (finding 2,
+    # docs/steer_codex_triage.md).
     return SteerBridge(
         python_executable=BRIDGE_PYTHON,
         upstream_root=UPSTREAM_ROOT,
         cache_root=CACHE_ROOT,
+        expected_commit=steer_cases.UPSTREAM_COMMIT,
     )
 
 
@@ -258,6 +266,41 @@ def test_flatten_is_deterministic_across_two_independent_subprocesses() -> None:
     assert first["admitted"] == second["admitted"]
     assert first["counts"] == second["counts"]
     assert first["file_hashes"] == second["file_hashes"]
+
+
+# ---------------------------------------------------------------------------
+# Finding 2 (docs/steer_codex_triage.md): false upstream pinning. Nowhere in
+# cases.py/steer_bridge.py/steer_bridge_driver.py ever read the real upstream
+# checkout's own git state -- `pins.json`'s `upstream_commit` was only ever
+# compared against the same hardcoded constant that wrote it. A bridge
+# pointed at a checkout whose real `git rev-parse HEAD` does not match the
+# commit the caller expects must now refuse outright, never silently import
+# from it.
+# ---------------------------------------------------------------------------
+
+
+def test_bridge_refuses_to_flatten_against_an_upstream_checkout_at_the_wrong_commit() -> None:
+    assert BRIDGE_PYTHON is not None
+    bridge = SteerBridge(
+        python_executable=BRIDGE_PYTHON,
+        upstream_root=UPSTREAM_ROOT,
+        cache_root=CACHE_ROOT,
+        expected_commit="0" * 40,
+    )
+    with pytest.raises(SteerBridgeError, match="revision mismatch"):
+        bridge.flatten_element("transitivity", head_n=1)
+
+
+def test_bridge_refuses_an_upstream_root_that_is_not_a_git_checkout(tmp_path: Path) -> None:
+    assert BRIDGE_PYTHON is not None
+    bridge = SteerBridge(
+        python_executable=BRIDGE_PYTHON,
+        upstream_root=tmp_path,
+        cache_root=CACHE_ROOT,
+        expected_commit=steer_cases.UPSTREAM_COMMIT,
+    )
+    with pytest.raises(SteerBridgeError, match="not a readable git checkout"):
+        bridge.flatten_element("transitivity", head_n=1)
 
 
 # ---------------------------------------------------------------------------

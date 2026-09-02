@@ -334,7 +334,11 @@ def main(argv: list[str] | None = None) -> None:
         "corpus_manifest.json",
     )
     args = parser.parse_args(argv)
-    bridge = SteerBridge.discover(upstream_root=args.upstream_root, cache_root=args.cache_root)
+    bridge = SteerBridge.discover(
+        upstream_root=args.upstream_root,
+        cache_root=args.cache_root,
+        expected_commit=UPSTREAM_COMMIT,
+    )
     run_import(bridge, args.output_dir, args.cache_root)
 
 

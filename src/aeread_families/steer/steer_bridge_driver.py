@@ -65,6 +65,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import subprocess
 import sys
 import urllib.request
 from pathlib import Path
@@ -72,6 +73,43 @@ from typing import Any
 
 FILES: tuple[str, ...] = ("questions", "options", "answers", "questions_metadata")
 BASE_URL = "https://media.githubusercontent.com/media/narunraman/STEER/main"
+
+
+def _verify_upstream_commit(upstream_root: Path, expected_commit: str) -> None:
+    """Refuse an ``upstream_root`` that is not really checked out at
+    ``expected_commit`` -- the real upstream git state, read here for the
+    first time in this adapter, never merely re-compared against the
+    constant that produced it (a critical review finding:
+    ``docs/steer_codex_triage.md`` finding 2). Mirrors
+    ``aeread_families.tau3_retail.environment``'s identical
+    ``rev-parse``/``status --porcelain`` check, run here instead because this
+    driver -- not the runtime environment plugin -- is the one place in this
+    adapter that ever touches the real checkout.
+    """
+    revision = subprocess.run(
+        ["git", "-C", str(upstream_root), "rev-parse", "HEAD"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if revision.returncode != 0:
+        raise ValueError(
+            f"upstream_root {upstream_root} is not a readable git checkout: "
+            f"{revision.stderr.strip()}"
+        )
+    if revision.stdout.strip() != expected_commit:
+        raise ValueError(
+            "upstream checkout revision mismatch: "
+            f"expected {expected_commit}, got {revision.stdout.strip()}"
+        )
+    status = subprocess.run(
+        ["git", "-C", str(upstream_root), "status", "--porcelain"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if status.returncode != 0 or status.stdout:
+        raise ValueError(f"upstream checkout at {upstream_root} must be clean")
 
 
 def _read_pointer_oid(path: Path) -> str:
@@ -314,8 +352,17 @@ def main(argv: list[str] | None = None) -> int:
         help="directory holding bridges/steer-data/<element>/*.pkl, outside "
         "version control per the corpus's no-license constraint",
     )
+    parser.add_argument(
+        "--expected-commit",
+        default=None,
+        help="if given, refuse to run any op unless --upstream-root is a "
+        "clean git checkout at exactly this commit (docs/steer_adapter_spec.md's "
+        "pinned d66673c8277b9112fc5e39751524ccda6d852446)",
+    )
     args = parser.parse_args(argv)
     try:
+        if args.expected_commit is not None:
+            _verify_upstream_commit(args.upstream_root, args.expected_commit)
         request = json.loads(sys.stdin.read())
         if not isinstance(request, dict):
             raise ValueError("request must be a JSON object")

@@ -124,11 +124,13 @@ class SteerBridge:
         python_executable: Path | str,
         upstream_root: Path | str,
         cache_root: Path | str,
+        expected_commit: str | None = None,
         timeout_seconds: float = _DEFAULT_TIMEOUT_SECONDS,
     ) -> None:
         self.python_executable = Path(python_executable)
         self.upstream_root = Path(upstream_root)
         self.cache_root = Path(cache_root)
+        self.expected_commit = expected_commit
         self.timeout_seconds = timeout_seconds
 
     @classmethod
@@ -137,26 +139,31 @@ class SteerBridge:
         *,
         upstream_root: Path | str,
         cache_root: Path | str,
+        expected_commit: str | None = None,
         timeout_seconds: float = _DEFAULT_TIMEOUT_SECONDS,
     ) -> "SteerBridge":
         return cls(
             python_executable=discover_bridge_python(),
             upstream_root=upstream_root,
             cache_root=cache_root,
+            expected_commit=expected_commit,
             timeout_seconds=timeout_seconds,
         )
 
     def _run(self, request: dict[str, Any]) -> dict[str, Any]:
+        command = [
+            str(self.python_executable),
+            str(_DRIVER_SCRIPT),
+            "--upstream-root",
+            str(self.upstream_root),
+            "--cache-root",
+            str(self.cache_root),
+        ]
+        if self.expected_commit is not None:
+            command.extend(["--expected-commit", self.expected_commit])
         try:
             completed = subprocess.run(
-                [
-                    str(self.python_executable),
-                    str(_DRIVER_SCRIPT),
-                    "--upstream-root",
-                    str(self.upstream_root),
-                    "--cache-root",
-                    str(self.cache_root),
-                ],
+                command,
                 input=json.dumps(request).encode("utf-8"),
                 capture_output=True,
                 env=dict(os.environ),
