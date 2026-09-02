@@ -13,6 +13,7 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+import sys
 from pathlib import Path
 from types import MappingProxyType, SimpleNamespace
 
@@ -237,6 +238,73 @@ def test_round_1_proportional_bids_and_winner_match_the_hand_verified_golden() -
         assert transition.state["players"][seat]["alive"] is True
     assert transition.next_phase_id == "bid"
     assert transition.state["termination"] is None
+
+
+# ---------------------------------------------------------------------------
+# Codex triage finding 1 -- `observe` must show this round's already-credited
+# salary and a leak-free public settlement history (docs/alympics_codex_triage.md).
+# ---------------------------------------------------------------------------
+
+
+def test_observe_shows_post_salary_balance_and_prior_round_public_winners_history() -> None:
+    """Upstream's own `run_single_round` (`waterAllocation.py:150-171`) calls
+    `_get_salary()` (step 1) *before* `execute_bidding()` (step 2, which
+    embeds `get_status()` -- the post-salary balance -- into the very prompt
+    the agent bids from): every round, including round 1, a real upstream
+    agent decides its bid already knowing this round's salary is credited.
+    `observe()` used to return the balance carried over from the *previous*
+    round's settlement instead -- one salary payment short, every round,
+    with `STARTING_BALANCE` (0) and no round-1 salary at all. It also never
+    told a seat anything about a prior round's public settlement (who won),
+    unlike upstream's own `round_results_prompt` broadcast to every
+    surviving player's own history -- this test pins both fixes at once,
+    through the real production `observe`/`parse_action`/`step` sequence
+    (never a hand-built stand-in)."""
+    plugin = _plugin()
+    case = _case("reference_baseline")
+    family_case = plugin.validate_payload(case.payload)
+    state = plugin.initial_state(family_case, None)
+    phase = plugin.phases(family_case)[0]
+
+    round_1_observations = {
+        seat: plugin.observe(family_case, state, seat, phase) for seat in SEAT_ORDER
+    }
+    for seat in SEAT_ORDER:
+        # STARTING_BALANCE is 0 for every seat; round 1's own about-to-be-
+        # credited salary must already be reflected, never the bare 0.
+        assert round_1_observations[seat]["balance"] == PERSONAS[seat]["daily_salary"]
+        # No round has completed yet -- an explicit, typed empty history,
+        # never a missing key a caller could confuse with "not implemented".
+        assert round_1_observations[seat]["public_round_history"] == []
+
+    actions = {}
+    for seat in SEAT_ORDER:
+        raw = {"bid": 3 * round_1_observations[seat]["requirement"]}
+        parsed = plugin.parse_action(family_case, state, seat, phase, raw)
+        actions[seat] = SimpleNamespace(action=parsed.action)
+    transition = plugin.step(family_case, state, phase, actions)
+    state = transition.state
+    round_1_log = state["round_log"][0]
+
+    round_2_observations = {
+        seat: plugin.observe(family_case, state, seat, phase) for seat in SEAT_ORDER
+    }
+    for seat in SEAT_ORDER:
+        # `state["players"][seat]["balance"]` is `_delegate_round`'s own
+        # real, delegated post-round-1 settlement figure -- never re-derived
+        # here -- plus round 2's own about-to-be-credited salary.
+        expected_balance = state["players"][seat]["balance"] + PERSONAS[seat]["daily_salary"]
+        assert round_2_observations[seat]["balance"] == expected_balance
+        # Round 1's real winner is now visible -- but never another seat's
+        # balance/hp/no_drink (the leakage-audit boundary stays intact; see
+        # test_observation_never_contains_another_seats_status_or_bid).
+        assert round_2_observations[seat]["public_round_history"] == [
+            {
+                "round_id": 1,
+                "supply": round_1_log["supply"],
+                "winners": round_1_log["winners"],
+            }
+        ]
 
 
 def test_reference_baseline_runs_full_20_rounds_end_to_end_through_run_episode() -> None:
@@ -552,11 +620,18 @@ def test_observation_never_contains_another_seats_status_or_bid() -> None:
     }
     for seat in SEAT_ORDER:
         own_observation_text = json.dumps(observations[seat], sort_keys=True)
-        assert str(distinguishing_values[seat]) in own_observation_text
+        # `observe`'s own "balance" field is post-salary (finding 1's fix:
+        # this round's already-credited salary, matching upstream's real
+        # agent-visible balance) -- so the leaked/leak-free check must key
+        # off that projected figure, never the raw pre-salary state value.
+        own_expected_balance = distinguishing_values[seat] + PERSONAS[seat]["daily_salary"]
+        assert str(own_expected_balance) in own_observation_text
         for other_seat, other_value in distinguishing_values.items():
             if other_seat == seat:
                 continue
+            other_expected_balance = other_value + PERSONAS[other_seat]["daily_salary"]
             assert str(other_value) not in own_observation_text
+            assert str(other_expected_balance) not in own_observation_text
 
 
 # ---------------------------------------------------------------------------
@@ -625,3 +700,45 @@ def test_scheduler_aborts_the_episode_on_a_malformed_bid_schema() -> None:
                 response_source=_malformed_response_source,
             )
         )
+
+
+# ---------------------------------------------------------------------------
+# Codex triage finding 6 -- a `sys.modules["waterAllocation"]` pre-populated
+# by anything else in the process must never be silently trusted
+# (docs/alympics_codex_triage.md).
+# ---------------------------------------------------------------------------
+
+
+def test_load_upstream_rejects_a_waterallocation_module_already_bound_elsewhere() -> None:
+    """`_load_upstream` only ever guarded against importing upstream from
+    *two different roots across its own successive calls*
+    (`_UPSTREAM_ROOT_BY_MODULE`) -- it never checked whether
+    ``sys.modules["waterAllocation"]`` was already populated by anything
+    else (an unrelated package, a stray script, a leaked global from a
+    prior test) before this function's own first call. Python's
+    ``import waterAllocation``, when the name is already in ``sys.modules``,
+    returns the cached object without re-resolving against ``sys.path`` --
+    reproduced directly here by pre-populating the cache with a fake module
+    whose ``__file__`` is nowhere near the pinned upstream checkout, exactly
+    as the triage's own reproduction did."""
+    import types as types_module
+
+    module_key = "waterAllocation"
+    saved_module = sys.modules.pop(module_key, None)
+    saved_bound_root = environment_module._UPSTREAM_ROOT_BY_MODULE.pop(module_key, None)
+    try:
+        fake_module = types_module.ModuleType(module_key)
+        fake_module.__file__ = "/somewhere/else/not-the-pinned-checkout.py"
+        sys.modules[module_key] = fake_module
+
+        with pytest.raises(RuntimeError, match="waterAllocation"):
+            environment_module._load_upstream(UPSTREAM_ROOT)
+        # The fake module must never have been silently accepted as bound.
+        assert environment_module._UPSTREAM_ROOT_BY_MODULE.get(module_key) is None
+    finally:
+        sys.modules.pop(module_key, None)
+        environment_module._UPSTREAM_ROOT_BY_MODULE.pop(module_key, None)
+        if saved_module is not None:
+            sys.modules[module_key] = saved_module
+        if saved_bound_root is not None:
+            environment_module._UPSTREAM_ROOT_BY_MODULE[module_key] = saved_bound_root

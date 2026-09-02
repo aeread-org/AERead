@@ -206,6 +206,29 @@ def _load_upstream(upstream_root: Path) -> Any:
         import waterAllocation as wa_module  # noqa: F401 (also imports Alympics)
     finally:
         sys.dont_write_bytecode = previous_flag
+
+    # Python's own `import waterAllocation`, when the name is already in
+    # `sys.modules`, returns the cached object without re-resolving against
+    # `sys.path` -- if anything else in this process (an unrelated package,
+    # a stray script, a leaked global from a prior test) had already bound
+    # `sys.modules["waterAllocation"]` to a module from some other path,
+    # the `import` statement above would silently hand back *that* module
+    # instead. `_UPSTREAM_ROOT_BY_MODULE` only ever guarded this function's
+    # own prior calls, never this; verify the resolved module's real file
+    # actually lives under this exact pinned checkout before ever trusting
+    # it -- the adapter's whole provenance claim ("direct, unmodified
+    # import of the pinned upstream checkout... never a bridge, never
+    # reimplemented", this module's own docstring) depends on it.
+    resolved_file = Path(getattr(wa_module, "__file__", "") or "").resolve()
+    expected_file = (Path(upstream_root) / "src" / "waterAllocation.py").resolve()
+    if resolved_file != expected_file:
+        raise RuntimeError(
+            "waterAllocation resolved to an unexpected module -- expected "
+            f"{expected_file!r}, got {resolved_file!r}; something else in "
+            "this process may have already imported a module literally "
+            "named 'waterAllocation' from a different path"
+        )
+
     # Upstream logs every prompt/response at INFO level via its own
     # ``logging.basicConfig`` call; this adapter never reads or depends on
     # that output, so it is quieted purely for legible test/CI logs.
@@ -509,6 +532,18 @@ class AlympicsWacPlugin:
             raise ValueError(f"seat {seat_id!r} is already eliminated")
         persona = PERSONAS[seat_id]
         round_id = state["round_id"]
+        # Upstream's own `run_single_round` (`waterAllocation.py:150-171`)
+        # calls `_get_salary()` (step 1) before `execute_bidding()` (step 2,
+        # which embeds `get_status()` -- the post-salary balance -- into the
+        # very prompt the agent bids from): every round, including round 1,
+        # a real upstream agent already sees this round's salary credited
+        # before deciding its bid. `player_state["balance"]` here is the
+        # figure carried over from the *previous* round's settlement (never
+        # mutated until `_delegate_round` actually runs, later, for this
+        # round) -- one salary payment short of what upstream would show --
+        # so the observed balance projects that credit forward the same way
+        # upstream's own `get_status()` already would.
+        balance_after_salary = player_state["balance"] + persona["daily_salary"]
         return {
             "seat_id": seat_id,
             "requirement": persona["requirement"],
@@ -516,13 +551,31 @@ class AlympicsWacPlugin:
             # This seat's own status only -- never another seat's balance,
             # HP, no-drink streak, or (this round's) bid; leakage-audit
             # prerequisite for leaf 4 (spec section 2).
-            "balance": player_state["balance"],
+            "balance": balance_after_salary,
             "hp": player_state["hp"],
             "no_drink": player_state["no_drink"],
             "maximum_health": MAXIMUM_HEALTH,
             "round_id": round_id,
             "rounds_total": state["rounds_total"],
             "supply": state["supply_schedule"][round_id - 1],
+            # Prior rounds' *public* settlement only -- round id, supply,
+            # and who won (already public via upstream's own broadcast
+            # winner announcement) -- mirroring upstream's own
+            # `round_results_prompt`, which every surviving player's own
+            # `history` accumulates each round. Deliberately never any
+            # seat's balance/hp/no_drink (upstream's broadcast includes
+            # every survivor's full status; this adapter's own leakage-audit
+            # boundary -- spec section 2 leaf 4 -- does not permit that, a
+            # documented, intentional narrowing of upstream's fuller
+            # broadcast; see docs/alympics_adapter_spec.md section 6).
+            "public_round_history": [
+                {
+                    "round_id": entry["round_id"],
+                    "supply": entry["supply"],
+                    "winners": list(entry["winners"]),
+                }
+                for entry in state["round_log"]
+            ],
         }
 
     def parse_action(
