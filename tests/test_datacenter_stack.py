@@ -320,7 +320,7 @@ def test_model_to_model_plan_puts_every_seat_behind_the_harness(
     scope: str, expected_seats: set[str]
 ) -> None:
     setup = build_stack_model_to_model_setup(
-        scope, GLM_CANDIDATE.route, seed=20260831
+        scope, GLM_ROUTE, seed=20260831
     )
     cell = setup.plan.cells[0]
     profile_by_id = {
