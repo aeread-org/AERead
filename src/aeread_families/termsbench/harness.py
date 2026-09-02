@@ -17,6 +17,8 @@ from typing import Any, Mapping, Sequence
 
 import numpy as np
 
+from aeread.shared_runner.execution import EvidenceStore
+
 from . import kernel as k
 
 _SENTIMENT_TONE: Mapping[str, str] = {
@@ -77,6 +79,20 @@ class ScriptedTermsBenchHarness:
     (e.g. to hit a hand-derived golden's exact ``u_accept`` exactly, while
     still running the real formula so ``step()``'s replay-and-verify passes
     naturally rather than being bypassed).
+
+    ``evidence``, if supplied, receives one sealed ``EvidenceStore`` event per
+    logical action -- ``termsbench_agent_response`` for an agent turn,
+    ``termsbench_counterpart_draws`` for a counterpart turn -- tagged with
+    that action's own ``phase_instance_id``/``logical_action_id`` (spec
+    section 3.1/5: "every draw ``step()`` consumes must be sealed as evidence
+    per round"). There is no ``ToolRuntime`` in this family (no tool calls),
+    so this harness seals directly through ``EvidenceStore.append_event``
+    rather than through a tool-shaped ``ToolInvocationRecord`` -- the
+    adapter-owned analogue of tau3_retail's tool-execution evidence for a
+    family with no tools. Optional (default ``None``) so every existing
+    provider-free unit test that constructs this harness without an evidence
+    store keeps working unchanged; only the harness/replay tests that need a
+    durable, auditable evidence trail pass one in.
     """
 
     def __init__(
@@ -85,11 +101,13 @@ class ScriptedTermsBenchHarness:
         world_seed: int,
         script: Sequence[Mapping[str, Any]],
         counterpart_draws_by_round: Mapping[int, Mapping[str, float]] | None = None,
+        evidence: EvidenceStore | None = None,
     ):
         self.world_seed = world_seed
         self._script = list(script)
         self._agent_cursor = 0
         self._draws_override = dict(counterpart_draws_by_round or {})
+        self.evidence = evidence
         self.requests: list[Any] = []
 
     async def __call__(self, request: Any) -> dict[str, Any]:
@@ -99,12 +117,22 @@ class ScriptedTermsBenchHarness:
                 raise RuntimeError("agent script exhausted before episode termination")
             response = self._script[self._agent_cursor]
             self._agent_cursor += 1
-            return dict(response)
+            response = dict(response)
+            if self.evidence is not None:
+                self.evidence.append_event(
+                    "termsbench_agent_response",
+                    response,
+                    phase_instance_id=request.phase_instance_id,
+                    logical_action_id=request.logical_action_id,
+                    action_attempt_id=request.logical_action_id,
+                )
+            return response
         if request.phase_id == "counterpart_turn":
-            return self._resolve_counterpart(request.observation)
+            return self._resolve_counterpart(request)
         raise RuntimeError(f"unknown phase_id: {request.phase_id!r}")
 
-    def _resolve_counterpart(self, observation: Mapping[str, Any]) -> dict[str, Any]:
+    def _resolve_counterpart(self, request: Any) -> dict[str, Any]:
+        observation = request.observation
         round_k = observation["round"]
         override = self._draws_override.get(round_k)
         if override is not None:
@@ -128,7 +156,7 @@ class ScriptedTermsBenchHarness:
             counterpart_offers=tuple(observation["counterpart_offers"]),
             draws=draws,
         )
-        return {
+        response = {
             "resolved": decision.resolved,
             "price": decision.price,
             "sentiment_cue": decision.sentiment_cue,
@@ -137,6 +165,15 @@ class ScriptedTermsBenchHarness:
             "round": round_k,
             "draws": draws,
         }
+        if self.evidence is not None:
+            self.evidence.append_event(
+                "termsbench_counterpart_draws",
+                {"round": round_k, "draws": draws, "resolved": decision.resolved},
+                phase_instance_id=request.phase_instance_id,
+                logical_action_id=request.logical_action_id,
+                action_attempt_id=request.logical_action_id,
+            )
+        return response
 
     @property
     def exhausted(self) -> bool:
