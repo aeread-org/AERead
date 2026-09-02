@@ -59,6 +59,27 @@ enable_discount}` — the same resolver used by every other family (`is_exportab
 `case_id`, no upstream DB blob to pin separately since there is none). Two importer runs must
 be byte-identical (mirrors tau3 parity check P1).
 
+**Implementation note (milestone 1, `cases.py`/`environment.py`).** Three details reality
+settled that this section left implicit:
+
+- The payload also embeds `items`: the resolved `{id, name, desc, price, true_value}` record
+  for every id in `item_ids`, in order. This is what lets `environment.py` run without an
+  `upstream_root` at all (§3's "not delegated" argument extends past the vendored functions to
+  the item data itself) — the pinned pool is only ever read at import time (`cases.py`); the
+  runtime environment never touches the upstream checkout or the network. `items` is additive
+  to the digest inputs listed above, not a replacement for `item_pool_sha256` (which still pins
+  *which* pool the ids were resolved against).
+- `world_seed` is carried once, at the top-level `CaseManifest.world_seed` (mirrors
+  `tau3_retail`'s own convention) — not duplicated inside `payload`. `case_content_sha256`
+  hashes the whole `CaseManifest`, so this changes nothing about what the digest is sensitive
+  to.
+- `min_markup_pct` and `enable_discount` are **scenario-level** (`Auctioneer`-level upstream:
+  `auction_workflow.py:124,130` pass `auctioneer.min_markup_pct` — never a per-bidder
+  value — into every bidder's `bid_rule`/`bid_sanity_check` call), not per-roster-seat fields.
+  Each `payload.roster` entry therefore carries only `seat_id`, `model_name` (`"rule"` or
+  `"scripted"`), `budget`, and `max_bid_cnt` — not its own `min_markup_pct`/`enable_discount`,
+  despite this section's enumeration bullet reading that way.
+
 **Case id grammar.** `aucarena.pilot.<golden_name>_<NN>`, e.g. `aucarena.pilot.successful_01`
 — lower-case, dot/underscore-separated, no colons (`_ID_RE` in
 `src/aeread/shared_runner/schemas.py:20`).
@@ -150,6 +171,18 @@ cases/aucarena/pilot/
     aucarena.pilot.successful_01.json ... degenerate_reference_01.json
 ```
 
+**Implementation note (milestone 1).** No `harness.py` was built, deliberately: unlike
+`tau3_retail`, every decision slot in this family is "one seat's raw bid text" with no tool
+loop, so a five-line scripted policy function per test is enough. Milestone 1's own tests
+(`tests/test_aucarena_environment.py`) define a minimal in-test `ScriptedAucArenaHarness`
+instead of a shipped module; a real (non-milestone-1) evaluation run would supply the
+`"agent"`/tested seat's responses from whatever policy is under test, the same way. Also
+unbuilt this milestone, per the run instruction that produced it: `measurement.py`
+(`build_scorer` is registered but raises `NotImplementedError`), `replay.py`, and `parity.py`
+— `_vendored_upstream.py`'s pure functions are instead covered directly by
+`tests/test_aucarena_vendored_upstream.py` (plain hand-computed-trace unit tests, not the
+richer parity-report runner this section names).
+
 Example provenance header (in `_vendored_upstream.py`, one per function):
 
 ```python
@@ -164,7 +197,10 @@ def bid_sanity_check(bid_price, prev_round_max_bid, cur_item_price, budget, min_
 All five use the same 3-seat roster unless noted: `agent` (tested), `field_low` (rule,
 `budget=2000`), `field_high` (rule, `budget=9000`); `min_markup_pct=0.1`, `max_bid_cnt=4`,
 `enable_discount=False`; items from `data/pseudo_items.jsonl` ids 1-4 (`Widget A`..`Doodad D`,
-price 1000 / true_value 2000 each) unless noted.
+price 1000 / true_value 2000 each) unless noted. This section never fixed `agent`'s own budget;
+`cases.py` sets it to 3200 (see that constant's comment) because that is the value that makes
+golden 1's "always bid the legal minimum markup" seat win items 1-2 and lose 3-4 under this
+family's deterministic tie-break RNG — found by running the environment, not derived by hand.
 
 1. **`successful_01`.** `agent` bids the legal minimum markup on every round it stays in,
    winning 2 of 4 items and losing 2 to `field_high`; `field_low` withdraws immediately every
