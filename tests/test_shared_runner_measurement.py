@@ -40,6 +40,7 @@ def test_verifier_taxonomy_reference_kind_tables_name_only_real_kinds() -> None:
     hit MeasurementContractError. Conceptual claim-pattern names live in
     columns with other headings."""
 
+    import re
     from pathlib import Path
 
     from aeread.shared_runner.measurement import _REFERENCE_KINDS
@@ -61,7 +62,10 @@ def test_verifier_taxonomy_reference_kind_tables_name_only_real_kinds() -> None:
                 in_reference_kind_table = False
                 continue
             if stripped.startswith("| `"):
-                documented.append(stripped.split("`")[1])
+                # Every backticked token in the row's first cell, not just the
+                # first: a cell naming two kinds must have both checked.
+                first_cell = stripped.split("|")[1]
+                documented.extend(re.findall(r"`([^`]+)`", first_cell))
 
     assert documented, "the taxonomy doc must document reference kinds"
     fake = [kind for kind in documented if kind not in real_kinds]
