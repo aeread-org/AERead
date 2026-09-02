@@ -13,7 +13,9 @@ from .cases import (
     case_id,
 )
 from .environment import CollusionPlugin, family_manifest, register_plugin
+from .harness import ScriptedCollusionHarness
 from .measurement import CollusionScorer, build_leaves, build_scorer
+from .replay import RecordedEpisode, ReplayReport, record_episode, replay_and_verify, replay_episode
 
 __all__ = [
     "FAMILY_ID",
@@ -23,6 +25,9 @@ __all__ = [
     "TERMINATION_REASONS",
     "CollusionPlugin",
     "CollusionScorer",
+    "RecordedEpisode",
+    "ReplayReport",
+    "ScriptedCollusionHarness",
     "build_all_cases",
     "build_case",
     "build_case_payload",
@@ -31,5 +36,8 @@ __all__ = [
     "case_id",
     "economics",
     "family_manifest",
+    "record_episode",
     "register_plugin",
+    "replay_and_verify",
+    "replay_episode",
 ]

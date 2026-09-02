@@ -40,6 +40,12 @@ from .cases import (
     LOGICAL_ACTIONS_PER_ROUND,
     TERMINATION_REASONS,
 )
+from .harness import (
+    POLICY_ID_CONSTANT,
+    POLICY_ID_MONOPOLY_PLAY,
+    POLICY_ID_NASH_PLAY,
+    POLICY_ID_TIT_FOR_TAT,
+)
 
 PLUGIN_ID = "collusion_environment"
 SCORER_ID = "collusion_scorer"
@@ -159,10 +165,19 @@ def family_manifest() -> FamilyManifest:
             "roles": {
                 # Both seats share one role (spec section 1's case-manifest
                 # fields note: "both seats face the same decision each
-                # round"). Scripted policies (constant, tit-for-tat-style,
-                # Nash-play, monopoly-play; spec section 3) are a later
-                # milestone, so none are declared here yet.
-                "pricing_agent": {"testable": True, "scripted_policies": []}
+                # round"). The four scripted policies (spec section 3:
+                # constant, tit-for-tat-style, Nash-play, monopoly-play --
+                # none paper-specified) are implemented in ``harness.py``
+                # and land here in milestone 3.
+                "pricing_agent": {
+                    "testable": True,
+                    "scripted_policies": [
+                        POLICY_ID_CONSTANT,
+                        POLICY_ID_TIT_FOR_TAT,
+                        POLICY_ID_NASH_PLAY,
+                        POLICY_ID_MONOPOLY_PLAY,
+                    ],
+                },
             },
             "measurement": {
                 # The only declared leaf with a direction (spec section 2,
