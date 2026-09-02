@@ -44,6 +44,59 @@ def _extract(value: Mapping[str, Any], path: tuple[str, ...], label: str) -> Any
 
 
 @dataclass(frozen=True, slots=True)
+class ExternalParityCriterion:
+    """The original external claim that an adapted environment must reproduce."""
+
+    task_id: str
+    treatment_id: str
+    metric_id: str
+    source_reference: str
+    original_conclusion: str
+    tolerance_kind: str
+    tolerance: float
+
+    def __post_init__(self) -> None:
+        for label, value in (
+            ("task_id", self.task_id),
+            ("treatment_id", self.treatment_id),
+            ("metric_id", self.metric_id),
+        ):
+            if not is_exportable_id(value):
+                raise ParityContractError(
+                    f"{label} must be an exportable identifier"
+                )
+        if (
+            not isinstance(self.source_reference, str)
+            or not self.source_reference.strip()
+        ):
+            raise ParityContractError(
+                "source_reference must be a non-empty string"
+            )
+        if (
+            not isinstance(self.original_conclusion, str)
+            or not self.original_conclusion.strip()
+        ):
+            raise ParityContractError(
+                "original_conclusion must be a non-empty string"
+            )
+        if self.tolerance_kind not in {"absolute", "exact"}:
+            raise ParityContractError(
+                "tolerance_kind must be absolute or exact"
+            )
+        if (
+            isinstance(self.tolerance, bool)
+            or not isinstance(self.tolerance, (int, float))
+            or not math.isfinite(float(self.tolerance))
+            or self.tolerance < 0
+        ):
+            raise ParityContractError(
+                "tolerance must be a finite non-negative number"
+            )
+        if self.tolerance_kind == "exact" and self.tolerance != 0:
+            raise ParityContractError("exact tolerance must be zero")
+
+
+@dataclass(frozen=True, slots=True)
 class ParityField:
     field_id: str
     upstream_path: tuple[str, ...]
@@ -73,6 +126,7 @@ class ParityField:
 class ParitySpec:
     parity_id: str
     parity_version: str
+    criterion: ExternalParityCriterion
     fields: tuple[ParityField, ...]
 
     def __post_init__(self) -> None:
@@ -80,6 +134,10 @@ class ParitySpec:
             raise ParityContractError("parity_id must be an exportable identifier")
         if not isinstance(self.parity_version, str) or _SEMVER_RE.fullmatch(self.parity_version) is None:
             raise ParityContractError("parity_version must be an exact semantic version")
+        if not isinstance(self.criterion, ExternalParityCriterion):
+            raise ParityContractError(
+                "criterion must be an ExternalParityCriterion"
+            )
         if not isinstance(self.fields, tuple) or not self.fields:
             raise ParityContractError("parity spec requires at least one field")
         if any(not isinstance(field, ParityField) for field in self.fields):
@@ -87,6 +145,25 @@ class ParitySpec:
         field_ids = tuple(field.field_id for field in self.fields)
         if len(field_ids) != len(set(field_ids)):
             raise ParityContractError("parity field IDs must be unique")
+        field_by_id = {field.field_id: field for field in self.fields}
+        criterion_field = field_by_id.get(self.criterion.metric_id)
+        if criterion_field is None:
+            raise ParityContractError(
+                "criterion metric_id must name one declared parity field"
+            )
+        expected_comparison = (
+            "exact"
+            if self.criterion.tolerance_kind == "exact"
+            else "numeric_tolerance"
+        )
+        if criterion_field.comparison != expected_comparison:
+            raise ParityContractError(
+                "criterion tolerance_kind does not match its parity field comparison"
+            )
+        if criterion_field.absolute_tolerance != self.criterion.tolerance:
+            raise ParityContractError(
+                "criterion tolerance does not match its parity field tolerance"
+            )
 
 
 @dataclass(frozen=True, slots=True)
@@ -103,6 +180,9 @@ class ParityFieldResult:
 class ParityReport:
     parity_id: str
     parity_version: str
+    criterion: ExternalParityCriterion
+    criterion_sha256: str
+    criterion_matched: bool
     status: str
     field_results: tuple[ParityFieldResult, ...]
     mismatched_fields: tuple[str, ...]
@@ -166,9 +246,15 @@ def compare_projections(
             )
         )
     mismatches = tuple(result.field_id for result in results if not result.matched)
+    criterion_result = next(
+        result for result in results if result.field_id == spec.criterion.metric_id
+    )
     basis = {
         "parity_id": spec.parity_id,
         "parity_version": spec.parity_version,
+        "criterion": spec.criterion,
+        "criterion_sha256": _digest(spec.criterion),
+        "criterion_matched": criterion_result.matched,
         "status": "match" if not mismatches else "mismatch",
         "field_results": tuple(results),
         "mismatched_fields": mismatches,
@@ -182,6 +268,7 @@ def compare_projections(
 
 
 __all__ = [
+    "ExternalParityCriterion",
     "ParityContractError",
     "ParityField",
     "ParityFieldResult",

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import json
 from pathlib import Path
 
@@ -15,6 +16,7 @@ from aeread.shared_runner.housing_population_campaign import (
     execute_campaign,
     load_contract,
 )
+from aeread.shared_runner.resolver import canonical_json_bytes
 
 
 CONTRACT_PATH = (
@@ -110,10 +112,7 @@ def test_campaign_executes_through_provider_free_gate_without_paid_calls(
     )
 
     assert result["gate_summaries"]["design_contract"]["status"] == "passed"
-    assert (
-        result["gate_summaries"]["provider_free_validation"]["status"]
-        == "passed"
-    )
+    assert result["gate_summaries"]["provider_free_validation"]["status"] == "passed"
     history = json.loads((tmp_path / "campaign" / "gate_history.json").read_bytes())
     assert [record["gate_id"] for record in history["records"]] == [
         "design_contract",
@@ -121,11 +120,50 @@ def test_campaign_executes_through_provider_free_gate_without_paid_calls(
     ]
     summary = json.loads(
         (
-            tmp_path
-            / "campaign"
-            / "provider_free_validation"
-            / "summary.json"
+            tmp_path / "campaign" / "provider_free_validation" / "summary.json"
         ).read_bytes()
     )
     assert summary["provider_cost_usd"] == 0.0
     assert summary["replay_verified"] is True
+
+
+def test_published_trajectory_examples_are_digest_bound_and_unranked() -> None:
+    path = (
+        CONTRACT_PATH.parents[1]
+        / "docs"
+        / "evidence"
+        / "housing_population_crossplay_v0_trajectory_examples_2026-09-02.json"
+    )
+    value = json.loads(path.read_bytes())
+    core = {key: item for key, item in value.items() if key != "artifact_sha256"}
+
+    assert (
+        value["artifact_sha256"]
+        == hashlib.sha256(canonical_json_bytes(core)).hexdigest()
+    )
+    assert value["ranking_allowed"] is False
+    assert value["raw_provider_responses_included"] is False
+    assert value["model_reasoning_included"] is False
+    assert {example["example_class"] for example in value["examples"]} == {
+        "completed_upper_observed_crossplay",
+        "completed_lower_observed_crossplay",
+        "shortest_operational_failure",
+    }
+
+
+def test_published_population_qualification_is_digest_bound() -> None:
+    path = (
+        CONTRACT_PATH.parents[1]
+        / "docs"
+        / "evidence"
+        / "housing_population_crossplay_v0_qualification_2026-09-01.json"
+    )
+    value = json.loads(path.read_bytes())
+    core = {key: item for key, item in value.items() if key != "artifact_sha256"}
+
+    assert (
+        value["artifact_sha256"]
+        == hashlib.sha256(canonical_json_bytes(core)).hexdigest()
+    )
+    assert value["winner_claim_allowed"] is False
+    assert value["local_evidence"]["committed"] is False

@@ -1,0 +1,100 @@
+{
+  "artifact_sha256": "a6136c0c1aae2cc532d6355adc6d29ef0c4e4cc7ee9e45679e6ad8e282c05dce",
+  "schema_version": "aeread.housing_model_sensitivity_qualification/0.1",
+  "campaign_id": "housing_model_sensitivity_v1",
+  "created_date": "2026-09-02",
+  "status": "stopped_at_live_integration",
+  "claim_status": "development_integration_only",
+  "winner_claim_allowed": false,
+  "ranking_allowed": false,
+  "source_case_selection": {
+    "campaign_id": "housing_case_config_sweep_v1",
+    "artifact_sha256": "a1f8ec4230ea3cf579274cf5fbdf3464e50fae8b9e3439b16bec2c89941bd39c",
+    "selected_config_ids": [
+      "mild_cw085_r2",
+      "moderate_cw085_r2",
+      "severe_cw030_r2"
+    ],
+    "confirmatory_holdout_status": "sealed_not_executed"
+  },
+  "fixed_controls": {
+    "harness": "minimal_chat/1.0",
+    "tools": "disabled",
+    "memory": "disabled",
+    "reasoning_effort": "low",
+    "tenant_max_logical_actions": 48,
+    "landlord_max_logical_actions": 16,
+    "attempt_limit": 1,
+    "cost_ceiling_usd": 0.05
+  },
+  "gate_status": [
+    {
+      "gate_id": "design",
+      "status": "passed",
+      "artifact_sha256": "b8f09f5387e39f9498b64e4081b5b4fdc86d0c2c7012b34bfb31c9809b0cff72",
+      "planned_trajectories": 12,
+      "complete_model_matrix": true
+    },
+    {
+      "gate_id": "provider_free",
+      "status": "passed",
+      "artifact_sha256": "e7de2db035492e12beea9bad865ef10c5874ba56cd45f73153581165472d9454",
+      "provider_calls": 0,
+      "cost_usd": 0.0
+    },
+    {
+      "gate_id": "live",
+      "status": "stopped_with_typed_missingness",
+      "artifact_sha256": "4c8934c4d902a75821f4e65af813c18a52cbd6ec4167e6c1bd53d85e7a017930",
+      "planned_trajectories": 12,
+      "attempted_trajectories": 3,
+      "completed_trajectories": 0,
+      "operational_failures": 3,
+      "not_started_trajectories": 9,
+      "provider_attempts": 9,
+      "provider_call_successes": 0,
+      "provider_call_failures": 9,
+      "cost_usd": 0.0
+    }
+  ],
+  "live_failures": [
+    {
+      "config_id": "mild_cw085_r2",
+      "condition_id": "glm_53_flash__vs__glm_53_flash",
+      "receipt_sha256": "3c4f3680faece7cff242b27334fbb47978ede087927bbeb150cbfcc4848592df",
+      "receipt_condition": "rate_limit",
+      "provider_attempts": 4,
+      "status_code": 429,
+      "cost_usd": 0.0,
+      "note": "The first result row predates typed cause-chain extraction and retains execution_error; the sealed receipt is authoritative for rate_limit."
+    },
+    {
+      "config_id": "mild_cw085_r2",
+      "condition_id": "glm_53_flash__vs__deepseek_v4_flash",
+      "receipt_sha256": "4b5c100a7d44a6cc83cd9dc08c717084bd736a32556ec2915a11ae985b82b426",
+      "receipt_condition": "rate_limit",
+      "provider_attempts": 4,
+      "status_code": 429,
+      "cost_usd": 0.0
+    },
+    {
+      "config_id": "mild_cw085_r2",
+      "condition_id": "deepseek_v4_flash__vs__glm_53_flash",
+      "receipt_sha256": "21a2b0c2e7fdcd2427dfa57993a819a898081fbe4616ab40264183eec0338e9e",
+      "receipt_condition": "provider_contract",
+      "provider_attempts": 1,
+      "status_code": null,
+      "cost_usd": 0.0,
+      "message_summary": "OpenRouter returned a response choice without text content."
+    }
+  ],
+  "interpretation": "The integration gate did not produce a valid Housing trajectory. Provider failures are operational missingness and cannot be converted to model scores or a ranking.",
+  "stop_reason": "A DeepSeek response choice without text violated the frozen provider contract after two earlier GLM upstream rate-limit failures. The remaining nine cells were not started.",
+  "next_gate": "Resolve or replace the unreliable pinned backend under a new campaign identity, repeat profile admission, and require one complete model-to-model matrix before a variance pilot.",
+  "local_evidence": {
+    "path": "runs/housing_model_sensitivity_v1",
+    "committed": false,
+    "contains_raw_provider_evidence": true,
+    "superseded_summary_path": "runs/housing_model_sensitivity_v1/live/superseded_summaries/summary_false_critical_classifier.json"
+  }
+}

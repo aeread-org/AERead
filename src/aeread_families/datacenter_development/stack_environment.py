@@ -197,7 +197,7 @@ def register_stack_plugin(
     plugin: "DataCenterStackPlugin | None" = None,
 ) -> "DataCenterStackPlugin":
     resolved = plugin or DataCenterStackPlugin(scope_version)
-    registry.register(stack_family_manifest(scope_version), resolved)
+    registry.register_trusted(stack_family_manifest(scope_version), resolved)
     return resolved
 
 

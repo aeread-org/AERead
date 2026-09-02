@@ -381,7 +381,7 @@ def build_offline_setup(
     )
 
     registry = PluginRegistry()
-    registry.register(family, ProcurementGroundingPlugin())
+    registry.register_trusted(family, ProcurementGroundingPlugin())
     harness_registry = HarnessRegistry()
     for harness in default_harnesses().values():
         harness_registry.register(harness)

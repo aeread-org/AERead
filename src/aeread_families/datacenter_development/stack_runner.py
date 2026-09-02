@@ -430,7 +430,7 @@ def build_stack_setup(
         }
     )
     registry = PluginRegistry()
-    registry.register(family, plugin)
+    registry.register_trusted(family, plugin)
     harness_registry = HarnessRegistry()
     harnesses = default_harnesses()
     for harness in harnesses.values():

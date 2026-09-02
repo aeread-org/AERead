@@ -445,7 +445,7 @@ def build_single_offer_smoke(
     )
     plugin = SingleOfferPlugin()
     registry = PluginRegistry()
-    registry.register(family, plugin)
+    registry.register_trusted(family, plugin)
     harness_registry = HarnessRegistry()
     for harness in default_harnesses().values():
         harness_registry.register(harness)

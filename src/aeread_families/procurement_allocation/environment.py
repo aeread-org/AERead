@@ -841,7 +841,7 @@ def register_plugin(
     registry: PluginRegistry, *, plugin: "ProcurementAllocationPlugin | None" = None
 ) -> "ProcurementAllocationPlugin":
     resolved = plugin or ProcurementAllocationPlugin()
-    registry.register(family_manifest(), resolved)
+    registry.register_trusted(family_manifest(), resolved)
     return resolved
 
 

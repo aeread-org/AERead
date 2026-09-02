@@ -1,0 +1,137 @@
+{
+  "schema_version": "aeread.housing_backend_campaign/0.1",
+  "campaign_id": "housing_model_sensitivity_openrouter_alt_v2",
+  "claim_status": "development_backend_qualification_only",
+  "question": "Can alternate pinned OpenRouter endpoints reliably execute the admitted GLM 5.3 Flash and DeepSeek V4 Flash role profiles before a model-to-model Housing sensitivity matrix is attempted?",
+  "independent_cluster": "world_seed",
+  "source_case_selection": {
+    "path": "docs/evidence/housing_case_config_sweep_v1/selected_development_configs.json",
+    "artifact_sha256": "a1f8ec4230ea3cf579274cf5fbdf3464e50fae8b9e3439b16bec2c89941bd39c",
+    "file_sha256": "e655c77668f9930719ec82500dfb0b6c1c24f18161d31ab391b18d522310bcf4",
+    "fact_manifest_path": "docs/evidence/housing_case_config_sweep_v1/fact_manifest.json",
+    "fact_manifest_file_sha256": "2fb79724f4d2318f40246ddd9877407b3f3a44fcc974ec9420b481064d8e65b4"
+  },
+  "controls": {
+    "harness": "minimal_chat/1.0",
+    "tools": "disabled",
+    "memory": "disabled",
+    "reasoning_condition_id": "model_sensitivity_openrouter_alt_low_v2",
+    "reasoning_effort": "low",
+    "temperature": 0.0,
+    "top_p": 1.0,
+    "max_output_tokens": 4096,
+    "timeout_seconds": 120.0,
+    "sdk_retries": 0,
+    "max_action_attempts": 4,
+    "tenant_max_logical_actions": 48,
+    "landlord_max_logical_actions": 16,
+    "retryable_conditions": [
+      "length",
+      "rate_limit",
+      "provider_5xx"
+    ],
+    "tenant_inference_seed_base": 87001,
+    "landlord_inference_seed_base": 97001,
+    "condition_order": "rotate_by_case_configuration"
+  },
+  "backend": {
+    "gateway": "openrouter",
+    "api_base": "https://openrouter.ai/api/v1",
+    "catalog_source": "https://openrouter.ai/api/v1/models/{model}/endpoints",
+    "catalog_retrieved_at": "2026-09-02",
+    "allow_fallbacks": false,
+    "require_parameters": true,
+    "retry_owner": "aeread_action_attempt_policy",
+    "raw_response_retention": "local_evidence_store"
+  },
+  "models": {
+    "glm_53_flash": {
+      "requested_model": "z-ai/glm-5.3-flash",
+      "canonical_model": "z-ai/glm-5.3-flash-20260826",
+      "provider": "Novita",
+      "quantization": "fp8",
+      "input_per_million": 0.075,
+      "cached_input_per_million": 0.015,
+      "output_per_million": 0.25,
+      "endpoint_snapshot_sha256": "9779db72270535cf062b166387b907f7d45edc619c7f90b3bdb6473615efa908",
+      "tenant_profile_id": "housing_glm_53_flash_novita_tenant_v2",
+      "landlord_profile_id": "housing_glm_53_flash_novita_landlord_v2"
+    },
+    "deepseek_v4_flash": {
+      "requested_model": "deepseek/deepseek-v4-flash-0731",
+      "canonical_model": "deepseek/deepseek-v4-flash-20260731",
+      "provider": "OpenInference",
+      "quantization": "fp8",
+      "input_per_million": 0.05,
+      "cached_input_per_million": 0.013,
+      "output_per_million": 0.16,
+      "endpoint_snapshot_sha256": "a1787f80cce6026176d10e9d249af43b8aa53db0dcfe08c11a44c86356cf093f",
+      "tenant_profile_id": "housing_deepseek_v4_flash_openinference_tenant_v2",
+      "landlord_profile_id": "housing_deepseek_v4_flash_openinference_landlord_v2"
+    }
+  },
+  "conditions": [
+    {
+      "condition_id": "glm_53_flash__vs__glm_53_flash",
+      "subject": "glm_53_flash",
+      "opponent": "glm_53_flash",
+      "evaluation_kind": "self_play"
+    },
+    {
+      "condition_id": "glm_53_flash__vs__deepseek_v4_flash",
+      "subject": "glm_53_flash",
+      "opponent": "deepseek_v4_flash",
+      "evaluation_kind": "cross_play"
+    },
+    {
+      "condition_id": "deepseek_v4_flash__vs__glm_53_flash",
+      "subject": "deepseek_v4_flash",
+      "opponent": "glm_53_flash",
+      "evaluation_kind": "cross_play"
+    },
+    {
+      "condition_id": "deepseek_v4_flash__vs__deepseek_v4_flash",
+      "subject": "deepseek_v4_flash",
+      "opponent": "deepseek_v4_flash",
+      "evaluation_kind": "self_play"
+    }
+  ],
+  "profile_admission": {
+    "probes_per_action_schema": 3,
+    "probe_seeds": [
+      103001,
+      103002,
+      103003
+    ],
+    "attempt_limit_per_probe": 1,
+    "sdk_retries": 0,
+    "hidden_repair_allowed": false,
+    "per_probe_cost_reserve_usd": 0.002,
+    "cost_ceiling_usd": 0.04,
+    "profile_sha256s": {
+      "housing_glm_53_flash_novita_tenant_v2": "321c2b442b238f0633e7de5a2918f2a0eba7ffcd14a4e5fba8e6e60becdaa012",
+      "housing_glm_53_flash_novita_landlord_v2": "500ff2b559dcc7500d9be4e25d89714fe70f879275dda390160b0f4d25ff8d35",
+      "housing_deepseek_v4_flash_openinference_tenant_v2": "2d1beae749bf999e5fda11486bb06c44248e9d97b9c7a4b310cdc033591cbefc",
+      "housing_deepseek_v4_flash_openinference_landlord_v2": "d5d4602e878abe747f20585bc2a434ef333eaef1b45ac57c3c0864f5da6fffc8"
+    }
+  },
+  "execution": {
+    "world_seeds": [
+      1971418798
+    ],
+    "replicates": 1,
+    "attempt_limit": 1,
+    "cost_ceiling_usd": 0.05,
+    "per_trajectory_cost_reserve_usd": 0.02,
+    "winner_claim_allowed": false,
+    "completeness_policy": "retain_typed_missingness_without_selective_retry"
+  },
+  "analysis": {
+    "primary_view": "condition_by_case_configuration_within_case_score",
+    "aggregation": "none_single_world_integration_slice",
+    "uncertainty": "not_estimable_from_one_world_cluster",
+    "ranking_allowed": false
+  },
+  "missingness": "typed_operational_missingness_reported_separately",
+  "stopping_rule": "profile_admission_must_pass_before_live; stop_before_next_trajectory_when_remaining_campaign_budget_is_below_the_declared_reserve; stop_immediately_on_route_drift_or_replay_failure"
+}

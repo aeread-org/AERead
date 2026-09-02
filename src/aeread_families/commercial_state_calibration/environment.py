@@ -433,7 +433,7 @@ def register_plugin(
     plugin: "CommercialStatePlugin | None" = None,
 ) -> "CommercialStatePlugin":
     resolved = plugin or CommercialStatePlugin()
-    registry.register(family_manifest(), resolved)
+    registry.register_trusted(family_manifest(), resolved)
     return resolved
 
 

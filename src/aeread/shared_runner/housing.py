@@ -1163,6 +1163,7 @@ def build_housing_smoke(
     num_tenants: int = 2,
     num_listings: int = 1,
     rounds: int = 1,
+    common_weight: float = 0.6,
     world_seeds: Sequence[int] | None = None,
     replicates: int = 1,
     reasoning_condition_id: str = "reasoning_low_v1",
@@ -1172,9 +1173,11 @@ def build_housing_smoke(
     tenant_harness: Any | None = None,
     tenant_harness_config: Mapping[str, Any] | None = None,
     tenant_profile_id_override: str | None = None,
+    tenant_max_logical_actions_override: int | None = None,
     tenant_runtime: str | None = None,
     tenant_implementation_sha256: str | None = None,
     landlord_profile_id_override: str | None = None,
+    landlord_max_logical_actions_override: int | None = None,
     landlord_inference_seed_base: int | None = None,
     landlord_openrouter_route: OpenRouterRoutePin | None = None,
     evaluation_kind: str = "controlled",
@@ -1186,14 +1189,21 @@ def build_housing_smoke(
         raise ValueError("world_seeds must be unique")
     if replicates < 1:
         raise ValueError("replicates must be positive")
+    for field, value in (
+        ("tenant_max_logical_actions_override", tenant_max_logical_actions_override),
+        (
+            "landlord_max_logical_actions_override",
+            landlord_max_logical_actions_override,
+        ),
+    ):
+        if value is not None and (
+            isinstance(value, bool) or not isinstance(value, int) or value < 1
+        ):
+            raise ValueError(f"{field} must be a positive integer")
     if evaluation_kind not in {"controlled", "cross_play", "self_play"}:
-        raise ValueError(
-            "evaluation_kind must be controlled, cross_play, or self_play"
-        )
+        raise ValueError("evaluation_kind must be controlled, cross_play, or self_play")
     if evaluation_kind != "controlled" and landlord_provider != "openrouter":
-        raise ValueError(
-            "cross_play and self_play require a model landlord profile"
-        )
+        raise ValueError("cross_play and self_play require a model landlord profile")
     experiment_mode = world_seeds is not None
     if experiment_mode and inference_seed_base is None:
         raise ValueError("experiment plans require inference_seed_base")
@@ -1302,7 +1312,7 @@ def build_housing_smoke(
                 "num_tenants": num_tenants,
                 "num_listings": num_listings,
                 "rounds": rounds,
-                "common_weight": 0.6,
+                "common_weight": common_weight,
             },
             "provenance": {
                 "generator_id": "housing_generator_v1",
@@ -1368,9 +1378,7 @@ def build_housing_smoke(
     landlord_pricing = (
         resolved_landlord_route.token_pricing()
         if landlord_provider == "openrouter"
-        else TokenPricing(
-            0.0, 0.0, 0.0, "housing_scripted_landlord_zero_cost_v1"
-        )
+        else TokenPricing(0.0, 0.0, 0.0, "housing_scripted_landlord_zero_cost_v1")
     )
     tenant_profile = _profile(
         profile_id=tenant_profile_id,
@@ -1384,7 +1392,11 @@ def build_housing_smoke(
             "housing_commit_v1": HOUSING_COMMIT_OUTPUT_SCHEMA,
         },
         pricing=tenant_pricing,
-        max_logical_actions=2 * num_tenants * rounds,
+        max_logical_actions=(
+            2 * num_tenants * rounds
+            if tenant_max_logical_actions_override is None
+            else tenant_max_logical_actions_override
+        ),
         runtime=(
             tenant_runtime
             or (
@@ -1417,7 +1429,11 @@ def build_housing_smoke(
         prompt=HOUSING_LANDLORD_PROMPT,
         output_schemas={"housing_respond_v1": HOUSING_RESPOND_OUTPUT_SCHEMA},
         pricing=landlord_pricing,
-        max_logical_actions=num_listings * rounds,
+        max_logical_actions=(
+            num_listings * rounds
+            if landlord_max_logical_actions_override is None
+            else landlord_max_logical_actions_override
+        ),
         runtime=(
             "aeread.shared_runner.execution"
             if landlord_provider == "openrouter"
@@ -1434,14 +1450,10 @@ def build_housing_smoke(
         ),
         request_seed_base=landlord_inference_seed_base,
         max_output_tokens=(
-            4096
-            if landlord_provider == "openrouter" and experiment_mode
-            else None
+            4096 if landlord_provider == "openrouter" and experiment_mode else None
         ),
         timeout_seconds=(
-            120.0
-            if landlord_provider == "openrouter" and experiment_mode
-            else None
+            120.0 if landlord_provider == "openrouter" and experiment_mode else None
         ),
         openrouter_route=resolved_landlord_route,
     )
@@ -1552,7 +1564,7 @@ def build_housing_smoke(
     )
     plugin = HousingV1Plugin()
     registry = PluginRegistry()
-    registry.register(family, plugin)
+    registry.register_trusted(family, plugin)
     harness_registry = HarnessRegistry()
     minimal_harness = MinimalChatHarness()
     harness_registry.register(minimal_harness)

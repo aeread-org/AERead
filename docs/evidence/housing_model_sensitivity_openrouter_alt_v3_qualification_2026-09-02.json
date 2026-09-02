@@ -1,0 +1,154 @@
+{
+  "artifact_sha256": "fe72be984ea800d7c131e8d49d76380161f84255f84b419898963f18f7eb32c2",
+  "schema_version": "aeread.housing_backend_qualification/0.1",
+  "campaign_id": "housing_model_sensitivity_openrouter_alt_v3",
+  "created_date": "2026-09-02",
+  "status": "blocked_by_profile_admission",
+  "claim_status": "development_backend_qualification_only",
+  "winner_claim_allowed": false,
+  "ranking_allowed": false,
+  "source_case_selection": {
+    "campaign_id": "housing_case_config_sweep_v1",
+    "artifact_sha256": "a1f8ec4230ea3cf579274cf5fbdf3464e50fae8b9e3439b16bec2c89941bd39c",
+    "confirmatory_holdout_status": "sealed_not_executed"
+  },
+  "controls": {
+    "harness": "minimal_chat/1.0",
+    "tools": "disabled",
+    "memory": "disabled",
+    "reasoning_effort": "low",
+    "temperature": 0.0,
+    "top_p": 1.0,
+    "sdk_retries": 0,
+    "hidden_retries": 0
+  },
+  "backend": {
+    "gateway": "openrouter",
+    "allow_fallbacks": false,
+    "catalog_retrieved_at": "2026-09-02",
+    "routes": [
+      {
+        "model_id": "glm_53_flash",
+        "canonical_model": "z-ai/glm-5.3-flash-20260826",
+        "provider": "Reka",
+        "quantization": "fp8",
+        "input_per_million": 0.15,
+        "cached_input_per_million": 0.03,
+        "output_per_million": 0.5,
+        "max_completion_tokens": 235929
+      },
+      {
+        "model_id": "deepseek_v4_flash",
+        "canonical_model": "deepseek/deepseek-v4-flash-20260731",
+        "provider": "Parasail",
+        "quantization": "fp8",
+        "input_per_million": 0.14,
+        "cached_input_per_million": 0.05,
+        "output_per_million": 0.28,
+        "max_completion_tokens": 943718
+      }
+    ]
+  },
+  "gate_status": [
+    {
+      "gate_id": "design",
+      "status": "passed",
+      "artifact_sha256": "be960e763f6921d15b996fcf5286c22be3154f6230d97c0fd4939c0801d0f478",
+      "planned_trajectories": 12
+    },
+    {
+      "gate_id": "provider_free",
+      "status": "passed",
+      "artifact_sha256": "ca557a82d8f6788ffbfb7cdb51e01ac01f23aa90f31b215281d5689868e57903",
+      "provider_calls": 0,
+      "cost_usd": 0.0
+    },
+    {
+      "gate_id": "catalog_preflight",
+      "status": "passed",
+      "artifact_sha256": "d02c399d9081539294b9c74413f4ab76b5478b56e421c872fd90bb8bbae46f57",
+      "provider_inference_calls": 0
+    },
+    {
+      "gate_id": "profile_admission",
+      "status": "failed_with_typed_missingness",
+      "artifact_sha256": "17d1e3a179e39ea1b832494b6ac1e2b61892dd08ee9626303be109aa39421711",
+      "expected_probe_count": 18,
+      "attempted_probe_count": 18,
+      "passed_probe_count": 14,
+      "operational_failures": 4,
+      "hidden_retry_count": 0,
+      "observed_provider_reported_cost_usd": 0.0019847322,
+      "attempted_cost_upper_bound_usd": 0.054,
+      "provider_cost_complete": false
+    },
+    {
+      "gate_id": "live",
+      "status": "blocked_by_profile_admission",
+      "artifact_sha256": "7c7ddd46557065f69e3aeba0ede87697730aab7df28743d07c1664e2dea58372",
+      "provider_calls": 0,
+      "cost_usd": 0.0
+    }
+  ],
+  "profile_results": [
+    {
+      "model_id": "glm_53_flash",
+      "provider": "Reka",
+      "planned_probes": 9,
+      "passed_probes": 6,
+      "operational_failures": 3,
+      "failure_breakdown": {
+        "rate_limit_429": 3
+      },
+      "schema_breakdown": {
+        "housing_contact_v1": {
+          "passed": 1,
+          "failed": 2
+        },
+        "housing_commit_v1": {
+          "passed": 3,
+          "failed": 0
+        },
+        "housing_respond_v1": {
+          "passed": 2,
+          "failed": 1
+        }
+      },
+      "observed_provider_reported_cost_usd": 0.00047025
+    },
+    {
+      "model_id": "deepseek_v4_flash",
+      "provider": "Parasail",
+      "planned_probes": 9,
+      "passed_probes": 8,
+      "operational_failures": 1,
+      "failure_breakdown": {
+        "invalid_admission_action": 1
+      },
+      "schema_breakdown": {
+        "housing_contact_v1": {
+          "passed": 3,
+          "failed": 0
+        },
+        "housing_commit_v1": {
+          "passed": 2,
+          "failed": 1
+        },
+        "housing_respond_v1": {
+          "passed": 3,
+          "failed": 0
+        }
+      },
+      "observed_provider_reported_cost_usd": 0.0015144822
+    }
+  ],
+  "interpretation": "The OpenRouter-only V3 routes did not jointly qualify as reliable Housing role profiles. Reka rate limits prevented complete GLM admission, and one Parasail response used a semantically invalid commit decision. No Housing trajectory or model score was produced.",
+  "cost_note": "Observed cost covers the 15 calls that returned provider billing, including the semantically invalid DeepSeek response. Three failed Reka calls did not expose billing, so this record does not claim an exact total charge.",
+  "stop_reason": "Profile admission failed; the campaign contract blocked the 12-cell live matrix without making a trajectory call.",
+  "next_gate": "Keep OpenRouter as the gateway. Before another model-to-model Housing attempt, freeze a fresh campaign identity with routes that pass the complete admission matrix; do not selectively retry V3 failures.",
+  "local_evidence": {
+    "path": "runs/housing_model_sensitivity_openrouter_alt_v3",
+    "committed": false,
+    "contains_raw_provider_evidence": true
+  }
+}

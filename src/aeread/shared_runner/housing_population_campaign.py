@@ -9,13 +9,10 @@ from __future__ import annotations
 
 import argparse
 import asyncio
-import dataclasses
 import hashlib
-import itertools
 import json
 import math
 import os
-import random
 import time
 from collections import defaultdict
 from pathlib import Path
@@ -28,7 +25,14 @@ from aeread.housing_v1 import environment as hz
 from .campaign import (
     CAMPAIGN_GATE_SEQUENCE,
     CampaignGateRecord,
+    CampaignHistoryRecord,
+    CampaignInvalidationRecord,
     append_campaign_gate,
+    append_campaign_invalidation,
+    campaign_active_gate_records,
+    campaign_gate_artifact_type,
+    campaign_history_record_from_dict,
+    campaign_history_record_to_dict,
     campaign_promotion_decision,
 )
 from .execution import (
@@ -55,7 +59,9 @@ from .housing import (
     finalize_housing_failure,
     replay_housing_receipt,
 )
+from .housing_qc import audit_bid_world
 from .paired_analysis import analyze_paired_results
+from .quality import QCCoverage, QCEvidenceRef
 from .receipts import verify_evaluation_receipt
 from .resolver import canonical_json_bytes
 
@@ -63,6 +69,7 @@ from .resolver import canonical_json_bytes
 DEEPSEEK_MODEL = "deepseek/deepseek-v4-flash-0731"
 DEEPSEEK_REVISION = "deepseek/deepseek-v4-flash-20260731"
 CONTRACT_SCHEMA_VERSION = "aeread.housing_population_campaign/0.1"
+FAMILY_VERSION = "1.0.0"
 STAGES = CAMPAIGN_GATE_SEQUENCE[:5]
 
 
@@ -273,87 +280,6 @@ def build_condition_setups(
     }
 
 
-def _brute_force_assignment(surplus: Sequence[Sequence[float]]) -> float:
-    tenant_count = len(surplus)
-    listing_count = len(surplus[0]) if tenant_count else 0
-    best = 0.0
-    for matched_count in range(1, min(tenant_count, listing_count) + 1):
-        for tenants in itertools.combinations(range(tenant_count), matched_count):
-            for listings in itertools.permutations(
-                range(listing_count), matched_count
-            ):
-                total = sum(
-                    max(0.0, float(surplus[tenant][listing]))
-                    for tenant, listing in zip(tenants, listings)
-                )
-                best = max(best, total)
-    return round(best, 2)
-
-
-def _run_no_op(world: hz.BidWorld, *, rounds: int) -> float:
-    market = hz.HousingMarket(world, rounds=rounds)
-    while not market.finished:
-        market.submit_offers({})
-        market.submit_responses({})
-        market.submit_commits({})
-    return market.result().total
-
-
-def _run_random(world: hz.BidWorld, *, rounds: int, seed: int) -> float:
-    rng = random.Random(seed)
-    market = hz.HousingMarket(world, rounds=rounds)
-    while not market.finished:
-        offers: dict[int, tuple[int, float]] = {}
-        for tenant in market.unmatched_tenants():
-            candidates = [
-                listing
-                for listing in market.open_listings()
-                if world.values[tenant][listing] >= world.ask[listing]
-            ]
-            if candidates and rng.random() >= 0.25:
-                listing = rng.choice(candidates)
-                offers[tenant] = (
-                    listing,
-                    round(rng.uniform(world.ask[listing], world.values[tenant][listing]), 2),
-                )
-        contact = market.submit_offers(offers)
-        response = market.submit_responses(
-            hz.scripted_landlord_responses(market, contact.inbox)
-        )
-        commits = {
-            tenant: (
-                "sign" if hold.rent <= world.values[tenant][hold.listing_id] else "walk",
-                hold.hold_id,
-            )
-            for tenant, hold in response.holds.items()
-        }
-        market.submit_commits(commits)
-    return market.result().total
-
-
-def _run_oracle_informed(world: hz.BidWorld, *, rounds: int) -> float:
-    oracle = hz.assignment_oracle(world.surplus)
-    target = {tenant: listing for tenant, listing in oracle.pairs}
-    market = hz.HousingMarket(world, rounds=rounds)
-    while not market.finished:
-        offers = {
-            tenant: (target[tenant], world.costs[target[tenant]])
-            for tenant in market.unmatched_tenants()
-            if tenant in target and target[tenant] in market.open_listings()
-        }
-        contact = market.submit_offers(offers)
-        response = market.submit_responses(
-            hz.scripted_landlord_responses(market, contact.inbox)
-        )
-        market.submit_commits(
-            {
-                tenant: ("sign", hold.hold_id)
-                for tenant, hold in response.holds.items()
-            }
-        )
-    return market.result().total
-
-
 def audit_world_panel(contract: Mapping[str, Any]) -> dict[str, Any]:
     environment = contract["environment"]
     seeds = [
@@ -363,67 +289,33 @@ def audit_world_panel(contract: Mapping[str, Any]) -> dict[str, Any]:
     rows: list[dict[str, Any]] = []
     digests: set[str] = set()
     for seed in seeds:
-        first = hz.make_bid_world(
-            environment["tenants"],
-            environment["listings"],
-            seed,
-            environment["common_weight"],
+        facts = audit_bid_world(
+            tenants=environment["tenants"],
+            listings=environment["listings"],
+            rounds=environment["rounds"],
+            common_weight=environment["common_weight"],
+            world_seed=seed,
         )
-        second = hz.make_bid_world(
-            environment["tenants"],
-            environment["listings"],
-            seed,
-            environment["common_weight"],
-        )
-        first_digest = _sha256(first)
-        if first_digest != _sha256(second):
-            raise ValueError(f"world regeneration drift for seed {seed}")
-        if first_digest in digests:
+        if facts["world_sha256"] in digests:
             raise ValueError(f"duplicate world content for seed {seed}")
-        digests.add(first_digest)
-        numeric_values = [
-            *itertools.chain.from_iterable(first.values),
-            *first.costs,
-            *first.ask,
-            *itertools.chain.from_iterable(first.surplus),
-        ]
-        if not all(math.isfinite(float(value)) for value in numeric_values):
-            raise ValueError(f"non-finite Housing values for seed {seed}")
-        oracle = hz.assignment_oracle(first.surplus).total
-        brute_force = _brute_force_assignment(first.surplus)
-        if not math.isclose(oracle, brute_force, abs_tol=1e-9):
-            raise ValueError(f"assignment oracle disagrees for seed {seed}")
-        no_op = _run_no_op(first, rounds=environment["rounds"])
-        random_total = _run_random(
-            first, rounds=environment["rounds"], seed=seed ^ 0x5A5A5A5A
-        )
-        naive = hz.run_scripted_market(
-            first, rounds=environment["rounds"], strategy="naive"
-        ).total
-        adaptive = hz.run_scripted_market(
-            first, rounds=environment["rounds"], strategy="adaptive"
-        ).total
-        oracle_active = _run_oracle_informed(first, rounds=environment["rounds"])
-        if not math.isclose(oracle, oracle_active, abs_tol=1e-9):
-            raise ValueError(f"oracle-informed active policy missed oracle for seed {seed}")
-        if any(total > oracle + 1e-9 for total in (no_op, random_total, naive, adaptive)):
-            raise ValueError(f"baseline exceeded verified upper bound for seed {seed}")
+        digests.add(facts["world_sha256"])
         rows.append(
             {
-                "world_seed": seed,
-                "world_sha256": first_digest,
-                "oracle_total": oracle,
-                "no_op_total": no_op,
-                "random_total": random_total,
-                "naive_total": naive,
-                "adaptive_total": adaptive,
-                "oracle_informed_total": oracle_active,
-                "oracle_minus_naive": oracle - naive,
-                "adaptive_minus_naive": adaptive - naive,
-                "positive_surplus_edges": sum(
-                    value > 0.0 for row in first.surplus for value in row
-                ),
-                "market_tightness": first.num_tenants / first.num_listings,
+                key: facts[key]
+                for key in (
+                    "world_seed",
+                    "world_sha256",
+                    "oracle_total",
+                    "no_op_total",
+                    "random_total",
+                    "naive_total",
+                    "adaptive_total",
+                    "oracle_informed_total",
+                    "oracle_minus_naive",
+                    "adaptive_minus_naive",
+                    "positive_surplus_edges",
+                    "market_tightness",
+                )
             }
         )
     zero_world = hz.BidWorld(
@@ -1171,10 +1063,13 @@ async def run_provider_free(
         raise ValueError("provider-free offline replay mismatch")
     artifact = _sealed(
         {
-            "schema_version": "aeread.housing_provider_free/0.1",
+            "schema_version": "aeread.housing_provider_free/0.2",
             "campaign_id": contract["campaign_id"],
             "status": "passed",
             "qc_report_sha256": qc["artifact_sha256"],
+            "covered_world_ids": [
+                f"world_{row['world_seed']}" for row in qc["worlds"]
+            ],
             "run_plan_id": setup.plan.run_plan_id,
             "receipt_sha256": receipt.receipt_sha256,
             "replay_verified": True,
@@ -1185,67 +1080,235 @@ async def run_provider_free(
     return artifact
 
 
-def _load_history(path: Path) -> tuple[CampaignGateRecord, ...]:
+def _load_history(path: Path) -> tuple[CampaignHistoryRecord, ...]:
     if not path.exists():
         return ()
     value = _read_sealed(path)
+    if value.get("schema_version") != "aeread.campaign_gate_history/0.2":
+        raise ValueError(
+            "legacy campaign history lacks typed QC evidence bindings; "
+            "start a new output directory or migrate it explicitly"
+        )
     records = value.get("records")
     if not isinstance(records, list):
         raise ValueError("campaign gate history must contain a records array")
-    return tuple(
-        CampaignGateRecord(
-            campaign_id=row["campaign_id"],
-            gate_id=row["gate_id"],
-            attempt_index=row["attempt_index"],
-            status=row["status"],
-            evidence_refs=tuple(row["evidence_refs"]),
-            failure_reasons=tuple(row["failure_reasons"]),
-        )
-        for row in records
-    )
+    return tuple(campaign_history_record_from_dict(row) for row in records)
 
 
-def _write_history(path: Path, records: Sequence[CampaignGateRecord]) -> None:
+def _write_history(path: Path, records: Sequence[CampaignHistoryRecord]) -> None:
     _write_json(
         path,
         _sealed(
             {
-                "schema_version": "aeread.campaign_gate_history/0.1",
-                "records": [dataclasses.asdict(record) for record in records],
+                "schema_version": "aeread.campaign_gate_history/0.2",
+                "records": [
+                    campaign_history_record_to_dict(record) for record in records
+                ],
             }
         ),
     )
 
 
 def _latest_status(
-    records: Sequence[CampaignGateRecord], gate_id: str
+    records: Sequence[CampaignHistoryRecord],
+    campaign_id: str,
+    gate_id: str,
+    *,
+    evidence_root: Path,
 ) -> str | None:
-    selected = [record for record in records if record.gate_id == gate_id]
-    return max(selected, key=lambda record: record.attempt_index).status if selected else None
+    selected = {
+        record.gate_id: record
+        for record in campaign_active_gate_records(
+            campaign_id, records, evidence_root=evidence_root
+        )
+    }
+    return selected[gate_id].status if gate_id in selected else None
+
+
+def _expected_gate_coverage(
+    contract: Mapping[str, Any], gate_id: str
+) -> tuple[str, ...]:
+    if gate_id == "design_contract":
+        return tuple(item["condition_id"] for item in contract["conditions"])
+    if gate_id == "provider_free_validation":
+        seeds = {
+            *contract["full_trajectory"]["world_seeds"],
+            *contract["variance_pilot"]["world_seeds"],
+        }
+        return (
+            *(f"world_{seed}" for seed in sorted(seeds)),
+            "provider_free_replay",
+        )
+    if gate_id == "profile_admission":
+        return tuple(
+            f"{model_id}.{role}.{schema_id}.probe_{probe_index}"
+            for model_id in contract["models"]
+            for probe_index in range(3)
+            for role, schema_ids in (
+                ("tenant", ("housing_contact_v1", "housing_commit_v1")),
+                ("landlord", ("housing_respond_v1",)),
+            )
+            for schema_id in schema_ids
+        )
+    if gate_id in {"full_trajectory", "variance_pilot"}:
+        stage = contract[gate_id]
+        return tuple(
+            f"{condition['condition_id']}.world_{world_seed}.rep_{replicate_index}"
+            for condition in contract["conditions"]
+            for world_seed in stage["world_seeds"]
+            for replicate_index in range(stage["replicates"])
+        )
+    return (gate_id,)
+
+
+def _observed_gate_coverage(
+    artifact: Mapping[str, Any] | None, gate_id: str
+) -> tuple[str, ...]:
+    if artifact is None:
+        return ()
+    if gate_id == "design_contract":
+        return tuple(row["condition_id"] for row in artifact.get("plans", ()))
+    if gate_id == "provider_free_validation":
+        observed = list(artifact.get("covered_world_ids", ()))
+        if artifact.get("replay_verified") is True:
+            observed.append("provider_free_replay")
+        return tuple(observed)
+    if gate_id == "profile_admission":
+        return tuple(
+            (
+                f"{row['model_id']}.{row['role']}.{row['action_schema']}."
+                f"probe_{row['probe_index']}"
+            )
+            for row in artifact.get("results", ())
+            if row.get("status") == "passed"
+        )
+    if gate_id in {"full_trajectory", "variance_pilot"}:
+        return tuple(
+            (
+                f"{row['condition_id']}.world_{row['world_seed']}."
+                f"rep_{row['replicate_index']}"
+            )
+            for row in artifact.get("rows", ())
+            if row.get("status") == "completed"
+        )
+    return (gate_id,) if artifact.get("status") == "passed" else ()
+
+
+def _gate_evidence(
+    *,
+    contract: Mapping[str, Any],
+    gate_id: str,
+    artifact_type: str,
+    path: Path,
+    evidence_root: Path,
+    artifact: Mapping[str, Any] | None,
+) -> QCEvidenceRef:
+    return QCEvidenceRef(
+        artifact_type=artifact_type,
+        path=str(path.relative_to(evidence_root)),
+        sha256=hashlib.sha256(path.read_bytes()).hexdigest(),
+        family_id=contract["environment"]["family"],
+        family_version=FAMILY_VERSION,
+        profile_id=contract["campaign_id"],
+        coverage=(
+            QCCoverage(
+                coverage_id=gate_id,
+                required_ids=_expected_gate_coverage(contract, gate_id),
+                observed_ids=_observed_gate_coverage(artifact, gate_id),
+            ),
+        ),
+    )
 
 
 def _record_gate(
     *,
-    records: Sequence[CampaignGateRecord],
+    records: Sequence[CampaignHistoryRecord],
     campaign_id: str,
+    family_id: str,
+    family_version: str,
+    profile_id: str,
     gate_id: str,
     status: str,
-    evidence_refs: Sequence[str],
+    evidence_refs: Sequence[QCEvidenceRef],
+    evidence_root: Path,
     failure_reasons: Sequence[str] = (),
-) -> tuple[CampaignGateRecord, ...]:
-    decision = campaign_promotion_decision(campaign_id, gate_id, records)
+) -> tuple[CampaignHistoryRecord, ...]:
+    decision = campaign_promotion_decision(
+        campaign_id, gate_id, records, evidence_root=evidence_root
+    )
     if not decision.eligible:
         raise RuntimeError(f"campaign promotion blocked: {decision.blockers}")
     return append_campaign_gate(
         records,
         CampaignGateRecord(
             campaign_id=campaign_id,
+            family_id=family_id,
+            family_version=family_version,
+            profile_id=profile_id,
             gate_id=gate_id,
             attempt_index=decision.next_attempt_index,
             status=status,
             evidence_refs=tuple(evidence_refs),
             failure_reasons=tuple(failure_reasons),
         ),
+        evidence_root=evidence_root,
+    )
+
+
+def _invalidate_history(
+    *,
+    records: Sequence[CampaignHistoryRecord],
+    contract: Mapping[str, Any],
+    output_root: Path,
+    from_gate_id: str,
+    changed_controls: Sequence[str],
+    reason: str,
+) -> tuple[CampaignHistoryRecord, ...]:
+    invalidation_index = (
+        sum(isinstance(record, CampaignInvalidationRecord) for record in records) + 1
+    )
+    invalidation_id = f"invalidation_{invalidation_index}"
+    path = output_root / "invalidations" / invalidation_id / "summary.json"
+    artifact = _sealed(
+        {
+            "schema_version": "aeread.campaign_invalidation/0.1",
+            "campaign_id": contract["campaign_id"],
+            "invalidation_index": invalidation_index,
+            "from_gate_id": from_gate_id,
+            "changed_controls": list(changed_controls),
+            "reason": reason,
+        }
+    )
+    _write_json(path, artifact)
+    evidence = QCEvidenceRef(
+        artifact_type="campaign_invalidation",
+        path=str(path.relative_to(output_root)),
+        sha256=hashlib.sha256(path.read_bytes()).hexdigest(),
+        family_id=contract["environment"]["family"],
+        family_version=FAMILY_VERSION,
+        profile_id=contract["campaign_id"],
+        coverage=(
+            QCCoverage(
+                coverage_id="invalidation",
+                required_ids=(invalidation_id,),
+                observed_ids=(invalidation_id,),
+            ),
+        ),
+    )
+    return append_campaign_invalidation(
+        records,
+        CampaignInvalidationRecord(
+            campaign_id=contract["campaign_id"],
+            family_id=contract["environment"]["family"],
+            family_version=FAMILY_VERSION,
+            profile_id=contract["campaign_id"],
+            invalidation_index=invalidation_index,
+            from_gate_id=from_gate_id,
+            changed_controls=tuple(changed_controls),
+            reason=reason,
+            evidence_refs=(evidence,),
+        ),
+        evidence_root=output_root,
     )
 
 
@@ -1254,6 +1317,9 @@ async def execute_campaign(
     contract_path: Path,
     output_root: Path,
     through: str,
+    invalidate_from: str | None = None,
+    changed_controls: Sequence[str] = (),
+    invalidation_reason: str | None = None,
 ) -> dict[str, Any]:
     if through not in STAGES:
         raise ValueError(f"through must be one of {STAGES}")
@@ -1262,16 +1328,51 @@ async def execute_campaign(
     history_path = output_root / "gate_history.json"
     records = _load_history(history_path)
     summaries: dict[str, Any] = {}
+    invalidation_summary: dict[str, Any] | None = None
+    if invalidate_from is not None:
+        if invalidate_from not in STAGES:
+            raise ValueError(f"invalidate_from must be one of {STAGES}")
+        if not changed_controls:
+            raise ValueError("changed_controls are required for invalidation")
+        if invalidation_reason is None or not invalidation_reason.strip():
+            raise ValueError("invalidation_reason is required for invalidation")
+        records = _invalidate_history(
+            records=records,
+            contract=contract,
+            output_root=output_root,
+            from_gate_id=invalidate_from,
+            changed_controls=changed_controls,
+            reason=invalidation_reason,
+        )
+        _write_history(history_path, records)
+        invalidation_summary = {
+            "from_gate_id": invalidate_from,
+            "changed_controls": list(changed_controls),
+            "reason": invalidation_reason,
+        }
+    elif changed_controls or invalidation_reason is not None:
+        raise ValueError(
+            "invalidate_from is required when invalidation details are supplied"
+        )
     target_index = STAGES.index(through)
     for gate_id in STAGES[: target_index + 1]:
-        if _latest_status(records, gate_id) == "passed":
+        if _latest_status(
+            records,
+            contract["campaign_id"],
+            gate_id,
+            evidence_root=output_root,
+        ) == "passed":
             summaries[gate_id] = {"status": "already_passed"}
             continue
         decision = campaign_promotion_decision(
-            contract["campaign_id"], gate_id, records
+            contract["campaign_id"],
+            gate_id,
+            records,
+            evidence_root=output_root,
         )
         attempt_index = decision.next_attempt_index
         attempt_root = _live_stage_root(output_root, gate_id, attempt_index)
+        artifact: Mapping[str, Any] | None = None
         try:
             if gate_id == "design_contract":
                 artifact = design_contract_artifact(contract)
@@ -1301,9 +1402,24 @@ async def execute_campaign(
             records = _record_gate(
                 records=records,
                 campaign_id=contract["campaign_id"],
+                family_id=contract["environment"]["family"],
+                family_version=FAMILY_VERSION,
+                profile_id=contract["campaign_id"],
                 gate_id=gate_id,
                 status="passed",
-                evidence_refs=(str(path.relative_to(output_root)),),
+                evidence_root=output_root,
+                evidence_refs=(
+                    _gate_evidence(
+                        contract=contract,
+                        gate_id=gate_id,
+                        artifact_type=campaign_gate_artifact_type(
+                            gate_id, "passed"
+                        ),
+                        path=path,
+                        evidence_root=output_root,
+                        artifact=artifact,
+                    ),
+                ),
             )
             _write_history(history_path, records)
             summaries[gate_id] = {
@@ -1326,9 +1442,24 @@ async def execute_campaign(
             records = _record_gate(
                 records=records,
                 campaign_id=contract["campaign_id"],
+                family_id=contract["environment"]["family"],
+                family_version=FAMILY_VERSION,
+                profile_id=contract["campaign_id"],
                 gate_id=gate_id,
                 status="failed",
-                evidence_refs=(str(failure_path.relative_to(output_root)),),
+                evidence_root=output_root,
+                evidence_refs=(
+                    _gate_evidence(
+                        contract=contract,
+                        gate_id=gate_id,
+                        artifact_type=campaign_gate_artifact_type(
+                            gate_id, "failed"
+                        ),
+                        path=failure_path,
+                        evidence_root=output_root,
+                        artifact=artifact,
+                    ),
+                ),
                 failure_reasons=(str(error) or type(error).__name__,),
             )
             _write_history(history_path, records)
@@ -1341,6 +1472,7 @@ async def execute_campaign(
     return {
         "campaign_id": contract["campaign_id"],
         "through": through,
+        "invalidation": invalidation_summary,
         "gate_summaries": summaries,
         "gate_history": str(history_path),
     }
@@ -1351,12 +1483,18 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--contract", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--through", choices=STAGES, default="full_trajectory")
+    parser.add_argument("--invalidate-from", choices=STAGES)
+    parser.add_argument("--changed-control", action="append", default=[])
+    parser.add_argument("--invalidation-reason")
     args = parser.parse_args(argv)
     result = asyncio.run(
         execute_campaign(
             contract_path=args.contract,
             output_root=args.output,
             through=args.through,
+            invalidate_from=args.invalidate_from,
+            changed_controls=args.changed_control,
+            invalidation_reason=args.invalidation_reason,
         )
     )
     print(json.dumps(result, indent=2, sort_keys=True))

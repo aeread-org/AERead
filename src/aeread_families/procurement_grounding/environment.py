@@ -433,7 +433,7 @@ def register_plugin(
     registry: PluginRegistry, *, plugin: "ProcurementGroundingPlugin | None" = None
 ) -> "ProcurementGroundingPlugin":
     resolved = plugin or ProcurementGroundingPlugin()
-    registry.register(family_manifest(), resolved)
+    registry.register_trusted(family_manifest(), resolved)
     return resolved
 
 

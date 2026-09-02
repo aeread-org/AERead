@@ -386,7 +386,7 @@ def build_offline_setup(
         }
     )
     registry = PluginRegistry()
-    registry.register(family, ProcurementAllocationPlugin())
+    registry.register_trusted(family, ProcurementAllocationPlugin())
     harness_registry = HarnessRegistry()
     for harness in default_harnesses().values():
         harness_registry.register(harness)

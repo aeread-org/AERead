@@ -1,5 +1,5 @@
 {
-  "artifact_sha256": "3e4acd378834a7501651f75c19487ff8d9d7c85e0f3623fb2c95cf8d7fde99fe",
+  "artifact_sha256": "1713befb103ad0f1693fe50dee7c98e19f31a3f9973def83ff781963c3cc9489",
   "campaign_id": "housing_population_crossplay_v0",
   "created_date": "2026-09-01",
   "status": "blocked_at_full_trajectory",
@@ -79,7 +79,7 @@
     "latency_and_reliability_review_required": true
   },
   "stop_reason": "The full-trajectory gate did not produce one complete six-condition matrix after two whole-matrix attempts. DeepSeek returned response choices without text content. The variance pilot was not started.",
-  "backend_instruction": "Do not swap the direct backend inside V0. If Arena API is evaluated for latency or reliability, create a new campaign identity and repeat admission and full-trajectory gates under pinned Arena routing and retry controls.",
+  "backend_instruction": "Keep OpenRouter as the gateway. Any provider-route change requires a new campaign identity and repeated admission and full-trajectory gates under pinned routing and retry controls.",
   "local_evidence": {
     "path": "runs/housing_population_crossplay_v0",
     "committed": false,

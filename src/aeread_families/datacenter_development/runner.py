@@ -304,7 +304,7 @@ def build_offline_setup(
         }
     )
     registry = PluginRegistry()
-    registry.register(family, DataCenterDevelopmentPlugin())
+    registry.register_trusted(family, DataCenterDevelopmentPlugin())
     harness_registry = HarnessRegistry()
     harnesses = default_harnesses()
     for harness in harnesses.values():

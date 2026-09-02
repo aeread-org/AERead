@@ -289,7 +289,7 @@ def build_offline_setup(
     )
 
     registry = PluginRegistry()
-    registry.register(family, CommercialStatePlugin())
+    registry.register_trusted(family, CommercialStatePlugin())
     harness_registry = HarnessRegistry()
     for harness in default_harnesses().values():
         harness_registry.register(harness)

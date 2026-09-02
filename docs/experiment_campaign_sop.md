@@ -15,7 +15,9 @@ one experiment conducted with it.
 The machine-checkable gate contract is in
 `aeread.shared_runner.campaign`. It preserves failed attempts, permits an
 evidence-backed retry of the same gate, and refuses to append a downstream gate
-until the latest attempt at every predecessor has passed.
+until the latest active attempt at every predecessor has passed. Explicit
+pre-freeze invalidation records retain historical passes while reopening the
+affected gate suffix.
 
 ## 1. Declare the question and the frozen controls
 
@@ -65,14 +67,23 @@ Before starting a stage, ask for a promotion decision. After the stage, append
 an evidence-backed pass or failure record:
 
 ```python
+from pathlib import Path
+
 from aeread.shared_runner import (
     CampaignGateRecord,
+    QCCoverage,
+    QCEvidenceRef,
     append_campaign_gate,
+    campaign_gate_artifact_type,
     campaign_promotion_decision,
 )
 
+evidence_root = Path("runs/campaign_001")
 decision = campaign_promotion_decision(
-    campaign_id, "full_trajectory", gate_history
+    campaign_id,
+    "full_trajectory",
+    gate_history,
+    evidence_root=evidence_root,
 )
 if not decision.eligible:
     raise RuntimeError(decision.blockers)
@@ -84,8 +95,30 @@ gate_history = append_campaign_gate(
         gate_id="full_trajectory",
         attempt_index=decision.next_attempt_index,
         status="passed",
-        evidence_refs=("runs/gate/run_plan.json", "runs/gate/receipt.json"),
+        family_id="housing_v1",
+        family_version="1.0.0",
+        profile_id="housing_population_profile",
+        evidence_refs=(
+            QCEvidenceRef(
+                artifact_type=campaign_gate_artifact_type(
+                    "full_trajectory", "passed"
+                ),
+                path="full_trajectory/attempt_1/summary.json",
+                sha256=artifact_sha256,
+                family_id="housing_v1",
+                family_version="1.0.0",
+                profile_id="housing_population_profile",
+                coverage=(
+                    QCCoverage(
+                        coverage_id="full_trajectory",
+                        required_ids=planned_cell_ids,
+                        observed_ids=completed_cell_ids,
+                    ),
+                ),
+            ),
+        ),
     ),
+    evidence_root=evidence_root,
 )
 ```
 
@@ -95,12 +128,29 @@ blocked until that retry passes. A generic episode API cannot infer which
 scientific campaign it belongs to, so the campaign driver is responsible for
 calling this boundary before launching paid work.
 
+Promotion resolves each evidence path inside the declared `evidence_root`,
+rejects path traversal and missing files, and recomputes the SHA-256 digest from
+the artifact bytes. Gate status also selects one canonical artifact type, so an
+unrelated report cannot satisfy a campaign gate merely by carrying compatible
+identity and coverage fields.
+
+A bound control change is recorded as a `CampaignInvalidationRecord`; it does
+not delete prior passes. The active view clears the named gate and every
+downstream gate, while subsequent attempts continue their prior attempt
+numbering. A `retry_policy` change must invalidate from
+`profile_admission`, so a completed `full_trajectory` no longer prevents the
+required re-admission. Once `confirmatory_freeze` has passed, the same change
+requires a new campaign identity instead.
+
 The Housing V0 reference implementation is
 `aeread.shared_runner.housing_population_campaign`, with its frozen contract in
 `configs/housing_population_crossplay_v0.json`. New case families should reuse
 the same gate-history boundary and sealed-row resume behavior while supplying
 their own case admission, goldens, baselines, attribution blocks, and profile
 probes.
+
+Repository-enforceable safeguards and the remaining external/runtime blockers
+are tracked in [QC/SOP open items](qc_sop_open_items.md).
 
 ### Backend escalation instruction
 

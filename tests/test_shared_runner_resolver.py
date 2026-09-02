@@ -395,7 +395,7 @@ def _inputs(
     )
     plugin = plugin or HousingFixturePlugin()
     registry = PluginRegistry()
-    registry.register(family, plugin)
+    registry.register_trusted(family, plugin)
     harness_pins = tuple(
         _pin(harness_id, "harness")
         for harness_id in sorted({profile.harness.id for profile in profiles})

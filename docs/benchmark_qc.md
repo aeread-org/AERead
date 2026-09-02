@@ -24,21 +24,33 @@ attribution design. Mark a check `not_applicable` only with a versioned rational
 
 ## 1. QC result vocabulary
 
-Each gate attempt ends in one of four states:
+Each QC track ends in one of five typed states:
 
 | Status | Meaning |
 |---|---|
 | `passed` | Every required check passed and the evidence references are sealed |
 | `failed` | At least one required check failed; downstream promotion is blocked |
+| `partial` | Some named checks have evidence, but the declared scope is incomplete; promotion is blocked |
 | `not_run` | The gate has not been attempted for this family or campaign version |
 | `not_applicable` | A versioned rationale proves that a named check does not apply |
 
-`partial` may appear in a human status report but is never a passing machine
-state. Preserve failed attempts after later fixes. A passing test suite is
+Development qualification and normative family readiness are separate tracks.
+For example, Housing may have
+`development_case_qualification=passed` while
+`normative_housing_profile=partial`; only the normative `passed` state permits
+promotion. Preserve failed attempts after later fixes. A passing test suite is
 supporting evidence, not a substitute for an explicit QC record.
 
 QC evidence may be reused across campaigns only when every bound input still
 matches by typed identifier and digest.
+
+Every machine-consumed evidence reference records the artifact type, path,
+SHA-256 digest, family ID and version, profile ID, and explicit required and
+observed coverage IDs. At admission, the path is resolved inside an explicitly
+declared evidence root and the SHA-256 digest is recomputed from the file bytes.
+A path or caller-supplied digest by itself is not QC evidence. A gate may pass
+only when its canonical artifact type matches and its bound artifacts
+collectively cover every required ID in that gate's scope.
 
 ## 2. Standard gates
 
@@ -102,6 +114,23 @@ checks, replay results, visibility audits, and scorer/accounting reports.
 
 Stop when invalid activity mutates protected state, an oracle check disagrees,
 hidden state leaks, a score cannot be reconstructed, or replay differs.
+
+#### External-wrapper parity
+
+An external benchmark wrapper must declare, before execution:
+
+1. the exact external task or task set;
+2. the treatment reproduced inside AERead;
+3. the metric compared;
+4. the original paper or benchmark conclusion; and
+5. the numeric or exact tolerance used to decide parity.
+
+Component and adapter parity still remain visible separately. Matching record
+shapes is not evidence that AERead reproduced the original result unless the
+declared external-result criterion also passes. The criterion includes a pinned
+source reference, names one declared parity field, and uses exactly that
+field's comparison mode and tolerance; the report records its result as
+`criterion_matched`.
 
 ### Gate 3: Construct validity and baselines
 
@@ -253,3 +282,28 @@ Each profile must state current implementation coverage and must not translate
 `partial` into `passed`. Housing is defined in the
 [Housing V1 QC profile](housing_qc.md). Procurement, refund, and future families
 should add profiles that reference this standard instead of copying it.
+
+## 6. New-family contribution admission
+
+A contributed family cannot enter the normal plugin registry until one
+version-bound contribution record proves all of the following:
+
+- a unique registry namespace bound to the exact family ID, family version, and
+  plugin ID;
+- closed action and observation schemas: every object declares all properties
+  as required and sets `additionalProperties=false`;
+- a content-addressed provider-free conformance report with complete declared
+  coverage;
+- finite ceilings for wall time, logical actions, provider calls, input and
+  output tokens, and cost; and
+- human QC approval whose evidence and approval digest bind the exact
+  contribution contract.
+
+In-tree families that predate this contract use the explicitly named trusted
+registration path. New contributions use the qualified path and cannot replace
+an existing family/version key or reuse another contribution's namespace.
+Admission verifies both provider-free and human-QC evidence files against an
+explicit evidence root and retains the contributed resource limits in the
+registry record. Trusted conformance execution, runtime limit enforcement, and
+reviewer authentication remain promotion blockers in
+[QC/SOP open items](qc_sop_open_items.md).

@@ -51,7 +51,13 @@ from types import MappingProxyType
 from typing import Any, Mapping, Sequence
 
 from aeread.shared_runner.execution import EvidenceStore
-from aeread.shared_runner.parity import ParityField, ParityReport, ParitySpec, compare_projections
+from aeread.shared_runner.parity import (
+    ExternalParityCriterion,
+    ParityField,
+    ParityReport,
+    ParitySpec,
+    compare_projections,
+)
 from aeread.shared_runner.registry import PluginRegistry
 from aeread.shared_runner.resolver import PlanCell, canonical_json_bytes
 from aeread.shared_runner.schemas import CaseManifest
@@ -83,6 +89,18 @@ _USER_STOP = "###STOP###"
 PARITY_SPEC = ParitySpec(
     parity_id="tau3_retail_pilot_parity",
     parity_version="1.0.0",
+    criterion=ExternalParityCriterion(
+        task_id="tau2_retail_gold_action_pilot",
+        treatment_id="aeread_adapter_vs_upstream_direct",
+        metric_id="db_reward_component",
+        source_reference=f"tau2-bench@{UPSTREAM_COMMIT}",
+        original_conclusion=(
+            "The upstream retail task's declared gold actions determine its "
+            "database transition and deterministic database-reward inputs."
+        ),
+        tolerance_kind="exact",
+        tolerance=0.0,
+    ),
     fields=(
         ParityField("initial_database", ("initial_database",), ("initial_database",)),
         ParityField("ordered_tool_calls", ("ordered_tool_calls",), ("ordered_tool_calls",)),

@@ -192,7 +192,7 @@ def register_plugin(
     registry: PluginRegistry, *, plugin: "DataCenterDevelopmentPlugin | None" = None
 ) -> "DataCenterDevelopmentPlugin":
     resolved = plugin or DataCenterDevelopmentPlugin()
-    registry.register(family_manifest(), resolved)
+    registry.register_trusted(family_manifest(), resolved)
     return resolved
 
 

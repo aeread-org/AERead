@@ -1,10 +1,31 @@
 from __future__ import annotations
 
+import pytest
+
 from aeread.shared_runner.parity import (
+    ExternalParityCriterion,
+    ParityContractError,
     ParityField,
     ParitySpec,
     compare_projections,
 )
+
+
+def _criterion(
+    *,
+    task_id: str = "external_task",
+    metric_id: str = "final_state",
+    tolerance: float = 0.0,
+) -> ExternalParityCriterion:
+    return ExternalParityCriterion(
+        task_id=task_id,
+        treatment_id="adapted_environment",
+        metric_id=metric_id,
+        source_reference="external-paper-or-benchmark@pinned-version",
+        original_conclusion="The adapted result preserves the original conclusion.",
+        tolerance_kind="exact" if tolerance == 0 else "absolute",
+        tolerance=tolerance,
+    )
 
 
 def test_refund_parity_compares_components_not_only_the_aggregate_reward() -> None:
@@ -33,6 +54,7 @@ def test_refund_parity_compares_components_not_only_the_aggregate_reward() -> No
     spec = ParitySpec(
         parity_id="tau3_retail_adapter_parity",
         parity_version="1.0.0",
+        criterion=_criterion(task_id="retail_refund"),
         fields=(
             ParityField("initial_state", ("initial_db",), ("state", "initial")),
             ParityField(
@@ -70,6 +92,9 @@ def test_refund_parity_compares_components_not_only_the_aggregate_reward() -> No
     assert report.status == "match"
     assert report.mismatched_fields == ()
     assert len(report.field_results) == 8
+    assert report.criterion.task_id == "retail_refund"
+    assert report.criterion_matched is True
+    assert len(report.criterion_sha256) == 64
     assert len(report.report_sha256) == 64
 
 
@@ -86,6 +111,11 @@ def test_supply_chain_parity_can_map_different_record_shapes() -> None:
     spec = ParitySpec(
         parity_id="supply_chain_adapter_parity",
         parity_version="1.0.0",
+        criterion=_criterion(
+            task_id="supply_chain_procurement",
+            metric_id="objective",
+            tolerance=1e-6,
+        ),
         fields=(
             ParityField("inventory", ("inventory",), ("terminal_state", "stock")),
             ParityField("orders", ("orders",), ("terminal_state", "purchase_orders")),
@@ -106,6 +136,7 @@ def test_parity_report_names_each_mismatch_instead_of_hiding_it_in_one_boolean()
     spec = ParitySpec(
         parity_id="refund_failure_fixture",
         parity_version="1.0.0",
+        criterion=_criterion(task_id="refund_failure"),
         fields=(
             ParityField("final_state", ("final",), ("state",)),
             ParityField("db_reward", ("db_reward",), ("score",)),
@@ -119,5 +150,67 @@ def test_parity_report_names_each_mismatch_instead_of_hiding_it_in_one_boolean()
     )
 
     assert report.status == "mismatch"
+    assert report.criterion_matched is False
     assert report.mismatched_fields == ("final_state", "db_reward")
     assert all(result.upstream_sha256 != result.adapted_sha256 for result in report.field_results)
+
+
+def test_external_parity_criterion_requires_original_conclusion_and_tolerance() -> None:
+    with pytest.raises(ParityContractError, match="source_reference"):
+        ExternalParityCriterion(
+            task_id="task",
+            treatment_id="treatment",
+            metric_id="metric",
+            source_reference="",
+            original_conclusion="Original conclusion.",
+            tolerance_kind="exact",
+            tolerance=0.0,
+        )
+
+    with pytest.raises(ParityContractError, match="original_conclusion"):
+        ExternalParityCriterion(
+            task_id="task",
+            treatment_id="treatment",
+            metric_id="metric",
+            source_reference="source@version",
+            original_conclusion="",
+            tolerance_kind="exact",
+            tolerance=0.0,
+        )
+
+    with pytest.raises(ParityContractError, match="exact tolerance"):
+        ExternalParityCriterion(
+            task_id="task",
+            treatment_id="treatment",
+            metric_id="metric",
+            source_reference="source@version",
+            original_conclusion="Original conclusion.",
+            tolerance_kind="exact",
+            tolerance=0.1,
+        )
+
+
+def test_parity_criterion_is_bound_to_its_named_metric_and_tolerance() -> None:
+    with pytest.raises(ParityContractError, match="must name one declared"):
+        ParitySpec(
+            parity_id="missing_criterion_metric",
+            parity_version="1.0.0",
+            criterion=_criterion(metric_id="not_a_field"),
+            fields=(ParityField("final_state", ("final",), ("final",)),),
+        )
+
+    with pytest.raises(ParityContractError, match="does not match"):
+        ParitySpec(
+            parity_id="criterion_tolerance_bypass",
+            parity_version="1.0.0",
+            criterion=_criterion(metric_id="objective"),
+            fields=(
+                ParityField(
+                    "objective",
+                    ("objective",),
+                    ("objective",),
+                    comparison="numeric_tolerance",
+                    absolute_tolerance=100.0,
+                ),
+            ),
+        )
