@@ -422,7 +422,20 @@ class ReplayReport:
 
     @property
     def status(self) -> str:
-        if self.comparison is not None and not self.comparison.matches:
+        """``"match"`` / ``"mismatch"`` / ``"not_compared"`` -- never
+        collapses "nothing was compared" into the same string a genuine
+        state-hash-level agreement would produce (Codex triage finding 5).
+
+        ``comparison is None`` happens under this module's own documented,
+        intended "no original run in memory" offline-replay mode
+        (:func:`replay_and_verify`'s ``original=None`` -- a real, common
+        usage, not an edge case): nothing was ever compared, so this must
+        be a distinct, explicit "not comparable" status, never the same
+        ``"match"`` a byte-identical reproduction earns.
+        """
+        if self.comparison is None:
+            return "not_compared"
+        if not self.comparison.matches:
             return "mismatch"
         return "match"
 

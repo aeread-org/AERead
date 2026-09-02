@@ -150,16 +150,54 @@ def _validity_domain() -> ValidityDomainSpec:
     )
 
 
-def _opponent_panel_sha256(focal_seat: str, panel_policy_ids: Mapping[str, str]) -> str:
-    """Content digest binding a leaf 1/2 reference to its exact opponent panel.
+def _opponent_panel_sha256(
+    focal_seat: str, panel_policy_ids: Mapping[str, str], baseline_policy_id: str
+) -> str:
+    """Content digest binding a leaf 1/2 reference to its exact comparison.
 
     The opponent panel (the other 4 seats' declared policies) is part of
     the estimand (spec section 2): two leaves that differ only in which
     policies the non-focal seats run are not interchangeable, so they must
-    not collide on ``source_sha256``.
+    not collide on ``source_sha256``. Neither are two leaves that differ
+    only in the *declared baseline policy* -- comparing the focal seat
+    against "proportional" is a different claim than comparing it against
+    "aggressive", even for the identical panel (Codex triage finding 2:
+    ``baseline_policy_id`` used to be accepted by the leaf builders but
+    never referenced anywhere in either body).
     """
-    payload = {"focal_seat": focal_seat, "panel_policy_ids": dict(sorted(panel_policy_ids.items()))}
+    payload = {
+        "focal_seat": focal_seat,
+        "panel_policy_ids": dict(sorted(panel_policy_ids.items())),
+        "baseline_policy_id": baseline_policy_id,
+    }
     return hashlib.sha256(canonical_json_bytes(payload)).hexdigest()
+
+
+def _reference_id_for_baseline(base_reference_id: str, baseline_policy_id: str) -> str:
+    """Bind a leaf 1/2 reference's own id to its declared baseline policy.
+
+    Lets a scorer confirm -- from the leaf alone, with no extra parameter
+    threading -- which baseline policy a leaf was built to compare against,
+    so it can reject baseline evidence declared under a different one
+    (Codex triage finding 2's concrete failure scenario: a caller passing
+    baseline data from an "aggressive" run while the leaf's own default
+    claimed "proportional", with nothing before this fix able to tell).
+    """
+    return f"{base_reference_id}__baseline_{baseline_policy_id}"
+
+
+def _baseline_policy_id_mismatch_reason(
+    leaf: MeasurementLeafSpec, base_reference_id: str, baseline_policy_id: str
+) -> str | None:
+    """``None`` iff ``baseline_policy_id`` matches what the leaf was built for."""
+    expected = _reference_id_for_baseline(base_reference_id, baseline_policy_id)
+    actual = leaf.verifier.reference.reference_id
+    if actual == expected:
+        return None
+    return (
+        f"baseline_policy_id_mismatch:declared_{baseline_policy_id}:"
+        f"leaf_reference_{actual}"
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -184,12 +222,12 @@ def build_terminal_wealth_leaf(
         validity_domain=domain,
     )
     reference = ReferenceSpec(
-        reference_id=TERMINAL_WEALTH_REFERENCE_ID,
+        reference_id=_reference_id_for_baseline(TERMINAL_WEALTH_REFERENCE_ID, baseline_policy_id),
         reference_version=REFERENCE_VERSION,
         reference_kind="baseline_delta",
         input_scope="trajectory",
         units="native_currency",
-        source_sha256=_opponent_panel_sha256(focal_seat, panel_policy_ids),
+        source_sha256=_opponent_panel_sha256(focal_seat, panel_policy_ids, baseline_policy_id),
         implementation=_implementation(
             "alympics_wac_terminal_wealth_baseline_run", "measurement.py"
         ),
@@ -226,12 +264,12 @@ def build_survival_leaf(
         validity_domain=domain,
     )
     reference = ReferenceSpec(
-        reference_id=SURVIVAL_REFERENCE_ID,
+        reference_id=_reference_id_for_baseline(SURVIVAL_REFERENCE_ID, baseline_policy_id),
         reference_version=REFERENCE_VERSION,
         reference_kind="baseline_delta",
         input_scope="trajectory",
         units="rounds_survived",
-        source_sha256=_opponent_panel_sha256(focal_seat, panel_policy_ids),
+        source_sha256=_opponent_panel_sha256(focal_seat, panel_policy_ids, baseline_policy_id),
         implementation=_implementation("alympics_wac_survival_baseline_run", "measurement.py"),
     )
     verifier = VerifierSpec(
@@ -388,7 +426,7 @@ def alive_at_terminal(final_players: Mapping[str, Mapping[str, Any]], seat: str)
 
 
 def bid_legality_ok(round_log: Sequence[Mapping[str, Any]], seat: str) -> bool:
-    return _first_illegal_round(round_log, seat) is None
+    return _bid_legality_invalid_reason(round_log, seat) is None
 
 
 def _first_illegal_round(round_log: Sequence[Mapping[str, Any]], seat: str) -> int | None:
@@ -398,6 +436,47 @@ def _first_illegal_round(round_log: Sequence[Mapping[str, Any]], seat: str) -> i
             continue
         if not bid_legal[seat]:
             return entry["round_id"]
+    return None
+
+
+def _missing_legality_round(round_log: Sequence[Mapping[str, Any]], seat: str) -> int | None:
+    """First round ``seat`` actually bid in that carries no legality evidence.
+
+    Codex triage finding 3: an entry with no ``bid_legal`` key, or one
+    missing the seat, used to be silently skipped -- indistinguishable from
+    "checked and found legal." This is deliberately narrower than "no
+    evidence at all": a round the seat never bid in (already eliminated by
+    then, ``environment.step``'s own ``alive_seats`` never includes it) is
+    not a gap, it is simply a round this seat never participated in.
+    """
+    for entry in round_log:
+        if entry.get("status") == "malformed_action":
+            continue
+        if seat not in entry.get("bids", {}):
+            continue
+        bid_legal = entry.get("bid_legal")
+        if not bid_legal or seat not in bid_legal:
+            return entry["round_id"]
+    return None
+
+
+def _bid_legality_invalid_reason(round_log: Sequence[Mapping[str, Any]], seat: str) -> str | None:
+    """``None`` iff every round ``seat`` bid in has confirmed-legal evidence.
+
+    Distinguishes two different invalidity reasons a caller needs to be
+    able to tell apart: no legality evidence was ever recorded for a round
+    the seat played (``bid_legality_evidence_missing`` -- finding 3, a gap
+    this adapter's own evidence never lets happen today, but a hand-
+    assembled/corrupted/on-disk-edited ``round_log`` could), versus a round
+    where the recorded evidence explicitly says the bid was illegal
+    (``bid_exceeds_balance``, unchanged from before this fix).
+    """
+    missing_round = _missing_legality_round(round_log, seat)
+    if missing_round is not None:
+        return f"bid_legality_evidence_missing:round_{missing_round}:seat_{seat}"
+    illegal_round = _first_illegal_round(round_log, seat)
+    if illegal_round is not None:
+        return f"bid_exceeds_balance:round_{illegal_round}:seat_{seat}"
     return None
 
 
@@ -474,11 +553,11 @@ def score_bid_legality(
         for entry in round_log
         if entry.get("bid_legal") and focal_seat in entry["bid_legal"]
     }
-    illegal_round = _first_illegal_round(round_log, focal_seat)
-    if illegal_round is not None:
+    invalid_reason = _bid_legality_invalid_reason(round_log, focal_seat)
+    if invalid_reason is not None:
         return _invalid_envelope(
             leaf,
-            reasons=(f"bid_exceeds_balance:round_{illegal_round}:seat_{focal_seat}",),
+            reasons=(invalid_reason,),
             metrics=metrics,
             evidence_refs=evidence_refs,
         )
@@ -564,6 +643,7 @@ def score_terminal_wealth(
     actual_round_log: Sequence[Mapping[str, Any]],
     actual_termination_reason: str,
     baseline_final_players: Mapping[str, Mapping[str, Any]],
+    baseline_policy_id: str = DEFAULT_BASELINE_POLICY_ID,
     not_informative: bool = False,
     evidence_refs: tuple[str, ...] = (),
 ) -> ScoreEnvelope:
@@ -573,17 +653,23 @@ def score_terminal_wealth(
     :func:`is_supply_degenerate` against the case's own frozen supply
     schedule and personas), not re-derived here from the trajectory --
     mirrors ``tau3_retail.score_db_state`` taking an already-known
-    ``termination_reason`` rather than re-deriving it.
+    ``termination_reason`` rather than re-deriving it. ``baseline_policy_id``
+    is the caller's own declaration of which policy actually produced
+    ``baseline_final_players`` -- checked against the leaf's own declared
+    baseline (Codex triage finding 2: this used to be silently ignored, so
+    baseline evidence from any policy could be scored against a leaf
+    declaring a different one with no error).
     """
+    baseline_mismatch = _baseline_policy_id_mismatch_reason(
+        leaf, TERMINAL_WEALTH_REFERENCE_ID, baseline_policy_id
+    )
+    if baseline_mismatch is not None:
+        return _invalid_envelope(leaf, reasons=(baseline_mismatch,), evidence_refs=evidence_refs)
     if actual_termination_reason == "malformed_action":
         return _malformed_envelope(leaf, actual_round_log, evidence_refs=evidence_refs)
-    if not bid_legality_ok(actual_round_log, focal_seat):
-        illegal_round = _first_illegal_round(actual_round_log, focal_seat)
-        return _invalid_envelope(
-            leaf,
-            reasons=(f"bid_exceeds_balance:round_{illegal_round}:seat_{focal_seat}",),
-            evidence_refs=evidence_refs,
-        )
+    legality_reason = _bid_legality_invalid_reason(actual_round_log, focal_seat)
+    if legality_reason is not None:
+        return _invalid_envelope(leaf, reasons=(legality_reason,), evidence_refs=evidence_refs)
     actual_wealth = float(actual_final_players[focal_seat]["balance"])
     baseline_wealth = float(baseline_final_players[focal_seat]["balance"])
     metadata: dict[str, Any] = {}
@@ -598,7 +684,20 @@ def score_terminal_wealth(
         status="ok",
         leaf=leaf,
         primary=primary,
-        metrics={},
+        # Codex triage finding 4: a dead seat accrues salary every round
+        # regardless of bid outcome (losing a round costs HP, never
+        # balance), so its frozen-at-death balance can look identical to,
+        # or exceed, a living seat's -- never silently unqualified, exactly
+        # the same distinguishing flag leaf 2 (score_survival) already
+        # carries below.
+        metrics={
+            "actual_alive_at_terminal": MetricValue(
+                1.0 if alive_at_terminal(actual_final_players, focal_seat) else 0.0, "pass"
+            ),
+            "baseline_alive_at_terminal": MetricValue(
+                1.0 if alive_at_terminal(baseline_final_players, focal_seat) else 0.0, "pass"
+            ),
+        },
         reference_values={
             "actual_terminal_wealth": MetricValue(actual_wealth, "native_currency"),
             "baseline_terminal_wealth": MetricValue(baseline_wealth, "native_currency"),
@@ -617,19 +716,21 @@ def score_survival(
     actual_termination_reason: str,
     baseline_round_log: Sequence[Mapping[str, Any]],
     baseline_final_players: Mapping[str, Mapping[str, Any]],
+    baseline_policy_id: str = DEFAULT_BASELINE_POLICY_ID,
     not_informative: bool = False,
     evidence_refs: tuple[str, ...] = (),
 ) -> ScoreEnvelope:
     """Score leaf 2: reported separately from wealth, same gating as leaf 1."""
+    baseline_mismatch = _baseline_policy_id_mismatch_reason(
+        leaf, SURVIVAL_REFERENCE_ID, baseline_policy_id
+    )
+    if baseline_mismatch is not None:
+        return _invalid_envelope(leaf, reasons=(baseline_mismatch,), evidence_refs=evidence_refs)
     if actual_termination_reason == "malformed_action":
         return _malformed_envelope(leaf, actual_round_log, evidence_refs=evidence_refs)
-    if not bid_legality_ok(actual_round_log, focal_seat):
-        illegal_round = _first_illegal_round(actual_round_log, focal_seat)
-        return _invalid_envelope(
-            leaf,
-            reasons=(f"bid_exceeds_balance:round_{illegal_round}:seat_{focal_seat}",),
-            evidence_refs=evidence_refs,
-        )
+    legality_reason = _bid_legality_invalid_reason(actual_round_log, focal_seat)
+    if legality_reason is not None:
+        return _invalid_envelope(leaf, reasons=(legality_reason,), evidence_refs=evidence_refs)
     actual_rounds = float(rounds_survived(actual_round_log, focal_seat))
     baseline_rounds = float(rounds_survived(baseline_round_log, focal_seat))
     metadata: dict[str, Any] = {}
@@ -684,9 +785,16 @@ class AlympicsWacScorer:
         return {seat: policy for seat, policy in assignment.items() if seat != focal_seat}
 
     def leaves_for_focal_seat(
-        self, focal_seat: str
+        self,
+        focal_seat: str,
+        *,
+        baseline_policy_id: str = DEFAULT_BASELINE_POLICY_ID,
     ) -> tuple[MeasurementLeafSpec, MeasurementLeafSpec, MeasurementLeafSpec, MeasurementLeafSpec]:
-        return build_leaves(focal_seat=focal_seat, panel_policy_ids=self.panel_policy_ids(focal_seat))
+        return build_leaves(
+            focal_seat=focal_seat,
+            panel_policy_ids=self.panel_policy_ids(focal_seat),
+            baseline_policy_id=baseline_policy_id,
+        )
 
     def is_not_informative(self) -> bool:
         return is_supply_degenerate(
@@ -701,9 +809,10 @@ class AlympicsWacScorer:
         actual_round_log: Sequence[Mapping[str, Any]],
         actual_termination_reason: str,
         baseline_final_players: Mapping[str, Mapping[str, Any]],
+        baseline_policy_id: str = DEFAULT_BASELINE_POLICY_ID,
         evidence_refs: tuple[str, ...] = (),
     ) -> ScoreEnvelope:
-        leaf = self.leaves_for_focal_seat(focal_seat)[0]
+        leaf = self.leaves_for_focal_seat(focal_seat, baseline_policy_id=baseline_policy_id)[0]
         return score_terminal_wealth(
             leaf,
             focal_seat=focal_seat,
@@ -711,6 +820,7 @@ class AlympicsWacScorer:
             actual_round_log=actual_round_log,
             actual_termination_reason=actual_termination_reason,
             baseline_final_players=baseline_final_players,
+            baseline_policy_id=baseline_policy_id,
             not_informative=self.is_not_informative(),
             evidence_refs=evidence_refs,
         )
@@ -724,9 +834,10 @@ class AlympicsWacScorer:
         actual_termination_reason: str,
         baseline_round_log: Sequence[Mapping[str, Any]],
         baseline_final_players: Mapping[str, Mapping[str, Any]],
+        baseline_policy_id: str = DEFAULT_BASELINE_POLICY_ID,
         evidence_refs: tuple[str, ...] = (),
     ) -> ScoreEnvelope:
-        leaf = self.leaves_for_focal_seat(focal_seat)[1]
+        leaf = self.leaves_for_focal_seat(focal_seat, baseline_policy_id=baseline_policy_id)[1]
         return score_survival(
             leaf,
             focal_seat=focal_seat,
@@ -735,6 +846,7 @@ class AlympicsWacScorer:
             actual_termination_reason=actual_termination_reason,
             baseline_round_log=baseline_round_log,
             baseline_final_players=baseline_final_players,
+            baseline_policy_id=baseline_policy_id,
             not_informative=self.is_not_informative(),
             evidence_refs=evidence_refs,
         )

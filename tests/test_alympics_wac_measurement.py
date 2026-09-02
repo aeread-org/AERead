@@ -164,6 +164,129 @@ def test_opponent_panel_is_part_of_the_leaf_1_2_reference_identity() -> None:
     )
 
 
+# ---------------------------------------------------------------------------
+# Codex triage finding 2 -- `baseline_policy_id` was accepted by
+# build_terminal_wealth_leaf/build_survival_leaf but never referenced in
+# either body, never threaded through AlympicsWacScorer.leaves_for_focal_seat,
+# and never checked against the baseline evidence a caller actually supplies
+# to the scorers (docs/alympics_codex_triage.md).
+# ---------------------------------------------------------------------------
+
+
+def test_declared_baseline_policy_id_is_part_of_the_leaf_1_2_reference_identity() -> None:
+    """Two leaves that differ only in the *declared* baseline policy must
+    not collide on `source_sha256`/`reference_id` -- before this fix,
+    `baseline_policy_id` was accepted as a parameter but never referenced in
+    either leaf builder's body, so a leaf comparing against "proportional"
+    and one comparing against "aggressive" (same focal seat, same panel)
+    were indistinguishable."""
+    same_panel = {"bob": "proportional", "cindy": "proportional"}
+    against_proportional = m.build_terminal_wealth_leaf(
+        focal_seat="alex", panel_policy_ids=same_panel, baseline_policy_id="proportional"
+    )
+    against_aggressive = m.build_terminal_wealth_leaf(
+        focal_seat="alex", panel_policy_ids=same_panel, baseline_policy_id="aggressive"
+    )
+    assert (
+        against_proportional.verifier.reference.source_sha256
+        != against_aggressive.verifier.reference.source_sha256
+    )
+    assert (
+        against_proportional.verifier.reference.reference_id
+        != against_aggressive.verifier.reference.reference_id
+    )
+
+    survival_against_proportional = m.build_survival_leaf(
+        focal_seat="alex", panel_policy_ids=same_panel, baseline_policy_id="proportional"
+    )
+    survival_against_aggressive = m.build_survival_leaf(
+        focal_seat="alex", panel_policy_ids=same_panel, baseline_policy_id="aggressive"
+    )
+    assert (
+        survival_against_proportional.verifier.reference.source_sha256
+        != survival_against_aggressive.verifier.reference.source_sha256
+    )
+
+
+def test_scorer_leaves_for_focal_seat_threads_the_declared_baseline_policy_id_through() -> None:
+    """`AlympicsWacScorer.leaves_for_focal_seat` (the real production path a
+    family case's `build_scorer` hook returns) used to build every leaf with
+    the hard-coded default baseline, silently dropping any other
+    `baseline_policy_id` a caller passed in."""
+    plugin = _plugin()
+    case = _case("reference_baseline")
+    family_case = plugin.validate_payload(case.payload)
+    scorer = plugin.build_scorer(family_case)
+
+    default_leaves = scorer.leaves_for_focal_seat("alex")
+    aggressive_leaves = scorer.leaves_for_focal_seat("alex", baseline_policy_id="aggressive")
+    assert (
+        default_leaves[0].verifier.reference.source_sha256
+        != aggressive_leaves[0].verifier.reference.source_sha256
+    )
+
+
+def test_score_terminal_wealth_rejects_baseline_evidence_declared_under_a_mismatched_policy() -> None:
+    """The scorer used to accept `baseline_final_players` with zero check
+    that it came from running the leaf's own declared baseline policy --
+    any dict shaped like `{seat: {"balance": ...}}` produced `status="ok"`
+    regardless of which policy the caller claims produced it. A caller must
+    now explicitly declare `baseline_policy_id`, and a leaf built for one
+    baseline can no longer be scored against evidence declared under a
+    different one."""
+    panel_policy_ids = {s: "proportional" for s in SEAT_ORDER if s != "alex"}
+    leaf = m.build_terminal_wealth_leaf(
+        focal_seat="alex", panel_policy_ids=panel_policy_ids, baseline_policy_id="proportional"
+    )
+    dummy_players = {seat: {"balance": 100, "alive": True} for seat in SEAT_ORDER}
+
+    mismatched = m.score_terminal_wealth(
+        leaf,
+        focal_seat="alex",
+        actual_final_players=dummy_players,
+        actual_round_log=[],
+        actual_termination_reason="rounds_exhausted",
+        baseline_final_players=dummy_players,
+        baseline_policy_id="aggressive",
+    )
+    assert mismatched.status == "invalid_measurement"
+    assert mismatched.primary is None
+    assert "baseline_policy_id" in mismatched.validity.reasons[0]
+
+    matched = m.score_terminal_wealth(
+        leaf,
+        focal_seat="alex",
+        actual_final_players=dummy_players,
+        actual_round_log=[],
+        actual_termination_reason="rounds_exhausted",
+        baseline_final_players=dummy_players,
+        baseline_policy_id="proportional",
+    )
+    assert matched.status == "ok"
+
+
+def test_score_survival_rejects_baseline_evidence_declared_under_a_mismatched_policy() -> None:
+    panel_policy_ids = {s: "proportional" for s in SEAT_ORDER if s != "alex"}
+    leaf = m.build_survival_leaf(
+        focal_seat="alex", panel_policy_ids=panel_policy_ids, baseline_policy_id="proportional"
+    )
+    dummy_players = {seat: {"balance": 100, "alive": True} for seat in SEAT_ORDER}
+    dummy_round_log = [{"round_id": 1, "bids": {"alex": 1}}]
+
+    mismatched = m.score_survival(
+        leaf,
+        focal_seat="alex",
+        actual_round_log=dummy_round_log,
+        actual_final_players=dummy_players,
+        actual_termination_reason="rounds_exhausted",
+        baseline_round_log=dummy_round_log,
+        baseline_final_players=dummy_players,
+        baseline_policy_id="aggressive",
+    )
+    assert mismatched.status == "invalid_measurement"
+    assert "baseline_policy_id" in mismatched.validity.reasons[0]
+
+
 def test_the_specs_literal_higher_is_better_is_not_a_legal_kernel_direction() -> None:
     """Spec section 2's leaf 1 YAML literally writes
     `direction: higher_is_better`; the kernel's real EstimandSpec only
@@ -215,6 +338,18 @@ def test_golden_1_successful_reports_positive_wealth_and_full_survival() -> None
     final_players, round_log, terminal = _run(case, _multiplier_response_source(ALL_PROPORTIONAL))
     upstream = _plugin()._require_upstream()
 
+    # Codex triage finding 7: this golden's own name/docstring intent
+    # ("full survival") was never actually asserted -- the real, hand-
+    # verified run under all-proportional bidding eliminates 4 of 5 seats
+    # (alex/bob/david at round 4, cindy at round 6); only eric reaches
+    # round 20 alive. Pinning the real pattern here means a regression that
+    # broke survival entirely (e.g. every seat dying round 1) could never
+    # pass this golden silently, the way it could before this assertion.
+    assert final_players["eric"]["alive"] is True
+    for seat in ("alex", "bob", "cindy", "david"):
+        assert final_players[seat]["alive"] is False
+    assert set(m.rounds_survived(round_log, seat) for seat in SEAT_ORDER) == {4, 6, 20}
+
     for focal_seat in SEAT_ORDER:
         wealth_leaf = m.build_terminal_wealth_leaf(
             focal_seat=focal_seat,
@@ -231,6 +366,13 @@ def test_golden_1_successful_reports_positive_wealth_and_full_survival() -> None
         assert wealth.status == "ok"
         assert wealth.reference_values["actual_terminal_wealth"].value > 0
         assert wealth.primary.value == 0.0  # actual == baseline here
+        # Codex triage finding 4: a dead seat's frozen-at-death balance used
+        # to be reported identically to a living seat's, with no
+        # distinguishing flag -- `alive_at_terminal` now always rides along
+        # in leaf 1's own metrics, exactly as leaf 2 already carried it.
+        assert wealth.metrics["actual_alive_at_terminal"].value == (
+            1.0 if m.alive_at_terminal(final_players, focal_seat) else 0.0
+        )
 
         survival_leaf = m.build_survival_leaf(
             focal_seat=focal_seat,
@@ -267,6 +409,32 @@ def test_golden_1_successful_reports_positive_wealth_and_full_survival() -> None
     assert settlement.status == "ok"
     assert settlement.primary.value == 1.0
     assert settlement.metrics["rounds_checked"].value == len(round_log)
+
+
+def test_score_terminal_wealth_flags_a_dead_focal_seats_frozen_balance_as_not_alive() -> None:
+    """Concrete, isolated reproduction of finding 4: a dead seat accrues
+    salary every round regardless of bid outcome (losing a round costs HP,
+    never balance), so its frozen-at-death balance can look identical to,
+    or even exceed, a living baseline seat's -- `actual_alive_at_terminal`
+    must say so, never silently agree with a living seat's envelope shape."""
+    dead_final_players = {seat: {"balance": 280, "alive": False} for seat in SEAT_ORDER}
+    alive_baseline_players = {seat: {"balance": 200, "alive": True} for seat in SEAT_ORDER}
+    round_log = [{"round_id": 1, "supply": 15, "bids": {"alex": 24}, "bid_legal": {"alex": True}}]
+    panel_policy_ids = {s: "proportional" for s in SEAT_ORDER if s != "alex"}
+    leaf = m.build_terminal_wealth_leaf(focal_seat="alex", panel_policy_ids=panel_policy_ids)
+
+    wealth = m.score_terminal_wealth(
+        leaf,
+        focal_seat="alex",
+        actual_final_players=dead_final_players,
+        actual_round_log=round_log,
+        actual_termination_reason="rounds_exhausted",
+        baseline_final_players=alive_baseline_players,
+    )
+    assert wealth.status == "ok"
+    assert wealth.primary.value > 0  # a dead seat can still look "richer"...
+    assert wealth.metrics["actual_alive_at_terminal"].value == 0.0  # ...but never silently.
+    assert wealth.metrics["baseline_alive_at_terminal"].value == 1.0
 
 
 # ---------------------------------------------------------------------------
@@ -475,6 +643,113 @@ def test_golden_3_over_balance_bid_end_to_end_through_run_episode_becomes_invali
         legality_leaf, focal_seat="bob", round_log=round_log, termination_reason=terminal["reason"]
     )
     assert bob_legality.status == "ok"
+
+
+# ---------------------------------------------------------------------------
+# Codex triage finding 3 -- missing `bid_legal` evidence used to silently
+# pass as legal, permitting wealth/survival scoring on a round no legality
+# check ever actually ran for (docs/alympics_codex_triage.md).
+# ---------------------------------------------------------------------------
+
+
+def test_score_bid_legality_flags_a_round_with_no_legality_evidence_at_all() -> None:
+    """A hand-assembled/corrupted/on-disk-edited `round_log` where a seat
+    that actually bid that round carries no `bid_legal` entry at all used to
+    be indistinguishable from "checked and found legal" -- `_first_illegal_round`
+    just skipped it, so `bid_legality_ok` returned `True` and this scorer
+    reported a positive legality pass with zero evidence behind it."""
+    round_log = [
+        {
+            "round_id": 1,
+            "supply": 15,
+            "bids": {"alex": 24, "bob": 27},
+            # No "bid_legal" key at all -- e.g. a round_log entry stripped
+            # of legality evidence, never produced by today's real step().
+            "winners": ["bob"],
+            "eliminated_this_round": [],
+            "status": "settled",
+        }
+    ]
+    legality_leaf = m.build_bid_legality_leaf()
+
+    result = m.score_bid_legality(
+        legality_leaf, focal_seat="alex", round_log=round_log, termination_reason="rounds_exhausted"
+    )
+    assert result.status == "invalid_measurement"
+    assert result.primary is None
+    assert "bid_legality_evidence_missing" in result.validity.reasons[0]
+
+
+def test_score_terminal_wealth_and_survival_reject_missing_legality_evidence() -> None:
+    round_log = [
+        {
+            "round_id": 1,
+            "supply": 15,
+            "bids": {"alex": 24},
+            "winners": [],
+            "eliminated_this_round": [],
+            "status": "settled",
+        }
+    ]
+    final_players = {seat: {"balance": 10, "alive": True} for seat in SEAT_ORDER}
+    panel_policy_ids = {s: "proportional" for s in SEAT_ORDER if s != "alex"}
+
+    wealth_leaf = m.build_terminal_wealth_leaf(focal_seat="alex", panel_policy_ids=panel_policy_ids)
+    wealth = m.score_terminal_wealth(
+        wealth_leaf,
+        focal_seat="alex",
+        actual_final_players=final_players,
+        actual_round_log=round_log,
+        actual_termination_reason="rounds_exhausted",
+        baseline_final_players=final_players,
+    )
+    assert wealth.status == "invalid_measurement"
+    assert "bid_legality_evidence_missing" in wealth.validity.reasons[0]
+
+    survival_leaf = m.build_survival_leaf(focal_seat="alex", panel_policy_ids=panel_policy_ids)
+    survival = m.score_survival(
+        survival_leaf,
+        focal_seat="alex",
+        actual_round_log=round_log,
+        actual_final_players=final_players,
+        actual_termination_reason="rounds_exhausted",
+        baseline_round_log=round_log,
+        baseline_final_players=final_players,
+    )
+    assert survival.status == "invalid_measurement"
+    assert "bid_legality_evidence_missing" in survival.validity.reasons[0]
+
+
+def test_score_bid_legality_still_skips_rounds_the_seat_never_played() -> None:
+    """A seat eliminated before some later round legitimately has no
+    `bid_legal` entry for rounds after its own elimination -- that must
+    stay a non-issue, never mistaken for missing evidence."""
+    round_log = [
+        {
+            "round_id": 1,
+            "supply": 15,
+            "bids": {"alex": 24, "bob": 27},
+            "bid_legal": {"alex": True, "bob": True},
+            "winners": ["bob"],
+            "eliminated_this_round": ["alex"],
+            "status": "settled",
+        },
+        {
+            "round_id": 2,
+            "supply": 15,
+            "bids": {"bob": 27},  # alex is no longer alive -- never bid.
+            "bid_legal": {"bob": True},
+            "winners": ["bob"],
+            "eliminated_this_round": [],
+            "status": "settled",
+        },
+    ]
+    legality_leaf = m.build_bid_legality_leaf()
+    result = m.score_bid_legality(
+        legality_leaf, focal_seat="alex", round_log=round_log, termination_reason="rounds_exhausted"
+    )
+    assert result.status == "ok"
+    assert result.primary.value == 1.0
 
 
 # ---------------------------------------------------------------------------

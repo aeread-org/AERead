@@ -430,3 +430,63 @@ def test_replay_and_verify_end_to_end_returns_a_matching_report(tmp_path: Path) 
     assert report.scores.terminal_wealth.primary.value == 0.0
     assert report.scores.survival.status == "ok"
     assert report.scores.survival.primary.value == 0.0
+
+
+def test_replay_and_verify_with_no_original_in_memory_never_fabricates_a_match(
+    tmp_path: Path,
+) -> None:
+    """Codex triage finding 5: this module's own docstring names
+    ``original=None`` as a real, intended mode -- "a genuinely offline
+    replay from a previously-written record, with no original run in
+    memory" -- but ``ReplayReport.status`` used to collapse that ``None``
+    comparison (nothing was ever compared) into the exact same string,
+    ``"match"``, a genuinely verified state-hash-level agreement would
+    produce. This exercises exactly that documented, intended usage (never
+    passing ``original``, the way a real offline-replay operator would)
+    through the real production ``replay_and_verify`` function."""
+    case = _case("reference_baseline")
+    cell, plugin, original, policy_assignment = _run_live(case, tmp_path, suffix="no_original")
+    recorded = record_episode(original)
+    # Force a genuine round trip through plain JSON text, mirroring a real
+    # "loaded from disk, no original run in memory" operator flow.
+    recorded = RecordedEpisode.from_json(recorded.to_json())
+
+    focal_seat = "alex"
+    baseline_assignment = baseline_policy_assignment(policy_assignment, focal_seat=focal_seat)
+    baseline_evidence = _evidence(tmp_path, suffix="no_original_baseline")
+    baseline_harness = ScriptedAlympicsWacHarness(
+        policy_assignment=baseline_assignment, evidence=baseline_evidence
+    )
+    baseline_cell = _cell(case, suffix="no_original_baseline")
+    baseline_original = asyncio.run(
+        run_episode(
+            cell=baseline_cell, case=case, plugin=plugin, response_source=baseline_harness
+        )
+    )
+
+    family_case = plugin.validate_payload(case.payload)
+    scorer = plugin.build_scorer(family_case)
+    upstream_module = plugin._require_upstream()
+
+    report = asyncio.run(
+        replay_and_verify(
+            cell=cell,
+            case=case,
+            plugin=plugin,
+            scorer=scorer,
+            upstream_module=upstream_module,
+            focal_seat=focal_seat,
+            recorded=recorded,
+            baseline_final_players=baseline_original.final_state["players"],
+            baseline_round_log=baseline_original.final_state["round_log"],
+            # `original` deliberately omitted -- the documented "no original
+            # run in memory" offline-replay mode.
+        )
+    )
+
+    assert report.comparison is None
+    assert report.status != "match"
+    assert report.status == "not_compared"
+    # Re-scoring the replayed episode from its own state still works --
+    # only the *comparison* is unavailable, never the scoring.
+    assert report.scores.terminal_wealth.status == "ok"
