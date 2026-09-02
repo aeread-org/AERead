@@ -147,3 +147,134 @@ No behavior changed; documentation-only.
 | N1 | minor | fixed |
 | N2 | minor | fixed |
 | N3 | minor | fixed |
+
+## Codex-review findings
+
+Second adversarial review pass (`docs/alympics_review_codex.md`), triaged
+independently in `docs/alympics_codex_triage.md` (9 CONFIRMED, 0 REFUTED,
+0 OUT_OF_SCOPE; each finding re-verified against the code, several against
+the real pinned upstream checkout, before any fix). Every finding below is
+family-local; none are routed to the shared-runner defect ledger.
+
+### 1 — `observe()` balance was pre-salary; no prior-round public history
+
+**Fixed.** `observe()` (`environment.py`) now returns the post-salary
+balance for the current round (upstream's own `_get_salary()` runs before
+`execute_bidding()` inside `run_single_round`, so a real upstream agent
+already sees this round's salary credited) and a leak-free
+`public_round_history` (`round_id`/`supply`/`winners` for every completed
+round -- never another seat's balance/hp/no_drink; the existing leakage-
+audit invariant is unchanged). Test:
+`test_observe_shows_post_salary_balance_and_prior_round_public_winners_history`
+(`tests/test_alympics_wac_environment.py`); the pre-existing
+`test_observation_never_contains_another_seats_status_or_bid` was updated
+to check the leaked/leak-free figure against the new post-salary
+semantics (never weakened -- it now checks both the raw and post-salary
+forms never leak).
+
+### 2 — `baseline_policy_id` was accepted but never referenced; scorers trusted any baseline
+
+**Fixed.** `baseline_policy_id` is now part of leaf 1/2's own reference
+identity (`source_sha256` and `reference_id`, via `_opponent_panel_sha256`/
+`_reference_id_for_baseline`), threaded through
+`AlympicsWacScorer.leaves_for_focal_seat`, and enforced by
+`score_terminal_wealth`/`score_survival`: baseline evidence declared under
+a policy that does not match the leaf's own declared baseline is rejected
+as `invalid_measurement` (`baseline_policy_id_mismatch`). Tests:
+`test_declared_baseline_policy_id_is_part_of_the_leaf_1_2_reference_identity`,
+`test_scorer_leaves_for_focal_seat_threads_the_declared_baseline_policy_id_through`,
+`test_score_terminal_wealth_rejects_baseline_evidence_declared_under_a_mismatched_policy`,
+`test_score_survival_rejects_baseline_evidence_declared_under_a_mismatched_policy`
+(`tests/test_alympics_wac_measurement.py`).
+
+### 3 — Missing `bid_legal` evidence silently passed as legal
+
+**Fixed.** `_missing_legality_round`/`_bid_legality_invalid_reason`
+(`measurement.py`) now distinguish "no legality evidence recorded for a
+round the seat actually bid in" (`bid_legality_evidence_missing`) from
+both "checked and legal" and "a round the seat never played" (still a
+non-issue). `score_bid_legality`/`score_terminal_wealth`/`score_survival`
+all reject the missing-evidence case as `invalid_measurement`. Tests:
+`test_score_bid_legality_flags_a_round_with_no_legality_evidence_at_all`,
+`test_score_terminal_wealth_and_survival_reject_missing_legality_evidence`,
+`test_score_bid_legality_still_skips_rounds_the_seat_never_played`
+(`tests/test_alympics_wac_measurement.py`).
+
+### 4 — Dead players retain positive "terminal wealth" with no distinguishing flag
+
+**Fixed.** `score_terminal_wealth` now reports `actual_alive_at_terminal`/
+`baseline_alive_at_terminal` metrics, mirroring what `score_survival`
+already carried -- a dead focal seat's frozen-at-death balance is never
+silently unqualified. Status stays `"ok"` (no literal upstream
+"reset-to-zero" rule to violate, per the triage's own caveat); the fix is
+the missing distinguishing flag, not a redefinition of terminal wealth.
+Tests: `test_score_terminal_wealth_flags_a_dead_focal_seats_frozen_balance_as_not_alive`
+plus a strengthened `test_golden_1_successful_reports_positive_wealth_and_full_survival`
+(`tests/test_alympics_wac_measurement.py`).
+
+### 5 — Replaying with no original in memory reported a fabricated `"match"`
+
+**Fixed.** `ReplayReport.status` (`replay.py`) now returns `"not_compared"`
+when `comparison is None` (the module's own documented "no original run in
+memory" offline-replay mode), never the same `"match"` string a genuine
+byte-identical reproduction would produce. Test:
+`test_replay_and_verify_with_no_original_in_memory_never_fabricates_a_match`
+(`tests/test_alympics_wac_replay.py`), which drives the real
+`replay_and_verify` function with `original` omitted.
+
+### 6 — A preloaded generic `waterAllocation` module bypassed the pinned-checkout guarantee
+
+**Fixed.** `_load_upstream` (`environment.py`) now verifies the resolved
+module's own `__file__` actually lives under the pinned checkout's
+`src/waterAllocation.py` before trusting it, closing the gap where a
+`sys.modules["waterAllocation"]` entry populated by anything else in the
+process (before this function's own first call) was returned unchecked.
+Test: `test_load_upstream_rejects_a_waterallocation_module_already_bound_elsewhere`
+(`tests/test_alympics_wac_environment.py`).
+
+### 7 — Golden 1's "full survival" name was never actually asserted
+
+**Fixed.** `test_golden_1_successful_reports_positive_wealth_and_full_survival`
+(`tests/test_alympics_wac_measurement.py`) now asserts the real,
+hand-verified elimination pattern (alex/bob/david eliminated round 4,
+cindy round 6, only eric alive at round 20) instead of only checking
+status fields that would pass regardless of whether any seat actually
+survived. Assertions were added, never removed.
+
+### 8 — Malformed-action coverage depends on a test-only hook
+
+**No action.** Same fact as review-1's M2 (already disposed above as
+"fixed (documentation), not a code defect"); the triage's own verdict
+confirms this independently and explicitly states no further action item
+beyond what M2 already closed.
+
+### 9 — Missing upstream checkout silently skips this family's real coverage
+
+**Fixed.** `conftest.py`'s existing `pytest_terminal_summary` hook
+(previously tau2/tau3-only) is generalized to a table of per-family
+upstream-required policies, with a new
+`AEREAD_ALYMPICS_UPSTREAM_REQUIRED` entry: off by default, turns a
+matching skip into a failed run when set, mirroring the project's own
+established fix for the identical shape of problem. `.github/workflows/
+ci.yml` is intentionally left unchanged (tau2/tau3's identical env var is
+also not set there; wiring either into default CI would require
+provisioning a third-party checkout over the network, which this pass's
+own provider-free/no-network constraint rules out -- consistent with the
+existing project convention rather than a new inconsistency). Tests:
+`tests/test_alympics_wac_upstream_required_gate.py` (4 tests), calling the
+real `conftest.pytest_terminal_summary` against hand-built
+`terminalreporter`/`config` stand-ins.
+
+## Codex-review summary
+
+| Finding | Severity (reviewer) | Disposition |
+|---|---|---|
+| 1 | High | fixed |
+| 2 | High | fixed |
+| 3 | High | fixed |
+| 4 | High | fixed |
+| 5 | High | fixed |
+| 6 | High | fixed |
+| 7 | Medium | fixed |
+| 8 | Medium | no action (same fact as M2, already closed) |
+| 9 | Medium | fixed |
