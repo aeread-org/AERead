@@ -135,7 +135,12 @@ def test_a_derived_field_match_is_marked_so_it_reads_as_dependent_confirmation()
     by_id = {result.field_id: result for result in report.field_results}
     assert by_id["aggregate_reward"].matched is True
     assert by_id["aggregate_reward"].derived is True
+    assert by_id["aggregate_reward"].derived_from == (
+        "db_reward",
+        "communication_reward",
+    )
     assert by_id["db_reward"].derived is False
+    assert by_id["db_reward"].derived_from == ()
     assert by_id["communication_reward"].derived is False
 
 
@@ -168,6 +173,40 @@ def test_derived_from_must_reference_other_declared_fields() -> None:
                 ),
             ),
         )
+
+
+def test_a_derived_from_cycle_is_rejected_as_it_leaves_no_independent_field() -> None:
+    with pytest.raises(ParityContractError, match="cycle"):
+        ParitySpec(
+            parity_id="cycle_fixture",
+            parity_version="1.0.0",
+            fields=(
+                ParityField("db_reward", ("db",), ("db",), derived_from=("aggregate_reward",)),
+                ParityField(
+                    "aggregate_reward",
+                    ("aggregate",),
+                    ("aggregate",),
+                    derived_from=("db_reward",),
+                ),
+            ),
+        )
+
+
+def test_parity_report_still_accepts_the_pre_unavailable_positional_signature() -> None:
+    from aeread.shared_runner.parity import ParityReport
+
+    report = ParityReport(
+        "legacy_fixture",
+        "1.0.0",
+        "match",
+        (),
+        (),
+        "a" * 64,
+        "b" * 64,
+        "c" * 64,
+    )
+    assert report.unavailable_fields == ()
+    assert report.report_sha256 == "c" * 64
 
 
 def test_a_missing_field_yields_a_typed_unavailable_verdict_not_a_dead_report() -> None:

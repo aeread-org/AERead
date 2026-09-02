@@ -110,6 +110,21 @@ class ParitySpec:
                         f"field {field.field_id!r} derived_from must reference other "
                         f"declared fields, got {source!r}"
                     )
+        graph = {field.field_id: field.derived_from for field in self.fields}
+        for start, sources in graph.items():
+            stack = list(sources)
+            seen: set[str] = set()
+            while stack:
+                node = stack.pop()
+                if node == start:
+                    raise ParityContractError(
+                        f"derived_from cycle involving field {start!r}: a cycle "
+                        "leaves no independent field to confirm"
+                    )
+                if node in seen:
+                    continue
+                seen.add(node)
+                stack.extend(graph[node])
 
 
 @dataclass(frozen=True, slots=True)
@@ -123,6 +138,7 @@ class ParityFieldResult:
     status: str = "compared"
     unavailable_sides: tuple[str, ...] = ()
     derived: bool = False
+    derived_from: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -132,10 +148,12 @@ class ParityReport:
     status: str
     field_results: tuple[ParityFieldResult, ...]
     mismatched_fields: tuple[str, ...]
-    unavailable_fields: tuple[str, ...]
     upstream_projection_sha256: str
     adapted_projection_sha256: str
     report_sha256: str
+    # Trailing with a default so constructions predating the unavailable
+    # verdicts (positional included) stay valid.
+    unavailable_fields: tuple[str, ...] = ()
 
 
 def compare_projections(
@@ -182,6 +200,7 @@ def compare_projections(
                     status="unavailable",
                     unavailable_sides=unavailable_sides,
                     derived=bool(field.derived_from),
+                    derived_from=field.derived_from,
                 )
             )
             continue
@@ -225,6 +244,7 @@ def compare_projections(
                 adapted_sha256=target_digest,
                 absolute_error=absolute_error,
                 derived=bool(field.derived_from),
+                derived_from=field.derived_from,
             )
         )
     mismatches = tuple(
