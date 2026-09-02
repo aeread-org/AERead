@@ -33,6 +33,47 @@ def _domain(identifier: str = "retail_base_v1") -> ValidityDomainSpec:
     )
 
 
+def test_verifier_taxonomy_reference_kind_tables_name_only_real_kinds() -> None:
+    """docs/verifier_taxonomy.md drift guard: any markdown table whose first
+    column is headed "Reference kind" may only name kinds the measurement
+    contract actually accepts — a spec author following the doc must never
+    hit MeasurementContractError. Conceptual claim-pattern names live in
+    columns with other headings."""
+
+    from pathlib import Path
+
+    from aeread.shared_runner.measurement import _REFERENCE_KINDS
+
+    real_kinds = set().union(*_REFERENCE_KINDS.values())
+    doc = (
+        Path(__file__).resolve().parent.parent / "docs" / "verifier_taxonomy.md"
+    ).read_text()
+
+    documented: list[str] = []
+    in_reference_kind_table = False
+    for line in doc.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("| Reference kind"):
+            in_reference_kind_table = True
+            continue
+        if in_reference_kind_table:
+            if not stripped.startswith("|"):
+                in_reference_kind_table = False
+                continue
+            if stripped.startswith("| `"):
+                documented.append(stripped.split("`")[1])
+
+    assert documented, "the taxonomy doc must document reference kinds"
+    fake = [kind for kind in documented if kind not in real_kinds]
+    assert fake == [], (
+        f"verifier_taxonomy.md names reference kinds the contract rejects: {fake}"
+    )
+    for kind in _REFERENCE_KINDS["objective_reference"]:
+        assert f"`{kind}`" in doc, (
+            f"objective_reference kind {kind!r} is undocumented in the taxonomy"
+        )
+
+
 def test_field_rating_verifier_cannot_claim_deterministic_evaluation() -> None:
     reference = ReferenceSpec(
         reference_id="marketplace_field_rating",
