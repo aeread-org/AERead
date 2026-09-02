@@ -37,7 +37,11 @@ from .cases import (
     UPSTREAM_COMMIT,
     UPSTREAM_REPO,
 )
-from .measurement import SteerScorer, build_scorer as build_measurement_scorer
+from .measurement import (
+    ANSWER_KEY_REFERENCE_IMPLEMENTATION_ID,
+    SteerScorer,
+    build_scorer as build_measurement_scorer,
+)
 
 PLUGIN_ID = "steer_environment"
 SCORER_ID = "steer_scorer"
@@ -108,7 +112,7 @@ def family_manifest() -> FamilyManifest:
                 "needs_tools": False,
                 "needs_sandbox": False,
             },
-            "roles": {"agent": {"testable": True, "scripted_policies": ["scripted"]}},
+            "roles": {"assistant": {"testable": True, "scripted_policies": ["scripted"]}},
             "measurement": {
                 "primary_estimand": "steer_answer_key",
                 "measurement_kind": "property_or_answer",
@@ -119,7 +123,10 @@ def family_manifest() -> FamilyManifest:
                 "bound_status": "upstream_defined",
                 "outcome_support": "unit_interval",
             },
-            "scoring": {"scorer_id": SCORER_ID},
+            "scoring": {
+                "scorer_id": SCORER_ID,
+                "oracle_id": ANSWER_KEY_REFERENCE_IMPLEMENTATION_ID,
+            },
         }
     )
 
@@ -189,8 +196,8 @@ class SteerPlugin:
             raise ValueError("payload.pins.branch_by_element does not match this case's element")
         return data
 
-    def initial_state(self, family_case: Mapping[str, Any], cell: Any) -> dict[str, Any]:
-        del cell
+    def initial_state(self, family_case: Mapping[str, Any], run: Any) -> dict[str, Any]:
+        del run
         row = self._load_cached_row(family_case["element"], family_case["question_id"])
         if _recomputed_source_sha256(row) != family_case["source_sha256"]:
             raise ValueError(

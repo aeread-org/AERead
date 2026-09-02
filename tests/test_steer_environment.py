@@ -182,7 +182,7 @@ def test_initial_state_and_observe_reflect_the_cached_question_and_options() -> 
     case = _case(element, question_id)
     plugin = _plugin()
     family_case = plugin.validate_payload(case.payload)
-    state = plugin.initial_state(family_case, cell=None)
+    state = plugin.initial_state(family_case, run=None)
     observation = plugin.observe(family_case, state, "agent", plugin.phases(family_case)[0])
 
     assert observation["element"] == element
@@ -202,7 +202,7 @@ def test_initial_state_rejects_a_source_sha256_mismatch() -> None:
     plugin = _plugin()
     family_case = plugin.validate_payload(payload)
     with pytest.raises(ValueError, match="source_sha256 does not match"):
-        plugin.initial_state(family_case, cell=None)
+        plugin.initial_state(family_case, run=None)
 
 
 def test_initial_state_and_build_scorer_reject_a_tampered_row_whose_own_source_sha256_field_agrees(
@@ -238,7 +238,7 @@ def test_initial_state_and_build_scorer_reject_a_tampered_row_whose_own_source_s
     tampered_plugin = SteerPlugin(steer_data_root=tampered_cache_root)
 
     with pytest.raises(ValueError, match="source_sha256 does not match"):
-        tampered_plugin.initial_state(family_case, cell=None)
+        tampered_plugin.initial_state(family_case, run=None)
     with pytest.raises(ValueError, match="source_sha256 does not match"):
         tampered_plugin.build_scorer(family_case)
 
@@ -247,7 +247,7 @@ def test_observe_rejects_a_seat_not_active_in_this_family() -> None:
     case = _case("transitivity", _first_admitted_question_id("transitivity"))
     plugin = _plugin()
     family_case = plugin.validate_payload(case.payload)
-    state = plugin.initial_state(family_case, cell=None)
+    state = plugin.initial_state(family_case, run=None)
     with pytest.raises(ValueError, match="not active"):
         plugin.observe(family_case, state, "someone_else", plugin.phases(family_case)[0])
 
@@ -262,7 +262,7 @@ def _prepared(element: str = "transitivity"):
     case = _case(element, question_id)
     plugin = _plugin()
     family_case = plugin.validate_payload(case.payload)
-    state = plugin.initial_state(family_case, cell=None)
+    state = plugin.initial_state(family_case, run=None)
     phase = plugin.phases(family_case)[0]
     return plugin, family_case, state, phase
 

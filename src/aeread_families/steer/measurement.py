@@ -60,9 +60,28 @@ DOMAIN_VERSION = FAMILY_VERSION
 ANSWER_KEY_ESTIMAND_ID = "steer_answer_key"
 ANSWER_KEY_LEAF_ID = "steer_answer_key"
 GOLD_OPTION_REFERENCE_ID = "steer_gold_option"
-ANSWER_KEY_SCORER_ID = "steer_adapter.canonical_point_scorer"
+# Matches `environment.py`'s `SCORER_ID`/`family_manifest().scoring.scorer_id`
+# exactly (never re-derived from it -- `environment.py` imports from this
+# module, so the reverse import would be circular). `finalize_family_execution`
+# (the production finalization path) seals a receipt whose
+# `implementation_refs` -- this leaf's `estimand.validity_domain.predicate`
+# and `scorer` -- must each resolve against a pin in the sealed RunPlan
+# (`aeread.shared_runner.receipts.EvaluationReceipt
+# ._validate_and_freeze_plan_pins`); a RunPlan may only carry the pins
+# `family.scoring.scorer_id`/`oracle_id`/`reference_provider_ids` declare
+# (`resolver._check_pins` rejects any other pin as "unreferenced"), so the
+# predicate and scorer share this one id -- mirroring
+# `aeread.shared_runner.housing._housing_measurement_leaf`'s identical
+# `predicate`/`scorer` id-sharing convention exactly, rather than inventing a
+# pin bucket the family manifest's 3-slot scoring taxonomy has no room for.
+ANSWER_KEY_SCORER_ID = "steer_scorer"
+# The oracle: pinned separately (spec section 1's own note that STEER's own
+# evaluation submodule was deleted upstream -- `steer_bridge_driver.py`'s
+# flattening IS the ground truth this family answers against), and declared
+# as `family_manifest().scoring.oracle_id` so its own "reference" pin is
+# required rather than "unreferenced" (mirrors housing's `oracle_id`
+# convention exactly).
 ANSWER_KEY_REFERENCE_IMPLEMENTATION_ID = "steer_bridge.flatten_answer_key"
-CASE_PAYLOAD_PREDICATE_ID = "steer_pilot_v1_case_payload_predicate"
 
 
 def _file_sha256(name: str) -> str:
@@ -83,12 +102,30 @@ def _implementation(implementation_id: str, filename: str) -> ImplementationRef:
     )
 
 
+def _predicate_and_scorer_sha256() -> str:
+    """The one combined digest shared by the predicate and the scorer.
+
+    Mirrors ``housing._housing_source_digests``'s ``combined_digest`` exactly
+    (``environment.py``'s ``validate_payload`` backs the predicate,
+    ``measurement.py``'s ``score_answer_key`` backs the scorer -- both named
+    by the one id, ``ANSWER_KEY_SCORER_ID``, so both pin changes exactly when
+    either file changes, never when an unrelated file does).
+    """
+    environment_bytes = Path(__file__).with_name("environment.py").read_bytes()
+    measurement_bytes = Path(__file__).read_bytes()
+    return hashlib.sha256(environment_bytes + measurement_bytes).hexdigest()
+
+
 def _validity_domain() -> ValidityDomainSpec:
     return ValidityDomainSpec(
         domain_id=DOMAIN_ID,
         domain_version=DOMAIN_VERSION,
         schema_ref=f"{CORPUS_ID}/case_payload",
-        predicate=_implementation(CASE_PAYLOAD_PREDICATE_ID, "environment.py"),
+        predicate=ImplementationRef(
+            implementation_id=ANSWER_KEY_SCORER_ID,
+            version=IMPLEMENTATION_VERSION,
+            content_sha256=_predicate_and_scorer_sha256(),
+        ),
     )
 
 
@@ -136,7 +173,11 @@ def build_answer_key_leaf(row: Mapping[str, Any]) -> MeasurementLeafSpec:
         leaf_version=LEAF_VERSION,
         estimand=estimand,
         verifier=verifier,
-        scorer=_implementation(ANSWER_KEY_SCORER_ID, "measurement.py"),
+        scorer=ImplementationRef(
+            implementation_id=ANSWER_KEY_SCORER_ID,
+            version=IMPLEMENTATION_VERSION,
+            content_sha256=_predicate_and_scorer_sha256(),
+        ),
     )
 
 
@@ -194,11 +235,16 @@ class SteerScorer:
     """One case's single declared leaf, plus the scorer for it.
 
     Mirrors ``tau3_retail.measurement.Tau3RetailScorer``'s convention:
-    ``environment.py``'s ``build_scorer`` hook returns one of these so it
-    becomes live the day the kernel calls it (the current kernel does not
-    yet invoke ``build_scorer``/attach ``ScoreEnvelope``s to
-    ``CellExecution`` itself -- see ``smoke.py``'s identical placeholder),
-    so :meth:`score` is also exercised directly by tests today.
+    ``environment.py``'s ``build_scorer`` hook returns one of these. The one
+    real production finalization path,
+    ``aeread.shared_runner.family_evaluation.finalize_family_execution``,
+    calls whatever ``build_scorer`` returns AS A CALLABLE
+    (``plugin.build_scorer(family_case)(outcome, evidence_refs=...)``),
+    mirroring ``housing.py``'s ``build_scorer`` closure and
+    ``smoke.py``'s ``lambda outcome: outcome`` -- so :meth:`__call__` below
+    is not a convenience alias, it is the shape production finalization
+    requires. :meth:`score` remains the named entry point tests call
+    directly.
     """
 
     question_id: str
@@ -229,6 +275,15 @@ class SteerScorer:
             failure_code=outcome["failure_code"],
             evidence_refs=evidence_refs,
         )
+
+    def __call__(
+        self, outcome: Mapping[str, Any], *, evidence_refs: tuple[str, ...] = ()
+    ) -> ScoreEnvelope:
+        """Identical to :meth:`score` -- the shape
+        ``finalize_family_execution`` actually calls (spec section 2's own
+        finding: production scoring invokes ``build_scorer(...)`` as a bare
+        callable, never ``.score(...)``)."""
+        return self.score(outcome, evidence_refs=evidence_refs)
 
 
 def build_scorer(row: Mapping[str, Any]) -> SteerScorer:

@@ -21,19 +21,32 @@ wrote.
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import json
 import os
 from pathlib import Path
-from types import MappingProxyType
+from types import MappingProxyType, SimpleNamespace
 
 import pytest
 
-from aeread.shared_runner.execution import EvidenceStore
-from aeread.shared_runner.resolver import PlanCell
-from aeread.shared_runner.schemas import CaseManifest
+from aeread.shared_runner.execution import EvidenceStore, TokenPricing, execute_plan_cell
+from aeread.shared_runner.family_evaluation import finalize_family_execution
+from aeread.shared_runner.harness import default_harnesses
+from aeread.shared_runner.registry import HarnessRegistry, PluginRegistry, ProviderCapabilities
+from aeread.shared_runner.resolver import ImplementationPin, PlanCell, resolve_run_plan
+from aeread.shared_runner.schemas import (
+    AgentProfile,
+    AnalysisPlan,
+    CaseManifest,
+    EvaluationBlock,
+    RunSpec,
+    SamplingPlan,
+    SuiteManifest,
+)
 from aeread.shared_runner.scheduler import SchedulerContractError, run_episode
+from aeread.shared_runner.smoke import FixedResponseProvider
 from aeread_families.steer import cases as steer_cases
-from aeread_families.steer.environment import SteerPlugin
+from aeread_families.steer.environment import SteerPlugin, family_manifest, register_plugin
 from aeread_families.steer.harness import ScriptedSteerHarness
 
 
@@ -290,3 +303,295 @@ def test_scripted_harness_raises_once_the_script_is_exhausted(tmp_path: Path) ->
     with pytest.raises(RuntimeError, match="script exhausted"):
         asyncio.run(harness(type("Request", (), {"phase_id": "answer_question"})()))
     evidence.close()
+
+
+# ---------------------------------------------------------------------------
+# Finding 1 (docs/steer_codex_triage.md): the one real production
+# finalization path, `finalize_family_execution`, calls whatever
+# `plugin.build_scorer(family_case)` returns AS A CALLABLE -- e.g.
+# `family_evaluation.py:245-248`'s
+# `plugin.build_scorer(family_case)(recorded_outcome, evidence_refs=...)` --
+# never `.score(...)`. Every other test in this suite only ever calls
+# `.score(...)` directly, so none of them exercise the shape production
+# finalization actually needs. This test drives the real path end to end --
+# `resolve_run_plan` -> `execute_plan_cell` -> `finalize_family_execution`,
+# never a hand-wired shortcut around any of the three.
+# ---------------------------------------------------------------------------
+
+STEER_FINALIZE_PROMPT = (
+    "Return only one JSON object with one integer field named option_id."
+)
+
+
+def _steer_finalize_setup(case: CaseManifest) -> SimpleNamespace:
+    """Build one real, sealed ``RunPlan`` for a single steer case.
+
+    Mirrors ``aeread.shared_runner.smoke.build_single_offer_smoke``'s R1-R2
+    construction, but for the real ``steer`` family/plugin rather than the
+    smoke fixture -- so the plan this returns can drive the exact same
+    ``execute_plan_cell`` / ``finalize_family_execution`` production entry
+    points any other family does.
+    """
+    family = family_manifest()
+    registry = PluginRegistry()
+    register_plugin(registry, plugin=SteerPlugin(steer_data_root=CACHE_ROOT))
+
+    sampling = SamplingPlan.from_dict(
+        {
+            "spec_version": "aeread.sampling/0.1",
+            "sampling_plan_id": "sampling_steer_finalize_v1",
+            "estimand": "steer_answer_key",
+            "target": "steer_finalize_fixture",
+            "selection": "fixed_curated",
+            "seeds": [1],
+            "replicates": 1,
+            "cluster_level": "world_seed",
+            "cluster_id_fields": ["generator_version", "world_seed"],
+            "paired_fields": [],
+            "replicate_level": "episode_attempt",
+            "panel_mode": "fixed_panel",
+        }
+    )
+    block = EvaluationBlock.from_dict(
+        {
+            "spec_version": "aeread.evaluation_block/0.1",
+            "block_id": "block_steer_finalize",
+            "kind": "self_play",
+            "subject_seats": ["agent"],
+            "controlled_profiles": {},
+            "repetitions": 1,
+            "seed_policy": "fixed",
+        }
+    )
+    analysis = AnalysisPlan.from_dict(
+        {
+            "spec_version": "aeread.analysis/0.1",
+            "analysis_plan_id": "analysis_steer_finalize_v1",
+            "estimands": ["steer_answer_key"],
+            "group_by": ["family_id"],
+            "missingness": "report_separately",
+            "resampling_unit": "cluster_id",
+            "uncertainty": "none",
+            "multiplicity": "none",
+            "sensitivity": [],
+            "cross_family_scalar": "disabled",
+        }
+    )
+    suite = SuiteManifest.from_dict(
+        {
+            "spec_version": "aeread.suite/0.1",
+            "suite_id": "suite_steer_finalize_v1",
+            "version": "0.1.0",
+            "family_ids": [steer_cases.FAMILY_ID],
+            "case_ids": [case.case_id],
+            "sampling_plan_id": sampling.sampling_plan_id,
+            "evaluation_block_ids": [block.block_id],
+            "analysis_plan_id": analysis.analysis_plan_id,
+        }
+    )
+    pricing = TokenPricing(0.0, 0.0, 0.0, "steer_finalize_fixed_response_zero_cost_v1")
+    profile = AgentProfile.from_dict(
+        {
+            "spec_version": "aeread.agent_profile/0.1",
+            "profile_id": "steer_finalize_agent_v1",
+            "model": {
+                "provider": "fake",
+                "model": "fake-model",
+                "revision": "fixed-v1",
+                "base_url": None,
+            },
+            "harness": {
+                "id": "minimal_chat",
+                "version": "1.0",
+                "config": {
+                    "pricing_id": pricing.pricing_id,
+                    "pricing_sha256": pricing.content_sha256(),
+                },
+            },
+            "prompt": {
+                "prompt_id": "steer_finalize_prompt_v1",
+                "sha256": hashlib.sha256(STEER_FINALIZE_PROMPT.encode()).hexdigest(),
+            },
+            "runtime": {
+                "kind": "python",
+                "implementation": "aeread.shared_runner.execution",
+                "version": "0.1.0",
+            },
+            "tools": [],
+            "memory": {"mode": "disabled"},
+            "reasoning": {
+                "condition_id": "reasoning_low_v1",
+                "effort": "low",
+                "token_budget": None,
+                "rationale_visibility": "hidden",
+            },
+            "sampling": {
+                "temperature": 0.0,
+                "max_output_tokens": 80,
+                "seed": None,
+                "top_p": None,
+            },
+            "budgets": {
+                "max_logical_actions": 1,
+                "timeout_seconds": 30.0,
+                "max_cost_usd": 0.001,
+            },
+            "retry_policy": {
+                "max_action_attempts": 1,
+                "retryable_conditions": [],
+                "session_mode": "restart",
+                "sdk_retries": 0,
+            },
+        }
+    )
+    run_spec = RunSpec.from_dict(
+        {
+            "spec_version": "aeread.run_spec/0.1",
+            "run_spec_id": "run_spec_steer_finalize_v1",
+            "suite_id": suite.suite_id,
+            "evaluation_block_ids": [block.block_id],
+            "agent_profile_ids": [profile.profile_id],
+            "seat_assignments": {"agent": profile.profile_id},
+            "execution_mode": "evaluate",
+            "replicate_override": None,
+            "budget_overrides": None,
+        }
+    )
+    repo_root = Path(__file__).resolve().parents[1]
+    steer_src = repo_root / "src" / "aeread_families" / "steer"
+    environment_bytes = (steer_src / "environment.py").read_bytes()
+    measurement_bytes = (steer_src / "measurement.py").read_bytes()
+    environment_sha256 = hashlib.sha256(environment_bytes).hexdigest()
+    # Mirrors `measurement._predicate_and_scorer_sha256` exactly: the
+    # predicate and the scorer share one pinned id/digest (both named by
+    # `family.scoring.scorer_id`), so this single "scorer" pin also satisfies
+    # the leaf's `estimand.validity_domain.predicate` ImplementationRef --
+    # never an unreferenced pin `resolve_run_plan` would reject.
+    predicate_and_scorer_sha256 = hashlib.sha256(
+        environment_bytes + measurement_bytes
+    ).hexdigest()
+    oracle_sha256 = hashlib.sha256(
+        (steer_src / "steer_bridge_driver.py").read_bytes()
+    ).hexdigest()
+    execution_sha256 = hashlib.sha256(
+        (repo_root / "src" / "aeread" / "shared_runner" / "execution.py").read_bytes()
+    ).hexdigest()
+    pins = (
+        ImplementationPin.from_dict(
+            {
+                "component_id": family.family.plugin_id,
+                "kind": "family_plugin",
+                "version": family.family.version,
+                "sha256": environment_sha256,
+            }
+        ),
+        ImplementationPin.from_dict(
+            {
+                "component_id": family.scoring.scorer_id,
+                "kind": "scorer",
+                "version": family.family.version,
+                "sha256": predicate_and_scorer_sha256,
+            }
+        ),
+        ImplementationPin.from_dict(
+            {
+                "component_id": family.scoring.oracle_id,
+                "kind": "reference",
+                "version": family.family.version,
+                "sha256": oracle_sha256,
+            }
+        ),
+        ImplementationPin.from_dict(
+            {
+                "component_id": profile.harness.id,
+                "kind": "harness",
+                "version": profile.harness.version,
+                "sha256": execution_sha256,
+            }
+        ),
+        ImplementationPin.from_dict(
+            {
+                "component_id": profile.runtime.implementation,
+                "kind": "runtime",
+                "version": profile.runtime.version,
+                "sha256": execution_sha256,
+            }
+        ),
+    )
+    harness_registry = HarnessRegistry()
+    for harness in default_harnesses().values():
+        harness_registry.register(harness)
+    plan = resolve_run_plan(
+        families=(family,),
+        cases=(case,),
+        suite=suite,
+        sampling=sampling,
+        evaluation_blocks=(block,),
+        analysis=analysis,
+        agent_profiles=(profile,),
+        run_spec=run_spec,
+        registry=registry,
+        implementation_pins=pins,
+        harness_registry=harness_registry,
+        provider_capabilities={
+            "fake": ProviderCapabilities(
+                native_tools=False,
+                structured_output=False,
+                seed=False,
+                system_prompt=True,
+                reasoning_budget=False,
+                reasoning_token_report=False,
+                max_context_tokens=None,
+            )
+        },
+    )
+    return SimpleNamespace(
+        plan=plan,
+        registry=registry,
+        prompt_sources={"steer_finalize_prompt_v1": STEER_FINALIZE_PROMPT},
+        pricing={"fake-model": pricing},
+    )
+
+
+def test_finalize_family_execution_scores_a_real_steer_episode_through_the_production_path(
+    tmp_path: Path,
+) -> None:
+    """Drive the REAL production path -- ``resolve_run_plan`` ->
+    ``execute_plan_cell`` -> ``finalize_family_execution`` -- for one steer
+    case with a correct submitted answer.
+
+    Before ``SteerScorer`` gained ``__call__``, this failed with
+    ``TypeError: 'SteerScorer' object is not callable`` inside
+    ``finalize_family_execution``'s own
+    ``plugin.build_scorer(family_case)(recorded_outcome,
+    evidence_refs=(outcome_event.event_id,))`` -- exactly the call every
+    other steer test's `.score(...)`-only coverage never exercised.
+    """
+    element = "transitivity"
+    row = _first_admitted_row(element)
+    case = _case(element, row["question_id"])
+    setup = _steer_finalize_setup(case)
+    provider = FixedResponseProvider(json.dumps({"option_id": row["correct_option_id"]}))
+
+    execution = asyncio.run(
+        execute_plan_cell(
+            plan=setup.plan,
+            cell_id=setup.plan.cells[0].cell_id,
+            registry=setup.registry,
+            evidence_root=tmp_path / "runs",
+            prompt_sources=setup.prompt_sources,
+            providers={"fake": provider},
+            pricing=setup.pricing,
+        )
+    )
+
+    receipt = finalize_family_execution(setup=setup, execution=execution)
+
+    assert receipt.status == "ok"
+    assert receipt.inclusion_status == "included"
+    assert len(receipt.scores) == 1
+    score = receipt.scores[0]
+    assert score.leaf.leaf_id == "steer_answer_key"
+    assert score.primary is not None
+    assert score.primary.value == 1.0
+    assert score.primary.unit == "pass"
