@@ -503,7 +503,6 @@ class TermsBenchPlugin:
                 "message": action["message"],
             }
         )
-        new_state["round"] = state["round"] + 1
 
         if recomputed.resolved == "accept":
             f = state["agent_offers"][-1]
@@ -519,7 +518,12 @@ class TermsBenchPlugin:
             new_state["final_price"] = None
             return TransitionResult(state=new_state, next_phase_id=None, consequences={"decision": "timeout"})
 
-        # resolved == "offer"
+        # resolved == "offer": the episode continues into another round --
+        # only here does the round cursor advance (Codex review finding 4:
+        # advancing it unconditionally, before this branch, made every
+        # counterpart-side termination -- Accept, Reject, and Timeout alike
+        # -- report one more round than was actually used).
+        new_state["round"] = state["round"] + 1
         new_state["counterpart_offers"] = list(state["counterpart_offers"]) + [recomputed.price]
         return TransitionResult(
             state=new_state, next_phase_id=AGENT_PHASE, consequences={"decision": "offer", "price": recomputed.price}

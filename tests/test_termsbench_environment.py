@@ -129,6 +129,10 @@ def test_case1_counterpart_accepts_the_agents_offer() -> None:
     result = _run(case, harness)
     assert result.terminal["reason"] == "counterpart_accept"
     assert result.terminal["final_price"] == pytest.approx(r_a - 40.0)
+    # The deal closed on the counterpart's very first (round-1) response --
+    # rounds_used must report 1, not the next round's cursor (Codex review
+    # finding 4).
+    assert result.terminal["rounds_used"] == 1
 
 
 def test_case2_agent_accepts_the_counterparts_opening_offer() -> None:
@@ -167,6 +171,10 @@ def test_case4_counterpart_walk_away_terminates_with_disagreement() -> None:
     result = _run(case, harness)
     assert result.terminal["reason"] == "counterpart_walk_away"
     assert result.terminal["final_price"] is None
+    # k_walk=ceil(10/2)=5 is the first round the (forced) walk-away hazard is
+    # positive, so this terminates having actually used 5 rounds, not 6
+    # (Codex review finding 4).
+    assert result.terminal["rounds_used"] == 5
 
 
 def test_case5_round_limit_reached_without_agreement_is_timeout() -> None:
@@ -180,7 +188,12 @@ def test_case5_round_limit_reached_without_agreement_is_timeout() -> None:
     result = _run(case, harness)
     assert result.terminal["reason"] == "timeout"
     assert result.terminal["final_price"] is None
-    assert result.terminal["rounds_used"] == horizon + 1
+    # The episode completed exactly `horizon` counterpart rounds before
+    # timing out at the round-`horizon` decision -- rounds_used must equal
+    # the declared horizon, not the next round's cursor (Codex review
+    # finding 4: this assertion previously locked in the off-by-one defect
+    # by expecting `horizon + 1`).
+    assert result.terminal["rounds_used"] == horizon
 
 
 def test_golden3_accept_without_counterpart_offer_is_agreement_violation() -> None:
