@@ -42,7 +42,7 @@ from .cases import (
     UPSTREAM_COMMIT,
     UPSTREAM_LICENSE,
     UPSTREAM_REPO,
-    _codename_category,
+    codename_category,
     load_all_derived_products,
     load_raw_category_records,
 )
@@ -194,7 +194,7 @@ class AmazonbargPlugin:
                 f"payload.derived.interest is {derived['interest']!r}, "
                 f"expected {expected_interest!r} from cost/budget"
             )
-        expected_category = _codename_category(derived["codename"])
+        expected_category = codename_category(derived["codename"])
         if derived["category"] != expected_category:
             raise ValueError("payload.derived.category does not match its own codename")
         if derived["category_file"] != f"{derived['category']}.json":

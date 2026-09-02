@@ -178,7 +178,7 @@ def load_raw_category_records(upstream_root: Path, category_file: str) -> list[d
         return json.load(handle)
 
 
-def _codename_category(codename: str) -> str:
+def codename_category(codename: str) -> str:
     # `codename = f"{category}_{idx+1}"` (product.py); every one of the 18
     # category names uses hyphens, never underscores, so splitting on the
     # last underscore recovers the category unambiguously.
@@ -191,7 +191,7 @@ class _DerivedProduct:
 
     def __init__(self, codename: str, title: str, description: str, price: float, cost: float) -> None:
         self.codename = codename
-        self.category = _codename_category(codename)
+        self.category = codename_category(codename)
         self.title = title
         self.description = description
         self.price = price
