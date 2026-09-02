@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import pytest
+
 from aeread.shared_runner.parity import (
+    ParityContractError,
     ParityField,
     ParitySpec,
     compare_projections,
@@ -100,6 +103,71 @@ def test_supply_chain_parity_can_map_different_record_shapes() -> None:
     )
 
     assert compare_projections(upstream, adapted, spec).status == "match"
+
+
+def test_a_derived_field_match_is_marked_so_it_reads_as_dependent_confirmation() -> None:
+    spec = ParitySpec(
+        parity_id="refund_derived_fixture",
+        parity_version="1.0.0",
+        fields=(
+            ParityField("db_reward", ("reward", "db"), ("scores", "db")),
+            ParityField(
+                "communication_reward",
+                ("reward", "communicate"),
+                ("scores", "communication"),
+            ),
+            ParityField(
+                "aggregate_reward",
+                ("reward", "aggregate"),
+                ("scores", "aggregate"),
+                derived_from=("db_reward", "communication_reward"),
+            ),
+        ),
+    )
+
+    report = compare_projections(
+        {"reward": {"db": 1.0, "communicate": 1.0, "aggregate": 1.0}},
+        {"scores": {"db": 1.0, "communication": 1.0, "aggregate": 1.0}},
+        spec,
+    )
+
+    assert report.status == "match"
+    by_id = {result.field_id: result for result in report.field_results}
+    assert by_id["aggregate_reward"].matched is True
+    assert by_id["aggregate_reward"].derived is True
+    assert by_id["db_reward"].derived is False
+    assert by_id["communication_reward"].derived is False
+
+
+def test_derived_from_must_reference_other_declared_fields() -> None:
+    with pytest.raises(ParityContractError, match="derived_from"):
+        ParitySpec(
+            parity_id="bad_reference_fixture",
+            parity_version="1.0.0",
+            fields=(
+                ParityField("db_reward", ("db",), ("db",)),
+                ParityField(
+                    "aggregate_reward",
+                    ("aggregate",),
+                    ("aggregate",),
+                    derived_from=("undeclared_field",),
+                ),
+            ),
+        )
+    with pytest.raises(ParityContractError, match="derived_from"):
+        ParitySpec(
+            parity_id="self_reference_fixture",
+            parity_version="1.0.0",
+            fields=(
+                ParityField("db_reward", ("db",), ("db",)),
+                ParityField(
+                    "aggregate_reward",
+                    ("aggregate",),
+                    ("aggregate",),
+                    derived_from=("aggregate_reward",),
+                ),
+            ),
+        )
 
 
 def test_a_missing_field_yields_a_typed_unavailable_verdict_not_a_dead_report() -> None:

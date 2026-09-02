@@ -56,12 +56,21 @@ class ParityField:
     adapted_path: tuple[str, ...]
     comparison: str = "exact"
     absolute_tolerance: float = 0.0
+    derived_from: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         if not is_exportable_id(self.field_id):
             raise ParityContractError("field_id must be an exportable identifier")
         _path(self.upstream_path, "upstream_path")
         _path(self.adapted_path, "adapted_path")
+        if not isinstance(self.derived_from, tuple) or any(
+            not is_exportable_id(source) for source in self.derived_from
+        ):
+            raise ParityContractError(
+                "derived_from must be a tuple of exportable field identifiers"
+            )
+        if len(self.derived_from) != len(set(self.derived_from)):
+            raise ParityContractError("derived_from entries must be unique")
         if self.comparison not in {"exact", "numeric_tolerance"}:
             raise ParityContractError("comparison must be exact or numeric_tolerance")
         if (
@@ -93,6 +102,14 @@ class ParitySpec:
         field_ids = tuple(field.field_id for field in self.fields)
         if len(field_ids) != len(set(field_ids)):
             raise ParityContractError("parity field IDs must be unique")
+        declared = set(field_ids)
+        for field in self.fields:
+            for source in field.derived_from:
+                if source == field.field_id or source not in declared:
+                    raise ParityContractError(
+                        f"field {field.field_id!r} derived_from must reference other "
+                        f"declared fields, got {source!r}"
+                    )
 
 
 @dataclass(frozen=True, slots=True)
@@ -105,6 +122,7 @@ class ParityFieldResult:
     absolute_error: float | None
     status: str = "compared"
     unavailable_sides: tuple[str, ...] = ()
+    derived: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -163,6 +181,7 @@ def compare_projections(
                     absolute_error=None,
                     status="unavailable",
                     unavailable_sides=unavailable_sides,
+                    derived=bool(field.derived_from),
                 )
             )
             continue
@@ -195,6 +214,7 @@ def compare_projections(
                 upstream_sha256=source_digest,
                 adapted_sha256=target_digest,
                 absolute_error=absolute_error,
+                derived=bool(field.derived_from),
             )
         )
     mismatches = tuple(
