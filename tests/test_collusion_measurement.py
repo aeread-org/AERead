@@ -64,6 +64,23 @@ def _case() -> CaseManifest:
     return CaseManifest.from_dict(raw)
 
 
+def _short_case(*, horizon: int = 6) -> CaseManifest:
+    """A cheap, short-horizon real cell (mirrors
+    ``test_collusion_replay.py``'s own ``_short_case`` convention) --
+    for tests that only need a handful of rounds through the real
+    scheduler, not a full 300-round trajectory.
+    """
+    raw = collusion_cases.build_case("baseline-symmetric", 1.0, 0)
+    raw = dict(raw)
+    raw["payload"] = dict(raw["payload"])
+    raw["payload"]["horizon"] = horizon
+    raw["episode"] = dict(raw["episode"])
+    raw["episode"]["max_logical_actions"] = horizon * collusion_cases.LOGICAL_ACTIONS_PER_ROUND
+    raw["content_sha256"] = "0" * 64
+    raw["content_sha256"] = case_content_sha256(raw)
+    return CaseManifest.from_dict(raw)
+
+
 def _degenerate_ceiling_case() -> CaseManifest:
     """Golden 5's hand-authored fixture (spec section 4's "degenerate
     reference" row).
@@ -671,3 +688,100 @@ def test_score_long_run_profit_rejects_a_non_mapping_baseline(
     assert score.status == "invalid_measurement"
     assert score.primary is None
     assert score.validity.reasons == ("baseline_profit_not_a_mapping",)
+
+
+# ---------------------------------------------------------------------------
+# Leaves 2/3 retain the raw per-round gap, not only the averaged primary
+# (collusion codex triage, Finding 5: the spec requires "the raw per-round
+# gap"; the scorer previously only ever surfaced a seat-mean absolute-gap
+# primary, so materially different trajectories could share one identical
+# primary value). Short, real-scheduler episodes -- the per-round data is
+# exactly what is under test, not the 300-round convergence window.
+# ---------------------------------------------------------------------------
+
+
+def test_distance_leaf_retains_the_raw_signed_per_round_gap_not_just_the_averaged_primary() -> None:
+    case = _short_case(horizon=4)
+    family_case = CollusionPlugin().validate_payload(case.payload)
+    gold = family_case["gold_reference"]
+    p_nash = gold["p_nash"]
+    p_monopoly = gold["p_monopoly"]
+
+    async def respond(request):
+        if request.seat_id == "firm_a":
+            price = p_monopoly["firm_a"] if request.observation["round"] % 2 else p_nash["firm_a"]
+        else:
+            price = p_nash["firm_b"]
+        return {"price": price}
+
+    result = _run(case, respond)
+    assert result.outcome["termination_reason"] == "max_periods"
+    assert result.outcome["rounds_played"] == 4
+
+    leaf = m.build_distance_to_nash_leaf(family_case)
+    score = m.score_distance_to_nash(leaf, family_case=family_case, outcome=result.outcome)
+
+    per_round_gap = score.primary.metadata["per_round_gap"]
+    gap_a = p_monopoly["firm_a"] - p_nash["firm_a"]
+    assert per_round_gap["firm_a"]["round"] == [0, 1, 2, 3]
+    assert per_round_gap["firm_a"]["gap"] == pytest.approx([0.0, gap_a, 0.0, gap_a])
+    # firm_b stays at its own Nash price throughout -- gap is exactly zero
+    # every round, not merely zero on average.
+    assert per_round_gap["firm_b"]["gap"] == pytest.approx([0.0, 0.0, 0.0, 0.0])
+    # The averaged primary is unaffected -- this only adds retained detail.
+    assert score.primary.value == pytest.approx((abs(gap_a) / 2.0 + 0.0) / 2.0)
+
+
+def test_distance_leaf_gap_metadata_distinguishes_oscillating_from_midpoint_trajectories_sharing_one_primary_value() -> None:
+    """The concrete failure scenario from the triage: a trajectory
+    oscillating between ``p_nash``/``p_monopoly`` and a trajectory constant
+    at their midpoint share one identical mean-abs-gap primary value --
+    only the retained per-round gap sequence tells them apart.
+    """
+    case = _short_case(horizon=4)
+    family_case = CollusionPlugin().validate_payload(case.payload)
+    gold = family_case["gold_reference"]
+    p_nash = gold["p_nash"]["firm_a"]
+    p_monopoly = gold["p_monopoly"]["firm_a"]
+    midpoint = (p_nash + p_monopoly) / 2.0
+
+    async def oscillating(request):
+        if request.seat_id == "firm_a":
+            price = p_monopoly if request.observation["round"] % 2 else p_nash
+        else:
+            price = gold["p_nash"]["firm_b"]
+        return {"price": price}
+
+    async def constant_midpoint(request):
+        price = midpoint if request.seat_id == "firm_a" else gold["p_nash"]["firm_b"]
+        return {"price": price}
+
+    oscillating_result = _run(case, oscillating)
+    midpoint_result = _run(case, constant_midpoint)
+    assert oscillating_result.outcome["termination_reason"] == "max_periods"
+    assert midpoint_result.outcome["termination_reason"] == "max_periods"
+
+    leaf = m.build_distance_to_nash_leaf(family_case)
+    oscillating_score = m.score_distance_to_nash(
+        leaf, family_case=family_case, outcome=oscillating_result.outcome
+    )
+    midpoint_score = m.score_distance_to_nash(
+        leaf, family_case=family_case, outcome=midpoint_result.outcome
+    )
+
+    # Same primary value -- the pre-fix collapse this finding identified.
+    assert oscillating_score.primary.value == pytest.approx(midpoint_score.primary.value)
+
+    # But the retained raw per-round gap sequences are not the same shape:
+    # oscillating alternates between two distinct values, midpoint never does.
+    oscillating_gaps = {
+        round(gap, 6)
+        for gap in oscillating_score.primary.metadata["per_round_gap"]["firm_a"]["gap"]
+    }
+    midpoint_gaps = {
+        round(gap, 6)
+        for gap in midpoint_score.primary.metadata["per_round_gap"]["firm_a"]["gap"]
+    }
+    assert len(oscillating_gaps) == 2
+    assert len(midpoint_gaps) == 1
+    assert oscillating_gaps != midpoint_gaps
