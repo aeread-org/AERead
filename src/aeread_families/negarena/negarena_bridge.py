@@ -29,7 +29,7 @@ import json
 import os
 import subprocess
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any, Mapping, Sequence
 
 BRIDGE_PYTHON_ENV_VAR = "AEREAD_NEGARENA_BRIDGE_PYTHON"
 
@@ -229,6 +229,86 @@ class NegarenaBridge:
             }
         )
         return bool(result["legal"])
+
+    def settle(
+        self,
+        *,
+        game_kind: str,
+        scenario: Mapping[str, Any],
+        iteration_count: int,
+        final_answer: str,
+        proposed_trade: Mapping[str, Mapping[str, int]] | None,
+    ) -> dict[str, Any]:
+        """Delegate settlement to upstream's own ``after_game_ends()``
+        (spec section 2/3): constructs a real ``BuySellGame``/
+        ``MultiTurnUltimatumGame`` from ``scenario``, appends only the two
+        synthetic ``game_state`` entries ``after_game_ends()`` itself reads
+        (the pre-accept proposed trade and the final answer), and calls
+        upstream's own method -- never recomputing ``Trade.execute_trade``/
+        ``Valuation.value`` here.
+
+        Returns ``{"settled": True, "player_outcome": [...],
+        "final_resources": [...], "final_response": str}`` or
+        ``{"settled": False, "reason": str}`` (upstream's own
+        single-iteration short-circuit, which computes no summary at all).
+        Each ``player_outcome``/``final_resources`` entry is a typed
+        ``{"kind": "scalar"|"resources", "value": ...}`` -- see
+        ``negarena_bridge_driver.py``'s ``_outcome_json`` for why the two
+        upstream games disagree on which shape they use.
+        """
+        result = self._run(
+            {
+                "op": "settle",
+                "game_kind": game_kind,
+                "scenario": dict(scenario),
+                "iteration_count": iteration_count,
+                "final_answer": final_answer,
+                "proposed_trade": (
+                    {seat: dict(give) for seat, give in proposed_trade.items()}
+                    if proposed_trade is not None
+                    else None
+                ),
+            }
+        )
+        if not result["settled"]:
+            return {"settled": False, "reason": result["reason"]}
+        return {
+            "settled": True,
+            "player_outcome": result["player_outcome"],
+            "final_resources": result["final_resources"],
+            "final_response": result["final_response"],
+        }
+
+    def replay_transcript(
+        self,
+        *,
+        game_kind: str,
+        scenario: Mapping[str, Any],
+        turns: Sequence[str],
+    ) -> dict[str, Any]:
+        """Parity-only path (spec section 5): replay the identical ordered
+        raw scripted response text through upstream's OWN turn loop
+        (``write_game_state``/``game_over``/``after_game_ends``),
+        independently of every ``op=parse_response`` call already made by
+        ``environment.py`` for the same transcript. See
+        ``negarena_bridge_driver.py``'s ``_op_replay_transcript`` docstring.
+        """
+        result = self._run(
+            {
+                "op": "replay_transcript",
+                "game_kind": game_kind,
+                "scenario": dict(scenario),
+                "turns": list(turns),
+            }
+        )
+        if not result["settled"]:
+            return {"settled": False, "reason": result["reason"]}
+        return {
+            "settled": True,
+            "player_outcome": result["player_outcome"],
+            "final_resources": result["final_resources"],
+            "final_response": result["final_response"],
+        }
 
     def runtime_info(self) -> dict[str, Any]:
         return self._run({"op": "runtime_info"})

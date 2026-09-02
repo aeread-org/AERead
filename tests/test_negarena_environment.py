@@ -147,11 +147,17 @@ def test_phases_are_mode_single_and_alternate_red_then_blue(plugin) -> None:
     assert phases[1].next_phases == (RED_PHASE,)
 
 
-def test_build_scorer_is_a_deliberate_stub_not_a_silent_success(plugin) -> None:
+def test_build_scorer_returns_the_two_declared_leaves(plugin) -> None:
+    # Milestone 2: build_scorer is wired to measurement.py (see
+    # tests/test_negarena_measurement.py for the full scoring behaviour;
+    # this only checks the hand-off itself).
+    from aeread_families.negarena import measurement
+
     case = _load_case("negarena.buy_sell.0", "buy_sell")
     family_case = plugin.validate_payload(case["payload"])
-    with pytest.raises(NotImplementedError):
-        plugin.build_scorer(family_case)
+    scorer = plugin.build_scorer(family_case)
+    assert scorer.seat_outcome_leaf.leaf_id == measurement.SEAT_OUTCOME_LEAF_ID
+    assert scorer.agreement_leaf.leaf_id == measurement.AGREEMENT_LEAF_ID
 
 
 # ---------------------------------------------------------------------------

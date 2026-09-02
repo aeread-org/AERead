@@ -10,11 +10,11 @@ Only ``step`` changes canonical family state. ``parse_action``/``legal``
 delegate to upstream's own parser classes and trade/resource admission-gate
 methods through :class:`~aeread_families.negarena.negarena_bridge.NegarenaBridge`
 -- never reimplementing the tag grammar or the legality arithmetic (spec
-section 3). Settlement (``after_game_ends()``) is **not** computed here:
-``build_scorer`` is a deliberate ``NotImplementedError`` stub -- the scorer
-is built in a later milestone (see ``docs/negarena_adapter_spec.md``
-section 2). ``terminal``/``outcome`` therefore report only structural facts
-(termination reason, iteration count, last trade/answer), never a payoff.
+section 3). ``terminal``/``outcome`` report only structural facts
+(termination reason, iteration count, last trade/answer), never a payoff:
+settlement (``after_game_ends()``, delegated to the bridge) and the two
+declared verifier leaves live in ``measurement.py``, reached through
+``build_scorer`` (spec section 2).
 """
 from __future__ import annotations
 
@@ -33,6 +33,7 @@ from aeread.shared_runner.scheduler import (
     TransitionResult,
 )
 
+from . import measurement
 from .cases import FAMILY_ID, FAMILY_VERSION, RED, BLUE, UPSTREAM_COMMIT, UPSTREAM_REPO
 from .negarena_bridge import NegarenaBridge
 
@@ -437,21 +438,16 @@ class NegarenaPlugin:
         }
 
     def build_scorer(self, family_case: Mapping[str, Any]) -> Any:
-        """Not built yet -- a later milestone (spec section 2).
+        """Build the case's ``NegarenaScorer`` (spec section 2, milestone 2).
 
         Settlement (``after_game_ends()``, delegated to the bridge) and the
         two declared verifier leaves (``negarena_seat_outcome``,
-        ``negarena_agreement_reached``) live in a ``measurement.py`` module
-        that does not exist yet. This method exists (and is callable, as
-        ``PluginRegistry.register`` requires) purely to keep the plugin's
-        hook surface complete; it must never be called by the milestone-1
-        test suite.
+        ``negarena_agreement_reached``) live in ``measurement.py``; this
+        method only forwards ``family_case`` to it, mirroring
+        ``tau3_retail``'s identical ``build_scorer`` -> ``measurement.build_scorer``
+        hand-off.
         """
-        del family_case
-        raise NotImplementedError(
-            "negarena's scorer is not built yet (see docs/negarena_adapter_spec.md "
-            "section 2); this is milestone 1 (cases + environment) only"
-        )
+        return measurement.build_scorer(family_case)
 
     def build_reference_providers(self, family_case: Mapping[str, Any]) -> tuple[Any, ...]:
         del family_case

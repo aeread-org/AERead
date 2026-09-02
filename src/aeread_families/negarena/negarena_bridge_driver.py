@@ -73,6 +73,53 @@ written to stdout:
          before ``execute_trade`` (the adapter-owned admission gate, spec
          section 3).
 
+  {"op": "settle", "game_kind": "buy_sell"|"ultimatum", "scenario": {...
+   same shape as a case's payload.scenario...}, "iteration_count": int,
+   "final_answer": str, "proposed_trade": {agent_label: resource_dict,
+   agent_label: resource_dict} | null}
+      -> {"ok": true, "settled": true, "player_outcome": [entry, entry],
+          "final_resources": [resource_json, resource_json],
+          "final_response": str}
+      -> {"ok": true, "settled": false, "reason": str}
+      -- measurement.py's production settlement path (spec section 2:
+         "settlement computation (after_game_ends()), executed via the
+         bridge, never reimplemented"). Constructs upstream's own
+         ``BuySellGame``/``MultiTurnUltimatumGame`` from ``scenario`` (the
+         real constructor -- goals, resources, iterations -- exactly as
+         ``runner/buysell_main.py``/``runner/ultimatum_main.py`` do), then
+         appends exactly the two ``game_state`` entries
+         ``after_game_ends()`` itself reads (``game_state[-2]``'s
+         ``newly proposed trade``, ``game_state[-1]``'s ``player answer``)
+         and calls upstream's own ``after_game_ends()`` -- never
+         recomputing ``Trade.execute_trade``/``Valuation.value`` locally.
+         ``settled=false`` mirrors ``BuySellGame.after_game_ends()``'s own
+         single-iteration short-circuit (``int(end_state[...]) <= 1``),
+         which appends no ``"summary"`` key at all.
+         Each ``player_outcome``/``final_resources`` entry is a typed
+         ``{"kind": "scalar", "value": float}`` (buy_sell -- ``Valuation``
+         already reduces to one number) or ``{"kind": "resources", "value":
+         resource_dict}`` (ultimatum -- ``UltimatumGoal`` has no
+         ``Valuation``, so ``after_game_ends()``'s own ``outcome`` list
+         holds raw ``Resources`` objects; see this module's
+         ``_outcome_json``).
+
+  {"op": "replay_transcript", "game_kind": "buy_sell"|"ultimatum",
+   "scenario": {...}, "turns": [raw_response_text, ...]}
+      -> {"ok": true, "settled": true, "player_outcome": [...],
+          "final_resources": [...], "final_response": str}
+      -> {"ok": true, "settled": false, "reason": str}
+      -> {"ok": false, "error_type": "replay_incomplete", "message": str}
+      -- parity-only path (spec section 5): replays the identical ordered
+         raw scripted response text through upstream's OWN turn loop --
+         ``AlternatingGame.write_game_state`` (upstream's real parser,
+         called again, independently of ``environment.py``'s
+         ``parse_response`` bridge calls) then ``game_over()``, mirroring
+         ``AlternatingGame.run()``'s loop body verbatim minus the
+         ``players[turn].step()`` call (the raw text is already given) --
+         then ``after_game_ends()``. Never touches ``op=settle``'s
+         two-entry shortcut, so a match between the two ops' outputs on the
+         same transcript is real parity evidence, not a tautology.
+
   Anything else (bad op, malformed request, import failure, ...)
       -> {"ok": false, "error_type": str, "message": str}, exit code 1.
 """
@@ -81,6 +128,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -126,6 +174,103 @@ def _apply_agent_message_interface_alias() -> None:
 
     if not hasattr(agent_message_module, "AgentMessageInterface"):
         agent_message_module.AgentMessageInterface = agent_message_module.AgentMessage
+
+
+def _null_agent(agent_name: str) -> Any:
+    """A minimal, scriptless ``Agent`` subclass -- never ``ChatGPTAgent``/
+    ``ClaudeAgent`` (no key touched, spec section 5). Upstream's own
+    ``BuySellGame``/``MultiTurnUltimatumGame`` constructors call
+    ``init_players()`` -> ``Agent.init_agent()`` on every player
+    unconditionally; this satisfies that unavoidable call without ever
+    invoking ``.chat()``/``.think()`` -- settlement ops never call
+    ``players[turn].step()``, since the scripted response text is always
+    supplied directly (by the caller for ``op=settle``, from ``turns`` for
+    ``op=replay_transcript``).
+    """
+    from negotiationarena.agents.agents import Agent
+
+    class _NullAgent(Agent):
+        def chat(self) -> str:
+            raise NotImplementedError(
+                "settlement replay never calls Agent.chat(); the scripted "
+                "response text is supplied directly, never generated here"
+            )
+
+        def update_conversation_tracking(self, entity: str, message: str) -> None:
+            pass
+
+    return _NullAgent(agent_name)
+
+
+def _buy_sell_seat_objects(seat: dict[str, Any]) -> tuple[Any, Any]:
+    """One seat's ``(Goal, Resources)`` pair, mirroring
+    ``runner/buysell_main.py``'s construction exactly."""
+    from negotiationarena.game_objects.goal import BuyerGoal, SellerGoal
+    from negotiationarena.game_objects.resource import Resources
+    from negotiationarena.game_objects.valuation import Valuation
+
+    resources = Resources(dict(seat["starting_resources"]))
+    valuation = Valuation(dict(seat["valuation"]))
+    if seat["goal_kind"] == "seller":
+        goal: Any = SellerGoal(cost_of_production=valuation)
+    elif seat["goal_kind"] == "buyer":
+        goal = BuyerGoal(willingness_to_pay=valuation)
+    else:
+        raise ValueError(f"unknown buy_sell goal_kind: {seat['goal_kind']!r}")
+    return goal, resources
+
+
+def _build_buy_sell_game(scenario: dict[str, Any], log_dir: str) -> Any:
+    from negotiationarena.constants import AGENT_ONE, AGENT_TWO
+    from games.buy_sell_game.game import BuySellGame
+
+    seats = scenario["seats"]
+    red_goal, red_resources = _buy_sell_seat_objects(seats["red"])
+    blue_goal, blue_resources = _buy_sell_seat_objects(seats["blue"])
+    return BuySellGame(
+        players=[_null_agent(AGENT_ONE), _null_agent(AGENT_TWO)],
+        iterations=int(scenario["iterations"]),
+        player_goals=[red_goal, blue_goal],
+        player_starting_resources=[red_resources, blue_resources],
+        player_conversation_roles=[f"You are {AGENT_ONE}.", f"You are {AGENT_TWO}."],
+        player_social_behaviour=["", ""],
+        log_dir=log_dir,
+    )
+
+
+def _build_ultimatum_game(scenario: dict[str, Any], log_dir: str) -> Any:
+    # games/ultimatum/game.py imports games/ultimatum/interface.py, which
+    # needs the AgentMessageInterface alias applied first (this module's
+    # docstring / docs/negarena_adapter_spec.md's "Correction" note).
+    _apply_agent_message_interface_alias()
+    from negotiationarena.constants import AGENT_ONE, AGENT_TWO
+    from negotiationarena.game_objects.goal import UltimatumGoal
+    from negotiationarena.game_objects.resource import Resources
+    from games.ultimatum.game import MultiTurnUltimatumGame
+
+    seats = scenario["seats"]
+    red_resources = Resources(dict(seats["red"]["starting_resources"]))
+    blue_resources = Resources(dict(seats["blue"]["starting_resources"]))
+    # Mirrors runner/ultimatum_main.py's own reference construction exactly.
+    resources_support_set = Resources({scenario["money_token"]: 0})
+    return MultiTurnUltimatumGame(
+        players=[_null_agent(AGENT_ONE), _null_agent(AGENT_TWO)],
+        iterations=int(scenario["iterations"]),
+        resources_support_set=resources_support_set,
+        player_goals=[UltimatumGoal(), UltimatumGoal()],
+        player_initial_resources=[red_resources, blue_resources],
+        player_social_behaviour=["", ""],
+        player_roles=[f"You are {AGENT_ONE}.", f"You are {AGENT_TWO}."],
+        log_dir=log_dir,
+    )
+
+
+def _build_game(game_kind: str, scenario: dict[str, Any], log_dir: str) -> Any:
+    if game_kind == "buy_sell":
+        return _build_buy_sell_game(scenario, log_dir)
+    if game_kind == "ultimatum":
+        return _build_ultimatum_game(scenario, log_dir)
+    raise ValueError(f"unknown game_kind: {game_kind!r}")
 
 
 def _parser_for(game_kind: str) -> Any:
@@ -236,6 +381,160 @@ def _op_check_trade(request: dict[str, Any]) -> dict[str, Any]:
     return {"ok": True, "legal": bool(legal)}
 
 
+def _outcome_json(value: Any) -> dict[str, Any]:
+    """Typed wrapper for one ``after_game_ends()`` summary entry.
+
+    ``BuySellGame``'s ``player_outcome`` entries are plain numbers
+    (``Valuation.value`` already reduces to one ``ZUP``-denominated
+    scalar); ``MultiTurnUltimatumGame``'s are raw ``Resources`` objects
+    (``UltimatumGoal`` carries no ``Valuation`` -- ``games/ultimatum/
+    game.py``'s ``after_game_ends``: ``outcome[0] = final_resources[0]``
+    is literally a ``Resources`` object, not a number, and ``final_resources``
+    itself is always a list of ``Resources`` for both games). Both shapes
+    are recorded verbatim, never coerced to a common representation here;
+    see ``measurement.py`` for how the adapter reduces each to one
+    native-unit scalar per seat.
+    """
+    from negotiationarena.game_objects.resource import Resources
+
+    if isinstance(value, Resources):
+        return {"kind": "resources", "value": dict(value.resource_dict)}
+    return {"kind": "scalar", "value": value}
+
+
+def _read_settlement(game: Any) -> dict[str, Any]:
+    """Read back whatever upstream's own ``after_game_ends()`` just appended.
+
+    Shared tail for ``op=settle``/``op=replay_transcript`` -- both call
+    ``game.after_game_ends()`` themselves (via a different, independently
+    constructed ``game_state``) and then delegate solely to this function
+    to report the result, so neither op can silently diverge in how it
+    reads the summary back.
+    """
+    end_state = game.game_state[-1]
+    summary = end_state.get("summary")
+    if summary is None:
+        # BuySellGame.after_game_ends()'s own single-iteration short-circuit
+        # (int(end_state["current_iteration"]) <= 1) appends no "summary"
+        # key at all; MultiTurnUltimatumGame has no equivalent short-circuit.
+        return {
+            "ok": True,
+            "settled": False,
+            "reason": (
+                "upstream's own after_game_ends() computed no summary for "
+                f"this transcript (current_iteration={end_state.get('current_iteration')!r})"
+            ),
+        }
+    return {
+        "ok": True,
+        "settled": True,
+        "player_outcome": [_outcome_json(v) for v in summary["player_outcome"]],
+        "final_resources": [_outcome_json(v) for v in summary["final_resources"]],
+        "final_response": summary["final_response"],
+    }
+
+
+def _op_settle(request: dict[str, Any]) -> dict[str, Any]:
+    from negotiationarena.constants import PLAYER_ANSWER_TAG, PROPOSED_TRADE_TAG
+    from negotiationarena.game_objects.trade import Trade
+
+    game_kind = request.get("game_kind")
+    scenario = request.get("scenario")
+    iteration_count = request.get("iteration_count")
+    final_answer = request.get("final_answer")
+    proposed_trade = request.get("proposed_trade")
+    if game_kind not in {"buy_sell", "ultimatum"}:
+        return {"ok": False, "error_type": "bad_request", "message": f"unknown game_kind: {game_kind!r}"}
+    if not isinstance(scenario, dict):
+        return {"ok": False, "error_type": "bad_request", "message": "scenario must be an object"}
+    if not isinstance(iteration_count, int) or isinstance(iteration_count, bool) or iteration_count < 1:
+        return {
+            "ok": False,
+            "error_type": "bad_request",
+            "message": "iteration_count must be a positive integer",
+        }
+    if not isinstance(final_answer, str) or not final_answer:
+        return {"ok": False, "error_type": "bad_request", "message": "final_answer must be a non-empty string"}
+    if proposed_trade is not None and not (isinstance(proposed_trade, dict) and len(proposed_trade) == 2):
+        return {
+            "ok": False,
+            "error_type": "bad_request",
+            "message": "proposed_trade must be a two-agent trade mapping or null",
+        }
+
+    with tempfile.TemporaryDirectory(prefix="negarena_bridge_settle_") as tmp_dir:
+        game = _build_game(game_kind, scenario, tmp_dir)
+        # after_game_ends() always reads game_state[-2]'s proposed trade
+        # (even when the episode was never accepted -- it just goes unused
+        # in that branch) and game_state[-1]'s player answer; these two
+        # synthetic entries are exactly what write_game_state would have
+        # produced for those two turns, never anything after_game_ends()
+        # itself does not read.
+        trade_value: Any = Trade(proposed_trade) if proposed_trade is not None else "NONE"
+        game.game_state.append(
+            {
+                "current_iteration": max(iteration_count - 1, 1),
+                "turn": 0,
+                "player_public_info_dict": {PROPOSED_TRADE_TAG: trade_value},
+            }
+        )
+        game.game_state.append(
+            {
+                "current_iteration": iteration_count,
+                "turn": 1,
+                "player_public_info_dict": {PLAYER_ANSWER_TAG: final_answer},
+            }
+        )
+        game.after_game_ends()
+        return _read_settlement(game)
+
+
+def _op_replay_transcript(request: dict[str, Any]) -> dict[str, Any]:
+    game_kind = request.get("game_kind")
+    scenario = request.get("scenario")
+    turns = request.get("turns")
+    if game_kind not in {"buy_sell", "ultimatum"}:
+        return {"ok": False, "error_type": "bad_request", "message": f"unknown game_kind: {game_kind!r}"}
+    if not isinstance(scenario, dict):
+        return {"ok": False, "error_type": "bad_request", "message": "scenario must be an object"}
+    if not isinstance(turns, list) or not turns or not all(isinstance(item, str) for item in turns):
+        return {
+            "ok": False,
+            "error_type": "bad_request",
+            "message": "turns must be a non-empty list of raw response strings",
+        }
+
+    with tempfile.TemporaryDirectory(prefix="negarena_bridge_replay_") as tmp_dir:
+        game = _build_game(game_kind, scenario, tmp_dir)
+        # Mirrors AlternatingGame.run()'s loop body verbatim minus the
+        # players[turn].step() call -- the raw scripted text is already
+        # given, so nothing here generates or parses a NEW response;
+        # write_game_state/game_over/after_game_ends are all upstream's own,
+        # called independently of environment.py's parse_response op.
+        game.current_iteration = 1
+        game.turn = 0
+        ended = False
+        for response in turns:
+            game.write_game_state(game.players, response)
+            if game.game_over():
+                ended = True
+                break
+            game.get_next_player()
+            game.current_iteration += 1
+        if not ended:
+            return {
+                "ok": False,
+                "error_type": "replay_incomplete",
+                "message": (
+                    f"scripted transcript of {len(turns)} turn(s) did not reach "
+                    "upstream's own game_over() -- the parity harness must supply "
+                    "a terminating transcript"
+                ),
+            }
+        game.after_game_ends()
+        return _read_settlement(game)
+
+
 def _op_runtime_info() -> dict[str, Any]:
     import negotiationarena
 
@@ -252,6 +551,10 @@ def _dispatch(request: dict[str, Any]) -> dict[str, Any]:
         return _op_parse_response(request)
     if op == "check_trade":
         return _op_check_trade(request)
+    if op == "settle":
+        return _op_settle(request)
+    if op == "replay_transcript":
+        return _op_replay_transcript(request)
     if op == "runtime_info":
         return _op_runtime_info()
     return {
