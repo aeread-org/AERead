@@ -210,3 +210,161 @@ Re-ran after all fixes: family test files (`tests/test_collusion_cases.py`,
 family files (67 pre-fix per the review's own count, plus 6 new regression
 tests — 2 in `test_collusion_environment.py`, 4 in
 `test_collusion_measurement.py`) and 10 in the smoke suite.
+
+## Second-review findings (`docs/collusion_codex_triage.md`, codex second
+reviewer, 6 findings: 4 CONFIRMED, 1 KERNEL, 1 REFUTED)
+
+A second, independent adversarial pass over the same adapter, after the fixes
+above had already landed. Each CONFIRMED finding below was re-verified directly
+against the code (not taken from the triage's own prose) before any fix, and
+each fix's regression test was first run against the pre-fix code and confirmed
+to fail for the stated reason (a temporary `/tmp` backup + restore, never a git
+checkout of the file under active edit).
+
+### Finding 1 — Retry exhaustion occurs outside the family hook
+
+**Disposition: deferred to the runner ledger (KERNEL).** `src/aeread/shared_runner/`
+was not modified, per this fix pass's own scope rule. Re-verified: the scheduler's
+`response_source(request)` call site (`scheduler.py:516`) invokes the response
+source exactly once, with no retry loop anywhere in the decision-request path —
+`collusion`'s own `environment.py:step()` already documents (in a code comment)
+that it treats any parse failure as pre-exhausted, on the assumption that a
+multi-attempt retry happens upstream, in a harness/response_source layer the
+shared runner does not provide today. Recorded as
+`runner_defect_ledger.md`'s **D-17** (MAJOR), "surfaced by: collusion".
+
+### Finding 2 — Profit baseline uses the wrong opponent condition
+
+**Disposition: fixed.** Re-verified: `tests/test_collusion_replay.py`'s
+byte-identical-reproduction test (`shared_asymmetric_original`: firm_a plays
+persistent monopoly-play, firm_b plays tit-for-tat) supplied
+`baseline_profit_by_seat = dict(gold["pi_nash"])` — Nash-vs-Nash profit — even
+though the live trajectory's opponent condition is not Nash for either seat.
+Computed the economically correct baseline directly (re-running the real
+scheduler/harness twice, once per seat, each time swapping only that seat's
+policy to the named Nash-play baseline while keeping the *other* seat's real
+policy function): `firm_a` playing Nash against firm_b's real tit-for-tat nets
+16.24/round-mean vs. the wrong baseline's 93.69 (`pi_nash` at this cell's
+`alpha=10`); `firm_b` playing Nash against firm_a's real persistent
+monopoly-play nets 827.15 vs. the same wrong 93.69 — confirming the finding's
+own failure scenario is real and large, not merely theoretical, for both seats.
+
+Fix: added `_profit_report_window_mean` and the module-scoped fixture
+`shared_asymmetric_same_opponent_baseline_profit` (`tests/test_collusion_replay.py`),
+which computes the correct baseline through the real production path
+(`run_episode` + `ScriptedCollusionHarness`, not an approximation); switched
+the byte-identical-reproduction test to use it instead of `gold["pi_nash"]`,
+with an inline pinning assertion that the two values differ materially (so a
+future revert back to the wrong baseline fails loudly). `measurement.py`'s own
+`score_long_run_profit` was intentionally left unchanged: it already
+structurally validates the baseline's shape and (by design, per its own
+docstring and the spec's stated limits) trusts the caller for provenance — no
+data in this leaf's signature carries which opponent condition a caller
+computed a baseline under, and inventing one is the same architectural
+decision the first review round already declined to make unilaterally.
+
+Tests added (`tests/test_collusion_replay.py`):
+`test_same_opponent_condition_baseline_differs_from_nash_vs_nash_pi_nash_for_an_asymmetric_opponent`
+(the standalone proof, run through the real harness);
+`test_replay_and_verify_reproduces_state_and_score_byte_identically_with_zero_provider_calls`
+(updated in place, with its own pinning assertion) — both fail against the
+pre-fix baseline value.
+
+### Finding 3 — Unverified offline replay reports `match`
+
+**Disposition: fixed.** Re-verified: `ReplayReport.status` (`replay.py`)
+returned `"mismatch"` only when a non-`None` `comparison` disagreed; with
+`comparison is None` (a genuinely offline replay, no `original` in memory) it
+always returned `"match"`, including for a tampered recording, exactly as the
+finding's own cited test (`test_replay_without_an_original_reports_no_
+comparison_but_still_scores`) demonstrated.
+
+Fix: `record_episode` now seals the original run's own terminal outcome as
+`RecordedEpisode.expected_final_outcome_sha256` at record time;
+`replay_and_verify` always compares the freshly replayed outcome's digest
+against that seal (a new `ReplayReport.digest_verified` field) regardless of
+whether `comparison` is available, and `status` now reports `"mismatch"`
+whenever `digest_verified` is `False` — so an offline replay of a tampered
+recording is caught even with nothing live to compare against. The finding's
+own instruction to exercise the production path, not a shortcut, is followed:
+the regression test tampers a recording and drives it through the real
+`replay_and_verify` entry point (not the raw `compare_episode_results` helper
+the pre-existing tamper-detection test uses when `original` *is* available).
+
+Test added (`tests/test_collusion_replay.py`):
+`test_offline_replay_of_a_tampered_recording_with_no_original_in_memory_reports_mismatch_not_a_fabricated_match`
+— fails pre-fix (`report.status == "match"` for a tampered recording), passes
+post-fix. The pre-existing
+`test_replay_without_an_original_reports_no_comparison_but_still_scores` needed
+no assertion change (an untampered offline replay is still correctly `"match"`)
+beyond adding `assert report.digest_verified is True`.
+
+### Finding 4 — Replay identity is bound only to case ID
+
+**Disposition: fixed.** Re-verified: `replay_episode` rejected a recording only
+when `recorded.case_id != case.case_id`; a case whose `case_id` is unchanged
+but whose economics content changed (a recomputed, still-valid manifest
+digest) would pass this check and replay old decisions against the wrong
+demand/cost parameters.
+
+Fix: `RecordedEpisode` gained a `case_content_sha256` field, populated by
+`record_episode` from `CaseManifest.content_sha256` (not just `case_id`);
+`replay_episode` now rejects a mismatch on either field. `record_episode`'s
+signature changed to `record_episode(result, *, case)` (was `record_episode(result)`)
+to source this digest — every call site in `tests/test_collusion_replay.py`
+updated accordingly.
+
+Test added (`tests/test_collusion_replay.py`):
+`test_replay_case_content_mismatch_raises_a_typed_replay_error_even_with_a_matching_case_id`
+— a case_id-matching but stale `case_content_sha256` on the recording; fails
+pre-fix (no such check existed), passes post-fix.
+
+### Finding 5 — Distance leaves discard per-round gaps
+
+**Disposition: fixed.** Re-verified: `_score_distance` (`measurement.py`)
+computed only a seat-mean absolute gap, then averaged across seats into the
+primary value; no per-round gap sequence was retained anywhere in the
+envelope. Confirmed the finding's own concrete scenario: a trajectory
+oscillating between `p_nash`/`p_monopoly` and a trajectory constant at their
+midpoint produce byte-identical primary values under the pre-fix code, with
+no way to tell them apart from the `ScoreEnvelope` alone.
+
+Fix: `_score_distance` now attaches the raw, signed, per-round gap (price
+minus target, keyed by round, for both seats) to `primary.metadata["per_round_gap"]`
+— `MetricValue.metadata` is the schema's own sanctioned free-form field
+(`Mapping[str, Any]`, already used elsewhere in this family for auxiliary
+detail), so this required no change to `src/aeread/shared_runner/`. The
+averaged primary computation itself is unchanged (spec doesn't ask for a
+different aggregate, only for the raw detail alongside it).
+
+Tests added (`tests/test_collusion_measurement.py`, plus a new `_short_case`
+helper mirroring `test_collusion_replay.py`'s own convention for a cheap
+real-scheduler episode):
+`test_distance_leaf_retains_the_raw_signed_per_round_gap_not_just_the_averaged_primary`,
+`test_distance_leaf_gap_metadata_distinguishes_oscillating_from_midpoint_trajectories_sharing_one_primary_value`
+(the finding's own scenario, reproduced and asserted distinguishable) — both
+fail pre-fix with `KeyError: 'per_round_gap'`.
+
+### Finding 6 — Scientific notation parsing has been corrected
+
+**Disposition: refuted, untouched.** Already fixed in the first review round
+(this doc's own "CRITICAL 1", above) and independently re-verified again this
+pass: `_NUMBER_RE` includes the optional exponent group, and
+`test_price_parsed_from_scientific_notation_prose_is_not_truncated` still
+covers it. No code or test change made for this finding.
+
+### Summary
+
+| # | Classification | Disposition |
+|---|---|---|
+| 1 | KERNEL | deferred — `runner_defect_ledger.md` D-17 |
+| 2 | CONFIRMED | fixed |
+| 3 | CONFIRMED | fixed |
+| 4 | CONFIRMED | fixed |
+| 5 | CONFIRMED | fixed |
+| 6 | REFUTED | refuted (already fixed pre-existing) |
+
+Re-ran after all second-review fixes: the same five family test files plus
+`tests/test_shared_runner_smoke.py` — **88 passed, 0 failed** (83 pre-this-pass
+plus 5 new regression tests: 2 in `test_collusion_measurement.py`, 3 in
+`test_collusion_replay.py`).
