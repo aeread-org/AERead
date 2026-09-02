@@ -7,6 +7,11 @@ budget experiments. A campaign varies one primary scientific factor. Everything
 else is a control, a predeclared robustness arm, or a diagnostic; it must not be
 silently tuned while the campaign is running.
 
+Every campaign must consume passed evidence from the shared
+[benchmark quality-control standard](benchmark_qc.md) and its case-specific QC
+profile. Benchmark QC validates the measurement instrument; this SOP validates
+one experiment conducted with it.
+
 The machine-checkable gate contract is in
 `aeread.shared_runner.campaign`. It preserves failed attempts, permits an
 evidence-backed retry of the same gate, and refuses to append a downstream gate
@@ -89,6 +94,28 @@ again with the next contiguous `attempt_index`; downstream promotion stays
 blocked until that retry passes. A generic episode API cannot infer which
 scientific campaign it belongs to, so the campaign driver is responsible for
 calling this boundary before launching paid work.
+
+The Housing V0 reference implementation is
+`aeread.shared_runner.housing_population_campaign`, with its frozen contract in
+`configs/housing_population_crossplay_v0.json`. New case families should reuse
+the same gate-history boundary and sealed-row resume behavior while supplying
+their own case admission, goldens, baselines, attribution blocks, and profile
+probes.
+
+### Backend escalation instruction
+
+Estimate paid cost and serial wall time from sealed full-trajectory billing
+before launching a variance pilot. If the projection exceeds the campaign cost
+ceiling or its declared operational-time limit, stop before the pilot. An Arena
+API or other batch service may then be evaluated as a new execution backend,
+but it must not replace the direct backend inside an active campaign.
+
+Create a new campaign identity and re-run design, provider-free validation,
+profile admission, and full-trajectory gates. Pin the Arena API version, model
+and provider routes, concurrency, ordering, retry ownership, usage and billing
+fields, and raw-response retention. The service must execute the same AERead
+cases and produce AERead-verifiable receipts; an external arena score is not a
+substitute for the Housing scorer or canonical fact tables.
 
 ## 4. Publish canonical fact-table projections
 

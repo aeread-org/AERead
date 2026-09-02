@@ -6,5 +6,7 @@ fixtures. The generator produces the preference and capacity state from the
 case parameters and seed.
 
 See [`docs/housing_case.md`](../../docs/housing_case.md) for the case contract
-and `tests/test_housing_assignment.py` plus `tests/test_housing_resolver.py`
-for executable examples and regression coverage.
+and `tests/test_housing_assignment.py` plus
+`tests/test_shared_runner_housing.py` for executable examples and regression
+coverage. The normative admission and publication requirements are in the
+[`Housing V1 quality-control contract`](../../docs/housing_qc.md).

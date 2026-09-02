@@ -1,0 +1,88 @@
+{
+  "artifact_sha256": "3e4acd378834a7501651f75c19487ff8d9d7c85e0f3623fb2c95cf8d7fde99fe",
+  "campaign_id": "housing_population_crossplay_v0",
+  "created_date": "2026-09-01",
+  "status": "blocked_at_full_trajectory",
+  "claim_status": "development_qualification_only",
+  "winner_claim_allowed": false,
+  "gate_status": [
+    {
+      "gate_id": "design_contract",
+      "attempt_index": 1,
+      "status": "passed",
+      "artifact_sha256": "4274de12898323df4d9b71c31b5028ff250feac058c611d292de6546e3a56328"
+    },
+    {
+      "gate_id": "provider_free_validation",
+      "attempt_index": 1,
+      "status": "passed",
+      "artifact_sha256": "efd6665c3440d3677ec6ef3923d534ffbf26f1bc41bd7524030def14255b81df"
+    },
+    {
+      "gate_id": "profile_admission",
+      "attempt_index": 1,
+      "status": "passed",
+      "artifact_sha256": "a03bc717b57d419fdc3334952676fde77a32910cc655e39dce3e6e0e5f5e8977"
+    },
+    {
+      "gate_id": "full_trajectory",
+      "attempt_index": 1,
+      "status": "failed",
+      "completed_trajectories": 5,
+      "planned_trajectories": 6,
+      "provider_calls": 176,
+      "cost_usd": 0.01223455959,
+      "elapsed_trajectory_seconds": 1457.8957286669756,
+      "failure_condition": "provider_contract_empty_content",
+      "failure_cell": "glm_53_flash__vs__deepseek_v4_flash"
+    },
+    {
+      "gate_id": "full_trajectory",
+      "attempt_index": 2,
+      "status": "failed",
+      "artifact_sha256": "74a5f9ecba56867d68999ca661cd029b47807febf743861fee8f0fdad1b1c581",
+      "completed_trajectories": 4,
+      "planned_trajectories": 6,
+      "provider_calls": 153,
+      "cost_usd": 0.01128029463,
+      "elapsed_trajectory_seconds": 1231.4982684579445,
+      "failure_condition": "provider_contract_empty_content",
+      "failure_cells": [
+        "deepseek_v4_flash__vs__scripted",
+        "deepseek_v4_flash__vs__deepseek_v4_flash"
+      ]
+    }
+  ],
+  "profile_admission": {
+    "probe_count": 18,
+    "passed_probe_count": 18,
+    "hidden_retry_count": 0,
+    "cost_usd": 0.0016186599
+  },
+  "observed_full_trajectory_totals": {
+    "attempt_count": 2,
+    "provider_calls": 329,
+    "empty_content_failures": 3,
+    "empty_content_failure_rate_per_call": 0.00911854103343465,
+    "full_trajectory_cost_usd": 0.02351485422,
+    "total_paid_cost_including_admission_usd": 0.02513351412,
+    "elapsed_trajectory_seconds": 2689.39399712492
+  },
+  "variance_pilot_projection": {
+    "matrices": 32,
+    "trajectories": 192,
+    "basis": "full_trajectory_attempt_2",
+    "projected_cost_usd": 0.36096942816,
+    "cost_ceiling_usd": 10.0,
+    "projected_serial_hours": 10.94665127518173,
+    "cost_triggered_backend_escalation": false,
+    "latency_and_reliability_review_required": true
+  },
+  "stop_reason": "The full-trajectory gate did not produce one complete six-condition matrix after two whole-matrix attempts. DeepSeek returned response choices without text content. The variance pilot was not started.",
+  "backend_instruction": "Do not swap the direct backend inside V0. If Arena API is evaluated for latency or reliability, create a new campaign identity and repeat admission and full-trajectory gates under pinned Arena routing and retry controls.",
+  "local_evidence": {
+    "path": "runs/housing_population_crossplay_v0",
+    "committed": false,
+    "contains_raw_provider_evidence": true
+  }
+}

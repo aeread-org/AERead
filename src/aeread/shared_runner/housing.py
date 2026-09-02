@@ -1016,6 +1016,18 @@ DEEPINFRA_HOUSING_ROUTE = OpenRouterRoutePin(
     pricing_id="openrouter_deepinfra_2026-08-26_deepseek-v4-flash-0731",
 )
 
+GLM_53_FLASH_MODEL = "z-ai/glm-5.3-flash"
+GLM_53_FLASH_REVISION = "z-ai/glm-5.3-flash-20260826"
+DEEPINFRA_GLM_53_FLASH_ROUTE = OpenRouterRoutePin(
+    provider="DeepInfra",
+    quantization="fp8",
+    canonical_model=GLM_53_FLASH_REVISION,
+    input_per_million=0.075,
+    cached_input_per_million=0.015,
+    output_per_million=0.25,
+    pricing_id="openrouter_deepinfra_2026-08-31_glm-5.3-flash",
+)
+
 
 def _pin(
     component_id: str, kind: str, digest: str, version: str = "1.0.0"
@@ -1165,6 +1177,7 @@ def build_housing_smoke(
     landlord_profile_id_override: str | None = None,
     landlord_inference_seed_base: int | None = None,
     landlord_openrouter_route: OpenRouterRoutePin | None = None,
+    evaluation_kind: str = "controlled",
 ) -> HousingSmokeSetup:
     selected_world_seeds = (world_seed,) if world_seeds is None else tuple(world_seeds)
     if not selected_world_seeds:
@@ -1173,6 +1186,14 @@ def build_housing_smoke(
         raise ValueError("world_seeds must be unique")
     if replicates < 1:
         raise ValueError("replicates must be positive")
+    if evaluation_kind not in {"controlled", "cross_play", "self_play"}:
+        raise ValueError(
+            "evaluation_kind must be controlled, cross_play, or self_play"
+        )
+    if evaluation_kind != "controlled" and landlord_provider != "openrouter":
+        raise ValueError(
+            "cross_play and self_play require a model landlord profile"
+        )
     experiment_mode = world_seeds is not None
     if experiment_mode and inference_seed_base is None:
         raise ValueError("experiment plans require inference_seed_base")
@@ -1442,11 +1463,17 @@ def build_housing_smoke(
                     )
                 )
             ),
-            "kind": "controlled",
-            "subject_seats": tenant_seats,
-            "controlled_profiles": {
-                seat: landlord_profile_id for seat in landlord_seats
-            },
+            "kind": evaluation_kind,
+            "subject_seats": (
+                [*tenant_seats, *landlord_seats]
+                if evaluation_kind == "self_play"
+                else tenant_seats
+            ),
+            "controlled_profiles": (
+                {seat: landlord_profile_id for seat in landlord_seats}
+                if evaluation_kind == "controlled"
+                else {}
+            ),
             "repetitions": 1,
             "seed_policy": "fixed" if not experiment_mode else "paired",
         }
@@ -1721,7 +1748,10 @@ __all__ = [
     "HousingSmokeSetup",
     "HousingV1Plugin",
     "OpenRouterRoutePin",
+    "DEEPINFRA_GLM_53_FLASH_ROUTE",
     "DEEPINFRA_HOUSING_ROUTE",
+    "GLM_53_FLASH_MODEL",
+    "GLM_53_FLASH_REVISION",
     "build_housing_smoke",
     "main",
 ]

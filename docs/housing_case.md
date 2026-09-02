@@ -4,10 +4,12 @@ A two-sided market where tenants compete for a smaller number of listings. It as
 whether an agent can reason about **competition for a scarce resource**, not merely
 optimize its own valuation.
 
-Status: the P0 environment contract, allocation oracle, one-shot market, and
-scripted multi-round baselines are implemented and tested offline. The shared-runner
-adapter, live-model driver, prompt/configuration receipts, and replayable trajectories
-are not in this PR. Therefore no live-model table is a current paper result.
+Status: the P0 environment contract, allocation oracle, scripted multi-round
+baselines, shared-runner adapter, typed receipts, and offline state-and-score
+replay are implemented and tested. Live-model artifacts remain development
+evidence: Housing has not completed the separate
+[quality-control contract](housing_qc.md) or a confirmatory campaign freeze, so
+no live-model table is a current paper result.
 
 ## 1. The market
 

@@ -29,8 +29,10 @@ from .execution import (
 )
 from .harness import MinimalChatHarness
 from .housing import (
+    DEEPINFRA_GLM_53_FLASH_ROUTE,
+    GLM_53_FLASH_MODEL,
+    GLM_53_FLASH_REVISION,
     HousingScriptedLandlordProvider,
-    OpenRouterRoutePin,
     build_housing_smoke,
     finalize_housing_execution,
 )
@@ -52,17 +54,9 @@ from .registry import HarnessRequirements
 from .resolver import canonical_json_bytes
 
 
-GLM_MODEL = "z-ai/glm-5.3-flash"
-GLM_REVISION = "z-ai/glm-5.3-flash-20260826"
-GLM_DEEPINFRA_ROUTE = OpenRouterRoutePin(
-    provider="DeepInfra",
-    quantization="fp8",
-    canonical_model=GLM_REVISION,
-    input_per_million=0.075,
-    cached_input_per_million=0.075,
-    output_per_million=0.25,
-    pricing_id="openrouter_deepinfra_2026-08-31_glm-5.3-flash",
-)
+GLM_MODEL = GLM_53_FLASH_MODEL
+GLM_REVISION = GLM_53_FLASH_REVISION
+GLM_DEEPINFRA_ROUTE = DEEPINFRA_GLM_53_FLASH_ROUTE
 HARNESS_ARM_IDS = (
     "aeread_minimal_chat_v1",
     "langchain_provider_strategy_v1",
