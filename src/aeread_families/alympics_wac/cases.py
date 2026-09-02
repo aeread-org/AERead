@@ -54,7 +54,13 @@ VISIBILITY_POLICY = "alympics_wac_seat_private_bids_v1"
 # (mirrors tau3_retail's ``TERMINATION_REASONS`` discipline: declared next to
 # the manifest that publishes it, enforced in environment.py's
 # ``_set_termination`` so the declaration and the behaviour cannot drift).
-TERMINATION_REASONS = ("rounds_exhausted", "all_seats_eliminated")
+#
+# `malformed_action` is reachable only through environment.py's internal
+# test-only `force_malformed` hook (spec section 4's malformed-parse
+# golden), never through any real scripted policy in the 7 grid cells; it is
+# still declared here so a real occurrence (an adapter bug) fails loudly
+# through the same typed vocabulary instead of an undeclared value.
+TERMINATION_REASONS = ("rounds_exhausted", "all_seats_eliminated", "malformed_action")
 
 # --------------------------------------------------------------------------
 # Upstream pin constants (spec section 1).

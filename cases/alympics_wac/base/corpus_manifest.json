@@ -9,15 +9,15 @@
     "alympics.wac.zero_supply_degenerate"
   ],
   "case_sha256_by_id": {
-    "alympics.wac.generous_supply": "be9688ed55e1e71a3e570045a2afb2d7f1ee2b58bb1759bbaa0bfae7b55fb4db",
-    "alympics.wac.mixed_policies_a": "04297247bf21661e7638242dc16117fd62c50e36594712355ec06e0d7672de44",
-    "alympics.wac.mixed_policies_a_seed2": "54c8c64f74118ef3418df3ae27308ee0ec2152a2bacaf5d6ba618205ab512ec6",
-    "alympics.wac.reference_baseline": "7879ba4ea42e53a58a2b56bcfb2974f14224419183433ed7dcf7d1ad50f2e7b8",
-    "alympics.wac.scarce_supply": "d7d19b81d0e6d132a0155f5463b73d56b85b1f250e381bd41a0fdb356fd5c037",
-    "alympics.wac.short_horizon": "eed9fcdb16d56205d004c1093280bee6a9eb7e76dcf068c791e6c19e4b7bf923",
-    "alympics.wac.zero_supply_degenerate": "aa0ae2238777fc3a6117ce551aed2bb08c7ec5c730b3570e27a4a915c97aca47"
+    "alympics.wac.generous_supply": "8fcbbc997de0347b79d4663dd755f81dfeb801c9e67bea406655b63a8b20241c",
+    "alympics.wac.mixed_policies_a": "4b30438317c614b907a68227af87df25eeaa1bc698b8329c2c1385e430d5e052",
+    "alympics.wac.mixed_policies_a_seed2": "f61d82d7693f5e0726ed1cd6727032f18f3f9c18ccb5eed57f6d68e06820fb14",
+    "alympics.wac.reference_baseline": "fd54b0769ae611b4f01b104725f6d94b46d6065671239711e0d721922c045c64",
+    "alympics.wac.scarce_supply": "4df4a03e5bc7e1326b951be119e943aab4929cd516912d8fc5422a59609a0de8",
+    "alympics.wac.short_horizon": "45487bec8996a496efd17f8072fffe1b9291d19b6114fc396af5b032ac79fb97",
+    "alympics.wac.zero_supply_degenerate": "446e5eee3d9acb027082d912d21e1b4953cf0fe400067c91a4e3b7f9781d0053"
   },
-  "content_sha256": "960f552bef18b82cfc129527691ef2a156385537fd9e5bc2749e5bc73ab0fd8f",
+  "content_sha256": "aec0985d0856b594e89083d5d2577b4030bf6e02350f6e599f10faab522f8562",
   "corpus_id": "alympics_wac_grid_v1",
   "family_id": "alympics.wac",
   "split": "base"

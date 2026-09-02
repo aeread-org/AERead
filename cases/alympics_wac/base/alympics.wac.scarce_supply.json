@@ -1,11 +1,12 @@
 {
   "case_id": "alympics.wac.scarce_supply",
-  "content_sha256": "d7d19b81d0e6d132a0155f5463b73d56b85b1f250e381bd41a0fdb356fd5c037",
+  "content_sha256": "4df4a03e5bc7e1326b951be119e943aab4929cd516912d8fc5422a59609a0de8",
   "episode": {
     "max_logical_actions": 50,
     "termination": [
       "rounds_exhausted",
-      "all_seats_eliminated"
+      "all_seats_eliminated",
+      "malformed_action"
     ]
   },
   "family_id": "alympics.wac",

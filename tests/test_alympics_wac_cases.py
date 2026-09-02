@@ -171,11 +171,12 @@ def test_max_logical_actions_is_5_times_rounds(built) -> None:
         assert case["episode"]["max_logical_actions"] == 5 * rounds
 
 
-def test_termination_vocabulary_is_exactly_two_reasons(built) -> None:
+def test_termination_vocabulary_is_exactly_3_reasons(built) -> None:
     for case in built.values():
         assert tuple(case["episode"]["termination"]) == (
             "rounds_exhausted",
             "all_seats_eliminated",
+            "malformed_action",
         )
 
 

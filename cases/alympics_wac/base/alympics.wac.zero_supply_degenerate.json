@@ -1,11 +1,12 @@
 {
   "case_id": "alympics.wac.zero_supply_degenerate",
-  "content_sha256": "aa0ae2238777fc3a6117ce551aed2bb08c7ec5c730b3570e27a4a915c97aca47",
+  "content_sha256": "446e5eee3d9acb027082d912d21e1b4953cf0fe400067c91a4e3b7f9781d0053",
   "episode": {
     "max_logical_actions": 100,
     "termination": [
       "rounds_exhausted",
-      "all_seats_eliminated"
+      "all_seats_eliminated",
+      "malformed_action"
     ]
   },
   "family_id": "alympics.wac",

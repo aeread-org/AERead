@@ -1,11 +1,12 @@
 {
   "case_id": "alympics.wac.mixed_policies_a",
-  "content_sha256": "04297247bf21661e7638242dc16117fd62c50e36594712355ec06e0d7672de44",
+  "content_sha256": "4b30438317c614b907a68227af87df25eeaa1bc698b8329c2c1385e430d5e052",
   "episode": {
     "max_logical_actions": 75,
     "termination": [
       "rounds_exhausted",
-      "all_seats_eliminated"
+      "all_seats_eliminated",
+      "malformed_action"
     ]
   },
   "family_id": "alympics.wac",

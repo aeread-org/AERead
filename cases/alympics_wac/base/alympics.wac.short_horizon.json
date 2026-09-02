@@ -1,11 +1,12 @@
 {
   "case_id": "alympics.wac.short_horizon",
-  "content_sha256": "eed9fcdb16d56205d004c1093280bee6a9eb7e76dcf068c791e6c19e4b7bf923",
+  "content_sha256": "45487bec8996a496efd17f8072fffe1b9291d19b6114fc396af5b032ac79fb97",
   "episode": {
     "max_logical_actions": 25,
     "termination": [
       "rounds_exhausted",
-      "all_seats_eliminated"
+      "all_seats_eliminated",
+      "malformed_action"
     ]
   },
   "family_id": "alympics.wac",

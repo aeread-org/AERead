@@ -1,11 +1,12 @@
 {
   "case_id": "alympics.wac.generous_supply",
-  "content_sha256": "be9688ed55e1e71a3e570045a2afb2d7f1ee2b58bb1759bbaa0bfae7b55fb4db",
+  "content_sha256": "8fcbbc997de0347b79d4663dd755f81dfeb801c9e67bea406655b63a8b20241c",
   "episode": {
     "max_logical_actions": 50,
     "termination": [
       "rounds_exhausted",
-      "all_seats_eliminated"
+      "all_seats_eliminated",
+      "malformed_action"
     ]
   },
   "family_id": "alympics.wac",

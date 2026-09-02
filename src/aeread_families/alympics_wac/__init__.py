@@ -19,6 +19,7 @@ from .cases import (
     build_case,
     build_corpus_manifest,
 )
+from .environment import AlympicsWacPlugin, family_manifest, register_plugin
 
 __all__ = [
     "FAMILY_ID",
@@ -29,7 +30,10 @@ __all__ = [
     "TERMINATION_REASONS",
     "UPSTREAM_COMMIT",
     "UPSTREAM_REPO",
+    "AlympicsWacPlugin",
     "build_all_cases",
     "build_case",
     "build_corpus_manifest",
+    "family_manifest",
+    "register_plugin",
 ]

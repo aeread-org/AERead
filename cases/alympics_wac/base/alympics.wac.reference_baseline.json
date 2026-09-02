@@ -1,11 +1,12 @@
 {
   "case_id": "alympics.wac.reference_baseline",
-  "content_sha256": "7879ba4ea42e53a58a2b56bcfb2974f14224419183433ed7dcf7d1ad50f2e7b8",
+  "content_sha256": "fd54b0769ae611b4f01b104725f6d94b46d6065671239711e0d721922c045c64",
   "episode": {
     "max_logical_actions": 100,
     "termination": [
       "rounds_exhausted",
-      "all_seats_eliminated"
+      "all_seats_eliminated",
+      "malformed_action"
     ]
   },
   "family_id": "alympics.wac",
