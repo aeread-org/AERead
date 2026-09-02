@@ -27,7 +27,7 @@ import pytest
 
 from aeread.shared_runner.execution import EvidenceStore
 from aeread.shared_runner.registry import REQUIRED_FAMILY_PLUGIN_HOOKS, PluginRegistry
-from aeread.shared_runner.resolver import PlanCell, case_content_sha256
+from aeread.shared_runner.resolver import PlanCell, canonical_json_bytes, case_content_sha256
 from aeread.shared_runner.schemas import CaseManifest
 from aeread.shared_runner.scheduler import ActionEnvelope, run_episode
 from aeread_families.econevals.econevals_bridge import (
@@ -453,6 +453,278 @@ def test_pricing_period_reports_profits_at_submitted_prices() -> None:
     }
     transition = _run_one_period(plugin, family_case, response)
     assert transition.state["attempts"][0]["profits"] == profits
+
+
+# ---------------------------------------------------------------------------
+# QC Gate-2 goldens, driven through the REAL step()/dispatch_submit path
+# (spec section 4), not merely hand-constructed ``attempt`` dicts fed
+# straight to ``EconevalsScorer.score_terminal_state`` the way
+# ``tests/test_econevals_measurement.py``'s goldens do. Those unit tests
+# prove the scorer computes the right vector from a given attempt; these
+# additionally prove ``_submit_*`` actually PRODUCES that attempt (and
+# leaves ``family_case["generated_instance"]`` untouched) for the exact
+# scripted scenario spec section 4 names -- see
+# ``docs/econevals_review_disposition.md`` finding 2.
+# ---------------------------------------------------------------------------
+
+
+def test_golden_1_successful_pricing_through_step_gate_passes_and_objective_matches_the_optimum() -> None:
+    bridge = _bridge()
+    plugin = EconevalsPlugin(bridge=bridge)
+    case = _case("pricing_basic", "econevals.pricing.basic.0")
+    family_case = plugin.validate_payload(case.payload)
+    instance = family_case["generated_instance"]
+    gold_optimum = family_case["gold_optimum"]
+    product_ids = instance["product_ids"]
+    period = 0
+
+    prices = dict(zip(product_ids, gold_optimum["prices_by_period"][period]))
+    profits = bridge.pricing_profits(instance=instance, period=period, prices=prices)
+    attempt = {
+        "period": period,
+        "error": False,
+        "prices": {product_id: float(price) for product_id, price in prices.items()},
+        "profits": profits,
+    }
+    response = {
+        "tool_calls": [
+            {"id": "1", "name": "get_product_ids", "arguments": {}},
+            {"id": "2", "name": "set_prices", "arguments": {"prices_dict_str": prices}},
+        ],
+        "tool_executions": [
+            {
+                "tool_call_id": "1",
+                "name": "get_product_ids",
+                "arguments": {},
+                "result": {"content": {"product_ids": product_ids}, "error": False},
+            },
+            {
+                "tool_call_id": "2",
+                "name": "set_prices",
+                "arguments": {"prices_dict_str": prices},
+                "result": {"content": attempt, "error": False},
+            },
+        ],
+    }
+    transition = _run_one_period(plugin, family_case, response)
+
+    scorer = plugin.build_scorer(family_case)
+    gate, objective = scorer.score_terminal_state(transition.state)
+
+    assert gate.status == "ok"
+    assert gate.primary.value == 1.0
+    assert objective is not None
+    assert objective.status == "ok"
+    v_star = objective.reference_values["v_star"].value
+    assert objective.primary.value == pytest.approx(v_star, abs=1e-6)
+
+
+def test_golden_2_valid_but_poor_scheduling_through_step_gate_passes_but_objective_is_suboptimal() -> None:
+    bridge = _bridge()
+    plugin = EconevalsPlugin(bridge=bridge)
+    case = _case("scheduling_basic", "econevals.scheduling.basic.0")
+    family_case = plugin.validate_payload(case.payload)
+    instance = family_case["generated_instance"]
+    worker_ids = instance["worker_ids"]
+    task_ids = instance["task_ids"]
+
+    reversed_matching = dict(zip(worker_ids, reversed(task_ids)))
+    validity = bridge.scheduling_validate(
+        matching=reversed_matching, worker_ids=worker_ids, task_ids=task_ids
+    )
+    assert validity["valid"], "the reversed assignment must still be a legal bijection"
+    blocking_pairs = bridge.scheduling_blocking_pairs(
+        matching=reversed_matching,
+        worker_prefs=instance["worker_prefs"],
+        task_prefs=instance["task_prefs"],
+    )
+    assert len(blocking_pairs) > 1, "the reversed matching must be strictly below Basic's own threshold of 1"
+
+    attempt = {
+        "period": 0,
+        "error": False,
+        "matching": reversed_matching,
+        "valid": True,
+        "reason": "",
+        "blocking_pairs": blocking_pairs,
+    }
+    response = {
+        "tool_calls": [
+            {
+                "id": "1",
+                "name": "submit_assignment",
+                "arguments": {"assignment": reversed_matching},
+            }
+        ],
+        "tool_executions": [
+            {
+                "tool_call_id": "1",
+                "name": "submit_assignment",
+                "arguments": {"assignment": reversed_matching},
+                "result": {"content": attempt, "error": False},
+            }
+        ],
+    }
+    transition = _run_one_period(plugin, family_case, response)
+
+    scorer = plugin.build_scorer(family_case)
+    gate, objective = scorer.score_terminal_state(transition.state)
+
+    assert gate.status == "ok"
+    assert gate.primary.value == 1.0
+    assert objective is not None
+    assert objective.status == "ok"
+    assert objective.primary.value == float(len(blocking_pairs))
+    assert objective.reference_values["v_star"].value == 0.0
+    assert objective.primary.value > objective.reference_values["v_star"].value
+
+
+def test_golden_3_invalid_unauthorized_procurement_through_step_gate_fails_and_objective_is_not_scored() -> None:
+    """Spec golden 3's actual scenario (over-budget submission), not just its
+    unknown-offer-id companion above. Also pins down the failure scenario
+    named in the second-reviewer report: a future aliasing bug in
+    ``_submit_procurement`` that mutated ``generated_instance`` in place
+    would be caught here, not silently missed."""
+    bridge = _bridge()
+    plugin = EconevalsPlugin(bridge=bridge)
+    case = _case("procurement_basic", "econevals.procurement.basic.0")
+    family_case = plugin.validate_payload(case.payload)
+    instance = family_case["generated_instance"]
+    instance_before = canonical_json_bytes(instance)
+
+    over_budget_alloc = {entry_id: 1000 for entry_id in instance["menu"]}
+    result = bridge.procurement_evaluate(
+        instance=instance,
+        alloc=over_budget_alloc,
+        group_weights=instance["group_weights"],
+        agg_type=instance["agg_type"],
+    )
+    assert result["is_feasible"] is False
+    assert "exceeds budget" in result["invalid_reason"]
+
+    attempt = {
+        "period": 0,
+        "error": False,
+        "alloc": over_budget_alloc,
+        "is_feasible": result["is_feasible"],
+        "invalid_reason": result["invalid_reason"],
+        "cost": result["cost"],
+        "utility": result["utility"],
+    }
+    response = {
+        "tool_calls": [
+            {
+                "id": "1",
+                "name": "submit_purchase_plan",
+                "arguments": {"purchase_plan": over_budget_alloc},
+            }
+        ],
+        "tool_executions": [
+            {
+                "tool_call_id": "1",
+                "name": "submit_purchase_plan",
+                "arguments": {"purchase_plan": over_budget_alloc},
+                "result": {"content": attempt, "error": False},
+            }
+        ],
+    }
+    transition = _run_one_period(plugin, family_case, response)
+
+    assert canonical_json_bytes(instance) == instance_before, (
+        "generated_instance must never be mutated by _submit_procurement"
+    )
+
+    scorer = plugin.build_scorer(family_case)
+    gate, objective = scorer.score_terminal_state(transition.state)
+
+    assert gate.status == "ok"
+    assert gate.primary.value == 0.0
+    assert gate.primary.metadata["reason"] == result["invalid_reason"]
+    assert objective is None, "an illegal allocation must never reach the objective leaf"
+
+
+def test_golden_5_degenerate_reference_procurement_through_step_has_zero_regret() -> None:
+    """Spec golden 5: a hand-authored, single-entry-per-item-group menu
+    where upstream's own ``start_alloc`` is already feasible and optimal
+    (``V_LB == V_agent == V_UB``), driven through the real ``step()`` path
+    rather than a hand-typed attempt dict. Mirrors
+    ``tests/test_econevals_measurement.py``'s
+    ``_degenerate_procurement_instance`` fixture."""
+    bridge = _bridge()
+    instance = {
+        "menu": {"E1": {"type": "basic", "contents": {"A": 1}, "cost": 1.0}},
+        "budget": 1.0,
+        "item_groups": [["A"]],
+        "item_to_effectiveness": {"A": 1},
+        "start_alloc": {"E1": 1},
+        "group_weights": [1.0],
+        "agg_type": "prod",
+    }
+    gold_optimum = bridge.procurement_reference(
+        instance=instance, group_weights=instance["group_weights"], agg_type=instance["agg_type"]
+    )
+    assert gold_optimum["is_feasible"] is True
+    assert gold_optimum["opt_alloc"] == instance["start_alloc"]
+
+    plugin = EconevalsPlugin(bridge=bridge)
+    payload = {
+        "track": "procurement",
+        "difficulty": "Basic",
+        "seed": 0,
+        "generated_instance": instance,
+        "gold_optimum": gold_optimum,
+        "pins": {"max_steps": 1},
+    }
+    family_case = plugin.validate_payload(payload)
+    instance_before = canonical_json_bytes(family_case["generated_instance"])
+
+    start_alloc = instance["start_alloc"]
+    eval_start = bridge.procurement_evaluate(
+        instance=instance,
+        alloc=start_alloc,
+        group_weights=instance["group_weights"],
+        agg_type=instance["agg_type"],
+    )
+    assert eval_start["is_feasible"] is True
+    assert eval_start["utility"] == gold_optimum["opt_utility"]
+
+    attempt = {
+        "period": 0,
+        "error": False,
+        "alloc": start_alloc,
+        "is_feasible": eval_start["is_feasible"],
+        "invalid_reason": eval_start["invalid_reason"],
+        "cost": eval_start["cost"],
+        "utility": eval_start["utility"],
+    }
+    response = {
+        "tool_calls": [
+            {"id": "1", "name": "submit_purchase_plan", "arguments": {"purchase_plan": start_alloc}}
+        ],
+        "tool_executions": [
+            {
+                "tool_call_id": "1",
+                "name": "submit_purchase_plan",
+                "arguments": {"purchase_plan": start_alloc},
+                "result": {"content": attempt, "error": False},
+            }
+        ],
+    }
+    transition = _run_one_period(plugin, family_case, response)
+
+    assert canonical_json_bytes(family_case["generated_instance"]) == instance_before
+
+    scorer = plugin.build_scorer(family_case)
+    gate, objective = scorer.score_terminal_state(transition.state)
+
+    assert gate.status == "ok"
+    assert gate.primary.value == 1.0
+    assert objective is not None
+    assert objective.status == "ok"
+    v_agent = objective.primary.value
+    v_star = objective.reference_values["v_star"].value
+    assert v_agent == v_star
+    assert v_star - v_agent == 0.0
 
 
 def test_step_rejects_a_harness_tool_replay_mismatch() -> None:
