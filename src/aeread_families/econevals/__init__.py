@@ -8,8 +8,9 @@ tracks (``procurement``, ``scheduling``, ``pricing``). See
 Milestone 1 of 3 (cases + environment): the corpus importer (``cases.py``),
 the bridge to the pinned upstream checkout (``econevals_bridge.py`` /
 ``econevals_bridge_driver.py``), and the live period-loop kernel plugin
-(``environment.py``). The two ``MeasurementLeafSpec`` verifier declarations
-per track (spec section 2) land in a later milestone.
+(``environment.py``). Milestone 2 of 3 (measurement + goldens) adds the two
+``MeasurementLeafSpec`` verifier declarations per track (spec section 2,
+``measurement.py``), wired into ``environment.py``'s ``build_scorer`` hook.
 """
 
 from .econevals_bridge import (
@@ -22,6 +23,7 @@ from .econevals_bridge import (
     discover_bridge_python,
 )
 from .environment import EconevalsPlugin, family_manifest, register_plugin
+from .measurement import EconevalsScorer, build_leaves, build_scorer
 
 __all__ = [
     "BRIDGE_PYTHON_ENV_VAR",
@@ -30,7 +32,10 @@ __all__ = [
     "EconevalsBridgeError",
     "EconevalsBridgeUnavailableError",
     "EconevalsPlugin",
+    "EconevalsScorer",
     "GurobiLicenseSizeError",
+    "build_leaves",
+    "build_scorer",
     "discover_bridge_python",
     "family_manifest",
     "register_plugin",
