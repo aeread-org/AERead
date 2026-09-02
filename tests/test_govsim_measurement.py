@@ -341,6 +341,69 @@ def test_every_scorer_returns_invalid_measurement_never_a_zero_on_operational_fa
 
 
 # ---------------------------------------------------------------------------
+# GovsimScorer.__call__ -- the production finalizer seam (triage Finding 1).
+# ``family_evaluation.py``'s ``finalize_family_execution`` executes
+# ``plugin.build_scorer(family_case)(recorded_outcome, evidence_refs=...)``
+# directly on whatever ``build_scorer`` returns -- never through a named
+# method the way every golden above does. Before the fix, ``GovsimScorer``
+# had no ``__call__`` and this raised ``TypeError: 'GovsimScorer' object is
+# not callable`` before any score was recorded or receipt issued. Pure, no
+# bridge needed: ``GovsimScorer.__call__`` never touches the bridge.
+# ---------------------------------------------------------------------------
+
+
+def test_govsim_scorer_is_callable_and_used_exactly_as_the_production_finalizer_calls_it() -> None:
+    family_case = _family_case("fishing", "sustainable_v1", num_agents=5)
+    scorer = m.build_scorer(family_case)
+    assert callable(scorer)
+
+    outcome = {
+        "termination_reason": "collapse_or_horizon",
+        "outcome_status": "known",
+        "num_round": 12,
+        "resource_in_pool": 40,
+        "collected_resource": {"persona_0": 10, "persona_1": 12},
+    }
+
+    score = scorer(outcome, evidence_refs=("evt_outcome_0",))
+
+    assert score.status == "ok"
+    assert score.leaf.leaf_id == m.SURVIVAL_MONTHS_LEAF_ID
+    assert score.primary.value == 12.0
+    # No baseline is reachable from a recorded outcome alone (measurement.py
+    # never re-runs a baseline episode itself): the comparative delta and
+    # reference value are honestly omitted here, never fabricated.
+    assert score.reference_values == {}
+    assert "delta_vs_baseline" not in score.metrics
+    assert score.evidence_refs == ("evt_outcome_0",)
+
+
+def test_govsim_scorer_call_reports_invalid_measurement_for_an_operational_failure_outcome() -> None:
+    family_case = _family_case("fishing", "sustainable_v1", num_agents=5)
+    scorer = m.build_scorer(family_case)
+    outcome = {
+        "termination_reason": "operational_failure",
+        "outcome_status": "outcome_unknown",
+        "num_round": 3,
+        "resource_in_pool": 40,
+        "collected_resource": {"persona_0": 5},
+        "operational_failure": {
+            "error_type": "AssertionError",
+            "message": "boom",
+            "failed_action_index": 2,
+        },
+    }
+
+    score = scorer(outcome, evidence_refs=("evt_outcome_1",))
+
+    assert score.status == "invalid_measurement"
+    assert score.primary is None
+    assert score.leaf.leaf_id == m.SURVIVAL_MONTHS_LEAF_ID
+    assert score.validity.status == "invalid"
+    assert score.evidence_refs == ("evt_outcome_1",)
+
+
+# ---------------------------------------------------------------------------
 # Vendored gini() -- pure, hand-computed values, no bridge needed (the
 # bridge-gated cross-check against upstream's real function is below).
 # ---------------------------------------------------------------------------

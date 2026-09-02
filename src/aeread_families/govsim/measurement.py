@@ -587,7 +587,7 @@ def score_survival_months(
     leaf: MeasurementLeafSpec,
     *,
     terminal: Mapping[str, Any],
-    baseline_survival_months: float,
+    baseline_survival_months: float | None,
     max_num_rounds: int,
     num_agents: int,
     evidence_refs: tuple[str, ...] = (),
@@ -601,11 +601,25 @@ def score_survival_months(
     max_num_rounds" rule for this environment). The baseline's value is
     recorded separately in ``reference_values``, and the delta as a
     ``metrics`` diagnostic -- three distinct numbers, per spec section 2.
+
+    ``baseline_survival_months`` is ``None`` when no caller supplied one
+    (this module never re-runs a baseline episode itself, per this
+    module's own docstring): ``reference_values``/``metrics`` simply omit
+    the baseline/delta in that case rather than fabricating one -- this is
+    exactly the shape ``GovsimScorer.__call__`` (the production finalizer
+    seam, ``family_evaluation.py``'s ``plugin.build_scorer(family_case)(
+    recorded_outcome, ...)``) hits, since no baseline is reachable from a
+    recorded ``outcome`` alone.
     """
     if terminal["reason"] == "operational_failure":
         return _operational_failure_envelope(leaf, evidence_refs)
     survival_months = min(float(terminal["num_round"]), float(max_num_rounds))
-    delta = survival_months - float(baseline_survival_months)
+    metrics: dict[str, MetricValue] = {}
+    reference_values: dict[str, MetricValue] = {}
+    if baseline_survival_months is not None:
+        delta = survival_months - float(baseline_survival_months)
+        metrics["delta_vs_baseline"] = MetricValue(delta, "rounds")
+        reference_values["baseline"] = MetricValue(float(baseline_survival_months), "rounds")
     return ScoreEnvelope(
         status="ok",
         leaf=leaf,
@@ -614,10 +628,8 @@ def score_survival_months(
             "rounds",
             metadata={"degenerate_single_agent": num_agents == 1},
         ),
-        metrics={"delta_vs_baseline": MetricValue(delta, "rounds")},
-        reference_values={
-            "baseline": MetricValue(float(baseline_survival_months), "rounds")
-        },
+        metrics=metrics,
+        reference_values=reference_values,
         validity=ValidityReport("valid"),
         evidence_refs=evidence_refs,
     )
@@ -719,11 +731,16 @@ def score_equality_gini(
 class GovsimScorer:
     """One case's fixed set of five declared leaves, plus their scorers.
 
-    ``environment.py``'s ``build_scorer`` hook returns one of these, per
-    ``tau3_retail``'s identical convention: the current kernel only checks
-    ``callable(plugin.build_scorer)`` at registration time and does not yet
-    invoke it (``registry.py``'s ``REQUIRED_FAMILY_PLUGIN_HOOKS``), so this
-    is also exercised directly by tests today.
+    ``environment.py``'s ``build_scorer`` hook returns one of these.
+    ``family_evaluation.py``'s ``finalize_family_execution`` calls the
+    returned object directly (``plugin.build_scorer(family_case)(
+    recorded_outcome, evidence_refs=(...))``) -- ``__call__`` below is the
+    seam that satisfies that exact production call, delegating to the
+    ``govsim_survival_months`` leaf (this family's declared
+    ``primary_estimand``, ``environment.py``'s ``family_manifest()``). The
+    other four leaves' named methods are still exercised directly by
+    ``tests/test_govsim_measurement.py``'s goldens, mirroring
+    ``tau3_retail``'s identical convention for its own non-primary leaf.
     """
 
     scenario: str
@@ -751,6 +768,39 @@ class GovsimScorer:
     def equality_gini_leaf(self) -> MeasurementLeafSpec:
         return self.leaves[4]
 
+    def __call__(
+        self, outcome: Mapping[str, Any], *, evidence_refs: tuple[str, ...] = ()
+    ) -> ScoreEnvelope:
+        """Score one recorded ``family_outcome`` exactly as the production
+        finalizer calls it: ``plugin.build_scorer(family_case)(
+        recorded_outcome, evidence_refs=(...))`` (``family_evaluation.py``'s
+        ``finalize_family_execution``).
+
+        ``outcome`` is ``environment.py``'s ``GovsimPlugin.outcome()``
+        output, never a ``terminal`` mapping (it carries no ``round_trace``,
+        so the two rule/constraint leaves are not reachable through this
+        seam -- their own named methods above remain the way
+        ``tests/test_govsim_measurement.py``'s goldens exercise them).
+        Delegates to ``score_survival_months`` -- this family's declared
+        ``primary_estimand`` (``environment.py``'s ``family_manifest()``)
+        -- with no baseline: this module never re-runs a baseline episode
+        itself, and none is reachable from a recorded outcome alone, so the
+        comparative delta/reference is honestly omitted rather than
+        fabricated (see ``score_survival_months``'s own docstring).
+        """
+        reason = outcome["termination_reason"]
+        if reason == "operational_failure":
+            return _operational_failure_envelope(self.survival_months_leaf, evidence_refs)
+        terminal_like = {"reason": reason, "num_round": outcome["num_round"]}
+        return score_survival_months(
+            self.survival_months_leaf,
+            terminal=terminal_like,
+            baseline_survival_months=None,
+            max_num_rounds=self.max_num_rounds,
+            num_agents=self.num_agents,
+            evidence_refs=evidence_refs,
+        )
+
     def score_no_collapse(
         self, *, terminal: Mapping[str, Any], evidence_refs: tuple[str, ...] = ()
     ) -> ScoreEnvelope:
@@ -772,7 +822,7 @@ class GovsimScorer:
         self,
         *,
         terminal: Mapping[str, Any],
-        baseline_survival_months: float,
+        baseline_survival_months: float | None,
         evidence_refs: tuple[str, ...] = (),
     ) -> ScoreEnvelope:
         return score_survival_months(
