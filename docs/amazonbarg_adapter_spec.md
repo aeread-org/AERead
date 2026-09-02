@@ -115,11 +115,16 @@ manifest's `content_sha256` the usual way (over `family_id`/`family_version`/`pa
 
 `case_id = f"amazonbarg.bilateral.{sanitize(codename)}"`. `sanitize()` is declared as: pass
 `[a-z0-9_.-]` through unchanged; replace any other character with `_x{ord(c):04x}_` (reversible
-— the inverse table is the identity except at those markers). **All 930 upstream codenames in
-this corpus already satisfy the export grammar**, so `sanitize()` is the identity function on
-every case built tonight; the mapping exists and is unit-tested against synthetic
-counter-examples (`"café_1"`, `"a:b"`, upper-case) so a future non-conforming category name
-does not silently produce a colon-bearing or otherwise unsafe id.
+— the inverse table is the identity except at those markers) — with one refinement (codex-review
+finding 8): a raw underscore is itself escaped, rather than passed through, whenever the literal
+text immediately following it in the input already matches the rest of a genuine marker shape
+(`x[0-9a-f]{4}_`), so a codename that happens to already contain marker-lookalike text can never
+collide with the escaped form of some other codename. **All 930 upstream codenames in this corpus
+already satisfy the export grammar, and none contains such a lookalike substring**, so `sanitize()`
+is still the identity function on every case built tonight; the mapping exists and is unit-tested
+against synthetic counter-examples (`"café_1"`, `"a:b"`, upper-case, and a literal marker-shaped
+input) so a future non-conforming category name does not silently produce a colon-bearing,
+otherwise unsafe, or colliding id.
 
 ### 1.2 Pilot corpus: one category pair, 45 sessions
 
