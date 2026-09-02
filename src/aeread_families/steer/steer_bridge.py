@@ -198,8 +198,11 @@ class SteerBridge:
         checkout before touching pandas. Returns
         ``{"element": str, "file_hashes": {...}, "counts": {"total",
         "exactly_one_correct", "zero_correct", "multi_correct"},
-        "admitted": [...], "zero_correct_sample_question_id": str | None}``;
-        see ``steer_bridge_driver.py``'s module docstring for the exact
+        "admitted": [...], "excluded": [{"question_id", "reason"}, ...],
+        "zero_correct_sample_question_id": str | None}``; ``excluded``
+        covers every excluded question_id in the full corpus (never
+        truncated by ``head_n``), not just an aggregate count -- see
+        ``steer_bridge_driver.py``'s module docstring for the exact
         per-field shape of an admitted row.
         """
         response = self._run({"op": "flatten", "element": element, "head_n": head_n})
@@ -208,6 +211,7 @@ class SteerBridge:
             "file_hashes": response["file_hashes"],
             "counts": response["counts"],
             "admitted": response["admitted"],
+            "excluded": response["excluded"],
             "zero_correct_sample_question_id": response["zero_correct_sample_question_id"],
         }
 

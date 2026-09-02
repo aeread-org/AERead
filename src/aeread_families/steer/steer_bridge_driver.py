@@ -31,6 +31,13 @@ written to stdout:
                        ...],  # first head_n admitted rows, original frame
                               # order; counts above cover the FULL corpus,
                               # never truncated
+          "excluded": [{"question_id": str,
+                        "reason": "zero_correct" | "multi_correct"}, ...],
+                       # EVERY excluded question_id and why, covering the
+                       # full corpus (never truncated by head_n) -- not
+                       # just an aggregate count plus one sample (a
+                       # critical review finding, docs/steer_codex_triage.md
+                       # finding 6)
           "zero_correct_sample_question_id": str | null}
       -- requires ``bridges/steer-data/<element>/*.pkl`` to already be
          cached (see the "fetch" op below); never fetches over the network
@@ -296,17 +303,23 @@ def _op_flatten(upstream_root: Path, cache_root: Path, request: dict[str, Any]) 
     zero_correct = 0
     multi_correct = 0
     admitted: list[dict[str, Any]] = []
+    # Per-question exclusion ledger (docs/steer_codex_triage.md finding 6):
+    # every excluded question_id and the exact reason it was excluded, never
+    # just an aggregate count plus one arbitrary sample.
+    excluded: list[dict[str, Any]] = []
     zero_correct_sample_question_id: str | None = None
 
     for question_id in ordered_question_ids:
         correct_count = int(per_question_correct_count.get(question_id, 0))
         if correct_count == 0:
             zero_correct += 1
+            excluded.append({"question_id": question_id, "reason": "zero_correct"})
             if zero_correct_sample_question_id is None:
                 zero_correct_sample_question_id = question_id
             continue
         if correct_count > 1:
             multi_correct += 1
+            excluded.append({"question_id": question_id, "reason": "multi_correct"})
             continue
         exactly_one_correct += 1
 
@@ -362,6 +375,7 @@ def _op_flatten(upstream_root: Path, cache_root: Path, request: dict[str, Any]) 
             "multi_correct": multi_correct,
         },
         "admitted": admitted[:head_n],
+        "excluded": excluded,
         "zero_correct_sample_question_id": zero_correct_sample_question_id,
     }
 

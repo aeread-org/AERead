@@ -88,9 +88,18 @@ def build_pins(
     file_hashes_by_element: Mapping[str, Mapping[str, str]],
     counts_by_element: Mapping[str, Mapping[str, int]],
     zero_correct_sample_by_element: Mapping[str, str | None],
+    excluded_sha256_by_element: Mapping[str, str] | None = None,
 ) -> dict[str, Any]:
-    """Build the pin record shared by every case (spec section 1)."""
-    return {
+    """Build the pin record shared by every case (spec section 1).
+
+    ``excluded_sha256_by_element`` pins the FULL per-question-id exclusion
+    ledger (docs/steer_codex_triage.md finding 6) by content hash rather
+    than embedding it -- mirrors ``file_sha256_by_element``'s existing
+    content-addressed convention, keeping this committed file small while
+    still making the uncommitted ``excluded.jsonl`` ledger (``write_excluded``)
+    independently verifiable against exactly this pin.
+    """
+    pins: dict[str, Any] = {
         "upstream_repo": UPSTREAM_REPO,
         "upstream_commit": UPSTREAM_COMMIT,
         "declared_elements": list(DECLARED_ELEMENTS),
@@ -104,6 +113,9 @@ def build_pins(
         },
         "zero_correct_sample_by_element": dict(zero_correct_sample_by_element),
     }
+    if excluded_sha256_by_element is not None:
+        pins["excluded_question_ids_sha256_by_element"] = dict(excluded_sha256_by_element)
+    return pins
 
 
 # --------------------------------------------------------------------------
@@ -163,17 +175,28 @@ def build_case(element: str, row: Mapping[str, Any], pins: Mapping[str, Any]) ->
 
 def import_all_cases(
     bridge: SteerBridge, *, head_n: int = HEAD_N
-) -> tuple[dict[str, Any], dict[str, dict[str, Any]], dict[str, list[dict[str, Any]]]]:
+) -> tuple[
+    dict[str, Any],
+    dict[str, dict[str, Any]],
+    dict[str, list[dict[str, Any]]],
+    dict[str, list[dict[str, Any]]],
+]:
     """Flatten every declared element and build its admitted case records.
 
-    Returns ``(pins, {case_id: case_dict}, {element: [admitted_row, ...]})``.
-    The third element carries the real question/option text and gold
-    ``correct_option_id`` for ``write_cache`` -- it is never written into a
-    committed case file.
+    Returns ``(pins, {case_id: case_dict}, {element: [admitted_row, ...]},
+    {element: [excluded_row, ...]})``. The third element carries the real
+    question/option text and gold ``correct_option_id`` for ``write_cache``
+    -- it is never written into a committed case file. The fourth,
+    ``excluded_rows_by_element``, is the per-question-id exclusion ledger
+    (docs/steer_codex_triage.md finding 6): every excluded question_id and
+    the exact reason it was excluded, never just an aggregate count plus
+    one sample -- also never written into a committed case file, for
+    ``write_excluded``.
     """
     file_hashes_by_element: dict[str, dict[str, str]] = {}
     counts_by_element: dict[str, dict[str, int]] = {}
     admitted_rows_by_element: dict[str, list[dict[str, Any]]] = {}
+    excluded_rows_by_element: dict[str, list[dict[str, Any]]] = {}
     zero_correct_sample_by_element: dict[str, str | None] = {}
 
     for element in DECLARED_ELEMENTS:
@@ -181,9 +204,23 @@ def import_all_cases(
         file_hashes_by_element[element] = response["file_hashes"]
         counts_by_element[element] = response["counts"]
         admitted_rows_by_element[element] = response["admitted"]
+        excluded_rows_by_element[element] = sorted(
+            response["excluded"], key=lambda row: row["question_id"]
+        )
         zero_correct_sample_by_element[element] = response["zero_correct_sample_question_id"]
 
-    pins = build_pins(file_hashes_by_element, counts_by_element, zero_correct_sample_by_element)
+    excluded_sha256_by_element = {
+        element: hashlib.sha256(
+            canonical_json_bytes(excluded_rows_by_element[element])
+        ).hexdigest()
+        for element in DECLARED_ELEMENTS
+    }
+    pins = build_pins(
+        file_hashes_by_element,
+        counts_by_element,
+        zero_correct_sample_by_element,
+        excluded_sha256_by_element,
+    )
 
     cases: dict[str, dict[str, Any]] = {}
     for element in DECLARED_ELEMENTS:
@@ -192,7 +229,7 @@ def import_all_cases(
             if case["case_id"] in cases:
                 raise ValueError(f"duplicate case_id: {case['case_id']!r}")
             cases[case["case_id"]] = case
-    return pins, cases, admitted_rows_by_element
+    return pins, cases, admitted_rows_by_element, excluded_rows_by_element
 
 
 # --------------------------------------------------------------------------
@@ -271,14 +308,41 @@ def write_cache(cache_root: Path, admitted_rows_by_element: Mapping[str, list[di
                 handle.write("\n")
 
 
+def write_excluded(
+    cache_root: Path, excluded_rows_by_element: Mapping[str, list[dict[str, Any]]]
+) -> None:
+    """Write ``bridges/steer-data/<element>/excluded.jsonl`` -- outside
+    version control, alongside ``cases.jsonl``.
+
+    The per-question-id exclusion ledger (docs/steer_codex_triage.md
+    finding 6): every question_id this element's flatten classification
+    excluded, and the exact reason (``zero_correct``/``multi_correct``) --
+    never just the aggregate ``counts_by_element`` totals ``pins.json``
+    alone carried before this. Rows are already sorted by
+    ``question_id`` (see :func:`import_all_cases`), matching exactly the
+    content ``pins.json``'s ``excluded_question_ids_sha256_by_element``
+    pins.
+    """
+    for element, rows in excluded_rows_by_element.items():
+        path = cache_root / element / "excluded.jsonl"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("w", encoding="utf-8") as handle:
+            for row in rows:
+                handle.write(json.dumps(row, ensure_ascii=False, sort_keys=True))
+                handle.write("\n")
+
+
 def run_import(
     bridge: SteerBridge, output_dir: Path, cache_root: Path, *, head_n: int = HEAD_N
 ) -> None:
     """End-to-end: flatten every declared element and write cases + cache."""
-    pins, cases, admitted_rows_by_element = import_all_cases(bridge, head_n=head_n)
+    pins, cases, admitted_rows_by_element, excluded_rows_by_element = import_all_cases(
+        bridge, head_n=head_n
+    )
     corpus_manifest = build_corpus_manifest(cases)
     write_cases(output_dir, pins, cases, corpus_manifest)
     write_cache(cache_root, admitted_rows_by_element)
+    write_excluded(cache_root, excluded_rows_by_element)
 
 
 # --------------------------------------------------------------------------

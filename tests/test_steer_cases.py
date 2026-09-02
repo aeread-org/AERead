@@ -15,6 +15,7 @@ docstring.
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -370,6 +371,67 @@ def test_golden_1s_gold_option_is_independently_verified_against_the_raw_upstrea
         if _independently_truthy(entry["correct_repr"])
     ]
     assert independently_correct_option_ids == [row["correct_option_id"]]
+
+
+# ---------------------------------------------------------------------------
+# Finding 6 (docs/steer_codex_triage.md): missing exclusion records. Before
+# this fix, the flatten response (and pins.json) only ever carried
+# aggregate zero_correct/multi_correct COUNTS plus one arbitrary
+# zero-correct sample question_id -- which exact upstream question survived
+# admission vs. was excluded, and under which of the two exclusion reasons,
+# was not recorded for all but one sample per element.
+# ---------------------------------------------------------------------------
+
+
+def test_flatten_response_includes_a_per_question_exclusion_ledger_not_just_counts() -> None:
+    element = "dsic_mechanism"  # the only declared element with both reasons present
+    response = _bridge().flatten_element(element, head_n=1)
+    excluded = response["excluded"]
+
+    zero_correct_ids = [e["question_id"] for e in excluded if e["reason"] == "zero_correct"]
+    multi_correct_ids = [e["question_id"] for e in excluded if e["reason"] == "multi_correct"]
+    assert {e["reason"] for e in excluded} <= {"zero_correct", "multi_correct"}
+    # Per-reason ledger counts reconcile exactly against the aggregate
+    # counts every prior version of this response already carried.
+    assert len(zero_correct_ids) == response["counts"]["zero_correct"] == EXPECTED_COUNTS[element]["zero_correct"]
+    assert len(multi_correct_ids) == response["counts"]["multi_correct"] == EXPECTED_COUNTS[element]["multi_correct"]
+    assert len(excluded) == len(zero_correct_ids) + len(multi_correct_ids)
+    # No question_id is ever recorded as excluded twice.
+    assert len({e["question_id"] for e in excluded}) == len(excluded)
+    # The one sample field this response already carried is a genuine
+    # element of the new full ledger, not a disconnected value.
+    assert response["zero_correct_sample_question_id"] in zero_correct_ids
+
+
+def test_write_excluded_writes_the_full_ledger_matching_the_pins_content_hash(
+    tmp_path: Path,
+) -> None:
+    from aeread.shared_runner.resolver import canonical_json_bytes
+
+    bridge = _bridge()
+    element = "dsic_mechanism"
+    response = bridge.flatten_element(element, head_n=1)
+    excluded_rows = sorted(response["excluded"], key=lambda row: row["question_id"])
+    pins = steer_cases.build_pins(
+        {element: response["file_hashes"]},
+        {element: response["counts"]},
+        {element: response["zero_correct_sample_question_id"]},
+        {element: hashlib.sha256(canonical_json_bytes(excluded_rows)).hexdigest()},
+    )
+
+    steer_cases.write_excluded(tmp_path, {element: excluded_rows})
+
+    written_path = tmp_path / element / "excluded.jsonl"
+    assert written_path.is_file()
+    written_rows = [json.loads(line) for line in written_path.read_text(encoding="utf-8").splitlines()]
+    assert written_rows == excluded_rows
+    # The committed pin is independently verifiable against the uncommitted
+    # ledger it names -- content-addressed, mirroring
+    # file_sha256_by_element's existing convention, never embedded inline.
+    assert (
+        hashlib.sha256(canonical_json_bytes(written_rows)).hexdigest()
+        == pins["excluded_question_ids_sha256_by_element"][element]
+    )
 
 
 # ---------------------------------------------------------------------------
