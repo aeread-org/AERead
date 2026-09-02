@@ -320,15 +320,26 @@ def _score_and_check_parity(codename: str, script: list[tuple[str, str, str]]) -
 
     # Component parity: any sealed numeric value traced back to a
     # `metrics_output` field must equal that field verbatim (never an
-    # independently recomputed number).
+    # independently recomputed number). Each leaf is guarded by its own
+    # `status == "ok"` check, not merely by `metrics_output` field
+    # presence -- `_measurement_gate` can still seal `invalid_measurement`
+    # (`primary=None`) even when `D`/`buyer_bargained_ratio` are present,
+    # e.g. a conflicting-interest session whose scripted trajectory
+    # nonetheless closes a deal (see
+    # docs/amazonbarg_review_claude.md finding W2 and this file's own
+    # `test_conflicting_interest_session_whose_scripted_trajectory_still_closes_a_deal`).
     if "D" in metrics_output:
         if envelopes["zopa"].status == "ok":
             assert envelopes["zopa"].metrics["deal_price"].value == metrics_output["D"]
-        assert envelopes["lower"].primary.value == metrics_output["D"]
-        assert envelopes["upper"].primary.value == metrics_output["D"]
+        if envelopes["lower"].status == "ok":
+            assert envelopes["lower"].primary.value == metrics_output["D"]
+        if envelopes["upper"].status == "ok":
+            assert envelopes["upper"].primary.value == metrics_output["D"]
     if "buyer_bargained_ratio" in metrics_output:
-        assert envelopes["ratio_buyer"].primary.value == metrics_output["buyer_bargained_ratio"]
-        assert envelopes["ratio_seller"].primary.value == metrics_output["seller_bargained_ratio"]
+        if envelopes["ratio_buyer"].status == "ok":
+            assert envelopes["ratio_buyer"].primary.value == metrics_output["buyer_bargained_ratio"]
+        if envelopes["ratio_seller"].status == "ok":
+            assert envelopes["ratio_seller"].primary.value == metrics_output["seller_bargained_ratio"]
 
     return metrics_output, envelopes
 
@@ -449,6 +460,48 @@ def test_golden_5_degenerate_reference_dji_drone_quits() -> None:
         assert envelope.primary is None
         assert m.reasons_include(envelope.validity, m.REASON_DEGENERATE_NO_ZOPA)
         assert not m.reasons_include(envelope.validity, m.REASON_ACTION_ERROR)
+
+
+def test_conflicting_interest_session_whose_scripted_trajectory_still_closes_a_deal() -> None:
+    """Regression for docs/amazonbarg_review_claude.md finding W2.
+
+    Upstream's own ``eval.py:Metrics.evaluate`` sets ``D``/
+    ``buyer_bargained_ratio`` whenever a ``DEAL`` closes, with no check
+    against ``cost``/``budget`` at all -- a conflicting-interest session
+    whose scripted trajectory nonetheless closes a deal is a real,
+    reachable state (none of the five shipped goldens combine "conflicting
+    interest" with "deal closes"; golden 5's own CI session quits instead).
+    ``_measurement_gate`` still correctly seals ``zopa``/``lower``/``upper``/
+    ``ratio_*`` as ``invalid_measurement`` (``primary=None``) here because
+    ``derived.interest == "conflicting"``, independently of whether ``D``/
+    ``buyer_bargained_ratio`` are present in ``metrics_output``. Before this
+    fix, ``_score_and_check_parity``'s own component-parity block asserted
+    ``envelopes["lower"/"upper"/"ratio_buyer"/"ratio_seller"].primary.value``
+    unconditionally whenever ``D``/``buyer_bargained_ratio`` were present,
+    raising ``AttributeError: 'NoneType' object has no attribute 'value'``
+    instead of a clear assertion failure -- exactly the case the parity
+    check should be most careful about (an economically invalid deal that
+    still produced upstream metrics fields)."""
+    script = [
+        (BUYER_PHASE, "buyer", "Thought: t\nTalk: hi\nAction: [BUY] $900 (1x toys-games_22)"),
+        (SELLER_PHASE, "seller", "Thought: t\nTalk: ok\nAction: [DEAL] $900 (1x toys-games_22)"),
+    ]
+    metrics_output, envelopes = _score_and_check_parity("toys-games_22", script)
+
+    assert metrics_output["wrongAction"] == 0  # authentic: matches the buyer's own $900 offer
+    assert metrics_output["closeADeal"] == 1
+    assert metrics_output["costGTbudget"] == 1  # conflicting interest: cost > budget
+    assert metrics_output["D"] == pytest.approx(900.0)
+    assert "buyer_bargained_ratio" in metrics_output
+
+    assert envelopes["authenticity"].status == "ok"
+    assert envelopes["authenticity"].primary.value == 1.0
+
+    for key in ("zopa", "lower", "upper", "ratio_buyer", "ratio_seller"):
+        envelope = envelopes[key]
+        assert envelope.status == "invalid_measurement"
+        assert envelope.primary is None
+        assert m.reasons_include(envelope.validity, m.REASON_DEGENERATE_NO_ZOPA)
 
 
 # ---------------------------------------------------------------------------

@@ -1,13 +1,17 @@
 """Tests for the amazonbarg.bilateral offline replayer (replay.py, milestone 3).
 
-Two full episodes (golden 1: a successful deal; golden 5: the pilot's one
-degenerate-reference, no-ZOPA quit -- docs/amazonbarg_adapter_spec.md
-section 4) are each run once, live, through
+All five QC Gate-2 goldens (docs/amazonbarg_adapter_spec.md section 4) are
+each run once, live, through
 ``aeread_families.amazonbarg.harness.ScriptedAmazonbargHarness`` and the
 real scheduler, recorded, JSON round-tripped, and replayed through a
 SECOND, independent ``AmazonbargPlugin`` instance -- with zero further
 model/network calls -- and asserted to reproduce state and score
 byte-identically (spec section 3, milestone 3's own acceptance bar).
+Originally only goldens 1 and 5 were replayed this way (the milestone's own
+"at least 2 full episodes" acceptance bar); goldens 2, 3, and 4 were added
+per docs/amazonbarg_review_claude.md finding W1, since golden 4 in
+particular is the golden whose whole point is "no protected state changed
+on invalid input" and had never been proven at the replay level before.
 """
 from __future__ import annotations
 
@@ -129,6 +133,22 @@ GOLDEN_1_SCRIPT = [
     (SELLER_PHASE, "seller", {"content": "Thought: t\nTalk: ok\nAction: [SELL] $150 (1x home-kitchen_2)"}),
     (BUYER_PHASE, "buyer", {"content": "Thought: t\nTalk: deal?\nAction: [BUY] $135 (1x home-kitchen_2)"}),
     (SELLER_PHASE, "seller", {"content": "Thought: t\nTalk: yes\nAction: [DEAL] $135 (1x home-kitchen_2)"}),
+]
+GOLDEN_2_SCRIPT = [
+    (BUYER_PHASE, "buyer", {"content": "Thought: t\nTalk: hi\nAction: [BUY] $61.5 (1x home-kitchen_3)"}),
+    (SELLER_PHASE, "seller", {"content": "Thought: t\nTalk: ok\nAction: [DEAL] $61.5 (1x home-kitchen_3)"}),
+]
+GOLDEN_3_SCRIPT = [
+    (BUYER_PHASE, "buyer", {"content": "Thought: t\nTalk: hi\nAction: [BUY] $400 (1x home-kitchen_5)"}),
+    (SELLER_PHASE, "seller", {"content": "Thought: t\nTalk: ok\nAction: [SELL] $480 (1x home-kitchen_5)"}),
+    (BUYER_PHASE, "buyer", {"content": "Thought: t\nTalk: deal?\nAction: [BUY] $480 (1x home-kitchen_5)"}),
+    (SELLER_PHASE, "seller", {"content": "Thought: t\nTalk: yes\nAction: [DEAL] $480 (1x home-kitchen_5)"}),
+]
+# The malformed-action golden -- previously never replayed at all (see
+# docs/amazonbarg_review_claude.md finding W1): a single decision, no
+# seller-phase turn ever served, no phantom deal ever recorded.
+GOLDEN_4_SCRIPT = [
+    (BUYER_PHASE, "buyer", {"content": "Thought: t\nTalk: no action line here"}),
 ]
 GOLDEN_5_SCRIPT = [
     (BUYER_PHASE, "buyer", {"content": "Thought: t\nTalk: hi\nAction: [BUY] $850 (1x toys-games_22)"}),
@@ -302,6 +322,49 @@ def test_golden_1_replay_reproduces_state_byte_identically(tmp_path: Path) -> No
     assert replayed.terminal["reason"] == "deal"
 
 
+def test_golden_2_replay_reproduces_state_byte_identically(tmp_path: Path) -> None:
+    case, _cell_, _plugin, _replay_plugin, original, replayed, comparison = _replay_and_compare(
+        "home-kitchen_3", GOLDEN_2_SCRIPT, tmp_path, suffix="golden2"
+    )
+
+    assert comparison.matches is True
+    assert comparison.final_state_matches is True
+    assert canonical_json_bytes(replayed.final_state) == canonical_json_bytes(original.final_state)
+    assert replayed.terminal["reason"] == "deal"
+
+
+def test_golden_3_replay_reproduces_state_byte_identically(tmp_path: Path) -> None:
+    case, _cell_, _plugin, _replay_plugin, original, replayed, comparison = _replay_and_compare(
+        "home-kitchen_5", GOLDEN_3_SCRIPT, tmp_path, suffix="golden3"
+    )
+
+    assert comparison.matches is True
+    assert comparison.final_state_matches is True
+    assert canonical_json_bytes(replayed.final_state) == canonical_json_bytes(original.final_state)
+    assert replayed.terminal["reason"] == "deal"
+
+
+def test_golden_4_replay_reproduces_state_byte_identically(tmp_path: Path) -> None:
+    """The malformed-action golden, now proven at the replay level too (see
+    docs/amazonbarg_review_claude.md finding W1): a second, independent
+    ``AmazonbargPlugin`` re-parses the same malformed reply, halts after the
+    same single decision, and reproduces byte-identical state -- no
+    seller-phase turn, no phantom deal, on either the original or the
+    replayed run."""
+    case, _cell_, _plugin, _replay_plugin, original, replayed, comparison = _replay_and_compare(
+        "home-kitchen_4", GOLDEN_4_SCRIPT, tmp_path, suffix="golden4"
+    )
+
+    assert comparison.matches is True
+    assert comparison.final_state_matches is True
+    assert canonical_json_bytes(replayed.final_state) == canonical_json_bytes(original.final_state)
+    assert replayed.terminal["reason"] == "action_error"
+    assert replayed.terminal["terminating_actor"] == "buyer"
+    assert replayed.terminal["turns_completed"] == 0
+    assert len(replayed.final_state["history"]) == 1
+    assert len(replayed.final_state["history"][0]) == 1
+
+
 def test_golden_5_replay_reproduces_state_byte_identically(tmp_path: Path) -> None:
     case, _cell_, _plugin, _replay_plugin, original, replayed, comparison = _replay_and_compare(
         "toys-games_22", GOLDEN_5_SCRIPT, tmp_path, suffix="golden5"
@@ -344,6 +407,45 @@ def test_golden_1_replay_recomputes_score_byte_identically_for_both_seats(
         assert set(replayed_scores) == set(original_scores)
         for leaf_id, envelope in original_scores.items():
             assert replayed_scores[leaf_id] == envelope
+
+
+def test_golden_4_replay_recomputes_an_invalid_measurement_score_identically(
+    tmp_path: Path,
+) -> None:
+    """The malformed-action golden's score, recomputed from the *replayed*
+    history -- never read back from a stored number -- reproduces the same
+    ``invalid_measurement`` seal on every leaf gated by
+    ``amazonbarg_deal_authenticity``'s own ``wrongAction=1`` verdict (see
+    docs/amazonbarg_review_claude.md finding W1: this is the golden whose
+    whole point is "no protected state changed on invalid input", now
+    proven at the replay/score level too, not merely the plain
+    ``run_episode`` level)."""
+    case, _cell_, plugin, replay_plugin, original, replayed, _comparison = _replay_and_compare(
+        "home-kitchen_4", GOLDEN_4_SCRIPT, tmp_path, suffix="golden4_score"
+    )
+    family_case = plugin.validate_payload(case.payload)
+    scorer = plugin.build_scorer(family_case)
+    replay_family_case = replay_plugin.validate_payload(case.payload)
+    replay_scorer = replay_plugin.build_scorer(replay_family_case)
+
+    original_metrics = m.compute_upstream_metrics(
+        upstream_root=UPSTREAM_ROOT,
+        family_case=family_case,
+        history=json.loads(canonical_json_bytes(original.final_state["history"])),
+    )
+    assert original_metrics["wrongAction"] == 1
+    assert "D" not in original_metrics
+
+    original_scores = scorer.score_all(metrics_output=original_metrics, tested_seat="buyer")
+    replayed_scores = score_replayed_episode(
+        upstream_root=UPSTREAM_ROOT, scorer=replay_scorer, replayed=replayed, tested_seat="buyer"
+    )
+
+    assert original_scores["amazonbarg_deal_authenticity_leaf"].primary.value == 0.0
+    for leaf_id in ("amazonbarg_zopa_membership_leaf", "amazonbarg_deal_lower_bound_leaf", "amazonbarg_deal_upper_bound_leaf", "amazonbarg_bargained_ratio_leaf"):
+        assert original_scores[leaf_id].status == "invalid_measurement"
+    for leaf_id, envelope in original_scores.items():
+        assert replayed_scores[leaf_id] == envelope
 
 
 def test_golden_5_replay_recomputes_a_degenerate_score_identically(tmp_path: Path) -> None:
