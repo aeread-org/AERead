@@ -590,3 +590,45 @@ and the canonical
 The fact manifest binds two reusable tables: frozen model/profile features and
 all 18 sanitized admission outcomes. Raw provider responses remain only in the
 ignored local run directory.
+
+## 17. V10 Morph-route execution and protocol finding
+
+[`housing_model_sensitivity_openrouter_morph_v10`](../../../configs/housing_model_sensitivity_openrouter_morph_v10.json)
+kept V9's three configurations, four development worlds, four model-to-model
+conditions, harness, prompts, schemas, sampling, action budgets, and analysis.
+Only the GLM route changed from NextBit to Morph; DeepSeek remained on Parasail.
+The frozen maximum exposure was `$0.41`, below the user-authorized `$5` budget.
+
+Design, provider-free, catalog, and all 18 single-attempt profile-admission
+checks passed. V10 then attempted all 48 frozen cells for a combined
+provider-reported cost of `$0.15123042`. Thirty-one trajectories completed with
+exact replay, route verification, and complete provider billing. The remaining
+17 are retained as typed operational missingness: 11 rate limits, five
+timeouts, and one transport failure. Every failed condition contained a Morph
+GLM seat. These counts are route/session reliability evidence, not model-score
+evidence.
+
+No development world has all six GLM-subject and six DeepSeek-subject cells.
+The paired-world count is therefore zero, variance is not estimable, and no
+confirmatory sample size or leaderboard result can be produced. V10 also
+revealed a campaign-control defect: after changing the GLM route, execution
+proceeded from profile admission directly to the multi-world pilot instead of
+recording the SOP-required full-trajectory gate. The publication marks this
+explicitly as a protocol deviation rather than treating the 48 attempted cells
+as a valid variance pilot.
+
+Do not selectively rerun or impute V10. The next campaign must use a new
+identity and, before any multi-world spend, complete one trajectory for each of
+the four subject-opponent conditions on the selected routes. Only that gate may
+promote the design to a newly frozen variance pilot.
+
+Review the digest-bound
+[`qualification.json`](../../../evidence/housing_model_sensitivity_openrouter_morph_v10/reports/qualification.json),
+all-attempt
+[`attempted.json`](../../../evidence/housing_model_sensitivity_openrouter_morph_v10/trajectories/attempted.json),
+and the
+[`canonical_fact_index.json`](../../../evidence/housing_model_sensitivity_openrouter_morph_v10/tables/canonical_fact_index.json).
+The index binds 12 run-level `profiles.csv`, `model_features.csv`, and
+`benchmark_results.csv` projections plus an explicit four-row paired-world
+table. Raw provider payloads and reasoning remain only under ignored local
+`runs/`.

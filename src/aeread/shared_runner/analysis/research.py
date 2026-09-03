@@ -2462,6 +2462,14 @@ def _deserialize_receipt(value: Mapping[str, Any]) -> EvaluationReceipt:
         raise ResearchContractError("serialized EvaluationReceipt is invalid") from error
 
 
+def deserialize_evaluation_receipt(
+    value: Mapping[str, Any],
+) -> EvaluationReceipt:
+    """Rebuild and verify an evaluation receipt from its serialized mapping."""
+
+    return _deserialize_receipt(value)
+
+
 def _load_run_plan(path: Path) -> RunPlan:
     try:
         raw = path.read_bytes()
@@ -2581,6 +2589,7 @@ __all__ = [
     "audit_experimental_design",
     "build_trajectory_record",
     "build_research_ledger",
+    "deserialize_evaluation_receipt",
     "export_loss_analysis_dataset",
     "export_canonical_fact_tables",
     "main",

@@ -67,6 +67,11 @@ V9_CONTRACT_PATH = (
     / "configs"
     / "housing_model_sensitivity_openrouter_alt_v9.json"
 )
+V10_CONTRACT_PATH = (
+    Path(__file__).resolve().parents[1]
+    / "configs"
+    / "housing_model_sensitivity_openrouter_morph_v10.json"
+)
 
 
 def test_contract_pins_new_routes_and_requires_admission_before_live() -> None:
@@ -221,6 +226,34 @@ def test_v9_freezes_four_unused_development_worlds_and_48_paired_cells() -> None
 
     expected_profiles = contract["profile_admission"]["profile_sha256s"]
     for setup in build_setups(contract, routes=routes).values():
+        for profile in setup.plan.agent_profiles:
+            assert hashlib.sha256(canonical_json_bytes(profile)).hexdigest() == (
+                expected_profiles[profile.profile_id]
+            )
+
+
+def test_v10_changes_only_glm_route_identity_and_stays_under_user_budget() -> None:
+    v9 = load_contract(V9_CONTRACT_PATH)
+    v10 = load_contract(V10_CONTRACT_PATH)
+    routes = route_table(v10)
+
+    assert routes["glm_53_flash"].provider == "Morph"
+    assert routes["deepseek_v4_flash"].provider == "Parasail"
+    assert v10["models"]["glm_53_flash"]["input_per_million"] == 0.13
+    assert v10["models"]["glm_53_flash"]["output_per_million"] == 0.45
+    assert v10["execution"] == v9["execution"]
+    assert v10["analysis"] == v9["analysis"]
+    assert v10["conditions"] == v9["conditions"]
+    assert (
+        v10["profile_admission"]["cost_ceiling_usd"]
+        + v10["execution"]["cost_ceiling_usd"]
+        < 5.0
+    )
+    assert design_artifact(v10, routes=routes)["planned_trajectories"] == 48
+    assert len(provider_free_artifact(v10)["worlds"]) == 12
+
+    expected_profiles = v10["profile_admission"]["profile_sha256s"]
+    for setup in build_setups(v10, routes=routes).values():
         for profile in setup.plan.agent_profiles:
             assert hashlib.sha256(canonical_json_bytes(profile)).hexdigest() == (
                 expected_profiles[profile.profile_id]
@@ -867,6 +900,133 @@ def test_published_v9_block_and_fact_tables_are_digest_bound() -> None:
             assert len(list(csv.DictReader(handle))) == table["row_count"]
     serialized = json.dumps(
         {"qualification": qualification, "trajectories": trajectories}
+    )
+    assert "raw_response" not in serialized
+    assert "output_text" not in serialized
+    assert "/Users/" not in serialized
+
+
+def test_published_v10_attempts_and_canonical_facts_are_digest_bound() -> None:
+    repository_root = V10_CONTRACT_PATH.parents[1]
+    root = repository_root / "evidence" / (
+        "housing_model_sensitivity_openrouter_morph_v10"
+    )
+    qualification = json.loads(
+        (root / "reports" / "qualification.json").read_bytes()
+    )
+    trajectories = json.loads(
+        (root / "trajectories" / "attempted.json").read_bytes()
+    )
+    index = json.loads(
+        (root / "tables" / "canonical_fact_index.json").read_bytes()
+    )
+    for value in (qualification, trajectories, index):
+        core = {key: item for key, item in value.items() if key != "artifact_sha256"}
+        assert value["artifact_sha256"] == hashlib.sha256(
+            canonical_json_bytes(core)
+        ).hexdigest()
+
+    assert qualification["status"] == "completed_with_typed_missingness"
+    assert qualification["schema_version"] == (
+        "aeread.housing_backend_qualification/0.4"
+    )
+    assert qualification["acceptance"] == {
+        "publishable_integration_evidence": True,
+        "all_frozen_cells_attempted": True,
+        "prerequisite_gates_passed": False,
+        "typed_missingness_preserved": True,
+        "paired_worlds_complete": False,
+        "confirmatory_freeze_ready": False,
+        "leaderboard_eligible": False,
+        "protocol_conformant": False,
+    }
+    assert qualification["protocol_gate_assessment"] == {
+        "required_before_variance_pilot": "full_trajectory",
+        "full_trajectory_gate_passed": False,
+        "protocol_conformant": False,
+        "interpretation": (
+            "No separate full-trajectory gate was recorded for the changed route "
+            "before multi-world execution. Retain the run as operational evidence "
+            "but do not promote it as a valid variance pilot."
+        ),
+    }
+    variance = qualification["variance_pilot_analysis"]
+    assert variance["status"] == "insufficient_paired_worlds"
+    assert variance["paired_world_count"] == 0
+    assert variance["incomplete_world_count"] == 4
+    assert variance["recommended_confirmatory_worlds"] is None
+    assert qualification["cost_note"].endswith(
+        "combined provider-reported cost $0.15123042."
+    )
+
+    assert trajectories["planned_trajectories"] == 48
+    assert trajectories["attempted_trajectories"] == 48
+    assert trajectories["completed_trajectories"] == 31
+    assert trajectories["operational_failures"] == 17
+    completed = [
+        row for row in trajectories["trajectories"] if row["status"] == "completed"
+    ]
+    failures = [
+        row for row in trajectories["trajectories"] if row["status"] != "completed"
+    ]
+    assert len(completed) == 31
+    assert len(failures) == 17
+    assert all(
+        row["route_verified"]
+        and row["provider_cost_complete"]
+        and row["replay_verified"]
+        for row in completed
+    )
+    assert {
+        condition: sum(row["failure_condition"] == condition for row in failures)
+        for condition in {"rate_limit", "timeout", "transport"}
+    } == {"rate_limit": 11, "timeout": 5, "transport": 1}
+    assert all(row["score"] is None for row in failures)
+
+    assert qualification["trajectory_export"]["artifact_sha256"] == trajectories[
+        "artifact_sha256"
+    ]
+    assert qualification["fact_tables"]["artifact_sha256"] == index[
+        "artifact_sha256"
+    ]
+    assert index["run_count"] == 12
+    assert len(index["runs"]) == 12
+    assert all(row["receipt_count"] == 4 for row in index["runs"])
+    for run in index["runs"]:
+        manifest_path = repository_root / run["fact_manifest_path"]
+        manifest_bytes = manifest_path.read_bytes()
+        assert hashlib.sha256(manifest_bytes).hexdigest() == run[
+            "fact_manifest_file_sha256"
+        ]
+        manifest = json.loads(manifest_bytes)
+        manifest_core = {
+            key: item for key, item in manifest.items() if key != "manifest_sha256"
+        }
+        assert manifest["manifest_sha256"] == hashlib.sha256(
+            canonical_json_bytes(manifest_core)
+        ).hexdigest()
+        assert manifest["manifest_sha256"] == run["fact_manifest_sha256"]
+        for table in manifest["tables"].values():
+            table_path = manifest_path.parent / table["path"]
+            assert hashlib.sha256(table_path.read_bytes()).hexdigest() == table[
+                "sha256"
+            ]
+            with table_path.open(newline="", encoding="utf-8") as handle:
+                assert len(list(csv.DictReader(handle))) == table["row_count"]
+
+    contrast = index["paired_world_contrasts"]
+    contrast_path = repository_root / contrast["path"]
+    assert hashlib.sha256(contrast_path.read_bytes()).hexdigest() == contrast[
+        "sha256"
+    ]
+    with contrast_path.open(newline="", encoding="utf-8") as handle:
+        contrast_rows = list(csv.DictReader(handle))
+    assert len(contrast_rows) == 4
+    assert all(row["complete_pair"] == "False" for row in contrast_rows)
+    assert all(row["contrast"] == "" for row in contrast_rows)
+
+    serialized = json.dumps(
+        {"qualification": qualification, "trajectories": trajectories, "index": index}
     )
     assert "raw_response" not in serialized
     assert "output_text" not in serialized
