@@ -279,6 +279,35 @@ One unscored canary precedes three sequential six-row checkpoints; the conservat
 total ceiling is $0.47352 and the hard ceiling is $0.57. Outcomes remain hidden until
 all 18 rows complete and receipt-replay with exact cost accounting.
 
+#### Observed constraint-ledger V1 result
+
+V1 admitted a valid `request_quote` canary and completed and receipt-replayed all 18
+rows with no operational failures or retries. The canary cost $0.00038115 and the
+scored panel cost $0.0216552006, for $0.0220363506 total with exact accounting.
+Median trajectory time fell from 13.94 seconds in control to 1.78 seconds in
+treatment, largely because many treatment trajectories terminated early.
+
+Treatment produced 5/18 feasible allocations versus 3/18 in control. All three
+deadline/cost replicates changed fail-to-pass, two variant-substitution replicates
+remained pass-to-pass, and one quality/refund replicate changed pass-to-fail. Across
+the six worlds, treatment-minus-control effects were +0.1111 feasibility (six-world
+bootstrap interval [-0.1667, 0.5000]), -2.5000 completed kits ([-11.4444, 7.1667]),
++$6.2385 contribution margin ([-$9.3673, $27.6077]), and -$6.2385 regret
+([-$27.6077, $9.3673]). None of these panel intervals excludes zero.
+
+Thirteen treatment rows ended with `malformed_procurement_action`. Their sealed
+provider responses were schema-shaped, but the selected `request_quote` or
+`request_sample` action carried a null `message`; that field is contractually required
+to be non-empty because it contains the verbal confirmation request. Irrelevant null
+superset fields are ignored, but selected-action nulls are not post-hoc normalized.
+Thus V1 demonstrates a strong deadline-world gain alongside broad action-contract
+regressions and does not progress to the risk-gate factorial.
+
+The next bounded diagnostic should be an adaptive V2 that adds only an explicit
+non-empty-message reminder to the frozen V1 decision procedure. Reusing the same
+panel is suitable for diagnosing output-contract compliance, but any efficacy change
+remains development evidence because V2 is selected after inspecting V1.
+
 ## Public-observation policy controls
 
 The deterministic policy campaign supplies non-model floors and a negative control
