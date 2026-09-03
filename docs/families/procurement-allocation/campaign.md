@@ -124,6 +124,27 @@ failure, and 17 unattempted trajectories. The repeated failure rejects this rout
 for the declared allocation campaign. It does not support a Mistral procurement
 score or a Mistral-versus-GLM ranking.
 
+### Qwen matched case qualification
+
+The next model candidate is the Apache-2.0 Qwen3 30B-A3B Instruct checkpoint on a
+pinned CoreWeave BF16 route. It reuses the qualified GLM baseline's six cases, three
+inference seeds, unscaffolded prompt, Minimal Chat transport, action budget, and
+objective verifier. This supports a later matched model diagnostic without treating
+the three seeds within one economic world as independent cases.
+
+The campaign first sends one unscored exact-request canary. Any nonempty response
+admits transport, including malformed JSON; output validity is not used to select a
+candidate. Scored execution is sequential, advances six trajectories per invocation,
+and stops permanently on the first typed operational failure. Only a failure-free
+checkpoint may resume. All 18 rows must complete and receipt-replay before outcomes
+are inspected or compared.
+
+The frozen plan digest is
+`fc7febffe7f3aa947a00c30821d7da87935c6ce12a7d39e275cf2155d3d57d02`.
+The conservative total ceiling is $0.1792 and the hard total ceiling is $0.19,
+including the canary. The claim remains a six-world curated-panel diagnostic, not a
+population model ranking or evidence that an open-source license determines quality.
+
 ## Public-observation policy controls
 
 The deterministic policy campaign supplies non-model floors and a negative control

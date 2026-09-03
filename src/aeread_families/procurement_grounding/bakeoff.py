@@ -64,9 +64,10 @@ def _candidate(
     reasoning_effort: str | None = "low",
     temperature_supported: bool = True,
     timeout_seconds: float = 180.0,
+    catalog_retrieved_at: str = CATALOG_RETRIEVED_AT,
 ) -> BakeoffCandidate:
     pricing_id = (
-        f"openrouter_{CATALOG_RETRIEVED_AT}_{candidate_id}_"
+        f"openrouter_{catalog_retrieved_at}_{candidate_id}_"
         f"{route_provider.lower().replace(' ', '_')}"
     )
     route = OpenRouterRoute(
@@ -178,6 +179,23 @@ OPEN_WEIGHT_CANDIDATES = (
         model_card_url=(
             "https://huggingface.co/mistralai/Mistral-Small-4-119B-2603"
         ),
+    ),
+    _candidate(
+        "qwen3_30b_a3b_instruct_2507_coreweave",
+        model="qwen/qwen3-30b-a3b-instruct-2507",
+        revision="qwen/qwen3-30b-a3b-instruct-2507",
+        route_provider="CoreWeave",
+        quantization="bf16",
+        input_per_million=0.10,
+        cached_input_per_million=0.10,
+        output_per_million=0.30,
+        access_class="open_source",
+        license_id="Apache-2.0",
+        model_card_url=(
+            "https://huggingface.co/Qwen/Qwen3-30B-A3B-Instruct-2507"
+        ),
+        reasoning_effort=None,
+        catalog_retrieved_at="2026-09-03",
     ),
     _candidate(
         "qwen38_flash",
