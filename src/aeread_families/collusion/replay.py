@@ -109,7 +109,7 @@ class RecordedDecision:
 class RecordedEpisode:
     """The complete, plain-JSON-serializable ordered decision log for one episode.
 
-    Two identity/integrity fields beyond ``case_id`` and ``decisions``
+    Three identity/integrity fields beyond ``case_id`` and ``decisions``
     (found missing in review):
 
     * ``case_content_sha256`` -- the exact case content this recording was
@@ -119,6 +119,16 @@ class RecordedEpisode:
       valid manifest digest) -- ``replay_episode`` rejects a mismatch on
       either field, not just ``case_id`` (collusion codex triage, Finding
       4: "replay identity is bound only to case ID").
+    * ``cell_id`` -- the resolved run cell (``PlanCell.cell_id``:
+      case x block x seed x repetition execution unit, ``resolver.py``)
+      this recording was produced under. ``case_content_sha256`` alone
+      proves the case's own economics are unchanged, but says nothing about
+      *which cell* produced the recording -- a recording could otherwise be
+      replayed unnoticed under a different, merely case-compatible cell
+      (collusion codex triage, Finding 4's own "run-cell identity" half;
+      independent second-pass review, ``docs/collusion_fix_
+      verification.md``: "no test exercises replay under a different
+      compatible cell").
     * ``expected_final_outcome_sha256`` -- a seal over the *original* run's
       own terminal outcome, captured once at record time. A genuinely
       offline replay (no ``original`` ``EpisodeResult`` held in memory to
@@ -131,6 +141,7 @@ class RecordedEpisode:
 
     case_id: str
     case_content_sha256: str
+    cell_id: str
     decisions: tuple[RecordedDecision, ...]
     expected_final_outcome_sha256: str
 
@@ -138,6 +149,7 @@ class RecordedEpisode:
         return {
             "case_id": self.case_id,
             "case_content_sha256": self.case_content_sha256,
+            "cell_id": self.cell_id,
             "decisions": [decision.to_dict() for decision in self.decisions],
             "expected_final_outcome_sha256": self.expected_final_outcome_sha256,
         }
@@ -151,6 +163,7 @@ class RecordedEpisode:
         return cls(
             case_id=value["case_id"],
             case_content_sha256=value["case_content_sha256"],
+            cell_id=value["cell_id"],
             decisions=tuple(
                 RecordedDecision.from_dict(decision) for decision in value["decisions"]
             ),
@@ -162,9 +175,12 @@ class RecordedEpisode:
         return cls.from_dict(json.loads(text))
 
 
-def record_episode(result: EpisodeResult, *, case: CaseManifest) -> RecordedEpisode:
+def record_episode(
+    result: EpisodeResult, *, case: CaseManifest, cell: PlanCell
+) -> RecordedEpisode:
     """Extract the ordered decision log from one already-completed
-    ``EpisodeResult``, sealed against the exact case it was produced under.
+    ``EpisodeResult``, sealed against the exact case and run cell it was
+    produced under.
 
     Pulls exactly the raw ``LogicalActionRecord.response`` for every
     logical action, in the order the scheduler requested them (spec
@@ -172,8 +188,9 @@ def record_episode(result: EpisodeResult, *, case: CaseManifest) -> RecordedEpis
     ``firm_b``) -- nothing about the transition or scoring is captured
     here; replay regenerates all of that independently through ``step()``.
     ``case`` binds this recording to ``case.content_sha256`` (not merely
-    ``case.case_id``) and seals ``result.outcome`` as
-    ``expected_final_outcome_sha256`` -- both read back by
+    ``case.case_id``), ``cell`` binds it to ``cell.cell_id`` (not merely a
+    case-compatible cell), and ``result.outcome`` is sealed as
+    ``expected_final_outcome_sha256`` -- all three read back by
     ``replay_episode``/``replay_and_verify`` (see ``RecordedEpisode``'s own
     docstring; collusion codex triage findings 3 and 4).
     """
@@ -190,6 +207,7 @@ def record_episode(result: EpisodeResult, *, case: CaseManifest) -> RecordedEpis
     return RecordedEpisode(
         case_id=result.case_id,
         case_content_sha256=case.content_sha256,
+        cell_id=cell.cell_id,
         decisions=tuple(decisions),
         expected_final_outcome_sha256=_outcome_sha256(result.outcome),
     )
@@ -249,12 +267,16 @@ async def replay_episode(
     record); a genuine transition-level contract violation would instead
     surface unmodified from ``run_episode`` itself (module docstring).
 
-    Checks both ``case_id`` *and* ``case_content_sha256`` -- a case_id
-    match alone does not prove the case's own economics are unchanged
-    (collusion codex triage, Finding 4: same case_id, different demand/cost
+    Checks ``case_id``, ``case_content_sha256``, *and* ``cell_id`` -- a
+    case_id match alone does not prove the case's own economics are
+    unchanged, and a matching case (id and content both) does not prove
+    the *run cell* is the one this recording was produced under (collusion
+    codex triage, Finding 4: same case_id, different demand/cost
     parameters, a recomputed but still valid manifest digest, would
-    otherwise pass this check and replay the old decisions against the
-    wrong economics).
+    otherwise pass the case_id check alone and replay the old decisions
+    against the wrong economics; a recording made under one cell replayed
+    under a different, merely case-compatible cell would otherwise pass
+    both case checks and be silently accepted).
     """
     if recorded.case_id != case.case_id:
         raise ReplayError(
@@ -266,6 +288,12 @@ async def replay_episode(
             f"does not match case {case.case_id!r}'s current content digest "
             f"{case.content_sha256!r} -- the case content changed since this "
             "episode was recorded"
+        )
+    if recorded.cell_id != cell.cell_id:
+        raise ReplayError(
+            f"recorded episode was produced under cell {recorded.cell_id!r}, "
+            f"not the supplied cell {cell.cell_id!r} -- replaying a recording "
+            "under a different run cell is rejected even when the case matches"
         )
     response_source = RecordedResponseSource(recorded.decisions)
     result = await run_episode(

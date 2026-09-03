@@ -146,6 +146,7 @@ def test_recorded_episode_round_trips_through_plain_json() -> None:
     episode = RecordedEpisode(
         case_id="collusion.duopoly.baseline-symmetric.alpha1.seed0",
         case_content_sha256="a" * 64,
+        cell_id="cell_collusion_replay_roundtrip",
         decisions=(decision,),
         expected_final_outcome_sha256="b" * 64,
     )
@@ -155,6 +156,7 @@ def test_recorded_episode_round_trips_through_plain_json() -> None:
 
     assert restored.case_id == episode.case_id
     assert restored.case_content_sha256 == "a" * 64
+    assert restored.cell_id == "cell_collusion_replay_roundtrip"
     assert restored.expected_final_outcome_sha256 == "b" * 64
     assert len(restored.decisions) == 1
     assert restored.decisions[0].phase_id == "price_round"
@@ -225,16 +227,18 @@ def test_compare_episode_results_reports_specific_mismatches_not_one_boolean() -
 
 def test_replay_case_mismatch_raises_a_typed_replay_error_before_touching_the_scheduler() -> None:
     case = _short_case(horizon=1)
+    mismatch_cell = _cell(case, suffix="mismatch")
     wrong = RecordedEpisode(
         case_id="collusion.duopoly.does-not-exist",
         case_content_sha256=case.content_sha256,
+        cell_id=mismatch_cell.cell_id,
         decisions=(RecordedDecision(phase_id="price_round", seat_id="firm_a", response={"price": 1.0}),),
         expected_final_outcome_sha256="0" * 64,
     )
     with pytest.raises(ReplayError, match="not"):
         asyncio.run(
             replay_episode(
-                cell=_cell(case, suffix="mismatch"), case=case, plugin=CollusionPlugin(), recorded=wrong
+                cell=mismatch_cell, case=case, plugin=CollusionPlugin(), recorded=wrong
             )
         )
 
@@ -258,10 +262,11 @@ def test_replay_case_content_mismatch_raises_a_typed_replay_error_even_with_a_ma
             "firm_b": constant_policy(case.payload["gold_reference"]["p_nash"]["firm_b"]),
         },
     )
-    recorded = record_episode(original, case=case)
+    recorded = record_episode(original, case=case, cell=cell)
     stale = RecordedEpisode(
         case_id=recorded.case_id,
         case_content_sha256="f" * 64,  # a case_id-matching but stale/changed digest.
+        cell_id=recorded.cell_id,
         decisions=recorded.decisions,
         expected_final_outcome_sha256=recorded.expected_final_outcome_sha256,
     )
@@ -269,6 +274,41 @@ def test_replay_case_content_mismatch_raises_a_typed_replay_error_even_with_a_ma
         asyncio.run(
             replay_episode(
                 cell=cell, case=case, plugin=CollusionPlugin(), recorded=stale
+            )
+        )
+
+
+def test_replay_cell_identity_mismatch_raises_a_typed_replay_error_even_with_matching_case_content(
+    tmp_path: Any,
+) -> None:
+    """The remaining half of the collusion codex triage's Finding 4: binding
+    a recording to ``case_content_sha256`` (above) proves the *case*'s own
+    economics are unchanged, but says nothing about *which run cell*
+    (``PlanCell.cell_id`` -- the resolved case x block x seed x repetition
+    execution unit, ``resolver.py``) produced the recording. A recording
+    made under one cell must not be silently accepted for replay under a
+    different, merely case-compatible cell (independent second-pass review,
+    ``docs/collusion_fix_verification.md``: "no test exercises replay under
+    a different compatible cell").
+    """
+    case = _short_case(horizon=1)
+    cell, original = _run_with_harness(
+        case,
+        tmp_path=tmp_path,
+        suffix="cell_identity_original",
+        policy_by_seat={
+            "firm_a": constant_policy(case.payload["gold_reference"]["p_nash"]["firm_a"]),
+            "firm_b": constant_policy(case.payload["gold_reference"]["p_nash"]["firm_b"]),
+        },
+    )
+    recorded = record_episode(original, case=case, cell=cell)
+    different_cell = _cell(case, suffix="cell_identity_different")
+    assert different_cell.cell_id != cell.cell_id
+
+    with pytest.raises(ReplayError, match="cell"):
+        asyncio.run(
+            replay_episode(
+                cell=different_cell, case=case, plugin=CollusionPlugin(), recorded=recorded
             )
         )
 
@@ -295,7 +335,7 @@ def test_replay_of_a_tampered_recording_is_detected_as_a_divergence(tmp_path: An
             "firm_b": constant_policy(p_monopoly["firm_b"]),
         },
     )
-    recorded = record_episode(original, case=case)
+    recorded = record_episode(original, case=case, cell=cell)
 
     tampered_decisions = list(recorded.decisions)
     for index, decision in enumerate(tampered_decisions):
@@ -309,6 +349,7 @@ def test_replay_of_a_tampered_recording_is_detected_as_a_divergence(tmp_path: An
     tampered = RecordedEpisode(
         case_id=recorded.case_id,
         case_content_sha256=recorded.case_content_sha256,
+        cell_id=recorded.cell_id,
         decisions=tuple(tampered_decisions),
         expected_final_outcome_sha256=recorded.expected_final_outcome_sha256,
     )
@@ -350,7 +391,7 @@ def test_offline_replay_of_a_tampered_recording_with_no_original_in_memory_repor
             "firm_b": constant_policy(p_monopoly["firm_b"]),
         },
     )
-    recorded = record_episode(original, case=case)
+    recorded = record_episode(original, case=case, cell=cell)
 
     tampered_decisions = list(recorded.decisions)
     for index, decision in enumerate(tampered_decisions):
@@ -364,6 +405,7 @@ def test_offline_replay_of_a_tampered_recording_with_no_original_in_memory_repor
     tampered = RecordedEpisode(
         case_id=recorded.case_id,
         case_content_sha256=recorded.case_content_sha256,
+        cell_id=recorded.cell_id,
         decisions=tuple(tampered_decisions),
         expected_final_outcome_sha256=recorded.expected_final_outcome_sha256,
     )
@@ -395,7 +437,7 @@ def test_replay_without_an_original_reports_no_comparison_but_still_scores(tmp_p
     case = _short_case(horizon=3)
     p_nash = case.payload["gold_reference"]["p_nash"]
 
-    _cell_unused, original = _run_with_harness(
+    cell, original = _run_with_harness(
         case,
         tmp_path=tmp_path,
         suffix="offline_original",
@@ -404,13 +446,18 @@ def test_replay_without_an_original_reports_no_comparison_but_still_scores(tmp_p
             "firm_b": constant_policy(p_nash["firm_b"]),
         },
     )
-    recorded = RecordedEpisode.from_json(record_episode(original, case=case).to_json())
+    # A genuinely offline replay still resolves the *same* run cell it was
+    # recorded under (e.g. re-resolved from the same run plan) -- it is not
+    # a fabricated, unrelated cell (collusion codex triage, Finding 4).
+    recorded = RecordedEpisode.from_json(
+        record_episode(original, case=case, cell=cell).to_json()
+    )
     family_case = CollusionPlugin().validate_payload(case.payload)
     scorer = m.build_scorer(family_case)
 
     report = asyncio.run(
         replay_and_verify(
-            cell=_cell(case, suffix="offline_replay"),
+            cell=cell,
             case=case,
             plugin=CollusionPlugin(),
             scorer=scorer,
@@ -592,7 +639,7 @@ def test_replay_and_verify_reproduces_state_and_score_byte_identically_with_zero
             gold_pi_nash[seat]
         )
 
-    recorded = record_episode(original, case=case)
+    recorded = record_episode(original, case=case, cell=cell)
     # Force a genuine round trip through plain JSON text -- proves replay
     # never depends on reusing the original run's in-memory Python objects.
     recorded = RecordedEpisode.from_json(recorded.to_json())
