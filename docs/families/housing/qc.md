@@ -665,3 +665,29 @@ the explicit zero-attempt
 [`attempted.json`](../../../evidence/housing_model_sensitivity_openrouter_deepinfra_v11/trajectories/attempted.json),
 and the reusable admission
 [`fact_manifest.json`](../../../evidence/housing_model_sensitivity_openrouter_deepinfra_v11/tables/fact_manifest.json).
+
+## 19. V12 preregistered paced full-trajectory gate
+
+[`housing_model_sensitivity_openrouter_deepinfra_v12`](../../../configs/housing_model_sensitivity_openrouter_deepinfra_v12.json)
+is a new campaign identity created in response to V11's admission-rate-limit
+result. It does not retry or amend V11. V12 keeps the same selected
+configuration, development world, four subject-opponent conditions, DeepInfra
+and Parasail routes, schemas, prompts, sampling, retry ownership, and cost
+ceilings.
+
+The sole execution treatment added by V12 is a frozen provider-call scheduler.
+Each route receives a 15-second minimum start-to-start interval, including a
+15-second first-call delay. One scheduler instance is shared across profile
+admission and the full-trajectory stage, so passing admission under a gentle
+cadence cannot be followed by an unpaced trajectory burst. The scheduler
+delegates exactly one call for each shared-runner request and owns no retry
+policy. Its implementation file is digest-pinned in the campaign contract, and
+each admission probe and trajectory records observed provider-call and pacing
+wait counts.
+
+V12 remains a one-world promotion gate. It may establish only whether every
+frozen model pairing completes one replay-verified trajectory under the paced
+execution condition. It cannot support a winner, model ranking, variance
+estimate, or confirmatory claim. If any admission probe fails, all four
+trajectories remain blocked; if any trajectory fails, the missing cell remains
+typed missingness and is not selectively rerun.
