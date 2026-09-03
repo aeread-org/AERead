@@ -1,6 +1,6 @@
 # The refund negotiation case
 
-Refund V1 is a two-seat customer-support negotiation case.  It tests whether an
+Refund V1.1 is a two-seat customer-support negotiation case.  It tests whether an
 LLM support agent can apply a detailed refund policy while interacting with a
 scripted customer whose private facts are revealed gradually.  The case is designed
 for the AERead shared runner: manifests use `aeread.case/0.1`, actions are JSON
@@ -26,7 +26,13 @@ runner alternates:
 1. `customer_message`: the customer states a request, reveals selected private
    fields, counters, accepts, or rejects.
 2. `support_response`: the support agent asks for missing facts, makes an offer,
-   or finalizes with `approve_direct`, `request_return`, `escalate`, or `deny`.
+   resolves with `request_return`, `escalate`, or `deny`, proposes a direct
+   refund with `approve_direct`, or executes a customer-confirmed proposal with
+   `execute_refund`.
+
+A direct refund is a three-stage trajectory: support proposes, the scripted
+customer confirms, and support explicitly executes the confirmed amount and
+method. Confirmation alone never mutates account state.
 
 The maximum episode length is eight logical actions, enough for four
 customer/support turns.  Invalid JSON is handled as an in-world invalid
@@ -101,6 +107,12 @@ refund must be escalated to human review.
 
 ## 5. Category Rules
 
+The original four categories remain supported: perishable goods, consumer
+electronics, software, and apparel.  V1.1 adds orthogonal scenario variation:
+honest claims, exaggeration, fraud signals, hostile or emotional language,
+loophole seeking, and refund-history strategy.  Scenario labels are generator
+metadata and are not shown to the support agent.
+
 Perishable goods are refundable only for spoiled, damaged, missing, or recalled
 items reported within two days, and evidence is required.  Buyer remorse is not
 refundable because the goods cannot be restocked.
@@ -129,12 +141,23 @@ The policy oracle applies rules in this order:
    threshold, emit `escalate` with the eligible amount and human review.
 5. Otherwise emit `approve_direct` to the original payment method.
 
+Identity and payout-account facts, evidence quality, warranty status, defect
+severity, and repair eligibility are private fields.  The support agent must
+request the relevant probe before those facts become visible.  Identity or
+payout mismatch routes an otherwise eligible monetary request to human review;
+tone and emotional urgency do not change eligibility.
+
+The scripted customer never discloses all private truth at once.  It returns at
+most three requested fields per turn, and unsupported or unrequested fields
+remain hidden.  A claim can therefore differ from the verified facts without
+giving the tested agent privileged access.
+
 The oracle decision is not used as a scripted support action.  It is the
 full-information reference used to score the terminal negotiation outcome.
 
 ## 7. Joint Utility
 
-The primary outcome is `joint_utility`, the sum of customer utility and support
+The primary economic outcome is `joint_utility`, the sum of customer utility and support
 agent utility.  Refund money is treated as a transfer: it helps the customer and
 costs the company, so it cancels in the joint total just as rent transfers do in
 housing.  What remains are relationship surplus, friction, review cost, return
@@ -145,8 +168,23 @@ cost, leakage, underpayment, and compliance penalties.
 | `customer_utility` | expected customer compensation minus negotiation friction |
 | `support_agent_utility` | relationship surplus minus transfer, review, return, leakage, and compliance costs |
 | `joint_utility` | `customer_utility + support_agent_utility`; primary score |
-| `within_case_score` | realized joint utility divided by oracle joint utility when positive |
+| `utility_score` | realized `joint_utility` in native dollar-equivalent units; higher is better |
+| `transaction_score` | mean of proposal, customer-confirmation, exactly-once execution, and state-invariant predicates; ranges from 0 to 1 |
+| `bounded_regret` | `max(0, oracle_joint_utility - realized_joint_utility)`; defined for every finite case |
 | `reason_codes` | diagnostic explanation for eligibility, penalties, and routing |
+
+Utility settings are versioned as `refund_bilateral_utility_v1_1`.  The outcome
+reports friction, review, return, escalation-haircut, over-refund,
+underpayment, and policy-penalty components separately.  Policy compliance is a
+separate diagnostic leaf and cannot be compensated for by economic utility.
+
+V1.1 separately verifies policy decisions, information constraints, and the
+transaction trajectory. When the oracle requires a direct refund, the transaction
+verifier requires one matching proposal, one later customer confirmation, one
+later matching mutation, and only the declared refund fields to change. When no
+direct refund is due, the correct transaction is non-execution. Economic utility
+uses the realized account transfer, so an approval that never mutates state is
+scored as an underpayment rather than receiving credit for money that did not move.
 
 This makes negotiation meaningful.  The support agent can improve welfare by
 asking for missing facts, avoiding unauthorized direct refunds, escalating large
@@ -191,7 +229,7 @@ Each seed produces one generated refund case and one plan cell.
 Regenerate the curated manifests:
 
 ```bash
-PYTHONPATH=src python -c 'from pathlib import Path; from aeread.refund_env import write_curated_cases; write_curated_cases(Path("cases/refund_v1"))'
+PYTHONPATH=src python -c 'from pathlib import Path; from aeread.refund_v1.environment import write_curated_cases; write_curated_cases(Path("cases/refund_v1"))'
 ```
 
 Run a provider-free smoke episode through the same shared-runner path used by

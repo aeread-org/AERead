@@ -21,7 +21,14 @@ from .resolver import canonical_json_bytes
 
 CONTROL = "none"
 TREATMENT = "low"
-METRICS = ("joint_utility", "customer_utility", "support_agent_utility", "within_case_score")
+METRICS = (
+    "joint_utility",
+    "customer_utility",
+    "support_agent_utility",
+    "bounded_regret",
+    "utility_score",
+    "transaction_score",
+)
 
 
 _T_975 = {
@@ -182,11 +189,25 @@ def _secondary(selected: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
     decisions = Counter(row.get("final_decision") for row in selected)
     reasons = Counter(reason for row in selected for reason in row.get("reason_codes", ()))
     amount_errors = [float(row["refund_amount_error"]) for row in selected if isinstance(row.get("refund_amount_error"), (int, float))]
+    leaf_names = (
+        "canonical_decision", "information_constraint",
+        "temporal_transaction", "state_invariant",
+    )
     return {"trajectory_count": len(selected), "decision_counts": dict(sorted(decisions.items())),
             "oracle_decision_exact_rate": (sum(bool(row.get("decision_exact")) for row in selected) / len(selected) if selected else None),
             "mean_absolute_refund_amount_error": (float(np.mean(amount_errors)) if amount_errors else None),
             "mean_logical_actions": (float(np.mean([row["logical_action_count"] for row in selected])) if selected else None),
             "mean_revealed_private_fields": (float(np.mean([row["revealed_private_field_count"] for row in selected])) if selected else None),
+            "mean_bounded_regret": (float(np.mean([row["metrics"]["bounded_regret"] for row in selected])) if selected else None),
+            "mean_utility_score": (float(np.mean([row["metrics"]["utility_score"] for row in selected])) if selected else None),
+            "mean_transaction_score": (float(np.mean([row["metrics"]["transaction_score"] for row in selected])) if selected else None),
+            "transaction_pass_rate": (sum(bool(row.get("transaction_verification", {}).get("satisfied")) for row in selected) / len(selected) if selected else None),
+            "mean_policy_compliance_score": (float(np.mean([row["policy_compliance_score"] for row in selected])) if selected else None),
+            "policy_compliance_pass_rate": (sum(bool(row.get("policy_compliance_satisfied")) for row in selected) / len(selected) if selected else None),
+            "verification_leaf_pass_rates": {
+                name: (sum(bool(row.get("verification_leaves", {}).get(name, {}).get("satisfied")) for row in selected) / len(selected) if selected else None)
+                for name in leaf_names
+            },
             "reason_code_counts": dict(sorted(reasons.items()))}
 
 
@@ -194,9 +215,10 @@ def _failure_condition(error: BaseException) -> str:
     message = str(error).lower()
     for condition, markers in (
         ("length", ("finish_reason='length'", "token ceiling", "max-output-tokens")),
-        ("timeout", ("timeout", "timed out")),
+        ("timeout", ("timeout", "timed out", " exceeded ")),
         ("rate_limit", ("rate limit", "429")),
-        ("provider_5xx", ("provider 5", "status 5")),
+        ("provider_5xx", ("provider 5", "status 5", "error code: 5", "upstream_error")),
+        ("transport", ("connection termination", "disconnect/reset", "connection reset")),
         ("empty_response", ("empty answer", "empty response")),
         ("cost_budget_exceeded", ("cost budget", "max_cost")),
     ):
@@ -214,6 +236,45 @@ def _failed_evidence(cell_root: Path) -> dict[str, Any]:
         return {"evidence_dir": str(evidence.root.resolve()), **_event_metrics(evidence)}
     except Exception:
         return {"evidence_dir": str(event_logs[0].parent.resolve()), "evidence_verified": False}
+
+
+def _write_refund_receipt(directory: Path, row: Mapping[str, Any]) -> dict[str, Any]:
+    payload = {
+        "spec_version": "aeread.refund_receipt/1.1",
+        "status": row["status"],
+        "condition": row["condition"],
+        "world_seed": row["world_seed"],
+        "replicate": row["replicate"],
+        "run_plan_id": row.get("run_plan_id"),
+        "run_plan_sha256": row.get("run_plan_sha256"),
+        "cell_id": row.get("cell_id"),
+        "case_id": row.get("case_id"),
+        "evidence_sha256": row.get("events_sha256"),
+        "metrics": row.get("metrics", {}),
+        "scores": row.get("scores", {}),
+        "verification_leaves": row.get("verification_leaves", {}),
+        "transaction_verification": row.get("transaction_verification", {}),
+        "utility_components": row.get("utility_components", {}),
+        "failure_condition": row.get("failure_condition"),
+        "error": row.get("error"),
+    }
+    digest = hashlib.sha256(canonical_json_bytes(payload)).hexdigest()
+    sealed = {**payload, "receipt_sha256": digest}
+    path = directory / "refund_evaluation_receipt.json"
+    encoded = canonical_json_bytes(sealed) + b"\n"
+    if path.exists() and path.read_bytes() != encoded:
+        raise ValueError(f"refusing to overwrite different receipt: {path}")
+    if not path.exists():
+        path.write_bytes(encoded)
+    verified = json.loads(path.read_text(encoding="utf-8"))
+    observed = verified.pop("receipt_sha256", None)
+    if observed != hashlib.sha256(canonical_json_bytes(verified)).hexdigest():
+        raise ValueError(f"receipt verification failed: {path}")
+    return {
+        "receipt_path": str(path.resolve()),
+        "receipt_sha256": digest,
+        "receipt_verified": True,
+    }
 
 
 async def _run_panel(*, args: argparse.Namespace, panel: str, seeds: Sequence[int],
@@ -240,7 +301,9 @@ async def _run_panel(*, args: argparse.Namespace, panel: str, seeds: Sequence[in
                     final = outcome.get("final_decision", {})
                     oracle = outcome.get("oracle", {}).get("decision", {})
                     evidence = EvidenceStore.audit_existing(execution.evidence.root)
-                    rows.append({"status": "included", "panel": panel, "condition": condition,
+                    case_payload = plan.cases[0].payload
+                    compliance = outcome.get("policy_compliance", {})
+                    row = {"status": "included", "panel": panel, "condition": condition,
                                  "world_seed": seed, "replicate": replicate,
                                  "case_id": execution.episode_result.case_id,
                                  "run_plan_id": plan.run_plan_id, "run_plan_sha256": plan.plan_sha256,
@@ -252,13 +315,27 @@ async def _run_panel(*, args: argparse.Namespace, panel: str, seeds: Sequence[in
                                  "decision_exact": final.get("decision") == oracle.get("decision"),
                                  "refund_amount_error": abs(float(final.get("refund_amount", 0)) - float(oracle.get("refund_amount", 0))),
                                  "revealed_private_field_count": len(outcome.get("revealed_private_fields", {})),
-                                 "reason_codes": list(outcome.get("reason_codes", ())), **_event_metrics(evidence)})
+                                 "category": case_payload["public_order"]["product"]["category"],
+                                 "scenario_id": case_payload.get("scenario_id", "unknown"),
+                                 "policy_compliance_score": compliance.get("score"),
+                                 "policy_compliance_satisfied": compliance.get("satisfied"),
+                                 "verification_leaves": compliance.get("leaves", {}),
+                                 "scores": outcome.get("scores", {}),
+                                 "transaction_verification": outcome.get("transaction_verification", {}),
+                                 "utility_components": outcome.get("utility_components", {}),
+                                 "transaction_events": outcome.get("transaction_events", []),
+                                 "reason_codes": list(outcome.get("reason_codes", ())), **_event_metrics(evidence)}
+                    row.update(_write_refund_receipt(evidence.root, row))
+                    rows.append(row)
                 except Exception as error:
-                    rows.append({"status": "excluded", "panel": panel, "condition": condition,
+                    row = {"status": "excluded", "panel": panel, "condition": condition,
                                  "world_seed": seed, "replicate": replicate,
                                  "error_type": type(error).__name__,
                                  "failure_condition": _failure_condition(error),
-                                 "error": str(error), **_failed_evidence(cell_root)})
+                                 "error": str(error), **_failed_evidence(cell_root)}
+                    if row.get("evidence_verified") and row.get("evidence_dir"):
+                        row.update(_write_refund_receipt(Path(row["evidence_dir"]), row))
+                    rows.append(row)
     return rows
 
 
@@ -308,7 +385,7 @@ def _render_markdown(report: Mapping[str, Any]) -> str:
     lines += [f"- Failure taxonomy: {report['operational_results']['failure_taxonomy']}", "",
               "## Secondary Diagnostics", ""]
     for condition, item in report["secondary_descriptive"].items():
-        lines.append(f"- {condition}: decision exact rate={item['oracle_decision_exact_rate']!r}; mean refund error={item['mean_absolute_refund_amount_error']!r}; mean actions={item['mean_logical_actions']!r}")
+        lines.append(f"- {condition}: utility score={item['mean_utility_score']!r}; transaction score={item['mean_transaction_score']!r}; transaction pass rate={item['transaction_pass_rate']!r}; decision exact rate={item['oracle_decision_exact_rate']!r}; compliance pass rate={item['policy_compliance_pass_rate']!r}; mean bounded regret={item['mean_bounded_regret']!r}; mean refund error={item['mean_absolute_refund_amount_error']!r}; mean actions={item['mean_logical_actions']!r}")
     lines += ["", "## Evidence", "", f"- Evidence-audited successful cells: {report['receipt_coverage']['evidence_verified']}",
               f"- Durable evaluation receipts: {report['receipt_coverage']['receipt_status']}", "",
               "## Claim Boundaries", ""]
@@ -333,13 +410,15 @@ async def run_experiment(args: argparse.Namespace) -> dict[str, Any]:
                                       bootstrap_draws=args.bootstrap_draws,
                                       bootstrap_seed=args.bootstrap_seed)
                if set(conditions) == {CONTROL, TREATMENT} else {"status": "not_applicable_without_both_conditions"})
-    provider_verification = "unverified_arena_adapter_does_not_transmit_reasoning_control" if args.provider == "arena" else "requested_condition_recorded_in_evidence_not_admission_verified"
+    provider_verification = ("arena_adapter_transmits_reasoning_effort_but_provider_execution_is_not_attested"
+                             if args.provider == "arena" else
+                             "requested_condition_recorded_in_evidence_not_admission_verified")
     admission_included = [row for row in admission if row["status"] == "included"]
     evidence_paths = [Path(row["evidence_dir"]) for row in rows if row.get("evidence_verified")]
     evidence_files = [path for evidence_path in evidence_paths for path in evidence_path.rglob("*") if path.is_file()]
     report: dict[str, Any] = {
-        "artifact_type": "refund_reasoning_experiment_summary", "artifact_version": "1.0.0",
-        "claim_scope": f"{args.model} on the pinned Refund V1 generator with a scripted customer",
+        "artifact_type": "refund_reasoning_experiment_summary", "artifact_version": "1.1.0",
+        "claim_scope": f"{args.model} on the pinned Refund V1.1 generator with a scripted customer",
         "design": {"world_clusters": len(sample_seeds), "conditions": list(conditions),
                    "replicates_per_world_condition": args.replicates,
                    "planned_sample_trajectories": len(sample_seeds) * len(conditions) * args.replicates,
@@ -360,7 +439,8 @@ async def run_experiment(args: argparse.Namespace) -> dict[str, Any]:
                              "admission_planned": len(admission),
                              "admission_included": sum(row["status"] == "included" for row in admission),
                              "evidence_verified": sum(row.get("evidence_verified") is True for row in rows),
-                             "receipt_status": "not_yet_emitted_by_refund_adapter",
+                             "receipts_written": sum(row.get("receipt_verified") is True for row in rows),
+                             "receipt_status": ("complete" if rows and all(row.get("receipt_verified") is True for row in rows) else "incomplete"),
                              "verified_on_zero_call_resume": False},
         "admission_results": {
             "status": ("not_run" if not admission else
@@ -381,15 +461,15 @@ async def run_experiment(args: argparse.Namespace) -> dict[str, Any]:
             "primary_estimand": "mean world-level joint utility difference, low minus none",
             "complete_pair_rule": "all nested replicates valid in both conditions",
             "operational_failure_rule": "exclude as missing measurement without replacement",
-            "missingness_sensitivity": "not computed until Refund declares finite per-world joint-utility support",
+            "missingness_sensitivity": "operational exclusions remain missing; bounded regret is defined for every completed trajectory",
         },
         "claim_boundaries": [
             "The estimand is conditional on the synthetic Refund generator, declared model and provider, and deterministic scripted customer.",
-            "Arena none/low results are descriptive labels until the API adapter transmits and verifies provider reasoning controls.",
+            "Arena none/low results identify the transmitted request control; provider-side execution remains unverified unless the response reports it.",
             "Nested replicates are not independent world clusters; uncertainty resamples world seeds.",
-            "The full-information oracle is an upper bound and may not be attainable under gradual disclosure and interaction costs.",
+            "The full-information oracle weakly dominates every feasible terminal action under the pinned V1.1 utility specification; gradual disclosure can add interaction cost.",
             "Operational exclusions are missing measurements, never zero-utility outcomes, and are not silently replaced.",
-            "Secondary policy, friction, and disclosure diagnostics are descriptive rather than additional confirmatory tests.",
+            "Canonical decision, information constraint, temporal transaction, and state invariant are independently replayable verifier leaves; utility cannot compensate for a failed predicate.",
         ], "rows": rows,
     }
     report["artifact_sha256"] = hashlib.sha256(canonical_json_bytes(report)).hexdigest()
