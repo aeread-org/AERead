@@ -156,6 +156,37 @@ The conservative total ceiling remains $0.1792 and the hard total ceiling $0.19,
 including the canary. The claim remains a six-world curated-panel diagnostic, not a
 population model ranking or evidence that an open-source license determines quality.
 
+#### Observed Qwen V2 result
+
+V2 admitted its exact-request canary, completed all 18 scored trajectories, and
+receipt-replayed every row with zero operational failures or retries. The canary cost
+$0.000152064 and the scored panel cost $0.018937017, for $0.019089081 total with
+exact accounting.
+
+Qwen produced no feasible allocation in 18 attempts. Twelve submitted awards that
+failed minimum service, including two unverified-sample violations. Six terminated
+as malformed JSON. The raw sealed responses show that those six reached the
+1,800-token completion limit while repeatedly inventing a large `fields` array that
+was outside the strict action schema, then ended mid-JSON. This is retained as model
+and pinned-route behavior, not converted into provider missingness or repaired after
+the fact.
+
+The paired comparison against the qualified GLM baseline passed every case, seed,
+content, harness, upper-bound, route, replay, cost, and digest check. The seven GLM
+feasible rows all transitioned pass-to-fail; the other eleven pairs were fail/fail.
+After averaging seeds within each of the six economic worlds, Qwen-minus-GLM effects
+were -0.3889 feasibility (six-world bootstrap interval [-0.7222, -0.1111]), -8.3333
+completed kits ([-13.7222, -3.3889]), -$29.5818 contribution margin
+([-56.9818, -6.1514]), and +$29.5818 regret ([6.1514, 56.9818]). These intervals
+describe only the curated panel.
+
+Operationally, Qwen's median trajectory time was 16.74 seconds versus 204.43 for the
+historical GLM run, and its scored cost was $0.018937017 versus $0.0365370885. Route,
+provider, and execution-time differences confound that speed comparison, so it is a
+deployment diagnostic rather than a model-only causal effect. Because base
+allocation feasibility was 0/18, this candidate does not progress to the 144-row
+risk-gate factorial.
+
 ## Public-observation policy controls
 
 The deterministic policy campaign supplies non-model floors and a negative control
