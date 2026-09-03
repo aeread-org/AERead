@@ -49,6 +49,29 @@ CAMPAIGN_ID = "procurement_allocation_glm_morph_strategy_scaffold_v3"
 TREATMENT_ID = "public_evidence_feasibility_and_capacity_procedure_v3"
 PROMPT_ID = "procurement_allocation_strategy_scaffold_v3"
 DEFAULT_BATCH_SIZE = 6
+GLM_CLOUDFLARE_CANDIDATE = BakeoffCandidate(
+    candidate_id="glm53_flash_cloudflare",
+    route=OpenRouterRoute(
+        profile_id="procurement_glm53_flash_cloudflare_v1",
+        model="z-ai/glm-5.3-flash",
+        revision="z-ai/glm-5.3-flash-20260826",
+        route_provider="Cloudflare",
+        quantization="unknown",
+        pricing=TokenPricing(
+            input_per_million=0.15,
+            cached_input_per_million=0.03,
+            output_per_million=0.50,
+            pricing_id="openrouter_2026-09-03_glm53_flash_cloudflare",
+        ),
+        max_prompt_price_per_million="0.15",
+        max_completion_price_per_million="0.50",
+        reasoning_effort="low",
+    ),
+    lane="standard",
+    access_class="open_source",
+    license_id="MIT",
+    model_card_url="https://huggingface.co/zai-org/GLM-5.3-Flash",
+)
 GLM_REKA_CANDIDATE = BakeoffCandidate(
     candidate_id="glm53_flash_reka",
     route=OpenRouterRoute(
@@ -74,6 +97,7 @@ GLM_REKA_CANDIDATE = BakeoffCandidate(
 )
 STRATEGY_CANDIDATES = {
     GLM_MORPH_CANDIDATE.candidate_id: GLM_MORPH_CANDIDATE,
+    GLM_CLOUDFLARE_CANDIDATE.candidate_id: GLM_CLOUDFLARE_CANDIDATE,
     GLM_REKA_CANDIDATE.candidate_id: GLM_REKA_CANDIDATE,
 }
 STRATEGY_PROMPT = (
@@ -1204,6 +1228,7 @@ if __name__ == "__main__":
 __all__ = [
     "CAMPAIGN_ID",
     "DEFAULT_BATCH_SIZE",
+    "GLM_CLOUDFLARE_CANDIDATE",
     "GLM_REKA_CANDIDATE",
     "PANELS",
     "PROMPT_ID",

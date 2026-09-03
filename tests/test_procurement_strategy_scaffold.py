@@ -22,6 +22,7 @@ from aeread_families.procurement_allocation.policy_baselines import (
 from aeread_families.procurement_allocation.runner import SequenceResponseProvider
 from aeread_families.procurement_allocation.strategy_scaffold import (
     CAMPAIGN_ID,
+    GLM_CLOUDFLARE_CANDIDATE,
     GLM_REKA_CANDIDATE,
     PANELS,
     PROMPT_ID,
@@ -200,6 +201,21 @@ def test_strategy_plan_seals_alternate_route_under_distinct_campaign() -> None:
 
     with pytest.raises(ValueError, match="does not match the sealed strategy candidate"):
         build_plan(candidate=GLM_REKA_CANDIDATE, campaign_id=CAMPAIGN_ID)
+
+
+def test_strategy_plan_seals_cloudflare_route() -> None:
+    campaign_id = strategy_campaign_id(GLM_CLOUDFLARE_CANDIDATE)
+
+    plan = build_plan(candidate=GLM_CLOUDFLARE_CANDIDATE)
+
+    assert plan["campaign_id"] == campaign_id
+    assert plan["candidate_id"] == "glm53_flash_cloudflare"
+    assert plan["provider"] == "Cloudflare"
+    assert plan["quantization"] == "unknown"
+    assert plan["conservative_total_cost_ceiling_usd"] == pytest.approx(0.57)
+    assert plan["control_campaign_ids"]["labeled_original"] == (
+        "procurement_allocation_glm53_flash_cloudflare_case_variance_v2"
+    )
 
 
 def test_strategy_canary_uses_treatment_prompt_and_is_unscored(tmp_path: Path) -> None:
