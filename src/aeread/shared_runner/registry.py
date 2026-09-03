@@ -68,6 +68,7 @@ TRUSTED_BUILTIN_PLUGIN_KEYS = frozenset(
             "1.0.0",
             "commercial_state_calibration_environment",
         ),
+        ("consent_ir_v1", "1.0.0", "consent_ir_environment"),
         (
             "datacenter_development_v1",
             "1.0.0",
