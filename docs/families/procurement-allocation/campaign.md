@@ -415,6 +415,37 @@ be high value. A next test should change the decision representation or action
 interface—for example, a typed allocation worksheet or verifier-visible pre-award
 constraint check—rather than tune this prompt again.
 
+### Frozen GLM model-route transfer diagnostic
+
+Before changing the decision interface, a lower-cost localization test reuses the
+exact six opaque worlds, three inference seeds, V2 prompt, Minimal Chat harness,
+structured action contract, ten-action budget, retry policy, per-trajectory cost
+cap, and objective verifier. It changes only the checkpoint, pinned provider route,
+quantization declaration, and pricing identity to the previously qualified GLM 5.3
+Flash/Parasail FP8 route.
+
+This candidate was selected after observing the Qwen holdout, and checkpoint and
+provider route move together. The result is therefore an adaptive model-route
+transfer diagnostic, not a pure checkpoint causal effect, new confirmation, or
+population ranking. The committed Qwen V2 treatment artifact is the paired control;
+rows match by exact case slug and inference seed.
+
+The frozen campaign ID is
+`procurement_allocation_glm53_flash_parasail_qwen_holdout_transfer_v1` and its plan
+digest is `3fbba58ab765cde80740fc18a328d2ec0a548e8fd6c76dc17ce597fd5a6557f5`.
+It declares one unscored admission canary, 18 sequential scored rows in three
+six-row checkpoints, a $0.30 conservative total ceiling, and a $0.57 hard ceiling.
+The parent Qwen publication manifest and treatment qualification files are bound by
+file digest before any live request.
+
+Primary reporting uses feasible purchase awards rather than generic terminal
+feasibility, so a defer cannot count as procurement success. The independent unit
+remains the economic world; paired GLM-minus-Qwen outcomes are averaged over three
+seeds within world and bootstrapped over six worlds. A prespecified transfer signal
+requires at least two of the five split-required worlds to contain a feasible GLM
+purchase award while the sealed Qwen parent contains none. Effect direction never
+gates evidence eligibility.
+
 ## Public-observation policy controls
 
 The deterministic policy campaign supplies non-model floors and a negative control

@@ -162,6 +162,22 @@ not produce a feasible purchase award or a single submitted multi-offer split; i
 only feasible terminal row was an explicit defer. See the campaign document and
 tracked evidence bundle for the paired effects and typed failure breakdown.
 
+The next adaptive diagnostic reuses the exact opaque cases, seeds, V2 prompt,
+harness, action contract, retry policy, and verifier with the previously qualified
+GLM 5.3 Flash/Parasail route. It asks whether feasible split allocation transfers to
+another open checkpoint/route; it is not a fresh holdout or pure model causal effect.
+The sealed 18-row plan is printed without provider calls by:
+
+```bash
+python -m aeread_families.procurement_allocation.glm_holdout_transfer_campaign \
+  --run-root \
+  runs/procurement_allocation/procurement_allocation_glm53_flash_parasail_qwen_holdout_transfer_v1/qualification_attempt_001
+```
+
+The campaign is integrity-qualified only after all 18 rows complete and replay with
+exact accounting. Its transfer signal requires feasible purchase awards in at least
+two independent split-required worlds while the sealed Qwen parent has none.
+
 ## Blinded supplier-label mirror
 
 `blinded_v3/` contains a deterministic paired mirror of the six generated cases.
