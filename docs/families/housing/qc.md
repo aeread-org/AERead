@@ -691,3 +691,25 @@ execution condition. It cannot support a winner, model ranking, variance
 estimate, or confirmatory claim. If any admission probe fails, all four
 trajectories remain blocked; if any trajectory fails, the missing cell remains
 typed missingness and is not selectively rerun.
+
+The executed gate attempted all 18 admission probes. Parasail/DeepSeek passed
+9 of 9 and DeepInfra/GLM passed 8 of 9. The first DeepInfra call passed after
+147.14 seconds including the 15-second initial wait. Because the frozen policy
+measured starts rather than completions, the next DeepInfra call received zero
+additional wait and returned HTTP 429; the following call waited 14.68 seconds
+and passed. The other 15 probes passed. Provider-reported billing was
+`$0.001947033`; billing is incomplete because the failed call exposed no cost.
+
+This result rejects the V12 pacing treatment for promotion. It also exposes a
+separate admission-control defect: the 147.14-second row exceeded the declared
+120-second call timeout because profile admission invokes the provider adapter
+without the shared runner's timeout wrapper. All four trajectories were
+therefore blocked with zero trajectory provider calls. Do not amend or retry
+V12. A new campaign must freeze a completion-to-next-start cooldown and enforce
+the same wall-time timeout semantics in admission and trajectory execution.
+Review the digest-bound
+[`qualification.json`](../../../evidence/housing_model_sensitivity_openrouter_deepinfra_v12/reports/qualification.json),
+the zero-attempt
+[`attempted.json`](../../../evidence/housing_model_sensitivity_openrouter_deepinfra_v12/trajectories/attempted.json),
+and the pacing-aware canonical
+[`fact_manifest.json`](../../../evidence/housing_model_sensitivity_openrouter_deepinfra_v12/tables/fact_manifest.json).

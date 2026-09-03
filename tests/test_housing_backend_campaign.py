@@ -409,6 +409,56 @@ def test_paced_provider_client_enforces_route_specific_start_intervals() -> None
         },
     }
 
+
+def test_published_v12_records_pacing_failure_and_zero_trajectories() -> None:
+    evidence_root = (
+        V12_CONTRACT_PATH.parents[1]
+        / "evidence"
+        / "housing_model_sensitivity_openrouter_deepinfra_v12"
+    )
+    qualification = json.loads(
+        (evidence_root / "reports" / "qualification.json").read_bytes()
+    )
+    fact_manifest = json.loads(
+        (evidence_root / "tables" / "fact_manifest.json").read_bytes()
+    )
+    trajectories = json.loads(
+        (evidence_root / "trajectories" / "attempted.json").read_bytes()
+    )
+    with (evidence_root / "tables" / "profile_admission.csv").open(
+        newline="", encoding="utf-8"
+    ) as handle:
+        admission_rows = list(csv.DictReader(handle))
+
+    assert qualification["artifact_sha256"] == (
+        "7c8e2d24135d21ebd279fb3bea4a31ed693e1575d5ea81296051e4d842ddc5f1"
+    )
+    assert fact_manifest["artifact_sha256"] == (
+        "b8e3b77011d932d1f23cb9fa8389d2df0512a5f246adaac26ba00033a37a2558"
+    )
+    assert trajectories["artifact_sha256"] == (
+        "06eddf1bcf66de662a2b2413e2d838a3db6f3aed2e43b866f012411e3385bec8"
+    )
+    assert qualification["status"] == "blocked_by_profile_admission"
+    assert qualification["gate_status"][-1]["attempted_trajectories"] == 0
+    assert qualification["gate_status"][-1]["not_started_trajectories"] == 4
+    assert qualification["gate_status"][-1]["provider_calls"] == 0
+    assert len(admission_rows) == 18
+    failures = [row for row in admission_rows if row["status"] != "passed"]
+    assert len(failures) == 1
+    assert failures[0]["model_id"] == "glm_53_flash"
+    assert failures[0]["failure_condition"] == "rate_limit"
+    assert failures[0]["failure_status_code"] == "429"
+    assert failures[0]["pacing_provider_calls"] == "1"
+    assert failures[0]["paced_call_count"] == "0"
+    assert failures[0]["pacing_wait_seconds"] == "0.0"
+    assert float(admission_rows[0]["elapsed_seconds"]) > 120.0
+    published = b"".join(path.read_bytes() for path in evidence_root.rglob("*.*"))
+    assert b'"raw_response":' not in published
+    assert b"output_text" not in published
+    assert b"/Users/" not in published
+
+
 def test_v11_failed_admission_blocks_the_full_trajectory_gate(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
