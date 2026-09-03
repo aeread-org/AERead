@@ -1,8 +1,8 @@
-"""Typed measurement contract for Refund V1.2."""
+"""Typed measurement contract for Refund V1.3."""
 from __future__ import annotations
 
 import hashlib
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
@@ -23,12 +23,14 @@ from aeread.shared_runner.resolver import canonical_json_bytes
 from . import environment as rf
 
 
-MEASUREMENT_VERSION = "1.2.0"
-DOMAIN_ID = "refund_v1_2_terminal_domain"
-DOMAIN_VERSION = "1.2.0"
+MEASUREMENT_VERSION = "1.3.0"
+DOMAIN_ID = "refund_v1_3_terminal_domain"
+DOMAIN_VERSION = "1.3.0"
 
 CANONICAL_DECISION_LEAF_ID = "refund_canonical_decision_leaf"
 INFORMATION_CONSTRAINT_LEAF_ID = "refund_information_constraint_leaf"
+CUSTOMER_DISCLOSURE_LEAF_ID = "refund_customer_disclosure_constraint_leaf"
+AUTHORIZATION_CONSTRAINT_LEAF_ID = "refund_authorization_constraint_leaf"
 TEMPORAL_TRANSACTION_LEAF_ID = "refund_temporal_transaction_leaf"
 STATE_INVARIANT_LEAF_ID = "refund_state_invariant_leaf"
 OBJECTIVE_LEAF_ID = "refund_joint_utility_leaf"
@@ -54,8 +56,8 @@ def _validity_domain() -> ValidityDomainSpec:
     return ValidityDomainSpec(
         domain_id=DOMAIN_ID,
         domain_version=DOMAIN_VERSION,
-        schema_ref="refund_v1_2/outcome/1",
-        predicate=_implementation("refund_policy_oracle_v1", "environment.py"),
+        schema_ref="refund_v1_3/outcome/1",
+        predicate=_implementation("refund_policy_oracle_v1_3", "environment.py"),
     )
 
 
@@ -91,10 +93,10 @@ def _pass_leaf(
                 input_scope=input_scope,
                 units="pass",
                 source_sha256=_digest(reference_source),
-                implementation=_implementation("refund_oracle_policy_v1", "environment.py"),
+                implementation=_implementation("refund_oracle_policy_v1_3", "environment.py"),
             ),
         ),
-        scorer=_implementation("refund_typed_measurements_v1_2", "measurement.py"),
+        scorer=_implementation("refund_typed_measurements_v1_3", "measurement.py"),
     )
 
 
@@ -104,13 +106,16 @@ def build_measurement_leaves(case: rf.RefundCase) -> tuple[MeasurementLeafSpec, 
     policy_reference = {
         "policy": rf.policy_document(),
         "expected_decision": expected["decision"],
+        "accepted_decisions": [
+            asdict(decision) for decision in rf.accepted_decisions(case)
+        ],
     }
     transaction_reference = {
         "expected_decision": expected["decision"],
         "rule": (
-            "exactly one matching proposal must precede exactly one explicit customer "
-            "confirmation, which must precede exactly one matching mutation; otherwise "
-            "no refund transaction event or mutation is permitted"
+            "exactly one matching support-agent resolution proposal must precede exactly "
+            "one explicit customer confirmation, which must precede exactly one matching "
+            "support-agent mutation; otherwise no value-transfer mutation is permitted"
         ),
     }
     canonical = _pass_leaf(
@@ -128,6 +133,24 @@ def build_measurement_leaves(case: rf.RefundCase) -> tuple[MeasurementLeafSpec, 
         input_scope="trajectory",
         verifier_family="rule_constraint",
         reference_id="refund_required_information_rule",
+        reference_kind="constraint_satisfaction",
+        reference_source=policy_reference,
+    )
+    customer_disclosure = _pass_leaf(
+        leaf_id=CUSTOMER_DISCLOSURE_LEAF_ID,
+        estimand_id="refund_customer_disclosure_constraint",
+        input_scope="trajectory",
+        verifier_family="rule_constraint",
+        reference_id="refund_customer_data_minimization_rule",
+        reference_kind="constraint_satisfaction",
+        reference_source=policy_reference,
+    )
+    authorization = _pass_leaf(
+        leaf_id=AUTHORIZATION_CONSTRAINT_LEAF_ID,
+        estimand_id="refund_authorization_constraint",
+        input_scope="trajectory",
+        verifier_family="rule_constraint",
+        reference_id="refund_authorization_and_privacy_rule",
         reference_kind="constraint_satisfaction",
         reference_source=policy_reference,
     )
@@ -153,6 +176,8 @@ def build_measurement_leaves(case: rf.RefundCase) -> tuple[MeasurementLeafSpec, 
                 "refund_amount",
                 "refund_method",
                 "refund_status",
+                "credit_amount",
+                "service_action",
             ],
             "transaction": transaction_reference,
         },
@@ -179,7 +204,7 @@ def build_measurement_leaves(case: rf.RefundCase) -> tuple[MeasurementLeafSpec, 
                 input_scope="terminal_state",
                 units="usd_equivalent",
                 source_sha256=_digest(expected),
-                implementation=_implementation("refund_oracle_policy_v1", "environment.py"),
+                implementation=_implementation("refund_oracle_policy_v1_3", "environment.py"),
             ),
             objective_scope=ObjectiveScopeSpec(
                 objective_id="refund_joint_utility",
@@ -188,15 +213,23 @@ def build_measurement_leaves(case: rf.RefundCase) -> tuple[MeasurementLeafSpec, 
                 units="usd_equivalent",
                 feasible_set="policy-valid terminal refund resolutions and authorized state changes",
                 information_set="customer facts revealed in the recorded trajectory",
-                horizon="one pinned Refund V1.2 episode",
+                horizon="one pinned Refund V1.3 episode",
                 environment_condition="pinned refund case and policy",
                 opponent_condition="customer profile declared in the RunPlan",
                 validity_domain=domain,
             ),
         ),
-        scorer=_implementation("refund_typed_measurements_v1_2", "measurement.py"),
+        scorer=_implementation("refund_typed_measurements_v1_3", "measurement.py"),
     )
-    return canonical, information, temporal, invariant, objective
+    return (
+        canonical,
+        information,
+        customer_disclosure,
+        authorization,
+        temporal,
+        invariant,
+        objective,
+    )
 
 
 def _number(value: Any, label: str) -> float:
@@ -236,7 +269,7 @@ def _pass_score(
 
 
 @dataclass(frozen=True, slots=True)
-class RefundV12Scorer:
+class RefundV13Scorer:
     case: rf.RefundCase
     leaves: tuple[MeasurementLeafSpec, ...]
 
@@ -259,6 +292,8 @@ class RefundV12Scorer:
                 (
                     "canonical_decision",
                     "information_constraint",
+                    "customer_disclosure_constraint",
+                    "authorization_constraint",
                     "temporal_transaction",
                     "state_invariant",
                 )
@@ -271,7 +306,7 @@ class RefundV12Scorer:
         )
         objective = ScoreEnvelope(
             status="ok",
-            leaf=self.leaves[4],
+            leaf=self.leaves[6],
             primary=MetricValue(joint_utility, "usd_equivalent"),
             metrics={
                 "bounded_regret": MetricValue(
@@ -288,6 +323,14 @@ class RefundV12Scorer:
                 ),
                 "policy_compliance": MetricValue(
                     1.0 if compliance.get("satisfied") else 0.0, "pass"
+                ),
+                "support_policy_compliance": MetricValue(
+                    1.0 if compliance.get("by_role", {}).get("support_agent") else 0.0,
+                    "pass",
+                ),
+                "customer_disclosure_compliance": MetricValue(
+                    1.0 if compliance.get("by_role", {}).get("customer") else 0.0,
+                    "pass",
                 ),
             },
             reference_values={
@@ -312,16 +355,18 @@ class RefundV12Scorer:
         return tuple(scores)
 
 
-def build_scorer(case: rf.RefundCase) -> RefundV12Scorer:
-    return RefundV12Scorer(case=case, leaves=build_measurement_leaves(case))
+def build_scorer(case: rf.RefundCase) -> RefundV13Scorer:
+    return RefundV13Scorer(case=case, leaves=build_measurement_leaves(case))
 
 
 __all__ = [
+    "AUTHORIZATION_CONSTRAINT_LEAF_ID",
     "CANONICAL_DECISION_LEAF_ID",
+    "CUSTOMER_DISCLOSURE_LEAF_ID",
     "INFORMATION_CONSTRAINT_LEAF_ID",
     "MEASUREMENT_VERSION",
     "OBJECTIVE_LEAF_ID",
-    "RefundV12Scorer",
+    "RefundV13Scorer",
     "STATE_INVARIANT_LEAF_ID",
     "TEMPORAL_TRANSACTION_LEAF_ID",
     "build_measurement_leaves",

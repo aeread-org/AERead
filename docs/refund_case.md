@@ -1,6 +1,6 @@
 # The refund negotiation case
 
-Refund V1.2 is a two-seat customer-support negotiation case. It tests whether LLM
+Refund V1.3 is a two-seat customer-support negotiation case. It tests whether LLM
 customer and support seats can interact under a detailed refund policy. The default
 evaluation keeps a scripted customer whose private facts are revealed gradually,
 while cross-play can assign an LLM to both seats. The case is designed
@@ -17,8 +17,9 @@ The seats are:
 | `customer` | customer | true product condition, issue type, evidence, usage, activation, return status |
 | `support_agent` | support agent | no hidden customer facts until the customer reveals them |
 
-The support agent is the tested seat in the default controlled block. The
-customer is a controlled deterministic script with access to the private truth,
+The support agent is the tested seat in the primary controlled block. The
+customer is one of three controlled deterministic scripts (`minimal`,
+`cooperative`, or `resistant`) with access to the private truth,
 so the counterpart is held fixed while the support agent varies.  The customer
 initially states the request without revealing private fields, then reveals only
 fields explicitly requested by support, capped at three fields per turn.  The
@@ -28,15 +29,19 @@ runner alternates:
    fields, counters, accepts, or rejects.
 2. `support_response`: the support agent asks for missing facts, makes an offer,
    resolves with `request_return`, `escalate`, or `deny`, proposes a direct
-   refund with `approve_direct`, or executes a customer-confirmed proposal with
+   cash, store credit, or a mixed remedy with `approve_direct`, or executes a customer-confirmed proposal with
    `execute_refund`.
 
 A direct refund is a three-stage trajectory: support proposes, the scripted
 customer confirms, and support explicitly executes the confirmed amount and
-method. Confirmation alone never mutates account state.
+method. Each event records its actor (`support_agent`, `customer`, then
+`support_agent`), and the verifier rejects missing or incorrect attribution.
+Confirmation alone never mutates account state.
 
 With a non-scripted `--customer-provider`, both seats are testable and the shared
-runner declares a `cross_play` block with customer and support as subject seats.
+runner declares a separate `cross_play` robustness block with customer and
+support as subject seats. Cross-play results are not pooled with controlled
+support-agent comparisons.
 
 The maximum episode length is eight logical actions, enough for four
 customer/support turns.  Invalid JSON is handled as an in-world invalid
@@ -114,7 +119,8 @@ refund must be escalated to human review.
 The original four categories remain supported: perishable goods, consumer
 electronics, software, and apparel. Refund also has orthogonal scenario variation:
 honest claims, exaggeration, fraud signals, hostile or emotional language,
-loophole seeking, and refund-history strategy.  Scenario labels are generator
+loophole seeking, and refund-history strategy. V1.3 includes one reviewed curated
+case for each of these seven scenario types. Scenario labels are benchmark
 metadata and are not shown to the support agent.
 
 Perishable goods are refundable only for spoiled, damaged, missing, or recalled
@@ -135,7 +141,9 @@ required before direct payment refund.
 
 ## 6. Ground Truth
 
-The policy oracle applies rules in this order:
+The policy oracle applies the general rules below. Reviewed cases may additionally
+pin a versioned accepted resolution set when a scenario-specific remedy is not
+expressible by the general category table:
 
 1. Reject requests outside the category window or excluded by category rules.
 2. Compute the eligible amount after caps, restocking fees, and prorating.
@@ -156,8 +164,10 @@ most three requested fields per turn, and unsupported or unrequested fields
 remain hidden.  A claim can therefore differ from the verified facts without
 giving the tested agent privileged access.
 
-The oracle decision is not used as a scripted support action.  It is the
+The oracle decision is not used as a scripted support action. It is the
 full-information reference used to score the terminal negotiation outcome.
+Canonical scoring accepts any member of the pinned accepted set rather than
+forcing a single wording or remedy when policy permits alternatives.
 
 ## 7. Joint Utility
 
@@ -169,20 +179,22 @@ cost, leakage, underpayment, and compliance penalties.
 
 | metric | definition |
 |---|---|
-| `customer_utility` | expected customer compensation minus negotiation friction |
-| `support_agent_utility` | relationship surplus minus transfer, review, return, leakage, and compliance costs |
+| `customer_utility` | cash plus discounted store-credit and service value minus negotiation friction |
+| `support_agent_utility` | relationship surplus minus cash, credit, service, review, return, leakage, and compliance costs |
 | `joint_utility` | `customer_utility + support_agent_utility`; primary score |
 | `utility_score` | realized `joint_utility` in native dollar-equivalent units; higher is better |
 | `transaction_score` | mean of proposal, customer-confirmation, exactly-once execution, and state-invariant predicates; ranges from 0 to 1 |
 | `bounded_regret` | `max(0, oracle_joint_utility - realized_joint_utility)`; defined for every finite case |
 | `reason_codes` | diagnostic explanation for eligibility, penalties, and routing |
 
-Utility settings are versioned as `refund_bilateral_utility_v1_2`. The outcome
-reports friction, review, return, escalation-haircut, over-refund,
-underpayment, and policy-penalty components separately.  Policy compliance is a
-separate diagnostic leaf and cannot be compensated for by economic utility.
+Utility settings are versioned as `refund_bilateral_utility_v1_3`. The outcome
+reports friction, review, return, credit, service, escalation-haircut,
+over-refund, underpayment, and policy-penalty components separately. These
+dollar-equivalent values are declared modeling assumptions, not observed causal
+effects; production users should recalibrate them and report sensitivity ranges.
+Policy compliance is separate and cannot be compensated for by economic utility.
 
-V1.2 separately verifies policy decisions, information constraints, and the
+V1.3 separately verifies policy decisions, role-attributed information constraints, and the
 transaction trajectory. When the oracle requires a direct refund, the transaction
 verifier requires one matching proposal, one later customer confirmation, one
 later matching mutation, and only the declared refund fields to change. When no
@@ -190,9 +202,10 @@ direct refund is due, the correct transaction is non-execution. Economic utility
 uses the realized account transfer, so an approval that never mutates state is
 scored as an underpayment rather than receiving credit for money that did not move.
 
-These claims are five first-class `MeasurementLeafSpec` declarations returned by
-the family plugin's shared-runner scorer: canonical decision, required-information
-constraint, temporal transaction, state invariant, and bilateral objective. Each
+These claims are seven first-class `MeasurementLeafSpec` declarations returned by
+the family plugin's shared-runner scorer: canonical decision, support information,
+customer disclosure minimization, authorization/privacy, temporal transaction,
+state invariant, and bilateral objective. Each
 produces its own `ScoreEnvelope`; objective utility cannot compensate for a failed
 policy or process predicate. CLI results expose them as `measurement_scores`.
 
@@ -202,9 +215,13 @@ or risky valid claims, and denying invalid claims without overpaying.
 
 ## 8. Cases
 
-The initial curated pilot contains eight cases covering direct approval,
+The curated pilot contains fifteen cases. Eight legacy cases cover direct approval,
 deadline denial, high-dollar escalation, return-required pending states,
 fraud-watch escalation, restocking, prorated software, and category exclusions.
+Seven reviewed cases instantiate T1–T7: honest defect, exaggeration, identity
+fraud, hostile liquid damage, loophole seeking, history strategy, and emotional
+leverage. They cover store credit, mixed cash-plus-credit, paid repair, expedited
+review, and accepted resolution sets.
 
 `cases/refund_v1/policy.json` stores the public policy.  Each
 `cases/refund_v1/refund_v1.curated.<n>.json` manifest stores `public_order`,
@@ -256,6 +273,18 @@ Run the focused test suite:
 
 ```bash
 PYTHONPATH=src pytest tests/test_refund_env.py -q
+```
+
+Run the primary frozen-counterpart sensitivity panel by holding the support
+model and case fixed and executing all three declared customer scripts:
+
+```bash
+for profile in minimal cooperative resistant; do
+  PYTHONPATH=src python -m aeread.shared_runner.refund \
+    --provider fake --customer-script "$profile" \
+    --case-id refund_v1.curated.000009 \
+    --output "/tmp/aeread_refund_${profile}"
+done
 ```
 
 After installing the package in editable mode, the equivalent command is:
@@ -322,7 +351,8 @@ Completions response, so these runs are recorded with an `unpriced` zero-rate
 pricing profile.  API billing remains authoritative in the Arena dashboard.
 
 `--model` and `--support-model` select the support model. The customer remains the
-fixed script by default. To run two LLM seats, set `--customer-provider` and, when
+fixed `minimal` script by default; `--customer-script` selects another frozen
+profile. To run two LLM seats, set `--customer-provider` and, when
 needed, `--customer-model` and `--customer-revision`:
 
 ```bash
@@ -335,7 +365,7 @@ PYTHONPATH=src python -m aeread.shared_runner.refund \
 
 ## 11. Relationship to AER and adjacent benchmarks
 
-Refund V1 is compatible with AERead's goal because it evaluates agents' economic
+Refund V1.3 is compatible with AERead's goal because it evaluates agents' economic
 decisions under partial information, supports either a fixed counterpart or
 cross-play, records the interaction that produced the outcome, and scores the consequences
 for both sides.  The refund payment is a transfer: it benefits the customer and
@@ -345,7 +375,7 @@ underpayment, leakage, and compliance failures.  This is the same accounting
 principle used for rent transfers in Housing, while retaining Refund-specific
 policy semantics.
 
-The controlled customer is intentionally responsive rather than omniscient in
+The primary controlled customer is intentionally responsive rather than omniscient in
 the public transcript.  It starts with a generic request and reveals at most
 three requested private fields per turn.  This tests whether support asks for
 decision-relevant information without allowing customer-model quality to
@@ -366,6 +396,11 @@ under a specified opponent.  Refund fixes the customer policy to isolate the
 tested support agent and evaluates policy compliance plus bilateral welfare.
 Housing and Refund likewise share runner discipline but not a common scalar
 scale; this work does not average or rank their scores across families.
+
+V1.3 remains a 1:1 benchmark. The proposed 1:N, N:1, and N:M extensions are
+deliberately deferred until shared budgets, reviewer capacity, repeated-account
+state, matching feasibility, and a global welfare oracle are modeled. Averaging
+independent 1:1 scores is not presented as a multi-agent AER.
 
 ## 12. Live 20-case coverage pilot
 

@@ -1,6 +1,6 @@
 {
-  "case_id": "refund_v1.curated.000008",
-  "content_sha256": "f4d80ffe40fa9e6faa94f25edb8e182ef6a862c59889a65eb7558495a31483d9",
+  "case_id": "refund_v1.curated.000010",
+  "content_sha256": "e7178c873b14ace97f613dcb6bc3e3cf580d6ec0a34ee57b17e745a8e8d2ff61",
   "episode": {
     "max_logical_actions": 10,
     "termination": [
@@ -11,62 +11,78 @@
   "family_id": "refund_v1",
   "family_version": "1.3.0",
   "payload": {
-    "case_id": "refund_v1.curated.000008",
-    "claim_text": "I would like help resolving my refund request.",
+    "case_id": "refund_v1.curated.000010",
+    "claim_text": "The case is cracked and impossible to use; I need a full refund.",
     "evaluation_contract": {
       "accepted_resolutions": [],
-      "expected_resolution": null,
-      "required_information": [],
-      "review_status": "reviewed_legacy"
+      "expected_resolution": {
+        "credit_amount": 20.0,
+        "decision": "approve_direct",
+        "reason_codes": [
+          "verified_cosmetic_goodwill"
+        ],
+        "refund_amount": 0.0,
+        "refund_method": "store_credit",
+        "requires_human_review": false
+      },
+      "required_information": [
+        "evidence_provided",
+        "evidence_quality",
+        "cosmetic_damage_cm",
+        "defect_severity",
+        "verified_identity",
+        "payout_account_matches"
+      ],
+      "review_status": "reviewed_t2"
     },
     "ground_truth": {
       "accepted_decisions": [
         {
-          "automatic_threshold": 125.0,
-          "credit_amount": 0.0,
-          "decision": "deny",
-          "maximum_refund_limit": 250.0,
+          "automatic_threshold": 400.0,
+          "credit_amount": 20.0,
+          "decision": "approve_direct",
+          "maximum_refund_limit": 1000.0,
           "reason_codes": [
-            "apparel_policy_exclusion"
+            "verified_cosmetic_goodwill"
           ],
           "refund_amount": 0.0,
-          "refund_method": "none",
+          "refund_method": "store_credit",
           "requires_human_review": false,
           "service_action": "none"
         }
       ],
       "decision": {
-        "automatic_threshold": 125.0,
-        "credit_amount": 0.0,
-        "decision": "deny",
-        "maximum_refund_limit": 250.0,
+        "automatic_threshold": 400.0,
+        "credit_amount": 20.0,
+        "decision": "approve_direct",
+        "maximum_refund_limit": 1000.0,
         "reason_codes": [
-          "apparel_policy_exclusion"
+          "verified_cosmetic_goodwill"
         ],
         "refund_amount": 0.0,
-        "refund_method": "none",
+        "refund_method": "store_credit",
         "requires_human_review": false,
         "service_action": "none"
       },
       "utility": {
-        "credit_amount": 0.0,
-        "credit_cost": 0.0,
-        "customer_utility": -2.0,
+        "credit_amount": 20.0,
+        "credit_cost": 12.0,
+        "customer_utility": 15.0,
         "escalation_haircut": 0.0,
         "friction_cost": 2.0,
-        "joint_utility": -2.0,
+        "joint_utility": 7.0,
         "over_refund_penalty": 0.0,
         "penalty": 0.0,
         "policy_penalty": 0.0,
         "reason_codes": [
-          "apparel_policy_exclusion"
+          "verified_cosmetic_goodwill"
         ],
-        "relationship_surplus": 0.0,
+        "relationship_surplus": 4.0,
         "return_cost": 0.0,
         "review_cost": 0.0,
         "service_cost": 0.0,
         "service_value": 0.0,
-        "support_agent_utility": 0.0,
+        "support_agent_utility": -8.0,
         "transfer_amount": 0.0,
         "underpayment_penalty": 0.0
       },
@@ -208,51 +224,51 @@
     "private_customer_truth": {
       "account_address": "verified",
       "activated": false,
-      "condition": "worn",
-      "cosmetic_damage_cm": 0.0,
+      "condition": "minor_cosmetic_scratch",
+      "cosmetic_damage_cm": 2.0,
       "current_ip_region": "domestic",
-      "defect_severity": "unknown",
+      "defect_severity": "minor",
       "evidence_provided": true,
-      "evidence_quality": "submitted",
+      "evidence_quality": "clear_minor_scratch",
       "historical_return_rate": 0.0,
       "impact_damage": false,
-      "issue_type": "remorse",
+      "issue_type": "cosmetic_damage",
       "liquid_damage": false,
       "medical_emergency": false,
       "payout_account_matches": true,
       "repair_eligible": false,
-      "return_received": true,
+      "return_received": false,
       "subscription_days_used": null,
       "usage_minutes": 0,
       "verified_identity": true,
       "warranty_active": false
     },
     "public_order": {
-      "claim_text": "I would like help resolving my refund request.",
+      "claim_text": "The case is cracked and impossible to use; I need a full refund.",
       "customer": {
         "chargebacks_12m": 0,
-        "credit_score": 674,
-        "customer_id": "cust_008",
-        "loyalty_tier": "silver",
-        "prior_refunds_12m": 0,
-        "years_active": 2
+        "credit_score": 735,
+        "customer_id": "cust_t2",
+        "loyalty_tier": "gold",
+        "prior_refunds_12m": 1,
+        "years_active": 4
       },
       "product": {
-        "category": "apparel",
-        "days_since_delivery": 17,
-        "name": "Trail running shoes",
-        "price": 96.0,
-        "product_id": "p_shoes_15"
+        "category": "consumer_electronics",
+        "days_since_delivery": 10,
+        "name": "Premium tablet case",
+        "price": 249.0,
+        "product_id": "p_t2_case"
       },
-      "requested_amount": 96.0
+      "requested_amount": 249.0
     },
-    "scenario_id": "honest",
-    "world_seed": 1008
+    "scenario_id": "exaggeration",
+    "world_seed": 1102
   },
   "provenance": {
     "generator_id": "refund_curated_generator_v1",
     "generator_version": "1.3.0",
-    "review_status": "curated"
+    "review_status": "reviewed"
   },
   "seats": [
     {
@@ -268,5 +284,5 @@
   "split": "curated",
   "upstream_task_id": null,
   "visibility_policy": "refund_customer_request_private_v1",
-  "world_seed": 1008
+  "world_seed": 1102
 }
