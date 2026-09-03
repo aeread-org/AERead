@@ -145,6 +145,24 @@ only a small, expected fraction on top, not a new distinct cost.
   logged in `ledger_entries/collusion.md`, corroborating master ledger
   `D-10`); nothing in this milestone depends on it beyond the citation
   already quoted into the spec.
+- **Leaf 4's baseline provenance is caller-trusted, not verified in code.**
+  `score_long_run_profit`'s `baseline_profit_by_seat` argument is
+  structurally validated (exact seat keys, finite numbers) but nothing
+  cross-checks that the caller actually computed it under this same
+  cell/horizon/opponent condition (`docs/collusion_adapter_spec.md` §6;
+  `docs/collusion_codex_triage.md` Finding 2). This is a deliberate,
+  twice-reaffirmed scope limit, not an oversight: closing it would require
+  either a new `CaseManifest.payload` field (re-digesting the committed
+  pilot corpus) or the scorer independently recomputing the baseline from
+  the recorded trajectory instead of trusting the caller's number at
+  all — both real architecture decisions for a future milestone, not this
+  one. `tests/test_collusion_replay.py`'s
+  `test_same_opponent_condition_baseline_differs_from_nash_vs_nash_pi_nash_for_an_asymmetric_opponent`
+  and the reproduction test beside it guard only this test file's own
+  fixture value against silently drifting back to the wrong (Nash-vs-Nash)
+  baseline; neither exercises, and neither can exercise, production's
+  ability to reject a wrong baseline, because no such check exists
+  (independent second-pass review, `docs/collusion_fix_verification.md`).
 
 ## Deviation from the tau3_retail pattern, flagged for review
 

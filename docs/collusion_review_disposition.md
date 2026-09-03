@@ -368,3 +368,100 @@ Re-ran after all second-review fixes: the same five family test files plus
 `tests/test_shared_runner_smoke.py` — **88 passed, 0 failed** (83 pre-this-pass
 plus 5 new regression tests: 2 in `test_collusion_measurement.py`, 3 in
 `test_collusion_replay.py`).
+
+## Verification follow-up (independent cross-model check,
+`docs/collusion_fix_verification.md`)
+
+A third, independent pass re-checked whether the two above CONFIRMED
+findings this doc's second-review section labels "fixed" (Finding 2, Finding
+4) were genuinely closed, rather than re-reading this doc's own prose. It
+found both incomplete as of the commit it inspected (`7a4a5a7`) and flagged
+one untracked file. This section corrects the record for both findings and
+notes where the previous "fixed" label was accurate only in part.
+
+### Finding 4 — now genuinely closed
+
+The verifier's specific complaint: `case_content_sha256` binds a recording
+to the case's *content*, but nothing bound it to *which run cell*
+(`PlanCell.cell_id`) produced it — "no test exercises replay under a
+different compatible cell." This was closed in commit `68bdc46` (landed
+after the verifier's pass, recovered from a machine-sleep interruption and
+independently re-verified this pass, not re-taken on faith): `RecordedEpisode`
+gained a `cell_id` field, populated by `record_episode`'s now-required
+`cell` keyword argument; `replay_episode` rejects a `cell_id` mismatch even
+when both case checks pass.
+
+Test added (`tests/test_collusion_replay.py`):
+`test_replay_cell_identity_mismatch_raises_a_typed_replay_error_even_with_matching_case_content`
+— records under one cell, replays under a second, `cell_id`-distinct
+`PlanCell` for the same case, and asserts `ReplayError` naming the cell
+mismatch.
+
+**Mutation-verified this pass**: backed up `replay.py` to `/tmp`, deleted
+just the `if recorded.cell_id != cell.cell_id: raise ReplayError(...)`
+guard (leaving the field itself and both case-identity checks intact), and
+re-ran the new test in isolation. It failed with `Failed: DID NOT RAISE
+ReplayError` — the right reason, not a collateral error — confirming the
+guard is load-bearing. Restored `replay.py` from the `/tmp` backup (never
+`git checkout`), confirmed `git status`/`git diff` clean against the
+committed state, and re-ran the full family suite green (below).
+**Disposition: fixed**, superseding the second-review table's "fixed" label
+above with an actual regression test for the specific gap the verifier
+named.
+
+### Finding 2 — narrowed, not fixed in production this pass
+
+The verifier's specific complaint:
+`test_same_opponent_condition_baseline_differs_from_nash_vs_nash_pi_nash_for_an_asymmetric_opponent`
+"only proves the values differ; it would pass with production unchanged,"
+and "the updated replay test guards its own fixture, not production
+behavior." This is correct, and re-verified directly this pass:
+`score_long_run_profit` (`measurement.py`) validates `baseline_profit_by_seat`'s
+*shape* (exact seat keys, finite numbers) but has no way to validate its
+*provenance* — nothing in this leaf's signature carries which opponent
+condition, cell, or horizon a caller computed a baseline under, so a caller
+that mistakenly passed `gold_reference["pi_nash"]` (Nash-vs-Nash) for an
+asymmetric-opponent trajectory would still be accepted today and would
+still silently publish a wrong delta.
+
+This pass deliberately did **not** add production validation for this,
+for the same reason the second-review section above already gives in its
+own "Fix" paragraph: doing so requires either a new `CaseManifest.payload`
+field naming the opponent condition (re-digesting the already-committed
+milestone-1 corpus's `content_sha256` for the six pilot cells) or having
+the scorer independently recompute the baseline from the recorded
+trajectory instead of trusting the caller's number at all (a materially
+different leaf-4 contract: no longer "caller-supplied", but "internally
+derived"). Both are real architecture decisions already explicitly declined
+twice in this branch's own history (the first review round's MAJOR-2
+disposition, and the second-review Finding-2 disposition above) — not a
+call to make silently in a third pass whose brief is to close two named
+gaps, not redesign a leaf.
+
+What changed instead: the second-review table's "fixed" label for Finding 2
+is corrected to **narrowed** by this section. `docs/collusion_adapter_status.md`
+gained an explicit "Known limits" bullet stating that leaf 4's baseline
+provenance is caller-trusted and unverified in code, and that the existing
+regression tests guard only the test file's own fixture value, not
+production's ability to reject a wrong baseline. The test docstring for
+`test_same_opponent_condition_baseline_differs_from_nash_vs_nash_pi_nash_for_an_asymmetric_opponent`
+(`tests/test_collusion_replay.py`) gained the same scope note inline, so
+the limitation is visible beside the test itself, not only in prose docs
+elsewhere. No test was weakened, loosened, or deleted to reach this
+disposition — the existing pinning assertions in both tests are unchanged.
+
+### Other note
+
+The verifier also flagged one untracked file, `docs/collusion_review_codex.md`,
+as leaving the worktree not fully committed. That file was committed in
+`68bdc46` (part of the same recovery commit that closed Finding 4); `git
+status` is clean as of this pass.
+
+### Final test counts (this pass)
+
+Re-ran the five family test files plus `tests/test_shared_runner_smoke.py`
+after the mutation-test restore and the documentation changes above:
+**89 passed, 0 failed** (88 from the second-review pass, plus the one
+cell-identity test landed in `68bdc46`; no new test was added this pass,
+since Finding 4 needed only mutation-verification of an already-landed fix
+and Finding 2 was narrowed rather than fixed).

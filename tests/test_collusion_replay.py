@@ -608,6 +608,19 @@ def test_same_opponent_condition_baseline_differs_from_nash_vs_nash_pi_nash_for_
     Nash-vs-Nash ``pi_nash``. Proves the two are not interchangeable
     whenever the real opponent condition is not itself Nash (they need not
     differ in general, but do here, materially, for both seats).
+
+    Scope note (independent second-pass review,
+    ``docs/collusion_fix_verification.md``): this test and its sibling
+    reproduction test below pin *this test file's own fixture* to the
+    economically correct baseline and guard against it silently drifting
+    back to the wrong one. Neither test exercises production's ability to
+    reject a wrong baseline, because ``score_long_run_profit`` has none --
+    it trusts the caller for provenance by design (``measurement.py``'s own
+    docstring; ``docs/collusion_adapter_spec.md`` section 6's stated
+    limit). A caller that mistakenly supplied ``gold_reference["pi_nash"]``
+    here would still be accepted by production and would still produce a
+    silently wrong delta; only this test file would (still) know the
+    number was wrong.
     """
     gold_pi_nash = shared_asymmetric_case.payload["gold_reference"]["pi_nash"]
     correct = shared_asymmetric_same_opponent_baseline_profit
