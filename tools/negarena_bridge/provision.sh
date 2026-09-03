@@ -24,6 +24,40 @@
 set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# The sibling upstream checkout (`upstream-negarena`) always lives next to
+# the top-level "AERead" directory itself -- not next to whichever checkout
+# ${HERE} happens to be inside. A plain, fixed-count `../../../..` from
+# `tools/negarena_bridge` cannot express that: it resolves correctly from
+# a main checkout (`AERead/tools/negarena_bridge`, two levels below
+# "AERead") but lands two levels too high from inside a linked git worktree
+# (`AERead/.worktrees/<name>/tools/negarena_bridge`, four levels below), so
+# it silently produced `AERead/upstream-negarena` -- a path that does not
+# exist -- and the "not found" branch below then skipped verification
+# entirely rather than failing (docs/negarena_codex_triage.md Finding 5).
+# Walking up by name instead of by a fixed depth resolves correctly from
+# either location.
+default_upstream_root() {
+  local walk="${1}"
+  while [ "$(basename "${walk}")" != "AERead" ] && [ "${walk}" != "/" ]; do
+    walk="$(dirname "${walk}")"
+  done
+  if [ "${walk}" = "/" ]; then
+    echo "error: could not find an ancestor directory named 'AERead' above ${1}" >&2
+    return 1
+  fi
+  echo "$(dirname "${walk}")/upstream-negarena"
+}
+
+# Test-only introspection hook: print the resolved default and exit, without
+# creating a venv or touching the network -- lets
+# tests/test_negarena_provisioning.py verify the path-resolution logic in
+# isolation (never by actually provisioning).
+if [ "${1:-}" = "--print-default-upstream-root" ]; then
+  default_upstream_root "${HERE}"
+  exit 0
+fi
+
 VENV="${1:-/Users/sunzeyu/Documents/econ benchmark/bridges/negarena-venv}"
 REQS="${HERE}/requirements.txt"
 
@@ -65,7 +99,9 @@ done < "${REQS}"
 
 # Prove the interpreter can actually do the one job it has, rather than
 # reporting success because pip exited zero.
-UPSTREAM_ROOT="${AEREAD_NEGARENA_UPSTREAM_ROOT:-$(cd "${HERE}/../../../.." && pwd)/upstream-negarena}"
+if ! UPSTREAM_ROOT="${AEREAD_NEGARENA_UPSTREAM_ROOT:-$(default_upstream_root "${HERE}")}"; then
+  exit 1
+fi
 if [ -d "${UPSTREAM_ROOT}/negotiationarena" ]; then
   if "${VENV}/bin/python" - "${UPSTREAM_ROOT}" >/dev/null 2>&1 <<'PY'
 import sys
