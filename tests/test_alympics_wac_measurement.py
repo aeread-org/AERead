@@ -287,6 +287,115 @@ def test_score_survival_rejects_baseline_evidence_declared_under_a_mismatched_po
     assert "baseline_policy_id" in mismatched.validity.reasons[0]
 
 
+# ---------------------------------------------------------------------------
+# docs/alympics_fix_verification.md finding 2: `score_terminal_wealth`/
+# `score_survival` bind `baseline_policy_id` to the leaf's own reference
+# identity and reject a mismatched *label*, but never verify the supplied
+# baseline state was actually *produced by* that policy -- an arbitrary
+# `dummy_players` mapping carrying the expected label scores `"ok"`
+# unconditionally (the two tests directly above this comment prove exactly
+# that). `AlympicsWacScorer.score_terminal_wealth`/`score_survival` -- the
+# real, case-bound path every production caller
+# (`replay.score_replayed_episode`) actually uses -- now independently
+# recomputes the entire declared baseline episode from scratch (the panel's
+# own policies plus the declared baseline policy, run through the case's own
+# frozen supply schedule/personas/starting state and real `_delegate_round`
+# settlement) and rejects any supplied baseline that does not reconcile with
+# it, seat by seat.
+# ---------------------------------------------------------------------------
+
+
+def test_scorer_score_terminal_wealth_rejects_a_fabricated_baseline_with_the_correct_label() -> None:
+    plugin = _plugin()
+    case = _case("reference_baseline")
+    family_case = plugin.validate_payload(case.payload)
+    scorer = plugin.build_scorer(family_case)
+    upstream = plugin._require_upstream()
+
+    actual_final_players, actual_round_log, actual_terminal = _run(
+        case, _multiplier_response_source(ALL_PROPORTIONAL)
+    )
+
+    # Shaped exactly like the review's own `dummy_players` scenario -- an
+    # arbitrary mapping, never actually produced by running "proportional".
+    fabricated_baseline = {
+        seat: {"balance": 100, "hp": 8, "no_drink": 1, "alive": True} for seat in SEAT_ORDER
+    }
+    rejected = scorer.score_terminal_wealth(
+        focal_seat="alex",
+        actual_final_players=actual_final_players,
+        actual_round_log=actual_round_log,
+        actual_termination_reason=actual_terminal["reason"],
+        baseline_final_players=fabricated_baseline,
+        baseline_policy_id="proportional",
+        upstream_module=upstream,
+    )
+    assert rejected.status == "invalid_measurement"
+    assert rejected.primary is None
+    assert "baseline_state_not_reproducible_from_declared_policy" in rejected.validity.reasons[0]
+
+    # A genuine baseline -- a second, real run under the exact policy
+    # assignment the leaf declares (panel unchanged, focal seat
+    # "proportional") -- must still reconcile and score "ok".
+    genuine_baseline_final_players, _genuine_round_log, _genuine_terminal = _run(
+        _case("reference_baseline"), _multiplier_response_source(ALL_PROPORTIONAL)
+    )
+    accepted = scorer.score_terminal_wealth(
+        focal_seat="alex",
+        actual_final_players=actual_final_players,
+        actual_round_log=actual_round_log,
+        actual_termination_reason=actual_terminal["reason"],
+        baseline_final_players=genuine_baseline_final_players,
+        baseline_policy_id="proportional",
+        upstream_module=upstream,
+    )
+    assert accepted.status == "ok"
+
+
+def test_scorer_score_survival_rejects_a_fabricated_baseline_with_the_correct_label() -> None:
+    plugin = _plugin()
+    case = _case("reference_baseline")
+    family_case = plugin.validate_payload(case.payload)
+    scorer = plugin.build_scorer(family_case)
+    upstream = plugin._require_upstream()
+
+    actual_final_players, actual_round_log, actual_terminal = _run(
+        case, _multiplier_response_source(ALL_PROPORTIONAL)
+    )
+    fabricated_baseline_players = {
+        seat: {"balance": 100, "hp": 8, "no_drink": 1, "alive": True} for seat in SEAT_ORDER
+    }
+    fabricated_baseline_round_log = [{"round_id": 1, "bids": {seat: 1 for seat in SEAT_ORDER}}]
+
+    rejected = scorer.score_survival(
+        focal_seat="alex",
+        actual_round_log=actual_round_log,
+        actual_final_players=actual_final_players,
+        actual_termination_reason=actual_terminal["reason"],
+        baseline_round_log=fabricated_baseline_round_log,
+        baseline_final_players=fabricated_baseline_players,
+        baseline_policy_id="proportional",
+        upstream_module=upstream,
+    )
+    assert rejected.status == "invalid_measurement"
+    assert "baseline_state_not_reproducible_from_declared_policy" in rejected.validity.reasons[0]
+
+    genuine_baseline_final_players, genuine_baseline_round_log, _genuine_terminal = _run(
+        _case("reference_baseline"), _multiplier_response_source(ALL_PROPORTIONAL)
+    )
+    accepted = scorer.score_survival(
+        focal_seat="alex",
+        actual_round_log=actual_round_log,
+        actual_final_players=actual_final_players,
+        actual_termination_reason=actual_terminal["reason"],
+        baseline_round_log=genuine_baseline_round_log,
+        baseline_final_players=genuine_baseline_final_players,
+        baseline_policy_id="proportional",
+        upstream_module=upstream,
+    )
+    assert accepted.status == "ok"
+
+
 def test_the_specs_literal_higher_is_better_is_not_a_legal_kernel_direction() -> None:
     """Spec section 2's leaf 1 YAML literally writes
     `direction: higher_is_better`; the kernel's real EstimandSpec only

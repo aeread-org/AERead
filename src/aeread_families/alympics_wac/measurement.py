@@ -12,7 +12,23 @@ game... do not equate survival with a solved optimum."
   under a named baseline policy on the *same* supply schedule/seed/opponent
   panel. The opponent panel is part of the estimand (spec section 2), so
   every leaf declaration is built for one ``(focal_seat, panel_policy_ids)``
-  pair, never for a case in the abstract.
+  pair, never for a case in the abstract. **Baseline provenance** is
+  verified at two different depths, deliberately not the same at both: the
+  bare :func:`score_terminal_wealth`/:func:`score_survival` functions only
+  ever check that a caller's declared ``baseline_policy_id`` matches the
+  leaf's own reference identity (a *label* check) -- an arbitrary
+  ``baseline_final_players`` mapping carrying the right label still scores
+  ``"ok"`` at this layer, a deliberate, narrow building block this module's
+  own unit tests use to isolate other gates without needing case/upstream
+  machinery. :class:`AlympicsWacScorer`'s own ``score_terminal_wealth``/
+  ``score_survival`` methods -- the real, case-bound path every production
+  caller (``replay.score_replayed_episode``) actually uses -- go further:
+  they independently recompute the entire declared baseline episode from
+  scratch (:func:`_recompute_baseline_episode`) and reject any supplied
+  baseline that does not reconcile with it exactly, seat by seat (see
+  docs/alympics_fix_verification.md finding 2 for the concrete gap this
+  closes, and docs/alympics_adapter_status.md for the stated scope of this
+  check).
 * **Leaf 2 -- ``alympics_wac_survival`` (diagnostic, comparative).** Rounds
   survived and alive-at-terminal, reported *separately* from wealth so a
   degenerate zero-information elimination (spec section 4 golden 5) is
@@ -73,7 +89,9 @@ from aeread.shared_runner.measurement import (
 )
 from aeread.shared_runner.resolver import canonical_json_bytes
 
+from .cases import STARTING_BALANCE, STARTING_HP, STARTING_NO_DRINK
 from .environment import _delegate_round
+from .harness import POLICY_FUNCTIONS
 
 LEAF_VERSION = "1.0.0"
 ESTIMAND_VERSION = "1.0.0"
@@ -198,6 +216,147 @@ def _baseline_policy_id_mismatch_reason(
         f"baseline_policy_id_mismatch:declared_{baseline_policy_id}:"
         f"leaf_reference_{actual}"
     )
+
+
+def _recompute_baseline_episode(
+    upstream_module: Any,
+    family_case: Mapping[str, Any],
+    *,
+    focal_seat: str,
+    panel_policy_ids: Mapping[str, str],
+    baseline_policy_id: str,
+) -> tuple[dict[str, dict[str, Any]], list[dict[str, Any]]]:
+    """Recompute the entire baseline episode from scratch -- never trust a
+    caller-supplied ``baseline_final_players``/``baseline_round_log`` as-is
+    (the concrete gap docs/alympics_fix_verification.md finding 2
+    demonstrated: "nothing verifies the supplied baseline state was
+    actually produced by that policy").
+
+    Every one of ``harness.POLICY_FUNCTIONS``'s four named policies is a
+    pure, deterministic function of only a seat's own ``(requirement,
+    no_drink)`` pair -- never balance, round id, supply, or another seat's
+    state (see ``harness.py``'s own module docstring) -- and settlement is
+    upstream's own, fully deterministic mechanics via ``_delegate_round``.
+    Given the case's frozen supply schedule/personas/starting state and one
+    full policy assignment (the leaf's own opponent panel, with
+    ``focal_seat`` swapped to ``baseline_policy_id`` -- ``harness.
+    baseline_policy_assignment``'s own contract), there is therefore exactly
+    one possible baseline trajectory; this reproduces it, round by round,
+    through the identical ``environment._delegate_round`` call every live
+    run/replay makes -- never a hand-written settlement formula, never a
+    live harness/scheduler pass.
+
+    If a future named policy ever reads a field besides ``requirement``/
+    ``no_drink``, this function must grow with it --
+    ``harness._validate_policy_functions`` keeps the declared vocabulary and
+    the implemented functions from drifting apart, but not their argument
+    shape.
+    """
+    policy_assignment = dict(panel_policy_ids)
+    policy_assignment[focal_seat] = baseline_policy_id
+    seat_order = tuple(family_case["seat_order"])
+    personas = family_case["personas"]
+    supply_schedule = family_case["supply_schedule"]
+    rounds_total = family_case["grid_cell"]["rounds"]
+
+    players: dict[str, dict[str, int]] = {
+        seat: {
+            "balance": STARTING_BALANCE,
+            "hp": STARTING_HP,
+            "no_drink": STARTING_NO_DRINK,
+        }
+        for seat in seat_order
+    }
+    alive = set(seat_order)
+    round_log: list[dict[str, Any]] = []
+
+    for round_id in range(1, rounds_total + 1):
+        if not alive:
+            break
+        alive_seats = tuple(seat for seat in seat_order if seat in alive)
+        supply = supply_schedule[round_id - 1]
+        bids = {
+            seat: POLICY_FUNCTIONS[policy_assignment[seat]](
+                {
+                    "requirement": personas[seat]["requirement"],
+                    "no_drink": players[seat]["no_drink"],
+                }
+            )
+            for seat in alive_seats
+        }
+        players_before = {seat: dict(players[seat]) for seat in alive_seats}
+        outcome = _delegate_round(
+            upstream_module,
+            round_id=round_id,
+            supply=supply,
+            alive_seats=alive_seats,
+            players_state=players,
+            bids=bids,
+        )
+        if outcome.status == "malformed_action":
+            # No real scripted policy ever produces malformed input (spec
+            # section 6 / cases.py's TERMINATION_REASONS comment) -- reaching
+            # this would indicate an adapter bug, never a caller error, so it
+            # is never silently absorbed as "baseline unreachable".
+            raise RuntimeError(
+                "baseline recompute hit malformed_action, which no real "
+                "scripted policy can produce"
+            )
+        for seat in alive_seats:
+            players[seat].update(outcome.players[seat])
+        for seat in outcome.eliminated_this_round:
+            alive.discard(seat)
+        round_log.append(
+            {
+                "round_id": round_id,
+                "supply": supply,
+                "bids": bids,
+                "bid_legal": dict(outcome.bid_legal),
+                "winners": list(outcome.winners),
+                "eliminated_this_round": list(outcome.eliminated_this_round),
+                "status": outcome.status,
+                "players_before": players_before,
+                "players_after": dict(outcome.players),
+            }
+        )
+        if outcome.status == "all_seats_eliminated":
+            break
+
+    final_players = {seat: {**players[seat], "alive": seat in alive} for seat in seat_order}
+    return final_players, round_log
+
+
+def _baseline_state_mismatch_reason(
+    upstream_module: Any,
+    family_case: Mapping[str, Any],
+    *,
+    focal_seat: str,
+    panel_policy_ids: Mapping[str, str],
+    baseline_policy_id: str,
+    baseline_final_players: Mapping[str, Mapping[str, Any]],
+) -> str | None:
+    """``None`` iff ``baseline_final_players`` reconciles with an
+    independent recompute of the declared baseline episode.
+
+    Closes the concrete gap docs/alympics_fix_verification.md's finding 2
+    demonstrated: :func:`_baseline_policy_id_mismatch_reason` only ever
+    checks the *label* a caller declared, never whether the data behind it
+    was genuinely produced by that policy -- an arbitrary ``{seat: {...}}``
+    mapping, carrying the correct label, used to score ``"ok"``
+    unconditionally.
+    """
+    recomputed_final_players, _ = _recompute_baseline_episode(
+        upstream_module,
+        family_case,
+        focal_seat=focal_seat,
+        panel_policy_ids=panel_policy_ids,
+        baseline_policy_id=baseline_policy_id,
+    )
+    for seat, recomputed in recomputed_final_players.items():
+        supplied = baseline_final_players.get(seat)
+        if supplied is None or dict(supplied) != dict(recomputed):
+            return f"baseline_state_not_reproducible_from_declared_policy:seat_{seat}"
+    return None
 
 
 # ---------------------------------------------------------------------------
@@ -809,10 +968,31 @@ class AlympicsWacScorer:
         actual_round_log: Sequence[Mapping[str, Any]],
         actual_termination_reason: str,
         baseline_final_players: Mapping[str, Mapping[str, Any]],
+        upstream_module: Any,
         baseline_policy_id: str = DEFAULT_BASELINE_POLICY_ID,
         evidence_refs: tuple[str, ...] = (),
     ) -> ScoreEnvelope:
         leaf = self.leaves_for_focal_seat(focal_seat, baseline_policy_id=baseline_policy_id)[0]
+        # docs/alympics_fix_verification.md finding 2: the free
+        # `score_terminal_wealth` function only ever checks the *label* --
+        # this, the real case-bound path, additionally requires the
+        # supplied baseline to reconcile with an independent recompute of
+        # the declared baseline episode before ever scoring it.
+        label_mismatch = _baseline_policy_id_mismatch_reason(
+            leaf, TERMINAL_WEALTH_REFERENCE_ID, baseline_policy_id
+        )
+        if label_mismatch is not None:
+            return _invalid_envelope(leaf, reasons=(label_mismatch,), evidence_refs=evidence_refs)
+        state_mismatch = _baseline_state_mismatch_reason(
+            upstream_module,
+            self.family_case,
+            focal_seat=focal_seat,
+            panel_policy_ids=self.panel_policy_ids(focal_seat),
+            baseline_policy_id=baseline_policy_id,
+            baseline_final_players=baseline_final_players,
+        )
+        if state_mismatch is not None:
+            return _invalid_envelope(leaf, reasons=(state_mismatch,), evidence_refs=evidence_refs)
         return score_terminal_wealth(
             leaf,
             focal_seat=focal_seat,
@@ -834,10 +1014,26 @@ class AlympicsWacScorer:
         actual_termination_reason: str,
         baseline_round_log: Sequence[Mapping[str, Any]],
         baseline_final_players: Mapping[str, Mapping[str, Any]],
+        upstream_module: Any,
         baseline_policy_id: str = DEFAULT_BASELINE_POLICY_ID,
         evidence_refs: tuple[str, ...] = (),
     ) -> ScoreEnvelope:
         leaf = self.leaves_for_focal_seat(focal_seat, baseline_policy_id=baseline_policy_id)[1]
+        label_mismatch = _baseline_policy_id_mismatch_reason(
+            leaf, SURVIVAL_REFERENCE_ID, baseline_policy_id
+        )
+        if label_mismatch is not None:
+            return _invalid_envelope(leaf, reasons=(label_mismatch,), evidence_refs=evidence_refs)
+        state_mismatch = _baseline_state_mismatch_reason(
+            upstream_module,
+            self.family_case,
+            focal_seat=focal_seat,
+            panel_policy_ids=self.panel_policy_ids(focal_seat),
+            baseline_policy_id=baseline_policy_id,
+            baseline_final_players=baseline_final_players,
+        )
+        if state_mismatch is not None:
+            return _invalid_envelope(leaf, reasons=(state_mismatch,), evidence_refs=evidence_refs)
         return score_survival(
             leaf,
             focal_seat=focal_seat,

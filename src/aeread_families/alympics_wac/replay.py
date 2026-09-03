@@ -350,14 +350,22 @@ def score_replayed_episode(
 ) -> ReplayScoreResult:
     """Recompute all four declared leaves from a replayed episode's own state.
 
-    ``baseline_final_players``/``baseline_round_log`` come from a *second*,
-    independently replayed episode (the same focal seat run under the named
-    baseline policy, same supply schedule/opponent panel -- spec section
-    2's comparative estimand); recomputing them here would silently
-    reintroduce a live provider call or a hand-written baseline, neither of
-    which this module ever does. ``upstream_module`` is leaf 4's shadow-
-    recompute dependency (:func:`aeread_families.alympics_wac.environment.
-    _delegate_round`'s own second parameter), obtained the same way
+    ``baseline_final_players``/``baseline_round_log`` are expected to come
+    from a *second*, independently replayed episode (the same focal seat
+    run under the named baseline policy, same supply schedule/opponent
+    panel -- spec section 2's comparative estimand); this function itself
+    never re-runs that second episode. It is, however, no longer a bare
+    "trust the caller's word": ``scorer.score_terminal_wealth``/
+    ``score_survival`` (``AlympicsWacScorer``'s own methods) independently
+    recompute the declared baseline from the case's own frozen supply
+    schedule/personas/starting state and reject any supplied baseline that
+    does not reconcile with it exactly (docs/alympics_fix_verification.md
+    finding 2) -- a hand-written or otherwise fabricated baseline carrying
+    the right ``baseline_policy_id`` label no longer scores ``"ok"`` here.
+    ``upstream_module`` is both leaf 4's shadow-recompute dependency
+    (:func:`aeread_families.alympics_wac.environment._delegate_round`'s own
+    second parameter) and this baseline-provenance recompute's own
+    dependency, obtained the same way
     ``environment.AlympicsWacPlugin._require_upstream`` already does for a
     live run.
     """
@@ -378,6 +386,7 @@ def score_replayed_episode(
         actual_round_log=actual_round_log,
         actual_termination_reason=actual_termination_reason,
         baseline_final_players=baseline_final_players,
+        upstream_module=upstream_module,
         evidence_refs=evidence_refs,
     )
     survival = scorer.score_survival(
@@ -387,6 +396,7 @@ def score_replayed_episode(
         actual_termination_reason=actual_termination_reason,
         baseline_round_log=baseline_round_log,
         baseline_final_players=baseline_final_players,
+        upstream_module=upstream_module,
         evidence_refs=evidence_refs,
     )
     bid_legality = scorer.score_bid_legality(
