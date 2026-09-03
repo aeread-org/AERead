@@ -189,7 +189,7 @@ aeread export-tables \
   --publication-root evidence/<publication_id>/
 ```
 
-Use the canonical [run and publication layout](artifact_layout.md): raw and
+Use the canonical [run and publication layout](../architecture/artifact_layout.md): raw and
 replayable state stays under ignored `runs/`, while only sanitized,
 digest-bound publication bundles enter tracked `evidence/`.
 

@@ -16,7 +16,7 @@ scope, atomic commit, consent/IR enforcement, settlement row limits,
 information-reveal profile) + **institution pressure** (search costs, shocks)
 + **roles**. Cases live in versioned sets (`cases/exchange_v1/v0/`)
 and each declares what capability passing demonstrates. The current coverage
-map is [CAPABILITIES.md](../CAPABILITIES.md).
+map is [CAPABILITIES.md](../../CAPABILITIES.md).
 
 ## Roles: one seat under test, frozen everything else
 

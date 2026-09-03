@@ -3,7 +3,7 @@
 These tests exercise the real pinned upstream checkout on disk (read-only,
 never executed for anything a plain file read can answer) and, where a
 computed value is asserted, compare against upstream's own governing facts
-(docs/tau3_retail_adapter_spec.md) or against the kernel's own resolver
+(docs/families/tau3-retail/adapter_spec.md) or against the kernel's own resolver
 helpers -- never against a value this test suite invents.
 """
 from __future__ import annotations

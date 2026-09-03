@@ -8,7 +8,7 @@ Status: the P0 environment contract, allocation oracle, scripted multi-round
 baselines, shared-runner adapter, typed receipts, and offline state-and-score
 replay are implemented and tested. Live-model artifacts remain development
 evidence: Housing has not completed the separate
-[quality-control contract](housing_qc.md) or a confirmatory campaign freeze, so
+[quality-control contract](qc.md) or a confirmatory campaign freeze, so
 no live-model table is a current paper result.
 
 ## 1. The market

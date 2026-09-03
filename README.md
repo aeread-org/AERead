@@ -11,10 +11,11 @@
 
 **New here?** Follow the [onboarding journey](#onboarding-journey) below.
 
-**Reference:** [Concepts](docs/concepts.md) ·
-[Case catalog](cases/README.md) · [Benchmark QC](docs/benchmark_qc.md) ·
-[Experiment SOP](docs/experiment_campaign_sop.md) ·
-[Artifact layout](docs/artifact_layout.md) · [Source layout](docs/source_layout.md)
+**Reference:** [Documentation map](docs/README.md) ·
+[Concepts](docs/getting-started/concepts.md) ·
+[Case catalog](cases/README.md) · [Benchmark QC](docs/operations/benchmark_qc.md) ·
+[Experiment SOP](docs/operations/experiment_campaign_sop.md) ·
+[Artifact layout](docs/architecture/artifact_layout.md) · [Source layout](docs/architecture/source_layout.md)
 
 AERead (AgentEcon Readiness) is an open environment + benchmark for studying how
 LLM agents behave in **economic and stateful decision environments**: bilateral
@@ -70,7 +71,7 @@ Keep these units distinct:
 | **Publication** | A sanitized, digest-bound projection selected from local run evidence. |
 
 If that vocabulary is enough for now, continue to the first offline run. For
-the full terminology, read [Concepts](docs/concepts.md).
+the full terminology, read [Concepts](docs/getting-started/concepts.md).
 
 ### 2. Install a development checkout
 
@@ -146,7 +147,7 @@ runs/<workspace>/<run_id>/
 
 Raw execution state stays under ignored `runs/`. Only intentionally selected,
 sanitized artifacts are committed under `evidence/`. See the
-[artifact contract](docs/artifact_layout.md) before moving or publishing a run.
+[artifact contract](docs/architecture/artifact_layout.md) before moving or publishing a run.
 
 ### 5. Trace the same path through the source tree
 
@@ -167,7 +168,7 @@ across ownership boundaries:
 
 The dependency direction is deliberate: a family may import the shared runner;
 the shared runner must not import Housing or any other family. Read the
-[source-layout contract](docs/source_layout.md) before adding a module.
+[source-layout contract](docs/architecture/source_layout.md) before adding a module.
 
 ### 6. Understand how a run becomes benchmark evidence
 
@@ -188,20 +189,21 @@ design contract
 Failures and exclusions remain visible. Operational failures are missingness,
 not zero-quality outcomes. A control change reopens the affected gates; after
 confirmatory freeze it requires a new campaign identity. Read
-[Benchmark QC](docs/benchmark_qc.md), then the
-[Experiment SOP](docs/experiment_campaign_sop.md). Housing-specific checks are
-in [Housing QC](docs/housing_qc.md).
+[Benchmark QC](docs/operations/benchmark_qc.md), then the
+[Experiment SOP](docs/operations/experiment_campaign_sop.md). Housing-specific checks are
+in [Housing QC](docs/families/housing/qc.md).
 
 ### 7. Choose your next path
 
 | Goal | Continue with |
 |---|---|
+| Grasp the complete architecture | [Follow the architecture reading journey](docs/README.md#architecture-reading-journey). |
 | Evaluate a hosted model | [Evaluate a model](#evaluate-a-model), then the relevant family README. |
 | Understand the available tasks | [Case catalog](cases/README.md) and [capability coverage](CAPABILITIES.md). |
-| Compare harnesses | [Open-harness testing](docs/open_harness_testing.md). |
-| Design or execute a campaign | [Experiment SOP](docs/experiment_campaign_sop.md). |
-| Add a benchmark family or case | [Add a case](#add-a-case), [source layout](docs/source_layout.md), and [CONTRIBUTING](CONTRIBUTING.md). |
-| Submit an external agent | [Submit an agent](#submit-an-agent) and [submission contract](docs/submissions.md). |
+| Compare harnesses | [Open-harness testing](docs/operations/open_harness_testing.md). |
+| Design or execute a campaign | [Experiment SOP](docs/operations/experiment_campaign_sop.md). |
+| Add a benchmark family or case | [Add a case](#add-a-case), [source layout](docs/architecture/source_layout.md), and [CONTRIBUTING](CONTRIBUTING.md). |
+| Submit an external agent | [Submit an agent](#submit-an-agent) and [submission contract](docs/getting-started/submissions.md). |
 | Connect a training or memory stack | [Integrations](integrations/README.md). |
 
 ## What makes it a benchmark, not just a sandbox
@@ -252,7 +254,7 @@ stateful-agent evaluations:
 |---|---|---|
 | **Procurement** | Evidence-grounded sourcing plus interactive supplier qualification, negotiation, and allocation across quality, lead time, landed cost, margin, and return/refund terms | [`procurement_grounding_v1`](cases/procurement_grounding_v1/) tests the frozen 231-project evidence snapshot. [`procurement_allocation_v1`](cases/procurement_allocation_v1/) adds a synthetic objective-reference case with formal quotes, verified samples, and an actual award decision. The catalog also includes the specialized [`procurement_electronics_q3`](cases/exchange_v1/specialized/procurement_electronics_q3.json) exchange case. |
 | **Housing** | Multi-round housing search and assignment under private tenant preferences and listing capacity | [`housing_v1`](cases/housing_v1/) generates deterministic worlds from case parameters and seeds; it intentionally has no static JSON fixtures. |
-| **Refund and return** | Policy-constrained customer-service actions, exact final database state, required communication, and unintended mutations | [`tau3_retail`](cases/tau3_retail/) pins 114 upstream retail tasks and an [18-task refund/return pilot](cases/tau3_retail/base/pilot_manifest.json). The [integration plan](docs/refund_external_benchmark_integration.md) keeps deterministic database-state results separate from judge-dependent assertions. |
+| **Refund and return** | Policy-constrained customer-service actions, exact final database state, required communication, and unintended mutations | [`tau3_retail`](cases/tau3_retail/) pins 114 upstream retail tasks and an [18-task refund/return pilot](cases/tau3_retail/base/pilot_manifest.json). The [integration plan](docs/families/tau3-retail/refund_external_benchmark_integration.md) keeps deterministic database-state results separate from judge-dependent assertions. |
 
 Case-specific READMEs document the authoritative runner, scorer, provenance,
 and maturity status. Results from unlike families are reported separately; they
@@ -360,7 +362,7 @@ src/aeread/integrations/   rLLM flow/eval/dataset, EverOS memory (importable cod
 integrations/          per-integration guides + examples (human side)
 cases/                 canonical case catalog, grouped by family and version/split
 configs/exchange_economy/  experiment configs grouped by role and frozen release
-docs/                  quickstart, concepts, submission contract
+docs/                  sequenced guides, architecture contracts, family docs, operations, and research
 examples/              minimal runnable entry points
 tests/                 offline, deterministic; no API keys needed
 CAPABILITIES.md        coverage map: covered / partial / planned capabilities

@@ -1,5 +1,10 @@
 # Walkthrough: Shared-runner R4 model execution and evidence
 
+> **Status (2026-09-02): Complete for the shared execution path.** Write-before-side-effect,
+> explicit attempts, typed failures, budgets, reconciliation, and provider/tool evidence pass
+> the focused contracts. The legacy Exchange runner does not yet use these guarantees. See the
+> [roadmap implementation status](shared_runner_architecture_roadmap.md#implementation-status--2026-09-02).
+
 R4 is the first stage that may call an external model. It implements the R3 asynchronous
 response-source boundary with explicit logical actions, action attempts, provider calls, tool
 invocations, retry ownership, typed failures, cost accounting, canonical events, and
@@ -203,9 +208,16 @@ metadata; actions and outcomes remain the primary evidence. The full raw respons
 provider-returned reasoning text, remains in the local content-addressed evidence and is not
 committed.
 
-## Exact R4 boundary
+## Exact R4 boundary and current downstream state
 
-R4 proves that the runner can call a model without hiding retries, side effects, outcomes, or
-cost. It does not yet provide an `EvaluationReceipt`, crash resume, deterministic replay,
-scoring, coverage reconciliation, Exchange compatibility, or Housing semantics. Those remain
-R5-R7. The smoke result is an instrumentation admission result, not a paper measurement.
+R4 proves that the shared runner can call a model without hiding retries, side effects,
+outcomes, or cost. Since this walkthrough was first written, R5 work has added typed
+`EvaluationReceipt` records, family-state replay, evidence-chain resume/audit, scoring, and
+coverage projections, and native Housing work has exercised the shared kernel. Those later
+components do not retroactively enlarge the R4 contract, and full interrupted-episode recovery
+has not yet passed every roadmap crash-point gate.
+
+Exchange compatibility remains the critical missing boundary: the public Exchange commands
+still execute the legacy monolithic runner, so its post-call recording, run-directory collision,
+global-hook, and engine-owned scheduling danger zones remain unresolved. The smoke result is an
+instrumentation admission result, not a paper measurement.

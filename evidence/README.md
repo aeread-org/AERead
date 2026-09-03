@@ -12,7 +12,7 @@ state:
   suitable for code review and pull requests.
 
 Generic `output/` and `outputs/` directories are not used. See the normative
-[artifact layout](../docs/artifact_layout.md).
+[artifact layout](../docs/architecture/artifact_layout.md).
 
 Campaign evidence should use a dedicated subdirectory. A publication must
 retain typed failures and exclusions, identify its source receipts by digest,

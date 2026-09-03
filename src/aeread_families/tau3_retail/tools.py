@@ -2,7 +2,7 @@
 
 Every binding here delegates to the pinned upstream implementation through
 ``Tau2Bridge`` (``tau2_bridge.py``) -- no tool body, database mutation, or
-schema derivation is reimplemented (``docs/tau3_retail_adapter_spec.md``
+schema derivation is reimplemented (``docs/families/tau3-retail/adapter_spec.md``
 rule 2 and section 5). ``effect`` (mutating vs read_only) and
 ``input_schema`` are read straight off upstream's own
 ``mutates_state``/``openai_schema``, fetched live through the bridge each
@@ -132,7 +132,7 @@ def build_tool_bindings(
     upstream ``Environment.get_response`` path that produces success
     payloads *and* error strings byte-for-byte, including upstream's real
     ``modify_pending_order_items`` bug (see
-    ``docs/tau3_retail_adapter_spec.md`` and
+    ``docs/families/tau3-retail/adapter_spec.md`` and
     ``tests/test_tau3_retail_tools.py``). Mutating tools share exactly one
     ``state_reader`` (``session.get_db``); read/generic tools have none, per
     spec section 5.

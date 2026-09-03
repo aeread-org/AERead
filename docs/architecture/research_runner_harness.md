@@ -15,7 +15,7 @@ two executions replicates when their pinned treatment differs.
 The research harness therefore provides **derived views and preflight checks**. Canonical
 plans, events, artifacts, and receipts remain the only sources of truth.
 
-Campaigns use the ordered [experiment campaign SOP](experiment_campaign_sop.md) so a paid or
+Campaigns use the ordered [experiment campaign SOP](../operations/experiment_campaign_sop.md) so a paid or
 reportable stage cannot be promoted until its predecessor gates have evidence-backed passes.
 
 ```mermaid

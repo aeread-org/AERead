@@ -55,7 +55,7 @@ What you get in `submission_report.json`:
    learning) breaks policy-level replayability — run experiments with
    `verify_replay=False` and label results accordingly; official
    leaderboard rows must be replay-verified. See the
-   [EverOS integration](../integrations/everos/README.md) for the measured
+   [EverOS integration](../../integrations/everos/README.md) for the measured
    memory treatment arm and the memory-manifest direction.
 4. **Baselines are your floor**: report against no-op / random / greedy on
    the same seeds (`aeread baselines`). A model below the greedy floor is a

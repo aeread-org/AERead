@@ -15,7 +15,7 @@ confirmatory freeze, and canonical fact-table reporting.
 
 To measure opponent-model, opponent-policy, seat-composition, cross-play, or
 self-play effects while holding the harness fixed, use the separate
-[multi-agent model interaction protocol](multiagent_experiment_design.md).
+[multi-agent model interaction protocol](../research/multiagent_experiment_design.md).
 
 ## Reproduce the Housing comparison
 

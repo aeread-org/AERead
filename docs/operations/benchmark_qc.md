@@ -280,7 +280,7 @@ traceable.
 
 Each profile must state current implementation coverage and must not translate
 `partial` into `passed`. Housing is defined in the
-[Housing V1 QC profile](housing_qc.md). Procurement, refund, and future families
+[Housing V1 QC profile](../families/housing/qc.md). Procurement, refund, and future families
 should add profiles that reference this standard instead of copying it.
 
 ## 6. New-family contribution admission

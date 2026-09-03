@@ -422,7 +422,7 @@ receipt, deterministic replay, and no hidden retry or missing billing field.
 
 ### R5: paired harness panel
 
-- Reuse the staged protocol in `docs/open_harness_testing.md`.
+- Reuse the staged protocol in `docs/operations/open_harness_testing.md`.
 - Pair all harnesses on case, world seed, inference seed, counterpart policy,
   and execution budgets.
 - Rotate execution order and report cluster-level paired intervals by case.

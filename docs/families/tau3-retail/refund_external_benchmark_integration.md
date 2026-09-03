@@ -11,7 +11,7 @@ to construct a universal cross-family score
 
 The reusable identifier, tool/state evidence, typed measurement, durable sealing, and
 component-parity surface is defined in
-[`shared_runner_portability_contract.md`](shared_runner_portability_contract.md); this
+[`shared_runner_portability_contract.md`](../../architecture/shared_runner_portability_contract.md); this
 document supplies the Tau3-specific bindings and admission gates on top of that core.
 
 ## 1. Research decision
