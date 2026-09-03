@@ -322,3 +322,46 @@ and landed-cost/freight worsen it by $26.3044 and $10.8050 respectively; cash-bu
 and on-time-reliability regress slightly. These failures motivate focused held-out
 tests of sample timing and landed-cost gates rather than an in-place change to this
 confirmed V4 intervention.
+
+## Adaptive held-out risk-gate factorial
+
+The next campaign holds the qualified GLM revision, provider route, action schema,
+objective verifier, and frozen V4 prompt fixed while testing two explicit decision
+gates. The temporal gate requires verbal confirmation of sample logistics and a
+serial critical-path calculation. The cash gate requires quote-level landed-cash
+arithmetic after MOQ, order-step, capacity, and BOM rounding. A 2x2 design runs V4,
+temporal only, cash only, and both gates on both labeled and opaque surfaces.
+
+The six economic worlds in `cases/procurement_allocation_v1/risk_gates_v1/` were
+created after the V2 result audit. Three test sample timing and three test cash
+failures driven by freight, duty, or MOQ. The presentation mirrors are economically
+identical and use deterministic opaque IDs and reordered listings. The new three
+inference seeds are also disjoint from prior campaigns.
+
+Each invocation advances one complete economic-world block: three seeds in all
+eight surface-condition arms. Six failure-free checkpoints complete 144 scored
+rows. Four prompt-specific canaries are unscored. The conservative total ceiling is
+$2.24 and the absolute per-trajectory/canary ceiling is $2.96. Retries are limited to
+three attempts for typed rate limits, provider 5xx responses, or empty completions;
+all attempts and billed usage remain visible.
+
+The adaptive analysis reports temporal, cash, joint, factorial-main, and interaction
+contrasts after equal aggregation across surfaces and seeds within each world.
+Promotion of the joint gate requires lower mean regret overall, non-worse regret in
+each stratum, and no loss in feasibility, completed kits, or defer rate overall or by
+stratum. The six-world bootstrap intervals are exploratory. Eligibility depends only
+on complete replayed rows, exact cost accounting, and bound identities—not a
+favorable result.
+
+Print the no-spend frozen plan:
+
+```bash
+python -m aeread_families.procurement_allocation.risk_gate_campaign \
+  --run-root \
+  runs/procurement_allocation/procurement_allocation_glm53_flash_parasail_risk_gate_factorial_v1/qualification_attempt_001
+```
+
+After provider-free verification and loading `OPENROUTER_API_KEY`, add
+`--execute --max-spend-usd 2.96`. Continue each failure-free world checkpoint with
+`--resume`. Raw state remains under ignored `runs/`; publication is a separate
+`--publish-only` call to the matching direct `evidence/` bundle.

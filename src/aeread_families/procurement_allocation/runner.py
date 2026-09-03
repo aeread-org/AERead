@@ -683,8 +683,9 @@ async def run_fixture_script(
     *,
     evidence_root: Path | str,
     episode_attempt_ordinal: int = 0,
+    case_path: Path | str = CASE_PATH,
 ) -> tuple[ProcurementAllocationSetup, CellExecution, SequenceResponseProvider]:
-    setup = build_offline_setup()
+    setup = build_offline_setup(case_path=case_path)
     provider = SequenceResponseProvider(responses)
     execution = await execute_plan_cell(
         plan=setup.plan,

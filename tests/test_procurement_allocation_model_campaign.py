@@ -136,6 +136,31 @@ def test_model_plan_can_bind_all_route_dependent_fields_to_another_candidate() -
     )
 
 
+def test_model_plan_binds_explicit_per_trajectory_cost_cap() -> None:
+    default_plan = planned_model_qualification(
+        case_paths=(CASE_PATH,), inference_seeds=(231,)
+    )
+    capped_plan = planned_model_qualification(
+        case_paths=(CASE_PATH,),
+        inference_seeds=(231,),
+        max_cost_usd_per_trajectory=0.02,
+    )
+
+    assert default_plan["max_cost_usd_per_trajectory"] == pytest.approx(0.03)
+    assert capped_plan["max_cost_usd_per_trajectory"] == pytest.approx(0.02)
+    assert default_plan["plan_sha256"] != capped_plan["plan_sha256"]
+
+
+@pytest.mark.parametrize("value", [0.0, -0.01, float("inf"), float("nan"), True])
+def test_model_plan_rejects_invalid_per_trajectory_cost_cap(value: float) -> None:
+    with pytest.raises(ValueError, match="max_cost_usd_per_trajectory"):
+        planned_model_qualification(
+            case_paths=(CASE_PATH,),
+            inference_seeds=(231,),
+            max_cost_usd_per_trajectory=value,
+        )
+
+
 def test_case_matrix_is_grounded_distinct_and_objectively_scorable() -> None:
     grounding = validate_grounding_snapshot()
     cases = build_case_matrix()
