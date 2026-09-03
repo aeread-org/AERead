@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 
 import aeread_families.procurement_allocation.model_campaign as campaign_module
+import aeread.shared_runner.task.execution as execution_module
 from aeread.shared_runner.task.execution import ProviderFailure
 
 from aeread_families.procurement_allocation.model_campaign import (
@@ -105,6 +106,8 @@ def test_model_plan_holds_harness_fixed_and_separates_case_variance() -> None:
     assert plan["provider"] == "Morph"
     assert plan["revision"] == "z-ai/glm-5.3-flash-20260826"
     assert plan["pricing_id"] == "openrouter_2026-09-02_glm53_flash_morph"
+    assert plan["prompt"]["prompt_id"] == "procurement_allocation_prompt_v1"
+    assert plan["prompt"]["treatment_id"] == "unscaffolded_control"
     assert plan["plan_sha256"]
     assert plan["conservative_cost_ceiling_usd"] == pytest.approx(
         conservative_cost_ceiling(case_count=6, seed_count=3)
@@ -279,6 +282,55 @@ def test_provider_free_model_campaign_replays_and_resumes(tmp_path: Path) -> Non
     assert resumed["preflight"] == artifact["preflight"]
 
 
+def test_model_campaign_batches_only_missing_rows_without_selective_retry(
+    tmp_path: Path,
+) -> None:
+    run_root = tmp_path / "runs" / CAMPAIGN_ID / "batched_attempt"
+    providers: list[SequenceResponseProvider] = []
+
+    def provider_factory() -> SequenceResponseProvider:
+        provider = SequenceResponseProvider(
+            (_response({"action": "defer", "reason": "batch boundary test"}),)
+        )
+        providers.append(provider)
+        return provider
+
+    preflight = lambda _candidate: {"route_verified": True}
+    first = asyncio.run(
+        run_model_qualification(
+            run_root=run_root,
+            case_paths=(CASE_PATH,),
+            inference_seeds=(231, 232),
+            max_new_trajectories=1,
+            provider_factory=provider_factory,
+            preflight_fn=preflight,
+        )
+    )
+
+    assert first["summary"]["completed_trajectory_count"] == 1
+    assert first["summary"]["operational_failure_count"] == 0
+    assert first["summary"]["unattempted_trajectory_count"] == 1
+    assert first["summary"]["readiness"]["execution_qualified"] is False
+
+    second = asyncio.run(
+        run_model_qualification(
+            run_root=run_root,
+            case_paths=(CASE_PATH,),
+            inference_seeds=(231, 232),
+            max_new_trajectories=1,
+            provider_factory=provider_factory,
+            preflight_fn=preflight,
+            resume=True,
+        )
+    )
+
+    assert len(providers) == 2
+    assert second["summary"]["completed_trajectory_count"] == 2
+    assert second["summary"]["operational_failure_count"] == 0
+    assert second["summary"]["unattempted_trajectory_count"] == 0
+    assert second["summary"]["readiness"]["execution_qualified"] is True
+
+
 def test_campaign_aborts_after_first_operational_failure_and_cannot_resume(
     tmp_path: Path,
 ) -> None:
@@ -331,6 +383,86 @@ def test_campaign_aborts_after_first_operational_failure_and_cannot_resume(
                 ),
                 preflight_fn=lambda _candidate: {"route_verified": True},
             )
+        )
+
+
+def test_declared_runner_retry_recovers_429_and_remains_visible(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    run_root = tmp_path / "runs" / "procurement_retry_v1" / "attempt_001"
+
+    waits: list[float] = []
+
+    async def no_wait(seconds: float) -> None:
+        waits.append(seconds)
+        return None
+
+    monkeypatch.setattr(execution_module.asyncio, "sleep", no_wait)
+
+    class RetryThenScriptProvider:
+        def __init__(self) -> None:
+            self.calls = 0
+            self.delegate = SequenceResponseProvider(_optimal_script())
+
+        async def complete(self, request):
+            self.calls += 1
+            if self.calls == 1:
+                raise ProviderFailure(
+                    "rate_limit",
+                    "synthetic shared pool limit",
+                    retryable=True,
+                    status_code=429,
+                    retry_after_seconds=30,
+                )
+            return await self.delegate.complete(request)
+
+    provider = RetryThenScriptProvider()
+    artifact = asyncio.run(
+        run_model_qualification(
+            run_root=run_root,
+            case_paths=(CASE_PATH,),
+            inference_seeds=(231,),
+            max_spend_usd=0.03,
+            max_parallel_cells=1,
+            campaign_id="procurement_retry_v1",
+            abort_on_operational_failure=True,
+            provider_factory=lambda: provider,
+            preflight_fn=lambda _candidate: {"route_verified": True},
+            max_action_attempts=3,
+            retryable_conditions=("rate_limit", "provider_5xx"),
+            retry_backoff="exponential_jitter_v1",
+        )
+    )
+
+    row = artifact["rows"][0]
+    assert row["status"] == "completed"
+    assert row["receipt_replayed"] is True
+    assert row["runner_retry_count"] == 1
+    assert row["retry_condition_counts"] == {"rate_limit": 1}
+    assert row["provider_call_count"] == provider.calls
+    assert artifact["summary"]["runner_retry_count"] == 1
+    assert artifact["summary"]["retry_condition_counts"] == {"rate_limit": 1}
+    assert waits == [30]
+    assert artifact["plan"]["retry_policy"] == {
+        "owner": "shared_runner",
+        "max_action_attempts": 3,
+        "retryable_conditions": ["rate_limit", "provider_5xx"],
+        "retry_backoff": "exponential_jitter_v1",
+        "retry_after_max_seconds": 60.0,
+        "session_mode": "restart",
+        "sdk_retries": 0,
+        "cost_boundary": "retry only known-zero-cost provider failures",
+    }
+
+
+def test_model_plan_rejects_unknown_outcome_retry_conditions() -> None:
+    with pytest.raises(ValueError, match="known-zero-cost"):
+        planned_model_qualification(
+            case_paths=(CASE_PATH,),
+            inference_seeds=(231,),
+            max_action_attempts=2,
+            retryable_conditions=("timeout",),
+            retry_backoff="exponential_jitter_v1",
         )
 
 

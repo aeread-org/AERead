@@ -233,3 +233,52 @@ had +$28.4986 mean margin on labeled/original cases and +$54.9200 on
 opaque/reordered cases. The associated six-world cluster intervals exclude zero, so
 this panel is not saturated by the qualified GLM route. The tracked evidence is at
 `evidence/procurement_allocation_public_policy_baselines_v1/`.
+
+## Strategy-scaffold treatment
+
+The next model intervention keeps the GLM revision, provider route, Minimal Chat
+transport, action schema, six economic worlds, and three paired inference seeds
+fixed. It changes only the buyer instructions by adding a public-evidence decision
+procedure: ignore supplier names, conserve the action budget, qualify a minimal
+supplier set with formal quotes and samples, check capacity/service/cash constraints,
+and award only on evidence-qualified terms.
+
+Print the sealed 36-trajectory plan without provider calls:
+
+```bash
+python -m aeread_families.procurement_allocation.strategy_scaffold \
+  --run-root \
+  runs/procurement_allocation/procurement_allocation_glm_morph_strategy_scaffold_v3/qualification_attempt_001
+```
+
+After loading `OPENROUTER_API_KEY`, add `--execute`, a direct
+`evidence/procurement_allocation_glm_morph_strategy_scaffold_v3` publication root,
+and a total spend ceiling of at least $0.5088. Execution defaults to one cell at a
+time because route reliability, rather than local throughput, is the current
+bottleneck. It checkpoints after six completed trajectories; continue the same root
+with `--resume` only after a failure-free checkpoint. An unscored exact-request
+canary runs once, and any operational failure stops the remaining queue and
+permanently disqualifies that attempt root.
+
+To seal the same treatment to an alternate endpoint, add either
+`--candidate-id glm53_flash_reka` or
+`--candidate-id glm53_flash_cloudflare` and use the route-specific campaign root
+printed by the dry-run plan. Each conservative treatment ceiling is $0.5700.
+Publication also requires new unscaffolded labeled and opaque controls from that
+same route; the runner deliberately rejects cross-provider controls.
+
+The analysis reports scaffold-minus-control effects separately on labeled/original
+and opaque/reordered cases after averaging seeds within each world. It also reports
+the change in the opaque-minus-labeled effect. Positive absolute surface-gap
+reduction means the scaffold mitigated presentation sensitivity; the campaign does
+not assume that outcome in advance.
+
+This is an adaptive development treatment. In the first v1 probe, one labeled
+trajectory reached an award in six actions but selected formally late suppliers and
+completed zero kits; the next row then hit a provider rate limit. V2 made deadline
+feasibility a hard pre-price and pre-sample gate. It completed and replayed 14 labeled
+rows before another typed 429, including feasible 19-kit outcomes on all three
+deadline seeds. However, all three MOQ/capacity seeds submitted quantities above the
+selected offers' capacities. V3 adds the explicit split-capacity rule and failure-free
+batch checkpoints. Neither incomplete attempt is a treatment-effect estimate, and a
+held-out panel is still required for a confirmatory claim.

@@ -28,6 +28,9 @@ Current campaign directories include:
   selected development configurations;
 - `housing_qc_goldens_v1/`: six provider-free Housing environment/verifier
   golden receipts and their digest-bound QC report;
+- `procurement_allocation_glm53_flash_parasail_strategy_scaffold_v4_retry_after/`:
+  qualified same-route labeled and opaque prompt-treatment evidence, including
+  retry observability, paired effects, integrity gates, and sanitized row projections;
 - `housing_model_sensitivity_openrouter_alt_v4/` through
   `housing_model_sensitivity_openrouter_alt_v9/`, plus
   `housing_model_sensitivity_openrouter_morph_v10/`: successive OpenRouter
