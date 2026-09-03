@@ -5,8 +5,10 @@
 **Campaign procedure:** [experiment campaign SOP](../../operations/experiment_campaign_sop.md)
 **Status:** case-specific profile;
 `development_case_qualification=passed` and
-`normative_housing_profile=partial`. Confirmatory and live-model gates remain
-incomplete, so normative promotion is blocked.
+`environment_and_verifier_qc=passed`, while
+`normative_housing_profile=partial`. The one-world model-to-model integration
+slice is complete with typed missingness, but variance, freeze, and
+confirmatory gates remain incomplete, so normative promotion is blocked.
 
 This profile binds the shared QC gates to Housing V1. Requirements inherited
 from the standard are not repeated unless Housing supplies a specific
@@ -141,9 +143,9 @@ facts, trajectories, and a digest-bound manifest.
 | Gate | Current coverage | Main blocker to `passed` |
 |---|---|---|
 | Task-distribution admission | Frozen 18-configuration development sweep, canonical case/configuration facts, and disjoint held-out parameters and seeds | The confirmatory holdout remains sealed and must not be executed before confirmatory freeze |
-| Environment and verifier | Oracle enumeration, zero-bound quarantine, sealed scripted execution, and replay implemented | Complete targeted efficient, poor, invalid, malformed, and provider-failure golden receipts remain to be published as one QC bundle |
-| Construct validity | Active no-op, seeded random, naive, adaptive, and oracle-informed audit implemented across the frozen development grid; eligibility and selection thresholds are frozen | The V1 model-sensitivity live gate stopped on typed provider failures before producing a valid trajectory; provider reliability must pass before freezing the confirmatory difficulty envelope |
-| Attribution and controls | Complete population cross-play driver and plan-level block checks implemented; the V1 fixed-harness, four-condition model matrix passed design and provider-free validation | Focal-seat rotation remains a separate future block; the live V1 matrix must complete without route or provider-contract drift |
+| Environment and verifier | Oracle enumeration, zero-bound quarantine, replay, and the six-scenario `housing_qc_goldens_v1` receipt bundle passed | No blocker for development campaigns; re-run only when a bound environment, verifier, runner, or golden contract digest changes |
+| Construct validity | Active no-op, seeded random, naive, adaptive, and oracle-informed audit implemented across the frozen development grid; eligibility and selection thresholds are frozen; V8 produced 11 valid live trajectories | A multi-world pilot must measure whether model policies reliably separate from the declared baselines across independent worlds |
+| Attribution and controls | The V8 fixed-harness subject-by-opponent matrix attempted all 12 cells with exact route and replay evidence; one GLM self-play cell is typed timeout missingness | Focal-seat rotation remains a separate future block; no cross-play or self-play result is rankable before a complete multi-world design |
 | Confirmatory reliability | Generic gate and analysis primitives only | No Housing variance pilot, power calculation, freeze artifact, or campaign gate history |
 
 Housing may run development and qualification experiments, but it must not
@@ -500,3 +502,57 @@ record is
 Apply the campaign SOP's backend-escalation instruction before the variance
 pilot. OpenRouter remains the backend; any provider-route change requires a new
 campaign identity and fresh admission rather than an in-place backend swap.
+
+## 14. Provider-free environment and verifier goldens
+
+[`housing_qc_goldens_v1`](../../../configs/housing_qc_goldens_v1.json) closes
+the development environment-and-verifier QC bundle with six deterministic
+shared-runner scenarios: efficient, valid-but-poor, unauthorized, malformed,
+provider failure, and zero upper bound. The invalid-action fixture emits valid
+JSON and fails legality only; malformed output fails parsing; provider failure
+is excluded as operational missingness rather than converted to a zero score.
+
+Run and publish it without a provider key:
+
+```bash
+PYTHONPATH=src python -m aeread_families.housing.qc_bundle \
+  --contract configs/housing_qc_goldens_v1.json \
+  --run-root runs/housing_qc_goldens_v1 \
+  --publish-root evidence/housing_qc_goldens_v1
+```
+
+All five valid receipts replay state and score exactly; the provider-failure
+receipt has `replay_level=none`. The bundle made zero external calls and cost
+`$0.00`. Review the digest-bound
+[`qc_bundle.json`](../../../evidence/housing_qc_goldens_v1/reports/qc_bundle.json)
+and its six sanitized receipt projections.
+
+## 15. V8 complete-attempt model-to-model integration slice
+
+[`housing_model_sensitivity_openrouter_alt_v8`](../../../configs/housing_model_sensitivity_openrouter_alt_v8.json)
+keeps V7's three selected development configurations, one world seed, fixed
+`minimal_chat/1.0` harness, role prompts, conditional schemas, retry policy,
+and NextBit/GLM plus Parasail/DeepSeek routes. It raises only the predeclared
+live ceiling and next-cell reserve, under a new campaign identity, using V7's
+observed costs.
+
+V8 passed the provider-free and catalog gates, then passed all 18 profile
+probes with no operational failures or hidden retries for `$0.0029879091`.
+It attempted all 12 frozen live cells. Eleven completed with exact replay and
+complete provider billing; the mild GLM self-play cell timed out after 12
+provider calls and is retained as excluded typed missingness. Live execution
+cost `$0.0472764897`; combined provider-reported cost was `$0.0502643988`.
+
+This is acceptable integration evidence, not a leaderboard. Only one world
+cluster was attempted, uncertainty is not estimable, and the matrix has one
+missing score. The next gate is a newly frozen multi-world variance pilot; do
+not selectively rerun or impute the V8 timeout.
+
+The digest-bound
+[`qualification.json`](../../../evidence/housing_model_sensitivity_openrouter_alt_v8/reports/qualification.json)
+records every gate. The
+[`attempted.json`](../../../evidence/housing_model_sensitivity_openrouter_alt_v8/trajectories/attempted.json)
+projection retains all 12 attempts in frozen order, including parsed action
+counts, outcomes, assignments, rents, role usage, costs, latency, failure
+usage, and receipt/event digests. Raw provider responses and reasoning remain
+only under ignored local `runs/`.

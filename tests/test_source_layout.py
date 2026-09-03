@@ -60,6 +60,7 @@ def test_housing_family_owns_its_complete_execution_surface() -> None:
     assert {path.name for path in housing_root.glob("*.py")} == {
         "__init__.py",
         "backend_campaign.py",
+        "backend_publication.py",
         "case_sweep.py",
         "environment.py",
         "harness_bakeoff.py",
@@ -67,6 +68,7 @@ def test_housing_family_owns_its_complete_execution_surface() -> None:
         "model_sensitivity.py",
         "population_campaign.py",
         "qc.py",
+        "qc_bundle.py",
         "runner.py",
     }
 
