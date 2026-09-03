@@ -124,6 +124,227 @@ failure, and 17 unattempted trajectories. The repeated failure rejects this rout
 for the declared allocation campaign. It does not support a Mistral procurement
 score or a Mistral-versus-GLM ranking.
 
+### Qwen matched case qualification
+
+The next model candidate is the Apache-2.0 Qwen3 30B-A3B Instruct checkpoint on a
+pinned CoreWeave BF16 route. It reuses the qualified GLM baseline's six cases, three
+inference seeds, unscaffolded prompt, Minimal Chat transport, action budget, and
+objective verifier. This supports a later matched model diagnostic without treating
+the three seeds within one economic world as independent cases.
+
+The campaign first sends one unscored exact-request canary. Any nonempty response
+admits transport, including malformed JSON; output validity is not used to select a
+candidate. Scored execution is sequential, advances six trajectories per invocation,
+and stops permanently on the first typed operational failure. Only a failure-free
+checkpoint may resume. All 18 rows must complete and receipt-replay before outcomes
+are inspected or compared.
+
+V1 froze plan digest
+`fc7febffe7f3aa947a00c30821d7da87935c6ce12a7d39e275cf2155d3d57d02`,
+then stopped at admission before any scored trajectory. The exact request received
+HTTP 404 because the adapter serialized `reasoning: {}` despite the profile declaring
+no reasoning control. With parameter matching required, OpenRouter removed the
+otherwise eligible endpoint at its parameter-filter stage. The canary reported zero
+cost but marked accounting unavailable, so V1 is sealed and ineligible.
+
+V2 preserves V1's model, route, cases, seeds, prompt, harness, action budget,
+checkpoint policy, retries, cost bounds, and eligibility rule. Its only operational
+change omits the reasoning field when neither effort nor token budget is declared.
+The V2 frozen plan digest is
+`cef886b5f890c4a14c224a09ea4541ebfdbaacbbf872f633139827a7f42a08d5`.
+The conservative total ceiling remains $0.1792 and the hard total ceiling $0.19,
+including the canary. The claim remains a six-world curated-panel diagnostic, not a
+population model ranking or evidence that an open-source license determines quality.
+
+#### Observed Qwen V2 result
+
+V2 admitted its exact-request canary, completed all 18 scored trajectories, and
+receipt-replayed every row with zero operational failures or retries. The canary cost
+$0.000152064 and the scored panel cost $0.018937017, for $0.019089081 total with
+exact accounting.
+
+Qwen produced no feasible allocation in 18 attempts. Twelve submitted awards that
+failed minimum service, including two unverified-sample violations. Six terminated
+as malformed JSON. The raw sealed responses show that those six reached the
+1,800-token completion limit while repeatedly inventing a large `fields` array that
+was outside the strict action schema, then ended mid-JSON. This is retained as model
+and pinned-route behavior, not converted into provider missingness or repaired after
+the fact.
+
+The paired comparison against the qualified GLM baseline passed every case, seed,
+content, harness, upper-bound, route, replay, cost, and digest check. The seven GLM
+feasible rows all transitioned pass-to-fail; the other eleven pairs were fail/fail.
+After averaging seeds within each of the six economic worlds, Qwen-minus-GLM effects
+were -0.3889 feasibility (six-world bootstrap interval [-0.7222, -0.1111]), -8.3333
+completed kits ([-13.7222, -3.3889]), -$29.5818 contribution margin
+([-56.9818, -6.1514]), and +$29.5818 regret ([6.1514, 56.9818]). These intervals
+describe only the curated panel.
+
+Operationally, Qwen's median trajectory time was 16.74 seconds versus 204.43 for the
+historical GLM run, and its scored cost was $0.018937017 versus $0.0365370885. Route,
+provider, and execution-time differences confound that speed comparison, so it is a
+deployment diagnostic rather than a model-only causal effect. Because base
+allocation feasibility was 0/18, this candidate does not progress to the 144-row
+risk-gate factorial.
+
+### Adaptive Qwen 235B follow-up
+
+The next candidate tests whether greater model capacity clears the base allocation
+gate before any further prompt-mechanism campaign. It pins the Apache-2.0 Qwen3
+235B-A22B Instruct checkpoint to the AtlasCloud FP8 route while preserving the 30B
+campaign's cases, seeds, unscaffolded prompt, Minimal Chat transport, action budget,
+objective verifier, checkpointing, retry policy, and completeness gate. Candidate
+selection occurred after inspecting the qualified 30B result, so this remains an
+adaptive diagnostic rather than confirmatory model selection.
+
+The frozen plan binds the 30B evidence manifest and has digest
+`9b7b2fbea8200eb9900ee063bf34255c3162f9aa7e733a5d76adb7224507a78f`.
+One unscored exact-request canary precedes three sequential six-row checkpoints.
+The conservative total ceiling is $0.45912 and the hard ceiling is $0.57 including
+the canary. Any operational failure seals the attempt, and no case outcome is
+inspected until all 18 rows complete and receipt-replay.
+
+#### Observed Qwen 235B AtlasCloud result
+
+The canary and all 18 scored trajectories completed with exact accounting, no
+operational failures, and no retries. The canary cost $0.0002727648 and the scored
+panel cost $0.0047373876, for $0.0050101524 total. Every row receipt-replayed and
+the median trajectory time was 2.69 seconds.
+
+All 18 trajectories nevertheless stopped on their first action with
+`unknown_procurement_action`. The returned JSON was semantically a supplier inquiry,
+but placed `inquire` at the top level and omitted the required top-level
+`"action": "inquire"` discriminator. This repeated envelope error produced 0/18
+feasible allocations. Because the route did not enforce the declared strict schema,
+the result identifies a route-level structured-output compatibility failure; it does
+not isolate the checkpoint's procurement decision capacity and does not progress to
+the risk-gate factorial.
+
+### Adaptive Qwen 235B provider-route diagnostic
+
+The next diagnostic holds the 235B checkpoint, exact six cases, three inference
+seeds, prompt, Minimal Chat harness, action budget, objective verifier, retries, and
+checkpoint policy fixed, while changing only the pinned route to Google. The live
+endpoint catalog declares one Google endpoint at the pinned $0.22/M input and
+$0.88/M output prices with `structured_outputs`, `response_format`, `seed`, and
+`max_tokens` support; a second, more expensive endpoint is excluded by the price pin.
+
+This is a provider-route diagnostic, not a new model comparison. It binds the
+published AtlasCloud evidence manifest, runs one unscored exact-request canary, then
+three sequential six-row checkpoints. The frozen plan digest is
+`7c90ba968b369ab0b03c080ea734f6aa71efdfb981d160d9ac795a2a56fff862`,
+with a $0.47352 conservative ceiling and $0.57 hard ceiling including the canary. If
+the Google route returns valid action envelopes, later outcome differences can be
+interpreted as route-mediated behavior. If it repeats the same envelope defect, the
+evidence shifts toward checkpoint or adapter incompatibility, but still does not
+justify a broad model-quality claim.
+
+#### Observed Qwen 235B Google result
+
+The Google route admitted a valid `inquire` action and completed all 18 scored rows
+with receipt replay, exact accounting, zero operational failures, and zero retries.
+The canary cost $0.0003336696 and the scored panel cost $0.0620862858, for
+$0.0624199554 total. Median trajectory time was 13.94 seconds.
+
+Every matched first action changed from a missing discriminator on AtlasCloud to a
+valid `inquire` action on Google. Eleven trajectories reached an award submission,
+six ended with a malformed procurement action, and one exhausted the ten-action
+interaction budget. Three allocations were feasible: one quality/refund replicate
+and two variant-substitution replicates. The other 15 remained infeasible, including
+systematic over-capacity awards in the MOQ/capacity world and minimum-service failures
+in the deadline and service-defer worlds.
+
+The digest-bound paired route comparison qualified all 18 pairs. Google-minus-
+AtlasCloud effects, after averaging seeds within each of the six worlds, were +0.1667
+feasibility (six-world bootstrap interval [0.0000, 0.3889]), +7.7778 completed kits
+([2.3333, 13.5556]), +$12.0299 contribution margin ([-$1.0389, $31.1382]), and
+-$12.0299 regret ([-$31.1382, $1.0389]). The route therefore fixes the action-envelope
+failure and reveals some decision capacity, but uncertainty and remaining constraint
+violations do not support a general provider ranking or progression to the 144-row
+risk-gate factorial.
+
+The next high-value test is a matched constraint-ledger treatment on this qualified
+Google route. It should require the model to record demand, capacity, MOQ, deadline,
+cash, sample, and minimum-service obligations before submitting an award, while
+leaving the environment, objective verifier, action schema, cases, and seeds fixed.
+This directly tests whether the dominant residual failures are recoverable planning
+errors rather than spending another broad campaign on an unqualified base policy.
+
+That adaptive treatment is frozen as
+`procurement_allocation_qwen3_235b_google_constraint_ledger_v1`. It binds the
+published Google control manifest and changes only the public buyer decision
+procedure. The plan digest is
+`af36b6088539cbece9967f066f9954d80e743e2350dfe17bf3b91a7b7380c36d`.
+One unscored canary precedes three sequential six-row checkpoints; the conservative
+total ceiling is $0.47352 and the hard ceiling is $0.57. Outcomes remain hidden until
+all 18 rows complete and receipt-replay with exact cost accounting.
+
+#### Observed constraint-ledger V1 result
+
+V1 admitted a valid `request_quote` canary and completed and receipt-replayed all 18
+rows with no operational failures or retries. The canary cost $0.00038115 and the
+scored panel cost $0.0216552006, for $0.0220363506 total with exact accounting.
+Median trajectory time fell from 13.94 seconds in control to 1.78 seconds in
+treatment, largely because many treatment trajectories terminated early.
+
+Treatment produced 5/18 feasible allocations versus 3/18 in control. All three
+deadline/cost replicates changed fail-to-pass, two variant-substitution replicates
+remained pass-to-pass, and one quality/refund replicate changed pass-to-fail. Across
+the six worlds, treatment-minus-control effects were +0.1111 feasibility (six-world
+bootstrap interval [-0.1667, 0.5000]), -2.5000 completed kits ([-11.4444, 7.1667]),
++$6.2385 contribution margin ([-$9.3673, $27.6077]), and -$6.2385 regret
+([-$27.6077, $9.3673]). None of these panel intervals excludes zero.
+
+Thirteen treatment rows ended with `malformed_procurement_action`. Their sealed
+provider responses were schema-shaped, but the selected `request_quote` or
+`request_sample` action carried a null `message`; that field is contractually required
+to be non-empty because it contains the verbal confirmation request. Irrelevant null
+superset fields are ignored, but selected-action nulls are not post-hoc normalized.
+Thus V1 demonstrates a strong deadline-world gain alongside broad action-contract
+regressions and does not progress to the risk-gate factorial.
+
+The next bounded diagnostic should be an adaptive V2 that adds only an explicit
+non-empty-message reminder to the frozen V1 decision procedure. Reusing the same
+panel is suitable for diagnosing output-contract compliance, but any efficacy change
+remains development evidence because V2 is selected after inspecting V1.
+
+V2 is frozen as
+`procurement_allocation_qwen3_235b_google_constraint_ledger_v2`, with plan digest
+`b08c0d86956ce522b7bd401d617acf110fabea0f4637b077749e7722043ff308`.
+It binds the V1 evidence manifest and appends only the selected-action field reminder.
+One unscored canary precedes three sequential six-row checkpoints. The conservative
+total ceiling remains $0.47352 and the hard ceiling $0.57; inspection remains blocked
+until all 18 rows complete and receipt-replay with exact cost accounting.
+
+#### Observed constraint-ledger V2 result
+
+V2 admitted a valid `request_quote` canary and completed and receipt-replayed all 18
+rows with zero operational failures or retries. The canary cost $0.0004068504 and the
+scored panel cost $0.0571252374, for $0.0575320878 total with exact accounting.
+All 13 V1 malformed-action failures disappeared; 13 V1 invalid trajectories reached
+award submission in V2.
+
+V2 produced 10/18 feasible allocations: 3/3 quality/refund, 3/3 working-capital,
+2/3 variant-substitution, 1/3 deadline/cost, and 1/3 service-defer. MOQ/capacity
+remained 0/3 because every award exceeded both selected offers' capacities, and one
+variant-substitution row used an unknown supplier ID. Four submitted awards still
+failed minimum service.
+
+The primary adaptive V2-minus-V1 contract-recovery contrast increased feasibility by
+0.2778, but its six-world interval [-0.1667, 0.7222] includes zero. The exploratory
+V2-minus-unscaffolded-control contrast was +0.3889 feasibility ([0.1111, 0.6667]),
++7.0556 completed kits ([2.1111, 12.6667]), +$23.4162 contribution margin
+([$3.4540, $49.4385]), and -$23.4162 regret ([-$49.4385, -$3.4540]). These are strong
+development-panel effects, not confirmatory mechanism estimates, because V2 was
+selected after inspecting V1 on the same worlds.
+
+Further prompt edits on these six cases are saturated. The next high-value campaign
+is a held-out confirmatory panel with new economic worlds, opaque/reordered supplier
+IDs, and several cases where a feasible award requires splitting demand across
+capacity-limited offers. It should freeze V2 unchanged and include the unscaffolded
+control so transfer, supplier-ID robustness, and split-capacity execution can be
+estimated without additional prompt tuning.
+
 ## Public-observation policy controls
 
 The deterministic policy campaign supplies non-model floors and a negative control

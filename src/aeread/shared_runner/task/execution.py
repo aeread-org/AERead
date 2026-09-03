@@ -1160,6 +1160,10 @@ class OpenRouterChatClient:
             request
         )
         wire_output_schema = json.loads(canonical_json_bytes(request.output_schema))
+        extra_body: dict[str, Any] = {"provider": provider_preferences}
+        reasoning = _reasoning_block(request)
+        if reasoning:
+            extra_body["reasoning"] = reasoning
         kwargs: dict[str, Any] = {
             "model": request.model,
             "messages": [
@@ -1179,10 +1183,7 @@ class OpenRouterChatClient:
             "tools": [],
             "stream": False,
             "extra_headers": {"X-OpenRouter-Metadata": "enabled"},
-            "extra_body": {
-                "reasoning": _reasoning_block(request),
-                "provider": provider_preferences,
-            },
+            "extra_body": extra_body,
         }
         if request.temperature is not None:
             kwargs["temperature"] = request.temperature
@@ -1273,6 +1274,10 @@ class OpenRouterChatClient:
             }
             for tool in (request.tools or ())
         ]
+        extra_body: dict[str, Any] = {"provider": provider_preferences}
+        reasoning = _reasoning_block(request)
+        if reasoning:
+            extra_body["reasoning"] = reasoning
         kwargs: dict[str, Any] = {
             "model": request.model,
             "messages": wire_messages,
@@ -1281,10 +1286,7 @@ class OpenRouterChatClient:
             "tools": wire_tools,
             "stream": False,
             "extra_headers": {"X-OpenRouter-Metadata": "enabled"},
-            "extra_body": {
-                "reasoning": _reasoning_block(request),
-                "provider": provider_preferences,
-            },
+            "extra_body": extra_body,
         }
         if request.temperature is not None:
             kwargs["temperature"] = request.temperature
