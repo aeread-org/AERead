@@ -345,6 +345,76 @@ capacity-limited offers. It should freeze V2 unchanged and include the unscaffol
 control so transfer, supplier-ID robustness, and split-capacity execution can be
 estimated without additional prompt tuning.
 
+### Frozen targeted Qwen holdout
+
+That next campaign is frozen as
+`procurement_allocation_qwen3_235b_google_holdout_v1`. It contains six new opaque
+economic worlds: two single-component splits, one dual-component split, one
+multi-unit BOM split, one capacity-limited 18-kit minimum-service allocation, and
+one budget-limited 18-kit allocation. All six have new economic-world digests
+relative to the development, prior confirmatory, and risk-gate panels. Their exact
+oracles are positive, use only public quote/sample/award actions, and require no more
+than the declared ten actions.
+
+The Qwen3 235B Google route, model revision, Minimal Chat harness, structured action
+schema, verifier, retry policy, six opaque cases, and three inference seeds are held
+fixed. The only paired intervention is the prompt: unscaffolded control versus the
+unchanged constraint-ledger V2 prompt. Supplier identifiers and display names are
+opaque in both arms, and listing order is deterministically shuffled before either
+prompt sees a case.
+
+The frozen plan digest is
+`5ae0b91427f07c024120de0e96698ceafe1343c55d95e07b867b5cc8c479efde`.
+It declares 36 scored trajectories, two unscored prompt-specific canaries, a
+$0.94704 conservative total ceiling, and a $1.14 hard ceiling. Execution is
+sequential and checkpoints every six rows. No efficacy inspection or early stopping
+is permitted; any operational failure seals the affected attempt.
+
+The independent unit is the economic world. Three seeds are averaged within world,
+then V2-minus-control effects are reported for feasibility, completed kits, margin,
+and regret with a deterministic six-world cluster bootstrap. The preregistered
+diagnostic support rule requires the regret interval upper bound below zero and the
+feasibility interval lower bound at least -0.05. That rule affects interpretation,
+not eligibility: any complete, digest-matched, receipt-replayed result with exact
+cost accounting is published, including a null or adverse effect. Because the worlds
+were targeted from prior failures, even a supported result is a residual-capability
+transfer diagnostic rather than broad confirmatory evidence.
+
+#### Observed targeted Qwen holdout result
+
+Both canaries were admitted and all 36 scored rows completed and receipt-replayed
+with zero operational failures and exact accounting. The control arm had one bounded
+provider retry; V2 had none. Control scored cost was $0.0527916708, V2 scored cost
+was $0.0590797746, and the two canaries cost $0.0006390252, for $0.1125104706 total.
+Median trajectory time was 14.00 seconds for control and 10.84 seconds for V2.
+
+The preregistered residual-capability support rule was not met. V2-minus-control
+effects after averaging seeds within each world were +0.0556 terminal feasibility
+(six-world interval [0.0000, 0.1667]), +2.7222 completed kits ([-1.8333, 10.0000]),
+-$0.3611 contribution margin ([-$0.7861, $0.0167]), and +$0.3611 regret
+([-$0.0167, $0.7861]). The regret interval upper bound is not below zero. The one
+fail-to-pass transition was a defer, not a purchase: neither arm produced any
+feasible award.
+
+V2 did improve action-contract discipline. Control had five malformed procurement
+actions; V2 had none. Both arms made zero supplier-targeting attempts with an
+unknown opaque ID. V2 reached 17 award submissions versus 13 for control, but this
+did not translate into constraint-aware allocation. Across the five worlds that
+require a split, control submitted ten awards and V2 submitted fourteen; neither arm
+submitted a single award that split one component across multiple offers. Control
+recorded 14 over-capacity line violations and V2 recorded 15. Both arms exceeded the
+cash budget in all three budget-limited replicates by ordering the 20-kit target
+instead of the feasible 18-kit minimum-service quantity.
+
+The most informative result is therefore a separation between procedural compliance
+and economic decision competence. The frozen V2 procedure reliably eliminates the
+earlier JSON/action-field failures and reaches terminal decisions, but the model does
+not carry observed capacity, order-step, budget, and target-versus-minimum constraints
+into final award quantities. Additional wording on the same procedure is unlikely to
+be high value. A next test should change the decision representation or action
+interface—for example, a typed allocation worksheet or verifier-visible pre-award
+constraint check—rather than tune this prompt again.
+
 ## Public-observation policy controls
 
 The deterministic policy campaign supplies non-model floors and a negative control
