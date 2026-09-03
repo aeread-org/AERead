@@ -1,6 +1,24 @@
 """AERead shared-runner contracts and implementation stages."""
 
-from .execution import (
+from .run.campaign import (
+    CAMPAIGN_GATE_SEQUENCE,
+    CampaignGateError,
+    CampaignGateRecord,
+    CampaignHistoryRecord,
+    CampaignInvalidationRecord,
+    CampaignPromotionDecision,
+    append_campaign_gate,
+    append_campaign_invalidation,
+    campaign_active_gate_records,
+    campaign_gate_artifact_type,
+    campaign_gate_record_sha256,
+    campaign_history_record_from_dict,
+    campaign_history_record_sha256,
+    campaign_history_record_to_dict,
+    campaign_promotion_decision,
+)
+
+from .task.execution import (
     ActionAttemptRecord,
     ArtifactRef,
     CanonicalResponse,
@@ -26,7 +44,7 @@ from .execution import (
     ToolInvocationRecord,
     execute_plan_cell,
 )
-from .harness import (
+from .model_call.harness import (
     AttemptContext,
     BudgetView,
     CanonicalMessage,
@@ -45,14 +63,44 @@ from .harness import (
     ToolPort,
     ToolSchema,
 )
-from .registry import HarnessRegistry, PluginRegistry
-from .parity import (
+from .run.layout import (
+    ATTEMPTS_DIRECTORY,
+    PUBLICATION_ROOT,
+    RUNS_ROOT,
+    TABLES_DIRECTORY,
+    TASKS_DIRECTORY,
+    TRAJECTORIES_DIRECTORY,
+    WORK_ROOT,
+    LayoutError,
+    PublicationLayout,
+    RunLayout,
+)
+from .registry import (
+    ContributionAdmissionError,
+    HarnessRegistry,
+    PluginRegistry,
+    family_contribution_sha256,
+)
+from .analysis.parity import (
+    ExternalParityCriterion,
     ParityContractError,
     ParityField,
     ParityFieldResult,
     ParityReport,
     ParitySpec,
     compare_projections,
+)
+from .quality import (
+    BenchmarkQCStatus,
+    FamilyContribution,
+    HumanQCApproval,
+    QCCoverage,
+    QCContractError,
+    QCEvidenceRef,
+    QCTrackStatus,
+    ResourceLimits,
+    evidence_coverage_complete,
+    verify_qc_evidence_files,
 )
 from .measurement import (
     EstimandSpec,
@@ -69,7 +117,7 @@ from .measurement import (
     VerifierSpec,
     normalize_family_score_set,
 )
-from .receipts import (
+from .task.receipts import (
     EvaluationFailure,
     EvaluationReceipt,
     read_evaluation_receipt,
@@ -78,16 +126,20 @@ from .receipts import (
     verify_serialized_evaluation_receipt,
     write_evaluation_receipt,
 )
-from .research import (
+from .analysis.research import (
     AttemptResearchRow,
+    BenchmarkResultFactRecord,
     CampaignResearchRow,
+    CanonicalFactTables,
     CellResearchRow,
     DesignAudit,
     DesignIssue,
     DesignObservation,
     EventResearchRow,
     LossAnalysisTables,
+    ModelFeatureFactRecord,
     ModelCallRecord,
+    ProfileFactRecord,
     ResearchContractError,
     ResearchLedger,
     RunRecord,
@@ -98,11 +150,13 @@ from .research import (
     build_trajectory_record,
     build_research_ledger,
     export_loss_analysis_dataset,
+    export_canonical_fact_tables,
     project_evidence_events,
+    project_canonical_fact_tables,
     project_loss_analysis_tables,
     research_tables,
 )
-from .resolver import (
+from .run.resolver import (
     CapabilityExclusionError,
     ImplementationPin,
     PlanCell,
@@ -116,7 +170,7 @@ from .resolver import (
     verify_run_plan,
     write_run_plan,
 )
-from .scheduler import (
+from .task.scheduler import (
     ActionEnvelope,
     DecisionRequest,
     EpisodeResult,
@@ -143,9 +197,15 @@ from .schemas import (
     is_exportable_id,
     parse_authoring_record,
 )
-from .tools import ToolBinding, ToolContractError, ToolDefinition, ToolRuntime
+from .task.tools import ToolBinding, ToolContractError, ToolDefinition, ToolRuntime
 
 __all__ = [
+    "CAMPAIGN_GATE_SEQUENCE",
+    "CampaignGateError",
+    "CampaignGateRecord",
+    "CampaignHistoryRecord",
+    "CampaignInvalidationRecord",
+    "CampaignPromotionDecision",
     "AgentProfile",
     "ActionEnvelope",
     "ActionAttemptRecord",
@@ -154,6 +214,7 @@ __all__ = [
     "AttemptContext",
     "AuthoringValidationError",
     "BudgetView",
+    "BenchmarkQCStatus",
     "CapabilityExclusionError",
     "CaseManifest",
     "CanonicalMessage",
@@ -161,10 +222,12 @@ __all__ = [
     "ClaimedToolCall",
     "ClaudeCodePrintClient",
     "ConcurrentEvidenceWriterError",
+    "ContributionAdmissionError",
     "CellExecution",
     "EvaluationBlock",
     "EvaluationFailure",
     "EvaluationReceipt",
+    "ExternalParityCriterion",
     "EpisodeResult",
     "EvidenceIntegrityError",
     "EvidenceSeal",
@@ -173,11 +236,14 @@ __all__ = [
     "Event",
     "FailureCondition",
     "FamilyManifest",
+    "FamilyContribution",
     "FamilyScoreSet",
     "Harness",
     "HarnessOutput",
     "HarnessRegistry",
     "HarnessRequirements",
+    "HumanQCApproval",
+    "LayoutError",
     "ImplementationPin",
     "DecisionRequest",
     "KernelModelPort",
@@ -209,13 +275,20 @@ __all__ = [
     "PhaseSpec",
     "PluginRegistry",
     "ProfileAdmission",
+    "PublicationLayout",
     "ProviderCallRecord",
     "ProviderCapabilities",
     "ProviderFailure",
     "ProviderRequest",
     "ProviderResult",
+    "QCCoverage",
+    "QCContractError",
+    "QCEvidenceRef",
+    "QCTrackStatus",
     "ReferenceSpec",
+    "ResourceLimits",
     "RunPlan",
+    "RunLayout",
     "RunSpec",
     "SchedulerContractError",
     "SamplingPlan",
@@ -237,8 +310,16 @@ __all__ = [
     "ValidityReport",
     "VerifierSpec",
     "EstimandSpec",
+    "ATTEMPTS_DIRECTORY",
+    "PUBLICATION_ROOT",
+    "RUNS_ROOT",
+    "TABLES_DIRECTORY",
+    "TASKS_DIRECTORY",
+    "TRAJECTORIES_DIRECTORY",
+    "WORK_ROOT",
     "episode_id_for_cell",
     "execute_plan_cell",
+    "family_contribution_sha256",
     "is_exportable_id",
     "normalize_family_score_set",
     "canonical_json_bytes",
@@ -254,21 +335,38 @@ __all__ = [
     "verify_serialized_evaluation_receipt",
     "write_evaluation_receipt",
     "write_run_plan",
+    "append_campaign_gate",
+    "append_campaign_invalidation",
+    "campaign_active_gate_records",
+    "campaign_gate_artifact_type",
+    "campaign_gate_record_sha256",
+    "campaign_history_record_from_dict",
+    "campaign_history_record_sha256",
+    "campaign_history_record_to_dict",
+    "campaign_promotion_decision",
+    "evidence_coverage_complete",
+    "verify_qc_evidence_files",
     "AttemptResearchRow",
+    "BenchmarkResultFactRecord",
     "CampaignResearchRow",
+    "CanonicalFactTables",
     "CellResearchRow",
     "DesignAudit",
     "DesignIssue",
     "DesignObservation",
     "EventResearchRow",
     "LossAnalysisTables",
+    "ModelFeatureFactRecord",
     "ModelCallRecord",
+    "ProfileFactRecord",
     "ResearchContractError",
     "ResearchLedger",
     "RunRecord",
     "TaskRecord",
     "TrajectoryRecord",
     "TrajectoryStep",
+    "export_canonical_fact_tables",
+    "project_canonical_fact_tables",
     "audit_experimental_design",
     "build_trajectory_record",
     "build_research_ledger",

@@ -10,27 +10,27 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
-import aeread.shared_runner.execution as execution_module
-from aeread.shared_runner.execution import (
+import aeread.shared_runner.task.execution as execution_module
+from aeread.shared_runner.task.execution import (
     CellExecution,
     ProviderRequest,
     ProviderResult,
     TokenPricing,
     execute_plan_cell,
 )
-from aeread.shared_runner.family_evaluation import (
+from aeread.shared_runner.task.evaluation import (
     finalize_family_execution,
     finalize_family_failure,
     replay_family_receipt,
 )
-from aeread.shared_runner.harness import MinimalChatHarness, default_harnesses
-from aeread.shared_runner.receipts import EvaluationReceipt
+from aeread.shared_runner.model_call.harness import MinimalChatHarness, default_harnesses
+from aeread.shared_runner.task.receipts import EvaluationReceipt
 from aeread.shared_runner.registry import (
     HarnessRegistry,
     PluginRegistry,
     ProviderCapabilities,
 )
-from aeread.shared_runner.resolver import (
+from aeread.shared_runner.run.resolver import (
     ImplementationPin,
     RunPlan,
     canonical_json_bytes,
@@ -342,7 +342,7 @@ def build_offline_setup(
             },
             "runtime": {
                 "kind": "python",
-                "implementation": "aeread.shared_runner.execution",
+                "implementation": "aeread.shared_runner.task.execution",
                 "version": "0.1.0",
             },
             "tools": [],
@@ -386,7 +386,7 @@ def build_offline_setup(
         }
     )
     registry = PluginRegistry()
-    registry.register(family, ProcurementAllocationPlugin())
+    registry.register_trusted(family, ProcurementAllocationPlugin())
     harness_registry = HarnessRegistry()
     for harness in default_harnesses().values():
         harness_registry.register(harness)
@@ -397,7 +397,7 @@ def build_offline_setup(
         _pin(SCORER_ID, "scorer", environment_path),
         _pin("procurement_full_information_upper_bound_v1", "reference", environment_path),
         _pin("minimal_chat", "harness", execution_path, version="1.0"),
-        _pin("aeread.shared_runner.execution", "runtime", execution_path, version="0.1.0"),
+        _pin("aeread.shared_runner.task.execution", "runtime", execution_path, version="0.1.0"),
     )
     plan = resolve_run_plan(
         families=(family,),
@@ -450,9 +450,9 @@ def build_openrouter_setup(
     template = build_offline_setup(case_path=case_path)
     resolved_harness = harness or MinimalChatHarness()
     runtime = (
-        "aeread.shared_runner.execution"
+        "aeread.shared_runner.task.execution"
         if resolved_harness.id == "minimal_chat"
-        else "aeread.shared_runner.open_harnesses"
+        else "aeread.shared_runner.model_call.open_harnesses"
     )
     profile_id = f"{route.profile_id}_procurement_allocation"
     profile = AgentProfile.from_dict(
@@ -613,7 +613,9 @@ async def run_fixture_script(
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--script", type=Path, required=True)
-    parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument(
+        "--run-root", "--output", dest="run_root", type=Path, required=True
+    )
     parser.add_argument("--attempt", type=int, default=0)
     arguments = parser.parse_args(argv)
     raw = json.loads(arguments.script.read_text(encoding="utf-8"))
@@ -623,7 +625,7 @@ def main(argv: list[str] | None = None) -> int:
     setup, execution, provider = asyncio.run(
         run_fixture_script(
             responses,
-            evidence_root=arguments.output,
+            evidence_root=arguments.run_root,
             episode_attempt_ordinal=arguments.attempt,
         )
     )

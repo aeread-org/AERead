@@ -9,7 +9,7 @@ from types import MappingProxyType
 
 import pytest
 
-from aeread.shared_runner.execution import (
+from aeread.shared_runner.task.execution import (
     CanonicalResponse,
     ClaudeCodePrintClient,
     ConcurrentEvidenceWriterError,
@@ -26,9 +26,9 @@ from aeread.shared_runner.execution import (
     ToolExecutor,
     ToolFailure,
 )
-from aeread.shared_runner.harness import CanonicalMessage, NativeToolCall, ToolSchema
-from aeread.shared_runner.resolver import PlanCell, case_content_sha256
-from aeread.shared_runner.scheduler import (
+from aeread.shared_runner.model_call.harness import CanonicalMessage, NativeToolCall, ToolSchema
+from aeread.shared_runner.run.resolver import PlanCell, case_content_sha256
+from aeread.shared_runner.task.scheduler import (
     DecisionRequest,
     LegalityResult,
     ParseResult,
@@ -83,7 +83,7 @@ def _profile(
             },
             "runtime": {
                 "kind": "python",
-                "implementation": "aeread.shared_runner.execution",
+                "implementation": "aeread.shared_runner.task.execution",
                 "version": "0.1.0",
             },
             "tools": [],
@@ -739,11 +739,13 @@ class FakeOpenRouterCompletions:
         selected_provider: str = "DeepInfra",
         attempt: int = 1,
         include_attempts: bool = True,
+        content: object = '{"offer":7}',
     ) -> None:
         self.kwargs = None
         self.selected_provider = selected_provider
         self.attempt = attempt
         self.include_attempts = include_attempts
+        self.content = content
 
     async def create(self, **kwargs):
         self.kwargs = kwargs
@@ -780,7 +782,7 @@ class FakeOpenRouterCompletions:
                 {
                     "index": 0,
                     "finish_reason": "stop",
-                    "message": {"role": "assistant", "content": '{"offer":7}'},
+                    "message": {"role": "assistant", "content": self.content},
                 }
             ],
             "usage": {
@@ -923,6 +925,20 @@ def test_openrouter_adapter_serializes_a_frozen_schema_as_plain_json() -> None:
         "additionalProperties": False,
     }
     json.dumps(completions.kwargs)
+
+
+def test_openrouter_adapter_preserves_empty_completion_for_visible_retry() -> None:
+    completions = FakeOpenRouterCompletions(content=None)
+    sdk = SimpleNamespace(chat=SimpleNamespace(completions=completions))
+    client = OpenRouterChatClient(sdk_client=sdk)
+
+    result = asyncio.run(client.complete(_openrouter_request()))
+
+    assert result.output_text == ""
+    assert result.resolved_model == "deepseek/deepseek-v4-flash-20260731"
+    assert result.input_tokens == 123
+    assert result.output_tokens == 45
+    assert result.cost_usd == pytest.approx(0.00001726)
 
 
 def test_openrouter_adapter_omits_unavailable_sampling_controls() -> None:
@@ -1491,7 +1507,7 @@ def test_a_declared_reasoning_budget_reaches_the_wire() -> None:
     another -- the shape of a treatment that silently fails to be delivered.
     """
 
-    from aeread.shared_runner.execution import _reasoning_block
+    from aeread.shared_runner.task.execution import _reasoning_block
 
     declared = ProviderRequest(
         provider_call_id="provider_call_fixture",
@@ -1523,7 +1539,7 @@ def test_native_request_fields_bind_the_request_hash() -> None:
     text-only requests must still hash exactly as before.
     """
 
-    from aeread.shared_runner.harness import CanonicalMessage
+    from aeread.shared_runner.model_call.harness import CanonicalMessage
 
     def _request(**overrides):
         base = dict(
@@ -1573,7 +1589,7 @@ def test_protocol_records_serialize_their_full_current_shape() -> None:
     measured baseline and any accidental drift fails here first.
     """
 
-    from aeread.shared_runner.resolver import canonical_json_bytes
+    from aeread.shared_runner.run.resolver import canonical_json_bytes
 
     result = ProviderResult(
         response_id="response_fixture",

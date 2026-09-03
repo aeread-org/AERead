@@ -1,0 +1,32 @@
+# Evidence
+
+This top-level directory contains version-controlled, reviewable evidence
+artifacts. It is intentionally separate from both documentation and raw run
+state:
+
+- `docs/` explains benchmark and campaign design.
+- `runs/` contains ignored local execution state, including full provider
+  payloads and receipts.
+- `work/` contains ignored non-benchmark scratch artifacts.
+- `evidence/` contains sanitized reports, projections, and digest manifests
+  suitable for code review and pull requests.
+
+Generic `output/` and `outputs/` directories are not used. See the normative
+[artifact layout](../docs/artifact_layout.md).
+
+Campaign evidence should use a dedicated subdirectory. A publication must
+retain typed failures and exclusions, identify its source receipts by digest,
+and state whether costs are exact or lower bounds. Do not commit API keys,
+provider-account identifiers, raw provider responses, hidden reasoning, or
+complete prompts.
+
+Current campaign directories include:
+
+- `commercial_state_openweight_variance_v1/`: sanitized commercial-state
+  profiles, model facts, results, transcript projections, and manifest;
+- `housing_case_config_sweep_v1/`: provider-free Housing case facts and the
+  selected development configurations;
+- `housing_model_sensitivity_openrouter_alt_v4/` through
+  `housing_model_sensitivity_openrouter_alt_v7/`: successive OpenRouter
+  qualification records. V7 additionally publishes all completed sanitized
+  trajectory projections under `trajectories/`.

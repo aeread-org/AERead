@@ -15,6 +15,9 @@ two executions replicates when their pinned treatment differs.
 The research harness therefore provides **derived views and preflight checks**. Canonical
 plans, events, artifacts, and receipts remain the only sources of truth.
 
+Campaigns use the ordered [experiment campaign SOP](experiment_campaign_sop.md) so a paid or
+reportable stage cannot be promoted until its predecessor gates have evidence-backed passes.
+
 ```mermaid
 flowchart TD
     P[Sealed RunPlan] --> G[Complete planned-cell grid]
@@ -30,6 +33,10 @@ flowchart TD
     R --> LT[Task rows]
     E --> LC[Model-call rows + trajectories]
     LR --> LT --> LC
+    P --> PF[Profile + admission-derived feature facts]
+    R --> RF[Receipt-verified result facts]
+    PF --> FM[Digest-bound fact manifest]
+    RF --> FM
 ```
 
 ## Implemented contracts
@@ -135,7 +142,9 @@ labels, and typed errors. Operational `harness_phase` remains independent of the
 
 `export_loss_analysis_dataset(...)` writes:
 
-- `runs.csv`, `tasks.csv`, and `model_calls.csv`;
+- `tables/runs.csv`, `tables/tasks.csv`, and `tables/model_calls.csv`;
+- `tables/profiles.csv`, `tables/model_features.csv`, and `tables/benchmark_results.csv`;
+- `tables/fact_manifest.json`, binding the three fact tables to the source plan and per-table digests;
 - `trajectories/selected/<run_id>__<task_id>.json`;
 - `trajectories/trajectory_index.csv` and `trajectories/archive.jsonl`; and
 - `data_dictionary.md`.
@@ -143,16 +152,38 @@ labels, and typed errors. Operational `harness_phase` remains independent of the
 Exports are deterministic and idempotent. A repeated export may reuse byte-identical files,
 but the writer refuses to overwrite different content.
 
+### 6. Canonical fact-table projections
+
+`project_canonical_fact_tables(plan, receipts)` produces three reusable grains:
+
+| Table | Grain | Evidence qualification |
+|---|---|---|
+| `profiles` | one sealed `AgentProfile` | declared configuration plus its `ProfileAdmission` identity |
+| `model_features` | one capability-vector entry per profile | `admission_derived`; not a claim about a live response |
+| `benchmark_results` | one typed score value per verified receipt attempt | receipt status, inclusion, validity, evidence references, and `reportable` flag retained |
+
+The long-form feature table prevents model capability claims from being copied between
+reports without their harness, revision, and provenance. The result table retains excluded
+and invalid attempts instead of publishing only winners. `reportable=true` is necessary for
+an outcome row to enter reporting, but it is not sufficient for statistical aggregation: the
+sealed `AnalysisPlan`, missingness rule, pairing, and cluster unit still govern the estimate.
+
+`export_canonical_fact_tables(...)` can write these files independently. The normal
+`export_loss_analysis_dataset(...)` path includes them so a benchmark release cannot omit its
+configuration and feature facts.
+
 The command-line equivalent reads and re-verifies canonical plan, receipt, and evidence
 artifacts before exporting:
 
 ```bash
 aeread export-tables \
   --plan runs/<run_id>/run_plan.json \
-  --receipts runs/<run_id>/receipts/ \
+  --receipts runs/<run_id>/tasks/ \
   --evidence-root runs/<run_id>/ \
-  --output-dir analysis/<run_id>/
+  --publication-root evidence/<publication_id>/
 ```
+
+The complete directory contract is [artifact_layout.md](artifact_layout.md).
 
 ## Deliberate non-goals
 
@@ -175,7 +206,7 @@ aeread export-tables \
 
 ## Code and tests
 
-- Implementation: `src/aeread/shared_runner/research.py`
+- Implementation: `src/aeread/shared_runner/analysis/research.py`
 - Contract tests: `tests/test_shared_runner_research.py`
 
 The implementation was developed red/green: the new tests first failed at import, then passed

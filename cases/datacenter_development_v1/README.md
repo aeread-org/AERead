@@ -13,9 +13,9 @@ on the family version.
 Run the provider-free admission fixtures from the repository root:
 
 ```bash
-PYTHONPATH=src python -m aeread_families.datacenter_development --scope v0 --output /tmp/datacenter-v0
-PYTHONPATH=src python -m aeread_families.datacenter_development --scope v1 --output /tmp/datacenter-v1
-PYTHONPATH=src python -m aeread_families.datacenter_development --scope v2 --output /tmp/datacenter-v2
+PYTHONPATH=src python -m aeread_families.datacenter_development --scope v0 --run-root /tmp/datacenter-v0
+PYTHONPATH=src python -m aeread_families.datacenter_development --scope v1 --run-root /tmp/datacenter-v1
+PYTHONPATH=src python -m aeread_families.datacenter_development --scope v2 --run-root /tmp/datacenter-v2
 ```
 
 Each command executes the real shared harness, seals five independent verifier

@@ -1,0 +1,773 @@
+"""Housing backend-qualified model-sensitivity campaign.
+
+This campaign keeps the selected Housing cases and fixed minimal-chat harness
+while assigning new model-profile identities to alternate pinned endpoints.
+Profile admission is a mandatory gate before any live Housing trajectory.
+"""
+
+from __future__ import annotations
+
+import argparse
+import asyncio
+import json
+import os
+import time
+import urllib.request
+from pathlib import Path
+from typing import Any, Mapping, Sequence
+
+from aeread_families.housing import environment as hz
+
+from aeread.shared_runner.task.execution import OpenRouterChatClient, ProviderRequest
+
+from .runner import (
+    GLM_53_FLASH_MODEL,
+    GLM_53_FLASH_REVISION,
+    HOUSING_COMMIT_OUTPUT_SCHEMA,
+    HOUSING_COMMIT_OUTPUT_SCHEMA_V2,
+    HOUSING_CONTACT_OUTPUT_SCHEMA,
+    HOUSING_CONTACT_OUTPUT_SCHEMA_V2,
+    HOUSING_LANDLORD_PROMPT,
+    HOUSING_RESPOND_OUTPUT_SCHEMA,
+    HOUSING_RESPOND_OUTPUT_SCHEMA_V2,
+    HOUSING_TENANT_PROMPT,
+    OpenRouterRoutePin,
+)
+from .model_sensitivity import (
+    _exception_attribute,
+    _read_sealed,
+    _sealed,
+    _selected_case_artifact,
+    _sha256,
+    _write_json,
+    build_setups,
+    design_artifact,
+    provider_free_artifact,
+    run_live,
+)
+from .population_campaign import (
+    DEEPSEEK_MODEL,
+    DEEPSEEK_REVISION,
+    _validate_admission_action,
+)
+from aeread.shared_runner.run.resolver import canonical_json_bytes
+
+
+CONTRACT_SCHEMA_VERSION = "aeread.housing_backend_campaign/0.1"
+CAMPAIGN_SPECS = {
+    "housing_model_sensitivity_openrouter_alt_v2": {
+        "reasoning_condition_id": "model_sensitivity_openrouter_alt_low_v2",
+        "per_probe_cost_reserve_usd": 0.002,
+        "admission_cost_ceiling_usd": 0.04,
+        "providers": {
+            "glm_53_flash": "Novita",
+            "deepseek_v4_flash": "OpenInference",
+        },
+    },
+    "housing_model_sensitivity_openrouter_alt_v3": {
+        "reasoning_condition_id": "model_sensitivity_openrouter_alt_low_v3",
+        "per_probe_cost_reserve_usd": 0.003,
+        "admission_cost_ceiling_usd": 0.06,
+        "providers": {
+            "glm_53_flash": "Reka",
+            "deepseek_v4_flash": "Parasail",
+        },
+    },
+    "housing_model_sensitivity_openrouter_alt_v4": {
+        "reasoning_condition_id": "model_sensitivity_openrouter_alt_low_v4",
+        "per_probe_cost_reserve_usd": 0.003,
+        "admission_cost_ceiling_usd": 0.06,
+        "providers": {
+            "glm_53_flash": "Phala",
+            "deepseek_v4_flash": "Parasail",
+        },
+    },
+    "housing_model_sensitivity_openrouter_alt_v5": {
+        "reasoning_condition_id": "model_sensitivity_openrouter_alt_low_v5",
+        "per_probe_cost_reserve_usd": 0.003,
+        "admission_cost_ceiling_usd": 0.06,
+        "providers": {
+            "glm_53_flash": "NextBit",
+            "deepseek_v4_flash": "Parasail",
+        },
+    },
+    "housing_model_sensitivity_openrouter_alt_v6": {
+        "reasoning_condition_id": "model_sensitivity_openrouter_alt_low_v6",
+        "per_probe_cost_reserve_usd": 0.003,
+        "admission_cost_ceiling_usd": 0.06,
+        "providers": {
+            "glm_53_flash": "NextBit",
+            "deepseek_v4_flash": "Parasail",
+        },
+        "retryable_conditions": [
+            "length",
+            "rate_limit",
+            "provider_5xx",
+            "empty_response",
+        ],
+    },
+    "housing_model_sensitivity_openrouter_alt_v7": {
+        "reasoning_condition_id": "model_sensitivity_openrouter_alt_low_v7",
+        "per_probe_cost_reserve_usd": 0.003,
+        "admission_cost_ceiling_usd": 0.06,
+        "providers": {
+            "glm_53_flash": "NextBit",
+            "deepseek_v4_flash": "Parasail",
+        },
+        "retryable_conditions": [
+            "length",
+            "rate_limit",
+            "provider_5xx",
+            "empty_response",
+        ],
+        "action_schema_version": "housing_actions/2.0",
+        "wire_live_profile_controls": True,
+    },
+}
+REQUIRED_ROUTE_PARAMETERS = {
+    "max_tokens",
+    "reasoning_effort",
+    "response_format",
+    "seed",
+    "structured_outputs",
+    "temperature",
+    "top_p",
+}
+_ROOT_FIELDS = {
+    "schema_version",
+    "campaign_id",
+    "claim_status",
+    "question",
+    "independent_cluster",
+    "source_case_selection",
+    "controls",
+    "backend",
+    "models",
+    "conditions",
+    "profile_admission",
+    "execution",
+    "analysis",
+    "missingness",
+    "stopping_rule",
+}
+
+
+def route_table(contract: Mapping[str, Any]) -> dict[str, OpenRouterRoutePin]:
+    return {
+        model_id: OpenRouterRoutePin(
+            provider=model["provider"],
+            quantization=model["quantization"],
+            canonical_model=model["canonical_model"],
+            input_per_million=model["input_per_million"],
+            cached_input_per_million=model["cached_input_per_million"],
+            output_per_million=model["output_per_million"],
+            pricing_id=(
+                f"openrouter_{model['provider'].lower()}_2026-09-02_{model_id}"
+            ),
+        )
+        for model_id, model in contract["models"].items()
+    }
+
+
+def _validate_models(value: Any, *, campaign_id: str) -> None:
+    if not isinstance(value, dict) or set(value) != {
+        "glm_53_flash",
+        "deepseek_v4_flash",
+    }:
+        raise ValueError("backend campaign requires exactly GLM and DeepSeek")
+    providers = CAMPAIGN_SPECS[campaign_id]["providers"]
+    expected = {
+        "glm_53_flash": (
+            GLM_53_FLASH_MODEL,
+            GLM_53_FLASH_REVISION,
+            providers["glm_53_flash"],
+        ),
+        "deepseek_v4_flash": (
+            DEEPSEEK_MODEL,
+            DEEPSEEK_REVISION,
+            providers["deepseek_v4_flash"],
+        ),
+    }
+    fields = {
+        "requested_model",
+        "canonical_model",
+        "provider",
+        "quantization",
+        "input_per_million",
+        "cached_input_per_million",
+        "output_per_million",
+        "endpoint_snapshot_sha256",
+        "tenant_profile_id",
+        "landlord_profile_id",
+    }
+    for model_id, (requested, canonical, provider) in expected.items():
+        model = value[model_id]
+        if not isinstance(model, dict) or set(model) != fields:
+            raise ValueError(f"model fields drifted for {model_id}")
+        if (model["requested_model"], model["canonical_model"]) != (
+            requested,
+            canonical,
+        ):
+            raise ValueError(f"model identity drifted for {model_id}")
+        if (model["provider"], model["quantization"]) != (provider, "fp8"):
+            raise ValueError(f"alternate route drifted for {model_id}")
+        if any(
+            isinstance(model[field], bool)
+            or not isinstance(model[field], (int, float))
+            or model[field] < 0
+            for field in (
+                "input_per_million",
+                "cached_input_per_million",
+                "output_per_million",
+            )
+        ):
+            raise ValueError(f"pricing is invalid for {model_id}")
+        if (
+            not isinstance(model["endpoint_snapshot_sha256"], str)
+            or len(model["endpoint_snapshot_sha256"]) != 64
+        ):
+            raise ValueError(f"endpoint snapshot identity is invalid for {model_id}")
+
+
+def load_contract(path: str | Path) -> dict[str, Any]:
+    value = json.loads(Path(path).read_bytes())
+    if not isinstance(value, dict) or set(value) != _ROOT_FIELDS:
+        raise ValueError("backend campaign fields are incomplete or unexpected")
+    if value["schema_version"] != CONTRACT_SCHEMA_VERSION:
+        raise ValueError("unsupported backend campaign contract schema")
+    campaign_id = value["campaign_id"]
+    if campaign_id not in CAMPAIGN_SPECS:
+        raise ValueError("this driver does not recognize the campaign identity")
+    if value["claim_status"] != "development_backend_qualification_only":
+        raise ValueError("backend qualification cannot support a performance claim")
+    if value["independent_cluster"] != "world_seed":
+        raise ValueError("world_seed must remain the independent cluster")
+    _selected_case_artifact(value)
+
+    controls = value["controls"]
+    expected_controls = {
+        "harness": "minimal_chat/1.0",
+        "tools": "disabled",
+        "memory": "disabled",
+        "reasoning_condition_id": CAMPAIGN_SPECS[campaign_id]["reasoning_condition_id"],
+        "reasoning_effort": "low",
+        "temperature": 0.0,
+        "top_p": 1.0,
+        "max_output_tokens": 4096,
+        "timeout_seconds": 120.0,
+        "sdk_retries": 0,
+        "max_action_attempts": 4,
+        "tenant_max_logical_actions": 48,
+        "landlord_max_logical_actions": 16,
+        "retryable_conditions": CAMPAIGN_SPECS[campaign_id].get(
+            "retryable_conditions", ["length", "rate_limit", "provider_5xx"]
+        ),
+        "tenant_inference_seed_base": 87001,
+        "landlord_inference_seed_base": 97001,
+        "condition_order": "rotate_by_case_configuration",
+    }
+    for optional_control in ("action_schema_version", "wire_live_profile_controls"):
+        if optional_control in CAMPAIGN_SPECS[campaign_id]:
+            expected_controls[optional_control] = CAMPAIGN_SPECS[campaign_id][
+                optional_control
+            ]
+    if controls != expected_controls:
+        raise ValueError("fixed backend-campaign controls drifted")
+    if value["backend"] != {
+        "gateway": "openrouter",
+        "api_base": "https://openrouter.ai/api/v1",
+        "catalog_source": "https://openrouter.ai/api/v1/models/{model}/endpoints",
+        "catalog_retrieved_at": "2026-09-02",
+        "allow_fallbacks": False,
+        "require_parameters": True,
+        "retry_owner": "aeread_action_attempt_policy",
+        "raw_response_retention": "local_evidence_store",
+    }:
+        raise ValueError("backend contract drifted")
+    _validate_models(value["models"], campaign_id=campaign_id)
+
+    conditions = value["conditions"]
+    identities = {
+        (
+            condition.get("subject"),
+            condition.get("opponent"),
+            condition.get("evaluation_kind"),
+        )
+        for condition in conditions
+        if isinstance(condition, Mapping)
+    }
+    if len(conditions) != 4 or identities != {
+        ("glm_53_flash", "glm_53_flash", "self_play"),
+        ("glm_53_flash", "deepseek_v4_flash", "cross_play"),
+        ("deepseek_v4_flash", "glm_53_flash", "cross_play"),
+        ("deepseek_v4_flash", "deepseek_v4_flash", "self_play"),
+    }:
+        raise ValueError("model-to-model condition matrix drifted")
+
+    admission = value["profile_admission"]
+    if not isinstance(admission, dict) or set(admission) != {
+        "probes_per_action_schema",
+        "probe_seeds",
+        "attempt_limit_per_probe",
+        "sdk_retries",
+        "hidden_repair_allowed",
+        "per_probe_cost_reserve_usd",
+        "cost_ceiling_usd",
+        "profile_sha256s",
+    }:
+        raise ValueError("profile admission contract is invalid")
+    if {
+        key: admission[key]
+        for key in (
+            "probes_per_action_schema",
+            "probe_seeds",
+            "attempt_limit_per_probe",
+            "sdk_retries",
+            "hidden_repair_allowed",
+            "per_probe_cost_reserve_usd",
+            "cost_ceiling_usd",
+        )
+    } != {
+        "probes_per_action_schema": 3,
+        "probe_seeds": [103001, 103002, 103003],
+        "attempt_limit_per_probe": 1,
+        "sdk_retries": 0,
+        "hidden_repair_allowed": False,
+        "per_probe_cost_reserve_usd": CAMPAIGN_SPECS[campaign_id][
+            "per_probe_cost_reserve_usd"
+        ],
+        "cost_ceiling_usd": CAMPAIGN_SPECS[campaign_id]["admission_cost_ceiling_usd"],
+    }:
+        raise ValueError("profile admission controls drifted")
+    expected_profile_ids = {
+        model[role]
+        for model in value["models"].values()
+        for role in ("tenant_profile_id", "landlord_profile_id")
+    }
+    if set(admission["profile_sha256s"]) != expected_profile_ids or any(
+        not isinstance(digest, str) or len(digest) != 64
+        for digest in admission["profile_sha256s"].values()
+    ):
+        raise ValueError("profile identities are incomplete")
+
+    if value["execution"] != {
+        "world_seeds": [1971418798],
+        "replicates": 1,
+        "attempt_limit": 1,
+        "cost_ceiling_usd": 0.05,
+        "per_trajectory_cost_reserve_usd": 0.02,
+        "winner_claim_allowed": False,
+        "completeness_policy": "retain_typed_missingness_without_selective_retry",
+    }:
+        raise ValueError("live execution controls drifted")
+    if value["analysis"] != {
+        "primary_view": "condition_by_case_configuration_within_case_score",
+        "aggregation": "none_single_world_integration_slice",
+        "uncertainty": "not_estimable_from_one_world_cluster",
+        "ranking_allowed": False,
+    }:
+        raise ValueError("development-only analysis contract drifted")
+    if value["missingness"] != "typed_operational_missingness_reported_separately":
+        raise ValueError("missingness policy drifted")
+    if value["stopping_rule"] != (
+        "profile_admission_must_pass_before_live; stop_before_next_trajectory_when_"
+        "remaining_campaign_budget_is_below_the_declared_reserve; stop_immediately_"
+        "on_route_drift_or_replay_failure"
+    ):
+        raise ValueError("stopping rule drifted")
+    route_table(value)
+    return value
+
+
+def _catalog_url(contract: Mapping[str, Any], model: str) -> str:
+    return contract["backend"]["catalog_source"].format(model=model)
+
+
+def catalog_preflight(contract: Mapping[str, Any]) -> dict[str, Any]:
+    rows: list[dict[str, Any]] = []
+    for model_id, model in contract["models"].items():
+        with urllib.request.urlopen(
+            _catalog_url(contract, model["requested_model"]), timeout=30
+        ) as response:
+            payload = json.load(response)
+        endpoints = payload.get("data", {}).get("endpoints", [])
+        matches = [
+            endpoint
+            for endpoint in endpoints
+            if endpoint.get("provider_name") == model["provider"]
+            and endpoint.get("quantization") == model["quantization"]
+            and model["canonical_model"] in str(endpoint.get("name"))
+        ]
+        if len(matches) != 1:
+            raise ValueError(f"catalog route did not resolve uniquely for {model_id}")
+        endpoint = matches[0]
+        pricing = endpoint.get("pricing", {})
+        actual_prices = {
+            "input_per_million": float(pricing["prompt"]) * 1_000_000,
+            "cached_input_per_million": float(pricing["input_cache_read"]) * 1_000_000,
+            "output_per_million": float(pricing["completion"]) * 1_000_000,
+        }
+        if any(
+            abs(actual_prices[field] - float(model[field])) > 1e-12
+            for field in actual_prices
+        ):
+            raise ValueError(f"catalog pricing drifted for {model_id}")
+        supported = set(endpoint.get("supported_parameters", []))
+        if not REQUIRED_ROUTE_PARAMETERS <= supported:
+            raise ValueError(f"catalog parameter support drifted for {model_id}")
+        if endpoint.get("status") != 0:
+            raise ValueError(f"catalog route is not active for {model_id}")
+        if (
+            endpoint.get("max_completion_tokens", 0)
+            < contract["controls"]["max_output_tokens"]
+        ):
+            raise ValueError(f"catalog completion limit is too small for {model_id}")
+        rows.append(
+            {
+                "model_id": model_id,
+                "requested_model": model["requested_model"],
+                "canonical_model": model["canonical_model"],
+                "provider": model["provider"],
+                "quantization": model["quantization"],
+                "pricing": actual_prices,
+                "required_parameters_present": True,
+                "max_completion_tokens": endpoint["max_completion_tokens"],
+                "status": endpoint["status"],
+                "uptime_last_5m": endpoint.get("uptime_last_5m"),
+                "uptime_last_30m": endpoint.get("uptime_last_30m"),
+                "uptime_last_1d": endpoint.get("uptime_last_1d"),
+            }
+        )
+    return _sealed(
+        {
+            "schema_version": "aeread.housing_backend_catalog_preflight/0.1",
+            "campaign_id": contract["campaign_id"],
+            "status": "passed",
+            "provider_inference_calls": 0,
+            "routes": rows,
+        }
+    )
+
+
+def _admission_observations(seed: int) -> dict[str, Mapping[str, Any]]:
+    world = hz.make_bid_world(6, 4, seed, 0.6)
+    market = hz.HousingMarket(world, rounds=4)
+    contact = market.tenant_observation(0)
+    contact_result = market.submit_offers({0: (0, world.ask[0])})
+    respond = market.landlord_observation(0)
+    response_result = market.submit_responses(
+        hz.scripted_landlord_responses(market, contact_result.inbox)
+    )
+    commit = market.tenant_observation(0)
+    if 0 not in response_result.holds:
+        raise ValueError("admission fixture did not create the expected tenant hold")
+    return {
+        "housing_contact_v1": contact,
+        "housing_respond_v1": respond,
+        "housing_commit_v1": commit,
+    }
+
+
+def _profile_request(
+    *,
+    contract: Mapping[str, Any],
+    model_id: str,
+    role: str,
+    action_schema: str,
+    observation: Mapping[str, Any],
+    probe_index: int,
+) -> ProviderRequest:
+    model = contract["models"][model_id]
+    route = route_table(contract)[model_id]
+    prompt = HOUSING_TENANT_PROMPT if role == "tenant" else HOUSING_LANDLORD_PROMPT
+    if contract["controls"].get("action_schema_version") == "housing_actions/2.0":
+        output_schemas = {
+            "housing_contact_v1": HOUSING_CONTACT_OUTPUT_SCHEMA_V2,
+            "housing_commit_v1": HOUSING_COMMIT_OUTPUT_SCHEMA_V2,
+            "housing_respond_v1": HOUSING_RESPOND_OUTPUT_SCHEMA_V2,
+        }
+    else:
+        output_schemas = {
+            "housing_contact_v1": HOUSING_CONTACT_OUTPUT_SCHEMA,
+            "housing_commit_v1": HOUSING_COMMIT_OUTPUT_SCHEMA,
+            "housing_respond_v1": HOUSING_RESPOND_OUTPUT_SCHEMA,
+        }
+    output_schema = output_schemas[action_schema]
+    phase_id = {
+        "housing_contact_v1": "contact",
+        "housing_commit_v1": "commit",
+        "housing_respond_v1": "respond",
+    }[action_schema]
+    seat_id = "tenant_0" if role == "tenant" else "landlord_0"
+    input_text = canonical_json_bytes(
+        {
+            "phase_id": phase_id,
+            "seat_id": seat_id,
+            "role": role,
+            "observation_schema": f"housing_{role}_{phase_id}_observation_v1",
+            "action_schema": action_schema,
+            "observation": observation,
+        }
+    ).decode("utf-8")
+    return ProviderRequest(
+        provider_call_id=f"admission_{model_id}_{role}_{phase_id}_{probe_index}",
+        provider="openrouter",
+        base_url=contract["backend"]["api_base"],
+        model=model["requested_model"],
+        revision=model["canonical_model"],
+        instructions=prompt,
+        input_text=input_text,
+        temperature=contract["controls"]["temperature"],
+        top_p=contract["controls"]["top_p"],
+        max_output_tokens=contract["controls"]["max_output_tokens"],
+        reasoning_effort=contract["controls"]["reasoning_effort"],
+        timeout_seconds=contract["controls"]["timeout_seconds"],
+        request_sha256="",
+        max_cost_usd=contract["profile_admission"]["per_probe_cost_reserve_usd"],
+        output_schema=output_schema,
+        provider_metadata=route.provider_metadata(),
+        seed=contract["profile_admission"]["probe_seeds"][probe_index],
+    ).with_computed_hash()
+
+
+def _admission_specs(contract: Mapping[str, Any]) -> list[dict[str, Any]]:
+    specs: list[dict[str, Any]] = []
+    for probe_index in range(contract["profile_admission"]["probes_per_action_schema"]):
+        for model_id in contract["models"]:
+            for role, schemas in (
+                ("tenant", ("housing_contact_v1", "housing_commit_v1")),
+                ("landlord", ("housing_respond_v1",)),
+            ):
+                for action_schema in schemas:
+                    specs.append(
+                        {
+                            "model_id": model_id,
+                            "role": role,
+                            "action_schema": action_schema,
+                            "probe_index": probe_index,
+                        }
+                    )
+    return specs
+
+
+async def run_profile_admission(
+    contract: Mapping[str, Any], *, output_root: Path
+) -> dict[str, Any]:
+    summary_path = output_root / "summary.json"
+    if summary_path.exists():
+        return _read_sealed(summary_path)
+    client = OpenRouterChatClient()
+    rows: list[dict[str, Any]] = []
+    admission = contract["profile_admission"]
+    for spec in _admission_specs(contract):
+        result_path = (
+            output_root
+            / spec["model_id"]
+            / spec["role"]
+            / spec["action_schema"]
+            / f"probe_{spec['probe_index']}.json"
+        )
+        if result_path.exists():
+            rows.append(_read_sealed(result_path))
+            continue
+        attempted_upper_bound = (len(rows) + 1) * admission[
+            "per_probe_cost_reserve_usd"
+        ]
+        if attempted_upper_bound > admission["cost_ceiling_usd"] + 1e-12:
+            break
+        observations = _admission_observations(73001 + spec["probe_index"])
+        request = _profile_request(
+            contract=contract,
+            observation=observations[spec["action_schema"]],
+            **spec,
+        )
+        started = time.perf_counter()
+        result = None
+        try:
+            result = await client.complete(request)
+            raw_path = result_path.with_name(f"probe_{spec['probe_index']}_raw.json")
+            _write_json(
+                raw_path,
+                _sealed(
+                    {
+                        "request_sha256": request.request_sha256,
+                        "raw_response": result.raw_response,
+                    }
+                ),
+            )
+            action = _validate_admission_action(
+                spec["action_schema"],
+                result.output_text,
+                observations[spec["action_schema"]],
+            )
+            if result.cost_usd is None:
+                raise ValueError("admission call omitted provider billing")
+            row = {
+                **spec,
+                "status": "passed",
+                "request_sha256": request.request_sha256,
+                "response_id": result.response_id,
+                "resolved_model": result.resolved_model,
+                "action_sha256": _sha256(action),
+                "raw_response_sha256": _sha256(result.raw_response),
+                "input_tokens": result.input_tokens,
+                "cached_input_tokens": result.cached_input_tokens,
+                "output_tokens": result.output_tokens,
+                "cost_usd": result.cost_usd,
+                "billing_status": "provider_reported",
+                "elapsed_seconds": time.perf_counter() - started,
+                "route_verified": True,
+                "sdk_retries": 0,
+            }
+        except Exception as error:
+            provider_completed = result is not None
+            failure_condition = _exception_attribute(error, "condition")
+            if provider_completed and isinstance(error, ValueError):
+                failure_condition = "invalid_admission_action"
+            row = {
+                **spec,
+                "status": "operational_failure",
+                "request_sha256": request.request_sha256,
+                "failure_type": type(error).__name__,
+                "failure_condition": failure_condition or "execution_error",
+                "failure_status_code": _exception_attribute(error, "status_code"),
+                "raw_response_sha256": (
+                    _sha256(result.raw_response) if provider_completed else None
+                ),
+                "cost_usd": result.cost_usd if provider_completed else None,
+                "billing_status": (
+                    "provider_reported"
+                    if provider_completed and result.cost_usd is not None
+                    else "unavailable_on_failed_call"
+                ),
+                "elapsed_seconds": time.perf_counter() - started,
+                "route_verified": provider_completed,
+                "sdk_retries": 0,
+            }
+        sealed = _sealed(row)
+        _write_json(result_path, sealed)
+        rows.append(sealed)
+
+    expected = len(_admission_specs(contract))
+    passed = [row for row in rows if row["status"] == "passed"]
+    failures = [row for row in rows if row["status"] != "passed"]
+    actual_cost = sum(
+        float(row["cost_usd"])
+        for row in rows
+        if isinstance(row.get("cost_usd"), (int, float))
+        and not isinstance(row.get("cost_usd"), bool)
+    )
+    artifact = _sealed(
+        {
+            "schema_version": "aeread.housing_backend_profile_admission/0.1",
+            "campaign_id": contract["campaign_id"],
+            "status": (
+                "passed" if len(passed) == expected else "failed_with_typed_missingness"
+            ),
+            "expected_probe_count": expected,
+            "attempted_probe_count": len(rows),
+            "passed_probe_count": len(passed),
+            "operational_failures": len(failures),
+            "not_started_probe_count": expected - len(rows),
+            "hidden_retry_count": 0,
+            "observed_cost_usd": actual_cost,
+            "attempted_cost_upper_bound_usd": len(rows)
+            * admission["per_probe_cost_reserve_usd"],
+            "cost_ceiling_usd": admission["cost_ceiling_usd"],
+            "provider_cost_complete": all(
+                row["billing_status"] == "provider_reported" for row in rows
+            ),
+            "profile_sha256s": admission["profile_sha256s"],
+            "rows": rows,
+        }
+    )
+    _write_json(summary_path, artifact)
+    return artifact
+
+
+async def execute_campaign(
+    *, contract_path: str | Path, output_root: str | Path, through: str
+) -> dict[str, Any]:
+    stages = {"design", "provider_free", "profile_admission", "live"}
+    if through not in stages:
+        raise ValueError(f"through must be one of {sorted(stages)}")
+    contract = load_contract(contract_path)
+    routes = route_table(contract)
+    root = Path(output_root)
+    design = design_artifact(contract, routes=routes)
+    _write_json(root / "design" / "summary.json", design)
+    result: dict[str, Any] = {"design": design}
+    if through in {"provider_free", "profile_admission", "live"}:
+        provider_free = provider_free_artifact(contract)
+        catalog_path = root / "catalog_preflight" / "summary.json"
+        catalog = (
+            _read_sealed(catalog_path)
+            if catalog_path.exists()
+            else catalog_preflight(contract)
+        )
+        _write_json(root / "provider_free" / "summary.json", provider_free)
+        _write_json(catalog_path, catalog)
+        result.update(provider_free=provider_free, catalog_preflight=catalog)
+    if through in {"profile_admission", "live"}:
+        if not os.getenv("OPENROUTER_API_KEY"):
+            raise RuntimeError(
+                "OPENROUTER_API_KEY is required for the profile-admission stage"
+            )
+        admission = await run_profile_admission(
+            contract, output_root=root / "profile_admission"
+        )
+        result["profile_admission"] = admission
+        if through == "live":
+            if admission["status"] != "passed":
+                blocked = _sealed(
+                    {
+                        "schema_version": "aeread.housing_backend_live_block/0.1",
+                        "campaign_id": contract["campaign_id"],
+                        "status": "blocked_by_profile_admission",
+                        "profile_admission_sha256": admission["artifact_sha256"],
+                        "provider_calls": 0,
+                        "cost_usd": 0.0,
+                    }
+                )
+                _write_json(root / "live" / "blocked.json", blocked)
+                result["live"] = blocked
+            else:
+                result["live"] = await run_live(
+                    contract, output_root=root, routes=routes
+                )
+    return result
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(
+        description="Qualify alternate model endpoints before Housing execution"
+    )
+    parser.add_argument(
+        "--contract",
+        default="configs/housing_model_sensitivity_openrouter_alt_v2.json",
+    )
+    parser.add_argument(
+        "--run-root",
+        "--output",
+        dest="run_root",
+        default="runs/housing_model_sensitivity_openrouter_alt_v2",
+    )
+    parser.add_argument(
+        "--through",
+        choices=("design", "provider_free", "profile_admission", "live"),
+        default="provider_free",
+    )
+    args = parser.parse_args(argv)
+    result = asyncio.run(
+        execute_campaign(
+            contract_path=args.contract,
+            output_root=args.run_root,
+            through=args.through,
+        )
+    )
+    print(canonical_json_bytes(result).decode("utf-8"))
+    return 0
+
+
+if __name__ == "__main__":  # pragma: no cover
+    raise SystemExit(main())

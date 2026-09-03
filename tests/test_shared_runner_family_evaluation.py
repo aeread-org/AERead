@@ -13,9 +13,9 @@ from aeread.shared_runner import (
     canonical_json_bytes,
     verify_evaluation_receipt,
 )
-from aeread.shared_runner.execution import execute_plan_cell
-from aeread.shared_runner.family_evaluation import audit_family_receipt
-from aeread.shared_runner.housing import (
+from aeread.shared_runner.task.execution import execute_plan_cell
+from aeread.shared_runner.task.evaluation import audit_family_receipt
+from aeread_families.housing.runner import (
     HousingScriptedLandlordProvider,
     HousingScriptedTenantProvider,
     build_housing_smoke,

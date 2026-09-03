@@ -5,9 +5,9 @@ import dataclasses
 
 import pytest
 
-from aeread.shared_runner.execution import TokenPricing
-from aeread.shared_runner.resolver import canonical_json_bytes
-from aeread.shared_runner.scheduler import (
+from aeread.shared_runner.task.execution import TokenPricing
+from aeread.shared_runner.run.resolver import canonical_json_bytes
+from aeread.shared_runner.task.scheduler import (
     ActionEnvelope,
     LegalityResult,
     ParseResult,
@@ -24,11 +24,13 @@ from aeread_families.datacenter_development.stack_environment import (
     DataCenterStackPlugin,
 )
 from aeread_families.datacenter_development.stack_runner import (
+    build_stack_model_to_model_setup,
     build_stack_openrouter_setup,
     finalize_stack_execution,
     load_stack_case,
     replay_stack_receipt,
     run_stack_offline,
+    stack_counterparty_output_schemas,
     stack_developer_output_schemas,
 )
 from aeread_families.procurement_grounding import OpenRouterRoute
@@ -196,6 +198,28 @@ def test_v2_developer_observation_excludes_every_private_policy() -> None:
     assert "customer_value_cents_per_kw_month" not in serialized
 
 
+def test_v2_counterparty_observation_contains_only_current_private_policy() -> None:
+    case = load_stack_case("v2")
+    plugin = DataCenterStackPlugin("v2")
+    family_case = plugin.validate_payload(case.payload)
+    state = plugin.initial_state(family_case, run=None)
+    phase = next(
+        item
+        for item in plugin.phases(family_case)
+        if item.phase_id == "land_landowner_response"
+    )
+
+    observation = plugin.observe(
+        family_case, state, "landowner", phase
+    )
+
+    assert observation["private_policy"] == family_case["policies"]["land"]
+    assert "policies" not in observation
+    assert "scripted_developer" not in observation
+    assert "outside_option" not in observation
+    assert "baseline" not in observation
+
+
 def test_final_round_counter_terminates_as_valid_outside_option() -> None:
     case = load_stack_case("v1")
     plugin = DataCenterStackPlugin("v1")
@@ -273,3 +297,54 @@ def test_live_stack_plan_admits_glm_with_every_phase_schema(
         for seat in setup.plan.cells[0].profile_by_seat
         if seat != "developer"
     }
+
+
+@pytest.mark.parametrize(
+    ("scope", "expected_seats"),
+    (
+        ("v1", {"developer", "utility", "contractor", "customer", "lender"}),
+        (
+            "v2",
+            {
+                "developer",
+                "landowner",
+                "utility",
+                "contractor",
+                "customer",
+                "lender",
+            },
+        ),
+    ),
+)
+def test_model_to_model_plan_puts_every_seat_behind_the_harness(
+    scope: str, expected_seats: set[str]
+) -> None:
+    setup = build_stack_model_to_model_setup(
+        scope, GLM_ROUTE, seed=20260831
+    )
+    cell = setup.plan.cells[0]
+    profile_by_id = {
+        profile.profile_id: profile for profile in setup.plan.agent_profiles
+    }
+    block = setup.plan.evaluation_blocks[0]
+
+    assert block.kind == "self_play"
+    assert dict(block.controlled_profiles) == {}
+    assert set(block.subject_seats) == expected_seats
+    assert set(cell.profile_by_seat) == expected_seats
+    assert len(set(cell.profile_by_seat.values())) == len(expected_seats)
+    assert all(admission.admitted for admission in setup.plan.profile_admissions)
+    for seat_id, profile_id in cell.profile_by_seat.items():
+        profile = profile_by_id[profile_id]
+        assert profile.model.provider == "openrouter"
+        assert profile.harness.id == "minimal_chat"
+        assert profile.sampling.seed == 20260831
+        declared = profile.harness.config[
+            "output_schema_by_action_schema"
+        ]
+        expected = (
+            stack_developer_output_schemas(setup.case)
+            if seat_id == "developer"
+            else stack_counterparty_output_schemas(setup.case, seat_id)
+        )
+        assert canonical_json_bytes(declared) == canonical_json_bytes(expected)

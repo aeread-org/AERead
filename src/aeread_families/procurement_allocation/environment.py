@@ -16,7 +16,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
-from aeread.shared_runner.execution import CanonicalResponse
+from aeread.shared_runner.task.execution import CanonicalResponse
 from aeread.shared_runner.measurement import (
     EstimandSpec,
     ImplementationRef,
@@ -30,9 +30,9 @@ from aeread.shared_runner.measurement import (
     VerifierSpec,
 )
 from aeread.shared_runner.registry import PluginRegistry
-from aeread.shared_runner.resolver import canonical_json_bytes
+from aeread.shared_runner.run.resolver import canonical_json_bytes
 from aeread.shared_runner.schemas import FamilyManifest
-from aeread.shared_runner.scheduler import (
+from aeread.shared_runner.task.scheduler import (
     LegalityResult,
     ParseResult,
     PhaseSpec,
@@ -841,7 +841,7 @@ def register_plugin(
     registry: PluginRegistry, *, plugin: "ProcurementAllocationPlugin | None" = None
 ) -> "ProcurementAllocationPlugin":
     resolved = plugin or ProcurementAllocationPlugin()
-    registry.register(family_manifest(), resolved)
+    registry.register_trusted(family_manifest(), resolved)
     return resolved
 
 

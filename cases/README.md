@@ -11,6 +11,7 @@ remain stable and comparable results keep their meaning.
 | Datacenter development v1 | development | [`datacenter_development_v1/`](datacenter_development_v1/) | Financing, EPC, utility, service, and full-stack amendment negotiation with deterministic cash-flow verification |
 | Procurement grounding v1 | development | [`procurement_grounding_v1/`](procurement_grounding_v1/) | One evidence-grounded 231-project sourcing case with a deterministic verifier |
 | Procurement allocation v1 | development | [`procurement_allocation_v1/`](procurement_allocation_v1/) | Interactive qualification, negotiation, and award under a contribution-margin objective |
+| Commercial state calibration v1 | diagnostic pilot | [`commercial_state_calibration_v1/`](commercial_state_calibration_v1/) | Nine sanitized report-authority cases for deterministic commercial-state reconstruction |
 | tau3 retail | imported base split | [`tau3_retail/`](tau3_retail/) | 114 pinned retail tasks plus provenance files |
 
 `configs/` remains the home of experiment, treatment, and protocol settings.

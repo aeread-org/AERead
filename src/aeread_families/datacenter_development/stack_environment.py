@@ -7,10 +7,10 @@ import dataclasses
 import json
 from typing import Any, Mapping
 
-from aeread.shared_runner.execution import CanonicalResponse
+from aeread.shared_runner.task.execution import CanonicalResponse
 from aeread.shared_runner.registry import PluginRegistry
 from aeread.shared_runner.schemas import FamilyManifest
-from aeread.shared_runner.scheduler import (
+from aeread.shared_runner.task.scheduler import (
     LegalityResult,
     ParseResult,
     PhaseSpec,
@@ -197,7 +197,7 @@ def register_stack_plugin(
     plugin: "DataCenterStackPlugin | None" = None,
 ) -> "DataCenterStackPlugin":
     resolved = plugin or DataCenterStackPlugin(scope_version)
-    registry.register(stack_family_manifest(scope_version), resolved)
+    registry.register_trusted(stack_family_manifest(scope_version), resolved)
     return resolved
 
 

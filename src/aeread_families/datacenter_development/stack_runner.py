@@ -11,8 +11,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Mapping
 
-import aeread.shared_runner.execution as execution_module
-from aeread.shared_runner.execution import (
+import aeread.shared_runner.task.execution as execution_module
+from aeread.shared_runner.task.execution import (
     CellExecution,
     OpenRouterChatClient,
     ProviderFailure,
@@ -21,20 +21,20 @@ from aeread.shared_runner.execution import (
     TokenPricing,
     execute_plan_cell,
 )
-from aeread.shared_runner.family_evaluation import (
+from aeread.shared_runner.task.evaluation import (
     finalize_family_execution,
     finalize_family_failure,
     replay_family_receipt,
 )
-from aeread.shared_runner.harness import default_harnesses
-from aeread.shared_runner.harness import MinimalChatHarness
-from aeread.shared_runner.receipts import EvaluationReceipt
+from aeread.shared_runner.model_call.harness import default_harnesses
+from aeread.shared_runner.model_call.harness import MinimalChatHarness
+from aeread.shared_runner.task.receipts import EvaluationReceipt
 from aeread.shared_runner.registry import (
     HarnessRegistry,
     PluginRegistry,
     ProviderCapabilities,
 )
-from aeread.shared_runner.resolver import (
+from aeread.shared_runner.run.resolver import (
     ImplementationPin,
     RunPlan,
     canonical_json_bytes,
@@ -76,10 +76,17 @@ CASE_PATH_BY_SCOPE = {
 }
 RUNTIME_ID = "aeread_families.datacenter_development.stack_runner"
 DEVELOPER_PROMPT = """Negotiate the complete data-center agreement stack. Return
-exactly one JSON action for the current phase. Only complete structured terms and
-signatures over accepted offer IDs are binding. Respect explicit amendment precedence."""
-COUNTERPART_PROMPT = """Apply the private controlled policy to the latest written
-offer. Return exactly one JSON accept, counter, or reject action for this phase."""
+exactly one JSON action for the current phase. In an offer phase, return decision,
+message, and every structured term. In a commit phase, copy accepted_offer_id exactly
+into offer_id and either sign or walk. Never invent an offer ID. Only complete
+structured terms and signatures over accepted offer IDs are binding. Respect explicit
+amendment precedence."""
+COUNTERPART_PROMPT = """Apply your private policy to the latest written offer. Return
+exactly one JSON accept, counter, or reject action for the current phase. Always copy
+latest_offer.offer_id exactly into offer_id; never use a placeholder or invent an ID.
+For accept or reject, set terms to null. For counter, provide a non-empty message and
+the complete structured counter terms. Enforce every private minimum, maximum, and
+required condition."""
 
 
 def _strict_schema_from_example(value: Any) -> dict[str, Any]:
@@ -137,6 +144,41 @@ def stack_developer_output_schemas(case: CaseManifest) -> dict[str, Any]:
                 "offer_id": {"type": "string"},
             },
             "required": ["decision", "offer_id"],
+            "additionalProperties": False,
+        }
+    return schemas
+
+
+def stack_counterparty_output_schemas(
+    case: CaseManifest, seat_id: str
+) -> dict[str, Any]:
+    """Return strict response schemas for the agreements owned by one seat."""
+
+    scope_version = str(case.payload["scope_version"])
+    agreement_keys = tuple(
+        key
+        for key in SCOPE_CONFIG[scope_version]["sequence"]
+        if COUNTERPART_BY_KEY[key] == seat_id
+    )
+    if not agreement_keys:
+        raise ValueError(f"seat {seat_id!r} owns no {scope_version} agreements")
+    schemas: dict[str, Any] = {}
+    for key in agreement_keys:
+        terms = case.payload["policies"][key]["counter_terms"]
+        schemas[f"datacenter_{key}_response_v1"] = {
+            "type": "object",
+            "properties": {
+                "decision": {"enum": ["accept", "counter", "reject"]},
+                "offer_id": {"type": "string"},
+                "message": {"type": ["string", "null"]},
+                "terms": {
+                    "anyOf": [
+                        _strict_schema_from_example(terms),
+                        {"type": "null"},
+                    ]
+                },
+            },
+            "required": ["decision", "offer_id", "message", "terms"],
             "additionalProperties": False,
         }
     return schemas
@@ -243,6 +285,15 @@ def _profile(
             },
         }
     )
+
+
+def _harness_registry_for(harness: Any) -> HarnessRegistry:
+    registry = HarnessRegistry()
+    for registered_harness in default_harnesses().values():
+        registry.register(registered_harness)
+    if harness.id != "minimal_chat":
+        registry.register(harness)
+    return registry
 
 
 def build_stack_setup(
@@ -379,7 +430,7 @@ def build_stack_setup(
         }
     )
     registry = PluginRegistry()
-    registry.register(family, plugin)
+    registry.register_trusted(family, plugin)
     harness_registry = HarnessRegistry()
     harnesses = default_harnesses()
     for harness in harnesses.values():
@@ -479,9 +530,9 @@ def build_stack_openrouter_setup(
     template = build_stack_setup(scope_version, case_path=case_path)
     resolved_harness = harness or MinimalChatHarness()
     resolved_runtime = runtime_implementation or (
-        "aeread.shared_runner.execution"
+        "aeread.shared_runner.task.execution"
         if resolved_harness.id == "minimal_chat"
-        else "aeread.shared_runner.open_harnesses"
+        else "aeread.shared_runner.model_call.open_harnesses"
     )
     resolved_profile_id = route.profile_id
     if resolved_harness.id != "minimal_chat":
@@ -628,7 +679,7 @@ def build_stack_openrouter_setup(
         existing_pin_ids.add(resolved_harness.id)
     runtime_source_path = (
         Path(execution_module.__file__)
-        if resolved_runtime == "aeread.shared_runner.execution"
+        if resolved_runtime == "aeread.shared_runner.task.execution"
         else harness_source_path
     )
     if resolved_runtime not in existing_pin_ids:
@@ -695,6 +746,298 @@ def build_stack_openrouter_setup(
         harnesses={
             **default_harnesses(),
             f"{resolved_harness.id}/{resolved_harness.version}": resolved_harness,
+        },
+        scope_version=scope_version,
+    )
+
+
+def build_stack_model_to_model_setup(
+    scope_version: str,
+    route: Any,
+    *,
+    seed: int,
+    counterpart_route: Any | None = None,
+    case_path: Path | str | None = None,
+    max_output_tokens: int = 1600,
+    timeout_seconds: float = 180.0,
+    max_cost_usd: float = 0.02,
+    harness: Any | None = None,
+    harness_config: Mapping[str, Any] | None = None,
+    runtime_implementation: str | None = None,
+) -> DataCenterStackSetup:
+    """Resolve a harness-mediated live model profile for every negotiating seat."""
+
+    developer_setup = build_stack_openrouter_setup(
+        scope_version,
+        route,
+        seed=seed,
+        case_path=case_path,
+        max_output_tokens=max_output_tokens,
+        timeout_seconds=timeout_seconds,
+        max_cost_usd=max_cost_usd,
+        harness=harness,
+        harness_config=harness_config,
+        runtime_implementation=runtime_implementation,
+    )
+    resolved_counterpart_route = counterpart_route or route
+    resolved_harness = harness or MinimalChatHarness()
+    resolved_runtime = runtime_implementation or (
+        "aeread.shared_runner.task.execution"
+        if resolved_harness.id == "minimal_chat"
+        else "aeread.shared_runner.model_call.open_harnesses"
+    )
+    sequence = tuple(SCOPE_CONFIG[scope_version]["sequence"])
+    counterpart_seats = tuple(
+        sorted({COUNTERPART_BY_KEY[key] for key in sequence})
+    )
+    family_case = DataCenterStackPlugin(scope_version).validate_payload(
+        developer_setup.case.payload
+    )
+    developer_profile_id = developer_setup.plan.cells[0].profile_by_seat[
+        "developer"
+    ]
+    developer_profile = next(
+        profile
+        for profile in developer_setup.plan.agent_profiles
+        if profile.profile_id == developer_profile_id
+    )
+
+    counterpart_profiles: list[AgentProfile] = []
+    for seat_id in counterpart_seats:
+        profile_id = (
+            f"datacenter_{scope_version}_{seat_id}_"
+            f"{resolved_counterpart_route.profile_id}"
+        )
+        if resolved_harness.id != "minimal_chat":
+            profile_id = f"{profile_id}_{resolved_harness.id}"
+        config: dict[str, Any] = {
+            "pricing_id": resolved_counterpart_route.pricing.pricing_id,
+            "pricing_sha256": (
+                resolved_counterpart_route.pricing.content_sha256()
+            ),
+            "output_schema_by_action_schema": (
+                stack_counterparty_output_schemas(
+                    developer_setup.case, seat_id
+                )
+            ),
+            "provider_metadata": {
+                "route_provider": resolved_counterpart_route.route_provider,
+                "quantization": resolved_counterpart_route.quantization,
+                "canonical_model": resolved_counterpart_route.revision,
+                "max_prompt_price_per_million": (
+                    resolved_counterpart_route.max_prompt_price_per_million
+                ),
+                "max_completion_price_per_million": (
+                    resolved_counterpart_route.max_completion_price_per_million
+                ),
+            },
+        }
+        if harness_config is not None:
+            config.update(dict(harness_config))
+        if not resolved_counterpart_route.temperature_supported:
+            config["sampling_controls"] = {"temperature": "unavailable"}
+        max_actions = sum(
+            family_case["negotiation"]["max_rounds"][key]
+            for key in sequence
+            if COUNTERPART_BY_KEY[key] == seat_id
+        )
+        prompt_id = f"datacenter_{scope_version}_{seat_id}_prompt_v1"
+        counterpart_profiles.append(
+            AgentProfile.from_dict(
+                {
+                    "spec_version": AgentProfile.SPEC_VERSION,
+                    "profile_id": profile_id,
+                    "model": {
+                        "provider": "openrouter",
+                        "model": resolved_counterpart_route.model,
+                        "revision": resolved_counterpart_route.revision,
+                        "base_url": "https://openrouter.ai/api/v1",
+                    },
+                    "harness": {
+                        "id": resolved_harness.id,
+                        "version": resolved_harness.version,
+                        "config": config,
+                    },
+                    "prompt": {
+                        "prompt_id": prompt_id,
+                        "sha256": hashlib.sha256(
+                            COUNTERPART_PROMPT.encode("utf-8")
+                        ).hexdigest(),
+                    },
+                    "runtime": {
+                        "kind": "python",
+                        "implementation": resolved_runtime,
+                        "version": "0.1.0",
+                    },
+                    "tools": [],
+                    "memory": {"mode": "disabled"},
+                    "reasoning": {
+                        "condition_id": (
+                            "reasoning_"
+                            f"{resolved_counterpart_route.reasoning_effort}_v1"
+                            if resolved_counterpart_route.reasoning_effort
+                            is not None
+                            else "reasoning_provider_default_v1"
+                        ),
+                        "effort": (
+                            resolved_counterpart_route.reasoning_effort
+                        ),
+                        "token_budget": None,
+                        "rationale_visibility": "hidden",
+                    },
+                    "sampling": {
+                        "temperature": 0.0,
+                        "max_output_tokens": max_output_tokens,
+                        "seed": seed,
+                        "top_p": None,
+                    },
+                    "budgets": {
+                        "max_logical_actions": max_actions,
+                        "timeout_seconds": timeout_seconds,
+                        "max_cost_usd": max_cost_usd,
+                    },
+                    "retry_policy": {
+                        "max_action_attempts": 1,
+                        "retryable_conditions": [],
+                        "session_mode": "restart",
+                        "sdk_retries": 0,
+                    },
+                }
+            )
+        )
+
+    profiles = (developer_profile, *counterpart_profiles)
+    profile_by_seat = {
+        "developer": developer_profile.profile_id,
+        **{
+            seat_id: next(
+                profile.profile_id
+                for profile in counterpart_profiles
+                if f"_{seat_id}_" in profile.profile_id
+            )
+            for seat_id in counterpart_seats
+        },
+    }
+    same_route = all(
+        getattr(route, field) == getattr(resolved_counterpart_route, field)
+        for field in ("model", "revision", "route_provider", "quantization")
+    )
+    block = EvaluationBlock.from_dict(
+        {
+            "spec_version": EvaluationBlock.SPEC_VERSION,
+            "block_id": (
+                f"datacenter_{scope_version}_model_to_model_"
+                f"{resolved_harness.id}_v1"
+            ),
+            "kind": "self_play" if same_route else "cross_play",
+            "subject_seats": [seat.id for seat in developer_setup.case.seats],
+            "controlled_profiles": {},
+            "repetitions": 1,
+            "seed_policy": "fixed",
+        }
+    )
+    suite = SuiteManifest.from_dict(
+        {
+            "spec_version": SuiteManifest.SPEC_VERSION,
+            "suite_id": (
+                f"datacenter_development_{scope_version}_model_to_model_v1"
+            ),
+            "version": "1.0.0",
+            "family_ids": [
+                family.family.id for family in developer_setup.plan.families
+            ],
+            "case_ids": [developer_setup.case.case_id],
+            "sampling_plan_id": (
+                developer_setup.plan.sampling.sampling_plan_id
+            ),
+            "evaluation_block_ids": [block.block_id],
+            "analysis_plan_id": developer_setup.plan.analysis.analysis_plan_id,
+        }
+    )
+    run_spec = RunSpec.from_dict(
+        {
+            "spec_version": RunSpec.SPEC_VERSION,
+            "run_spec_id": (
+                f"datacenter_development_{scope_version}_model_to_model_"
+                f"{resolved_harness.id}_v1"
+            ),
+            "suite_id": suite.suite_id,
+            "evaluation_block_ids": [block.block_id],
+            "agent_profile_ids": [profile.profile_id for profile in profiles],
+            "seat_assignments": profile_by_seat,
+            "execution_mode": "evaluate",
+            "replicate_override": None,
+            "budget_overrides": None,
+        }
+    )
+
+    required_component_ids = {
+        profile.harness.id for profile in profiles
+    } | {
+        profile.runtime.implementation for profile in profiles
+    }
+    for family in developer_setup.plan.families:
+        required_component_ids.add(family.family.plugin_id)
+        required_component_ids.add(family.scoring.scorer_id)
+        required_component_ids.update(family.scoring.reference_provider_ids)
+        if family.scoring.oracle_id is not None:
+            required_component_ids.add(family.scoring.oracle_id)
+        if family.generator is not None:
+            required_component_ids.add(family.generator.generator_id)
+    pins = tuple(
+        pin
+        for pin in developer_setup.plan.implementation_pins
+        if pin.component_id in required_component_ids
+    )
+    plan = resolve_run_plan(
+        families=developer_setup.plan.families,
+        cases=developer_setup.plan.cases,
+        suite=suite,
+        sampling=developer_setup.plan.sampling,
+        evaluation_blocks=(block,),
+        analysis=developer_setup.plan.analysis,
+        agent_profiles=profiles,
+        run_spec=run_spec,
+        registry=developer_setup.registry,
+        implementation_pins=pins,
+        harness_registry=(
+            _harness_registry_for(resolved_harness)
+        ),
+        provider_capabilities={
+            "openrouter": ProviderCapabilities(
+                native_tools=False,
+                structured_output=True,
+                seed=True,
+                system_prompt=True,
+                reasoning_budget=(
+                    route.reasoning_effort is not None
+                    or resolved_counterpart_route.reasoning_effort is not None
+                ),
+                reasoning_token_report=True,
+                max_context_tokens=None,
+            )
+        },
+    )
+    pricing = {route.model: route.pricing}
+    if resolved_counterpart_route.model in pricing and (
+        pricing[resolved_counterpart_route.model].content_sha256()
+        != resolved_counterpart_route.pricing.content_sha256()
+    ):
+        raise ValueError("one model cannot resolve to two pricing records")
+    pricing[resolved_counterpart_route.model] = (
+        resolved_counterpart_route.pricing
+    )
+    return DataCenterStackSetup(
+        plan=plan,
+        registry=developer_setup.registry,
+        prompt_sources=developer_setup.prompt_sources,
+        pricing=pricing,
+        case=developer_setup.case,
+        harnesses={
+            **default_harnesses(),
+            f"{resolved_harness.id}/{resolved_harness.version}": (
+                resolved_harness
+            ),
         },
         scope_version=scope_version,
     )
@@ -849,6 +1192,50 @@ async def run_stack_openrouter(
     return setup, execution
 
 
+async def run_stack_model_to_model(
+    scope_version: str,
+    route: Any,
+    *,
+    evidence_root: Path | str,
+    seed: int,
+    counterpart_route: Any | None = None,
+    episode_attempt_ordinal: int = 0,
+    max_output_tokens: int = 1600,
+    timeout_seconds: float = 180.0,
+    max_cost_usd: float = 0.02,
+    harness: Any | None = None,
+    harness_config: Mapping[str, Any] | None = None,
+    runtime_implementation: str | None = None,
+    provider: Any | None = None,
+) -> tuple[DataCenterStackSetup, CellExecution]:
+    """Execute one harness-mediated trajectory with live models in every seat."""
+
+    setup = build_stack_model_to_model_setup(
+        scope_version,
+        route,
+        seed=seed,
+        counterpart_route=counterpart_route,
+        max_output_tokens=max_output_tokens,
+        timeout_seconds=timeout_seconds,
+        max_cost_usd=max_cost_usd,
+        harness=harness,
+        harness_config=harness_config,
+        runtime_implementation=runtime_implementation,
+    )
+    execution = await execute_plan_cell(
+        plan=setup.plan,
+        cell_id=setup.plan.cells[0].cell_id,
+        registry=setup.registry,
+        evidence_root=Path(evidence_root),
+        prompt_sources=setup.prompt_sources,
+        providers={"openrouter": provider or OpenRouterChatClient()},
+        pricing=setup.pricing,
+        episode_attempt_ordinal=episode_attempt_ordinal,
+        harnesses=setup.harnesses,
+    )
+    return setup, execution
+
+
 def finalize_stack_execution(
     *, setup: DataCenterStackSetup, execution: CellExecution
 ) -> EvaluationReceipt:
@@ -885,12 +1272,12 @@ def replay_stack_receipt(
 async def _run_cli(arguments: argparse.Namespace) -> dict[str, Any]:
     setup, execution = await run_stack_offline(
         arguments.scope,
-        evidence_root=arguments.output,
+        evidence_root=arguments.run_root,
         episode_attempt_ordinal=arguments.attempt,
     )
     receipt = finalize_stack_execution(setup=setup, execution=execution)
     replayed = replay_stack_receipt(
-        setup=setup, receipt=receipt, evidence_root=arguments.output
+        setup=setup, receipt=receipt, evidence_root=arguments.run_root
     )
     return {
         "scope_version": arguments.scope,
@@ -916,7 +1303,9 @@ async def _run_cli(arguments: argparse.Namespace) -> dict[str, Any]:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--scope", choices=("v1", "v2"), required=True)
-    parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument(
+        "--run-root", "--output", dest="run_root", type=Path, required=True
+    )
     parser.add_argument("--attempt", type=int, default=0)
     arguments = parser.parse_args(argv)
     print(canonical_json_bytes(asyncio.run(_run_cli(arguments))).decode("utf-8"))
@@ -928,6 +1317,7 @@ __all__ = [
     "DataCenterStackSetup",
     "StackScriptedCounterpartyProvider",
     "StackScriptedDeveloperProvider",
+    "build_stack_model_to_model_setup",
     "build_stack_openrouter_setup",
     "build_stack_setup",
     "finalize_stack_execution",
@@ -935,6 +1325,8 @@ __all__ = [
     "main",
     "replay_stack_receipt",
     "run_stack_offline",
+    "run_stack_model_to_model",
     "run_stack_openrouter",
+    "stack_counterparty_output_schemas",
     "stack_developer_output_schemas",
 ]
