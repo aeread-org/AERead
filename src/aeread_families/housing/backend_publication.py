@@ -499,29 +499,31 @@ def _publish_blocked_campaign(
     catalog: Mapping[str, Any],
     admission: Mapping[str, Any],
 ) -> dict[str, Any]:
-    live = _read_sealed(run_root / "live" / "blocked.json")
+    terminal_stage = contract["execution"].get("stage", "live")
+    blocked = _read_sealed(run_root / terminal_stage / "blocked.json")
     campaign_id = contract["campaign_id"]
     if (
-        live["campaign_id"] != campaign_id
-        or live["status"] != "blocked_by_profile_admission"
-        or live["profile_admission_sha256"] != admission["artifact_sha256"]
-        or live["provider_calls"] != 0
+        blocked["campaign_id"] != campaign_id
+        or blocked["status"] != "blocked_by_profile_admission"
+        or blocked["profile_admission_sha256"] != admission["artifact_sha256"]
+        or blocked["provider_calls"] != 0
+        or blocked.get("gate_id", "live") != terminal_stage
     ):
-        raise ValueError("blocked live gate does not bind the failed admission")
+        raise ValueError("blocked terminal gate does not bind the failed admission")
 
     trajectory_export = _sealed(
         {
             "schema_version": TRAJECTORY_SCHEMA_VERSION,
             "campaign_id": campaign_id,
             "claim_status": contract["claim_status"],
-            "source_gate": "live_block",
-            "source_summary_artifact_sha256": live["artifact_sha256"],
+            "source_gate": f"{terminal_stage}_block",
+            "source_summary_artifact_sha256": blocked["artifact_sha256"],
             "selection_rule": "No trajectory was eligible after profile admission failed.",
             "selection_is_for_presentation_not_inference": True,
             "ranking_allowed": False,
             "raw_provider_responses_included": False,
             "model_reasoning_included": False,
-            "local_source": f"runs/{campaign_id}/live",
+            "local_source": f"runs/{campaign_id}/{terminal_stage}",
             "limitations": [
                 "Profile admission failed, so no Housing trajectory was started.",
                 "The admission failure is provider reliability evidence, not a model score.",
@@ -564,7 +566,7 @@ def _publish_blocked_campaign(
             "schema_version": "aeread.housing_backend_qualification/0.4",
             "campaign_id": campaign_id,
             "created_date": contract["backend"]["catalog_retrieved_at"],
-            "status": live["status"],
+            "status": blocked["status"],
             "claim_status": contract["claim_status"],
             "winner_claim_allowed": False,
             "ranking_allowed": False,
@@ -619,17 +621,17 @@ def _publish_blocked_campaign(
                     ],
                 },
                 {
-                    "gate_id": "live",
-                    "status": live["status"],
-                    "artifact_sha256": live["artifact_sha256"],
+                    "gate_id": terminal_stage,
+                    "status": blocked["status"],
+                    "artifact_sha256": blocked["artifact_sha256"],
                     "planned_trajectories": design["planned_trajectories"],
                     "attempted_trajectories": 0,
                     "completed_trajectories": 0,
                     "not_started_trajectories": design[
                         "planned_trajectories"
                     ],
-                    "provider_calls": live["provider_calls"],
-                    "cost_usd": live["cost_usd"],
+                    "provider_calls": blocked["provider_calls"],
+                    "cost_usd": blocked["cost_usd"],
                 },
             ],
             "profile_results": _profile_results(contract, admission),
@@ -664,9 +666,12 @@ def _publish_blocked_campaign(
             ),
             "cost_note": (
                 f"Profile admission recorded ${admission['observed_cost_usd']} "
-                "in provider-reported cost; live execution cost $0.0."
+                f"in provider-reported cost; {terminal_stage} execution cost $0.0."
             ),
-            "stop_reason": "Profile admission failed; live execution was not eligible.",
+            "stop_reason": (
+                f"Profile admission failed; {terminal_stage} execution was not "
+                "eligible."
+            ),
             "next_gate": (
                 "Review the typed provider failure and freeze a new campaign "
                 "identity; do not selectively rerun a failed probe."

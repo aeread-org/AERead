@@ -1130,3 +1130,74 @@ def test_published_v10_attempts_and_canonical_facts_are_digest_bound() -> None:
     assert "raw_response" not in serialized
     assert "output_text" not in serialized
     assert "/Users/" not in serialized
+
+
+def test_published_v11_full_trajectory_block_is_digest_bound() -> None:
+    repository_root = V11_CONTRACT_PATH.parents[1]
+    root = repository_root / "evidence" / (
+        "housing_model_sensitivity_openrouter_deepinfra_v11"
+    )
+    qualification = json.loads(
+        (root / "reports" / "qualification.json").read_bytes()
+    )
+    trajectories = json.loads(
+        (root / "trajectories" / "attempted.json").read_bytes()
+    )
+    manifest = json.loads((root / "tables" / "fact_manifest.json").read_bytes())
+    for value in (qualification, trajectories, manifest):
+        core = {key: item for key, item in value.items() if key != "artifact_sha256"}
+        assert value["artifact_sha256"] == hashlib.sha256(
+            canonical_json_bytes(core)
+        ).hexdigest()
+
+    gates = {row["gate_id"]: row for row in qualification["gate_status"]}
+    assert qualification["status"] == "blocked_by_profile_admission"
+    assert gates["design"]["planned_trajectories"] == 4
+    assert gates["profile_admission"]["attempted_probe_count"] == 18
+    assert gates["profile_admission"]["passed_probe_count"] == 15
+    assert gates["profile_admission"]["operational_failures"] == 3
+    assert gates["profile_admission"]["hidden_retry_count"] == 0
+    assert gates["full_trajectory"] == {
+        "gate_id": "full_trajectory",
+        "status": "blocked_by_profile_admission",
+        "artifact_sha256": (
+            "296904f26ffca691bbd2f05bbfbce5d0bcd93de8ccfab09f0aae53e33d8268cf"
+        ),
+        "planned_trajectories": 4,
+        "attempted_trajectories": 0,
+        "completed_trajectories": 0,
+        "not_started_trajectories": 4,
+        "provider_calls": 0,
+        "cost_usd": 0.0,
+    }
+    assert {
+        (row["model_id"], row["probe_index"], row["failure_condition"])
+        for row in qualification["failed_admission_probes"]
+    } == {("glm_53_flash", 2, "rate_limit")}
+    assert {
+        row["action_schema"]
+        for row in qualification["failed_admission_probes"]
+    } == {
+        "housing_contact_v1",
+        "housing_commit_v1",
+        "housing_respond_v1",
+    }
+    assert qualification["acceptance"]["publishable_gate_evidence"] is True
+    assert qualification["acceptance"]["publishable_integration_evidence"] is False
+    assert qualification["acceptance"]["leaderboard_eligible"] is False
+    assert trajectories["source_gate"] == "full_trajectory_block"
+    assert trajectories["planned_trajectories"] == 4
+    assert trajectories["attempted_trajectories"] == 0
+    assert trajectories["trajectories"] == []
+
+    for table in manifest["artifacts"].values():
+        table_path = repository_root / table["path"]
+        assert hashlib.sha256(table_path.read_bytes()).hexdigest() == table["sha256"]
+        with table_path.open(newline="", encoding="utf-8") as handle:
+            assert len(list(csv.DictReader(handle))) == table["row_count"]
+    serialized = json.dumps(
+        {"qualification": qualification, "trajectories": trajectories}
+    )
+    assert "raw_response" not in serialized
+    assert "output_text" not in serialized
+    assert "/Users/" not in serialized
