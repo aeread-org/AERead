@@ -7,14 +7,14 @@ yet implemented.
 
 This protocol measures how an agent or population of agents performs when the
 other adaptive participants change. It is distinct from an
-[open-harness comparison](open_harness_testing.md): the harness is fixed as an
+[open-harness comparison](../operations/open_harness_testing.md): the harness is fixed as an
 experimental control rather than varied as the treatment.
 
 Every live model still executes through a declared harness. “Without a harness
 experiment” therefore means **without harness identity as an experimental
 factor**, not execution without a harness or evidence boundary.
 
-Use the shared [experiment campaign SOP](experiment_campaign_sop.md) for ordered
+Use the shared [experiment campaign SOP](../operations/experiment_campaign_sop.md) for ordered
 promotion and fact-table publication. This document defines the multi-agent
 treatment, opponent, and attribution choices within that common sequence.
 

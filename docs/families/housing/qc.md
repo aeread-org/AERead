@@ -1,8 +1,8 @@
 # Housing V1 QC profile
 
-**Standard:** [AERead benchmark QC](benchmark_qc.md)
+**Standard:** [AERead benchmark QC](../../operations/benchmark_qc.md)
 
-**Campaign procedure:** [experiment campaign SOP](experiment_campaign_sop.md)
+**Campaign procedure:** [experiment campaign SOP](../../operations/experiment_campaign_sop.md)
 **Status:** case-specific profile;
 `development_case_qualification=passed` and
 `normative_housing_profile=partial`. Confirmatory and live-model gates remain
@@ -152,7 +152,7 @@ present a confirmatory model leaderboard until every applicable gate has sealed
 
 ## 7. Provider-free case-configuration sweep
 
-[`housing_case_config_sweep_v1`](../configs/housing_case_config_sweep_v1.json)
+[`housing_case_config_sweep_v1`](../../../configs/housing_case_config_sweep_v1.json)
 qualifies the case distribution before comparing models. It crosses three
 market-tightness strata, three `common_weight` values, and two round budgets over
 16 paired development seeds. The harness is not a factor in this sweep: no model
@@ -183,7 +183,7 @@ The output contains:
 - `sweep_summary.json`: completion, provider-call, cost, and holdout status.
 
 The frozen development result is published in
-[`evidence/housing_case_config_sweep_v1`](../evidence/housing_case_config_sweep_v1/).
+[`evidence/housing_case_config_sweep_v1`](../../../evidence/housing_case_config_sweep_v1/).
 All 288 development worlds completed without a provider call; 14 of 18
 configurations passed the declared admission rule. The selected panel is:
 
@@ -224,7 +224,7 @@ campaign identity.
 
 ## 8. V1 fixed-harness model sensitivity
 
-[`housing_model_sensitivity_v1`](../configs/housing_model_sensitivity_v1.json)
+[`housing_model_sensitivity_v1`](../../../configs/housing_model_sensitivity_v1.json)
 is the first model-to-model integration slice over the three selected
 development configurations. It holds `minimal_chat/1.0`, prompts, tools,
 memory, reasoning, sampling, retry policy, role budgets, provider route, and
@@ -264,7 +264,7 @@ choice without text and triggered the provider-contract stop. Zero trajectories
 completed, nine were never started, and recorded cost was $0. This is a failed
 integration/reliability gate, not evidence of Housing performance and not a
 model ranking. The sanitized record is
-[`qualification.json`](../evidence/housing_model_sensitivity_v1/reports/qualification.json).
+[`qualification.json`](../../../evidence/housing_model_sensitivity_v1/reports/qualification.json).
 
 Because only one world cluster was planned, even a complete run would remain a
 descriptive integration slice with no estimable uncertainty. A variance pilot
@@ -273,7 +273,7 @@ identity.
 
 ## 9. V2 alternate-backend qualification
 
-[`housing_model_sensitivity_openrouter_alt_v2`](../configs/housing_model_sensitivity_openrouter_alt_v2.json)
+[`housing_model_sensitivity_openrouter_alt_v2`](../../../configs/housing_model_sensitivity_openrouter_alt_v2.json)
 tests whether changing only the pinned inference endpoints can clear the
 reliability gate that blocked V1. It retains the V1 selected cases, prompts,
 fixed `minimal_chat/1.0` harness, tools, memory, reasoning, sampling, action
@@ -294,7 +294,7 @@ claimed.
 The failed admission automatically blocked all 12 Housing trajectories. This
 is backend qualification evidence, not a Housing score or model comparison.
 See the digest-bound
-[`qualification.json`](../evidence/housing_model_sensitivity_openrouter_alt_v2/reports/qualification.json).
+[`qualification.json`](../../../evidence/housing_model_sensitivity_openrouter_alt_v2/reports/qualification.json).
 
 The next attempt remains on OpenRouter and uses a new campaign identity, a fresh
 catalog query, new route-bound profile hashes, and the same
@@ -303,7 +303,7 @@ failed probes.
 
 ## 10. V3 OpenRouter-only route qualification
 
-[`housing_model_sensitivity_openrouter_alt_v3`](../configs/housing_model_sensitivity_openrouter_alt_v3.json)
+[`housing_model_sensitivity_openrouter_alt_v3`](../../../configs/housing_model_sensitivity_openrouter_alt_v3.json)
 keeps OpenRouter as the gateway and tests a fresh route pair: Reka FP8 for GLM
 5.3 Flash and Parasail FP8 for DeepSeek V4 Flash. V3 is a new campaign because
 provider route, price, and profile identity are frozen controls. Its catalog
@@ -340,7 +340,7 @@ probes plus the one billed invalid response reported `$0.0019847322`; the three
 The failed admission blocked all 12 Housing trajectories with zero additional
 provider calls. This remains backend reliability evidence, not a Housing score
 or model comparison. Do not selectively retry V3. See the digest-bound
-[`qualification.json`](../evidence/housing_model_sensitivity_openrouter_alt_v3/reports/qualification.json).
+[`qualification.json`](../../../evidence/housing_model_sensitivity_openrouter_alt_v3/reports/qualification.json).
 
 For review without publishing raw model reasoning, the repository also keeps a
 digest-bound set of three V0 trajectory examples: the upper and lower observed
@@ -348,11 +348,11 @@ completed live-opponent cross-play cells and the shortest operational failure.
 The export includes event-seal roots, receipt identities, action summaries,
 outcomes, costs, and limitations, while the complete provider responses remain
 under ignored local `runs/`. See
-[`selected_2026-09-02.json`](../evidence/housing_population_crossplay_v0/trajectories/selected_2026-09-02.json).
+[`selected_2026-09-02.json`](../../../evidence/housing_population_crossplay_v0/trajectories/selected_2026-09-02.json).
 
 ## 11. V4 strict-output OpenRouter qualification
 
-[`housing_model_sensitivity_openrouter_alt_v4`](../configs/housing_model_sensitivity_openrouter_alt_v4.json)
+[`housing_model_sensitivity_openrouter_alt_v4`](../../../configs/housing_model_sensitivity_openrouter_alt_v4.json)
 keeps the selected cases and frozen minimal-chat controls while assigning fresh
 route-bound profiles to Phala FP8 for GLM 5.3 Flash and Parasail FP8 for
 DeepSeek V4 Flash. Both are pinned OpenRouter endpoints; the campaign neither
@@ -372,7 +372,7 @@ claimed.
 The failed joint admission blocked all 12 Housing trajectories with zero
 additional provider calls. This is profile and backend qualification evidence,
 not a Housing score or comparison. See the digest-bound
-[`qualification.json`](../evidence/housing_model_sensitivity_openrouter_alt_v4/reports/qualification.json).
+[`qualification.json`](../../../evidence/housing_model_sensitivity_openrouter_alt_v4/reports/qualification.json).
 
 Do not selectively rerun V4 or interpret DeepSeek's admission success as a
 Housing result. The next experiment should diagnose GLM's action-contract
@@ -390,14 +390,14 @@ GLM self-play trajectory completed with a descriptive within-case score of
 `0.8879703073`. The next cross-play trajectory returned an OpenRouter choice
 without text after eight provider calls. V5 classified that as a
 `provider_contract` failure, stopped the matrix, and left ten cells unstarted.
-See its tracked [`qualification.json`](../evidence/housing_model_sensitivity_openrouter_alt_v5/reports/qualification.json).
+See its tracked [`qualification.json`](../../../evidence/housing_model_sensitivity_openrouter_alt_v5/reports/qualification.json).
 
 V6 made null or blank provider content a receipt-visible `empty_response` so
 the application retry policy, rather than the adapter, owns retry decisions.
 Admission then exposed a separate semantic hole in the V1 commit schema:
 DeepSeek returned `decision=pass` with a non-null `hold_id`. Seventeen of 18
 probes passed, and the failed gate blocked live execution. See its tracked
-[`qualification.json`](../evidence/housing_model_sensitivity_openrouter_alt_v6/reports/qualification.json).
+[`qualification.json`](../../../evidence/housing_model_sensitivity_openrouter_alt_v6/reports/qualification.json).
 
 V7 binds conditional `oneOf` schemas that enforce decision-dependent fields
 and explicitly wires timeout, output-token, attempt, and retry controls into
@@ -411,9 +411,9 @@ present; the fourth moderate cell and all four severe cells remain unstarted.
 The observed V7 scores range from `0.7917117782` to `0.9926657320`, but this is
 not a leaderboard: the condition-by-configuration matrix is incomplete and has
 only one world cluster. The digest-bound
-[`qualification.json`](../evidence/housing_model_sensitivity_openrouter_alt_v7/reports/qualification.json)
+[`qualification.json`](../../../evidence/housing_model_sensitivity_openrouter_alt_v7/reports/qualification.json)
 records the gates and stop. The separate
-[`selected.json`](../evidence/housing_model_sensitivity_openrouter_alt_v7/trajectories/selected.json)
+[`selected.json`](../../../evidence/housing_model_sensitivity_openrouter_alt_v7/trajectories/selected.json)
 publishes parsed action counts, assignments, rents, welfare, latency, cost,
 retry counts, and receipt/event digests for all seven completed trajectories;
 raw provider responses and hidden reasoning remain under ignored local
@@ -434,7 +434,7 @@ cells into a new matrix or selectively execute only its five missing cells.
 ## 13. Frozen V0 population campaign
 
 The first executable population campaign is
-[`housing_population_crossplay_v0`](../configs/housing_population_crossplay_v0.json).
+[`housing_population_crossplay_v0`](../../../configs/housing_population_crossplay_v0.json).
 It compares GLM 5.3 Flash and DeepSeek V4 Flash as homogeneous tenant
 populations against a scripted anchor and both live landlord profiles. The
 scripted cells are controlled anchors, diagonal cells are self-play, and
@@ -495,7 +495,7 @@ invalidation, but the pinned DeepInfra GLM route then exhausted all four visible
 attempts on the first tenant-contact admission probe. No Housing trajectory was
 started, and the variance pilot remains blocked. The sanitized, digest-bound
 record is
-[`requalification_2026-09-02.json`](../evidence/housing_population_crossplay_v0/reports/requalification_2026-09-02.json).
+[`requalification_2026-09-02.json`](../../../evidence/housing_population_crossplay_v0/reports/requalification_2026-09-02.json).
 
 Apply the campaign SOP's backend-escalation instruction before the variance
 pilot. OpenRouter remains the backend; any provider-route change requires a new

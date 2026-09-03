@@ -42,7 +42,7 @@ Case owners do not need to agree on a universal state, action, welfare, or barga
 
 The canonical object hierarchy, exact walkthrough of the current Exchange path,
 compatibility map, and gated implementation sequence are frozen in
-[`walkthroughs/shared_runner_architecture_roadmap.md`](walkthroughs/shared_runner_architecture_roadmap.md).
+[`walkthroughs/shared_runner_architecture_roadmap.md`](../walkthroughs/shared_runner_architecture_roadmap.md).
 
 ---
 
@@ -168,7 +168,7 @@ unreported provider default. Actions and family outcomes remain primary; reasoni
 and failure-mechanism labels are secondary diagnostics. The required fields, paired design,
 budget-starvation treatment, and `objective_selection` / `strategic_modeling` /
 `constraint_tracking` / `execution` taxonomy are defined in
-[`reasoning_condition_and_diagnostics.md`](reasoning_condition_and_diagnostics.md).
+[`reasoning_condition_and_diagnostics.md`](../research/reasoning_condition_and_diagnostics.md).
 
 ### 3.1 Family and case sketch
 
@@ -402,10 +402,10 @@ Minimization metrics are converted to a canonical higher-is-better orientation o
 `measurement_kind` states the kind of claim. The semantic verifier, reference object,
 stochastic estimation mode, integrity gate, and any hybrid composition are declared
 separately in a versioned `VerifierSpec`. The general families, valid ratio constructions,
-and composition rules are defined in [`verifier_taxonomy.md`](verifier_taxonomy.md). A
+and composition rules are defined in [`verifier_taxonomy.md`](../research/verifier_taxonomy.md). A
 compact real-world case and benchmark crosswalk is frozen in
-[`verifier_case_mapping.md`](verifier_case_mapping.md), with the exhaustive corpus audit
-kept separately in [`problem_bound_case_audit.md`](problem_bound_case_audit.md).
+[`verifier_case_mapping.md`](../research/verifier_case_mapping.md), with the exhaustive corpus audit
+kept separately in [`problem_bound_case_audit.md`](../research/problem_bound_case_audit.md).
 
 ### 6.2 Typed optimization bounds and comparison references
 
@@ -431,7 +431,7 @@ The strongest valid status is stored per estimand:
 - `baseline_only`: only a scientific comparison is justified;
 - `descriptive_only`: no valid comparative reference exists.
 
-A best observed result is a feasible witness, not an oracle. A support-normalized score `(M - support_min) / (support_max - support_min)` is permitted only when both support bounds are valid. Bound gaps and baseline improvements otherwise remain in native units. Equal numeric values across families still do not have equal scientific meaning, so `cross_family_scalar: disabled` remains the default. The survey-wide application is documented in [`problem_bound_case_audit.md`](problem_bound_case_audit.md).
+A best observed result is a feasible witness, not an oracle. A support-normalized score `(M - support_min) / (support_max - support_min)` is permitted only when both support bounds are valid. Bound gaps and baseline improvements otherwise remain in native units. Equal numeric values across families still do not have equal scientific meaning, so `cross_family_scalar: disabled` remains the default. The survey-wide application is documented in [`problem_bound_case_audit.md`](../research/problem_bound_case_audit.md).
 
 ### 6.3 Saturation and the Tier-0 screen
 
@@ -583,7 +583,7 @@ surface. Its role is to prove that the same runner can preserve deterministic
 compatibility result. The pin, pilot task IDs, component-level parity gate, receipts,
 cluster semantics, saturation language, STATE-Bench follow-on, and native `refund_v1`
 admission rule are specified in
-[`refund_external_benchmark_integration.md`](refund_external_benchmark_integration.md).
+[`refund_external_benchmark_integration.md`](../families/tau3-retail/refund_external_benchmark_integration.md).
 
 ### Minimum gates before calling the runner paper-ready
 
@@ -602,7 +602,7 @@ admission rule are specified in
 
 ## Design lineage
 
-The proposal retains the useful taskset (what), harness (how), and runtime (where) separation used by adjacent evaluation frameworks, but AERead defines its own benchmark truth. The runner owns auditable scheduling and execution; families provide declarative economic hooks. AERead additionally requires a joint economic timeline, explicit attempt/failure accounting, typed information projections, within-case measurement references, cluster-aware receipts, and deterministic replay/resume. The typed measurement route was checked against 22 external papers, the AERead paper, and all five native pilot cases in [`problem_bound_case_audit.md`](problem_bound_case_audit.md).
+The proposal retains the useful taskset (what), harness (how), and runtime (where) separation used by adjacent evaluation frameworks, but AERead defines its own benchmark truth. The runner owns auditable scheduling and execution; families provide declarative economic hooks. AERead additionally requires a joint economic timeline, explicit attempt/failure accounting, typed information projections, within-case measurement references, cluster-aware receipts, and deterministic replay/resume. The typed measurement route was checked against 22 external papers, the AERead paper, and all five native pilot cases in [`problem_bound_case_audit.md`](../research/problem_bound_case_audit.md).
 
 The implemented cross-family kernel boundary, including tool/state evidence and adapter
 parity, is specified in

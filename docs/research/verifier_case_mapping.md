@@ -4,7 +4,7 @@
 
 **Sources checked:** [`verifier_taxonomy.md`](verifier_taxonomy.md), the PDF-checked
 [`problem_bound_case_audit.md`](problem_bound_case_audit.md), and the pinned
-[`refund_external_benchmark_integration.md`](refund_external_benchmark_integration.md)
+[`refund_external_benchmark_integration.md`](../families/tau3-retail/refund_external_benchmark_integration.md)
 
 The operational framework contains **five semantic verifier families** and **two cross-cutting layers**. The table gives one recognizable real-world workflow and one
 best-fit benchmark for each. A benchmark may still emit secondary verifier leaves; the

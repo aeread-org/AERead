@@ -340,7 +340,7 @@ def _op_nl_assertions_judge_request(request: dict[str, Any]) -> dict[str, Any]:
     seconds apart in separate subprocesses would then compare as "different
     inputs" for a reason that has nothing to do with what was actually sent
     to the judge. Discovered empirically while running the pilot parity
-    procedure against task 108 (see ``docs/tau3_retail_adapter_spec.md``
+    procedure against task 108 (see ``docs/families/tau3-retail/adapter_spec.md``
     section 8, P4): the two constructed ``system_prompt``/``user_prompt``
     strings were byte-identical, but the full raw message dumps differed
     only in ``timestamp``.

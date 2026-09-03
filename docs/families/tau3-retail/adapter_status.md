@@ -34,14 +34,14 @@ real kernel-facing path — and the two are compared on the initial database, th
 ordered tool calls, their ordered results, the final database, the deterministic
 DB-reward component, and the judged component's *inputs*.
 
-Receipts: `docs/tau3_corpus_parity_receipt.json` (all 114) and
-`docs/tau3_pilot_parity_receipt.json` (the 18-task pilot).
+Receipts: `docs/families/tau3-retail/receipts/corpus_parity.json` (all 114) and
+`docs/families/tau3-retail/receipts/pilot_parity.json` (the 18-task pilot).
 
 Regenerate either with the parity CLI, which exits non-zero on a skip:
 
 ```bash
 PYTHONPATH=src python -m aeread_families.tau3_retail.parity \
-  --upstream-root <pinned-checkout> --json docs/tau3_pilot_parity_receipt.json
+  --upstream-root <pinned-checkout> --json docs/families/tau3-retail/receipts/pilot_parity.json
 ```
 
 **Suite: 572 passed, 3 skipped, 1 xfailed** with `AEREAD_TAU2_BRIDGE_REQUIRED=1`.
