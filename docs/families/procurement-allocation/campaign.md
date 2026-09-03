@@ -89,6 +89,40 @@ this is a shortcut-sensitivity diagnostic rather than a population estimate. The
 next causal ablation should separate opaque labels from reordered listings while
 holding these same worlds and seeds fixed.
 
+## Declared v4 identity by order factorial
+
+The v4 follow-up is a paired two-by-two design over the same six worlds and three
+inference seeds. It reuses the qualified labeled/original v2 and opaque/reordered v3
+runs, and adds only the opaque/original and labeled/reordered cells. The reordered
+cells use the identical deterministic v3 permutation, so the design isolates:
+
+- the supplier-identity effect at each order level;
+- the listing-order effect at each identity level;
+- marginal identity and order main effects; and
+- the identity-by-order interaction.
+
+The primary metrics remain feasibility, completed kits, contribution margin, and
+regret to the unchanged full-information upper bound. Inference is clustered over
+the six economic worlds. The exhaustive ordered cluster bootstrap describes this
+curated panel; it is not a population confidence interval and the 18 rows in each
+cell are not treated as independent cases.
+
+The two new panels are declared at
+`cases/procurement_allocation_v1/surface_factorial_v4/`. A no-spend plan is printed
+unless `--execute` is present:
+
+```bash
+python -m aeread_families.procurement_allocation.surface_factorial \
+  --opaque-run-root runs/procurement_allocation/procurement_allocation_glm_morph_surface_factorial_v4/opaque_original/qualification_attempt_001 \
+  --reordered-run-root runs/procurement_allocation/procurement_allocation_glm_morph_surface_factorial_v4/labeled_reordered/qualification_attempt_001
+```
+
+Execution uses one panel-specific unscored admission canary and a $0.30 scored-run
+ceiling per new panel by default. The combined conservative ceiling for the two
+scored panels is $0.4788; actual canary spend is reported separately. Any missing,
+failed, unreplayed, route-drifted, or upper-bound-drifted cell blocks factorial
+qualification instead of being scored as poor procurement performance.
+
 ## Artifact contract
 
 - Executable inputs live under `cases/procurement_allocation_v1/`.

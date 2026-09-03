@@ -82,6 +82,18 @@ def test_procurement_allocation_development_case_is_discoverable() -> None:
         "variant_substitution.json",
         "working_capital.json",
     ]
+    for condition in ("opaque_original", "labeled_reordered"):
+        assert sorted(
+            path.name
+            for path in (family / "surface_factorial_v4" / condition).glob("*.json")
+        ) == [
+            "deadline_cost.json",
+            "moq_capacity_split.json",
+            "quality_refund.json",
+            "service_defer.json",
+            "variant_substitution.json",
+            "working_capital.json",
+        ]
 
 
 def test_datacenter_development_cases_are_discoverable() -> None:
