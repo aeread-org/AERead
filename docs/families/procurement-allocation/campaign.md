@@ -239,6 +239,37 @@ interpreted as route-mediated behavior. If it repeats the same envelope defect, 
 evidence shifts toward checkpoint or adapter incompatibility, but still does not
 justify a broad model-quality claim.
 
+#### Observed Qwen 235B Google result
+
+The Google route admitted a valid `inquire` action and completed all 18 scored rows
+with receipt replay, exact accounting, zero operational failures, and zero retries.
+The canary cost $0.0003336696 and the scored panel cost $0.0620862858, for
+$0.0624199554 total. Median trajectory time was 13.94 seconds.
+
+Every matched first action changed from a missing discriminator on AtlasCloud to a
+valid `inquire` action on Google. Eleven trajectories reached an award submission,
+six ended with a malformed procurement action, and one exhausted the ten-action
+interaction budget. Three allocations were feasible: one quality/refund replicate
+and two variant-substitution replicates. The other 15 remained infeasible, including
+systematic over-capacity awards in the MOQ/capacity world and minimum-service failures
+in the deadline and service-defer worlds.
+
+The digest-bound paired route comparison qualified all 18 pairs. Google-minus-
+AtlasCloud effects, after averaging seeds within each of the six worlds, were +0.1667
+feasibility (six-world bootstrap interval [0.0000, 0.3889]), +7.7778 completed kits
+([2.3333, 13.5556]), +$12.0299 contribution margin ([-$1.0389, $31.1382]), and
+-$12.0299 regret ([-$31.1382, $1.0389]). The route therefore fixes the action-envelope
+failure and reveals some decision capacity, but uncertainty and remaining constraint
+violations do not support a general provider ranking or progression to the 144-row
+risk-gate factorial.
+
+The next high-value test is a matched constraint-ledger treatment on this qualified
+Google route. It should require the model to record demand, capacity, MOQ, deadline,
+cash, sample, and minimum-service obligations before submitting an award, while
+leaving the environment, objective verifier, action schema, cases, and seeds fixed.
+This directly tests whether the dominant residual failures are recoverable planning
+errors rather than spending another broad campaign on an unqualified base policy.
+
 ## Public-observation policy controls
 
 The deterministic policy campaign supplies non-model floors and a negative control
