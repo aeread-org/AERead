@@ -316,6 +316,35 @@ One unscored canary precedes three sequential six-row checkpoints. The conservat
 total ceiling remains $0.47352 and the hard ceiling $0.57; inspection remains blocked
 until all 18 rows complete and receipt-replay with exact cost accounting.
 
+#### Observed constraint-ledger V2 result
+
+V2 admitted a valid `request_quote` canary and completed and receipt-replayed all 18
+rows with zero operational failures or retries. The canary cost $0.0004068504 and the
+scored panel cost $0.0571252374, for $0.0575320878 total with exact accounting.
+All 13 V1 malformed-action failures disappeared; 13 V1 invalid trajectories reached
+award submission in V2.
+
+V2 produced 10/18 feasible allocations: 3/3 quality/refund, 3/3 working-capital,
+2/3 variant-substitution, 1/3 deadline/cost, and 1/3 service-defer. MOQ/capacity
+remained 0/3 because every award exceeded both selected offers' capacities, and one
+variant-substitution row used an unknown supplier ID. Four submitted awards still
+failed minimum service.
+
+The primary adaptive V2-minus-V1 contract-recovery contrast increased feasibility by
+0.2778, but its six-world interval [-0.1667, 0.7222] includes zero. The exploratory
+V2-minus-unscaffolded-control contrast was +0.3889 feasibility ([0.1111, 0.6667]),
++7.0556 completed kits ([2.1111, 12.6667]), +$23.4162 contribution margin
+([$3.4540, $49.4385]), and -$23.4162 regret ([-$49.4385, -$3.4540]). These are strong
+development-panel effects, not confirmatory mechanism estimates, because V2 was
+selected after inspecting V1 on the same worlds.
+
+Further prompt edits on these six cases are saturated. The next high-value campaign
+is a held-out confirmatory panel with new economic worlds, opaque/reordered supplier
+IDs, and several cases where a feasible award requires splitting demand across
+capacity-limited offers. It should freeze V2 unchanged and include the unscaffolded
+control so transfer, supplier-ID robustness, and split-capacity execution can be
+estimated without additional prompt tuning.
+
 ## Public-observation policy controls
 
 The deterministic policy campaign supplies non-model floors and a negative control
