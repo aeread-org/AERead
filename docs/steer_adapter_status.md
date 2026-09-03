@@ -55,6 +55,24 @@ PYTHONPATH=src python -m pytest \
   tests/test_shared_runner_smoke.py -q
 ```
 
+**Narrowed claim (finding 5 follow-up, docs/steer_fix_verification.md):**
+the run above did not set `AEREAD_STEER_FIXTURES_REQUIRED=1`, so on its own
+it cannot prove none of the six `test_steer_*.py` modules silently skipped
+for want of the flattened cache -- only that whatever ran, passed. The
+opt-in guard that turns such a skip into a failure (root `conftest.py`,
+`tools/steer_bridge/README.md`) is itself regression-tested both ways
+(`tests/test_steer_fixtures_required.py`), and re-running the command above
+with that variable set reports the identical pass count with zero skips
+(see `docs/steer_review_disposition.md`'s "Verification follow-up" section
+for the exact re-run). What remains explicitly out of scope for this
+adapter: the variable is not set by `.github/workflows/ci.yml`'s generic
+`test` job, and should not be, without also automatically fetching the
+no-license upstream corpus over the network on every push -- a design
+choice this family deliberately avoids elsewhere (`steer_bridge_driver.py`'s
+`fetch` op is never invoked automatically). Any run meant to certify
+fidelity must set `AEREAD_STEER_FIXTURES_REQUIRED=1` itself; nothing in
+this repo's CI does that for steer today.
+
 The whole-repo test collection (896 tests across every family) succeeds with
 no import errors after these changes; a full-repo execution was not run to
 completion tonight because of unrelated CPU contention from concurrent

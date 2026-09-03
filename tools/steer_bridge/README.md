@@ -44,6 +44,22 @@ says it does".
 can import the pinned pandas version rather than trusting that `pip` exited
 zero.
 
+That covers only `test_steer_cases.py`'s own two extra prerequisites (this
+interpreter and the pinned upstream checkout). The flattened cache at
+`bridges/steer-data/` gates all six `test_steer_*.py` modules the same way,
+and the same trap applies: without it, they skip rather than fail, and a
+multi-module run can go green while none of steer's tests ran at all
+(reproduced in `tests/test_steer_fixtures_required.py`, docs/steer_codex_
+triage.md finding 5). `AEREAD_STEER_FIXTURES_REQUIRED=1` (see the root
+`conftest.py`) turns any of those fixture-related skips into a failed run
+instead. It is opt-in and off by default so it never surprises a local run,
+and it is **not** set by `.github/workflows/ci.yml`'s generic `test` job:
+unlike a licensed upstream, provisioning it automatically would mean this
+family's own CI fetching a no-license corpus over the network on every
+push, which `steer_bridge_driver.py`'s `fetch` operation is deliberately
+never invoked to do outside an explicit, manual step (see "No network in
+tests" below). Set it yourself for any run meant to certify fidelity.
+
 ## Usage
 
 ```bash
@@ -51,6 +67,11 @@ tools/steer_bridge/provision.sh                  # defaults to ~/.cache/aeread/s
 export AEREAD_STEER_BRIDGE_PYTHON=<printed path>
 
 pytest tests/test_steer_cases.py
+
+# and to certify none of the six steer modules silently skipped:
+AEREAD_STEER_FIXTURES_REQUIRED=1 pytest tests/test_steer_cases.py \
+  tests/test_steer_environment.py tests/test_steer_measurement.py \
+  tests/test_steer_goldens.py tests/test_steer_e2e.py tests/test_steer_replay.py
 ```
 
 The adapter also accepts a venv colocated at
