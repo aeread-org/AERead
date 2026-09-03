@@ -156,11 +156,41 @@ unaffected.
   `replay_episode` alone succeeds and produces a different, but internally
   consistent, outcome. Verified directly:
   `test_replay_detects_a_tampered_bid_only_via_comparison_against_the_original`.
-- **Baseline comparisons are not auto-derived.** `score_replayed_episode`
-  requires the caller to already have run and replayed a second, baseline
-  episode (`harness.baseline_policy_assignment` + a second
-  `ScriptedAlympicsWacHarness`/`run_episode`/`replay_episode` pass); this
-  module does not generate, cache, or memoize that baseline itself.
+- **Baseline comparisons are not auto-derived, but they are now verified.**
+  `score_replayed_episode` still requires the caller to already have run
+  and replayed a second, baseline episode (`harness.
+  baseline_policy_assignment` + a second `ScriptedAlympicsWacHarness`/
+  `run_episode`/`replay_episode` pass); this module does not generate,
+  cache, or memoize that baseline itself. What changed
+  (docs/alympics_fix_verification.md finding 2): `AlympicsWacScorer.
+  score_terminal_wealth`/`score_survival` now independently recompute the
+  declared baseline episode from the case's own frozen supply schedule/
+  personas/starting state and reject a supplied baseline that does not
+  reconcile with it exactly — a caller can no longer submit a fabricated
+  `baseline_final_players`/`baseline_round_log` and have it accepted merely
+  because its `baseline_policy_id` label matches. The bare
+  `measurement.score_terminal_wealth`/`score_survival` functions (used
+  directly by this family's own unit tests to isolate other gates) still
+  only check the label; only the case-bound `AlympicsWacScorer` path — the
+  one every production caller actually uses — performs the recompute.
+- **A routine CI run does not, by itself, prove this family's
+  upstream-fidelity tests ran.** Every environment/measurement/harness/
+  parity/replay test module here skips, module-level, when the pinned
+  upstream Alympics checkout is absent, and `.github/workflows/ci.yml` runs
+  plain `pytest tests/ -q` with neither the checkout provisioned nor
+  `AEREAD_ALYMPICS_UPSTREAM_REQUIRED` set (docs/alympics_fix_verification.md
+  finding 9). `conftest.py`'s `pytest_terminal_summary` hook can turn a
+  matching skip into a failed run, but only when that env var is
+  explicitly set — off by default, mirroring the project's own existing
+  tau2/tau3 convention, and left that way deliberately: wiring it into
+  default CI would mean provisioning a third-party checkout over the
+  network, which this family's own provider-free/no-network posture rules
+  out. A green default CI run therefore certifies only that
+  `test_alympics_wac_cases.py`'s upstream-free tests ran; certifying the
+  rest requires explicitly setting `AEREAD_ALYMPICS_UPSTREAM_REQUIRED=1`
+  (locally, or in a dedicated CI job that does provision the checkout) —
+  the same posture tau2/tau3 already have, not a new inconsistency
+  introduced here.
 - **Milestone 3 exercises 2 of the 7 grid cells end-to-end**
   (`reference_baseline`, `mixed_policies_a`, plus one derived baseline
   variant of each) — the same pilot-scope posture as tau3's 18-task pilot
