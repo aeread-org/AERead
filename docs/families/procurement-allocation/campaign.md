@@ -187,6 +187,23 @@ deployment diagnostic rather than a model-only causal effect. Because base
 allocation feasibility was 0/18, this candidate does not progress to the 144-row
 risk-gate factorial.
 
+### Adaptive Qwen 235B follow-up
+
+The next candidate tests whether greater model capacity clears the base allocation
+gate before any further prompt-mechanism campaign. It pins the Apache-2.0 Qwen3
+235B-A22B Instruct checkpoint to the AtlasCloud FP8 route while preserving the 30B
+campaign's cases, seeds, unscaffolded prompt, Minimal Chat transport, action budget,
+objective verifier, checkpointing, retry policy, and completeness gate. Candidate
+selection occurred after inspecting the qualified 30B result, so this remains an
+adaptive diagnostic rather than confirmatory model selection.
+
+The frozen plan binds the 30B evidence manifest and has digest
+`9b7b2fbea8200eb9900ee063bf34255c3162f9aa7e733a5d76adb7224507a78f`.
+One unscored exact-request canary precedes three sequential six-row checkpoints.
+The conservative total ceiling is $0.45912 and the hard ceiling is $0.57 including
+the canary. Any operational failure seals the attempt, and no case outcome is
+inspected until all 18 rows complete and receipt-replay.
+
 ## Public-observation policy controls
 
 The deterministic policy campaign supplies non-model floors and a negative control

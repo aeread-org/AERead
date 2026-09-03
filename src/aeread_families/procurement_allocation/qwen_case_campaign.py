@@ -15,6 +15,7 @@ import json
 import os
 import tempfile
 from collections import Counter
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from decimal import Decimal
 from pathlib import Path
@@ -29,6 +30,7 @@ from aeread.shared_runner.task.execution import (
     execute_plan_cell,
 )
 from aeread_families.procurement_grounding.bakeoff import (
+    BakeoffCandidate,
     OPEN_WEIGHT_CANDIDATES,
     preflight_candidate,
 )
@@ -67,6 +69,39 @@ MAX_CANARY_COST_USD = 0.01
 HARD_TOTAL_COST_CEILING_USD = 0.19
 
 
+@dataclass(frozen=True, slots=True)
+class CandidateCaseCampaignSpec:
+    campaign_id: str
+    candidate: BakeoffCandidate
+    lineage: Mapping[str, Any]
+    max_trajectory_cost_usd: float
+    max_canary_cost_usd: float
+    hard_total_cost_ceiling_usd: float
+
+
+DEFAULT_SPEC = CandidateCaseCampaignSpec(
+    campaign_id=CAMPAIGN_ID,
+    candidate=QWEN_CANDIDATE,
+    lineage={
+        "supersedes_campaign_id": V1_CAMPAIGN_ID,
+        "v1_disposition": (
+            "sealed after admission rejection before scored execution; reported "
+            "cost was zero but accounting is unavailable because the adapter sent "
+            "an empty reasoning control and OpenRouter removed the pinned endpoint "
+            "at its parameter filter"
+        ),
+        "scientific_contract": "unchanged_from_v1",
+        "operational_changes_only": [
+            "omit the reasoning field when neither reasoning effort nor token "
+            "budget is declared"
+        ],
+    },
+    max_trajectory_cost_usd=MAX_TRAJECTORY_COST_USD,
+    max_canary_cost_usd=MAX_CANARY_COST_USD,
+    hard_total_cost_ceiling_usd=HARD_TOTAL_COST_CEILING_USD,
+)
+
+
 def _write_once_json(path: Path, value: Mapping[str, Any]) -> None:
     payload = canonical_json_bytes(value) + b"\n"
     if path.exists():
@@ -92,14 +127,16 @@ def _replace_json(path: Path, value: Mapping[str, Any]) -> None:
     os.replace(temporary, path)
 
 
-def build_plan() -> dict[str, Any]:
+def build_plan(
+    *, spec: CandidateCaseCampaignSpec = DEFAULT_SPEC
+) -> dict[str, Any]:
     scored = planned_model_qualification(
         case_paths=CASE_VARIANCE_PATHS,
         inference_seeds=PAIRED_INFERENCE_SEEDS,
         max_parallel_cells=MAX_PARALLEL_CELLS,
-        campaign_id=CAMPAIGN_ID,
+        campaign_id=spec.campaign_id,
         abort_on_operational_failure=True,
-        candidate=QWEN_CANDIDATE,
+        candidate=spec.candidate,
         prompt=PROMPT,
         prompt_id="procurement_allocation_prompt_v1",
         treatment_id="unscaffolded_control",
@@ -109,46 +146,33 @@ def build_plan() -> dict[str, Any]:
         retry_backoff=RETRY_BACKOFF,
         retry_base_seconds=RETRY_BASE_SECONDS,
         retry_after_max_seconds=RETRY_AFTER_MAX_SECONDS,
-        max_cost_usd_per_trajectory=MAX_TRAJECTORY_COST_USD,
+        max_cost_usd_per_trajectory=spec.max_trajectory_cost_usd,
     )
     conservative_total = (
         Decimal(str(scored["conservative_cost_ceiling_usd"]))
-        + Decimal(str(MAX_CANARY_COST_USD))
+        + Decimal(str(spec.max_canary_cost_usd))
     ).quantize(Decimal("0.000000000001"))
     plan: dict[str, Any] = {
         "schema_version": "aeread.procurement_allocation_candidate_campaign_plan/0.1",
-        "campaign_id": CAMPAIGN_ID,
+        "campaign_id": spec.campaign_id,
         "freeze_status": "frozen_before_live_execution",
-        "lineage": {
-            "supersedes_campaign_id": V1_CAMPAIGN_ID,
-            "v1_disposition": (
-                "sealed after admission rejection before scored execution; reported "
-                "cost was zero but accounting is unavailable because the adapter sent "
-                "an empty reasoning control and OpenRouter removed the pinned endpoint "
-                "at its parameter filter"
-            ),
-            "scientific_contract": "unchanged_from_v1",
-            "operational_changes_only": [
-                "omit the reasoning field when neither reasoning effort nor token "
-                "budget is declared"
-            ],
-        },
+        "lineage": dict(spec.lineage),
         "candidate": {
-            "candidate_id": QWEN_CANDIDATE.candidate_id,
-            "model": QWEN_CANDIDATE.route.model,
-            "revision": QWEN_CANDIDATE.route.revision,
-            "provider": QWEN_CANDIDATE.route.route_provider,
-            "quantization": QWEN_CANDIDATE.route.quantization,
-            "access_class": QWEN_CANDIDATE.access_class,
-            "license_id": QWEN_CANDIDATE.license_id,
-            "model_card_url": QWEN_CANDIDATE.model_card_url,
+            "candidate_id": spec.candidate.candidate_id,
+            "model": spec.candidate.route.model,
+            "revision": spec.candidate.route.revision,
+            "provider": spec.candidate.route.route_provider,
+            "quantization": spec.candidate.route.quantization,
+            "access_class": spec.candidate.access_class,
+            "license_id": spec.candidate.license_id,
+            "model_card_url": spec.candidate.model_card_url,
         },
         "matched_baseline_campaign_id": GLM_BASELINE_CAMPAIGN_ID,
         "scored_plan": scored,
         "admission_canary": {
             "scored": False,
             "request_shape": "first declared case and inference seed",
-            "max_cost_usd": MAX_CANARY_COST_USD,
+            "max_cost_usd": spec.max_canary_cost_usd,
             "output_validity_is_not_an_admission_gate": True,
         },
         "checkpoint_policy": (
@@ -156,7 +180,7 @@ def build_plan() -> dict[str, Any]:
             "checkpoint may resume"
         ),
         "conservative_total_cost_ceiling_usd": float(conservative_total),
-        "hard_total_cost_ceiling_usd": HARD_TOTAL_COST_CEILING_USD,
+        "hard_total_cost_ceiling_usd": spec.hard_total_cost_ceiling_usd,
         "eligibility": (
             "all 18 rows completed and receipt-replayed with exact cost accounting; "
             "model route, cases, seeds, prompt, harness, and digests match"
@@ -170,14 +194,16 @@ def build_plan() -> dict[str, Any]:
     return plan
 
 
-async def _representative_request() -> ProviderRequest:
+async def _representative_request(
+    *, spec: CandidateCaseCampaignSpec = DEFAULT_SPEC
+) -> ProviderRequest:
     setup = build_openrouter_setup(
-        QWEN_CANDIDATE.route,
+        spec.candidate.route,
         case_path=CASE_VARIANCE_PATHS[0],
         seed=PAIRED_INFERENCE_SEEDS[0],
         max_output_tokens=1800,
         timeout_seconds=180.0,
-        max_cost_usd=MAX_CANARY_COST_USD,
+        max_cost_usd=spec.max_canary_cost_usd,
         harness=MinimalChatHarness(),
         prompt=PROMPT,
         prompt_id="procurement_allocation_prompt_v1",
@@ -240,9 +266,10 @@ def _failure_fields(error: BaseException) -> dict[str, Any]:
 async def run_admission_canary(
     *,
     path: Path,
+    spec: CandidateCaseCampaignSpec = DEFAULT_SPEC,
     provider_factory: Callable[[], Any] = OpenRouterChatClient,
 ) -> dict[str, Any]:
-    request = await _representative_request()
+    request = await _representative_request(spec=spec)
     if path.exists():
         value = json.loads(path.read_text(encoding="utf-8"))
         recorded = value.get("artifact_sha256")
@@ -250,7 +277,7 @@ async def run_admission_canary(
         if recorded != hashlib.sha256(canonical_json_bytes(payload)).hexdigest():
             raise ValueError("admission canary digest mismatch")
         if (
-            value.get("campaign_id") != CAMPAIGN_ID
+            value.get("campaign_id") != spec.campaign_id
             or value.get("request_sha256") != request.request_sha256
         ):
             raise ValueError("admission canary identity mismatch")
@@ -258,7 +285,7 @@ async def run_admission_canary(
 
     record: dict[str, Any] = {
         "schema_version": "aeread.provider_admission_canary/0.4",
-        "campaign_id": CAMPAIGN_ID,
+        "campaign_id": spec.campaign_id,
         "attempted_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
         "request_sha256": request.request_sha256,
         "model": request.model,
@@ -351,7 +378,10 @@ def _validate_run_root(run_root: Path) -> None:
 
 
 def _status(
-    *, canary: Mapping[str, Any], artifact: Mapping[str, Any] | None
+    *,
+    canary: Mapping[str, Any],
+    artifact: Mapping[str, Any] | None,
+    spec: CandidateCaseCampaignSpec = DEFAULT_SPEC,
 ) -> dict[str, Any]:
     scored_summary = artifact.get("summary", {}) if artifact is not None else {}
     planned = len(CASE_VARIANCE_PATHS) * len(PAIRED_INFERENCE_SEEDS)
@@ -361,7 +391,7 @@ def _status(
     canary_cost = float(canary.get("cost_usd", 0.0))
     value: dict[str, Any] = {
         "schema_version": "aeread.procurement_allocation_candidate_campaign_status/0.1",
-        "campaign_id": CAMPAIGN_ID,
+        "campaign_id": spec.campaign_id,
         "canary": dict(canary),
         "scored_summary": dict(scored_summary),
         "summary": {
@@ -396,19 +426,25 @@ def _status(
 async def run_campaign(
     *,
     run_root: Path,
-    max_spend_usd: float = HARD_TOTAL_COST_CEILING_USD,
+    max_spend_usd: float | None = None,
     resume: bool = False,
+    spec: CandidateCaseCampaignSpec = DEFAULT_SPEC,
     provider_factory: Callable[[], Any] = OpenRouterChatClient,
     preflight_fn: Callable[[Any], Mapping[str, Any]] = preflight_candidate,
 ) -> dict[str, Any]:
     _validate_run_root(run_root)
-    if max_spend_usd < HARD_TOTAL_COST_CEILING_USD:
+    resolved_max_spend = (
+        spec.hard_total_cost_ceiling_usd
+        if max_spend_usd is None
+        else max_spend_usd
+    )
+    if resolved_max_spend < spec.hard_total_cost_ceiling_usd:
         raise ValueError("max_spend_usd is below the frozen hard total ceiling")
     if run_root.exists() and not resume:
         raise FileExistsError("campaign output exists; pass --resume after a checkpoint")
     if resume and not run_root.exists():
         raise FileNotFoundError("cannot resume a campaign that does not exist")
-    plan = build_plan()
+    plan = build_plan(spec=spec)
     plan_path = run_root / "campaign_plan.json"
     if plan_path.exists():
         if canonical_json_bytes(json.loads(plan_path.read_text())) != canonical_json_bytes(plan):
@@ -425,6 +461,7 @@ async def run_campaign(
 
     canary = await run_admission_canary(
         path=run_root / "admission_canary.json",
+        spec=spec,
         provider_factory=provider_factory,
     )
     artifact: Mapping[str, Any] | None = None
@@ -433,14 +470,14 @@ async def run_campaign(
             run_root=scored_root,
             case_paths=CASE_VARIANCE_PATHS,
             inference_seeds=PAIRED_INFERENCE_SEEDS,
-            max_spend_usd=max_spend_usd - MAX_CANARY_COST_USD,
+            max_spend_usd=resolved_max_spend - spec.max_canary_cost_usd,
             max_parallel_cells=MAX_PARALLEL_CELLS,
             resume=scored_root.exists(),
             provider_factory=provider_factory,
             preflight_fn=preflight_fn,
-            campaign_id=CAMPAIGN_ID,
+            campaign_id=spec.campaign_id,
             abort_on_operational_failure=True,
-            candidate=QWEN_CANDIDATE,
+            candidate=spec.candidate,
             prompt=PROMPT,
             prompt_id="procurement_allocation_prompt_v1",
             treatment_id="unscaffolded_control",
@@ -450,9 +487,9 @@ async def run_campaign(
             retry_backoff=RETRY_BACKOFF,
             retry_base_seconds=RETRY_BASE_SECONDS,
             retry_after_max_seconds=RETRY_AFTER_MAX_SECONDS,
-            max_cost_usd_per_trajectory=MAX_TRAJECTORY_COST_USD,
+            max_cost_usd_per_trajectory=spec.max_trajectory_cost_usd,
         )
-    status = _status(canary=canary, artifact=artifact)
+    status = _status(canary=canary, artifact=artifact, spec=spec)
     _replace_json(run_root / "campaign_status.json", status)
     return status
 
@@ -492,6 +529,8 @@ if __name__ == "__main__":
 
 __all__ = [
     "CAMPAIGN_ID",
+    "CandidateCaseCampaignSpec",
+    "DEFAULT_SPEC",
     "HARD_TOTAL_COST_CEILING_USD",
     "PAIRED_INFERENCE_SEEDS",
     "QWEN_CANDIDATE",
