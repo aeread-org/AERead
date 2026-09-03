@@ -1,6 +1,6 @@
 {
   "case_id": "steer.transitivity.196_0",
-  "content_sha256": "392e3d37026685d0fae2d270898eb667d79963a1a602c3cf5ebc162b789f96f1",
+  "content_sha256": "b5ae015780c4e0dccc82e9fc3bd41bfd34a2519cdb2814d55620e7054110c075",
   "episode": {
     "max_logical_actions": 1,
     "termination": [
@@ -84,6 +84,16 @@
         "dsic_mechanism",
         "ir_mechanism"
       ],
+      "excluded_question_ids_sha256_by_element": {
+        "backward_induction": "3c41eedcccbd18a92a5ad4cb179880218b53da408d69a666d21d611566b8f3a0",
+        "borda_count": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "certainty_effect": "92a249f40333fad9836d73769eb7df2beddbc07f856b4ed6787a39f6a6f7c3a2",
+        "dsic_mechanism": "5647e1ba55627ec6b38b771a9352ba1f65aae45c1a5437cee635c94eb7f9c6d4",
+        "ir_mechanism": "f1379ee8c6641e5d8daa01c62ab88b2d25f43a11c7ea70ed41e22eb70c90ca9a",
+        "plurality_voting": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "pure_nash": "7c130b979c95ce298d919c9d7a3e3ba28808f6dcecab82aa5d88c1cf59acc3ce",
+        "transitivity": "0b6b469eff3a9165f9ae1969294a4e59ed12af379675c441c085164182ddd3b3"
+      },
       "file_sha256_by_element": {
         "backward_induction": {
           "answers": "29fb1d9b045ca2fc83e872ac21b15d07eb74f04f8e59f2bbad255d1f2017b020",

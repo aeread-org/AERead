@@ -661,3 +661,50 @@ def test_pins_json_matches_the_bridges_own_flatten_output() -> None:
     assert pins["upstream_commit"] == steer_cases.UPSTREAM_COMMIT
     assert pins["file_sha256_by_element"] == EXPECTED_FILE_SHA256
     assert pins["counts_by_element"] == EXPECTED_COUNTS
+
+
+# ---------------------------------------------------------------------------
+# Finding 6 (docs/steer_codex_triage.md), reopened by
+# docs/steer_fix_verification.md: the importer can generate and hash a
+# per-question-id exclusion ledger (build_pins/write_excluded, exercised
+# above by test_flatten_response_includes_a_per_question_exclusion_ledger_
+# not_just_counts and test_write_excluded_writes_the_full_ledger_matching_
+# the_pins_content_hash), but the fix commit's own message admitted the
+# committed corpus/pins were never regenerated with it -- so the ACTUAL
+# committed cases/steer/pins.json still had no ledger binding at all,
+# fixed-in-code but not fixed-on-disk. This test reads the real committed
+# file (never a temp/generated stand-in) and independently recomputes the
+# pin for the one declared element that carries both exclusion reasons
+# (dsic_mechanism) from a fresh bridge flatten, the same way
+# import_all_cases itself does -- so it cannot pass merely because some
+# field is present with the right shape; the content must actually match a
+# live recomputation.
+# ---------------------------------------------------------------------------
+
+
+def test_committed_pins_json_carries_an_exclusion_ledger_binding_for_every_element() -> None:
+    path = CASES_DIR / "pins.json"
+    if not path.is_file():
+        pytest.skip(f"pins.json not built yet at {path}")
+    pins = json.loads(path.read_text(encoding="utf-8"))
+    ledger = pins.get("excluded_question_ids_sha256_by_element")
+    assert ledger is not None, (
+        "committed pins.json has no excluded_question_ids_sha256_by_element "
+        "pin -- the corpus was never regenerated with the finding-6 fix "
+        "(docs/steer_fix_verification.md)"
+    )
+    assert set(ledger) == set(steer_cases.DECLARED_ELEMENTS)
+    for element, digest in ledger.items():
+        assert isinstance(digest, str) and len(digest) == 64, (element, digest)
+
+    # Independent recomputation, not just a shape check: dsic_mechanism is
+    # the only declared element with both zero_correct and multi_correct
+    # rows, so it is the sharpest test that the committed hash really binds
+    # the real, current exclusion set rather than a stale or fabricated one.
+    from aeread.shared_runner.resolver import canonical_json_bytes
+
+    element = "dsic_mechanism"
+    response = _bridge().flatten_element(element, head_n=1)
+    excluded_rows = sorted(response["excluded"], key=lambda row: row["question_id"])
+    recomputed = hashlib.sha256(canonical_json_bytes(excluded_rows)).hexdigest()
+    assert ledger[element] == recomputed
