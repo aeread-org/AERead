@@ -12,9 +12,11 @@ from typing import Any, Callable, Mapping, Protocol
 
 from .execution import CellExecution, EvidenceStore, TokenPricing
 from .measurement import (
+    FamilyScoreSet,
     ImplementationRef as MeasurementImplementationRef,
     MeasurementLeafSpec,
     ScoreEnvelope,
+    normalize_family_score_set,
 )
 from .registry import PluginRegistry
 from .resolver import RunPlan, canonical_json_bytes, verify_run_plan
@@ -37,12 +39,72 @@ class EvaluationSetup(Protocol):
 
 
 def _receipt_implementations(
-    score: ScoreEnvelope,
+    score_set: FamilyScoreSet | ScoreEnvelope,
 ) -> tuple[MeasurementImplementationRef, ...]:
+    normalized = normalize_family_score_set(score_set)
+    implementations = {
+        implementation
+        for score in normalized.scores
+        for implementation in (
+            score.leaf.estimand.validity_domain.predicate,
+            score.leaf.verifier.reference.implementation,
+            score.leaf.scorer,
+        )
+    }
+    return tuple(
+        sorted(
+            implementations,
+            key=lambda item: (
+                item.implementation_id,
+                item.version,
+                item.content_sha256,
+            ),
+        )
+    )
+
+
+def _score_event_payload(
+    score_set: FamilyScoreSet, *, outcome_event_id: str
+) -> Mapping[str, Any]:
+    """Preserve the historical one-score event shape where possible."""
+
+    if len(score_set.scores) == 1 and score_set.admission_leaf_ids == (
+        score_set.primary_leaf_id,
+    ):
+        return {
+            "primary_leaf_id": score_set.primary_leaf_id,
+            "outcome_event_id": outcome_event_id,
+            "score": score_set.scores[0],
+        }
+    return {
+        "primary_leaf_id": score_set.primary_leaf_id,
+        "admission_leaf_ids": score_set.admission_leaf_ids,
+        "outcome_event_id": outcome_event_id,
+        "scores": score_set.scores,
+    }
+
+
+def _score_admission(
+    score_set: FamilyScoreSet,
+) -> tuple[str, str, EvaluationFailure | None]:
+    invalid_ids = score_set.invalid_admission_leaf_ids
+    if not invalid_ids:
+        return "ok", "included", None
+    reasons = tuple(
+        reason
+        for score in score_set.scores
+        if score.leaf.leaf_id in invalid_ids
+        for reason in score.validity.reasons
+    )
+    detail = "; ".join(reasons) or "admission leaf measurement is invalid"
     return (
-        score.leaf.estimand.validity_domain.predicate,
-        score.leaf.verifier.reference.implementation,
-        score.leaf.scorer,
+        "invalid_measurement",
+        "excluded",
+        EvaluationFailure(
+            failure_class="oracle_or_scorer_failure",
+            condition="invalid_family_measurement",
+            message=f"invalid admission leaves: {', '.join(invalid_ids)}; {detail}",
+        ),
     )
 
 
@@ -242,33 +304,20 @@ def finalize_family_execution(
     ):
         raise ValueError("execution outcome does not match the event log")
 
-    score = plugin.build_scorer(family_case)(
-        recorded_outcome,
-        evidence_refs=(outcome_event.event_id,),
+    score_set = normalize_family_score_set(
+        plugin.build_scorer(family_case)(
+            recorded_outcome,
+            evidence_refs=(outcome_event.event_id,),
+        )
     )
     execution.evidence.append_event(
         "score_recorded",
-        {
-            "primary_leaf_id": score.leaf.leaf_id,
-            "outcome_event_id": outcome_event.event_id,
-            "score": score,
-        },
+        _score_event_payload(score_set, outcome_event_id=outcome_event.event_id),
     )
     execution.evidence.audit_reconciliation()
     evidence_seal = execution.evidence.seal()
 
-    if score.status == "ok":
-        receipt_status = "ok"
-        inclusion_status = "included"
-        failure = None
-    else:
-        receipt_status = "invalid_measurement"
-        inclusion_status = "excluded"
-        failure = EvaluationFailure(
-            failure_class="oracle_or_scorer_failure",
-            condition="invalid_family_measurement",
-            message="; ".join(score.validity.reasons),
-        )
+    receipt_status, inclusion_status, failure = _score_admission(score_set)
     receipt = seal_evaluation_receipt(
         EvaluationReceipt(
             spec_version=EvaluationReceipt.SPEC_VERSION,
@@ -296,11 +345,11 @@ def finalize_family_execution(
             replicate_index=cell.replicate_index,
             panel_mode=cell.panel_mode,
             agent_profile_sha256_by_seat=_agent_profile_digests(setup.plan, cell),
-            implementation_refs=_receipt_implementations(score),
+            implementation_refs=_receipt_implementations(score_set),
             plan_implementation_pins=setup.plan.implementation_pins,
             evidence=evidence_seal,
-            primary_leaf_id=score.leaf.leaf_id,
-            scores=(score,),
+            primary_leaf_id=score_set.primary_leaf_id,
+            scores=score_set.scores,
             failure=failure,
             observability_limits=_observability_limits(setup.plan, cell),
             replay_level="state_and_score",
@@ -484,16 +533,35 @@ def replay_family_receipt(
         family_case=family_case,
         evidence=evidence,
     )
-    replayed_score = plugin.build_scorer(family_case)(
-        replayed_outcome,
-        evidence_refs=(outcome_event.event_id,),
+    replayed_score_set = normalize_family_score_set(
+        plugin.build_scorer(family_case)(
+            replayed_outcome,
+            evidence_refs=(outcome_event.event_id,),
+        )
     )
-    if canonical_json_bytes(score_payload.get("score")) != canonical_json_bytes(
-        replayed_score
+    if canonical_json_bytes(score_payload) != canonical_json_bytes(
+        _score_event_payload(
+            replayed_score_set, outcome_event_id=outcome_event.event_id
+        )
     ):
         raise ValueError("recorded family score does not replay deterministically")
-    if canonical_json_bytes(receipt.scores) != canonical_json_bytes((replayed_score,)):
+    if canonical_json_bytes(receipt.scores) != canonical_json_bytes(
+        replayed_score_set.scores
+    ):
         raise ValueError("receipt family score does not replay deterministically")
+    expected_status, expected_inclusion, expected_failure = _score_admission(
+        replayed_score_set
+    )
+    if (
+        receipt.primary_leaf_id != replayed_score_set.primary_leaf_id
+        or receipt.status != expected_status
+        or receipt.inclusion_status != expected_inclusion
+        or canonical_json_bytes(receipt.failure)
+        != canonical_json_bytes(expected_failure)
+        or canonical_json_bytes(receipt.implementation_refs)
+        != canonical_json_bytes(_receipt_implementations(replayed_score_set))
+    ):
+        raise ValueError("receipt admission does not match the replayed score set")
     evidence.close()
     return receipt
 
@@ -562,36 +630,36 @@ def audit_family_receipt(
         outcome, outcome_event = replay_family_state(
             plugin=plugin, family_case=family_case, evidence=evidence
         )
-        score = plugin.build_scorer(family_case)(
-            outcome, evidence_refs=(outcome_event.event_id,)
+        score_set = normalize_family_score_set(
+            plugin.build_scorer(family_case)(
+                outcome, evidence_refs=(outcome_event.event_id,)
+            )
         )
         events = [e for e in evidence.read_events() if e.event_type == "score_recorded"]
+        expected_status, expected_inclusion, expected_failure = _score_admission(
+            score_set
+        )
         if (
             len(events) != 1
-            or canonical_json_bytes(evidence.read_event_payload(events[0]).get("score"))
-            != canonical_json_bytes(score)
-            or canonical_json_bytes(receipt["scores"]) != canonical_json_bytes((score,))
-        ):
-            raise ValueError("receipt score does not replay deterministically")
-        included = score.status == "ok"
-        if (
-            receipt.get("status") != score.status
-            or receipt.get("inclusion_status")
-            != ("included" if included else "excluded")
-            or receipt.get("replay_level") != "state_and_score"
-            or receipt.get("primary_leaf_id") != score.leaf.leaf_id
-            or canonical_json_bytes(receipt.get("implementation_refs"))
+            or canonical_json_bytes(evidence.read_event_payload(events[0]))
             != canonical_json_bytes(
-                sorted(
-                    set(_receipt_implementations(score)),
-                    key=lambda item: (
-                        item.implementation_id,
-                        item.version,
-                        item.content_sha256,
-                    ),
+                _score_event_payload(
+                    score_set, outcome_event_id=outcome_event.event_id
                 )
             )
-            or (included and receipt.get("failure") is not None)
+            or canonical_json_bytes(receipt["scores"])
+            != canonical_json_bytes(score_set.scores)
+        ):
+            raise ValueError("receipt score does not replay deterministically")
+        if (
+            receipt.get("status") != expected_status
+            or receipt.get("inclusion_status") != expected_inclusion
+            or receipt.get("replay_level") != "state_and_score"
+            or receipt.get("primary_leaf_id") != score_set.primary_leaf_id
+            or canonical_json_bytes(receipt.get("implementation_refs"))
+            != canonical_json_bytes(_receipt_implementations(score_set))
+            or canonical_json_bytes(receipt.get("failure"))
+            != canonical_json_bytes(expected_failure)
         ):
             raise ValueError("receipt admission does not match the replayed score")
     elif (
