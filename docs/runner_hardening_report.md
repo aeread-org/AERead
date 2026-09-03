@@ -200,6 +200,158 @@ All three runs from a clean tree at the final commit, with
   the canonical-JSON-spec task; changing it breaks every existing record hash).
 - **H-05/H-06, Q-01…Q-04, O-01/O-02** — out of tonight's scope, unchanged.
 
+---
+
+# Round 2 — follow-up entries D-10…D-14 (2026-09-02)
+
+Input: five ledger entries merged from eleven external-benchmark integrations
+(runner_agent_followup.md). Same method: red-first TDD, mutation verification per
+guard, additive/behavior-preserving for existing callers.
+
+## Per-defect record (round 2)
+
+### D-10 — `docs/benchmark_qc.md` missing from main — BLOCKED (confirm-only, by brief)
+Independently re-confirmed from this worktree: no `*benchmark_qc*` file and no
+"QC Gate" phrase anywhere in docs/ at the 2c913dd base; the file exists only at
+`2b831fe`, reachable solely from `origin/codex/procurement-harness-bakeoff`, which is
+open as **PR #26**. Dispositioned "blocked — awaiting PR #26"; deliberately NOT
+copied ad hoc — reconciling it against the six independently-written adapter specs is
+that PR's call.
+
+### D-11 — taxonomy §5.1 names vs the real objective_reference contract — `ecfb593`
+- **Ruling**: the CODE set is the intended contract — eleven families were written
+  and are green against it, and housing pins the one-leaf-per-bound pattern. Adding
+  new reference kinds the night before eleven rebases was rejected.
+- **Fix**: §5.1 rewritten as a claim-pattern table mapping each conceptual name
+  (bound certificate, baseline headroom, support-normalized outcome, objective value
+  only) to the real per-bound leaves it is built from, with the settable enumeration
+  stated verbatim; §5.3 gains the derived-statistic clarification.
+- **Bonus drift caught by the new guard**: the comparative table said
+  `human_reference`; the real kind is `human_reference_comparison`. Corrected.
+- **Test**: a drift guard — every backticked name in any table column headed
+  "Reference kind" must be accepted by the contract, and every objective_reference
+  kind must be documented. Red before the doc fix; mutation-verified by restoring
+  the old doc text (cp roundtrip).
+
+### D-12 — no kernel-guaranteed route to the seed at score time — `f7a11cb`
+- **Failing test**: `EpisodeResult` had no `world_seed` (AttributeError).
+- **Fix**: trailing defaulted field `world_seed`, populated from the case manifest at
+  the single construction site. Replay-side, the seed was already recoverable from
+  the plan's case manifest; this closes the in-process half. `build_scorer`'s
+  signature deliberately untouched (13+ families implement the hook).
+- **Mutation**: dropping the threading kills the test.
+
+### D-13 — `max_logical_actions` semantics undocumented and unpinned — `21eaa12`
+- **Ruling**: the BEHAVIOR (whole-episode cap per `phase_id`, summed across
+  recurrences) is correct and stays: the cap is a runaway guard, a per-instance
+  reset would let a declared cycle burn actions up to the case budget unchecked,
+  and the eleven pending branches are green against the summed semantics.
+- **Fix**: PhaseSpec docstring now states the contract; a new test pins the
+  distinguishing case — two actions per instance under a cap of five trips on the
+  sixth action (third instance), refused before dispatch, even though every single
+  instance stays under the cap.
+- **Mutation**: inserting a per-instance reset at the loop top kills the new test
+  (and, reassuringly, the pre-existing endless-cycle test).
+
+### D-14 — no teardown signal for family plugins — `a15f898`
+- **Failing tests**: three — normal-path teardown, typed close-failure, and
+  teardown-on-episode-failure without masking.
+- **Fix**: optional `close(family_case, state)` hook invoked at most once by
+  `run_episode`: on the normal path after the outcome and result are built (a
+  failing close is a typed `SchedulerContractError("family close failed")`), and on
+  the failure path before the episode error propagates, where a close failure never
+  replaces the in-flight error (it chains as `__context__` — the same never-mask
+  contract as the ToolExecutor handlers). `REQUIRED_FAMILY_PLUGIN_HOOKS` unchanged;
+  no adapter branch's plugin class defines a conflicting `close` attribute (verified
+  across all eleven branch heads — econagent's `close` methods live on bridge helper
+  classes, not the registered plugin).
+- **Mutation**: three mutants killed independently (normal-path call dropped,
+  failure-path call dropped, masking guard dropped).
+
+## Adversarial review (round 2), each finding independently verified
+
+1. **Preflight sat outside the teardown boundary** — **valid**, fixed `7b53c5e`.
+   `validate_payload` is exactly where a family spawns the process the hook exists to
+   release, so a failure in `phases()` or `initial_state()` leaked it. Preflight now
+   runs inside the protected block; a `family_case` of None (the plugin never received
+   a validated case) still skips teardown, and a post-validation preflight failure
+   calls `close(family_case, None)`.
+2. **`close` detected by duck-typing alone** — **valid**, fixed `7b53c5e`. A plugin
+   carrying an unrelated zero-argument `close()` would have completed its episode and
+   then failed with an opaque TypeError. The hook's signature is bound before the
+   call; a mismatch raises `SchedulerContractError` naming the collision.
+3. **`world_seed`'s None default changes canonical bytes for existing callers** —
+   **refuted with evidence**. `scheduler.py:881` is the ONLY `EpisodeResult`
+   construction site in the kernel and in all eleven adapter branches (checked at each
+   branch head), and it always passes `case.world_seed`; adapter replay rebuilds
+   results through `run_episode` too, so both sides carry the integer. Nothing hashes
+   or persists a whole `EpisodeResult` — receipts carry only `.outcome`, and the
+   bakeoff's `canonical_json_bytes(result)` serializes a different object. No
+   persisted digest changes; the branch's own sealed-episode replay proof is
+   byte-identical.
+4. **Drift-guard parser read only the first backticked token per cell** — **valid**,
+   fixed `a48b7db`; mutation-verified by adding a second, fake kind to an existing
+   cell. Known remaining limitation, by design: the guard checks membership in the
+   union of all families' kinds, not the per-family pairing `VerifierSpec` enforces.
+
+### Regression I introduced and fixed (found by the full suite, not by targeted files)
+
+The §5.1 rewrite replaced the literal identifiers `bound_certificate`,
+`baseline_headroom` and `outcome_support_normalized` with spaced prose, breaking the
+pre-existing `test_shared_runner_design_contract` assertion that requires those exact
+tokens in the taxonomy. Fixed at `3d50177` by restoring them as unbackticked
+claim-pattern labels — satisfying the contract test while keeping them out of the
+drift guard's backticked-kind extraction. Targeted test files were green throughout;
+only the full suite caught it.
+
+## End-to-end verification (round 2), exact counts
+
+1. **Full suite with the tau3 bridge** and `AEREAD_TAU2_BRIDGE_REQUIRED=1`:
+   **790 passed, 3 skipped, 1 xfailed, 0 failed** (round 1 was 781/3/1; the delta is
+   round 2's new tests). All 3 skips are the baseline's rllm-import skips.
+2. **`tests/test_harness_end_to_end.py`**: **6 passed**, 0 skipped, 0 failed.
+3. **Sealed-episode replay** through `execute_plan_cell` (provider-free housing
+   cell): episode valid, 5 logical actions, 52 events / 39 artifacts sealed, primary
+   score 389.54 utility_points (status ok), and `replay_family_receipt` reproduced
+   state and score byte-identically from the sealed evidence.
+4. **Merged-state regression** — this branch merged into a copy of
+   `zeyu/integration-test` (all eleven adapter families), full suite with every
+   provisioned family bridge live and three bridge-required flags set:
+   **1,804 passed, 3 skipped, 1 xfailed, 0 failed**, against that branch's own
+   clean-tree baseline of **1,757 passed, 3 skipped, 1 xfailed** measured in an
+   untouched worktree. The +47 is exactly this branch's added tests; nothing
+   regressed and nothing newly skipped.
+
+### What the merged check caught (and why runs 1-3 were not enough)
+
+The first merged run came back **38 failed, 7 errors**. Every failure traced to one
+cause: round 1's D-07 reused the *exportable* identifier grammar (lowercase-only) for
+`upstream_task_id`, and the landed families carry real upstream ids such as
+`Task1BasicPriceNegotiation` and `Task4_s1_beauty_product_negotiation` — ids that
+contain no colon and no whitespace and were never the hazard.
+
+The over-tightening was wrong on the merits, not merely inconvenient: this field
+exists to record the foreign id **verbatim** so results can be joined back to
+upstream, and lowercasing it destroys exactly that. The hazard the entry was opened
+against is the row-id parsing class (a colon once collapsed rLLM's GRPO grouping into
+a single group), not letter case. Corrected at `b85d9e1` with a purpose-fit
+`_foreign_identifier`: letters, digits, `_`, `.`, `-`, alphanumeric at both ends;
+colons, whitespace, separators and quoting characters still refused. Both halves are
+now pinned as parametrized tests — the hazard class stays rejected, and real foreign
+ids from the landed families round-trip unchanged.
+
+The branch's own suite was green (790/0 failed) through all of this. Only the
+merged-state run against the eleven families could surface it.
+
+### A process failure worth recording
+
+An earlier "baseline" run reported 1 failure that did not exist: the baseline suite
+was running in `.worktrees/hardening-integration-check` when I merged into that same
+worktree, so a doc-reading test picked up the half-written tree mid-run. The clean
+re-measurement in an untouched worktree returned exactly 1,757/3/1. This is the
+"only trust numbers from a clean tree" rule, violated by writing into the tree under
+test; both later runs used separate worktrees.
+
 ## Compatibility notes for tomorrow's rebases
 
 - All kernel changes are additive or behavior-preserving for existing callers:
