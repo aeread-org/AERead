@@ -13,6 +13,7 @@ from aeread_families.housing.backend_campaign import (
     _admission_specs,
     _endpoint_snapshot_sha256,
     catalog_preflight,
+    execute_campaign,
     load_contract,
     route_table,
     run_profile_admission,
@@ -72,6 +73,11 @@ V10_CONTRACT_PATH = (
     Path(__file__).resolve().parents[1]
     / "configs"
     / "housing_model_sensitivity_openrouter_morph_v10.json"
+)
+V11_CONTRACT_PATH = (
+    Path(__file__).resolve().parents[1]
+    / "configs"
+    / "housing_model_sensitivity_openrouter_deepinfra_v11.json"
 )
 
 
@@ -259,6 +265,84 @@ def test_v10_changes_only_glm_route_identity_and_stays_under_user_budget() -> No
             assert hashlib.sha256(canonical_json_bytes(profile)).hexdigest() == (
                 expected_profiles[profile.profile_id]
             )
+
+
+def test_v11_freezes_a_four_condition_full_trajectory_gate() -> None:
+    contract = load_contract(V11_CONTRACT_PATH)
+    routes = route_table(contract)
+    case_contract = json.loads(
+        (V11_CONTRACT_PATH.parent / "housing_case_config_sweep_v1.json").read_bytes()
+    )
+
+    assert contract["claim_status"] == "development_full_trajectory_gate_only"
+    assert contract["execution"]["stage"] == "full_trajectory"
+    assert contract["execution"]["config_ids"] == ["moderate_cw085_r2"]
+    assert contract["execution"]["world_seeds"] == [227922569]
+    assert 227922569 not in case_contract["confirmatory_holdout"]["world_seeds"]
+    assert routes["glm_53_flash"].provider == "DeepInfra"
+    assert routes["deepseek_v4_flash"].provider == "Parasail"
+    assert contract["profile_admission"]["cost_ceiling_usd"] + contract[
+        "execution"
+    ]["cost_ceiling_usd"] == pytest.approx(0.14)
+
+    design = design_artifact(contract, routes=routes)
+    provider_free = provider_free_artifact(contract)
+    assert design["planned_trajectories"] == 4
+    assert design["configuration_count"] == 1
+    assert design["condition_count"] == 4
+    assert len({row["condition_id"] for row in design["plans"]}) == 4
+    assert provider_free["status"] == "passed"
+    assert len(provider_free["worlds"]) == 1
+    assert provider_free["confirmatory_holdout_status"] == "sealed_not_executed"
+
+    expected_profiles = contract["profile_admission"]["profile_sha256s"]
+    for setup in build_setups(contract, routes=routes).values():
+        for profile in setup.plan.agent_profiles:
+            assert hashlib.sha256(canonical_json_bytes(profile)).hexdigest() == (
+                expected_profiles[profile.profile_id]
+            )
+
+
+def test_v11_failed_admission_blocks_the_full_trajectory_gate(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    contract = load_contract(V11_CONTRACT_PATH)
+    failed_admission = {
+        "status": "failed_with_typed_missingness",
+        "artifact_sha256": "a" * 64,
+    }
+
+    monkeypatch.setenv("OPENROUTER_API_KEY", "test-only")
+    monkeypatch.setattr(
+        "aeread_families.housing.backend_campaign.catalog_preflight",
+        lambda _contract: {
+            "campaign_id": contract["campaign_id"],
+            "status": "passed",
+            "artifact_sha256": "b" * 64,
+        },
+    )
+
+    async def fake_admission(*_args: object, **_kwargs: object) -> dict[str, object]:
+        return failed_admission
+
+    monkeypatch.setattr(
+        "aeread_families.housing.backend_campaign.run_profile_admission",
+        fake_admission,
+    )
+    result = asyncio.run(
+        execute_campaign(
+            contract_path=V11_CONTRACT_PATH,
+            output_root=tmp_path,
+            through="full_trajectory",
+        )
+    )
+
+    blocked = result["full_trajectory"]
+    assert blocked["status"] == "blocked_by_profile_admission"
+    assert blocked["gate_id"] == "full_trajectory"
+    assert blocked["provider_calls"] == 0
+    assert (tmp_path / "full_trajectory" / "blocked.json").is_file()
+    assert not (tmp_path / "live").exists()
 
 
 def test_v9_variance_analysis_uses_complete_world_pairs_and_not_cells() -> None:
