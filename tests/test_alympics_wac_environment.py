@@ -255,11 +255,11 @@ def test_observe_shows_post_salary_balance_and_prior_round_public_winners_histor
     `observe()` used to return the balance carried over from the *previous*
     round's settlement instead -- one salary payment short, every round,
     with `STARTING_BALANCE` (0) and no round-1 salary at all. It also never
-    told a seat anything about a prior round's public settlement (who won),
-    unlike upstream's own `round_results_prompt` broadcast to every
-    surviving player's own history -- this test pins both fixes at once,
-    through the real production `observe`/`parse_action`/`step` sequence
-    (never a hand-built stand-in)."""
+    told a seat anything about a prior round's public settlement (who won,
+    what everyone bid), unlike upstream's own `round_results_prompt`
+    broadcast to every surviving player's own history -- this test pins all
+    three fixes at once, through the real production `observe`/
+    `parse_action`/`step` sequence (never a hand-built stand-in)."""
     plugin = _plugin()
     case = _case("reference_baseline")
     family_case = plugin.validate_payload(case.payload)
@@ -295,16 +295,55 @@ def test_observe_shows_post_salary_balance_and_prior_round_public_winners_histor
         # here -- plus round 2's own about-to-be-credited salary.
         expected_balance = state["players"][seat]["balance"] + PERSONAS[seat]["daily_salary"]
         assert round_2_observations[seat]["balance"] == expected_balance
-        # Round 1's real winner is now visible -- but never another seat's
-        # balance/hp/no_drink (the leakage-audit boundary stays intact; see
-        # test_observation_never_contains_another_seats_status_or_bid).
+        # Round 1's real winner -- and, per docs/alympics_fix_verification.md
+        # finding 1's still-open sub-claim, every seat's own already-settled
+        # round-1 bid (upstream's own `bidding_details`, fully public the
+        # instant a round completes) -- is now visible; but never another
+        # seat's balance/hp/no_drink (the leakage-audit boundary stays
+        # intact; see test_observation_never_contains_another_seats_status_or_bid).
         assert round_2_observations[seat]["public_round_history"] == [
             {
                 "round_id": 1,
                 "supply": round_1_log["supply"],
                 "winners": round_1_log["winners"],
+                "bids": round_1_log["bids"],
             }
         ]
+
+
+def test_public_round_history_includes_every_seats_own_bid_for_an_already_completed_round() -> None:
+    """docs/alympics_fix_verification.md finding 1's still-open sub-claim:
+    upstream's own `round_results_prompt` broadcasts every survivor's *bid*
+    for a round it has already settled (`bidding_details`) to every
+    surviving player's own history -- fully public the instant a round
+    completes, never a leak of a not-yet-revealed bid (only rounds already
+    appended to `state["round_log"]` are ever included; the *current*
+    round's own bids, not yet collected, are never in it). Before this fix,
+    `public_round_history` omitted bids entirely, so a seat's own
+    observation carried strictly less public information than upstream's
+    real agent would see about who bid what in a completed round."""
+    plugin = _plugin()
+    case = _case("reference_baseline")
+    family_case = plugin.validate_payload(case.payload)
+    state = plugin.initial_state(family_case, None)
+    phase = plugin.phases(family_case)[0]
+
+    distinct_bids = {"alex": 24, "bob": 27, "cindy": 30, "david": 33, "eric": 36}
+    actions = {}
+    for seat in SEAT_ORDER:
+        parsed = plugin.parse_action(family_case, state, seat, phase, {"bid": distinct_bids[seat]})
+        actions[seat] = SimpleNamespace(action=parsed.action)
+    transition = plugin.step(family_case, state, phase, actions)
+    state = transition.state
+
+    alex_round_2_observation = plugin.observe(family_case, state, "alex", phase)
+    round_1_history = alex_round_2_observation["public_round_history"][0]
+    assert round_1_history["bids"] == distinct_bids
+    # The specific point of this finding: alex's own observation now carries
+    # bob's already-settled round-1 bid -- but see
+    # test_observation_never_contains_another_seats_status_or_bid for the
+    # unchanged, still-enforced balance/hp/no_drink leakage boundary.
+    assert round_1_history["bids"]["bob"] == 27
 
 
 def test_reference_baseline_runs_full_20_rounds_end_to_end_through_run_episode() -> None:

@@ -573,6 +573,16 @@ class AlympicsWacPlugin:
                     "round_id": entry["round_id"],
                     "supply": entry["supply"],
                     "winners": list(entry["winners"]),
+                    # Codex triage finding 1's still-open sub-claim
+                    # (docs/alympics_fix_verification.md): upstream's own
+                    # `round_results_prompt` broadcasts every survivor's bid
+                    # for a round it has already settled (`bidding_details`)
+                    # to every surviving player's own history -- fully
+                    # public the instant a round completes, never a leak of
+                    # a not-yet-revealed bid (only rounds already appended
+                    # to `state["round_log"]` are ever included here; this
+                    # round's own, not-yet-collected bids never are).
+                    "bids": dict(entry["bids"]),
                 }
                 for entry in state["round_log"]
             ],
