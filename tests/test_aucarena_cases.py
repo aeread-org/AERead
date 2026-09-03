@@ -34,6 +34,14 @@ def _upstream_root() -> Path:
     if not marker.is_file():
         pytest.skip(
             f"pinned upstream auction-arena checkout not found at {root}",
+            # Every test in this module needs the checkout, so skipping the
+            # module is the intent. Without this flag pytest treats a
+            # module-level skip as an error and the whole file fails to
+            # collect. This collapses all 19 tests below into one silent
+            # "1 skipped" line with zero further signal -- set
+            # $AEREAD_AUCARENA_QC_GATE_REQUIRED=1 (conftest.py's
+            # pytest_terminal_summary) to turn that into a failed run
+            # instead (docs/aucarena_codex_triage.md Finding 8).
             allow_module_level=True,
         )
     return root

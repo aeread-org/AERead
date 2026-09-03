@@ -46,17 +46,29 @@ Milestone 3 adds two more claims, both new this milestone:
 
 ## Evidence
 
-**Full aucarena suite: 100 passed, 0 failed, 0 skipped** across the six family test files
-(`test_aucarena_cases.py` 19, `test_aucarena_vendored_upstream.py` 24,
-`test_aucarena_environment.py` 13, `test_aucarena_measurement.py` 16,
-`test_aucarena_parity.py` 12, `test_aucarena_replay.py` 16). Zero skips anywhere in this
-family — unlike `tau3_retail`, there is no upstream bridge interpreter to be missing: the
-pinned item pool is resolved once, at import time (`cases.py`), and nothing at runtime ever
-imports upstream or touches the network.
+**On this machine, with the pinned upstream auction-arena checkout present: 0 failed, 0
+skipped** across the family test files. **This is conditional, not unconditional** (corrected
+per `docs/aucarena_codex_triage.md` Finding 8 — an earlier revision of this doc claimed "zero
+skips anywhere in this family... there is no upstream bridge interpreter to be missing", which
+is false on any machine without this developer's own hardcoded default checkout path or the
+`AEREAD_AUCARENA_UPSTREAM_ROOT` override): `tests/test_aucarena_cases.py` (QC Gate 1, 19
+tests: pinned item-pool sha256/count, id resolution, importer byte-determinism, the
+case-id colon-grammar regression) gates on that checkout via a module-level
+`pytest.skip(..., allow_module_level=True)`, exactly like `tau3_retail`'s own bridge-Python
+gate — a missing checkout collapses all 19 of that module's tests into one `1 skipped` line,
+not a failure, with no further signal in a plain CI log.
+
+`conftest.py`'s `pytest_terminal_summary` hook (already used to make a missing tau2 bridge
+loud) now also covers this gate: set `AEREAD_AUCARENA_QC_GATE_REQUIRED=1` (CI, and any run
+meant to certify this family's QC-Gate-1 claims) to turn that skip into a failed run instead
+of a silent no-op. Off by default so a local contributor not working on this family is never
+surprised.
 
 ```bash
-PYTHONPATH=src pytest tests/test_aucarena_*.py -q
+AEREAD_AUCARENA_UPSTREAM_ROOT=<pinned-checkout> PYTHONPATH=src pytest tests/test_aucarena_*.py -q
 # 100 passed
+AEREAD_AUCARENA_QC_GATE_REQUIRED=1 PYTHONPATH=src pytest tests/test_aucarena_cases.py -q
+# fails loudly, with a provisioning hint, if that checkout is absent
 ```
 
 **Full repo suite: 826 passed, 31 skipped, 1 xfailed, 0 failed.** The 31 skips are
