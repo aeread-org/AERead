@@ -162,3 +162,37 @@ Family test suite (`tests/test_econagent_{cases,e2e,environment,goldens,measurem
 plus `tests/test_shared_runner_smoke.py`: **100 passed, 0 skipped, 0 failed** — 86 pre-existing
 plus 4 new regression tests (3 for WARNING 2, 1 for SUGGESTION 2) plus 10 pre-existing
 `test_shared_runner_smoke.py` tests.
+
+## Second-review findings (docs/econagent_codex_triage.md)
+
+A later, independent adversarial pass (`docs/econagent_codex_triage.md`, "triage of
+`docs/econagent_review_codex.md`") found 7 further findings, all classified CONFIRMED and
+none KERNEL (`COUNTS: confirmed=7 refuted=0 kernel=0`) — every one is this adapter's own
+code, not `src/aeread/shared_runner/`, so none required a `runner_defect_ledger.md` entry.
+Findings 1-3 were already fixed and committed on this branch before this pass began
+(verified here, not redone); findings 4-7 were fixed in this pass. Nothing was refuted.
+
+| # | Finding | Disposition | Regression test(s) | Commit |
+|---|---|---|---|---|
+| 1 | Boundary-month inventory corruption passes: the scorer accepted any positive saving-interest residual, only rejecting negative ones | Fixed | `test_score_budget_identity_rejects_a_boundary_month_residual_that_does_not_match_the_recorded_interest_rate`, `test_score_budget_identity_accepts_a_legitimate_boundary_month_interest_residual` (`tests/test_econagent_measurement.py`) | `6cccdeb` |
+| 2 | Replay ignores episode-start arguments: `RecordedEconAgentBridge.start_episode` discarded its own kwargs and served by call order alone | Fixed | `test_recorded_bridge_rejects_a_start_episode_argument_mismatch`, `test_recorded_bridge_serves_start_episode_when_arguments_match`, `test_replay_rejects_a_recorded_start_episode_argument_mismatch` (production path: `replay_episode` → `run_episode` → `EconAgentV1Plugin.initial_state`) (`tests/test_econagent_replay.py`) | `37ed381` |
+| 3 | Mutation can precede every durable outcome: the driver's real `env.step(actions)` runs before its response is written/flushed, so a lost response is indistinguishable from "never executed" | Fixed | `test_request_raises_a_distinctly_typed_error_when_a_step_month_response_never_arrives`, `test_request_raises_the_generic_error_when_a_non_mutating_response_never_arrives`, `test_golden_a_lost_step_month_response_is_a_distinctly_typed_mutation_outcome_unknown_error` (production path: real driver subprocess, real mutation, via a `_test_crash_before_responding` fault-injection marker) (`tests/test_econagent_goldens.py`) | `507f552` |
+| 4 | Uncompared offline replay is labeled match: `replay_and_verify(original=None)` deliberately leaves `comparison=None`, but `ReplayReport.status` still returned `"match"` | Fixed | `test_replay_and_verify_without_an_original_reports_not_comparable_not_match` (production path: `replay_and_verify` itself with `original=None`, not a hand-built `ReplayReport`) (`tests/test_econagent_replay.py`) | `3e7e3ad` |
+| 5 | Required bridge mode still permits skips: the root `conftest.py`'s `pytest_terminal_summary` hook recognized only `AEREAD_TAU2_BRIDGE_REQUIRED` and tau2-specific skip markers, so `AEREAD_ECONAGENT_BRIDGE_REQUIRED=1` with no usable bridge still produced a silent, zero-exit skip | Fixed | `test_a_missing_upstream_checkout_still_skips_cleanly_when_not_required`, `test_a_missing_upstream_checkout_fails_the_run_when_econagent_bridge_is_required`, `test_setting_only_the_tau2_flag_does_not_catch_a_missing_econagent_checkout` (production path: a real, separate nested `pytest` subprocess — there is no in-process shortcut for a `pytest_terminal_summary` hook) (`tests/test_econagent_bridge_required_enforcement.py`, new file) | `2884df0` |
+| 6 | Random session IDs break canonical determinism: `initial_state()` minted a fresh `uuid.uuid4().hex` `bridge_session_id` every call, so two runs of the identical case/plan/seed produced different raw canonical state/hashes | Fixed | `test_replay_reproduces_the_byte_exact_canonical_final_state_for_the_identical_cell` (production path: `run_and_record_episode`/`replay_episode`), `test_initial_state_mints_distinct_session_ids_for_two_different_cells_of_the_same_case`, `test_initial_state_refuses_to_start_the_same_cell_twice_concurrently`; also corrected `test_replay_from_a_json_round_tripped_record_reproduces_the_live_run`'s own assertion, which had pinned the raw inequality as expected (`tests/test_econagent_replay.py`) | `564a906` |
+| 7 | Persistent requests do not enforce their timeout: `_request()`'s `process.stdout.readline()` had no timeout mechanism, so a hung `complex_actions`/`env.step` blocked forever regardless of `timeout_seconds` | Fixed | `test_readline_with_timeout_raises_before_a_hung_step_month_response_blocks_forever`, `test_readline_with_timeout_raises_the_generic_error_for_a_hung_non_mutating_request` (pure, real OS pipe, no bridge subprocess), `test_golden_a_hung_step_month_request_times_out_instead_of_blocking_forever` (production path: real driver subprocess, real mutation, via a `_test_hang_before_responding` fault-injection marker) (`tests/test_econagent_goldens.py`) | `6d6217b` |
+
+**Note on finding 5's history.** An earlier ledger entry (`ledger_entries/econagent.md`,
+milestone-2 era) had already identified this exact gap and deferred it, reasoning that root
+`conftest.py` is "shared test infra, not econagent's own code." This second review's own
+triage classified the same finding CONFIRMED rather than KERNEL, and this task's ground
+rules scope the KERNEL/ledger carve-out to `src/aeread/shared_runner/` specifically, which
+`conftest.py` is not part of — so it was fixed directly here, exactly along the lines that
+ledger entry's own suggested fix described ("generalize `conftest.py`'s hook to iterate a
+small registry of (env var, markers) pairs"). That ledger entry was left as-is (out of this
+task's scope: only `runner_defect_ledger.md` KERNEL entries were in scope, and this finding
+had none); a future pass may want to mark it resolved.
+
+Family test suite (`tests/test_econagent_{cases,e2e,environment,goldens,measurement,parity,
+replay,bridge_required_enforcement}.py`) plus `tests/test_shared_runner_smoke.py`: **118
+passed, 0 skipped, 0 failed**.
