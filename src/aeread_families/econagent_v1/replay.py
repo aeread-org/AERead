@@ -412,20 +412,24 @@ async def replay_episode(
 def _strip_bridge_session_id(value: Any) -> Any:
     """Recursively drop every ``"bridge_session_id"`` key from state-shaped values.
 
-    ``EconAgentV1Plugin.initial_state`` mints a fresh ``uuid.uuid4().hex`` as
-    the dict key it uses internally to look up the live bridge for this
-    episode (``environment.py``: ``session_id = uuid.uuid4().hex``) -- pure
-    adapter-internal bookkeeping, never surfaced through ``terminal()``/
-    ``outcome()``, and never causally relevant to any accounting leaf. It is,
-    however, part of the full per-phase ``state`` the scheduler hashes for
+    ``EconAgentV1Plugin.initial_state`` uses this as the dict key it looks
+    up the live bridge for this episode by (``environment.py``'s
+    ``_mint_session_id``) -- pure adapter-internal bookkeeping, never
+    surfaced through ``terminal()``/``outcome()``, and never causally
+    relevant to any accounting leaf. It is, however, part of the full
+    per-phase ``state`` the scheduler hashes for
     ``pre_state_sha256``/``post_state_sha256`` and freezes into
-    ``final_state`` -- discovered empirically while building this replayer
-    (a live run replayed from its own exact recorded bridge call log still
-    did not hash-match itself). Unlike ``tau3_retail``'s message timestamps
-    (a real per-message field on every recorded response), this is a single,
-    always-top-level key on the family's own ``state`` dict, so stripping it
-    is a narrow, general (not task-specific) correction, not a broad rewrite
-    of the comparison.
+    ``final_state``. ``_mint_session_id`` now derives it deterministically
+    from the real scheduler's own ``cell.cell_id`` (fix for
+    docs/econagent_codex_triage.md finding 6), so a live run replayed
+    through the same ``cell`` hash-matches itself; this stripping remains
+    only as defense-in-depth for the one path that still mints a random id
+    -- ``cell=None``, direct plugin calls that bypass the real scheduler
+    entirely (see ``_mint_session_id``'s own docstring). Unlike
+    ``tau3_retail``'s message timestamps (a real per-message field on every
+    recorded response), this is a single, always-top-level key on the
+    family's own ``state`` dict, so stripping it is a narrow, general (not
+    task-specific) correction, not a broad rewrite of the comparison.
     """
     if isinstance(value, Mapping):
         return {
@@ -447,12 +451,13 @@ class StateComparison:
     for an analogous reason with a narrower cause here):
 
     * **Raw, byte-exact** (``state_hashes_match``, ``final_state_matches``):
-      compares the scheduler's own sealed state exactly as sealed. Given
-      ``EconAgentV1Plugin.initial_state``'s freshly-minted
-      ``bridge_session_id`` (see ``_strip_bridge_session_id``), these are
-      expected to read ``False`` for every replay -- a real, general
-      property of the current adapter, not a bug in this comparator, and
-      reported honestly rather than hidden.
+      compares the scheduler's own sealed state exactly as sealed. For a
+      replay driven through the same ``cell`` as its original live run --
+      the normal case -- ``EconAgentV1Plugin.initial_state``'s
+      deterministic ``bridge_session_id`` (see ``_strip_bridge_session_id``)
+      means these are expected to agree too, not merely the semantic
+      comparison below; they read ``False`` only in the narrower case where
+      no real ``cell`` was available (see ``_mint_session_id``).
     * **Semantic, session-id-independent** (``final_state_content_matches``,
       and ``matches`` overall): the actual replay guarantee this module
       exists to provide -- same terminal, same outcome, same economic state

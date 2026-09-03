@@ -360,17 +360,100 @@ def test_replay_from_a_json_round_tripped_record_reproduces_the_live_run() -> No
     assert comparison.outcome_matches is True
     assert replayed.terminal["reason"] == "episode_length_reached"
 
-    # Known, general (not task-specific) property of
-    # `EconAgentV1Plugin.initial_state`: it mints a fresh `uuid.uuid4().hex`
-    # bookkeeping key (`bridge_session_id`) on every call, so the RAW,
-    # byte-exact state never matches itself across two independent runs of
-    # one trajectory -- only its *content* does. Documented on
-    # `replay._strip_bridge_session_id`; pinned here so this doesn't
-    # silently regress into a false "everything matches" claim.
-    assert comparison.final_state_matches is False
-    assert canonical_json_bytes(replayed.final_state) != canonical_json_bytes(
+    # `EconAgentV1Plugin.initial_state` derives `bridge_session_id`
+    # deterministically from the real scheduler's own `cell.cell_id` (fix
+    # for docs/econagent_codex_triage.md finding 6), so the RAW, byte-exact
+    # state matches too here -- both this live run and its replay were
+    # driven through the same `cell`. See
+    # `test_replay_reproduces_the_byte_exact_canonical_final_state_for_the_identical_cell`
+    # for the dedicated regression test and `replay._strip_bridge_session_id`
+    # for the one case (`cell=None`, bypassing the real scheduler) where raw
+    # agreement still cannot be assumed.
+    assert comparison.final_state_matches is True
+    assert canonical_json_bytes(replayed.final_state) == canonical_json_bytes(
         original.final_state
     )
+
+
+def test_replay_reproduces_the_byte_exact_canonical_final_state_for_the_identical_cell() -> None:
+    """Finding 6 (docs/econagent_codex_triage.md): ``initial_state()`` used
+    to mint a fresh ``uuid.uuid4().hex`` ``bridge_session_id`` on every call,
+    so two executions of the identical case/plan/seed -- a live run and its
+    own offline replay, both driven through the real production path
+    (``run_and_record_episode``/``replay_episode``) with the exact same
+    ``cell`` -- produced different canonical states and hashes even though
+    nothing about the episode itself differed; only the semantic comparison
+    (content with ``bridge_session_id`` stripped) could report agreement.
+    Now that ``bridge_session_id`` is derived deterministically from the
+    real scheduler's own ``cell.cell_id``, the raw final state -- not just
+    its stripped content -- matches byte-for-byte, with no stripping needed.
+    """
+    _require_bridge()
+    case, cell, original, recorded = _run_live(suffix="determinism")
+    recorded = RecordedEconAgentEpisode.from_json(recorded.to_json())
+
+    replayed = asyncio.run(
+        replay_episode(cell=cell, case=case, upstream_root=UPSTREAM_ROOT, recorded=recorded)
+    )
+
+    comparison = compare_episode_results(original, replayed)
+    assert comparison.final_state_matches is True
+    assert canonical_json_bytes(replayed.final_state) == canonical_json_bytes(
+        original.final_state
+    )
+    assert (
+        original.final_state["bridge_session_id"]
+        == replayed.final_state["bridge_session_id"]
+    )
+
+
+def test_initial_state_mints_distinct_session_ids_for_two_different_cells_of_the_same_case() -> None:
+    """Guards the finding-6 determinism fix against a narrower, unsafe
+    implementation that derived ``bridge_session_id`` from scenario fields
+    alone (n_agents/episode_length/world_seed/...) rather than
+    ``cell.cell_id``: that would collide for two concurrently-running
+    replicates of the identical case, silently corrupting both sessions'
+    bridge lookups (``EconAgentV1Plugin._sessions`` is keyed by
+    ``bridge_session_id`` alone). Two distinct cells of the same case must
+    never share a session id.
+    """
+    _require_bridge()
+    case = _case("econagent.pilot.tiny4x6.seed0")
+    plugin = EconAgentV1Plugin(upstream_root=UPSTREAM_ROOT)
+    family_case = plugin.validate_payload(case.payload)
+    cell_a = _cell(case, suffix="concurrent-a")
+    cell_b = _cell(case, suffix="concurrent-b")
+
+    state_a = plugin.initial_state(family_case, cell_a)
+    try:
+        state_b = plugin.initial_state(family_case, cell_b)
+        try:
+            assert state_a["bridge_session_id"] != state_b["bridge_session_id"]
+            assert len(plugin._sessions) == 2
+        finally:
+            plugin._sessions.pop(state_b["bridge_session_id"]).close()
+    finally:
+        plugin._sessions.pop(state_a["bridge_session_id"]).close()
+
+
+def test_initial_state_refuses_to_start_the_same_cell_twice_concurrently() -> None:
+    """A session's bridge is looked up by ``bridge_session_id`` alone
+    (``_require_session``); silently overwriting an already-active entry
+    for the same cell would orphan the first session's own bridge with no
+    way to reach it (or close it) again. ``_mint_session_id`` raises
+    instead of allowing that."""
+    _require_bridge()
+    case = _case("econagent.pilot.tiny4x6.seed0")
+    plugin = EconAgentV1Plugin(upstream_root=UPSTREAM_ROOT)
+    family_case = plugin.validate_payload(case.payload)
+    cell = _cell(case, suffix="reused")
+
+    state = plugin.initial_state(family_case, cell)
+    try:
+        with pytest.raises(RuntimeError, match="already active"):
+            plugin.initial_state(family_case, cell)
+    finally:
+        plugin._sessions.pop(state["bridge_session_id"]).close()
 
 
 def test_replay_recomputes_all_three_leaves_with_zero_live_calls() -> None:

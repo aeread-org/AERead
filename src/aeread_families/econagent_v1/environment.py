@@ -153,12 +153,20 @@ class EconAgentV1Plugin:
     """The complete family-owned hook boundary required by ``PluginRegistry``.
 
     Unlike ``tau3_retail``'s plugin (one shared, stateless ``Tau2Bridge``),
-    this plugin holds a *registry of live episode sessions* keyed by an
-    opaque ``bridge_session_id`` stored in each episode's own ``state`` dict
-    -- one persistent bridge subprocess per in-flight episode, since
+    this plugin holds a *registry of live episode sessions* keyed by a
+    ``bridge_session_id`` stored in each episode's own ``state`` dict -- one
+    persistent bridge subprocess per in-flight episode, since
     ``complex_actions`` needs the live upstream ``env`` object for the whole
     episode (spec milestone-1 correction 3). Sessions are removed as soon as
     ``step`` observes the episode's terminal month.
+
+    ``bridge_session_id`` is derived deterministically from the real
+    scheduler's own ``cell.cell_id`` (see ``initial_state``/
+    ``_mint_session_id``) rather than minted at random, so that two
+    independent runs of the identical case/plan/seed -- notably a live run
+    and its own offline replay (``replay.py``), both driven through the same
+    ``cell`` -- produce byte-identical canonical state, not merely
+    semantically equivalent content.
     """
 
     def __init__(
@@ -281,7 +289,6 @@ class EconAgentV1Plugin:
         return data
 
     def initial_state(self, family_case: Mapping[str, Any], cell: Any) -> dict[str, Any]:
-        del cell
         scenario = family_case["scenario"]
         bridge = self._bridge_factory()
         bridge.start_episode(
@@ -292,7 +299,7 @@ class EconAgentV1Plugin:
             gamma=scenario["gamma"],
             h=scenario["h"],
         )
-        session_id = uuid.uuid4().hex
+        session_id = self._mint_session_id(cell)
         self._sessions[session_id] = bridge
         snapshot = bridge.agent_snapshot()
         return {
@@ -530,6 +537,39 @@ class EconAgentV1Plugin:
     def generator(self, family_case: Mapping[str, Any]) -> None:
         del family_case
         return None
+
+    def _mint_session_id(self, cell: Any) -> str:
+        """Choose this episode's ``bridge_session_id`` (docs/econagent_codex_triage.md
+        finding 6).
+
+        Deterministic whenever the real scheduler supplies a ``cell``: its
+        own ``cell_id`` already uniquely identifies one case x block x seed
+        x repetition execution unit (see ``PlanCell``), so two independent
+        runs of the identical logical episode -- a live run and its own
+        offline replay, both driven through ``run_episode``/
+        ``replay_episode`` with the same ``cell`` -- mint the identical
+        ``bridge_session_id`` and therefore byte-identical canonical state
+        (``pre_state_sha256``/``post_state_sha256``/``final_state``), not
+        merely semantically equivalent content. Raises if that same cell
+        already has an active session -- the same plan cell must never be
+        started twice concurrently in one plugin instance, since sessions
+        are looked up by this id alone (``_require_session``).
+
+        Falls back to a fresh random id only when ``cell`` is ``None`` --
+        a handful of tests call ``initial_state`` directly, bypassing the
+        real scheduler entirely, and never feed the result into a cross-run
+        canonical-state comparison.
+        """
+        cell_id = getattr(cell, "cell_id", None)
+        if cell_id is None:
+            return uuid.uuid4().hex
+        session_id = f"econagent_v1:{cell_id}"
+        if session_id in self._sessions:
+            raise RuntimeError(
+                f"a bridge session for cell {cell_id!r} is already active; "
+                "the same plan cell must never be started twice concurrently"
+            )
+        return session_id
 
     def _require_session(self, session_id: str) -> EconAgentBridge:
         bridge = self._sessions.get(session_id)
