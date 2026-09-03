@@ -109,6 +109,29 @@ malformed-or-operational-failure, degenerate-reference) pass against the real br
   (`final_state_content_matches`) — the actual replay guarantee — is asserted as the pass/
   fail signal. Same shape of finding as `tau3_retail/replay.py`'s message-timestamp
   non-determinism, unrelated cause.
+- **A lost `step_month` response leaves genuine mutation-outcome ambiguity that is
+  contained, not eliminated.** `econagent_bridge_driver.py`'s `_op_step_month` runs the
+  real, mutating `env.step(actions)` before its response is ever computed and flushed
+  (the response's own content — timestep, done, the real upstream-computed actions — IS
+  that mutation's result, so there is no way to confirm success before running it). If the
+  subprocess or pipe fails in that exact window, the caller cannot tell "the month never
+  ran" from "the month ran but the result was lost." `EconAgentBridge` raises a distinctly
+  typed `EconAgentBridgeMutationOutcomeUnknownError` for this one case (never the plain
+  `EconAgentBridgeError` every other request failure raises), and
+  `test_golden_a_lost_step_month_response_aborts_the_whole_episode_via_the_real_scheduler`
+  (`tests/test_econagent_goldens.py`) proves — through the real production path
+  (`aeread.shared_runner.scheduler.run_episode`, not just an isolated `_request()` call) —
+  that this ambiguity's one safe consequence holds end to end: the whole episode aborts as
+  a `SchedulerContractError`, never a completed `EpisodeResult`, never a partially-scored
+  month, never a silent retry. This is a genuine narrowing, not a fix: eliminating the
+  ambiguity itself (rather than safely containing it) would require either modifying the
+  pinned upstream engine to make `env.step` itself resumable/idempotent (forbidden by this
+  adapter's own spec, which never reimplements or alters upstream mechanics) or adding a
+  full state-journaling/recovery layer that would let a fresh process resume a crashed
+  episode — neither this adapter nor the shared kernel has that today, and building it is a
+  kernel-level architecture decision, not something fixable from this adapter's own code.
+  One driver subprocess already serves exactly one episode by design (spec milestone-1
+  correction 3); a crashed process is never resumed or interrogated after the fact regardless.
 - **Seat action is an acknowledgment, not a decision.** Per milestone-1 correction 4, this
   pass's `PhaseSpec`/seat plumbing does not exercise a genuine per-seat decision surface —
   the real `complex_actions` computation happens once per month inside the bridge, not

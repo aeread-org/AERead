@@ -42,6 +42,7 @@ import asyncio
 import io
 import json
 import os
+import threading
 import time
 from pathlib import Path
 from types import MappingProxyType
@@ -53,6 +54,7 @@ from aeread.shared_runner.registry import PluginRegistry
 from aeread.shared_runner.resolver import PlanCell
 from aeread.shared_runner.schemas import CaseManifest
 from aeread.shared_runner.scheduler import SchedulerContractError, run_episode
+from aeread_families.econagent_v1 import econagent_bridge as econagent_bridge_module
 from aeread_families.econagent_v1.econagent_bridge import (
     EconAgentBridge,
     EconAgentBridgeError,
@@ -627,51 +629,229 @@ def test_golden_a_lost_step_month_response_is_a_distinctly_typed_mutation_outcom
             bridge._process = None
 
 
-def test_readline_with_timeout_raises_before_a_hung_step_month_response_blocks_forever() -> None:
-    """Pure, no bridge subprocess required: a real OS pipe whose write end
-    is never written to reproduces docs/econagent_codex_triage.md finding 7
-    ("persistent requests do not enforce their timeout") deterministically,
-    without needing the real upstream engine to actually hang. Before the
-    fix, ``EconAgentBridge._request``'s blocking ``process.stdout.readline()``
-    had no timeout mechanism at all and would have hung this test forever;
-    this exercises the real, unmodified ``_request``/``_readline_with_timeout``
-    methods and asserts they raise within a small multiple of a short
-    ``timeout_seconds``, never hanging for the test suite's own patience.
+def test_golden_a_lost_step_month_response_aborts_the_whole_episode_via_the_real_scheduler() -> None:
+    """Strengthens the golden above (docs/econagent_codex_triage.md finding
+    3), which only exercises ``EconAgentBridge._request`` directly. A later,
+    independent cross-model verification pass
+    (docs/econagent_fix_verification.md) found that fix's own regression
+    tests "asserted only a new exception type" without ever proving what
+    happens to a real, in-flight episode -- this drives the identical lost-
+    response race through the REAL production path
+    (``aeread.shared_runner.scheduler.run_episode``) and proves the
+    documented "abandon this episode's session for good, never retry"
+    consequence actually holds end to end there too.
+
+    Why the underlying race itself is not "fixed away" here, and cannot be
+    without a kernel change or a product decision (see
+    ``docs/econagent_adapter_status.md``'s "Known limits" for the narrowed
+    claim): the driver's real, mutating ``env.step(actions)``
+    (``econagent_bridge_driver.py``'s ``_op_step_month``) necessarily runs
+    BEFORE its response is computed and flushed, because the response's own
+    content (timestep, done, the real upstream-computed actions) IS that
+    mutation's result -- there is no way to confirm success before running
+    it. And because one driver subprocess is a bare in-memory Python ``env``
+    object serving exactly one episode with no on-disk journal, a crashed
+    process can never be resumed or interrogated after the fact. Eliminating
+    the ambiguity would require either modifying the pinned upstream engine
+    itself (forbidden by this adapter's own spec) or adding a full state-
+    journaling/recovery layer neither this adapter nor the shared kernel has
+    today. What this test proves instead is that the ambiguity's one safe
+    consequence -- discard the whole episode, no partial state, no partial
+    score, no silent retry -- is what the real production path actually
+    does, not merely what an isolated ``_request()`` call raises.
+
+    ``EconAgentBridge._request`` is monkeypatched, for its own first
+    ``step_month`` call only, to add the real driver's crash fault-injection
+    marker (the same one the golden above uses) to the outgoing request --
+    every other request (``reset``, and any later ``step_month`` calls, of
+    which there are none here since the episode aborts on month 1) passes
+    through completely unmodified. Everything downstream of that single
+    substitution is completely real: the real driver subprocess, the real
+    crash, the real ``EconAgentV1Plugin.step``, the real ``run_episode``/
+    scheduler.
     """
-    read_fd, write_fd = os.pipe()
-    read_stdout = os.fdopen(read_fd, "r")
+    _require_bridge()
+    case = _case("econagent.pilot.tiny4x6.seed0")
+    cell = _cell(case, suffix="lost-step-month-real-scheduler")
+
+    plugin = EconAgentV1Plugin(upstream_root=UPSTREAM_ROOT)
+    registry = PluginRegistry()
+    register_plugin(registry, plugin=plugin)
+    resolved_plugin = registry.resolve_manifest(family_manifest())
+
+    async def _all_seats_acknowledge(request: Any) -> dict[str, Any]:
+        del request
+        return {"acknowledge": True}
+
+    original_request = econagent_bridge_module.EconAgentBridge._request
+    fault_injected = {"count": 0}
+
+    def _request_that_loses_its_first_step_month_response(
+        self: "EconAgentBridge", request: Mapping[str, Any], **kwargs: Any
+    ) -> dict[str, Any]:
+        if request.get("op") == "step_month" and fault_injected["count"] == 0:
+            fault_injected["count"] += 1
+            request = dict(request)
+            request["_test_crash_before_responding"] = True
+        return original_request(self, request, **kwargs)
+
+    econagent_bridge_module.EconAgentBridge._request = (  # type: ignore[assignment]
+        _request_that_loses_its_first_step_month_response
+    )
     try:
-
-        class _FakeHungProcess:
-            def __init__(self) -> None:
-                self.stdin = io.StringIO()
-                self.stdout = read_stdout
-                self.stderr = io.StringIO("still running")
-
-            def poll(self) -> None:
-                return None  # still "running" -- never exited on its own
-
-            def kill(self) -> None:
-                pass
-
-            def wait(self, timeout: float | None = None) -> None:
-                pass
-
-        bridge = EconAgentBridge(
-            python_executable=Path("/nonexistent/python"),
-            upstream_root=UPSTREAM_ROOT,
-            timeout_seconds=0.2,
+        with pytest.raises(SchedulerContractError, match="step failed for phase") as excinfo:
+            asyncio.run(
+                run_episode(
+                    cell=cell,
+                    case=case,
+                    plugin=resolved_plugin,
+                    response_source=_all_seats_acknowledge,
+                )
+            )
+        # The whole episode aborted as a scheduler contract failure -- never
+        # a completed EpisodeResult, never a partially-scored month -- and
+        # the wrapped cause is the same distinctly-typed exception the
+        # isolated-_request golden above asserts, proving the classification
+        # survives the full production path, not just a direct call.
+        assert isinstance(
+            excinfo.value.__cause__, EconAgentBridgeMutationOutcomeUnknownError
         )
-        bridge._process = _FakeHungProcess()  # type: ignore[assignment]
+        assert fault_injected["count"] == 1  # the fault fired exactly once, as intended
+    finally:
+        econagent_bridge_module.EconAgentBridge._request = original_request  # type: ignore[assignment]
+        # The crashed subprocess already exited on its own (os._exit inside
+        # the driver's crash op) -- reap it and drop the handle, mirroring
+        # the isolated-_request golden's identical cleanup above; never call
+        # bridge.close(), which would try to write into an already-broken
+        # pipe.
+        for session_id in list(plugin._sessions):
+            bridge = plugin._sessions.pop(session_id)
+            if bridge._process is not None:
+                bridge._process.wait(timeout=10)
 
+
+class _StdoutThatMustNeverBeReadDirectly:
+    """A fake ``stdout`` standing in for a genuinely hung peer: it reports a
+    working file descriptor (so ``_readline_with_timeout`` takes its real,
+    select-polled path rather than the "not backed by a real fd" fallback
+    branch meant only for a fileno-less double), but its ``readline()`` never
+    blocks -- it raises immediately.
+
+    This is the crux of the finding-7-verification fix
+    (docs/econagent_fix_verification.md): the ORIGINAL version of these two
+    tests used a real OS pipe whose write end nothing ever wrote to, so
+    ``readline()`` genuinely blocked forever. That is correct when the
+    bounded-wait fix is present (``_readline_with_timeout`` never reaches
+    ``readline()`` before the deadline kills the process), but reverting
+    JUST the fix restores a direct, unbounded ``process.stdout.readline()``
+    call -- which, against a real never-written pipe, hangs the test itself
+    rather than failing it. Swapping in this trap instead means a reverted
+    guard is caught the INSTANT it tries to read directly, with a fast,
+    deterministic ``AssertionError`` -- never a hang -- while a correct,
+    still-bounded implementation never calls this method at all (it always
+    kills and raises once the deadline passes, before ever reading).
+    """
+
+    def fileno(self) -> int:
+        return 999  # a placeholder fd; the fake select below never touches the OS
+
+    def readline(self) -> str:
+        raise AssertionError(
+            "stdout.readline() was called directly, bypassing the bounded "
+            "select.select wait -- exactly what a reverted read-timeout "
+            "guard would do. Failing fast here instead of hanging is the "
+            "whole point of this test (docs/econagent_fix_verification.md "
+            "finding 7)."
+        )
+
+
+class _FakeSelectModuleThatNeverReportsReady:
+    """Stands in for the ``select`` module ``econagent_bridge.py`` imports,
+    recording every bounded-wait call it receives and always reporting "not
+    ready" -- modelling a subprocess that is genuinely, indefinitely hung.
+    Never touches a real file descriptor or the OS select() syscall, so this
+    can never itself block."""
+
+    def __init__(self) -> None:
+        self.remaining_seen: list[float] = []
+
+    def select(
+        self, rlist: Any, wlist: Any, xlist: Any, timeout: float
+    ) -> tuple[list[Any], list[Any], list[Any]]:
+        self.remaining_seen.append(timeout)
+        return ([], [], [])
+
+
+class _FakeHungProcess:
+    def __init__(self, stdout: Any) -> None:
+        self.stdin = io.StringIO()
+        self.stdout = stdout
+        self.stderr = io.StringIO("still running")
+        self.killed = False
+
+    def poll(self) -> None:
+        return None  # still "running" -- never exited on its own
+
+    def kill(self) -> None:
+        self.killed = True
+
+    def wait(self, timeout: float | None = None) -> None:
+        return None
+
+
+def test_readline_with_timeout_raises_before_a_hung_step_month_response_blocks_forever() -> None:
+    """Pure, no bridge subprocess required: reproduces
+    docs/econagent_codex_triage.md finding 7 ("persistent requests do not
+    enforce their timeout") deterministically, without needing the real
+    upstream engine to actually hang.
+
+    Restructured per docs/econagent_fix_verification.md's own follow-up
+    finding on this exact test: the earlier version waited on a real,
+    never-written OS pipe, which is fast when the fix is present but HANGS
+    (rather than fails) if the fix is ever reverted -- a hang on regression
+    is worse than no test, since CI stalls instead of reporting red. This
+    now asserts on the bounded-wait MECHANISM's own observable behaviour
+    (``select.select`` was actually called, bounded by ``timeout_seconds``,
+    and a working, non-blocking fake stands in for a genuinely hung peer)
+    rather than by ever letting an actually-unbounded call run:
+
+    * With the fix present, ``_readline_with_timeout`` only ever calls the
+      fake ``select.select`` (never the trap ``readline()``, since "ready"
+      is never reported), observably bounded by ``self.timeout_seconds``,
+      kills the fake hung process, and raises the typed
+      ``EconAgentBridgeMutationOutcomeUnknownError`` -- fast, deterministic,
+      never a real wait on anything slow.
+    * If the fix is reverted (a direct, unbounded ``process.stdout.readline()``
+      restored), the trap's ``readline()`` raises ``AssertionError``
+      immediately -- failing this test in milliseconds, never hanging.
+    """
+    fake_stdout = _StdoutThatMustNeverBeReadDirectly()
+    fake_select = _FakeSelectModuleThatNeverReportsReady()
+    fake_process = _FakeHungProcess(fake_stdout)
+
+    bridge = EconAgentBridge(
+        python_executable=Path("/nonexistent/python"),
+        upstream_root=UPSTREAM_ROOT,
+        timeout_seconds=0.05,
+    )
+    bridge._process = fake_process  # type: ignore[assignment]
+
+    original_select = econagent_bridge_module.select
+    econagent_bridge_module.select = fake_select  # type: ignore[assignment]
+    try:
         started = time.monotonic()
         with pytest.raises(EconAgentBridgeMutationOutcomeUnknownError):
             bridge._request({"op": "step_month"})
         elapsed = time.monotonic() - started
-        assert elapsed < 2.0  # nowhere near an indefinite hang
     finally:
-        read_stdout.close()
-        os.close(write_fd)
+        econagent_bridge_module.select = original_select  # type: ignore[assignment]
+
+    assert elapsed < 1.0  # bounded by timeout_seconds, nowhere near a hang
+    assert fake_select.remaining_seen  # the bounded-wait mechanism actually ran
+    assert all(
+        0 < remaining <= bridge.timeout_seconds for remaining in fake_select.remaining_seen
+    )
+    assert fake_process.killed  # the hung process was actually reaped
 
 
 def test_readline_with_timeout_raises_the_generic_error_for_a_hung_non_mutating_request() -> None:
@@ -681,39 +861,30 @@ def test_readline_with_timeout_raises_the_generic_error_for_a_hung_non_mutating_
     must still raise the plain, generic ``EconAgentBridgeError``, proving
     the timeout fix reuses finding 3's existing step_month-vs-everything-
     else distinction rather than applying the mutation-specific error
-    indiscriminately."""
-    read_fd, write_fd = os.pipe()
-    read_stdout = os.fdopen(read_fd, "r")
+    indiscriminately. Restructured for the same hang-to-fail reason as the
+    test above -- see its docstring."""
+    fake_stdout = _StdoutThatMustNeverBeReadDirectly()
+    fake_select = _FakeSelectModuleThatNeverReportsReady()
+    fake_process = _FakeHungProcess(fake_stdout)
+
+    bridge = EconAgentBridge(
+        python_executable=Path("/nonexistent/python"),
+        upstream_root=UPSTREAM_ROOT,
+        timeout_seconds=0.05,
+    )
+    bridge._process = fake_process  # type: ignore[assignment]
+
+    original_select = econagent_bridge_module.select
+    econagent_bridge_module.select = fake_select  # type: ignore[assignment]
     try:
-
-        class _FakeHungProcess:
-            def __init__(self) -> None:
-                self.stdin = io.StringIO()
-                self.stdout = read_stdout
-                self.stderr = io.StringIO("still running")
-
-            def poll(self) -> None:
-                return None
-
-            def kill(self) -> None:
-                pass
-
-            def wait(self, timeout: float | None = None) -> None:
-                pass
-
-        bridge = EconAgentBridge(
-            python_executable=Path("/nonexistent/python"),
-            upstream_root=UPSTREAM_ROOT,
-            timeout_seconds=0.2,
-        )
-        bridge._process = _FakeHungProcess()  # type: ignore[assignment]
-
         with pytest.raises(EconAgentBridgeError) as excinfo:
             bridge._request({"op": "agent_snapshot"})
-        assert not isinstance(excinfo.value, EconAgentBridgeMutationOutcomeUnknownError)
     finally:
-        read_stdout.close()
-        os.close(write_fd)
+        econagent_bridge_module.select = original_select  # type: ignore[assignment]
+
+    assert not isinstance(excinfo.value, EconAgentBridgeMutationOutcomeUnknownError)
+    assert fake_select.remaining_seen
+    assert fake_process.killed
 
 
 def test_golden_a_hung_step_month_request_times_out_instead_of_blocking_forever() -> None:
@@ -729,6 +900,20 @@ def test_golden_a_hung_step_month_request_times_out_instead_of_blocking_forever(
     typed :class:`EconAgentBridgeMutationOutcomeUnknownError` well within a
     few seconds, not the driver's own multi-hour sleep, through the real
     upstream engine, never a mock.
+
+    Restructured per docs/econagent_fix_verification.md's follow-up finding
+    on this exact test: this golden must keep exercising the REAL bridge
+    subprocess and the REAL driver hang (no fake stands in for either --
+    that would defeat the point of a golden), so unlike the pure test above,
+    the underlying wait genuinely depends on production code behaving. If
+    the read-timeout guard were ever reverted, the previous version of this
+    test called ``bridge._request(...)`` directly in the test's own thread
+    and would have blocked for up to the driver's multi-hour sleep instead
+    of failing -- stalling CI rather than reporting red. The call now runs
+    on a background thread with a bounded, TEST-OWNED join: a small, fixed
+    wall-clock bound that is enforced by this test regardless of whether the
+    code under test behaves, so a regressed guard fails this test fast
+    (within that bound) rather than hanging it.
     """
     _require_bridge()
     # Full default timeout for start_episode (spawning the subprocess and
@@ -737,12 +922,42 @@ def test_golden_a_hung_step_month_request_times_out_instead_of_blocking_forever(
     bridge = EconAgentBridge.discover(UPSTREAM_ROOT)
     bridge.start_episode(n_agents=4, episode_length=6, world_seed=0, beta=0.1, gamma=0.1, h=1.0)
     bridge.timeout_seconds = 1.0
-    try:
+
+    outcome: dict[str, Any] = {}
+
+    def _run_the_potentially_hanging_request() -> None:
         started = time.monotonic()
-        with pytest.raises(EconAgentBridgeMutationOutcomeUnknownError):
+        try:
             bridge._request({"op": "step_month", "_test_hang_before_responding": True})
-        elapsed = time.monotonic() - started
-        assert elapsed < 10.0  # bounded by timeout_seconds, not the driver's hang
+        except BaseException as error:  # noqa: BLE001 -- carried across the thread boundary
+            outcome["error"] = error
+        outcome["elapsed"] = time.monotonic() - started
+
+    worker = threading.Thread(target=_run_the_potentially_hanging_request, daemon=True)
+    worker.start()
+    # A generous but FINITE bound owned by this test, independent of
+    # `bridge.timeout_seconds` -- comfortably above the configured 1.0s
+    # timeout, nowhere near the driver's multi-hour sleep. This bound, not
+    # the production code, is what guarantees "fails fast, never hangs".
+    worker.join(timeout=15.0)
+    try:
+        if worker.is_alive():
+            # The read-timeout guard did not fire -- kill the hung
+            # subprocess so the leaked thread unblocks and this process
+            # doesn't sit on an indefinitely-sleeping child, then fail fast
+            # rather than hang the suite.
+            if bridge._process is not None:
+                bridge._process.kill()
+            pytest.fail(
+                "bridge._request did not return within 15s of a hung "
+                "step_month request -- the read-timeout guard appears to "
+                "have regressed (this must fail fast, never hang)"
+            )
+        error = outcome.get("error")
+        assert isinstance(error, EconAgentBridgeMutationOutcomeUnknownError), (
+            f"expected EconAgentBridgeMutationOutcomeUnknownError, got {error!r}"
+        )
+        assert outcome["elapsed"] < 10.0  # bounded by timeout_seconds, not the driver's hang
     finally:
         # _readline_with_timeout already killed the hung subprocess on
         # timeout -- just reap it and drop the handle (mirrors the crash

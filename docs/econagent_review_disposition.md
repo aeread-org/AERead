@@ -196,3 +196,111 @@ had none); a future pass may want to mark it resolved.
 Family test suite (`tests/test_econagent_{cases,e2e,environment,goldens,measurement,parity,
 replay,bridge_required_enforcement}.py`) plus `tests/test_shared_runner_smoke.py`: **118
 passed, 0 skipped, 0 failed**.
+
+## Verification follow-up (docs/econagent_fix_verification.md)
+
+An independent cross-model check of the second-review fix pass
+(`docs/econagent_fix_verification.md`) re-verified all 7 findings above against the code and
+found 6 GENUINELY FIXED, and flagged two remaining problems: finding 3's fix only classifies
+the ambiguity rather than resolving it, and finding 7's regression tests hang rather than
+fail when their guard is reverted. Both are addressed below.
+
+### Finding 3 — "mutation can precede every durable outcome": narrowed, not further fixed
+
+**Disposition: NARROWED (claim corrected in `docs/econagent_adapter_status.md`); test
+coverage strengthened.**
+
+The verifier is right that the underlying race is unchanged: `econagent_bridge_driver.py`'s
+`_op_step_month` still runs the real, mutating `env.step(actions)` before computing and
+flushing its response, and no commit on this branch changed that ordering. Confirmed
+independently that this is not fixable from this adapter's own code without one of two
+things neither this adapter nor the shared kernel has today: (a) modifying the pinned
+upstream engine itself to make `env.step` resumable/idempotent — forbidden outright by this
+adapter's own spec, which never reimplements or alters upstream mechanics, or (b) a full
+state-journaling/recovery layer letting a fresh process resume a crashed episode — a
+kernel-level architecture decision, not an adapter-level code fix. `docs/
+econagent_adapter_status.md`'s "Known limits" section now states this narrowing explicitly,
+with the reasoning above, replacing the earlier "Fixed" framing's implication that the
+ambiguity itself was resolved.
+
+What WAS missing, and is now closed: the existing regression tests
+(`test_request_raises_a_distinctly_typed_error_when_a_step_month_response_never_arrives`,
+`test_golden_a_lost_step_month_response_is_a_distinctly_typed_mutation_outcome_unknown_error`)
+only ever call `EconAgentBridge._request` directly, proving the typed exception fires in
+isolation but never proving what the real production path does with it. Added
+`test_golden_a_lost_step_month_response_aborts_the_whole_episode_via_the_real_scheduler`
+(`tests/test_econagent_goldens.py`): drives the identical lost-response race (the same real
+`_test_crash_before_responding` fault injector, real driver subprocess, real crash) through
+`aeread.shared_runner.scheduler.run_episode` itself, and proves the documented "abandon this
+episode's session for good, never retry" consequence holds end to end there — the whole
+episode aborts as `SchedulerContractError` (wrapping the same
+`EconAgentBridgeMutationOutcomeUnknownError`), never a completed `EpisodeResult`, never a
+partially-scored month. Ran this test against the current (unmodified) production code: it
+passes without any code change, confirming the existing typed-exception-plus-scheduler-wrap
+mechanism already safely contains the ambiguity end to end — the gap the verifier found was
+in test coverage/rigor, not in an actual unhandled failure mode. Per this task's own standard
+("can the scorer tell good from bad"), this is the relevant question for validity, and the
+answer is proven, not merely asserted: the scorer never sees an episode whose mutation
+outcome is ambiguous, because that episode never completes.
+
+### Finding 7 — hung-request regression tests hang instead of fail on revert
+
+**Disposition: FIXED (tests restructured; no production code change).**
+
+Confirmed independently: `test_readline_with_timeout_raises_before_a_hung_step_month_response_blocks_forever`
+and `test_readline_with_timeout_raises_the_generic_error_for_a_hung_non_mutating_request`
+each waited on a real OS pipe whose write end nothing ever wrote to, and
+`test_golden_a_hung_step_month_request_times_out_instead_of_blocking_forever` called
+`EconAgentBridge._request` directly against a real hung subprocess — all three relied on the
+fix under test to be the only thing that could ever stop the wait. Reverting just the guard
+(replacing `_readline_with_timeout`'s call site back to a direct
+`process.stdout.readline()`, matching commit `6d6217b`'s own pre-fix diff) confirmed all
+three genuinely hang rather than fail: the repository has no `pytest-timeout` plugin and no
+per-test wall-clock bound, so a regressed guard would stall CI instead of reporting red — as
+this task's own framing puts it, worse than no test at all.
+
+**Fix.** Restructured all three tests in `tests/test_econagent_goldens.py`:
+
+- The two pure (no-subprocess) tests now assert on the bounded-wait *mechanism's own
+  observable behaviour* instead of ever letting an actually-unbounded call run. A fake
+  `stdout` (`_StdoutThatMustNeverBeReadDirectly`) reports a working file descriptor (so
+  `_readline_with_timeout` takes its real, select-polled path, never the "no real fd"
+  fallback meant only for a fileno-less double) but its own `readline()` raises immediately
+  if ever called directly. A fake `select` module
+  (`_FakeSelectModuleThatNeverReportsReady`) records every bounded-wait call and always
+  reports "not ready," modelling a genuinely hung peer without ever touching a real fd or
+  the OS `select()` syscall. With the fix present, the code only ever calls the fake
+  `select.select` (bounded by `self.timeout_seconds`, confirmed by asserting every recorded
+  wait argument is `> 0` and `<= timeout_seconds`), kills the fake process, and raises the
+  typed exception — fast, deterministic, never a real wait on anything slow. If the guard is
+  reverted, the trap's `readline()` raises `AssertionError` the instant it is called
+  directly — failing in milliseconds, never hanging.
+- The bridge-gated golden test must keep exercising the real subprocess and the real driver
+  hang (a fake would defeat the point of a golden), so instead of asserting on an internal
+  mechanism, the potentially-blocking `bridge._request(...)` call now runs on a background
+  thread with a bounded, TEST-OWNED `join(timeout=15.0)` — independent of whatever
+  `timeout_seconds` the production code itself is configured with. If the guard fires
+  correctly, the join returns well under the bound and the typed exception/elapsed time are
+  asserted as before. If the guard is reverted, the thread is still alive after 15 seconds;
+  the test kills the hung subprocess (so the leaked daemon thread unblocks rather than
+  sitting on an indefinitely-sleeping child for the rest of the session) and fails
+  immediately via `pytest.fail`, bounded and fast, rather than blocking for up to the
+  driver's multi-hour sleep.
+
+**Mutation-verified.** Backed up `econagent_bridge.py` to `/tmp`, reverted only the guard
+(`self._readline_with_timeout(process, op=...)` → `process.stdout.readline()`, the same
+change commit `6d6217b`'s own diff shows in reverse), and ran all three restructured tests:
+all three now FAIL — `AssertionError: stdout.readline() was called directly, bypassing the
+bounded select.select wait` for the two pure tests, `Failed: bridge._request did not return
+within 15s...` for the golden — in 16.4 seconds total, not a hang. Restored the file from the
+`/tmp` backup (never `git checkout`ed, per this task's own standing rule) and re-ran the full
+suite to confirm a clean pass.
+
+**Test suite after both items** (bridge exported via
+`AEREAD_ECONAGENT_BRIDGE_PYTHON`/`AEREAD_ECONAGENT_UPSTREAM_ROOT`):
+`tests/test_econagent_{cases,e2e,environment,goldens,measurement,parity,replay,
+bridge_required_enforcement}.py` plus `tests/test_shared_runner_smoke.py`: **119 passed, 0
+skipped, 0 failed** (118 prior + 1 new golden for finding 3's real-scheduler coverage). Full
+repository suite (`pytest tests/`): **835 passed, 31 skipped, 1 xfailed, 0 failed** — all 31
+skips are other adapters' own bridge-gated tests (`tau3_retail`, `rllm`) for interpreters/
+packages not relevant to this change; nothing econagent-owned skipped.
