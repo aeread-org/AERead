@@ -11,6 +11,9 @@ from aeread.shared_runner.task.execution import ProviderFailure, ProviderResult
 from aeread.shared_runner.run.resolver import canonical_json_bytes
 from aeread_families.commercial_state_calibration.campaign import (
     DEFAULT_CONTRACT_PATH,
+    V2_CONTRACT_PATH,
+    V3_CONTRACT_PATH,
+    V4_CONTRACT_PATH,
     design_contract_artifact,
     execute_campaign,
     load_contract,
@@ -112,6 +115,121 @@ def test_contract_resolves_complete_paired_matrix() -> None:
     assert design["inferential_model_ranking_allowed"] is False
     assert design["paired_by"] == ["case_slug", "inference_seed"]
     assert len(design["plans"]["variance_pilot"]) == 108
+
+
+def test_v2_contract_preserves_panel_and_pins_new_route_profiles() -> None:
+    v1 = load_contract(DEFAULT_CONTRACT_PATH)
+    v2 = load_contract(V2_CONTRACT_PATH)
+    design = design_contract_artifact(v2)
+
+    assert v2["campaign_id"] == "commercial_state_openweight_variance_v2"
+    assert v2["case_panel"] == v1["case_panel"]
+    assert design["stage_plan_counts"] == {
+        "full_trajectory": 4,
+        "variance_pilot": 108,
+    }
+    assert {model["provider"] for model in v2["models"].values()} == {
+        "Alibaba",
+        "Cloudflare",
+        "Mistral",
+        "Parasail",
+    }
+    assert all(
+        v2["models"][model_id]["profile_id"]
+        != v1["models"][model_id]["profile_id"]
+        for model_id in v2["models"]
+    )
+
+
+def test_v3_contract_uses_common_delivery_headroom_and_fresh_profiles() -> None:
+    v2 = load_contract(V2_CONTRACT_PATH)
+    v3 = load_contract(V3_CONTRACT_PATH)
+    design = design_contract_artifact(v3)
+
+    assert v3["campaign_id"] == "commercial_state_openweight_variance_v3"
+    assert v3["case_panel"] == v2["case_panel"]
+    assert v3["controls"]["max_output_tokens"] == 4096
+    assert v3["controls"]["max_cost_usd_per_cell"] == 0.006
+    assert design["stage_plan_counts"] == {
+        "full_trajectory": 4,
+        "variance_pilot": 108,
+    }
+    assert v3["models"]["glm53_flash"]["provider"] == "Reka"
+    assert v3["models"]["minimax_m3"]["provider"] == "Parasail"
+    assert all(
+        v3["models"][model_id]["profile_id"]
+        != v2["models"][model_id]["profile_id"]
+        for model_id in v3["models"]
+    )
+
+
+def test_v4_contract_uses_three_model_economical_paired_panel() -> None:
+    v3 = load_contract(V3_CONTRACT_PATH)
+    v4 = load_contract(V4_CONTRACT_PATH)
+    design = design_contract_artifact(v4)
+
+    assert v4["campaign_id"] == "commercial_state_openweight_variance_v4"
+    assert v4["case_panel"] == v3["case_panel"]
+    assert v4["controls"]["max_output_tokens"] == 1200
+    assert v4["controls"]["parallelism"] == 3
+    assert set(v4["models"]) == {
+        "glm53_flash",
+        "mistral_small4",
+        "qwen38_flash",
+    }
+    assert design["stage_plan_counts"] == {
+        "full_trajectory": 3,
+        "variance_pilot": 81,
+    }
+    assert len(design["plans"]["variance_pilot"]) == 81
+
+
+@pytest.mark.parametrize(
+    ("contract_path", "campaign_id"),
+    (
+        (V2_CONTRACT_PATH, "commercial_state_openweight_variance_v2"),
+        (V3_CONTRACT_PATH, "commercial_state_openweight_variance_v3"),
+        (V4_CONTRACT_PATH, "commercial_state_openweight_variance_v4"),
+    ),
+)
+def test_nondefault_full_qualification_and_publication_use_contract_identity(
+    tmp_path: Path, contract_path: Path, campaign_id: str
+) -> None:
+    contract = load_contract(contract_path)
+    provider = StrongCampaignProvider()
+    output_root = tmp_path / "campaign"
+
+    result = asyncio.run(
+        execute_campaign(
+            contract_path=contract_path,
+            output_root=output_root,
+            through="full_trajectory",
+            provider_factory=lambda: provider,
+            endpoint_loader=_endpoint_loader(contract),
+        )
+    )
+
+    assert all(
+        value["status"] == "passed"
+        for value in result["gate_summaries"].values()
+    )
+    assert provider.calls == len(contract["models"])
+    summary = json.loads((output_root / "full_trajectory" / "summary.json").read_bytes())
+    assert contract["campaign_id"] == campaign_id
+    assert summary["campaign_id"] == contract["campaign_id"]
+    assert summary["planned_cells"] == summary["completed_cells"] == len(
+        contract["models"]
+    )
+    assert all(row["route_verified"] for row in summary["rows"])
+
+    publication_root = tmp_path / "publication"
+    publication = publish_campaign_evidence(
+        campaign_root=output_root,
+        publication_root=publication_root,
+        contract_path=contract_path,
+    )
+    assert publication["campaign_id"] == contract["campaign_id"]
+    assert publication["source_stage"] == "full_trajectory"
 
 
 def test_contract_rejects_route_drift(tmp_path: Path) -> None:

@@ -292,7 +292,7 @@ def publish_campaign_evidence(
     )
     stage_root = campaign_root / stage
     source_summary = _read_sealed(stage_root / "summary.json")
-    if source_summary.get("campaign_id") != CAMPAIGN_ID:
+    if source_summary.get("campaign_id") != contract["campaign_id"]:
         raise ValueError("source summary campaign identity drifted")
 
     rows = [

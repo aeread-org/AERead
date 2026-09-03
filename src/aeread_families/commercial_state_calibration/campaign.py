@@ -63,11 +63,29 @@ from .runner import (
 
 CONTRACT_SCHEMA_VERSION = "aeread.commercial_state_campaign/0.1"
 CAMPAIGN_ID = "commercial_state_openweight_variance_v1"
+V2_CAMPAIGN_ID = "commercial_state_openweight_variance_v2"
+V3_CAMPAIGN_ID = "commercial_state_openweight_variance_v3"
+V4_CAMPAIGN_ID = "commercial_state_openweight_variance_v4"
 STAGES = CAMPAIGN_GATE_SEQUENCE[:5]
 DEFAULT_CONTRACT_PATH = (
     Path(__file__).resolve().parents[3]
     / "configs"
     / "commercial_state_openweight_variance_v1.json"
+)
+V2_CONTRACT_PATH = (
+    Path(__file__).resolve().parents[3]
+    / "configs"
+    / "commercial_state_openweight_variance_v2.json"
+)
+V3_CONTRACT_PATH = (
+    Path(__file__).resolve().parents[3]
+    / "configs"
+    / "commercial_state_openweight_variance_v3.json"
+)
+V4_CONTRACT_PATH = (
+    Path(__file__).resolve().parents[3]
+    / "configs"
+    / "commercial_state_openweight_variance_v4.json"
 )
 
 MODEL_ROUTE_PINS: Mapping[str, Mapping[str, Any]] = {
@@ -133,6 +151,189 @@ MODEL_ROUTE_PINS: Mapping[str, Mapping[str, Any]] = {
     },
 }
 
+V2_MODEL_ROUTE_PINS: Mapping[str, Mapping[str, Any]] = {
+    "glm53_flash": {
+        "requested_model": "z-ai/glm-5.3-flash",
+        "canonical_model": "z-ai/glm-5.3-flash-20260826",
+        "provider": "Cloudflare",
+        "quantization": "unknown",
+        "profile_id": "commercial_state_glm53_flash_cloudflare_v2",
+        "access_class": "open_source",
+        "license_id": "MIT",
+        "pricing": {
+            "input_per_million": 0.15,
+            "cached_input_per_million": 0.03,
+            "output_per_million": 0.5,
+            "pricing_id": "openrouter_2026-09-02_glm53_flash_cloudflare",
+        },
+    },
+    "mistral_small4": {
+        "requested_model": "mistralai/mistral-small-2603",
+        "canonical_model": "mistralai/mistral-small-2603",
+        "provider": "Mistral",
+        "quantization": "unknown",
+        "profile_id": "commercial_state_mistral_small4_v2",
+        "access_class": "open_source",
+        "license_id": "Apache-2.0",
+        "pricing": {
+            "input_per_million": 0.15,
+            "cached_input_per_million": 0.015,
+            "output_per_million": 0.6,
+            "pricing_id": "openrouter_2026-09-02_mistral_small4_mistral",
+        },
+    },
+    "qwen38_flash": {
+        "requested_model": "qwen/qwen3.8-flash",
+        "canonical_model": "qwen/qwen3.8-flash-20260826",
+        "provider": "Alibaba",
+        "quantization": "unknown",
+        "profile_id": "commercial_state_qwen38_flash_v2",
+        "access_class": "open_weight_custom_license",
+        "license_id": "custom",
+        "pricing": {
+            "input_per_million": 0.15,
+            "cached_input_per_million": 0.016,
+            "output_per_million": 0.47,
+            "pricing_id": "openrouter_2026-09-02_qwen38_flash_alibaba",
+        },
+    },
+    "minimax_m3": {
+        "requested_model": "minimax/minimax-m3",
+        "canonical_model": "minimax/minimax-m3-20260531",
+        "provider": "Parasail",
+        "quantization": "fp8",
+        "profile_id": "commercial_state_minimax_m3_parasail_v2",
+        "access_class": "open_weight_custom_license",
+        "license_id": "custom",
+        "pricing": {
+            "input_per_million": 0.3,
+            "cached_input_per_million": 0.06,
+            "output_per_million": 1.2,
+            "pricing_id": "openrouter_2026-09-02_minimax_m3_parasail",
+        },
+    },
+}
+
+V3_MODEL_ROUTE_PINS: Mapping[str, Mapping[str, Any]] = {
+    "glm53_flash": {
+        "requested_model": "z-ai/glm-5.3-flash",
+        "canonical_model": "z-ai/glm-5.3-flash-20260826",
+        "provider": "Reka",
+        "quantization": "fp8",
+        "profile_id": "commercial_state_glm53_flash_reka_v3",
+        "access_class": "open_source",
+        "license_id": "MIT",
+        "pricing": {
+            "input_per_million": 0.15,
+            "cached_input_per_million": 0.03,
+            "output_per_million": 0.5,
+            "pricing_id": "openrouter_2026-09-02_glm53_flash_reka",
+        },
+    },
+    "mistral_small4": {
+        "requested_model": "mistralai/mistral-small-2603",
+        "canonical_model": "mistralai/mistral-small-2603",
+        "provider": "Mistral",
+        "quantization": "unknown",
+        "profile_id": "commercial_state_mistral_small4_v3",
+        "access_class": "open_source",
+        "license_id": "Apache-2.0",
+        "pricing": {
+            "input_per_million": 0.15,
+            "cached_input_per_million": 0.015,
+            "output_per_million": 0.6,
+            "pricing_id": "openrouter_2026-09-02_mistral_small4_mistral",
+        },
+    },
+    "qwen38_flash": {
+        "requested_model": "qwen/qwen3.8-flash",
+        "canonical_model": "qwen/qwen3.8-flash-20260826",
+        "provider": "Alibaba",
+        "quantization": "unknown",
+        "profile_id": "commercial_state_qwen38_flash_v3",
+        "access_class": "open_weight_custom_license",
+        "license_id": "custom",
+        "pricing": {
+            "input_per_million": 0.15,
+            "cached_input_per_million": 0.016,
+            "output_per_million": 0.47,
+            "pricing_id": "openrouter_2026-09-02_qwen38_flash_alibaba",
+        },
+    },
+    "minimax_m3": {
+        "requested_model": "minimax/minimax-m3",
+        "canonical_model": "minimax/minimax-m3-20260531",
+        "provider": "Parasail",
+        "quantization": "fp8",
+        "profile_id": "commercial_state_minimax_m3_parasail_v3",
+        "access_class": "open_weight_custom_license",
+        "license_id": "custom",
+        "pricing": {
+            "input_per_million": 0.3,
+            "cached_input_per_million": 0.06,
+            "output_per_million": 1.2,
+            "pricing_id": "openrouter_2026-09-02_minimax_m3_parasail",
+        },
+    },
+}
+
+V4_MODEL_ROUTE_PINS: Mapping[str, Mapping[str, Any]] = {
+    "glm53_flash": {
+        "requested_model": "z-ai/glm-5.3-flash",
+        "canonical_model": "z-ai/glm-5.3-flash-20260826",
+        "provider": "Reka",
+        "quantization": "fp8",
+        "profile_id": "commercial_state_glm53_flash_reka_v4",
+        "access_class": "open_source",
+        "license_id": "MIT",
+        "pricing": {
+            "input_per_million": 0.15,
+            "cached_input_per_million": 0.03,
+            "output_per_million": 0.5,
+            "pricing_id": "openrouter_2026-09-02_glm53_flash_reka",
+        },
+    },
+    "mistral_small4": {
+        "requested_model": "mistralai/mistral-small-2603",
+        "canonical_model": "mistralai/mistral-small-2603",
+        "provider": "Mistral",
+        "quantization": "unknown",
+        "profile_id": "commercial_state_mistral_small4_v4",
+        "access_class": "open_source",
+        "license_id": "Apache-2.0",
+        "pricing": {
+            "input_per_million": 0.15,
+            "cached_input_per_million": 0.015,
+            "output_per_million": 0.6,
+            "pricing_id": "openrouter_2026-09-02_mistral_small4_mistral",
+        },
+    },
+    "qwen38_flash": {
+        "requested_model": "qwen/qwen3.8-flash",
+        "canonical_model": "qwen/qwen3.8-flash-20260826",
+        "provider": "Alibaba",
+        "quantization": "unknown",
+        "profile_id": "commercial_state_qwen38_flash_v4",
+        "access_class": "open_weight_custom_license",
+        "license_id": "custom",
+        "pricing": {
+            "input_per_million": 0.15,
+            "cached_input_per_million": 0.016,
+            "output_per_million": 0.47,
+            "pricing_id": "openrouter_2026-09-02_qwen38_flash_alibaba",
+        },
+    },
+}
+
+CAMPAIGN_MODEL_ROUTE_PINS: Mapping[
+    str, Mapping[str, Mapping[str, Any]]
+] = {
+    CAMPAIGN_ID: MODEL_ROUTE_PINS,
+    V2_CAMPAIGN_ID: V2_MODEL_ROUTE_PINS,
+    V3_CAMPAIGN_ID: V3_MODEL_ROUTE_PINS,
+    V4_CAMPAIGN_ID: V4_MODEL_ROUTE_PINS,
+}
+
 EXPECTED_CONTROLS: Mapping[str, Any] = {
     "harness": "minimal_chat/1.0",
     "tools": "disabled",
@@ -148,6 +349,24 @@ EXPECTED_CONTROLS: Mapping[str, Any] = {
     "max_cost_usd_per_cell": 0.005,
     "parallelism": 4,
     "condition_order": "rotate_model_by_case_and_seed",
+}
+
+V3_EXPECTED_CONTROLS: Mapping[str, Any] = {
+    **EXPECTED_CONTROLS,
+    "max_output_tokens": 4096,
+    "max_cost_usd_per_cell": 0.006,
+}
+
+V4_EXPECTED_CONTROLS: Mapping[str, Any] = {
+    **EXPECTED_CONTROLS,
+    "parallelism": 3,
+}
+
+CAMPAIGN_EXPECTED_CONTROLS: Mapping[str, Mapping[str, Any]] = {
+    CAMPAIGN_ID: EXPECTED_CONTROLS,
+    V2_CAMPAIGN_ID: EXPECTED_CONTROLS,
+    V3_CAMPAIGN_ID: V3_EXPECTED_CONTROLS,
+    V4_CAMPAIGN_ID: V4_EXPECTED_CONTROLS,
 }
 
 
@@ -232,8 +451,12 @@ def load_contract(path: str | Path = DEFAULT_CONTRACT_PATH) -> dict[str, Any]:
         raise ValueError("campaign contract fields are incomplete or unexpected")
     if value["schema_version"] != CONTRACT_SCHEMA_VERSION:
         raise ValueError("unsupported commercial-state campaign schema")
-    if value["campaign_id"] != CAMPAIGN_ID:
-        raise ValueError(f"this driver accepts only {CAMPAIGN_ID}")
+    campaign_id = value["campaign_id"]
+    route_pins = CAMPAIGN_MODEL_ROUTE_PINS.get(campaign_id)
+    if route_pins is None:
+        supported = ", ".join(sorted(CAMPAIGN_MODEL_ROUTE_PINS))
+        raise ValueError(f"unsupported campaign_id; expected one of: {supported}")
+    expected_controls = CAMPAIGN_EXPECTED_CONTROLS[campaign_id]
     if value["claim_status"] != "exploratory_variance_pilot":
         raise ValueError("the one-cluster campaign must remain exploratory")
     if value["primary_estimand"] != "commercial_state_safe_accuracy":
@@ -255,11 +478,11 @@ def load_contract(path: str | Path = DEFAULT_CONTRACT_PATH) -> dict[str, Any]:
         raise ValueError("commercial-state case panel drifted")
     if manifest["inference_status"] != "diagnostic_only":
         raise ValueError("source pack must remain diagnostic-only")
-    if value["controls"] != EXPECTED_CONTROLS:
+    if value["controls"] != expected_controls:
         raise ValueError("commercial-state execution controls drifted")
-    if set(value["models"]) != set(MODEL_ROUTE_PINS):
+    if set(value["models"]) != set(route_pins):
         raise ValueError("open-weight model panel drifted")
-    for model_id, expected in MODEL_ROUTE_PINS.items():
+    for model_id, expected in route_pins.items():
         if value["models"].get(model_id) != expected:
             raise ValueError(f"model route or price pin drifted for {model_id}")
         if "deepseek" in json.dumps(value["models"][model_id]).lower():
@@ -1732,11 +1955,24 @@ if __name__ == "__main__":
 
 
 __all__ = [
+    "CAMPAIGN_EXPECTED_CONTROLS",
+    "CAMPAIGN_MODEL_ROUTE_PINS",
     "CAMPAIGN_ID",
     "CONTRACT_SCHEMA_VERSION",
     "DEFAULT_CONTRACT_PATH",
     "MODEL_ROUTE_PINS",
     "STAGES",
+    "V2_CAMPAIGN_ID",
+    "V2_CONTRACT_PATH",
+    "V2_MODEL_ROUTE_PINS",
+    "V3_CAMPAIGN_ID",
+    "V3_CONTRACT_PATH",
+    "V3_EXPECTED_CONTROLS",
+    "V3_MODEL_ROUTE_PINS",
+    "V4_CAMPAIGN_ID",
+    "V4_CONTRACT_PATH",
+    "V4_EXPECTED_CONTROLS",
+    "V4_MODEL_ROUTE_PINS",
     "design_contract_artifact",
     "execute_campaign",
     "load_contract",

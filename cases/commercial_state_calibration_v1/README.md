@@ -106,3 +106,61 @@ Campaign comparisons remain descriptive. Repeated inference seeds estimate
 within-case response stability, but all nine cases still share one independent
 source-archive cluster. The campaign therefore cannot support confidence
 intervals or a population-level winner claim.
+
+### V2 route qualification
+
+`configs/commercial_state_openweight_variance_v2.json` preserves the V1 case
+panel, scorer, and controls but assigns a new campaign and profile identity to
+the refreshed OpenRouter routes: GLM on Cloudflare, Mistral on Mistral, Qwen on
+Alibaba, and MiniMax on Parasail. This prevents route availability or pricing
+changes from being silently folded into the historical V1 treatment arms.
+
+Run the four-cell full-trajectory qualification before spending the 108-cell
+variance-pilot budget:
+
+```bash
+PYTHONPATH=src .venv/bin/python \
+  -m aeread_families.commercial_state_calibration.campaign \
+  --contract configs/commercial_state_openweight_variance_v2.json \
+  --run-root runs/commercial_state_openweight_variance_v2 \
+  --through full_trajectory
+```
+
+Promotion requires all four cells to complete on their exact pinned route,
+with valid billing, verified replay, no hidden retry, and no stage cost-ceiling
+breach. Operational failures remain typed missingness; they are not replaced by
+another provider or seed.
+
+V3 is a separate delivery qualification after V2 exposed invalid or empty
+responses on two routes. It moves GLM to Reka and raises the common completion
+ceiling from 1200 to 4096 tokens for every profile, with a corresponding
+per-cell cost cap of $0.006. MiniMax remains pinned to Parasail so the V3 probe
+tests the predeclared shared headroom change without silently replacing its V2
+route:
+
+```bash
+PYTHONPATH=src .venv/bin/python \
+  -m aeread_families.commercial_state_calibration.campaign \
+  --contract configs/commercial_state_openweight_variance_v3.json \
+  --run-root runs/commercial_state_openweight_variance_v3 \
+  --through full_trajectory
+```
+
+V3 has fresh inference seeds and profile identities. Its results must not be
+pooled with V1 or V2 because the route and delivery ceiling changed.
+
+V4 removes MiniMax after its V2 and V3 delivery failures, restores the shared
+1200-token ceiling, and compares the three delivery-qualified routes. The full
+gate contains three cells; promotion launches an 81-cell pilot covering nine
+cases, three paired seeds, and three model-plus-route profiles:
+
+```bash
+PYTHONPATH=src .venv/bin/python \
+  -m aeread_families.commercial_state_calibration.campaign \
+  --contract configs/commercial_state_openweight_variance_v4.json \
+  --run-root runs/commercial_state_openweight_variance_v4 \
+  --through variance_pilot
+```
+
+The command resumes the passed qualification gates before launching the pilot.
+V4 remains diagnostic because every case shares one source-archive cluster.
