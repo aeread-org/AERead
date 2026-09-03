@@ -34,6 +34,7 @@ from aeread_families.procurement_allocation.runner import (
     CASE_PATH,
     SequenceResponseProvider,
 )
+from aeread_families.procurement_grounding.bakeoff import OPEN_WEIGHT_CANDIDATES
 
 
 def _response(action: dict) -> str:
@@ -107,6 +108,28 @@ def test_model_plan_holds_harness_fixed_and_separates_case_variance() -> None:
     assert plan["plan_sha256"]
     assert plan["conservative_cost_ceiling_usd"] == pytest.approx(
         conservative_cost_ceiling(case_count=6, seed_count=3)
+    )
+
+
+def test_model_plan_can_bind_all_route_dependent_fields_to_another_candidate() -> None:
+    mistral = next(
+        candidate
+        for candidate in OPEN_WEIGHT_CANDIDATES
+        if candidate.candidate_id == "mistral_small4"
+    )
+    plan = planned_model_qualification(
+        case_paths=(CASE_PATH,),
+        inference_seeds=(231,),
+        campaign_id="procurement_allocation_mistral_test",
+        candidate=mistral,
+    )
+
+    assert plan["model"] == mistral.route.model
+    assert plan["revision"] == mistral.route.revision
+    assert plan["provider"] == mistral.route.route_provider
+    assert plan["pricing_id"] == mistral.route.pricing.pricing_id
+    assert plan["conservative_cost_ceiling_usd"] == pytest.approx(
+        conservative_cost_ceiling(case_count=1, seed_count=1, candidate=mistral)
     )
 
 
