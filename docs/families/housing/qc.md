@@ -632,3 +632,36 @@ The index binds 12 run-level `profiles.csv`, `model_features.csv`, and
 `benchmark_results.csv` projections plus an explicit four-row paired-world
 table. Raw provider payloads and reasoning remain only under ignored local
 `runs/`.
+
+## 18. V11 explicit full-trajectory promotion gate
+
+[`housing_model_sensitivity_openrouter_deepinfra_v11`](../../../configs/housing_model_sensitivity_openrouter_deepinfra_v11.json)
+implements the gate that V10 skipped. It freezes one selected development
+configuration (`moderate_cw085_r2`), one previously unused non-holdout world
+(`227922569`), and the four subject-opponent conditions. The runner writes this
+stage under `full_trajectory/`, and promotion requires one completed trajectory
+per condition. The claim scope is gate qualification only; no score comparison
+or ranking is allowed.
+
+V11 changed the GLM route to DeepInfra FP8 under a new campaign identity and
+retained Parasail FP8 for DeepSeek. At catalog preflight, both routes were
+active and matched the frozen model, parameters, completion limit, and price.
+Design and provider-free validation passed, with the confirmatory holdout still
+sealed.
+
+Profile admission attempted all 18 single-attempt probes without SDK retries
+or hidden repair. Parasail/DeepSeek passed 9 of 9. DeepInfra/GLM passed the
+first six probes, then all three probe-index-2 schemas—tenant contact, tenant
+commit, and landlord respond—returned typed HTTP 429 rate limits. The
+provider-reported billed calls cost `$0.00200370555`; the three failed calls did
+not expose billing, so this is not an exact total-charge claim.
+
+Admission therefore blocked all four full trajectories with zero trajectory
+provider calls. Do not rerun only the three failed probes or add pacing inside
+V11. Any admission-pacing or route change requires a new campaign identity and
+fresh profile hashes. Review the digest-bound
+[`qualification.json`](../../../evidence/housing_model_sensitivity_openrouter_deepinfra_v11/reports/qualification.json),
+the explicit zero-attempt
+[`attempted.json`](../../../evidence/housing_model_sensitivity_openrouter_deepinfra_v11/trajectories/attempted.json),
+and the reusable admission
+[`fact_manifest.json`](../../../evidence/housing_model_sensitivity_openrouter_deepinfra_v11/tables/fact_manifest.json).

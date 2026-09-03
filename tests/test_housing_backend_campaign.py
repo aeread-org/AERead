@@ -13,6 +13,7 @@ from aeread_families.housing.backend_campaign import (
     _admission_specs,
     _endpoint_snapshot_sha256,
     catalog_preflight,
+    execute_campaign,
     load_contract,
     route_table,
     run_profile_admission,
@@ -72,6 +73,11 @@ V10_CONTRACT_PATH = (
     Path(__file__).resolve().parents[1]
     / "configs"
     / "housing_model_sensitivity_openrouter_morph_v10.json"
+)
+V11_CONTRACT_PATH = (
+    Path(__file__).resolve().parents[1]
+    / "configs"
+    / "housing_model_sensitivity_openrouter_deepinfra_v11.json"
 )
 
 
@@ -259,6 +265,87 @@ def test_v10_changes_only_glm_route_identity_and_stays_under_user_budget() -> No
             assert hashlib.sha256(canonical_json_bytes(profile)).hexdigest() == (
                 expected_profiles[profile.profile_id]
             )
+
+
+def test_v11_freezes_a_four_condition_full_trajectory_gate() -> None:
+    contract = load_contract(V11_CONTRACT_PATH)
+    routes = route_table(contract)
+    case_contract = json.loads(
+        (V11_CONTRACT_PATH.parent / "housing_case_config_sweep_v1.json").read_bytes()
+    )
+
+    assert contract["claim_status"] == "development_full_trajectory_gate_only"
+    assert contract["execution"]["stage"] == "full_trajectory"
+    assert contract["execution"]["config_ids"] == ["moderate_cw085_r2"]
+    assert contract["execution"]["world_seeds"] == [227922569]
+    assert 227922569 not in case_contract["confirmatory_holdout"]["world_seeds"]
+    assert routes["glm_53_flash"].provider == "DeepInfra"
+    assert routes["deepseek_v4_flash"].provider == "Parasail"
+    assert contract["profile_admission"]["cost_ceiling_usd"] + contract[
+        "execution"
+    ]["cost_ceiling_usd"] == pytest.approx(0.14)
+
+    design = design_artifact(contract, routes=routes)
+    provider_free = provider_free_artifact(contract)
+    assert design["artifact_sha256"] == (
+        "5ead3480740ef7105a8c94d486c2f0e896c0682d15974a8eae1780ebdde04ea8"
+    )
+    assert design["planned_trajectories"] == 4
+    assert design["configuration_count"] == 1
+    assert design["condition_count"] == 4
+    assert len({row["condition_id"] for row in design["plans"]}) == 4
+    assert provider_free["status"] == "passed"
+    assert len(provider_free["worlds"]) == 1
+    assert provider_free["confirmatory_holdout_status"] == "sealed_not_executed"
+
+    expected_profiles = contract["profile_admission"]["profile_sha256s"]
+    for setup in build_setups(contract, routes=routes).values():
+        for profile in setup.plan.agent_profiles:
+            assert hashlib.sha256(canonical_json_bytes(profile)).hexdigest() == (
+                expected_profiles[profile.profile_id]
+            )
+
+
+def test_v11_failed_admission_blocks_the_full_trajectory_gate(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    contract = load_contract(V11_CONTRACT_PATH)
+    failed_admission = {
+        "status": "failed_with_typed_missingness",
+        "artifact_sha256": "a" * 64,
+    }
+
+    monkeypatch.setenv("OPENROUTER_API_KEY", "test-only")
+    monkeypatch.setattr(
+        "aeread_families.housing.backend_campaign.catalog_preflight",
+        lambda _contract: {
+            "campaign_id": contract["campaign_id"],
+            "status": "passed",
+            "artifact_sha256": "b" * 64,
+        },
+    )
+
+    async def fake_admission(*_args: object, **_kwargs: object) -> dict[str, object]:
+        return failed_admission
+
+    monkeypatch.setattr(
+        "aeread_families.housing.backend_campaign.run_profile_admission",
+        fake_admission,
+    )
+    result = asyncio.run(
+        execute_campaign(
+            contract_path=V11_CONTRACT_PATH,
+            output_root=tmp_path,
+            through="full_trajectory",
+        )
+    )
+
+    blocked = result["full_trajectory"]
+    assert blocked["status"] == "blocked_by_profile_admission"
+    assert blocked["gate_id"] == "full_trajectory"
+    assert blocked["provider_calls"] == 0
+    assert (tmp_path / "full_trajectory" / "blocked.json").is_file()
+    assert not (tmp_path / "live").exists()
 
 
 def test_v9_variance_analysis_uses_complete_world_pairs_and_not_cells() -> None:
@@ -1042,6 +1129,77 @@ def test_published_v10_attempts_and_canonical_facts_are_digest_bound() -> None:
 
     serialized = json.dumps(
         {"qualification": qualification, "trajectories": trajectories, "index": index}
+    )
+    assert "raw_response" not in serialized
+    assert "output_text" not in serialized
+    assert "/Users/" not in serialized
+
+
+def test_published_v11_full_trajectory_block_is_digest_bound() -> None:
+    repository_root = V11_CONTRACT_PATH.parents[1]
+    root = repository_root / "evidence" / (
+        "housing_model_sensitivity_openrouter_deepinfra_v11"
+    )
+    qualification = json.loads(
+        (root / "reports" / "qualification.json").read_bytes()
+    )
+    trajectories = json.loads(
+        (root / "trajectories" / "attempted.json").read_bytes()
+    )
+    manifest = json.loads((root / "tables" / "fact_manifest.json").read_bytes())
+    for value in (qualification, trajectories, manifest):
+        core = {key: item for key, item in value.items() if key != "artifact_sha256"}
+        assert value["artifact_sha256"] == hashlib.sha256(
+            canonical_json_bytes(core)
+        ).hexdigest()
+
+    gates = {row["gate_id"]: row for row in qualification["gate_status"]}
+    assert qualification["status"] == "blocked_by_profile_admission"
+    assert gates["design"]["planned_trajectories"] == 4
+    assert gates["profile_admission"]["attempted_probe_count"] == 18
+    assert gates["profile_admission"]["passed_probe_count"] == 15
+    assert gates["profile_admission"]["operational_failures"] == 3
+    assert gates["profile_admission"]["hidden_retry_count"] == 0
+    assert gates["full_trajectory"] == {
+        "gate_id": "full_trajectory",
+        "status": "blocked_by_profile_admission",
+        "artifact_sha256": (
+            "296904f26ffca691bbd2f05bbfbce5d0bcd93de8ccfab09f0aae53e33d8268cf"
+        ),
+        "planned_trajectories": 4,
+        "attempted_trajectories": 0,
+        "completed_trajectories": 0,
+        "not_started_trajectories": 4,
+        "provider_calls": 0,
+        "cost_usd": 0.0,
+    }
+    assert {
+        (row["model_id"], row["probe_index"], row["failure_condition"])
+        for row in qualification["failed_admission_probes"]
+    } == {("glm_53_flash", 2, "rate_limit")}
+    assert {
+        row["action_schema"]
+        for row in qualification["failed_admission_probes"]
+    } == {
+        "housing_contact_v1",
+        "housing_commit_v1",
+        "housing_respond_v1",
+    }
+    assert qualification["acceptance"]["publishable_gate_evidence"] is True
+    assert qualification["acceptance"]["publishable_integration_evidence"] is False
+    assert qualification["acceptance"]["leaderboard_eligible"] is False
+    assert trajectories["source_gate"] == "full_trajectory_block"
+    assert trajectories["planned_trajectories"] == 4
+    assert trajectories["attempted_trajectories"] == 0
+    assert trajectories["trajectories"] == []
+
+    for table in manifest["artifacts"].values():
+        table_path = repository_root / table["path"]
+        assert hashlib.sha256(table_path.read_bytes()).hexdigest() == table["sha256"]
+        with table_path.open(newline="", encoding="utf-8") as handle:
+            assert len(list(csv.DictReader(handle))) == table["row_count"]
+    serialized = json.dumps(
+        {"qualification": qualification, "trajectories": trajectories}
     )
     assert "raw_response" not in serialized
     assert "output_text" not in serialized

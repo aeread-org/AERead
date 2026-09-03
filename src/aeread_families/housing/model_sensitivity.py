@@ -74,6 +74,13 @@ _HISTORICAL_IMPLEMENTATION_DIGESTS = {
         "execution": "d2c12667a55dddddaaf76ca39e396b998d4a57b08e0bd073a656372f6deb1dc5",
         "harness": "c7dd0cd5a2eb1f557df24a1f3e7bd731938b6938523799ee02a4273229c25590",
     },
+    "housing_model_sensitivity_openrouter_deepinfra_v11": {
+        "housing": "4182057475816840253a8421fc461c09fa6bbb8ea0659e742f6d98ebc2a74a33",
+        "bridge": "5cc23b0340eb39a6d49d8885169c32b5a975b1c80ba858d932e32d179c6b1fae",
+        "combined": "2a7c062960c060f78b85258f0b86768fd3133fb37def9ccd5e534e3a82ad08ab",
+        "execution": "7b963ccc739e007504c4df5f6abce1748c295b20e2b6887599b88ee0108f7f7f",
+        "harness": "063a26de9bd05b7ac0ac400a84e933beffec413ef4eb1ca50794f7e790fc4275",
+    },
 }
 
 
@@ -319,7 +326,7 @@ def load_contract(path: str | Path) -> dict[str, Any]:
 
 def selected_configs(contract: Mapping[str, Any]) -> list[dict[str, Any]]:
     selected = _selected_case_artifact(contract)
-    return [
+    configs = [
         {
             key: config[key]
             for key in (
@@ -333,6 +340,13 @@ def selected_configs(contract: Mapping[str, Any]) -> list[dict[str, Any]]:
         }
         for config in selected["selected_configs"]
     ]
+    requested_ids = contract["execution"].get("config_ids")
+    if requested_ids is None:
+        return configs
+    filtered = [config for config in configs if config["config_id"] in requested_ids]
+    if {config["config_id"] for config in filtered} != set(requested_ids):
+        raise ValueError("execution references an unselected case configuration")
+    return filtered
 
 
 def _route_for(
@@ -845,8 +859,11 @@ async def run_live(
     *,
     output_root: Path,
     routes: Mapping[str, OpenRouterRoutePin] | None = None,
+    stage_id: str = "live",
 ) -> dict[str, Any]:
-    live_root = output_root / "live"
+    if stage_id not in {"live", "full_trajectory"}:
+        raise ValueError("stage_id must be live or full_trajectory")
+    live_root = output_root / stage_id
     summary_path = live_root / "summary.json"
     if summary_path.exists():
         return _read_sealed(summary_path)
@@ -1067,6 +1084,16 @@ async def run_live(
     ):
         artifact_core["variance_pilot_analysis"] = variance_pilot_analysis(
             rows, contract
+        )
+    if stage_id == "full_trajectory":
+        artifact_core.update(
+            {
+                "gate_id": "full_trajectory",
+                "promotion_eligible": len(completed) == expected,
+                "promotion_requirement": (
+                    "one completed trajectory per frozen subject-opponent condition"
+                ),
+            }
         )
     artifact = _sealed(artifact_core)
     _write_json(summary_path, artifact)

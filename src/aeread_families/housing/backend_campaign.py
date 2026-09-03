@@ -216,6 +216,45 @@ CAMPAIGN_SPECS = {
         "wire_live_profile_controls": True,
         "verify_endpoint_snapshot": True,
     },
+    "housing_model_sensitivity_openrouter_deepinfra_v11": {
+        "claim_status": "development_full_trajectory_gate_only",
+        "catalog_retrieved_at": "2026-09-03",
+        "reasoning_condition_id": (
+            "model_sensitivity_openrouter_deepinfra_low_v11"
+        ),
+        "per_probe_cost_reserve_usd": 0.003,
+        "admission_cost_ceiling_usd": 0.06,
+        "execution_stage": "full_trajectory",
+        "execution_config_ids": ["moderate_cw085_r2"],
+        "execution_cost_ceiling_usd": 0.08,
+        "per_trajectory_cost_reserve_usd": 0.02,
+        "world_seeds": [227922569],
+        "condition_order": "listed",
+        "analysis": {
+            "primary_view": "full_trajectory_condition_coverage",
+            "aggregation": "none_promotion_gate",
+            "uncertainty": "not_estimable_from_one_world_cluster",
+            "ranking_allowed": False,
+        },
+        "providers": {
+            "glm_53_flash": "DeepInfra",
+            "deepseek_v4_flash": "Parasail",
+        },
+        "retryable_conditions": [
+            "length",
+            "rate_limit",
+            "provider_5xx",
+            "empty_response",
+        ],
+        "action_schema_version": "housing_actions/2.0",
+        "wire_live_profile_controls": True,
+        "verify_endpoint_snapshot": True,
+        "stopping_rule": (
+            "profile_admission_must_pass_before_full_trajectory; stop_before_next_"
+            "trajectory_when_remaining_campaign_budget_is_below_the_declared_"
+            "reserve; stop_immediately_on_route_drift_or_replay_failure"
+        ),
+    },
 }
 REQUIRED_ROUTE_PARAMETERS = {
     "max_tokens",
@@ -451,7 +490,7 @@ def load_contract(path: str | Path) -> dict[str, Any]:
     ):
         raise ValueError("profile identities are incomplete")
 
-    if value["execution"] != {
+    expected_execution = {
         "world_seeds": campaign_spec.get("world_seeds", [1971418798]),
         "replicates": 1,
         "attempt_limit": 1,
@@ -461,7 +500,15 @@ def load_contract(path: str | Path) -> dict[str, Any]:
         ),
         "winner_claim_allowed": False,
         "completeness_policy": "retain_typed_missingness_without_selective_retry",
-    }:
+    }
+    if "execution_stage" in campaign_spec:
+        expected_execution.update(
+            {
+                "stage": campaign_spec["execution_stage"],
+                "config_ids": campaign_spec["execution_config_ids"],
+            }
+        )
+    if value["execution"] != expected_execution:
         raise ValueError("live execution controls drifted")
     expected_analysis = campaign_spec.get(
         "analysis",
@@ -476,11 +523,15 @@ def load_contract(path: str | Path) -> dict[str, Any]:
         raise ValueError("development-only analysis contract drifted")
     if value["missingness"] != "typed_operational_missingness_reported_separately":
         raise ValueError("missingness policy drifted")
-    if value["stopping_rule"] != (
-        "profile_admission_must_pass_before_live; stop_before_next_trajectory_when_"
-        "remaining_campaign_budget_is_below_the_declared_reserve; stop_immediately_"
-        "on_route_drift_or_replay_failure"
-    ):
+    expected_stopping_rule = campaign_spec.get(
+        "stopping_rule",
+        (
+            "profile_admission_must_pass_before_live; stop_before_next_trajectory_"
+            "when_remaining_campaign_budget_is_below_the_declared_reserve; stop_"
+            "immediately_on_route_drift_or_replay_failure"
+        ),
+    )
+    if value["stopping_rule"] != expected_stopping_rule:
         raise ValueError("stopping rule drifted")
     route_table(value)
     return value
@@ -822,16 +873,19 @@ async def run_profile_admission(
 async def execute_campaign(
     *, contract_path: str | Path, output_root: str | Path, through: str
 ) -> dict[str, Any]:
-    stages = {"design", "provider_free", "profile_admission", "live"}
+    contract = load_contract(contract_path)
+    terminal_stage = CAMPAIGN_SPECS[contract["campaign_id"]].get(
+        "execution_stage", "live"
+    )
+    stages = {"design", "provider_free", "profile_admission", terminal_stage}
     if through not in stages:
         raise ValueError(f"through must be one of {sorted(stages)}")
-    contract = load_contract(contract_path)
     routes = route_table(contract)
     root = Path(output_root)
     design = design_artifact(contract, routes=routes)
     _write_json(root / "design" / "summary.json", design)
     result: dict[str, Any] = {"design": design}
-    if through in {"provider_free", "profile_admission", "live"}:
+    if through in {"provider_free", "profile_admission", terminal_stage}:
         provider_free = provider_free_artifact(contract)
         catalog_path = root / "catalog_preflight" / "summary.json"
         catalog = (
@@ -842,7 +896,7 @@ async def execute_campaign(
         _write_json(root / "provider_free" / "summary.json", provider_free)
         _write_json(catalog_path, catalog)
         result.update(provider_free=provider_free, catalog_preflight=catalog)
-    if through in {"profile_admission", "live"}:
+    if through in {"profile_admission", terminal_stage}:
         if not os.getenv("OPENROUTER_API_KEY"):
             raise RuntimeError(
                 "OPENROUTER_API_KEY is required for the profile-admission stage"
@@ -851,23 +905,31 @@ async def execute_campaign(
             contract, output_root=root / "profile_admission"
         )
         result["profile_admission"] = admission
-        if through == "live":
+        if through == terminal_stage:
             if admission["status"] != "passed":
                 blocked = _sealed(
                     {
-                        "schema_version": "aeread.housing_backend_live_block/0.1",
+                        "schema_version": (
+                            "aeread.housing_backend_live_block/0.1"
+                            if terminal_stage == "live"
+                            else "aeread.housing_full_trajectory_block/0.1"
+                        ),
                         "campaign_id": contract["campaign_id"],
                         "status": "blocked_by_profile_admission",
+                        "gate_id": terminal_stage,
                         "profile_admission_sha256": admission["artifact_sha256"],
                         "provider_calls": 0,
                         "cost_usd": 0.0,
                     }
                 )
-                _write_json(root / "live" / "blocked.json", blocked)
-                result["live"] = blocked
+                _write_json(root / terminal_stage / "blocked.json", blocked)
+                result[terminal_stage] = blocked
             else:
-                result["live"] = await run_live(
-                    contract, output_root=root, routes=routes
+                result[terminal_stage] = await run_live(
+                    contract,
+                    output_root=root,
+                    routes=routes,
+                    stage_id=terminal_stage,
                 )
     return result
 
@@ -888,7 +950,13 @@ def main(argv: Sequence[str] | None = None) -> int:
     )
     parser.add_argument(
         "--through",
-        choices=("design", "provider_free", "profile_admission", "live"),
+        choices=(
+            "design",
+            "provider_free",
+            "profile_admission",
+            "full_trajectory",
+            "live",
+        ),
         default="provider_free",
     )
     args = parser.parse_args(argv)

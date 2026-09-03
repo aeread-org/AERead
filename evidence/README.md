@@ -42,3 +42,8 @@ Current campaign directories include:
   while recording 17 typed operational failures, zero complete paired worlds,
   and the missing pre-pilot full-trajectory gate. V10 is route-reliability and
   protocol-deviation evidence, not a leaderboard.
+- `housing_model_sensitivity_openrouter_deepinfra_v11/`: the explicit
+  four-condition full-trajectory promotion gate. DeepSeek passed 9/9 admission
+  probes; DeepInfra GLM passed 6/9 before three probe-index-2 rate limits.
+  Admission blocked all four trajectories, so this is reusable route-capacity
+  and gate evidence rather than model-performance evidence.
