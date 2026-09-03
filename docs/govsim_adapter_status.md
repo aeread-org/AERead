@@ -124,16 +124,26 @@ a long-lived interpreter.
 
 ## Known limits, stated rather than implied
 
-- **Spec section 5's parity file, `tests/test_govsim_parity.py` (P1–P3), is
-  not built in this milestone.** Only P4 (vendored `gini()` vs. upstream's
-  own, byte-for-byte) is covered, in `tests/test_govsim_measurement.py`.
-  P1 (import-determinism double-run), P2 (adapter-vs-raw-upstream
-  equivalence outside the kernel), and P3 (independent regeneration/collapse
-  recomputation cross-checked against upstream's own recorded
-  `internal_global_state`) remain open follow-up work. This milestone's
-  replay tests are a different, real check — they prove the adapter
-  reproduces *itself* deterministically, not that the adapter's kernel path
-  agrees with a raw, kernel-free upstream run.
+- **Spec section 5's parity file, `tests/test_govsim_parity.py`, now checks
+  P2/P3 every round, not only at the terminal aggregate.** An independent
+  cross-model verification pass (`docs/govsim_fix_verification.md`)
+  flagged that this file's first version checked P2 against only three
+  terminal aggregate values and never checked P3's `collected_resource`
+  per round at all — exactly the gap spec section 5 itself warns about,
+  "a transient per-round collection/trace mismatch that later converges to
+  the same terminal aggregates" could have passed both. Both
+  `test_p2_adapter_translation_matches_an_independently_constructed_raw_
+  action_sequence` and `test_p3_recorded_regeneration_and_collapse_match_
+  the_documented_formula_independently` now assert `resource_in_pool`,
+  `collected_resource`, and the collapse/termination trace at EVERY round;
+  confirmed to have teeth by mutation test — zeroing out `round_trace`'s
+  per-round `wanted_resource` in `environment.py` left the TERMINAL
+  aggregates untouched (proving the old terminal-only checks would have
+  stayed green) while both per-round tests failed immediately at round 0
+  (see `docs/govsim_review_disposition.md`'s "Verification follow-up"
+  section). P1 (import-determinism) and P4 (gini parity) remain covered
+  where already documented (`tests/test_govsim_cases.py`, `tests/test_
+  govsim_measurement.py`).
 - **Scripted policies only.** No `persona_v3`/pathfinder LLM cognition is
   wrapped, bridged, or reimplemented; every policy submits an empty
   conversation (upstream's `language_nature: none`).
@@ -160,6 +170,27 @@ a long-lived interpreter.
   code** (`harness.py`, `replay.py`) the way `tau3_retail`'s adapter was
   mutation tested; the tampered-response test above covers one specific
   mutation (a changed `quantity`), not a systematic sweep.
+- **`GovsimScorer.__call__` (the production finalizer seam) surfaces only
+  ONE of this family's five declared leaves, never all five.** It
+  delegates exclusively to `govsim_survival_months` (this family's
+  declared `primary_estimand`) and silently omits `govsim_no_collapse`,
+  `govsim_threshold_adherence`, `govsim_total_harvest`, and
+  `govsim_equality_gini` whenever a caller reaches this family's score
+  through `plugin.build_scorer(family_case)(outcome, evidence_refs=...)`
+  — the exact call `family_evaluation.py`'s `finalize_family_execution`
+  makes. This is a stated limit, not a solved production path: the shared
+  kernel's finalizer call site expects exactly one `ScoreEnvelope` back,
+  while this family (like every family built against the verifier
+  taxonomy) publishes several separately-labelled typed leaves, and
+  picking one as "primary" here only satisfies the kernel's current
+  contract, it does not resolve the underlying mismatch. Tracked as
+  ledger entry **D-16** (`runner_defect_ledger.md`), which records this as
+  an open, kernel-owner decision (leaf-vector sealing vs. a declared
+  single kernel-facing leaf per family) — not something one adapter can
+  settle for itself, and this branch does not attempt to. Separately,
+  `finalize_family_execution`'s only current call site is
+  `housing.py:940`, so this family is not actually invoked through that
+  seam in production today; the gap above is latent, not live.
 
 ## Ledger
 

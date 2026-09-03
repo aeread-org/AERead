@@ -270,3 +270,128 @@ own.
 No findings in this pass were refuted or deferred to the kernel ledger (the
 triage itself reports `refuted=0 kernel=0`); `runner_defect_ledger.md` was
 not touched.
+
+## Verification follow-up
+
+An independent cross-model verification pass (`docs/govsim_fix_verification.md`)
+re-checked every "GENUINELY FIXED"/"fixed" disposition above against its own
+named test and verdict: **PROBLEMS — Finding 5 remains incomplete, and
+Finding 4 lacks a regression test for its production wiring.** Findings 1,
+2, 3, 6, and 7 were independently confirmed genuinely fixed and were not
+touched again in this follow-up. This section disposes of the two flagged
+gaps, plus one narrowing the verification pass asked for explicitly.
+
+### Finding 5 — P2/P3 checked only terminal aggregates, not every round
+
+**Verified: confirmed.** `tests/test_govsim_parity.py`'s P2 test
+(`test_p2_adapter_translation_matches_an_independently_constructed_raw_
+action_sequence`) checked three terminal aggregate values only; P3
+(`test_p3_recorded_regeneration_and_collapse_match_the_documented_formula_
+independently`) checked per-round regenerated pool and collapse flags but
+never per-round `collected_resource` — exactly spec section 5's own
+worry, "a transient per-round collection/trace mismatch that later
+converges to the same terminal aggregates" could pass both.
+
+**Disposition: fixed.**
+
+- P2 now loops over every round (reusing the existing per-round
+  checkpoints `_independent_raw_action_sequence` already computes, one
+  round further than P3's own pre-regen checkpoint — i.e. immediately
+  after that round's `reflect`/`home` actions, the point at which raw
+  upstream has already regenerated the pool and recomputed
+  `terminations` for the round) and asserts, at every round: raw-upstream
+  `resource_in_pool` against the adapter's own recorded
+  `resource_in_pool_after_regen`; raw-upstream `collected_resource`
+  against the cumulative sum of every prior round's recorded
+  `wanted_resource` (upstream's own `collected_resource[agent] += res`
+  and `wanted_resource[agent] = res` in the same call, so the two are
+  identical by construction, not merely assumed to agree); and
+  raw-upstream's own `terminations` dict against the adapter's recorded
+  `collapsed_or_horizon` flag. The terminal-aggregate assertions remain,
+  now reusing the final round's already-fetched projection rather than
+  re-querying the bridge a second time for the same action sequence.
+- P3 gained the one comparison its own docstring named but never
+  asserted: per-round `collected_resource`, cross-checked at the same
+  checkpoint/bridge call the test already makes (no new bridge calls),
+  against the same cumulative-`wanted_resource` reconstruction P2 uses.
+
+**Mutation-verified.** `src/aeread_families/govsim/environment.py` was
+copied to `/tmp`, then `round_trace`'s recorded `"wanted_resource"` was
+replaced with all zeros for every persona (a bug confined entirely to
+per-round record-keeping). Result:
+- `result.terminal["collected_resource"]` (read fresh from upstream's live
+  projection, independent of `round_trace`) stayed correct —
+  `{"persona_0": 120, ..., "persona_4": 120}` — confirming the OLD
+  terminal-only checks would have stayed green against this exact bug.
+- Both `test_p2_...` and `test_p3_...` failed immediately at round 0 with
+  `AssertionError: round 0: ... collected_resource {'persona_0': 10, ...}
+  != the cumulative sum of every round's recorded wanted_resource
+  {'persona_0': 0, ...}`.
+
+The file was restored from the `/tmp` copy (`git status --porcelain` on it
+is clean) and the full suite re-run green afterward (see below).
+
+### Finding 4 — no regression test drives the actual production call site
+
+**Verified: confirmed.** Both existing tests
+(`test_verify_source_and_dependency_pins_rejects_tampered_source_bytes`,
+`test_verify_source_and_dependency_pins_rejects_a_runtime_dependency_
+mismatch`) call the private `_verify_source_and_dependency_pins` helper
+directly; the sole `validate_payload` test that exercises the real,
+pinned checkout configures no bridge and never triggers the
+dependency-mismatch branch at all. Deleting only the production call site
+(`environment.py`'s `_verify_source_and_dependency_pins(self.upstream_
+root, self.bridge)`, immediately before `validate_payload` returns) would
+leave every one of those tests passing.
+
+**Disposition: fixed.** Added
+`test_validate_payload_rejects_a_dependency_mismatch_through_the_actual_
+production_call_site` (`tests/test_govsim_environment.py`), which drives
+the real, public `validate_payload` entry point end to end: a
+`GovsimPlugin` constructed against the real pinned checkout (so every
+git/schema check ahead of the pins check still passes) with a fake bridge
+reporting a mismatched `python_version`, wired onto the plugin exactly as
+a real caller would configure it — never the private helper called by
+hand.
+
+**Mutation-verified.** The production call site line was replaced with
+`pass` in a `/tmp` copy of `environment.py`. Result: the three pre-existing
+pins tests (tampered-source, accepts-real-checkout, runtime-mismatch, all
+calling the private helper or configuring no bridge) all still passed;
+the new test failed with `Failed: DID NOT RAISE ValueError`, reproducing
+the reviewer's described gap exactly. The file was restored from the
+`/tmp` copy afterward.
+
+### Narrowing: Finding 1's "fixed" scorer claim
+
+**Not reopened — narrowed instead, per this follow-up's own instructions.**
+Finding 1's disposition above ("`GovsimScorer` gained `__call__`... GENUINELY
+FIXED") is accurate for exactly what it tested: the callable no longer
+raises `TypeError` and is exercised through the real finalizer seam. It
+does not state that this `__call__` surfaces only ONE of this family's
+five declared leaves (`govsim_survival_months`) and silently omits the
+other four (`govsim_no_collapse`, `govsim_threshold_adherence`,
+`govsim_total_harvest`, `govsim_equality_gini`) whenever invoked through
+that seam. No test in this family was weakened, and no production code
+changed here — `docs/govsim_adapter_status.md`'s "Known limits" section
+gained a new bullet stating this explicitly and pointing at
+`runner_defect_ledger.md`'s **D-16**, which records this as an open,
+kernel-owner architectural decision (leaf-vector sealing vs. a declared
+single kernel-facing leaf per family), not something this adapter can
+settle unilaterally. `finalize_family_execution`'s only current call site
+is `housing.py:940`, so this family is not actually reached through that
+seam in production today — the gap is latent, not live, and is stated as
+such rather than presented as a solved production path.
+
+### Final test counts
+
+`tests/test_govsim_cases.py`, `tests/test_govsim_environment.py`,
+`tests/test_govsim_measurement.py`, `tests/test_govsim_replay.py`,
+`tests/test_govsim_replay_skip_behavior.py`,
+`tests/test_govsim_bridge_driver.py`, `tests/test_govsim_parity.py`, and
+`tests/test_shared_runner_smoke.py`, run together with
+`$AEREAD_GOVSIM_BRIDGE_PYTHON`/`$AEREAD_GOVSIM_UPSTREAM_ROOT` exported:
+**118 passed, 0 failed, 0 skipped**, in 251.18s (one pre-existing
+`RuntimeWarning` from `test_vendored_gini_matches_upstream_on_an_all_
+zero_array_nan_case`'s deliberate zero-array NaN case, not introduced by
+this follow-up).
