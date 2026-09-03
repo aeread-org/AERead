@@ -184,14 +184,20 @@ their controls, complete pair identities, invariant objective upper bounds, and
 verified artifact/row digests. A score improvement is never an eligibility gate.
 
 The conservative total ceiling is $0.5088 including one unscored admission canary.
-Execution is sequential by default and aborts on the first operational failure. A
-failed attempt remains typed missingness and is never resumed or included in the
-effect estimate.
+Execution is sequential and checkpoints after six completed rows by default. A
+failure-free checkpoint may continue only the declared missing case/seed rows with
+`--resume`; the sealed canary and completed rows are reused unchanged. The first
+operational failure permanently disqualifies the attempt, remains typed missingness,
+and is never resumed or included in the effect estimate.
 
 The first v1 development attempt admitted its canary and completed one labeled
 trajectory before a typed HTTP 429 stopped the queue. That row reached an award in
 six actions instead of exhausting all ten, but it sampled and awarded formally late
 suppliers, completing zero kits. The v2 prompt therefore imposes a hard deadline gate
-before price ranking and sampling. This adaptive change is versioned explicitly;
-results on these development worlds remain exploratory and require a held-out panel
-for confirmation.
+before price ranking and sampling. V2 then completed 14 labeled rows before another
+typed HTTP 429. All three deadline rows became feasible 19-kit awards, but all three
+MOQ/capacity rows submitted quantities above the selected offers' capacities. V3
+therefore adds an explicit second-supplier split rule whenever required raw units
+exceed one offer's capacity. These adaptive changes are versioned explicitly; results
+on these development worlds remain exploratory and require a held-out panel for
+confirmation.

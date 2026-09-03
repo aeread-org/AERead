@@ -7,11 +7,18 @@ from pathlib import Path
 
 import pytest
 
+import aeread_families.procurement_allocation.strategy_scaffold as scaffold_module
 from aeread.shared_runner.run.resolver import canonical_json_bytes
 from aeread_families.procurement_allocation.blinded_invariance import (
     PAIRED_INFERENCE_SEEDS,
 )
-from aeread_families.procurement_allocation.case_matrix import CASE_SLUGS
+from aeread_families.procurement_allocation.case_matrix import (
+    CASE_SLUGS,
+    CASE_VARIANCE_PATHS,
+)
+from aeread_families.procurement_allocation.policy_baselines import (
+    PublicObservationPolicyProvider,
+)
 from aeread_families.procurement_allocation.runner import SequenceResponseProvider
 from aeread_families.procurement_allocation.strategy_scaffold import (
     CAMPAIGN_ID,
@@ -150,6 +157,7 @@ def test_strategy_plan_binds_prompt_and_declares_paired_analysis() -> None:
     assert plan["independent_case_count"] == 6
     assert plan["inference_seeds"] == list(PAIRED_INFERENCE_SEEDS)
     assert plan["max_parallel_cells"] == 1
+    assert plan["batch_size"] == 6
     assert "adaptive development treatment" in plan["development_status"]
     assert plan["prompt"] == {
         "prompt_id": PROMPT_ID,
@@ -161,6 +169,7 @@ def test_strategy_plan_binds_prompt_and_declares_paired_analysis() -> None:
     for panel in PANELS:
         assert plan["panels"][panel]["prompt"]["treatment_id"] == TREATMENT_ID
         assert plan["panels"][panel]["planned_trajectory_count"] == 18
+        assert plan["panels"][panel]["max_new_trajectories_per_invocation"] == 6
 
 
 def test_strategy_canary_uses_treatment_prompt_and_is_unscored(tmp_path: Path) -> None:
@@ -184,6 +193,51 @@ def test_strategy_canary_uses_treatment_prompt_and_is_unscored(tmp_path: Path) -
     assert "Before considering price" in request.instructions
     assert "Request a sample only from an offer" in request.instructions
     assert "private_terms" not in request.input_text
+
+
+def test_strategy_campaign_resumes_only_a_failure_free_batch_checkpoint(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    panel = {
+        "labeled_original": {
+            "case_paths": (CASE_VARIANCE_PATHS[0],),
+            "treatment_campaign_id": f"{CAMPAIGN_ID}.labeled_original",
+            "control_campaign_id": "unused-control",
+        }
+    }
+    monkeypatch.setattr(scaffold_module, "PANELS", panel)
+    monkeypatch.setattr(scaffold_module, "PAIRED_INFERENCE_SEEDS", (11, 12))
+    run_root = tmp_path / "runs" / CAMPAIGN_ID / "batched_attempt"
+    provider_factory = lambda: PublicObservationPolicyProvider("displayed_price_greedy")
+    preflight = lambda _candidate: {"route_verified": True}
+
+    first = asyncio.run(
+        scaffold_module.run_strategy_campaign(
+            run_root=run_root,
+            batch_size=1,
+            provider_factory=provider_factory,
+            preflight_fn=preflight,
+        )
+    )
+    sealed_canary = (run_root / "admission_canary.json").read_bytes()
+
+    assert first["summary"]["completed_trajectory_count"] == 1
+    assert first["summary"]["operational_failure_count"] == 0
+    assert first["summary"]["failure_free_checkpoint"] is True
+
+    second = asyncio.run(
+        scaffold_module.run_strategy_campaign(
+            run_root=run_root,
+            batch_size=1,
+            resume=True,
+            provider_factory=provider_factory,
+            preflight_fn=preflight,
+        )
+    )
+
+    assert second["summary"]["completed_trajectory_count"] == 2
+    assert second["summary"]["execution_qualified"] is True
+    assert (run_root / "admission_canary.json").read_bytes() == sealed_canary
 
 
 def test_strategy_comparison_recovers_effects_and_surface_mitigation(

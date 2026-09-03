@@ -40,9 +40,10 @@ from .runner import PROMPT as CONTROL_PROMPT
 from .runner import SequenceResponseProvider, build_openrouter_setup
 
 
-CAMPAIGN_ID = "procurement_allocation_glm_morph_strategy_scaffold_v2"
-TREATMENT_ID = "public_evidence_feasibility_first_procedure_v2"
-PROMPT_ID = "procurement_allocation_strategy_scaffold_v2"
+CAMPAIGN_ID = "procurement_allocation_glm_morph_strategy_scaffold_v3"
+TREATMENT_ID = "public_evidence_feasibility_and_capacity_procedure_v3"
+PROMPT_ID = "procurement_allocation_strategy_scaffold_v3"
+DEFAULT_BATCH_SIZE = 6
 STRATEGY_PROMPT = (
     CONTROL_PROMPT
     + """
@@ -63,7 +64,10 @@ Use this public-evidence decision procedure before choosing each action:
    deadline/on-time probability, yield, and return/refund terms.
 4. Before an award, estimate component-complete kits from the weakest BOM component,
    confirm minimum service and cash budget, and prefer the feasible positive-margin
-   allocation. Use quantities that satisfy each offer's MOQ, order step, and capacity.
+   allocation. Never submit a line above that offer's capacity. When required raw
+   units exceed one qualified offer's capacity, qualify another supplier for that
+   component and split the quantity; recheck that every line independently satisfies
+   its offer's MOQ, order step, and capacity.
 5. Counter only when a current formal offer blocks an otherwise feasible allocation
    and enough actions remain. Defer only when no evidence-qualified, budget-feasible
    positive-utility award can be submitted.
@@ -154,6 +158,17 @@ def _write_once_json(path: Path, value: Mapping[str, Any]) -> None:
     os.replace(temporary, path)
 
 
+def _atomic_replace_json(path: Path, value: Mapping[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_suffix(f"{path.suffix}.{os.getpid()}.tmp")
+    payload = canonical_json_bytes(value) + b"\n"
+    with temporary.open("xb") as handle:
+        handle.write(payload)
+        handle.flush()
+        os.fsync(handle.fileno())
+    os.replace(temporary, path)
+
+
 def _write_once_text(path: Path, value: str) -> None:
     payload = value.encode("utf-8")
     if path.exists():
@@ -169,9 +184,13 @@ def _write_once_text(path: Path, value: str) -> None:
     os.replace(temporary, path)
 
 
-def build_plan(*, max_parallel_cells: int = 1) -> dict[str, Any]:
+def build_plan(
+    *, max_parallel_cells: int = 1, batch_size: int = DEFAULT_BATCH_SIZE
+) -> dict[str, Any]:
     if max_parallel_cells < 1:
         raise ValueError("max_parallel_cells must be positive")
+    if batch_size < 1:
+        raise ValueError("batch_size must be positive")
     panel_plans = {
         panel: planned_model_qualification(
             case_paths=spec["case_paths"],
@@ -182,6 +201,7 @@ def build_plan(*, max_parallel_cells: int = 1) -> dict[str, Any]:
             prompt=STRATEGY_PROMPT,
             prompt_id=PROMPT_ID,
             treatment_id=TREATMENT_ID,
+            max_new_trajectories=batch_size,
         )
         for panel, spec in PANELS.items()
     }
@@ -208,7 +228,12 @@ def build_plan(*, max_parallel_cells: int = 1) -> dict[str, Any]:
         "independent_case_count": len(CASE_VARIANCE_PATHS),
         "inference_seeds": list(PAIRED_INFERENCE_SEEDS),
         "max_parallel_cells": max_parallel_cells,
+        "batch_size": batch_size,
         "abort_on_operational_failure": True,
+        "resume_policy": (
+            "continue only after an intentional failure-free batch checkpoint; "
+            "never resume an attempt containing an operational failure"
+        ),
         "admission_canary_scored": False,
         "conservative_scored_cost_ceiling_usd": sum(
             float(panel_plan["conservative_cost_ceiling_usd"])
@@ -227,9 +252,9 @@ def build_plan(*, max_parallel_cells: int = 1) -> dict[str, Any]:
             "uncertainty": "exact six-cluster percentile bootstrap",
         },
         "development_status": (
-            "adaptive development treatment: v2 makes deadline feasibility a hard "
-            "ordering rule after one completed v1 development trajectory exposed a "
-            "late-supplier award; a held-out panel is required for a confirmatory claim"
+            "adaptive development treatment: v3 adds an explicit split-capacity rule "
+            "after all three v2 MOQ/capacity rows submitted oversized award lines; a "
+            "held-out panel is required for a confirmatory claim"
         ),
         "claim_scope": (
             "paired prompt-treatment pilot over six curated procurement worlds; "
@@ -629,6 +654,8 @@ def build_strategy_comparison(
 
 
 def _execution_status(run_root: Path, canary: Mapping[str, Any]) -> dict[str, Any]:
+    plan = json.loads((run_root / "campaign_plan.json").read_text())
+    planned_trajectory_count = int(plan["planned_trajectory_count"])
     panels: dict[str, Any] = {}
     completed = failures = attempted = 0
     scored_cost = 0.0
@@ -643,7 +670,11 @@ def _execution_status(run_root: Path, canary: Mapping[str, Any]) -> dict[str, An
             "status": (
                 "qualified"
                 if summary["readiness"]["execution_qualified"]
-                else "incomplete"
+                else (
+                    "operational_failure"
+                    if summary["operational_failure_count"]
+                    else "failure_free_checkpoint"
+                )
             ),
             "completed_trajectory_count": summary["completed_trajectory_count"],
             "operational_failure_count": summary["operational_failure_count"],
@@ -672,15 +703,22 @@ def _execution_status(run_root: Path, canary: Mapping[str, Any]) -> dict[str, An
         },
         "panels": panels,
         "summary": {
-            "planned_trajectory_count": 36,
+            "planned_trajectory_count": planned_trajectory_count,
             "attempted_trajectory_count": attempted,
             "completed_trajectory_count": completed,
             "operational_failure_count": failures,
-            "unattempted_trajectory_count": 36 - attempted,
+            "unattempted_trajectory_count": planned_trajectory_count - attempted,
             "scored_cost_usd": scored_cost,
             "total_cost_including_canary_usd": scored_cost
             + float(canary.get("cost_usd", 0.0)),
-            "execution_qualified": completed == 36 and failures == 0,
+            "execution_qualified": (
+                completed == planned_trajectory_count and failures == 0
+            ),
+            "failure_free_checkpoint": (
+                canary.get("status") == "admitted"
+                and completed < planned_trajectory_count
+                and failures == 0
+            ),
         },
     }
     status["artifact_sha256"] = hashlib.sha256(canonical_json_bytes(status)).hexdigest()
@@ -692,6 +730,8 @@ async def run_strategy_campaign(
     run_root: Path,
     max_spend_usd: float = 0.60,
     max_parallel_cells: int = 1,
+    batch_size: int = DEFAULT_BATCH_SIZE,
+    resume: bool = False,
     provider_factory: Callable[[], Any] = OpenRouterChatClient,
     preflight_fn: Callable[[Any], Mapping[str, Any]] = preflight_candidate,
 ) -> dict[str, Any]:
@@ -700,22 +740,55 @@ async def run_strategy_campaign(
         resolved.parts
     ):
         raise ValueError("run_root must be under runs/ and outside publication paths")
-    if run_root.exists():
+    if run_root.exists() and not resume:
         raise FileExistsError(
-            "strategy campaign output already exists; use a fresh attempt"
+            "strategy campaign output already exists; pass resume only for a "
+            "failure-free batch checkpoint"
         )
-    plan = build_plan(max_parallel_cells=max_parallel_cells)
+    if resume and not run_root.exists():
+        raise FileNotFoundError("cannot resume a strategy campaign that does not exist")
+    plan = build_plan(
+        max_parallel_cells=max_parallel_cells,
+        batch_size=batch_size,
+    )
     if float(plan["conservative_total_cost_ceiling_usd"]) > max_spend_usd:
         raise ValueError("strategy campaign conservative ceiling exceeds max_spend_usd")
-    _write_once_json(run_root / "campaign_plan.json", plan)
+    plan_path = run_root / "campaign_plan.json"
+    if plan_path.exists():
+        existing_plan = json.loads(plan_path.read_text())
+        if canonical_json_bytes(existing_plan) != canonical_json_bytes(plan):
+            raise ValueError("existing strategy plan does not match this invocation")
+    else:
+        _write_once_json(plan_path, plan)
+    for panel in PANELS:
+        summary_path = run_root / panel / "summary.json"
+        if not summary_path.exists():
+            continue
+        prior_summary = json.loads(summary_path.read_text())["summary"]
+        if prior_summary["operational_failure_count"]:
+            raise ValueError(
+                "cannot resume an attempt containing an operational failure; "
+                "use a fresh attempt root"
+            )
     canary = await run_admission_canary(
         path=run_root / "admission_canary.json", provider_factory=provider_factory
     )
     if canary["status"] == "admitted":
         preflight = dict(preflight_fn(GLM_MORPH_CANDIDATE))
+        remaining_batch = batch_size
         for panel, spec in PANELS.items():
+            panel_root = run_root / panel
+            prior_row_count = 0
+            panel_summary_path = panel_root / "summary.json"
+            if panel_summary_path.exists():
+                prior_panel = json.loads(panel_summary_path.read_text())
+                prior_row_count = int(prior_panel["summary"]["row_count"])
+                if prior_panel["summary"]["readiness"]["execution_qualified"]:
+                    continue
+            if remaining_batch < 1:
+                break
             artifact = await run_model_qualification(
-                run_root=run_root / panel,
+                run_root=panel_root,
                 case_paths=spec["case_paths"],
                 inference_seeds=PAIRED_INFERENCE_SEEDS,
                 max_spend_usd=max_spend_usd,
@@ -727,11 +800,19 @@ async def run_strategy_campaign(
                 prompt=STRATEGY_PROMPT,
                 prompt_id=PROMPT_ID,
                 treatment_id=TREATMENT_ID,
+                max_new_trajectories=remaining_batch,
+                resume=panel_root.exists(),
             )
-            if not artifact["summary"]["readiness"]["execution_qualified"]:
+            remaining_batch -= int(artifact["summary"]["row_count"]) - prior_row_count
+            if artifact["summary"]["operational_failure_count"]:
+                break
+            if (
+                not artifact["summary"]["readiness"]["execution_qualified"]
+                or remaining_batch < 1
+            ):
                 break
     status = _execution_status(run_root, canary)
-    _write_once_json(run_root / "campaign_status.json", status)
+    _atomic_replace_json(run_root / "campaign_status.json", status)
     return status
 
 
@@ -916,7 +997,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--publication-root", type=Path)
     parser.add_argument("--max-spend-usd", type=float, default=0.60)
     parser.add_argument("--max-parallel-cells", type=int, default=1)
+    parser.add_argument("--batch-size", type=int, default=DEFAULT_BATCH_SIZE)
     parser.add_argument("--execute", action="store_true")
+    parser.add_argument("--resume", action="store_true")
     parser.add_argument("--publish-only", action="store_true")
     arguments = parser.parse_args(argv)
     if arguments.execute and arguments.publish_only:
@@ -928,7 +1011,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     if not arguments.execute and not arguments.publish_only:
         print(
             json.dumps(
-                build_plan(max_parallel_cells=arguments.max_parallel_cells),
+                build_plan(
+                    max_parallel_cells=arguments.max_parallel_cells,
+                    batch_size=arguments.batch_size,
+                ),
                 indent=2,
                 sort_keys=True,
             )
@@ -940,11 +1026,15 @@ def main(argv: Sequence[str] | None = None) -> int:
                 run_root=arguments.run_root,
                 max_spend_usd=arguments.max_spend_usd,
                 max_parallel_cells=arguments.max_parallel_cells,
+                batch_size=arguments.batch_size,
+                resume=arguments.resume,
             )
         )
         if not status["summary"]["execution_qualified"]:
             print(json.dumps(status, indent=2, sort_keys=True))
-            return 3 if status["canary"]["status"] == "rejected" else 2
+            if status["canary"]["status"] == "rejected":
+                return 3
+            return 4 if status["summary"]["failure_free_checkpoint"] else 2
     if arguments.publication_root is None:
         parser.error("a qualified execution requires --publication-root")
     comparison = build_strategy_comparison(
@@ -966,6 +1056,7 @@ if __name__ == "__main__":
 
 __all__ = [
     "CAMPAIGN_ID",
+    "DEFAULT_BATCH_SIZE",
     "PANELS",
     "PROMPT_ID",
     "STRATEGY_PROMPT",

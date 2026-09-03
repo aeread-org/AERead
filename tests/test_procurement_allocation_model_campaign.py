@@ -281,6 +281,55 @@ def test_provider_free_model_campaign_replays_and_resumes(tmp_path: Path) -> Non
     assert resumed["preflight"] == artifact["preflight"]
 
 
+def test_model_campaign_batches_only_missing_rows_without_selective_retry(
+    tmp_path: Path,
+) -> None:
+    run_root = tmp_path / "runs" / CAMPAIGN_ID / "batched_attempt"
+    providers: list[SequenceResponseProvider] = []
+
+    def provider_factory() -> SequenceResponseProvider:
+        provider = SequenceResponseProvider(
+            (_response({"action": "defer", "reason": "batch boundary test"}),)
+        )
+        providers.append(provider)
+        return provider
+
+    preflight = lambda _candidate: {"route_verified": True}
+    first = asyncio.run(
+        run_model_qualification(
+            run_root=run_root,
+            case_paths=(CASE_PATH,),
+            inference_seeds=(231, 232),
+            max_new_trajectories=1,
+            provider_factory=provider_factory,
+            preflight_fn=preflight,
+        )
+    )
+
+    assert first["summary"]["completed_trajectory_count"] == 1
+    assert first["summary"]["operational_failure_count"] == 0
+    assert first["summary"]["unattempted_trajectory_count"] == 1
+    assert first["summary"]["readiness"]["execution_qualified"] is False
+
+    second = asyncio.run(
+        run_model_qualification(
+            run_root=run_root,
+            case_paths=(CASE_PATH,),
+            inference_seeds=(231, 232),
+            max_new_trajectories=1,
+            provider_factory=provider_factory,
+            preflight_fn=preflight,
+            resume=True,
+        )
+    )
+
+    assert len(providers) == 2
+    assert second["summary"]["completed_trajectory_count"] == 2
+    assert second["summary"]["operational_failure_count"] == 0
+    assert second["summary"]["unattempted_trajectory_count"] == 0
+    assert second["summary"]["readiness"]["execution_qualified"] is True
+
+
 def test_campaign_aborts_after_first_operational_failure_and_cannot_resume(
     tmp_path: Path,
 ) -> None:

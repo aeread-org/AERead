@@ -141,6 +141,7 @@ def planned_model_qualification(
     prompt: str = PROMPT,
     prompt_id: str = "procurement_allocation_prompt_v1",
     treatment_id: str = "unscaffolded_control",
+    max_new_trajectories: int | None = None,
 ) -> dict[str, Any]:
     if not inference_seeds:
         raise ValueError("inference_seeds cannot be empty")
@@ -152,10 +153,12 @@ def planned_model_qualification(
         raise ValueError("max_parallel_cells must be positive")
     if not prompt.strip() or not prompt_id.strip() or not treatment_id.strip():
         raise ValueError("prompt, prompt_id, and treatment_id cannot be empty")
+    if max_new_trajectories is not None and max_new_trajectories < 1:
+        raise ValueError("max_new_trajectories must be positive when provided")
     cases = _case_records(case_paths)
     route = candidate.route
     plan = {
-        "schema_version": "aeread.procurement_allocation_model_plan/0.3",
+        "schema_version": "aeread.procurement_allocation_model_plan/0.4",
         "campaign_id": campaign_id,
         "cases": [
             {
@@ -179,6 +182,7 @@ def planned_model_qualification(
         },
         "harness": "minimal_chat/1.0 (fixed transport; not an estimand)",
         "max_parallel_cells": max_parallel_cells,
+        "max_new_trajectories_per_invocation": max_new_trajectories,
         "abort_on_operational_failure": abort_on_operational_failure,
         "retry_policy": "one sealed attempt per trajectory; SDK retries disabled",
         "resume_policy": "run only trajectories without a result row",
@@ -857,6 +861,7 @@ async def run_model_qualification(
     prompt: str = PROMPT,
     prompt_id: str = "procurement_allocation_prompt_v1",
     treatment_id: str = "unscaffolded_control",
+    max_new_trajectories: int | None = None,
 ) -> dict[str, Any]:
     cases = _case_records(case_paths)
     plan = planned_model_qualification(
@@ -869,6 +874,7 @@ async def run_model_qualification(
         prompt=prompt,
         prompt_id=prompt_id,
         treatment_id=treatment_id,
+        max_new_trajectories=max_new_trajectories,
     )
     if plan["conservative_cost_ceiling_usd"] > max_spend_usd:
         raise ValueError(
@@ -915,9 +921,12 @@ async def run_model_qualification(
         prior = json.loads(summary_path.read_text(encoding="utf-8"))
         if isinstance(prior, Mapping) and isinstance(prior.get("preflight"), Mapping):
             prior_preflight = dict(prior["preflight"])
-    preflight = dict(preflight_fn(candidate)) if missing else prior_preflight
+    queued_missing = (
+        missing if max_new_trajectories is None else missing[:max_new_trajectories]
+    )
+    preflight = dict(preflight_fn(candidate)) if queued_missing else prior_preflight
     semaphore = asyncio.Semaphore(max_parallel_cells)
-    if missing:
+    if queued_missing:
         if abort_on_operational_failure and any(
             row.get("status") == "operational_failure" for row in rows
         ):
@@ -926,7 +935,7 @@ async def run_model_qualification(
                 "failure; use a fresh attempt root"
             )
         if abort_on_operational_failure:
-            for case_path, inference_seed in missing:
+            for case_path, inference_seed in queued_missing:
                 row = await _run_cell(
                     run_root=run_root,
                     case_path=case_path,
@@ -954,7 +963,7 @@ async def run_model_qualification(
                             prompt=prompt,
                             prompt_id=prompt_id,
                         )
-                        for case_path, inference_seed in missing
+                        for case_path, inference_seed in queued_missing
                     )
                 )
             )
