@@ -147,3 +147,13 @@ python -m aeread_families.procurement_allocation.blinded_invariance \
 The comparator pairs v3 rows to the frozen v2 campaign by case slug and inference
 seed. A behavior or score change remains a valid finding; missing or unreplayed rows,
 route drift, changed upper bounds, or digest failures block qualification.
+
+Every fresh execution first runs one unscored request-shape admission canary. A
+provider rejection stops before the panel; a later operational failure seals that
+cell and aborts the remaining queue. Do not resume such an aborted attempt—use a new
+attempt root so transient provider availability cannot selectively replace rows.
+
+The qualified v3 run is stored operationally at
+`runs/procurement_allocation/procurement_allocation_glm_morph_blinded_invariance_v3/qualification_attempt_004`.
+Its sanitized, digest-bound review bundle is
+`evidence/procurement_allocation_glm_morph_blinded_invariance_v3/`.

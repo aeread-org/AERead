@@ -61,6 +61,34 @@ eligibility gate: a lower blinded score is a valid sensitivity finding. Operatio
 failure, missing pairs, changed economics, or digest mismatch blocks qualification
 and must not be converted into a procurement score.
 
+Before a live v3 attempt, an unscored admission canary sends the first case's real
+structured request shape through the pinned route. Its sanitized record binds the
+request digest, resolved model, usage, cost, and parsed action without retaining the
+provider payload. A rejected canary prevents the panel from starting. If a provider
+failure occurs after admission, the campaign stops after that sealed cell, reports
+the remaining trajectories as unattempted, and requires a fresh attempt root rather
+than selectively resuming around the failure.
+
+## Observed v3 qualification
+
+`qualification_attempt_004` completed all 18 blinded trajectories and replayed every
+receipt with zero operational failures. The admission canary cost $0.000118998 and
+the scored panel cost $0.0245407338. The paired integrity checks confirmed identical
+model route, harness, inference seeds, pair identities, and upper bounds.
+
+Feasibility fell from 7/18 in the labeled baseline to 2/18 after blinding. The paired
+transitions were 11 fail/fail, 5 pass/fail, 2 pass/pass, and 0 fail/pass. Mean
+completed kits changed by -4.8889, mean contribution margin by -$26.4214, and mean
+regret by +$26.4214.
+
+The loss is concentrated in two of the six independent worlds:
+`variant_substitution` accounts for three pass/fail transitions and
+`working_capital` for two. The other four worlds have no feasibility-count loss.
+With only six curated economic worlds and a bundled identity/order intervention,
+this is a shortcut-sensitivity diagnostic rather than a population estimate. The
+next causal ablation should separate opaque labels from reordered listings while
+holding these same worlds and seeds fixed.
+
 ## Artifact contract
 
 - Executable inputs live under `cases/procurement_allocation_v1/`.

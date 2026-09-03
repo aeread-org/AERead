@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import copy
 import hashlib
 import json
@@ -12,6 +13,7 @@ from aeread_families.procurement_allocation.blinded_invariance import (
     CAMPAIGN_ID,
     PAIRED_INFERENCE_SEEDS,
     build_paired_comparison,
+    run_admission_canary,
 )
 from aeread_families.procurement_allocation.case_matrix import (
     BLINDED_CASE_PATHS,
@@ -23,6 +25,7 @@ from aeread_families.procurement_allocation.environment import (
     ProcurementAllocationPlugin,
     solve_full_information_upper_bound,
 )
+from aeread_families.procurement_allocation.runner import SequenceResponseProvider
 
 
 def _supplier_signature(supplier: dict) -> bytes:
@@ -175,3 +178,34 @@ def test_paired_comparison_separates_label_sensitivity_from_execution_validity(
     }
     assert comparison["readiness"]["paired_invariance_qualified"] is True
     assert comparison["artifact_sha256"]
+
+
+def test_admission_canary_uses_real_request_shape_and_is_reusable(
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / "runs" / "campaign" / "admission_canary.json"
+    provider = SequenceResponseProvider(
+        (json.dumps({"action": "inquire", "supplier_id": "supplier_test"}),)
+    )
+
+    canary = asyncio.run(
+        run_admission_canary(path=path, provider_factory=lambda: provider)
+    )
+
+    assert canary["status"] == "admitted"
+    assert canary["scored"] is False
+    assert canary["structured_action"] == "inquire"
+    assert canary["request_sha256"] == provider.requests[0].request_sha256
+    assert len(provider.requests[0].input_text) > 500
+    assert provider.requests[0].output_schema is not None
+    assert "raw_response" not in path.read_text(encoding="utf-8")
+
+    reused = asyncio.run(
+        run_admission_canary(
+            path=path,
+            provider_factory=lambda: (_ for _ in ()).throw(
+                AssertionError("a sealed canary must not call the provider")
+            ),
+        )
+    )
+    assert reused == canary

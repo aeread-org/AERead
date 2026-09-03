@@ -8,20 +8,30 @@ import hashlib
 import json
 import os
 import statistics
+import tempfile
 from collections import Counter
+from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Mapping, Sequence
+from typing import Any, Callable, Mapping, Sequence
 
 from aeread.shared_runner.run.resolver import canonical_json_bytes
+from aeread.shared_runner.model_call.harness import MinimalChatHarness
+from aeread.shared_runner.task.execution import (
+    OpenRouterChatClient,
+    ProviderRequest,
+    execute_plan_cell,
+)
 
 from .case_matrix import BLINDED_CASE_PATHS, REPOSITORY_ROOT
 from .model_campaign import (
     CAMPAIGN_ID as BASELINE_CAMPAIGN_ID,
+    GLM_MORPH_CANDIDATE,
     derive_inference_seeds,
     planned_model_qualification,
     publish_model_qualification,
     run_model_qualification,
 )
+from .runner import SequenceResponseProvider, build_openrouter_setup
 
 
 CAMPAIGN_ID = "procurement_allocation_glm_morph_blinded_invariance_v3"
@@ -37,6 +47,127 @@ DEFAULT_BASELINE_RUN_ROOT = (
     / BASELINE_CAMPAIGN_ID
     / "qualification_attempt_001"
 )
+
+
+async def _representative_provider_request() -> ProviderRequest:
+    """Capture the first real request shape with a provider-free fixture."""
+
+    setup = build_openrouter_setup(
+        GLM_MORPH_CANDIDATE.route,
+        case_path=BLINDED_CASE_PATHS[0],
+        seed=PAIRED_INFERENCE_SEEDS[0],
+        max_output_tokens=1800,
+        timeout_seconds=180.0,
+        max_cost_usd=0.03,
+        harness=MinimalChatHarness(),
+    )
+    provider = SequenceResponseProvider(
+        (json.dumps({"action": "defer", "reason": "admission request capture"}),)
+    )
+    with tempfile.TemporaryDirectory(prefix="aeread-procurement-canary-") as root:
+        await execute_plan_cell(
+            plan=setup.plan,
+            cell_id=setup.plan.cells[0].cell_id,
+            registry=setup.registry,
+            evidence_root=Path(root),
+            prompt_sources=setup.prompt_sources,
+            providers={"openrouter": provider},
+            pricing=setup.pricing,
+            harnesses=setup.harnesses,
+        )
+    if len(provider.requests) != 1:
+        raise RuntimeError("admission request capture did not produce exactly one call")
+    return provider.requests[0]
+
+
+def _verified_canary(path: Path, *, request_sha256: str) -> dict[str, Any]:
+    value = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(value, dict):
+        raise ValueError("admission canary must be an object")
+    recorded_sha = value.get("artifact_sha256")
+    payload = {key: item for key, item in value.items() if key != "artifact_sha256"}
+    if recorded_sha != hashlib.sha256(canonical_json_bytes(payload)).hexdigest():
+        raise ValueError("admission canary digest mismatch")
+    if value.get("campaign_id") != CAMPAIGN_ID:
+        raise ValueError("admission canary campaign identity mismatch")
+    if value.get("request_sha256") != request_sha256:
+        raise ValueError("admission canary request identity mismatch")
+    return value
+
+
+async def run_admission_canary(
+    *,
+    path: Path,
+    provider_factory: Callable[[], Any] = OpenRouterChatClient,
+) -> dict[str, Any]:
+    """Run one unscored request with the campaign's real structured shape."""
+
+    request = await _representative_provider_request()
+    if path.exists():
+        return _verified_canary(path, request_sha256=request.request_sha256)
+    record: dict[str, Any] = {
+        "schema_version": "aeread.provider_admission_canary/0.1",
+        "campaign_id": CAMPAIGN_ID,
+        "attempted_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+        "request_sha256": request.request_sha256,
+        "model": request.model,
+        "revision": request.revision,
+        "route_provider": request.provider_metadata["route_provider"],
+        "max_output_tokens": request.max_output_tokens,
+        "max_cost_usd": request.max_cost_usd,
+        "scored": False,
+    }
+    try:
+        result = await provider_factory().complete(request)
+        action = json.loads(result.output_text)
+        if not isinstance(action, Mapping) or not isinstance(action.get("action"), str):
+            raise ValueError("canary completion is not a structured action")
+        record.update(
+            {
+                "status": "admitted",
+                "resolved_model": result.resolved_model,
+                "finish_reason": result.finish_reason,
+                "input_tokens": result.input_tokens,
+                "cached_input_tokens": result.cached_input_tokens,
+                "output_tokens": result.output_tokens,
+                "cost_usd": result.cost_usd,
+                "structured_action": action["action"],
+            }
+        )
+    except Exception as error:
+        chain: list[BaseException] = []
+        current: BaseException | None = error
+        while current is not None and current not in chain:
+            chain.append(current)
+            current = current.__cause__ or current.__context__
+        record.update(
+            {
+                "status": "rejected",
+                "failure_type": type(error).__name__,
+                "failure_condition": next(
+                    (
+                        value
+                        for item in chain
+                        if isinstance((value := getattr(item, "condition", None)), str)
+                    ),
+                    "provider_failure",
+                ),
+                "failure_status_code": next(
+                    (
+                        value
+                        for item in chain
+                        if isinstance(
+                            (value := getattr(item, "status_code", None)), int
+                        )
+                    ),
+                    None,
+                ),
+                "cost_usd": 0.0,
+            }
+        )
+    record["artifact_sha256"] = hashlib.sha256(canonical_json_bytes(record)).hexdigest()
+    _write_once_json(path, record)
+    return record
 
 
 def _verified_summary(run_root: Path) -> tuple[dict[str, Any], str]:
@@ -324,16 +455,29 @@ def main(argv: Sequence[str] | None = None) -> int:
         parser.error("--execute and --publish-only are mutually exclusive")
     if arguments.publish_only and arguments.publication_root is None:
         parser.error("--publish-only requires --publication-root")
+    plan = planned_model_qualification(
+        case_paths=BLINDED_CASE_PATHS,
+        inference_seeds=PAIRED_INFERENCE_SEEDS,
+        max_parallel_cells=arguments.max_parallel_cells,
+        campaign_id=CAMPAIGN_ID,
+        abort_on_operational_failure=True,
+    )
     if not arguments.execute and not arguments.publish_only:
-        plan = planned_model_qualification(
-            case_paths=BLINDED_CASE_PATHS,
-            inference_seeds=PAIRED_INFERENCE_SEEDS,
-            max_parallel_cells=arguments.max_parallel_cells,
-            campaign_id=CAMPAIGN_ID,
-        )
         print(json.dumps(plan, indent=2, sort_keys=True))
         return 0
+    canary_path = arguments.run_root / "admission_canary.json"
     if arguments.execute:
+        canary_ceiling = 0.03
+        total_ceiling = plan["conservative_cost_ceiling_usd"] + canary_ceiling
+        if total_ceiling > arguments.max_spend_usd:
+            parser.error(
+                "campaign plus admission-canary ceiling exceeds --max-spend-usd: "
+                f"{total_ceiling:.6f} > {arguments.max_spend_usd:.6f}"
+            )
+        canary = asyncio.run(run_admission_canary(path=canary_path))
+        if canary["status"] != "admitted":
+            print(json.dumps(canary, indent=2, sort_keys=True))
+            return 3
         asyncio.run(
             run_model_qualification(
                 run_root=arguments.run_root,
@@ -343,8 +487,12 @@ def main(argv: Sequence[str] | None = None) -> int:
                 max_parallel_cells=arguments.max_parallel_cells,
                 resume=arguments.resume,
                 campaign_id=CAMPAIGN_ID,
+                abort_on_operational_failure=True,
             )
         )
+    else:
+        request = asyncio.run(_representative_provider_request())
+        canary = _verified_canary(canary_path, request_sha256=request.request_sha256)
     comparison = build_paired_comparison(
         baseline_run_root=arguments.baseline_run_root,
         blinded_run_root=arguments.run_root,
@@ -355,7 +503,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         publish_model_qualification(
             run_root=arguments.run_root,
             publication_root=arguments.publication_root,
-            supplemental_reports={"reports/paired_invariance.json": comparison},
+            supplemental_reports={
+                "reports/admission_canary.json": canary,
+                "reports/paired_invariance.json": comparison,
+            },
         )
     print(json.dumps(comparison["summary"], indent=2, sort_keys=True))
     return 0 if qualified else 2
@@ -371,4 +522,5 @@ __all__ = [
     "DEFAULT_BASELINE_RUN_ROOT",
     "PAIRED_INFERENCE_SEEDS",
     "build_paired_comparison",
+    "run_admission_canary",
 ]

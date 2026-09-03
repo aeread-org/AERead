@@ -134,6 +134,7 @@ def planned_model_qualification(
     inference_seeds: Sequence[int],
     max_parallel_cells: int = 2,
     campaign_id: str = CAMPAIGN_ID,
+    abort_on_operational_failure: bool = False,
 ) -> dict[str, Any]:
     if not inference_seeds:
         raise ValueError("inference_seeds cannot be empty")
@@ -165,6 +166,7 @@ def planned_model_qualification(
         "pricing_id": route.pricing.pricing_id,
         "harness": "minimal_chat/1.0 (fixed transport; not an estimand)",
         "max_parallel_cells": max_parallel_cells,
+        "abort_on_operational_failure": abort_on_operational_failure,
         "retry_policy": "one sealed attempt per trajectory; SDK retries disabled",
         "resume_policy": "run only trajectories without a result row",
         "response_cache": "disabled",
@@ -648,6 +650,7 @@ def summarize_rows(
     return {
         "planned_trajectory_count": planned_trajectory_count,
         "row_count": len(rows),
+        "unattempted_trajectory_count": max(planned_trajectory_count - len(rows), 0),
         "completed_trajectory_count": len(completed),
         "operational_failure_count": len(rows) - len(completed),
         "reliability": len(completed) / len(rows) if rows else None,
@@ -829,6 +832,7 @@ async def run_model_qualification(
     provider_factory: Callable[[], Any] = OpenRouterChatClient,
     preflight_fn: Callable[[BakeoffCandidate], Mapping[str, Any]] = preflight_candidate,
     campaign_id: str = CAMPAIGN_ID,
+    abort_on_operational_failure: bool = False,
 ) -> dict[str, Any]:
     cases = _case_records(case_paths)
     plan = planned_model_qualification(
@@ -836,6 +840,7 @@ async def run_model_qualification(
         inference_seeds=inference_seeds,
         max_parallel_cells=max_parallel_cells,
         campaign_id=campaign_id,
+        abort_on_operational_failure=abort_on_operational_failure,
     )
     if plan["conservative_cost_ceiling_usd"] > max_spend_usd:
         raise ValueError(
@@ -885,20 +890,40 @@ async def run_model_qualification(
     preflight = dict(preflight_fn(GLM_MORPH_CANDIDATE)) if missing else prior_preflight
     semaphore = asyncio.Semaphore(max_parallel_cells)
     if missing:
-        rows.extend(
-            await asyncio.gather(
-                *(
-                    _run_cell(
-                        run_root=run_root,
-                        case_path=case_path,
-                        inference_seed=inference_seed,
-                        semaphore=semaphore,
-                        provider_factory=provider_factory,
+        if abort_on_operational_failure and any(
+            row.get("status") == "operational_failure" for row in rows
+        ):
+            raise ValueError(
+                "cannot resume an aborted qualification after an operational "
+                "failure; use a fresh attempt root"
+            )
+        if abort_on_operational_failure:
+            for case_path, inference_seed in missing:
+                row = await _run_cell(
+                    run_root=run_root,
+                    case_path=case_path,
+                    inference_seed=inference_seed,
+                    semaphore=semaphore,
+                    provider_factory=provider_factory,
+                )
+                rows.append(row)
+                if row.get("status") == "operational_failure":
+                    break
+        else:
+            rows.extend(
+                await asyncio.gather(
+                    *(
+                        _run_cell(
+                            run_root=run_root,
+                            case_path=case_path,
+                            inference_seed=inference_seed,
+                            semaphore=semaphore,
+                            provider_factory=provider_factory,
+                        )
+                        for case_path, inference_seed in missing
                     )
-                    for case_path, inference_seed in missing
                 )
             )
-        )
     rows.sort(key=lambda row: (str(row["case_id"]), int(row["inference_seed"])))
     summary = summarize_rows(
         rows,

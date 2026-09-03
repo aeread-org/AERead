@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 
 import aeread_families.procurement_allocation.model_campaign as campaign_module
+from aeread.shared_runner.task.execution import ProviderFailure
 
 from aeread_families.procurement_allocation.model_campaign import (
     CAMPAIGN_ID,
@@ -161,6 +162,7 @@ def test_summary_keeps_provider_failure_out_of_procurement_means() -> None:
 
     assert summary["reliability"] == pytest.approx(0.5)
     assert summary["operational_failure_count"] == 1
+    assert summary["unattempted_trajectory_count"] == 0
     assert summary["mean_contribution_margin_usd"] == pytest.approx(12.5)
     assert summary["feasible_rate_among_completed"] == pytest.approx(1.0)
     assert summary["readiness"] == {
@@ -252,6 +254,61 @@ def test_provider_free_model_campaign_replays_and_resumes(tmp_path: Path) -> Non
     )
     assert resumed["rows"] == artifact["rows"]
     assert resumed["preflight"] == artifact["preflight"]
+
+
+def test_campaign_aborts_after_first_operational_failure_and_cannot_resume(
+    tmp_path: Path,
+) -> None:
+    run_root = tmp_path / "runs" / CAMPAIGN_ID / "attempt_001"
+    providers = []
+
+    class RateLimitedProvider:
+        async def complete(self, _request):
+            raise ProviderFailure(
+                "rate_limit", "upstream overloaded", retryable=True, status_code=429
+            )
+
+    def provider_factory():
+        provider = RateLimitedProvider()
+        providers.append(provider)
+        return provider
+
+    artifact = asyncio.run(
+        run_model_qualification(
+            run_root=run_root,
+            case_paths=(CASE_PATH,),
+            inference_seeds=(231, 232),
+            max_spend_usd=0.03,
+            max_parallel_cells=1,
+            abort_on_operational_failure=True,
+            provider_factory=provider_factory,
+            preflight_fn=lambda _candidate: {"route_verified": True},
+        )
+    )
+
+    assert len(providers) == 1
+    assert len(artifact["rows"]) == 1
+    assert artifact["rows"][0]["failure_condition"] == "rate_limit"
+    assert artifact["summary"]["operational_failure_count"] == 1
+    assert artifact["summary"]["unattempted_trajectory_count"] == 1
+    assert artifact["summary"]["readiness"]["execution_qualified"] is False
+
+    with pytest.raises(ValueError, match="fresh attempt root"):
+        asyncio.run(
+            run_model_qualification(
+                run_root=run_root,
+                case_paths=(CASE_PATH,),
+                inference_seeds=(231, 232),
+                max_spend_usd=0.03,
+                max_parallel_cells=1,
+                resume=True,
+                abort_on_operational_failure=True,
+                provider_factory=lambda: (_ for _ in ()).throw(
+                    AssertionError("provider must not run")
+                ),
+                preflight_fn=lambda _candidate: {"route_verified": True},
+            )
+        )
 
 
 def test_live_output_requires_canonical_runs_root(tmp_path: Path) -> None:
