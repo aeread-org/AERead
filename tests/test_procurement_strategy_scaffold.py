@@ -150,6 +150,7 @@ def test_strategy_plan_binds_prompt_and_declares_paired_analysis() -> None:
     assert plan["independent_case_count"] == 6
     assert plan["inference_seeds"] == list(PAIRED_INFERENCE_SEEDS)
     assert plan["max_parallel_cells"] == 1
+    assert "adaptive development treatment" in plan["development_status"]
     assert plan["prompt"] == {
         "prompt_id": PROMPT_ID,
         "sha256": hashlib.sha256(STRATEGY_PROMPT.encode()).hexdigest(),
@@ -180,6 +181,8 @@ def test_strategy_canary_uses_treatment_prompt_and_is_unscored(tmp_path: Path) -
     )
     request = provider.requests[0]
     assert "Ignore supplier IDs and names as quality signals" in request.instructions
+    assert "Before considering price" in request.instructions
+    assert "Request a sample only from an offer" in request.instructions
     assert "private_terms" not in request.input_text
 
 

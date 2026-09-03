@@ -248,11 +248,11 @@ Print the sealed 36-trajectory plan without provider calls:
 ```bash
 python -m aeread_families.procurement_allocation.strategy_scaffold \
   --run-root \
-  runs/procurement_allocation/procurement_allocation_glm_morph_strategy_scaffold_v1/qualification_attempt_001
+  runs/procurement_allocation/procurement_allocation_glm_morph_strategy_scaffold_v2/qualification_attempt_001
 ```
 
 After loading `OPENROUTER_API_KEY`, add `--execute`, a direct
-`evidence/procurement_allocation_glm_morph_strategy_scaffold_v1` publication root,
+`evidence/procurement_allocation_glm_morph_strategy_scaffold_v2` publication root,
 and a total spend ceiling of at least $0.5088. Execution defaults to one cell at a
 time because route reliability, rather than local throughput, is the current
 bottleneck. An unscored exact-request canary runs first, and any operational failure
@@ -263,3 +263,10 @@ and opaque/reordered cases after averaging seeds within each world. It also repo
 the change in the opaque-minus-labeled effect. Positive absolute surface-gap
 reduction means the scaffold mitigated presentation sensitivity; the campaign does
 not assume that outcome in advance.
+
+This is an adaptive development treatment. In the first v1 probe, one labeled
+trajectory reached an award in six actions but selected formally late suppliers and
+completed zero kits; the next row then hit a provider rate limit. V2 therefore makes
+deadline feasibility a hard pre-price and pre-sample gate. Neither incomplete attempt
+is a treatment-effect estimate, and a held-out panel is still required for a
+confirmatory claim.

@@ -40,19 +40,24 @@ from .runner import PROMPT as CONTROL_PROMPT
 from .runner import SequenceResponseProvider, build_openrouter_setup
 
 
-CAMPAIGN_ID = "procurement_allocation_glm_morph_strategy_scaffold_v1"
-TREATMENT_ID = "public_evidence_decision_procedure_v1"
-PROMPT_ID = "procurement_allocation_strategy_scaffold_v1"
+CAMPAIGN_ID = "procurement_allocation_glm_morph_strategy_scaffold_v2"
+TREATMENT_ID = "public_evidence_feasibility_first_procedure_v2"
+PROMPT_ID = "procurement_allocation_strategy_scaffold_v2"
 STRATEGY_PROMPT = (
     CONTROL_PROMPT
     + """
 
 Use this public-evidence decision procedure before choosing each action:
-1. Ignore supplier IDs and names as quality signals. Rank only provisional listing
-   price, claimed lead time, claimed variant, and the objective's requirements.
+1. Ignore supplier IDs and names as quality signals. Before considering price,
+   eliminate listings whose claimed lead time already misses the deadline or whose
+   claimed variant is not the exact required variant. Rank the remaining candidates
+   by service feasibility, then provisional landed cost.
 2. Preserve the ten-action budget. For each BOM component, qualify the smallest
-   plausible supplier set: request a formal quote, then verify an exact-variant
-   sample. Add another supplier only when verified capacity or service requires it.
+   plausible supplier set. Request a formal quote directly; do not inquire first for
+   fields that the quote supplies. After receiving the quote, reject it immediately
+   if its exact variant, lead time, MOQ, capacity, or landed cost makes the objective
+   infeasible. Request a sample only from an offer that survives those hard checks.
+   Add another supplier only when verified capacity or service requires it.
 3. Treat only current formal offers and verified samples as decision evidence.
    Check exact variant, MOQ/order step, capacity, landed cost, payment timing,
    deadline/on-time probability, yield, and return/refund terms.
@@ -221,6 +226,11 @@ def build_plan(*, max_parallel_cells: int = 1) -> dict[str, Any]:
             "resampling_unit": "procurement world after seed averaging",
             "uncertainty": "exact six-cluster percentile bootstrap",
         },
+        "development_status": (
+            "adaptive development treatment: v2 makes deadline feasibility a hard "
+            "ordering rule after one completed v1 development trajectory exposed a "
+            "late-supplier award; a held-out panel is required for a confirmatory claim"
+        ),
         "claim_scope": (
             "paired prompt-treatment pilot over six curated procurement worlds; "
             "not a population model ranking"

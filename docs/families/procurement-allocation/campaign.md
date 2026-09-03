@@ -187,3 +187,11 @@ The conservative total ceiling is $0.5088 including one unscored admission canar
 Execution is sequential by default and aborts on the first operational failure. A
 failed attempt remains typed missingness and is never resumed or included in the
 effect estimate.
+
+The first v1 development attempt admitted its canary and completed one labeled
+trajectory before a typed HTTP 429 stopped the queue. That row reached an award in
+six actions instead of exhausting all ten, but it sampled and awarded formally late
+suppliers, completing zero kits. The v2 prompt therefore imposes a hard deadline gate
+before price ranking and sampling. This adaptive change is versioned explicitly;
+results on these development worlds remain exploratory and require a held-out panel
+for confirmation.
