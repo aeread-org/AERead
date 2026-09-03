@@ -105,6 +105,8 @@ def test_model_plan_holds_harness_fixed_and_separates_case_variance() -> None:
     assert plan["provider"] == "Morph"
     assert plan["revision"] == "z-ai/glm-5.3-flash-20260826"
     assert plan["pricing_id"] == "openrouter_2026-09-02_glm53_flash_morph"
+    assert plan["prompt"]["prompt_id"] == "procurement_allocation_prompt_v1"
+    assert plan["prompt"]["treatment_id"] == "unscaffolded_control"
     assert plan["plan_sha256"]
     assert plan["conservative_cost_ceiling_usd"] == pytest.approx(
         conservative_cost_ceiling(case_count=6, seed_count=3)

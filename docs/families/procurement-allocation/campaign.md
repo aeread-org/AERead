@@ -161,3 +161,29 @@ with an interval of [$36.6918, $73.7546]. Feasibility differences were +0.6111 a
 +0.8889 respectively, with intervals excluding zero. These results show substantial
 headroom on the curated panel; they do not establish population-level superiority of
 the deterministic policy.
+
+## Strategy-scaffold campaign
+
+The public-policy floor motivates a model-side intervention rather than another
+harness comparison. `strategy_scaffold` appends a compact decision procedure to the
+existing buyer prompt while holding the model revision, provider, structured-action
+schema, Minimal Chat transport, case economics, seeds, action budget, scorer, and
+receipt replay fixed.
+
+The treatment runs 18 labeled/original and 18 opaque/reordered trajectories. Each
+panel is paired to its already-qualified unscaffolded GLM control by economic-world
+slug and inference seed. Primary effects are computed after averaging the three
+inference seeds within each of the six worlds, with exact six-cluster percentile
+bootstrap intervals. A difference-in-differences report then tests whether the
+scaffold changes the opaque-minus-labeled sensitivity.
+
+The treatment prompt ID, treatment ID, and content digest are bound into each model
+plan; full prompt text remains only in source and raw execution context. Publication
+requires both 18-row panels to complete and replay, exact seed and route parity with
+their controls, complete pair identities, invariant objective upper bounds, and
+verified artifact/row digests. A score improvement is never an eligibility gate.
+
+The conservative total ceiling is $0.5088 including one unscored admission canary.
+Execution is sequential by default and aborts on the first operational failure. A
+failed attempt remains typed missingness and is never resumed or included in the
+effect estimate.

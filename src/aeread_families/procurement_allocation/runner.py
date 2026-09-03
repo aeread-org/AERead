@@ -1,4 +1,5 @@
 """Build and run the interactive procurement-allocation family."""
+
 from __future__ import annotations
 
 import argparse
@@ -23,7 +24,10 @@ from aeread.shared_runner.task.evaluation import (
     finalize_family_failure,
     replay_family_receipt,
 )
-from aeread.shared_runner.model_call.harness import MinimalChatHarness, default_harnesses
+from aeread.shared_runner.model_call.harness import (
+    MinimalChatHarness,
+    default_harnesses,
+)
 from aeread.shared_runner.task.receipts import EvaluationReceipt
 from aeread.shared_runner.registry import (
     HarnessRegistry,
@@ -163,7 +167,9 @@ def replay_procurement_allocation_receipt(
     receipt: EvaluationReceipt,
     evidence_root: Path | str,
 ) -> EvaluationReceipt:
-    return replay_family_receipt(setup=setup, receipt=receipt, evidence_root=evidence_root)
+    return replay_family_receipt(
+        setup=setup, receipt=receipt, evidence_root=evidence_root
+    )
 
 
 def _exact_object(
@@ -259,8 +265,15 @@ def _pin(
 
 
 def build_offline_setup(
-    *, case_path: Path | str = CASE_PATH
+    *,
+    case_path: Path | str = CASE_PATH,
+    prompt: str = PROMPT,
+    prompt_id: str = "procurement_allocation_prompt_v1",
 ) -> ProcurementAllocationSetup:
+    if not prompt.strip():
+        raise ValueError("prompt cannot be empty")
+    if not prompt_id.strip():
+        raise ValueError("prompt_id cannot be empty")
     case = load_case(case_path)
     family = family_manifest()
     sampling = SamplingPlan.from_dict(
@@ -337,8 +350,8 @@ def build_offline_setup(
                 },
             },
             "prompt": {
-                "prompt_id": "procurement_allocation_prompt_v1",
-                "sha256": hashlib.sha256(PROMPT.encode("utf-8")).hexdigest(),
+                "prompt_id": prompt_id,
+                "sha256": hashlib.sha256(prompt.encode("utf-8")).hexdigest(),
             },
             "runtime": {
                 "kind": "python",
@@ -395,9 +408,16 @@ def build_offline_setup(
     pins = (
         _pin(PLUGIN_ID, "family_plugin", environment_path),
         _pin(SCORER_ID, "scorer", environment_path),
-        _pin("procurement_full_information_upper_bound_v1", "reference", environment_path),
+        _pin(
+            "procurement_full_information_upper_bound_v1", "reference", environment_path
+        ),
         _pin("minimal_chat", "harness", execution_path, version="1.0"),
-        _pin("aeread.shared_runner.task.execution", "runtime", execution_path, version="0.1.0"),
+        _pin(
+            "aeread.shared_runner.task.execution",
+            "runtime",
+            execution_path,
+            version="0.1.0",
+        ),
     )
     plan = resolve_run_plan(
         families=(family,),
@@ -426,7 +446,7 @@ def build_offline_setup(
     return ProcurementAllocationSetup(
         plan=plan,
         registry=registry,
-        prompt_sources={"procurement_allocation_prompt_v1": PROMPT},
+        prompt_sources={prompt_id: prompt},
         pricing={"fake-model": zero_pricing},
         case=case,
         harnesses=default_harnesses(),
@@ -442,12 +462,18 @@ def build_openrouter_setup(
     timeout_seconds: float = 180.0,
     max_cost_usd: float = 0.1,
     harness: Any | None = None,
+    prompt: str = PROMPT,
+    prompt_id: str = "procurement_allocation_prompt_v1",
 ) -> ProcurementAllocationSetup:
     if seed < 0:
         raise ValueError("seed must be non-negative")
     if max_cost_usd <= 0:
         raise ValueError("max_cost_usd must be positive")
-    template = build_offline_setup(case_path=case_path)
+    template = build_offline_setup(
+        case_path=case_path,
+        prompt=prompt,
+        prompt_id=prompt_id,
+    )
     resolved_harness = harness or MinimalChatHarness()
     runtime = (
         "aeread.shared_runner.task.execution"
@@ -482,10 +508,14 @@ def build_openrouter_setup(
                 },
             },
             "prompt": {
-                "prompt_id": "procurement_allocation_prompt_v1",
-                "sha256": hashlib.sha256(PROMPT.encode("utf-8")).hexdigest(),
+                "prompt_id": prompt_id,
+                "sha256": hashlib.sha256(prompt.encode("utf-8")).hexdigest(),
             },
-            "runtime": {"kind": "python", "implementation": runtime, "version": "0.1.0"},
+            "runtime": {
+                "kind": "python",
+                "implementation": runtime,
+                "version": "0.1.0",
+            },
             "tools": [],
             "memory": {"mode": "disabled"},
             "reasoning": {
@@ -522,7 +552,9 @@ def build_openrouter_setup(
             "spec_version": RunSpec.SPEC_VERSION,
             "run_spec_id": f"procurement_allocation_openrouter_{profile_id}",
             "suite_id": template.plan.suite.suite_id,
-            "evaluation_block_ids": [block.block_id for block in template.plan.evaluation_blocks],
+            "evaluation_block_ids": [
+                block.block_id for block in template.plan.evaluation_blocks
+            ],
             "agent_profile_ids": [profile_id],
             "seat_assignments": {"buyer": profile_id},
             "execution_mode": "evaluate",
@@ -547,7 +579,12 @@ def build_openrouter_setup(
     )
     pins.extend(
         [
-            _pin(resolved_harness.id, "harness", harness_source, version=resolved_harness.version),
+            _pin(
+                resolved_harness.id,
+                "harness",
+                harness_source,
+                version=resolved_harness.version,
+            ),
             _pin(runtime, "runtime", harness_source, version="0.1.0"),
         ]
     )
@@ -619,7 +656,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--attempt", type=int, default=0)
     arguments = parser.parse_args(argv)
     raw = json.loads(arguments.script.read_text(encoding="utf-8"))
-    if not isinstance(raw, list) or not raw or any(not isinstance(item, dict) for item in raw):
+    if (
+        not isinstance(raw, list)
+        or not raw
+        or any(not isinstance(item, dict) for item in raw)
+    ):
         raise ValueError("script must be a non-empty JSON array of action objects")
     responses = [canonical_json_bytes(item).decode("utf-8") for item in raw]
     setup, execution, provider = asyncio.run(
@@ -629,7 +670,9 @@ def main(argv: list[str] | None = None) -> int:
             episode_attempt_ordinal=arguments.attempt,
         )
     )
-    receipt = finalize_procurement_allocation_execution(setup=setup, execution=execution)
+    receipt = finalize_procurement_allocation_execution(
+        setup=setup, execution=execution
+    )
     summary = {
         "run_plan_id": execution.run_plan_id,
         "cell_id": execution.cell_id,

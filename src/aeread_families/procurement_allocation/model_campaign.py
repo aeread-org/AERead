@@ -35,6 +35,7 @@ from aeread_families.procurement_grounding.runner import OpenRouterRoute
 
 from .case_matrix import CASE_VARIANCE_PATHS
 from .runner import (
+    PROMPT,
     build_openrouter_setup,
     finalize_procurement_allocation_execution,
     finalize_procurement_allocation_failure,
@@ -137,6 +138,9 @@ def planned_model_qualification(
     campaign_id: str = CAMPAIGN_ID,
     abort_on_operational_failure: bool = False,
     candidate: BakeoffCandidate = GLM_MORPH_CANDIDATE,
+    prompt: str = PROMPT,
+    prompt_id: str = "procurement_allocation_prompt_v1",
+    treatment_id: str = "unscaffolded_control",
 ) -> dict[str, Any]:
     if not inference_seeds:
         raise ValueError("inference_seeds cannot be empty")
@@ -146,10 +150,12 @@ def planned_model_qualification(
         raise ValueError("inference_seeds must be non-negative")
     if max_parallel_cells < 1:
         raise ValueError("max_parallel_cells must be positive")
+    if not prompt.strip() or not prompt_id.strip() or not treatment_id.strip():
+        raise ValueError("prompt, prompt_id, and treatment_id cannot be empty")
     cases = _case_records(case_paths)
     route = candidate.route
     plan = {
-        "schema_version": "aeread.procurement_allocation_model_plan/0.2",
+        "schema_version": "aeread.procurement_allocation_model_plan/0.3",
         "campaign_id": campaign_id,
         "cases": [
             {
@@ -166,6 +172,11 @@ def planned_model_qualification(
         "provider": route.route_provider,
         "quantization": route.quantization,
         "pricing_id": route.pricing.pricing_id,
+        "prompt": {
+            "prompt_id": prompt_id,
+            "sha256": hashlib.sha256(prompt.encode("utf-8")).hexdigest(),
+            "treatment_id": treatment_id,
+        },
         "harness": "minimal_chat/1.0 (fixed transport; not an estimand)",
         "max_parallel_cells": max_parallel_cells,
         "abort_on_operational_failure": abort_on_operational_failure,
@@ -715,6 +726,8 @@ async def _run_cell(
     semaphore: asyncio.Semaphore,
     provider_factory: Callable[[], Any],
     candidate: BakeoffCandidate,
+    prompt: str,
+    prompt_id: str,
 ) -> dict[str, Any]:
     setup = build_openrouter_setup(
         candidate.route,
@@ -724,6 +737,8 @@ async def _run_cell(
         timeout_seconds=180.0,
         max_cost_usd=0.03,
         harness=MinimalChatHarness(),
+        prompt=prompt,
+        prompt_id=prompt_id,
     )
     cell = setup.plan.cells[0]
     case_directory = _safe_case_directory(setup.case.case_id, setup.case.content_sha256)
@@ -839,6 +854,9 @@ async def run_model_qualification(
     campaign_id: str = CAMPAIGN_ID,
     abort_on_operational_failure: bool = False,
     candidate: BakeoffCandidate = GLM_MORPH_CANDIDATE,
+    prompt: str = PROMPT,
+    prompt_id: str = "procurement_allocation_prompt_v1",
+    treatment_id: str = "unscaffolded_control",
 ) -> dict[str, Any]:
     cases = _case_records(case_paths)
     plan = planned_model_qualification(
@@ -848,6 +866,9 @@ async def run_model_qualification(
         campaign_id=campaign_id,
         abort_on_operational_failure=abort_on_operational_failure,
         candidate=candidate,
+        prompt=prompt,
+        prompt_id=prompt_id,
+        treatment_id=treatment_id,
     )
     if plan["conservative_cost_ceiling_usd"] > max_spend_usd:
         raise ValueError(
@@ -913,6 +934,8 @@ async def run_model_qualification(
                     semaphore=semaphore,
                     provider_factory=provider_factory,
                     candidate=candidate,
+                    prompt=prompt,
+                    prompt_id=prompt_id,
                 )
                 rows.append(row)
                 if row.get("status") == "operational_failure":
@@ -928,6 +951,8 @@ async def run_model_qualification(
                             semaphore=semaphore,
                             provider_factory=provider_factory,
                             candidate=candidate,
+                            prompt=prompt,
+                            prompt_id=prompt_id,
                         )
                         for case_path, inference_seed in missing
                     )

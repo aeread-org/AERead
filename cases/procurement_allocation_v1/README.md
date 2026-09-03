@@ -233,3 +233,33 @@ had +$28.4986 mean margin on labeled/original cases and +$54.9200 on
 opaque/reordered cases. The associated six-world cluster intervals exclude zero, so
 this panel is not saturated by the qualified GLM route. The tracked evidence is at
 `evidence/procurement_allocation_public_policy_baselines_v1/`.
+
+## Strategy-scaffold treatment
+
+The next model intervention keeps the GLM revision, provider route, Minimal Chat
+transport, action schema, six economic worlds, and three paired inference seeds
+fixed. It changes only the buyer instructions by adding a public-evidence decision
+procedure: ignore supplier names, conserve the action budget, qualify a minimal
+supplier set with formal quotes and samples, check capacity/service/cash constraints,
+and award only on evidence-qualified terms.
+
+Print the sealed 36-trajectory plan without provider calls:
+
+```bash
+python -m aeread_families.procurement_allocation.strategy_scaffold \
+  --run-root \
+  runs/procurement_allocation/procurement_allocation_glm_morph_strategy_scaffold_v1/qualification_attempt_001
+```
+
+After loading `OPENROUTER_API_KEY`, add `--execute`, a direct
+`evidence/procurement_allocation_glm_morph_strategy_scaffold_v1` publication root,
+and a total spend ceiling of at least $0.5088. Execution defaults to one cell at a
+time because route reliability, rather than local throughput, is the current
+bottleneck. An unscored exact-request canary runs first, and any operational failure
+stops the remaining queue and requires a fresh attempt root.
+
+The analysis reports scaffold-minus-control effects separately on labeled/original
+and opaque/reordered cases after averaging seeds within each world. It also reports
+the change in the opaque-minus-labeled effect. Positive absolute surface-gap
+reduction means the scaffold mitigated presentation sensitivity; the campaign does
+not assume that outcome in advance.
