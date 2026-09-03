@@ -322,3 +322,131 @@ and landed-cost/freight worsen it by $26.3044 and $10.8050 respectively; cash-bu
 and on-time-reliability regress slightly. These failures motivate focused held-out
 tests of sample timing and landed-cost gates rather than an in-place change to this
 confirmed V4 intervention.
+
+## Adaptive held-out risk-gate factorial
+
+The next campaign holds the qualified GLM revision, provider route, action schema,
+objective verifier, and frozen V4 prompt fixed while testing two explicit decision
+gates. The temporal gate requires verbal confirmation of sample logistics and a
+serial critical-path calculation. The cash gate requires quote-level landed-cash
+arithmetic after MOQ, order-step, capacity, and BOM rounding. A 2x2 design runs V4,
+temporal only, cash only, and both gates on both labeled and opaque surfaces.
+
+The six economic worlds in `cases/procurement_allocation_v1/risk_gates_v1/` were
+created after the V2 result audit. Three test sample timing and three test cash
+failures driven by freight, duty, or MOQ. The presentation mirrors are economically
+identical and use deterministic opaque IDs and reordered listings. The new three
+inference seeds are also disjoint from prior campaigns.
+
+Each invocation advances one complete economic-world block: three seeds in all
+eight surface-condition arms. Six failure-free checkpoints complete 144 scored
+rows. Four prompt-specific canaries are unscored. The conservative total ceiling is
+$2.24 and the absolute per-trajectory/canary ceiling is $2.96. Retries are limited to
+four attempts for typed rate limits, provider 5xx responses, or empty completions;
+all attempts and billed usage remain visible.
+
+The adaptive analysis reports temporal, cash, joint, factorial-main, and interaction
+contrasts after equal aggregation across surfaces and seeds within each world.
+Promotion of the joint gate requires lower mean regret overall, non-worse regret in
+each stratum, and no loss in feasibility, completed kits, or defer rate overall or by
+stratum. The six-world bootstrap intervals are exploratory. Eligibility depends only
+on complete replayed rows, exact cost accounting, and bound identities—not a
+favorable result.
+
+Print the no-spend frozen plan:
+
+```bash
+python -m aeread_families.procurement_allocation.risk_gate_campaign \
+  --run-root \
+  runs/procurement_allocation/procurement_allocation_glm53_flash_parasail_risk_gate_factorial_v4/qualification_attempt_001
+```
+
+After provider-free verification and loading `OPENROUTER_API_KEY`, add
+`--execute --max-spend-usd 2.96`. Continue each failure-free world checkpoint with
+`--resume`. Raw state remains under ignored `runs/`; publication is a separate
+`--publish-only` call to the matching direct `evidence/` bundle.
+
+### Risk-gate V1 operational audit
+
+V1 attempt 001 completed and replayed 77 scored rows before a typed HTTP 429 on the
+78th row exhausted its three action attempts. The upstream response supplied no
+`Retry-After`; the runner waited only 2.221 and 4.363 seconds. The failed row retained
+$0.000311355 of earlier successful-call cost exactly. Attempt 001 cost $0.2066673015
+including its four canaries, and remains sealed with 66 unattempted trajectories.
+
+Four later fresh admission attempts confirmed intermittent route throttling. Two
+stopped on their first zero-cost canary; two admitted some prompt shapes before a
+later canary failed. No scored rows ran in those roots. Across all V1 attempts, exact
+incurred cost was $0.2079232155. No partial efficacy contrast was inspected, and V1
+is permanently ineligible.
+
+V2 preserves all cases, economic pairing, prompt text and hashes, inference seeds,
+model revision, route, cost bounds, estimands, bootstrap, and progression thresholds.
+Its operational-only changes set the missing-`Retry-After` backoff base to 15 seconds
+(then 30), apply the same bounded retry policy to canaries, and space new canaries by
+10 seconds. V2 therefore receives a new campaign identity while retaining V1's
+scientific contract.
+
+### Risk-gate V2 operational audit and V3 correction
+
+V2 admitted all four prompt shapes and completed 93 scored rows. It recovered one
+provider-5xx response and two rate-limit responses under the preregistered pacing,
+then stopped on row 94: opaque joint, `landed_cash_freight`, seed `279557369`. The
+route returned nonempty structured-output text that was not valid JSON. The adapter
+misclassified that observed model response as a zero-cost `provider_contract`
+failure before the family parser could score it as `malformed_json`.
+
+V2 remains sealed and ineligible with 50 rows unattempted. Its ledgers retain
+$0.285769539 of exact known cost including canaries, but the terminal call's usage
+and cost are unavailable because the old exception path discarded the returned
+response metadata. No partial V2 efficacy contrasts were inspected.
+
+V3 preserves V2's cases, economics, prompts, hashes, seeds, model route, arm order,
+retry pacing, cost bounds, estimands, bootstrap, and progression thresholds. The
+adapter now retains nonempty malformed content as a successful billable provider
+response; procurement then terminates and scores it as an invalid model action.
+Admission canaries gate only transport readiness and record, but do not select on,
+model-output validity. These are measurement corrections, not changes to the
+scientific treatment.
+
+### Risk-gate V3 operational audit and V4 retry bound
+
+V3 completed and replayed 135 rows before stopping on row 136: opaque temporal,
+`landed_cash_moq`, seed `279557369`. Five calls in that trajectory succeeded, then
+one logical action received three consecutive HTTP 429 responses. With no
+`Retry-After` header, the runner waited 15.371 and 30.444 seconds before exhausting
+the three-attempt bound. Eight planned rows remain unattempted.
+
+Across completed V3 rows, six other rate limits and one provider-5xx response
+recovered under the declared policy. The sealed attempt cost $0.40121235 exactly,
+including canaries and the failed row's earlier successful calls. No partial V3
+efficacy contrast was inspected, and V3 is permanently ineligible.
+
+V4 preserves all scientific inputs and analysis rules from V3. Its only operational
+change raises the per-action attempt bound from three to four while retaining the
+15-second first backoff and 30-second cap. A fully throttled action therefore gets a
+final fourth request at approximately 75 seconds. V4 has a new campaign identity
+and must rerun all 144 rows from a fresh root.
+
+### Risk-gate V4 operational audit and next gate
+
+V4 attempt 001 admitted all four prompt shapes, then completed and replayed 13
+scored rows before stopping on row 14: opaque V4,
+`sample_schedule_symmetric`, seed `2094119875`. The first four logical actions in
+that trajectory succeeded; the third and fourth each recovered from one rate limit.
+The fifth action then received four consecutive HTTP 429 responses. With no
+`Retry-After` header, the runner waited 15.486, 30.649, and 30.717 seconds before
+exhausting the four-attempt bound. The endpoint catalog in every failure reported
+only one available route for the pinned model revision.
+
+The sealed attempt has one typed operational failure and 130 unattempted rows. It
+cost $0.0417325095 exactly, including all canaries and the failed row's successful
+calls. No partial V4 efficacy contrast was inspected. V4 attempt 001 is permanently
+ineligible and must not be resumed or scored.
+
+This audit does not justify a V5 with still more within-action retries: four failures
+already span roughly 77 seconds, so increasing the bound would mainly expose the
+campaign to a persistently unavailable shared route. The next GLM test is a fresh V4
+attempt under the identical frozen plan in a later availability window. A different
+model or provider belongs to a separately named campaign and cannot be pooled with
+V4; it should first pass an exact-request canary and a small complete case panel.

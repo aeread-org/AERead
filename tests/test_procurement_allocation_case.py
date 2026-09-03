@@ -404,6 +404,7 @@ def test_run_plan_pins_sources_and_openrouter_route() -> None:
         retrying_profile.harness.config["retry_backoff"]
         == "exponential_jitter_v1"
     )
+    assert retrying_profile.harness.config["retry_base_seconds"] == 2.0
     assert retrying_profile.harness.config["retry_after_max_seconds"] == 60.0
 
     with pytest.raises(ValueError, match="known-zero-cost"):

@@ -246,6 +246,7 @@ def test_strategy_plan_seals_retry_aware_parasail_route() -> None:
             "max_action_attempts": 3,
             "retryable_conditions": ["rate_limit", "provider_5xx"],
             "retry_backoff": "exponential_jitter_v1",
+            "retry_base_seconds": 2.0,
             "retry_after_max_seconds": 60.0,
             "session_mode": "restart",
             "sdk_retries": 0,

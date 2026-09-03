@@ -57,6 +57,17 @@ ACTION_TYPES = frozenset(
         "defer",
     }
 )
+INQUIRY_FIELDS = frozenset(
+    {
+        "exact_variant",
+        "moq_capacity",
+        "lead_time",
+        "shipping",
+        "quality",
+        "sample_logistics",
+        "return_refund_policy",
+    }
+)
 COUNTER_FIELDS = frozenset(
     {
         "unit_price_usd",
@@ -185,6 +196,12 @@ def _validate_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
         raise ValueError("policy required variants must match objective.bom")
     if not isinstance(inquiry_fields, list) or not inquiry_fields:
         raise ValueError("policy.inquiry_fields must be a non-empty array")
+    if (
+        any(not isinstance(field, str) for field in inquiry_fields)
+        or len(inquiry_fields) != len(set(inquiry_fields))
+        or not set(inquiry_fields) <= INQUIRY_FIELDS
+    ):
+        raise ValueError("policy.inquiry_fields contains unsupported or duplicate fields")
     if not isinstance(award_requires, list) or set(award_requires) != {
         "unexpired_formal_offer",
         "verified_sample",
@@ -1096,8 +1113,15 @@ class ProcurementAllocationPlugin:
                         "claimed_yield_rate": terms["quality"]["verified_yield_rate"],
                         "sample_required_for_verification": True,
                     }
-                else:
+                elif field == "sample_logistics":
+                    value = {
+                        key: terms["quality"][key]
+                        for key in ("sample_lead_time_days", "sample_cost_usd")
+                    }
+                elif field == "return_refund_policy":
                     value = _plain(terms["return_policy"])
+                else:  # validated case policy makes this unreachable
+                    raise ValueError(f"unsupported inquiry field: {field}")
                 claims[field] = {
                     "evidence_status": "verbal_claim",
                     "day": next_state["elapsed_days"],

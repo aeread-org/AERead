@@ -150,7 +150,9 @@ def planned_model_qualification(
     max_action_attempts: int = 1,
     retryable_conditions: Sequence[str] = (),
     retry_backoff: str | None = None,
+    retry_base_seconds: float = 2.0,
     retry_after_max_seconds: float = 60.0,
+    max_cost_usd_per_trajectory: float = 0.03,
 ) -> dict[str, Any]:
     if not inference_seeds:
         raise ValueError("inference_seeds cannot be empty")
@@ -160,6 +162,13 @@ def planned_model_qualification(
         raise ValueError("inference_seeds must be non-negative")
     if max_parallel_cells < 1:
         raise ValueError("max_parallel_cells must be positive")
+    if (
+        isinstance(max_cost_usd_per_trajectory, bool)
+        or not isinstance(max_cost_usd_per_trajectory, (int, float))
+        or not math.isfinite(float(max_cost_usd_per_trajectory))
+        or max_cost_usd_per_trajectory <= 0
+    ):
+        raise ValueError("max_cost_usd_per_trajectory must be finite and positive")
     if not prompt.strip() or not prompt_id.strip() or not treatment_id.strip():
         raise ValueError("prompt, prompt_id, and treatment_id cannot be empty")
     if max_new_trajectories is not None and max_new_trajectories < 1:
@@ -190,6 +199,13 @@ def planned_model_qualification(
         raise ValueError("declared retries require exponential_jitter_v1 backoff")
     if not retries_enabled and retry_backoff is not None:
         raise ValueError("retry_backoff requires declared retries")
+    if (
+        isinstance(retry_base_seconds, bool)
+        or not isinstance(retry_base_seconds, (int, float))
+        or not math.isfinite(float(retry_base_seconds))
+        or not 0 < float(retry_base_seconds) <= 30.0
+    ):
+        raise ValueError("retry_base_seconds must be finite and in (0, 30]")
     if (
         isinstance(retry_after_max_seconds, bool)
         or not isinstance(retry_after_max_seconds, (int, float))
@@ -232,6 +248,7 @@ def planned_model_qualification(
                 "max_action_attempts": max_action_attempts,
                 "retryable_conditions": list(resolved_retryable_conditions),
                 "retry_backoff": retry_backoff,
+                "retry_base_seconds": float(retry_base_seconds),
                 "retry_after_max_seconds": retry_after_max_seconds,
                 "session_mode": "restart",
                 "sdk_retries": 0,
@@ -251,7 +268,7 @@ def planned_model_qualification(
         "prompt_cache": "automatic provider behavior; observed and reported",
         "max_actions_per_trajectory": 10,
         "max_output_tokens_per_action": 1800,
-        "max_cost_usd_per_trajectory": 0.03,
+        "max_cost_usd_per_trajectory": float(max_cost_usd_per_trajectory),
         "conservative_cost_ceiling_usd": conservative_cost_ceiling(
             case_count=len(cases),
             seed_count=len(inference_seeds),
@@ -943,7 +960,9 @@ async def _run_cell(
     max_action_attempts: int,
     retryable_conditions: Sequence[str],
     retry_backoff: str | None,
+    retry_base_seconds: float,
     retry_after_max_seconds: float,
+    max_cost_usd_per_trajectory: float,
 ) -> dict[str, Any]:
     setup = build_openrouter_setup(
         candidate.route,
@@ -951,13 +970,14 @@ async def _run_cell(
         seed=inference_seed,
         max_output_tokens=1800,
         timeout_seconds=180.0,
-        max_cost_usd=0.03,
+        max_cost_usd=max_cost_usd_per_trajectory,
         harness=MinimalChatHarness(),
         prompt=prompt,
         prompt_id=prompt_id,
         max_action_attempts=max_action_attempts,
         retryable_conditions=retryable_conditions,
         retry_backoff=retry_backoff,
+        retry_base_seconds=retry_base_seconds,
         retry_after_max_seconds=retry_after_max_seconds,
     )
     cell = setup.plan.cells[0]
@@ -1098,7 +1118,9 @@ async def run_model_qualification(
     max_action_attempts: int = 1,
     retryable_conditions: Sequence[str] = (),
     retry_backoff: str | None = None,
+    retry_base_seconds: float = 2.0,
     retry_after_max_seconds: float = 60.0,
+    max_cost_usd_per_trajectory: float = 0.03,
 ) -> dict[str, Any]:
     cases = _case_records(case_paths)
     plan = planned_model_qualification(
@@ -1115,7 +1137,9 @@ async def run_model_qualification(
         max_action_attempts=max_action_attempts,
         retryable_conditions=retryable_conditions,
         retry_backoff=retry_backoff,
+        retry_base_seconds=retry_base_seconds,
         retry_after_max_seconds=retry_after_max_seconds,
+        max_cost_usd_per_trajectory=max_cost_usd_per_trajectory,
     )
     if plan["conservative_cost_ceiling_usd"] > max_spend_usd:
         raise ValueError(
@@ -1189,7 +1213,9 @@ async def run_model_qualification(
                     max_action_attempts=max_action_attempts,
                     retryable_conditions=retryable_conditions,
                     retry_backoff=retry_backoff,
+                    retry_base_seconds=retry_base_seconds,
                     retry_after_max_seconds=retry_after_max_seconds,
+                    max_cost_usd_per_trajectory=max_cost_usd_per_trajectory,
                 )
                 rows.append(row)
                 if row.get("status") == "operational_failure":
@@ -1210,7 +1236,9 @@ async def run_model_qualification(
                             max_action_attempts=max_action_attempts,
                             retryable_conditions=retryable_conditions,
                             retry_backoff=retry_backoff,
+                            retry_base_seconds=retry_base_seconds,
                             retry_after_max_seconds=retry_after_max_seconds,
+                            max_cost_usd_per_trajectory=max_cost_usd_per_trajectory,
                         )
                         for case_path, inference_seed in queued_missing
                     )
@@ -1252,6 +1280,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--master-seed", type=int, default=20260902)
     parser.add_argument("--max-spend-usd", type=float, default=0.30)
     parser.add_argument("--max-parallel-cells", type=int, default=2)
+    parser.add_argument("--max-cost-usd-per-trajectory", type=float, default=0.03)
     parser.add_argument("--execute", action="store_true")
     parser.add_argument("--resume", action="store_true")
     parser.add_argument("--publication-root", "--publish-evidence", type=Path)
@@ -1279,6 +1308,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                     case_paths=case_paths,
                     inference_seeds=seeds,
                     max_parallel_cells=arguments.max_parallel_cells,
+                    max_cost_usd_per_trajectory=arguments.max_cost_usd_per_trajectory,
                 ),
                 indent=2,
                 sort_keys=True,
@@ -1293,6 +1323,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             max_spend_usd=arguments.max_spend_usd,
             max_parallel_cells=arguments.max_parallel_cells,
             resume=arguments.resume,
+            max_cost_usd_per_trajectory=arguments.max_cost_usd_per_trajectory,
         )
     )
     if arguments.publication_root is not None:

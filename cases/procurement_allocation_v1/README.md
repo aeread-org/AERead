@@ -325,3 +325,32 @@ before either treatment. Add `--execute --max-spend-usd 2.30` for the first batc
 attempt. Publication is a separate `--publish-only` invocation targeting one direct
 `evidence/procurement_allocation_glm53_flash_parasail_strategy_confirmatory_v1/`
 bundle.
+
+## Held-out risk-gate factorial
+
+`risk_gates_v1/` contains six additional economic worlds created after the
+confirmatory V2 result was analyzed. Three isolate sample-schedule reasoning and
+three isolate landed-cash arithmetic. Each has a labeled and opaque/reordered
+surface with identical economics, and no development or confirmatory seed or case
+digest is reused.
+
+The sample-timing cases allow an explicit verbal `sample_logistics` inquiry. It
+reveals sample turnaround and cost but does not issue a formal offer, verify quality,
+or authorize an award. The landed-cash cases make low-sticker allocations exceed
+budget after freight, duty, or MOQ rounding while preserving a positive feasible
+alternative.
+
+Regenerate the cases without provider calls:
+
+```bash
+python -m aeread_families.procurement_allocation.risk_gate_case_matrix \
+  --surface labeled --write
+python -m aeread_families.procurement_allocation.risk_gate_case_matrix \
+  --surface opaque --write
+```
+
+The corresponding V2 campaign is an adaptive 2x2 prompt factorial, not a new
+confirmation of V4. Its four conditions are frozen V4, sample-schedule gate only,
+landed-cash gate only, and both gates together. V2 preserves the V1 scientific
+contract and adds slower bounded retry pacing after V1 was invalidated by repeated
+provider rate limits.

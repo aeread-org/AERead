@@ -136,6 +136,31 @@ def test_model_plan_can_bind_all_route_dependent_fields_to_another_candidate() -
     )
 
 
+def test_model_plan_binds_explicit_per_trajectory_cost_cap() -> None:
+    default_plan = planned_model_qualification(
+        case_paths=(CASE_PATH,), inference_seeds=(231,)
+    )
+    capped_plan = planned_model_qualification(
+        case_paths=(CASE_PATH,),
+        inference_seeds=(231,),
+        max_cost_usd_per_trajectory=0.02,
+    )
+
+    assert default_plan["max_cost_usd_per_trajectory"] == pytest.approx(0.03)
+    assert capped_plan["max_cost_usd_per_trajectory"] == pytest.approx(0.02)
+    assert default_plan["plan_sha256"] != capped_plan["plan_sha256"]
+
+
+@pytest.mark.parametrize("value", [0.0, -0.01, float("inf"), float("nan"), True])
+def test_model_plan_rejects_invalid_per_trajectory_cost_cap(value: float) -> None:
+    with pytest.raises(ValueError, match="max_cost_usd_per_trajectory"):
+        planned_model_qualification(
+            case_paths=(CASE_PATH,),
+            inference_seeds=(231,),
+            max_cost_usd_per_trajectory=value,
+        )
+
+
 def test_case_matrix_is_grounded_distinct_and_objectively_scorable() -> None:
     grounding = validate_grounding_snapshot()
     cases = build_case_matrix()
@@ -331,6 +356,55 @@ def test_model_campaign_batches_only_missing_rows_without_selective_retry(
     assert second["summary"]["readiness"]["execution_qualified"] is True
 
 
+def test_malformed_model_output_is_scored_not_operational_missingness(
+    tmp_path: Path,
+) -> None:
+    run_root = tmp_path / "runs" / CAMPAIGN_ID / "malformed_model_output"
+
+    class MalformedOutputProvider:
+        async def complete(self, request):
+            return ProviderResult(
+                response_id="malformed_fixture",
+                requested_model=request.model,
+                resolved_model=request.revision or request.model,
+                output_text='{"action":',
+                finish_reason="stop",
+                input_tokens=123,
+                cached_input_tokens=7,
+                output_tokens=45,
+                cost_usd=0.00001726,
+                raw_response={"fixture": True, "content": '{"action":'},
+            )
+
+    artifact = asyncio.run(
+        run_model_qualification(
+            run_root=run_root,
+            case_paths=(CASE_PATH,),
+            inference_seeds=(231,),
+            max_parallel_cells=1,
+            provider_factory=MalformedOutputProvider,
+            preflight_fn=lambda _candidate: {"route_verified": True},
+        )
+    )
+
+    row = artifact["rows"][0]
+    assert row["status"] == "completed"
+    assert row["decision"] == "failed"
+    assert row["termination_reason"] == "invalid_action"
+    assert row["violations"] == ["malformed_json"]
+    assert row["action_trace"] == [
+        {"ordinal": 1, "status": "agent_action_failure", "action": "unparseable"}
+    ]
+    assert row["provider_call_count"] == 1
+    assert row["input_tokens"] == 123
+    assert row["cached_input_tokens"] == 7
+    assert row["output_tokens"] == 45
+    assert row["cost_usd"] == pytest.approx(0.00001726)
+    assert row["cost_accounting"] == "exact"
+    assert artifact["summary"]["completed_trajectory_count"] == 1
+    assert artifact["summary"]["operational_failure_count"] == 0
+
+
 def test_campaign_aborts_after_first_operational_failure_and_cannot_resume(
     tmp_path: Path,
 ) -> None:
@@ -448,11 +522,62 @@ def test_declared_runner_retry_recovers_429_and_remains_visible(
         "max_action_attempts": 3,
         "retryable_conditions": ["rate_limit", "provider_5xx"],
         "retry_backoff": "exponential_jitter_v1",
+        "retry_base_seconds": 2.0,
         "retry_after_max_seconds": 60.0,
         "session_mode": "restart",
         "sdk_retries": 0,
         "cost_boundary": "retry only known-zero-cost provider failures",
     }
+
+
+def test_declared_retry_base_controls_missing_retry_after_delay(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    waits: list[float] = []
+
+    async def no_wait(seconds: float) -> None:
+        waits.append(seconds)
+
+    monkeypatch.setattr(execution_module.asyncio, "sleep", no_wait)
+
+    class RetryThenScriptProvider:
+        def __init__(self) -> None:
+            self.calls = 0
+            self.delegate = SequenceResponseProvider(_optimal_script())
+
+        async def complete(self, request):
+            self.calls += 1
+            if self.calls == 1:
+                raise ProviderFailure(
+                    "rate_limit",
+                    "synthetic throttle without Retry-After",
+                    retryable=True,
+                    status_code=429,
+                )
+            return await self.delegate.complete(request)
+
+    artifact = asyncio.run(
+        run_model_qualification(
+            run_root=tmp_path / "runs" / "procurement_retry_base_v1" / "attempt_001",
+            case_paths=(CASE_PATH,),
+            inference_seeds=(231,),
+            max_spend_usd=0.03,
+            max_parallel_cells=1,
+            campaign_id="procurement_retry_base_v1",
+            abort_on_operational_failure=True,
+            provider_factory=lambda: RetryThenScriptProvider(),
+            preflight_fn=lambda _candidate: {"route_verified": True},
+            max_action_attempts=3,
+            retryable_conditions=("rate_limit",),
+            retry_backoff="exponential_jitter_v1",
+            retry_base_seconds=15.0,
+        )
+    )
+
+    assert artifact["summary"]["completed_trajectory_count"] == 1
+    assert artifact["plan"]["retry_policy"]["retry_base_seconds"] == 15.0
+    assert len(waits) == 1
+    assert 15.0 <= waits[0] < 16.0
 
 
 def test_empty_response_retry_is_billed_and_visible(tmp_path: Path) -> None:

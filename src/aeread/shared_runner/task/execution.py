@@ -1226,17 +1226,20 @@ class OpenRouterChatClient:
             )
         try:
             structured_output = json.loads(content)
-        except json.JSONDecodeError as error:
-            raise ProviderFailure(
-                "provider_contract",
-                "OpenRouter structured output is not valid JSON",
-                retryable=False,
-            ) from error
+        except json.JSONDecodeError:
+            # The provider returned a completed, billable model response.  Keep
+            # it on the normal response path so the family parser can classify
+            # malformed model output as agent behavior instead of converting an
+            # observed response into operational missingness (and losing its
+            # usage/cost metadata).
+            output_text = content
+        else:
+            output_text = canonical_json_bytes(structured_output).decode("utf-8")
         return ProviderResult(
             response_id=str(raw_response.get("id") or ""),
             requested_model=request.model,
             resolved_model=selected_model,
-            output_text=canonical_json_bytes(structured_output).decode("utf-8"),
+            output_text=output_text,
             finish_reason=str(choice.get("finish_reason") or "unknown"),
             input_tokens=input_tokens,
             cached_input_tokens=cached_input_tokens,
@@ -2499,7 +2502,17 @@ class MinimalChatExecutor:
             return
         if policy != "exponential_jitter_v1":
             raise EvidenceIntegrityError(f"unsupported retry backoff policy: {policy!r}")
-        base_seconds = min(30.0, 2.0 * (2**ordinal))
+        retry_base_seconds = profile.harness.config.get("retry_base_seconds", 2.0)
+        if (
+            isinstance(retry_base_seconds, bool)
+            or not isinstance(retry_base_seconds, (int, float))
+            or not math.isfinite(float(retry_base_seconds))
+            or not 0 < float(retry_base_seconds) <= 30.0
+        ):
+            raise EvidenceIntegrityError(
+                "retry_base_seconds must be finite and in (0, 30]"
+            )
+        base_seconds = min(30.0, float(retry_base_seconds) * (2**ordinal))
         jitter_seconds = int(request.provider_call_id[-4:], 16) % 1000 / 1000.0
         declared_delay_seconds = base_seconds + jitter_seconds
         max_retry_after_seconds = profile.harness.config.get(
@@ -2535,6 +2548,7 @@ class MinimalChatExecutor:
                     and retry_after_seconds > float(max_retry_after_seconds)
                 ),
                 "retry_after_max_seconds": float(max_retry_after_seconds),
+                "retry_base_seconds": float(retry_base_seconds),
                 "attempt_ordinal": ordinal,
             },
             phase_instance_id=decision.phase_instance_id,

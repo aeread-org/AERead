@@ -941,6 +941,22 @@ def test_openrouter_adapter_preserves_empty_completion_for_visible_retry() -> No
     assert result.cost_usd == pytest.approx(0.00001726)
 
 
+def test_openrouter_adapter_preserves_malformed_model_output_and_exact_usage() -> None:
+    completions = FakeOpenRouterCompletions(content='{"offer":')
+    sdk = SimpleNamespace(chat=SimpleNamespace(completions=completions))
+    client = OpenRouterChatClient(sdk_client=sdk)
+
+    result = asyncio.run(client.complete(_openrouter_request()))
+
+    assert result.output_text == '{"offer":'
+    assert result.resolved_model == "deepseek/deepseek-v4-flash-20260731"
+    assert result.input_tokens == 123
+    assert result.cached_input_tokens == 7
+    assert result.output_tokens == 45
+    assert result.cost_usd == pytest.approx(0.00001726)
+    assert result.raw_response["choices"][0]["message"]["content"] == '{"offer":'
+
+
 def test_openrouter_adapter_omits_unavailable_sampling_controls() -> None:
     completions = FakeOpenRouterCompletions()
     sdk = SimpleNamespace(chat=SimpleNamespace(completions=completions))
