@@ -1,4 +1,8 @@
-"""Frozen held-out confirmation of the procurement V4 strategy scaffold."""
+"""Frozen held-out confirmation of the procurement V4 strategy scaffold.
+
+V2 preserves V1's scientific contract and changes only operational handling:
+billed empty completions are visible and may receive the declared bounded retry.
+"""
 
 from __future__ import annotations
 
@@ -47,7 +51,10 @@ from .strategy_scaffold import (
 
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
-CAMPAIGN_ID = "procurement_allocation_glm53_flash_parasail_strategy_confirmatory_v1"
+V1_CAMPAIGN_ID = (
+    "procurement_allocation_glm53_flash_parasail_strategy_confirmatory_v1"
+)
+CAMPAIGN_ID = "procurement_allocation_glm53_flash_parasail_strategy_confirmatory_v2"
 FROZEN_V4_PROMPT_SHA256 = (
     "9a9e69f8a513e40499f83fe3648a316c49461645033ef009f43a2be3c515a813"
 )
@@ -64,18 +71,23 @@ PARENT_EVIDENCE_FILE_SHA256 = (
     "8f10d0ca0313b5879cfaa6c81936743c2cf41cfbb6594f531d300c180ef0a86f"
 )
 MASTER_SEED = 20260903
-INFERENCE_SEEDS = derive_inference_seeds(
-    master_seed=MASTER_SEED,
-    count=3,
-    campaign_id=CAMPAIGN_ID,
+INFERENCE_SEEDS = tuple(
+    derive_inference_seeds(
+        master_seed=MASTER_SEED,
+        count=3,
+        campaign_id=V1_CAMPAIGN_ID,
+    )
 )
 BOOTSTRAP_SEED = 20260903
 BOOTSTRAP_RESAMPLES = 50_000
 CONFIRMATORY_BATCH_SIZE = 12
 CONFIRMATORY_MAX_PARALLEL_CELLS = 1
 MAX_ACTION_ATTEMPTS = 3
+CONFIRMATORY_RETRY_CONDITIONS = (*TRANSIENT_RETRY_CONDITIONS, "empty_response")
 RETRY_BACKOFF = "exponential_jitter_v1"
 RETRY_AFTER_MAX_SECONDS = 60.0
+MAX_TRAJECTORY_COST_USD = 0.03
+MAX_CANARY_COST_USD = 0.03
 METRICS = (
     "feasible",
     "completed_kits",
@@ -103,6 +115,7 @@ PUBLISHABLE_ROW_FIELDS = (
     "cached_input_tokens",
     "output_tokens",
     "cost_usd",
+    "cost_accounting",
     "provider_call_count",
     "runner_retry_count",
     "retry_condition_counts",
@@ -234,7 +247,7 @@ def build_plan() -> dict[str, Any]:
             treatment_id=spec["treatment_id"],
             max_new_trajectories=CONFIRMATORY_BATCH_SIZE,
             max_action_attempts=MAX_ACTION_ATTEMPTS,
-            retryable_conditions=TRANSIENT_RETRY_CONDITIONS,
+            retryable_conditions=CONFIRMATORY_RETRY_CONDITIONS,
             retry_backoff=RETRY_BACKOFF,
             retry_after_max_seconds=RETRY_AFTER_MAX_SECONDS,
         )
@@ -261,9 +274,18 @@ def build_plan() -> dict[str, Any]:
             }
         )
     plan: dict[str, Any] = {
-        "schema_version": "aeread.procurement_allocation_confirmatory_plan/0.1",
+        "schema_version": "aeread.procurement_allocation_confirmatory_plan/0.2",
         "campaign_id": CAMPAIGN_ID,
         "freeze_status": "confirmatory_frozen_before_live_execution",
+        "lineage": {
+            "supersedes_campaign_id": V1_CAMPAIGN_ID,
+            "v1_disposition": "sealed_ineligible_after_operational_failure",
+            "scientific_contract": "unchanged_from_v1",
+            "operational_changes_only": [
+                "retain billed usage for empty completions and failed trajectories",
+                "retry empty_response within the existing three-attempt action bound",
+            ],
+        },
         "parent_adaptive_evidence": {
             "path": str(PARENT_EVIDENCE_PATH.relative_to(REPOSITORY_ROOT)),
             "file_sha256": PARENT_EVIDENCE_FILE_SHA256,
@@ -282,6 +304,7 @@ def build_plan() -> dict[str, Any]:
         "world_pairs": world_pairs,
         "independent_world_count": len(world_pairs),
         "inference_seeds": list(INFERENCE_SEEDS),
+        "inference_seed_derivation_campaign_id": V1_CAMPAIGN_ID,
         "arm_execution_order": list(specs),
         "arms": arm_plans,
         "planned_trajectory_count": sum(
@@ -300,7 +323,21 @@ def build_plan() -> dict[str, Any]:
             float(arm["conservative_cost_ceiling_usd"])
             for arm in arm_plans.values()
         )
-        + 0.06,
+        + (2 * MAX_CANARY_COST_USD),
+        "hard_scored_cost_ceiling_usd": sum(
+            int(arm["planned_trajectory_count"]) * MAX_TRAJECTORY_COST_USD
+            for arm in arm_plans.values()
+        ),
+        "hard_total_cost_ceiling_usd": sum(
+            int(arm["planned_trajectory_count"]) * MAX_TRAJECTORY_COST_USD
+            for arm in arm_plans.values()
+        )
+        + (2 * MAX_CANARY_COST_USD),
+        "cost_accounting": {
+            "successful_provider_calls": "exact, including empty completions",
+            "failed_trajectories": "audited from the sealed event ledger",
+            "unknown_provider_outcomes": "lower_bound, never coerced to zero",
+        },
         "analysis": {
             "independent_unit": "economic world",
             "pairing": "condition within surface, then surfaces within world",
@@ -348,7 +385,7 @@ async def _representative_request(*, prompt: str, prompt_id: str) -> ProviderReq
         prompt=prompt,
         prompt_id=prompt_id,
         max_action_attempts=MAX_ACTION_ATTEMPTS,
-        retryable_conditions=TRANSIENT_RETRY_CONDITIONS,
+        retryable_conditions=CONFIRMATORY_RETRY_CONDITIONS,
         retry_backoff=RETRY_BACKOFF,
         retry_after_max_seconds=RETRY_AFTER_MAX_SECONDS,
     )
@@ -808,7 +845,7 @@ def _execution_status(run_root: Path, canaries: Mapping[str, Mapping[str, Any]])
 async def run_confirmatory_campaign(
     *,
     run_root: Path,
-    max_spend_usd: float = 2.30,
+    max_spend_usd: float = 4.38,
     resume: bool = False,
     provider_factory: Callable[[], Any] = OpenRouterChatClient,
     preflight_fn: Callable[[Any], Mapping[str, Any]] = preflight_candidate,
@@ -821,8 +858,8 @@ async def run_confirmatory_campaign(
     if resume and not run_root.exists():
         raise FileNotFoundError("cannot resume a confirmatory campaign that does not exist")
     plan = build_plan()
-    if float(plan["conservative_total_cost_ceiling_usd"]) > max_spend_usd:
-        raise ValueError("confirmatory conservative ceiling exceeds max_spend_usd")
+    if float(plan["hard_total_cost_ceiling_usd"]) > max_spend_usd:
+        raise ValueError("confirmatory hard ceiling exceeds max_spend_usd")
     plan_path = run_root / "campaign_plan.json"
     if plan_path.exists():
         if canonical_json_bytes(json.loads(plan_path.read_text())) != canonical_json_bytes(plan):
@@ -875,7 +912,7 @@ async def run_confirmatory_campaign(
                 treatment_id=spec["treatment_id"],
                 max_new_trajectories=remaining_batch,
                 max_action_attempts=MAX_ACTION_ATTEMPTS,
-                retryable_conditions=TRANSIENT_RETRY_CONDITIONS,
+                retryable_conditions=CONFIRMATORY_RETRY_CONDITIONS,
                 retry_backoff=RETRY_BACKOFF,
                 retry_after_max_seconds=RETRY_AFTER_MAX_SECONDS,
             )
@@ -1038,7 +1075,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--run-root", type=Path, required=True)
     parser.add_argument("--publication-root", type=Path)
-    parser.add_argument("--max-spend-usd", type=float, default=2.30)
+    parser.add_argument("--max-spend-usd", type=float, default=4.38)
     parser.add_argument("--execute", action="store_true")
     parser.add_argument("--resume", action="store_true")
     parser.add_argument("--publish-only", action="store_true")
@@ -1087,11 +1124,13 @@ if __name__ == "__main__":
 __all__ = [
     "BOOTSTRAP_RESAMPLES",
     "CAMPAIGN_ID",
+    "CONFIRMATORY_RETRY_CONDITIONS",
     "CONFIRMATORY_BATCH_SIZE",
     "CONFIRMATORY_MAX_PARALLEL_CELLS",
     "FROZEN_CONTROL_PROMPT_SHA256",
     "FROZEN_V4_PROMPT_SHA256",
     "INFERENCE_SEEDS",
+    "V1_CAMPAIGN_ID",
     "build_confirmatory_comparison",
     "build_plan",
     "publish_confirmatory_campaign",

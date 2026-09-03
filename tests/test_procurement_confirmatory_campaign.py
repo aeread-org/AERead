@@ -13,9 +13,11 @@ from aeread_families.procurement_allocation.case_matrix import CASE_VARIANCE_PAT
 from aeread_families.procurement_allocation.confirmatory_campaign import (
     BOOTSTRAP_RESAMPLES,
     CAMPAIGN_ID,
+    CONFIRMATORY_RETRY_CONDITIONS,
     FROZEN_CONTROL_PROMPT_SHA256,
     FROZEN_V4_PROMPT_SHA256,
     INFERENCE_SEEDS,
+    V1_CAMPAIGN_ID,
     build_confirmatory_comparison,
     build_plan,
     publish_confirmatory_campaign,
@@ -167,11 +169,16 @@ def test_confirmatory_plan_freezes_distribution_route_and_analysis() -> None:
     assert plan["planned_trajectory_count"] == 144
     assert plan["independent_world_count"] == 12
     assert plan["inference_seeds"] == list(INFERENCE_SEEDS)
+    assert plan["inference_seeds"] == [307864013, 878679105, 611671506]
+    assert plan["inference_seed_derivation_campaign_id"] == V1_CAMPAIGN_ID
     assert len(set(INFERENCE_SEEDS)) == 3
     assert plan["prompts"]["control_sha256"] == FROZEN_CONTROL_PROMPT_SHA256
     assert plan["prompts"]["treatment_sha256"] == FROZEN_V4_PROMPT_SHA256
     assert plan["conservative_scored_cost_ceiling_usd"] == pytest.approx(2.16)
     assert plan["conservative_total_cost_ceiling_usd"] == pytest.approx(2.22)
+    assert plan["hard_scored_cost_ceiling_usd"] == pytest.approx(4.32)
+    assert plan["hard_total_cost_ceiling_usd"] == pytest.approx(4.38)
+    assert plan["lineage"]["scientific_contract"] == "unchanged_from_v1"
     assert plan["analysis"]["bootstrap_resamples"] == BOOTSTRAP_RESAMPLES
     assert plan["analysis"]["no_early_efficacy_stopping"] is True
     assert plan["arm_execution_order"] == [
@@ -181,6 +188,11 @@ def test_confirmatory_plan_freezes_distribution_route_and_analysis() -> None:
         "opaque_treatment",
     ]
     assert all(arm["planned_trajectory_count"] == 36 for arm in plan["arms"].values())
+    assert all(
+        arm["retry_policy"]["retryable_conditions"]
+        == list(CONFIRMATORY_RETRY_CONDITIONS)
+        for arm in plan["arms"].values()
+    )
 
 
 def test_confirmatory_plan_rejects_prompt_drift(monkeypatch: pytest.MonkeyPatch) -> None:
