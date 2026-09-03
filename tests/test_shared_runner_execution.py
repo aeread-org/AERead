@@ -969,6 +969,18 @@ def test_openrouter_adapter_omits_unavailable_sampling_controls() -> None:
     assert "top_p" not in completions.kwargs
 
 
+def test_openrouter_adapter_omits_absent_reasoning_controls() -> None:
+    completions = FakeOpenRouterCompletions()
+    sdk = SimpleNamespace(chat=SimpleNamespace(completions=completions))
+    client = OpenRouterChatClient(sdk_client=sdk)
+    request = replace(_openrouter_request(), reasoning_effort=None).with_computed_hash()
+
+    asyncio.run(client.complete(request))
+
+    assert "reasoning" not in completions.kwargs["extra_body"]
+    assert "provider" in completions.kwargs["extra_body"]
+
+
 def test_openrouter_adapter_rejects_an_unpinned_selected_provider() -> None:
     completions = FakeOpenRouterCompletions(selected_provider="OpenInference")
     sdk = SimpleNamespace(chat=SimpleNamespace(completions=completions))
@@ -1196,6 +1208,24 @@ def test_openrouter_adapter_translates_native_messages_and_tools_preserving_call
     assert result.output_text == ""
     assert result.finish_reason == "tool_calls"
     assert result.resolved_model == "deepseek/deepseek-v4-flash-20260731"
+
+
+def test_openrouter_native_adapter_omits_absent_reasoning_controls() -> None:
+    completions = FakeOpenRouterNativeCompletions()
+    sdk = SimpleNamespace(chat=SimpleNamespace(completions=completions))
+    client = OpenRouterChatClient(sdk_client=sdk)
+    request = replace(
+        _openrouter_request(),
+        output_schema=None,
+        messages=(CanonicalMessage(role="user", content="please act"),),
+        tools=(),
+        reasoning_effort=None,
+    ).with_computed_hash()
+
+    asyncio.run(client.complete(request))
+
+    assert "reasoning" not in completions.kwargs["extra_body"]
+    assert "provider" in completions.kwargs["extra_body"]
 
 
 def test_openrouter_adapter_leaves_the_text_path_untouched_when_messages_is_none() -> None:

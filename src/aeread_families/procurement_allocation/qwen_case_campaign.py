@@ -43,7 +43,8 @@ from .model_campaign import (
 from .runner import PROMPT, SequenceResponseProvider, build_openrouter_setup
 
 
-CAMPAIGN_ID = "procurement_allocation_qwen3_30b_coreweave_case_variance_v1"
+V1_CAMPAIGN_ID = "procurement_allocation_qwen3_30b_coreweave_case_variance_v1"
+CAMPAIGN_ID = "procurement_allocation_qwen3_30b_coreweave_case_variance_v2"
 QWEN_CANDIDATE = next(
     candidate
     for candidate in OPEN_WEIGHT_CANDIDATES
@@ -118,6 +119,20 @@ def build_plan() -> dict[str, Any]:
         "schema_version": "aeread.procurement_allocation_candidate_campaign_plan/0.1",
         "campaign_id": CAMPAIGN_ID,
         "freeze_status": "frozen_before_live_execution",
+        "lineage": {
+            "supersedes_campaign_id": V1_CAMPAIGN_ID,
+            "v1_disposition": (
+                "sealed after admission rejection before scored execution; reported "
+                "cost was zero but accounting is unavailable because the adapter sent "
+                "an empty reasoning control and OpenRouter removed the pinned endpoint "
+                "at its parameter filter"
+            ),
+            "scientific_contract": "unchanged_from_v1",
+            "operational_changes_only": [
+                "omit the reasoning field when neither reasoning effort nor token "
+                "budget is declared"
+            ],
+        },
         "candidate": {
             "candidate_id": QWEN_CANDIDATE.candidate_id,
             "model": QWEN_CANDIDATE.route.model,
@@ -480,6 +495,7 @@ __all__ = [
     "HARD_TOTAL_COST_CEILING_USD",
     "PAIRED_INFERENCE_SEEDS",
     "QWEN_CANDIDATE",
+    "V1_CAMPAIGN_ID",
     "build_plan",
     "run_admission_canary",
     "run_campaign",

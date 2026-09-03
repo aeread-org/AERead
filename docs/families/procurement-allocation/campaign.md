@@ -139,9 +139,20 @@ and stops permanently on the first typed operational failure. Only a failure-fre
 checkpoint may resume. All 18 rows must complete and receipt-replay before outcomes
 are inspected or compared.
 
-The frozen plan digest is
-`fc7febffe7f3aa947a00c30821d7da87935c6ce12a7d39e275cf2155d3d57d02`.
-The conservative total ceiling is $0.1792 and the hard total ceiling is $0.19,
+V1 froze plan digest
+`fc7febffe7f3aa947a00c30821d7da87935c6ce12a7d39e275cf2155d3d57d02`,
+then stopped at admission before any scored trajectory. The exact request received
+HTTP 404 because the adapter serialized `reasoning: {}` despite the profile declaring
+no reasoning control. With parameter matching required, OpenRouter removed the
+otherwise eligible endpoint at its parameter-filter stage. The canary reported zero
+cost but marked accounting unavailable, so V1 is sealed and ineligible.
+
+V2 preserves V1's model, route, cases, seeds, prompt, harness, action budget,
+checkpoint policy, retries, cost bounds, and eligibility rule. Its only operational
+change omits the reasoning field when neither effort nor token budget is declared.
+The V2 frozen plan digest is
+`cef886b5f890c4a14c224a09ea4541ebfdbaacbbf872f633139827a7f42a08d5`.
+The conservative total ceiling remains $0.1792 and the hard total ceiling $0.19,
 including the canary. The claim remains a six-world curated-panel diagnostic, not a
 population model ranking or evidence that an open-source license determines quality.
 

@@ -8,12 +8,14 @@ import pytest
 
 import aeread_families.procurement_allocation.qwen_case_campaign as campaign_module
 from aeread.shared_runner.task.execution import ProviderFailure
+from aeread_families.procurement_grounding.bakeoff import OpenRouterBatchClient
 from aeread_families.procurement_allocation.case_matrix import CASE_VARIANCE_PATHS
 from aeread_families.procurement_allocation.qwen_case_campaign import (
     CAMPAIGN_ID,
     HARD_TOTAL_COST_CEILING_USD,
     PAIRED_INFERENCE_SEEDS,
     QWEN_CANDIDATE,
+    V1_CAMPAIGN_ID,
     build_plan,
     run_admission_canary,
     run_campaign,
@@ -27,6 +29,8 @@ def test_qwen_plan_freezes_matched_panel_route_and_budget() -> None:
 
     assert plan["campaign_id"] == CAMPAIGN_ID
     assert plan["freeze_status"] == "frozen_before_live_execution"
+    assert plan["lineage"]["supersedes_campaign_id"] == V1_CAMPAIGN_ID
+    assert plan["lineage"]["scientific_contract"] == "unchanged_from_v1"
     assert plan["candidate"] == {
         "candidate_id": "qwen3_30b_a3b_instruct_2507_coreweave",
         "model": "qwen/qwen3-30b-a3b-instruct-2507",
@@ -57,7 +61,7 @@ def test_qwen_plan_freezes_matched_panel_route_and_budget() -> None:
     assert scored["retry_policy"]["max_action_attempts"] == 3
     assert scored["retry_policy"]["retry_base_seconds"] == pytest.approx(15.0)
     assert plan["plan_sha256"] == (
-        "fc7febffe7f3aa947a00c30821d7da87935c6ce12a7d39e275cf2155d3d57d02"
+        "cef886b5f890c4a14c224a09ea4541ebfdbaacbbf872f633139827a7f42a08d5"
     )
 
 
@@ -96,6 +100,15 @@ def test_qwen_canary_admits_nonempty_malformed_output(tmp_path: Path) -> None:
     assert canary["output_contract_status"] == "malformed_json"
     assert canary["structured_action"] is None
     assert canary["provider_call_count"] == 1
+
+
+def test_qwen_batch_wire_omits_absent_reasoning_controls() -> None:
+    request = asyncio.run(campaign_module._representative_request())
+
+    body = OpenRouterBatchClient._wire_body(request)
+
+    assert "reasoning" not in body
+    assert "provider" in body
 
 
 def test_qwen_canary_retries_declared_rate_limit(

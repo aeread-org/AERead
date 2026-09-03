@@ -461,13 +461,14 @@ class OpenRouterBatchClient:
             },
             "tools": [],
             "stream": False,
-            "reasoning": (
-                {"effort": request.reasoning_effort}
-                if request.reasoning_effort is not None
-                else {}
-            ),
             "provider": provider_preferences,
         }
+        if request.reasoning_effort is not None:
+            body["reasoning"] = {"effort": request.reasoning_effort}
+        if request.reasoning_token_budget is not None:
+            body.setdefault("reasoning", {})["max_tokens"] = (
+                request.reasoning_token_budget
+            )
         if request.temperature is not None:
             body["temperature"] = request.temperature
         if request.top_p is not None:
