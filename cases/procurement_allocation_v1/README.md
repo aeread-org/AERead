@@ -188,3 +188,35 @@ python -m aeread_families.procurement_allocation.model_comparison \
   --audit-attempt-root runs/procurement_allocation/procurement_allocation_mistral_small4_case_variance_v1/qualification_attempt_002 \
   --publication-root evidence/procurement_allocation_mistral_small4_case_variance_v1
 ```
+
+## Deterministic public-observation policy baselines
+
+`policy_baselines` runs four local policies through the same scheduler, environment,
+measurement leaf, and receipt-replay path as the model campaigns:
+
+- `defer` establishes the explicit outside option;
+- `displayed_price_greedy` qualifies the cheapest visible listing first;
+- `listing_claim_fit` prioritizes overlap with the required variant claim; and
+- `semantic_hint` additionally uses suggestive supplier identifiers and names.
+
+The adaptive policies can inspect only the public observation serialized in each
+provider request. They request formal offers and exact-variant samples, use newly
+visible capacity, MOQ, lead time, quality, and landed-cost terms, and either submit a
+service-feasible award or explicitly defer. They never receive `private_terms` or the
+case object.
+
+The campaign pairs each policy across the labeled v2 and opaque/reordered v3 panels.
+Planning is offline and execution has zero provider cost:
+
+```bash
+python -m aeread_families.procurement_allocation.policy_baselines \
+  --run-root runs/procurement_allocation/procurement_allocation_public_policy_baselines_v1/qualification_attempt_001
+
+python -m aeread_families.procurement_allocation.policy_baselines \
+  --run-root runs/procurement_allocation/procurement_allocation_public_policy_baselines_v1/qualification_attempt_001 \
+  --publication-root evidence/procurement_allocation_public_policy_baselines_v1 \
+  --execute
+```
+
+These policies are diagnostic floors, not oracle substitutes. The deterministic
+full-information bound remains the certified reference.

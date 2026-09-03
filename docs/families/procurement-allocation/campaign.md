@@ -123,3 +123,18 @@ Each attempt therefore has zero completed trajectories, one typed operational
 failure, and 17 unattempted trajectories. The repeated failure rejects this route
 for the declared allocation campaign. It does not support a Mistral procurement
 score or a Mistral-versus-GLM ranking.
+
+## Public-observation policy controls
+
+The deterministic policy campaign supplies non-model floors and a negative control
+for the bundled supplier-label/order intervention. Each policy operates through the
+same Minimal Chat request boundary and can parse only the public observation. The
+environment still controls formal offers, samples, time, cost, feasibility, and the
+objective score.
+
+Immediate defer, displayed-price greedy, listing-claim fit, and semantic-hint
+policies run once on each of the six labeled and six opaque/reordered worlds. The
+economic world is the independent unit. The paired report requires 48 completed
+rows, exact receipt replay, invariant solver upper bounds, and zero provider cost.
+It reports policy outcomes separately and never treats a scripted policy as a model
+replicate or as the full-information oracle.
