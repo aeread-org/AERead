@@ -1,14 +1,18 @@
 """Tests for the govsim scripted harness and offline replayer (spec section 5).
 
-Follows ``tests/test_tau3_retail_replay.py``'s exact skip-with-marker
-convention (module-level skip when the pinned upstream checkout is absent,
-never a silently-passing fake): pure, provider-free structural tests run
-everywhere; tests that drive a genuine episode through the REAL kernel
-scheduler (``aeread.shared_runner.scheduler.run_episode``, via
+Per-test skip, never module-level (triage Finding 7: a module-level skip --
+this module's own convention before that fix, and still
+``tests/test_tau3_retail_replay.py``'s -- suppresses collection of every
+test in the file, including the bridge-INDEPENDENT ones below (JSON
+round-tripping, recorded-response ordering, mismatch reporting, harness
+behavior), hiding a regression in any of those behind a missing-checkout
+skip instead of running and failing it). Pure, provider-free structural
+tests run everywhere; tests that drive a genuine episode through the REAL
+kernel scheduler (``aeread.shared_runner.scheduler.run_episode``, via
 ``PluginRegistry``/``ScriptedGovsimHarness`` -- never the ad hoc
 ``_drive_episode`` loop ``tests/test_govsim_measurement.py`` uses for its
-own goldens) run for real against the pinned bridge and are skipped, never
-faked, otherwise.
+own goldens) run for real against the pinned bridge and are individually
+skipped, never faked, otherwise.
 
 Two full episodes are driven through the real scheduler here (spec's
 "drive at least 2 full episodes"): the checked-in
@@ -71,37 +75,41 @@ from aeread_families.govsim.replay import (
 CASES_DIR = Path("cases/govsim/v1")
 
 
-def _upstream_root() -> Path:
+def _find_upstream_root() -> Path | None:
+    """Locate the pinned upstream checkout, or report it missing -- never a
+    module-level skip (triage Finding 7: a module-level skip here would
+    suppress every bridge-INDEPENDENT test below too -- JSON round-tripping,
+    recorded-response ordering, mismatch reporting, and harness behavior --
+    hiding a regression in any of those instead of running and failing it).
+    Mirrors ``tests/test_govsim_measurement.py``'s identical per-test-skip
+    convention.
+    """
     candidate = os.environ.get(
         "AEREAD_GOVSIM_UPSTREAM_ROOT",
         "/Users/sunzeyu/Documents/econ benchmark/upstream-govsim",
     )
     root = Path(candidate)
     marker = root / "simulation" / "scenarios" / "common" / "environment" / "concurrent_env.py"
-    if not marker.is_file():
-        pytest.skip(
-            f"pinned upstream govsim checkout not found at {root}",
-            # Every bridge-gated test in this module needs the checkout, so
-            # skipping the whole module is the intent -- without this flag
-            # pytest treats a module-level skip as a collection error.
-            allow_module_level=True,
-        )
-    return root
+    return root if marker.is_file() else None
 
 
-UPSTREAM_ROOT = _upstream_root()
+UPSTREAM_ROOT = _find_upstream_root()
 
-try:
-    BRIDGE_PYTHON = discover_bridge_python(upstream_root=UPSTREAM_ROOT)
-except GovsimBridgeUnavailableError as error:
-    BRIDGE_PYTHON = None
-    _BRIDGE_SKIP_REASON = str(error)
+if UPSTREAM_ROOT is not None:
+    try:
+        BRIDGE_PYTHON = discover_bridge_python(upstream_root=UPSTREAM_ROOT)
+    except GovsimBridgeUnavailableError as error:
+        BRIDGE_PYTHON = None
+        _BRIDGE_SKIP_REASON = str(error)
+    else:
+        _BRIDGE_SKIP_REASON = ""
 else:
-    _BRIDGE_SKIP_REASON = ""
+    BRIDGE_PYTHON = None
+    _BRIDGE_SKIP_REASON = "pinned upstream govsim checkout not found"
 
 
 def _bridge() -> GovsimBridge:
-    if BRIDGE_PYTHON is None:
+    if UPSTREAM_ROOT is None or BRIDGE_PYTHON is None:
         pytest.skip(_BRIDGE_SKIP_REASON or "bridge python unavailable")
     return GovsimBridge(
         python_executable=BRIDGE_PYTHON, upstream_root=UPSTREAM_ROOT, timeout_seconds=120.0
@@ -570,6 +578,35 @@ def test_replayed_episode_recomputes_all_five_leaves_matching_the_live_scores(
             assert replay_envelope.primary.value == original_envelope.primary.value
 
 
+def test_govsim_scorer_is_callable_through_the_real_finalizer_seam_on_a_live_outcome(
+    live_sustainable: LiveRun,
+) -> None:
+    """Closes triage Finding 1 on a real episode's real recorded outcome.
+
+    ``family_evaluation.py``'s ``finalize_family_execution`` executes
+    ``plugin.build_scorer(family_case)(recorded_outcome, evidence_refs=...)``
+    directly on whatever ``build_scorer`` returns -- never through a named
+    method the way ``tests/test_govsim_measurement.py``'s goldens do
+    (``scorer.score_survival_months(terminal=...)``). Before the fix,
+    ``GovsimScorer`` had no ``__call__`` and this raised ``TypeError:
+    'GovsimScorer' object is not callable``. Uses ``live_sustainable.result
+    .outcome`` -- ``GovsimPlugin.outcome()``'s own output, produced by the
+    REAL kernel scheduler (``run_episode``), never a synthetic dict or the
+    ad hoc ``_drive_episode`` loop's raw ``terminal``.
+    """
+    scorer = m.build_scorer(dict(live_sustainable.case.payload))
+    assert callable(scorer)
+
+    score = scorer(live_sustainable.result.outcome, evidence_refs=("evt_outcome_0",))
+
+    assert score.status == "ok"
+    assert score.leaf.leaf_id == m.SURVIVAL_MONTHS_LEAF_ID
+    assert score.primary.value == 12.0  # full horizon, matches the golden above
+    assert score.reference_values == {}
+    assert "delta_vs_baseline" not in score.metrics
+    assert score.evidence_refs == ("evt_outcome_0",)
+
+
 def test_replay_and_verify_end_to_end_returns_a_matching_report(
     live_greedy: LiveRun,
 ) -> None:
@@ -602,6 +639,47 @@ def test_replay_and_verify_end_to_end_returns_a_matching_report(
     assert report.comparison.final_state_matches is True
     assert report.scores.leaves[m.NO_COLLAPSE_ESTIMAND_ID].status == "ok"
     assert report.scores.leaves[m.NO_COLLAPSE_ESTIMAND_ID].primary.value == 0.0
+
+
+def test_replay_and_verify_reports_not_comparable_when_no_original_is_supplied(
+    live_greedy: LiveRun,
+) -> None:
+    """Closes triage Finding 2: ``replay_and_verify(..., original=None)``
+    (this module's own documented "genuinely offline replay... no original
+    run in memory" case) sets ``comparison=None``. Before the fix,
+    ``ReplayReport.status`` returned ``"match"`` for every
+    ``comparison is None`` case -- indistinguishable from a genuine,
+    verified state-hash match against a real original. A caller that reads
+    ``status == "match"`` to mean "compared against an original and agreed"
+    would silently accept an UNCOMPARED replay as if it had.
+    """
+    recorded = record_episode(live_greedy.result)
+    replay_bridge = GovsimBridge(
+        python_executable=BRIDGE_PYTHON, upstream_root=UPSTREAM_ROOT, timeout_seconds=120.0
+    )
+    resolved_replay_plugin = _resolved_plugin(replay_bridge)
+    original_terminal = _plain(live_greedy.result.terminal)
+    baseline = _baseline_values(original_terminal, max_num_rounds=12)
+    scorer = m.build_scorer(dict(live_greedy.case.payload))
+
+    report = asyncio.run(
+        replay_and_verify(
+            cell=live_greedy.cell,
+            case=live_greedy.case,
+            plugin=resolved_replay_plugin,
+            scorer=scorer,
+            recorded=recorded,
+            baseline_survival_months=baseline["survival_months"],
+            baseline_total_harvest=baseline["total_harvest"],
+            baseline_gini=baseline["gini"],
+            # original omitted: no terminal state, outcome, phase hashes, or
+            # final state is compared with any original execution.
+        )
+    )
+
+    assert report.comparison is None
+    assert report.status == "not_comparable"
+    assert report.status != "match"
 
 
 def test_replay_case_mismatch_raises_a_typed_replay_error(live_greedy: LiveRun) -> None:

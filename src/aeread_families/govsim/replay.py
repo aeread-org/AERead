@@ -377,9 +377,17 @@ class ReplayReport:
 
     @property
     def status(self) -> str:
-        if self.comparison is not None and not self.comparison.matches:
-            return "mismatch"
-        return "match"
+        """``"match"``/``"mismatch"`` iff an original run was actually
+        compared against; ``"not_comparable"`` when ``comparison is None``
+        (a genuinely offline replay with no original run in memory -- see
+        ``replay_and_verify``'s own docstring). Never conflates "nothing
+        was compared" with "compared and agreed": a caller checking
+        ``status == "match"`` must not be able to mistake an uncompared
+        replay for a verified one.
+        """
+        if self.comparison is None:
+            return "not_comparable"
+        return "match" if self.comparison.matches else "mismatch"
 
 
 async def replay_and_verify(
