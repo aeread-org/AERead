@@ -345,6 +345,41 @@ capacity-limited offers. It should freeze V2 unchanged and include the unscaffol
 control so transfer, supplier-ID robustness, and split-capacity execution can be
 estimated without additional prompt tuning.
 
+### Frozen targeted Qwen holdout
+
+That next campaign is frozen as
+`procurement_allocation_qwen3_235b_google_holdout_v1`. It contains six new opaque
+economic worlds: two single-component splits, one dual-component split, one
+multi-unit BOM split, one capacity-limited 18-kit minimum-service allocation, and
+one budget-limited 18-kit allocation. All six have new economic-world digests
+relative to the development, prior confirmatory, and risk-gate panels. Their exact
+oracles are positive, use only public quote/sample/award actions, and require no more
+than the declared ten actions.
+
+The Qwen3 235B Google route, model revision, Minimal Chat harness, structured action
+schema, verifier, retry policy, six opaque cases, and three inference seeds are held
+fixed. The only paired intervention is the prompt: unscaffolded control versus the
+unchanged constraint-ledger V2 prompt. Supplier identifiers and display names are
+opaque in both arms, and listing order is deterministically shuffled before either
+prompt sees a case.
+
+The frozen plan digest is
+`5ae0b91427f07c024120de0e96698ceafe1343c55d95e07b867b5cc8c479efde`.
+It declares 36 scored trajectories, two unscored prompt-specific canaries, a
+$0.94704 conservative total ceiling, and a $1.14 hard ceiling. Execution is
+sequential and checkpoints every six rows. No efficacy inspection or early stopping
+is permitted; any operational failure seals the affected attempt.
+
+The independent unit is the economic world. Three seeds are averaged within world,
+then V2-minus-control effects are reported for feasibility, completed kits, margin,
+and regret with a deterministic six-world cluster bootstrap. The preregistered
+diagnostic support rule requires the regret interval upper bound below zero and the
+feasibility interval lower bound at least -0.05. That rule affects interpretation,
+not eligibility: any complete, digest-matched, receipt-replayed result with exact
+cost accounting is published, including a null or adverse effect. Because the worlds
+were targeted from prior failures, even a supported result is a residual-capability
+transfer diagnostic rather than broad confirmatory evidence.
+
 ## Public-observation policy controls
 
 The deterministic policy campaign supplies non-model floors and a negative control
