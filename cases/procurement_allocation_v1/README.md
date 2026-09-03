@@ -11,8 +11,11 @@ landed cost, verified yield, supplier return/refund recovery, working-capital co
 information-acquisition cost, and shortfall penalties. Deferring remains an explicit
 outside option.
 
-The development case uses synthetic supplier identities and economics calibrated to
+The development set uses synthetic supplier identities and economics calibrated to
 exercise the intended trade-offs. It does not represent live supplier commitments.
+The six-case variance panel selects component families from the frozen 231-project
+grounding snapshot, whose BOM counts remain demand proxies rather than production
+forecasts.
 
 ## Interaction contract
 
@@ -50,3 +53,67 @@ python -m aeread_families.procurement_allocation \
   --script /path/to/actions.json \
   --run-root /tmp/procurement-allocation-run
 ```
+
+## Fixed-model qualification
+
+The model campaign holds AERead Minimal Chat fixed as transport and evaluates
+GLM 5.3 Flash on the procurement objective. Harness choice is not an estimand.
+The recorded outcomes are feasibility, completed kits, contribution margin,
+regret to the deterministic upper bound, violations, and the public action
+trace. Without `--execute` the command prints the frozen plan and spends
+nothing:
+
+```bash
+python -m aeread_families.procurement_allocation.model_campaign \
+  --run-root \
+  runs/procurement_allocation/procurement_allocation_glm_morph_case_variance_v2/qualification_attempt_001
+```
+
+After loading `OPENROUTER_API_KEY`, execute the declared six-case by three-seed
+model qualification with:
+
+```bash
+python -m aeread_families.procurement_allocation.model_campaign \
+  --run-root \
+  runs/procurement_allocation/procurement_allocation_glm_morph_case_variance_v2/qualification_attempt_001 \
+  --replicates 3 \
+  --max-spend-usd 0.30 \
+  --execute
+```
+
+Use `--resume` only after an interrupted invocation. Existing completed or
+failed rows are digest-checked and never retried; only trajectories without a
+result row run. Operational failures remain missingness rather than zero-margin
+procurement outcomes. The pinned Morph route is preflighted before any missing
+trajectory runs, SDK retries are disabled, and the conservative three-seed
+spend ceiling is checked before execution.
+
+### Evidence locations
+
+The explicit run root is operational state and must remain under ignored
+`runs/`. It contains the frozen model plan, digest-bound result rows, sealed
+provider events, receipts, replay artifacts, locks, and resumable failure state.
+The campaign rejects any live output root under an `evidence` directory.
+
+If a run is promoted for review, publish only a compact sanitized record under
+`evidence/<publication_id>/`. That tracked bundle binds to
+the raw plan, result, receipt, and summary digests, but excludes provider
+payloads, full prompts, event logs, locks, and raw artifact stores. `docs/`
+contains explanatory material only; it is not an evidence location.
+
+Promotion is a separate, provider-free step:
+
+```bash
+python -m aeread_families.procurement_allocation.model_campaign \
+  --run-root \
+  runs/procurement_allocation/procurement_allocation_glm_morph_case_variance_v2/qualification_attempt_001 \
+  --publish-only \
+  --publication-root \
+  evidence/procurement_allocation_glm_morph_case_variance_v2
+```
+
+This qualification uses six distinct synthetic procurement worlds. Three
+inference seeds per world measure stochastic reliability; the six distinct BOM and
+economic configurations provide the declared minimum for a case-variance pilot.
+The result remains a bounded diagnostic on this curated panel, not a
+population-level model ranking.
