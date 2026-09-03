@@ -282,3 +282,31 @@ deadline seeds. However, all three MOQ/capacity seeds submitted quantities above
 selected offers' capacities. V3 adds the explicit split-capacity rule and failure-free
 batch checkpoints. Neither incomplete attempt is a treatment-effect estimate, and a
 held-out panel is still required for a confirmatory claim.
+
+## Confirmatory v1 holdout
+
+`confirmatory_v1/` contains twelve economic worlds created only after the V4
+strategy prompt was frozen. The labeled and opaque directories are paired mirrors:
+supplier identifiers, display names, and listing order change, while objectives,
+interaction costs, substantive listings, private terms, world seeds, and certified
+upper bounds remain invariant. No development world seed or case digest is reused.
+
+The holdout varies landed freight and duty, quality/refund tails, capacity and order
+steps, budget-gated counters, exact-variant decoys, borderline service, sample lead
+time, refund negotiation, financing terms, delivery reliability, multi-unit BOM
+arithmetic, and negotiated MOQ. Component families still come from the frozen
+231-project grounding snapshot; supplier economics remain synthetic.
+
+Regenerate and verify the manifests without provider calls:
+
+```bash
+python -m aeread_families.procurement_allocation.confirmatory_case_matrix \
+  --surface labeled --write
+python -m aeread_families.procurement_allocation.confirmatory_case_matrix \
+  --surface opaque --write
+```
+
+These cases become confirmatory evidence only under a separately frozen execution
+and analysis plan. Inspecting the oracle during case qualification is allowed;
+changing the V4 prompt or the outcome rule after live treatment results are visible
+requires a new campaign identity.
