@@ -1,6 +1,6 @@
 {
   "case_id": "refund_v1.curated.000005",
-  "content_sha256": "23d39902fb843ebf24acb1bbe4982cf09887962373863ced27797ae4a25691f5",
+  "content_sha256": "a06036984d1ac6c679c5fd67762f0ce040645013a4b9802f91e5565462c99d5d",
   "episode": {
     "max_logical_actions": 10,
     "termination": [
@@ -9,7 +9,7 @@
     ]
   },
   "family_id": "refund_v1",
-  "family_version": "1.1.0",
+  "family_version": "1.2.0",
   "payload": {
     "case_id": "refund_v1.curated.000005",
     "claim_text": "I would like help resolving my refund request.",
@@ -115,17 +115,26 @@
         "standard": "all customers not otherwise classified"
       },
       "utility_spec": {
+        "direct_authority_penalty": 125.0,
+        "direct_before_return_penalty": 100.0,
+        "direct_identity_risk_penalty": 125.0,
         "escalation_haircut": 5.0,
         "friction_per_message": 2.0,
+        "invalid_amount_penalty": 25.0,
         "invalid_denial_penalty": 25.0,
+        "invalid_return_request_penalty": 75.0,
+        "over_refund_multiplier": 1.5,
         "relationship_cap": 50.0,
         "relationship_rate": 0.2,
         "return_cost": 6.0,
         "review_cost": 8.0,
-        "spec_id": "refund_bilateral_utility_v1_1"
+        "spec_id": "refund_bilateral_utility_v1_2",
+        "unknown_decision_penalty": 150.0,
+        "wrong_method_penalty": 25.0,
+        "wrong_review_flag_penalty": 25.0
       },
-      "utility_spec_id": "refund_bilateral_utility_v1_1",
-      "version": "1.1.0"
+      "utility_spec_id": "refund_bilateral_utility_v1_2",
+      "version": "1.2.0"
     },
     "private_customer_truth": {
       "account_address": "verified",
@@ -169,7 +178,7 @@
   },
   "provenance": {
     "generator_id": "refund_curated_generator_v1",
-    "generator_version": "1.1.0",
+    "generator_version": "1.2.0",
     "review_status": "curated"
   },
   "seats": [
