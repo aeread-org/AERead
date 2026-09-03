@@ -190,6 +190,14 @@ failure-free checkpoint may continue only the declared missing case/seed rows wi
 operational failure permanently disqualifies the attempt, remains typed missingness,
 and is never resumed or included in the effect estimate.
 
+The runner also exposes the pinned GLM/Reka route as
+`--candidate-id glm53_flash_reka`. That selection receives a distinct campaign ID,
+panel IDs, provider metadata, and $0.5700 treatment ceiling. It does not reuse the
+qualified Morph controls: a route change requires new labeled and opaque
+unscaffolded controls on the same Reka route before a scaffold effect is eligible.
+This prevents provider implementation or quantization differences from being
+misreported as a prompt-treatment effect.
+
 The first v1 development attempt admitted its canary and completed one labeled
 trajectory before a typed HTTP 429 stopped the queue. That row reached an award in
 six actions instead of exhausting all ten, but it sampled and awarded formally late

@@ -20,9 +20,14 @@ from aeread.shared_runner.run.resolver import canonical_json_bytes
 from aeread.shared_runner.task.execution import (
     OpenRouterChatClient,
     ProviderRequest,
+    TokenPricing,
     execute_plan_cell,
 )
-from aeread_families.procurement_grounding.bakeoff import preflight_candidate
+from aeread_families.procurement_grounding.bakeoff import (
+    BakeoffCandidate,
+    preflight_candidate,
+)
+from aeread_families.procurement_grounding.runner import OpenRouterRoute
 
 from .blinded_invariance import (
     CAMPAIGN_ID as OPAQUE_CONTROL_CAMPAIGN_ID,
@@ -44,6 +49,33 @@ CAMPAIGN_ID = "procurement_allocation_glm_morph_strategy_scaffold_v3"
 TREATMENT_ID = "public_evidence_feasibility_and_capacity_procedure_v3"
 PROMPT_ID = "procurement_allocation_strategy_scaffold_v3"
 DEFAULT_BATCH_SIZE = 6
+GLM_REKA_CANDIDATE = BakeoffCandidate(
+    candidate_id="glm53_flash_reka",
+    route=OpenRouterRoute(
+        profile_id="procurement_glm53_flash_reka_v1",
+        model="z-ai/glm-5.3-flash",
+        revision="z-ai/glm-5.3-flash-20260826",
+        route_provider="Reka",
+        quantization="fp8",
+        pricing=TokenPricing(
+            input_per_million=0.15,
+            cached_input_per_million=0.03,
+            output_per_million=0.50,
+            pricing_id="openrouter_2026-09-03_glm53_flash_reka",
+        ),
+        max_prompt_price_per_million="0.15",
+        max_completion_price_per_million="0.50",
+        reasoning_effort="low",
+    ),
+    lane="standard",
+    access_class="open_source",
+    license_id="MIT",
+    model_card_url="https://huggingface.co/zai-org/GLM-5.3-Flash",
+)
+STRATEGY_CANDIDATES = {
+    GLM_MORPH_CANDIDATE.candidate_id: GLM_MORPH_CANDIDATE,
+    GLM_REKA_CANDIDATE.candidate_id: GLM_REKA_CANDIDATE,
+}
 STRATEGY_PROMPT = (
     CONTROL_PROMPT
     + """
@@ -88,6 +120,47 @@ PANELS = {
         "control_campaign_id": OPAQUE_CONTROL_CAMPAIGN_ID,
     },
 }
+
+
+def strategy_campaign_id(candidate: BakeoffCandidate) -> str:
+    """Return a route-specific identity without renaming the original campaign."""
+
+    if candidate.candidate_id == GLM_MORPH_CANDIDATE.candidate_id:
+        return CAMPAIGN_ID
+    return f"procurement_allocation_{candidate.candidate_id}_strategy_scaffold_v3"
+
+
+def _resolve_campaign_id(
+    candidate: BakeoffCandidate, campaign_id: str | None
+) -> str:
+    expected = strategy_campaign_id(candidate)
+    if campaign_id is not None and campaign_id != expected:
+        raise ValueError(
+            "campaign_id does not match the sealed strategy candidate: "
+            f"{campaign_id!r} != {expected!r}"
+        )
+    return expected
+
+
+def _panels_for(
+    campaign_id: str,
+    candidate: BakeoffCandidate = GLM_MORPH_CANDIDATE,
+) -> Mapping[str, Mapping[str, Any]]:
+    if campaign_id == CAMPAIGN_ID:
+        return PANELS
+    candidate_prefix = f"procurement_allocation_{candidate.candidate_id}"
+    control_campaign_ids = {
+        "labeled_original": f"{candidate_prefix}_case_variance_v2",
+        "opaque_reordered": f"{candidate_prefix}_blinded_invariance_v1",
+    }
+    return {
+        panel: {
+            **spec,
+            "treatment_campaign_id": f"{campaign_id}.{panel}",
+            "control_campaign_id": control_campaign_ids[panel],
+        }
+        for panel, spec in PANELS.items()
+    }
 DEFAULT_CONTROL_ROOTS = {
     "labeled_original": (
         REPOSITORY_ROOT
@@ -185,12 +258,18 @@ def _write_once_text(path: Path, value: str) -> None:
 
 
 def build_plan(
-    *, max_parallel_cells: int = 1, batch_size: int = DEFAULT_BATCH_SIZE
+    *,
+    max_parallel_cells: int = 1,
+    batch_size: int = DEFAULT_BATCH_SIZE,
+    candidate: BakeoffCandidate = GLM_MORPH_CANDIDATE,
+    campaign_id: str | None = None,
 ) -> dict[str, Any]:
     if max_parallel_cells < 1:
         raise ValueError("max_parallel_cells must be positive")
     if batch_size < 1:
         raise ValueError("batch_size must be positive")
+    resolved_campaign_id = _resolve_campaign_id(candidate, campaign_id)
+    panels = _panels_for(resolved_campaign_id, candidate)
     panel_plans = {
         panel: planned_model_qualification(
             case_paths=spec["case_paths"],
@@ -202,12 +281,13 @@ def build_plan(
             prompt_id=PROMPT_ID,
             treatment_id=TREATMENT_ID,
             max_new_trajectories=batch_size,
+            candidate=candidate,
         )
-        for panel, spec in PANELS.items()
+        for panel, spec in panels.items()
     }
     plan: dict[str, Any] = {
         "schema_version": "aeread.procurement_allocation_strategy_plan/0.1",
-        "campaign_id": CAMPAIGN_ID,
+        "campaign_id": resolved_campaign_id,
         "treatment_id": TREATMENT_ID,
         "prompt": {
             "prompt_id": PROMPT_ID,
@@ -216,11 +296,17 @@ def build_plan(
                 CONTROL_PROMPT.encode()
             ).hexdigest(),
         },
-        "model": GLM_MORPH_CANDIDATE.route.model,
-        "revision": GLM_MORPH_CANDIDATE.route.revision,
-        "provider": GLM_MORPH_CANDIDATE.route.route_provider,
+        "candidate_id": candidate.candidate_id,
+        "model": candidate.route.model,
+        "revision": candidate.route.revision,
+        "provider": candidate.route.route_provider,
+        "quantization": candidate.route.quantization,
         "panels": panel_plans,
-        "execution_order": list(PANELS),
+        "control_campaign_ids": {
+            panel: str(spec["control_campaign_id"])
+            for panel, spec in panels.items()
+        },
+        "execution_order": list(panels),
         "planned_trajectory_count": sum(
             int(panel_plan["planned_trajectory_count"])
             for panel_plan in panel_plans.values()
@@ -265,9 +351,11 @@ def build_plan(
     return plan
 
 
-async def _representative_provider_request() -> ProviderRequest:
+async def _representative_provider_request(
+    candidate: BakeoffCandidate,
+) -> ProviderRequest:
     setup = build_openrouter_setup(
-        GLM_MORPH_CANDIDATE.route,
+        candidate.route,
         case_path=CASE_VARIANCE_PATHS[0],
         seed=PAIRED_INFERENCE_SEEDS[0],
         max_output_tokens=1800,
@@ -330,23 +418,28 @@ def _failure_fields(error: BaseException) -> dict[str, Any]:
 
 
 async def run_admission_canary(
-    *, path: Path, provider_factory: Callable[[], Any] = OpenRouterChatClient
+    *,
+    path: Path,
+    provider_factory: Callable[[], Any] = OpenRouterChatClient,
+    candidate: BakeoffCandidate = GLM_MORPH_CANDIDATE,
+    campaign_id: str | None = None,
 ) -> dict[str, Any]:
-    request = await _representative_provider_request()
+    resolved_campaign_id = _resolve_campaign_id(candidate, campaign_id)
+    request = await _representative_provider_request(candidate)
     if path.exists():
         value = json.loads(path.read_text())
         recorded = value.get("artifact_sha256")
         payload = {key: item for key, item in value.items() if key != "artifact_sha256"}
         if recorded != hashlib.sha256(canonical_json_bytes(payload)).hexdigest():
             raise ValueError("admission canary digest mismatch")
-        if value.get("campaign_id") != CAMPAIGN_ID:
+        if value.get("campaign_id") != resolved_campaign_id:
             raise ValueError("admission canary campaign identity mismatch")
         if value.get("request_sha256") != request.request_sha256:
             raise ValueError("admission canary request identity mismatch")
         return value
     record: dict[str, Any] = {
         "schema_version": "aeread.provider_admission_canary/0.1",
-        "campaign_id": CAMPAIGN_ID,
+        "campaign_id": resolved_campaign_id,
         "attempted_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
         "request_sha256": request.request_sha256,
         "prompt_id": PROMPT_ID,
@@ -461,13 +554,17 @@ def build_strategy_comparison(
     *,
     treatment_run_root: Path,
     control_roots: Mapping[str, Path] = DEFAULT_CONTROL_ROOTS,
+    candidate: BakeoffCandidate = GLM_MORPH_CANDIDATE,
+    campaign_id: str | None = None,
 ) -> dict[str, Any]:
+    resolved_campaign_id = _resolve_campaign_id(candidate, campaign_id)
+    panels = _panels_for(resolved_campaign_id, candidate)
     prompt_sha = hashlib.sha256(STRATEGY_PROMPT.encode()).hexdigest()
     artifacts: dict[str, dict[str, Any]] = {}
     source: dict[str, Any] = {}
     integrity: dict[str, bool] = {}
     panel_results: dict[str, Any] = {}
-    for panel, spec in PANELS.items():
+    for panel, spec in panels.items():
         control, control_file_sha = _verified_summary(
             Path(control_roots[panel]), campaign_id=str(spec["control_campaign_id"])
         )
@@ -634,7 +731,7 @@ def build_strategy_comparison(
 
     comparison: dict[str, Any] = {
         "schema_version": "aeread.procurement_allocation_strategy_comparison/0.1",
-        "campaign_id": CAMPAIGN_ID,
+        "campaign_id": resolved_campaign_id,
         "treatment_id": TREATMENT_ID,
         "panels": panel_results,
         "surface_sensitivity": surface_sensitivity,
@@ -653,13 +750,20 @@ def build_strategy_comparison(
     return comparison
 
 
-def _execution_status(run_root: Path, canary: Mapping[str, Any]) -> dict[str, Any]:
+def _execution_status(
+    run_root: Path,
+    canary: Mapping[str, Any],
+    *,
+    campaign_id: str = CAMPAIGN_ID,
+    candidate: BakeoffCandidate = GLM_MORPH_CANDIDATE,
+) -> dict[str, Any]:
     plan = json.loads((run_root / "campaign_plan.json").read_text())
+    panels_spec = _panels_for(campaign_id, candidate)
     planned_trajectory_count = int(plan["planned_trajectory_count"])
     panels: dict[str, Any] = {}
     completed = failures = attempted = 0
     scored_cost = 0.0
-    for panel in PANELS:
+    for panel in panels_spec:
         path = run_root / panel / "summary.json"
         if not path.exists():
             panels[panel] = {"status": "not_started"}
@@ -688,7 +792,7 @@ def _execution_status(run_root: Path, canary: Mapping[str, Any]) -> dict[str, An
         scored_cost += float(summary["total_cost_usd"])
     status: dict[str, Any] = {
         "schema_version": "aeread.procurement_allocation_strategy_status/0.1",
-        "campaign_id": CAMPAIGN_ID,
+        "campaign_id": campaign_id,
         "canary": {
             key: canary.get(key)
             for key in (
@@ -734,7 +838,11 @@ async def run_strategy_campaign(
     resume: bool = False,
     provider_factory: Callable[[], Any] = OpenRouterChatClient,
     preflight_fn: Callable[[Any], Mapping[str, Any]] = preflight_candidate,
+    candidate: BakeoffCandidate = GLM_MORPH_CANDIDATE,
+    campaign_id: str | None = None,
 ) -> dict[str, Any]:
+    resolved_campaign_id = _resolve_campaign_id(candidate, campaign_id)
+    panels = _panels_for(resolved_campaign_id, candidate)
     resolved = run_root.resolve()
     if "runs" not in resolved.parts or {"evidence", "output", "outputs"}.intersection(
         resolved.parts
@@ -750,6 +858,8 @@ async def run_strategy_campaign(
     plan = build_plan(
         max_parallel_cells=max_parallel_cells,
         batch_size=batch_size,
+        candidate=candidate,
+        campaign_id=resolved_campaign_id,
     )
     if float(plan["conservative_total_cost_ceiling_usd"]) > max_spend_usd:
         raise ValueError("strategy campaign conservative ceiling exceeds max_spend_usd")
@@ -760,7 +870,7 @@ async def run_strategy_campaign(
             raise ValueError("existing strategy plan does not match this invocation")
     else:
         _write_once_json(plan_path, plan)
-    for panel in PANELS:
+    for panel in panels:
         summary_path = run_root / panel / "summary.json"
         if not summary_path.exists():
             continue
@@ -771,12 +881,15 @@ async def run_strategy_campaign(
                 "use a fresh attempt root"
             )
     canary = await run_admission_canary(
-        path=run_root / "admission_canary.json", provider_factory=provider_factory
+        path=run_root / "admission_canary.json",
+        provider_factory=provider_factory,
+        candidate=candidate,
+        campaign_id=resolved_campaign_id,
     )
     if canary["status"] == "admitted":
-        preflight = dict(preflight_fn(GLM_MORPH_CANDIDATE))
+        preflight = dict(preflight_fn(candidate))
         remaining_batch = batch_size
-        for panel, spec in PANELS.items():
+        for panel, spec in panels.items():
             panel_root = run_root / panel
             prior_row_count = 0
             panel_summary_path = panel_root / "summary.json"
@@ -802,6 +915,7 @@ async def run_strategy_campaign(
                 treatment_id=TREATMENT_ID,
                 max_new_trajectories=remaining_batch,
                 resume=panel_root.exists(),
+                candidate=candidate,
             )
             remaining_batch -= int(artifact["summary"]["row_count"]) - prior_row_count
             if artifact["summary"]["operational_failure_count"]:
@@ -811,13 +925,22 @@ async def run_strategy_campaign(
                 or remaining_batch < 1
             ):
                 break
-    status = _execution_status(run_root, canary)
+    status = _execution_status(
+        run_root,
+        canary,
+        campaign_id=resolved_campaign_id,
+        candidate=candidate,
+    )
     _atomic_replace_json(run_root / "campaign_status.json", status)
     return status
 
 
 def _sanitized_panel(
-    *, run_root: Path, panel: str, expected_campaign_id: str
+    *,
+    run_root: Path,
+    panel: str,
+    expected_campaign_id: str,
+    parent_campaign_id: str,
 ) -> dict[str, Any]:
     artifact, file_sha = _verified_summary(
         run_root / panel, campaign_id=expected_campaign_id
@@ -847,7 +970,7 @@ def _sanitized_panel(
         "panel": panel,
         "source": {
             "raw_summary_path": (
-                f"runs/procurement_allocation/{CAMPAIGN_ID}/{run_root.name}/"
+                f"runs/procurement_allocation/{parent_campaign_id}/{run_root.name}/"
                 f"{panel}/summary.json"
             ),
             "raw_summary_file_sha256": file_sha,
@@ -889,14 +1012,23 @@ def publish_strategy_campaign(
         != hashlib.sha256(canonical_json_bytes(plan_payload)).hexdigest()
     ):
         raise ValueError("campaign plan digest mismatch")
-    if plan.get("campaign_id") != CAMPAIGN_ID:
+    resolved_campaign_id = plan.get("campaign_id")
+    if not isinstance(resolved_campaign_id, str) or not resolved_campaign_id:
         raise ValueError("campaign plan identity mismatch")
+    candidate_id = plan.get("candidate_id")
+    candidate = STRATEGY_CANDIDATES.get(candidate_id)
+    if candidate is None or strategy_campaign_id(candidate) != resolved_campaign_id:
+        raise ValueError("campaign plan candidate identity mismatch")
+    if comparison.get("campaign_id") != resolved_campaign_id:
+        raise ValueError("strategy comparison campaign identity mismatch")
+    panels = _panels_for(resolved_campaign_id, candidate)
     artifacts: dict[str, str] = {}
-    for panel, spec in PANELS.items():
+    for panel, spec in panels.items():
         review = _sanitized_panel(
             run_root=run_root,
             panel=panel,
             expected_campaign_id=str(spec["treatment_campaign_id"]),
+            parent_campaign_id=resolved_campaign_id,
         )
         review["artifact_sha256"] = hashlib.sha256(
             canonical_json_bytes(review)
@@ -921,7 +1053,7 @@ def publish_strategy_campaign(
     ):
         raise ValueError("admission canary digest mismatch")
     if (
-        canary.get("campaign_id") != CAMPAIGN_ID
+        canary.get("campaign_id") != resolved_campaign_id
         or canary.get("status") != "admitted"
         or canary.get("scored") is not False
         or canary.get("prompt_id") != PROMPT_ID
@@ -943,7 +1075,7 @@ def publish_strategy_campaign(
     }
     fact: dict[str, Any] = {
         "schema_version": "aeread.procurement_allocation_strategy_manifest/0.1",
-        "campaign_id": CAMPAIGN_ID,
+        "campaign_id": resolved_campaign_id,
         "artifacts": {
             name: {"path": name, "sha256": sha} for name, sha in artifacts.items()
         },
@@ -958,8 +1090,8 @@ def publish_strategy_campaign(
     ).hexdigest()
     manifest: dict[str, Any] = {
         "schema_version": "aeread.publication_manifest/0.1",
-        "publication_id": CAMPAIGN_ID,
-        "campaign_id": CAMPAIGN_ID,
+        "publication_id": resolved_campaign_id,
+        "campaign_id": resolved_campaign_id,
         "artifacts": artifacts,
         "source_bindings": source_bindings,
         "privacy_boundary": {
@@ -973,7 +1105,7 @@ def publish_strategy_campaign(
     _write_once_json(publication_root / "publication_manifest.json", manifest)
     _write_once_text(
         publication_root / "README.md",
-        f"# {CAMPAIGN_ID}\n\n"
+        f"# {resolved_campaign_id}\n\n"
         "Sanitized, digest-bound evidence for the paired procurement strategy-scaffold "
         "campaign. Raw prompts, observations, provider payloads, event logs, and replay "
         "stores remain under the ignored `runs/` tree.\n",
@@ -984,6 +1116,12 @@ def publish_strategy_campaign(
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--run-root", type=Path, required=True)
+    parser.add_argument(
+        "--candidate-id",
+        choices=tuple(STRATEGY_CANDIDATES),
+        default=GLM_MORPH_CANDIDATE.candidate_id,
+        help="sealed model/provider route; campaign identity changes with this value",
+    )
     parser.add_argument(
         "--labeled-control-root",
         type=Path,
@@ -1002,6 +1140,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--resume", action="store_true")
     parser.add_argument("--publish-only", action="store_true")
     arguments = parser.parse_args(argv)
+    candidate = STRATEGY_CANDIDATES[arguments.candidate_id]
+    resolved_campaign_id = strategy_campaign_id(candidate)
     if arguments.execute and arguments.publish_only:
         parser.error("--execute and --publish-only are mutually exclusive")
     controls = {
@@ -1014,6 +1154,8 @@ def main(argv: Sequence[str] | None = None) -> int:
                 build_plan(
                     max_parallel_cells=arguments.max_parallel_cells,
                     batch_size=arguments.batch_size,
+                    candidate=candidate,
+                    campaign_id=resolved_campaign_id,
                 ),
                 indent=2,
                 sort_keys=True,
@@ -1028,6 +1170,8 @@ def main(argv: Sequence[str] | None = None) -> int:
                 max_parallel_cells=arguments.max_parallel_cells,
                 batch_size=arguments.batch_size,
                 resume=arguments.resume,
+                candidate=candidate,
+                campaign_id=resolved_campaign_id,
             )
         )
         if not status["summary"]["execution_qualified"]:
@@ -1038,7 +1182,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     if arguments.publication_root is None:
         parser.error("a qualified execution requires --publication-root")
     comparison = build_strategy_comparison(
-        treatment_run_root=arguments.run_root, control_roots=controls
+        treatment_run_root=arguments.run_root,
+        control_roots=controls,
+        candidate=candidate,
+        campaign_id=resolved_campaign_id,
     )
     _write_once_json(arguments.run_root / "strategy_comparison.json", comparison)
     manifest = publish_strategy_campaign(
@@ -1057,13 +1204,16 @@ if __name__ == "__main__":
 __all__ = [
     "CAMPAIGN_ID",
     "DEFAULT_BATCH_SIZE",
+    "GLM_REKA_CANDIDATE",
     "PANELS",
     "PROMPT_ID",
     "STRATEGY_PROMPT",
+    "STRATEGY_CANDIDATES",
     "TREATMENT_ID",
     "build_plan",
     "build_strategy_comparison",
     "publish_strategy_campaign",
     "run_admission_canary",
     "run_strategy_campaign",
+    "strategy_campaign_id",
 ]

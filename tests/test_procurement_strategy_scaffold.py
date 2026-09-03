@@ -22,6 +22,7 @@ from aeread_families.procurement_allocation.policy_baselines import (
 from aeread_families.procurement_allocation.runner import SequenceResponseProvider
 from aeread_families.procurement_allocation.strategy_scaffold import (
     CAMPAIGN_ID,
+    GLM_REKA_CANDIDATE,
     PANELS,
     PROMPT_ID,
     STRATEGY_PROMPT,
@@ -30,6 +31,7 @@ from aeread_families.procurement_allocation.strategy_scaffold import (
     build_strategy_comparison,
     publish_strategy_campaign,
     run_admission_canary,
+    strategy_campaign_id,
 )
 
 
@@ -172,6 +174,34 @@ def test_strategy_plan_binds_prompt_and_declares_paired_analysis() -> None:
         assert plan["panels"][panel]["max_new_trajectories_per_invocation"] == 6
 
 
+def test_strategy_plan_seals_alternate_route_under_distinct_campaign() -> None:
+    campaign_id = strategy_campaign_id(GLM_REKA_CANDIDATE)
+
+    plan = build_plan(candidate=GLM_REKA_CANDIDATE)
+
+    assert campaign_id != CAMPAIGN_ID
+    assert plan["campaign_id"] == campaign_id
+    assert plan["candidate_id"] == "glm53_flash_reka"
+    assert plan["provider"] == "Reka"
+    assert plan["quantization"] == "fp8"
+    assert plan["conservative_scored_cost_ceiling_usd"] == pytest.approx(0.54)
+    assert plan["conservative_total_cost_ceiling_usd"] == pytest.approx(0.57)
+    assert plan["control_campaign_ids"] == {
+        "labeled_original": (
+            "procurement_allocation_glm53_flash_reka_case_variance_v2"
+        ),
+        "opaque_reordered": (
+            "procurement_allocation_glm53_flash_reka_blinded_invariance_v1"
+        ),
+    }
+    for panel, panel_plan in plan["panels"].items():
+        assert panel_plan["campaign_id"] == f"{campaign_id}.{panel}"
+        assert panel_plan["provider"] == "Reka"
+
+    with pytest.raises(ValueError, match="does not match the sealed strategy candidate"):
+        build_plan(candidate=GLM_REKA_CANDIDATE, campaign_id=CAMPAIGN_ID)
+
+
 def test_strategy_canary_uses_treatment_prompt_and_is_unscored(tmp_path: Path) -> None:
     provider = SequenceResponseProvider(
         (json.dumps({"action": "defer", "reason": "test canary"}),)
@@ -193,6 +223,26 @@ def test_strategy_canary_uses_treatment_prompt_and_is_unscored(tmp_path: Path) -
     assert "Before considering price" in request.instructions
     assert "Request a sample only from an offer" in request.instructions
     assert "private_terms" not in request.input_text
+
+
+def test_strategy_canary_seals_alternate_route_identity(tmp_path: Path) -> None:
+    provider = SequenceResponseProvider(
+        (json.dumps({"action": "defer", "reason": "test canary"}),)
+    )
+    campaign_id = strategy_campaign_id(GLM_REKA_CANDIDATE)
+    path = tmp_path / "runs" / campaign_id / "admission_canary.json"
+
+    canary = asyncio.run(
+        run_admission_canary(
+            path=path,
+            provider_factory=lambda: provider,
+            candidate=GLM_REKA_CANDIDATE,
+        )
+    )
+
+    assert canary["campaign_id"] == campaign_id
+    assert canary["route_provider"] == "Reka"
+    assert provider.requests[0].provider_metadata["route_provider"] == "Reka"
 
 
 def test_strategy_campaign_resumes_only_a_failure_free_batch_checkpoint(

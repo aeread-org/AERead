@@ -260,6 +260,12 @@ with `--resume` only after a failure-free checkpoint. An unscored exact-request
 canary runs once, and any operational failure stops the remaining queue and
 permanently disqualifies that attempt root.
 
+To seal the same treatment to the alternate Reka endpoint, add
+`--candidate-id glm53_flash_reka` and use the route-specific campaign root printed
+by the dry-run plan. Its conservative treatment ceiling is $0.5700. Publication
+also requires new unscaffolded labeled and opaque controls from that same route;
+the runner deliberately rejects cross-provider controls.
+
 The analysis reports scaffold-minus-control effects separately on labeled/original
 and opaque/reordered cases after averaging seeds within each world. It also reports
 the change in the opaque-minus-labeled effect. Positive absolute surface-gap
