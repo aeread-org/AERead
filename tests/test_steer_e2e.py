@@ -33,7 +33,12 @@ from aeread.shared_runner.execution import EvidenceStore, TokenPricing, execute_
 from aeread.shared_runner.family_evaluation import finalize_family_execution
 from aeread.shared_runner.harness import default_harnesses
 from aeread.shared_runner.registry import HarnessRegistry, PluginRegistry, ProviderCapabilities
-from aeread.shared_runner.resolver import ImplementationPin, PlanCell, resolve_run_plan
+from aeread.shared_runner.resolver import (
+    ImplementationPin,
+    PlanCell,
+    canonical_json_bytes,
+    resolve_run_plan,
+)
 from aeread.shared_runner.schemas import (
     AgentProfile,
     AnalysisPlan,
@@ -164,16 +169,83 @@ def test_scripted_harness_runs_one_full_episode_per_declared_element(
     assert envelope.primary.value == 1.0
     assert envelope.primary.unit == "pass"
 
-    # Sealed evidence: the harness recorded exactly one event for the one
-    # submitted answer, and the seal is durable and self-verifying.
+    # Sealed evidence: the harness recorded one event for the submitted
+    # answer plus one for the score (finding 8, docs/steer_codex_triage.md --
+    # the seal is durable, self-verifying, and genuinely score-inclusive,
+    # not merely "this raw text was served").
+    harness.record_score(envelope)
     seal = evidence.seal()
-    assert seal.event_count == 1
+    assert seal.event_count == 2
     assert evidence.verify_seal() == seal
     events = evidence.read_events()
-    assert len(events) == 1
+    assert len(events) == 2
     payload = evidence.read_event_payload(events[0])
     assert payload["element"] == element
     assert payload["response_text"] == respond_text
+    score_payload = evidence.read_event_payload(events[1])
+    assert events[1].event_type == "score_recorded"
+    assert score_payload["primary_leaf_id"] == envelope.leaf.leaf_id
+    assert canonical_json_bytes(score_payload["score"]) == canonical_json_bytes(envelope)
+    evidence.close()
+
+
+# ---------------------------------------------------------------------------
+# Finding 8 (docs/steer_codex_triage.md): ``ScriptedSteerHarness`` only ever
+# sealed one evidence event -- "this raw text was served" -- and never a
+# score, so a harness-driven run's seal never certified "this outcome was
+# scored as X." ``record_score`` closes that gap, mirroring
+# ``aeread.shared_runner.family_evaluation.finalize_family_execution``'s own
+# score_recorded-before-seal convention exactly.
+# ---------------------------------------------------------------------------
+
+
+def test_scripted_harness_seals_a_score_recorded_event_before_the_evidence_seal(
+    tmp_path: Path,
+) -> None:
+    element = "transitivity"
+    row = _first_admitted_row(element)
+    case = _case(element, row["question_id"])
+    cell = _cell(case, suffix="score_recorded")
+    plugin = SteerPlugin(steer_data_root=CACHE_ROOT)
+    evidence = EvidenceStore(
+        tmp_path / "evidence",
+        run_plan_id="runplan_steer_e2e_score_recorded",
+        cell_id=cell.cell_id,
+        episode_id="episode_steer_e2e_score_recorded",
+        episode_attempt_id="attempt_1",
+    )
+    respond_text = json.dumps({"option_id": row["correct_option_id"]})
+    harness = ScriptedSteerHarness(
+        evidence=evidence, script=[("answer_question", respond_text)]
+    )
+
+    result = asyncio.run(
+        run_episode(cell=cell, case=case, plugin=plugin, response_source=harness)
+    )
+
+    family_case = plugin.validate_payload(case.payload)
+    scorer = plugin.build_scorer(family_case)
+    envelope = scorer.score(result.outcome)
+    assert envelope.status == "ok"
+
+    submission_event = harness.submission_events[-1]
+    score_event = harness.record_score(envelope)
+
+    # Before the fix, ``record_score`` did not exist at all -- the harness
+    # had no way to put the score into the durable evidence log. Now the
+    # seal covers two events, not one, and the second is the score.
+    seal = evidence.seal()
+    assert seal.event_count == 2
+    assert evidence.verify_seal() == seal
+    events = evidence.read_events()
+    assert len(events) == 2
+    assert events[0].event_id == submission_event.event_id
+    assert events[1].event_id == score_event.event_id
+    assert events[1].event_type == "score_recorded"
+    score_payload = evidence.read_event_payload(events[1])
+    assert score_payload["primary_leaf_id"] == envelope.leaf.leaf_id
+    assert score_payload["outcome_event_id"] == submission_event.event_id
+    assert canonical_json_bytes(score_payload["score"]) == canonical_json_bytes(envelope)
     evidence.close()
 
 
@@ -216,11 +288,17 @@ def test_scripted_harness_seals_evidence_for_an_illegal_submission(tmp_path: Pat
     assert envelope.status == "invalid_measurement"
     assert envelope.primary is None
 
+    # Even an invalid_measurement score is sealed alongside the submission --
+    # never silently dropped from the evidence bundle (finding 8).
+    harness.record_score(envelope)
     seal = evidence.seal()
-    assert seal.event_count == 1
+    assert seal.event_count == 2
     events = evidence.read_events()
     payload = evidence.read_event_payload(events[0])
     assert payload["response_text"] == respond_text
+    score_payload = evidence.read_event_payload(events[1])
+    assert events[1].event_type == "score_recorded"
+    assert canonical_json_bytes(score_payload["score"]) == canonical_json_bytes(envelope)
     evidence.close()
 
 
@@ -249,8 +327,14 @@ def test_scripted_harness_seals_evidence_for_a_malformed_submission(tmp_path: Pa
     assert result.outcome["termination_reason"] == "error"
     assert result.outcome["failure_code"] == "malformed_answer_json"
 
+    family_case = plugin.validate_payload(case.payload)
+    scorer = plugin.build_scorer(family_case)
+    envelope = scorer.score(result.outcome)
+    assert envelope.status == "invalid_measurement"
+
+    harness.record_score(envelope)
     seal = evidence.seal()
-    assert seal.event_count == 1
+    assert seal.event_count == 2
     evidence.close()
 
 

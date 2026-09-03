@@ -150,3 +150,41 @@ this pass's fix-confirmed-findings scope.
 No finding in this review was about the shared kernel/runner (`aeread.shared_runner`) --
 every confirmed finding was in the `steer` adapter's own code or docs, so nothing was
 appended to `ledger_entries/steer.md` from this pass.
+
+---
+
+## Codex-review findings
+
+Source: `docs/steer_codex_triage.md` (triage of the recovered Codex adversarial review;
+8 findings, all classified CONFIRMED there). Each is fixed here with a test that failed
+first for the right reason, then passed once the fix landed. None concerns the shared
+kernel/runner itself (finding 1's defect is a contract mismatch *exposed by* a
+shared-kernel caller, but the fix is local to this family), so nothing was appended to
+`ledger_entries/steer.md` from this section either.
+
+| # | Finding | Disposition | Regression test |
+|---|---|---|---|
+| 1 | Production finalization calls the scorer as a callable; `SteerScorer` only had `.score()` | Fixed | `tests/test_steer_e2e.py::test_finalize_family_execution_scores_a_real_steer_episode_through_the_production_path` |
+| 2 | False upstream pinning (commit never verified against a real checkout) | Fixed | `tests/test_steer_cases.py::test_bridge_refuses_to_flatten_against_an_upstream_checkout_at_the_wrong_commit`, `tests/test_steer_cases.py::test_bridge_refuses_an_upstream_root_that_is_not_a_git_checkout` |
+| 3 | Unauthenticated replay labeled `match` | Fixed | `tests/test_steer_replay.py::test_replay_report_status_distinguishes_an_uncompared_replay_from_a_verified_match` |
+| 4 | Circular golden oracles (goldens 1-4 only ever checked self-agreement with the cache) | Fixed | `tests/test_steer_cases.py::test_golden_1s_gold_option_is_independently_verified_against_the_raw_upstream_frame` |
+| 5 | Silent module-level test skips hide "steer's tests never ran" behind a green, exit-0 multi-module run | Fixed | `tests/test_steer_fixtures_required.py::test_a_missing_steer_cache_is_silently_green_by_default_in_a_multi_module_run`, `tests/test_steer_fixtures_required.py::test_a_missing_steer_cache_fails_the_run_when_fixtures_are_required` |
+| 6 | Missing per-question exclusion records (aggregate counts only) | Fixed | `tests/test_steer_cases.py::test_flatten_response_includes_a_per_question_exclusion_ledger_not_just_counts`, `tests/test_steer_cases.py::test_write_excluded_writes_the_full_ledger_matching_the_pins_content_hash` |
+| 7 | Vacuous Golden 5 (tautological by construction, never checks the classifier itself) | Fixed | `tests/test_steer_cases.py::test_golden_5s_sample_is_independently_verified_to_have_zero_correct_options` |
+| 8 | Unsealed score evidence (`ScriptedSteerHarness` sealed only the raw served text, never the score) | Fixed | `tests/test_steer_e2e.py::test_scripted_harness_seals_a_score_recorded_event_before_the_evidence_seal` (also: the three pre-existing harness-driven e2e tests now call the new `record_score` and assert on the sealed `score_recorded` event) |
+
+**Fix for #8** (this pass): `ScriptedSteerHarness` (`src/aeread_families/steer/harness.py`)
+gains `submission_events` bookkeeping and a `record_score(score)` method that appends a
+`score_recorded` event -- `primary_leaf_id`/`outcome_event_id`/`score`, mirroring
+`aeread.shared_runner.family_evaluation.finalize_family_execution`'s own
+score-before-seal convention exactly -- so a harness-driven episode's evidence seal
+certifies "this outcome was scored as X," not merely "this raw text was served." The new
+test fails with `AttributeError: 'ScriptedSteerHarness' object has no attribute
+'submission_events'` against the pre-fix code. `tests/test_steer_e2e.py`'s three existing
+harness-driven tests (`test_scripted_harness_runs_one_full_episode_per_declared_element`,
+`test_scripted_harness_seals_evidence_for_an_illegal_submission`,
+`test_scripted_harness_seals_evidence_for_a_malformed_submission`) were strengthened, not
+weakened, to call `record_score` and assert `seal.event_count == 2` (previously 1) with
+the second event's payload checked against the computed `ScoreEnvelope`.
+
+**Summary: 8 fixed, 0 refuted, 0 deferred to the ledger.**
