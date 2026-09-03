@@ -301,9 +301,10 @@ def test_campaign_explicitly_migrates_legacy_history_without_losing_source(
 def test_published_trajectory_examples_are_digest_bound_and_unranked() -> None:
     path = (
         CONTRACT_PATH.parents[1]
-        / "docs"
         / "evidence"
-        / "housing_population_crossplay_v0_trajectory_examples_2026-09-02.json"
+        / "housing_population_crossplay_v0"
+        / "trajectories"
+        / "selected_2026-09-02.json"
     )
     value = json.loads(path.read_bytes())
     core = {key: item for key, item in value.items() if key != "artifact_sha256"}
@@ -325,9 +326,10 @@ def test_published_trajectory_examples_are_digest_bound_and_unranked() -> None:
 def test_published_population_qualification_is_digest_bound() -> None:
     path = (
         CONTRACT_PATH.parents[1]
-        / "docs"
         / "evidence"
-        / "housing_population_crossplay_v0_qualification_2026-09-01.json"
+        / "housing_population_crossplay_v0"
+        / "reports"
+        / "qualification_2026-09-01.json"
     )
     value = json.loads(path.read_bytes())
     core = {key: item for key, item in value.items() if key != "artifact_sha256"}
@@ -343,9 +345,10 @@ def test_published_population_qualification_is_digest_bound() -> None:
 def test_published_population_requalification_is_digest_bound_and_blocked() -> None:
     path = (
         CONTRACT_PATH.parents[1]
-        / "docs"
         / "evidence"
-        / "housing_population_crossplay_v0_requalification_2026-09-02.json"
+        / "housing_population_crossplay_v0"
+        / "reports"
+        / "requalification_2026-09-02.json"
     )
     value = json.loads(path.read_bytes())
     core = {key: item for key, item in value.items() if key != "artifact_sha256"}

@@ -408,7 +408,7 @@ def test_scripted_housing_cli_returns_the_validated_receipt_identity(tmp_path) -
                 listings=1,
                 rounds=1,
                 attempt=0,
-                output=tmp_path,
+                run_root=tmp_path,
             )
         )
     )

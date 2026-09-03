@@ -1,15 +1,24 @@
 {
-  "artifact_sha256": "fe72be984ea800d7c131e8d49d76380161f84255f84b419898963f18f7eb32c2",
+  "artifact_sha256": "274fb7db2abf623a922cbc9ad2da6f28651549b0950eab8f214af0caaecf5ef9",
   "schema_version": "aeread.housing_backend_qualification/0.1",
-  "campaign_id": "housing_model_sensitivity_openrouter_alt_v3",
+  "campaign_id": "housing_model_sensitivity_openrouter_alt_v4",
   "created_date": "2026-09-02",
+  "contract_location_amendment": {
+    "executed_contract_sha256": "5314f5add601243d41369f4539b3dcc17a629857e0f70929ce44f0d2f9c7d205",
+    "current_contract_sha256": "c1952d49520816fc97bd486354a891f8e8c94c1941c45ac25457dabe831d8962",
+    "changed_fields": [
+      "source_case_selection.path",
+      "source_case_selection.fact_manifest_path"
+    ],
+    "reason": "Publication paths were normalized from docs/evidence into the top-level campaign bundle; executable cases, model controls, and world facts are unchanged."
+  },
   "status": "blocked_by_profile_admission",
   "claim_status": "development_backend_qualification_only",
   "winner_claim_allowed": false,
   "ranking_allowed": false,
   "source_case_selection": {
     "campaign_id": "housing_case_config_sweep_v1",
-    "artifact_sha256": "a1f8ec4230ea3cf579274cf5fbdf3464e50fae8b9e3439b16bec2c89941bd39c",
+    "artifact_sha256": "a4ace08e1504b66eabeb92ca22ec47be25cb034ce2c262e66d96265710e34727",
     "confirmatory_holdout_status": "sealed_not_executed"
   },
   "controls": {
@@ -20,7 +29,8 @@
     "temperature": 0.0,
     "top_p": 1.0,
     "sdk_retries": 0,
-    "hidden_retries": 0
+    "hidden_retries": 0,
+    "strict_structured_outputs_required": true
   },
   "backend": {
     "gateway": "openrouter",
@@ -30,12 +40,12 @@
       {
         "model_id": "glm_53_flash",
         "canonical_model": "z-ai/glm-5.3-flash-20260826",
-        "provider": "Reka",
+        "provider": "Phala",
         "quantization": "fp8",
         "input_per_million": 0.15,
         "cached_input_per_million": 0.03,
         "output_per_million": 0.5,
-        "max_completion_tokens": 235929
+        "max_completion_tokens": 131072
       },
       {
         "model_id": "deepseek_v4_flash",
@@ -53,39 +63,39 @@
     {
       "gate_id": "design",
       "status": "passed",
-      "artifact_sha256": "be960e763f6921d15b996fcf5286c22be3154f6230d97c0fd4939c0801d0f478",
+      "artifact_sha256": "a56310c7a3c8bbfd1cb58351bd71f53e19803a6ec8cc82d60afa7f4be7f3f671",
       "planned_trajectories": 12
     },
     {
       "gate_id": "provider_free",
       "status": "passed",
-      "artifact_sha256": "ca557a82d8f6788ffbfb7cdb51e01ac01f23aa90f31b215281d5689868e57903",
+      "artifact_sha256": "9c47c49f38a1a5ddb36426e89dab3082af61a01dc549adabf06a206c43a4211b",
       "provider_calls": 0,
       "cost_usd": 0.0
     },
     {
       "gate_id": "catalog_preflight",
       "status": "passed",
-      "artifact_sha256": "d02c399d9081539294b9c74413f4ab76b5478b56e421c872fd90bb8bbae46f57",
+      "artifact_sha256": "5f49b4a2a24bcdd52e6414a92b6a34e2d359e953fc54221e6de43d106f770dab",
       "provider_inference_calls": 0
     },
     {
       "gate_id": "profile_admission",
       "status": "failed_with_typed_missingness",
-      "artifact_sha256": "17d1e3a179e39ea1b832494b6ac1e2b61892dd08ee9626303be109aa39421711",
+      "artifact_sha256": "c1e8bb925565db201505f52795f2533294d68bb1c7b64ca033510cf34bfac8f4",
       "expected_probe_count": 18,
       "attempted_probe_count": 18,
-      "passed_probe_count": 14,
-      "operational_failures": 4,
+      "passed_probe_count": 10,
+      "operational_failures": 8,
       "hidden_retry_count": 0,
-      "observed_provider_reported_cost_usd": 0.0019847322,
+      "observed_provider_reported_cost_usd": 0.0038987487,
       "attempted_cost_upper_bound_usd": 0.054,
       "provider_cost_complete": false
     },
     {
       "gate_id": "live",
       "status": "blocked_by_profile_admission",
-      "artifact_sha256": "7c7ddd46557065f69e3aeba0ede87697730aab7df28743d07c1664e2dea58372",
+      "artifact_sha256": "566bef4bcc8ecb97136c4728388e2d0e646a57d714e4c508d19d048c4788b25f",
       "provider_calls": 0,
       "cost_usd": 0.0
     }
@@ -93,61 +103,62 @@
   "profile_results": [
     {
       "model_id": "glm_53_flash",
-      "provider": "Reka",
+      "provider": "Phala",
       "planned_probes": 9,
-      "passed_probes": 6,
-      "operational_failures": 3,
+      "passed_probes": 1,
+      "operational_failures": 8,
       "failure_breakdown": {
-        "rate_limit_429": 3
+        "invalid_admission_action": 5,
+        "provider_contract": 2,
+        "rate_limit_429": 1
       },
+      "observed_semantic_pattern": "All five semantically invalid responses used action where the frozen output schema required decision.",
       "schema_breakdown": {
         "housing_contact_v1": {
           "passed": 1,
           "failed": 2
         },
         "housing_commit_v1": {
-          "passed": 3,
-          "failed": 0
+          "passed": 0,
+          "failed": 3
         },
         "housing_respond_v1": {
-          "passed": 2,
-          "failed": 1
+          "passed": 0,
+          "failed": 3
         }
       },
-      "observed_provider_reported_cost_usd": 0.00047025
+      "observed_provider_reported_cost_usd": 0.0024397065
     },
     {
       "model_id": "deepseek_v4_flash",
       "provider": "Parasail",
       "planned_probes": 9,
-      "passed_probes": 8,
-      "operational_failures": 1,
-      "failure_breakdown": {
-        "invalid_admission_action": 1
-      },
+      "passed_probes": 9,
+      "operational_failures": 0,
+      "failure_breakdown": {},
       "schema_breakdown": {
         "housing_contact_v1": {
           "passed": 3,
           "failed": 0
         },
         "housing_commit_v1": {
-          "passed": 2,
-          "failed": 1
+          "passed": 3,
+          "failed": 0
         },
         "housing_respond_v1": {
           "passed": 3,
           "failed": 0
         }
       },
-      "observed_provider_reported_cost_usd": 0.0015144822
+      "observed_provider_reported_cost_usd": 0.0014590422
     }
   ],
-  "interpretation": "The OpenRouter-only V3 routes did not jointly qualify as reliable Housing role profiles. Reka rate limits prevented complete GLM admission, and one Parasail response used a semantically invalid commit decision. No Housing trajectory or model score was produced.",
-  "cost_note": "Observed cost covers the 15 calls that returned provider billing, including the semantically invalid DeepSeek response. Three failed Reka calls did not expose billing, so this record does not claim an exact total charge.",
+  "interpretation": "The OpenRouter-only V4 routes did not jointly qualify as reliable Housing role profiles. Parasail/DeepSeek completed every admission probe, while Phala/GLM showed repeated action-contract and provider-contract failures plus one rate limit. No Housing trajectory or model score was produced.",
+  "cost_note": "Observed cost covers the 15 calls that returned provider billing, including five semantically invalid GLM responses. Three failed Phala calls did not expose billing, so this record does not claim an exact total charge.",
   "stop_reason": "Profile admission failed; the campaign contract blocked the 12-cell live matrix without making a trajectory call.",
-  "next_gate": "Keep OpenRouter as the gateway. Before another model-to-model Housing attempt, freeze a fresh campaign identity with routes that pass the complete admission matrix; do not selectively retry V3 failures.",
+  "next_gate": "Diagnose GLM action-contract failures provider-free before freezing another OpenRouter-only campaign identity. Do not selectively retry V4 or treat DeepSeek admission as a Housing score.",
   "local_evidence": {
-    "path": "runs/housing_model_sensitivity_openrouter_alt_v3",
+    "path": "runs/housing_model_sensitivity_openrouter_alt_v4",
     "committed": false,
     "contains_raw_provider_evidence": true
   }

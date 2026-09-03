@@ -142,9 +142,9 @@ labels, and typed errors. Operational `harness_phase` remains independent of the
 
 `export_loss_analysis_dataset(...)` writes:
 
-- `runs.csv`, `tasks.csv`, and `model_calls.csv`;
-- `profiles.csv`, `model_features.csv`, and `benchmark_results.csv`;
-- `fact_manifest.json`, binding the three fact tables to the source plan and per-table digests;
+- `tables/runs.csv`, `tables/tasks.csv`, and `tables/model_calls.csv`;
+- `tables/profiles.csv`, `tables/model_features.csv`, and `tables/benchmark_results.csv`;
+- `tables/fact_manifest.json`, binding the three fact tables to the source plan and per-table digests;
 - `trajectories/selected/<run_id>__<task_id>.json`;
 - `trajectories/trajectory_index.csv` and `trajectories/archive.jsonl`; and
 - `data_dictionary.md`.
@@ -178,10 +178,12 @@ artifacts before exporting:
 ```bash
 aeread export-tables \
   --plan runs/<run_id>/run_plan.json \
-  --receipts runs/<run_id>/receipts/ \
+  --receipts runs/<run_id>/tasks/ \
   --evidence-root runs/<run_id>/ \
-  --output-dir analysis/<run_id>/
+  --publication-root evidence/<publication_id>/
 ```
+
+The complete directory contract is [artifact_layout.md](artifact_layout.md).
 
 ## Deliberate non-goals
 

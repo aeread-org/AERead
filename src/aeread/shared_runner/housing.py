@@ -116,6 +116,87 @@ HOUSING_COMMIT_OUTPUT_SCHEMA = {
     "additionalProperties": False,
 }
 
+# Version 2 makes the cross-field action invariants provider-visible.  Version
+# 1 remains available so already-sealed campaigns can still be reconstructed.
+HOUSING_CONTACT_OUTPUT_SCHEMA_V2 = {
+    "type": "object",
+    "oneOf": [
+        {
+            "properties": {
+                "decision": {"const": "pass"},
+                "listing_id": {"type": "null"},
+                "rent": {"type": "null"},
+            },
+            "required": ["decision", "listing_id", "rent"],
+            "additionalProperties": False,
+        },
+        {
+            "properties": {
+                "decision": {"const": "offer"},
+                "listing_id": {"type": "integer"},
+                "rent": {"type": "number", "minimum": 0},
+            },
+            "required": ["decision", "listing_id", "rent"],
+            "additionalProperties": False,
+        },
+    ],
+}
+
+HOUSING_RESPOND_OUTPUT_SCHEMA_V2 = {
+    "type": "object",
+    "oneOf": [
+        {
+            "properties": {
+                "decision": {"const": "reject_all"},
+                "offer_id": {"type": "null"},
+                "counter_rent": {"type": "null"},
+            },
+            "required": ["decision", "offer_id", "counter_rent"],
+            "additionalProperties": False,
+        },
+        {
+            "properties": {
+                "decision": {"const": "accept"},
+                "offer_id": {"type": "string", "minLength": 1},
+                "counter_rent": {"type": "null"},
+            },
+            "required": ["decision", "offer_id", "counter_rent"],
+            "additionalProperties": False,
+        },
+        {
+            "properties": {
+                "decision": {"const": "counter"},
+                "offer_id": {"type": "string", "minLength": 1},
+                "counter_rent": {"type": "number", "minimum": 0},
+            },
+            "required": ["decision", "offer_id", "counter_rent"],
+            "additionalProperties": False,
+        },
+    ],
+}
+
+HOUSING_COMMIT_OUTPUT_SCHEMA_V2 = {
+    "type": "object",
+    "oneOf": [
+        {
+            "properties": {
+                "decision": {"const": "pass"},
+                "hold_id": {"type": "null"},
+            },
+            "required": ["decision", "hold_id"],
+            "additionalProperties": False,
+        },
+        {
+            "properties": {
+                "decision": {"enum": ["sign", "walk"]},
+                "hold_id": {"type": "string", "minLength": 1},
+            },
+            "required": ["decision", "hold_id"],
+            "additionalProperties": False,
+        },
+    ],
+}
+
 HOUSING_TENANT_PROMPT = """You are one tenant in a scarce housing market.
 Use only your private observation and the public board. Other tenants' values and
 landlords' reservation costs are private. Return exactly one JSON object for the
@@ -1184,6 +1265,7 @@ def build_housing_smoke(
     openrouter_route: OpenRouterRoutePin = DEEPINFRA_HOUSING_ROUTE,
     tenant_harness: Any | None = None,
     tenant_harness_config: Mapping[str, Any] | None = None,
+    landlord_harness_config: Mapping[str, Any] | None = None,
     tenant_profile_id_override: str | None = None,
     tenant_max_logical_actions_override: int | None = None,
     tenant_runtime: str | None = None,
@@ -1500,6 +1582,7 @@ def build_housing_smoke(
             else None
         ),
         openrouter_route=resolved_landlord_route,
+        harness_config=landlord_harness_config,
     )
     tenant_seats = [f"tenant_{index}" for index in range(num_tenants)]
     landlord_seats = [f"landlord_{index}" for index in range(num_listings)]
@@ -1745,7 +1828,7 @@ async def _run_cli(arguments: argparse.Namespace) -> dict[str, Any]:
         plan=setup.plan,
         cell_id=setup.plan.cells[0].cell_id,
         registry=setup.registry,
-        evidence_root=arguments.output,
+        evidence_root=arguments.run_root,
         prompt_sources=setup.prompt_sources,
         providers={
             tenant_provider: tenant_client,
@@ -1785,7 +1868,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--listings", type=int, default=1)
     parser.add_argument("--rounds", type=int, default=1)
     parser.add_argument("--attempt", type=int, default=0)
-    parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument(
+        "--run-root", "--output", dest="run_root", type=Path, required=True
+    )
     arguments = parser.parse_args(argv)
     print(canonical_json_bytes(asyncio.run(_run_cli(arguments))).decode("utf-8"))
     return 0
@@ -1797,8 +1882,11 @@ if __name__ == "__main__":
 
 __all__ = [
     "HOUSING_COMMIT_OUTPUT_SCHEMA",
+    "HOUSING_COMMIT_OUTPUT_SCHEMA_V2",
     "HOUSING_CONTACT_OUTPUT_SCHEMA",
+    "HOUSING_CONTACT_OUTPUT_SCHEMA_V2",
     "HOUSING_RESPOND_OUTPUT_SCHEMA",
+    "HOUSING_RESPOND_OUTPUT_SCHEMA_V2",
     "HousingScriptedLandlordProvider",
     "HousingScriptedTenantProvider",
     "HousingSmokeSetup",

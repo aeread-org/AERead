@@ -152,7 +152,7 @@
     ]
   },
   "raw_local_evidence": {
-    "path": "outputs/procurement_grounding_open_weight_bakeoff_2026-08-31_v1/results.json",
+    "path": "runs/procurement_grounding_open_weight_bakeoff_2026-08-31_v1/results.json",
     "sha256": "d1648685dd11ec70a19d02204df97097655701c78188d61684e02047940d478f"
   },
   "limitations": [

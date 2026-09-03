@@ -370,11 +370,11 @@ def load_contract(path: str | Path) -> dict[str, Any]:
 
     outputs = value["outputs"]
     if outputs != {
-        "world_facts": "housing_case_facts.csv",
-        "config_summary": "housing_config_summary.csv",
-        "selected_configs": "selected_development_configs.json",
-        "fact_manifest": "fact_manifest.json",
-        "sweep_summary": "sweep_summary.json",
+        "world_facts": "tables/housing_case_facts.csv",
+        "config_summary": "tables/housing_config_summary.csv",
+        "selected_configs": "reports/selected_development_configs.json",
+        "fact_manifest": "tables/fact_manifest.json",
+        "sweep_summary": "reports/sweep_summary.json",
     }:
         raise ValueError("case-sweep output contract drifted")
     return value
@@ -795,11 +795,13 @@ def main(argv: Sequence[str] | None = None) -> int:
         default="configs/housing_case_config_sweep_v1.json",
     )
     parser.add_argument(
+        "--run-root",
         "--output",
+        dest="run_root",
         default="runs/housing_case_config_sweep_v1",
     )
     args = parser.parse_args(argv)
-    result = execute_sweep(contract_path=args.contract, output_dir=args.output)
+    result = execute_sweep(contract_path=args.contract, output_dir=args.run_root)
     print(canonical_json_bytes(result).decode("utf-8"))
     return 0
 

@@ -721,6 +721,10 @@ def test_loss_analysis_export_writes_relational_and_trajectory_files(tmp_path) -
         run_rows[0]["prompt_tokens"]
     )
 
+    assert paths["runs"] == output / "tables" / "runs.csv"
+    assert paths["tasks"] == output / "tables" / "tasks.csv"
+    assert paths["model_calls"] == output / "tables" / "model_calls.csv"
+    assert paths["profiles"] == output / "tables" / "profiles.csv"
     selected = output / "trajectories" / "selected" / (
         f"{plan.run_plan_id}__{evidence.cell_id}.json"
     )
@@ -763,7 +767,7 @@ def test_export_tables_cli_loads_and_reverifies_canonical_artifacts(
             str(receipt_path),
             "--evidence-root",
             str(evidence_path),
-            "--output-dir",
+            "--publication-root",
             str(tmp_path / "cli-export"),
         ]
     ) == 0

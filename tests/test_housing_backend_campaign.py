@@ -34,6 +34,26 @@ V3_CONTRACT_PATH = (
     / "configs"
     / "housing_model_sensitivity_openrouter_alt_v3.json"
 )
+V4_CONTRACT_PATH = (
+    Path(__file__).resolve().parents[1]
+    / "configs"
+    / "housing_model_sensitivity_openrouter_alt_v4.json"
+)
+V5_CONTRACT_PATH = (
+    Path(__file__).resolve().parents[1]
+    / "configs"
+    / "housing_model_sensitivity_openrouter_alt_v5.json"
+)
+V6_CONTRACT_PATH = (
+    Path(__file__).resolve().parents[1]
+    / "configs"
+    / "housing_model_sensitivity_openrouter_alt_v6.json"
+)
+V7_CONTRACT_PATH = (
+    Path(__file__).resolve().parents[1]
+    / "configs"
+    / "housing_model_sensitivity_openrouter_alt_v7.json"
+)
 
 
 def test_contract_pins_new_routes_and_requires_admission_before_live() -> None:
@@ -63,6 +83,75 @@ def test_v3_contract_stays_on_openrouter_with_reka_and_parasail() -> None:
     design = design_artifact(contract, routes=routes)
     assert design["status"] == "passed"
     assert design["planned_trajectories"] == 12
+
+
+def test_v4_contract_stays_on_openrouter_with_phala_and_parasail() -> None:
+    contract = load_contract(V4_CONTRACT_PATH)
+    routes = route_table(contract)
+
+    assert contract["campaign_id"] == "housing_model_sensitivity_openrouter_alt_v4"
+    assert contract["backend"]["gateway"] == "openrouter"
+    assert contract["backend"]["allow_fallbacks"] is False
+    assert contract["backend"]["require_parameters"] is True
+    assert routes["glm_53_flash"].provider == "Phala"
+    assert routes["deepseek_v4_flash"].provider == "Parasail"
+    assert contract["profile_admission"]["cost_ceiling_usd"] == 0.06
+
+    design = design_artifact(contract, routes=routes)
+    assert design["status"] == "passed"
+    assert design["planned_trajectories"] == 12
+
+
+def test_v5_contract_stays_on_openrouter_with_nextbit_and_parasail() -> None:
+    contract = load_contract(V5_CONTRACT_PATH)
+    routes = route_table(contract)
+
+    assert contract["campaign_id"] == "housing_model_sensitivity_openrouter_alt_v5"
+    assert contract["backend"]["gateway"] == "openrouter"
+    assert contract["backend"]["allow_fallbacks"] is False
+    assert contract["backend"]["require_parameters"] is True
+    assert routes["glm_53_flash"].provider == "NextBit"
+    assert routes["deepseek_v4_flash"].provider == "Parasail"
+    assert contract["profile_admission"]["cost_ceiling_usd"] == 0.06
+
+    design = design_artifact(contract, routes=routes)
+    assert design["status"] == "passed"
+    assert design["planned_trajectories"] == 12
+
+
+def test_v6_contract_adds_visible_empty_response_retries() -> None:
+    contract = load_contract(V6_CONTRACT_PATH)
+    routes = route_table(contract)
+
+    assert contract["campaign_id"] == "housing_model_sensitivity_openrouter_alt_v6"
+    assert routes["glm_53_flash"].provider == "NextBit"
+    assert routes["deepseek_v4_flash"].provider == "Parasail"
+    assert contract["controls"]["retryable_conditions"] == [
+        "length",
+        "rate_limit",
+        "provider_5xx",
+        "empty_response",
+    ]
+    assert contract["controls"]["max_action_attempts"] == 4
+    assert contract["controls"]["sdk_retries"] == 0
+
+
+def test_v7_profiles_bind_conditional_schemas_and_declared_retries() -> None:
+    contract = load_contract(V7_CONTRACT_PATH)
+    setups = build_setups(contract, routes=route_table(contract))
+
+    assert contract["controls"]["action_schema_version"] == "housing_actions/2.0"
+    assert contract["controls"]["wire_live_profile_controls"] is True
+    for setup in setups.values():
+        for profile in setup.plan.agent_profiles:
+            assert profile.retry_policy.retryable_conditions == (
+                "length",
+                "rate_limit",
+                "provider_5xx",
+                "empty_response",
+            )
+            schemas = profile.harness.config["output_schema_by_action_schema"]
+            assert all("oneOf" in schema for schema in schemas.values())
 
 
 def test_design_reuses_cases_but_assigns_new_profile_identities() -> None:
@@ -156,6 +245,7 @@ def test_catalog_preflight_requires_exact_active_seed_capable_routes(
                     "reasoning_effort",
                     "response_format",
                     "seed",
+                    "structured_outputs",
                     "temperature",
                     "top_p",
                 }
@@ -206,6 +296,7 @@ def test_catalog_preflight_rejects_an_endpoint_below_the_frozen_output_limit(
                     "reasoning_effort",
                     "response_format",
                     "seed",
+                    "structured_outputs",
                     "temperature",
                     "top_p",
                 }
@@ -221,6 +312,52 @@ def test_catalog_preflight_rejects_an_endpoint_below_the_frozen_output_limit(
     )
 
     with pytest.raises(ValueError, match="completion limit is too small"):
+        catalog_preflight(contract)
+
+
+def test_catalog_preflight_requires_strict_structured_outputs(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    contract = load_contract(V4_CONTRACT_PATH)
+
+    def fake_open(url: str, *, timeout: int) -> _CatalogResponse:
+        assert timeout == 30
+        model_id = (
+            "glm_53_flash" if "z-ai/glm-5.3-flash" in url else "deepseek_v4_flash"
+        )
+        model = contract["models"][model_id]
+        endpoint = {
+            "name": f"{model['provider']} | {model['canonical_model']}",
+            "provider_name": model["provider"],
+            "quantization": model["quantization"],
+            "pricing": {
+                "prompt": str(model["input_per_million"] / 1_000_000),
+                "input_cache_read": str(
+                    model["cached_input_per_million"] / 1_000_000
+                ),
+                "completion": str(model["output_per_million"] / 1_000_000),
+            },
+            "supported_parameters": sorted(
+                {
+                    "max_tokens",
+                    "reasoning_effort",
+                    "response_format",
+                    "seed",
+                    "temperature",
+                    "top_p",
+                }
+            ),
+            "status": 0,
+            "max_completion_tokens": 4096,
+        }
+        return _CatalogResponse(json.dumps({"data": {"endpoints": [endpoint]}}))
+
+    monkeypatch.setattr(
+        "aeread.shared_runner.housing_backend_campaign.urllib.request.urlopen",
+        fake_open,
+    )
+
+    with pytest.raises(ValueError, match="parameter support drifted"):
         catalog_preflight(contract)
 
 
@@ -290,9 +427,10 @@ def test_semantically_invalid_admission_retains_raw_response_and_billing(
 def test_published_backend_qualification_is_digest_bound() -> None:
     path = (
         CONTRACT_PATH.parents[1]
-        / "docs"
         / "evidence"
-        / "housing_model_sensitivity_openrouter_alt_v2_qualification_2026-09-02.json"
+        / "housing_model_sensitivity_openrouter_alt_v2"
+        / "reports"
+        / "qualification.json"
     )
     value = json.loads(path.read_bytes())
     core = {key: item for key, item in value.items() if key != "artifact_sha256"}
@@ -312,9 +450,10 @@ def test_published_backend_qualification_is_digest_bound() -> None:
 def test_published_v3_qualification_is_digest_bound_and_has_no_scores() -> None:
     path = (
         V3_CONTRACT_PATH.parents[1]
-        / "docs"
         / "evidence"
-        / "housing_model_sensitivity_openrouter_alt_v3_qualification_2026-09-02.json"
+        / "housing_model_sensitivity_openrouter_alt_v3"
+        / "reports"
+        / "qualification.json"
     )
     value = json.loads(path.read_bytes())
     core = {key: item for key, item in value.items() if key != "artifact_sha256"}
@@ -327,3 +466,100 @@ def test_published_v3_qualification_is_digest_bound_and_has_no_scores() -> None:
     assert value["gate_status"][-1]["provider_calls"] == 0
     assert "score" not in value
     assert value["ranking_allowed"] is False
+
+
+def test_published_v4_qualification_is_digest_bound_and_blocks_live() -> None:
+    path = (
+        V4_CONTRACT_PATH.parents[1]
+        / "evidence"
+        / "housing_model_sensitivity_openrouter_alt_v4"
+        / "reports"
+        / "qualification.json"
+    )
+    value = json.loads(path.read_bytes())
+    core = {key: item for key, item in value.items() if key != "artifact_sha256"}
+
+    assert (
+        value["artifact_sha256"]
+        == hashlib.sha256(canonical_json_bytes(core)).hexdigest()
+    )
+    assert value["gate_status"][-1]["status"] == "blocked_by_profile_admission"
+    assert value["gate_status"][-1]["provider_calls"] == 0
+    assert value["profile_results"][0]["passed_probes"] == 1
+    assert value["profile_results"][1]["passed_probes"] == 9
+    assert "score" not in value
+    assert value["ranking_allowed"] is False
+
+
+@pytest.mark.parametrize(
+    ("contract_path", "campaign_id", "expected_status"),
+    [
+        (
+            V5_CONTRACT_PATH,
+            "housing_model_sensitivity_openrouter_alt_v5",
+            "stopped_with_typed_missingness",
+        ),
+        (
+            V6_CONTRACT_PATH,
+            "housing_model_sensitivity_openrouter_alt_v6",
+            "blocked_by_profile_admission",
+        ),
+        (
+            V7_CONTRACT_PATH,
+            "housing_model_sensitivity_openrouter_alt_v7",
+            "stopped_with_typed_missingness",
+        ),
+    ],
+)
+def test_published_recent_qualifications_are_digest_bound(
+    contract_path: Path, campaign_id: str, expected_status: str
+) -> None:
+    path = (
+        contract_path.parents[1]
+        / "evidence"
+        / campaign_id
+        / "reports"
+        / "qualification.json"
+    )
+    value = json.loads(path.read_bytes())
+    core = {key: item for key, item in value.items() if key != "artifact_sha256"}
+
+    assert value["artifact_sha256"] == hashlib.sha256(
+        canonical_json_bytes(core)
+    ).hexdigest()
+    assert value["campaign_id"] == campaign_id
+    assert value["status"] == expected_status
+    assert value["ranking_allowed"] is False
+    assert value["winner_claim_allowed"] is False
+    assert value["contract_location_amendment"]["executed_contract_sha256"]
+    assert value["contract_location_amendment"]["current_contract_sha256"]
+    assert value["publication_policy"]["raw_provider_responses_included"] is False
+
+
+def test_published_v7_trajectories_are_digest_bound_and_non_rankable() -> None:
+    path = (
+        V7_CONTRACT_PATH.parents[1]
+        / "evidence"
+        / "housing_model_sensitivity_openrouter_alt_v7"
+        / "trajectories"
+        / "selected.json"
+    )
+    value = json.loads(path.read_bytes())
+    core = {key: item for key, item in value.items() if key != "artifact_sha256"}
+
+    assert value["artifact_sha256"] == hashlib.sha256(
+        canonical_json_bytes(core)
+    ).hexdigest()
+    assert len(value["trajectories"]) == 7
+    assert value["ranking_allowed"] is False
+    assert value["raw_provider_responses_included"] is False
+    assert value["model_reasoning_included"] is False
+    assert all(row["route_verified"] for row in value["trajectories"])
+    assert all(row["replay_verified"] for row in value["trajectories"])
+    assert all(row["provider_cost_complete"] for row in value["trajectories"])
+
+    qualification_path = path.parents[1] / "reports" / "qualification.json"
+    qualification = json.loads(qualification_path.read_bytes())
+    assert qualification["trajectory_export"]["artifact_sha256"] == value[
+        "artifact_sha256"
+    ]

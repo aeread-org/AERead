@@ -35,11 +35,11 @@ python -m pytest -q \
 ```
 
 Set `OPENROUTER_API_KEY`, then run a one-world qualification for AERead and
-LangChain. Use a disposable output directory for this gate:
+LangChain. Use a disposable run directory for this gate:
 
 ```bash
 PYTHONPATH=src python -m aeread.shared_runner.housing_harness_bakeoff \
-  --output outputs/housing-harness-gate \
+  --run-root runs/housing-harness-gate \
   --world-count 1 \
   --master-seed 20260831 \
   --arms aeread_minimal_chat_v1 langchain_provider_strategy_v1
@@ -50,7 +50,7 @@ loop can make many model requests for one AERead action:
 
 ```bash
 PYTHONPATH=src python -m aeread.shared_runner.housing_harness_bakeoff \
-  --output outputs/housing-smolagents-gate \
+  --run-root runs/housing-smolagents-gate \
   --world-count 1 \
   --master-seed 20260831 \
   --arms smolagents_tool_calling_agent_v1
@@ -62,7 +62,7 @@ output, and no tools, memory, subagents, or framework-owned retries:
 
 ```bash
 PYTHONPATH=src python -m aeread.shared_runner.housing_harness_bakeoff \
-  --output outputs/housing-langgraph-gate \
+  --run-root runs/housing-langgraph-gate \
   --world-count 1 \
   --master-seed 20260831 \
   --arms langgraph_structured_output_v1
@@ -73,7 +73,7 @@ position across worlds to reduce ordering effects:
 
 ```bash
 PYTHONPATH=src python -m aeread.shared_runner.housing_harness_bakeoff \
-  --output outputs/housing-harness-panel \
+  --run-root runs/housing-harness-panel \
   --world-count 3 \
   --master-seed 20260831 \
   --arms aeread_minimal_chat_v1 langchain_provider_strategy_v1
@@ -89,8 +89,8 @@ paired artifact:
 
 ```bash
 PYTHONPATH=src python -m aeread.shared_runner.housing_harness_leaderboard \
-  --bakeoff outputs/housing-harness-panel/summary.json \
-  --output-prefix outputs/housing-harness-panel/leaderboard
+  --bakeoff runs/housing-harness-panel/summary.json \
+  --report-prefix runs/housing-harness-panel/reports/leaderboard
 ```
 
 Use `--admission <artifact.json>` only when that single-action admission

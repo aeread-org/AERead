@@ -582,14 +582,16 @@ async def run_fixture_response(
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--response", type=Path, required=True)
-    parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument(
+        "--run-root", "--output", dest="run_root", type=Path, required=True
+    )
     parser.add_argument("--case", default=DEFAULT_CASE_SLUG)
     parser.add_argument("--attempt", type=int, default=0)
     arguments = parser.parse_args(argv)
     execution = asyncio.run(
         run_fixture_response(
             arguments.response.read_text(encoding="utf-8"),
-            evidence_root=arguments.output,
+            evidence_root=arguments.run_root,
             case_slug=arguments.case,
             episode_attempt_ordinal=arguments.attempt,
         )

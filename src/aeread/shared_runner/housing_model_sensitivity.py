@@ -23,6 +23,9 @@ from .housing import (
     DEEPINFRA_HOUSING_ROUTE,
     GLM_53_FLASH_MODEL,
     GLM_53_FLASH_REVISION,
+    HOUSING_COMMIT_OUTPUT_SCHEMA_V2,
+    HOUSING_CONTACT_OUTPUT_SCHEMA_V2,
+    HOUSING_RESPOND_OUTPUT_SCHEMA_V2,
     OpenRouterRoutePin,
     build_housing_smoke,
     finalize_housing_execution,
@@ -342,6 +345,38 @@ def build_setups(
 ) -> dict[tuple[str, str], Any]:
     setups: dict[tuple[str, str], Any] = {}
     controls = contract["controls"]
+    use_action_schemas_v2 = (
+        controls.get("action_schema_version") == "housing_actions/2.0"
+    )
+    tenant_harness_config = (
+        {
+            "output_schema_by_action_schema": {
+                "housing_contact_v1": HOUSING_CONTACT_OUTPUT_SCHEMA_V2,
+                "housing_commit_v1": HOUSING_COMMIT_OUTPUT_SCHEMA_V2,
+            }
+        }
+        if use_action_schemas_v2
+        else None
+    )
+    landlord_harness_config = (
+        {
+            "output_schema_by_action_schema": {
+                "housing_respond_v1": HOUSING_RESPOND_OUTPUT_SCHEMA_V2,
+            }
+        }
+        if use_action_schemas_v2
+        else None
+    )
+    live_profile_controls = (
+        {
+            "max_output_tokens_override": controls["max_output_tokens"],
+            "timeout_seconds_override": controls["timeout_seconds"],
+            "max_action_attempts_override": controls["max_action_attempts"],
+            "retryable_conditions_override": controls["retryable_conditions"],
+        }
+        if controls.get("wire_live_profile_controls") is True
+        else {}
+    )
     for config in selected_configs(contract):
         for condition in contract["conditions"]:
             subject = contract["models"][condition["subject"]]
@@ -378,7 +413,10 @@ def build_setups(
                     landlord_max_logical_actions_override=controls[
                         "landlord_max_logical_actions"
                     ],
+                    tenant_harness_config=tenant_harness_config,
+                    landlord_harness_config=landlord_harness_config,
                     evaluation_kind=condition["evaluation_kind"],
+                    **live_profile_controls,
                 )
             )
     return setups
@@ -471,7 +509,7 @@ def provider_free_artifact(contract: Mapping[str, Any]) -> dict[str, Any]:
     if fact_manifest.get("manifest_sha256") != _sha256(manifest_core):
         raise ValueError("case-sweep fact manifest identity drifted")
     facts_path = _source_path(
-        "docs/evidence/housing_case_config_sweep_v1/housing_case_facts.csv"
+        "evidence/housing_case_config_sweep_v1/tables/housing_case_facts.csv"
     )
     if fact_manifest.get("artifacts", {}).get("world_facts", {}).get(
         "sha256"
@@ -818,7 +856,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         default="configs/housing_model_sensitivity_v1.json",
     )
     parser.add_argument(
+        "--run-root",
         "--output",
+        dest="run_root",
         default="runs/housing_model_sensitivity_v1",
     )
     parser.add_argument(
@@ -830,7 +870,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     result = asyncio.run(
         execute_campaign(
             contract_path=args.contract,
-            output_root=args.output,
+            output_root=args.run_root,
             through=args.through,
         )
     )

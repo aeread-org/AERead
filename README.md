@@ -12,6 +12,7 @@
 **Start here:** [5-minute quickstart](docs/quickstart.md) ·
 [Concepts](docs/concepts.md) · [Benchmark QC](docs/benchmark_qc.md) ·
 [Experiment SOP](docs/experiment_campaign_sop.md) ·
+[Artifact layout](docs/artifact_layout.md) ·
 [Submit an agent](docs/submissions.md) ·
 [Integrations (rLLM, EverOS, yours)](integrations/README.md) ·
 [Contribute](CONTRIBUTING.md)
@@ -79,8 +80,8 @@ export OPENAI_API_KEY=...    # OpenRouter (or set OPENAI_BASE_URL for another pr
 
 aeread eval --cases 'cases/exchange_v1/v0/case0*.json' \
     --agents noop random greedy your-provider/your-model \
-    --seeds 5 --seed-base 1200 --workers 8 --out output/my_eval
-# -> output/my_eval/summary.json: pooled AER + bootstrap CI per agent, vs the baselines
+    --seeds 5 --seed-base 1200 --workers 8 --out runs/my_eval
+# -> runs/my_eval/summary.json: pooled AER + bootstrap CI per agent, vs the baselines
 ```
 
 Note: for configs with a `roles` block, the under-test model comes from the

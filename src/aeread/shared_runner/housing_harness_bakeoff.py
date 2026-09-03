@@ -828,7 +828,14 @@ async def run_bakeoff(
 
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument(
+        "--run-root",
+        "--output",
+        dest="run_root",
+        type=Path,
+        required=True,
+        help="ignored local run directory (legacy alias: --output)",
+    )
     parser.add_argument("--world-count", type=int, default=3)
     parser.add_argument("--master-seed", type=int, default=20260831)
     parser.add_argument("--tenants", type=int, default=6)
@@ -848,7 +855,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = parser.parse_args(argv)
     artifact = asyncio.run(
         run_bakeoff(
-            output_root=args.output,
+            output_root=args.run_root,
             world_seeds=derive_world_seeds(
                 master_seed=args.master_seed, count=args.world_count
             ),

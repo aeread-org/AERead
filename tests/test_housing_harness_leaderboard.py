@@ -16,9 +16,10 @@ from aeread.shared_runner.housing_harness_leaderboard import (
 from aeread.shared_runner.resolver import canonical_json_bytes
 
 
-EVIDENCE = Path(__file__).parents[1] / "docs" / "evidence"
-BAKEOFF = EVIDENCE / "housing_open_harness_bakeoff_2026-08-31.json"
-ADMISSION = EVIDENCE / "housing_open_harness_admission_2026-08-31.json"
+EVIDENCE = Path(__file__).parents[1] / "evidence"
+PUBLICATION = EVIDENCE / "housing_open_harness_2026-08-31"
+BAKEOFF = PUBLICATION / "reports" / "bakeoff.json"
+ADMISSION = PUBLICATION / "qc" / "admission.json"
 
 
 def _inputs() -> tuple[dict, dict]:

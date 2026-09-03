@@ -158,15 +158,15 @@
   },
   "raw_local_evidence": [
     {
-      "path": "outputs/procurement_grounding_openrouter_standard_bakeoff_2026-08-31_v5/results.json",
+      "path": "runs/procurement_grounding_openrouter_standard_bakeoff_2026-08-31_v5/results.json",
       "sha256": "4a6f81e3fe1ab1e769391d7daaf2f33b4e57daa630685b774b348d72e0da4bf6"
     },
     {
-      "path": "outputs/procurement_grounding_openrouter_gpt_bakeoff_2026-08-31_v6/results.json",
+      "path": "runs/procurement_grounding_openrouter_gpt_bakeoff_2026-08-31_v6/results.json",
       "sha256": "9042a6d799d6441ea17b79943689bf1ee409e0f472e618baba650659f7ef6bdf"
     },
     {
-      "path": "outputs/procurement_grounding_openrouter_batch_bakeoff_2026-08-31_v8/results.json",
+      "path": "runs/procurement_grounding_openrouter_batch_bakeoff_2026-08-31_v8/results.json",
       "sha256": "27f9e64ab327a25547a72ae1203ce900ed3faf0354b40ea83b73701881c0ed56"
     }
   ],

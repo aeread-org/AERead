@@ -170,7 +170,7 @@ Run it with:
 ```bash
 python -m aeread.shared_runner.housing_case_sweep \
   --contract configs/housing_case_config_sweep_v1.json \
-  --output runs/housing_case_config_sweep_v1
+  --run-root runs/housing_case_config_sweep_v1
 ```
 
 The output contains:
@@ -183,7 +183,7 @@ The output contains:
 - `sweep_summary.json`: completion, provider-call, cost, and holdout status.
 
 The frozen development result is published in
-[`docs/evidence/housing_case_config_sweep_v1`](evidence/housing_case_config_sweep_v1/).
+[`evidence/housing_case_config_sweep_v1`](../evidence/housing_case_config_sweep_v1/).
 All 288 development worlds completed without a provider call; 14 of 18
 configurations passed the declared admission rule. The selected panel is:
 
@@ -242,12 +242,12 @@ Run the free gates, then the paid integration gate:
 ```bash
 python -m aeread.shared_runner.housing_model_sensitivity \
   --contract configs/housing_model_sensitivity_v1.json \
-  --output runs/housing_model_sensitivity_v1 \
+  --run-root runs/housing_model_sensitivity_v1 \
   --through provider_free
 
 python -m aeread.shared_runner.housing_model_sensitivity \
   --contract configs/housing_model_sensitivity_v1.json \
-  --output runs/housing_model_sensitivity_v1 \
+  --run-root runs/housing_model_sensitivity_v1 \
   --through live
 ```
 
@@ -264,7 +264,7 @@ choice without text and triggered the provider-contract stop. Zero trajectories
 completed, nine were never started, and recorded cost was $0. This is a failed
 integration/reliability gate, not evidence of Housing performance and not a
 model ranking. The sanitized record is
-[`housing_model_sensitivity_v1_qualification_2026-09-02.json`](evidence/housing_model_sensitivity_v1_qualification_2026-09-02.json).
+[`qualification.json`](../evidence/housing_model_sensitivity_v1/reports/qualification.json).
 
 Because only one world cluster was planned, even a complete run would remain a
 descriptive integration slice with no estimable uncertainty. A variance pilot
@@ -294,7 +294,7 @@ claimed.
 The failed admission automatically blocked all 12 Housing trajectories. This
 is backend qualification evidence, not a Housing score or model comparison.
 See the digest-bound
-[`housing_model_sensitivity_openrouter_alt_v2_qualification_2026-09-02.json`](evidence/housing_model_sensitivity_openrouter_alt_v2_qualification_2026-09-02.json).
+[`qualification.json`](../evidence/housing_model_sensitivity_openrouter_alt_v2/reports/qualification.json).
 
 The next attempt remains on OpenRouter and uses a new campaign identity, a fresh
 catalog query, new route-bound profile hashes, and the same
@@ -315,17 +315,17 @@ Run the gates with the local OpenRouter key:
 ```bash
 python -m aeread.shared_runner.housing_backend_campaign \
   --contract configs/housing_model_sensitivity_openrouter_alt_v3.json \
-  --output runs/housing_model_sensitivity_openrouter_alt_v3 \
+  --run-root runs/housing_model_sensitivity_openrouter_alt_v3 \
   --through provider_free
 
 python -m aeread.shared_runner.housing_backend_campaign \
   --contract configs/housing_model_sensitivity_openrouter_alt_v3.json \
-  --output runs/housing_model_sensitivity_openrouter_alt_v3 \
+  --run-root runs/housing_model_sensitivity_openrouter_alt_v3 \
   --through profile_admission
 
 python -m aeread.shared_runner.housing_backend_campaign \
   --contract configs/housing_model_sensitivity_openrouter_alt_v3.json \
-  --output runs/housing_model_sensitivity_openrouter_alt_v3 \
+  --run-root runs/housing_model_sensitivity_openrouter_alt_v3 \
   --through live
 ```
 
@@ -340,7 +340,7 @@ probes plus the one billed invalid response reported `$0.0019847322`; the three
 The failed admission blocked all 12 Housing trajectories with zero additional
 provider calls. This remains backend reliability evidence, not a Housing score
 or model comparison. Do not selectively retry V3. See the digest-bound
-[`housing_model_sensitivity_openrouter_alt_v3_qualification_2026-09-02.json`](evidence/housing_model_sensitivity_openrouter_alt_v3_qualification_2026-09-02.json).
+[`qualification.json`](../evidence/housing_model_sensitivity_openrouter_alt_v3/reports/qualification.json).
 
 For review without publishing raw model reasoning, the repository also keeps a
 digest-bound set of three V0 trajectory examples: the upper and lower observed
@@ -348,9 +348,90 @@ completed live-opponent cross-play cells and the shortest operational failure.
 The export includes event-seal roots, receipt identities, action summaries,
 outcomes, costs, and limitations, while the complete provider responses remain
 under ignored local `runs/`. See
-[`housing_population_crossplay_v0_trajectory_examples_2026-09-02.json`](evidence/housing_population_crossplay_v0_trajectory_examples_2026-09-02.json).
+[`selected_2026-09-02.json`](../evidence/housing_population_crossplay_v0/trajectories/selected_2026-09-02.json).
 
-## 11. Frozen V0 population campaign
+## 11. V4 strict-output OpenRouter qualification
+
+[`housing_model_sensitivity_openrouter_alt_v4`](../configs/housing_model_sensitivity_openrouter_alt_v4.json)
+keeps the selected cases and frozen minimal-chat controls while assigning fresh
+route-bound profiles to Phala FP8 for GLM 5.3 Flash and Parasail FP8 for
+DeepSeek V4 Flash. Both are pinned OpenRouter endpoints; the campaign neither
+uses direct provider credentials nor permits automatic fallback. V4 also
+strengthens catalog admission by requiring advertised `structured_outputs`
+support because the runner sends a strict JSON schema.
+
+The design, provider-free case, and live catalog gates passed on 2026-09-02.
+Profile admission then completed all 18 predeclared probes with no hidden
+retry. Parasail/DeepSeek passed 9 of 9. Phala/GLM passed 1 of 9: five responses
+failed Housing action semantics by returning `action` where the frozen schemas
+required `decision`, two calls failed the provider-response contract, and one
+returned HTTP 429. The provider-reported cost was
+`$0.0038987487`; three failed calls omitted billing, so exact total cost is not
+claimed.
+
+The failed joint admission blocked all 12 Housing trajectories with zero
+additional provider calls. This is profile and backend qualification evidence,
+not a Housing score or comparison. See the digest-bound
+[`qualification.json`](../evidence/housing_model_sensitivity_openrouter_alt_v4/reports/qualification.json).
+
+Do not selectively rerun V4 or interpret DeepSeek's admission success as a
+Housing result. The next experiment should diagnose GLM's action-contract
+failures provider-free before freezing another route-bound campaign.
+
+## 12. V5-V7 action-contract and live qualification
+
+V5 through V7 retain the same selected development cases, fixed
+`minimal_chat/1.0` harness, and pinned NextBit/GLM plus Parasail/DeepSeek
+OpenRouter routes. Each version has a new campaign identity because its frozen
+action or retry contract changed.
+
+V5 passed all 18 profile-admission probes for `$0.0025567542`. Its first live
+GLM self-play trajectory completed with a descriptive within-case score of
+`0.8879703073`. The next cross-play trajectory returned an OpenRouter choice
+without text after eight provider calls. V5 classified that as a
+`provider_contract` failure, stopped the matrix, and left ten cells unstarted.
+See its tracked [`qualification.json`](../evidence/housing_model_sensitivity_openrouter_alt_v5/reports/qualification.json).
+
+V6 made null or blank provider content a receipt-visible `empty_response` so
+the application retry policy, rather than the adapter, owns retry decisions.
+Admission then exposed a separate semantic hole in the V1 commit schema:
+DeepSeek returned `decision=pass` with a non-null `hold_id`. Seventeen of 18
+probes passed, and the failed gate blocked live execution. See its tracked
+[`qualification.json`](../evidence/housing_model_sensitivity_openrouter_alt_v6/reports/qualification.json).
+
+V7 binds conditional `oneOf` schemas that enforce decision-dependent fields
+and explicitly wires timeout, output-token, attempt, and retry controls into
+the live profiles. All 18 admission probes passed for `$0.0031975713`. Seven
+of 12 live trajectories then completed with verified routes, complete provider
+billing, and score replay; zero trajectories failed operationally. The gate
+stopped at `$0.0361729071` because the frozen `$0.02` next-cell reserve would
+breach the `$0.05` live ceiling. Four mild cells and three moderate cells are
+present; the fourth moderate cell and all four severe cells remain unstarted.
+
+The observed V7 scores range from `0.7917117782` to `0.9926657320`, but this is
+not a leaderboard: the condition-by-configuration matrix is incomplete and has
+only one world cluster. The digest-bound
+[`qualification.json`](../evidence/housing_model_sensitivity_openrouter_alt_v7/reports/qualification.json)
+records the gates and stop. The separate
+[`selected.json`](../evidence/housing_model_sensitivity_openrouter_alt_v7/trajectories/selected.json)
+publishes parsed action counts, assignments, rents, welfare, latency, cost,
+retry counts, and receipt/event digests for all seven completed trajectories;
+raw provider responses and hidden reasoning remain under ignored local
+`runs/`.
+
+All four qualification records include a path-relocation amendment. The runs
+executed before tracked evidence moved from `docs/evidence/` into standardized
+top-level campaign bundles. Current configs point to `reports/` and `tables/`,
+while the records preserve both the executed and current contract digests. The
+provider-free sweep was deterministically republished under the new paths; its
+world-fact table is byte-identical, while projection and manifest digests
+changed to bind the new layout.
+
+The next complete integration attempt requires a new campaign identity and a
+cost ceiling sized from V7's observed per-cell costs. Do not carry V7's seven
+cells into a new matrix or selectively execute only its five missing cells.
+
+## 13. Frozen V0 population campaign
 
 The first executable population campaign is
 [`housing_population_crossplay_v0`](../configs/housing_population_crossplay_v0.json).
@@ -365,17 +446,17 @@ Run gates in order; the driver resumes verified rows and records failed attempts
 ```bash
 python -m aeread.shared_runner.housing_population_campaign \
   --contract configs/housing_population_crossplay_v0.json \
-  --output runs/housing_population_crossplay_v0 \
+  --run-root runs/housing_population_crossplay_v0 \
   --through provider_free_validation
 
 python -m aeread.shared_runner.housing_population_campaign \
   --contract configs/housing_population_crossplay_v0.json \
-  --output runs/housing_population_crossplay_v0 \
+  --run-root runs/housing_population_crossplay_v0 \
   --through full_trajectory
 
 python -m aeread.shared_runner.housing_population_campaign \
   --contract configs/housing_population_crossplay_v0.json \
-  --output runs/housing_population_crossplay_v0 \
+  --run-root runs/housing_population_crossplay_v0 \
   --through variance_pilot
 ```
 
@@ -398,7 +479,7 @@ then appends the required pre-freeze retry-policy invalidation before paid work:
 ```bash
 PYTHONPATH=src .venv/bin/python -m aeread.shared_runner.housing_population_campaign \
   --contract configs/housing_population_crossplay_v0.json \
-  --output runs/housing_population_crossplay_v0 \
+  --run-root runs/housing_population_crossplay_v0 \
   --through full_trajectory \
   --migrate-legacy-history \
   --invalidate-from profile_admission \
@@ -414,7 +495,7 @@ invalidation, but the pinned DeepInfra GLM route then exhausted all four visible
 attempts on the first tenant-contact admission probe. No Housing trajectory was
 started, and the variance pilot remains blocked. The sanitized, digest-bound
 record is
-[`housing_population_crossplay_v0_requalification_2026-09-02.json`](evidence/housing_population_crossplay_v0_requalification_2026-09-02.json).
+[`requalification_2026-09-02.json`](../evidence/housing_population_crossplay_v0/reports/requalification_2026-09-02.json).
 
 Apply the campaign SOP's backend-escalation instruction before the variance
 pilot. OpenRouter remains the backend; any provider-route change requires a new

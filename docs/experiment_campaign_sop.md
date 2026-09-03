@@ -184,10 +184,14 @@ Generate them with the normal export command:
 ```bash
 aeread export-tables \
   --plan runs/<run_id>/run_plan.json \
-  --receipts runs/<run_id>/receipts/ \
+  --receipts runs/<run_id>/tasks/ \
   --evidence-root runs/<run_id>/ \
-  --output-dir analysis/<run_id>/
+  --publication-root evidence/<publication_id>/
 ```
+
+Use the canonical [run and publication layout](artifact_layout.md): raw and
+replayable state stays under ignored `runs/`, while only sanitized,
+digest-bound publication bundles enter tracked `evidence/`.
 
 The tables are canonical, deterministic **projections**, not competing sources
 of truth. `RunPlan`, `EvaluationReceipt`, and sealed event/artifact evidence

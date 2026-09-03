@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any, Callable, Mapping, Protocol
 
 from .execution import CellExecution, EvidenceStore, TokenPricing
+from .layout import RunLayout
 from .measurement import (
     FamilyScoreSet,
     ImplementationRef as MeasurementImplementationRef,
@@ -375,7 +376,9 @@ def finalize_family_failure(
     cell = next((item for item in setup.plan.cells if item.cell_id == cell_id), None)
     if cell is None:
         raise ValueError("failure cell is absent from the family RunPlan")
-    attempt_root = Path(evidence_root) / setup.plan.run_plan_id / cell.cell_id
+    attempt_root = RunLayout(
+        Path(evidence_root), setup.plan.run_plan_id
+    ).resolve_attempts_dir(cell.cell_id)
     attempts = (
         sorted(path for path in attempt_root.iterdir() if path.is_dir())
         if attempt_root.is_dir()
@@ -497,12 +500,9 @@ def replay_family_receipt(
     )
     if cell is None or cell.case_sha256 != receipt.case_sha256:
         raise ValueError("receipt cell/case identity does not match the family plan")
-    evidence_path = (
-        Path(evidence_root)
-        / receipt.run_plan_id
-        / receipt.cell_id
-        / receipt.episode_attempt_id
-    )
+    evidence_path = RunLayout(
+        Path(evidence_root), receipt.run_plan_id
+    ).resolve_attempt_dir(receipt.cell_id, receipt.episode_attempt_id)
     evidence = EvidenceStore.audit_existing(evidence_path)
     if evidence.verify_seal() != receipt.evidence:
         raise ValueError("receipt evidence seal does not match durable evidence")
@@ -610,11 +610,19 @@ def audit_family_receipt(
         if canonical_json_bytes(receipt.get(key)) != canonical_json_bytes(value):
             raise ValueError(f"receipt {key} does not match the sealed plan")
     root = receipt_path.parent
-    if (
-        root.name != receipt.get("episode_attempt_id")
-        or root.parent.name != cell.cell_id
-        or root.parent.parent.name != setup.plan.run_plan_id
-    ):
+    canonical_identity = (
+        root.name == receipt.get("episode_attempt_id")
+        and root.parent.name == "attempts"
+        and root.parent.parent.name == cell.cell_id
+        and root.parent.parent.parent.name == "tasks"
+        and root.parent.parent.parent.parent.name == setup.plan.run_plan_id
+    )
+    legacy_identity = (
+        root.name == receipt.get("episode_attempt_id")
+        and root.parent.name == cell.cell_id
+        and root.parent.parent.name == setup.plan.run_plan_id
+    )
+    if not canonical_identity and not legacy_identity:
         raise ValueError("receipt directory identity does not match the sealed plan")
     evidence = EvidenceStore.audit_existing(root)
     seal = evidence.verify_seal()

@@ -253,10 +253,10 @@
     "tie_break": "config_id_ascending"
   },
   "outputs": {
-    "world_facts": "housing_case_facts.csv",
-    "config_summary": "housing_config_summary.csv",
-    "selected_configs": "selected_development_configs.json",
-    "fact_manifest": "fact_manifest.json",
-    "sweep_summary": "sweep_summary.json"
+    "world_facts": "tables/housing_case_facts.csv",
+    "config_summary": "tables/housing_config_summary.csv",
+    "selected_configs": "reports/selected_development_configs.json",
+    "fact_manifest": "tables/fact_manifest.json",
+    "sweep_summary": "reports/sweep_summary.json"
   }
 }

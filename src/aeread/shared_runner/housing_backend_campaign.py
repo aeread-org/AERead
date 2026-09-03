@@ -23,9 +23,12 @@ from .housing import (
     GLM_53_FLASH_MODEL,
     GLM_53_FLASH_REVISION,
     HOUSING_COMMIT_OUTPUT_SCHEMA,
+    HOUSING_COMMIT_OUTPUT_SCHEMA_V2,
     HOUSING_CONTACT_OUTPUT_SCHEMA,
+    HOUSING_CONTACT_OUTPUT_SCHEMA_V2,
     HOUSING_LANDLORD_PROMPT,
     HOUSING_RESPOND_OUTPUT_SCHEMA,
+    HOUSING_RESPOND_OUTPUT_SCHEMA_V2,
     HOUSING_TENANT_PROMPT,
     OpenRouterRoutePin,
 )
@@ -69,12 +72,63 @@ CAMPAIGN_SPECS = {
             "deepseek_v4_flash": "Parasail",
         },
     },
+    "housing_model_sensitivity_openrouter_alt_v4": {
+        "reasoning_condition_id": "model_sensitivity_openrouter_alt_low_v4",
+        "per_probe_cost_reserve_usd": 0.003,
+        "admission_cost_ceiling_usd": 0.06,
+        "providers": {
+            "glm_53_flash": "Phala",
+            "deepseek_v4_flash": "Parasail",
+        },
+    },
+    "housing_model_sensitivity_openrouter_alt_v5": {
+        "reasoning_condition_id": "model_sensitivity_openrouter_alt_low_v5",
+        "per_probe_cost_reserve_usd": 0.003,
+        "admission_cost_ceiling_usd": 0.06,
+        "providers": {
+            "glm_53_flash": "NextBit",
+            "deepseek_v4_flash": "Parasail",
+        },
+    },
+    "housing_model_sensitivity_openrouter_alt_v6": {
+        "reasoning_condition_id": "model_sensitivity_openrouter_alt_low_v6",
+        "per_probe_cost_reserve_usd": 0.003,
+        "admission_cost_ceiling_usd": 0.06,
+        "providers": {
+            "glm_53_flash": "NextBit",
+            "deepseek_v4_flash": "Parasail",
+        },
+        "retryable_conditions": [
+            "length",
+            "rate_limit",
+            "provider_5xx",
+            "empty_response",
+        ],
+    },
+    "housing_model_sensitivity_openrouter_alt_v7": {
+        "reasoning_condition_id": "model_sensitivity_openrouter_alt_low_v7",
+        "per_probe_cost_reserve_usd": 0.003,
+        "admission_cost_ceiling_usd": 0.06,
+        "providers": {
+            "glm_53_flash": "NextBit",
+            "deepseek_v4_flash": "Parasail",
+        },
+        "retryable_conditions": [
+            "length",
+            "rate_limit",
+            "provider_5xx",
+            "empty_response",
+        ],
+        "action_schema_version": "housing_actions/2.0",
+        "wire_live_profile_controls": True,
+    },
 }
 REQUIRED_ROUTE_PARAMETERS = {
     "max_tokens",
     "reasoning_effort",
     "response_format",
     "seed",
+    "structured_outputs",
     "temperature",
     "top_p",
 }
@@ -190,7 +244,7 @@ def load_contract(path: str | Path) -> dict[str, Any]:
     _selected_case_artifact(value)
 
     controls = value["controls"]
-    if controls != {
+    expected_controls = {
         "harness": "minimal_chat/1.0",
         "tools": "disabled",
         "memory": "disabled",
@@ -204,11 +258,19 @@ def load_contract(path: str | Path) -> dict[str, Any]:
         "max_action_attempts": 4,
         "tenant_max_logical_actions": 48,
         "landlord_max_logical_actions": 16,
-        "retryable_conditions": ["length", "rate_limit", "provider_5xx"],
+        "retryable_conditions": CAMPAIGN_SPECS[campaign_id].get(
+            "retryable_conditions", ["length", "rate_limit", "provider_5xx"]
+        ),
         "tenant_inference_seed_base": 87001,
         "landlord_inference_seed_base": 97001,
         "condition_order": "rotate_by_case_configuration",
-    }:
+    }
+    for optional_control in ("action_schema_version", "wire_live_profile_controls"):
+        if optional_control in CAMPAIGN_SPECS[campaign_id]:
+            expected_controls[optional_control] = CAMPAIGN_SPECS[campaign_id][
+                optional_control
+            ]
+    if controls != expected_controls:
         raise ValueError("fixed backend-campaign controls drifted")
     if value["backend"] != {
         "gateway": "openrouter",
@@ -417,11 +479,19 @@ def _profile_request(
     model = contract["models"][model_id]
     route = route_table(contract)[model_id]
     prompt = HOUSING_TENANT_PROMPT if role == "tenant" else HOUSING_LANDLORD_PROMPT
-    output_schema = {
-        "housing_contact_v1": HOUSING_CONTACT_OUTPUT_SCHEMA,
-        "housing_commit_v1": HOUSING_COMMIT_OUTPUT_SCHEMA,
-        "housing_respond_v1": HOUSING_RESPOND_OUTPUT_SCHEMA,
-    }[action_schema]
+    if contract["controls"].get("action_schema_version") == "housing_actions/2.0":
+        output_schemas = {
+            "housing_contact_v1": HOUSING_CONTACT_OUTPUT_SCHEMA_V2,
+            "housing_commit_v1": HOUSING_COMMIT_OUTPUT_SCHEMA_V2,
+            "housing_respond_v1": HOUSING_RESPOND_OUTPUT_SCHEMA_V2,
+        }
+    else:
+        output_schemas = {
+            "housing_contact_v1": HOUSING_CONTACT_OUTPUT_SCHEMA,
+            "housing_commit_v1": HOUSING_COMMIT_OUTPUT_SCHEMA,
+            "housing_respond_v1": HOUSING_RESPOND_OUTPUT_SCHEMA,
+        }
+    output_schema = output_schemas[action_schema]
     phase_id = {
         "housing_contact_v1": "contact",
         "housing_commit_v1": "commit",
@@ -676,7 +746,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         default="configs/housing_model_sensitivity_openrouter_alt_v2.json",
     )
     parser.add_argument(
+        "--run-root",
         "--output",
+        dest="run_root",
         default="runs/housing_model_sensitivity_openrouter_alt_v2",
     )
     parser.add_argument(
@@ -688,7 +760,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     result = asyncio.run(
         execute_campaign(
             contract_path=args.contract,
-            output_root=args.output,
+            output_root=args.run_root,
             through=args.through,
         )
     )

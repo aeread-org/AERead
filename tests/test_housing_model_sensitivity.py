@@ -185,9 +185,10 @@ def test_critical_failure_classification_uses_typed_causes_not_provider_prose() 
 def test_published_qualification_record_is_digest_bound() -> None:
     path = (
         CONTRACT_PATH.parents[1]
-        / "docs"
         / "evidence"
-        / "housing_model_sensitivity_v1_qualification_2026-09-02.json"
+        / "housing_model_sensitivity_v1"
+        / "reports"
+        / "qualification.json"
     )
     value = json.loads(path.read_bytes())
     core = {key: item for key, item in value.items() if key != "artifact_sha256"}

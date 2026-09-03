@@ -533,7 +533,7 @@ async def _run_cli(arguments: argparse.Namespace) -> dict[str, Any]:
         plan=setup.plan,
         cell_id=setup.plan.cells[0].cell_id,
         registry=setup.registry,
-        evidence_root=arguments.output,
+        evidence_root=arguments.run_root,
         prompt_sources=setup.prompt_sources,
         providers={arguments.provider: provider_client},
         pricing=setup.pricing,
@@ -560,7 +560,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--revision")
     parser.add_argument("--offer", type=int, default=7)
     parser.add_argument("--attempt", type=int, default=0)
-    parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument(
+        "--run-root", "--output", dest="run_root", type=Path, required=True
+    )
     arguments = parser.parse_args(argv)
     print(canonical_json_bytes(asyncio.run(_run_cli(arguments))).decode("utf-8"))
     return 0

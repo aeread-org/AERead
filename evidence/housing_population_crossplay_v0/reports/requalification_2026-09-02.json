@@ -1,5 +1,5 @@
 {
-  "artifact_sha256": "df406643553dd2b639c44eb38a38e46787c36ed367103aad9a5d94525149eb22",
+  "artifact_sha256": "f2c58ac70c3b2b182254eb68b5eec5f3496568548012f0a97bc2aefec8b4c9b1",
   "schema_version": "aeread.housing_population_requalification/0.1",
   "campaign_id": "housing_population_crossplay_v0",
   "created_date": "2026-09-02",
@@ -82,7 +82,7 @@
   "source_bindings": {
     "campaign_contract_path": "configs/housing_population_crossplay_v0.json",
     "campaign_contract_file_sha256": "7e8f86527f1ad90ba3a0af81d8d626ec68e4f210b4722b43102cbcd461ac7e21",
-    "prior_qualification_path": "docs/evidence/housing_population_crossplay_v0_qualification_2026-09-01.json",
+    "prior_qualification_path": "evidence/housing_population_crossplay_v0/reports/qualification_2026-09-01.json",
     "prior_qualification_file_sha256": "5982e0b8e37a847ce19bc7b4e3d8de4cb38fe8b0fa6532a019b9564bf7cdb45b",
     "local_gate_history_path": "runs/housing_population_crossplay_v0/gate_history.json",
     "raw_provider_metadata_committed": false

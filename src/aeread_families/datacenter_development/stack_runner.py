@@ -1272,12 +1272,12 @@ def replay_stack_receipt(
 async def _run_cli(arguments: argparse.Namespace) -> dict[str, Any]:
     setup, execution = await run_stack_offline(
         arguments.scope,
-        evidence_root=arguments.output,
+        evidence_root=arguments.run_root,
         episode_attempt_ordinal=arguments.attempt,
     )
     receipt = finalize_stack_execution(setup=setup, execution=execution)
     replayed = replay_stack_receipt(
-        setup=setup, receipt=receipt, evidence_root=arguments.output
+        setup=setup, receipt=receipt, evidence_root=arguments.run_root
     )
     return {
         "scope_version": arguments.scope,
@@ -1303,7 +1303,9 @@ async def _run_cli(arguments: argparse.Namespace) -> dict[str, Any]:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--scope", choices=("v1", "v2"), required=True)
-    parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument(
+        "--run-root", "--output", dest="run_root", type=Path, required=True
+    )
     parser.add_argument("--attempt", type=int, default=0)
     arguments = parser.parse_args(argv)
     print(canonical_json_bytes(asyncio.run(_run_cli(arguments))).decode("utf-8"))

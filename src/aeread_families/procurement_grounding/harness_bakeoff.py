@@ -484,7 +484,9 @@ async def run_probe(
 
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument(
+        "--run-root", "--output", dest="run_root", type=Path, required=True
+    )
     parser.add_argument("--replicates", type=int, default=3)
     parser.add_argument("--master-seed", type=int, default=20260831)
     parser.add_argument("--max-spend-usd", type=float, default=0.02)
@@ -508,7 +510,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 0
     artifact = asyncio.run(
         run_probe(
-            output_root=arguments.output,
+            output_root=arguments.run_root,
             inference_seeds=seeds,
             max_spend_usd=arguments.max_spend_usd,
             inter_call_delay_seconds=arguments.inter_call_delay_seconds,

@@ -1,5 +1,5 @@
 {
-  "artifact_sha256": "a6136c0c1aae2cc532d6355adc6d29ef0c4e4cc7ee9e45679e6ad8e282c05dce",
+  "artifact_sha256": "a6399e75292cd28427b35d6f2c84c1f01d749ff37be171d25a2477380aa5f2a7",
   "schema_version": "aeread.housing_model_sensitivity_qualification/0.1",
   "campaign_id": "housing_model_sensitivity_v1",
   "created_date": "2026-09-02",
@@ -9,7 +9,7 @@
   "ranking_allowed": false,
   "source_case_selection": {
     "campaign_id": "housing_case_config_sweep_v1",
-    "artifact_sha256": "a1f8ec4230ea3cf579274cf5fbdf3464e50fae8b9e3439b16bec2c89941bd39c",
+    "artifact_sha256": "a4ace08e1504b66eabeb92ca22ec47be25cb034ce2c262e66d96265710e34727",
     "selected_config_ids": [
       "mild_cw085_r2",
       "moderate_cw085_r2",

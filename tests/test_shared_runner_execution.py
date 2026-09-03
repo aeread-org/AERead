@@ -739,11 +739,13 @@ class FakeOpenRouterCompletions:
         selected_provider: str = "DeepInfra",
         attempt: int = 1,
         include_attempts: bool = True,
+        content: object = '{"offer":7}',
     ) -> None:
         self.kwargs = None
         self.selected_provider = selected_provider
         self.attempt = attempt
         self.include_attempts = include_attempts
+        self.content = content
 
     async def create(self, **kwargs):
         self.kwargs = kwargs
@@ -780,7 +782,7 @@ class FakeOpenRouterCompletions:
                 {
                     "index": 0,
                     "finish_reason": "stop",
-                    "message": {"role": "assistant", "content": '{"offer":7}'},
+                    "message": {"role": "assistant", "content": self.content},
                 }
             ],
             "usage": {
@@ -923,6 +925,20 @@ def test_openrouter_adapter_serializes_a_frozen_schema_as_plain_json() -> None:
         "additionalProperties": False,
     }
     json.dumps(completions.kwargs)
+
+
+def test_openrouter_adapter_preserves_empty_completion_for_visible_retry() -> None:
+    completions = FakeOpenRouterCompletions(content=None)
+    sdk = SimpleNamespace(chat=SimpleNamespace(completions=completions))
+    client = OpenRouterChatClient(sdk_client=sdk)
+
+    result = asyncio.run(client.complete(_openrouter_request()))
+
+    assert result.output_text == ""
+    assert result.resolved_model == "deepseek/deepseek-v4-flash-20260731"
+    assert result.input_tokens == 123
+    assert result.output_tokens == 45
+    assert result.cost_usd == pytest.approx(0.00001726)
 
 
 def test_openrouter_adapter_omits_unavailable_sampling_controls() -> None:

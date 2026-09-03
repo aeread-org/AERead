@@ -63,6 +63,15 @@ def test_full_r1_to_r4_fake_model_smoke_is_executable_and_reconciled(tmp_path) -
     }
     assert execution.total_cost_usd == pytest.approx(0.0)
     assert execution.evidence.events_path.is_file()
+    assert execution.evidence.root == (
+        tmp_path
+        / "runs"
+        / setup.plan.run_plan_id
+        / "tasks"
+        / setup.plan.cells[0].cell_id
+        / "attempts"
+        / execution.episode_attempt_id
+    )
     execution.evidence.audit_reconciliation()
     assert execution.action_executions[0].status == "succeeded"
     event_types = [event.event_type for event in execution.evidence.read_events()]
@@ -124,7 +133,7 @@ def test_episode_attempt_destination_is_immutable_and_never_overwritten(tmp_path
 
 
 def test_fake_smoke_cli_prints_machine_readable_summary(tmp_path, capsys) -> None:
-    assert main(["--provider", "fake", "--output", str(tmp_path / "cli")]) == 0
+    assert main(["--provider", "fake", "--run-root", str(tmp_path / "cli")]) == 0
     payload = __import__("json").loads(capsys.readouterr().out)
     assert payload["outcome"] == {"valid": True, "reason": "submitted", "offer": 7}
     assert payload["total_cost_usd"] == 0.0

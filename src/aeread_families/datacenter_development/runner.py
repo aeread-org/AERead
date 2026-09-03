@@ -542,12 +542,12 @@ def replay_datacenter_receipt(
 
 async def _run_cli(arguments: argparse.Namespace) -> dict[str, Any]:
     setup, execution = await run_offline(
-        evidence_root=arguments.output,
+        evidence_root=arguments.run_root,
         episode_attempt_ordinal=arguments.attempt,
     )
     receipt = finalize_datacenter_execution(setup=setup, execution=execution)
     replayed = replay_datacenter_receipt(
-        setup=setup, receipt=receipt, evidence_root=arguments.output
+        setup=setup, receipt=receipt, evidence_root=arguments.run_root
     )
     return {
         "run_plan_id": execution.run_plan_id,
@@ -572,7 +572,9 @@ async def _run_cli(arguments: argparse.Namespace) -> dict[str, Any]:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--scope", choices=("v0", "v1", "v2"), default="v0")
-    parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument(
+        "--run-root", "--output", dest="run_root", type=Path, required=True
+    )
     parser.add_argument("--attempt", type=int, default=0)
     arguments = parser.parse_args(argv)
     if arguments.scope != "v0":
@@ -582,8 +584,8 @@ def main(argv: list[str] | None = None) -> int:
             [
                 "--scope",
                 arguments.scope,
-                "--output",
-                str(arguments.output),
+                "--run-root",
+                str(arguments.run_root),
                 "--attempt",
                 str(arguments.attempt),
             ]

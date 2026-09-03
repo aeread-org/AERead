@@ -62,6 +62,7 @@ from .housing import (
     finalize_housing_failure,
     replay_housing_receipt,
 )
+from .layout import RunLayout
 from .housing_qc import audit_bid_world
 from .paired_analysis import analyze_paired_results
 from .quality import QCCoverage, QCEvidenceRef
@@ -863,7 +864,7 @@ def _live_stage_root(output_root: Path, stage: str, attempt_index: int) -> Path:
 def _failure_usage(
     *, evidence_root: Path, run_plan_id: str, cell_id: str
 ) -> dict[str, int | float]:
-    cell_root = evidence_root / run_plan_id / cell_id
+    cell_root = RunLayout(evidence_root, run_plan_id).resolve_attempts_dir(cell_id)
     attempts = (
         sorted(path for path in cell_root.iterdir() if path.is_dir())
         if cell_root.is_dir()
@@ -1818,7 +1819,14 @@ async def execute_campaign(
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--contract", type=Path, required=True)
-    parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument(
+        "--run-root",
+        "--output",
+        dest="run_root",
+        type=Path,
+        required=True,
+        help="ignored local campaign directory (legacy alias: --output)",
+    )
     parser.add_argument("--through", choices=STAGES, default="full_trajectory")
     parser.add_argument("--invalidate-from", choices=STAGES)
     parser.add_argument("--changed-control", action="append", default=[])
@@ -1828,7 +1836,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     result = asyncio.run(
         execute_campaign(
             contract_path=args.contract,
-            output_root=args.output,
+            output_root=args.run_root,
             through=args.through,
             invalidate_from=args.invalidate_from,
             changed_controls=args.changed_control,

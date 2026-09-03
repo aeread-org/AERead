@@ -1,5 +1,5 @@
 {
-  "artifact_sha256": "75ba4a7567eb966bf05c8babb6fe5b3c7a30f06cc135f8b2deca95715fa87378",
+  "artifact_sha256": "104690cfc8daef87b8fb5da256ddfdd887967e2c41d04f07cb6d73f583531e28",
   "schema_version": "aeread.housing_backend_qualification/0.1",
   "campaign_id": "housing_model_sensitivity_openrouter_alt_v2",
   "created_date": "2026-09-02",
@@ -9,7 +9,7 @@
   "ranking_allowed": false,
   "source_case_selection": {
     "campaign_id": "housing_case_config_sweep_v1",
-    "artifact_sha256": "a1f8ec4230ea3cf579274cf5fbdf3464e50fae8b9e3439b16bec2c89941bd39c",
+    "artifact_sha256": "a4ace08e1504b66eabeb92ca22ec47be25cb034ce2c262e66d96265710e34727",
     "confirmatory_holdout_status": "sealed_not_executed"
   },
   "backend": {

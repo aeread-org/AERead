@@ -22,6 +22,7 @@ from types import MappingProxyType
 from typing import Any, Mapping, Sequence
 
 from .execution import EvidenceSeal, EvidenceStore, Event
+from .layout import PublicationLayout
 from .measurement import (
     EstimandSpec,
     ImplementationRef,
@@ -1968,12 +1969,14 @@ def export_canonical_fact_tables(
 _DATA_DICTIONARY = """# AERead loss-analysis data dictionary
 
 This dataset is a derived view. `RunPlan`, `EvaluationReceipt`, and sealed
-`EvidenceStore` records remain canonical benchmark truth.
+`EvidenceStore` records remain canonical benchmark truth. Relational and fact
+tables live together under `tables/`; trajectory projections live under
+`trajectories/`.
 
 ## Relationships
 
-- `runs.run_id` -> `tasks.run_id`
-- (`tasks.run_id`, `tasks.task_id`) -> (`model_calls.run_id`, `model_calls.task_id`)
+- `tables/runs.csv:run_id` -> `tables/tasks.csv:run_id`
+- (`tables/tasks.csv:run_id`, `task_id`) -> (`tables/model_calls.csv:run_id`, `task_id`)
 - (`runs.run_id`, `tasks.task_id`) -> `trajectories/trajectory_index.csv`
 - `profiles.profile_id` -> `model_features.profile_id`
 - (`benchmark_results.run_id`, `benchmark_results.task_id`) -> (`tasks.run_id`, `tasks.task_id`)
@@ -2108,22 +2111,24 @@ def export_loss_analysis_dataset(
     if destination.is_symlink():
         raise ResearchContractError("output_dir must not be a symlink")
     destination.mkdir(parents=True, exist_ok=True)
-    selected_dir = destination / "trajectories" / "selected"
+    layout = PublicationLayout(destination)
+    layout.tables_dir.mkdir(parents=True, exist_ok=True)
+    selected_dir = layout.trajectories_dir / "selected"
     selected_dir.mkdir(parents=True, exist_ok=True)
 
     paths = {
         "runs": _publish_export(
-            destination / "runs.csv", _csv_bytes(RunRecord, tables.runs)
+            layout.tables_dir / "runs.csv", _csv_bytes(RunRecord, tables.runs)
         ),
         "tasks": _publish_export(
-            destination / "tasks.csv", _csv_bytes(TaskRecord, tables.tasks)
+            layout.tables_dir / "tasks.csv", _csv_bytes(TaskRecord, tables.tasks)
         ),
         "model_calls": _publish_export(
-            destination / "model_calls.csv",
+            layout.tables_dir / "model_calls.csv",
             _csv_bytes(ModelCallRecord, tables.model_calls),
         ),
     }
-    paths.update(export_canonical_fact_tables(plan, receipts, destination))
+    paths.update(export_canonical_fact_tables(plan, receipts, layout.tables_dir))
     trajectories: list[TrajectoryRecord] = []
     index_rows: list[Mapping[str, Any]] = []
     for task_id, evidence in sorted(evidence_by_cell.items()):
@@ -2133,7 +2138,7 @@ def export_loss_analysis_dataset(
         trajectories.append(trajectory)
         relative = Path("selected") / f"{plan.run_plan_id}__{task_id}.json"
         _publish_export(
-            destination / "trajectories" / relative,
+            layout.trajectories_dir / relative,
             canonical_json_bytes(trajectory) + b"\n",
         )
         index_rows.append(
@@ -2178,11 +2183,11 @@ def export_loss_analysis_dataset(
     paths.update(
         {
             "trajectory_index": _publish_export(
-                destination / "trajectories" / "trajectory_index.csv",
+                layout.trajectories_dir / "trajectory_index.csv",
                 index_stream.getvalue().encode("utf-8"),
             ),
             "trajectory_archive": _publish_export(
-                destination / "trajectories" / "archive.jsonl", archive
+                layout.trajectories_dir / "archive.jsonl", archive
             ),
             "data_dictionary": _publish_export(
                 destination / "data_dictionary.md", _DATA_DICTIONARY.encode("utf-8")
@@ -2523,7 +2528,14 @@ def main(argv: Sequence[str] | None = None) -> int:
         type=Path,
         help="EvidenceStore directory or parent tree containing events.jsonl files",
     )
-    parser.add_argument("--output-dir", type=Path, required=True)
+    parser.add_argument(
+        "--publication-root",
+        "--output-dir",
+        dest="publication_root",
+        type=Path,
+        required=True,
+        help="derived publication bundle (legacy alias: --output-dir)",
+    )
     arguments = parser.parse_args(argv)
     evidence: dict[str, EvidenceStore] = {}
     try:
@@ -2531,7 +2543,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         receipts = _load_receipts(arguments.receipts)
         evidence = _load_evidence_stores(arguments.evidence_root)
         paths = export_loss_analysis_dataset(
-            plan, receipts, evidence, arguments.output_dir
+            plan, receipts, evidence, arguments.publication_root
         )
         print(
             json.dumps(

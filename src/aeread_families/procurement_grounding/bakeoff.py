@@ -1003,7 +1003,14 @@ def planned_matrix(
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--execute", action="store_true")
-    parser.add_argument("--output", type=Path, default=Path("outputs/openrouter_bakeoff"))
+    parser.add_argument(
+        "--run-root",
+        "--output",
+        dest="run_root",
+        type=Path,
+        default=Path("runs/procurement_grounding_openrouter_bakeoff"),
+        help="ignored local run directory (legacy alias: --output)",
+    )
     parser.add_argument("--replicates", type=int, default=3)
     parser.add_argument("--warmups", type=int, default=1)
     parser.add_argument("--concurrency", type=int, default=4)
@@ -1033,14 +1040,14 @@ def main(argv: list[str] | None = None) -> int:
     result = asyncio.run(
         run_bakeoff(
             candidates,
-            output_dir=arguments.output,
+            output_dir=arguments.run_root,
             replicates=arguments.replicates,
             warmups=arguments.warmups,
             concurrency=arguments.concurrency,
             max_spend_usd=arguments.max_spend_usd,
         )
     )
-    result_path = arguments.output / "results.json"
+    result_path = arguments.run_root / "results.json"
     result_path.write_bytes(canonical_json_bytes(result) + b"\n")
     print(
         canonical_json_bytes(

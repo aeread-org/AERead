@@ -22,7 +22,7 @@ Run an already-produced model response through the native shared runner:
 ```bash
 python -m aeread_families.procurement_grounding \
   --response response.json \
-  --output /tmp/aeread-procurement-grounding
+  --run-root /tmp/aeread-procurement-grounding
 ```
 
 The command emits the scored family outcome and writes AERead's canonical action and
@@ -46,7 +46,7 @@ Run the live comparison only after setting `OPENROUTER_API_KEY`:
 ```bash
 python -m aeread_families.procurement_grounding.bakeoff \
   --execute \
-  --output outputs/procurement-grounding-openrouter \
+  --run-root runs/procurement-grounding-openrouter \
   --replicates 3 \
   --warmups 1 \
   --concurrency 4 \
@@ -60,7 +60,7 @@ routes:
 python -m aeread_families.procurement_grounding.bakeoff \
   --open-weight-only \
   --execute \
-  --output outputs/procurement-grounding-open-weight \
+  --run-root runs/procurement-grounding-open-weight \
   --replicates 3 \
   --warmups 1 \
   --concurrency 4 \
@@ -80,7 +80,7 @@ cost after a cache-seeding warmup. `gemini37_flash` was the fastest route at 3.1
 seconds and a perfect score, but cost $0.00629 per result. Its batch variant also
 scored perfectly at $0.00170 per result, but the grouped job took about 485 seconds,
 so it is reserved for deferred bulk work. See the committed
-[`procurement_grounding_openrouter_bakeoff_2026-08-31.json`](../../docs/evidence/procurement_grounding_openrouter_bakeoff_2026-08-31.json)
+[`results.json`](../../evidence/procurement_grounding_openrouter_bakeoff_2026-08-31/reports/results.json)
 for the complete protocol, failures, limitations, and hashes of the local raw logs.
 
 The follow-up open-weight bake-off excludes DeepSeek from active dispatch. It selected
@@ -89,7 +89,7 @@ The follow-up open-weight bake-off excludes DeepSeek from active dispatch. It se
 measured calls but had one malformed warmup response, a 21.81-second median, and
 $0.00140 median cost. Qwen 3.8 Flash and MiniMax M3 failed the measured runtime
 contract. See
-[`procurement_grounding_open_weight_bakeoff_2026-08-31.json`](../../docs/evidence/procurement_grounding_open_weight_bakeoff_2026-08-31.json)
+[`results.json`](../../evidence/procurement_grounding_open_weight_bakeoff_2026-08-31/reports/results.json)
 for license classes, endpoint pins, failure classes, limitations, and the raw-result
 hash.
 
@@ -101,7 +101,7 @@ Minimal Chat and LangChain Provider Strategy execution layers. Planning is offli
 
 ```bash
 python -m aeread_families.procurement_grounding.harness_bakeoff \
-  --output outputs/procurement-grounding-harness-probe \
+  --run-root runs/procurement-grounding-harness-probe \
   --replicates 3
 ```
 
@@ -116,5 +116,5 @@ The first live probe and a separately labeled paced diagnostic found perfect
 scores on every completed call, but DeepInfra shared-pool overload excluded seven
 of twelve planned calls. The two complete pairs favored AERead Minimal Chat on
 latency and LangChain slightly on token cost. See
-[`procurement_grounding_harness_probe_2026-08-31.md`](../../docs/evidence/procurement_grounding_harness_probe_2026-08-31.md)
+[`summary.md`](../../evidence/procurement_grounding_harness_probe_2026-08-31/reports/summary.md)
 for the measurement boundary, receipt audit, hashes, and interpretation limits.

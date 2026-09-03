@@ -497,12 +497,18 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--bakeoff", type=Path, required=True)
     parser.add_argument("--admission", type=Path)
-    parser.add_argument("--output-prefix", type=Path, required=True)
+    parser.add_argument(
+        "--report-prefix",
+        "--output-prefix",
+        dest="report_prefix",
+        type=Path,
+        required=True,
+    )
     arguments = parser.parse_args(argv)
     paths = write_leaderboard(
         bakeoff_path=arguments.bakeoff,
         admission_path=arguments.admission,
-        output_prefix=arguments.output_prefix,
+        output_prefix=arguments.report_prefix,
     )
     print("\n".join(str(path) for path in paths))
     return 0

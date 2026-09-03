@@ -48,5 +48,5 @@ receipt:
 ```bash
 python -m aeread_families.procurement_allocation \
   --script /path/to/actions.json \
-  --output /tmp/procurement-allocation-run
+  --run-root /tmp/procurement-allocation-run
 ```

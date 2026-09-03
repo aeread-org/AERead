@@ -135,7 +135,7 @@ Zero-cost integration proof from a source checkout:
 ```bash
 PYTHONPATH=src python -m aeread.shared_runner.smoke \
   --provider fake \
-  --output /tmp/aeread-shared-runner-smoke
+  --run-root /tmp/aeread-shared-runner-smoke
 ```
 
 One live call with the pinned cheapest GPT-5 model:
@@ -146,7 +146,7 @@ PYTHONPATH=src python -m aeread.shared_runner.smoke \
   --provider openai \
   --model gpt-5-nano-2025-08-07 \
   --revision gpt-5-nano-2025-08-07 \
-  --output /tmp/aeread-shared-runner-openai-smoke
+  --run-root /tmp/aeread-shared-runner-openai-smoke
 ```
 
 One live call with the pinned DeepSeek/OpenRouter route:
@@ -157,7 +157,7 @@ PYTHONPATH=src python -m aeread.shared_runner.smoke \
   --provider openrouter \
   --model deepseek/deepseek-v4-flash-0731 \
   --revision deepseek/deepseek-v4-flash-20260731 \
-  --output /tmp/aeread-shared-runner-openrouter-deepseek-smoke
+  --run-root /tmp/aeread-shared-runner-openrouter-deepseek-smoke
 ```
 
 One live call through an authenticated Claude Code installation using the pinned Haiku snapshot:
@@ -167,7 +167,7 @@ PYTHONPATH=src python -m aeread.shared_runner.smoke \
   --provider claude_code \
   --model claude-haiku-4-5-20251001 \
   --revision claude-haiku-4-5-20251001 \
-  --output /tmp/aeread-shared-runner-claude-smoke
+  --run-root /tmp/aeread-shared-runner-claude-smoke
 ```
 
 After installing the package, the equivalent entry point is `aeread-shared-smoke`; the
@@ -185,7 +185,7 @@ termination, and outcome all succeeded. The runner recorded 2,000 input tokens, 
 tokens, and $0.005975 cost under a $0.01 ceiling. Recomputing the cost from the pinned $1/M input
 and $5/M output prices produces the same $0.005975. All 13 event links and payload artifacts
 verified and every started entity reconciled exactly once. The non-secret durable admission
-summary is [`../evidence/shared_runner_r4_claude_smoke_2026-08-26.json`](../evidence/shared_runner_r4_claude_smoke_2026-08-26.json).
+summary is [`claude.json`](../../evidence/shared_runner_r4_smoke_2026-08-26/reports/claude.json).
 
 The pinned OpenRouter command also completed one sealed cell on 2026-08-26. OpenRouter selected
 DeepInfra on the canonical `deepseek/deepseek-v4-flash-20260731` endpoint with routing attempt
@@ -195,7 +195,7 @@ recomputation is $0.00003498, equal to OpenRouter's reported upstream inference 
 charged cost is exactly 99% of that amount, so the admission retains both rather than claiming
 equality. All 13 event links and payload artifacts verified and every started entity reconciled
 exactly once. The non-secret durable admission summary is
-[`../evidence/shared_runner_r4_openrouter_deepseek_smoke_2026-08-26.json`](../evidence/shared_runner_r4_openrouter_deepseek_smoke_2026-08-26.json).
+[`openrouter_deepseek.json`](../../evidence/shared_runner_r4_smoke_2026-08-26/reports/openrouter_deepseek.json).
 
 OpenRouter reported 172 reasoning tokens while reporting 165 completion tokens. Because those
 fields are internally inconsistent, reasoning usage is retained only as provider diagnostic

@@ -1133,20 +1133,6 @@ class OpenRouterChatClient:
         response = await self._create(**kwargs)
         raw_response, choice, message = self._parsed_choice(response)
         content = message.get("content") if isinstance(message, Mapping) else None
-        if not isinstance(content, str):
-            raise ProviderFailure(
-                "provider_contract",
-                "OpenRouter response choice has no text content",
-                retryable=False,
-            )
-        try:
-            structured_output = json.loads(content)
-        except json.JSONDecodeError as error:
-            raise ProviderFailure(
-                "provider_contract",
-                "OpenRouter structured output is not valid JSON",
-                retryable=False,
-            ) from error
         input_tokens, cached_input_tokens, output_tokens, cost = self._usage(raw_response)
         selected_model = self._verify_route(
             raw_response.get("openrouter_metadata"),
@@ -1161,6 +1147,33 @@ class OpenRouterChatClient:
                 f"OpenRouter response model {response_model!r} was not requested",
                 retryable=False,
             )
+        if content is None or (isinstance(content, str) and not content.strip()):
+            return ProviderResult(
+                response_id=str(raw_response.get("id") or ""),
+                requested_model=request.model,
+                resolved_model=selected_model,
+                output_text="",
+                finish_reason=str(choice.get("finish_reason") or "unknown"),
+                input_tokens=input_tokens,
+                cached_input_tokens=cached_input_tokens,
+                output_tokens=output_tokens,
+                cost_usd=float(cost),
+                raw_response=raw_response,
+            )
+        if not isinstance(content, str):
+            raise ProviderFailure(
+                "provider_contract",
+                "OpenRouter response choice has non-text content",
+                retryable=False,
+            )
+        try:
+            structured_output = json.loads(content)
+        except json.JSONDecodeError as error:
+            raise ProviderFailure(
+                "provider_contract",
+                "OpenRouter structured output is not valid JSON",
+                retryable=False,
+            ) from error
         return ProviderResult(
             response_id=str(raw_response.get("id") or ""),
             requested_model=request.model,
@@ -3135,8 +3148,11 @@ async def execute_plan_cell(
     harnesses: Mapping[str, "Harness"] | None = None,
 ) -> CellExecution:
     """Execute one sealed R2 cell through the R3 scheduler and R4 adapter."""
+    from .layout import RunLayout
+
     verify_run_plan(plan)
-    plan_path = Path(evidence_root) / plan.run_plan_id / "run_plan.json"
+    layout = RunLayout(Path(evidence_root), plan.run_plan_id)
+    plan_path = layout.plan_path
     expected_plan_bytes = canonical_json_bytes(plan)
     if plan_path.exists():
         if plan_path.read_bytes() != expected_plan_bytes:
@@ -3216,12 +3232,7 @@ async def execute_plan_cell(
         "episode_attempt",
         {"episode_id": episode_id, "ordinal": episode_attempt_ordinal},
     )
-    destination = (
-        Path(evidence_root)
-        / plan.run_plan_id
-        / cell.cell_id
-        / episode_attempt_id
-    )
+    destination = layout.attempt_dir(cell.cell_id, episode_attempt_id)
     evidence = EvidenceStore(
         destination,
         run_plan_id=plan.run_plan_id,

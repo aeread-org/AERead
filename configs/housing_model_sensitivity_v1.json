@@ -5,11 +5,11 @@
   "question": "Can the admitted GLM 5.3 Flash and DeepSeek V4 Flash profiles complete model-to-model Housing trajectories across the selected mild, moderate, and severe development configurations?",
   "independent_cluster": "world_seed",
   "source_case_selection": {
-    "path": "docs/evidence/housing_case_config_sweep_v1/selected_development_configs.json",
-    "artifact_sha256": "a1f8ec4230ea3cf579274cf5fbdf3464e50fae8b9e3439b16bec2c89941bd39c",
-    "file_sha256": "e655c77668f9930719ec82500dfb0b6c1c24f18161d31ab391b18d522310bcf4",
-    "fact_manifest_path": "docs/evidence/housing_case_config_sweep_v1/fact_manifest.json",
-    "fact_manifest_file_sha256": "2fb79724f4d2318f40246ddd9877407b3f3a44fcc974ec9420b481064d8e65b4"
+    "path": "evidence/housing_case_config_sweep_v1/reports/selected_development_configs.json",
+    "artifact_sha256": "a4ace08e1504b66eabeb92ca22ec47be25cb034ce2c262e66d96265710e34727",
+    "file_sha256": "b05945926fe0dfa4569d8b58f70d62ec1d41597b16b615928be3c8752066a163",
+    "fact_manifest_path": "evidence/housing_case_config_sweep_v1/tables/fact_manifest.json",
+    "fact_manifest_file_sha256": "7eca47be207f85bda990b68c4653d8539bc9f0c56560f9b3d7dea61bc7b16727"
   },
   "controls": {
     "harness": "minimal_chat/1.0",
