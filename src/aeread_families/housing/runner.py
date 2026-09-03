@@ -1292,6 +1292,7 @@ def build_housing_smoke(
     timeout_seconds_override: float | None = None,
     max_action_attempts_override: int | None = None,
     retryable_conditions_override: Sequence[str] | None = None,
+    implementation_digest_overrides: Mapping[str, str] | None = None,
     evaluation_kind: str = "controlled",
 ) -> HousingSmokeSetup:
     selected_world_seeds = (world_seed,) if world_seeds is None else tuple(world_seeds)
@@ -1314,6 +1315,25 @@ def build_housing_smoke(
             raise ValueError(f"{field} must be a positive integer")
     if evaluation_kind not in {"controlled", "cross_play", "self_play"}:
         raise ValueError("evaluation_kind must be controlled, cross_play, or self_play")
+    digest_overrides = dict(implementation_digest_overrides or {})
+    allowed_digest_overrides = {
+        "housing",
+        "bridge",
+        "combined",
+        "execution",
+        "harness",
+    }
+    if set(digest_overrides).difference(allowed_digest_overrides):
+        raise ValueError("implementation_digest_overrides contains unknown components")
+    if any(
+        len(digest) != 64
+        or any(character not in "0123456789abcdef" for character in digest)
+        for digest in digest_overrides.values()
+    ):
+        raise ValueError(
+            "implementation digest overrides must be 64 lowercase hexadecimal "
+            "characters"
+        )
     if evaluation_kind != "controlled" and landlord_provider != "openrouter":
         raise ValueError("cross_play and self_play require a model landlord profile")
     experiment_mode = world_seeds is not None
@@ -1730,13 +1750,24 @@ def build_housing_smoke(
     bridge_source = Path(__file__).read_bytes()
     execution_source = Path(execution_module.__file__).read_bytes()
     harness_source = Path(harness_module.__file__).read_bytes()
-    housing_digest = hashlib.sha256(housing_source).hexdigest()
-    bridge_digest = hashlib.sha256(
-        bridge_source + Path(evaluation_module.__file__).read_bytes()
-    ).hexdigest()
-    combined_digest = hashlib.sha256(housing_source + bridge_source).hexdigest()
-    execution_digest = hashlib.sha256(execution_source).hexdigest()
-    harness_digest = hashlib.sha256(harness_source).hexdigest()
+    housing_digest = digest_overrides.get(
+        "housing", hashlib.sha256(housing_source).hexdigest()
+    )
+    bridge_digest = digest_overrides.get(
+        "bridge",
+        hashlib.sha256(
+            bridge_source + Path(evaluation_module.__file__).read_bytes()
+        ).hexdigest(),
+    )
+    combined_digest = digest_overrides.get(
+        "combined", hashlib.sha256(housing_source + bridge_source).hexdigest()
+    )
+    execution_digest = digest_overrides.get(
+        "execution", hashlib.sha256(execution_source).hexdigest()
+    )
+    harness_digest = digest_overrides.get(
+        "harness", hashlib.sha256(harness_source).hexdigest()
+    )
     pins = [
         _pin("aeread.housing_v1", "family_plugin", combined_digest),
         _pin("housing_outcome_v1", "scorer", combined_digest),

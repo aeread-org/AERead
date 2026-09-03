@@ -14,6 +14,7 @@ import time
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
+import aeread.shared_runner.task.execution as execution_module
 from aeread.shared_runner.task.execution import (
     EvidenceIntegrityError,
     EvidenceStore,
@@ -64,6 +65,15 @@ _ROOT_FIELDS = {
     "analysis",
     "missingness",
     "stopping_rule",
+}
+_HISTORICAL_IMPLEMENTATION_DIGESTS = {
+    "housing_model_sensitivity_openrouter_alt_v8": {
+        "housing": "4182057475816840253a8421fc461c09fa6bbb8ea0659e742f6d98ebc2a74a33",
+        "bridge": "2cc022fc87fd49e5ed4d38391bd5af30de90be41eaced2086a81b75e51119cc5",
+        "combined": "249101944729a189ff4b7c1e5205ee8964c2f86638e6dbd6331dcd07fcf61f6d",
+        "execution": "d2c12667a55dddddaaf76ca39e396b998d4a57b08e0bd073a656372f6deb1dc5",
+        "harness": "c7dd0cd5a2eb1f557df24a1f3e7bd731938b6938523799ee02a4273229c25590",
+    },
 }
 
 
@@ -348,6 +358,9 @@ def build_setups(
 ) -> dict[tuple[str, str], Any]:
     setups: dict[tuple[str, str], Any] = {}
     controls = contract["controls"]
+    historical_implementation_digests = _HISTORICAL_IMPLEMENTATION_DIGESTS.get(
+        str(contract["campaign_id"])
+    )
     use_action_schemas_v2 = (
         controls.get("action_schema_version") == "housing_actions/2.0"
     )
@@ -418,6 +431,9 @@ def build_setups(
                     ],
                     tenant_harness_config=tenant_harness_config,
                     landlord_harness_config=landlord_harness_config,
+                    implementation_digest_overrides=(
+                        historical_implementation_digests
+                    ),
                     evaluation_kind=condition["evaluation_kind"],
                     **live_profile_controls,
                 )
@@ -835,6 +851,20 @@ async def run_live(
     if summary_path.exists():
         return _read_sealed(summary_path)
     setups = build_setups(contract, routes=routes)
+    current_execution_digest = hashlib.sha256(
+        Path(execution_module.__file__).read_bytes()
+    ).hexdigest()
+    planned_execution_digests = {
+        pin.sha256
+        for setup in setups.values()
+        for pin in setup.plan.implementation_pins
+        if pin.component_id == "aeread.shared_runner.execution"
+    }
+    if planned_execution_digests != {current_execution_digest}:
+        raise EvidenceIntegrityError(
+            "live Housing execution runtime differs from the frozen implementation "
+            "pin; create a new campaign identity"
+        )
     client = OpenRouterChatClient()
     conditions = list(contract["conditions"])
     execution_contract = contract["execution"]

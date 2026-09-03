@@ -17,11 +17,12 @@ from aeread_families.housing.backend_campaign import (
     route_table,
     run_profile_admission,
 )
-from aeread.shared_runner.task.execution import ProviderResult
+from aeread.shared_runner.task.execution import EvidenceIntegrityError, ProviderResult
 from aeread_families.housing.model_sensitivity import (
     build_setups,
     design_artifact,
     provider_free_artifact,
+    run_live,
     variance_pilot_analysis,
 )
 from aeread.shared_runner.run.resolver import canonical_json_bytes
@@ -297,6 +298,20 @@ def test_multiworld_generalization_preserves_v8_gate_digests() -> None:
     assert provider_free_artifact(contract)["artifact_sha256"] == gates[
         "provider_free"
     ]["artifact_sha256"]
+
+
+def test_historical_v8_plan_refuses_live_execution_after_runtime_drift(
+    tmp_path: Path,
+) -> None:
+    contract = load_contract(V8_CONTRACT_PATH)
+
+    with pytest.raises(
+        EvidenceIntegrityError,
+        match="runtime differs from the frozen implementation pin",
+    ):
+        asyncio.run(
+            run_live(contract, output_root=tmp_path, routes=route_table(contract))
+        )
 
 
 def test_v8_catalog_preflight_binds_stable_endpoint_snapshots(
