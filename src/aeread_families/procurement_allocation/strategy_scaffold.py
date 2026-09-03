@@ -37,7 +37,9 @@ from .case_matrix import BLINDED_CASE_PATHS, CASE_VARIANCE_PATHS, REPOSITORY_ROO
 from .model_campaign import (
     CAMPAIGN_ID as LABELED_CONTROL_CAMPAIGN_ID,
     GLM_MORPH_CANDIDATE,
+    TRANSIENT_RETRY_CONDITIONS,
     conservative_cost_ceiling,
+    derive_inference_seeds,
     planned_model_qualification,
     run_model_qualification,
 )
@@ -95,10 +97,48 @@ GLM_REKA_CANDIDATE = BakeoffCandidate(
     license_id="MIT",
     model_card_url="https://huggingface.co/zai-org/GLM-5.3-Flash",
 )
+GLM_PARASAIL_CANDIDATE = BakeoffCandidate(
+    candidate_id="glm53_flash_parasail",
+    route=OpenRouterRoute(
+        profile_id="procurement_glm53_flash_parasail_v1",
+        model="z-ai/glm-5.3-flash",
+        revision="z-ai/glm-5.3-flash-20260826",
+        route_provider="Parasail",
+        quantization="fp8",
+        pricing=TokenPricing(
+            input_per_million=0.15,
+            cached_input_per_million=0.03,
+            output_per_million=0.50,
+            pricing_id="openrouter_2026-09-03_glm53_flash_parasail",
+        ),
+        max_prompt_price_per_million="0.15",
+        max_completion_price_per_million="0.50",
+        reasoning_effort="low",
+    ),
+    lane="standard",
+    access_class="open_source",
+    license_id="MIT",
+    model_card_url="https://huggingface.co/zai-org/GLM-5.3-Flash",
+)
+PARASAIL_LABELED_CONTROL_CAMPAIGN_ID = (
+    "procurement_allocation_glm53_flash_parasail_case_variance_v4_retry_after"
+)
+PARASAIL_OPAQUE_CONTROL_CAMPAIGN_ID = (
+    "procurement_allocation_glm53_flash_parasail_blinded_invariance_v2_retry_after"
+)
+PARASAIL_STRATEGY_CAMPAIGN_ID = (
+    "procurement_allocation_glm53_flash_parasail_strategy_scaffold_v4_retry_after"
+)
+PARASAIL_INFERENCE_SEEDS = derive_inference_seeds(
+    master_seed=20260902,
+    count=3,
+    campaign_id=PARASAIL_LABELED_CONTROL_CAMPAIGN_ID,
+)
 STRATEGY_CANDIDATES = {
     GLM_MORPH_CANDIDATE.candidate_id: GLM_MORPH_CANDIDATE,
     GLM_CLOUDFLARE_CANDIDATE.candidate_id: GLM_CLOUDFLARE_CANDIDATE,
     GLM_REKA_CANDIDATE.candidate_id: GLM_REKA_CANDIDATE,
+    GLM_PARASAIL_CANDIDATE.candidate_id: GLM_PARASAIL_CANDIDATE,
 }
 STRATEGY_PROMPT = (
     CONTROL_PROMPT
@@ -151,7 +191,27 @@ def strategy_campaign_id(candidate: BakeoffCandidate) -> str:
 
     if candidate.candidate_id == GLM_MORPH_CANDIDATE.candidate_id:
         return CAMPAIGN_ID
+    if candidate.candidate_id == GLM_PARASAIL_CANDIDATE.candidate_id:
+        return PARASAIL_STRATEGY_CAMPAIGN_ID
     return f"procurement_allocation_{candidate.candidate_id}_strategy_scaffold_v3"
+
+
+def _execution_profile(candidate: BakeoffCandidate) -> dict[str, Any]:
+    if candidate.candidate_id == GLM_PARASAIL_CANDIDATE.candidate_id:
+        return {
+            "inference_seeds": PARASAIL_INFERENCE_SEEDS,
+            "max_action_attempts": 3,
+            "retryable_conditions": TRANSIENT_RETRY_CONDITIONS,
+            "retry_backoff": "exponential_jitter_v1",
+            "retry_after_max_seconds": 60.0,
+        }
+    return {
+        "inference_seeds": PAIRED_INFERENCE_SEEDS,
+        "max_action_attempts": 1,
+        "retryable_conditions": (),
+        "retry_backoff": None,
+        "retry_after_max_seconds": 60.0,
+    }
 
 
 def _resolve_campaign_id(
@@ -173,10 +233,16 @@ def _panels_for(
     if campaign_id == CAMPAIGN_ID:
         return PANELS
     candidate_prefix = f"procurement_allocation_{candidate.candidate_id}"
-    control_campaign_ids = {
-        "labeled_original": f"{candidate_prefix}_case_variance_v2",
-        "opaque_reordered": f"{candidate_prefix}_blinded_invariance_v1",
-    }
+    if candidate.candidate_id == GLM_PARASAIL_CANDIDATE.candidate_id:
+        control_campaign_ids = {
+            "labeled_original": PARASAIL_LABELED_CONTROL_CAMPAIGN_ID,
+            "opaque_reordered": PARASAIL_OPAQUE_CONTROL_CAMPAIGN_ID,
+        }
+    else:
+        control_campaign_ids = {
+            "labeled_original": f"{candidate_prefix}_case_variance_v2",
+            "opaque_reordered": f"{candidate_prefix}_blinded_invariance_v1",
+        }
     return {
         panel: {
             **spec,
@@ -228,6 +294,9 @@ PUBLISHABLE_ROW_FIELDS = (
     "cached_input_tokens",
     "output_tokens",
     "cost_usd",
+    "provider_call_count",
+    "runner_retry_count",
+    "retry_condition_counts",
     "resolved_models",
     "receipt_sha256",
     "receipt_replayed",
@@ -294,10 +363,11 @@ def build_plan(
         raise ValueError("batch_size must be positive")
     resolved_campaign_id = _resolve_campaign_id(candidate, campaign_id)
     panels = _panels_for(resolved_campaign_id, candidate)
+    execution_profile = _execution_profile(candidate)
     panel_plans = {
         panel: planned_model_qualification(
             case_paths=spec["case_paths"],
-            inference_seeds=PAIRED_INFERENCE_SEEDS,
+            inference_seeds=execution_profile["inference_seeds"],
             max_parallel_cells=max_parallel_cells,
             campaign_id=str(spec["treatment_campaign_id"]),
             abort_on_operational_failure=True,
@@ -306,6 +376,10 @@ def build_plan(
             treatment_id=TREATMENT_ID,
             max_new_trajectories=batch_size,
             candidate=candidate,
+            max_action_attempts=execution_profile["max_action_attempts"],
+            retryable_conditions=execution_profile["retryable_conditions"],
+            retry_backoff=execution_profile["retry_backoff"],
+            retry_after_max_seconds=execution_profile["retry_after_max_seconds"],
         )
         for panel, spec in panels.items()
     }
@@ -336,7 +410,7 @@ def build_plan(
             for panel_plan in panel_plans.values()
         ),
         "independent_case_count": len(CASE_VARIANCE_PATHS),
-        "inference_seeds": list(PAIRED_INFERENCE_SEEDS),
+        "inference_seeds": list(execution_profile["inference_seeds"]),
         "max_parallel_cells": max_parallel_cells,
         "batch_size": batch_size,
         "abort_on_operational_failure": True,
@@ -378,10 +452,11 @@ def build_plan(
 async def _representative_provider_request(
     candidate: BakeoffCandidate,
 ) -> ProviderRequest:
+    execution_profile = _execution_profile(candidate)
     setup = build_openrouter_setup(
         candidate.route,
         case_path=CASE_VARIANCE_PATHS[0],
-        seed=PAIRED_INFERENCE_SEEDS[0],
+        seed=execution_profile["inference_seeds"][0],
         max_output_tokens=1800,
         timeout_seconds=180.0,
         max_cost_usd=0.03,
@@ -583,6 +658,7 @@ def build_strategy_comparison(
 ) -> dict[str, Any]:
     resolved_campaign_id = _resolve_campaign_id(candidate, campaign_id)
     panels = _panels_for(resolved_campaign_id, candidate)
+    inference_seeds = _execution_profile(candidate)["inference_seeds"]
     prompt_sha = hashlib.sha256(STRATEGY_PROMPT.encode()).hexdigest()
     artifacts: dict[str, dict[str, Any]] = {}
     source: dict[str, Any] = {}
@@ -605,7 +681,14 @@ def build_strategy_comparison(
             "treatment_artifact_sha256": treatment["artifact_sha256"],
             "treatment_plan_sha256": treatment["plan"]["plan_sha256"],
         }
-        route_fields = ("model", "revision", "provider", "quantization", "harness")
+        route_fields = (
+            "model",
+            "revision",
+            "provider",
+            "quantization",
+            "harness",
+            "retry_policy",
+        )
         integrity[f"{panel}_route_and_harness_match"] = all(
             control["plan"].get(field) == treatment["plan"].get(field)
             for field in route_fields
@@ -613,7 +696,7 @@ def build_strategy_comparison(
         integrity[f"{panel}_seeds_match"] = (
             control["plan"].get("inference_seeds")
             == treatment["plan"].get("inference_seeds")
-            == list(PAIRED_INFERENCE_SEEDS)
+            == list(inference_seeds)
         )
         integrity[f"{panel}_treatment_prompt_bound"] = treatment["plan"].get(
             "prompt"
@@ -639,7 +722,7 @@ def build_strategy_comparison(
         expected_keys = {
             (path.stem, seed)
             for path in CASE_VARIANCE_PATHS
-            for seed in PAIRED_INFERENCE_SEEDS
+            for seed in inference_seeds
         }
         integrity[f"{panel}_all_pairs_present"] = (
             set(control_rows) == set(treatment_rows) == expected_keys
@@ -651,10 +734,10 @@ def build_strategy_comparison(
         for path in CASE_VARIANCE_PATHS:
             slug = path.stem
             case_control = [
-                control_rows[(slug, seed)] for seed in PAIRED_INFERENCE_SEEDS
+                control_rows[(slug, seed)] for seed in inference_seeds
             ]
             case_treatment = [
-                treatment_rows[(slug, seed)] for seed in PAIRED_INFERENCE_SEEDS
+                treatment_rows[(slug, seed)] for seed in inference_seeds
             ]
             for control_row, treatment_row in zip(
                 case_control, case_treatment, strict=True
@@ -867,6 +950,7 @@ async def run_strategy_campaign(
 ) -> dict[str, Any]:
     resolved_campaign_id = _resolve_campaign_id(candidate, campaign_id)
     panels = _panels_for(resolved_campaign_id, candidate)
+    execution_profile = _execution_profile(candidate)
     resolved = run_root.resolve()
     if "runs" not in resolved.parts or {"evidence", "output", "outputs"}.intersection(
         resolved.parts
@@ -927,7 +1011,7 @@ async def run_strategy_campaign(
             artifact = await run_model_qualification(
                 run_root=panel_root,
                 case_paths=spec["case_paths"],
-                inference_seeds=PAIRED_INFERENCE_SEEDS,
+                inference_seeds=execution_profile["inference_seeds"],
                 max_spend_usd=max_spend_usd,
                 max_parallel_cells=max_parallel_cells,
                 provider_factory=provider_factory,
@@ -940,6 +1024,12 @@ async def run_strategy_campaign(
                 max_new_trajectories=remaining_batch,
                 resume=panel_root.exists(),
                 candidate=candidate,
+                max_action_attempts=execution_profile["max_action_attempts"],
+                retryable_conditions=execution_profile["retryable_conditions"],
+                retry_backoff=execution_profile["retry_backoff"],
+                retry_after_max_seconds=execution_profile[
+                    "retry_after_max_seconds"
+                ],
             )
             remaining_batch -= int(artifact["summary"]["row_count"]) - prior_row_count
             if artifact["summary"]["operational_failure_count"]:
@@ -1229,9 +1319,14 @@ __all__ = [
     "CAMPAIGN_ID",
     "DEFAULT_BATCH_SIZE",
     "GLM_CLOUDFLARE_CANDIDATE",
+    "GLM_PARASAIL_CANDIDATE",
     "GLM_REKA_CANDIDATE",
     "PANELS",
     "PROMPT_ID",
+    "PARASAIL_INFERENCE_SEEDS",
+    "PARASAIL_LABELED_CONTROL_CAMPAIGN_ID",
+    "PARASAIL_OPAQUE_CONTROL_CAMPAIGN_ID",
+    "PARASAIL_STRATEGY_CAMPAIGN_ID",
     "STRATEGY_PROMPT",
     "STRATEGY_CANDIDATES",
     "TREATMENT_ID",

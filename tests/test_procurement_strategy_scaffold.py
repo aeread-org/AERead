@@ -23,8 +23,13 @@ from aeread_families.procurement_allocation.runner import SequenceResponseProvid
 from aeread_families.procurement_allocation.strategy_scaffold import (
     CAMPAIGN_ID,
     GLM_CLOUDFLARE_CANDIDATE,
+    GLM_PARASAIL_CANDIDATE,
     GLM_REKA_CANDIDATE,
     PANELS,
+    PARASAIL_INFERENCE_SEEDS,
+    PARASAIL_LABELED_CONTROL_CAMPAIGN_ID,
+    PARASAIL_OPAQUE_CONTROL_CAMPAIGN_ID,
+    PARASAIL_STRATEGY_CAMPAIGN_ID,
     PROMPT_ID,
     STRATEGY_PROMPT,
     TREATMENT_ID,
@@ -218,6 +223,36 @@ def test_strategy_plan_seals_cloudflare_route() -> None:
     )
 
 
+def test_strategy_plan_seals_retry_aware_parasail_route() -> None:
+    plan = build_plan(candidate=GLM_PARASAIL_CANDIDATE)
+
+    assert strategy_campaign_id(GLM_PARASAIL_CANDIDATE) == (
+        PARASAIL_STRATEGY_CAMPAIGN_ID
+    )
+    assert plan["campaign_id"] == PARASAIL_STRATEGY_CAMPAIGN_ID
+    assert plan["candidate_id"] == "glm53_flash_parasail"
+    assert plan["provider"] == "Parasail"
+    assert plan["quantization"] == "fp8"
+    assert plan["inference_seeds"] == list(PARASAIL_INFERENCE_SEEDS)
+    assert plan["control_campaign_ids"] == {
+        "labeled_original": PARASAIL_LABELED_CONTROL_CAMPAIGN_ID,
+        "opaque_reordered": PARASAIL_OPAQUE_CONTROL_CAMPAIGN_ID,
+    }
+    assert plan["conservative_total_cost_ceiling_usd"] == pytest.approx(0.57)
+    for panel_plan in plan["panels"].values():
+        assert panel_plan["inference_seeds"] == list(PARASAIL_INFERENCE_SEEDS)
+        assert panel_plan["retry_policy"] == {
+            "owner": "shared_runner",
+            "max_action_attempts": 3,
+            "retryable_conditions": ["rate_limit", "provider_5xx"],
+            "retry_backoff": "exponential_jitter_v1",
+            "retry_after_max_seconds": 60.0,
+            "session_mode": "restart",
+            "sdk_retries": 0,
+            "cost_boundary": "retry only known-zero-cost provider failures",
+        }
+
+
 def test_strategy_canary_uses_treatment_prompt_and_is_unscored(tmp_path: Path) -> None:
     provider = SequenceResponseProvider(
         (json.dumps({"action": "defer", "reason": "test canary"}),)
@@ -331,6 +366,39 @@ def test_strategy_comparison_recovers_effects_and_surface_mitigation(
     assert margin_surface["difference_in_differences"]["case_cluster_mean"] == 1.0
     assert margin_surface["absolute_surface_gap_reduction"]["case_cluster_mean"] == 1.0
     assert comparison["artifact_sha256"]
+
+
+def test_strategy_comparison_rejects_retry_policy_mismatch(tmp_path: Path) -> None:
+    treatment_root, control_roots = _synthetic_campaign(tmp_path)
+    path = treatment_root / "labeled_original" / "summary.json"
+    artifact = json.loads(path.read_text())
+    artifact["plan"]["retry_policy"] = {
+        "owner": "shared_runner",
+        "max_action_attempts": 3,
+    }
+    plan_payload = {
+        key: value
+        for key, value in artifact["plan"].items()
+        if key != "plan_sha256"
+    }
+    artifact["plan"]["plan_sha256"] = hashlib.sha256(
+        canonical_json_bytes(plan_payload)
+    ).hexdigest()
+    artifact_payload = {
+        key: value for key, value in artifact.items() if key != "artifact_sha256"
+    }
+    artifact["artifact_sha256"] = hashlib.sha256(
+        canonical_json_bytes(artifact_payload)
+    ).hexdigest()
+    path.write_bytes(canonical_json_bytes(artifact) + b"\n")
+
+    comparison = build_strategy_comparison(
+        treatment_run_root=treatment_root,
+        control_roots=control_roots,
+    )
+
+    assert comparison["integrity"]["labeled_original_route_and_harness_match"] is False
+    assert comparison["readiness"]["strategy_comparison_qualified"] is False
 
 
 def test_strategy_publication_is_digest_bound_and_sanitized(tmp_path: Path) -> None:
