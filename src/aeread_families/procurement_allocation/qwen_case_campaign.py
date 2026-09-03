@@ -77,6 +77,10 @@ class CandidateCaseCampaignSpec:
     max_trajectory_cost_usd: float
     max_canary_cost_usd: float
     hard_total_cost_ceiling_usd: float
+    claim_scope: str = (
+        "matched model diagnostic on six curated procurement worlds; seeds are "
+        "within-world replicates and this is not a population model ranking"
+    )
 
 
 DEFAULT_SPEC = CandidateCaseCampaignSpec(
@@ -185,10 +189,7 @@ def build_plan(
             "all 18 rows completed and receipt-replayed with exact cost accounting; "
             "model route, cases, seeds, prompt, harness, and digests match"
         ),
-        "claim_scope": (
-            "matched model diagnostic on six curated procurement worlds; seeds are "
-            "within-world replicates and this is not a population model ranking"
-        ),
+        "claim_scope": spec.claim_scope,
     }
     plan["plan_sha256"] = hashlib.sha256(canonical_json_bytes(plan)).hexdigest()
     return plan

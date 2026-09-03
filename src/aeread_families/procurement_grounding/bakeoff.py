@@ -215,6 +215,23 @@ OPEN_WEIGHT_CANDIDATES = (
         catalog_retrieved_at="2026-09-03",
     ),
     _candidate(
+        "qwen3_235b_a22b_instruct_2507_google",
+        model="qwen/qwen3-235b-a22b-2507",
+        revision="qwen/qwen3-235b-a22b-07-25",
+        route_provider="Google",
+        quantization="unknown",
+        input_per_million=0.22,
+        cached_input_per_million=0.22,
+        output_per_million=0.88,
+        access_class="open_source",
+        license_id="Apache-2.0",
+        model_card_url=(
+            "https://huggingface.co/Qwen/Qwen3-235B-A22B-Instruct-2507"
+        ),
+        reasoning_effort=None,
+        catalog_retrieved_at="2026-09-03",
+    ),
+    _candidate(
         "qwen38_flash",
         model="qwen/qwen3.8-flash",
         revision="qwen/qwen3.8-flash-20260826",

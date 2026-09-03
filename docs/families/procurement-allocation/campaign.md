@@ -204,6 +204,41 @@ The conservative total ceiling is $0.45912 and the hard ceiling is $0.57 includi
 the canary. Any operational failure seals the attempt, and no case outcome is
 inspected until all 18 rows complete and receipt-replay.
 
+#### Observed Qwen 235B AtlasCloud result
+
+The canary and all 18 scored trajectories completed with exact accounting, no
+operational failures, and no retries. The canary cost $0.0002727648 and the scored
+panel cost $0.0047373876, for $0.0050101524 total. Every row receipt-replayed and
+the median trajectory time was 2.69 seconds.
+
+All 18 trajectories nevertheless stopped on their first action with
+`unknown_procurement_action`. The returned JSON was semantically a supplier inquiry,
+but placed `inquire` at the top level and omitted the required top-level
+`"action": "inquire"` discriminator. This repeated envelope error produced 0/18
+feasible allocations. Because the route did not enforce the declared strict schema,
+the result identifies a route-level structured-output compatibility failure; it does
+not isolate the checkpoint's procurement decision capacity and does not progress to
+the risk-gate factorial.
+
+### Adaptive Qwen 235B provider-route diagnostic
+
+The next diagnostic holds the 235B checkpoint, exact six cases, three inference
+seeds, prompt, Minimal Chat harness, action budget, objective verifier, retries, and
+checkpoint policy fixed, while changing only the pinned route to Google. The live
+endpoint catalog declares one Google endpoint at the pinned $0.22/M input and
+$0.88/M output prices with `structured_outputs`, `response_format`, `seed`, and
+`max_tokens` support; a second, more expensive endpoint is excluded by the price pin.
+
+This is a provider-route diagnostic, not a new model comparison. It binds the
+published AtlasCloud evidence manifest, runs one unscored exact-request canary, then
+three sequential six-row checkpoints. The frozen plan digest is
+`7c90ba968b369ab0b03c080ea734f6aa71efdfb981d160d9ac795a2a56fff862`,
+with a $0.47352 conservative ceiling and $0.57 hard ceiling including the canary. If
+the Google route returns valid action envelopes, later outcome differences can be
+interpreted as route-mediated behavior. If it repeats the same envelope defect, the
+evidence shifts toward checkpoint or adapter incompatibility, but still does not
+justify a broad model-quality claim.
+
 ## Public-observation policy controls
 
 The deterministic policy campaign supplies non-model floors and a negative control
