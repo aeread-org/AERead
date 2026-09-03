@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import argparse
 import collections
+import csv
 import hashlib
+import io
 import json
 from pathlib import Path
 from typing import Any, Mapping, Sequence
@@ -43,6 +45,25 @@ def _write_immutable(path: Path, value: Mapping[str, Any]) -> None:
             )
         return
     path.write_bytes(payload)
+
+
+def _write_immutable_bytes(path: Path, payload: bytes) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if path.exists():
+        if path.read_bytes() != payload:
+            raise ValueError(
+                f"refusing to replace different published evidence: {path}"
+            )
+        return
+    path.write_bytes(payload)
+
+
+def _csv_bytes(*, fieldnames: Sequence[str], rows: Sequence[Mapping[str, Any]]) -> bytes:
+    buffer = io.StringIO(newline="")
+    writer = csv.DictWriter(buffer, fieldnames=fieldnames, lineterminator="\n")
+    writer.writeheader()
+    writer.writerows(rows)
+    return buffer.getvalue().encode("utf-8")
 
 
 def _artifact_payload(attempt_dir: Path, payload_ref: str) -> Mapping[str, Any]:
@@ -207,6 +228,338 @@ def _profile_results(
     return rows
 
 
+def _publish_fact_tables(
+    *,
+    contract: Mapping[str, Any],
+    catalog: Mapping[str, Any],
+    admission: Mapping[str, Any],
+    publish_root: Path,
+) -> dict[str, Any]:
+    campaign_id = contract["campaign_id"]
+    admission_fields = (
+        "campaign_id",
+        "model_id",
+        "provider",
+        "role",
+        "action_schema",
+        "probe_index",
+        "status",
+        "failure_condition",
+        "failure_status_code",
+        "input_tokens",
+        "cached_input_tokens",
+        "output_tokens",
+        "cost_usd",
+        "billing_status",
+        "route_verified",
+        "request_sha256",
+        "action_sha256",
+        "raw_response_sha256",
+        "artifact_sha256",
+    )
+    admission_rows = [
+        {
+            field: (
+                campaign_id
+                if field == "campaign_id"
+                else contract["models"][row["model_id"]]["provider"]
+                if field == "provider"
+                else row.get(field)
+            )
+            for field in admission_fields
+        }
+        for row in admission["rows"]
+    ]
+    admission_payload = _csv_bytes(
+        fieldnames=admission_fields, rows=admission_rows
+    )
+    admission_path = publish_root / "tables" / "profile_admission.csv"
+    _write_immutable_bytes(admission_path, admission_payload)
+
+    catalog_by_model = {row["model_id"]: row for row in catalog["routes"]}
+    profile_fields = (
+        "campaign_id",
+        "model_id",
+        "requested_model",
+        "canonical_model",
+        "provider",
+        "quantization",
+        "tenant_profile_id",
+        "tenant_profile_sha256",
+        "landlord_profile_id",
+        "landlord_profile_sha256",
+        "input_per_million",
+        "cached_input_per_million",
+        "output_per_million",
+        "endpoint_snapshot_sha256",
+        "endpoint_status",
+        "uptime_last_5m",
+        "uptime_last_30m",
+        "planned_admission_probes",
+        "passed_admission_probes",
+        "admission_failures",
+    )
+    profile_rows: list[dict[str, Any]] = []
+    profile_digests = admission["profile_sha256s"]
+    for model_id, model in contract["models"].items():
+        route = catalog_by_model[model_id]
+        probes = [row for row in admission["rows"] if row["model_id"] == model_id]
+        profile_rows.append(
+            {
+                "campaign_id": campaign_id,
+                "model_id": model_id,
+                "requested_model": model["requested_model"],
+                "canonical_model": model["canonical_model"],
+                "provider": model["provider"],
+                "quantization": model["quantization"],
+                "tenant_profile_id": model["tenant_profile_id"],
+                "tenant_profile_sha256": profile_digests[
+                    model["tenant_profile_id"]
+                ],
+                "landlord_profile_id": model["landlord_profile_id"],
+                "landlord_profile_sha256": profile_digests[
+                    model["landlord_profile_id"]
+                ],
+                "input_per_million": model["input_per_million"],
+                "cached_input_per_million": model["cached_input_per_million"],
+                "output_per_million": model["output_per_million"],
+                "endpoint_snapshot_sha256": route["endpoint_snapshot_sha256"],
+                "endpoint_status": route["status"],
+                "uptime_last_5m": route.get("uptime_last_5m"),
+                "uptime_last_30m": route.get("uptime_last_30m"),
+                "planned_admission_probes": len(probes),
+                "passed_admission_probes": sum(
+                    row["status"] == "passed" for row in probes
+                ),
+                "admission_failures": sum(
+                    row["status"] != "passed" for row in probes
+                ),
+            }
+        )
+    profile_payload = _csv_bytes(fieldnames=profile_fields, rows=profile_rows)
+    profile_path = publish_root / "tables" / "model_profiles.csv"
+    _write_immutable_bytes(profile_path, profile_payload)
+
+    manifest = _sealed(
+        {
+            "schema_version": "aeread.housing_backend_fact_manifest/0.1",
+            "campaign_id": campaign_id,
+            "artifacts": {
+                "model_profiles": {
+                    "path": f"evidence/{campaign_id}/tables/model_profiles.csv",
+                    "row_count": len(profile_rows),
+                    "sha256": _sha256_bytes(profile_payload),
+                },
+                "profile_admission": {
+                    "path": f"evidence/{campaign_id}/tables/profile_admission.csv",
+                    "row_count": len(admission_rows),
+                    "sha256": _sha256_bytes(admission_payload),
+                },
+            },
+        }
+    )
+    _write_immutable(publish_root / "tables" / "fact_manifest.json", manifest)
+    return manifest
+
+
+def _publish_blocked_campaign(
+    *,
+    contract_path: Path,
+    run_root: Path,
+    publish_root: Path,
+    contract: Mapping[str, Any],
+    design: Mapping[str, Any],
+    provider_free: Mapping[str, Any],
+    catalog: Mapping[str, Any],
+    admission: Mapping[str, Any],
+) -> dict[str, Any]:
+    live = _read_sealed(run_root / "live" / "blocked.json")
+    campaign_id = contract["campaign_id"]
+    if (
+        live["campaign_id"] != campaign_id
+        or live["status"] != "blocked_by_profile_admission"
+        or live["profile_admission_sha256"] != admission["artifact_sha256"]
+        or live["provider_calls"] != 0
+    ):
+        raise ValueError("blocked live gate does not bind the failed admission")
+
+    trajectory_export = _sealed(
+        {
+            "schema_version": TRAJECTORY_SCHEMA_VERSION,
+            "campaign_id": campaign_id,
+            "claim_status": contract["claim_status"],
+            "source_gate": "live_block",
+            "source_summary_artifact_sha256": live["artifact_sha256"],
+            "selection_rule": "No trajectory was eligible after profile admission failed.",
+            "selection_is_for_presentation_not_inference": True,
+            "ranking_allowed": False,
+            "raw_provider_responses_included": False,
+            "model_reasoning_included": False,
+            "local_source": f"runs/{campaign_id}/live",
+            "limitations": [
+                "Profile admission failed, so no Housing trajectory was started.",
+                "The admission failure is provider reliability evidence, not a model score.",
+            ],
+            "planned_trajectories": design["planned_trajectories"],
+            "attempted_trajectories": 0,
+            "completed_trajectories": 0,
+            "operational_failures": 0,
+            "trajectories": [],
+        }
+    )
+    trajectory_path = publish_root / "trajectories" / "attempted.json"
+    _write_immutable(trajectory_path, trajectory_export)
+    fact_manifest = _publish_fact_tables(
+        contract=contract,
+        catalog=catalog,
+        admission=admission,
+        publish_root=publish_root,
+    )
+    failed_probes = [
+        {
+            key: row.get(key)
+            for key in (
+                "model_id",
+                "role",
+                "action_schema",
+                "probe_index",
+                "failure_type",
+                "failure_condition",
+                "failure_status_code",
+                "billing_status",
+                "artifact_sha256",
+            )
+        }
+        for row in admission["rows"]
+        if row["status"] != "passed"
+    ]
+    qualification = _sealed(
+        {
+            "schema_version": "aeread.housing_backend_qualification/0.4",
+            "campaign_id": campaign_id,
+            "created_date": contract["backend"]["catalog_retrieved_at"],
+            "status": live["status"],
+            "claim_status": contract["claim_status"],
+            "winner_claim_allowed": False,
+            "ranking_allowed": False,
+            "contract_binding": {
+                "path": f"configs/{contract_path.name}",
+                "file_sha256": _sha256_bytes(contract_path.read_bytes()),
+                "artifact_sha256": design["contract_sha256"],
+            },
+            "source_case_selection": {
+                "campaign_id": "housing_case_config_sweep_v1",
+                "artifact_sha256": contract["source_case_selection"][
+                    "artifact_sha256"
+                ],
+                "confirmatory_holdout_status": provider_free[
+                    "confirmatory_holdout_status"
+                ],
+            },
+            "gate_status": [
+                {
+                    "gate_id": "design",
+                    "status": design["status"],
+                    "artifact_sha256": design["artifact_sha256"],
+                    "planned_trajectories": design["planned_trajectories"],
+                },
+                {
+                    "gate_id": "provider_free",
+                    "status": provider_free["status"],
+                    "artifact_sha256": provider_free["artifact_sha256"],
+                    "provider_calls": provider_free["provider_calls"],
+                    "cost_usd": provider_free["provider_cost_usd"],
+                },
+                {
+                    "gate_id": "catalog_preflight",
+                    "status": catalog["status"],
+                    "artifact_sha256": catalog["artifact_sha256"],
+                    "provider_inference_calls": catalog[
+                        "provider_inference_calls"
+                    ],
+                },
+                {
+                    "gate_id": "profile_admission",
+                    "status": admission["status"],
+                    "artifact_sha256": admission["artifact_sha256"],
+                    "expected_probe_count": admission["expected_probe_count"],
+                    "attempted_probe_count": admission["attempted_probe_count"],
+                    "passed_probe_count": admission["passed_probe_count"],
+                    "operational_failures": admission["operational_failures"],
+                    "hidden_retry_count": admission["hidden_retry_count"],
+                    "observed_cost_usd": admission["observed_cost_usd"],
+                    "provider_cost_complete": admission[
+                        "provider_cost_complete"
+                    ],
+                },
+                {
+                    "gate_id": "live",
+                    "status": live["status"],
+                    "artifact_sha256": live["artifact_sha256"],
+                    "planned_trajectories": design["planned_trajectories"],
+                    "attempted_trajectories": 0,
+                    "completed_trajectories": 0,
+                    "not_started_trajectories": design[
+                        "planned_trajectories"
+                    ],
+                    "provider_calls": live["provider_calls"],
+                    "cost_usd": live["cost_usd"],
+                },
+            ],
+            "profile_results": _profile_results(contract, admission),
+            "failed_admission_probes": failed_probes,
+            "trajectory_export": {
+                "path": f"evidence/{campaign_id}/trajectories/attempted.json",
+                "artifact_sha256": trajectory_export["artifact_sha256"],
+                "planned_trajectories": design["planned_trajectories"],
+                "attempted_trajectories": 0,
+            },
+            "fact_tables": {
+                "path": f"evidence/{campaign_id}/tables/fact_manifest.json",
+                "artifact_sha256": fact_manifest["artifact_sha256"],
+            },
+            "acceptance": {
+                "publishable_gate_evidence": True,
+                "publishable_integration_evidence": False,
+                "all_frozen_cells_attempted": False,
+                "prerequisite_gates_passed": False,
+                "typed_missingness_preserved": True,
+                "leaderboard_eligible": False,
+            },
+            "interpretation": (
+                f"V9 passed design, provider-free, and catalog gates, but only "
+                f"{admission['passed_probe_count']} of "
+                f"{admission['expected_probe_count']} profile-admission probes "
+                "passed. The failed admission blocked all 48 Housing "
+                "trajectories, so this campaign contains no model score or "
+                "variance estimate."
+            ),
+            "cost_note": (
+                f"Profile admission recorded ${admission['observed_cost_usd']} "
+                "in provider-reported cost; live execution cost $0.0."
+            ),
+            "stop_reason": "Profile admission failed; live execution was not eligible.",
+            "next_gate": (
+                "Review the typed provider failure and freeze a new campaign "
+                "identity; do not selectively rerun the failed V9 probe."
+            ),
+            "local_evidence": {
+                "path": f"runs/{campaign_id}",
+                "committed": False,
+                "contains_raw_provider_evidence": True,
+            },
+            "publication_policy": {
+                "raw_provider_responses_included": False,
+                "model_reasoning_included": False,
+                "absolute_user_paths_included": False,
+                "typed_failures_included": True,
+            },
+        }
+    )
+    _write_immutable(publish_root / "reports" / "qualification.json", qualification)
+    return qualification
+
+
 def publish_campaign(
     *, contract_path: str | Path, run_root: str | Path, publish_root: str | Path
 ) -> dict[str, Any]:
@@ -218,20 +571,33 @@ def publish_campaign(
     provider_free = _read_sealed(run_root / "provider_free" / "summary.json")
     catalog = _read_sealed(run_root / "catalog_preflight" / "summary.json")
     admission = _read_sealed(run_root / "profile_admission" / "summary.json")
-    live = _read_sealed(run_root / "live" / "summary.json")
     campaign_id = contract["campaign_id"]
     if any(
         artifact["campaign_id"] != campaign_id
-        for artifact in (design, provider_free, catalog, admission, live)
+        for artifact in (design, provider_free, catalog, admission)
     ):
         raise ValueError("source gate campaign identities differ")
     if not (
         design["status"] == "passed"
         and provider_free["status"] == "passed"
         and catalog["status"] == "passed"
-        and admission["status"] == "passed"
     ):
-        raise ValueError("cannot publish a live result whose prerequisite gate failed")
+        raise ValueError("cannot publish after a failed provider-free prerequisite")
+    if admission["status"] != "passed":
+        return _publish_blocked_campaign(
+            contract_path=contract_path,
+            run_root=run_root,
+            publish_root=publish_root,
+            contract=contract,
+            design=design,
+            provider_free=provider_free,
+            catalog=catalog,
+            admission=admission,
+        )
+
+    live = _read_sealed(run_root / "live" / "summary.json")
+    if live["campaign_id"] != campaign_id:
+        raise ValueError("live gate campaign identity differs")
     if live["attempted_trajectories"] != live["planned_trajectories"]:
         raise ValueError("V8 publication requires every frozen cell to be attempted")
 

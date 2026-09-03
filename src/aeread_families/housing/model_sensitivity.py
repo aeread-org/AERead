@@ -7,7 +7,9 @@ import asyncio
 import csv
 import hashlib
 import json
+import math
 import os
+import statistics
 import time
 from pathlib import Path
 from typing import Any, Mapping, Sequence
@@ -436,23 +438,17 @@ def design_artifact(
         raise ValueError("profile admission identities are missing")
     expected_profiles = admission["profile_sha256s"]
     plans: list[dict[str, Any]] = []
+    multi_cell = (
+        len(contract["execution"]["world_seeds"])
+        * contract["execution"]["replicates"]
+        > 1
+    )
     for (config_id, condition_id), setup in sorted(setups.items()):
         config = next(
             item
             for item in selected_configs(contract)
             if item["config_id"] == config_id
         )
-        case = setup.plan.cases[0]
-        expected_payload = {
-            "world_kind": "bid",
-            "world_seed": contract["execution"]["world_seeds"][0],
-            "num_tenants": config["tenants"],
-            "num_listings": config["listings"],
-            "rounds": config["rounds"],
-            "common_weight": config["common_weight"],
-        }
-        if dict(case.payload) != expected_payload:
-            raise ValueError(f"case payload drifted for {config_id}")
         profile_digests = {
             profile.profile_id: _sha256(profile)
             for profile in setup.plan.agent_profiles
@@ -467,8 +463,20 @@ def design_artifact(
             for profile in setup.plan.agent_profiles
         ):
             raise ValueError("fixed harness drifted")
-        plans.append(
-            {
+        cases_by_id = {case.case_id: case for case in setup.plan.cases}
+        for cell in setup.plan.cells:
+            case = cases_by_id[cell.case_id]
+            expected_payload = {
+                "world_kind": "bid",
+                "world_seed": cell.world_seed,
+                "num_tenants": config["tenants"],
+                "num_listings": config["listings"],
+                "rounds": config["rounds"],
+                "common_weight": config["common_weight"],
+            }
+            if dict(case.payload) != expected_payload:
+                raise ValueError(f"case payload drifted for {config_id}")
+            plan_row = {
                 "config_id": config_id,
                 "condition_id": condition_id,
                 "case_sha256": case.content_sha256,
@@ -476,7 +484,15 @@ def design_artifact(
                 "plan_sha256": setup.plan.plan_sha256,
                 "profile_sha256s": profile_digests,
             }
-        )
+            if multi_cell:
+                plan_row.update(
+                    {
+                        "cell_id": cell.cell_id,
+                        "world_seed": cell.world_seed,
+                        "replicate_index": cell.replicate_index,
+                    }
+                )
+            plans.append(plan_row)
     return _sealed(
         {
             "schema_version": "aeread.housing_model_sensitivity_design/0.1",
@@ -520,40 +536,46 @@ def provider_free_artifact(contract: Mapping[str, Any]) -> dict[str, Any]:
         source_rows = list(csv.DictReader(handle))
     rows: list[dict[str, Any]] = []
     for config in selected_configs(contract):
-        world_seed = contract["execution"]["world_seeds"][0]
-        facts = audit_bid_world(
-            tenants=config["tenants"],
-            listings=config["listings"],
-            rounds=config["rounds"],
-            common_weight=config["common_weight"],
-            world_seed=world_seed,
-        )
-        source = next(
-            (
-                row
-                for row in source_rows
-                if row["config_id"] == config["config_id"]
-                and int(row["world_seed"]) == world_seed
-            ),
-            None,
-        )
-        if source is None or source["world_sha256"] != facts["world_sha256"]:
-            raise ValueError(f"source case facts drifted for {config['config_id']}")
-        rows.append(
-            {
-                "config_id": config["config_id"],
-                "world_seed": world_seed,
-                "world_sha256": facts["world_sha256"],
-                "case_config_sha256": source["case_config_sha256"],
-                "oracle_total": facts["oracle_total"],
-                "naive_normalized": facts["naive_normalized"],
-                "oracle_gap_normalized": facts["oracle_minus_naive_normalized"],
-                "oracle_crosscheck_passed": facts["oracle_crosscheck_passed"],
-                "oracle_active_ceiling_passed": (
-                    facts["oracle_total"] == facts["oracle_informed_total"]
+        for world_seed in contract["execution"]["world_seeds"]:
+            facts = audit_bid_world(
+                tenants=config["tenants"],
+                listings=config["listings"],
+                rounds=config["rounds"],
+                common_weight=config["common_weight"],
+                world_seed=world_seed,
+            )
+            source = next(
+                (
+                    row
+                    for row in source_rows
+                    if row["config_id"] == config["config_id"]
+                    and int(row["world_seed"]) == world_seed
                 ),
-            }
-        )
+                None,
+            )
+            if source is None or source["world_sha256"] != facts["world_sha256"]:
+                raise ValueError(
+                    f"source case facts drifted for {config['config_id']}"
+                )
+            rows.append(
+                {
+                    "config_id": config["config_id"],
+                    "world_seed": world_seed,
+                    "world_sha256": facts["world_sha256"],
+                    "case_config_sha256": source["case_config_sha256"],
+                    "oracle_total": facts["oracle_total"],
+                    "naive_normalized": facts["naive_normalized"],
+                    "oracle_gap_normalized": facts[
+                        "oracle_minus_naive_normalized"
+                    ],
+                    "oracle_crosscheck_passed": facts[
+                        "oracle_crosscheck_passed"
+                    ],
+                    "oracle_active_ceiling_passed": (
+                        facts["oracle_total"] == facts["oracle_informed_total"]
+                    ),
+                }
+            )
     return _sealed(
         {
             "schema_version": "aeread.housing_model_sensitivity_provider_free/0.1",
@@ -609,10 +631,19 @@ def _summary_views(
     rows: Sequence[Mapping[str, Any]], contract: Mapping[str, Any]
 ) -> dict[str, Any]:
     output: dict[str, Any] = {}
+    multi_cell = (
+        len(contract["execution"]["world_seeds"])
+        * contract["execution"]["replicates"]
+        > 1
+    )
     for config in selected_configs(contract):
         config_rows = [row for row in rows if row["config_id"] == config["config_id"]]
-        output[config["config_id"]] = {
-            "planned_trajectories": len(contract["conditions"]),
+        view: dict[str, Any] = {
+            "planned_trajectories": (
+                len(contract["conditions"])
+                * len(contract["execution"]["world_seeds"])
+                * contract["execution"]["replicates"]
+            ),
             "attempted_trajectories": len(config_rows),
             "completed_trajectories": sum(
                 row["status"] == "completed" for row in config_rows
@@ -620,7 +651,45 @@ def _summary_views(
             "operational_failures": sum(
                 row["status"] == "operational_failure" for row in config_rows
             ),
-            "conditions": {
+        }
+        if multi_cell:
+            view["conditions"] = {
+                condition["condition_id"]: {
+                    "planned_trajectories": (
+                        len(contract["execution"]["world_seeds"])
+                        * contract["execution"]["replicates"]
+                    ),
+                    "attempted_trajectories": len(condition_rows),
+                    "completed_trajectories": sum(
+                        row["status"] == "completed" for row in condition_rows
+                    ),
+                    "operational_failures": sum(
+                        row["status"] == "operational_failure"
+                        for row in condition_rows
+                    ),
+                    "worlds": [
+                        {
+                            "world_seed": row["world_seed"],
+                            "replicate_index": row["replicate_index"],
+                            "status": row["status"],
+                            "within_case_score": row.get("within_case_score"),
+                            "cost_usd": row.get("cost_usd", 0.0),
+                            "failure_condition": row.get("failure_condition"),
+                        }
+                        for row in condition_rows
+                    ],
+                }
+                for condition in contract["conditions"]
+                for condition_rows in (
+                    [
+                        row
+                        for row in config_rows
+                        if row["condition_id"] == condition["condition_id"]
+                    ],
+                )
+            }
+        else:
+            view["conditions"] = {
                 row["condition_id"]: {
                     "status": row["status"],
                     "within_case_score": row.get("within_case_score"),
@@ -628,9 +697,131 @@ def _summary_views(
                     "failure_condition": row.get("failure_condition"),
                 }
                 for row in config_rows
-            },
-        }
+            }
+        output[config["config_id"]] = view
     return output
+
+
+def variance_pilot_analysis(
+    rows: Sequence[Mapping[str, Any]], contract: Mapping[str, Any]
+) -> dict[str, Any]:
+    """Estimate paired world-level variance without producing a ranking."""
+
+    analysis = contract["analysis"]
+    if analysis.get("aggregation") != (
+        "equal_weight_configs_and_opponents_within_world"
+    ):
+        raise ValueError("contract does not declare the variance-pilot estimand")
+    configs = selected_configs(contract)
+    opponents = {condition["opponent"] for condition in contract["conditions"]}
+    subjects = {condition["subject"] for condition in contract["conditions"]}
+    if subjects != {"glm_53_flash", "deepseek_v4_flash"} or opponents != subjects:
+        raise ValueError("variance-pilot model panel drifted")
+    expected_per_subject = (
+        len(configs) * len(opponents) * contract["execution"]["replicates"]
+    )
+    world_rows: list[dict[str, Any]] = []
+    contrasts: list[float] = []
+    for world_seed in contract["execution"]["world_seeds"]:
+        subject_means: dict[str, float] = {}
+        subject_counts: dict[str, int] = {}
+        for subject in sorted(subjects):
+            eligible = [
+                row
+                for row in rows
+                if row["world_seed"] == world_seed
+                and row["subject"] == subject
+                and row["status"] == "completed"
+            ]
+            subject_counts[subject] = len(eligible)
+            if len(eligible) == expected_per_subject:
+                subject_means[subject] = statistics.fmean(
+                    float(row["within_case_score"]) for row in eligible
+                )
+        complete_pair = len(subject_means) == 2
+        contrast = (
+            subject_means["glm_53_flash"]
+            - subject_means["deepseek_v4_flash"]
+            if complete_pair
+            else None
+        )
+        if contrast is not None:
+            contrasts.append(contrast)
+        world_rows.append(
+            {
+                "world_seed": world_seed,
+                "complete_pair": complete_pair,
+                "completed_cells_by_subject": subject_counts,
+                "subject_means": subject_means,
+                "contrast": contrast,
+            }
+        )
+
+    paired_world_count = len(contrasts)
+    sample_variance = (
+        statistics.variance(contrasts) if paired_world_count >= 2 else None
+    )
+    sample_standard_deviation = (
+        math.sqrt(sample_variance) if sample_variance is not None else None
+    )
+    mean_contrast = statistics.fmean(contrasts) if contrasts else None
+    raw_required_worlds: int | None = None
+    attrition_adjusted_worlds: int | None = None
+    recommended_worlds: int | None = None
+    within_declared_maximum = False
+    if sample_standard_deviation is not None:
+        z_alpha = 1.959963984540054
+        z_power = 0.8416212335729143
+        raw_required_worlds = math.ceil(
+            (
+                (z_alpha + z_power)
+                * sample_standard_deviation
+                / analysis["minimum_meaningful_effect"]
+            )
+            ** 2
+        )
+        attrition_adjusted_worlds = math.ceil(
+            raw_required_worlds / (1.0 - analysis["attrition_fraction"])
+        )
+        recommended_worlds = max(
+            analysis["minimum_confirmatory_worlds"], attrition_adjusted_worlds
+        )
+        within_declared_maximum = (
+            recommended_worlds <= analysis["maximum_confirmatory_worlds"]
+        )
+    return _sealed(
+        {
+            "schema_version": "aeread.housing_variance_pilot_analysis/0.1",
+            "campaign_id": contract["campaign_id"],
+            "status": (
+                "estimable" if paired_world_count >= 2 else "insufficient_paired_worlds"
+            ),
+            "claim_status": contract["claim_status"],
+            "ranking_allowed": False,
+            "independent_cluster": "world_seed",
+            "planned_world_count": len(contract["execution"]["world_seeds"]),
+            "paired_world_count": paired_world_count,
+            "incomplete_world_count": len(world_rows) - paired_world_count,
+            "expected_cells_per_subject_per_world": expected_per_subject,
+            "mean_paired_contrast": mean_contrast,
+            "sample_variance": sample_variance,
+            "sample_standard_deviation": sample_standard_deviation,
+            "minimum_meaningful_effect": analysis["minimum_meaningful_effect"],
+            "alpha": analysis["alpha"],
+            "power": analysis["power"],
+            "raw_required_worlds": raw_required_worlds,
+            "attrition_adjusted_worlds": attrition_adjusted_worlds,
+            "minimum_confirmatory_worlds": analysis[
+                "minimum_confirmatory_worlds"
+            ],
+            "maximum_confirmatory_worlds": analysis[
+                "maximum_confirmatory_worlds"
+            ],
+            "recommended_confirmatory_worlds": recommended_worlds,
+            "within_declared_maximum": within_declared_maximum,
+            "worlds": world_rows,
+        }
+    )
 
 
 async def run_live(
@@ -650,135 +841,155 @@ async def run_live(
     rows: list[dict[str, Any]] = []
     critical_stop = False
     stop_reason: str | None = None
-    for config_index, config in enumerate(selected_configs(contract)):
-        rotated = conditions[config_index:] + conditions[:config_index]
-        for condition in rotated:
-            condition_id = condition["condition_id"]
-            result_path = (
-                live_root
-                / config["config_id"]
-                / condition_id
-                / "results"
-                / f"world_{execution_contract['world_seeds'][0]}__rep_0.json"
-            )
-            if result_path.exists():
-                rows.append(_read_sealed(result_path))
-                continue
-            cost_so_far = sum(float(row.get("cost_usd", 0.0)) for row in rows)
-            if (
-                cost_so_far + execution_contract["per_trajectory_cost_reserve_usd"]
-                > execution_contract["cost_ceiling_usd"]
+    configs = selected_configs(contract)
+    ordered_cells: list[tuple[Mapping[str, Any], Mapping[str, Any], Any, Any]] = []
+    for world_index, world_seed in enumerate(execution_contract["world_seeds"]):
+        for config_index, config in enumerate(configs):
+            rotation_index = config_index
+            if contract["controls"]["condition_order"] == (
+                "rotate_by_world_and_case_configuration"
             ):
-                critical_stop = True
-                stop_reason = "campaign_cost_reserve_reached"
-                break
-            setup = setups[(config["config_id"], condition_id)]
-            cell = setup.plan.cells[0]
-            evidence_root = live_root / config["config_id"] / condition_id / "evidence"
-            started = time.perf_counter()
-            critical_error = False
+                rotation_index += world_index * len(configs)
+            offset = rotation_index % len(conditions)
+            rotated = conditions[offset:] + conditions[:offset]
+            for condition in rotated:
+                setup = setups[(config["config_id"], condition["condition_id"])]
+                for replicate_index in range(execution_contract["replicates"]):
+                    matches = [
+                        cell
+                        for cell in setup.plan.cells
+                        if cell.world_seed == world_seed
+                        and cell.replicate_index == replicate_index
+                    ]
+                    if len(matches) != 1:
+                        raise ValueError("frozen execution cell did not resolve uniquely")
+                    ordered_cells.append((config, condition, setup, matches[0]))
+
+    for config, condition, setup, cell in ordered_cells:
+        condition_id = condition["condition_id"]
+        result_path = (
+            live_root
+            / config["config_id"]
+            / condition_id
+            / "results"
+            / f"world_{cell.world_seed}__rep_{cell.replicate_index}.json"
+        )
+        if result_path.exists():
+            rows.append(_read_sealed(result_path))
+            continue
+        cost_so_far = sum(float(row.get("cost_usd", 0.0)) for row in rows)
+        if (
+            cost_so_far + execution_contract["per_trajectory_cost_reserve_usd"]
+            > execution_contract["cost_ceiling_usd"]
+        ):
+            critical_stop = True
+            stop_reason = "campaign_cost_reserve_reached"
+            break
+        evidence_root = live_root / config["config_id"] / condition_id / "evidence"
+        started = time.perf_counter()
+        critical_error = False
+        try:
+            execution = await execute_plan_cell(
+                plan=setup.plan,
+                cell_id=cell.cell_id,
+                registry=setup.registry,
+                evidence_root=evidence_root,
+                prompt_sources=setup.prompt_sources,
+                providers={"openrouter": client},
+                pricing=setup.pricing,
+                harnesses=setup.harnesses,
+                episode_attempt_ordinal=0,
+            )
+            receipt = finalize_housing_execution(setup=setup, execution=execution)
+            verify_evaluation_receipt(receipt)
+            replayed = replay_housing_receipt(
+                setup=setup,
+                receipt=receipt,
+                evidence_root=evidence_root,
+            )
+            if canonical_json_bytes(replayed.scores) != canonical_json_bytes(
+                receipt.scores
+            ):
+                raise ValueError("offline replay score mismatch")
+            outcome = execution.episode_result.outcome
+            row = {
+                "config_id": config["config_id"],
+                "difficulty_stratum": config["difficulty_stratum"],
+                "condition_id": condition_id,
+                "subject": condition["subject"],
+                "opponent": condition["opponent"],
+                "evaluation_kind": condition["evaluation_kind"],
+                "world_seed": cell.world_seed,
+                "replicate_index": cell.replicate_index,
+                "status": "completed",
+                "within_case_score": outcome["within_case_score"],
+                "social_welfare": outcome["social_welfare"],
+                "tenant_payoff": sum(outcome["tenant_payoffs"].values()),
+                "landlord_payoff": sum(outcome["landlord_payoffs"].values()),
+                "ir_violation_count": len(outcome["ir_violations"]),
+                "wasted_contacts": outcome["wasted_contacts"],
+                "logical_action_count": execution.episode_result.logical_action_count,
+                "cost_usd": execution.total_cost_usd,
+                "elapsed_seconds": time.perf_counter() - started,
+                "receipt_sha256": receipt.receipt_sha256,
+                "run_plan_id": setup.plan.run_plan_id,
+                "cell_id": cell.cell_id,
+                "route_verified": True,
+                "provider_cost_complete": True,
+                "replay_verified": True,
+                "role_metrics": _role_metrics(
+                    execution,
+                    tenant_profile_id=contract["models"][condition["subject"]][
+                        "tenant_profile_id"
+                    ],
+                ),
+            }
+        except Exception as error:
+            receipt_sha256 = None
             try:
-                execution = await execute_plan_cell(
-                    plan=setup.plan,
-                    cell_id=cell.cell_id,
-                    registry=setup.registry,
-                    evidence_root=evidence_root,
-                    prompt_sources=setup.prompt_sources,
-                    providers={"openrouter": client},
-                    pricing=setup.pricing,
-                    harnesses=setup.harnesses,
-                    episode_attempt_ordinal=0,
-                )
-                receipt = finalize_housing_execution(setup=setup, execution=execution)
-                verify_evaluation_receipt(receipt)
-                replayed = replay_housing_receipt(
+                failure_receipt = finalize_housing_failure(
                     setup=setup,
-                    receipt=receipt,
-                    evidence_root=evidence_root,
-                )
-                if canonical_json_bytes(replayed.scores) != canonical_json_bytes(
-                    receipt.scores
-                ):
-                    raise ValueError("offline replay score mismatch")
-                outcome = execution.episode_result.outcome
-                row = {
-                    "config_id": config["config_id"],
-                    "difficulty_stratum": config["difficulty_stratum"],
-                    "condition_id": condition_id,
-                    "subject": condition["subject"],
-                    "opponent": condition["opponent"],
-                    "evaluation_kind": condition["evaluation_kind"],
-                    "world_seed": cell.world_seed,
-                    "replicate_index": cell.replicate_index,
-                    "status": "completed",
-                    "within_case_score": outcome["within_case_score"],
-                    "social_welfare": outcome["social_welfare"],
-                    "tenant_payoff": sum(outcome["tenant_payoffs"].values()),
-                    "landlord_payoff": sum(outcome["landlord_payoffs"].values()),
-                    "ir_violation_count": len(outcome["ir_violations"]),
-                    "wasted_contacts": outcome["wasted_contacts"],
-                    "logical_action_count": execution.episode_result.logical_action_count,
-                    "cost_usd": execution.total_cost_usd,
-                    "elapsed_seconds": time.perf_counter() - started,
-                    "receipt_sha256": receipt.receipt_sha256,
-                    "run_plan_id": setup.plan.run_plan_id,
-                    "cell_id": cell.cell_id,
-                    "route_verified": True,
-                    "provider_cost_complete": True,
-                    "replay_verified": True,
-                    "role_metrics": _role_metrics(
-                        execution,
-                        tenant_profile_id=contract["models"][condition["subject"]][
-                            "tenant_profile_id"
-                        ],
-                    ),
-                }
-            except Exception as error:
-                receipt_sha256 = None
-                try:
-                    failure_receipt = finalize_housing_failure(
-                        setup=setup,
-                        cell_id=cell.cell_id,
-                        evidence_root=evidence_root,
-                        error=error,
-                    )
-                    receipt_sha256 = failure_receipt.receipt_sha256
-                except Exception:
-                    pass
-                usage = _failure_usage(
-                    evidence_root=evidence_root,
-                    run_plan_id=setup.plan.run_plan_id,
                     cell_id=cell.cell_id,
+                    evidence_root=evidence_root,
+                    error=error,
                 )
-                row = {
-                    "config_id": config["config_id"],
-                    "difficulty_stratum": config["difficulty_stratum"],
-                    "condition_id": condition_id,
-                    "subject": condition["subject"],
-                    "opponent": condition["opponent"],
-                    "evaluation_kind": condition["evaluation_kind"],
-                    "world_seed": cell.world_seed,
-                    "replicate_index": cell.replicate_index,
-                    "status": "operational_failure",
-                    "failure_type": type(error).__name__,
-                    "failure_condition": (
-                        _exception_attribute(error, "condition") or "execution_error"
-                    ),
-                    "failure_status_code": _exception_attribute(error, "status_code"),
-                    "receipt_sha256": receipt_sha256,
-                    "cost_usd": usage["cost_usd"],
-                    "failure_usage": usage,
-                    "elapsed_seconds": time.perf_counter() - started,
-                }
-                critical_error = _critical_failure(error)
-            sealed_row = _sealed(row)
-            _write_json(result_path, sealed_row)
-            rows.append(sealed_row)
-            if critical_error:
-                critical_stop = True
-                stop_reason = "critical_route_replay_or_cost_failure"
-                break
-        if critical_stop:
+                receipt_sha256 = failure_receipt.receipt_sha256
+            except Exception:
+                pass
+            usage = _failure_usage(
+                evidence_root=evidence_root,
+                run_plan_id=setup.plan.run_plan_id,
+                cell_id=cell.cell_id,
+            )
+            row = {
+                "config_id": config["config_id"],
+                "difficulty_stratum": config["difficulty_stratum"],
+                "condition_id": condition_id,
+                "subject": condition["subject"],
+                "opponent": condition["opponent"],
+                "evaluation_kind": condition["evaluation_kind"],
+                "world_seed": cell.world_seed,
+                "replicate_index": cell.replicate_index,
+                "status": "operational_failure",
+                "failure_type": type(error).__name__,
+                "failure_condition": (
+                    _exception_attribute(error, "condition") or "execution_error"
+                ),
+                "failure_status_code": _exception_attribute(error, "status_code"),
+                "receipt_sha256": receipt_sha256,
+                "run_plan_id": setup.plan.run_plan_id,
+                "cell_id": cell.cell_id,
+                "cost_usd": usage["cost_usd"],
+                "failure_usage": usage,
+                "elapsed_seconds": time.perf_counter() - started,
+            }
+            critical_error = _critical_failure(error)
+        sealed_row = _sealed(row)
+        _write_json(result_path, sealed_row)
+        rows.append(sealed_row)
+        if critical_error:
+            critical_stop = True
+            stop_reason = "critical_route_replay_or_cost_failure"
             break
 
     expected = (
@@ -792,37 +1003,42 @@ async def run_live(
     total_cost = sum(float(row.get("cost_usd", 0.0)) for row in rows)
     if total_cost > execution_contract["cost_ceiling_usd"] + 1e-12:
         raise RuntimeError("model-sensitivity run exceeded its hard cost ceiling")
-    artifact = _sealed(
-        {
-            "schema_version": "aeread.housing_model_sensitivity_results/0.1",
-            "campaign_id": contract["campaign_id"],
-            "status": (
-                "completed_with_full_matrix"
-                if len(completed) == expected
-                else (
-                    "completed_with_typed_missingness"
-                    if len(rows) == expected
-                    else "stopped_with_typed_missingness"
-                )
-            ),
-            "claim_status": contract["claim_status"],
-            "winner_claim_allowed": False,
-            "ranking_allowed": False,
-            "planned_trajectories": expected,
-            "attempted_trajectories": len(rows),
-            "completed_trajectories": len(completed),
-            "operational_failures": len(failures),
-            "not_started_trajectories": expected - len(rows),
-            "complete_matrix": len(completed) == expected,
-            "total_cost_usd": total_cost,
-            "cost_ceiling_usd": execution_contract["cost_ceiling_usd"],
-            "critical_stop": critical_stop,
-            "stop_reason": stop_reason,
-            "uncertainty": contract["analysis"]["uncertainty"],
-            "configuration_views": _summary_views(rows, contract),
-            "rows": rows,
-        }
-    )
+    artifact_core: dict[str, Any] = {
+        "schema_version": "aeread.housing_model_sensitivity_results/0.1",
+        "campaign_id": contract["campaign_id"],
+        "status": (
+            "completed_with_full_matrix"
+            if len(completed) == expected
+            else (
+                "completed_with_typed_missingness"
+                if len(rows) == expected
+                else "stopped_with_typed_missingness"
+            )
+        ),
+        "claim_status": contract["claim_status"],
+        "winner_claim_allowed": False,
+        "ranking_allowed": False,
+        "planned_trajectories": expected,
+        "attempted_trajectories": len(rows),
+        "completed_trajectories": len(completed),
+        "operational_failures": len(failures),
+        "not_started_trajectories": expected - len(rows),
+        "complete_matrix": len(completed) == expected,
+        "total_cost_usd": total_cost,
+        "cost_ceiling_usd": execution_contract["cost_ceiling_usd"],
+        "critical_stop": critical_stop,
+        "stop_reason": stop_reason,
+        "uncertainty": contract["analysis"]["uncertainty"],
+        "configuration_views": _summary_views(rows, contract),
+        "rows": rows,
+    }
+    if contract["analysis"].get("aggregation") == (
+        "equal_weight_configs_and_opponents_within_world"
+    ):
+        artifact_core["variance_pilot_analysis"] = variance_pilot_analysis(
+            rows, contract
+        )
+    artifact = _sealed(artifact_core)
     _write_json(summary_path, artifact)
     return artifact
 
