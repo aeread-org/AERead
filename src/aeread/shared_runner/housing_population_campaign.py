@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import dataclasses
 import hashlib
 import json
 import math
@@ -38,7 +39,9 @@ from .campaign import (
 from .execution import (
     EvidenceStore,
     OpenRouterChatClient,
+    ProviderFailure,
     ProviderRequest,
+    ProviderResult,
     execute_plan_cell,
 )
 from .housing import (
@@ -139,6 +142,30 @@ def load_contract(path: str | Path) -> dict[str, Any]:
         "common_weight": 0.6,
     }:
         raise ValueError("Housing V0 environment controls drifted")
+    controls = value["controls"]
+    expected_controls = {
+        "harness": "minimal_chat/1.0",
+        "tools": "disabled",
+        "memory": "disabled",
+        "reasoning_effort": "low",
+        "temperature": 0.0,
+        "top_p": 1.0,
+        "max_output_tokens": 4096,
+        "timeout_seconds": 120.0,
+        "sdk_retries": 0,
+        "max_action_attempts": 4,
+        "retryable_conditions": [
+            "length",
+            "rate_limit",
+            "provider_5xx",
+            "empty_response",
+        ],
+        "tenant_inference_seed_base": 87001,
+        "landlord_inference_seed_base": 97001,
+        "condition_order": "rotate_by_world",
+    }
+    if controls != expected_controls:
+        raise ValueError("Housing V0 execution controls drifted")
     models = value["models"]
     if set(models) != {"glm_53_flash", "deepseek_v4_flash"}:
         raise ValueError("the frozen subject panel requires exactly two models")
@@ -259,6 +286,10 @@ def _build_setup(
         landlord_openrouter_route=(
             _route_for(opponent_id) if model_opponent else None
         ),
+        max_output_tokens_override=controls["max_output_tokens"],
+        timeout_seconds_override=controls["timeout_seconds"],
+        max_action_attempts_override=controls["max_action_attempts"],
+        retryable_conditions_override=controls["retryable_conditions"],
         evaluation_kind=condition["evaluation_kind"],
     )
 
@@ -278,6 +309,53 @@ def build_condition_setups(
         )
         for condition in contract["conditions"]
     }
+
+
+def _assert_declared_profile_controls(
+    setup: Any, controls: Mapping[str, Any]
+) -> None:
+    observed_profiles = 0
+    for profile in setup.plan.agent_profiles:
+        if profile.model.provider != "openrouter":
+            continue
+        observed_profiles += 1
+        observed = {
+            "harness": f"{profile.harness.id}/{profile.harness.version}",
+            "tools": "disabled" if not profile.tools else "enabled",
+            "memory": profile.memory.mode,
+            "reasoning_effort": profile.reasoning.effort,
+            "temperature": profile.sampling.temperature,
+            "top_p": profile.sampling.top_p,
+            "max_output_tokens": profile.sampling.max_output_tokens,
+            "timeout_seconds": profile.budgets.timeout_seconds,
+            "sdk_retries": profile.retry_policy.sdk_retries,
+            "max_action_attempts": profile.retry_policy.max_action_attempts,
+            "retryable_conditions": list(
+                profile.retry_policy.retryable_conditions
+            ),
+        }
+        expected = {
+            key: controls[key]
+            for key in (
+                "harness",
+                "tools",
+                "memory",
+                "reasoning_effort",
+                "temperature",
+                "top_p",
+                "max_output_tokens",
+                "timeout_seconds",
+                "sdk_retries",
+                "max_action_attempts",
+                "retryable_conditions",
+            )
+        }
+        if observed != expected:
+            raise ValueError(
+                f"declared controls do not match profile {profile.profile_id!r}"
+            )
+    if observed_profiles == 0:
+        raise ValueError("campaign setup contains no live model profiles")
 
 
 def audit_world_panel(contract: Mapping[str, Any]) -> dict[str, Any]:
@@ -371,6 +449,7 @@ def design_contract_artifact(contract: Mapping[str, Any]) -> dict[str, Any]:
     plan_rows: list[dict[str, Any]] = []
     for condition_id, setup in setups.items():
         condition = conditions[condition_id]
+        _assert_declared_profile_controls(setup, contract["controls"])
         block = setup.plan.evaluation_blocks[0]
         if block.kind != condition["evaluation_kind"]:
             raise ValueError(f"evaluation kind drift for {condition_id}")
@@ -416,6 +495,7 @@ def design_contract_artifact(contract: Mapping[str, Any]) -> dict[str, Any]:
 
 def _profile_request(
     *,
+    controls: Mapping[str, Any],
     model_id: str,
     role: str,
     action_schema: str,
@@ -454,11 +534,11 @@ def _profile_request(
         revision=route.canonical_model,
         instructions=prompt,
         input_text=input_text,
-        temperature=0.0,
-        top_p=1.0,
-        max_output_tokens=4096,
-        reasoning_effort="low",
-        timeout_seconds=120.0,
+        temperature=controls["temperature"],
+        top_p=controls["top_p"],
+        max_output_tokens=controls["max_output_tokens"],
+        reasoning_effort=controls["reasoning_effort"],
+        timeout_seconds=controls["timeout_seconds"],
         request_sha256="",
         max_cost_usd=0.01,
         output_schema=output_schema,
@@ -548,8 +628,106 @@ def _validate_admission_action(
     return value
 
 
+async def _complete_admission_request(
+    *,
+    client: OpenRouterChatClient,
+    request: ProviderRequest,
+    controls: Mapping[str, Any],
+) -> tuple[ProviderResult, list[dict[str, Any]]]:
+    attempts: list[dict[str, Any]] = []
+    for ordinal in range(controls["max_action_attempts"]):
+        attempt_request = dataclasses.replace(
+            request,
+            provider_call_id=f"{request.provider_call_id}_attempt_{ordinal + 1}",
+        )
+        started = time.perf_counter()
+        failure: ProviderFailure | None = None
+        try:
+            result = await client.complete(attempt_request)
+        except ProviderFailure as error:
+            failure = error
+            attempts.append(
+                {
+                    "attempt_index": ordinal + 1,
+                    "provider_call_id": attempt_request.provider_call_id,
+                    "status": "failed",
+                    "failure_condition": error.condition,
+                    "status_code": error.status_code,
+                    "elapsed_seconds": time.perf_counter() - started,
+                    "input_tokens": 0,
+                    "cached_input_tokens": 0,
+                    "output_tokens": 0,
+                    "cost_usd": 0.0,
+                }
+            )
+        else:
+            if result.cost_usd is None:
+                raise ValueError("admission call omitted provider billing")
+            empty = not result.output_text.strip()
+            attempts.append(
+                {
+                    "attempt_index": ordinal + 1,
+                    "provider_call_id": attempt_request.provider_call_id,
+                    "status": "failed" if empty else "passed",
+                    "failure_condition": "empty_response" if empty else None,
+                    "status_code": None,
+                    "elapsed_seconds": time.perf_counter() - started,
+                    "input_tokens": result.input_tokens,
+                    "cached_input_tokens": result.cached_input_tokens,
+                    "output_tokens": result.output_tokens,
+                    "cost_usd": result.cost_usd,
+                }
+            )
+            if not empty:
+                return result, attempts
+            failure = ProviderFailure(
+                "empty_response",
+                "provider returned an empty admission completion",
+                retryable=True,
+            )
+        if failure is None:  # pragma: no cover - both branches set or return
+            raise RuntimeError("admission attempt did not produce a result or failure")
+        can_retry = (
+            failure.retryable
+            and failure.condition in controls["retryable_conditions"]
+            and ordinal + 1 < controls["max_action_attempts"]
+        )
+        if not can_retry:
+            raise ProviderFailure(
+                failure.condition,
+                (
+                    f"admission request {request.provider_call_id!r} failed "
+                    f"after {ordinal + 1} visible attempt(s)"
+                ),
+                retryable=failure.retryable,
+                status_code=failure.status_code,
+            ) from failure
+        base_seconds = min(30.0, 2.0 * (2**ordinal))
+        jitter_seconds = int(request.request_sha256[-4:], 16) % 1000 / 1000.0
+        attempts[-1]["retry_delay_seconds"] = base_seconds + jitter_seconds
+        await asyncio.sleep(base_seconds + jitter_seconds)
+    raise RuntimeError("admission attempt loop exhausted")
+
+
 async def run_profile_admission(contract: Mapping[str, Any]) -> dict[str, Any]:
     client = OpenRouterChatClient()
+    setups = build_condition_setups(
+        contract,
+        world_seeds=contract["full_trajectory"]["world_seeds"],
+        replicates=1,
+    )
+    profile_sha256s: dict[str, str] = {}
+    for setup in setups.values():
+        _assert_declared_profile_controls(setup, contract["controls"])
+        for profile in setup.plan.agent_profiles:
+            if profile.model.provider != "openrouter":
+                continue
+            digest = _sha256(profile)
+            existing = profile_sha256s.setdefault(profile.profile_id, digest)
+            if existing != digest:
+                raise ValueError(
+                    f"profile {profile.profile_id!r} drifted across conditions"
+                )
     results: list[dict[str, Any]] = []
     for model_id in contract["models"]:
         for probe_index in range(3):
@@ -560,6 +738,7 @@ async def run_profile_admission(contract: Mapping[str, Any]) -> dict[str, Any]:
             ):
                 for action_schema in schemas:
                     request = _profile_request(
+                        controls=contract["controls"],
                         model_id=model_id,
                         role=role,
                         action_schema=action_schema,
@@ -567,16 +746,21 @@ async def run_profile_admission(contract: Mapping[str, Any]) -> dict[str, Any]:
                         probe_index=probe_index,
                     )
                     started = time.perf_counter()
-                    result = await client.complete(request)
+                    result, attempts = await _complete_admission_request(
+                        client=client,
+                        request=request,
+                        controls=contract["controls"],
+                    )
                     action = _validate_admission_action(
                         action_schema, result.output_text, observations[action_schema]
                     )
-                    if result.cost_usd is None:
-                        raise ValueError("admission call omitted provider billing")
                     results.append(
                         {
                             "model_id": model_id,
                             "role": role,
+                            "profile_id": contract["models"][model_id][
+                                f"{role}_profile_id"
+                            ],
                             "action_schema": action_schema,
                             "probe_index": probe_index,
                             "status": "passed",
@@ -587,10 +771,12 @@ async def run_profile_admission(contract: Mapping[str, Any]) -> dict[str, Any]:
                             "input_tokens": result.input_tokens,
                             "cached_input_tokens": result.cached_input_tokens,
                             "output_tokens": result.output_tokens,
-                            "cost_usd": result.cost_usd,
+                            "cost_usd": sum(row["cost_usd"] for row in attempts),
                             "elapsed_seconds": time.perf_counter() - started,
                             "route_verified": True,
                             "sdk_retries": 0,
+                            "effective_retry_count": len(attempts) - 1,
+                            "attempts": attempts,
                         }
                     )
     expected = len(contract["models"]) * 9
@@ -602,8 +788,12 @@ async def run_profile_admission(contract: Mapping[str, Any]) -> dict[str, Any]:
             "campaign_id": contract["campaign_id"],
             "status": "passed",
             "probe_count": len(results),
+            "profile_sha256s": profile_sha256s,
             "total_cost_usd": sum(row["cost_usd"] for row in results),
             "hidden_retry_count": 0,
+            "effective_retry_count": sum(
+                row["effective_retry_count"] for row in results
+            ),
             "results": results,
         }
     )
@@ -1095,6 +1285,137 @@ def _load_history(path: Path) -> tuple[CampaignHistoryRecord, ...]:
     return tuple(campaign_history_record_from_dict(row) for row in records)
 
 
+def migrate_legacy_campaign_history(
+    path: Path,
+    *,
+    contract: Mapping[str, Any],
+    evidence_root: Path,
+) -> tuple[CampaignHistoryRecord, ...]:
+    """Upgrade a sealed V0.1 history while retaining its exact source bytes."""
+
+    if not path.exists():
+        return ()
+    source_bytes = path.read_bytes()
+    value = _read_sealed(path)
+    if value.get("schema_version") == "aeread.campaign_gate_history/0.2":
+        return _load_history(path)
+    if value.get("schema_version") != "aeread.campaign_gate_history/0.1":
+        raise ValueError("unsupported legacy campaign history schema")
+    if set(value) != {"schema_version", "records", "artifact_sha256"}:
+        raise ValueError("legacy campaign history fields are incomplete or unexpected")
+    rows = value.get("records")
+    if not isinstance(rows, list) or not rows:
+        raise ValueError("legacy campaign history must contain records")
+
+    migrated: tuple[CampaignHistoryRecord, ...] = ()
+    expected_row_fields = {
+        "attempt_index",
+        "campaign_id",
+        "evidence_refs",
+        "failure_reasons",
+        "gate_id",
+        "status",
+    }
+    for row in rows:
+        if not isinstance(row, Mapping) or set(row) != expected_row_fields:
+            raise ValueError("legacy campaign gate fields are incomplete or unexpected")
+        if row["campaign_id"] != contract["campaign_id"]:
+            raise ValueError("legacy history campaign identity drifted")
+        gate_id = row["gate_id"]
+        status = row["status"]
+        if gate_id not in CAMPAIGN_GATE_SEQUENCE or status not in {"passed", "failed"}:
+            raise ValueError("legacy history contains an invalid gate or status")
+        legacy_paths = row["evidence_refs"]
+        if (
+            not isinstance(legacy_paths, list)
+            or not legacy_paths
+            or any(not isinstance(item, str) or not item for item in legacy_paths)
+        ):
+            raise ValueError("legacy evidence_refs must contain relative paths")
+        evidence_refs: list[QCEvidenceRef] = []
+        for relative_path in legacy_paths:
+            relative = Path(relative_path)
+            if relative.is_absolute():
+                raise ValueError("legacy evidence path must be relative")
+            try:
+                artifact_path = (evidence_root / relative).resolve(strict=True)
+                artifact_path.relative_to(evidence_root.resolve(strict=True))
+            except (OSError, ValueError) as error:
+                raise ValueError(
+                    f"legacy evidence path escapes the campaign root: {relative_path}"
+                ) from error
+            artifact = _read_sealed(artifact_path)
+            observed = (
+                _observed_gate_coverage(artifact, gate_id)
+                if status == "passed"
+                else ()
+            )
+            if (
+                status == "passed"
+                and gate_id == "provider_free_validation"
+                and set(observed)
+                != set(_expected_gate_coverage(contract, gate_id))
+            ):
+                qc_path = artifact_path.with_name("housing_qc_report.json")
+                qc_artifact = _read_sealed(qc_path)
+                if artifact.get("qc_report_sha256") != qc_artifact.get(
+                    "artifact_sha256"
+                ):
+                    raise ValueError(
+                        "legacy provider-free summary does not bind its QC report"
+                    )
+                observed_items = [
+                    f"world_{row['world_seed']}"
+                    for row in qc_artifact.get("worlds", ())
+                ]
+                if artifact.get("replay_verified") is True:
+                    observed_items.append("provider_free_replay")
+                observed = tuple(observed_items)
+            evidence_refs.append(
+                QCEvidenceRef(
+                    artifact_type=campaign_gate_artifact_type(gate_id, status),
+                    path=relative_path,
+                    sha256=hashlib.sha256(artifact_path.read_bytes()).hexdigest(),
+                    family_id=contract["environment"]["family"],
+                    family_version=FAMILY_VERSION,
+                    profile_id=contract["campaign_id"],
+                    coverage=(
+                        QCCoverage(
+                            coverage_id=gate_id,
+                            required_ids=_expected_gate_coverage(contract, gate_id),
+                            observed_ids=observed,
+                        ),
+                    ),
+                )
+            )
+        record = CampaignGateRecord(
+            campaign_id=contract["campaign_id"],
+            family_id=contract["environment"]["family"],
+            family_version=FAMILY_VERSION,
+            profile_id=contract["campaign_id"],
+            gate_id=gate_id,
+            attempt_index=row["attempt_index"],
+            status=status,
+            evidence_refs=tuple(evidence_refs),
+            failure_reasons=tuple(row["failure_reasons"]),
+        )
+        migrated = append_campaign_gate(
+            migrated, record, evidence_root=evidence_root
+        )
+
+    backup_path = path.with_name("gate_history.v0.1.json")
+    if backup_path.exists():
+        if backup_path.read_bytes() != source_bytes:
+            raise ValueError("legacy campaign history backup already exists with drift")
+    else:
+        with backup_path.open("xb") as handle:
+            handle.write(source_bytes)
+            handle.flush()
+            os.fsync(handle.fileno())
+    _write_history(path, migrated)
+    return _load_history(path)
+
+
 def _write_history(path: Path, records: Sequence[CampaignHistoryRecord]) -> None:
     _write_json(
         path,
@@ -1320,13 +1641,28 @@ async def execute_campaign(
     invalidate_from: str | None = None,
     changed_controls: Sequence[str] = (),
     invalidation_reason: str | None = None,
+    migrate_legacy_history: bool = False,
 ) -> dict[str, Any]:
     if through not in STAGES:
         raise ValueError(f"through must be one of {STAGES}")
     contract = load_contract(contract_path)
     output_root.mkdir(parents=True, exist_ok=True)
     history_path = output_root / "gate_history.json"
-    records = _load_history(history_path)
+    legacy_history_migrated = bool(
+        migrate_legacy_history
+        and history_path.exists()
+        and _read_sealed(history_path).get("schema_version")
+        == "aeread.campaign_gate_history/0.1"
+    )
+    records = (
+        migrate_legacy_campaign_history(
+            history_path,
+            contract=contract,
+            evidence_root=output_root,
+        )
+        if migrate_legacy_history
+        else _load_history(history_path)
+    )
     summaries: dict[str, Any] = {}
     invalidation_summary: dict[str, Any] | None = None
     if invalidate_from is not None:
@@ -1472,6 +1808,7 @@ async def execute_campaign(
     return {
         "campaign_id": contract["campaign_id"],
         "through": through,
+        "legacy_history_migrated": legacy_history_migrated,
         "invalidation": invalidation_summary,
         "gate_summaries": summaries,
         "gate_history": str(history_path),
@@ -1486,6 +1823,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--invalidate-from", choices=STAGES)
     parser.add_argument("--changed-control", action="append", default=[])
     parser.add_argument("--invalidation-reason")
+    parser.add_argument("--migrate-legacy-history", action="store_true")
     args = parser.parse_args(argv)
     result = asyncio.run(
         execute_campaign(
@@ -1495,6 +1833,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             invalidate_from=args.invalidate_from,
             changed_controls=args.changed_control,
             invalidation_reason=args.invalidation_reason,
+            migrate_legacy_history=args.migrate_legacy_history,
         )
     )
     print(json.dumps(result, indent=2, sort_keys=True))
@@ -1516,6 +1855,7 @@ __all__ = [
     "execute_campaign",
     "load_contract",
     "main",
+    "migrate_legacy_campaign_history",
     "run_live_stage",
     "run_profile_admission",
     "run_provider_free",

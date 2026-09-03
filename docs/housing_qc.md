@@ -385,6 +385,37 @@ as a model winner. A leaderboard becomes confirmatory only after the powered
 sample, holdout, complete frozen matrix, and analysis are sealed at
 `confirmatory_freeze`.
 
+The application-level retry policy includes `empty_response` alongside length,
+rate-limit, and provider-5xx failures. Each retry is a new sealed action attempt;
+SDK retries remain disabled. This makes transient blank completions visible in
+the receipt instead of either hiding them or failing an otherwise valid matrix.
+
+Local V0 evidence created under campaign-history schema 0.1 must be migrated
+explicitly. The migration keeps the exact source bytes as
+`gate_history.v0.1.json`, rebuilds typed content-bound evidence references, and
+then appends the required pre-freeze retry-policy invalidation before paid work:
+
+```bash
+PYTHONPATH=src .venv/bin/python -m aeread.shared_runner.housing_population_campaign \
+  --contract configs/housing_population_crossplay_v0.json \
+  --output runs/housing_population_crossplay_v0 \
+  --through full_trajectory \
+  --migrate-legacy-history \
+  --invalidate-from profile_admission \
+  --changed-control retry_policy \
+  --invalidation-reason "Add explicit receipt-visible empty-response retries"
+```
+
+Do not use the migration flag to erase or renumber failed attempts. If the
+backup exists with different bytes, migration fails closed.
+
+The 2026-09-02 requalification migrated the legacy history and appended that
+invalidation, but the pinned DeepInfra GLM route then exhausted all four visible
+attempts on the first tenant-contact admission probe. No Housing trajectory was
+started, and the variance pilot remains blocked. The sanitized, digest-bound
+record is
+[`housing_population_crossplay_v0_requalification_2026-09-02.json`](evidence/housing_population_crossplay_v0_requalification_2026-09-02.json).
+
 Apply the campaign SOP's backend-escalation instruction before the variance
 pilot. OpenRouter remains the backend; any provider-route change requires a new
 campaign identity and fresh admission rather than an in-place backend swap.

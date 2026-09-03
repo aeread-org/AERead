@@ -27,7 +27,8 @@
     "retryable_conditions": [
       "length",
       "rate_limit",
-      "provider_5xx"
+      "provider_5xx",
+      "empty_response"
     ],
     "tenant_inference_seed_base": 87001,
     "landlord_inference_seed_base": 97001,

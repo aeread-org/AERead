@@ -1060,11 +1060,23 @@ def _profile(
     request_seed_base: int | None = None,
     max_output_tokens: int | None = None,
     timeout_seconds: float | None = None,
+    max_action_attempts: int | None = None,
+    retryable_conditions: Sequence[str] | None = None,
     openrouter_route: OpenRouterRoutePin = DEEPINFRA_HOUSING_ROUTE,
     harness_id: str = "minimal_chat",
     harness_version: str = "1.0",
     harness_config: Mapping[str, Any] | None = None,
 ) -> AgentProfile:
+    default_max_action_attempts = (
+        4
+        if provider == "openrouter" and request_seed_base is not None
+        else (2 if provider == "openrouter" else 1)
+    )
+    default_retryable_conditions = (
+        ("length", "rate_limit", "provider_5xx")
+        if provider == "openrouter" and request_seed_base is not None
+        else (("length",) if provider == "openrouter" else ())
+    )
     config: dict[str, Any] = {
         "pricing_id": pricing.pricing_id,
         "pricing_sha256": pricing.content_sha256(),
@@ -1135,14 +1147,14 @@ def _profile(
             },
             "retry_policy": {
                 "max_action_attempts": (
-                    4
-                    if provider == "openrouter" and request_seed_base is not None
-                    else (2 if provider == "openrouter" else 1)
+                    default_max_action_attempts
+                    if max_action_attempts is None
+                    else max_action_attempts
                 ),
-                "retryable_conditions": (
-                    ["length", "rate_limit", "provider_5xx"]
-                    if provider == "openrouter" and request_seed_base is not None
-                    else (["length"] if provider == "openrouter" else [])
+                "retryable_conditions": list(
+                    default_retryable_conditions
+                    if retryable_conditions is None
+                    else retryable_conditions
                 ),
                 "session_mode": "restart",
                 "sdk_retries": 0,
@@ -1180,6 +1192,10 @@ def build_housing_smoke(
     landlord_max_logical_actions_override: int | None = None,
     landlord_inference_seed_base: int | None = None,
     landlord_openrouter_route: OpenRouterRoutePin | None = None,
+    max_output_tokens_override: int | None = None,
+    timeout_seconds_override: float | None = None,
+    max_action_attempts_override: int | None = None,
+    retryable_conditions_override: Sequence[str] | None = None,
     evaluation_kind: str = "controlled",
 ) -> HousingSmokeSetup:
     selected_world_seeds = (world_seed,) if world_seeds is None else tuple(world_seeds)
@@ -1410,10 +1426,24 @@ def build_housing_smoke(
         reasoning_effort=reasoning_effort,
         request_seed_base=inference_seed_base,
         max_output_tokens=(
-            4096 if tenant_provider == "openrouter" and experiment_mode else None
+            (4096 if max_output_tokens_override is None else max_output_tokens_override)
+            if tenant_provider == "openrouter" and experiment_mode
+            else None
         ),
         timeout_seconds=(
-            120.0 if tenant_provider == "openrouter" and experiment_mode else None
+            (120.0 if timeout_seconds_override is None else timeout_seconds_override)
+            if tenant_provider == "openrouter" and experiment_mode
+            else None
+        ),
+        max_action_attempts=(
+            max_action_attempts_override
+            if tenant_provider == "openrouter" and experiment_mode
+            else None
+        ),
+        retryable_conditions=(
+            retryable_conditions_override
+            if tenant_provider == "openrouter" and experiment_mode
+            else None
         ),
         openrouter_route=openrouter_route,
         harness_id=resolved_tenant_harness.id,
@@ -1450,10 +1480,24 @@ def build_housing_smoke(
         ),
         request_seed_base=landlord_inference_seed_base,
         max_output_tokens=(
-            4096 if landlord_provider == "openrouter" and experiment_mode else None
+            (4096 if max_output_tokens_override is None else max_output_tokens_override)
+            if landlord_provider == "openrouter" and experiment_mode
+            else None
         ),
         timeout_seconds=(
-            120.0 if landlord_provider == "openrouter" and experiment_mode else None
+            (120.0 if timeout_seconds_override is None else timeout_seconds_override)
+            if landlord_provider == "openrouter" and experiment_mode
+            else None
+        ),
+        max_action_attempts=(
+            max_action_attempts_override
+            if landlord_provider == "openrouter" and experiment_mode
+            else None
+        ),
+        retryable_conditions=(
+            retryable_conditions_override
+            if landlord_provider == "openrouter" and experiment_mode
+            else None
         ),
         openrouter_route=resolved_landlord_route,
     )
