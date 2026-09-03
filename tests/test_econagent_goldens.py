@@ -42,6 +42,7 @@ import asyncio
 import io
 import json
 import os
+import time
 from pathlib import Path
 from types import MappingProxyType
 from typing import Any, Mapping
@@ -621,6 +622,131 @@ def test_golden_a_lost_step_month_response_is_a_distinctly_typed_mutation_outcom
         # golden's own cleanup: calling bridge.close() here would try to
         # write another request into an already-broken pipe, so just reap
         # the dead process and drop the handle instead.
+        if bridge._process is not None:
+            bridge._process.wait(timeout=10)
+            bridge._process = None
+
+
+def test_readline_with_timeout_raises_before_a_hung_step_month_response_blocks_forever() -> None:
+    """Pure, no bridge subprocess required: a real OS pipe whose write end
+    is never written to reproduces docs/econagent_codex_triage.md finding 7
+    ("persistent requests do not enforce their timeout") deterministically,
+    without needing the real upstream engine to actually hang. Before the
+    fix, ``EconAgentBridge._request``'s blocking ``process.stdout.readline()``
+    had no timeout mechanism at all and would have hung this test forever;
+    this exercises the real, unmodified ``_request``/``_readline_with_timeout``
+    methods and asserts they raise within a small multiple of a short
+    ``timeout_seconds``, never hanging for the test suite's own patience.
+    """
+    read_fd, write_fd = os.pipe()
+    read_stdout = os.fdopen(read_fd, "r")
+    try:
+
+        class _FakeHungProcess:
+            def __init__(self) -> None:
+                self.stdin = io.StringIO()
+                self.stdout = read_stdout
+                self.stderr = io.StringIO("still running")
+
+            def poll(self) -> None:
+                return None  # still "running" -- never exited on its own
+
+            def kill(self) -> None:
+                pass
+
+            def wait(self, timeout: float | None = None) -> None:
+                pass
+
+        bridge = EconAgentBridge(
+            python_executable=Path("/nonexistent/python"),
+            upstream_root=UPSTREAM_ROOT,
+            timeout_seconds=0.2,
+        )
+        bridge._process = _FakeHungProcess()  # type: ignore[assignment]
+
+        started = time.monotonic()
+        with pytest.raises(EconAgentBridgeMutationOutcomeUnknownError):
+            bridge._request({"op": "step_month"})
+        elapsed = time.monotonic() - started
+        assert elapsed < 2.0  # nowhere near an indefinite hang
+    finally:
+        read_stdout.close()
+        os.close(write_fd)
+
+
+def test_readline_with_timeout_raises_the_generic_error_for_a_hung_non_mutating_request() -> None:
+    """Companion guard, mirroring
+    ``test_request_raises_the_generic_error_when_a_non_mutating_response_never_arrives``
+    above: an op other than ``step_month`` hitting the same timeout branch
+    must still raise the plain, generic ``EconAgentBridgeError``, proving
+    the timeout fix reuses finding 3's existing step_month-vs-everything-
+    else distinction rather than applying the mutation-specific error
+    indiscriminately."""
+    read_fd, write_fd = os.pipe()
+    read_stdout = os.fdopen(read_fd, "r")
+    try:
+
+        class _FakeHungProcess:
+            def __init__(self) -> None:
+                self.stdin = io.StringIO()
+                self.stdout = read_stdout
+                self.stderr = io.StringIO("still running")
+
+            def poll(self) -> None:
+                return None
+
+            def kill(self) -> None:
+                pass
+
+            def wait(self, timeout: float | None = None) -> None:
+                pass
+
+        bridge = EconAgentBridge(
+            python_executable=Path("/nonexistent/python"),
+            upstream_root=UPSTREAM_ROOT,
+            timeout_seconds=0.2,
+        )
+        bridge._process = _FakeHungProcess()  # type: ignore[assignment]
+
+        with pytest.raises(EconAgentBridgeError) as excinfo:
+            bridge._request({"op": "agent_snapshot"})
+        assert not isinstance(excinfo.value, EconAgentBridgeMutationOutcomeUnknownError)
+    finally:
+        read_stdout.close()
+        os.close(write_fd)
+
+
+def test_golden_a_hung_step_month_request_times_out_instead_of_blocking_forever() -> None:
+    """Regression test for finding 7 (docs/econagent_codex_triage.md):
+    "persistent requests do not enforce their timeout". Unlike finding 3's
+    crash marker (which closes the pipe immediately, so even the pre-fix
+    code detected it via a normal EOF), this fault injector
+    (``_test_hang_before_responding``) performs the real mutation and then
+    blocks forever, keeping the driver subprocess and its stdout pipe alive
+    -- exactly the case the pre-fix ``process.stdout.readline()`` could
+    never detect regardless of ``timeout_seconds``. A short
+    ``timeout_seconds`` bridge asserts the caller gets the same distinctly-
+    typed :class:`EconAgentBridgeMutationOutcomeUnknownError` well within a
+    few seconds, not the driver's own multi-hour sleep, through the real
+    upstream engine, never a mock.
+    """
+    _require_bridge()
+    # Full default timeout for start_episode (spawning the subprocess and
+    # importing/constructing the real upstream env takes longer than the
+    # short timeout below); only the hung request itself needs a short one.
+    bridge = EconAgentBridge.discover(UPSTREAM_ROOT)
+    bridge.start_episode(n_agents=4, episode_length=6, world_seed=0, beta=0.1, gamma=0.1, h=1.0)
+    bridge.timeout_seconds = 1.0
+    try:
+        started = time.monotonic()
+        with pytest.raises(EconAgentBridgeMutationOutcomeUnknownError):
+            bridge._request({"op": "step_month", "_test_hang_before_responding": True})
+        elapsed = time.monotonic() - started
+        assert elapsed < 10.0  # bounded by timeout_seconds, not the driver's hang
+    finally:
+        # _readline_with_timeout already killed the hung subprocess on
+        # timeout -- just reap it and drop the handle (mirrors the crash
+        # golden's identical cleanup above).
         if bridge._process is not None:
             bridge._process.wait(timeout=10)
             bridge._process = None

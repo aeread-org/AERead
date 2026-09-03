@@ -31,7 +31,9 @@ from __future__ import annotations
 
 import json
 import os
+import select
 import subprocess
+import time
 from pathlib import Path
 from typing import Any, Mapping
 
@@ -372,7 +374,7 @@ class EconAgentBridge:
                 f"bridge subprocess pipe closed unexpectedly for "
                 f"op={request.get('op')!r}: {error}"
             ) from error
-        line = process.stdout.readline()
+        line = self._readline_with_timeout(process, op=str(request.get("op")))
         if not line:
             stderr_tail = process.stderr.read() if process.stderr else ""
             message = (
@@ -388,6 +390,67 @@ class EconAgentBridge:
                 )
             raise EconAgentBridgeError(message)
         return self._parse_response_line(line, None, op=str(request.get("op")))
+
+    def _readline_with_timeout(self, process: "subprocess.Popen[str]", *, op: str) -> str:
+        """Read one line from ``process.stdout``, enforcing ``self.timeout_seconds``.
+
+        Plain ``process.stdout.readline()`` blocks forever if the subprocess's
+        stdout stays open but produces nothing -- exactly what a hung real
+        ``complex_actions``/``env.step`` inside ``_op_step_month`` would do
+        (both run *inside* the persistent subprocess, so a hang there never
+        closes the pipe the way a crash does), silently ignoring even a
+        bridge configured with a one-second ``timeout_seconds``
+        (docs/econagent_codex_triage.md finding 7). ``select.select`` polls
+        stdout's own file descriptor for readability against a wall-clock
+        deadline first; only once something is actually available does this
+        call the real, blocking ``readline()`` (every response in this
+        protocol is one small JSON line, so once readable there is always a
+        complete line to read). If the deadline passes with nothing ever
+        readable, the subprocess is killed and this raises the same typed
+        errors ``_request``'s own "no response at all" branch raises for a
+        closed pipe -- a timeout is just another way no response ever
+        arrives, including the same step_month-vs-everything-else
+        distinction (a timed-out mutating step_month leaves its own outcome
+        just as unconfirmed as a lost response does).
+
+        Falls back to a direct, unbounded ``readline()`` -- this method's
+        pre-fix behavior -- when ``process.stdout`` is not backed by a real
+        OS file descriptor (``select`` cannot poll it): only ever true for a
+        test double standing in for a subprocess, never for a real bridge
+        subprocess's stdout, which is always a genuine pipe.
+        """
+        stdout = process.stdout
+        assert stdout is not None
+        try:
+            stdout.fileno()
+        except (AttributeError, OSError, ValueError):
+            return stdout.readline()
+
+        deadline = time.monotonic() + self.timeout_seconds
+        while True:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                process.kill()
+                try:
+                    process.wait(timeout=self.timeout_seconds)
+                except subprocess.TimeoutExpired:
+                    pass
+                stderr_tail = process.stderr.read() if process.stderr else ""
+                message = (
+                    f"bridge subprocess timed out after {self.timeout_seconds}s "
+                    f"waiting for a response to op={op!r}; stderr:\n{stderr_tail}"
+                )
+                if op == "step_month":
+                    raise EconAgentBridgeMutationOutcomeUnknownError(
+                        "step_month's outcome could not be confirmed -- the "
+                        "month may have already executed upstream even "
+                        f"though no response arrived before the timeout: "
+                        f"{message}"
+                    )
+                raise EconAgentBridgeError(message)
+            ready, _, _ = select.select([stdout], [], [], remaining)
+            if ready:
+                return stdout.readline()
 
     def _parse_response_line(
         self, stdout: str, stderr: str | None, *, op: str

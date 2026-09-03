@@ -132,6 +132,18 @@ state and shared RNG stream, not a JSON-serializable snapshot).
          can precede every durable outcome") deterministically for
          ``tests/test_econagent_goldens.py``, through the real upstream
          engine, never a mock.
+
+  {"op": "step_month", "_test_hang_before_responding": true}
+      -- NOT part of the real protocol above and never sent by
+         ``EconAgentBridge``'s public API: a test-only fault-injection
+         marker on an otherwise-real ``step_month`` request (performs the
+         real mutation, then blocks forever without exiting or responding)
+         that exists solely to reproduce docs/econagent_codex_triage.md's
+         finding 7 ("persistent requests do not enforce their timeout")
+         deterministically for ``tests/test_econagent_goldens.py``, through
+         the real upstream engine, never a mock -- unlike the crash marker
+         above, the subprocess and its stdout pipe stay alive, so only a
+         genuine read timeout on the caller's side can ever detect this.
 """
 from __future__ import annotations
 
@@ -139,6 +151,7 @@ import argparse
 import json
 import os
 import sys
+import time
 from pathlib import Path
 from typing import Any
 
@@ -287,6 +300,34 @@ def _op_step_month_and_crash_before_responding(request: dict[str, Any]) -> None:
     os._exit(1)  # no response is ever written -- the crash IS the point
 
 
+_TEST_HANG_BEFORE_RESPONDING_KEY = "_test_hang_before_responding"
+
+
+def _op_step_month_and_hang_before_responding(request: dict[str, Any]) -> None:
+    """Test-only fault injection -- deterministically reproduces
+    docs/econagent_codex_triage.md finding 7 through the real upstream
+    engine, never a mock: performs the exact same mutation
+    ``_op_step_month`` performs, then blocks forever without ever writing
+    or flushing a response -- simulating a hung ``complex_actions``/
+    ``env.step`` call that leaves the subprocess (and its stdout pipe)
+    alive but silent, unlike ``_op_step_month_and_crash_before_responding``
+    above (finding 3), whose exit immediately closes the pipe. A genuine
+    hang like this is exactly what ``EconAgentBridge``'s missing read
+    timeout (finding 7) could not detect: the caller's
+    ``process.stdout.readline()`` blocked forever regardless of
+    ``timeout_seconds``.
+
+    Not part of this driver's real protocol and not reachable through
+    ``EconAgentBridge``'s public API at all -- only reachable via a
+    hand-crafted raw ``{"op": "step_month", "_test_hang_before_responding":
+    true}`` request past the public API, exactly like
+    ``_op_step_month_and_crash_before_responding``.
+    """
+    _op_step_month(request)  # the real mutation; its result is discarded on purpose
+    while True:
+        time.sleep(3600)  # the caller's own read timeout must fire long before this
+
+
 def _op_agent_snapshot(request: dict[str, Any]) -> dict[str, Any]:
     del request
     session = _require_session()
@@ -388,6 +429,9 @@ def _dispatch(request: dict[str, Any], upstream_root: Path) -> tuple[dict[str, A
         if request.get(_TEST_CRASH_BEFORE_RESPONDING_KEY):
             _op_step_month_and_crash_before_responding(request)  # never returns
             raise AssertionError("unreachable: the process above always exits first")
+        if request.get(_TEST_HANG_BEFORE_RESPONDING_KEY):
+            _op_step_month_and_hang_before_responding(request)  # never returns
+            raise AssertionError("unreachable: the process above always hangs first")
         return _op_step_month(request), True
     if op == "agent_snapshot":
         return _op_agent_snapshot(request), True
