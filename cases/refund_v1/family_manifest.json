@@ -11,7 +11,7 @@
   "family": {
     "id": "refund_v1",
     "plugin_id": "aeread.refund_v1",
-    "version": "1.0.0"
+    "version": "1.2.0"
   },
   "generator": {
     "difficulty_knobs": [
@@ -19,7 +19,12 @@
       "days_since_delivery",
       "price",
       "trust_band",
-      "return_received"
+      "return_received",
+      "scenario_id",
+      "identity_verification",
+      "evidence_quality",
+      "warranty_active",
+      "repair_eligibility"
     ],
     "generator_id": "refund_curated_generator_v1"
   },
@@ -35,7 +40,7 @@
       "scripted_policies": [
         "refund_customer_llm_profile_v1"
       ],
-      "testable": false
+      "testable": true
     },
     "support_agent": {
       "scripted_policies": [
@@ -49,7 +54,7 @@
     "reference_provider_ids": [
       "refund_oracle_policy_v1"
     ],
-    "scorer_id": "refund_operation_exact_match_v1"
+    "scorer_id": "refund_typed_measurements_v1_2"
   },
   "spec_version": "aeread.family/0.1"
 }

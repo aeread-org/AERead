@@ -1,17 +1,18 @@
 {
   "case_id": "refund_v1.curated.000006",
-  "content_sha256": "be0a1bd3aed1c19fe881e3e13fced494224d05d68b2394516dd83db9e5793cd6",
+  "content_sha256": "7f45e264d7606de644f653dd508332a13cc4b14b1273ec80014b5aaf94ec499a",
   "episode": {
-    "max_logical_actions": 8,
+    "max_logical_actions": 10,
     "termination": [
       "resolved",
       "invalid_operation"
     ]
   },
   "family_id": "refund_v1",
-  "family_version": "1.0.0",
+  "family_version": "1.2.0",
   "payload": {
     "case_id": "refund_v1.curated.000006",
+    "claim_text": "I would like help resolving my refund request.",
     "ground_truth": {
       "decision": {
         "automatic_threshold": 150.0,
@@ -26,14 +27,21 @@
       },
       "utility": {
         "customer_utility": 98.0,
+        "escalation_haircut": 0.0,
+        "friction_cost": 2.0,
         "joint_utility": 18.0,
-        "penalty": 2.0,
+        "over_refund_penalty": 0.0,
+        "penalty": 0.0,
+        "policy_penalty": 0.0,
         "reason_codes": [
           "software_subscription_proration"
         ],
         "relationship_surplus": 20.0,
+        "return_cost": 0.0,
+        "review_cost": 0.0,
         "support_agent_utility": -80.0,
-        "transfer_amount": 100.0
+        "transfer_amount": 100.0,
+        "underpayment_penalty": 0.0
       }
     },
     "policy": {
@@ -85,27 +93,68 @@
         "Direct automatic refunds are allowed only when the final refund amount is at or below the customer's automatic threshold.",
         "Amounts above the automatic threshold must be escalated to human review before money is returned.",
         "Fraud-watch customers require human review for any monetary refund.",
-        "Physical goods that require return must be received before a direct refund unless the policy explicitly waives return."
+        "Physical goods that require return must be received before a direct refund unless the policy explicitly waives return.",
+        "Identity, payout-account, and location mismatches require verification or human review before money is returned.",
+        "Evidence requests must be limited to facts relevant to the product category and claimed issue.",
+        "Customer history informs risk routing but does not by itself establish product eligibility."
       ],
       "policy_id": "omnichannel_refund_policy_v1",
+      "scenario_rules": {
+        "emotional_leverage": "Urgency and hardship may affect service handling, but not policy eligibility.",
+        "exaggeration": "Resolve from verified product facts rather than the customer's unsupported claimed amount.",
+        "fraud": "Treat contradictory identity, address, location, or payout facts as a risk signal; do not issue an automatic refund.",
+        "history_strategy": "Use return and refund history for risk routing, not as a substitute for product evidence.",
+        "hostile": "Tone does not change eligibility, amount, or required review.",
+        "loophole_hunter": "Do not infer an exception from category wording when a general exclusion applies."
+      },
       "trust_rules": {
         "fraud_watch": "credit_score < 580 or chargebacks_12m > 0 or prior_refunds_12m >= 5",
         "good_trust": "credit_score >= 660, loyalty tier silver or higher, chargebacks_12m == 0, prior_refunds_12m <= 3",
         "high_trust": "credit_score >= 720, loyalty tier gold or platinum, chargebacks_12m == 0, prior_refunds_12m <= 2",
         "standard": "all customers not otherwise classified"
       },
-      "version": "1.0.0"
+      "utility_spec": {
+        "direct_authority_penalty": 125.0,
+        "direct_before_return_penalty": 100.0,
+        "direct_identity_risk_penalty": 125.0,
+        "escalation_haircut": 5.0,
+        "friction_per_message": 2.0,
+        "invalid_amount_penalty": 25.0,
+        "invalid_denial_penalty": 25.0,
+        "invalid_return_request_penalty": 75.0,
+        "over_refund_multiplier": 1.5,
+        "relationship_cap": 50.0,
+        "relationship_rate": 0.2,
+        "return_cost": 6.0,
+        "review_cost": 8.0,
+        "spec_id": "refund_bilateral_utility_v1_2",
+        "unknown_decision_penalty": 150.0,
+        "wrong_method_penalty": 25.0,
+        "wrong_review_flag_penalty": 25.0
+      },
+      "utility_spec_id": "refund_bilateral_utility_v1_2",
+      "version": "1.2.0"
     },
     "private_customer_truth": {
+      "account_address": "verified",
       "activated": true,
       "condition": "digital",
+      "current_ip_region": "domestic",
+      "defect_severity": "unknown",
       "evidence_provided": true,
+      "evidence_quality": "submitted",
+      "historical_return_rate": 0.0,
       "issue_type": "subscription_cancel",
+      "payout_account_matches": true,
+      "repair_eligible": false,
       "return_received": false,
       "subscription_days_used": 5,
-      "usage_minutes": 20
+      "usage_minutes": 20,
+      "verified_identity": true,
+      "warranty_active": false
     },
     "public_order": {
+      "claim_text": "I would like help resolving my refund request.",
       "customer": {
         "chargebacks_12m": 0,
         "credit_score": 812,
@@ -123,11 +172,12 @@
       },
       "requested_amount": 120.0
     },
+    "scenario_id": "honest",
     "world_seed": 1006
   },
   "provenance": {
     "generator_id": "refund_curated_generator_v1",
-    "generator_version": "1.0.0",
+    "generator_version": "1.2.0",
     "review_status": "curated"
   },
   "seats": [
