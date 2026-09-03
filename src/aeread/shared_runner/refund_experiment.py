@@ -191,6 +191,7 @@ def _secondary(selected: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
     amount_errors = [float(row["refund_amount_error"]) for row in selected if isinstance(row.get("refund_amount_error"), (int, float))]
     leaf_names = (
         "canonical_decision", "information_constraint",
+        "customer_disclosure_constraint", "authorization_constraint",
         "temporal_transaction", "state_invariant",
     )
     return {"trajectory_count": len(selected), "decision_counts": dict(sorted(decisions.items())),
@@ -204,6 +205,8 @@ def _secondary(selected: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
             "transaction_pass_rate": (sum(bool(row.get("transaction_verification", {}).get("satisfied")) for row in selected) / len(selected) if selected else None),
             "mean_policy_compliance_score": (float(np.mean([row["policy_compliance_score"] for row in selected])) if selected else None),
             "policy_compliance_pass_rate": (sum(bool(row.get("policy_compliance_satisfied")) for row in selected) / len(selected) if selected else None),
+            "support_policy_compliance_pass_rate": (sum(bool(row.get("compliance_by_role", {}).get("support_agent")) for row in selected) / len(selected) if selected else None),
+            "customer_disclosure_compliance_pass_rate": (sum(bool(row.get("compliance_by_role", {}).get("customer")) for row in selected) / len(selected) if selected else None),
             "verification_leaf_pass_rates": {
                 name: (sum(bool(row.get("verification_leaves", {}).get(name, {}).get("satisfied")) for row in selected) / len(selected) if selected else None)
                 for name in leaf_names
@@ -240,7 +243,7 @@ def _failed_evidence(cell_root: Path) -> dict[str, Any]:
 
 def _write_refund_receipt(directory: Path, row: Mapping[str, Any]) -> dict[str, Any]:
     payload = {
-        "spec_version": "aeread.refund_receipt/1.2",
+        "spec_version": "aeread.refund_receipt/1.3",
         "status": row["status"],
         "condition": row["condition"],
         "world_seed": row["world_seed"],
@@ -254,6 +257,7 @@ def _write_refund_receipt(directory: Path, row: Mapping[str, Any]) -> dict[str, 
         "scores": row.get("scores", {}),
         "measurement_scores": row.get("measurement_scores", ()),
         "verification_leaves": row.get("verification_leaves", {}),
+        "compliance_by_role": row.get("compliance_by_role", {}),
         "transaction_verification": row.get("transaction_verification", {}),
         "utility_components": row.get("utility_components", {}),
         "failure_condition": row.get("failure_condition"),
@@ -323,6 +327,7 @@ async def _run_panel(*, args: argparse.Namespace, panel: str, seeds: Sequence[in
                                  "scenario_id": case_payload.get("scenario_id", "unknown"),
                                  "policy_compliance_score": compliance.get("score"),
                                  "policy_compliance_satisfied": compliance.get("satisfied"),
+                                 "compliance_by_role": compliance.get("by_role", {}),
                                  "verification_leaves": compliance.get("leaves", {}),
                                  "scores": outcome.get("scores", {}),
                                  "measurement_scores": typed_scores,
@@ -422,8 +427,8 @@ async def run_experiment(args: argparse.Namespace) -> dict[str, Any]:
     evidence_paths = [Path(row["evidence_dir"]) for row in rows if row.get("evidence_verified")]
     evidence_files = [path for evidence_path in evidence_paths for path in evidence_path.rglob("*") if path.is_file()]
     report: dict[str, Any] = {
-        "artifact_type": "refund_reasoning_experiment_summary", "artifact_version": "1.2.0",
-        "claim_scope": f"{args.model} on the pinned Refund V1.2 generator with a scripted customer",
+        "artifact_type": "refund_reasoning_experiment_summary", "artifact_version": "1.3.0",
+        "claim_scope": f"{args.model} on the pinned Refund V1.3 generator with a scripted customer",
         "design": {"world_clusters": len(sample_seeds), "conditions": list(conditions),
                    "replicates_per_world_condition": args.replicates,
                    "planned_sample_trajectories": len(sample_seeds) * len(conditions) * args.replicates,
@@ -472,9 +477,10 @@ async def run_experiment(args: argparse.Namespace) -> dict[str, Any]:
             "The estimand is conditional on the synthetic Refund generator, declared model and provider, and deterministic scripted customer.",
             "Arena none/low results identify the transmitted request control; provider-side execution remains unverified unless the response reports it.",
             "Nested replicates are not independent world clusters; uncertainty resamples world seeds.",
-            "The full-information oracle weakly dominates every feasible terminal action under the pinned V1.2 utility specification; gradual disclosure can add interaction cost.",
+            "The objective reference is the highest bilateral welfare among policy-accepted resolutions under the pinned V1.3 utility specification; gradual disclosure can add interaction cost.",
             "Operational exclusions are missing measurements, never zero-utility outcomes, and are not silently replaced.",
-            "Canonical decision, information constraint, temporal transaction, and state invariant are independently replayable verifier leaves; utility cannot compensate for a failed predicate.",
+            "Canonical decision, role-attributed information and disclosure constraints, authorization, temporal transaction, and state invariant are independently replayable verifier leaves; utility cannot compensate for a failed predicate.",
+            "Dollar-equivalent relationship, friction, review, credit, and service values are declared modeling assumptions and require sensitivity analysis before production use.",
         ], "rows": rows,
     }
     report["artifact_sha256"] = hashlib.sha256(canonical_json_bytes(report)).hexdigest()

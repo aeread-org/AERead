@@ -6,6 +6,7 @@ import json
 import math
 import subprocess
 import sys
+from pathlib import Path
 from types import MappingProxyType
 
 from aeread import refund_env as rf
@@ -91,6 +92,8 @@ def _execute_confirmed_refund(case: rf.RefundCase, state: dict) -> dict:
         "message": "I executed the confirmed refund.",
         "refund_amount": confirmed["refund_amount"],
         "refund_method": confirmed["refund_method"],
+        "credit_amount": confirmed.get("credit_amount", 0.0),
+        "service_action": confirmed.get("service_action", "none"),
         "requires_human_review": False,
         "requested_info": [],
     })
@@ -104,6 +107,139 @@ def test_policy_boundaries_still_cover_direct_deny_return_and_escalate() -> None
     subscription = rf.evaluate_refund(_case_by_product("p_antivirus_04"))
     assert subscription.decision == "approve_direct"
     assert subscription.refund_amount == 100.0
+
+
+def test_v13_contains_one_reviewed_case_for_every_scenario() -> None:
+    reviewed = [
+        rf.build_refund_case(index, spec)
+        for index, spec in enumerate(rf.CURATED_CASE_SPECS, start=1)
+        if str(spec.get("review_status", "")).startswith("reviewed_t")
+    ]
+    assert len(reviewed) == 7
+    assert {case.scenario_id for case in reviewed} == set(rf.SCENARIO_IDS)
+    assert all(case.required_information for case in reviewed)
+    assert all(case.expected_resolution is not None for case in reviewed)
+
+
+def test_v13_richer_resolutions_cover_credit_mixed_and_service_remedies() -> None:
+    coupon = rf.evaluate_refund(_case_by_product("p_t2_case"))
+    mixed = rf.evaluate_refund(_case_by_product("p_t6_headset"))
+    repair = rf.evaluate_refund(_case_by_product("p_t4_speaker"))
+    expedited = rf.evaluate_refund(_case_by_product("p_t7_headphones"))
+
+    assert (coupon.refund_method, coupon.credit_amount) == ("store_credit", 20.0)
+    assert (mixed.refund_amount, mixed.credit_amount) == (211.65, 5.0)
+    assert repair.service_action == "paid_repair"
+    assert expedited.service_action == "expedited_review"
+
+
+def test_v13_canonical_verifier_accepts_versioned_resolution_set() -> None:
+    case = _case_by_product("p_t4_speaker")
+    alternative = rf.accepted_decisions(case)[1]
+    score = rf.score_accepted_operation(case, dataclasses.asdict(alternative))
+
+    assert score["exact_match"] is True
+    assert score["accepted_set_size"] == 2
+    assert score["matched_accepted_index"] == 1
+
+
+def test_v13_information_and_disclosure_are_attributed_to_different_roles() -> None:
+    case = _case_by_product("p_t1_earbuds")
+    state = rf.initial_negotiation_state(case)
+    state["decision_revealed_fields"] = {
+        field: rf.private_customer_truth(case)[field]
+        for field in (*rf.required_information(case), "historical_return_rate")
+    }
+    state["customer_disclosures"] = [{
+        "revealed_fields": ["historical_return_rate"],
+        "requested_fields": [],
+        "voluntary_fields": ["historical_return_rate"],
+    }]
+    leaves = rf.verification_leaves(case, state, rf.evaluate_refund(case))
+
+    assert leaves["information_constraint"]["satisfied"] is True
+    assert leaves["information_constraint"]["attributed_role"] == "support_agent"
+    assert leaves["customer_disclosure_constraint"]["satisfied"] is False
+    assert leaves["customer_disclosure_constraint"]["attributed_role"] == "customer"
+
+
+def test_v13_authorization_leaf_rejects_sensitive_overcollection() -> None:
+    case = _case_by_product("p_t4_speaker")
+    state = rf.initial_negotiation_state(case)
+    state["decision_revealed_fields"] = {
+        field: rf.private_customer_truth(case)[field]
+        for field in rf.required_information(case)
+    }
+    state["support_requests"] = [{
+        "decision": "ask_info",
+        "requested_info": [*rf.required_information(case), "account_address"],
+    }]
+    leaves = rf.verification_leaves(case, state, rf.evaluate_refund(case))
+
+    assert leaves["authorization_constraint"]["satisfied"] is False
+    assert leaves["authorization_constraint"]["sensitive_overcollection"] == [
+        "account_address"
+    ]
+
+
+def test_v13_authorization_leaf_rejects_failed_identity_value_transfer() -> None:
+    case = _case_by_product("p_t3_phone")
+    state = rf.initial_negotiation_state(case)
+    state["decision_revealed_fields"] = rf.private_customer_truth(case)
+    unauthorized = rf.RefundDecision(
+        decision="approve_direct",
+        refund_amount=249.0,
+        refund_method="original_payment",
+        automatic_threshold=0.0,
+        maximum_refund_limit=1000.0,
+        requires_human_review=False,
+        reason_codes=(),
+    )
+    leaves = rf.verification_leaves(case, state, unauthorized)
+
+    assert leaves["authorization_constraint"][
+        "identity_verified_before_value_transfer"
+    ] is False
+
+
+def test_v13_store_credit_requires_confirmation_and_exactly_one_mutation() -> None:
+    case = _case_by_product("p_t2_case")
+    decision = rf.evaluate_refund(case)
+    state = rf.initial_negotiation_state(case)
+    state["revealed_private_fields"] = {
+        field: rf.private_customer_truth(case)[field]
+        for field in rf.required_information(case)
+    }
+    state = rf.apply_support_action(case, state, {
+        **dataclasses.asdict(decision),
+        "message": "I can issue a $20 store credit.",
+        "requested_info": [],
+    })
+    state = rf.apply_customer_action(case, state, {
+        "decision": "confirm_resolution",
+        "message": "I confirm.",
+        "requested_amount": case.requested_amount,
+        "reveal_fields": [],
+    })
+    state = _execute_confirmed_refund(case, state)
+    transaction = rf.transaction_verification(case, state)
+
+    assert transaction["satisfied"] is True
+    assert transaction["support_executed"] is True
+    assert transaction["proposal_actor"] == "support_agent"
+    assert transaction["confirmation_actor"] == "customer"
+    assert transaction["mutation_actor"] == "support_agent"
+    assert state["order_state"]["credit_amount"] == 20.0
+
+    wrong_actor_state = dict(state)
+    wrong_actor_state["transaction_events"] = [
+        {**event, "actor": "customer"}
+        if event["event"] == "refund_mutated" else dict(event)
+        for event in state["transaction_events"]
+    ]
+    wrong_actor = rf.transaction_verification(case, wrong_actor_state)
+    assert wrong_actor["satisfied"] is False
+    assert wrong_actor["support_executed"] is False
 
 
 def test_case_manifests_are_two_seat_shared_runner_records() -> None:
@@ -121,6 +257,21 @@ def test_case_manifests_are_two_seat_shared_runner_records() -> None:
         assert manifest.payload["ground_truth"]["utility"]["joint_utility"] == float(
             manifest.payload["ground_truth"]["utility"]["joint_utility"]
         )
+
+
+def test_checked_in_v13_manifests_match_the_runtime_generator() -> None:
+    case_directory = Path(__file__).parents[1] / "cases" / "refund_v1"
+    cases = rf.curated_case_manifests()
+    expected = {
+        "policy.json": rf.policy_document(),
+        "family_manifest.json": rf.family_manifest(),
+        "pilot_manifest.json": rf.pilot_manifest(cases),
+        **{f"{case['case_id']}.json": case for case in cases},
+    }
+
+    assert {path.name for path in case_directory.glob("*.json")} == set(expected)
+    for filename, payload in expected.items():
+        assert json.loads((case_directory / filename).read_text()) == payload
 
 
 def test_generated_case_manifests_follow_world_seeds() -> None:
@@ -371,7 +522,7 @@ def test_oracle_dominates_feasible_terminal_actions_for_seed_panel() -> None:
         )
 
 
-def test_plugin_scorer_emits_five_typed_measurement_leaves() -> None:
+def test_plugin_scorer_emits_seven_typed_measurement_leaves() -> None:
     case = _manifest_for(_case_by_product("p_berry_12"))
     plugin = RefundV1Plugin()
     parsed_case = plugin.validate_payload(case.payload)
@@ -398,11 +549,13 @@ def test_plugin_scorer_emits_five_typed_measurement_leaves() -> None:
     state = _execute_confirmed_refund(parsed_case, state)
     outcome = rf.terminal_outcome(parsed_case, state)
     scores = scorer(outcome)
-    assert len(scores) == 5
+    assert len(scores) == 7
     assert all(isinstance(score, ScoreEnvelope) for score in scores)
     assert all(isinstance(score.leaf, MeasurementLeafSpec) for score in scores)
     assert [score.leaf.verifier.verifier_family for score in scores] == [
         "canonical_reference",
+        "rule_constraint",
+        "rule_constraint",
         "rule_constraint",
         "rule_constraint",
         "rule_constraint",
@@ -411,14 +564,16 @@ def test_plugin_scorer_emits_five_typed_measurement_leaves() -> None:
     assert [score.leaf.verifier.reference.reference_kind for score in scores] == [
         "canonical_set",
         "constraint_satisfaction",
+        "constraint_satisfaction",
+        "constraint_satisfaction",
         "temporal_property",
         "state_invariant",
         "objective_upper_bound",
     ]
-    assert all(score.leaf.leaf_version == "1.2.0" for score in scores)
+    assert all(score.leaf.leaf_version == "1.3.0" for score in scores)
     assert all(score.status == "ok" for score in scores)
-    assert [score.primary.value for score in scores[:4]] == [1.0, 0.0, 1.0, 1.0]
-    assert scores[4].primary.value == outcome["joint_utility"]
+    assert [score.primary.value for score in scores[:6]] == [1.0, 0.0, 1.0, 0.0, 1.0, 1.0]
+    assert scores[6].primary.value == outcome["joint_utility"]
 
 
 def test_verifier_leaves_reject_temporal_duplicate_and_collateral_mutations() -> None:
@@ -645,8 +800,28 @@ def test_refund_run_uses_scripted_customer_counterpart() -> None:
 
     profiles = {profile.profile_id: profile for profile in plan.agent_profiles}
     assert profiles["refund_customer_profile_v1"].model.provider == "scripted"
-    assert profiles["refund_customer_profile_v1"].model.model == "refund-scripted-customer-v1"
+    assert profiles["refund_customer_profile_v1"].model.model == "refund-scripted-customer-minimal-v1-3"
     assert profiles["refund_support_profile_v1"].model.provider == "gemini"
+
+
+def test_refund_run_exposes_frozen_customer_profile_sensitivity() -> None:
+    profile_ids = set()
+    for customer_script in ("minimal", "cooperative", "resistant"):
+        plan, _registry, _prompts, _pricing = build_refund_run(
+            provider="fake",
+            customer_model="ignored",
+            customer_revision="ignored",
+            support_model="refund-fixed-v1",
+            support_revision="1.0.0",
+            customer_script=customer_script,
+            case_id="refund_v1.curated.000009",
+        )
+        block = plan.evaluation_blocks[0]
+        profile_ids.add(dict(block.controlled_profiles)["customer"])
+        assert block.kind == "controlled"
+        assert block.subject_seats == ("support_agent",)
+
+    assert len(profile_ids) == 3
 
 
 def test_refund_run_supports_dual_llm_cross_play(tmp_path) -> None:
@@ -716,7 +891,7 @@ def test_build_refund_run_supports_seeded_experiment_panel() -> None:
     ]
     assert len(plan.cells) == 2
     assert plan.sampling.selection == "seeded_simple_random"
-    assert plan.suite.suite_id == "refund_seeded_experiment_v1"
+    assert plan.suite.suite_id == "refund_seeded_experiment_v1_3"
 
 
 def test_refund_cli_fake_provider_runs(tmp_path) -> None:
@@ -743,12 +918,14 @@ def test_refund_cli_fake_provider_runs(tmp_path) -> None:
     result = payload["results"][0]
     assert result["case_id"] == "refund_v1.curated.000001"
     assert result["outcome"]["valid"] is True
-    assert len(result["measurement_scores"]) == 5
+    assert len(result["measurement_scores"]) == 7
     assert {
         score["leaf"]["leaf_id"] for score in result["measurement_scores"]
     } == {
         "refund_canonical_decision_leaf",
         "refund_information_constraint_leaf",
+        "refund_customer_disclosure_constraint_leaf",
+        "refund_authorization_constraint_leaf",
         "refund_temporal_transaction_leaf",
         "refund_state_invariant_leaf",
         "refund_joint_utility_leaf",

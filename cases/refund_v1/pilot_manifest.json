@@ -7,9 +7,16 @@
     "refund_v1.curated.000005",
     "refund_v1.curated.000006",
     "refund_v1.curated.000007",
-    "refund_v1.curated.000008"
+    "refund_v1.curated.000008",
+    "refund_v1.curated.000009",
+    "refund_v1.curated.000010",
+    "refund_v1.curated.000011",
+    "refund_v1.curated.000012",
+    "refund_v1.curated.000013",
+    "refund_v1.curated.000014",
+    "refund_v1.curated.000015"
   ],
-  "content_sha256": "4baf36d2076bb79e311b750f1f3e25920a67b690ffb08dac2bd3ba35f6dc5bce",
+  "content_sha256": "b45261635a3ab0dc8c8482b45a25aace0335808578c039b7a661f92ae237d047",
   "family_id": "refund_v1",
   "pilot_id": "refund_curated_pilot_v1",
   "split": "curated"

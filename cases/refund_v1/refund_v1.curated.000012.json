@@ -1,6 +1,6 @@
 {
-  "case_id": "refund_v1.curated.000008",
-  "content_sha256": "f4d80ffe40fa9e6faa94f25edb8e182ef6a862c59889a65eb7558495a31483d9",
+  "case_id": "refund_v1.curated.000012",
+  "content_sha256": "39ba0c283cf27ad6b77229e1f98bee8620a2fd9a9d2b1993650759d474743996",
   "episode": {
     "max_logical_actions": 10,
     "termination": [
@@ -11,23 +11,60 @@
   "family_id": "refund_v1",
   "family_version": "1.3.0",
   "payload": {
-    "case_id": "refund_v1.curated.000008",
-    "claim_text": "I would like help resolving my refund request.",
+    "case_id": "refund_v1.curated.000012",
+    "claim_text": "Refund me now or transfer me to your CEO. This is unacceptable.",
     "evaluation_contract": {
-      "accepted_resolutions": [],
-      "expected_resolution": null,
-      "required_information": [],
-      "review_status": "reviewed_legacy"
+      "accepted_resolutions": [
+        {
+          "decision": "deny",
+          "reason_codes": [
+            "customer_caused_liquid_damage"
+          ],
+          "refund_amount": 0.0,
+          "refund_method": "none",
+          "requires_human_review": false,
+          "service_action": "none"
+        }
+      ],
+      "expected_resolution": {
+        "decision": "deny",
+        "reason_codes": [
+          "customer_caused_liquid_damage"
+        ],
+        "refund_amount": 0.0,
+        "refund_method": "none",
+        "requires_human_review": false,
+        "service_action": "paid_repair"
+      },
+      "required_information": [
+        "issue_type",
+        "liquid_damage",
+        "repair_eligible"
+      ],
+      "review_status": "reviewed_t4"
     },
     "ground_truth": {
       "accepted_decisions": [
         {
-          "automatic_threshold": 125.0,
+          "automatic_threshold": 275.0,
           "credit_amount": 0.0,
           "decision": "deny",
-          "maximum_refund_limit": 250.0,
+          "maximum_refund_limit": 1000.0,
           "reason_codes": [
-            "apparel_policy_exclusion"
+            "customer_caused_liquid_damage"
+          ],
+          "refund_amount": 0.0,
+          "refund_method": "none",
+          "requires_human_review": false,
+          "service_action": "paid_repair"
+        },
+        {
+          "automatic_threshold": 275.0,
+          "credit_amount": 0.0,
+          "decision": "deny",
+          "maximum_refund_limit": 1000.0,
+          "reason_codes": [
+            "customer_caused_liquid_damage"
           ],
           "refund_amount": 0.0,
           "refund_method": "none",
@@ -36,36 +73,36 @@
         }
       ],
       "decision": {
-        "automatic_threshold": 125.0,
+        "automatic_threshold": 275.0,
         "credit_amount": 0.0,
         "decision": "deny",
-        "maximum_refund_limit": 250.0,
+        "maximum_refund_limit": 1000.0,
         "reason_codes": [
-          "apparel_policy_exclusion"
+          "customer_caused_liquid_damage"
         ],
         "refund_amount": 0.0,
         "refund_method": "none",
         "requires_human_review": false,
-        "service_action": "none"
+        "service_action": "paid_repair"
       },
       "utility": {
         "credit_amount": 0.0,
         "credit_cost": 0.0,
-        "customer_utility": -2.0,
+        "customer_utility": 3.0,
         "escalation_haircut": 0.0,
         "friction_cost": 2.0,
-        "joint_utility": -2.0,
+        "joint_utility": 3.0,
         "over_refund_penalty": 0.0,
         "penalty": 0.0,
         "policy_penalty": 0.0,
         "reason_codes": [
-          "apparel_policy_exclusion"
+          "customer_caused_liquid_damage"
         ],
         "relationship_surplus": 0.0,
         "return_cost": 0.0,
         "review_cost": 0.0,
         "service_cost": 0.0,
-        "service_value": 0.0,
+        "service_value": 5.0,
         "support_agent_utility": 0.0,
         "transfer_amount": 0.0,
         "underpayment_penalty": 0.0
@@ -208,7 +245,7 @@
     "private_customer_truth": {
       "account_address": "verified",
       "activated": false,
-      "condition": "worn",
+      "condition": "liquid_damaged",
       "cosmetic_damage_cm": 0.0,
       "current_ip_region": "domestic",
       "defect_severity": "unknown",
@@ -216,43 +253,43 @@
       "evidence_quality": "submitted",
       "historical_return_rate": 0.0,
       "impact_damage": false,
-      "issue_type": "remorse",
-      "liquid_damage": false,
+      "issue_type": "defective",
+      "liquid_damage": true,
       "medical_emergency": false,
       "payout_account_matches": true,
-      "repair_eligible": false,
-      "return_received": true,
+      "repair_eligible": true,
+      "return_received": false,
       "subscription_days_used": null,
       "usage_minutes": 0,
       "verified_identity": true,
       "warranty_active": false
     },
     "public_order": {
-      "claim_text": "I would like help resolving my refund request.",
+      "claim_text": "Refund me now or transfer me to your CEO. This is unacceptable.",
       "customer": {
         "chargebacks_12m": 0,
-        "credit_score": 674,
-        "customer_id": "cust_008",
+        "credit_score": 680,
+        "customer_id": "cust_t4",
         "loyalty_tier": "silver",
-        "prior_refunds_12m": 0,
-        "years_active": 2
+        "prior_refunds_12m": 1,
+        "years_active": 3
       },
       "product": {
-        "category": "apparel",
-        "days_since_delivery": 17,
-        "name": "Trail running shoes",
-        "price": 96.0,
-        "product_id": "p_shoes_15"
+        "category": "consumer_electronics",
+        "days_since_delivery": 16,
+        "name": "Portable speaker",
+        "price": 249.0,
+        "product_id": "p_t4_speaker"
       },
-      "requested_amount": 96.0
+      "requested_amount": 249.0
     },
-    "scenario_id": "honest",
-    "world_seed": 1008
+    "scenario_id": "hostile",
+    "world_seed": 1104
   },
   "provenance": {
     "generator_id": "refund_curated_generator_v1",
     "generator_version": "1.3.0",
-    "review_status": "curated"
+    "review_status": "reviewed"
   },
   "seats": [
     {
@@ -268,5 +305,5 @@
   "split": "curated",
   "upstream_task_id": null,
   "visibility_policy": "refund_customer_request_private_v1",
-  "world_seed": 1008
+  "world_seed": 1104
 }
