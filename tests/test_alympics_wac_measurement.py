@@ -442,7 +442,16 @@ def test_alive_at_terminal_reads_the_final_players_alive_flag() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_golden_1_successful_reports_positive_wealth_and_full_survival() -> None:
+def test_golden_1_successful_reports_positive_wealth_and_the_actual_elimination_pattern() -> None:
+    """Renamed from ...and_full_survival (docs/alympics_fix_verification.md
+    finding 7): the real, hand-verified reference run is not "full
+    survival" at all -- 4 of the 5 seats are eliminated well before round
+    20. Codex triage finding 7's own point was that this golden's former
+    name/docstring intent was never actually asserted; the assertions below
+    were already strengthened to check the real pattern, but the function's
+    own name still claimed the opposite of what it checks. See also
+    docs/alympics_adapter_spec.md section 4's "Successful" row, corrected to
+    match."""
     case = _case("reference_baseline")
     final_players, round_log, terminal = _run(case, _multiplier_response_source(ALL_PROPORTIONAL))
     upstream = _plugin()._require_upstream()
