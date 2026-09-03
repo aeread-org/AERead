@@ -29,9 +29,13 @@ Current campaign directories include:
 - `housing_qc_goldens_v1/`: six provider-free Housing environment/verifier
   golden receipts and their digest-bound QC report;
 - `housing_model_sensitivity_openrouter_alt_v4/` through
-  `housing_model_sensitivity_openrouter_alt_v9/`: successive OpenRouter
+  `housing_model_sensitivity_openrouter_alt_v9/`, plus
+  `housing_model_sensitivity_openrouter_morph_v10/`: successive OpenRouter
   qualification records. V7 publishes its seven completed trajectories; V8
   publishes all 12 attempted cells, including one typed timeout, under
   `trajectories/`; V9 publishes reusable model-profile and admission fact
   tables and records that its 48-cell variance pilot was blocked before live
-  execution.
+  execution; V10 publishes all 48 attempts and 12 canonical run-fact bundles,
+  while recording 17 typed operational failures, zero complete paired worlds,
+  and the missing pre-pilot full-trajectory gate. V10 is route-reliability and
+  protocol-deviation evidence, not a leaderboard.
