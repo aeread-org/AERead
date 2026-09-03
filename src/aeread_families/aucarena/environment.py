@@ -554,10 +554,14 @@ class AucArenaPlugin:
         See ``measurement.py`` (spec section 2): ``aucarena_budget_invariant``,
         ``aucarena_bid_legality``, ``aucarena_hammer_rule``, and
         ``aucarena_profit_vs_field`` are declared for every case -- no
-        ``objective_reference`` leaf, no scalar collapse. The current kernel
-        does not yet call ``build_scorer`` itself (mirrors
-        ``tau3_retail.Tau3RetailPlugin.build_scorer``'s own docstring); this
-        makes the declaration and all four scorers live the day it does.
+        ``objective_reference`` leaf, no scalar collapse. The returned
+        ``AucArenaScorer`` is itself callable (``__call__(outcome,
+        evidence_refs=...)``) -- the shared kernel's real calling convention
+        (``finalize_family_execution`` in
+        ``aeread/shared_runner/family_evaluation.py`` already calls whatever
+        this method returns as a function; see ``AucArenaScorer.__call__``'s
+        own docstring for exactly which one of the four leaves that
+        convention can reach).
         """
         return build_measurement_scorer(family_case)
 

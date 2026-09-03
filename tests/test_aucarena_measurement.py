@@ -34,6 +34,7 @@ from typing import Any
 import pytest
 
 from aeread.shared_runner.measurement import MeasurementContractError
+from aeread.shared_runner.resolver import canonical_json_bytes
 from aeread.shared_runner.scheduler import EpisodeResult, run_episode
 from aeread_families.aucarena import measurement as m
 from aeread_families.aucarena.environment import AucArenaPlugin, family_manifest, register_plugin
@@ -184,6 +185,44 @@ def test_golden_1_profit_vs_field_is_finite_and_mixed_sign() -> None:
     assert score.metrics["delta_vs_field_low"].value == 300.0
     assert score.metrics["delta_vs_field_high"].value == -1000.0
     assert score.primary.value == pytest.approx((300.0 - 1000.0) / 2.0)
+
+
+def test_scorer_is_callable_matching_the_kernels_real_calling_convention() -> None:
+    """``AucArenaScorer`` must be callable: ``finalize_family_execution``
+    (``aeread/shared_runner/family_evaluation.py``) never calls a named
+    method -- it calls whatever ``AucArenaPlugin.build_scorer`` returns *as
+    a function*::
+
+        score = plugin.build_scorer(family_case)(
+            recorded_outcome, evidence_refs=(outcome_event.event_id,),
+        )
+
+    Before ``docs/aucarena_codex_triage.md`` Finding 1's fix,
+    ``AucArenaScorer`` was a frozen dataclass with no ``__call__``, and this
+    exact call raised ``TypeError: 'AucArenaScorer' object is not
+    callable`` -- every test in this module called a named method directly
+    instead, so the family's own green suite never exercised the kernel's
+    real calling convention. This test does exactly what the kernel does:
+    passes only the bare terminal ``outcome`` mapping, never a full
+    ``EpisodeResult``.
+    """
+    result, family_case = _run("successful", _min_markup_policy)
+    scorer = m.build_scorer(family_case)
+
+    score = scorer(result.outcome, evidence_refs=("outcome_event_1",))
+
+    assert score.status == "ok"
+    assert score.evidence_refs == ("outcome_event_1",)
+    assert score.metrics["delta_vs_field_low"].value == 300.0
+    assert score.metrics["delta_vs_field_high"].value == -1000.0
+    assert score.primary.value == pytest.approx((300.0 - 1000.0) / 2.0)
+    # Byte-identical to the named-method call over the full ``EpisodeResult``
+    # (the sole terminal-state-scoped leaf this convention can reach) --
+    # ``__call__`` is a genuine calling-convention adapter, not a second,
+    # divergent scoring path.
+    assert canonical_json_bytes(score) == canonical_json_bytes(
+        scorer.score_profit_vs_field(result=result, evidence_refs=("outcome_event_1",))
+    )
 
 
 # ---------------------------------------------------------------------------

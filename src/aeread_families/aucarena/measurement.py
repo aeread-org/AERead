@@ -683,18 +683,66 @@ def score_profit_vs_field(
 
 
 @dataclass(frozen=True, slots=True)
+class _OutcomeOnlyResult:
+    """Adapt a bare terminal ``outcome`` mapping to look like the one
+    ``EpisodeResult`` attribute :func:`score_profit_vs_field` actually reads
+    (``result.outcome["seats"]``) -- nothing else. Lets ``AucArenaScorer.
+    __call__`` accept exactly the argument the shared kernel's real calling
+    convention supplies (see that method's docstring) without changing
+    ``score_profit_vs_field``'s own signature or any of its existing
+    ``EpisodeResult``-taking call sites.
+    """
+
+    outcome: Mapping[str, Any]
+
+
+@dataclass(frozen=True, slots=True)
 class AucArenaScorer:
     """One case's fixed set of declared leaves, plus the scorers for them.
 
-    Mirrors ``tau3_retail.measurement.Tau3RetailScorer``: the current kernel
-    does not yet invoke ``build_scorer`` itself
-    (``AucArenaPlugin.build_scorer``'s own docstring), so these methods are
-    also exercised directly by tests today.
+    Mirrors ``tau3_retail.measurement.Tau3RetailScorer``'s shape (four named
+    methods, one per declared leaf), each still callable directly by any
+    caller holding a full ``EpisodeResult`` -- every test in this family
+    does exactly that. ``__call__`` (below) is the *additional* surface the
+    real kernel calling convention needs (spec `docs/aucarena_codex_triage.md`
+    Finding 1): unlike the false claim this class's docstring used to make
+    ("the current kernel does not yet call ``build_scorer`` itself"),
+    ``finalize_family_execution`` (``aeread/shared_runner/family_evaluation.py``)
+    already calls whatever ``build_scorer(family_case)`` returns *as a
+    function* of ``(outcome, evidence_refs=...)`` -- see ``housing.py``'s
+    identical, already-exercised convention.
     """
 
     field_seats: tuple[Mapping[str, Any], ...]
     tested_seat_id: str
     leaves: tuple[MeasurementLeafSpec, ...]
+
+    def __call__(
+        self, outcome: Mapping[str, Any], *, evidence_refs: tuple[str, ...] = ()
+    ) -> ScoreEnvelope:
+        """The one ``ScoreEnvelope`` the shared kernel's real calling
+        convention can obtain from this family: ``finalize_family_execution``
+        passes only the terminal ``outcome`` mapping (never a full
+        ``EpisodeResult`` -- it has none to give), so only this family's one
+        *terminal-state-scoped* leaf, ``aucarena_profit_vs_field`` (the
+        family manifest's own declared ``primary_estimand``), is computable
+        from it. The other three declared leaves are *trajectory-scoped*
+        (spec section 2): they independently recompute vendored bid/hammer
+        rules from every recorded action's own frozen pre-round observation
+        (``EpisodeResult.phase_instances``), data this single-argument
+        convention does not carry -- exactly the same terminal-state-only
+        shape ``housing.py``'s own one declared leaf uses. Those three
+        remain available as named methods below for any caller holding a
+        full ``EpisodeResult`` (every test in this family, and ``replay.py``,
+        already are such callers).
+        """
+        return score_profit_vs_field(
+            self.profit_vs_field_leaf,
+            result=_OutcomeOnlyResult(outcome),
+            field_seats=self.field_seats,
+            tested_seat_id=self.tested_seat_id,
+            evidence_refs=evidence_refs,
+        )
 
     @property
     def budget_invariant_leaf(self) -> MeasurementLeafSpec:
