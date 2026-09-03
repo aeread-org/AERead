@@ -116,3 +116,10 @@ contribution margin, and regret. It requires identical case content digests and 
 bounds, completed receipt replay for all 18 Mistral trajectories, and exact seed and
 harness parity. The six economic worlds are the inference clusters. Provider failures
 block the comparison and are never imputed as model outcomes.
+
+The first two fresh attempts did not pass that gate. Both exact-request canaries
+were admitted, but the first scored call in each attempt returned an empty response.
+Each attempt therefore has zero completed trajectories, one typed operational
+failure, and 17 unattempted trajectories. The repeated failure rejects this route
+for the declared allocation campaign. It does not support a Mistral procurement
+score or a Mistral-versus-GLM ranking.

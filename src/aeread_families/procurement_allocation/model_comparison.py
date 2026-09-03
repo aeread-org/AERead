@@ -205,6 +205,161 @@ def _verified_summary(root: Path) -> tuple[dict[str, Any], str]:
     return value, hashlib.sha256(raw_bytes).hexdigest()
 
 
+def _runs_relative(path: Path) -> str:
+    parts = path.resolve().parts
+    if "runs" not in parts:
+        raise ValueError("admission audit inputs must be under runs/")
+    index = len(parts) - 1 - tuple(reversed(parts)).index("runs")
+    return Path(*parts[index:]).as_posix()
+
+
+def build_admission_audit(*, attempt_roots: Sequence[Path]) -> dict[str, Any]:
+    """Verify and summarize repeated route failures without scoring them."""
+
+    if len(attempt_roots) < 2:
+        raise ValueError("admission audit requires at least two fresh attempts")
+    attempts: list[dict[str, Any]] = []
+    plan_shas: set[str] = set()
+    conditions: Counter[str] = Counter()
+    reported_cost_usd = 0.0
+    for root in attempt_roots:
+        summary, summary_file_sha = _verified_summary(root)
+        plan = summary.get("plan", {})
+        if plan.get("campaign_id") != CAMPAIGN_ID:
+            raise ValueError("admission audit campaign identity mismatch")
+        plan_shas.add(str(plan.get("plan_sha256")))
+        canary_path = root / "admission_canary.json"
+        canary = json.loads(canary_path.read_text(encoding="utf-8"))
+        if not isinstance(canary, dict):
+            raise ValueError("admission canary must be an object")
+        canary_sha = canary.get("artifact_sha256")
+        canary_payload = {
+            key: value for key, value in canary.items() if key != "artifact_sha256"
+        }
+        if (
+            canary_sha
+            != hashlib.sha256(canonical_json_bytes(canary_payload)).hexdigest()
+        ):
+            raise ValueError("admission canary digest mismatch")
+        if canary.get("campaign_id") != CAMPAIGN_ID:
+            raise ValueError("admission canary campaign identity mismatch")
+        rows = summary.get("rows")
+        if not isinstance(rows, list):
+            raise ValueError("qualification rows must be an array")
+        failures = []
+        for row in rows:
+            if not isinstance(row, Mapping):
+                raise ValueError("qualification row must be an object")
+            recorded_sha = row.get("result_sha256")
+            payload = {
+                key: value for key, value in row.items() if key != "result_sha256"
+            }
+            if (
+                recorded_sha
+                != hashlib.sha256(canonical_json_bytes(payload)).hexdigest()
+            ):
+                raise ValueError("qualification row digest mismatch")
+            if row.get("status") == "operational_failure":
+                condition = str(row.get("failure_condition"))
+                conditions[condition] += 1
+                failures.append(
+                    {
+                        key: row.get(key)
+                        for key in (
+                            "case_id",
+                            "inference_seed",
+                            "status",
+                            "failure_type",
+                            "failure_condition",
+                            "failure_status_code",
+                            "failure_receipt_sha256",
+                            "result_sha256",
+                        )
+                    }
+                )
+        campaign_summary = summary.get("summary", {})
+        reported_cost_usd += float(canary.get("cost_usd") or 0.0)
+        reported_cost_usd += float(campaign_summary.get("total_cost_usd") or 0.0)
+        attempts.append(
+            {
+                "attempt_id": root.name,
+                "source": {
+                    "summary_path": f"{_runs_relative(root)}/summary.json",
+                    "summary_file_sha256": summary_file_sha,
+                    "artifact_sha256": summary.get("artifact_sha256"),
+                    "plan_sha256": plan.get("plan_sha256"),
+                    "canary_file_sha256": hashlib.sha256(
+                        canary_path.read_bytes()
+                    ).hexdigest(),
+                    "canary_artifact_sha256": canary_sha,
+                },
+                "canary": {
+                    key: canary.get(key)
+                    for key in (
+                        "status",
+                        "request_sha256",
+                        "resolved_model",
+                        "finish_reason",
+                        "input_tokens",
+                        "cached_input_tokens",
+                        "output_tokens",
+                        "cost_usd",
+                        "structured_action",
+                    )
+                },
+                "completed_trajectory_count": campaign_summary.get(
+                    "completed_trajectory_count"
+                ),
+                "operational_failure_count": campaign_summary.get(
+                    "operational_failure_count"
+                ),
+                "unattempted_trajectory_count": campaign_summary.get(
+                    "unattempted_trajectory_count"
+                ),
+                "failures": failures,
+            }
+        )
+
+    repeated_failure = (
+        len(conditions) == 1
+        and sum(conditions.values()) == len(attempts)
+        and all(item["canary"]["status"] == "admitted" for item in attempts)
+        and all(item["completed_trajectory_count"] == 0 for item in attempts)
+        and all(item["operational_failure_count"] == 1 for item in attempts)
+    )
+    integrity = {
+        "fresh_attempt_count_at_least_two": len(attempts) >= 2,
+        "plan_identity_match": len(plan_shas) == 1,
+        "all_artifact_digests_verified": True,
+    }
+    audit: dict[str, Any] = {
+        "schema_version": "aeread.procurement_allocation_admission_audit/0.1",
+        "campaign_id": CAMPAIGN_ID,
+        "attempts": attempts,
+        "failure_condition_counts": dict(sorted(conditions.items())),
+        "reported_cost_usd": reported_cost_usd,
+        "integrity": integrity,
+        "finding": {
+            "repeated_post_canary_failure": repeated_failure,
+            "route_eligible_for_scored_campaign": False,
+            "model_comparison_allowed": False,
+        },
+        "interpretation": (
+            "Two fresh attempts admitted the exact request canary and then failed "
+            "their first scored trajectory with the same operational condition. "
+            "No procurement model score or paired model ranking is reported."
+        ),
+        "next_gate": (
+            "Use a new campaign identity only after the route demonstrates stable "
+            "multi-turn structured responses; do not resume or selectively retry "
+            "these failed attempts."
+        ),
+        "claim_scope": "provider-route admission and reliability only",
+    }
+    audit["artifact_sha256"] = hashlib.sha256(canonical_json_bytes(audit)).hexdigest()
+    return audit
+
+
 def _row_index(value: Mapping[str, Any]) -> dict[tuple[str, int], Mapping[str, Any]]:
     rows = value.get("rows")
     if not isinstance(rows, list):
@@ -413,14 +568,39 @@ def build_paired_model_comparison(
 
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--run-root", type=Path, required=True)
+    parser.add_argument("--run-root", type=Path)
     parser.add_argument(
         "--baseline-run-root", type=Path, default=DEFAULT_BASELINE_RUN_ROOT
     )
     parser.add_argument("--publication-root", type=Path)
     parser.add_argument("--max-spend-usd", type=float, default=0.35)
+    parser.add_argument("--audit-attempt-root", type=Path, action="append")
     parser.add_argument("--execute", action="store_true")
     arguments = parser.parse_args(argv)
+
+    if arguments.audit_attempt_root:
+        if arguments.execute:
+            parser.error("--audit-attempt-root cannot be combined with --execute")
+        audit = build_admission_audit(attempt_roots=arguments.audit_attempt_root)
+        if arguments.publication_root is not None:
+            publication_source = arguments.audit_attempt_root[-1]
+            canary = json.loads(
+                (publication_source / "admission_canary.json").read_text(
+                    encoding="utf-8"
+                )
+            )
+            publish_model_qualification(
+                run_root=publication_source,
+                publication_root=arguments.publication_root,
+                supplemental_reports={
+                    "reports/admission_canary.json": canary,
+                    "reports/admission_audit.json": audit,
+                },
+            )
+        print(json.dumps(audit, indent=2, sort_keys=True))
+        return 0
+    if arguments.run_root is None:
+        parser.error("--run-root is required unless auditing attempts")
 
     plan = planned_model_qualification(
         case_paths=CASE_VARIANCE_PATHS,
@@ -495,6 +675,7 @@ __all__ = [
     "CAMPAIGN_ID",
     "MISTRAL_SMALL4_CANDIDATE",
     "PAIRED_INFERENCE_SEEDS",
+    "build_admission_audit",
     "build_paired_model_comparison",
     "run_admission_canary",
 ]

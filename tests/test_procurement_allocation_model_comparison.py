@@ -16,6 +16,7 @@ from aeread_families.procurement_allocation.model_comparison import (
     CAMPAIGN_ID,
     MISTRAL_SMALL4_CANDIDATE,
     PAIRED_INFERENCE_SEEDS,
+    build_admission_audit,
     build_paired_model_comparison,
     run_admission_canary,
 )
@@ -58,6 +59,56 @@ def _write_summary(
     ).hexdigest()
     root.mkdir(parents=True)
     (root / "summary.json").write_bytes(canonical_json_bytes(artifact) + b"\n")
+
+
+def _write_failed_attempt(root: Path, *, canary_cost: float) -> None:
+    plan = {
+        "campaign_id": CAMPAIGN_ID,
+        "plan_sha256": "a" * 64,
+    }
+    row = {
+        "case_id": "procurement_allocation_v1.dev.deadline_cost",
+        "case_content_sha256": "b" * 64,
+        "inference_seed": PAIRED_INFERENCE_SEEDS[0],
+        "status": "operational_failure",
+        "failure_type": "SchedulerContractError",
+        "failure_condition": "empty_response",
+        "failure_status_code": None,
+        "failure_receipt_sha256": "c" * 64,
+    }
+    row["result_sha256"] = hashlib.sha256(canonical_json_bytes(row)).hexdigest()
+    artifact = {
+        "plan": plan,
+        "summary": {
+            "completed_trajectory_count": 0,
+            "operational_failure_count": 1,
+            "unattempted_trajectory_count": 17,
+            "total_cost_usd": 0.0,
+            "readiness": {"execution_qualified": False},
+        },
+        "rows": [row],
+    }
+    artifact["artifact_sha256"] = hashlib.sha256(
+        canonical_json_bytes(artifact)
+    ).hexdigest()
+    canary = {
+        "schema_version": "aeread.provider_admission_canary/0.1",
+        "campaign_id": CAMPAIGN_ID,
+        "status": "admitted",
+        "request_sha256": "d" * 64,
+        "resolved_model": "mistralai/mistral-small-2603",
+        "finish_reason": "stop",
+        "input_tokens": 100,
+        "cached_input_tokens": 0,
+        "output_tokens": 20,
+        "cost_usd": canary_cost,
+        "structured_action": "inquire",
+        "scored": False,
+    }
+    canary["artifact_sha256"] = hashlib.sha256(canonical_json_bytes(canary)).hexdigest()
+    root.mkdir(parents=True)
+    (root / "summary.json").write_bytes(canonical_json_bytes(artifact) + b"\n")
+    (root / "admission_canary.json").write_bytes(canonical_json_bytes(canary) + b"\n")
 
 
 def test_mistral_plan_uses_paired_cases_seeds_and_route() -> None:
@@ -137,6 +188,29 @@ def test_paired_comparison_recovers_mistral_minus_glm_effects(tmp_path: Path) ->
         2.0,
     ]
     assert effects["regret_to_upper_bound_usd"]["case_cluster_mean"] == -2.0
+
+
+def test_admission_audit_preserves_repeated_failure_without_scoring(
+    tmp_path: Path,
+) -> None:
+    roots = [
+        tmp_path / "runs" / CAMPAIGN_ID / "qualification_attempt_001",
+        tmp_path / "runs" / CAMPAIGN_ID / "qualification_attempt_002",
+    ]
+    _write_failed_attempt(roots[0], canary_cost=0.001)
+    _write_failed_attempt(roots[1], canary_cost=0.002)
+
+    audit = build_admission_audit(attempt_roots=roots)
+
+    assert audit["finding"] == {
+        "repeated_post_canary_failure": True,
+        "route_eligible_for_scored_campaign": False,
+        "model_comparison_allowed": False,
+    }
+    assert audit["failure_condition_counts"] == {"empty_response": 2}
+    assert audit["reported_cost_usd"] == 0.003
+    assert len(audit["attempts"]) == 2
+    assert "contribution_margin_usd" not in canonical_json_bytes(audit).decode()
 
 
 def test_mistral_canary_uses_declared_request_shape(tmp_path: Path) -> None:

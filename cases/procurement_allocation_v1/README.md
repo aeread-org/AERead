@@ -176,3 +176,15 @@ starts with an unscored exact-request admission canary, aborts after the first
 operational failure, and defaults to a $0.35 scored-run ceiling. Model effects use
 paired deltas and exact six-world cluster-bootstrap intervals; they remain a bounded
 panel diagnostic rather than a general model ranking.
+
+The first two fresh Mistral attempts each admitted the exact request canary and then
+returned an empty response on their first scored call. Both stopped with zero
+completed trajectories and 17 unattempted trajectories. This is a route-admission
+rejection, not a procurement score. Reproduce the sanitized audit projection with:
+
+```bash
+python -m aeread_families.procurement_allocation.model_comparison \
+  --audit-attempt-root runs/procurement_allocation/procurement_allocation_mistral_small4_case_variance_v1/qualification_attempt_001 \
+  --audit-attempt-root runs/procurement_allocation/procurement_allocation_mistral_small4_case_variance_v1/qualification_attempt_002 \
+  --publication-root evidence/procurement_allocation_mistral_small4_case_variance_v1
+```
