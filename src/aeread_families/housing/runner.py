@@ -1,6 +1,7 @@
 """Housing V1 family bridge and one-cell admission fixture.
 
-The economic state machine remains owned by :mod:`aeread.housing_env`.  This
+The economic state machine remains owned by
+the aeread_families.housing.environment module. This
 module translates its contact/respond/commit contract into the generic shared
 runner hooks, keeps tenant and landlord observations private, and supplies a
 deterministic controlled-landlord provider.

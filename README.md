@@ -9,14 +9,12 @@
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](pyproject.toml)
 [![Site](https://img.shields.io/badge/results-aeread.org-black.svg)](https://aeread.org)
 
-**Start here:** [5-minute quickstart](docs/quickstart.md) ·
-[Concepts](docs/concepts.md) · [Benchmark QC](docs/benchmark_qc.md) ·
+**New here?** Follow the [onboarding journey](#onboarding-journey) below.
+
+**Reference:** [Concepts](docs/concepts.md) ·
+[Case catalog](cases/README.md) · [Benchmark QC](docs/benchmark_qc.md) ·
 [Experiment SOP](docs/experiment_campaign_sop.md) ·
-[Artifact layout](docs/artifact_layout.md) ·
-[Source layout](docs/source_layout.md) ·
-[Submit an agent](docs/submissions.md) ·
-[Integrations (rLLM, EverOS, yours)](integrations/README.md) ·
-[Contribute](CONTRIBUTING.md)
+[Artifact layout](docs/artifact_layout.md) · [Source layout](docs/source_layout.md)
 
 AERead (AgentEcon Readiness) is an open environment + benchmark for studying how
 LLM agents behave in **economic and stateful decision environments**: bilateral
@@ -29,6 +27,182 @@ case-native result in an auditable receipt.
 Results and methodology: https://aeread.org · **Capability coverage map:**
 [CAPABILITIES.md](CAPABILITIES.md) — what is covered, partial, and planned,
 toward a general evaluation of agent economic capabilities.
+
+## Onboarding journey
+
+Follow these steps in order. Each step adds one architectural layer, and each
+ends at a useful stopping point. You do not need to understand the entire
+repository before running or extending one case.
+
+### 1. Start with the measurement story
+
+AERead is a measurement system, not just a collection of agent tasks. A case
+defines a world and valid actions; a profile fixes how an agent is invoked; the
+runner records what happened; a verifier derives typed measurements; and a
+receipt binds the result to its exact inputs and evidence.
+
+```text
+case + profiles + run specification
+              |
+              v
+       resolved RunPlan
+              |
+              v
+     tasks -> attempts -> model-call and action events
+              |
+              v
+     verifier -> typed metrics -> EvaluationReceipt
+              |
+              v
+       research tables -> selected evidence publication
+```
+
+Keep these units distinct:
+
+| Unit | Meaning |
+|---|---|
+| **Campaign** | A governed experiment that can contain multiple runs and promotion gates. |
+| **Run** | One resolved, content-bound plan containing a declared task matrix. |
+| **Task** | One `PlanCell`: a case, profiles, controls, world seed, and replicate. |
+| **Attempt** | One retained execution of a task, including failed or retried attempts. |
+| **Model call** | A provider interaction recorded as an append-only event inside an attempt. |
+| **Receipt** | The sealed validity, measurement, replay, and inclusion decision for an attempt. |
+| **Publication** | A sanitized, digest-bound projection selected from local run evidence. |
+
+If that vocabulary is enough for now, continue to the first offline run. For
+the full terminology, read [Concepts](docs/concepts.md).
+
+### 2. Install a development checkout
+
+AERead requires Python 3.10 or newer.
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -e '.[dev]'
+```
+
+The editable install exposes the `aeread` CLI and the family packages used in
+the examples below. No provider key is needed for the onboarding path.
+
+### 3. Run one complete Housing task offline
+
+This uses deterministic tenant and landlord policies, but otherwise follows
+the same task scheduler, evidence, verifier, receipt, and replay boundaries as
+a model-backed run.
+
+```bash
+ONBOARDING_RUN_ROOT="runs/onboarding/$(date +%Y%m%d-%H%M%S)"
+
+python -m aeread_families.housing.runner \
+    --provider scripted \
+    --world-seed 7 \
+    --tenants 2 \
+    --listings 1 \
+    --rounds 2 \
+    --run-root "$ONBOARDING_RUN_ROOT"
+```
+
+The command prints a JSON summary. Look first for:
+
+- `measurement_status: "ok"`, showing that the typed measurement was valid;
+- `outcome.within_case_score`, the case-native normalized outcome;
+- `receipt_path`, the sealed evaluation record;
+- `replay_level: "state_and_score"`, the declared replay guarantee; and
+- `total_cost_usd: 0.0`, confirming that this path made no paid model calls.
+
+At this point you have executed the whole core path once. The scripted policy
+is a control, not evidence about model capability.
+
+### 4. Read the run from outside in
+
+List the three records that explain the execution:
+
+```bash
+find "$ONBOARDING_RUN_ROOT" -type f \
+    \( -name run_plan.json -o -name events.jsonl -o -name evaluation_receipt.json \)
+```
+
+Read them in this order:
+
+1. `run_plan.json` — what was supposed to run: resolved cases, profiles,
+   controls, seeds, implementation pins, and the complete task matrix.
+2. `events.jsonl` — what actually happened: observations, actions, provider or
+   scripted calls, transitions, failures, and terminal accounting.
+3. `evaluation_receipt.json` — what may be claimed: evidence hashes, typed
+   metrics, validity, replay level, and inclusion status.
+
+Their location mirrors the conceptual hierarchy:
+
+```text
+runs/<workspace>/<run_id>/
+  run_plan.json
+  tasks/<task_id>/
+    attempts/<attempt_id>/
+      events.jsonl
+      artifacts/
+      evaluation_receipt.json
+```
+
+Raw execution state stays under ignored `runs/`. Only intentionally selected,
+sanitized artifacts are committed under `evidence/`. See the
+[artifact contract](docs/artifact_layout.md) before moving or publishing a run.
+
+### 5. Trace the same path through the source tree
+
+Do not begin with the largest implementation file. Follow one Housing task
+across ownership boundaries:
+
+| Question | Start here | Responsibility |
+|---|---|---|
+| What records can a user author? | [`schemas.py`](src/aeread/shared_runner/schemas.py) | Cross-level family, case, profile, analysis, and run contracts. |
+| How does a specification become a fixed run? | [`run/resolver.py`](src/aeread/shared_runner/run/resolver.py) | Admission, matrix expansion, implementation pins, and `RunPlan` identity. |
+| Where are run paths and campaign gates owned? | [`run/`](src/aeread/shared_runner/run/) | Run layout, append-only gate history, and invalidation rules. |
+| How is one task advanced? | [`task/scheduler.py`](src/aeread/shared_runner/task/scheduler.py) | Private observations, legal actions, transitions, and terminal semantics. |
+| How are calls and evidence recorded? | [`task/execution.py`](src/aeread/shared_runner/task/execution.py) | Attempts, provider calls, retries, budgets, events, and artifact sealing. |
+| What may a harness access? | [`model_call/harness.py`](src/aeread/shared_runner/model_call/harness.py) | Brokered model/tool ports and framework-neutral harness contracts. |
+| How does a result become a claim? | [`task/evaluation.py`](src/aeread/shared_runner/task/evaluation.py) | Family scoring, failure classification, replay, and receipt finalization. |
+| Where does Housing behavior live? | [`aeread_families/housing/`](src/aeread_families/housing/) | Environment, prompts, policies, QC, campaigns, and Housing reports. |
+| How do receipts become tables? | [`analysis/research.py`](src/aeread/shared_runner/analysis/research.py) | Run, task, model-call, trajectory, profile, feature, and result projections. |
+
+The dependency direction is deliberate: a family may import the shared runner;
+the shared runner must not import Housing or any other family. Read the
+[source-layout contract](docs/source_layout.md) before adding a module.
+
+### 6. Understand how a run becomes benchmark evidence
+
+A successful task is not automatically a benchmark result. Campaigns advance
+through ordered gates:
+
+```text
+design contract
+  -> provider-free validation
+  -> profile admission
+  -> full-trajectory qualification
+  -> variance pilot
+  -> confirmatory freeze
+  -> confirmatory execution
+  -> publication
+```
+
+Failures and exclusions remain visible. Operational failures are missingness,
+not zero-quality outcomes. A control change reopens the affected gates; after
+confirmatory freeze it requires a new campaign identity. Read
+[Benchmark QC](docs/benchmark_qc.md), then the
+[Experiment SOP](docs/experiment_campaign_sop.md). Housing-specific checks are
+in [Housing QC](docs/housing_qc.md).
+
+### 7. Choose your next path
+
+| Goal | Continue with |
+|---|---|
+| Evaluate a hosted model | [Evaluate a model](#evaluate-a-model), then the relevant family README. |
+| Understand the available tasks | [Case catalog](cases/README.md) and [capability coverage](CAPABILITIES.md). |
+| Compare harnesses | [Open-harness testing](docs/open_harness_testing.md). |
+| Design or execute a campaign | [Experiment SOP](docs/experiment_campaign_sop.md). |
+| Add a benchmark family or case | [Add a case](#add-a-case), [source layout](docs/source_layout.md), and [CONTRIBUTING](CONTRIBUTING.md). |
+| Submit an external agent | [Submit an agent](#submit-an-agent) and [submission contract](docs/submissions.md). |
+| Connect a training or memory stack | [Integrations](integrations/README.md). |
 
 ## What makes it a benchmark, not just a sandbox
 
@@ -47,30 +221,11 @@ toward a general evaluation of agent economic capabilities.
   response snapshots; `--mode replay` re-executes a run with zero live calls and
   must reproduce the trace byte-identically. Submissions are verified this way.
 
-## Install
-
-```bash
-pip install aeread                 # Python 3.10+
-
-# or from a checkout, for development:
-pip install -e '.[dev]'
-
-aeread --help
-```
-
-## 60-second offline quickstart (no API keys)
-
-```bash
-# run a case fully offline (scripted policies, no LLM calls):
-aeread run --config cases/exchange_v1/v0/case01_visible_bilateral_ir.json \
-    --mode offline --seed 7 --out runs/
-
-# provider-free baselines + validity orderings for a case (~2 min/case, pure CPU):
-aeread baselines --configs 'cases/exchange_v1/v0/case01_visible_bilateral_ir.json' \
-    --output-md /tmp/case01_baselines.md
-```
-
 ## Evaluate a model
+
+The top-level `aeread eval` command is the established Exchange-family
+convenience workflow. Other families expose their executable entry points from
+their package and document campaign-specific controls in their family README.
 
 Models route through any OpenAI-compatible endpoint (`OPENAI_API_KEY` +
 `OPENAI_BASE_URL`, defaults to OpenRouter slash-names) or natively to Gemini
