@@ -188,3 +188,113 @@ weakened, to call `record_score` and assert `seal.event_count == 2` (previously 
 the second event's payload checked against the computed `ScoreEnvelope`.
 
 **Summary: 8 fixed, 0 refuted, 0 deferred to the ledger.**
+
+---
+
+## Verification follow-up (docs/steer_fix_verification.md)
+
+An independent cross-model re-check of the fix pass above (recovered at
+`docs/steer_fix_verification.md`) confirmed findings 1-3 and 7-8 as
+genuinely fixed, and flagged findings 4, 5, and 6 as incomplete despite
+their targeted fix commits. Each is addressed here.
+
+### Finding 4 -- closed
+
+The original fix (`fdca586`) added an independent, from-raw-frame
+ground-truth check for golden 1's gold option, but not for golden 2 --
+golden 2 (`plurality_voting`) still only checked self-agreement with the
+cache. Added
+`tests/test_steer_cases.py::test_golden_2s_gold_option_is_independently_verified_against_the_raw_upstream_frame`,
+the same shape as golden 1's test, against a different declared element
+(and a different `Answers` schema variant -- `correct_answer` int64 rather
+than transitivity's `correct` bool-like column). Mutation-tested: tampered
+the cached `correct_option_id` for `plurality_voting`'s first admitted row
+(`bridges/steer-data/plurality_voting/cases.jsonl`, backed up to `/tmp`
+first, restored after) and confirmed the new test fails
+(`assert [2] == [3]`) before restoring the file.
+
+### Finding 5 -- narrowed, not fully closed in this branch
+
+The opt-in guard (`conftest.py`'s `AEREAD_STEER_FIXTURES_REQUIRED`,
+`a2b4f7f`) is real and is itself regression-tested both ways
+(`tests/test_steer_fixtures_required.py`: silently green by default,
+fails the run when the variable is set). What was missing is anything
+that actually turns it on for a real run: no fix commit wired it into
+`.github/workflows/ci.yml`, and `tools/steer_bridge/README.md` never even
+documented the variable (unlike `tools/tau2_bridge/README.md`'s equivalent
+`AEREAD_TAU2_BRIDGE_REQUIRED`).
+
+Closed the documentation gap: `tools/steer_bridge/README.md` now documents
+`AEREAD_STEER_FIXTURES_REQUIRED` and shows the certifying invocation, and
+`docs/steer_adapter_status.md`'s evidence section gets an explicit
+narrowed note that its reported run did not set the variable.
+
+Left open, explicitly: wiring the variable into generic CI. Unlike the
+agenticpay precedent (`zeyu/agenticpay-adapter`'s `ci(agenticpay): require
+the bridge...`, which checks out a *licensed* upstream repo directly in a
+new CI job), STEER's pinned upstream has **no license file** -- the whole
+point of `bridges/steer-data/` living outside version control and of
+`steer_bridge_driver.py`'s `fetch` op never running automatically is that
+this corpus is never fetched over the network except as an explicit,
+manual, offline step. A CI job that provisions the bridge and builds the
+flattened cache from scratch on every push would mean fetching that
+no-license corpus over the network automatically, which is exactly the
+thing this family's design goes out of its way to avoid. Deciding whether
+that trade-off is acceptable is an architectural/legal call beyond a
+single adapter branch, not a one-line fix -- so this is narrowed rather
+than closed. Any run meant to certify fidelity must set
+`AEREAD_STEER_FIXTURES_REQUIRED=1` itself; this task's own final
+verification run does so (see below) and confirms zero skips.
+
+### Finding 6 -- closed
+
+The importer could already generate and hash a per-question-id exclusion
+ledger (`build_pins`/`write_excluded`, `55bee6e`), but that commit's own
+message admitted the corpus/pins were never regenerated with it, so
+committed `cases/steer/pins.json` still had no
+`excluded_question_ids_sha256_by_element` binding. Regenerated the corpus
+via `python -m aeread_families.steer.cases` (no network: reads only the
+already-cached `.pkl` bytes at `bridges/steer-data/`). Verified before
+committing: every one of the 1,595 case files changes only its embedded
+`payload.pins.excluded_question_ids_sha256_by_element` and its own
+recomputed `content_sha256` -- `question_id`/`options_count`/
+`source_sha256` and `corpus_manifest.json`'s `case_ids` are byte-identical
+to before.
+
+Added
+`tests/test_steer_cases.py::test_committed_pins_json_carries_an_exclusion_ledger_binding_for_every_element`,
+which reads the real committed `pins.json` (never a temp/generated
+stand-in) and independently recomputes `dsic_mechanism`'s ledger hash from
+a fresh bridge flatten. Mutation-tested twice, restoring the file from a
+`/tmp` backup after each: (1) reverted `pins.json` to its
+pre-regeneration state (backed up before running the regenerating
+importer) -- the new test fails with "committed pins.json has no
+excluded_question_ids_sha256_by_element pin"; (2) corrupted
+`dsic_mechanism`'s hash to `"0" * 64` -- the new test fails on the
+recomputation comparison instead.
+
+### Final verification
+
+```bash
+export AEREAD_STEER_DATA_ROOT="/Users/sunzeyu/Documents/econ benchmark/bridges/steer-data"
+export AEREAD_STEER_UPSTREAM_ROOT="/Users/sunzeyu/Documents/econ benchmark/upstream-steer"
+export AEREAD_STEER_BRIDGE_PYTHON="/Users/sunzeyu/Documents/econ benchmark/bridges/steer-venv/bin/python"
+export AEREAD_STEER_FIXTURES_REQUIRED=1
+PYTHONPATH=src pytest \
+  tests/test_steer_cases.py tests/test_steer_environment.py \
+  tests/test_steer_measurement.py tests/test_steer_goldens.py \
+  tests/test_steer_e2e.py tests/test_steer_replay.py \
+  tests/test_steer_fixtures_required.py \
+  tests/test_shared_runner_smoke.py -q
+```
+
+**164 passed, 0 failed, 0 skipped, exit code 0** (up from the prior
+148-passed baseline: +2 from this pass's new regression tests, +2 from
+`tests/test_steer_fixtures_required.py`'s own coverage now included in the
+run, +12 from other family test additions already committed before this
+verification pass). `AEREAD_STEER_FIXTURES_REQUIRED=1` was set for this
+run specifically to prove the finding-5 guard fires cleanly (zero skips)
+when the fixtures are genuinely present, not just when they are absent.
+
+**Summary: 2 closed (4, 6), 1 narrowed with an explicit stated reason (5),
+0 pre-existing tests weakened or deleted.**
