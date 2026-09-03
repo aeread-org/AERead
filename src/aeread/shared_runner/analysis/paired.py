@@ -1,4 +1,4 @@
-"""Shared paired analysis with nested repeats and world-cluster uncertainty."""
+"""Paired run analysis with nested repeats and world-cluster uncertainty."""
 
 from __future__ import annotations
 

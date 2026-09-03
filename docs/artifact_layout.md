@@ -15,7 +15,7 @@ benchmark accepts `--run-root`; a command that publishes a review bundle accepts
 `--publication-root`. Legacy flag aliases may remain temporarily for callers,
 but documentation and new code must use the canonical names.
 
-## Canonical source hierarchy
+## Canonical execution hierarchy
 
 One shared-runner execution is stored as:
 

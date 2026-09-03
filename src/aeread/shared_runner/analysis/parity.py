@@ -1,4 +1,4 @@
-"""Field-level compatibility checks for external and legacy case adapters."""
+"""Field-level analysis for external and legacy case parity."""
 
 from __future__ import annotations
 
@@ -8,8 +8,8 @@ import re
 from dataclasses import dataclass
 from typing import Any, Mapping
 
-from .resolver import canonical_json_bytes
-from .schemas import is_exportable_id
+from ..run.resolver import canonical_json_bytes
+from ..schemas import is_exportable_id
 
 
 _SEMVER_RE = re.compile(

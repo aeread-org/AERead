@@ -7,8 +7,8 @@ from typing import Any, Mapping
 
 import pytest
 
-from aeread.shared_runner.execution import ProviderFailure, ProviderResult
-from aeread.shared_runner.resolver import canonical_json_bytes
+from aeread.shared_runner.task.execution import ProviderFailure, ProviderResult
+from aeread.shared_runner.run.resolver import canonical_json_bytes
 from aeread_families.commercial_state_calibration.campaign import (
     DEFAULT_CONTRACT_PATH,
     design_contract_artifact,

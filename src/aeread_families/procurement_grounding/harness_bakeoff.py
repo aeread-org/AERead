@@ -20,13 +20,13 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable, Mapping, Sequence
 
-from aeread.shared_runner.execution import OpenRouterChatClient, execute_plan_cell
-from aeread.shared_runner.harness import MinimalChatHarness
-from aeread.shared_runner.open_harnesses import (
+from aeread.shared_runner.task.execution import OpenRouterChatClient, execute_plan_cell
+from aeread.shared_runner.model_call.harness import MinimalChatHarness
+from aeread.shared_runner.model_call.open_harnesses import (
     LangChainProviderClient,
     LangChainProviderStrategyHarness,
 )
-from aeread.shared_runner.resolver import canonical_json_bytes
+from aeread.shared_runner.run.resolver import canonical_json_bytes
 
 from .bakeoff import OPEN_WEIGHT_CANDIDATES, preflight_candidate
 from .runner import (

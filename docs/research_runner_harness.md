@@ -206,7 +206,7 @@ The complete directory contract is [artifact_layout.md](artifact_layout.md).
 
 ## Code and tests
 
-- Implementation: `src/aeread/shared_runner/research.py`
+- Implementation: `src/aeread/shared_runner/analysis/research.py`
 - Contract tests: `tests/test_shared_runner_research.py`
 
 The implementation was developed red/green: the new tests first failed at import, then passed

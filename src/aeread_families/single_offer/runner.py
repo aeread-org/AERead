@@ -1,4 +1,4 @@
-"""One-cell shared-runner smoke fixture for provider-free and live R1-R4 checks."""
+"""Single-offer smoke family for provider-free and live runner checks."""
 from __future__ import annotations
 
 import argparse
@@ -9,7 +9,10 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Mapping
 
-from .execution import (
+from aeread.shared_runner.model_call import harness as harness_module
+from aeread.shared_runner.task import execution as execution_module
+
+from aeread.shared_runner.task.execution import (
     CanonicalResponse,
     ClaudeCodePrintClient,
     OpenAIResponsesClient,
@@ -19,22 +22,26 @@ from .execution import (
     TokenPricing,
     execute_plan_cell,
 )
-from .harness import default_harnesses
-from .registry import HarnessRegistry, PluginRegistry, ProviderCapabilities
-from .resolver import (
+from aeread.shared_runner.model_call.harness import default_harnesses
+from aeread.shared_runner.registry import (
+    HarnessRegistry,
+    PluginRegistry,
+    ProviderCapabilities,
+)
+from aeread.shared_runner.run.resolver import (
     ImplementationPin,
     RunPlan,
     canonical_json_bytes,
     case_content_sha256,
     resolve_run_plan,
 )
-from .scheduler import (
+from aeread.shared_runner.task.scheduler import (
     LegalityResult,
     ParseResult,
     PhaseSpec,
     TransitionResult,
 )
-from .schemas import (
+from aeread.shared_runner.schemas import (
     AgentProfile,
     AnalysisPlan,
     CaseManifest,
@@ -396,7 +403,7 @@ def build_single_offer_smoke(
             },
             "runtime": {
                 "kind": "python",
-                "implementation": "aeread.shared_runner.execution",
+                "implementation": "aeread.shared_runner.task.execution",
                 "version": "0.1.0",
             },
             "tools": [],
@@ -451,7 +458,10 @@ def build_single_offer_smoke(
         harness_registry.register(harness)
     smoke_source_sha256 = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
     execution_source_sha256 = hashlib.sha256(
-        Path(__file__).with_name("execution.py").read_bytes()
+        Path(execution_module.__file__).read_bytes()
+    ).hexdigest()
+    harness_source_sha256 = hashlib.sha256(
+        Path(harness_module.__file__).read_bytes()
     ).hexdigest()
     pins = (
         _pin(
@@ -472,11 +482,11 @@ def build_single_offer_smoke(
         _pin(
             "minimal_chat",
             "harness",
-            source_sha256=execution_source_sha256,
+            source_sha256=harness_source_sha256,
             version="1.0",
         ),
         _pin(
-            "aeread.shared_runner.execution",
+            "aeread.shared_runner.task.execution",
             "runtime",
             source_sha256=execution_source_sha256,
             version="0.1.0",

@@ -1,4 +1,4 @@
-"""Shared family execution finalization, state replay, and portable receipts.
+"""Task finalization, family-state replay, and portable receipts.
 
 Extracted from the validated Housing receipt path so native families share the
 same evidence and inclusion boundary. Economic scoring stays in each plugin.
@@ -11,16 +11,16 @@ from pathlib import Path
 from typing import Any, Callable, Mapping, Protocol
 
 from .execution import CellExecution, EvidenceStore, TokenPricing
-from .layout import RunLayout
-from .measurement import (
+from ..run.layout import RunLayout
+from ..measurement import (
     FamilyScoreSet,
     ImplementationRef as MeasurementImplementationRef,
     MeasurementLeafSpec,
     ScoreEnvelope,
     normalize_family_score_set,
 )
-from .registry import PluginRegistry
-from .resolver import RunPlan, canonical_json_bytes, verify_run_plan
+from ..registry import PluginRegistry
+from ..run.resolver import RunPlan, canonical_json_bytes, verify_run_plan
 from .receipts import (
     EvaluationFailure,
     EvaluationReceipt,

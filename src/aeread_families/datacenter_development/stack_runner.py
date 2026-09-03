@@ -11,8 +11,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Mapping
 
-import aeread.shared_runner.execution as execution_module
-from aeread.shared_runner.execution import (
+import aeread.shared_runner.task.execution as execution_module
+from aeread.shared_runner.task.execution import (
     CellExecution,
     OpenRouterChatClient,
     ProviderFailure,
@@ -21,20 +21,20 @@ from aeread.shared_runner.execution import (
     TokenPricing,
     execute_plan_cell,
 )
-from aeread.shared_runner.family_evaluation import (
+from aeread.shared_runner.task.evaluation import (
     finalize_family_execution,
     finalize_family_failure,
     replay_family_receipt,
 )
-from aeread.shared_runner.harness import default_harnesses
-from aeread.shared_runner.harness import MinimalChatHarness
-from aeread.shared_runner.receipts import EvaluationReceipt
+from aeread.shared_runner.model_call.harness import default_harnesses
+from aeread.shared_runner.model_call.harness import MinimalChatHarness
+from aeread.shared_runner.task.receipts import EvaluationReceipt
 from aeread.shared_runner.registry import (
     HarnessRegistry,
     PluginRegistry,
     ProviderCapabilities,
 )
-from aeread.shared_runner.resolver import (
+from aeread.shared_runner.run.resolver import (
     ImplementationPin,
     RunPlan,
     canonical_json_bytes,
@@ -530,9 +530,9 @@ def build_stack_openrouter_setup(
     template = build_stack_setup(scope_version, case_path=case_path)
     resolved_harness = harness or MinimalChatHarness()
     resolved_runtime = runtime_implementation or (
-        "aeread.shared_runner.execution"
+        "aeread.shared_runner.task.execution"
         if resolved_harness.id == "minimal_chat"
-        else "aeread.shared_runner.open_harnesses"
+        else "aeread.shared_runner.model_call.open_harnesses"
     )
     resolved_profile_id = route.profile_id
     if resolved_harness.id != "minimal_chat":
@@ -679,7 +679,7 @@ def build_stack_openrouter_setup(
         existing_pin_ids.add(resolved_harness.id)
     runtime_source_path = (
         Path(execution_module.__file__)
-        if resolved_runtime == "aeread.shared_runner.execution"
+        if resolved_runtime == "aeread.shared_runner.task.execution"
         else harness_source_path
     )
     if resolved_runtime not in existing_pin_ids:
@@ -782,9 +782,9 @@ def build_stack_model_to_model_setup(
     resolved_counterpart_route = counterpart_route or route
     resolved_harness = harness or MinimalChatHarness()
     resolved_runtime = runtime_implementation or (
-        "aeread.shared_runner.execution"
+        "aeread.shared_runner.task.execution"
         if resolved_harness.id == "minimal_chat"
-        else "aeread.shared_runner.open_harnesses"
+        else "aeread.shared_runner.model_call.open_harnesses"
     )
     sequence = tuple(SCOPE_CONFIG[scope_version]["sequence"])
     counterpart_seats = tuple(

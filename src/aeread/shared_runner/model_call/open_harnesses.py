@@ -1,4 +1,4 @@
-"""Schema-driven adapters for open-source agent harnesses.
+"""Schema-driven model-call adapters for open-source agent harnesses.
 
 Frameworks such as LangChain own their provider serialization, so these
 adapters run behind AERead's sealed model port.  They return the framework's
@@ -17,15 +17,15 @@ import os
 import time
 from typing import Any, Mapping, Sequence, TypedDict
 
-from .execution import (
+from ..task.execution import (
     OpenRouterChatClient,
     ProviderFailure,
     ProviderRequest,
     ProviderResult,
 )
 from .harness import CanonicalMessage, FailureCondition, HarnessOutput
-from .registry import HarnessRequirements
-from .resolver import canonical_json_bytes
+from ..registry import HarnessRequirements
+from ..run.resolver import canonical_json_bytes
 
 
 class FrameworkOneCallHarness:

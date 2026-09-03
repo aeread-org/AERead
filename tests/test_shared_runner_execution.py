@@ -9,7 +9,7 @@ from types import MappingProxyType
 
 import pytest
 
-from aeread.shared_runner.execution import (
+from aeread.shared_runner.task.execution import (
     CanonicalResponse,
     ClaudeCodePrintClient,
     ConcurrentEvidenceWriterError,
@@ -26,9 +26,9 @@ from aeread.shared_runner.execution import (
     ToolExecutor,
     ToolFailure,
 )
-from aeread.shared_runner.harness import CanonicalMessage, NativeToolCall, ToolSchema
-from aeread.shared_runner.resolver import PlanCell, case_content_sha256
-from aeread.shared_runner.scheduler import (
+from aeread.shared_runner.model_call.harness import CanonicalMessage, NativeToolCall, ToolSchema
+from aeread.shared_runner.run.resolver import PlanCell, case_content_sha256
+from aeread.shared_runner.task.scheduler import (
     DecisionRequest,
     LegalityResult,
     ParseResult,
@@ -83,7 +83,7 @@ def _profile(
             },
             "runtime": {
                 "kind": "python",
-                "implementation": "aeread.shared_runner.execution",
+                "implementation": "aeread.shared_runner.task.execution",
                 "version": "0.1.0",
             },
             "tools": [],
@@ -1507,7 +1507,7 @@ def test_a_declared_reasoning_budget_reaches_the_wire() -> None:
     another -- the shape of a treatment that silently fails to be delivered.
     """
 
-    from aeread.shared_runner.execution import _reasoning_block
+    from aeread.shared_runner.task.execution import _reasoning_block
 
     declared = ProviderRequest(
         provider_call_id="provider_call_fixture",
@@ -1539,7 +1539,7 @@ def test_native_request_fields_bind_the_request_hash() -> None:
     text-only requests must still hash exactly as before.
     """
 
-    from aeread.shared_runner.harness import CanonicalMessage
+    from aeread.shared_runner.model_call.harness import CanonicalMessage
 
     def _request(**overrides):
         base = dict(
@@ -1589,7 +1589,7 @@ def test_protocol_records_serialize_their_full_current_shape() -> None:
     measured baseline and any accidental drift fails here first.
     """
 
-    from aeread.shared_runner.resolver import canonical_json_bytes
+    from aeread.shared_runner.run.resolver import canonical_json_bytes
 
     result = ProviderResult(
         response_id="response_fixture",

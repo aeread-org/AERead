@@ -16,7 +16,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Mapping
 
-from aeread.shared_runner.execution import CanonicalResponse
+from aeread.shared_runner.task.execution import CanonicalResponse
 from aeread.shared_runner.measurement import (
     EstimandSpec,
     ImplementationRef as MeasurementImplementationRef,
@@ -29,9 +29,9 @@ from aeread.shared_runner.measurement import (
     VerifierSpec,
 )
 from aeread.shared_runner.registry import PluginRegistry
-from aeread.shared_runner.resolver import canonical_json_bytes
+from aeread.shared_runner.run.resolver import canonical_json_bytes
 from aeread.shared_runner.schemas import FamilyManifest
-from aeread.shared_runner.scheduler import (
+from aeread.shared_runner.task.scheduler import (
     LegalityResult,
     ParseResult,
     PhaseSpec,

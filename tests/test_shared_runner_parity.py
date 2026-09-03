@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from aeread.shared_runner.parity import (
+from aeread.shared_runner.analysis.parity import (
     ExternalParityCriterion,
     ParityContractError,
     ParityField,

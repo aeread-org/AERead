@@ -67,7 +67,7 @@ the right semantic parent for this family.
 ### R0 infrastructure prerequisite: multi-leaf family finalization
 
 `EvaluationReceipt` already accepts a tuple of `ScoreEnvelope` values, but the
-generic path in `shared_runner/family_evaluation.py` currently calls one scorer,
+generic path in `shared_runner/task/evaluation.py` currently calls one scorer,
 records one `score_recorded` event, and seals `scores=(score,)`. This family
 must not hide contract integrity, temporal validity, and economics inside that
 single envelope.

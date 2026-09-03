@@ -8,20 +8,20 @@ from pathlib import Path
 
 import pytest
 
-from aeread.shared_runner.housing_backend_campaign import (
+from aeread_families.housing.backend_campaign import (
     _admission_specs,
     catalog_preflight,
     load_contract,
     route_table,
     run_profile_admission,
 )
-from aeread.shared_runner.execution import ProviderResult
-from aeread.shared_runner.housing_model_sensitivity import (
+from aeread.shared_runner.task.execution import ProviderResult
+from aeread_families.housing.model_sensitivity import (
     build_setups,
     design_artifact,
     provider_free_artifact,
 )
-from aeread.shared_runner.resolver import canonical_json_bytes
+from aeread.shared_runner.run.resolver import canonical_json_bytes
 
 
 CONTRACT_PATH = (
@@ -259,7 +259,7 @@ def test_catalog_preflight_requires_exact_active_seed_capable_routes(
         return _CatalogResponse(json.dumps({"data": {"endpoints": [endpoint]}}))
 
     monkeypatch.setattr(
-        "aeread.shared_runner.housing_backend_campaign.urllib.request.urlopen",
+        "aeread_families.housing.backend_campaign.urllib.request.urlopen",
         fake_open,
     )
 
@@ -307,7 +307,7 @@ def test_catalog_preflight_rejects_an_endpoint_below_the_frozen_output_limit(
         return _CatalogResponse(json.dumps({"data": {"endpoints": [endpoint]}}))
 
     monkeypatch.setattr(
-        "aeread.shared_runner.housing_backend_campaign.urllib.request.urlopen",
+        "aeread_families.housing.backend_campaign.urllib.request.urlopen",
         fake_open,
     )
 
@@ -353,7 +353,7 @@ def test_catalog_preflight_requires_strict_structured_outputs(
         return _CatalogResponse(json.dumps({"data": {"endpoints": [endpoint]}}))
 
     monkeypatch.setattr(
-        "aeread.shared_runner.housing_backend_campaign.urllib.request.urlopen",
+        "aeread_families.housing.backend_campaign.urllib.request.urlopen",
         fake_open,
     )
 
@@ -404,7 +404,7 @@ def test_semantically_invalid_admission_retains_raw_response_and_billing(
             )
 
     monkeypatch.setattr(
-        "aeread.shared_runner.housing_backend_campaign.OpenRouterChatClient",
+        "aeread_families.housing.backend_campaign.OpenRouterChatClient",
         InvalidActionClient,
     )
 

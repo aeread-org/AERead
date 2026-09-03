@@ -5,14 +5,14 @@ from pathlib import Path
 
 import pytest
 
-from aeread.shared_runner.harness import MinimalChatHarness, NativeToolChatHarness
+from aeread.shared_runner.model_call.harness import MinimalChatHarness, NativeToolChatHarness
 from aeread.shared_runner.registry import (
     HarnessRegistry,
     HarnessRequirements,
     PluginRegistry,
     ProviderCapabilities,
 )
-from aeread.shared_runner.resolver import (
+from aeread.shared_runner.run.resolver import (
     CapabilityExclusionError,
     ImplementationPin,
     PlanResolutionError,

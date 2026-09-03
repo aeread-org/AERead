@@ -1,6 +1,6 @@
 """AERead shared-runner contracts and implementation stages."""
 
-from .campaign import (
+from .run.campaign import (
     CAMPAIGN_GATE_SEQUENCE,
     CampaignGateError,
     CampaignGateRecord,
@@ -18,7 +18,7 @@ from .campaign import (
     campaign_promotion_decision,
 )
 
-from .execution import (
+from .task.execution import (
     ActionAttemptRecord,
     ArtifactRef,
     CanonicalResponse,
@@ -44,7 +44,7 @@ from .execution import (
     ToolInvocationRecord,
     execute_plan_cell,
 )
-from .harness import (
+from .model_call.harness import (
     AttemptContext,
     BudgetView,
     CanonicalMessage,
@@ -63,7 +63,7 @@ from .harness import (
     ToolPort,
     ToolSchema,
 )
-from .layout import (
+from .run.layout import (
     ATTEMPTS_DIRECTORY,
     PUBLICATION_ROOT,
     RUNS_ROOT,
@@ -81,7 +81,7 @@ from .registry import (
     PluginRegistry,
     family_contribution_sha256,
 )
-from .parity import (
+from .analysis.parity import (
     ExternalParityCriterion,
     ParityContractError,
     ParityField,
@@ -117,7 +117,7 @@ from .measurement import (
     VerifierSpec,
     normalize_family_score_set,
 )
-from .receipts import (
+from .task.receipts import (
     EvaluationFailure,
     EvaluationReceipt,
     read_evaluation_receipt,
@@ -126,7 +126,7 @@ from .receipts import (
     verify_serialized_evaluation_receipt,
     write_evaluation_receipt,
 )
-from .research import (
+from .analysis.research import (
     AttemptResearchRow,
     BenchmarkResultFactRecord,
     CampaignResearchRow,
@@ -156,7 +156,7 @@ from .research import (
     project_loss_analysis_tables,
     research_tables,
 )
-from .resolver import (
+from .run.resolver import (
     CapabilityExclusionError,
     ImplementationPin,
     PlanCell,
@@ -170,7 +170,7 @@ from .resolver import (
     verify_run_plan,
     write_run_plan,
 )
-from .scheduler import (
+from .task.scheduler import (
     ActionEnvelope,
     DecisionRequest,
     EpisodeResult,
@@ -197,7 +197,7 @@ from .schemas import (
     is_exportable_id,
     parse_authoring_record,
 )
-from .tools import ToolBinding, ToolContractError, ToolDefinition, ToolRuntime
+from .task.tools import ToolBinding, ToolContractError, ToolDefinition, ToolRuntime
 
 __all__ = [
     "CAMPAIGN_GATE_SEQUENCE",

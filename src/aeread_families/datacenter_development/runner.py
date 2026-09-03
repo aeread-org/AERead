@@ -10,8 +10,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Mapping
 
-import aeread.shared_runner.execution as execution_module
-from aeread.shared_runner.execution import (
+import aeread.shared_runner.task.execution as execution_module
+from aeread.shared_runner.task.execution import (
     CellExecution,
     ProviderFailure,
     ProviderRequest,
@@ -19,19 +19,19 @@ from aeread.shared_runner.execution import (
     TokenPricing,
     execute_plan_cell,
 )
-from aeread.shared_runner.family_evaluation import (
+from aeread.shared_runner.task.evaluation import (
     finalize_family_execution,
     finalize_family_failure,
     replay_family_receipt,
 )
-from aeread.shared_runner.harness import default_harnesses
-from aeread.shared_runner.receipts import EvaluationReceipt
+from aeread.shared_runner.model_call.harness import default_harnesses
+from aeread.shared_runner.task.receipts import EvaluationReceipt
 from aeread.shared_runner.registry import (
     HarnessRegistry,
     PluginRegistry,
     ProviderCapabilities,
 )
-from aeread.shared_runner.resolver import (
+from aeread.shared_runner.run.resolver import (
     ImplementationPin,
     RunPlan,
     canonical_json_bytes,

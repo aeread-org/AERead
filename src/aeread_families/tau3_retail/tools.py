@@ -42,7 +42,7 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
-from aeread.shared_runner.tools import ToolBinding, ToolDefinition
+from aeread.shared_runner.task.tools import ToolBinding, ToolDefinition
 
 from .tau2_bridge import Tau2Bridge
 

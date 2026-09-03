@@ -3,9 +3,9 @@ from __future__ import annotations
 import asyncio
 from pathlib import Path
 
-from aeread.shared_runner.execution import execute_plan_cell
-from aeread.shared_runner.open_harnesses import LangChainProviderStrategyHarness
-from aeread.shared_runner.smoke import FixedResponseProvider
+from aeread.shared_runner.task.execution import execute_plan_cell
+from aeread.shared_runner.model_call.open_harnesses import LangChainProviderStrategyHarness
+from aeread_families.single_offer.runner import FixedResponseProvider
 from aeread_families.procurement_grounding.bakeoff import OPEN_WEIGHT_CANDIDATES
 from aeread_families.procurement_grounding.runner import (
     build_offline_setup,
@@ -31,10 +31,10 @@ def test_langchain_harness_identity_and_runtime_are_sealed() -> None:
     pins = {pin.component_id: pin for pin in setup.plan.implementation_pins}
 
     assert profile.harness.id == "langchain_provider_strategy"
-    assert profile.runtime.implementation == "aeread.shared_runner.open_harnesses"
+    assert profile.runtime.implementation == "aeread.shared_runner.model_call.open_harnesses"
     assert "langchain_provider_strategy/1.0" in setup.harnesses
     assert pins["langchain_provider_strategy"].kind == "harness"
-    assert pins["aeread.shared_runner.open_harnesses"].kind == "runtime"
+    assert pins["aeread.shared_runner.model_call.open_harnesses"].kind == "runtime"
     assert "minimal_chat" not in pins
 
 

@@ -7,13 +7,13 @@ from pathlib import Path
 
 import pytest
 
-from aeread.shared_runner.housing_case_sweep import (
+from aeread_families.housing.case_sweep import (
     build_sweep,
     load_contract,
     write_sweep,
 )
-from aeread.shared_runner.housing_qc import audit_bid_world
-from aeread.shared_runner.resolver import canonical_json_bytes
+from aeread_families.housing.qc import audit_bid_world
+from aeread.shared_runner.run.resolver import canonical_json_bytes
 
 
 CONTRACT_PATH = (

@@ -7,13 +7,13 @@ from pathlib import Path
 
 import pytest
 
-from aeread.shared_runner.housing_harness_leaderboard import (
+from aeread_families.housing.harness_leaderboard import (
     build_leaderboard,
     leaderboard_csv,
     leaderboard_markdown,
     write_leaderboard,
 )
-from aeread.shared_runner.resolver import canonical_json_bytes
+from aeread.shared_runner.run.resolver import canonical_json_bytes
 
 
 EVIDENCE = Path(__file__).parents[1] / "evidence"
@@ -101,7 +101,7 @@ def test_renderers_preserve_unranked_operational_failure() -> None:
 
 
 def test_langgraph_condition_has_a_stable_display_name() -> None:
-    from aeread.shared_runner.housing_harness_leaderboard import DISPLAY_NAMES
+    from aeread_families.housing.harness_leaderboard import DISPLAY_NAMES
 
     assert (
         DISPLAY_NAMES["langgraph_structured_output_v1"]

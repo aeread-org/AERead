@@ -2,7 +2,7 @@
 
 R3 consumes one sealed `PlanCell` and its `CaseManifest`, then executes a family plugin's
 declarative phase graph without importing a provider or a concrete family. The implementation
-is `src/aeread/shared_runner/scheduler.py`; the conformance fixtures are in
+is `src/aeread/shared_runner/task/scheduler.py`; the conformance fixtures are in
 `tests/test_shared_runner_scheduler.py`.
 
 ```text

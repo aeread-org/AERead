@@ -13,7 +13,7 @@ import dataclasses
 from dataclasses import dataclass
 from typing import Any, Mapping, Sequence
 
-from aeread.shared_runner.resolver import canonical_json_bytes
+from aeread.shared_runner.run.resolver import canonical_json_bytes
 from aeread.shared_runner.schemas import is_exportable_id
 
 

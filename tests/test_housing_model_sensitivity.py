@@ -7,8 +7,8 @@ from pathlib import Path
 
 import pytest
 
-from aeread.shared_runner.housing import build_housing_smoke
-from aeread.shared_runner.housing_model_sensitivity import (
+from aeread_families.housing.runner import build_housing_smoke
+from aeread_families.housing.model_sensitivity import (
     _critical_failure,
     build_setups,
     design_artifact,
@@ -16,9 +16,9 @@ from aeread.shared_runner.housing_model_sensitivity import (
     load_contract,
     provider_free_artifact,
 )
-from aeread.shared_runner.resolver import canonical_json_bytes
-from aeread.shared_runner.execution import ProviderFailure
-from aeread.shared_runner.scheduler import SchedulerContractError
+from aeread.shared_runner.run.resolver import canonical_json_bytes
+from aeread.shared_runner.task.execution import ProviderFailure
+from aeread.shared_runner.task.scheduler import SchedulerContractError
 
 
 CONTRACT_PATH = (

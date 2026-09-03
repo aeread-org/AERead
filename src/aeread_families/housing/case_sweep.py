@@ -1,4 +1,4 @@
-"""Provider-free Housing V1 case-configuration qualification sweep."""
+"""Provider-free Housing case-configuration qualification sweep."""
 
 from __future__ import annotations
 
@@ -13,12 +13,13 @@ import statistics
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
-from aeread.housing_v1 import environment as housing_environment
+from aeread_families.housing import environment as housing_environment
 
-from . import housing_qc
-from .housing_qc import audit_bid_world
-from .quality import BenchmarkQCStatus, QCTrackStatus
-from .resolver import canonical_json_bytes
+from aeread.shared_runner.quality import BenchmarkQCStatus, QCTrackStatus
+from aeread.shared_runner.run.resolver import canonical_json_bytes
+
+from . import qc as housing_qc
+from .qc import audit_bid_world
 
 
 CONTRACT_SCHEMA_VERSION = "aeread.housing_case_config_sweep/0.1"
@@ -151,9 +152,9 @@ def implementation_pins() -> dict[str, dict[str, str]]:
     return {
         component_id: {
             "module": {
-                "housing_environment": "aeread.housing_v1.environment",
-                "housing_qc": "aeread.shared_runner.housing_qc",
-                "housing_case_sweep": "aeread.shared_runner.housing_case_sweep",
+                "housing_environment": "aeread_families.housing.environment",
+                "housing_qc": "aeread_families.housing.qc",
+                "housing_case_sweep": "aeread_families.housing.case_sweep",
             }[component_id],
             "source_sha256": _source_sha256(path),
         }

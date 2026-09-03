@@ -17,7 +17,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable, Mapping
 
-from aeread.shared_runner.execution import (
+from aeread.shared_runner.task.execution import (
     OpenRouterChatClient,
     ProviderFailure,
     ProviderRequest,
@@ -25,7 +25,7 @@ from aeread.shared_runner.execution import (
     TokenPricing,
     execute_plan_cell,
 )
-from aeread.shared_runner.resolver import canonical_json_bytes
+from aeread.shared_runner.run.resolver import canonical_json_bytes
 
 from .runner import OpenRouterRoute, build_openrouter_setup
 

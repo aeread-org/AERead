@@ -1,4 +1,4 @@
-"""Provider-free Housing V1 qualification primitives.
+"""Provider-free Housing qualification primitives.
 
 These functions exercise policies through the same multi-round market used by
 live agents.  They intentionally avoid provider and harness concerns so case
@@ -13,9 +13,9 @@ import math
 import random
 from typing import Any, Sequence
 
-from aeread.housing_v1 import environment as hz
+from aeread_families.housing import environment as hz
 
-from .resolver import canonical_json_bytes
+from aeread.shared_runner.run.resolver import canonical_json_bytes
 
 
 def content_sha256(value: Any) -> str:

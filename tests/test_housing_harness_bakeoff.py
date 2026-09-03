@@ -8,8 +8,8 @@ import types
 
 import pytest
 
-from aeread.shared_runner.housing import build_housing_smoke
-from aeread.shared_runner.housing_harness_bakeoff import (
+from aeread_families.housing.runner import build_housing_smoke
+from aeread_families.housing.harness_bakeoff import (
     GLM_DEEPINFRA_ROUTE,
     GLM_MODEL,
     GLM_REVISION,
@@ -28,8 +28,8 @@ from aeread.shared_runner.housing_harness_bakeoff import (
     _summed_usage,
     derive_world_seeds,
 )
-from aeread.shared_runner.open_harnesses import _run_langgraph_structured_decision
-from aeread.shared_runner.execution import ProviderRequest, ProviderResult
+from aeread.shared_runner.model_call.open_harnesses import _run_langgraph_structured_decision
+from aeread.shared_runner.task.execution import ProviderRequest, ProviderResult
 
 
 def test_harness_panel_seeds_are_deterministic_and_unique() -> None:
@@ -67,7 +67,7 @@ def test_external_harness_identity_is_sealed_in_housing_plan(
         openrouter_route=GLM_DEEPINFRA_ROUTE,
         tenant_harness=harness,
         tenant_profile_id_override=f"housing_test_{harness.id}",
-        tenant_runtime="aeread.shared_runner.housing_harness_bakeoff",
+        tenant_runtime="aeread_families.housing.harness_bakeoff",
         tenant_implementation_sha256="1" * 64,
     )
 

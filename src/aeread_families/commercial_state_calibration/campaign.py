@@ -24,7 +24,7 @@ from itertools import combinations
 from pathlib import Path
 from typing import Any
 
-from aeread.shared_runner.campaign import (
+from aeread.shared_runner.run.campaign import (
     CAMPAIGN_GATE_SEQUENCE,
     CampaignGateRecord,
     CampaignHistoryRecord,
@@ -37,17 +37,17 @@ from aeread.shared_runner.campaign import (
     campaign_history_record_to_dict,
     campaign_promotion_decision,
 )
-from aeread.shared_runner.execution import (
+from aeread.shared_runner.task.execution import (
     EvidenceStore,
     OpenRouterChatClient,
     TokenPricing,
     execute_plan_cell,
 )
-from aeread.shared_runner.layout import RunLayout
-from aeread.shared_runner.family_evaluation import audit_family_receipt
+from aeread.shared_runner.run.layout import RunLayout
+from aeread.shared_runner.task.evaluation import audit_family_receipt
 from aeread.shared_runner.quality import QCCoverage, QCEvidenceRef
-from aeread.shared_runner.receipts import verify_evaluation_receipt
-from aeread.shared_runner.resolver import canonical_json_bytes
+from aeread.shared_runner.task.receipts import verify_evaluation_receipt
+from aeread.shared_runner.run.resolver import canonical_json_bytes
 
 from .cases import load_authoring_records, load_cases
 from .environment import FAMILY_ID, FAMILY_VERSION

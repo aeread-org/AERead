@@ -12,6 +12,8 @@ from aeread import cli
 
 ROOT = Path(__file__).resolve().parents[1]
 PACKAGE_ROOT = ROOT / "src" / "aeread"
+FAMILIES_ROOT = ROOT / "src" / "aeread_families"
+SHARED_RUNNER_ROOT = PACKAGE_ROOT / "shared_runner"
 EVIDENCE_ROOT = ROOT / "evidence"
 
 
@@ -21,7 +23,6 @@ def test_root_package_contains_only_cross_family_entry_modules() -> None:
     assert root_modules == {"__init__.py", "cli.py"}
     assert {
         "exchange_v1",
-        "housing_v1",
         "inference",
         "integrations",
         "shared_runner",
@@ -32,10 +33,48 @@ def test_root_package_contains_only_cross_family_entry_modules() -> None:
     )
 
 
+def test_shared_runner_uses_the_run_task_model_call_hierarchy() -> None:
+    assert {path.name for path in SHARED_RUNNER_ROOT.glob("*.py")} == {
+        "__init__.py",
+        "measurement.py",
+        "quality.py",
+        "registry.py",
+        "schemas.py",
+    }
+    assert {
+        path.name
+        for path in SHARED_RUNNER_ROOT.iterdir()
+        if path.is_dir() and not path.name.startswith("__pycache__")
+    } == {"analysis", "model_call", "run", "task"}
+
+    shared_source = "\n".join(
+        path.read_text(encoding="utf-8")
+        for path in SHARED_RUNNER_ROOT.rglob("*.py")
+    )
+    assert "aeread_families" not in shared_source
+    assert not list(SHARED_RUNNER_ROOT.rglob("housing*.py"))
+
+
+def test_housing_family_owns_its_complete_execution_surface() -> None:
+    housing_root = FAMILIES_ROOT / "housing"
+    assert {path.name for path in housing_root.glob("*.py")} == {
+        "__init__.py",
+        "backend_campaign.py",
+        "case_sweep.py",
+        "environment.py",
+        "harness_bakeoff.py",
+        "harness_leaderboard.py",
+        "model_sensitivity.py",
+        "population_campaign.py",
+        "qc.py",
+        "runner.py",
+    }
+
+
 def test_cli_verb_modules_use_the_organized_package_paths() -> None:
     for verb, (module_name, _description) in cli.VERBS.items():
         if verb == "export-tables":
-            assert module_name == "aeread.shared_runner.research"
+            assert module_name == "aeread.shared_runner.analysis.research"
         else:
             assert module_name.startswith("aeread.exchange_v1.")
         import_module(module_name)
@@ -45,7 +84,7 @@ def test_legacy_package_attributes_resolve_to_canonical_modules() -> None:
     aliases = {
         "exchange_economy": "aeread.exchange_v1.economy",
         "exchange_v1_runner": "aeread.exchange_v1.runner",
-        "housing_env": "aeread.housing_v1.environment",
+        "housing_env": "aeread_families.housing.environment",
         "llm_agent": "aeread.inference.llm_agent",
         "gemini_llm": "aeread.inference.gemini",
     }

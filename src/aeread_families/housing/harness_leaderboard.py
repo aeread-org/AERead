@@ -1,4 +1,4 @@
-"""Build ranked Housing harness leaderboards from sealed bake-off evidence."""
+"""Build Housing harness leaderboards from sealed bake-off evidence."""
 
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ import os
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
-from .resolver import canonical_json_bytes
+from aeread.shared_runner.run.resolver import canonical_json_bytes
 
 
 DISPLAY_NAMES = {

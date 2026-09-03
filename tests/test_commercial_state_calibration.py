@@ -6,8 +6,8 @@ from pathlib import Path
 
 import pytest
 
-from aeread.shared_runner.execution import TokenPricing
-from aeread.shared_runner.resolver import canonical_json_bytes, case_content_sha256
+from aeread.shared_runner.task.execution import TokenPricing
+from aeread.shared_runner.run.resolver import canonical_json_bytes, case_content_sha256
 from aeread_families.commercial_state_calibration import (
     CommercialStateScorer,
     CommercialStatePlugin,

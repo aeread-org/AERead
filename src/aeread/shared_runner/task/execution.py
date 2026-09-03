@@ -1,4 +1,4 @@
-"""Agent execution and append-only evidence for the AERead shared runner.
+"""Task-attempt execution and append-only evidence for the AERead runner.
 
 This layer turns an R3 ``DecisionRequest`` into a ``CanonicalResponse`` while
 making logical actions, declared attempts, provider calls, tools, failures,
@@ -25,8 +25,8 @@ from pathlib import Path
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Any, Awaitable, Callable, Mapping, Protocol, Sequence
 
-from .registry import PluginRegistry, PluginRegistryError
-from .resolver import RunPlan, canonical_json_bytes, verify_run_plan, write_run_plan
+from ..registry import PluginRegistry, PluginRegistryError
+from ..run.resolver import RunPlan, canonical_json_bytes, verify_run_plan, write_run_plan
 from .scheduler import (
     DecisionRequest,
     EpisodeResult,
@@ -36,14 +36,14 @@ from .scheduler import (
     episode_id_for_cell,
     run_episode,
 )
-from .schemas import AgentProfile
+from ..schemas import AgentProfile
 
 if TYPE_CHECKING:
     # `harness.py` imports `ProviderRequest`/`ProviderResult` from this module,
     # so the reverse reference is type-checking only; call sites that need the
     # classes at runtime (harness registration, native tool-call construction)
     # import them lazily.
-    from .harness import CanonicalMessage, Harness, NativeToolCall, ToolSchema
+    from ..model_call.harness import CanonicalMessage, Harness, NativeToolCall, ToolSchema
 
 
 class EvidenceIntegrityError(RuntimeError):
@@ -1286,7 +1286,7 @@ class OpenRouterChatClient:
                 "OpenRouter tool_calls must be a non-empty array",
                 retryable=False,
             )
-        from .harness import NativeToolCall
+        from ..model_call.harness import NativeToolCall
 
         calls: list[NativeToolCall] = []
         for entry in raw_tool_calls:
@@ -3148,7 +3148,7 @@ async def execute_plan_cell(
     harnesses: Mapping[str, "Harness"] | None = None,
 ) -> CellExecution:
     """Execute one sealed R2 cell through the R3 scheduler and R4 adapter."""
-    from .layout import RunLayout
+    from ..run.layout import RunLayout
 
     verify_run_plan(plan)
     layout = RunLayout(Path(evidence_root), plan.run_plan_id)
@@ -3240,7 +3240,7 @@ async def execute_plan_cell(
         episode_id=episode_id,
         episode_attempt_id=episode_attempt_id,
     )
-    from .harness import AttemptExecutor, default_harnesses
+    from ..model_call.harness import AttemptExecutor, default_harnesses
 
     executor = AttemptExecutor(
         evidence=evidence,

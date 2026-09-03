@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from aeread.shared_runner.layout import LayoutError, PublicationLayout, RunLayout
+from aeread.shared_runner.run.layout import LayoutError, PublicationLayout, RunLayout
 
 
 def test_run_layout_names_the_run_task_and_attempt_levels(tmp_path: Path) -> None:

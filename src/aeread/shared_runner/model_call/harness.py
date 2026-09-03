@@ -1,4 +1,4 @@
-"""Agent-harness ports: the only doors a harness has onto the world.
+"""Model-call harness ports: the only doors a harness has onto the world.
 
 A harness never touches a provider client, a `ToolRuntime`, or the evidence
 store directly.  It reaches the world through two brokered ports —
@@ -21,7 +21,7 @@ import json
 from dataclasses import dataclass
 from typing import Any, Callable, Literal, Mapping, Protocol
 
-from .execution import (
+from ..task.execution import (
     CanonicalResponse,
     EvidenceIntegrityError,
     EvidenceStore,
@@ -35,10 +35,10 @@ from .execution import (
     ToolInvocationRecord,
     _stable_id,
 )
-from .registry import HarnessRequirements, ProviderCapabilities
-from .resolver import canonical_json_bytes
-from .schemas import AgentProfile
-from .tools import ToolContractError, ToolRuntime
+from ..registry import HarnessRequirements, ProviderCapabilities
+from ..run.resolver import canonical_json_bytes
+from ..schemas import AgentProfile
+from ..task.tools import ToolContractError, ToolRuntime
 
 
 # --- The native model protocol's data shapes (§6; wire fields land in stage 2) ---

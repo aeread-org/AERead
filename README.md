@@ -13,6 +13,7 @@
 [Concepts](docs/concepts.md) · [Benchmark QC](docs/benchmark_qc.md) ·
 [Experiment SOP](docs/experiment_campaign_sop.md) ·
 [Artifact layout](docs/artifact_layout.md) ·
+[Source layout](docs/source_layout.md) ·
 [Submit an agent](docs/submissions.md) ·
 [Integrations (rLLM, EverOS, yours)](integrations/README.md) ·
 [Contribute](CONTRIBUTING.md)
@@ -197,10 +198,9 @@ private held-out seed set are excluded by design.
 
 ```
 src/aeread/exchange_v1/   Exchange environments, runners, scoring, and oracles
-src/aeread/housing_v1/    Housing assignment environment and baselines
-src/aeread_families/      Procurement grounding and pinned tau3 retail plugins
+src/aeread_families/      Family-owned environments, runners, QC, and campaigns
 src/aeread/inference/     case-independent provider and LLM execution helpers
-src/aeread/shared_runner/ shared execution, evidence, measurement, and research
+src/aeread/shared_runner/ run/task/model-call kernel plus shared analysis
 src/aeread/integrations/   rLLM flow/eval/dataset, EverOS memory (importable code)
 integrations/          per-integration guides + examples (human side)
 cases/                 canonical case catalog, grouped by family and version/split

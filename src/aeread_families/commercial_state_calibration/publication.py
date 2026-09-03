@@ -16,8 +16,8 @@ from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
-from aeread.shared_runner.receipts import read_evaluation_receipt
-from aeread.shared_runner.resolver import canonical_json_bytes
+from aeread.shared_runner.task.receipts import read_evaluation_receipt
+from aeread.shared_runner.run.resolver import canonical_json_bytes
 
 from .campaign import CAMPAIGN_ID, DEFAULT_CONTRACT_PATH, load_contract
 

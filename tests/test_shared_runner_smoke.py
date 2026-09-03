@@ -6,14 +6,15 @@ from pathlib import Path
 
 import pytest
 
-from aeread.shared_runner.execution import EvidenceIntegrityError, execute_plan_cell
-from aeread.shared_runner.smoke import (
+from aeread.shared_runner.task.execution import EvidenceIntegrityError, execute_plan_cell
+from aeread_families.single_offer.runner import (
     FixedResponseProvider,
     build_single_offer_smoke,
     main,
 )
-import aeread.shared_runner.execution as execution_module
-import aeread.shared_runner.smoke as smoke_module
+import aeread.shared_runner.task.execution as execution_module
+import aeread.shared_runner.model_call.harness as harness_module
+import aeread_families.single_offer.runner as smoke_module
 
 
 class CountingProvider(FixedResponseProvider):
@@ -148,11 +149,14 @@ def test_smoke_implementation_pins_are_actual_source_hashes() -> None:
     execution_sha = hashlib.sha256(
         Path(execution_module.__file__).read_bytes()
     ).hexdigest()
+    harness_sha = hashlib.sha256(
+        Path(harness_module.__file__).read_bytes()
+    ).hexdigest()
     assert pins["aeread.single_offer_v1"] == smoke_sha
     assert pins["single_offer_scorer_v1"] == smoke_sha
     assert pins["single_offer_generator_v1"] == smoke_sha
-    assert pins["minimal_chat"] == execution_sha
-    assert pins["aeread.shared_runner.execution"] == execution_sha
+    assert pins["minimal_chat"] == harness_sha
+    assert pins["aeread.shared_runner.task.execution"] == execution_sha
 
 
 def test_claude_code_smoke_seals_runtime_schema_and_reviewed_pricing() -> None:
@@ -251,7 +255,7 @@ def test_execute_plan_cell_drives_the_registered_harness(tmp_path) -> None:
     seam is live rather than incidental.
     """
 
-    from aeread.shared_runner.harness import default_harnesses
+    from aeread.shared_runner.model_call.harness import default_harnesses
 
     setup = build_single_offer_smoke(
         provider="fake", model="fake-model", revision="fixed-v1"

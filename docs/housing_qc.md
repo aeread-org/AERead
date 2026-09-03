@@ -168,7 +168,7 @@ target. This is case admission, not a model leaderboard.
 Run it with:
 
 ```bash
-python -m aeread.shared_runner.housing_case_sweep \
+python -m aeread_families.housing.case_sweep \
   --contract configs/housing_case_config_sweep_v1.json \
   --run-root runs/housing_case_config_sweep_v1
 ```
@@ -240,12 +240,12 @@ profile identity while the selected environment configuration varies.
 Run the free gates, then the paid integration gate:
 
 ```bash
-python -m aeread.shared_runner.housing_model_sensitivity \
+python -m aeread_families.housing.model_sensitivity \
   --contract configs/housing_model_sensitivity_v1.json \
   --run-root runs/housing_model_sensitivity_v1 \
   --through provider_free
 
-python -m aeread.shared_runner.housing_model_sensitivity \
+python -m aeread_families.housing.model_sensitivity \
   --contract configs/housing_model_sensitivity_v1.json \
   --run-root runs/housing_model_sensitivity_v1 \
   --through live
@@ -313,17 +313,17 @@ profile's frozen `max_output_tokens` value.
 Run the gates with the local OpenRouter key:
 
 ```bash
-python -m aeread.shared_runner.housing_backend_campaign \
+python -m aeread_families.housing.backend_campaign \
   --contract configs/housing_model_sensitivity_openrouter_alt_v3.json \
   --run-root runs/housing_model_sensitivity_openrouter_alt_v3 \
   --through provider_free
 
-python -m aeread.shared_runner.housing_backend_campaign \
+python -m aeread_families.housing.backend_campaign \
   --contract configs/housing_model_sensitivity_openrouter_alt_v3.json \
   --run-root runs/housing_model_sensitivity_openrouter_alt_v3 \
   --through profile_admission
 
-python -m aeread.shared_runner.housing_backend_campaign \
+python -m aeread_families.housing.backend_campaign \
   --contract configs/housing_model_sensitivity_openrouter_alt_v3.json \
   --run-root runs/housing_model_sensitivity_openrouter_alt_v3 \
   --through live
@@ -444,17 +444,17 @@ opponents enters the primary contrast.
 Run gates in order; the driver resumes verified rows and records failed attempts:
 
 ```bash
-python -m aeread.shared_runner.housing_population_campaign \
+python -m aeread_families.housing.population_campaign \
   --contract configs/housing_population_crossplay_v0.json \
   --run-root runs/housing_population_crossplay_v0 \
   --through provider_free_validation
 
-python -m aeread.shared_runner.housing_population_campaign \
+python -m aeread_families.housing.population_campaign \
   --contract configs/housing_population_crossplay_v0.json \
   --run-root runs/housing_population_crossplay_v0 \
   --through full_trajectory
 
-python -m aeread.shared_runner.housing_population_campaign \
+python -m aeread_families.housing.population_campaign \
   --contract configs/housing_population_crossplay_v0.json \
   --run-root runs/housing_population_crossplay_v0 \
   --through variance_pilot
@@ -477,7 +477,7 @@ explicitly. The migration keeps the exact source bytes as
 then appends the required pre-freeze retry-policy invalidation before paid work:
 
 ```bash
-PYTHONPATH=src .venv/bin/python -m aeread.shared_runner.housing_population_campaign \
+PYTHONPATH=src .venv/bin/python -m aeread_families.housing.population_campaign \
   --contract configs/housing_population_crossplay_v0.json \
   --run-root runs/housing_population_crossplay_v0 \
   --through full_trajectory \

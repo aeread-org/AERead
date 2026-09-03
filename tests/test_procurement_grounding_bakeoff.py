@@ -13,7 +13,7 @@ from aeread_families.procurement_grounding.bakeoff import (
     selected_candidates,
     summarize_rows,
 )
-from aeread.shared_runner.execution import ProviderRequest
+from aeread.shared_runner.task.execution import ProviderRequest
 from aeread_families.procurement_grounding.runner import (
     build_openrouter_setup,
     load_case,

@@ -10,21 +10,21 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Mapping
 
-import aeread.shared_runner.execution as execution_module
-from aeread.shared_runner.execution import CellExecution, TokenPricing, execute_plan_cell
-from aeread.shared_runner.family_evaluation import (
+import aeread.shared_runner.task.execution as execution_module
+from aeread.shared_runner.task.execution import CellExecution, TokenPricing, execute_plan_cell
+from aeread.shared_runner.task.evaluation import (
     finalize_family_execution,
     finalize_family_failure,
     replay_family_receipt,
 )
-from aeread.shared_runner.harness import MinimalChatHarness, default_harnesses
-from aeread.shared_runner.receipts import EvaluationReceipt
+from aeread.shared_runner.model_call.harness import MinimalChatHarness, default_harnesses
+from aeread.shared_runner.task.receipts import EvaluationReceipt
 from aeread.shared_runner.registry import (
     HarnessRegistry,
     PluginRegistry,
     ProviderCapabilities,
 )
-from aeread.shared_runner.resolver import (
+from aeread.shared_runner.run.resolver import (
     ImplementationPin,
     RunPlan,
     canonical_json_bytes,
@@ -40,7 +40,7 @@ from aeread.shared_runner.schemas import (
     SamplingPlan,
     SuiteManifest,
 )
-from aeread.shared_runner.smoke import FixedResponseProvider
+from aeread_families.single_offer.runner import FixedResponseProvider
 
 from .environment import (
     PLUGIN_ID,
@@ -336,7 +336,7 @@ def build_offline_setup(
             },
             "runtime": {
                 "kind": "python",
-                "implementation": "aeread.shared_runner.execution",
+                "implementation": "aeread.shared_runner.task.execution",
                 "version": "0.1.0",
             },
             "tools": [],
@@ -394,7 +394,7 @@ def build_offline_setup(
         _pin("procurement_grounding_oracle_v1", "reference", environment_path),
         _pin("minimal_chat", "harness", execution_path, version="1.0"),
         _pin(
-            "aeread.shared_runner.execution",
+            "aeread.shared_runner.task.execution",
             "runtime",
             execution_path,
             version="0.1.0",
@@ -455,9 +455,9 @@ def build_openrouter_setup(
     template = build_offline_setup(case_path=case_path)
     resolved_harness = harness or MinimalChatHarness()
     resolved_runtime = runtime_implementation or (
-        "aeread.shared_runner.execution"
+        "aeread.shared_runner.task.execution"
         if resolved_harness.id == "minimal_chat"
-        else "aeread.shared_runner.open_harnesses"
+        else "aeread.shared_runner.model_call.open_harnesses"
     )
     resolved_profile_id = route.profile_id
     if resolved_harness.id != "minimal_chat":
@@ -576,7 +576,7 @@ def build_openrouter_setup(
     )
     runtime_source_path = (
         Path(execution_module.__file__)
-        if resolved_runtime == "aeread.shared_runner.execution"
+        if resolved_runtime == "aeread.shared_runner.task.execution"
         else harness_source_path
     )
     pins.append(

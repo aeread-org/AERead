@@ -17,7 +17,7 @@ For each pilot task this module:
 
 2. Compares the two runs COMPONENT BY COMPONENT -- never behind one
    pass/fail verdict -- using the shared kernel's own
-   ``aeread.shared_runner.parity`` primitives: the initial database, the
+   ``aeread.shared_runner.analysis.parity`` primitives: the initial database, the
    ordered tool calls, their ordered results, the final database, the
    deterministic DB-reward component, and (only for tasks whose
    ``nl_assertions`` are non-empty) the judged component's *inputs* --
@@ -50,8 +50,8 @@ from pathlib import Path
 from types import MappingProxyType
 from typing import Any, Mapping, Sequence
 
-from aeread.shared_runner.execution import EvidenceStore
-from aeread.shared_runner.parity import (
+from aeread.shared_runner.task.execution import EvidenceStore
+from aeread.shared_runner.analysis.parity import (
     ExternalParityCriterion,
     ParityField,
     ParityReport,
@@ -59,9 +59,9 @@ from aeread.shared_runner.parity import (
     compare_projections,
 )
 from aeread.shared_runner.registry import PluginRegistry
-from aeread.shared_runner.resolver import PlanCell, canonical_json_bytes
+from aeread.shared_runner.run.resolver import PlanCell, canonical_json_bytes
 from aeread.shared_runner.schemas import CaseManifest
-from aeread.shared_runner.scheduler import EpisodeResult, run_episode
+from aeread.shared_runner.task.scheduler import EpisodeResult, run_episode
 
 from . import measurement as measurement_module
 from .cases import CASE_ID_PREFIX, PILOT_UPSTREAM_TASK_IDS, UPSTREAM_COMMIT

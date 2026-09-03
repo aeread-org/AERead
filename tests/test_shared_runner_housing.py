@@ -14,8 +14,8 @@ from aeread.shared_runner import (
     canonical_json_bytes,
     verify_evaluation_receipt,
 )
-from aeread.shared_runner.execution import _paired_cell_request_seed, execute_plan_cell
-from aeread.shared_runner.housing import (
+from aeread.shared_runner.task.execution import _paired_cell_request_seed, execute_plan_cell
+from aeread_families.housing.runner import (
     HOUSING_COMMIT_OUTPUT_SCHEMA,
     HOUSING_CONTACT_OUTPUT_SCHEMA,
     HOUSING_RESPOND_OUTPUT_SCHEMA,

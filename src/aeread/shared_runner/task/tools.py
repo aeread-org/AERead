@@ -1,4 +1,4 @@
-"""Versioned tool manifests and bindings for tool-capable case adapters."""
+"""Versioned task-tool manifests and runtime bindings."""
 
 from __future__ import annotations
 
@@ -9,8 +9,8 @@ from types import MappingProxyType
 from typing import Any, Awaitable, Callable, Mapping
 
 from .execution import EvidenceStore, ToolExecutor, ToolInvocationRecord
-from .resolver import canonical_json_bytes
-from .schemas import is_exportable_id
+from ..run.resolver import canonical_json_bytes
+from ..schemas import is_exportable_id
 
 
 _SEMVER_RE = re.compile(

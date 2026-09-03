@@ -1,4 +1,4 @@
-"""Deterministic R2 resolution for AERead shared-runner authoring records.
+"""Deterministic run-plan resolution for AERead authoring records.
 
 R2 reconciles validated R1 records, performs provider-free preflight, expands
 fully explicit plan cells, and seals canonical plan bytes.  It does not schedule
@@ -17,14 +17,14 @@ from pathlib import Path
 from types import MappingProxyType
 from typing import Any, Mapping, Sequence
 
-from .registry import (
+from ..registry import (
     HarnessRegistry,
     HarnessResolutionError,
     PluginRegistry,
     PluginRegistryError,
     ProviderCapabilities,
 )
-from .schemas import (
+from ..schemas import (
     AgentProfile,
     AnalysisPlan,
     CaseManifest,

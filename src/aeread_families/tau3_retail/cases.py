@@ -29,7 +29,7 @@ import sys
 from pathlib import Path
 from typing import Any, Mapping
 
-from aeread.shared_runner.resolver import canonical_json_bytes, case_content_sha256
+from aeread.shared_runner.run.resolver import canonical_json_bytes, case_content_sha256
 from aeread.shared_runner.schemas import CaseManifest
 
 # --------------------------------------------------------------------------

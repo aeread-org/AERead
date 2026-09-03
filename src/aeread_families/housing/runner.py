@@ -1,4 +1,4 @@
-"""Executable Housing V1 bridge and one-cell R4 admission fixture.
+"""Housing V1 family bridge and one-cell admission fixture.
 
 The economic state machine remains owned by :mod:`aeread.housing_env`.  This
 module translates its contact/respond/commit contract into the generic shared
@@ -18,9 +18,12 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
-from aeread.housing_v1 import environment as hz
+from aeread_families.housing import environment as hz
+from aeread.shared_runner.model_call import harness as harness_module
+from aeread.shared_runner.task import evaluation as evaluation_module
+from aeread.shared_runner.task import execution as execution_module
 
-from .execution import (
+from aeread.shared_runner.task.execution import (
     CanonicalResponse,
     CellExecution,
     EvidenceStore,
@@ -31,14 +34,18 @@ from .execution import (
     TokenPricing,
     execute_plan_cell,
 )
-from .harness import MinimalChatHarness
-from .registry import HarnessRegistry, PluginRegistry, ProviderCapabilities
-from .family_evaluation import (
+from aeread.shared_runner.model_call.harness import MinimalChatHarness
+from aeread.shared_runner.registry import (
+    HarnessRegistry,
+    PluginRegistry,
+    ProviderCapabilities,
+)
+from aeread.shared_runner.task.evaluation import (
     finalize_family_execution,
     finalize_family_failure,
     replay_family_receipt,
 )
-from .measurement import (
+from aeread.shared_runner.measurement import (
     EstimandSpec,
     ImplementationRef as MeasurementImplementationRef,
     MeasurementLeafSpec,
@@ -50,7 +57,7 @@ from .measurement import (
     ValidityReport,
     VerifierSpec,
 )
-from .resolver import (
+from aeread.shared_runner.run.resolver import (
     ImplementationPin,
     RunPlan,
     canonical_json_bytes,
@@ -58,21 +65,21 @@ from .resolver import (
     resolve_run_plan,
     verify_run_plan,
 )
-from .receipts import (
+from aeread.shared_runner.task.receipts import (
     EvaluationFailure,
     EvaluationReceipt,
     seal_evaluation_receipt,
     verify_evaluation_receipt,
     write_evaluation_receipt,
 )
-from .scheduler import (
+from aeread.shared_runner.task.scheduler import (
     ActionEnvelope,
     LegalityResult,
     ParseResult,
     PhaseSpec,
     TransitionResult,
 )
-from .schemas import (
+from aeread.shared_runner.schemas import (
     AgentProfile,
     AnalysisPlan,
     CaseManifest,
@@ -115,6 +122,12 @@ HOUSING_COMMIT_OUTPUT_SCHEMA = {
     "required": ["decision", "hold_id"],
     "additionalProperties": False,
 }
+
+# These values are serialized component identities in already-admitted Housing
+# profiles, not import paths. They stay stable so a source-tree reorganization
+# does not masquerade as a new experimental condition.
+HOUSING_RUNTIME_COMPONENT_ID = "aeread.shared_runner.housing"
+TASK_EXECUTION_COMPONENT_ID = "aeread.shared_runner.execution"
 
 # Version 2 makes the cross-field action invariants provider-visible.  Version
 # 1 remains available so already-sealed campaigns can still be reconstructed.
@@ -1498,9 +1511,9 @@ def build_housing_smoke(
         runtime=(
             tenant_runtime
             or (
-                "aeread.shared_runner.execution"
+                TASK_EXECUTION_COMPONENT_ID
                 if tenant_provider == "openrouter"
-                else "aeread.shared_runner.housing"
+                else HOUSING_RUNTIME_COMPONENT_ID
             )
         ),
         world_seed=selected_world_seeds[0],
@@ -1547,9 +1560,9 @@ def build_housing_smoke(
             else landlord_max_logical_actions_override
         ),
         runtime=(
-            "aeread.shared_runner.execution"
+            TASK_EXECUTION_COMPONENT_ID
             if landlord_provider == "openrouter"
-            else "aeread.shared_runner.housing"
+            else HOUSING_RUNTIME_COMPONENT_ID
         ),
         world_seed=selected_world_seeds[0],
         reasoning_condition_id=(
@@ -1714,13 +1727,15 @@ def build_housing_smoke(
     }
     housing_source = Path(hz.__file__).read_bytes()
     bridge_source = Path(__file__).read_bytes()
-    execution_source = Path(__file__).with_name("execution.py").read_bytes()
+    execution_source = Path(execution_module.__file__).read_bytes()
+    harness_source = Path(harness_module.__file__).read_bytes()
     housing_digest = hashlib.sha256(housing_source).hexdigest()
     bridge_digest = hashlib.sha256(
-        bridge_source + Path(__file__).with_name("family_evaluation.py").read_bytes()
+        bridge_source + Path(evaluation_module.__file__).read_bytes()
     ).hexdigest()
     combined_digest = hashlib.sha256(housing_source + bridge_source).hexdigest()
     execution_digest = hashlib.sha256(execution_source).hexdigest()
+    harness_digest = hashlib.sha256(harness_source).hexdigest()
     pins = [
         _pin("aeread.housing_v1", "family_plugin", combined_digest),
         _pin("housing_outcome_v1", "scorer", combined_digest),
@@ -1728,7 +1743,7 @@ def build_housing_smoke(
         _pin("housing_feasible_zero_v1", "reference", bridge_digest),
         _pin("housing_naive_v1", "reference", housing_digest),
         _pin("housing_generator_v1", "generator", housing_digest),
-        _pin("minimal_chat", "harness", execution_digest, version="1.0"),
+        _pin("minimal_chat", "harness", harness_digest, version="1.0"),
     ]
     if resolved_tenant_harness.id != "minimal_chat":
         if tenant_implementation_sha256 is None:
@@ -1751,10 +1766,10 @@ def build_housing_smoke(
     ):
         runtime_digest = (
             bridge_digest
-            if resolved_runtime == "aeread.shared_runner.housing"
+            if resolved_runtime == HOUSING_RUNTIME_COMPONENT_ID
             else (
                 execution_digest
-                if resolved_runtime == "aeread.shared_runner.execution"
+                if resolved_runtime == TASK_EXECUTION_COMPONENT_ID
                 else tenant_implementation_sha256
             )
         )

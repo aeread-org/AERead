@@ -1,4 +1,4 @@
-"""Sequential, evidence-bound experiment-campaign promotion gates.
+"""Sequential, evidence-bound run-campaign promotion gates.
 
 Gate and invalidation records are append-only. A pre-freeze control change can
 invalidate one gate and every downstream gate without erasing their historical
@@ -15,14 +15,14 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Mapping, Sequence, TypeAlias
 
-from .quality import (
+from ..quality import (
     QCContractError,
     QCEvidenceRef,
     evidence_coverage_complete,
     verify_qc_evidence_files,
 )
 from .resolver import canonical_json_bytes
-from .schemas import is_exportable_id
+from ..schemas import is_exportable_id
 
 
 class CampaignGateError(ValueError):

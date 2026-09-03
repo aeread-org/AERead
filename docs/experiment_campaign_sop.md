@@ -13,7 +13,7 @@ profile. Benchmark QC validates the measurement instrument; this SOP validates
 one experiment conducted with it.
 
 The machine-checkable gate contract is in
-`aeread.shared_runner.campaign`. It preserves failed attempts, permits an
+`aeread.shared_runner.run.campaign`. It preserves failed attempts, permits an
 evidence-backed retry of the same gate, and refuses to append a downstream gate
 until the latest active attempt at every predecessor has passed. Explicit
 pre-freeze invalidation records retain historical passes while reopening the
@@ -143,7 +143,7 @@ required re-admission. Once `confirmatory_freeze` has passed, the same change
 requires a new campaign identity instead.
 
 The Housing V0 reference implementation is
-`aeread.shared_runner.housing_population_campaign`, with its frozen contract in
+`aeread_families.housing.population_campaign`, with its frozen contract in
 `configs/housing_population_crossplay_v0.json`. New case families should reuse
 the same gate-history boundary and sealed-row resume behavior while supplying
 their own case admission, goldens, baselines, attribution blocks, and profile

@@ -7,8 +7,8 @@ from pathlib import Path
 
 import pytest
 
-from aeread.shared_runner.housing import DEEPINFRA_GLM_53_FLASH_ROUTE
-from aeread.shared_runner.housing_population_campaign import (
+from aeread_families.housing.runner import DEEPINFRA_GLM_53_FLASH_ROUTE
+from aeread_families.housing.population_campaign import (
     _complete_admission_request,
     _live_stage_root,
     _profile_request,
@@ -18,8 +18,8 @@ from aeread.shared_runner.housing_population_campaign import (
     execute_campaign,
     load_contract,
 )
-from aeread.shared_runner.execution import ProviderFailure, ProviderResult
-from aeread.shared_runner.resolver import canonical_json_bytes
+from aeread.shared_runner.task.execution import ProviderFailure, ProviderResult
+from aeread.shared_runner.run.resolver import canonical_json_bytes
 
 
 CONTRACT_PATH = (
@@ -145,7 +145,7 @@ def test_admission_retries_declared_failures_and_records_every_attempt(
         delays.append(delay)
 
     monkeypatch.setattr(
-        "aeread.shared_runner.housing_population_campaign.asyncio.sleep",
+        "aeread_families.housing.population_campaign.asyncio.sleep",
         record_sleep,
     )
     result, attempts = asyncio.run(

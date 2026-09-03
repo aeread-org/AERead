@@ -1,4 +1,4 @@
-"""Immutable, content-addressed evaluation receipts for the shared runner.
+"""Immutable, content-addressed task evaluation receipts.
 
 A receipt binds plan/case identity, design metadata, resolved implementations,
 sealed evidence, typed measurements, replay capability, and the admission
@@ -18,13 +18,13 @@ from types import MappingProxyType
 from typing import Any, Mapping
 
 from .execution import EvidenceSeal
-from .measurement import (
+from ..measurement import (
     ImplementationRef,
     MeasurementContractError,
     ScoreEnvelope,
 )
-from .resolver import ImplementationPin, canonical_json_bytes
-from .schemas import is_exportable_id
+from ..run.resolver import ImplementationPin, canonical_json_bytes
+from ..schemas import is_exportable_id
 
 
 _SHA256_LENGTH = 64

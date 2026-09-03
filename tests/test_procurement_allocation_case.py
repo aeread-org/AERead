@@ -8,10 +8,10 @@ from pathlib import Path
 
 import pytest
 
-import aeread.shared_runner.execution as execution_module
+import aeread.shared_runner.task.execution as execution_module
 from aeread.shared_runner import canonical_json_bytes
-from aeread.shared_runner.execution import TokenPricing
-from aeread.shared_runner.resolver import case_content_sha256
+from aeread.shared_runner.task.execution import TokenPricing
+from aeread.shared_runner.run.resolver import case_content_sha256
 import aeread_families.procurement_allocation.environment as environment_module
 from aeread_families.procurement_allocation import (
     ProcurementAllocationPlugin,
@@ -363,7 +363,7 @@ def test_run_plan_pins_sources_and_openrouter_route() -> None:
     assert pins["procurement_allocation_contribution_margin_scorer_v1"] == environment_sha
     assert pins["procurement_full_information_upper_bound_v1"] == environment_sha
     assert pins["minimal_chat"] == execution_sha
-    assert pins["aeread.shared_runner.execution"] == execution_sha
+    assert pins["aeread.shared_runner.task.execution"] == execution_sha
 
     route = OpenRouterRoute(
         profile_id="procurement_glm_test_v1",

@@ -1,4 +1,4 @@
-"""Provider-free R3 phase scheduler for the AERead shared runner.
+"""Provider-free task phase scheduler for the AERead shared runner.
 
 The scheduler owns phase selection, observation isolation, action collection,
 parsing/legality boundaries, transitions, termination, and logical-action
@@ -14,8 +14,8 @@ from dataclasses import dataclass, field
 from types import MappingProxyType
 from typing import Any, Awaitable, Callable, Mapping, Sequence
 
-from .resolver import PlanCell, canonical_json_bytes, case_content_sha256
-from .schemas import CaseManifest
+from ..run.resolver import PlanCell, canonical_json_bytes, case_content_sha256
+from ..schemas import CaseManifest
 
 
 class SchedulerContractError(RuntimeError):

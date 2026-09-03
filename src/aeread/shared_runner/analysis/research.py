@@ -1,4 +1,4 @@
-"""Receipt-derived research views and experimental-design preflight.
+"""Receipt-derived run/task/model-call views and design preflight.
 
 The canonical shared-runner records remain ``RunPlan``, ``Event`` and
 ``EvaluationReceipt``. This module projects those records into query-friendly
@@ -21,9 +21,9 @@ from pathlib import Path
 from types import MappingProxyType
 from typing import Any, Mapping, Sequence
 
-from .execution import EvidenceSeal, EvidenceStore, Event
-from .layout import PublicationLayout
-from .measurement import (
+from ..task.execution import EvidenceSeal, EvidenceStore, Event
+from ..run.layout import PublicationLayout
+from ..measurement import (
     EstimandSpec,
     ImplementationRef,
     MeasurementLeafSpec,
@@ -35,13 +35,13 @@ from .measurement import (
     ValidityReport,
     VerifierSpec,
 )
-from .receipts import (
+from ..task.receipts import (
     EvaluationFailure,
     EvaluationReceipt,
     read_evaluation_receipt,
     verify_evaluation_receipt,
 )
-from .resolver import (
+from ..run.resolver import (
     ImplementationPin,
     PlanCell,
     ProfileAdmission,
@@ -49,7 +49,7 @@ from .resolver import (
     canonical_json_bytes,
     verify_run_plan,
 )
-from .schemas import (
+from ..schemas import (
     AgentProfile,
     AnalysisPlan,
     CaseManifest,

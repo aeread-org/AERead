@@ -39,8 +39,8 @@ from aeread.shared_runner import (
     write_evaluation_receipt,
     write_run_plan,
 )
-from aeread.shared_runner.research import main as export_tables_main
-from aeread.shared_runner.smoke import build_single_offer_smoke
+from aeread.shared_runner.analysis.research import main as export_tables_main
+from aeread_families.single_offer.runner import build_single_offer_smoke
 
 
 def _plan():

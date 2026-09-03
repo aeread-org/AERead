@@ -1,4 +1,4 @@
-"""Housing assignment market: world generator, assignment-game oracle, baselines.
+"""Housing family environment: world generator, assignment oracle, and baselines.
 
 Tenants compete for a smaller number of listings. Each tenant has a private
 willingness to pay per listing and each landlord a private reservation cost, so a

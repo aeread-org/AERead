@@ -1,4 +1,4 @@
-"""Canonical filesystem layout for runner records and publications.
+"""Canonical filesystem layout for runs and publications.
 
 The object hierarchy is campaign -> run -> task -> attempt -> event. Provider
 calls are canonical events within an attempt and are projected into the

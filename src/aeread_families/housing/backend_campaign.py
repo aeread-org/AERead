@@ -1,4 +1,4 @@
-"""Backend-qualified Housing model-sensitivity campaign.
+"""Housing backend-qualified model-sensitivity campaign.
 
 This campaign keeps the selected Housing cases and fixed minimal-chat harness
 while assigning new model-profile identities to alternate pinned endpoints.
@@ -16,10 +16,11 @@ import urllib.request
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
-from aeread.housing_v1 import environment as hz
+from aeread_families.housing import environment as hz
 
-from .execution import OpenRouterChatClient, ProviderRequest
-from .housing import (
+from aeread.shared_runner.task.execution import OpenRouterChatClient, ProviderRequest
+
+from .runner import (
     GLM_53_FLASH_MODEL,
     GLM_53_FLASH_REVISION,
     HOUSING_COMMIT_OUTPUT_SCHEMA,
@@ -32,7 +33,7 @@ from .housing import (
     HOUSING_TENANT_PROMPT,
     OpenRouterRoutePin,
 )
-from .housing_model_sensitivity import (
+from .model_sensitivity import (
     _exception_attribute,
     _read_sealed,
     _sealed,
@@ -44,12 +45,12 @@ from .housing_model_sensitivity import (
     provider_free_artifact,
     run_live,
 )
-from .housing_population_campaign import (
+from .population_campaign import (
     DEEPSEEK_MODEL,
     DEEPSEEK_REVISION,
     _validate_admission_action,
 )
-from .resolver import canonical_json_bytes
+from aeread.shared_runner.run.resolver import canonical_json_bytes
 
 
 CONTRACT_SCHEMA_VERSION = "aeread.housing_backend_campaign/0.1"

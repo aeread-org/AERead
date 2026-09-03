@@ -1,4 +1,4 @@
-"""Gated Housing V1 model-population cross-play campaign.
+"""Gated Housing model-population cross-play campaign.
 
 The campaign compares two homogeneous tenant populations over a frozen
 landlord panel.  Scripted anchors, cross-model play, and same-model self-play
@@ -21,9 +21,9 @@ from typing import Any, Mapping, Sequence
 
 from scipy import stats
 
-from aeread.housing_v1 import environment as hz
+from aeread_families.housing import environment as hz
 
-from .campaign import (
+from aeread.shared_runner.run.campaign import (
     CAMPAIGN_GATE_SEQUENCE,
     CampaignGateRecord,
     CampaignHistoryRecord,
@@ -36,7 +36,7 @@ from .campaign import (
     campaign_history_record_to_dict,
     campaign_promotion_decision,
 )
-from .execution import (
+from aeread.shared_runner.task.execution import (
     EvidenceStore,
     OpenRouterChatClient,
     ProviderFailure,
@@ -44,7 +44,13 @@ from .execution import (
     ProviderResult,
     execute_plan_cell,
 )
-from .housing import (
+from aeread.shared_runner.run.layout import RunLayout
+from aeread.shared_runner.analysis.paired import analyze_paired_results
+from aeread.shared_runner.quality import QCCoverage, QCEvidenceRef
+from aeread.shared_runner.task.receipts import verify_evaluation_receipt
+from aeread.shared_runner.run.resolver import canonical_json_bytes
+
+from .runner import (
     DEEPINFRA_GLM_53_FLASH_ROUTE,
     DEEPINFRA_HOUSING_ROUTE,
     GLM_53_FLASH_MODEL,
@@ -62,12 +68,7 @@ from .housing import (
     finalize_housing_failure,
     replay_housing_receipt,
 )
-from .layout import RunLayout
-from .housing_qc import audit_bid_world
-from .paired_analysis import analyze_paired_results
-from .quality import QCCoverage, QCEvidenceRef
-from .receipts import verify_evaluation_receipt
-from .resolver import canonical_json_bytes
+from .qc import audit_bid_world
 
 
 DEEPSEEK_MODEL = "deepseek/deepseek-v4-flash-0731"

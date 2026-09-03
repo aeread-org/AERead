@@ -38,7 +38,7 @@ Set `OPENROUTER_API_KEY`, then run a one-world qualification for AERead and
 LangChain. Use a disposable run directory for this gate:
 
 ```bash
-PYTHONPATH=src python -m aeread.shared_runner.housing_harness_bakeoff \
+PYTHONPATH=src python -m aeread_families.housing.harness_bakeoff \
   --run-root runs/housing-harness-gate \
   --world-count 1 \
   --master-seed 20260831 \
@@ -49,7 +49,7 @@ Run smolagents as a separate full-trajectory gate because its internal agent
 loop can make many model requests for one AERead action:
 
 ```bash
-PYTHONPATH=src python -m aeread.shared_runner.housing_harness_bakeoff \
+PYTHONPATH=src python -m aeread_families.housing.harness_bakeoff \
   --run-root runs/housing-smolagents-gate \
   --world-count 1 \
   --master-seed 20260831 \
@@ -61,7 +61,7 @@ panel. This condition uses one explicit graph node, provider-native structured
 output, and no tools, memory, subagents, or framework-owned retries:
 
 ```bash
-PYTHONPATH=src python -m aeread.shared_runner.housing_harness_bakeoff \
+PYTHONPATH=src python -m aeread_families.housing.harness_bakeoff \
   --run-root runs/housing-langgraph-gate \
   --world-count 1 \
   --master-seed 20260831 \
@@ -72,7 +72,7 @@ After qualification, run the paired panel. AERead and LangChain rotate first
 position across worlds to reduce ordering effects:
 
 ```bash
-PYTHONPATH=src python -m aeread.shared_runner.housing_harness_bakeoff \
+PYTHONPATH=src python -m aeread_families.housing.harness_bakeoff \
   --run-root runs/housing-harness-panel \
   --world-count 3 \
   --master-seed 20260831 \
@@ -88,7 +88,7 @@ Build the machine-readable, CSV, and Markdown leaderboard from the completed
 paired artifact:
 
 ```bash
-PYTHONPATH=src python -m aeread.shared_runner.housing_harness_leaderboard \
+PYTHONPATH=src python -m aeread_families.housing.harness_leaderboard \
   --bakeoff runs/housing-harness-panel/summary.json \
   --report-prefix runs/housing-harness-panel/reports/leaderboard
 ```

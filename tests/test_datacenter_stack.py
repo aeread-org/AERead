@@ -5,9 +5,9 @@ import dataclasses
 
 import pytest
 
-from aeread.shared_runner.execution import TokenPricing
-from aeread.shared_runner.resolver import canonical_json_bytes
-from aeread.shared_runner.scheduler import (
+from aeread.shared_runner.task.execution import TokenPricing
+from aeread.shared_runner.run.resolver import canonical_json_bytes
+from aeread.shared_runner.task.scheduler import (
     ActionEnvelope,
     LegalityResult,
     ParseResult,

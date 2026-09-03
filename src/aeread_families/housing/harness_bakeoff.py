@@ -1,4 +1,4 @@
-"""Paired Housing trajectories through popular open-source agent harnesses.
+"""Paired Housing trajectories through open-source agent harnesses.
 
 The Housing scheduler and receipts remain authoritative.  Framework adapters
 run inside a provider client because LangChain and smolagents own their wire
@@ -20,24 +20,16 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
-from .execution import (
+from aeread.shared_runner.task.execution import (
     OpenRouterChatClient,
     ProviderFailure,
     ProviderRequest,
     ProviderResult,
     execute_plan_cell,
 )
-from .harness import MinimalChatHarness
-from .housing import (
-    DEEPINFRA_GLM_53_FLASH_ROUTE,
-    GLM_53_FLASH_MODEL,
-    GLM_53_FLASH_REVISION,
-    HousingScriptedLandlordProvider,
-    build_housing_smoke,
-    finalize_housing_execution,
-)
-from .paired_analysis import analyze_paired_results_if_available
-from .open_harnesses import (
+from aeread.shared_runner.model_call.harness import MinimalChatHarness
+from aeread.shared_runner.analysis.paired import analyze_paired_results_if_available
+from aeread.shared_runner.model_call.open_harnesses import (
     FrameworkOneCallHarness,
     LangChainProviderClient,
     LangChainProviderStrategyHarness,
@@ -50,8 +42,18 @@ from .open_harnesses import (
     _route_body,
     _summed_usage,
 )
-from .registry import HarnessRequirements
-from .resolver import canonical_json_bytes
+from aeread.shared_runner.registry import HarnessRequirements
+from aeread.shared_runner.run.resolver import canonical_json_bytes
+
+from .runner import (
+    DEEPINFRA_GLM_53_FLASH_ROUTE,
+    GLM_53_FLASH_MODEL,
+    GLM_53_FLASH_REVISION,
+    HousingScriptedLandlordProvider,
+    TASK_EXECUTION_COMPONENT_ID,
+    build_housing_smoke,
+    finalize_housing_execution,
+)
 
 
 GLM_MODEL = GLM_53_FLASH_MODEL
@@ -613,9 +615,9 @@ async def run_bakeoff(
             },
             tenant_profile_id_override=f"housing_glm_tenant_{arm.condition_id}",
             tenant_runtime=(
-                "aeread.shared_runner.housing_harness_bakeoff"
+                "aeread_families.housing.harness_bakeoff"
                 if external
-                else "aeread.shared_runner.execution"
+                else TASK_EXECUTION_COMPONENT_ID
             ),
             tenant_implementation_sha256=(implementation_sha256 if external else None),
             landlord_provider=(

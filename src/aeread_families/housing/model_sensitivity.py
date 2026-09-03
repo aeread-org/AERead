@@ -1,4 +1,4 @@
-"""One-world, model-to-model Housing sensitivity integration campaign."""
+"""Model-to-model Housing sensitivity integration campaign."""
 
 from __future__ import annotations
 
@@ -12,13 +12,17 @@ import time
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
-from .execution import (
+from aeread.shared_runner.task.execution import (
     EvidenceIntegrityError,
     EvidenceStore,
     OpenRouterChatClient,
     execute_plan_cell,
 )
-from .housing import (
+from aeread.shared_runner.run.resolver import canonical_json_bytes
+from aeread.shared_runner.task.receipts import verify_evaluation_receipt
+from aeread.shared_runner.task.scheduler import SchedulerContractError
+
+from .runner import (
     DEEPINFRA_GLM_53_FLASH_ROUTE,
     DEEPINFRA_HOUSING_ROUTE,
     GLM_53_FLASH_MODEL,
@@ -32,16 +36,13 @@ from .housing import (
     finalize_housing_failure,
     replay_housing_receipt,
 )
-from .housing_population_campaign import (
+from .population_campaign import (
     DEEPSEEK_MODEL,
     DEEPSEEK_REVISION,
     _failure_usage,
     _role_metrics,
 )
-from .housing_qc import audit_bid_world
-from .receipts import verify_evaluation_receipt
-from .resolver import canonical_json_bytes
-from .scheduler import SchedulerContractError
+from .qc import audit_bid_world
 
 
 CONTRACT_SCHEMA_VERSION = "aeread.housing_model_sensitivity/0.1"

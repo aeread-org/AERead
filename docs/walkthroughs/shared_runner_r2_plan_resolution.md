@@ -5,7 +5,7 @@ cross-record reference, verifies case content identity, pins every executable de
 validates family-owned payloads, expands the requested experiment into `PlanCell` records,
 and writes canonical bytes before any provider or tool call.
 
-The implementation is in `src/aeread/shared_runner/resolver.py`; its executable contract is
+The implementation is in `src/aeread/shared_runner/run/resolver.py`; its executable contract is
 in `tests/test_shared_runner_resolver.py`.
 
 ## Resolution path
