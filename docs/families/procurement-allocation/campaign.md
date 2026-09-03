@@ -190,14 +190,23 @@ failure-free checkpoint may continue only the declared missing case/seed rows wi
 operational failure permanently disqualifies the attempt, remains typed missingness,
 and is never resumed or included in the effect estimate.
 
-The runner also exposes pinned GLM/Reka and GLM/Cloudflare routes as
+The runner also exposes pinned GLM/Reka, GLM/Cloudflare, and GLM/Parasail routes as
 `--candidate-id glm53_flash_reka` and
-`--candidate-id glm53_flash_cloudflare`. Each selection receives a distinct
+`--candidate-id glm53_flash_cloudflare`, and
+`--candidate-id glm53_flash_parasail`. Each selection receives a distinct
 campaign ID, panel IDs, provider metadata, and $0.5700 treatment ceiling. They do
 not reuse the qualified Morph controls: a route change requires new labeled and
 opaque unscaffolded controls on that same route before a scaffold effect is
 eligible. This prevents provider implementation or quantization differences from
 being misreported as a prompt-treatment effect.
+
+The Parasail v4 route permits at most two runner-owned retries after the initial
+provider call, only for typed rate-limit or provider-5xx failures. SDK retries are
+disabled. Backoff is exponential with deterministic jitter and honors bounded
+`Retry-After` guidance. Retry counts, triggering conditions, and total provider
+calls are retained in the sanitized rows, and the paired comparison requires the
+control and treatment retry policies to match. A recovered transient is therefore
+observable rather than silently changing the campaign's effective sampling process.
 
 The first v1 development attempt admitted its canary and completed one labeled
 trajectory before a typed HTTP 429 stopped the queue. That row reached an award in
@@ -210,3 +219,29 @@ therefore adds an explicit second-supplier split rule whenever required raw unit
 exceed one offer's capacity. These adaptive changes are versioned explicitly; results
 on these development worlds remain exploratory and require a held-out panel for
 confirmation.
+
+## Observed Parasail v4 strategy result
+
+The v4 Parasail campaign qualified all 36 treatment trajectories and replayed every
+receipt with zero operational failures. Its labeled panel was feasible in 16/18 rows
+and its opaque/reordered panel in 18/18. The corresponding same-route controls were
+feasible in 11/18 and 9/18 rows. Treatment execution cost $0.092382147, plus one
+unscored $0.0002539845 admission canary; the two control panels cost $0.087848244.
+
+After averaging the three seeds within each of the six economic worlds, the labeled
+treatment-minus-control effect was +0.2778 feasibility, +2.1111 completed kits,
++$17.3712 contribution margin, and -$17.3712 regret. Its six-world bootstrap intervals
+cross zero, so the labeled result is directional rather than confirmatory. The opaque
+effect was +0.5000 feasibility (95% interval [0.2222, 0.7778]), +7.0000 completed kits
+([3.2222, 11.5000]), +$24.6111 margin ([$5.8546, $50.3578]), and -$24.6111 regret
+([-50.3578, -5.8546]). All paired route, retry-policy, seed, prompt-binding, replay,
+case-content, pair-identity, and upper-bound integrity checks passed.
+
+The opaque result is the most robust signal in this adaptive panel: the scaffold
+removed all nine control failures and reduced the absolute surface gap in feasibility
+by 0.1111 on average. The labeled treatment also introduced two pass-to-fail
+transitions, including a sample-verification failure in the quality/refund world.
+That regression should define a held-out diagnostic, not an in-place v4 prompt edit.
+Because v1-v4 were developed against these same six worlds, this evidence supports a
+mechanism hypothesis and a qualified implementation artifact, not a population-level
+claim. The next confirmatory campaign should freeze v4 and use new economic worlds.
