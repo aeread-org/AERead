@@ -20,6 +20,7 @@ when no provisioned bridge interpreter is available.
 from __future__ import annotations
 
 import asyncio
+import dataclasses
 import json
 import os
 from pathlib import Path
@@ -298,7 +299,7 @@ def test_replay_reproduces_state_and_score_byte_identically(
     )
     assert scripted.exhausted is True
 
-    recorded = record_episode(original)
+    recorded = record_episode(original, case=case, cell=cell)
     # Force a genuine round trip through plain JSON text -- proves replay
     # never depends on reusing the original run's in-memory Python objects.
     recorded = RecordedEpisode.from_json(recorded.to_json())
@@ -343,6 +344,89 @@ def test_replay_reproduces_state_and_score_byte_identically(
     )
 
 
+def test_replay_rejects_a_case_with_the_same_case_id_but_different_content(
+    tmp_path: Path, bridge
+) -> None:
+    """docs/negarena_codex_triage.md Finding 2: a ``RecordedEpisode`` binds
+    the case it was produced from by content hash, not just ``case_id`` --
+    a case can be re-authored (different valuation, different upstream pin)
+    while keeping the same ``case_id``. Drives ``replay_episode`` itself
+    (the production replay entry point every other test in this module also
+    calls), never a hand-wired shortcut around it."""
+    case = _load_case("negarena.buy_sell.0", "buy_sell")
+    setup_plugin = NegarenaPlugin(upstream_root=UPSTREAM_ROOT, bridge=bridge)
+    family_case = setup_plugin.validate_payload(case.payload)
+    transcript = parity.build_buy_sell_golden_one(family_case)
+
+    cell, resolved_plugin, evidence, scripted, original = _run_live(
+        bridge, tmp_path, case=case, transcript=transcript, suffix="case_mismatch"
+    )
+    recorded = record_episode(original, case=case, cell=cell)
+
+    # Same case_id, different content -- the "re-authored case" scenario the
+    # finding describes.
+    reauthored_case = dataclasses.replace(case, content_sha256="f" * 64)
+    assert reauthored_case.case_id == case.case_id
+    assert reauthored_case.content_sha256 != case.content_sha256
+
+    # The cell's own case_sha256 is rewritten to match the re-authored case,
+    # so the scheduler's own case/cell agreement check (_validate_cell_case)
+    # would accept this (case, cell) pair on its own -- only replay_episode's
+    # sealed-recording check can catch that it is not the original execution.
+    reauthored_cell = dataclasses.replace(
+        cell, case_sha256=reauthored_case.content_sha256
+    )
+
+    with pytest.raises(ReplayError, match="different case body"):
+        asyncio.run(
+            replay_episode(
+                cell=reauthored_cell,
+                case=reauthored_case,
+                plugin=resolved_plugin,
+                recorded=recorded,
+            )
+        )
+
+
+def test_replay_rejects_a_cell_with_a_different_opponent_profile(
+    tmp_path: Path, bridge
+) -> None:
+    """Same finding, the other half: a cell rebuilt with a different
+    ``profile_by_seat`` (a different opponent) can still agree with the
+    original ``case`` (same ``case_sha256``) while pairing the recorded seat
+    against an opponent it never actually played. ``replay_episode`` must
+    reject that too, not just a case-content mismatch."""
+    case = _load_case("negarena.buy_sell.0", "buy_sell")
+    setup_plugin = NegarenaPlugin(upstream_root=UPSTREAM_ROOT, bridge=bridge)
+    family_case = setup_plugin.validate_payload(case.payload)
+    transcript = parity.build_buy_sell_golden_one(family_case)
+
+    cell, resolved_plugin, evidence, scripted, original = _run_live(
+        bridge, tmp_path, case=case, transcript=transcript, suffix="cell_mismatch"
+    )
+    recorded = record_episode(original, case=case, cell=cell)
+
+    different_opponent_cell = dataclasses.replace(
+        cell,
+        profile_by_seat=MappingProxyType(
+            {RED: "scripted_red", BLUE: "a_completely_different_opponent"}
+        ),
+    )
+    # Still agrees with `case` on its own -- only the cell content itself
+    # (profile_by_seat) differs from the one that produced the recording.
+    assert different_opponent_cell.case_sha256 == cell.case_sha256
+
+    with pytest.raises(ReplayError, match="different cell"):
+        asyncio.run(
+            replay_episode(
+                cell=different_opponent_cell,
+                case=case,
+                plugin=resolved_plugin,
+                recorded=recorded,
+            )
+        )
+
+
 def test_replay_and_verify_ties_replay_comparison_and_scoring_together(
     tmp_path: Path, bridge
 ) -> None:
@@ -354,7 +438,7 @@ def test_replay_and_verify_ties_replay_comparison_and_scoring_together(
     cell, resolved_plugin, evidence, scripted, original = _run_live(
         bridge, tmp_path, case=case, transcript=transcript, suffix="verify"
     )
-    recorded = record_episode(original)
+    recorded = record_episode(original, case=case, cell=cell)
     scorer = resolved_plugin.build_scorer(family_case)
 
     report = asyncio.run(
@@ -376,7 +460,9 @@ def test_replay_and_verify_ties_replay_comparison_and_scoring_together(
     assert report.scores.agreement.primary.value == 1.0
 
     # Without an ``original`` supplied, replay still runs and re-scores;
-    # comparison is an explicit "not comparable", never a fabricated match.
+    # comparison is an explicit "not comparable", never a fabricated match
+    # (docs/negarena_codex_triage.md Finding 4: no equality check ever ran
+    # here, so ``status`` must not report "match" for it).
     report_no_original = asyncio.run(
         replay_and_verify(
             cell=cell,
@@ -388,7 +474,8 @@ def test_replay_and_verify_ties_replay_comparison_and_scoring_together(
         )
     )
     assert report_no_original.comparison is None
-    assert report_no_original.status == "match"
+    assert report_no_original.status == "not_compared"
+    assert report_no_original.status != "match"
 
 
 def test_recorded_response_source_rejects_phase_seat_mismatch() -> None:
@@ -413,6 +500,35 @@ def test_recorded_response_source_rejects_phase_seat_mismatch() -> None:
         asyncio.run(source(_Request()))
 
 
+def test_replay_report_status_is_not_compared_when_no_comparison_was_made() -> None:
+    """Pure, no bridge/episode required: ``ReplayReport.status`` must not
+    report ``"match"`` for a comparison that never actually ran
+    (docs/negarena_codex_triage.md Finding 4) -- a caller reading only
+    ``status`` (never ``comparison`` itself) must be able to tell "verified
+    identical" apart from "never compared"."""
+    from aeread.shared_runner.scheduler import EpisodeResult
+    from aeread_families.negarena.replay import ReplayReport, ReplayScoreResult
+
+    fake_episode = EpisodeResult(
+        episode_id="episode_x",
+        cell_id="cell_x",
+        case_id="case_x",
+        family_id="negarena",
+        final_state={},
+        terminal={},
+        outcome={},
+        logical_action_count=0,
+        phase_instances=(),
+    )
+    fake_scores = ReplayScoreResult(red_outcome=None, blue_outcome=None, agreement=None)
+
+    report = ReplayReport(
+        case_id="case_x", replayed=fake_episode, comparison=None, scores=fake_scores
+    )
+    assert report.status == "not_compared"
+    assert report.status != "match"
+
+
 def test_replay_of_a_reordered_recording_surfaces_as_a_scheduler_contract_error(
     tmp_path: Path, bridge
 ) -> None:
@@ -432,11 +548,14 @@ def test_replay_of_a_reordered_recording_surfaces_as_a_scheduler_contract_error(
     cell, resolved_plugin, evidence, scripted, original = _run_live(
         bridge, tmp_path, case=case, transcript=transcript, suffix="reorder"
     )
-    recorded = record_episode(original)
+    recorded = record_episode(original, case=case, cell=cell)
     # Drop the first decision -- the replay must reject the resulting
     # phase/seat mismatch rather than silently proceed.
     tampered = RecordedEpisode(
-        case_id=recorded.case_id, decisions=recorded.decisions[1:]
+        case_id=recorded.case_id,
+        case_sha256=recorded.case_sha256,
+        cell_sha256=recorded.cell_sha256,
+        decisions=recorded.decisions[1:],
     )
 
     with pytest.raises(SchedulerContractError, match="does not match"):

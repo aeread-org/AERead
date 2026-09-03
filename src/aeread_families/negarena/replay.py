@@ -43,6 +43,7 @@ module has to additionally enforce.
 """
 from __future__ import annotations
 
+import hashlib
 import json
 from dataclasses import dataclass
 from typing import Any, Mapping, Sequence
@@ -113,16 +114,46 @@ class RecordedDecision:
         )
 
 
+def _cell_sha256(cell: PlanCell) -> str:
+    """Content hash of the *whole* ``PlanCell`` a recording was produced from.
+
+    Covers profile/pairing identity (``profile_by_seat``), seeds
+    (``world_seed``/``sampling_seed``/``replicate_index``), and every other
+    cell field in one digest -- so replaying against a cell that differs in
+    any of them (a different opponent profile, a different seed, a
+    different replicate) is detectable even though the two cells may share
+    the same ``cell_id``-irrelevant fields.
+    """
+    return hashlib.sha256(canonical_json_bytes(cell)).hexdigest()
+
+
 @dataclass(frozen=True, slots=True)
 class RecordedEpisode:
-    """The complete, plain-JSON-serializable ordered decision log for one episode."""
+    """The complete, plain-JSON-serializable ordered decision log for one episode.
+
+    ``case_sha256``/``cell_sha256`` bind this recording to the exact case
+    content and cell (profile/pairing/seed) identity it was produced from --
+    ``case_id`` string equality alone does not: a case can be re-authored
+    (different valuation, different upstream pin) while keeping the same
+    ``case_id``, and a cell can be rebuilt with a different opponent/seed
+    while still satisfying ``_validate_cell_case``'s own case/cell agreement
+    check (docs/negarena_codex_triage.md Finding 2). ``replay_episode``
+    rejects a recording whose ``case_sha256``/``cell_sha256`` do not match
+    the case/cell it is asked to replay against, rather than silently
+    replaying a different execution's inputs and reporting new state/scores
+    as if they were the original run's.
+    """
 
     case_id: str
+    case_sha256: str
+    cell_sha256: str
     decisions: tuple[RecordedDecision, ...]
 
     def to_dict(self) -> dict[str, Any]:
         return {
             "case_id": self.case_id,
+            "case_sha256": self.case_sha256,
+            "cell_sha256": self.cell_sha256,
             "decisions": [decision.to_dict() for decision in self.decisions],
         }
 
@@ -134,6 +165,8 @@ class RecordedEpisode:
     def from_dict(cls, value: Mapping[str, Any]) -> "RecordedEpisode":
         return cls(
             case_id=value["case_id"],
+            case_sha256=value["case_sha256"],
+            cell_sha256=value["cell_sha256"],
             decisions=tuple(
                 RecordedDecision.from_dict(decision) for decision in value["decisions"]
             ),
@@ -144,14 +177,24 @@ class RecordedEpisode:
         return cls.from_dict(json.loads(text))
 
 
-def record_episode(result: EpisodeResult) -> RecordedEpisode:
+def record_episode(
+    result: EpisodeResult, *, case: CaseManifest, cell: PlanCell
+) -> RecordedEpisode:
     """Extract the ordered decision log from one already-completed ``EpisodeResult``.
 
     Pulls exactly the raw ``LogicalActionRecord.response`` for every action,
     in the order the scheduler requested them -- nothing about parsing,
     legality, scoring, or state is captured here; replay regenerates all of
-    that independently through ``run_episode``.
+    that independently through ``run_episode``. ``case``/``cell`` must be the
+    exact ones that produced ``result``: their content hashes are sealed into
+    the recording so a later replay can detect a mismatched case or cell
+    (Finding 2) rather than silently accepting one.
     """
+    if case.case_id != result.case_id:
+        raise ReplayError(
+            f"case {case.case_id!r} does not match the episode's own case "
+            f"{result.case_id!r}"
+        )
     decisions: list[RecordedDecision] = []
     for instance in result.phase_instances:
         for action in instance.actions:
@@ -162,7 +205,12 @@ def record_episode(result: EpisodeResult) -> RecordedEpisode:
                     response=action.response,
                 )
             )
-    return RecordedEpisode(case_id=result.case_id, decisions=tuple(decisions))
+    return RecordedEpisode(
+        case_id=result.case_id,
+        case_sha256=case.content_sha256,
+        cell_sha256=_cell_sha256(cell),
+        decisions=tuple(decisions),
+    )
 
 
 class RecordedResponseSource:
@@ -225,6 +273,23 @@ async def replay_episode(
     if recorded.case_id != case.case_id:
         raise ReplayError(
             f"recorded episode is for case {recorded.case_id!r}, not {case.case_id!r}"
+        )
+    if recorded.case_sha256 != case.content_sha256:
+        raise ReplayError(
+            f"recorded episode was produced from a different case body: "
+            f"recorded case_sha256={recorded.case_sha256}, "
+            f"supplied case_sha256={case.content_sha256} "
+            f"(same case_id {case.case_id!r}, different content -- e.g. a "
+            "changed valuation or upstream pin)"
+        )
+    if recorded.cell_sha256 != _cell_sha256(cell):
+        raise ReplayError(
+            f"recorded episode was produced from a different cell: "
+            f"recorded cell_sha256={recorded.cell_sha256}, "
+            f"supplied cell_sha256={_cell_sha256(cell)} "
+            f"(cell_id {cell.cell_id!r} -- a different profile_by_seat/seed/"
+            "replicate would still satisfy the scheduler's own case/cell "
+            "agreement check but is not the original execution's cell)"
         )
     response_source = RecordedResponseSource(recorded.decisions)
     result = await run_episode(
@@ -399,9 +464,19 @@ class ReplayReport:
 
     @property
     def status(self) -> str:
-        if self.comparison is not None and not self.comparison.matches:
-            return "mismatch"
-        return "match"
+        """``"match"``/``"mismatch"`` only when a comparison was actually made.
+
+        When ``original`` was never supplied to ``replay_and_verify``,
+        ``comparison`` is ``None`` -- no equality check ever ran, so this
+        must not report ``"match"`` for it: that would let downstream code
+        reading only ``status`` (never ``comparison`` itself) count an
+        uncompared episode as replay-verified
+        (docs/negarena_codex_triage.md Finding 4). ``"not_compared"`` is
+        reported instead, distinct from both real outcomes.
+        """
+        if self.comparison is None:
+            return "not_compared"
+        return "match" if self.comparison.matches else "mismatch"
 
 
 async def replay_and_verify(
