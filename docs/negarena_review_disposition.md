@@ -307,3 +307,128 @@ HIGH-2, 1 for HIGH-3's production path, 1 for MEDIUM-4, 2 for LOW-5). Same set w
 interpreter unset: **43 passed, 41 skipped, 0 failed** (bridge-dependent tests, including the new
 ones that need it, skip cleanly; the two Finding-5 tests and the one pure Finding-4 unit test need
 neither the bridge nor the network and run either way).
+
+## Verification follow-up
+
+Source: `docs/negarena_fix_verification.md`, an independent cross-model check of the second-review
+fix pass above. It reported Findings 2 and 3 as claimed-fixed-but-genuinely-incomplete, and
+Finding 5 as fixed in the code but not protected by its own named tests (both named tests exit via
+an introspection flag that never reaches the real assignment the finding was about). Each of the
+three was independently re-verified against the code before any further fix was made; per-item TDD
+red-first evidence and mutation-test results are below.
+
+### Finding 2 (remaining gap) — replay record still not bound to `cell_id`
+
+**Disposition: FIXED (the genuinely adapter-owned part); one part narrowed as a stated limit.**
+
+**Confirmed independently.** `record_episode` checked `case.case_id != result.case_id` but never
+`cell.cell_id != result.cell_id` — a caller could pass `record_episode` a `cell` argument that
+never actually produced `result`, sealing a `cell_sha256` from the wrong cell. Neither record time
+nor replay time alone would ever catch a *consistently* wrong cell supplied at both points, since
+replay only ever compares the sealed hash against whatever cell a later caller happens to supply.
+
+**Fix.** `record_episode` (`replay.py`) now also rejects `cell.cell_id != result.cell_id`,
+mirroring the existing case-identity check, before sealing any hash.
+
+**Test added.** `tests/test_negarena_harness.py::test_record_episode_rejects_a_cell_that_did_not_produce_the_result`.
+Verified failing first (`Failed: DID NOT RAISE ReplayError`) against the pre-fix `record_episode`.
+Mutation-verified: reverting only the new `cell.cell_id != result.cell_id` guard (copy to `/tmp`,
+edit, restore) reproduces the same failure; the guard restored, the test passes again.
+
+**Narrowed, not fixed.** The independent check also named a second gap: `RecordedEpisode` seals no
+`ImplementationPin`s, so a replay proves case/cell *content* identity but not that the same
+family-plugin/scorer/harness/runtime code produced the recording. `PlanCell` itself carries no
+pins field (pins live only on `RunPlan`), and `record_episode`/`replay_episode` take a `cell`/
+`case`, never a `RunPlan` — closing this would mean threading a `RunPlan` (or its pin tuple)
+through both functions' signatures, with no precedent anywhere in this repository (`tau3_retail`'s
+own `RecordedEpisode` binds neither content hashes nor pins). This is a shared replay-contract
+question, not a negarena-only implementation gap, so it is stated as a known limit in
+`docs/negarena_adapter_status.md`'s "Known limits" section rather than fixed here.
+
+### Finding 3 (remaining gap) — the complete evidence lifecycle was only ever sealed by a test's own manual call
+
+**Disposition: FIXED.**
+
+**Confirmed independently.** `record_full_evidence_lifecycle` (added by the second-review fix
+pass) was invoked nowhere in production code — the only call site anywhere in the repository was
+`tests/test_negarena_kernel_finalizer.py`'s own helper, which called `run_episode` then separately
+remembered to call `record_full_evidence_lifecycle` by hand. Nothing enforced that second call; a
+real caller reaching `finalize_family_execution` via `ScriptedNegarenaHarness` could forget it and
+seal only `negarena_decision_served` events.
+
+**Fix.** `run_scripted_negarena_episode` (`harness.py`) is now the one production entry point this
+adapter ships for driving a scripted episode: it drives `ScriptedNegarenaHarness` + `run_episode`
+and *always* calls `record_full_evidence_lifecycle` internally before returning, so a caller
+reaching a terminated episode through this function has the complete lifecycle by construction, not
+by remembering a second call. `test_negarena_kernel_finalizer.py`'s helper (the one place in the
+repository that reaches `finalize_family_execution`) was refactored to call this function instead
+of hand-wiring `run_episode` + a manual `record_full_evidence_lifecycle` call, so the two
+Finding-1/Finding-3 tests already in that module now depend on the production wiring, not a
+test-only shortcut.
+
+**Test added.** `tests/test_negarena_kernel_finalizer.py::test_run_scripted_negarena_episode_seals_the_complete_lifecycle_automatically`
+— calls only `run_scripted_negarena_episode`, with no manual `record_full_evidence_lifecycle` call
+anywhere in the test itself, and asserts the full lifecycle is present. Verified failing first
+(`ImportError: cannot import name 'run_scripted_negarena_episode'`) since the function did not yet
+exist. Mutation-verified: reverting only the internal `record_full_evidence_lifecycle` call (copy
+to `/tmp`, edit, restore) kills all three tests in the module, including
+`test_finalize_family_execution_does_not_crash_and_seals_a_typed_receipt` (Finding 1's own test,
+now transitively dependent on the same wiring) — restored, all three pass again.
+
+### Finding 5 (test/use-site gap) — the named tests never reached the real assignment
+
+**Disposition: FIXED.**
+
+**Confirmed independently.** Both tests named by the second-review fix pass
+(`test_default_upstream_root_matches_the_documented_sibling_checkout`,
+`test_default_upstream_root_agrees_between_a_main_checkout_and_a_worktree`) drive only
+`--print-default-upstream-root`, which calls `default_upstream_root` directly and exits before the
+real, normal-mode `UPSTREAM_ROOT="${AEREAD_NEGARENA_UPSTREAM_ROOT:-$(default_upstream_root
+"${HERE}")}"` assignment further down the script ever runs. Reverting only that real assignment
+(leaving the helper function and the flag untouched) left both tests green while normal
+provisioning broke again — reproduced directly (see mutation below).
+
+**Fix.** `provision.sh` now computes `UPSTREAM_ROOT` exactly once, immediately after
+`default_upstream_root` is defined — not a second time, later, right before the import-check gate
+as before. A new `--print-resolved-upstream-root` introspection flag prints that same variable and
+exits before creating a venv or touching the network; unlike `--print-default-upstream-root`, it
+honors an `AEREAD_NEGARENA_UPSTREAM_ROOT` override exactly like the real run does. Because the real
+assignment and the flag now read the identical, single-computed variable (not two independently
+maintained expressions), a regression in the real assignment cannot avoid being caught by a test
+that drives the new flag.
+
+**Tests added**, all network-free: `test_resolved_upstream_root_matches_the_default_when_no_override_is_set`,
+`test_resolved_upstream_root_honors_an_explicit_env_override` (a code path
+`--print-default-upstream-root` never exercised at all — it always ignored the environment), and
+`test_resolved_upstream_root_agrees_between_a_main_checkout_and_a_worktree` (the same synthetic
+main-checkout/worktree-depth proof as the pre-existing test, through the real assignment this
+time). Mutation-verified directly, reproducing the reviewer's exact scenario: copy the script to
+`/tmp`, revert only the real `UPSTREAM_ROOT=...` assignment to the pre-046e293 fixed-depth
+expression (`${HERE}/../../../../upstream-negarena`), leaving `default_upstream_root` and both
+flags untouched — the two pre-existing `--print-default-upstream-root` tests and the new env-
+override test still pass (3 passed), while the two new tests that check the resolved default at
+each checkout depth fail exactly as expected (2 failed). Restored, all 5 pass again.
+
+### D-15 (excluded from this pass, per instruction)
+
+`runner_defect_ledger.md` D-15 (kernel expects one `ScoreEnvelope` per family; `NegarenaScorer`
+already declares `__call__` for this, per the D-15 census) is latent, not live, and is a shared-
+kernel contract gap outside this branch's authority to resolve — no code change was made for it.
+Per D-15's own ruling, `__call__` does not silently pick one leaf's real value as primary: it
+reports the primary leaf (`negarena_seat_outcome`) as a typed `invalid_measurement` (no fabricated
+score) and never returns the second leaf (`negarena_agreement_reached`) at all through this path —
+i.e. it surfaces 0 of 2 leaves as real scores. This is now stated plainly, pointing at D-15, in
+`docs/negarena_adapter_status.md`'s "Known limits" section.
+
+### Final counts
+
+Full family test suite (`test_negarena_cases.py`, `test_negarena_environment.py`,
+`test_negarena_harness.py`, `test_negarena_kernel_finalizer.py`, `test_negarena_measurement.py`,
+`test_negarena_parity.py`, `test_negarena_provisioning.py`) + `tests/test_shared_runner_smoke.py`,
+bridge-backed (`AEREAD_NEGARENA_BRIDGE_PYTHON`/`AEREAD_NEGARENA_UPSTREAM_ROOT` exported): **89
+passed, 0 skipped, 0 failed** (315.28s) — 84 pre-existing plus 5 new regression tests (1 for
+Finding 2's remaining gap, 1 for Finding 3's remaining gap, 3 for Finding 5's use-site gap). Same
+set with the bridge interpreter unset: **46 passed, 43 skipped, 0 failed**; every skip reason is
+"upstream NegotiationArena Python interpreter unavailable" (checked directly with `pytest -rs`) —
+none of the 43 skips hides an unrun claim. `test_negarena_provisioning.py`'s 5 tests need neither
+the bridge nor the network and always run.

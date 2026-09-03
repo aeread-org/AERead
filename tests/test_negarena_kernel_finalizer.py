@@ -47,7 +47,6 @@ from aeread.shared_runner.resolver import (
     canonical_json_bytes,
     resolve_run_plan,
 )
-from aeread.shared_runner.scheduler import run_episode
 from aeread.shared_runner.schemas import (
     AgentProfile,
     AnalysisPlan,
@@ -68,10 +67,7 @@ from aeread_families.negarena.environment import (
     family_manifest,
     register_plugin,
 )
-from aeread_families.negarena.harness import (
-    ScriptedNegarenaHarness,
-    record_full_evidence_lifecycle,
-)
+from aeread_families.negarena.harness import run_scripted_negarena_episode
 from aeread_families.negarena.negarena_bridge import NegarenaBridge
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -367,6 +363,13 @@ def _build_negarena_run_plan(*, plugin: NegarenaPlugin, case: CaseManifest) -> t
 def _run_negarena_episode_through_finalizer(bridge, tmp_path: Path):
     """Drive one buy_sell golden-1 episode all the way to a sealed receipt.
 
+    Uses ``run_scripted_negarena_episode`` -- this adapter's one production
+    entry point for a scripted episode -- rather than hand-wiring
+    ``run_episode``/``record_full_evidence_lifecycle`` here: that function
+    seals the complete evidence lifecycle internally, so this helper (the
+    only place in the repository that reaches ``finalize_family_execution``)
+    can no longer forget the step (docs/negarena_codex_triage.md Finding 3).
+
     Returns ``(receipt, evidence, family_case)``.
     """
     case = _load_case("negarena.buy_sell.0", "buy_sell")
@@ -385,16 +388,14 @@ def _run_negarena_episode_through_finalizer(bridge, tmp_path: Path):
         episode_id=f"episode_{cell.cell_id}",
         episode_attempt_id="attempt_1",
     )
-    scripted = ScriptedNegarenaHarness(
-        evidence=evidence, script=_script_from_transcript(transcript)
-    )
     result = asyncio.run(
-        run_episode(cell=cell, case=case, plugin=resolved_plugin, response_source=scripted)
-    )
-    assert scripted.exhausted is True
-
-    record_full_evidence_lifecycle(
-        evidence=evidence, plugin=resolved_plugin, family_case=family_case, result=result
+        run_scripted_negarena_episode(
+            cell=cell,
+            case=case,
+            plugin=resolved_plugin,
+            evidence=evidence,
+            script=_script_from_transcript(transcript),
+        )
     )
     evidence.audit_reconciliation()
 
@@ -485,4 +486,62 @@ def test_finalize_family_execution_seals_the_complete_evidence_lifecycle(
     # Every logical action reconciles (started <-> succeeded), exactly what
     # audit_reconciliation already re-verifies inside finalize_family_execution
     # itself -- asserted again here directly against the raw log.
+    evidence.audit_reconciliation()
+
+
+def test_run_scripted_negarena_episode_seals_the_complete_lifecycle_automatically(
+    tmp_path: Path, bridge
+) -> None:
+    """Finding 3, closed for real (docs/negarena_fix_verification.md):
+    ``record_full_evidence_lifecycle`` used to be invoked only by hand, by
+    this very test module's own helper -- nothing in production code called
+    it, so a real caller could forget the extra step and reach
+    ``finalize_family_execution`` with an incomplete evidence log.
+    ``run_scripted_negarena_episode`` is now the one production entry point
+    this adapter ships for driving a scripted episode; this test makes no
+    manual ``record_full_evidence_lifecycle`` call at all, and the complete
+    lifecycle must still be sealed, because the function seals it internally
+    rather than leaving it to the caller.
+    """
+    case = _load_case("negarena.buy_sell.0", "buy_sell")
+    plugin = NegarenaPlugin(upstream_root=UPSTREAM_ROOT, bridge=bridge)
+    family_case = plugin.validate_payload(case.payload)
+    transcript = parity.build_buy_sell_golden_one(family_case)
+
+    plan, registry = _build_negarena_run_plan(plugin=plugin, case=case)
+    cell = plan.cells[0]
+    resolved_plugin = registry.resolve_manifest(family_manifest())
+
+    evidence = EvidenceStore(
+        tmp_path / "evidence",
+        run_plan_id=plan.run_plan_id,
+        cell_id=cell.cell_id,
+        episode_id=f"episode_{cell.cell_id}",
+        episode_attempt_id="attempt_1",
+    )
+
+    result = asyncio.run(
+        run_scripted_negarena_episode(
+            cell=cell,
+            case=case,
+            plugin=resolved_plugin,
+            evidence=evidence,
+            script=_script_from_transcript(transcript),
+        )
+    )
+    assert result.terminal["reason"] == "accepted"
+
+    event_types = {event.event_type for event in evidence.read_events()}
+    for required in (
+        "negarena_decision_served",
+        "phase_instance_started",
+        "logical_action_started",
+        "action_parsed",
+        "action_legality_checked",
+        "logical_action_succeeded",
+        "transition_applied",
+        "episode_terminated",
+        "family_outcome_recorded",
+    ):
+        assert required in event_types, f"missing evidence event type: {required}"
     evidence.audit_reconciliation()

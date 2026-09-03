@@ -188,12 +188,23 @@ def record_episode(
     that independently through ``run_episode``. ``case``/``cell`` must be the
     exact ones that produced ``result``: their content hashes are sealed into
     the recording so a later replay can detect a mismatched case or cell
-    (Finding 2) rather than silently accepting one.
+    (Finding 2) rather than silently accepting one. Both identities are
+    cross-checked against ``result`` itself at record time too -- a caller
+    passing the wrong ``cell`` (or ``case``) here would otherwise seal a
+    ``cell_sha256``/``case_sha256`` from an object that never actually
+    produced ``result``, and nothing at replay time alone could ever catch a
+    consistently-wrong cell/case supplied at both record and replay time
+    (docs/negarena_fix_verification.md, Finding 2's remaining gap).
     """
     if case.case_id != result.case_id:
         raise ReplayError(
             f"case {case.case_id!r} does not match the episode's own case "
             f"{result.case_id!r}"
+        )
+    if cell.cell_id != result.cell_id:
+        raise ReplayError(
+            f"cell {cell.cell_id!r} does not match the episode's own cell "
+            f"{result.cell_id!r}"
         )
     decisions: list[RecordedDecision] = []
     for instance in result.phase_instances:

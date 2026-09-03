@@ -18,9 +18,24 @@ These tests exercise only the path-resolution logic
 ``--print-default-upstream-root`` introspection flag -- never the full
 provisioning run (which creates a venv and calls ``pip install``, i.e. the
 network access this suite must stay free of).
+
+docs/negarena_fix_verification.md points out that the tests above never
+actually exercise the real provisioning use-site: the ``UPSTREAM_ROOT=...``
+assignment the normal (non-flag) run performs, which is what really gates
+the upstream import check. ``--print-default-upstream-root`` calls
+``default_upstream_root`` directly and always ignores any
+``AEREAD_NEGARENA_UPSTREAM_ROOT`` override, so reverting *only* the real
+assignment (while leaving the helper function and that flag untouched)
+left both tests above green while normal provisioning was broken again.
+``--print-resolved-upstream-root`` (below) is not a second, separately
+maintained copy of that logic -- ``provision.sh`` now computes
+``UPSTREAM_ROOT`` exactly once, and this flag and the real provisioning run
+both read that same variable, so a regression in the real assignment cannot
+avoid being caught by a test that drives this flag.
 """
 from __future__ import annotations
 
+import os
 import subprocess
 from pathlib import Path
 
@@ -39,6 +54,28 @@ def _print_default_upstream_root(script: Path) -> str:
         capture_output=True,
         text=True,
         check=True,
+    )
+    return result.stdout.strip()
+
+
+def _print_resolved_upstream_root(
+    script: Path, *, upstream_root_override: str | None = None
+) -> str:
+    """Drive ``--print-resolved-upstream-root`` -- the exact ``UPSTREAM_ROOT``
+    value the real (non-flag) provisioning run below it resolves and uses --
+    with a controlled environment so this never depends on whatever the
+    ambient shell happens to have exported."""
+    env = dict(os.environ)
+    if upstream_root_override is None:
+        env.pop("AEREAD_NEGARENA_UPSTREAM_ROOT", None)
+    else:
+        env["AEREAD_NEGARENA_UPSTREAM_ROOT"] = upstream_root_override
+    result = subprocess.run(
+        ["bash", str(script), "--print-resolved-upstream-root"],
+        capture_output=True,
+        text=True,
+        check=True,
+        env=env,
     )
     return result.stdout.strip()
 
@@ -88,3 +125,57 @@ def test_default_upstream_root_agrees_between_a_main_checkout_and_a_worktree(
 
     assert main_default == str(main_root / "upstream-negarena")
     assert worktree_default == str(worktree_root / "upstream-negarena")
+
+
+def test_resolved_upstream_root_matches_the_default_when_no_override_is_set() -> None:
+    """docs/negarena_fix_verification.md Finding 5: this drives the real
+    provisioning use-site's own ``UPSTREAM_ROOT=...`` assignment (via
+    ``--print-resolved-upstream-root``), not just the ``default_upstream_root``
+    helper function in isolation. With no ``AEREAD_NEGARENA_UPSTREAM_ROOT``
+    override, it must resolve to the same documented sibling checkout."""
+    assert (
+        _print_resolved_upstream_root(PROVISION_SCRIPT) == DOCUMENTED_SIBLING_CHECKOUT
+    )
+
+
+def test_resolved_upstream_root_honors_an_explicit_env_override() -> None:
+    """The real assignment is
+    ``${AEREAD_NEGARENA_UPSTREAM_ROOT:-$(default_upstream_root ...)}`` -- an
+    explicit override must take precedence over the computed default. This
+    is a code path ``--print-default-upstream-root`` never exercises at all:
+    that flag calls the helper function directly and always ignores the
+    environment."""
+    override = "/tmp/some-other-upstream-negarena-checkout"
+    assert (
+        _print_resolved_upstream_root(PROVISION_SCRIPT, upstream_root_override=override)
+        == override
+    )
+
+
+def test_resolved_upstream_root_agrees_between_a_main_checkout_and_a_worktree(
+    tmp_path: Path,
+) -> None:
+    """Same synthetic-layout proof as
+    ``test_default_upstream_root_agrees_between_a_main_checkout_and_a_worktree``
+    above, but through the real production assignment (no env override set)
+    at both checkout depths, rather than the bare helper function."""
+    main_root = tmp_path / "main"
+    worktree_root = tmp_path / "worktree"
+    main_checkout_script = _copy_script(
+        main_root / "AERead" / "tools" / "negarena_bridge" / "provision.sh"
+    )
+    worktree_script = _copy_script(
+        worktree_root
+        / "AERead"
+        / ".worktrees"
+        / "some-family"
+        / "tools"
+        / "negarena_bridge"
+        / "provision.sh"
+    )
+
+    main_resolved = _print_resolved_upstream_root(main_checkout_script)
+    worktree_resolved = _print_resolved_upstream_root(worktree_script)
+
+    assert main_resolved == str(main_root / "upstream-negarena")
+    assert worktree_resolved == str(worktree_root / "upstream-negarena")

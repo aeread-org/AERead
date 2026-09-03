@@ -35,7 +35,7 @@ import copy
 from typing import Any, Mapping, Sequence
 
 from aeread.shared_runner.execution import EvidenceStore
-from aeread.shared_runner.scheduler import EpisodeResult
+from aeread.shared_runner.scheduler import EpisodeResult, run_episode
 
 
 def _plain(value: Any) -> Any:
@@ -193,4 +193,46 @@ def record_full_evidence_lifecycle(
     evidence.append_event("family_outcome_recorded", {"outcome": result.outcome})
 
 
-__all__ = ["ScriptedNegarenaHarness", "record_full_evidence_lifecycle"]
+async def run_scripted_negarena_episode(
+    *,
+    cell: Any,
+    case: Any,
+    plugin: Any,
+    evidence: EvidenceStore,
+    script: Sequence[tuple[str, str, Mapping[str, Any]]],
+) -> EpisodeResult:
+    """Drive one scripted episode through the real scheduler and seal the
+    complete generic evidence lifecycle before returning.
+
+    This is the one production entry point this adapter ships for driving a
+    ``ScriptedNegarenaHarness``-served episode toward
+    ``aeread.shared_runner.family_evaluation.finalize_family_execution``.
+    Before this function existed, reaching that call site required a caller
+    to remember two separate steps -- drive ``run_episode`` with a
+    ``ScriptedNegarenaHarness``, *then* separately call
+    ``record_full_evidence_lifecycle`` -- and nothing enforced the second
+    step; the only place that ever actually made that call was a test
+    module's own helper, not production code
+    (docs/negarena_codex_triage.md Finding 3, closed for real in
+    docs/negarena_fix_verification.md). Any caller that reaches a
+    terminated episode through this function instead has the complete
+    lifecycle sealed by construction, not by remembering a second call.
+    """
+    scripted = ScriptedNegarenaHarness(evidence=evidence, script=script)
+    result = await run_episode(cell=cell, case=case, plugin=plugin, response_source=scripted)
+    if not scripted.exhausted:
+        raise RuntimeError(
+            "scripted negarena episode terminated before the script was exhausted"
+        )
+    family_case = plugin.validate_payload(case.payload)
+    record_full_evidence_lifecycle(
+        evidence=evidence, plugin=plugin, family_case=family_case, result=result
+    )
+    return result
+
+
+__all__ = [
+    "ScriptedNegarenaHarness",
+    "record_full_evidence_lifecycle",
+    "run_scripted_negarena_episode",
+]

@@ -32,6 +32,17 @@ Milestone 3 adds the scripted harness (`harness.py`) and offline replayer
   — negarena's Mode B phase graph declares `needs_tools: False`
   (`environment.py`'s `family_manifest`); the only artifact to script is the
   raw text response itself.
+- `run_scripted_negarena_episode` (`harness.py`) is the one production entry
+  point for driving a scripted episode toward `finalize_family_execution`:
+  it drives `run_episode` with `ScriptedNegarenaHarness`, then always seals
+  the complete generic evidence lifecycle
+  (`record_full_evidence_lifecycle` — phase/transition/terminal/outcome
+  events, matching what the shared kernel's own `MinimalChatExecutor` would
+  append live) before returning, so a caller cannot reach a terminated
+  episode's evidence with only `negarena_decision_served` events sealed
+  (docs/negarena_codex_triage.md Finding 3, closed for real in
+  docs/negarena_fix_verification.md — the sealing call used to be made only
+  by a test module's own helper, not by any production code path).
 - `replay.py` extracts the ordered decision log (`record_episode`), round-trips
   it through plain JSON (`RecordedEpisode.to_json`/`from_json`), and replays it
   through `run_episode` again with a fresh `NegarenaBridge`/`NegarenaPlugin`
@@ -42,23 +53,27 @@ Milestone 3 adds the scripted harness (`harness.py`) and offline replayer
 
 ## Evidence
 
-**74 of 74 negarena-family tests pass with the bridge genuinely wired in — not
+**89 of 89 negarena-family tests pass with the bridge genuinely wired in — not
 skipped.** Running the entire family test file set
 (`test_negarena_environment.py`, `test_negarena_cases.py`,
 `test_negarena_harness.py`, `test_negarena_parity.py`,
-`test_negarena_measurement.py`) plus `test_shared_runner_smoke.py` with
-`AEREAD_NEGARENA_BRIDGE_PYTHON` unset collects 40 pass / 34 skip (bridge tests
-skip cleanly when unprovisioned); with the bridge interpreter exported, the
-same 74 tests collect as **74 passed, 0 skipped, 0 failed**. Per-file
-collection: environment 18, cases 22, harness 7, parity 3, measurement 14,
-shared-runner smoke 10.
+`test_negarena_measurement.py`, `test_negarena_kernel_finalizer.py`,
+`test_negarena_provisioning.py`) plus `test_shared_runner_smoke.py` with
+`AEREAD_NEGARENA_BRIDGE_PYTHON` unset collects 46 pass / 43 skip (every skip
+is the same "upstream NegotiationArena Python interpreter unavailable"
+reason — bridge tests skip cleanly when unprovisioned, `test_negarena_provisioning.py`'s
+5 tests never need the bridge at all and always run); with the bridge
+interpreter exported, the same 89 tests collect as **89 passed, 0 skipped, 0
+failed**. Per-file collection: environment 21, cases 22, harness 11, parity 3,
+measurement 14, kernel_finalizer 3, provisioning 5, shared-runner smoke 10.
 
 ```bash
 export AEREAD_NEGARENA_BRIDGE_PYTHON="/Users/sunzeyu/Documents/econ benchmark/bridges/negarena-venv/bin/python"
 PY="/Users/sunzeyu/Documents/econ benchmark/AERead/.venv/bin/python"
 "$PY" -m pytest tests/test_negarena_environment.py tests/test_negarena_cases.py \
   tests/test_negarena_harness.py tests/test_negarena_parity.py \
-  tests/test_negarena_measurement.py tests/test_shared_runner_smoke.py -q
+  tests/test_negarena_measurement.py tests/test_negarena_kernel_finalizer.py \
+  tests/test_negarena_provisioning.py tests/test_shared_runner_smoke.py -q
 ```
 
 **Two full episodes driven through the real scheduler, both sealed.**
@@ -95,7 +110,7 @@ byte-identically on `player_outcome`.
 
 ## What it costs to run
 
-The full 74-test bridge-backed run took 278.5s on a heavily shared, 10-core
+The full 89-test bridge-backed run took 315.28s on a heavily shared, 10-core
 machine at load average ~10-12 (many concurrent unrelated test runs). Each
 bridge call spawns a fresh subprocess that imports the pinned upstream
 checkout (and transitively `openai`/`anthropic`) from scratch, so this number
@@ -152,3 +167,50 @@ notes the same effect at ~1.95s/call under lower contention).
   where a response missing e.g. `<player answer>` used to parse "clean"
   with a garbage value instead of surfacing as `malformed_action`
   (docs/negarena_review_claude.md CRITICAL-1).
+- **`NegarenaScorer.__call__` (the shared kernel's generic
+  `build_scorer(family_case)(outcome, evidence_refs=...)` call site,
+  `finalize_family_execution` et al.) surfaces neither declared leaf as a
+  real score — this is a stated limit, not a claimed working path.** The
+  kernel expects exactly one `ScoreEnvelope` per call
+  (`runner_defect_ledger.md` D-15: "the only production call site that
+  invokes `build_scorer` assumes a single-`ScoreEnvelope`-per-family
+  contract that no real family plugin satisfies"), while negarena publishes
+  two typed leaves (`negarena_seat_outcome`, `negarena_agreement_reached`).
+  Per D-15's ruling ("no adapter may add a `__call__` that silently picks
+  one leaf as primary... satisfying the kernel by contradicting the
+  measurement design is not a fix"), `__call__` does not compute a real
+  per-seat/agreement score at all: it always reports the primary leaf
+  (`negarena_seat_outcome`) as a typed `invalid_measurement`
+  ("`negarena_kernel_finalizer_lacks_seat_pairing_context`") because the
+  generic call site carries no seat/opponent-pairing context real per-seat
+  scoring needs, and it never returns anything for the second leaf
+  (`negarena_agreement_reached`) at all — that leaf is simply absent from
+  this path, not fabricated. So a caller reaching `finalize_family_execution`
+  through this call site alone sees 0 of 2 leaves scored; the real per-seat
+  and agreement scores are only ever produced by calling
+  `score_seat_outcome`/`score_agreement_reached` directly (as
+  `tests/test_negarena_harness.py` and `replay.py::score_replayed_episode`
+  already do), which is what every negarena test that asserts a real score
+  value uses. Whether `finalize_family_execution` should instead seal a leaf
+  *vector* is the kernel-owner decision D-15 defers; not this branch's to
+  resolve.
+- **`RecordedEpisode` binds a replay to case/cell *content* identity, not to
+  the implementation that produced it.** `record_episode`/`replay_episode`
+  (`replay.py`) now reject a mismatched case or cell by content hash
+  (`case_sha256`/`cell_sha256`) and by `case_id`/`cell_id`
+  (docs/negarena_fix_verification.md's remaining Finding-2 gap, closed).
+  What is still not sealed into a `RecordedEpisode` is which
+  `ImplementationPin`s (family plugin/scorer/harness/runtime versions) were
+  live in the `RunPlan` at record time: `PlanCell` itself carries no pins
+  field at all — pins exist only on `RunPlan`
+  (`aeread.shared_runner.resolver.RunPlan.implementation_pins`) — and
+  `record_episode`/`replay_episode`'s signatures take a `cell`/`case`, never
+  a `RunPlan`. Binding a recording to the implementation pins that produced
+  it would mean threading a `RunPlan` (or its pin tuple) through both
+  functions, a signature change with no precedent anywhere in this
+  repository: `tau3_retail`'s own `RecordedEpisode` binds neither content
+  hashes nor pins. Deciding whether replay-record provenance should include
+  implementation pins (and, if so, at what layer) is a shared
+  evidence/replay-contract question, not a negarena-only choice — flagging
+  it here rather than silently narrowing what "replay reproduces the
+  original execution" is proven to mean.

@@ -52,9 +52,38 @@ default_upstream_root() {
 # Test-only introspection hook: print the resolved default and exit, without
 # creating a venv or touching the network -- lets
 # tests/test_negarena_provisioning.py verify the path-resolution logic in
-# isolation (never by actually provisioning).
+# isolation (never by actually provisioning). Note this always calls
+# `default_upstream_root` directly, ignoring any
+# `AEREAD_NEGARENA_UPSTREAM_ROOT` override -- it exercises the helper
+# function alone, not the real assignment below.
 if [ "${1:-}" = "--print-default-upstream-root" ]; then
   default_upstream_root "${HERE}"
+  exit 0
+fi
+
+# The real provisioning run's own upstream-root resolution, computed once,
+# here -- not reimplemented anywhere else in this script. Previously this
+# was computed a second time, further down, right before the import check;
+# a test suite that only ever drove `--print-default-upstream-root` above
+# (which never reaches this assignment) could not tell a regression in *this*
+# expression apart from correct behavior, since reverting only this line
+# left every existing test green while normal provisioning broke again
+# (docs/negarena_codex_triage.md Finding 5; docs/negarena_fix_verification.md
+# on the gap in this fix's own regression coverage). Resolving it once, up
+# here, and reusing the same variable both for the introspection flag below
+# and for the real import-check gate further down closes that gap: any
+# revert of this expression now breaks both identically.
+if ! UPSTREAM_ROOT="${AEREAD_NEGARENA_UPSTREAM_ROOT:-$(default_upstream_root "${HERE}")}"; then
+  exit 1
+fi
+
+# Test-only introspection hook: print the value the real provisioning run
+# below actually resolves and uses -- honoring an
+# `AEREAD_NEGARENA_UPSTREAM_ROOT` override exactly like the real run does,
+# unlike `--print-default-upstream-root` above -- and exit before creating a
+# venv or touching the network.
+if [ "${1:-}" = "--print-resolved-upstream-root" ]; then
+  echo "${UPSTREAM_ROOT}"
   exit 0
 fi
 
@@ -98,10 +127,8 @@ while IFS= read -r requirement; do
 done < "${REQS}"
 
 # Prove the interpreter can actually do the one job it has, rather than
-# reporting success because pip exited zero.
-if ! UPSTREAM_ROOT="${AEREAD_NEGARENA_UPSTREAM_ROOT:-$(default_upstream_root "${HERE}")}"; then
-  exit 1
-fi
+# reporting success because pip exited zero. UPSTREAM_ROOT was already
+# resolved above -- the same value --print-resolved-upstream-root reports.
 if [ -d "${UPSTREAM_ROOT}/negotiationarena" ]; then
   if "${VENV}/bin/python" - "${UPSTREAM_ROOT}" >/dev/null 2>&1 <<'PY'
 import sys

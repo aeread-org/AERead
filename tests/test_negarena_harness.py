@@ -427,6 +427,34 @@ def test_replay_rejects_a_cell_with_a_different_opponent_profile(
         )
 
 
+def test_record_episode_rejects_a_cell_that_did_not_produce_the_result(
+    tmp_path: Path, bridge
+) -> None:
+    """docs/negarena_fix_verification.md Finding 2 (remaining gap):
+    ``record_episode`` validated ``case.case_id == result.case_id`` but never
+    ``cell.cell_id == result.cell_id`` -- a caller could seal a recording's
+    ``cell_sha256`` from an entirely different cell than the one that
+    actually produced ``result``. Neither record time nor replay time ever
+    caught that on its own: replay only ever compares the sealed
+    ``cell_sha256`` against whatever cell a *later* caller happens to supply,
+    so a consistently-wrong cell supplied at both record and replay time
+    would never be caught at all."""
+    case = _load_case("negarena.buy_sell.0", "buy_sell")
+    setup_plugin = NegarenaPlugin(upstream_root=UPSTREAM_ROOT, bridge=bridge)
+    family_case = setup_plugin.validate_payload(case.payload)
+    transcript = parity.build_buy_sell_golden_one(family_case)
+
+    cell, resolved_plugin, evidence, scripted, original = _run_live(
+        bridge, tmp_path, case=case, transcript=transcript, suffix="record_cell_mismatch"
+    )
+
+    wrong_cell = dataclasses.replace(cell, cell_id=f"{cell.cell_id}_a_different_cell")
+    assert wrong_cell.cell_id != original.cell_id
+
+    with pytest.raises(ReplayError, match="does not match the episode's own cell"):
+        record_episode(original, case=case, cell=wrong_cell)
+
+
 def test_replay_and_verify_ties_replay_comparison_and_scoring_together(
     tmp_path: Path, bridge
 ) -> None:
