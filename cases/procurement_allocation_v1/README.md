@@ -117,3 +117,119 @@ inference seeds per world measure stochastic reliability; the six distinct BOM a
 economic configurations provide the declared minimum for a case-variance pilot.
 The result remains a bounded diagnostic on this curated panel, not a
 population-level model ranking.
+
+## Blinded supplier-label mirror
+
+`blinded_v3/` contains a deterministic paired mirror of the six generated cases.
+Only supplier identifiers, neutral display names, and listing order change; the
+economics, objectives, policies, substantive listing claims, world seeds, and solver
+upper bounds remain fixed. Regenerate it with:
+
+```bash
+python -m aeread_families.procurement_allocation.case_matrix \
+  --panel blinded-v3 --write
+```
+
+Print the no-spend paired plan, or execute it after loading `OPENROUTER_API_KEY`:
+
+```bash
+python -m aeread_families.procurement_allocation.blinded_invariance \
+  --run-root \
+  runs/procurement_allocation/procurement_allocation_glm_morph_blinded_invariance_v3/qualification_attempt_001
+
+python -m aeread_families.procurement_allocation.blinded_invariance \
+  --run-root \
+  runs/procurement_allocation/procurement_allocation_glm_morph_blinded_invariance_v3/qualification_attempt_001 \
+  --max-spend-usd 0.30 \
+  --execute
+```
+
+The comparator pairs v3 rows to the frozen v2 campaign by case slug and inference
+seed. A behavior or score change remains a valid finding; missing or unreplayed rows,
+route drift, changed upper bounds, or digest failures block qualification.
+
+Every fresh execution first runs one unscored request-shape admission canary. A
+provider rejection stops before the panel; a later operational failure seals that
+cell and aborts the remaining queue. Do not resume such an aborted attempt—use a new
+attempt root so transient provider availability cannot selectively replace rows.
+
+The qualified v3 run is stored operationally at
+`runs/procurement_allocation/procurement_allocation_glm_morph_blinded_invariance_v3/qualification_attempt_004`.
+Its sanitized, digest-bound review bundle is
+`evidence/procurement_allocation_glm_morph_blinded_invariance_v3/`.
+
+## Paired open-source model comparison
+
+The Mistral Small 4 follow-up holds the six v2 cases, three inference seeds, action
+budget, Minimal Chat transport, and objective verifier fixed while changing the
+model route. It compares each Mistral row with the qualified GLM baseline row sharing
+the exact case ID and inference seed. Print the no-spend plan with:
+
+```bash
+python -m aeread_families.procurement_allocation.model_comparison \
+  --run-root \
+  runs/procurement_allocation/procurement_allocation_mistral_small4_case_variance_v1/qualification_attempt_001
+```
+
+Add `--execute` only after loading `OPENROUTER_API_KEY`. Execution is sequential,
+starts with an unscored exact-request admission canary, aborts after the first
+operational failure, and defaults to a $0.35 scored-run ceiling. Model effects use
+paired deltas and exact six-world cluster-bootstrap intervals; they remain a bounded
+panel diagnostic rather than a general model ranking.
+
+The first two fresh Mistral attempts each admitted the exact request canary and then
+returned an empty response on their first scored call. Both stopped with zero
+completed trajectories and 17 unattempted trajectories. This is a route-admission
+rejection, not a procurement score. Reproduce the sanitized audit projection with:
+
+```bash
+python -m aeread_families.procurement_allocation.model_comparison \
+  --audit-attempt-root runs/procurement_allocation/procurement_allocation_mistral_small4_case_variance_v1/qualification_attempt_001 \
+  --audit-attempt-root runs/procurement_allocation/procurement_allocation_mistral_small4_case_variance_v1/qualification_attempt_002 \
+  --publication-root evidence/procurement_allocation_mistral_small4_case_variance_v1
+```
+
+## Deterministic public-observation policy baselines
+
+`policy_baselines` runs four local policies through the same scheduler, environment,
+measurement leaf, and receipt-replay path as the model campaigns:
+
+- `defer` establishes the explicit outside option;
+- `displayed_price_greedy` qualifies the cheapest visible listing first;
+- `listing_claim_fit` prioritizes overlap with the required variant claim; and
+- `semantic_hint` additionally uses suggestive supplier identifiers and names.
+
+The adaptive policies can inspect only the public observation serialized in each
+provider request. They request formal offers and exact-variant samples, use newly
+visible capacity, MOQ, lead time, quality, and landed-cost terms, and either submit a
+service-feasible award or explicitly defer. They never receive `private_terms` or the
+case object.
+
+The campaign pairs each policy across the labeled v2 and opaque/reordered v3 panels.
+Planning is offline and execution has zero provider cost:
+
+```bash
+python -m aeread_families.procurement_allocation.policy_baselines \
+  --run-root runs/procurement_allocation/procurement_allocation_public_policy_baselines_v1/qualification_attempt_001
+
+python -m aeread_families.procurement_allocation.policy_baselines \
+  --run-root runs/procurement_allocation/procurement_allocation_public_policy_baselines_v1/qualification_attempt_001 \
+  --publication-root evidence/procurement_allocation_public_policy_baselines_v1 \
+  --execute
+```
+
+These policies are diagnostic floors, not oracle substitutes. The deterministic
+full-information bound remains the certified reference.
+
+The qualified run completed and replayed all 48 rows at zero provider cost. Both
+displayed-price and listing-claim policies were feasible in 6/6 worlds on each
+surface, with 19.6667 mean completed kits and $58.0359 mean contribution margin.
+Their blinded-minus-labeled outcome deltas were exactly zero. The semantic-hint
+policy changed outcomes in three worlds and improved by $4.0138 after names became
+opaque, showing that suggestive labels are not uniformly helpful.
+
+Against GLM after averaging its three seeds within each world, displayed-price greedy
+had +$28.4986 mean margin on labeled/original cases and +$54.9200 on
+opaque/reordered cases. The associated six-world cluster intervals exclude zero, so
+this panel is not saturated by the qualified GLM route. The tracked evidence is at
+`evidence/procurement_allocation_public_policy_baselines_v1/`.

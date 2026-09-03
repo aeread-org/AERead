@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 
 import aeread_families.procurement_allocation.model_campaign as campaign_module
+from aeread.shared_runner.task.execution import ProviderFailure
 
 from aeread_families.procurement_allocation.model_campaign import (
     CAMPAIGN_ID,
@@ -33,6 +34,7 @@ from aeread_families.procurement_allocation.runner import (
     CASE_PATH,
     SequenceResponseProvider,
 )
+from aeread_families.procurement_grounding.bakeoff import OPEN_WEIGHT_CANDIDATES
 
 
 def _response(action: dict) -> str:
@@ -109,6 +111,28 @@ def test_model_plan_holds_harness_fixed_and_separates_case_variance() -> None:
     )
 
 
+def test_model_plan_can_bind_all_route_dependent_fields_to_another_candidate() -> None:
+    mistral = next(
+        candidate
+        for candidate in OPEN_WEIGHT_CANDIDATES
+        if candidate.candidate_id == "mistral_small4"
+    )
+    plan = planned_model_qualification(
+        case_paths=(CASE_PATH,),
+        inference_seeds=(231,),
+        campaign_id="procurement_allocation_mistral_test",
+        candidate=mistral,
+    )
+
+    assert plan["model"] == mistral.route.model
+    assert plan["revision"] == mistral.route.revision
+    assert plan["provider"] == mistral.route.route_provider
+    assert plan["pricing_id"] == mistral.route.pricing.pricing_id
+    assert plan["conservative_cost_ceiling_usd"] == pytest.approx(
+        conservative_cost_ceiling(case_count=1, seed_count=1, candidate=mistral)
+    )
+
+
 def test_case_matrix_is_grounded_distinct_and_objectively_scorable() -> None:
     grounding = validate_grounding_snapshot()
     cases = build_case_matrix()
@@ -121,7 +145,9 @@ def test_case_matrix_is_grounded_distinct_and_objectively_scorable() -> None:
         assert json.loads(path.read_text(encoding="utf-8")) == raw
         case = campaign_module.load_case(path)
         bound = solve_full_information_upper_bound(case.payload)
-        assert bound.contribution_margin_usd > case.payload["objective"]["defer_value_usd"]
+        assert (
+            bound.contribution_margin_usd > case.payload["objective"]["defer_value_usd"]
+        )
         assert bound.actions_required <= 10
 
 
@@ -159,6 +185,7 @@ def test_summary_keeps_provider_failure_out_of_procurement_means() -> None:
 
     assert summary["reliability"] == pytest.approx(0.5)
     assert summary["operational_failure_count"] == 1
+    assert summary["unattempted_trajectory_count"] == 0
     assert summary["mean_contribution_margin_usd"] == pytest.approx(12.5)
     assert summary["feasible_rate_among_completed"] == pytest.approx(1.0)
     assert summary["readiness"] == {
@@ -209,20 +236,19 @@ def test_provider_free_model_campaign_replays_and_resumes(tmp_path: Path) -> Non
     assert (run_root / "model_plan.json").is_file()
     assert (run_root / "summary.json").is_file()
 
-    evidence_root = (
-        tmp_path
-        / "evidence"
-        / CAMPAIGN_ID
-    )
+    evidence_root = tmp_path / "evidence" / CAMPAIGN_ID
     published = publish_model_qualification(
         run_root=run_root,
         publication_root=evidence_root,
+        supplemental_reports={"reports/paired_invariance.json": {"paired": True}},
     )
     assert (evidence_root / "README.md").is_file()
     assert (evidence_root / "publication_manifest.json").is_file()
     assert (evidence_root / "reports" / "qualification.json").is_file()
+    assert (evidence_root / "reports" / "paired_invariance.json").is_file()
     assert (evidence_root / "tables" / "fact_manifest.json").is_file()
     assert published["review"]["rows"] == artifact["rows"]
+    assert "reports/paired_invariance.json" in published["manifest"]["artifacts"]
     serialized = (evidence_root / "reports" / "qualification.json").read_text()
     assert "raw_response" not in serialized
     assert "OPENROUTER_API_KEY" not in serialized
@@ -251,6 +277,61 @@ def test_provider_free_model_campaign_replays_and_resumes(tmp_path: Path) -> Non
     )
     assert resumed["rows"] == artifact["rows"]
     assert resumed["preflight"] == artifact["preflight"]
+
+
+def test_campaign_aborts_after_first_operational_failure_and_cannot_resume(
+    tmp_path: Path,
+) -> None:
+    run_root = tmp_path / "runs" / CAMPAIGN_ID / "attempt_001"
+    providers = []
+
+    class RateLimitedProvider:
+        async def complete(self, _request):
+            raise ProviderFailure(
+                "rate_limit", "upstream overloaded", retryable=True, status_code=429
+            )
+
+    def provider_factory():
+        provider = RateLimitedProvider()
+        providers.append(provider)
+        return provider
+
+    artifact = asyncio.run(
+        run_model_qualification(
+            run_root=run_root,
+            case_paths=(CASE_PATH,),
+            inference_seeds=(231, 232),
+            max_spend_usd=0.03,
+            max_parallel_cells=1,
+            abort_on_operational_failure=True,
+            provider_factory=provider_factory,
+            preflight_fn=lambda _candidate: {"route_verified": True},
+        )
+    )
+
+    assert len(providers) == 1
+    assert len(artifact["rows"]) == 1
+    assert artifact["rows"][0]["failure_condition"] == "rate_limit"
+    assert artifact["summary"]["operational_failure_count"] == 1
+    assert artifact["summary"]["unattempted_trajectory_count"] == 1
+    assert artifact["summary"]["readiness"]["execution_qualified"] is False
+
+    with pytest.raises(ValueError, match="fresh attempt root"):
+        asyncio.run(
+            run_model_qualification(
+                run_root=run_root,
+                case_paths=(CASE_PATH,),
+                inference_seeds=(231, 232),
+                max_spend_usd=0.03,
+                max_parallel_cells=1,
+                resume=True,
+                abort_on_operational_failure=True,
+                provider_factory=lambda: (_ for _ in ()).throw(
+                    AssertionError("provider must not run")
+                ),
+                preflight_fn=lambda _candidate: {"route_verified": True},
+            )
+        )
 
 
 def test_live_output_requires_canonical_runs_root(tmp_path: Path) -> None:

@@ -1,4 +1,5 @@
 """Structural checks for the discoverable, versioned case catalog."""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -69,6 +70,14 @@ def test_procurement_allocation_development_case_is_discoverable() -> None:
         "moq_capacity_split.json",
         "quality_refund.json",
         "quality_speed_margin.json",
+        "service_defer.json",
+        "variant_substitution.json",
+        "working_capital.json",
+    ]
+    assert sorted(path.name for path in (family / "blinded_v3").glob("*.json")) == [
+        "deadline_cost.json",
+        "moq_capacity_split.json",
+        "quality_refund.json",
         "service_defer.json",
         "variant_substitution.json",
         "working_capital.json",
