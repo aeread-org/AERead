@@ -268,24 +268,44 @@ def build_hammer_rule_leaf() -> MeasurementLeafSpec:
     )
 
 
-def _field_roster_sha256(field_seats: Sequence[Mapping[str, Any]]) -> str:
-    """Pin the frozen field: seat ids, model_name, budgets (spec section 2).
+def _field_roster_sha256(
+    field_seats: Sequence[Mapping[str, Any]], item_ids: Sequence[Any] = ()
+) -> str:
+    """Pin the frozen field (seat ids, model_name, budgets) *and* this
+    case's item order -- both are declared part of the estimand (spec
+    section 2: "the frozen bidder field ... and the pairing (same
+    ``case_id``, same item order, same ``world_seed``) are part of the
+    estimand"). Two cases with the same field but a different item order
+    (a genuinely different matchup) now hash differently.
 
-    Part of the estimand, not an afterthought: two cases with the same item
-    order/seed but a different declared field are different claims.
+    ``case_id``/``world_seed`` are *not* included: ``build_scorer`` is
+    called with only a bare ``family_case`` payload (the kernel's own
+    ``plugin.build_scorer(family_case)`` calling convention never passes a
+    ``cell``, and ``case_id``/``world_seed`` both live on the outer
+    ``CaseManifest``/``PlanCell``, not inside ``payload``), so neither is
+    reachable from here without a kernel signature change. That half of the
+    pairing identity is tracked at the outer kernel bookkeeping layer
+    instead (``cell_id``/``case_id`` already on the receipt) -- see
+    ``docs/aucarena_codex_triage.md`` Finding 6 and
+    ``docs/aucarena_adapter_spec.md`` section 2's own narrower restatement.
     """
-    payload = [
-        {
-            "seat_id": seat["seat_id"],
-            "model_name": seat["model_name"],
-            "budget": seat["budget"],
-        }
-        for seat in field_seats
-    ]
+    payload = {
+        "field": [
+            {
+                "seat_id": seat["seat_id"],
+                "model_name": seat["model_name"],
+                "budget": seat["budget"],
+            }
+            for seat in field_seats
+        ],
+        "item_order": list(item_ids),
+    }
     return hashlib.sha256(canonical_json_bytes(payload)).hexdigest()
 
 
-def build_profit_vs_field_leaf(field_seats: Sequence[Mapping[str, Any]]) -> MeasurementLeafSpec:
+def build_profit_vs_field_leaf(
+    field_seats: Sequence[Mapping[str, Any]], item_ids: Sequence[Any] = ()
+) -> MeasurementLeafSpec:
     """Leaf: tested seat's terminal profit against the declared field.
 
     Always declared, even when ``field_seats`` is empty (golden 5) -- the
@@ -308,7 +328,7 @@ def build_profit_vs_field_leaf(field_seats: Sequence[Mapping[str, Any]]) -> Meas
         reference_kind="head_to_head",
         input_scope="terminal_state",
         units="usd",
-        source_sha256=_field_roster_sha256(field_seats),
+        source_sha256=_field_roster_sha256(field_seats, item_ids),
         implementation=_implementation(
             "aucarena_profit_vs_field_delta", "measurement.py"
         ),
@@ -327,13 +347,15 @@ def build_profit_vs_field_leaf(field_seats: Sequence[Mapping[str, Any]]) -> Meas
     )
 
 
-def build_leaves(field_seats: Sequence[Mapping[str, Any]]) -> tuple[MeasurementLeafSpec, ...]:
+def build_leaves(
+    field_seats: Sequence[Mapping[str, Any]], item_ids: Sequence[Any] = ()
+) -> tuple[MeasurementLeafSpec, ...]:
     """The four leaves this family always declares (spec section 2)."""
     return (
         build_budget_invariant_leaf(),
         build_bid_legality_leaf(),
         build_hammer_rule_leaf(),
-        build_profit_vs_field_leaf(field_seats),
+        build_profit_vs_field_leaf(field_seats, item_ids),
     )
 
 
@@ -805,10 +827,11 @@ def build_scorer(
     field_seats = tuple(
         seat for seat in family_case["roster"] if seat["seat_id"] != tested_seat_id
     )
+    item_ids = tuple(item["id"] for item in family_case["items"])
     return AucArenaScorer(
         field_seats=field_seats,
         tested_seat_id=tested_seat_id,
-        leaves=build_leaves(field_seats),
+        leaves=build_leaves(field_seats, item_ids),
     )
 
 

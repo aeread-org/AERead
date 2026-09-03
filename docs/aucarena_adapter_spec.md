@@ -100,10 +100,20 @@ game.** No `objective_reference` leaf is declared. Four leaves, all `composition
 
 `aucarena_profit_vs_field`'s comparator (the frozen bidder field: seat ids, `model_name`,
 budgets) and the pairing (same `case_id`, same item order, same `world_seed`) are part of the
-estimand per `verifier_taxonomy.md` §6 — never a global auction-skill score. `evaluation_class
-= "deterministic"` for all four leaves in the scripted-rule-bidder scope of this spec (no
-sampling, no judge). `measurement_validity` (§9 of the taxonomy) governs when
-`aucarena_profit_vs_field` is declared `invalid_measurement` instead of scored — see golden 5.
+estimand per `verifier_taxonomy.md` §6 — never a global auction-skill score. This leaf's own
+machine-checkable `reference.source_sha256` hashes the field roster *and* the item order
+(`measurement.py`'s `_field_roster_sha256`): two cases with the same field but a different item
+order are a genuinely different matchup and hash differently. `case_id`/`world_seed` are *not*
+folded into that hash — `build_scorer` is called with only a bare `family_case` payload (the
+kernel's own `plugin.build_scorer(family_case)` calling convention never passes a `cell`, and
+`case_id`/`world_seed` both live on the outer `CaseManifest`/`PlanCell`, not inside `payload`),
+so neither is reachable from this leaf without a kernel signature change. That half of the
+pairing identity is tracked at the outer kernel bookkeeping layer instead (`cell_id`/`case_id`
+already on the evaluation receipt), not duplicated inside this leaf's own declared identity
+(`docs/aucarena_codex_triage.md` Finding 6). `evaluation_class = "deterministic"` for all four
+leaves in the scripted-rule-bidder scope of this spec (no sampling, no judge).
+`measurement_validity` (§9 of the taxonomy) governs when `aucarena_profit_vs_field` is declared
+`invalid_measurement` instead of scored — see golden 5.
 
 ## 3. Adapter boundary
 

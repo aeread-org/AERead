@@ -152,6 +152,54 @@ def test_build_scorer_field_seats_excludes_the_tested_seat() -> None:
     assert {seat["seat_id"] for seat in scorer.field_seats} == {"field_low", "field_high"}
 
 
+def test_profit_vs_field_reference_hash_distinguishes_item_order_not_only_the_field() -> None:
+    """``docs/aucarena_codex_triage.md`` Finding 6: the adapter spec (section
+    2) declares the item order part of ``aucarena_profit_vs_field``'s
+    estimand identity ("the pairing (same case_id, same item order, same
+    world_seed) are part of the estimand"), but the reference hash used to
+    hash only the field roster. Two cases with an identical field but a
+    genuinely different matchup (item order reversed) must not collide."""
+    field_seats = ({"seat_id": "field_low", "model_name": "rule", "budget": 2000},)
+    leaf_forward = m.build_profit_vs_field_leaf(field_seats, item_ids=(1, 2, 3))
+    leaf_reversed = m.build_profit_vs_field_leaf(field_seats, item_ids=(3, 2, 1))
+    leaf_forward_again = m.build_profit_vs_field_leaf(field_seats, item_ids=(1, 2, 3))
+
+    assert (
+        leaf_forward.verifier.reference.source_sha256
+        != leaf_reversed.verifier.reference.source_sha256
+    )
+    assert (
+        leaf_forward.verifier.reference.source_sha256
+        == leaf_forward_again.verifier.reference.source_sha256
+    )
+
+
+def test_build_scorer_reference_hash_reflects_the_real_cases_item_order() -> None:
+    """End-to-end (not just the leaf builder in isolation): two validated
+    ``family_case`` payloads sharing one field roster but reordering the
+    same items produce different ``build_scorer(...)`` reference hashes."""
+    _, family_case = _run("successful", _min_markup_policy)
+    plugin = AucArenaPlugin()
+
+    forward_payload = dict(family_case)
+    reversed_payload = {
+        **family_case,
+        "item_ids": list(reversed(family_case["item_ids"])),
+        "items": list(reversed(family_case["items"])),
+    }
+
+    forward_case = plugin.validate_payload(forward_payload)
+    reversed_case = plugin.validate_payload(reversed_payload)
+
+    forward_scorer = m.build_scorer(forward_case)
+    reversed_scorer = m.build_scorer(reversed_case)
+
+    assert (
+        forward_scorer.profit_vs_field_leaf.verifier.reference.source_sha256
+        != reversed_scorer.profit_vs_field_leaf.verifier.reference.source_sha256
+    )
+
+
 # ---------------------------------------------------------------------------
 # Golden 1: successful_01.
 # ---------------------------------------------------------------------------
