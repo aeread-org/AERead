@@ -13,6 +13,7 @@ import asyncio
 import hashlib
 import importlib.metadata
 import json
+import math
 import os
 import statistics
 import time
@@ -147,6 +148,7 @@ def planned_model_qualification(
     max_action_attempts: int = 1,
     retryable_conditions: Sequence[str] = (),
     retry_backoff: str | None = None,
+    retry_after_max_seconds: float = 60.0,
 ) -> dict[str, Any]:
     if not inference_seeds:
         raise ValueError("inference_seeds cannot be empty")
@@ -185,6 +187,13 @@ def planned_model_qualification(
         raise ValueError("declared retries require exponential_jitter_v1 backoff")
     if not retries_enabled and retry_backoff is not None:
         raise ValueError("retry_backoff requires declared retries")
+    if (
+        isinstance(retry_after_max_seconds, bool)
+        or not isinstance(retry_after_max_seconds, (int, float))
+        or not math.isfinite(float(retry_after_max_seconds))
+        or retry_after_max_seconds <= 0
+    ):
+        raise ValueError("retry_after_max_seconds must be finite and positive")
     cases = _case_records(case_paths)
     route = candidate.route
     plan = {
@@ -220,6 +229,7 @@ def planned_model_qualification(
                 "max_action_attempts": max_action_attempts,
                 "retryable_conditions": list(resolved_retryable_conditions),
                 "retry_backoff": retry_backoff,
+                "retry_after_max_seconds": retry_after_max_seconds,
                 "session_mode": "restart",
                 "sdk_retries": 0,
                 "cost_boundary": "retry only known-zero-cost provider failures",
@@ -811,6 +821,7 @@ async def _run_cell(
     max_action_attempts: int,
     retryable_conditions: Sequence[str],
     retry_backoff: str | None,
+    retry_after_max_seconds: float,
 ) -> dict[str, Any]:
     setup = build_openrouter_setup(
         candidate.route,
@@ -825,6 +836,7 @@ async def _run_cell(
         max_action_attempts=max_action_attempts,
         retryable_conditions=retryable_conditions,
         retry_backoff=retry_backoff,
+        retry_after_max_seconds=retry_after_max_seconds,
     )
     cell = setup.plan.cells[0]
     case_directory = _safe_case_directory(setup.case.case_id, setup.case.content_sha256)
@@ -956,6 +968,7 @@ async def run_model_qualification(
     max_action_attempts: int = 1,
     retryable_conditions: Sequence[str] = (),
     retry_backoff: str | None = None,
+    retry_after_max_seconds: float = 60.0,
 ) -> dict[str, Any]:
     cases = _case_records(case_paths)
     plan = planned_model_qualification(
@@ -972,6 +985,7 @@ async def run_model_qualification(
         max_action_attempts=max_action_attempts,
         retryable_conditions=retryable_conditions,
         retry_backoff=retry_backoff,
+        retry_after_max_seconds=retry_after_max_seconds,
     )
     if plan["conservative_cost_ceiling_usd"] > max_spend_usd:
         raise ValueError(
@@ -1045,6 +1059,7 @@ async def run_model_qualification(
                     max_action_attempts=max_action_attempts,
                     retryable_conditions=retryable_conditions,
                     retry_backoff=retry_backoff,
+                    retry_after_max_seconds=retry_after_max_seconds,
                 )
                 rows.append(row)
                 if row.get("status") == "operational_failure":
@@ -1065,6 +1080,7 @@ async def run_model_qualification(
                             max_action_attempts=max_action_attempts,
                             retryable_conditions=retryable_conditions,
                             retry_backoff=retry_backoff,
+                            retry_after_max_seconds=retry_after_max_seconds,
                         )
                         for case_path, inference_seed in queued_missing
                     )

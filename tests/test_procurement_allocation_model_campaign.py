@@ -391,7 +391,10 @@ def test_declared_runner_retry_recovers_429_and_remains_visible(
 ) -> None:
     run_root = tmp_path / "runs" / "procurement_retry_v1" / "attempt_001"
 
-    async def no_wait(_seconds: float) -> None:
+    waits: list[float] = []
+
+    async def no_wait(seconds: float) -> None:
+        waits.append(seconds)
         return None
 
     monkeypatch.setattr(execution_module.asyncio, "sleep", no_wait)
@@ -409,6 +412,7 @@ def test_declared_runner_retry_recovers_429_and_remains_visible(
                     "synthetic shared pool limit",
                     retryable=True,
                     status_code=429,
+                    retry_after_seconds=30,
                 )
             return await self.delegate.complete(request)
 
@@ -438,11 +442,13 @@ def test_declared_runner_retry_recovers_429_and_remains_visible(
     assert row["provider_call_count"] == provider.calls
     assert artifact["summary"]["runner_retry_count"] == 1
     assert artifact["summary"]["retry_condition_counts"] == {"rate_limit": 1}
+    assert waits == [30]
     assert artifact["plan"]["retry_policy"] == {
         "owner": "shared_runner",
         "max_action_attempts": 3,
         "retryable_conditions": ["rate_limit", "provider_5xx"],
         "retry_backoff": "exponential_jitter_v1",
+        "retry_after_max_seconds": 60.0,
         "session_mode": "restart",
         "sdk_retries": 0,
         "cost_boundary": "retry only known-zero-cost provider failures",

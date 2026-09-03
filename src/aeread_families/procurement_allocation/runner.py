@@ -7,6 +7,7 @@ import asyncio
 import hashlib
 import inspect
 import json
+import math
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Mapping, Sequence
@@ -471,6 +472,7 @@ def build_openrouter_setup(
     max_action_attempts: int = 1,
     retryable_conditions: Sequence[str] = (),
     retry_backoff: str | None = None,
+    retry_after_max_seconds: float = 60.0,
 ) -> ProcurementAllocationSetup:
     if seed < 0:
         raise ValueError("seed must be non-negative")
@@ -503,6 +505,13 @@ def build_openrouter_setup(
         )
     if not retries_enabled and retry_backoff is not None:
         raise ValueError("retry_backoff requires declared procurement retries")
+    if (
+        isinstance(retry_after_max_seconds, bool)
+        or not isinstance(retry_after_max_seconds, (int, float))
+        or not math.isfinite(float(retry_after_max_seconds))
+        or retry_after_max_seconds <= 0
+    ):
+        raise ValueError("retry_after_max_seconds must be finite and positive")
     template = build_offline_setup(
         case_path=case_path,
         prompt=prompt,
@@ -529,6 +538,9 @@ def build_openrouter_setup(
     }
     if retry_backoff is not None:
         harness_config["retry_backoff"] = retry_backoff
+        harness_config["retry_after_max_seconds"] = float(
+            retry_after_max_seconds
+        )
     profile = AgentProfile.from_dict(
         {
             "spec_version": AgentProfile.SPEC_VERSION,

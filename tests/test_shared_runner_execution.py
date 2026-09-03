@@ -1010,6 +1010,10 @@ def test_openrouter_adapter_classifies_embedded_429_as_retryable_rate_limit() ->
                 "error": {
                     "code": 429,
                     "message": "upstream provider shared pool is busy",
+                    "metadata": {
+                        "retry_after_seconds": 30,
+                        "headers": {"Retry-After": "30"},
+                    },
                 }
             }
             return SimpleNamespace(model_dump=lambda mode: raw)
@@ -1023,6 +1027,7 @@ def test_openrouter_adapter_classifies_embedded_429_as_retryable_rate_limit() ->
     assert caught.value.condition == "rate_limit"
     assert caught.value.retryable is True
     assert caught.value.status_code == 429
+    assert caught.value.retry_after_seconds == 30
 
 
 def test_openrouter_adapter_requires_key_before_constructing_default_sdk(

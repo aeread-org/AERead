@@ -15,6 +15,7 @@ import fcntl
 import hashlib
 import inspect
 import json
+import math
 import os
 import shutil
 import stat
@@ -60,6 +61,7 @@ class ProviderFailure(RuntimeError):
         *,
         retryable: bool,
         status_code: int | None = None,
+        retry_after_seconds: float | None = None,
     ) -> None:
         super().__init__(message)
         if not isinstance(condition, str) or not condition:
@@ -67,6 +69,47 @@ class ProviderFailure(RuntimeError):
         self.condition = condition
         self.retryable = bool(retryable)
         self.status_code = status_code
+        if retry_after_seconds is not None and (
+            not math.isfinite(retry_after_seconds) or retry_after_seconds < 0
+        ):
+            raise ValueError(
+                "ProviderFailure.retry_after_seconds must be finite and non-negative"
+            )
+        self.retry_after_seconds = retry_after_seconds
+
+
+def _retry_after_value(value: Any) -> float | None:
+    if isinstance(value, bool):
+        return None
+    try:
+        parsed = float(value)
+    except (TypeError, ValueError):
+        return None
+    return parsed if math.isfinite(parsed) and parsed >= 0 else None
+
+
+def _retry_after_from_mapping(value: Any) -> float | None:
+    if not isinstance(value, Mapping):
+        return None
+    candidates: list[Any] = [
+        value.get("retry_after_seconds"),
+        value.get("retry_after_seconds_raw"),
+    ]
+    metadata = value.get("metadata")
+    if isinstance(metadata, Mapping):
+        candidates.extend(
+            [
+                metadata.get("retry_after_seconds"),
+                metadata.get("retry_after_seconds_raw"),
+            ]
+        )
+        headers = metadata.get("headers")
+        if isinstance(headers, Mapping):
+            candidates.extend([headers.get("Retry-After"), headers.get("retry-after")])
+    for candidate in candidates:
+        if (parsed := _retry_after_value(candidate)) is not None:
+            return parsed
+    return None
 
 
 class ToolFailure(RuntimeError):
@@ -1021,8 +1064,23 @@ class OpenAIResponsesClient:
         if name in {"APITimeoutError", "TimeoutError"}:
             return ProviderFailure("timeout", str(error), retryable=True)
         if name == "RateLimitError" or status_code == 429:
+            retry_after_seconds = None
+            response = getattr(error, "response", None)
+            headers = getattr(response, "headers", None)
+            if isinstance(headers, Mapping):
+                retry_after_seconds = _retry_after_value(
+                    headers.get("Retry-After") or headers.get("retry-after")
+                )
+            if retry_after_seconds is None:
+                retry_after_seconds = _retry_after_from_mapping(
+                    getattr(error, "body", None)
+                )
             return ProviderFailure(
-                "rate_limit", str(error), retryable=True, status_code=status_code
+                "rate_limit",
+                str(error),
+                retryable=True,
+                status_code=status_code,
+                retry_after_seconds=retry_after_seconds,
             )
         if name == "APIConnectionError":
             return ProviderFailure("transport", str(error), retryable=True)
@@ -1423,7 +1481,9 @@ class OpenRouterChatClient:
         if isinstance(top_level_error, Mapping):
             status_code = top_level_error.get("code")
             message = str(top_level_error.get("message") or "OpenRouter request failed")
-            raise OpenRouterChatClient._provider_error(status_code, message)
+            raise OpenRouterChatClient._provider_error(
+                status_code, message, top_level_error
+            )
         choices = raw_response.get("choices")
         if not isinstance(choices, list) or len(choices) != 1:
             raise ProviderFailure(
@@ -1436,7 +1496,9 @@ class OpenRouterChatClient:
         if isinstance(choice_error, Mapping):
             status_code = choice_error.get("code")
             message = str(choice_error.get("message") or "OpenRouter choice failed")
-            raise OpenRouterChatClient._provider_error(status_code, message)
+            raise OpenRouterChatClient._provider_error(
+                status_code, message, choice_error
+            )
         if isinstance(choice, Mapping) and choice.get("finish_reason") == "error":
             raise ProviderFailure(
                 "provider_rejected",
@@ -1447,11 +1509,17 @@ class OpenRouterChatClient:
         return raw_response, choice, message
 
     @staticmethod
-    def _provider_error(status_code: Any, message: str) -> ProviderFailure:
+    def _provider_error(
+        status_code: Any, message: str, payload: Mapping[str, Any] | None = None
+    ) -> ProviderFailure:
         resolved_status = status_code if isinstance(status_code, int) else None
         if resolved_status == 429:
             return ProviderFailure(
-                "rate_limit", message, retryable=True, status_code=resolved_status
+                "rate_limit",
+                message,
+                retryable=True,
+                status_code=resolved_status,
+                retry_after_seconds=_retry_after_from_mapping(payload),
             )
         retryable = resolved_status is not None and resolved_status >= 500
         return ProviderFailure(
@@ -2175,6 +2243,7 @@ class MinimalChatExecutor:
                         profile=profile,
                         condition=failure.condition,
                         ordinal=ordinal,
+                        retry_after_seconds=failure.retry_after_seconds,
                     )
                     retry_reason = failure.condition
                     continue
@@ -2197,6 +2266,7 @@ class MinimalChatExecutor:
                         profile=profile,
                         condition=failure.condition,
                         ordinal=ordinal,
+                        retry_after_seconds=failure.retry_after_seconds,
                     )
                     retry_reason = failure.condition
                     continue
@@ -2394,6 +2464,7 @@ class MinimalChatExecutor:
         profile: AgentProfile,
         condition: str,
         ordinal: int,
+        retry_after_seconds: float | None = None,
     ) -> None:
         policy = profile.harness.config.get("retry_backoff")
         if policy is None:
@@ -2402,12 +2473,40 @@ class MinimalChatExecutor:
             raise EvidenceIntegrityError(f"unsupported retry backoff policy: {policy!r}")
         base_seconds = min(30.0, 2.0 * (2**ordinal))
         jitter_seconds = int(request.provider_call_id[-4:], 16) % 1000 / 1000.0
-        delay_seconds = base_seconds + jitter_seconds
+        declared_delay_seconds = base_seconds + jitter_seconds
+        max_retry_after_seconds = profile.harness.config.get(
+            "retry_after_max_seconds", 30.0
+        )
+        if (
+            isinstance(max_retry_after_seconds, bool)
+            or not isinstance(max_retry_after_seconds, (int, float))
+            or not math.isfinite(float(max_retry_after_seconds))
+            or float(max_retry_after_seconds) <= 0
+        ):
+            raise EvidenceIntegrityError(
+                "retry_after_max_seconds must be finite and positive"
+            )
+        bounded_retry_after = (
+            min(retry_after_seconds, float(max_retry_after_seconds))
+            if retry_after_seconds is not None
+            else None
+        )
+        delay_seconds = max(
+            declared_delay_seconds,
+            bounded_retry_after if bounded_retry_after is not None else 0.0,
+        )
         self.evidence.append_event(
             "retry_backoff_started",
             {
                 "failure_condition": condition,
                 "delay_seconds": delay_seconds,
+                "exponential_jitter_seconds": declared_delay_seconds,
+                "provider_retry_after_seconds": retry_after_seconds,
+                "retry_after_capped": (
+                    retry_after_seconds is not None
+                    and retry_after_seconds > float(max_retry_after_seconds)
+                ),
+                "retry_after_max_seconds": float(max_retry_after_seconds),
                 "attempt_ordinal": ordinal,
             },
             phase_instance_id=decision.phase_instance_id,
@@ -2434,6 +2533,7 @@ class MinimalChatExecutor:
             {
                 "failure_condition": condition,
                 "delay_seconds": delay_seconds,
+                "provider_retry_after_seconds": retry_after_seconds,
                 "attempt_ordinal": ordinal,
             },
             phase_instance_id=decision.phase_instance_id,
