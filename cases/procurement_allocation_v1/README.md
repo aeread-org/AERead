@@ -310,3 +310,18 @@ These cases become confirmatory evidence only under a separately frozen executio
 and analysis plan. Inspecting the oracle during case qualification is allowed;
 changing the V4 prompt or the outcome rule after live treatment results are visible
 requires a new campaign identity.
+
+Print the no-spend frozen execution plan with:
+
+```bash
+python -m aeread_families.procurement_allocation.confirmatory_campaign \
+  --run-root \
+  runs/procurement_allocation/procurement_allocation_glm53_flash_parasail_strategy_confirmatory_v1/qualification_attempt_001
+```
+
+Live execution is sequential, checkpoints after 12 new rows, and runs both controls
+before either treatment. Add `--execute --max-spend-usd 2.30` for the first batch and
+`--resume` for later failure-free checkpoints. An operational failure seals the
+attempt. Publication is a separate `--publish-only` invocation targeting one direct
+`evidence/procurement_allocation_glm53_flash_parasail_strategy_confirmatory_v1/`
+bundle.

@@ -245,3 +245,32 @@ That regression should define a held-out diagnostic, not an in-place v4 prompt e
 Because v1-v4 were developed against these same six worlds, this evidence supports a
 mechanism hypothesis and a qualified implementation artifact, not a population-level
 claim. The next confirmatory campaign should freeze v4 and use new economic worlds.
+
+## Frozen confirmatory v1 campaign
+
+The confirmatory campaign freezes the exact V4 treatment prompt and its unscaffolded
+control by SHA-256, the GLM/Parasail revision and route, Minimal Chat transport,
+runner-owned retry policy, twelve new paired economic worlds, three new inference
+seeds, sequential execution, and 12-row checkpoints. It binds the adaptive evidence
+manifest that motivated the test. Any drift in these inputs requires a new campaign
+identity.
+
+The four arms run in this order: labeled control, opaque control, labeled treatment,
+and opaque treatment. All 144 rows must complete and receipt-replay. Controls run
+before treatments, no outcome-based early stopping is allowed, and an operational
+failure seals the attempt as missingness. The conservative scored ceiling is $2.16;
+two prompt-specific unscored admission canaries raise the total ceiling to $2.22.
+
+The independent unit is the economic world. Within each of the twelve worlds, the
+three inference seeds are averaged within each surface, then the labeled and opaque
+treatment-minus-control deltas are averaged equally. The preregistered primary
+estimand is regret-to-upper-bound delta. Confirmation requires its deterministic
+50,000-resample world-cluster bootstrap upper bound to be strictly below zero and
+the overall feasibility-delta lower bound to be at least -0.05. Surface-specific
+feasibility, kits, margin, regret, violations, latency, tokens, retries, and cost are
+secondary diagnostics.
+
+Evidence eligibility does not depend on a favorable result. A fully complete,
+replayed, digest-valid campaign is publishable as either `supported` or
+`not_supported`. The claim remains bounded to twelve curated synthetic worlds and is
+not a population-level model ranking.
