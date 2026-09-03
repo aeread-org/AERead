@@ -1,0 +1,38 @@
+{
+  "schema_version": "aeread.datacenter_counteroffer_action_schema_campaign_contract/0.1",
+  "campaign_id": "datacenter_counteroffer_action_schema_v1",
+  "family_id": "datacenter_counteroffer_action_schema_v1",
+  "family_version": "1.0.0",
+  "claim_status": "single_curated_project_paired_state_specific_schema_diagnostic_only",
+  "route_catalog_snapshot": {"source": "https://openrouter.ai/api/v1/models and per-model endpoints", "verified_at": "2026-09-03T08:55:21Z", "selection_rule": "same admitted non-reasoning structured-output routes as the prior data-center mechanism diagnostics; one named provider; no fallback"},
+  "conditions": {
+    "shared_offer_schema": {"case_id": "datacenter_counteroffer_action_schema_v1.v1.shared_offer_schema_001", "expected_case_sha256": "4e7d4e99828036f1ff764bb8823aebe2fa3178bc0ca0a04131122696b8ad7fe5"},
+    "dedicated_accept_schema": {"case_id": "datacenter_counteroffer_action_schema_v1.v1.dedicated_accept_schema_001", "expected_case_sha256": "93e9f7ccd3f6b8cfd48a9eefccb23d115477a0d99d39c7c2ad9f2e6c80a21495"}
+  },
+  "base_case": {"case_id": "datacenter_development_v1.v2.objective_bounded_001", "expected_case_sha256": "3e487d62e3ce4456c98a0069dd50fc2a91410488deb53db7f0ab9e3537265139"},
+  "inference_seeds": [312601, 312602, 312603, 312604, 312605],
+  "models": {
+    "mistral32_deepinfra": {
+      "profile_id": "datacenter_action_schema_mistral32_deepinfra_v1", "requested_model": "mistralai/mistral-small-3.2-24b-instruct", "canonical_model": "mistralai/mistral-small-3.2-24b-instruct-2506", "provider": "DeepInfra", "quantization": "fp8", "access_class": "open_source", "license_id": "Apache-2.0", "reasoning_effort": null, "temperature_supported": true, "catalog_uptime_last_30m": 99.77821782178218,
+      "pricing": {"input_per_million": 0.075, "cached_input_per_million": 0.075, "output_per_million": 0.2, "pricing_id": "openrouter_2026-09-03_mistral32_deepinfra_action_schema_v1"}, "max_prompt_price_per_million": "0.075", "max_completion_price_per_million": "0.2"
+    },
+    "qwen3_235b_novita": {
+      "profile_id": "datacenter_action_schema_qwen3_235b_novita_v1", "requested_model": "qwen/qwen3-235b-a22b-2507", "canonical_model": "qwen/qwen3-235b-a22b-07-25", "provider": "Novita", "quantization": "fp8", "access_class": "open_source", "license_id": "Apache-2.0", "reasoning_effort": null, "temperature_supported": true, "catalog_uptime_last_30m": 99.97593261131166,
+      "pricing": {"input_per_million": 0.09, "cached_input_per_million": 0.09, "output_per_million": 0.58, "pricing_id": "openrouter_2026-09-03_qwen3_235b_novita_action_schema_v1"}, "max_prompt_price_per_million": "0.09", "max_completion_price_per_million": "0.58"
+    }
+  },
+  "execution": {"harness": "minimal_chat/1.0", "adapter": "datacenter_objective_openrouter_parameter_compatible_v1", "max_output_tokens_per_action": 1600, "timeout_seconds_per_action": 180.0, "max_cost_usd_per_live_profile": 0.03, "campaign_max_cost_usd": 0.75, "concurrency": 2, "max_concurrent_cells_per_route_provider": 1, "max_action_attempts": 1, "sdk_retries": 0, "response_cache": false, "provider_fallbacks": false},
+  "analysis": {
+    "independent_project_clusters": 1,
+    "paired_by": ["model_id", "inference_seed"],
+    "condition_order": ["shared_offer_schema", "dedicated_accept_schema"],
+    "missingness": "report_separately_and_require_both_conditions_for_pair",
+    "primary_estimand": "counteroffer_adoption_rate",
+    "secondary_estimands": ["prefix_completion", "exact_package_integrity", "counteroffer_opportunity_count", "negotiation_temporal_compliance", "intentional_resolution"],
+    "mechanism_outcome": "reference_acceptance_used",
+    "paired_transition_counts": true,
+    "winner_claim_allowed": false,
+    "population_generalization_allowed": false,
+    "population_causal_effect_allowed": false
+  }
+}

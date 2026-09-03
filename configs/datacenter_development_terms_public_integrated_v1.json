@@ -1,0 +1,157 @@
+{
+  "schema_version": "aeread.datacenter_terms_public_integrated_campaign/0.1",
+  "campaign_id": "datacenter_development_terms_public_integrated_v1",
+  "family_id": "datacenter_development_terms_v1",
+  "family_version": "1.0.0",
+  "pack_id": "datacenter_development_terms_public_integrated_v1",
+  "pack_sha256": "e90cdb1c6c8495f6cb8b9018823a4ff5cc9c534f11da05427beb8c09a3459a21",
+  "claim_status": "three_new_public_project_clusters_openweight_route_variance_exploratory",
+  "route_catalog_snapshot": {
+    "verified_at": "2026-09-03T14:06:56Z",
+    "sources": [
+      "https://openrouter.ai/api/v1/models/mistralai/mistral-small-3.2-24b-instruct/endpoints",
+      "https://openrouter.ai/api/v1/models/qwen/qwen3-235b-a22b-2507/endpoints",
+      "https://openrouter.ai/api/v1/models/openai/gpt-oss-120b/endpoints"
+    ],
+    "selection_rule": "healthy_exact_provider_routes_supporting_seed_response_format_and_structured_outputs_with_no_fallback_qwen_parasail_selected_after_novita_status_instability",
+    "selected_endpoints": {
+      "mistral32_deepinfra": {
+        "provider": "DeepInfra",
+        "tag": "deepinfra/fp8",
+        "quantization": "fp8",
+        "status": 0,
+        "uptime_last_30m": 99.95934251030958,
+        "uptime_last_5m": 100.0,
+        "uptime_last_1d": 99.54670575761433,
+        "required_parameters": ["seed", "response_format", "structured_outputs"]
+      },
+      "qwen3_235b_parasail": {
+        "provider": "Parasail",
+        "tag": "parasail/fp8",
+        "quantization": "fp8",
+        "status": 0,
+        "uptime_last_30m": 99.89477376359173,
+        "uptime_last_5m": 100.0,
+        "uptime_last_1d": 99.65337184757249,
+        "required_parameters": ["seed", "response_format", "structured_outputs"]
+      },
+      "gptoss120b_coreweave": {
+        "provider": "CoreWeave",
+        "tag": "coreweave/fp4",
+        "quantization": "fp4",
+        "status": 0,
+        "uptime_last_30m": 99.89994899360458,
+        "uptime_last_5m": 99.91889699918897,
+        "uptime_last_1d": 99.89560001322434,
+        "required_parameters": ["seed", "response_format", "structured_outputs", "reasoning_effort"]
+      }
+    }
+  },
+  "cases": {
+    "polaris-forge-contract-to-cashflow-boundary": {
+      "case_id": "datacenter_development_terms_v1.public_integrated_v1.polaris-forge-contract-to-cashflow-boundary",
+      "expected_case_sha256": "962621b2d6258b3e8cbc94d5fcb6c8acf397605d300292c357d15faa012183e2",
+      "source_cluster_id": "sec_apld_polaris_forge_2026",
+      "world_seed": 441001
+    },
+    "black-pearl-phased-rent-debt-and-overrun": {
+      "case_id": "datacenter_development_terms_v1.public_integrated_v1.black-pearl-phased-rent-debt-and-overrun",
+      "expected_case_sha256": "8a6abee5b96e8c1239b02fb4980d50f2f8a15202fd8a3f0c43584b0d70755693",
+      "source_cluster_id": "sec_cipher_black_pearl_2026",
+      "world_seed": 441002
+    },
+    "horizon-tranche-acceptance-financing-guarantees": {
+      "case_id": "datacenter_development_terms_v1.public_integrated_v1.horizon-tranche-acceptance-financing-guarantees",
+      "expected_case_sha256": "3db25b7d43487dd6b4fcb8d1f77bf78e2c93378c0f0cb0c4cb528641dfe65ac7",
+      "source_cluster_id": "sec_iren_horizon_microsoft_2026",
+      "world_seed": 441003
+    }
+  },
+  "inference_seeds": [318001, 318002, 318003],
+  "models": {
+    "mistral32_deepinfra": {
+      "profile_id": "datacenter_terms_integrated_mistral32_deepinfra_v1",
+      "requested_model": "mistralai/mistral-small-3.2-24b-instruct",
+      "canonical_model": "mistralai/mistral-small-3.2-24b-instruct-2506",
+      "provider": "DeepInfra",
+      "quantization": "fp8",
+      "access_class": "open_source",
+      "license_id": "Apache-2.0",
+      "reasoning_effort": null,
+      "temperature_supported": true,
+      "pricing": {
+        "input_per_million": 0.075,
+        "cached_input_per_million": 0.075,
+        "output_per_million": 0.2,
+        "pricing_id": "openrouter_2026-09-03_mistral32_deepinfra_terms_integrated_v1"
+      },
+      "max_prompt_price_per_million": "0.075",
+      "max_completion_price_per_million": "0.2"
+    },
+    "qwen3_235b_parasail": {
+      "profile_id": "datacenter_terms_integrated_qwen3_235b_parasail_v1",
+      "requested_model": "qwen/qwen3-235b-a22b-2507",
+      "canonical_model": "qwen/qwen3-235b-a22b-07-25",
+      "provider": "Parasail",
+      "quantization": "fp8",
+      "access_class": "open_source",
+      "license_id": "Apache-2.0",
+      "reasoning_effort": null,
+      "temperature_supported": true,
+      "pricing": {
+        "input_per_million": 0.14,
+        "cached_input_per_million": 0.05,
+        "output_per_million": 0.8,
+        "pricing_id": "openrouter_2026-09-03_qwen3_parasail_terms_integrated_v1"
+      },
+      "max_prompt_price_per_million": "0.14",
+      "max_completion_price_per_million": "0.8"
+    },
+    "gptoss120b_coreweave": {
+      "profile_id": "datacenter_terms_integrated_gptoss120b_coreweave_v1",
+      "requested_model": "openai/gpt-oss-120b",
+      "canonical_model": "openai/gpt-oss-120b",
+      "provider": "CoreWeave",
+      "quantization": "fp4",
+      "access_class": "open_source",
+      "license_id": "Apache-2.0",
+      "reasoning_effort": "low",
+      "temperature_supported": true,
+      "pricing": {
+        "input_per_million": 0.03,
+        "cached_input_per_million": 0.03,
+        "output_per_million": 0.17,
+        "pricing_id": "openrouter_2026-09-03_gptoss120b_coreweave_terms_integrated_v1"
+      },
+      "max_prompt_price_per_million": "0.03",
+      "max_completion_price_per_million": "0.17"
+    }
+  },
+  "execution": {
+    "harness": "minimal_chat/1.0",
+    "adapter": "datacenter_objective_openrouter_parameter_compatible_v1",
+    "max_output_tokens": 900,
+    "timeout_seconds": 180.0,
+    "max_cost_usd_per_cell": 0.02,
+    "campaign_max_cost_usd": 0.54,
+    "concurrency": 3,
+    "max_concurrent_cells_per_route_provider": 1,
+    "max_action_attempts": 1,
+    "sdk_retries": 0,
+    "response_cache": false,
+    "provider_fallbacks": false
+  },
+  "analysis": {
+    "case_count": 3,
+    "independent_cluster_count": 3,
+    "resampling_unit": "public_filing_project_cluster",
+    "stability_replicate_unit": "inference_seed_within_project_route",
+    "paired_by": ["case_slug", "inference_seed"],
+    "primary_endpoints": ["hard_gate_pass", "score", "forbidden_selection_count"],
+    "missingness": "report_separately_and_require_all_three_routes_for_case_seed_comparison_no_selective_retry",
+    "winner_claim_allowed": false,
+    "inferential_model_ranking_allowed": false,
+    "project_generalization_allowed": false,
+    "population_causal_effect_allowed": false
+  }
+}

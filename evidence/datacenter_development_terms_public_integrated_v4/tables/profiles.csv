@@ -1,0 +1,3 @@
+campaign_id,model_id,profile_id,provider,requested_model,canonical_model,quantization,license_id,harness,schema_mode,max_output_tokens,max_action_attempts,sdk_retries,response_cache,provider_fallbacks
+datacenter_development_terms_public_integrated_v4,mistral32_deepinfra,datacenter_terms_integrated_v4_mistral32_deepinfra,DeepInfra,mistralai/mistral-small-3.2-24b-instruct,mistralai/mistral-small-3.2-24b-instruct-2506,fp8,Apache-2.0,minimal_chat/1.0,unique_array_items_v1,900,1,0,False,False
+datacenter_development_terms_public_integrated_v4,qwen3_235b_google,datacenter_terms_integrated_v4_qwen3_235b_google,Google,qwen/qwen3-235b-a22b-2507,qwen/qwen3-235b-a22b-07-25,unknown,Apache-2.0,minimal_chat/1.0,unique_array_items_v1,900,1,0,False,False

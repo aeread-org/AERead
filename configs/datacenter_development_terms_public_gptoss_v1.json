@@ -1,0 +1,82 @@
+{
+  "schema_version": "aeread.datacenter_terms_public_gptoss_contract/0.1",
+  "campaign_id": "datacenter_development_terms_public_gptoss_v1",
+  "family_id": "datacenter_development_terms_v1",
+  "family_version": "1.0.0",
+  "pack_id": "datacenter_development_terms_public_v1",
+  "pack_sha256": "8422cf9687535369b5a4dd32ca42fccba580735cffe991a0d7dc107c75ef8128",
+  "claim_status": "public_source_gptoss_addon_exploratory_five_filing_clusters",
+  "route_catalog_snapshot": {
+    "verified_at": "2026-09-03T12:17:15Z",
+    "source": "https://openrouter.ai/api/v1/models/openai/gpt-oss-120b/endpoints",
+    "selection_rule": "choose a distinct Apache-2.0 open-weight family; pin the lowest-price active endpoint with at least 99.8 percent one-day uptime and explicit seed, response_format, structured_outputs, temperature, tools, and reasoning_effort support; no fallback"
+  },
+  "bridge": {
+    "campaign_id": "datacenter_development_terms_public_v1",
+    "contract_sha256": "b0c26585f391aa969a456c3b45e7aac06888733c3ae55041f125a25f89e969f2",
+    "design_sha256": "9a32e7f1ce86c4be6bd34103757f40b3fe6d730d73f24c95a831144a2787a54e",
+    "live_summary_sha256": "1911d470b3d639841f77a64433bfd44bc624f06d7785e5ea8f2ea0a726521993",
+    "public_manifest_sha256": "74fc560be7dc89276bd3ee60e449d39077e9a9a11e6114c8be3d4694bbe91556",
+    "comparison_scope": "same_case_hash_prompt_schema_harness_and_inference_seed_descriptive_only"
+  },
+  "case_slugs": [
+    "credit-facility-availability-and-rounding",
+    "ground-lease-commencement-boundary",
+    "large-load-study-to-service-gates",
+    "linked-land-power-construction-underwriting",
+    "phased-colocation-financing-and-rfs"
+  ],
+  "inference_seeds": [
+    314001,
+    314002,
+    314003
+  ],
+  "model": {
+    "model_id": "gptoss120b_coreweave",
+    "profile_id": "datacenter_terms_public_gptoss120b_coreweave_v1",
+    "requested_model": "openai/gpt-oss-120b",
+    "canonical_model": "openai/gpt-oss-120b",
+    "provider": "CoreWeave",
+    "quantization": "fp4",
+    "access_class": "open_source",
+    "license_id": "Apache-2.0",
+    "reasoning_effort": "low",
+    "temperature_supported": true,
+    "pricing": {
+      "input_per_million": 0.03,
+      "cached_input_per_million": 0.03,
+      "output_per_million": 0.17,
+      "pricing_id": "openrouter_2026-09-03_gptoss120b_coreweave_terms_public_v1"
+    },
+    "max_prompt_price_per_million": "0.03",
+    "max_completion_price_per_million": "0.17"
+  },
+  "execution": {
+    "harness": "minimal_chat/1.0",
+    "adapter": "datacenter_objective_openrouter_parameter_compatible_v1",
+    "max_output_tokens": 1400,
+    "timeout_seconds": 180.0,
+    "max_cost_usd_per_cell": 0.02,
+    "campaign_max_cost_usd": 0.3,
+    "concurrency": 1,
+    "max_concurrent_cells_per_route_provider": 1,
+    "max_action_attempts": 1,
+    "sdk_retries": 0,
+    "response_cache": false,
+    "provider_fallbacks": false
+  },
+  "analysis": {
+    "case_count": 5,
+    "independent_cluster_count": 5,
+    "resampling_unit": "public_filing_cluster",
+    "paired_by_bridge": [
+      "case_slug",
+      "inference_seed"
+    ],
+    "missingness": "report_separately_no_selective_retry",
+    "winner_claim_allowed": false,
+    "inferential_model_ranking_allowed": false,
+    "project_generalization_allowed": false,
+    "population_causal_effect_allowed": false
+  }
+}

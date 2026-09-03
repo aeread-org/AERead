@@ -1,0 +1,74 @@
+{
+  "catalog_version": "1.0.0",
+  "catalog_kind": "public_primary_source_catalog",
+  "lineage_scope": "sec_accession_document_and_clause_locator",
+  "rights_status": "public_sec_filing_facts_paraphrased_no_source_artifacts",
+  "original_artifacts_included": false,
+  "public_reproducibility": true,
+  "upstream_byte_hash_status": "not_available_shell_retrieval_returned_http_403",
+  "retrieval_date": "2026-09-03",
+  "independence_assumption": "each case uses a different issuer or regulated-utility filing cluster",
+  "sources": {
+    "fermi_ground_lease_2025": {
+      "kind": "executed_ground_lease_exhibit",
+      "role": "lease execution, commencement conditions, access, term, and rent",
+      "verification": "public_primary_filing_reviewed",
+      "original_included": false,
+      "source_cluster_id": "sec_fermi_ground_lease_2025",
+      "accession": "000121390025085175",
+      "document": "ea025233301ex10-9_fermi.htm",
+      "url": "https://www.sec.gov/Archives/edgar/data/2071778/000121390025085175/ea025233301ex10-9_fermi.htm",
+      "locators": ["definitions", "section 2.02", "section 3.01", "section 3.02"],
+      "upstream_sha256": null
+    },
+    "digi_cerebras_msa_2026": {
+      "kind": "executed_colocation_master_services_agreement_exhibit",
+      "role": "phased delivery, financing approval, RFS, NRC, and pass-through controls",
+      "verification": "public_primary_filing_reviewed",
+      "original_included": false,
+      "source_cluster_id": "sec_digi_cerebras_msa_2026",
+      "accession": "000121390026053566",
+      "document": "ea028958501ex10-1.htm",
+      "url": "https://www.sec.gov/Archives/edgar/data/1854368/000121390026053566/ea028958501ex10-1.htm",
+      "locators": ["section 2.2", "section 4.1", "sections 6.3 through 6.6"],
+      "upstream_sha256": null
+    },
+    "aes_ohio_datacenter_tariff_2026": {
+      "kind": "regulated_data_center_tariff_exhibit",
+      "role": "facilities-study sequence, construction/service agreements, minimum billing, and collateral",
+      "verification": "public_primary_filing_reviewed",
+      "original_included": false,
+      "source_cluster_id": "sec_aes_ohio_datacenter_tariff_2026",
+      "accession": "000078725026000033",
+      "document": "exhibit101stipulationandre.htm",
+      "url": "https://www.sec.gov/Archives/edgar/data/27430/000078725026000033/exhibit101stipulationandre.htm",
+      "locators": ["tariff D23 availability of service", "tariff D23 minimum contract requirements", "tariff D23 collateral requirement"],
+      "upstream_sha256": null
+    },
+    "enovum_credit_facility_2025": {
+      "kind": "filed_credit_facility_disclosure",
+      "role": "facility tranches, conditions precedent, availability, and draw state",
+      "verification": "public_primary_filing_reviewed",
+      "original_included": false,
+      "source_cluster_id": "sec_enovum_credit_facility_2025",
+      "accession": "000121390025088547",
+      "document": "R20.htm",
+      "url": "https://www.sec.gov/Archives/edgar/data/2042022/000121390025088547/R20.htm",
+      "locators": ["Royal Bank of Canada Facility Agreement disclosure"],
+      "upstream_sha256": null
+    },
+    "core_denton_project_terms_2026": {
+      "kind": "filed_project_and_securitization_terms_disclosure",
+      "role": "lease assignment effectiveness, land-power linkage, change orders, and asset reversion",
+      "verification": "public_primary_filing_reviewed",
+      "original_included": false,
+      "source_cluster_id": "sec_core_denton_project_terms_2026",
+      "accession": "000119312526165121",
+      "document": "d149019dex992.htm",
+      "url": "https://www.sec.gov/Archives/edgar/data/1839341/000119312526165121/d149019dex992.htm",
+      "locators": ["restructuring steps", "Denton Campus", "construction and power disclosures"],
+      "upstream_sha256": null
+    }
+  }
+}
+

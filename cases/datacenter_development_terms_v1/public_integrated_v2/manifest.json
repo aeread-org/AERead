@@ -1,0 +1,48 @@
+{
+  "benchmark_id": "datacenter_development_terms_v1",
+  "version": "1.0.0",
+  "pack_id": "datacenter_development_terms_public_integrated_v2",
+  "base_pack_id": "datacenter_development_terms_public_integrated_v1",
+  "base_pack_sha256": "e90cdb1c6c8495f6cb8b9018823a4ff5cc9c534f11da05427beb8c09a3459a21",
+  "case_count": 3,
+  "independent_sampling_unit": "public_filing_project_cluster",
+  "independence_cluster_count": 3,
+  "derived_split": "public_integrated_v2",
+  "transformation_id": "correct_service_agreement_state_and_affirmed_candidate_instruction_v1",
+  "prompt_suffix": " Before filling the actions and claims arrays, evaluate each allowed label independently against all relevant evidence. Include a label only when every controlling clause is consistent with it. If any controlling clause contradicts the label, omit it. Do not include rejected labels.",
+  "oracle_correction": {
+    "case_slug": "horizon-tranche-acceptance-financing-guarantees",
+    "field": "gold.states.customer_contract_state",
+    "from": "executed_long_term_lease",
+    "to": "executed_service_agreement",
+    "reason": "the public evidence describes a GPU services agreement rather than a lease"
+  },
+  "response_vocabulary_additions": [
+    "executed_service_agreement"
+  ],
+  "preserved_fields": [
+    "title",
+    "task_family_id",
+    "independence_cluster_id",
+    "tier",
+    "cutoff",
+    "authority",
+    "observations",
+    "amounts",
+    "required_actions",
+    "forbidden_actions",
+    "required_claims",
+    "forbidden_claims",
+    "required_evidence_ids",
+    "amount_tolerance",
+    "terminal_when",
+    "source_refs",
+    "failure_mechanisms",
+    "arithmetic_checks",
+    "world_seed"
+  ],
+  "inference_status": "corrected_exploratory_three_project_cluster_diagnostic",
+  "authority_modes_exercised": [
+    "report"
+  ]
+}
