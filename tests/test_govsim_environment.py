@@ -369,6 +369,35 @@ def test_verify_source_and_dependency_pins_rejects_a_runtime_dependency_mismatch
         )
 
 
+def test_validate_payload_rejects_a_dependency_mismatch_through_the_actual_production_call_site() -> None:
+    """Closes the coverage gap the independent verification pass flagged
+    against triage Finding 4 (``docs/govsim_fix_verification.md``): the two
+    tests directly above drive ``_verify_source_and_dependency_pins``
+    directly, and the sole ``validate_payload`` acceptance test
+    (``test_validate_payload_accepts_a_generated_case_at_the_pinned_
+    revision``) configures no bridge at all -- so deleting only the
+    production call site inside ``validate_payload`` (``environment.py``'s
+    ``_verify_source_and_dependency_pins(self.upstream_root, self.bridge)``
+    line, immediately before it returns) would leave every one of those
+    tests passing.
+
+    This test instead drives the real, public ``validate_payload`` entry
+    point end to end: the real pinned checkout (so every git/schema check
+    ahead of the pins check still passes) plus a fake bridge reporting a
+    mismatched dependency version wired onto the plugin itself, exactly as
+    a caller would configure it -- never the private helper called by
+    hand. It would fail to raise if the production call were ever removed
+    (see this file's mutation-verification note in
+    ``docs/govsim_review_disposition.md``)."""
+    if not _REAL_UPSTREAM_ROOT.is_dir():
+        pytest.skip(f"pinned upstream govsim checkout not found at {_REAL_UPSTREAM_ROOT}")
+    plugin = GovsimPlugin(upstream_root=_REAL_UPSTREAM_ROOT, bridge=_WrongVersionBridge())
+    payload = _family_case()
+
+    with pytest.raises(ValueError, match="python_version mismatch"):
+        plugin.validate_payload(payload)
+
+
 # ---------------------------------------------------------------------------
 # legal(): QC Gate 2's "invalid-unauthorized" golden.
 # ---------------------------------------------------------------------------
