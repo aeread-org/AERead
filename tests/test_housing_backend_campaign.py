@@ -10,6 +10,7 @@ import pytest
 
 from aeread_families.housing.backend_campaign import (
     _admission_specs,
+    _endpoint_snapshot_sha256,
     catalog_preflight,
     load_contract,
     route_table,
@@ -53,6 +54,11 @@ V7_CONTRACT_PATH = (
     Path(__file__).resolve().parents[1]
     / "configs"
     / "housing_model_sensitivity_openrouter_alt_v7.json"
+)
+V8_CONTRACT_PATH = (
+    Path(__file__).resolve().parents[1]
+    / "configs"
+    / "housing_model_sensitivity_openrouter_alt_v8.json"
 )
 
 
@@ -152,6 +158,81 @@ def test_v7_profiles_bind_conditional_schemas_and_declared_retries() -> None:
             )
             schemas = profile.harness.config["output_schema_by_action_schema"]
             assert all("oneOf" in schema for schema in schemas.values())
+
+
+def test_v8_repeats_the_full_matrix_with_calibrated_cost_guards() -> None:
+    contract = load_contract(V8_CONTRACT_PATH)
+    setups = build_setups(contract, routes=route_table(contract))
+
+    assert contract["campaign_id"] == "housing_model_sensitivity_openrouter_alt_v8"
+    assert contract["execution"]["cost_ceiling_usd"] == 0.10
+    assert contract["execution"]["per_trajectory_cost_reserve_usd"] == 0.01
+    assert contract["execution"]["world_seeds"] == [1971418798]
+    assert len(setups) == 12
+    expected_profiles = contract["profile_admission"]["profile_sha256s"]
+    for setup in setups.values():
+        for profile in setup.plan.agent_profiles:
+            assert hashlib.sha256(canonical_json_bytes(profile)).hexdigest() == (
+                expected_profiles[profile.profile_id]
+            )
+
+
+def test_v8_catalog_preflight_binds_stable_endpoint_snapshots(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    contract = load_contract(V8_CONTRACT_PATH)
+    endpoints: dict[str, dict[str, object]] = {}
+    for model_id, model in contract["models"].items():
+        endpoint = {
+            "name": f"{model['provider']} | {model['canonical_model']}",
+            "provider_name": model["provider"],
+            "quantization": model["quantization"],
+            "pricing": {
+                "prompt": str(model["input_per_million"] / 1_000_000),
+                "input_cache_read": str(
+                    model["cached_input_per_million"] / 1_000_000
+                ),
+                "completion": str(model["output_per_million"] / 1_000_000),
+            },
+            "supported_parameters": sorted(
+                {
+                    "max_tokens",
+                    "reasoning_effort",
+                    "response_format",
+                    "seed",
+                    "structured_outputs",
+                    "temperature",
+                    "top_p",
+                }
+            ),
+            "status": 0,
+            "max_completion_tokens": 4096,
+            "uptime_last_5m": 100.0,
+            "uptime_last_30m": 100.0,
+        }
+        model["endpoint_snapshot_sha256"] = _endpoint_snapshot_sha256(endpoint)
+        endpoints[model_id] = endpoint
+
+    def fake_open(url: str, *, timeout: int) -> _CatalogResponse:
+        assert timeout == 30
+        model_id = (
+            "glm_53_flash" if "z-ai/glm-5.3-flash" in url else "deepseek_v4_flash"
+        )
+        return _CatalogResponse(
+            json.dumps({"data": {"endpoints": [endpoints[model_id]]}})
+        )
+
+    monkeypatch.setattr(
+        "aeread_families.housing.backend_campaign.urllib.request.urlopen",
+        fake_open,
+    )
+    result = catalog_preflight(contract)
+    assert result["status"] == "passed"
+    assert all(row["endpoint_snapshot_sha256"] for row in result["routes"])
+
+    contract["models"]["glm_53_flash"]["endpoint_snapshot_sha256"] = "0" * 64
+    with pytest.raises(ValueError, match="endpoint snapshot drifted"):
+        catalog_preflight(contract)
 
 
 def test_design_reuses_cases_but_assigns_new_profile_identities() -> None:
@@ -563,3 +644,54 @@ def test_published_v7_trajectories_are_digest_bound_and_non_rankable() -> None:
     assert qualification["trajectory_export"]["artifact_sha256"] == value[
         "artifact_sha256"
     ]
+
+
+def test_published_v8_qualification_and_attempts_are_digest_bound() -> None:
+    root = (
+        V8_CONTRACT_PATH.parents[1]
+        / "evidence"
+        / "housing_model_sensitivity_openrouter_alt_v8"
+    )
+    qualification = json.loads(
+        (root / "reports" / "qualification.json").read_bytes()
+    )
+    trajectories = json.loads(
+        (root / "trajectories" / "attempted.json").read_bytes()
+    )
+    for value in (qualification, trajectories):
+        core = {key: item for key, item in value.items() if key != "artifact_sha256"}
+        assert value["artifact_sha256"] == hashlib.sha256(
+            canonical_json_bytes(core)
+        ).hexdigest()
+
+    assert qualification["status"] == "completed_with_typed_missingness"
+    assert qualification["acceptance"] == {
+        "publishable_integration_evidence": True,
+        "all_frozen_cells_attempted": True,
+        "prerequisite_gates_passed": True,
+        "typed_missingness_preserved": True,
+        "leaderboard_eligible": False,
+    }
+    assert qualification["trajectory_export"]["artifact_sha256"] == trajectories[
+        "artifact_sha256"
+    ]
+    assert trajectories["planned_trajectories"] == 12
+    assert trajectories["attempted_trajectories"] == 12
+    assert trajectories["completed_trajectories"] == 11
+    assert trajectories["operational_failures"] == 1
+    assert (
+        sum(row["status"] == "completed" for row in trajectories["trajectories"])
+        == 11
+    )
+    failure = next(
+        row for row in trajectories["trajectories"] if row["status"] != "completed"
+    )
+    assert failure["failure_condition"] == "timeout"
+    assert failure["inclusion_status"] == "excluded"
+    assert failure["score"] is None
+    serialized = json.dumps(
+        {"qualification": qualification, "trajectories": trajectories}
+    )
+    assert "raw_response" not in serialized
+    assert "output_text" not in serialized
+    assert "/Users/" not in serialized

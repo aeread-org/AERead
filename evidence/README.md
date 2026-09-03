@@ -26,7 +26,10 @@ Current campaign directories include:
   profiles, model facts, results, transcript projections, and manifest;
 - `housing_case_config_sweep_v1/`: provider-free Housing case facts and the
   selected development configurations;
+- `housing_qc_goldens_v1/`: six provider-free Housing environment/verifier
+  golden receipts and their digest-bound QC report;
 - `housing_model_sensitivity_openrouter_alt_v4/` through
-  `housing_model_sensitivity_openrouter_alt_v7/`: successive OpenRouter
-  qualification records. V7 additionally publishes all completed sanitized
-  trajectory projections under `trajectories/`.
+  `housing_model_sensitivity_openrouter_alt_v8/`: successive OpenRouter
+  qualification records. V7 publishes its seven completed trajectories; V8
+  publishes all 12 attempted cells, including one typed timeout, under
+  `trajectories/`.

@@ -123,6 +123,26 @@ CAMPAIGN_SPECS = {
         "action_schema_version": "housing_actions/2.0",
         "wire_live_profile_controls": True,
     },
+    "housing_model_sensitivity_openrouter_alt_v8": {
+        "reasoning_condition_id": "model_sensitivity_openrouter_alt_low_v8",
+        "per_probe_cost_reserve_usd": 0.003,
+        "admission_cost_ceiling_usd": 0.06,
+        "execution_cost_ceiling_usd": 0.10,
+        "per_trajectory_cost_reserve_usd": 0.01,
+        "providers": {
+            "glm_53_flash": "NextBit",
+            "deepseek_v4_flash": "Parasail",
+        },
+        "retryable_conditions": [
+            "length",
+            "rate_limit",
+            "provider_5xx",
+            "empty_response",
+        ],
+        "action_schema_version": "housing_actions/2.0",
+        "wire_live_profile_controls": True,
+        "verify_endpoint_snapshot": True,
+    },
 }
 REQUIRED_ROUTE_PARAMETERS = {
     "max_tokens",
@@ -162,7 +182,8 @@ def route_table(contract: Mapping[str, Any]) -> dict[str, OpenRouterRoutePin]:
             cached_input_per_million=model["cached_input_per_million"],
             output_per_million=model["output_per_million"],
             pricing_id=(
-                f"openrouter_{model['provider'].lower()}_2026-09-02_{model_id}"
+                f"openrouter_{model['provider'].lower()}_"
+                f"{contract['backend']['catalog_retrieved_at']}_{model_id}"
             ),
         )
         for model_id, model in contract["models"].items()
@@ -350,12 +371,15 @@ def load_contract(path: str | Path) -> dict[str, Any]:
     ):
         raise ValueError("profile identities are incomplete")
 
+    campaign_spec = CAMPAIGN_SPECS[campaign_id]
     if value["execution"] != {
         "world_seeds": [1971418798],
         "replicates": 1,
         "attempt_limit": 1,
-        "cost_ceiling_usd": 0.05,
-        "per_trajectory_cost_reserve_usd": 0.02,
+        "cost_ceiling_usd": campaign_spec.get("execution_cost_ceiling_usd", 0.05),
+        "per_trajectory_cost_reserve_usd": campaign_spec.get(
+            "per_trajectory_cost_reserve_usd", 0.02
+        ),
         "winner_claim_allowed": False,
         "completeness_policy": "retain_typed_missingness_without_selective_retry",
     }:
@@ -381,6 +405,24 @@ def load_contract(path: str | Path) -> dict[str, Any]:
 
 def _catalog_url(contract: Mapping[str, Any], model: str) -> str:
     return contract["backend"]["catalog_source"].format(model=model)
+
+
+def _endpoint_snapshot(endpoint: Mapping[str, Any]) -> dict[str, Any]:
+    """Return the stable, decision-relevant portion of one endpoint record."""
+
+    return {
+        "name": endpoint.get("name"),
+        "provider_name": endpoint.get("provider_name"),
+        "quantization": endpoint.get("quantization"),
+        "pricing": endpoint.get("pricing"),
+        "supported_parameters": sorted(endpoint.get("supported_parameters", [])),
+        "status": endpoint.get("status"),
+        "max_completion_tokens": endpoint.get("max_completion_tokens"),
+    }
+
+
+def _endpoint_snapshot_sha256(endpoint: Mapping[str, Any]) -> str:
+    return _sha256(_endpoint_snapshot(endpoint))
 
 
 def catalog_preflight(contract: Mapping[str, Any]) -> dict[str, Any]:
@@ -422,6 +464,14 @@ def catalog_preflight(contract: Mapping[str, Any]) -> dict[str, Any]:
             < contract["controls"]["max_output_tokens"]
         ):
             raise ValueError(f"catalog completion limit is too small for {model_id}")
+        endpoint_snapshot_sha256 = _endpoint_snapshot_sha256(endpoint)
+        if (
+            CAMPAIGN_SPECS[contract["campaign_id"]].get(
+                "verify_endpoint_snapshot", False
+            )
+            and endpoint_snapshot_sha256 != model["endpoint_snapshot_sha256"]
+        ):
+            raise ValueError(f"catalog endpoint snapshot drifted for {model_id}")
         rows.append(
             {
                 "model_id": model_id,
@@ -436,6 +486,7 @@ def catalog_preflight(contract: Mapping[str, Any]) -> dict[str, Any]:
                 "uptime_last_5m": endpoint.get("uptime_last_5m"),
                 "uptime_last_30m": endpoint.get("uptime_last_30m"),
                 "uptime_last_1d": endpoint.get("uptime_last_1d"),
+                "endpoint_snapshot_sha256": endpoint_snapshot_sha256,
             }
         )
     return _sealed(
