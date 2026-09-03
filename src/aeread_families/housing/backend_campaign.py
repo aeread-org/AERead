@@ -143,6 +143,42 @@ CAMPAIGN_SPECS = {
         "wire_live_profile_controls": True,
         "verify_endpoint_snapshot": True,
     },
+    "housing_model_sensitivity_openrouter_alt_v9": {
+        "claim_status": "exploratory_variance_pilot_only",
+        "reasoning_condition_id": "model_sensitivity_openrouter_alt_low_v9",
+        "per_probe_cost_reserve_usd": 0.003,
+        "admission_cost_ceiling_usd": 0.06,
+        "execution_cost_ceiling_usd": 0.35,
+        "per_trajectory_cost_reserve_usd": 0.01,
+        "world_seeds": [1460378342, 981417412, 123194022, 145537168],
+        "condition_order": "rotate_by_world_and_case_configuration",
+        "analysis": {
+            "primary_view": "paired_world_subject_mean_within_case_score",
+            "aggregation": "equal_weight_configs_and_opponents_within_world",
+            "primary_contrast": "glm_53_flash_minus_deepseek_v4_flash",
+            "uncertainty": "sample_variance_over_world_level_paired_contrasts",
+            "minimum_meaningful_effect": 0.05,
+            "alpha": 0.05,
+            "power": 0.8,
+            "minimum_confirmatory_worlds": 30,
+            "maximum_confirmatory_worlds": 100,
+            "attrition_fraction": 0.1,
+            "ranking_allowed": False,
+        },
+        "providers": {
+            "glm_53_flash": "NextBit",
+            "deepseek_v4_flash": "Parasail",
+        },
+        "retryable_conditions": [
+            "length",
+            "rate_limit",
+            "provider_5xx",
+            "empty_response",
+        ],
+        "action_schema_version": "housing_actions/2.0",
+        "wire_live_profile_controls": True,
+        "verify_endpoint_snapshot": True,
+    },
 }
 REQUIRED_ROUTE_PARAMETERS = {
     "max_tokens",
@@ -259,7 +295,10 @@ def load_contract(path: str | Path) -> dict[str, Any]:
     campaign_id = value["campaign_id"]
     if campaign_id not in CAMPAIGN_SPECS:
         raise ValueError("this driver does not recognize the campaign identity")
-    if value["claim_status"] != "development_backend_qualification_only":
+    campaign_spec = CAMPAIGN_SPECS[campaign_id]
+    if value["claim_status"] != campaign_spec.get(
+        "claim_status", "development_backend_qualification_only"
+    ):
         raise ValueError("backend qualification cannot support a performance claim")
     if value["independent_cluster"] != "world_seed":
         raise ValueError("world_seed must remain the independent cluster")
@@ -285,7 +324,9 @@ def load_contract(path: str | Path) -> dict[str, Any]:
         ),
         "tenant_inference_seed_base": 87001,
         "landlord_inference_seed_base": 97001,
-        "condition_order": "rotate_by_case_configuration",
+        "condition_order": campaign_spec.get(
+            "condition_order", "rotate_by_case_configuration"
+        ),
     }
     for optional_control in ("action_schema_version", "wire_live_profile_controls"):
         if optional_control in CAMPAIGN_SPECS[campaign_id]:
@@ -371,9 +412,8 @@ def load_contract(path: str | Path) -> dict[str, Any]:
     ):
         raise ValueError("profile identities are incomplete")
 
-    campaign_spec = CAMPAIGN_SPECS[campaign_id]
     if value["execution"] != {
-        "world_seeds": [1971418798],
+        "world_seeds": campaign_spec.get("world_seeds", [1971418798]),
         "replicates": 1,
         "attempt_limit": 1,
         "cost_ceiling_usd": campaign_spec.get("execution_cost_ceiling_usd", 0.05),
@@ -384,12 +424,16 @@ def load_contract(path: str | Path) -> dict[str, Any]:
         "completeness_policy": "retain_typed_missingness_without_selective_retry",
     }:
         raise ValueError("live execution controls drifted")
-    if value["analysis"] != {
-        "primary_view": "condition_by_case_configuration_within_case_score",
-        "aggregation": "none_single_world_integration_slice",
-        "uncertainty": "not_estimable_from_one_world_cluster",
-        "ranking_allowed": False,
-    }:
+    expected_analysis = campaign_spec.get(
+        "analysis",
+        {
+            "primary_view": "condition_by_case_configuration_within_case_score",
+            "aggregation": "none_single_world_integration_slice",
+            "uncertainty": "not_estimable_from_one_world_cluster",
+            "ranking_allowed": False,
+        },
+    )
+    if value["analysis"] != expected_analysis:
         raise ValueError("development-only analysis contract drifted")
     if value["missingness"] != "typed_operational_missingness_reported_separately":
         raise ValueError("missingness policy drifted")

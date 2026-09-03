@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import csv
 import hashlib
 import io
 import json
@@ -21,6 +22,7 @@ from aeread_families.housing.model_sensitivity import (
     build_setups,
     design_artifact,
     provider_free_artifact,
+    variance_pilot_analysis,
 )
 from aeread.shared_runner.run.resolver import canonical_json_bytes
 
@@ -59,6 +61,11 @@ V8_CONTRACT_PATH = (
     Path(__file__).resolve().parents[1]
     / "configs"
     / "housing_model_sensitivity_openrouter_alt_v8.json"
+)
+V9_CONTRACT_PATH = (
+    Path(__file__).resolve().parents[1]
+    / "configs"
+    / "housing_model_sensitivity_openrouter_alt_v9.json"
 )
 
 
@@ -175,6 +182,121 @@ def test_v8_repeats_the_full_matrix_with_calibrated_cost_guards() -> None:
             assert hashlib.sha256(canonical_json_bytes(profile)).hexdigest() == (
                 expected_profiles[profile.profile_id]
             )
+
+
+def test_v9_freezes_four_unused_development_worlds_and_48_paired_cells() -> None:
+    contract = load_contract(V9_CONTRACT_PATH)
+    routes = route_table(contract)
+    design = design_artifact(contract, routes=routes)
+    provider_free = provider_free_artifact(contract)
+    case_contract = json.loads(
+        (V9_CONTRACT_PATH.parent / "housing_case_config_sweep_v1.json").read_bytes()
+    )
+    holdout_seeds = set(case_contract["confirmatory_holdout"]["world_seeds"])
+
+    assert contract["claim_status"] == "exploratory_variance_pilot_only"
+    assert contract["execution"]["world_seeds"] == [
+        1460378342,
+        981417412,
+        123194022,
+        145537168,
+    ]
+    assert 1971418798 not in contract["execution"]["world_seeds"]
+    assert not holdout_seeds.intersection(contract["execution"]["world_seeds"])
+    assert contract["execution"]["cost_ceiling_usd"] == 0.35
+    assert contract["execution"]["per_trajectory_cost_reserve_usd"] == 0.01
+    assert design["planned_trajectories"] == 48
+    assert len(design["plans"]) == 48
+    assert len({row["cell_id"] for row in design["plans"]}) == 48
+    assert {row["world_seed"] for row in design["plans"]} == set(
+        contract["execution"]["world_seeds"]
+    )
+    assert provider_free["status"] == "passed"
+    assert provider_free["confirmatory_holdout_status"] == "sealed_not_executed"
+    assert len(provider_free["worlds"]) == 12
+    assert all(
+        row["oracle_crosscheck_passed"] and row["oracle_active_ceiling_passed"]
+        for row in provider_free["worlds"]
+    )
+
+    expected_profiles = contract["profile_admission"]["profile_sha256s"]
+    for setup in build_setups(contract, routes=routes).values():
+        for profile in setup.plan.agent_profiles:
+            assert hashlib.sha256(canonical_json_bytes(profile)).hexdigest() == (
+                expected_profiles[profile.profile_id]
+            )
+
+
+def test_v9_variance_analysis_uses_complete_world_pairs_and_not_cells() -> None:
+    contract = load_contract(V9_CONTRACT_PATH)
+    rows: list[dict[str, object]] = []
+    world_offsets = [0.00, 0.02, -0.01, 0.03]
+    for world_seed, offset in zip(
+        contract["execution"]["world_seeds"], world_offsets, strict=True
+    ):
+        for config_index, config_id in enumerate(
+            ("mild_cw085_r2", "moderate_cw085_r2", "severe_cw030_r2")
+        ):
+            for condition in contract["conditions"]:
+                subject_bonus = 0.10 if condition["subject"] == "glm_53_flash" else 0
+                opponent_bonus = (
+                    0.01 if condition["opponent"] == "glm_53_flash" else 0
+                )
+                rows.append(
+                    {
+                        "config_id": config_id,
+                        "condition_id": condition["condition_id"],
+                        "subject": condition["subject"],
+                        "opponent": condition["opponent"],
+                        "world_seed": world_seed,
+                        "status": "completed",
+                        "within_case_score": (
+                            0.50
+                            + offset
+                            + 0.02 * config_index
+                            + subject_bonus
+                            + opponent_bonus
+                        ),
+                    }
+                )
+
+    result = variance_pilot_analysis(rows, contract)
+
+    assert result["status"] == "estimable"
+    assert result["paired_world_count"] == 4
+    assert result["expected_cells_per_subject_per_world"] == 6
+    assert result["mean_paired_contrast"] == pytest.approx(0.10)
+    assert result["sample_variance"] == pytest.approx(0.0)
+    assert result["recommended_confirmatory_worlds"] == 30
+    assert result["ranking_allowed"] is False
+
+    rows[0]["status"] = "operational_failure"
+    rows[0].pop("within_case_score")
+    incomplete = variance_pilot_analysis(rows, contract)
+    assert incomplete["paired_world_count"] == 3
+    assert incomplete["incomplete_world_count"] == 1
+    assert incomplete["worlds"][0]["complete_pair"] is False
+
+
+def test_multiworld_generalization_preserves_v8_gate_digests() -> None:
+    contract = load_contract(V8_CONTRACT_PATH)
+    qualification = json.loads(
+        (
+            V8_CONTRACT_PATH.parents[1]
+            / "evidence"
+            / contract["campaign_id"]
+            / "reports"
+            / "qualification.json"
+        ).read_bytes()
+    )
+    gates = {row["gate_id"]: row for row in qualification["gate_status"]}
+
+    assert design_artifact(contract, routes=route_table(contract))[
+        "artifact_sha256"
+    ] == gates["design"]["artifact_sha256"]
+    assert provider_free_artifact(contract)["artifact_sha256"] == gates[
+        "provider_free"
+    ]["artifact_sha256"]
 
 
 def test_v8_catalog_preflight_binds_stable_endpoint_snapshots(
@@ -689,6 +811,60 @@ def test_published_v8_qualification_and_attempts_are_digest_bound() -> None:
     assert failure["failure_condition"] == "timeout"
     assert failure["inclusion_status"] == "excluded"
     assert failure["score"] is None
+    serialized = json.dumps(
+        {"qualification": qualification, "trajectories": trajectories}
+    )
+    assert "raw_response" not in serialized
+    assert "output_text" not in serialized
+    assert "/Users/" not in serialized
+
+
+def test_published_v9_block_and_fact_tables_are_digest_bound() -> None:
+    root = (
+        V9_CONTRACT_PATH.parents[1]
+        / "evidence"
+        / "housing_model_sensitivity_openrouter_alt_v9"
+    )
+    qualification = json.loads(
+        (root / "reports" / "qualification.json").read_bytes()
+    )
+    trajectories = json.loads(
+        (root / "trajectories" / "attempted.json").read_bytes()
+    )
+    manifest = json.loads((root / "tables" / "fact_manifest.json").read_bytes())
+    for value in (qualification, trajectories, manifest):
+        core = {key: item for key, item in value.items() if key != "artifact_sha256"}
+        assert value["artifact_sha256"] == hashlib.sha256(
+            canonical_json_bytes(core)
+        ).hexdigest()
+
+    assert qualification["status"] == "blocked_by_profile_admission"
+    assert qualification["acceptance"]["publishable_gate_evidence"] is True
+    assert qualification["acceptance"]["publishable_integration_evidence"] is False
+    assert qualification["gate_status"][-1]["attempted_trajectories"] == 0
+    assert qualification["gate_status"][-1]["not_started_trajectories"] == 48
+    assert qualification["failed_admission_probes"] == [
+        {
+            "action_schema": "housing_respond_v1",
+            "artifact_sha256": "4806f294cfc09407da938964a53a5ee30ee8ca2bb61b2d5e754a596b1785703a",
+            "billing_status": "unavailable_on_failed_call",
+            "failure_condition": "rate_limit",
+            "failure_status_code": 429,
+            "failure_type": "ProviderFailure",
+            "model_id": "glm_53_flash",
+            "probe_index": 1,
+            "role": "landlord",
+        }
+    ]
+    assert trajectories["planned_trajectories"] == 48
+    assert trajectories["attempted_trajectories"] == 0
+    assert trajectories["trajectories"] == []
+
+    for table in manifest["artifacts"].values():
+        path = V9_CONTRACT_PATH.parents[1] / table["path"]
+        assert hashlib.sha256(path.read_bytes()).hexdigest() == table["sha256"]
+        with path.open(newline="", encoding="utf-8") as handle:
+            assert len(list(csv.DictReader(handle))) == table["row_count"]
     serialized = json.dumps(
         {"qualification": qualification, "trajectories": trajectories}
     )

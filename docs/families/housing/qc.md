@@ -556,3 +556,37 @@ projection retains all 12 attempts in frozen order, including parsed action
 counts, outcomes, assignments, rents, role usage, costs, latency, failure
 usage, and receipt/event digests. Raw provider responses and reasoning remain
 only under ignored local `runs/`.
+
+## 16. V9 multi-world variance-pilot admission result
+
+[`housing_model_sensitivity_openrouter_alt_v9`](../../../configs/housing_model_sensitivity_openrouter_alt_v9.json)
+froze the next four unused development world seeds across the same three case
+configurations and four model-to-model conditions. This defines 48 planned
+trajectories and four independent world clusters. Its primary estimand is the
+paired world-level GLM-minus-DeepSeek contrast after equal weighting across
+the three configurations and two opponent models. The design is exploratory
+and cannot produce a leaderboard claim.
+
+The design, provider-free, and catalog gates passed. Provider-free QC matched
+all 12 case-world records to the canonical case-fact table and did not open the
+confirmatory holdout. Profile admission passed 17 of 18 single-attempt probes;
+the NextBit GLM landlord `housing_respond_v1` probe at probe index 1 returned a
+typed HTTP 429 rate-limit failure. The gate recorded `$0.0031521699` in
+provider-reported cost, with billing unavailable for the failed request.
+
+Under the frozen no-selective-retry policy, that failure blocked all 48 live
+trajectories. V9 therefore contains no Housing scores and no variance
+estimate. It is publishable provider-reliability and gate evidence, not
+integration or performance evidence. Continue only under a new campaign
+identity after reviewing the route failure; do not rerun or impute the failed
+V9 probe.
+
+Review the digest-bound
+[`qualification.json`](../../../evidence/housing_model_sensitivity_openrouter_alt_v9/reports/qualification.json),
+the explicit zero-attempt
+[`attempted.json`](../../../evidence/housing_model_sensitivity_openrouter_alt_v9/trajectories/attempted.json),
+and the canonical
+[`fact_manifest.json`](../../../evidence/housing_model_sensitivity_openrouter_alt_v9/tables/fact_manifest.json).
+The fact manifest binds two reusable tables: frozen model/profile features and
+all 18 sanitized admission outcomes. Raw provider responses remain only in the
+ignored local run directory.
