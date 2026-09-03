@@ -42,10 +42,34 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 PROVISION_SCRIPT = REPO_ROOT / "tools" / "negarena_bridge" / "provision.sh"
 
-# The convention every negarena test/doc in this repo already hardcodes as
-# the real, pinned sibling checkout (e.g. test_negarena_harness.py's own
-# ``AEREAD_NEGARENA_UPSTREAM_ROOT`` default).
-DOCUMENTED_SIBLING_CHECKOUT = "/Users/sunzeyu/Documents/econ benchmark/upstream-negarena"
+
+def _ancestor_named(path: Path, name: str) -> Path:
+    """Walk up from ``path`` to the ancestor literally named ``name``.
+
+    Mirrors ``provision.sh``'s own ``default_upstream_root()`` walk exactly
+    -- so the expected sibling-checkout path below is derived the same way
+    production code derives it (from the repo root up to the ancestor
+    literally named "AERead"), rather than one developer's own absolute
+    path hardcoded as the expected value. That hardcoded version could only
+    ever pass on the one machine it was written on; CI (a checkout rooted at
+    e.g. ``/home/runner/...``) failed both jobs on it.
+    """
+    for candidate in (path, *path.parents):
+        if candidate.name == name:
+            return candidate
+    raise AssertionError(f"no ancestor named {name!r} found above {path}")
+
+
+# The relationship docs/negarena_adapter_spec.md and every negarena test/doc
+# actually promise: "upstream-negarena" sits next to the top-level "AERead"
+# directory itself, regardless of which machine or checkout depth this runs
+# from. Computed from REPO_ROOT (this test file's own location), exactly
+# like ``default_upstream_root()`` computes it from ``provision.sh``'s own
+# location -- both walk up to the ancestor named "AERead", then descend into
+# "upstream-negarena" next to it.
+DOCUMENTED_SIBLING_CHECKOUT = str(
+    _ancestor_named(REPO_ROOT, "AERead").parent / "upstream-negarena"
+)
 
 
 def _print_default_upstream_root(script: Path) -> str:

@@ -432,3 +432,50 @@ set with the bridge interpreter unset: **46 passed, 43 skipped, 0 failed**; ever
 "upstream NegotiationArena Python interpreter unavailable" (checked directly with `pytest -rs`) —
 none of the 43 skips hides an unrun claim. `test_negarena_provisioning.py`'s 5 tests need neither
 the bridge nor the network and always run.
+
+### CI portability fix (PR #33) — machine-specific assertion in `test_negarena_provisioning.py`
+
+CI (both the 3.10 and 3.12 jobs) failed
+`test_default_upstream_root_matches_the_documented_sibling_checkout` with
+`AssertionError: assert '/home/runner...ream-negarena' == '/Users/sunze...ream-negarena'`.
+
+**Confirmed independently.** `DOCUMENTED_SIBLING_CHECKOUT` was a literal absolute string
+(`/Users/sunzeyu/Documents/econ benchmark/upstream-negarena`) hardcoded to the machine the test
+was authored on, used as the expected value in two strict-equality assertions
+(`test_default_upstream_root_matches_the_documented_sibling_checkout` and
+`test_resolved_upstream_root_matches_the_default_when_no_override_is_set`). CI's checkout root is
+named `AERead` too (`actions/checkout@v4`'s default `$GITHUB_WORKSPACE` is
+`/home/runner/work/AERead/AERead`), so `provision.sh`'s own portable
+`default_upstream_root()` walk correctly produced a `.../upstream-negarena` path on CI — the
+failure was purely the Python-side hardcoded constant, not a regression in `provision.sh` itself.
+
+**Fix.** `DOCUMENTED_SIBLING_CHECKOUT` is now derived, not hardcoded: a new `_ancestor_named(path,
+name)` helper walks up from this test file's own `REPO_ROOT` to the ancestor literally named
+`"AERead"` (mirroring `default_upstream_root()`'s identical walk in `provision.sh`, just
+implemented independently in Python rather than by invoking the script), then appends
+`"upstream-negarena"`. This asserts the *relationship* the docs actually promise (sibling of the
+top-level `AERead` directory) rather than one developer's absolute path, so it holds on any
+checkout location while still failing if the default stops resolving to that sibling.
+
+**Verified locally with a real CI-shaped layout**, not just reasoning: copied the test file and
+`provision.sh` into a synthetic `/tmp/ci_sim/AERead/{tests,tools/negarena_bridge}` tree (no
+`/Users/sunzeyu/...` path anywhere, no real `upstream-negarena` sibling directory present) and ran
+`pytest tests/test_negarena_provisioning.py` from there directly — all 5 pass.
+
+**Mutation-verified** (per the usual method): copied `provision.sh` to `/tmp`, changed
+`default_upstream_root()`'s sibling directory name from `upstream-negarena` to
+`some-other-checkout-name`, reran the suite — the 4 tests that assert the sibling-name
+relationship failed exactly as expected (`test_resolved_upstream_root_honors_an_explicit_env_override`,
+which never touches the default, stayed green); restored from the `/tmp` copy, all 5 pass again.
+
+Scanned the rest of `tests/test_negarena_*.py` for other machine-specific absolute paths
+(`grep -rn "/Users/sunzeyu" tests/test_negarena_*.py`): five other files
+(`test_negarena_environment.py`, `test_negarena_harness.py`, `test_negarena_measurement.py`,
+`test_negarena_parity.py`, `test_negarena_kernel_finalizer.py`) hardcode the same absolute path,
+but only ever as an `os.environ.get("AEREAD_NEGARENA_UPSTREAM_ROOT", "<default>")` fallback that is
+immediately gated by a real directory-existence check (`pytest.skip(...)` if absent) — the
+documented, deliberate bridge-unavailable-skips-cleanly convention this whole family's tests
+already follow, not a bare assertion. On CI, where that directory does not exist regardless of
+which literal string is used, those five files skip cleanly today and are not a source of failure;
+confirmed no other file contains a strict-equality assertion against the hardcoded path (`grep -n
+"UPSTREAM_ROOT ==\|== UPSTREAM_ROOT" tests/test_negarena_*.py` returns nothing). Left unchanged.
