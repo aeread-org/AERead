@@ -287,6 +287,9 @@ def test_v11_freezes_a_four_condition_full_trajectory_gate() -> None:
 
     design = design_artifact(contract, routes=routes)
     provider_free = provider_free_artifact(contract)
+    assert design["artifact_sha256"] == (
+        "5ead3480740ef7105a8c94d486c2f0e896c0682d15974a8eae1780ebdde04ea8"
+    )
     assert design["planned_trajectories"] == 4
     assert design["configuration_count"] == 1
     assert design["condition_count"] == 4

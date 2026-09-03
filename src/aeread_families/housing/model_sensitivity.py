@@ -74,6 +74,13 @@ _HISTORICAL_IMPLEMENTATION_DIGESTS = {
         "execution": "d2c12667a55dddddaaf76ca39e396b998d4a57b08e0bd073a656372f6deb1dc5",
         "harness": "c7dd0cd5a2eb1f557df24a1f3e7bd731938b6938523799ee02a4273229c25590",
     },
+    "housing_model_sensitivity_openrouter_deepinfra_v11": {
+        "housing": "4182057475816840253a8421fc461c09fa6bbb8ea0659e742f6d98ebc2a74a33",
+        "bridge": "5cc23b0340eb39a6d49d8885169c32b5a975b1c80ba858d932e32d179c6b1fae",
+        "combined": "2a7c062960c060f78b85258f0b86768fd3133fb37def9ccd5e534e3a82ad08ab",
+        "execution": "7b963ccc739e007504c4df5f6abce1748c295b20e2b6887599b88ee0108f7f7f",
+        "harness": "063a26de9bd05b7ac0ac400a84e933beffec413ef4eb1ca50794f7e790fc4275",
+    },
 }
 
 
