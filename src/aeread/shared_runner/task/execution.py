@@ -1226,17 +1226,20 @@ class OpenRouterChatClient:
             )
         try:
             structured_output = json.loads(content)
-        except json.JSONDecodeError as error:
-            raise ProviderFailure(
-                "provider_contract",
-                "OpenRouter structured output is not valid JSON",
-                retryable=False,
-            ) from error
+        except json.JSONDecodeError:
+            # The provider returned a completed, billable model response.  Keep
+            # it on the normal response path so the family parser can classify
+            # malformed model output as agent behavior instead of converting an
+            # observed response into operational missingness (and losing its
+            # usage/cost metadata).
+            output_text = content
+        else:
+            output_text = canonical_json_bytes(structured_output).decode("utf-8")
         return ProviderResult(
             response_id=str(raw_response.get("id") or ""),
             requested_model=request.model,
             resolved_model=selected_model,
-            output_text=canonical_json_bytes(structured_output).decode("utf-8"),
+            output_text=output_text,
             finish_reason=str(choice.get("finish_reason") or "unknown"),
             input_tokens=input_tokens,
             cached_input_tokens=cached_input_tokens,

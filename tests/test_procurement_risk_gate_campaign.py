@@ -24,6 +24,7 @@ from aeread_families.procurement_allocation.risk_gate_campaign import (
     PROMPTS,
     TEMPORAL_PROMPT,
     V1_CAMPAIGN_ID,
+    V2_CAMPAIGN_ID,
     build_plan,
     build_risk_gate_comparison,
     publish_risk_gate_campaign,
@@ -43,7 +44,7 @@ from aeread_families.procurement_allocation.strategy_scaffold import (
 def _write_canary(root: Path, *, condition: str) -> None:
     prompt = PROMPTS[condition]
     value = {
-        "schema_version": "aeread.provider_admission_canary/0.2",
+        "schema_version": "aeread.provider_admission_canary/0.4",
         "campaign_id": CAMPAIGN_ID,
         "condition": condition,
         "status": "admitted",
@@ -56,6 +57,8 @@ def _write_canary(root: Path, *, condition: str) -> None:
         "resolved_model": "z-ai/glm-5.3-flash-20260826",
         "cost_usd": 0.001,
         "cost_accounting": "exact",
+        "output_contract_status": "valid_structured_action",
+        "structured_action": "defer",
     }
     value["artifact_sha256"] = hashlib.sha256(canonical_json_bytes(value)).hexdigest()
     path = root / "canaries" / f"{condition}.json"
@@ -169,8 +172,9 @@ def test_risk_gate_plan_freezes_factorial_distribution_and_budget() -> None:
     plan = build_plan()
 
     assert plan["freeze_status"] == "adaptive_mechanism_plan_frozen_before_live_execution"
-    assert plan["lineage"]["supersedes_campaign_id"] == V1_CAMPAIGN_ID
-    assert plan["lineage"]["scientific_contract"] == "unchanged_from_v1"
+    assert V1_CAMPAIGN_ID != V2_CAMPAIGN_ID != CAMPAIGN_ID
+    assert plan["lineage"]["supersedes_campaign_id"] == V2_CAMPAIGN_ID
+    assert plan["lineage"]["scientific_contract"] == "unchanged_from_v1_and_v2"
     assert plan["planned_trajectory_count"] == 144
     assert plan["independent_world_count"] == 6
     assert plan["stratum_world_counts"] == {"landed_cash": 3, "sample_timing": 3}
@@ -190,7 +194,7 @@ def test_risk_gate_plan_freezes_factorial_distribution_and_budget() -> None:
     assert plan["analysis"]["status"] == "adaptive_exploratory_not_confirmatory"
     assert plan["analysis"]["no_early_efficacy_stopping"] is True
     assert plan["plan_sha256"] == (
-        "617ba590aafbb009ad576123d38a6ab91506e4acb0b698903d3e7317a11c2935"
+        "9587d659708729e1e7c7c1b788578ce5b1b06afbf7dbce110724fe64aeafdb6b"
     )
     assert all(arm["planned_trajectory_count"] == 18 for arm in plan["arms"].values())
     assert all(
@@ -232,11 +236,33 @@ def test_risk_gate_canaries_bind_each_prompt(tmp_path: Path) -> None:
         assert canary["status"] == "admitted"
         assert canary["scored"] is False
         assert canary["cost_accounting"] == "exact"
+        assert canary["output_contract_status"] == "valid_structured_action"
         assert provider.requests[0].instructions == PROMPTS[condition]["prompt"]
         assert "private_terms" not in provider.requests[0].input_text
 
 
-def test_risk_gate_canary_retries_rate_limit_with_v2_pacing(
+def test_risk_gate_canary_admits_malformed_output_without_selecting_on_behavior(
+    tmp_path: Path,
+) -> None:
+    provider = SequenceResponseProvider(('{"action":',))
+
+    canary = asyncio.run(
+        run_admission_canary(
+            path=tmp_path / "v4.json",
+            condition="v4",
+            provider_factory=lambda: provider,
+        )
+    )
+
+    assert canary["status"] == "admitted"
+    assert canary["output_contract_status"] == "malformed_json"
+    assert canary["structured_action"] is None
+    assert canary["cost_accounting"] == "exact"
+    assert canary["provider_call_count"] == 1
+    assert canary["runner_retry_count"] == 0
+
+
+def test_risk_gate_canary_retries_rate_limit_with_v2_pacing_retained(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     waits: list[float] = []

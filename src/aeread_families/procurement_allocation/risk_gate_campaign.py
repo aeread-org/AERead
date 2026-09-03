@@ -56,7 +56,8 @@ from .strategy_scaffold import (
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 V1_CAMPAIGN_ID = "procurement_allocation_glm53_flash_parasail_risk_gate_factorial_v1"
-CAMPAIGN_ID = "procurement_allocation_glm53_flash_parasail_risk_gate_factorial_v2"
+V2_CAMPAIGN_ID = "procurement_allocation_glm53_flash_parasail_risk_gate_factorial_v2"
+CAMPAIGN_ID = "procurement_allocation_glm53_flash_parasail_risk_gate_factorial_v3"
 PARENT_EVIDENCE_PATH = (
     REPOSITORY_ROOT
     / "evidence"
@@ -333,16 +334,21 @@ def build_plan() -> dict[str, Any]:
         "campaign_id": CAMPAIGN_ID,
         "freeze_status": "adaptive_mechanism_plan_frozen_before_live_execution",
         "lineage": {
-            "supersedes_campaign_id": V1_CAMPAIGN_ID,
+            "supersedes_campaign_id": V2_CAMPAIGN_ID,
             "v1_disposition": (
                 "sealed_ineligible_after_rate_limit_failure; later fresh attempts "
                 "rejected by admission canaries"
             ),
-            "scientific_contract": "unchanged_from_v1",
+            "v2_disposition": (
+                "sealed_ineligible_after_provider-returned_malformed_structured_text "
+                "was misclassified as provider_contract"
+            ),
+            "scientific_contract": "unchanged_from_v1_and_v2",
             "operational_changes_only": [
-                "increase missing-Retry-After backoff base from 2 to 15 seconds",
-                "retry admission canaries under the declared bounded policy",
-                "space new prompt-shape canaries by 10 seconds",
+                "preserve nonempty provider-returned malformed structured text as a "
+                "billable model response for family-level scoring",
+                "make admission canaries transport-only so malformed model content "
+                "cannot selectively gate scored execution",
             ],
             "parent_campaign_id": (
                 "procurement_allocation_glm53_flash_parasail_strategy_confirmatory_v2"
@@ -532,7 +538,7 @@ async def run_admission_canary(
             raise ValueError("admission canary identity mismatch")
         return value
     record: dict[str, Any] = {
-        "schema_version": "aeread.provider_admission_canary/0.3",
+        "schema_version": "aeread.provider_admission_canary/0.4",
         "campaign_id": CAMPAIGN_ID,
         "condition": condition,
         "attempted_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
@@ -565,15 +571,29 @@ async def run_admission_canary(
                     "admission canary received an empty completion",
                     retryable=True,
                 )
-            action = json.loads(result.output_text)
-            if not isinstance(action, Mapping) or not isinstance(action.get("action"), str):
-                raise ValueError("canary completion is not a structured action")
+            try:
+                action = json.loads(result.output_text)
+            except json.JSONDecodeError:
+                action = None
+                output_contract_status = "malformed_json"
+            else:
+                output_contract_status = (
+                    "valid_structured_action"
+                    if isinstance(action, Mapping)
+                    and isinstance(action.get("action"), str)
+                    else "invalid_action_shape"
+                )
             record.update(
                 {
                     "status": "admitted",
                     "resolved_model": result.resolved_model,
                     "finish_reason": result.finish_reason,
-                    "structured_action": action["action"],
+                    "output_contract_status": output_contract_status,
+                    "structured_action": (
+                        action["action"]
+                        if output_contract_status == "valid_structured_action"
+                        else None
+                    ),
                 }
             )
             break

@@ -358,7 +358,7 @@ Print the no-spend frozen plan:
 ```bash
 python -m aeread_families.procurement_allocation.risk_gate_campaign \
   --run-root \
-  runs/procurement_allocation/procurement_allocation_glm53_flash_parasail_risk_gate_factorial_v2/qualification_attempt_001
+  runs/procurement_allocation/procurement_allocation_glm53_flash_parasail_risk_gate_factorial_v3/qualification_attempt_001
 ```
 
 After provider-free verification and loading `OPENROUTER_API_KEY`, add
@@ -386,3 +386,25 @@ Its operational-only changes set the missing-`Retry-After` backoff base to 15 se
 (then 30), apply the same bounded retry policy to canaries, and space new canaries by
 10 seconds. V2 therefore receives a new campaign identity while retaining V1's
 scientific contract.
+
+### Risk-gate V2 operational audit and V3 correction
+
+V2 admitted all four prompt shapes and completed 93 scored rows. It recovered one
+provider-5xx response and two rate-limit responses under the preregistered pacing,
+then stopped on row 94: opaque joint, `landed_cash_freight`, seed `279557369`. The
+route returned nonempty structured-output text that was not valid JSON. The adapter
+misclassified that observed model response as a zero-cost `provider_contract`
+failure before the family parser could score it as `malformed_json`.
+
+V2 remains sealed and ineligible with 50 rows unattempted. Its ledgers retain
+$0.285769539 of exact known cost including canaries, but the terminal call's usage
+and cost are unavailable because the old exception path discarded the returned
+response metadata. No partial V2 efficacy contrasts were inspected.
+
+V3 preserves V2's cases, economics, prompts, hashes, seeds, model route, arm order,
+retry pacing, cost bounds, estimands, bootstrap, and progression thresholds. The
+adapter now retains nonempty malformed content as a successful billable provider
+response; procurement then terminates and scores it as an invalid model action.
+Admission canaries gate only transport readiness and record, but do not select on,
+model-output validity. These are measurement corrections, not changes to the
+scientific treatment.

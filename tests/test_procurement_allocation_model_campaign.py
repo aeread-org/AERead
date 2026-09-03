@@ -356,6 +356,55 @@ def test_model_campaign_batches_only_missing_rows_without_selective_retry(
     assert second["summary"]["readiness"]["execution_qualified"] is True
 
 
+def test_malformed_model_output_is_scored_not_operational_missingness(
+    tmp_path: Path,
+) -> None:
+    run_root = tmp_path / "runs" / CAMPAIGN_ID / "malformed_model_output"
+
+    class MalformedOutputProvider:
+        async def complete(self, request):
+            return ProviderResult(
+                response_id="malformed_fixture",
+                requested_model=request.model,
+                resolved_model=request.revision or request.model,
+                output_text='{"action":',
+                finish_reason="stop",
+                input_tokens=123,
+                cached_input_tokens=7,
+                output_tokens=45,
+                cost_usd=0.00001726,
+                raw_response={"fixture": True, "content": '{"action":'},
+            )
+
+    artifact = asyncio.run(
+        run_model_qualification(
+            run_root=run_root,
+            case_paths=(CASE_PATH,),
+            inference_seeds=(231,),
+            max_parallel_cells=1,
+            provider_factory=MalformedOutputProvider,
+            preflight_fn=lambda _candidate: {"route_verified": True},
+        )
+    )
+
+    row = artifact["rows"][0]
+    assert row["status"] == "completed"
+    assert row["decision"] == "failed"
+    assert row["termination_reason"] == "invalid_action"
+    assert row["violations"] == ["malformed_json"]
+    assert row["action_trace"] == [
+        {"ordinal": 1, "status": "agent_action_failure", "action": "unparseable"}
+    ]
+    assert row["provider_call_count"] == 1
+    assert row["input_tokens"] == 123
+    assert row["cached_input_tokens"] == 7
+    assert row["output_tokens"] == 45
+    assert row["cost_usd"] == pytest.approx(0.00001726)
+    assert row["cost_accounting"] == "exact"
+    assert artifact["summary"]["completed_trajectory_count"] == 1
+    assert artifact["summary"]["operational_failure_count"] == 0
+
+
 def test_campaign_aborts_after_first_operational_failure_and_cannot_resume(
     tmp_path: Path,
 ) -> None:
