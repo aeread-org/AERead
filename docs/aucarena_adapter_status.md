@@ -159,6 +159,28 @@ nothing left to delegate to a subprocess, and nothing to provision.
   "tamper and observe a soft state mismatch" test path unreachable for this family's own
   goldens; the comparator's non-vacuity is instead established with synthetic fixtures and
   two genuinely different live runs (see Evidence, above).
+- **The "parity" tests cannot catch a bug inside the vendored functions themselves**
+  (`docs/aucarena_codex_triage.md` Finding 7, disclosed and acknowledged, not fixed this
+  milestone). `tests/test_aucarena_parity.py`'s own module docstring already states this
+  plainly: `environment.py`'s live decision and `measurement.py`'s "independent" recompute
+  both call the identical `vendored.bid_sanity_check`/`vendored.check_hammer`/
+  `vendored.record_bid` functions, so both sides would agree identically on a wrong answer.
+  The real defense against a transcription error in those vendored functions is
+  `tests/test_aucarena_vendored_upstream.py`'s hand-derived numeric assertions — a real,
+  gating pytest suite, but authored once and never independently re-derived by a second,
+  blind process. The spec's own "Test plan" (section 6) names exactly this as an optional,
+  non-gating hardening step; it stays manual. No fix is possible here that does not also
+  defeat its own purpose (any re-derivation performed by whoever already has full view of the
+  vendored code is not blind), so this is recorded as a standing, disclosed limitation rather
+  than a closed finding.
+- **Two Finding-5/Finding-2 codex-review findings are confirmed but not auto-fixed this pass**
+  (see `docs/aucarena_review_disposition.md`'s "Codex-review findings" section for the full
+  reasoning): whether a malformed/illegal bid should still terminate a round with no retry
+  (Finding 2, upstream itself retries without bound) and what single scalar, if any,
+  `aucarena_profit_vs_field`'s `primary` should report for a multi-seat field (Finding 5, the
+  current unweighted mean can dilute a decisive loss) are both product/architecture decisions
+  with more than one defensible answer and no spec-mandated one — not code bugs with a single
+  correct fix. Escalated rather than guessed.
 
 ## Ledger
 
