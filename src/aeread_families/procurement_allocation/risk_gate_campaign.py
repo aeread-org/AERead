@@ -17,6 +17,7 @@ import statistics
 import tempfile
 from collections import Counter
 from datetime import datetime, timezone
+from decimal import Decimal
 from pathlib import Path
 from typing import Any, Callable, Mapping, Sequence
 
@@ -322,13 +323,26 @@ def build_plan() -> dict[str, Any]:
                 "opaque_case_content_sha256": right["case_content_sha256"],
             }
         )
-    scored_hard = sum(
-        int(arm["planned_trajectory_count"]) * MAX_TRAJECTORY_COST_USD
-        for arm in arm_plans.values()
+    scored_hard_decimal = sum(
+        (
+            Decimal(int(arm["planned_trajectory_count"]))
+            * Decimal(str(MAX_TRAJECTORY_COST_USD))
+            for arm in arm_plans.values()
+        ),
+        start=Decimal("0"),
     )
-    scored_conservative = sum(
-        float(arm["conservative_cost_ceiling_usd"]) for arm in arm_plans.values()
+    scored_conservative_decimal = sum(
+        (
+            Decimal(str(arm["conservative_cost_ceiling_usd"]))
+            for arm in arm_plans.values()
+        ),
+        start=Decimal("0"),
     )
+    canary_ceiling_decimal = Decimal(len(CONDITIONS)) * Decimal(
+        str(MAX_CANARY_COST_USD)
+    )
+    scored_hard = float(scored_hard_decimal)
+    scored_conservative = float(scored_conservative_decimal)
     plan: dict[str, Any] = {
         "schema_version": "aeread.procurement_allocation_risk_gate_plan/0.1",
         "campaign_id": CAMPAIGN_ID,
@@ -396,12 +410,12 @@ def build_plan() -> dict[str, Any]:
         "admission_canaries": list(CONDITIONS),
         "admission_canaries_scored": False,
         "conservative_scored_cost_ceiling_usd": scored_conservative,
-        "conservative_total_cost_ceiling_usd": (
-            scored_conservative + len(CONDITIONS) * MAX_CANARY_COST_USD
+        "conservative_total_cost_ceiling_usd": float(
+            scored_conservative_decimal + canary_ceiling_decimal
         ),
         "hard_scored_cost_ceiling_usd": scored_hard,
-        "hard_total_cost_ceiling_usd": (
-            scored_hard + len(CONDITIONS) * MAX_CANARY_COST_USD
+        "hard_total_cost_ceiling_usd": float(
+            scored_hard_decimal + canary_ceiling_decimal
         ),
         "analysis": {
             "status": "adaptive_exploratory_not_confirmatory",
