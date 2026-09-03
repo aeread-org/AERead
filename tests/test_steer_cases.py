@@ -309,12 +309,16 @@ def test_bridge_refuses_an_upstream_root_that_is_not_a_git_checkout(tmp_path: Pa
 # 1/2 in test_steer_goldens.py only ever check that the scorer agrees with
 # whatever correct_option_id the flatten classification already wrote into
 # the cache -- an internal-consistency check, never a check against
-# upstream's actual, independently-verified answer. This test closes that
-# gap: it re-derives ground truth for the EXACT question golden 1 uses from
-# the RAW answers frame, through the bridge's "raw_answer_rows" op -- a
-# genuinely different code path from _op_flatten's own
-# fillna(False).astype(bool) classification -- and cross-checks it against
-# the cached correct_option_id golden 1 relies on.
+# upstream's actual, independently-verified answer. These two tests close
+# that gap for both goldens: each re-derives ground truth for the EXACT
+# question golden 1/golden 2 uses from the RAW answers frame, through the
+# bridge's "raw_answer_rows" op -- a genuinely different code path from
+# _op_flatten's own fillna(False).astype(bool) classification -- and
+# cross-checks it against the cached correct_option_id that golden relies
+# on. (docs/steer_fix_verification.md's independent re-check of this fix
+# pass found golden 1 covered but golden 2 -- a different element,
+# `plurality_voting`, on the `correct_answer` int64 schema variant rather
+# than transitivity's -- still uncovered; this closes that gap too.)
 # ---------------------------------------------------------------------------
 
 
@@ -365,6 +369,28 @@ def test_golden_1s_gold_option_is_independently_verified_against_the_raw_upstrea
     # _op_flatten's own classification (see `_independently_truthy`'s
     # docstring) -- exactly the check goldens 1/2 never performed
     # (docs/steer_codex_triage.md finding 4).
+    independently_correct_option_ids = [
+        entry["option_id"]
+        for entry in raw_rows
+        if _independently_truthy(entry["correct_repr"])
+    ]
+    assert independently_correct_option_ids == [row["correct_option_id"]]
+
+
+def test_golden_2s_gold_option_is_independently_verified_against_the_raw_upstream_frame() -> None:
+    # Golden 2 (test_steer_goldens.py's valid-but-poor golden) uses
+    # plurality_voting -- a different declared element than golden 1, and
+    # one of the three that carries the `correct_answer` int64 schema
+    # variant rather than transitivity's `correct` bool-like column (spec
+    # section 1's Governing facts). Named separately from golden 1's test
+    # rather than parametrized over both so this remains a direct,
+    # grep-able regression guard per golden, matching that test's own shape
+    # exactly.
+    element = "plurality_voting"
+    row = _first_admitted_cache_row(element)
+
+    raw_rows = _bridge().raw_answer_rows(element, row["question_id"])
+
     independently_correct_option_ids = [
         entry["option_id"]
         for entry in raw_rows
