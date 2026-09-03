@@ -26,6 +26,11 @@ CASE_ROOT = REPOSITORY_ROOT / "cases" / "procurement_allocation_v1" / "dev"
 BLINDED_CASE_ROOT = (
     REPOSITORY_ROOT / "cases" / "procurement_allocation_v1" / "blinded_v3"
 )
+SURFACE_FACTORIAL_ROOT = (
+    REPOSITORY_ROOT / "cases" / "procurement_allocation_v1" / "surface_factorial_v4"
+)
+OPAQUE_ORIGINAL_ROOT = SURFACE_FACTORIAL_ROOT / "opaque_original"
+LABELED_REORDERED_ROOT = SURFACE_FACTORIAL_ROOT / "labeled_reordered"
 GROUNDING_PATH = (
     REPOSITORY_ROOT
     / "cases"
@@ -44,6 +49,12 @@ CASE_SLUGS = (
 )
 CASE_VARIANCE_PATHS = tuple(CASE_ROOT / f"{slug}.json" for slug in CASE_SLUGS)
 BLINDED_CASE_PATHS = tuple(BLINDED_CASE_ROOT / f"{slug}.json" for slug in CASE_SLUGS)
+OPAQUE_ORIGINAL_PATHS = tuple(
+    OPAQUE_ORIGINAL_ROOT / f"{slug}.json" for slug in CASE_SLUGS
+)
+LABELED_REORDERED_PATHS = tuple(
+    LABELED_REORDERED_ROOT / f"{slug}.json" for slug in CASE_SLUGS
+)
 
 GROUNDING_SELECTION = {
     "tactile_switch_6x6x5": (39, 81, 79),
@@ -535,48 +546,52 @@ def _opaque_supplier_id(*, slug: str, supplier_id: str) -> str:
     return f"supplier_{digest}"
 
 
-def build_blinded_case_matrix() -> tuple[dict[str, Any], ...]:
-    """Build the v2 panel's label/order-blinded paired mirror.
-
-    Only visible supplier identity and listing order change. All substantive
-    listings, private economics, objectives, policies, and world seeds remain
-    paired with the v2 panel.
-    """
-
-    blinded_cases: list[dict[str, Any]] = []
+def _build_surface_variant(
+    *,
+    split: str,
+    opaque_identity: bool,
+    reordered: bool,
+    generator_id: str,
+    generator_version: str,
+) -> tuple[dict[str, Any], ...]:
+    cases: list[dict[str, Any]] = []
     for source in build_case_matrix():
         raw = copy.deepcopy(source)
         slug = str(source["case_id"]).rsplit(".", 1)[-1]
-        raw["case_id"] = f"procurement_allocation_v1.blinded_v3.{slug}"
-        raw["split"] = "blinded_v3"
+        raw["case_id"] = f"procurement_allocation_v1.{split}.{slug}"
+        raw["split"] = split
+        order_rank: dict[str, str] = {}
         for supplier in raw["payload"]["suppliers"]:
-            opaque_id = _opaque_supplier_id(
-                slug=slug, supplier_id=str(supplier["supplier_id"])
-            )
-            supplier["supplier_id"] = opaque_id
-            supplier["listing"][
-                "supplier_name"
-            ] = f"Supplier {opaque_id.removeprefix('supplier_').upper()}"
-        raw["payload"]["suppliers"].sort(
-            key=lambda supplier: hashlib.sha256(
+            source_id = str(supplier["supplier_id"])
+            opaque_id = _opaque_supplier_id(slug=slug, supplier_id=source_id)
+            visible_id = opaque_id if opaque_identity else source_id
+            order_rank[visible_id] = hashlib.sha256(
                 f"procurement_allocation_blinded_v3_order:{slug}:"
-                f"{supplier['supplier_id']}".encode()
+                f"{opaque_id}".encode()
             ).hexdigest()
-        )
-        source_terms = [
-            (supplier["component"], supplier["private_terms"])
-            for supplier in source["payload"]["suppliers"]
-        ]
-        blinded_terms = [
-            (supplier["component"], supplier["private_terms"])
-            for supplier in raw["payload"]["suppliers"]
-        ]
-        if blinded_terms == source_terms:
-            suppliers = raw["payload"]["suppliers"]
-            raw["payload"]["suppliers"] = suppliers[1:] + suppliers[:1]
+            if opaque_identity:
+                supplier["supplier_id"] = opaque_id
+                supplier["listing"][
+                    "supplier_name"
+                ] = f"Supplier {opaque_id.removeprefix('supplier_').upper()}"
+        if reordered:
+            raw["payload"]["suppliers"].sort(
+                key=lambda supplier: order_rank[str(supplier["supplier_id"])]
+            )
+            source_terms = [
+                (supplier["component"], supplier["private_terms"])
+                for supplier in source["payload"]["suppliers"]
+            ]
+            variant_terms = [
+                (supplier["component"], supplier["private_terms"])
+                for supplier in raw["payload"]["suppliers"]
+            ]
+            if variant_terms == source_terms:
+                suppliers = raw["payload"]["suppliers"]
+                raw["payload"]["suppliers"] = suppliers[1:] + suppliers[:1]
         raw["provenance"] = {
-            "generator_id": "procurement_allocation_blinded_case_matrix_v3",
-            "generator_version": "3.0.0",
+            "generator_id": generator_id,
+            "generator_version": generator_version,
             "review_status": "curated",
         }
         raw["content_sha256"] = "0" * 64
@@ -592,8 +607,44 @@ def build_blinded_case_matrix() -> tuple[dict[str, Any], ...]:
             <= case.payload["objective"]["defer_value_usd"]
         ):
             raise ValueError(f"{case.case_id} has no beneficial feasible award")
-        blinded_cases.append(raw)
-    return tuple(blinded_cases)
+        cases.append(raw)
+    return tuple(cases)
+
+
+def build_blinded_case_matrix() -> tuple[dict[str, Any], ...]:
+    """Build the v2 panel's label/order-blinded paired mirror."""
+
+    return _build_surface_variant(
+        split="blinded_v3",
+        opaque_identity=True,
+        reordered=True,
+        generator_id="procurement_allocation_blinded_case_matrix_v3",
+        generator_version="3.0.0",
+    )
+
+
+def build_opaque_original_case_matrix() -> tuple[dict[str, Any], ...]:
+    """Change only supplier identity while preserving original listing order."""
+
+    return _build_surface_variant(
+        split="opaque_original_v4",
+        opaque_identity=True,
+        reordered=False,
+        generator_id="procurement_allocation_surface_factorial_v4",
+        generator_version="4.0.0",
+    )
+
+
+def build_labeled_reordered_case_matrix() -> tuple[dict[str, Any], ...]:
+    """Change only listing order while preserving suggestive supplier identity."""
+
+    return _build_surface_variant(
+        split="labeled_reordered_v4",
+        opaque_identity=False,
+        reordered=True,
+        generator_id="procurement_allocation_surface_factorial_v4",
+        generator_version="4.0.0",
+    )
 
 
 def write_case_matrix(root: Path | str = CASE_ROOT) -> tuple[Path, ...]:
@@ -624,27 +675,59 @@ def write_blinded_case_matrix(
     return tuple(written)
 
 
+def _write_cases(cases: Sequence[Mapping[str, Any]], root: Path) -> tuple[Path, ...]:
+    root.mkdir(parents=True, exist_ok=True)
+    written: list[Path] = []
+    for case in cases:
+        path = root / f"{str(case['case_id']).rsplit('.', 1)[-1]}.json"
+        temporary = path.with_suffix(f"{path.suffix}.{os.getpid()}.tmp")
+        temporary.write_text(json.dumps(case, indent=2) + "\n", encoding="utf-8")
+        os.replace(temporary, path)
+        written.append(path)
+    return tuple(written)
+
+
+def write_opaque_original_case_matrix(
+    root: Path | str = OPAQUE_ORIGINAL_ROOT,
+) -> tuple[Path, ...]:
+    return _write_cases(build_opaque_original_case_matrix(), Path(root))
+
+
+def write_labeled_reordered_case_matrix(
+    root: Path | str = LABELED_REORDERED_ROOT,
+) -> tuple[Path, ...]:
+    return _write_cases(build_labeled_reordered_case_matrix(), Path(root))
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--write", action="store_true")
     parser.add_argument(
         "--panel",
-        choices=("case-variance-v2", "blinded-v3"),
+        choices=(
+            "case-variance-v2",
+            "blinded-v3",
+            "opaque-original-v4",
+            "labeled-reordered-v4",
+        ),
         default="case-variance-v2",
     )
     arguments = parser.parse_args(argv)
-    cases = (
-        build_blinded_case_matrix()
-        if arguments.panel == "blinded-v3"
-        else build_case_matrix()
-    )
+    builders = {
+        "case-variance-v2": build_case_matrix,
+        "blinded-v3": build_blinded_case_matrix,
+        "opaque-original-v4": build_opaque_original_case_matrix,
+        "labeled-reordered-v4": build_labeled_reordered_case_matrix,
+    }
+    writers = {
+        "case-variance-v2": write_case_matrix,
+        "blinded-v3": write_blinded_case_matrix,
+        "opaque-original-v4": write_opaque_original_case_matrix,
+        "labeled-reordered-v4": write_labeled_reordered_case_matrix,
+    }
+    cases = builders[arguments.panel]()
     if arguments.write:
-        writer = (
-            write_blinded_case_matrix
-            if arguments.panel == "blinded-v3"
-            else write_case_matrix
-        )
-        for path in writer():
+        for path in writers[arguments.panel]():
             print(path)
     else:
         print(json.dumps(cases, indent=2))
@@ -662,9 +745,18 @@ __all__ = [
     "CASE_VARIANCE_PATHS",
     "GROUNDING_PATH",
     "GROUNDING_SELECTION",
+    "LABELED_REORDERED_PATHS",
+    "LABELED_REORDERED_ROOT",
+    "OPAQUE_ORIGINAL_PATHS",
+    "OPAQUE_ORIGINAL_ROOT",
+    "SURFACE_FACTORIAL_ROOT",
     "build_blinded_case_matrix",
     "build_case_matrix",
+    "build_labeled_reordered_case_matrix",
+    "build_opaque_original_case_matrix",
     "validate_grounding_snapshot",
     "write_blinded_case_matrix",
     "write_case_matrix",
+    "write_labeled_reordered_case_matrix",
+    "write_opaque_original_case_matrix",
 ]

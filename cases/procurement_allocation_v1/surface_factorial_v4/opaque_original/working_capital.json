@@ -1,0 +1,263 @@
+{
+  "spec_version": "aeread.case/0.1",
+  "case_id": "procurement_allocation_v1.opaque_original_v4.working_capital",
+  "family_id": "procurement_allocation_v1",
+  "family_version": "1.0.0",
+  "split": "opaque_original_v4",
+  "world_seed": 2312004,
+  "seats": [
+    {
+      "id": "buyer",
+      "role": "buyer"
+    }
+  ],
+  "episode": {
+    "max_logical_actions": 10,
+    "termination": [
+      "submitted",
+      "deferred",
+      "interaction_budget_exhausted",
+      "invalid_action"
+    ]
+  },
+  "visibility_policy": "procurement_allocation_public_listings_private_supplier_terms_v1",
+  "payload": {
+    "objective": {
+      "product_id": "connected_clock_financing_pilot",
+      "target_kits": 20,
+      "minimum_service_kits": 16,
+      "revenue_per_completed_kit_usd": 12.0,
+      "shortfall_penalty_per_kit_usd": 2.0,
+      "cash_budget_usd": 180.0,
+      "deadline_days": 24,
+      "defect_detection_days": 10,
+      "working_capital_horizon_days": 90,
+      "annual_financing_rate": 1.5,
+      "defer_value_usd": 0.0,
+      "bom": {
+        "ds3231_at24c32": 1,
+        "esp32_s3_n8r8": 1
+      }
+    },
+    "interaction": {
+      "max_actions": 10,
+      "inquiry_days": 1,
+      "quote_days": 1,
+      "counter_days": 1,
+      "inquiry_cost_usd": 0.05,
+      "quote_cost_usd": 0.1,
+      "counter_cost_usd": 0.15
+    },
+    "policy": {
+      "required_variant_by_component": {
+        "ds3231_at24c32": "ds3231_at24c32_i2c_module",
+        "esp32_s3_n8r8": "esp32_s3_devkitc_1_n8r8"
+      },
+      "inquiry_fields": [
+        "exact_variant",
+        "moq_capacity",
+        "lead_time",
+        "shipping",
+        "quality",
+        "return_refund_policy"
+      ],
+      "award_requires": [
+        "unexpired_formal_offer",
+        "verified_sample",
+        "exact_variant"
+      ]
+    },
+    "suppliers": [
+      {
+        "supplier_id": "supplier_4e0493e62ddf",
+        "component": "ds3231_at24c32",
+        "listing": {
+          "supplier_name": "Supplier 4E0493E62DDF",
+          "displayed_unit_price_usd": 1.012,
+          "claimed_lead_time_days": 5,
+          "claimed_variant": "ds3231 at24c32 i2c module",
+          "evidence_status": "marketplace_listing_unverified"
+        },
+        "private_terms": {
+          "variant_id": "ds3231_at24c32_i2c_module",
+          "base_unit_price_usd": 1.15,
+          "shipping_per_unit_usd": 0.05,
+          "duty_rate": 0.05,
+          "capacity": 20,
+          "moq": 10,
+          "order_step": 10,
+          "lead_time_days": 7,
+          "on_time_probability": 0.99,
+          "payment_terms_days": 1,
+          "offer_valid_days": 30,
+          "return_policy": {
+            "refund_window_days": 30,
+            "claim_acceptance_probability": 0.95,
+            "restocking_fee_rate": 0.0,
+            "return_freight_payer": "supplier",
+            "return_freight_per_unit_usd": 0.0,
+            "refund_delay_days": 5
+          },
+          "quality": {
+            "sample_size": 100,
+            "observed_defects": 1,
+            "verified_yield_rate": 0.99,
+            "sample_cost_usd": 0.4,
+            "sample_lead_time_days": 1
+          },
+          "negotiation": {
+            "floor_unit_price_usd": 1.081,
+            "minimum_moq": 10,
+            "maximum_payment_terms_days": 60,
+            "maximum_refund_window_days": 45,
+            "supplier_paid_return_freight_available": true
+          }
+        }
+      },
+      {
+        "supplier_id": "supplier_db0bac25b63f",
+        "component": "ds3231_at24c32",
+        "listing": {
+          "supplier_name": "Supplier DB0BAC25B63F",
+          "displayed_unit_price_usd": 1.188,
+          "claimed_lead_time_days": 5,
+          "claimed_variant": "ds3231 at24c32 i2c module",
+          "evidence_status": "marketplace_listing_unverified"
+        },
+        "private_terms": {
+          "variant_id": "ds3231_at24c32_i2c_module",
+          "base_unit_price_usd": 1.35,
+          "shipping_per_unit_usd": 0.05,
+          "duty_rate": 0.05,
+          "capacity": 20,
+          "moq": 10,
+          "order_step": 10,
+          "lead_time_days": 7,
+          "on_time_probability": 0.99,
+          "payment_terms_days": 90,
+          "offer_valid_days": 30,
+          "return_policy": {
+            "refund_window_days": 30,
+            "claim_acceptance_probability": 0.95,
+            "restocking_fee_rate": 0.0,
+            "return_freight_payer": "supplier",
+            "return_freight_per_unit_usd": 0.0,
+            "refund_delay_days": 5
+          },
+          "quality": {
+            "sample_size": 100,
+            "observed_defects": 1,
+            "verified_yield_rate": 0.99,
+            "sample_cost_usd": 0.4,
+            "sample_lead_time_days": 1
+          },
+          "negotiation": {
+            "floor_unit_price_usd": 1.269,
+            "minimum_moq": 10,
+            "maximum_payment_terms_days": 90,
+            "maximum_refund_window_days": 45,
+            "supplier_paid_return_freight_available": true
+          }
+        }
+      },
+      {
+        "supplier_id": "supplier_a45b9629a583",
+        "component": "esp32_s3_n8r8",
+        "listing": {
+          "supplier_name": "Supplier A45B9629A583",
+          "displayed_unit_price_usd": 3.432,
+          "claimed_lead_time_days": 5,
+          "claimed_variant": "esp32 s3 devkitc 1 n8r8",
+          "evidence_status": "marketplace_listing_unverified"
+        },
+        "private_terms": {
+          "variant_id": "esp32_s3_devkitc_1_n8r8",
+          "base_unit_price_usd": 3.9,
+          "shipping_per_unit_usd": 0.05,
+          "duty_rate": 0.05,
+          "capacity": 20,
+          "moq": 10,
+          "order_step": 10,
+          "lead_time_days": 7,
+          "on_time_probability": 0.99,
+          "payment_terms_days": 1,
+          "offer_valid_days": 30,
+          "return_policy": {
+            "refund_window_days": 30,
+            "claim_acceptance_probability": 0.95,
+            "restocking_fee_rate": 0.0,
+            "return_freight_payer": "supplier",
+            "return_freight_per_unit_usd": 0.0,
+            "refund_delay_days": 5
+          },
+          "quality": {
+            "sample_size": 100,
+            "observed_defects": 1,
+            "verified_yield_rate": 0.99,
+            "sample_cost_usd": 0.4,
+            "sample_lead_time_days": 1
+          },
+          "negotiation": {
+            "floor_unit_price_usd": 3.666,
+            "minimum_moq": 10,
+            "maximum_payment_terms_days": 60,
+            "maximum_refund_window_days": 45,
+            "supplier_paid_return_freight_available": true
+          }
+        }
+      },
+      {
+        "supplier_id": "supplier_91653a45046f",
+        "component": "esp32_s3_n8r8",
+        "listing": {
+          "supplier_name": "Supplier 91653A45046F",
+          "displayed_unit_price_usd": 3.784,
+          "claimed_lead_time_days": 5,
+          "claimed_variant": "esp32 s3 devkitc 1 n8r8",
+          "evidence_status": "marketplace_listing_unverified"
+        },
+        "private_terms": {
+          "variant_id": "esp32_s3_devkitc_1_n8r8",
+          "base_unit_price_usd": 4.3,
+          "shipping_per_unit_usd": 0.05,
+          "duty_rate": 0.05,
+          "capacity": 20,
+          "moq": 10,
+          "order_step": 10,
+          "lead_time_days": 7,
+          "on_time_probability": 0.99,
+          "payment_terms_days": 90,
+          "offer_valid_days": 30,
+          "return_policy": {
+            "refund_window_days": 30,
+            "claim_acceptance_probability": 0.95,
+            "restocking_fee_rate": 0.0,
+            "return_freight_payer": "supplier",
+            "return_freight_per_unit_usd": 0.0,
+            "refund_delay_days": 5
+          },
+          "quality": {
+            "sample_size": 100,
+            "observed_defects": 1,
+            "verified_yield_rate": 0.99,
+            "sample_cost_usd": 0.4,
+            "sample_lead_time_days": 1
+          },
+          "negotiation": {
+            "floor_unit_price_usd": 4.042,
+            "minimum_moq": 10,
+            "maximum_payment_terms_days": 90,
+            "maximum_refund_window_days": 45,
+            "supplier_paid_return_freight_available": true
+          }
+        }
+      }
+    ]
+  },
+  "provenance": {
+    "generator_id": "procurement_allocation_surface_factorial_v4",
+    "generator_version": "4.0.0",
+    "review_status": "curated"
+  },
+  "content_sha256": "c02bd86e8698acb2539ab09b432cd5014eb57fb13931dc3a51f3d21a4e5cee9d"
+}

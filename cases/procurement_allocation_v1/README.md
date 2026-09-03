@@ -157,3 +157,32 @@ The qualified v3 run is stored operationally at
 `runs/procurement_allocation/procurement_allocation_glm_morph_blinded_invariance_v3/qualification_attempt_004`.
 Its sanitized, digest-bound review bundle is
 `evidence/procurement_allocation_glm_morph_blinded_invariance_v3/`.
+
+## Supplier identity by listing order factorial
+
+`surface_factorial_v4/` supplies the two missing cells needed to separate the
+bundled v3 intervention:
+
+| Condition | Supplier identity | Listing order | Source |
+|---|---|---|---|
+| `labeled_original` | suggestive labels | original | qualified v2 run |
+| `opaque_original` | opaque labels | original | `surface_factorial_v4/opaque_original/` |
+| `labeled_reordered` | suggestive labels | deterministic v3 order | `surface_factorial_v4/labeled_reordered/` |
+| `opaque_reordered` | opaque labels | deterministic v3 order | qualified v3 run |
+
+The generated panels reuse the exact v3 identifier mapping and permutation. Only
+the declared presentation factors differ; economic offers, policies, world seeds,
+and solver upper bounds remain paired. Regenerate either new cell with:
+
+```bash
+python -m aeread_families.procurement_allocation.case_matrix \
+  --panel opaque-original-v4 --write
+python -m aeread_families.procurement_allocation.case_matrix \
+  --panel labeled-reordered-v4 --write
+```
+
+Print the no-spend plans with `surface_factorial`, or pass `--execute` to run the
+two missing 18-trajectory panels. Each panel gets an exact-request admission canary,
+runs sequentially, aborts after its first operational failure, and has its own hard
+spend ceiling. The comparison publishes simple identity/order effects, marginal
+main effects, their interaction, and exact six-case cluster-bootstrap intervals.
