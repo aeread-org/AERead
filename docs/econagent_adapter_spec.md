@@ -415,10 +415,12 @@ subprocess per episode** (milestone-1 correction 3): spawned with `cwd=<upstream
 `simulate_utils.py`) once, then serves newline-delimited JSON requests over stdin/stdout
 for the lifetime of one episode — `reset` once, then one `step_month` request per month,
 then `shutdown`. An `AEREAD_ECONAGENT_BRIDGE_REQUIRED=1` env var (mirroring
-`AEREAD_TAU2_BRIDGE_REQUIRED`) is intended to turn a missing-bridge skip into a failure for
-CI and any fidelity-certifying run, matching tau2's convention; as built today that
-enforcement is wired only for tau2 in the shared root `conftest.py` (see the econagent
-ledger) and would need the same generalization tau2's own hook does not yet have.
+`AEREAD_TAU2_BRIDGE_REQUIRED`) turns a missing-bridge skip into a failure for CI and any
+fidelity-certifying run, matching tau2's convention; the shared root `conftest.py`'s
+`pytest_terminal_summary` hook now declares each family's own requirement flag and skip
+markers independently (fix for docs/econagent_codex_triage.md finding 5 -- it used to
+recognize only tau2's own flag and markers, so setting econagent's requirement flag with no
+usable interpreter still produced a silent, zero-exit skip).
 
 ## 4. QC Gate 2 goldens
 
