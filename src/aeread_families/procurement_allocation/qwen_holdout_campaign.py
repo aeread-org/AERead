@@ -417,6 +417,12 @@ def _aggregate(values: Sequence[float], *, label: str) -> dict[str, Any]:
 def _unknown_supplier_attempt_count(
     rows: Sequence[Mapping[str, Any]],
 ) -> int:
+    supplier_targeting_actions = {
+        "inquire",
+        "request_quote",
+        "request_sample",
+        "counter_offer",
+    }
     allowed = {
         path.stem: {
             supplier["supplier_id"]
@@ -430,6 +436,8 @@ def _unknown_supplier_attempt_count(
     for row in rows:
         slug = str(row["case_id"]).rsplit(".", 1)[-1]
         for action in row.get("action_trace", []):
+            if action.get("action") not in supplier_targeting_actions:
+                continue
             supplier_id = action.get("supplier_id")
             if isinstance(supplier_id, str) and supplier_id not in allowed[slug]:
                 count += 1
@@ -451,6 +459,56 @@ def _violation_family_counts(rows: Sequence[Mapping[str, Any]]) -> dict[str, int
                 counts[value] += 1
     counts["unknown_supplier_action_attempt"] = _unknown_supplier_attempt_count(rows)
     return dict(sorted(counts.items()))
+
+
+def _decision_diagnostics(rows: Sequence[Mapping[str, Any]]) -> dict[str, int]:
+    supplier_components = {
+        path.stem: {
+            supplier["supplier_id"]: supplier["component"]
+            for supplier in json.loads(path.read_text(encoding="utf-8"))["payload"][
+                "suppliers"
+            ]
+        }
+        for path in OPAQUE_PATHS
+    }
+    split_required_slugs = set(CASE_SLUGS) - {"minimum_service_budget"}
+    split_attempts = 0
+    split_required_submissions = 0
+    for row in rows:
+        slug = str(row["case_id"]).rsplit(".", 1)[-1]
+        submitted = [
+            action
+            for action in row.get("action_trace", [])
+            if action.get("action") == "submit_award"
+        ]
+        if submitted and slug in split_required_slugs:
+            split_required_submissions += 1
+        row_split = False
+        for action in submitted:
+            component_counts: Counter[str] = Counter()
+            for line in action.get("award_lines", []):
+                offer_id = str(line.get("offer_id", ""))
+                for supplier_id, component in supplier_components[slug].items():
+                    if offer_id.startswith(f"offer_{supplier_id}_v"):
+                        component_counts[component] += 1
+                        break
+            row_split = row_split or any(count > 1 for count in component_counts.values())
+        split_attempts += int(row_split)
+    return {
+        "award_decision_count": sum(row.get("decision") == "award" for row in rows),
+        "feasible_award_count": sum(
+            row.get("decision") == "award" and row.get("feasible") is True
+            for row in rows
+        ),
+        "defer_decision_count": sum(row.get("decision") == "defer" for row in rows),
+        "feasible_defer_count": sum(
+            row.get("decision") == "defer" and row.get("feasible") is True
+            for row in rows
+        ),
+        "failed_decision_count": sum(row.get("decision") == "failed" for row in rows),
+        "split_required_submission_count": split_required_submissions,
+        "split_award_attempt_count": split_attempts,
+    }
 
 
 def build_comparison(*, run_root: Path) -> dict[str, Any]:
@@ -624,6 +682,7 @@ def build_comparison(*, run_root: Path) -> dict[str, Any]:
         "feasibility_transition_counts": dict(sorted(transitions.items())),
         "residual_failure_diagnostics": {
             name: {
+                "decision_diagnostics": _decision_diagnostics(artifact["rows"]),
                 "violation_families": _violation_family_counts(artifact["rows"]),
                 "raw_violation_counts": artifact["summary"].get(
                     "violation_counts", {}

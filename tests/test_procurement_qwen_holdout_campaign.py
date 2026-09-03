@@ -285,6 +285,70 @@ def test_qwen_holdout_unfavorable_effect_remains_integrity_qualified(
     assert comparison["diagnostic"]["checks"]["regret_upper_below_zero"] is False
 
 
+def test_unknown_supplier_diagnostic_ignores_inactive_superset_fields() -> None:
+    case = json.loads(OPAQUE_PATHS[0].read_text())
+    valid_supplier = case["payload"]["suppliers"][0]["supplier_id"]
+    rows = [
+        {
+            "case_id": case["case_id"],
+            "action_trace": [
+                {
+                    "action": "submit_award",
+                    "supplier_id": "",
+                    "award_lines": [],
+                },
+                {
+                    "action": "request_quote",
+                    "supplier_id": valid_supplier,
+                },
+                {
+                    "action": "request_sample",
+                    "supplier_id": "supplier_not_in_case",
+                },
+            ],
+        }
+    ]
+
+    assert campaign_module._unknown_supplier_attempt_count(rows) == 1
+
+
+def test_decision_diagnostic_separates_defer_from_feasible_award() -> None:
+    case = json.loads(OPAQUE_PATHS[0].read_text())
+    supplier_ids = [
+        supplier["supplier_id"] for supplier in case["payload"]["suppliers"]
+    ]
+    rows = [
+        {
+            "case_id": case["case_id"],
+            "decision": "award",
+            "feasible": False,
+            "action_trace": [
+                {
+                    "action": "submit_award",
+                    "award_lines": [
+                        {"offer_id": f"offer_{supplier_ids[0]}_v1", "quantity": 10},
+                        {"offer_id": f"offer_{supplier_ids[1]}_v1", "quantity": 10},
+                    ],
+                }
+            ],
+        },
+        {
+            "case_id": case["case_id"],
+            "decision": "defer",
+            "feasible": True,
+            "action_trace": [{"action": "defer"}],
+        },
+    ]
+
+    diagnostic = campaign_module._decision_diagnostics(rows)
+
+    assert diagnostic["award_decision_count"] == 1
+    assert diagnostic["feasible_award_count"] == 0
+    assert diagnostic["feasible_defer_count"] == 1
+    assert diagnostic["split_required_submission_count"] == 1
+    assert diagnostic["split_award_attempt_count"] == 1
+
+
 def test_qwen_holdout_rejects_lower_runtime_budget(tmp_path: Path) -> None:
     with pytest.raises(ValueError, match="below the frozen hard total ceiling"):
         asyncio.run(

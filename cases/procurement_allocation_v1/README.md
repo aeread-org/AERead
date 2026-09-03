@@ -155,6 +155,13 @@ to decide whether to continue. Publication requires all 36 rows to complete and
 receipt-replay with exact accounting. Favorable and unfavorable integrity-qualified
 results are both publishable.
 
+The qualified live run completed and replayed all 36 rows with zero operational
+failures and $0.1125104706 total spend including both canaries. The preregistered
+residual-capability support rule was not met. V2 removed malformed actions but did
+not produce a feasible purchase award or a single submitted multi-offer split; its
+only feasible terminal row was an explicit defer. See the campaign document and
+tracked evidence bundle for the paired effects and typed failure breakdown.
+
 ## Blinded supplier-label mirror
 
 `blinded_v3/` contains a deterministic paired mirror of the six generated cases.
