@@ -24,6 +24,7 @@ from aeread.shared_runner.model_call.harness import MinimalChatHarness
 from aeread.shared_runner.run.resolver import canonical_json_bytes
 from aeread.shared_runner.task.execution import (
     OpenRouterChatClient,
+    ProviderFailure,
     ProviderRequest,
     execute_plan_cell,
 )
@@ -54,7 +55,8 @@ from .strategy_scaffold import (
 
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
-CAMPAIGN_ID = "procurement_allocation_glm53_flash_parasail_risk_gate_factorial_v1"
+V1_CAMPAIGN_ID = "procurement_allocation_glm53_flash_parasail_risk_gate_factorial_v1"
+CAMPAIGN_ID = "procurement_allocation_glm53_flash_parasail_risk_gate_factorial_v2"
 PARENT_EVIDENCE_PATH = (
     REPOSITORY_ROOT
     / "evidence"
@@ -71,7 +73,7 @@ MASTER_SEED = 20260903
 INFERENCE_SEEDS = derive_inference_seeds(
     master_seed=MASTER_SEED,
     count=3,
-    campaign_id=CAMPAIGN_ID,
+    campaign_id=V1_CAMPAIGN_ID,
 )
 BOOTSTRAP_SEED = 20260903
 BOOTSTRAP_RESAMPLES = 50_000
@@ -80,7 +82,9 @@ MAX_PARALLEL_CELLS = 1
 MAX_ACTION_ATTEMPTS = 3
 RETRY_CONDITIONS = (*TRANSIENT_RETRY_CONDITIONS, "empty_response")
 RETRY_BACKOFF = "exponential_jitter_v1"
+RETRY_BASE_SECONDS = 15.0
 RETRY_AFTER_MAX_SECONDS = 60.0
+INTER_CANARY_DELAY_SECONDS = 10.0
 MAX_TRAJECTORY_COST_USD = 0.02
 MAX_CANARY_COST_USD = 0.02
 CONDITIONS = ("v4", "temporal", "cash", "joint")
@@ -288,6 +292,7 @@ def build_plan() -> dict[str, Any]:
             max_action_attempts=MAX_ACTION_ATTEMPTS,
             retryable_conditions=RETRY_CONDITIONS,
             retry_backoff=RETRY_BACKOFF,
+            retry_base_seconds=RETRY_BASE_SECONDS,
             retry_after_max_seconds=RETRY_AFTER_MAX_SECONDS,
             max_cost_usd_per_trajectory=MAX_TRAJECTORY_COST_USD,
         )
@@ -328,6 +333,17 @@ def build_plan() -> dict[str, Any]:
         "campaign_id": CAMPAIGN_ID,
         "freeze_status": "adaptive_mechanism_plan_frozen_before_live_execution",
         "lineage": {
+            "supersedes_campaign_id": V1_CAMPAIGN_ID,
+            "v1_disposition": (
+                "sealed_ineligible_after_rate_limit_failure; later fresh attempts "
+                "rejected by admission canaries"
+            ),
+            "scientific_contract": "unchanged_from_v1",
+            "operational_changes_only": [
+                "increase missing-Retry-After backoff base from 2 to 15 seconds",
+                "retry admission canaries under the declared bounded policy",
+                "space new prompt-shape canaries by 10 seconds",
+            ],
             "parent_campaign_id": (
                 "procurement_allocation_glm53_flash_parasail_strategy_confirmatory_v2"
             ),
@@ -363,6 +379,7 @@ def build_plan() -> dict[str, Any]:
         "checkpoint_schedule": (
             "one economic world per invocation: three seeds in every surface-condition arm"
         ),
+        "inter_canary_delay_seconds": INTER_CANARY_DELAY_SECONDS,
         "arms": arm_plans,
         "planned_trajectory_count": sum(
             int(arm["planned_trajectory_count"]) for arm in arm_plans.values()
@@ -438,6 +455,7 @@ async def _representative_request(*, condition: str) -> ProviderRequest:
         max_action_attempts=MAX_ACTION_ATTEMPTS,
         retryable_conditions=RETRY_CONDITIONS,
         retry_backoff=RETRY_BACKOFF,
+        retry_base_seconds=RETRY_BASE_SECONDS,
         retry_after_max_seconds=RETRY_AFTER_MAX_SECONDS,
     )
     provider = SequenceResponseProvider(
@@ -514,7 +532,7 @@ async def run_admission_canary(
             raise ValueError("admission canary identity mismatch")
         return value
     record: dict[str, Any] = {
-        "schema_version": "aeread.provider_admission_canary/0.2",
+        "schema_version": "aeread.provider_admission_canary/0.3",
         "campaign_id": CAMPAIGN_ID,
         "condition": condition,
         "attempted_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
@@ -528,38 +546,70 @@ async def run_admission_canary(
         "max_cost_usd": request.max_cost_usd,
         "scored": False,
     }
-    result = None
-    try:
-        result = await provider_factory().complete(request)
-        record.update(
-            {
-                "resolved_model": result.resolved_model,
-                "finish_reason": result.finish_reason,
-                "input_tokens": result.input_tokens,
-                "cached_input_tokens": result.cached_input_tokens,
-                "output_tokens": result.output_tokens,
-                "cost_usd": result.cost_usd,
-                "cost_accounting": "exact",
-            }
-        )
-        action = json.loads(result.output_text)
-        if not isinstance(action, Mapping) or not isinstance(action.get("action"), str):
-            raise ValueError("canary completion is not a structured action")
-        record.update({"status": "admitted", "structured_action": action["action"]})
-    except Exception as error:
-        failure = _failure_fields(error)
-        if result is None:
-            known_zero = failure["failure_condition"] in {
-                "rate_limit",
-                "provider_5xx",
-            }
+    provider = provider_factory()
+    calls = input_tokens = cached_input_tokens = output_tokens = 0
+    cost_usd = 0.0
+    retry_counts: Counter[str] = Counter()
+    cost_accounting = "exact"
+    for ordinal in range(MAX_ACTION_ATTEMPTS):
+        calls += 1
+        try:
+            result = await provider.complete(request)
+            input_tokens += result.input_tokens
+            cached_input_tokens += result.cached_input_tokens
+            output_tokens += result.output_tokens
+            cost_usd += result.cost_usd
+            if not result.output_text.strip():
+                raise ProviderFailure(
+                    "empty_response",
+                    "admission canary received an empty completion",
+                    retryable=True,
+                )
+            action = json.loads(result.output_text)
+            if not isinstance(action, Mapping) or not isinstance(action.get("action"), str):
+                raise ValueError("canary completion is not a structured action")
             record.update(
                 {
-                    "cost_usd": 0.0,
-                    "cost_accounting": "exact" if known_zero else "unavailable",
+                    "status": "admitted",
+                    "resolved_model": result.resolved_model,
+                    "finish_reason": result.finish_reason,
+                    "structured_action": action["action"],
                 }
             )
-        record.update({"status": "rejected", **failure})
+            break
+        except Exception as error:
+            failure = _failure_fields(error)
+            retryable = (
+                failure["failure_condition"] in RETRY_CONDITIONS
+                and ordinal + 1 < MAX_ACTION_ATTEMPTS
+            )
+            if retryable:
+                retry_counts[failure["failure_condition"]] += 1
+                await asyncio.sleep(
+                    min(30.0, RETRY_BASE_SECONDS * (2**ordinal))
+                )
+                continue
+            if failure["failure_condition"] not in {
+                "rate_limit",
+                "provider_5xx",
+                "empty_response",
+            }:
+                cost_accounting = "unavailable"
+            record.update({"status": "rejected", **failure})
+            break
+    record.update(
+        {
+            "input_tokens": input_tokens,
+            "cached_input_tokens": cached_input_tokens,
+            "output_tokens": output_tokens,
+            "cost_usd": cost_usd,
+            "cost_accounting": cost_accounting,
+            "provider_call_count": calls,
+            "runner_retry_count": sum(retry_counts.values()),
+            "retry_condition_counts": dict(sorted(retry_counts.items())),
+            "retry_base_seconds": RETRY_BASE_SECONDS,
+        }
+    )
     record["artifact_sha256"] = hashlib.sha256(canonical_json_bytes(record)).hexdigest()
     _write_once_json(path, record)
     return record
@@ -1023,14 +1073,22 @@ async def run_risk_gate_campaign(
             raise ValueError("cannot resume an attempt containing an operational failure")
 
     canaries: dict[str, Mapping[str, Any]] = {}
-    for condition in CONDITIONS:
+    for index, condition in enumerate(CONDITIONS):
         if canaries and any(item.get("status") != "admitted" for item in canaries.values()):
             break
+        canary_path = run_root / "canaries" / f"{condition}.json"
+        was_new = not canary_path.exists()
         canaries[condition] = await run_admission_canary(
-            path=run_root / "canaries" / f"{condition}.json",
+            path=canary_path,
             condition=condition,
             provider_factory=provider_factory,
         )
+        if (
+            was_new
+            and canaries[condition].get("status") == "admitted"
+            and index + 1 < len(CONDITIONS)
+        ):
+            await asyncio.sleep(INTER_CANARY_DELAY_SECONDS)
     if set(canaries) == set(CONDITIONS) and all(
         item.get("status") == "admitted" for item in canaries.values()
     ):
@@ -1061,6 +1119,7 @@ async def run_risk_gate_campaign(
                 max_action_attempts=MAX_ACTION_ATTEMPTS,
                 retryable_conditions=RETRY_CONDITIONS,
                 retry_backoff=RETRY_BACKOFF,
+                retry_base_seconds=RETRY_BASE_SECONDS,
                 retry_after_max_seconds=RETRY_AFTER_MAX_SECONDS,
                 max_cost_usd_per_trajectory=MAX_TRAJECTORY_COST_USD,
             )
@@ -1272,6 +1331,7 @@ __all__ = [
     "MAX_TRAJECTORY_COST_USD",
     "PROMPTS",
     "TEMPORAL_PROMPT",
+    "V1_CAMPAIGN_ID",
     "build_plan",
     "build_risk_gate_comparison",
     "publish_risk_gate_campaign",

@@ -475,6 +475,7 @@ def build_openrouter_setup(
     max_action_attempts: int = 1,
     retryable_conditions: Sequence[str] = (),
     retry_backoff: str | None = None,
+    retry_base_seconds: float = 2.0,
     retry_after_max_seconds: float = 60.0,
 ) -> ProcurementAllocationSetup:
     if seed < 0:
@@ -510,6 +511,13 @@ def build_openrouter_setup(
     if not retries_enabled and retry_backoff is not None:
         raise ValueError("retry_backoff requires declared procurement retries")
     if (
+        isinstance(retry_base_seconds, bool)
+        or not isinstance(retry_base_seconds, (int, float))
+        or not math.isfinite(float(retry_base_seconds))
+        or not 0 < float(retry_base_seconds) <= 30.0
+    ):
+        raise ValueError("retry_base_seconds must be finite and in (0, 30]")
+    if (
         isinstance(retry_after_max_seconds, bool)
         or not isinstance(retry_after_max_seconds, (int, float))
         or not math.isfinite(float(retry_after_max_seconds))
@@ -542,6 +550,7 @@ def build_openrouter_setup(
     }
     if retry_backoff is not None:
         harness_config["retry_backoff"] = retry_backoff
+        harness_config["retry_base_seconds"] = float(retry_base_seconds)
         harness_config["retry_after_max_seconds"] = float(
             retry_after_max_seconds
         )

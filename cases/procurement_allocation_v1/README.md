@@ -349,6 +349,8 @@ python -m aeread_families.procurement_allocation.risk_gate_case_matrix \
   --surface opaque --write
 ```
 
-The corresponding campaign is an adaptive 2x2 prompt factorial, not a new
+The corresponding V2 campaign is an adaptive 2x2 prompt factorial, not a new
 confirmation of V4. Its four conditions are frozen V4, sample-schedule gate only,
-landed-cash gate only, and both gates together.
+landed-cash gate only, and both gates together. V2 preserves the V1 scientific
+contract and adds slower bounded retry pacing after V1 was invalidated by repeated
+provider rate limits.

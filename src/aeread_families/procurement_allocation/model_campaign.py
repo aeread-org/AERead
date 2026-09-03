@@ -150,6 +150,7 @@ def planned_model_qualification(
     max_action_attempts: int = 1,
     retryable_conditions: Sequence[str] = (),
     retry_backoff: str | None = None,
+    retry_base_seconds: float = 2.0,
     retry_after_max_seconds: float = 60.0,
     max_cost_usd_per_trajectory: float = 0.03,
 ) -> dict[str, Any]:
@@ -199,6 +200,13 @@ def planned_model_qualification(
     if not retries_enabled and retry_backoff is not None:
         raise ValueError("retry_backoff requires declared retries")
     if (
+        isinstance(retry_base_seconds, bool)
+        or not isinstance(retry_base_seconds, (int, float))
+        or not math.isfinite(float(retry_base_seconds))
+        or not 0 < float(retry_base_seconds) <= 30.0
+    ):
+        raise ValueError("retry_base_seconds must be finite and in (0, 30]")
+    if (
         isinstance(retry_after_max_seconds, bool)
         or not isinstance(retry_after_max_seconds, (int, float))
         or not math.isfinite(float(retry_after_max_seconds))
@@ -240,6 +248,7 @@ def planned_model_qualification(
                 "max_action_attempts": max_action_attempts,
                 "retryable_conditions": list(resolved_retryable_conditions),
                 "retry_backoff": retry_backoff,
+                "retry_base_seconds": float(retry_base_seconds),
                 "retry_after_max_seconds": retry_after_max_seconds,
                 "session_mode": "restart",
                 "sdk_retries": 0,
@@ -951,6 +960,7 @@ async def _run_cell(
     max_action_attempts: int,
     retryable_conditions: Sequence[str],
     retry_backoff: str | None,
+    retry_base_seconds: float,
     retry_after_max_seconds: float,
     max_cost_usd_per_trajectory: float,
 ) -> dict[str, Any]:
@@ -967,6 +977,7 @@ async def _run_cell(
         max_action_attempts=max_action_attempts,
         retryable_conditions=retryable_conditions,
         retry_backoff=retry_backoff,
+        retry_base_seconds=retry_base_seconds,
         retry_after_max_seconds=retry_after_max_seconds,
     )
     cell = setup.plan.cells[0]
@@ -1107,6 +1118,7 @@ async def run_model_qualification(
     max_action_attempts: int = 1,
     retryable_conditions: Sequence[str] = (),
     retry_backoff: str | None = None,
+    retry_base_seconds: float = 2.0,
     retry_after_max_seconds: float = 60.0,
     max_cost_usd_per_trajectory: float = 0.03,
 ) -> dict[str, Any]:
@@ -1125,6 +1137,7 @@ async def run_model_qualification(
         max_action_attempts=max_action_attempts,
         retryable_conditions=retryable_conditions,
         retry_backoff=retry_backoff,
+        retry_base_seconds=retry_base_seconds,
         retry_after_max_seconds=retry_after_max_seconds,
         max_cost_usd_per_trajectory=max_cost_usd_per_trajectory,
     )
@@ -1200,6 +1213,7 @@ async def run_model_qualification(
                     max_action_attempts=max_action_attempts,
                     retryable_conditions=retryable_conditions,
                     retry_backoff=retry_backoff,
+                    retry_base_seconds=retry_base_seconds,
                     retry_after_max_seconds=retry_after_max_seconds,
                     max_cost_usd_per_trajectory=max_cost_usd_per_trajectory,
                 )
@@ -1222,6 +1236,7 @@ async def run_model_qualification(
                             max_action_attempts=max_action_attempts,
                             retryable_conditions=retryable_conditions,
                             retry_backoff=retry_backoff,
+                            retry_base_seconds=retry_base_seconds,
                             retry_after_max_seconds=retry_after_max_seconds,
                             max_cost_usd_per_trajectory=max_cost_usd_per_trajectory,
                         )

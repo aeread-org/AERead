@@ -358,10 +358,31 @@ Print the no-spend frozen plan:
 ```bash
 python -m aeread_families.procurement_allocation.risk_gate_campaign \
   --run-root \
-  runs/procurement_allocation/procurement_allocation_glm53_flash_parasail_risk_gate_factorial_v1/qualification_attempt_001
+  runs/procurement_allocation/procurement_allocation_glm53_flash_parasail_risk_gate_factorial_v2/qualification_attempt_001
 ```
 
 After provider-free verification and loading `OPENROUTER_API_KEY`, add
 `--execute --max-spend-usd 2.96`. Continue each failure-free world checkpoint with
 `--resume`. Raw state remains under ignored `runs/`; publication is a separate
 `--publish-only` call to the matching direct `evidence/` bundle.
+
+### Risk-gate V1 operational audit
+
+V1 attempt 001 completed and replayed 77 scored rows before a typed HTTP 429 on the
+78th row exhausted its three action attempts. The upstream response supplied no
+`Retry-After`; the runner waited only 2.221 and 4.363 seconds. The failed row retained
+$0.000311355 of earlier successful-call cost exactly. Attempt 001 cost $0.2066673015
+including its four canaries, and remains sealed with 66 unattempted trajectories.
+
+Four later fresh admission attempts confirmed intermittent route throttling. Two
+stopped on their first zero-cost canary; two admitted some prompt shapes before a
+later canary failed. No scored rows ran in those roots. Across all V1 attempts, exact
+incurred cost was $0.2079232155. No partial efficacy contrast was inspected, and V1
+is permanently ineligible.
+
+V2 preserves all cases, economic pairing, prompt text and hashes, inference seeds,
+model revision, route, cost bounds, estimands, bootstrap, and progression thresholds.
+Its operational-only changes set the missing-`Retry-After` backoff base to 15 seconds
+(then 30), apply the same bounded retry policy to canaries, and space new canaries by
+10 seconds. V2 therefore receives a new campaign identity while retaining V1's
+scientific contract.

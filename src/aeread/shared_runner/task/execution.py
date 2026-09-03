@@ -2499,7 +2499,17 @@ class MinimalChatExecutor:
             return
         if policy != "exponential_jitter_v1":
             raise EvidenceIntegrityError(f"unsupported retry backoff policy: {policy!r}")
-        base_seconds = min(30.0, 2.0 * (2**ordinal))
+        retry_base_seconds = profile.harness.config.get("retry_base_seconds", 2.0)
+        if (
+            isinstance(retry_base_seconds, bool)
+            or not isinstance(retry_base_seconds, (int, float))
+            or not math.isfinite(float(retry_base_seconds))
+            or not 0 < float(retry_base_seconds) <= 30.0
+        ):
+            raise EvidenceIntegrityError(
+                "retry_base_seconds must be finite and in (0, 30]"
+            )
+        base_seconds = min(30.0, float(retry_base_seconds) * (2**ordinal))
         jitter_seconds = int(request.provider_call_id[-4:], 16) % 1000 / 1000.0
         declared_delay_seconds = base_seconds + jitter_seconds
         max_retry_after_seconds = profile.harness.config.get(
@@ -2535,6 +2545,7 @@ class MinimalChatExecutor:
                     and retry_after_seconds > float(max_retry_after_seconds)
                 ),
                 "retry_after_max_seconds": float(max_retry_after_seconds),
+                "retry_base_seconds": float(retry_base_seconds),
                 "attempt_ordinal": ordinal,
             },
             phase_instance_id=decision.phase_instance_id,

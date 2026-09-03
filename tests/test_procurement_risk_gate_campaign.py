@@ -9,6 +9,7 @@ import pytest
 
 import aeread_families.procurement_allocation.risk_gate_campaign as campaign_module
 from aeread.shared_runner.run.resolver import canonical_json_bytes
+from aeread.shared_runner.task.execution import ProviderFailure
 from aeread_families.procurement_allocation.case_matrix import CASE_VARIANCE_PATHS
 from aeread_families.procurement_allocation.policy_baselines import (
     PublicObservationPolicyProvider,
@@ -22,6 +23,7 @@ from aeread_families.procurement_allocation.risk_gate_campaign import (
     JOINT_PROMPT,
     PROMPTS,
     TEMPORAL_PROMPT,
+    V1_CAMPAIGN_ID,
     build_plan,
     build_risk_gate_comparison,
     publish_risk_gate_campaign,
@@ -167,10 +169,13 @@ def test_risk_gate_plan_freezes_factorial_distribution_and_budget() -> None:
     plan = build_plan()
 
     assert plan["freeze_status"] == "adaptive_mechanism_plan_frozen_before_live_execution"
+    assert plan["lineage"]["supersedes_campaign_id"] == V1_CAMPAIGN_ID
+    assert plan["lineage"]["scientific_contract"] == "unchanged_from_v1"
     assert plan["planned_trajectory_count"] == 144
     assert plan["independent_world_count"] == 6
     assert plan["stratum_world_counts"] == {"landed_cash": 3, "sample_timing": 3}
     assert plan["inference_seeds"] == list(INFERENCE_SEEDS)
+    assert plan["inference_seeds"] == [279557369, 2094119875, 262950145]
     assert len(set(INFERENCE_SEEDS)) == 3
     assert set(INFERENCE_SEEDS).isdisjoint(
         {*PARASAIL_INFERENCE_SEEDS, *CONFIRMATORY_INFERENCE_SEEDS}
@@ -184,9 +189,16 @@ def test_risk_gate_plan_freezes_factorial_distribution_and_budget() -> None:
     assert plan["hard_total_cost_ceiling_usd"] == pytest.approx(2.96)
     assert plan["analysis"]["status"] == "adaptive_exploratory_not_confirmatory"
     assert plan["analysis"]["no_early_efficacy_stopping"] is True
+    assert plan["plan_sha256"] == (
+        "617ba590aafbb009ad576123d38a6ab91506e4acb0b698903d3e7317a11c2935"
+    )
     assert all(arm["planned_trajectory_count"] == 18 for arm in plan["arms"].values())
     assert all(
         arm["max_cost_usd_per_trajectory"] == pytest.approx(0.02)
+        for arm in plan["arms"].values()
+    )
+    assert all(
+        arm["retry_policy"]["retry_base_seconds"] == pytest.approx(15.0)
         for arm in plan["arms"].values()
     )
 
@@ -222,6 +234,51 @@ def test_risk_gate_canaries_bind_each_prompt(tmp_path: Path) -> None:
         assert canary["cost_accounting"] == "exact"
         assert provider.requests[0].instructions == PROMPTS[condition]["prompt"]
         assert "private_terms" not in provider.requests[0].input_text
+
+
+def test_risk_gate_canary_retries_rate_limit_with_v2_pacing(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    waits: list[float] = []
+
+    async def no_wait(seconds: float) -> None:
+        waits.append(seconds)
+
+    monkeypatch.setattr(campaign_module.asyncio, "sleep", no_wait)
+
+    class RetryThenAdmit:
+        def __init__(self) -> None:
+            self.calls = 0
+            self.delegate = SequenceResponseProvider(
+                (json.dumps({"action": "defer", "reason": "canary admitted"}),)
+            )
+
+        async def complete(self, request):
+            self.calls += 1
+            if self.calls == 1:
+                raise ProviderFailure(
+                    "rate_limit",
+                    "synthetic throttle",
+                    retryable=True,
+                    status_code=429,
+                )
+            return await self.delegate.complete(request)
+
+    provider = RetryThenAdmit()
+    canary = asyncio.run(
+        run_admission_canary(
+            path=tmp_path / "v4.json",
+            condition="v4",
+            provider_factory=lambda: provider,
+        )
+    )
+
+    assert canary["status"] == "admitted"
+    assert canary["provider_call_count"] == 2
+    assert canary["runner_retry_count"] == 1
+    assert canary["retry_condition_counts"] == {"rate_limit": 1}
+    assert canary["cost_accounting"] == "exact"
+    assert waits == [15.0]
 
 
 def test_risk_gate_comparison_progresses_specialized_factorial_and_publishes(
@@ -281,6 +338,11 @@ def test_risk_gate_runner_checkpoints_each_arm_evenly(
     monkeypatch.setattr(campaign_module, "INFERENCE_SEEDS", (11, 12))
     monkeypatch.setattr(campaign_module, "TRAJECTORIES_PER_ARM_PER_CHECKPOINT", 1)
     monkeypatch.setattr(campaign_module, "BOOTSTRAP_RESAMPLES", 100)
+
+    async def no_wait(_seconds: float) -> None:
+        return None
+
+    monkeypatch.setattr(campaign_module.asyncio, "sleep", no_wait)
 
     root = tmp_path / "runs" / CAMPAIGN_ID / "checkpoint"
     provider_factory = lambda: PublicObservationPolicyProvider("displayed_price_greedy")

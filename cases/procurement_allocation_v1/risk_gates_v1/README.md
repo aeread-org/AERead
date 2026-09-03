@@ -22,7 +22,9 @@ All supplier economics are synthetic experimental variables. Component-family
 selection is grounded in the frozen 231-project snapshot; these cases do not claim
 current supplier pricing, availability, capacity, or commercial authority.
 
-The paired campaign has four prompt conditions: frozen V4, temporal gate only, cash
-gate only, and joint gates. With two surfaces, six worlds, and three inference seeds,
-the plan contains 144 scored trajectories. Results are adaptive mechanism evidence,
-not a population model ranking or confirmatory claim.
+The paired V2 campaign has four prompt conditions: frozen V4, temporal gate only,
+cash gate only, and joint gates. With two surfaces, six worlds, and three inference
+seeds, the plan contains 144 scored trajectories. Results are adaptive mechanism
+evidence, not a population model ranking or confirmatory claim. V2 supersedes a
+sealed V1 operational failure without changing worlds, prompts, seeds, or analysis;
+it only lengthens bounded rate-limit pacing for canaries and scored actions.

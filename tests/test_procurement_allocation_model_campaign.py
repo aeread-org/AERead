@@ -473,11 +473,62 @@ def test_declared_runner_retry_recovers_429_and_remains_visible(
         "max_action_attempts": 3,
         "retryable_conditions": ["rate_limit", "provider_5xx"],
         "retry_backoff": "exponential_jitter_v1",
+        "retry_base_seconds": 2.0,
         "retry_after_max_seconds": 60.0,
         "session_mode": "restart",
         "sdk_retries": 0,
         "cost_boundary": "retry only known-zero-cost provider failures",
     }
+
+
+def test_declared_retry_base_controls_missing_retry_after_delay(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    waits: list[float] = []
+
+    async def no_wait(seconds: float) -> None:
+        waits.append(seconds)
+
+    monkeypatch.setattr(execution_module.asyncio, "sleep", no_wait)
+
+    class RetryThenScriptProvider:
+        def __init__(self) -> None:
+            self.calls = 0
+            self.delegate = SequenceResponseProvider(_optimal_script())
+
+        async def complete(self, request):
+            self.calls += 1
+            if self.calls == 1:
+                raise ProviderFailure(
+                    "rate_limit",
+                    "synthetic throttle without Retry-After",
+                    retryable=True,
+                    status_code=429,
+                )
+            return await self.delegate.complete(request)
+
+    artifact = asyncio.run(
+        run_model_qualification(
+            run_root=tmp_path / "runs" / "procurement_retry_base_v1" / "attempt_001",
+            case_paths=(CASE_PATH,),
+            inference_seeds=(231,),
+            max_spend_usd=0.03,
+            max_parallel_cells=1,
+            campaign_id="procurement_retry_base_v1",
+            abort_on_operational_failure=True,
+            provider_factory=lambda: RetryThenScriptProvider(),
+            preflight_fn=lambda _candidate: {"route_verified": True},
+            max_action_attempts=3,
+            retryable_conditions=("rate_limit",),
+            retry_backoff="exponential_jitter_v1",
+            retry_base_seconds=15.0,
+        )
+    )
+
+    assert artifact["summary"]["completed_trajectory_count"] == 1
+    assert artifact["plan"]["retry_policy"]["retry_base_seconds"] == 15.0
+    assert len(waits) == 1
+    assert 15.0 <= waits[0] < 16.0
 
 
 def test_empty_response_retry_is_billed_and_visible(tmp_path: Path) -> None:
