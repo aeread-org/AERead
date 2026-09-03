@@ -73,20 +73,45 @@ def test_upstream_task_id_rejects_colon_before_rllm_can_collapse_grouping() -> N
     data = case_data()
     data["upstream_task_id"] = "retail:14"
 
-    with pytest.raises(AuthoringValidationError, match="valid identifier"):
+    with pytest.raises(AuthoringValidationError, match="portable upstream identifier"):
         CaseManifest.from_dict(data)
 
 
-def test_upstream_task_id_must_pass_the_identifier_grammar_when_present() -> None:
+@pytest.mark.parametrize(
+    "value",
+    ["Task 14", "retail:14", "a/b", "", "task\t1", "quote'd"],
+)
+def test_upstream_task_id_rejects_row_id_hazards(value: str) -> None:
     data = case_data()
-    data["upstream_task_id"] = "Task 14"
-    with pytest.raises(AuthoringValidationError, match="valid identifier"):
+    data["upstream_task_id"] = value
+
+    with pytest.raises(AuthoringValidationError, match="upstream_task_id"):
         CaseManifest.from_dict(data)
 
-    data["upstream_task_id"] = "tau2_retail.14"
-    assert CaseManifest.from_dict(data).upstream_task_id == "tau2_retail.14"
 
-    del data["upstream_task_id"]
+@pytest.mark.parametrize(
+    "value",
+    [
+        # Real foreign ids from the landed external families: the field exists
+        # to record the upstream id VERBATIM, so case and underscores survive.
+        "Task1BasicPriceNegotiation",
+        "Task4_s1_beauty_product_negotiation",
+        "tau2_retail.14",
+        "14",
+        "GovSim-fishing_v6.4",
+    ],
+)
+def test_upstream_task_id_preserves_a_safe_foreign_id_verbatim(value: str) -> None:
+    data = case_data()
+    data["upstream_task_id"] = value
+
+    assert CaseManifest.from_dict(data).upstream_task_id == value
+
+
+def test_upstream_task_id_stays_optional() -> None:
+    data = case_data()
+    data.pop("upstream_task_id", None)
+
     assert CaseManifest.from_dict(data).upstream_task_id is None
 
 

@@ -18,6 +18,7 @@ class AuthoringValidationError(ValueError):
 
 
 _ID_RE = re.compile(r"^[a-z0-9](?:[a-z0-9_.-]*[a-z0-9])?$")
+_FOREIGN_ID_RE = re.compile(r"^[A-Za-z0-9](?:[A-Za-z0-9_.-]*[A-Za-z0-9])?$")
 _SEMVER_RE = re.compile(r"^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:[-+][A-Za-z0-9.-]+)?$")
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 
@@ -126,6 +127,29 @@ def _optional_string(value: Any, path: str) -> str | None:
 
 def _optional_identifier(value: Any, path: str) -> str | None:
     return None if value is None else _identifier(value, path)
+
+
+def _foreign_identifier(value: Any, path: str) -> str:
+    """Validate an identifier minted by an external benchmark, kept verbatim.
+
+    Deliberately weaker than :func:`_identifier`: this field records an
+    upstream id exactly as upstream wrote it, so case and underscores must
+    survive — lowercasing it would destroy the traceability the field exists
+    for. What it rules out is the row-id hazard class: a colon once collapsed
+    rLLM's GRPO grouping into a single group, and whitespace, separators, and
+    quoting characters break the same downstream parsing.
+    """
+    text = _string(value, path)
+    if _FOREIGN_ID_RE.fullmatch(text) is None:
+        raise AuthoringValidationError(
+            f"{path} is not a portable upstream identifier: {text!r} "
+            "(allowed: letters, digits, '_', '.', '-'; no colons or whitespace)"
+        )
+    return text
+
+
+def _optional_foreign_identifier(value: Any, path: str) -> str | None:
+    return None if value is None else _foreign_identifier(value, path)
 
 
 def _optional_integer(
@@ -525,7 +549,7 @@ class CaseManifest:
             # keys; a colon here once collapsed grouping into one group, so
             # the exportable-identifier grammar applies (adapters normalize
             # foreign ids and keep the raw value in provenance/payload).
-            upstream_task_id=_optional_identifier(
+            upstream_task_id=_optional_foreign_identifier(
                 data.get("upstream_task_id"), "CaseManifest.upstream_task_id"
             ),
         )
