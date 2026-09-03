@@ -262,6 +262,8 @@ def test_model_port_rejects_empty_completion_before_returning_a_model_turn(tmp_p
             )
         )
     assert captured.value.condition == "empty_response"  # the kernel retry vocabulary
+    assert port.last_result is not None
+    assert port.last_result.input_tokens == 20
 
     events = [event.event_type for event in evidence.read_events()]
     assert events == ["provider_call_started", "provider_call_succeeded"]

@@ -1,0 +1,263 @@
+{
+  "case_id": "procurement_allocation_v1.confirmatory_v1_labeled.landed_cost_freight",
+  "content_sha256": "f1e41a702d13f8b3f4f2867877273406c8bb35130a5e643962a093cbf763a932",
+  "episode": {
+    "max_logical_actions": 10,
+    "termination": [
+      "submitted",
+      "deferred",
+      "interaction_budget_exhausted",
+      "invalid_action"
+    ]
+  },
+  "family_id": "procurement_allocation_v1",
+  "family_version": "1.0.0",
+  "payload": {
+    "interaction": {
+      "counter_cost_usd": 0.15,
+      "counter_days": 1,
+      "inquiry_cost_usd": 0.05,
+      "inquiry_days": 1,
+      "max_actions": 10,
+      "quote_cost_usd": 0.1,
+      "quote_days": 1
+    },
+    "objective": {
+      "annual_financing_rate": 0.12,
+      "bom": {
+        "esp32_s3_n8r8": 1,
+        "ssd1306_oled_096": 1
+      },
+      "cash_budget_usd": 175.0,
+      "deadline_days": 18,
+      "defect_detection_days": 10,
+      "defer_value_usd": 0.0,
+      "minimum_service_kits": 16,
+      "product_id": "display_gateway_landed_cost_holdout",
+      "revenue_per_completed_kit_usd": 12.0,
+      "shortfall_penalty_per_kit_usd": 4.0,
+      "target_kits": 20,
+      "working_capital_horizon_days": 45
+    },
+    "policy": {
+      "award_requires": [
+        "unexpired_formal_offer",
+        "verified_sample",
+        "exact_variant"
+      ],
+      "inquiry_fields": [
+        "exact_variant",
+        "moq_capacity",
+        "lead_time",
+        "shipping",
+        "quality",
+        "return_refund_policy"
+      ],
+      "required_variant_by_component": {
+        "esp32_s3_n8r8": "esp32_s3_devkitc_1_n8r8",
+        "ssd1306_oled_096": "096in_128x64_four_pin_i2c_ssd1306"
+      }
+    },
+    "suppliers": [
+      {
+        "component": "esp32_s3_n8r8",
+        "listing": {
+          "claimed_lead_time_days": 4,
+          "claimed_variant": "esp32 s3 devkitc 1 n8r8",
+          "displayed_unit_price_usd": 2.46,
+          "evidence_status": "marketplace_listing_unverified",
+          "supplier_name": "Synthetic Low Sticker supplier"
+        },
+        "private_terms": {
+          "base_unit_price_usd": 3.0,
+          "capacity": 40,
+          "duty_rate": 0.18,
+          "lead_time_days": 6,
+          "moq": 10,
+          "negotiation": {
+            "floor_unit_price_usd": 3.0,
+            "maximum_payment_terms_days": 30,
+            "maximum_refund_window_days": 30,
+            "minimum_moq": 10,
+            "supplier_paid_return_freight_available": true
+          },
+          "offer_valid_days": 30,
+          "on_time_probability": 0.99,
+          "order_step": 10,
+          "payment_terms_days": 30,
+          "quality": {
+            "observed_defects": 1,
+            "sample_cost_usd": 0.4,
+            "sample_lead_time_days": 1,
+            "sample_size": 100,
+            "verified_yield_rate": 0.99
+          },
+          "return_policy": {
+            "claim_acceptance_probability": 0.95,
+            "refund_delay_days": 5,
+            "refund_window_days": 30,
+            "restocking_fee_rate": 0.0,
+            "return_freight_payer": "supplier",
+            "return_freight_per_unit_usd": 0.0
+          },
+          "shipping_per_unit_usd": 2.4,
+          "variant_id": "esp32_s3_devkitc_1_n8r8"
+        },
+        "supplier_id": "esp32_s3_n8r8_low_sticker"
+      },
+      {
+        "component": "esp32_s3_n8r8",
+        "listing": {
+          "claimed_lead_time_days": 4,
+          "claimed_variant": "esp32 s3 devkitc 1 n8r8",
+          "displayed_unit_price_usd": 3.444,
+          "evidence_status": "marketplace_listing_unverified",
+          "supplier_name": "Synthetic Landed Clear supplier"
+        },
+        "private_terms": {
+          "base_unit_price_usd": 4.2,
+          "capacity": 40,
+          "duty_rate": 0.02,
+          "lead_time_days": 6,
+          "moq": 10,
+          "negotiation": {
+            "floor_unit_price_usd": 4.2,
+            "maximum_payment_terms_days": 30,
+            "maximum_refund_window_days": 30,
+            "minimum_moq": 10,
+            "supplier_paid_return_freight_available": true
+          },
+          "offer_valid_days": 30,
+          "on_time_probability": 0.99,
+          "order_step": 10,
+          "payment_terms_days": 30,
+          "quality": {
+            "observed_defects": 1,
+            "sample_cost_usd": 0.4,
+            "sample_lead_time_days": 1,
+            "sample_size": 100,
+            "verified_yield_rate": 0.99
+          },
+          "return_policy": {
+            "claim_acceptance_probability": 0.95,
+            "refund_delay_days": 5,
+            "refund_window_days": 30,
+            "restocking_fee_rate": 0.0,
+            "return_freight_payer": "supplier",
+            "return_freight_per_unit_usd": 0.0
+          },
+          "shipping_per_unit_usd": 0.1,
+          "variant_id": "esp32_s3_devkitc_1_n8r8"
+        },
+        "supplier_id": "esp32_s3_n8r8_landed_clear"
+      },
+      {
+        "component": "ssd1306_oled_096",
+        "listing": {
+          "claimed_lead_time_days": 4,
+          "claimed_variant": "096in 128x64 four pin i2c ssd1306",
+          "displayed_unit_price_usd": 0.738,
+          "evidence_status": "marketplace_listing_unverified",
+          "supplier_name": "Synthetic Low Sticker supplier"
+        },
+        "private_terms": {
+          "base_unit_price_usd": 0.9,
+          "capacity": 40,
+          "duty_rate": 0.18,
+          "lead_time_days": 6,
+          "moq": 10,
+          "negotiation": {
+            "floor_unit_price_usd": 0.9,
+            "maximum_payment_terms_days": 30,
+            "maximum_refund_window_days": 30,
+            "minimum_moq": 10,
+            "supplier_paid_return_freight_available": true
+          },
+          "offer_valid_days": 30,
+          "on_time_probability": 0.99,
+          "order_step": 10,
+          "payment_terms_days": 30,
+          "quality": {
+            "observed_defects": 1,
+            "sample_cost_usd": 0.4,
+            "sample_lead_time_days": 1,
+            "sample_size": 100,
+            "verified_yield_rate": 0.99
+          },
+          "return_policy": {
+            "claim_acceptance_probability": 0.95,
+            "refund_delay_days": 5,
+            "refund_window_days": 30,
+            "restocking_fee_rate": 0.0,
+            "return_freight_payer": "supplier",
+            "return_freight_per_unit_usd": 0.0
+          },
+          "shipping_per_unit_usd": 1.2,
+          "variant_id": "096in_128x64_four_pin_i2c_ssd1306"
+        },
+        "supplier_id": "ssd1306_oled_096_low_sticker"
+      },
+      {
+        "component": "ssd1306_oled_096",
+        "listing": {
+          "claimed_lead_time_days": 4,
+          "claimed_variant": "096in 128x64 four pin i2c ssd1306",
+          "displayed_unit_price_usd": 1.23,
+          "evidence_status": "marketplace_listing_unverified",
+          "supplier_name": "Synthetic Landed Clear supplier"
+        },
+        "private_terms": {
+          "base_unit_price_usd": 1.5,
+          "capacity": 40,
+          "duty_rate": 0.02,
+          "lead_time_days": 6,
+          "moq": 10,
+          "negotiation": {
+            "floor_unit_price_usd": 1.5,
+            "maximum_payment_terms_days": 30,
+            "maximum_refund_window_days": 30,
+            "minimum_moq": 10,
+            "supplier_paid_return_freight_available": true
+          },
+          "offer_valid_days": 30,
+          "on_time_probability": 0.99,
+          "order_step": 10,
+          "payment_terms_days": 30,
+          "quality": {
+            "observed_defects": 1,
+            "sample_cost_usd": 0.4,
+            "sample_lead_time_days": 1,
+            "sample_size": 100,
+            "verified_yield_rate": 0.99
+          },
+          "return_policy": {
+            "claim_acceptance_probability": 0.95,
+            "refund_delay_days": 5,
+            "refund_window_days": 30,
+            "restocking_fee_rate": 0.0,
+            "return_freight_payer": "supplier",
+            "return_freight_per_unit_usd": 0.0
+          },
+          "shipping_per_unit_usd": 0.1,
+          "variant_id": "096in_128x64_four_pin_i2c_ssd1306"
+        },
+        "supplier_id": "ssd1306_oled_096_landed_clear"
+      }
+    ]
+  },
+  "provenance": {
+    "generator_id": "procurement_allocation_confirmatory_case_matrix_v1",
+    "generator_version": "1.0.0",
+    "review_status": "curated"
+  },
+  "seats": [
+    {
+      "id": "buyer",
+      "role": "buyer"
+    }
+  ],
+  "spec_version": "aeread.case/0.1",
+  "split": "confirmatory_v1_labeled",
+  "visibility_policy": "procurement_allocation_public_listings_private_supplier_terms_v1",
+  "world_seed": 2313101
+}

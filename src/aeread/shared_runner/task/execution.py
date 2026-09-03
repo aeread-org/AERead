@@ -2425,6 +2425,34 @@ class MinimalChatExecutor:
                 max_output_tokens = next_limit
                 continue
 
+            if retry_condition == "empty_response":
+                attempt = ActionAttemptRecord(
+                    action_attempt_id=action_attempt_id,
+                    logical_action_id=decision.logical_action_id,
+                    ordinal=ordinal,
+                    retry_reason=retry_reason,
+                    session_mode=profile.retry_policy.session_mode,
+                    status="failed",
+                    provider_calls=(provider_record,),
+                    tool_invocations=(),
+                    canonical_response=canonical,
+                )
+                attempts.append(attempt)
+                self.evidence.append_event(
+                    "action_attempt_failed",
+                    {"failure_condition": retry_condition},
+                    phase_instance_id=decision.phase_instance_id,
+                    logical_action_id=decision.logical_action_id,
+                    action_attempt_id=action_attempt_id,
+                )
+                self._finish_logical_failure(decision, attempts, retry_condition)
+                raise ProviderFailure(
+                    retry_condition,
+                    f"provider call {request.provider_call_id} returned an empty "
+                    "completion",
+                    retryable=True,
+                )
+
             attempt = ActionAttemptRecord(
                 action_attempt_id=action_attempt_id,
                 logical_action_id=decision.logical_action_id,

@@ -97,6 +97,9 @@ displayed listing price or verbal statement as a binding offer.
 RETRYABLE_ZERO_COST_PROVIDER_CONDITIONS = frozenset(
     {"rate_limit", "provider_5xx"}
 )
+RETRYABLE_PROVIDER_CONDITIONS = frozenset(
+    {*RETRYABLE_ZERO_COST_PROVIDER_CONDITIONS, "empty_response"}
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -486,11 +489,12 @@ def build_openrouter_setup(
     ):
         raise ValueError("retryable_conditions must be unique")
     unsupported_conditions = set(resolved_retryable_conditions).difference(
-        RETRYABLE_ZERO_COST_PROVIDER_CONDITIONS
+        RETRYABLE_PROVIDER_CONDITIONS
     )
     if unsupported_conditions:
         raise ValueError(
-            "procurement retries require known-zero-cost provider conditions: "
+            "unsupported procurement retry conditions; allowed known-zero-cost "
+            "failures plus empty_response: "
             f"{sorted(unsupported_conditions)}"
         )
     retries_enabled = max_action_attempts > 1

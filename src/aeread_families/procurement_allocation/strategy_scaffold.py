@@ -294,6 +294,7 @@ PUBLISHABLE_ROW_FIELDS = (
     "cached_input_tokens",
     "output_tokens",
     "cost_usd",
+    "cost_accounting",
     "provider_call_count",
     "runner_retry_count",
     "retry_condition_counts",

@@ -245,3 +245,80 @@ That regression should define a held-out diagnostic, not an in-place v4 prompt e
 Because v1-v4 were developed against these same six worlds, this evidence supports a
 mechanism hypothesis and a qualified implementation artifact, not a population-level
 claim. The next confirmatory campaign should freeze v4 and use new economic worlds.
+
+## Frozen confirmatory campaign
+
+The confirmatory campaign freezes the exact V4 treatment prompt and its unscaffolded
+control by SHA-256, the GLM/Parasail revision and route, Minimal Chat transport,
+runner-owned retry policy, twelve new paired economic worlds, three new inference
+seeds, sequential execution, and 12-row checkpoints. It binds the adaptive evidence
+manifest that motivated the test. Any drift in these inputs requires a new campaign
+identity.
+
+The four arms run in this order: labeled control, opaque control, labeled treatment,
+and opaque treatment. All 144 rows must complete and receipt-replay. Controls run
+before treatments, no outcome-based early stopping is allowed, and an operational
+failure seals the attempt as missingness. The conservative scored ceiling is $2.16;
+two prompt-specific unscored admission canaries raise the total ceiling to $2.22.
+
+The independent unit is the economic world. Within each of the twelve worlds, the
+three inference seeds are averaged within each surface, then the labeled and opaque
+treatment-minus-control deltas are averaged equally. The preregistered primary
+estimand is regret-to-upper-bound delta. Confirmation requires its deterministic
+50,000-resample world-cluster bootstrap upper bound to be strictly below zero and
+the overall feasibility-delta lower bound to be at least -0.05. Surface-specific
+feasibility, kits, margin, regret, violations, latency, tokens, retries, and cost are
+secondary diagnostics.
+
+Evidence eligibility does not depend on a favorable result. A fully complete,
+replayed, digest-valid campaign is publishable as either `supported` or
+`not_supported`. The claim remains bounded to twelve curated synthetic worlds and is
+not a population-level model ranking.
+
+## Confirmatory v1 operational audit
+
+The first confirmatory attempt sealed after 46 completed rows and one typed
+`empty_response` failure in opaque control, leaving 97 trajectories unattempted.
+No efficacy outcomes were inspected. The completed rows and two canaries reported
+$0.113711994, but the failed trajectory had already incurred $0.002703789 across
+seven successful provider calls. V1 therefore cost at least $0.116415783; the final
+empty call's usage was not retained by that implementation, so its exact total is
+unknown. V1 is permanently ineligible and is never resumed or scored.
+
+V2 preserves V1's cases, prompts, route, three inference seeds, arm order, estimands,
+bootstrap, and decision thresholds. Its only changes are operational: a billed empty
+completion remains a successful provider call in usage accounting, failed-trajectory
+cost is recovered from the sealed event ledger, and `empty_response` can retry within
+the existing three-attempt action bound. The V2 frozen plan digest is
+`cd8cff2fbedc8c208195982bcf3f692ba290f1e37f7b58b5e8c72ddfd957b4dd`.
+
+## Observed confirmatory v2 result
+
+V2 qualified all 144 planned rows across twelve independent worlds and replayed every
+receipt with zero operational failures. The scored rows cost $0.345487329 and the two
+unscored canaries cost $0.000472725, for $0.345960054 total. All usage and cost fields
+are exact. Three rate-limit retries recovered in opaque treatment; no empty-response
+retry was needed.
+
+The preregistered hypothesis is supported. Averaged within world across the labeled
+and opaque surfaces, treatment reduced regret by $26.0384 (95% deterministic
+world-cluster bootstrap interval [-$46.1031, -$7.4144]) and improved feasibility by
+0.2500 ([0.0694, 0.4444]). It also increased completed kits by 5.8056 ([3.3194,
+8.0694]) and contribution margin by $26.0384 ([$7.1926, $46.1468]). There were 22
+fail-to-pass and four pass-to-fail seed-level feasibility transitions across the two
+surfaces.
+
+The result survives removal of supplier-name cues and listing-order changes. Labeled
+regret improved by $16.8383, but its interval [-$37.3019, $2.4585] crosses zero.
+Opaque regret improved by $35.2385 with an interval [-$60.2523, -$12.1409]. The
+opaque-minus-labeled interaction is -$18.4002, but its interval [-$39.5617, $1.3595]
+also crosses zero, so the evidence does not establish that the scaffold works better
+on opaque cases.
+
+The treatment used 435 provider calls and cost $0.1683252945 versus 465 calls and
+$0.1771620345 for control. Quality therefore improved without greater inference
+spend. The effect is not uniform: eight worlds reduce regret, while sample lead time
+and landed-cost/freight worsen it by $26.3044 and $10.8050 respectively; cash-budget
+and on-time-reliability regress slightly. These failures motivate focused held-out
+tests of sample timing and landed-cost gates rather than an in-place change to this
+confirmed V4 intervention.

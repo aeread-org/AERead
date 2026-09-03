@@ -9,7 +9,7 @@ import pytest
 
 import aeread_families.procurement_allocation.model_campaign as campaign_module
 import aeread.shared_runner.task.execution as execution_module
-from aeread.shared_runner.task.execution import ProviderFailure
+from aeread.shared_runner.task.execution import ProviderFailure, ProviderResult
 
 from aeread_families.procurement_allocation.model_campaign import (
     CAMPAIGN_ID,
@@ -455,8 +455,123 @@ def test_declared_runner_retry_recovers_429_and_remains_visible(
     }
 
 
+def test_empty_response_retry_is_billed_and_visible(tmp_path: Path) -> None:
+    run_root = tmp_path / "runs" / "procurement_empty_retry_v1" / "attempt_001"
+
+    class EmptyThenScriptProvider:
+        def __init__(self) -> None:
+            self.calls = 0
+            self.delegate = SequenceResponseProvider(_optimal_script())
+
+        async def complete(self, request):
+            self.calls += 1
+            if self.calls == 1:
+                return ProviderResult(
+                    response_id="empty_001",
+                    requested_model=request.model,
+                    resolved_model=request.revision or request.model,
+                    output_text="",
+                    finish_reason="stop",
+                    input_tokens=100,
+                    cached_input_tokens=0,
+                    output_tokens=0,
+                    cost_usd=0.001,
+                    raw_response={"fixture": True, "empty": True},
+                )
+            return await self.delegate.complete(request)
+
+    provider = EmptyThenScriptProvider()
+    artifact = asyncio.run(
+        run_model_qualification(
+            run_root=run_root,
+            case_paths=(CASE_PATH,),
+            inference_seeds=(231,),
+            max_spend_usd=0.03,
+            max_parallel_cells=1,
+            campaign_id="procurement_empty_retry_v1",
+            abort_on_operational_failure=True,
+            provider_factory=lambda: provider,
+            preflight_fn=lambda _candidate: {"route_verified": True},
+            max_action_attempts=3,
+            retryable_conditions=("empty_response",),
+            retry_backoff="exponential_jitter_v1",
+        )
+    )
+
+    row = artifact["rows"][0]
+    assert row["status"] == "completed"
+    assert row["runner_retry_count"] == 1
+    assert row["retry_condition_counts"] == {"empty_response": 1}
+    assert row["cost_usd"] == pytest.approx(0.001)
+    assert artifact["summary"]["total_cost_usd"] == pytest.approx(0.001)
+    assert artifact["plan"]["retry_policy"]["cost_boundary"] == (
+        "retry conditions may incur billed usage; all attempts retained and charged"
+    )
+
+
+def test_failed_trajectory_retains_incurred_provider_cost(tmp_path: Path) -> None:
+    run_root = tmp_path / "runs" / "procurement_failure_cost_v1" / "attempt_001"
+
+    class QuoteThenEmptyProvider:
+        def __init__(self) -> None:
+            self.calls = 0
+
+        async def complete(self, request):
+            self.calls += 1
+            output = (
+                _response(
+                    {
+                        "action": "request_quote",
+                        "supplier_id": "switch_reliable",
+                        "message": "Issue a formal quote.",
+                    }
+                )
+                if self.calls == 1
+                else ""
+            )
+            return ProviderResult(
+                response_id=f"billed_{self.calls}",
+                requested_model=request.model,
+                resolved_model=request.revision or request.model,
+                output_text=output,
+                finish_reason="stop",
+                input_tokens=100 * self.calls,
+                cached_input_tokens=0,
+                output_tokens=20 if output else 0,
+                cost_usd=0.001 * self.calls,
+                raw_response={"fixture": True, "empty": not bool(output)},
+            )
+
+    provider = QuoteThenEmptyProvider()
+    artifact = asyncio.run(
+        run_model_qualification(
+            run_root=run_root,
+            case_paths=(CASE_PATH,),
+            inference_seeds=(231,),
+            max_spend_usd=0.03,
+            max_parallel_cells=1,
+            campaign_id="procurement_failure_cost_v1",
+            abort_on_operational_failure=True,
+            provider_factory=lambda: provider,
+            preflight_fn=lambda _candidate: {"route_verified": True},
+        )
+    )
+
+    row = artifact["rows"][0]
+    assert row["status"] == "operational_failure"
+    assert row["failure_condition"] == "empty_response"
+    assert row["provider_call_count"] == 2
+    assert row["input_tokens"] == 300
+    assert row["output_tokens"] == 20
+    assert row["cost_usd"] == pytest.approx(0.003)
+    assert row["cost_accounting"] == "exact"
+    assert artifact["summary"]["total_cost_usd"] == pytest.approx(0.003)
+    assert artifact["summary"]["operational_failure_cost_usd"] == pytest.approx(0.003)
+    assert artifact["summary"]["cost_accounting"] == "exact"
+
+
 def test_model_plan_rejects_unknown_outcome_retry_conditions() -> None:
-    with pytest.raises(ValueError, match="known-zero-cost"):
+    with pytest.raises(ValueError, match="unsupported procurement retry"):
         planned_model_qualification(
             case_paths=(CASE_PATH,),
             inference_seeds=(231,),

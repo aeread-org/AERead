@@ -1049,6 +1049,21 @@ class AttemptExecutor(MinimalChatExecutor):
                 harness.act(decision, context),
                 timeout=profile.budgets.timeout_seconds,
             )
+        except ProviderFailure as failure:
+            # KernelModelPort rejects an empty completion before it reaches the
+            # harness, but the provider call itself succeeded and may have been
+            # billed. Hand the retained result back to MinimalChatExecutor so
+            # its canonical response retry path records the usage and applies
+            # the declared empty_response policy. Treating it as a provider
+            # failure here would erase the successful call's tokens and cost.
+            if (
+                failure.condition == "empty_response"
+                and port.last_result is not None
+                and not port.last_result.output_text.strip()
+                and not port.last_result.tool_calls
+            ):
+                return port.last_result
+            raise
         except asyncio.TimeoutError as error:
             # The base executor bounds its single provider call this way; a
             # harness owns a loop, so the bound belongs around the whole act().

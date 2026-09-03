@@ -22,6 +22,7 @@ from pathlib import Path
 from typing import Any, Callable, Mapping, Sequence
 
 from aeread.shared_runner.task.execution import (
+    EvidenceStore,
     OpenRouterChatClient,
     TokenPricing,
     execute_plan_cell,
@@ -37,6 +38,7 @@ from aeread_families.procurement_grounding.runner import OpenRouterRoute
 from .case_matrix import CASE_VARIANCE_PATHS
 from .runner import (
     PROMPT,
+    RETRYABLE_PROVIDER_CONDITIONS,
     RETRYABLE_ZERO_COST_PROVIDER_CONDITIONS,
     build_openrouter_setup,
     finalize_procurement_allocation_execution,
@@ -170,11 +172,12 @@ def planned_model_qualification(
     ):
         raise ValueError("retryable_conditions must be unique")
     unsupported_conditions = set(resolved_retryable_conditions).difference(
-        RETRYABLE_ZERO_COST_PROVIDER_CONDITIONS
+        RETRYABLE_PROVIDER_CONDITIONS
     )
     if unsupported_conditions:
         raise ValueError(
-            "procurement retries require known-zero-cost provider conditions: "
+            "unsupported procurement retry conditions; allowed known-zero-cost "
+            "failures plus empty_response: "
             f"{sorted(unsupported_conditions)}"
         )
     retries_enabled = max_action_attempts > 1
@@ -232,7 +235,13 @@ def planned_model_qualification(
                 "retry_after_max_seconds": retry_after_max_seconds,
                 "session_mode": "restart",
                 "sdk_retries": 0,
-                "cost_boundary": "retry only known-zero-cost provider failures",
+                "cost_boundary": (
+                    "retry only known-zero-cost provider failures"
+                    if set(resolved_retryable_conditions)
+                    <= RETRYABLE_ZERO_COST_PROVIDER_CONDITIONS
+                    else "retry conditions may incur billed usage; all attempts "
+                    "retained and charged"
+                ),
             }
             if retries_enabled
             else "one sealed attempt per trajectory; SDK retries disabled"
@@ -330,6 +339,7 @@ _PUBLISHABLE_ROW_FIELDS = (
     "cached_input_tokens",
     "output_tokens",
     "cost_usd",
+    "cost_accounting",
     "resolved_models",
     "receipt_sha256",
     "receipt_replayed",
@@ -650,6 +660,90 @@ def _public_action_trace(execution: Any) -> list[dict[str, Any]]:
     return trace
 
 
+def _sealed_failure_telemetry(evidence_root: Path) -> dict[str, Any]:
+    """Recover incurred usage from a sealed failed trajectory's event ledger."""
+
+    try:
+        event_logs = tuple(
+            evidence_root.glob("runplan_*/tasks/*/attempts/*/events.jsonl")
+        )
+        if len(event_logs) != 1:
+            raise ValueError(
+                "failed trajectory must resolve to exactly one sealed event ledger"
+            )
+        store = EvidenceStore.audit_existing(event_logs[0].parent)
+        try:
+            events = store.read_events()
+            started_calls = sum(
+                event.event_type == "provider_call_started" for event in events
+            )
+            input_tokens = cached_input_tokens = output_tokens = 0
+            cost_usd = 0.0
+            resolved_models: set[str] = set()
+            telemetry_complete = True
+            for event in events:
+                if event.event_type == "provider_call_outcome_unknown":
+                    telemetry_complete = False
+                if event.event_type not in {
+                    "provider_call_succeeded",
+                    "provider_call_failed",
+                    "provider_call_outcome_unknown",
+                }:
+                    continue
+                payload = store.read_event_payload(event)
+                if not isinstance(payload, Mapping):
+                    telemetry_complete = False
+                    continue
+                recorded_cost = payload.get("cost_usd")
+                if (
+                    isinstance(recorded_cost, bool)
+                    or not isinstance(recorded_cost, (int, float))
+                    or not math.isfinite(float(recorded_cost))
+                    or recorded_cost < 0
+                ):
+                    telemetry_complete = False
+                else:
+                    cost_usd += float(recorded_cost)
+                provider_result = payload.get("provider_result")
+                if not isinstance(provider_result, Mapping):
+                    continue
+                for field in ("input_tokens", "cached_input_tokens", "output_tokens"):
+                    value = provider_result.get(field)
+                    if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+                        telemetry_complete = False
+                        continue
+                    if field == "input_tokens":
+                        input_tokens += value
+                    elif field == "cached_input_tokens":
+                        cached_input_tokens += value
+                    else:
+                        output_tokens += value
+                resolved_model = provider_result.get("resolved_model")
+                if isinstance(resolved_model, str) and resolved_model:
+                    resolved_models.add(resolved_model)
+            return {
+                "input_tokens": input_tokens,
+                "cached_input_tokens": cached_input_tokens,
+                "output_tokens": output_tokens,
+                "cost_usd": cost_usd,
+                "cost_accounting": "exact" if telemetry_complete else "lower_bound",
+                "provider_call_count": started_calls,
+                "resolved_models": sorted(resolved_models),
+            }
+        finally:
+            store.close()
+    except Exception:
+        return {
+            "input_tokens": None,
+            "cached_input_tokens": None,
+            "output_tokens": None,
+            "cost_usd": None,
+            "cost_accounting": "unavailable",
+            "provider_call_count": None,
+            "resolved_models": [],
+        }
+
+
 def summarize_rows(
     rows: Sequence[Mapping[str, Any]],
     *,
@@ -657,6 +751,9 @@ def summarize_rows(
     independent_case_count: int,
 ) -> dict[str, Any]:
     completed = [row for row in rows if row.get("status") == "completed"]
+    operational_failures = [
+        row for row in rows if row.get("status") == "operational_failure"
+    ]
     feasible = [row for row in completed if row.get("feasible") is True]
     violation_counts: Counter[str] = Counter()
     action_counts: Counter[str] = Counter()
@@ -778,12 +875,37 @@ def summarize_rows(
             if completed
             else None
         ),
-        "total_cost_usd": sum(float(row.get("cost_usd", 0.0)) for row in completed),
+        "total_cost_usd": sum(
+            float(row["cost_usd"])
+            for row in rows
+            if isinstance(row.get("cost_usd"), (int, float))
+            and not isinstance(row.get("cost_usd"), bool)
+        ),
+        "operational_failure_cost_usd": sum(
+            float(row["cost_usd"])
+            for row in operational_failures
+            if isinstance(row.get("cost_usd"), (int, float))
+            and not isinstance(row.get("cost_usd"), bool)
+        ),
+        "cost_accounting": (
+            "exact"
+            if all(row.get("cost_accounting", "exact") == "exact" for row in rows)
+            else "lower_bound"
+        ),
+        "unmeasured_cost_row_count": sum(
+            row.get("cost_accounting") == "unavailable" for row in rows
+        ),
         "cached_input_tokens": sum(
-            int(row.get("cached_input_tokens", 0)) for row in completed
+            int(row["cached_input_tokens"])
+            for row in rows
+            if isinstance(row.get("cached_input_tokens"), int)
+            and not isinstance(row.get("cached_input_tokens"), bool)
         ),
         "provider_call_count": sum(
-            int(row.get("provider_call_count", 0)) for row in completed
+            int(row["provider_call_count"])
+            for row in rows
+            if isinstance(row.get("provider_call_count"), int)
+            and not isinstance(row.get("provider_call_count"), bool)
         ),
         "runner_retry_count": sum(
             int(row.get("runner_retry_count", 0)) for row in completed
@@ -842,6 +964,7 @@ async def _run_cell(
     case_directory = _safe_case_directory(setup.case.case_id, setup.case.content_sha256)
     evidence_root = run_root / "executions" / case_directory / f"seed_{inference_seed}"
     started = time.perf_counter()
+    failure_needs_telemetry = False
     try:
         async with semaphore:
             execution = await execute_plan_cell(
@@ -899,6 +1022,7 @@ async def _run_cell(
             "cached_input_tokens": sum(call.cached_input_tokens for call in calls),
             "output_tokens": sum(call.output_tokens for call in calls),
             "cost_usd": execution.total_cost_usd,
+            "cost_accounting": "exact",
             "resolved_models": sorted(
                 {
                     call.resolved_model
@@ -934,6 +1058,12 @@ async def _run_cell(
             "failure_receipt_sha256": failure_receipt_sha256,
             **_failure_summary(error),
         }
+        # Audit only after leaving the exception handler. Its traceback can
+        # retain the executor and its live EvidenceStore until the handler
+        # exits, making a concurrent audit of the just-sealed ledger fail.
+        failure_needs_telemetry = True
+    if failure_needs_telemetry:
+        row.update(_sealed_failure_telemetry(evidence_root))
     payload = dict(row)
     row["result_sha256"] = hashlib.sha256(canonical_json_bytes(payload)).hexdigest()
     _atomic_write_json(
