@@ -358,7 +358,7 @@ Print the no-spend frozen plan:
 ```bash
 python -m aeread_families.procurement_allocation.risk_gate_campaign \
   --run-root \
-  runs/procurement_allocation/procurement_allocation_glm53_flash_parasail_risk_gate_factorial_v3/qualification_attempt_001
+  runs/procurement_allocation/procurement_allocation_glm53_flash_parasail_risk_gate_factorial_v4/qualification_attempt_001
 ```
 
 After provider-free verification and loading `OPENROUTER_API_KEY`, add
@@ -408,3 +408,22 @@ response; procurement then terminates and scores it as an invalid model action.
 Admission canaries gate only transport readiness and record, but do not select on,
 model-output validity. These are measurement corrections, not changes to the
 scientific treatment.
+
+### Risk-gate V3 operational audit and V4 retry bound
+
+V3 completed and replayed 135 rows before stopping on row 136: opaque temporal,
+`landed_cash_moq`, seed `279557369`. Five calls in that trajectory succeeded, then
+one logical action received three consecutive HTTP 429 responses. With no
+`Retry-After` header, the runner waited 15.371 and 30.444 seconds before exhausting
+the three-attempt bound. Eight planned rows remain unattempted.
+
+Across completed V3 rows, six other rate limits and one provider-5xx response
+recovered under the declared policy. The sealed attempt cost $0.40121235 exactly,
+including canaries and the failed row's earlier successful calls. No partial V3
+efficacy contrast was inspected, and V3 is permanently ineligible.
+
+V4 preserves all scientific inputs and analysis rules from V3. Its only operational
+change raises the per-action attempt bound from three to four while retaining the
+15-second first backoff and 30-second cap. A fully throttled action therefore gets a
+final fourth request at approximately 75 seconds. V4 has a new campaign identity
+and must rerun all 144 rows from a fresh root.

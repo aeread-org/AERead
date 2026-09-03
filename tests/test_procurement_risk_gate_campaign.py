@@ -25,6 +25,7 @@ from aeread_families.procurement_allocation.risk_gate_campaign import (
     TEMPORAL_PROMPT,
     V1_CAMPAIGN_ID,
     V2_CAMPAIGN_ID,
+    V3_CAMPAIGN_ID,
     build_plan,
     build_risk_gate_comparison,
     publish_risk_gate_campaign,
@@ -172,9 +173,9 @@ def test_risk_gate_plan_freezes_factorial_distribution_and_budget() -> None:
     plan = build_plan()
 
     assert plan["freeze_status"] == "adaptive_mechanism_plan_frozen_before_live_execution"
-    assert V1_CAMPAIGN_ID != V2_CAMPAIGN_ID != CAMPAIGN_ID
-    assert plan["lineage"]["supersedes_campaign_id"] == V2_CAMPAIGN_ID
-    assert plan["lineage"]["scientific_contract"] == "unchanged_from_v1_and_v2"
+    assert len({V1_CAMPAIGN_ID, V2_CAMPAIGN_ID, V3_CAMPAIGN_ID, CAMPAIGN_ID}) == 4
+    assert plan["lineage"]["supersedes_campaign_id"] == V3_CAMPAIGN_ID
+    assert plan["lineage"]["scientific_contract"] == "unchanged_from_v1_v2_and_v3"
     assert plan["planned_trajectory_count"] == 144
     assert plan["independent_world_count"] == 6
     assert plan["stratum_world_counts"] == {"landed_cash": 3, "sample_timing": 3}
@@ -194,7 +195,7 @@ def test_risk_gate_plan_freezes_factorial_distribution_and_budget() -> None:
     assert plan["analysis"]["status"] == "adaptive_exploratory_not_confirmatory"
     assert plan["analysis"]["no_early_efficacy_stopping"] is True
     assert plan["plan_sha256"] == (
-        "9587d659708729e1e7c7c1b788578ce5b1b06afbf7dbce110724fe64aeafdb6b"
+        "f17d77f2fd3f4ab1ea24838e4caba3ba0628d3332196e33c47a2b32103377970"
     )
     assert all(arm["planned_trajectory_count"] == 18 for arm in plan["arms"].values())
     assert all(
@@ -203,6 +204,10 @@ def test_risk_gate_plan_freezes_factorial_distribution_and_budget() -> None:
     )
     assert all(
         arm["retry_policy"]["retry_base_seconds"] == pytest.approx(15.0)
+        for arm in plan["arms"].values()
+    )
+    assert all(
+        arm["retry_policy"]["max_action_attempts"] == 4
         for arm in plan["arms"].values()
     )
 
@@ -262,7 +267,7 @@ def test_risk_gate_canary_admits_malformed_output_without_selecting_on_behavior(
     assert canary["runner_retry_count"] == 0
 
 
-def test_risk_gate_canary_retries_rate_limit_with_v2_pacing_retained(
+def test_risk_gate_canary_retries_rate_limit_with_v4_pacing(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     waits: list[float] = []

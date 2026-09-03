@@ -58,7 +58,8 @@ from .strategy_scaffold import (
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 V1_CAMPAIGN_ID = "procurement_allocation_glm53_flash_parasail_risk_gate_factorial_v1"
 V2_CAMPAIGN_ID = "procurement_allocation_glm53_flash_parasail_risk_gate_factorial_v2"
-CAMPAIGN_ID = "procurement_allocation_glm53_flash_parasail_risk_gate_factorial_v3"
+V3_CAMPAIGN_ID = "procurement_allocation_glm53_flash_parasail_risk_gate_factorial_v3"
+CAMPAIGN_ID = "procurement_allocation_glm53_flash_parasail_risk_gate_factorial_v4"
 PARENT_EVIDENCE_PATH = (
     REPOSITORY_ROOT
     / "evidence"
@@ -81,7 +82,7 @@ BOOTSTRAP_SEED = 20260903
 BOOTSTRAP_RESAMPLES = 50_000
 TRAJECTORIES_PER_ARM_PER_CHECKPOINT = 3
 MAX_PARALLEL_CELLS = 1
-MAX_ACTION_ATTEMPTS = 3
+MAX_ACTION_ATTEMPTS = 4
 RETRY_CONDITIONS = (*TRANSIENT_RETRY_CONDITIONS, "empty_response")
 RETRY_BACKOFF = "exponential_jitter_v1"
 RETRY_BASE_SECONDS = 15.0
@@ -348,7 +349,7 @@ def build_plan() -> dict[str, Any]:
         "campaign_id": CAMPAIGN_ID,
         "freeze_status": "adaptive_mechanism_plan_frozen_before_live_execution",
         "lineage": {
-            "supersedes_campaign_id": V2_CAMPAIGN_ID,
+            "supersedes_campaign_id": V3_CAMPAIGN_ID,
             "v1_disposition": (
                 "sealed_ineligible_after_rate_limit_failure; later fresh attempts "
                 "rejected by admission canaries"
@@ -357,12 +358,14 @@ def build_plan() -> dict[str, Any]:
                 "sealed_ineligible_after_provider-returned_malformed_structured_text "
                 "was misclassified as provider_contract"
             ),
-            "scientific_contract": "unchanged_from_v1_and_v2",
+            "v3_disposition": (
+                "sealed_ineligible_after_three_consecutive_rate_limits_exhausted "
+                "one logical action"
+            ),
+            "scientific_contract": "unchanged_from_v1_v2_and_v3",
             "operational_changes_only": [
-                "preserve nonempty provider-returned malformed structured text as a "
-                "billable model response for family-level scoring",
-                "make admission canaries transport-only so malformed model content "
-                "cannot selectively gate scored execution",
+                "increase the bounded action-attempt count from three to four while "
+                "retaining the 15-second then capped-30-second backoff schedule",
             ],
             "parent_campaign_id": (
                 "procurement_allocation_glm53_flash_parasail_strategy_confirmatory_v2"
