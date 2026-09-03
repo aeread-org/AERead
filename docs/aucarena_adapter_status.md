@@ -59,10 +59,19 @@ gate — a missing checkout collapses all 19 of that module's tests into one `1 
 not a failure, with no further signal in a plain CI log.
 
 `conftest.py`'s `pytest_terminal_summary` hook (already used to make a missing tau2 bridge
-loud) now also covers this gate: set `AEREAD_AUCARENA_QC_GATE_REQUIRED=1` (CI, and any run
-meant to certify this family's QC-Gate-1 claims) to turn that skip into a failed run instead
-of a silent no-op. Off by default so a local contributor not working on this family is never
-surprised.
+loud) now also covers this gate. Independent cross-model verification
+(`docs/aucarena_fix_verification.md`) found the opt-in alone insufficient: nothing in this
+repo's own `.github/workflows/ci.yml` sets `AEREAD_AUCARENA_QC_GATE_REQUIRED` (or the
+pre-existing tau2 equivalent), so an ordinary default run — exactly what every contributor and
+every CI job actually does — stayed completely silent regardless of the gate's existence. The
+hook now reports a matching skip unconditionally: set `AEREAD_AUCARENA_QC_GATE_REQUIRED=1` (CI,
+and any run meant to certify this family's QC-Gate-1 claims) to turn it into a failed run with a
+provisioning hint; leave it unset and the same skip still prints a visible note (test count,
+reasons, and how to enforce) — never again the prior silent no-op. Only the *exit status* stays
+untouched by default, so a local contributor not working on this family is never surprised. This
+repo's own CI still does not set the enabling var, so a default CI run today will *show*, but
+not fail on, this note — enforcing it there would first require provisioning the pinned upstream
+checkout in CI, a separate, out-of-scope decision this pass does not make.
 
 ```bash
 AEREAD_AUCARENA_UPSTREAM_ROOT=<pinned-checkout> PYTHONPATH=src pytest tests/test_aucarena_*.py -q
@@ -173,6 +182,35 @@ nothing left to delegate to a subprocess, and nothing to provision.
   defeat its own purpose (any re-derivation performed by whoever already has full view of the
   vendored code is not blind), so this is recorded as a standing, disclosed limitation rather
   than a closed finding.
+- **`aucarena_profit_vs_field`'s reference-hash identity covers item order and the field
+  roster, not the full spec-declared pairing (`docs/aucarena_codex_triage.md` Finding 6).**
+  `_field_roster_sha256` (`measurement.py`) hashes the frozen field (seat ids, model names,
+  budgets) and item order; `case_id`/`world_seed` are *not* included and cannot be from this
+  leaf — `build_scorer` is called with only the case's bare `payload`
+  (`plugin.build_scorer(family_case)`, confirmed by every `build_scorer(family_case)` call site
+  in this family's own tests), and `case_id`/`world_seed` live on the outer `CaseManifest`, not
+  inside `payload`. Closing that half of the pairing identity would need a kernel signature
+  change, not an adapter fix. The item-order half is pinned and tested
+  (`tests/test_aucarena_measurement.py::test_profit_vs_field_reference_hash_distinguishes_item_order_not_only_the_field`
+  and `::test_build_scorer_reference_hash_reflects_the_real_cases_item_order`); the
+  `case_id`/`world_seed` half of the pairing is tracked at the outer kernel bookkeeping layer
+  instead (`cell_id`/`case_id` already on the receipt).
+- **`AucArenaScorer.__call__` can surface only one of this family's four declared leaves, and
+  must not be read as a working multi-leaf production path.** The shared kernel's real calling
+  convention (`finalize_family_execution`, `aeread/shared_runner/family_evaluation.py`) calls
+  `plugin.build_scorer(family_case)` as a function of `(outcome, evidence_refs=...)` and expects
+  exactly one `ScoreEnvelope` back. `__call__` (added for Finding 1) satisfies that by forwarding
+  only to `score_profit_vs_field` — the sole leaf computable from a bare terminal `outcome` — and
+  has no way to also report `aucarena_budget_invariant`, `aucarena_bid_legality`, or
+  `aucarena_hammer_rule` through this path; those three stay reachable only via their named
+  methods, which every test in this family (and `replay.py`) already uses instead. This is not
+  an aucarena-specific quirk: four other families (`govsim`, `steer`, `negarena`, and this one)
+  independently added the identical shape of `__call__` while closing their own reviews. It is a
+  kernel contract gap under active architecture review, tracked at
+  `runner_defect_ledger.md` entry **D-19** (and its 2026-09-02 addendum, which names exactly
+  this "silently picks one leaf as primary" risk) — not something this adapter can resolve
+  unilaterally, and not live in production today regardless: only `housing.py:940` calls
+  `finalize_family_execution`, and this family is not wired to it.
 - **Two Finding-5/Finding-2 codex-review findings are confirmed but not auto-fixed this pass**
   (see `docs/aucarena_review_disposition.md`'s "Codex-review findings" section for the full
   reasoning): whether a malformed/illegal bid should still terminate a round with no retry
@@ -180,7 +218,14 @@ nothing left to delegate to a subprocess, and nothing to provision.
   `aucarena_profit_vs_field`'s `primary` should report for a multi-seat field (Finding 5, the
   current unweighted mean can dilute a decisive loss) are both product/architecture decisions
   with more than one defensible answer and no spec-mandated one — not code bugs with a single
-  correct fix. Escalated rather than guessed.
+  correct fix. Escalated rather than guessed. Today's disclosed behavior is pinned by name, not
+  only asserted in prose:
+  `tests/test_aucarena_measurement.py::test_golden_3_earns_no_credit` and
+  `::test_golden_4_other_leaves_match_golden_3_outcome` assert `status == "ok"` for a
+  malformed/illegal round (Finding 2), and
+  `::test_golden_1_profit_vs_field_is_finite_and_mixed_sign` pins the exact unweighted-mean
+  formula (Finding 5) — a future silent change to either behavior breaks a named test instead of
+  slipping through unremarked.
 
 ## Ledger
 
