@@ -138,3 +138,26 @@ economic world is the independent unit. The paired report requires 48 completed
 rows, exact receipt replay, invariant solver upper bounds, and zero provider cost.
 It reports policy outcomes separately and never treats a scripted policy as a model
 replicate or as the full-information oracle.
+
+## Observed policy-baseline result
+
+All 48 declared policy trajectories completed and receipt-replayed with invariant
+upper bounds and zero provider cost. Displayed-price greedy and listing-claim fit
+were feasible in all six worlds under both surfaces. Each averaged 19.6667 completed
+kits, $58.0359 contribution margin, and $15.5681 regret. Their paired
+blinded-minus-labeled outcome deltas were zero.
+
+The semantic-hint policy remained feasible in all worlds but changed outcomes in
+three. Its opaque/reordered condition improved mean completed kits by 3.3333 and
+margin by $4.0138. Thus, merely following favorable-looking supplier names does not
+explain GLM's large labeled-to-blinded decline; in this policy control, removing the
+names helped on average.
+
+The primary displayed-price policy was also paired with the qualified GLM results by
+economic world after averaging GLM's three inference seeds within each world. The
+policy-minus-GLM mean margin was +$28.4986 on labeled/original cases with a six-world
+bootstrap interval of [$2.3216, $55.9134], and +$54.9200 on opaque/reordered cases
+with an interval of [$36.6918, $73.7546]. Feasibility differences were +0.6111 and
++0.8889 respectively, with intervals excluding zero. These results show substantial
+headroom on the curated panel; they do not establish population-level superiority of
+the deterministic policy.

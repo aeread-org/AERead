@@ -7,13 +7,74 @@ from pathlib import Path
 
 import pytest
 
+from aeread.shared_runner.run.resolver import canonical_json_bytes
+from aeread_families.procurement_allocation.blinded_invariance import (
+    CAMPAIGN_ID as BLINDED_CAMPAIGN_ID,
+)
+from aeread_families.procurement_allocation.model_campaign import (
+    CAMPAIGN_ID as LABELED_CAMPAIGN_ID,
+)
 from aeread_families.procurement_allocation.policy_baselines import (
     CAMPAIGN_ID,
     POLICY_IDS,
+    build_glm_policy_context,
     build_plan,
     publish_policy_baselines,
     run_policy_baselines,
 )
+
+
+def _write_model_summary(
+    root: Path,
+    *,
+    campaign_id: str,
+    panel: str,
+    policy_rows: list[dict],
+    margin_gap: float,
+) -> None:
+    rows = []
+    for policy_row in policy_rows:
+        if (
+            policy_row["panel"] != panel
+            or policy_row["policy_id"] != "displayed_price_greedy"
+        ):
+            continue
+        for seed in (11, 12, 13):
+            row = {
+                "case_id": (
+                    f"procurement_allocation_v1.{panel}.{policy_row['case_slug']}"
+                ),
+                "case_content_sha256": "a" * 64,
+                "inference_seed": seed,
+                "status": "completed",
+                "feasible": False,
+                "completed_kits": policy_row["completed_kits"] - 2,
+                "contribution_margin_usd": (
+                    policy_row["contribution_margin_usd"] - margin_gap
+                ),
+                "upper_bound_usd": policy_row["upper_bound_usd"],
+                "regret_to_upper_bound_usd": (
+                    policy_row["regret_to_upper_bound_usd"] + margin_gap
+                ),
+                "receipt_replayed": True,
+            }
+            row["result_sha256"] = hashlib.sha256(canonical_json_bytes(row)).hexdigest()
+            rows.append(row)
+    plan = {"campaign_id": campaign_id, "plan_sha256": "b" * 64}
+    artifact = {
+        "plan": plan,
+        "summary": {
+            "completed_trajectory_count": 18,
+            "feasible_count": 0,
+            "readiness": {"execution_qualified": True},
+        },
+        "rows": rows,
+    }
+    artifact["artifact_sha256"] = hashlib.sha256(
+        canonical_json_bytes(artifact)
+    ).hexdigest()
+    root.mkdir(parents=True)
+    (root / "summary.json").write_bytes(canonical_json_bytes(artifact) + b"\n")
 
 
 def test_policy_plan_declares_zero_cost_paired_surface_controls() -> None:
@@ -74,9 +135,44 @@ def test_public_policy_campaign_replays_and_publishes_without_hidden_state(
         == 3
     )
 
+    labeled_model_root = tmp_path / "model" / "labeled"
+    blinded_model_root = tmp_path / "model" / "blinded"
+    _write_model_summary(
+        labeled_model_root,
+        campaign_id=LABELED_CAMPAIGN_ID,
+        panel="labeled_original",
+        policy_rows=artifact["rows"],
+        margin_gap=10.0,
+    )
+    _write_model_summary(
+        blinded_model_root,
+        campaign_id=BLINDED_CAMPAIGN_ID,
+        panel="opaque_reordered",
+        policy_rows=artifact["rows"],
+        margin_gap=20.0,
+    )
+    context = build_glm_policy_context(
+        policy_artifact=artifact,
+        labeled_run_root=labeled_model_root,
+        blinded_run_root=blinded_model_root,
+    )
+    assert context["readiness"]["model_context_qualified"] is True
+    labeled_margin = context["comparisons"]["labeled_original"]["aggregate"][
+        "contribution_margin_usd"
+    ]
+    assert labeled_margin["case_cluster_mean_policy_minus_glm"] == pytest.approx(10.0)
+    assert labeled_margin["case_cluster_bootstrap_95_interval"] == pytest.approx(
+        [10.0, 10.0]
+    )
+    assert context["comparisons"]["opaque_reordered"]["aggregate"][
+        "contribution_margin_usd"
+    ]["case_cluster_mean_policy_minus_glm"] == pytest.approx(20.0)
+
     publication_root = tmp_path / "evidence" / CAMPAIGN_ID
     manifest = publish_policy_baselines(
-        run_root=run_root, publication_root=publication_root
+        run_root=run_root,
+        publication_root=publication_root,
+        model_context=context,
     )
     for relative_path, expected_sha in manifest["artifacts"].items():
         assert (
@@ -88,6 +184,7 @@ def test_public_policy_campaign_replays_and_publishes_without_hidden_state(
     assert "raw_response" not in serialized
     assert "OPENROUTER_API_KEY" not in serialized
     assert '"request_sha256s"' in serialized
+    assert "reports/glm_context.json" in manifest["artifacts"]
 
 
 def test_policy_campaign_refuses_to_replace_an_existing_attempt(tmp_path: Path) -> None:

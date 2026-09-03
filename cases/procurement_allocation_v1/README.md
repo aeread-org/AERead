@@ -220,3 +220,16 @@ python -m aeread_families.procurement_allocation.policy_baselines \
 
 These policies are diagnostic floors, not oracle substitutes. The deterministic
 full-information bound remains the certified reference.
+
+The qualified run completed and replayed all 48 rows at zero provider cost. Both
+displayed-price and listing-claim policies were feasible in 6/6 worlds on each
+surface, with 19.6667 mean completed kits and $58.0359 mean contribution margin.
+Their blinded-minus-labeled outcome deltas were exactly zero. The semantic-hint
+policy changed outcomes in three worlds and improved by $4.0138 after names became
+opaque, showing that suggestive labels are not uniformly helpful.
+
+Against GLM after averaging its three seeds within each world, displayed-price greedy
+had +$28.4986 mean margin on labeled/original cases and +$54.9200 on
+opaque/reordered cases. The associated six-world cluster intervals exclude zero, so
+this panel is not saturated by the qualified GLM route. The tracked evidence is at
+`evidence/procurement_allocation_public_policy_baselines_v1/`.

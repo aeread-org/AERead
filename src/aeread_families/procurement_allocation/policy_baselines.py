@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import hashlib
+import itertools
 import json
 import math
 import os
@@ -22,7 +23,9 @@ from aeread.shared_runner.task.execution import (
     execute_plan_cell,
 )
 
-from .case_matrix import BLINDED_CASE_PATHS, CASE_VARIANCE_PATHS
+from .blinded_invariance import CAMPAIGN_ID as BLINDED_CAMPAIGN_ID
+from .case_matrix import BLINDED_CASE_PATHS, CASE_VARIANCE_PATHS, REPOSITORY_ROOT
+from .model_campaign import CAMPAIGN_ID as LABELED_CAMPAIGN_ID
 from .runner import (
     build_offline_setup,
     finalize_procurement_allocation_execution,
@@ -47,6 +50,20 @@ METRICS = (
     "completed_kits",
     "contribution_margin_usd",
     "regret_to_upper_bound_usd",
+)
+DEFAULT_LABELED_RUN_ROOT = (
+    REPOSITORY_ROOT
+    / "runs"
+    / "procurement_allocation"
+    / LABELED_CAMPAIGN_ID
+    / "qualification_attempt_001"
+)
+DEFAULT_BLINDED_RUN_ROOT = (
+    REPOSITORY_ROOT
+    / "runs"
+    / "procurement_allocation"
+    / BLINDED_CAMPAIGN_ID
+    / "qualification_attempt_004"
 )
 
 
@@ -602,6 +619,202 @@ def summarize_policy_rows(
     }
 
 
+def _verified_qualification(
+    root: Path, *, campaign_id: str
+) -> tuple[dict[str, Any], str]:
+    path = root / "summary.json"
+    raw_bytes = path.read_bytes()
+    value = json.loads(raw_bytes)
+    if not isinstance(value, dict):
+        raise ValueError(f"qualification summary must be an object: {path}")
+    recorded_sha = value.get("artifact_sha256")
+    payload = {key: item for key, item in value.items() if key != "artifact_sha256"}
+    if recorded_sha != hashlib.sha256(canonical_json_bytes(payload)).hexdigest():
+        raise ValueError(f"qualification artifact digest mismatch: {path}")
+    if value.get("plan", {}).get("campaign_id") != campaign_id:
+        raise ValueError(f"qualification campaign identity mismatch: {path}")
+    rows = value.get("rows")
+    if not isinstance(rows, list):
+        raise ValueError("qualification rows must be an array")
+    for row in rows:
+        if not isinstance(row, Mapping):
+            raise ValueError("qualification row must be an object")
+        result_sha = row.get("result_sha256")
+        result_payload = {
+            key: item for key, item in row.items() if key != "result_sha256"
+        }
+        if (
+            result_sha
+            != hashlib.sha256(canonical_json_bytes(result_payload)).hexdigest()
+        ):
+            raise ValueError("qualification row digest mismatch")
+    return value, hashlib.sha256(raw_bytes).hexdigest()
+
+
+def _metric(row: Mapping[str, Any], metric: str) -> float:
+    if metric == "feasible":
+        return 1.0 if row.get("feasible") is True else 0.0
+    return float(row[metric])
+
+
+def _cluster_interval(values: Sequence[float]) -> list[float]:
+    if len(values) != 6:
+        raise ValueError("model context requires exactly six case clusters")
+    means = sorted(
+        statistics.fmean(values[index] for index in sample)
+        for sample in itertools.product(range(6), repeat=6)
+    )
+    return [
+        means[int(0.025 * (len(means) - 1))],
+        means[int(0.975 * (len(means) - 1))],
+    ]
+
+
+def build_glm_policy_context(
+    *,
+    policy_artifact: Mapping[str, Any],
+    labeled_run_root: Path,
+    blinded_run_root: Path,
+) -> dict[str, Any]:
+    """Compare the primary deterministic floor with qualified GLM world means."""
+
+    policy_sha = policy_artifact.get("artifact_sha256")
+    policy_payload = {
+        key: value for key, value in policy_artifact.items() if key != "artifact_sha256"
+    }
+    if policy_sha != hashlib.sha256(canonical_json_bytes(policy_payload)).hexdigest():
+        raise ValueError("policy artifact digest mismatch")
+    if (
+        not policy_artifact.get("summary", {})
+        .get("readiness", {})
+        .get("policy_baselines_qualified")
+    ):
+        raise ValueError("policy baselines are not qualified")
+    labeled, labeled_file_sha = _verified_qualification(
+        labeled_run_root, campaign_id=LABELED_CAMPAIGN_ID
+    )
+    blinded, blinded_file_sha = _verified_qualification(
+        blinded_run_root, campaign_id=BLINDED_CAMPAIGN_ID
+    )
+
+    policy_rows = {
+        (str(row["panel"]), str(row["case_slug"])): row
+        for row in policy_artifact["rows"]
+        if row.get("policy_id") == "displayed_price_greedy"
+        and row.get("status") == "completed"
+    }
+    conditions = {
+        "labeled_original": labeled,
+        "opaque_reordered": blinded,
+    }
+    comparisons: dict[str, Any] = {}
+    integrity = {
+        "policy_artifact_digest_verified": True,
+        "model_artifact_and_row_digests_verified": True,
+        "both_model_campaigns_execution_qualified": all(
+            artifact.get("summary", {}).get("readiness", {}).get("execution_qualified")
+            is True
+            for artifact in conditions.values()
+        ),
+        "six_policy_rows_per_condition": all(
+            sum(panel == condition for panel, _slug in policy_rows) == 6
+            for condition in conditions
+        ),
+    }
+    all_model_rows_complete = True
+    all_upper_bounds_match = True
+    all_three_seeds_present = True
+    for condition, artifact in conditions.items():
+        grouped: dict[str, list[Mapping[str, Any]]] = {}
+        for row in artifact["rows"]:
+            slug = str(row["case_id"]).rsplit(".", 1)[-1]
+            grouped.setdefault(slug, []).append(row)
+            all_model_rows_complete = all_model_rows_complete and (
+                row.get("status") == "completed" and row.get("receipt_replayed") is True
+            )
+        per_case: dict[str, Any] = {}
+        for path in CASE_VARIANCE_PATHS:
+            slug = path.stem
+            model_rows = grouped.get(slug, [])
+            policy_row = policy_rows.get((condition, slug))
+            if policy_row is None or len(model_rows) != 3:
+                all_three_seeds_present = False
+                continue
+            upper_bounds = {
+                float(policy_row["upper_bound_usd"]),
+                *(float(row["upper_bound_usd"]) for row in model_rows),
+            }
+            all_upper_bounds_match = all_upper_bounds_match and len(upper_bounds) == 1
+            per_case[slug] = {
+                metric: {
+                    "policy_value": _metric(policy_row, metric),
+                    "glm_seed_mean": statistics.fmean(
+                        _metric(row, metric) for row in model_rows
+                    ),
+                }
+                for metric in METRICS
+            }
+            for values in per_case[slug].values():
+                values["policy_minus_glm"] = (
+                    values["policy_value"] - values["glm_seed_mean"]
+                )
+        aggregate: dict[str, Any] = {}
+        for metric in METRICS:
+            deltas = [
+                per_case[slug][metric]["policy_minus_glm"] for slug in sorted(per_case)
+            ]
+            aggregate[metric] = {
+                "case_cluster_mean_policy_minus_glm": (
+                    statistics.fmean(deltas) if deltas else None
+                ),
+                "case_cluster_bootstrap_95_interval": (
+                    _cluster_interval(deltas) if len(deltas) == 6 else None
+                ),
+            }
+        comparisons[condition] = {
+            "primary_policy_id": "displayed_price_greedy",
+            "model_completed_trajectory_count": artifact["summary"].get(
+                "completed_trajectory_count"
+            ),
+            "model_feasible_count": artifact["summary"].get("feasible_count"),
+            "per_case": per_case,
+            "aggregate": aggregate,
+        }
+
+    integrity["all_model_rows_completed_and_replayed"] = all_model_rows_complete
+    integrity["three_model_seeds_per_case"] = all_three_seeds_present
+    integrity["all_upper_bounds_match"] = all_upper_bounds_match
+    context: dict[str, Any] = {
+        "schema_version": "aeread.procurement_allocation_policy_model_context/0.1",
+        "campaign_id": CAMPAIGN_ID,
+        "primary_policy_id": "displayed_price_greedy",
+        "comparisons": comparisons,
+        "integrity": integrity,
+        "readiness": {"model_context_qualified": all(integrity.values())},
+        "source": {
+            "policy_artifact_sha256": policy_sha,
+            "labeled_summary_file_sha256": labeled_file_sha,
+            "labeled_artifact_sha256": labeled.get("artifact_sha256"),
+            "labeled_plan_sha256": labeled.get("plan", {}).get("plan_sha256"),
+            "blinded_summary_file_sha256": blinded_file_sha,
+            "blinded_artifact_sha256": blinded.get("artifact_sha256"),
+            "blinded_plan_sha256": blinded.get("plan", {}).get("plan_sha256"),
+            "implementation_sha256": hashlib.sha256(
+                Path(__file__).read_bytes()
+            ).hexdigest(),
+        },
+        "claim_scope": (
+            "paired deterministic-policy minus GLM comparison over six curated "
+            "procurement worlds after averaging three inference seeds within each "
+            "world; intervals describe this panel, not a population"
+        ),
+    }
+    context["artifact_sha256"] = hashlib.sha256(
+        canonical_json_bytes(context)
+    ).hexdigest()
+    return context
+
+
 async def run_policy_baselines(*, run_root: Path) -> dict[str, Any]:
     resolved = run_root.resolve()
     if "runs" not in resolved.parts or {"evidence", "output", "outputs"}.intersection(
@@ -646,7 +859,10 @@ async def run_policy_baselines(*, run_root: Path) -> dict[str, Any]:
 
 
 def publish_policy_baselines(
-    *, run_root: Path, publication_root: Path
+    *,
+    run_root: Path,
+    publication_root: Path,
+    model_context: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     if publication_root.resolve().parent.name != "evidence":
         raise ValueError("publication_root must be one direct evidence/ bundle")
@@ -689,11 +905,18 @@ def publish_policy_baselines(
     report_path = publication_root / "reports" / "results.json"
     _write_once_json(report_path, review)
     report_sha = hashlib.sha256(report_path.read_bytes()).hexdigest()
+    artifacts = {"reports/results.json": report_sha}
+    if model_context is not None:
+        context_path = publication_root / "reports" / "glm_context.json"
+        _write_once_json(context_path, model_context)
+        artifacts["reports/glm_context.json"] = hashlib.sha256(
+            context_path.read_bytes()
+        ).hexdigest()
     fact: dict[str, Any] = {
         "schema_version": "aeread.procurement_allocation_policy_manifest/0.1",
         "campaign_id": CAMPAIGN_ID,
         "artifacts": {
-            "results": {"path": "reports/results.json", "sha256": report_sha}
+            name: {"path": name, "sha256": sha256} for name, sha256 in artifacts.items()
         },
         "source_bindings": review["source"],
         "publication_scope": "sanitized deterministic policy evidence",
@@ -706,7 +929,7 @@ def publish_policy_baselines(
         "publication_id": CAMPAIGN_ID,
         "campaign_id": CAMPAIGN_ID,
         "artifacts": {
-            "reports/results.json": report_sha,
+            **artifacts,
             "tables/fact_manifest.json": hashlib.sha256(
                 fact_path.read_bytes()
             ).hexdigest(),
@@ -725,19 +948,53 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--run-root", type=Path, required=True)
     parser.add_argument("--publication-root", type=Path)
+    parser.add_argument(
+        "--glm-labeled-run-root", type=Path, default=DEFAULT_LABELED_RUN_ROOT
+    )
+    parser.add_argument(
+        "--glm-blinded-run-root", type=Path, default=DEFAULT_BLINDED_RUN_ROOT
+    )
     parser.add_argument("--execute", action="store_true")
+    parser.add_argument("--publish-only", action="store_true")
     arguments = parser.parse_args(argv)
+    if arguments.publish_only:
+        if arguments.execute:
+            parser.error("--publish-only cannot be combined with --execute")
+        if arguments.publication_root is None:
+            parser.error("--publish-only requires --publication-root")
+        artifact = json.loads((arguments.run_root / "summary.json").read_text())
+        model_context = build_glm_policy_context(
+            policy_artifact=artifact,
+            labeled_run_root=arguments.glm_labeled_run_root,
+            blinded_run_root=arguments.glm_blinded_run_root,
+        )
+        _write_once_json(arguments.run_root / "glm_context.json", model_context)
+        manifest = publish_policy_baselines(
+            run_root=arguments.run_root,
+            publication_root=arguments.publication_root,
+            model_context=model_context,
+        )
+        print(json.dumps(manifest, indent=2, sort_keys=True))
+        return 0
     if not arguments.execute:
         print(json.dumps(build_plan(), indent=2, sort_keys=True))
         return 0
     artifact = asyncio.run(run_policy_baselines(run_root=arguments.run_root))
+    model_context = build_glm_policy_context(
+        policy_artifact=artifact,
+        labeled_run_root=arguments.glm_labeled_run_root,
+        blinded_run_root=arguments.glm_blinded_run_root,
+    )
+    _write_once_json(arguments.run_root / "glm_context.json", model_context)
     if (
         arguments.publication_root is not None
         and artifact["summary"]["readiness"]["policy_baselines_qualified"]
+        and model_context["readiness"]["model_context_qualified"]
     ):
         publish_policy_baselines(
             run_root=arguments.run_root,
             publication_root=arguments.publication_root,
+            model_context=model_context,
         )
     print(json.dumps(artifact["summary"], indent=2, sort_keys=True))
     return 0 if artifact["summary"]["readiness"]["policy_baselines_qualified"] else 2
@@ -752,6 +1009,7 @@ __all__ = [
     "PANELS",
     "POLICY_IDS",
     "PublicObservationPolicyProvider",
+    "build_glm_policy_context",
     "build_plan",
     "choose_public_policy_action",
     "publish_policy_baselines",
