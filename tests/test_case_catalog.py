@@ -65,7 +65,13 @@ def test_procurement_allocation_development_case_is_discoverable() -> None:
 
     assert (family / "README.md").is_file()
     assert sorted(path.name for path in (family / "dev").glob("*.json")) == [
-        "quality_speed_margin.json"
+        "deadline_cost.json",
+        "moq_capacity_split.json",
+        "quality_refund.json",
+        "quality_speed_margin.json",
+        "service_defer.json",
+        "variant_substitution.json",
+        "working_capital.json",
     ]
 
 

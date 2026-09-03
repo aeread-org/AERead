@@ -59,6 +59,7 @@ not intended as a second reading order.
 ## Benchmark families
 
 - Housing: [case contract](families/housing/case.md) and [QC profile](families/housing/qc.md)
+- Procurement allocation: [case and campaign design](families/procurement-allocation/campaign.md)
 - Tau3 retail: [adapter specification](families/tau3-retail/adapter_spec.md), [implementation status](families/tau3-retail/adapter_status.md), and [refund integration plan](families/tau3-retail/refund_external_benchmark_integration.md)
 - Data-center development: [negotiation implementation plan](families/datacenter/development_negotiation_implementation_plan.md)
 
