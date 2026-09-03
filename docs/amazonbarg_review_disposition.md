@@ -335,3 +335,100 @@ finding 2, 2 for finding 3, 1 for finding 4, 4 for finding 6, 1 for finding 8, 1
 finding 10). Full repo suite after this pass: **843 passed, 31 skipped, 1 xfailed** — no
 regression (830 passed before this pass per the top of this file, same 31 skips/1 xfail, all
 pre-existing and unrelated to amazonbarg; +13 for the new regression tests above).
+
+## Verification follow-up (independent cross-model check, `docs/amazonbarg_fix_verification.md`)
+
+An independent, second-model verification pass re-checked every finding in this file against
+the actual committed diffs (not the prose above) and flagged two: finding 5 and finding 7 "do
+not meet the claimed fix-and-regression-test bar." Both were re-investigated from scratch,
+against the code this file names, before deciding how to close them out. Neither needed a code
+change; both needed this file's own wording corrected so it stops implying a testing
+relationship that does not exist. No fix was reverted to check "bite" for either, because
+neither has a code-level guard to revert — see each finding below for why.
+
+### Finding 5 — re-confirmed as correctly out of scope; `docs/amazonbarg_adapter_status.md` corrected
+
+The verifier's complaint here was accurate but not new: finding 5 was never claimed "fixed" by
+this file (the table above already says "Deferred to ledger" and the prose already says "Not
+touched in this pass"). Re-verified independently, again: `finalize_family_execution`
+(`src/aeread/shared_runner/family_evaluation.py:245,487,565`) still calls
+`plugin.build_scorer(family_case)(recorded_outcome, evidence_refs=(...))`, i.e. still requires a
+directly callable, single-`ScoreEnvelope`-returning result; `AmazonbargScorer` still has no
+`__call__` and still exposes its five leaves only through named `score_*` methods and
+`score_all()` (`src/aeread_families/amazonbarg/measurement.py:850-957`). This is the identical
+gap `runner_defect_ledger.md` D-15 already tracks (status: **open**), shared byte-for-byte with
+`Tau3RetailScorer` and unsatisfied even by the kernel's own `smoke.py` reference plugin — a
+cross-family kernel-contract question, not an amazonbarg bug. Giving `AmazonbargScorer` an
+adapter-local `__call__` that picks one leaf as "primary" and silently drops the other four
+would contradict this adapter's own declared five-leaf, "never blended into one number" design
+(spec section 2) and would not fix the same gap for `Tau3RetailScorer` or the kernel's own smoke
+plugin — an architectural decision affecting multiple adapters and their owners, correctly
+outside a single adapter branch's authority to make unilaterally.
+
+What genuinely needed correcting: `docs/amazonbarg_adapter_status.md`'s "Kernel/runner defects
+or limitations found this milestone" section said "None new... remain the current, complete
+list," which was inaccurate — D-15 was surfaced by this same milestone's codex-review pass and
+was left open, so omitting it there understated the gap between what this adapter's own
+harness/replay evidence demonstrates (real, working, adapter-owned sealing) and what the shared
+kernel's production `finalize_family_execution` path can do for this family today (nothing — it
+cannot call `build_scorer` for amazonbarg, or any other multi-leaf family, without raising
+`TypeError`). That section, and a new bullet in "Known limits, stated rather than implied," now
+say this explicitly, so "sealed as durable evidence" is never misread as "the shared runner's
+production evaluation pipeline already works end to end for amazonbarg."
+
+**Disposition: narrowed, not fixed.** No code change; genuinely out of scope for this adapter
+branch (cross-family kernel contract, ledgered D-15, open). `docs/amazonbarg_adapter_status.md`
+corrected so nothing it says overstates the shared kernel's current capability.
+
+### Finding 7 — the disposition table's "closed by finding 2's test" wording retracted
+
+The verifier is right and specific: reverting `8f5a044`'s finding-7 hunk (a 17-line docstring
+addition to `_score_and_check_parity`, no other change) leaves every test — including finding
+2's `test_narrow_bargaining_room_does_not_let_a_deal_above_the_real_budget_pass_zopa` — passing
+exactly as before, because a docstring gates no runtime behavior. The summary table above
+("| 7 | Major | Fixed (documentation) — limitation documented; closed by finding 2's test |")
+therefore overstated the relationship: finding 2's test is real and does independently
+hand-verify one specific bug class (a narrow, sub-$1 bargaining room) against a derived, non-
+parity oracle value — but it does not call `_score_and_check_parity` at all, so it cannot and
+does not regression-guard finding 7's own fix commit.
+
+Re-investigated whether a code fix was possible instead of a wording correction: it is not, for
+the two purely-delegated leaves (`amazonbarg_deal_authenticity`'s `wrongAction`,
+`amazonbarg_bargained_ratio`'s profit arithmetic) that `_score_and_check_parity` covers. Proving
+their correctness would require an independent oracle for upstream's own `eval.py:Metrics`
+arithmetic — exactly what adapter rule 2 ("never reimplement upstream") forbids. This is a
+structural property of delegation-based testing, not a bug: two calls to the identical pinned
+upstream code on the identical input will always agree, whatever that code computes, so no
+test written against this adapter's own code can ever close the gap for those two leaves. (The
+`amazonbarg_zopa_membership` leaf is the one exception, and it is exactly the one finding 2
+already fixed, precisely because it is AERead-owned rather than purely delegated — it does not
+need upstream's arithmetic to be correct, only upstream's `B`/`C` to be ignored in favor of the
+case's own genuine `derived.cost`/`derived.budget`.)
+
+**Disposition: narrowed, not fixed further.** `docs/amazonbarg_adapter_status.md`'s "Known
+limits, stated rather than implied" section now carries this explicitly, including the
+correction to this file's own summary-table wording, so a future reader is told plainly: finding
+7 is a permanent, disclosed limitation of the delegation-based test methodology, not a closed
+item, and no regression test exists or can exist for it beyond the disclosure itself. The table
+entry above is left as originally written (this file is an append-only record of what the
+review pass actually did and claimed); this section is the correction.
+
+### Mutation verification
+
+Not applicable to either finding: neither received a code change in this pass, so there is no
+guard to `cp` aside, revert, and confirm a new test dies against. Both were, on inspection,
+already correctly identified by the original triage/disposition as out of adapter scope (finding
+5, "OUT OF SCOPE," never claimed fixed) or as a documentation-only clarification (finding 7,
+"no code change beyond the docstring; no new test specific to this finding" — the disposition's
+own narrative already said this; only the summary table's wording overstated it). The action
+taken here was to correct the one place (the summary table, and `docs/amazonbarg
+_adapter_status.md`'s omission of D-15) where the record read more complete than it was, not to
+build a fix neither finding's own analysis supports.
+
+### Test counts after this follow-up
+
+No test was added or removed. Family suite (`test_amazonbarg_{cases,environment,harness,
+measurement,replay,shim}.py` plus `test_amazonbarg_upstream_skip_scope.py` and
+`tests/test_shared_runner_smoke.py`): unchanged at **127/127 passed, 0 skipped, 0 failed** (see
+this file's own count above); re-run and confirmed after the documentation edits in this
+follow-up.

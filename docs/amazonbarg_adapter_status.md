@@ -167,18 +167,68 @@ future work, not part of this milestone's scope.
 - **`budget_ratio=0.8` and `max_turns=6` remain the only pins explored.**
   No sensitivity analysis over either value is part of this or any prior
   milestone.
+- **"Component parity" (the double-delegated-call check every QC Gate-2
+  golden test runs) proves wiring, never the correctness of the delegated
+  arithmetic itself, for the two leaves that are purely delegated
+  (`amazonbarg_deal_authenticity`'s `wrongAction`, `amazonbarg_bargained
+  _ratio`'s profit arithmetic).** Both calls in `_score_and_check_parity`
+  run the identical pinned upstream code on the identical input and will
+  agree on whatever that code computes, bug or not (codex-review finding
+  7) — demonstrated concretely by finding 2's own room-widening bug, which
+  reproduced byte-identically across both calls and passed every parity
+  assertion. Rule 2 ("never reimplement upstream") forbids building an
+  independent oracle to close this for the two purely-delegated leaves, so
+  it is not fixable inside this adapter; the one manually-verified,
+  non-parity oracle case that exists
+  (`test_narrow_bargaining_room_does_not_let_a_deal_above_the_real_budget
+  _pass_zopa`) covers only the AERead-owned `amazonbarg_zopa_membership`
+  leaf (whose fix let it stop trusting delegated `B`/`C` at all), not the
+  two purely-delegated leaves parity can never independently check — and,
+  since it does not call `_score_and_check_parity`, it does not regression
+  -guard finding 7's own fix commit (a documentation-only docstring
+  addition; no runtime behavior is gated on it, so no test can fail if it
+  is reverted). This is a permanent, disclosed limitation, not a closed
+  finding — see `docs/amazonbarg_review_disposition.md`'s "Verification
+  follow-up" section for the correction to that file's earlier "closed by
+  finding 2's test" summary-table wording, which overstated the
+  relationship.
 
 ## Kernel/runner defects or limitations found this milestone
 
-None new. The three kernel-contract limitations already on file from
-milestones 1-2 (`ledger_entries/amazonbarg.md`: the two-value
-`ScoreEnvelope.status` enum having no distinct "degenerate" state; the lack
-of a directionless `ObjectiveScopeSpec.direction` option; and the
-`verifier_taxonomy.md` §5.1 vs. real `_REFERENCE_KINDS` drift) remain the
-current, complete list — this milestone's harness/replay work exercises all
-three code paths again (goldens 1 and 5) without surfacing anything new.
-The `sys.modules` shim technique (spec section 3.1, also logged there as a
-deliberate departure from the task's two named fallback patterns) is
-unchanged by this milestone: `harness.py`/`replay.py` never call
-`upstream_shim` directly, only `measurement.py`'s already-shimmed
-`compute_upstream_metrics`.
+One new, since the previous version of this file: **D-15 (HIGH, open,
+cross-family)** — the shared runner's only production call site for family
+scoring, `finalize_family_execution` (`src/aeread/shared_runner/
+family_evaluation.py:245,487,565`), requires `plugin.build_scorer
+(family_case)` to return something directly callable that yields exactly
+one `ScoreEnvelope`; `AmazonbargScorer` (this adapter's declared five-leaf
+model, spec section 2, "never blended into one number") has no `__call__`
+and could not satisfy that shape without inventing an arbitrary "primary"
+leaf and silently discarding the other four — an adapter-local workaround
+to what is a cross-family kernel contract question, not a bug unique to
+amazonbarg (`Tau3RetailScorer` carries the identical gap, and the kernel's
+own `smoke.py` reference plugin does not satisfy its own contract either).
+Surfaced by the codex second-reviewer pass (`docs/amazonbarg_codex_triage.md`
+finding 5) and correctly triaged, then, as out of scope for this adapter
+branch rather than fixed here; filed as `runner_defect_ledger.md` D-15
+(status: **open**). Concretely: **this adapter's production scores are not
+produced or sealed by the shared kernel today** — every score this
+milestone demonstrates (the QC Gate-2 goldens' harness/replay evidence
+described above) is sealed by this adapter's own `ScriptedAmazonbargHarness`/
+`EvidenceStore` calling `measurement.py`'s scorer methods directly, never by
+`finalize_family_execution` itself, which cannot yet call `build_scorer` for
+this (or any multi-leaf) family at all. Do not read "sealed as durable
+evidence" above as "the shared runner's production evaluation pipeline
+already works end to end for amazonbarg" — it does not, for any family with
+more than one declared leaf, until D-15 is resolved at the kernel level.
+
+The three kernel-contract limitations already on file from milestones 1-2
+(`ledger_entries/amazonbarg.md`: the two-value `ScoreEnvelope.status` enum
+having no distinct "degenerate" state; the lack of a directionless
+`ObjectiveScopeSpec.direction` option; and the `verifier_taxonomy.md` §5.1
+vs. real `_REFERENCE_KINDS` drift) are unchanged — this milestone's
+harness/replay work exercises all three code paths again (goldens 1 and 5)
+without surfacing anything new about them. The `sys.modules` shim technique
+(spec section 3.1, also logged there as a deliberate departure from the
+task's two named fallback patterns) is unchanged by this milestone:
+`harness.py`/`replay.py` never call `upstream_shim` directly, only
+`measurement.py`'s already-shimmed `compute_upstream_metrics`.
