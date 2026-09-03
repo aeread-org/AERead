@@ -1423,13 +1423,7 @@ class OpenRouterChatClient:
         if isinstance(top_level_error, Mapping):
             status_code = top_level_error.get("code")
             message = str(top_level_error.get("message") or "OpenRouter request failed")
-            retryable = isinstance(status_code, int) and status_code >= 500
-            raise ProviderFailure(
-                "provider_5xx" if retryable else "provider_rejected",
-                message,
-                retryable=retryable,
-                status_code=status_code if isinstance(status_code, int) else None,
-            )
+            raise OpenRouterChatClient._provider_error(status_code, message)
         choices = raw_response.get("choices")
         if not isinstance(choices, list) or len(choices) != 1:
             raise ProviderFailure(
@@ -1442,13 +1436,7 @@ class OpenRouterChatClient:
         if isinstance(choice_error, Mapping):
             status_code = choice_error.get("code")
             message = str(choice_error.get("message") or "OpenRouter choice failed")
-            retryable = isinstance(status_code, int) and status_code >= 500
-            raise ProviderFailure(
-                "provider_5xx" if retryable else "provider_rejected",
-                message,
-                retryable=retryable,
-                status_code=status_code if isinstance(status_code, int) else None,
-            )
+            raise OpenRouterChatClient._provider_error(status_code, message)
         if isinstance(choice, Mapping) and choice.get("finish_reason") == "error":
             raise ProviderFailure(
                 "provider_rejected",
@@ -1457,6 +1445,21 @@ class OpenRouterChatClient:
             )
         message = choice.get("message") if isinstance(choice, Mapping) else None
         return raw_response, choice, message
+
+    @staticmethod
+    def _provider_error(status_code: Any, message: str) -> ProviderFailure:
+        resolved_status = status_code if isinstance(status_code, int) else None
+        if resolved_status == 429:
+            return ProviderFailure(
+                "rate_limit", message, retryable=True, status_code=resolved_status
+            )
+        retryable = resolved_status is not None and resolved_status >= 500
+        return ProviderFailure(
+            "provider_5xx" if retryable else "provider_rejected",
+            message,
+            retryable=retryable,
+            status_code=resolved_status,
+        )
 
     @staticmethod
     def _usage(raw_response: Mapping[str, Any]) -> tuple[int, int, int, float]:

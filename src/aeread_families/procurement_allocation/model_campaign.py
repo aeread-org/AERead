@@ -36,6 +36,7 @@ from aeread_families.procurement_grounding.runner import OpenRouterRoute
 from .case_matrix import CASE_VARIANCE_PATHS
 from .runner import (
     PROMPT,
+    RETRYABLE_ZERO_COST_PROVIDER_CONDITIONS,
     build_openrouter_setup,
     finalize_procurement_allocation_execution,
     finalize_procurement_allocation_failure,
@@ -71,6 +72,7 @@ GLM_MORPH_CANDIDATE = BakeoffCandidate(
     license_id="MIT",
     model_card_url="https://huggingface.co/zai-org/GLM-5.3-Flash",
 )
+TRANSIENT_RETRY_CONDITIONS = ("rate_limit", "provider_5xx")
 
 
 def derive_inference_seeds(
@@ -142,6 +144,9 @@ def planned_model_qualification(
     prompt_id: str = "procurement_allocation_prompt_v1",
     treatment_id: str = "unscaffolded_control",
     max_new_trajectories: int | None = None,
+    max_action_attempts: int = 1,
+    retryable_conditions: Sequence[str] = (),
+    retry_backoff: str | None = None,
 ) -> dict[str, Any]:
     if not inference_seeds:
         raise ValueError("inference_seeds cannot be empty")
@@ -155,6 +160,31 @@ def planned_model_qualification(
         raise ValueError("prompt, prompt_id, and treatment_id cannot be empty")
     if max_new_trajectories is not None and max_new_trajectories < 1:
         raise ValueError("max_new_trajectories must be positive when provided")
+    resolved_retryable_conditions = tuple(retryable_conditions)
+    if max_action_attempts < 1:
+        raise ValueError("max_action_attempts must be positive")
+    if len(set(resolved_retryable_conditions)) != len(
+        resolved_retryable_conditions
+    ):
+        raise ValueError("retryable_conditions must be unique")
+    unsupported_conditions = set(resolved_retryable_conditions).difference(
+        RETRYABLE_ZERO_COST_PROVIDER_CONDITIONS
+    )
+    if unsupported_conditions:
+        raise ValueError(
+            "procurement retries require known-zero-cost provider conditions: "
+            f"{sorted(unsupported_conditions)}"
+        )
+    retries_enabled = max_action_attempts > 1
+    if retries_enabled != bool(resolved_retryable_conditions):
+        raise ValueError(
+            "max_action_attempts greater than one and retryable_conditions must "
+            "be enabled together"
+        )
+    if retries_enabled and retry_backoff != "exponential_jitter_v1":
+        raise ValueError("declared retries require exponential_jitter_v1 backoff")
+    if not retries_enabled and retry_backoff is not None:
+        raise ValueError("retry_backoff requires declared retries")
     cases = _case_records(case_paths)
     route = candidate.route
     plan = {
@@ -184,7 +214,19 @@ def planned_model_qualification(
         "max_parallel_cells": max_parallel_cells,
         "max_new_trajectories_per_invocation": max_new_trajectories,
         "abort_on_operational_failure": abort_on_operational_failure,
-        "retry_policy": "one sealed attempt per trajectory; SDK retries disabled",
+        "retry_policy": (
+            {
+                "owner": "shared_runner",
+                "max_action_attempts": max_action_attempts,
+                "retryable_conditions": list(resolved_retryable_conditions),
+                "retry_backoff": retry_backoff,
+                "session_mode": "restart",
+                "sdk_retries": 0,
+                "cost_boundary": "retry only known-zero-cost provider failures",
+            }
+            if retries_enabled
+            else "one sealed attempt per trajectory; SDK retries disabled"
+        ),
         "resume_policy": "run only trajectories without a result row",
         "response_cache": "disabled",
         "prompt_cache": "automatic provider behavior; observed and reported",
@@ -282,6 +324,9 @@ _PUBLISHABLE_ROW_FIELDS = (
     "receipt_sha256",
     "receipt_replayed",
     "replay_level",
+    "provider_call_count",
+    "runner_retry_count",
+    "retry_condition_counts",
     "result_sha256",
     "failure_type",
     "failure_condition",
@@ -606,6 +651,7 @@ def summarize_rows(
     violation_counts: Counter[str] = Counter()
     action_counts: Counter[str] = Counter()
     supplier_contacts: Counter[str] = Counter()
+    retry_conditions: Counter[str] = Counter()
     for row in completed:
         violation_counts.update(str(item) for item in row["violations"])
         for action in row["action_trace"]:
@@ -613,6 +659,12 @@ def summarize_rows(
             supplier_id = action.get("supplier_id")
             if isinstance(supplier_id, str):
                 supplier_contacts[supplier_id] += 1
+        retry_conditions.update(
+            {
+                str(condition): int(count)
+                for condition, count in row.get("retry_condition_counts", {}).items()
+            }
+        )
 
     per_case: dict[str, Any] = {}
     for case_id in sorted({str(row["case_id"]) for row in rows}):
@@ -629,6 +681,16 @@ def summarize_rows(
             for row in case_completed
             if row.get("termination_reason") is not None
         )
+        case_retry_conditions: Counter[str] = Counter()
+        for row in case_completed:
+            case_retry_conditions.update(
+                {
+                    str(condition): int(count)
+                    for condition, count in row.get(
+                        "retry_condition_counts", {}
+                    ).items()
+                }
+            )
         per_case[case_id] = {
             "planned": len(case_rows),
             "completed": len(case_completed),
@@ -658,6 +720,13 @@ def summarize_rows(
             ),
             "termination_reason_counts": dict(sorted(case_terminations.items())),
             "violation_counts": dict(sorted(case_violations.items())),
+            "provider_call_count": sum(
+                int(row.get("provider_call_count", 0)) for row in case_completed
+            ),
+            "runner_retry_count": sum(
+                int(row.get("runner_retry_count", 0)) for row in case_completed
+            ),
+            "retry_condition_counts": dict(sorted(case_retry_conditions.items())),
         }
 
     all_rows_present = len(rows) == planned_trajectory_count
@@ -703,6 +772,13 @@ def summarize_rows(
         "cached_input_tokens": sum(
             int(row.get("cached_input_tokens", 0)) for row in completed
         ),
+        "provider_call_count": sum(
+            int(row.get("provider_call_count", 0)) for row in completed
+        ),
+        "runner_retry_count": sum(
+            int(row.get("runner_retry_count", 0)) for row in completed
+        ),
+        "retry_condition_counts": dict(sorted(retry_conditions.items())),
         "violation_counts": dict(sorted(violation_counts.items())),
         "action_type_counts": dict(sorted(action_counts.items())),
         "supplier_contact_counts": dict(sorted(supplier_contacts.items())),
@@ -732,6 +808,9 @@ async def _run_cell(
     candidate: BakeoffCandidate,
     prompt: str,
     prompt_id: str,
+    max_action_attempts: int,
+    retryable_conditions: Sequence[str],
+    retry_backoff: str | None,
 ) -> dict[str, Any]:
     setup = build_openrouter_setup(
         candidate.route,
@@ -743,6 +822,9 @@ async def _run_cell(
         harness=MinimalChatHarness(),
         prompt=prompt,
         prompt_id=prompt_id,
+        max_action_attempts=max_action_attempts,
+        retryable_conditions=retryable_conditions,
+        retry_backoff=retry_backoff,
     )
     cell = setup.plan.cells[0]
     case_directory = _safe_case_directory(setup.case.case_id, setup.case.content_sha256)
@@ -777,6 +859,12 @@ async def _run_cell(
             for attempt in action.attempts
             for call in attempt.provider_calls
         ]
+        retry_condition_counts = Counter(
+            str(attempt.retry_reason)
+            for action in execution.action_executions
+            for attempt in action.attempts
+            if attempt.retry_reason is not None
+        )
         outcome = json.loads(canonical_json_bytes(execution.episode_result.outcome))
         row: dict[str, Any] = {
             "case_id": setup.case.case_id,
@@ -809,6 +897,9 @@ async def _run_cell(
             "receipt_sha256": receipt.receipt_sha256,
             "receipt_replayed": True,
             "replay_level": receipt.replay_level,
+            "provider_call_count": len(calls),
+            "runner_retry_count": sum(retry_condition_counts.values()),
+            "retry_condition_counts": dict(sorted(retry_condition_counts.items())),
         }
     except Exception as error:
         failure_receipt_sha256 = None
@@ -862,6 +953,9 @@ async def run_model_qualification(
     prompt_id: str = "procurement_allocation_prompt_v1",
     treatment_id: str = "unscaffolded_control",
     max_new_trajectories: int | None = None,
+    max_action_attempts: int = 1,
+    retryable_conditions: Sequence[str] = (),
+    retry_backoff: str | None = None,
 ) -> dict[str, Any]:
     cases = _case_records(case_paths)
     plan = planned_model_qualification(
@@ -875,6 +969,9 @@ async def run_model_qualification(
         prompt_id=prompt_id,
         treatment_id=treatment_id,
         max_new_trajectories=max_new_trajectories,
+        max_action_attempts=max_action_attempts,
+        retryable_conditions=retryable_conditions,
+        retry_backoff=retry_backoff,
     )
     if plan["conservative_cost_ceiling_usd"] > max_spend_usd:
         raise ValueError(
@@ -945,6 +1042,9 @@ async def run_model_qualification(
                     candidate=candidate,
                     prompt=prompt,
                     prompt_id=prompt_id,
+                    max_action_attempts=max_action_attempts,
+                    retryable_conditions=retryable_conditions,
+                    retry_backoff=retry_backoff,
                 )
                 rows.append(row)
                 if row.get("status") == "operational_failure":
@@ -962,6 +1062,9 @@ async def run_model_qualification(
                             candidate=candidate,
                             prompt=prompt,
                             prompt_id=prompt_id,
+                            max_action_attempts=max_action_attempts,
+                            retryable_conditions=retryable_conditions,
+                            retry_backoff=retry_backoff,
                         )
                         for case_path, inference_seed in queued_missing
                     )
@@ -1063,6 +1166,7 @@ __all__ = [
     "CAMPAIGN_ID",
     "GLM_MORPH_CANDIDATE",
     "PUBLICATION_ID",
+    "TRANSIENT_RETRY_CONDITIONS",
     "conservative_cost_ceiling",
     "derive_inference_seeds",
     "planned_model_qualification",

@@ -93,6 +93,10 @@ return recovery, financing, information cost, and shortfall penalties. Do not tr
 displayed listing price or verbal statement as a binding offer.
 """
 
+RETRYABLE_ZERO_COST_PROVIDER_CONDITIONS = frozenset(
+    {"rate_limit", "provider_5xx"}
+)
+
 
 @dataclass(frozen=True, slots=True)
 class ProcurementAllocationSetup:
@@ -464,11 +468,41 @@ def build_openrouter_setup(
     harness: Any | None = None,
     prompt: str = PROMPT,
     prompt_id: str = "procurement_allocation_prompt_v1",
+    max_action_attempts: int = 1,
+    retryable_conditions: Sequence[str] = (),
+    retry_backoff: str | None = None,
 ) -> ProcurementAllocationSetup:
     if seed < 0:
         raise ValueError("seed must be non-negative")
     if max_cost_usd <= 0:
         raise ValueError("max_cost_usd must be positive")
+    resolved_retryable_conditions = tuple(retryable_conditions)
+    if max_action_attempts < 1:
+        raise ValueError("max_action_attempts must be positive")
+    if len(set(resolved_retryable_conditions)) != len(
+        resolved_retryable_conditions
+    ):
+        raise ValueError("retryable_conditions must be unique")
+    unsupported_conditions = set(resolved_retryable_conditions).difference(
+        RETRYABLE_ZERO_COST_PROVIDER_CONDITIONS
+    )
+    if unsupported_conditions:
+        raise ValueError(
+            "procurement retries require known-zero-cost provider conditions: "
+            f"{sorted(unsupported_conditions)}"
+        )
+    retries_enabled = max_action_attempts > 1
+    if retries_enabled != bool(resolved_retryable_conditions):
+        raise ValueError(
+            "max_action_attempts greater than one and retryable_conditions must "
+            "be enabled together"
+        )
+    if retries_enabled and retry_backoff != "exponential_jitter_v1":
+        raise ValueError(
+            "declared procurement retries require exponential_jitter_v1 backoff"
+        )
+    if not retries_enabled and retry_backoff is not None:
+        raise ValueError("retry_backoff requires declared procurement retries")
     template = build_offline_setup(
         case_path=case_path,
         prompt=prompt,
@@ -481,6 +515,20 @@ def build_openrouter_setup(
         else "aeread.shared_runner.model_call.open_harnesses"
     )
     profile_id = f"{route.profile_id}_procurement_allocation"
+    harness_config: dict[str, Any] = {
+        "pricing_id": route.pricing.pricing_id,
+        "pricing_sha256": route.pricing.content_sha256(),
+        "output_schema": procurement_action_output_schema(),
+        "provider_metadata": {
+            "route_provider": route.route_provider,
+            "quantization": route.quantization,
+            "canonical_model": route.revision,
+            "max_prompt_price_per_million": route.max_prompt_price_per_million,
+            "max_completion_price_per_million": route.max_completion_price_per_million,
+        },
+    }
+    if retry_backoff is not None:
+        harness_config["retry_backoff"] = retry_backoff
     profile = AgentProfile.from_dict(
         {
             "spec_version": AgentProfile.SPEC_VERSION,
@@ -494,18 +542,7 @@ def build_openrouter_setup(
             "harness": {
                 "id": resolved_harness.id,
                 "version": resolved_harness.version,
-                "config": {
-                    "pricing_id": route.pricing.pricing_id,
-                    "pricing_sha256": route.pricing.content_sha256(),
-                    "output_schema": procurement_action_output_schema(),
-                    "provider_metadata": {
-                        "route_provider": route.route_provider,
-                        "quantization": route.quantization,
-                        "canonical_model": route.revision,
-                        "max_prompt_price_per_million": route.max_prompt_price_per_million,
-                        "max_completion_price_per_million": route.max_completion_price_per_million,
-                    },
-                },
+                "config": harness_config,
             },
             "prompt": {
                 "prompt_id": prompt_id,
@@ -540,8 +577,8 @@ def build_openrouter_setup(
                 "max_cost_usd": max_cost_usd,
             },
             "retry_policy": {
-                "max_action_attempts": 1,
-                "retryable_conditions": [],
+                "max_action_attempts": max_action_attempts,
+                "retryable_conditions": list(resolved_retryable_conditions),
                 "session_mode": "restart",
                 "sdk_retries": 0,
             },

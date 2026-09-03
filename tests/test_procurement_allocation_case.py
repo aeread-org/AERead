@@ -383,3 +383,33 @@ def test_run_plan_pins_sources_and_openrouter_route() -> None:
     assert profile.model.model == "z-ai/glm-test"
     assert profile.sampling.seed == 231
     assert _plain(profile.harness.config["output_schema"]) == procurement_action_output_schema()
+    assert profile.retry_policy.max_action_attempts == 1
+    assert profile.retry_policy.retryable_conditions == ()
+
+    retrying = build_openrouter_setup(
+        route,
+        seed=231,
+        max_action_attempts=3,
+        retryable_conditions=("rate_limit", "provider_5xx"),
+        retry_backoff="exponential_jitter_v1",
+    )
+    retrying_profile = retrying.plan.agent_profiles[0]
+    assert retrying_profile.retry_policy.max_action_attempts == 3
+    assert retrying_profile.retry_policy.retryable_conditions == (
+        "rate_limit",
+        "provider_5xx",
+    )
+    assert retrying_profile.retry_policy.sdk_retries == 0
+    assert (
+        retrying_profile.harness.config["retry_backoff"]
+        == "exponential_jitter_v1"
+    )
+
+    with pytest.raises(ValueError, match="known-zero-cost"):
+        build_openrouter_setup(
+            route,
+            seed=231,
+            max_action_attempts=2,
+            retryable_conditions=("timeout",),
+            retry_backoff="exponential_jitter_v1",
+        )
