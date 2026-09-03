@@ -1598,6 +1598,8 @@ class ArenaChatClient:
         }
         if request.top_p is not None:
             kwargs["top_p"] = request.top_p
+        if request.reasoning_effort not in (None, "none"):
+            kwargs["reasoning_effort"] = request.reasoning_effort
         try:
             response = await self._client.chat.completions.create(**kwargs)
         except asyncio.CancelledError:

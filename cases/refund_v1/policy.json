@@ -47,14 +47,36 @@
     "Direct automatic refunds are allowed only when the final refund amount is at or below the customer's automatic threshold.",
     "Amounts above the automatic threshold must be escalated to human review before money is returned.",
     "Fraud-watch customers require human review for any monetary refund.",
-    "Physical goods that require return must be received before a direct refund unless the policy explicitly waives return."
+    "Physical goods that require return must be received before a direct refund unless the policy explicitly waives return.",
+    "Identity, payout-account, and location mismatches require verification or human review before money is returned.",
+    "Evidence requests must be limited to facts relevant to the product category and claimed issue.",
+    "Customer history informs risk routing but does not by itself establish product eligibility."
   ],
   "policy_id": "omnichannel_refund_policy_v1",
+  "scenario_rules": {
+    "emotional_leverage": "Urgency and hardship may affect service handling, but not policy eligibility.",
+    "exaggeration": "Resolve from verified product facts rather than the customer's unsupported claimed amount.",
+    "fraud": "Treat contradictory identity, address, location, or payout facts as a risk signal; do not issue an automatic refund.",
+    "history_strategy": "Use return and refund history for risk routing, not as a substitute for product evidence.",
+    "hostile": "Tone does not change eligibility, amount, or required review.",
+    "loophole_hunter": "Do not infer an exception from category wording when a general exclusion applies."
+  },
   "trust_rules": {
     "fraud_watch": "credit_score < 580 or chargebacks_12m > 0 or prior_refunds_12m >= 5",
     "good_trust": "credit_score >= 660, loyalty tier silver or higher, chargebacks_12m == 0, prior_refunds_12m <= 3",
     "high_trust": "credit_score >= 720, loyalty tier gold or platinum, chargebacks_12m == 0, prior_refunds_12m <= 2",
     "standard": "all customers not otherwise classified"
   },
-  "version": "1.0.0"
+  "utility_spec": {
+    "escalation_haircut": 5.0,
+    "friction_per_message": 2.0,
+    "invalid_denial_penalty": 25.0,
+    "relationship_cap": 50.0,
+    "relationship_rate": 0.2,
+    "return_cost": 6.0,
+    "review_cost": 8.0,
+    "spec_id": "refund_bilateral_utility_v1_1"
+  },
+  "utility_spec_id": "refund_bilateral_utility_v1_1",
+  "version": "1.1.0"
 }

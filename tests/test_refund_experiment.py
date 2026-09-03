@@ -59,5 +59,17 @@ def test_refund_experiment_cli_emits_housing_style_report_sections(tmp_path) -> 
         assert key in report
     assert report["primary_analysis"]["resampling_unit"] == "world_seed"
     assert report["receipt_coverage"]["evidence_verified"] == 6
+    assert report["receipt_coverage"]["receipts_written"] == 6
+    assert report["receipt_coverage"]["receipt_status"] == "complete"
+    included = [row for row in report["rows"] if row["status"] == "included"]
+    assert all(row["receipt_verified"] for row in included)
+    assert all("bounded_regret" in row["metrics"] for row in included)
+    assert all("utility_score" in row["metrics"] for row in included)
+    assert all("transaction_score" in row["metrics"] for row in included)
+    assert all(set(row["scores"]) == {"utility", "transaction"} for row in included)
+    assert all("transaction_verification" in row for row in included)
+    assert all("temporal_transaction" in row["verification_leaves"] for row in included)
+    assert all("policy_penalty" in row["utility_components"] for row in included)
     assert "## Operational Results" in narrative
+    assert "transaction score=" in narrative
     assert "## Claim Boundaries" in narrative

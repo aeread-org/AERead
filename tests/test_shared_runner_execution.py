@@ -958,6 +958,27 @@ def test_arena_adapter_uses_compatible_chat_completions_and_parses_json() -> Non
     assert result.cost_usd is None
 
 
+def test_arena_adapter_transmits_reasoning_effort() -> None:
+    completions = FakeArenaCompletions()
+    sdk = SimpleNamespace(chat=SimpleNamespace(completions=completions))
+    client = ArenaChatClient(sdk_client=sdk)
+    request = replace(
+        _openrouter_request(),
+        provider="arena",
+        base_url="https://api.preview.arena.ai/v1",
+        model="deepseek-v4-flash-0731",
+        revision="deepseek-v4-flash-0731",
+        reasoning_effort="low",
+        top_p=None,
+        seed=None,
+        provider_metadata=None,
+    ).with_computed_hash()
+
+    asyncio.run(client.complete(request))
+
+    assert completions.kwargs["reasoning_effort"] == "low"
+
+
 @pytest.mark.parametrize(
     "content",
     [
