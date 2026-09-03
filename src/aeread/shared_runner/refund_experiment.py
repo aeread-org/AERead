@@ -15,7 +15,7 @@ from typing import Any
 import numpy as np
 
 from .execution import EvidenceStore, execute_plan_cell
-from .refund import _provider_client, build_refund_run
+from .refund import RefundV1Plugin, _provider_client, build_refund_run
 from .resolver import canonical_json_bytes
 
 
@@ -240,7 +240,7 @@ def _failed_evidence(cell_root: Path) -> dict[str, Any]:
 
 def _write_refund_receipt(directory: Path, row: Mapping[str, Any]) -> dict[str, Any]:
     payload = {
-        "spec_version": "aeread.refund_receipt/1.1",
+        "spec_version": "aeread.refund_receipt/1.2",
         "status": row["status"],
         "condition": row["condition"],
         "world_seed": row["world_seed"],
@@ -252,6 +252,7 @@ def _write_refund_receipt(directory: Path, row: Mapping[str, Any]) -> dict[str, 
         "evidence_sha256": row.get("events_sha256"),
         "metrics": row.get("metrics", {}),
         "scores": row.get("scores", {}),
+        "measurement_scores": row.get("measurement_scores", ()),
         "verification_leaves": row.get("verification_leaves", {}),
         "transaction_verification": row.get("transaction_verification", {}),
         "utility_components": row.get("utility_components", {}),
@@ -303,6 +304,9 @@ async def _run_panel(*, args: argparse.Namespace, panel: str, seeds: Sequence[in
                     evidence = EvidenceStore.audit_existing(execution.evidence.root)
                     case_payload = plan.cases[0].payload
                     compliance = outcome.get("policy_compliance", {})
+                    typed_scores = RefundV1Plugin().build_scorer(
+                        RefundV1Plugin().validate_payload(case_payload)
+                    )(outcome)
                     row = {"status": "included", "panel": panel, "condition": condition,
                                  "world_seed": seed, "replicate": replicate,
                                  "case_id": execution.episode_result.case_id,
@@ -321,6 +325,7 @@ async def _run_panel(*, args: argparse.Namespace, panel: str, seeds: Sequence[in
                                  "policy_compliance_satisfied": compliance.get("satisfied"),
                                  "verification_leaves": compliance.get("leaves", {}),
                                  "scores": outcome.get("scores", {}),
+                                 "measurement_scores": typed_scores,
                                  "transaction_verification": outcome.get("transaction_verification", {}),
                                  "utility_components": outcome.get("utility_components", {}),
                                  "transaction_events": outcome.get("transaction_events", []),
@@ -417,8 +422,8 @@ async def run_experiment(args: argparse.Namespace) -> dict[str, Any]:
     evidence_paths = [Path(row["evidence_dir"]) for row in rows if row.get("evidence_verified")]
     evidence_files = [path for evidence_path in evidence_paths for path in evidence_path.rglob("*") if path.is_file()]
     report: dict[str, Any] = {
-        "artifact_type": "refund_reasoning_experiment_summary", "artifact_version": "1.1.0",
-        "claim_scope": f"{args.model} on the pinned Refund V1.1 generator with a scripted customer",
+        "artifact_type": "refund_reasoning_experiment_summary", "artifact_version": "1.2.0",
+        "claim_scope": f"{args.model} on the pinned Refund V1.2 generator with a scripted customer",
         "design": {"world_clusters": len(sample_seeds), "conditions": list(conditions),
                    "replicates_per_world_condition": args.replicates,
                    "planned_sample_trajectories": len(sample_seeds) * len(conditions) * args.replicates,
@@ -467,7 +472,7 @@ async def run_experiment(args: argparse.Namespace) -> dict[str, Any]:
             "The estimand is conditional on the synthetic Refund generator, declared model and provider, and deterministic scripted customer.",
             "Arena none/low results identify the transmitted request control; provider-side execution remains unverified unless the response reports it.",
             "Nested replicates are not independent world clusters; uncertainty resamples world seeds.",
-            "The full-information oracle weakly dominates every feasible terminal action under the pinned V1.1 utility specification; gradual disclosure can add interaction cost.",
+            "The full-information oracle weakly dominates every feasible terminal action under the pinned V1.2 utility specification; gradual disclosure can add interaction cost.",
             "Operational exclusions are missing measurements, never zero-utility outcomes, and are not silently replaced.",
             "Canonical decision, information constraint, temporal transaction, and state invariant are independently replayable verifier leaves; utility cannot compensate for a failed predicate.",
         ], "rows": rows,

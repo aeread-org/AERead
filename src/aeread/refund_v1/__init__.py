@@ -1,3 +1,3 @@
-"""Refund V1.1 public package boundary."""
+"""Refund V1.2 public package boundary."""
 
 from .environment import *

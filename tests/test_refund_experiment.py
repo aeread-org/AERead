@@ -67,6 +67,7 @@ def test_refund_experiment_cli_emits_housing_style_report_sections(tmp_path) -> 
     assert all("utility_score" in row["metrics"] for row in included)
     assert all("transaction_score" in row["metrics"] for row in included)
     assert all(set(row["scores"]) == {"utility", "transaction"} for row in included)
+    assert all(len(row["measurement_scores"]) == 5 for row in included)
     assert all("transaction_verification" in row for row in included)
     assert all("temporal_transaction" in row["verification_leaves"] for row in included)
     assert all("policy_penalty" in row["utility_components"] for row in included)

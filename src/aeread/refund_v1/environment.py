@@ -1,4 +1,4 @@
-"""Refund V1.1 cases: deterministic policy oracle and case records.
+"""Refund V1.2 cases: deterministic policy oracle and case records.
 
 The refund family is a two-seat customer-support negotiation.  A customer has
 private product facts and a support agent has the policy.  The customer can
@@ -20,9 +20,9 @@ CASE_SPEC_VERSION = "aeread.case/0.1"
 
 
 FAMILY_ID = "refund_v1"
-FAMILY_VERSION = "1.1.0"
+FAMILY_VERSION = "1.2.0"
 POLICY_ID = "omnichannel_refund_policy_v1"
-UTILITY_SPEC_ID = "refund_bilateral_utility_v1_1"
+UTILITY_SPEC_ID = "refund_bilateral_utility_v1_2"
 VISIBILITY_POLICY = "refund_customer_request_private_v1"
 CASE_ID_PREFIX = "refund_v1.curated"
 TERMINATION_REASONS = ("resolved", "invalid_operation")
@@ -1023,9 +1023,10 @@ def verification_leaves(
         for field in request.get("requested_info", ())
     ]
     unnecessary = sorted(set(requested) - set(required))
+    unnecessary_disclosures = sorted(set(revealed) - set(required))
     exact = score_operation(evaluate_refund(case), asdict(decision))
     transaction = transaction_verification(case, state)
-    information_ok = not missing and not unnecessary
+    information_ok = not missing and not unnecessary and not unnecessary_disclosures
     return {
         "canonical_decision": {
             "satisfied": exact["exact_match"],
@@ -1035,7 +1036,9 @@ def verification_leaves(
             "satisfied": information_ok,
             "required_facts_obtained": not missing,
             "missing_required_facts": missing,
+            "impermissible_assumptions": missing,
             "unnecessary_requested_fields": unnecessary,
+            "unnecessary_disclosed_fields": unnecessary_disclosures,
             "revealed_field_count": len(revealed),
         },
         "temporal_transaction": {
@@ -1210,7 +1213,7 @@ def terminal_outcome(case: RefundCase, state: Mapping[str, Any]) -> dict[str, An
             "transaction": transaction["score"],
         },
         "bounded_regret": bounded_regret,
-        "score_basis": "bounded_regret_v1_1",
+        "score_basis": "bounded_regret_v1_2",
         "oracle": oracle,
         "transcript": list(state.get("transcript", ())),
         "revealed_private_fields": dict(state.get("revealed_private_fields", {})),
@@ -1372,7 +1375,7 @@ def family_manifest() -> dict[str, Any]:
         },
         "roles": {
             "customer": {
-                "testable": False,
+                "testable": True,
                 "scripted_policies": ["refund_customer_llm_profile_v1"],
             },
             "support_agent": {
@@ -1388,7 +1391,7 @@ def family_manifest() -> dict[str, Any]:
             "outcome_support": "case_specific",
         },
         "scoring": {
-            "scorer_id": "refund_operation_exact_match_v1_1",
+            "scorer_id": "refund_typed_measurements_v1_2",
             "oracle_id": "refund_policy_oracle_v1",
             "reference_provider_ids": ["refund_oracle_policy_v1"],
         },

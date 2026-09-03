@@ -10,6 +10,7 @@ from types import MappingProxyType
 
 from aeread import refund_env as rf
 from aeread.shared_runner.execution import CanonicalResponse, execute_plan_cell
+from aeread.shared_runner.measurement import MeasurementLeafSpec, ScoreEnvelope
 from aeread.shared_runner.refund import (
     FixedRefundProvider,
     RefundV1Plugin,
@@ -370,7 +371,7 @@ def test_oracle_dominates_feasible_terminal_actions_for_seed_panel() -> None:
         )
 
 
-def test_plugin_scorer_wires_exact_operation_and_compliance() -> None:
+def test_plugin_scorer_emits_five_typed_measurement_leaves() -> None:
     case = _manifest_for(_case_by_product("p_berry_12"))
     plugin = RefundV1Plugin()
     parsed_case = plugin.validate_payload(case.payload)
@@ -378,7 +379,13 @@ def test_plugin_scorer_wires_exact_operation_and_compliance() -> None:
     state = rf.initial_negotiation_state(parsed_case)
     state = rf.apply_customer_action(parsed_case, state, {
         "decision": "provide_info", "message": "details",
-        "reveal_fields": ["condition", "issue_type", "evidence_provided"],
+        "reveal_fields": [
+            "issue_type",
+            "evidence_provided",
+            "evidence_quality",
+            "verified_identity",
+            "payout_account_matches",
+        ],
     })
     state = rf.apply_support_action(parsed_case, state, {
         "decision": "approve_direct", "message": "approved", "refund_amount": 28.99,
@@ -390,8 +397,28 @@ def test_plugin_scorer_wires_exact_operation_and_compliance() -> None:
     })
     state = _execute_confirmed_refund(parsed_case, state)
     outcome = rf.terminal_outcome(parsed_case, state)
-    assert scorer(outcome)["operation"]["exact_match"] is True
-    assert scorer(outcome)["transaction_score"] == 1.0
+    scores = scorer(outcome)
+    assert len(scores) == 5
+    assert all(isinstance(score, ScoreEnvelope) for score in scores)
+    assert all(isinstance(score.leaf, MeasurementLeafSpec) for score in scores)
+    assert [score.leaf.verifier.verifier_family for score in scores] == [
+        "canonical_reference",
+        "rule_constraint",
+        "rule_constraint",
+        "rule_constraint",
+        "objective_reference",
+    ]
+    assert [score.leaf.verifier.reference.reference_kind for score in scores] == [
+        "canonical_set",
+        "constraint_satisfaction",
+        "temporal_property",
+        "state_invariant",
+        "objective_upper_bound",
+    ]
+    assert all(score.leaf.leaf_version == "1.2.0" for score in scores)
+    assert all(score.status == "ok" for score in scores)
+    assert [score.primary.value for score in scores[:4]] == [1.0, 0.0, 1.0, 1.0]
+    assert scores[4].primary.value == outcome["joint_utility"]
 
 
 def test_verifier_leaves_reject_temporal_duplicate_and_collateral_mutations() -> None:
@@ -504,6 +531,9 @@ def test_lucky_correct_decision_fails_information_constraint() -> None:
 
     assert outcome["policy_compliance"]["leaves"]["canonical_decision"]["satisfied"] is True
     assert outcome["policy_compliance"]["leaves"]["information_constraint"]["satisfied"] is False
+    assert outcome["policy_compliance"]["leaves"]["information_constraint"][
+        "impermissible_assumptions"
+    ]
 
 
 def test_shared_runner_refund_plugin_accepts_llm_json_responses() -> None:
@@ -619,6 +649,39 @@ def test_refund_run_uses_scripted_customer_counterpart() -> None:
     assert profiles["refund_support_profile_v1"].model.provider == "gemini"
 
 
+def test_refund_run_supports_dual_llm_cross_play(tmp_path) -> None:
+    plan, registry, prompts, pricing = build_refund_run(
+        provider="fake",
+        customer_provider="fake",
+        customer_model="refund-fixed-v1",
+        customer_revision="1.0.0",
+        support_model="refund-fixed-v1",
+        support_revision="1.0.0",
+        case_id="refund_v1.curated.000001",
+    )
+
+    profiles = {profile.profile_id: profile for profile in plan.agent_profiles}
+    block = plan.evaluation_blocks[0]
+    assert profiles["refund_customer_profile_v1"].model.provider == "fake"
+    assert profiles["refund_support_profile_v1"].model.provider == "fake"
+    assert block.kind == "cross_play"
+    assert block.subject_seats == ("customer", "support_agent")
+    assert dict(block.controlled_profiles) == {}
+
+    execution = asyncio.run(
+        execute_plan_cell(
+            plan=plan,
+            cell_id=plan.cells[0].cell_id,
+            registry=registry,
+            evidence_root=tmp_path,
+            prompt_sources=prompts,
+            providers={"fake": FixedRefundProvider()},
+            pricing=pricing,
+        )
+    )
+    assert execution.episode_result.outcome["valid"] is True
+
+
 def test_refund_run_supports_arena_for_the_tested_support_agent() -> None:
     plan, _registry, _prompts, pricing = build_refund_run(
         provider="arena",
@@ -680,6 +743,16 @@ def test_refund_cli_fake_provider_runs(tmp_path) -> None:
     result = payload["results"][0]
     assert result["case_id"] == "refund_v1.curated.000001"
     assert result["outcome"]["valid"] is True
+    assert len(result["measurement_scores"]) == 5
+    assert {
+        score["leaf"]["leaf_id"] for score in result["measurement_scores"]
+    } == {
+        "refund_canonical_decision_leaf",
+        "refund_information_constraint_leaf",
+        "refund_temporal_transaction_leaf",
+        "refund_state_invariant_leaf",
+        "refund_joint_utility_leaf",
+    }
     customer_messages = [
         message
         for message in result["outcome"]["transcript"]
