@@ -81,6 +81,9 @@ class CandidateCaseCampaignSpec:
         "matched model diagnostic on six curated procurement worlds; seeds are "
         "within-world replicates and this is not a population model ranking"
     )
+    prompt: str = PROMPT
+    prompt_id: str = "procurement_allocation_prompt_v1"
+    treatment_id: str = "unscaffolded_control"
 
 
 DEFAULT_SPEC = CandidateCaseCampaignSpec(
@@ -141,9 +144,9 @@ def build_plan(
         campaign_id=spec.campaign_id,
         abort_on_operational_failure=True,
         candidate=spec.candidate,
-        prompt=PROMPT,
-        prompt_id="procurement_allocation_prompt_v1",
-        treatment_id="unscaffolded_control",
+        prompt=spec.prompt,
+        prompt_id=spec.prompt_id,
+        treatment_id=spec.treatment_id,
         max_new_trajectories=TRAJECTORIES_PER_CHECKPOINT,
         max_action_attempts=MAX_ACTION_ATTEMPTS,
         retryable_conditions=RETRY_CONDITIONS,
@@ -206,8 +209,8 @@ async def _representative_request(
         timeout_seconds=180.0,
         max_cost_usd=spec.max_canary_cost_usd,
         harness=MinimalChatHarness(),
-        prompt=PROMPT,
-        prompt_id="procurement_allocation_prompt_v1",
+        prompt=spec.prompt,
+        prompt_id=spec.prompt_id,
         max_action_attempts=MAX_ACTION_ATTEMPTS,
         retryable_conditions=RETRY_CONDITIONS,
         retry_backoff=RETRY_BACKOFF,
@@ -479,9 +482,9 @@ async def run_campaign(
             campaign_id=spec.campaign_id,
             abort_on_operational_failure=True,
             candidate=spec.candidate,
-            prompt=PROMPT,
-            prompt_id="procurement_allocation_prompt_v1",
-            treatment_id="unscaffolded_control",
+            prompt=spec.prompt,
+            prompt_id=spec.prompt_id,
+            treatment_id=spec.treatment_id,
             max_new_trajectories=TRAJECTORIES_PER_CHECKPOINT,
             max_action_attempts=MAX_ACTION_ATTEMPTS,
             retryable_conditions=RETRY_CONDITIONS,

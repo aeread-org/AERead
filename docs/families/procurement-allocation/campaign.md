@@ -270,6 +270,15 @@ leaving the environment, objective verifier, action schema, cases, and seeds fix
 This directly tests whether the dominant residual failures are recoverable planning
 errors rather than spending another broad campaign on an unqualified base policy.
 
+That adaptive treatment is frozen as
+`procurement_allocation_qwen3_235b_google_constraint_ledger_v1`. It binds the
+published Google control manifest and changes only the public buyer decision
+procedure. The plan digest is
+`af36b6088539cbece9967f066f9954d80e743e2350dfe17bf3b91a7b7380c36d`.
+One unscored canary precedes three sequential six-row checkpoints; the conservative
+total ceiling is $0.47352 and the hard ceiling is $0.57. Outcomes remain hidden until
+all 18 rows complete and receipt-replay with exact cost accounting.
+
 ## Public-observation policy controls
 
 The deterministic policy campaign supplies non-model floors and a negative control
