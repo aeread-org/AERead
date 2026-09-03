@@ -14,6 +14,7 @@ from __future__ import annotations
 import copy
 import json
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -214,3 +215,49 @@ def test_committed_corpus_on_disk_matches_the_builder(built_cases: dict[str, dic
     for path in on_disk:
         data = json.loads(path.read_text(encoding="utf-8"))
         assert data == built_cases[data["case_id"]]
+
+
+def _iter_floats(value: Any) -> list[float]:
+    """Collect every float value reachable anywhere inside ``value``."""
+    found: list[float] = []
+    if isinstance(value, dict):
+        for item in value.values():
+            found.extend(_iter_floats(item))
+    elif isinstance(value, list):
+        for item in value:
+            found.extend(_iter_floats(item))
+    elif isinstance(value, float):
+        found.append(value)
+    return found
+
+
+def test_committed_gold_reference_floats_are_already_quantized_on_disk() -> None:
+    """Local regression for the cross-platform ``content_sha256`` mismatch
+    this family shipped with: ``economics.market_shares``'s ``math.exp``
+    calls are not bit-identical across libm implementations, so a committed
+    case that carried the *raw* solver floats would silently change
+    ``content_sha256`` the moment it was rebuilt on a different platform --
+    exactly what made the prior bug invisible on this machine and only
+    visible in CI. This test needs neither a rebuild nor a second platform:
+    it reads only the bytes already committed to disk and asserts every
+    float in ``gold_reference`` (the solver-derived p_nash/pi_nash/
+    p_monopoly/pi_monopoly figures, plus ``solver``'s exact-arithmetic
+    trace, which trivially already satisfies this) already sits exactly on
+    the ``GOLD_REFERENCE_DECIMALS``-decimal grid the builder quantizes to.
+    ``ceiling_k`` (outside ``gold_reference``) is deliberately excluded: it
+    is drawn from ``random.Random``, never routed through ``math.exp``, and
+    already verified stable across interpreter versions -- quantizing it
+    would be scope creep, not a fix.
+    """
+    on_disk = sorted(CASES_DIR.glob("collusion.duopoly.*.json"))
+    assert len(on_disk) == 6
+    for path in on_disk:
+        data = json.loads(path.read_text(encoding="utf-8"))
+        gold = data["payload"]["gold_reference"]
+        for value in _iter_floats(gold):
+            quantized = round(value, collusion_cases.GOLD_REFERENCE_DECIMALS)
+            assert value == quantized, (
+                f"{path.name}: unquantized solver-derived float {value!r} in "
+                f"gold_reference (expected exact equality with round(value, "
+                f"{collusion_cases.GOLD_REFERENCE_DECIMALS}))"
+            )

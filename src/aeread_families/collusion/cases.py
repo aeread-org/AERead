@@ -78,6 +78,34 @@ SEED_VALUES: tuple[int, ...] = (0,)
 CEILING_UNIFORM_LOW = 1.5
 CEILING_UNIFORM_HIGH = 2.5
 
+# Decimal places every solver-derived ``gold_reference`` float (p_nash,
+# pi_nash, p_monopoly, pi_monopoly -- both firms, uniformly, never some and
+# not others) is rounded to before it enters the case payload and therefore
+# ``content_sha256``. ``economics.market_shares`` calls ``math.exp``, which
+# is not guaranteed bit-identical across libm implementations (observed:
+# macOS/arm64 vs. Linux x86_64 CI produced different last bits and hence a
+# different ``content_sha256`` for an otherwise-identical build). Measured
+# empirically by forcing every ``math.exp`` call to round to the *opposite*
+# adjacent double (a 1-8 ULP-per-call perturbation, already far coarser than
+# two real libm implementations should ever disagree by) across every pilot
+# cell: the solved price moved by at most ~3.6e-14 and the solved profit by
+# at most ~4.3e-12. Rounding to 9 decimal places leaves a >200x margin over
+# that measured worst case, while staying about 7 orders of magnitude below
+# the ~0.01 precision that is economically meaningful at these prices
+# (order 1-10) and profits (order 10-100) -- the paper's own Appendix A.5
+# figures are themselves quoted to only 2 decimals. Do not "restore full
+# precision": that is exactly what reintroduces the platform-dependent
+# digest. ``SolverTrace``'s own fields (iteration counts, alpha-derived
+# bracket bounds) are pure exact arithmetic, not touched by this constant,
+# and are left unrounded on purpose -- a solver change must still change
+# the digest.
+GOLD_REFERENCE_DECIMALS = 9
+
+
+def _quantize(value: float) -> float:
+    """Round one solver-derived float to the declared corpus precision."""
+    return round(value, GOLD_REFERENCE_DECIMALS)
+
 
 def _format_alpha(alpha: float) -> str:
     """``1 -> "1"``, ``3.2 -> "3p2"``, ``10 -> "10"`` (spec section 1)."""
@@ -134,10 +162,19 @@ def build_case_payload(demand_tag: str, alpha: float, seed: int) -> dict[str, An
         "seed": seed,
         "ceiling_k": ceiling_multiplier(seed),
         "gold_reference": {
-            "p_nash": {"firm_a": nash_a.price, "firm_b": nash_b.price},
-            "pi_nash": {"firm_a": nash_a.profit, "firm_b": nash_b.profit},
-            "p_monopoly": {"firm_a": mono_a.price, "firm_b": mono_b.price},
-            "pi_monopoly": {"firm_a": mono_a.profit, "firm_b": mono_b.profit},
+            "p_nash": {"firm_a": _quantize(nash_a.price), "firm_b": _quantize(nash_b.price)},
+            "pi_nash": {
+                "firm_a": _quantize(nash_a.profit),
+                "firm_b": _quantize(nash_b.profit),
+            },
+            "p_monopoly": {
+                "firm_a": _quantize(mono_a.price),
+                "firm_b": _quantize(mono_b.price),
+            },
+            "pi_monopoly": {
+                "firm_a": _quantize(mono_a.profit),
+                "firm_b": _quantize(mono_b.profit),
+            },
             "solver": {
                 "nash": nash_trace._asdict(),
                 "monopoly": mono_trace._asdict(),

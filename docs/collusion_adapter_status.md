@@ -110,6 +110,44 @@ recorded in `ledger_entries/collusion.md` from milestone 2 (whole-state
 re-hash/re-freeze every round); the harness's own evidence bookkeeping adds
 only a small, expected fraction on top, not a new distinct cost.
 
+## Corpus quantization: why the committed gold_reference floats are rounded
+
+CI (Linux x86_64, CPython 3.10 and 3.12) failed
+`test_committed_corpus_on_disk_matches_the_builder` with a `content_sha256`
+mismatch that never reproduced on this machine (macOS/arm64, CPython 3.11).
+Cause: `economics.market_shares` calls `math.exp`, which is not guaranteed
+bit-identical across libm implementations, so the last bits of the
+solver-derived `p_nash`/`pi_nash`/`p_monopoly`/`pi_monopoly` figures
+legitimately differ macOS/arm64 vs. Linux/x86_64 — and `json.dumps`' float
+formatting turns any last-bit difference into a different decimal string,
+hence a different digest. `ceiling_k` and `SolverTrace`'s bracket bounds are
+not affected (verified stable; they never go through `math.exp`).
+
+Fix: every solver-derived `gold_reference` float — `p_nash`, `pi_nash`,
+`p_monopoly`, `pi_monopoly`, both firms, applied uniformly — is now rounded
+to `cases.GOLD_REFERENCE_DECIMALS = 9` decimal places before it enters the
+case payload (and therefore the digest). Chosen empirically: forcing every
+`math.exp` call in the solver to round to the *opposite* adjacent double (a
+1–8 ULP-per-call perturbation, already coarser than two real libm
+implementations should ever disagree by) moved the solved price by at most
+~3.6e-14 and the solved profit by at most ~4.3e-12 across every pilot cell.
+Nine decimal places leaves a >200x margin over that measured worst case,
+while staying about 7 orders of magnitude below the ~0.01 precision that is
+economically meaningful at these prices (order 1–10) and profits (order
+10–100) — the paper's own Appendix A.5 figures are themselves quoted to only
+2 decimals, and the arithmetic-parity test against them
+(`test_symmetric_baseline_alpha1_matches_paper_appendix_a5_to_stated_precision`)
+still passes unchanged. **Do not "restore full precision"** — that is
+exactly what reintroduces the platform-dependent digest this fix closes.
+`SolverTrace`'s own fields (iteration counts, alpha-derived bracket bounds)
+are deliberately left unrounded: a future solver change must still change
+`content_sha256`, not be silently absorbed by quantization.
+
+`tests/test_collusion_cases.py::test_committed_gold_reference_floats_are_already_quantized_on_disk`
+is the local regression: it reads only the committed on-disk corpus (no
+rebuild, no second platform needed) and asserts every float in each case's
+`gold_reference` already sits exactly on the 9-decimal grid.
+
 ## Known limits, stated rather than implied
 
 - **Scripted policies are AERead-authored probes, not paper-specified**

@@ -1,6 +1,6 @@
 {
   "case_id": "collusion.duopoly.baseline-symmetric.alpha1.seed0",
-  "content_sha256": "51c5959a9f872212019c7b6cfb9259bc4741b019fe375a2c5c9d3637b15e0904",
+  "content_sha256": "fac6e6d8ae62f07f8768702d5a546075351feb966247ea3a6f47964781bea7bc",
   "episode": {
     "max_logical_actions": 600,
     "termination": [
@@ -31,20 +31,20 @@
     },
     "gold_reference": {
       "p_monopoly": {
-        "firm_a": 1.924980919017762,
-        "firm_b": 1.924980919017762
+        "firm_a": 1.924980919,
+        "firm_b": 1.924980919
       },
       "p_nash": {
-        "firm_a": 1.4729266600306228,
-        "firm_b": 1.4729266600306228
+        "firm_a": 1.47292666,
+        "firm_b": 1.47292666
       },
       "pi_monopoly": {
-        "firm_a": 33.749045950888096,
-        "firm_b": 33.749045950888096
+        "firm_a": 33.749045951,
+        "firm_b": 33.749045951
       },
       "pi_nash": {
-        "firm_a": 22.292666003062276,
-        "firm_b": 22.292666003062276
+        "firm_a": 22.292666003,
+        "firm_b": 22.292666003
       },
       "solver": {
         "monopoly": {
