@@ -278,3 +278,134 @@ real `conftest.pytest_terminal_summary` against hand-built
 | 7 | Medium | fixed |
 | 8 | Medium | no action (same fact as M2, already closed) |
 | 9 | Medium | fixed |
+
+## Verification follow-up
+
+An independent cross-model check (`docs/alympics_fix_verification.md`)
+re-verified the five commits this file describes and confirmed findings
+3, 4, 5, 6, and 8 (M1/N1/N2/N3 too) as genuinely fixed with teeth, but
+flagged findings **1, 2, 7, and 9** above as only partially addressed
+despite this file's own "fixed" dispositions. This section records what
+was actually done about each, on this branch, after that check.
+
+### 1 — still open sub-claim: no other seat's bid in `public_round_history`
+
+The first fix pass closed the salary-credit and winners-history gaps but
+left `public_round_history` narrower than upstream's own
+`round_results_prompt` broadcast in one more respect: upstream's own
+broadcast also makes every survivor's already-settled *bid* for a
+completed round public (`bidding_details`), which this adapter's
+`observe()` omitted entirely. Verified this is genuinely public, not a
+leakage-audit violation: only rounds already appended to
+`state["round_log"]` are ever included (never the current round's own,
+not-yet-collected bids), so there is no not-yet-revealed information at
+stake. **Completed the fix, not just narrowed the doc:** `observe()` now
+includes each already-completed round's recorded bids alongside
+`round_id`/`supply`/`winners`; still never another seat's balance/hp/
+no_drink. Spec section 6's disclosure paragraph is updated to match.
+Tests: the existing
+`test_observe_shows_post_salary_balance_and_prior_round_public_winners_history`
+was strengthened (never weakened) to require the `bids` key, plus a new,
+dedicated
+`test_public_round_history_includes_every_seats_own_bid_for_an_already_completed_round`
+(`tests/test_alympics_wac_environment.py`). Both fail with the right
+`KeyError`/`AssertionError` before the fix. Mutation-verified: reverted
+just the `"bids": dict(entry["bids"])` line (via `/tmp` backup, never
+`git checkout`), confirmed both tests die, restored.
+
+### 2 — still open: no baseline provenance check, only a label check
+
+The substantive finding. `score_terminal_wealth`/`score_survival`
+(`measurement.py`) bind `baseline_policy_id` to the leaf's own reference
+identity and reject a mismatched *label*, but never verified the
+underlying `baseline_final_players`/`baseline_round_log` was actually
+produced by running that policy -- an arbitrary `dummy_players` mapping
+carrying the expected label scored `"ok"` unconditionally (exactly what
+`test_score_terminal_wealth_rejects_baseline_evidence_declared_under_a_mismatched_policy`'s
+own "matched" branch demonstrated, unintentionally, all along).
+
+Decided verification *is* possible inside this family: every one of the
+four named scripted policies (`harness.POLICY_FUNCTIONS`) is a pure,
+deterministic function of only `(requirement, no_drink)`, and settlement
+is upstream's own fully deterministic `_delegate_round`. Given the case's
+frozen supply schedule/personas/starting state and one policy assignment,
+there is exactly one possible baseline trajectory -- so it can be
+recomputed from scratch and compared, never merely declared.
+
+**Completed the fix**, but deliberately at only one of the two API
+layers, mirroring an already-established asymmetry in this same module
+(the bare `score_bid_legality`/`score_settlement_exactness` functions vs.
+`AlympicsWacScorer`'s case-bound wrappers): `AlympicsWacScorer.
+score_terminal_wealth`/`score_survival` -- the real, case-bound path every
+production caller (`replay.score_replayed_episode`) actually uses -- now
+call a new `_recompute_baseline_episode` (round-by-round, through the
+identical `environment._delegate_round` every live run/replay makes) and
+reject any supplied baseline that does not reconcile with it exactly, seat
+by seat, via a new `_baseline_state_mismatch_reason` gate, added ahead of
+the existing label check. The bare `measurement.score_terminal_wealth`/
+`score_survival` module-level functions are unchanged and still only check
+the label -- documented explicitly, in both the module docstring and
+`docs/alympics_adapter_status.md`, as a narrower, case-free building block
+this module's own unit tests rely on to isolate other gates (malformed
+action, missing legality evidence, degenerate supply, dead-seat flag)
+without needing case/upstream machinery; every pre-existing call site of
+the bare functions was therefore left untouched.
+
+Tests (`tests/test_alympics_wac_measurement.py`), both new:
+`test_scorer_score_terminal_wealth_rejects_a_fabricated_baseline_with_the_correct_label`
+and
+`test_scorer_score_survival_rejects_a_fabricated_baseline_with_the_correct_label`.
+Each drives the real `AlympicsWacScorer` (via `plugin.build_scorer`) with
+a `dummy_players`-shaped fabricated baseline carrying the correct
+`baseline_policy_id` label and asserts `status == "invalid_measurement"`
+with reason `baseline_state_not_reproducible_from_declared_policy`, then
+asserts a genuine baseline (a real second run under the declared policy)
+still scores `"ok"`. Both fail with `TypeError` (missing
+`upstream_module`) before the fix, then with `AssertionError: 'ok' ==
+'invalid_measurement'` once `upstream_module` is threaded in but the
+mismatch gate is absent. Mutation-verified: removed both
+`_baseline_state_mismatch_reason` call blocks (via `/tmp` backup, never
+`git checkout`), confirmed both new tests die with exactly that
+`'ok' == 'invalid_measurement'` failure, restored.
+
+### 7 — test name and spec still claimed universal survival
+
+No further code behavior to fix -- the golden's own assertions were
+already strengthened (by the first pass) to check the real elimination
+pattern; only the test's *name* and the spec's *prose* still claimed
+"full survival." **Narrowed the doc claim** rather than adding a new
+guard (there is no behavior to gate): renamed
+`test_golden_1_successful_reports_positive_wealth_and_full_survival` to
+`test_golden_1_successful_reports_positive_wealth_and_the_actual_elimination_pattern`,
+and corrected `docs/alympics_adapter_spec.md` section 4's golden-1 table
+row to state the verified pattern (Alex/Bob/David eliminated round 4,
+Cindy round 6, only Eric survives to round 20) instead of "full
+survival." No test-first/mutation cycle applies here: nothing in
+production code changed.
+
+### 9 — default CI still cannot fail on a missing upstream checkout
+
+Confirmed true, and deliberately left true: wiring
+`AEREAD_ALYMPICS_UPSTREAM_REQUIRED` (or provisioning the pinned checkout)
+into `.github/workflows/ci.yml` by default would require network access
+to fetch a third-party repository, which this whole pass's own
+provider-free/no-network constraint rules out -- and doing it for this
+family alone, while tau2/tau3's identical gate stays opt-in, would be a
+one-off inconsistency rather than a fix. This is a shared,
+cross-family `conftest.py` convention, not a alympics-local defect, so
+changing its default behavior was treated as out of scope for a
+family-local fix pass. **Narrowed the doc claim:** added a "Known limits"
+bullet to `docs/alympics_adapter_status.md` stating plainly that a green
+default CI run certifies only that `test_alympics_wac_cases.py`'s
+upstream-free tests ran, and that certifying the rest requires explicitly
+setting `AEREAD_ALYMPICS_UPSTREAM_REQUIRED=1`. No code or test change; no
+test-first/mutation cycle applies.
+
+### Verification
+
+`tests/test_alympics_wac_cases.py`, `tests/test_alympics_wac_environment.py`,
+`tests/test_alympics_wac_harness.py`, `tests/test_alympics_wac_measurement.py`,
+`tests/test_alympics_wac_parity.py`, `tests/test_alympics_wac_replay.py`,
+`tests/test_alympics_wac_upstream_required_gate.py`, and
+`tests/test_shared_runner_smoke.py` together: 122 passed, 0 failed
+(30 + 25 + 13 + 26 + 2 + 12 + 4 + 10).
