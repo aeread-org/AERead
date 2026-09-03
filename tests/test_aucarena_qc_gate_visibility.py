@@ -62,3 +62,26 @@ def test_missing_upstream_checkout_fails_loudly_when_the_gate_is_required() -> N
     assert "upstream auction-arena QC gate required" in result.stdout
     assert "pinned upstream auction-arena checkout not found" in result.stdout
     assert "AEREAD_AUCARENA_UPSTREAM_ROOT" in result.stdout
+
+
+def test_missing_upstream_checkout_prints_a_visible_note_even_when_the_gate_is_not_required() -> None:
+    """Finding 8's residual gap (independent cross-model verification,
+    ``docs/aucarena_fix_verification.md``): the opt-in gate only removes
+    the silence *if* someone remembers to set
+    ``$AEREAD_AUCARENA_QC_GATE_REQUIRED``. Nothing in this repo's own CI
+    (``.github/workflows/ci.yml``) sets it, so an ordinary default run --
+    exactly the shape every contributor and every CI job actually runs --
+    stayed completely silent about 19 skipped QC-Gate-1 tests, identical to
+    the pre-Finding-8 behavior. The exit code must stay untouched (a local
+    contributor not working on this family must never see a failure), but
+    the terminal output must say so unconditionally: silence itself, not
+    just the exit code, is the defect."""
+    result = _run_aucarena_cases(qc_gate_required=False)
+    assert result.returncode in (0, 5)
+    assert "1 skipped" in result.stdout
+    assert "upstream auction-arena QC gate required (not enforced)" in result.stdout
+    assert "pinned upstream auction-arena checkout not found" in result.stdout
+    assert (
+        "Set $AEREAD_AUCARENA_QC_GATE_REQUIRED=1 to turn this into a failed run instead."
+        in result.stdout
+    )

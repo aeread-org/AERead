@@ -61,7 +61,9 @@ _REQUIRED_SKIP_GATES = (
 
 
 def pytest_terminal_summary(terminalreporter, exitstatus, config):
-    """Turn a missing pinned-upstream-checkout skip into a failed run.
+    """Turn a missing pinned-upstream-checkout skip into a failed run, and
+    -- unconditionally, regardless of that opt-in -- make sure it is never
+    silent in the first place.
 
     Some adapters' whole claim is that they reproduce a pinned upstream
     exactly; the tests that check that claim need a checkout (and sometimes
@@ -78,15 +80,22 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config):
     it (CI, and any run meant to certify fidelity) to turn a matching skip
     into a hard failure with the reasons and a provisioning hint printed.
     Off by default so it never surprises a local run.
+
+    That opt-in alone was not enough (independent cross-model verification,
+    ``docs/aucarena_fix_verification.md``): nothing in this repo's own
+    ``.github/workflows/ci.yml`` sets any of these env vars, so an ordinary
+    default run -- exactly what every contributor and every CI job actually
+    does -- stayed completely silent about every one of these gates,
+    identical to the pre-gate behavior. So a matching skip is now always
+    reported, even when the gate is not required: only the *exit status*
+    stays untouched by default (a local contributor not working on this
+    family must never see a failure), never the *visibility*.
     """
     session = getattr(terminalreporter, "_session", None)
     skipped = terminalreporter.stats.get("skipped", [])
     any_required_gate_missing = False
 
     for gate in _REQUIRED_SKIP_GATES:
-        if os.environ.get(gate["env_var"], "") not in {"1", "true", "yes"}:
-            continue
-
         gate_skips = [
             report
             for report in skipped
@@ -98,13 +107,29 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config):
         if not gate_skips:
             continue
 
+        reasons = sorted({str(getattr(r, "longrepr", "")) for r in gate_skips})
+        required = os.environ.get(gate["env_var"], "") in {"1", "true", "yes"}
+
+        if not required:
+            terminalreporter.write_sep("-", f"{gate['title']} (not enforced)")
+            terminalreporter.write_line(
+                f"{len(gate_skips)} test(s)/module(s) skipped because "
+                f"${gate['env_var']} is unset. Reported reasons:"
+            )
+            for reason in reasons:
+                terminalreporter.write_line(f"  {reason}")
+            terminalreporter.write_line(
+                f"Set ${gate['env_var']}=1 to turn this into a failed run instead."
+            )
+            continue
+
         any_required_gate_missing = True
         terminalreporter.write_sep("=", gate["title"], red=True)
         terminalreporter.write_line(
             f"{len(gate_skips)} test(s)/module(s) skipped while "
             f"${gate['env_var']} is set. Reported reasons:"
         )
-        for reason in sorted({str(getattr(r, "longrepr", "")) for r in gate_skips}):
+        for reason in reasons:
             terminalreporter.write_line(f"  {reason}")
         terminalreporter.write_line(gate["hint"])
 
