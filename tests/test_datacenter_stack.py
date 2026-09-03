@@ -2,6 +2,11 @@ from __future__ import annotations
 
 import asyncio
 import dataclasses
+import hashlib
+import json
+import subprocess
+import sys
+from pathlib import Path
 
 import pytest
 
@@ -23,6 +28,12 @@ from aeread_families.datacenter_development.contracts import (
 from aeread_families.datacenter_development.stack_environment import (
     DataCenterStackPlugin,
 )
+from aeread_families.datacenter_development.stack_campaign import (
+    build_design,
+    load_contract,
+    run_campaign,
+)
+from aeread_families.datacenter_development.stack_publication import publish
 from aeread_families.datacenter_development.stack_runner import (
     build_stack_model_to_model_setup,
     build_stack_openrouter_setup,
@@ -51,6 +62,11 @@ GLM_ROUTE = OpenRouterRoute(
     max_prompt_price_per_million="0.075",
     max_completion_price_per_million="0.25",
     reasoning_effort="low",
+)
+
+ROOT = Path(__file__).resolve().parents[1]
+INTERACTION_PUBLICATION = (
+    ROOT / "evidence" / "datacenter_development_v2_interaction_v1"
 )
 
 
@@ -348,3 +364,174 @@ def test_model_to_model_plan_puts_every_seat_behind_the_harness(
             else stack_counterparty_output_schemas(setup.case, seat_id)
         )
         assert canonical_json_bytes(declared) == canonical_json_bytes(expected)
+
+
+def test_v2_interaction_campaign_is_paired_and_budget_bounded() -> None:
+    contract = load_contract()
+    design = build_design(contract)
+
+    assert design["planned_cells"] == 12
+    assert design["paired_seed_count"] == 3
+    assert design["worst_case_declared_cost_usd"] == pytest.approx(1.26)
+    assert design["campaign_max_cost_usd"] == pytest.approx(1.5)
+    assert {
+        (
+            cell["condition"],
+            cell["evaluation_block_kind"],
+            cell["live_profile_count"],
+        )
+        for cell in design["cells"]
+    } == {
+        ("controlled_developer", "controlled", 1),
+        ("homogeneous_model_to_model", "self_play", 6),
+    }
+    by_seed_and_model: dict[tuple[int, str], set[str]] = {}
+    for cell in design["cells"]:
+        key = (cell["inference_seed"], cell["model_id"])
+        by_seed_and_model.setdefault(key, set()).add(cell["condition"])
+    assert all(
+        conditions == set(contract["conditions"])
+        for conditions in by_seed_and_model.values()
+    )
+
+
+def test_v2_interaction_campaign_rejects_aggregate_budget_overflow(tmp_path) -> None:
+    contract = load_contract()
+    contract["execution"]["max_cost_usd_per_live_profile"] = 0.04
+    contract_path = tmp_path / "over_budget.json"
+    contract_path.write_text(json.dumps(contract), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="cost ceilings"):
+        load_contract(contract_path)
+
+
+def test_v2_interaction_campaign_passes_pre_live_gates(tmp_path) -> None:
+    summary = asyncio.run(
+        run_campaign(
+            run_root=tmp_path / "campaign",
+            stop_after="profile_admission",
+        )
+    )
+
+    assert summary["status"] == "passed"
+    assert len(summary["admitted_cells"]) == 12
+
+
+def test_v2_interaction_campaign_module_invokes_cli(tmp_path) -> None:
+    completed = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "aeread_families.datacenter_development.stack_campaign",
+            "--run-root",
+            str(tmp_path / "campaign"),
+            "--stop-after",
+            "design",
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    design = json.loads(completed.stdout)
+
+    assert design["planned_cells"] == 12
+    assert design["worst_case_declared_cost_usd"] == pytest.approx(1.26)
+
+
+def test_v2_interaction_publication_is_reproducible_and_sanitized(tmp_path) -> None:
+    manifest = json.loads(
+        (INTERACTION_PUBLICATION / "publication_manifest.json").read_text()
+    )
+    manifest_core = {
+        key: value for key, value in manifest.items() if key != "artifact_sha256"
+    }
+    assert manifest["artifact_sha256"] == hashlib.sha256(
+        canonical_json_bytes(manifest_core)
+    ).hexdigest()
+    assert len(manifest["source_receipt_sha256s"]) == 12
+    assert len(set(manifest["source_receipt_sha256s"])) == 12
+    assert len(manifest["source_result_sha256s"]) == 12
+    assert len(set(manifest["source_result_sha256s"])) == 12
+
+    for relative, expected in manifest["files"].items():
+        payload = (INTERACTION_PUBLICATION / relative).read_bytes()
+        assert len(payload) == expected["bytes"]
+        assert hashlib.sha256(payload).hexdigest() == expected["sha256"]
+
+    fact_manifest = json.loads(
+        (INTERACTION_PUBLICATION / "tables" / "fact_manifest.json").read_text()
+    )
+    assert (
+        manifest["files"]["tables/benchmark_results.csv"]["row_count"]
+        == fact_manifest["tables"]["benchmark_results"]["row_count"]
+        == 56
+    )
+    assert (
+        manifest["files"]["tables/profiles.csv"]["row_count"]
+        == fact_manifest["tables"]["profiles"]["row_count"]
+        == 12
+    )
+
+    summary = json.loads(
+        (INTERACTION_PUBLICATION / "reports" / "summary.json").read_text()
+    )
+    trajectories = [
+        json.loads(line)
+        for line in (
+            INTERACTION_PUBLICATION / "trajectories" / "sanitized.jsonl"
+        )
+        .read_text()
+        .splitlines()
+    ]
+    projections = [
+        json.loads(line)
+        for line in (
+            INTERACTION_PUBLICATION / "receipts" / "projections.jsonl"
+        )
+        .read_text()
+        .splitlines()
+    ]
+    assert len(trajectories) == len(projections) == 12
+    assert sum(row["inclusion_status"] == "included" for row in trajectories) == 11
+    assert sum(row["inclusion_status"] == "excluded" for row in trajectories) == 1
+    assert all(
+        row["route_verified"] and row["verified_openrouter_call_count"] > 0
+        for row in trajectories
+        if row["status"] == "completed"
+    )
+    excluded = next(row for row in trajectories if row["inclusion_status"] == "excluded")
+    assert excluded["outcome"] is None
+    assert excluded["scores"] is None
+    assert excluded["failure"]["failure_condition"] == "rate_limit"
+    assert next(
+        row for row in projections if row["inclusion_status"] == "excluded"
+    )["replay_level"] == "none"
+    assert all(
+        group["project_completion_rate"] == 0.0
+        for group in summary["group_summaries"]
+    )
+    assert summary["reported_cost_usd"] == pytest.approx(0.01559065365)
+    assert summary["provider_cost_complete"] is False
+    assert summary["cost_qualifier"] == "lower_bound"
+    assert summary["winner_claim_allowed"] is False
+    assert summary["inferential_model_ranking_allowed"] is False
+    assert summary["causal_condition_effect_allowed"] is False
+
+    public_text = "\n".join(
+        path.read_text(encoding="utf-8").lower()
+        for path in INTERACTION_PUBLICATION.rglob("*")
+        if path.is_file()
+    )
+    for prohibited in (
+        '"raw_response"',
+        '"failure_message"',
+        '"output_text"',
+        '"user_id"',
+        "authorization:",
+        "api_key",
+        "/users/",
+    ):
+        assert prohibited not in public_text
+
+    reproduced = publish(publication_root=tmp_path / "publication")
+    assert reproduced == manifest

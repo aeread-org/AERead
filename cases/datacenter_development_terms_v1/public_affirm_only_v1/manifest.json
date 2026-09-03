@@ -1,0 +1,29 @@
+{
+  "benchmark_id": "datacenter_development_terms_v1",
+  "version": "1.0.0",
+  "pack_id": "datacenter_development_terms_public_affirm_only_v1",
+  "base_pack_id": "datacenter_development_terms_public_v1",
+  "base_pack_sha256": "8422cf9687535369b5a4dd32ca42fccba580735cffe991a0d7dc107c75ef8128",
+  "case_count": 5,
+  "independent_sampling_unit": "public_filing_cluster",
+  "independence_cluster_count": 5,
+  "transformation_id": "append_affirm_only_candidate_selection_sentence_v1",
+  "derived_split": "public_v1b",
+  "prompt_suffix": " In the actions and claims arrays, include only labels you affirm as supported by the evidence; omit labels you reject.",
+  "preserved_fields": [
+    "title",
+    "task_family_id",
+    "independence_cluster_id",
+    "tier",
+    "cutoff",
+    "authority",
+    "observations",
+    "response_vocabulary",
+    "oracle",
+    "world_seed"
+  ],
+  "inference_status": "exploratory_five_cluster_paired_replication",
+  "authority_modes_exercised": [
+    "report"
+  ]
+}

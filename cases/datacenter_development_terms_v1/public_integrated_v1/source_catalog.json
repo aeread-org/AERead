@@ -1,0 +1,94 @@
+{
+  "catalog_version": "1.0.0",
+  "catalog_kind": "public_primary_source_catalog",
+  "lineage_scope": "sec_accession_document_and_clause_locator",
+  "rights_status": "public_sec_filing_facts_paraphrased_no_source_artifacts",
+  "original_artifacts_included": false,
+  "public_reproducibility": true,
+  "upstream_byte_hash_status": "not_collected_public_web_review_no_upstream_hash",
+  "retrieval_date": "2026-09-03",
+  "independence_assumption": "each project case uses a different issuer and project filing cluster",
+  "sources": {
+    "apld_polaris_forge_2026_10k": {
+      "kind": "annual_report_project_lease_and_debt_disclosure",
+      "role": "phased capacity, contracted revenue, land-power disclosure, leases, and construction debt",
+      "verification": "public_primary_filing_reviewed",
+      "original_included": false,
+      "source_cluster_id": "sec_apld_polaris_forge_2026",
+      "accession": "000114487926000048",
+      "document": "apld-20260531.htm",
+      "url": "https://www.sec.gov/Archives/edgar/data/1144879/000114487926000048/apld-20260531.htm",
+      "locators": [
+        "Business - Polaris Forge 1 and Contracted Lease Portfolio",
+        "Site and Power Pipeline",
+        "Note 9 - 9.250% Senior Secured Notes due 2030",
+        "Note 17 - CoreWeave Leases"
+      ],
+      "upstream_sha256": null
+    },
+    "cipher_black_pearl_2025_10k": {
+      "kind": "annual_report_project_lease_land_power_and_construction_disclosure",
+      "role": "executed lease, owned land, interconnection, phased rent, and construction state",
+      "verification": "public_primary_filing_reviewed",
+      "original_included": false,
+      "source_cluster_id": "sec_cipher_black_pearl_2026",
+      "accession": "000181998926000009",
+      "document": "cifr-20251231.htm",
+      "url": "https://www.sec.gov/Archives/edgar/data/1819989/000181998926000009/cifr-20251231.htm",
+      "locators": [
+        "Business - Amazon Data Center Lease",
+        "Black Pearl Facility",
+        "Subsequent Events - Senior Secured Notes due 2031"
+      ],
+      "upstream_sha256": null
+    },
+    "cipher_black_pearl_2026_financing": {
+      "kind": "senior_secured_notes_8k",
+      "role": "principal, coupon, maturity, permitted uses, collateral, and amortization",
+      "verification": "public_primary_filing_reviewed",
+      "original_included": false,
+      "source_cluster_id": "sec_cipher_black_pearl_2026",
+      "accession": "000095010326001966",
+      "document": "dp241421_8k.htm",
+      "url": "https://www.sec.gov/Archives/edgar/data/1819989/000095010326001966/dp241421_8k.htm",
+      "locators": [
+        "Item 1.01 - Entry into a Material Definitive Agreement",
+        "Senior Secured Notes due 2031"
+      ],
+      "upstream_sha256": null
+    },
+    "cipher_black_pearl_2026_presentation": {
+      "kind": "filed_project_financing_presentation",
+      "role": "IT load, rack-ready rent, cost cap, recapture proceeds, and credit support",
+      "verification": "public_primary_filing_reviewed",
+      "original_included": false,
+      "source_cluster_id": "sec_cipher_black_pearl_2026",
+      "accession": "000095010326001480",
+      "document": "dp240991_ex9901.htm",
+      "url": "https://www.sec.gov/Archives/edgar/data/1819989/000095010326001480/dp240991_ex9901.htm",
+      "locators": [
+        "Financing AWS-Backed HPC Data Center at Black Pearl",
+        "Strong Contractual Economics and Free Cash Flow Profile"
+      ],
+      "upstream_sha256": null
+    },
+    "iren_horizon_2026_20f": {
+      "kind": "annual_report_customer_service_and_gpu_financing_disclosure",
+      "role": "customer tranches, acceptance, prepayments, debt funding, escrow, and guarantees",
+      "verification": "public_primary_filing_reviewed",
+      "original_included": false,
+      "source_cluster_id": "sec_iren_horizon_microsoft_2026",
+      "accession": "000187884826000052",
+      "document": "iren-20260630.htm",
+      "url": "https://www.sec.gov/Archives/edgar/data/1878848/000187884826000052/iren-20260630.htm",
+      "locators": [
+        "Microsoft Agreement",
+        "Note 3 - AI Cloud Services revenue",
+        "Note 23 - GPU Financing",
+        "Remarketing Right guarantee",
+        "Managed services performance guarantee"
+      ],
+      "upstream_sha256": null
+    }
+  }
+}

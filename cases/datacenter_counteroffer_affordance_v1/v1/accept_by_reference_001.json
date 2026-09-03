@@ -1,0 +1,20 @@
+{
+  "spec_version": "aeread.case/0.1",
+  "case_id": "datacenter_counteroffer_affordance_v1.v1.accept_by_reference_001",
+  "family_id": "datacenter_counteroffer_affordance_v1",
+  "family_version": "1.0.0",
+  "split": "v1",
+  "world_seed": 312101,
+  "seats": [{"id": "developer", "role": "developer"}, {"id": "landowner", "role": "landowner"}],
+  "episode": {"max_logical_actions": 5, "termination": ["agreement_stack_executed", "developer_walk", "counterparty_reject", "invalid_action", "negotiation_rounds_exhausted"]},
+  "visibility_policy": "datacenter_counteroffer_affordance_accept_by_reference_v1",
+  "payload": {
+    "base_case_id": "datacenter_development_v1.v2.objective_bounded_001",
+    "base_case_sha256": "3e487d62e3ce4456c98a0069dd50fc2a91410488deb53db7f0ab9e3537265139",
+    "stage_id": "land",
+    "required_sequence": ["land"],
+    "affordance_condition": "accept_by_reference"
+  },
+  "provenance": {"generator_id": "curated_datacenter_counteroffer_affordance_pair", "generator_version": "1.0.0", "review_status": "curated"},
+  "content_sha256": "3abf4247ed57c129c6f15cf9f5a401c5ac5ca50156855b58230bd52e828ea7d3"
+}

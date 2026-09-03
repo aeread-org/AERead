@@ -1,0 +1,164 @@
+{
+  "schema_version": "aeread.datacenter_terms_public_integrated_v6_campaign/0.1",
+  "campaign_id": "datacenter_development_terms_public_integrated_v6",
+  "family_id": "datacenter_development_terms_v1",
+  "family_version": "1.0.0",
+  "pack_id": "datacenter_development_terms_public_integrated_expansion_v2",
+  "pack_sha256": "ffde8e79e9bb4a6baca981f0ae0d979507368469d976421a910dc4d35f980acb",
+  "claim_status": "indicator_map_three_additional_project_two_route_paired_diagnostic_exploratory",
+  "predecessor": {
+    "campaign_id": "datacenter_development_terms_public_integrated_v5",
+    "contract_sha256": "c1d6054edc8f2b9502abb41a9902b960494c842af7593b34ce2ea798cb79ad74",
+    "design_sha256": "1acbcc540ebd4fdc925d7bd67dd15218a810647892a4d8107d57e779b69e0612",
+    "live_summary_sha256": "3c219b8259a71ccd5d4d4948e7d5ddc2f6c35b920913e8288fe291dda6ffbbb8",
+    "status": "completed_eighteen_of_eighteen_nine_reportable_pairs",
+    "comparison_scope": "method_lineage_and_descriptive_external_replication_only"
+  },
+  "indicator_schema_qualification": {
+    "qualification_id": "mistral32_deepinfra_indicator_map_polaris_seed_322000",
+    "provider": "DeepInfra",
+    "requested_model": "mistralai/mistral-small-3.2-24b-instruct",
+    "canonical_model": "mistralai/mistral-small-3.2-24b-instruct-2506",
+    "case_sha256": "c95b2d3df234ee30d3df10be2033f4efab8069bd4e41019bfc377d74265fad99",
+    "run_plan_sha256": "8546e885b4a3d83074a53cfae29b32c2d0b127a624803ef24167cfc0b3fcd9b8",
+    "receipt_sha256": "982f7a4add0e995ae81d5ce7d3960f12e09380f104ba99e77a508b72165c4f88",
+    "inference_seed": 322000,
+    "status": "completed",
+    "route_verified": true,
+    "replay_verified": true,
+    "reported_cost_usd": 0.000248094,
+    "scope": "full_case_schema_route_compatibility_not_campaign_analysis"
+  },
+  "route_catalog_snapshot": {
+    "verified_at": "2026-09-03T19:49:13Z",
+    "sources": [
+      "https://openrouter.ai/api/v1/models/mistralai/mistral-small-3.2-24b-instruct/endpoints",
+      "https://openrouter.ai/api/v1/models/qwen/qwen3-235b-a22b-2507/endpoints"
+    ],
+    "selection_rule": "two_healthy_distinct_provider_routes_supporting_seed_response_format_structured_outputs_and_complete_boolean_objects_with_price_caps_no_fallback",
+    "selected_endpoints": {
+      "mistral32_deepinfra": {
+        "provider": "DeepInfra",
+        "tag": "deepinfra/fp8",
+        "quantization": "fp8",
+        "status": 0,
+        "required_parameters": [
+          "seed",
+          "response_format",
+          "structured_outputs"
+        ]
+      },
+      "qwen3_235b_google": {
+        "provider": "Google",
+        "tag": "google-vertex/us-south1",
+        "quantization": "unknown",
+        "status": 0,
+        "required_parameters": [
+          "seed",
+          "response_format",
+          "structured_outputs"
+        ]
+      }
+    }
+  },
+  "cases": {
+    "helios-phased-capacity-revenue-and-draws": {
+      "case_id": "datacenter_development_terms_v1.public_integrated_expansion_v2.helios-phased-capacity-revenue-and-draws",
+      "expected_case_sha256": "0ca55fe3211068043991f26b4dfd5c2b8fb3a740f913324e2a19eba084660bdb",
+      "source_cluster_id": "sec_galaxy_helios_2026",
+      "world_seed": 552001
+    },
+    "lake-mariner-lease-commencement-prepaid-rent-and-land": {
+      "case_id": "datacenter_development_terms_v1.public_integrated_expansion_v2.lake-mariner-lease-commencement-prepaid-rent-and-land",
+      "expected_case_sha256": "70005f63f68e488c6eeaae138662be8afab975c69dd856e8ce8b32950483cb8e",
+      "source_cluster_id": "sec_terawulf_lake_mariner_2026",
+      "world_seed": 552002
+    },
+    "tydal-open-book-epc-governance-and-risk": {
+      "case_id": "datacenter_development_terms_v1.public_integrated_expansion_v2.tydal-open-book-epc-governance-and-risk",
+      "expected_case_sha256": "fcac131b4de1dfcd2b56d4935bf7d8c838c68d893c8372db2a132e24989c5f00",
+      "source_cluster_id": "sec_bitdeer_tydal_2026",
+      "world_seed": 552003
+    }
+  },
+  "inference_seeds": [
+    422001
+  ],
+  "models": {
+    "mistral32_deepinfra": {
+      "profile_id": "datacenter_terms_integrated_v6_mistral32_deepinfra",
+      "requested_model": "mistralai/mistral-small-3.2-24b-instruct",
+      "canonical_model": "mistralai/mistral-small-3.2-24b-instruct-2506",
+      "provider": "DeepInfra",
+      "quantization": "fp8",
+      "access_class": "open_source",
+      "license_id": "Apache-2.0",
+      "reasoning_effort": null,
+      "temperature_supported": true,
+      "pricing": {
+        "input_per_million": 0.075,
+        "cached_input_per_million": 0.075,
+        "output_per_million": 0.2,
+        "pricing_id": "openrouter_2026-09-03_mistral32_deepinfra_terms_integrated_v6"
+      },
+      "max_prompt_price_per_million": "0.075",
+      "max_completion_price_per_million": "0.2"
+    },
+    "qwen3_235b_google": {
+      "profile_id": "datacenter_terms_integrated_v6_qwen3_235b_google",
+      "requested_model": "qwen/qwen3-235b-a22b-2507",
+      "canonical_model": "qwen/qwen3-235b-a22b-07-25",
+      "provider": "Google",
+      "quantization": "unknown",
+      "access_class": "open_source",
+      "license_id": "Apache-2.0",
+      "reasoning_effort": null,
+      "temperature_supported": true,
+      "pricing": {
+        "input_per_million": 0.22,
+        "cached_input_per_million": 0.22,
+        "output_per_million": 0.88,
+        "pricing_id": "openrouter_2026-09-03_qwen3_google_terms_integrated_v6"
+      },
+      "max_prompt_price_per_million": "0.22",
+      "max_completion_price_per_million": "0.88"
+    }
+  },
+  "execution": {
+    "harness": "minimal_chat/1.0",
+    "adapter": "datacenter_objective_openrouter_indicator_map_v1",
+    "schema_mode": "complete_indicator_maps_v1",
+    "indicator_maps": true,
+    "max_output_tokens": 1200,
+    "timeout_seconds": 180.0,
+    "max_cost_usd_per_cell": 0.025,
+    "campaign_max_cost_usd": 0.15,
+    "concurrency": 2,
+    "max_concurrent_cells_per_route_provider": 1,
+    "max_action_attempts": 1,
+    "sdk_retries": 0,
+    "response_cache": false,
+    "provider_fallbacks": false
+  },
+  "analysis": {
+    "case_count": 3,
+    "independent_cluster_count": 3,
+    "resampling_unit": "public_filing_project_cluster",
+    "replicate_policy": "one_predeclared_paired_seed_per_new_cluster_v5_showed_seed_invariance",
+    "paired_by": [
+      "case_slug",
+      "inference_seed"
+    ],
+    "primary_contrast": "qwen3_235b_google_minus_mistral32_deepinfra",
+    "primary_endpoints": [
+      "hard_gate_pass",
+      "score",
+      "forbidden_selection_count"
+    ],
+    "missingness": "report_separately_and_require_both_routes_for_pair_no_selective_retry",
+    "winner_claim_allowed": false,
+    "inferential_model_ranking_allowed": false,
+    "project_generalization_allowed": false,
+    "population_causal_effect_allowed": false
+  }
+}

@@ -1,0 +1,11 @@
+campaign_id,pair_key,model_id,inference_seed,full_package_status,full_package_inclusion_status,explicit_delta_status,explicit_delta_inclusion_status,pair_reportable,initial_provider_request_match,full_package_opportunity_count,explicit_delta_opportunity_count,exposure_qualified,full_package_adoption,explicit_delta_adoption,transition,exposure_transition
+datacenter_counteroffer_salience_v1,mistral32_deepinfra__seed_312401,mistral32_deepinfra,312401,completed,included,completed,included,True,True,1,1,True,0.0,0.0,neither_adopted,neither_adopted
+datacenter_counteroffer_salience_v1,mistral32_deepinfra__seed_312402,mistral32_deepinfra,312402,completed,included,completed,included,True,True,1,1,True,0.0,0.0,neither_adopted,neither_adopted
+datacenter_counteroffer_salience_v1,mistral32_deepinfra__seed_312403,mistral32_deepinfra,312403,completed,included,completed,included,True,True,1,1,True,0.0,0.0,neither_adopted,neither_adopted
+datacenter_counteroffer_salience_v1,mistral32_deepinfra__seed_312404,mistral32_deepinfra,312404,completed,included,completed,included,True,True,1,1,True,0.0,0.0,neither_adopted,neither_adopted
+datacenter_counteroffer_salience_v1,mistral32_deepinfra__seed_312405,mistral32_deepinfra,312405,completed,included,completed,included,True,True,1,1,True,0.0,0.0,neither_adopted,neither_adopted
+datacenter_counteroffer_salience_v1,qwen3_235b_novita__seed_312401,qwen3_235b_novita,312401,completed,included,completed,included,True,True,1,1,True,0.0,0.0,neither_adopted,neither_adopted
+datacenter_counteroffer_salience_v1,qwen3_235b_novita__seed_312402,qwen3_235b_novita,312402,completed,included,completed,included,True,True,1,1,True,0.0,0.0,neither_adopted,neither_adopted
+datacenter_counteroffer_salience_v1,qwen3_235b_novita__seed_312403,qwen3_235b_novita,312403,completed,included,completed,included,True,True,1,1,True,0.0,0.0,neither_adopted,neither_adopted
+datacenter_counteroffer_salience_v1,qwen3_235b_novita__seed_312404,qwen3_235b_novita,312404,completed,included,completed,included,True,True,1,1,True,0.0,0.0,neither_adopted,neither_adopted
+datacenter_counteroffer_salience_v1,qwen3_235b_novita__seed_312405,qwen3_235b_novita,312405,completed,included,completed,included,True,True,0,1,False,0.0,0.0,neither_adopted,unexposed_pair
