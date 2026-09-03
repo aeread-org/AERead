@@ -1,4 +1,4 @@
-"""Refund V1.2 shared-runner bridge.
+"""Refund V1.3 shared-runner bridge.
 
 This module maps the refund negotiation environment onto the generic scheduler.
 The customer may be either a controlled script or an LLM, and alternates with an
@@ -51,6 +51,8 @@ from .schemas import (
     SuiteManifest,
 )
 
+CONTROLLED_CUSTOMER_SCRIPTS = ("minimal", "cooperative", "resistant")
+
 
 CUSTOMER_OUTPUT_SCHEMA = {
     "type": "object",
@@ -89,6 +91,11 @@ SUPPORT_OUTPUT_SCHEMA = {
             ],
         },
         "requires_human_review": {"type": ["boolean", "null"]},
+        "credit_amount": {"type": ["number", "null"]},
+        "service_action": {
+            "type": ["string", "null"],
+            "enum": ["none", "paid_repair", "expedited_review", None],
+        },
         "requested_info": {
             "type": "array",
             "items": {"enum": list(rf.CUSTOMER_REVEAL_FIELDS)},
@@ -117,10 +124,12 @@ SUPPORT_PROMPT = """You are the support agent in a refund negotiation.
 Apply the refund policy, but remember that some customer facts are private until
 the customer reveals them. Use verify_identity or request_evidence for targeted
 probes, ask for missing facts when needed, make a negotiated offer when useful,
-or resolve with request_return, escalate, or deny. An approve_direct action only
-proposes a refund; it does not transfer money. After the customer
-confirms, the observation contains confirmed_refund. You must then use
-execute_refund exactly once with the confirmed amount and method. Never execute
+or resolve with request_return, escalate, or deny. You may use credit_amount for
+an authorized coupon/store-credit remedy and service_action for paid repair or
+expedited review. An approve_direct action only proposes a resolution; it does
+not transfer value. After the customer confirms, the observation contains
+confirmed_refund. You must then use execute_refund exactly once with every
+confirmed resolution field. Never execute
 before confirmation, never change unrelated account state, and never describe a
 refund as completed unless you execute it. Return exactly one JSON object matching
 the declared schema, with no markdown."""
@@ -203,7 +212,9 @@ class FixedRefundProvider:
         )
 
     @staticmethod
-    def _customer_response(observation: Mapping[str, Any]) -> dict[str, Any]:
+    def _customer_response(
+        observation: Mapping[str, Any], mode: str = "minimal"
+    ) -> dict[str, Any]:
         pending_confirmation = observation.get("pending_confirmation")
         if isinstance(pending_confirmation, Mapping):
             return {
@@ -227,7 +238,14 @@ class FixedRefundProvider:
             dict.fromkeys(
                 field for field in requested if field in rf.CUSTOMER_REVEAL_FIELDS
             )
-        )[:3]
+        )[:1 if mode == "resistant" else 3]
+        if mode == "cooperative" and not reveal_fields:
+            private_truth = observation.get("private_truth", {})
+            reveal_fields = [
+                field
+                for field in ("issue_type", "condition", "evidence_provided")
+                if field in private_truth
+            ][:3]
         if not reveal_fields:
             return {
                 "decision": "state_request",
@@ -253,6 +271,8 @@ class FixedRefundProvider:
                 "refund_method": confirmed_refund["refund_method"],
                 "requires_human_review": False,
                 "requested_info": [],
+                "credit_amount": confirmed_refund.get("credit_amount", 0.0),
+                "service_action": confirmed_refund.get("service_action", "none"),
             }
         revealed = observation.get("revealed_customer_fields")
         if not isinstance(revealed, Mapping):
@@ -305,11 +325,18 @@ class FixedRefundProvider:
             "refund_method": decision.refund_method,
             "requires_human_review": decision.requires_human_review,
             "requested_info": [],
+            "credit_amount": decision.credit_amount,
+            "service_action": decision.service_action,
         }
 
 
 class ScriptedRefundCustomerProvider:
     """Deterministic controlled counterpart for support-agent evaluations."""
+
+    def __init__(self, mode: str = "minimal") -> None:
+        if mode not in CONTROLLED_CUSTOMER_SCRIPTS:
+            raise ValueError(f"unknown scripted customer mode: {mode!r}")
+        self.mode = mode
 
     async def complete(self, request: ProviderRequest) -> ProviderResult:
         if request.provider != "scripted":
@@ -333,7 +360,7 @@ class ScriptedRefundCustomerProvider:
             raise ProviderFailure(
                 "provider_contract", "scripted customer received no observation", retryable=False
             )
-        output = FixedRefundProvider._customer_response(observation)
+        output = FixedRefundProvider._customer_response(observation, self.mode)
         return ProviderResult(
             response_id=f"scripted_refund_customer:{request.provider_call_id}",
             requested_model=request.model,
@@ -373,6 +400,16 @@ def _case_from_payload(payload: Mapping[str, Any]) -> rf.RefundCase:
         requested_amount=float(order["requested_amount"]),
         scenario_id=str(payload.get("scenario_id", "honest")),
         claim_text=str(payload.get("claim_text", order.get("claim_text", "I would like help resolving my refund request."))),
+        required_information=tuple(
+            payload.get("evaluation_contract", {}).get("required_information", ())
+        ),
+        expected_resolution=payload.get("evaluation_contract", {}).get("expected_resolution"),
+        accepted_resolutions=tuple(
+            payload.get("evaluation_contract", {}).get("accepted_resolutions", ())
+        ),
+        review_status=str(
+            payload.get("evaluation_contract", {}).get("review_status", "generated")
+        ),
     )
 
 
@@ -393,7 +430,7 @@ def _json_from_response(response: Any) -> dict[str, Any] | None:
 
 
 class RefundV1Plugin:
-    """Two-seat Refund V1.2 negotiation plugin for the shared scheduler."""
+    """Two-seat Refund V1.3 negotiation plugin for the shared scheduler."""
 
     def validate_payload(self, payload: Mapping[str, Any]) -> rf.RefundCase:
         if not isinstance(payload, Mapping):
@@ -421,7 +458,7 @@ class RefundV1Plugin:
                 mode="single",
                 observation_schema_by_role={"support_agent": "refund_support_observation_v1"},
                 action_schema_by_role={"support_agent": "refund_support_action_v1"},
-                max_logical_actions=4,
+                max_logical_actions=5,
                 invalid_action_policy="family_defined",
                 next_phases=("customer_message",),
             ),
@@ -702,11 +739,14 @@ def build_refund_run(
     support_model: str,
     support_revision: str,
     customer_provider: str = "scripted",
+    customer_script: str = "minimal",
     case_id: str | None = None,
     world_seeds: tuple[int, ...] | None = None,
     support_max_output_tokens: int | None = None,
     support_reasoning_effort: str | None = None,
 ) -> tuple[RunPlan, PluginRegistry, Mapping[str, str], Mapping[str, TokenPricing]]:
+    if customer_script not in CONTROLLED_CUSTOMER_SCRIPTS:
+        raise ValueError(f"unknown scripted customer profile: {customer_script!r}")
     cases = _load_cases(case_id=case_id, world_seeds=world_seeds)
     generated_panel = world_seeds is not None
     raw_family = rf.family_manifest()
@@ -742,6 +782,11 @@ def build_refund_run(
         }
     )
     scripted_customer = customer_provider == "scripted"
+    customer_profile_id = (
+        "refund_customer_profile_v1"
+        if customer_script == "minimal"
+        else f"refund_customer_{customer_script}_profile_v1_3"
+    )
     block = EvaluationBlock.from_dict(
         {
             "spec_version": "aeread.evaluation_block/0.1",
@@ -749,7 +794,7 @@ def build_refund_run(
             "kind": "controlled" if scripted_customer else "cross_play",
             "subject_seats": ["support_agent"] if scripted_customer else ["customer", "support_agent"],
             "controlled_profiles": (
-                {"customer": "refund_customer_profile_v1"} if scripted_customer else {}
+                {"customer": customer_profile_id} if scripted_customer else {}
             ),
             "repetitions": 1,
             "seed_policy": "fixed",
@@ -758,14 +803,18 @@ def build_refund_run(
     analysis = AnalysisPlan.from_dict(
         {
             "spec_version": "aeread.analysis/0.1",
-            "analysis_plan_id": "refund_joint_utility_analysis_v1",
+            "analysis_plan_id": "refund_joint_utility_analysis_v1_3",
             "estimands": ["joint_utility", "customer_utility", "support_agent_utility"],
             "group_by": ["family_id", "subject_role"],
             "missingness": "report_separately",
             "resampling_unit": "cluster_id",
             "uncertainty": "none",
             "multiplicity": "none",
-            "sensitivity": ["report_reason_codes"],
+            "sensitivity": [
+                "report_reason_codes",
+                "report_constraints_by_role",
+                "report_customer_profile",
+            ],
             "cross_family_scalar": "disabled",
         }
     )
@@ -773,11 +822,11 @@ def build_refund_run(
         {
             "spec_version": "aeread.suite/0.1",
             "suite_id": (
-                "refund_seeded_experiment_v1"
+                "refund_seeded_experiment_v1_3"
                 if generated_panel
-                else "refund_curated_smoke_v1"
+                else "refund_curated_smoke_v1_3"
             ),
-            "version": "1.0.0",
+            "version": "1.3.0",
             "family_ids": [rf.FAMILY_ID],
             "case_ids": [case.case_id for case in cases],
             "sampling_plan_id": sampling.sampling_plan_id,
@@ -785,11 +834,11 @@ def build_refund_run(
             "analysis_plan_id": analysis.analysis_plan_id,
         }
     )
-    scripted_customer_model = "refund-scripted-customer-v1"
+    scripted_customer_model = f"refund-scripted-customer-{customer_script}-v1-3"
     effective_customer_model = scripted_customer_model if scripted_customer else customer_model
-    effective_customer_revision = "1.0.0" if scripted_customer else customer_revision
+    effective_customer_revision = "1.3.0" if scripted_customer else customer_revision
     customer_profile = _profile(
-        profile_id="refund_customer_profile_v1",
+        profile_id=customer_profile_id,
         role="customer",
         provider=customer_provider,
         model=effective_customer_model,
@@ -808,7 +857,7 @@ def build_refund_run(
         prompt_id="refund_support_prompt_v1",
         prompt=SUPPORT_PROMPT,
         output_schema=SUPPORT_OUTPUT_SCHEMA,
-        max_logical_actions=4,
+        max_logical_actions=5,
         max_output_tokens=(
             support_max_output_tokens
             if support_max_output_tokens is not None
@@ -828,9 +877,9 @@ def build_refund_run(
         {
             "spec_version": "aeread.run_spec/0.1",
             "run_spec_id": (
-                "refund_seeded_experiment_run_v1"
+                "refund_seeded_experiment_run_v1_3"
                 if generated_panel
-                else "refund_curated_smoke_run_v1"
+                else "refund_curated_smoke_run_v1_3"
             ),
             "suite_id": suite.suite_id,
             "evaluation_block_ids": [block.block_id],
@@ -919,9 +968,23 @@ def build_refund_run(
     )
 
 
+def build_refund_controlled_profile_panel(
+    **run_arguments: Any,
+) -> Mapping[str, tuple[RunPlan, PluginRegistry, Mapping[str, str], Mapping[str, TokenPricing]]]:
+    """Build the three frozen-counterpart runs used for support sensitivity."""
+    return {
+        customer_script: build_refund_run(
+            **run_arguments,
+            customer_provider="scripted",
+            customer_script=customer_script,
+        )
+        for customer_script in CONTROLLED_CUSTOMER_SCRIPTS
+    }
+
+
 def _defaults_for_provider(provider: str) -> tuple[str, str]:
     if provider == "scripted":
-        return "refund-scripted-customer-v1", "1.0.0"
+        return "refund-scripted-customer-minimal-v1-3", "1.3.0"
     if provider == "fake":
         return "refund-fixed-v1", "1.0.0"
     if provider == "gemini":
@@ -935,11 +998,11 @@ def _defaults_for_provider(provider: str) -> tuple[str, str]:
     raise ValueError(f"unsupported provider: {provider!r}")
 
 
-def _provider_client(provider: str):
+def _provider_client(provider: str, *, customer_script: str = "minimal"):
     if provider == "fake":
         return FixedRefundProvider()
     if provider == "scripted":
-        return ScriptedRefundCustomerProvider()
+        return ScriptedRefundCustomerProvider(customer_script)
     if provider == "gemini":
         return GeminiProviderClient()
     if provider == "openai":
@@ -999,13 +1062,17 @@ async def _run_cli(arguments: argparse.Namespace) -> dict[str, Any]:
         support_model=support_model,
         support_revision=support_revision,
         customer_provider=arguments.customer_provider,
+        customer_script=arguments.customer_script,
         case_id=arguments.case_id,
         world_seeds=_parse_world_seeds(arguments.world_seeds),
         support_max_output_tokens=arguments.max_output_tokens,
     )
     provider_clients = {arguments.provider: _provider_client(arguments.provider)}
     provider_clients.setdefault(
-        arguments.customer_provider, _provider_client(arguments.customer_provider)
+        arguments.customer_provider,
+        _provider_client(
+            arguments.customer_provider, customer_script=arguments.customer_script
+        ),
     )
     executions = []
     for cell in plan.cells:
@@ -1061,6 +1128,12 @@ def main(argv: list[str] | None = None) -> int:
         default="scripted",
         help="provider for the customer seat; scripted preserves controlled evaluation",
     )
+    parser.add_argument(
+        "--customer-script",
+        choices=CONTROLLED_CUSTOMER_SCRIPTS,
+        default="minimal",
+        help="frozen customer behavior profile for controlled support-agent evaluation",
+    )
     parser.add_argument("--model")
     parser.add_argument("--revision")
     parser.add_argument("--customer-model")
@@ -1100,6 +1173,7 @@ if __name__ == "__main__":  # pragma: no cover - CLI entry point
 __all__ = [
     "CUSTOMER_OUTPUT_SCHEMA",
     "CUSTOMER_PROMPT",
+    "CONTROLLED_CUSTOMER_SCRIPTS",
     "FixedRefundProvider",
     "GeminiProviderClient",
     "RefundV1Plugin",
@@ -1107,5 +1181,6 @@ __all__ = [
     "SUPPORT_OUTPUT_SCHEMA",
     "SUPPORT_PROMPT",
     "build_refund_run",
+    "build_refund_controlled_profile_panel",
     "main",
 ]

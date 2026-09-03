@@ -50,9 +50,42 @@
     "Physical goods that require return must be received before a direct refund unless the policy explicitly waives return.",
     "Identity, payout-account, and location mismatches require verification or human review before money is returned.",
     "Evidence requests must be limited to facts relevant to the product category and claimed issue.",
-    "Customer history informs risk routing but does not by itself establish product eligibility."
+    "Customer history informs risk routing but does not by itself establish product eligibility.",
+    "Refunds may only use the original payment method; store credit is permitted only when the case policy explicitly authorizes it.",
+    "Collect sensitive identity, location, payout, and history fields only when the policy requires them for the decision.",
+    "A monetary or store-credit mutation requires disclosure of the complete resolution and explicit customer confirmation."
   ],
-  "policy_id": "omnichannel_refund_policy_v1",
+  "policy_id": "omnichannel_refund_policy_v1_3",
+  "reviewed_resolution_rules": [
+    {
+      "resolution": "full refund to original payment method",
+      "when": "in-warranty functional electronics defect, return received, no liquid or impact damage"
+    },
+    {
+      "resolution": "$20 store credit and no cash refund",
+      "when": "clear evidence verifies cosmetic damage no larger than 2cm with no functional defect"
+    },
+    {
+      "resolution": "deny and do not transfer value",
+      "when": "identity verification fails or the requested payout account is unauthorized"
+    },
+    {
+      "resolution": "deny refund; a paid-repair referral is preferred but optional",
+      "when": "electronics damage is customer-caused liquid damage"
+    },
+    {
+      "resolution": "refund to original payment less the 15% opened-item restocking fee",
+      "when": "platinum member returns opened functional electronics within 90 days and the return has been received"
+    },
+    {
+      "resolution": "standard 15%-fee refund to original payment plus at most $5 store credit",
+      "when": "wrong-color opened electronics return is received and historical return rate is at least 80%"
+    },
+    {
+      "resolution": "deny advance refund and provide expedited review",
+      "when": "reported electronics noise is within tolerance and there is no medical emergency"
+    }
+  ],
   "scenario_rules": {
     "emotional_leverage": "Urgency and hardship may affect service handling, but not policy eligibility.",
     "exaggeration": "Resolve from verified product facts rather than the customer's unsupported claimed amount.",
@@ -60,6 +93,10 @@
     "history_strategy": "Use return and refund history for risk routing, not as a substitute for product evidence.",
     "hostile": "Tone does not change eligibility, amount, or required review.",
     "loophole_hunter": "Do not infer an exception from category wording when a general exclusion applies."
+  },
+  "service_actions": {
+    "expedited_review": "A service-priority action that does not advance funds or change refund eligibility.",
+    "paid_repair": "A non-refund alternative that does not alter refund eligibility."
   },
   "trust_rules": {
     "fraud_watch": "credit_score < 580 or chargebacks_12m > 0 or prior_refunds_12m >= 5",
@@ -72,20 +109,25 @@
     "direct_before_return_penalty": 100.0,
     "direct_identity_risk_penalty": 125.0,
     "escalation_haircut": 5.0,
+    "expedited_review_company_cost": 3.0,
+    "expedited_review_customer_value": 8.0,
     "friction_per_message": 2.0,
     "invalid_amount_penalty": 25.0,
     "invalid_denial_penalty": 25.0,
     "invalid_return_request_penalty": 75.0,
     "over_refund_multiplier": 1.5,
+    "paid_repair_customer_value": 5.0,
     "relationship_cap": 50.0,
     "relationship_rate": 0.2,
     "return_cost": 6.0,
     "review_cost": 8.0,
-    "spec_id": "refund_bilateral_utility_v1_2",
+    "spec_id": "refund_bilateral_utility_v1_3",
+    "store_credit_company_cost_rate": 0.6,
+    "store_credit_customer_value_rate": 0.85,
     "unknown_decision_penalty": 150.0,
     "wrong_method_penalty": 25.0,
     "wrong_review_flag_penalty": 25.0
   },
-  "utility_spec_id": "refund_bilateral_utility_v1_2",
-  "version": "1.2.0"
+  "utility_spec_id": "refund_bilateral_utility_v1_3",
+  "version": "1.3.0"
 }
