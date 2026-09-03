@@ -415,6 +415,53 @@ def test_tampering_decision_order_is_caught_by_the_response_source_itself(
         )
 
 
+def test_tampering_a_legal_withdraw_into_a_malformed_response_is_caught_even_though_state_is_unchanged(
+    tmp_path: Path,
+) -> None:
+    """``docs/aucarena_codex_triage.md`` Finding 3: golden 5
+    (``degenerate_reference``, one seat, one item) legally withdraws
+    (response ``"-1"``). Replaying that one recorded decision as a
+    malformed string instead (``"uh, I'll think about it"`` -- golden 4's
+    own malformed text) produces the *identical* downstream game state (no
+    bid recorded either way, hammer falls, item unsold, profit/budget
+    untouched), so ``pre_state_sha256``/``post_state_sha256`` agree and
+    ``mismatched_phase_instance_ids`` alone would not catch it. This
+    validity-classification tamper (``envelope.valid`` stays ``True`` in
+    the original, becomes ``False`` in the replay) must still be reported
+    as a mismatch, not silently accepted as a match."""
+    original, _family_case = _run_live("degenerate_reference", tmp_path)
+    case = _case("degenerate_reference")
+    cell = _cell(case)
+    recorded = record_episode(original)
+
+    decisions = list(recorded.decisions)
+    target_index = next(
+        index for index, decision in enumerate(decisions) if decision.response == "-1"
+    )
+    decisions[target_index] = dataclasses.replace(
+        decisions[target_index], response="uh, I'll think about it"
+    )
+    tampered = RecordedEpisode(case_id=recorded.case_id, decisions=tuple(decisions))
+
+    replay_plugin = _independent_replay_setup()
+    replayed = asyncio.run(
+        replay_episode(cell=cell, case=case, plugin=replay_plugin, recorded=tampered)
+    )
+
+    # The state-only comparison really does agree, as claimed above -- this
+    # tamper is caught in spite of that, not because the state hashes also
+    # happened to disagree.
+    comparison = compare_episode_results(original, replayed)
+    assert comparison.mismatched_phase_instance_ids == ()
+    assert comparison.outcome_matches is True
+    assert comparison.final_state_matches is True
+
+    assert comparison.mismatched_action_classification_ids != ()
+    assert comparison.matches is False
+    with pytest.raises(ReplayError, match="action validity/legality classification differs"):
+        assert_replay_matches(comparison)
+
+
 def test_compare_episode_results_would_report_a_genuine_divergence(
     tmp_path: Path,
 ) -> None:

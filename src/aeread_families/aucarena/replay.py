@@ -218,6 +218,29 @@ async def replay_episode(
     return result
 
 
+def _action_classifications(instance: Any) -> dict[str, tuple[Any, ...]]:
+    """One seat_id -> (valid, parse.ok, legality.legal-or-None) per recorded
+    action in a phase instance.
+
+    ``pre_state_sha256``/``post_state_sha256`` are hashes of the auction's
+    numeric *state* only; a tamper that changes an action's validity
+    classification without changing any state (e.g. a legal withdraw
+    replayed as a malformed response, both "zero mutation" for ``step()``)
+    leaves both hashes byte-identical -- see
+    ``docs/aucarena_codex_triage.md`` Finding 3. This is compared
+    separately so that class of tamper cannot hide behind an unchanged
+    state hash.
+    """
+    return {
+        action.seat_id: (
+            action.envelope.valid,
+            action.parse.ok,
+            action.legality.legal if action.legality is not None else None,
+        )
+        for action in instance.actions
+    }
+
+
 @dataclass(frozen=True, slots=True)
 class StateComparison:
     """Component-level agreement between an original run and its replay.
@@ -234,6 +257,7 @@ class StateComparison:
 
     phase_instance_count_matches: bool
     mismatched_phase_instance_ids: tuple[str, ...]
+    mismatched_action_classification_ids: tuple[str, ...]
     terminal_matches: bool
     outcome_matches: bool
     final_state_matches: bool
@@ -243,6 +267,7 @@ class StateComparison:
         return (
             self.phase_instance_count_matches
             and not self.mismatched_phase_instance_ids
+            and not self.mismatched_action_classification_ids
             and self.terminal_matches
             and self.outcome_matches
             and self.final_state_matches
@@ -265,6 +290,7 @@ def compare_episode_results(
     }
     count_matches = len(original.phase_instances) == len(replayed.phase_instances)
     mismatched_ids: list[str] = []
+    mismatched_classification_ids: list[str] = []
     shared_ids = sorted(set(original_instances) & set(replayed_instances))
     for phase_instance_id in shared_ids:
         left = original_instances[phase_instance_id]
@@ -274,6 +300,8 @@ def compare_episode_results(
             or left.post_state_sha256 != right.post_state_sha256
         ):
             mismatched_ids.append(phase_instance_id)
+        if _action_classifications(left) != _action_classifications(right):
+            mismatched_classification_ids.append(phase_instance_id)
     only_in_original = sorted(set(original_instances) - set(replayed_instances))
     only_in_replayed = sorted(set(replayed_instances) - set(original_instances))
     mismatched_ids.extend(only_in_original)
@@ -282,6 +310,9 @@ def compare_episode_results(
     return StateComparison(
         phase_instance_count_matches=count_matches,
         mismatched_phase_instance_ids=tuple(sorted(set(mismatched_ids))),
+        mismatched_action_classification_ids=tuple(
+            sorted(set(mismatched_classification_ids))
+        ),
         terminal_matches=canonical_json_bytes(original.terminal)
         == canonical_json_bytes(replayed.terminal),
         outcome_matches=canonical_json_bytes(original.outcome)
@@ -298,6 +329,11 @@ def assert_replay_matches(comparison: StateComparison) -> None:
     reasons = []
     if not comparison.phase_instance_count_matches:
         reasons.append("phase instance count differs")
+    if comparison.mismatched_action_classification_ids:
+        reasons.append(
+            "action validity/legality classification differs despite an "
+            f"unchanged state hash: {comparison.mismatched_action_classification_ids!r}"
+        )
     if comparison.mismatched_phase_instance_ids:
         reasons.append(
             "phase instance state hash differs: "
