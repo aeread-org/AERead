@@ -227,36 +227,101 @@ def test_p2_adapter_translation_matches_an_independently_constructed_raw_action_
     bridge: GovsimBridge, live_sustainable: Any
 ) -> None:
     """Drives the SAME scripted decisions two ways and asserts identical
-    ``resource_in_pool``/``collected_resource``/``num_round`` (spec
-    section 5's P2):
+    ``resource_in_pool``/``collected_resource``/termination trace EVERY
+    ROUND, plus the terminal aggregates (spec section 5's P2 literal text:
+    "Assert identical resource_in_pool, collected_resource, and
+    termination trace every round"):
 
     (a) through the kernel's phase graph -- ``live_sustainable``, already
         driven via ``run_episode``/``GovsimPlugin.step()``'s own
         translation of a harvest-quantity decision into upstream's raw
-        action sequence.
+        action sequence, whose own per-round record is
+        ``result.terminal["round_trace"]``.
     (b) directly against raw upstream, with NO ``GovsimPlugin``, no
         scheduler, no kernel phase graph involved at all: the raw action
         sequence is reconstructed independently (see
         ``_independent_raw_action_sequence``) from only the harvest
         quantities each seat chose in (a), and submitted straight to
         ``GovsimBridge.run_actions`` -- the same bridge, but never through
-        the adapter's own per-decision translation code.
+        the adapter's own per-decision translation code -- at the END of
+        every round (immediately after that round's ``reflect``/``home``
+        actions, i.e. one round further than P3's own pre-regeneration
+        checkpoint, so upstream has already applied regeneration and
+        recomputed its own ``terminations`` for this round by the time (b)
+        is queried).
+
+    Before this test's per-round loop existed, this function (and P3
+    below) checked only terminal aggregates -- a per-round translation bug
+    that self-corrects by the end of the episode (spec section 5's own
+    worry: "a transient per-round collection/trace mismatch that later
+    converges to the same terminal aggregates") could pass both. The
+    per-round loop below reads ``round_trace``'s ``resource_in_pool_after_
+    regen``/``wanted_resource`` fields -- fields the terminal aggregate
+    checks never touch (``environment.py``'s own ``terminal()`` reads
+    ``resource_in_pool``/``collected_resource`` fresh off upstream's live
+    projection at call time, independent of ``round_trace`` entirely) --
+    so a bug confined to ``round_trace`` assembly is now caught here even
+    though it would remain invisible to the terminal-only checks.
     """
     case, result = live_sustainable
     num_agents = int(case.payload["env_cfg"]["num_agents"])
     persona_ids = [f"persona_{i}" for i in range(num_agents)]
 
-    raw_actions, _ = _independent_raw_action_sequence(result, persona_ids=persona_ids)
-
-    projection = bridge.run_actions(
-        scenario=case.payload["scenario"],
-        env_cfg=case.payload["env_cfg"],
-        seed=int(case.payload["world_seed"]),
-        actions=raw_actions,
+    raw_actions, pre_regen_checkpoints = _independent_raw_action_sequence(
+        result, persona_ids=persona_ids
     )
+    round_trace = result.terminal["round_trace"]
+    assert len(pre_regen_checkpoints) == len(round_trace)
 
+    cumulative_collected: dict[str, int] = {persona_id: 0 for persona_id in persona_ids}
+    projection: dict[str, Any] | None = None
+    post_round_checkpoint = 0
+    for round_index, pre_regen_checkpoint in enumerate(pre_regen_checkpoints):
+        entry = round_trace[round_index]
+        for persona_id in persona_ids:
+            cumulative_collected[persona_id] += int(
+                entry["wanted_resource"].get(persona_id, 0)
+            )
+        # One round further than the pre-regen checkpoint (this round's
+        # ``reflect``/``home`` actions, num_agents of them): the point at
+        # which raw upstream has already regenerated the pool and
+        # recomputed ``terminations`` for this round, matching exactly
+        # what ``round_trace[round_index]`` records.
+        post_round_checkpoint = pre_regen_checkpoint + num_agents
+        projection = bridge.run_actions(
+            scenario=case.payload["scenario"],
+            env_cfg=case.payload["env_cfg"],
+            seed=int(case.payload["world_seed"]),
+            actions=raw_actions[:post_round_checkpoint],
+        )
+
+        assert projection["resource_in_pool"] == entry["resource_in_pool_after_regen"], (
+            f"round {round_index}: raw-upstream resource_in_pool "
+            f"{projection['resource_in_pool']!r} != adapter-recorded "
+            f"resource_in_pool_after_regen {entry['resource_in_pool_after_regen']!r}"
+        )
+        assert dict(projection["collected_resource"]) == cumulative_collected, (
+            f"round {round_index}: raw-upstream collected_resource "
+            f"{dict(projection['collected_resource'])!r} != adapter-recorded "
+            f"cumulative wanted_resource {cumulative_collected!r}"
+        )
+        raw_collapsed = bool(all(projection["terminations"].values()))
+        assert raw_collapsed == entry["collapsed_or_horizon"], (
+            f"round {round_index}: raw-upstream terminations "
+            f"{projection['terminations']!r} (collapsed={raw_collapsed!r}) != "
+            f"adapter-recorded collapsed_or_horizon {entry['collapsed_or_horizon']!r}"
+        )
+
+    # The final round's post-round checkpoint closes the entire recorded
+    # action sequence (this fixture's episode ends via ``collapse_or_
+    # horizon``, computed at the same last ``reflect``/``home`` action that
+    # closes the loop above) -- so the terminal aggregates below reuse the
+    # last iteration's already-fetched projection rather than submitting
+    # the identical action sequence to the bridge a second time.
+    assert post_round_checkpoint == len(raw_actions)
+    assert projection is not None
     assert projection["resource_in_pool"] == result.terminal["resource_in_pool"]
-    assert projection["collected_resource"] == dict(result.terminal["collected_resource"])
+    assert dict(projection["collected_resource"]) == dict(result.terminal["collected_resource"])
     assert projection["num_round"] == result.terminal["num_round"]
 
 
@@ -275,6 +340,19 @@ def test_p3_recorded_regeneration_and_collapse_match_the_documented_formula_inde
     ``round_trace``/collapse-flag computation), and diffs the result
     against what the adapter actually recorded for that round (spec
     section 5's P3: "never trust our arithmetic without this diff").
+
+    Also cross-checks per-round ``collected_resource`` at that same
+    checkpoint (upstream's own ``_assign_resource`` finalizes
+    ``collected_resource`` the moment a round's harvest phase closes --
+    before the ``chat``/``home`` actions this checkpoint sits after --
+    so the fresh query already reflects it): independently reconstructed
+    from the CUMULATIVE SUM of every prior round's ``wanted_resource``
+    entry (upstream's own ``collected_resource[agent] += res`` and
+    ``wanted_resource[agent] = res`` in the same call, so the two are
+    mathematically identical by construction, never merely assumed to
+    agree) and diffed against upstream's own recorded total -- this was
+    the one quantity this test named in its own docstring but never
+    actually asserted.
     """
     case, result = live_sustainable
     num_agents = int(case.payload["env_cfg"]["num_agents"])
@@ -288,7 +366,14 @@ def test_p3_recorded_regeneration_and_collapse_match_the_documented_formula_inde
     round_trace = result.terminal["round_trace"]
     assert len(pre_regen_checkpoints) == len(round_trace)
 
+    cumulative_collected: dict[str, int] = {persona_id: 0 for persona_id in persona_ids}
     for round_index, checkpoint in enumerate(pre_regen_checkpoints):
+        entry = round_trace[round_index]
+        for persona_id in persona_ids:
+            cumulative_collected[persona_id] += int(
+                entry["wanted_resource"].get(persona_id, 0)
+            )
+
         prefix = raw_actions[:checkpoint]
         projection = bridge.run_actions(
             scenario=case.payload["scenario"],
@@ -302,7 +387,6 @@ def test_p3_recorded_regeneration_and_collapse_match_the_documented_formula_inde
             expected_pool_after_regen < 5 or (round_index + 1) >= max_num_rounds
         )
 
-        entry = round_trace[round_index]
         assert entry["resource_in_pool_after_regen"] == expected_pool_after_regen, (
             f"round {round_index}: adapter recorded "
             f"{entry['resource_in_pool_after_regen']!r}, independently recomputed "
@@ -312,4 +396,9 @@ def test_p3_recorded_regeneration_and_collapse_match_the_documented_formula_inde
             f"round {round_index}: adapter recorded "
             f"collapsed_or_horizon={entry['collapsed_or_horizon']!r}, independently "
             f"recomputed {expected_collapsed_or_horizon!r}"
+        )
+        assert dict(projection["collected_resource"]) == cumulative_collected, (
+            f"round {round_index}: upstream's own recorded collected_resource "
+            f"{dict(projection['collected_resource'])!r} != the cumulative sum of "
+            f"every round's recorded wanted_resource {cumulative_collected!r}"
         )
