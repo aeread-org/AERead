@@ -188,3 +188,48 @@ python -m aeread_families.procurement_allocation.model_comparison \
   --audit-attempt-root runs/procurement_allocation/procurement_allocation_mistral_small4_case_variance_v1/qualification_attempt_002 \
   --publication-root evidence/procurement_allocation_mistral_small4_case_variance_v1
 ```
+
+## Deterministic public-observation policy baselines
+
+`policy_baselines` runs four local policies through the same scheduler, environment,
+measurement leaf, and receipt-replay path as the model campaigns:
+
+- `defer` establishes the explicit outside option;
+- `displayed_price_greedy` qualifies the cheapest visible listing first;
+- `listing_claim_fit` prioritizes overlap with the required variant claim; and
+- `semantic_hint` additionally uses suggestive supplier identifiers and names.
+
+The adaptive policies can inspect only the public observation serialized in each
+provider request. They request formal offers and exact-variant samples, use newly
+visible capacity, MOQ, lead time, quality, and landed-cost terms, and either submit a
+service-feasible award or explicitly defer. They never receive `private_terms` or the
+case object.
+
+The campaign pairs each policy across the labeled v2 and opaque/reordered v3 panels.
+Planning is offline and execution has zero provider cost:
+
+```bash
+python -m aeread_families.procurement_allocation.policy_baselines \
+  --run-root runs/procurement_allocation/procurement_allocation_public_policy_baselines_v1/qualification_attempt_001
+
+python -m aeread_families.procurement_allocation.policy_baselines \
+  --run-root runs/procurement_allocation/procurement_allocation_public_policy_baselines_v1/qualification_attempt_001 \
+  --publication-root evidence/procurement_allocation_public_policy_baselines_v1 \
+  --execute
+```
+
+These policies are diagnostic floors, not oracle substitutes. The deterministic
+full-information bound remains the certified reference.
+
+The qualified run completed and replayed all 48 rows at zero provider cost. Both
+displayed-price and listing-claim policies were feasible in 6/6 worlds on each
+surface, with 19.6667 mean completed kits and $58.0359 mean contribution margin.
+Their blinded-minus-labeled outcome deltas were exactly zero. The semantic-hint
+policy changed outcomes in three worlds and improved by $4.0138 after names became
+opaque, showing that suggestive labels are not uniformly helpful.
+
+Against GLM after averaging its three seeds within each world, displayed-price greedy
+had +$28.4986 mean margin on labeled/original cases and +$54.9200 on
+opaque/reordered cases. The associated six-world cluster intervals exclude zero, so
+this panel is not saturated by the qualified GLM route. The tracked evidence is at
+`evidence/procurement_allocation_public_policy_baselines_v1/`.
