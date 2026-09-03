@@ -342,7 +342,7 @@ Each invocation advances one complete economic-world block: three seeds in all
 eight surface-condition arms. Six failure-free checkpoints complete 144 scored
 rows. Four prompt-specific canaries are unscored. The conservative total ceiling is
 $2.24 and the absolute per-trajectory/canary ceiling is $2.96. Retries are limited to
-three attempts for typed rate limits, provider 5xx responses, or empty completions;
+four attempts for typed rate limits, provider 5xx responses, or empty completions;
 all attempts and billed usage remain visible.
 
 The adaptive analysis reports temporal, cash, joint, factorial-main, and interaction
@@ -427,3 +427,26 @@ change raises the per-action attempt bound from three to four while retaining th
 15-second first backoff and 30-second cap. A fully throttled action therefore gets a
 final fourth request at approximately 75 seconds. V4 has a new campaign identity
 and must rerun all 144 rows from a fresh root.
+
+### Risk-gate V4 operational audit and next gate
+
+V4 attempt 001 admitted all four prompt shapes, then completed and replayed 13
+scored rows before stopping on row 14: opaque V4,
+`sample_schedule_symmetric`, seed `2094119875`. The first four logical actions in
+that trajectory succeeded; the third and fourth each recovered from one rate limit.
+The fifth action then received four consecutive HTTP 429 responses. With no
+`Retry-After` header, the runner waited 15.486, 30.649, and 30.717 seconds before
+exhausting the four-attempt bound. The endpoint catalog in every failure reported
+only one available route for the pinned model revision.
+
+The sealed attempt has one typed operational failure and 130 unattempted rows. It
+cost $0.0417325095 exactly, including all canaries and the failed row's successful
+calls. No partial V4 efficacy contrast was inspected. V4 attempt 001 is permanently
+ineligible and must not be resumed or scored.
+
+This audit does not justify a V5 with still more within-action retries: four failures
+already span roughly 77 seconds, so increasing the bound would mainly expose the
+campaign to a persistently unavailable shared route. The next GLM test is a fresh V4
+attempt under the identical frozen plan in a later availability window. A different
+model or provider belongs to a separately named campaign and cannot be pooled with
+V4; it should first pass an exact-request canary and a small complete case panel.
