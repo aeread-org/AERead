@@ -157,3 +157,22 @@ The qualified v3 run is stored operationally at
 `runs/procurement_allocation/procurement_allocation_glm_morph_blinded_invariance_v3/qualification_attempt_004`.
 Its sanitized, digest-bound review bundle is
 `evidence/procurement_allocation_glm_morph_blinded_invariance_v3/`.
+
+## Paired open-source model comparison
+
+The Mistral Small 4 follow-up holds the six v2 cases, three inference seeds, action
+budget, Minimal Chat transport, and objective verifier fixed while changing the
+model route. It compares each Mistral row with the qualified GLM baseline row sharing
+the exact case ID and inference seed. Print the no-spend plan with:
+
+```bash
+python -m aeread_families.procurement_allocation.model_comparison \
+  --run-root \
+  runs/procurement_allocation/procurement_allocation_mistral_small4_case_variance_v1/qualification_attempt_001
+```
+
+Add `--execute` only after loading `OPENROUTER_API_KEY`. Execution is sequential,
+starts with an unscored exact-request admission canary, aborts after the first
+operational failure, and defaults to a $0.35 scored-run ceiling. Model effects use
+paired deltas and exact six-world cluster-bootstrap intervals; they remain a bounded
+panel diagnostic rather than a general model ranking.

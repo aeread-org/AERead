@@ -101,3 +101,18 @@ holding these same worlds and seeds fixed.
 The campaign holds Minimal Chat fixed as transport and tests the model, not one
 harness against another. Completed trajectories must replay exactly. Provider errors
 remain typed operational missingness and never become zero-margin procurement scores.
+
+## Paired open-source model follow-up
+
+The next independent model test holds the original six cases, three inference seeds,
+Minimal Chat harness, action budget, and objective verifier fixed, then replaces the
+GLM/Morph route with the pinned Mistral Small 4/Mistral route. This route was selected
+because it completed all measured calls in the prior procurement-grounding open-source
+bake-off; that one-case classifier result is only an admission signal, not evidence of
+allocation quality.
+
+The campaign reports Mistral-minus-GLM paired changes in feasibility, completed kits,
+contribution margin, and regret. It requires identical case content digests and upper
+bounds, completed receipt replay for all 18 Mistral trajectories, and exact seed and
+harness parity. The six economic worlds are the inference clusters. Provider failures
+block the comparison and are never imputed as model outcomes.

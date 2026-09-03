@@ -96,10 +96,11 @@ def conservative_cost_ceiling(
     seed_count: int,
     max_episode_input_tokens: int = 40_000,
     max_episode_output_tokens: int = 18_000,
+    candidate: BakeoffCandidate = GLM_MORPH_CANDIDATE,
 ) -> float:
     if case_count < 1 or seed_count < 1:
         raise ValueError("case_count and seed_count must be positive")
-    per_episode = GLM_MORPH_CANDIDATE.route.pricing.cost(
+    per_episode = candidate.route.pricing.cost(
         input_tokens=max_episode_input_tokens,
         cached_input_tokens=0,
         output_tokens=max_episode_output_tokens,
@@ -135,6 +136,7 @@ def planned_model_qualification(
     max_parallel_cells: int = 2,
     campaign_id: str = CAMPAIGN_ID,
     abort_on_operational_failure: bool = False,
+    candidate: BakeoffCandidate = GLM_MORPH_CANDIDATE,
 ) -> dict[str, Any]:
     if not inference_seeds:
         raise ValueError("inference_seeds cannot be empty")
@@ -145,7 +147,7 @@ def planned_model_qualification(
     if max_parallel_cells < 1:
         raise ValueError("max_parallel_cells must be positive")
     cases = _case_records(case_paths)
-    route = GLM_MORPH_CANDIDATE.route
+    route = candidate.route
     plan = {
         "schema_version": "aeread.procurement_allocation_model_plan/0.2",
         "campaign_id": campaign_id,
@@ -175,7 +177,9 @@ def planned_model_qualification(
         "max_output_tokens_per_action": 1800,
         "max_cost_usd_per_trajectory": 0.03,
         "conservative_cost_ceiling_usd": conservative_cost_ceiling(
-            case_count=len(cases), seed_count=len(inference_seeds)
+            case_count=len(cases),
+            seed_count=len(inference_seeds),
+            candidate=candidate,
         ),
         "primary_outcomes": [
             "feasible",
@@ -710,9 +714,10 @@ async def _run_cell(
     inference_seed: int,
     semaphore: asyncio.Semaphore,
     provider_factory: Callable[[], Any],
+    candidate: BakeoffCandidate,
 ) -> dict[str, Any]:
     setup = build_openrouter_setup(
-        GLM_MORPH_CANDIDATE.route,
+        candidate.route,
         case_path=case_path,
         seed=inference_seed,
         max_output_tokens=1800,
@@ -833,6 +838,7 @@ async def run_model_qualification(
     preflight_fn: Callable[[BakeoffCandidate], Mapping[str, Any]] = preflight_candidate,
     campaign_id: str = CAMPAIGN_ID,
     abort_on_operational_failure: bool = False,
+    candidate: BakeoffCandidate = GLM_MORPH_CANDIDATE,
 ) -> dict[str, Any]:
     cases = _case_records(case_paths)
     plan = planned_model_qualification(
@@ -841,6 +847,7 @@ async def run_model_qualification(
         max_parallel_cells=max_parallel_cells,
         campaign_id=campaign_id,
         abort_on_operational_failure=abort_on_operational_failure,
+        candidate=candidate,
     )
     if plan["conservative_cost_ceiling_usd"] > max_spend_usd:
         raise ValueError(
@@ -887,7 +894,7 @@ async def run_model_qualification(
         prior = json.loads(summary_path.read_text(encoding="utf-8"))
         if isinstance(prior, Mapping) and isinstance(prior.get("preflight"), Mapping):
             prior_preflight = dict(prior["preflight"])
-    preflight = dict(preflight_fn(GLM_MORPH_CANDIDATE)) if missing else prior_preflight
+    preflight = dict(preflight_fn(candidate)) if missing else prior_preflight
     semaphore = asyncio.Semaphore(max_parallel_cells)
     if missing:
         if abort_on_operational_failure and any(
@@ -905,6 +912,7 @@ async def run_model_qualification(
                     inference_seed=inference_seed,
                     semaphore=semaphore,
                     provider_factory=provider_factory,
+                    candidate=candidate,
                 )
                 rows.append(row)
                 if row.get("status") == "operational_failure":
@@ -919,6 +927,7 @@ async def run_model_qualification(
                             inference_seed=inference_seed,
                             semaphore=semaphore,
                             provider_factory=provider_factory,
+                            candidate=candidate,
                         )
                         for case_path, inference_seed in missing
                     )
