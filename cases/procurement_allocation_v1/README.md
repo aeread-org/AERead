@@ -117,3 +117,33 @@ inference seeds per world measure stochastic reliability; the six distinct BOM a
 economic configurations provide the declared minimum for a case-variance pilot.
 The result remains a bounded diagnostic on this curated panel, not a
 population-level model ranking.
+
+## Blinded supplier-label mirror
+
+`blinded_v3/` contains a deterministic paired mirror of the six generated cases.
+Only supplier identifiers, neutral display names, and listing order change; the
+economics, objectives, policies, substantive listing claims, world seeds, and solver
+upper bounds remain fixed. Regenerate it with:
+
+```bash
+python -m aeread_families.procurement_allocation.case_matrix \
+  --panel blinded-v3 --write
+```
+
+Print the no-spend paired plan, or execute it after loading `OPENROUTER_API_KEY`:
+
+```bash
+python -m aeread_families.procurement_allocation.blinded_invariance \
+  --run-root \
+  runs/procurement_allocation/procurement_allocation_glm_morph_blinded_invariance_v3/qualification_attempt_001
+
+python -m aeread_families.procurement_allocation.blinded_invariance \
+  --run-root \
+  runs/procurement_allocation/procurement_allocation_glm_morph_blinded_invariance_v3/qualification_attempt_001 \
+  --max-spend-usd 0.30 \
+  --execute
+```
+
+The comparator pairs v3 rows to the frozen v2 campaign by case slug and inference
+seed. A behavior or score change remains a valid finding; missing or unreplayed rows,
+route drift, changed upper bounds, or digest failures block qualification.

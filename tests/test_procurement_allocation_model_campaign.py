@@ -121,7 +121,9 @@ def test_case_matrix_is_grounded_distinct_and_objectively_scorable() -> None:
         assert json.loads(path.read_text(encoding="utf-8")) == raw
         case = campaign_module.load_case(path)
         bound = solve_full_information_upper_bound(case.payload)
-        assert bound.contribution_margin_usd > case.payload["objective"]["defer_value_usd"]
+        assert (
+            bound.contribution_margin_usd > case.payload["objective"]["defer_value_usd"]
+        )
         assert bound.actions_required <= 10
 
 
@@ -209,20 +211,19 @@ def test_provider_free_model_campaign_replays_and_resumes(tmp_path: Path) -> Non
     assert (run_root / "model_plan.json").is_file()
     assert (run_root / "summary.json").is_file()
 
-    evidence_root = (
-        tmp_path
-        / "evidence"
-        / CAMPAIGN_ID
-    )
+    evidence_root = tmp_path / "evidence" / CAMPAIGN_ID
     published = publish_model_qualification(
         run_root=run_root,
         publication_root=evidence_root,
+        supplemental_reports={"reports/paired_invariance.json": {"paired": True}},
     )
     assert (evidence_root / "README.md").is_file()
     assert (evidence_root / "publication_manifest.json").is_file()
     assert (evidence_root / "reports" / "qualification.json").is_file()
+    assert (evidence_root / "reports" / "paired_invariance.json").is_file()
     assert (evidence_root / "tables" / "fact_manifest.json").is_file()
     assert published["review"]["rows"] == artifact["rows"]
+    assert "reports/paired_invariance.json" in published["manifest"]["artifacts"]
     serialized = (evidence_root / "reports" / "qualification.json").read_text()
     assert "raw_response" not in serialized
     assert "OPENROUTER_API_KEY" not in serialized

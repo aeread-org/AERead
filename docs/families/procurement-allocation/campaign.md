@@ -40,6 +40,27 @@ Each case has a distinct world seed and BOM signature. Three inference seeds per
 produce 18 declared trajectories. Replicates within one case measure stochastic
 reliability; they are not counted as additional independent procurement cases.
 
+## Blinded label/order invariance campaign
+
+`cases/procurement_allocation_v1/blinded_v3/` is a paired mirror of the six-case
+panel. It preserves each objective, policy, interaction budget, substantive listing
+claim, private supplier term, world seed, and deterministic full-information upper
+bound. The intervention replaces suggestive supplier identifiers and names with
+deterministic opaque identifiers and deterministically changes listing order.
+
+The v3 campaign uses the same three inference seeds, model route, and Minimal Chat
+harness as the v2 baseline. Rows pair by case slug and inference seed. This tests
+whether procurement behavior is sensitive to semantic hints such as `value`,
+`express`, or `exact`, or to presentation order. It does not add six independent
+economic worlds and is not a population estimate.
+
+A result is eligible for publication when all 18 baseline and all 18 blinded rows
+are present, completed, receipt-replayed, and paired; the model route and harness
+match; and each observed upper bound is invariant. Model performance is not an
+eligibility gate: a lower blinded score is a valid sensitivity finding. Operational
+failure, missing pairs, changed economics, or digest mismatch blocks qualification
+and must not be converted into a procurement score.
+
 ## Artifact contract
 
 - Executable inputs live under `cases/procurement_allocation_v1/`.

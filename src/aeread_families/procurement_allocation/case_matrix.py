@@ -4,9 +4,12 @@ Component selection is pinned to the frozen 231-project grounding snapshot.
 Supplier identities and economics are synthetic: they create controlled decision
 problems and must not be interpreted as current marketplace offers.
 """
+
 from __future__ import annotations
 
 import argparse
+import copy
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -20,6 +23,9 @@ from .environment import ProcurementAllocationPlugin, solve_full_information_upp
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 CASE_ROOT = REPOSITORY_ROOT / "cases" / "procurement_allocation_v1" / "dev"
+BLINDED_CASE_ROOT = (
+    REPOSITORY_ROOT / "cases" / "procurement_allocation_v1" / "blinded_v3"
+)
 GROUNDING_PATH = (
     REPOSITORY_ROOT
     / "cases"
@@ -37,6 +43,7 @@ CASE_SLUGS = (
     "service_defer",
 )
 CASE_VARIANCE_PATHS = tuple(CASE_ROOT / f"{slug}.json" for slug in CASE_SLUGS)
+BLINDED_CASE_PATHS = tuple(BLINDED_CASE_ROOT / f"{slug}.json" for slug in CASE_SLUGS)
 
 GROUNDING_SELECTION = {
     "tactile_switch_6x6x5": (39, 81, 79),
@@ -80,10 +87,14 @@ def validate_grounding_snapshot(
     }
     for family_id, expected in GROUNDING_SELECTION.items():
         row = rows.get(family_id)
-        actual = None if row is None else (
-            row["projects"],
-            row["bom_rows"],
-            row["priority_score"],
+        actual = (
+            None
+            if row is None
+            else (
+                row["projects"],
+                row["bom_rows"],
+                row["priority_score"],
+            )
         )
         if actual != expected:
             raise ValueError(
@@ -173,12 +184,45 @@ def _definitions() -> tuple[dict[str, Any], ...]:
             "world_seed": 2312001,
             "product_id": "display_controller_deadline_pilot",
             "bom": {"esp32_s3_n8r8": 1, "ssd1306_oled_096": 1},
-            "objective": {"revenue": 10.0, "penalty": 3.0, "budget": 150.0, "deadline": 14},
+            "objective": {
+                "revenue": 10.0,
+                "penalty": 3.0,
+                "budget": 150.0,
+                "deadline": 14,
+            },
             "suppliers": [
-                _supplier("esp32_s3_n8r8", "value", unit_price=3.20, lead_time=20, on_time=0.95, yield_rate=0.98),
-                _supplier("esp32_s3_n8r8", "express", unit_price=4.35, lead_time=5, on_time=0.995, yield_rate=0.995),
-                _supplier("ssd1306_oled_096", "value", unit_price=1.20, lead_time=19, on_time=0.94, yield_rate=0.97),
-                _supplier("ssd1306_oled_096", "express", unit_price=1.85, lead_time=4, on_time=0.995, yield_rate=0.995),
+                _supplier(
+                    "esp32_s3_n8r8",
+                    "value",
+                    unit_price=3.20,
+                    lead_time=20,
+                    on_time=0.95,
+                    yield_rate=0.98,
+                ),
+                _supplier(
+                    "esp32_s3_n8r8",
+                    "express",
+                    unit_price=4.35,
+                    lead_time=5,
+                    on_time=0.995,
+                    yield_rate=0.995,
+                ),
+                _supplier(
+                    "ssd1306_oled_096",
+                    "value",
+                    unit_price=1.20,
+                    lead_time=19,
+                    on_time=0.94,
+                    yield_rate=0.97,
+                ),
+                _supplier(
+                    "ssd1306_oled_096",
+                    "express",
+                    unit_price=1.85,
+                    lead_time=4,
+                    on_time=0.995,
+                    yield_rate=0.995,
+                ),
             ],
         },
         {
@@ -186,12 +230,52 @@ def _definitions() -> tuple[dict[str, Any], ...]:
             "world_seed": 2312002,
             "product_id": "environment_sensor_quality_pilot",
             "bom": {"sht30_i2c": 1, "bh1750_gy302": 1},
-            "objective": {"revenue": 7.0, "penalty": 4.0, "budget": 100.0, "deadline": 24, "defect_days": 12},
+            "objective": {
+                "revenue": 7.0,
+                "penalty": 4.0,
+                "budget": 100.0,
+                "deadline": 24,
+                "defect_days": 12,
+            },
             "suppliers": [
-                _supplier("sht30_i2c", "value", unit_price=1.05, yield_rate=0.84, refund_days=7, claim_acceptance=0.45, restocking_rate=0.15, freight_payer="buyer", return_freight=0.25),
-                _supplier("sht30_i2c", "assured", unit_price=1.75, yield_rate=0.995, refund_days=45, claim_acceptance=0.99),
-                _supplier("bh1750_gy302", "value", unit_price=0.60, yield_rate=0.83, refund_days=7, claim_acceptance=0.40, restocking_rate=0.15, freight_payer="buyer", return_freight=0.20),
-                _supplier("bh1750_gy302", "assured", unit_price=1.15, yield_rate=0.995, refund_days=45, claim_acceptance=0.99),
+                _supplier(
+                    "sht30_i2c",
+                    "value",
+                    unit_price=1.05,
+                    yield_rate=0.84,
+                    refund_days=7,
+                    claim_acceptance=0.45,
+                    restocking_rate=0.15,
+                    freight_payer="buyer",
+                    return_freight=0.25,
+                ),
+                _supplier(
+                    "sht30_i2c",
+                    "assured",
+                    unit_price=1.75,
+                    yield_rate=0.995,
+                    refund_days=45,
+                    claim_acceptance=0.99,
+                ),
+                _supplier(
+                    "bh1750_gy302",
+                    "value",
+                    unit_price=0.60,
+                    yield_rate=0.83,
+                    refund_days=7,
+                    claim_acceptance=0.40,
+                    restocking_rate=0.15,
+                    freight_payer="buyer",
+                    return_freight=0.20,
+                ),
+                _supplier(
+                    "bh1750_gy302",
+                    "assured",
+                    unit_price=1.15,
+                    yield_rate=0.995,
+                    refund_days=45,
+                    claim_acceptance=0.99,
+                ),
             ],
         },
         {
@@ -199,12 +283,58 @@ def _definitions() -> tuple[dict[str, Any], ...]:
             "world_seed": 2312003,
             "product_id": "control_panel_capacity_pilot",
             "bom": {"tactile_switch_6x6x5": 1, "ky040_encoder": 1},
-            "objective": {"revenue": 5.0, "penalty": 2.0, "budget": 100.0, "deadline": 24, "minimum": 18},
+            "objective": {
+                "revenue": 5.0,
+                "penalty": 2.0,
+                "budget": 100.0,
+                "deadline": 24,
+                "minimum": 18,
+            },
             "suppliers": [
-                _supplier("tactile_switch_6x6x5", "lot_a", unit_price=0.07, capacity=10, moq=5, order_step=5, yield_rate=1.0, on_time=1.0, sample_cost=0.2),
-                _supplier("tactile_switch_6x6x5", "lot_b", unit_price=0.08, capacity=10, moq=5, order_step=5, yield_rate=1.0, on_time=1.0, sample_cost=0.2),
-                _supplier("ky040_encoder", "lot_a", unit_price=0.55, capacity=10, moq=5, order_step=5, yield_rate=1.0, on_time=1.0, sample_cost=0.2),
-                _supplier("ky040_encoder", "lot_b", unit_price=0.60, capacity=10, moq=5, order_step=5, yield_rate=1.0, on_time=1.0, sample_cost=0.2),
+                _supplier(
+                    "tactile_switch_6x6x5",
+                    "lot_a",
+                    unit_price=0.07,
+                    capacity=10,
+                    moq=5,
+                    order_step=5,
+                    yield_rate=1.0,
+                    on_time=1.0,
+                    sample_cost=0.2,
+                ),
+                _supplier(
+                    "tactile_switch_6x6x5",
+                    "lot_b",
+                    unit_price=0.08,
+                    capacity=10,
+                    moq=5,
+                    order_step=5,
+                    yield_rate=1.0,
+                    on_time=1.0,
+                    sample_cost=0.2,
+                ),
+                _supplier(
+                    "ky040_encoder",
+                    "lot_a",
+                    unit_price=0.55,
+                    capacity=10,
+                    moq=5,
+                    order_step=5,
+                    yield_rate=1.0,
+                    on_time=1.0,
+                    sample_cost=0.2,
+                ),
+                _supplier(
+                    "ky040_encoder",
+                    "lot_b",
+                    unit_price=0.60,
+                    capacity=10,
+                    moq=5,
+                    order_step=5,
+                    yield_rate=1.0,
+                    on_time=1.0,
+                    sample_cost=0.2,
+                ),
             ],
         },
         {
@@ -212,12 +342,23 @@ def _definitions() -> tuple[dict[str, Any], ...]:
             "world_seed": 2312004,
             "product_id": "connected_clock_financing_pilot",
             "bom": {"ds3231_at24c32": 1, "esp32_s3_n8r8": 1},
-            "objective": {"revenue": 12.0, "penalty": 2.0, "budget": 180.0, "deadline": 24, "annual_rate": 1.5, "capital_horizon": 90},
+            "objective": {
+                "revenue": 12.0,
+                "penalty": 2.0,
+                "budget": 180.0,
+                "deadline": 24,
+                "annual_rate": 1.5,
+                "capital_horizon": 90,
+            },
             "suppliers": [
                 _supplier("ds3231_at24c32", "prepay", unit_price=1.15, payment_days=1),
-                _supplier("ds3231_at24c32", "net_terms", unit_price=1.35, payment_days=90),
+                _supplier(
+                    "ds3231_at24c32", "net_terms", unit_price=1.35, payment_days=90
+                ),
                 _supplier("esp32_s3_n8r8", "prepay", unit_price=3.90, payment_days=1),
-                _supplier("esp32_s3_n8r8", "net_terms", unit_price=4.30, payment_days=90),
+                _supplier(
+                    "esp32_s3_n8r8", "net_terms", unit_price=4.30, payment_days=90
+                ),
             ],
         },
         {
@@ -225,11 +366,26 @@ def _definitions() -> tuple[dict[str, Any], ...]:
             "world_seed": 2312005,
             "product_id": "protected_power_driver_variant_pilot",
             "bom": {"tp4056_usb_c_protected": 1, "mosfet_low_side_3v3": 1},
-            "objective": {"revenue": 6.0, "penalty": 3.0, "budget": 100.0, "deadline": 24},
+            "objective": {
+                "revenue": 6.0,
+                "penalty": 3.0,
+                "budget": 100.0,
+                "deadline": 24,
+            },
             "suppliers": [
-                _supplier("tp4056_usb_c_protected", "near_match", unit_price=0.30, variant="micro_usb_tp4056_unprotected"),
+                _supplier(
+                    "tp4056_usb_c_protected",
+                    "near_match",
+                    unit_price=0.30,
+                    variant="micro_usb_tp4056_unprotected",
+                ),
                 _supplier("tp4056_usb_c_protected", "exact", unit_price=0.62),
-                _supplier("mosfet_low_side_3v3", "near_match", unit_price=0.18, variant="five_volt_gate_threshold_module"),
+                _supplier(
+                    "mosfet_low_side_3v3",
+                    "near_match",
+                    unit_price=0.18,
+                    variant="five_volt_gate_threshold_module",
+                ),
                 _supplier("mosfet_low_side_3v3", "exact", unit_price=0.48),
             ],
         },
@@ -238,12 +394,43 @@ def _definitions() -> tuple[dict[str, Any], ...]:
             "world_seed": 2312006,
             "product_id": "input_display_service_pilot",
             "bom": {"ky023_joystick": 1, "ssd1306_oled_096": 1},
-            "objective": {"revenue": 5.0, "penalty": 1.5, "budget": 100.0, "deadline": 18, "minimum": 18, "defer": 3.0},
+            "objective": {
+                "revenue": 5.0,
+                "penalty": 1.5,
+                "budget": 100.0,
+                "deadline": 18,
+                "minimum": 18,
+                "defer": 3.0,
+            },
             "suppliers": [
-                _supplier("ky023_joystick", "risky", unit_price=0.75, yield_rate=0.76, on_time=0.92),
-                _supplier("ky023_joystick", "service", unit_price=1.80, yield_rate=0.98, on_time=0.98),
-                _supplier("ssd1306_oled_096", "risky", unit_price=1.05, yield_rate=0.78, on_time=0.92),
-                _supplier("ssd1306_oled_096", "service", unit_price=2.10, yield_rate=0.98, on_time=0.98),
+                _supplier(
+                    "ky023_joystick",
+                    "risky",
+                    unit_price=0.75,
+                    yield_rate=0.76,
+                    on_time=0.92,
+                ),
+                _supplier(
+                    "ky023_joystick",
+                    "service",
+                    unit_price=1.80,
+                    yield_rate=0.98,
+                    on_time=0.98,
+                ),
+                _supplier(
+                    "ssd1306_oled_096",
+                    "risky",
+                    unit_price=1.05,
+                    yield_rate=0.78,
+                    on_time=0.92,
+                ),
+                _supplier(
+                    "ssd1306_oled_096",
+                    "service",
+                    unit_price=2.10,
+                    yield_rate=0.98,
+                    on_time=0.98,
+                ),
             ],
         },
     )
@@ -341,6 +528,74 @@ def build_case_matrix() -> tuple[dict[str, Any], ...]:
     return cases
 
 
+def _opaque_supplier_id(*, slug: str, supplier_id: str) -> str:
+    digest = hashlib.sha256(
+        f"procurement_allocation_blinded_v3:{slug}:{supplier_id}".encode()
+    ).hexdigest()[:12]
+    return f"supplier_{digest}"
+
+
+def build_blinded_case_matrix() -> tuple[dict[str, Any], ...]:
+    """Build the v2 panel's label/order-blinded paired mirror.
+
+    Only visible supplier identity and listing order change. All substantive
+    listings, private economics, objectives, policies, and world seeds remain
+    paired with the v2 panel.
+    """
+
+    blinded_cases: list[dict[str, Any]] = []
+    for source in build_case_matrix():
+        raw = copy.deepcopy(source)
+        slug = str(source["case_id"]).rsplit(".", 1)[-1]
+        raw["case_id"] = f"procurement_allocation_v1.blinded_v3.{slug}"
+        raw["split"] = "blinded_v3"
+        for supplier in raw["payload"]["suppliers"]:
+            opaque_id = _opaque_supplier_id(
+                slug=slug, supplier_id=str(supplier["supplier_id"])
+            )
+            supplier["supplier_id"] = opaque_id
+            supplier["listing"][
+                "supplier_name"
+            ] = f"Supplier {opaque_id.removeprefix('supplier_').upper()}"
+        raw["payload"]["suppliers"].sort(
+            key=lambda supplier: hashlib.sha256(
+                f"procurement_allocation_blinded_v3_order:{slug}:"
+                f"{supplier['supplier_id']}".encode()
+            ).hexdigest()
+        )
+        source_terms = [
+            (supplier["component"], supplier["private_terms"])
+            for supplier in source["payload"]["suppliers"]
+        ]
+        blinded_terms = [
+            (supplier["component"], supplier["private_terms"])
+            for supplier in raw["payload"]["suppliers"]
+        ]
+        if blinded_terms == source_terms:
+            suppliers = raw["payload"]["suppliers"]
+            raw["payload"]["suppliers"] = suppliers[1:] + suppliers[:1]
+        raw["provenance"] = {
+            "generator_id": "procurement_allocation_blinded_case_matrix_v3",
+            "generator_version": "3.0.0",
+            "review_status": "curated",
+        }
+        raw["content_sha256"] = "0" * 64
+        draft = CaseManifest.from_dict(raw)
+        ProcurementAllocationPlugin().validate_payload(draft.payload)
+        raw["content_sha256"] = case_content_sha256(draft)
+        case = CaseManifest.from_dict(raw)
+        if case_content_sha256(case) != case.content_sha256:
+            raise AssertionError(f"unstable case digest for {case.case_id}")
+        bound = solve_full_information_upper_bound(case.payload)
+        if (
+            bound.contribution_margin_usd
+            <= case.payload["objective"]["defer_value_usd"]
+        ):
+            raise ValueError(f"{case.case_id} has no beneficial feasible award")
+        blinded_cases.append(raw)
+    return tuple(blinded_cases)
+
+
 def write_case_matrix(root: Path | str = CASE_ROOT) -> tuple[Path, ...]:
     destination = Path(root)
     destination.mkdir(parents=True, exist_ok=True)
@@ -354,13 +609,42 @@ def write_case_matrix(root: Path | str = CASE_ROOT) -> tuple[Path, ...]:
     return tuple(written)
 
 
+def write_blinded_case_matrix(
+    root: Path | str = BLINDED_CASE_ROOT,
+) -> tuple[Path, ...]:
+    destination = Path(root)
+    destination.mkdir(parents=True, exist_ok=True)
+    written: list[Path] = []
+    for case in build_blinded_case_matrix():
+        path = destination / f"{case['case_id'].rsplit('.', 1)[-1]}.json"
+        temporary = path.with_suffix(f"{path.suffix}.{os.getpid()}.tmp")
+        temporary.write_text(json.dumps(case, indent=2) + "\n", encoding="utf-8")
+        os.replace(temporary, path)
+        written.append(path)
+    return tuple(written)
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--write", action="store_true")
+    parser.add_argument(
+        "--panel",
+        choices=("case-variance-v2", "blinded-v3"),
+        default="case-variance-v2",
+    )
     arguments = parser.parse_args(argv)
-    cases = build_case_matrix()
+    cases = (
+        build_blinded_case_matrix()
+        if arguments.panel == "blinded-v3"
+        else build_case_matrix()
+    )
     if arguments.write:
-        for path in write_case_matrix():
+        writer = (
+            write_blinded_case_matrix
+            if arguments.panel == "blinded-v3"
+            else write_case_matrix
+        )
+        for path in writer():
             print(path)
     else:
         print(json.dumps(cases, indent=2))
@@ -372,11 +656,15 @@ if __name__ == "__main__":
 
 
 __all__ = [
+    "BLINDED_CASE_PATHS",
+    "BLINDED_CASE_ROOT",
     "CASE_SLUGS",
     "CASE_VARIANCE_PATHS",
     "GROUNDING_PATH",
     "GROUNDING_SELECTION",
+    "build_blinded_case_matrix",
     "build_case_matrix",
     "validate_grounding_snapshot",
+    "write_blinded_case_matrix",
     "write_case_matrix",
 ]

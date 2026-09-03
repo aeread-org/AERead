@@ -72,17 +72,18 @@ GLM_MORPH_CANDIDATE = BakeoffCandidate(
 )
 
 
-def derive_inference_seeds(*, master_seed: int, count: int) -> tuple[int, ...]:
+def derive_inference_seeds(
+    *, master_seed: int, count: int, campaign_id: str = CAMPAIGN_ID
+) -> tuple[int, ...]:
     if master_seed < 0 or count < 1:
         raise ValueError("master_seed must be non-negative and count positive")
     seeds: list[int] = []
     counter = 0
     while len(seeds) < count:
-        payload = f"{CAMPAIGN_ID}:{master_seed}:{counter}".encode()
+        payload = f"{campaign_id}:{master_seed}:{counter}".encode()
         counter += 1
         candidate = (
-            int.from_bytes(hashlib.sha256(payload).digest()[:4], "big")
-            & 0x7FFF_FFFF
+            int.from_bytes(hashlib.sha256(payload).digest()[:4], "big") & 0x7FFF_FFFF
         )
         if candidate not in seeds:
             seeds.append(candidate)
@@ -132,6 +133,7 @@ def planned_model_qualification(
     case_paths: Sequence[Path | str],
     inference_seeds: Sequence[int],
     max_parallel_cells: int = 2,
+    campaign_id: str = CAMPAIGN_ID,
 ) -> dict[str, Any]:
     if not inference_seeds:
         raise ValueError("inference_seeds cannot be empty")
@@ -145,7 +147,7 @@ def planned_model_qualification(
     route = GLM_MORPH_CANDIDATE.route
     plan = {
         "schema_version": "aeread.procurement_allocation_model_plan/0.2",
-        "campaign_id": CAMPAIGN_ID,
+        "campaign_id": campaign_id,
         "cases": [
             {
                 "case_id": record["case_id"],
@@ -289,7 +291,10 @@ def _write_once_text(path: Path, value: str) -> None:
 
 
 def publish_model_qualification(
-    *, run_root: Path, publication_root: Path
+    *,
+    run_root: Path,
+    publication_root: Path,
+    supplemental_reports: Mapping[str, Mapping[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """Publish a sanitized, digest-bound projection of one completed raw run."""
 
@@ -356,9 +361,7 @@ def publish_model_qualification(
         "schema_version": "aeread.procurement_allocation_model_review/0.1",
         "campaign_id": plan.get("campaign_id"),
         "source": {
-            "raw_summary_path": (
-                f"{_repo_relative_run_label(run_root)}/summary.json"
-            ),
+            "raw_summary_path": (f"{_repo_relative_run_label(run_root)}/summary.json"),
             "raw_summary_file_sha256": hashlib.sha256(raw_bytes).hexdigest(),
             "raw_artifact_sha256": recorded_artifact_sha,
             "plan_sha256": plan.get("plan_sha256"),
@@ -382,13 +385,28 @@ def publish_model_qualification(
         "summary": raw.get("summary"),
         "rows": publishable_rows,
     }
-    review["artifact_sha256"] = hashlib.sha256(
-        canonical_json_bytes(review)
-    ).hexdigest()
+    review["artifact_sha256"] = hashlib.sha256(canonical_json_bytes(review)).hexdigest()
     review_path = publication_root / "reports" / "qualification.json"
     _write_once_json(review_path, review)
 
     review_file_sha = hashlib.sha256(review_path.read_bytes()).hexdigest()
+    supplemental_artifacts: dict[str, dict[str, str]] = {}
+    for relative_name, report in (supplemental_reports or {}).items():
+        relative_path = Path(relative_name)
+        if (
+            relative_path.is_absolute()
+            or len(relative_path.parts) != 2
+            or relative_path.parts[0] != "reports"
+            or relative_path.suffix != ".json"
+            or ".." in relative_path.parts
+        ):
+            raise ValueError("supplemental report paths must be reports/<name>.json")
+        report_path = publication_root / relative_path
+        _write_once_json(report_path, report)
+        supplemental_artifacts[relative_path.as_posix()] = {
+            "path": relative_path.as_posix(),
+            "sha256": hashlib.sha256(report_path.read_bytes()).hexdigest(),
+        }
     fact_manifest: dict[str, Any] = {
         "schema_version": "aeread.procurement_allocation_model_manifest/0.1",
         "campaign_id": plan.get("campaign_id"),
@@ -396,7 +414,8 @@ def publish_model_qualification(
             "qualification_summary": {
                 "path": "reports/qualification.json",
                 "sha256": review_file_sha,
-            }
+            },
+            **supplemental_artifacts,
         },
         "source_bindings": review["source"],
         "publisher_implementation": review["publisher_implementation"],
@@ -414,7 +433,13 @@ def publish_model_qualification(
         "campaign_id": plan.get("campaign_id"),
         "artifacts": {
             "reports/qualification.json": review_file_sha,
-            "tables/fact_manifest.json": hashlib.sha256(fact_path.read_bytes()).hexdigest(),
+            **{
+                name: binding["sha256"]
+                for name, binding in supplemental_artifacts.items()
+            },
+            "tables/fact_manifest.json": hashlib.sha256(
+                fact_path.read_bytes()
+            ).hexdigest(),
         },
         "source_bindings": review["source"],
         "privacy_boundary": review["privacy_boundary"],
@@ -427,9 +452,10 @@ def publish_model_qualification(
     )
     _write_once_text(
         publication_root / "README.md",
-        "# Procurement allocation GLM case-variance v2\n\n"
-        "Sanitized, digest-bound review evidence for the declared six-case, "
-        "three-seed procurement allocation panel. Raw prompts, provider payloads, "
+        f"# {plan.get('campaign_id')}\n\n"
+        "Sanitized, digest-bound review evidence for the declared procurement "
+        "allocation panel. "
+        "Raw prompts, provider payloads, "
         "event logs, and replay stores remain under the ignored `runs/` tree.\n",
     )
     return {
@@ -476,7 +502,9 @@ def _failure_summary(error: BaseException) -> dict[str, Any]:
 
 
 def _safe_case_directory(case_id: str, content_sha256: str) -> str:
-    readable = "".join(character if character.isalnum() else "_" for character in case_id)
+    readable = "".join(
+        character if character.isalnum() else "_" for character in case_id
+    )
     return f"{readable}_{content_sha256[:12]}"
 
 
@@ -502,7 +530,11 @@ def _read_result(
     expected_sha = hashlib.sha256(canonical_json_bytes(payload)).hexdigest()
     if recorded_sha != expected_sha:
         raise ValueError(f"result digest mismatch: {path}")
-    identity = (value.get("case_id"), value.get("case_content_sha256"), value.get("inference_seed"))
+    identity = (
+        value.get("case_id"),
+        value.get("case_content_sha256"),
+        value.get("inference_seed"),
+    )
     if identity != (case_id, content_sha256, seed):
         raise ValueError(f"result identity mismatch: {path}")
     return value
@@ -598,8 +630,7 @@ def summarize_rows(
             ),
             "mean_regret_to_upper_bound_usd": (
                 statistics.fmean(
-                    float(row["regret_to_upper_bound_usd"])
-                    for row in case_completed
+                    float(row["regret_to_upper_bound_usd"]) for row in case_completed
                 )
                 if case_completed
                 else None
@@ -630,9 +661,7 @@ def summarize_rows(
             else None
         ),
         "mean_contribution_margin_usd": (
-            statistics.fmean(
-                float(row["contribution_margin_usd"]) for row in completed
-            )
+            statistics.fmean(float(row["contribution_margin_usd"]) for row in completed)
             if completed
             else None
         ),
@@ -690,9 +719,7 @@ async def _run_cell(
     )
     cell = setup.plan.cells[0]
     case_directory = _safe_case_directory(setup.case.case_id, setup.case.content_sha256)
-    evidence_root = (
-        run_root / "executions" / case_directory / f"seed_{inference_seed}"
-    )
+    evidence_root = run_root / "executions" / case_directory / f"seed_{inference_seed}"
     started = time.perf_counter()
     try:
         async with semaphore:
@@ -801,12 +828,14 @@ async def run_model_qualification(
     resume: bool = False,
     provider_factory: Callable[[], Any] = OpenRouterChatClient,
     preflight_fn: Callable[[BakeoffCandidate], Mapping[str, Any]] = preflight_candidate,
+    campaign_id: str = CAMPAIGN_ID,
 ) -> dict[str, Any]:
     cases = _case_records(case_paths)
     plan = planned_model_qualification(
         case_paths=case_paths,
         inference_seeds=inference_seeds,
         max_parallel_cells=max_parallel_cells,
+        campaign_id=campaign_id,
     )
     if plan["conservative_cost_ceiling_usd"] > max_spend_usd:
         raise ValueError(
@@ -853,9 +882,7 @@ async def run_model_qualification(
         prior = json.loads(summary_path.read_text(encoding="utf-8"))
         if isinstance(prior, Mapping) and isinstance(prior.get("preflight"), Mapping):
             prior_preflight = dict(prior["preflight"])
-    preflight = (
-        dict(preflight_fn(GLM_MORPH_CANDIDATE)) if missing else prior_preflight
-    )
+    preflight = dict(preflight_fn(GLM_MORPH_CANDIDATE)) if missing else prior_preflight
     semaphore = asyncio.Semaphore(max_parallel_cells)
     if missing:
         rows.extend(
