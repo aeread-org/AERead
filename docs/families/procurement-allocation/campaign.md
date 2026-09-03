@@ -308,6 +308,14 @@ non-empty-message reminder to the frozen V1 decision procedure. Reusing the same
 panel is suitable for diagnosing output-contract compliance, but any efficacy change
 remains development evidence because V2 is selected after inspecting V1.
 
+V2 is frozen as
+`procurement_allocation_qwen3_235b_google_constraint_ledger_v2`, with plan digest
+`b08c0d86956ce522b7bd401d617acf110fabea0f4637b077749e7722043ff308`.
+It binds the V1 evidence manifest and appends only the selected-action field reminder.
+One unscored canary precedes three sequential six-row checkpoints. The conservative
+total ceiling remains $0.47352 and the hard ceiling $0.57; inspection remains blocked
+until all 18 rows complete and receipt-replay with exact cost accounting.
+
 ## Public-observation policy controls
 
 The deterministic policy campaign supplies non-model floors and a negative control
