@@ -626,7 +626,15 @@ class ReplayReport:
 
     @property
     def status(self) -> str:
-        if self.comparison is not None and not self.comparison.matches:
+        """``"match"``/``"mismatch"`` only ever describe an actually performed
+        comparison. A genuinely offline replay (``comparison is None`` -- no
+        ``original`` was supplied to :func:`replay_and_verify`, a documented,
+        supported mode) has nothing to have agreed or diverged, so it reports
+        the distinct ``"not_comparable"`` rather than a fabricated ``"match"``
+        (docs/econagent_codex_triage.md finding 4)."""
+        if self.comparison is None:
+            return "not_comparable"
+        if not self.comparison.matches:
             return "mismatch"
         return "match"
 

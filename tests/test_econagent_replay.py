@@ -519,6 +519,39 @@ def test_replay_and_verify_end_to_end_returns_a_matching_report() -> None:
     assert report.scores.tax_bracket_arithmetic.primary.value == 1.0
 
 
+def test_replay_and_verify_without_an_original_reports_not_comparable_not_match() -> None:
+    """Finding 4 (docs/econagent_codex_triage.md): ``replay_and_verify``'s own
+    documented, supported "genuinely offline" mode (``original=None``, no live
+    run held in memory to compare against) leaves ``comparison`` as ``None`` --
+    there is nothing to have agreed. ``ReplayReport.status`` must not report
+    that as "match"; a passing label requires an actual, performed comparison.
+    """
+    _require_bridge()
+    case, cell, original, recorded = _run_live(suffix="no-original")
+    scorer = _scorer_for(case)
+    dense_log = original.terminal["dense_log"]
+    n_agents = original.terminal["n_agents"]
+    _tax_score, tax_calls = score_tax_bracket_arithmetic_and_record(
+        scorer, dense_log=dense_log, n_agents=n_agents, upstream_root=UPSTREAM_ROOT
+    )
+
+    report = asyncio.run(
+        replay_and_verify(
+            cell=cell,
+            case=case,
+            upstream_root=UPSTREAM_ROOT,
+            scorer=scorer,
+            recorded=recorded,
+            tax_recompute_calls=tax_calls,
+            original=None,
+        )
+    )
+
+    assert report.comparison is None
+    assert report.status != "match"
+    assert report.status == "not_comparable"
+
+
 def test_replay_diverges_when_a_recorded_bridge_response_is_tampered_with() -> None:
     """Mutation check: `compare_episode_results` must genuinely detect
     divergence, not just agreement -- guards against it being vacuously true."""
