@@ -298,3 +298,128 @@ Re-ran after all fixes: family test files (`tests/test_aucarena_cases.py`,
 `tests/test_shared_runner_smoke.py`: 118 passed, 0 failed. Full repo suite:
 834 passed, 31 skipped, 1 xfailed, 0 failed (skip set unchanged by this
 work).
+
+## Verification follow-up (independent cross-model check)
+
+Source: `docs/aucarena_fix_verification.md`, a read-only, independent re-check of the
+"Codex-review findings" pass above. It found six items requiring further action: Findings 6
+and 8 claimed fixed but incomplete; Findings 2, 5, and 7 explicitly unresolved (already
+disclosed as such above, not claimed fixed); Finding 0 unchanged. Worked in that order. One
+additional, already-decided item was folded in per standing instruction: `AucArenaScorer`'s
+`__call__` (added for Finding 1) is a real instance of ledger entry **D-19**
+(`runner_defect_ledger.md`) and is disclosed here rather than fixed, per that ledger entry's
+own explicit warning against giving a multi-leaf scorer a `__call__` that silently picks one
+leaf as primary.
+
+**Finding 6 — comparator identity narrower than spec claims.** *Narrowed, not fixed further.*
+Re-verified independently: `build_scorer(family_case)` is called, at every call site in this
+family's own tests and by the kernel's own `plugin.build_scorer(family_case)` convention, with
+only the case's `payload` (`AucArenaPlugin.validate_payload(case.payload)`) — a dict that has
+no `case_id`/`world_seed` keys; those live one level up, on the outer `CaseManifest`. The
+item-order half of the fix (commit `967c912`) is genuine and already independently tested
+(`tests/test_aucarena_measurement.py::test_profit_vs_field_reference_hash_distinguishes_item_order_not_only_the_field`,
+`::test_build_scorer_reference_hash_reflects_the_real_cases_item_order`); the `case_id`/
+`world_seed` half the reviewer's transcript wanted is structurally unreachable from this leaf
+without a kernel signature change, not an oversight this pass declined to fix. Added a
+dedicated "Known limits" bullet to `docs/aucarena_adapter_status.md` stating this precisely
+(previously only stated inside `measurement.py`'s own docstring and the spec, not in the one
+doc a reviewer is told to read for claims). No test added: there is nothing reachable to pin
+down that is not already pinned.
+
+**Finding 8 — module-wide silent skip.** *Fixed further, with test.* Confirmed the gap
+exactly as the independent check described: the opt-in `AEREAD_AUCARENA_QC_GATE_REQUIRED`
+mechanism worked correctly when set, but nothing in this repo's own
+`.github/workflows/ci.yml` sets it (nor the pre-existing tau2 equivalent), so an ordinary
+default run — every contributor's and every CI job's actual invocation — stayed completely
+silent about 19 skipped QC-Gate-1 tests, unchanged from the pre-Finding-8 behavior.
+`conftest.py`'s `pytest_terminal_summary` now reports a matching gate skip unconditionally
+(test count, reasons, and the enabling env var), for every row in `_REQUIRED_SKIP_GATES`
+(tau2's included, not just aucarena's); only the exit status stays gated behind the env var, so
+local runs are never surprised into failing.
+Test: `tests/test_aucarena_qc_gate_visibility.py::
+test_missing_upstream_checkout_prints_a_visible_note_even_when_the_gate_is_not_required` —
+written first against the pre-fix hook and confirmed failing for the right reason (no note
+printed at all when the gate is unset), then green after the fix.
+Mutation result: restored the pre-fix early-`continue` guard (via a `/tmp` backup, never
+`git checkout`), re-ran `tests/test_aucarena_qc_gate_visibility.py` — the new test failed with
+exactly the expected `AssertionError` (missing note in stdout) while the two pre-existing tests
+in that file still passed unchanged, confirming the new test is not vacuous. Reverted the
+mutation and restored the fix immediately after.
+Residual, explicitly not fixed: this repo's own CI still does not set the enabling env var, so
+a default CI run today shows, but does not fail on, the note — enforcing it there would first
+require provisioning the pinned upstream checkout in CI, a separate decision out of this pass's
+scope (see `docs/aucarena_adapter_status.md`'s Evidence section).
+
+**Finding 2 — malformed/illegal bids scored economically instead of re-bid.** *Narrowed,
+already correctly disclosed above, not fixed.* Re-confirmed the escalation reasoning still
+holds (no single spec-mandated answer between a bounded retry loop and an
+`invalid_measurement` status). Strengthened traceability only: `docs/aucarena_adapter_status.md`
+now names the exact tests that pin today's disclosed behavior —
+`tests/test_aucarena_measurement.py::test_golden_3_earns_no_credit` and
+`::test_golden_4_other_leaves_match_golden_3_outcome`, both of which assert `status == "ok"`
+for a malformed/illegal round today — so a future silent change to this status breaks a named
+test instead of slipping through unremarked. No new test added; these two already exist and
+already bite.
+
+**Finding 5 — unspecified mean-field primary.** *Narrowed, already correctly disclosed above,
+not fixed.* Same reasoning as Finding 2: inventing a weighting would just substitute one
+unspecified number for another. `tests/test_aucarena_measurement.py::
+test_golden_1_profit_vs_field_is_finite_and_mixed_sign` already asserts
+`score.primary.value == pytest.approx((300.0 - 1000.0) / 2.0)` — the exact unweighted-mean
+formula — so this too already has a test that bites a silent change; named explicitly in
+`docs/aucarena_adapter_status.md` now.
+
+**Finding 7 — self-referential parity tests.** *Unchanged, already correctly disclosed above.*
+Re-confirmed no code fix is possible that does not defeat the check's own purpose. No further
+action; the existing disclosure in both `tests/test_aucarena_parity.py`'s module docstring and
+`docs/aucarena_adapter_status.md`'s Known-limits section remains accurate.
+
+**Finding 0 — transcript declares 9 findings but describes 8.** *Unchanged, confirmed as a
+meta-observation, not an adapter defect.* Re-read the recovered transcript
+(`docs/aucarena_review_codex.md`): "2 critical, 5 high, 2 medium" sums to 9, but the "Key
+blockers include..." sentence lists exactly 8 items, matching Findings 1-8 above one-for-one in
+order. The transcript is explicitly a recovery of a sandboxed run that could not write its own
+report file; there is no way to reconstruct whatever a lost ninth item might have been from
+what remains. Correctly excluded from the numbered findings above; this is an explicit
+confirmation that the exclusion was re-checked, not a silent drop.
+
+**D-19 — `AucArenaScorer.__call__` collapses four leaves to one.** *Disclosed, not fixed,
+per standing instruction.* Confirmed `__call__` (commit `059f46a`) forwards only to
+`score_profit_vs_field`, the sole leaf reachable from a bare terminal `outcome`, and has no way
+to also surface `aucarena_budget_invariant`, `aucarena_bid_legality`, or
+`aucarena_hammer_rule` when invoked through the kernel's real single-`ScoreEnvelope` calling
+convention — exactly the risk `runner_defect_ledger.md` entry D-19's 2026-09-02 addendum warns
+against ("do NOT paper over this per-adapter"). Not aucarena-specific: three other families
+(`govsim`, `steer`, `negarena`) independently added the same shape of `__call__` while closing
+their own reviews, and D-19 is already open, tracked, and awaiting a kernel-owner ruling on
+whether `finalize_family_execution` should seal a leaf vector or a family-declared primary.
+Added a "Known limits" bullet to `docs/aucarena_adapter_status.md` stating this plainly instead
+of leaving `__call__`'s docstring (which frames the single-leaf forward as simply "the
+additional surface the real kernel calling convention needs") as the only place a reader could
+learn this. No code change: `__call__` is not touched, and no leaf-picking logic was added.
+
+### Summary
+
+| # | Finding | This-pass disposition |
+|---|---|---|
+| 0 | transcript count mismatch (9 declared vs. 8 described) | confirmed meta-observation, not counted (unchanged) |
+| 2 | malformed/illegal bids scored economically instead of re-bid | narrowed (test cross-references added; escalation reasoning re-confirmed) |
+| 5 | unspecified "mean-field" primary aggregation | narrowed (test cross-reference added; escalation reasoning re-confirmed) |
+| 6 | comparator identity narrower than spec claims | narrowed (status doc now states the case_id/world_seed exclusion explicitly) |
+| 7 | self-referential parity tests | unchanged (disclosure re-confirmed accurate) |
+| 8 | module-wide silent skip | fixed further (always-visible note; test + mutation-verified) |
+| D-19 | `AucArenaScorer.__call__` collapses four leaves to one | disclosed (status doc bullet added; ledger entry unchanged, per standing instruction) |
+
+Fixed further, with a failing-first test and a confirmed-dying mutation: 1 (Finding 8).
+Narrowed (documentation only, existing tests already bite where applicable): 4 (Findings 2, 5,
+6, and D-19's disclosure). Unchanged, re-confirmed as already correctly handled: 2 (Findings 0,
+7).
+
+Re-ran after this pass: family test files (`tests/test_aucarena_cases.py`,
+`tests/test_aucarena_environment.py`, `tests/test_aucarena_measurement.py`,
+`tests/test_aucarena_parity.py`, `tests/test_aucarena_replay.py`,
+`tests/test_aucarena_vendored_upstream.py`, `tests/test_aucarena_qc_gate_visibility.py`) plus
+`tests/test_shared_runner_smoke.py`: 119 passed, 0 failed (one more than before — the new
+Finding-8 test). Full repo suite: 835 passed, 31 skipped, 1 xfailed, 0 failed (skip set
+unchanged by this work; exit code 0, confirming the Finding-8 fix never flips a default run
+red).
