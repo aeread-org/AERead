@@ -766,3 +766,28 @@ python -m aeread_families.housing.backend_campaign \
   --run-root runs/housing_model_sensitivity_openrouter_friendli_v13 \
   --through full_trajectory
 ```
+
+The executed gate passed. All 18 admission probes passed on the first attempt
+for `$0.003589443` with complete provider billing: Friendli/GLM 9 of 9 and
+Parasail/DeepSeek 9 of 9. All four full trajectories then completed with
+verified routes, complete billing, and exact score replay for
+`$0.0223814646`; zero trajectories failed operationally and none were
+retried. The combined provider-reported cost was `$0.0259709076` against the
+`$0.14` ceiling. The shared scheduler delivered 132 trajectory provider calls
+(65 Friendli, 67 Parasail) with 115 paced waits totalling about 1147 seconds;
+no admission call exceeded the 120-second budget.
+
+The descriptive within-case scores range from `0.8331363374` to
+`0.9330865186`, but this is a one-world promotion gate, not a leaderboard. It
+establishes only that the frozen model pairings complete under the cooldown
+condition. The next campaign must freeze a new identity for a multi-world
+variance pilot that carries the V13 routes, cooldown, and admission-timeout
+controls forward unchanged; V13's single world must not be pooled into it.
+Review the digest-bound
+[`qualification.json`](../../../evidence/housing_model_sensitivity_openrouter_friendli_v13/reports/qualification.json),
+the four-trajectory
+[`attempted.json`](../../../evidence/housing_model_sensitivity_openrouter_friendli_v13/trajectories/attempted.json),
+and the
+[`canonical_fact_index.json`](../../../evidence/housing_model_sensitivity_openrouter_friendli_v13/tables/canonical_fact_index.json).
+Raw provider payloads and reasoning remain only under ignored local `runs/`.
+

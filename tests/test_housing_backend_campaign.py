@@ -584,6 +584,64 @@ def test_v13_admission_call_is_bound_by_the_frozen_timeout() -> None:
     assert asyncio.run(_admission_complete(legacy, SlowClient(), request)) == "late"
 
 
+def test_published_v13_full_trajectory_gate_is_digest_bound_and_complete() -> None:
+    evidence_root = (
+        V13_CONTRACT_PATH.parents[1]
+        / "evidence"
+        / "housing_model_sensitivity_openrouter_friendli_v13"
+    )
+    qualification = json.loads(
+        (evidence_root / "reports" / "qualification.json").read_bytes()
+    )
+    trajectories = json.loads(
+        (evidence_root / "trajectories" / "attempted.json").read_bytes()
+    )
+    fact_index = json.loads(
+        (evidence_root / "tables" / "canonical_fact_index.json").read_bytes()
+    )
+
+    assert qualification["artifact_sha256"] == (
+        "4a976375fbed6fb1dd1e0f2c14dceaaafa825a2209c17b3906841b05281c5605"
+    )
+    assert trajectories["artifact_sha256"] == (
+        "832f2b1663cde9c2c02f187ebe62d6d4ae5705d9fddc1d4cefe112af5a83d992"
+    )
+    assert fact_index["artifact_sha256"] == (
+        "7ec39dfaa4379d9ba736e53b05a4b3290e2b93eec762b9deadf69117c5e4c965"
+    )
+    assert qualification["status"] == "completed_with_full_matrix"
+    assert qualification["winner_claim_allowed"] is False
+    assert qualification["ranking_allowed"] is False
+    assert qualification["protocol_gate_assessment"]["full_trajectory_gate_passed"]
+    admission = qualification["gate_status"][-2]
+    assert admission["gate_id"] == "profile_admission"
+    assert admission["passed_probe_count"] == 18
+    assert admission["operational_failures"] == 0
+    gate = qualification["gate_status"][-1]
+    assert gate["gate_id"] == "full_trajectory"
+    assert gate["completed_trajectories"] == 4
+    assert gate["operational_failures"] == 0
+    assert gate["complete_matrix"] is True
+    assert trajectories["source_gate"] == "full_trajectory"
+    assert trajectories["local_source"].endswith("/full_trajectory")
+    assert len(trajectories["trajectories"]) == 4
+    assert {row["condition_id"] for row in trajectories["trajectories"]} == {
+        "deepseek_v4_flash__vs__deepseek_v4_flash",
+        "glm_53_flash__vs__deepseek_v4_flash",
+        "deepseek_v4_flash__vs__glm_53_flash",
+        "glm_53_flash__vs__glm_53_flash",
+    }
+    assert all(row["replay_verified"] for row in trajectories["trajectories"])
+    assert all(row["route_verified"] for row in trajectories["trajectories"])
+    assert {
+        route["provider"] for route in qualification["backend"]["routes"]
+    } == {"Friendli", "Parasail"}
+    published = b"".join(path.read_bytes() for path in evidence_root.rglob("*.*"))
+    assert b'"raw_response":' not in published
+    assert b"output_text" not in published
+    assert b"/Users/" not in published
+
+
 def test_published_v12_records_pacing_failure_and_zero_trajectories() -> None:
     evidence_root = (
         V12_CONTRACT_PATH.parents[1]

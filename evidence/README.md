@@ -52,3 +52,9 @@ Current campaign directories include:
   treatment. Admission passed 17/18 probes; one zero-wait DeepInfra follow-on
   call returned HTTP 429, so all trajectories remained blocked. The canonical
   admission table reports elapsed time and pacing delivery for every probe.
+- `housing_model_sensitivity_openrouter_friendli_v13/`: the same
+  four-condition gate with GLM repinned to Friendli, a digest-pinned 10-second
+  completion-to-next-start cooldown, and admission calls bound to the frozen
+  120-second timeout. Admission passed 18/18 and all four trajectories
+  completed with exact replay; the gate is promotion-eligible but supports no
+  ranking because it covers one world.

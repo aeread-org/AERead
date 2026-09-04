@@ -417,7 +417,9 @@ def _publish_run_fact_tables(
         receipts = []
         for row in plan_rows:
             _, serialized = _attempt_dir(
-                live_root=run_root / "live", row=row, design=design
+                live_root=run_root / contract["execution"].get("stage", "live"),
+                row=row,
+                design=design,
             )
             receipts.append(deserialize_evaluation_receipt(serialized))
         table_root = publish_root / "tables" / "by_run" / plan.run_plan_id
@@ -745,14 +747,17 @@ def publish_campaign(
             admission=admission,
         )
 
-    live = _read_sealed(run_root / "live" / "summary.json")
+    terminal_stage = contract["execution"].get("stage", "live")
+    live = _read_sealed(run_root / terminal_stage / "summary.json")
     if live["campaign_id"] != campaign_id:
         raise ValueError("live gate campaign identity differs")
     if live["attempted_trajectories"] != live["planned_trajectories"]:
         raise ValueError("publication requires every frozen cell to be attempted")
 
     trajectories = [
-        _project_attempt(live_root=run_root / "live", row=row, design=design)
+        _project_attempt(
+            live_root=run_root / terminal_stage, row=row, design=design
+        )
         for row in live["rows"]
     ]
     world_count = len(contract["execution"]["world_seeds"])
@@ -796,7 +801,7 @@ def publish_campaign(
             "schema_version": TRAJECTORY_SCHEMA_VERSION,
             "campaign_id": campaign_id,
             "claim_status": contract["claim_status"],
-            "source_gate": "live",
+            "source_gate": terminal_stage,
             "source_summary_artifact_sha256": live["artifact_sha256"],
             "selection_rule": (
                 "Retain every attempted trajectory, including typed operational "
@@ -806,7 +811,7 @@ def publish_campaign(
             "ranking_allowed": False,
             "raw_provider_responses_included": False,
             "model_reasoning_included": False,
-            "local_source": f"runs/{campaign_id}/live",
+            "local_source": f"runs/{campaign_id}/{terminal_stage}",
             "limitations": limitations,
             "planned_trajectories": live["planned_trajectories"],
             "attempted_trajectories": live["attempted_trajectories"],
@@ -953,7 +958,7 @@ def publish_campaign(
                     ],
                 },
                 {
-                    "gate_id": "live",
+                    "gate_id": terminal_stage,
                     "status": live["status"],
                     "artifact_sha256": live["artifact_sha256"],
                     "planned_trajectories": live["planned_trajectories"],
@@ -1056,6 +1061,17 @@ def publish_campaign(
                     "sealed holdout; do not infer a winner from this pilot."
                 )
                 if confirmatory_freeze_ready
+                else (
+                    "The full-trajectory gate passed on the selected routes; freeze "
+                    "a new campaign identity for a multi-world variance pilot that "
+                    "carries these routes, cooldown, and admission-timeout controls "
+                    "forward unchanged. Do not pool or rerun this one-world gate."
+                )
+                if (
+                    terminal_stage == "full_trajectory"
+                    and live["complete_matrix"]
+                    and not live["operational_failures"]
+                )
                 else (
                     "Freeze a new campaign identity, pass one complete trajectory "
                     "per subject-opponent condition on the selected routes, then run "
