@@ -237,7 +237,10 @@ def _trace_action(family_case: Mapping[str, Any], entry: Mapping[str, Any]) -> d
             "action": "counter_offer",
             "supplier_id": entry["supplier_id"],
             "offer_id": entry["offer_id"],
-            "proposal": _plain(entry["proposal"]),
+            # Mirror parse_action: null superset fields carry no proposal.
+            "proposal": {
+                key: value for key, value in _plain(entry["proposal"]).items() if value is not None
+            },
             "message": "replay",
         }
     if action == "submit_award":

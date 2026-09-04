@@ -177,3 +177,30 @@ def test_publish_report_writes_manifest(tmp_path: Path, report: dict) -> None:
         publish_report(report, publication_root=root)
     with pytest.raises(ValueError):
         publish_report(report, publication_root=tmp_path / "runs" / ANALYSIS_ID)
+
+
+def test_replay_strips_null_counter_proposal_fields() -> None:
+    family_case = _family_case(Path(CASE_VARIANCE_PATHS[0]))
+    supplier = family_case["suppliers"][0]["supplier_id"]
+    trace = [
+        {"ordinal": 1, "action": "request_quote", "status": "succeeded", "supplier_id": supplier},
+        {
+            "ordinal": 2,
+            "action": "counter_offer",
+            "status": "succeeded",
+            "supplier_id": supplier,
+            "offer_id": f"offer_{supplier}_v1",
+            "proposal": {
+                "payment_terms_days": 45,
+                "unit_price_usd": None,
+                "moq": None,
+                "refund_window_days": None,
+                "return_freight_payer": None,
+            },
+        },
+        {"ordinal": 3, "action": "defer", "status": "succeeded"},
+    ]
+    replay = replay_action_trace(family_case, trace)
+    assert replay["terminal"]["reason"] == "deferred"
+    assert replay["terminal"]["actions_used"] == 3
+

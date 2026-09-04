@@ -776,3 +776,50 @@ Add `--execute --max-spend-usd 2.19` after loading `OPENROUTER_API_KEY`, continu
 each failure-free checkpoint with `--resume`, and publish with `--publish-only` to
 `evidence/procurement_allocation_glm53_flash_parasail_negotiation_worksheet_v1/`.
 
+### Worksheet operational audit
+
+Attempt 001 admitted the canary, completed one row, and sealed on a typed provider
+`timeout` on the first call of row two with $0.0033577335 spent. Attempt 002 was
+interrupted by the operator before any scored row and is set aside. Attempt 003
+completed seven rows and sealed on three consecutive HTTP 429 responses inside 17
+seconds, exhausting the confirmatory three-attempt bound, at $0.0201324915. Attempt
+004, under the identical frozen plan in a later window, admitted the canary and
+completed all 72 rows in six failure-free checkpoints with zero operational failures.
+No partial efficacy result was inspected before attempt 004 qualified.
+
+### Observed worksheet result
+
+Attempt 004 cost $0.199348479 including the canary, with exact accounting and every
+row receipt-replayed. The preregistered support rule was not met. Worksheet-minus-V4
+regret averaged over surfaces was -$3.82 per world with twelve-world bootstrap
+interval [-$12.69, $4.48]; the interval includes zero. The feasibility guardrail
+held at +0.0556 ([-0.0278, 0.1667]). Completed kits moved -0.29 ([-1.40, 0.82]).
+Feasibility transitions were 4 fail-to-pass and 2 pass-to-fail on each surface.
+
+The mechanism did what it was built to do. All 58 worksheet counters proposed a
+single field, against zero of V4's 27; 22 were accepted against 12. On the
+payment-terms-counter world the worksheet cut regret from $48.63 to $10.68 in five of
+six rows by requesting 180-day terms, taking the rejection, and settling at 120 days,
+leaving $9.81 of working capital on the table against the private 150-day limit. Mean
+working-capital excess on feasible awards fell from $7.25 to $1.48 on labeled worlds
+and from $7.63 to $3.39 on opaque worlds. Multi-unit BOM, split-capacity rounding,
+and landed-cost worlds also improved by $29.24, $17.09, and $10.62 per world.
+
+The offsetting harm is concentrated and legible. On quality-refund-tail, negotiated
+MOQ, and refund-counter worlds the worksheet lost $20.77, $16.32, and $5.63 per
+world. In three of those rows the buyer countered and then submitted an award
+without the exact-variant sample, converting a feasible V4 outcome into a
+`sample_not_verified` failure worth the whole bound. In two refund-counter rows the
+buyer awarded to a worse supplier after a single-term counter on price. The
+worksheet's action-budget clause, which allows a counter only with three actions
+remaining, is not sufficient to protect the sample step once two counters per
+supplier are in play.
+
+The result is therefore a partial transfer: the payment-terms lever is now used, and
+the decomposition target it was built for fell, but a counter budget of two per
+supplier competes with sampling inside the ten-action limit and the preregistered
+overall rule does not clear. A follow-up should make the sample step a hard
+precondition of any award before allowing counters, or cap counters at one per
+supplier. The tracked bundle is
+`evidence/procurement_allocation_glm53_flash_parasail_negotiation_worksheet_v1/`.
+

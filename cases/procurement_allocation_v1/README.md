@@ -386,3 +386,11 @@ python -m aeread_families.procurement_allocation.negotiation_worksheet_campaign 
   --execute --max-spend-usd 2.19
 ```
 
+The qualified run (attempt 004, after a timeout-sealed and a 429-sealed attempt)
+completed and replayed all 72 rows for $0.1993. The preregistered rule was not met:
+worksheet-minus-V4 regret was -$3.82 per world with interval [-$12.69, $4.48]. The
+payment-terms lever transferred as intended, cutting that world's regret from $48.63
+to $10.68, but counters displaced the sample step on three rows and produced
+unverified-sample failures. See the campaign document and
+`evidence/procurement_allocation_glm53_flash_parasail_negotiation_worksheet_v1/`.
+
