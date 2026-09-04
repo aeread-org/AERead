@@ -273,3 +273,72 @@ paired-history teeth today and note it as a gap instead of adding a fixture fami
 family was preferred because an assertion with no failing witness anywhere in the suite is weaker
 protection for the eleven migrations still to come.
 
+---
+
+## Resolutions — ruling R7 (mislabelling contrapositive)
+
+Ruling R7 rejected the first-instinct assertion — "trajectory-declared leaves must score
+differently across the pair" — as unsound (a legitimate trajectory metric may map two histories to
+the same value) and directed the contrapositive instead: for every leaf declared
+`input_scope="terminal_state"`, its score must be IDENTICAL across the two fixtures whose terminal
+outcomes are byte-identical and whose trajectories differ. This milestone implements that in
+`test_every_registered_family_obeys_the_scoring_contract`:
+
+- The unsound "trajectory leaves must differ" loop is removed, not corrected — R7 states plainly
+  that no sound replacement assertion exists for trajectory-declared leaves at this pair; the
+  paired fixtures are still asserted to have a byte-identical outcome and a differing
+  `phase_instances`, but nothing further is asserted about trajectory-declared leaves themselves.
+- The pairing block's gate changed from "the family's leaves include at least one declared
+  `trajectory`" to "the family supplied at least two fixtures," with the pre-existing `len(...) >=
+  2` requirement kept as an unconditional assertion whenever a `trajectory`-declared leaf is
+  present. This closes the exact gap R7 names: gating purely on the (self-reported, and exactly
+  the thing under test) `trajectory` label would let a family that mislabels every trajectory-
+  reading leaf as `terminal_state` skip the pairing block entirely, since it would then declare no
+  `trajectory` leaves at all.
+- A determinism pre-check runs before the mislabelling comparison: each of the two fixtures'
+  scorers is invoked a second time on the same `FamilyScoringInput`, and every `terminal_state`
+  leaf's measurement content is asserted equal to its first invocation. Its failure message
+  ("...is nondeterministic: invoking the scorer twice on the SAME scoring input produced two
+  different measurements...") is textually distinguishable from the mislabelling message
+  ("...is declared input_scope=terminal_state but its score differs between two fixtures...").
+- The comparison helper `_score_measurement_content` compares `status`, `primary`, `metrics`,
+  `reference_values`, and `validity`, and deliberately excludes `evidence_refs` (verified against
+  `ScoreEnvelope`'s field list in `measurement.py`: `status`, `leaf`, `primary`, `metrics`,
+  `reference_values`, `validity`, `evidence_refs`, `utility_by_seat`, `capture_by_seat`). Two
+  differing trajectories seal different sealed-event ids, so `evidence_refs` differs between the
+  pair by construction regardless of whether the leaf is honestly terminal-scoped; comparing whole
+  envelopes would fail every terminal-scoped leaf on every paired family, always, which is not the
+  failure this check exists to report. `leaf` and the per-seat breakdowns are excluded as identity
+  and provenance respectively, not measurement content — not named in R7's list, and both are
+  either already asserted equal by leaf-id lookup (`leaf`) or unused by any fixture in this file
+  today (`utility_by_seat`/`capture_by_seat`); a future family with genuine per-seat content should
+  revisit whether they belong in this tuple.
+
+**Mutation-verified, both directions (temporarily edited `_ReferenceScorer.__call__`, ran the
+suite, confirmed the expected failure, then restored the file from a backup copy rather than a
+VCS checkout):**
+
+1. Made `label_balance` (declared `terminal_state`) add `1.0 if first_choice_is_x else 0.0` to its
+   value — i.e. secretly trajectory-dependent while still labelled `terminal_state`. The suite
+   failed with: `kernel_contract_reference_v1/label_balance is declared
+   input_scope=terminal_state but its score differs between two fixtures with a byte-identical
+   outcome and a differing trajectory -- it is secretly trajectory-dependent and mislabelled`,
+   with the two `MetricValue` sides showing `1.0` vs `0.0` as expected. The new assertion fires.
+2. Made the same leaf add a monotonically increasing counter value on every call (unrelated to
+   trajectory or outcome — a stand-in for any nondeterministic scorer). The suite failed at the
+   determinism pre-check, before the mislabelling comparison ever ran, with: `.../label_balance is
+   nondeterministic: invoking the scorer twice on the SAME scoring input produced two different
+   measurements, so no conclusion about terminal_state mislabelling can be drawn from the
+   paired-fixture comparison below`. Nondeterminism is reported as nondeterminism, not as
+   mislabelling.
+
+**Stated limit (R7's own words, recorded here as directed): one counterexample pair cannot prove
+non-dependence.** A leaf that is secretly trajectory-dependent can still coincide on this
+particular pair of trajectories (e.g. a bug that depends on trajectory length rather than order,
+when both fixtures happen to have the same length) and pass undetected. This check is a
+falsification opportunity, not a proof: it catches the mislabelled leaf whenever the pair the
+family supplies happens to discriminate, and says nothing when it does not. Stronger coverage
+would need several deliberately discriminating trajectory mutations per family (varying order,
+length, and per-actor identity independently) rather than one incidental pair; that is out of
+scope for this milestone and is recorded here as the known gap rather than implied away.
+
