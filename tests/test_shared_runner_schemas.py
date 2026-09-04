@@ -13,6 +13,7 @@ from aeread.shared_runner.registry import (
     PluginRegistry,
     PluginResolutionError,
 )
+from aeread.shared_runner.run.resolver import canonical_json_bytes
 from aeread.shared_runner.schemas import (
     AgentProfile,
     AnalysisPlan,
@@ -561,6 +562,45 @@ def test_measurement_declaration_without_leaves_defaults_to_no_policy() -> None:
     assert family.measurement.leaves == ()
     assert family.measurement.primary_leaf_id is None
     assert family.measurement.admission_leaf_ids == ()
+
+
+def test_measurement_declaration_without_leaves_is_digest_neutral() -> None:
+    """Ruling R1 (kernel_scoring_contract_spec.md): an unset leaf policy must be
+    ABSENT from canonical JSON, not merely null/empty. ``leaves``,
+    ``primary_leaf_id``, and ``admission_leaf_ids`` were added after Housing
+    V8/V11 evidence was sealed; a manifest that never declares a leaf policy
+    must hash byte-for-byte as it did before those fields existed, or
+    plan_sha256 (and the artifact_sha256 values that depend on it) silently
+    change out from under already-published evidence.
+    """
+    family = FamilyManifest.from_dict(family_data())
+
+    pre_leaf_policy_measurement = {
+        "primary_estimand": "tenant_realized_utility",
+        "measurement_kind": "optimizable_outcome",
+        "direction": "maximize",
+        "optimum_lower_bound": "housing_scripted_search_v1",
+        "comparison_baseline": "housing_scripted_search_v1",
+        "optimum_upper_bound": "housing_exact_assignment_v1",
+        "optimum_upper_bound_kind": "full_information_relaxation",
+        "bound_status": "bracketed",
+        "outcome_support": "undeclared",
+    }
+    expected_bytes = (
+        b'{"bound_status":"bracketed","comparison_baseline":'
+        b'"housing_scripted_search_v1","direction":"maximize",'
+        b'"measurement_kind":"optimizable_outcome","optimum_lower_bound":'
+        b'"housing_scripted_search_v1","optimum_upper_bound":'
+        b'"housing_exact_assignment_v1","optimum_upper_bound_kind":'
+        b'"full_information_relaxation","outcome_support":"undeclared",'
+        b'"primary_estimand":"tenant_realized_utility"}'
+    )
+
+    assert canonical_json_bytes(pre_leaf_policy_measurement) == expected_bytes
+    assert canonical_json_bytes(family.measurement) == expected_bytes
+    assert canonical_json_bytes(family.measurement) == canonical_json_bytes(
+        pre_leaf_policy_measurement
+    )
 
 
 def test_measurement_declaration_accepts_a_consistent_leaf_policy() -> None:
