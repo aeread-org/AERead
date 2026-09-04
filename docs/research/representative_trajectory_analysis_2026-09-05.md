@@ -2,12 +2,12 @@
 
 **Reviewer:** Yuchen Fang  
 **Delivery target:** 2026-09-05–06  
-**Scope:** Published AERead trajectories on GitHub `main`  
+**Scope:** Published AERead trajectories on GitHub `main`, plus Housing V12–V15 evidence in open stacked PRs [#61](https://github.com/aeread-org/AERead/pull/61) and [#68](https://github.com/aeread-org/AERead/pull/68)
 **Status:** Review artifact
 
 ## Bottom line
 
-The repository publishes 74 sanitized trajectory records: 52 completed and 22 typed operational failures. This review samples outcome extrema, matched outcomes with different action paths, retry-heavy completions, failures at different execution stages, and a second benchmark family.
+The repository's `main` branch publishes 74 sanitized trajectory records: 52 completed and 22 typed operational failures. The open V12–V15 stack adds 52 attempted records—4 V13 completions and 48 V15 attempts, of which 43 completed and 5 are typed operational failures. This review therefore covers a 126-record public evidence surface while keeping merged and open-PR evidence explicitly separate.
 
 The most important conclusion is methodological:
 
@@ -23,6 +23,10 @@ Claims below are consequently labeled as **observed**, **candidate interpretatio
 | Housing model sensitivity V7 | 7 | 0 | Completed comparison trajectories |
 | Housing model sensitivity V8 | 11 | 1 | Full one-world matrix and timeout failure |
 | Housing Morph V10 | 31 | 17 | Multi-world extrema, retries, and failure classes |
+| Housing V12 pacing gate (open PR) | 0 | 0 | Admission blocked execution; pacing and timeout diagnosis |
+| Housing V13 cooldown gate (open PR) | 4 | 0 | Successful one-world route promotion gate |
+| Housing V14 variance pilot (open PR) | 0 | 0 | Admission blocked execution despite cooldown |
+| Housing V15 variance pilot (open PR) | 43 | 5 | Multi-world extrema, visible retries, and residual GLM-route failures |
 | Commercial-state variance V1 | 1 | 3 | Non-Housing requirement-tracking case and early infrastructure failures |
 | Housing V9 and V11 | 0 | 0 | Admission blocked execution; no trajectories to interpret |
 
@@ -32,6 +36,10 @@ Primary files:
 - [Housing V7 selected trajectories](https://github.com/aeread-org/AERead/blob/main/evidence/housing_model_sensitivity_openrouter_alt_v7/trajectories/selected.json)
 - [Housing V8 attempted trajectories](https://github.com/aeread-org/AERead/blob/main/evidence/housing_model_sensitivity_openrouter_alt_v8/trajectories/attempted.json)
 - [Housing Morph V10 attempted trajectories](https://github.com/aeread-org/AERead/blob/main/evidence/housing_model_sensitivity_openrouter_morph_v10/trajectories/attempted.json)
+- [Housing V12 PR](https://github.com/aeread-org/AERead/pull/61)
+- [Housing V13 attempted trajectories](https://github.com/aeread-org/AERead/blob/codex/housing-v13-cooldown-full-trajectory/evidence/housing_model_sensitivity_openrouter_friendli_v13/trajectories/attempted.json)
+- [Housing V14 attempted trajectories](https://github.com/aeread-org/AERead/blob/codex/housing-v13-cooldown-full-trajectory/evidence/housing_model_sensitivity_openrouter_friendli_v14/trajectories/attempted.json)
+- [Housing V15 attempted trajectories](https://github.com/aeread-org/AERead/blob/codex/housing-v13-cooldown-full-trajectory/evidence/housing_model_sensitivity_openrouter_friendli_v15/trajectories/attempted.json)
 - [Commercial-state sanitized trajectories](https://github.com/aeread-org/AERead/blob/main/evidence/commercial_state_openweight_variance_v1/trajectories/sanitized.jsonl)
 
 ## Why these examples are designed and selected
@@ -42,13 +50,13 @@ The selected examples serve seven complementary purposes:
 
 | Design purpose | Question being tested | Representative examples | What the comparison prevents |
 |---|---|---|---|
-| Basic competence | Can the agents complete the native protocol and reach a valid outcome? | Population upper case; V10 near-oracle case | Treating inability to use the interface as an economic or strategic result |
+| Basic competence | Can the agents complete the native protocol and reach a valid outcome? | Population upper case; V10 near-oracle case; V13 4/4 gate | Treating inability to use the interface as an economic or strategic result |
 | Information use and adaptation | Does behavior change productively after a new board, inbox, offer, or hold? | Population upper/lower contrast; V8 multi-round low case | Inferring adaptation from a terminal allocation without examining the path |
 | Objective and constraint tracking | Do agents pursue welfare/payoff while preserving legality, privacy, feasibility, and individual rationality? | V10 lowest case with an IR violation; commercial-state partial-completeness case | Letting a plausible final answer hide a violated constraint or omitted requirement |
 | Commitment and execution | Do offers and intermediate agreements become valid final commitments? | V10 high/low extrema; population malformed-response/commit contrast | Conflating a good intention or proposal with successful execution |
-| Behavioral versus operational failure | Is a bad result caused by the agent's policy or by rate limits, empty output, timeout, or transport? | Population empty-response case; V8 timeout; V10 failure classes | Scoring infrastructure failure as poor reasoning or zero utility |
+| Behavioral versus operational failure | Is a bad result caused by the agent's policy or by rate limits, empty output, timeout, or transport? | Population empty-response case; V8 timeout; V10 failures; V12/V14 gate blocks; V15 typed failures | Scoring infrastructure failure as poor reasoning or zero utility |
 | Counterpart sensitivity | Does the same tested policy behave differently against scripted, self-play, or cross-play counterparts? | Housing self-play and cross-play cells | Claiming an intrinsic model capability from performance against one favorable opponent |
-| Generalization and path dependence | Does the result persist across worlds, and can different paths lead to the same endpoint? | V7/V8 terminal-equivalent pair; four-world V10 pilot | Treating one world as general evidence or terminal equivalence as process equivalence |
+| Generalization and path dependence | Does the result persist across worlds, and can different paths lead to the same endpoint? | V7/V8 terminal-equivalent pair; four-world V10 and V15 pilots | Treating one world as general evidence or terminal equivalence as process equivalence |
 
 These examples should therefore be read as a **diagnostic panel**, not as independent anecdotes or a leaderboard. Together they provide positive controls, valid-but-poor outcomes, process contrasts, and typed operational failures. No single trajectory can establish all of these properties.
 
@@ -173,6 +181,63 @@ The Mistral `payment-release-reconcile` trajectory is the only completed commerc
 - **Reasoning-sensitive point:** the missing state/action component lies between evidence integration and complete action selection. The model reached a broadly correct belief/decision but omitted one required operational consequence.
 - **Verdict:** this is compatible with incomplete constraint tracking or action planning, but the actual belief state is not published. Three other models failed before usable output and cannot be interpreted behaviorally.
 
+### L. Housing V12 and V14: pre-trajectory gate failures
+
+Neither version contains a Housing trajectory, but both explain why later examples exist:
+
+- **V12 observation/execution boundary:** the start-to-start pacer imposed a 15-second interval, but a DeepInfra/GLM admission call lasted `147.14` seconds. The next call therefore began without another wait and returned HTTP 429. Admission passed 17/18 probes and correctly blocked all four planned trajectories. The event also exposed that admission did not enforce the declared 120-second timeout.
+- **V14 observation/execution boundary:** V14 carried V13's successful routes and completion-based cooldown into a 48-cell design. Friendli/GLM passed only 6/9 admission probes because three calls returned HTTP 429; Parasail/DeepSeek passed 9/9. All 48 trajectories remained unstarted.
+- **Reasoning-sensitive point:** none. These failures occur before a valid task trajectory can test observation, belief, or economic decision-making.
+- **Verdict:** pacing and admission policy are measurement controls. Their failure must be diagnosed separately from model reasoning, and blocked cells must not become zero Housing scores.
+
+### M. Housing V13: successful route-promotion gate
+
+V13 changed GLM's route to Friendli, replaced start-to-start pacing with a 10-second completion-to-next-start cooldown, and enforced the 120-second timeout during admission. All 18 admission probes and all four frozen trajectories passed.
+
+- **Observed range:** all four cells use one moderate world (`227922569`) and complete two rounds with two signed assignments. Scores range from `0.8331` to `0.9331`; no trajectory has an IR violation.
+- **Path-equivalent outcome:** DeepSeek self-play and GLM self-play both assign `(0,3)` and `(2,2)`, producing welfare `955.21` and score `0.9331`. DeepSeek uses 11 offers, 9 passes, 7 accepts, and 2 signs; GLM uses 8 offers, 5 passes, 1 accept, 2 counters, 3 reject-all responses, 5 walks, and 2 signs.
+- **Observation → belief:** not published. The differing response and commitment paths are observable only in aggregate, so beliefs about congestion, pricing, or holds remain undetermined.
+- **Decision → action → execution:** both paths eventually select the same two matches and replay exactly, despite substantially different intermediate actions.
+- **Outcome:** the gate establishes route/harness completion and replay, not strategy superiority. Four completions on one world do not support a ranking.
+- **Verdict:** V13 strengthens the earlier V7/V8 finding that terminal equivalence can hide different reasoning-sensitive paths.
+
+### N. Housing V15: completed extrema
+
+V15 applies the V13 routes and cooldown to four new worlds, three difficulty configurations, and four self/cross-play conditions. Its two completed extrema share the same DeepSeek-subject/GLM-opponent direction and each records two retries, but occur in different worlds and configurations.
+
+**Lowest completion:** `episode_attempt_46ee5db15f4828c3b427`, moderate world `264284765`:
+
+- **Decision/action:** 12 offers, 11 passes, 6 reject-all responses, only 1 accept and 1 sign across two rounds.
+- **Execution:** one assignment, no IR violation, and 11 wasted contacts.
+- **Outcome:** welfare `218.94` versus baseline `718.89` and oracle `1128.13`; score `0.1941`.
+- **Interpretation:** the visible bottleneck is offer/response conversion into commitments. Whether this reflects bad congestion beliefs, excessive rejection, poor offer quality, or counterpart policy is undetermined.
+
+**Highest completion:** `episode_attempt_36a4753218e012636d46`, severe world `366965770`:
+
+- **Decision/action:** 6 offers, 3 accepts, 3 signs, and 3 passes in one round.
+- **Execution:** all three available matches complete; no IR violation; 3 wasted contacts.
+- **Outcome:** welfare equals the oracle at `1074.66`; score `1.0`.
+- **Interpretation:** first-round target and acceptance choices suffice for the optimal allocation, but the projection cannot establish the beliefs that generated them.
+
+**Verdict:** equal retry count does not explain the outcome gap. The observable difference lies primarily in decision/action patterns and commitment conversion, while world/configuration differences prevent a controlled causal comparison.
+
+### O. Housing V15: visible retries and resilience
+
+- Admission allowed up to four receipt-visible attempts with recorded `2/4/8`-second backoff, although all 18 admission probes passed on their first attempt.
+- During trajectories, retry-heavy completion remained possible. `episode_attempt_17151019d972e19a7653` records 13 effective retries yet completes three assignments with score `0.9507`.
+- **Chain implication:** retries sit at the action → execution boundary. They affect latency, cost, and missingness but are not a measure of belief quality or reasoning effort.
+- **Verdict:** V15 provides stronger evidence than V10 that explicit retry accounting can preserve valid trajectories without hiding provider instability. Capability reports must still show retries and operational coverage beside outcome scores.
+
+### P. Housing V15: residual operational failures and incomplete inference
+
+V15 attempted all 48 frozen cells: 43 completed and 5 became typed missingness. Four failures exhausted repeated Friendli/GLM rate limits and one Friendli/GLM call timed out; all five trajectories contain a GLM seat. Parasail/DeepSeek had zero failures across 623 calls.
+
+- **Early breaks:** two failures stop during `contact` or `respond`, before a complete commitment cycle.
+- **Late breaks:** other failures contain one or two completed phase cycles and partial valid actions but no terminal score.
+- **Execution → outcome:** partial task behavior cannot be promoted to a comparable terminal economic observation.
+- **Inference consequence:** every world is missing at least one required GLM-subject cell. The paired-world count is therefore zero, so the planned GLM-minus-DeepSeek variance contrast is not estimable.
+- **Verdict:** completion improved from V10's 31/48 to V15's 43/48, but routes, worlds, and controls changed, so this is a descriptive reliability improvement rather than a controlled capability gain. V15 remains non-rankable exploratory evidence.
+
 ## Cross-trajectory findings
 
 ### Where the chain changes observably
@@ -193,6 +258,10 @@ The Mistral `payment-release-reconcile` trajectory is the only completed commerc
 4. **Operational effort is not cognition.** Equal retry counts coexist with very different scores; provider failure must not be treated as a decision.
 5. **Terminal welfare does not diagnose the mechanism.** It reveals allocation quality but not whether the cause was objective selection, strategic modeling, constraint tracking, or schema execution.
 6. **A second family shows a different bottleneck.** The commercial-state trajectory gets amounts and evidence right but misses part of state/action completeness, suggesting requirement integration rather than market coordination.
+7. **A successful promotion gate is not a performance result.** V13 proves that the frozen route/harness can complete and replay one four-cell matrix; it does not establish model superiority.
+8. **Pacing semantics matter.** V12's start-to-start pacing failed after a long call, whereas V13's completion-to-next-start cooldown passed its gate. V14 and V15 then show that cooldown alone cannot eliminate shared-pool rate limits.
+9. **Reliability improvements do not guarantee estimability.** V15 completes 43/48 cells, yet strategically placed missing cells leave zero complete paired worlds and no estimable primary contrast.
+10. **Visible retries protect attribution.** V15 can distinguish a retry-heavy valid completion from exhausted rate limits, preventing hidden provider repair from being mistaken for agent competence.
 
 ## Answer to “where reasoning changes the chain”
 
@@ -222,7 +291,7 @@ Review safeguards:
 
 ## Evidence needed for a true event-level review
 
-For the strongest next analysis, publish a sanitized ordered projection for the population upper/lower pair and V10 extrema containing:
+For the strongest next analysis, publish a sanitized ordered projection for the population upper/lower pair, V10 extrema, V13 terminal-equivalent paths, and V15 extrema containing:
 
 - event ID, round, phase, and acting seat;
 - exact permitted observation or a review-safe projection of it;
