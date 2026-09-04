@@ -21,6 +21,25 @@ with no model call. Branching on the declaration rather than the content would
 have attached a judged claim to the majority of the corpus that upstream never
 actually judges.
 
+### Why `tau3_retail_db_state` is primary, stated explicitly
+
+Kernel scoring-contract ruling R8 requires every family's status doc to record why its
+primary leaf was chosen, because no identifier validation can catch a family that wires every
+name correctly and still picks the wrong leaf as headline (R8 is itself named after this
+family: its `primary_estimand`, `"retail_task_reward"`, is a third string that names neither
+leaf, and the kernel contract deliberately does not check it against either `estimand_id` --
+see `docs/kernel_contract_design_critique.md`'s R8 resolution).
+
+`tau3_retail_db_state` is primary because it is upstream tau2-bench's own deterministic,
+always-computed reward and the number every published tau2-bench result reports; it is what
+"reproduces upstream" (this doc's central claim) actually means. `tau3_retail_nl_assertions`
+is real and receipted, but it is judge-dependent, present for only 40 of 114 tasks, and a
+model-graded claim about a natural-language assertion -- exactly the kind of leaf R8 warns
+could be mistaken for a headline result. Declaring it primary instead would have made "did an
+LLM judge approve of the response text" the family's headline claim on 74 tasks where no judge
+call happens at all, which is incoherent. Every identifier check in the kernel contract would
+pass either way; this paragraph, not a validator, is what fixes the choice.
+
 ## Evidence
 
 **Full-corpus parity: all 114 retail tasks match upstream, component by

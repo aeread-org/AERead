@@ -849,3 +849,82 @@ def test_measurement_declaration_rejects_an_inconsistent_leaf_policy_from_datacl
             ),
             CompleteHousingPlugin(),
         )
+
+
+def test_measurement_declaration_post_init_enforces_every_r8_invariant_in_isolation() -> None:
+    """Ruling R8 names four intra-manifest invariants; mutation-test each one.
+
+    The test above (``..._from_dataclasses_replace``) exercises three
+    ``replace`` scenarios, but none of them isolates a single R8 guard: its
+    first case (an undeclared ``primary_leaf_id``) is actually caught by the
+    *membership* guard, not the *finalize_time* guard, and its other two
+    exercise the admission-duplicate and deferred-admission checks, leaving
+    "admission names an entirely undeclared leaf" and "the primary is
+    excluded from admission" with no ``replace`` call at all. This test was
+    written by temporarily removing each ``__post_init__`` check in turn
+    (production code restored from a backup copy afterwards, never via
+    ``git checkout``) and confirming which assertion, if any, still failed --
+    see each sub-case's comment for what that showed.
+    """
+
+    import dataclasses
+
+    manifest = FamilyManifest.from_dict(_family_data_with_leaves())
+    measurement = manifest.measurement
+
+    # 1. leaf ids unique. Duplicate ``leaves`` themselves (not merely
+    # ``admission_leaf_ids``, which the test above already exercises) --
+    # this is checked before any primary/admission logic runs, so no other
+    # guard can incidentally catch it.
+    with pytest.raises(AuthoringValidationError, match="measurement.leaves contains a duplicate leaf_id"):
+        dataclasses.replace(
+            measurement,
+            leaves=(
+                LeafPolicyDeclaration("tenant_realized_utility_leaf", "finalize_time", None),
+                LeafPolicyDeclaration("tenant_realized_utility_leaf", "finalize_time", None),
+            ),
+        )
+
+    # 2. primary_leaf_id names exactly one declared finalize_time leaf. Name a
+    # leaf that IS declared but is scoped deferred. Mutation testing this
+    # specific check (temporarily removed) shows the manifest is still
+    # rejected -- not in isolation, but because a deferred primary is always
+    # caught by the composition of two later guards: it can never
+    # simultaneously satisfy "the primary is in admission" and "admission
+    # excludes deferred leaves". So this guard's rejection is logically
+    # entailed by guards 3 and 4 below whenever it would fire; it is coded
+    # explicitly only so the reported reason is "must be a finalize_time
+    # leaf" (a diagnosis of scope) rather than "must be included in
+    # admission_leaf_ids" (a diagnosis of membership, which is true but less
+    # specific about the actual mistake). The assertion below still detects
+    # its removal, just via a message change rather than an unraised error.
+    with pytest.raises(AuthoringValidationError, match="must be a finalize_time leaf"):
+        dataclasses.replace(measurement, primary_leaf_id="tenant_nl_assertions_leaf")
+
+    # 3. admission ids name declared finalize-time leaves. Name a leaf id that
+    # is not declared at all (not merely a declared-but-deferred one, which
+    # the test above already exercises) -- this fires before the
+    # deferred-admission and primary-in-admission checks.
+    with pytest.raises(AuthoringValidationError, match="admission_leaf_ids must be declared leaves"):
+        dataclasses.replace(
+            measurement,
+            admission_leaf_ids=("tenant_realized_utility_leaf", "not_a_declared_leaf"),
+        )
+
+    # 4. the primary is in admission. This needs a second finalize_time leaf
+    # to isolate: with only one finalize_time leaf, any non-empty,
+    # all-finalize_time admission set that excludes the primary is
+    # impossible to construct. Build a three-leaf manifest (two finalize_time,
+    # one deferred) so admission can legally point at the *other*
+    # finalize_time leaf while excluding the primary.
+    three_leaf_data = _family_data_with_leaves()
+    three_leaf_data["measurement"]["leaves"].append(
+        {"leaf_id": "tenant_secondary_leaf", "scope": "finalize_time"}
+    )
+    three_leaf_data["measurement"]["admission_leaf_ids"] = [
+        "tenant_realized_utility_leaf",
+        "tenant_secondary_leaf",
+    ]
+    three_leaf_measurement = FamilyManifest.from_dict(three_leaf_data).measurement
+    with pytest.raises(AuthoringValidationError, match="must be included in admission_leaf_ids"):
+        dataclasses.replace(three_leaf_measurement, admission_leaf_ids=("tenant_secondary_leaf",))
