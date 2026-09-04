@@ -337,11 +337,14 @@ class DataCenterStackPlugin:
             _positive(value, f"negotiation.max_rounds.{key}")
         policies = _exact(data["policies"], set(self.sequence), "policies")
         for key, value in policies.items():
-            policy = _exact(
-                value,
-                {"minimums", "maximums", "required_conditions", "counter_terms"},
-                f"policies.{key}",
-            )
+            if not isinstance(value, dict):
+                raise ValueError(f"policies.{key} must be an object")
+            policy_fields = {"minimums", "maximums", "required_conditions", "counter_terms"}
+            if "counter_message" in value:
+                if not isinstance(value["counter_message"], str) or not value["counter_message"]:
+                    raise ValueError(f"policies.{key}.counter_message must be non-empty")
+                policy_fields.add("counter_message")
+            policy = _exact(value, policy_fields, f"policies.{key}")
             if not isinstance(policy["minimums"], dict) or not isinstance(
                 policy["maximums"], dict
             ):

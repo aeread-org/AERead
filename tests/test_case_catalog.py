@@ -91,6 +91,9 @@ def test_datacenter_development_cases_are_discoverable() -> None:
     assert (family / "dev" / "service_loan_bankability_001.json").is_file()
     assert (family / "v1" / "power_epc_bankability_001.json").is_file()
     assert (family / "v2" / "full_stack_amendment_001.json").is_file()
+    worlds = family / "worlds_v2"
+    assert (worlds / "manifest.json").is_file()
+    assert len(sorted(worlds.glob("*_00[1-4].json"))) == 24
     assert (family / "v2" / "objective_bounded_001.json").is_file()
 
 

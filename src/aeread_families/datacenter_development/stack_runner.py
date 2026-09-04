@@ -1107,7 +1107,7 @@ class StackScriptedCounterpartyProvider:
         output = (
             {"decision": "accept", "offer_id": offer["offer_id"], "message": f"{self._seat_id} accepts the written terms.", "terms": None}
             if acceptable
-            else {"decision": "counter", "offer_id": offer["offer_id"], "message": f"{self._seat_id} counterproposal.", "terms": policy["counter_terms"]}
+            else {"decision": "counter", "offer_id": offer["offer_id"], "message": policy.get("counter_message") or f"{self._seat_id} counterproposal.", "terms": policy["counter_terms"]}
         )
         return _scripted_result(request, output)
 
@@ -1131,8 +1131,9 @@ async def run_stack_offline(
     *,
     evidence_root: Path | str,
     episode_attempt_ordinal: int = 0,
+    case_path: Path | str | None = None,
 ) -> tuple[DataCenterStackSetup, CellExecution]:
-    setup = build_stack_setup(scope_version)
+    setup = build_stack_setup(scope_version, case_path=case_path)
     execution = await execute_plan_cell(
         plan=setup.plan,
         cell_id=setup.plan.cells[0].cell_id,
@@ -1161,6 +1162,7 @@ async def run_stack_openrouter(
     harness_config: Mapping[str, Any] | None = None,
     runtime_implementation: str | None = None,
     provider: Any | None = None,
+    case_path: Path | str | None = None,
 ) -> tuple[DataCenterStackSetup, CellExecution]:
     """Execute one live developer trajectory with scripted counterparties."""
 
@@ -1168,6 +1170,7 @@ async def run_stack_openrouter(
         scope_version,
         route,
         seed=seed,
+        case_path=case_path,
         max_output_tokens=max_output_tokens,
         timeout_seconds=timeout_seconds,
         max_cost_usd=max_cost_usd,
@@ -1207,6 +1210,7 @@ async def run_stack_model_to_model(
     harness_config: Mapping[str, Any] | None = None,
     runtime_implementation: str | None = None,
     provider: Any | None = None,
+    case_path: Path | str | None = None,
 ) -> tuple[DataCenterStackSetup, CellExecution]:
     """Execute one harness-mediated trajectory with live models in every seat."""
 
@@ -1214,6 +1218,7 @@ async def run_stack_model_to_model(
         scope_version,
         route,
         seed=seed,
+        case_path=case_path,
         counterpart_route=counterpart_route,
         max_output_tokens=max_output_tokens,
         timeout_seconds=timeout_seconds,

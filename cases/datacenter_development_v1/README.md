@@ -63,3 +63,27 @@ The separate [`datacenter_counteroffer_adoption_v1`](../datacenter_counteroffer_
 family reuses the objective-bounded project by content hash to diagnose exact
 written-counteroffer adoption at three nested agreement depths. Its partial
 prefixes are not assigned project cash-flow meaning.
+
+## Generated V2 world pack (`worlds_v2/`)
+
+`worlds_v2/` holds 24 generated V2 worlds: six mechanism strata with four
+seeded variants each (`revenue_without_bankability`, `delayed_revenue`,
+`restrictive_draws`, `covenant_cliff`, `liability_transfer`,
+`verbal_written_divergence`). Every world carries three engine-verified paths
+recorded in `worlds_v2/manifest.json`, outside the payload the tested agent can
+observe: a feasible agreement stack (the scripted-developer baseline), a
+superficially attractive stack that every counterparty accepts but that fails
+project admission, and the declared walk-away outside option.
+
+Regenerate or verify the pack from the pinned master seed:
+
+```bash
+PYTHONPATH=src python -m aeread_families.datacenter_development.stack_worlds --check
+PYTHONPATH=src python -m aeread_families.datacenter_development.stack_worlds
+```
+
+The paired live panel over this pack is
+`configs/datacenter_development_v2_world_panel_v1.json`, driven by
+`aeread_families.datacenter_development.world_campaign`. Mechanism annotations
+are engine-derived (`review_status: generated`); they have not been hand
+reviewed.
