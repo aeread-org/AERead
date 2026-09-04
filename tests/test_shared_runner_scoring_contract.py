@@ -8,6 +8,15 @@ manifest declares; and any family with a trajectory-scoped leaf must supply
 two fixtures with a byte-identical terminal outcome and a differing
 trajectory, so a scorer that secretly reads only the outcome fails.
 
+Ruling R7 adds the contrapositive: wherever such a pair exists, every leaf
+declared ``input_scope="terminal_state"`` must score IDENTICALLY across it --
+a leaf that varies is secretly trajectory-dependent and mislabelled. A
+determinism pre-check (invoke the scorer twice on the SAME input) runs first,
+so a nondeterministic scorer is reported as nondeterministic rather than as
+mislabelled. The stated limit: one counterexample pair cannot prove
+non-dependence, only refute it when it fires (see
+``docs/kernel_contract_design_critique.md``).
+
 This registry is local to this test, not a production one: the five families
 already migrated to the ``FamilyScoringInput`` contract (housing,
 datacenter_development, procurement_allocation, procurement_grounding,
@@ -906,6 +915,21 @@ def _build_protocol_test_registry_and_fixtures(
     return registry, fixtures
 
 
+def _score_measurement_content(score: ScoreEnvelope) -> tuple[Any, ...]:
+    """The part of a ``ScoreEnvelope`` that reflects what was measured.
+
+    Ruling R7: ``evidence_refs`` is provenance, not measurement -- two runs
+    whose trajectories differ seal different sealed-event ids even when the
+    measurement itself is identical, so comparing whole envelopes would fail
+    100% of the time for every terminal-scoped leaf. Compare exactly
+    ``status``, ``primary``, ``metrics``, ``reference_values``, and
+    ``validity`` (itself only ``status`` + ``reasons``, so safe); everything
+    else on ``ScoreEnvelope`` (``leaf``, ``evidence_refs``, per-seat
+    breakdowns) is provenance or identity, not measurement content.
+    """
+    return (score.status, score.primary, score.metrics, score.reference_values, score.validity)
+
+
 def test_every_registered_family_obeys_the_scoring_contract(tmp_path: Path) -> None:
     registry, fixtures = _build_protocol_test_registry_and_fixtures(tmp_path)
     registrations = {
@@ -940,30 +964,101 @@ def test_every_registered_family_obeys_the_scoring_contract(tmp_path: Path) -> N
             )
             produced_by_case.append((scoring_input, produced))
 
-        # trajectory_leaf_ids is derived from the leaf's declared
-        # EstimandSpec.input_scope (ruling R5), not from a hand-maintained
-        # list: whichever leaves the scorer actually produced as
-        # input_scope="trajectory" are the ones the paired-history
-        # requirement below applies to.
+        # trajectory_leaf_ids / terminal_leaf_ids are derived from the leaf's
+        # declared EstimandSpec.input_scope (ruling R5), not from a
+        # hand-maintained list: whichever leaves the scorer actually produced
+        # with a given input_scope are the ones the checks below apply to.
+        first_case_scores = produced_by_case[0][1].scores
         trajectory_leaf_ids = {
             score.leaf.leaf_id
-            for score in produced_by_case[0][1].scores
+            for score in first_case_scores
             if score.leaf.estimand.input_scope == "trajectory"
         }
-        if not trajectory_leaf_ids:
+        terminal_leaf_ids = {
+            score.leaf.leaf_id
+            for score in first_case_scores
+            if score.leaf.estimand.input_scope == "terminal_state"
+        }
+
+        # A family with a genuinely trajectory-scoped leaf must supply the
+        # paired fixtures (spec section 6) -- this enforcement stays
+        # unconditional even though the pairing check below now also runs for
+        # families whose leaves are all declared terminal_state (ruling R7):
+        # a family could mislabel every trajectory-reading leaf as
+        # terminal_state, and gating the pair purely on the presence of a
+        # (by-construction-trusted) "trajectory" label would let exactly that
+        # case skip verification entirely.
+        if trajectory_leaf_ids:
+            assert len(produced_by_case) >= 2
+
+        if len(produced_by_case) < 2:
+            # No paired fixtures to compare -- nothing further to check for
+            # this family. (Four of the five already-migrated families are in
+            # this position today; see this module's docstring.)
             continue
 
-        assert len(produced_by_case) >= 2
         (left_input, left_scores), (right_input, right_scores) = produced_by_case[:2]
         assert canonical_json_bytes(left_input.outcome) == canonical_json_bytes(
             right_input.outcome
         )
         assert left_input.phase_instances != right_input.phase_instances
-        for leaf_id in trajectory_leaf_ids:
-            left_value = next(
+
+        # Ruling R7: a legitimate trajectory metric may legitimately map two
+        # distinct histories to the same value (e.g. "did the actor ever
+        # concede" being false on both trajectories), so asserting that
+        # trajectory-declared leaves must *differ* here is unsound and has
+        # been removed rather than corrected. There is no reverse trap for
+        # trajectory-declared leaves; the check with teeth is the
+        # contrapositive below, for terminal_state-declared leaves.
+
+        # Determinism pre-check (ruling R7): invoke each fixture's scorer a
+        # second time on the SAME scoring input before running the
+        # cross-fixture comparison below. Without this, a nondeterministic
+        # scorer is indistinguishable from a mislabelled one, and the
+        # cross-fixture assertion would blame the wrong thing. The failure
+        # message here is deliberately distinguishable from the mislabelling
+        # message below.
+        for case, (scoring_input, produced) in zip(fixtures[key][:2], produced_by_case[:2]):
+            repeat = normalize_family_score_set(
+                registration.plugin.build_scorer(case.family_case)(
+                    scoring_input, evidence_refs=scoring_input.evidence_refs
+                )
+            )
+            for leaf_id in terminal_leaf_ids:
+                first_score = next(
+                    score for score in produced.scores if score.leaf.leaf_id == leaf_id
+                )
+                second_score = next(
+                    score for score in repeat.scores if score.leaf.leaf_id == leaf_id
+                )
+                assert _score_measurement_content(first_score) == _score_measurement_content(
+                    second_score
+                ), (
+                    f"{key[0]}/{leaf_id} is nondeterministic: invoking the scorer twice on "
+                    "the SAME scoring input produced two different measurements, so no "
+                    "conclusion about terminal_state mislabelling can be drawn from the "
+                    "paired-fixture comparison below"
+                )
+
+        # Ruling R7's contrapositive, and the check with teeth: for every
+        # leaf declared input_scope="terminal_state", its score must be
+        # IDENTICAL across the two fixtures whose terminal outcomes are
+        # byte-identical and whose trajectories differ (asserted above). A
+        # leaf that varies here is secretly trajectory-dependent and
+        # mislabelled -- this is exactly the leaf the paired-history check
+        # previously gave no coverage to, since only trajectory-declared
+        # leaves were ever compared across the pair.
+        for leaf_id in terminal_leaf_ids:
+            left_score = next(
                 score for score in left_scores.scores if score.leaf.leaf_id == leaf_id
-            ).primary
-            right_value = next(
+            )
+            right_score = next(
                 score for score in right_scores.scores if score.leaf.leaf_id == leaf_id
-            ).primary
-            assert left_value != right_value
+            )
+            assert _score_measurement_content(left_score) == _score_measurement_content(
+                right_score
+            ), (
+                f"{key[0]}/{leaf_id} is declared input_scope=terminal_state but its score "
+                "differs between two fixtures with a byte-identical outcome and a differing "
+                "trajectory -- it is secretly trajectory-dependent and mislabelled"
+            )
