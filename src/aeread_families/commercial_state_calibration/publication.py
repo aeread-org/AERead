@@ -8,14 +8,24 @@ and content digests.
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
-import os
 from collections import Counter
 from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
+from aeread.shared_runner.run.contract import read_sealed as _read_sealed
+from aeread.shared_runner.run.contract import sealed as _sealed
+from aeread.shared_runner.run.contract import sha256_bytes as _sha256_bytes
+from aeread.shared_runner.run.contract import sha256_json as _sha256
+from aeread.shared_runner.run.publication import (
+    PROHIBITED_PUBLIC_TEXT,
+    SANITIZATION_DECLARATION,
+    receipt_projection,
+)
+from aeread.shared_runner.run.publication import assert_public_payload as _assert_public_payload
+from aeread.shared_runner.run.publication import atomic_publish as _atomic_publish
+from aeread.shared_runner.run.publication import jsonl as _jsonl
 from aeread.shared_runner.task.receipts import read_evaluation_receipt
 from aeread.shared_runner.run.resolver import canonical_json_bytes
 
@@ -26,39 +36,11 @@ PUBLICATION_SCHEMA_VERSION = "aeread.commercial_state_publication/0.1"
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_CAMPAIGN_ROOT = REPOSITORY_ROOT / "runs" / CAMPAIGN_ID
 DEFAULT_PUBLICATION_ROOT = REPOSITORY_ROOT / "evidence" / CAMPAIGN_ID
-PROHIBITED_PUBLIC_TEXT = (
-    '"raw_response"',
-    '"failure_message"',
-    '"output_text"',
-    '"user_id"',
-    "authorization:",
-    "api_key",
-    "/users/",
-)
-
-
-def _sha256_bytes(payload: bytes) -> str:
-    return hashlib.sha256(payload).hexdigest()
-
-
-def _sha256(value: Any) -> str:
-    return _sha256_bytes(canonical_json_bytes(value))
+__all__ = ["PROHIBITED_PUBLIC_TEXT", "publish_campaign_evidence", "main"]
 
 
 def _publisher_implementation_sha256() -> str:
     return _sha256_bytes(Path(__file__).read_bytes())
-
-
-def _sealed(value: Mapping[str, Any]) -> dict[str, Any]:
-    core = {key: item for key, item in value.items() if key != "artifact_sha256"}
-    return {**core, "artifact_sha256": _sha256(core)}
-
-
-def _read_sealed(path: Path) -> dict[str, Any]:
-    value = json.loads(path.read_bytes())
-    if not isinstance(value, Mapping) or dict(value) != _sealed(value):
-        raise ValueError(f"artifact digest mismatch: {path}")
-    return dict(value)
 
 
 def _inside(root: Path, relative: str) -> Path:
@@ -69,33 +51,6 @@ def _inside(root: Path, relative: str) -> Path:
     if destination.is_symlink() or not destination.is_file():
         raise ValueError(f"publication source must be a regular file: {relative}")
     return destination
-
-
-def _atomic_publish(path: Path, payload: bytes) -> None:
-    if path.exists():
-        if path.is_file() and not path.is_symlink() and path.read_bytes() == payload:
-            return
-        raise ValueError(f"refusing to overwrite different publication bytes: {path}")
-    path.parent.mkdir(parents=True, exist_ok=True)
-    if path.parent.is_symlink():
-        raise ValueError(f"publication parent must not be a symlink: {path.parent}")
-    temporary = path.with_suffix(f"{path.suffix}.{os.getpid()}.tmp")
-    with temporary.open("xb") as handle:
-        handle.write(payload)
-        handle.flush()
-        os.fsync(handle.fileno())
-    os.replace(temporary, path)
-
-
-def _assert_public_payload(name: str, payload: bytes) -> None:
-    text = payload.decode("utf-8").lower()
-    matches = [token for token in PROHIBITED_PUBLIC_TEXT if token in text]
-    if matches:
-        raise ValueError(f"{name} contains prohibited public fields: {matches}")
-
-
-def _jsonl(rows: Sequence[Mapping[str, Any]]) -> bytes:
-    return b"".join(canonical_json_bytes(row) + b"\n" for row in rows)
 
 
 def _parsed_action(receipt_path: Path) -> Mapping[str, Any] | None:
@@ -128,35 +83,7 @@ def _parsed_action(receipt_path: Path) -> Mapping[str, Any] | None:
 def _receipt_projection(
     *, row: Mapping[str, Any], receipt: Mapping[str, Any]
 ) -> dict[str, Any]:
-    failure = receipt.get("failure")
-    safe_failure = None
-    if isinstance(failure, Mapping):
-        safe_failure = {
-            "condition": failure.get("condition"),
-            "failure_class": failure.get("failure_class"),
-        }
-    return {
-        "source_receipt_sha256": receipt["receipt_sha256"],
-        "spec_version": receipt["spec_version"],
-        "status": receipt["status"],
-        "inclusion_status": receipt["inclusion_status"],
-        "run_plan_id": receipt["run_plan_id"],
-        "run_plan_sha256": receipt["run_plan_sha256"],
-        "cell_id": receipt["cell_id"],
-        "case_id": receipt["case_id"],
-        "case_sha256": receipt["case_sha256"],
-        "episode_id": receipt["episode_id"],
-        "episode_attempt_id": receipt["episode_attempt_id"],
-        "cluster_id": receipt["cluster_id"],
-        "cluster_level": receipt["cluster_level"],
-        "primary_leaf_id": receipt["primary_leaf_id"],
-        "replay_level": receipt["replay_level"],
-        "evidence": receipt["evidence"],
-        "failure": safe_failure,
-        "scores": receipt["scores"],
-        "observability_limits": receipt["observability_limits"],
-        "campaign_cell_key": row["cell_key"],
-    }
+    return receipt_projection(receipt, campaign_cell_key=row["cell_key"])
 
 
 def _transcript_projection(
@@ -367,13 +294,7 @@ def publish_campaign_evidence(
                 }
                 for name, payload in sorted(payloads.items())
             },
-            "sanitization": {
-                "raw_provider_responses_included": False,
-                "full_prompts_included": False,
-                "model_reasoning_included": False,
-                "complete_receipts_included": False,
-                "failure_messages_included": False,
-            },
+            "sanitization": dict(SANITIZATION_DECLARATION),
         }
     )
     manifest_payload = canonical_json_bytes(manifest) + b"\n"
