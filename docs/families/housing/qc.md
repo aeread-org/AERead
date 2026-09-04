@@ -890,3 +890,39 @@ python -m aeread_families.housing.backend_campaign \
   --through live
 ```
 
+The executed pilot attempted all 48 frozen cells. Both routes were active at
+catalog preflight with V13's endpoint snapshots. All 18 admission probes
+passed on their first attempt for `$0.0029824542`; the four-attempt policy was
+available but unused. Execution then completed 43 of 48 trajectories with
+verified routes, complete billing, and exact score replay for
+`$0.2280142062`, a combined `$0.2309966604` against the `$0.51` ceiling. The
+shared cooldown delivered 1248 trajectory provider calls (625 Friendli, 623
+Parasail) with 1128 paced waits totalling about 10992 seconds.
+
+Five trajectories are retained as typed operational missingness: four Friendli
+rate-limit exhaustions (all four visible attempts on one GLM action returned
+HTTP 429) and one Friendli timeout. Every failed cell contains a GLM seat;
+Parasail/DeepSeek produced no operational failure in 623 calls. The failures
+fall one or two per world, so no world has a complete GLM-subject block and the
+paired-world count is zero. Variance, the confirmatory sample size, and any
+contrast are therefore not estimable, exactly as in V10, though the completion
+rate rose from 31 of 48 to 43 of 48.
+
+The pilot is protocol-conformant: the V13 full-trajectory gate passed on the
+same routes and endpoint snapshots under its own identity, and the publisher
+verifies that gate's committed digest before recording conformance. Do not
+rerun or impute the five missing cells. The descriptive within-case scores
+span `0.1940733781` to `1.0` and support no ranking. Review the digest-bound
+[`qualification.json`](../../../evidence/housing_model_sensitivity_openrouter_friendli_v15/reports/qualification.json),
+the all-attempt
+[`attempted.json`](../../../evidence/housing_model_sensitivity_openrouter_friendli_v15/trajectories/attempted.json),
+and the
+[`canonical_fact_index.json`](../../../evidence/housing_model_sensitivity_openrouter_friendli_v15/tables/canonical_fact_index.json).
+
+Three pilots on three GLM routes have now produced the same shape: the
+DeepSeek arm completes, and shared-pool rate limiting on the GLM arm leaves
+every world one cell short. The next campaign must change the GLM delivery
+treatment explicitly under a new identity, for example a route with a
+dedicated provider key or a batch backend under the SOP's escalation rule,
+rather than repeat this design on another shared-pool route.
+

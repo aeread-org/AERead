@@ -62,3 +62,9 @@ Current campaign directories include:
   four-world variance pilot promoted by V13 on the same routes and controls.
   Admission passed 15/18; three Friendli/GLM probes returned upstream HTTP
   429 after the full cooldown, so all trajectories remained blocked.
+- `housing_model_sensitivity_openrouter_friendli_v15/`: the same 48-cell
+  pilot with four receipt-visible admission attempts. Admission passed 18/18
+  first try; 43/48 trajectories completed with exact replay. Five Friendli/GLM
+  cells (four rate-limit exhaustions, one timeout) leave every world without
+  a complete subject pair, so variance is not estimable and no ranking is
+  supported. Protocol-conformant against the recorded V13 gate.

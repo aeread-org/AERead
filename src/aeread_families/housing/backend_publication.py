@@ -19,7 +19,7 @@ from aeread.shared_runner.analysis.research import (
 from aeread.shared_runner.task.execution import EvidenceStore
 from aeread.shared_runner.task.receipts import read_evaluation_receipt
 
-from .backend_campaign import load_contract, route_table
+from .backend_campaign import CAMPAIGN_SPECS, load_contract, route_table
 from .model_sensitivity import _read_sealed, build_setups
 
 
@@ -121,6 +121,57 @@ def _attempt_dir(
     receipt_path, receipt = receipt_matches[0]
     return receipt_path.parent, receipt
 
+
+
+def _verified_prerequisite_gate(
+    contract: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    """Return the spec-declared full-trajectory gate after verifying its bundle.
+
+    The SOP requires the full-trajectory gate to run under its own campaign
+    identity before a multi-world pilot. A pilot's spec may therefore name that
+    earlier campaign; this publisher accepts it only if the committed
+    qualification exists, carries the pinned digest, completed its full matrix,
+    and pinned the same routes and endpoint snapshots as this contract.
+    """
+
+    declared = CAMPAIGN_SPECS[contract["campaign_id"]].get(
+        "prerequisite_full_trajectory_gate"
+    )
+    if declared is None:
+        return None
+    repo_root = Path(__file__).resolve().parents[3]
+    qualification = json.loads(
+        (repo_root / declared["qualification_path"]).read_bytes()
+    )
+    if qualification["artifact_sha256"] != declared["qualification_artifact_sha256"]:
+        raise ValueError("prerequisite full-trajectory gate digest drifted")
+    if qualification["campaign_id"] != declared["campaign_id"]:
+        raise ValueError("prerequisite full-trajectory gate identity drifted")
+    gate = qualification["gate_status"][-1]
+    if (
+        gate.get("gate_id") != "full_trajectory"
+        or gate.get("status") != "completed_with_full_matrix"
+        or gate.get("operational_failures") != 0
+    ):
+        raise ValueError("prerequisite full-trajectory gate did not pass")
+    gate_routes = {
+        route["model_id"]: (route["provider"], route["endpoint_snapshot_sha256"])
+        for route in qualification["backend"]["routes"]
+    }
+    pilot_routes = {
+        model_id: (model["provider"], model["endpoint_snapshot_sha256"])
+        for model_id, model in contract["models"].items()
+    }
+    if gate_routes != pilot_routes:
+        raise ValueError("prerequisite full-trajectory gate routes differ from pilot")
+    return {
+        "campaign_id": declared["campaign_id"],
+        "qualification_path": declared["qualification_path"],
+        "qualification_artifact_sha256": declared["qualification_artifact_sha256"],
+        "completed_trajectories": gate["completed_trajectories"],
+        "routes_match_pilot": True,
+    }
 
 def _project_attempt(
     *, live_root: Path, row: Mapping[str, Any], design: Mapping[str, Any]
@@ -766,6 +817,7 @@ def publish_campaign(
         for row in live["rows"]
     ]
     world_count = len(contract["execution"]["world_seeds"])
+    prerequisite_gate = _verified_prerequisite_gate(contract)
     limitations = [
         (
             "Action summaries project sealed parsed actions; raw responses and "
@@ -788,9 +840,14 @@ def publish_campaign(
         limitations.insert(
             1,
             (
-                "The changed route proceeded from profile admission directly to "
-                "the multi-world pilot without a separately recorded full-trajectory "
-                "gate."
+                "The full-trajectory gate for these routes was recorded under "
+                f"campaign {prerequisite_gate['campaign_id']} before this pilot."
+                if prerequisite_gate is not None
+                else (
+                    "The changed route proceeded from profile admission directly "
+                    "to the multi-world pilot without a separately recorded "
+                    "full-trajectory gate."
+                )
             ),
         )
     if live["operational_failures"]:
@@ -858,7 +915,7 @@ def publish_campaign(
         )
     combined_cost = admission["observed_cost_usd"] + live["total_cost_usd"]
     variance = live.get("variance_pilot_analysis")
-    full_trajectory_gate_passed = world_count == 1
+    full_trajectory_gate_passed = world_count == 1 or prerequisite_gate is not None
     paired_worlds_complete = bool(
         isinstance(variance, Mapping)
         and variance.get("status") == "estimable"
@@ -1008,9 +1065,16 @@ def publish_campaign(
                 "required_before_variance_pilot": "full_trajectory",
                 "full_trajectory_gate_passed": full_trajectory_gate_passed,
                 "protocol_conformant": full_trajectory_gate_passed,
+                "prerequisite_gate": prerequisite_gate,
                 "interpretation": (
-                    "A one-world integration slice satisfies this publication's "
-                    "full-trajectory role."
+                    (
+                        "The full-trajectory gate passed under campaign "
+                        f"{prerequisite_gate['campaign_id']} on the same routes "
+                        "and endpoint snapshots before this multi-world pilot."
+                    )
+                    if prerequisite_gate is not None
+                    else "A one-world integration slice satisfies this "
+                    "publication's full-trajectory role."
                     if full_trajectory_gate_passed
                     else (
                         "No separate full-trajectory gate was recorded for the "
@@ -1077,6 +1141,16 @@ def publish_campaign(
                     and live["complete_matrix"]
                     and not live["operational_failures"]
                 )
+                else (
+                    "Variance is not estimable because "
+                    f"{variance.get('incomplete_world_count')} of "
+                    f"{variance.get('planned_world_count')} worlds lack a complete "
+                    "subject pair. Freeze a new campaign identity before any further "
+                    "multi-world spend, changing the route or delivery treatment "
+                    "explicitly if reliability is the cause; do not selectively "
+                    "rerun or impute the missing cells."
+                )
+                if isinstance(variance, Mapping) and prerequisite_gate is not None
                 else (
                     "Freeze a new campaign identity, pass one complete trajectory "
                     "per subject-opponent condition on the selected routes, then run "

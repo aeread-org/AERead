@@ -440,6 +440,16 @@ CAMPAIGN_SPECS = {
         "per_probe_cost_reserve_usd": 0.003,
         "admission_cost_ceiling_usd": 0.06,
         "admission_attempt_limit": 4,
+        "prerequisite_full_trajectory_gate": {
+            "campaign_id": "housing_model_sensitivity_openrouter_friendli_v13",
+            "qualification_path": (
+                "evidence/housing_model_sensitivity_openrouter_friendli_v13/"
+                "reports/qualification.json"
+            ),
+            "qualification_artifact_sha256": (
+                "4a976375fbed6fb1dd1e0f2c14dceaaafa825a2209c17b3906841b05281c5605"
+            ),
+        },
         "execution_cost_ceiling_usd": 0.45,
         "per_trajectory_cost_reserve_usd": 0.01,
         "world_seeds": [264284765, 722524881, 1535604354, 366965770],

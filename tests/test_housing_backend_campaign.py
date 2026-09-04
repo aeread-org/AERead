@@ -890,6 +890,68 @@ async def _no_sleep(_seconds: float) -> None:
     return None
 
 
+def test_published_v15_pilot_is_digest_bound_conformant_and_non_estimable() -> None:
+    evidence_root = (
+        V15_CONTRACT_PATH.parents[1]
+        / "evidence"
+        / "housing_model_sensitivity_openrouter_friendli_v15"
+    )
+    qualification = json.loads(
+        (evidence_root / "reports" / "qualification.json").read_bytes()
+    )
+    trajectories = json.loads(
+        (evidence_root / "trajectories" / "attempted.json").read_bytes()
+    )
+    fact_index = json.loads(
+        (evidence_root / "tables" / "canonical_fact_index.json").read_bytes()
+    )
+
+    assert qualification["artifact_sha256"] == (
+        "a8957f39ab4aa47877f0f9cb6f46fee143c59b7548784f687147ca260405a8b6"
+    )
+    assert trajectories["artifact_sha256"] == (
+        "3665f9c97d991c689ec1afe8a3b167ca2b073ad423850a979af2e42b8113c8a9"
+    )
+    assert fact_index["artifact_sha256"] == (
+        "5a14841e969f59e0ec16827c371a72f820ffae0d8124b0661fb3e7e9c91b1a38"
+    )
+    assert qualification["status"] == "completed_with_typed_missingness"
+    assert qualification["winner_claim_allowed"] is False
+    assert qualification["ranking_allowed"] is False
+    admission = qualification["gate_status"][-2]
+    assert admission["passed_probe_count"] == 18
+    assert admission["hidden_retry_count"] == 0
+    live = qualification["gate_status"][-1]
+    assert live["attempted_trajectories"] == 48
+    assert live["completed_trajectories"] == 43
+    assert live["operational_failures"] == 5
+    gate = qualification["protocol_gate_assessment"]
+    assert gate["protocol_conformant"] is True
+    assert gate["prerequisite_gate"]["campaign_id"] == (
+        "housing_model_sensitivity_openrouter_friendli_v13"
+    )
+    assert gate["prerequisite_gate"]["qualification_artifact_sha256"] == (
+        "4a976375fbed6fb1dd1e0f2c14dceaaafa825a2209c17b3906841b05281c5605"
+    )
+    assert qualification["acceptance"]["prerequisite_gates_passed"] is True
+    assert qualification["acceptance"]["paired_worlds_complete"] is False
+    variance = qualification["variance_pilot_analysis"]
+    assert variance["status"] == "insufficient_paired_worlds"
+    assert variance["paired_world_count"] == 0
+    assert variance["incomplete_world_count"] == 4
+    failures = [
+        row for row in trajectories["trajectories"] if row["status"] != "completed"
+    ]
+    assert len(failures) == 5
+    assert {row["failure_condition"] for row in failures} == {"rate_limit", "timeout"}
+    assert all("glm_53_flash" in row["condition_id"] for row in failures)
+    assert len({row["world_seed"] for row in failures}) == 4
+    published = b"".join(path.read_bytes() for path in evidence_root.rglob("*.*"))
+    assert b'"raw_response":' not in published
+    assert b"output_text" not in published
+    assert b"/Users/" not in published
+
+
 def test_published_v12_records_pacing_failure_and_zero_trajectories() -> None:
     evidence_root = (
         V12_CONTRACT_PATH.parents[1]
