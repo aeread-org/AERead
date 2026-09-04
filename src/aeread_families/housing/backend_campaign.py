@@ -373,6 +373,64 @@ CAMPAIGN_SPECS = {
             "reserve; stop_immediately_on_route_drift_or_replay_failure"
         ),
     },
+    "housing_model_sensitivity_openrouter_friendli_v14": {
+        "claim_status": "exploratory_variance_pilot_only",
+        "catalog_retrieved_at": "2026-09-03",
+        "reasoning_condition_id": (
+            "model_sensitivity_openrouter_friendli_low_v14"
+        ),
+        "per_probe_cost_reserve_usd": 0.003,
+        "admission_cost_ceiling_usd": 0.06,
+        "execution_cost_ceiling_usd": 0.45,
+        "per_trajectory_cost_reserve_usd": 0.01,
+        "world_seeds": [264284765, 722524881, 1535604354, 366965770],
+        "condition_order": "rotate_by_world_and_case_configuration",
+        "analysis": {
+            "primary_view": "paired_world_subject_mean_within_case_score",
+            "aggregation": "equal_weight_configs_and_opponents_within_world",
+            "primary_contrast": "glm_53_flash_minus_deepseek_v4_flash",
+            "uncertainty": "sample_variance_over_world_level_paired_contrasts",
+            "minimum_meaningful_effect": 0.05,
+            "alpha": 0.05,
+            "power": 0.8,
+            "minimum_confirmatory_worlds": 30,
+            "maximum_confirmatory_worlds": 100,
+            "attrition_fraction": 0.1,
+            "ranking_allowed": False,
+        },
+        "providers": {
+            "glm_53_flash": "Friendli",
+            "deepseek_v4_flash": "Parasail",
+        },
+        "quantizations": {
+            "glm_53_flash": "unknown",
+            "deepseek_v4_flash": "fp8",
+        },
+        "retryable_conditions": [
+            "length",
+            "rate_limit",
+            "provider_5xx",
+            "empty_response",
+        ],
+        "action_schema_version": "housing_actions/2.0",
+        "wire_live_profile_controls": True,
+        "verify_endpoint_snapshot": True,
+        "call_pacing": {
+            "clock": "monotonic_completion_to_start",
+            "cooldown_seconds_by_provider": {
+                "Friendli": 10.0,
+                "Parasail": 10.0,
+            },
+            "first_call_delay_seconds": 0.0,
+            "scope": "shared_across_profile_admission_and_full_trajectory",
+            "implementation_sha256": (
+                "4dc67f4ae81395166264049bbf917d8d42e69c5d6069c97fea981c4b419415d3"
+            ),
+        },
+        "admission_timeout_enforcement": (
+            "asyncio_wait_for_controls_timeout_seconds"
+        ),
+    },
 }
 REQUIRED_ROUTE_PARAMETERS = {
     "max_tokens",

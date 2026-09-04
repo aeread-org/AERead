@@ -97,6 +97,11 @@ V13_CONTRACT_PATH = (
     / "configs"
     / "housing_model_sensitivity_openrouter_friendli_v13.json"
 )
+V14_CONTRACT_PATH = (
+    Path(__file__).resolve().parents[1]
+    / "configs"
+    / "housing_model_sensitivity_openrouter_friendli_v14.json"
+)
 
 
 def test_contract_pins_new_routes_and_requires_admission_before_live() -> None:
@@ -640,6 +645,68 @@ def test_published_v13_full_trajectory_gate_is_digest_bound_and_complete() -> No
     assert b'"raw_response":' not in published
     assert b"output_text" not in published
     assert b"/Users/" not in published
+
+
+def test_v14_carries_v13_routes_and_controls_into_a_fresh_four_world_pilot() -> None:
+    v10 = load_contract(V10_CONTRACT_PATH)
+    v13 = load_contract(V13_CONTRACT_PATH)
+    v14 = load_contract(V14_CONTRACT_PATH)
+    routes = route_table(v14)
+
+    # Same routes, cooldown, and admission-timeout controls as the passed V13 gate.
+    assert routes["glm_53_flash"].provider == "Friendli"
+    assert routes["deepseek_v4_flash"].provider == "Parasail"
+    for model_id in ("glm_53_flash", "deepseek_v4_flash"):
+        assert v14["models"][model_id]["endpoint_snapshot_sha256"] == (
+            v13["models"][model_id]["endpoint_snapshot_sha256"]
+        )
+    assert v14["controls"]["call_pacing"] == v13["controls"]["call_pacing"]
+    assert v14["controls"]["admission_timeout_enforcement"] == (
+        v13["controls"]["admission_timeout_enforcement"]
+    )
+    changed = {
+        key
+        for key in v14["controls"]
+        if v14["controls"][key] != v13["controls"].get(key)
+    }
+    assert changed == {"reasoning_condition_id", "condition_order"}
+    # Same multi-world pilot design as V9/V10, on fresh development worlds.
+    assert v14["controls"]["condition_order"] == v10["controls"]["condition_order"]
+    assert v14["analysis"] == v10["analysis"]
+    assert v14["conditions"] == v13["conditions"]
+    assert "stage" not in v14["execution"]
+    assert v14["execution"]["world_seeds"] == [
+        264284765,
+        722524881,
+        1535604354,
+        366965770,
+    ]
+    previously_used = {
+        seed
+        for path in (V10_CONTRACT_PATH, V13_CONTRACT_PATH, CONTRACT_PATH)
+        for seed in load_contract(path)["execution"]["world_seeds"]
+    }
+    assert not previously_used & set(v14["execution"]["world_seeds"])
+    assert v14["execution"]["cost_ceiling_usd"] == pytest.approx(0.45)
+    assert (
+        v14["profile_admission"]["cost_ceiling_usd"]
+        + v14["execution"]["cost_ceiling_usd"]
+        == pytest.approx(0.51)
+    )
+    design = design_artifact(v14, routes=routes)
+    assert design["planned_trajectories"] == 48
+    assert design["artifact_sha256"] == (
+        "ae0bd0aad2e02465643b32c4c2d7f8ef4345891fd2b2d9993e8d152671879b34"
+    )
+    assert provider_free_artifact(v14)["artifact_sha256"] == (
+        "880d05c8d2a68be48100ea655908d8d482f1e3b78c801eb41ffa9976cbdc2c04"
+    )
+    expected_profiles = v14["profile_admission"]["profile_sha256s"]
+    for setup in build_setups(v14, routes=routes).values():
+        for profile in setup.plan.agent_profiles:
+            assert hashlib.sha256(canonical_json_bytes(profile)).hexdigest() == (
+                expected_profiles[profile.profile_id]
+            )
 
 
 def test_published_v12_records_pacing_failure_and_zero_trajectories() -> None:

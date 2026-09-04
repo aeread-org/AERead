@@ -791,3 +791,41 @@ and the
 [`canonical_fact_index.json`](../../../evidence/housing_model_sensitivity_openrouter_friendli_v13/tables/canonical_fact_index.json).
 Raw provider payloads and reasoning remain only under ignored local `runs/`.
 
+## 21. V14 preregistered four-world variance pilot on the V13 routes
+
+[`housing_model_sensitivity_openrouter_friendli_v14`](../../../configs/housing_model_sensitivity_openrouter_friendli_v14.json)
+is the multi-world variance pilot that V13's full-trajectory gate promotes. It
+carries V13's Friendli and Parasail routes, endpoint snapshot digests,
+completion-to-next-start cooldown, and admission-timeout enforcement forward
+unchanged, under a new campaign identity and fresh profile digests. Its design
+is the V9/V10 pilot design: the three selected development configurations,
+four world clusters, and the four subject-opponent conditions, executed in the
+rotate-by-world-and-configuration order, for 48 frozen cells. The primary
+estimand is the paired world-level GLM-minus-DeepSeek contrast after equal
+weighting across configurations and opponents within a world.
+
+The four worlds are the next unused development seeds (`264284765`,
+`722524881`, `1535604354`, `366965770`). They are disjoint from V9/V10's four
+worlds, from V11 to V13's single world, and from the sealed confirmatory
+holdout. V13's world is not pooled in.
+
+The execution ceiling is `$0.45`, sized from V13's observed per-trajectory
+range (`$0.0022` to `$0.0084`) times 48 cells with a `$0.01` next-cell
+reserve; admission keeps its `$0.06` ceiling, for `$0.51` maximum exposure.
+Every cell is one attempt; typed operational failures are retained and never
+selectively rerun. The pilot is exploratory: it may estimate the paired-world
+variance and a confirmatory sample size, but it cannot support a winner, a
+ranking, or a confirmatory claim.
+
+```bash
+python -m aeread_families.housing.backend_campaign \
+  --contract configs/housing_model_sensitivity_openrouter_friendli_v14.json \
+  --run-root runs/housing_model_sensitivity_openrouter_friendli_v14 \
+  --through provider_free
+
+python -m aeread_families.housing.backend_campaign \
+  --contract configs/housing_model_sensitivity_openrouter_friendli_v14.json \
+  --run-root runs/housing_model_sensitivity_openrouter_friendli_v14 \
+  --through live
+```
+
