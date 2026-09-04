@@ -265,6 +265,31 @@ class LeafPolicyDeclaration:
     scope: str
     deferred_artifact: str | None
 
+    def __post_init__(self) -> None:
+        # kernel_contract_impl_review.md finding 4: these invariants were
+        # previously enforced only in ``from_dict``, so a
+        # ``dataclasses.replace`` on an already-validated declaration could
+        # smuggle an inconsistent leaf policy past parsing entirely. A
+        # ``__post_init__`` runs on every construction path, including
+        # ``dataclasses.replace``, so there is no bypass.
+        if not is_exportable_id(self.leaf_id):
+            raise AuthoringValidationError(
+                f"leaf policy leaf_id is not a valid identifier: {self.leaf_id!r}"
+            )
+        if self.scope not in _LEAF_SCOPES:
+            raise AuthoringValidationError(
+                f"leaf policy scope must be one of {sorted(_LEAF_SCOPES)}, "
+                f"got {self.scope!r}"
+            )
+        if self.scope == "deferred" and self.deferred_artifact is None:
+            raise AuthoringValidationError(
+                "a deferred leaf requires deferred_artifact"
+            )
+        if self.scope != "deferred" and self.deferred_artifact is not None:
+            raise AuthoringValidationError(
+                "deferred_artifact is only valid for a deferred leaf"
+            )
+
     @classmethod
     def from_dict(cls, value: Any, path: str) -> "LeafPolicyDeclaration":
         data = _fields(
@@ -343,6 +368,70 @@ class MeasurementDeclaration:
     leaves: tuple[LeafPolicyDeclaration, ...] = ()
     primary_leaf_id: str | None = None
     admission_leaf_ids: tuple[str, ...] = ()
+
+    def __post_init__(self) -> None:
+        # kernel_contract_impl_review.md finding 4: ``from_dict`` validated
+        # these three fields' cross-field invariants, but nothing stopped a
+        # ``dataclasses.replace`` on an already-registered manifest from
+        # smuggling an inconsistent leaf policy (undeclared primary, a
+        # deferred admission leaf, duplicate admission ids, ...) past every
+        # check and straight into ``PluginRegistry``. Running the same
+        # invariants here means every construction path is guarded, not only
+        # ``from_dict``'s.
+        leaf_ids = tuple(leaf.leaf_id for leaf in self.leaves)
+        if len(set(leaf_ids)) != len(leaf_ids):
+            raise AuthoringValidationError(
+                "measurement.leaves contains a duplicate leaf_id"
+            )
+        if not self.leaves:
+            if self.primary_leaf_id is not None or self.admission_leaf_ids:
+                raise AuthoringValidationError(
+                    "measurement.primary_leaf_id and admission_leaf_ids require "
+                    "measurement.leaves to be declared"
+                )
+            return
+        finalize_time_ids = {
+            leaf.leaf_id for leaf in self.leaves if leaf.scope == "finalize_time"
+        }
+        if not finalize_time_ids:
+            raise AuthoringValidationError(
+                "measurement.leaves must declare at least one finalize_time leaf"
+            )
+        if self.primary_leaf_id is None:
+            raise AuthoringValidationError(
+                "measurement.primary_leaf_id is required when leaves are declared"
+            )
+        if self.primary_leaf_id not in leaf_ids:
+            raise AuthoringValidationError(
+                "measurement.primary_leaf_id must name a declared leaf"
+            )
+        if self.primary_leaf_id not in finalize_time_ids:
+            raise AuthoringValidationError(
+                "measurement.primary_leaf_id must be a finalize_time leaf"
+            )
+        admission_leaf_ids = self.admission_leaf_ids or (self.primary_leaf_id,)
+        if len(set(admission_leaf_ids)) != len(admission_leaf_ids):
+            raise AuthoringValidationError(
+                "measurement.admission_leaf_ids must not contain duplicates"
+            )
+        unknown_admission = sorted(set(admission_leaf_ids) - set(leaf_ids))
+        if unknown_admission:
+            raise AuthoringValidationError(
+                f"measurement.admission_leaf_ids must be declared leaves: "
+                f"{unknown_admission}"
+            )
+        deferred_ids = {leaf.leaf_id for leaf in self.leaves if leaf.scope == "deferred"}
+        deferred_admission = sorted(set(admission_leaf_ids) & deferred_ids)
+        if deferred_admission:
+            raise AuthoringValidationError(
+                f"measurement.admission_leaf_ids must not include a deferred leaf: "
+                f"{deferred_admission}"
+            )
+        if self.primary_leaf_id not in admission_leaf_ids:
+            raise AuthoringValidationError(
+                "measurement.primary_leaf_id must be included in admission_leaf_ids"
+            )
+        object.__setattr__(self, "admission_leaf_ids", admission_leaf_ids)
 
     @classmethod
     def from_dict(cls, value: Any, path: str = "measurement") -> "MeasurementDeclaration":
