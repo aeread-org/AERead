@@ -158,3 +158,54 @@ def test_world_generator_cli_checks_the_pack(tmp_path) -> None:
         text=True,
     )
     assert json.loads(completed.stdout)["reproducible"] is True
+
+
+def test_live_amendment_fields_follow_the_actual_diff_and_reject_no_op() -> None:
+    from aeread_families.datacenter_development.stack_environment import amended_fields_for
+    from aeread_families.datacenter_development.stack_runner import build_stack_setup
+
+    setup = build_stack_setup("v2", case_path=DEFAULT_OUTPUT_ROOT / "delayed_revenue_002.json")
+    plugin = DataCenterStackPlugin("v2")
+    case = plugin.validate_payload(setup.case.payload)
+    land = case["scripted_developer"]["land_terms"]
+    changed = {**land, "site_control_expiry_month": land["site_control_expiry_month"] + 1, "purchase_price_cents": land["purchase_price_cents"] + 1}
+    from aeread_families.datacenter_development.contracts import LandAgreement
+
+    assert amended_fields_for(land, LandAgreement.from_dict(changed)) == (
+        "site_control_expiry_month",
+        "purchase_price_cents",
+    )
+    assert amended_fields_for(land, LandAgreement.from_dict(dict(land))) == ()
+
+    state = plugin.initial_state(case, None)
+    state["executed"]["land"] = {"offer_id": "offer_x", "terms": dict(land), "precedence_index": 0}
+    phase = next(p for p in plugin.phases(case) if p.phase_id == "land_amendment_developer_offer")
+    no_op = plugin.legal(case, state, "developer", phase, {"decision": "offer", "message": "m", "terms": dict(land)})
+    assert not no_op.legal and no_op.reason == "amendment_changes_nothing"
+    real = plugin.legal(case, state, "developer", phase, {"decision": "offer", "message": "m", "terms": changed})
+    assert real.legal
+
+
+def test_parse_action_rejects_oversized_integers_as_malformed_json() -> None:
+    from aeread.shared_runner.task.execution import CanonicalResponse
+
+    plugin = DataCenterStackPlugin("v2")
+    case = plugin.validate_payload(
+        json.loads((DEFAULT_OUTPUT_ROOT / "covenant_cliff_001.json").read_text())["payload"]
+    )
+    phase = next(p for p in plugin.phases(case) if p.phase_id == "land_developer_offer")
+    huge = "9" * 5000
+    response = CanonicalResponse(
+        text='{"decision": "offer", "message": "m", "terms": {"purchase_price_cents": ' + huge + "}}",
+        finish_reason="stop",
+        empty=False,
+        truncated=False,
+        provider_call_ids=(),
+        tool_invocation_ids=(),
+        input_tokens=0,
+        cached_input_tokens=0,
+        output_tokens=0,
+        cost_usd=0.0,
+    )
+    result = plugin.parse_action(case, plugin.initial_state(case, None), "developer", phase, response)
+    assert not result.ok and result.error_code == "malformed_json"

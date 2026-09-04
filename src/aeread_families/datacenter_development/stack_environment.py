@@ -201,6 +201,20 @@ def register_stack_plugin(
     return resolved
 
 
+def amended_fields_for(
+    prior_terms: Mapping[str, Any], terms: AgreementTerms
+) -> tuple[str, ...]:
+    """The structured fields an amendment actually changes, in term order."""
+
+    proposed = _term_values(terms)
+    prior = _plain(prior_terms)
+    return tuple(
+        field
+        for field in proposed
+        if _plain(proposed[field]) != prior.get(field)
+    )
+
+
 def _make_offer(
     *,
     family_case: Mapping[str, Any],
@@ -217,9 +231,7 @@ def _make_offer(
             raise ValueError("land amendment requires an executed land agreement")
         metadata = {
             "supersedes_offer_id": prior["offer_id"],
-            "amended_fields": family_case["scripted_developer"][
-                "land_amendment_fields"
-            ],
+            "amended_fields": amended_fields_for(prior["terms"], terms),
             "precedence_index": int(prior.get("precedence_index", 0)) + 1,
         }
     return make_offer(
@@ -506,7 +518,8 @@ class DataCenterStackPlugin:
             return ParseResult.failure("noncanonical_response")
         try:
             value = json.loads(response.text)
-        except (TypeError, json.JSONDecodeError):
+        except (TypeError, ValueError):
+            # ValueError also covers JSONDecodeError and oversized integers.
             return ParseResult.failure("malformed_json")
         if not isinstance(value, dict):
             return ParseResult.failure("malformed_action")
@@ -544,6 +557,12 @@ class DataCenterStackPlugin:
         if phase.phase_id.endswith("_offer"):
             if state["rounds"][key] >= family_case["negotiation"]["max_rounds"][key]:
                 return LegalityResult.illegal("round_limit_exhausted")
+            if key == "land_amendment":
+                prior = state["executed"].get("land")
+                if prior is None:
+                    return LegalityResult.illegal("amendment_without_executed_land")
+                if not amended_fields_for(prior["terms"], _terms(key, action["terms"])):
+                    return LegalityResult.illegal("amendment_changes_nothing")
             return LegalityResult.legal_action()
         if phase.phase_id.endswith("_response"):
             if action["offer_id"] != state["latest_offer_id"][key]:

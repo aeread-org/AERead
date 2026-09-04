@@ -781,7 +781,9 @@ def _model_summary(model_id: str, rows: Sequence[Mapping[str, Any]], planned: in
         "exclusion_reasons": dict(
             sorted(
                 Counter(
-                    "temporal_violation"
+                    "invalid_action:" + ",".join(row["outcome"]["temporal_violations"])
+                    if str(row["outcome"]["termination_reason"]) == "invalid_action"
+                    else "temporal_violation"
                     if row["outcome"]["temporal_violations"]
                     else (
                         "constraint_failure:" + ",".join(row["outcome"]["default_reasons"] or ["unfinanced"])
