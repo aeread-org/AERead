@@ -394,3 +394,12 @@ to $10.68, but counters displaced the sample step on three rows and produced
 unverified-sample failures. See the campaign document and
 `evidence/procurement_allocation_glm53_flash_parasail_negotiation_worksheet_v1/`.
 
+`negotiation_worksheet_v2_campaign` reorders the worksheet so a verified sample
+precedes any counter or award line. Its qualified run completed all 72 rows for
+$0.2065. The rule was again not met: regret -$0.28 per world ([-$7.37, $7.23]) and
+feasibility -0.014 ([-0.083, 0.042]). Counter-induced sample skips disappeared and
+the labeled payment-terms result held, but opaque ids hid which supplier would accept
+longer terms, and two opaque negotiated-MOQ rows awarded below minimum service after
+countering MOQ down. See
+`evidence/procurement_allocation_glm53_flash_parasail_negotiation_worksheet_v2/`.
+

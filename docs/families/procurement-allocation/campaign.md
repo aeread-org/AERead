@@ -837,3 +837,42 @@ plan digest is `e7d002cd6a89607d56d2accc6149cd817f8e877840a1213efec2ae5d5beb37a2
 plan binds the V1 evidence manifest by file digest. V2 is selected after inspecting
 V1 on the same worlds and remains development evidence.
 
+#### Observed worksheet V2 result
+
+Attempt 001 admitted the canary and completed all 72 rows in six failure-free
+checkpoints for $0.2065382055 with exact accounting and full receipt replay. The
+preregistered rule was not met on either check. Worksheet-minus-V4 regret averaged
+over surfaces was -$0.28 per world ([-$7.37, $7.23]) and feasibility was -0.0139
+([-0.0833, 0.0417]), so the guardrail's lower bound fell below -0.05. Completed kits
+moved +0.99 ([-0.17, 2.49]). Labeled regret was -$2.23 ([-$9.42, $2.52]); opaque
+regret was +$1.67 ([-$8.88, $15.50]).
+
+The V1 harm mechanism is gone. Every one of V2's seven `sample_not_verified`
+failures is a four-supplier split in the multi-unit-BOM and split-capacity worlds
+where the buyer quoted four suppliers, sampled three, and awarded all four inside the
+ten-action budget; none follows a counter, and the V4 control fails those same rows
+the same way. All 45 counters were single-field and 24 were accepted, up from 12.
+On the labeled payment-terms world all three seeds again reached $10.68 from
+$48.63, and mean working-capital excess on labeled feasible awards stayed at $1.48.
+
+The opaque surface exposes the next limit. On opaque payment-terms rows only one of
+three seeds captured the saving, because with opaque supplier ids the buyer could not
+tell the terms-flexible supplier from the terms-fixed one, spent its two counters on
+the fixed supplier, and stopped; the labeled result therefore depends on the
+supplier name leaking which supplier will accept longer terms. On the opaque
+negotiated-MOQ world two seeds countered MOQ downward after sampling and then awarded
+a quantity below minimum service, converting two feasible V4 rows into
+`minimum_service_not_met` failures worth $111 each; that world alone moved +$32.72.
+Two labeled refund-counter seeds chose the cheaper, lower-yield supplier without any
+counter and lost $24 of revenue each.
+
+Taken together, V1 and V2 show that the payment-terms lever is reliably usable once
+the buyer knows which offer to counter, that sample-first ordering is compatible
+with it, and that the remaining losses are quantity reasoning after a counter changes
+MOQ and supplier selection under opaque labels. Further prompt wording on the same
+procedure is unlikely to clear the preregistered rule; the next test should change
+the decision interface, for example a verifier-visible pre-award quantity check or a
+typed allocation worksheet, or should accept the presentation-surface dependence as a
+measured property of this route. The tracked bundle is
+`evidence/procurement_allocation_glm53_flash_parasail_negotiation_worksheet_v2/`.
+
