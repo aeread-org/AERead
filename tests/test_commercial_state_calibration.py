@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from aeread.shared_runner.task.execution import TokenPricing
+from aeread.shared_runner.task.execution import TokenPricing, execute_plan_cell
 from aeread.shared_runner.run.resolver import canonical_json_bytes, case_content_sha256
 from aeread_families.commercial_state_calibration import (
     CommercialStateScorer,
@@ -14,12 +14,16 @@ from aeread_families.commercial_state_calibration import (
     OpenRouterRoute,
     build_offline_setup,
     build_openrouter_setup,
+    commercial_state_measurement_leaf,
     commercial_state_output_schema,
+    finalize_commercial_state_execution,
     load_authoring_records,
     load_cases,
+    replay_commercial_state_receipt,
     run_fixture_response,
     validate_response,
 )
+from aeread_families.single_offer.runner import FixedResponseProvider
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -147,6 +151,54 @@ def test_strong_fixture_runs_end_to_end_and_scores_one(tmp_path) -> None:
     assert outcome["component_mean"] == pytest.approx(1.0)
     assert execution.total_cost_usd == pytest.approx(0.0)
     execution.evidence.audit_reconciliation()
+
+
+def test_finalize_wires_commercial_state_to_the_shared_family_finalizer(tmp_path) -> None:
+    """kernel_contract_impl_review.md finding 8 / spec section 5, item 4.
+
+    Every other one of the five families already migrated to
+    FamilyScoringInput has at least one test driving a real episode through
+    its finalizer (housing, procurement_allocation, procurement_grounding,
+    datacenter_development); commercial_state_calibration had none, so a
+    regression to the finalizer's call site (evaluation.py) -- dropping the
+    ``evidence_refs=`` keyword, or passing ``scoring_input.outcome`` instead
+    of ``scoring_input`` -- could reach main undetected. The registry-driven
+    scoring-contract protocol test does not cover this either: it calls
+    ``build_scorer`` directly, not ``finalize_family_execution``.
+    """
+
+    setup = build_offline_setup()
+    execution = asyncio.run(
+        execute_plan_cell(
+            plan=setup.plan,
+            cell_id=setup.plan.cells[0].cell_id,
+            registry=setup.registry,
+            evidence_root=tmp_path,
+            prompt_sources=setup.prompt_sources,
+            providers={"fake": FixedResponseProvider(_fixture("strong.json"))},
+            pricing=setup.pricing,
+            episode_attempt_ordinal=0,
+            harnesses=setup.harnesses,
+        )
+    )
+
+    receipt = finalize_commercial_state_execution(setup=setup, execution=execution)
+    replayed = replay_commercial_state_receipt(
+        setup=setup, receipt=receipt, evidence_root=tmp_path
+    )
+
+    case = setup.plan.cases[0]
+    plugin = setup.registry.resolve_manifest(setup.plan.families[0])
+    family_case = plugin.validate_payload(case.payload)
+    expected_leaf_id = commercial_state_measurement_leaf(family_case).leaf_id
+
+    assert receipt.status == "ok"
+    assert receipt.inclusion_status == "included"
+    assert receipt.replay_level == "state_and_score"
+    assert receipt.primary_leaf_id == expected_leaf_id
+    assert {score.leaf.leaf_id for score in receipt.scores} == {expected_leaf_id}
+    assert receipt.scores[0].primary.value == pytest.approx(1.0)
+    assert replayed.receipt_sha256 == receipt.receipt_sha256
 
 
 def test_structurally_valid_but_poor_fixture_preserves_partial_metrics(tmp_path) -> None:
