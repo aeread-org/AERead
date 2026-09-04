@@ -294,6 +294,19 @@ class LeafPolicyDeclaration:
 
 @dataclass(frozen=True, slots=True)
 class MeasurementDeclaration:
+    # Ruling R1 (kernel_scoring_contract_spec.md): these three fields were added
+    # after Housing V8/V11 evidence was published and sealed. An unset field must
+    # be ABSENT from canonical JSON, not merely null/empty, or every manifest that
+    # predates leaf policy would silently reproduce a different plan_sha256 and
+    # cascade into a different artifact_sha256 on already-published evidence.
+    # ``_CANONICAL_OMIT_IF_DEFAULT`` tells ``run.resolver._canonical_value`` to
+    # drop these keys entirely when they hold their declared default, so a
+    # manifest that does not use leaf policy hashes exactly as it did before this
+    # schema addition. See ``test_measurement_declaration_without_leaves_is_digest_neutral``.
+    _CANONICAL_OMIT_IF_DEFAULT: ClassVar[frozenset[str]] = frozenset(
+        {"leaves", "primary_leaf_id", "admission_leaf_ids"}
+    )
+
     primary_estimand: str
     measurement_kind: str
     direction: str
