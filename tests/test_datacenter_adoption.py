@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 import asyncio
 import hashlib
 import json
@@ -200,7 +202,7 @@ def test_adoption_campaign_is_paired_bounded_and_noninferential() -> None:
     design = build_design(contract)
 
     assert design["planned_cells"] == 18
-    assert design["worst_case_declared_cost_usd"] == 0.54
+    assert design["worst_case_declared_cost_usd"] == pytest.approx(0.54)
     assert design["worst_case_declared_cost_usd"] <= design["campaign_max_cost_usd"]
     assert design["independent_cluster_count"] == 1
     assert design["nested_stage_variants_independent"] is False
@@ -294,7 +296,7 @@ def test_v2_campaign_is_full_panel_not_selective_retry() -> None:
     design = build_design_v2(contract)
 
     assert design["planned_cells"] == 18
-    assert design["worst_case_declared_cost_usd"] == 0.54
+    assert design["worst_case_declared_cost_usd"] == pytest.approx(0.54)
     assert design["predecessor_campaign_id"] == "datacenter_counteroffer_adoption_v1"
     assert design["instrument_change"] == (
         "public_valid_nonexact_starter_terms_and_schema_aligned_walk"
@@ -358,7 +360,7 @@ def test_v3_provider_free_ladder_and_design(tmp_path: Path) -> None:
     contract = load_contract_v3()
     design = build_design_v3(contract)
     assert design["planned_cells"] == 18
-    assert design["worst_case_declared_cost_usd"] == 0.54
+    assert design["worst_case_declared_cost_usd"] == pytest.approx(0.54)
     assert design["predecessor_campaign_id"] == "datacenter_counteroffer_adoption_v2"
     assert design["instrument_change"] == "nullable_nonbinding_offer_prose_normalized"
 

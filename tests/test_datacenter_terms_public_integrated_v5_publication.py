@@ -86,5 +86,6 @@ def test_integrated_v5_publication_is_sealed_complete_and_sanitized() -> None:
     assert all(token not in payload for token in PROHIBITED_PUBLIC_TEXT)
 
 
+@pytest.mark.local_run("datacenter_development_terms_public_integrated_v5")
 def test_integrated_v5_publication_is_idempotent() -> None:
     assert publish() == publish()

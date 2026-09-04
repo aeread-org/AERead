@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 import asyncio
 import csv
 import hashlib
@@ -359,6 +361,7 @@ def test_grounded_publication_preserves_case_variance_and_hard_gate() -> None:
     assert all(float(row["qwen_minus_mistral"]) > 0 for row in non_quote_pairs)
 
 
+@pytest.mark.local_run("datacenter_development_terms_grounded_v1")
 def test_grounded_glm_addon_is_hash_bridged_bounded_and_noninferential() -> None:
     contract = load_glm_contract()
     design = build_glm_design(contract)
@@ -375,6 +378,7 @@ def test_grounded_glm_addon_is_hash_bridged_bounded_and_noninferential() -> None
     assert contract["analysis"]["project_generalization_allowed"] is False
 
 
+@pytest.mark.local_run("datacenter_development_terms_grounded_v1")
 def test_grounded_glm_addon_passes_inherited_gate_and_admission(
     tmp_path: Path,
 ) -> None:
@@ -398,6 +402,7 @@ def test_grounded_glm_addon_passes_inherited_gate_and_admission(
     )
 
 
+@pytest.mark.local_run("datacenter_development_terms_grounded_v1")
 def test_grounded_glm_live_cell_executes_and_replays(tmp_path: Path) -> None:
     contract = load_glm_contract()
     design = build_glm_design(contract)

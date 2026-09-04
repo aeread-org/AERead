@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 import asyncio
 import csv
 import hashlib
@@ -148,7 +150,7 @@ def test_salience_campaign_is_paired_bounded_and_noninferential() -> None:
 
     assert design["planned_cells"] == 20
     assert design["planned_pair_count"] == 10
-    assert design["worst_case_declared_cost_usd"] == 0.6
+    assert design["worst_case_declared_cost_usd"] == pytest.approx(0.6)
     assert design["worst_case_declared_cost_usd"] <= design["campaign_max_cost_usd"]
     assert contract["analysis"]["population_causal_effect_allowed"] is False
     assert contract["analysis"]["winner_claim_allowed"] is False

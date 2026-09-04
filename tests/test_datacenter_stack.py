@@ -438,6 +438,7 @@ def test_v2_interaction_campaign_module_invokes_cli(tmp_path) -> None:
     assert design["worst_case_declared_cost_usd"] == pytest.approx(1.26)
 
 
+@pytest.mark.local_run("datacenter_development_v2_interaction_v1")
 def test_v2_interaction_publication_is_reproducible_and_sanitized(tmp_path) -> None:
     manifest = json.loads(
         (INTERACTION_PUBLICATION / "publication_manifest.json").read_text()

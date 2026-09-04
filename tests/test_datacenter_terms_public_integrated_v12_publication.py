@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 import csv
 import json
 from pathlib import Path
@@ -14,6 +16,7 @@ def _jsonl(path: Path) -> list[dict[str, object]]:
     return [json.loads(line) for line in path.read_text().splitlines()]
 
 
+@pytest.mark.local_run("datacenter_development_terms_public_integrated_v12")
 def test_integrated_v12_publication_is_sanitized_and_sealed(
     tmp_path: Path,
 ) -> None:
@@ -41,6 +44,7 @@ def test_integrated_v12_publication_is_sanitized_and_sealed(
         assert "upstream_provider_shared_pool" not in text
 
 
+@pytest.mark.local_run("datacenter_development_terms_public_integrated_v12")
 def test_integrated_v12_publication_preserves_typed_missingness(
     tmp_path: Path,
 ) -> None:

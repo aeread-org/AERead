@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 import asyncio
 import csv
 import hashlib
@@ -145,7 +147,7 @@ def test_action_schema_campaign_is_paired_bounded_and_noninferential() -> None:
 
     assert design["planned_cells"] == 20
     assert design["planned_pair_count"] == 10
-    assert design["worst_case_declared_cost_usd"] == 0.6
+    assert design["worst_case_declared_cost_usd"] == pytest.approx(0.6)
     assert design["worst_case_declared_cost_usd"] <= design[
         "campaign_max_cost_usd"
     ]
@@ -260,7 +262,7 @@ def test_action_schema_v2_is_a_fresh_full_panel() -> None:
     assert contract["inference_seeds"] == [312701, 312702, 312703, 312704, 312705]
     assert design["planned_cells"] == 20
     assert design["planned_pair_count"] == 10
-    assert design["worst_case_declared_cost_usd"] == 0.6
+    assert design["worst_case_declared_cost_usd"] == pytest.approx(0.6)
     assert design["predecessor_campaign_id"] == (
         "datacenter_counteroffer_action_schema_v1"
     )

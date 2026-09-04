@@ -262,5 +262,6 @@ def test_public_glm_transfer_publication_is_sealed_and_preserves_missingness() -
     assert all(token not in payload for token in PROHIBITED_PUBLIC_TEXT)
 
 
+@pytest.mark.local_run("datacenter_development_terms_public_glm_transfer_v1")
 def test_public_glm_transfer_publication_is_idempotent() -> None:
     assert publish() == publish()

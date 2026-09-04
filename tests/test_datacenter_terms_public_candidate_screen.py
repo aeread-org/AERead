@@ -343,6 +343,7 @@ def test_candidate_screen_publication_is_sealed_complete_and_sanitized() -> None
     assert all(token not in payload for token in PROHIBITED_PUBLIC_TEXT)
 
 
+@pytest.mark.local_run("datacenter_development_terms_public_candidate_screen_v1")
 def test_candidate_screen_publication_is_idempotent() -> None:
     first = publish()
     second = publish()
