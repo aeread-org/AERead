@@ -446,6 +446,43 @@ requires at least two of the five split-required worlds to contain a feasible GL
 purchase award while the sealed Qwen parent contains none. Effect direction never
 gates evidence eligibility.
 
+#### Observed GLM model-route transfer result
+
+The `request_quote` admission canary was admitted for $0.0002411145. All 18 scored
+rows completed and receipt-replayed with exact accounting and zero operational
+failures; one row recovered from a single typed rate limit within the bounded retry
+policy. The scored panel cost $0.060654825, for $0.0608959395 total, against the
+$0.30 conservative ceiling. Median trajectory time was 31.33 seconds, versus 10.84
+seconds for the sealed Qwen V2 parent.
+
+The prespecified transfer signal was observed. GLM produced a feasible purchase
+award in five of the five split-required worlds—both single-component splits, the
+dual-component split, the multi-unit BOM split, and the capacity-limited 18-kit
+minimum-service world—while the sealed Qwen parent had none. Overall GLM reached
+14/18 feasible awards versus 0/18 for Qwen, with 14 fail-to-pass and 4 fail-to-fail
+paired transitions. GLM submitted a multi-offer split in all 15 award submissions on
+split-required worlds; Qwen submitted none in 14. Qwen's 15 over-capacity line
+violations disappeared entirely. GLM's residual failures were two cash-budget
+breaches, one minimum-service miss, one unverified-sample award, and one exhausted
+ten-action budget.
+
+After averaging seeds within world, GLM-minus-Qwen effects were +0.7778 feasible
+purchase award (six-world bootstrap interval [0.4444, 1.0000]), +$115.2024
+contribution margin ([$62.8411, $154.7654]), and -$115.2024 regret
+([-$154.7654, -$62.8411]). Completed kits were flat at +0.2778 ([-4.4444, 6.3889])
+because Qwen's infeasible awards still ordered full quantities. The only world with
+no improvement was the budget-limited 18-kit case, where GLM also ordered the 20-kit
+target and exceeded cash in two of three replicates.
+
+GLM's action mix was 57 quote requests, 56 sample requests, 6 counter offers, and 17
+awards, with no verbal inquiry and no defer. Its mean residual regret was $25.31
+against the full-information bound, so on this route the objective is no longer
+dominated by feasibility and begins to reflect search and negotiation quality. The
+model and route changed together after inspecting Qwen, so this remains an adaptive
+transfer diagnostic on six targeted worlds rather than a checkpoint causal effect,
+confirmatory evidence, or model ranking. The tracked bundle is
+`evidence/procurement_allocation_glm53_flash_parasail_qwen_holdout_transfer_v1/`.
+
 ## Public-observation policy controls
 
 The deterministic policy campaign supplies non-model floors and a negative control

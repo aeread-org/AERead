@@ -178,6 +178,14 @@ The campaign is integrity-qualified only after all 18 rows complete and replay w
 exact accounting. Its transfer signal requires feasible purchase awards in at least
 two independent split-required worlds while the sealed Qwen parent has none.
 
+The qualified transfer run completed and replayed all 18 rows with zero operational
+failures, one bounded rate-limit retry, and $0.0608959395 total spend including the
+canary. The transfer signal was observed: GLM produced feasible purchase awards in
+all five split-required worlds and 14/18 overall, with paired six-world regret
+falling by $115.20 (interval [-$154.77, -$62.84]). The budget-limited 18-kit world
+remained unsolved. The sanitized bundle is
+`evidence/procurement_allocation_glm53_flash_parasail_qwen_holdout_transfer_v1/`.
+
 ## Blinded supplier-label mirror
 
 `blinded_v3/` contains a deterministic paired mirror of the six generated cases.
