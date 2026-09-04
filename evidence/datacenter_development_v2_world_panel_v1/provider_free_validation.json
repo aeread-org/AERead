@@ -1,0 +1,259 @@
+{
+  "artifact_sha256": "7da0c35b2bfa65d00417f265f085697f436b43f33f0ad0a2731735b508790081",
+  "campaign_id": "datacenter_development_v2_world_panel_v1",
+  "contract_sha256": "5395dc964cb7e2cf4fce20a26af56428ed6a0f2b748783918eee3c967309c9cd",
+  "pack_sha256": "b164e5bdaadd1a1ddf2b6229d270c17ece17117c7ae54c6d66958eade66f28e3",
+  "schema_version": "aeread.datacenter_world_provider_free_gate/0.1",
+  "status": "passed",
+  "strata_replayed": [
+    "covenant_cliff",
+    "delayed_revenue",
+    "liability_transfer",
+    "restrictive_draws",
+    "revenue_without_bankability",
+    "verbal_written_divergence"
+  ],
+  "world_count": 24,
+  "worlds": [
+    {
+      "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_001",
+      "case_sha256": "142b75224822bc8e5e25906d5329355151f15348ddf72aa7d6955d3a3864435d",
+      "developer_equity_npv_cents": 766000,
+      "logical_action_count": 18,
+      "receipt_sha256": "12f27ea787bf02e3ccefd6ceea316148de0ee2e21fa472c215074f818e623b6b",
+      "replay_verified": true,
+      "status": "passed",
+      "stratum": "revenue_without_bankability"
+    },
+    {
+      "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_002",
+      "case_sha256": "86ae2235512eb535f11d5c951ab88d478d18ec45e4cad25181cd7af05ddf14f3",
+      "developer_equity_npv_cents": 704000,
+      "logical_action_count": 18,
+      "receipt_sha256": "c176e9ccdcf6ae3cd6a58e0fd865cc02a349f60bda33bf3c2884bf1443eec811",
+      "replay_verified": true,
+      "status": "passed",
+      "stratum": "revenue_without_bankability"
+    },
+    {
+      "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_003",
+      "case_sha256": "c1bc5a273747fd96f11566cfcf37ef46478a189496f3dc0281cbd146a70d7c24",
+      "developer_equity_npv_cents": 794000,
+      "logical_action_count": 18,
+      "receipt_sha256": "8f4273ef97441962c3a26a61261c25df570d5133ca02e95dfab46631acff41eb",
+      "replay_verified": true,
+      "status": "passed",
+      "stratum": "revenue_without_bankability"
+    },
+    {
+      "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_004",
+      "case_sha256": "762f0a464074de2d39948d2421ffeee4d09861b1244e7de1f7e9278f77a034aa",
+      "developer_equity_npv_cents": 696000,
+      "logical_action_count": 18,
+      "receipt_sha256": "a8893f7ece4e0fb22953b992f0ea54c235e8911f72f87fb5b91a958d4a8c10f6",
+      "replay_verified": true,
+      "status": "passed",
+      "stratum": "revenue_without_bankability"
+    },
+    {
+      "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_001",
+      "case_sha256": "8b7068bf00013a9c68bc47ee2295bc60af11b5fdc63a811e991bb4a71cdf4d6e",
+      "developer_equity_npv_cents": 685318,
+      "logical_action_count": 18,
+      "receipt_sha256": "66349644c148d85509d9ee5fb7b5c2566647b517e827c3ecfa3e46b80e0cdbe5",
+      "replay_verified": true,
+      "status": "passed",
+      "stratum": "delayed_revenue"
+    },
+    {
+      "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_002",
+      "case_sha256": "e41c0fbb49ac97cfd91f969b5b8cba55313b420f593da881f699301563464da2",
+      "developer_equity_npv_cents": 455632,
+      "logical_action_count": 18,
+      "receipt_sha256": "c19ff53ab65039923fc682bb7156a447c6bad160c8b93459ad6b95f35f964cb7",
+      "replay_verified": true,
+      "status": "passed",
+      "stratum": "delayed_revenue"
+    },
+    {
+      "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_003",
+      "case_sha256": "b95152683e21129a9549f417b14b5354eaf97fc5c6bc9b8e1d25dd0b1b6516d4",
+      "developer_equity_npv_cents": 592230,
+      "logical_action_count": 18,
+      "receipt_sha256": "5f74f739f2c8422f63f1f2eb40a31812866320671b66f4cd969df9485521dff0",
+      "replay_verified": true,
+      "status": "passed",
+      "stratum": "delayed_revenue"
+    },
+    {
+      "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_004",
+      "case_sha256": "be972a1c74b494ace824d76e377194c12e248ec4ebec3c8fe1bd795247aaa1e3",
+      "developer_equity_npv_cents": 544986,
+      "logical_action_count": 18,
+      "receipt_sha256": "f35da7bad682dfadcdd56b9294511a350099d6e9b948c964bdced6349886c650",
+      "replay_verified": true,
+      "status": "passed",
+      "stratum": "delayed_revenue"
+    },
+    {
+      "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_001",
+      "case_sha256": "2879fde255da035c277c19bf5a863ddf897588f675564814eb237169515e81cd",
+      "developer_equity_npv_cents": 786250,
+      "logical_action_count": 18,
+      "receipt_sha256": "8916a3825610459609bc86bcb05902ac931318ef106c01057947409163fecde5",
+      "replay_verified": true,
+      "status": "passed",
+      "stratum": "restrictive_draws"
+    },
+    {
+      "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_002",
+      "case_sha256": "0cdbd2e89d99722de71f1114c59a7ae0c6acab7c8850d7a1d7d63939379a4fce",
+      "developer_equity_npv_cents": 670250,
+      "logical_action_count": 18,
+      "receipt_sha256": "190a33e8a0994d2d16015e436f8d2364447df5b5514734c0e22aa9a80e396f46",
+      "replay_verified": true,
+      "status": "passed",
+      "stratum": "restrictive_draws"
+    },
+    {
+      "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_003",
+      "case_sha256": "4925ec4d500766bf470d80338e9c04345008ae19f155da14d45c648a3b969478",
+      "developer_equity_npv_cents": 650250,
+      "logical_action_count": 18,
+      "receipt_sha256": "a2b0f05e18743bd469ae35004491bb7df6d90fa68de17cfd89414a87a1f3f3a6",
+      "replay_verified": true,
+      "status": "passed",
+      "stratum": "restrictive_draws"
+    },
+    {
+      "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_004",
+      "case_sha256": "a8f7f09210b23626af2f22eb2ba10348074c2c93026b8c9a3fd3169910790407",
+      "developer_equity_npv_cents": 730250,
+      "logical_action_count": 18,
+      "receipt_sha256": "764d4500934069843b9ffa2b0c911df2b9e45a5de762a0b3430389fbc4431ad0",
+      "replay_verified": true,
+      "status": "passed",
+      "stratum": "restrictive_draws"
+    },
+    {
+      "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_001",
+      "case_sha256": "c09f69424312d3b8174315246f855ba77421435b88da235de2b9d2ea8dd32ad1",
+      "developer_equity_npv_cents": 666000,
+      "logical_action_count": 18,
+      "receipt_sha256": "da8d696089962861a3fd318cde6802b9487d422ab695377ed708ece934be6e3e",
+      "replay_verified": true,
+      "status": "passed",
+      "stratum": "covenant_cliff"
+    },
+    {
+      "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_002",
+      "case_sha256": "396b3403b014827aacd2d90ce032a1c21702ffce3a9399016bb595b66eb771e1",
+      "developer_equity_npv_cents": 758000,
+      "logical_action_count": 18,
+      "receipt_sha256": "fefa3f7802188634efd02c4a4b8f6142a0b3bd6ee04ee2d670af373cc3d691cc",
+      "replay_verified": true,
+      "status": "passed",
+      "stratum": "covenant_cliff"
+    },
+    {
+      "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_003",
+      "case_sha256": "d461a455c9985748da4e57752189ecf72bf5c4712a52a7e9a1f7f03fb71a6b4b",
+      "developer_equity_npv_cents": 724000,
+      "logical_action_count": 18,
+      "receipt_sha256": "e8aa72353b2f0b24ad4cb2f25381b0d8d38629c7124788dccdc983279493d119",
+      "replay_verified": true,
+      "status": "passed",
+      "stratum": "covenant_cliff"
+    },
+    {
+      "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_004",
+      "case_sha256": "93296aeee7da41c25e41f0502c781d235995fa11a08f4c100e51aa5f3a655de3",
+      "developer_equity_npv_cents": 696000,
+      "logical_action_count": 18,
+      "receipt_sha256": "11d472187fc7d7ecb13e1c79bb2ccc28dd61aea7d0fea193819ea853334ddb60",
+      "replay_verified": true,
+      "status": "passed",
+      "stratum": "covenant_cliff"
+    },
+    {
+      "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_001",
+      "case_sha256": "1149329f1274541e5f91c4562cf0b99b74b26cc4e0608257fc32a143bc92e0a3",
+      "developer_equity_npv_cents": 634000,
+      "logical_action_count": 18,
+      "receipt_sha256": "f48eb29c0583fae16122c441a3f5ff471a19777ef5fb6f1e5ad024ad5596ecc1",
+      "replay_verified": true,
+      "status": "passed",
+      "stratum": "liability_transfer"
+    },
+    {
+      "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_002",
+      "case_sha256": "95c97775760f2fe050758458ca241d661ee622c53dbaf4508606139966124df3",
+      "developer_equity_npv_cents": 530000,
+      "logical_action_count": 18,
+      "receipt_sha256": "5201c0cdb4f0f3b88d000d964acba26049869175f9d3e008c9b9e973fd5e8709",
+      "replay_verified": true,
+      "status": "passed",
+      "stratum": "liability_transfer"
+    },
+    {
+      "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_003",
+      "case_sha256": "09172d95e9e908b767f9102f21441d3e544f75a45f901f01aa4717462dc067b4",
+      "developer_equity_npv_cents": 510000,
+      "logical_action_count": 18,
+      "receipt_sha256": "46271022dbfedca696a3493c67f957a36e9ed4d947dd63f08de477a6da89b2b5",
+      "replay_verified": true,
+      "status": "passed",
+      "stratum": "liability_transfer"
+    },
+    {
+      "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_004",
+      "case_sha256": "527f425de7de4877027e42a7f1d451c131ad0107b73e495e995aeda2f3ff0da6",
+      "developer_equity_npv_cents": 524000,
+      "logical_action_count": 18,
+      "receipt_sha256": "0e0ded8eb98ff00b1a0e567e1475d3acba4b34cb692903531b880f63625289b8",
+      "replay_verified": true,
+      "status": "passed",
+      "stratum": "liability_transfer"
+    },
+    {
+      "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_001",
+      "case_sha256": "84cb99fdde59ba3519c6fe9b6be870c0ec50c39f42aaedb386310565684f5e32",
+      "developer_equity_npv_cents": 771500,
+      "logical_action_count": 18,
+      "receipt_sha256": "d48b6845c19f75761204fe44e8123906cbe3c0c522bba98c0cdcc98b27848ed5",
+      "replay_verified": true,
+      "status": "passed",
+      "stratum": "verbal_written_divergence"
+    },
+    {
+      "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_002",
+      "case_sha256": "2e31076a982cb2528aa186796f9ea19387a04d72afcd2464dbbea3ff6ae8461c",
+      "developer_equity_npv_cents": 742250,
+      "logical_action_count": 18,
+      "receipt_sha256": "e9af28564669093554b5c461a07c036670453f15c94e5b1796f8aec04aa7bade",
+      "replay_verified": true,
+      "status": "passed",
+      "stratum": "verbal_written_divergence"
+    },
+    {
+      "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_003",
+      "case_sha256": "d76842c0fde292492bd43af3f397cc54a287d0235e39ef7ffde77062b1b0d189",
+      "developer_equity_npv_cents": 790250,
+      "logical_action_count": 18,
+      "receipt_sha256": "0a6fdfd348de59ad46a522a3ec9a0c453a97933d420db8e7cc6dc8996b081595",
+      "replay_verified": true,
+      "status": "passed",
+      "stratum": "verbal_written_divergence"
+    },
+    {
+      "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_004",
+      "case_sha256": "dfb3db38eed2a12c255f3ca3fad51e45e9f8f4f025172fcaeed43d461f4ef0e1",
+      "developer_equity_npv_cents": 716250,
+      "logical_action_count": 18,
+      "receipt_sha256": "a9673b1ba9d98e2fc841b4bcb82c2d32024def1ece712a270033d45c03a201a0",
+      "replay_verified": true,
+      "status": "passed",
+      "stratum": "verbal_written_divergence"
+    }
+  ]
+}
