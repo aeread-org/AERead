@@ -19,7 +19,11 @@ from typing import Any, Mapping, Sequence
 
 from aeread_families.housing import environment as hz
 
-from aeread.shared_runner.task.execution import OpenRouterChatClient, ProviderRequest
+from aeread.shared_runner.task.execution import (
+    OpenRouterChatClient,
+    ProviderFailure,
+    ProviderRequest,
+)
 
 from .runner import (
     GLM_53_FLASH_MODEL,
@@ -35,6 +39,7 @@ from .runner import (
     OpenRouterRoutePin,
 )
 from .model_sensitivity import (
+    CooldownProviderClient,
     PacedProviderClient,
     _exception_attribute,
     _read_sealed,
@@ -53,6 +58,7 @@ from .population_campaign import (
     _validate_admission_action,
 )
 from aeread.shared_runner.run.resolver import canonical_json_bytes
+from . import provider_cooldown as provider_cooldown_module
 from . import provider_pacing as provider_pacing_module
 
 
@@ -309,6 +315,64 @@ CAMPAIGN_SPECS = {
             "reserve; stop_immediately_on_route_drift_or_replay_failure"
         ),
     },
+    "housing_model_sensitivity_openrouter_friendli_v13": {
+        "claim_status": "development_full_trajectory_gate_only",
+        "catalog_retrieved_at": "2026-09-03",
+        "reasoning_condition_id": (
+            "model_sensitivity_openrouter_friendli_low_v13"
+        ),
+        "per_probe_cost_reserve_usd": 0.003,
+        "admission_cost_ceiling_usd": 0.06,
+        "execution_stage": "full_trajectory",
+        "execution_config_ids": ["moderate_cw085_r2"],
+        "execution_cost_ceiling_usd": 0.08,
+        "per_trajectory_cost_reserve_usd": 0.02,
+        "world_seeds": [227922569],
+        "condition_order": "listed",
+        "analysis": {
+            "primary_view": "full_trajectory_condition_coverage",
+            "aggregation": "none_promotion_gate",
+            "uncertainty": "not_estimable_from_one_world_cluster",
+            "ranking_allowed": False,
+        },
+        "providers": {
+            "glm_53_flash": "Friendli",
+            "deepseek_v4_flash": "Parasail",
+        },
+        "quantizations": {
+            "glm_53_flash": "unknown",
+            "deepseek_v4_flash": "fp8",
+        },
+        "retryable_conditions": [
+            "length",
+            "rate_limit",
+            "provider_5xx",
+            "empty_response",
+        ],
+        "action_schema_version": "housing_actions/2.0",
+        "wire_live_profile_controls": True,
+        "verify_endpoint_snapshot": True,
+        "call_pacing": {
+            "clock": "monotonic_completion_to_start",
+            "cooldown_seconds_by_provider": {
+                "Friendli": 10.0,
+                "Parasail": 10.0,
+            },
+            "first_call_delay_seconds": 0.0,
+            "scope": "shared_across_profile_admission_and_full_trajectory",
+            "implementation_sha256": (
+                "4dc67f4ae81395166264049bbf917d8d42e69c5d6069c97fea981c4b419415d3"
+            ),
+        },
+        "admission_timeout_enforcement": (
+            "asyncio_wait_for_controls_timeout_seconds"
+        ),
+        "stopping_rule": (
+            "profile_admission_must_pass_before_full_trajectory; stop_before_next_"
+            "trajectory_when_remaining_campaign_budget_is_below_the_declared_"
+            "reserve; stop_immediately_on_route_drift_or_replay_failure"
+        ),
+    },
 }
 REQUIRED_ROUTE_PARAMETERS = {
     "max_tokens",
@@ -363,6 +427,7 @@ def _validate_models(value: Any, *, campaign_id: str) -> None:
     }:
         raise ValueError("backend campaign requires exactly GLM and DeepSeek")
     providers = CAMPAIGN_SPECS[campaign_id]["providers"]
+    quantizations = CAMPAIGN_SPECS[campaign_id].get("quantizations", {})
     expected = {
         "glm_53_flash": (
             GLM_53_FLASH_MODEL,
@@ -396,7 +461,10 @@ def _validate_models(value: Any, *, campaign_id: str) -> None:
             canonical,
         ):
             raise ValueError(f"model identity drifted for {model_id}")
-        if (model["provider"], model["quantization"]) != (provider, "fp8"):
+        if (model["provider"], model["quantization"]) != (
+            provider,
+            quantizations.get(model_id, "fp8"),
+        ):
             raise ValueError(f"alternate route drifted for {model_id}")
         if any(
             isinstance(model[field], bool)
@@ -462,6 +530,7 @@ def load_contract(path: str | Path) -> dict[str, Any]:
         "action_schema_version",
         "wire_live_profile_controls",
         "call_pacing",
+        "admission_timeout_enforcement",
     ):
         if optional_control in CAMPAIGN_SPECS[campaign_id]:
             expected_controls[optional_control] = CAMPAIGN_SPECS[campaign_id][
@@ -798,20 +867,56 @@ def _campaign_provider_client(contract: Mapping[str, Any]) -> Any:
     pacing = contract["controls"].get("call_pacing")
     if pacing is None:
         return client
-    implementation_sha256 = hashlib.sha256(
-        Path(provider_pacing_module.__file__).read_bytes()
-    ).hexdigest()
+    clock = pacing.get("clock")
+    if clock == "monotonic_start_to_start":
+        module_path = Path(provider_pacing_module.__file__)
+    elif clock == "monotonic_completion_to_start":
+        module_path = Path(provider_cooldown_module.__file__)
+    else:
+        raise ValueError(f"unsupported provider pacing clock {clock!r}")
+    implementation_sha256 = hashlib.sha256(module_path.read_bytes()).hexdigest()
     if implementation_sha256 != pacing["implementation_sha256"]:
         raise ValueError(
             "provider pacing implementation differs from the frozen campaign pin"
         )
-    return PacedProviderClient(
+    if clock == "monotonic_start_to_start":
+        return PacedProviderClient(
+            client,
+            minimum_interval_seconds_by_provider=pacing[
+                "minimum_interval_seconds_by_provider"
+            ],
+            first_call_delay_seconds=pacing["first_call_delay_seconds"],
+        )
+    return CooldownProviderClient(
         client,
-        minimum_interval_seconds_by_provider=pacing[
-            "minimum_interval_seconds_by_provider"
-        ],
+        cooldown_seconds_by_provider=pacing["cooldown_seconds_by_provider"],
         first_call_delay_seconds=pacing["first_call_delay_seconds"],
     )
+
+
+async def _admission_complete(
+    contract: Mapping[str, Any], client: Any, request: ProviderRequest
+) -> Any:
+    """Delegate one admission call under the same wall-time budget as execution.
+
+    Campaigns before V13 invoked the adapter directly, so a probe could exceed
+    ``controls.timeout_seconds`` without a typed failure. When the contract
+    freezes ``admission_timeout_enforcement`` the call is wrapped in the same
+    ``asyncio.wait_for`` budget that the shared-runner attempt loop applies.
+    """
+
+    if contract["controls"].get("admission_timeout_enforcement") is None:
+        return await client.complete(request)
+    try:
+        return await asyncio.wait_for(
+            client.complete(request), timeout=request.timeout_seconds
+        )
+    except asyncio.TimeoutError as error:
+        raise ProviderFailure(
+            "timeout",
+            f"admission call exceeded {request.timeout_seconds} seconds",
+            retryable=True,
+        ) from error
 
 
 async def run_profile_admission(
@@ -848,12 +953,12 @@ async def run_profile_admission(
         started = time.perf_counter()
         pacing_observation_index = (
             client.observation_count
-            if isinstance(client, PacedProviderClient)
+            if isinstance(client, (PacedProviderClient, CooldownProviderClient))
             else None
         )
         result = None
         try:
-            result = await client.complete(request)
+            result = await _admission_complete(contract, client, request)
             raw_path = result_path.with_name(f"probe_{spec['probe_index']}_raw.json")
             _write_json(
                 raw_path,

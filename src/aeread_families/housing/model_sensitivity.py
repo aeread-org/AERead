@@ -46,6 +46,7 @@ from .population_campaign import (
     _role_metrics,
 )
 from .qc import audit_bid_world
+from .provider_cooldown import CooldownProviderClient
 from .provider_pacing import PacedProviderClient
 
 
@@ -945,7 +946,7 @@ async def run_live(
         started = time.perf_counter()
         pacing_observation_index = (
             client.observation_count
-            if isinstance(client, PacedProviderClient)
+            if isinstance(client, (PacedProviderClient, CooldownProviderClient))
             else None
         )
         critical_error = False
@@ -1118,7 +1119,7 @@ async def run_live(
             **contract["controls"]["call_pacing"],
             "observed": (
                 client.pacing_summary_since(0)
-                if isinstance(client, PacedProviderClient)
+                if isinstance(client, (PacedProviderClient, CooldownProviderClient))
                 else None
             ),
         }

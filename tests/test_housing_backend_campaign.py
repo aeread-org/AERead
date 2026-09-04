@@ -11,6 +11,7 @@ from types import SimpleNamespace
 import pytest
 
 from aeread_families.housing.backend_campaign import (
+    _admission_complete,
     _admission_specs,
     _endpoint_snapshot_sha256,
     catalog_preflight,
@@ -19,7 +20,12 @@ from aeread_families.housing.backend_campaign import (
     route_table,
     run_profile_admission,
 )
-from aeread.shared_runner.task.execution import EvidenceIntegrityError, ProviderResult
+from aeread.shared_runner.task.execution import (
+    EvidenceIntegrityError,
+    ProviderFailure,
+    ProviderResult,
+)
+from aeread_families.housing.provider_cooldown import CooldownProviderClient
 from aeread_families.housing.model_sensitivity import (
     PacedProviderClient,
     build_setups,
@@ -85,6 +91,11 @@ V12_CONTRACT_PATH = (
     Path(__file__).resolve().parents[1]
     / "configs"
     / "housing_model_sensitivity_openrouter_deepinfra_v12.json"
+)
+V13_CONTRACT_PATH = (
+    Path(__file__).resolve().parents[1]
+    / "configs"
+    / "housing_model_sensitivity_openrouter_friendli_v13.json"
 )
 
 
@@ -408,6 +419,169 @@ def test_paced_provider_client_enforces_route_specific_start_intervals() -> None
             "Parasail": {"provider_calls": 2, "pacing_wait_seconds": 15.0},
         },
     }
+
+
+def test_v13_changes_only_identity_glm_route_cooldown_and_admission_timeout() -> None:
+    v12 = load_contract(V12_CONTRACT_PATH)
+    v13 = load_contract(V13_CONTRACT_PATH)
+    routes = route_table(v13)
+
+    assert v13["execution"] == v12["execution"]
+    assert v13["analysis"] == v12["analysis"]
+    assert v13["conditions"] == v12["conditions"]
+    assert v13["source_case_selection"] == v12["source_case_selection"]
+    unchanged = {
+        key: value
+        for key, value in v13["controls"].items()
+        if key
+        not in {"reasoning_condition_id", "call_pacing", "admission_timeout_enforcement"}
+    }
+    assert unchanged == {
+        key: value
+        for key, value in v12["controls"].items()
+        if key not in {"reasoning_condition_id", "call_pacing"}
+    }
+    assert v13["controls"]["call_pacing"] == {
+        "clock": "monotonic_completion_to_start",
+        "cooldown_seconds_by_provider": {"Friendli": 10.0, "Parasail": 10.0},
+        "first_call_delay_seconds": 0.0,
+        "scope": "shared_across_profile_admission_and_full_trajectory",
+        "implementation_sha256": (
+            "4dc67f4ae81395166264049bbf917d8d42e69c5d6069c97fea981c4b419415d3"
+        ),
+    }
+    assert v13["controls"]["call_pacing"]["implementation_sha256"] == (
+        hashlib.sha256(
+            (
+                V13_CONTRACT_PATH.parents[1]
+                / "src"
+                / "aeread_families"
+                / "housing"
+                / "provider_cooldown.py"
+            ).read_bytes()
+        ).hexdigest()
+    )
+    assert v13["controls"]["admission_timeout_enforcement"] == (
+        "asyncio_wait_for_controls_timeout_seconds"
+    )
+    assert routes["glm_53_flash"].provider == "Friendli"
+    assert routes["glm_53_flash"].quantization == "unknown"
+    assert routes["deepseek_v4_flash"].provider == "Parasail"
+    assert v13["models"]["deepseek_v4_flash"]["endpoint_snapshot_sha256"] == (
+        v12["models"]["deepseek_v4_flash"]["endpoint_snapshot_sha256"]
+    )
+    assert (
+        v13["profile_admission"]["cost_ceiling_usd"]
+        + v13["execution"]["cost_ceiling_usd"]
+        == pytest.approx(0.14)
+    )
+    assert design_artifact(v13, routes=routes)["artifact_sha256"] == (
+        "4627be3c85e2a85f27d5d38e0fa3c04fe141f2b448de402abbf658ad63e96db5"
+    )
+    assert provider_free_artifact(v13)["artifact_sha256"] == (
+        "f1906b194b7df6ad039cb821315d1e21d0038f7c14a9f498186721837cb2c430"
+    )
+
+    expected_profiles = v13["profile_admission"]["profile_sha256s"]
+    for setup in build_setups(v13, routes=routes).values():
+        for profile in setup.plan.agent_profiles:
+            assert hashlib.sha256(canonical_json_bytes(profile)).hexdigest() == (
+                expected_profiles[profile.profile_id]
+            )
+
+
+def test_cooldown_provider_client_measures_from_completion_and_serialises() -> None:
+    class Clock:
+        def __init__(self) -> None:
+            self.now = 0.0
+            self.waits: list[float] = []
+
+        def __call__(self) -> float:
+            return self.now
+
+        async def sleep(self, seconds: float) -> None:
+            self.waits.append(seconds)
+            self.now += seconds
+
+    class Delegate:
+        def __init__(self, clock: Clock) -> None:
+            self.clock = clock
+            self.providers: list[str] = []
+
+        async def complete(self, request: object) -> object:
+            self.providers.append(request.provider_metadata["route_provider"])
+            # A slow call: the next call must wait the full cooldown after this
+            # completion, not from this start (the V12 defect).
+            self.clock.now += request.provider_metadata.get("duration", 0.0)
+            if request.provider_metadata.get("fail"):
+                raise ProviderFailure("rate_limit", "429", retryable=True)
+            return object()
+
+    async def exercise() -> tuple[Clock, Delegate, CooldownProviderClient]:
+        clock = Clock()
+        delegate = Delegate(clock)
+        client = CooldownProviderClient(
+            delegate,
+            cooldown_seconds_by_provider={"Friendli": 10.0, "Parasail": 10.0},
+            first_call_delay_seconds=0.0,
+            clock=clock,
+            sleeper=clock.sleep,
+        )
+        calls = (
+            {"route_provider": "Friendli", "duration": 140.0},
+            {"route_provider": "Friendli", "duration": 1.0, "fail": True},
+            {"route_provider": "Friendli", "duration": 1.0},
+            {"route_provider": "Parasail", "duration": 1.0},
+            {"route_provider": "Parasail", "duration": 1.0},
+        )
+        for metadata in calls:
+            try:
+                await client.complete(SimpleNamespace(provider_metadata=metadata))
+            except ProviderFailure:
+                pass
+        return clock, delegate, client
+
+    clock, delegate, client = asyncio.run(exercise())
+
+    assert clock.waits == [10.0, 10.0, 10.0]
+    assert delegate.providers == [
+        "Friendli",
+        "Friendli",
+        "Friendli",
+        "Parasail",
+        "Parasail",
+    ]
+    assert client.pacing_summary_since(0) == {
+        "provider_calls": 5,
+        "paced_call_count": 3,
+        "pacing_wait_seconds": 30.0,
+        "by_provider": {
+            "Friendli": {"provider_calls": 3, "pacing_wait_seconds": 20.0},
+            "Parasail": {"provider_calls": 2, "pacing_wait_seconds": 10.0},
+        },
+    }
+    with pytest.raises(EvidenceIntegrityError):
+        asyncio.run(
+            client.complete(
+                SimpleNamespace(provider_metadata={"route_provider": "DeepInfra"})
+            )
+        )
+
+
+def test_v13_admission_call_is_bound_by_the_frozen_timeout() -> None:
+    class SlowClient:
+        async def complete(self, request: object) -> object:
+            await asyncio.sleep(0.2)
+            return "late"
+
+    request = SimpleNamespace(timeout_seconds=0.01)
+    enforced = {"controls": {"admission_timeout_enforcement": "asyncio_wait_for"}}
+    legacy = {"controls": {}}
+
+    with pytest.raises(ProviderFailure) as excinfo:
+        asyncio.run(_admission_complete(enforced, SlowClient(), request))
+    assert excinfo.value.condition == "timeout"
+    assert asyncio.run(_admission_complete(legacy, SlowClient(), request)) == "late"
 
 
 def test_published_v12_records_pacing_failure_and_zero_trajectories() -> None:

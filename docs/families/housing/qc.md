@@ -713,3 +713,56 @@ the zero-attempt
 [`attempted.json`](../../../evidence/housing_model_sensitivity_openrouter_deepinfra_v12/trajectories/attempted.json),
 and the pacing-aware canonical
 [`fact_manifest.json`](../../../evidence/housing_model_sensitivity_openrouter_deepinfra_v12/tables/fact_manifest.json).
+
+## 20. V13 preregistered cooldown and admission-timeout gate
+
+[`housing_model_sensitivity_openrouter_friendli_v13`](../../../configs/housing_model_sensitivity_openrouter_friendli_v13.json)
+is a new campaign identity created in response to the V12 result. It does not
+retry or amend V12. V13 keeps the same selected configuration, development
+world, four subject-opponent conditions, schemas, prompts, sampling, retry
+ownership, and the `$0.14` maximum exposure (`$0.06` admission plus `$0.08`
+full trajectory).
+
+V13 changes three frozen things:
+
+1. **GLM route.** DeepInfra blocked V11 and V12 with upstream HTTP 429s. V13
+   pins GLM 5.3 Flash to Friendli, whose catalog record reports every required
+   parameter, an active status, and the same `$0.15/$0.50` per-million pricing
+   as the other full-featured GLM routes. Friendli reports its quantization as
+   `unknown`; the pin records that literally instead of asserting FP8. DeepSeek
+   V4 Flash stays on Parasail FP8 with the same endpoint snapshot digest as
+   V12. Before freezing, five spaced strict-client probes per route returned
+   five valid actions on Friendli, Parasail, and Sail Research; only Friendli
+   held catalog status `0` across three samples, so the other two are not
+   admissible pins.
+2. **Completion-to-next-start cooldown.** The V12 scheduler measured
+   start-to-start, so a 147-second call was followed immediately by another
+   call. V13 replaces it with a per-route cooldown of 10 seconds measured from
+   the previous call's completion, success or failure, with no first-call
+   delay. Calls to one route are serialised. One scheduler instance is shared
+   across profile admission and the full-trajectory stage. The implementation
+   file is digest-pinned in the contract; the V12 module is untouched.
+3. **Admission timeout enforcement.** V12 showed profile admission invoking
+   the adapter without a wall-time budget. V13 wraps every admission call in
+   the same `asyncio.wait_for` budget the shared-runner attempt loop applies,
+   using the frozen 120-second `timeout_seconds`, and records an over-budget
+   call as a typed `timeout` failure.
+
+V13 remains a one-world promotion gate. It may establish only whether every
+frozen model pairing completes one replay-verified trajectory under the
+cooldown condition. It cannot support a winner, model ranking, variance
+estimate, or confirmatory claim. If any admission probe fails, all four
+trajectories remain blocked; if any trajectory fails, the missing cell remains
+typed missingness and is not selectively rerun.
+
+```bash
+python -m aeread_families.housing.backend_campaign \
+  --contract configs/housing_model_sensitivity_openrouter_friendli_v13.json \
+  --run-root runs/housing_model_sensitivity_openrouter_friendli_v13 \
+  --through provider_free
+
+python -m aeread_families.housing.backend_campaign \
+  --contract configs/housing_model_sensitivity_openrouter_friendli_v13.json \
+  --run-root runs/housing_model_sensitivity_openrouter_friendli_v13 \
+  --through full_trajectory
+```

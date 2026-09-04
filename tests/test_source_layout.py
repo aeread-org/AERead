@@ -67,6 +67,7 @@ def test_housing_family_owns_its_complete_execution_surface() -> None:
         "harness_leaderboard.py",
         "model_sensitivity.py",
         "population_campaign.py",
+        "provider_cooldown.py",
         "provider_pacing.py",
         "qc.py",
         "qc_bundle.py",
