@@ -537,6 +537,87 @@ class FamilyScorer(Protocol):
     ) -> ScoreEnvelope | Sequence[ScoreEnvelope] | FamilyScoreSet: ...
 
 
+def _manifest_declares_leaf_policy(manifest: Any) -> bool:
+    measurement = manifest.measurement
+    return bool(measurement.leaves) and measurement.primary_leaf_id is not None
+
+
+def _declared_deferred_leaf_ids(manifest: Any) -> tuple[str, ...]:
+    """The manifest's declared, deferred (not finalize-time) leaf ids.
+
+    kernel_contract_impl_review.md finding 12: a deferred leaf's declaration
+    must survive onto the receipt as declared-and-deferred, not disappear
+    the way an undeclared, silently-dropped leaf would. Empty when the
+    family declares no leaf policy at all (per-family migration work, spec
+    section 5, not yet done for any production manifest).
+    """
+    if not _manifest_declares_leaf_policy(manifest):
+        return ()
+    return tuple(
+        sorted(leaf.leaf_id for leaf in manifest.measurement.leaves if leaf.scope == "deferred")
+    )
+
+
+def _enforce_declared_leaf_policy(score_set: FamilyScoreSet, manifest: Any) -> None:
+    """The manifest is the source of truth for a family that declares one.
+
+    kernel_contract_impl_review.md finding 5: nothing previously obtained or
+    compared the manifest's leaf policy against what the scorer actually
+    produced, so a scorer that silently dropped a declared leaf (or drifted
+    on primary/admission) would still receipt. A family with no declared
+    leaf policy is unconstrained here -- declaring one on the production
+    manifest is per-family migration work (spec section 5, item 2), not
+    performed by this kernel change for any of the five already-migrated
+    families (spec ruling R4).
+    """
+    if not _manifest_declares_leaf_policy(manifest):
+        return
+    declared = manifest.measurement.finalize_time_leaf_policy()
+    produced_leaf_ids = tuple(score.leaf.leaf_id for score in score_set.scores)
+    if set(produced_leaf_ids) != set(declared.leaf_ids):
+        raise ValueError(
+            "family scorer output does not match its declared finalize-time "
+            f"leaf policy: produced {sorted(produced_leaf_ids)}, declared "
+            f"{sorted(declared.leaf_ids)}"
+        )
+    if score_set.primary_leaf_id != declared.primary_leaf_id:
+        raise ValueError(
+            "family scorer primary_leaf_id does not match its declared leaf policy: "
+            f"produced {score_set.primary_leaf_id!r}, declared {declared.primary_leaf_id!r}"
+        )
+    if score_set.admission_leaf_ids != declared.admission_leaf_ids:
+        raise ValueError(
+            "family scorer admission_leaf_ids does not match its declared leaf "
+            f"policy: produced {score_set.admission_leaf_ids}, declared "
+            f"{declared.admission_leaf_ids}"
+        )
+
+
+def _check_evidence_refs_are_scoring_input_verbatim(
+    score_set: FamilyScoreSet, scoring_input: "FamilyScoringInput"
+) -> None:
+    """Every produced score's ``evidence_refs`` must be ``scoring_input.evidence_refs``.
+
+    kernel_contract_impl_review.md finding 13: the spec states this as a rule
+    a migrating agent must follow ("evidence_refs is always
+    scoring_input.evidence_refs verbatim"), enforced only by convention. The
+    finalizer always calls the scorer with that exact value, but nothing
+    stops a scorer from fabricating a different one on the envelopes it
+    returns; catch that here rather than silently sealing mismatched
+    provenance.
+    """
+    mismatched = tuple(
+        score.leaf.leaf_id
+        for score in score_set.scores
+        if score.evidence_refs != scoring_input.evidence_refs
+    )
+    if mismatched:
+        raise ValueError(
+            "family scorer returned evidence_refs that disagree with "
+            f"scoring_input.evidence_refs for leaves: {mismatched}"
+        )
+
+
 def finalize_family_execution(
     *, setup: EvaluationSetup, execution: CellExecution
 ) -> EvaluationReceipt:
@@ -557,7 +638,15 @@ def finalize_family_execution(
     family = next(
         item for item in setup.plan.families if item.family.id == cell.family_id
     )
-    plugin = setup.registry.resolve_manifest(family)
+    # kernel_contract_impl_review.md finding 6: resolve through the registry's
+    # own trusted registration, not the manifest the run-plan happens to
+    # carry, so leaf policy is always read from the one manifest
+    # PluginRegistry actually admitted for this plugin -- the same source the
+    # scoring-contract protocol test trusts.
+    registration = setup.registry.resolve_registration(
+        family.family.id, family.family.version, family.family.plugin_id
+    )
+    plugin = registration.plugin
     family_case = plugin.validate_payload(case.payload)
 
     execution.evidence.audit_reconciliation()
@@ -577,6 +666,9 @@ def finalize_family_execution(
             evidence_refs=scoring_input.evidence_refs,
         )
     )
+    _check_evidence_refs_are_scoring_input_verbatim(score_set, scoring_input)
+    _enforce_declared_leaf_policy(score_set, registration.manifest)
+    deferred_leaf_ids = _declared_deferred_leaf_ids(registration.manifest)
     execution.evidence.append_event(
         "score_recorded",
         # _replay_family_trajectory always appends the outcome event last.
@@ -620,6 +712,7 @@ def finalize_family_execution(
             evidence=evidence_seal,
             primary_leaf_id=score_set.primary_leaf_id,
             scores=score_set.scores,
+            deferred_leaf_ids=deferred_leaf_ids,
             failure=failure,
             observability_limits=_observability_limits(setup.plan, cell),
             replay_level="state_and_score",
@@ -803,7 +896,10 @@ def replay_family_receipt(
     family = next(
         item for item in setup.plan.families if item.family.id == cell.family_id
     )
-    plugin = setup.registry.resolve_manifest(family)
+    registration = setup.registry.resolve_registration(
+        family.family.id, family.family.version, family.family.plugin_id
+    )
+    plugin = registration.plugin
     family_case = plugin.validate_payload(case.payload)
     scoring_input = replay_family_scoring_input(
         plugin=plugin,
@@ -816,6 +912,8 @@ def replay_family_receipt(
             evidence_refs=scoring_input.evidence_refs,
         )
     )
+    _check_evidence_refs_are_scoring_input_verbatim(replayed_score_set, scoring_input)
+    _enforce_declared_leaf_policy(replayed_score_set, registration.manifest)
     if canonical_json_bytes(score_payload) != canonical_json_bytes(
         _score_event_payload(
             replayed_score_set, outcome_event_id=scoring_input.evidence_refs[-1]
@@ -826,6 +924,8 @@ def replay_family_receipt(
         replayed_score_set.scores
     ):
         raise ValueError("receipt family score does not replay deterministically")
+    if receipt.deferred_leaf_ids != _declared_deferred_leaf_ids(registration.manifest):
+        raise ValueError("receipt deferred_leaf_ids does not match the declared policy")
     expected_status, expected_inclusion, expected_failure = _score_admission(
         replayed_score_set
     )
@@ -960,7 +1060,10 @@ def audit_family_receipt(
     if receipt.get("scores"):
         family = next(f for f in setup.plan.families if f.family.id == cell.family_id)
         case = next(c for c in setup.plan.cases if c.case_id == cell.case_id)
-        plugin = setup.registry.resolve_manifest(family)
+        registration = setup.registry.resolve_registration(
+            family.family.id, family.family.version, family.family.plugin_id
+        )
+        plugin = registration.plugin
         family_case = plugin.validate_payload(case.payload)
         scoring_input = replay_family_scoring_input(
             plugin=plugin, family_case=family_case, evidence=evidence
@@ -970,6 +1073,8 @@ def audit_family_receipt(
                 scoring_input, evidence_refs=scoring_input.evidence_refs
             )
         )
+        _check_evidence_refs_are_scoring_input_verbatim(score_set, scoring_input)
+        _enforce_declared_leaf_policy(score_set, registration.manifest)
         events = [e for e in evidence.read_events() if e.event_type == "score_recorded"]
         expected_status, expected_inclusion, expected_failure = _score_admission(
             score_set
@@ -995,6 +1100,8 @@ def audit_family_receipt(
             != canonical_json_bytes(_receipt_implementations(score_set))
             or canonical_json_bytes(receipt.get("failure"))
             != canonical_json_bytes(expected_failure)
+            or tuple(receipt.get("deferred_leaf_ids") or ())
+            != _declared_deferred_leaf_ids(registration.manifest)
         ):
             raise ValueError("receipt admission does not match the replayed score")
     elif (
