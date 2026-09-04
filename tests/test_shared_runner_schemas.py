@@ -799,6 +799,37 @@ def test_registry_rejects_registration_of_a_plugin_with_an_inconsistent_leaf_pol
         )
 
 
+def test_registry_rejects_a_manifest_whose_measurement_field_bypassed_validation() -> None:
+    """kernel_contract_gap_review.md finding 8.
+
+    Both ``test_registry_rejects_registration_of_a_plugin_with_an_inconsistent_leaf_policy``
+    above and the registration case inside
+    ``test_measurement_declaration_rejects_an_inconsistent_leaf_policy_from_dataclasses_replace``
+    below raise while constructing their *argument* to ``register_trusted``
+    (``FamilyManifest.from_dict`` / ``dataclasses.replace`` on ``measurement``
+    itself raises) -- Python evaluates that argument before the call runs, so
+    ``register_trusted``'s body, and therefore ``PluginRegistry``'s own
+    validation, never executes in either case. Removing or bypassing that
+    validation would leave both tests green.
+
+    ``FamilyManifest`` has no ``__post_init__``, so ``dataclasses.replace`` on
+    the *manifest itself* (not ``measurement``) does not validate what it is
+    replaced with: the call below constructs successfully, and this test
+    reaches ``register_trusted``'s body with an object that already claims to
+    be a ``FamilyManifest``. The rejection can therefore only come from the
+    registry's own check.
+    """
+
+    import dataclasses
+
+    manifest = FamilyManifest.from_dict(family_data())
+    bogus = dataclasses.replace(manifest, measurement="not a MeasurementDeclaration")
+
+    registry = PluginRegistry()
+    with pytest.raises(TypeError, match="measurement"):
+        registry.register_trusted(bogus, CompleteHousingPlugin())
+
+
 def test_measurement_declaration_rejects_an_inconsistent_leaf_policy_from_dataclasses_replace() -> None:
     """kernel_contract_impl_review.md finding 4.
 

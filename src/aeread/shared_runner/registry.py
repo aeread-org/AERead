@@ -22,7 +22,7 @@ from .quality import (
     evidence_coverage_complete,
     verify_qc_evidence_files,
 )
-from .schemas import FamilyManifest
+from .schemas import FamilyManifest, MeasurementDeclaration
 
 
 class PluginRegistryError(RuntimeError):
@@ -282,6 +282,18 @@ class PluginRegistry:
     def _validate_plugin(manifest: FamilyManifest, plugin: Any) -> None:
         if not isinstance(manifest, FamilyManifest):
             raise TypeError("manifest must be a validated FamilyManifest")
+        # kernel_contract_gap_review.md finding 8: ``FamilyManifest`` has no
+        # ``__post_init__``, so ``dataclasses.replace(manifest,
+        # measurement=<anything>)`` previously reached this point -- and
+        # registered successfully -- with ``measurement`` holding a value
+        # that was never validated at all, not merely one whose leaf policy
+        # was inconsistent. Every construction path that produces a
+        # ``FamilyManifest`` this registry is willing to trust must still
+        # carry an actually-validated ``MeasurementDeclaration``.
+        if not isinstance(manifest.measurement, MeasurementDeclaration):
+            raise TypeError(
+                "manifest.measurement must be a validated MeasurementDeclaration"
+            )
         missing = [
             hook
             for hook in REQUIRED_FAMILY_PLUGIN_HOOKS
