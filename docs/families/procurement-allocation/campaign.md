@@ -823,3 +823,17 @@ precondition of any award before allowing counters, or cap counters at one per
 supplier. The tracked bundle is
 `evidence/procurement_allocation_glm53_flash_parasail_negotiation_worksheet_v1/`.
 
+### Frozen negotiation-worksheet V2
+
+V2 keeps V1's route, harness, contract, verifier, retry policy, twelve confirmatory
+worlds, surfaces, seeds, paired sealed V4 control, support rule, and ceilings. It
+changes only the worksheet ordering after V1 showed counters displacing the sample
+step: a supplier must have a verified exact-variant sample before any counter against
+its offer and before any award line, and one action is reserved for the award before
+any counter is allowed. The campaign ID is
+`procurement_allocation_glm53_flash_parasail_negotiation_worksheet_v2`, the prompt
+digest is `5ad918b8595e38a91c0784b842abebe6b8ce4215f29fb4a33416f82f5f2d5fb0`, and the
+plan digest is `e7d002cd6a89607d56d2accc6149cd817f8e877840a1213efec2ae5d5beb37a2`. The
+plan binds the V1 evidence manifest by file digest. V2 is selected after inspecting
+V1 on the same worlds and remains development evidence.
+
