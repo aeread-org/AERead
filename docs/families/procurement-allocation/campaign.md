@@ -475,10 +475,13 @@ no improvement was the budget-limited 18-kit case, where GLM also ordered the 20
 target and exceeded cash in two of three replicates.
 
 GLM's action mix was 57 quote requests, 56 sample requests, 6 counter offers, and 17
-awards, with no verbal inquiry and no defer. Its mean residual regret was $25.31
-against the full-information bound, so on this route the objective is no longer
-dominated by feasibility and begins to reflect search and negotiation quality. The
-model and route changed together after inspecting Qwen, so this remains an adaptive
+awards, with no verbal inquiry and no defer. Its mean regret of $25.31 came entirely
+from the four infeasible rows: every one of the 14 feasible GLM awards matched the
+full-information bound exactly, with zero regret. These targeted worlds therefore
+carry no measurable headroom for search or negotiation quality once an award is
+feasible, unlike the development and confirmatory panels where feasible rows still
+show positive regret. The model and route changed together after inspecting Qwen,
+so this remains an adaptive
 transfer diagnostic on six targeted worlds rather than a checkpoint causal effect,
 confirmatory evidence, or model ranking. The tracked bundle is
 `evidence/procurement_allocation_glm53_flash_parasail_qwen_holdout_transfer_v1/`.

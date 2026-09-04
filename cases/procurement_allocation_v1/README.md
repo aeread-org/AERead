@@ -182,8 +182,9 @@ The qualified transfer run completed and replayed all 18 rows with zero operatio
 failures, one bounded rate-limit retry, and $0.0608959395 total spend including the
 canary. The transfer signal was observed: GLM produced feasible purchase awards in
 all five split-required worlds and 14/18 overall, with paired six-world regret
-falling by $115.20 (interval [-$154.77, -$62.84]). The budget-limited 18-kit world
-remained unsolved. The sanitized bundle is
+falling by $115.20 (interval [-$154.77, -$62.84]). Every feasible GLM award matched
+the full-information bound exactly, so the residual regret is entirely the four
+infeasible rows; the budget-limited 18-kit world remained unsolved. The sanitized bundle is
 `evidence/procurement_allocation_glm53_flash_parasail_qwen_holdout_transfer_v1/`.
 
 ## Blinded supplier-label mirror
