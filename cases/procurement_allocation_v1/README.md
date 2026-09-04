@@ -372,3 +372,17 @@ python -m aeread_families.procurement_allocation.regret_decomposition \
   --publication-root evidence/procurement_allocation_glm_regret_decomposition_v1
 ```
 
+## Negotiation-worksheet treatment
+
+`negotiation_worksheet_campaign` appends a working-capital worksheet to the frozen V4
+prompt and pairs 72 new GLM Parasail rows against the sealed confirmatory V2 V4 arm
+by case and seed. Print the no-spend plan, execute in twelve-row checkpoints, and
+publish separately:
+
+```bash
+python -m aeread_families.procurement_allocation.negotiation_worksheet_campaign \
+  --run-root \
+  runs/procurement_allocation/procurement_allocation_glm53_flash_parasail_negotiation_worksheet_v1/qualification_attempt_001 \
+  --execute --max-spend-usd 2.19
+```
+

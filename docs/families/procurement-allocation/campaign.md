@@ -734,3 +734,45 @@ python -m aeread_families.procurement_allocation.regret_decomposition \
   --publication-root evidence/procurement_allocation_glm_regret_decomposition_v1
 ```
 
+## Frozen negotiation-worksheet treatment
+
+The decomposition selects the next adaptive treatment. It holds the GLM 5.3
+Flash/Parasail route, Minimal Chat harness, structured action contract, verifier,
+retry policy, twelve confirmatory worlds, both presentation surfaces, and the three
+confirmatory inference seeds fixed. It changes only the buyer prompt by appending a
+working-capital worksheet to the frozen V4 procedure: compute working-capital cost
+per formal offer from the visible financing rate, horizon, and payment terms; rank the
+five counterable terms by computed saving; counter on the single largest term with
+every other proposal field null; request payment terms equal to the horizon first
+and two-thirds of it once on rejection; and award only on each supplier's newest
+offer id.
+
+The paired control is the sealed confirmatory V2 treatment arm on each surface,
+bound by file and artifact digest, so no control rows are re-run. Rows pair by exact
+case id and inference seed. The campaign ID is
+`procurement_allocation_glm53_flash_parasail_negotiation_worksheet_v1`, the
+worksheet prompt digest is
+`29b5e6c336ad01d06e21fa48c723a6eed3c94e11e698f8fa7b481e0f0983d3d2`, and the plan
+digest is `dddf5f52f00c9e3667af74da6448087c5d979474dc49f99b3cde8354d3be043a`. It
+declares one unscored admission canary, 72 scored rows in six twelve-row checkpoints,
+a $1.11 conservative total ceiling, and a $2.19 hard ceiling.
+
+The preregistered primary estimand is worksheet-minus-V4 regret averaged equally over
+surfaces within each world, with a twelve-world cluster bootstrap. Support requires
+the regret interval upper bound below zero and the feasibility interval lower bound
+at least -0.05. Secondary outcomes are the working-capital term from the regret
+decomposition on feasible awards in each arm, accepted-counter counts, feasible
+awards placed on counter-improved offers, and the single-field proposal share. Because
+the treatment was chosen after inspecting the decomposition on these same worlds, a
+supported result is development evidence, not a holdout confirmation.
+
+```bash
+python -m aeread_families.procurement_allocation.negotiation_worksheet_campaign \
+  --run-root \
+  runs/procurement_allocation/procurement_allocation_glm53_flash_parasail_negotiation_worksheet_v1/qualification_attempt_001
+```
+
+Add `--execute --max-spend-usd 2.19` after loading `OPENROUTER_API_KEY`, continue
+each failure-free checkpoint with `--resume`, and publish with `--publish-only` to
+`evidence/procurement_allocation_glm53_flash_parasail_negotiation_worksheet_v1/`.
+
