@@ -709,6 +709,55 @@ def test_v14_carries_v13_routes_and_controls_into_a_fresh_four_world_pilot() -> 
             )
 
 
+def test_published_v14_records_cooldown_rate_limit_block_and_zero_trajectories() -> None:
+    evidence_root = (
+        V14_CONTRACT_PATH.parents[1]
+        / "evidence"
+        / "housing_model_sensitivity_openrouter_friendli_v14"
+    )
+    qualification = json.loads(
+        (evidence_root / "reports" / "qualification.json").read_bytes()
+    )
+    fact_manifest = json.loads(
+        (evidence_root / "tables" / "fact_manifest.json").read_bytes()
+    )
+    trajectories = json.loads(
+        (evidence_root / "trajectories" / "attempted.json").read_bytes()
+    )
+    with (evidence_root / "tables" / "profile_admission.csv").open(
+        newline="", encoding="utf-8"
+    ) as handle:
+        admission_rows = list(csv.DictReader(handle))
+
+    assert qualification["artifact_sha256"] == (
+        "5affebdf1efc95caeebda78b1e9576ea817e0d8c91baa5e9ac06e16e5bea0d73"
+    )
+    assert fact_manifest["artifact_sha256"] == (
+        "a7fb349f864671b1fcfa611842a439dffd50374cf83a9d8476e5e3358651c847"
+    )
+    assert trajectories["artifact_sha256"] == (
+        "4e09947cd171add239fc3b14e064f1af27397f9f79a1e6ab740167571f041090"
+    )
+    assert qualification["status"] == "blocked_by_profile_admission"
+    assert qualification["gate_status"][-1]["attempted_trajectories"] == 0
+    assert qualification["gate_status"][-1]["not_started_trajectories"] == 48
+    assert qualification["gate_status"][-1]["provider_calls"] == 0
+    assert len(admission_rows) == 18
+    failures = [row for row in admission_rows if row["status"] != "passed"]
+    assert len(failures) == 3
+    assert {row["model_id"] for row in failures} == {"glm_53_flash"}
+    assert {row["failure_condition"] for row in failures} == {"rate_limit"}
+    assert {row["failure_status_code"] for row in failures} == {"429"}
+    # Every failed call had already received the full 10-second cooldown.
+    assert all(float(row["pacing_wait_seconds"]) > 9.9 for row in failures)
+    assert all(row["pacing_provider_calls"] == "1" for row in failures)
+    assert all(float(row["elapsed_seconds"]) < 120.0 for row in admission_rows)
+    published = b"".join(path.read_bytes() for path in evidence_root.rglob("*.*"))
+    assert b'"raw_response":' not in published
+    assert b"output_text" not in published
+    assert b"/Users/" not in published
+
+
 def test_published_v12_records_pacing_failure_and_zero_trajectories() -> None:
     evidence_root = (
         V12_CONTRACT_PATH.parents[1]

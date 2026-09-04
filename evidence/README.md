@@ -58,3 +58,7 @@ Current campaign directories include:
   120-second timeout. Admission passed 18/18 and all four trajectories
   completed with exact replay; the gate is promotion-eligible but supports no
   ranking because it covers one world.
+- `housing_model_sensitivity_openrouter_friendli_v14/`: the 48-cell
+  four-world variance pilot promoted by V13 on the same routes and controls.
+  Admission passed 15/18; three Friendli/GLM probes returned upstream HTTP
+  429 after the full cooldown, so all trajectories remained blocked.

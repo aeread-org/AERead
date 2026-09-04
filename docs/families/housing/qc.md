@@ -829,3 +829,25 @@ python -m aeread_families.housing.backend_campaign \
   --through live
 ```
 
+The executed pilot blocked at profile admission. Both routes were active at
+catalog preflight with V13's endpoint snapshots. Admission attempted all 18
+single-attempt probes under the shared cooldown: Parasail/DeepSeek passed 9 of
+9, and Friendli/GLM passed 6 of 9. The three failures (tenant commit probes 0
+and 2, landlord respond probe 0) were typed HTTP 429 rate limits returned
+about 6.5 seconds after each call started, each after the full 10-second
+cooldown had been delivered. Provider-reported billing for the 15 passed
+probes was `$0.0022604868`; the failed calls exposed no cost. All 48
+trajectories remain not started with zero trajectory provider calls.
+
+V13 passed 9 of 9 on the same Friendli route four hours earlier, and the
+route's catalog uptime stayed above 99 percent through the failure window.
+The cooldown therefore does not by itself protect a single-attempt admission
+probe from OpenRouter's upstream shared-pool rate limiting, which has now
+blocked DeepInfra (V11, V12), Reka, Parasail, and Friendli at different times.
+Do not rerun or amend V14. Review the digest-bound
+[`qualification.json`](../../../evidence/housing_model_sensitivity_openrouter_friendli_v14/reports/qualification.json),
+the zero-attempt
+[`attempted.json`](../../../evidence/housing_model_sensitivity_openrouter_friendli_v14/trajectories/attempted.json),
+and the admission
+[`fact_manifest.json`](../../../evidence/housing_model_sensitivity_openrouter_friendli_v14/tables/fact_manifest.json).
+
