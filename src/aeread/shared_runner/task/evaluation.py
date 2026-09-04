@@ -211,6 +211,7 @@ def _replay_family_trajectory(
             and event.phase_instance_id == phase_event.phase_instance_id
         )
         actions: dict[str, ActionEnvelope] = {}
+        acted_seats: list[str] = []
         action_records: list[LogicalActionRecord] = []
         observations: dict[str, Any] = {}
         for start in starts:
@@ -275,6 +276,7 @@ def _replay_family_trajectory(
                 legality=legality,
             )
             actions[seat_id] = envelope
+            acted_seats.append(seat_id)
 
             succeeded_events = tuple(
                 event
@@ -306,7 +308,9 @@ def _replay_family_trajectory(
                     envelope=envelope,
                 )
             )
-        if tuple(sorted(actions)) != tuple(sorted(eligible)):
+        if len(set(acted_seats)) != len(acted_seats):
+            raise ValueError("family replay action seat identity is invalid")
+        if set(acted_seats) - set(eligible):
             raise ValueError("family replay action set does not match eligible actors")
 
         transition_events = tuple(
@@ -315,27 +319,91 @@ def _replay_family_trajectory(
             if event.event_type == "transition_applied"
             and event.phase_instance_id == phase_event.phase_instance_id
         )
-        if len(transition_events) != 1:
-            raise ValueError("family replay phase lacks one transition")
-        transition_payload = evidence.read_event_payload(transition_events[0])
-        if not isinstance(transition_payload, Mapping):
-            raise ValueError("family replay transition is malformed")
-        replayed = plugin.step(family_case, state, phase, actions)
-        if canonical_json_bytes(
-            transition_payload.get("transition")
-        ) != canonical_json_bytes(replayed):
-            raise ValueError("family replay transition differs from sealed evidence")
-        post_state_sha256 = hashlib.sha256(
-            canonical_json_bytes(replayed.state)
-        ).hexdigest()
-        if transition_payload.get("post_state_sha256") != post_state_sha256:
-            raise ValueError("family replay post-state hash mismatch")
-        transition_value = transition_payload.get("transition")
-        if not isinstance(transition_value, Mapping):
-            raise ValueError("family replay transition is malformed")
-        transition = TransitionResult(**_freeze(dict(transition_value)))
-        _use(transition_events[0])
-        state = replayed.state
+        mode = recorded_phase.mode
+        if mode in ("single", "simultaneous"):
+            # Production applies every eligible actor's action in one
+            # transition (scheduler.py's ``if phase.mode in {"single",
+            # "simultaneous"}`` branch), so replay must too.
+            if tuple(sorted(acted_seats)) != tuple(sorted(eligible)):
+                raise ValueError(
+                    "family replay action set does not match eligible actors"
+                )
+            step_groups: tuple[tuple[str, ...], ...] = (tuple(acted_seats),)
+        elif mode == "sequential":
+            # kernel_contract_impl_review.md finding 2: production applies
+            # one transition per actor for a sequential phase (scheduler.py's
+            # ``else`` branch), and may stop before every eligible actor acts
+            # if an earlier actor's transition already terminates the
+            # episode or names the next phase. Replay must follow exactly
+            # the sequence sealed evidence recorded, not assume every
+            # eligible actor acted or that one transition covers them all.
+            if set(acted_seats) - set(eligible):
+                raise ValueError(
+                    "family replay action set does not match eligible actors"
+                )
+            step_groups = tuple((seat_id,) for seat_id in acted_seats)
+        else:
+            raise ValueError(
+                f"family replay encountered an unsupported phase mode: {mode!r}"
+            )
+        if len(transition_events) != len(step_groups):
+            raise ValueError(
+                "family replay phase does not have one transition per step"
+            )
+
+        transitions: list[TransitionResult] = []
+        for transition_event, seat_group in zip(transition_events, step_groups):
+            transition_payload = evidence.read_event_payload(transition_event)
+            if not isinstance(transition_payload, Mapping):
+                raise ValueError("family replay transition is malformed")
+            step_actions = {seat_id: actions[seat_id] for seat_id in seat_group}
+            replayed = plugin.step(family_case, state, phase, step_actions)
+            if canonical_json_bytes(
+                transition_payload.get("transition")
+            ) != canonical_json_bytes(replayed):
+                raise ValueError("family replay transition differs from sealed evidence")
+            post_state_sha256 = hashlib.sha256(
+                canonical_json_bytes(replayed.state)
+            ).hexdigest()
+            if transition_payload.get("post_state_sha256") != post_state_sha256:
+                raise ValueError("family replay post-state hash mismatch")
+            transition_value = transition_payload.get("transition")
+            if not isinstance(transition_value, Mapping):
+                raise ValueError("family replay transition is malformed")
+            transitions.append(TransitionResult(**_freeze(dict(transition_value))))
+            _use(transition_event)
+            state = replayed.state
+
+        # kernel_contract_impl_review.md finding 3: the phase's own
+        # completion boundary (``phase_instance_succeeded``) was previously
+        # never read by replay, so a boundary that omitted an actor or named
+        # the wrong post-state hash was silently accepted. Cross-check it
+        # like every other recorded boundary.
+        succeeded_events = tuple(
+            event
+            for event in events
+            if event.event_type == "phase_instance_succeeded"
+            and event.phase_instance_id == phase_event.phase_instance_id
+        )
+        if len(succeeded_events) != 1:
+            raise ValueError("family replay phase lacks one completion boundary")
+        succeeded_payload = evidence.read_event_payload(succeeded_events[0])
+        if not isinstance(succeeded_payload, Mapping):
+            raise ValueError("family replay phase completion boundary is malformed")
+        if succeeded_payload.get("phase_id") != recorded_phase.phase_id:
+            raise ValueError(
+                "family replay phase completion boundary names the wrong phase"
+            )
+        if succeeded_payload.get("post_state_sha256") != post_state_sha256:
+            raise ValueError(
+                "family replay phase completion boundary post-state hash mismatch"
+            )
+        expected_action_ids = tuple(record.logical_action_id for record in action_records)
+        if tuple(succeeded_payload.get("logical_action_ids", ())) != expected_action_ids:
+            raise ValueError(
+                "family replay phase completion boundary action ids mismatch"
+            )
+        _use(succeeded_events[0])
 
         phase_instances.append(
             PhaseInstance(
@@ -348,7 +416,7 @@ def _replay_family_trajectory(
                 post_state_sha256=post_state_sha256,
                 observations=_freeze(observations),
                 actions=tuple(action_records),
-                transitions=(transition,),
+                transitions=tuple(transitions),
             )
         )
 

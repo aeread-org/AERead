@@ -126,6 +126,19 @@ TRUSTED_BUILTIN_PLUGIN_KEYS = frozenset(
             "1.0.0",
             "kernel_contract_reference_plugin",
         ),
+        # Kernel-owned fixture for replay-fidelity regression tests
+        # (kernel_contract_impl_review.md findings 2 and 3). No family
+        # registered on ``main`` declares a ``mode="sequential"`` phase, so
+        # this minimal two-actor family exists purely so
+        # ``test_shared_runner_family_scoring_input_sequential.py`` can drive
+        # a genuine sequential phase instance -- one with more than one
+        # ``transition_applied`` event -- through the real scheduler and
+        # assert ``replay_family_scoring_input`` reproduces it exactly.
+        (
+            "kernel_contract_sequential_v1",
+            "1.0.0",
+            "kernel_contract_sequential_plugin",
+        ),
     }
 )
 
