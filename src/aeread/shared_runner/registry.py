@@ -97,6 +97,22 @@ TRUSTED_BUILTIN_PLUGIN_KEYS = frozenset(
         ),
         ("single_offer_v1", "1.0.0", "aeread.single_offer_v1"),
         ("tau3.retail", "0.1.0", "tau3_retail_environment"),
+        # Kernel-owned fixture for the scoring-contract protocol test
+        # (kernel_scoring_contract_spec.md section 6). It is not a family
+        # benchmark: it exists solely so that test can exercise a genuine
+        # trajectory-scoped leaf against two fixtures with a byte-identical
+        # terminal outcome and a differing trajectory -- a pairing none of
+        # the real registered families can produce today, since each of
+        # theirs is either terminal-state-scoped only or (as measured for
+        # datacenter_development_v1) accumulates its full ordered history
+        # into the outcome itself, making its outcome a function of its
+        # trajectory and the two byte-identical-but-differing fixtures the
+        # contract test requires impossible to construct honestly.
+        (
+            "kernel_contract_reference_v1",
+            "1.0.0",
+            "kernel_contract_reference_plugin",
+        ),
     }
 )
 
@@ -110,6 +126,7 @@ class RegisteredPlugin:
     contribution_sha256: str | None
     resource_limits: ResourceLimits | None
     plugin: Any
+    manifest: FamilyManifest
 
 
 def _strict_schema(schema: Mapping[str, Any], label: str) -> None:
@@ -279,6 +296,7 @@ class PluginRegistry:
             contribution_sha256=contribution_sha256,
             resource_limits=resource_limits,
             plugin=plugin,
+            manifest=manifest,
         )
         self._namespaces[registry_namespace] = key
 

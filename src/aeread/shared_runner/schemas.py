@@ -293,6 +293,30 @@ class LeafPolicyDeclaration:
 
 
 @dataclass(frozen=True, slots=True)
+class FinalizeTimeLeafPolicy:
+    """The scorer's finalize-time contract, read from the manifest (section 3).
+
+    ``leaf_ids`` and ``admission_leaf_ids`` are in the manifest's one true
+    order -- primary first, then lexical ``leaf_id`` -- so they compare
+    directly against a ``FamilyScoreSet`` the family's scorer produced:
+    ``FamilyScoreSet.__post_init__`` canonicalizes its own ``scores`` and
+    ``admission_leaf_ids`` the same way. Ordering never encodes policy; this
+    is purely so the two sides of the protocol test's equality assertions
+    line up without either side re-sorting the other.
+    """
+
+    leaf_ids: tuple[str, ...]
+    primary_leaf_id: str
+    admission_leaf_ids: tuple[str, ...]
+
+
+def _canonical_leaf_order(leaf_ids: Any, primary_leaf_id: str) -> tuple[str, ...]:
+    return tuple(
+        sorted(leaf_ids, key=lambda leaf_id: (leaf_id != primary_leaf_id, leaf_id))
+    )
+
+
+@dataclass(frozen=True, slots=True)
 class MeasurementDeclaration:
     # Ruling R1 (kernel_scoring_contract_spec.md): these three fields were added
     # after Housing V8/V11 evidence was published and sealed. An unset field must
@@ -421,6 +445,31 @@ class MeasurementDeclaration:
             admission_leaf_ids=admission_leaf_ids,
         )
 
+    def finalize_time_leaf_policy(self) -> FinalizeTimeLeafPolicy:
+        """The manifest's finalize-time leaf contract (section 3 of the spec).
+
+        Raises if no leaf policy is declared: section 3 requires the
+        manifest, not a scorer or a test fixture, to be the source of the
+        leaf set, the primary, and admission membership, so a family with no
+        declared policy must fail loudly here rather than let the protocol
+        test invent one.
+        """
+        if not self.leaves or self.primary_leaf_id is None:
+            raise AuthoringValidationError(
+                "measurement.leaves and measurement.primary_leaf_id must be "
+                "declared before a finalize-time leaf policy can be read"
+            )
+        finalize_time_ids = tuple(
+            leaf.leaf_id for leaf in self.leaves if leaf.scope == "finalize_time"
+        )
+        return FinalizeTimeLeafPolicy(
+            leaf_ids=_canonical_leaf_order(finalize_time_ids, self.primary_leaf_id),
+            primary_leaf_id=self.primary_leaf_id,
+            admission_leaf_ids=_canonical_leaf_order(
+                self.admission_leaf_ids, self.primary_leaf_id
+            ),
+        )
+
 
 @dataclass(frozen=True, slots=True)
 class ScoringSpec:
@@ -521,6 +570,10 @@ class FamilyManifest:
                 else GeneratorSpec.from_dict(data["generator"], "FamilyManifest.generator")
             ),
         )
+
+    def finalize_time_leaf_policy(self) -> FinalizeTimeLeafPolicy:
+        """The family's finalize-time leaf contract; see ``MeasurementDeclaration``."""
+        return self.measurement.finalize_time_leaf_policy()
 
 
 @dataclass(frozen=True, slots=True)

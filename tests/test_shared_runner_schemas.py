@@ -512,6 +512,37 @@ def test_measurement_declaration_admission_defaults_to_the_primary_leaf() -> Non
     assert family.measurement.admission_leaf_ids == ("tenant_realized_utility_leaf",)
 
 
+def test_finalize_time_leaf_policy_excludes_deferred_leaves_and_orders_primary_first() -> None:
+    data = _family_data_with_leaves()
+    data["measurement"]["leaves"].append(
+        {"leaf_id": "tenant_ambient_leaf", "scope": "finalize_time"}
+    )
+    data["measurement"]["admission_leaf_ids"] = [
+        "tenant_ambient_leaf",
+        "tenant_realized_utility_leaf",
+    ]
+    family = FamilyManifest.from_dict(data)
+
+    policy = family.measurement.finalize_time_leaf_policy()
+
+    # The deferred leaf is declared but excluded from the finalize-time set
+    # (section 4); the two finalize_time leaves come back primary-first,
+    # then lexical -- never in authoring order.
+    assert policy.leaf_ids == ("tenant_realized_utility_leaf", "tenant_ambient_leaf")
+    assert policy.primary_leaf_id == "tenant_realized_utility_leaf"
+    assert policy.admission_leaf_ids == (
+        "tenant_realized_utility_leaf",
+        "tenant_ambient_leaf",
+    )
+    assert family.finalize_time_leaf_policy() == policy
+
+
+def test_finalize_time_leaf_policy_requires_a_declared_policy() -> None:
+    family = FamilyManifest.from_dict(family_data())
+    with pytest.raises(AuthoringValidationError, match="leaf policy"):
+        family.finalize_time_leaf_policy()
+
+
 def test_measurement_declaration_rejects_duplicate_leaf_ids() -> None:
     data = _family_data_with_leaves()
     data["measurement"]["leaves"] = [
