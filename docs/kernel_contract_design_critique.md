@@ -203,3 +203,73 @@ derive `trajectory_leaf_ids` from `input_scope`). Recommendation: get the spec's
 on #1, #6, #9, and #15 before coding starts; the rest can proceed in parallel with the choices
 above stated in code comments and the family status docs for later confirmation.
 
+---
+
+## Resolutions — protocol-test milestone (`tests/test_shared_runner_scoring_contract.py`)
+
+Ruling R5 accepted items #2-5, #7, #11, #12, #14, #15 and said to resolve each in this milestone,
+recording any resolution that is a choice rather than a deduction here.
+
+**#14 (`trajectory_leaf_ids` source) — resolved as ruled.** The protocol test derives it from the
+already-produced `ScoreEnvelope.leaf.estimand.input_scope == "trajectory"`, not from a new manifest
+field. No manifest change was needed: the manifest declares leaf identity and finalize/deferred
+scope only (section 3); which finalize-time leaves are trajectory-scoped is read off the scorer's
+actual output, consistent with `input_scope` already living on `EstimandSpec`, not on
+`LeafPolicyDeclaration`.
+
+**#15 (paired-history assertion) — completed.** For every leaf id in `trajectory_leaf_ids`, the
+test asserts the leaf's `.primary` `MetricValue` differs between the two required fixtures'
+produced score sets, after first asserting their `FamilyScoringInput.outcome` bytes are identical
+and their `phase_instances` are not. A scorer that reads only `outcome` for a nominally
+trajectory-scoped leaf therefore produces the same value for both fixtures and fails here — see
+this file's own mutation-tested proof (temporarily made the reference leaf read
+`outcome["x_count"] >= outcome["y_count"]`; the test failed with the two `MetricValue(1.0, ...)`
+sides equal, as expected, then was reverted).
+
+**#7 (protocol test under-validates) — partially resolved; one gap remains open by choice, not
+oversight.** The test now validates leaf-set equality, primary, admission, and per-score
+`evidence_refs` identity against `FamilyManifest.finalize_time_leaf_policy()`. It does **not**
+additionally check that the primary leaf's `estimand_id` matches `MeasurementDeclaration.
+primary_estimand` string-for-string; `finalize_time_leaf_policy()` only requires
+`primary_leaf_id` to name a declared `finalize_time` leaf (schemas.py), independent of the
+manifest's separate `primary_estimand` field. Adding that cross-check is straightforward but was
+left out of this milestone because it touches `MeasurementDeclaration.from_dict`'s validation, not
+the protocol test itself, and none of the fixtures in this file would exercise it either way
+(each's `primary_estimand` was authored to already match). Flagging here rather than silently
+absorbing scope.
+
+**Choice: which families are enrolled in this test's own registry, and why
+`datacenter_development_v1` is not one of them.** The protocol test builds its own
+`PluginRegistry`, separate from any production registry (none exists yet that combines all
+families) and separate from any campaign `RunPlan` (so attaching a leaf policy here cannot
+perturb a frozen `plan_sha256`/`artifact_sha256`, per ruling R1). Four of the five families
+already migrated to `FamilyScoringInput` (housing, procurement_allocation, procurement_grounding,
+commercial_state_calibration) are enrolled with one real, provider-free fixture episode each;
+none declares a trajectory-scoped leaf, so the paired-history requirement does not apply to them.
+
+`datacenter_development_v1` is deliberately **not** enrolled. Its `negotiation_temporal_compliance`
+leaf is genuinely `input_scope="trajectory"` (forced by `reference_kind="temporal_property"`, per
+`measurement.py`'s `_REFERENCE_SCOPE`), but that family's `environment.py` accumulates the full
+ordered `public_history`/`temporal_violations` state directly into its `outcome` payload
+(`environment.py`'s `outcome()`, ~L544-545). That makes `outcome` itself a function of the entire
+trajectory: any two runs whose trajectories differ will differ in `public_history` and therefore
+in `outcome`, so a byte-identical-outcome/differing-trajectory pair cannot be produced by running
+the real environment, and `_replay_family_trajectory`'s live cross-check would correctly reject
+any fabricated evidence where a forged outcome disagreed with what replaying the actions actually
+produces. This is not a flaw in the protocol test or in `negotiation_temporal_compliance`'s current
+`__call__` (which reads the leaf from `outcome["temporal_violations"]`) — for this specific family,
+`outcome` already is a complete, honest summary of the trajectory fact the leaf needs, so reading
+it from there cannot silently diverge from the trajectory the way the paired-history check is
+designed to catch elsewhere. It does mean this family cannot be used to demonstrate that check
+has teeth. Rather than declare the requirement vacuously satisfied by omission, this milestone adds
+one minimal, purpose-built, provider-free fixture family, `kernel_contract_reference_v1` (two
+single-actor rounds; the outcome is an order-insensitive tally of both rounds' choices, but one
+leaf reads which round chose "x" first from `phase_instances`) — registered as trusted
+(`TRUSTED_BUILTIN_PLUGIN_KEYS` in `registry.py`) specifically so the protocol test has a genuine,
+honestly-pairable trajectory-scoped leaf to exercise, and so a scorer that quietly reads only the
+outcome for such a leaf is provably caught (see the #15 entry above). This is a choice, not a
+deduction: an alternative would have been to accept that no family among the five demonstrates
+paired-history teeth today and note it as a gap instead of adding a fixture family; the reference
+family was preferred because an assertion with no failing witness anywhere in the suite is weaker
+protection for the eleven migrations still to come.
+
