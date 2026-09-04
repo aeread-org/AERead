@@ -1,9 +1,11 @@
-"""Tests for the evidence-only trajectory replay kernel contract.
+"""Tests for the kernel scoring-input re-execution contract.
 
-``replay_family_scoring_input`` must reconstruct the full family trajectory
-from sealed evidence alone (never from the live in-memory ``EpisodeResult``,
-which it cannot even accept as a parameter), and everything it returns must
-be deeply immutable.
+Ruling R2 (kernel_scoring_contract_spec.md): ``replay_family_scoring_input``
+produces a verified deterministic re-execution of the pinned case,
+cross-checking every phase boundary, action, and terminal state against the
+sealed evidence -- it is not a pure read-back. The live in-memory
+``EpisodeResult`` is never read (the function cannot even accept one as a
+parameter), and everything it returns must be deeply immutable.
 """
 
 from __future__ import annotations
@@ -68,8 +70,8 @@ def test_replay_family_scoring_input_reconstructs_phase_instances(tmp_path) -> N
     )
 
     assert isinstance(scoring_input, FamilyScoringInput)
-    # The trajectory reconstructed purely from sealed evidence reproduces the
-    # live episode's phase instances exactly.
+    # The re-executed trajectory, cross-checked against sealed evidence at
+    # every step, reproduces the live episode's phase instances exactly.
     assert canonical_json_bytes(scoring_input.phase_instances) == canonical_json_bytes(
         execution.episode_result.phase_instances
     )
