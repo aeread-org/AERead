@@ -671,3 +671,66 @@ campaign to a persistently unavailable shared route. The next GLM test is a fres
 attempt under the identical frozen plan in a later availability window. A different
 model or provider belongs to a separately named campaign and cannot be pooled with
 V4; it should first pass an exact-request canary and a small complete case panel.
+
+## Regret decomposition over published GLM bundles
+
+The buyer objective is additive, and every tracked evidence row carries its parsed
+action trace. `regret_decomposition` re-drives each published GLM trajectory through
+the deterministic environment with no provider calls, recovers the full award
+evaluation, and splits each feasible award's regret exactly into term gaps against
+the recomputed full-information plan: lost revenue, excess purchase, shipping, duty,
+working-capital, information, return-freight, and refund-financing cost, lost refund
+recovery, and shortfall penalty. The replay must reproduce the published
+feasibility, margin, regret, and kit count within $0.000001; any mismatch is an
+integrity failure. Infeasible, deferred, and failed rows are categorized, not
+decomposed, because their regret is the whole bound.
+
+The analysis covers eight report files from four bundles: the development v2 and
+blinded v3 Morph runs, both strategy-scaffold v4 surfaces, and all four confirmatory
+v2 arms. All 216 rows replayed exactly and all 101 feasible awards decomposed with
+zero residual. The pooled result is descriptive over 29 curated worlds with mixed
+prompts, surfaces, and routes; the economic world remains the independent unit and
+no inferential ranking is implied.
+
+### Observed decomposition
+
+Feasible awards carry $1,250.81 of regret, a mean of $12.38 per row; seventeen rows,
+all under the V4 scaffold on confirmatory worlds, reached the bound exactly. Excess
+working-capital cost accounts for 61.0% of feasible regret, lost revenue for 20.5%,
+shortfall penalty for 10.9%, and lost refund recovery for 7.2%. Purchase price and
+information cost are slightly negative contributors: the model often pays less per
+unit and spends less on quotes and samples than the oracle, but loses more on
+financing and completed kits.
+
+The working-capital gap is a negotiation gap. The oracle award plan uses a
+negotiated counter in 67 of the 101 feasible rows, almost always to extend payment
+terms; the model submitted an award on a counter-improved offer in 7. Both
+payment-terms-counter surfaces in the confirmatory panel show a mean feasible regret
+of $48.63 with $48.27 from working capital alone, and the development and blinded
+working-capital worlds show $32.48 with $34.28 from the same term. Unscaffolded
+confirmatory control rows never used an accepted counter; the V4 scaffold rows used
+one in six of 39.
+
+The model matched the oracle supplier set in 75 of 101 feasible rows but matched
+quantities in only 33, and on development worlds it matched quantities in none. The
+remaining revenue and shortfall-penalty regret comes from under-ordering relative
+to yield on the quality/refund worlds and from awarding to a slower supplier on the
+service-defer worlds. The negotiated-MOQ confirmatory worlds lose $12.00 per row in
+purchase cost from accepting the base MOQ price instead of countering.
+
+This changes what the next procurement intervention should target. Prompt work so far
+has addressed award feasibility, which is where most total regret still sits, but on
+the feasible margin the dominant unexercised lever is the payment-terms counter that
+the case was designed to test. The tracked bundle is
+`evidence/procurement_allocation_glm_regret_decomposition_v1/`.
+
+Reproduce it without provider calls:
+
+```bash
+python -m aeread_families.procurement_allocation.regret_decomposition
+
+python -m aeread_families.procurement_allocation.regret_decomposition \
+  --publish \
+  --publication-root evidence/procurement_allocation_glm_regret_decomposition_v1
+```
+

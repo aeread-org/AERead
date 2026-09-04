@@ -354,3 +354,21 @@ confirmation of V4. Its four conditions are frozen V4, sample-schedule gate only
 landed-cash gate only, and both gates together. V2 preserves the V1 scientific
 contract and adds slower bounded retry pacing after V1 was invalidated by repeated
 provider rate limits.
+
+## Regret decomposition of published GLM rows
+
+`regret_decomposition` replays every tracked GLM evidence row through the
+deterministic environment without provider calls and splits each feasible award's
+regret into exact additive term gaps against the full-information plan. All 216 rows
+across the development, blinded, scaffold, and confirmatory bundles replay exactly.
+Working-capital cost is 61% of feasible-award regret and traces to the payment-terms
+counter the oracle uses in 67 of 101 feasible rows and the model used in 7. See
+`docs/families/procurement-allocation/campaign.md` and
+`evidence/procurement_allocation_glm_regret_decomposition_v1/`.
+
+```bash
+python -m aeread_families.procurement_allocation.regret_decomposition \
+  --publish \
+  --publication-root evidence/procurement_allocation_glm_regret_decomposition_v1
+```
+
