@@ -56,6 +56,8 @@ import json
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
+import pytest
+
 import aeread.shared_runner.task.execution as execution_module
 from aeread.shared_runner.measurement import (
     EstimandSpec,
@@ -71,7 +73,12 @@ from aeread.shared_runner.measurement import (
     normalize_family_score_set,
 )
 from aeread.shared_runner.model_call.harness import default_harnesses
-from aeread.shared_runner.registry import HarnessRegistry, PluginRegistry, ProviderCapabilities
+from aeread.shared_runner.registry import (
+    HarnessRegistry,
+    PluginRegistry,
+    ProviderCapabilities,
+    TRUSTED_BUILTIN_PLUGIN_KEYS,
+)
 from aeread.shared_runner.run.resolver import (
     ImplementationPin,
     RunPlan,
@@ -378,6 +385,46 @@ class _ReferenceScorer:
         )
 
 
+# ---------------------------------------------------------------------------
+# kernel_contract_gap_review.md finding 4's exact adversary: a scorer whose
+# output alternates strictly by a GLOBAL call counter -- never by
+# ``scoring_input`` -- so fresh ``build_scorer(...)`` instances (as every
+# real family constructs) still share state across invocations, unlike a
+# scorer that merely stashes state on ``self``.
+# ---------------------------------------------------------------------------
+
+_CALL_PARITY_ADVERSARY_STATE: dict[str, int] = {"calls": 0}
+
+
+class _CallParityAdversarialScorer:
+    """Alternates its one terminal-state leaf's value by global call parity."""
+
+    def __call__(
+        self, scoring_input: FamilyScoringInput, *, evidence_refs: tuple[str, ...] = ()
+    ) -> ScoreEnvelope:
+        del scoring_input
+        _CALL_PARITY_ADVERSARY_STATE["calls"] += 1
+        parity_value = 1.0 if _CALL_PARITY_ADVERSARY_STATE["calls"] % 2 == 1 else 0.0
+        leaf = _reference_leaf(leaf_id=_REFERENCE_BALANCE_LEAF_ID, input_scope="terminal_state")
+        return ScoreEnvelope(
+            status="ok",
+            leaf=leaf,
+            primary=MetricValue(parity_value, "count"),
+            metrics={},
+            reference_values={},
+            validity=ValidityReport("valid"),
+            evidence_refs=evidence_refs,
+        )
+
+
+class _CallParityAdversarialPlugin(_ReferencePlugin):
+    """``_ReferencePlugin`` with its scorer swapped for the adversary above."""
+
+    def build_scorer(self, family_case: Mapping[str, Any]) -> "_CallParityAdversarialScorer":
+        del family_case
+        return _CallParityAdversarialScorer()
+
+
 class _ScriptedChoiceProvider:
     """Serves one scripted label per call, in order, then fails closed."""
 
@@ -438,7 +485,7 @@ def _reference_case() -> CaseManifest:
     return CaseManifest.from_dict(raw)
 
 
-def _build_reference_setup() -> _ReferenceSetup:
+def _build_reference_setup(*, plugin_factory: Any = _ReferencePlugin) -> _ReferenceSetup:
     case = _reference_case()
     family = _reference_family_manifest()
     sampling = SamplingPlan.from_dict(
@@ -563,7 +610,7 @@ def _build_reference_setup() -> _ReferenceSetup:
         }
     )
     registry = PluginRegistry()
-    registry.register_trusted(family, _ReferencePlugin())
+    registry.register_trusted(family, plugin_factory())
     harness_registry = HarnessRegistry()
     harnesses = default_harnesses()
     for harness in harnesses.values():
@@ -638,8 +685,10 @@ def _build_reference_setup() -> _ReferenceSetup:
     )
 
 
-async def _run_reference_episode(labels: Sequence[str], *, evidence_root: Path):
-    setup = _build_reference_setup()
+async def _run_reference_episode(
+    labels: Sequence[str], *, evidence_root: Path, plugin_factory: Any = _ReferencePlugin
+):
+    setup = _build_reference_setup(plugin_factory=plugin_factory)
     execution = await execute_plan_cell(
         plan=setup.plan,
         cell_id=setup.plan.cells[0].cell_id,
@@ -915,19 +964,183 @@ def _build_protocol_test_registry_and_fixtures(
     return registry, fixtures
 
 
+def _metric_value_content(value: MetricValue | None) -> tuple[float, str] | None:
+    """A ``MetricValue`` reduced to its measured ``(value, unit)``.
+
+    kernel_contract_gap_review.md finding 6: ``MetricValue.metadata`` is an
+    unrestricted mapping that participates in dataclass equality (it is a
+    plain field, not ``compare=False``). A genuinely terminal-scoped metric
+    could hold a byte-identical ``value``/``unit`` across two fixtures while
+    its ``metadata`` records something run-specific (e.g. an outcome-event
+    id) -- comparing whole ``MetricValue`` objects would then fail the
+    paired-history contrapositive as "mislabelled" for a reason that has
+    nothing to do with what the leaf measures. Only ``(value, unit)`` is
+    measurement content; ``metadata`` is provenance, exactly like
+    ``evidence_refs``.
+    """
+    return None if value is None else (value.value, value.unit)
+
+
+def _metric_mapping_content(
+    mapping: Mapping[str, MetricValue]
+) -> tuple[tuple[str, tuple[float, str] | None], ...]:
+    return tuple(sorted((key, _metric_value_content(item)) for key, item in mapping.items()))
+
+
 def _score_measurement_content(score: ScoreEnvelope) -> tuple[Any, ...]:
     """The part of a ``ScoreEnvelope`` that reflects what was measured.
 
     Ruling R7: ``evidence_refs`` is provenance, not measurement -- two runs
     whose trajectories differ seal different sealed-event ids even when the
     measurement itself is identical, so comparing whole envelopes would fail
-    100% of the time for every terminal-scoped leaf. Compare exactly
-    ``status``, ``primary``, ``metrics``, ``reference_values``, and
-    ``validity`` (itself only ``status`` + ``reasons``, so safe); everything
-    else on ``ScoreEnvelope`` (``leaf``, ``evidence_refs``, per-seat
-    breakdowns) is provenance or identity, not measurement content.
+    100% of the time for every terminal-scoped leaf. Compare ``status``,
+    ``primary``, ``metrics``, ``reference_values``, and ``validity`` (itself
+    only ``status`` + ``reasons``, so safe); ``leaf`` and ``evidence_refs`` on
+    ``ScoreEnvelope`` are provenance or identity, not measurement content.
+
+    kernel_contract_gap_review.md finding 5: ``utility_by_seat`` and
+    ``capture_by_seat`` are also ``ScoreEnvelope`` measurement fields (a
+    per-seat allocation breakdown), not provenance -- a leaf could hold its
+    aggregate ``primary`` constant while deriving a per-seat breakdown from
+    trajectory order, which is exactly the kind of mislabelling this check
+    exists to catch. Both are now included.
+
+    kernel_contract_gap_review.md finding 6: every ``MetricValue`` here
+    (``primary`` and each value inside ``metrics``, ``reference_values``,
+    ``utility_by_seat``, and ``capture_by_seat``) is reduced by
+    ``_metric_value_content``/``_metric_mapping_content`` to its
+    ``(value, unit)`` pair, discarding ``metadata`` -- see that function's
+    docstring for why.
     """
-    return (score.status, score.primary, score.metrics, score.reference_values, score.validity)
+    return (
+        score.status,
+        _metric_value_content(score.primary),
+        _metric_mapping_content(score.metrics),
+        _metric_mapping_content(score.reference_values),
+        score.validity,
+        _metric_mapping_content(score.utility_by_seat),
+        _metric_mapping_content(score.capture_by_seat),
+    )
+
+
+# ---------------------------------------------------------------------------
+# Ruling R6 (kernel_contract_gap_review.md finding 1): the protocol test's
+# closed-world assertion previously compared this test's own locally-built
+# registry against fixtures built by that same local construction -- true by
+# construction, so a family enrolled in TRUSTED_BUILTIN_PLUGIN_KEYS without a
+# fixture could never fail it. TRUSTED_BUILTIN_PLUGIN_KEYS is the real
+# enrollment authority; the check below closes over it instead.
+# ---------------------------------------------------------------------------
+
+
+def _trusted_family_versions(
+    trusted_keys: "frozenset[tuple[str, str, str]]",
+) -> "frozenset[tuple[str, str]]":
+    return frozenset((family_id, version) for family_id, version, _module in trusted_keys)
+
+
+# Every TRUSTED_BUILTIN_PLUGIN_KEYS (family_id, version) pair not named here
+# must have a FAMILY_SCORING_FIXTURES-equivalent entry in this module, or
+# _assert_trusted_catalog_is_closed fails. These seven are trusted in-tree
+# families that have not yet migrated to the FamilyScoringInput contract
+# (spec section 5 -- "eleven migration agents," per-family work this kernel
+# change does not perform; see this module's docstring and
+# kernel_contract_impl_review.md findings 5/7 for why declaring a fixture for
+# an unmigrated family is not honestly possible today). This set is
+# deliberately named, not derived: adding a NEW trusted key -- the exact
+# attack the review demonstrated -- now requires either enrolling a real
+# fixture or explicitly widening this exemption; it can no longer happen
+# silently.
+_NOT_YET_MIGRATED_TRUSTED_KEYS: "frozenset[tuple[str, str]]" = frozenset(
+    {
+        ("consent_ir_v1", "1.0.0"),
+        ("datacenter_development_v1", "1.0.0"),
+        ("datacenter_development_v1", "1.1.0"),
+        ("datacenter_development_v1", "2.0.0"),
+        ("single_offer_v1", "1.0.0"),
+        ("tau3.retail", "0.1.0"),
+        ("kernel_contract_sequential_v1", "1.0.0"),
+    }
+)
+
+
+def _assert_trusted_catalog_is_closed(
+    *,
+    trusted_keys: "frozenset[tuple[str, str, str]]",
+    enrolled_family_versions: Any,
+    exempt_family_versions: Any,
+) -> None:
+    """Ruling R6: every trusted key is enrolled here or explicitly exempted.
+
+    A key present in neither ``enrolled_family_versions`` nor
+    ``exempt_family_versions`` was added to the trusted catalog without this
+    protocol test (or a named, reasoned exemption) ever being told about it --
+    the review's exact demonstrated attack.
+    """
+
+    trusted = _trusted_family_versions(trusted_keys)
+    unenrolled = trusted - set(enrolled_family_versions) - set(exempt_family_versions)
+    assert not unenrolled, (
+        f"trusted plugin key(s) {sorted(unenrolled)} are neither enrolled in "
+        "this test's FAMILY_SCORING_FIXTURES nor named in "
+        "_NOT_YET_MIGRATED_TRUSTED_KEYS -- ruling R6 requires every "
+        "TRUSTED_BUILTIN_PLUGIN_KEYS entry to be accounted for by one or the other"
+    )
+
+
+def test_trusted_catalog_closure_rejects_an_unenrolled_key() -> None:
+    """kernel_contract_gap_review.md finding 1, mutation check.
+
+    Without ``_assert_trusted_catalog_is_closed`` (or with its body neutered),
+    a key that is neither enrolled nor exempted passes silently -- the
+    review's exact demonstrated attack. Proven here directly, without
+    touching the real ``TRUSTED_BUILTIN_PLUGIN_KEYS``.
+    """
+
+    trusted = frozenset(
+        {
+            ("fam_a_v1", "1.0.0", "fam_a_module"),
+            ("fam_b_v1", "1.0.0", "fam_b_module"),
+        }
+    )
+    # fam_b is explicitly named as not-yet-migrated: passes.
+    _assert_trusted_catalog_is_closed(
+        trusted_keys=trusted,
+        enrolled_family_versions={("fam_a_v1", "1.0.0")},
+        exempt_family_versions={("fam_b_v1", "1.0.0")},
+    )
+    # fam_b is neither enrolled nor exempted -- must fail.
+    with pytest.raises(AssertionError):
+        _assert_trusted_catalog_is_closed(
+            trusted_keys=trusted,
+            enrolled_family_versions={("fam_a_v1", "1.0.0")},
+            exempt_family_versions=frozenset(),
+        )
+
+
+# ---------------------------------------------------------------------------
+# Ruling R7 (kernel_contract_gap_review.md finding 3): an all-mislabelled
+# family (every trajectory-reading leaf declared terminal_state) could
+# previously supply exactly one fixture and skip the paired-history
+# contrapositive entirely, since the old cardinality guard fired only when
+# the scorer's OWN (possibly mislabelled) output already declared a
+# trajectory leaf. All four already-migrated real families are, today,
+# single-leaf and terminal_state-only -- each is currently exactly the shape
+# this gap describes. The guard below is unconditional except for this named
+# exemption, so a family can no longer silently escape by mislabelling;
+# providing the second, terminal-outcome-identical, trajectory-differing
+# fixture is per-family domain work (spec section 5) this kernel change does
+# not perform for any of the four.
+# ---------------------------------------------------------------------------
+
+_SINGLE_FIXTURE_EXEMPT_FAMILIES: "frozenset[tuple[str, str]]" = frozenset(
+    {
+        ("housing_v1", "1.0.0"),
+        ("procurement_allocation_v1", "1.0.0"),
+        ("procurement_grounding_v1", "1.0.0"),
+        ("commercial_state_calibration_v1", "1.0.0"),
+    }
+)
 
 
 def test_every_registered_family_obeys_the_scoring_contract(tmp_path: Path) -> None:
@@ -938,13 +1151,28 @@ def test_every_registered_family_obeys_the_scoring_contract(tmp_path: Path) -> N
     }
 
     # Closed-world enrollment: a family registered without a contract fixture
-    # fails here, before any family is exercised.
+    # fails here, before any family is exercised. (This is this test's OWN
+    # local registry, not TRUSTED_BUILTIN_PLUGIN_KEYS -- see the assertion
+    # below for that check.)
     assert set(fixtures) == set(registrations)
+
+    # Ruling R6 (kernel_contract_gap_review.md finding 1): the real closed
+    # world is TRUSTED_BUILTIN_PLUGIN_KEYS. The assertion above was true by
+    # construction and could never fail; a family enrolled there without a
+    # fixture (or an explicit, named "not yet migrated" exemption) now fails
+    # here instead.
+    _assert_trusted_catalog_is_closed(
+        trusted_keys=TRUSTED_BUILTIN_PLUGIN_KEYS,
+        enrolled_family_versions=set(fixtures),
+        exempt_family_versions=_NOT_YET_MIGRATED_TRUSTED_KEYS,
+    )
 
     for key, registration in registrations.items():
         declared = registration.manifest.finalize_time_leaf_policy()
-        produced_by_case = []
-        for case in fixtures[key]:
+        produced_by_case: list[tuple[Any, FamilyScoreSet]] = []
+        stable_leaf_specs: dict[str, Any] = {}
+
+        for index, case in enumerate(fixtures[key]):
             scoring_input = replay_family_scoring_input(
                 plugin=registration.plugin,
                 family_case=case.family_case,
@@ -962,40 +1190,98 @@ def test_every_registered_family_obeys_the_scoring_contract(tmp_path: Path) -> N
                 score.evidence_refs == scoring_input.evidence_refs
                 for score in produced.scores
             )
+
+            # kernel_contract_gap_review.md finding 7: a leaf's declared
+            # identity -- its estimand (including input_scope), verifier, and
+            # scorer ref -- must be stable across fixtures for the same
+            # family/version. Nothing previously compared the FULL
+            # MeasurementLeafSpec across cases, only leaf_id membership, so a
+            # scorer could vary a leaf's input_scope, estimand_version, or
+            # scorer implementation between fixtures without any conformance
+            # failure.
+            for score in produced.scores:
+                existing = stable_leaf_specs.setdefault(score.leaf.leaf_id, score.leaf)
+                assert score.leaf == existing, (
+                    f"{key[0]}/{score.leaf.leaf_id} returned a different "
+                    "MeasurementLeafSpec across fixtures (differing input_scope, "
+                    "estimand_version, verifier, or scorer ref) -- a leaf's "
+                    "declared identity must be stable for the family version"
+                )
+
+            # Determinism pre-check (ruling R7), made adjacent to the
+            # original call for THIS case (kernel_contract_gap_review.md
+            # finding 4): the previous structure batched both fixtures'
+            # original calls, then both fixtures' repeat calls -- call order
+            # original-left, original-right, repeat-left, repeat-right -- so
+            # a scorer whose output merely alternates by global call-count
+            # parity (independent of scoring_input) could still coincide on
+            # both same-input comparisons (calls 1 and 3 share parity, as do
+            # 2 and 4) and only disagree on the cross-fixture contrapositive
+            # below, misreporting nondeterminism as mislabelling. Calling the
+            # repeat immediately -- call 2 right after call 1, for this case,
+            # before moving to the next -- closes that specific route: such a
+            # scorer now disagrees with itself on the very next call.
+            if index < 2:
+                case_terminal_leaf_ids = {
+                    score.leaf.leaf_id
+                    for score in produced.scores
+                    if score.leaf.estimand.input_scope == "terminal_state"
+                }
+                repeat = normalize_family_score_set(
+                    registration.plugin.build_scorer(case.family_case)(
+                        scoring_input, evidence_refs=scoring_input.evidence_refs
+                    )
+                )
+                for leaf_id in case_terminal_leaf_ids:
+                    first_score = next(
+                        score for score in produced.scores if score.leaf.leaf_id == leaf_id
+                    )
+                    second_score = next(
+                        score for score in repeat.scores if score.leaf.leaf_id == leaf_id
+                    )
+                    assert _score_measurement_content(
+                        first_score
+                    ) == _score_measurement_content(second_score), (
+                        f"{key[0]}/{leaf_id} is nondeterministic: invoking the scorer "
+                        "twice on the SAME scoring input produced two different "
+                        "measurements, so no conclusion about terminal_state "
+                        "mislabelling can be drawn from the paired-fixture comparison "
+                        "below"
+                    )
+
             produced_by_case.append((scoring_input, produced))
+
+        # kernel_contract_gap_review.md finding 3: the paired-history
+        # requirement is now unconditional except for the named exemption
+        # above -- it no longer depends on the scorer's OWN (possibly
+        # mislabelled) output already declaring a trajectory leaf.
+        if key not in _SINGLE_FIXTURE_EXEMPT_FAMILIES:
+            assert len(produced_by_case) >= 2, (
+                f"{key[0]}@{key[1]} supplies fewer than two contract fixtures and is "
+                "not in _SINGLE_FIXTURE_EXEMPT_FAMILIES -- ruling R7's paired-history "
+                "contrapositive cannot verify any of its declared terminal_state "
+                "leaves without a second, outcome-identical, trajectory-differing "
+                "fixture"
+            )
+
+        if len(produced_by_case) < 2:
+            # No paired fixtures to compare -- nothing further to check for
+            # this family. Only the four families named in
+            # _SINGLE_FIXTURE_EXEMPT_FAMILIES reach this today.
+            continue
 
         # trajectory_leaf_ids / terminal_leaf_ids are derived from the leaf's
         # declared EstimandSpec.input_scope (ruling R5), not from a
         # hand-maintained list: whichever leaves the scorer actually produced
         # with a given input_scope are the ones the checks below apply to.
+        # Safe to derive from case 0 alone: the stability check above already
+        # proved every other case's leaves are identical to case 0's.
         first_case_scores = produced_by_case[0][1].scores
-        trajectory_leaf_ids = {
-            score.leaf.leaf_id
-            for score in first_case_scores
-            if score.leaf.estimand.input_scope == "trajectory"
-        }
         terminal_leaf_ids = {
             score.leaf.leaf_id
             for score in first_case_scores
             if score.leaf.estimand.input_scope == "terminal_state"
         }
-
-        # A family with a genuinely trajectory-scoped leaf must supply the
-        # paired fixtures (spec section 6) -- this enforcement stays
-        # unconditional even though the pairing check below now also runs for
-        # families whose leaves are all declared terminal_state (ruling R7):
-        # a family could mislabel every trajectory-reading leaf as
-        # terminal_state, and gating the pair purely on the presence of a
-        # (by-construction-trusted) "trajectory" label would let exactly that
-        # case skip verification entirely.
-        if trajectory_leaf_ids:
-            assert len(produced_by_case) >= 2
-
-        if len(produced_by_case) < 2:
-            # No paired fixtures to compare -- nothing further to check for
-            # this family. (Four of the five already-migrated families are in
-            # this position today; see this module's docstring.)
-            continue
 
         (left_input, left_scores), (right_input, right_scores) = produced_by_case[:2]
         assert canonical_json_bytes(left_input.outcome) == canonical_json_bytes(
@@ -1010,35 +1296,6 @@ def test_every_registered_family_obeys_the_scoring_contract(tmp_path: Path) -> N
         # been removed rather than corrected. There is no reverse trap for
         # trajectory-declared leaves; the check with teeth is the
         # contrapositive below, for terminal_state-declared leaves.
-
-        # Determinism pre-check (ruling R7): invoke each fixture's scorer a
-        # second time on the SAME scoring input before running the
-        # cross-fixture comparison below. Without this, a nondeterministic
-        # scorer is indistinguishable from a mislabelled one, and the
-        # cross-fixture assertion would blame the wrong thing. The failure
-        # message here is deliberately distinguishable from the mislabelling
-        # message below.
-        for case, (scoring_input, produced) in zip(fixtures[key][:2], produced_by_case[:2]):
-            repeat = normalize_family_score_set(
-                registration.plugin.build_scorer(case.family_case)(
-                    scoring_input, evidence_refs=scoring_input.evidence_refs
-                )
-            )
-            for leaf_id in terminal_leaf_ids:
-                first_score = next(
-                    score for score in produced.scores if score.leaf.leaf_id == leaf_id
-                )
-                second_score = next(
-                    score for score in repeat.scores if score.leaf.leaf_id == leaf_id
-                )
-                assert _score_measurement_content(first_score) == _score_measurement_content(
-                    second_score
-                ), (
-                    f"{key[0]}/{leaf_id} is nondeterministic: invoking the scorer twice on "
-                    "the SAME scoring input produced two different measurements, so no "
-                    "conclusion about terminal_state mislabelling can be drawn from the "
-                    "paired-fixture comparison below"
-                )
 
         # Ruling R7's contrapositive, and the check with teeth: for every
         # leaf declared input_scope="terminal_state", its score must be
@@ -1062,3 +1319,161 @@ def test_every_registered_family_obeys_the_scoring_contract(tmp_path: Path) -> N
                 "differs between two fixtures with a byte-identical outcome and a differing "
                 "trajectory -- it is secretly trajectory-dependent and mislabelled"
             )
+
+
+def test_determinism_precheck_adjacency_defeats_call_parity_aliasing(tmp_path: Path) -> None:
+    """kernel_contract_gap_review.md finding 4, mutation check.
+
+    Reproduces the review's exact adversary (``_CallParityAdversarialScorer``)
+    against two REAL sealed episodes -- byte-identical outcome, differing
+    trajectory, built by the same ``_run_reference_episode`` machinery the
+    main protocol test uses -- and proves the mechanism the fix relies on:
+
+    Under the OLD batched call order (original-left, original-right,
+    repeat-left, repeat-right -- calls 1, 2, 3, 4), calls 1 and 3 share
+    parity, as do 2 and 4, so both same-input ("determinism") comparisons
+    incorrectly pass and the true defect (nondeterminism) only ever surfaces
+    as a cross-fixture contrapositive failure, misreported as "mislabelled".
+
+    Under the NEW adjacent call order (repeat immediately after its own
+    fixture's original call, before the other fixture is ever touched), the
+    same scorer disagrees with itself on the very next call and is caught as
+    nondeterministic, which is what
+    ``test_every_registered_family_obeys_the_scoring_contract`` now does for
+    every family's first two fixtures.
+    """
+
+    _CALL_PARITY_ADVERSARY_STATE["calls"] = 0
+    left_setup, left_execution = asyncio.run(
+        _run_reference_episode(
+            ("x", "y"),
+            evidence_root=tmp_path / "adversary_left",
+            plugin_factory=_CallParityAdversarialPlugin,
+        )
+    )
+    _right_setup, right_execution = asyncio.run(
+        _run_reference_episode(
+            ("y", "x"),
+            evidence_root=tmp_path / "adversary_right",
+            plugin_factory=_CallParityAdversarialPlugin,
+        )
+    )
+    plugin = left_setup.registry.resolve_manifest(left_setup.plan.families[0])
+    family_case = plugin.validate_payload(left_setup.plan.cases[0].payload)
+
+    left_scoring_input = replay_family_scoring_input(
+        plugin=plugin, family_case=family_case, evidence=left_execution.evidence
+    )
+    right_scoring_input = replay_family_scoring_input(
+        plugin=plugin, family_case=family_case, evidence=right_execution.evidence
+    )
+    # Sanity: this really is a byte-identical-outcome, differing-trajectory
+    # pair, exactly what the main protocol test requires for the pairing.
+    assert canonical_json_bytes(left_scoring_input.outcome) == canonical_json_bytes(
+        right_scoring_input.outcome
+    )
+    assert left_scoring_input.phase_instances != right_scoring_input.phase_instances
+
+    # OLD (batched) order: original-left, original-right, repeat-left,
+    # repeat-right -- calls 1, 2, 3, 4.
+    _CALL_PARITY_ADVERSARY_STATE["calls"] = 0
+    old_original_left = plugin.build_scorer(family_case)(left_scoring_input, evidence_refs=())
+    old_original_right = plugin.build_scorer(family_case)(right_scoring_input, evidence_refs=())
+    old_repeat_left = plugin.build_scorer(family_case)(left_scoring_input, evidence_refs=())
+    old_repeat_right = plugin.build_scorer(family_case)(right_scoring_input, evidence_refs=())
+    assert _score_measurement_content(old_original_left) == _score_measurement_content(
+        old_repeat_left
+    ), "the OLD batched order was expected to (incorrectly) call this deterministic"
+    assert _score_measurement_content(old_original_right) == _score_measurement_content(
+        old_repeat_right
+    ), "the OLD batched order was expected to (incorrectly) call this deterministic"
+    assert _score_measurement_content(old_original_left) != _score_measurement_content(
+        old_original_right
+    ), "the true defect was expected to surface only as a cross-fixture disagreement"
+
+    # NEW (adjacent) order: original-left, repeat-left -- calls 1, 2 --
+    # immediately, before the right fixture is ever touched.
+    _CALL_PARITY_ADVERSARY_STATE["calls"] = 0
+    new_original_left = plugin.build_scorer(family_case)(left_scoring_input, evidence_refs=())
+    new_repeat_left = plugin.build_scorer(family_case)(left_scoring_input, evidence_refs=())
+    assert _score_measurement_content(new_original_left) != _score_measurement_content(
+        new_repeat_left
+    ), "adjacency should have caught this scorer as nondeterministic, not let it slip through"
+
+
+def test_score_measurement_content_includes_seat_breakdowns() -> None:
+    """kernel_contract_gap_review.md finding 5, mutation check.
+
+    A leaf could hold its aggregate ``primary`` constant while varying its
+    per-seat allocation breakdown by trajectory order -- exactly the kind of
+    mislabelling ruling R7's contrapositive exists to catch.
+    ``_score_measurement_content`` must treat a differing ``utility_by_seat``
+    or ``capture_by_seat`` as a genuine measurement difference.
+    """
+    leaf = _reference_leaf(leaf_id=_REFERENCE_BALANCE_LEAF_ID, input_scope="terminal_state")
+    base_kwargs: dict[str, Any] = dict(
+        status="ok",
+        leaf=leaf,
+        primary=MetricValue(1.0, "count"),
+        metrics={},
+        reference_values={},
+        validity=ValidityReport("valid"),
+        evidence_refs=(),
+    )
+    left = ScoreEnvelope(
+        **base_kwargs, utility_by_seat={"participant_0": MetricValue(1.0, "count")}
+    )
+    right = ScoreEnvelope(
+        **base_kwargs, utility_by_seat={"participant_0": MetricValue(0.0, "count")}
+    )
+    # Sanity: everything the OLD comparison looked at is identical.
+    assert (left.status, left.primary, left.metrics, left.reference_values, left.validity) == (
+        right.status,
+        right.primary,
+        right.metrics,
+        right.reference_values,
+        right.validity,
+    )
+    assert _score_measurement_content(left) != _score_measurement_content(right)
+
+    left_capture = ScoreEnvelope(
+        **base_kwargs, capture_by_seat={"participant_0": MetricValue(1.0, "count")}
+    )
+    right_capture = ScoreEnvelope(
+        **base_kwargs, capture_by_seat={"participant_0": MetricValue(0.0, "count")}
+    )
+    assert _score_measurement_content(left_capture) != _score_measurement_content(right_capture)
+
+
+def test_score_measurement_content_ignores_metric_metadata() -> None:
+    """kernel_contract_gap_review.md finding 6, mutation check.
+
+    ``MetricValue.metadata`` is an unrestricted mapping that participates in
+    ``MetricValue.__eq__`` -- a scorer could legitimately (or adversarially)
+    stash a per-run provenance value there (e.g. an outcome-event id) without
+    changing what was actually measured. ``_score_measurement_content`` must
+    compare only ``(value, unit)``, not ``metadata``.
+    """
+    leaf = _reference_leaf(leaf_id=_REFERENCE_BALANCE_LEAF_ID, input_scope="terminal_state")
+    left = ScoreEnvelope(
+        status="ok",
+        leaf=leaf,
+        primary=MetricValue(1.0, "count", metadata={"outcome_event_id": "event_left"}),
+        metrics={},
+        reference_values={},
+        validity=ValidityReport("valid"),
+        evidence_refs=(),
+    )
+    right = ScoreEnvelope(
+        status="ok",
+        leaf=leaf,
+        primary=MetricValue(1.0, "count", metadata={"outcome_event_id": "event_right"}),
+        metrics={},
+        reference_values={},
+        validity=ValidityReport("valid"),
+        evidence_refs=(),
+    )
+    # Sanity: the raw MetricValue objects DO differ (metadata participates in
+    # dataclass equality) -- proving there is something for the guard to do.
+    assert left.primary != right.primary
+    assert _score_measurement_content(left) == _score_measurement_content(right)
