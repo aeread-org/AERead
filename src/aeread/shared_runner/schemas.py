@@ -246,6 +246,52 @@ class RoleSpec:
         )
 
 
+_LEAF_SCOPES = {"finalize_time", "deferred"}
+
+
+@dataclass(frozen=True, slots=True)
+class LeafPolicyDeclaration:
+    """One declared measurement leaf's identity and finalize-time scope.
+
+    A ``deferred`` leaf requires an artifact that may not exist yet at
+    finalization (a judge verdict, an external rater protocol); it is
+    declared here but excluded from the finalize-time returned set rather
+    than mislabelled ``invalid_measurement``. A leaf may not be marked
+    ``deferred`` merely because computing it is inconvenient --
+    ``deferred_artifact`` must name what it waits on.
+    """
+
+    leaf_id: str
+    scope: str
+    deferred_artifact: str | None
+
+    @classmethod
+    def from_dict(cls, value: Any, path: str) -> "LeafPolicyDeclaration":
+        data = _fields(
+            value,
+            required={"leaf_id", "scope"},
+            optional={"deferred_artifact"},
+            path=path,
+        )
+        scope = _enum(data["scope"], f"{path}.scope", _LEAF_SCOPES)
+        deferred_artifact = _optional_string(
+            data.get("deferred_artifact"), f"{path}.deferred_artifact"
+        )
+        if scope == "deferred" and deferred_artifact is None:
+            raise AuthoringValidationError(
+                f"{path}.deferred_artifact is required for a deferred leaf"
+            )
+        if scope != "deferred" and deferred_artifact is not None:
+            raise AuthoringValidationError(
+                f"{path}.deferred_artifact is only valid for a deferred leaf"
+            )
+        return cls(
+            leaf_id=_identifier(data["leaf_id"], f"{path}.leaf_id"),
+            scope=scope,
+            deferred_artifact=deferred_artifact,
+        )
+
+
 @dataclass(frozen=True, slots=True)
 class MeasurementDeclaration:
     primary_estimand: str
@@ -257,6 +303,9 @@ class MeasurementDeclaration:
     optimum_upper_bound_kind: str | None
     bound_status: str | None
     outcome_support: str | None
+    leaves: tuple[LeafPolicyDeclaration, ...] = ()
+    primary_leaf_id: str | None = None
+    admission_leaf_ids: tuple[str, ...] = ()
 
     @classmethod
     def from_dict(cls, value: Any, path: str = "measurement") -> "MeasurementDeclaration":
@@ -267,6 +316,9 @@ class MeasurementDeclaration:
             "optimum_upper_bound_kind",
             "bound_status",
             "outcome_support",
+            "leaves",
+            "primary_leaf_id",
+            "admission_leaf_ids",
         }
         data = _fields(
             value,
@@ -274,6 +326,69 @@ class MeasurementDeclaration:
             optional=optional,
             path=path,
         )
+        leaves_value = data.get("leaves", ())
+        if not isinstance(leaves_value, (list, tuple)):
+            raise AuthoringValidationError(f"{path}.leaves must be an array")
+        leaves = tuple(
+            LeafPolicyDeclaration.from_dict(item, f"{path}.leaves[{index}]")
+            for index, item in enumerate(leaves_value)
+        )
+        leaf_ids = tuple(leaf.leaf_id for leaf in leaves)
+        if len(set(leaf_ids)) != len(leaf_ids):
+            raise AuthoringValidationError(
+                f"{path}.leaves contains a duplicate leaf_id"
+            )
+        primary_leaf_id = _optional_string(
+            data.get("primary_leaf_id"), f"{path}.primary_leaf_id"
+        )
+        admission_leaf_ids = _string_tuple(
+            data.get("admission_leaf_ids", ()),
+            f"{path}.admission_leaf_ids",
+            allow_empty=True,
+        )
+        if leaves:
+            finalize_time_ids = {
+                leaf.leaf_id for leaf in leaves if leaf.scope == "finalize_time"
+            }
+            if not finalize_time_ids:
+                raise AuthoringValidationError(
+                    f"{path}.leaves must declare at least one finalize_time leaf"
+                )
+            if primary_leaf_id is None:
+                raise AuthoringValidationError(
+                    f"{path}.primary_leaf_id is required when leaves are declared"
+                )
+            if primary_leaf_id not in leaf_ids:
+                raise AuthoringValidationError(
+                    f"{path}.primary_leaf_id must name a declared leaf"
+                )
+            if primary_leaf_id not in finalize_time_ids:
+                raise AuthoringValidationError(
+                    f"{path}.primary_leaf_id must be a finalize_time leaf"
+                )
+            admission_leaf_ids = admission_leaf_ids or (primary_leaf_id,)
+            unknown_admission = sorted(set(admission_leaf_ids) - set(leaf_ids))
+            if unknown_admission:
+                raise AuthoringValidationError(
+                    f"{path}.admission_leaf_ids must be declared leaves: "
+                    f"{unknown_admission}"
+                )
+            deferred_ids = {leaf.leaf_id for leaf in leaves if leaf.scope == "deferred"}
+            deferred_admission = sorted(set(admission_leaf_ids) & deferred_ids)
+            if deferred_admission:
+                raise AuthoringValidationError(
+                    f"{path}.admission_leaf_ids must not include a deferred leaf: "
+                    f"{deferred_admission}"
+                )
+            if primary_leaf_id not in admission_leaf_ids:
+                raise AuthoringValidationError(
+                    f"{path}.primary_leaf_id must be included in admission_leaf_ids"
+                )
+        elif primary_leaf_id is not None or admission_leaf_ids:
+            raise AuthoringValidationError(
+                f"{path}.primary_leaf_id and admission_leaf_ids require "
+                f"{path}.leaves to be declared"
+            )
         return cls(
             primary_estimand=_identifier(data["primary_estimand"], f"{path}.primary_estimand"),
             measurement_kind=_enum(
@@ -288,6 +403,9 @@ class MeasurementDeclaration:
             optimum_upper_bound_kind=_optional_string(data.get("optimum_upper_bound_kind"), f"{path}.optimum_upper_bound_kind"),
             bound_status=_optional_string(data.get("bound_status"), f"{path}.bound_status"),
             outcome_support=_optional_string(data.get("outcome_support"), f"{path}.outcome_support"),
+            leaves=leaves,
+            primary_leaf_id=primary_leaf_id,
+            admission_leaf_ids=admission_leaf_ids,
         )
 
 
