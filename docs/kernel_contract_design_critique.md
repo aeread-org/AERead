@@ -342,3 +342,91 @@ would need several deliberately discriminating trajectory mutations per family (
 length, and per-actor identity independently) rather than one incidental pair; that is out of
 scope for this milestone and is recorded here as the known gap rather than implied away.
 
+---
+
+## Resolutions — ruling R8 (no forced correspondence to `primary_estimand`)
+
+R8 rejected the author's first instinct (`manifest.primary_estimand == the primary leaf's
+estimand.estimand_id`) as encoding a false model -- `tau3_retail` declares
+`primary_estimand="retail_task_reward"` while its leaves are `tau3_retail_db_state` and
+`tau3_retail_nl_assertions`, and `datacenter_development` and `procurement_grounding` are the same
+shape -- and ruled that only intra-manifest consistency is enforced: leaf ids unique;
+`primary_leaf_id` names exactly one declared `finalize_time` leaf; admission ids name declared
+`finalize_time` leaves; the primary is in admission. The protocol test then requires the produced
+`FamilyScoreSet`'s primary and admission to equal the manifest's declared policy.
+
+**Already present, verified rather than duplicated.** All four invariants and the protocol-test
+equality check predate this ruling -- they were built during the earlier `__post_init__` milestone
+(`kernel_contract_impl_review.md` finding 4, commit `fb1a8f7`) and the original protocol-test
+milestone (commit `6fc8f22`), for reasons unrelated to R8 (closing a `dataclasses.replace` bypass,
+and asserting the scorer's output against the manifest). R8 formalizes and confirms decisions
+already in code rather than requesting new ones:
+
+- `MeasurementDeclaration.__post_init__` (`schemas.py` ~372-434): duplicate `leaf_id` rejected;
+  `primary_leaf_id` must name a declared leaf that is `finalize_time`-scoped; `admission_leaf_ids`
+  must be declared, non-duplicate, and exclude every `deferred` leaf; `primary_leaf_id` must be a
+  member of `admission_leaf_ids`.
+- `FinalizeTimeLeafPolicy` / `finalize_time_leaf_policy()` (`schemas.py` ~320-336, ~537-560): reads
+  the already-validated fields (raises if no policy is declared at all); does not re-derive or
+  re-check them, since `__post_init__` runs on every construction path, including
+  `dataclasses.replace`, so there is nothing left to re-check by the time this method is called.
+- `test_every_registered_family_obeys_the_scoring_contract`
+  (`tests/test_shared_runner_scoring_contract.py:959-960`): `assert produced.primary_leaf_id ==
+  declared.primary_leaf_id` and `assert produced.admission_leaf_ids == declared.admission_leaf_ids`
+  were both present in the original protocol-test commit, unchanged since.
+- Searched the full tree for any `primary_estimand`-to-leaf-`estimand_id` correspondence check:
+  none exists anywhere in `src/` or `tests/`. Nothing needed to be removed.
+
+**Mutation-verified, all four `__post_init__` invariants, each attempted in isolation via the same
+`dataclasses.replace` bypass finding 4 closed** (new test:
+`test_measurement_declaration_post_init_enforces_every_r8_invariant_in_isolation`,
+`tests/test_shared_runner_schemas.py`). The pre-existing bypass test
+(`..._from_dataclasses_replace`) covers three `replace` scenarios, but none of them isolates a
+single guard: temporarily removing each `__post_init__` check in turn (production code restored
+from a `/tmp` backup copy, never via `git checkout`, per this project's standing rule against
+checking out a file holding uncommitted work) showed:
+
+1. **Leaf-id uniqueness** (duplicate ids within `leaves` itself, not merely within
+   `admission_leaf_ids`): had **no** test exercising it via `replace` at all -- removing the check
+   made the mutated construction succeed silently. Closed by the new test's case 1.
+2. **`primary_leaf_id` must be `finalize_time`-scoped**: removing this check alone does not make
+   the mutated construction succeed -- it is logically entailed by the composition of guards 3 and
+   4 below, proved directly: if the primary names a `deferred` leaf, it can never simultaneously
+   satisfy "primary is in admission" (guard 4) and "admission excludes deferred leaves" (guard 3),
+   so *something* downstream always rejects it. The new test's case 2 pins the specific, clearer
+   error message ("must be a finalize_time leaf") this check exists to produce, and mutation
+   testing confirms its removal is still detected -- via a message change, not a missed rejection.
+3. **Admission ids must name declared leaves** (an admission id absent from `leaves` entirely, not
+   merely a declared-but-`deferred` one): had **no** test exercising it via `replace` -- removing
+   the check made the mutated construction succeed silently. Closed by the new test's case 3, which
+   confirmed a genuine, uncoupled isolation (`DID NOT RAISE` when the check was removed).
+4. **The primary is in admission**: had **no** test exercising it via `replace` -- removing the
+   check made the mutated construction succeed silently. Closed by the new test's case 4 (a
+   purpose-built three-leaf manifest, since the two-leaf fixture used elsewhere cannot express a
+   non-empty, non-deferred admission set that excludes the primary), which also confirmed a genuine
+   isolation.
+
+**Mutation-verified, the protocol-test equality check** (`kernel_contract_reference_v1`'s
+`_ReferenceScorer`, temporarily edited then restored from a `/tmp` backup): making the scorer return
+`primary_leaf_id=_REFERENCE_TRAJECTORY_LEAF_ID` (the diagnostic trajectory leaf) while the manifest
+still declared `label_balance` as primary failed exactly as expected --
+`AssertionError: assert 'first_round_choice_is_x' == 'label_balance'` -- at
+`produced.primary_leaf_id == declared.primary_leaf_id`.
+
+**Stated limit, demonstrated empirically, not merely asserted.** R8's own text: *"nothing here
+prevents an author from wiring every identifier correctly and still choosing a diagnostic or
+constraint leaf as the headline... it needs review by a person."* This was reproduced directly: when
+the *manifest itself* was also changed to declare `primary_leaf_id=_REFERENCE_TRAJECTORY_LEAF_ID`
+(so the scorer and the manifest agree on the diagnostic leaf), every identifier check --
+`__post_init__`'s four invariants and the protocol test's leaf-set, primary, admission, and
+`evidence_refs` assertions -- passed: **1 passed**, no failures. A family that consistently, and
+internally-coherently, wires a diagnostic leaf as its headline result is indistinguishable from a
+correct one to every check in this contract. Catching that requires a person reading the family's
+status doc and judging whether the stated reason for the primary choice is actually a headline
+result, not a constraint or diagnostic -- which is why each family's status doc must record why its
+primary was chosen (spec section 5.5), not merely that its identifiers are consistent.
+
+`primary_estimand` remains deliberately unenforced against any leaf id, per R8: it is either legacy
+to be deprecated after auditing its consumers, or a genuine family-level concept needing its own
+explicit many-to-one model -- never a rule that makes two unrelated strings coincide.
+
