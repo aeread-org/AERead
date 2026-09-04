@@ -91,6 +91,62 @@ def test_datacenter_development_cases_are_discoverable() -> None:
     assert (family / "dev" / "service_loan_bankability_001.json").is_file()
     assert (family / "v1" / "power_epc_bankability_001.json").is_file()
     assert (family / "v2" / "full_stack_amendment_001.json").is_file()
+    assert (family / "v2" / "objective_bounded_001.json").is_file()
+
+
+def test_datacenter_development_terms_pilot_is_discoverable() -> None:
+    family = CASES / "datacenter_development_terms_v1"
+    pilot = family / "pilot"
+
+    assert (family / "README.md").is_file()
+    assert (pilot / "manifest.json").is_file()
+    assert (pilot / "cases.jsonl").is_file()
+    assert (pilot / "source_catalog_private.json").is_file()
+    assert (pilot / "project_manifest_private.json").is_file()
+
+
+def test_datacenter_counteroffer_adoption_ladder_is_discoverable() -> None:
+    family = CASES / "datacenter_counteroffer_adoption_v1"
+
+    assert (family / "README.md").is_file()
+    for split_name in ("v1", "v2", "v3"):
+        assert sorted(
+            path.name for path in (family / split_name).glob("*.json")
+        ) == [
+            "land_001.json",
+            "land_power_001.json",
+            "land_power_epc_001.json",
+        ]
+
+
+def test_datacenter_counteroffer_salience_pair_is_discoverable() -> None:
+    family = CASES / "datacenter_counteroffer_salience_v1"
+
+    assert (family / "README.md").is_file()
+    assert sorted(path.name for path in (family / "v1").glob("*.json")) == [
+        "explicit_delta_001.json",
+        "full_package_001.json",
+    ]
+
+
+def test_datacenter_counteroffer_affordance_pair_is_discoverable() -> None:
+    family = CASES / "datacenter_counteroffer_affordance_v1"
+
+    assert (family / "README.md").is_file()
+    assert sorted(path.name for path in (family / "v1").glob("*.json")) == [
+        "accept_by_reference_001.json",
+        "reemit_package_001.json",
+    ]
+
+
+def test_datacenter_counteroffer_action_schema_pair_is_discoverable() -> None:
+    family = CASES / "datacenter_counteroffer_action_schema_v1"
+
+    assert (family / "README.md").is_file()
+    assert sorted(path.name for path in (family / "v1").glob("*.json")) == [
+        "dedicated_accept_schema_001.json",
+        "shared_offer_schema_001.json",
+    ]
 
 
 def test_commercial_state_calibration_pilot_is_discoverable() -> None:

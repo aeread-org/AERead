@@ -1,0 +1,25 @@
+{
+  "schema_version": "aeread.datacenter_terms_public_mechanism_sources/0.1",
+  "lineage_scope": "sec_accession_document_and_clause_locator",
+  "original_artifacts_included": false,
+  "public_reproducibility": true,
+  "upstream_byte_hash_status": "not_available_shell_retrieval_returned_http_403",
+  "sources": {
+    "core_denton_project_terms_2026": {
+      "kind": "filed_project_and_securitization_terms_disclosure",
+      "role": "lease assignment effectiveness, land-power linkage, and change-order-adjustable construction pricing",
+      "verification": "public_primary_filing_reviewed",
+      "original_included": false,
+      "source_cluster_id": "sec_core_denton_project_terms_2026",
+      "accession": "000119312526165121",
+      "document": "d149019dex992.htm",
+      "url": "https://www.sec.gov/Archives/edgar/data/1839341/000119312526165121/d149019dex992.htm",
+      "locators": [
+        "restructuring steps",
+        "Denton Campus",
+        "construction and power disclosures"
+      ],
+      "upstream_sha256": null
+    }
+  }
+}

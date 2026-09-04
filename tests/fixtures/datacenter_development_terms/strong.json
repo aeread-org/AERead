@@ -1,0 +1,34 @@
+{
+  "case_id": "datacenter_development_terms_v1.pilot.full-stack-cutoff-001",
+  "states": {
+    "land_control_state": "active_option_extension_due",
+    "power_agreement_state": "executed_deposit_due",
+    "construction_agreement_state": "unsigned_proposal_no_ntp",
+    "loan_agreement_state": "nonbinding_term_sheet_conditions_unsatisfied",
+    "service_agreement_state": "redline_only_not_executed"
+  },
+  "amounts": {
+    "binding_cash_due_30d": 1450000.0,
+    "committed_loan_proceeds": 0.0,
+    "contracted_monthly_service_revenue": 0.0,
+    "minimum_critical_path_months": 14.0
+  },
+  "actions": [
+    "report_binding_cash_requirements",
+    "flag_epc_authorization_gap",
+    "track_financing_conditions_as_unsatisfied",
+    "align_customer_schedule_to_power_and_construction",
+    "exclude_unexecuted_capital_and_revenue"
+  ],
+  "claims": [
+    "verbal_alignment_is_not_execution",
+    "active_land_option_controls_site_state",
+    "executed_power_agreement_creates_deposit_obligation",
+    "unsigned_epc_proposal_is_not_construction_authority",
+    "nonbinding_term_sheet_is_not_committed_capital",
+    "unsigned_service_redline_is_not_contracted_revenue",
+    "power_target_bounds_earliest_schedule_without_guaranteeing_it"
+  ],
+  "evidence_ids": ["e01", "e02", "e03", "e04", "e05", "e06", "e07"],
+  "external_actions_attempted": []
+}
