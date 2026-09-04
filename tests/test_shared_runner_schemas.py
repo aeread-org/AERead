@@ -797,3 +797,55 @@ def test_registry_rejects_registration_of_a_plugin_with_an_inconsistent_leaf_pol
         FamilyManifest.from_dict(
             _family_data_with_leaves(primary_leaf_id="not_a_declared_leaf")
         )
+
+
+def test_measurement_declaration_rejects_an_inconsistent_leaf_policy_from_dataclasses_replace() -> None:
+    """kernel_contract_impl_review.md finding 4.
+
+    ``from_dict`` is not the only way to construct a ``MeasurementDeclaration``:
+    ``dataclasses.replace`` on an already-validated, registered manifest calls
+    the dataclass constructor directly, bypassing ``from_dict`` entirely. Before
+    ``MeasurementDeclaration.__post_init__`` existed, each of these three
+    ``replace`` calls produced an internally inconsistent leaf policy that
+    ``PluginRegistry`` would accept without complaint.
+    """
+
+    import dataclasses
+
+    manifest = FamilyManifest.from_dict(_family_data_with_leaves())
+    measurement = manifest.measurement
+
+    with pytest.raises(AuthoringValidationError, match="declared leaf"):
+        dataclasses.replace(measurement, primary_leaf_id="not_a_declared_leaf")
+
+    with pytest.raises(AuthoringValidationError, match="deferred leaf"):
+        dataclasses.replace(
+            measurement,
+            admission_leaf_ids=(
+                "tenant_realized_utility_leaf",
+                "tenant_nl_assertions_leaf",
+            ),
+        )
+
+    with pytest.raises(AuthoringValidationError, match="duplicate"):
+        dataclasses.replace(
+            measurement,
+            admission_leaf_ids=(
+                "tenant_realized_utility_leaf",
+                "tenant_realized_utility_leaf",
+            ),
+        )
+
+    # And a plugin cannot be registered under such a manifest, because it can
+    # never be constructed in the first place.
+    registry = PluginRegistry()
+    with pytest.raises(AuthoringValidationError):
+        registry.register_trusted(
+            dataclasses.replace(
+                manifest,
+                measurement=dataclasses.replace(
+                    measurement, primary_leaf_id="not_a_declared_leaf"
+                ),
+            ),
+            CompleteHousingPlugin(),
+        )
