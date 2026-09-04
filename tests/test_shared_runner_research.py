@@ -774,3 +774,28 @@ def test_export_tables_cli_loads_and_reverifies_canonical_artifacts(
     output = json.loads(capsys.readouterr().out)
     assert Path(output["runs"]).is_file()
     assert Path(output["trajectory_archive"]).is_file()
+
+
+def test_research_ledger_tolerates_kernel_pin_drift_but_not_family_drift() -> None:
+    import dataclasses
+
+    from aeread.shared_runner.run.resolver import is_kernel_pin, plan_with_pins
+
+    plan = _plan()
+    receipt = _receipt(plan)
+
+    def moved(target, sha256: str):
+        pins = tuple(
+            dataclasses.replace(pin, sha256=sha256) if pin == target else pin
+            for pin in plan.implementation_pins
+        )
+        return plan_with_pins(plan, pins)
+
+    kernel = next(pin for pin in plan.implementation_pins if is_kernel_pin(pin))
+    ledger = build_research_ledger(moved(kernel, "a" * 64), (receipt,))
+    assert ledger.campaign.receipted_cells == 1
+    assert ledger.cells[0].status == "included"
+
+    scorer = next(pin for pin in plan.implementation_pins if pin.kind == "scorer")
+    with pytest.raises(ResearchContractError, match="implementation"):
+        build_research_ledger(moved(scorer, "b" * 64), (receipt,))

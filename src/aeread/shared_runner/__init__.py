@@ -166,10 +166,14 @@ from .run.resolver import (
     RunPlan,
     canonical_json_bytes,
     case_content_sha256,
+    is_kernel_pin,
+    plan_with_pins,
+    plan_with_recorded_pins,
     resolve_run_plan,
     verify_run_plan,
     write_run_plan,
 )
+from .task.evaluation import receipt_implementation_drift
 from .task.scheduler import (
     ActionEnvelope,
     DecisionRequest,
@@ -327,6 +331,10 @@ __all__ = [
     "case_content_sha256",
     "parse_authoring_record",
     "resolve_run_plan",
+    "is_kernel_pin",
+    "plan_with_pins",
+    "plan_with_recorded_pins",
+    "receipt_implementation_drift",
     "read_evaluation_receipt",
     "run_episode",
     "seal_evaluation_receipt",

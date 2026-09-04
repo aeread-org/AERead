@@ -44,9 +44,11 @@ from ..task.receipts import (
 from ..run.resolver import (
     ImplementationPin,
     PlanCell,
+    PlanResolutionError,
     ProfileAdmission,
     RunPlan,
     canonical_json_bytes,
+    plan_with_recorded_pins,
     verify_run_plan,
 )
 from ..schemas import (
@@ -408,9 +410,17 @@ def _validate_receipt_against_plan(
         verify_evaluation_receipt(receipt)
     except Exception as error:
         raise ResearchContractError("research ledger requires verified receipts") from error
+    try:
+        expected_plan, _drift = plan_with_recorded_pins(
+            plan, receipt.plan_implementation_pins
+        )
+    except PlanResolutionError as error:
+        raise ResearchContractError(
+            f"receipt implementation pins do not match this RunPlan: {error}"
+        ) from error
     if (
-        receipt.run_plan_id != plan.run_plan_id
-        or receipt.run_plan_sha256 != plan.plan_sha256
+        receipt.run_plan_id != expected_plan.run_plan_id
+        or receipt.run_plan_sha256 != expected_plan.plan_sha256
     ):
         raise ResearchContractError("receipt does not belong to this RunPlan")
     cell = cells_by_id.get(receipt.cell_id)
@@ -446,11 +456,6 @@ def _validate_receipt_against_plan(
         mismatches["agent_profile_sha256_by_seat"] = (
             expected_profile_hashes,
             receipt.agent_profile_sha256_by_seat,
-        )
-    if receipt.plan_implementation_pins != plan.implementation_pins:
-        mismatches["plan_implementation_pins"] = (
-            plan.implementation_pins,
-            receipt.plan_implementation_pins,
         )
     if mismatches:
         raise ResearchContractError(
