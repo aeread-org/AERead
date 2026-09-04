@@ -149,15 +149,22 @@ def _observability_limits(plan: RunPlan, cell: Any) -> tuple[str, ...]:
 def _replay_family_trajectory(
     *, plugin: Any, family_case: Mapping[str, Any], evidence: EvidenceStore
 ) -> tuple[Mapping[str, Any], tuple[PhaseInstance, ...], Any, tuple[str, ...]]:
-    """Walk sealed evidence once, verifying it against the plugin as it goes.
+    """Re-execute the pinned case once, cross-checking every step against the seal.
 
-    Returns the frozen terminal outcome, the full phase trajectory
-    reconstructed from sealed evidence (never from the live in-memory
-    ``EpisodeResult``, which this function never receives), the event that
-    recorded the outcome, and every sealed event id used to reconstruct the
-    above, deduplicated and ordered by first use. Any disagreement between
-    the sealed evidence and the plugin raises immediately -- there is no
-    partial result to fall back to.
+    Ruling R2 (kernel_scoring_contract_spec.md): this is a verified
+    deterministic re-execution, not a pure read-back of durable evidence --
+    ``plugin.phases``, ``initial_state``, ``eligible_actors``, ``step``,
+    ``terminal``, and ``outcome`` are all invoked live here and each result is
+    cross-checked against the sealed payload at that boundary. The live
+    in-memory ``EpisodeResult`` is never read (this function never receives
+    one).
+
+    Returns the frozen terminal outcome, the full phase trajectory produced
+    by this re-execution, the event that recorded the outcome, and every
+    sealed event id used to cross-check the above, deduplicated and ordered
+    by first use. Any disagreement between the re-execution and the sealed
+    evidence raises immediately -- there is no partial result to fall back
+    to.
     """
     events = evidence.read_events()
     phase_by_id = {phase.phase_id: phase for phase in plugin.phases(family_case)}
@@ -388,12 +395,29 @@ def replay_family_state(
 
 @dataclass(frozen=True, slots=True)
 class FamilyScoringInput:
-    """Scoring data reconstructed exclusively from sealed evidence.
+    """Scoring data produced by a verified deterministic re-execution.
 
-    The live in-memory ``EpisodeResult`` is never reachable from here. The
-    finalizer still compares its outcome against ``outcome`` below, but only
-    to detect disagreement -- the score itself is computed from replayed
-    data, which is what the receipt asserts.
+    Ruling R2 (kernel_scoring_contract_spec.md): the fields below are NOT a
+    pure read-back of durable evidence. They come from re-executing the
+    pinned case deterministically and cross-checking every phase boundary,
+    action, and terminal state against the sealed evidence as it goes (see
+    ``_replay_family_trajectory``); a divergence between the re-execution and
+    the seal fails finalization rather than returning a partial result. What
+    the guarantee gives you: the live in-memory ``EpisodeResult`` is never
+    read. The finalizer still compares its outcome against ``outcome`` below,
+    but only to detect disagreement -- the score itself is computed from this
+    re-execution, which is what the receipt asserts.
+
+    Ruling R3: ``phase_instances[*].observations`` is not itself carried by
+    durable evidence -- ``phase_instance_started`` seals only ``phase,
+    eligible_actors, pre_state_sha256``, never per-seat observation content.
+    ``observations`` here is populated as a deterministic function of the
+    pre-state during the re-execution above. That is safe because the
+    pre-state hash IS sealed and cross-checked at every phase boundary: an
+    observation that differed from the sealed run would imply a pre-state
+    hash mismatch, which fails re-execution before such an observation could
+    ever be returned. A future family author must not read "observations"
+    and assume it was transcribed verbatim from evidence.
     """
 
     outcome: Mapping[str, Any]
@@ -404,12 +428,15 @@ class FamilyScoringInput:
 def replay_family_scoring_input(
     *, plugin: Any, family_case: Mapping[str, Any], evidence: EvidenceStore
 ) -> FamilyScoringInput:
-    """Reconstruct one family's full scoring input from sealed evidence.
+    """Produce one family's scoring input by verified deterministic re-execution.
 
-    This signature takes no ``EpisodeResult`` parameter: the live episode is
-    unreachable here by construction, so a caller cannot silently fall back
-    to it when replay is incomplete. A disagreement between the sealed
-    evidence and the plugin raises rather than returning a partial result.
+    Ruling R2: this re-executes the pinned case deterministically and
+    cross-checks every phase boundary, action, and terminal state against the
+    sealed evidence -- it is not a pure read-back. This signature takes no
+    ``EpisodeResult`` parameter: the live episode is unreachable here by
+    construction, so a caller cannot silently fall back to it when replay is
+    incomplete. A disagreement between the re-execution and the sealed
+    evidence raises rather than returning a partial result.
     """
     outcome, phase_instances, _outcome_event, evidence_refs = (
         _replay_family_trajectory(
