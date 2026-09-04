@@ -9,7 +9,7 @@ from __future__ import annotations
 import hashlib
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Callable, Mapping, Protocol
+from typing import Any, Callable, Mapping, Protocol, Sequence
 
 from .execution import CanonicalResponse, CellExecution, EvidenceStore, TokenPricing
 from ..run.layout import RunLayout
@@ -423,6 +423,25 @@ def replay_family_scoring_input(
     )
 
 
+class FamilyScorer(Protocol):
+    """A family's scoring hook, called once per finalized episode.
+
+    ``evidence_refs`` is always ``scoring_input.evidence_refs`` verbatim --
+    it is threaded as a keyword for call-signature parity with families
+    that do not otherwise need ``scoring_input``. A scorer may return a
+    bare ``ScoreEnvelope``, a sequence of them, or an explicit
+    ``FamilyScoreSet``; :func:`normalize_family_score_set` accepts all
+    three.
+    """
+
+    def __call__(
+        self,
+        scoring_input: FamilyScoringInput,
+        *,
+        evidence_refs: tuple[str, ...] = (),
+    ) -> ScoreEnvelope | Sequence[ScoreEnvelope] | FamilyScoreSet: ...
+
+
 def finalize_family_execution(
     *, setup: EvaluationSetup, execution: CellExecution
 ) -> EvaluationReceipt:
@@ -447,25 +466,28 @@ def finalize_family_execution(
     family_case = plugin.validate_payload(case.payload)
 
     execution.evidence.audit_reconciliation()
-    recorded_outcome, outcome_event = replay_family_state(
+    scoring_input = replay_family_scoring_input(
         plugin=plugin,
         family_case=family_case,
         evidence=execution.evidence,
     )
-    if canonical_json_bytes(recorded_outcome) != canonical_json_bytes(
+    if canonical_json_bytes(scoring_input.outcome) != canonical_json_bytes(
         execution.episode_result.outcome
     ):
         raise ValueError("execution outcome does not match the event log")
 
     score_set = normalize_family_score_set(
         plugin.build_scorer(family_case)(
-            recorded_outcome,
-            evidence_refs=(outcome_event.event_id,),
+            scoring_input,
+            evidence_refs=scoring_input.evidence_refs,
         )
     )
     execution.evidence.append_event(
         "score_recorded",
-        _score_event_payload(score_set, outcome_event_id=outcome_event.event_id),
+        # _replay_family_trajectory always appends the outcome event last.
+        _score_event_payload(
+            score_set, outcome_event_id=scoring_input.evidence_refs[-1]
+        ),
     )
     execution.evidence.audit_reconciliation()
     evidence_seal = execution.evidence.seal()
@@ -688,20 +710,20 @@ def replay_family_receipt(
     )
     plugin = setup.registry.resolve_manifest(family)
     family_case = plugin.validate_payload(case.payload)
-    replayed_outcome, outcome_event = replay_family_state(
+    scoring_input = replay_family_scoring_input(
         plugin=plugin,
         family_case=family_case,
         evidence=evidence,
     )
     replayed_score_set = normalize_family_score_set(
         plugin.build_scorer(family_case)(
-            replayed_outcome,
-            evidence_refs=(outcome_event.event_id,),
+            scoring_input,
+            evidence_refs=scoring_input.evidence_refs,
         )
     )
     if canonical_json_bytes(score_payload) != canonical_json_bytes(
         _score_event_payload(
-            replayed_score_set, outcome_event_id=outcome_event.event_id
+            replayed_score_set, outcome_event_id=scoring_input.evidence_refs[-1]
         )
     ):
         raise ValueError("recorded family score does not replay deterministically")
@@ -845,12 +867,12 @@ def audit_family_receipt(
         case = next(c for c in setup.plan.cases if c.case_id == cell.case_id)
         plugin = setup.registry.resolve_manifest(family)
         family_case = plugin.validate_payload(case.payload)
-        outcome, outcome_event = replay_family_state(
+        scoring_input = replay_family_scoring_input(
             plugin=plugin, family_case=family_case, evidence=evidence
         )
         score_set = normalize_family_score_set(
             plugin.build_scorer(family_case)(
-                outcome, evidence_refs=(outcome_event.event_id,)
+                scoring_input, evidence_refs=scoring_input.evidence_refs
             )
         )
         events = [e for e in evidence.read_events() if e.event_type == "score_recorded"]
@@ -862,7 +884,7 @@ def audit_family_receipt(
             or canonical_json_bytes(evidence.read_event_payload(events[0]))
             != canonical_json_bytes(
                 _score_event_payload(
-                    score_set, outcome_event_id=outcome_event.event_id
+                    score_set, outcome_event_id=scoring_input.evidence_refs[-1]
                 )
             )
             or canonical_json_bytes(receipt["scores"])
