@@ -20,3 +20,6 @@ Housing or Tau3 implementation files does not bypass the still-open R6 Exchange 
   complete R1-R4 trace through sealed-plan publication, explicit attempts and provider/tool
   side effects, canonical event/artifact evidence, retries, cost, and the OpenAI-ready,
   route-pinned OpenRouter/DeepSeek, and Claude-live model-call paths.
+- [`benchmark_qc_review_trajectory.md`](benchmark_qc_review_trajectory.md) —
+  breakdown of the hybrid review trajectory across automated gates (tests, replay, math bounds, schema probes)
+  versus explicit human sign-off gates (construct validity, cluster definitions, production reviewer authentication).
