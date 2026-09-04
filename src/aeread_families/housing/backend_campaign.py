@@ -431,6 +431,65 @@ CAMPAIGN_SPECS = {
             "asyncio_wait_for_controls_timeout_seconds"
         ),
     },
+    "housing_model_sensitivity_openrouter_friendli_v15": {
+        "claim_status": "exploratory_variance_pilot_only",
+        "catalog_retrieved_at": "2026-09-03",
+        "reasoning_condition_id": (
+            "model_sensitivity_openrouter_friendli_low_v15"
+        ),
+        "per_probe_cost_reserve_usd": 0.003,
+        "admission_cost_ceiling_usd": 0.06,
+        "admission_attempt_limit": 4,
+        "execution_cost_ceiling_usd": 0.45,
+        "per_trajectory_cost_reserve_usd": 0.01,
+        "world_seeds": [264284765, 722524881, 1535604354, 366965770],
+        "condition_order": "rotate_by_world_and_case_configuration",
+        "analysis": {
+            "primary_view": "paired_world_subject_mean_within_case_score",
+            "aggregation": "equal_weight_configs_and_opponents_within_world",
+            "primary_contrast": "glm_53_flash_minus_deepseek_v4_flash",
+            "uncertainty": "sample_variance_over_world_level_paired_contrasts",
+            "minimum_meaningful_effect": 0.05,
+            "alpha": 0.05,
+            "power": 0.8,
+            "minimum_confirmatory_worlds": 30,
+            "maximum_confirmatory_worlds": 100,
+            "attrition_fraction": 0.1,
+            "ranking_allowed": False,
+        },
+        "providers": {
+            "glm_53_flash": "Friendli",
+            "deepseek_v4_flash": "Parasail",
+        },
+        "quantizations": {
+            "glm_53_flash": "unknown",
+            "deepseek_v4_flash": "fp8",
+        },
+        "retryable_conditions": [
+            "length",
+            "rate_limit",
+            "provider_5xx",
+            "empty_response",
+        ],
+        "action_schema_version": "housing_actions/2.0",
+        "wire_live_profile_controls": True,
+        "verify_endpoint_snapshot": True,
+        "call_pacing": {
+            "clock": "monotonic_completion_to_start",
+            "cooldown_seconds_by_provider": {
+                "Friendli": 10.0,
+                "Parasail": 10.0,
+            },
+            "first_call_delay_seconds": 0.0,
+            "scope": "shared_across_profile_admission_and_full_trajectory",
+            "implementation_sha256": (
+                "4dc67f4ae81395166264049bbf917d8d42e69c5d6069c97fea981c4b419415d3"
+            ),
+        },
+        "admission_timeout_enforcement": (
+            "asyncio_wait_for_controls_timeout_seconds"
+        ),
+    },
 }
 REQUIRED_ROUTE_PARAMETERS = {
     "max_tokens",
@@ -655,7 +714,9 @@ def load_contract(path: str | Path) -> dict[str, Any]:
     } != {
         "probes_per_action_schema": 3,
         "probe_seeds": [103001, 103002, 103003],
-        "attempt_limit_per_probe": 1,
+        "attempt_limit_per_probe": CAMPAIGN_SPECS[campaign_id].get(
+            "admission_attempt_limit", 1
+        ),
         "sdk_retries": 0,
         "hidden_repair_allowed": False,
         "per_probe_cost_reserve_usd": CAMPAIGN_SPECS[campaign_id][
@@ -1014,68 +1075,130 @@ async def run_profile_admission(
             if isinstance(client, (PacedProviderClient, CooldownProviderClient))
             else None
         )
-        result = None
-        try:
-            result = await _admission_complete(contract, client, request)
-            raw_path = result_path.with_name(f"probe_{spec['probe_index']}_raw.json")
-            _write_json(
-                raw_path,
-                _sealed(
+        attempt_limit = int(admission["attempt_limit_per_probe"])
+        retryable_conditions = (
+            set(contract["controls"]["retryable_conditions"])
+            if attempt_limit > 1
+            else set()
+        )
+        attempts: list[dict[str, Any]] = []
+        for ordinal in range(attempt_limit):
+            attempt_started = time.perf_counter()
+            result = None
+            try:
+                result = await _admission_complete(contract, client, request)
+                raw_path = result_path.with_name(
+                    f"probe_{spec['probe_index']}_raw.json"
+                )
+                _write_json(
+                    raw_path,
+                    _sealed(
+                        {
+                            "request_sha256": request.request_sha256,
+                            "raw_response": result.raw_response,
+                        }
+                    ),
+                )
+                action = _validate_admission_action(
+                    spec["action_schema"],
+                    result.output_text,
+                    observations[spec["action_schema"]],
+                )
+                if result.cost_usd is None:
+                    raise ValueError("admission call omitted provider billing")
+                attempts.append(
                     {
-                        "request_sha256": request.request_sha256,
-                        "raw_response": result.raw_response,
+                        "attempt": ordinal + 1,
+                        "status": "passed",
+                        "cost_usd": result.cost_usd,
+                        "billing_status": "provider_reported",
+                        "elapsed_seconds": time.perf_counter() - attempt_started,
                     }
-                ),
-            )
-            action = _validate_admission_action(
-                spec["action_schema"],
-                result.output_text,
-                observations[spec["action_schema"]],
-            )
-            if result.cost_usd is None:
-                raise ValueError("admission call omitted provider billing")
-            row = {
-                **spec,
-                "status": "passed",
-                "request_sha256": request.request_sha256,
-                "response_id": result.response_id,
-                "resolved_model": result.resolved_model,
-                "action_sha256": _sha256(action),
-                "raw_response_sha256": _sha256(result.raw_response),
-                "input_tokens": result.input_tokens,
-                "cached_input_tokens": result.cached_input_tokens,
-                "output_tokens": result.output_tokens,
-                "cost_usd": result.cost_usd,
-                "billing_status": "provider_reported",
-                "elapsed_seconds": time.perf_counter() - started,
-                "route_verified": True,
-                "sdk_retries": 0,
-            }
-        except Exception as error:
-            provider_completed = result is not None
-            failure_condition = _exception_attribute(error, "condition")
-            if provider_completed and isinstance(error, ValueError):
-                failure_condition = "invalid_admission_action"
-            row = {
-                **spec,
-                "status": "operational_failure",
-                "request_sha256": request.request_sha256,
-                "failure_type": type(error).__name__,
-                "failure_condition": failure_condition or "execution_error",
-                "failure_status_code": _exception_attribute(error, "status_code"),
-                "raw_response_sha256": (
-                    _sha256(result.raw_response) if provider_completed else None
-                ),
-                "cost_usd": result.cost_usd if provider_completed else None,
-                "billing_status": (
-                    "provider_reported"
-                    if provider_completed and result.cost_usd is not None
-                    else "unavailable_on_failed_call"
-                ),
-                "elapsed_seconds": time.perf_counter() - started,
-                "route_verified": provider_completed,
-                "sdk_retries": 0,
-            }
+                )
+                billed = [
+                    attempt
+                    for attempt in attempts
+                    if attempt["billing_status"] == "provider_reported"
+                ]
+                row = {
+                    **spec,
+                    "status": "passed",
+                    "request_sha256": request.request_sha256,
+                    "response_id": result.response_id,
+                    "resolved_model": result.resolved_model,
+                    "action_sha256": _sha256(action),
+                    "raw_response_sha256": _sha256(result.raw_response),
+                    "input_tokens": result.input_tokens,
+                    "cached_input_tokens": result.cached_input_tokens,
+                    "output_tokens": result.output_tokens,
+                    "cost_usd": sum(float(attempt["cost_usd"]) for attempt in billed),
+                    "billing_status": (
+                        "provider_reported"
+                        if len(billed) == len(attempts)
+                        else "provider_reported_with_unbilled_failed_attempts"
+                    ),
+                    "elapsed_seconds": time.perf_counter() - started,
+                    "route_verified": True,
+                    "sdk_retries": 0,
+                }
+                break
+            except Exception as error:
+                provider_completed = result is not None
+                failure_condition = _exception_attribute(error, "condition")
+                if provider_completed and isinstance(error, ValueError):
+                    failure_condition = "invalid_admission_action"
+                failure_condition = failure_condition or "execution_error"
+                attempt_row = {
+                    "attempt": ordinal + 1,
+                    "status": "operational_failure",
+                    "failure_type": type(error).__name__,
+                    "failure_condition": failure_condition,
+                    "failure_status_code": _exception_attribute(
+                        error, "status_code"
+                    ),
+                    "cost_usd": result.cost_usd if provider_completed else None,
+                    "billing_status": (
+                        "provider_reported"
+                        if provider_completed and result.cost_usd is not None
+                        else "unavailable_on_failed_call"
+                    ),
+                    "elapsed_seconds": time.perf_counter() - attempt_started,
+                }
+                retry = (
+                    failure_condition in retryable_conditions
+                    and ordinal + 1 < attempt_limit
+                )
+                if retry:
+                    attempt_row["retry_delay_seconds"] = 2.0 * (2**ordinal)
+                attempts.append(attempt_row)
+                if retry:
+                    await asyncio.sleep(attempt_row["retry_delay_seconds"])
+                    continue
+                row = {
+                    **spec,
+                    "status": "operational_failure",
+                    "request_sha256": request.request_sha256,
+                    "failure_type": type(error).__name__,
+                    "failure_condition": failure_condition,
+                    "failure_status_code": _exception_attribute(error, "status_code"),
+                    "raw_response_sha256": (
+                        _sha256(result.raw_response) if provider_completed else None
+                    ),
+                    "cost_usd": result.cost_usd if provider_completed else None,
+                    "billing_status": (
+                        "provider_reported"
+                        if provider_completed and result.cost_usd is not None
+                        else "unavailable_on_failed_call"
+                    ),
+                    "elapsed_seconds": time.perf_counter() - started,
+                    "route_verified": provider_completed,
+                    "sdk_retries": 0,
+                }
+                break
+        if attempt_limit > 1:
+            row["visible_attempt_count"] = len(attempts)
+            row["effective_retry_count"] = len(attempts) - 1
+            row["attempts"] = attempts
         if pacing_observation_index is not None:
             row["call_pacing"] = client.pacing_summary_since(
                 pacing_observation_index

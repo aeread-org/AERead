@@ -851,3 +851,42 @@ the zero-attempt
 and the admission
 [`fact_manifest.json`](../../../evidence/housing_model_sensitivity_openrouter_friendli_v14/tables/fact_manifest.json).
 
+## 22. V15 preregistered pilot with receipt-visible admission attempts
+
+[`housing_model_sensitivity_openrouter_friendli_v15`](../../../configs/housing_model_sensitivity_openrouter_friendli_v15.json)
+repeats the V14 pilot design unchanged: the same Friendli and Parasail routes
+and endpoint snapshots, cooldown, admission-timeout enforcement, three
+configurations, the same four fresh development worlds, four conditions, 48
+cells, and the `$0.51` maximum exposure. It changes one frozen thing.
+
+Profile admission may now make up to four receipt-visible attempts per probe,
+the same attempt limit and retryable-condition set (`length`, `rate_limit`,
+`provider_5xx`, `empty_response`) that trajectory execution has used since
+V1. SDK retries stay at zero and hidden repair stays disallowed. Each attempt
+re-sends the identical sealed request after a recorded delay of 2, 4, or 8
+seconds on top of the shared cooldown; every attempt's outcome, status code,
+elapsed time, and billing status is sealed in the probe row, and the summary
+still counts zero hidden retries. A probe that passes after a failed attempt
+carries a `provider_reported_with_unbilled_failed_attempts` billing status,
+so the admission cost is a lower bound whenever a failed call exposed no cost.
+Non-retryable failures, including semantically invalid actions, still end the
+probe on the first attempt.
+
+This closes the asymmetry that V14 exposed: single-attempt admission was
+stricter than the trajectory policy it gates, so shared-pool rate limiting
+could block a pilot whose trajectories would have tolerated the same event.
+The population cross-play driver has used four visible admission attempts
+since V0. V15 is still an exploratory pilot and supports no ranking.
+
+```bash
+python -m aeread_families.housing.backend_campaign \
+  --contract configs/housing_model_sensitivity_openrouter_friendli_v15.json \
+  --run-root runs/housing_model_sensitivity_openrouter_friendli_v15 \
+  --through provider_free
+
+python -m aeread_families.housing.backend_campaign \
+  --contract configs/housing_model_sensitivity_openrouter_friendli_v15.json \
+  --run-root runs/housing_model_sensitivity_openrouter_friendli_v15 \
+  --through live
+```
+

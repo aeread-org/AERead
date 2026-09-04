@@ -102,6 +102,11 @@ V14_CONTRACT_PATH = (
     / "configs"
     / "housing_model_sensitivity_openrouter_friendli_v14.json"
 )
+V15_CONTRACT_PATH = (
+    Path(__file__).resolve().parents[1]
+    / "configs"
+    / "housing_model_sensitivity_openrouter_friendli_v15.json"
+)
 
 
 def test_contract_pins_new_routes_and_requires_admission_before_live() -> None:
@@ -756,6 +761,133 @@ def test_published_v14_records_cooldown_rate_limit_block_and_zero_trajectories()
     assert b'"raw_response":' not in published
     assert b"output_text" not in published
     assert b"/Users/" not in published
+
+
+def test_v15_changes_only_identity_and_visible_admission_attempts() -> None:
+    v14 = load_contract(V14_CONTRACT_PATH)
+    v15 = load_contract(V15_CONTRACT_PATH)
+    routes = route_table(v15)
+
+    assert v15["execution"] == v14["execution"]
+    assert v15["analysis"] == v14["analysis"]
+    assert v15["conditions"] == v14["conditions"]
+    changed = {
+        key for key in v15["controls"] if v15["controls"][key] != v14["controls"][key]
+    }
+    assert changed == {"reasoning_condition_id"}
+    for model_id in ("glm_53_flash", "deepseek_v4_flash"):
+        assert v15["models"][model_id]["endpoint_snapshot_sha256"] == (
+            v14["models"][model_id]["endpoint_snapshot_sha256"]
+        )
+    assert v15["profile_admission"]["attempt_limit_per_probe"] == 4
+    assert v14["profile_admission"]["attempt_limit_per_probe"] == 1
+    assert v15["profile_admission"]["sdk_retries"] == 0
+    assert v15["profile_admission"]["hidden_repair_allowed"] is False
+    assert v15["profile_admission"]["cost_ceiling_usd"] == (
+        v14["profile_admission"]["cost_ceiling_usd"]
+    )
+    assert design_artifact(v15, routes=routes)["artifact_sha256"] == (
+        "2464978213bff4b92b3423f6b55a789016e74da5f3bd0c33ee2779ec39cf1c52"
+    )
+    assert provider_free_artifact(v15)["artifact_sha256"] == (
+        "1434cc85aaec8f5373c9327de3a3b083d41b34931921bed9feec0835aa317e1e"
+    )
+    expected_profiles = v15["profile_admission"]["profile_sha256s"]
+    for setup in build_setups(v15, routes=routes).values():
+        for profile in setup.plan.agent_profiles:
+            assert hashlib.sha256(canonical_json_bytes(profile)).hexdigest() == (
+                expected_profiles[profile.profile_id]
+            )
+
+
+def test_v15_admission_retries_rate_limits_visibly_and_stops_on_invalid_action(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    contract = load_contract(V15_CONTRACT_PATH)
+    calls: list[str] = []
+
+    class FlakyClient:
+        async def complete(self, request: object) -> ProviderResult:
+            calls.append(request.provider_call_id)
+            seen = sum(1 for call in calls if call == request.provider_call_id)
+            # First GLM probe: 429 twice, then pass. Second GLM probe: invalid
+            # action on the first call (must not be retried). Others pass.
+            if request.provider_call_id.endswith("glm_53_flash_tenant_contact_0"):
+                if seen <= 2:
+                    raise ProviderFailure(
+                        "rate_limit", "429 upstream", retryable=True, status_code=429
+                    )
+            content = '{"invalid":true}' if (
+                request.provider_call_id.endswith("glm_53_flash_tenant_commit_0")
+            ) else None
+            observation_text = request.input_text
+            if content is None:
+                # Produce a schema-valid action for the probe's schema.
+                import json as _json
+
+                payload = _json.loads(observation_text)
+                schema = payload["action_schema"]
+                obs = payload["observation"]
+                del obs
+                if schema == "housing_contact_v1":
+                    content = _json.dumps(
+                        {"decision": "pass", "listing_id": None, "rent": None}
+                    )
+                elif schema == "housing_commit_v1":
+                    content = _json.dumps({"decision": "pass", "hold_id": None})
+                else:
+                    content = _json.dumps(
+                        {"decision": "reject_all", "offer_id": None, "counter_rent": None}
+                    )
+            return ProviderResult(
+                response_id="flaky-fixture",
+                requested_model=request.model,
+                resolved_model=request.revision,
+                output_text=content,
+                finish_reason="stop",
+                input_tokens=100,
+                cached_input_tokens=0,
+                output_tokens=10,
+                cost_usd=0.0001,
+                raw_response={"id": "flaky-fixture", "model": request.revision},
+            )
+
+    monkeypatch.setattr("aeread_families.housing.backend_campaign.asyncio.sleep", _no_sleep)
+    result = asyncio.run(
+        run_profile_admission(
+            contract, output_root=tmp_path / "admission", provider_client=FlakyClient()
+        )
+    )
+    by_key = {
+        (row["model_id"], row["action_schema"], row["probe_index"]): row
+        for row in result["rows"]
+    }
+    retried = by_key[("glm_53_flash", "housing_contact_v1", 0)]
+    assert retried["status"] == "passed"
+    assert retried["visible_attempt_count"] == 3
+    assert retried["effective_retry_count"] == 2
+    assert [a["status"] for a in retried["attempts"]] == [
+        "operational_failure",
+        "operational_failure",
+        "passed",
+    ]
+    assert [a.get("retry_delay_seconds") for a in retried["attempts"]] == [
+        2.0,
+        4.0,
+        None,
+    ]
+    assert retried["billing_status"] == (
+        "provider_reported_with_unbilled_failed_attempts"
+    )
+    assert retried["cost_usd"] == pytest.approx(0.0001)
+    assert result["hidden_retry_count"] == 0
+    assert result["provider_cost_complete"] is False
+    assert calls.count("admission_glm_53_flash_tenant_contact_0") == 3
+    assert calls.count("admission_glm_53_flash_tenant_commit_0") == 1
+
+
+async def _no_sleep(_seconds: float) -> None:
+    return None
 
 
 def test_published_v12_records_pacing_failure_and_zero_trajectories() -> None:

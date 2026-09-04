@@ -279,6 +279,11 @@ def _publish_fact_tables(
         "raw_response_sha256",
         "artifact_sha256",
     )
+    if any("visible_attempt_count" in row for row in admission["rows"]):
+        admission_fields = admission_fields + (
+            "visible_attempt_count",
+            "effective_retry_count",
+        )
     admission_rows: list[dict[str, Any]] = []
     for row in admission["rows"]:
         pacing = row.get("call_pacing")
