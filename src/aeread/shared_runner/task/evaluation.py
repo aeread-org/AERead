@@ -7,10 +7,11 @@ same evidence and inclusion boundary. Economic scoring stays in each plugin.
 from __future__ import annotations
 
 import hashlib
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable, Mapping, Protocol
 
-from .execution import CellExecution, EvidenceStore, TokenPricing
+from .execution import CanonicalResponse, CellExecution, EvidenceStore, TokenPricing
 from ..run.layout import RunLayout
 from ..measurement import (
     FamilyScoreSet,
@@ -36,7 +37,17 @@ from .receipts import (
     verify_evaluation_receipt,
     write_evaluation_receipt,
 )
-from .scheduler import ActionEnvelope, LegalityResult, ParseResult, PhaseSpec
+from .scheduler import (
+    ActionEnvelope,
+    DecisionRequest,
+    LegalityResult,
+    LogicalActionRecord,
+    ParseResult,
+    PhaseInstance,
+    PhaseSpec,
+    TransitionResult,
+    _freeze,
+)
 
 
 class EvaluationSetup(Protocol):
@@ -135,9 +146,19 @@ def _observability_limits(plan: RunPlan, cell: Any) -> tuple[str, ...]:
     return ()
 
 
-def replay_family_state(
+def _replay_family_trajectory(
     *, plugin: Any, family_case: Mapping[str, Any], evidence: EvidenceStore
-) -> tuple[Mapping[str, Any], Any]:
+) -> tuple[Mapping[str, Any], tuple[PhaseInstance, ...], Any, tuple[str, ...]]:
+    """Walk sealed evidence once, verifying it against the plugin as it goes.
+
+    Returns the frozen terminal outcome, the full phase trajectory
+    reconstructed from sealed evidence (never from the live in-memory
+    ``EpisodeResult``, which this function never receives), the event that
+    recorded the outcome, and every sealed event id used to reconstruct the
+    above, deduplicated and ordered by first use. Any disagreement between
+    the sealed evidence and the plugin raises immediately -- there is no
+    partial result to fall back to.
+    """
     events = evidence.read_events()
     phase_by_id = {phase.phase_id: phase for phase in plugin.phases(family_case)}
     state = plugin.initial_state(family_case, run=None)
@@ -147,7 +168,16 @@ def replay_family_state(
     if not phase_events:
         raise ValueError("family replay contains no phase boundaries")
 
-    for phase_event in phase_events:
+    used_event_ids: list[str] = []
+    seen_event_ids: set[str] = set()
+
+    def _use(used_event: Any) -> None:
+        if used_event.event_id not in seen_event_ids:
+            seen_event_ids.add(used_event.event_id)
+            used_event_ids.append(used_event.event_id)
+
+    phase_instances: list[PhaseInstance] = []
+    for ordinal, phase_event in enumerate(phase_events):
         payload = evidence.read_event_payload(phase_event)
         if not isinstance(payload, Mapping) or not isinstance(
             payload.get("phase"), Mapping
@@ -165,6 +195,7 @@ def replay_family_state(
         eligible = tuple(plugin.eligible_actors(family_case, state, phase))
         if tuple(payload.get("eligible_actors", ())) != eligible:
             raise ValueError("family replay eligible actors changed")
+        _use(phase_event)
 
         starts = tuple(
             event
@@ -173,18 +204,23 @@ def replay_family_state(
             and event.phase_instance_id == phase_event.phase_instance_id
         )
         actions: dict[str, ActionEnvelope] = {}
+        action_records: list[LogicalActionRecord] = []
+        observations: dict[str, Any] = {}
         for start in starts:
             start_payload = evidence.read_event_payload(start)
-            request = (
+            request_value = (
                 start_payload.get("request")
                 if isinstance(start_payload, Mapping)
                 else None
             )
-            if not isinstance(request, Mapping):
+            if not isinstance(request_value, Mapping):
                 raise ValueError("family replay action request is malformed")
-            seat_id = request.get("seat_id")
+            seat_id = request_value.get("seat_id")
             if not isinstance(seat_id, str) or seat_id in actions:
                 raise ValueError("family replay action seat identity is invalid")
+            request = DecisionRequest(**_freeze(dict(request_value)))
+            observations[seat_id] = request.observation
+            _use(start)
             parsed_events = tuple(
                 event
                 for event in events
@@ -202,6 +238,7 @@ def replay_family_state(
             if not isinstance(parsed_value, Mapping):
                 raise ValueError("family replay parse result is malformed")
             parsed = ParseResult(**dict(parsed_value))
+            _use(parsed_events[0])
             legality_events = tuple(
                 event
                 for event in events
@@ -221,13 +258,46 @@ def replay_family_state(
                 if not isinstance(legality_value, Mapping):
                     raise ValueError("family replay legality result is malformed")
                 legality = LegalityResult(**dict(legality_value))
+                _use(legality_events[0])
             valid = parsed.ok and legality is not None and legality.legal
-            actions[seat_id] = ActionEnvelope(
+            envelope = ActionEnvelope(
                 seat_id=seat_id,
                 valid=valid,
                 action=parsed.action if valid else None,
                 parse=parsed,
                 legality=legality,
+            )
+            actions[seat_id] = envelope
+
+            succeeded_events = tuple(
+                event
+                for event in events
+                if event.event_type == "action_attempt_succeeded"
+                and event.logical_action_id == start.logical_action_id
+            )
+            if len(succeeded_events) != 1:
+                raise ValueError("family replay action lacks one successful attempt")
+            succeeded_payload = evidence.read_event_payload(succeeded_events[0])
+            response_value = (
+                succeeded_payload.get("canonical_response")
+                if isinstance(succeeded_payload, Mapping)
+                else None
+            )
+            if not isinstance(response_value, Mapping):
+                raise ValueError("family replay action response is malformed")
+            response = CanonicalResponse(**_freeze(dict(response_value)))
+            _use(succeeded_events[0])
+
+            action_records.append(
+                LogicalActionRecord(
+                    logical_action_id=start.logical_action_id,
+                    seat_id=seat_id,
+                    request=request,
+                    response=response,
+                    parse=parsed,
+                    legality=legality,
+                    envelope=envelope,
+                )
             )
         if tuple(sorted(actions)) != tuple(sorted(eligible)):
             raise ValueError("family replay action set does not match eligible actors")
@@ -253,7 +323,27 @@ def replay_family_state(
         ).hexdigest()
         if transition_payload.get("post_state_sha256") != post_state_sha256:
             raise ValueError("family replay post-state hash mismatch")
+        transition_value = transition_payload.get("transition")
+        if not isinstance(transition_value, Mapping):
+            raise ValueError("family replay transition is malformed")
+        transition = TransitionResult(**_freeze(dict(transition_value)))
+        _use(transition_events[0])
         state = replayed.state
+
+        phase_instances.append(
+            PhaseInstance(
+                phase_instance_id=phase_event.phase_instance_id,
+                phase_id=recorded_phase.phase_id,
+                ordinal=ordinal,
+                mode=recorded_phase.mode,
+                eligible_actors=eligible,
+                pre_state_sha256=pre_state_sha256,
+                post_state_sha256=post_state_sha256,
+                observations=_freeze(observations),
+                actions=tuple(action_records),
+                transitions=(transition,),
+            )
+        )
 
     terminal_events = tuple(
         event for event in events if event.event_type == "episode_terminated"
@@ -270,12 +360,67 @@ def replay_family_state(
         terminal_payload.get("terminal")
     ) != canonical_json_bytes(terminal):
         raise ValueError("family replay terminal result differs from sealed evidence")
+    _use(terminal_events[0])
     outcome = plugin.outcome(family_case, terminal)
     if not isinstance(outcome_payload, Mapping) or canonical_json_bytes(
         outcome_payload.get("outcome")
     ) != canonical_json_bytes(outcome):
         raise ValueError("family replay family outcome differs from sealed evidence")
-    return outcome, outcome_events[0]
+    _use(outcome_events[0])
+    return (
+        _freeze(outcome),
+        tuple(phase_instances),
+        outcome_events[0],
+        tuple(used_event_ids),
+    )
+
+
+def replay_family_state(
+    *, plugin: Any, family_case: Mapping[str, Any], evidence: EvidenceStore
+) -> tuple[Mapping[str, Any], Any]:
+    outcome, _phase_instances, outcome_event, _evidence_refs = (
+        _replay_family_trajectory(
+            plugin=plugin, family_case=family_case, evidence=evidence
+        )
+    )
+    return outcome, outcome_event
+
+
+@dataclass(frozen=True, slots=True)
+class FamilyScoringInput:
+    """Scoring data reconstructed exclusively from sealed evidence.
+
+    The live in-memory ``EpisodeResult`` is never reachable from here. The
+    finalizer still compares its outcome against ``outcome`` below, but only
+    to detect disagreement -- the score itself is computed from replayed
+    data, which is what the receipt asserts.
+    """
+
+    outcome: Mapping[str, Any]
+    phase_instances: tuple[PhaseInstance, ...]
+    evidence_refs: tuple[str, ...]
+
+
+def replay_family_scoring_input(
+    *, plugin: Any, family_case: Mapping[str, Any], evidence: EvidenceStore
+) -> FamilyScoringInput:
+    """Reconstruct one family's full scoring input from sealed evidence.
+
+    This signature takes no ``EpisodeResult`` parameter: the live episode is
+    unreachable here by construction, so a caller cannot silently fall back
+    to it when replay is incomplete. A disagreement between the sealed
+    evidence and the plugin raises rather than returning a partial result.
+    """
+    outcome, phase_instances, _outcome_event, evidence_refs = (
+        _replay_family_trajectory(
+            plugin=plugin, family_case=family_case, evidence=evidence
+        )
+    )
+    return FamilyScoringInput(
+        outcome=outcome,
+        phase_instances=phase_instances,
+        evidence_refs=evidence_refs,
+    )
 
 
 def finalize_family_execution(
