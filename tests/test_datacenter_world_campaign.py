@@ -27,9 +27,9 @@ def test_world_panel_design_is_paired_rotated_and_budget_bounded() -> None:
 
     assert design["independent_cluster_count"] == 24
     assert design["paired_seed_count"] == 2
-    assert design["planned_cells"] == 24 * 2 * 3 == 144
-    assert design["worst_case_declared_cost_usd"] == pytest.approx(4.32)
-    assert design["campaign_max_cost_usd"] == pytest.approx(5.0)
+    assert design["planned_cells"] == 24 * 2 * 4 == 192
+    assert design["worst_case_declared_cost_usd"] == pytest.approx(7.2)
+    assert design["campaign_max_cost_usd"] == pytest.approx(9.0)
     assert design["worst_case_declared_cost_usd"] <= design["campaign_max_cost_usd"]
     assert all(cell["live_profile_count"] == 1 for cell in design["cells"])
     assert all(cell["evaluation_block_kind"] == "controlled" for cell in design["cells"])
@@ -46,12 +46,12 @@ def test_world_panel_design_is_paired_rotated_and_budget_bounded() -> None:
     for cell in design["cells"]:
         if cell["execution_order_in_world"] == 0:
             first_by_world.setdefault(cell["world_index"], cell["model_id"])
-    assert Counter(first_by_world.values()) == {model: 8 for model in design["model_ids"]}
+    assert Counter(first_by_world.values()) == {model: 6 for model in design["model_ids"]}
 
     # Cells are distinct run plans, one per world x seed x model.
-    assert len({cell["run_plan_id"] for cell in design["cells"]}) == 144
+    assert len({cell["run_plan_id"] for cell in design["cells"]}) == 192
     assert Counter(cell["stratum"] for cell in design["cells"]) == {
-        stratum: 24 for stratum in (
+        stratum: 32 for stratum in (
             "revenue_without_bankability",
             "delayed_revenue",
             "restrictive_draws",
@@ -73,7 +73,7 @@ def test_world_panel_contract_pins_the_generated_pack() -> None:
 def test_world_panel_rejects_budget_overflow_and_drifted_pack(tmp_path) -> None:
     contract = load_contract()
     over_budget = copy.deepcopy(contract)
-    over_budget["execution"]["max_cost_usd_per_live_profile"] = 0.04
+    over_budget["execution"]["max_cost_usd_per_live_profile"] = 0.08
     path = tmp_path / "over_budget.json"
     path.write_text(json.dumps(over_budget), encoding="utf-8")
     with pytest.raises(ValueError, match="cost ceiling"):
@@ -104,7 +104,7 @@ def test_world_panel_module_invokes_cli_design(tmp_path) -> None:
     )
     design = json.loads(completed.stdout)
 
-    assert design["planned_cells"] == 144
+    assert design["planned_cells"] == 192
     assert (tmp_path / "campaign" / "design.json").is_file()
 
 
@@ -188,6 +188,8 @@ def test_world_panel_summary_separates_admission_no_agreement_and_failures() -> 
                 rows.append(_row(cell, constraints=False, npv=baseline))
             else:
                 rows.append(_row(cell, reason="land_negotiation_rounds_exhausted", completed=False, npv=outside))
+        elif cell["model_id"] == "gemini38_flash_aistudio":
+            rows.append(_row(cell, npv=baseline))
         else:
             if cell["world_index"] == 0 and cell["inference_seed"] == 41211:
                 rows.append(_row(cell, status="operational_failure"))
@@ -212,7 +214,7 @@ def test_world_panel_summary_separates_admission_no_agreement_and_failures() -> 
     assert gptoss["operational_failure_cells"] == 1
     assert gptoss["rankable"] is False
     assert summary["unranked_model_ids"] == ["gptoss120b_coreweave"]
-    assert [row["model_id"] for row in summary["leaderboard"]] == ["glm53_parasail", "qwen3_235b_google"]
+    assert [row["model_id"] for row in summary["leaderboard"]] == ["gemini38_flash_aistudio", "glm53_parasail", "qwen3_235b_google"]
     assert summary["cost_qualifier"] == "lower_bound"
     assert summary["failure_conditions"] == {"rate_limit": 1}
     assert summary["winner_claim_allowed"] is False
@@ -225,6 +227,6 @@ def test_world_panel_summary_separates_admission_no_agreement_and_failures() -> 
     assert pair["developer_equity_npv_difference_cents"]["mean"] > 0
 
     text = render_leaderboard(summary)
-    assert "| 1 | glm53_parasail |" in text
+    assert "| 1 | gemini38_flash_aistudio |" in text
     assert "Unranked" in text and "gptoss120b_coreweave" in text
     assert "No winner claim" in text

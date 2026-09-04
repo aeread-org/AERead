@@ -14,6 +14,26 @@
     "controlled_developer"
   ],
   "models": {
+    "gemini38_flash_aistudio": {
+      "profile_id": "datacenter_v2_gemini38_flash_aistudio_world_panel_v1",
+      "requested_model": "google/gemini-3.8-flash",
+      "canonical_model": "google/gemini-3.8-flash-20260902",
+      "provider": "Google AI Studio",
+      "quantization": "unknown",
+      "access_class": "proprietary",
+      "license_id": "proprietary",
+      "reasoning_effort": "low",
+      "temperature_supported": true,
+      "pricing": {
+        "input_per_million": 0.75,
+        "cached_input_per_million": 0.075,
+        "output_per_million": 3.75,
+        "pricing_id": "openrouter_2026-09-03_gemini38_flash_aistudio_world_panel_v1"
+      },
+      "max_prompt_price_per_million": "1.35",
+      "max_completion_price_per_million": "6.75",
+      "max_cost_usd_per_live_profile": 0.06
+    },
     "glm53_parasail": {
       "profile_id": "datacenter_v2_glm53_parasail_world_panel_v1",
       "requested_model": "z-ai/glm-5.3-flash",
@@ -77,7 +97,7 @@
     "max_output_tokens_per_action": 6000,
     "timeout_seconds_per_action": 180.0,
     "max_cost_usd_per_live_profile": 0.03,
-    "campaign_max_cost_usd": 5.0,
+    "campaign_max_cost_usd": 9.0,
     "concurrency": 3,
     "max_concurrent_cells_per_route_provider": 1,
     "provider_cooldown_seconds_after_cell": 15.0,

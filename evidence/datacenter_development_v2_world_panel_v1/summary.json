@@ -1,19 +1,20 @@
 {
-  "artifact_sha256": "0a16166b745e0aa7d554695cc8a78c2ccac46bb03933fd5e56ed9b4434c374c3",
-  "campaign_driver_sha256": "08575db2ed0e7618c7280866b8709454cce7d2593688ae9c44a62b5fa7de769d",
+  "artifact_sha256": "0820807660f300c3e03fd9d9cedf3c0b9ea572a49860cade9394741f09ad9f3c",
+  "campaign_driver_sha256": "30d381a58fa08936c104bdb41cc70d23f5c25321a2dea0df1f5f7565f29bfcfc",
   "campaign_id": "datacenter_development_v2_world_panel_v1",
-  "campaign_max_cost_usd": 5.0,
+  "campaign_max_cost_usd": 9.0,
   "causal_condition_effect_allowed": false,
   "claim_status": "twenty_four_world_controlled_developer_paired_panel_exploratory",
-  "completed_cells": 142,
-  "contract_sha256": "5395dc964cb7e2cf4fce20a26af56428ed6a0f2b748783918eee3c967309c9cd",
+  "completed_cells": 168,
+  "contract_sha256": "8ecfbe82a9eb4fae4fadd45d1737d046305a639b02859441a9d84174c32c9908",
   "cost_qualifier": "lower_bound",
-  "design_sha256": "ff41f635c3abc38fff2eb79ed9e3163940fa84b572f8051717e19c52979196db",
+  "design_sha256": "1ac27f1cb9944c2a4eb308f43819ee38caa0c98948e06f686cb6b7657e3ccbaf",
   "failure_conditions": {
     "child_provider_outcome_unknown": 1,
-    "rate_limit": 1
+    "cost_budget_exceeded": 16,
+    "rate_limit": 7
   },
-  "failure_fraction": 0.013888888888888888,
+  "failure_fraction": 0.125,
   "independent_cluster_count": 24,
   "inferential_model_ranking_allowed": false,
   "leaderboard": [
@@ -34,6 +35,91 @@
     }
   ],
   "model_summaries": [
+    {
+      "admission_rate": 0.041666666666666664,
+      "admitted_cells": 2,
+      "by_stratum": {
+        "covenant_cliff": {
+          "admitted_cells": 0,
+          "completed_cells": 3,
+          "excluded_cells": 3,
+          "mean_delta_from_baseline_cents": null,
+          "no_agreement_cells": 0,
+          "planned_cells": 8
+        },
+        "delayed_revenue": {
+          "admitted_cells": 0,
+          "completed_cells": 6,
+          "excluded_cells": 6,
+          "mean_delta_from_baseline_cents": null,
+          "no_agreement_cells": 0,
+          "planned_cells": 8
+        },
+        "liability_transfer": {
+          "admitted_cells": 1,
+          "completed_cells": 3,
+          "excluded_cells": 2,
+          "mean_delta_from_baseline_cents": 0.0,
+          "no_agreement_cells": 0,
+          "planned_cells": 8
+        },
+        "restrictive_draws": {
+          "admitted_cells": 1,
+          "completed_cells": 7,
+          "excluded_cells": 6,
+          "mean_delta_from_baseline_cents": 0.0,
+          "no_agreement_cells": 0,
+          "planned_cells": 8
+        },
+        "revenue_without_bankability": {
+          "admitted_cells": 0,
+          "completed_cells": 4,
+          "excluded_cells": 4,
+          "mean_delta_from_baseline_cents": null,
+          "no_agreement_cells": 0,
+          "planned_cells": 8
+        },
+        "verbal_written_divergence": {
+          "admitted_cells": 0,
+          "completed_cells": 3,
+          "excluded_cells": 3,
+          "mean_delta_from_baseline_cents": null,
+          "no_agreement_cells": 0,
+          "planned_cells": 8
+        }
+      },
+      "complete_panel": false,
+      "completed_cells": 26,
+      "excluded_cells": 24,
+      "exclusion_rate": 0.5,
+      "exclusion_reasons": {
+        "constraint_failure:funding_shortfall": 1,
+        "invalid_action:amendment_changes_nothing": 16,
+        "invalid_action:malformed_datacenter_stack_action": 7
+      },
+      "mean_admitted_developer_equity_npv_cents": 627125.0,
+      "mean_delta_from_baseline_cents": 0.0,
+      "mean_developer_equity_npv_cents": 627125.0,
+      "mean_elapsed_seconds": 27.371278867978315,
+      "mean_total_project_npv_cents": 779000.0,
+      "model_id": "gemini38_flash_aistudio",
+      "no_agreement_cells": 0,
+      "no_agreement_rate": 0.0,
+      "no_agreement_reasons": {},
+      "operational_failure_cells": 22,
+      "planned_cells": 48,
+      "provider_cost_complete": false,
+      "rankable": false,
+      "reported_cost_usd": 0.8153548425,
+      "route_verified": false,
+      "termination_counts": {
+        "agreement_stack_executed": 3,
+        "invalid_action": 23
+      },
+      "total_input_tokens": 634326,
+      "total_output_tokens": 92759,
+      "total_provider_calls": 417
+    },
     {
       "admission_rate": 0.0,
       "admitted_cells": 0,
@@ -309,9 +395,63 @@
       "total_provider_calls": 134
     }
   ],
-  "operational_failure_cells": 2,
+  "operational_failure_cells": 24,
   "pack_sha256": "b164e5bdaadd1a1ddf2b6229d270c17ece17117c7ae54c6d66958eade66f28e3",
   "paired_comparisons": [
+    {
+      "admission_rate_difference": {
+        "ci95": [
+          0.0,
+          0.10416666666666667
+        ],
+        "mean": 0.041666666666666664,
+        "worlds": 24
+      },
+      "control": "glm53_parasail",
+      "developer_equity_npv_difference_cents": {
+        "ci95": null,
+        "mean": null,
+        "worlds": 0
+      },
+      "treatment": "gemini38_flash_aistudio",
+      "worlds_with_complete_economic_pairs": 0
+    },
+    {
+      "admission_rate_difference": {
+        "ci95": [
+          0.0,
+          0.10416666666666667
+        ],
+        "mean": 0.041666666666666664,
+        "worlds": 24
+      },
+      "control": "gptoss120b_coreweave",
+      "developer_equity_npv_difference_cents": {
+        "ci95": null,
+        "mean": null,
+        "worlds": 0
+      },
+      "treatment": "gemini38_flash_aistudio",
+      "worlds_with_complete_economic_pairs": 0
+    },
+    {
+      "admission_rate_difference": {
+        "ci95": [
+          0.0,
+          0.10416666666666667
+        ],
+        "mean": 0.041666666666666664,
+        "worlds": 24
+      },
+      "control": "qwen3_235b_google",
+      "developer_equity_npv_difference_cents": {
+        "ci95": null,
+        "mean": null,
+        "worlds": 0
+      },
+      "treatment": "gemini38_flash_aistudio",
+      "worlds_with_complete_economic_pairs": 0
+    },
     {
       "admission_rate_difference": {
         "ci95": [
@@ -370,12 +510,13 @@
       "worlds_with_complete_economic_pairs": 0
     }
   ],
-  "planned_cells": 144,
+  "planned_cells": 192,
   "provider_cost_complete": false,
   "ranking_basis": "mean developer equity NPV over admitted stacks and declared walk-aways; no-agreement episodes (walk, reject, rounds exhausted) score the declared outside option; excluded cells (constraint, contract, temporal, or invalid-action failures) are admission failures reported separately, not low scores",
-  "reported_cost_usd": 0.3097919682,
+  "reported_cost_usd": 1.1251468107,
   "schema_version": "aeread.datacenter_world_campaign_summary/0.1",
   "unranked_model_ids": [
+    "gemini38_flash_aistudio",
     "glm53_parasail",
     "qwen3_235b_google"
   ],

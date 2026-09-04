@@ -54,6 +54,7 @@ PROHIBITED_PUBLIC_TEXT = (
     "api_key",
     "/users/",
 )
+OPTIONAL_ROUTE_FIELDS = {"max_cost_usd_per_live_profile"}
 ROUTE_FIELDS = {
     "profile_id",
     "requested_model",
@@ -159,10 +160,13 @@ def load_contract(path: Path | str = DEFAULT_CONTRACT_PATH) -> dict[str, Any]:
     if not isinstance(models, dict) or len(models) < 2:
         raise ValueError("campaign requires at least two model routes to pair")
     for model_id, model in models.items():
-        if not isinstance(model, dict) or set(model) != ROUTE_FIELDS:
+        if not isinstance(model, dict) or set(model) - OPTIONAL_ROUTE_FIELDS != ROUTE_FIELDS:
             raise ValueError(f"{model_id}: model route fields differ")
-        if model["access_class"] != "open_source":
-            raise ValueError(f"{model_id}: campaign is restricted to open-source models")
+        if model["access_class"] not in {"open_source", "proprietary"}:
+            raise ValueError(f"{model_id}: access_class must be open_source or proprietary")
+        cap = model.get("max_cost_usd_per_live_profile")
+        if cap is not None and (isinstance(cap, bool) or not isinstance(cap, (int, float)) or cap <= 0):
+            raise ValueError(f"{model_id}: max_cost_usd_per_live_profile must be positive")
         pricing = model["pricing"]
         if not isinstance(pricing, dict) or set(pricing) != {
             "input_per_million",
@@ -228,6 +232,16 @@ def load_contract(path: Path | str = DEFAULT_CONTRACT_PATH) -> dict[str, Any]:
         if analysis.get(field) is not False:
             raise ValueError(f"analysis.{field} must be false")
     return contract
+
+
+def _profile_cap(contract: Mapping[str, Any], model_id: str) -> float:
+    """Per-route live cost ceiling, falling back to the campaign default."""
+
+    model = contract["models"][model_id]
+    override = model.get("max_cost_usd_per_live_profile")
+    if override is not None:
+        return float(override)
+    return float(contract["execution"]["max_cost_usd_per_live_profile"])
 
 
 def _route(model: Mapping[str, Any]) -> OpenRouterRoute:
@@ -311,7 +325,7 @@ def _setup(contract: Mapping[str, Any], cell: Mapping[str, Any], pack_root: Path
         case_path=pack_root / str(cell["case_file"]),
         max_output_tokens=int(controls["max_output_tokens_per_action"]),
         timeout_seconds=float(controls["timeout_seconds_per_action"]),
-        max_cost_usd=float(controls["max_cost_usd_per_live_profile"]),
+        max_cost_usd=_profile_cap(contract, str(cell["model_id"])),
     )
 
 
@@ -320,9 +334,9 @@ def build_design(
 ) -> dict[str, Any]:
     root = Path(pack_root)
     manifest = load_pack(contract, root)
-    per_profile = float(contract["execution"]["max_cost_usd_per_live_profile"])
     cells: list[dict[str, Any]] = []
     for cell in _cells(contract, manifest):
+        per_profile = _profile_cap(contract, str(cell["model_id"]))
         setup = _setup(contract, cell, root)
         plan_cell = setup.plan.cells[0]
         live_profiles = sum(
@@ -598,7 +612,7 @@ async def _run_live_cell(
             case_path=pack_root / str(design_cell["case_file"]),
             max_output_tokens=int(controls["max_output_tokens_per_action"]),
             timeout_seconds=float(controls["timeout_seconds_per_action"]),
-            max_cost_usd=float(controls["max_cost_usd_per_live_profile"]),
+            max_cost_usd=_profile_cap(contract, str(design_cell["model_id"])),
             provider=provider,
         )
         receipt = finalize_stack_execution(setup=setup, execution=execution)
