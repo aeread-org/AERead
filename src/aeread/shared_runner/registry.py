@@ -22,7 +22,7 @@ from .quality import (
     evidence_coverage_complete,
     verify_qc_evidence_files,
 )
-from .schemas import FamilyManifest
+from .schemas import FamilyManifest, MeasurementDeclaration
 
 
 class PluginRegistryError(RuntimeError):
@@ -110,6 +110,35 @@ TRUSTED_BUILTIN_PLUGIN_KEYS = frozenset(
         ),
         ("single_offer_v1", "1.0.0", "aeread.single_offer_v1"),
         ("tau3.retail", "0.1.0", "tau3_retail_environment"),
+        # Kernel-owned fixture for the scoring-contract protocol test
+        # (kernel_scoring_contract_spec.md section 6). It is not a family
+        # benchmark: it exists solely so that test can exercise a genuine
+        # trajectory-scoped leaf against two fixtures with a byte-identical
+        # terminal outcome and a differing trajectory -- a pairing none of
+        # the real registered families can produce today, since each of
+        # theirs is either terminal-state-scoped only or (as measured for
+        # datacenter_development_v1) accumulates its full ordered history
+        # into the outcome itself, making its outcome a function of its
+        # trajectory and the two byte-identical-but-differing fixtures the
+        # contract test requires impossible to construct honestly.
+        (
+            "kernel_contract_reference_v1",
+            "1.0.0",
+            "kernel_contract_reference_plugin",
+        ),
+        # Kernel-owned fixture for replay-fidelity regression tests
+        # (kernel_contract_impl_review.md findings 2 and 3). No family
+        # registered on ``main`` declares a ``mode="sequential"`` phase, so
+        # this minimal two-actor family exists purely so
+        # ``test_shared_runner_family_scoring_input_sequential.py`` can drive
+        # a genuine sequential phase instance -- one with more than one
+        # ``transition_applied`` event -- through the real scheduler and
+        # assert ``replay_family_scoring_input`` reproduces it exactly.
+        (
+            "kernel_contract_sequential_v1",
+            "1.0.0",
+            "kernel_contract_sequential_plugin",
+        ),
     }
 )
 
@@ -123,6 +152,7 @@ class RegisteredPlugin:
     contribution_sha256: str | None
     resource_limits: ResourceLimits | None
     plugin: Any
+    manifest: FamilyManifest
 
 
 def _strict_schema(schema: Mapping[str, Any], label: str) -> None:
@@ -252,6 +282,18 @@ class PluginRegistry:
     def _validate_plugin(manifest: FamilyManifest, plugin: Any) -> None:
         if not isinstance(manifest, FamilyManifest):
             raise TypeError("manifest must be a validated FamilyManifest")
+        # kernel_contract_gap_review.md finding 8: ``FamilyManifest`` has no
+        # ``__post_init__``, so ``dataclasses.replace(manifest,
+        # measurement=<anything>)`` previously reached this point -- and
+        # registered successfully -- with ``measurement`` holding a value
+        # that was never validated at all, not merely one whose leaf policy
+        # was inconsistent. Every construction path that produces a
+        # ``FamilyManifest`` this registry is willing to trust must still
+        # carry an actually-validated ``MeasurementDeclaration``.
+        if not isinstance(manifest.measurement, MeasurementDeclaration):
+            raise TypeError(
+                "manifest.measurement must be a validated MeasurementDeclaration"
+            )
         missing = [
             hook
             for hook in REQUIRED_FAMILY_PLUGIN_HOOKS
@@ -292,6 +334,7 @@ class PluginRegistry:
             contribution_sha256=contribution_sha256,
             resource_limits=resource_limits,
             plugin=plugin,
+            manifest=manifest,
         )
         self._namespaces[registry_namespace] = key
 

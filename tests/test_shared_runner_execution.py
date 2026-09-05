@@ -10,6 +10,7 @@ from types import MappingProxyType
 import pytest
 
 from aeread.shared_runner.task.execution import (
+    ArenaChatClient,
     CanonicalResponse,
     ClaudeCodePrintClient,
     ConcurrentEvidenceWriterError,
@@ -1422,6 +1423,68 @@ def test_openrouter_adapter_pins_deepseek_route_and_parses_usage() -> None:
     assert result.cached_input_tokens == 7
     assert result.output_tokens == 45
     assert result.cost_usd == pytest.approx(0.00001726)
+
+
+def test_arena_adapter_sends_selected_model_and_parses_json() -> None:
+    response = SimpleNamespace(
+        model_dump=lambda mode: {
+            "id": "arena-response",
+            "model": "glm-5p2",
+            "choices": [
+                {
+                    "message": {"content": 'Result: {"offer":7}'},
+                    "finish_reason": "stop",
+                }
+            ],
+            "usage": {
+                "prompt_tokens": 21,
+                "completion_tokens": 8,
+                "prompt_tokens_details": {"cached_tokens": 3},
+            },
+        }
+    )
+
+    class Completions:
+        kwargs = None
+
+        async def create(self, **kwargs):
+            self.kwargs = kwargs
+            return response
+
+    completions = Completions()
+    sdk = SimpleNamespace(chat=SimpleNamespace(completions=completions))
+    client = ArenaChatClient(sdk_client=sdk)
+    request = ProviderRequest(
+        provider_call_id="arena-call",
+        provider="arena",
+        base_url="https://api.preview.arena.ai/v1",
+        model="glm-5p2",
+        revision="glm-5p2",
+        instructions=SYSTEM_PROMPT,
+        input_text='{"observation":{}}',
+        temperature=0.0,
+        top_p=None,
+        max_output_tokens=512,
+        reasoning_effort="low",
+        timeout_seconds=120.0,
+        request_sha256="",
+        output_schema={
+            "type": "object",
+            "properties": {"offer": {"type": "integer"}},
+            "required": ["offer"],
+        },
+    ).with_computed_hash()
+
+    result = asyncio.run(client.complete(request))
+
+    assert completions.kwargs["model"] == "glm-5p2"
+    assert completions.kwargs["reasoning_effort"] == "low"
+    assert result.output_text == '{"offer":7}'
+    assert result.resolved_model == "glm-5p2"
+    assert result.input_tokens == 21
+    assert result.cached_input_tokens == 3
+    assert result.output_tokens == 8
+    assert result.cost_usd is None
 
 
 def test_openrouter_adapter_serializes_a_frozen_schema_as_plain_json() -> None:

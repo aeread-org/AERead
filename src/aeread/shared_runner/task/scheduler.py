@@ -534,13 +534,15 @@ async def _request_action(
         raise SchedulerContractError(
             f"response_source failed for {logical_action_id}: {error}"
         ) from error
+    action_response = getattr(raw_response, "action", None)
+    parse_response = action_response if action_response is not None else raw_response
     try:
         parsed = plugin.parse_action(
             family_case,
             _copy_for_hook(state, "parse state"),
             seat_id,
             phase,
-            _copy_for_hook(raw_response, "canonical response"),
+            _copy_for_hook(parse_response, "canonical response"),
         )
     except Exception as error:
         await _notify_action_failure(

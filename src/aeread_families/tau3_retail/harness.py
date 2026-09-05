@@ -2,9 +2,23 @@
 from __future__ import annotations
 
 import copy
+import json
 from typing import Any, Mapping, Sequence
 
-from aeread.shared_runner.task.execution import EvidenceStore
+from aeread.shared_runner.model_call.harness import (
+    AttemptContext,
+    CanonicalMessage,
+    ClaimedToolCall,
+    FailureCondition,
+    HarnessOutput,
+)
+from aeread.shared_runner.registry import HarnessRequirements
+from aeread.shared_runner.run.resolver import canonical_json_bytes
+from aeread.shared_runner.task.execution import (
+    EvidenceStore,
+    ProviderFailure,
+    ToolFailure,
+)
 from aeread.shared_runner.task.tools import ToolRuntime
 
 from .environment import MAX_TOOL_ERRORS
@@ -108,4 +122,211 @@ class ScriptedTau3RetailHarness:
         return self._cursor == len(self._script)
 
 
-__all__ = ["ScriptedTau3RetailHarness"]
+class Tau3RetailJsonHarness:
+    id = "tau3_retail_json"
+    version = "1.0"
+    requires = HarnessRequirements(
+        provider=frozenset({"structured_output"}),
+        tools="declared",
+        memory=frozenset({"disabled"}),
+        owns_retries=False,
+        owns_tools=False,
+        replayable=True,
+        blocking=False,
+        spawns_subagents=False,
+    )
+
+    def __init__(self, *, bridge: Tau2Bridge, session: RetailToolSession) -> None:
+        self.bridge = bridge
+        self.session = session
+
+    async def open_episode(self, episode: Any) -> None:
+        return None
+
+    async def close_episode(self, episode: Any) -> None:
+        return None
+
+    def classify_failure(self, exc: BaseException) -> FailureCondition:
+        if isinstance(exc, (ProviderFailure, ToolFailure)):
+            return FailureCondition(exc.condition, retryable=exc.retryable)
+        return FailureCondition("harness_error", retryable=False)
+
+    def state_reader(self) -> Any:
+        return None
+
+    @staticmethod
+    def _request_message(request: Any) -> CanonicalMessage:
+        return CanonicalMessage(
+            role="user",
+            content=canonical_json_bytes(
+                {
+                    "phase_id": request.phase_id,
+                    "seat_id": request.seat_id,
+                    "role": request.role,
+                    "observation_schema": request.observation_schema,
+                    "action_schema": request.action_schema,
+                    "observation": request.observation,
+                }
+            ).decode("utf-8"),
+        )
+
+    @staticmethod
+    def _decode(text: str) -> Mapping[str, Any]:
+        try:
+            value = json.loads(text)
+        except json.JSONDecodeError as error:
+            raise ProviderFailure(
+                "malformed_structured_output",
+                "tau3 retail response is not valid JSON",
+                retryable=False,
+            ) from error
+        if not isinstance(value, Mapping):
+            raise ProviderFailure(
+                "malformed_structured_output",
+                "tau3 retail response must be an object",
+                retryable=False,
+            )
+        return value
+
+    async def act(self, request: Any, ctx: AttemptContext) -> HarnessOutput:
+        messages = (self._request_message(request),)
+        if request.phase_id == "user_turn":
+            turn = await ctx.model.complete(messages=messages, response_mode="json_dialect")
+            value = self._decode(turn.text or "")
+            if value.get("kind") != "reply" or not isinstance(value.get("text"), str):
+                raise ProviderFailure(
+                    "malformed_structured_output",
+                    "tau3 retail user response must be a reply",
+                    retryable=False,
+                )
+            return HarnessOutput(
+                action={"content": value["text"]},
+                claimed_tool_calls=(),
+                rounds_used=1,
+                notes={},
+            )
+
+        if request.phase_id != "assistant_turn":
+            raise ProviderFailure(
+                "harness_contract",
+                f"unsupported tau3 retail phase {request.phase_id!r}",
+                retryable=False,
+            )
+        if ctx.tools is None:
+            raise ToolFailure(
+                "tools_not_admitted",
+                "tau3 retail assistant requires its declared tool runtime",
+                retryable=False,
+            )
+
+        action_messages: list[dict[str, Any]] = []
+        executions: list[dict[str, Any]] = []
+        claimed: list[ClaimedToolCall] = []
+        rounds_used = 0
+        while rounds_used < ctx.budget.rounds_left:
+            turn = await ctx.model.complete(
+                messages=messages,
+                response_mode="json_dialect",
+            )
+            rounds_used += 1
+            value = self._decode(turn.text or "")
+            if value.get("kind") == "reply":
+                text = value.get("text")
+                if not isinstance(text, str) or not text.strip():
+                    raise ProviderFailure(
+                        "malformed_structured_output",
+                        "tau3 retail assistant reply must be non-empty",
+                        retryable=False,
+                    )
+                action_messages.append(
+                    {"role": "assistant", "content": text, "tool_calls": None}
+                )
+                return HarnessOutput(
+                    action={
+                        "messages": action_messages,
+                        "tool_executions": executions,
+                        "terminated_after_tools": False,
+                    },
+                    claimed_tool_calls=tuple(claimed),
+                    rounds_used=rounds_used,
+                    notes={},
+                )
+            calls = value.get("calls")
+            if value.get("kind") != "tool_calls" or not isinstance(calls, list) or not calls:
+                raise ProviderFailure(
+                    "malformed_structured_output",
+                    "tau3 retail assistant must return a reply or non-empty tool_calls",
+                    retryable=False,
+                )
+            normalized_calls: list[dict[str, Any]] = []
+            feedback: list[dict[str, Any]] = []
+            for index, call in enumerate(calls):
+                if not isinstance(call, Mapping):
+                    raise ProviderFailure(
+                        "malformed_structured_output",
+                        "tau3 retail tool call must be an object",
+                        retryable=False,
+                    )
+                call_id = call.get("id")
+                name = call.get("name")
+                arguments = call.get("arguments")
+                if (
+                    not isinstance(call_id, str)
+                    or not call_id
+                    or not isinstance(name, str)
+                    or not name
+                    or not isinstance(arguments, Mapping)
+                ):
+                    raise ProviderFailure(
+                        "malformed_structured_output",
+                        "tau3 retail tool call fields are invalid",
+                        retryable=False,
+                    )
+                envelope = await ctx.tools.invoke(
+                    tool_id=name,
+                    arguments=arguments,
+                    source_provider_call_id=turn.provider_call_id,
+                    source_call_index=index,
+                )
+                plain_arguments = json.loads(canonical_json_bytes(arguments))
+                plain_result = json.loads(canonical_json_bytes(envelope.result))
+                normalized_calls.append(
+                    {"id": call_id, "name": name, "arguments": plain_arguments}
+                )
+                executions.append(
+                    {
+                        "tool_call_id": call_id,
+                        "name": name,
+                        "arguments": plain_arguments,
+                        "result": plain_result,
+                        "post_db_hash": self.bridge.hash_db(self.session.get_db()),
+                        "invocation_record_id": envelope.invocation_record.tool_invocation_id,
+                    }
+                )
+                claimed.append(
+                    ClaimedToolCall(
+                        tool_id=name,
+                        source_provider_call_id=turn.provider_call_id,
+                        source_call_index=index,
+                    )
+                )
+                feedback.append(
+                    {"call_id": call_id, "name": name, "result": plain_result}
+                )
+            action_messages.append(
+                {"role": "assistant", "content": None, "tool_calls": normalized_calls}
+            )
+            messages = messages + (
+                CanonicalMessage(
+                    role="user",
+                    content=canonical_json_bytes({"tool_results": feedback}).decode("utf-8"),
+                ),
+            )
+        raise ProviderFailure(
+            "rounds_exhausted",
+            f"tau3 retail assistant exceeded {ctx.budget.rounds_left} model rounds",
+            retryable=False,
+        )
+
+
+__all__ = ["ScriptedTau3RetailHarness", "Tau3RetailJsonHarness"]
