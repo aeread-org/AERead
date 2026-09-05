@@ -398,3 +398,52 @@ confirmation of V4. Its four conditions are frozen V4, sample-schedule gate only
 landed-cash gate only, and both gates together. V2 preserves the V1 scientific
 contract and adds slower bounded retry pacing after V1 was invalidated by repeated
 provider rate limits.
+
+## Regret decomposition of published GLM rows
+
+`regret_decomposition` replays every tracked GLM evidence row through the
+deterministic environment without provider calls and splits each feasible award's
+regret into exact additive term gaps against the full-information plan. All 216 rows
+across the development, blinded, scaffold, and confirmatory bundles replay exactly.
+Working-capital cost is 61% of feasible-award regret and traces to the payment-terms
+counter the oracle uses in 67 of 101 feasible rows and the model used in 7. See
+`docs/families/procurement-allocation/campaign.md` and
+`evidence/procurement_allocation_glm_regret_decomposition_v1/`.
+
+```bash
+python -m aeread_families.procurement_allocation.regret_decomposition \
+  --publish \
+  --publication-root evidence/procurement_allocation_glm_regret_decomposition_v1
+```
+
+## Negotiation-worksheet treatment
+
+`negotiation_worksheet_campaign` appends a working-capital worksheet to the frozen V4
+prompt and pairs 72 new GLM Parasail rows against the sealed confirmatory V2 V4 arm
+by case and seed. Print the no-spend plan, execute in twelve-row checkpoints, and
+publish separately:
+
+```bash
+python -m aeread_families.procurement_allocation.negotiation_worksheet_campaign \
+  --run-root \
+  runs/procurement_allocation/procurement_allocation_glm53_flash_parasail_negotiation_worksheet_v1/qualification_attempt_001 \
+  --execute --max-spend-usd 2.19
+```
+
+The qualified run (attempt 004, after a timeout-sealed and a 429-sealed attempt)
+completed and replayed all 72 rows for $0.1993. The preregistered rule was not met:
+worksheet-minus-V4 regret was -$3.82 per world with interval [-$12.69, $4.48]. The
+payment-terms lever transferred as intended, cutting that world's regret from $48.63
+to $10.68, but counters displaced the sample step on three rows and produced
+unverified-sample failures. See the campaign document and
+`evidence/procurement_allocation_glm53_flash_parasail_negotiation_worksheet_v1/`.
+
+`negotiation_worksheet_v2_campaign` reorders the worksheet so a verified sample
+precedes any counter or award line. Its qualified run completed all 72 rows for
+$0.2065. The rule was again not met: regret -$0.28 per world ([-$7.37, $7.23]) and
+feasibility -0.014 ([-0.083, 0.042]). Counter-induced sample skips disappeared and
+the labeled payment-terms result held, but opaque ids hid which supplier would accept
+longer terms, and two opaque negotiated-MOQ rows awarded below minimum service after
+countering MOQ down. See
+`evidence/procurement_allocation_glm53_flash_parasail_negotiation_worksheet_v2/`.
+
