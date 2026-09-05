@@ -22,9 +22,9 @@ from typing import Any
 import pytest
 
 from aeread.shared_runner.registry import PluginRegistry
-from aeread.shared_runner.resolver import PlanCell, case_content_sha256
+from aeread.shared_runner.run.resolver import PlanCell, case_content_sha256
 from aeread.shared_runner.schemas import CaseManifest
-from aeread.shared_runner.scheduler import run_episode
+from aeread.shared_runner.task.scheduler import run_episode
 from aeread_families.termsbench import cases as tb_cases
 from aeread_families.termsbench import measurement as m
 from aeread_families.termsbench.environment import TermsBenchPlugin, register_plugin

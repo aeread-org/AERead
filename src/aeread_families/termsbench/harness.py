@@ -17,7 +17,7 @@ from typing import Any, Mapping, Sequence
 
 import numpy as np
 
-from aeread.shared_runner.execution import EvidenceStore
+from aeread.shared_runner.task.execution import EvidenceStore
 
 from . import kernel as k
 

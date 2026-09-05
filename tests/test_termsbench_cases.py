@@ -11,7 +11,7 @@ import copy
 
 import pytest
 
-from aeread.shared_runner.resolver import case_content_sha256
+from aeread.shared_runner.run.resolver import case_content_sha256
 from aeread.shared_runner.schemas import AuthoringValidationError, CaseManifest, is_exportable_id
 from aeread_families.termsbench import cases as tb_cases
 from aeread_families.termsbench import kernel as k
@@ -138,8 +138,8 @@ def test_difficulty_score_is_unaffected_by_an_actually_completed_production_epis
     from types import MappingProxyType
 
     from aeread.shared_runner.registry import PluginRegistry
-    from aeread.shared_runner.resolver import PlanCell
-    from aeread.shared_runner.scheduler import run_episode
+    from aeread.shared_runner.run.resolver import PlanCell
+    from aeread.shared_runner.task.scheduler import run_episode
     from aeread_families.termsbench.environment import register_plugin
     from aeread_families.termsbench.harness import ScriptedTermsBenchHarness
 

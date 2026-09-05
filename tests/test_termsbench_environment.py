@@ -14,9 +14,9 @@ from types import MappingProxyType
 import pytest
 
 from aeread.shared_runner.registry import REQUIRED_FAMILY_PLUGIN_HOOKS, PluginRegistry
-from aeread.shared_runner.resolver import PlanCell
+from aeread.shared_runner.run.resolver import PlanCell
 from aeread.shared_runner.schemas import CaseManifest
-from aeread.shared_runner.scheduler import SchedulerContractError, run_episode
+from aeread.shared_runner.task.scheduler import SchedulerContractError, run_episode
 from aeread_families.termsbench import cases as tb_cases
 from aeread_families.termsbench.environment import (
     AGENT_PHASE,
