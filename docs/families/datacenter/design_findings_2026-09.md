@@ -73,7 +73,21 @@ to the next agreement without executing one. Completion no longer requires an
 optional agreement. Regression test:
 `test_optional_amendment_can_be_declined_without_ending_the_episode`.
 
-### 1.4 Three smaller correctness defects
+### 1.4 The decline jump was not declared in the phase graph
+
+The fix in 1.3 introduced its own defect. Declining an optional agreement
+skips that agreement's response and commit phases, but the amendment offer
+phase still declared only its response phase as a successor, so the scheduler
+rejected the transition as an undeclared next phase and the cell died as
+`family_execution_failure`. A live panel caught it in 6 of the first 7 cells.
+
+Two tests now cover it: a phase-graph consistency check on the decline
+transition, and a full scripted episode that declines the amendment and still
+completes, seals and replays. The lesson is that testing `legal()` in
+isolation was not enough; the phase graph is a separate declaration that has
+to agree with every transition the environment can take.
+
+### 1.5 Three smaller correctness defects
 
 - **Amendment fields crashed the environment.** A live developer whose
   amendment changed fields other than the scripted ones raised
