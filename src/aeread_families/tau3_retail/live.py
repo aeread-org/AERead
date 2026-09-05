@@ -227,7 +227,7 @@ def build_live_setup(
         tools=tool_names,
         seed=seed,
         max_output_tokens=4096,
-        max_cost_usd=max_trajectory_cost_usd * 0.6,
+        max_cost_usd=max_trajectory_cost_usd * 0.8,
     )
     user = _profile(
         seat="user",
