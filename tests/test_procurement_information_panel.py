@@ -134,3 +134,70 @@ def test_the_bound_refuses_an_intractable_world_instead_of_hanging() -> None:
     with pytest.raises(ValueError, match="enumeration exceeds"):
         solve_full_information_upper_bound(payload)
     assert UPPER_BOUND_ENUMERATION_LIMIT > 0
+
+
+@pytest.mark.parametrize(
+    "slug",
+    [
+        "optimistic_yield_claim",
+        "optimistic_lead_time_claim",
+        "optimistic_capacity_claim",
+        "claim_versus_sample_tradeoff",
+    ],
+)
+def test_trusting_an_optimistic_claim_loses_money(slug: str) -> None:
+    """A buyer that believes the cheapest verbal claim must be punished.
+
+    This is the property the v1 worlds could not have: there, a verbal claim was
+    the truth, so trusting it was free. Here the stated terms pick a supplier
+    whose true terms cannot satisfy the objective, and only a sample or a quote
+    reveals that.
+    """
+    from aeread_families.procurement_allocation.environment import (
+        _base_offer, _plain, _stated_terms, evaluate_award,
+    )
+
+    payload = _case(slug)
+    upper = solve_full_information_upper_bound(payload)
+
+    by_component: dict[str, list] = {}
+    for supplier in payload["suppliers"]:
+        by_component.setdefault(supplier["component"], []).append(supplier)
+    believed = [
+        min(group, key=lambda s: _stated_terms(s)["base_unit_price_usd"])
+        for group in by_component.values()
+    ]
+
+    interaction = payload["interaction"]
+    offers: dict = {}
+    quality: dict = {}
+    lines = []
+    elapsed = 0
+    information = 0.0
+    for supplier in believed:
+        offer = _base_offer(supplier, version=1, issued_day=0)
+        offers[offer["offer_id"]] = offer
+        record = _plain(supplier["private_terms"]["quality"])
+        record.update(
+            {
+                "supplier_id": supplier["supplier_id"],
+                "variant_id": supplier["private_terms"]["variant_id"],
+                "evidence_status": "verified_sample",
+            }
+        )
+        quality[supplier["supplier_id"]] = record
+        elapsed += interaction["quote_days"] + record["sample_lead_time_days"]
+        information += interaction["quote_cost_usd"] + record["sample_cost_usd"]
+        lines.append({"offer_id": offer["offer_id"], "quantity": 20})
+
+    naive = evaluate_award(
+        payload,
+        award_lines=lines,
+        offers=offers,
+        quality_evidence=quality,
+        elapsed_days=elapsed,
+        information_cost_usd=information,
+    )
+    assert naive["feasible"] is False, slug
+    assert naive["contribution_margin_usd"] < upper.contribution_margin_usd
+
