@@ -1,6 +1,6 @@
 {
   "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_002",
-  "content_sha256": "c8169a406313c2cbba4a50a685c8e95af86a68d78e28a69d4bf4ee280e60a6a7",
+  "content_sha256": "bc3f9d588e17e16eff626df99267ced0e8146bb270333d7498e62460664c7842",
   "episode": {
     "max_logical_actions": 30,
     "termination": [
@@ -15,9 +15,9 @@
   "payload": {
     "baseline": {
       "customer_npv_cents": 180000,
-      "developer_equity_npv_cents": 758000,
+      "developer_equity_npv_cents": 774000,
       "lender_npv_cents": 0,
-      "total_project_npv_cents": 938000
+      "total_project_npv_cents": 954000
     },
     "negotiation": {
       "max_rounds": {
@@ -31,9 +31,9 @@
     },
     "outside_option": {
       "customer_npv_cents": 0,
-      "developer_equity_npv_cents": -40000,
+      "developer_equity_npv_cents": -25000,
       "lender_npv_cents": 0,
-      "total_project_npv_cents": -40000
+      "total_project_npv_cents": -25000
     },
     "policies": {
       "epc": {
@@ -69,7 +69,7 @@
           "guaranteed_completion_month": 3
         },
         "minimums": {
-          "contract_price_cents": 300000,
+          "contract_price_cents": 210000,
           "guaranteed_capacity_kw": 1000
         },
         "required_conditions": [
@@ -148,7 +148,7 @@
           "maximum_loan_to_value_bps": 10000,
           "minimum_contracted_capacity_kw": 1000,
           "minimum_customer_credit_support_cents": 50000,
-          "minimum_dscr_bps": 4100,
+          "minimum_dscr_bps": 4000,
           "minimum_take_or_pay_bps": 8000,
           "origination_fee_bps": 0,
           "spread_bps": 0,
@@ -164,7 +164,7 @@
         "minimums": {
           "minimum_contracted_capacity_kw": 1000,
           "minimum_customer_credit_support_cents": 50000,
-          "minimum_dscr_bps": 4100,
+          "minimum_dscr_bps": 4000,
           "minimum_take_or_pay_bps": 8000,
           "origination_fee_bps": 0,
           "spread_bps": 0,
@@ -189,7 +189,7 @@
           "energy_charge_cents_per_kwh": 0,
           "initial_term_months": 24,
           "interconnection_cost_cents": 20000,
-          "monthly_demand_charge_cents_per_kw": 6
+          "monthly_demand_charge_cents_per_kw": 4
         },
         "maximums": {
           "delay_liquidated_damages_cap_cents": 20000,
@@ -198,12 +198,12 @@
           "energization_month": 3,
           "energy_charge_cents_per_kwh": 0,
           "interconnection_cost_cents": 20000,
-          "monthly_demand_charge_cents_per_kw": 6
+          "monthly_demand_charge_cents_per_kw": 4
         },
         "minimums": {
           "contracted_capacity_kw": 1000,
-          "interconnection_cost_cents": 20000,
-          "monthly_demand_charge_cents_per_kw": 6
+          "interconnection_cost_cents": 14000,
+          "monthly_demand_charge_cents_per_kw": 3
         },
         "required_conditions": [
           "site_control",
@@ -343,7 +343,7 @@
       "energy_kwh_per_kw_month": 0,
       "horizon_months": 6,
       "lender_discount_rate_bps_annual": 0,
-      "operating_cost_cents_per_kw_month": 12,
+      "operating_cost_cents_per_kw_month": 10,
       "tax_and_insurance_cents_by_month": [
         0,
         0,
@@ -352,7 +352,7 @@
         0,
         0
       ],
-      "terminal_value_cents": 750000
+      "terminal_value_cents": 650000
     },
     "scenario_id": "datacenter_v2_world_covenant_cliff_002",
     "scope_version": "v2",
@@ -362,7 +362,7 @@
         "conditions_precedent": [
           "site_control"
         ],
-        "contract_price_cents": 300000,
+        "contract_price_cents": 210000,
         "cost_overrun_cap_cents": 0,
         "delay_liquidated_damages_cap_cents": 30000,
         "delay_liquidated_damages_cents_per_month": 15000,
@@ -371,11 +371,11 @@
         "notice_to_proceed_month": 1,
         "payment_schedule": [
           {
-            "amount_cents": 150000,
+            "amount_cents": 105000,
             "month": 1
           },
           {
-            "amount_cents": 150000,
+            "amount_cents": 105000,
             "month": 2
           }
         ]
@@ -424,7 +424,7 @@
         "maximum_loan_to_value_bps": 10000,
         "minimum_contracted_capacity_kw": 1000,
         "minimum_customer_credit_support_cents": 50000,
-        "minimum_dscr_bps": 4100,
+        "minimum_dscr_bps": 4000,
         "minimum_take_or_pay_bps": 8000,
         "origination_fee_bps": 0,
         "spread_bps": 0,
@@ -442,8 +442,8 @@
         "energization_month": 3,
         "energy_charge_cents_per_kwh": 0,
         "initial_term_months": 24,
-        "interconnection_cost_cents": 20000,
-        "monthly_demand_charge_cents_per_kw": 6
+        "interconnection_cost_cents": 14000,
+        "monthly_demand_charge_cents_per_kw": 3
       },
       "service_terms": {
         "committed_capacity_kw": 1000,

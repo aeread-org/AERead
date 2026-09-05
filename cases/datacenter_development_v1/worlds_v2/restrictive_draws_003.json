@@ -1,6 +1,6 @@
 {
   "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_003",
-  "content_sha256": "1bed8068ecb4673403aef555a960537f0b129edf55d068dcaa062fba45774f3f",
+  "content_sha256": "c47f230fe47e9ef031e0dc05ed643cedd2af1727d6e6454fecaf16853d30383a",
   "episode": {
     "max_logical_actions": 30,
     "termination": [
@@ -15,9 +15,9 @@
   "payload": {
     "baseline": {
       "customer_npv_cents": 180000,
-      "developer_equity_npv_cents": 650250,
+      "developer_equity_npv_cents": 884250,
       "lender_npv_cents": 3750,
-      "total_project_npv_cents": 834000
+      "total_project_npv_cents": 1068000
     },
     "negotiation": {
       "max_rounds": {
@@ -31,9 +31,9 @@
     },
     "outside_option": {
       "customer_npv_cents": 0,
-      "developer_equity_npv_cents": -50000,
+      "developer_equity_npv_cents": -40000,
       "lender_npv_cents": 0,
-      "total_project_npv_cents": -50000
+      "total_project_npv_cents": -40000
     },
     "policies": {
       "epc": {
@@ -42,7 +42,7 @@
           "conditions_precedent": [
             "site_control"
           ],
-          "contract_price_cents": 320000,
+          "contract_price_cents": 280000,
           "cost_overrun_cap_cents": 0,
           "delay_liquidated_damages_cap_cents": 30000,
           "delay_liquidated_damages_cents_per_month": 15000,
@@ -51,25 +51,25 @@
           "notice_to_proceed_month": 1,
           "payment_schedule": [
             {
-              "amount_cents": 160000,
+              "amount_cents": 140000,
               "month": 1
             },
             {
-              "amount_cents": 160000,
+              "amount_cents": 140000,
               "month": 2
             }
           ]
         },
         "maximums": {
           "completion_guarantee_cents": 50000,
-          "contract_price_cents": 320000,
+          "contract_price_cents": 280000,
           "cost_overrun_cap_cents": 0,
           "delay_liquidated_damages_cap_cents": 30000,
           "delay_liquidated_damages_cents_per_month": 15000,
           "guaranteed_completion_month": 3
         },
         "minimums": {
-          "contract_price_cents": 320000,
+          "contract_price_cents": 196000,
           "guaranteed_capacity_kw": 1000
         },
         "required_conditions": [
@@ -190,7 +190,7 @@
           "energy_charge_cents_per_kwh": 0,
           "initial_term_months": 24,
           "interconnection_cost_cents": 20000,
-          "monthly_demand_charge_cents_per_kw": 4
+          "monthly_demand_charge_cents_per_kw": 5
         },
         "maximums": {
           "delay_liquidated_damages_cap_cents": 20000,
@@ -199,12 +199,12 @@
           "energization_month": 3,
           "energy_charge_cents_per_kwh": 0,
           "interconnection_cost_cents": 20000,
-          "monthly_demand_charge_cents_per_kw": 4
+          "monthly_demand_charge_cents_per_kw": 5
         },
         "minimums": {
           "contracted_capacity_kw": 1000,
-          "interconnection_cost_cents": 20000,
-          "monthly_demand_charge_cents_per_kw": 4
+          "interconnection_cost_cents": 14000,
+          "monthly_demand_charge_cents_per_kw": 3
         },
         "required_conditions": [
           "site_control",
@@ -316,7 +316,7 @@
       ],
       "customer_value_cents_per_kw_month": 150,
       "developer_discount_rate_bps_annual": 0,
-      "developer_equity_budget_cents": 210000,
+      "developer_equity_budget_cents": 200000,
       "development_cost_cents_by_month": [
         0,
         0,
@@ -353,7 +353,7 @@
         0,
         0
       ],
-      "terminal_value_cents": 650000
+      "terminal_value_cents": 750000
     },
     "scenario_id": "datacenter_v2_world_restrictive_draws_003",
     "scope_version": "v2",
@@ -363,7 +363,7 @@
         "conditions_precedent": [
           "site_control"
         ],
-        "contract_price_cents": 320000,
+        "contract_price_cents": 196000,
         "cost_overrun_cap_cents": 0,
         "delay_liquidated_damages_cap_cents": 30000,
         "delay_liquidated_damages_cents_per_month": 15000,
@@ -372,11 +372,11 @@
         "notice_to_proceed_month": 1,
         "payment_schedule": [
           {
-            "amount_cents": 160000,
+            "amount_cents": 98000,
             "month": 1
           },
           {
-            "amount_cents": 160000,
+            "amount_cents": 98000,
             "month": 2
           }
         ]
@@ -443,8 +443,8 @@
         "energization_month": 3,
         "energy_charge_cents_per_kwh": 0,
         "initial_term_months": 24,
-        "interconnection_cost_cents": 20000,
-        "monthly_demand_charge_cents_per_kw": 4
+        "interconnection_cost_cents": 14000,
+        "monthly_demand_charge_cents_per_kw": 3
       },
       "service_terms": {
         "committed_capacity_kw": 1000,

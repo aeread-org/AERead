@@ -1,6 +1,6 @@
 {
   "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_003",
-  "content_sha256": "fac9ac708a44c845d14203f6e8f44dc24f22e1020143305156437ea649ebeaca",
+  "content_sha256": "76e1f472a22a99f1f33b4948e8f616c52789d6266a45ed69e7363e573d7047d3",
   "episode": {
     "max_logical_actions": 30,
     "termination": [
@@ -15,9 +15,9 @@
   "payload": {
     "baseline": {
       "customer_npv_cents": 180000,
-      "developer_equity_npv_cents": 724000,
+      "developer_equity_npv_cents": 760000,
       "lender_npv_cents": 0,
-      "total_project_npv_cents": 904000
+      "total_project_npv_cents": 940000
     },
     "negotiation": {
       "max_rounds": {
@@ -31,9 +31,9 @@
     },
     "outside_option": {
       "customer_npv_cents": 0,
-      "developer_equity_npv_cents": -25000,
+      "developer_equity_npv_cents": -50000,
       "lender_npv_cents": 0,
-      "total_project_npv_cents": -25000
+      "total_project_npv_cents": -50000
     },
     "policies": {
       "epc": {
@@ -42,7 +42,7 @@
           "conditions_precedent": [
             "site_control"
           ],
-          "contract_price_cents": 300000,
+          "contract_price_cents": 320000,
           "cost_overrun_cap_cents": 0,
           "delay_liquidated_damages_cap_cents": 30000,
           "delay_liquidated_damages_cents_per_month": 15000,
@@ -51,25 +51,25 @@
           "notice_to_proceed_month": 1,
           "payment_schedule": [
             {
-              "amount_cents": 150000,
+              "amount_cents": 160000,
               "month": 1
             },
             {
-              "amount_cents": 150000,
+              "amount_cents": 160000,
               "month": 2
             }
           ]
         },
         "maximums": {
           "completion_guarantee_cents": 50000,
-          "contract_price_cents": 300000,
+          "contract_price_cents": 320000,
           "cost_overrun_cap_cents": 0,
           "delay_liquidated_damages_cap_cents": 30000,
           "delay_liquidated_damages_cents_per_month": 15000,
           "guaranteed_completion_month": 3
         },
         "minimums": {
-          "contract_price_cents": 300000,
+          "contract_price_cents": 224000,
           "guaranteed_capacity_kw": 1000
         },
         "required_conditions": [
@@ -202,8 +202,8 @@
         },
         "minimums": {
           "contracted_capacity_kw": 1000,
-          "interconnection_cost_cents": 20000,
-          "monthly_demand_charge_cents_per_kw": 4
+          "interconnection_cost_cents": 14000,
+          "monthly_demand_charge_cents_per_kw": 3
         },
         "required_conditions": [
           "site_control",
@@ -352,7 +352,7 @@
         0,
         0
       ],
-      "terminal_value_cents": 700000
+      "terminal_value_cents": 650000
     },
     "scenario_id": "datacenter_v2_world_covenant_cliff_003",
     "scope_version": "v2",
@@ -362,7 +362,7 @@
         "conditions_precedent": [
           "site_control"
         ],
-        "contract_price_cents": 300000,
+        "contract_price_cents": 224000,
         "cost_overrun_cap_cents": 0,
         "delay_liquidated_damages_cap_cents": 30000,
         "delay_liquidated_damages_cents_per_month": 15000,
@@ -371,11 +371,11 @@
         "notice_to_proceed_month": 1,
         "payment_schedule": [
           {
-            "amount_cents": 150000,
+            "amount_cents": 112000,
             "month": 1
           },
           {
-            "amount_cents": 150000,
+            "amount_cents": 112000,
             "month": 2
           }
         ]
@@ -442,8 +442,8 @@
         "energization_month": 3,
         "energy_charge_cents_per_kwh": 0,
         "initial_term_months": 24,
-        "interconnection_cost_cents": 20000,
-        "monthly_demand_charge_cents_per_kw": 4
+        "interconnection_cost_cents": 14000,
+        "monthly_demand_charge_cents_per_kw": 3
       },
       "service_terms": {
         "committed_capacity_kw": 1000,

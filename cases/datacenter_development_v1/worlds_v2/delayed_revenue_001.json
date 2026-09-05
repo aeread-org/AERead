@@ -1,6 +1,6 @@
 {
   "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_001",
-  "content_sha256": "dd264650b9b98d9a1fd35d55aedf5330c03a022e0471b561a77fd4b0b9afac39",
+  "content_sha256": "2eca510ae70c5a4cf84b0aed2f8a8eb88318b8bb2eda361b71a0676e39530f53",
   "episode": {
     "max_logical_actions": 30,
     "termination": [
@@ -15,9 +15,9 @@
   "payload": {
     "baseline": {
       "customer_npv_cents": 135000,
-      "developer_equity_npv_cents": 685318,
-      "lender_npv_cents": 11682,
-      "total_project_npv_cents": 832000
+      "developer_equity_npv_cents": 787129,
+      "lender_npv_cents": 5871,
+      "total_project_npv_cents": 928000
     },
     "negotiation": {
       "max_rounds": {
@@ -69,7 +69,7 @@
           "guaranteed_completion_month": 4
         },
         "minimums": {
-          "contract_price_cents": 280000,
+          "contract_price_cents": 196000,
           "guaranteed_capacity_kw": 1000
         },
         "required_conditions": [
@@ -167,7 +167,7 @@
           "minimum_dscr_bps": 2000,
           "minimum_take_or_pay_bps": 8000,
           "origination_fee_bps": 0,
-          "spread_bps": 1800,
+          "spread_bps": 1260,
           "unused_commitment_fee_bps_annual": 0
         },
         "required_conditions": [
@@ -202,8 +202,8 @@
         },
         "minimums": {
           "contracted_capacity_kw": 1000,
-          "interconnection_cost_cents": 20000,
-          "monthly_demand_charge_cents_per_kw": 6
+          "interconnection_cost_cents": 14000,
+          "monthly_demand_charge_cents_per_kw": 4
         },
         "required_conditions": [
           "site_control",
@@ -362,7 +362,7 @@
         "conditions_precedent": [
           "site_control"
         ],
-        "contract_price_cents": 280000,
+        "contract_price_cents": 196000,
         "cost_overrun_cap_cents": 0,
         "delay_liquidated_damages_cap_cents": 30000,
         "delay_liquidated_damages_cents_per_month": 15000,
@@ -371,11 +371,11 @@
         "notice_to_proceed_month": 1,
         "payment_schedule": [
           {
-            "amount_cents": 140000,
+            "amount_cents": 98000,
             "month": 1
           },
           {
-            "amount_cents": 140000,
+            "amount_cents": 98000,
             "month": 2
           }
         ]
@@ -427,7 +427,7 @@
         "minimum_dscr_bps": 2000,
         "minimum_take_or_pay_bps": 8000,
         "origination_fee_bps": 0,
-        "spread_bps": 1800,
+        "spread_bps": 1260,
         "unused_commitment_fee_bps_annual": 0
       },
       "power_terms": {
@@ -442,8 +442,8 @@
         "energization_month": 4,
         "energy_charge_cents_per_kwh": 0,
         "initial_term_months": 24,
-        "interconnection_cost_cents": 20000,
-        "monthly_demand_charge_cents_per_kw": 6
+        "interconnection_cost_cents": 14000,
+        "monthly_demand_charge_cents_per_kw": 4
       },
       "service_terms": {
         "committed_capacity_kw": 1000,

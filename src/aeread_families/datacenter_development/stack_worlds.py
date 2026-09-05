@@ -274,8 +274,23 @@ def _base_world(rng: random.Random) -> dict[str, Any]:
     }
 
 
+def _round_div(numerator: int, denominator: int) -> int:
+    return (numerator + denominator // 2) // denominator
+
+
+def _floor(value: int, *, width_bps: int = 3000) -> int:
+    """The developer-favourable edge of a negotiated price band.
+
+    The counterparty's opening counter sits at the ceiling it already quotes,
+    so adopting a counter verbatim stays admissible but is strictly worse for
+    the developer than negotiating toward this floor.
+    """
+
+    return max(0, value - _round_div(value * width_bps, 10_000))
+
+
 def _default_policies(terms: Mapping[str, Mapping[str, Any]]) -> dict[str, dict[str, Any]]:
-    """Tight acceptance windows around the feasible terms, opened per stratum."""
+    """Two-sided acceptance bands with real width, opened per stratum."""
 
     land = terms["land"]
     amendment = terms["land_amendment"]
@@ -303,10 +318,12 @@ def _default_policies(terms: Mapping[str, Mapping[str, Any]]) -> dict[str, dict[
             # and will not underwrite unbounded delay liability.
             "minimums": {
                 "contracted_capacity_kw": 1000,
-                "interconnection_cost_cents": power["interconnection_cost_cents"],
-                "monthly_demand_charge_cents_per_kw": power[
-                    "monthly_demand_charge_cents_per_kw"
-                ],
+                "interconnection_cost_cents": _floor(
+                    power["interconnection_cost_cents"]
+                ),
+                "monthly_demand_charge_cents_per_kw": _floor(
+                    power["monthly_demand_charge_cents_per_kw"]
+                ),
             },
             "maximums": {
                 "energization_month": power["energization_month"],
@@ -329,7 +346,7 @@ def _default_policies(terms: Mapping[str, Mapping[str, Any]]) -> dict[str, dict[
         "epc": {
             "minimums": {
                 "guaranteed_capacity_kw": 1000,
-                "contract_price_cents": epc["contract_price_cents"],
+                "contract_price_cents": _floor(epc["contract_price_cents"]),
             },
             "maximums": {
                 "guaranteed_completion_month": epc["guaranteed_completion_month"],
@@ -384,11 +401,11 @@ def _default_policies(terms: Mapping[str, Mapping[str, Any]]) -> dict[str, dict[
         },
         "loan": {
             "minimums": {
-                "spread_bps": loan["spread_bps"],
-                "origination_fee_bps": loan["origination_fee_bps"],
-                "unused_commitment_fee_bps_annual": loan[
-                    "unused_commitment_fee_bps_annual"
-                ],
+                "spread_bps": _floor(loan["spread_bps"]),
+                "origination_fee_bps": _floor(loan["origination_fee_bps"]),
+                "unused_commitment_fee_bps_annual": _floor(
+                    loan["unused_commitment_fee_bps_annual"]
+                ),
                 "minimum_contracted_capacity_kw": 1000,
                 "minimum_take_or_pay_bps": loan["minimum_take_or_pay_bps"],
                 "minimum_customer_credit_support_cents": loan[
@@ -680,6 +697,37 @@ def _verify_world(world: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+NEGOTIABLE_FLOOR_FIELDS = {
+    "power": ("interconnection_cost_cents", "monthly_demand_charge_cents_per_kw"),
+    "epc": ("contract_price_cents",),
+    "loan": ("spread_bps", "origination_fee_bps", "unused_commitment_fee_bps_annual"),
+}
+
+
+def _drive_to_floor(
+    terms: dict[str, dict[str, Any]], policies: Mapping[str, Any]
+) -> dict[str, dict[str, Any]]:
+    """Move the scripted developer to the best terms its counterparties accept."""
+
+    driven = copy.deepcopy(terms)
+    for agreement_key, fields in NEGOTIABLE_FLOOR_FIELDS.items():
+        minimums = policies[agreement_key]["minimums"]
+        for field in fields:
+            if field in minimums:
+                driven[agreement_key][field] = minimums[field]
+    if "payment_schedule" in driven["epc"]:
+        price = driven["epc"]["contract_price_cents"]
+        half = price // 2
+        driven["epc"]["payment_schedule"] = [
+            {"month": driven["epc"]["payment_schedule"][0]["month"], "amount_cents": half},
+            {
+                "month": driven["epc"]["payment_schedule"][-1]["month"],
+                "amount_cents": price - half,
+            },
+        ]
+    return driven
+
+
 def build_world(stratum: str, variant: int, rng: random.Random) -> dict[str, Any]:
     base = _base_world(rng)
     world = {
@@ -687,6 +735,7 @@ def build_world(stratum: str, variant: int, rng: random.Random) -> dict[str, Any
         "terms": base["terms"],
     }
     built = STRATUM_BUILDERS[stratum](world, rng)
+    built["feasible"] = _drive_to_floor(built["feasible"], built["policies"])
     undisclosed = built.get("undisclosed_counter_fields", {})
     outside_option = {
         "developer_equity_npv_cents": -base["sunk_cents"],

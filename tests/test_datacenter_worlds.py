@@ -209,3 +209,104 @@ def test_parse_action_rejects_oversized_integers_as_malformed_json() -> None:
     )
     result = plugin.parse_action(case, plugin.initial_state(case, None), "developer", phase, response)
     assert not result.ok and result.error_code == "malformed_json"
+
+
+def _stack(payload, source):
+    keys = ("land", "power", "epc", "service", "land_amendment", "loan")
+    if source == "scripted":
+        return {k: payload["scripted_developer"][f"{k}_terms"] for k in keys}
+    return {k: payload["policies"][k]["counter_terms"] for k in keys}
+
+
+def test_adopting_every_counter_is_admissible_but_never_optimal() -> None:
+    """The task must be a negotiation, not a copy of the counterparty's counter."""
+    from aeread_families.datacenter_development.stack_environment import (
+        AGREEMENT_TYPE_BY_KEY,
+        TERM_PARSER_BY_TYPE,
+        terms_acceptable,
+    )
+
+    manifest = load_pack_manifest()
+    matched_baseline = 0
+    headroom = []
+    for world in manifest["worlds"]:
+        payload = json.loads((DEFAULT_OUTPUT_ROOT / world["file"]).read_text())["payload"]
+        scripted = _stack(payload, "scripted")
+        counters = _stack(payload, "counter")
+        accepted = all(
+            terms_acceptable(
+                TERM_PARSER_BY_TYPE[AGREEMENT_TYPE_BY_KEY[key]](counters[key]),
+                payload["policies"][key],
+            )
+            for key in counters
+        )
+        assert accepted, f"{world['file']}: counter terms must stay admissible"
+        adopted = evaluate_stack(payload["project_facts"], counters)
+        baseline = evaluate_stack(payload["project_facts"], scripted)
+        if adopted["developer_equity_npv_cents"] >= baseline["developer_equity_npv_cents"]:
+            matched_baseline += 1
+        headroom.append(
+            baseline["developer_equity_npv_cents"] - adopted["developer_equity_npv_cents"]
+        )
+
+    assert matched_baseline == 0, "blind counter-adoption must never reach the baseline"
+    assert all(gap > 0 for gap in headroom)
+    assert min(headroom) >= 10_000
+
+
+def test_no_within_policy_stack_earns_unbounded_self_written_damages() -> None:
+    """Liability terms must be two-sided so damages cannot be self-awarded."""
+    from aeread_families.datacenter_development.stack_environment import (
+        AGREEMENT_TYPE_BY_KEY,
+        TERM_PARSER_BY_TYPE,
+        terms_acceptable,
+    )
+
+    manifest = load_pack_manifest()
+    for world in manifest["worlds"]:
+        payload = json.loads((DEFAULT_OUTPUT_ROOT / world["file"]).read_text())["payload"]
+        inflated = json.loads(json.dumps(_stack(payload, "scripted")))
+        for key, field in (
+            ("power", "delay_liquidated_damages_cents_per_month"),
+            ("power", "delay_liquidated_damages_cap_cents"),
+            ("epc", "delay_liquidated_damages_cents_per_month"),
+            ("epc", "delay_liquidated_damages_cap_cents"),
+            ("epc", "completion_guarantee_cents"),
+        ):
+            inflated[key][field] = 100_000_000
+        assert not all(
+            terms_acceptable(
+                TERM_PARSER_BY_TYPE[AGREEMENT_TYPE_BY_KEY[key]](inflated[key]),
+                payload["policies"][key],
+            )
+            for key in inflated
+        ), f"{world['file']}: inflated liability terms must be rejected"
+
+
+def test_optional_amendment_can_be_declined_without_ending_the_episode() -> None:
+    from aeread_families.datacenter_development.stack_environment import (
+        OPTIONAL_AGREEMENT_KEYS,
+    )
+
+    plugin = DataCenterStackPlugin("v2")
+    payload = json.loads((DEFAULT_OUTPUT_ROOT / "covenant_cliff_001.json").read_text())
+    case = plugin.validate_payload(payload["payload"])
+    assert "land_amendment" in OPTIONAL_AGREEMENT_KEYS
+
+    state = plugin.initial_state(case, None)
+    state["executed"]["land"] = {
+        "offer_id": "offer_x",
+        "terms": dict(case["scripted_developer"]["land_terms"]),
+        "precedence_index": 0,
+    }
+    phase = next(
+        p for p in plugin.phases(case) if p.phase_id == "land_amendment_developer_offer"
+    )
+    decline = {"decision": "decline", "message": "the executed lease already fits"}
+    assert plugin.legal(case, state, "developer", phase, decline).legal
+
+    land_phase = next(
+        p for p in plugin.phases(case) if p.phase_id == "land_developer_offer"
+    )
+    refused = plugin.legal(case, state, "developer", land_phase, decline)
+    assert not refused.legal and refused.reason == "agreement_is_not_optional"
