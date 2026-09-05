@@ -38,11 +38,23 @@ _BRIDGE_FAMILIES = (
             "pinned upstream econ-evals checkout not found",
         ),
     ),
+    (
+        "AEREAD_STEER_FIXTURES_REQUIRED",
+        "Build the flattened cache (src/aeread_families/steer/cases.py, "
+        "AEREAD_STEER_DATA_ROOT), and for test_steer_cases.py specifically "
+        "provide the pinned upstream checkout (AEREAD_STEER_UPSTREAM_ROOT) "
+        "and a pandas-capable interpreter (tools/steer_bridge/provision.sh, "
+        "then export $AEREAD_STEER_BRIDGE_PYTHON), or unset "
+        "$AEREAD_STEER_FIXTURES_REQUIRED to allow skipping.",
+        (
+            "flattened cache not built yet at",
+            "pinned upstream STEER checkout not found at",
+            "cached STEER corpus bytes not found at",
+            "no pandas-capable Python interpreter found for the steer bridge",
+        ),
+    ),
 )
 
-
-def pytest_terminal_summary(terminalreporter, exitstatus, config):
-    """Turn a missing upstream bridge from a silent skip into a failed run.
 
     Some adapters' whole claim is that they reproduce a pinned upstream
     exactly. The tests that check that claim need an interpreter which can

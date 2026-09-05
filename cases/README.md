@@ -15,6 +15,7 @@ remain stable and comparable results keep their meaning.
 | Commercial state calibration v1 | diagnostic pilot | [`commercial_state_calibration_v1/`](commercial_state_calibration_v1/) | Nine sanitized report-authority cases for deterministic commercial-state reconstruction |
 | Consent/IR v1 | development | [`consent_ir_v1/`](consent_ir_v1/) | Visible-value multi-party cycle construction with strict individual-rationality checks and an exact same-information optimum |
 | tau3 retail | imported base split | [`tau3_retail/`](tau3_retail/) | 114 pinned retail tasks plus provenance files |
+| STEER | imported pilot corpus, cases only | [`steer/`](steer/) | 1,595 one-shot MCQA cases (200 per element, capped at availability) across 8 declared elements / 4 taxonomy branches; no scorer yet |
 
 `configs/` remains the home of experiment, treatment, and protocol settings.
 Those files tune runs; they are not the canonical case catalog. The former
