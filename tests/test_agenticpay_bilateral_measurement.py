@@ -43,9 +43,9 @@ import pytest
 
 from aeread.shared_runner.measurement import MeasurementContractError, MetricValue
 from aeread.shared_runner.registry import PluginRegistry
-from aeread.shared_runner.resolver import PlanCell, canonical_json_bytes
+from aeread.shared_runner.run.resolver import PlanCell, canonical_json_bytes
 from aeread.shared_runner.schemas import CaseManifest
-from aeread.shared_runner.scheduler import DecisionRequest, run_episode
+from aeread.shared_runner.task.scheduler import DecisionRequest, run_episode
 from aeread_families.agenticpay_bilateral import measurement as m
 from aeread_families.agenticpay_bilateral.agenticpay_bridge import (
     AgenticpayBridge,
@@ -427,7 +427,7 @@ def _run(case: CaseManifest, rounds: list[tuple[str, str]]):
 
 def _degenerate_basic_case() -> CaseManifest:
     """Task1's payload with buyer_max/seller_min flipped so Z <= 0 (golden 5)."""
-    from aeread.shared_runner.resolver import case_content_sha256
+    from aeread.shared_runner.run.resolver import case_content_sha256
 
     base = _case(BASIC_CASE_ID)
     degenerate_payload = json.loads(canonical_json_bytes(base.payload))

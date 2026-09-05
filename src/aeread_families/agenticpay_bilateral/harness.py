@@ -31,7 +31,7 @@ from __future__ import annotations
 import copy
 from typing import Any, Mapping, Sequence
 
-from aeread.shared_runner.execution import EvidenceStore
+from aeread.shared_runner.task.execution import EvidenceStore
 
 
 class ScriptedAgenticpayBilateralHarness:

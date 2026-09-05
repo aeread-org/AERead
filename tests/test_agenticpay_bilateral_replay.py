@@ -17,11 +17,11 @@ from types import MappingProxyType
 
 import pytest
 
-from aeread.shared_runner.execution import EvidenceStore
+from aeread.shared_runner.task.execution import EvidenceStore
 from aeread.shared_runner.registry import PluginRegistry
-from aeread.shared_runner.resolver import PlanCell, canonical_json_bytes
+from aeread.shared_runner.run.resolver import PlanCell, canonical_json_bytes
 from aeread.shared_runner.schemas import CaseManifest
-from aeread.shared_runner.scheduler import run_episode
+from aeread.shared_runner.task.scheduler import run_episode
 from aeread_families.agenticpay_bilateral.agenticpay_bridge import (
     AgenticpayBridge,
     AgenticpayBridgeUnavailableError,
@@ -458,7 +458,7 @@ def test_replay_rejects_a_case_with_the_same_id_but_different_content(tmp_path: 
     evidence.seal()
     recorded = record_episode(original, case=case)
 
-    from aeread.shared_runner.resolver import case_content_sha256
+    from aeread.shared_runner.run.resolver import case_content_sha256
 
     tampered_payload = json.loads(canonical_json_bytes(case.payload))
     tampered_payload["constructor_kwargs"]["buyer_max_price"] = 999.0

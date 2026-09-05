@@ -21,9 +21,9 @@ from types import MappingProxyType
 import pytest
 
 from aeread.shared_runner.registry import REQUIRED_FAMILY_PLUGIN_HOOKS, PluginRegistry
-from aeread.shared_runner.resolver import PlanCell, canonical_json_bytes
+from aeread.shared_runner.run.resolver import PlanCell, canonical_json_bytes
 from aeread.shared_runner.schemas import CaseManifest
-from aeread.shared_runner.scheduler import DecisionRequest, run_episode
+from aeread.shared_runner.task.scheduler import DecisionRequest, run_episode
 from aeread_families.agenticpay_bilateral.agenticpay_bridge import (
     AgenticpayBridge,
     AgenticpayBridgeUnavailableError,
@@ -275,7 +275,7 @@ def test_golden_degenerate_reference_still_agrees_but_reports_failure_penalty() 
             "content_sha256": "0" * 64,
         }
     )
-    from aeread.shared_runner.resolver import case_content_sha256
+    from aeread.shared_runner.run.resolver import case_content_sha256
 
     digest = case_content_sha256(
         {**json.loads(canonical_json_bytes(degenerate_case)), "content_sha256": "0" * 64}
