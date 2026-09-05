@@ -1543,7 +1543,7 @@ def test_arena_adapter_classifies_truncated_json_as_length() -> None:
     assert captured.value.retryable is True
 
 
-def test_arena_adapter_preserves_plain_text_for_harness_validation() -> None:
+def test_arena_adapter_normalizes_plain_text_for_reply_envelope() -> None:
     response = SimpleNamespace(
         model_dump=lambda mode: {
             "id": "arena-plain-reply",
@@ -1597,7 +1597,9 @@ def test_arena_adapter_preserves_plain_text_for_harness_validation() -> None:
 
     result = asyncio.run(client.complete(request))
 
-    assert result.output_text == "Please provide your account email."
+    assert result.output_text == (
+        '{"calls":[],"kind":"reply","text":"Please provide your account email."}'
+    )
     assert result.resolved_model == "accounts/fireworks/models/glm-5p2"
     assert result.cost_usd == pytest.approx(0.0002)
 

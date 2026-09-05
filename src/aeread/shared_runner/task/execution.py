@@ -1814,6 +1814,12 @@ class ArenaChatClient:
                 "Arena truncated the structured response at the output-token limit",
                 retryable=True,
             )
+        try:
+            structured_output = self._parse_structured_output(content, request.output_schema)
+        except ProviderFailure:
+            structured_output = self._plain_text_reply(content, request.output_schema)
+            if structured_output is None:
+                raise
         usage = raw_response.get("usage")
         usage = usage if isinstance(usage, Mapping) else {}
 
@@ -1860,6 +1866,75 @@ class ArenaChatClient:
             raw_response=raw_response,
             reasoning_tokens=reasoning_tokens,
         )
+
+    @staticmethod
+    def _parse_structured_output(
+        content: str, output_schema: Mapping[str, Any]
+    ) -> Mapping[str, Any]:
+        required = output_schema.get("required", ())
+        required_fields = (
+            {field for field in required if isinstance(field, str)}
+            if isinstance(required, (list, tuple))
+            else set()
+        )
+
+        def matches(value: Any) -> bool:
+            return isinstance(value, Mapping) and required_fields <= set(value)
+
+        stripped = content.strip()
+        try:
+            value = json.loads(stripped)
+        except json.JSONDecodeError:
+            value = None
+        if matches(value):
+            return value
+        decoder = json.JSONDecoder()
+        for index, character in enumerate(stripped):
+            if character != "{":
+                continue
+            try:
+                value, _end = decoder.raw_decode(stripped[index:])
+            except json.JSONDecodeError:
+                continue
+            if matches(value):
+                return value
+        raise ProviderFailure(
+            "provider_contract",
+            "Arena response contains no JSON action matching the schema",
+            retryable=False,
+        )
+
+    @staticmethod
+    def _plain_text_reply(
+        content: str, output_schema: Mapping[str, Any]
+    ) -> Mapping[str, Any] | None:
+        """Normalize Arena prose only for an explicit conversational reply schema."""
+
+        stripped = content.strip()
+        if not stripped or stripped.startswith(("{", "[", "```")):
+            return None
+        properties = output_schema.get("properties")
+        required = output_schema.get("required")
+        if not isinstance(properties, Mapping) or not isinstance(required, (list, tuple)):
+            return None
+        required_fields = {field for field in required if isinstance(field, str)}
+        kind_schema = properties.get("kind")
+        text_schema = properties.get("text")
+        if (
+            not {"kind", "text"} <= required_fields
+            or not isinstance(kind_schema, Mapping)
+            or "reply" not in kind_schema.get("enum", ())
+            or not isinstance(text_schema, Mapping)
+        ):
+            return None
+        normalized: dict[str, Any] = {"kind": "reply", "text": stripped}
+        if "calls" in required_fields:
+            calls_schema = properties.get("calls")
+            if not isinstance(calls_schema, Mapping) or calls_schema.get("type") != "array":
+                return None
+            normalized["calls"] = []
+        return normalized
+
 
 CommandRunner = Callable[
     [tuple[str, ...], bytes], Awaitable[tuple[int, bytes, bytes]]
