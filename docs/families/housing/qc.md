@@ -926,3 +926,55 @@ treatment explicitly under a new identity, for example a route with a
 dedicated provider key or a batch backend under the SOP's escalation rule,
 rather than repeat this design on another shared-pool route.
 
+## 23. GLM route probe and the V16 Parasail full-trajectory gate
+
+Three pilots on three shared-pool GLM routes had produced the same one-cell-
+per-world loss, and each route had been chosen from five spaced calls over
+about a minute. That window cannot detect a route that bursts HTTP 429 for a
+few seconds every twenty minutes. Before spending again, a one-hour route
+probe ran every GLM endpoint that advertises the strict client's required
+parameters: 12 routes, 100 calls each, 36 seconds apart, through the V15
+admission request builder with the 120-second wall-time cap, no retries, and
+V2 schema validation. The sanitized per-call record and digest-bound summary
+are published under
+[`evidence/housing_glm_route_probe_2026-09-05/`](../../../evidence/housing_glm_route_probe_2026-09-05/reports/summary.json).
+
+| Route | Valid | 429 | Other failures |
+|---|---|---|---|
+| Parasail FP8 | 100 / 100 | 0 | 0 |
+| Cloudflare | 99 / 100 | 1 | 0 |
+| Morph FP8 | 95 / 100 | 5 | 0 |
+| Reka FP8 | 92 / 99 | 0 | 7 HTTP 502 |
+| Friendli | 90 / 100 | 10 | 0 |
+| Sail Research, Makora, NextBit | 82 to 84 / 100 | 16 to 17 | 0 |
+| Wafer, CoreWeave, DeepInfra | 31 to 55 / 100 | 19 to 69 | 3 timeouts |
+| Phala FP8 | 20 / 82 | 1 | 61 invalid actions |
+
+Every 429 carried OpenRouter's `upstream_provider_shared_pool` limit source;
+the account is paid-tier with no request limit, so the bursts are provider
+saturation, not client throttling. Parasail was the only route with zero
+operational failures and zero invalid actions across the window.
+
+[`housing_model_sensitivity_openrouter_parasail_v16`](../../../configs/housing_model_sensitivity_openrouter_parasail_v16.json)
+is the SOP-required full-trajectory gate for the changed GLM route. It pins
+both models to Parasail FP8, keeps V13's world, configuration, four
+conditions, `$0.14` exposure, cooldown module, admission-timeout
+enforcement, and V15's four receipt-visible admission attempts, and binds the
+route probe's summary digest in its campaign spec. Because both models share
+one provider, the 10-second cooldown now serialises every provider call in a
+trajectory, so wall time roughly doubles relative to V13. Promotion requires
+one completed trajectory per condition; a passing gate is the declared
+prerequisite for a 48-cell pilot under a further identity.
+
+```bash
+python -m aeread_families.housing.backend_campaign \
+  --contract configs/housing_model_sensitivity_openrouter_parasail_v16.json \
+  --run-root runs/housing_model_sensitivity_openrouter_parasail_v16 \
+  --through provider_free
+
+python -m aeread_families.housing.backend_campaign \
+  --contract configs/housing_model_sensitivity_openrouter_parasail_v16.json \
+  --run-root runs/housing_model_sensitivity_openrouter_parasail_v16 \
+  --through full_trajectory
+```
+

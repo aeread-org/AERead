@@ -68,3 +68,7 @@ Current campaign directories include:
   cells (four rate-limit exhaustions, one timeout) leave every world without
   a complete subject pair, so variance is not estimable and no ranking is
   supported. Protocol-conformant against the recorded V13 gate.
+- `housing_glm_route_probe_2026-09-05/`: one-hour strict-client probe of all
+  12 parameter-complete GLM 5.3 Flash routes on OpenRouter, 100 calls each.
+  Sanitized per-call record plus a digest-bound summary; Parasail FP8 was the
+  only route with zero failures. Referenced by the V16 campaign spec.

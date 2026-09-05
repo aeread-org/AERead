@@ -107,6 +107,11 @@ V15_CONTRACT_PATH = (
     / "configs"
     / "housing_model_sensitivity_openrouter_friendli_v15.json"
 )
+V16_CONTRACT_PATH = (
+    Path(__file__).resolve().parents[1]
+    / "configs"
+    / "housing_model_sensitivity_openrouter_parasail_v16.json"
+)
 
 
 def test_contract_pins_new_routes_and_requires_admission_before_live() -> None:
@@ -949,6 +954,77 @@ def test_published_v15_pilot_is_digest_bound_conformant_and_non_estimable() -> N
     published = b"".join(path.read_bytes() for path in evidence_root.rglob("*.*"))
     assert b'"raw_response":' not in published
     assert b"output_text" not in published
+    assert b"/Users/" not in published
+
+
+def test_v16_repins_both_models_to_parasail_from_a_digest_bound_route_probe() -> None:
+    from aeread_families.housing.backend_campaign import CAMPAIGN_SPECS
+
+    v13 = load_contract(V13_CONTRACT_PATH)
+    v16 = load_contract(V16_CONTRACT_PATH)
+    routes = route_table(v16)
+    spec = CAMPAIGN_SPECS["housing_model_sensitivity_openrouter_parasail_v16"]
+
+    probe_root = V16_CONTRACT_PATH.parents[1] / "evidence" / "housing_glm_route_probe_2026-09-05"
+    summary = json.loads((probe_root / "reports" / "summary.json").read_bytes())
+    assert summary["artifact_sha256"] == (
+        spec["route_selection_probe"]["summary_artifact_sha256"]
+    )
+    assert summary["artifact_sha256"] == (
+        "54406a94d4dacc0d1c0b6533ff67cdcfbbc4a20b56fdb91d98a7a551ac8cb63c"
+    )
+    core = {key: value for key, value in summary.items() if key != "artifact_sha256"}
+    assert hashlib.sha256(canonical_json_bytes(core)).hexdigest() == (
+        summary["artifact_sha256"]
+    )
+    assert summary["probe_calls_sha256"] == hashlib.sha256(
+        (probe_root / "tables" / "probe_calls.jsonl").read_bytes()
+    ).hexdigest()
+    by_provider = {row["provider"]: row for row in summary["routes"]}
+    assert by_provider["Parasail"]["valid"] == 100
+    assert by_provider["Parasail"]["calls"] == 100
+    assert by_provider["Parasail"]["rate_limit"] == 0
+    assert summary["selection"]["selected_provider"] == "Parasail"
+    assert len(by_provider) == 12
+
+    assert routes["glm_53_flash"].provider == "Parasail"
+    assert routes["glm_53_flash"].quantization == "fp8"
+    assert routes["deepseek_v4_flash"].provider == "Parasail"
+    assert v16["models"]["deepseek_v4_flash"]["endpoint_snapshot_sha256"] == (
+        v13["models"]["deepseek_v4_flash"]["endpoint_snapshot_sha256"]
+    )
+    assert v16["execution"] == v13["execution"]
+    assert v16["analysis"] == v13["analysis"]
+    assert v16["conditions"] == v13["conditions"]
+    assert v16["controls"]["call_pacing"]["cooldown_seconds_by_provider"] == {
+        "Parasail": 10.0
+    }
+    assert v16["controls"]["call_pacing"]["implementation_sha256"] == (
+        v13["controls"]["call_pacing"]["implementation_sha256"]
+    )
+    assert v16["controls"]["admission_timeout_enforcement"] == (
+        v13["controls"]["admission_timeout_enforcement"]
+    )
+    assert v16["profile_admission"]["attempt_limit_per_probe"] == 4
+    assert (
+        v16["profile_admission"]["cost_ceiling_usd"]
+        + v16["execution"]["cost_ceiling_usd"]
+        == pytest.approx(0.14)
+    )
+    assert design_artifact(v16, routes=routes)["artifact_sha256"] == (
+        "c3aaa9e985e925a3701db7a245351a75f4c398f9bf2754c1ec0c0b8eb82d2be6"
+    )
+    assert provider_free_artifact(v16)["artifact_sha256"] == (
+        "ff96dfd951c6ff1fbbbae92872065a2ed04fe3fc621fe8828b6bbe73da4cfdb7"
+    )
+    expected_profiles = v16["profile_admission"]["profile_sha256s"]
+    for setup in build_setups(v16, routes=routes).values():
+        for profile in setup.plan.agent_profiles:
+            assert hashlib.sha256(canonical_json_bytes(profile)).hexdigest() == (
+                expected_profiles[profile.profile_id]
+            )
+    published = b"".join(path.read_bytes() for path in probe_root.rglob("*.*"))
+    assert b"sk-or-" not in published
     assert b"/Users/" not in published
 
 
