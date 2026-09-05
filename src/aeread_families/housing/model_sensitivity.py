@@ -410,13 +410,43 @@ def confirmatory_panel(contract: Mapping[str, Any]) -> dict[str, Any] | None:
     development = set(sweep["development"]["world_seeds"])
     if development & set(panel["world_seeds"]):
         raise ValueError("confirmatory panel overlaps the development split")
+    excluded = panel.get("excluded_world_seeds", {})
+    admitted = [seed for seed in panel["world_seeds"] if str(seed) not in excluded]
+    if panel.get("admitted_world_seeds", admitted) != admitted:
+        raise ValueError("confirmatory admitted seeds do not match the exclusions")
+    # An exclusion is only legitimate when the environment itself forces it,
+    # so every declared reason is re-derived here rather than trusted.
+    for seed_text, reason in excluded.items():
+        if reason != "degenerate_upper_bound":
+            raise ValueError(f"unsupported confirmatory exclusion reason: {reason!r}")
+        if not any(
+            audit_bid_world(
+                tenants=config["tenants"],
+                listings=config["listings"],
+                rounds=config["rounds"],
+                common_weight=config["common_weight"],
+                world_seed=int(seed_text),
+            )["oracle_total"]
+            <= 0
+            for config in sealed_configs
+        ):
+            raise ValueError(
+                f"confirmatory exclusion is not justified for seed {seed_text}"
+            )
     return panel
 
 
 def selected_configs(contract: Mapping[str, Any]) -> list[dict[str, Any]]:
     panel = confirmatory_panel(contract)
     if panel is not None:
-        return [dict(config) for config in panel["configs"]]
+        configs = [dict(config) for config in panel["configs"]]
+        requested = contract["execution"].get("config_ids")
+        if requested is None:
+            return configs
+        filtered = [config for config in configs if config["config_id"] in requested]
+        if {config["config_id"] for config in filtered} != set(requested):
+            raise ValueError("execution references a configuration outside the holdout")
+        return filtered
     selected = _selected_case_artifact(contract)
     configs = [
         {
@@ -650,7 +680,86 @@ def design_artifact(
     )
 
 
+
+def _confirmatory_provider_free_artifact(
+    contract: Mapping[str, Any], panel: Mapping[str, Any]
+) -> dict[str, Any]:
+    """Audit the sealed holdout worlds without a development facts table.
+
+    The holdout was deliberately never swept, so there is no published row to
+    cross-check against. The audit still runs -- it is deterministic and needs
+    no provider -- and the resulting world content digests are what the
+    confirmatory freeze seals, which pins exactly which worlds will be run
+    before any model observes one.
+    """
+
+    rows: list[dict[str, Any]] = []
+    for config in selected_configs(contract):
+        # Audit every sealed world, including any the panel excludes.
+        for world_seed in panel["world_seeds"]:
+            facts = audit_bid_world(
+                tenants=config["tenants"],
+                listings=config["listings"],
+                rounds=config["rounds"],
+                common_weight=config["common_weight"],
+                world_seed=world_seed,
+            )
+            if not facts["oracle_crosscheck_passed"]:
+                raise ValueError(
+                    f"holdout world failed its oracle crosscheck: "
+                    f"{config['config_id']}/{world_seed}"
+                )
+            # The QC standard admits a zero upper bound as a labelled world
+            # rather than an error: it carries no normalized score and stays
+            # visible outside normalized-score inference.
+            degenerate = facts["oracle_total"] <= 0
+            rows.append(
+                {
+                    "config_id": config["config_id"],
+                    "world_seed": world_seed,
+                    "world_sha256": facts["world_sha256"],
+                    "case_config_sha256": _sha256(dict(config)),
+                    "admission": (
+                        "degenerate_upper_bound" if degenerate else "admitted"
+                    ),
+                    "oracle_total": facts["oracle_total"],
+                    "naive_normalized": facts["naive_normalized"],
+                    "oracle_gap_normalized": facts["oracle_minus_naive_normalized"],
+                    "oracle_crosscheck_passed": facts["oracle_crosscheck_passed"],
+                    "oracle_active_ceiling_passed": (
+                        facts["oracle_total"] == facts["oracle_informed_total"]
+                    ),
+                }
+            )
+    return _sealed(
+        {
+            "schema_version": "aeread.housing_model_sensitivity_provider_free/0.1",
+            "campaign_id": contract["campaign_id"],
+            "status": "passed",
+            "provider_calls": 0,
+            "provider_cost_usd": 0.0,
+            "confirmatory_holdout_status": "opened_for_confirmatory_freeze",
+            "admitted_world_count": sum(
+                1 for row in rows if row["admission"] == "admitted"
+            ),
+            "degenerate_world_count": sum(
+                1 for row in rows if row["admission"] == "degenerate_upper_bound"
+            ),
+            "excluded_world_seeds": dict(panel.get("excluded_world_seeds", {})),
+            "executed_world_seeds": list(contract["execution"]["world_seeds"]),
+            "holdout_source": {
+                "sweep_contract_path": panel["sweep_contract_path"],
+                "sweep_contract_file_sha256": panel["sweep_contract_file_sha256"],
+            },
+            "worlds": rows,
+        }
+    )
+
+
 def provider_free_artifact(contract: Mapping[str, Any]) -> dict[str, Any]:
+    panel = confirmatory_panel(contract)
+    if panel is not None:
+        return _confirmatory_provider_free_artifact(contract, panel)
     manifest_path = _source_path(
         contract["source_case_selection"]["fact_manifest_path"]
     )

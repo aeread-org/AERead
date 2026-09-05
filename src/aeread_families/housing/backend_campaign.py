@@ -963,6 +963,115 @@ CAMPAIGN_SPECS = {
             "asyncio_wait_for_controls_timeout_seconds"
         ),
     },
+    "housing_confirmatory_parasail_v1": {
+        "claim_status": "confirmatory_model_comparison",
+        "catalog_retrieved_at": "2026-09-05",
+        "reasoning_condition_id": "confirmatory_parasail_low_v1",
+        "route_status_policy": "allow_degraded_with_recorded_status",
+        "endpoint_snapshot_policy": "identity_only",
+        "per_probe_cost_reserve_usd": 0.003,
+        "admission_cost_ceiling_usd": 0.06,
+        "admission_attempt_limit": 10,
+        "max_action_attempts": 10,
+        "timeout_seconds": 300.0,
+        "seat_max_cost_usd": 0.03,
+        "retry_backoff": {
+            "policy": "exponential_jitter_v1",
+            "retry_base_seconds": 5.0,
+            "retry_after_max_seconds": 60.0,
+        },
+        "confirmatory_panel": True,
+        "variance_pilot_reference": {
+            "campaign_id": "housing_model_sensitivity_openrouter_parasail_v19",
+            "qualification_path": (
+                "evidence/housing_model_sensitivity_openrouter_parasail_v19/"
+                "reports/qualification.json"
+            ),
+            "qualification_artifact_sha256": (
+                "7b72914c34f0461e190215906a735a64ddccd3e4943c79e1e1b87b11c64df3e1"
+            ),
+        },
+        "execution_stage": "confirmatory_execution",
+        "execution_config_ids": [
+            "holdout_mild_unseen",
+            "holdout_moderate_unseen",
+            "holdout_severe_unseen",
+        ],
+        "execution_cost_ceiling_usd": 3.0,
+        "per_trajectory_cost_reserve_usd": 0.06,
+        # 114691332 is excluded: its severe holdout configuration has a zero
+        # upper bound, so that world carries no normalized score. The
+        # exclusion is forced by the generator and is re-derived at load.
+        "world_seeds": [
+            369623215,
+            1207545696,
+            1737316725,
+            935421243,
+            1307871977,
+            144531421,
+            744028935,
+            1419988216,
+            8919439,
+            1640977697,
+            1628619353,
+            1502627411,
+            1746020508,
+            2115856512,
+            449124770,
+        ],
+        "condition_order": "rotate_by_world_and_case_configuration",
+        "analysis": {
+            "primary_view": "paired_world_subject_mean_within_case_score",
+            "aggregation": "equal_weight_configs_and_opponents_within_world",
+            "primary_contrast": "glm_53_flash_minus_deepseek_v4_flash",
+            "uncertainty": "paired_world_level_t_interval",
+            "minimum_meaningful_effect": 0.05,
+            "alpha": 0.05,
+            "power": 0.8,
+            "minimum_confirmatory_worlds": 30,
+            "maximum_confirmatory_worlds": 100,
+            "attrition_fraction": 0.1,
+            "minimum_paired_worlds_for_decision": 13,
+            "ranking_allowed": True,
+        },
+        "providers": {
+            "glm_53_flash": "Parasail",
+            "deepseek_v4_flash": "Parasail",
+        },
+        "quantizations": {
+            "glm_53_flash": "fp8",
+            "deepseek_v4_flash": "fp8",
+        },
+        "retryable_conditions": [
+            "length",
+            "rate_limit",
+            "provider_5xx",
+            "empty_response",
+            "timeout",
+        ],
+        "action_schema_version": "housing_actions/2.0",
+        "wire_live_profile_controls": True,
+        "verify_endpoint_snapshot": True,
+        "call_pacing": {
+            "clock": "monotonic_completion_to_start",
+            "cooldown_seconds_by_provider": {
+                "Parasail": 10.0,
+            },
+            "first_call_delay_seconds": 0.0,
+            "scope": "shared_across_profile_admission_and_full_trajectory",
+            "implementation_sha256": (
+                "4dc67f4ae81395166264049bbf917d8d42e69c5d6069c97fea981c4b419415d3"
+            ),
+        },
+        "admission_timeout_enforcement": (
+            "asyncio_wait_for_controls_timeout_seconds"
+        ),
+        "stopping_rule": (
+            "profile_admission_must_pass_before_confirmatory_freeze; "
+            "confirmatory_freeze_must_be_sealed_before_execution; "
+            "stop_immediately_on_route_drift_or_replay_failure"
+        ),
+    },
 }
 REQUIRED_ROUTE_PARAMETERS = {
     "max_tokens",
@@ -1804,7 +1913,9 @@ def confirmatory_freeze_artifact(
     recommended = analysis["recommended_confirmatory_worlds"]
     if recommended is None:
         raise ValueError("variance pilot withheld a confirmatory world count")
-    planned_worlds = len(panel["world_seeds"])
+    # Count the worlds that will actually be executed, not the sealed list:
+    # a structurally excluded world contributes no contrast.
+    planned_worlds = len(contract["execution"]["world_seeds"])
     if planned_worlds < recommended:
         raise ValueError(
             "confirmatory panel is smaller than the recommended world count: "
@@ -1827,6 +1938,8 @@ def confirmatory_freeze_artifact(
             "holdout": {
                 "sweep_contract_path": panel["sweep_contract_path"],
                 "sweep_contract_file_sha256": panel["sweep_contract_file_sha256"],
+                "sealed_world_seed_count": len(panel["world_seeds"]),
+                "excluded_world_seeds": dict(panel.get("excluded_world_seeds", {})),
                 "world_seed_count": planned_worlds,
                 "world_seeds_sha256": _sha256(panel["world_seeds"]),
                 "configs_sha256": _sha256(panel["configs"]),

@@ -133,6 +133,11 @@ V20_CONTRACT_PATH = (
     / "configs"
     / "housing_model_sensitivity_openrouter_parasail_v20.json"
 )
+CONFIRMATORY_CONTRACT_PATH = (
+    Path(__file__).resolve().parents[1]
+    / "configs"
+    / "housing_confirmatory_parasail_v1.json"
+)
 
 
 def test_contract_pins_new_routes_and_requires_admission_before_live() -> None:
@@ -1691,6 +1696,95 @@ def test_confirmatory_interval_widens_with_spread_and_can_include_zero() -> None
     assert result["primary"]["lower"] < 0.0 < result["primary"]["upper"]
     assert result["primary"]["excludes_zero"] is False
     assert result["effect_at_least_minimum"] is False
+
+
+def test_confirmatory_panel_is_bound_to_the_sealed_sweep_holdout() -> None:
+    from aeread_families.housing.model_sensitivity import confirmatory_panel
+
+    contract = load_contract(CONFIRMATORY_CONTRACT_PATH)
+    panel = confirmatory_panel(contract)
+    sweep = json.loads(
+        (
+            CONFIRMATORY_CONTRACT_PATH.parents[1]
+            / panel["sweep_contract_path"]
+        ).read_bytes()
+    )
+    holdout = sweep["confirmatory_holdout"]
+
+    assert panel["world_seeds"] == holdout["world_seeds"]
+    assert len(panel["world_seeds"]) == 16
+    assert [config["config_id"] for config in panel["configs"]] == [
+        "holdout_mild_unseen",
+        "holdout_moderate_unseen",
+        "holdout_severe_unseen",
+    ]
+    # The holdout must never intersect the development split.
+    assert not set(panel["world_seeds"]) & set(sweep["development"]["world_seeds"])
+    # One sealed world has a zero upper bound, so it carries no normalized
+    # score and is excluded before any outcome exists.
+    assert panel["excluded_world_seeds"] == {"114691332": "degenerate_upper_bound"}
+    assert contract["execution"]["world_seeds"] == panel["admitted_world_seeds"]
+    assert len(contract["execution"]["world_seeds"]) == 15
+    assert 114691332 not in contract["execution"]["world_seeds"]
+
+    # An exclusion the environment does not force must be rejected.
+    forged = json.loads(json.dumps(contract))
+    forged["confirmatory_panel"]["excluded_world_seeds"] = {
+        "369623215": "degenerate_upper_bound"
+    }
+    forged["confirmatory_panel"]["admitted_world_seeds"] = [
+        seed for seed in panel["world_seeds"] if seed != 369623215
+    ]
+    with pytest.raises(ValueError, match="exclusion is not justified"):
+        confirmatory_panel(forged)
+
+    # A panel that widens beyond the sealed sweep must be rejected.
+    widened = json.loads(json.dumps(contract))
+    widened["confirmatory_panel"]["world_seeds"] = panel["world_seeds"] + [999]
+    with pytest.raises(ValueError, match="world seeds differ from the sweep"):
+        confirmatory_panel(widened)
+
+
+def test_confirmatory_provider_free_audits_the_sealed_holdout_worlds() -> None:
+    contract = load_contract(CONFIRMATORY_CONTRACT_PATH)
+    artifact = provider_free_artifact(contract)
+
+    assert artifact["provider_calls"] == 0
+    assert artifact["confirmatory_holdout_status"] == "opened_for_confirmatory_freeze"
+    # Every sealed world is audited, including the one that is excluded.
+    assert len(artifact["worlds"]) == 16 * 3
+    assert artifact["degenerate_world_count"] == 1
+    assert artifact["admitted_world_count"] == 47
+    assert len(artifact["executed_world_seeds"]) == 15
+    degenerate = [
+        row for row in artifact["worlds"] if row["admission"] != "admitted"
+    ]
+    assert len(degenerate) == 1
+    assert degenerate[0]["config_id"] == "holdout_severe_unseen"
+    assert degenerate[0]["world_seed"] == 114691332
+
+
+def test_confirmatory_freeze_refuses_a_panel_below_the_recommended_worlds() -> None:
+    from aeread_families.housing.backend_campaign import (
+        confirmatory_freeze_artifact,
+    )
+
+    contract = load_contract(CONFIRMATORY_CONTRACT_PATH)
+    routes = route_table(contract)
+    design = design_artifact(contract, routes=routes)
+    assert design["planned_trajectories"] == 15 * 3 * 4
+
+    # The bound pilot (V19) recommends 32 worlds; the holdout admits 15, so
+    # the freeze must refuse rather than quietly run an underpowered design.
+    with pytest.raises(ValueError, match="smaller than the recommended world count"):
+        confirmatory_freeze_artifact(
+            contract,
+            routes=routes,
+            design=design,
+            provider_free={"artifact_sha256": "provider-free"},
+            catalog={"artifact_sha256": "catalog"},
+            admission={"artifact_sha256": "admission"},
+        )
 
 
 def test_published_v12_records_pacing_failure_and_zero_trajectories() -> None:
