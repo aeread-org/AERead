@@ -15,9 +15,9 @@ from types import MappingProxyType
 import pytest
 
 from aeread.shared_runner.registry import REQUIRED_FAMILY_PLUGIN_HOOKS, PluginRegistry
-from aeread.shared_runner.resolver import PlanCell, case_content_sha256
+from aeread.shared_runner.run.resolver import PlanCell, case_content_sha256
 from aeread.shared_runner.schemas import CaseManifest
-from aeread.shared_runner.scheduler import SchedulerContractError, run_episode
+from aeread.shared_runner.task.scheduler import SchedulerContractError, run_episode
 from aeread_families.collusion import cases as collusion_cases
 from aeread_families.collusion import economics
 from aeread_families.collusion.environment import (

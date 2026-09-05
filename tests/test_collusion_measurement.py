@@ -37,8 +37,8 @@ from typing import Any, Mapping
 
 import pytest
 
-from aeread.shared_runner.resolver import PlanCell, case_content_sha256
-from aeread.shared_runner.scheduler import run_episode
+from aeread.shared_runner.run.resolver import PlanCell, case_content_sha256
+from aeread.shared_runner.task.scheduler import run_episode
 from aeread.shared_runner.schemas import CaseManifest
 from aeread_families.collusion import cases as collusion_cases
 from aeread_families.collusion import measurement as m

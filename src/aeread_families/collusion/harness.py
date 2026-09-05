@@ -6,7 +6,7 @@ Every policy here is a pure function ``observation -> price``: no model
 call, no randomness, no wall clock -- exactly the "scripted/gold trajectory"
 requirement this milestone is built under. ``ScriptedCollusionHarness``
 binds one policy per seat and serves it as the real scheduler's own
-``ResponseSource`` (``aeread.shared_runner.scheduler.run_episode``), so a
+``ResponseSource`` (``aeread.shared_runner.task.scheduler.run_episode``), so a
 harness-driven episode exercises the identical phase graph, simultaneous
 peer-hiding, and legality gate that milestone 1's ``test_collusion_
 environment.py`` exercised directly with inline ``respond`` closures -- this
@@ -30,7 +30,7 @@ from __future__ import annotations
 
 from typing import Any, Callable, Mapping
 
-from aeread.shared_runner.execution import EvidenceSeal, EvidenceStore
+from aeread.shared_runner.task.execution import EvidenceSeal, EvidenceStore
 
 _SEATS = ("firm_a", "firm_b")
 

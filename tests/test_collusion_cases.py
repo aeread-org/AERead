@@ -18,7 +18,7 @@ from typing import Any
 
 import pytest
 
-from aeread.shared_runner.resolver import canonical_json_bytes, case_content_sha256
+from aeread.shared_runner.run.resolver import canonical_json_bytes, case_content_sha256
 from aeread.shared_runner.schemas import AuthoringValidationError, CaseManifest
 from aeread_families.collusion import cases as collusion_cases
 from aeread_families.collusion import economics

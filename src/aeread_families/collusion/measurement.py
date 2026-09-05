@@ -73,7 +73,7 @@ from aeread.shared_runner.measurement import (
     ValidityReport,
     VerifierSpec,
 )
-from aeread.shared_runner.resolver import canonical_json_bytes
+from aeread.shared_runner.run.resolver import canonical_json_bytes
 
 LEAF_VERSION = "0.1.0"
 ESTIMAND_VERSION = "0.1.0"
