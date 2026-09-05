@@ -978,3 +978,51 @@ python -m aeread_families.housing.backend_campaign \
   --through full_trajectory
 ```
 
+The executed gate passed. All 18 admission probes passed on their first
+attempt for `$0.0026201538` with complete billing. All four trajectories
+completed with verified routes, complete billing, and exact score replay for
+`$0.021948696`, a combined `$0.0245688498`. Zero operational failures, zero
+hidden retries. The shared Parasail cooldown delivered 132 trajectory calls
+with 131 paced waits totalling about 1307 seconds. Descriptive within-case
+scores span `0.8856512098` to `0.9201434`, and support no ranking. Review the
+digest-bound
+[`qualification.json`](../../../evidence/housing_model_sensitivity_openrouter_parasail_v16/reports/qualification.json),
+the four-trajectory
+[`attempted.json`](../../../evidence/housing_model_sensitivity_openrouter_parasail_v16/trajectories/attempted.json),
+and the
+[`canonical_fact_index.json`](../../../evidence/housing_model_sensitivity_openrouter_parasail_v16/tables/canonical_fact_index.json).
+
+## 24. V17 preregistered four-world variance pilot on the Parasail routes
+
+[`housing_model_sensitivity_openrouter_parasail_v17`](../../../configs/housing_model_sensitivity_openrouter_parasail_v17.json)
+is the multi-world variance pilot that the V16 gate promotes. It carries V16's
+Parasail FP8 routes and endpoint snapshots, cooldown, admission-timeout
+enforcement, and four receipt-visible admission attempts forward unchanged,
+under a new identity and fresh profile digests, on the V9/V10 pilot design:
+three selected configurations, four world clusters, four conditions, 48
+cells, rotate-by-world ordering, `$0.51` maximum exposure. Its campaign spec
+binds both the V16 qualification digest as the verified prerequisite gate and
+the route-probe summary digest as the route-selection record.
+
+The four worlds are the next unused development seeds (`1063943031`,
+`647986875`, `1758927083`, `237549679`), disjoint from every earlier campaign
+and from the sealed holdout. V15's worlds are deliberately not reused, so no
+cell from a different route can be mistaken for a rerun.
+
+Because both models share one provider, the cooldown serialises every call;
+expect roughly twice V15's wall time. The pilot is exploratory: it may
+estimate the paired-world variance and a confirmatory sample size, but it
+cannot support a winner, a ranking, or a confirmatory claim.
+
+```bash
+python -m aeread_families.housing.backend_campaign \
+  --contract configs/housing_model_sensitivity_openrouter_parasail_v17.json \
+  --run-root runs/housing_model_sensitivity_openrouter_parasail_v17 \
+  --through provider_free
+
+python -m aeread_families.housing.backend_campaign \
+  --contract configs/housing_model_sensitivity_openrouter_parasail_v17.json \
+  --run-root runs/housing_model_sensitivity_openrouter_parasail_v17 \
+  --through live
+```
+

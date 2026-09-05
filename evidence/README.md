@@ -72,3 +72,7 @@ Current campaign directories include:
   12 parameter-complete GLM 5.3 Flash routes on OpenRouter, 100 calls each.
   Sanitized per-call record plus a digest-bound summary; Parasail FP8 was the
   only route with zero failures. Referenced by the V16 campaign spec.
+- `housing_model_sensitivity_openrouter_parasail_v16/`: the full-trajectory
+  gate for the probe-selected route, both models on Parasail FP8. Admission
+  18/18, four of four trajectories completed with exact replay, zero
+  failures; promotion-eligible, one world, no ranking.
