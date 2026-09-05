@@ -1,0 +1,23 @@
+{
+  "bridge_versions": {
+    "numpy_version": "1.24.4",
+    "omegaconf_version": "2.3.0",
+    "pandas_version": "2.0.3",
+    "pettingzoo_version": "1.24.2",
+    "python_version": "3.11.3"
+  },
+  "concurrent_env_sha256": "b06c3374346e05010b25e89afcb49a99fc8e874289d38c5290d20d60d96a99e8",
+  "persona_common_sha256": "61bdf8c2c3fba7f44e56783ae2ffc9f7b22bc0ec4c9ed5fc1584ac1827893387",
+  "pool_location_by_scenario": {
+    "fishing": "lake",
+    "pollution": "factory",
+    "sheep": "pasture"
+  },
+  "scenario_env_sha256": {
+    "fishing": "549d93f5554ffc76e1a9ed57300051ca7cfb9fd58d8a29c3f5ab6a26ecf6db04",
+    "pollution": "50461638f3df5afc94eecdb21fb7207085b07f05c288384e305343c87376d6f3",
+    "sheep": "e1b6aab9fc6dcb9dfa6bc4d2367bd5ffadf56a0945876cbe928a794700950d5d"
+  },
+  "upstream_commit": "1d11adf047b24fa2ba0d44a1d4931015ea2e5210",
+  "upstream_repo": "govsim"
+}
