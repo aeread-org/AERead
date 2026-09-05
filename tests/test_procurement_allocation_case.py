@@ -305,6 +305,7 @@ def test_output_schema_has_one_strict_root_with_all_actions() -> None:
         "request_sample",
         "counter_offer",
         "submit_award",
+        "check_award",
         "defer",
     ]
     assert set(schema["required"]) == set(schema["properties"])
@@ -415,3 +416,99 @@ def test_run_plan_pins_sources_and_openrouter_route() -> None:
             retryable_conditions=("timeout",),
             retry_backoff="exponential_jitter_v1",
         )
+
+
+def test_check_award_reports_violations_without_terminating(tmp_path) -> None:
+    """A pre-award check evaluates the proposed lines against the current formal
+    offers and samples, reports what submit_award would report, consumes one
+    action and nothing else, and leaves the episode open."""
+    quote = {
+        "action": "request_quote",
+        "supplier_id": "switch_reliable",
+        "message": "Please issue a formal quote.",
+    }
+    sample = {
+        "action": "request_sample",
+        "supplier_id": "switch_reliable",
+        "message": "Please send the exact-variant sample.",
+    }
+    over_capacity = {
+        "action": "check_award",
+        "award_lines": [{"offer_id": "offer_switch_reliable_v1", "quantity": 30}],
+    }
+    unknown_offer = {
+        "action": "check_award",
+        "award_lines": [{"offer_id": "offer_oled_reliable_v1", "quantity": 20}],
+    }
+    script = [_response(a) for a in (quote, sample, over_capacity, unknown_offer)] + [
+        _response({"action": "defer", "reason": "checks only"})
+    ]
+
+    _, execution, provider = asyncio.run(
+        run_fixture_script(script, evidence_root=tmp_path / "check")
+    )
+    outcome = _plain(execution.episode_result.outcome)
+    final_state = _plain(execution.episode_result.final_state)
+
+    assert provider.exhausted
+    assert outcome["decision"] == "defer"
+    assert outcome["action_count"] == 5
+    checks = final_state["award_checks"]
+    assert [c["ordinal"] for c in checks] == [3, 4]
+    assert checks[0]["feasible"] is False
+    assert "switch_reliable.over_capacity" in checks[0]["violations"]
+    assert checks[1]["feasible"] is False
+    assert "award_lines[0].unknown_offer" in checks[1]["violations"]
+    # a check costs an action only: no money, no calendar time
+    assert final_state["information_cost_usd"] == pytest.approx(
+        0.1 + final_state["quality_evidence"]["switch_reliable"]["sample_cost_usd"]
+    )
+    assert final_state["elapsed_days"] == checks[0]["elapsed_days"] == checks[1]["elapsed_days"]
+    assert final_state["award_lines"] == []
+
+
+def test_check_award_projection_matches_the_award_it_precedes(tmp_path) -> None:
+    script = _optimal_script()
+    award = json.loads(script[-1])["action"] if False else None
+    actions = [json.loads(item)["action"] if False else None for item in script]
+    del award, actions
+    raw = [json.loads(s) for s in script]
+    submit = raw[-1]
+    check = {"action": "check_award", "award_lines": submit["award_lines"]}
+    script_with_check = [_response(a) for a in raw[:-1]] + [_response(check), _response(submit)]
+
+    _, execution, _ = asyncio.run(
+        run_fixture_script(script_with_check, evidence_root=tmp_path / "match")
+    )
+    outcome = _plain(execution.episode_result.outcome)
+    final_state = _plain(execution.episode_result.final_state)
+    check_record = final_state["award_checks"][-1]
+
+    assert outcome["feasible"] is True
+    assert check_record["feasible"] is True
+    assert check_record["violations"] == []
+    assert check_record["completed_kits"] == outcome["completed_kits"]
+    assert check_record["contribution_margin_usd"] == pytest.approx(
+        outcome["contribution_margin_usd"]
+    )
+
+
+def test_check_award_is_visible_in_the_observation_and_parses_strictly() -> None:
+    case = load_case()
+    plugin = ProcurementAllocationPlugin()
+    family_case = plugin.validate_payload(case.payload)
+    state = plugin.initial_state(family_case, run=None)
+    phase = plugin.phases(family_case)[0]
+
+    assert plugin.observe(family_case, state, "buyer", phase)["award_checks"] == []
+    parsed = plugin.parse_action(
+        family_case, state, "buyer", phase,
+        {"action": "check_award", "award_lines": [{"offer_id": "x", "quantity": 1}]},
+    )
+    assert parsed.ok
+    rejected = plugin.parse_action(
+        family_case, state, "buyer", phase,
+        {"action": "check_award", "award_lines": []},
+    )
+    assert not rejected.ok and rejected.error_code == "malformed_procurement_action"
+

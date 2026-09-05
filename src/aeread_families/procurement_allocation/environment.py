@@ -54,6 +54,7 @@ ACTION_TYPES = frozenset(
         "counter_offer",
         "request_sample",
         "submit_award",
+        "check_award",
         "defer",
     }
 )
@@ -85,6 +86,7 @@ ACTION_FIELDS = {
         {"action", "supplier_id", "offer_id", "proposal", "message"}
     ),
     "submit_award": frozenset({"action", "award_lines"}),
+    "check_award": frozenset({"action", "award_lines"}),
     "defer": frozenset({"action", "reason"}),
 }
 WIRE_ACTION_FIELDS = frozenset().union(*ACTION_FIELDS.values())
@@ -886,6 +888,7 @@ class ProcurementAllocationPlugin:
             "offer_versions": {},
             "quality_evidence": {},
             "award_lines": [],
+            "award_checks": [],
             "defer_reason": None,
         }
 
@@ -936,6 +939,7 @@ class ProcurementAllocationPlugin:
             "verbal_claims": _plain(state["claims"]),
             "formal_offers": _plain(state["offers"]),
             "verified_samples": _plain(state["quality_evidence"]),
+            "award_checks": _plain(state["award_checks"]),
         }
 
     def parse_action(
@@ -1021,7 +1025,7 @@ class ProcurementAllocationPlugin:
                         _positive_int(proposal[field], f"action.proposal.{field}")
                 if proposal.get("return_freight_payer") not in {None, "buyer", "supplier"}:
                     raise ValueError("action.proposal.return_freight_payer is invalid")
-            elif action_type == "submit_award":
+            elif action_type in {"submit_award", "check_award"}:
                 data = _exact_fields(raw, {"action", "award_lines"}, "action")
                 lines = data["award_lines"]
                 if not isinstance(lines, list) or not lines:
@@ -1219,6 +1223,47 @@ class ProcurementAllocationPlugin:
                     },
                 ]
             )
+        elif action_type == "check_award":
+            # A verifier-visible dry run of submit_award on the current formal
+            # offers and verified samples. It consumes one action and nothing
+            # else, and never terminates the episode. The projection uses the
+            # same evaluate_award the terminal score uses, so the reported
+            # violations, kits, and margin are exactly what submitting these
+            # lines now would yield.
+            projection = evaluate_award(
+                family_case,
+                award_lines=_plain(action["award_lines"]),
+                offers=next_state["offers"],
+                quality_evidence=next_state["quality_evidence"],
+                elapsed_days=next_state["elapsed_days"],
+                information_cost_usd=next_state["information_cost_usd"],
+            )
+            record = {
+                "ordinal": next_state["actions_used"],
+                "elapsed_days": next_state["elapsed_days"],
+                "award_lines": _plain(action["award_lines"]),
+                "feasible": bool(projection["feasible"]),
+                "violations": list(projection["violations"]),
+                "completed_kits": int(projection["completed_kits"]),
+                "contribution_margin_usd": float(projection["contribution_margin_usd"]),
+                "cash_spend_usd": float(projection["cash_spend_usd"]),
+            }
+            next_state["award_checks"].append(record)
+            next_state["conversation"].append(
+                {
+                    "role": "system",
+                    "content": (
+                        "Pre-award check: "
+                        + ("feasible" if record["feasible"] else "NOT feasible")
+                        + f"; violations={record['violations']}; "
+                        f"completed_kits={record['completed_kits']}; "
+                        f"contribution_margin_usd={record['contribution_margin_usd']:.4f}; "
+                        f"cash_spend_usd={record['cash_spend_usd']:.4f}."
+                    ),
+                }
+            )
+            consequences["feasible"] = record["feasible"]
+            consequences["violations"] = record["violations"]
         elif action_type == "submit_award":
             next_state["award_lines"] = _plain(action["award_lines"])
             next_state["done"] = True
