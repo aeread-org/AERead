@@ -122,6 +122,11 @@ V18_CONTRACT_PATH = (
     / "configs"
     / "housing_model_sensitivity_openrouter_parasail_v18.json"
 )
+V19_CONTRACT_PATH = (
+    Path(__file__).resolve().parents[1]
+    / "configs"
+    / "housing_model_sensitivity_openrouter_parasail_v19.json"
+)
 
 
 def test_contract_pins_new_routes_and_requires_admission_before_live() -> None:
@@ -1251,6 +1256,124 @@ def test_seat_cost_budget_exhaustion_is_typed_cell_missingness_not_critical() ->
     assert _critical_failure(
         ProviderFailure("rate_limit", "429", retryable=True, status_code=429)
     ) is False
+
+
+def test_published_v18_gate_is_digest_bound_and_complete() -> None:
+    evidence_root = (
+        V18_CONTRACT_PATH.parents[1]
+        / "evidence"
+        / "housing_model_sensitivity_openrouter_parasail_v18"
+    )
+    qualification = json.loads(
+        (evidence_root / "reports" / "qualification.json").read_bytes()
+    )
+    trajectories = json.loads(
+        (evidence_root / "trajectories" / "attempted.json").read_bytes()
+    )
+    assert qualification["artifact_sha256"] == (
+        "061aab759f4a632e336546b8b0b1ea38caeead15c528b936534835d7dbfae43b"
+    )
+    assert trajectories["artifact_sha256"] == (
+        "c0ef79322ddf60035ffb4d2a8dbd7cb207f836be99431a6c8a4a86a2a03af9da"
+    )
+    assert qualification["status"] == "completed_with_full_matrix"
+    gate = qualification["gate_status"][-1]
+    assert gate["gate_id"] == "full_trajectory"
+    assert gate["completed_trajectories"] == 4
+    assert gate["operational_failures"] == 0
+    assert qualification["controls"]["timeout_seconds"] == 300.0
+    assert all(row["replay_verified"] for row in trajectories["trajectories"])
+    assert max(row["cost_usd"] for row in trajectories["trajectories"]) > 0.01
+    published = b"".join(path.read_bytes() for path in evidence_root.rglob("*.*"))
+    assert b'"raw_response":' not in published
+    assert b"output_text" not in published
+    assert b"/Users/" not in published
+
+
+def test_v19_pilot_carries_v18_controls_and_names_v18_as_its_verified_gate() -> None:
+    from aeread_families.housing.backend_campaign import CAMPAIGN_SPECS
+
+    v17 = load_contract(V17_CONTRACT_PATH)
+    v18 = load_contract(V18_CONTRACT_PATH)
+    v19 = load_contract(V19_CONTRACT_PATH)
+    routes = route_table(v19)
+    spec = CAMPAIGN_SPECS["housing_model_sensitivity_openrouter_parasail_v19"]
+
+    changed = {
+        key for key in v19["controls"] if v19["controls"][key] != v18["controls"].get(key)
+    }
+    assert changed == {"reasoning_condition_id", "condition_order"}
+    assert v19["controls"]["timeout_seconds"] == 300.0
+    assert v19["controls"]["seat_max_cost_usd"] == 0.03
+    for model_id in ("glm_53_flash", "deepseek_v4_flash"):
+        assert routes[model_id].provider == "Parasail"
+        assert v19["models"][model_id]["endpoint_snapshot_sha256"] == (
+            v18["models"][model_id]["endpoint_snapshot_sha256"]
+        )
+    assert v19["analysis"] == v17["analysis"]
+    assert v19["conditions"] == v17["conditions"]
+    assert "stage" not in v19["execution"]
+    assert v19["execution"]["cost_ceiling_usd"] == pytest.approx(1.0)
+    assert v19["execution"]["per_trajectory_cost_reserve_usd"] == pytest.approx(0.06)
+    assert v19["execution"]["world_seeds"] == [
+        647986875,
+        1758927083,
+        237549679,
+        1515521562,
+    ]
+    # V17 executed cells only on its first world; the other three carry no
+    # executed cell, so reusing them is not a rerun.
+    v17_root = (
+        V17_CONTRACT_PATH.parents[1]
+        / "evidence"
+        / "housing_model_sensitivity_openrouter_parasail_v17"
+        / "trajectories"
+        / "attempted.json"
+    )
+    executed_worlds = {
+        row["world_seed"]
+        for row in json.loads(v17_root.read_bytes())["trajectories"]
+    }
+    assert not executed_worlds & set(v19["execution"]["world_seeds"])
+    previously_used = {
+        seed
+        for path in (
+            CONTRACT_PATH,
+            V10_CONTRACT_PATH,
+            V13_CONTRACT_PATH,
+            V15_CONTRACT_PATH,
+            V16_CONTRACT_PATH,
+            V18_CONTRACT_PATH,
+        )
+        for seed in load_contract(path)["execution"]["world_seeds"]
+    }
+    assert not previously_used & set(v19["execution"]["world_seeds"])
+
+    gate = spec["prerequisite_full_trajectory_gate"]
+    assert gate["campaign_id"] == "housing_model_sensitivity_openrouter_parasail_v18"
+    qualification = json.loads(
+        (V19_CONTRACT_PATH.parents[1] / gate["qualification_path"]).read_bytes()
+    )
+    assert qualification["artifact_sha256"] == gate["qualification_artifact_sha256"]
+    assert qualification["controls"]["timeout_seconds"] == 300.0
+    for setup in build_setups(v19, routes=routes).values():
+        for profile in setup.plan.agent_profiles:
+            assert profile.budgets.timeout_seconds == 300.0
+            assert profile.budgets.max_cost_usd == 0.03
+    design = design_artifact(v19, routes=routes)
+    assert design["planned_trajectories"] == 48
+    assert design["artifact_sha256"] == (
+        "2fcc9d8d3744f3779de26624e451205be430bf3fa6ecd7127aadcde4974645fa"
+    )
+    assert provider_free_artifact(v19)["artifact_sha256"] == (
+        "72027855275419a11d0c621820affbb5ef7e2aa4762265017181f0602e08c91d"
+    )
+    expected_profiles = v19["profile_admission"]["profile_sha256s"]
+    for setup in build_setups(v19, routes=routes).values():
+        for profile in setup.plan.agent_profiles:
+            assert hashlib.sha256(canonical_json_bytes(profile)).hexdigest() == (
+                expected_profiles[profile.profile_id]
+            )
 
 
 def test_published_v12_records_pacing_failure_and_zero_trajectories() -> None:

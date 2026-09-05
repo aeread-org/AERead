@@ -1078,3 +1078,46 @@ python -m aeread_families.housing.backend_campaign \
   --through full_trajectory
 ```
 
+The executed gate passed. All 18 admission probes passed on their first
+attempt for `$0.002637261`. All four trajectories completed with verified
+routes, complete billing, and exact score replay for `$0.0277184754`, a
+combined `$0.0303557364` against the `$0.36` ceiling; zero operational
+failures, zero hidden retries, 135 Parasail calls with 134 paced waits. One
+cross-play cell cost `$0.0117`, above the hidden `$0.01` seat budget that
+stopped V17, and completed under the frozen `$0.03`. Descriptive scores span
+`0.5751824247` to `0.9167928417` and support no ranking. Review the
+digest-bound
+[`qualification.json`](../../../evidence/housing_model_sensitivity_openrouter_parasail_v18/reports/qualification.json),
+[`attempted.json`](../../../evidence/housing_model_sensitivity_openrouter_parasail_v18/trajectories/attempted.json),
+and
+[`canonical_fact_index.json`](../../../evidence/housing_model_sensitivity_openrouter_parasail_v18/tables/canonical_fact_index.json).
+
+## 26. V19 preregistered four-world variance pilot on the V18 controls
+
+[`housing_model_sensitivity_openrouter_parasail_v19`](../../../configs/housing_model_sensitivity_openrouter_parasail_v19.json)
+is the multi-world variance pilot that the V18 gate promotes. It carries
+V18's Parasail FP8 routes and snapshots, 300-second wall time, `$0.03` seat
+budget, cooldown, admission-timeout enforcement, and four receipt-visible
+admission attempts forward unchanged, under a new identity and fresh profile
+digests, on the V9/V10 pilot design: three configurations, four worlds, four
+conditions, 48 cells, rotate-by-world ordering. Its spec binds the V18
+qualification digest as the verified prerequisite gate and the route-probe
+summary digest as the route-selection record.
+
+The four worlds are V17's three never-attempted worlds (`647986875`,
+`1758927083`, `237549679`) plus the next unused development seed
+(`1515521562`). V17 executed cells only on `1063943031`, which is excluded,
+so no V19 cell repeats an executed cell. The per-trajectory reserve is
+`$0.06` (two seats at `$0.03`) and the execution ceiling `$1.00`, sized so
+the reserve rule cannot stop the pilot before its 48th cell at the V18
+observed cost of `$0.002` to `$0.012` per cell; `$1.06` maximum exposure.
+The pilot is exploratory and supports no winner, ranking, or confirmatory
+claim.
+
+```bash
+python -m aeread_families.housing.backend_campaign \
+  --contract configs/housing_model_sensitivity_openrouter_parasail_v19.json \
+  --run-root runs/housing_model_sensitivity_openrouter_parasail_v19 \
+  --through live
+```
+

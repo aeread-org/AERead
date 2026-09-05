@@ -81,3 +81,7 @@ Current campaign directories include:
   120 s timeouts and one hidden $0.01 per-seat budget breach that was wrongly
   treated as a campaign-critical failure; 45 cells never attempted. Recorded
   as a driver defect; no route failure occurred.
+- `housing_model_sensitivity_openrouter_parasail_v18/`: the full-trajectory
+  gate for the corrected controls (300 s wall time, contract-visible $0.03
+  seat budget). Admission 18/18, four of four trajectories completed with
+  exact replay, zero failures; promotion-eligible, one world, no ranking.
