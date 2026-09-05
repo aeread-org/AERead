@@ -132,7 +132,7 @@ def test_register_plugin_requires_every_hook_present() -> None:
 
     registry = PluginRegistry()
     with pytest.raises(IncompletePluginError):
-        registry.register(family_manifest(), Incomplete())
+        registry.register_trusted(family_manifest(), Incomplete())
 
 
 def test_phases_are_mode_single_and_alternate_red_then_blue(plugin) -> None:
