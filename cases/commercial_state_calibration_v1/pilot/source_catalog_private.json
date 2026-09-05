@@ -1,0 +1,22 @@
+{
+  "catalog_version": "1.0.0",
+  "catalog_kind": "sanitized_source_role_catalog",
+  "lineage_scope": "role_only_not_reproducible_provenance",
+  "rights_status": "not_established_by_this_pack",
+  "original_artifacts_included": false,
+  "independence_assumption": "all pilot cases share commercial_archive_pilot_01",
+  "sources": {
+    "mail_archive": {"kind": "email_archive", "role": "transaction chronology and state-transition evidence", "verification": "verified_before_sanitization", "original_included": false},
+    "supplier_quote_a": {"kind": "commercial_quote", "role": "supplier configuration, freight, and pricing evidence", "verification": "verified_before_sanitization", "original_included": false},
+    "supplier_po_a": {"kind": "purchase_order", "role": "first supplier-order layout and state evidence", "verification": "verified_before_sanitization", "original_included": false},
+    "supplier_po_a_revision": {"kind": "purchase_order_revision", "role": "ship-to revision and existing-order routing evidence", "verification": "verified_before_sanitization", "original_included": false},
+    "supplier_po_b": {"kind": "purchase_order", "role": "second supplier-order layout and combined-balance evidence", "verification": "verified_before_sanitization", "original_included": false},
+    "customer_invoice_layout": {"kind": "invoice_layout", "role": "customer-facing invoice format and document-state evidence", "verification": "verified_before_sanitization", "original_included": false},
+    "colo_proposal_d": {"kind": "service_order", "role": "single-cabinet colocation terms and execution-state evidence", "verification": "verified_before_sanitization", "original_included": false},
+    "colo_proposal_c": {"kind": "commercial_quote", "role": "two-cabinet comparison terms and scope evidence", "verification": "verified_before_sanitization", "original_included": false},
+    "pricing_deck": {"kind": "pricing_deck", "role": "historical sales-rate assumptions", "verification": "verified_before_sanitization", "original_included": false},
+    "cashflow_output": {"kind": "workbook_output", "role": "historical hardcoded return curve", "verification": "verified_before_sanitization", "original_included": false},
+    "expense_template": {"kind": "workbook_template", "role": "negative example for commercial-document classification", "verification": "verified_before_sanitization", "original_included": false},
+    "technical_bom": {"kind": "workbook_summary", "role": "incomplete technical build categories", "verification": "verified_before_sanitization", "original_included": false}
+  }
+}

@@ -6,7 +6,7 @@ import json
 
 import pytest
 
-from aeread.shared_runner.execution import (
+from aeread.shared_runner.task.execution import (
     CanonicalResponse,
     EvidenceIntegrityError,
     EvidenceStore,
@@ -19,7 +19,7 @@ from aeread.shared_runner.execution import (
     ToolInvocationRecord,
     _sha256_bytes,
 )
-from aeread.shared_runner.harness import (
+from aeread.shared_runner.model_call.harness import (
     ClaimedToolCall,
     HarnessOutput,
     HarnessRequirements,
@@ -30,9 +30,9 @@ from aeread.shared_runner.harness import (
     ModelTurn,
     ToolExecutionEnvelope,
 )
-from aeread.shared_runner.resolver import canonical_json_bytes
+from aeread.shared_runner.run.resolver import canonical_json_bytes
 from aeread.shared_runner.schemas import AgentProfile
-from aeread.shared_runner.tools import ToolBinding, ToolDefinition, ToolRuntime
+from aeread.shared_runner.task.tools import ToolBinding, ToolDefinition, ToolRuntime
 
 
 FAKE_PRICING = TokenPricing(
@@ -64,7 +64,7 @@ def _profile(*, max_output_tokens: int = 80) -> AgentProfile:
             },
             "runtime": {
                 "kind": "python",
-                "implementation": "aeread.shared_runner.harness",
+                "implementation": "aeread.shared_runner.model_call.harness",
                 "version": "0.1.0",
             },
             "tools": ["get_balance", "refund_order"],
@@ -262,6 +262,8 @@ def test_model_port_rejects_empty_completion_before_returning_a_model_turn(tmp_p
             )
         )
     assert captured.value.condition == "empty_response"  # the kernel retry vocabulary
+    assert port.last_result is not None
+    assert port.last_result.input_tokens == 20
 
     events = [event.event_type for event in evidence.read_events()]
     assert events == ["provider_call_started", "provider_call_succeeded"]
@@ -445,7 +447,7 @@ def test_tool_port_wraps_the_kernel_record_in_an_envelope_with_family_reconcilia
 def test_bookkeeping_failure_after_a_tool_failure_preserves_the_original_exception(
     tmp_path,
 ) -> None:
-    from aeread.shared_runner.execution import ToolExecutor
+    from aeread.shared_runner.task.execution import ToolExecutor
 
     evidence = _evidence(tmp_path)
     tools = ToolExecutor(evidence)
@@ -503,7 +505,7 @@ def test_bookkeeping_failure_that_is_a_base_exception_is_still_recorded(tmp_path
     still be the exception that propagates.
     """
 
-    from aeread.shared_runner.execution import ToolExecutor
+    from aeread.shared_runner.task.execution import ToolExecutor
 
     evidence = _evidence(tmp_path, "base_exception_evidence")
     tools = ToolExecutor(evidence)
@@ -766,7 +768,7 @@ def test_attempt_executor_drives_a_registered_harness_end_to_end(tmp_path) -> No
     produced, through the registered harness rather than a hardcoded loop.
     """
 
-    from aeread.shared_runner.harness import AttemptExecutor, default_harnesses
+    from aeread.shared_runner.model_call.harness import AttemptExecutor, default_harnesses
 
     # The evidence store's identity must match the decision's, so build one
     # around the reused execution-suite decision rather than the local fixture.
@@ -809,7 +811,7 @@ def test_attempt_executor_carries_a_harness_action_onto_the_canonical_response(
     executor hands back, so the scheduler can hand a family's `parse_action`
     the Mapping it requires instead of reading `.text`."""
 
-    from aeread.shared_runner.harness import AttemptExecutor, MinimalChatHarness
+    from aeread.shared_runner.model_call.harness import AttemptExecutor, MinimalChatHarness
 
     class ActionHarness(MinimalChatHarness):
         async def act(self, request, ctx):
@@ -851,7 +853,7 @@ def test_attempt_executor_carries_a_harness_action_onto_the_canonical_response(
 def test_attempt_executor_refuses_a_profile_with_no_registered_harness(tmp_path) -> None:
     """A profile naming an unregistered harness fails before any provider call."""
 
-    from aeread.shared_runner.harness import AttemptExecutor
+    from aeread.shared_runner.model_call.harness import AttemptExecutor
 
     evidence = _evidence(tmp_path, "unregistered_evidence")
     profile = _executor_profile()
@@ -882,7 +884,7 @@ def test_attempt_context_exposes_no_tool_port_until_a_tools_harness_is_admitted(
     to a harness whose profile declares no tools.
     """
 
-    from aeread.shared_runner.harness import (
+    from aeread.shared_runner.model_call.harness import (
         AttemptExecutor,
         MinimalChatHarness,
         default_harnesses,
@@ -950,7 +952,7 @@ def test_attempt_context_grants_a_live_tool_port_when_profile_and_harness_admit_
     tests below rather than for the full executor.
     """
 
-    from aeread.shared_runner.harness import AttemptExecutor, MinimalChatHarness
+    from aeread.shared_runner.model_call.harness import AttemptExecutor, MinimalChatHarness
 
     seen = {}
 
@@ -1008,7 +1010,7 @@ def test_attempt_context_withholds_the_tool_port_for_a_no_tools_profile_even_wit
     """A harness's own capability is necessary but not sufficient: without a
     profile that declares tools, the port stays withheld regardless."""
 
-    from aeread.shared_runner.harness import AttemptExecutor, MinimalChatHarness
+    from aeread.shared_runner.model_call.harness import AttemptExecutor, MinimalChatHarness
 
     seen = {}
 
@@ -1052,7 +1054,7 @@ def test_attempt_context_withholds_the_tool_port_when_the_harness_declares_tools
     a registered harness that still declares `requires.tools == "none"`
     must not be handed a live port, even for a tools-declaring profile."""
 
-    from aeread.shared_runner.harness import AttemptExecutor, MinimalChatHarness
+    from aeread.shared_runner.model_call.harness import AttemptExecutor, MinimalChatHarness
 
     seen = {}
 
@@ -1179,7 +1181,7 @@ def test_the_sealed_request_is_the_request_actually_sent(tmp_path) -> None:
     look well-formed.
     """
 
-    from aeread.shared_runner.harness import AttemptExecutor, default_harnesses
+    from aeread.shared_runner.model_call.harness import AttemptExecutor, default_harnesses
 
     decision = _executor_decision()
     evidence = EvidenceStore(
@@ -1220,7 +1222,7 @@ def test_the_sealed_request_is_the_request_actually_sent(tmp_path) -> None:
 def _executor_with(harness, provider, tmp_path, name):
     """An AttemptExecutor wired to one harness, sharing the executor fixtures."""
 
-    from aeread.shared_runner.harness import AttemptExecutor
+    from aeread.shared_runner.model_call.harness import AttemptExecutor
 
     decision = _executor_decision()
     evidence = EvidenceStore(
@@ -1250,7 +1252,7 @@ def test_a_harness_that_never_returns_is_bounded_by_the_profile_timeout(tmp_path
     timeout_seconds became a field nobody enforced.
     """
 
-    from aeread.shared_runner.harness import MinimalChatHarness
+    from aeread.shared_runner.model_call.harness import MinimalChatHarness
 
     class HangingHarness(MinimalChatHarness):
         async def act(self, request, ctx):
@@ -1274,7 +1276,7 @@ def test_a_harness_claim_that_disagrees_with_the_kernel_is_recorded(tmp_path) ->
     but it must not pass unnoticed either.
     """
 
-    from aeread.shared_runner.harness import MinimalChatHarness
+    from aeread.shared_runner.model_call.harness import MinimalChatHarness
 
     class LyingHarness(MinimalChatHarness):
         async def act(self, request, ctx):
@@ -1316,7 +1318,7 @@ def test_the_context_carries_the_action_attempt_id_not_a_provider_call_id(
     provider call rather than to the attempt.
     """
 
-    from aeread.shared_runner.harness import MinimalChatHarness
+    from aeread.shared_runner.model_call.harness import MinimalChatHarness
 
     seen = {}
 
@@ -1352,7 +1354,7 @@ def test_native_tool_chat_dispatches_a_grouped_two_call_turn_and_matches_design_
     call the way the executor's lifecycle already does.
     """
 
-    from aeread.shared_runner.harness import (
+    from aeread.shared_runner.model_call.harness import (
         BudgetView,
         NativeToolChatHarness,
         _KernelAttemptContext,
@@ -1520,7 +1522,7 @@ def test_native_tool_chat_rounds_budget_exhausted_is_a_typed_failure(tmp_path) -
     asking the provider a second time.
     """
 
-    from aeread.shared_runner.harness import (
+    from aeread.shared_runner.model_call.harness import (
         BudgetView,
         NativeToolChatHarness,
         _KernelAttemptContext,
@@ -1587,7 +1589,7 @@ def test_json_dialect_plural_object_matches_native_tool_chat_grouping_and_event_
     `_run_tool_loop` engine, not a second loop with its own grouping.
     """
 
-    from aeread.shared_runner.harness import (
+    from aeread.shared_runner.model_call.harness import (
         BudgetView,
         JsonDialectHarness,
         _KernelAttemptContext,
@@ -1753,7 +1755,7 @@ def test_json_dialect_singular_object_is_a_malformed_round_not_a_crash(tmp_path)
     way a genuine provider or tool contract violation does.
     """
 
-    from aeread.shared_runner.harness import (
+    from aeread.shared_runner.model_call.harness import (
         BudgetView,
         JsonDialectHarness,
         _KernelAttemptContext,
@@ -1816,7 +1818,7 @@ def test_a_tool_using_profile_is_accepted_by_a_tool_capable_harness(tmp_path) ->
 
     import dataclasses
 
-    from aeread.shared_runner.harness import AttemptExecutor, NativeToolChatHarness
+    from aeread.shared_runner.model_call.harness import AttemptExecutor, NativeToolChatHarness
 
     base = _executor_profile()
     tools_profile = dataclasses.replace(
@@ -1846,7 +1848,7 @@ def test_a_tool_using_profile_is_accepted_by_a_tool_capable_harness(tmp_path) ->
     assert executor._harness_key(tools_profile) == "native_tool_chat/1.0"
 
     # minimal_chat's own guarantee is untouched: it still refuses tools.
-    from aeread.shared_runner.harness import MinimalChatHarness
+    from aeread.shared_runner.model_call.harness import MinimalChatHarness
 
     minimal_with_tools = dataclasses.replace(base, tools=("get_balance",))
     with pytest.raises(EvidenceIntegrityError, match="does not permit tools"):
