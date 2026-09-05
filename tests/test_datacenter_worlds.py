@@ -9,6 +9,11 @@ from pathlib import Path
 import pytest
 
 from aeread.shared_runner.run.resolver import case_content_sha256
+from aeread.shared_runner.task.scheduler import (
+    ActionEnvelope,
+    LegalityResult,
+    ParseResult,
+)
 from aeread.shared_runner.task.receipts import verify_evaluation_receipt
 from aeread_families.datacenter_development.stack_environment import (
     DataCenterStackPlugin,
@@ -310,3 +315,84 @@ def test_optional_amendment_can_be_declined_without_ending_the_episode() -> None
     )
     refused = plugin.legal(case, state, "developer", land_phase, decline)
     assert not refused.legal and refused.reason == "agreement_is_not_optional"
+
+
+def test_every_transition_lands_on_a_declared_next_phase() -> None:
+    """The phase graph must declare every jump the environment can take."""
+    plugin = DataCenterStackPlugin("v2")
+    payload = json.loads((DEFAULT_OUTPUT_ROOT / "covenant_cliff_001.json").read_text())
+    case = plugin.validate_payload(payload["payload"])
+    by_id = {phase.phase_id: phase for phase in plugin.phases(case)}
+
+    state = plugin.initial_state(case, None)
+    state["executed"]["land"] = {
+        "offer_id": "offer_x",
+        "terms": dict(case["scripted_developer"]["land_terms"]),
+        "precedence_index": 0,
+    }
+    phase = by_id["land_amendment_developer_offer"]
+    action = {"decision": "decline", "message": "no change needed"}
+    envelope = ActionEnvelope(
+        seat_id="developer",
+        valid=True,
+        action=action,
+        parse=ParseResult.success(action),
+        legality=LegalityResult.legal_action(),
+    )
+    result = plugin.step(case, state, phase, {"developer": envelope})
+
+    assert result.next_phase_id is not None
+    assert result.next_phase_id in phase.next_phases
+
+
+def test_declining_the_amendment_completes_a_scripted_episode(tmp_path) -> None:
+    """A declined optional agreement still yields a complete, admitted project."""
+    from aeread_families.datacenter_development.stack_runner import (
+        StackScriptedDeveloperProvider,
+        build_stack_setup,
+        _providers,
+    )
+    from aeread.shared_runner.task.execution import execute_plan_cell
+
+    case_path = DEFAULT_OUTPUT_ROOT / "covenant_cliff_001.json"
+    setup = build_stack_setup("v2", case_path=case_path)
+
+    class DecliningDeveloper(StackScriptedDeveloperProvider):
+        async def complete(self, request):
+            payload = json.loads(request.input_text)
+            if payload["phase_id"] == "land_amendment_developer_offer":
+                from aeread_families.datacenter_development.stack_runner import (
+                    _scripted_result,
+                )
+
+                return _scripted_result(
+                    request,
+                    {"decision": "decline", "message": "the executed lease already fits", "terms": None},
+                )
+            return await super().complete(request)
+
+    providers = dict(_providers(setup))
+    providers["datacenter_stack_scripted_developer"] = DecliningDeveloper(
+        setup.case.payload["scripted_developer"]
+    )
+    execution = asyncio.run(
+        execute_plan_cell(
+            plan=setup.plan,
+            cell_id=setup.plan.cells[0].cell_id,
+            registry=setup.registry,
+            evidence_root=tmp_path,
+            prompt_sources=setup.prompt_sources,
+            providers=providers,
+            pricing=setup.pricing,
+            harnesses=setup.harnesses,
+        )
+    )
+    outcome = execution.episode_result.outcome
+    receipt = finalize_stack_execution(setup=setup, execution=execution)
+
+    assert list(outcome["declined_agreements"]) == ["land_amendment"]
+    assert outcome["project_completed"] is True
+    assert outcome["binding_contract_integrity"] is True
+    assert outcome["project_constraints_satisfied"] is True
+    assert receipt.inclusion_status == "included"
+    assert replay_stack_receipt(setup=setup, receipt=receipt, evidence_root=tmp_path) == receipt

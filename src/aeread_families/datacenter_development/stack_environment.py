@@ -433,7 +433,14 @@ class DataCenterStackPlugin:
                         {"developer": f"datacenter_{key}_offer_v1"},
                         maximum,
                         "family_defined",
-                        (_phase_id(key, "response"),),
+                        # Declining an optional agreement skips its response and
+                        # commit phases, so that jump must be declared here.
+                        (_phase_id(key, "response"),)
+                        + (
+                            ()
+                            if key not in OPTIONAL_AGREEMENT_KEYS or next_key is None
+                            else (_phase_id(next_key, "offer"),)
+                        ),
                     ),
                     PhaseSpec(
                         _phase_id(key, "response"),
