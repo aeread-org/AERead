@@ -1772,7 +1772,9 @@ def test_confirmatory_freeze_refuses_a_panel_below_the_recommended_worlds() -> N
     contract = load_contract(CONFIRMATORY_CONTRACT_PATH)
     routes = route_table(contract)
     design = design_artifact(contract, routes=routes)
-    assert design["planned_trajectories"] == 15 * 3 * 4
+    # 15 admitted worlds, 3 holdout configurations, 4 conditions, 2 replicates.
+    assert design["planned_trajectories"] == 15 * 3 * 4 * 2
+    assert contract["execution"]["replicates"] == 2
 
     # The bound pilot (V19) recommends 32 worlds; the holdout admits 15, so
     # the freeze must refuse rather than quietly run an underpowered design.

@@ -866,6 +866,7 @@ CAMPAIGN_SPECS = {
         ),
     },
     "housing_model_sensitivity_openrouter_parasail_v21": {
+        "replicates": 2,
         "route_status_policy": "allow_degraded_with_recorded_status",
         "endpoint_snapshot_policy": "identity_only",
         "claim_status": "exploratory_variance_pilot_only",
@@ -903,7 +904,7 @@ CAMPAIGN_SPECS = {
                 "54406a94d4dacc0d1c0b6533ff67cdcfbbc4a20b56fdb91d98a7a551ac8cb63c"
             ),
         },
-        "execution_cost_ceiling_usd": 1.20,
+        "execution_cost_ceiling_usd": 2.00,
         "per_trajectory_cost_reserve_usd": 0.06,
         "world_seeds": [
             1971418798,
@@ -964,6 +965,7 @@ CAMPAIGN_SPECS = {
         ),
     },
     "housing_confirmatory_parasail_v1": {
+        "replicates": 2,
         "claim_status": "confirmatory_model_comparison",
         "catalog_retrieved_at": "2026-09-05",
         "reasoning_condition_id": "confirmatory_parasail_low_v1",
@@ -1334,7 +1336,7 @@ def load_contract(path: str | Path) -> dict[str, Any]:
 
     expected_execution = {
         "world_seeds": campaign_spec.get("world_seeds", [1971418798]),
-        "replicates": 1,
+        "replicates": campaign_spec.get("replicates", 1),
         "attempt_limit": 1,
         "cost_ceiling_usd": campaign_spec.get("execution_cost_ceiling_usd", 0.05),
         "per_trajectory_cost_reserve_usd": campaign_spec.get(

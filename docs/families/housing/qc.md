@@ -1201,9 +1201,19 @@ cooldown, and admission-timeout enforcement, and changes the panel.
 The pilot moves from four worlds to eight, chosen by a declared rule rather
 than by outcome: the first eight development seeds in frozen sweep order,
 excluding the world used by the full-trajectory gates. V19's worlds are not
-reused, so no world can be suspected of selection on its result. The panel is
-eight worlds, three configurations, four conditions and one replicate, for 96
-cells at an execution ceiling of `$1.20`. The analysis declares
+reused, so no world can be suspected of selection on its result.
+
+It also restores stochastic replicates. Section 5 of this profile requires
+repeats to be averaged within a world before worlds are treated as
+independent evidence, and the whole model-sensitivity line ran a single
+replicate per cell, which folds provider noise into the between-world term
+and inflates both the variance and the world count derived from it. The
+replicate index is hashed into the request seed, so a second replicate is a
+genuine repeat draw rather than a duplicate call. The panel is eight worlds,
+three configurations, four conditions and two replicates, for 192 cells at an
+execution ceiling of `$2.00`. The confirmatory campaign uses the same
+replicate count, because a variance measured at one replicate count cannot
+size a run at another. The analysis declares
 `minimum_paired_worlds_for_recommendation` of six, so a confirmatory sample
 size is emitted only if at least six of the eight worlds complete both
 subject blocks; below that the variance and mean contrast are still published
@@ -1243,4 +1253,69 @@ python -m aeread_families.housing.backend_campaign \
   --run-root runs/housing_model_sensitivity_openrouter_parasail_v21 \
   --through live
 ```
+
+## 29. Confirmatory gates, the sealed holdout, and its degenerate world
+
+The kernel has always named `confirmatory_freeze` and
+`confirmatory_execution`, but nothing implemented them for Housing, so the
+family could not reach the comparison it was designed for. Both gates now
+exist, together with a confirmatory campaign over the sealed holdout:
+[`housing_confirmatory_parasail_v1`](../../../configs/housing_confirmatory_parasail_v1.json).
+
+### The holdout panel is verified, not trusted
+
+The confirmatory contract inlines the holdout configurations and world seeds
+so the freeze can hash them, and every inlined value is checked against the
+frozen case sweep at load. The sweep contract is digest-checked, the holdout
+must still be sealed with its declared access rule, the inlined
+configurations and seeds must match it exactly, and the panel must not
+intersect the development split. A confirmatory campaign therefore cannot
+widen or reshape its own evaluation set.
+
+### One holdout world is structurally unusable
+
+Auditing the holdout for the first time exposed a defect that had never
+surfaced, because the holdout was sealed and had never been generated. The
+severe holdout configuration at world seed `114691332` produces an assignment
+upper bound of zero. Section 1 of this profile already rules that such a
+world receives `degenerate_upper_bound`, carries no normalized score, and
+stays outside normalized-score inference, so it cannot contribute a paired
+contrast.
+
+That world is excluded before any outcome exists, and the exclusion is
+re-derived from the generator whenever the contract loads, so no world can be
+dropped for a reason the environment does not force. Usable holdout capacity
+is 15 worlds rather than 16, and the standard deviation the powered design
+must meet tightens from `0.0668` to `0.0643`. The confirmatory panel is
+therefore 15 worlds, three configurations and four conditions, for 180 cells.
+
+The provider-free gate cannot cross-check these worlds against the
+development facts table, because the holdout was deliberately never swept. It
+audits every sealed world directly instead, including the excluded one, and
+records the content digests that the freeze seals.
+
+### What the freeze seals, and when
+
+`confirmatory_freeze` is its own stopping point so that it can be committed
+before a single holdout call is made. It seals the holdout seeds and
+configurations, the profiles, controls, conditions, analysis plan,
+missingness policy, stopping rule, execution block, prior gate digests and
+cost ceiling, and it binds the variance pilot whose paired standard deviation
+justified the world count. It refuses a pilot whose variance was not
+estimable or whose recommendation was withheld, and it refuses a panel
+smaller than the recommended world count, so an underpowered confirmatory run
+cannot start by accident.
+
+### What the confirmatory analysis reports
+
+The primary estimand stays the one the variance pilot measured, because the
+world count was derived from that estimand's variance; changing it here would
+invalidate the sample size. Cross-play and self-play are reported as
+predeclared secondary slices rather than folded into the headline, as section
+5 requires. A world that lost any expected cell contributes no contrast, so
+partial delivery cannot tilt the estimate. A ranking, a winner claim and
+leaderboard eligibility are all withheld unless the declared paired minimum
+is met and every planned cell was attempted, and the publisher refuses to
+publish a confirmatory result whose contract digest changed after the freeze
+was sealed.
 
