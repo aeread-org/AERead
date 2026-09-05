@@ -676,6 +676,43 @@ def test_snapshot_failure_in_failure_handler_preserves_the_original_tool_failure
     assert payload["outcome_known"] is False
 
 
+def _exception_chain(root: BaseException):
+    """Yield *root* and every exception reachable from it by following
+    ``__context__``/``__cause__``, with cycle protection.
+
+    Why this walk instead of a single ``__context__`` hop: ``asyncio.run``
+    drives the coroutine through an ``asyncio.Task``, and when a
+    ``CancelledError`` escapes the coroutine, the Task/Future layer that
+    turns the finished Task into a raised exception may itself construct a
+    *new* ``CancelledError`` rather than propagate the original object.
+    CPython's ``Future._make_cancelled_error`` picked up this
+    "wrap the saved cancellation in a fresh CancelledError" behaviour on
+    3.10 (fixed to return the saved exception directly on 3.11+, per
+    https://github.com/python/cpython/blob/v3.10.9/Lib/asyncio/futures.py#L129-L142
+    vs.
+    https://github.com/python/cpython/blob/v3.11.3/Lib/asyncio/futures.py#L126-L144).
+    On 3.10 the caught exception is therefore
+    ``asyncio-wrapper CancelledError -> implementation CancelledError ->
+    bookkeeping error`` (three hops), while on 3.11+ it is
+    ``implementation CancelledError -> bookkeeping error`` (one hop). Both
+    shapes satisfy the same production guarantee — the bookkeeping error is
+    never lost and never hides the cancellation — so the test must find the
+    bookkeeping error anywhere in the chain, not assert a fixed depth.
+    """
+    pending = [root]
+    seen: set[int] = set()
+    while pending:
+        error = pending.pop()
+        if id(error) in seen:
+            continue
+        seen.add(id(error))
+        yield error
+        if error.__context__ is not None:
+            pending.append(error.__context__)
+        if error.__cause__ is not None:
+            pending.append(error.__cause__)
+
+
 def test_snapshot_failure_during_cancellation_preserves_the_cancellation(
     tmp_path,
 ) -> None:
@@ -703,7 +740,8 @@ def test_snapshot_failure_during_cancellation_preserves_the_cancellation(
             )
         )
 
-    assert captured.value.__context__ is failures["bookkeeping"]
+    chain = list(_exception_chain(captured.value))
+    assert any(error is failures["bookkeeping"] for error in chain)
     events = evidence.read_events()
     unknown = [e for e in events if e.event_type == "tool_invocation_outcome_unknown"]
     assert len(unknown) == 1
@@ -819,7 +857,8 @@ def test_unknown_event_write_failure_preserves_the_cancellation(tmp_path) -> Non
             )
         )
 
-    assert captured.value.__context__ is failures["bookkeeping"]
+    chain = list(_exception_chain(captured.value))
+    assert any(error is failures["bookkeeping"] for error in chain)
 
 
 def test_unknown_event_write_failure_preserves_the_unexpected_error(tmp_path) -> None:
