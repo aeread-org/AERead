@@ -45,6 +45,7 @@ if TYPE_CHECKING:
     # classes at runtime (harness registration, native tool-call construction)
     # import them lazily.
     from ..model_call.harness import CanonicalMessage, Harness, NativeToolCall, ToolSchema
+    from .tools import ToolRuntime
 
 
 class EvidenceIntegrityError(RuntimeError):
@@ -2466,7 +2467,7 @@ class MinimalChatExecutor:
                 session_mode=profile.retry_policy.session_mode,
                 status="succeeded",
                 provider_calls=(provider_record,),
-                tool_invocations=(),
+                tool_invocations=canonical.tool_invocation_ids,
                 canonical_response=canonical,
             )
             attempts.append(attempt)
@@ -3351,6 +3352,9 @@ async def execute_plan_cell(
     pricing: Mapping[str, TokenPricing],
     episode_attempt_ordinal: int = 0,
     harnesses: Mapping[str, "Harness"] | None = None,
+    tool_runtime_factories: Mapping[
+        str, Callable[[EvidenceStore], "ToolRuntime"]
+    ] | None = None,
 ) -> CellExecution:
     """Execute one sealed R2 cell through the R3 scheduler and R4 adapter."""
     from ..run.layout import RunLayout
@@ -3454,6 +3458,10 @@ async def execute_plan_cell(
         providers=providers,
         pricing=pricing,
         harnesses=default_harnesses() if harnesses is None else harnesses,
+        tool_runtimes={
+            profile_id: factory(evidence)
+            for profile_id, factory in (tool_runtime_factories or {}).items()
+        },
         request_seed_by_profile=request_seed_by_profile,
     )
     result = await run_episode(
