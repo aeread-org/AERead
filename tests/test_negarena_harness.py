@@ -7,7 +7,7 @@ Unlike ``tests/test_negarena_environment.py`` (which drives
 shortcut) and ``tests/test_negarena_parity.py`` (which reuses that same
 hand-wired loop for its "adapter" side), every test in this module drives a
 full episode through the REAL shared-runner scheduler
-(``aeread.shared_runner.scheduler.run_episode``), via
+(``aeread.shared_runner.task.scheduler.run_episode``), via
 ``ScriptedNegarenaHarness`` as the response source, with a real
 ``EvidenceStore`` sealed at the end -- then proves an offline replay from
 the recorded decision log alone reproduces the same state and the same
@@ -28,11 +28,11 @@ from types import MappingProxyType
 
 import pytest
 
-from aeread.shared_runner.execution import EvidenceStore
+from aeread.shared_runner.task.execution import EvidenceStore
 from aeread.shared_runner.registry import PluginRegistry
-from aeread.shared_runner.resolver import PlanCell, canonical_json_bytes
+from aeread.shared_runner.run.resolver import PlanCell, canonical_json_bytes
 from aeread.shared_runner.schemas import CaseManifest
-from aeread.shared_runner.scheduler import run_episode
+from aeread.shared_runner.task.scheduler import run_episode
 from aeread_families.negarena import parity
 from aeread_families.negarena.cases import BLUE, RED
 from aeread_families.negarena.environment import (
@@ -534,7 +534,7 @@ def test_replay_report_status_is_not_compared_when_no_comparison_was_made() -> N
     (docs/negarena_codex_triage.md Finding 4) -- a caller reading only
     ``status`` (never ``comparison`` itself) must be able to tell "verified
     identical" apart from "never compared"."""
-    from aeread.shared_runner.scheduler import EpisodeResult
+    from aeread.shared_runner.task.scheduler import EpisodeResult
     from aeread_families.negarena.replay import ReplayReport, ReplayScoreResult
 
     fake_episode = EpisodeResult(
@@ -566,7 +566,7 @@ def test_replay_of_a_reordered_recording_surfaces_as_a_scheduler_contract_error(
     only applies to hooks the family itself owns, not to the scheduler's
     generic response-source boundary) -- the underlying ``ReplayError``
     text is still present, never swallowed."""
-    from aeread.shared_runner.scheduler import SchedulerContractError
+    from aeread.shared_runner.task.scheduler import SchedulerContractError
 
     case = _load_case("negarena.buy_sell.0", "buy_sell")
     setup_plugin = NegarenaPlugin(upstream_root=UPSTREAM_ROOT, bridge=bridge)

@@ -19,7 +19,7 @@ from typing import Any
 
 import pytest
 
-from aeread.shared_runner.scheduler import ActionEnvelope
+from aeread.shared_runner.task.scheduler import ActionEnvelope
 from aeread_families.negarena import measurement as m
 from aeread_families.negarena.cases import BLUE, RED
 from aeread_families.negarena.environment import (

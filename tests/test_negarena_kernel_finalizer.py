@@ -6,7 +6,7 @@ scores it by calling ``NegarenaScorer.score_seat_outcome``/
 ``score_agreement_reached`` directly, and seals evidence containing only
 ``negarena_decision_served`` events -- a hand-wired shortcut around the
 generic kernel path every other production family (Housing) actually uses
-(``aeread.shared_runner.family_evaluation.finalize_family_execution``,
+(``aeread.shared_runner.task.evaluation.finalize_family_execution``,
 reached via ``execute_plan_cell``). ``docs/negarena_codex_triage.md``
 Findings 1 and 3 are both about that shortcut: the production scorer
 (``plugin.build_scorer(family_case)``, called as ``scorer(outcome,
@@ -37,11 +37,11 @@ from typing import Any, Mapping
 
 import pytest
 
-from aeread.shared_runner.execution import CellExecution, EvidenceStore
-from aeread.shared_runner.family_evaluation import finalize_family_execution
-from aeread.shared_runner.harness import default_harnesses
+from aeread.shared_runner.task.execution import CellExecution, EvidenceStore
+from aeread.shared_runner.task.evaluation import finalize_family_execution
+from aeread.shared_runner.model_call.harness import default_harnesses
 from aeread.shared_runner.registry import HarnessRegistry, PluginRegistry, ProviderCapabilities
-from aeread.shared_runner.resolver import (
+from aeread.shared_runner.run.resolver import (
     ImplementationPin,
     RunPlan,
     canonical_json_bytes,
@@ -158,7 +158,7 @@ def _build_negarena_run_plan(*, plugin: NegarenaPlugin, case: CaseManifest) -> t
             },
             "runtime": {
                 "kind": "python",
-                "implementation": "aeread.shared_runner.execution",
+                "implementation": "aeread.shared_runner.task.execution",
                 "version": "0.1.0",
             },
             "tools": [],
@@ -325,7 +325,7 @@ def _build_negarena_run_plan(*, plugin: NegarenaPlugin, case: CaseManifest) -> t
         ),
         ImplementationPin.from_dict(
             {
-                "component_id": "aeread.shared_runner.execution",
+                "component_id": "aeread.shared_runner.task.execution",
                 "kind": "runtime",
                 "version": "0.1.0",
                 "sha256": execution_sha256,

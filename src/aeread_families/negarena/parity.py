@@ -29,7 +29,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Mapping
 
-from aeread.shared_runner.scheduler import ActionEnvelope
+from aeread.shared_runner.task.scheduler import ActionEnvelope
 
 from . import measurement as measurement_module
 from .cases import BLUE, RED

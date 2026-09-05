@@ -17,7 +17,7 @@ from typing import Any
 import pytest
 
 from aeread.shared_runner.registry import IncompletePluginError, PluginRegistry
-from aeread.shared_runner.scheduler import ActionEnvelope, LegalityResult, ParseResult
+from aeread.shared_runner.task.scheduler import ActionEnvelope, LegalityResult, ParseResult
 from aeread_families.negarena import cases as negarena_cases
 from aeread_families.negarena.environment import (
     BLUE_PHASE,

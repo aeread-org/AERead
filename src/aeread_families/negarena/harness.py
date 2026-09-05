@@ -6,7 +6,7 @@ Negarena's Mode B phase graph declares ``needs_tools: False``
 call already delegates to :class:`~aeread_families.negarena.negarena_bridge.NegarenaBridge`
 from *inside* ``NegarenaPlugin``'s own hooks (``parse_action``, ``legal``,
 ``build_scorer`` -> ``measurement.score_seat_outcome``) -- never from a
-harness-owned :class:`~aeread.shared_runner.tools.ToolRuntime`. So unlike
+harness-owned :class:`~aeread.shared_runner.task.tools.ToolRuntime`. So unlike
 ``ScriptedTau3RetailHarness`` (which drives ``ToolRuntime`` to *produce*
 fresh tool evidence for every assistant turn), this harness executes no
 tool at all; its only job is to serve one scripted raw response per
@@ -34,8 +34,8 @@ from __future__ import annotations
 import copy
 from typing import Any, Mapping, Sequence
 
-from aeread.shared_runner.execution import EvidenceStore
-from aeread.shared_runner.scheduler import EpisodeResult, run_episode
+from aeread.shared_runner.task.execution import EvidenceStore
+from aeread.shared_runner.task.scheduler import EpisodeResult, run_episode
 
 
 def _plain(value: Any) -> Any:
@@ -206,7 +206,7 @@ async def run_scripted_negarena_episode(
 
     This is the one production entry point this adapter ships for driving a
     ``ScriptedNegarenaHarness``-served episode toward
-    ``aeread.shared_runner.family_evaluation.finalize_family_execution``.
+    ``aeread.shared_runner.task.evaluation.finalize_family_execution``.
     Before this function existed, reaching that call site required a caller
     to remember two separate steps -- drive ``run_episode`` with a
     ``ScriptedNegarenaHarness``, *then* separately call

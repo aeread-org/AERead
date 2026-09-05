@@ -61,7 +61,7 @@ from aeread.shared_runner.measurement import (
     ValidityReport,
     VerifierSpec,
 )
-from aeread.shared_runner.resolver import canonical_json_bytes
+from aeread.shared_runner.run.resolver import canonical_json_bytes
 
 from .cases import BLUE, RED
 from .negarena_bridge import NegarenaBridge
