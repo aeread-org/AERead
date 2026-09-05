@@ -74,6 +74,9 @@ pipeline attempts measured Arena support turns with 5–8k prompt tokens. The
 campaign gives each seat enough local headroom to avoid a false seat-budget
 failure, then enforces $0.075 on the combined completed trajectory and $0.40
 across the campaign.
+Both frozen role prompts require concise, non-repetitive replies so conversation
+growth does not turn later calls into 9–12k-token requests. The support prompt
+also restates that account and order claims require actual tool results.
 
 This is a **pipeline proof**, not an upstream behavioral-parity claim. Both the
 retail assistant and customer simulator use GLM 5.2, and the harness uses
@@ -85,7 +88,7 @@ Freeze and inspect the digest-bound plan before spending:
 
 ```bash
 PYTHONPATH=src python -m aeread_families.tau3_retail.campaign \
-  --run-root runs/tau3_retail_glm5p2_arena_pipeline_proof_v7
+  --run-root runs/tau3_retail_glm5p2_arena_pipeline_proof_v8
 ```
 
 Execute only with the pinned bridge and skip-fail gate enabled:
@@ -95,7 +98,7 @@ AEREAD_TAU2_UPSTREAM_ROOT=$PWD/runs/upstream-tau2 \
 AEREAD_TAU2_BRIDGE_PYTHON=$PWD/runs/tau2-bridge-venv/bin/python \
 AEREAD_TAU2_BRIDGE_REQUIRED=1 \
 PYTHONPATH=src python -m aeread_families.tau3_retail.campaign \
-  --run-root runs/tau3_retail_glm5p2_arena_pipeline_proof_v7 \
+  --run-root runs/tau3_retail_glm5p2_arena_pipeline_proof_v8 \
   --upstream-root runs/upstream-tau2 --execute
 ```
 
@@ -104,8 +107,8 @@ digest-mismatched checkpoints:
 
 ```bash
 PYTHONPATH=src python -m aeread_families.tau3_retail.campaign \
-  --run-root runs/tau3_retail_glm5p2_arena_pipeline_proof_v7 \
-  --publication-root evidence/tau3_retail_glm5p2_arena_pipeline_proof_v7 \
+  --run-root runs/tau3_retail_glm5p2_arena_pipeline_proof_v8 \
+  --publication-root evidence/tau3_retail_glm5p2_arena_pipeline_proof_v8 \
   --publish-only
 ```
 
