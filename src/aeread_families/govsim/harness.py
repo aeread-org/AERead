@@ -3,7 +3,7 @@
 Mirrors ``tau3_retail``'s ``ScriptedTau3RetailHarness`` (spec section 5's
 "scripted harness" mention): a ``response_source`` implementing the real
 kernel-facing protocol required by
-``aeread.shared_runner.scheduler.run_episode`` (``request.phase_id``/
+``aeread.shared_runner.task.scheduler.run_episode`` (``request.phase_id``/
 ``request.seat_id``/``request.observation`` in, a raw response dict out) --
 the same code path a live model-backed run would use, never the ad hoc loop
 ``tests/test_govsim_measurement.py``'s ``_drive_episode`` used for milestones
@@ -24,14 +24,14 @@ harness has one baked in; an ``EvidenceStore`` is instead accepted here as
 an OPTIONAL parameter so a caller can still get a genuinely sealed evidence
 chain for a scripted run (one event per completed logical action, via the
 scheduler's own ``finalize_action`` lifecycle hook -- see
-``aeread.shared_runner.scheduler._notify_action_result``), without forcing
+``aeread.shared_runner.task.scheduler._notify_action_result``), without forcing
 every caller (e.g. a pure structural test) to provision one.
 """
 from __future__ import annotations
 
 from typing import Any, Mapping
 
-from aeread.shared_runner.execution import EvidenceStore
+from aeread.shared_runner.task.execution import EvidenceStore
 
 from . import policies
 from .environment import DISCUSS_PHASE, HARVEST_PHASE, REFLECT_PHASE

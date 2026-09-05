@@ -21,7 +21,7 @@ import pytest
 
 from aeread.shared_runner.registry import PluginRegistry
 from aeread.shared_runner.schemas import FamilyManifest
-from aeread.shared_runner.scheduler import ActionEnvelope, LegalityResult, ParseResult
+from aeread.shared_runner.task.scheduler import ActionEnvelope, LegalityResult, ParseResult
 from aeread_families.govsim import cases as govsim_cases
 from aeread_families.govsim import environment
 from aeread_families.govsim.environment import (

@@ -8,7 +8,7 @@ round-tripping, recorded-response ordering, mismatch reporting, harness
 behavior), hiding a regression in any of those behind a missing-checkout
 skip instead of running and failing it). Pure, provider-free structural
 tests run everywhere; tests that drive a genuine episode through the REAL
-kernel scheduler (``aeread.shared_runner.scheduler.run_episode``, via
+kernel scheduler (``aeread.shared_runner.task.scheduler.run_episode``, via
 ``PluginRegistry``/``ScriptedGovsimHarness`` -- never the ad hoc
 ``_drive_episode`` loop ``tests/test_govsim_measurement.py`` uses for its
 own goldens) run for real against the pinned bridge and are individually
@@ -39,11 +39,11 @@ from typing import Any, Mapping
 import numpy as np
 import pytest
 
-from aeread.shared_runner.execution import EvidenceStore
+from aeread.shared_runner.task.execution import EvidenceStore
 from aeread.shared_runner.registry import PluginRegistry
-from aeread.shared_runner.resolver import PlanCell, canonical_json_bytes
+from aeread.shared_runner.run.resolver import PlanCell, canonical_json_bytes
 from aeread.shared_runner.schemas import CaseManifest
-from aeread.shared_runner.scheduler import EpisodeResult, SchedulerContractError, run_episode
+from aeread.shared_runner.task.scheduler import EpisodeResult, SchedulerContractError, run_episode
 from aeread_families.govsim import measurement as m
 from aeread_families.govsim.environment import (
     DISCUSS_PHASE,
@@ -210,7 +210,7 @@ def _run_live(bridge_instance: GovsimBridge, tmp_path: Path, case_id: str, *, su
     Unlike ``tests/test_govsim_measurement.py``'s ``_drive_episode`` (which
     calls ``GovsimPlugin``'s hooks directly, bypassing the scheduler's own
     budget checks, envelope construction, and state hashing entirely), this
-    goes through ``aeread.shared_runner.scheduler.run_episode`` with a
+    goes through ``aeread.shared_runner.task.scheduler.run_episode`` with a
     ``PluginRegistry``-resolved plugin and ``ScriptedGovsimHarness`` as the
     ``response_source`` -- the same code path a live model-backed run would
     use.

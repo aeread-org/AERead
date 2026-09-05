@@ -14,7 +14,7 @@ from pathlib import Path
 
 import pytest
 
-from aeread.shared_runner.resolver import case_content_sha256
+from aeread.shared_runner.run.resolver import case_content_sha256
 from aeread.shared_runner.schemas import AuthoringValidationError, CaseManifest, is_exportable_id
 from aeread_families.govsim import cases as govsim_cases
 from aeread_families.govsim import policies
