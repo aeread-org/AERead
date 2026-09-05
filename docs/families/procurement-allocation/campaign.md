@@ -1038,3 +1038,14 @@ negotiation. A confirmatory claim needs held-out worlds and, ideally, a control
 arm re-run on the same environment. The tracked bundle is
 `evidence/procurement_allocation_glm53_flash_parasail_pre_award_check_v1/`.
 
+#### Risk-gate V4 rerun retired
+
+Maintainer decision 2026-09-04: the fresh V4 attempt is retired rather than
+rerun. The regret decomposition over every published GLM bundle and the two
+negotiation-worksheet treatments converged on the same limit: prompt-level gates
+move feasibility on the worlds they target and lose it elsewhere, and the remaining
+regret is quantity reasoning after a counter changes MOQ and supplier selection
+under opaque labels. The 2x2 prompt factorial would spend about $3 to measure two
+more such gates. The next procurement intervention changes the decision interface
+instead: a verifier-visible pre-award check. The V1 through V4 risk-gate audits
+remain as the operational record of the Parasail route's throttling behavior.

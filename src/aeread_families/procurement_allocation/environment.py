@@ -32,6 +32,7 @@ from aeread.shared_runner.measurement import (
 from aeread.shared_runner.registry import PluginRegistry
 from aeread.shared_runner.run.resolver import canonical_json_bytes
 from aeread.shared_runner.schemas import FamilyManifest
+from aeread.shared_runner.task.evaluation import FamilyScoringInput
 from aeread.shared_runner.task.scheduler import (
     LegalityResult,
     ParseResult,
@@ -765,8 +766,9 @@ class ProcurementAllocationMeasurementScorer:
     family_case: Mapping[str, Any]
 
     def __call__(
-        self, outcome: Mapping[str, Any], *, evidence_refs: tuple[str, ...] = ()
+        self, scoring_input: FamilyScoringInput, *, evidence_refs: tuple[str, ...] = ()
     ) -> ScoreEnvelope:
+        outcome = scoring_input.outcome
         leaf = procurement_allocation_measurement_leaf(self.family_case)
         reasons: list[str] = []
         if not isinstance(outcome, Mapping):

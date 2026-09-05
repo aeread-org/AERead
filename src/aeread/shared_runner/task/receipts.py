@@ -147,6 +147,14 @@ class EvaluationReceipt:
     failure: EvaluationFailure | None
     observability_limits: tuple[str, ...] = field(default_factory=tuple)
     replay_level: str = "none"
+    # kernel_contract_impl_review.md finding 12: a leaf a family manifest
+    # declares but marks ``deferred`` (spec section 4 -- a judge-dependent
+    # leaf whose verdict does not exist yet) must remain visible on the
+    # receipt as declared-and-deferred. Without this a consumer cannot tell
+    # a valid deferred leaf apart from one a scorer silently forgot. Empty
+    # for every family that declares no leaf policy at all (the common case
+    # today -- see ``FinalizeTimeLeafPolicy``).
+    deferred_leaf_ids: tuple[str, ...] = field(default_factory=tuple)
 
     SPEC_VERSION = "aeread.receipt/0.1"
 
@@ -215,6 +223,19 @@ class EvaluationReceipt:
         self._validate_and_freeze_plan_pins()
         self._validate_and_freeze_scores()
         self._validate_evidence()
+
+        deferred_leaf_ids = tuple(self.deferred_leaf_ids)
+        if len(set(deferred_leaf_ids)) != len(deferred_leaf_ids):
+            raise MeasurementContractError("deferred_leaf_ids must not contain duplicates")
+        for leaf_id in deferred_leaf_ids:
+            _require_id(leaf_id, "deferred leaf id")
+        scored_leaf_ids = {score.leaf.leaf_id for score in self.scores}
+        overlap = sorted(set(deferred_leaf_ids) & scored_leaf_ids)
+        if overlap:
+            raise MeasurementContractError(
+                f"deferred_leaf_ids must not overlap with produced scores: {overlap}"
+            )
+        object.__setattr__(self, "deferred_leaf_ids", tuple(sorted(deferred_leaf_ids)))
 
         limits = tuple(self.observability_limits)
         for limit in limits:

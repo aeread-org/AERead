@@ -42,12 +42,14 @@ that: the full sequence of visible messages) instead.
 from __future__ import annotations
 
 import hashlib
+import json
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
 from aeread.shared_runner.measurement import (
     EstimandSpec,
+    FamilyScoreSet,
     ImplementationRef,
     MeasurementLeafSpec,
     MetricValue,
@@ -58,6 +60,7 @@ from aeread.shared_runner.measurement import (
     VerifierSpec,
 )
 from aeread.shared_runner.run.resolver import canonical_json_bytes
+from aeread.shared_runner.task.evaluation import FamilyScoringInput
 
 from .tau2_bridge import Tau2Bridge
 
@@ -72,7 +75,7 @@ DOMAIN_VERSION = "1.0.0"
 DB_STATE_ESTIMAND_ID = "tau3_retail_db_state"
 DB_STATE_LEAF_ID = "tau3_retail_db_state_leaf"
 GOLD_DATABASE_REFERENCE_ID = "tau3_gold_database"
-DB_STATE_SCORER_ID = "tau3_retail_db_state_scorer"
+DB_STATE_SCORER_ID = "tau3_retail_scorer"
 
 NL_ASSERTIONS_ESTIMAND_ID = "tau3_retail_nl_assertions"
 NL_ASSERTIONS_LEAF_ID = "tau3_retail_nl_assertions_leaf"
@@ -427,6 +430,7 @@ class Tau3RetailScorer:
     task: Mapping[str, Any]
     pins: Mapping[str, Any]
     leaves: tuple[MeasurementLeafSpec, ...]
+    bridge: Tau2Bridge | None = None
 
     @property
     def db_state_leaf(self) -> MeasurementLeafSpec:
@@ -471,10 +475,62 @@ class Tau3RetailScorer:
             nl_leaf, verdicts=verdicts, evidence_refs=evidence_refs
         )
 
+    def __call__(
+        self,
+        scoring_input: FamilyScoringInput,
+        *,
+        evidence_refs: tuple[str, ...] = (),
+    ) -> FamilyScoreSet:
+        if self.bridge is None:
+            raise ValueError("tau3 retail scoring requires the pinned tau2 bridge")
+        final_state: Mapping[str, Any] | None = None
+        for phase in reversed(scoring_input.phase_instances):
+            if phase.transitions:
+                candidate = phase.transitions[-1].state
+                if isinstance(candidate, Mapping):
+                    final_state = candidate
+                    break
+        if final_state is None:
+            raise ValueError("tau3 retail scoring input has no replayed terminal state")
+        messages = final_state.get("messages")
+        if not isinstance(messages, Sequence) or isinstance(messages, (str, bytes)):
+            raise ValueError("tau3 retail terminal state has no message trajectory")
+        outcome = scoring_input.outcome
+        termination_reason = outcome.get("termination_reason")
+        if not isinstance(termination_reason, str):
+            raise ValueError("tau3 retail outcome has no termination reason")
+        diagnostics = build_diagnostics(
+            messages=messages,
+            num_tool_errors=int(final_state.get("num_tool_errors", 0)),
+            upstream_step_count=int(outcome.get("upstream_step_count", 0)),
+        )
+        db_score = self.score_db_state(
+            bridge=self.bridge,
+            messages=json.loads(canonical_json_bytes(messages)),
+            termination_reason=termination_reason,
+            diagnostics=diagnostics,
+            evidence_refs=evidence_refs,
+        )
+        return FamilyScoreSet(
+            primary_leaf_id=DB_STATE_LEAF_ID,
+            scores=(db_score,),
+            admission_leaf_ids=(DB_STATE_LEAF_ID,),
+        )
 
-def build_scorer(task: Mapping[str, Any], pins: Mapping[str, Any]) -> Tau3RetailScorer:
+
+def build_scorer(
+    task: Mapping[str, Any],
+    pins: Mapping[str, Any],
+    *,
+    bridge: Tau2Bridge | None = None,
+) -> Tau3RetailScorer:
     """Build the one ``Tau3RetailScorer`` for a case's ``family_case``."""
-    return Tau3RetailScorer(task=task, pins=pins, leaves=build_leaves(task, pins))
+    return Tau3RetailScorer(
+        task=task,
+        pins=pins,
+        leaves=build_leaves(task, pins),
+        bridge=bridge,
+    )
 
 
 __all__ = [

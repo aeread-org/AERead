@@ -240,24 +240,11 @@ async def replay_episode(
 
 
 def _strip_message_timestamps(value: Any) -> Any:
-    """Recursively drop every ``"timestamp"`` key from message-shaped dicts.
+    """Drop timestamps when comparing legacy records made before stabilization.
 
-    ``Tau3RetailPlugin.step()`` re-derives every message it appends to
-    state through ``Tau2Bridge.normalize_messages``/``call_tool``, i.e. a
-    fresh upstream ``model_validate`` of a dict that never carries a
-    ``"timestamp"`` field. Upstream's own ``SystemMessage``/
-    ``ParticipantMessageBase``/``ToolMessage`` models stamp that field with
-    ``default_factory=get_now()`` whenever it is absent from the input --
-    so **every** message ``step()`` ever appends gets a brand-new wall-clock
-    timestamp, even when replaying the exact same logical action twice in a
-    row. This was discovered empirically while building this replayer (a
-    live run's own state, hashed twice, never matches itself): every other
-    ``ParticipantMessageBase``/``ToolMessage`` field defaults deterministically
-    (``None``/``False``); ``timestamp`` is the only source of
-    non-reproducibility. Stripping it is the only way to compare *content*
-    (db, role, text, tool calls, tool results) reproducibly across two
-    independent runs of one trajectory -- it is not a task-specific
-    special case; it applies identically to every tau3.retail episode.
+    The live bridge now canonicalizes upstream-generated message timestamps to
+    ``None``, so new runs are byte-replayable. This projection remains for
+    previously recorded trajectories that contain wall-clock timestamps.
     """
     if isinstance(value, Mapping):
         return {
@@ -277,22 +264,9 @@ class StateComparison:
     Every field is a typed, explicit boolean plus the values that produced
     it -- callers get a specific mismatch, not a single collapsed verdict.
 
-    Two families of fields, deliberately kept distinct rather than
-    collapsed into one number:
-
-    * **Raw, byte-exact** (``state_hashes_match``, ``final_state_matches``):
-      compares the scheduler's own sealed state exactly as sealed. Given
-      ``step()``'s per-call message timestamping (see
-      ``_strip_message_timestamps``), these are expected to read ``False``
-      for any episode containing at least one message -- that is a real,
-      general property of the current adapter, not a bug in this
-      comparator, and is reported honestly rather than hidden.
-    * **Semantic, timestamp-independent**
-      (``final_state_content_matches``, and ``matches`` overall): the
-      actual replay guarantee this module exists to provide -- same
-      database (``original_final_db_sha256 == replayed_final_db_sha256``),
-      same terminal record, same outcome, same message content. This is
-      exactly "reproduce the final database and the deterministic score."
+    Raw byte agreement and timestamp-independent semantic agreement remain
+    separate so legacy trajectories are diagnosable. New bridge-generated
+    trajectories are expected to satisfy both.
     """
 
     phase_instance_count_matches: bool
@@ -308,10 +282,8 @@ class StateComparison:
     @property
     def matches(self) -> bool:
         """The semantic replay guarantee: DB, terminal, outcome, and message
-        content agree -- deliberately independent of the known,
-        general-purpose ``timestamp`` non-determinism documented on
-        ``_strip_message_timestamps`` and surfaced separately via
-        ``state_hashes_match``/``final_state_matches``."""
+        content agree. Legacy timestamp drift remains visible separately via
+        ``state_hashes_match`` and ``final_state_matches``."""
         return (
             self.phase_instance_count_matches
             and self.terminal_matches
