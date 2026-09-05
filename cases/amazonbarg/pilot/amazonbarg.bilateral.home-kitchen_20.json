@@ -1,0 +1,77 @@
+{
+  "case_id": "amazonbarg.bilateral.home-kitchen_20",
+  "content_sha256": "de599dbc8541938b3c2421bd7b6ee185afef3d4b372309a77b8b4f5738759fad",
+  "episode": {
+    "max_logical_actions": 12,
+    "termination": [
+      "deal",
+      "quit",
+      "action_error",
+      "turn_limit"
+    ]
+  },
+  "family_id": "amazonbarg.bilateral",
+  "family_version": "0.1.0",
+  "payload": {
+    "derived": {
+      "budget": 47.992000000000004,
+      "category": "home-kitchen",
+      "category_file": "home-kitchen.json",
+      "codename": "home-kitchen_20",
+      "cost": 47.99,
+      "description": "Giving and receiving flowers is always joyful, and this LEGO Icons Wildflower Bouquet (10313) crafts set for adults puts a creative spin on a timeless gift. Why not celebrate the next special occasion by sending a loved one LEGO flowers that will never wither or need to be watered? Part of the LEGO Botanical Collection, this set for adults is crafted entirely from intricate LEGO pieces. The vibrant flower bouquet features 8 species of wildflowers on adjustable stems. Budding florists and flower lovers can spend hours building and identifying the blooms inspired by cornflowers, lavender, Welsh poppies, cow parsley, leatherleaf ferns, gerbera daisies, larkspur and lupins. Once complete, these LEGO flowers can be displayed in a favorite vase to become an eye-catching piece of home décor that will plant seeds of joy in whichever room they’re placed. This set is part of the LEGO Botanical Collection, which includes elements of plant-based plastic, made using sustainably sourced sugar cane, and makes a fantastic unique gift for flower lovers that will brighten up any home.",
+      "index_in_file": 19,
+      "interest": "mutual",
+      "price": 59.99,
+      "title": "LEGO Icons Wildflower Bouquet 10313 Set - Artificial Flowers with Poppies and Lavender, Adult Collection, Unique Home Décor, Botanical Piece for Wife, Spring Flowers"
+    },
+    "pins": {
+      "budget_ratio": 0.8,
+      "category_file_bytes": 56926,
+      "category_file_sha256": "8324c1c67b533bd0d2700edce852cc8ab3417c6cc1043e660a20b817bc8c910b",
+      "license": "Apache-2.0",
+      "max_turns": 6,
+      "upstream_commit": "834ad9066d0627f0332504d5fa6d236706f2402b",
+      "upstream_repo": "TianXiaSJTU/AmazonPriceHistory"
+    },
+    "product": {
+      "amazon_link": "https://www.amazon.com/dp/B0BGQL5B3Q",
+      "amazon_title": "LEGO Icons Wildflower Bouquet 10313 Set - Artificial Flowers with Poppies and Lavender, Adult Collection, Unique Home Décor, Botanical Piece for Wife, Spring Flowers",
+      "average_price": "$53.91",
+      "badge": "Best Price",
+      "category": "home-kitchen",
+      "current_price": "$47.99",
+      "current_price_date": "Oct 05, 2023",
+      "description": "Giving and receiving flowers is always joyful, and this LEGO Icons Wildflower Bouquet (10313) crafts set for adults puts a creative spin on a timeless gift. Why not celebrate the next special occasion by sending a loved one LEGO flowers that will never wither or need to be watered? Part of the LEGO Botanical Collection, this set for adults is crafted entirely from intricate LEGO pieces. The vibrant flower bouquet features 8 species of wildflowers on adjustable stems. Budding florists and flower lovers can spend hours building and identifying the blooms inspired by cornflowers, lavender, Welsh poppies, cow parsley, leatherleaf ferns, gerbera daisies, larkspur and lupins. Once complete, these LEGO flowers can be displayed in a favorite vase to become an eye-catching piece of home décor that will plant seeds of joy in whichever room they’re placed. This set is part of the LEGO Botanical Collection, which includes elements of plant-based plastic, made using sustainably sourced sugar cane, and makes a fantastic unique gift for flower lovers that will brighten up any home.",
+      "features": "Cultivate Creativity - Build and display a lifelike LEGO Icons Wildflower Bouquet with this immersive building project for adults. Please note, a vase is not included\nTailor and Adjust – The set features 16 individual stems that can be adjusted, allowing you to tailor the height of the flowers and experiment with different arrangements\nDIY Floral Decor – Once complete, this bouquet can be displayed in your own vase as a centerpiece of home decor. Perfect for adding a touch of elegance to any room in your house\nWildflower Delight –Create a stunning LEGO Icons Wildflower Bouquet with our DIY set! Perfect for florists and flower lovers alike\nEndless Possibilities – Elevate your LEGO flower bouquet game with this versatile building set! Combine with the LEGO Icons Flower Bouquet (10280) to create larger or multiple bouquets. Endless creative possibilities await\nLEGO Master - Be Inspired by a LEGO Master when building this fun set. You can combine it with other LEGO Icons Botanical sets to make an even more beautiful arrangement",
+      "highest_price": "$59.99",
+      "highest_price_date": "Jun 02, 2023",
+      "img": "https://m.media-amazon.com/images/I/818UxJzyshL.__AC_SX300_SY300_QL70_FMwebp_.jpg",
+      "link": "https://camelcamelcamel.com/product/B0BGQL5B3Q?active=price_amazon&context=popular",
+      "list_price": "$59.99",
+      "lowest_price": "$47.99",
+      "lowest_price_date": "Oct 05, 2023",
+      "title": "LEGO Icons Wildflower Bouquet 10313 Set - Artificial Flowers with Poppies and Lavender, Adult Collection, Unique Home Décor, Botanical Piece for Wife, Spring Flowers"
+    }
+  },
+  "provenance": {
+    "generator_id": "amazonbarg_importer",
+    "generator_version": "0.1.0",
+    "review_status": "upstream_pinned"
+  },
+  "seats": [
+    {
+      "id": "buyer",
+      "role": "buyer"
+    },
+    {
+      "id": "seller",
+      "role": "seller"
+    }
+  ],
+  "spec_version": "aeread.case/0.1",
+  "split": "pilot",
+  "upstream_task_id": "home-kitchen_20",
+  "visibility_policy": "amazonbarg_seller_cost_private_v1",
+  "world_seed": 348
+}

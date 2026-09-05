@@ -1,0 +1,142 @@
+{
+  "budget_ratio": 0.8,
+  "category_files": [
+    {
+      "bytes": 13960,
+      "category": "automotive",
+      "file": "automotive.json",
+      "record_count": 7,
+      "sha256": "cd822866bda89fd1eed8b3a8b4668801510102829d555d2ba90086c1c1063fba"
+    },
+    {
+      "bytes": 34749,
+      "category": "baby-products",
+      "file": "baby-products.json",
+      "record_count": 11,
+      "sha256": "b2b1b79a3659673708e1511a2afad1d6c197afef205df221f300f72321b00b94"
+    },
+    {
+      "bytes": 13799,
+      "category": "beauty",
+      "file": "beauty.json",
+      "record_count": 12,
+      "sha256": "5ca11efe5d0beee7689968b2894f4b164bdd88834b31b57a6c9cced397f7599e"
+    },
+    {
+      "bytes": 21512,
+      "category": "books",
+      "file": "books.json",
+      "record_count": 13,
+      "sha256": "a7ebb82a74129323660843c5fc9bcb868ca8216162246e57bf2cc1c8b3554325"
+    },
+    {
+      "bytes": 774110,
+      "category": "electronics",
+      "file": "electronics.json",
+      "record_count": 284,
+      "sha256": "7995bace94537ce27fa4ac4c658d2fee27811071ab43ea682f48a92594b7518e"
+    },
+    {
+      "bytes": 2694,
+      "category": "health-personal-care",
+      "file": "health-personal-care.json",
+      "record_count": 2,
+      "sha256": "2bcd86e1a10a8fa4bc69bb75ddc888556ca39aba152e473ce417b9de59f0a1c3"
+    },
+    {
+      "bytes": 56926,
+      "category": "home-kitchen",
+      "file": "home-kitchen.json",
+      "record_count": 23,
+      "sha256": "8324c1c67b533bd0d2700edce852cc8ab3417c6cc1043e660a20b817bc8c910b"
+    },
+    {
+      "bytes": 4470,
+      "category": "industrial-scientific",
+      "file": "industrial-scientific.json",
+      "record_count": 2,
+      "sha256": "d8d7073a67e72444e9bf5067ad9a334fd3e05885287e565981f689433ae13c11"
+    },
+    {
+      "bytes": 114852,
+      "category": "movies-tv",
+      "file": "movies-tv.json",
+      "record_count": 75,
+      "sha256": "a66b7454b4f69e3b3b1e00362f55d67aba5e5893bbaa5b77b49fbe162e25d00e"
+    },
+    {
+      "bytes": 6846,
+      "category": "music",
+      "file": "music.json",
+      "record_count": 5,
+      "sha256": "686c339a4b2c241bec08a8e0f5ab378dd4d9dc1d50966c987d0df9248ab4c18a"
+    },
+    {
+      "bytes": 791587,
+      "category": "other",
+      "file": "other.json",
+      "record_count": 288,
+      "sha256": "6868df944d0aec2dd2f06c7ad8304c9f41097eb4dc375d80dd2fc12812cfa1bd"
+    },
+    {
+      "bytes": 33552,
+      "category": "patio-lawn-garden",
+      "file": "patio-lawn-garden.json",
+      "record_count": 10,
+      "sha256": "edaf0cbba240d7d17f34cfe261fae3dd2987409bf77ffe721d5855fd4dae3ba8"
+    },
+    {
+      "bytes": 12039,
+      "category": "pet-supplies",
+      "file": "pet-supplies.json",
+      "record_count": 5,
+      "sha256": "f975907be39e23440ef3ca54960d3453ec36f798a2e232d5016a47a74376d31b"
+    },
+    {
+      "bytes": 11739,
+      "category": "software",
+      "file": "software.json",
+      "record_count": 4,
+      "sha256": "ebdeacf7a4d9217df13cd32041124621cef24f11c73da2f4fd5b85801073293b"
+    },
+    {
+      "bytes": 27354,
+      "category": "sports-outdoors",
+      "file": "sports-outdoors.json",
+      "record_count": 16,
+      "sha256": "806f73f100356da2ea199cf8d7c7d77afe8caa93a14880bb442a7d7276b85c96"
+    },
+    {
+      "bytes": 394693,
+      "category": "tools-home-improvement",
+      "file": "tools-home-improvement.json",
+      "record_count": 144,
+      "sha256": "f8f75239091c71d58df4108f8246a21a6a831ebc40e3a4ccc018efcac8589397"
+    },
+    {
+      "bytes": 58777,
+      "category": "toys-games",
+      "file": "toys-games.json",
+      "record_count": 22,
+      "sha256": "18c4ddf974468b896c3877a147ad00b1d86f22964ceabd936848a9fd310cb91f"
+    },
+    {
+      "bytes": 14967,
+      "category": "video-games",
+      "file": "video-games.json",
+      "record_count": 7,
+      "sha256": "2f92b9efa2d106b4baaf837c8c41d3a5e4cbcecb28bb96b9ed434e82c430dd66"
+    }
+  ],
+  "license": "Apache-2.0",
+  "max_turns": 6,
+  "pilot_category_files": [
+    "home-kitchen.json",
+    "toys-games.json"
+  ],
+  "total_conflicting_interest": 44,
+  "total_mutual_interest": 886,
+  "total_records": 930,
+  "upstream_commit": "834ad9066d0627f0332504d5fa6d236706f2402b",
+  "upstream_repo": "TianXiaSJTU/AmazonPriceHistory"
+}

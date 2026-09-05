@@ -1,0 +1,77 @@
+{
+  "case_id": "amazonbarg.bilateral.toys-games_17",
+  "content_sha256": "12ed8b8cc65b3eb67902d5f6b98884737aba439da2a9617421b4d08bac6b847f",
+  "episode": {
+    "max_logical_actions": 12,
+    "termination": [
+      "deal",
+      "quit",
+      "action_error",
+      "turn_limit"
+    ]
+  },
+  "family_id": "amazonbarg.bilateral",
+  "family_version": "0.1.0",
+  "payload": {
+    "derived": {
+      "budget": 3.9920000000000004,
+      "category": "toys-games",
+      "category_file": "toys-games.json",
+      "codename": "toys-games_17",
+      "cost": 2.39,
+      "description": "Bring along the compact Nerf Elite 2.0 Ace SD-1 blaster on all your missions and battles! Take advantage of this toy blaster's compact size for fast-moving fun in outdoor play. With its small size, you can bring these Nerf toy blasters almost anywhere to launch into a stealthy battles and surprise attacks. It has onboard 1-dart storage so you can keep a second dart within reach for fast reloads. It comes with 2 Official Nerf Elite foam darts. Get battling in 3 quick steps! Load 1 dart into the front of the barrel, pull down the priming handle, and press the trigger to unleash the dart. Kids toys like Nerf Elite toy foam blasters are great gifts for 8 year old boys and girls who enjoy active play. Eyewear recommended (not included). Nerf and all related properties are trademarks of Hasbro.",
+      "index_in_file": 16,
+      "interest": "mutual",
+      "price": 4.99,
+      "title": "Nerf Elite 2.0 Ace SD-1 Dart Blaster, 2 Nerf Elite Darts, Pull Down Priming, Nerf Blasters, Kids Outdoor Toys for 8 Year Old Boys and Girls and Up, Dart Storage"
+    },
+    "pins": {
+      "budget_ratio": 0.8,
+      "category_file_bytes": 58777,
+      "category_file_sha256": "18c4ddf974468b896c3877a147ad00b1d86f22964ceabd936848a9fd310cb91f",
+      "license": "Apache-2.0",
+      "max_turns": 6,
+      "upstream_commit": "834ad9066d0627f0332504d5fa6d236706f2402b",
+      "upstream_repo": "TianXiaSJTU/AmazonPriceHistory"
+    },
+    "product": {
+      "amazon_link": "https://www.amazon.com/dp/B09H242KPM",
+      "amazon_title": "Nerf Elite 2.0 Ace SD-1 Dart Blaster, 2 Nerf Elite Darts, Pull Down Priming, Nerf Blasters, Kids Outdoor Toys for 8 Year Old Boys and Girls and Up, Dart Storage",
+      "average_price": "$3.44",
+      "badge": "Best Price",
+      "category": "toys-games",
+      "current_price": "$2.39",
+      "current_price_date": "Nov 12, 2023",
+      "description": "Bring along the compact Nerf Elite 2.0 Ace SD-1 blaster on all your missions and battles! Take advantage of this toy blaster's compact size for fast-moving fun in outdoor play. With its small size, you can bring these Nerf toy blasters almost anywhere to launch into a stealthy battles and surprise attacks. It has onboard 1-dart storage so you can keep a second dart within reach for fast reloads. It comes with 2 Official Nerf Elite foam darts. Get battling in 3 quick steps! Load 1 dart into the front of the barrel, pull down the priming handle, and press the trigger to unleash the dart. Kids toys like Nerf Elite toy foam blasters are great gifts for 8 year old boys and girls who enjoy active play. Eyewear recommended (not included). Nerf and all related properties are trademarks of Hasbro.",
+      "features": "NERF ELITE ACE SD-1 BLASTER: Bring this pocket-size toy blaster to Nerf battles! You can take this compact blaster almost anywhere and launch into stealthy dart-blasting surprises\nONBOARD DART STORAGE: Keep a second dart nearby to reload fast! The onboard storage on top of the dart blaster holds 1 dart to keep a backup dart within reach\nINCLUDES 2 NERF ELITE DARTS: This Nerf blaster comes with 2 Nerf Elite foam darts that are great for indoor and outdoor play\nEASY TO LOAD, PRIME, AND FIRE: Easy to use! Load 1 dart into the front of the barrel, pull down the priming handle, and press the trigger to fire the foam dart\nFUN KIDS OUTDOOR TOYS: Nerf toys for boys and girls can be used for indoor or outdoor games for kids to enjoy with friends and family.\nGREAT GIFTS FOR KIDS: Nerf blasters are awesome gifts for boys and girls!",
+      "highest_price": "$4.49",
+      "highest_price_date": "Jun 26, 2023",
+      "img": "https://m.media-amazon.com/images/I/71lmhXUuHxL.__AC_SX300_SY300_QL70_FMwebp_.jpg",
+      "link": "https://camelcamelcamel.com/product/B09H242KPM?active=price_amazon&context=popular",
+      "list_price": "$4.99",
+      "lowest_price": "$2.39",
+      "lowest_price_date": "Nov 12, 2023",
+      "title": "Nerf Elite 2.0 Ace SD-1 Dart Blaster, 2 Nerf Elite Darts, Pull Down Priming, Nerf Blasters, Kids Outdoor Toys for 8 Year Old Boys and Girls and Up, Dart Storage"
+    }
+  },
+  "provenance": {
+    "generator_id": "amazonbarg_importer",
+    "generator_version": "0.1.0",
+    "review_status": "upstream_pinned"
+  },
+  "seats": [
+    {
+      "id": "buyer",
+      "role": "buyer"
+    },
+    {
+      "id": "seller",
+      "role": "seller"
+    }
+  ],
+  "spec_version": "aeread.case/0.1",
+  "split": "pilot",
+  "upstream_task_id": "toys-games_17",
+  "visibility_policy": "amazonbarg_seller_cost_private_v1",
+  "world_seed": 917
+}

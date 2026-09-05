@@ -39,6 +39,7 @@ not intended as a second reading order.
 - [Quickstart](getting-started/quickstart.md)
 - [Core concepts](getting-started/concepts.md)
 - [Submitting an agent](getting-started/submissions.md)
+- [Reviewing a published trajectory](getting-started/reviewing_trajectories.md)
 
 ## Architecture reference
 

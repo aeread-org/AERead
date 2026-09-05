@@ -1,0 +1,77 @@
+{
+  "case_id": "amazonbarg.bilateral.home-kitchen_16",
+  "content_sha256": "8dd9202c96fd6748a7aa0f32f19b226a3e8c0ed07c0dc03f8260232f34252b8c",
+  "episode": {
+    "max_logical_actions": 12,
+    "termination": [
+      "deal",
+      "quit",
+      "action_error",
+      "turn_limit"
+    ]
+  },
+  "family_id": "amazonbarg.bilateral",
+  "family_version": "0.1.0",
+  "payload": {
+    "derived": {
+      "budget": 98.568,
+      "category": "home-kitchen",
+      "category_file": "home-kitchen.json",
+      "codename": "home-kitchen_16",
+      "cost": 20.99,
+      "description": "Freshen up your bedroom with the enchanting style of Intelligent Design’s Raina Comforter Set. The stunning comforter flaunts a geometric, metallic gold print against a soft ivory ground for a fun and eye-catching look! Matching sham(s) echo the design seen on top of the bed to pull the entire ensemble together. Two embroidered decorative pillows with typography and metallic details complete this fabulous, ultra-soft microfiber comforter set.",
+      "index_in_file": 15,
+      "interest": "mutual",
+      "price": 123.21,
+      "title": "Intelligent Design Raina King / Cal King Comforter Set, Soft Microfiber Comforter Set King, Modern Geometric Metallic Bed Set, 5 Pieces College Bedding Comforter Set with 2 Shams, 2 Toss Pillows Ivory"
+    },
+    "pins": {
+      "budget_ratio": 0.8,
+      "category_file_bytes": 56926,
+      "category_file_sha256": "8324c1c67b533bd0d2700edce852cc8ab3417c6cc1043e660a20b817bc8c910b",
+      "license": "Apache-2.0",
+      "max_turns": 6,
+      "upstream_commit": "834ad9066d0627f0332504d5fa6d236706f2402b",
+      "upstream_repo": "TianXiaSJTU/AmazonPriceHistory"
+    },
+    "product": {
+      "amazon_link": "https://www.amazon.com/dp/B07CZYK8XW",
+      "amazon_title": "Intelligent Design Raina King / Cal King Comforter Set, Soft Microfiber Comforter Set King, Modern Geometric Metallic Bed Set, 5 Pieces College Bedding Comforter Set with 2 Shams, 2 Toss Pillows Ivory",
+      "average_price": "$68.48",
+      "badge": "",
+      "category": "home-kitchen",
+      "current_price": "$24.99",
+      "current_price_date": "Nov 15, 2023",
+      "description": "Freshen up your bedroom with the enchanting style of Intelligent Design’s Raina Comforter Set. The stunning comforter flaunts a geometric, metallic gold print against a soft ivory ground for a fun and eye-catching look! Matching sham(s) echo the design seen on top of the bed to pull the entire ensemble together. Two embroidered decorative pillows with typography and metallic details complete this fabulous, ultra-soft microfiber comforter set.",
+      "features": "Polyester\nModern Comforter Set: Freshen up your home with the enchanting style of Intelligent Design’s Raina bedroom set King Bedding. The stunning metallic comforter set flaunts a trendy geometric print with a fun and striking contrast\nTrendy Metallic Design: Ivory bedding queen size with metallic accent features soft brushed microfiber for ultra soft feel bedding comforter set for you to snuggle and experience a restful night sleep\nPremium Product: Hygienically treated to naturally keep your bedding/linen clean and fresh for longer periods providing you with peace of mind. Always clean and wash this product thoroughly before and after each use\nGeometric Comforter Set: (1) comforter 104” x 90”, (2) shams 20” x 36”, (2) decorative pillows 12” x 16” and 16” x 16”\nEasy Care: Machine wash cold, gentle cycle, and separately. Do not bleach. Tumble dry low, remove promptly, and do not iron",
+      "highest_price": "$123.21",
+      "highest_price_date": "Apr 03, 2020",
+      "img": "https://m.media-amazon.com/images/I/81RlUnMOsGL.__AC_SX300_SY300_QL70_FMwebp_.jpg",
+      "link": "https://camelcamelcamel.com/product/B07CZYK8XW?active=price_amazon&context=popular",
+      "list_price": "$94.99",
+      "lowest_price": "$20.99",
+      "lowest_price_date": "Nov 12, 2023",
+      "title": "Intelligent Design Raina King / Cal King Comforter Set, Soft Microfiber Comforter Set King, Modern Geometric Metallic Bed Set, 5 Pieces College Bedding Comforter Set with 2 Shams, 2 Toss Pillows Ivory"
+    }
+  },
+  "provenance": {
+    "generator_id": "amazonbarg_importer",
+    "generator_version": "0.1.0",
+    "review_status": "upstream_pinned"
+  },
+  "seats": [
+    {
+      "id": "buyer",
+      "role": "buyer"
+    },
+    {
+      "id": "seller",
+      "role": "seller"
+    }
+  ],
+  "spec_version": "aeread.case/0.1",
+  "split": "pilot",
+  "upstream_task_id": "home-kitchen_16",
+  "visibility_policy": "amazonbarg_seller_cost_private_v1",
+  "world_seed": 344
+}

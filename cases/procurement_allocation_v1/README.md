@@ -118,6 +118,50 @@ economic configurations provide the declared minimum for a case-variance pilot.
 The result remains a bounded diagnostic on this curated panel, not a
 population-level model ranking.
 
+## Targeted opaque Qwen holdout
+
+`qwen_holdout_v1/opaque/` contains six new economic worlds frozen after the
+constraint-ledger V2 development result. Four require a capacity-limited split,
+including one dual-component split and one multi-unit BOM. Two require an exact
+18-kit minimum-service allocation because either total qualified capacity or the
+cash budget prevents the 20-kit target. Supplier identifiers are deterministic
+opaque hashes and listing order is deterministically shuffled.
+
+The panel is held out from model execution but targeted using observed residual
+failure modes, so it supports a transfer diagnostic rather than a population claim.
+Every case has a positive full-information award, a public-action-reachable oracle,
+at most ten required actions, a new case digest, and a new economic-world digest
+relative to the development, confirmatory, and risk-gate panels. Regenerate it with:
+
+```bash
+python -m aeread_families.procurement_allocation.qwen_holdout_case_matrix --write
+```
+
+The paired campaign holds the Qwen3 235B Google route, Minimal Chat harness,
+structured action contract, verifier, retry policy, cases, and three inference seeds
+fixed while comparing the unscaffolded prompt with frozen constraint-ledger V2. Its
+36 scored trajectories and two unscored canaries have a $0.94704 conservative total
+ceiling and a $1.14 hard ceiling. Print the sealed no-spend plan with:
+
+```bash
+python -m aeread_families.procurement_allocation.qwen_holdout_campaign \
+  --run-root \
+  runs/procurement_allocation/procurement_allocation_qwen3_235b_google_holdout_v1/qualification_attempt_001
+```
+
+Execution advances six sequential rows per invocation. Continue a failure-free
+checkpoint with `--execute --resume`; never replace a failed arm or inspect efficacy
+to decide whether to continue. Publication requires all 36 rows to complete and
+receipt-replay with exact accounting. Favorable and unfavorable integrity-qualified
+results are both publishable.
+
+The qualified live run completed and replayed all 36 rows with zero operational
+failures and $0.1125104706 total spend including both canaries. The preregistered
+residual-capability support rule was not met. V2 removed malformed actions but did
+not produce a feasible purchase award or a single submitted multi-offer split; its
+only feasible terminal row was an explicit defer. See the campaign document and
+tracked evidence bundle for the paired effects and typed failure breakdown.
+
 ## Blinded supplier-label mirror
 
 `blinded_v3/` contains a deterministic paired mirror of the six generated cases.

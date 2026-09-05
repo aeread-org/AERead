@@ -6,10 +6,14 @@ import pytest
 
 from aeread.shared_runner.registry import (
     DuplicatePluginError,
+    HarnessRegistry,
+    HarnessRegistryError,
+    HarnessRequirements,
     IncompletePluginError,
     PluginRegistry,
     PluginResolutionError,
 )
+from aeread.shared_runner.run.resolver import canonical_json_bytes
 from aeread.shared_runner.schemas import (
     AgentProfile,
     AnalysisPlan,
@@ -17,6 +21,7 @@ from aeread.shared_runner.schemas import (
     CaseManifest,
     EvaluationBlock,
     FamilyManifest,
+    LeafPolicyDeclaration,
     RunSpec,
     SamplingPlan,
     SuiteManifest,
@@ -64,6 +69,52 @@ def test_case_id_rejects_colon_before_rllm_can_truncate_it() -> None:
 
     with pytest.raises(AuthoringValidationError, match="valid identifier"):
         CaseManifest.from_dict(data)
+
+
+def test_upstream_task_id_rejects_colon_before_rllm_can_collapse_grouping() -> None:
+    data = case_data()
+    data["upstream_task_id"] = "retail:14"
+
+    with pytest.raises(AuthoringValidationError, match="portable upstream identifier"):
+        CaseManifest.from_dict(data)
+
+
+@pytest.mark.parametrize(
+    "value",
+    ["Task 14", "retail:14", "a/b", "", "task\t1", "quote'd"],
+)
+def test_upstream_task_id_rejects_row_id_hazards(value: str) -> None:
+    data = case_data()
+    data["upstream_task_id"] = value
+
+    with pytest.raises(AuthoringValidationError, match="upstream_task_id"):
+        CaseManifest.from_dict(data)
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        # Real foreign ids from the landed external families: the field exists
+        # to record the upstream id VERBATIM, so case and underscores survive.
+        "Task1BasicPriceNegotiation",
+        "Task4_s1_beauty_product_negotiation",
+        "tau2_retail.14",
+        "14",
+        "GovSim-fishing_v6.4",
+    ],
+)
+def test_upstream_task_id_preserves_a_safe_foreign_id_verbatim(value: str) -> None:
+    data = case_data()
+    data["upstream_task_id"] = value
+
+    assert CaseManifest.from_dict(data).upstream_task_id == value
+
+
+def test_upstream_task_id_stays_optional() -> None:
+    data = case_data()
+    data.pop("upstream_task_id", None)
+
+    assert CaseManifest.from_dict(data).upstream_task_id is None
 
 
 def family_data() -> dict:
@@ -415,3 +466,496 @@ def test_registry_rejects_duplicate_or_incomplete_plugins() -> None:
     incomplete = object()
     with pytest.raises(IncompletePluginError, match="validate_payload"):
         PluginRegistry().register_trusted(manifest, incomplete)
+
+
+def _harness_requirements(memory: frozenset[str]) -> HarnessRequirements:
+    return HarnessRequirements(
+        provider=frozenset({"structured_output"}),
+        tools="none",
+        memory=memory,
+        owns_retries=False,
+        owns_tools=False,
+        replayable=True,
+        blocking=False,
+        spawns_subagents=False,
+    )
+
+
+class _ProtocolCompleteHarness:
+    id = "fixture_chat"
+    version = "1.0"
+    requires = _harness_requirements(frozenset({"disabled"}))
+
+    async def open_episode(self, episode):
+        return None
+
+    async def act(self, request, ctx):
+        raise NotImplementedError
+
+    async def close_episode(self, episode):
+        return None
+
+    def classify_failure(self, exc):
+        raise NotImplementedError
+
+    def state_reader(self):
+        return None
+
+
+def test_harness_registry_rejects_a_protocol_incomplete_harness() -> None:
+    class MissingHooks:
+        id = "fixture_chat"
+        version = "1.0"
+        requires = _harness_requirements(frozenset({"disabled"}))
+
+        async def act(self, request, ctx):
+            raise NotImplementedError
+
+    with pytest.raises(HarnessRegistryError, match="open_episode"):
+        HarnessRegistry().register(MissingHooks())
+
+    registry = HarnessRegistry()
+    registry.register(_ProtocolCompleteHarness())
+    assert registry.resolve("fixture_chat", "1.0") is not None
+
+
+def test_harness_registry_requires_state_reader_only_with_memory_enabled() -> None:
+    class MemoryWithoutReader(_ProtocolCompleteHarness):
+        requires = _harness_requirements(frozenset({"session"}))
+        state_reader = None
+
+    with pytest.raises(HarnessRegistryError, match="state_reader"):
+        HarnessRegistry().register(MemoryWithoutReader())
+
+    class DisabledMemoryWithoutReader(_ProtocolCompleteHarness):
+        id = "fixture_chat_no_reader"
+        state_reader = None
+
+    registry = HarnessRegistry()
+    registry.register(DisabledMemoryWithoutReader())
+    assert registry.resolve("fixture_chat_no_reader", "1.0") is not None
+
+
+def _family_data_with_leaves(**overrides) -> dict:
+    """``family_data()`` plus a two-leaf policy: one finalize_time, one deferred."""
+
+    data = family_data()
+    data["measurement"] = {
+        **data["measurement"],
+        "leaves": [
+            {"leaf_id": "tenant_realized_utility_leaf", "scope": "finalize_time"},
+            {
+                "leaf_id": "tenant_nl_assertions_leaf",
+                "scope": "deferred",
+                "deferred_artifact": "nl_judge_verdict",
+            },
+        ],
+        "primary_leaf_id": "tenant_realized_utility_leaf",
+        "admission_leaf_ids": ["tenant_realized_utility_leaf"],
+        **overrides,
+    }
+    return data
+
+
+def test_measurement_declaration_without_leaves_defaults_to_no_policy() -> None:
+    family = FamilyManifest.from_dict(family_data())
+    assert family.measurement.leaves == ()
+    assert family.measurement.primary_leaf_id is None
+    assert family.measurement.admission_leaf_ids == ()
+
+
+def test_measurement_declaration_without_leaves_is_digest_neutral() -> None:
+    """Ruling R1 (kernel_scoring_contract_spec.md): an unset leaf policy must be
+    ABSENT from canonical JSON, not merely null/empty. ``leaves``,
+    ``primary_leaf_id``, and ``admission_leaf_ids`` were added after Housing
+    V8/V11 evidence was sealed; a manifest that never declares a leaf policy
+    must hash byte-for-byte as it did before those fields existed, or
+    plan_sha256 (and the artifact_sha256 values that depend on it) silently
+    change out from under already-published evidence.
+    """
+    family = FamilyManifest.from_dict(family_data())
+
+    pre_leaf_policy_measurement = {
+        "primary_estimand": "tenant_realized_utility",
+        "measurement_kind": "optimizable_outcome",
+        "direction": "maximize",
+        "optimum_lower_bound": "housing_scripted_search_v1",
+        "comparison_baseline": "housing_scripted_search_v1",
+        "optimum_upper_bound": "housing_exact_assignment_v1",
+        "optimum_upper_bound_kind": "full_information_relaxation",
+        "bound_status": "bracketed",
+        "outcome_support": "undeclared",
+    }
+    expected_bytes = (
+        b'{"bound_status":"bracketed","comparison_baseline":'
+        b'"housing_scripted_search_v1","direction":"maximize",'
+        b'"measurement_kind":"optimizable_outcome","optimum_lower_bound":'
+        b'"housing_scripted_search_v1","optimum_upper_bound":'
+        b'"housing_exact_assignment_v1","optimum_upper_bound_kind":'
+        b'"full_information_relaxation","outcome_support":"undeclared",'
+        b'"primary_estimand":"tenant_realized_utility"}'
+    )
+
+    assert canonical_json_bytes(pre_leaf_policy_measurement) == expected_bytes
+    assert canonical_json_bytes(family.measurement) == expected_bytes
+    assert canonical_json_bytes(family.measurement) == canonical_json_bytes(
+        pre_leaf_policy_measurement
+    )
+
+
+def test_measurement_declaration_accepts_a_consistent_leaf_policy() -> None:
+    family = FamilyManifest.from_dict(_family_data_with_leaves())
+    leaves = family.measurement.leaves
+    assert leaves == (
+        LeafPolicyDeclaration(
+            leaf_id="tenant_realized_utility_leaf",
+            scope="finalize_time",
+            deferred_artifact=None,
+        ),
+        LeafPolicyDeclaration(
+            leaf_id="tenant_nl_assertions_leaf",
+            scope="deferred",
+            deferred_artifact="nl_judge_verdict",
+        ),
+    )
+    assert family.measurement.primary_leaf_id == "tenant_realized_utility_leaf"
+    assert family.measurement.admission_leaf_ids == ("tenant_realized_utility_leaf",)
+
+
+def test_measurement_declaration_admission_defaults_to_the_primary_leaf() -> None:
+    data = _family_data_with_leaves()
+    del data["measurement"]["admission_leaf_ids"]
+    family = FamilyManifest.from_dict(data)
+    assert family.measurement.admission_leaf_ids == ("tenant_realized_utility_leaf",)
+
+
+def test_finalize_time_leaf_policy_excludes_deferred_leaves_and_orders_primary_first() -> None:
+    data = _family_data_with_leaves()
+    data["measurement"]["leaves"].append(
+        {"leaf_id": "tenant_ambient_leaf", "scope": "finalize_time"}
+    )
+    data["measurement"]["admission_leaf_ids"] = [
+        "tenant_ambient_leaf",
+        "tenant_realized_utility_leaf",
+    ]
+    family = FamilyManifest.from_dict(data)
+
+    policy = family.measurement.finalize_time_leaf_policy()
+
+    # The deferred leaf is declared but excluded from the finalize-time set
+    # (section 4); the two finalize_time leaves come back primary-first,
+    # then lexical -- never in authoring order.
+    assert policy.leaf_ids == ("tenant_realized_utility_leaf", "tenant_ambient_leaf")
+    assert policy.primary_leaf_id == "tenant_realized_utility_leaf"
+    assert policy.admission_leaf_ids == (
+        "tenant_realized_utility_leaf",
+        "tenant_ambient_leaf",
+    )
+    assert family.finalize_time_leaf_policy() == policy
+
+
+def test_finalize_time_leaf_policy_requires_a_declared_policy() -> None:
+    family = FamilyManifest.from_dict(family_data())
+    with pytest.raises(AuthoringValidationError, match="leaf policy"):
+        family.finalize_time_leaf_policy()
+
+
+def test_measurement_declaration_rejects_duplicate_leaf_ids() -> None:
+    data = _family_data_with_leaves()
+    data["measurement"]["leaves"] = [
+        {"leaf_id": "tenant_realized_utility_leaf", "scope": "finalize_time"},
+        {"leaf_id": "tenant_realized_utility_leaf", "scope": "finalize_time"},
+    ]
+    with pytest.raises(AuthoringValidationError, match="duplicate leaf_id"):
+        FamilyManifest.from_dict(data)
+
+
+def test_measurement_declaration_rejects_an_unknown_leaf_scope() -> None:
+    data = _family_data_with_leaves()
+    data["measurement"]["leaves"][0]["scope"] = "sometimes"
+    with pytest.raises(AuthoringValidationError, match="scope"):
+        FamilyManifest.from_dict(data)
+
+
+def test_measurement_declaration_rejects_a_deferred_leaf_without_its_artifact() -> None:
+    data = _family_data_with_leaves()
+    data["measurement"]["leaves"][1] = {
+        "leaf_id": "tenant_nl_assertions_leaf",
+        "scope": "deferred",
+    }
+    with pytest.raises(AuthoringValidationError, match="deferred_artifact"):
+        FamilyManifest.from_dict(data)
+
+
+def test_measurement_declaration_rejects_deferred_artifact_on_a_finalize_time_leaf() -> None:
+    data = _family_data_with_leaves()
+    data["measurement"]["leaves"][0] = {
+        "leaf_id": "tenant_realized_utility_leaf",
+        "scope": "finalize_time",
+        "deferred_artifact": "should not be here",
+    }
+    with pytest.raises(AuthoringValidationError, match="deferred_artifact"):
+        FamilyManifest.from_dict(data)
+
+
+def test_measurement_declaration_rejects_a_primary_leaf_not_in_the_leaf_set() -> None:
+    data = _family_data_with_leaves(primary_leaf_id="not_a_declared_leaf")
+    with pytest.raises(AuthoringValidationError, match="declared leaf"):
+        FamilyManifest.from_dict(data)
+
+
+def test_measurement_declaration_rejects_a_deferred_leaf_as_primary() -> None:
+    data = _family_data_with_leaves(primary_leaf_id="tenant_nl_assertions_leaf")
+    data["measurement"]["admission_leaf_ids"] = ["tenant_nl_assertions_leaf"]
+    with pytest.raises(AuthoringValidationError, match="finalize_time leaf"):
+        FamilyManifest.from_dict(data)
+
+
+def test_measurement_declaration_rejects_admission_leaves_outside_the_leaf_set() -> None:
+    data = _family_data_with_leaves(
+        admission_leaf_ids=["tenant_realized_utility_leaf", "not_a_declared_leaf"]
+    )
+    with pytest.raises(AuthoringValidationError, match="admission_leaf_ids"):
+        FamilyManifest.from_dict(data)
+
+
+def test_measurement_declaration_rejects_a_deferred_leaf_as_admission() -> None:
+    data = _family_data_with_leaves(
+        admission_leaf_ids=["tenant_realized_utility_leaf", "tenant_nl_assertions_leaf"]
+    )
+    with pytest.raises(AuthoringValidationError, match="deferred leaf"):
+        FamilyManifest.from_dict(data)
+
+
+def test_measurement_declaration_rejects_a_primary_leaf_excluded_from_admission() -> None:
+    data = _family_data_with_leaves()
+    data["measurement"]["leaves"].append(
+        {"leaf_id": "tenant_secondary_leaf", "scope": "finalize_time"}
+    )
+    data["measurement"]["admission_leaf_ids"] = ["tenant_secondary_leaf"]
+    with pytest.raises(AuthoringValidationError, match="admission_leaf_ids"):
+        FamilyManifest.from_dict(data)
+
+
+def test_measurement_declaration_rejects_leaves_with_no_finalize_time_member() -> None:
+    # No primary_leaf_id/admission_leaf_ids at all: an all-deferred leaf list
+    # must be rejected by the "at least one finalize_time leaf" guard itself,
+    # not merely as a side effect of some other guard also refusing a
+    # (necessarily invalid) primary/admission choice.
+    data = _family_data_with_leaves()
+    data["measurement"]["leaves"] = [
+        {
+            "leaf_id": "tenant_nl_assertions_leaf",
+            "scope": "deferred",
+            "deferred_artifact": "nl_judge_verdict",
+        }
+    ]
+    del data["measurement"]["primary_leaf_id"]
+    del data["measurement"]["admission_leaf_ids"]
+    with pytest.raises(AuthoringValidationError, match="at least one finalize_time"):
+        FamilyManifest.from_dict(data)
+
+
+def test_measurement_declaration_rejects_primary_leaf_id_without_declared_leaves() -> None:
+    data = family_data()
+    data["measurement"] = {
+        **data["measurement"],
+        "primary_leaf_id": "tenant_realized_utility_leaf",
+    }
+    with pytest.raises(AuthoringValidationError, match="leaves to be declared"):
+        FamilyManifest.from_dict(data)
+
+
+def test_measurement_declaration_rejects_admission_leaf_ids_without_declared_leaves() -> None:
+    data = family_data()
+    data["measurement"] = {
+        **data["measurement"],
+        "admission_leaf_ids": ["tenant_realized_utility_leaf"],
+    }
+    with pytest.raises(AuthoringValidationError, match="leaves to be declared"):
+        FamilyManifest.from_dict(data)
+
+
+def test_measurement_declaration_rejects_declared_leaves_without_a_primary_leaf_id() -> None:
+    data = _family_data_with_leaves()
+    del data["measurement"]["primary_leaf_id"]
+    del data["measurement"]["admission_leaf_ids"]
+    with pytest.raises(AuthoringValidationError, match="primary_leaf_id is required"):
+        FamilyManifest.from_dict(data)
+
+
+def test_registry_rejects_registration_of_a_plugin_with_an_inconsistent_leaf_policy() -> None:
+    """An inconsistent leaf policy never reaches ``PluginRegistry`` at all.
+
+    ``FamilyManifest.from_dict`` is a hard precondition of registration --
+    there is no path from an authored, inconsistent manifest dict to a
+    registered plugin, so the rejection is necessarily no later than
+    registration, never deferred to score time.
+    """
+
+    with pytest.raises(AuthoringValidationError, match="declared leaf"):
+        FamilyManifest.from_dict(
+            _family_data_with_leaves(primary_leaf_id="not_a_declared_leaf")
+        )
+
+
+def test_registry_rejects_a_manifest_whose_measurement_field_bypassed_validation() -> None:
+    """kernel_contract_gap_review.md finding 8.
+
+    Both ``test_registry_rejects_registration_of_a_plugin_with_an_inconsistent_leaf_policy``
+    above and the registration case inside
+    ``test_measurement_declaration_rejects_an_inconsistent_leaf_policy_from_dataclasses_replace``
+    below raise while constructing their *argument* to ``register_trusted``
+    (``FamilyManifest.from_dict`` / ``dataclasses.replace`` on ``measurement``
+    itself raises) -- Python evaluates that argument before the call runs, so
+    ``register_trusted``'s body, and therefore ``PluginRegistry``'s own
+    validation, never executes in either case. Removing or bypassing that
+    validation would leave both tests green.
+
+    ``FamilyManifest`` has no ``__post_init__``, so ``dataclasses.replace`` on
+    the *manifest itself* (not ``measurement``) does not validate what it is
+    replaced with: the call below constructs successfully, and this test
+    reaches ``register_trusted``'s body with an object that already claims to
+    be a ``FamilyManifest``. The rejection can therefore only come from the
+    registry's own check.
+    """
+
+    import dataclasses
+
+    manifest = FamilyManifest.from_dict(family_data())
+    bogus = dataclasses.replace(manifest, measurement="not a MeasurementDeclaration")
+
+    registry = PluginRegistry()
+    with pytest.raises(TypeError, match="measurement"):
+        registry.register_trusted(bogus, CompleteHousingPlugin())
+
+
+def test_measurement_declaration_rejects_an_inconsistent_leaf_policy_from_dataclasses_replace() -> None:
+    """kernel_contract_impl_review.md finding 4.
+
+    ``from_dict`` is not the only way to construct a ``MeasurementDeclaration``:
+    ``dataclasses.replace`` on an already-validated, registered manifest calls
+    the dataclass constructor directly, bypassing ``from_dict`` entirely. Before
+    ``MeasurementDeclaration.__post_init__`` existed, each of these three
+    ``replace`` calls produced an internally inconsistent leaf policy that
+    ``PluginRegistry`` would accept without complaint.
+    """
+
+    import dataclasses
+
+    manifest = FamilyManifest.from_dict(_family_data_with_leaves())
+    measurement = manifest.measurement
+
+    with pytest.raises(AuthoringValidationError, match="declared leaf"):
+        dataclasses.replace(measurement, primary_leaf_id="not_a_declared_leaf")
+
+    with pytest.raises(AuthoringValidationError, match="deferred leaf"):
+        dataclasses.replace(
+            measurement,
+            admission_leaf_ids=(
+                "tenant_realized_utility_leaf",
+                "tenant_nl_assertions_leaf",
+            ),
+        )
+
+    with pytest.raises(AuthoringValidationError, match="duplicate"):
+        dataclasses.replace(
+            measurement,
+            admission_leaf_ids=(
+                "tenant_realized_utility_leaf",
+                "tenant_realized_utility_leaf",
+            ),
+        )
+
+    # And a plugin cannot be registered under such a manifest, because it can
+    # never be constructed in the first place.
+    registry = PluginRegistry()
+    with pytest.raises(AuthoringValidationError):
+        registry.register_trusted(
+            dataclasses.replace(
+                manifest,
+                measurement=dataclasses.replace(
+                    measurement, primary_leaf_id="not_a_declared_leaf"
+                ),
+            ),
+            CompleteHousingPlugin(),
+        )
+
+
+def test_measurement_declaration_post_init_enforces_every_r8_invariant_in_isolation() -> None:
+    """Ruling R8 names four intra-manifest invariants; mutation-test each one.
+
+    The test above (``..._from_dataclasses_replace``) exercises three
+    ``replace`` scenarios, but none of them isolates a single R8 guard: its
+    first case (an undeclared ``primary_leaf_id``) is actually caught by the
+    *membership* guard, not the *finalize_time* guard, and its other two
+    exercise the admission-duplicate and deferred-admission checks, leaving
+    "admission names an entirely undeclared leaf" and "the primary is
+    excluded from admission" with no ``replace`` call at all. This test was
+    written by temporarily removing each ``__post_init__`` check in turn
+    (production code restored from a backup copy afterwards, never via
+    ``git checkout``) and confirming which assertion, if any, still failed --
+    see each sub-case's comment for what that showed.
+    """
+
+    import dataclasses
+
+    manifest = FamilyManifest.from_dict(_family_data_with_leaves())
+    measurement = manifest.measurement
+
+    # 1. leaf ids unique. Duplicate ``leaves`` themselves (not merely
+    # ``admission_leaf_ids``, which the test above already exercises) --
+    # this is checked before any primary/admission logic runs, so no other
+    # guard can incidentally catch it.
+    with pytest.raises(AuthoringValidationError, match="measurement.leaves contains a duplicate leaf_id"):
+        dataclasses.replace(
+            measurement,
+            leaves=(
+                LeafPolicyDeclaration("tenant_realized_utility_leaf", "finalize_time", None),
+                LeafPolicyDeclaration("tenant_realized_utility_leaf", "finalize_time", None),
+            ),
+        )
+
+    # 2. primary_leaf_id names exactly one declared finalize_time leaf. Name a
+    # leaf that IS declared but is scoped deferred. Mutation testing this
+    # specific check (temporarily removed) shows the manifest is still
+    # rejected -- not in isolation, but because a deferred primary is always
+    # caught by the composition of two later guards: it can never
+    # simultaneously satisfy "the primary is in admission" and "admission
+    # excludes deferred leaves". So this guard's rejection is logically
+    # entailed by guards 3 and 4 below whenever it would fire; it is coded
+    # explicitly only so the reported reason is "must be a finalize_time
+    # leaf" (a diagnosis of scope) rather than "must be included in
+    # admission_leaf_ids" (a diagnosis of membership, which is true but less
+    # specific about the actual mistake). The assertion below still detects
+    # its removal, just via a message change rather than an unraised error.
+    with pytest.raises(AuthoringValidationError, match="must be a finalize_time leaf"):
+        dataclasses.replace(measurement, primary_leaf_id="tenant_nl_assertions_leaf")
+
+    # 3. admission ids name declared finalize-time leaves. Name a leaf id that
+    # is not declared at all (not merely a declared-but-deferred one, which
+    # the test above already exercises) -- this fires before the
+    # deferred-admission and primary-in-admission checks.
+    with pytest.raises(AuthoringValidationError, match="admission_leaf_ids must be declared leaves"):
+        dataclasses.replace(
+            measurement,
+            admission_leaf_ids=("tenant_realized_utility_leaf", "not_a_declared_leaf"),
+        )
+
+    # 4. the primary is in admission. This needs a second finalize_time leaf
+    # to isolate: with only one finalize_time leaf, any non-empty,
+    # all-finalize_time admission set that excludes the primary is
+    # impossible to construct. Build a three-leaf manifest (two finalize_time,
+    # one deferred) so admission can legally point at the *other*
+    # finalize_time leaf while excluding the primary.
+    three_leaf_data = _family_data_with_leaves()
+    three_leaf_data["measurement"]["leaves"].append(
+        {"leaf_id": "tenant_secondary_leaf", "scope": "finalize_time"}
+    )
+    three_leaf_data["measurement"]["admission_leaf_ids"] = [
+        "tenant_realized_utility_leaf",
+        "tenant_secondary_leaf",
+    ]
+    three_leaf_measurement = FamilyManifest.from_dict(three_leaf_data).measurement
+    with pytest.raises(AuthoringValidationError, match="must be included in admission_leaf_ids"):
+        dataclasses.replace(three_leaf_measurement, admission_leaf_ids=("tenant_secondary_leaf",))
