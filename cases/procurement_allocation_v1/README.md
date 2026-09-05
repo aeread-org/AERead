@@ -447,3 +447,21 @@ longer terms, and two opaque negotiated-MOQ rows awarded below minimum service a
 countering MOQ down. See
 `evidence/procurement_allocation_glm53_flash_parasail_negotiation_worksheet_v2/`.
 
+## Pre-award check
+
+The buyer can now send `check_award` with the exact lines it intends to submit and
+receive the verifier's own projection: feasibility, violations, completed kits,
+margin, and cash spend, computed by the same `evaluate_award` as the terminal score
+on the current formal offers and verified samples. A check costs one action and
+nothing else and never ends the episode. `pre_award_check_campaign` freezes a
+treatment that adds a mandatory clean check before any award to the worksheet V2
+procedure, paired against the sealed confirmatory V4 rows.
+
+The qualified run completed all 72 rows for $0.2672 and met the preregistered rule:
+treatment-minus-V4 regret -$28.15 per world ([-$56.02, -$4.58]), feasibility +0.389
+([0.167, 0.611]), no pass-to-fail transitions. Every row used the check; 51 of 53
+awards followed a clean check on identical lines. Remaining regret is deferral after
+a failing check on budget-constrained worlds and the MOQ price counter, which a
+feasibility check cannot surface. See
+`evidence/procurement_allocation_glm53_flash_parasail_pre_award_check_v1/`.
+

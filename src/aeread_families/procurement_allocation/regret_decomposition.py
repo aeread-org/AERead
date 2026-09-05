@@ -243,8 +243,8 @@ def _trace_action(family_case: Mapping[str, Any], entry: Mapping[str, Any]) -> d
             },
             "message": "replay",
         }
-    if action == "submit_award":
-        return {"action": "submit_award", "award_lines": _plain(entry["award_lines"])}
+    if action in {"submit_award", "check_award"}:
+        return {"action": action, "award_lines": _plain(entry["award_lines"])}
     if action == "defer":
         return {"action": "defer", "reason": "replay"}
     raise ReplayMismatchError(f"unknown trace action: {action}")
