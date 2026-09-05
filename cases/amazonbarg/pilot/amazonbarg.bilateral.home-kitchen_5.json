@@ -1,0 +1,78 @@
+{
+  "case_id": "amazonbarg.bilateral.home-kitchen_5",
+  "content_sha256": "fd16d81a8063ef20da52b8938c4b6256219b9c41d371c6934de5d9b9a312f7b1",
+  "episode": {
+    "max_logical_actions": 12,
+    "termination": [
+      "deal",
+      "quit",
+      "action_error",
+      "turn_limit"
+    ]
+  },
+  "family_id": "amazonbarg.bilateral",
+  "family_version": "0.1.0",
+  "payload": {
+    "derived": {
+      "budget": 599.96,
+      "category": "home-kitchen",
+      "category_file": "home-kitchen.json",
+      "codename": "home-kitchen_5",
+      "cost": 524.97,
+      "description": "With one touch, the system can deliver the perfect Espresso, Double Espresso, Gran Lungo, Mug or Carafe. Each capsule has a unique barcode which when read by the machine will adjust the extraction settings to ensure every coffee is as perfect as the one before. Double click to deliver a shortened extraction that is ideal for milk coffee recipes.",
+      "index_in_file": 4,
+      "interest": "mutual",
+      "price": 749.95,
+      "title": "Breville Nespresso Vertuo Creatista Single Serve Coffee Maker, Espresso Machine, BVE850BSS - Brushed Stainless Steel, Medium"
+    },
+    "pins": {
+      "budget_ratio": 0.8,
+      "category_file_bytes": 56926,
+      "category_file_sha256": "8324c1c67b533bd0d2700edce852cc8ab3417c6cc1043e660a20b817bc8c910b",
+      "license": "Apache-2.0",
+      "max_turns": 6,
+      "upstream_commit": "834ad9066d0627f0332504d5fa6d236706f2402b",
+      "upstream_repo": "TianXiaSJTU/AmazonPriceHistory"
+    },
+    "product": {
+      "amazon_link": "https://www.amazon.com/dp/B0BXPFSMPL",
+      "amazon_title": "Breville Nespresso Vertuo Creatista Single Serve Coffee Maker, Espresso Machine, BVE850BSS - Brushed Stainless Steel, Medium",
+      "average_price": "$629.86",
+      "badge": "Best Price",
+      "camel_img": "https://m.media-amazon.com/images/I/41FErppFpnL._UL320_.jpg",
+      "category": "home-kitchen",
+      "current_price": "$524.97",
+      "current_price_date": "Nov 17, 2023",
+      "description": "With one touch, the system can deliver the perfect Espresso, Double Espresso, Gran Lungo, Mug or Carafe. Each capsule has a unique barcode which when read by the machine will adjust the extraction settings to ensure every coffee is as perfect as the one before. Double click to deliver a shortened extraction that is ideal for milk coffee recipes.",
+      "features": "SIGNATURE COFFEES AND ESPRESSOS: Vertuo Creatista offers a variety of coffee formats in 6 sizes, including 5, 8, 12, and 18 oz coffees, as well as single and double espressos brewed hot or over ice.\nBARISTA STEAM WAND: Create top-quality latte art on your cappuccino, flat white, caffe latte, latte macchiato with 3 customizable temperature and froth settings. Stainless steel 8oz milk jug included.\nSIMPLE AND CONVENIENT: One-touch coffee system, 30 second heat up time, automatic used coffee pod ejection and adjustable drip tray for shorter cups.\nPRECISION BREWING: unlocks a smooth full-bodied coffee topped with a velvety layer of coffee foam, for a perfect cup every time.\nPREMIUM COFFEE BLENDS: Nespresso offers an array of over 40 permanent specialty Vertuo coffees, from dark and strong to mild and smooth, as well as unique limited-edition blends and flavors. A complimentary tasting pack is included with your machine (assortment may vary). Capsules exclusively compatible with Nespresso Vertuo machines.",
+      "highest_price": "$749.95",
+      "highest_price_date": "May 16, 2023",
+      "img": "https://m.media-amazon.com/images/I/71xAzjM2yYL.__AC_SX300_SY300_QL70_FMwebp_.jpg",
+      "link": "https://camelcamelcamel.com/product/B0BXPFSMPL?active=price_amazon&context=popular",
+      "list_price": "$749.95",
+      "lowest_price": "$524.97",
+      "lowest_price_date": "Nov 17, 2023",
+      "title": "Breville Nespresso Vertuo Creatista Single Serve Coffee Maker, Espresso Machine, BVE850BSS - Brushed Stainless Steel, Medium"
+    }
+  },
+  "provenance": {
+    "generator_id": "amazonbarg_importer",
+    "generator_version": "0.1.0",
+    "review_status": "upstream_pinned"
+  },
+  "seats": [
+    {
+      "id": "buyer",
+      "role": "buyer"
+    },
+    {
+      "id": "seller",
+      "role": "seller"
+    }
+  ],
+  "spec_version": "aeread.case/0.1",
+  "split": "pilot",
+  "upstream_task_id": "home-kitchen_5",
+  "visibility_policy": "amazonbarg_seller_cost_private_v1",
+  "world_seed": 333
+}

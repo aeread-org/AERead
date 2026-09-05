@@ -1,0 +1,77 @@
+{
+  "case_id": "amazonbarg.bilateral.home-kitchen_7",
+  "content_sha256": "c116fee1fddb25a1f2f436a0d9312cfc035b0711fcfdb11c4cdb1643a67ce618",
+  "episode": {
+    "max_logical_actions": 12,
+    "termination": [
+      "deal",
+      "quit",
+      "action_error",
+      "turn_limit"
+    ]
+  },
+  "family_id": "amazonbarg.bilateral",
+  "family_version": "0.1.0",
+  "payload": {
+    "derived": {
+      "budget": 84.80000000000001,
+      "category": "home-kitchen",
+      "category_file": "home-kitchen.json",
+      "codename": "home-kitchen_7",
+      "cost": 31.0,
+      "description": "One Million Eau de Toilette is a fresh and spicy fragrance for men with notes of amber, leather, and tangerine. It defies all the rules and upsets the codes while adding a touch of irresistible seduction. It contains head-turning aromas to suit a man with rebellious charm. One Million. You can be a bad boy, so long as you're a gentleman at all times. Never take orders, create your own rules. This fragrance contains more detailed notes including Frosted Grapefruit, Blood Mandarin, Peppermint, Rose Absolute, Musk, Cinnamon Bark, Blond Leather, Tonka Bean, Patchouli, White Wood and Amber Ketal.",
+      "index_in_file": 6,
+      "interest": "mutual",
+      "price": 106.0,
+      "title": "Paco Rabanne 1 Million Fragrance - Fresh And Spicy - Notes Of Amber, Leather And Tangerine - Adds A Touch Of Irresistible Seduction - Ideal For Men With Rebellious Charm - Edt Spray - 3.4 Oz"
+    },
+    "pins": {
+      "budget_ratio": 0.8,
+      "category_file_bytes": 56926,
+      "category_file_sha256": "8324c1c67b533bd0d2700edce852cc8ab3417c6cc1043e660a20b817bc8c910b",
+      "license": "Apache-2.0",
+      "max_turns": 6,
+      "upstream_commit": "834ad9066d0627f0332504d5fa6d236706f2402b",
+      "upstream_repo": "TianXiaSJTU/AmazonPriceHistory"
+    },
+    "product": {
+      "amazon_link": "https://www.amazon.com/dp/B002XQ1X4G",
+      "amazon_title": "Paco Rabanne 1 Million Fragrance - Fresh And Spicy - Notes Of Amber, Leather And Tangerine - Adds A Touch Of Irresistible Seduction - Ideal For Men With Rebellious Charm - Edt Spray - 3.4 Oz",
+      "average_price": "$57.31",
+      "badge": "",
+      "category": "home-kitchen",
+      "current_price": "$59.77",
+      "current_price_date": "Nov 16, 2023",
+      "description": "One Million Eau de Toilette is a fresh and spicy fragrance for men with notes of amber, leather, and tangerine. It defies all the rules and upsets the codes while adding a touch of irresistible seduction. It contains head-turning aromas to suit a man with rebellious charm. One Million. You can be a bad boy, so long as you're a gentleman at all times. Never take orders, create your own rules. This fragrance contains more detailed notes including Frosted Grapefruit, Blood Mandarin, Peppermint, Rose Absolute, Musk, Cinnamon Bark, Blond Leather, Tonka Bean, Patchouli, White Wood and Amber Ketal.",
+      "features": "Grapefruit, Mint, Blood Mandarin\nRose, Cinnamon, Spicy Notes\nLeather, Woody Notes, Amber, Indian Patchouli\nProduct Packaging May Vary\n1 Million marks the come-back of asserted masculine seduction",
+      "highest_price": "$106.00",
+      "highest_price_date": "Aug 04, 2023",
+      "img": "https://m.media-amazon.com/images/I/51Kat+IzolL._SY300_SX300_.jpg",
+      "link": "https://camelcamelcamel.com/product/B002XQ1X4G?active=price_amazon&context=popular",
+      "list_price": "$78.00",
+      "lowest_price": "$31.00",
+      "lowest_price_date": "Dec 02, 2010",
+      "title": "Paco Rabanne 1 Million Fragrance - Fresh And Spicy - Notes Of Amber, Leather And Tangerine - Adds A Touch Of Irresistible Seduction - Ideal For Men With Rebellious Charm - Edt Spray - 3.4 Oz"
+    }
+  },
+  "provenance": {
+    "generator_id": "amazonbarg_importer",
+    "generator_version": "0.1.0",
+    "review_status": "upstream_pinned"
+  },
+  "seats": [
+    {
+      "id": "buyer",
+      "role": "buyer"
+    },
+    {
+      "id": "seller",
+      "role": "seller"
+    }
+  ],
+  "spec_version": "aeread.case/0.1",
+  "split": "pilot",
+  "upstream_task_id": "home-kitchen_7",
+  "visibility_policy": "amazonbarg_seller_cost_private_v1",
+  "world_seed": 335
+}

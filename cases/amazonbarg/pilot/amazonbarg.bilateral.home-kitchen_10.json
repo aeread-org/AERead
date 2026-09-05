@@ -1,0 +1,77 @@
+{
+  "case_id": "amazonbarg.bilateral.home-kitchen_10",
+  "content_sha256": "e0356a92e04e79b5f3d799657f91461897fbac9b99d4cf53223df65bada13ba0",
+  "episode": {
+    "max_logical_actions": 12,
+    "termination": [
+      "deal",
+      "quit",
+      "action_error",
+      "turn_limit"
+    ]
+  },
+  "family_id": "amazonbarg.bilateral",
+  "family_version": "0.1.0",
+  "payload": {
+    "derived": {
+      "budget": 236.72800000000004,
+      "category": "home-kitchen",
+      "category_file": "home-kitchen.json",
+      "codename": "home-kitchen_10",
+      "cost": 86.48,
+      "description": "Best Price Mattress 8-inch memory foam mattress provides a great sleeping surface. In normal temperatures it is somewhat firm, but when you lay down, it starts reacting to the temperature of your body and begins to mold itself to your shape. Then, weight is evenly distributed along the surface, relieving pressure points and helping you to sleep more without tossing and turning. Green tea infusion provides a calming effect for a night of full relaxation. The breathable ventilated foam design optimizes airflow, reducing body heat and helping to keep your mattress fresh for a longer time. Our mattress is made with CertiPUR-US certified foams and wrapped in a soft fabric cover. Deep dual layers: memory foam top + super soft foam + high density base support layer, rich poly jacquard fabric cover, 10-year manufacturer's warranty.",
+      "index_in_file": 9,
+      "interest": "mutual",
+      "price": 295.91,
+      "title": "Best Price Mattress 8 inch Twin Mattress Bed-In-A-Box, Green Tea Memory Foam, White"
+    },
+    "pins": {
+      "budget_ratio": 0.8,
+      "category_file_bytes": 56926,
+      "category_file_sha256": "8324c1c67b533bd0d2700edce852cc8ab3417c6cc1043e660a20b817bc8c910b",
+      "license": "Apache-2.0",
+      "max_turns": 6,
+      "upstream_commit": "834ad9066d0627f0332504d5fa6d236706f2402b",
+      "upstream_repo": "TianXiaSJTU/AmazonPriceHistory"
+    },
+    "product": {
+      "amazon_link": "https://www.amazon.com/dp/B00GTCL44O",
+      "amazon_title": "Best Price Mattress 8 inch Twin Mattress Bed-In-A-Box, Green Tea Memory Foam, White",
+      "average_price": "$129.70",
+      "badge": "",
+      "category": "home-kitchen",
+      "current_price": "$142.62",
+      "current_price_date": "Nov 17, 2023",
+      "description": "Best Price Mattress 8-inch memory foam mattress provides a great sleeping surface. In normal temperatures it is somewhat firm, but when you lay down, it starts reacting to the temperature of your body and begins to mold itself to your shape. Then, weight is evenly distributed along the surface, relieving pressure points and helping you to sleep more without tossing and turning. Green tea infusion provides a calming effect for a night of full relaxation. The breathable ventilated foam design optimizes airflow, reducing body heat and helping to keep your mattress fresh for a longer time. Our mattress is made with CertiPUR-US certified foams and wrapped in a soft fabric cover. Deep dual layers: memory foam top + super soft foam + high density base support layer, rich poly jacquard fabric cover, 10-year manufacturer's warranty.",
+      "features": "Poly-cotton\nImported\n[Experience Blissful Comfort] - Drift into a world of luxurious comfort on our memory foam mattress. The memory foam molds to your body, relieving pressure points for unparalleled rest.\n[Revitalize with Green Tea] - Infused with calming green tea, our memory foam layer rejuvenates your senses while keeping your mattress fresh day after day.\n[Harmonious Layers, Divine Sleep] - The perfect symphony of memory foam, support foam, and high-density layers orchestrates balanced support for your dreamy night's sleep..Top:Memory Foam\n[Trusted Quality, Sleep Securely] - Embrace safety and trust with our CertiPUR-US certified foams, cotton-based fire retardant, and cozy Poly Jacquard fabric cover.\n[Rest In Confidence] - Elevate your sleep experience with our honest-priced, top-quality mattresses. Enjoy a 10-year warranty, a testament to our commitment to your peaceful slumber.",
+      "highest_price": "$295.91",
+      "highest_price_date": "Jun 18, 2017",
+      "img": "https://m.media-amazon.com/images/I/61zyhmamzhL.__AC_SX300_SY300_QL70_FMwebp_.jpg",
+      "link": "https://camelcamelcamel.com/product/B00GTCL44O?active=price_amazon&context=popular",
+      "list_price": "$146.99",
+      "lowest_price": "$86.48",
+      "lowest_price_date": "Nov 14, 2023",
+      "title": "Best Price Mattress 8 inch Twin Mattress Bed-In-A-Box, Green Tea Memory Foam, White"
+    }
+  },
+  "provenance": {
+    "generator_id": "amazonbarg_importer",
+    "generator_version": "0.1.0",
+    "review_status": "upstream_pinned"
+  },
+  "seats": [
+    {
+      "id": "buyer",
+      "role": "buyer"
+    },
+    {
+      "id": "seller",
+      "role": "seller"
+    }
+  ],
+  "spec_version": "aeread.case/0.1",
+  "split": "pilot",
+  "upstream_task_id": "home-kitchen_10",
+  "visibility_policy": "amazonbarg_seller_cost_private_v1",
+  "world_seed": 338
+}

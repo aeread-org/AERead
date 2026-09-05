@@ -1,0 +1,77 @@
+{
+  "case_id": "amazonbarg.bilateral.home-kitchen_14",
+  "content_sha256": "17617f089923b90c16f8cabe1f890572b5dbf03c8c8e20938b23d16ec4ee587e",
+  "episode": {
+    "max_logical_actions": 12,
+    "termination": [
+      "deal",
+      "quit",
+      "action_error",
+      "turn_limit"
+    ]
+  },
+  "family_id": "amazonbarg.bilateral",
+  "family_version": "0.1.0",
+  "payload": {
+    "derived": {
+      "budget": 22.312,
+      "category": "home-kitchen",
+      "category_file": "home-kitchen.json",
+      "codename": "home-kitchen_14",
+      "cost": 11.1,
+      "description": "Sargent Art colored pencils are a great set of assorted pencils for creating vibrant art. It is also a great choice for art professionals who use color on different types of paper and canvasses. It is safe and non-toxic and pre-sharpened ready to use from the pack.",
+      "index_in_file": 13,
+      "interest": "mutual",
+      "price": 27.89,
+      "title": "Sargent Art 120 Piece Assortment Colored Pencils, Writing, Drawing, Illustration, 56 Colors Including Gold and Silver, Non-Toxic"
+    },
+    "pins": {
+      "budget_ratio": 0.8,
+      "category_file_bytes": 56926,
+      "category_file_sha256": "8324c1c67b533bd0d2700edce852cc8ab3417c6cc1043e660a20b817bc8c910b",
+      "license": "Apache-2.0",
+      "max_turns": 6,
+      "upstream_commit": "834ad9066d0627f0332504d5fa6d236706f2402b",
+      "upstream_repo": "TianXiaSJTU/AmazonPriceHistory"
+    },
+    "product": {
+      "amazon_link": "https://www.amazon.com/dp/B01LTHOR74",
+      "amazon_title": "Sargent Art 120 Piece Assortment Colored Pencils, Writing, Drawing, Illustration, 56 Colors Including Gold and Silver, Non-Toxic",
+      "average_price": "$15.57",
+      "badge": "",
+      "category": "home-kitchen",
+      "current_price": "$22.89",
+      "current_price_date": "Nov 15, 2023",
+      "description": "Sargent Art colored pencils are a great set of assorted pencils for creating vibrant art. It is also a great choice for art professionals who use color on different types of paper and canvasses. It is safe and non-toxic and pre-sharpened ready to use from the pack.",
+      "features": "Supports Creativity: These neon colored pencils encourage creativity in their use, with a variety of bright, vibrant colors. Perfect for all types of persons, beginner or expert.\nVariety Of Colors: This set of neon colored pencils has an awesome variety of Variety Of Colors: This set of neon colored pencils has an awesome variety of 120 different, bright colors included., bright colors included.\nEnvironmentally Friendly: These colored pencils are made of wood and as such, are environmentally friendly. Can be disposed directly without adverse effect to the environment.\nSafe for Use: All our colored pencils are safe and non-toxic.\nPre-Sharpened: The colored pencils come sharpened for first use, eliminating the need to sharpen before usage for the very first time. It is straight to the point as soon as you unpack.",
+      "highest_price": "$27.89",
+      "highest_price_date": "Jul 26, 2023",
+      "img": "https://m.media-amazon.com/images/I/91kHWDhdo6L.__AC_SY300_SX300_QL70_FMwebp_.jpg",
+      "link": "https://camelcamelcamel.com/product/B01LTHOR74?active=price_amazon&context=popular",
+      "list_price": "$23.34",
+      "lowest_price": "$11.10",
+      "lowest_price_date": "Nov 13, 2023",
+      "title": "Sargent Art 120 Piece Assortment Colored Pencils, Writing, Drawing, Illustration, 56 Colors Including Gold and Silver, Non-Toxic"
+    }
+  },
+  "provenance": {
+    "generator_id": "amazonbarg_importer",
+    "generator_version": "0.1.0",
+    "review_status": "upstream_pinned"
+  },
+  "seats": [
+    {
+      "id": "buyer",
+      "role": "buyer"
+    },
+    {
+      "id": "seller",
+      "role": "seller"
+    }
+  ],
+  "spec_version": "aeread.case/0.1",
+  "split": "pilot",
+  "upstream_task_id": "home-kitchen_14",
+  "visibility_policy": "amazonbarg_seller_cost_private_v1",
+  "world_seed": 342
+}

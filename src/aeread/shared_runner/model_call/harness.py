@@ -380,6 +380,7 @@ class KernelToolPort:
         attempt_id: str,
         action_attempt_id: str,
         max_invocations: int | None = None,
+        granted_tools: frozenset[str] | None = None,
         family_reconciliation: (
             Callable[[str, Any, ToolInvocationRecord], Mapping[str, Any]] | None
         ) = None,
@@ -388,6 +389,11 @@ class KernelToolPort:
         self._attempt_id = attempt_id
         self._action_attempt_id = action_attempt_id
         self._max_invocations = max_invocations
+        # The family runtime may declare more tools than one profile is
+        # granted; None means the port imposes no grant beyond the runtime's
+        # declared set (direct family/test constructions), while the kernel
+        # wiring passes the profile's declared tool ids.
+        self._granted_tools = granted_tools
         self._family_reconciliation = family_reconciliation
         self._invocations = 0
         self.invocation_ids: list[str] = []
@@ -430,12 +436,18 @@ class KernelToolPort:
             declared = True
         except ToolContractError:
             declared = False
+        granted = self._granted_tools is None or tool_id in self._granted_tools
         over_budget = (
             self._max_invocations is not None
             and self._invocations >= self._max_invocations
         )
-        if not declared or over_budget:
-            rejection_condition = "undeclared_tool" if not declared else "tool_budget_exceeded"
+        if not declared or not granted or over_budget:
+            if not declared:
+                rejection_condition = "undeclared_tool"
+            elif not granted:
+                rejection_condition = "tool_not_granted"
+            else:
+                rejection_condition = "tool_budget_exceeded"
             evidence.append_event(
                 "tool_dispatch_rejected",
                 {
@@ -1031,6 +1043,7 @@ class AttemptExecutor(MinimalChatExecutor):
                 runtime=runtime,
                 attempt_id=action_attempt_id,
                 action_attempt_id=action_attempt_id,
+                granted_tools=frozenset(profile.tools),
             )
         context = _KernelAttemptContext(
             attempt_id=action_attempt_id,
