@@ -11,55 +11,41 @@ if _src.is_dir() and str(_src) not in sys.path:
 
 
 # One entry per family whose fidelity claim depends on an out-of-repo upstream
-# fixture (a pinned checkout, a bridge interpreter, a built cache). Each entry
-# names the family's own required-env-var, the substrings of its own skip
-# messages, a provisioning hint, and the summary title to print. Both ways a
+# fixture (a pinned checkout, a bridge interpreter, a built cache):
+# (required-env-var, provisioning hint, skip-message markers). Both ways a
 # gated test can go unrun belong in one family's markers tuple: no interpreter
 # that can import upstream, and (where applicable) no upstream checkout at all.
-#
-# ``note_when_unenforced`` makes a matching skip visible even when the env var is
-# unset, leaving the exit status untouched (aucarena's Finding 8 residual: the
-# opt-in alone left an ordinary default run completely silent). Families whose
-# own gate tests require silence by default leave it off.
 _BRIDGE_FAMILIES = (
-    {
-        "family": "tau2-bench (tau3_retail adapter)",
-        "env_var": "AEREAD_TAU2_BRIDGE_REQUIRED",
-        "title": "upstream bridge required: tau2-bench (tau3_retail adapter)",
-        "hint": (
+    (
+        "AEREAD_TAU2_BRIDGE_REQUIRED",
+        (
             "Provide the pinned upstream checkout (AEREAD_TAU2_UPSTREAM_ROOT) and "
             "an interpreter for it (tools/tau2_bridge/provision.sh, then export "
             "$AEREAD_TAU2_BRIDGE_PYTHON), or unset $AEREAD_TAU2_BRIDGE_REQUIRED to "
             "allow skipping."
         ),
-        "markers": (
+        (
             "upstream tau2-bench Python interpreter",
             "upstream tau2-bench checkout not found",
         ),
-        "note_when_unenforced": False,
-    },
-    {
-        "family": "econ-evals (econevals adapter)",
-        "env_var": "AEREAD_ECONEVALS_BRIDGE_REQUIRED",
-        "title": "upstream bridge required: econ-evals (econevals adapter)",
-        "hint": (
+    ),
+    (
+        "AEREAD_ECONEVALS_BRIDGE_REQUIRED",
+        (
             "Provision the bridge interpreter (tools/econevals_bridge/provision.sh, "
             "then export $AEREAD_ECONEVALS_BRIDGE_PYTHON) and the pinned upstream "
             "checkout (set $AEREAD_ECONEVALS_UPSTREAM_ROOT if it is not at the "
             "default path), or unset $AEREAD_ECONEVALS_BRIDGE_REQUIRED to allow "
             "skipping."
         ),
-        "markers": (
+        (
             "pinned upstream econ-evals Python interpreter",
             "pinned upstream econ-evals checkout not found",
         ),
-        "note_when_unenforced": False,
-    },
-    {
-        "family": "STEER (steer adapter)",
-        "env_var": "AEREAD_STEER_FIXTURES_REQUIRED",
-        "title": "upstream bridge required: STEER (steer adapter)",
-        "hint": (
+    ),
+    (
+        "AEREAD_STEER_FIXTURES_REQUIRED",
+        (
             "Build the flattened cache (src/aeread_families/steer/cases.py, "
             "AEREAD_STEER_DATA_ROOT), and for test_steer_cases.py specifically "
             "provide the pinned upstream checkout (AEREAD_STEER_UPSTREAM_ROOT) "
@@ -67,70 +53,70 @@ _BRIDGE_FAMILIES = (
             "then export $AEREAD_STEER_BRIDGE_PYTHON), or unset "
             "$AEREAD_STEER_FIXTURES_REQUIRED to allow skipping."
         ),
-        "markers": (
+        (
             "flattened cache not built yet at",
             "pinned upstream STEER checkout not found at",
             "cached STEER corpus bytes not found at",
             "no pandas-capable Python interpreter found for the steer bridge",
         ),
-        "note_when_unenforced": False,
-    },
-    {
-        "family": "auction-arena (aucarena adapter)",
-        "env_var": "AEREAD_AUCARENA_QC_GATE_REQUIRED",
-        "title": "upstream auction-arena QC gate required",
-        "hint": (
+    ),
+    (
+        "AEREAD_AUCARENA_QC_GATE_REQUIRED",
+        (
             "Provide the pinned upstream auction-arena checkout "
             "(AEREAD_AUCARENA_UPSTREAM_ROOT), or unset "
             "$AEREAD_AUCARENA_QC_GATE_REQUIRED to allow skipping."
         ),
-        "markers": ("pinned upstream auction-arena checkout not found",),
-        "note_when_unenforced": True,
-    },
-    {
-        "family": "AgenticPay (agenticpay_bilateral adapter)",
-        "env_var": "AEREAD_AGENTICPAY_BRIDGE_REQUIRED",
-        "title": "upstream bridge required: AgenticPay (agenticpay_bilateral adapter)",
-        "hint": (
+        ("pinned upstream auction-arena checkout not found",),
+    ),
+    (
+        "AEREAD_AGENTICPAY_BRIDGE_REQUIRED",
+        (
             "Provision the bridge interpreter (tools/agenticpay_bridge/provision.sh, "
             "then export $AEREAD_AGENTICPAY_BRIDGE_PYTHON) and the pinned upstream "
             "checkout, or unset $AEREAD_AGENTICPAY_BRIDGE_REQUIRED to allow skipping."
         ),
-        "markers": (
+        (
             "upstream AgenticPay Python interpreter",
             "upstream AgenticPay checkout not found",
         ),
-        "note_when_unenforced": False,
-    },
-    {
-        "family": "Alympics (alympics.wac adapter)",
-        "env_var": "AEREAD_ALYMPICS_UPSTREAM_REQUIRED",
-        "title": "upstream required: alympics.wac",
-        "hint": (
+    ),
+    (
+        "AEREAD_ALYMPICS_UPSTREAM_REQUIRED",
+        (
             "Provide the pinned upstream Alympics checkout at the path named in "
             "the skip reason, or export AEREAD_ALYMPICS_UPSTREAM_ROOT to point at "
             "one, or unset $AEREAD_ALYMPICS_UPSTREAM_REQUIRED to allow skipping."
         ),
-        "markers": ("pinned upstream Alympics checkout not found",),
-        "note_when_unenforced": False,
-    },
-    {
-        "family": "EconAgent (econagent_v1 adapter)",
-        "env_var": "AEREAD_ECONAGENT_BRIDGE_REQUIRED",
-        "title": "upstream bridge required: EconAgent (econagent_v1 adapter)",
-        "hint": (
+        ("pinned upstream Alympics checkout not found",),
+    ),
+    (
+        "AEREAD_ECONAGENT_BRIDGE_REQUIRED",
+        (
             "Provide the pinned upstream checkout (AEREAD_ECONAGENT_UPSTREAM_ROOT) "
             "and an interpreter for it (tools/econagent_bridge/provision.sh, then "
             "export $AEREAD_ECONAGENT_BRIDGE_PYTHON), or unset "
             "$AEREAD_ECONAGENT_BRIDGE_REQUIRED to allow skipping."
         ),
-        "markers": (
+        (
             "pinned upstream EconAgent Python interpreter",
             "pinned upstream EconAgent checkout not found",
         ),
-        "note_when_unenforced": False,
-    },
+    ),
 )
+
+
+# Per-family display: summary title, human family name, and whether a matching
+# skip is reported even when the family's env var is unset (exit status untouched).
+_BRIDGE_FAMILY_DISPLAY = {
+    "AEREAD_TAU2_BRIDGE_REQUIRED": {"family": "tau2-bench (tau3_retail adapter)", "title": "upstream bridge required: tau2-bench (tau3_retail adapter)", "note_when_unenforced": False},
+    "AEREAD_ECONEVALS_BRIDGE_REQUIRED": {"family": "econ-evals (econevals adapter)", "title": "upstream bridge required: econ-evals (econevals adapter)", "note_when_unenforced": False},
+    "AEREAD_STEER_FIXTURES_REQUIRED": {"family": "STEER (steer adapter)", "title": "steer fixtures required", "note_when_unenforced": False},
+    "AEREAD_AUCARENA_QC_GATE_REQUIRED": {"family": "auction-arena (aucarena adapter)", "title": "upstream auction-arena QC gate required", "note_when_unenforced": True},
+    "AEREAD_AGENTICPAY_BRIDGE_REQUIRED": {"family": "AgenticPay (agenticpay_bilateral adapter)", "title": "upstream bridge required: AgenticPay (agenticpay_bilateral adapter)", "note_when_unenforced": False},
+    "AEREAD_ALYMPICS_UPSTREAM_REQUIRED": {"family": "Alympics (alympics.wac adapter)", "title": "upstream required: alympics.wac", "note_when_unenforced": False},
+    "AEREAD_ECONAGENT_BRIDGE_REQUIRED": {"family": "EconAgent (econagent_v1 adapter)", "title": "upstream bridge required: EconAgent (econagent_v1 adapter)", "note_when_unenforced": False},
+}
 
 
 def _truthy(env_var: str) -> bool:
@@ -157,14 +143,19 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config):
     del exitstatus
     skipped = terminalreporter.stats.get("skipped", [])
     any_required_missing = False
-    for family in _BRIDGE_FAMILIES:
+    for env_var, hint, markers in _BRIDGE_FAMILIES:
+        family = {
+            "env_var": env_var,
+            "hint": hint,
+            "title": "upstream bridge required",
+            "family": env_var,
+            "note_when_unenforced": False,
+            **_BRIDGE_FAMILY_DISPLAY.get(env_var, {}),
+        }
         matches = [
             report
             for report in skipped
-            if any(
-                marker in str(getattr(report, "longrepr", ""))
-                for marker in family["markers"]
-            )
+            if any(marker in str(getattr(report, "longrepr", "")) for marker in markers)
         ]
         if not matches:
             continue
