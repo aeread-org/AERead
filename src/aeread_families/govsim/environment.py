@@ -249,7 +249,7 @@ def register_plugin(
         if upstream_root is None:
             raise ValueError("upstream_root is required when plugin is not supplied")
         plugin = GovsimPlugin(upstream_root=upstream_root, bridge=bridge)
-    registry.register(family_manifest(), plugin)
+    registry.register_trusted(family_manifest(), plugin)
     return plugin
 
 
