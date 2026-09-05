@@ -142,7 +142,7 @@ def register_plugin(
         if steer_data_root is None:
             raise ValueError("steer_data_root is required when plugin is not supplied")
         plugin = SteerPlugin(steer_data_root=steer_data_root)
-    registry.register(family_manifest(), plugin)
+    registry.register_trusted(family_manifest(), plugin)
     return plugin
 
 
