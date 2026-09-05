@@ -18,7 +18,7 @@ from pathlib import Path
 
 import pytest
 
-from aeread.shared_runner.resolver import case_content_sha256
+from aeread.shared_runner.run.resolver import case_content_sha256
 from aeread.shared_runner.schemas import AuthoringValidationError, CaseManifest
 from aeread_families.econevals import cases as econevals_cases
 from aeread_families.econevals.econevals_bridge import (

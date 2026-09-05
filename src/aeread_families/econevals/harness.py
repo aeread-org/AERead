@@ -28,8 +28,8 @@ from __future__ import annotations
 import copy
 from typing import Any, Mapping, Sequence
 
-from aeread.shared_runner.execution import EvidenceStore
-from aeread.shared_runner.tools import ToolRuntime
+from aeread.shared_runner.task.execution import EvidenceStore
+from aeread.shared_runner.task.tools import ToolRuntime
 
 from .environment import PERIOD_PHASE, SEAT_ID, EconevalsPlugin
 from .tools import EconevalsToolSession, build_tool_bindings

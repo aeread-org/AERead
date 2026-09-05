@@ -15,8 +15,8 @@ from pathlib import Path
 
 import pytest
 
-from aeread.shared_runner.execution import EvidenceStore
-from aeread.shared_runner.tools import ToolRuntime
+from aeread.shared_runner.task.execution import EvidenceStore
+from aeread.shared_runner.task.tools import ToolRuntime
 from aeread.shared_runner.schemas import CaseManifest
 from aeread_families.econevals.econevals_bridge import (
     EconevalsBridge,
