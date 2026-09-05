@@ -1,0 +1,175 @@
+{
+  "cases": [
+    {
+      "case_id": "econevals.pricing.basic.0",
+      "content_sha256": "8e2286f584c7e812428c7f5d1cb6794af09998fba9a2d1d1943e202ce500a0af",
+      "split": "pricing_basic",
+      "world_seed": 0
+    },
+    {
+      "case_id": "econevals.pricing.basic.1",
+      "content_sha256": "d507fb916012b193da1016c7ed0d44852758c8f92ebcb37ded434699c8eeb3c3",
+      "split": "pricing_basic",
+      "world_seed": 1
+    },
+    {
+      "case_id": "econevals.pricing.basic.2",
+      "content_sha256": "2894d01ade9a54e2ce5392397043dbbe86fabb6a3ab4954e68d136c64abc65af",
+      "split": "pricing_basic",
+      "world_seed": 2
+    },
+    {
+      "case_id": "econevals.pricing.basic.3",
+      "content_sha256": "f7871ab0d9aa1233df6f3d3914ba4ce0ea823c22c5c12be2cb20e580eb15c6ec",
+      "split": "pricing_basic",
+      "world_seed": 3
+    },
+    {
+      "case_id": "econevals.pricing.basic.4",
+      "content_sha256": "cc2234cae018b1de01f7a885fb6615ed79953fd3c665a99c83958f1cb575d428",
+      "split": "pricing_basic",
+      "world_seed": 4
+    },
+    {
+      "case_id": "econevals.pricing.basic.5",
+      "content_sha256": "120ad40b61d41291099bdac564384941e51b136d103443fa1c37d582ece598cd",
+      "split": "pricing_basic",
+      "world_seed": 5
+    },
+    {
+      "case_id": "econevals.pricing.basic.6",
+      "content_sha256": "eb586cbf07f6b8855a046a0eb18f732ccc75c021e1bd7fc3c802b05acdac1ce8",
+      "split": "pricing_basic",
+      "world_seed": 6
+    },
+    {
+      "case_id": "econevals.pricing.basic.7",
+      "content_sha256": "a88c2be82260586fb1c6db128b7d5e7ba9dc1ba1a02ccff2ae2a681c8392260c",
+      "split": "pricing_basic",
+      "world_seed": 7
+    },
+    {
+      "case_id": "econevals.procurement.basic.0",
+      "content_sha256": "b0e11b6f512c6dd55578289a27ef9afe2065a9629d8a4c421149c67d400e0f10",
+      "split": "procurement_basic",
+      "world_seed": 0
+    },
+    {
+      "case_id": "econevals.procurement.basic.1",
+      "content_sha256": "16761deca782735706d260413fd6b82a38c74754c71c35b7c713407bd539c165",
+      "split": "procurement_basic",
+      "world_seed": 1
+    },
+    {
+      "case_id": "econevals.procurement.basic.2",
+      "content_sha256": "ce4466ab41b0e3c957355bd1d6f039b457fe7bdfc33b42853cde2da8493ff540",
+      "split": "procurement_basic",
+      "world_seed": 2
+    },
+    {
+      "case_id": "econevals.procurement.basic.3",
+      "content_sha256": "47a0244fe225d3e61f103ef5d75a7caa33dfca7e44c466be5296a28653cb439c",
+      "split": "procurement_basic",
+      "world_seed": 3
+    },
+    {
+      "case_id": "econevals.procurement.basic.4",
+      "content_sha256": "8c43eb49279240285cea7ce6f1ba05358fff7dc2dab2be4146809d6bfe3774c1",
+      "split": "procurement_basic",
+      "world_seed": 4
+    },
+    {
+      "case_id": "econevals.procurement.basic.5",
+      "content_sha256": "4f43c7bfac89284648f7d223fb86b4fc34dc998be15f1023bf9a0b68405f293a",
+      "split": "procurement_basic",
+      "world_seed": 5
+    },
+    {
+      "case_id": "econevals.procurement.basic.6",
+      "content_sha256": "7a0feee684a548e64d8eae50fe017f125375c54f4203286fae8e7754940b78ca",
+      "split": "procurement_basic",
+      "world_seed": 6
+    },
+    {
+      "case_id": "econevals.procurement.basic.7",
+      "content_sha256": "adc800add8b73770ac4416bf7b5677f75c998bf280fba1e110c40d926d847e68",
+      "split": "procurement_basic",
+      "world_seed": 7
+    },
+    {
+      "case_id": "econevals.scheduling.basic.0",
+      "content_sha256": "a1bc0c54ff5710347ccc3e1666e6befdaadb658650b5e2e181e23902e5bfc0d5",
+      "split": "scheduling_basic",
+      "world_seed": 0
+    },
+    {
+      "case_id": "econevals.scheduling.basic.1",
+      "content_sha256": "44af55af0c3a6d8130b88f9a714d643f0af64c8df6336cfebd05924922ffbf0d",
+      "split": "scheduling_basic",
+      "world_seed": 1
+    },
+    {
+      "case_id": "econevals.scheduling.basic.10",
+      "content_sha256": "a51e77214687969c05cf7568ef4aaecb2c7a088ba3782e7082b41d0f9712b817",
+      "split": "scheduling_basic",
+      "world_seed": 10
+    },
+    {
+      "case_id": "econevals.scheduling.basic.11",
+      "content_sha256": "423d2a7875d336a98ab96fb93fa1b31dffc9df161d406dc86d58bcce82e45a5a",
+      "split": "scheduling_basic",
+      "world_seed": 11
+    },
+    {
+      "case_id": "econevals.scheduling.basic.2",
+      "content_sha256": "5e82ae2cef4e5dcd48e5a97502bf9e96abeb570b93509822f133b89a9fbf8830",
+      "split": "scheduling_basic",
+      "world_seed": 2
+    },
+    {
+      "case_id": "econevals.scheduling.basic.3",
+      "content_sha256": "d6cdb33c295e87be7828d4fb77a45a7218e14c33e886f4e688d02b93043b2d85",
+      "split": "scheduling_basic",
+      "world_seed": 3
+    },
+    {
+      "case_id": "econevals.scheduling.basic.4",
+      "content_sha256": "6c0b5f1f51fd7f542932b5272f9ef7e8e88e7c19310f691bbdbcf8160848264a",
+      "split": "scheduling_basic",
+      "world_seed": 4
+    },
+    {
+      "case_id": "econevals.scheduling.basic.5",
+      "content_sha256": "6f4253595a020f369dff187b37b45e544cacb93aa8e7cadef673b22785180079",
+      "split": "scheduling_basic",
+      "world_seed": 5
+    },
+    {
+      "case_id": "econevals.scheduling.basic.6",
+      "content_sha256": "8e8e11175d9b2dc2141a749f483a7236b431906dc4814f483a3939e001f30e3c",
+      "split": "scheduling_basic",
+      "world_seed": 6
+    },
+    {
+      "case_id": "econevals.scheduling.basic.7",
+      "content_sha256": "2e23a4d15373c47d7424d8d27618a12f689762200747ec6e3bad9fa1ee8ccb3f",
+      "split": "scheduling_basic",
+      "world_seed": 7
+    },
+    {
+      "case_id": "econevals.scheduling.basic.8",
+      "content_sha256": "b29d5a7306ddca7217b43311045ca363964e671f042b4a26731faee000f443e7",
+      "split": "scheduling_basic",
+      "world_seed": 8
+    },
+    {
+      "case_id": "econevals.scheduling.basic.9",
+      "content_sha256": "ddfeb24998a16e0c4fc4e975effe29af1b8f00efe94eeb13086698f0f36ac185",
+      "split": "scheduling_basic",
+      "world_seed": 9
+    }
+  ],
+  "content_sha256": "cf319f24d01cf0ba7f27e8dced18fe12b339221884de2febe12fd65ecab39e5d",
+  "family_id": "econevals",
+  "manifest_id": "econevals_pilot_v1"
+}
