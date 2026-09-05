@@ -70,6 +70,23 @@ INQUIRY_FIELDS = frozenset(
         "return_refund_policy",
     }
 )
+# Fields a supplier may state optimistically when asked verbally. A verbal reply
+# substitutes the biased value; formal offers, verified samples, and the award
+# evaluation always use the true private term, so a claim can be wrong and only a
+# sample or a quote can catch it. Absent from a supplier means it tells the truth.
+VERBAL_BIAS_FIELDS = frozenset(
+    {
+        "base_unit_price_usd",
+        "shipping_per_unit_usd",
+        "duty_rate",
+        "lead_time_days",
+        "on_time_probability",
+        "moq",
+        "capacity",
+        "verified_yield_rate",
+        "refund_window_days",
+    }
+)
 COUNTER_FIELDS = frozenset(
     {
         "unit_price_usd",
@@ -134,6 +151,27 @@ def _exact_fields(value: Any, fields: set[str], path: str) -> dict[str, Any]:
             f"unexpected={sorted(actual - fields)}"
         )
     return value
+
+
+def _stated_terms(supplier: Mapping[str, Any]) -> dict[str, Any]:
+    """The terms a supplier states verbally, which may be optimistic.
+
+    A supplier with no ``verbal_bias`` states its true private terms, so every
+    case authored before this field existed is unchanged. Where a bias is
+    declared, the stated value replaces the true one in verbal replies only.
+    """
+    terms = _plain(supplier["private_terms"])
+    bias = terms.pop("verbal_bias", None)
+    if not bias:
+        return terms
+    for field, value in bias.items():
+        if field == "verified_yield_rate":
+            terms["quality"]["verified_yield_rate"] = value
+        elif field == "refund_window_days":
+            terms["return_policy"]["refund_window_days"] = value
+        else:
+            terms[field] = value
+    return terms
 
 
 def _supplier_by_id(family_case: Mapping[str, Any]) -> dict[str, dict[str, Any]]:
@@ -256,6 +294,31 @@ def _validate_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
         quality = terms.get("quality")
         returns = terms.get("return_policy")
         negotiation = terms.get("negotiation")
+        verbal_bias = terms.get("verbal_bias")
+        if verbal_bias is not None:
+            if not isinstance(verbal_bias, dict) or not verbal_bias:
+                raise ValueError(f"{path}.private_terms.verbal_bias must be a non-empty object")
+            unknown = set(verbal_bias) - VERBAL_BIAS_FIELDS
+            if unknown:
+                raise ValueError(
+                    f"{path}.private_terms.verbal_bias names unsupported fields: "
+                    + ", ".join(sorted(unknown))
+                )
+            for field, value in verbal_bias.items():
+                if field in {"on_time_probability", "verified_yield_rate"}:
+                    number = _finite_number(
+                        value, f"{path}.private_terms.verbal_bias.{field}", minimum=0.0
+                    )
+                    if number > 1:
+                        raise ValueError(
+                            f"{path}.private_terms.verbal_bias.{field} must be <= 1"
+                        )
+                elif field in {"lead_time_days", "moq", "capacity", "refund_window_days"}:
+                    _positive_int(value, f"{path}.private_terms.verbal_bias.{field}")
+                else:
+                    _finite_number(
+                        value, f"{path}.private_terms.verbal_bias.{field}", minimum=0.0
+                    )
         if not all(isinstance(item, dict) for item in (quality, returns, negotiation)):
             raise ValueError(f"{path} quality, return policy, and negotiation are required")
         yield_rate = _finite_number(
@@ -569,6 +632,12 @@ def evaluate_award(
     }
 
 
+# The bound enumerates supplier x mode x admissible quantity. A world with a fine
+# order step and a high capacity explodes this product and appears to hang, so the
+# generator gets an error naming the fix instead of an unbounded wait.
+UPPER_BOUND_ENUMERATION_LIMIT = 400_000
+
+
 @dataclass(frozen=True, slots=True)
 class UpperBoundResult:
     contribution_margin_usd: float
@@ -607,6 +676,16 @@ def solve_full_information_upper_bound(family_case: Mapping[str, Any]) -> UpperB
                     }
                 )
         supplier_options.append(tuple(options))
+
+    combinations = 1
+    for options_for_supplier in supplier_options:
+        combinations *= len(options_for_supplier)
+        if combinations > UPPER_BOUND_ENUMERATION_LIMIT:
+            raise ValueError(
+                "full-information enumeration exceeds "
+                f"{UPPER_BOUND_ENUMERATION_LIMIT} combinations; coarsen an "
+                "order step or lower a capacity so the bound stays computable"
+            )
 
     best_value = float(objective["defer_value_usd"])
     best_plan: tuple[Mapping[str, Any], ...] = ()
@@ -1101,7 +1180,7 @@ class ProcurementAllocationPlugin:
             next_state["conversation"].append({"role": "buyer", "content": action["message"]})
             claims = next_state["claims"].setdefault(action["supplier_id"], {})
             summaries: list[str] = []
-            terms = supplier["private_terms"]
+            terms = _stated_terms(supplier)
             for field in action["fields"]:
                 if field == "exact_variant":
                     value = terms["variant_id"]
@@ -1348,6 +1427,10 @@ class ProcurementAllocationPlugin:
             "decision": decision,
             "termination_reason": terminal["reason"],
             "feasible": bool(evaluation["feasible"]),
+            # Terminal feasibility counts an explicit defer as feasible. A
+            # campaign guarding procurement success must guard this instead,
+            # which is true only for a submitted award that passed every gate.
+            "feasible_award": bool(evaluation["feasible"]) and decision == "award",
             "contribution_margin_usd": value,
             "raw_contribution_margin_usd": float(evaluation["raw_contribution_margin_usd"]),
             "upper_bound_usd": upper.contribution_margin_usd,

@@ -64,7 +64,7 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 V1_CAMPAIGN_ID = (
     "procurement_allocation_glm53_flash_parasail_pre_award_check_v1"
 )
-CAMPAIGN_ID = "procurement_allocation_glm53_flash_parasail_pre_award_check_confirmatory_v1"
+CAMPAIGN_ID = "procurement_allocation_glm53_flash_parasail_pre_award_check_confirmatory_v2"
 FROZEN_V4_PROMPT_SHA256 = FROZEN_TREATMENT_PROMPT_SHA256
 FROZEN_SCAFFOLD_PROMPT_SHA256 = (
     "9a9e69f8a513e40499f83fe3648a316c49461645033ef009f43a2be3c515a813"
@@ -93,7 +93,8 @@ BOOTSTRAP_SEED = 20260906
 BOOTSTRAP_RESAMPLES = 50_000
 CONFIRMATORY_BATCH_SIZE = 12
 CONFIRMATORY_MAX_PARALLEL_CELLS = 1
-MAX_ACTION_ATTEMPTS = 3
+MAX_ACTION_ATTEMPTS = 4
+RETRY_BASE_SECONDS = 15.0
 CONFIRMATORY_RETRY_CONDITIONS = (*TRANSIENT_RETRY_CONDITIONS, "empty_response")
 RETRY_BACKOFF = "exponential_jitter_v1"
 RETRY_AFTER_MAX_SECONDS = 60.0
@@ -260,6 +261,7 @@ def build_plan() -> dict[str, Any]:
             max_action_attempts=MAX_ACTION_ATTEMPTS,
             retryable_conditions=CONFIRMATORY_RETRY_CONDITIONS,
             retry_backoff=RETRY_BACKOFF,
+            retry_base_seconds=RETRY_BASE_SECONDS,
             retry_after_max_seconds=RETRY_AFTER_MAX_SECONDS,
         )
         for name, spec in specs.items()
@@ -293,6 +295,8 @@ def build_plan() -> dict[str, Any]:
             "v1_disposition": "sealed_ineligible_after_operational_failure",
             "scientific_contract": "unchanged_from_v1",
             "operational_changes_only": [
+                "four action attempts with a 15s retry base after V1 was sealed "
+                "twice by route rate limits before any panel row completed",
                 "retain billed usage for empty completions and failed trajectories",
                 "retry empty_response within the existing three-attempt action bound",
             ],
@@ -400,6 +404,7 @@ async def _representative_request(*, prompt: str, prompt_id: str) -> ProviderReq
         max_action_attempts=MAX_ACTION_ATTEMPTS,
         retryable_conditions=CONFIRMATORY_RETRY_CONDITIONS,
         retry_backoff=RETRY_BACKOFF,
+        retry_base_seconds=RETRY_BASE_SECONDS,
         retry_after_max_seconds=RETRY_AFTER_MAX_SECONDS,
     )
     provider = SequenceResponseProvider(
@@ -923,6 +928,7 @@ async def run_confirmatory_campaign(
                 max_action_attempts=MAX_ACTION_ATTEMPTS,
                 retryable_conditions=CONFIRMATORY_RETRY_CONDITIONS,
                 retry_backoff=RETRY_BACKOFF,
+                retry_base_seconds=RETRY_BASE_SECONDS,
                 retry_after_max_seconds=RETRY_AFTER_MAX_SECONDS,
             )
             new_count = int(artifact["summary"]["row_count"]) - prior_count

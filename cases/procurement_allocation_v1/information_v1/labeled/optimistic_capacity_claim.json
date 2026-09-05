@@ -1,0 +1,269 @@
+{
+  "case_id": "procurement_allocation_v1.confirmatory_v1_labeled.optimistic_capacity_claim",
+  "content_sha256": "1717257091c1dc8cf20f28b33d0581448753eb0f390ed1e475f29590e4963bbb",
+  "episode": {
+    "max_logical_actions": 10,
+    "termination": [
+      "submitted",
+      "deferred",
+      "interaction_budget_exhausted",
+      "invalid_action"
+    ]
+  },
+  "family_id": "procurement_allocation_v1",
+  "family_version": "1.0.0",
+  "payload": {
+    "interaction": {
+      "counter_cost_usd": 2.5,
+      "counter_days": 1,
+      "inquiry_cost_usd": 1.2,
+      "inquiry_days": 1,
+      "max_actions": 10,
+      "quote_cost_usd": 2.0,
+      "quote_days": 1
+    },
+    "objective": {
+      "annual_financing_rate": 0.12,
+      "bom": {
+        "ky040_encoder": 1,
+        "tactile_switch_6x6x5": 1
+      },
+      "cash_budget_usd": 160.0,
+      "deadline_days": 22,
+      "defect_detection_days": 10,
+      "defer_value_usd": 0.0,
+      "minimum_service_kits": 18,
+      "product_id": "panel_optimistic_capacity",
+      "revenue_per_completed_kit_usd": 9.0,
+      "shortfall_penalty_per_kit_usd": 3.0,
+      "target_kits": 20,
+      "working_capital_horizon_days": 45
+    },
+    "policy": {
+      "award_requires": [
+        "unexpired_formal_offer",
+        "verified_sample",
+        "exact_variant"
+      ],
+      "inquiry_fields": [
+        "exact_variant",
+        "moq_capacity",
+        "lead_time",
+        "shipping",
+        "quality",
+        "return_refund_policy"
+      ],
+      "required_variant_by_component": {
+        "ky040_encoder": "ec11_ky040_module_with_pullups",
+        "tactile_switch_6x6x5": "6x6x5mm_four_pin_normally_open"
+      }
+    },
+    "suppliers": [
+      {
+        "component": "tactile_switch_6x6x5",
+        "listing": {
+          "claimed_lead_time_days": 4,
+          "claimed_variant": "6x6x5mm four pin normally open",
+          "displayed_unit_price_usd": 0.0984,
+          "evidence_status": "marketplace_listing_unverified",
+          "supplier_name": "Synthetic Claims Full Lot supplier"
+        },
+        "private_terms": {
+          "base_unit_price_usd": 0.12,
+          "capacity": 10,
+          "duty_rate": 0.05,
+          "lead_time_days": 6,
+          "moq": 10,
+          "negotiation": {
+            "floor_unit_price_usd": 0.12,
+            "maximum_payment_terms_days": 30,
+            "maximum_refund_window_days": 30,
+            "minimum_moq": 10,
+            "supplier_paid_return_freight_available": true
+          },
+          "offer_valid_days": 30,
+          "on_time_probability": 0.99,
+          "order_step": 10,
+          "payment_terms_days": 30,
+          "quality": {
+            "observed_defects": 1,
+            "sample_cost_usd": 6.0,
+            "sample_lead_time_days": 1,
+            "sample_size": 100,
+            "verified_yield_rate": 0.99
+          },
+          "return_policy": {
+            "claim_acceptance_probability": 0.95,
+            "refund_delay_days": 5,
+            "refund_window_days": 30,
+            "restocking_fee_rate": 0.0,
+            "return_freight_payer": "supplier",
+            "return_freight_per_unit_usd": 0.0
+          },
+          "shipping_per_unit_usd": 0.05,
+          "variant_id": "6x6x5mm_four_pin_normally_open",
+          "verbal_bias": {
+            "capacity": 20
+          }
+        },
+        "supplier_id": "tactile_switch_6x6x5_claims_full_lot"
+      },
+      {
+        "component": "tactile_switch_6x6x5",
+        "listing": {
+          "claimed_lead_time_days": 4,
+          "claimed_variant": "6x6x5mm four pin normally open",
+          "displayed_unit_price_usd": 0.123,
+          "evidence_status": "marketplace_listing_unverified",
+          "supplier_name": "Synthetic Honest Half Lot supplier"
+        },
+        "private_terms": {
+          "base_unit_price_usd": 0.15,
+          "capacity": 10,
+          "duty_rate": 0.05,
+          "lead_time_days": 6,
+          "moq": 10,
+          "negotiation": {
+            "floor_unit_price_usd": 0.15,
+            "maximum_payment_terms_days": 30,
+            "maximum_refund_window_days": 30,
+            "minimum_moq": 10,
+            "supplier_paid_return_freight_available": true
+          },
+          "offer_valid_days": 30,
+          "on_time_probability": 0.99,
+          "order_step": 10,
+          "payment_terms_days": 30,
+          "quality": {
+            "observed_defects": 1,
+            "sample_cost_usd": 6.0,
+            "sample_lead_time_days": 1,
+            "sample_size": 100,
+            "verified_yield_rate": 0.99
+          },
+          "return_policy": {
+            "claim_acceptance_probability": 0.95,
+            "refund_delay_days": 5,
+            "refund_window_days": 30,
+            "restocking_fee_rate": 0.0,
+            "return_freight_payer": "supplier",
+            "return_freight_per_unit_usd": 0.0
+          },
+          "shipping_per_unit_usd": 0.05,
+          "variant_id": "6x6x5mm_four_pin_normally_open"
+        },
+        "supplier_id": "tactile_switch_6x6x5_honest_half_lot"
+      },
+      {
+        "component": "ky040_encoder",
+        "listing": {
+          "claimed_lead_time_days": 4,
+          "claimed_variant": "ec11 ky040 module with pullups",
+          "displayed_unit_price_usd": 0.492,
+          "evidence_status": "marketplace_listing_unverified",
+          "supplier_name": "Synthetic Claims Full Lot supplier"
+        },
+        "private_terms": {
+          "base_unit_price_usd": 0.6,
+          "capacity": 10,
+          "duty_rate": 0.05,
+          "lead_time_days": 6,
+          "moq": 10,
+          "negotiation": {
+            "floor_unit_price_usd": 0.6,
+            "maximum_payment_terms_days": 30,
+            "maximum_refund_window_days": 30,
+            "minimum_moq": 10,
+            "supplier_paid_return_freight_available": true
+          },
+          "offer_valid_days": 30,
+          "on_time_probability": 0.99,
+          "order_step": 10,
+          "payment_terms_days": 30,
+          "quality": {
+            "observed_defects": 1,
+            "sample_cost_usd": 6.0,
+            "sample_lead_time_days": 1,
+            "sample_size": 100,
+            "verified_yield_rate": 0.99
+          },
+          "return_policy": {
+            "claim_acceptance_probability": 0.95,
+            "refund_delay_days": 5,
+            "refund_window_days": 30,
+            "restocking_fee_rate": 0.0,
+            "return_freight_payer": "supplier",
+            "return_freight_per_unit_usd": 0.0
+          },
+          "shipping_per_unit_usd": 0.05,
+          "variant_id": "ec11_ky040_module_with_pullups",
+          "verbal_bias": {
+            "capacity": 20
+          }
+        },
+        "supplier_id": "ky040_encoder_claims_full_lot"
+      },
+      {
+        "component": "ky040_encoder",
+        "listing": {
+          "claimed_lead_time_days": 4,
+          "claimed_variant": "ec11 ky040 module with pullups",
+          "displayed_unit_price_usd": 0.5904,
+          "evidence_status": "marketplace_listing_unverified",
+          "supplier_name": "Synthetic Honest Half Lot supplier"
+        },
+        "private_terms": {
+          "base_unit_price_usd": 0.72,
+          "capacity": 10,
+          "duty_rate": 0.05,
+          "lead_time_days": 6,
+          "moq": 10,
+          "negotiation": {
+            "floor_unit_price_usd": 0.72,
+            "maximum_payment_terms_days": 30,
+            "maximum_refund_window_days": 30,
+            "minimum_moq": 10,
+            "supplier_paid_return_freight_available": true
+          },
+          "offer_valid_days": 30,
+          "on_time_probability": 0.99,
+          "order_step": 10,
+          "payment_terms_days": 30,
+          "quality": {
+            "observed_defects": 1,
+            "sample_cost_usd": 6.0,
+            "sample_lead_time_days": 1,
+            "sample_size": 100,
+            "verified_yield_rate": 0.99
+          },
+          "return_policy": {
+            "claim_acceptance_probability": 0.95,
+            "refund_delay_days": 5,
+            "refund_window_days": 30,
+            "restocking_fee_rate": 0.0,
+            "return_freight_payer": "supplier",
+            "return_freight_per_unit_usd": 0.0
+          },
+          "shipping_per_unit_usd": 0.05,
+          "variant_id": "ec11_ky040_module_with_pullups"
+        },
+        "supplier_id": "ky040_encoder_honest_half_lot"
+      }
+    ]
+  },
+  "provenance": {
+    "generator_id": "procurement_allocation_information_case_matrix_v1",
+    "generator_version": "1.0.0",
+    "review_status": "curated"
+  },
+  "seats": [
+    {
+      "id": "buyer",
+      "role": "buyer"
+    }
+  ],
+  "spec_version": "aeread.case/0.1",
+  "split": "confirmatory_v1_labeled",
+  "visibility_policy": "procurement_allocation_public_listings_private_supplier_terms_v1",
+  "world_seed": 2514103
+}
