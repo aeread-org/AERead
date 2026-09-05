@@ -33,9 +33,16 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Mapping
 
-from aeread.shared_runner.analysis.parity import ParityField, ParityReport, ParitySpec, compare_projections
+from aeread.shared_runner.analysis.parity import (
+    ExternalParityCriterion,
+    ParityField,
+    ParityReport,
+    ParitySpec,
+    compare_projections,
+)
 from aeread.shared_runner.registry import PluginRegistry
 
+from .cases import UPSTREAM_COMMIT, UPSTREAM_REPO
 from .econagent_bridge import discover_bridge_python
 from .environment import EconAgentV1Plugin, register_plugin
 
@@ -98,6 +105,19 @@ print(json.dumps({
 PARITY_SPEC = ParitySpec(
     parity_id="econagent_v1_pilot_parity",
     parity_version="1.0.0",
+    criterion=ExternalParityCriterion(
+        task_id="econagent_pilot_small10x12_seed0",
+        treatment_id="aeread_adapter_vs_upstream_direct",
+        metric_id="final_inventory_coin",
+        source_reference=f"{UPSTREAM_REPO}@{UPSTREAM_COMMIT}",
+        original_conclusion=(
+            "The pinned upstream EconAgent simulation, run directly on the same "
+            "scenario and world seed, reports identical final coin inventory and "
+            "cumulative tax per agent and the same dense log length."
+        ),
+        tolerance_kind="exact",
+        tolerance=0.0,
+    ),
     fields=(
         ParityField("final_inventory_coin", ("final_inventory_coin",), ("final_inventory_coin",)),
         ParityField("cumulative_tax_paid", ("cumulative_tax_paid",), ("cumulative_tax_paid",)),
