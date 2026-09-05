@@ -1,0 +1,67 @@
+{
+  "case_id": "negarena.buy_sell.0",
+  "content_sha256": "32e33783b5a04c9c362decb09317888fb4ce4d1a25885d225c36017c060d20ea",
+  "episode": {
+    "max_logical_actions": 10,
+    "termination": [
+      "accepted",
+      "iteration_cap",
+      "malformed_action",
+      "invalid_measurement"
+    ]
+  },
+  "family_id": "negarena",
+  "family_version": "0.1.0",
+  "payload": {
+    "pins": {
+      "upstream_commit": "c447fafd439a20b84cdedeb2f8a85c4fad764745",
+      "upstream_license": "MIT",
+      "upstream_repo": "vinid/NegotiationArena"
+    },
+    "scenario": {
+      "game_kind": "buy_sell",
+      "iterations": 10,
+      "money_token": "ZUP",
+      "resource_token": "X",
+      "seats": {
+        "blue": {
+          "goal_kind": "buyer",
+          "starting_resources": {
+            "ZUP": 1000
+          },
+          "valuation": {
+            "X": 60
+          }
+        },
+        "red": {
+          "goal_kind": "seller",
+          "starting_resources": {
+            "X": 1
+          },
+          "valuation": {
+            "X": 40
+          }
+        }
+      }
+    }
+  },
+  "provenance": {
+    "generator_id": "negarena_case_authoring",
+    "generator_version": "0.1.0",
+    "review_status": "curated"
+  },
+  "seats": [
+    {
+      "id": "red",
+      "role": "red"
+    },
+    {
+      "id": "blue",
+      "role": "blue"
+    }
+  ],
+  "spec_version": "aeread.case/0.1",
+  "split": "buy_sell",
+  "visibility_policy": "negarena_seat_private_resources_v1",
+  "world_seed": 0
+}

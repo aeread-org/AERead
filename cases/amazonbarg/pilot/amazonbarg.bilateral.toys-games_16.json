@@ -1,0 +1,77 @@
+{
+  "case_id": "amazonbarg.bilateral.toys-games_16",
+  "content_sha256": "a0edf285fb0ee53db84da9f390169fb9b353af6e792868ef8de3c1040d394afd",
+  "episode": {
+    "max_logical_actions": 12,
+    "termination": [
+      "deal",
+      "quit",
+      "action_error",
+      "turn_limit"
+    ]
+  },
+  "family_id": "amazonbarg.bilateral",
+  "family_version": "0.1.0",
+  "payload": {
+    "derived": {
+      "budget": 71.992,
+      "category": "toys-games",
+      "category_file": "toys-games.json",
+      "codename": "toys-games_16",
+      "cost": 28.99,
+      "description": "The furReal Wavy the Narwhal interactive toy charms kids with 80+ sounds and reactions. Playful and affectionate, this rainbow plush pet is always ready for fun. Rolling a ball is one of her favorite games, and she can't wait to play. Press her fin and roll the included ball toward it: she'll try to tap the ball back to you! Wavy also likes to play music and show off her dance moves. Pet Wavy’s head and her horn lights up and she'll show her affection with a kiss. Reward her with her favorite donut treat, and she’ll make fun eating noises and motions (she REALLY likes that donut!). Care for her by grooming her with the included seashell brush, and she’ll respond happily. (Don’t forget to tickle her tummy, too. Get ready for giggles!) At bedtime, put Wavy in nighttime mode and she’ll play calming ocean sounds. She’s a wonderful day-to-night friend, and a fantastic (splash-tastic?) gift for kids ages 4 and up. An Amazon exclusive. furReal and all related properties are trademarks of Hasbro.",
+      "index_in_file": 15,
+      "interest": "mutual",
+      "price": 89.99,
+      "title": "furReal Wavy The Narwhal Interactive Animatronic Plush Toy, Electronic Pet, 80+ Sounds and Reactions, Rainbow Plush, Ages 4 and Up"
+    },
+    "pins": {
+      "budget_ratio": 0.8,
+      "category_file_bytes": 58777,
+      "category_file_sha256": "18c4ddf974468b896c3877a147ad00b1d86f22964ceabd936848a9fd310cb91f",
+      "license": "Apache-2.0",
+      "max_turns": 6,
+      "upstream_commit": "834ad9066d0627f0332504d5fa6d236706f2402b",
+      "upstream_repo": "TianXiaSJTU/AmazonPriceHistory"
+    },
+    "product": {
+      "amazon_link": "https://www.amazon.com/dp/B08SNT6J9R",
+      "amazon_title": "furReal Wavy The Narwhal Interactive Animatronic Plush Toy, Electronic Pet, 80+ Sounds and Reactions, Rainbow Plush, Ages 4 and Up",
+      "average_price": "$72.42",
+      "badge": "Best Price",
+      "category": "toys-games",
+      "current_price": "$28.99",
+      "current_price_date": "Nov 15, 2023",
+      "description": "The furReal Wavy the Narwhal interactive toy charms kids with 80+ sounds and reactions. Playful and affectionate, this rainbow plush pet is always ready for fun. Rolling a ball is one of her favorite games, and she can't wait to play. Press her fin and roll the included ball toward it: she'll try to tap the ball back to you! Wavy also likes to play music and show off her dance moves. Pet Wavy’s head and her horn lights up and she'll show her affection with a kiss. Reward her with her favorite donut treat, and she’ll make fun eating noises and motions (she REALLY likes that donut!). Care for her by grooming her with the included seashell brush, and she’ll respond happily. (Don’t forget to tickle her tummy, too. Get ready for giggles!) At bedtime, put Wavy in nighttime mode and she’ll play calming ocean sounds. She’s a wonderful day-to-night friend, and a fantastic (splash-tastic?) gift for kids ages 4 and up. An Amazon exclusive. furReal and all related properties are trademarks of Hasbro.",
+      "features": "FURREAL WAVY THE NARWHAL INTERACTIVE PLUSH TOY responds to kids with 80 plus lifelike sounds and reactions. She kisses, waves her fins, wags her tail, and even dances\nFUN FEEDING PLAY: Wavy’s a pet with a lot of energy, so she needs plenty of treats. Feed her the included donut treat (her favorite.) and she’ll make lots of happy eating sounds and motions\nSO VERY PLAYFUL: Wavy loves it when you roll the included ball at her fin; she’ll try to flip it back. Press and hold her fin and she’ll play music and show off her dance moves\nAFFECTIONATE, TOO. Pet Wavy on her head and her horn lights up; she’ll wag her tail and wiggle her fins to show how happy she is (Hint: tickle her tummy, too.)\nSOOTHING NIGHTTIME MODE plays soft ocean sounds for bedtime snuggles and comfort a perfect way to end a day full of play and friendship",
+      "highest_price": "$89.99",
+      "highest_price_date": "Oct 24, 2023",
+      "img": "https://m.media-amazon.com/images/I/71xEIKYZGyL.__AC_SX300_SY300_QL70_FMwebp_.jpg",
+      "link": "https://camelcamelcamel.com/product/B08SNT6J9R?active=price_amazon&context=popular",
+      "list_price": "$72.91",
+      "lowest_price": "$28.99",
+      "lowest_price_date": "Nov 15, 2023",
+      "title": "furReal Wavy The Narwhal Interactive Animatronic Plush Toy, Electronic Pet, 80+ Sounds and Reactions, Rainbow Plush, Ages 4 and Up"
+    }
+  },
+  "provenance": {
+    "generator_id": "amazonbarg_importer",
+    "generator_version": "0.1.0",
+    "review_status": "upstream_pinned"
+  },
+  "seats": [
+    {
+      "id": "buyer",
+      "role": "buyer"
+    },
+    {
+      "id": "seller",
+      "role": "seller"
+    }
+  ],
+  "spec_version": "aeread.case/0.1",
+  "split": "pilot",
+  "upstream_task_id": "toys-games_16",
+  "visibility_policy": "amazonbarg_seller_cost_private_v1",
+  "world_seed": 916
+}

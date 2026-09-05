@@ -52,6 +52,15 @@ def test_generated_housing_family_is_discoverable() -> None:
     assert (CASES / "housing_v1" / "README.md").is_file()
 
 
+def test_govsim_v1_corpus_has_all_9_cells_and_provenance() -> None:
+    v1 = CASES / "govsim" / "v1"
+
+    assert len(list(v1.glob("govsim.*.json"))) == 9
+    assert (v1 / "pins.json").is_file()
+    assert (v1 / "corpus_manifest.json").is_file()
+    assert (CASES / "govsim" / "README.md").is_file()
+
+
 def test_procurement_grounding_development_case_is_discoverable() -> None:
     family = CASES / "procurement_grounding_v1"
 
@@ -61,6 +70,19 @@ def test_procurement_grounding_development_case_is_discoverable() -> None:
     ]
 
 
+def test_collusion_duopoly_pilot_has_all_6_cells_and_provenance() -> None:
+    family = CASES / "collusion"
+    pilot = family / "duopoly_pilot"
+
+    assert (family / "README.md").is_file()
+    assert sorted(path.name for path in pilot.glob("collusion.duopoly.*.json")) == [
+        "collusion.duopoly.asymmetric-quality.alpha1.seed0.json",
+        "collusion.duopoly.asymmetric-quality.alpha10.seed0.json",
+        "collusion.duopoly.asymmetric-quality.alpha3p2.seed0.json",
+        "collusion.duopoly.baseline-symmetric.alpha1.seed0.json",
+        "collusion.duopoly.baseline-symmetric.alpha10.seed0.json",
+        "collusion.duopoly.baseline-symmetric.alpha3p2.seed0.json",
+    ]
 def test_procurement_allocation_development_case_is_discoverable() -> None:
     family = CASES / "procurement_allocation_v1"
 

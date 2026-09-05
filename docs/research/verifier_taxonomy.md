@@ -111,15 +111,31 @@ information set, horizon, environment/opponent condition, and units. For maximiz
 
 `V_LB <= V* <= V_UB`
 
-### 5.1 Reference kinds
+### 5.1 Reference kinds and claim patterns
 
-| Reference kind | Meaning | Permitted claim |
+The settable `reference_kind` values for the `objective_reference` family are exactly
+`exact_optimum`, `objective_lower_bound`, `objective_upper_bound`,
+`comparison_baseline`, `outcome_support_min`, and `outcome_support_max`. Every
+`VerifierSpec.reference` carries one `ReferenceSpec`, so a claim resting on two
+references (a lower and an upper bound, say) is declared as two measurement leaves,
+one per reference kind — the per-bound pattern the housing family pins with its
+single `objective_upper_bound` leaf.
+
+The table below names the common claim patterns and what each is built from. The
+pattern names in the left column are conceptual labels for derived quantities; they
+are never literal `reference_kind` values.
+
+| Claim pattern | Built from | Permitted claim |
 |---|---|---|
-| `exact_optimum` | A proof or exact solver identifies `V*` for the declared problem. | exact regret or optimality ratio within its validity domain |
-| `bound_certificate` | Feasible evidence gives `V_LB` and a proof/relaxation gives `V_UB`. | certified regret interval and bound status |
-| `baseline_headroom` | The policy is located between named executable baseline `B` and certified upper bound `V_UB`. | fraction of that declared headroom captured |
-| `outcome_support_normalized` | The realized value is located within true outcome-support bounds. | bounded support position |
-| `objective_value_only` | Only the native objective value is available. | descriptive value; no optimality claim |
+| exact_optimum (also a settable kind) | one `exact_optimum` leaf | exact regret or optimality ratio within its validity domain |
+| bound_certificate | one `objective_lower_bound` leaf plus one `objective_upper_bound` leaf | certified regret interval and bound status |
+| baseline_headroom | one `comparison_baseline` leaf plus one `objective_upper_bound` leaf | fraction of that declared headroom captured (derived, section 5.3) |
+| outcome_support_normalized | one `outcome_support_min` leaf plus one `outcome_support_max` leaf | bounded support position (derived, section 5.3) |
+| objective_value_only | no `objective_reference` leaf is constructible | descriptive value; no optimality claim |
+
+Only `exact_optimum` above is also a settable `reference_kind`; the other four
+pattern names are labels for derived quantities and are never valid
+`reference_kind` values.
 
 **A feasible policy is not an outcome floor.** Its value witnesses a lower bound on the
 unknown optimum; another policy may do worse. Likewise, an objective's nominal maximum is
@@ -147,7 +163,9 @@ This is a comparative statistic, not automatically a score in `[0, 1]`. It may b
 when the agent loses to the baseline. It may exceed one when the references, stochastic
 estimates, or validity domains disagree. Record and investigate those cases rather than
 clipping them. `B` remains a comparison baseline even when its value also witnesses
-`V_LB`.
+`V_LB`. Both `headroom_capture` and the support-normalized position are derived
+statistics computed from the per-bound leaves of section 5.1; "baseline headroom" and
+"support-normalized outcome" are claim-pattern names, never `reference_kind` values.
 
 If `S_min` and `S_max` are true support bounds applying to every admissible realized
 outcome, then:
@@ -170,7 +188,7 @@ reference but no defensible optimum.
 | `baseline_delta` | Compare native outcomes with a named, versioned, executable policy under the same design. |
 | `paired_comparison` | Evaluate systems on identical independently sampled clusters/seeds and report paired effects. |
 | `head_to_head` | Evaluate against a declared opponent, field, or matchup distribution. |
-| `human_reference` | Compare with a specified human sample and collection protocol. |
+| `human_reference_comparison` | Compare with a specified human sample and collection protocol. |
 | `field_rating` | Estimate a rating under a fixed population, pairing rule, and statistical model. |
 
 The comparator, opponent population, matching rule, and cluster structure are part of the

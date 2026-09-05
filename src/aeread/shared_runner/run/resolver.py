@@ -661,6 +661,98 @@ def _plan_payload(plan: RunPlan) -> Mapping[str, Any]:
     }
 
 
+def _seal_plan(provisional: RunPlan) -> RunPlan:
+    plan_sha256 = _digest(_plan_payload(provisional))
+    return dataclasses.replace(
+        provisional,
+        run_plan_id=f"runplan_{plan_sha256[:16]}",
+        plan_sha256=plan_sha256,
+    )
+
+
+KERNEL_COMPONENT_PREFIX = "aeread.shared_runner."
+
+
+def is_kernel_pin(pin: ImplementationPin) -> bool:
+    """True when a pin's digest tracks runner-owned code rather than a family's.
+
+    Harness pins and pins naming an ``aeread.shared_runner`` module hash kernel
+    bytes that move with every runner commit. That digest is provenance; for
+    audit identity such pins are compared by component, kind, and declared
+    version, and a digest difference is reported as drift instead of a mismatch.
+    """
+
+    return pin.kind == "harness" or pin.component_id.startswith(KERNEL_COMPONENT_PREFIX)
+
+
+def plan_with_pins(plan: RunPlan, pins: Sequence[ImplementationPin]) -> RunPlan:
+    """Re-seal ``plan`` exactly as if it had been resolved with ``pins``.
+
+    The ``implementation:<component_id>`` input digests follow the pins, so the
+    result is byte-identical to a fresh resolution from the same inputs.
+    """
+
+    order = {pin.component_id: index for index, pin in enumerate(plan.implementation_pins)}
+    selected = tuple(
+        sorted(pins, key=lambda pin: (order.get(pin.component_id, len(order)), pin.component_id))
+    )
+    digests = {
+        key: value
+        for key, value in plan.input_digests.items()
+        if not key.startswith("implementation:")
+    }
+    for pin in selected:
+        key = f"implementation:{pin.component_id}"
+        if key in digests:
+            raise PlanResolutionError(f"duplicate input digest identity: {key}")
+        digests[key] = pin.sha256
+    provisional = dataclasses.replace(
+        plan,
+        run_plan_id="",
+        plan_sha256="",
+        implementation_pins=selected,
+        input_digests=MappingProxyType(dict(sorted(digests.items()))),
+    )
+    return _seal_plan(provisional)
+
+
+def plan_with_recorded_pins(
+    plan: RunPlan, recorded: Sequence[ImplementationPin]
+) -> tuple[RunPlan, tuple[str, ...]]:
+    """Reconstruct the identity a receipt was sealed under from its recorded pins.
+
+    Every recorded pin must name a component, kind, and version the current
+    plan also pins. Family-owned pins must match by digest as well. Kernel-owned
+    pins (see ``is_kernel_pin``) may differ in digest; each such difference is
+    returned as ``implementation_drift:<component_id>`` and the returned plan
+    carries the recorded digests so its ``run_plan_id`` matches the receipt.
+    """
+
+    current = {
+        (pin.component_id, pin.kind, pin.version): pin for pin in plan.implementation_pins
+    }
+    seen = {(pin.component_id, pin.kind, pin.version): pin for pin in recorded}
+    if len(seen) != len(tuple(recorded)) or set(seen) != set(current):
+        raise PlanResolutionError(
+            "recorded implementation pins do not name the plan's components"
+        )
+    drift: list[str] = []
+    for key, pin in sorted(current.items()):
+        if seen[key].sha256 == pin.sha256:
+            continue
+        if not is_kernel_pin(pin):
+            raise PlanResolutionError(
+                f"family implementation pin digest drifted: {pin.component_id}"
+            )
+        drift.append(f"implementation_drift:{pin.component_id}")
+    if not drift:
+        return plan, ()
+    substituted = tuple(
+        seen[(pin.component_id, pin.kind, pin.version)] for pin in plan.implementation_pins
+    )
+    return plan_with_pins(plan, substituted), tuple(drift)
+
+
 def _validate_cross_references(
     *,
     family_by_id: Mapping[str, FamilyManifest],
@@ -963,12 +1055,7 @@ def resolve_run_plan(
         cells=tuple(cells),
         profile_admissions=profile_admissions,
     )
-    plan_sha256 = _digest(_plan_payload(provisional))
-    return dataclasses.replace(
-        provisional,
-        run_plan_id=f"runplan_{plan_sha256[:16]}",
-        plan_sha256=plan_sha256,
-    )
+    return _seal_plan(provisional)
 
 
 def verify_run_plan(plan: RunPlan) -> None:
@@ -1062,6 +1149,10 @@ __all__ = [
     "canonical_json_bytes",
     "case_content_sha256",
     "resolve_run_plan",
+    "KERNEL_COMPONENT_PREFIX",
+    "is_kernel_pin",
+    "plan_with_pins",
+    "plan_with_recorded_pins",
     "verify_run_plan",
     "write_run_plan",
 ]
