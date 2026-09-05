@@ -1,0 +1,78 @@
+{
+  "case_id": "amazonbarg.bilateral.toys-games_6",
+  "content_sha256": "d7a979ce2aead8b130b18bc69b29aa1f93dbeeea353f1599c32e62c23aa4026f",
+  "episode": {
+    "max_logical_actions": 12,
+    "termination": [
+      "deal",
+      "quit",
+      "action_error",
+      "turn_limit"
+    ]
+  },
+  "family_id": "amazonbarg.bilateral",
+  "family_version": "0.1.0",
+  "payload": {
+    "derived": {
+      "budget": 33.52,
+      "category": "toys-games",
+      "category_file": "toys-games.json",
+      "codename": "toys-games_6",
+      "cost": 22.99,
+      "description": "Build the battle with 5 Pokémon in 5 different Poké Balls! Build, train and battle with 5 iconic Pokémon figures in this exclusive Poké Ball Pack. In every battle, a Pokémon trainer must choose wisely. Now, discover 5 Pokémon to build and battle with in this multi-figure pack! This pack features some of the most popular Pokémon, including Cubone, Zubat, Caterpie, Magikarp and, of course, Pikachu! And each figure comes with a different type of Poké Ball with a pronged top and interior so you can display your Pokémon! Ideal for ages 6 and up.",
+      "index_in_file": 5,
+      "interest": "mutual",
+      "price": 41.9,
+      "title": "MEGA Pokémon Action Figures Building Toys, Poké Ball Pack with Pikachu, Magikarp, Cubone, Zubat, Magikarp and 5 Different Poké Balls (Amazon Exclusive)"
+    },
+    "pins": {
+      "budget_ratio": 0.8,
+      "category_file_bytes": 58777,
+      "category_file_sha256": "18c4ddf974468b896c3877a147ad00b1d86f22964ceabd936848a9fd310cb91f",
+      "license": "Apache-2.0",
+      "max_turns": 6,
+      "upstream_commit": "834ad9066d0627f0332504d5fa6d236706f2402b",
+      "upstream_repo": "TianXiaSJTU/AmazonPriceHistory"
+    },
+    "product": {
+      "amazon_link": "https://www.amazon.com/dp/B0821J73SC",
+      "amazon_title": "MEGA Pokémon Action Figures Building Toys, Poké Ball Pack with Pikachu, Magikarp, Cubone, Zubat, Magikarp and 5 Different Poké Balls (Amazon Exclusive)",
+      "average_price": "$30.33",
+      "badge": "Best Price",
+      "camel_img": "https://m.media-amazon.com/images/I/51y-W5GKojL._UL320_.jpg",
+      "category": "toys-games",
+      "current_price": "$22.99",
+      "current_price_date": "Nov 17, 2023",
+      "description": "Build the battle with 5 Pokémon in 5 different Poké Balls! Build, train and battle with 5 iconic Pokémon figures in this exclusive Poké Ball Pack. In every battle, a Pokémon trainer must choose wisely. Now, discover 5 Pokémon to build and battle with in this multi-figure pack! This pack features some of the most popular Pokémon, including Cubone, Zubat, Caterpie, Magikarp and, of course, Pikachu! And each figure comes with a different type of Poké Ball with a pronged top and interior so you can display your Pokémon! Ideal for ages 6 and up.",
+      "features": "Exclusive 5-character multi-figure pack with different Poke Balls\nBuildable Pokemon include Cubone, Zubat, Caterpie, Magikarp and Pikachu\n5 Poke Balls with pronged top and interior for figure display include Luxury Ball, Premier Ball, Poke Ball, Great Ball and Ultra Ball\nCombine with other Pokemon sets from Mega Construx\nBuild your Pokemon world, and Build Beyond!",
+      "highest_price": "$41.90",
+      "highest_price_date": "Aug 09, 2022",
+      "img": "https://m.media-amazon.com/images/I/81-DdDT32XL.__AC_SY300_SX300_QL70_FMwebp_.jpg",
+      "link": "https://camelcamelcamel.com/product/B0821J73SC?active=price_amazon&context=popular",
+      "list_price": "$32.99",
+      "lowest_price": "$22.99",
+      "lowest_price_date": "Nov 17, 2023",
+      "title": "MEGA Pokémon Action Figures Building Toys, Poké Ball Pack with Pikachu, Magikarp, Cubone, Zubat, Magikarp and 5 Different Poké Balls (Amazon Exclusive)"
+    }
+  },
+  "provenance": {
+    "generator_id": "amazonbarg_importer",
+    "generator_version": "0.1.0",
+    "review_status": "upstream_pinned"
+  },
+  "seats": [
+    {
+      "id": "buyer",
+      "role": "buyer"
+    },
+    {
+      "id": "seller",
+      "role": "seller"
+    }
+  ],
+  "spec_version": "aeread.case/0.1",
+  "split": "pilot",
+  "upstream_task_id": "toys-games_6",
+  "visibility_policy": "amazonbarg_seller_cost_private_v1",
+  "world_seed": 906
+}

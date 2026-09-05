@@ -1,0 +1,234 @@
+# amazonbarg bilateral-bargaining adapter — status
+
+Branch `zeyu/amazonbarg-adapter`. Last verified 2026-09-02, after milestone 3
+(scripted harness, end-to-end, replay) and a post-review fix pass
+(`docs/amazonbarg_review_disposition.md`).
+
+## What the adapter claims
+
+For the 45-session `home-kitchen` + `toys-games` pilot pair (44
+mutual-interest sessions + `toys-games_22`, the pilot's one
+conflicting-interest session), the adapter runs upstream's exact bilateral
+buyer/seller bargaining protocol (`session.parseReply` +
+`utils.Action.ActionParser`, delegated in-process, never reimplemented)
+through the real kernel scheduler, and scores every episode by delegating to
+upstream's own `eval.py:Metrics` — never a hand-written legality or
+profit/ratio recomputation. Five leaves are published, `composition_kind
+="leaf"` throughout, never blended into one number:
+
+| Leaf | Verifier family | Owner | Claim |
+|---|---|---|---|
+| `amazonbarg_deal_authenticity` | `rule_constraint` | delegated (`wrongAction`) | matches a genuine prior offer and the buyer's declared need |
+| `amazonbarg_zopa_membership` | `rule_constraint` | AERead-owned, over delegated `B`/`C`/`D` | deal price inside `[cost, budget]` |
+| `amazonbarg_deal_lower_bound` | `objective_reference` | AERead-owned | deal price vs. `S_min = cost` |
+| `amazonbarg_deal_upper_bound` | `objective_reference` | AERead-owned | deal price vs. `S_max = budget` |
+| `amazonbarg_bargained_ratio` | `comparative` | AERead-owned scorer, delegated arithmetic | tested seat's ratio vs. the fixed scripted counterpart |
+
+`amazonbarg_deal_authenticity` and `amazonbarg_zopa_membership` are
+deliberately kept separate (spec section 2): golden 3 (Breville) is a real
+case where upstream calls a below-cost deal legitimate and AERead's own
+added check is the only thing that catches it — this golden proves
+scoring-layer detection, not state-layer prevention; see golden 4 for the
+latter (spec section 4, golden 3 entry). Milestone 3 adds the scripted
+counterpart harness (`harness.py`), an end-to-end run of at least two full
+episodes through the real shared-runner path with sealed evidence, and an
+offline replayer (`replay.py`) that reproduces both state and score with
+zero further model/network calls; a post-review fix pass then extended the
+harness/replay path from 2 to all 5 QC Gate-2 goldens
+(`docs/amazonbarg_review_disposition.md` finding W1).
+
+## Evidence
+
+**All five QC Gate-2 goldens run end to end through the real scheduler,
+sealed as durable evidence, then replayed by a second, independent plugin
+instance with zero provider calls, reproducing state and score
+byte-identically.**
+
+- All five goldens — golden 1 (`home-kitchen_2`, Shark vacuum, closes
+  `[DEAL] $135`), golden 2 (`home-kitchen_3`, Calphalon, an authenticated
+  but comparatively poor deal), golden 3 (`home-kitchen_5`, Breville, an
+  authenticated below-cost deal), golden 4 (`home-kitchen_4`, Bean Bag, the
+  malformed-action case), and golden 5 (`toys-games_22`, the pilot's one CI
+  session, correctly quits with no ZOPA) — are each driven through
+  `ScriptedAmazonbargHarness` and the genuine
+  `run_episode`/`AmazonbargPlugin`/`PluginRegistry` path — not a hand-wired
+  shortcut. Every served decision is appended as a hash-chained
+  `EvidenceStore` event and the store is sealed from the scheduler's own
+  `episode_completed` lifecycle callback once the episode terminates.
+  `tests/test_amazonbarg_harness.py` verifies the chain
+  (`EvidenceStore.verify_chain()`/`verify_seal()`) and that every event
+  payload round-trips exactly — including golden 4's single served decision
+  and the proof that no seller-phase turn ever ran and no phantom deal was
+  ever recorded.
+- Each recorded episode is extracted (`record_episode`), round-tripped
+  through plain JSON text (`RecordedEpisode.to_json()`/`from_json()`), and
+  replayed (`replay_episode`) by a **second**, independently constructed
+  `AmazonbargPlugin` — never the one that produced the original run.
+  `tests/test_amazonbarg_replay.py` asserts:
+  - `compare_episode_results(...).matches is True` for all five goldens,
+    and, unlike `tau3_retail` (whose replay only ever matches *content*,
+    because `step()` re-stamps a fresh wall-clock timestamp on every
+    message — documented on that adapter's own
+    `replay._strip_message_timestamps`), **the raw, byte-exact final state
+    matches too** (`final_state_matches is True`,
+    `canonical_json_bytes(replayed.final_state) ==
+    canonical_json_bytes(original.final_state)`) — `AmazonbargPlugin.step()`
+    stamps nothing, so this is a strictly stronger guarantee, verified
+    directly rather than assumed.
+  - Every measurement leaf (deal-authenticity/zopa/bounds and the
+    comparative ratio, both seats) recomputed from the replayed episode's
+    own recorded history via `score_replayed_episode` is `==`
+    (dataclass-equal, i.e. byte-identical) to the same leaf computed from
+    the original run's history, for golden 1, golden 4, and golden 5 —
+    including golden 4's and golden 5's degenerate `invalid_measurement`
+    envelopes, which reproduce with the same typed reason codes, not merely
+    the same top-level status.
+  - `replay_and_verify` end-to-end returns `status="match"` and the exact
+    expected `amazonbarg_bargained_ratio` primary (`~=0.49` for the buyer
+    seat on golden 1).
+  - A tampered recorded decision (the DEAL's price text changed, its action
+    *type* left alone so the episode still terminates after the same
+    number of decisions) diverges — `matches is False`,
+    `final_state_matches is False`, the two runs' final actions differ —
+    **without raising**. This is an honest, documented difference from
+    `tau3_retail` (whose `Tau3RetailPlugin.step()` independently
+    re-executes and cross-checks every tool call against a live bridge and
+    raises `SchedulerContractError` on a tamper): amazonbarg has no tool
+    calls to cross-check, so a tampered reply is simply re-parsed into a
+    genuinely different trajectory, never caught internally by `step()`
+    itself. The replay guarantee here rests entirely on
+    `compare_episode_results`/`assert_replay_matches` being run and checked
+    by the caller.
+
+**Suite: 114/114 passed** for the full amazonbarg family test-file set
+(`test_amazonbarg_cases.py` 32, `test_amazonbarg_environment.py` 18,
+`test_amazonbarg_measurement.py` 19, `test_amazonbarg_shim.py` 12,
+`test_amazonbarg_harness.py` 8, `test_amazonbarg_replay.py` 15) plus
+`test_shared_runner_smoke.py` (10) — zero failed, zero skipped (the pinned
+upstream checkout is present at
+`/Users/sunzeyu/Documents/econ benchmark/upstream-amazonbarg`, so every test
+that needs it actually ran, never silently skipped). The 8-test increase
+over milestone 3's original 106/106 is the post-review fix pass: 3 new
+harness goldens (2, 3, 4), 4 new replay goldens (2, 3, 4 state-reproduction
+plus a golden-4 score-recompute), and 1 new measurement regression test
+(`docs/amazonbarg_review_disposition.md` findings W1/W2).
+
+**No regression: full repo suite 830 passed, 31 skipped, 1 xfailed.** The 31
+skips are pre-existing, unrelated external-bridge dependencies for other
+adapter families (confirmed none is amazonbarg-related by grepping the
+skip report for `amazonbarg` — zero hits).
+
+**Provider-free, network-free throughout.** Every test in this milestone
+runs entirely in-process, through `upstream_shim`'s delegation mechanism —
+no subprocess bridge, no API key, no network call. `test_amazonbarg_shim.py`
+already pins the stub miss-counter at `0` across the whole suite; this
+milestone adds nothing that could raise it (the harness/replay modules
+never call `upstream_shim` directly — only `measurement.py`'s
+`compute_upstream_metrics`, already covered).
+
+## What's still declared-but-not-executed
+
+Only the 45-session pilot pair actually runs end to end tonight; the other
+885 of the full 930-session corpus are digested at the file level (Gate 1)
+and get no `CaseManifest`, scripted trajectory, harness run, or replay.
+Milestone 3 originally only drove 2 of the 45 pilot sessions (goldens 1 and
+5) through the harness/replay path, per the milestone's own acceptance bar
+("at least 2 full episodes"); a post-review fix pass
+(`docs/amazonbarg_review_disposition.md` finding W1) extended this to **all
+5 QC Gate-2 goldens** — the remaining 40 pilot sessions (outside the five
+goldens) and their measurement coverage are still exercised only by
+`test_amazonbarg_measurement.py`'s existing scored-transcript tests, not yet
+by a harness-run + sealed-evidence + replay cycle each. Extending the
+harness/replay pair to the full 45-session pilot (and, separately, deciding
+whether to materialize and score any of the other 885 sessions) remains
+future work, not part of this milestone's scope.
+
+## Known limits, stated rather than implied
+
+- **The scripted counterpart is one fixed policy, not a distribution of
+  opponents.** `amazonbarg_bargained_ratio`'s claim (and this milestone's
+  own harness scripts) is relative to that one AERead-authored fixture,
+  never a general capability score (spec section 6).
+- **No stochastic estimation.** Every leaf's `evaluation_class` stays
+  `"deterministic"` — scripted trajectories only; a real model policy in
+  either seat is out of scope here.
+- **Replay's guarantee is external, not internal.** Unlike
+  `Tau3RetailPlugin.step()` (which owns its own tool-replay cross-check and
+  raises on divergence), `AmazonbargPlugin.step()` has no tool calls to
+  cross-check, so `replay.py`'s comparison functions must actually be
+  called and their result actually checked — a caller that replays and
+  never calls `assert_replay_matches`/inspects `StateComparison.matches`
+  would not be told about a divergence. See the tamper test above for the
+  concrete, verified shape of that gap.
+- **`amazonbarg_zopa_membership` and the bound leaves are AERead
+  additions** upstream never computes or validates — still true as of this
+  milestone, restated from the milestone-2 status (never report them as
+  "the paper's own headline metric").
+- **`budget_ratio=0.8` and `max_turns=6` remain the only pins explored.**
+  No sensitivity analysis over either value is part of this or any prior
+  milestone.
+- **"Component parity" (the double-delegated-call check every QC Gate-2
+  golden test runs) proves wiring, never the correctness of the delegated
+  arithmetic itself, for the two leaves that are purely delegated
+  (`amazonbarg_deal_authenticity`'s `wrongAction`, `amazonbarg_bargained
+  _ratio`'s profit arithmetic).** Both calls in `_score_and_check_parity`
+  run the identical pinned upstream code on the identical input and will
+  agree on whatever that code computes, bug or not (codex-review finding
+  7) — demonstrated concretely by finding 2's own room-widening bug, which
+  reproduced byte-identically across both calls and passed every parity
+  assertion. Rule 2 ("never reimplement upstream") forbids building an
+  independent oracle to close this for the two purely-delegated leaves, so
+  it is not fixable inside this adapter; the one manually-verified,
+  non-parity oracle case that exists
+  (`test_narrow_bargaining_room_does_not_let_a_deal_above_the_real_budget
+  _pass_zopa`) covers only the AERead-owned `amazonbarg_zopa_membership`
+  leaf (whose fix let it stop trusting delegated `B`/`C` at all), not the
+  two purely-delegated leaves parity can never independently check — and,
+  since it does not call `_score_and_check_parity`, it does not regression
+  -guard finding 7's own fix commit (a documentation-only docstring
+  addition; no runtime behavior is gated on it, so no test can fail if it
+  is reverted). This is a permanent, disclosed limitation, not a closed
+  finding — see `docs/amazonbarg_review_disposition.md`'s "Verification
+  follow-up" section for the correction to that file's earlier "closed by
+  finding 2's test" summary-table wording, which overstated the
+  relationship.
+
+## Kernel/runner defects or limitations found this milestone
+
+One new, since the previous version of this file: **D-15 (HIGH, open,
+cross-family)** — the shared runner's only production call site for family
+scoring, `finalize_family_execution` (`src/aeread/shared_runner/
+family_evaluation.py:245,487,565`), requires `plugin.build_scorer
+(family_case)` to return something directly callable that yields exactly
+one `ScoreEnvelope`; `AmazonbargScorer` (this adapter's declared five-leaf
+model, spec section 2, "never blended into one number") has no `__call__`
+and could not satisfy that shape without inventing an arbitrary "primary"
+leaf and silently discarding the other four — an adapter-local workaround
+to what is a cross-family kernel contract question, not a bug unique to
+amazonbarg (`Tau3RetailScorer` carries the identical gap, and the kernel's
+own `smoke.py` reference plugin does not satisfy its own contract either).
+Surfaced by the codex second-reviewer pass (`docs/amazonbarg_codex_triage.md`
+finding 5) and correctly triaged, then, as out of scope for this adapter
+branch rather than fixed here; filed as `runner_defect_ledger.md` D-15
+(status: **open**). Concretely: **this adapter's production scores are not
+produced or sealed by the shared kernel today** — every score this
+milestone demonstrates (the QC Gate-2 goldens' harness/replay evidence
+described above) is sealed by this adapter's own `ScriptedAmazonbargHarness`/
+`EvidenceStore` calling `measurement.py`'s scorer methods directly, never by
+`finalize_family_execution` itself, which cannot yet call `build_scorer` for
+this (or any multi-leaf) family at all. Do not read "sealed as durable
+evidence" above as "the shared runner's production evaluation pipeline
+already works end to end for amazonbarg" — it does not, for any family with
+more than one declared leaf, until D-15 is resolved at the kernel level.
+
+The three kernel-contract limitations already on file from milestones 1-2
+(`ledger_entries/amazonbarg.md`: the two-value `ScoreEnvelope.status` enum
+having no distinct "degenerate" state; the lack of a directionless
+`ObjectiveScopeSpec.direction` option; and the `verifier_taxonomy.md` §5.1
+vs. real `_REFERENCE_KINDS` drift) are unchanged — this milestone's
+harness/replay work exercises all three code paths again (goldens 1 and 5)
+without surfacing anything new about them. The `sys.modules` shim technique
+(spec section 3.1, also logged there as a deliberate departure from the
+task's two named fallback patterns) is unchanged by this milestone:
+`harness.py`/`replay.py` never call `upstream_shim` directly, only
+`measurement.py`'s already-shimmed `compute_upstream_metrics`.
