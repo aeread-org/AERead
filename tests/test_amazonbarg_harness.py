@@ -23,11 +23,11 @@ from types import MappingProxyType
 
 import pytest
 
-from aeread.shared_runner.execution import EvidenceStore
+from aeread.shared_runner.task.execution import EvidenceStore
 from aeread.shared_runner.registry import PluginRegistry
-from aeread.shared_runner.resolver import PlanCell
+from aeread.shared_runner.run.resolver import PlanCell
 from aeread.shared_runner.schemas import CaseManifest
-from aeread.shared_runner.scheduler import run_episode
+from aeread.shared_runner.task.scheduler import run_episode
 from aeread_families.amazonbarg import cases as amazonbarg_cases
 from aeread_families.amazonbarg.environment import (
     BUYER_PHASE,

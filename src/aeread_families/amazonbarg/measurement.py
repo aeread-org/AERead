@@ -88,7 +88,7 @@ from aeread.shared_runner.measurement import (
     ValidityReport,
     VerifierSpec,
 )
-from aeread.shared_runner.resolver import canonical_json_bytes
+from aeread.shared_runner.run.resolver import canonical_json_bytes
 
 from . import upstream_shim
 from .cases import UPSTREAM_COMMIT, UPSTREAM_REPO

@@ -33,9 +33,9 @@ import pytest
 
 from aeread.shared_runner.measurement import MeasurementContractError, ScoreEnvelope
 from aeread.shared_runner.registry import PluginRegistry
-from aeread.shared_runner.resolver import PlanCell
+from aeread.shared_runner.run.resolver import PlanCell
 from aeread.shared_runner.schemas import CaseManifest
-from aeread.shared_runner.scheduler import DecisionRequest, run_episode
+from aeread.shared_runner.task.scheduler import DecisionRequest, run_episode
 from aeread_families.amazonbarg import measurement as m
 from aeread_families.amazonbarg import upstream_shim
 from aeread_families.amazonbarg.environment import (

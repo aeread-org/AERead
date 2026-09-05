@@ -19,9 +19,9 @@ from aeread.shared_runner.registry import (
     REQUIRED_FAMILY_PLUGIN_HOOKS,
     PluginRegistry,
 )
-from aeread.shared_runner.resolver import PlanCell, canonical_json_bytes
+from aeread.shared_runner.run.resolver import PlanCell, canonical_json_bytes
 from aeread.shared_runner.schemas import AuthoringValidationError, CaseManifest
-from aeread.shared_runner.scheduler import DecisionRequest, SchedulerContractError, run_episode
+from aeread.shared_runner.task.scheduler import DecisionRequest, SchedulerContractError, run_episode
 from aeread_families.amazonbarg import cases as amazonbarg_cases
 from aeread_families.amazonbarg import measurement as amazonbarg_measurement
 from aeread_families.amazonbarg.environment import (
@@ -478,7 +478,7 @@ def test_a_non_deal_non_quit_reply_never_terminates_the_episode() -> None:
         family_case, state, "buyer", buyer_phase, {"content": "Thought: t\nTalk: hi\nAction: [BUY] $1 (1x home-kitchen_2)"}
     )
     assert parsed.ok is True
-    from aeread.shared_runner.scheduler import ActionEnvelope
+    from aeread.shared_runner.task.scheduler import ActionEnvelope
 
     legality = plugin.legal(family_case, state, "buyer", buyer_phase, parsed.action)
     envelope = ActionEnvelope(seat_id="buyer", valid=True, action=parsed.action, parse=parsed, legality=legality)
