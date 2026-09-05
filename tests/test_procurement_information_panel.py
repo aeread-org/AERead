@@ -201,3 +201,19 @@ def test_trusting_an_optimistic_claim_loses_money(slug: str) -> None:
     assert naive["feasible"] is False, slug
     assert naive["contribution_margin_usd"] < upper.contribution_margin_usd
 
+
+
+def test_information_campaign_runs_both_prompts_on_the_new_worlds() -> None:
+    from aeread_families.procurement_allocation.information_campaign import (
+        CAMPAIGN_ID, build_plan,
+    )
+
+    plan = build_plan()
+    assert plan["campaign_id"] == CAMPAIGN_ID
+    assert plan["independent_world_count"] == 8
+    assert plan["planned_trajectory_count"] == 96
+    assert plan["prompts"]["control_sha256"] != plan["prompts"]["treatment_sha256"]
+    assert plan["analysis"]["diagnostic_rule"]["guarded_metric"].startswith(
+        "feasible_award"
+    )
+    assert build_plan()["plan_sha256"] == plan["plan_sha256"]

@@ -215,3 +215,24 @@ Defects 1, 2, 3, and 4 are the ones that block the family from measuring the
 objective it declares. Defects 5 and 7 are correctness issues that should be fixed
 regardless. Defects 6, 8, 9 are scoping decisions that should be stated in the
 case README rather than left implicit.
+
+---
+
+## Status of the fixes
+
+| defect | state |
+|---|---|
+| 1 verbal claims always true | **fixed** — `verbal_bias`; `information_v1` proves it bites |
+| 2 information too cheap | **addressed in worlds** — `information_v1` prices it at 15-48% of gross |
+| 3 no negotiation headroom | **addressed in worlds** — floors 15-30% below quote, real MOQ headroom |
+| 4 rejected counter teaches nothing | open; needs an environment change to the counter reply |
+| 5 defer counts as feasible | **fixed** — `feasible_award` published per row and guarded in the new confirmatory rule |
+| 6 episode decided early | open by design; the fix is a hypothetical-offer check, recorded not implemented |
+| 7 exponential oracle | **fixed** — bounded with a named error |
+| 8 labeled ids leak the answer | open; opaque mirrors exist and should become the primary surface |
+| 9 headroom exhausted | **addressed in worlds** — `information_v1` and `confirmatory_v2` |
+| 10 canary sealed by a transient 429 | open; hit repeatedly while running the holdout on 2026-09-05 |
+
+Defects 4, 6, 8, and 10 are the remaining work. None of them blocks the panels
+above; each is a bounded change with the fix already described in its section.
+
