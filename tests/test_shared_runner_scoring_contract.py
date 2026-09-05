@@ -1041,9 +1041,9 @@ def _trusted_family_versions(
 
 # Every TRUSTED_BUILTIN_PLUGIN_KEYS (family_id, version) pair not named here
 # must have a FAMILY_SCORING_FIXTURES-equivalent entry in this module, or
-# _assert_trusted_catalog_is_closed fails. These entries are trusted in-tree
+# _assert_trusted_catalog_is_closed fails. These are trusted in-tree
 # families that have not yet migrated to the FamilyScoringInput contract
-# (spec section 5; per-family work this kernel
+# (spec section 5 -- "eleven migration agents," per-family work this kernel
 # change does not perform; see this module's docstring and
 # kernel_contract_impl_review.md findings 5/7 for why declaring a fixture for
 # an unmigrated family is not honestly possible today). This set is
@@ -1060,6 +1060,13 @@ _NOT_YET_MIGRATED_TRUSTED_KEYS: "frozenset[tuple[str, str]]" = frozenset(
         ("single_offer_v1", "1.0.0"),
         ("tau3.retail", "0.1.0"),
         ("kernel_contract_sequential_v1", "1.0.0"),
+        # External-benchmark adapter families enrolled in
+        # TRUSTED_BUILTIN_PLUGIN_KEYS by maintainer ruling on 2026-09-04
+        # (PRs #28-#38), landed on main after this branch forked. None of
+        # the eleven has a FamilyScoringInput-contract fixture yet; they
+        # migrate under the per-adapter follow-ups tracked alongside the
+        # other not-yet-migrated families above, not as part of this
+        # kernel change.
         ("agenticpay.bilateral", "0.1.0"),
         ("alympics.wac", "0.1.0"),
         ("amazonbarg.bilateral", "0.1.0"),

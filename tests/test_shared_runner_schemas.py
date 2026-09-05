@@ -534,6 +534,8 @@ def test_harness_registry_requires_state_reader_only_with_memory_enabled() -> No
     registry = HarnessRegistry()
     registry.register(DisabledMemoryWithoutReader())
     assert registry.resolve("fixture_chat_no_reader", "1.0") is not None
+
+
 def _family_data_with_leaves(**overrides) -> dict:
     """``family_data()`` plus a two-leaf policy: one finalize_time, one deferred."""
 
