@@ -12,7 +12,7 @@ import math
 import re
 from dataclasses import dataclass, field
 from types import MappingProxyType
-from typing import Any, Mapping
+from typing import Any, Mapping, Sequence
 
 from .schemas import is_exportable_id
 
@@ -382,8 +382,131 @@ class ScoreEnvelope:
         )
 
 
+@dataclass(frozen=True, slots=True)
+class FamilyScoreSet:
+    """One family's independently typed score leaves and admission policy.
+
+    ``EvaluationReceipt`` has always stored a tuple of score envelopes, but the
+    generic family finalizer historically accepted only one. This record makes
+    the multi-leaf boundary explicit without forcing existing one-leaf plugins
+    to change: :func:`normalize_family_score_set` wraps a lone
+    :class:`ScoreEnvelope` with that leaf as both primary and admission leaf.
+
+    An invalid diagnostic may remain in an included receipt. An invalid
+    admission leaf excludes the receipt as an invalid measurement; a measured
+    constraint violation is still an ``ok`` envelope whose primary value is
+    zero, not an invalid measurement.
+    """
+
+    primary_leaf_id: str
+    scores: tuple[ScoreEnvelope, ...]
+    admission_leaf_ids: tuple[str, ...] = ()
+
+    def __post_init__(self) -> None:
+        primary_leaf_id = _require_id(self.primary_leaf_id, "primary_leaf_id")
+        if not isinstance(self.scores, tuple) or not self.scores:
+            raise MeasurementContractError("family score set must contain scores")
+        by_leaf: dict[str, ScoreEnvelope] = {}
+        for score in self.scores:
+            if not isinstance(score, ScoreEnvelope):
+                raise MeasurementContractError(
+                    "family score set must contain only ScoreEnvelope values"
+                )
+            leaf_id = score.leaf.leaf_id
+            if leaf_id in by_leaf:
+                raise MeasurementContractError(
+                    "family score set contains a duplicate measurement leaf"
+                )
+            by_leaf[leaf_id] = score
+        if primary_leaf_id not in by_leaf:
+            raise MeasurementContractError(
+                "family score set does not contain its primary measurement leaf"
+            )
+
+        raw_admission = self.admission_leaf_ids or (primary_leaf_id,)
+        if not isinstance(raw_admission, tuple):
+            raise MeasurementContractError("admission_leaf_ids must be a tuple")
+        admission = tuple(
+            _require_id(leaf_id, "admission leaf id") for leaf_id in raw_admission
+        )
+        if len(set(admission)) != len(admission):
+            raise MeasurementContractError(
+                "admission_leaf_ids must not contain duplicates"
+            )
+        missing = sorted(set(admission) - set(by_leaf))
+        if missing:
+            raise MeasurementContractError(
+                "admission leaves are absent from the family score set: "
+                + ", ".join(missing)
+            )
+        if primary_leaf_id not in admission:
+            raise MeasurementContractError(
+                "primary_leaf_id must also be an admission leaf"
+            )
+
+        canonical_scores = tuple(
+            sorted(
+                by_leaf.values(),
+                key=lambda score: (
+                    score.leaf.leaf_id != primary_leaf_id,
+                    score.leaf.leaf_id,
+                ),
+            )
+        )
+        canonical_admission = tuple(
+            sorted(
+                admission,
+                key=lambda leaf_id: (leaf_id != primary_leaf_id, leaf_id),
+            )
+        )
+        object.__setattr__(self, "scores", canonical_scores)
+        object.__setattr__(self, "admission_leaf_ids", canonical_admission)
+
+    @property
+    def invalid_admission_leaf_ids(self) -> tuple[str, ...]:
+        admission = set(self.admission_leaf_ids)
+        return tuple(
+            score.leaf.leaf_id
+            for score in self.scores
+            if score.leaf.leaf_id in admission and score.status != "ok"
+        )
+
+
+def normalize_family_score_set(
+    value: ScoreEnvelope | FamilyScoreSet | Sequence[ScoreEnvelope],
+) -> FamilyScoreSet:
+    """Normalize old and compact scorer returns to ``FamilyScoreSet``.
+
+    A bare sequence uses its first score as the primary and sole admission
+    leaf. Families with additional admission leaves must return an explicit
+    ``FamilyScoreSet`` so the policy is never inferred from score order.
+    """
+
+    if isinstance(value, FamilyScoreSet):
+        return value
+    if isinstance(value, ScoreEnvelope):
+        return FamilyScoreSet(
+            primary_leaf_id=value.leaf.leaf_id,
+            scores=(value,),
+        )
+    if isinstance(value, Sequence) and not isinstance(value, (str, bytes)):
+        scores = tuple(value)
+        if not scores or not isinstance(scores[0], ScoreEnvelope):
+            raise MeasurementContractError(
+                "family scorer sequence must contain ScoreEnvelope values"
+            )
+        return FamilyScoreSet(
+            primary_leaf_id=scores[0].leaf.leaf_id,
+            scores=scores,
+        )
+    raise MeasurementContractError(
+        "family scorer must return ScoreEnvelope, a score sequence, or FamilyScoreSet"
+    )
+
+
 __all__ = [
     "EstimandSpec",
+    "FamilyScoreSet",
     "ImplementationRef",
     "MeasurementContractError",
     "MeasurementLeafSpec",
@@ -394,4 +517,5 @@ __all__ = [
     "ValidityDomainSpec",
     "ValidityReport",
     "VerifierSpec",
+    "normalize_family_score_set",
 ]

@@ -3,7 +3,7 @@
 These tests exercise the real pinned upstream checkout on disk (read-only,
 never executed for anything a plain file read can answer) and, where a
 computed value is asserted, compare against upstream's own governing facts
-(docs/tau3_retail_adapter_spec.md) or against the kernel's own resolver
+(docs/families/tau3-retail/adapter_spec.md) or against the kernel's own resolver
 helpers -- never against a value this test suite invents.
 """
 from __future__ import annotations
@@ -16,7 +16,7 @@ from pathlib import Path
 
 import pytest
 
-from aeread.shared_runner.resolver import case_content_sha256
+from aeread.shared_runner.run.resolver import case_content_sha256
 from aeread.shared_runner.schemas import AuthoringValidationError, CaseManifest
 from aeread_families.tau3_retail import cases as tau3_cases
 

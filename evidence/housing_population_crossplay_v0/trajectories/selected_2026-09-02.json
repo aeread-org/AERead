@@ -1,0 +1,219 @@
+{
+  "artifact_sha256": "141c8a3458a06ebee10fe6e0b41deb7f483f6f8cf92895725ac0bde68464275e",
+  "schema_version": "aeread.housing_trajectory_examples/0.1",
+  "campaign_id": "housing_population_crossplay_v0",
+  "source_gate": "full_trajectory",
+  "source_attempt_index": 2,
+  "source_summary_artifact_sha256": "74a5f9ecba56867d68999ca661cd029b47807febf743861fee8f0fdad1b1c581",
+  "world_seed": 444697508,
+  "claim_status": "development_trajectory_examples_only",
+  "selection_rule": "Among live-opponent completed trajectories, retain the maximum and minimum observed within-case score; also retain the operational failure with the fewest sealed events.",
+  "selection_is_for_presentation_not_inference": true,
+  "ranking_allowed": false,
+  "raw_provider_responses_included": false,
+  "model_reasoning_included": false,
+  "examples": [
+    {
+      "example_class": "completed_upper_observed_crossplay",
+      "condition_id": "deepseek_v4_flash__vs__glm_53_flash",
+      "subject": "deepseek_v4_flash",
+      "opponent": "glm_53_flash",
+      "status": "completed",
+      "receipt_status": "ok",
+      "run_plan_id": "runplan_93db1c81861d22e6",
+      "cell_id": "cell_dc2cb092229298a285d6",
+      "episode_attempt_id": "episode_attempt_d7593a79be37fcbebf6c",
+      "event_count": 252,
+      "event_root_sha256": "f1a8e2eafd1284ce2529fcf95405e7ff0cd652b6981e42c2419db1444dd9dea7",
+      "artifact_count": 158,
+      "artifact_root_sha256": "23f67e944aafd7e88eda9a4c068a1645de41b845f26a59112be0f36d19ab89b3",
+      "receipt_sha256": "551bb4c6b016097a493fc7f75f01d7a96a1c7544bc43e0bfbecf8d115c12cb9d",
+      "result_artifact_sha256": "ab615b3acdb15a358c26fe155c2952dab16ead1579a4496bf5ee1218e2dfafd9",
+      "phase_order": [
+        "contact",
+        "respond",
+        "commit",
+        "contact",
+        "respond",
+        "commit"
+      ],
+      "logical_action_count": 29,
+      "action_outcomes": {
+        "offer": 11,
+        "accept": 4,
+        "reject_all": 2,
+        "sign": 4,
+        "pass": 7,
+        "malformed_response": 1
+      },
+      "assignment_pairs": [
+        [
+          0,
+          2
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          3,
+          1
+        ]
+      ],
+      "signed_rents": [
+        {
+          "tenant_id": 0,
+          "rent": 1653.0
+        },
+        {
+          "tenant_id": 1,
+          "rent": 1700.0
+        },
+        {
+          "tenant_id": 2,
+          "rent": 2549.0
+        },
+        {
+          "tenant_id": 3,
+          "rent": 3149.0
+        }
+      ],
+      "social_welfare": 816.63,
+      "comparison_baseline": 816.63,
+      "oracle_upper_bound": 1059.1,
+      "within_case_score": 0.771060334246058,
+      "ir_violation_count": 0,
+      "wasted_contacts": 7,
+      "provider_cost_complete": true,
+      "cost_usd": 0.00398430252,
+      "replay_verified": true
+    },
+    {
+      "example_class": "completed_lower_observed_crossplay",
+      "condition_id": "glm_53_flash__vs__deepseek_v4_flash",
+      "subject": "glm_53_flash",
+      "opponent": "deepseek_v4_flash",
+      "status": "completed",
+      "receipt_status": "ok",
+      "run_plan_id": "runplan_dba289bd25e9df53",
+      "cell_id": "cell_60ccf9c02bbe84b8bf23",
+      "episode_attempt_id": "episode_attempt_62dbf844bf462de83d9b",
+      "event_count": 398,
+      "event_root_sha256": "14959cbbca45f217bb4efbc0d3129051d02907861caabd39c0c3f7e24d9c992d",
+      "artifact_count": 246,
+      "artifact_root_sha256": "ef0b81f45c2a01cd582b5a8bf9a57b501c2dc0d18b34270af7d70469f41210f8",
+      "receipt_sha256": "8cf68e7f5ffab9145d463ac4c2e75db56b75ac7ae477c21609157d92289c230a",
+      "result_artifact_sha256": "dbae7b0604d25532b490ee8b8261b9919b038e60fdb281878b2928e75f766bd3",
+      "phase_order": [
+        "contact",
+        "respond",
+        "commit",
+        "contact",
+        "respond",
+        "commit",
+        "contact",
+        "respond",
+        "commit",
+        "contact",
+        "respond",
+        "commit"
+      ],
+      "logical_action_count": 46,
+      "action_outcomes": {
+        "offer": 12,
+        "accept": 3,
+        "reject_all": 2,
+        "sign": 3,
+        "pass": 17,
+        "malformed_commit": 4,
+        "malformed_response": 5
+      },
+      "assignment_pairs": [
+        [
+          0,
+          0
+        ],
+        [
+          3,
+          1
+        ],
+        [
+          4,
+          3
+        ]
+      ],
+      "signed_rents": [
+        {
+          "tenant_id": 0,
+          "rent": 2549.0
+        },
+        {
+          "tenant_id": 3,
+          "rent": 3149.0
+        },
+        {
+          "tenant_id": 4,
+          "rent": 1634.0
+        }
+      ],
+      "social_welfare": 255.56,
+      "comparison_baseline": 816.63,
+      "oracle_upper_bound": 1059.1,
+      "within_case_score": 0.2412992163157398,
+      "ir_violation_count": 0,
+      "wasted_contacts": 9,
+      "provider_cost_complete": true,
+      "cost_usd": 0.0027823900500000007,
+      "replay_verified": true
+    },
+    {
+      "example_class": "shortest_operational_failure",
+      "condition_id": "deepseek_v4_flash__vs__deepseek_v4_flash",
+      "subject": "deepseek_v4_flash",
+      "opponent": "deepseek_v4_flash",
+      "status": "operational_failure",
+      "receipt_status": "invalid_measurement",
+      "run_plan_id": "runplan_090335c6be83f497",
+      "cell_id": "cell_a8d5130656520eb20a8b",
+      "episode_attempt_id": "episode_attempt_d55d01488206a77c4ff8",
+      "event_count": 31,
+      "event_root_sha256": "96f9da373bfd280f2297b83ac283fa022cb2c394bbcd44f3de40de9184a02bac",
+      "artifact_count": 22,
+      "artifact_root_sha256": "9627ff5df4a17e57938083fbabd4efcc4af47b746bc1afef371023eb280d5305",
+      "receipt_sha256": "90723e78e5c9ddfa2932b4b6900626a7a2c960bc30c443f3b7e445d459e3ae2d",
+      "result_artifact_sha256": "2eaea2a14a9f79ef9ee8fe10f53853f98898e86f890cb6ae546cbcd5f251b0b0",
+      "phase_order": [
+        "contact"
+      ],
+      "logical_action_count_before_failure": 3,
+      "action_outcomes": {
+        "offer": 3
+      },
+      "provider_call_started_count": 4,
+      "provider_call_succeeded_count": 3,
+      "provider_call_failed_count": 1,
+      "failure_condition": "provider_contract_empty_content",
+      "within_case_score": null,
+      "social_welfare": null,
+      "cost_usd": 0.00033435072
+    }
+  ],
+  "omitted_attempt_2_conditions": [
+    "glm_53_flash__vs__scripted",
+    "glm_53_flash__vs__glm_53_flash",
+    "deepseek_v4_flash__vs__scripted"
+  ],
+  "limitations": [
+    "All examples share one world seed and are correlated development observations.",
+    "The source attempt did not complete all six conditions, so no model ranking is supported.",
+    "Full raw evidence remains local because it includes provider responses and model reasoning."
+  ],
+  "local_source": {
+    "path": "runs/housing_population_crossplay_v0/full_trajectory/attempt_2",
+    "committed": false
+  }
+}

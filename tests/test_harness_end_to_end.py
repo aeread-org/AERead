@@ -17,9 +17,9 @@ import json
 
 import pytest
 
-from aeread.shared_runner.execution import execute_plan_cell
-from aeread.shared_runner.harness import default_harnesses
-from aeread.shared_runner.smoke import FixedResponseProvider, build_single_offer_smoke
+from aeread.shared_runner.task.execution import execute_plan_cell
+from aeread.shared_runner.model_call.harness import default_harnesses
+from aeread_families.single_offer.runner import FixedResponseProvider, build_single_offer_smoke
 
 
 class CountingProvider(FixedResponseProvider):
@@ -175,7 +175,7 @@ def test_an_inadmissible_profile_is_excluded_before_any_provider_call(
 ) -> None:
     """Admission is a gate, not a report: it must fire before spending money."""
 
-    from aeread.shared_runner.resolver import CapabilityExclusionError
+    from aeread.shared_runner.run.resolver import CapabilityExclusionError
 
     provider = CountingProvider('{"offer":7}')
     setup = build_single_offer_smoke(
@@ -217,8 +217,8 @@ def test_a_tool_using_attempt_runs_through_the_executor_and_seals_its_evidence(
 
     import dataclasses
 
-    from aeread.shared_runner.execution import EvidenceStore
-    from aeread.shared_runner.harness import (
+    from aeread.shared_runner.task.execution import EvidenceStore
+    from aeread.shared_runner.model_call.harness import (
         AttemptExecutor,
         NativeToolCall,
         NativeToolChatHarness,

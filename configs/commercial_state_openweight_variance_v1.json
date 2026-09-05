@@ -1,0 +1,139 @@
+{
+  "schema_version": "aeread.commercial_state_campaign/0.1",
+  "campaign_id": "commercial_state_openweight_variance_v1",
+  "claim_status": "exploratory_variance_pilot",
+  "question": "How do four pinned open-weight model-plus-route profiles differ on evidence-grounded commercial-state reconstruction within one sanitized source archive?",
+  "primary_estimand": "commercial_state_safe_accuracy",
+  "focal_factor": "model_plus_provider_route",
+  "independent_cluster": "source_archive",
+  "case_panel": {
+    "family": "commercial_state_calibration_v1",
+    "family_version": "1.0.0",
+    "case_slugs": [
+      "po-routing-new-vs-revision",
+      "payment-release-reconcile",
+      "invoice-payment-state-controls",
+      "colo-quote-normalization",
+      "contract-execution-cutoffs",
+      "deployment-location-power-reconciliation",
+      "build-quote-model-audit",
+      "template-classification",
+      "contact-escalation-routing"
+    ],
+    "independence_cluster_ids": [
+      "commercial_archive_pilot_01"
+    ]
+  },
+  "controls": {
+    "harness": "minimal_chat/1.0",
+    "tools": "disabled",
+    "memory": "disabled",
+    "reasoning_effort": null,
+    "temperature": 0.0,
+    "top_p": null,
+    "max_output_tokens": 1200,
+    "timeout_seconds": 180.0,
+    "sdk_retries": 0,
+    "max_action_attempts": 1,
+    "retryable_conditions": [],
+    "max_cost_usd_per_cell": 0.005,
+    "parallelism": 4,
+    "condition_order": "rotate_model_by_case_and_seed"
+  },
+  "models": {
+    "glm53_flash": {
+      "requested_model": "z-ai/glm-5.3-flash",
+      "canonical_model": "z-ai/glm-5.3-flash-20260826",
+      "provider": "DeepInfra",
+      "quantization": "fp8",
+      "profile_id": "commercial_state_glm53_flash_v1",
+      "access_class": "open_source",
+      "license_id": "MIT",
+      "pricing": {
+        "input_per_million": 0.075,
+        "cached_input_per_million": 0.015,
+        "output_per_million": 0.25,
+        "pricing_id": "openrouter_2026-08-31_glm53_flash_deepinfra"
+      }
+    },
+    "mistral_small4": {
+      "requested_model": "mistralai/mistral-small-2603",
+      "canonical_model": "mistralai/mistral-small-2603",
+      "provider": "Mistral",
+      "quantization": "unknown",
+      "profile_id": "commercial_state_mistral_small4_v1",
+      "access_class": "open_source",
+      "license_id": "Apache-2.0",
+      "pricing": {
+        "input_per_million": 0.15,
+        "cached_input_per_million": 0.015,
+        "output_per_million": 0.6,
+        "pricing_id": "openrouter_2026-08-31_mistral_small4_mistral"
+      }
+    },
+    "qwen38_flash": {
+      "requested_model": "qwen/qwen3.8-flash",
+      "canonical_model": "qwen/qwen3.8-flash-20260826",
+      "provider": "Alibaba",
+      "quantization": "unknown",
+      "profile_id": "commercial_state_qwen38_flash_v1",
+      "access_class": "open_weight_custom_license",
+      "license_id": "custom",
+      "pricing": {
+        "input_per_million": 0.15,
+        "cached_input_per_million": 0.016,
+        "output_per_million": 0.47,
+        "pricing_id": "openrouter_2026-08-31_qwen38_flash_alibaba"
+      }
+    },
+    "minimax_m3": {
+      "requested_model": "minimax/minimax-m3",
+      "canonical_model": "minimax/minimax-m3-20260531",
+      "provider": "CoreWeave",
+      "quantization": "fp4",
+      "profile_id": "commercial_state_minimax_m3_v1",
+      "access_class": "open_weight_custom_license",
+      "license_id": "custom",
+      "pricing": {
+        "input_per_million": 0.23,
+        "cached_input_per_million": 0.05,
+        "output_per_million": 0.96,
+        "pricing_id": "openrouter_2026-08-31_minimax_m3_coreweave"
+      }
+    }
+  },
+  "full_trajectory": {
+    "case_slugs": [
+      "payment-release-reconcile"
+    ],
+    "inference_seeds": [
+      20260902
+    ],
+    "cost_ceiling_usd": 0.05,
+    "maximum_operational_failure_fraction": 0.0,
+    "winner_claim_allowed": false
+  },
+  "variance_pilot": {
+    "case_slugs": [
+      "po-routing-new-vs-revision",
+      "payment-release-reconcile",
+      "invoice-payment-state-controls",
+      "colo-quote-normalization",
+      "contract-execution-cutoffs",
+      "deployment-location-power-reconciliation",
+      "build-quote-model-audit",
+      "template-classification",
+      "contact-escalation-routing"
+    ],
+    "inference_seeds": [
+      20260911,
+      20260912,
+      20260913
+    ],
+    "cost_ceiling_usd": 0.15,
+    "maximum_operational_failure_fraction": 0.1,
+    "winner_claim_allowed": false
+  },
+  "missingness": "typed_operational_missingness_reported_separately_without_selective_replacement",
+  "stopping_rule": "stop_on_route_drift_hidden_retry_replay_failure_incomplete_cost_or_stage_cost_ceiling"
+}

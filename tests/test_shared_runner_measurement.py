@@ -7,6 +7,7 @@ import pytest
 from aeread.shared_runner import canonical_json_bytes
 from aeread.shared_runner.measurement import (
     EstimandSpec,
+    FamilyScoreSet,
     ImplementationRef,
     MeasurementContractError,
     MeasurementLeafSpec,
@@ -17,6 +18,7 @@ from aeread.shared_runner.measurement import (
     ValidityDomainSpec,
     ValidityReport,
     VerifierSpec,
+    normalize_family_score_set,
 )
 
 
@@ -296,4 +298,55 @@ def test_score_envelope_cannot_turn_invalid_evidence_into_a_score() -> None:
             reference_values={},
             validity=ValidityReport("invalid", ("state artifact missing",)),
             evidence_refs=(),
+        )
+
+
+def test_family_score_set_requires_explicit_valid_admission_leaf_ids() -> None:
+    domain = _domain("family_score_set_v1")
+    leaf = MeasurementLeafSpec(
+        leaf_id="primary_leaf",
+        leaf_version="1.0.0",
+        estimand=EstimandSpec(
+            estimand_id="primary_metric",
+            estimand_version="1.0.0",
+            input_scope="terminal_state",
+            direction="none",
+            units="pass",
+            validity_domain=domain,
+        ),
+        verifier=VerifierSpec(
+            verifier_family="canonical_reference",
+            evaluation_class="deterministic",
+            reference=ReferenceSpec(
+                reference_id="primary_reference",
+                reference_version="1.0.0",
+                reference_kind="terminal_state_equivalence",
+                input_scope="terminal_state",
+                units="pass",
+                source_sha256="c" * 64,
+                implementation=_implementation("primary_verifier", "d"),
+            ),
+        ),
+        scorer=_implementation("primary_scorer", "e"),
+    )
+    score = ScoreEnvelope(
+        status="ok",
+        leaf=leaf,
+        primary=MetricValue(1.0, "pass"),
+        metrics={},
+        reference_values={},
+        validity=ValidityReport("valid"),
+        evidence_refs=("outcome",),
+    )
+
+    normalized = normalize_family_score_set(score)
+    assert normalized.primary_leaf_id == leaf.leaf_id
+    assert normalized.admission_leaf_ids == (leaf.leaf_id,)
+    assert normalized.invalid_admission_leaf_ids == ()
+
+    with pytest.raises(MeasurementContractError, match="absent"):
+        FamilyScoreSet(
+            primary_leaf_id=leaf.leaf_id,
+            scores=(score,),
+            admission_leaf_ids=(leaf.leaf_id, "missing_leaf"),
         )

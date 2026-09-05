@@ -6,14 +6,15 @@ from pathlib import Path
 
 import pytest
 
-from aeread.shared_runner.execution import EvidenceIntegrityError, execute_plan_cell
-from aeread.shared_runner.smoke import (
+from aeread.shared_runner.task.execution import EvidenceIntegrityError, execute_plan_cell
+from aeread_families.single_offer.runner import (
     FixedResponseProvider,
     build_single_offer_smoke,
     main,
 )
-import aeread.shared_runner.execution as execution_module
-import aeread.shared_runner.smoke as smoke_module
+import aeread.shared_runner.task.execution as execution_module
+import aeread.shared_runner.model_call.harness as harness_module
+import aeread_families.single_offer.runner as smoke_module
 
 
 class CountingProvider(FixedResponseProvider):
@@ -63,6 +64,15 @@ def test_full_r1_to_r4_fake_model_smoke_is_executable_and_reconciled(tmp_path) -
     }
     assert execution.total_cost_usd == pytest.approx(0.0)
     assert execution.evidence.events_path.is_file()
+    assert execution.evidence.root == (
+        tmp_path
+        / "runs"
+        / setup.plan.run_plan_id
+        / "tasks"
+        / setup.plan.cells[0].cell_id
+        / "attempts"
+        / execution.episode_attempt_id
+    )
     execution.evidence.audit_reconciliation()
     assert execution.action_executions[0].status == "succeeded"
     event_types = [event.event_type for event in execution.evidence.read_events()]
@@ -124,7 +134,7 @@ def test_episode_attempt_destination_is_immutable_and_never_overwritten(tmp_path
 
 
 def test_fake_smoke_cli_prints_machine_readable_summary(tmp_path, capsys) -> None:
-    assert main(["--provider", "fake", "--output", str(tmp_path / "cli")]) == 0
+    assert main(["--provider", "fake", "--run-root", str(tmp_path / "cli")]) == 0
     payload = __import__("json").loads(capsys.readouterr().out)
     assert payload["outcome"] == {"valid": True, "reason": "submitted", "offer": 7}
     assert payload["total_cost_usd"] == 0.0
@@ -139,11 +149,14 @@ def test_smoke_implementation_pins_are_actual_source_hashes() -> None:
     execution_sha = hashlib.sha256(
         Path(execution_module.__file__).read_bytes()
     ).hexdigest()
+    harness_sha = hashlib.sha256(
+        Path(harness_module.__file__).read_bytes()
+    ).hexdigest()
     assert pins["aeread.single_offer_v1"] == smoke_sha
     assert pins["single_offer_scorer_v1"] == smoke_sha
     assert pins["single_offer_generator_v1"] == smoke_sha
-    assert pins["minimal_chat"] == execution_sha
-    assert pins["aeread.shared_runner.execution"] == execution_sha
+    assert pins["minimal_chat"] == harness_sha
+    assert pins["aeread.shared_runner.task.execution"] == execution_sha
 
 
 def test_claude_code_smoke_seals_runtime_schema_and_reviewed_pricing() -> None:
@@ -242,7 +255,7 @@ def test_execute_plan_cell_drives_the_registered_harness(tmp_path) -> None:
     seam is live rather than incidental.
     """
 
-    from aeread.shared_runner.harness import default_harnesses
+    from aeread.shared_runner.model_call.harness import default_harnesses
 
     setup = build_single_offer_smoke(
         provider="fake", model="fake-model", revision="fixed-v1"

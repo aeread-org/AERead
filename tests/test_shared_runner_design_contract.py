@@ -1,22 +1,22 @@
 from pathlib import Path
 
 
-DESIGN = Path(__file__).parents[1] / "docs" / "shared_runner_design.md"
-CASE_AUDIT = Path(__file__).parents[1] / "docs" / "problem_bound_case_audit.md"
-REFUND_PLAN = Path(__file__).parents[1] / "docs" / "refund_external_benchmark_integration.md"
-REASONING_PLAN = Path(__file__).parents[1] / "docs" / "reasoning_condition_and_diagnostics.md"
-VERIFIER_TAXONOMY = Path(__file__).parents[1] / "docs" / "verifier_taxonomy.md"
-VERIFIER_CASE_MAPPING = Path(__file__).parents[1] / "docs" / "verifier_case_mapping.md"
+DOCS = Path(__file__).parents[1] / "docs"
+DESIGN = DOCS / "architecture" / "shared_runner_design.md"
+CASE_AUDIT = DOCS / "research" / "problem_bound_case_audit.md"
+REFUND_PLAN = DOCS / "families" / "tau3-retail" / "refund_external_benchmark_integration.md"
+REASONING_PLAN = DOCS / "research" / "reasoning_condition_and_diagnostics.md"
+VERIFIER_TAXONOMY = DOCS / "research" / "verifier_taxonomy.md"
+VERIFIER_CASE_MAPPING = DOCS / "research" / "verifier_case_mapping.md"
 PORTABILITY_CONTRACT = (
-    Path(__file__).parents[1] / "docs" / "shared_runner_portability_contract.md"
+    DOCS / "architecture" / "shared_runner_portability_contract.md"
 )
 RUNNER_ARCHITECTURE = (
-    Path(__file__).parents[1]
-    / "docs"
+    DOCS
     / "walkthroughs"
     / "shared_runner_architecture_roadmap.md"
 )
-WALKTHROUGH_INDEX = Path(__file__).parents[1] / "docs" / "walkthroughs" / "README.md"
+WALKTHROUGH_INDEX = DOCS / "walkthroughs" / "README.md"
 
 
 def test_shared_runner_design_records_frozen_execution_contract() -> None:

@@ -1,0 +1,161 @@
+{
+  "artifact_sha256": "f6276c256df959e23f2f42e9634014bc2fed2e80e43bd1ee12c183861dc4ce7b",
+  "schema_version": "aeread.housing_backend_qualification/0.2",
+  "campaign_id": "housing_model_sensitivity_openrouter_alt_v5",
+  "created_date": "2026-09-02",
+  "status": "stopped_with_typed_missingness",
+  "claim_status": "development_backend_qualification_only",
+  "winner_claim_allowed": false,
+  "ranking_allowed": false,
+  "contract_location_amendment": {
+    "executed_contract_sha256": "cc5255942142c30225a3f63136425f3387e48e98a747974fd9e3866a1cb8a778",
+    "current_contract_sha256": "f94807cee04212a08323141a21a36d071d9781914628e6b594909b97e62a21ad",
+    "changed_fields": [
+      "source_case_selection.path",
+      "source_case_selection.fact_manifest_path"
+    ],
+    "reason": "Publication paths were normalized from docs/evidence into the top-level campaign bundle; executable cases, model controls, and world facts are unchanged."
+  },
+  "source_case_selection": {
+    "campaign_id": "housing_case_config_sweep_v1",
+    "artifact_sha256": "a4ace08e1504b66eabeb92ca22ec47be25cb034ce2c262e66d96265710e34727",
+    "confirmatory_holdout_status": "sealed_not_executed"
+  },
+  "controls": {
+    "harness": "minimal_chat/1.0",
+    "tools": "disabled",
+    "memory": "disabled",
+    "reasoning_effort": "low",
+    "temperature": 0.0,
+    "top_p": 1.0,
+    "sdk_retries": 0,
+    "hidden_retries": 0,
+    "action_schema_version": "housing_actions/1.0"
+  },
+  "backend": {
+    "gateway": "openrouter",
+    "allow_fallbacks": false,
+    "catalog_retrieved_at": "2026-09-02",
+    "routes": [
+      {
+        "model_id": "glm_53_flash",
+        "canonical_model": "z-ai/glm-5.3-flash-20260826",
+        "provider": "NextBit",
+        "quantization": "fp8",
+        "input_per_million": 0.15,
+        "cached_input_per_million": 0.03,
+        "output_per_million": 0.5
+      },
+      {
+        "model_id": "deepseek_v4_flash",
+        "canonical_model": "deepseek/deepseek-v4-flash-20260731",
+        "provider": "Parasail",
+        "quantization": "fp8",
+        "input_per_million": 0.14,
+        "cached_input_per_million": 0.05,
+        "output_per_million": 0.28
+      }
+    ]
+  },
+  "gate_status": [
+    {
+      "gate_id": "design",
+      "status": "passed",
+      "artifact_sha256": "e3f5bb61decdeb434b22de9a88cd45fbc36eb96042d0a38a34088567b2c3b792",
+      "planned_trajectories": 12
+    },
+    {
+      "gate_id": "provider_free",
+      "status": "passed",
+      "artifact_sha256": "c0b28b3afcdd99556f70115405b6e6727010a17c83bcfcc6142254665fb96ea4",
+      "provider_calls": 0,
+      "cost_usd": 0.0
+    },
+    {
+      "gate_id": "catalog_preflight",
+      "status": "passed",
+      "artifact_sha256": "890409c038f740824a8bce54fc4e51d2268f39cda64351835e02340d1bb95116",
+      "provider_inference_calls": 0
+    },
+    {
+      "gate_id": "profile_admission",
+      "status": "passed",
+      "artifact_sha256": "c00812b0ad42d05a24cc2606db5c8864d3e67f3ded2e46dd7a0c4c54920e9b14",
+      "expected_probe_count": 18,
+      "attempted_probe_count": 18,
+      "passed_probe_count": 18,
+      "operational_failures": 0,
+      "hidden_retry_count": 0,
+      "observed_cost_usd": 0.0025567542,
+      "provider_cost_complete": true
+    },
+    {
+      "gate_id": "live",
+      "status": "stopped_with_typed_missingness",
+      "artifact_sha256": "d5795571e8748939ca52d94e26322c2ca2482741a44ba4a60f18aac3782a63b1",
+      "planned_trajectories": 12,
+      "attempted_trajectories": 2,
+      "completed_trajectories": 1,
+      "operational_failures": 1,
+      "not_started_trajectories": 10,
+      "cost_usd": 0.0043042032000000004,
+      "stop_reason": "critical_route_replay_or_cost_failure"
+    }
+  ],
+  "profile_results": [
+    {
+      "model_id": "glm_53_flash",
+      "provider": "NextBit",
+      "planned_probes": 9,
+      "passed_probes": 9,
+      "operational_failures": 0,
+      "observed_cost_usd": 0.0008870400000000001
+    },
+    {
+      "model_id": "deepseek_v4_flash",
+      "provider": "Parasail",
+      "planned_probes": 9,
+      "passed_probes": 9,
+      "operational_failures": 0,
+      "observed_cost_usd": 0.0016697142
+    }
+  ],
+  "live_results": [
+    {
+      "config_id": "mild_cw085_r2",
+      "condition_id": "glm_53_flash__vs__glm_53_flash",
+      "status": "completed",
+      "within_case_score": 0.8879703072683469,
+      "cost_usd": 0.002993463,
+      "elapsed_seconds": 82.84474845799923,
+      "route_verified": true,
+      "replay_verified": true,
+      "receipt_sha256": "d1b1a354d115234d581b15b4403a2a27cfe0015d52bdc9d4ec8259bae382294f"
+    },
+    {
+      "config_id": "mild_cw085_r2",
+      "condition_id": "glm_53_flash__vs__deepseek_v4_flash",
+      "status": "operational_failure",
+      "failure_type": "SchedulerContractError",
+      "failure_condition": "provider_contract",
+      "provider_calls": 8,
+      "cost_usd": 0.0013107402,
+      "elapsed_seconds": 126.78378245799831,
+      "receipt_sha256": "0a48d4d3899f19e120c425ecb47cf90c245303a1cc1421cad55ba032086034a7"
+    }
+  ],
+  "interpretation": "Both route-bound profiles passed admission, and the first Housing cell completed. The second cell stopped on an OpenRouter choice with no text content. Under V5 this was classified as a non-retryable provider-contract failure, so the campaign stopped without selectively rerunning the cell.",
+  "cost_note": "Profile admission and live execution reported complete provider billing. Combined observed cost was $0.006860957400000001.",
+  "stop_reason": "The live cross-play cell returned empty provider content; ten trajectories were not started.",
+  "next_gate": "Retain empty provider content as a receipt-visible attempt and let the declared application retry policy classify it before freezing another campaign identity.",
+  "local_evidence": {
+    "path": "runs/housing_model_sensitivity_openrouter_alt_v5",
+    "committed": false,
+    "contains_raw_provider_evidence": true
+  },
+  "publication_policy": {
+    "raw_provider_responses_included": false,
+    "model_reasoning_included": false,
+    "absolute_user_paths_included": false
+  }
+}
