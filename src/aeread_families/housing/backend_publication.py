@@ -939,6 +939,20 @@ def publish_campaign(
     trajectory_relative_path = (
         f"evidence/{campaign_id}/trajectories/attempted.json"
     )
+    confirmatory = live.get("confirmatory_analysis")
+    is_confirmatory = isinstance(confirmatory, Mapping)
+    freeze = None
+    if is_confirmatory:
+        freeze_path = run_root / "confirmatory_freeze" / "summary.json"
+        if not freeze_path.exists():
+            raise ValueError(
+                "a confirmatory publication requires a sealed freeze artifact"
+            )
+        freeze = _read_sealed(freeze_path)
+        if freeze["contract_sha256"] != design["contract_sha256"]:
+            raise ValueError(
+                "the confirmatory contract changed after the freeze was sealed"
+            )
     qualification = _sealed(
         {
             "schema_version": QUALIFICATION_SCHEMA_VERSION,
@@ -946,8 +960,27 @@ def publish_campaign(
             "created_date": contract["backend"]["catalog_retrieved_at"],
             "status": live["status"],
             "claim_status": contract["claim_status"],
-            "winner_claim_allowed": False,
-            "ranking_allowed": False,
+            "winner_claim_allowed": bool(
+                is_confirmatory and confirmatory["ranking_allowed"]
+            ),
+            "ranking_allowed": bool(
+                is_confirmatory and confirmatory["ranking_allowed"]
+            ),
+            **(
+                {
+                    "confirmatory_freeze": {
+                        "artifact_sha256": freeze["artifact_sha256"],
+                        "frozen_before_any_holdout_outcome": freeze[
+                            "frozen_before_any_holdout_outcome"
+                        ],
+                        "variance_pilot": freeze["variance_pilot"],
+                        "holdout": freeze["holdout"],
+                    },
+                    "confirmatory_analysis": confirmatory,
+                }
+                if is_confirmatory
+                else {}
+            ),
             "contract_binding": {
                 "path": f"configs/{contract_path.name}",
                 "file_sha256": _sha256_bytes(contract_path.read_bytes()),
@@ -1103,7 +1136,9 @@ def publish_campaign(
                 "typed_missingness_preserved": True,
                 "paired_worlds_complete": paired_worlds_complete,
                 "confirmatory_freeze_ready": confirmatory_freeze_ready,
-                "leaderboard_eligible": False,
+                "leaderboard_eligible": bool(
+                    is_confirmatory and confirmatory["ranking_allowed"]
+                ),
                 "protocol_conformant": full_trajectory_gate_passed,
             },
             "interpretation": (

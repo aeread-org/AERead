@@ -1448,8 +1448,23 @@ async def run_live(
     if contract["analysis"].get("aggregation") == (
         "equal_weight_configs_and_opponents_within_world"
     ):
-        artifact_core["variance_pilot_analysis"] = variance_pilot_analysis(
-            rows, contract
+        if stage_id == "confirmatory_execution":
+            artifact_core["confirmatory_analysis"] = confirmatory_analysis(
+                rows, contract
+            )
+        else:
+            artifact_core["variance_pilot_analysis"] = variance_pilot_analysis(
+                rows, contract
+            )
+    if stage_id == "confirmatory_execution":
+        analysis = artifact_core["confirmatory_analysis"]
+        artifact_core.update(
+            {
+                "gate_id": "confirmatory_execution",
+                "decision_supported": analysis["decision_supported"],
+                "ranking_allowed": analysis["ranking_allowed"],
+                "winner_claim_allowed": analysis["ranking_allowed"],
+            }
         )
     if stage_id == "full_trajectory":
         artifact_core.update(
