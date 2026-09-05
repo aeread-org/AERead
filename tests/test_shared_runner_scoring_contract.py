@@ -427,6 +427,161 @@ class _CallParityAdversarialPlugin(_ReferencePlugin):
         return _CallParityAdversarialScorer()
 
 
+# ---------------------------------------------------------------------------
+# Ruling R9/R10 (round 3): a family whose OUTCOME embeds its own trajectory,
+# the exact shape that makes R7's byte-identical-outcome precondition
+# unsatisfiable by construction (collusion's ``history``,
+# datacenter_development's ``public_history``). ``_ReferencePlugin``'s
+# outcome is deliberately order-insensitive so it does NOT need this
+# mechanism; this subclass adds one field that DOES carry the trajectory, so
+# the (x, y)/(y, x) fixture pair below can no longer produce a byte-identical
+# outcome -- proving R9's projection is what recovers the pairing, not a
+# coincidence of the existing fixtures.
+# ---------------------------------------------------------------------------
+
+_EMBEDDING_FAMILY_ID = "kernel_contract_trajectory_embedding_v1"
+_EMBEDDING_FAMILY_VERSION = "1.0.0"
+_EMBEDDING_PLUGIN_ID = "kernel_contract_trajectory_embedding_plugin"
+_EMBEDDING_SCORER_ID = "kernel_contract_trajectory_embedding_scorer_v1"
+_EMBEDDING_BALANCE_LEAF_ID = "embedding_label_balance"
+_EMBEDDING_TRAJECTORY_LEAF_ID = "embedding_first_round_choice_is_x"
+
+
+def _embedding_family_manifest(*, trajectory_outcome_paths: tuple[str, ...]) -> FamilyManifest:
+    return FamilyManifest.from_dict(
+        {
+            "spec_version": FamilyManifest.SPEC_VERSION,
+            "family": {
+                "id": _EMBEDDING_FAMILY_ID,
+                "version": _EMBEDDING_FAMILY_VERSION,
+                "plugin_id": _EMBEDDING_PLUGIN_ID,
+            },
+            "environment": {
+                "topology": "two_round_label_choice_with_embedded_history",
+                "phase_specs": ["round_one", "round_two"],
+                "needs_tools": False,
+                "needs_sandbox": False,
+            },
+            "roles": {
+                "participant": {
+                    "testable": True,
+                    "scripted_policies": ["kernel_contract_scripted_participant_v1"],
+                },
+            },
+            "measurement": {
+                "primary_estimand": _EMBEDDING_BALANCE_LEAF_ID,
+                "measurement_kind": "optimizable_outcome",
+                "direction": "maximize",
+                "leaves": [
+                    {"leaf_id": _EMBEDDING_BALANCE_LEAF_ID, "scope": "finalize_time"},
+                    {"leaf_id": _EMBEDDING_TRAJECTORY_LEAF_ID, "scope": "finalize_time"},
+                ],
+                "primary_leaf_id": _EMBEDDING_BALANCE_LEAF_ID,
+                "admission_leaf_ids": [_EMBEDDING_BALANCE_LEAF_ID],
+                "trajectory_outcome_paths": list(trajectory_outcome_paths),
+            },
+            "scoring": {
+                "scorer_id": _EMBEDDING_SCORER_ID,
+                "reference_provider_ids": [],
+            },
+        }
+    )
+
+
+class _TrajectoryEmbeddingPlugin(_ReferencePlugin):
+    """``_ReferencePlugin`` whose outcome also embeds the full trajectory.
+
+    Everything else (``phases``, ``step``, ``terminal``, ...) is inherited
+    unchanged -- only ``outcome`` gains a ``labels`` field that is the
+    ordered pair of round choices, at the SAME key ``state`` already carries
+    it under (``_ReferencePlugin.step`` builds ``{"labels": ...}``), which is
+    exactly what lets ``_final_replayed_state`` recover it generically for
+    ruling R10 without this test module knowing anything domain-specific.
+    """
+
+    def outcome(self, family_case: Mapping[str, Any], terminal: Mapping[str, Any]) -> dict[str, Any]:
+        base = super().outcome(family_case, terminal)
+        return {**base, "labels": list(terminal["labels"])}
+
+    def build_scorer(self, family_case: Mapping[str, Any]) -> "_TrajectoryEmbeddingScorer":
+        del family_case
+        return _TrajectoryEmbeddingScorer()
+
+
+class _TrajectoryIgnoringEmbeddingPlugin(_TrajectoryEmbeddingPlugin):
+    """Same embedding, but its ``trajectory`` leaf ignores the trajectory.
+
+    Ruling R9(b) mutation fixture: a scorer that always returns the same
+    value for a leaf declared ``input_scope="trajectory"`` regardless of
+    ``scoring_input`` must fail the sensitivity witness.
+    """
+
+    def build_scorer(self, family_case: Mapping[str, Any]) -> "_TrajectoryIgnoringScorer":
+        del family_case
+        return _TrajectoryIgnoringScorer()
+
+
+class _TrajectoryEmbeddingScorer:
+    """Reads the trajectory leaf from ``phase_instances``, never ``outcome``."""
+
+    def __call__(
+        self, scoring_input: FamilyScoringInput, *, evidence_refs: tuple[str, ...] = ()
+    ) -> FamilyScoreSet:
+        outcome = scoring_input.outcome
+        balance_leaf = _reference_leaf(
+            leaf_id=_EMBEDDING_BALANCE_LEAF_ID, input_scope="terminal_state"
+        )
+        trajectory_leaf = _reference_leaf(
+            leaf_id=_EMBEDDING_TRAJECTORY_LEAF_ID, input_scope="trajectory"
+        )
+        first_action = scoring_input.phase_instances[0].actions[0]
+        first_choice_is_x = first_action.envelope.action["label"] == "x"
+        balance_score = ScoreEnvelope(
+            status="ok",
+            leaf=balance_leaf,
+            primary=MetricValue(float(outcome["x_count"] - outcome["y_count"]), "count"),
+            metrics={},
+            reference_values={},
+            validity=ValidityReport("valid"),
+            evidence_refs=evidence_refs,
+        )
+        trajectory_score = ScoreEnvelope(
+            status="ok",
+            leaf=trajectory_leaf,
+            primary=MetricValue(1.0 if first_choice_is_x else 0.0, "indicator"),
+            metrics={},
+            reference_values={},
+            validity=ValidityReport("valid"),
+            evidence_refs=evidence_refs,
+        )
+        return FamilyScoreSet(
+            primary_leaf_id=_EMBEDDING_BALANCE_LEAF_ID,
+            scores=(balance_score, trajectory_score),
+            admission_leaf_ids=(_EMBEDDING_BALANCE_LEAF_ID,),
+        )
+
+
+class _TrajectoryIgnoringScorer(_TrajectoryEmbeddingScorer):
+    """Mutation fixture: its ``trajectory`` leaf is constant regardless of input."""
+
+    def __call__(
+        self, scoring_input: FamilyScoringInput, *, evidence_refs: tuple[str, ...] = ()
+    ) -> FamilyScoreSet:
+        score_set = super().__call__(scoring_input, evidence_refs=evidence_refs)
+        ignoring_leaf = _reference_leaf(
+            leaf_id=_EMBEDDING_TRAJECTORY_LEAF_ID, input_scope="trajectory"
+        )
+        scores = tuple(
+            score
+            if score.leaf.leaf_id != _EMBEDDING_TRAJECTORY_LEAF_ID
+            else dataclasses.replace(
+                score, leaf=ignoring_leaf, primary=MetricValue(0.0, "indicator")
+            )
+            for score in score_set.scores
+        )
+        return dataclasses.replace(score_set, scores=scores)
+
+
 class _ScriptedChoiceProvider:
     """Serves one scripted label per call, in order, then fails closed."""
 
