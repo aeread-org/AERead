@@ -1,0 +1,138 @@
+{
+  "schema_version": "aeread.housing_backend_campaign/0.1",
+  "campaign_id": "housing_model_sensitivity_openrouter_alt_v6",
+  "claim_status": "development_backend_qualification_only",
+  "question": "Can pinned NextBit and Parasail OpenRouter endpoints complete the Housing model-to-model integration matrix when receipt-visible empty-response retries are enabled?",
+  "independent_cluster": "world_seed",
+  "source_case_selection": {
+    "path": "evidence/housing_case_config_sweep_v1/reports/selected_development_configs.json",
+    "artifact_sha256": "a4ace08e1504b66eabeb92ca22ec47be25cb034ce2c262e66d96265710e34727",
+    "file_sha256": "b05945926fe0dfa4569d8b58f70d62ec1d41597b16b615928be3c8752066a163",
+    "fact_manifest_path": "evidence/housing_case_config_sweep_v1/tables/fact_manifest.json",
+    "fact_manifest_file_sha256": "7eca47be207f85bda990b68c4653d8539bc9f0c56560f9b3d7dea61bc7b16727"
+  },
+  "controls": {
+    "harness": "minimal_chat/1.0",
+    "tools": "disabled",
+    "memory": "disabled",
+    "reasoning_condition_id": "model_sensitivity_openrouter_alt_low_v6",
+    "reasoning_effort": "low",
+    "temperature": 0.0,
+    "top_p": 1.0,
+    "max_output_tokens": 4096,
+    "timeout_seconds": 120.0,
+    "sdk_retries": 0,
+    "max_action_attempts": 4,
+    "tenant_max_logical_actions": 48,
+    "landlord_max_logical_actions": 16,
+    "retryable_conditions": [
+      "length",
+      "rate_limit",
+      "provider_5xx",
+      "empty_response"
+    ],
+    "tenant_inference_seed_base": 87001,
+    "landlord_inference_seed_base": 97001,
+    "condition_order": "rotate_by_case_configuration"
+  },
+  "backend": {
+    "gateway": "openrouter",
+    "api_base": "https://openrouter.ai/api/v1",
+    "catalog_source": "https://openrouter.ai/api/v1/models/{model}/endpoints",
+    "catalog_retrieved_at": "2026-09-02",
+    "allow_fallbacks": false,
+    "require_parameters": true,
+    "retry_owner": "aeread_action_attempt_policy",
+    "raw_response_retention": "local_evidence_store"
+  },
+  "models": {
+    "glm_53_flash": {
+      "requested_model": "z-ai/glm-5.3-flash",
+      "canonical_model": "z-ai/glm-5.3-flash-20260826",
+      "provider": "NextBit",
+      "quantization": "fp8",
+      "input_per_million": 0.15,
+      "cached_input_per_million": 0.03,
+      "output_per_million": 0.5,
+      "endpoint_snapshot_sha256": "632a919b7abacdd487192f736898a7562f8c6b9aff37f1796299734a818d486e",
+      "tenant_profile_id": "housing_glm_53_flash_nextbit_tenant_v6",
+      "landlord_profile_id": "housing_glm_53_flash_nextbit_landlord_v6"
+    },
+    "deepseek_v4_flash": {
+      "requested_model": "deepseek/deepseek-v4-flash-0731",
+      "canonical_model": "deepseek/deepseek-v4-flash-20260731",
+      "provider": "Parasail",
+      "quantization": "fp8",
+      "input_per_million": 0.14,
+      "cached_input_per_million": 0.05,
+      "output_per_million": 0.28,
+      "endpoint_snapshot_sha256": "667402567136e6e46c0eafba7bba5b9cefb1c22c17bd0f1b80b656432087dd67",
+      "tenant_profile_id": "housing_deepseek_v4_flash_parasail_tenant_v6",
+      "landlord_profile_id": "housing_deepseek_v4_flash_parasail_landlord_v6"
+    }
+  },
+  "conditions": [
+    {
+      "condition_id": "glm_53_flash__vs__glm_53_flash",
+      "subject": "glm_53_flash",
+      "opponent": "glm_53_flash",
+      "evaluation_kind": "self_play"
+    },
+    {
+      "condition_id": "glm_53_flash__vs__deepseek_v4_flash",
+      "subject": "glm_53_flash",
+      "opponent": "deepseek_v4_flash",
+      "evaluation_kind": "cross_play"
+    },
+    {
+      "condition_id": "deepseek_v4_flash__vs__glm_53_flash",
+      "subject": "deepseek_v4_flash",
+      "opponent": "glm_53_flash",
+      "evaluation_kind": "cross_play"
+    },
+    {
+      "condition_id": "deepseek_v4_flash__vs__deepseek_v4_flash",
+      "subject": "deepseek_v4_flash",
+      "opponent": "deepseek_v4_flash",
+      "evaluation_kind": "self_play"
+    }
+  ],
+  "profile_admission": {
+    "probes_per_action_schema": 3,
+    "probe_seeds": [
+      103001,
+      103002,
+      103003
+    ],
+    "attempt_limit_per_probe": 1,
+    "sdk_retries": 0,
+    "hidden_repair_allowed": false,
+    "per_probe_cost_reserve_usd": 0.003,
+    "cost_ceiling_usd": 0.06,
+    "profile_sha256s": {
+      "housing_glm_53_flash_nextbit_tenant_v6": "c77fd83dc5425836cb2f0758ca945e7988934e0b99e0994b9046e14873ba185a",
+      "housing_glm_53_flash_nextbit_landlord_v6": "c86af3025d57a0985e4b5e13014c0af5a62ad0a4d9854f00a63e5160333dfc69",
+      "housing_deepseek_v4_flash_parasail_tenant_v6": "e4c1cfa15b3cba6ca9c2a52091341637f316673798d750fcadb277a92a58a5f3",
+      "housing_deepseek_v4_flash_parasail_landlord_v6": "5be21654eca63310e7cba3b6dd2d23ba97b7b8e6e8b387a94badc4395d179bf5"
+    }
+  },
+  "execution": {
+    "world_seeds": [
+      1971418798
+    ],
+    "replicates": 1,
+    "attempt_limit": 1,
+    "cost_ceiling_usd": 0.05,
+    "per_trajectory_cost_reserve_usd": 0.02,
+    "winner_claim_allowed": false,
+    "completeness_policy": "retain_typed_missingness_without_selective_retry"
+  },
+  "analysis": {
+    "primary_view": "condition_by_case_configuration_within_case_score",
+    "aggregation": "none_single_world_integration_slice",
+    "uncertainty": "not_estimable_from_one_world_cluster",
+    "ranking_allowed": false
+  },
+  "missingness": "typed_operational_missingness_reported_separately",
+  "stopping_rule": "profile_admission_must_pass_before_live; stop_before_next_trajectory_when_remaining_campaign_budget_is_below_the_declared_reserve; stop_immediately_on_route_drift_or_replay_failure"
+}

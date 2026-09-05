@@ -29,9 +29,9 @@ from pathlib import Path
 
 import pytest
 
-from aeread.shared_runner.execution import EvidenceStore
-from aeread.shared_runner.resolver import canonical_json_bytes
-from aeread.shared_runner.tools import ToolRuntime
+from aeread.shared_runner.task.execution import EvidenceStore
+from aeread.shared_runner.run.resolver import canonical_json_bytes
+from aeread.shared_runner.task.tools import ToolRuntime
 from aeread_families.tau3_retail import tools as tau3_tools
 from aeread_families.tau3_retail.tau2_bridge import (
     Tau2Bridge,
@@ -249,7 +249,7 @@ def test_read_only_tool_through_runtime_never_trips_the_kernels_own_mutation_gua
     definition = definitions["get_order_details"]
     assert definition.effect == "read_only"
 
-    from aeread.shared_runner.tools import ToolBinding
+    from aeread.shared_runner.task.tools import ToolBinding
 
     async def implementation(arguments):
         return await tau3_tools._implementation(bridge, session, "get_order_details", arguments)

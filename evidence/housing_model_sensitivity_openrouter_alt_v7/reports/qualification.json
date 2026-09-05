@@ -1,0 +1,158 @@
+{
+  "artifact_sha256": "3920b86492d06a74292ff0617fee983608fa5428c4591ebe42f74f160f6a6e57",
+  "schema_version": "aeread.housing_backend_qualification/0.2",
+  "campaign_id": "housing_model_sensitivity_openrouter_alt_v7",
+  "created_date": "2026-09-02",
+  "status": "stopped_with_typed_missingness",
+  "claim_status": "development_backend_qualification_only",
+  "winner_claim_allowed": false,
+  "ranking_allowed": false,
+  "contract_location_amendment": {
+    "executed_contract_sha256": "7230122bc2b2df5b081a2df90e32f300dfbb1390fdc0e92ff218cf4514383420",
+    "current_contract_sha256": "8be94b99495229028cdfe0ebd9648cbbfc81f0c99dc89f860802a80dcd3af218",
+    "changed_fields": [
+      "source_case_selection.path",
+      "source_case_selection.fact_manifest_path"
+    ],
+    "reason": "Publication paths were normalized from docs/evidence into the top-level campaign bundle; executable cases, model controls, and world facts are unchanged."
+  },
+  "source_case_selection": {
+    "campaign_id": "housing_case_config_sweep_v1",
+    "artifact_sha256": "a4ace08e1504b66eabeb92ca22ec47be25cb034ce2c262e66d96265710e34727",
+    "confirmatory_holdout_status": "sealed_not_executed"
+  },
+  "controls": {
+    "harness": "minimal_chat/1.0",
+    "tools": "disabled",
+    "memory": "disabled",
+    "reasoning_effort": "low",
+    "temperature": 0.0,
+    "top_p": 1.0,
+    "max_output_tokens": 4096,
+    "timeout_seconds": 120.0,
+    "sdk_retries": 0,
+    "max_action_attempts": 4,
+    "retryable_conditions": [
+      "length",
+      "rate_limit",
+      "provider_5xx",
+      "empty_response"
+    ],
+    "action_schema_version": "housing_actions/2.0",
+    "conditional_action_schemas": true,
+    "live_profile_controls_wired": true
+  },
+  "backend": {
+    "gateway": "openrouter",
+    "allow_fallbacks": false,
+    "catalog_retrieved_at": "2026-09-02",
+    "routes": [
+      {
+        "model_id": "glm_53_flash",
+        "canonical_model": "z-ai/glm-5.3-flash-20260826",
+        "provider": "NextBit",
+        "quantization": "fp8",
+        "input_per_million": 0.15,
+        "cached_input_per_million": 0.03,
+        "output_per_million": 0.5
+      },
+      {
+        "model_id": "deepseek_v4_flash",
+        "canonical_model": "deepseek/deepseek-v4-flash-20260731",
+        "provider": "Parasail",
+        "quantization": "fp8",
+        "input_per_million": 0.14,
+        "cached_input_per_million": 0.05,
+        "output_per_million": 0.28
+      }
+    ]
+  },
+  "gate_status": [
+    {
+      "gate_id": "design",
+      "status": "passed",
+      "artifact_sha256": "7f8cee838e91ec268e8d1a4bda7c0f3758451e554034c0514b388d4f992caa9f",
+      "planned_trajectories": 12
+    },
+    {
+      "gate_id": "provider_free",
+      "status": "passed",
+      "artifact_sha256": "36bcfbc64c072e13a5de02816e75ad567d41596eca15e18c73699fa40f011897",
+      "provider_calls": 0,
+      "cost_usd": 0.0
+    },
+    {
+      "gate_id": "catalog_preflight",
+      "status": "passed",
+      "artifact_sha256": "15c8fad35efc08d125fdaef7369e95afeefb0b2e9e9dce89b6519716a8dffc24",
+      "provider_inference_calls": 0
+    },
+    {
+      "gate_id": "profile_admission",
+      "status": "passed",
+      "artifact_sha256": "b5802c37eccebc723b79a4a97ebbfd1e5187eb0bd2e765382b2286a46d676725",
+      "expected_probe_count": 18,
+      "attempted_probe_count": 18,
+      "passed_probe_count": 18,
+      "operational_failures": 0,
+      "hidden_retry_count": 0,
+      "observed_cost_usd": 0.0031975713,
+      "provider_cost_complete": true
+    },
+    {
+      "gate_id": "live",
+      "status": "stopped_with_typed_missingness",
+      "artifact_sha256": "b8c06d9d1b122ad642007a4b296dde19389734720cb96a44bcb9e2d8d68eb726",
+      "planned_trajectories": 12,
+      "attempted_trajectories": 7,
+      "completed_trajectories": 7,
+      "operational_failures": 0,
+      "not_started_trajectories": 5,
+      "cost_usd": 0.036172907100000005,
+      "stop_reason": "campaign_cost_reserve_reached",
+      "complete_matrix": false
+    }
+  ],
+  "profile_results": [
+    {
+      "model_id": "glm_53_flash",
+      "provider": "NextBit",
+      "planned_probes": 9,
+      "passed_probes": 9,
+      "operational_failures": 0,
+      "observed_cost_usd": 0.0009681903
+    },
+    {
+      "model_id": "deepseek_v4_flash",
+      "provider": "Parasail",
+      "planned_probes": 9,
+      "passed_probes": 9,
+      "operational_failures": 0,
+      "observed_cost_usd": 0.002229381
+    }
+  ],
+  "observed_score_range": {
+    "minimum": 0.7917117782356844,
+    "maximum": 0.9926657320048495,
+    "interpretation": "Descriptive only; the matrix is incomplete and contains one world cluster."
+  },
+  "trajectory_export": {
+    "path": "evidence/housing_model_sensitivity_openrouter_alt_v7/trajectories/selected.json",
+    "artifact_sha256": "4ba7a7bcef6e395015a2978a7eefd7611b4e0d0297d298760ceed825e480d174",
+    "completed_trajectories": 7
+  },
+  "interpretation": "V7 passed all 18 route-bound profile probes and completed seven Housing model-to-model trajectories without an operational failure. The live gate stopped before the eighth cell because the frozen $0.02 reserve would exceed the $0.05 campaign ceiling. The seven scores are descriptive integration results, not a complete comparison or leaderboard.",
+  "cost_note": "Profile admission cost $0.0031975713 and live execution cost $0.036172907100000005, for a combined provider-reported cost of $0.039370478400000006.",
+  "stop_reason": "The campaign cost reserve was reached after seven completed trajectories; five trajectories remain explicitly unstarted.",
+  "next_gate": "Freeze a new campaign identity with a cost ceiling sized for all 12 cells, then execute the complete matrix without carrying forward or selectively rerunning V7 cells.",
+  "local_evidence": {
+    "path": "runs/housing_model_sensitivity_openrouter_alt_v7",
+    "committed": false,
+    "contains_raw_provider_evidence": true
+  },
+  "publication_policy": {
+    "raw_provider_responses_included": false,
+    "model_reasoning_included": false,
+    "absolute_user_paths_included": false
+  }
+}

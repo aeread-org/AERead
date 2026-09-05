@@ -17,7 +17,7 @@ from typing import Any, Mapping
 
 from aeread.shared_runner.registry import PluginRegistry
 from aeread.shared_runner.schemas import FamilyManifest
-from aeread.shared_runner.scheduler import (
+from aeread.shared_runner.task.scheduler import (
     LegalityResult,
     ParseResult,
     PhaseSpec,
@@ -106,7 +106,7 @@ def register_plugin(
         if upstream_root is None:
             raise ValueError("upstream_root is required when plugin is not supplied")
         plugin = Tau3RetailPlugin(upstream_root=upstream_root, bridge=bridge)
-    registry.register(family_manifest(), plugin)
+    registry.register_trusted(family_manifest(), plugin)
     return plugin
 
 

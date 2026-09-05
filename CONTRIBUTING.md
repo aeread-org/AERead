@@ -11,8 +11,8 @@ pip install -e ".[dev]"     # Python 3.10+
 pytest -q                   # offline, deterministic, no API keys (~3 min)
 ```
 
-New to the project? Read [docs/quickstart.md](docs/quickstart.md) (5 minutes,
-rungs 1–2 need no keys) and [docs/concepts.md](docs/concepts.md) first.
+New to the project? Read [docs/getting-started/quickstart.md](docs/getting-started/quickstart.md) (5 minutes,
+rungs 1–2 need no keys) and [docs/getting-started/concepts.md](docs/getting-started/concepts.md) first.
 
 ## 1. Contribute a case
 
