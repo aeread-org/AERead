@@ -55,12 +55,18 @@ from pathlib import Path
 from types import MappingProxyType
 from typing import Any, Mapping
 
-from aeread.shared_runner.analysis.parity import ParityField, ParityReport, ParitySpec, compare_projections
+from aeread.shared_runner.analysis.parity import (
+    ExternalParityCriterion,
+    ParityField,
+    ParityReport,
+    ParitySpec,
+    compare_projections,
+)
 from aeread.shared_runner.run.resolver import PlanCell
 from aeread.shared_runner.task.scheduler import run_episode
 from aeread.shared_runner.schemas import CaseManifest
 
-from .cases import CASE_ID_PREFIX, SEAT_ORDER
+from .cases import CASE_ID_PREFIX, SEAT_ORDER, UPSTREAM_COMMIT, UPSTREAM_REPO
 from .environment import AlympicsWacPlugin, SEAT_NAME_BY_ID, _load_upstream
 
 DEFAULT_CASES_DIR = Path("cases/alympics_wac/base")
@@ -69,6 +75,20 @@ REFERENCE_BASELINE_CASE_ID = f"{CASE_ID_PREFIX}.reference_baseline"
 PARITY_SPEC = ParitySpec(
     parity_id="alympics_wac_reference_baseline_parity",
     parity_version="1.0.0",
+    criterion=ExternalParityCriterion(
+        task_id="alympics_wac_reference_baseline",
+        treatment_id="aeread_adapter_vs_upstream_direct",
+        metric_id="final_balance_by_seat",
+        source_reference=f"{UPSTREAM_REPO}@{UPSTREAM_COMMIT}",
+        original_conclusion=(
+            "Upstream's own waterAllocation engine, driven by the identical scripted "
+            "per-round bids on the reference_baseline configuration, yields "
+            "byte-identical terminal balance, hp, and no-drink counts per seat and "
+            "identical winner lists every round."
+        ),
+        tolerance_kind="exact",
+        tolerance=0.0,
+    ),
     fields=(
         ParityField("final_balance_by_seat", ("final_balance_by_seat",), ("final_balance_by_seat",)),
         ParityField("final_hp_by_seat", ("final_hp_by_seat",), ("final_hp_by_seat",)),
