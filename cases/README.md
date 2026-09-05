@@ -9,6 +9,7 @@ remain stable and comparable results keep their meaning.
 | Exchange v1 | scored + specialized | [`exchange_v1/`](exchange_v1/) | Four official v0 cases, diagnostics, and two specialized worlds |
 | GovSim | cases + environment (scorer pending) | [`govsim/`](govsim/) | 9 generated cells (3 common-pool-resource scenarios x 3 scripted policies) wrapping a pinned upstream checkout |
 | Housing v1 | generated | [`housing_v1/`](housing_v1/) | Deterministic generated worlds; no static JSON fixtures |
+| negarena | development | [`negarena/`](negarena/) | Six authored bilateral-negotiation scenarios (buy/sell, ultimatum) over a pinned upstream engine |
 | Datacenter development v1 | development | [`datacenter_development_v1/`](datacenter_development_v1/) | Financing, EPC, utility, service, and full-stack amendment negotiation with deterministic cash-flow verification |
 | Procurement grounding v1 | development | [`procurement_grounding_v1/`](procurement_grounding_v1/) | One evidence-grounded 231-project sourcing case with a deterministic verifier |
 | Procurement allocation v1 | development + confirmatory + targeted holdouts | [`procurement_allocation_v1/`](procurement_allocation_v1/) | Interactive qualification, negotiation, and award under a contribution-margin objective |

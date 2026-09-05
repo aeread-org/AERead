@@ -1,0 +1,17 @@
+{
+  "case_ids": [
+    "negarena.buy_sell.0",
+    "negarena.buy_sell.1",
+    "negarena.buy_sell.2",
+    "negarena.ultimatum.0",
+    "negarena.ultimatum.1",
+    "negarena.ultimatum.2"
+  ],
+  "content_sha256": "6136cf6144f1818f31453c14cd85f9cb0bbfc92ebfa35063c3b9aad19506066e",
+  "corpus_id": "negarena_corpus_v1",
+  "family_id": "negarena",
+  "splits": [
+    "buy_sell",
+    "ultimatum"
+  ]
+}
