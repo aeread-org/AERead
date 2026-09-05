@@ -46,7 +46,7 @@ from .live import (
 from .tau2_bridge import Tau2Bridge
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
-CAMPAIGN_ID = "tau3_retail_glm5p2_arena_pipeline_proof_v1"
+CAMPAIGN_ID = "tau3_retail_glm5p2_arena_pipeline_proof_v2"
 CANARY_CASE_ID = "tau3.retail.base.53"
 PANEL_CASE_IDS = (
     "tau3.retail.base.14",
@@ -65,6 +65,7 @@ PANEL_STRATA = (
 SEED = 300
 MAX_PARALLEL_CELLS = 1
 MAX_CANARY_COST_USD = 0.025
+MAX_CANARY_OUTPUT_TOKENS = 256
 MAX_TRAJECTORY_COST_USD = 0.05
 HARD_TOTAL_COST_CEILING_USD = 0.30
 
@@ -117,7 +118,7 @@ def build_campaign_plan() -> dict[str, Any]:
             "fallbacks": "not_reported",
             "reasoning_effort": "low",
             "route_attestation": "arena_catalog_model_id_only",
-            "provider_cost_status": "not_reported",
+            "provider_cost_status": "response_reported",
             "provider_seed_status": "not_supported",
             "pricing_id": PRICING.pricing_id,
             "pricing_sha256": PRICING.content_sha256(),
@@ -126,6 +127,7 @@ def build_campaign_plan() -> dict[str, Any]:
             "case_id": CANARY_CASE_ID,
             "scored": False,
             "max_cost_usd": MAX_CANARY_COST_USD,
+            "max_output_tokens": MAX_CANARY_OUTPUT_TOKENS,
         },
         "panel": [
             {
@@ -169,7 +171,7 @@ def _verify_plan(value: Mapping[str, Any]) -> None:
 def _route_metadata() -> dict[str, str]:
     return {
         "catalog_model_id": MODEL,
-        "provider_cost_status": "not_reported",
+        "provider_cost_status": "response_reported",
     }
 
 
@@ -197,7 +199,7 @@ async def run_canary(*, path: Path, plan_sha256: str) -> dict[str, Any]:
         ).decode("utf-8"),
         temperature=0.0,
         top_p=None,
-        max_output_tokens=80,
+        max_output_tokens=MAX_CANARY_OUTPUT_TOKENS,
         reasoning_effort="low",
         reasoning_token_budget=None,
         timeout_seconds=180.0,
@@ -429,7 +431,7 @@ def publish_campaign(*, run_root: Path, publication_root: Path) -> None:
         "operational_failures": 0,
         "total_cost_usd": total_cost,
         "hard_total_cost_ceiling_usd": HARD_TOTAL_COST_CEILING_USD,
-        "financial_ceiling_enforcement": "unavailable_provider_does_not_report_cost",
+        "financial_ceiling_enforcement": "provider_response_reported_cost",
         "route": plan["route"],
         "upstream": plan["upstream"],
         "sanitization": dict(SANITIZATION_DECLARATION),

@@ -37,6 +37,8 @@ def test_campaign_plan_freezes_route_panel_order_and_budget() -> None:
     assert [row["case_id"] for row in plan["panel"]] == list(PANEL_CASE_IDS)
     assert plan["route"]["provider"] == "arena"
     assert plan["route"]["model"] == "glm-5p2"
+    assert plan["route"]["provider_cost_status"] == "response_reported"
+    assert plan["canary"]["max_output_tokens"] == 256
     assert plan["route"]["fallbacks"] == "not_reported"
     assert plan["execution"]["max_parallel_cells"] == 1
     assert plan["execution"]["abort_on_operational_failure"] is True

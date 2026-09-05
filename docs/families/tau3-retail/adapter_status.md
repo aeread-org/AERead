@@ -50,12 +50,13 @@ the owner explicitly selected Arena's `glm-5p2` model instead. It runs one
 unscored admission canary followed by five
 scored cases, one from each predeclared pilot stratum, sequentially and with no
 fallback. The driver aborts on the first operational failure, enforces a
-nominal per-trajectory ceiling of $0.05 and a nominal total ceiling of $0.30,
+per-trajectory ceiling of $0.05 and a total ceiling of $0.30,
 checkpoints only
 complete replayed receipts, and separates execution from publication.
 
-Arena does not report request cost, so those dollar ceilings cannot be
-financially attested; the frozen token and output limits remain enforceable.
+Arena reports request cost in each response, so the driver records and enforces
+those dollar ceilings. The canary reserves 256 output tokens because GLM 5.2
+uses the same completion budget for hidden reasoning and visible JSON.
 
 This is a **pipeline proof**, not an upstream behavioral-parity claim. Both the
 retail assistant and customer simulator use GLM 5.2, and the harness uses
@@ -67,7 +68,7 @@ Freeze and inspect the digest-bound plan before spending:
 
 ```bash
 PYTHONPATH=src python -m aeread_families.tau3_retail.campaign \
-  --run-root runs/tau3_retail_glm5p2_arena_pipeline_proof_v1
+  --run-root runs/tau3_retail_glm5p2_arena_pipeline_proof_v2
 ```
 
 Execute only with the pinned bridge and skip-fail gate enabled:
@@ -77,7 +78,7 @@ AEREAD_TAU2_UPSTREAM_ROOT=$PWD/runs/upstream-tau2 \
 AEREAD_TAU2_BRIDGE_PYTHON=$PWD/runs/tau2-bridge-venv/bin/python \
 AEREAD_TAU2_BRIDGE_REQUIRED=1 \
 PYTHONPATH=src python -m aeread_families.tau3_retail.campaign \
-  --run-root runs/tau3_retail_glm5p2_arena_pipeline_proof_v1 \
+  --run-root runs/tau3_retail_glm5p2_arena_pipeline_proof_v2 \
   --upstream-root runs/upstream-tau2 --execute
 ```
 
@@ -86,8 +87,8 @@ digest-mismatched checkpoints:
 
 ```bash
 PYTHONPATH=src python -m aeread_families.tau3_retail.campaign \
-  --run-root runs/tau3_retail_glm5p2_arena_pipeline_proof_v1 \
-  --publication-root evidence/tau3_retail_glm5p2_arena_pipeline_proof_v1 \
+  --run-root runs/tau3_retail_glm5p2_arena_pipeline_proof_v2 \
+  --publication-root evidence/tau3_retail_glm5p2_arena_pipeline_proof_v2 \
   --publish-only
 ```
 

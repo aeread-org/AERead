@@ -1440,6 +1440,8 @@ def test_arena_adapter_sends_selected_model_and_parses_json() -> None:
                 "prompt_tokens": 21,
                 "completion_tokens": 8,
                 "prompt_tokens_details": {"cached_tokens": 3},
+                "completion_tokens_details": {"reasoning_tokens": 5},
+                "cost": 0.00042,
             },
         }
     )
@@ -1484,7 +1486,61 @@ def test_arena_adapter_sends_selected_model_and_parses_json() -> None:
     assert result.input_tokens == 21
     assert result.cached_input_tokens == 3
     assert result.output_tokens == 8
-    assert result.cost_usd is None
+    assert result.cost_usd == pytest.approx(0.00042)
+    assert result.reasoning_tokens == 5
+
+
+def test_arena_adapter_classifies_truncated_json_as_length() -> None:
+    response = SimpleNamespace(
+        model_dump=lambda mode: {
+            "id": "arena-truncated",
+            "model": "glm-5p2",
+            "choices": [
+                {
+                    "message": {"content": '{"kind":"reply","text":"Hello'},
+                    "finish_reason": "length",
+                }
+            ],
+            "usage": {"completion_tokens": 80, "prompt_tokens": 128},
+        }
+    )
+
+    class Completions:
+        async def create(self, **kwargs):
+            return response
+
+    client = ArenaChatClient(
+        sdk_client=SimpleNamespace(chat=SimpleNamespace(completions=Completions()))
+    )
+    request = ProviderRequest(
+        provider_call_id="arena-truncated-call",
+        provider="arena",
+        base_url="https://api.preview.arena.ai/v1",
+        model="glm-5p2",
+        revision="glm-5p2",
+        instructions=SYSTEM_PROMPT,
+        input_text='{"observation":{}}',
+        temperature=0.0,
+        top_p=None,
+        max_output_tokens=80,
+        reasoning_effort="low",
+        timeout_seconds=120.0,
+        request_sha256="",
+        output_schema={
+            "type": "object",
+            "properties": {
+                "kind": {"type": "string"},
+                "text": {"type": "string"},
+            },
+            "required": ["kind", "text"],
+        },
+    ).with_computed_hash()
+
+    with pytest.raises(ProviderFailure, match="truncated") as captured:
+        asyncio.run(client.complete(request))
+
+    assert captured.value.condition == "length"
+    assert captured.value.retryable is True
 
 
 def test_openrouter_adapter_serializes_a_frozen_schema_as_plain_json() -> None:

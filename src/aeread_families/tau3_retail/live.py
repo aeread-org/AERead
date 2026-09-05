@@ -42,7 +42,7 @@ PRICING = TokenPricing(
     input_per_million=0.0,
     cached_input_per_million=0.0,
     output_per_million=0.0,
-    pricing_id="arena_2026-09-05_glm5p2_unpriced",
+    pricing_id="arena_2026-09-05_glm5p2_response_reported_cost",
 )
 ASSISTANT_PROMPT_ID = "tau3_retail_assistant_json_v1"
 USER_PROMPT_ID = "tau3_retail_user_sim_json_v1"
@@ -153,7 +153,7 @@ def _profile(
                     "max_rounds": 12 if seat == "assistant" else 1,
                     "provider_metadata": {
                         "catalog_model_id": MODEL,
-                        "provider_cost_status": "not_reported",
+                        "provider_cost_status": "response_reported",
                     },
                 },
             },

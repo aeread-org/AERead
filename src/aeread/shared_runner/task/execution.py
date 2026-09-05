@@ -1763,7 +1763,16 @@ class ArenaChatClient:
                 "Arena returned no visible answer content",
                 retryable=True,
             )
-        structured_output = self._parse_structured_output(content, request.output_schema)
+        try:
+            structured_output = self._parse_structured_output(content, request.output_schema)
+        except ProviderFailure as error:
+            if choice.get("finish_reason") == "length":
+                raise ProviderFailure(
+                    "length",
+                    "Arena truncated the structured response at the output-token limit",
+                    retryable=True,
+                ) from error
+            raise
         usage = raw_response.get("usage")
         usage = usage if isinstance(usage, Mapping) else {}
 
@@ -1779,6 +1788,24 @@ class ArenaChatClient:
             cached = details.get("cached_tokens", 0)
             if isinstance(cached, int) and not isinstance(cached, bool) and cached >= 0:
                 cached_input_tokens = cached
+        reported_cost = usage.get("cost")
+        cost_usd = (
+            float(reported_cost)
+            if isinstance(reported_cost, (int, float))
+            and not isinstance(reported_cost, bool)
+            and reported_cost >= 0
+            else None
+        )
+        completion_details = usage.get("completion_tokens_details")
+        reasoning_tokens = None
+        if isinstance(completion_details, Mapping):
+            reported_reasoning_tokens = completion_details.get("reasoning_tokens")
+            if (
+                isinstance(reported_reasoning_tokens, int)
+                and not isinstance(reported_reasoning_tokens, bool)
+                and reported_reasoning_tokens >= 0
+            ):
+                reasoning_tokens = reported_reasoning_tokens
         return ProviderResult(
             response_id=str(raw_response.get("id") or ""),
             requested_model=request.model,
@@ -1788,8 +1815,9 @@ class ArenaChatClient:
             input_tokens=token_count("prompt_tokens"),
             cached_input_tokens=cached_input_tokens,
             output_tokens=token_count("completion_tokens"),
-            cost_usd=None,
+            cost_usd=cost_usd,
             raw_response=raw_response,
+            reasoning_tokens=reasoning_tokens,
         )
 
     @staticmethod
