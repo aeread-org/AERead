@@ -10,6 +10,46 @@ call `run_v1()` as a library function
 
 **Design baseline:** PR #7 at `fa81b6b8f17ab8ef2f05da0523652395f27794ac`
 
+## Implementation status — 2026-09-02
+
+This document remains the target architecture and gated migration plan. The table below records
+the implementation state observed in the repository checkout at `0a9c455`. That commit is
+contained in `origin/main`; the checkout was one commit behind `origin/main` when verified.
+“Complete” means the stage's focused shared-runner contract tests passed. It does not imply that
+the legacy Exchange production entry point has migrated.
+
+| Stage | Status | Verified evidence and remaining gate |
+|---|---|---|
+| R0 | **Complete** | The taxonomy, ownership boundary, identifiers, and serialization terms have executable design-contract coverage. |
+| R1 | **Complete** | Strict authoring schemas and exact trusted plugin registration reject invalid or unknown structure before execution. |
+| R2 | **Complete** | Canonical `RunPlan` and `PlanCell` resolution, implementation pins, stable bytes and hashes, and pre-side-effect publication are implemented. |
+| R3 | **Complete** | The family-neutral scheduler passes provider-free phase-graph, simultaneous-observation, legality, transition, and noninterference tests. |
+| R4 | **Complete** | The shared execution path records provider/tool start events before dispatch, owns explicit attempts and budgets, and terminalizes failures or unknown outcomes. |
+| R5 | **Partial / substantial** | Typed receipts, family-state replay, evidence-chain resume/audit, projections, and coverage reconciliation exist. The full interrupted-episode crash-point continuation gate has not been demonstrated end to end. |
+| R6 | **Blocked — current critical gate** | No Exchange compatibility `FamilyPlugin` or end-to-end parity suite proves allocation, `w_real`, denominator/tier, AER, failure class, evidence counts, and replay. The public Exchange CLI remains on the legacy engine. |
+| R7 | **Partial, dependency blocked** | A native Housing plugin, references, campaigns, replay, and shared-kernel tests exist, but R7 cannot close while its R6 dependency remains open. |
+| R8 | **Partial, dependency blocked** | The Tau3 retail adapter and 18-task pilot definition exist. Real pinned-upstream parity was not executed in this verification, and full-suite receipt-driven publication gates remain open. |
+
+Focused verification on 2026-09-02:
+
+```text
+189 passed, 1 skipped in 6.32s
+```
+
+The skip covered Tau3 tests requiring a separately provisioned pinned upstream Tau2 checkout;
+it must not be interpreted as a successful 18-task upstream parity run. The migration as a
+whole remains incomplete until `aeread run`, `eval`, `sweep`, and `submit` enter the shared
+kernel and Exchange passes the R6 compatibility gate.
+
+### Branch and merge interpretation
+
+- **Implemented in the assessed checkout:** the R0-R5 components and post-R6 family work
+  described above are present at `0a9c455`.
+- **Merged into `origin/main`:** `0a9c455` is an ancestor of `origin/main` as observed on
+  2026-09-02.
+- **Not established by merge state:** production-path ownership, Exchange parity, or Tau3
+  upstream parity. Those require the behavioral gates above, not merely merged files.
+
 **Files involved:**
 
 - `src/aeread/cli.py` — dispatches CLI verbs to Exchange-specific modules.
@@ -24,8 +64,8 @@ call `run_v1()` as a library function
   panels and verifies replay.
 - `src/aeread/exchange_v1/scoring.py` — converts an Exchange run directory into the
   current AER result.
-- `docs/shared_runner_design.md` — normative planned architecture.
-- `docs/verifier_taxonomy.md` — measurement/verifier taxonomy; it remains separate from
+- `docs/architecture/shared_runner_design.md` — normative planned architecture.
+- `docs/research/verifier_taxonomy.md` — measurement/verifier taxonomy; it remains separate from
   the runner object taxonomy below.
 
 **What changes:** the current path reads an Exchange config, makes provider calls, mutates

@@ -1,0 +1,30 @@
+{
+  "spec_version": "aeread.case/0.1",
+  "case_id": "consent_ir_v1__dev__visible_cycle_001",
+  "family_id": "consent_ir_v1",
+  "family_version": "1.0.0",
+  "split": "dev",
+  "world_seed": 73001,
+  "seats": [
+    {"id": "buyer", "role": "buyer"}
+  ],
+  "episode": {
+    "max_logical_actions": 1,
+    "termination": ["submitted"]
+  },
+  "visibility_policy": "consent_ir_complete_values_v1",
+  "payload": {
+    "values": [
+      [3, 6, 11, 8],
+      [9, 4, 2, 1],
+      [1, 10, 5, 2],
+      [2, 1, 9, 4]
+    ]
+  },
+  "provenance": {
+    "generator_id": "consent_ir_curated_v1",
+    "generator_version": "1.0.0",
+    "review_status": "curated"
+  },
+  "content_sha256": "e7f94e7e0eddd36d4c0369dc3b83bf6723bd6a981b37028a8336e54378a7660a"
+}

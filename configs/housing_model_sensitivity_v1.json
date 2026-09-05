@@ -1,0 +1,110 @@
+{
+  "schema_version": "aeread.housing_model_sensitivity/0.1",
+  "campaign_id": "housing_model_sensitivity_v1",
+  "claim_status": "development_integration_only",
+  "question": "Can the admitted GLM 5.3 Flash and DeepSeek V4 Flash profiles complete model-to-model Housing trajectories across the selected mild, moderate, and severe development configurations?",
+  "independent_cluster": "world_seed",
+  "source_case_selection": {
+    "path": "evidence/housing_case_config_sweep_v1/reports/selected_development_configs.json",
+    "artifact_sha256": "a4ace08e1504b66eabeb92ca22ec47be25cb034ce2c262e66d96265710e34727",
+    "file_sha256": "b05945926fe0dfa4569d8b58f70d62ec1d41597b16b615928be3c8752066a163",
+    "fact_manifest_path": "evidence/housing_case_config_sweep_v1/tables/fact_manifest.json",
+    "fact_manifest_file_sha256": "7eca47be207f85bda990b68c4653d8539bc9f0c56560f9b3d7dea61bc7b16727"
+  },
+  "controls": {
+    "harness": "minimal_chat/1.0",
+    "tools": "disabled",
+    "memory": "disabled",
+    "reasoning_effort": "low",
+    "temperature": 0.0,
+    "top_p": 1.0,
+    "max_output_tokens": 4096,
+    "timeout_seconds": 120.0,
+    "sdk_retries": 0,
+    "max_action_attempts": 4,
+    "tenant_max_logical_actions": 48,
+    "landlord_max_logical_actions": 16,
+    "retryable_conditions": [
+      "length",
+      "rate_limit",
+      "provider_5xx"
+    ],
+    "tenant_inference_seed_base": 87001,
+    "landlord_inference_seed_base": 97001,
+    "condition_order": "rotate_by_case_configuration"
+  },
+  "models": {
+    "glm_53_flash": {
+      "requested_model": "z-ai/glm-5.3-flash",
+      "canonical_model": "z-ai/glm-5.3-flash-20260826",
+      "provider": "DeepInfra",
+      "quantization": "fp8",
+      "tenant_profile_id": "housing_glm_53_flash_tenant_v0",
+      "landlord_profile_id": "housing_glm_53_flash_landlord_v0"
+    },
+    "deepseek_v4_flash": {
+      "requested_model": "deepseek/deepseek-v4-flash-0731",
+      "canonical_model": "deepseek/deepseek-v4-flash-20260731",
+      "provider": "DeepInfra",
+      "quantization": "fp8",
+      "tenant_profile_id": "housing_deepseek_v4_flash_tenant_v0",
+      "landlord_profile_id": "housing_deepseek_v4_flash_landlord_v0"
+    }
+  },
+  "conditions": [
+    {
+      "condition_id": "glm_53_flash__vs__glm_53_flash",
+      "subject": "glm_53_flash",
+      "opponent": "glm_53_flash",
+      "evaluation_kind": "self_play"
+    },
+    {
+      "condition_id": "glm_53_flash__vs__deepseek_v4_flash",
+      "subject": "glm_53_flash",
+      "opponent": "deepseek_v4_flash",
+      "evaluation_kind": "cross_play"
+    },
+    {
+      "condition_id": "deepseek_v4_flash__vs__glm_53_flash",
+      "subject": "deepseek_v4_flash",
+      "opponent": "glm_53_flash",
+      "evaluation_kind": "cross_play"
+    },
+    {
+      "condition_id": "deepseek_v4_flash__vs__deepseek_v4_flash",
+      "subject": "deepseek_v4_flash",
+      "opponent": "deepseek_v4_flash",
+      "evaluation_kind": "self_play"
+    }
+  ],
+  "profile_admission_reference": {
+    "campaign_id": "housing_population_crossplay_v0",
+    "artifact_sha256": "a03bc717b57d419fdc3334952676fde77a32910cc655e39dce3e6e0e5f5e8977",
+    "hidden_retry_count": 0,
+    "profile_sha256s": {
+      "housing_glm_53_flash_tenant_v0": "90fb4fc3eb0e993706355ad3bef3b30eceb1a06e818a3f53cf2aeeb103637c0a",
+      "housing_glm_53_flash_landlord_v0": "3c6e1594f89eecf21208b7ebbf25cee16f8fd575e53d9b45d90d53ec11f201ef",
+      "housing_deepseek_v4_flash_tenant_v0": "693f0472889b39bf3ca6fbc554779b2254898b679864f8b5e47b00bf6fd1a5a2",
+      "housing_deepseek_v4_flash_landlord_v0": "a8695eadc965158364e8a02b631ea02a8acffda5b78ba86e96c6f12e02612346"
+    }
+  },
+  "execution": {
+    "world_seeds": [
+      1971418798
+    ],
+    "replicates": 1,
+    "attempt_limit": 1,
+    "cost_ceiling_usd": 0.05,
+    "per_trajectory_cost_reserve_usd": 0.02,
+    "winner_claim_allowed": false,
+    "completeness_policy": "retain_typed_missingness_without_selective_retry"
+  },
+  "analysis": {
+    "primary_view": "condition_by_case_configuration_within_case_score",
+    "aggregation": "none_single_world_integration_slice",
+    "uncertainty": "not_estimable_from_one_world_cluster",
+    "ranking_allowed": false
+  },
+  "missingness": "typed_operational_missingness_reported_separately",
+  "stopping_rule": "stop_before_next_trajectory_when_remaining_campaign_budget_is_below_the_declared_reserve; stop_immediately_on_route_drift_or_replay_failure"
+}

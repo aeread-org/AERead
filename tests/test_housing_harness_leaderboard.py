@@ -7,18 +7,19 @@ from pathlib import Path
 
 import pytest
 
-from aeread.shared_runner.housing_harness_leaderboard import (
+from aeread_families.housing.harness_leaderboard import (
     build_leaderboard,
     leaderboard_csv,
     leaderboard_markdown,
     write_leaderboard,
 )
-from aeread.shared_runner.resolver import canonical_json_bytes
+from aeread.shared_runner.run.resolver import canonical_json_bytes
 
 
-EVIDENCE = Path(__file__).parents[1] / "docs" / "evidence"
-BAKEOFF = EVIDENCE / "housing_open_harness_bakeoff_2026-08-31.json"
-ADMISSION = EVIDENCE / "housing_open_harness_admission_2026-08-31.json"
+EVIDENCE = Path(__file__).parents[1] / "evidence"
+PUBLICATION = EVIDENCE / "housing_open_harness_2026-08-31"
+BAKEOFF = PUBLICATION / "reports" / "bakeoff.json"
+ADMISSION = PUBLICATION / "qc" / "admission.json"
 
 
 def _inputs() -> tuple[dict, dict]:
@@ -97,3 +98,12 @@ def test_renderers_preserve_unranked_operational_failure() -> None:
     assert "known lower bounds" in markdown
     assert "≥$0.004463" in markdown
     assert "$≥" not in markdown
+
+
+def test_langgraph_condition_has_a_stable_display_name() -> None:
+    from aeread_families.housing.harness_leaderboard import DISPLAY_NAMES
+
+    assert (
+        DISPLAY_NAMES["langgraph_structured_output_v1"]
+        == "LangGraph Structured Output"
+    )

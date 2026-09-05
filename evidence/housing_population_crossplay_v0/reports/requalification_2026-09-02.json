@@ -1,0 +1,92 @@
+{
+  "artifact_sha256": "f2c58ac70c3b2b182254eb68b5eec5f3496568548012f0a97bc2aefec8b4c9b1",
+  "schema_version": "aeread.housing_population_requalification/0.1",
+  "campaign_id": "housing_population_crossplay_v0",
+  "created_date": "2026-09-02",
+  "status": "blocked_by_profile_admission",
+  "claim_status": "development_requalification_only",
+  "winner_claim_allowed": false,
+  "history_migration": {
+    "source_schema_version": "aeread.campaign_gate_history/0.1",
+    "target_schema_version": "aeread.campaign_gate_history/0.2",
+    "status": "passed",
+    "legacy_source_retained_locally": true,
+    "legacy_source_file_sha256": "c43308782b08ad99403130ab0e1c5ef3f14a3d683cf157001c3a0acec7638a56",
+    "migrated_history_file_sha256": "2343923bb7aee2eec85c95cf2128182f3306d3a3b5d389dc95ce443f6943e5da"
+  },
+  "control_change": {
+    "invalidation_index": 1,
+    "from_gate_id": "profile_admission",
+    "changed_controls": [
+      "retry_policy"
+    ],
+    "added_retryable_condition": "empty_response",
+    "max_action_attempts": 4,
+    "sdk_retries": 0,
+    "session_mode": "restart",
+    "retry_visibility": "one sealed action attempt per application-level retry"
+  },
+  "profile_admission_attempts": [
+    {
+      "gate_attempt_index": 2,
+      "status": "failed",
+      "model_id": "glm_53_flash",
+      "role": "tenant",
+      "action_schema": "housing_contact_v1",
+      "probe_index": 0,
+      "visible_provider_attempts": 1,
+      "failure_condition": "rate_limit"
+    },
+    {
+      "gate_attempt_index": 3,
+      "status": "failed",
+      "model_id": "glm_53_flash",
+      "role": "tenant",
+      "action_schema": "housing_contact_v1",
+      "probe_index": 0,
+      "visible_provider_attempts": 1,
+      "failure_condition": "rate_limit"
+    },
+    {
+      "gate_attempt_index": 4,
+      "status": "failed",
+      "model_id": "glm_53_flash",
+      "role": "tenant",
+      "action_schema": "housing_contact_v1",
+      "probe_index": 0,
+      "visible_provider_attempts": 4,
+      "failure_condition": "rate_limit"
+    }
+  ],
+  "observed_totals": {
+    "profile_admission_gate_attempts": 3,
+    "visible_provider_attempts": 6,
+    "completed_admission_probes": 0,
+    "trajectory_provider_calls": 0,
+    "trajectories_started": 0,
+    "cost_usd": null,
+    "cost_status": "not_reported_by_failed_admission_path"
+  },
+  "verification": {
+    "focused_tests": {
+      "passed": 69,
+      "failed": 0
+    },
+    "repository_suite": {
+      "passed": 802,
+      "skipped": 9,
+      "xfailed": 1,
+      "failed": 0
+    }
+  },
+  "source_bindings": {
+    "campaign_contract_path": "configs/housing_population_crossplay_v0.json",
+    "campaign_contract_file_sha256": "7e8f86527f1ad90ba3a0af81d8d626ec68e4f210b4722b43102cbcd461ac7e21",
+    "prior_qualification_path": "evidence/housing_population_crossplay_v0/reports/qualification_2026-09-01.json",
+    "prior_qualification_file_sha256": "5982e0b8e37a847ce19bc7b4e3d8de4cb38fe8b0fa6532a019b9564bf7cdb45b",
+    "local_gate_history_path": "runs/housing_population_crossplay_v0/gate_history.json",
+    "raw_provider_metadata_committed": false
+  },
+  "stop_reason": "The pinned OpenRouter DeepInfra route for GLM 5.3 Flash exhausted all four declared visible attempts on the first tenant contact admission probe. No Housing trajectory was started.",
+  "next_decision": "Wait and repeat the complete profile-admission gate under the unchanged route, or create a new campaign identity with a different pinned provider route or model panel. Do not start the variance pilot while profile admission is failed."
+}
