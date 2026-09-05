@@ -7,8 +7,8 @@ from pathlib import Path
 
 import pytest
 
-import aeread.shared_runner.execution as execution_module
-from aeread.shared_runner.resolver import canonical_json_bytes, case_content_sha256
+import aeread.shared_runner.task.execution as execution_module
+from aeread.shared_runner.run.resolver import canonical_json_bytes, case_content_sha256
 from aeread_families.procurement_grounding import (
     ProcurementGroundingPlugin,
     build_offline_setup,
@@ -158,7 +158,7 @@ def test_run_plan_pins_actual_family_and_runtime_sources() -> None:
     assert pins["procurement_grounding_environment"] == family_sha
     assert pins["procurement_grounding_scorer_v1"] == family_sha
     assert pins["minimal_chat"] == execution_sha
-    assert pins["aeread.shared_runner.execution"] == execution_sha
+    assert pins["aeread.shared_runner.task.execution"] == execution_sha
 
 
 def test_fixture_files_are_valid_json_objects() -> None:

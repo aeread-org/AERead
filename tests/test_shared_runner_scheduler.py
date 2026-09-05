@@ -6,8 +6,8 @@ from types import MappingProxyType
 
 import pytest
 
-from aeread.shared_runner.resolver import PlanCell, case_content_sha256
-from aeread.shared_runner.scheduler import (
+from aeread.shared_runner.run.resolver import PlanCell, case_content_sha256
+from aeread.shared_runner.task.scheduler import (
     LegalityResult,
     ParseResult,
     PhaseSpec,

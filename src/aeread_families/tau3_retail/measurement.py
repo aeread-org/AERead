@@ -57,7 +57,7 @@ from aeread.shared_runner.measurement import (
     ValidityReport,
     VerifierSpec,
 )
-from aeread.shared_runner.resolver import canonical_json_bytes
+from aeread.shared_runner.run.resolver import canonical_json_bytes
 
 from .tau2_bridge import Tau2Bridge
 

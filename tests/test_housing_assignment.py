@@ -6,7 +6,7 @@ DA assumes non-transferable utility, and rent here is negotiable.
 """
 from __future__ import annotations
 
-from aeread.housing_v1 import environment as hz
+from aeread_families.housing import environment as hz
 
 
 def test_oracle_picks_the_max_weight_pairing_not_the_greedy_one():

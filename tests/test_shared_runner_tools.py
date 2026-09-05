@@ -4,8 +4,8 @@ import asyncio
 
 import pytest
 
-from aeread.shared_runner.execution import EvidenceStore
-from aeread.shared_runner.tools import (
+from aeread.shared_runner.task.execution import EvidenceStore
+from aeread.shared_runner.task.tools import (
     ToolBinding,
     ToolContractError,
     ToolDefinition,
