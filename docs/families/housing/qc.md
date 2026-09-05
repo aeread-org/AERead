@@ -1026,3 +1026,55 @@ python -m aeread_families.housing.backend_campaign \
   --through live
 ```
 
+The executed pilot stopped after three cells. Admission passed 18 of 18 on
+the first attempt for `$0.003019401`. The first two trajectories then failed
+on single 120-second timeouts of DeepSeek seats on Parasail, one of them
+after a `length` escalation had doubled that seat's output cap from 4096 to
+8192 tokens; a timeout is deliberately not retryable because the provider may
+already have executed the call. The third trajectory failed when its DeepSeek
+tenant seat exceeded a hardcoded `$0.01` per-seat cost budget after the same
+length escalation, and the driver classified that `EvidenceIntegrityError`
+as a critical campaign failure, stopping the pilot with 45 cells never
+attempted for `$0.0222467553` of spend. Parasail delivered every one of the
+74 provider calls; no route or rate-limit failure occurred.
+
+This is a driver defect, not a route result. A seat exhausting its own
+budget is cell-level typed missingness and should not stop the campaign; the
+`$0.01` seat budget was never contract-visible; and the 120-second wall-time
+cap cannot accommodate the length policy's own 8192-token retry at Parasail's
+observed DeepSeek throughput. V17 is not rerun or amended. The publisher now
+records stopped pilots, marking `all_frozen_cells_attempted` false and the
+never-attempted count. Review the digest-bound
+[`qualification.json`](../../../evidence/housing_model_sensitivity_openrouter_parasail_v17/reports/qualification.json)
+and the three-attempt
+[`attempted.json`](../../../evidence/housing_model_sensitivity_openrouter_parasail_v17/trajectories/attempted.json).
+
+## 25. V18 preregistered gate with contract-visible seat budget and wall time
+
+[`housing_model_sensitivity_openrouter_parasail_v18`](../../../configs/housing_model_sensitivity_openrouter_parasail_v18.json)
+is a new full-trajectory gate identity created in response to V17. It keeps
+V16's Parasail FP8 routes and endpoint snapshots, world, configuration, four
+conditions, cooldown, admission-timeout enforcement, and four receipt-visible
+admission attempts, and changes three frozen controls:
+
+1. `timeout_seconds` rises from 120 to 300 so that the frozen length policy's
+   8192-token retry can complete at observed throughput.
+2. `seat_max_cost_usd` freezes each seat's per-trajectory cost budget at
+   `$0.03` in the contract, replacing the hidden `$0.01` runner default. The
+   per-trajectory reserve rises to `$0.06` (two seats) and the gate's
+   execution ceiling to `$0.30`, for `$0.36` maximum exposure.
+3. A seat budget exhaustion is typed `cost_budget_exceeded` cell-level
+   missingness and no longer stops the campaign; route drift, replay failure,
+   provider-contract failure, and the campaign cost ceiling remain critical.
+
+Executed campaigns V13 to V17 keep their original implementation digests via
+the historical pin table, so their sealed designs still reproduce. V18 is a
+one-world promotion gate and supports no ranking.
+
+```bash
+python -m aeread_families.housing.backend_campaign \
+  --contract configs/housing_model_sensitivity_openrouter_parasail_v18.json \
+  --run-root runs/housing_model_sensitivity_openrouter_parasail_v18 \
+  --through full_trajectory
+```
+

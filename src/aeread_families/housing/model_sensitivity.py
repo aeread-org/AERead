@@ -90,6 +90,41 @@ _HISTORICAL_IMPLEMENTATION_DIGESTS = {
         "execution": "7b963ccc739e007504c4df5f6abce1748c295b20e2b6887599b88ee0108f7f7f",
         "harness": "063a26de9bd05b7ac0ac400a84e933beffec413ef4eb1ca50794f7e790fc4275",
     },
+    "housing_model_sensitivity_openrouter_friendli_v13": {
+        "housing": "4182057475816840253a8421fc461c09fa6bbb8ea0659e742f6d98ebc2a74a33",
+        "bridge": "5cc23b0340eb39a6d49d8885169c32b5a975b1c80ba858d932e32d179c6b1fae",
+        "combined": "2a7c062960c060f78b85258f0b86768fd3133fb37def9ccd5e534e3a82ad08ab",
+        "execution": "a9df085ebfd2c870a0c3ce58ff36b2468327a96ccf78beb8dc9b255961715600",
+        "harness": "063a26de9bd05b7ac0ac400a84e933beffec413ef4eb1ca50794f7e790fc4275",
+    },
+    "housing_model_sensitivity_openrouter_friendli_v14": {
+        "housing": "4182057475816840253a8421fc461c09fa6bbb8ea0659e742f6d98ebc2a74a33",
+        "bridge": "5cc23b0340eb39a6d49d8885169c32b5a975b1c80ba858d932e32d179c6b1fae",
+        "combined": "2a7c062960c060f78b85258f0b86768fd3133fb37def9ccd5e534e3a82ad08ab",
+        "execution": "a9df085ebfd2c870a0c3ce58ff36b2468327a96ccf78beb8dc9b255961715600",
+        "harness": "063a26de9bd05b7ac0ac400a84e933beffec413ef4eb1ca50794f7e790fc4275",
+    },
+    "housing_model_sensitivity_openrouter_friendli_v15": {
+        "housing": "4182057475816840253a8421fc461c09fa6bbb8ea0659e742f6d98ebc2a74a33",
+        "bridge": "5cc23b0340eb39a6d49d8885169c32b5a975b1c80ba858d932e32d179c6b1fae",
+        "combined": "2a7c062960c060f78b85258f0b86768fd3133fb37def9ccd5e534e3a82ad08ab",
+        "execution": "a9df085ebfd2c870a0c3ce58ff36b2468327a96ccf78beb8dc9b255961715600",
+        "harness": "063a26de9bd05b7ac0ac400a84e933beffec413ef4eb1ca50794f7e790fc4275",
+    },
+    "housing_model_sensitivity_openrouter_parasail_v16": {
+        "housing": "4182057475816840253a8421fc461c09fa6bbb8ea0659e742f6d98ebc2a74a33",
+        "bridge": "5cc23b0340eb39a6d49d8885169c32b5a975b1c80ba858d932e32d179c6b1fae",
+        "combined": "2a7c062960c060f78b85258f0b86768fd3133fb37def9ccd5e534e3a82ad08ab",
+        "execution": "a9df085ebfd2c870a0c3ce58ff36b2468327a96ccf78beb8dc9b255961715600",
+        "harness": "063a26de9bd05b7ac0ac400a84e933beffec413ef4eb1ca50794f7e790fc4275",
+    },
+    "housing_model_sensitivity_openrouter_parasail_v17": {
+        "housing": "4182057475816840253a8421fc461c09fa6bbb8ea0659e742f6d98ebc2a74a33",
+        "bridge": "5cc23b0340eb39a6d49d8885169c32b5a975b1c80ba858d932e32d179c6b1fae",
+        "combined": "2a7c062960c060f78b85258f0b86768fd3133fb37def9ccd5e534e3a82ad08ab",
+        "execution": "a9df085ebfd2c870a0c3ce58ff36b2468327a96ccf78beb8dc9b255961715600",
+        "harness": "063a26de9bd05b7ac0ac400a84e933beffec413ef4eb1ca50794f7e790fc4275",
+    },
 }
 
 
@@ -416,6 +451,10 @@ def build_setups(
         if controls.get("wire_live_profile_controls") is True
         else {}
     )
+    if live_profile_controls and controls.get("seat_max_cost_usd") is not None:
+        # Only campaigns that freeze a seat budget carry the override, so the
+        # design digests of earlier campaigns are unchanged.
+        live_profile_controls["max_cost_usd_override"] = controls["seat_max_cost_usd"]
     for config in selected_configs(contract):
         for condition in contract["conditions"]:
             subject = contract["models"][condition["subject"]]
@@ -646,10 +685,17 @@ def _exception_attribute(error: BaseException, attribute: str) -> Any | None:
     return None
 
 
+SEAT_COST_BUDGET_MARKER = "cost budget exceeded for profile"
+
+
 def _critical_failure(error: BaseException) -> bool:
     condition = _exception_attribute(error, "condition")
     if condition is not None:
         return condition == "provider_contract"
+    if SEAT_COST_BUDGET_MARKER in str(error):
+        # A seat exhausting its own frozen cost budget is typed cell-level
+        # missingness, not a campaign-level route, replay, or ceiling failure.
+        return False
     if isinstance(error, (EvidenceIntegrityError, SchedulerContractError)):
         return True
     message = str(error).lower()
@@ -1035,7 +1081,12 @@ async def run_live(
                 "status": "operational_failure",
                 "failure_type": type(error).__name__,
                 "failure_condition": (
-                    _exception_attribute(error, "condition") or "execution_error"
+                    _exception_attribute(error, "condition")
+                    or (
+                        "cost_budget_exceeded"
+                        if SEAT_COST_BUDGET_MARKER in str(error)
+                        else "execution_error"
+                    )
                 ),
                 "failure_status_code": _exception_attribute(error, "status_code"),
                 "receipt_sha256": receipt_sha256,

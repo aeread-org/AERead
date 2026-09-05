@@ -807,8 +807,11 @@ def publish_campaign(
     live = _read_sealed(run_root / terminal_stage / "summary.json")
     if live["campaign_id"] != campaign_id:
         raise ValueError("live gate campaign identity differs")
-    if live["attempted_trajectories"] != live["planned_trajectories"]:
+    if live["attempted_trajectories"] != live["planned_trajectories"] and not live.get(
+        "critical_stop"
+    ):
         raise ValueError("publication requires every frozen cell to be attempted")
+    all_cells_attempted = live["attempted_trajectories"] == live["planned_trajectories"]
 
     trajectories = [
         _project_attempt(
@@ -848,6 +851,15 @@ def publish_campaign(
                     "to the multi-world pilot without a separately recorded "
                     "full-trajectory gate."
                 )
+            ),
+        )
+    if live.get("critical_stop"):
+        limitations.insert(
+            1,
+            (
+                f"The driver stopped after {live['attempted_trajectories']} of "
+                f"{live['planned_trajectories']} cells ({live['stop_reason']}); "
+                f"{live['not_started_trajectories']} cells were never attempted."
             ),
         )
     if live["operational_failures"]:
@@ -1038,8 +1050,8 @@ def publish_campaign(
             ],
             "profile_results": _profile_results(contract, admission),
             "observed_score_range": {
-                "minimum": min(completed_scores),
-                "maximum": max(completed_scores),
+                "minimum": min(completed_scores) if completed_scores else None,
+                "maximum": max(completed_scores) if completed_scores else None,
                 "interpretation": (
                     "Descriptive development-pilot range only; it does not support "
                     "ranking."
@@ -1086,7 +1098,7 @@ def publish_campaign(
             },
             "acceptance": {
                 "publishable_integration_evidence": True,
-                "all_frozen_cells_attempted": True,
+                "all_frozen_cells_attempted": all_cells_attempted,
                 "prerequisite_gates_passed": full_trajectory_gate_passed,
                 "typed_missingness_preserved": True,
                 "paired_worlds_complete": paired_worlds_complete,

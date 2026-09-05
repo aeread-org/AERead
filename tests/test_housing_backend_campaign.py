@@ -117,6 +117,11 @@ V17_CONTRACT_PATH = (
     / "configs"
     / "housing_model_sensitivity_openrouter_parasail_v17.json"
 )
+V18_CONTRACT_PATH = (
+    Path(__file__).resolve().parents[1]
+    / "configs"
+    / "housing_model_sensitivity_openrouter_parasail_v18.json"
+)
 
 
 def test_contract_pins_new_routes_and_requires_admission_before_live() -> None:
@@ -1144,6 +1149,108 @@ def test_v17_pilot_carries_v16_routes_and_names_v16_as_its_verified_gate() -> No
             assert hashlib.sha256(canonical_json_bytes(profile)).hexdigest() == (
                 expected_profiles[profile.profile_id]
             )
+
+
+def test_published_v17_records_the_driver_stop_after_three_cells() -> None:
+    evidence_root = (
+        V17_CONTRACT_PATH.parents[1]
+        / "evidence"
+        / "housing_model_sensitivity_openrouter_parasail_v17"
+    )
+    qualification = json.loads(
+        (evidence_root / "reports" / "qualification.json").read_bytes()
+    )
+    trajectories = json.loads(
+        (evidence_root / "trajectories" / "attempted.json").read_bytes()
+    )
+    assert qualification["artifact_sha256"] == (
+        "213d2e947e505fed17867946041cee43577e8561d4b0aed66728fd346b30e244"
+    )
+    assert trajectories["artifact_sha256"] == (
+        "1bbe15410e685680d14d21127bd9171c94ebce1b8c75f1f634cbb4d0e7b579f2"
+    )
+    assert qualification["status"] == "stopped_with_typed_missingness"
+    gate = qualification["gate_status"][-1]
+    assert gate["attempted_trajectories"] == 3
+    assert gate["completed_trajectories"] == 0
+    assert gate["not_started_trajectories"] == 45
+    assert gate["critical_stop"] is True
+    assert qualification["acceptance"]["all_frozen_cells_attempted"] is False
+    assert qualification["acceptance"]["protocol_conformant"] is True
+    assert qualification["observed_score_range"]["minimum"] is None
+    assert [row["failure_condition"] for row in trajectories["trajectories"]] == [
+        "timeout",
+        "timeout",
+        "execution_error",
+    ]
+    assert any("never attempted" in item for item in trajectories["limitations"])
+    published = b"".join(path.read_bytes() for path in evidence_root.rglob("*.*"))
+    assert b'"raw_response":' not in published
+    assert b"output_text" not in published
+    assert b"/Users/" not in published
+
+
+def test_v18_freezes_wall_time_and_seat_budget_in_the_contract() -> None:
+    v16 = load_contract(V16_CONTRACT_PATH)
+    v18 = load_contract(V18_CONTRACT_PATH)
+    routes = route_table(v18)
+
+    changed = {
+        key for key in v18["controls"] if v18["controls"][key] != v16["controls"].get(key)
+    }
+    assert changed == {"reasoning_condition_id", "timeout_seconds", "seat_max_cost_usd"}
+    assert v18["controls"]["timeout_seconds"] == 300.0
+    assert v18["controls"]["seat_max_cost_usd"] == 0.03
+    assert v16["controls"].get("seat_max_cost_usd") is None
+    for model_id in ("glm_53_flash", "deepseek_v4_flash"):
+        assert routes[model_id].provider == "Parasail"
+        assert v18["models"][model_id]["endpoint_snapshot_sha256"] == (
+            v16["models"][model_id]["endpoint_snapshot_sha256"]
+        )
+    assert v18["execution"]["world_seeds"] == v16["execution"]["world_seeds"]
+    assert v18["execution"]["stage"] == "full_trajectory"
+    assert v18["execution"]["per_trajectory_cost_reserve_usd"] == pytest.approx(0.06)
+    assert (
+        v18["profile_admission"]["cost_ceiling_usd"]
+        + v18["execution"]["cost_ceiling_usd"]
+        == pytest.approx(0.36)
+    )
+    for setup in build_setups(v18, routes=routes).values():
+        for profile in setup.plan.agent_profiles:
+            assert profile.budgets.timeout_seconds == 300.0
+            assert profile.budgets.max_cost_usd == 0.03
+    for setup in build_setups(v16, routes=route_table(v16)).values():
+        for profile in setup.plan.agent_profiles:
+            assert profile.budgets.timeout_seconds == 120.0
+            assert profile.budgets.max_cost_usd == 0.01
+    assert design_artifact(v18, routes=routes)["artifact_sha256"] == (
+        "b05a7626e7efb8cd07e0d62be1c9823e09ab46f66874e1b0aefb131619538b51"
+    )
+    assert provider_free_artifact(v18)["artifact_sha256"] == (
+        "dc1af3b3dfa055e3370b508e3008623a6746fd494038c9bdb29b905ce28838a7"
+    )
+    expected_profiles = v18["profile_admission"]["profile_sha256s"]
+    for setup in build_setups(v18, routes=routes).values():
+        for profile in setup.plan.agent_profiles:
+            assert hashlib.sha256(canonical_json_bytes(profile)).hexdigest() == (
+                expected_profiles[profile.profile_id]
+            )
+
+
+def test_seat_cost_budget_exhaustion_is_typed_cell_missingness_not_critical() -> None:
+    from aeread_families.housing.model_sensitivity import _critical_failure
+
+    seat_budget = EvidenceIntegrityError(
+        "cost budget exceeded for profile 'housing_x_tenant_v18': 0.0105 > 0.01"
+    )
+    assert _critical_failure(seat_budget) is False
+    assert _critical_failure(EvidenceIntegrityError("offline replay mismatch")) is True
+    assert _critical_failure(
+        ProviderFailure("provider_contract", "fallback or repeated route", retryable=False)
+    ) is True
+    assert _critical_failure(
+        ProviderFailure("rate_limit", "429", retryable=True, status_code=429)
+    ) is False
 
 
 def test_published_v12_records_pacing_failure_and_zero_trajectories() -> None:

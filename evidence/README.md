@@ -76,3 +76,8 @@ Current campaign directories include:
   gate for the probe-selected route, both models on Parasail FP8. Admission
   18/18, four of four trajectories completed with exact replay, zero
   failures; promotion-eligible, one world, no ranking.
+- `housing_model_sensitivity_openrouter_parasail_v17/`: the 48-cell pilot on
+  the Parasail routes, stopped by the driver after three cells: two DeepSeek
+  120 s timeouts and one hidden $0.01 per-seat budget breach that was wrongly
+  treated as a campaign-critical failure; 45 cells never attempted. Recorded
+  as a driver defect; no route failure occurred.

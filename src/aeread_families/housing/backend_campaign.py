@@ -642,6 +642,73 @@ CAMPAIGN_SPECS = {
             "asyncio_wait_for_controls_timeout_seconds"
         ),
     },
+    "housing_model_sensitivity_openrouter_parasail_v18": {
+        "claim_status": "development_full_trajectory_gate_only",
+        "catalog_retrieved_at": "2026-09-05",
+        "reasoning_condition_id": (
+            "model_sensitivity_openrouter_parasail_low_v18"
+        ),
+        "per_probe_cost_reserve_usd": 0.003,
+        "admission_cost_ceiling_usd": 0.06,
+        "admission_attempt_limit": 4,
+        "timeout_seconds": 300.0,
+        "seat_max_cost_usd": 0.03,
+        "route_selection_probe": {
+            "probe_id": "housing_glm_route_probe_2026-09-05",
+            "summary_path": (
+                "evidence/housing_glm_route_probe_2026-09-05/reports/summary.json"
+            ),
+            "summary_artifact_sha256": "54406a94d4dacc0d1c0b6533ff67cdcfbbc4a20b56fdb91d98a7a551ac8cb63c",
+        },
+        "execution_stage": "full_trajectory",
+        "execution_config_ids": ["moderate_cw085_r2"],
+        "execution_cost_ceiling_usd": 0.30,
+        "per_trajectory_cost_reserve_usd": 0.06,
+        "world_seeds": [227922569],
+        "condition_order": "listed",
+        "analysis": {
+            "primary_view": "full_trajectory_condition_coverage",
+            "aggregation": "none_promotion_gate",
+            "uncertainty": "not_estimable_from_one_world_cluster",
+            "ranking_allowed": False,
+        },
+        "providers": {
+            "glm_53_flash": "Parasail",
+            "deepseek_v4_flash": "Parasail",
+        },
+        "quantizations": {
+            "glm_53_flash": "fp8",
+            "deepseek_v4_flash": "fp8",
+        },
+        "retryable_conditions": [
+            "length",
+            "rate_limit",
+            "provider_5xx",
+            "empty_response",
+        ],
+        "action_schema_version": "housing_actions/2.0",
+        "wire_live_profile_controls": True,
+        "verify_endpoint_snapshot": True,
+        "call_pacing": {
+            "clock": "monotonic_completion_to_start",
+            "cooldown_seconds_by_provider": {
+                "Parasail": 10.0,
+            },
+            "first_call_delay_seconds": 0.0,
+            "scope": "shared_across_profile_admission_and_full_trajectory",
+            "implementation_sha256": (
+                "4dc67f4ae81395166264049bbf917d8d42e69c5d6069c97fea981c4b419415d3"
+            ),
+        },
+        "admission_timeout_enforcement": (
+            "asyncio_wait_for_controls_timeout_seconds"
+        ),
+        "stopping_rule": (
+            "profile_admission_must_pass_before_full_trajectory; stop_before_next_"
+            "trajectory_when_remaining_campaign_budget_is_below_the_declared_"
+            "reserve; stop_immediately_on_route_drift_or_replay_failure"
+        ),
+    },
 }
 REQUIRED_ROUTE_PARAMETERS = {
     "max_tokens",
@@ -781,7 +848,7 @@ def load_contract(path: str | Path) -> dict[str, Any]:
         "temperature": 0.0,
         "top_p": 1.0,
         "max_output_tokens": 4096,
-        "timeout_seconds": 120.0,
+        "timeout_seconds": campaign_spec.get("timeout_seconds", 120.0),
         "sdk_retries": 0,
         "max_action_attempts": 4,
         "tenant_max_logical_actions": 48,
@@ -800,6 +867,7 @@ def load_contract(path: str | Path) -> dict[str, Any]:
         "wire_live_profile_controls",
         "call_pacing",
         "admission_timeout_enforcement",
+        "seat_max_cost_usd",
     ):
         if optional_control in CAMPAIGN_SPECS[campaign_id]:
             expected_controls[optional_control] = CAMPAIGN_SPECS[campaign_id][
