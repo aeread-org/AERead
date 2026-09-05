@@ -36,7 +36,7 @@ def _domain(identifier: str = "retail_base_v1") -> ValidityDomainSpec:
 
 
 def test_verifier_taxonomy_reference_kind_tables_name_only_real_kinds() -> None:
-    """docs/verifier_taxonomy.md drift guard: any markdown table whose first
+    """docs/research/verifier_taxonomy.md drift guard: any markdown table whose first
     column is headed "Reference kind" may only name kinds the measurement
     contract actually accepts — a spec author following the doc must never
     hit MeasurementContractError. Conceptual claim-pattern names live in
@@ -49,7 +49,7 @@ def test_verifier_taxonomy_reference_kind_tables_name_only_real_kinds() -> None:
 
     real_kinds = set().union(*_REFERENCE_KINDS.values())
     doc = (
-        Path(__file__).resolve().parent.parent / "docs" / "verifier_taxonomy.md"
+        Path(__file__).resolve().parent.parent / "docs" / "research" / "verifier_taxonomy.md"
     ).read_text()
 
     documented: list[str] = []

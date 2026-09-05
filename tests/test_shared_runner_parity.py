@@ -136,6 +136,7 @@ def test_a_derived_field_match_is_marked_so_it_reads_as_dependent_confirmation()
     spec = ParitySpec(
         parity_id="refund_derived_fixture",
         parity_version="1.0.0",
+        criterion=_criterion(task_id="refund_derived_fixture", metric_id="db_reward"),
         fields=(
             ParityField("db_reward", ("reward", "db"), ("scores", "db")),
             ParityField(
@@ -176,6 +177,7 @@ def test_derived_from_must_reference_other_declared_fields() -> None:
         ParitySpec(
             parity_id="bad_reference_fixture",
             parity_version="1.0.0",
+            criterion=_criterion(task_id="bad_reference_fixture", metric_id="db_reward"),
             fields=(
                 ParityField("db_reward", ("db",), ("db",)),
                 ParityField(
@@ -190,6 +192,7 @@ def test_derived_from_must_reference_other_declared_fields() -> None:
         ParitySpec(
             parity_id="self_reference_fixture",
             parity_version="1.0.0",
+            criterion=_criterion(task_id="self_reference_fixture", metric_id="db_reward"),
             fields=(
                 ParityField("db_reward", ("db",), ("db",)),
                 ParityField(
@@ -207,6 +210,7 @@ def test_a_derived_from_cycle_is_rejected_as_it_leaves_no_independent_field() ->
         ParitySpec(
             parity_id="cycle_fixture",
             parity_version="1.0.0",
+            criterion=_criterion(task_id="cycle_fixture", metric_id="db_reward"),
             fields=(
                 ParityField("db_reward", ("db",), ("db",), derived_from=("aggregate_reward",)),
                 ParityField(
@@ -219,18 +223,21 @@ def test_a_derived_from_cycle_is_rejected_as_it_leaves_no_independent_field() ->
         )
 
 
-def test_parity_report_still_accepts_the_pre_unavailable_positional_signature() -> None:
+def test_parity_report_defaults_unavailable_fields_when_omitted() -> None:
     from aeread.shared_runner.analysis.parity import ParityReport
 
     report = ParityReport(
-        "legacy_fixture",
-        "1.0.0",
-        "match",
-        (),
-        (),
-        "a" * 64,
-        "b" * 64,
-        "c" * 64,
+        parity_id="legacy_fixture",
+        parity_version="1.0.0",
+        criterion=_criterion(),
+        criterion_sha256="d" * 64,
+        criterion_matched=True,
+        status="match",
+        field_results=(),
+        mismatched_fields=(),
+        upstream_projection_sha256="a" * 64,
+        adapted_projection_sha256="b" * 64,
+        report_sha256="c" * 64,
     )
     assert report.unavailable_fields == ()
     assert report.report_sha256 == "c" * 64
@@ -240,6 +247,7 @@ def test_a_missing_field_yields_a_typed_unavailable_verdict_not_a_dead_report() 
     spec = ParitySpec(
         parity_id="refund_partial_fixture",
         parity_version="1.0.0",
+        criterion=_criterion(task_id="refund_partial_fixture", metric_id="final_state"),
         fields=(
             ParityField("final_state", ("final",), ("state",)),
             ParityField("db_reward", ("db_reward",), ("score",)),
@@ -275,6 +283,7 @@ def test_an_unavailable_field_never_lets_the_report_claim_match() -> None:
     spec = ParitySpec(
         parity_id="refund_unavailable_fixture",
         parity_version="1.0.0",
+        criterion=_criterion(task_id="refund_unavailable_fixture", metric_id="final_state"),
         fields=(
             ParityField("final_state", ("final",), ("state",)),
             ParityField("db_reward", ("db_reward",), ("score",)),
@@ -300,6 +309,15 @@ def test_zero_tolerance_compares_exactly_beyond_float_precision() -> None:
     spec = ParitySpec(
         parity_id="exact_numeric_fixture",
         parity_version="1.0.0",
+        criterion=ExternalParityCriterion(
+            task_id="exact_numeric_fixture",
+            treatment_id="adapted_environment",
+            metric_id="settlement_total",
+            source_reference="external-paper-or-benchmark@pinned-version",
+            original_conclusion="Zero tolerance compares exactly beyond float precision.",
+            tolerance_kind="absolute",
+            tolerance=0.0,
+        ),
         fields=(
             ParityField(
                 "settlement_total",
