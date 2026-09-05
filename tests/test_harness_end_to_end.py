@@ -317,6 +317,94 @@ def test_a_tool_using_attempt_runs_through_the_executor_and_seals_its_evidence(
     assert kinds.count("tool_invocation_started") == 2
     assert kinds.count("tool_invocation_succeeded") == 2
 
+
+def test_a_family_tool_outside_the_profile_grant_is_refused_at_the_port(
+    tmp_path,
+) -> None:
+    """The runtime declares get_balance AND refund_order, but this profile is
+    granted only get_balance. A model requesting the ungranted refund must be
+    refused by the port the executor wires - typed rejection in evidence, no
+    invocation, no mutation - not silently executed because the family
+    happens to declare the tool."""
+
+    import dataclasses
+
+    from aeread.shared_runner.task.execution import EvidenceStore, ToolFailure
+    from aeread.shared_runner.model_call.harness import (
+        AttemptExecutor,
+        NativeToolCall,
+        NativeToolChatHarness,
+    )
+
+    from tests.test_shared_runner_execution import _decision, _profile
+    from tests.test_shared_runner_harness import (
+        FAKE_PRICING,
+        ScriptedProvider,
+        _result,
+        _tool_runtime,
+    )
+    from tests.test_shared_runner_execution import SYSTEM_PROMPT as EXEC_PROMPT
+
+    decision = _decision()
+    evidence = EvidenceStore(
+        tmp_path / "ungranted_tool_attempt",
+        run_plan_id="runplan_fixture",
+        cell_id=decision.cell_id,
+        episode_id=decision.episode_id,
+        episode_attempt_id="episode_attempt_fixture",
+    )
+    runtime, balance_db = _tool_runtime(tmp_path, evidence)
+    initial_balance = balance_db["balance"]
+
+    base = _profile()
+    profile = dataclasses.replace(
+        base,
+        harness=dataclasses.replace(
+            base.harness,
+            id="native_tool_chat",
+            config={**dict(base.harness.config), "max_rounds": 4},
+        ),
+        tools=("get_balance",),
+    )
+
+    provider = ScriptedProvider(
+        [
+            _result(
+                text="",
+                finish_reason="tool_calls",
+                tool_calls=(
+                    NativeToolCall(
+                        call_id="call_0",
+                        tool_id="refund_order",
+                        arguments={"amount_usd": 5},
+                    ),
+                ),
+            ),
+        ]
+    )
+
+    executor = AttemptExecutor(
+        evidence=evidence,
+        profiles=[profile],
+        prompt_sources={profile.prompt.prompt_id: EXEC_PROMPT},
+        providers={profile.model.provider: provider},
+        pricing={profile.model.model: FAKE_PRICING},
+        harnesses={"native_tool_chat/1.0": NativeToolChatHarness()},
+        tool_runtimes={profile.profile_id: runtime},
+    )
+
+    with pytest.raises(ToolFailure) as captured:
+        asyncio.run(executor(decision))
+    assert captured.value.condition == "tool_not_granted"
+
+    assert balance_db["balance"] == initial_balance, "the ungranted tool must not run"
+    events = [
+        json.loads(line) for line in evidence.events_path.read_text().splitlines()
+    ]
+    kinds = [e["event_type"] for e in events]
+    assert kinds.count("tool_dispatch_rejected") == 1
+    assert kinds.count("tool_invocation_started") == 0
+
     # Every tool invocation and provider call this attempt opened is closed.
     # (The logical action itself is closed by the scheduler's finalize_action
     # callback, which this test bypasses by calling the executor directly, so

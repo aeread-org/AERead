@@ -625,6 +625,492 @@ def test_declared_read_only_tool_cannot_silently_mutate_observed_state(tmp_path)
     evidence.audit_reconciliation(entity_types=("tool_invocation",))
 
 
+def _reader_failing_after_first_call(state, failures: dict):
+    calls = {"count": 0}
+
+    def reader():
+        calls["count"] += 1
+        if calls["count"] > 1:
+            error = RuntimeError("state snapshot io failure")
+            failures["bookkeeping"] = error
+            raise error
+        return dict(state)
+
+    return reader
+
+
+def test_snapshot_failure_in_failure_handler_preserves_the_original_tool_failure(
+    tmp_path,
+) -> None:
+    evidence = _evidence(tmp_path)
+    tools = ToolExecutor(evidence)
+    ledger = {"inventory": 10}
+    failures: dict = {}
+
+    async def order_stock(_arguments):
+        ledger["inventory"] = 5
+        raise ToolFailure("supplier_timeout", "supplier timed out", retryable=True)
+
+    with pytest.raises(ToolFailure) as captured:
+        asyncio.run(
+            tools.invoke(
+                action_attempt_id="action_attempt_fixture",
+                tool_id="place_purchase_order",
+                tool_version="1.0.0",
+                arguments={"sku": "widget"},
+                implementation=order_stock,
+                idempotency_supported=False,
+                effect="mutating",
+                tool_schema_sha256="a" * 64,
+                state_reader=_reader_failing_after_first_call(ledger, failures),
+            )
+        )
+
+    assert captured.value.condition == "supplier_timeout"
+    assert captured.value.__context__ is failures["bookkeeping"]
+    events = evidence.read_events()
+    unknown = [e for e in events if e.event_type == "tool_invocation_outcome_unknown"]
+    assert len(unknown) == 1
+    payload = json.loads(evidence._read_artifact(unknown[0].payload_ref))
+    assert payload["failure_condition"] == "bookkeeping_failed"
+    assert payload["outcome_known"] is False
+
+
+def test_snapshot_failure_during_cancellation_preserves_the_cancellation(
+    tmp_path,
+) -> None:
+    evidence = _evidence(tmp_path)
+    tools = ToolExecutor(evidence)
+    ledger = {"inventory": 10}
+    failures: dict = {}
+
+    async def cancelled_mutation(_arguments):
+        ledger["inventory"] = 5
+        raise asyncio.CancelledError()
+
+    with pytest.raises(asyncio.CancelledError) as captured:
+        asyncio.run(
+            tools.invoke(
+                action_attempt_id="action_attempt_fixture",
+                tool_id="place_purchase_order",
+                tool_version="1.0.0",
+                arguments={"sku": "widget"},
+                implementation=cancelled_mutation,
+                idempotency_supported=False,
+                effect="mutating",
+                tool_schema_sha256="b" * 64,
+                state_reader=_reader_failing_after_first_call(ledger, failures),
+            )
+        )
+
+    assert captured.value.__context__ is failures["bookkeeping"]
+    events = evidence.read_events()
+    unknown = [e for e in events if e.event_type == "tool_invocation_outcome_unknown"]
+    assert len(unknown) == 1
+    payload = json.loads(evidence._read_artifact(unknown[0].payload_ref))
+    assert payload["failure_condition"] == "bookkeeping_failed"
+    assert payload["outcome_known"] is False
+
+
+def test_snapshot_failure_after_unexpected_error_preserves_the_original_error(
+    tmp_path,
+) -> None:
+    evidence = _evidence(tmp_path)
+    tools = ToolExecutor(evidence)
+    ledger = {"inventory": 10}
+    failures: dict = {}
+
+    async def crashing_mutation(_arguments):
+        ledger["inventory"] = 5
+        raise ValueError("implementation bug")
+
+    with pytest.raises(ValueError, match="implementation bug") as captured:
+        asyncio.run(
+            tools.invoke(
+                action_attempt_id="action_attempt_fixture",
+                tool_id="place_purchase_order",
+                tool_version="1.0.0",
+                arguments={"sku": "widget"},
+                implementation=crashing_mutation,
+                idempotency_supported=False,
+                effect="mutating",
+                tool_schema_sha256="c" * 64,
+                state_reader=_reader_failing_after_first_call(ledger, failures),
+            )
+        )
+
+    assert captured.value.__context__ is failures["bookkeeping"]
+    events = evidence.read_events()
+    unknown = [e for e in events if e.event_type == "tool_invocation_outcome_unknown"]
+    assert len(unknown) == 1
+    payload = json.loads(evidence._read_artifact(unknown[0].payload_ref))
+    assert payload["failure_condition"] == "bookkeeping_failed"
+    assert payload["outcome_known"] is False
+
+
+def _fail_append_for(evidence, event_type: str, failures: dict) -> None:
+    original_append = evidence.append_event
+
+    def failing_append(kind, payload, **kwargs):
+        if kind == event_type:
+            error = RuntimeError("evidence write failure")
+            failures["bookkeeping"] = error
+            raise error
+        return original_append(kind, payload, **kwargs)
+
+    evidence.append_event = failing_append
+
+
+def test_failed_event_write_failure_preserves_the_original_tool_failure(
+    tmp_path,
+) -> None:
+    evidence = _evidence(tmp_path)
+    tools = ToolExecutor(evidence)
+    ledger = {"inventory": 10}
+    failures: dict = {}
+    _fail_append_for(evidence, "tool_invocation_failed", failures)
+
+    async def order_stock(_arguments):
+        ledger["inventory"] = 5
+        raise ToolFailure("supplier_timeout", "supplier timed out", retryable=True)
+
+    with pytest.raises(ToolFailure) as captured:
+        asyncio.run(
+            tools.invoke(
+                action_attempt_id="action_attempt_fixture",
+                tool_id="place_purchase_order",
+                tool_version="1.0.0",
+                arguments={"sku": "widget"},
+                implementation=order_stock,
+                idempotency_supported=False,
+                effect="mutating",
+                tool_schema_sha256="d" * 64,
+                state_reader=lambda: dict(ledger),
+            )
+        )
+
+    assert captured.value.condition == "supplier_timeout"
+    assert captured.value.__context__ is failures["bookkeeping"]
+
+
+def test_unknown_event_write_failure_preserves_the_cancellation(tmp_path) -> None:
+    evidence = _evidence(tmp_path)
+    tools = ToolExecutor(evidence)
+    ledger = {"inventory": 10}
+    failures: dict = {}
+    _fail_append_for(evidence, "tool_invocation_outcome_unknown", failures)
+
+    async def cancelled_mutation(_arguments):
+        ledger["inventory"] = 5
+        raise asyncio.CancelledError()
+
+    with pytest.raises(asyncio.CancelledError) as captured:
+        asyncio.run(
+            tools.invoke(
+                action_attempt_id="action_attempt_fixture",
+                tool_id="place_purchase_order",
+                tool_version="1.0.0",
+                arguments={"sku": "widget"},
+                implementation=cancelled_mutation,
+                idempotency_supported=False,
+                effect="mutating",
+                tool_schema_sha256="e" * 64,
+                state_reader=lambda: dict(ledger),
+            )
+        )
+
+    assert captured.value.__context__ is failures["bookkeeping"]
+
+
+def test_unknown_event_write_failure_preserves_the_unexpected_error(tmp_path) -> None:
+    evidence = _evidence(tmp_path)
+    tools = ToolExecutor(evidence)
+    ledger = {"inventory": 10}
+    failures: dict = {}
+    _fail_append_for(evidence, "tool_invocation_outcome_unknown", failures)
+
+    async def crashing_mutation(_arguments):
+        ledger["inventory"] = 5
+        raise ValueError("implementation bug")
+
+    with pytest.raises(ValueError, match="implementation bug") as captured:
+        asyncio.run(
+            tools.invoke(
+                action_attempt_id="action_attempt_fixture",
+                tool_id="place_purchase_order",
+                tool_version="1.0.0",
+                arguments={"sku": "widget"},
+                implementation=crashing_mutation,
+                idempotency_supported=False,
+                effect="mutating",
+                tool_schema_sha256="f" * 64,
+                state_reader=lambda: dict(ledger),
+            )
+        )
+
+    assert captured.value.__context__ is failures["bookkeeping"]
+
+
+def test_composed_snapshot_and_event_write_failure_still_preserves_the_original(
+    tmp_path,
+) -> None:
+    """Both bookkeeping layers fail: the post-effect snapshot raises AND the
+    outcome_unknown event write raises. The caller must still see the tool's
+    own failure, never either bookkeeping error."""
+
+    evidence = _evidence(tmp_path)
+    tools = ToolExecutor(evidence)
+    ledger = {"inventory": 10}
+    reader_failures: dict = {}
+    append_failures: dict = {}
+    _fail_append_for(evidence, "tool_invocation_outcome_unknown", append_failures)
+
+    async def order_stock(_arguments):
+        ledger["inventory"] = 5
+        raise ToolFailure("supplier_timeout", "supplier timed out", retryable=True)
+
+    with pytest.raises(ToolFailure) as captured:
+        asyncio.run(
+            tools.invoke(
+                action_attempt_id="action_attempt_fixture",
+                tool_id="place_purchase_order",
+                tool_version="1.0.0",
+                arguments={"sku": "widget"},
+                implementation=order_stock,
+                idempotency_supported=False,
+                effect="mutating",
+                tool_schema_sha256="9" * 64,
+                state_reader=_reader_failing_after_first_call(ledger, reader_failures),
+            )
+        )
+
+    assert captured.value.condition == "supplier_timeout"
+    assert "bookkeeping" in append_failures, "the unknown-event write must have failed"
+
+
+def test_stub_state_reader_on_a_nonidempotent_mutation_leaves_a_typed_trace(
+    tmp_path,
+) -> None:
+    evidence = _evidence(tmp_path)
+    tools = ToolExecutor(evidence)
+    accounts = {"balance": 100}
+
+    async def debit(_arguments):
+        accounts["balance"] = 70
+        return {"debited": 30}
+
+    _, record = asyncio.run(
+        tools.invoke(
+            action_attempt_id="action_attempt_fixture",
+            tool_id="debit_account",
+            tool_version="1.0.0",
+            arguments={"amount": 30},
+            implementation=debit,
+            idempotency_supported=False,
+            effect="mutating",
+            tool_schema_sha256="a" * 64,
+            state_reader=lambda: {"balance": 100},
+        )
+    )
+
+    assert record.status == "succeeded"
+    assert record.state_changed is False
+    events = evidence.read_events()
+    unobserved = [
+        event
+        for event in events
+        if event.event_type == "tool_invocation_mutation_unobserved"
+    ]
+    assert len(unobserved) == 1
+    assert unobserved[0].tool_invocation_id == record.tool_invocation_id
+    payload = json.loads(evidence._read_artifact(unobserved[0].payload_ref))
+    assert payload["condition"] == "mutation_unobserved"
+    assert payload["tool_id"] == "debit_account"
+    evidence.audit_reconciliation(entity_types=("tool_invocation",))
+
+
+def test_an_observed_change_or_declared_idempotency_leaves_no_unobserved_trace(
+    tmp_path,
+) -> None:
+    evidence = _evidence(tmp_path)
+    tools = ToolExecutor(evidence)
+    accounts = {"balance": 100}
+
+    async def debit(_arguments):
+        accounts["balance"] = 70
+        return {"debited": 30}
+
+    asyncio.run(
+        tools.invoke(
+            action_attempt_id="action_attempt_fixture",
+            tool_id="debit_account",
+            tool_version="1.0.0",
+            arguments={"amount": 30},
+            implementation=debit,
+            idempotency_supported=False,
+            effect="mutating",
+            tool_schema_sha256="a" * 64,
+            state_reader=lambda: dict(accounts),
+        )
+    )
+
+    async def idempotent_noop(_arguments):
+        return {"already": "cancelled"}
+
+    asyncio.run(
+        tools.invoke(
+            action_attempt_id="action_attempt_fixture",
+            tool_id="cancel_order",
+            tool_version="1.0.0",
+            arguments={"order_id": "order_1"},
+            implementation=idempotent_noop,
+            idempotency_supported=True,
+            effect="mutating",
+            tool_schema_sha256="b" * 64,
+            state_reader=lambda: dict(accounts),
+        )
+    )
+
+    event_types = {event.event_type for event in evidence.read_events()}
+    assert "tool_invocation_mutation_unobserved" not in event_types
+
+
+async def _echo_tool(arguments):
+    return {"echo": arguments.get("value")}
+
+
+def _minted_invocation_id(tools: ToolExecutor, value: int) -> str:
+    _, record = asyncio.run(
+        tools.invoke(
+            action_attempt_id="action_attempt_fixture",
+            tool_id="echo",
+            tool_version="1.0.0",
+            arguments={"value": value},
+            implementation=_echo_tool,
+            idempotency_supported=True,
+            effect="read_only",
+            tool_schema_sha256="a" * 64,
+        )
+    )
+    return record.tool_invocation_id
+
+
+def test_resumed_executor_never_reuses_a_minted_tool_invocation_id(tmp_path) -> None:
+    evidence = _evidence(tmp_path)
+    first_id = _minted_invocation_id(ToolExecutor(evidence), value=1)
+    evidence.close()
+
+    resumed = _resume_evidence(tmp_path)
+    second_id = _minted_invocation_id(ToolExecutor(resumed), value=2)
+
+    assert first_id != second_id
+    resumed.audit_reconciliation(entity_types=("tool_invocation",))
+
+
+def test_two_live_executors_over_one_store_never_mint_the_same_id(tmp_path) -> None:
+    evidence = _evidence(tmp_path)
+    first_executor = ToolExecutor(evidence)
+    second_executor = ToolExecutor(evidence)
+
+    first_id = _minted_invocation_id(first_executor, value=1)
+    second_id = _minted_invocation_id(second_executor, value=2)
+
+    assert first_id != second_id
+    evidence.audit_reconciliation(entity_types=("tool_invocation",))
+
+
+def test_legacy_ids_are_resume_stable_when_mixed_with_explicit_id_traffic(
+    tmp_path,
+) -> None:
+    """KernelToolPort passes explicit ids; those invocations append started
+    events too. A legacy mint after explicit traffic must produce the same id
+    whether the run was uninterrupted or resumed past the explicit call."""
+
+    def explicit_invocation(tools: ToolExecutor) -> None:
+        asyncio.run(
+            tools.invoke(
+                action_attempt_id="action_attempt_fixture",
+                tool_id="echo",
+                tool_version="1.0.0",
+                arguments={"value": 0},
+                implementation=_echo_tool,
+                idempotency_supported=True,
+                effect="read_only",
+                tool_schema_sha256="a" * 64,
+                tool_invocation_id="tool_invocation_explicit_0",
+            )
+        )
+
+    uninterrupted = EvidenceStore(
+        tmp_path / "uninterrupted",
+        run_plan_id="runplan_fixture",
+        cell_id="cell_fixture",
+        episode_id="episode_fixture",
+        episode_attempt_id="episode_attempt_fixture_0",
+    )
+    tools = ToolExecutor(uninterrupted)
+    explicit_invocation(tools)
+    expected = _minted_invocation_id(tools, value=1)
+    uninterrupted.close()
+
+    interrupted = EvidenceStore(
+        tmp_path / "interrupted",
+        run_plan_id="runplan_fixture",
+        cell_id="cell_fixture",
+        episode_id="episode_fixture",
+        episode_attempt_id="episode_attempt_fixture_0",
+    )
+    explicit_invocation(ToolExecutor(interrupted))
+    interrupted.close()
+    resumed = EvidenceStore(
+        tmp_path / "interrupted",
+        run_plan_id="runplan_fixture",
+        cell_id="cell_fixture",
+        episode_id="episode_fixture",
+        episode_attempt_id="episode_attempt_fixture_0",
+        resume=True,
+    )
+    actual = _minted_invocation_id(ToolExecutor(resumed), value=1)
+    resumed.close()
+
+    assert actual == expected
+
+
+def test_resumed_executor_reproduces_the_uninterrupted_id_sequence(tmp_path) -> None:
+    uninterrupted = EvidenceStore(
+        tmp_path / "uninterrupted",
+        run_plan_id="runplan_fixture",
+        cell_id="cell_fixture",
+        episode_id="episode_fixture",
+        episode_attempt_id="episode_attempt_fixture_0",
+    )
+    tools = ToolExecutor(uninterrupted)
+    expected = [_minted_invocation_id(tools, value=1), _minted_invocation_id(tools, value=2)]
+    uninterrupted.close()
+
+    interrupted = EvidenceStore(
+        tmp_path / "interrupted",
+        run_plan_id="runplan_fixture",
+        cell_id="cell_fixture",
+        episode_id="episode_fixture",
+        episode_attempt_id="episode_attempt_fixture_0",
+    )
+    first = _minted_invocation_id(ToolExecutor(interrupted), value=1)
+    interrupted.close()
+    resumed = EvidenceStore(
+        tmp_path / "interrupted",
+        run_plan_id="runplan_fixture",
+        cell_id="cell_fixture",
+        episode_id="episode_fixture",
+        episode_attempt_id="episode_attempt_fixture_0",
+        resume=True,
+    )
+    second = _minted_invocation_id(ToolExecutor(resumed), value=2)
+    resumed.close()
+
+    assert [first, second] == expected
+
+
 class FakeResponsesAPI:
     def __init__(self) -> None:
         self.kwargs = None
