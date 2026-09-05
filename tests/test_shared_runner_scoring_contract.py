@@ -1352,6 +1352,11 @@ def test_every_registered_family_obeys_the_scoring_contract(tmp_path: Path) -> N
 
     for key, registration in registrations.items():
         declared = registration.manifest.finalize_time_leaf_policy()
+        # Ruling R9: an exhaustive, family-declared list of the outcome
+        # fields that carry the trajectory (empty for every family that does
+        # not embed one -- govsim and the four already-migrated families
+        # below).
+        trajectory_outcome_paths = registration.manifest.measurement.trajectory_outcome_paths
         produced_by_case: list[tuple[Any, FamilyScoreSet]] = []
         stable_leaf_specs: dict[str, Any] = {}
 
@@ -1360,6 +1365,13 @@ def test_every_registered_family_obeys_the_scoring_contract(tmp_path: Path) -> N
                 plugin=registration.plugin,
                 family_case=case.family_case,
                 evidence=case.sealed_evidence,
+            )
+            # Ruling R10: this fixture's OWN outcome must agree with its OWN
+            # phase_instances at every declared path -- independent of any
+            # pairing with another fixture, and a no-op when the family
+            # declares no paths.
+            _assert_trajectory_outcome_paths_are_consistent(
+                scoring_input, trajectory_outcome_paths
             )
             produced = normalize_family_score_set(
                 registration.plugin.build_scorer(case.family_case)(
@@ -1465,10 +1477,31 @@ def test_every_registered_family_obeys_the_scoring_contract(tmp_path: Path) -> N
             for score in first_case_scores
             if score.leaf.estimand.input_scope == "terminal_state"
         }
+        trajectory_leaf_ids = {
+            score.leaf.leaf_id
+            for score in first_case_scores
+            if score.leaf.estimand.input_scope == "trajectory"
+        }
+
+        # Ruling R9(b), the sensitivity witness: every trajectory-scoped leaf
+        # must be shown capable of changing across SOME pair of this
+        # family's supplied fixtures (not necessarily the paired-history
+        # pair below specifically). See this function's docstring for why
+        # "must differ on THE pair" was rejected.
+        _assert_trajectory_leaves_are_witnessed(
+            produced_by_case, trajectory_leaf_ids, family_id=key[0]
+        )
 
         (left_input, left_scores), (right_input, right_scores) = produced_by_case[:2]
-        assert canonical_json_bytes(left_input.outcome) == canonical_json_bytes(
-            right_input.outcome
+        # Ruling R9: the paired-history precondition compares the PROJECTION
+        # (outcome minus every declared trajectory_outcome_path), not the
+        # whole outcome. A family declaring no paths projects to itself, so
+        # this is byte-for-byte the pre-R9 check for govsim and every
+        # terminal-only family.
+        left_projection = project_outcome(left_input.outcome, trajectory_outcome_paths)
+        right_projection = project_outcome(right_input.outcome, trajectory_outcome_paths)
+        assert canonical_json_bytes(left_projection) == canonical_json_bytes(
+            right_projection
         )
         assert left_input.phase_instances != right_input.phase_instances
 
