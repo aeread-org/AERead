@@ -156,18 +156,48 @@ class Tau3RetailJsonHarness:
 
     @staticmethod
     def _request_message(request: Any) -> CanonicalMessage:
-        return CanonicalMessage(
-            role="user",
-            content=canonical_json_bytes(
+        observation = request.observation
+        if request.phase_id == "assistant_turn" and isinstance(observation, Mapping):
+            static_keys = (
+                "policy",
+                "policy_sha256",
+                "tool_schema_sha256",
+                "tools",
+            )
+            static_context = {
+                key: observation[key] for key in static_keys if key in observation
+            }
+            turn_observation = {
+                key: value for key, value in observation.items() if key not in static_context
+            }
+            turn_context = {
+                "phase_id": request.phase_id,
+                "seat_id": request.seat_id,
+                "role": request.role,
+                "observation_schema": request.observation_schema,
+                "action_schema": request.action_schema,
+                "observation": turn_observation,
+            }
+            content = (
+                "STATIC_CONTEXT\n"
+                + canonical_json_bytes(static_context).decode("utf-8")
+                + "\nTURN_CONTEXT\n"
+                + canonical_json_bytes(turn_context).decode("utf-8")
+            )
+        else:
+            content = canonical_json_bytes(
                 {
                     "phase_id": request.phase_id,
                     "seat_id": request.seat_id,
                     "role": request.role,
                     "observation_schema": request.observation_schema,
                     "action_schema": request.action_schema,
-                    "observation": request.observation,
+                    "observation": observation,
                 }
-            ).decode("utf-8"),
+            ).decode("utf-8")
+        return CanonicalMessage(
+            role="user",
+            content=content,
         )
 
     @staticmethod
