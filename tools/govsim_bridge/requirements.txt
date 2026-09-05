@@ -1,0 +1,25 @@
+# Runtime dependencies of the pinned upstream govsim checkout
+# (commit 1d11adf047b24fa2ba0d44a1d4931015ea2e5210,
+# https://github.com/giorgiopiatti/govsim).
+#
+# Only the modules this adapter ever imports need to resolve --
+# ConcurrentEnv and one env.py per scenario (see
+# docs/govsim_adapter_spec.md's governing facts). Those modules import
+# numpy, pandas, omegaconf (DictConfig/OmegaConf), and pettingzoo.utils
+# (agent_selector). Nothing else upstream declares (wandb, hydra-core,
+# sentence_transformers, dash, lifelines, statsmodels, ...) is reachable
+# from that import path, so none of it is installed here.
+#
+# Versions are frozen (not the open ranges upstream's own requirements.txt
+# implies for its full persona_v3/wandb stack) because "the adapter
+# reproduces upstream's arithmetic exactly" is a claim about a specific
+# interpreter: a numpy/pandas point release can change float repr, a
+# random-draw sequence, or an OmegaConf attribute-access edge case without
+# any change on our side. numpy/pettingzoo match upstream's own pins
+# (requirements.txt); pandas/omegaconf are not pinned upstream at all (they
+# are transitive there) and are pinned here to versions verified compatible
+# with numpy 1.24.4 under Python 3.11.
+numpy==1.24.4
+pandas==2.0.3
+omegaconf==2.3.0
+pettingzoo==1.24.2

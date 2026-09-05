@@ -1,110 +1,246 @@
 """Allow running pytest from a repo checkout without installing the package."""
 import os
 import sys
-from dataclasses import dataclass
 from pathlib import Path
+
+import pytest
 
 _src = Path(__file__).resolve().parent / "src"
 if _src.is_dir() and str(_src) not in sys.path:
     sys.path.insert(0, str(_src))
 
 
-@dataclass(frozen=True)
-class _UpstreamRequiredPolicy:
-    """One family's own "skip must not silently hide unrun fidelity tests" gate.
-
-    Setting ``env_var`` (CI, and any run meant to certify fidelity) turns a
-    matching skip into a failed run instead of a silent one. Off by default
-    so it never surprises a local contributor working on something else.
-    """
-
-    name: str
-    env_var: str
-    skip_markers: tuple[str, ...]
-    provision_hint: str
-
-
-_UPSTREAM_REQUIRED_POLICIES = (
-    _UpstreamRequiredPolicy(
-        name="tau2/tau3",
-        env_var="AEREAD_TAU2_BRIDGE_REQUIRED",
-        # Both ways the upstream-fidelity tests can go unrun: no interpreter
-        # that can import upstream, and no upstream checkout to import.
-        # Matching only the first left the second silent, which is the same
-        # hole one level up.
-        skip_markers=(
-            "upstream tau2-bench Python interpreter",
-            "upstream tau2-bench checkout not found",
-        ),
-        provision_hint=(
+# One entry per family whose fidelity claim depends on an out-of-repo upstream
+# fixture (a pinned checkout, a bridge interpreter, a built cache). Each entry
+# names the family's own required-env-var, the substrings of its own skip
+# messages, a provisioning hint, and the summary title to print. Both ways a
+# gated test can go unrun belong in one family's markers tuple: no interpreter
+# that can import upstream, and (where applicable) no upstream checkout at all.
+#
+# ``note_when_unenforced`` makes a matching skip visible even when the env var is
+# unset, leaving the exit status untouched (aucarena's Finding 8 residual: the
+# opt-in alone left an ordinary default run completely silent). Families whose
+# own gate tests require silence by default leave it off.
+_BRIDGE_FAMILIES = (
+    {
+        "family": "tau2-bench (tau3_retail adapter)",
+        "env_var": "AEREAD_TAU2_BRIDGE_REQUIRED",
+        "title": "upstream bridge required: tau2-bench (tau3_retail adapter)",
+        "hint": (
             "Provide the pinned upstream checkout (AEREAD_TAU2_UPSTREAM_ROOT) and "
             "an interpreter for it (tools/tau2_bridge/provision.sh, then export "
             "$AEREAD_TAU2_BRIDGE_PYTHON), or unset $AEREAD_TAU2_BRIDGE_REQUIRED to "
             "allow skipping."
         ),
-    ),
-    _UpstreamRequiredPolicy(
-        name="alympics.wac",
-        env_var="AEREAD_ALYMPICS_UPSTREAM_REQUIRED",
-        # Codex triage finding 9 (docs/alympics_codex_triage.md): every one
-        # of this family's environment/measurement/harness/parity/replay
-        # test modules skips, module-level, whenever the pinned upstream
-        # Alympics checkout is absent (each test file's own
-        # ``_upstream_root()`` helper), and this project's CI workflow
-        # provisions neither the checkout nor an env var to require it -- so
-        # a green CI run for this family previously proved only that
-        # ``test_alympics_wac_cases.py``'s upstream-free tests ran.
-        skip_markers=("pinned upstream Alympics checkout not found",),
-        provision_hint=(
+        "markers": (
+            "upstream tau2-bench Python interpreter",
+            "upstream tau2-bench checkout not found",
+        ),
+        "note_when_unenforced": False,
+    },
+    {
+        "family": "econ-evals (econevals adapter)",
+        "env_var": "AEREAD_ECONEVALS_BRIDGE_REQUIRED",
+        "title": "upstream bridge required: econ-evals (econevals adapter)",
+        "hint": (
+            "Provision the bridge interpreter (tools/econevals_bridge/provision.sh, "
+            "then export $AEREAD_ECONEVALS_BRIDGE_PYTHON) and the pinned upstream "
+            "checkout (set $AEREAD_ECONEVALS_UPSTREAM_ROOT if it is not at the "
+            "default path), or unset $AEREAD_ECONEVALS_BRIDGE_REQUIRED to allow "
+            "skipping."
+        ),
+        "markers": (
+            "pinned upstream econ-evals Python interpreter",
+            "pinned upstream econ-evals checkout not found",
+        ),
+        "note_when_unenforced": False,
+    },
+    {
+        "family": "STEER (steer adapter)",
+        "env_var": "AEREAD_STEER_FIXTURES_REQUIRED",
+        "title": "upstream bridge required: STEER (steer adapter)",
+        "hint": (
+            "Build the flattened cache (src/aeread_families/steer/cases.py, "
+            "AEREAD_STEER_DATA_ROOT), and for test_steer_cases.py specifically "
+            "provide the pinned upstream checkout (AEREAD_STEER_UPSTREAM_ROOT) "
+            "and a pandas-capable interpreter (tools/steer_bridge/provision.sh, "
+            "then export $AEREAD_STEER_BRIDGE_PYTHON), or unset "
+            "$AEREAD_STEER_FIXTURES_REQUIRED to allow skipping."
+        ),
+        "markers": (
+            "flattened cache not built yet at",
+            "pinned upstream STEER checkout not found at",
+            "cached STEER corpus bytes not found at",
+            "no pandas-capable Python interpreter found for the steer bridge",
+        ),
+        "note_when_unenforced": False,
+    },
+    {
+        "family": "auction-arena (aucarena adapter)",
+        "env_var": "AEREAD_AUCARENA_QC_GATE_REQUIRED",
+        "title": "upstream auction-arena QC gate required",
+        "hint": (
+            "Provide the pinned upstream auction-arena checkout "
+            "(AEREAD_AUCARENA_UPSTREAM_ROOT), or unset "
+            "$AEREAD_AUCARENA_QC_GATE_REQUIRED to allow skipping."
+        ),
+        "markers": ("pinned upstream auction-arena checkout not found",),
+        "note_when_unenforced": True,
+    },
+    {
+        "family": "AgenticPay (agenticpay_bilateral adapter)",
+        "env_var": "AEREAD_AGENTICPAY_BRIDGE_REQUIRED",
+        "title": "upstream bridge required: AgenticPay (agenticpay_bilateral adapter)",
+        "hint": (
+            "Provision the bridge interpreter (tools/agenticpay_bridge/provision.sh, "
+            "then export $AEREAD_AGENTICPAY_BRIDGE_PYTHON) and the pinned upstream "
+            "checkout, or unset $AEREAD_AGENTICPAY_BRIDGE_REQUIRED to allow skipping."
+        ),
+        "markers": (
+            "upstream AgenticPay Python interpreter",
+            "upstream AgenticPay checkout not found",
+        ),
+        "note_when_unenforced": False,
+    },
+    {
+        "family": "Alympics (alympics.wac adapter)",
+        "env_var": "AEREAD_ALYMPICS_UPSTREAM_REQUIRED",
+        "title": "upstream required: alympics.wac",
+        "hint": (
             "Provide the pinned upstream Alympics checkout at the path named in "
             "the skip reason, or export AEREAD_ALYMPICS_UPSTREAM_ROOT to point at "
             "one, or unset $AEREAD_ALYMPICS_UPSTREAM_REQUIRED to allow skipping."
         ),
-    ),
+        "markers": ("pinned upstream Alympics checkout not found",),
+        "note_when_unenforced": False,
+    },
+    {
+        "family": "EconAgent (econagent_v1 adapter)",
+        "env_var": "AEREAD_ECONAGENT_BRIDGE_REQUIRED",
+        "title": "upstream bridge required: EconAgent (econagent_v1 adapter)",
+        "hint": (
+            "Provide the pinned upstream checkout (AEREAD_ECONAGENT_UPSTREAM_ROOT) "
+            "and an interpreter for it (tools/econagent_bridge/provision.sh, then "
+            "export $AEREAD_ECONAGENT_BRIDGE_PYTHON), or unset "
+            "$AEREAD_ECONAGENT_BRIDGE_REQUIRED to allow skipping."
+        ),
+        "markers": (
+            "pinned upstream EconAgent Python interpreter",
+            "pinned upstream EconAgent checkout not found",
+        ),
+        "note_when_unenforced": False,
+    },
 )
 
 
-def pytest_terminal_summary(terminalreporter, exitstatus, config):
-    """Turn a missing pinned upstream from a silent skip into a failed run.
+def _truthy(env_var: str) -> bool:
+    return os.environ.get(env_var, "") in {"1", "true", "yes"}
 
-    Several families' whole claim is that they reproduce a pinned upstream
-    exactly. The tests that check that claim need the pinned upstream
-    checkout (and, for tau2/tau3, an interpreter that can import it), and
-    when it is missing they skip rather than fail -- correct for a
-    contributor working on something else, dangerous everywhere else: a
-    green run then means "the fidelity tests didn't run", not "the adapter
-    matches upstream". See ``_UPSTREAM_REQUIRED_POLICIES`` for each family's
-    own opt-in env var and provisioning hint.
+
+def pytest_terminal_summary(terminalreporter, exitstatus, config):
+    """Turn a missing upstream fixture from a silent skip into a failed run.
+
+    Each adapter's whole claim is that it reproduces its own pinned upstream
+    exactly. The tests that check that claim need out-of-repo fixtures, and
+    when one is missing they skip rather than fail -- correct for a contributor
+    working on something else, dangerous everywhere else: a green run then
+    means "the fidelity tests didn't run", not "the adapter matches upstream".
+
+    Setting a family's own required env var (see ``_BRIDGE_FAMILIES``; CI, and
+    any run meant to certify fidelity) makes that family's own gated skips an
+    error instead, with the reasons and a provisioning hint printed. Off by
+    default so it never surprises a local run. Every family is checked
+    independently: one family's flag never masks, nor is masked by, another's.
+    Families that opt into ``note_when_unenforced`` print a visible note even
+    when their flag is unset; the exit status is never changed by a note.
     """
+    del exitstatus
     skipped = terminalreporter.stats.get("skipped", [])
-    any_required = False
-    for policy in _UPSTREAM_REQUIRED_POLICIES:
-        if os.environ.get(policy.env_var, "") not in {"1", "true", "yes"}:
-            continue
+    any_required_missing = False
+    for family in _BRIDGE_FAMILIES:
         matches = [
             report
             for report in skipped
             if any(
                 marker in str(getattr(report, "longrepr", ""))
-                for marker in policy.skip_markers
+                for marker in family["markers"]
             )
         ]
         if not matches:
             continue
-        any_required = True
-
-        terminalreporter.write_sep("=", f"upstream required: {policy.name}", red=True)
+        reasons = sorted({str(getattr(r, "longrepr", "")) for r in matches})
+        if not _truthy(family["env_var"]):
+            if family["note_when_unenforced"]:
+                terminalreporter.write_sep("-", f"{family['title']} (not enforced)")
+                terminalreporter.write_line(
+                    f"{len(matches)} test(s)/module(s) skipped because "
+                    f"${family['env_var']} is unset. Reported reasons:"
+                )
+                for reason in reasons:
+                    terminalreporter.write_line(f"  {reason}")
+                terminalreporter.write_line(
+                    f"Set ${family['env_var']}=1 to turn this into a failed run instead."
+                )
+            continue
+        any_required_missing = True
+        terminalreporter.write_sep("=", family["title"], red=True)
         terminalreporter.write_line(
-            f"{len(matches)} upstream-fidelity test(s) skipped while "
-            f"${policy.env_var} is set. Reported reasons:"
+            f"{len(matches)} {family['family']} upstream-fidelity test(s) skipped "
+            f"while ${family['env_var']} is set. Reported reasons:"
         )
-        for reason in sorted({str(getattr(r, "longrepr", "")) for r in matches}):
+        for reason in reasons:
             terminalreporter.write_line(f"  {reason}")
-        terminalreporter.write_line(policy.provision_hint)
-
-    if not any_required:
+        terminalreporter.write_line(family["hint"])
+    if not any_required_missing:
         return
     session = getattr(terminalreporter, "_session", None)
     if session is not None:
         session.exitstatus = 1
-    config.option.__dict__.setdefault("_aeread_bridge_missing", True)
+    option = getattr(config, "option", None)
+    if option is not None:
+        option.__dict__.setdefault("_aeread_bridge_missing", True)
+
+
+# amazonbarg: its fidelity tests need real upstream AmazonHistoryPrice bytes.
+# Tests marked ``no_upstream_checkout_required`` run regardless; the rest skip
+# with a reason naming the missing path when the checkout is absent.
+_AMAZONBARG_UPSTREAM_ENV_VAR = "AEREAD_AMAZONBARG_UPSTREAM_ROOT"
+_AMAZONBARG_UPSTREAM_DEFAULT = "/Users/sunzeyu/Documents/econ benchmark/upstream-amazonbarg"
+_AMAZONBARG_UPSTREAM_MARKER = ("data", "AmazonHistoryPrice", "home-kitchen.json")
+_AMAZONBARG_NO_UPSTREAM_MARKER = "no_upstream_checkout_required"
+
+
+def _amazonbarg_upstream_root() -> Path:
+    return Path(os.environ.get(_AMAZONBARG_UPSTREAM_ENV_VAR, _AMAZONBARG_UPSTREAM_DEFAULT))
+
+
+def _amazonbarg_upstream_available() -> bool:
+    marker = _amazonbarg_upstream_root()
+    for part in _AMAZONBARG_UPSTREAM_MARKER:
+        marker = marker / part
+    return marker.is_file()
+
+
+def pytest_configure(config):
+    config.addinivalue_line(
+        "markers",
+        f"{_AMAZONBARG_NO_UPSTREAM_MARKER}: "
+        "this amazonbarg test needs no real upstream checkout bytes, so it "
+        "must still run even when AEREAD_AMAZONBARG_UPSTREAM_ROOT is missing.",
+    )
+
+
+def pytest_collection_modifyitems(config, items):
+    if _amazonbarg_upstream_available():
+        return
+    reason = (
+        "pinned upstream AmazonPriceHistory checkout not found at "
+        f"{_amazonbarg_upstream_root()} (set {_AMAZONBARG_UPSTREAM_ENV_VAR})"
+    )
+    skip_marker = pytest.mark.skip(reason=reason)
+    for item in items:
+        if "test_amazonbarg_" not in item.fspath.basename:
+            continue
+        if item.get_closest_marker(_AMAZONBARG_NO_UPSTREAM_MARKER) is not None:
+            continue
+        item.add_marker(skip_marker)

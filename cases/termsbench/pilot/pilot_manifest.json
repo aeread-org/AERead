@@ -1,0 +1,249 @@
+{
+  "case_ids": [
+    "termsbench.candid.overlap.1000046",
+    "termsbench.candid.overlap.1000001",
+    "termsbench.candid.overlap.1000025",
+    "termsbench.candid.overlap.1000053",
+    "termsbench.candid.overlap.1000042",
+    "termsbench.candid.nodeal.1010038",
+    "termsbench.candid.nodeal.1010031",
+    "termsbench.candid.nodeal.1010055",
+    "termsbench.candid.nodeal.1010011",
+    "termsbench.candid.nodeal.1010013",
+    "termsbench.taciturn.overlap.1100039",
+    "termsbench.taciturn.overlap.1100009",
+    "termsbench.taciturn.overlap.1100038",
+    "termsbench.taciturn.overlap.1100004",
+    "termsbench.taciturn.overlap.1100040",
+    "termsbench.taciturn.nodeal.1110012",
+    "termsbench.taciturn.nodeal.1110005",
+    "termsbench.taciturn.nodeal.1110019",
+    "termsbench.taciturn.nodeal.1110041",
+    "termsbench.taciturn.nodeal.1110020",
+    "termsbench.expressive.overlap.1200012",
+    "termsbench.expressive.overlap.1200005",
+    "termsbench.expressive.overlap.1200042",
+    "termsbench.expressive.overlap.1200031",
+    "termsbench.expressive.overlap.1200045",
+    "termsbench.expressive.nodeal.1210010",
+    "termsbench.expressive.nodeal.1210050",
+    "termsbench.expressive.nodeal.1210016",
+    "termsbench.expressive.nodeal.1210027",
+    "termsbench.expressive.nodeal.1210052"
+  ],
+  "cells": [
+    {
+      "case_id": "termsbench.candid.overlap.1000046",
+      "difficulty_bin": 0,
+      "family": "candid",
+      "regime": "overlap",
+      "world_seed": 1000046
+    },
+    {
+      "case_id": "termsbench.candid.overlap.1000001",
+      "difficulty_bin": 1,
+      "family": "candid",
+      "regime": "overlap",
+      "world_seed": 1000001
+    },
+    {
+      "case_id": "termsbench.candid.overlap.1000025",
+      "difficulty_bin": 2,
+      "family": "candid",
+      "regime": "overlap",
+      "world_seed": 1000025
+    },
+    {
+      "case_id": "termsbench.candid.overlap.1000053",
+      "difficulty_bin": 3,
+      "family": "candid",
+      "regime": "overlap",
+      "world_seed": 1000053
+    },
+    {
+      "case_id": "termsbench.candid.overlap.1000042",
+      "difficulty_bin": 4,
+      "family": "candid",
+      "regime": "overlap",
+      "world_seed": 1000042
+    },
+    {
+      "case_id": "termsbench.candid.nodeal.1010038",
+      "difficulty_bin": 0,
+      "family": "candid",
+      "regime": "nodeal",
+      "world_seed": 1010038
+    },
+    {
+      "case_id": "termsbench.candid.nodeal.1010031",
+      "difficulty_bin": 1,
+      "family": "candid",
+      "regime": "nodeal",
+      "world_seed": 1010031
+    },
+    {
+      "case_id": "termsbench.candid.nodeal.1010055",
+      "difficulty_bin": 2,
+      "family": "candid",
+      "regime": "nodeal",
+      "world_seed": 1010055
+    },
+    {
+      "case_id": "termsbench.candid.nodeal.1010011",
+      "difficulty_bin": 3,
+      "family": "candid",
+      "regime": "nodeal",
+      "world_seed": 1010011
+    },
+    {
+      "case_id": "termsbench.candid.nodeal.1010013",
+      "difficulty_bin": 4,
+      "family": "candid",
+      "regime": "nodeal",
+      "world_seed": 1010013
+    },
+    {
+      "case_id": "termsbench.taciturn.overlap.1100039",
+      "difficulty_bin": 0,
+      "family": "taciturn",
+      "regime": "overlap",
+      "world_seed": 1100039
+    },
+    {
+      "case_id": "termsbench.taciturn.overlap.1100009",
+      "difficulty_bin": 1,
+      "family": "taciturn",
+      "regime": "overlap",
+      "world_seed": 1100009
+    },
+    {
+      "case_id": "termsbench.taciturn.overlap.1100038",
+      "difficulty_bin": 2,
+      "family": "taciturn",
+      "regime": "overlap",
+      "world_seed": 1100038
+    },
+    {
+      "case_id": "termsbench.taciturn.overlap.1100004",
+      "difficulty_bin": 3,
+      "family": "taciturn",
+      "regime": "overlap",
+      "world_seed": 1100004
+    },
+    {
+      "case_id": "termsbench.taciturn.overlap.1100040",
+      "difficulty_bin": 4,
+      "family": "taciturn",
+      "regime": "overlap",
+      "world_seed": 1100040
+    },
+    {
+      "case_id": "termsbench.taciturn.nodeal.1110012",
+      "difficulty_bin": 0,
+      "family": "taciturn",
+      "regime": "nodeal",
+      "world_seed": 1110012
+    },
+    {
+      "case_id": "termsbench.taciturn.nodeal.1110005",
+      "difficulty_bin": 1,
+      "family": "taciturn",
+      "regime": "nodeal",
+      "world_seed": 1110005
+    },
+    {
+      "case_id": "termsbench.taciturn.nodeal.1110019",
+      "difficulty_bin": 2,
+      "family": "taciturn",
+      "regime": "nodeal",
+      "world_seed": 1110019
+    },
+    {
+      "case_id": "termsbench.taciturn.nodeal.1110041",
+      "difficulty_bin": 3,
+      "family": "taciturn",
+      "regime": "nodeal",
+      "world_seed": 1110041
+    },
+    {
+      "case_id": "termsbench.taciturn.nodeal.1110020",
+      "difficulty_bin": 4,
+      "family": "taciturn",
+      "regime": "nodeal",
+      "world_seed": 1110020
+    },
+    {
+      "case_id": "termsbench.expressive.overlap.1200012",
+      "difficulty_bin": 0,
+      "family": "expressive",
+      "regime": "overlap",
+      "world_seed": 1200012
+    },
+    {
+      "case_id": "termsbench.expressive.overlap.1200005",
+      "difficulty_bin": 1,
+      "family": "expressive",
+      "regime": "overlap",
+      "world_seed": 1200005
+    },
+    {
+      "case_id": "termsbench.expressive.overlap.1200042",
+      "difficulty_bin": 2,
+      "family": "expressive",
+      "regime": "overlap",
+      "world_seed": 1200042
+    },
+    {
+      "case_id": "termsbench.expressive.overlap.1200031",
+      "difficulty_bin": 3,
+      "family": "expressive",
+      "regime": "overlap",
+      "world_seed": 1200031
+    },
+    {
+      "case_id": "termsbench.expressive.overlap.1200045",
+      "difficulty_bin": 4,
+      "family": "expressive",
+      "regime": "overlap",
+      "world_seed": 1200045
+    },
+    {
+      "case_id": "termsbench.expressive.nodeal.1210010",
+      "difficulty_bin": 0,
+      "family": "expressive",
+      "regime": "nodeal",
+      "world_seed": 1210010
+    },
+    {
+      "case_id": "termsbench.expressive.nodeal.1210050",
+      "difficulty_bin": 1,
+      "family": "expressive",
+      "regime": "nodeal",
+      "world_seed": 1210050
+    },
+    {
+      "case_id": "termsbench.expressive.nodeal.1210016",
+      "difficulty_bin": 2,
+      "family": "expressive",
+      "regime": "nodeal",
+      "world_seed": 1210016
+    },
+    {
+      "case_id": "termsbench.expressive.nodeal.1210027",
+      "difficulty_bin": 3,
+      "family": "expressive",
+      "regime": "nodeal",
+      "world_seed": 1210027
+    },
+    {
+      "case_id": "termsbench.expressive.nodeal.1210052",
+      "difficulty_bin": 4,
+      "family": "expressive",
+      "regime": "nodeal",
+      "world_seed": 1210052
+    }
+  ],
+  "content_sha256": "db394572ad22e76c27bef62caa9a01bc974a56473a8da901c92fa537e249ffc9",
+  "family_id": "termsbench",
+  "pilot_id": "termsbench_pilot_v1"
+}
