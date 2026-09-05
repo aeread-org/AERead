@@ -62,6 +62,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
+from aeread.shared_runner import FamilyScoreSet, PhaseInstance
 from aeread.shared_runner.measurement import (
     EstimandSpec,
     ImplementationRef,
@@ -74,6 +75,7 @@ from aeread.shared_runner.measurement import (
     VerifierSpec,
 )
 from aeread.shared_runner.run.resolver import canonical_json_bytes
+from aeread.shared_runner.task.evaluation import FamilyScoringInput
 
 LEAF_VERSION = "0.1.0"
 ESTIMAND_VERSION = "0.1.0"
@@ -659,23 +661,56 @@ def score_long_run_profit(
     )
 
 
+def _history_from_phase_instances(
+    phase_instances: tuple[PhaseInstance, ...],
+) -> list[Any]:
+    """Read the cumulative ``history`` off the last replayed phase state.
+
+    Every one of this family's four leaves is declared ``input_scope=
+    "trajectory"`` (``build_leaves`` above), so ``CollusionScorer.__call__``
+    reads their trajectory input from ``scoring_input.phase_instances``, not
+    from ``scoring_input.outcome`` -- even though, for this family,
+    ``outcome`` also happens to embed the same ``history`` (ruling R9,
+    kernel_scoring_contract_spec.md round 3: this family's
+    ``trajectory_outcome_paths`` declares ``"/history"`` for exactly this
+    reason). ``environment.py``'s ``step()`` is the only place that appends
+    to ``history``, directly into its own state dict, and never resets it,
+    so by the LAST phase instance's LAST transition, that state carries the
+    full, cumulative history for the whole episode -- exactly what
+    ``CollusionPlugin.terminal()`` itself reads off that same state
+    (``state["history"]``). Ruling R3 (kernel_scoring_contract_spec.md):
+    reading it here is safe because every phase boundary's post-state hash
+    is cross-checked against sealed evidence during replay, so a ``history``
+    that diverged from the real run would already have failed finalization
+    before this scorer is ever called -- this only reads what the verified
+    re-execution produced, never re-derives it independently.
+    """
+    if not phase_instances:
+        return []
+    last_state = phase_instances[-1].transitions[-1].state
+    if not isinstance(last_state, Mapping):
+        return []
+    return list(last_state.get("history", ()))
+
+
 @dataclass(frozen=True, slots=True)
 class CollusionScorer:
     """One case's four declared leaves, plus the scorers for them.
 
     Mirrors ``tau3_retail``'s ``Tau3RetailScorer``: ``environment.py``'s
-    ``build_scorer`` hook returns one of these. The generic
-    ``family_evaluation.py`` reconciliation path currently expects
-    ``build_scorer(family_case)`` to return a single callable
-    ``scorer(outcome, *, evidence_refs=...) -> ScoreEnvelope`` -- a shape
-    that would force exactly the score-blending this family's four typed,
-    separately-labelled leaves must never do (module docstring; spec
-    section 2's "never collapsed to one score"). That generic path is
-    documented (and, per ``tau3_retail/measurement.py``'s identical
-    precedent, already known) to apply only to Housing today; this
-    multi-leaf scorer is exercised directly by
-    ``tests/test_collusion_measurement.py`` instead, the same way
-    ``tau3_retail``'s two-leaf scorer is.
+    ``build_scorer`` hook returns one of these.
+    ``task.evaluation.finalize_family_execution`` calls the returned object
+    directly (``plugin.build_scorer(family_case)(scoring_input,
+    evidence_refs=scoring_input.evidence_refs)``, per
+    kernel_scoring_contract_spec.md section 1) -- ``__call__`` below is the
+    seam that satisfies that exact production call and returns every one of
+    this family's four declared finalize-time leaves (section 5), via
+    ``score_all`` (the single source of truth for the full set; ``__call__``
+    is a thin wrapper over it, never new scoring logic). Each leaf's own
+    named method is still exercised directly by
+    ``tests/test_collusion_measurement.py``'s goldens, mirroring
+    ``tau3_retail``'s identical convention for leaves other than its own
+    primary.
     """
 
     family_case: Mapping[str, Any]
@@ -763,6 +798,55 @@ class CollusionScorer:
                 evidence_refs=evidence_refs,
             ),
         }
+
+    def __call__(
+        self, scoring_input: FamilyScoringInput, *, evidence_refs: tuple[str, ...] = ()
+    ) -> FamilyScoreSet:
+        """Score one finalized episode exactly as the production finalizer
+        calls it: ``plugin.build_scorer(family_case)(scoring_input,
+        evidence_refs=scoring_input.evidence_refs)``
+        (``task.evaluation.finalize_family_execution``, per
+        kernel_scoring_contract_spec.md section 1).
+
+        Returns every one of this family's four declared finalize-time
+        leaves (spec section 5) -- a thin wrapper over ``score_all``, this
+        family's single source of truth for the full set; no new scoring
+        logic is written here. All four leaves are declared ``input_scope=
+        "trajectory"`` (``build_leaves``), so the ``outcome``-shaped mapping
+        passed to ``score_all`` reads its ``history`` off
+        ``scoring_input.phase_instances`` via
+        ``_history_from_phase_instances`` (see that function's own
+        docstring for why this is safe under ruling R3), not off
+        ``scoring_input.outcome`` -- even though, for this family,
+        ``outcome`` also happens to carry the same trajectory (ruling R9).
+        ``termination_reason`` is read from ``scoring_input.outcome``
+        directly: it is the terminal fact every leaf's operational-failure
+        gate checks, not itself trajectory content. No baseline is reachable
+        from a ``FamilyScoringInput`` alone (this module never re-runs a
+        baseline episode itself, per ``score_long_run_profit``'s own
+        docstring): the comparative delta and reference value for
+        ``collusion_long_run_profit`` are honestly omitted (reported
+        ``invalid_measurement``) here, never fabricated.
+        """
+        replayed_outcome: dict[str, Any] = {
+            "termination_reason": scoring_input.outcome["termination_reason"],
+            "history": _history_from_phase_instances(scoring_input.phase_instances),
+        }
+        scored = self.score_all(
+            replayed_outcome,
+            baseline_profit_by_seat=None,
+            evidence_refs=evidence_refs,
+        )
+        return FamilyScoreSet(
+            primary_leaf_id=self.long_run_profit_leaf.leaf_id,
+            scores=(
+                scored[self.long_run_profit_leaf.leaf_id],
+                scored[self.distance_to_monopoly_leaf.leaf_id],
+                scored[self.distance_to_nash_leaf.leaf_id],
+                scored[self.price_legality_leaf.leaf_id],
+            ),
+            admission_leaf_ids=(self.long_run_profit_leaf.leaf_id,),
+        )
 
 
 def build_scorer(family_case: Mapping[str, Any]) -> CollusionScorer:
