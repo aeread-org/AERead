@@ -118,6 +118,50 @@ economic configurations provide the declared minimum for a case-variance pilot.
 The result remains a bounded diagnostic on this curated panel, not a
 population-level model ranking.
 
+## Targeted opaque Qwen holdout
+
+`qwen_holdout_v1/opaque/` contains six new economic worlds frozen after the
+constraint-ledger V2 development result. Four require a capacity-limited split,
+including one dual-component split and one multi-unit BOM. Two require an exact
+18-kit minimum-service allocation because either total qualified capacity or the
+cash budget prevents the 20-kit target. Supplier identifiers are deterministic
+opaque hashes and listing order is deterministically shuffled.
+
+The panel is held out from model execution but targeted using observed residual
+failure modes, so it supports a transfer diagnostic rather than a population claim.
+Every case has a positive full-information award, a public-action-reachable oracle,
+at most ten required actions, a new case digest, and a new economic-world digest
+relative to the development, confirmatory, and risk-gate panels. Regenerate it with:
+
+```bash
+python -m aeread_families.procurement_allocation.qwen_holdout_case_matrix --write
+```
+
+The paired campaign holds the Qwen3 235B Google route, Minimal Chat harness,
+structured action contract, verifier, retry policy, cases, and three inference seeds
+fixed while comparing the unscaffolded prompt with frozen constraint-ledger V2. Its
+36 scored trajectories and two unscored canaries have a $0.94704 conservative total
+ceiling and a $1.14 hard ceiling. Print the sealed no-spend plan with:
+
+```bash
+python -m aeread_families.procurement_allocation.qwen_holdout_campaign \
+  --run-root \
+  runs/procurement_allocation/procurement_allocation_qwen3_235b_google_holdout_v1/qualification_attempt_001
+```
+
+Execution advances six sequential rows per invocation. Continue a failure-free
+checkpoint with `--execute --resume`; never replace a failed arm or inspect efficacy
+to decide whether to continue. Publication requires all 36 rows to complete and
+receipt-replay with exact accounting. Favorable and unfavorable integrity-qualified
+results are both publishable.
+
+The qualified live run completed and replayed all 36 rows with zero operational
+failures and $0.1125104706 total spend including both canaries. The preregistered
+residual-capability support rule was not met. V2 removed malformed actions but did
+not produce a feasible purchase award or a single submitted multi-offer split; its
+only feasible terminal row was an explicit defer. See the campaign document and
+tracked evidence bundle for the paired effects and typed failure breakdown.
+
 ## Blinded supplier-label mirror
 
 `blinded_v3/` contains a deterministic paired mirror of the six generated cases.
@@ -402,4 +446,22 @@ the labeled payment-terms result held, but opaque ids hid which supplier would a
 longer terms, and two opaque negotiated-MOQ rows awarded below minimum service after
 countering MOQ down. See
 `evidence/procurement_allocation_glm53_flash_parasail_negotiation_worksheet_v2/`.
+
+## Pre-award check
+
+The buyer can now send `check_award` with the exact lines it intends to submit and
+receive the verifier's own projection: feasibility, violations, completed kits,
+margin, and cash spend, computed by the same `evaluate_award` as the terminal score
+on the current formal offers and verified samples. A check costs one action and
+nothing else and never ends the episode. `pre_award_check_campaign` freezes a
+treatment that adds a mandatory clean check before any award to the worksheet V2
+procedure, paired against the sealed confirmatory V4 rows.
+
+The qualified run completed all 72 rows for $0.2672 and met the preregistered rule:
+treatment-minus-V4 regret -$28.15 per world ([-$56.02, -$4.58]), feasibility +0.389
+([0.167, 0.611]), no pass-to-fail transitions. Every row used the check; 51 of 53
+awards followed a clean check on identical lines. Remaining regret is deferral after
+a failing check on budget-constrained worlds and the MOQ price counter, which a
+feasibility check cannot surface. See
+`evidence/procurement_allocation_glm53_flash_parasail_pre_award_check_v1/`.
 

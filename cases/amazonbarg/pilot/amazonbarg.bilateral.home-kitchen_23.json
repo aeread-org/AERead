@@ -1,0 +1,77 @@
+{
+  "case_id": "amazonbarg.bilateral.home-kitchen_23",
+  "content_sha256": "ad112a938973d4108951ab8f1bc6c48f43f80388a3baa56eb01722c71008b390",
+  "episode": {
+    "max_logical_actions": 12,
+    "termination": [
+      "deal",
+      "quit",
+      "action_error",
+      "turn_limit"
+    ]
+  },
+  "family_id": "amazonbarg.bilateral",
+  "family_version": "0.1.0",
+  "payload": {
+    "derived": {
+      "budget": 119.99200000000002,
+      "category": "home-kitchen",
+      "category_file": "home-kitchen.json",
+      "codename": "home-kitchen_23",
+      "cost": 113.98,
+      "description": "Lift top design: Round coffee table has a unique lift top work surface, allowing you to work, write or dine comfortably on the sofa. Heavy-duty metal lift mechanism ensures that the tabletop is raised or lowered gently and silently, avoiding violent vibrations, perfectly meeting your needs.",
+      "index_in_file": 22,
+      "interest": "mutual",
+      "price": 149.99,
+      "title": "YITAHOME Round Lift Top Coffee Table, Marble Coffee Tables for Living Room with Storage, White Modern Coffee Table with Storage for Home Office, Round Center Tables Living Room, White and Gold"
+    },
+    "pins": {
+      "budget_ratio": 0.8,
+      "category_file_bytes": 56926,
+      "category_file_sha256": "8324c1c67b533bd0d2700edce852cc8ab3417c6cc1043e660a20b817bc8c910b",
+      "license": "Apache-2.0",
+      "max_turns": 6,
+      "upstream_commit": "834ad9066d0627f0332504d5fa6d236706f2402b",
+      "upstream_repo": "TianXiaSJTU/AmazonPriceHistory"
+    },
+    "product": {
+      "amazon_link": "https://www.amazon.com/dp/B0BZNMQ8L1",
+      "amazon_title": "YITAHOME Round Lift Top Coffee Table,Marble Coffee Tables for Living Room with Storage,White Modern Coffee Table with Storage for Home Office,Round Center Tables Living Room,White and Gold",
+      "average_price": "$132.01",
+      "badge": "Good Deal",
+      "category": "home-kitchen",
+      "current_price": "$113.98",
+      "current_price_date": "Nov 17, 2023",
+      "description": "Lift top design: Round coffee table has a unique lift top work surface, allowing you to work, write or dine comfortably on the sofa. Heavy-duty metal lift mechanism ensures that the tabletop is raised or lowered gently and silently, avoiding violent vibrations, perfectly meeting your needs.",
+      "features": "Lift top design: Round coffee table has a unique lift top work surface, allowing you to work, write or dine comfortably on the sofa. Heavy-duty metal lift mechanism ensures that the tabletop is raised or lowered gently and silently, avoiding violent vibrations, perfectly meeting your needs.\nHumanized design:Coffee table for living room is specially designed by YITAHOME designers to help you store many items. The hidden compartment below the top can store personal items such as laptops, books, glasses, etc.; the open shelves on the side can store small objects such as remote controls, potted plants, etc.; drawer dressers, storage drawers, etc. can also be placed under the storage coffee table, and lift top coffee table can become an entertainment world for your intimate pet.\nPremium & durable structure:Sturdy lift mechanism of coffee table helps you raise and lower the table top easily and gently. Coffee table with storage is made of sturdy double-layer thickened iron pipe and particle board, and the bottom round iron pipe design ensures the stability and durability of use. The round and smooth arc protects hands and avoids being scratched. Families with children and pets can use it with confidence.\nProtective pads: Modern coffee table package includes foam padding, which is package tested before delivery to ensure it is sent to you in perfect condition. In addition, there are four black cushion protection pad, which can be used for the round black tube and the four corners of the lifting table to protect the desktop, reduce friction and ensure quiet and safe use.\nFriendly service: The circle coffee table package comes with all necessary accessories and an illustrated instruction manual to help you install it easily.Each package is strictly tested.If you have any questions about our lift coffee table, please email us, we will provide you with the most reasonable solution in time.\n› See more product details",
+      "highest_price": "$149.99",
+      "highest_price_date": "Aug 29, 2023",
+      "img": "https://m.media-amazon.com/images/I/91U5BI-D6DL.__AC_SX300_SY300_QL70_FMwebp_.jpg",
+      "link": "https://camelcamelcamel.com/product/B0BZNMQ8L1?active=price_amazon&context=popular",
+      "list_price": "$149.99",
+      "lowest_price": "$113.98",
+      "lowest_price_date": "Nov 17, 2023",
+      "title": "YITAHOME Round Lift Top Coffee Table, Marble Coffee Tables for Living Room with Storage, White Modern Coffee Table with Storage for Home Office, Round Center Tables Living Room, White and Gold"
+    }
+  },
+  "provenance": {
+    "generator_id": "amazonbarg_importer",
+    "generator_version": "0.1.0",
+    "review_status": "upstream_pinned"
+  },
+  "seats": [
+    {
+      "id": "buyer",
+      "role": "buyer"
+    },
+    {
+      "id": "seller",
+      "role": "seller"
+    }
+  ],
+  "spec_version": "aeread.case/0.1",
+  "split": "pilot",
+  "upstream_task_id": "home-kitchen_23",
+  "visibility_policy": "amazonbarg_seller_cost_private_v1",
+  "world_seed": 351
+}

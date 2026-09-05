@@ -1,0 +1,77 @@
+{
+  "case_id": "amazonbarg.bilateral.toys-games_13",
+  "content_sha256": "7acfc8cdcb2ddc8e0e6446bae9270c69dda5a2b36a785bf994792975b7859dee",
+  "episode": {
+    "max_logical_actions": 12,
+    "termination": [
+      "deal",
+      "quit",
+      "action_error",
+      "turn_limit"
+    ]
+  },
+  "family_id": "amazonbarg.bilateral",
+  "family_version": "0.1.0",
+  "payload": {
+    "derived": {
+      "budget": 15.991999999999999,
+      "category": "toys-games",
+      "category_file": "toys-games.json",
+      "codename": "toys-games_13",
+      "cost": 9.99,
+      "description": "Hammer your way clear of the zombies with the Nerf Zombie Strike Hammershot blaster! Sized for mobility so you can stay one step ahead of the zombies, the Hammershot features hammer-action blasting. You pull back the hammer to prime the blaster, then press the trigger to fire. The blaster has a drum that holds 5 darts and rotates when you prime the blaster, which moves the next dart into firing position. It has a tactical rail on top so you can customize it with Nerf Zombie Strike accessories (each sold separately). This blaster features a special \"splatter\" color scheme. It comes with 5 Official Nerf Zombie Strike Elite darts that are tested and approved for performance and quality and constructed of foam with flexible tips. Powered by you -- no batteries required.",
+      "index_in_file": 12,
+      "interest": "mutual",
+      "price": 19.99,
+      "title": "NERF Zombie Strike Hammershot Blaster, 5 Official Darts - Color Scheme (Amazon Exclusive)"
+    },
+    "pins": {
+      "budget_ratio": 0.8,
+      "category_file_bytes": 58777,
+      "category_file_sha256": "18c4ddf974468b896c3877a147ad00b1d86f22964ceabd936848a9fd310cb91f",
+      "license": "Apache-2.0",
+      "max_turns": 6,
+      "upstream_commit": "834ad9066d0627f0332504d5fa6d236706f2402b",
+      "upstream_repo": "TianXiaSJTU/AmazonPriceHistory"
+    },
+    "product": {
+      "amazon_link": "https://www.amazon.com/dp/B083JV38BS",
+      "amazon_title": "NERF Zombie Strike Hammershot Blaster, Splatter (Amazon Exclusive)",
+      "average_price": "$19.03",
+      "badge": "Best Price",
+      "category": "toys-games",
+      "current_price": "$9.99",
+      "current_price_date": "Nov 15, 2023",
+      "description": "Hammer your way clear of the zombies with the Nerf Zombie Strike Hammershot blaster! Sized for mobility so you can stay one step ahead of the zombies, the Hammershot features hammer-action blasting. You pull back the hammer to prime the blaster, then press the trigger to fire. The blaster has a drum that holds 5 darts and rotates when you prime the blaster, which moves the next dart into firing position. It has a tactical rail on top so you can customize it with Nerf Zombie Strike accessories (each sold separately). This blaster features a special \"splatter\" color scheme. It comes with 5 Official Nerf Zombie Strike Elite darts that are tested and approved for performance and quality and constructed of foam with flexible tips. Powered by you -- no batteries required.",
+      "features": "PULL-BACK HAMMER BLASTING ACTION: Pull back the hammer to prime this Nerf Zombie Strike Hammershot blaster then pull the trigger to fire a dart. Features special \"splatter\" color scheme\nROTATING 5-DART FRONT-LOADING DRUM: The Hammershot blaster has rotating drum that holds up to 5 Nerf darts. Load the darts into the front of the drum and get ready for some zombie-fighting fun\nINCLUDES 5 DARTS: Includes 5 Official Nerf Zombie Strike Elite darts that are tested and approved for performance and quality and constructed of foam with flexible tips\nSUSTAINABLE PACKAGING: Ships in simple, recyclable packaging that’s easy to open and frustration free\nRaise your game with the Pro-Grip Football and Nerfoop basketball set",
+      "highest_price": "$19.99",
+      "highest_price_date": "Jun 10, 2022",
+      "img": "https://m.media-amazon.com/images/I/715NXdSdvtL.__AC_SX300_SY300_QL70_FMwebp_.jpg",
+      "link": "https://camelcamelcamel.com/product/B083JV38BS?active=price_amazon&context=popular",
+      "list_price": "$19.99",
+      "lowest_price": "$9.99",
+      "lowest_price_date": "Nov 15, 2023",
+      "title": "NERF Zombie Strike Hammershot Blaster, 5 Official Darts - Color Scheme (Amazon Exclusive)"
+    }
+  },
+  "provenance": {
+    "generator_id": "amazonbarg_importer",
+    "generator_version": "0.1.0",
+    "review_status": "upstream_pinned"
+  },
+  "seats": [
+    {
+      "id": "buyer",
+      "role": "buyer"
+    },
+    {
+      "id": "seller",
+      "role": "seller"
+    }
+  ],
+  "spec_version": "aeread.case/0.1",
+  "split": "pilot",
+  "upstream_task_id": "toys-games_13",
+  "visibility_policy": "amazonbarg_seller_cost_private_v1",
+  "world_seed": 913
+}

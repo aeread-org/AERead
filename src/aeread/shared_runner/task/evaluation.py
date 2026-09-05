@@ -20,7 +20,14 @@ from ..measurement import (
     normalize_family_score_set,
 )
 from ..registry import PluginRegistry
-from ..run.resolver import RunPlan, canonical_json_bytes, verify_run_plan
+from ..run.resolver import (
+    ImplementationPin,
+    PlanResolutionError,
+    RunPlan,
+    canonical_json_bytes,
+    plan_with_recorded_pins,
+    verify_run_plan,
+)
 from .receipts import (
     EvaluationFailure,
     EvaluationReceipt,
@@ -489,9 +496,17 @@ def replay_family_receipt(
 
     verify_run_plan(setup.plan)
     verify_evaluation_receipt(receipt)
+    try:
+        expected_plan, _drift = plan_with_recorded_pins(
+            setup.plan, receipt.plan_implementation_pins
+        )
+    except PlanResolutionError as error:
+        raise ValueError(
+            "receipt does not belong to the family RunPlan: implementation pins differ"
+        ) from error
     if (
-        receipt.run_plan_id != setup.plan.run_plan_id
-        or receipt.run_plan_sha256 != setup.plan.plan_sha256
+        receipt.run_plan_id != expected_plan.run_plan_id
+        or receipt.run_plan_sha256 != expected_plan.plan_sha256
     ):
         raise ValueError("receipt does not belong to the family RunPlan")
     cell = next(
@@ -566,6 +581,55 @@ def replay_family_receipt(
     return receipt
 
 
+def _recorded_pins(receipt: Mapping[str, Any]) -> tuple[ImplementationPin, ...]:
+    value = receipt.get("plan_implementation_pins")
+    if not isinstance(value, (list, tuple)) or not value:
+        raise ValueError("receipt plan_implementation_pins does not match the sealed plan")
+    try:
+        return tuple(ImplementationPin.from_dict(item) for item in value)
+    except PlanResolutionError as error:
+        raise ValueError(
+            "receipt plan_implementation_pins does not match the sealed plan"
+        ) from error
+
+
+def _plan_recorded_by(plan: RunPlan, receipt: Mapping[str, Any]) -> RunPlan:
+    """The plan identity ``receipt`` was sealed under, given the current plan.
+
+    Family-owned pins must match the current code exactly; kernel-owned pins
+    may have moved since sealing and are taken from the receipt so its
+    ``run_plan_id`` still audits. See ``plan_with_recorded_pins``.
+    """
+
+    try:
+        expected_plan, _drift = plan_with_recorded_pins(plan, _recorded_pins(receipt))
+    except PlanResolutionError as error:
+        raise ValueError(
+            "receipt plan_implementation_pins does not match the sealed plan"
+        ) from error
+    return expected_plan
+
+
+def receipt_implementation_drift(
+    plan: RunPlan, receipt: Mapping[str, Any]
+) -> tuple[str, ...]:
+    """Name the kernel-owned components whose bytes moved since ``receipt`` sealed.
+
+    Each entry is ``implementation_drift:<component_id>``. An empty tuple means
+    the receipt was sealed under exactly the pins ``plan`` carries now. Family
+    pin differences are not drift; they raise, because the receipt no longer
+    audits against the family code that produced it.
+    """
+
+    try:
+        _plan, drift = plan_with_recorded_pins(plan, _recorded_pins(receipt))
+    except PlanResolutionError as error:
+        raise ValueError(
+            "receipt plan_implementation_pins does not match the sealed plan"
+        ) from error
+    return drift
+
+
 def audit_family_receipt(
     *,
     setup: EvaluationSetup,
@@ -584,9 +648,10 @@ def audit_family_receipt(
     )
     if cell is None:
         raise ValueError("receipt cell is absent from the family plan")
+    expected_plan = _plan_recorded_by(setup.plan, receipt)
     expected = {
-        "run_plan_id": setup.plan.run_plan_id,
-        "run_plan_sha256": setup.plan.plan_sha256,
+        "run_plan_id": expected_plan.run_plan_id,
+        "run_plan_sha256": expected_plan.plan_sha256,
         "case_id": cell.case_id,
         "case_sha256": cell.case_sha256,
         "suite_id": setup.plan.suite.suite_id,
@@ -603,7 +668,7 @@ def audit_family_receipt(
         "panel_mode": cell.panel_mode,
         "parent_cluster_id": None,
         "agent_profile_sha256_by_seat": _agent_profile_digests(setup.plan, cell),
-        "plan_implementation_pins": setup.plan.implementation_pins,
+        "plan_implementation_pins": expected_plan.implementation_pins,
         "observability_limits": _observability_limits(setup.plan, cell),
     }
     for key, value in expected.items():
@@ -615,12 +680,12 @@ def audit_family_receipt(
         and root.parent.name == "attempts"
         and root.parent.parent.name == cell.cell_id
         and root.parent.parent.parent.name == "tasks"
-        and root.parent.parent.parent.parent.name == setup.plan.run_plan_id
+        and root.parent.parent.parent.parent.name == expected_plan.run_plan_id
     )
     legacy_identity = (
         root.name == receipt.get("episode_attempt_id")
         and root.parent.name == cell.cell_id
-        and root.parent.parent.name == setup.plan.run_plan_id
+        and root.parent.parent.name == expected_plan.run_plan_id
     )
     if not canonical_identity and not legacy_identity:
         raise ValueError("receipt directory identity does not match the sealed plan")

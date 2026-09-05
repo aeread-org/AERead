@@ -1,0 +1,59 @@
+{
+  "case_id": "negarena.ultimatum.0",
+  "content_sha256": "260dd0bbed85808d858b714cf88c6502cbe44a8e9e54fe5e4763bd76bea5d6c6",
+  "episode": {
+    "max_logical_actions": 6,
+    "termination": [
+      "accepted",
+      "rejected",
+      "iteration_cap",
+      "malformed_action",
+      "invalid_measurement"
+    ]
+  },
+  "family_id": "negarena",
+  "family_version": "0.1.0",
+  "payload": {
+    "pins": {
+      "upstream_commit": "c447fafd439a20b84cdedeb2f8a85c4fad764745",
+      "upstream_license": "MIT",
+      "upstream_repo": "vinid/NegotiationArena"
+    },
+    "scenario": {
+      "game_kind": "ultimatum",
+      "iterations": 6,
+      "money_token": "Dollars",
+      "seats": {
+        "blue": {
+          "starting_resources": {
+            "Dollars": 0
+          }
+        },
+        "red": {
+          "starting_resources": {
+            "Dollars": 100
+          }
+        }
+      }
+    }
+  },
+  "provenance": {
+    "generator_id": "negarena_case_authoring",
+    "generator_version": "0.1.0",
+    "review_status": "curated"
+  },
+  "seats": [
+    {
+      "id": "red",
+      "role": "red"
+    },
+    {
+      "id": "blue",
+      "role": "blue"
+    }
+  ],
+  "spec_version": "aeread.case/0.1",
+  "split": "ultimatum",
+  "visibility_policy": "negarena_seat_private_resources_v1",
+  "world_seed": 0
+}

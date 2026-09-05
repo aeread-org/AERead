@@ -1,0 +1,77 @@
+{
+  "case_id": "amazonbarg.bilateral.toys-games_19",
+  "content_sha256": "c86d1454fd82d196e9da90e30362358fa8b1757e068055ae5cb96cac9ee0d2bb",
+  "episode": {
+    "max_logical_actions": 12,
+    "termination": [
+      "deal",
+      "quit",
+      "action_error",
+      "turn_limit"
+    ]
+  },
+  "family_id": "amazonbarg.bilateral",
+  "family_version": "0.1.0",
+  "payload": {
+    "derived": {
+      "budget": 255.99200000000002,
+      "category": "toys-games",
+      "category_file": "toys-games.json",
+      "codename": "toys-games_19",
+      "cost": 238.49,
+      "description": "Radio Flyer’s Trav’ler Stroll ‘N Wagon™ makes traveling a breeze for on-the-go families. The convenient push or pull design features two modes: our Never Fall™ wagon pull handle in the front and an adjustable push bar on the back. The easy one-hand fold allows this wagon to be stored anywhere and the folding lock on the frame ensures it stays folded when not in use. The included travel cover protects the wagon while folded and features a large zippered storage pouch that holds the removable accessories and other travel necessities. A rear brake and two 5-point safety harnesses keep little ones as young as 12 months safe and comfortable. Thoughtfully designed parent features like cup holders, a removable rear storage bag, and a peek-a-boo window on the UV protection canopy make this the ideal vehicle for your whole family. The side also zips down for stationary bench seating. The durable rubber wheels with bearings provide a smooth ride on almost any terrain. It also features DuraClean® 2.0, our highest quality fabric, which is durable, easily cleaned and made to last. Maximum weight capacity 120 lbs. For 1+ years. For additional questions, support, or concerns, please contact our customer service team at https://www.radioflyer.com/customer-service/ or 1 (800) 621-7613.",
+      "index_in_file": 18,
+      "interest": "mutual",
+      "price": 319.99,
+      "title": "Radio Flyer Trav-ler Stroll 'N Wagon, Black Push Wagon with Canopy, Storage Bag, and Cupholders, for Ages 1+ Years"
+    },
+    "pins": {
+      "budget_ratio": 0.8,
+      "category_file_bytes": 58777,
+      "category_file_sha256": "18c4ddf974468b896c3877a147ad00b1d86f22964ceabd936848a9fd310cb91f",
+      "license": "Apache-2.0",
+      "max_turns": 6,
+      "upstream_commit": "834ad9066d0627f0332504d5fa6d236706f2402b",
+      "upstream_repo": "TianXiaSJTU/AmazonPriceHistory"
+    },
+    "product": {
+      "amazon_link": "https://www.amazon.com/dp/B0B3S8HPLK",
+      "amazon_title": "Radio Flyer Trav-ler Stroll 'N Wagon, Black Push Wagon with Canopy, Storage Bag, and Cupholders, for Ages 1+ Years",
+      "average_price": "$269.96",
+      "badge": "Best Price",
+      "category": "toys-games",
+      "current_price": "$238.49",
+      "current_price_date": "Nov 15, 2023",
+      "description": "Radio Flyer’s Trav’ler Stroll ‘N Wagon™ makes traveling a breeze for on-the-go families. The convenient push or pull design features two modes: our Never Fall™ wagon pull handle in the front and an adjustable push bar on the back. The easy one-hand fold allows this wagon to be stored anywhere and the folding lock on the frame ensures it stays folded when not in use. The included travel cover protects the wagon while folded and features a large zippered storage pouch that holds the removable accessories and other travel necessities. A rear brake and two 5-point safety harnesses keep little ones as young as 12 months safe and comfortable. Thoughtfully designed parent features like cup holders, a removable rear storage bag, and a peek-a-boo window on the UV protection canopy make this the ideal vehicle for your whole family. The side also zips down for stationary bench seating. The durable rubber wheels with bearings provide a smooth ride on almost any terrain. It also features DuraClean® 2.0, our highest quality fabric, which is durable, easily cleaned and made to last. Maximum weight capacity 120 lbs. For 1+ years. For additional questions, support, or concerns, please contact our customer service team at https://www.radioflyer.com/customer-service/ or 1 (800) 621-7613.",
+      "features": "PUSH & PULL: The Trav-ler Stroll ‘N Wagon allows you to pull like a wagon or push for ultimate convenience in one vehicle. It features a NeverFall wagon pull handle in the front and a fold-away push handlebar on the back.\nFEATURES FOR THE WHOLE FAMILY: Included with the Trav-ler Stroll ‘N Wagon are cupholders, a removable rear storage bag, and a peek-a-boo mesh window on the UV protection canopy, making this the ideal vehicle for your whole family.\nFOLDS FOR STORAGE: Easy one hand fold allows convenient storage. This wagon is portable and can be stored or taken anywhere!\nSAFE FOR KIDS: Radio Flyer Stroll N’ Wagons pass the ASTM-f963-13 toy safety standard. This wagon includes a rear foot brake, 5-point safety harnesses and a UV protection canopy to protect your little ones from the sun.\nDELUXE WHEELS: This wagon features durable rubber wheels – 12” easy-push rear wheels with bearings for comfortable riding and front caster wheels for nimble steering.\nTRAVEL COVER INCLUDED: The included travel cover protects the wagon while folded and features a large zippered storage pouch that holds the removable accessories and other travel necessities.\nSPECIFICATIONS: Product dimensions: 47.24”L x 24.41”W x 41.34”H. Recommended for kids age 1+. Maximum weight capacity: 120 lbs.\nCERTIFIED B CORP: Radio Flyer meets the highest standards of verified social and environmental performance, transparency, and accountability. We believe profits follow purpose and take pride in creating long-lasting products that inspire active play and create warm memories. We are dedicated to preserving the earth for future generations.",
+      "highest_price": "$319.99",
+      "highest_price_date": "Jun 15, 2023",
+      "img": "https://m.media-amazon.com/images/I/71C9fBPL62L.__AC_SX300_SY300_QL70_FMwebp_.jpg",
+      "link": "https://camelcamelcamel.com/product/B0B3S8HPLK?active=price_amazon&context=popular",
+      "list_price": "$279.99",
+      "lowest_price": "$238.49",
+      "lowest_price_date": "Nov 15, 2023",
+      "title": "Radio Flyer Trav-ler Stroll 'N Wagon, Black Push Wagon with Canopy, Storage Bag, and Cupholders, for Ages 1+ Years"
+    }
+  },
+  "provenance": {
+    "generator_id": "amazonbarg_importer",
+    "generator_version": "0.1.0",
+    "review_status": "upstream_pinned"
+  },
+  "seats": [
+    {
+      "id": "buyer",
+      "role": "buyer"
+    },
+    {
+      "id": "seller",
+      "role": "seller"
+    }
+  ],
+  "spec_version": "aeread.case/0.1",
+  "split": "pilot",
+  "upstream_task_id": "toys-games_19",
+  "visibility_policy": "amazonbarg_seller_cost_private_v1",
+  "world_seed": 919
+}

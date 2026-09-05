@@ -1,0 +1,78 @@
+{
+  "case_id": "amazonbarg.bilateral.toys-games_5",
+  "content_sha256": "3ef01a3a064cf291c6ff31c4cefaa4315833010d9567ecb34fa263fa1b2aac99",
+  "episode": {
+    "max_logical_actions": 12,
+    "termination": [
+      "deal",
+      "quit",
+      "action_error",
+      "turn_limit"
+    ]
+  },
+  "family_id": "amazonbarg.bilateral",
+  "family_version": "0.1.0",
+  "payload": {
+    "derived": {
+      "budget": 51.992,
+      "category": "toys-games",
+      "category_file": "toys-games.json",
+      "codename": "toys-games_5",
+      "cost": 25.99,
+      "description": "Create piled-high sandwiches, made to order with this wooden sandwich counter play set with all the fixin’s! The sturdy wooden deli counter includes a play meat and cheese slicer for the wooden play food, and felt sandwich roll and toppings to create sandwiches ordered from the menu. There is a wooden dressing bottle, play snacks, and a cup with drink insert to round out meals that customers can pay for with the included play money! An illustrated guide helps with sandwich prep and shows kids how to use the slicer. All 52 pieces store in the sandwich counter for easy cleanup. It’s a deliciously fun way to encourage counting, sorting, and fine motor skills, as well as imaginative play and storytelling. For more than 30 years, Melissa & Doug has created beautifully designed imagination- and creativity-sparking products that NBC News called “the gold standard in early childhood play.” Today, Melissa & Doug is proudly partnering with the American Academy of Pediatrics to foster early brain development and help children build important life skills through play.",
+      "index_in_file": 4,
+      "interest": "mutual",
+      "price": 64.99,
+      "title": "Melissa & Doug Wooden Slice & Stack Sandwich Counter with Deli Slicer – 56-Piece Pretend Play Wooden Food Toys, Kitchen Food Set For Toddlers And Kids Ages 3+"
+    },
+    "pins": {
+      "budget_ratio": 0.8,
+      "category_file_bytes": 58777,
+      "category_file_sha256": "18c4ddf974468b896c3877a147ad00b1d86f22964ceabd936848a9fd310cb91f",
+      "license": "Apache-2.0",
+      "max_turns": 6,
+      "upstream_commit": "834ad9066d0627f0332504d5fa6d236706f2402b",
+      "upstream_repo": "TianXiaSJTU/AmazonPriceHistory"
+    },
+    "product": {
+      "amazon_link": "https://www.amazon.com/dp/B0815Q8HSW",
+      "amazon_title": "Melissa & Doug Wooden Slice & Stack Sandwich Counter with Deli Slicer – 56-Piece Pretend Play Wooden Food Toys, Kitchen Food Set For Toddlers And Kids Ages 3+",
+      "average_price": "$52.72",
+      "badge": "",
+      "camel_img": "https://m.media-amazon.com/images/I/51cVe8+yDXL._UL320_.jpg",
+      "category": "toys-games",
+      "current_price": "$39.97",
+      "current_price_date": "Nov 17, 2023",
+      "description": "Create piled-high sandwiches, made to order with this wooden sandwich counter play set with all the fixin’s! The sturdy wooden deli counter includes a play meat and cheese slicer for the wooden play food, and felt sandwich roll and toppings to create sandwiches ordered from the menu. There is a wooden dressing bottle, play snacks, and a cup with drink insert to round out meals that customers can pay for with the included play money! An illustrated guide helps with sandwich prep and shows kids how to use the slicer. All 52 pieces store in the sandwich counter for easy cleanup. It’s a deliciously fun way to encourage counting, sorting, and fine motor skills, as well as imaginative play and storytelling. For more than 30 years, Melissa & Doug has created beautifully designed imagination- and creativity-sparking products that NBC News called “the gold standard in early childhood play.” Today, Melissa & Doug is proudly partnering with the American Academy of Pediatrics to foster early brain development and help children build important life skills through play.",
+      "features": "Create piled-high, deli-fresh pretend play sandwiches with this 52-piece sandwich counter.Ideal for ages:3 years and up\nPlay food includes wooden meat and cheese slices, felt toppings and sandwich roll, wooden dressing bottle, play chips, cookie, and drink cup with insert; play money included\nCounter includes a slicer for wooden meat and cheese pieces, sign with menu on one side and sandwich prep instructions on the other\nHelps encourage counting, sorting, and fine motor skills, as well as imaginative play and storytelling\nMakes a great gift for preschoolers, ages 3 to 6, for hands-on, screen-free play\n13.5” x 8” x 8.5”",
+      "highest_price": "$59.99",
+      "highest_price_date": "Sep 06, 2022",
+      "img": "https://m.media-amazon.com/images/I/71XCaAcK8oL.__AC_SX300_SY300_QL70_FMwebp_.jpg",
+      "link": "https://camelcamelcamel.com/product/B0815Q8HSW?active=price_amazon&context=popular",
+      "list_price": "$64.99",
+      "lowest_price": "$25.99",
+      "lowest_price_date": "Oct 06, 2022",
+      "title": "Melissa & Doug Wooden Slice & Stack Sandwich Counter with Deli Slicer – 56-Piece Pretend Play Wooden Food Toys, Kitchen Food Set For Toddlers And Kids Ages 3+"
+    }
+  },
+  "provenance": {
+    "generator_id": "amazonbarg_importer",
+    "generator_version": "0.1.0",
+    "review_status": "upstream_pinned"
+  },
+  "seats": [
+    {
+      "id": "buyer",
+      "role": "buyer"
+    },
+    {
+      "id": "seller",
+      "role": "seller"
+    }
+  ],
+  "spec_version": "aeread.case/0.1",
+  "split": "pilot",
+  "upstream_task_id": "toys-games_5",
+  "visibility_policy": "amazonbarg_seller_cost_private_v1",
+  "world_seed": 905
+}
