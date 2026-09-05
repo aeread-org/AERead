@@ -49,7 +49,7 @@ from aeread.shared_runner.schemas import (
     SuiteManifest,
 )
 from aeread.shared_runner.task.scheduler import SchedulerContractError, run_episode
-from aeread.shared_runner.smoke import FixedResponseProvider
+from aeread_families.single_offer.runner import FixedResponseProvider
 from aeread_families.steer import cases as steer_cases
 from aeread_families.steer.environment import SteerPlugin, family_manifest, register_plugin
 from aeread_families.steer.harness import ScriptedSteerHarness
@@ -410,7 +410,7 @@ STEER_FINALIZE_PROMPT = (
 def _steer_finalize_setup(case: CaseManifest) -> SimpleNamespace:
     """Build one real, sealed ``RunPlan`` for a single steer case.
 
-    Mirrors ``aeread.shared_runner.smoke.build_single_offer_smoke``'s R1-R2
+    Mirrors ``aeread_families.single_offer.runner.build_single_offer_smoke``'s R1-R2
     construction, but for the real ``steer`` family/plugin rather than the
     smoke fixture -- so the plan this returns can drive the exact same
     ``execute_plan_cell`` / ``finalize_family_execution`` production entry
