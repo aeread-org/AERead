@@ -28,6 +28,7 @@ from aeread.shared_runner.task.execution import (
 from aeread_families.housing.provider_cooldown import CooldownProviderClient
 from aeread_families.housing.model_sensitivity import (
     PacedProviderClient,
+    selected_configs,
     build_setups,
     design_artifact,
     provider_free_artifact,
@@ -1568,6 +1569,128 @@ def test_variance_recommendation_is_withheld_below_the_declared_paired_worlds() 
     # The variance itself is still reported; only the sample size is withheld.
     assert guarded["paired_world_count"] == 2
     assert guarded["mean_paired_contrast"] is not None
+
+
+def _confirmatory_rows(
+    worlds: list[int],
+    configs: list[str],
+    *,
+    glm_score: float,
+    deepseek_score: float,
+    drop: set[tuple[int, str, str]] | None = None,
+) -> list[dict[str, object]]:
+    drop = drop or set()
+    rows = []
+    for seed in worlds:
+        for config in configs:
+            for subject in ("glm_53_flash", "deepseek_v4_flash"):
+                for opponent in ("glm_53_flash", "deepseek_v4_flash"):
+                    condition = f"{subject}__vs__{opponent}"
+                    failed = (seed, config, condition) in drop
+                    rows.append(
+                        {
+                            "world_seed": seed,
+                            "config_id": config,
+                            "subject": subject,
+                            "opponent": opponent,
+                            "condition_id": condition,
+                            "status": "operational_failure" if failed else "completed",
+                            "failure_condition": "rate_limit" if failed else None,
+                            "within_case_score": (
+                                glm_score if subject == "glm_53_flash" else deepseek_score
+                            ),
+                        }
+                    )
+    return rows
+
+
+def test_confirmatory_analysis_reports_a_paired_interval_and_slices() -> None:
+    from aeread_families.housing.model_sensitivity import confirmatory_analysis
+
+    contract = load_contract(V19_CONTRACT_PATH)
+    worlds = contract["execution"]["world_seeds"]
+    configs = [config["config_id"] for config in selected_configs(contract)]
+    contract = json.loads(json.dumps(contract))
+    contract["analysis"]["minimum_paired_worlds_for_decision"] = 4
+
+    # A constant per-subject gap makes the contrast exact and its spread zero.
+    rows = _confirmatory_rows(worlds, configs, glm_score=0.70, deepseek_score=0.85)
+    result = confirmatory_analysis(rows, contract)
+
+    assert result["primary"]["paired_world_count"] == len(worlds)
+    assert result["primary"]["mean"] == pytest.approx(-0.15)
+    assert result["primary"]["lower"] == pytest.approx(-0.15)
+    assert result["primary"]["upper"] == pytest.approx(-0.15)
+    assert result["primary"]["excludes_zero"] is True
+    assert result["effect_at_least_minimum"] is True
+    assert result["decision_supported"] is True
+    assert result["ranking_allowed"] is True
+    assert result["operational_failures"] == 0
+    assert result["attempted_trajectories"] == result["planned_trajectories"]
+    # Self-play and cross-play are reported apart from the headline estimand.
+    assert result["cross_play_slice"]["interval"]["mean"] == pytest.approx(-0.15)
+    assert result["self_play_slice"]["interval"]["mean"] == pytest.approx(-0.15)
+    assert set(result["condition_means"]) == {
+        "glm_53_flash__vs__glm_53_flash",
+        "glm_53_flash__vs__deepseek_v4_flash",
+        "deepseek_v4_flash__vs__glm_53_flash",
+        "deepseek_v4_flash__vs__deepseek_v4_flash",
+    }
+
+
+def test_confirmatory_analysis_drops_worlds_that_lost_a_cell() -> None:
+    from aeread_families.housing.model_sensitivity import confirmatory_analysis
+
+    contract = load_contract(V19_CONTRACT_PATH)
+    worlds = contract["execution"]["world_seeds"]
+    configs = [config["config_id"] for config in selected_configs(contract)]
+    contract = json.loads(json.dumps(contract))
+    contract["analysis"]["minimum_paired_worlds_for_decision"] = 4
+
+    rows = _confirmatory_rows(
+        worlds,
+        configs,
+        glm_score=0.70,
+        deepseek_score=0.85,
+        drop={(worlds[0], configs[0], "glm_53_flash__vs__deepseek_v4_flash")},
+    )
+    result = confirmatory_analysis(rows, contract)
+
+    # One lost cell removes its whole world from the paired estimate rather
+    # than letting a partly delivered world tilt the contrast.
+    assert result["primary"]["paired_world_count"] == len(worlds) - 1
+    assert result["worlds"][0]["complete_pair"] is False
+    assert result["worlds"][0]["contrast"] is None
+    assert result["operational_failures"] == 1
+    assert result["failure_conditions"] == {"rate_limit": 1}
+    # The declared paired minimum is no longer met, so no ranking is allowed.
+    assert result["decision_supported"] is False
+    assert result["ranking_allowed"] is False
+
+
+def test_confirmatory_interval_widens_with_spread_and_can_include_zero() -> None:
+    from aeread_families.housing.model_sensitivity import confirmatory_analysis
+
+    contract = load_contract(V19_CONTRACT_PATH)
+    worlds = contract["execution"]["world_seeds"]
+    configs = [config["config_id"] for config in selected_configs(contract)]
+    contract = json.loads(json.dumps(contract))
+    contract["analysis"]["minimum_paired_worlds_for_decision"] = 4
+
+    rows = []
+    for index, seed in enumerate(worlds):
+        # Alternating sign gives a mean near zero with a real spread.
+        glm = 0.80 + (0.10 if index % 2 == 0 else -0.10)
+        rows.extend(
+            _confirmatory_rows([seed], configs, glm_score=glm, deepseek_score=0.80)
+        )
+    result = confirmatory_analysis(rows, contract)
+
+    assert result["primary"]["mean"] == pytest.approx(0.0, abs=1e-9)
+    assert result["primary"]["standard_deviation"] > 0.0
+    assert result["primary"]["lower"] < 0.0 < result["primary"]["upper"]
+    assert result["primary"]["excludes_zero"] is False
+    assert result["effect_at_least_minimum"] is False
 
 
 def test_published_v12_records_pacing_failure_and_zero_trajectories() -> None:

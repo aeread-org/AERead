@@ -40,6 +40,7 @@ from .runner import (
 )
 from .model_sensitivity import (
     CooldownProviderClient,
+    confirmatory_panel,
     PacedProviderClient,
     _exception_attribute,
     _read_sealed,
@@ -1075,7 +1076,10 @@ def _validate_models(value: Any, *, campaign_id: str) -> None:
 
 def load_contract(path: str | Path) -> dict[str, Any]:
     value = json.loads(Path(path).read_bytes())
-    if not isinstance(value, dict) or set(value) != _ROOT_FIELDS:
+    expected_fields = set(_ROOT_FIELDS)
+    if "confirmatory_panel" in CAMPAIGN_SPECS.get(value.get("campaign_id"), {}):
+        expected_fields.add("confirmatory_panel")
+    if not isinstance(value, dict) or set(value) != expected_fields:
         raise ValueError("backend campaign fields are incomplete or unexpected")
     if value["schema_version"] != CONTRACT_SCHEMA_VERSION:
         raise ValueError("unsupported backend campaign contract schema")
@@ -1757,6 +1761,110 @@ async def run_profile_admission(
     return artifact
 
 
+def confirmatory_freeze_artifact(
+    contract: Mapping[str, Any],
+    *,
+    routes: Mapping[str, OpenRouterRoutePin],
+    design: Mapping[str, Any],
+    provider_free: Mapping[str, Any],
+    catalog: Mapping[str, Any],
+    admission: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Seal every confirmatory control before a single holdout outcome exists.
+
+    The QC standard requires the holdout tasks, seeds, profiles, prompts,
+    harness, retry rules, execution order, analysis plan, missingness policy,
+    stopping rule, implementation pins and cost ceiling to be hashed before
+    outcomes are inspected. This artifact is that hash, and it also binds the
+    variance pilot whose paired standard deviation justified the world count,
+    so the sample size cannot be re-derived after the fact.
+    """
+
+    panel = confirmatory_panel(contract)
+    if panel is None:
+        raise ValueError("a confirmatory freeze requires a sealed holdout panel")
+    spec = CAMPAIGN_SPECS[contract["campaign_id"]]
+    pilot = spec["variance_pilot_reference"]
+    repo_root = Path(__file__).resolve().parents[3]
+    pilot_qualification = json.loads(
+        (repo_root / pilot["qualification_path"]).read_bytes()
+    )
+    if pilot_qualification["artifact_sha256"] != pilot["qualification_artifact_sha256"]:
+        raise ValueError("variance-pilot qualification digest drifted")
+    if pilot_qualification["campaign_id"] != pilot["campaign_id"]:
+        raise ValueError("variance-pilot identity drifted")
+    analysis = pilot_qualification["variance_pilot_analysis"]
+    if analysis is None or analysis.get("status") != "estimable":
+        raise ValueError("variance pilot did not produce an estimable variance")
+    minimum_paired = analysis.get("minimum_paired_worlds_for_recommendation")
+    if minimum_paired is not None and analysis["paired_world_count"] < int(
+        minimum_paired
+    ):
+        raise ValueError("variance pilot did not reach its declared paired worlds")
+    recommended = analysis["recommended_confirmatory_worlds"]
+    if recommended is None:
+        raise ValueError("variance pilot withheld a confirmatory world count")
+    planned_worlds = len(panel["world_seeds"])
+    if planned_worlds < recommended:
+        raise ValueError(
+            "confirmatory panel is smaller than the recommended world count: "
+            f"{planned_worlds} < {recommended}"
+        )
+    setups = build_setups(contract, routes=routes)
+    profiles = {}
+    for setup in setups.values():
+        for profile in setup.plan.agent_profiles:
+            profiles[profile.profile_id] = hashlib.sha256(
+                canonical_json_bytes(profile)
+            ).hexdigest()
+    return _sealed(
+        {
+            "schema_version": "aeread.housing_confirmatory_freeze/0.1",
+            "campaign_id": contract["campaign_id"],
+            "gate_id": "confirmatory_freeze",
+            "claim_status": contract["claim_status"],
+            "frozen_before_any_holdout_outcome": True,
+            "holdout": {
+                "sweep_contract_path": panel["sweep_contract_path"],
+                "sweep_contract_file_sha256": panel["sweep_contract_file_sha256"],
+                "world_seed_count": planned_worlds,
+                "world_seeds_sha256": _sha256(panel["world_seeds"]),
+                "configs_sha256": _sha256(panel["configs"]),
+                "config_ids": [config["config_id"] for config in panel["configs"]],
+            },
+            "variance_pilot": {
+                "campaign_id": pilot["campaign_id"],
+                "qualification_artifact_sha256": pilot[
+                    "qualification_artifact_sha256"
+                ],
+                "paired_world_count": analysis["paired_world_count"],
+                "sample_standard_deviation": analysis[
+                    "sample_standard_deviation"
+                ],
+                "minimum_meaningful_effect": analysis["minimum_meaningful_effect"],
+                "recommended_confirmatory_worlds": recommended,
+            },
+            "prior_gates": {
+                "design": design["artifact_sha256"],
+                "provider_free": provider_free["artifact_sha256"],
+                "catalog_preflight": catalog["artifact_sha256"],
+                "profile_admission": admission["artifact_sha256"],
+            },
+            "profiles_sha256": dict(sorted(profiles.items())),
+            "controls_sha256": _sha256(contract["controls"]),
+            "conditions_sha256": _sha256(contract["conditions"]),
+            "analysis": contract["analysis"],
+            "missingness": contract["missingness"],
+            "stopping_rule": contract["stopping_rule"],
+            "execution": contract["execution"],
+            "planned_trajectories": design["planned_trajectories"],
+            "contract_sha256": _sha256(contract),
+            "winner_claim_allowed": True,
+            "ranking_allowed": True,
+        }
+    )
+
+
 async def execute_campaign(
     *, contract_path: str | Path, output_root: str | Path, through: str
 ) -> dict[str, Any]:
@@ -1764,7 +1872,10 @@ async def execute_campaign(
     terminal_stage = CAMPAIGN_SPECS[contract["campaign_id"]].get(
         "execution_stage", "live"
     )
+    freezes = terminal_stage == "confirmatory_execution"
     stages = {"design", "provider_free", "profile_admission", terminal_stage}
+    if freezes:
+        stages.add("confirmatory_freeze")
     if through not in stages:
         raise ValueError(f"through must be one of {sorted(stages)}")
     routes = route_table(contract)
@@ -1772,7 +1883,10 @@ async def execute_campaign(
     design = design_artifact(contract, routes=routes)
     _write_json(root / "design" / "summary.json", design)
     result: dict[str, Any] = {"design": design}
-    if through in {"provider_free", "profile_admission", terminal_stage}:
+    later_stages = {"provider_free", "profile_admission", terminal_stage}
+    if freezes:
+        later_stages.add("confirmatory_freeze")
+    if through in later_stages:
         provider_free = provider_free_artifact(contract)
         catalog_path = root / "catalog_preflight" / "summary.json"
         catalog = (
@@ -1783,7 +1897,10 @@ async def execute_campaign(
         _write_json(root / "provider_free" / "summary.json", provider_free)
         _write_json(catalog_path, catalog)
         result.update(provider_free=provider_free, catalog_preflight=catalog)
-    if through in {"profile_admission", terminal_stage}:
+    admission_stages = {"profile_admission", terminal_stage}
+    if freezes:
+        admission_stages.add("confirmatory_freeze")
+    if through in admission_stages:
         if not os.getenv("OPENROUTER_API_KEY"):
             raise RuntimeError(
                 "OPENROUTER_API_KEY is required for the profile-admission stage"
@@ -1795,6 +1912,26 @@ async def execute_campaign(
             provider_client=provider_client,
         )
         result["profile_admission"] = admission
+        if freezes and through in {"confirmatory_freeze", terminal_stage}:
+            if admission["status"] != "passed":
+                raise ValueError(
+                    "a confirmatory freeze requires a passed profile admission"
+                )
+            freeze_path = root / "confirmatory_freeze" / "summary.json"
+            freeze = (
+                _read_sealed(freeze_path)
+                if freeze_path.exists()
+                else confirmatory_freeze_artifact(
+                    contract,
+                    routes=routes,
+                    design=design,
+                    provider_free=provider_free,
+                    catalog=catalog,
+                    admission=admission,
+                )
+            )
+            _write_json(freeze_path, freeze)
+            result["confirmatory_freeze"] = freeze
         if through == terminal_stage:
             if admission["status"] != "passed":
                 blocked = _sealed(
@@ -1847,6 +1984,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             "profile_admission",
             "full_trajectory",
             "live",
+            "confirmatory_freeze",
+            "confirmatory_execution",
         ),
         default="provider_free",
     )

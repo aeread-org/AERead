@@ -12,7 +12,7 @@ import os
 import statistics
 import time
 from pathlib import Path
-from typing import Any, Mapping, Sequence
+from typing import Any, Callable, Mapping, Sequence
 
 import aeread.shared_runner.task.execution as execution_module
 from aeread.shared_runner.task.execution import (
@@ -368,7 +368,55 @@ def load_contract(path: str | Path) -> dict[str, Any]:
     return value
 
 
+CONFIRMATORY_CONFIG_FIELDS = (
+    "config_id",
+    "difficulty_stratum",
+    "tenants",
+    "listings",
+    "rounds",
+    "common_weight",
+)
+
+
+def confirmatory_panel(contract: Mapping[str, Any]) -> dict[str, Any] | None:
+    """Return the verified holdout panel a confirmatory contract declares.
+
+    The panel inlines the sealed holdout configurations and world seeds so the
+    freeze can hash them before any outcome exists. The sweep contract that
+    sealed them is digest-checked here, and the inlined values must match it
+    exactly, so a confirmatory campaign cannot quietly widen its own panel.
+    """
+
+    panel = contract.get("confirmatory_panel")
+    if panel is None:
+        return None
+    sweep_path = _source_path(panel["sweep_contract_path"])
+    if _file_sha256(sweep_path) != panel["sweep_contract_file_sha256"]:
+        raise ValueError("confirmatory sweep contract digest drifted")
+    sweep = json.loads(sweep_path.read_bytes())
+    holdout = sweep["confirmatory_holdout"]
+    if holdout["status"] != "sealed_not_executed":
+        raise ValueError("confirmatory holdout is no longer sealed")
+    if holdout["access_rule"] != "new_campaign_id_after_confirmatory_freeze":
+        raise ValueError("confirmatory holdout access rule drifted")
+    sealed_configs = [
+        {key: config[key] for key in CONFIRMATORY_CONFIG_FIELDS}
+        for config in holdout["parameter_combinations"]
+    ]
+    if panel["configs"] != sealed_configs:
+        raise ValueError("confirmatory panel configurations differ from the sweep")
+    if panel["world_seeds"] != holdout["world_seeds"]:
+        raise ValueError("confirmatory panel world seeds differ from the sweep")
+    development = set(sweep["development"]["world_seeds"])
+    if development & set(panel["world_seeds"]):
+        raise ValueError("confirmatory panel overlaps the development split")
+    return panel
+
+
 def selected_configs(contract: Mapping[str, Any]) -> list[dict[str, Any]]:
+    panel = confirmatory_panel(contract)
+    if panel is not None:
+        return [dict(config) for config in panel["configs"]]
     selected = _selected_case_artifact(contract)
     configs = [
         {
@@ -931,6 +979,230 @@ def variance_pilot_analysis(
     )
 
 
+def _paired_world_means(
+    rows: Sequence[Mapping[str, Any]],
+    *,
+    world_seeds: Sequence[int],
+    subjects: Sequence[str],
+    expected_per_subject: int,
+    opponent_filter: Callable[[Mapping[str, Any]], bool] | None = None,
+) -> tuple[list[dict[str, Any]], list[float]]:
+    """Return per-world subject means and the paired contrasts they support.
+
+    A world contributes a contrast only when both subjects completed every
+    expected cell, so a partially delivered world can never tilt the estimate.
+    """
+
+    world_rows: list[dict[str, Any]] = []
+    contrasts: list[float] = []
+    for world_seed in world_seeds:
+        subject_means: dict[str, float] = {}
+        subject_counts: dict[str, int] = {}
+        for subject in sorted(subjects):
+            eligible = [
+                row
+                for row in rows
+                if row["world_seed"] == world_seed
+                and row["subject"] == subject
+                and row["status"] == "completed"
+                and (opponent_filter is None or opponent_filter(row))
+            ]
+            subject_counts[subject] = len(eligible)
+            if len(eligible) == expected_per_subject:
+                subject_means[subject] = statistics.fmean(
+                    float(row["within_case_score"]) for row in eligible
+                )
+        complete_pair = len(subject_means) == 2
+        contrast = (
+            subject_means["glm_53_flash"] - subject_means["deepseek_v4_flash"]
+            if complete_pair
+            else None
+        )
+        if contrast is not None:
+            contrasts.append(contrast)
+        world_rows.append(
+            {
+                "world_seed": world_seed,
+                "complete_pair": complete_pair,
+                "completed_cells_by_subject": subject_counts,
+                "subject_means": subject_means,
+                "contrast": contrast,
+            }
+        )
+    return world_rows, contrasts
+
+
+def _paired_interval(
+    contrasts: Sequence[float], *, alpha: float
+) -> dict[str, Any]:
+    """Two-sided paired interval over world-level contrasts."""
+
+    count = len(contrasts)
+    if count < 2:
+        return {
+            "paired_world_count": count,
+            "mean": statistics.fmean(contrasts) if contrasts else None,
+            "standard_deviation": None,
+            "standard_error": None,
+            "degrees_of_freedom": max(count - 1, 0),
+            "critical_value": None,
+            "lower": None,
+            "upper": None,
+            "excludes_zero": False,
+        }
+    from scipy import stats
+
+    mean = statistics.fmean(contrasts)
+    deviation = statistics.stdev(contrasts)
+    error = deviation / math.sqrt(count)
+    critical = float(stats.t.ppf(1.0 - alpha / 2.0, count - 1))
+    lower = mean - critical * error
+    upper = mean + critical * error
+    return {
+        "paired_world_count": count,
+        "mean": mean,
+        "standard_deviation": deviation,
+        "standard_error": error,
+        "degrees_of_freedom": count - 1,
+        "critical_value": critical,
+        "lower": lower,
+        "upper": upper,
+        "excludes_zero": lower > 0.0 or upper < 0.0,
+    }
+
+
+def confirmatory_analysis(
+    rows: Sequence[Mapping[str, Any]], contract: Mapping[str, Any]
+) -> dict[str, Any]:
+    """Paired world-level confirmatory comparison with predeclared slices.
+
+    The primary estimand is the one the variance pilot measured, because the
+    confirmatory world count was derived from that estimand's variance.
+    Changing it here would invalidate the sample size, so the cross-play and
+    self-play breakdowns are reported as predeclared secondary slices rather
+    than as the headline.
+    """
+
+    analysis = contract["analysis"]
+    if analysis.get("aggregation") != (
+        "equal_weight_configs_and_opponents_within_world"
+    ):
+        raise ValueError("contract does not declare the confirmatory estimand")
+    configs = selected_configs(contract)
+    opponents = {condition["opponent"] for condition in contract["conditions"]}
+    subjects = {condition["subject"] for condition in contract["conditions"]}
+    if subjects != {"glm_53_flash", "deepseek_v4_flash"} or opponents != subjects:
+        raise ValueError("confirmatory model panel drifted")
+    replicates = contract["execution"]["replicates"]
+    world_seeds = contract["execution"]["world_seeds"]
+    alpha = analysis["alpha"]
+
+    expected_all = len(configs) * len(opponents) * replicates
+    world_rows, contrasts = _paired_world_means(
+        rows,
+        world_seeds=world_seeds,
+        subjects=sorted(subjects),
+        expected_per_subject=expected_all,
+    )
+    primary = _paired_interval(contrasts, alpha=alpha)
+
+    expected_slice = len(configs) * replicates
+    cross_rows, cross_contrasts = _paired_world_means(
+        rows,
+        world_seeds=world_seeds,
+        subjects=sorted(subjects),
+        expected_per_subject=expected_slice,
+        opponent_filter=lambda row: row["opponent"] != row["subject"],
+    )
+    self_rows, self_contrasts = _paired_world_means(
+        rows,
+        world_seeds=world_seeds,
+        subjects=sorted(subjects),
+        expected_per_subject=expected_slice,
+        opponent_filter=lambda row: row["opponent"] == row["subject"],
+    )
+
+    completed = [row for row in rows if row["status"] == "completed"]
+    condition_means = {}
+    for condition in contract["conditions"]:
+        scores = [
+            float(row["within_case_score"])
+            for row in completed
+            if row["condition_id"] == condition["condition_id"]
+        ]
+        condition_means[condition["condition_id"]] = {
+            "completed_cells": len(scores),
+            "mean_within_case_score": statistics.fmean(scores) if scores else None,
+        }
+    worst_opponent = {}
+    for subject in sorted(subjects):
+        per_opponent = {}
+        for opponent in sorted(opponents):
+            scores = [
+                float(row["within_case_score"])
+                for row in completed
+                if row["subject"] == subject and row["opponent"] == opponent
+            ]
+            if scores:
+                per_opponent[opponent] = statistics.fmean(scores)
+        worst_opponent[subject] = (
+            min(per_opponent.items(), key=lambda item: item[1])[0]
+            if per_opponent
+            else None
+        )
+    failures: dict[str, int] = {}
+    for row in rows:
+        if row["status"] != "completed":
+            key = str(row.get("failure_condition") or "unknown")
+            failures[key] = failures.get(key, 0) + 1
+    planned = len(world_seeds) * len(configs) * len(contract["conditions"]) * replicates
+    minimum_paired = analysis.get("minimum_paired_worlds_for_decision")
+    paired = primary["paired_world_count"]
+    decision_supported = bool(
+        minimum_paired is not None
+        and paired >= int(minimum_paired)
+        and len(rows) == planned
+    )
+    return _sealed(
+        {
+            "schema_version": "aeread.housing_confirmatory_analysis/0.1",
+            "campaign_id": contract["campaign_id"],
+            "claim_status": contract["claim_status"],
+            "independent_cluster": "world_seed",
+            "primary_contrast": analysis["primary_contrast"],
+            "primary_estimand": analysis["aggregation"],
+            "alpha": alpha,
+            "minimum_meaningful_effect": analysis["minimum_meaningful_effect"],
+            "planned_trajectories": planned,
+            "attempted_trajectories": len(rows),
+            "completed_trajectories": len(completed),
+            "operational_failures": len(rows) - len(completed),
+            "failure_conditions": dict(sorted(failures.items())),
+            "planned_world_count": len(world_seeds),
+            "primary": primary,
+            "worlds": world_rows,
+            "cross_play_slice": {
+                "interval": _paired_interval(cross_contrasts, alpha=alpha),
+                "worlds": cross_rows,
+            },
+            "self_play_slice": {
+                "interval": _paired_interval(self_contrasts, alpha=alpha),
+                "worlds": self_rows,
+            },
+            "condition_means": condition_means,
+            "worst_opponent_by_subject": worst_opponent,
+            "minimum_paired_worlds_for_decision": minimum_paired,
+            "decision_supported": decision_supported,
+            "effect_at_least_minimum": bool(
+                primary["mean"] is not None
+                and abs(primary["mean"]) >= analysis["minimum_meaningful_effect"]
+            ),
+            "interval_excludes_zero": primary["excludes_zero"],
+            "ranking_allowed": decision_supported,
+        }
+    )
+
+
 async def run_live(
     contract: Mapping[str, Any],
     *,
@@ -939,8 +1211,10 @@ async def run_live(
     stage_id: str = "live",
     provider_client: Any | None = None,
 ) -> dict[str, Any]:
-    if stage_id not in {"live", "full_trajectory"}:
-        raise ValueError("stage_id must be live or full_trajectory")
+    if stage_id not in {"live", "full_trajectory", "confirmatory_execution"}:
+        raise ValueError(
+            "stage_id must be live, full_trajectory or confirmatory_execution"
+        )
     live_root = output_root / stage_id
     summary_path = live_root / "summary.json"
     if summary_path.exists():
