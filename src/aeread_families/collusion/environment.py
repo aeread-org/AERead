@@ -205,7 +205,7 @@ def register_plugin(
 ) -> "CollusionPlugin":
     """Register one exact family/version binding in the kernel registry."""
     resolved = plugin or CollusionPlugin()
-    registry.register(family_manifest(), resolved)
+    registry.register_trusted(family_manifest(), resolved)
     return resolved
 
 
