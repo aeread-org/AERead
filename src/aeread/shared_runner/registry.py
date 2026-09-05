@@ -63,6 +63,19 @@ REQUIRED_FAMILY_PLUGIN_HOOKS = (
 
 TRUSTED_BUILTIN_PLUGIN_KEYS = frozenset(
     {
+        # External-benchmark adapter families accepted by maintainer ruling on
+        # 2026-09-04 (PRs #28-#38); their review predates contribution records.
+        ('agenticpay.bilateral', '0.1.0', 'agenticpay_bilateral_environment'),
+        ('alympics.wac', '0.1.0', 'alympics_wac_environment'),
+        ('amazonbarg.bilateral', '0.1.0', 'amazonbarg_environment'),
+        ('aucarena', '0.1.0', 'aucarena_environment'),
+        ('collusion', '0.1.0', 'collusion_environment'),
+        ('econagent_v1', '0.1.0', 'econagent_v1_environment'),
+        ('econevals', '0.1.0', 'econevals_environment'),
+        ('govsim', '0.1.0', 'govsim_environment'),
+        ('negarena', '0.1.0', 'negarena_environment'),
+        ('steer', '0.1.0', 'steer_environment'),
+        ('termsbench', '0.1.0', 'termsbench_environment'),
         (
             "commercial_state_calibration_v1",
             "1.0.0",
