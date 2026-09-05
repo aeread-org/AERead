@@ -216,6 +216,43 @@ objective it declares. Defects 5 and 7 are correctness issues that should be fix
 regardless. Defects 6, 8, 9 are scoping decisions that should be stated in the
 case README rather than left implicit.
 
+## 11. Abort-on-first-failure makes completion probability decay exponentially in panel size
+
+Every campaign in this family sets `abort_on_operational_failure=True`, so one
+typed operational failure ends the whole attempt and every remaining row becomes
+unattempted. The kernel's default is `False`, and the family's own doctrine says
+operational failures "remain typed missingness"; the campaign policy converts a
+single missing row into 143 unattempted ones.
+
+The cost of that choice is a function of panel size. A row seals only when four
+consecutive attempts on one action fail, so at the 17.6% per-call failure rate
+measured on GLM Parasail on 2026-09-05, with about seven calls per row:
+
+| panel | probability an attempt completes |
+|---|---|
+| 18 rows | 88.6% |
+| 36 rows | 78.5% |
+| 72 rows | 61.6% |
+| 96 rows | 52.5% |
+| 144 rows | 38.0% |
+
+The 72-row development campaigns completed because they are small. The 144-row
+confirmatory panel and the 144-row risk-gate factorial are the two largest in the
+family and are precisely the two that have never completed — the risk-gate
+factorial across V1 to V4, and the pre-award confirmatory across seven attempt
+roots on one evening.
+
+The scientific goal is real: transient availability must not silently choose which
+rows survive. But that goal is met by *recording* a typed missing row and requiring
+the analysis to treat it as missing, which the publication path already does. It
+does not require discarding the other 143.
+
+**Fix.** Let an attempt continue past a typed operational failure, sealing that row
+as typed missingness, and make eligibility depend on a declared missingness ceiling
+rather than on zero failures. Keep the current abort for untyped or contract
+failures, where continuing really would be unsound. Without this, panel size is
+capped by route reliability rather than by statistical need.
+
 ---
 
 ## Status of the fixes
@@ -232,7 +269,8 @@ case README rather than left implicit.
 | 8 labeled ids leak the answer | open; opaque mirrors exist and should become the primary surface |
 | 9 headroom exhausted | **addressed in worlds** — `information_v1` and `confirmatory_v2` |
 | 10 canary sealed by a transient 429 | open; hit repeatedly while running the holdout on 2026-09-05 |
+| 11 abort-on-first-failure caps panel size | open; the two 144-row panels are the two that have never completed |
 
-Defects 4, 6, 8, and 10 are the remaining work. None of them blocks the panels
+Defects 4, 6, 8, 10, and 11 are the remaining work. None of them blocks the panels
 above; each is a bounded change with the fix already described in its section.
 
