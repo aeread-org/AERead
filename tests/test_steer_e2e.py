@@ -558,7 +558,9 @@ def _steer_finalize_setup(case: CaseManifest) -> SimpleNamespace:
         (steer_src / "steer_bridge_driver.py").read_bytes()
     ).hexdigest()
     execution_sha256 = hashlib.sha256(
-        (repo_root / "src" / "aeread" / "shared_runner" / "execution.py").read_bytes()
+        (
+            repo_root / "src" / "aeread" / "shared_runner" / "task" / "execution.py"
+        ).read_bytes()
     ).hexdigest()
     pins = (
         ImplementationPin.from_dict(
