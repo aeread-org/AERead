@@ -1,0 +1,93 @@
+{
+  "schema_version": "aeread.housing_qc_goldens/0.1",
+  "bundle_id": "housing_qc_goldens_v1",
+  "claim_status": "provider_free_environment_and_verifier_qc",
+  "created_date": "2026-09-02",
+  "external_provider_calls_allowed": false,
+  "scenarios": [
+    {
+      "scenario_id": "efficient_outcome",
+      "tenant_fixture": "scripted",
+      "world_seed": 1,
+      "tenants": 2,
+      "listings": 1,
+      "rounds": 1,
+      "common_weight": 0.6,
+      "expected_receipt_status": "ok",
+      "expected_inclusion_status": "included",
+      "expected_within_case_score": 1.0,
+      "expected_action_failure": "none"
+    },
+    {
+      "scenario_id": "valid_poor_outcome",
+      "tenant_fixture": "noop",
+      "world_seed": 1,
+      "tenants": 2,
+      "listings": 1,
+      "rounds": 1,
+      "common_weight": 0.6,
+      "expected_receipt_status": "ok",
+      "expected_inclusion_status": "included",
+      "expected_within_case_score": 0.0,
+      "expected_action_failure": "none"
+    },
+    {
+      "scenario_id": "invalid_unauthorized_action",
+      "tenant_fixture": "invalid_listing",
+      "world_seed": 1,
+      "tenants": 2,
+      "listings": 1,
+      "rounds": 1,
+      "common_weight": 0.6,
+      "expected_receipt_status": "ok",
+      "expected_inclusion_status": "included",
+      "expected_within_case_score": 0.0,
+      "expected_action_failure": "legality"
+    },
+    {
+      "scenario_id": "malformed_output",
+      "tenant_fixture": "malformed",
+      "world_seed": 1,
+      "tenants": 2,
+      "listings": 1,
+      "rounds": 1,
+      "common_weight": 0.6,
+      "expected_receipt_status": "ok",
+      "expected_inclusion_status": "included",
+      "expected_within_case_score": 0.0,
+      "expected_action_failure": "parse"
+    },
+    {
+      "scenario_id": "provider_failure",
+      "tenant_fixture": "provider_failure",
+      "world_seed": 1,
+      "tenants": 2,
+      "listings": 1,
+      "rounds": 1,
+      "common_weight": 0.6,
+      "expected_receipt_status": "invalid_measurement",
+      "expected_inclusion_status": "excluded",
+      "expected_within_case_score": null,
+      "expected_action_failure": "provider"
+    },
+    {
+      "scenario_id": "zero_upper_bound",
+      "tenant_fixture": "scripted",
+      "world_seed": 3,
+      "tenants": 1,
+      "listings": 1,
+      "rounds": 1,
+      "common_weight": 0.0,
+      "expected_receipt_status": "ok",
+      "expected_inclusion_status": "included",
+      "expected_within_case_score": null,
+      "expected_action_failure": "none"
+    }
+  ],
+  "publication": {
+    "local_source": "runs/housing_qc_goldens_v1",
+    "raw_provider_responses_included": false,
+    "model_reasoning_included": false,
+    "receipt_projection": "complete_evaluation_receipt"
+  }
+}

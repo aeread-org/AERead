@@ -8,8 +8,7 @@ src/aeread/.gemini_cache/
 runs/
 submissions/
 sweeps/
-output/
-outputs/
+work/
 
 # local editor settings
 .vscode/

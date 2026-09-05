@@ -1,5 +1,9 @@
 # Architecture walkthroughs
 
+The staged walkthrough series currently documents R1-R4 in detail. R5-R8 status is tracked in
+the roadmap until each stage has a complete, evidence-backed walkthrough; the existence of
+Housing or Tau3 implementation files does not bypass the still-open R6 Exchange parity gate.
+
 - [`shared_runner_architecture_roadmap.md`](shared_runner_architecture_roadmap.md) —
   source-grounded Exchange V1 execution trace, canonical shared-runner taxonomy,
   current-to-planned architecture map, danger zones, invariants, and gated build roadmap.

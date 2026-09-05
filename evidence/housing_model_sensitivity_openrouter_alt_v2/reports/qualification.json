@@ -1,0 +1,129 @@
+{
+  "artifact_sha256": "104690cfc8daef87b8fb5da256ddfdd887967e2c41d04f07cb6d73f583531e28",
+  "schema_version": "aeread.housing_backend_qualification/0.1",
+  "campaign_id": "housing_model_sensitivity_openrouter_alt_v2",
+  "created_date": "2026-09-02",
+  "status": "blocked_by_profile_admission",
+  "claim_status": "development_backend_qualification_only",
+  "winner_claim_allowed": false,
+  "ranking_allowed": false,
+  "source_case_selection": {
+    "campaign_id": "housing_case_config_sweep_v1",
+    "artifact_sha256": "a4ace08e1504b66eabeb92ca22ec47be25cb034ce2c262e66d96265710e34727",
+    "confirmatory_holdout_status": "sealed_not_executed"
+  },
+  "backend": {
+    "gateway": "openrouter",
+    "allow_fallbacks": false,
+    "catalog_retrieved_at": "2026-09-02",
+    "routes": [
+      {
+        "model_id": "glm_53_flash",
+        "canonical_model": "z-ai/glm-5.3-flash-20260826",
+        "provider": "Novita",
+        "quantization": "fp8",
+        "input_per_million": 0.075,
+        "cached_input_per_million": 0.015,
+        "output_per_million": 0.25
+      },
+      {
+        "model_id": "deepseek_v4_flash",
+        "canonical_model": "deepseek/deepseek-v4-flash-20260731",
+        "provider": "OpenInference",
+        "quantization": "fp8",
+        "input_per_million": 0.05,
+        "cached_input_per_million": 0.013,
+        "output_per_million": 0.16
+      }
+    ]
+  },
+  "gate_status": [
+    {
+      "gate_id": "design",
+      "status": "passed",
+      "artifact_sha256": "0832949b427ef8cf0081a92a4f624bce4ea4f3ed1ed7d0fe91056075902a32b4",
+      "planned_trajectories": 12
+    },
+    {
+      "gate_id": "provider_free",
+      "status": "passed",
+      "artifact_sha256": "41a6e64a2b1d66b96d03b330c6cdc9b38dd82995d2357adcda57727d95b52573",
+      "provider_calls": 0,
+      "cost_usd": 0.0
+    },
+    {
+      "gate_id": "catalog_preflight",
+      "status": "passed",
+      "artifact_sha256": "74f96b77b4ca871acd3b931dbe4efa3cea91ce9f85e85f582f1ecf871c540937",
+      "provider_inference_calls": 0
+    },
+    {
+      "gate_id": "profile_admission",
+      "status": "failed_with_typed_missingness",
+      "artifact_sha256": "9c153acdbe68a829e6069e43ad13b4e2b28f62582f36f20c34b025d8732d6687",
+      "expected_probe_count": 18,
+      "attempted_probe_count": 18,
+      "passed_probe_count": 4,
+      "operational_failures": 14,
+      "hidden_retry_count": 0,
+      "observed_successful_call_cost_usd": 0.0008403318,
+      "attempted_cost_upper_bound_usd": 0.036,
+      "provider_cost_complete": false
+    },
+    {
+      "gate_id": "live",
+      "status": "blocked_by_profile_admission",
+      "artifact_sha256": "2e3077d2172f2a3a2ae07de8413e51d21b1489b87f6d562a4c701bdfef5e8ac8",
+      "provider_calls": 0,
+      "cost_usd": 0.0
+    }
+  ],
+  "profile_results": [
+    {
+      "model_id": "glm_53_flash",
+      "provider": "Novita",
+      "planned_probes": 9,
+      "passed_probes": 0,
+      "operational_failures": 9,
+      "failure_breakdown": {
+        "provider_rejected_404": 9
+      },
+      "observed_successful_call_cost_usd": 0.0
+    },
+    {
+      "model_id": "deepseek_v4_flash",
+      "provider": "OpenInference",
+      "planned_probes": 9,
+      "passed_probes": 4,
+      "operational_failures": 5,
+      "failure_breakdown": {
+        "rate_limit_429": 4,
+        "invalid_admission_action": 1
+      },
+      "schema_breakdown": {
+        "housing_contact_v1": {
+          "passed": 2,
+          "failed": 1
+        },
+        "housing_commit_v1": {
+          "passed": 1,
+          "failed": 2
+        },
+        "housing_respond_v1": {
+          "passed": 1,
+          "failed": 2
+        }
+      },
+      "observed_successful_call_cost_usd": 0.0008403318
+    }
+  ],
+  "interpretation": "The alternate endpoints did not qualify as reliable Housing role profiles. Catalog availability was not sufficient to predict executable structured actions. No Housing trajectory or model score was produced.",
+  "cost_note": "Observed cost covers only the four successful calls. Failed calls did not expose complete usage and billing, so this record does not claim an exact total charge.",
+  "stop_reason": "Profile admission failed; the campaign contract blocked the 12-cell live matrix without making a trajectory call.",
+  "next_gate": "Use the existing local OpenRouter key with a fresh OpenRouter catalog query, freeze a new campaign identity and provider routes, then repeat provider-free validation and profile admission before any Housing trajectory.",
+  "local_evidence": {
+    "path": "runs/housing_model_sensitivity_openrouter_alt_v2",
+    "committed": false,
+    "contains_raw_provider_evidence": true
+  }
+}

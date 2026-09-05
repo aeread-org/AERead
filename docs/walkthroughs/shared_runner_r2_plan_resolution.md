@@ -1,11 +1,15 @@
 # Walkthrough: Shared-runner R2 deterministic plan resolution
 
+> **Status (2026-09-02): Complete.** Deterministic resolution, canonical plan identity, exact
+> implementation pins, and pre-execution plan publication pass the focused contracts. See the
+> [roadmap implementation status](shared_runner_architecture_roadmap.md#implementation-status--2026-09-02).
+
 R2 turns the immutable R1 authoring records into one sealed `RunPlan`. It resolves every
 cross-record reference, verifies case content identity, pins every executable dependency,
 validates family-owned payloads, expands the requested experiment into `PlanCell` records,
 and writes canonical bytes before any provider or tool call.
 
-The implementation is in `src/aeread/shared_runner/resolver.py`; its executable contract is
+The implementation is in `src/aeread/shared_runner/run/resolver.py`; its executable contract is
 in `tests/test_shared_runner_resolver.py`.
 
 ## Resolution path
@@ -77,4 +81,3 @@ R2 is enough to answer: "What precisely would this experiment run?" It is not en
 Therefore the first end-to-end R2 check costs no model tokens. A paid Housing run is honest only
 after the R3 scheduler and an R4 adapter exist; until then, a model call would bypass the shared
 runner contract it is supposed to test.
-

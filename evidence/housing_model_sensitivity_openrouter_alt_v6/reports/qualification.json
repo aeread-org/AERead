@@ -1,0 +1,133 @@
+{
+  "artifact_sha256": "23572009c350fec5a28c289650de6feed51c661cc345bc66deffac4270d222d9",
+  "schema_version": "aeread.housing_backend_qualification/0.2",
+  "campaign_id": "housing_model_sensitivity_openrouter_alt_v6",
+  "created_date": "2026-09-02",
+  "status": "blocked_by_profile_admission",
+  "claim_status": "development_backend_qualification_only",
+  "winner_claim_allowed": false,
+  "ranking_allowed": false,
+  "contract_location_amendment": {
+    "executed_contract_sha256": "3dab22ccde7a3e1b0879bf623e8e4c1b15ce913e8dd545924b6791a411ff1f96",
+    "current_contract_sha256": "8606ce1ea404462dee59372e65bd229380a228ed985cc533c4de20d82b452d4d",
+    "changed_fields": [
+      "source_case_selection.path",
+      "source_case_selection.fact_manifest_path"
+    ],
+    "reason": "Publication paths were normalized from docs/evidence into the top-level campaign bundle; executable cases, model controls, and world facts are unchanged."
+  },
+  "source_case_selection": {
+    "campaign_id": "housing_case_config_sweep_v1",
+    "artifact_sha256": "a4ace08e1504b66eabeb92ca22ec47be25cb034ce2c262e66d96265710e34727",
+    "confirmatory_holdout_status": "sealed_not_executed"
+  },
+  "controls": {
+    "harness": "minimal_chat/1.0",
+    "tools": "disabled",
+    "memory": "disabled",
+    "reasoning_effort": "low",
+    "temperature": 0.0,
+    "top_p": 1.0,
+    "sdk_retries": 0,
+    "hidden_retries": 0,
+    "action_schema_version": "housing_actions/1.0"
+  },
+  "backend": {
+    "gateway": "openrouter",
+    "allow_fallbacks": false,
+    "catalog_retrieved_at": "2026-09-02",
+    "routes": [
+      {
+        "model_id": "glm_53_flash",
+        "canonical_model": "z-ai/glm-5.3-flash-20260826",
+        "provider": "NextBit",
+        "quantization": "fp8"
+      },
+      {
+        "model_id": "deepseek_v4_flash",
+        "canonical_model": "deepseek/deepseek-v4-flash-20260731",
+        "provider": "Parasail",
+        "quantization": "fp8"
+      }
+    ]
+  },
+  "gate_status": [
+    {
+      "gate_id": "design",
+      "status": "passed",
+      "artifact_sha256": "6041ba7d0c580946e30a69576a7fdaf6a421cf68920b001cf336758b6b3c0080",
+      "planned_trajectories": 12
+    },
+    {
+      "gate_id": "provider_free",
+      "status": "passed",
+      "artifact_sha256": "caa972fcee052cb6336a2b196afdbbd1b4212f04466c6a033a9153e902713107",
+      "provider_calls": 0,
+      "cost_usd": 0.0
+    },
+    {
+      "gate_id": "catalog_preflight",
+      "status": "passed",
+      "artifact_sha256": "d721409cb73368d1b38382a2661fd5209ff5915d2266a2cca1130294281f4c2a",
+      "provider_inference_calls": 0
+    },
+    {
+      "gate_id": "profile_admission",
+      "status": "failed_with_typed_missingness",
+      "artifact_sha256": "50c5cb3560335977e80bde2c4d955dd9b70989107053f928e85f2d789ac03729",
+      "expected_probe_count": 18,
+      "attempted_probe_count": 18,
+      "passed_probe_count": 17,
+      "operational_failures": 1,
+      "hidden_retry_count": 0,
+      "observed_cost_usd": 0.0029852856,
+      "provider_cost_complete": true
+    },
+    {
+      "gate_id": "live",
+      "status": "not_started_by_failed_admission",
+      "provider_calls": 0,
+      "cost_usd": 0.0
+    }
+  ],
+  "profile_results": [
+    {
+      "model_id": "glm_53_flash",
+      "provider": "NextBit",
+      "planned_probes": 9,
+      "passed_probes": 9,
+      "operational_failures": 0,
+      "observed_cost_usd": 0.0008825850000000002
+    },
+    {
+      "model_id": "deepseek_v4_flash",
+      "provider": "Parasail",
+      "planned_probes": 9,
+      "passed_probes": 8,
+      "operational_failures": 1,
+      "observed_cost_usd": 0.0021027006,
+      "failure": {
+        "role": "tenant",
+        "action_schema": "housing_commit_v1",
+        "probe_index": 2,
+        "failure_type": "ValueError",
+        "failure_condition": "invalid_admission_action",
+        "semantic_pattern": "The response selected pass while also returning a non-null hold_id."
+      }
+    }
+  ],
+  "interpretation": "The adapter now preserves empty responses for application-level classification, but V6 exposed a different contract gap: the V1 JSON schema allowed a semantically invalid pass decision with a hold identifier. The failed admission blocked all Housing trajectories.",
+  "cost_note": "All 18 admission probes reported provider billing; observed cost was $0.0029852856.",
+  "stop_reason": "One DeepSeek tenant commit probe violated a cross-field action invariant; live execution was not invoked.",
+  "next_gate": "Use conditional action schemas that encode decision-dependent nullability, and wire all declared retry and timeout controls into live profiles under a new campaign identity.",
+  "local_evidence": {
+    "path": "runs/housing_model_sensitivity_openrouter_alt_v6",
+    "committed": false,
+    "contains_raw_provider_evidence": true
+  },
+  "publication_policy": {
+    "raw_provider_responses_included": false,
+    "model_reasoning_included": false,
+    "absolute_user_paths_included": false
+  }
+}
