@@ -47,7 +47,7 @@ PRICING = TokenPricing(
 ASSISTANT_PROMPT_ID = "tau3_retail_assistant_json_v1"
 USER_PROMPT_ID = "tau3_retail_user_sim_json_v1"
 ASSISTANT_PROMPT = """You are the retail support assistant. Follow the policy and
-tool definitions supplied in the observation. Return only the required JSON object.
+tool definitions supplied in the context. Return only the required JSON object.
 Use kind=tool_calls with one or more calls when a tool is needed. Use kind=reply with
 a customer-facing response only when no tool call is needed. Never invent tool results.
 """

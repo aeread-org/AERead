@@ -24,6 +24,7 @@ from aeread_families.tau3_retail.campaign import (
 from aeread.shared_runner.run.resolver import canonical_json_bytes
 from aeread_families.tau3_retail.live import build_live_setup
 from aeread_families.tau3_retail.live import PROVIDER
+from aeread_families.tau3_retail.harness import Tau3RetailJsonHarness
 from aeread_families.tau3_retail.tau2_bridge import (
     Tau2Bridge,
     Tau2BridgeUnavailableError,
@@ -45,6 +46,30 @@ def test_campaign_plan_freezes_route_panel_order_and_budget() -> None:
     assert plan["budget"]["planned_maximum_usd"] <= plan["budget"][
         "hard_total_cost_ceiling_usd"
     ]
+
+
+def test_assistant_request_places_static_policy_and_tools_before_turn_state() -> None:
+    message = Tau3RetailJsonHarness._request_message(
+        SimpleNamespace(
+            phase_id="assistant_turn",
+            seat_id="assistant",
+            role="assistant",
+            observation_schema="assistant_observation",
+            action_schema="assistant_action",
+            observation={
+                "messages": [{"role": "user", "content": "hello"}],
+                "policy": "fixed policy",
+                "tools": {"lookup": {"description": "fixed tool"}},
+                "policy_sha256": "a" * 64,
+                "tool_schema_sha256": "b" * 64,
+                "upstream_step_count": 1,
+            },
+        )
+    )
+
+    assert message.content.startswith("STATIC_CONTEXT\n")
+    assert message.content.index("fixed policy") < message.content.index("TURN_CONTEXT")
+    assert message.content.index("fixed tool") < message.content.index("hello")
 
 
 def test_publish_only_is_provider_free_digest_bound_and_repeatable(
