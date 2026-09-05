@@ -1,0 +1,24 @@
+{
+  "case_ids": [
+    "alympics.wac.reference_baseline",
+    "alympics.wac.generous_supply",
+    "alympics.wac.scarce_supply",
+    "alympics.wac.mixed_policies_a",
+    "alympics.wac.mixed_policies_a_seed2",
+    "alympics.wac.short_horizon",
+    "alympics.wac.zero_supply_degenerate"
+  ],
+  "case_sha256_by_id": {
+    "alympics.wac.generous_supply": "8fcbbc997de0347b79d4663dd755f81dfeb801c9e67bea406655b63a8b20241c",
+    "alympics.wac.mixed_policies_a": "4b30438317c614b907a68227af87df25eeaa1bc698b8329c2c1385e430d5e052",
+    "alympics.wac.mixed_policies_a_seed2": "f61d82d7693f5e0726ed1cd6727032f18f3f9c18ccb5eed57f6d68e06820fb14",
+    "alympics.wac.reference_baseline": "fd54b0769ae611b4f01b104725f6d94b46d6065671239711e0d721922c045c64",
+    "alympics.wac.scarce_supply": "4df4a03e5bc7e1326b951be119e943aab4929cd516912d8fc5422a59609a0de8",
+    "alympics.wac.short_horizon": "45487bec8996a496efd17f8072fffe1b9291d19b6114fc396af5b032ac79fb97",
+    "alympics.wac.zero_supply_degenerate": "446e5eee3d9acb027082d912d21e1b4953cf0fe400067c91a4e3b7f9781d0053"
+  },
+  "content_sha256": "aec0985d0856b594e89083d5d2577b4030bf6e02350f6e599f10faab522f8562",
+  "corpus_id": "alympics_wac_grid_v1",
+  "family_id": "alympics.wac",
+  "split": "base"
+}
