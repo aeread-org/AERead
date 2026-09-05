@@ -226,7 +226,7 @@ def build_live_setup(
         output_schema=assistant_output_schema(),
         tools=tool_names,
         seed=seed,
-        max_output_tokens=900,
+        max_output_tokens=4096,
         max_cost_usd=max_trajectory_cost_usd * 0.6,
     )
     user = _profile(
