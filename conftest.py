@@ -56,6 +56,9 @@ _BRIDGE_FAMILIES = (
 )
 
 
+def pytest_terminal_summary(terminalreporter, exitstatus, config):
+    """Turn a missing upstream fixture from a silent skip into a failed run.
+
     Some adapters' whole claim is that they reproduce a pinned upstream
     exactly. The tests that check that claim need an interpreter which can
     import the pinned upstream checkout, and when there isn't one they skip
