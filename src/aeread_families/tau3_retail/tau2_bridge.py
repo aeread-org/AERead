@@ -11,7 +11,7 @@ hit at import time in the foundation stage).
 
 Rather than reimplement any tool body, database mutation, or schema
 derivation -- forbidden outright by
-``docs/tau3_retail_adapter_spec.md`` -- this module shells out, once per
+``docs/families/tau3-retail/adapter_spec.md`` -- this module shells out, once per
 call, to a small self-contained driver script (``tau2_bridge_driver.py``)
 run under a SEPARATE, already-provisioned Python interpreter that has the
 upstream runtime dependencies installed. The driver always imports tau2
@@ -98,7 +98,7 @@ def discover_bridge_python(*, upstream_root: Path | str | None = None) -> Path:
         "a pre-provisioned venv with "
         "docstring_parser/loguru/deepdiff/python-dotenv/addict installed. "
         "AERead's own venv intentionally does not carry tau2-bench's "
-        "runtime dependencies -- see docs/tau3_retail_adapter_spec.md."
+        "runtime dependencies -- see docs/families/tau3-retail/adapter_spec.md."
     )
 
 

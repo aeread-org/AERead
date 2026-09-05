@@ -1,0 +1,144 @@
+{
+  "schema_version": "aeread.housing_population_campaign/0.1",
+  "campaign_id": "housing_population_crossplay_v0",
+  "claim_status": "development_qualification",
+  "question": "How do GLM 5.3 Flash and DeepSeek V4 Flash perform as homogeneous tenant populations across a frozen landlord panel?",
+  "primary_estimand": "live_opponent_mean_within_case_score",
+  "primary_contrast": "glm_53_flash_minus_deepseek_v4_flash",
+  "independent_cluster": "world_seed",
+  "environment": {
+    "family": "housing_v1",
+    "tenants": 6,
+    "listings": 4,
+    "rounds": 4,
+    "common_weight": 0.6
+  },
+  "controls": {
+    "harness": "minimal_chat/1.0",
+    "tools": "disabled",
+    "memory": "disabled",
+    "reasoning_effort": "low",
+    "temperature": 0.0,
+    "top_p": 1.0,
+    "max_output_tokens": 4096,
+    "timeout_seconds": 120.0,
+    "sdk_retries": 0,
+    "max_action_attempts": 4,
+    "retryable_conditions": [
+      "length",
+      "rate_limit",
+      "provider_5xx",
+      "empty_response"
+    ],
+    "tenant_inference_seed_base": 87001,
+    "landlord_inference_seed_base": 97001,
+    "condition_order": "rotate_by_world"
+  },
+  "models": {
+    "glm_53_flash": {
+      "requested_model": "z-ai/glm-5.3-flash",
+      "canonical_model": "z-ai/glm-5.3-flash-20260826",
+      "provider": "DeepInfra",
+      "quantization": "fp8",
+      "tenant_profile_id": "housing_glm_53_flash_tenant_v0",
+      "landlord_profile_id": "housing_glm_53_flash_landlord_v0"
+    },
+    "deepseek_v4_flash": {
+      "requested_model": "deepseek/deepseek-v4-flash-0731",
+      "canonical_model": "deepseek/deepseek-v4-flash-20260731",
+      "provider": "DeepInfra",
+      "quantization": "fp8",
+      "tenant_profile_id": "housing_deepseek_v4_flash_tenant_v0",
+      "landlord_profile_id": "housing_deepseek_v4_flash_landlord_v0"
+    }
+  },
+  "opponent_panel": {
+    "live_opponents": [
+      "glm_53_flash",
+      "deepseek_v4_flash"
+    ],
+    "live_weights": {
+      "glm_53_flash": 0.5,
+      "deepseek_v4_flash": 0.5
+    },
+    "scripted_anchor": "housing_scripted_landlord_v1",
+    "ranking_rule": "live_opponent_weighted_mean_only",
+    "scripted_and_self_play_reporting": "separate"
+  },
+  "conditions": [
+    {
+      "condition_id": "glm_53_flash__vs__scripted",
+      "subject": "glm_53_flash",
+      "opponent": "scripted",
+      "evaluation_kind": "controlled"
+    },
+    {
+      "condition_id": "glm_53_flash__vs__glm_53_flash",
+      "subject": "glm_53_flash",
+      "opponent": "glm_53_flash",
+      "evaluation_kind": "self_play"
+    },
+    {
+      "condition_id": "glm_53_flash__vs__deepseek_v4_flash",
+      "subject": "glm_53_flash",
+      "opponent": "deepseek_v4_flash",
+      "evaluation_kind": "cross_play"
+    },
+    {
+      "condition_id": "deepseek_v4_flash__vs__scripted",
+      "subject": "deepseek_v4_flash",
+      "opponent": "scripted",
+      "evaluation_kind": "controlled"
+    },
+    {
+      "condition_id": "deepseek_v4_flash__vs__glm_53_flash",
+      "subject": "deepseek_v4_flash",
+      "opponent": "glm_53_flash",
+      "evaluation_kind": "cross_play"
+    },
+    {
+      "condition_id": "deepseek_v4_flash__vs__deepseek_v4_flash",
+      "subject": "deepseek_v4_flash",
+      "opponent": "deepseek_v4_flash",
+      "evaluation_kind": "self_play"
+    }
+  ],
+  "full_trajectory": {
+    "world_seeds": [
+      444697508
+    ],
+    "replicates": 1,
+    "cost_ceiling_usd": 1.0
+  },
+  "variance_pilot": {
+    "world_seeds": [
+      1493344152,
+      123059921,
+      1673936168,
+      2022129837,
+      286357134,
+      332279507,
+      863437237,
+      2093629483,
+      1099903357,
+      416530828,
+      1138827873,
+      1404331776,
+      933899039,
+      2077219759,
+      563640353,
+      1147443280
+    ],
+    "replicates": 2,
+    "minimum_meaningful_effect": 0.05,
+    "alpha": 0.05,
+    "power": 0.8,
+    "minimum_confirmatory_worlds": 30,
+    "maximum_confirmatory_worlds": 100,
+    "attrition_fraction": 0.1,
+    "cost_ceiling_usd": 10.0,
+    "winner_claim_allowed": false
+  },
+  "missingness": "typed_operational_missingness_reported_separately",
+  "stopping_rule": "stop_on_route_drift_hidden_retry_replay_failure_incomplete_cost_or_stage_cost_ceiling"
+}

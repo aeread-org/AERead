@@ -9,7 +9,7 @@ from types import MappingProxyType
 
 import pytest
 
-from aeread.shared_runner.execution import (
+from aeread.shared_runner.task.execution import (
     CanonicalResponse,
     ClaudeCodePrintClient,
     ConcurrentEvidenceWriterError,
@@ -26,9 +26,9 @@ from aeread.shared_runner.execution import (
     ToolExecutor,
     ToolFailure,
 )
-from aeread.shared_runner.harness import CanonicalMessage, NativeToolCall, ToolSchema
-from aeread.shared_runner.resolver import PlanCell, case_content_sha256
-from aeread.shared_runner.scheduler import (
+from aeread.shared_runner.model_call.harness import CanonicalMessage, NativeToolCall, ToolSchema
+from aeread.shared_runner.run.resolver import PlanCell, case_content_sha256
+from aeread.shared_runner.task.scheduler import (
     DecisionRequest,
     LegalityResult,
     ParseResult,
@@ -83,7 +83,7 @@ def _profile(
             },
             "runtime": {
                 "kind": "python",
-                "implementation": "aeread.shared_runner.execution",
+                "implementation": "aeread.shared_runner.task.execution",
                 "version": "0.1.0",
             },
             "tools": [],
@@ -739,11 +739,13 @@ class FakeOpenRouterCompletions:
         selected_provider: str = "DeepInfra",
         attempt: int = 1,
         include_attempts: bool = True,
+        content: object = '{"offer":7}',
     ) -> None:
         self.kwargs = None
         self.selected_provider = selected_provider
         self.attempt = attempt
         self.include_attempts = include_attempts
+        self.content = content
 
     async def create(self, **kwargs):
         self.kwargs = kwargs
@@ -780,7 +782,7 @@ class FakeOpenRouterCompletions:
                 {
                     "index": 0,
                     "finish_reason": "stop",
-                    "message": {"role": "assistant", "content": '{"offer":7}'},
+                    "message": {"role": "assistant", "content": self.content},
                 }
             ],
             "usage": {
@@ -925,6 +927,36 @@ def test_openrouter_adapter_serializes_a_frozen_schema_as_plain_json() -> None:
     json.dumps(completions.kwargs)
 
 
+def test_openrouter_adapter_preserves_empty_completion_for_visible_retry() -> None:
+    completions = FakeOpenRouterCompletions(content=None)
+    sdk = SimpleNamespace(chat=SimpleNamespace(completions=completions))
+    client = OpenRouterChatClient(sdk_client=sdk)
+
+    result = asyncio.run(client.complete(_openrouter_request()))
+
+    assert result.output_text == ""
+    assert result.resolved_model == "deepseek/deepseek-v4-flash-20260731"
+    assert result.input_tokens == 123
+    assert result.output_tokens == 45
+    assert result.cost_usd == pytest.approx(0.00001726)
+
+
+def test_openrouter_adapter_preserves_malformed_model_output_and_exact_usage() -> None:
+    completions = FakeOpenRouterCompletions(content='{"offer":')
+    sdk = SimpleNamespace(chat=SimpleNamespace(completions=completions))
+    client = OpenRouterChatClient(sdk_client=sdk)
+
+    result = asyncio.run(client.complete(_openrouter_request()))
+
+    assert result.output_text == '{"offer":'
+    assert result.resolved_model == "deepseek/deepseek-v4-flash-20260731"
+    assert result.input_tokens == 123
+    assert result.cached_input_tokens == 7
+    assert result.output_tokens == 45
+    assert result.cost_usd == pytest.approx(0.00001726)
+    assert result.raw_response["choices"][0]["message"]["content"] == '{"offer":'
+
+
 def test_openrouter_adapter_omits_unavailable_sampling_controls() -> None:
     completions = FakeOpenRouterCompletions()
     sdk = SimpleNamespace(chat=SimpleNamespace(completions=completions))
@@ -935,6 +967,18 @@ def test_openrouter_adapter_omits_unavailable_sampling_controls() -> None:
 
     assert "temperature" not in completions.kwargs
     assert "top_p" not in completions.kwargs
+
+
+def test_openrouter_adapter_omits_absent_reasoning_controls() -> None:
+    completions = FakeOpenRouterCompletions()
+    sdk = SimpleNamespace(chat=SimpleNamespace(completions=completions))
+    client = OpenRouterChatClient(sdk_client=sdk)
+    request = replace(_openrouter_request(), reasoning_effort=None).with_computed_hash()
+
+    asyncio.run(client.complete(request))
+
+    assert "reasoning" not in completions.kwargs["extra_body"]
+    assert "provider" in completions.kwargs["extra_body"]
 
 
 def test_openrouter_adapter_rejects_an_unpinned_selected_provider() -> None:
@@ -985,6 +1029,33 @@ def test_openrouter_adapter_rejects_choice_level_provider_error() -> None:
 
     assert caught.value.condition == "provider_5xx"
     assert caught.value.retryable is True
+
+
+def test_openrouter_adapter_classifies_embedded_429_as_retryable_rate_limit() -> None:
+    class RateLimitedCompletions:
+        async def create(self, **_kwargs):
+            raw = {
+                "error": {
+                    "code": 429,
+                    "message": "upstream provider shared pool is busy",
+                    "metadata": {
+                        "retry_after_seconds": 30,
+                        "headers": {"Retry-After": "30"},
+                    },
+                }
+            }
+            return SimpleNamespace(model_dump=lambda mode: raw)
+
+    sdk = SimpleNamespace(chat=SimpleNamespace(completions=RateLimitedCompletions()))
+    client = OpenRouterChatClient(sdk_client=sdk)
+
+    with pytest.raises(ProviderFailure, match="shared pool") as caught:
+        asyncio.run(client.complete(_openrouter_request()))
+
+    assert caught.value.condition == "rate_limit"
+    assert caught.value.retryable is True
+    assert caught.value.status_code == 429
+    assert caught.value.retry_after_seconds == 30
 
 
 def test_openrouter_adapter_requires_key_before_constructing_default_sdk(
@@ -1137,6 +1208,24 @@ def test_openrouter_adapter_translates_native_messages_and_tools_preserving_call
     assert result.output_text == ""
     assert result.finish_reason == "tool_calls"
     assert result.resolved_model == "deepseek/deepseek-v4-flash-20260731"
+
+
+def test_openrouter_native_adapter_omits_absent_reasoning_controls() -> None:
+    completions = FakeOpenRouterNativeCompletions()
+    sdk = SimpleNamespace(chat=SimpleNamespace(completions=completions))
+    client = OpenRouterChatClient(sdk_client=sdk)
+    request = replace(
+        _openrouter_request(),
+        output_schema=None,
+        messages=(CanonicalMessage(role="user", content="please act"),),
+        tools=(),
+        reasoning_effort=None,
+    ).with_computed_hash()
+
+    asyncio.run(client.complete(request))
+
+    assert "reasoning" not in completions.kwargs["extra_body"]
+    assert "provider" in completions.kwargs["extra_body"]
 
 
 def test_openrouter_adapter_leaves_the_text_path_untouched_when_messages_is_none() -> None:
@@ -1491,7 +1580,7 @@ def test_a_declared_reasoning_budget_reaches_the_wire() -> None:
     another -- the shape of a treatment that silently fails to be delivered.
     """
 
-    from aeread.shared_runner.execution import _reasoning_block
+    from aeread.shared_runner.task.execution import _reasoning_block
 
     declared = ProviderRequest(
         provider_call_id="provider_call_fixture",
@@ -1523,7 +1612,7 @@ def test_native_request_fields_bind_the_request_hash() -> None:
     text-only requests must still hash exactly as before.
     """
 
-    from aeread.shared_runner.harness import CanonicalMessage
+    from aeread.shared_runner.model_call.harness import CanonicalMessage
 
     def _request(**overrides):
         base = dict(
@@ -1573,7 +1662,7 @@ def test_protocol_records_serialize_their_full_current_shape() -> None:
     measured baseline and any accidental drift fails here first.
     """
 
-    from aeread.shared_runner.resolver import canonical_json_bytes
+    from aeread.shared_runner.run.resolver import canonical_json_bytes
 
     result = ProviderResult(
         response_id="response_fixture",
