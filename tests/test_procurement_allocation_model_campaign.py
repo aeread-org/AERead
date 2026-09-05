@@ -1,0 +1,732 @@
+from __future__ import annotations
+
+import asyncio
+import hashlib
+import json
+from pathlib import Path
+
+import pytest
+
+import aeread_families.procurement_allocation.model_campaign as campaign_module
+import aeread.shared_runner.task.execution as execution_module
+from aeread.shared_runner.task.execution import ProviderFailure, ProviderResult
+
+from aeread_families.procurement_allocation.model_campaign import (
+    CAMPAIGN_ID,
+    GLM_MORPH_CANDIDATE,
+    conservative_cost_ceiling,
+    derive_inference_seeds,
+    planned_model_qualification,
+    publish_model_qualification,
+    run_model_qualification,
+    summarize_rows,
+)
+from aeread_families.procurement_allocation.case_matrix import (
+    CASE_SLUGS,
+    CASE_VARIANCE_PATHS,
+    GROUNDING_SELECTION,
+    build_case_matrix,
+    validate_grounding_snapshot,
+)
+from aeread_families.procurement_allocation.environment import (
+    solve_full_information_upper_bound,
+)
+from aeread_families.procurement_allocation.runner import (
+    CASE_PATH,
+    SequenceResponseProvider,
+)
+from aeread_families.procurement_grounding.bakeoff import OPEN_WEIGHT_CANDIDATES
+
+
+def _response(action: dict) -> str:
+    return json.dumps(action, sort_keys=True)
+
+
+def _optimal_script() -> list[str]:
+    negotiated_terms = {
+        "switch_reliable": (0.082, 30),
+        "oled_reliable": (1.72, 45),
+        "charger_reliable": (0.55, 45),
+    }
+    actions: list[dict] = []
+    for supplier_id, (unit_price, refund_window) in negotiated_terms.items():
+        actions.extend(
+            [
+                {
+                    "action": "request_quote",
+                    "supplier_id": supplier_id,
+                    "message": "Please issue a formal quote with full commercial terms.",
+                },
+                {
+                    "action": "counter_offer",
+                    "supplier_id": supplier_id,
+                    "offer_id": f"offer_{supplier_id}_v1",
+                    "proposal": {
+                        "unit_price_usd": unit_price,
+                        "moq": 10,
+                        "payment_terms_days": 60,
+                        "refund_window_days": refund_window,
+                        "return_freight_payer": "supplier",
+                    },
+                    "message": "Please formalize these commercial terms.",
+                },
+                {
+                    "action": "request_sample",
+                    "supplier_id": supplier_id,
+                    "message": "Please provide the exact-variant qualification sample.",
+                },
+            ]
+        )
+    actions.append(
+        {
+            "action": "submit_award",
+            "award_lines": [
+                {"offer_id": f"offer_{supplier_id}_v2", "quantity": 20}
+                for supplier_id in negotiated_terms
+            ],
+        }
+    )
+    return [_response(action) for action in actions]
+
+
+def test_model_plan_holds_harness_fixed_and_separates_case_variance() -> None:
+    seeds = derive_inference_seeds(master_seed=20260902, count=3)
+    plan = planned_model_qualification(
+        case_paths=CASE_VARIANCE_PATHS,
+        inference_seeds=seeds,
+        max_parallel_cells=2,
+    )
+
+    assert len(seeds) == len(set(seeds)) == 3
+    assert seeds == derive_inference_seeds(master_seed=20260902, count=3)
+    assert plan["campaign_id"] == CAMPAIGN_ID
+    assert plan["independent_case_count"] == 6
+    assert plan["planned_trajectory_count"] == 18
+    assert plan["harness"] == "minimal_chat/1.0 (fixed transport; not an estimand)"
+    assert plan["provider"] == "Morph"
+    assert plan["revision"] == "z-ai/glm-5.3-flash-20260826"
+    assert plan["pricing_id"] == "openrouter_2026-09-02_glm53_flash_morph"
+    assert plan["prompt"]["prompt_id"] == "procurement_allocation_prompt_v1"
+    assert plan["prompt"]["treatment_id"] == "unscaffolded_control"
+    assert plan["plan_sha256"]
+    assert plan["conservative_cost_ceiling_usd"] == pytest.approx(
+        conservative_cost_ceiling(case_count=6, seed_count=3)
+    )
+
+
+def test_model_plan_can_bind_all_route_dependent_fields_to_another_candidate() -> None:
+    mistral = next(
+        candidate
+        for candidate in OPEN_WEIGHT_CANDIDATES
+        if candidate.candidate_id == "mistral_small4"
+    )
+    plan = planned_model_qualification(
+        case_paths=(CASE_PATH,),
+        inference_seeds=(231,),
+        campaign_id="procurement_allocation_mistral_test",
+        candidate=mistral,
+    )
+
+    assert plan["model"] == mistral.route.model
+    assert plan["revision"] == mistral.route.revision
+    assert plan["provider"] == mistral.route.route_provider
+    assert plan["pricing_id"] == mistral.route.pricing.pricing_id
+    assert plan["conservative_cost_ceiling_usd"] == pytest.approx(
+        conservative_cost_ceiling(case_count=1, seed_count=1, candidate=mistral)
+    )
+
+
+def test_model_plan_binds_explicit_per_trajectory_cost_cap() -> None:
+    default_plan = planned_model_qualification(
+        case_paths=(CASE_PATH,), inference_seeds=(231,)
+    )
+    capped_plan = planned_model_qualification(
+        case_paths=(CASE_PATH,),
+        inference_seeds=(231,),
+        max_cost_usd_per_trajectory=0.02,
+    )
+
+    assert default_plan["max_cost_usd_per_trajectory"] == pytest.approx(0.03)
+    assert capped_plan["max_cost_usd_per_trajectory"] == pytest.approx(0.02)
+    assert default_plan["plan_sha256"] != capped_plan["plan_sha256"]
+
+
+@pytest.mark.parametrize("value", [0.0, -0.01, float("inf"), float("nan"), True])
+def test_model_plan_rejects_invalid_per_trajectory_cost_cap(value: float) -> None:
+    with pytest.raises(ValueError, match="max_cost_usd_per_trajectory"):
+        planned_model_qualification(
+            case_paths=(CASE_PATH,),
+            inference_seeds=(231,),
+            max_cost_usd_per_trajectory=value,
+        )
+
+
+def test_case_matrix_is_grounded_distinct_and_objectively_scorable() -> None:
+    grounding = validate_grounding_snapshot()
+    cases = build_case_matrix()
+
+    assert tuple(case["case_id"].rsplit(".", 1)[-1] for case in cases) == CASE_SLUGS
+    assert set(grounding) == set(GROUNDING_SELECTION)
+    assert len({tuple(case["payload"]["objective"]["bom"]) for case in cases}) == 6
+    assert len({case["world_seed"] for case in cases}) == 6
+    for path, raw in zip(CASE_VARIANCE_PATHS, cases, strict=True):
+        assert json.loads(path.read_text(encoding="utf-8")) == raw
+        case = campaign_module.load_case(path)
+        bound = solve_full_information_upper_bound(case.payload)
+        assert (
+            bound.contribution_margin_usd > case.payload["objective"]["defer_value_usd"]
+        )
+        assert bound.actions_required <= 10
+
+
+def test_summary_keeps_provider_failure_out_of_procurement_means() -> None:
+    completed = {
+        "case_id": "case-a",
+        "inference_seed": 1,
+        "status": "completed",
+        "feasible": True,
+        "completed_kits": 19,
+        "contribution_margin_usd": 12.5,
+        "regret_to_upper_bound_usd": 3.5,
+        "violations": [],
+        "action_trace": [
+            {"action": "request_quote", "supplier_id": "supplier-a"},
+            {"action": "submit_award"},
+        ],
+        "elapsed_seconds": 2.0,
+        "cost_usd": 0.001,
+        "cached_input_tokens": 100,
+        "receipt_replayed": True,
+    }
+    failed = {
+        "case_id": "case-a",
+        "inference_seed": 2,
+        "status": "operational_failure",
+        "failure_condition": "rate_limit",
+    }
+
+    summary = summarize_rows(
+        (completed, failed),
+        planned_trajectory_count=2,
+        independent_case_count=1,
+    )
+
+    assert summary["reliability"] == pytest.approx(0.5)
+    assert summary["operational_failure_count"] == 1
+    assert summary["unattempted_trajectory_count"] == 0
+    assert summary["mean_contribution_margin_usd"] == pytest.approx(12.5)
+    assert summary["feasible_rate_among_completed"] == pytest.approx(1.0)
+    assert summary["readiness"] == {
+        "execution_qualified": False,
+        "case_variance_ready": False,
+        "case_variance_minimum_independent_cases": 6,
+    }
+
+
+def test_provider_free_model_campaign_replays_and_resumes(tmp_path: Path) -> None:
+    run_root = tmp_path / "runs" / CAMPAIGN_ID / "attempt_001"
+    providers: list[SequenceResponseProvider] = []
+
+    def provider_factory() -> SequenceResponseProvider:
+        provider = SequenceResponseProvider(_optimal_script())
+        providers.append(provider)
+        return provider
+
+    def preflight(_candidate) -> dict:
+        return {
+            "route_verified": True,
+            "model": GLM_MORPH_CANDIDATE.route.revision,
+            "provider": "Morph",
+        }
+
+    artifact = asyncio.run(
+        run_model_qualification(
+            run_root=run_root,
+            case_paths=(CASE_PATH,),
+            inference_seeds=(231,),
+            max_spend_usd=0.02,
+            max_parallel_cells=1,
+            provider_factory=provider_factory,
+            preflight_fn=preflight,
+        )
+    )
+
+    assert len(providers) == 1
+    assert providers[0].exhausted
+    assert artifact["summary"]["readiness"] == {
+        "execution_qualified": True,
+        "case_variance_ready": False,
+        "case_variance_minimum_independent_cases": 6,
+    }
+    assert artifact["rows"][0]["feasible"] is True
+    assert artifact["rows"][0]["completed_kits"] == 19
+    assert artifact["rows"][0]["receipt_replayed"] is True
+    assert (run_root / "model_plan.json").is_file()
+    assert (run_root / "summary.json").is_file()
+
+    evidence_root = tmp_path / "evidence" / CAMPAIGN_ID
+    published = publish_model_qualification(
+        run_root=run_root,
+        publication_root=evidence_root,
+        supplemental_reports={"reports/paired_invariance.json": {"paired": True}},
+    )
+    assert (evidence_root / "README.md").is_file()
+    assert (evidence_root / "publication_manifest.json").is_file()
+    assert (evidence_root / "reports" / "qualification.json").is_file()
+    assert (evidence_root / "reports" / "paired_invariance.json").is_file()
+    assert (evidence_root / "tables" / "fact_manifest.json").is_file()
+    assert published["review"]["rows"] == artifact["rows"]
+    assert "reports/paired_invariance.json" in published["manifest"]["artifacts"]
+    serialized = (evidence_root / "reports" / "qualification.json").read_text()
+    assert "raw_response" not in serialized
+    assert "OPENROUTER_API_KEY" not in serialized
+    assert "event logs" in serialized
+    assert published["review"]["publisher_implementation"]["module"] == (
+        "aeread_families.procurement_allocation.model_campaign"
+    )
+    assert published["review"]["publisher_implementation"]["source_sha256"] == (
+        hashlib.sha256(Path(campaign_module.__file__).read_bytes()).hexdigest()
+    )
+
+    def should_not_run():
+        raise AssertionError("a sealed result must not call the provider on resume")
+
+    resumed = asyncio.run(
+        run_model_qualification(
+            run_root=run_root,
+            case_paths=(CASE_PATH,),
+            inference_seeds=(231,),
+            max_spend_usd=0.02,
+            max_parallel_cells=1,
+            resume=True,
+            provider_factory=should_not_run,
+            preflight_fn=lambda _candidate: should_not_run(),
+        )
+    )
+    assert resumed["rows"] == artifact["rows"]
+    assert resumed["preflight"] == artifact["preflight"]
+
+
+def test_model_campaign_batches_only_missing_rows_without_selective_retry(
+    tmp_path: Path,
+) -> None:
+    run_root = tmp_path / "runs" / CAMPAIGN_ID / "batched_attempt"
+    providers: list[SequenceResponseProvider] = []
+
+    def provider_factory() -> SequenceResponseProvider:
+        provider = SequenceResponseProvider(
+            (_response({"action": "defer", "reason": "batch boundary test"}),)
+        )
+        providers.append(provider)
+        return provider
+
+    preflight = lambda _candidate: {"route_verified": True}
+    first = asyncio.run(
+        run_model_qualification(
+            run_root=run_root,
+            case_paths=(CASE_PATH,),
+            inference_seeds=(231, 232),
+            max_new_trajectories=1,
+            provider_factory=provider_factory,
+            preflight_fn=preflight,
+        )
+    )
+
+    assert first["summary"]["completed_trajectory_count"] == 1
+    assert first["summary"]["operational_failure_count"] == 0
+    assert first["summary"]["unattempted_trajectory_count"] == 1
+    assert first["summary"]["readiness"]["execution_qualified"] is False
+
+    second = asyncio.run(
+        run_model_qualification(
+            run_root=run_root,
+            case_paths=(CASE_PATH,),
+            inference_seeds=(231, 232),
+            max_new_trajectories=1,
+            provider_factory=provider_factory,
+            preflight_fn=preflight,
+            resume=True,
+        )
+    )
+
+    assert len(providers) == 2
+    assert second["summary"]["completed_trajectory_count"] == 2
+    assert second["summary"]["operational_failure_count"] == 0
+    assert second["summary"]["unattempted_trajectory_count"] == 0
+    assert second["summary"]["readiness"]["execution_qualified"] is True
+
+
+def test_malformed_model_output_is_scored_not_operational_missingness(
+    tmp_path: Path,
+) -> None:
+    run_root = tmp_path / "runs" / CAMPAIGN_ID / "malformed_model_output"
+
+    class MalformedOutputProvider:
+        async def complete(self, request):
+            return ProviderResult(
+                response_id="malformed_fixture",
+                requested_model=request.model,
+                resolved_model=request.revision or request.model,
+                output_text='{"action":',
+                finish_reason="stop",
+                input_tokens=123,
+                cached_input_tokens=7,
+                output_tokens=45,
+                cost_usd=0.00001726,
+                raw_response={"fixture": True, "content": '{"action":'},
+            )
+
+    artifact = asyncio.run(
+        run_model_qualification(
+            run_root=run_root,
+            case_paths=(CASE_PATH,),
+            inference_seeds=(231,),
+            max_parallel_cells=1,
+            provider_factory=MalformedOutputProvider,
+            preflight_fn=lambda _candidate: {"route_verified": True},
+        )
+    )
+
+    row = artifact["rows"][0]
+    assert row["status"] == "completed"
+    assert row["decision"] == "failed"
+    assert row["termination_reason"] == "invalid_action"
+    assert row["violations"] == ["malformed_json"]
+    assert row["action_trace"] == [
+        {"ordinal": 1, "status": "agent_action_failure", "action": "unparseable"}
+    ]
+    assert row["provider_call_count"] == 1
+    assert row["input_tokens"] == 123
+    assert row["cached_input_tokens"] == 7
+    assert row["output_tokens"] == 45
+    assert row["cost_usd"] == pytest.approx(0.00001726)
+    assert row["cost_accounting"] == "exact"
+    assert artifact["summary"]["completed_trajectory_count"] == 1
+    assert artifact["summary"]["operational_failure_count"] == 0
+
+
+def test_campaign_aborts_after_first_operational_failure_and_cannot_resume(
+    tmp_path: Path,
+) -> None:
+    run_root = tmp_path / "runs" / CAMPAIGN_ID / "attempt_001"
+    providers = []
+
+    class RateLimitedProvider:
+        async def complete(self, _request):
+            raise ProviderFailure(
+                "rate_limit", "upstream overloaded", retryable=True, status_code=429
+            )
+
+    def provider_factory():
+        provider = RateLimitedProvider()
+        providers.append(provider)
+        return provider
+
+    artifact = asyncio.run(
+        run_model_qualification(
+            run_root=run_root,
+            case_paths=(CASE_PATH,),
+            inference_seeds=(231, 232),
+            max_spend_usd=0.03,
+            max_parallel_cells=1,
+            abort_on_operational_failure=True,
+            provider_factory=provider_factory,
+            preflight_fn=lambda _candidate: {"route_verified": True},
+        )
+    )
+
+    assert len(providers) == 1
+    assert len(artifact["rows"]) == 1
+    assert artifact["rows"][0]["failure_condition"] == "rate_limit"
+    assert artifact["summary"]["operational_failure_count"] == 1
+    assert artifact["summary"]["unattempted_trajectory_count"] == 1
+    assert artifact["summary"]["readiness"]["execution_qualified"] is False
+
+    with pytest.raises(ValueError, match="fresh attempt root"):
+        asyncio.run(
+            run_model_qualification(
+                run_root=run_root,
+                case_paths=(CASE_PATH,),
+                inference_seeds=(231, 232),
+                max_spend_usd=0.03,
+                max_parallel_cells=1,
+                resume=True,
+                abort_on_operational_failure=True,
+                provider_factory=lambda: (_ for _ in ()).throw(
+                    AssertionError("provider must not run")
+                ),
+                preflight_fn=lambda _candidate: {"route_verified": True},
+            )
+        )
+
+
+def test_declared_runner_retry_recovers_429_and_remains_visible(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    run_root = tmp_path / "runs" / "procurement_retry_v1" / "attempt_001"
+
+    waits: list[float] = []
+
+    async def no_wait(seconds: float) -> None:
+        waits.append(seconds)
+        return None
+
+    monkeypatch.setattr(execution_module.asyncio, "sleep", no_wait)
+
+    class RetryThenScriptProvider:
+        def __init__(self) -> None:
+            self.calls = 0
+            self.delegate = SequenceResponseProvider(_optimal_script())
+
+        async def complete(self, request):
+            self.calls += 1
+            if self.calls == 1:
+                raise ProviderFailure(
+                    "rate_limit",
+                    "synthetic shared pool limit",
+                    retryable=True,
+                    status_code=429,
+                    retry_after_seconds=30,
+                )
+            return await self.delegate.complete(request)
+
+    provider = RetryThenScriptProvider()
+    artifact = asyncio.run(
+        run_model_qualification(
+            run_root=run_root,
+            case_paths=(CASE_PATH,),
+            inference_seeds=(231,),
+            max_spend_usd=0.03,
+            max_parallel_cells=1,
+            campaign_id="procurement_retry_v1",
+            abort_on_operational_failure=True,
+            provider_factory=lambda: provider,
+            preflight_fn=lambda _candidate: {"route_verified": True},
+            max_action_attempts=3,
+            retryable_conditions=("rate_limit", "provider_5xx"),
+            retry_backoff="exponential_jitter_v1",
+        )
+    )
+
+    row = artifact["rows"][0]
+    assert row["status"] == "completed"
+    assert row["receipt_replayed"] is True
+    assert row["runner_retry_count"] == 1
+    assert row["retry_condition_counts"] == {"rate_limit": 1}
+    assert row["provider_call_count"] == provider.calls
+    assert artifact["summary"]["runner_retry_count"] == 1
+    assert artifact["summary"]["retry_condition_counts"] == {"rate_limit": 1}
+    assert waits == [30]
+    assert artifact["plan"]["retry_policy"] == {
+        "owner": "shared_runner",
+        "max_action_attempts": 3,
+        "retryable_conditions": ["rate_limit", "provider_5xx"],
+        "retry_backoff": "exponential_jitter_v1",
+        "retry_base_seconds": 2.0,
+        "retry_after_max_seconds": 60.0,
+        "session_mode": "restart",
+        "sdk_retries": 0,
+        "cost_boundary": "retry only known-zero-cost provider failures",
+    }
+
+
+def test_declared_retry_base_controls_missing_retry_after_delay(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    waits: list[float] = []
+
+    async def no_wait(seconds: float) -> None:
+        waits.append(seconds)
+
+    monkeypatch.setattr(execution_module.asyncio, "sleep", no_wait)
+
+    class RetryThenScriptProvider:
+        def __init__(self) -> None:
+            self.calls = 0
+            self.delegate = SequenceResponseProvider(_optimal_script())
+
+        async def complete(self, request):
+            self.calls += 1
+            if self.calls == 1:
+                raise ProviderFailure(
+                    "rate_limit",
+                    "synthetic throttle without Retry-After",
+                    retryable=True,
+                    status_code=429,
+                )
+            return await self.delegate.complete(request)
+
+    artifact = asyncio.run(
+        run_model_qualification(
+            run_root=tmp_path / "runs" / "procurement_retry_base_v1" / "attempt_001",
+            case_paths=(CASE_PATH,),
+            inference_seeds=(231,),
+            max_spend_usd=0.03,
+            max_parallel_cells=1,
+            campaign_id="procurement_retry_base_v1",
+            abort_on_operational_failure=True,
+            provider_factory=lambda: RetryThenScriptProvider(),
+            preflight_fn=lambda _candidate: {"route_verified": True},
+            max_action_attempts=3,
+            retryable_conditions=("rate_limit",),
+            retry_backoff="exponential_jitter_v1",
+            retry_base_seconds=15.0,
+        )
+    )
+
+    assert artifact["summary"]["completed_trajectory_count"] == 1
+    assert artifact["plan"]["retry_policy"]["retry_base_seconds"] == 15.0
+    assert len(waits) == 1
+    assert 15.0 <= waits[0] < 16.0
+
+
+def test_empty_response_retry_is_billed_and_visible(tmp_path: Path) -> None:
+    run_root = tmp_path / "runs" / "procurement_empty_retry_v1" / "attempt_001"
+
+    class EmptyThenScriptProvider:
+        def __init__(self) -> None:
+            self.calls = 0
+            self.delegate = SequenceResponseProvider(_optimal_script())
+
+        async def complete(self, request):
+            self.calls += 1
+            if self.calls == 1:
+                return ProviderResult(
+                    response_id="empty_001",
+                    requested_model=request.model,
+                    resolved_model=request.revision or request.model,
+                    output_text="",
+                    finish_reason="stop",
+                    input_tokens=100,
+                    cached_input_tokens=0,
+                    output_tokens=0,
+                    cost_usd=0.001,
+                    raw_response={"fixture": True, "empty": True},
+                )
+            return await self.delegate.complete(request)
+
+    provider = EmptyThenScriptProvider()
+    artifact = asyncio.run(
+        run_model_qualification(
+            run_root=run_root,
+            case_paths=(CASE_PATH,),
+            inference_seeds=(231,),
+            max_spend_usd=0.03,
+            max_parallel_cells=1,
+            campaign_id="procurement_empty_retry_v1",
+            abort_on_operational_failure=True,
+            provider_factory=lambda: provider,
+            preflight_fn=lambda _candidate: {"route_verified": True},
+            max_action_attempts=3,
+            retryable_conditions=("empty_response",),
+            retry_backoff="exponential_jitter_v1",
+        )
+    )
+
+    row = artifact["rows"][0]
+    assert row["status"] == "completed"
+    assert row["runner_retry_count"] == 1
+    assert row["retry_condition_counts"] == {"empty_response": 1}
+    assert row["cost_usd"] == pytest.approx(0.001)
+    assert artifact["summary"]["total_cost_usd"] == pytest.approx(0.001)
+    assert artifact["plan"]["retry_policy"]["cost_boundary"] == (
+        "retry conditions may incur billed usage; all attempts retained and charged"
+    )
+
+
+def test_failed_trajectory_retains_incurred_provider_cost(tmp_path: Path) -> None:
+    run_root = tmp_path / "runs" / "procurement_failure_cost_v1" / "attempt_001"
+
+    class QuoteThenEmptyProvider:
+        def __init__(self) -> None:
+            self.calls = 0
+
+        async def complete(self, request):
+            self.calls += 1
+            output = (
+                _response(
+                    {
+                        "action": "request_quote",
+                        "supplier_id": "switch_reliable",
+                        "message": "Issue a formal quote.",
+                    }
+                )
+                if self.calls == 1
+                else ""
+            )
+            return ProviderResult(
+                response_id=f"billed_{self.calls}",
+                requested_model=request.model,
+                resolved_model=request.revision or request.model,
+                output_text=output,
+                finish_reason="stop",
+                input_tokens=100 * self.calls,
+                cached_input_tokens=0,
+                output_tokens=20 if output else 0,
+                cost_usd=0.001 * self.calls,
+                raw_response={"fixture": True, "empty": not bool(output)},
+            )
+
+    provider = QuoteThenEmptyProvider()
+    artifact = asyncio.run(
+        run_model_qualification(
+            run_root=run_root,
+            case_paths=(CASE_PATH,),
+            inference_seeds=(231,),
+            max_spend_usd=0.03,
+            max_parallel_cells=1,
+            campaign_id="procurement_failure_cost_v1",
+            abort_on_operational_failure=True,
+            provider_factory=lambda: provider,
+            preflight_fn=lambda _candidate: {"route_verified": True},
+        )
+    )
+
+    row = artifact["rows"][0]
+    assert row["status"] == "operational_failure"
+    assert row["failure_condition"] == "empty_response"
+    assert row["provider_call_count"] == 2
+    assert row["input_tokens"] == 300
+    assert row["output_tokens"] == 20
+    assert row["cost_usd"] == pytest.approx(0.003)
+    assert row["cost_accounting"] == "exact"
+    assert artifact["summary"]["total_cost_usd"] == pytest.approx(0.003)
+    assert artifact["summary"]["operational_failure_cost_usd"] == pytest.approx(0.003)
+    assert artifact["summary"]["cost_accounting"] == "exact"
+
+
+def test_model_plan_rejects_unknown_outcome_retry_conditions() -> None:
+    with pytest.raises(ValueError, match="unsupported procurement retry"):
+        planned_model_qualification(
+            case_paths=(CASE_PATH,),
+            inference_seeds=(231,),
+            max_action_attempts=2,
+            retryable_conditions=("timeout",),
+            retry_backoff="exponential_jitter_v1",
+        )
+
+
+def test_live_output_requires_canonical_runs_root(tmp_path: Path) -> None:
+    with pytest.raises(ValueError, match="must be under the ignored runs/"):
+        asyncio.run(
+            run_model_qualification(
+                run_root=tmp_path / "evidence" / "procurement",
+                case_paths=(CASE_PATH,),
+                inference_seeds=(231,),
+                max_spend_usd=0.02,
+                provider_factory=lambda: SequenceResponseProvider(_optimal_script()),
+                preflight_fn=lambda _candidate: {"route_verified": True},
+            )
+        )
+
+    with pytest.raises(ValueError, match="must be under the ignored runs/"):
+        asyncio.run(
+            run_model_qualification(
+                run_root=tmp_path / "outputs" / "procurement",
+                case_paths=(CASE_PATH,),
+                inference_seeds=(231,),
+                max_spend_usd=0.02,
+                provider_factory=lambda: SequenceResponseProvider(_optimal_script()),
+                preflight_fn=lambda _candidate: {"route_verified": True},
+            )
+        )

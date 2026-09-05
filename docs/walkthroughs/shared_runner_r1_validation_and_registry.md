@@ -1,5 +1,9 @@
 # Walkthrough: Shared-runner R1 validation and plugin resolution
 
+> **Status (2026-09-02): Complete.** The focused R1 schema and registry contracts pass in the
+> assessed checkout. See the [roadmap implementation status](shared_runner_architecture_roadmap.md#implementation-status--2026-09-02)
+> for verification scope and downstream blockers.
+
 **Entry point:** `src/aeread/shared_runner/schemas.py:parse_authoring_record()` (line 1170)
 
 **Trigger:** Library code passes one decoded JSON, YAML, or TOML mapping to
