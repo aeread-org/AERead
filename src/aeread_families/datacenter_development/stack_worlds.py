@@ -299,7 +299,15 @@ def _default_policies(terms: Mapping[str, Mapping[str, Any]]) -> dict[str, dict[
             "counter_terms": copy.deepcopy(land),
         },
         "power": {
-            "minimums": {"contracted_capacity_kw": 1000},
+            # Two-sided bands: the utility will not supply below its own cost,
+            # and will not underwrite unbounded delay liability.
+            "minimums": {
+                "contracted_capacity_kw": 1000,
+                "interconnection_cost_cents": power["interconnection_cost_cents"],
+                "monthly_demand_charge_cents_per_kw": power[
+                    "monthly_demand_charge_cents_per_kw"
+                ],
+            },
             "maximums": {
                 "energization_month": power["energization_month"],
                 "interconnection_cost_cents": power["interconnection_cost_cents"],
@@ -308,28 +316,54 @@ def _default_policies(terms: Mapping[str, Mapping[str, Any]]) -> dict[str, dict[
                 ],
                 "energy_charge_cents_per_kwh": 0,
                 "developer_security_cents": 0,
+                "delay_liquidated_damages_cents_per_month": power[
+                    "delay_liquidated_damages_cents_per_month"
+                ],
+                "delay_liquidated_damages_cap_cents": power[
+                    "delay_liquidated_damages_cap_cents"
+                ],
             },
             "required_conditions": ["site_control", "power_commitment"],
             "counter_terms": copy.deepcopy(power),
         },
         "epc": {
-            "minimums": {"guaranteed_capacity_kw": 1000},
+            "minimums": {
+                "guaranteed_capacity_kw": 1000,
+                "contract_price_cents": epc["contract_price_cents"],
+            },
             "maximums": {
                 "guaranteed_completion_month": epc["guaranteed_completion_month"],
                 "contract_price_cents": epc["contract_price_cents"],
                 "cost_overrun_cap_cents": 0,
+                "delay_liquidated_damages_cents_per_month": epc[
+                    "delay_liquidated_damages_cents_per_month"
+                ],
+                "delay_liquidated_damages_cap_cents": epc[
+                    "delay_liquidated_damages_cap_cents"
+                ],
+                "completion_guarantee_cents": epc["completion_guarantee_cents"],
             },
             "required_conditions": ["site_control"],
             "counter_terms": copy.deepcopy(epc),
         },
         "service": {
-            "minimums": {"committed_capacity_kw": 1000},
+            "minimums": {
+                "committed_capacity_kw": 1000,
+                "sla_credit_cap_bps": service["sla_credit_cap_bps"],
+            },
             "maximums": {
                 "monthly_capacity_charge_cents_per_kw": service[
                     "monthly_capacity_charge_cents_per_kw"
                 ],
                 "take_or_pay_bps": 10_000,
                 "credit_support_cents": service["credit_support_cents"],
+                "delay_damages_cents_per_month": service[
+                    "delay_damages_cents_per_month"
+                ],
+                "delay_damages_cap_cents": service["delay_damages_cap_cents"],
+                "customer_termination_fee_cents": service[
+                    "customer_termination_fee_cents"
+                ],
             },
             "required_conditions": ["power_ready", "construction_complete"],
             "counter_terms": copy.deepcopy(service),
@@ -350,6 +384,11 @@ def _default_policies(terms: Mapping[str, Mapping[str, Any]]) -> dict[str, dict[
         },
         "loan": {
             "minimums": {
+                "spread_bps": loan["spread_bps"],
+                "origination_fee_bps": loan["origination_fee_bps"],
+                "unused_commitment_fee_bps_annual": loan[
+                    "unused_commitment_fee_bps_annual"
+                ],
                 "minimum_contracted_capacity_kw": 1000,
                 "minimum_take_or_pay_bps": loan["minimum_take_or_pay_bps"],
                 "minimum_customer_credit_support_cents": loan[
@@ -429,7 +468,6 @@ def _stratum_delayed_revenue(world: dict[str, Any], rng: random.Random) -> dict[
     # The lender accepts any maturity up to the horizon and any spread.
     trap = copy.deepcopy(terms)
     trap["loan"]["maturity_month"] = ready_month
-    trap["loan"]["spread_bps"] = 0
     return {
         "policies": policies,
         "feasible": terms,
@@ -438,9 +476,9 @@ def _stratum_delayed_revenue(world: dict[str, Any], rng: random.Random) -> dict[
         "expected_failure": "maturity_nonpayment",
         "explanation": (
             "Revenue only begins once construction and energization land in "
-            "the ready month. A zero-spread loan that matures in that same "
-            "month looks cheaper than the priced longer tenor, but the "
-            "project cannot repay principal before revenue accumulates."
+            "the ready month. A loan maturing in that same month looks like a "
+            "shorter, cheaper tenor, but the project cannot repay principal "
+            "before revenue has accumulated."
         ),
     }
 
@@ -454,13 +492,13 @@ def _stratum_restrictive_draws(world: dict[str, Any], rng: random.Random) -> dic
     terms["loan"]["origination_fee_bps"] = origination_fee_bps
     policies = _default_policies(terms)
     policies["loan"]["maximums"]["origination_fee_bps"] = origination_fee_bps
+    policies["loan"]["minimums"]["origination_fee_bps"] = origination_fee_bps
     # A larger headline commitment is fine with the lender; draws are what bind.
     policies["loan"]["maximums"]["maximum_commitment_cents"] = 400_000
     trap = copy.deepcopy(terms)
     trap["loan"]["maximum_commitment_cents"] = 400_000
     trap["loan"]["advance_rate_bps"] = trap_advance
     trap["loan"]["maximum_loan_to_cost_bps"] = trap_advance
-    trap["loan"]["origination_fee_bps"] = 0
     return {
         "policies": policies,
         "feasible": terms,
@@ -472,7 +510,7 @@ def _stratum_restrictive_draws(world: dict[str, Any], rng: random.Random) -> dic
         },
         "expected_failure": "funding_shortfall",
         "explanation": (
-            "A larger, fee-free commitment reads as generous, but the "
+            "A larger headline commitment reads as generous, but the "
             "advance-rate and loan-to-cost draw conditions fund far less of "
             "each month's spend than the priced facility, so equity runs out "
             "before completion."
@@ -527,6 +565,10 @@ def _stratum_liability_transfer(world: dict[str, Any], rng: random.Random) -> di
     policies["service"]["maximums"]["monthly_capacity_charge_cents_per_kw"] = premium_price
     policies["service"]["maximums"]["delay_damages_cents_per_month"] = delay_damages
     policies["service"]["maximums"]["delay_damages_cap_cents"] = 2 * delay_damages
+    # The customer prices the premium against a real availability commitment.
+    policies["service"]["minimums"]["sla_credit_cap_bps"] = terms["service"][
+        "sla_credit_cap_bps"
+    ]
     trap = copy.deepcopy(terms)
     trap["service"]["monthly_capacity_charge_cents_per_kw"] = premium_price
     trap["service"]["conditions_precedent"] = ["power_ready"]
@@ -567,6 +609,7 @@ def _stratum_verbal_written_divergence(world: dict[str, Any], rng: random.Random
         f"to {origination_fee_bps} bps; the advance rate and all other "
         "economics remain exactly as you proposed."
     )
+    built_undisclosed = ("advance_rate_bps", "maximum_loan_to_cost_bps")
     return {
         "policies": policies,
         "feasible": terms,
@@ -575,6 +618,7 @@ def _stratum_verbal_written_divergence(world: dict[str, Any], rng: random.Random
             "trap_advance_rate_bps": trap_advance,
             "origination_fee_bps": origination_fee_bps,
         },
+        "undisclosed_counter_fields": {"loan": list(built_undisclosed)},
         "expected_failure": "funding_shortfall",
         "explanation": (
             "A fee-free loan offer is countered with a message that claims "
@@ -643,6 +687,7 @@ def build_world(stratum: str, variant: int, rng: random.Random) -> dict[str, Any
         "terms": base["terms"],
     }
     built = STRATUM_BUILDERS[stratum](world, rng)
+    undisclosed = built.get("undisclosed_counter_fields", {})
     outside_option = {
         "developer_equity_npv_cents": -base["sunk_cents"],
         "lender_npv_cents": 0,
@@ -660,6 +705,7 @@ def build_world(stratum: str, variant: int, rng: random.Random) -> dict[str, Any
         "knobs": {**base["knobs"], **built["knobs"]},
         "expected_failure": built["expected_failure"],
         "explanation": built["explanation"],
+        "undisclosed_counter_fields": undisclosed,
     }
     assembled["mechanism"] = _verify_world(assembled)
     return assembled
@@ -685,6 +731,12 @@ def _case_document(world: Mapping[str, Any], index: int) -> dict[str, Any]:
             "total_project_npv_cents": baseline["total_project_npv_cents"],
         },
     }
+    if world.get("undisclosed_counter_fields"):
+        payload["diagnostics"] = {
+            "undisclosed_counter_fields": copy.deepcopy(
+                world["undisclosed_counter_fields"]
+            )
+        }
     DataCenterStackPlugin(SCOPE_VERSION).validate_payload(payload)
     document = {
         "spec_version": CaseManifest.SPEC_VERSION,

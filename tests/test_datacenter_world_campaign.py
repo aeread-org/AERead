@@ -26,10 +26,10 @@ def test_world_panel_design_is_paired_rotated_and_budget_bounded() -> None:
     design = build_design(contract)
 
     assert design["independent_cluster_count"] == 24
-    assert design["paired_seed_count"] == 2
-    assert design["planned_cells"] == 24 * 2 * 4 == 192
-    assert design["worst_case_declared_cost_usd"] == pytest.approx(7.2)
-    assert design["campaign_max_cost_usd"] == pytest.approx(9.0)
+    assert design["paired_seed_count"] == 1
+    assert design["planned_cells"] == 24 * 1 * 4 == 96
+    assert design["worst_case_declared_cost_usd"] == pytest.approx(4.56)
+    assert design["campaign_max_cost_usd"] == pytest.approx(4.6)
     assert design["worst_case_declared_cost_usd"] <= design["campaign_max_cost_usd"]
     assert all(cell["live_profile_count"] == 1 for cell in design["cells"])
     assert all(cell["evaluation_block_kind"] == "controlled" for cell in design["cells"])
@@ -38,7 +38,7 @@ def test_world_panel_design_is_paired_rotated_and_budget_bounded() -> None:
     pairs: dict[tuple[str, int], set[str]] = {}
     for cell in design["cells"]:
         pairs.setdefault((cell["case_id"], cell["inference_seed"]), set()).add(cell["model_id"])
-    assert len(pairs) == 48
+    assert len(pairs) == 24
     assert all(models == set(design["model_ids"]) for models in pairs.values())
 
     # Model execution order rotates with the world index.
@@ -49,9 +49,9 @@ def test_world_panel_design_is_paired_rotated_and_budget_bounded() -> None:
     assert Counter(first_by_world.values()) == {model: 6 for model in design["model_ids"]}
 
     # Cells are distinct run plans, one per world x seed x model.
-    assert len({cell["run_plan_id"] for cell in design["cells"]}) == 192
+    assert len({cell["run_plan_id"] for cell in design["cells"]}) == 96
     assert Counter(cell["stratum"] for cell in design["cells"]) == {
-        stratum: 32 for stratum in (
+        stratum: 16 for stratum in (
             "revenue_without_bankability",
             "delayed_revenue",
             "restrictive_draws",
@@ -104,7 +104,7 @@ def test_world_panel_module_invokes_cli_design(tmp_path) -> None:
     )
     design = json.loads(completed.stdout)
 
-    assert design["planned_cells"] == 192
+    assert design["planned_cells"] == 96
     assert (tmp_path / "campaign" / "design.json").is_file()
 
 
@@ -191,7 +191,7 @@ def test_world_panel_summary_separates_admission_no_agreement_and_failures() -> 
         elif cell["model_id"] == "gemini38_flash_aistudio":
             rows.append(_row(cell, npv=baseline))
         else:
-            if cell["world_index"] == 0 and cell["inference_seed"] == 41211:
+            if cell["world_index"] == 0:
                 rows.append(_row(cell, status="operational_failure"))
             else:
                 rows.append(_row(cell, reason="developer_walk", completed=False, npv=outside))
@@ -204,11 +204,11 @@ def test_world_panel_summary_separates_admission_no_agreement_and_failures() -> 
     assert glm["rankable"] is True
 
     mistral = by_model["qwen3_235b_google"]
-    assert mistral["excluded_cells"] == 8
-    assert mistral["no_agreement_cells"] == 40
-    assert mistral["no_agreement_reasons"] == {"land_negotiation_rounds_exhausted": 40}
+    assert mistral["excluded_cells"] == 4
+    assert mistral["no_agreement_cells"] == 20
+    assert mistral["no_agreement_reasons"] == {"land_negotiation_rounds_exhausted": 20}
     assert "constraint_failure:funding_shortfall" in mistral["exclusion_reasons"]
-    assert mistral["by_stratum"]["covenant_cliff"]["excluded_cells"] == 8
+    assert mistral["by_stratum"]["covenant_cliff"]["excluded_cells"] == 4
 
     gptoss = by_model["gptoss120b_coreweave"]
     assert gptoss["operational_failure_cells"] == 1

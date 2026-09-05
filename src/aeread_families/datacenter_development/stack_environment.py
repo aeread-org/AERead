@@ -67,6 +67,7 @@ COUNTERPART_BY_KEY = {
     "service": "customer",
     "loan": "lender",
 }
+OPTIONAL_AGREEMENT_KEYS = frozenset({"land_amendment"})
 AGREEMENT_TYPE_BY_KEY = {
     **{key: key for key in ("land", "power", "epc", "service", "loan")},
     "land_amendment": "land",
@@ -333,9 +334,21 @@ class DataCenterStackPlugin:
                 "scripted_developer",
                 "outside_option",
                 "baseline",
-            },
+            }
+            | ({"diagnostics"} if "diagnostics" in data else set()),
             "payload",
         )
+        diagnostics = data.get("diagnostics", {})
+        if not isinstance(diagnostics, dict):
+            raise ValueError("payload.diagnostics must be an object")
+        undisclosed = diagnostics.get("undisclosed_counter_fields", {})
+        if not isinstance(undisclosed, dict) or any(
+            key not in self.sequence
+            or not isinstance(fields, list)
+            or not all(isinstance(field, str) for field in fields)
+            for key, fields in undisclosed.items()
+        ):
+            raise ValueError("diagnostics.undisclosed_counter_fields is malformed")
         if data["scope_version"] != self.scope_version:
             raise ValueError("payload scope_version does not match the plugin")
         if not isinstance(data["scenario_id"], str) or not data["scenario_id"]:
@@ -400,6 +413,7 @@ class DataCenterStackPlugin:
             "pending_counter_terms": {key: None for key in self.sequence},
             "executed": {},
             "public_history": [],
+            "declined": [],
             "temporal_violations": [],
         }
 
@@ -529,6 +543,13 @@ class DataCenterStackPlugin:
                 _exact(value, {"decision", "message", "terms"}, "offer_action")
                 if value["decision"] == "walk" and value["message"] is None and value["terms"] is None:
                     return ParseResult.success({"decision": "walk"})
+                if value["decision"] == "decline":
+                    # Only an optional agreement may be declined; legality decides.
+                    if value["terms"] is not None:
+                        raise ValueError("declined offer must not carry terms")
+                    return ParseResult.success(
+                        {"decision": "decline", "message": value["message"]}
+                    )
                 if value["decision"] != "offer" or not isinstance(value["message"], str) or not value["message"].strip():
                     raise ValueError("malformed offer")
                 terms = _terms(key, value["terms"])
@@ -555,6 +576,10 @@ class DataCenterStackPlugin:
         if action["decision"] == "walk":
             return LegalityResult.legal_action()
         if phase.phase_id.endswith("_offer"):
+            if action["decision"] == "decline":
+                if key not in OPTIONAL_AGREEMENT_KEYS:
+                    return LegalityResult.illegal("agreement_is_not_optional")
+                return LegalityResult.legal_action()
             if state["rounds"][key] >= family_case["negotiation"]["max_rounds"][key]:
                 return LegalityResult.illegal("round_limit_exhausted")
             if key == "land_amendment":
@@ -594,6 +619,15 @@ class DataCenterStackPlugin:
             next_state["temporal_violations"].append(str(code))
             return TransitionResult(next_state, None, {"valid": False, "failure_code": code})
         action = envelope.action
+        if action["decision"] == "decline":
+            next_state["declined"].append(key)
+            next_state["public_history"].append({"phase_id": phase.phase_id, "seat_id": seat, "agreement_key": key, "decision": "decline", "offer_id": None})
+            index = self.sequence.index(key)
+            if index + 1 == len(self.sequence):
+                next_state["finished"] = True
+                next_state["termination_reason"] = "agreement_stack_executed"
+                return TransitionResult(next_state, None, {"valid": True, "decision": "decline"})
+            return TransitionResult(next_state, _phase_id(self.sequence[index + 1], "offer"), {"valid": True, "decision": "decline"})
         if action["decision"] in {"walk", "reject"}:
             next_state["finished"] = True
             next_state["termination_reason"] = f"{seat}_{action['decision']}"
@@ -667,16 +701,24 @@ class DataCenterStackPlugin:
         return _plain(state) if state["finished"] else None
 
     def outcome(self, family_case, terminal) -> dict[str, Any]:
-        completed = all(key in terminal["executed"] for key in self.sequence)
+        completed = all(
+            key in terminal["executed"]
+            for key in self.sequence
+            if key not in OPTIONAL_AGREEMENT_KEYS
+        )
         result = {
             "scope_version": self.scope_version,
             "project_completed": completed,
             "termination_reason": terminal["termination_reason"],
             "public_history": _plain(terminal["public_history"]),
             "temporal_violations": _plain(terminal["temporal_violations"]),
+            "verbal_written_mismatch": self._verbal_written_mismatch(
+                family_case, terminal
+            ),
             "binding_contract_integrity": False,
             "project_constraints_satisfied": False,
-            "amendment_precedence_valid": self.scope_version != "v2",
+            "amendment_precedence_valid": True,
+            "declined_agreements": _plain(terminal.get("declined", [])),
             "developer_equity_npv_cents": family_case["outside_option"]["developer_equity_npv_cents"],
             "lender_npv_cents": family_case["outside_option"]["lender_npv_cents"],
             "customer_npv_cents": family_case["outside_option"]["customer_npv_cents"],
@@ -690,9 +732,10 @@ class DataCenterStackPlugin:
             for key, value in terminal["executed"].items()
         }
         amendment_valid = True
-        if self.scope_version == "v2":
+        amended = self.scope_version == "v2" and "land_amendment" in executed
+        if amended:
             apply_executed_amendment(executed["land"], executed["land_amendment"])
-        land_key = "land_amendment" if self.scope_version == "v2" else "land"
+        land_key = "land_amendment" if amended else "land"
         stack = simulate_development_stack(
             ProjectFacts.from_dict(family_case["project_facts"]),
             service_agreement=executed["service"],
@@ -714,6 +757,49 @@ class DataCenterStackPlugin:
             }
         )
         return result
+
+    def _verbal_written_mismatch(
+        self, family_case: Mapping[str, Any], terminal: Mapping[str, Any]
+    ) -> dict[str, Any]:
+        """Count counters whose prose omitted a materially changed term.
+
+        Deterministic and descriptive: it never alters binding terms. A world
+        declares, outside every observation, which fields its scripted counter
+        message leaves unmentioned. `adopted` counts the agreements the
+        developer went on to execute carrying that undisclosed value.
+        """
+
+        declared = family_case.get("diagnostics", {}).get(
+            "undisclosed_counter_fields", {}
+        )
+        presented = 0
+        adopted = 0
+        for agreement_key, fields in sorted(declared.items()):
+            counters = [
+                item
+                for item in terminal["public_history"]
+                if item.get("agreement_key") == agreement_key
+                and item.get("decision") == "counter"
+            ]
+            if not counters:
+                continue
+            presented += len(counters)
+            executed = terminal["executed"].get(agreement_key)
+            if executed is None:
+                continue
+            counter_terms = counters[-1].get("terms") or {}
+            executed_terms = executed.get("terms", {})
+            if any(
+                field in counter_terms
+                and executed_terms.get(field) == counter_terms[field]
+                for field in fields
+            ):
+                adopted += 1
+        return {
+            "undisclosed_counters_presented": presented,
+            "undisclosed_counters_adopted": adopted,
+            "declared_fields": _plain(declared),
+        }
 
     def build_scorer(self, family_case) -> DataCenterDevelopmentScorer:
         return DataCenterDevelopmentScorer(family_case)

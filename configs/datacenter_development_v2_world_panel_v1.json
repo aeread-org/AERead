@@ -4,11 +4,10 @@
   "family_id": "datacenter_development_v1",
   "scope_version": "v2",
   "pack_id": "datacenter_development_v2_worlds_v1",
-  "expected_pack_sha256": "b164e5bdaadd1a1ddf2b6229d270c17ece17117c7ae54c6d66958eade66f28e3",
+  "expected_pack_sha256": "72956ed07337f383196d8424b9a41a3ab0edbf96b9432086aae40047efe1b192",
   "claim_status": "twenty_four_world_controlled_developer_paired_panel_exploratory",
   "inference_seeds": [
-    41211,
-    41212
+    41211
   ],
   "conditions": [
     "controlled_developer"
@@ -32,7 +31,7 @@
       },
       "max_prompt_price_per_million": "1.35",
       "max_completion_price_per_million": "6.75",
-      "max_cost_usd_per_live_profile": 0.06
+      "max_cost_usd_per_live_profile": 0.1
     },
     "glm53_parasail": {
       "profile_id": "datacenter_v2_glm53_parasail_world_panel_v1",
@@ -97,7 +96,7 @@
     "max_output_tokens_per_action": 6000,
     "timeout_seconds_per_action": 180.0,
     "max_cost_usd_per_live_profile": 0.03,
-    "campaign_max_cost_usd": 9.0,
+    "campaign_max_cost_usd": 4.6,
     "concurrency": 3,
     "max_concurrent_cells_per_route_provider": 1,
     "provider_cooldown_seconds_after_cell": 15.0,

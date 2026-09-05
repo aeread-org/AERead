@@ -53,6 +53,7 @@ from aeread.shared_runner.schemas import (
 
 from .measurement import implementation_refs, primary_measurement_leaf
 from .stack_environment import (
+    OPTIONAL_AGREEMENT_KEYS,
     COUNTERPART_BY_KEY,
     SCORER_ID,
     SCOPE_CONFIG,
@@ -80,7 +81,16 @@ exactly one JSON action for the current phase. In an offer phase, return decisio
 message, and every structured term. In a commit phase, copy accepted_offer_id exactly
 into offer_id and either sign or walk. Never invent an offer ID. Only complete
 structured terms and signatures over accepted offer IDs are binding. Respect explicit
-amendment precedence."""
+amendment precedence.
+
+All months are 1-based calendar indices within the project horizon; month 0 does not
+exist. Amounts are integer cents and rates are integer basis points.
+
+An amendment phase is optional. To amend, offer the complete revised terms, which must
+differ from the executed agreement in at least one field. If the executed agreement
+already suits the project, return decision "decline" with terms null, which advances to
+the next agreement without amending. Re-proposing identical terms is not a valid
+amendment."""
 COUNTERPART_PROMPT = """Apply your private policy to the latest written offer. Return
 exactly one JSON accept, counter, or reject action for the current phase. Always copy
 latest_offer.offer_id exactly into offer_id; never use a placeholder or invent an ID.
@@ -127,10 +137,13 @@ def stack_developer_output_schemas(case: CaseManifest) -> dict[str, Any]:
     for key in sequence:
         terms = case.payload["scripted_developer"][f"{key}_terms"]
         term_schema = _strict_schema_from_example(terms)
+        decisions = ["offer", "walk"]
+        if key in OPTIONAL_AGREEMENT_KEYS:
+            decisions.append("decline")
         schemas[f"datacenter_{key}_offer_v1"] = {
             "type": "object",
             "properties": {
-                "decision": {"enum": ["offer", "walk"]},
+                "decision": {"enum": decisions},
                 "message": {"type": ["string", "null"]},
                 "terms": {"anyOf": [term_schema, {"type": "null"}]},
             },

@@ -1,6 +1,6 @@
 {
   "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_004",
-  "content_sha256": "527f425de7de4877027e42a7f1d451c131ad0107b73e495e995aeda2f3ff0da6",
+  "content_sha256": "bf9784297dc937c905c6271aa21cb434124d3abe7e43fc253255f7b13c3434ab",
   "episode": {
     "max_logical_actions": 30,
     "termination": [
@@ -61,11 +61,15 @@
           ]
         },
         "maximums": {
+          "completion_guarantee_cents": 50000,
           "contract_price_cents": 280000,
           "cost_overrun_cap_cents": 0,
+          "delay_liquidated_damages_cap_cents": 30000,
+          "delay_liquidated_damages_cents_per_month": 15000,
           "guaranteed_completion_month": 3
         },
         "minimums": {
+          "contract_price_cents": 280000,
           "guaranteed_capacity_kw": 1000
         },
         "required_conditions": [
@@ -161,7 +165,10 @@
           "minimum_contracted_capacity_kw": 1000,
           "minimum_customer_credit_support_cents": 50000,
           "minimum_dscr_bps": 4000,
-          "minimum_take_or_pay_bps": 8000
+          "minimum_take_or_pay_bps": 8000,
+          "origination_fee_bps": 0,
+          "spread_bps": 0,
+          "unused_commitment_fee_bps_annual": 0
         },
         "required_conditions": [
           "site_control",
@@ -185,6 +192,8 @@
           "monthly_demand_charge_cents_per_kw": 4
         },
         "maximums": {
+          "delay_liquidated_damages_cap_cents": 20000,
+          "delay_liquidated_damages_cents_per_month": 10000,
           "developer_security_cents": 0,
           "energization_month": 3,
           "energy_charge_cents_per_kwh": 0,
@@ -192,7 +201,9 @@
           "monthly_demand_charge_cents_per_kw": 4
         },
         "minimums": {
-          "contracted_capacity_kw": 1000
+          "contracted_capacity_kw": 1000,
+          "interconnection_cost_cents": 20000,
+          "monthly_demand_charge_cents_per_kw": 4
         },
         "required_conditions": [
           "site_control",
@@ -227,13 +238,15 @@
         },
         "maximums": {
           "credit_support_cents": 100000,
+          "customer_termination_fee_cents": 0,
           "delay_damages_cap_cents": 80000,
           "delay_damages_cents_per_month": 40000,
           "monthly_capacity_charge_cents_per_kw": 150,
           "take_or_pay_bps": 10000
         },
         "minimums": {
-          "committed_capacity_kw": 1000
+          "committed_capacity_kw": 1000,
+          "sla_credit_cap_bps": 10000
         },
         "required_conditions": [
           "power_ready"
