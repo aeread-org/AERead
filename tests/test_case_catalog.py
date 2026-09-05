@@ -70,6 +70,19 @@ def test_procurement_grounding_development_case_is_discoverable() -> None:
     ]
 
 
+def test_collusion_duopoly_pilot_has_all_6_cells_and_provenance() -> None:
+    family = CASES / "collusion"
+    pilot = family / "duopoly_pilot"
+
+    assert (family / "README.md").is_file()
+    assert sorted(path.name for path in pilot.glob("collusion.duopoly.*.json")) == [
+        "collusion.duopoly.asymmetric-quality.alpha1.seed0.json",
+        "collusion.duopoly.asymmetric-quality.alpha10.seed0.json",
+        "collusion.duopoly.asymmetric-quality.alpha3p2.seed0.json",
+        "collusion.duopoly.baseline-symmetric.alpha1.seed0.json",
+        "collusion.duopoly.baseline-symmetric.alpha10.seed0.json",
+        "collusion.duopoly.baseline-symmetric.alpha3p2.seed0.json",
+    ]
 def test_procurement_allocation_development_case_is_discoverable() -> None:
     family = CASES / "procurement_allocation_v1"
 

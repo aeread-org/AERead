@@ -6,6 +6,7 @@ remain stable and comparable results keep their meaning.
 
 | Family | Status | Cases | Notes |
 |---|---|---|---|
+| Collusion | scored (milestones 1-3) | [`collusion/`](collusion/) | 6-cell repeated Bertrand-logit duopoly pilot with closed-form gold references, four measurement leaves, scripted-policy harness, and offline replay; no live-agent run yet |
 | Exchange v1 | scored + specialized | [`exchange_v1/`](exchange_v1/) | Four official v0 cases, diagnostics, and two specialized worlds |
 | GovSim | cases + environment (scorer pending) | [`govsim/`](govsim/) | 9 generated cells (3 common-pool-resource scenarios x 3 scripted policies) wrapping a pinned upstream checkout |
 | Housing v1 | generated | [`housing_v1/`](housing_v1/) | Deterministic generated worlds; no static JSON fixtures |
