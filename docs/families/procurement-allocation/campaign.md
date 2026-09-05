@@ -997,3 +997,44 @@ python -m aeread_families.procurement_allocation.pre_award_check_campaign \
   runs/procurement_allocation/procurement_allocation_glm53_flash_parasail_pre_award_check_v1/qualification_attempt_001
 ```
 
+#### Observed pre-award-check result
+
+Attempt 001 admitted the canary and completed all 72 rows in six failure-free
+checkpoints for $0.2672071875 with exact accounting and full receipt replay. The
+preregistered rule is met. Treatment-minus-V4 regret averaged over surfaces was
+-$28.15 per world with twelve-world bootstrap interval [-$56.02, -$4.58], and
+terminal feasibility rose +0.389 ([0.167, 0.611]). Labeled regret was -$29.24
+([-$56.79, -$5.92]) and opaque regret -$27.06 ([-$55.72, -$2.40]); there was no
+pass-to-fail transition on either surface, against 13 and 15 fail-to-pass.
+Completed kits moved -0.86 ([-4.31, 2.06]).
+
+The check was used in every one of the 72 rows, 83 times in total, and 51 of the 53
+submitted awards followed a clean check on identical lines. Feasible purchase
+awards rose from 39 to 53. The gains sit exactly where the decomposition and the
+worksheet campaigns located the losses: on-time-reliability worlds went from three
+infeasible awards per surface to feasible awards at or near the bound (-$122.46 per
+world), multi-unit BOM from -$117.73, and split-capacity rounding from -$68.77, in
+each case because the first check reported the unsampled line, the order-step
+violation, or the late supplier and the buyer fixed the lines before submitting.
+The payment-terms saving held (-$31.61) and the working-capital term on feasible
+awards fell to $1.10 labeled and $2.61 opaque.
+
+Two limits are visible. Fifteen rows ended in an explicit defer after a single
+failing check rather than a repaired award: all six cash-budget-counter rows, four
+sample-lead-time rows, and one each on three other worlds. A feasible defer counts
+as feasible under the preregistered rule but earns no margin, so these rows carry
+the whole bound in regret; they are the same worlds V4 also failed, which is why
+completed kits did not improve. The negotiated-MOQ world is unchanged at $12.66
+per row: a check reports feasibility, not price, so it cannot surface the MOQ
+counter the oracle uses.
+
+Support here is a development result. The treatment bundles a new action with the
+instruction to use it, the control never had the action, and the worlds are the
+ones on which the intervention was selected. What it establishes is that a
+verifier-visible pre-award check removes the quantity, sample, and service
+failures that three prompt treatments could not, at a cost of one action per row,
+and that the remaining regret is deferral under budget pressure and price
+negotiation. A confirmatory claim needs held-out worlds and, ideally, a control
+arm re-run on the same environment. The tracked bundle is
+`evidence/procurement_allocation_glm53_flash_parasail_pre_award_check_v1/`.
+
