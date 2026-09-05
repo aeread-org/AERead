@@ -741,3 +741,15 @@ campaign to a persistently unavailable shared route. The next GLM test is a fres
 attempt under the identical frozen plan in a later availability window. A different
 model or provider belongs to a separately named campaign and cannot be pooled with
 V4; it should first pass an exact-request canary and a small complete case panel.
+
+#### Risk-gate V4 rerun retired
+
+Maintainer decision 2026-09-04: the fresh V4 attempt is retired rather than
+rerun. The regret decomposition over every published GLM bundle and the two
+negotiation-worksheet treatments converged on the same limit: prompt-level gates
+move feasibility on the worlds they target and lose it elsewhere, and the remaining
+regret is quantity reasoning after a counter changes MOQ and supplier selection
+under opaque labels. The 2x2 prompt factorial would spend about $3 to measure two
+more such gates. The next procurement intervention changes the decision interface
+instead: a verifier-visible pre-award check. The V1 through V4 risk-gate audits
+remain as the operational record of the Parasail route's throttling behavior.
