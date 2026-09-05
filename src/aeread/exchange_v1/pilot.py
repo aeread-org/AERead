@@ -22,7 +22,7 @@ Usage:
   python -m aeread.exchange_v1.pilot \
       --cases cases/exchange_v1/v0/*.json \
       --agents noop random greedy google/gemini-2.5-flash \
-      --seeds 30 --workers 24 --out output/pilot_v0 [--dry-run]
+      --seeds 30 --workers 24 --out runs/pilot_v0 [--dry-run]
 """
 from __future__ import annotations
 

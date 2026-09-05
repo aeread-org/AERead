@@ -9,18 +9,18 @@ from types import MappingProxyType, SimpleNamespace
 
 import pytest
 
-from aeread.shared_runner.execution import EvidenceStore
+from aeread.shared_runner.task.execution import EvidenceStore
 from aeread.shared_runner.registry import (
     REQUIRED_FAMILY_PLUGIN_HOOKS,
     PluginRegistry,
 )
-from aeread.shared_runner.resolver import (
+from aeread.shared_runner.run.resolver import (
     PlanCell,
     canonical_json_bytes,
 )
 from aeread.shared_runner.schemas import CaseManifest
-from aeread.shared_runner.scheduler import run_episode
-from aeread.shared_runner.scheduler import SchedulerContractError
+from aeread.shared_runner.task.scheduler import run_episode
+from aeread.shared_runner.task.scheduler import SchedulerContractError
 from aeread_families.tau3_retail.environment import (
     Tau3RetailPlugin,
     family_manifest,
