@@ -51,7 +51,7 @@ from __future__ import annotations
 
 from typing import Any, Callable, Mapping
 
-from aeread.shared_runner.execution import EvidenceStore
+from aeread.shared_runner.task.execution import EvidenceStore
 
 from .cases import POLICY_IDS, SEAT_ORDER
 

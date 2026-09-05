@@ -15,7 +15,7 @@ import json
 import numpy as np
 import pytest
 
-from aeread.shared_runner.resolver import case_content_sha256
+from aeread.shared_runner.run.resolver import case_content_sha256
 from aeread.shared_runner.schemas import AuthoringValidationError, CaseManifest
 from aeread_families.alympics_wac import cases as wac_cases
 

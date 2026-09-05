@@ -19,9 +19,9 @@ from types import MappingProxyType, SimpleNamespace
 import pytest
 
 from aeread.shared_runner.measurement import MeasurementContractError
-from aeread.shared_runner.resolver import PlanCell
+from aeread.shared_runner.run.resolver import PlanCell
 from aeread.shared_runner.schemas import CaseManifest
-from aeread.shared_runner.scheduler import run_episode
+from aeread.shared_runner.task.scheduler import run_episode
 from aeread_families.alympics_wac import measurement as m
 from aeread_families.alympics_wac.cases import PERSONAS, SEAT_ORDER
 from aeread_families.alympics_wac.environment import AlympicsWacPlugin, _delegate_round

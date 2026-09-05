@@ -87,7 +87,7 @@ from aeread.shared_runner.measurement import (
     ValidityReport,
     VerifierSpec,
 )
-from aeread.shared_runner.resolver import canonical_json_bytes
+from aeread.shared_runner.run.resolver import canonical_json_bytes
 
 from .cases import STARTING_BALANCE, STARTING_HP, STARTING_NO_DRINK
 from .environment import _delegate_round

@@ -55,9 +55,9 @@ from pathlib import Path
 from types import MappingProxyType
 from typing import Any, Mapping
 
-from aeread.shared_runner.parity import ParityField, ParityReport, ParitySpec, compare_projections
-from aeread.shared_runner.resolver import PlanCell
-from aeread.shared_runner.scheduler import run_episode
+from aeread.shared_runner.analysis.parity import ParityField, ParityReport, ParitySpec, compare_projections
+from aeread.shared_runner.run.resolver import PlanCell
+from aeread.shared_runner.task.scheduler import run_episode
 from aeread.shared_runner.schemas import CaseManifest
 
 from .cases import CASE_ID_PREFIX, SEAT_ORDER
