@@ -27,9 +27,9 @@ from typing import Any
 import pytest
 
 from aeread.shared_runner.registry import PluginRegistry
-from aeread.shared_runner.resolver import PlanCell, canonical_json_bytes
+from aeread.shared_runner.run.resolver import PlanCell, canonical_json_bytes
 from aeread.shared_runner.schemas import CaseManifest
-from aeread.shared_runner.scheduler import SchedulerContractError
+from aeread.shared_runner.task.scheduler import SchedulerContractError
 from aeread_families.econagent_v1 import econagent_bridge as econagent_bridge_module
 from aeread_families.econagent_v1.econagent_bridge import (
     EconAgentBridgeUnavailableError,

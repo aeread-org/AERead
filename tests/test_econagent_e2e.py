@@ -4,7 +4,7 @@
 Every prior econagent test file (``test_econagent_environment.py``,
 ``test_econagent_measurement.py``, ``test_econagent_goldens.py``) drives an
 episode by calling ``EconAgentV1Plugin``'s own hooks directly in a hand-
-wired loop -- never through ``aeread.shared_runner.scheduler.run_episode``,
+wired loop -- never through ``aeread.shared_runner.task.scheduler.run_episode``,
 ``PluginRegistry.resolve_manifest``, or a real ``PlanCell``. This module is
 the first to run a genuine ``PluginRegistry``/``run_episode`` episode for
 this family, using the provider-free ``ScriptedEconAgentHarness`` (spec
@@ -29,9 +29,9 @@ from types import MappingProxyType
 import pytest
 
 from aeread.shared_runner.registry import PluginRegistry
-from aeread.shared_runner.resolver import PlanCell, canonical_json_bytes
+from aeread.shared_runner.run.resolver import PlanCell, canonical_json_bytes
 from aeread.shared_runner.schemas import CaseManifest
-from aeread.shared_runner.scheduler import EpisodeResult, run_episode
+from aeread.shared_runner.task.scheduler import EpisodeResult, run_episode
 from aeread_families.econagent_v1 import cases
 from aeread_families.econagent_v1.econagent_bridge import (
     EconAgentBridgeUnavailableError,

@@ -51,9 +51,9 @@ from typing import Any, Mapping
 import pytest
 
 from aeread.shared_runner.registry import PluginRegistry
-from aeread.shared_runner.resolver import PlanCell
+from aeread.shared_runner.run.resolver import PlanCell
 from aeread.shared_runner.schemas import CaseManifest
-from aeread.shared_runner.scheduler import SchedulerContractError, run_episode
+from aeread.shared_runner.task.scheduler import SchedulerContractError, run_episode
 from aeread_families.econagent_v1 import econagent_bridge as econagent_bridge_module
 from aeread_families.econagent_v1.econagent_bridge import (
     EconAgentBridge,
@@ -369,7 +369,7 @@ def test_golden_invalid_action_never_reaches_step_and_touches_no_protected_state
 def test_golden_invalid_action_never_reaches_step_via_the_real_scheduler() -> None:
     """Strengthens the golden above: the claim ("an illegal seat action never
     reaches step()/mutates protected state") is proven here against the REAL
-    scheduler path (``aeread.shared_runner.scheduler.run_episode``), not
+    scheduler path (``aeread.shared_runner.task.scheduler.run_episode``), not
     only the hand-wired plugin-hook loop the previous golden exercises.
 
     One seat (``agent_0``) submits a malformed response (``parse_action``
@@ -637,7 +637,7 @@ def test_golden_a_lost_step_month_response_aborts_the_whole_episode_via_the_real
     tests "asserted only a new exception type" without ever proving what
     happens to a real, in-flight episode -- this drives the identical lost-
     response race through the REAL production path
-    (``aeread.shared_runner.scheduler.run_episode``) and proves the
+    (``aeread.shared_runner.task.scheduler.run_episode``) and proves the
     documented "abandon this episode's session for good, never retry"
     consequence actually holds end to end there too.
 

@@ -33,7 +33,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Mapping
 
-from aeread.shared_runner.parity import ParityField, ParityReport, ParitySpec, compare_projections
+from aeread.shared_runner.analysis.parity import ParityField, ParityReport, ParitySpec, compare_projections
 from aeread.shared_runner.registry import PluginRegistry
 
 from .econagent_bridge import discover_bridge_python

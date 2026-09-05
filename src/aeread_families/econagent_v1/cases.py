@@ -32,7 +32,7 @@ import re
 from pathlib import Path
 from typing import Any, Mapping
 
-from aeread.shared_runner.resolver import canonical_json_bytes, case_content_sha256
+from aeread.shared_runner.run.resolver import canonical_json_bytes, case_content_sha256
 from aeread.shared_runner.schemas import CaseManifest
 
 # --------------------------------------------------------------------------
@@ -305,7 +305,7 @@ def build_case(scenario: Mapping[str, Any], pins: Mapping[str, Any]) -> dict[str
         "seats": seats,
         "episode": {
             # Milestone-3 correction (found running the first real episode
-            # through aeread.shared_runner.scheduler.run_episode): the
+            # through aeread.shared_runner.task.scheduler.run_episode): the
             # kernel counts one logical action per SEAT per phase instance,
             # not one per month -- the `agent_month` phase is
             # `mode="simultaneous"` with all `n_agents` seats acting every

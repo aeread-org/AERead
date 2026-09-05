@@ -129,7 +129,7 @@ def test_adapter_diverges_from_an_oracle_run_with_a_different_seed() -> None:
         world_seed=1,  # deliberately different seed
         pins=_pins(),
     )
-    from aeread.shared_runner.parity import compare_projections
+    from aeread.shared_runner.analysis.parity import compare_projections
 
     report = compare_projections(oracle.to_dict(), adapted.to_dict(), parity.PARITY_SPEC)
     assert report.status == "mismatch"
