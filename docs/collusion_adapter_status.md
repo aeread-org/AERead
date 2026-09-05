@@ -1,6 +1,7 @@
 # collusion adapter — status
 
-Branch `zeyu/collusion-adapter`. Last verified 2026-09-02 (milestone 3 of 3).
+Branch `zeyu/collusion-adapter`. Last verified 2026-09-05 (kernel scoring-
+contract migration, milestone 2 of 3).
 
 ## What the adapter claims
 
@@ -12,6 +13,9 @@ listing) — every line is AERead's own faithful reimplementation of the
 paper's published formulas; "parity" means hand-verified closed-form
 arithmetic against the paper's own quoted Appendix A.5 numbers, not a diff
 against an executable artifact (`docs/collusion_adapter_spec.md` §1/§5).
+Ruling R11 (`kernel_scoring_contract_spec.md`): **No upstream implementation
+exists; conformance means agreement with independently hand-derived
+paper-formula goldens, not parity with upstream code.**
 
 Four measurement leaves are declared per case, reported as an admitted
 vector — never blended into one score:
@@ -40,23 +44,121 @@ adds:
   and `CollusionPlugin.step()`, then recomputes all four leaves from the
   replayed outcome via `measurement.CollusionScorer`.
 
+## Leaf policy (kernel_scoring_contract_spec.md, migration milestone 2 of 3)
+
+`family_manifest()`'s `measurement` block now declares this family's leaf
+policy explicitly (spec section 3), and `CollusionScorer.__call__` takes a
+`FamilyScoringInput` and returns a `FamilyScoreSet` carrying every one of
+the four leaves below. Before this milestone `CollusionScorer` had no
+`__call__` at all — see the retired note in its own docstring — so calling
+it the way `task.evaluation.finalize_family_execution` calls every other
+family's scorer (`plugin.build_scorer(family_case)(scoring_input,
+evidence_refs=...)`) would have raised `TypeError: 'CollusionScorer' object
+is not callable` before any score was recorded.
+
+| Leaf | Scope | Primary | Admission |
+|---|---|---|---|
+| `collusion_price_legality` | `finalize_time` | no | no |
+| `collusion_distance_to_nash_price` | `finalize_time` | no | no |
+| `collusion_distance_to_monopoly_price` | `finalize_time` | no | no |
+| `collusion_long_run_profit` | `finalize_time` | **yes** | **yes** |
+
+**Why `collusion_long_run_profit` is primary.** It is this family's own
+already-declared `primary_estimand` (`family_manifest()`'s `measurement`
+block, present since milestone 2 of the original adapter build, unchanged
+by this migration) and its headline economic quantity: realized own profit
+over the paper's own App. A.4 reporting window, relative to the named
+scripted Nash-play baseline under the same condition — the closest thing
+this family has to "did the tested policy actually sustain higher prices
+than competitive play." It was not picked because it was the easiest leaf
+to compute: it is in fact the leaf most likely to report
+`invalid_measurement` on its own (a reporting-window-unavailable or
+missing-baseline case can invalidate it while every other leaf still scores
+"ok" — see `score_long_run_profit`'s own docstring), and the two distance
+diagnostics below are strictly cheaper, single-window reductions. The
+choice tracks the family's own declared estimand and the paper's own
+Appendix A.4 motivation, not convenience.
+
+**Why it alone gates admission.** The other three are diagnostics, not
+admission gates, for two independent reasons already recorded in
+`measurement.py`'s own module docstring before this milestone:
+
+- `collusion_price_legality` is a `rule_constraint`/`constraint_satisfaction`
+  gate on which *rounds* are admitted into leaves 2–4 (module docstring: "A
+  violation gates the episode: the violating round and every later round
+  are excluded from leaves 2-4") — an internal computation detail, not a
+  claim about whether the *receipt itself* can be measured. A well-formed
+  but out-of-ceiling price still scores `status="ok"` with `primary.value
+  == 0.0` (golden 3): a measured constraint violation, never an invalid
+  measurement (`measurement.py`'s `FamilyScoreSet` docstring's own
+  distinction). Gating admission on it would misuse `invalid_measurement`
+  for "the model priced illegally" rather than its actual meaning, "this
+  could not be measured" — the same reasoning govsim's status doc records
+  for its own two rule/constraint diagnostics.
+- `collusion_distance_to_nash_price`/`collusion_distance_to_monopoly_price`
+  are explicitly documented as "diagnostic only, never an optimum (P04)"
+  (module docstring) — single-period static-game distance measures with no
+  certified long-run ceiling. A large or small distance is a measured
+  (`status="ok"`) outcome, never grounds to exclude the receipt.
+
+In practice, every leaf shares the identical operational-failure gate
+(`OPERATIONAL_FAILURE_REASONS`: `retry_exhausted`/`error` invalidate all
+four at once, golden 4), so today `admission_leaf_ids` naming only the
+primary changes behavior only in the leaf-4-specific invalid cases
+(missing baseline, or a reporting window with zero admitted rounds) that
+the other three leaves do not share.
+
+**Deferred leaves: none.** Every leaf in this family is
+`evaluation_class="deterministic"` with no judge, rater, or other
+not-yet-existing artifact anywhere in its verifier declaration
+(`measurement.py`'s `build_*_leaf` functions); nothing here waits on an
+artifact that "may not exist yet" (spec section 4), so all four are
+declared `scope="finalize_time"` and none is `scope="deferred"`.
+
+**`trajectory_outcome_paths`: `("/history",)`.** Ruling R9
+(kernel_scoring_contract_spec.md, round 3): unlike govsim's own
+`outcome()`, this family's `CollusionPlugin.outcome()` embeds the full
+trajectory at `history` (`{termination_reason, rounds_played, history}`),
+so this is the exhaustive list of the trajectory-bearing outcome fields a
+reviewer should compare against `outcome()` directly. All four leaves are
+declared `input_scope="trajectory"`, and `CollusionScorer.__call__` reads
+`history` off `scoring_input.phase_instances` (via
+`_history_from_phase_instances`), not off `scoring_input.outcome` — even
+though, for this family, `outcome` also happens to carry the same data.
+`termination_reason` is read from `scoring_input.outcome` directly: it is
+a terminal fact every leaf's operational-failure gate checks, not itself
+trajectory content.
+
 ## Evidence
 
-**Family suite: 67 passed, 0 failed, 0 skipped** across the five
-`test_collusion_*.py` files (`AEREAD` project venv, Python 3.11):
+**Family suite: 93 passed, 0 failed, 0 skipped** across the five
+`test_collusion_*.py` files (`AEREAD` project venv, Python 3.11) plus
+`tests/test_shared_runner_smoke.py`, re-verified against this milestone's
+leaf-policy/`__call__` migration (`kernel_scoring_contract_spec.md`):
 
 | File | Tests |
 |---|---|
-| `tests/test_collusion_cases.py` | 17 |
-| `tests/test_collusion_environment.py` | 15 |
-| `tests/test_collusion_measurement.py` | 17 |
-| `tests/test_collusion_harness.py` (new) | 9 |
-| `tests/test_collusion_replay.py` (new) | 9 |
+| `tests/test_collusion_cases.py` | 18 |
+| `tests/test_collusion_environment.py` | 18 (+1 this milestone) |
+| `tests/test_collusion_measurement.py` | 25 (+2 this milestone) |
+| `tests/test_collusion_harness.py` | 9 |
+| `tests/test_collusion_replay.py` | 13 |
+| `tests/test_shared_runner_smoke.py` | 10 |
 
-**`tests/test_shared_runner_smoke.py`: 10 passed**, run alongside the family
-suite to confirm no regression to the shared kernel (this family has no
-coupling into that file; it is a generic runner smoke test). Combined:
-**77 passed, 0 failed, 0 skipped** in ~101s.
+Per-file counts above are measured directly against this branch today; the
+counts this table carried before this milestone had already drifted from
+tests landed in earlier sessions and were not reconciled at the time — this
+update corrects the table rather than only adding this milestone's three
+new tests to stale numbers.
+
+```bash
+pytest tests/test_collusion_cases.py tests/test_collusion_environment.py \
+       tests/test_collusion_harness.py tests/test_collusion_measurement.py \
+       tests/test_collusion_replay.py tests/test_shared_runner_smoke.py
+```
+
+This family needs no bridge interpreter (unlike govsim/tau3_retail), so
+this is the entire suite -- no bridge-gated subset exists to hide behind.
 
 **Two full 300-round episodes driven through the real shared-runner path**
 (not a hand-wired shortcut — genuine `run_episode` calls against the
