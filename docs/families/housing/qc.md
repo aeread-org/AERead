@@ -1189,3 +1189,58 @@ python -m aeread_families.housing.backend_campaign \
   --through full_trajectory
 ```
 
+## 28. V21 preregistered eight-world pilot and the holdout capacity question
+
+V19 produced two paired worlds, which is too few to size a confirmatory run.
+[`housing_model_sensitivity_openrouter_parasail_v21`](../../../configs/housing_model_sensitivity_openrouter_parasail_v21.json)
+is the corrected pilot that V20 promotes. It carries V20's Parasail FP8
+routes, ten receipt-visible attempts per action, five-second exponential
+backoff, retryable timeouts, 300-second wall time, `$0.03` seat budget,
+cooldown, and admission-timeout enforcement, and changes the panel.
+
+The pilot moves from four worlds to eight, chosen by a declared rule rather
+than by outcome: the first eight development seeds in frozen sweep order,
+excluding the world used by the full-trajectory gates. V19's worlds are not
+reused, so no world can be suspected of selection on its result. The panel is
+eight worlds, three configurations, four conditions and one replicate, for 96
+cells at an execution ceiling of `$1.20`. The analysis declares
+`minimum_paired_worlds_for_recommendation` of six, so a confirmatory sample
+size is emitted only if at least six of the eight worlds complete both
+subject blocks; below that the variance and mean contrast are still published
+and the recommendation is withheld.
+
+### The holdout capacity question
+
+The campaign analysis contract declares a minimum of 30 confirmatory worlds
+and the frozen case sweep seals 16 holdout seeds. No confirmatory campaign
+can satisfy both, and this contradiction predates the current work. It does
+not need to be resolved yet, because whether it binds depends on a quantity
+the corrected pilot has not measured.
+
+With 16 holdout worlds and the declared 10 percent attrition allowance, the
+powered design fits inside the existing holdout precisely when the paired
+world-level standard deviation is at most `0.0668` at the declared minimum
+meaningful effect of `0.05`. V19 reported `0.0930`, but that figure is
+inflated twice over: it comes from two worlds, and with one replicate per
+cell it folds within-world provider noise into the between-world term. A
+properly estimated standard deviation may fall below the threshold.
+
+The decision rule is therefore fixed in advance, before any holdout outcome
+is inspected. If V21 reports a paired standard deviation at or below
+`0.0668`, the sealed 16-world holdout is sufficient and the confirmatory
+freeze proceeds against it unchanged. If V21 reports more, the holdout must
+be extended under a new case-sweep identity with additional seeds drawn
+disjointly from the development split. Extending it remains legitimate at
+that point only because the holdout is still sealed and unexecuted; once any
+holdout outcome is seen, neither the seed list nor the minimum meaningful
+effect may change. Lowering the declared effect to fit the existing holdout
+is not an option, because the pilot effect size has already been observed and
+choosing the detectable effect around it would be post-outcome tuning.
+
+```bash
+python -m aeread_families.housing.backend_campaign \
+  --contract configs/housing_model_sensitivity_openrouter_parasail_v21.json \
+  --run-root runs/housing_model_sensitivity_openrouter_parasail_v21 \
+  --through live
+```
+
