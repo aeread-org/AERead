@@ -491,6 +491,14 @@ class HarnessResolutionError(HarnessRegistryError):
     """A profile's harness reference did not resolve to a registered harness."""
 
 
+REQUIRED_HARNESS_HOOKS = (
+    "open_episode",
+    "act",
+    "close_episode",
+    "classify_failure",
+)
+
+
 @dataclass(frozen=True, slots=True)
 class RegisteredHarness:
     harness_id: str
@@ -517,9 +525,26 @@ class HarnessRegistry:
             raise HarnessRegistryError("harness.id must be a non-empty string")
         if not isinstance(harness_version, str) or not harness_version.strip():
             raise HarnessRegistryError("harness.version must be a non-empty string")
-        if not isinstance(getattr(harness, "requires", None), HarnessRequirements):
+        requires = getattr(harness, "requires", None)
+        if not isinstance(requires, HarnessRequirements):
             raise HarnessRegistryError(
                 f"harness {harness_id}@{harness_version} has no HarnessRequirements"
+            )
+        missing = [
+            hook
+            for hook in REQUIRED_HARNESS_HOOKS
+            if not callable(getattr(harness, hook, None))
+        ]
+        # state_reader is part of the protocol only when the harness declares
+        # memory beyond "disabled" (Harness protocol, section 10).
+        if requires.memory != frozenset({"disabled"}) and not callable(
+            getattr(harness, "state_reader", None)
+        ):
+            missing.append("state_reader")
+        if missing:
+            raise HarnessRegistryError(
+                f"harness {harness_id}@{harness_version} is missing callable "
+                "protocol hooks: " + ", ".join(missing)
             )
         key = (harness_id, harness_version)
         if key in self._harnesses:
@@ -557,6 +582,7 @@ __all__ = [
     "PluginResolutionError",
     "ProviderCapabilities",
     "REQUIRED_FAMILY_PLUGIN_HOOKS",
+    "REQUIRED_HARNESS_HOOKS",
     "TRUSTED_BUILTIN_PLUGIN_KEYS",
     "RegisteredHarness",
     "RegisteredPlugin",
