@@ -946,3 +946,54 @@ typed allocation worksheet, or should accept the presentation-surface dependence
 measured property of this route. The tracked bundle is
 `evidence/procurement_allocation_glm53_flash_parasail_negotiation_worksheet_v2/`.
 
+## Verifier-visible pre-award check
+
+Worksheet V1 and V2 established that the payment-terms lever transfers once the
+buyer knows which offer to counter, and that the remaining losses are quantity
+errors after a counter changes MOQ, four-supplier splits with one unsampled line,
+and supplier selection under opaque labels. Both were prompt changes on the same
+action interface. The next treatment changes the interface.
+
+The environment now exposes `check_award`. It takes the exact `award_lines` the buyer
+intends to submit and returns, without ending the episode, whether that award would
+be feasible, the violations it would raise, and the completed kits, contribution
+margin, and cash spend it would produce. It runs the same `evaluate_award` the
+terminal score uses on the current formal offers and verified samples, so the
+projection is exact. It consumes one action and no money or calendar time. Checks
+are recorded in the observation and in the terminal state, and the public action
+trace carries their lines. Existing cases, prompts, and sealed evidence are
+unchanged: the control prompt never names the action, sealed rows never emitted it,
+and replay of every published row is byte-identical.
+
+### Frozen pre-award-check treatment
+
+The campaign holds the GLM 5.3 Flash/Parasail route, Minimal Chat harness, structured
+action contract, verifier, retry policy, twelve confirmatory worlds, both surfaces,
+and the confirmatory inference seeds fixed. The prompt is the frozen worksheet V2
+procedure plus one step: reserve one check and one award, never submit an award that
+has not passed a check with no violations, and fix the lines and re-check when the
+check reports violations. The paired control remains the sealed confirmatory V2 V4
+arm, bound by file and artifact digest, with rows paired by case id and seed.
+
+The campaign ID is
+`procurement_allocation_glm53_flash_parasail_pre_award_check_v1`, the prompt digest
+is `600828117b31f363232085cfcf088bfa20ba0207adeed05e83255c55f5f7a871`, and the plan
+digest is `70bef7fca393f73d9b8134a6f944b4e43d4a9b0faf3c15d5e616081f9e145c6d`. It binds
+the worksheet V2 evidence manifest, declares one unscored canary and 72 scored rows
+in six checkpoints, and keeps the $1.11 conservative and $2.19 hard ceilings. The
+preregistered support rule is unchanged: treatment-minus-V4 regret interval upper
+bound below zero and feasibility interval lower bound at least -0.05. Secondary
+diagnostics add the number of checks per row and the number of awards submitted
+after a clean check on identical lines.
+
+The control rows ran on an environment without `check_award`. Because the control
+never emitted it, the difference is inert for those rows, but the estimated effect
+bundles the new action with the instruction to use it. This remains adaptive
+development evidence on worlds the treatment was selected on.
+
+```bash
+python -m aeread_families.procurement_allocation.pre_award_check_campaign \
+  --run-root \
+  runs/procurement_allocation/procurement_allocation_glm53_flash_parasail_pre_award_check_v1/qualification_attempt_001
+```
+

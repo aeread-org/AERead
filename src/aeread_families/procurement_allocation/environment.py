@@ -1301,6 +1301,7 @@ class ProcurementAllocationPlugin:
             "offers": _plain(state["offers"]),
             "quality_evidence": _plain(state["quality_evidence"]),
             "award_lines": _plain(state["award_lines"]),
+            "award_checks": _plain(state["award_checks"]),
             "defer_reason": state["defer_reason"],
         }
 

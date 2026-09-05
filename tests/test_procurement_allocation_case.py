@@ -468,22 +468,23 @@ def test_check_award_reports_violations_without_terminating(tmp_path) -> None:
 
 
 def test_check_award_projection_matches_the_award_it_precedes(tmp_path) -> None:
-    script = _optimal_script()
-    award = json.loads(script[-1])["action"] if False else None
-    actions = [json.loads(item)["action"] if False else None for item in script]
-    del award, actions
-    raw = [json.loads(s) for s in script]
-    submit = raw[-1]
-    check = {"action": "check_award", "award_lines": submit["award_lines"]}
-    script_with_check = [_response(a) for a in raw[:-1]] + [_response(check), _response(submit)]
+    suppliers = ("switch_reliable", "oled_reliable", "charger_reliable")
+    raw: list[dict] = []
+    for supplier_id in suppliers:
+        raw.append({"action": "request_quote", "supplier_id": supplier_id, "message": "Quote please."})
+        raw.append({"action": "request_sample", "supplier_id": supplier_id, "message": "Sample please."})
+    lines = [{"offer_id": f"offer_{s}_v1", "quantity": 20} for s in suppliers]
+    raw.append({"action": "check_award", "award_lines": lines})
+    raw.append({"action": "submit_award", "award_lines": lines})
 
     _, execution, _ = asyncio.run(
-        run_fixture_script(script_with_check, evidence_root=tmp_path / "match")
+        run_fixture_script([_response(a) for a in raw], evidence_root=tmp_path / "match")
     )
     outcome = _plain(execution.episode_result.outcome)
     final_state = _plain(execution.episode_result.final_state)
     check_record = final_state["award_checks"][-1]
 
+    assert outcome["action_count"] == 8
     assert outcome["feasible"] is True
     assert check_record["feasible"] is True
     assert check_record["violations"] == []
