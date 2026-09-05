@@ -329,8 +329,8 @@ def test_a_family_tool_outside_the_profile_grant_is_refused_at_the_port(
 
     import dataclasses
 
-    from aeread.shared_runner.execution import EvidenceStore, ToolFailure
-    from aeread.shared_runner.harness import (
+    from aeread.shared_runner.task.execution import EvidenceStore, ToolFailure
+    from aeread.shared_runner.model_call.harness import (
         AttemptExecutor,
         NativeToolCall,
         NativeToolChatHarness,

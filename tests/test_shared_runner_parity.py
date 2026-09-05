@@ -220,7 +220,7 @@ def test_a_derived_from_cycle_is_rejected_as_it_leaves_no_independent_field() ->
 
 
 def test_parity_report_still_accepts_the_pre_unavailable_positional_signature() -> None:
-    from aeread.shared_runner.parity import ParityReport
+    from aeread.shared_runner.analysis.parity import ParityReport
 
     report = ParityReport(
         "legacy_fixture",
