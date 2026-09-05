@@ -23,6 +23,7 @@ from aeread_families.tau3_retail.campaign import (
 )
 from aeread.shared_runner.run.resolver import canonical_json_bytes
 from aeread_families.tau3_retail.live import build_live_setup
+from aeread_families.tau3_retail.live import PROVIDER
 from aeread_families.tau3_retail.tau2_bridge import (
     Tau2Bridge,
     Tau2BridgeUnavailableError,
@@ -34,8 +35,9 @@ def test_campaign_plan_freezes_route_panel_order_and_budget() -> None:
     plan = build_campaign_plan()
     assert plan["campaign_id"] == CAMPAIGN_ID
     assert [row["case_id"] for row in plan["panel"]] == list(PANEL_CASE_IDS)
-    assert plan["route"]["route_provider"] == "Parasail"
-    assert plan["route"]["fallbacks"] is False
+    assert plan["route"]["provider"] == "arena"
+    assert plan["route"]["model"] == "glm-5p2"
+    assert plan["route"]["fallbacks"] == "not_reported"
     assert plan["execution"]["max_parallel_cells"] == 1
     assert plan["execution"]["abort_on_operational_failure"] is True
     assert plan["budget"]["planned_maximum_usd"] <= plan["budget"][
@@ -191,7 +193,7 @@ def test_live_tool_path_finalizes_and_replays_a_shared_runner_receipt(tmp_path) 
             registry=setup.registry,
             evidence_root=tmp_path / "run",
             prompt_sources=setup.prompt_sources,
-            providers={"openrouter": _ToolPathProvider()},
+            providers={PROVIDER: _ToolPathProvider()},
             pricing=setup.pricing,
             harnesses=setup.harnesses,
             tool_runtime_factories=setup.tool_runtime_factories,

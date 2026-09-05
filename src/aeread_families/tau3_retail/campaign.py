@@ -24,7 +24,7 @@ from aeread.shared_runner.task.evaluation import (
     replay_family_receipt,
 )
 from aeread.shared_runner.task.execution import (
-    OpenRouterChatClient,
+    ArenaChatClient,
     ProviderRequest,
     execute_plan_cell,
 )
@@ -34,6 +34,7 @@ from .cases import UPSTREAM_COMMIT, UPSTREAM_REPO
 from .live import (
     MODEL,
     PRICING,
+    PROVIDER,
     QUANTIZATION,
     REVISION,
     ROUTE_PROVIDER,
@@ -45,7 +46,7 @@ from .live import (
 from .tau2_bridge import Tau2Bridge
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
-CAMPAIGN_ID = "tau3_retail_glm53_flash_parasail_pipeline_proof_v1"
+CAMPAIGN_ID = "tau3_retail_glm5p2_arena_pipeline_proof_v1"
 CANARY_CASE_ID = "tau3.retail.base.53"
 PANEL_CASE_IDS = (
     "tau3.retail.base.14",
@@ -108,13 +109,16 @@ def build_campaign_plan() -> dict[str, Any]:
         "freeze_status": "pipeline_proof_frozen_before_live_execution",
         "upstream": {"repository": UPSTREAM_REPO, "commit": UPSTREAM_COMMIT},
         "route": {
-            "provider": "openrouter",
+            "provider": PROVIDER,
             "model": MODEL,
             "revision": REVISION,
             "route_provider": ROUTE_PROVIDER,
             "quantization": QUANTIZATION,
-            "fallbacks": False,
+            "fallbacks": "not_reported",
             "reasoning_effort": "low",
+            "route_attestation": "arena_catalog_model_id_only",
+            "provider_cost_status": "not_reported",
+            "provider_seed_status": "not_supported",
             "pricing_id": PRICING.pricing_id,
             "pricing_sha256": PRICING.content_sha256(),
         },
@@ -164,11 +168,8 @@ def _verify_plan(value: Mapping[str, Any]) -> None:
 
 def _route_metadata() -> dict[str, str]:
     return {
-        "route_provider": ROUTE_PROVIDER,
-        "quantization": QUANTIZATION,
-        "canonical_model": REVISION,
-        "max_prompt_price_per_million": "0.15",
-        "max_completion_price_per_million": "0.50",
+        "catalog_model_id": MODEL,
+        "provider_cost_status": "not_reported",
     }
 
 
@@ -182,8 +183,8 @@ async def run_canary(*, path: Path, plan_sha256: str) -> dict[str, Any]:
         return value
     request = ProviderRequest(
         provider_call_id="tau3_retail_pipeline_canary",
-        provider="openrouter",
-        base_url="https://openrouter.ai/api/v1",
+        provider=PROVIDER,
+        base_url="https://api.preview.arena.ai/v1",
         model=MODEL,
         revision=REVISION,
         instructions=USER_PROMPT,
@@ -220,7 +221,7 @@ async def run_canary(*, path: Path, plan_sha256: str) -> dict[str, Any]:
     }
     result = None
     try:
-        result = await OpenRouterChatClient().complete(request)
+        result = await ArenaChatClient().complete(request)
         value = json.loads(result.output_text)
         if value.get("kind") != "reply" or not isinstance(value.get("text"), str):
             raise ValueError("canary did not return the required structured reply")
@@ -266,7 +267,7 @@ async def execute_campaign(*, run_root: Path, upstream_root: Path) -> None:
     if canary.get("status") != "admitted":
         raise RuntimeError("tau3 retail canary was rejected; campaign stopped")
     total_cost = float(canary["cost_usd"])
-    provider = OpenRouterChatClient()
+    provider = ArenaChatClient()
     for ordinal, case_id in enumerate(PANEL_CASE_IDS):
         checkpoint_path = run_root / "checkpoints" / f"{ordinal:02d}_{case_id}.json"
         if checkpoint_path.exists():
@@ -300,7 +301,7 @@ async def execute_campaign(*, run_root: Path, upstream_root: Path) -> None:
                 registry=setup.registry,
                 evidence_root=execution_root,
                 prompt_sources=setup.prompt_sources,
-                providers={"openrouter": provider},
+                providers={PROVIDER: provider},
                 pricing=setup.pricing,
                 harnesses=setup.harnesses,
                 tool_runtime_factories=setup.tool_runtime_factories,
@@ -428,6 +429,7 @@ def publish_campaign(*, run_root: Path, publication_root: Path) -> None:
         "operational_failures": 0,
         "total_cost_usd": total_cost,
         "hard_total_cost_ceiling_usd": HARD_TOTAL_COST_CEILING_USD,
+        "financial_ceiling_enforcement": "unavailable_provider_does_not_report_cost",
         "route": plan["route"],
         "upstream": plan["upstream"],
         "sanitization": dict(SANITIZATION_DECLARATION),

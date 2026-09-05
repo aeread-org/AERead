@@ -33,15 +33,16 @@ from .tau2_bridge import Tau2Bridge
 from .tools import RetailToolSession, build_tool_bindings
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
-MODEL = "z-ai/glm-5.3-flash"
-REVISION = "z-ai/glm-5.3-flash-20260826"
-ROUTE_PROVIDER = "Parasail"
-QUANTIZATION = "fp8"
+PROVIDER = "arena"
+MODEL = "glm-5p2"
+REVISION = "glm-5p2"
+ROUTE_PROVIDER = "Arena"
+QUANTIZATION = "not_reported"
 PRICING = TokenPricing(
-    input_per_million=0.15,
-    cached_input_per_million=0.03,
-    output_per_million=0.50,
-    pricing_id="openrouter_2026-09-03_glm53_flash_parasail",
+    input_per_million=0.0,
+    cached_input_per_million=0.0,
+    output_per_million=0.0,
+    pricing_id="arena_2026-09-05_glm5p2_unpriced",
 )
 ASSISTANT_PROMPT_ID = "tau3_retail_assistant_json_v1"
 USER_PROMPT_ID = "tau3_retail_user_sim_json_v1"
@@ -131,16 +132,16 @@ def _profile(
     max_output_tokens: int,
     max_cost_usd: float,
 ) -> AgentProfile:
-    profile_id = f"tau3_retail_{seat}_glm53_flash_parasail_v1"
+    profile_id = f"tau3_retail_{seat}_glm5p2_arena_v1"
     return AgentProfile.from_dict(
         {
             "spec_version": AgentProfile.SPEC_VERSION,
             "profile_id": profile_id,
             "model": {
-                "provider": "openrouter",
+                "provider": PROVIDER,
                 "model": MODEL,
                 "revision": REVISION,
-                "base_url": "https://openrouter.ai/api/v1",
+                "base_url": "https://api.preview.arena.ai/v1",
             },
             "harness": {
                 "id": Tau3RetailJsonHarness.id,
@@ -151,11 +152,8 @@ def _profile(
                     "output_schema": output_schema,
                     "max_rounds": 12 if seat == "assistant" else 1,
                     "provider_metadata": {
-                        "route_provider": ROUTE_PROVIDER,
-                        "quantization": QUANTIZATION,
-                        "canonical_model": REVISION,
-                        "max_prompt_price_per_million": "0.15",
-                        "max_completion_price_per_million": "0.50",
+                        "catalog_model_id": MODEL,
+                        "provider_cost_status": "not_reported",
                     },
                 },
             },
@@ -179,7 +177,7 @@ def _profile(
             "sampling": {
                 "temperature": 0.0,
                 "max_output_tokens": max_output_tokens,
-                "seed": seed,
+                "seed": None,
                 "top_p": None,
             },
             "budgets": {
@@ -357,13 +355,13 @@ def build_live_setup(
         implementation_pins=pins,
         harness_registry=harness_registry,
         provider_capabilities={
-            "openrouter": ProviderCapabilities(
+            PROVIDER: ProviderCapabilities(
                 native_tools=False,
                 structured_output=True,
-                seed=True,
+                seed=False,
                 system_prompt=True,
                 reasoning_budget=True,
-                reasoning_token_report=True,
+                reasoning_token_report=False,
                 max_context_tokens=None,
             )
         },
