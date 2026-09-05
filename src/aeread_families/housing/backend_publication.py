@@ -1154,13 +1154,27 @@ def publish_campaign(
                     and not live["operational_failures"]
                 )
                 else (
-                    "Variance is not estimable because "
-                    f"{variance.get('incomplete_world_count')} of "
-                    f"{variance.get('planned_world_count')} worlds lack a complete "
-                    "subject pair. Freeze a new campaign identity before any further "
-                    "multi-world spend, changing the route or delivery treatment "
-                    "explicitly if reliability is the cause; do not selectively "
-                    "rerun or impute the missing cells."
+                    (
+                        f"Only {variance.get('paired_world_count')} of "
+                        f"{variance.get('planned_world_count')} worlds completed a "
+                        "subject pair, so the variance estimate and the recommended "
+                        f"{variance.get('recommended_confirmatory_worlds')} "
+                        "confirmatory worlds are exploratory. Freeze a new campaign "
+                        "identity before any further multi-world spend, changing the "
+                        "route or delivery treatment explicitly if reliability is "
+                        "the cause; do not selectively rerun or impute the missing "
+                        "cells."
+                    )
+                    if variance.get("status") == "estimable"
+                    else (
+                        "Variance is not estimable because "
+                        f"{variance.get('incomplete_world_count')} of "
+                        f"{variance.get('planned_world_count')} worlds lack a "
+                        "complete subject pair. Freeze a new campaign identity "
+                        "before any further multi-world spend, changing the route "
+                        "or delivery treatment explicitly if reliability is the "
+                        "cause; do not selectively rerun or impute the missing cells."
+                    )
                 )
                 if isinstance(variance, Mapping) and prerequisite_gate is not None
                 else (

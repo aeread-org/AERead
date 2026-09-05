@@ -1121,3 +1121,40 @@ python -m aeread_families.housing.backend_campaign \
   --through live
 ```
 
+The executed pilot attempted all 48 cells. Admission passed 18 of 18 on the
+first attempt for `$0.0031506552`. Thirty-two trajectories completed with
+verified routes, complete billing, and exact score replay for
+`$0.2003244111`; the shared Parasail cooldown delivered 1048 provider calls.
+Sixteen trajectories are typed operational missingness, every one a Parasail
+GLM seat exhausting its four visible attempts on HTTP 429. The failures are
+not spread evenly: worlds `647986875` and `1758927083` completed all 24 of
+their cells with zero failures, then a rate-limit burst that began during
+world `237549679` and persisted through world `1515521562` cost 16 of the
+remaining 24 cells. No timeout and no seat-budget exhaustion occurred under
+the V18 controls.
+
+Two worlds therefore have a complete subject pair, the first paired worlds in
+this family. The paired world-level GLM-minus-DeepSeek contrast is
+`-0.1412` and `-0.0098`, mean `-0.0755` with sample standard deviation
+`0.0930`, which the frozen analysis converts to 28 raw and 32
+attrition-adjusted confirmatory worlds, inside the declared maximum of 100.
+Two paired worlds cannot support that sample-size claim with any confidence,
+and the estimate remains exploratory: no winner, ranking, or confirmatory
+claim is supported, and `paired_worlds_complete` is false.
+
+The reliability finding is now precise. Parasail GLM sustained 24 clean
+cells over roughly four hours and then lost 16 of 24 in a burst that the
+one-hour selection probe could not have predicted. Shared-pool rate limiting
+on OpenRouter is time-varying at the scale of hours, so no route selection
+procedure on a shared key can make a 48-cell serial pilot reliable. The next
+delivery treatment must remove the shared pool: a dedicated GLM provider key
+attached to the OpenRouter account, or a batch backend under the SOP's
+escalation rule, each under a new campaign identity with a fresh gate. Do
+not rerun or impute the 16 missing cells. Review the digest-bound
+[`qualification.json`](../../../evidence/housing_model_sensitivity_openrouter_parasail_v19/reports/qualification.json),
+the all-attempt
+[`attempted.json`](../../../evidence/housing_model_sensitivity_openrouter_parasail_v19/trajectories/attempted.json),
+the
+[`canonical_fact_index.json`](../../../evidence/housing_model_sensitivity_openrouter_parasail_v19/tables/canonical_fact_index.json),
+and the paired-world table.
+

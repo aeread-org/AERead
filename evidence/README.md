@@ -85,3 +85,8 @@ Current campaign directories include:
   gate for the corrected controls (300 s wall time, contract-visible $0.03
   seat budget). Admission 18/18, four of four trajectories completed with
   exact replay, zero failures; promotion-eligible, one world, no ranking.
+- `housing_model_sensitivity_openrouter_parasail_v19/`: the 48-cell pilot on
+  the V18 controls. Admission 18/18; 32/48 completed with exact replay. Two
+  worlds completed all 24 cells and give the family's first paired-world
+  contrasts (exploratory, no ranking); a Parasail GLM rate-limit burst then
+  cost 16 of the last 24 cells. No timeout or seat-budget failure occurred.

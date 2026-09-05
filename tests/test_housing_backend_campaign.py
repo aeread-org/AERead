@@ -1376,6 +1376,54 @@ def test_v19_pilot_carries_v18_controls_and_names_v18_as_its_verified_gate() -> 
             )
 
 
+def test_published_v19_pilot_has_two_paired_worlds_and_only_rate_limit_losses() -> None:
+    evidence_root = (
+        V19_CONTRACT_PATH.parents[1]
+        / "evidence"
+        / "housing_model_sensitivity_openrouter_parasail_v19"
+    )
+    qualification = json.loads(
+        (evidence_root / "reports" / "qualification.json").read_bytes()
+    )
+    trajectories = json.loads(
+        (evidence_root / "trajectories" / "attempted.json").read_bytes()
+    )
+    assert qualification["artifact_sha256"] == (
+        "7b72914c34f0461e190215906a735a64ddccd3e4943c79e1e1b87b11c64df3e1"
+    )
+    assert trajectories["artifact_sha256"] == (
+        "3960007ed5366162299986559d10b7ae532631af5d2659bfe83e06267b35159d"
+    )
+    assert qualification["status"] == "completed_with_typed_missingness"
+    assert qualification["winner_claim_allowed"] is False
+    assert qualification["ranking_allowed"] is False
+    live = qualification["gate_status"][-1]
+    assert live["attempted_trajectories"] == 48
+    assert live["completed_trajectories"] == 32
+    assert live["operational_failures"] == 16
+    assert live["critical_stop"] is False
+    variance = qualification["variance_pilot_analysis"]
+    assert variance["status"] == "estimable"
+    assert variance["paired_world_count"] == 2
+    assert variance["recommended_confirmatory_worlds"] == 32
+    assert qualification["acceptance"]["paired_worlds_complete"] is False
+    assert qualification["acceptance"]["confirmatory_freeze_ready"] is False
+    assert qualification["acceptance"]["protocol_conformant"] is True
+    assert qualification["protocol_gate_assessment"]["prerequisite_gate"]["campaign_id"] == (
+        "housing_model_sensitivity_openrouter_parasail_v18"
+    )
+    failures = [row for row in trajectories["trajectories"] if row["status"] != "completed"]
+    assert len(failures) == 16
+    assert {row["failure_condition"] for row in failures} == {"rate_limit"}
+    assert all("glm_53_flash" in row["condition_id"] for row in failures)
+    assert {row["world_seed"] for row in failures} == {237549679, 1515521562}
+    assert "exploratory" in qualification["next_gate"]
+    published = b"".join(path.read_bytes() for path in evidence_root.rglob("*.*"))
+    assert b'"raw_response":' not in published
+    assert b"output_text" not in published
+    assert b"/Users/" not in published
+
+
 def test_published_v12_records_pacing_failure_and_zero_trajectories() -> None:
     evidence_root = (
         V12_CONTRACT_PATH.parents[1]
