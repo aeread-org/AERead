@@ -24,10 +24,10 @@ from types import MappingProxyType, SimpleNamespace
 
 import pytest
 
-from aeread.shared_runner.execution import EvidenceStore
-from aeread.shared_runner.resolver import PlanCell, canonical_json_bytes
+from aeread.shared_runner.task.execution import EvidenceStore
+from aeread.shared_runner.run.resolver import PlanCell, canonical_json_bytes
 from aeread.shared_runner.schemas import CaseManifest
-from aeread.shared_runner.scheduler import run_episode
+from aeread.shared_runner.task.scheduler import run_episode
 from aeread_families.steer import cases as steer_cases
 from aeread_families.steer.environment import SteerPlugin
 from aeread_families.steer.harness import ScriptedSteerHarness

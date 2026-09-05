@@ -29,11 +29,11 @@ from types import MappingProxyType, SimpleNamespace
 
 import pytest
 
-from aeread.shared_runner.execution import EvidenceStore, TokenPricing, execute_plan_cell
-from aeread.shared_runner.family_evaluation import finalize_family_execution
-from aeread.shared_runner.harness import default_harnesses
+from aeread.shared_runner.task.execution import EvidenceStore, TokenPricing, execute_plan_cell
+from aeread.shared_runner.task.evaluation import finalize_family_execution
+from aeread.shared_runner.model_call.harness import default_harnesses
 from aeread.shared_runner.registry import HarnessRegistry, PluginRegistry, ProviderCapabilities
-from aeread.shared_runner.resolver import (
+from aeread.shared_runner.run.resolver import (
     ImplementationPin,
     PlanCell,
     canonical_json_bytes,
@@ -48,7 +48,7 @@ from aeread.shared_runner.schemas import (
     SamplingPlan,
     SuiteManifest,
 )
-from aeread.shared_runner.scheduler import SchedulerContractError, run_episode
+from aeread.shared_runner.task.scheduler import SchedulerContractError, run_episode
 from aeread.shared_runner.smoke import FixedResponseProvider
 from aeread_families.steer import cases as steer_cases
 from aeread_families.steer.environment import SteerPlugin, family_manifest, register_plugin
@@ -194,7 +194,7 @@ def test_scripted_harness_runs_one_full_episode_per_declared_element(
 # sealed one evidence event -- "this raw text was served" -- and never a
 # score, so a harness-driven run's seal never certified "this outcome was
 # scored as X." ``record_score`` closes that gap, mirroring
-# ``aeread.shared_runner.family_evaluation.finalize_family_execution``'s own
+# ``aeread.shared_runner.task.evaluation.finalize_family_execution``'s own
 # score_recorded-before-seal convention exactly.
 # ---------------------------------------------------------------------------
 
@@ -498,7 +498,7 @@ def _steer_finalize_setup(case: CaseManifest) -> SimpleNamespace:
             },
             "runtime": {
                 "kind": "python",
-                "implementation": "aeread.shared_runner.execution",
+                "implementation": "aeread.shared_runner.task.execution",
                 "version": "0.1.0",
             },
             "tools": [],

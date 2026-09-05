@@ -22,7 +22,7 @@ from pathlib import Path
 
 import pytest
 
-from aeread.shared_runner.resolver import case_content_sha256
+from aeread.shared_runner.run.resolver import case_content_sha256
 from aeread.shared_runner.schemas import AuthoringValidationError, CaseManifest, is_exportable_id
 from aeread_families.steer import cases as steer_cases
 from aeread_families.steer.steer_bridge import (
@@ -468,7 +468,7 @@ def test_flatten_response_includes_a_per_question_exclusion_ledger_not_just_coun
 def test_write_excluded_writes_the_full_ledger_matching_the_pins_content_hash(
     tmp_path: Path,
 ) -> None:
-    from aeread.shared_runner.resolver import canonical_json_bytes
+    from aeread.shared_runner.run.resolver import canonical_json_bytes
 
     bridge = _bridge()
     element = "dsic_mechanism"
@@ -644,7 +644,7 @@ def test_corpus_manifest_enumerates_every_written_case() -> None:
     written_ids = {path.stem for path in _iter_written_case_paths()}
     assert set(manifest["case_ids"]) == written_ids
     assert len(manifest["case_ids"]) == len(set(manifest["case_ids"]))
-    from aeread.shared_runner.resolver import canonical_json_bytes
+    from aeread.shared_runner.run.resolver import canonical_json_bytes
     import hashlib
 
     normalized = dict(manifest)
@@ -701,7 +701,7 @@ def test_committed_pins_json_carries_an_exclusion_ledger_binding_for_every_eleme
     # the only declared element with both zero_correct and multi_correct
     # rows, so it is the sharpest test that the committed hash really binds
     # the real, current exclusion set rather than a stale or fabricated one.
-    from aeread.shared_runner.resolver import canonical_json_bytes
+    from aeread.shared_runner.run.resolver import canonical_json_bytes
 
     element = "dsic_mechanism"
     response = _bridge().flatten_element(element, head_n=1)

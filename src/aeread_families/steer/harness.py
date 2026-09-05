@@ -17,7 +17,7 @@ from __future__ import annotations
 
 from typing import Any, Sequence
 
-from aeread.shared_runner.execution import EvidenceStore, Event
+from aeread.shared_runner.task.execution import EvidenceStore, Event
 from aeread.shared_runner.measurement import ScoreEnvelope
 
 
@@ -77,7 +77,7 @@ class ScriptedSteerHarness:
         submitted answer -- must be called after the episode has terminated
         and been scored, and before ``self.evidence.seal()``.
 
-        Mirrors ``aeread.shared_runner.family_evaluation
+        Mirrors ``aeread.shared_runner.task.evaluation
         .finalize_family_execution``'s own ``score_recorded`` event shape
         exactly (``primary_leaf_id``/``outcome_event_id``/``score``), so a
         harness-driven run's sealed evidence certifies the same claim

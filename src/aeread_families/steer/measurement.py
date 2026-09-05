@@ -66,7 +66,7 @@ GOLD_OPTION_REFERENCE_ID = "steer_gold_option"
 # (the production finalization path) seals a receipt whose
 # `implementation_refs` -- this leaf's `estimand.validity_domain.predicate`
 # and `scorer` -- must each resolve against a pin in the sealed RunPlan
-# (`aeread.shared_runner.receipts.EvaluationReceipt
+# (`aeread.shared_runner.task.receipts.EvaluationReceipt
 # ._validate_and_freeze_plan_pins`); a RunPlan may only carry the pins
 # `family.scoring.scorer_id`/`oracle_id`/`reference_provider_ids` declare
 # (`resolver._check_pins` rejects any other pin as "unreferenced"), so the
@@ -237,7 +237,7 @@ class SteerScorer:
     Mirrors ``tau3_retail.measurement.Tau3RetailScorer``'s convention:
     ``environment.py``'s ``build_scorer`` hook returns one of these. The one
     real production finalization path,
-    ``aeread.shared_runner.family_evaluation.finalize_family_execution``,
+    ``aeread.shared_runner.task.evaluation.finalize_family_execution``,
     calls whatever ``build_scorer`` returns AS A CALLABLE
     (``plugin.build_scorer(family_case)(outcome, evidence_refs=...)``),
     mirroring ``housing.py``'s ``build_scorer`` closure and
