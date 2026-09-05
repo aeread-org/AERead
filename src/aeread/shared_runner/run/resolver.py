@@ -230,10 +230,22 @@ class RunPlan:
 
 def _canonical_value(value: Any) -> Any:
     if dataclasses.is_dataclass(value) and not isinstance(value, type):
-        return {
-            field.name: _canonical_value(getattr(value, field.name))
-            for field in dataclasses.fields(value)
-        }
+        # Ruling R1 (kernel_scoring_contract_spec.md): a dataclass may opt a
+        # field into "digest-neutral" treatment via ``_CANONICAL_OMIT_IF_DEFAULT``
+        # -- a class-level set of field names to drop from canonical output
+        # entirely when the field still holds its declared default. This lets a
+        # later, additive field (e.g. MeasurementDeclaration.leaves) avoid
+        # perturbing plan_sha256/artifact_sha256 for manifests that never set it,
+        # without changing how any existing field (including ones already
+        # serialized as ``null``) is emitted.
+        omit_if_default = getattr(type(value), "_CANONICAL_OMIT_IF_DEFAULT", frozenset())
+        output: dict[str, Any] = {}
+        for field in dataclasses.fields(value):
+            current = getattr(value, field.name)
+            if field.name in omit_if_default and current == field.default:
+                continue
+            output[field.name] = _canonical_value(current)
+        return output
     if isinstance(value, Mapping):
         output: dict[str, Any] = {}
         for key, item in value.items():
