@@ -299,6 +299,23 @@ option and should remain a valid economic measurement. Illegal transitions,
 broken accounting, hidden-state leakage, or incomplete evidence are admission
 failures rather than low economic scores.
 
+**Why `developer_equity_npv` is primary, stated explicitly (kernel scoring-contract ruling
+R8 requires this).** `binding_contract_integrity`, `project_constraint_satisfaction`, and
+`negotiation_temporal_compliance` are pass/fail admission gates on whether the episode is a
+legitimate observation at all -- they say nothing about how well the developer negotiated once
+the episode is legitimate, and a family whose primary were one of them would be measuring "did
+the run stay valid" rather than "did the agent perform well," which is not this family's
+research question. `total_project_npv` is a genuine economic outcome but describes the whole
+deal's surplus, not the tested seat's; it stays as a secondary leaf precisely so it cannot be
+mistaken for the developer's own performance. `developer_equity_npv` is the only leaf that
+answers "how well did the tested developer negotiate," which is what this family exists to
+measure -- that is the actual reason, not that its identifier happens to be well-formed.
+Ruling R8's identifier checks (leaf ids unique, `primary_leaf_id` names a declared
+`finalize_time` leaf, admission membership, primary-in-admission) would pass just as cleanly if
+this manifest instead declared `project_constraint_satisfaction` primary; nothing in the kernel
+contract can catch that mistake, which is why this paragraph, not a validator, is what prevents
+it.
+
 ## 8. Case design and pilot panel
 
 Create 24 curated V0 worlds: six mechanism strata with four variants each.

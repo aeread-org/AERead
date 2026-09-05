@@ -46,6 +46,7 @@ from aeread.shared_runner.measurement import (
     ValidityReport,
     VerifierSpec,
 )
+from aeread.shared_runner.task.evaluation import FamilyScoringInput
 
 from .cases import CORPUS_ID, FAMILY_VERSION
 
@@ -238,13 +239,14 @@ class SteerScorer:
     ``environment.py``'s ``build_scorer`` hook returns one of these. The one
     real production finalization path,
     ``aeread.shared_runner.task.evaluation.finalize_family_execution``,
-    calls whatever ``build_scorer`` returns AS A CALLABLE
-    (``plugin.build_scorer(family_case)(outcome, evidence_refs=...)``),
-    mirroring ``housing.py``'s ``build_scorer`` closure and
-    ``smoke.py``'s ``lambda outcome: outcome`` -- so :meth:`__call__` below
-    is not a convenience alias, it is the shape production finalization
-    requires. :meth:`score` remains the named entry point tests call
-    directly.
+    calls whatever ``build_scorer`` returns AS A CALLABLE, passing a
+    ``FamilyScoringInput`` positionally
+    (``plugin.build_scorer(family_case)(scoring_input, evidence_refs=...)``),
+    mirroring ``datacenter_development``, ``procurement_grounding``,
+    ``procurement_allocation``, and ``commercial_state_calibration``'s
+    ``__call__`` methods -- so :meth:`__call__` below unwraps
+    ``scoring_input.outcome`` before delegating. :meth:`score` remains the
+    named entry point tests call directly with a bare outcome mapping.
     """
 
     question_id: str
@@ -277,13 +279,18 @@ class SteerScorer:
         )
 
     def __call__(
-        self, outcome: Mapping[str, Any], *, evidence_refs: tuple[str, ...] = ()
+        self, scoring_input: FamilyScoringInput, *, evidence_refs: tuple[str, ...] = ()
     ) -> ScoreEnvelope:
-        """Identical to :meth:`score` -- the shape
-        ``finalize_family_execution`` actually calls (spec section 2's own
-        finding: production scoring invokes ``build_scorer(...)`` as a bare
-        callable, never ``.score(...)``)."""
-        return self.score(outcome, evidence_refs=evidence_refs)
+        """The shape ``finalize_family_execution`` actually calls (spec
+        section 2's own finding: production scoring invokes
+        ``build_scorer(...)`` as a bare callable, never ``.score(...)``).
+
+        Unwraps ``scoring_input.outcome`` before delegating to :meth:`score`,
+        mirroring the other main-resident scorers' ``__call__`` methods --
+        the production finalizer passes a ``FamilyScoringInput``, not a bare
+        outcome mapping.
+        """
+        return self.score(scoring_input.outcome, evidence_refs=evidence_refs)
 
 
 def build_scorer(row: Mapping[str, Any]) -> SteerScorer:
