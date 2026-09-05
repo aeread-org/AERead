@@ -118,17 +118,23 @@ feasible award was reachable from the terminal state's offers and samples, so th
 deferral was the correct action. Yet in every case the oracle had a positive
 feasible award, ranging from $103 to $156.
 
-The buyer had already walked into a dead end — quoted the wrong suppliers, or
-spent its sampling actions on a supplier set that cannot meet minimum service —
-several actions before it deferred. The pre-award check reports the dead end
-accurately, but it evaluates award lines against offers *already obtained*. It
-cannot say "you needed to quote a different supplier four actions ago."
+Stronger still: replaying every prefix of those 15 trajectories, there is **no
+action index at any point** in any of them where a feasible award could have been
+constructed from the offers and samples the buyer had obtained. The buyer never
+assembled a qualifying supplier set at all, even though the oracle needs only
+five to nine actions in these worlds.
 
-**Fix.** This is a design choice to make explicitly, not a bug: either accept that
-the family measures irreversible early commitment (and say so), or add a cheap
-early signal — for example letting `check_award` accept offers that do not exist
-yet as hypotheticals, so the buyer can price a supplier set before committing
-actions to it.
+So the deferral was correct at every step, and the buyer was never close. The
+pre-award check reports the dead end accurately, but it evaluates award lines
+against offers *already obtained*. It cannot say "the set you are buying
+information about cannot produce a feasible award; quote someone else."
+
+**Fix.** This is a design choice to make explicitly, not a bug. Either accept that
+the family measures irreversible early commitment and say so in the case README,
+or add a cheap early signal: let `check_award` accept listings as hypothetical
+offers, so a buyer can ask "could this supplier set ever work" before spending
+four actions finding out that it cannot. The second is the change that would make
+the deferrals informative rather than merely correct.
 
 ## 7. The oracle solver is exponential, which silently constrains what worlds can exist
 
