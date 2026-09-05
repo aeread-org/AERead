@@ -1,0 +1,29 @@
+# Runtime dependencies of the pinned upstream EconAgent checkout
+# (tsinghua-fib-lab/ACL24-EconAgent, commit bfada09).
+#
+# Reaching `complex_actions` requires `from simulate import complex_actions`,
+# which executes simulate.py's whole module body (module-level imports plus
+# its top-level `with open('config.yaml') as f: ...` read -- see
+# docs/econagent_adapter_spec.md's milestone-1 corrections). That module body
+# pulls in matplotlib/yaml/fire/pandas/seaborn/scipy/python-dateutil even
+# though `complex_actions` itself never touches most of them. This set is
+# installed into a dedicated interpreter that ONLY imports this pinned
+# checkout; it is deliberately not merged into the project's own dependencies
+# (numpy/scipy already differ in version, and none of this is needed anywhere
+# else in AERead).
+#
+# ai_economist.foundation additionally needs lz4 (foundation/utils.py does
+# module-level `import lz4.frame`).
+#
+# No network call is made by the driver this venv runs: it only imports
+# local, already-checked-out source and does local arithmetic.
+
+fire==0.7.1
+lz4==4.4.5
+matplotlib==3.11.1
+numpy==2.5.2
+pandas==3.0.5
+python-dateutil==2.9.0.post0
+PyYAML==6.0.3
+scipy==1.18.1
+seaborn==0.13.2
