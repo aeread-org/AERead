@@ -1049,3 +1049,61 @@ under opaque labels. The 2x2 prompt factorial would spend about $3 to measure tw
 more such gates. The next procurement intervention changes the decision interface
 instead: a verifier-visible pre-award check. The V1 through V4 risk-gate audits
 remain as the operational record of the Parasail route's throttling behavior.
+
+## Held-out confirmation of the pre-award check
+
+The development result (PR #87) was supported but adaptive: the worlds were the
+ones the intervention was selected on, and the control arm had run on an
+environment without `check_award`, so the estimate bundled the action's presence
+with the prompt's use of it. `confirmatory_v2/` closes both gaps. Its twelve
+worlds were generated after the pre-award prompt was frozen at digest
+`600828117b31f363232085cfcf088bfa20ba0207adeed05e83255c55f5f7a871` and after the
+development result was read, with zero case-digest, economic-world-digest, or
+seed collisions against the development, confirmatory v1, risk-gate, blinded, and
+Qwen holdout panels. Both arms run fresh on the same environment: control is the
+frozen V4 scaffold, treatment the frozen pre-award procedure, 144 rows across
+twelve worlds, two surfaces, and three seeds.
+
+The guarded metric changed. Every campaign before this one guarded terminal
+feasibility, which `outcome` reports as true for an explicit defer; the
+development run passed that guardrail at +0.389 while producing fifteen
+deferrals. The confirmatory rule guards `feasible_award`, true only for a
+submitted award that passed every gate, and reports terminal feasibility as a
+diagnostic.
+
+### Operational audit, 2026-09-05
+
+The GLM 5.3 Flash/Parasail route was throttling heavily and no attempt reached
+the 144-row panel. Seven attempt roots across three campaign identities:
+
+| identity | attempt | rows | operational failures | provider calls ok / failed |
+|---|---|---|---|---|
+| v1 | 001 | 0 | 0 (canary rejected, `rate_limit`) | 0 / 0 |
+| v1 | 002 | 1 | 1 | 1 / 4 |
+| v1 | 003 | 2 | 1 | 13 / 4 |
+| v2 (paced) | 003 | 10 | 1 | 69 / 13 |
+| v2 (paced) | 004 | 0 | 0 (canary rejected) | 29 / 6 |
+| v3 (paced, `feasible_award`) | 003 | 7 | 1 | 44 / 4 |
+| v3 | 004 | 4 | 1 | 27 / 8 |
+
+Aggregate: 24 scored rows, $0.0636 spent, and **39 of 222 provider calls failed,
+a 17.6% failure rate**. V2 added the risk-gate pacing (four action attempts, 15s
+retry base) after V1 was sealed twice before any panel row completed; pacing
+raised the best attempt from 2 rows to 10 but did not clear the panel. V3 is the
+same plan with the corrected guardrail.
+
+Following the risk-gate V4 precedent, the response is a fresh attempt under the
+identical frozen plan in a later availability window, not more retries inside an
+action: four failures already span roughly 77 seconds, and the observed failures
+are route-wide rather than request-specific.
+
+Two operational findings worth fixing, both recorded in the design review:
+
+- A transient rate limit on the **unscored, zero-cost admission canary**
+  permanently seals an attempt root, because the canary is write-once. That cost
+  two of the seven attempts above before a single panel row ran. A typed
+  transient condition on a probe that produces no measurement should be
+  re-probeable within the attempt, with every probe recorded.
+- No partial efficacy was inspected in any sealed attempt, and none of the 24
+  rows contributes to a claim.
+
