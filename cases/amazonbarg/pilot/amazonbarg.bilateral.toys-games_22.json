@@ -1,0 +1,77 @@
+{
+  "case_id": "amazonbarg.bilateral.toys-games_22",
+  "content_sha256": "9266b84aba73378d7b2c6339bcf03037502148ecd86b63734b0f15567e5b47ec",
+  "episode": {
+    "max_logical_actions": 12,
+    "termination": [
+      "deal",
+      "quit",
+      "action_error",
+      "turn_limit"
+    ]
+  },
+  "family_id": "amazonbarg.bilateral",
+  "family_version": "0.1.0",
+  "payload": {
+    "derived": {
+      "budget": 864.9280000000001,
+      "category": "toys-games",
+      "category_file": "toys-games.json",
+      "codename": "toys-games_22",
+      "cost": 959.0,
+      "description": "Notes：\n* The actual product weight may vary due to differences in batch materials and external factors.\n** When used only with DJI Mini 4 Pro Intelligent Flight Battery, the aircraft weighs less than 249g. With the Intelligent Flight Battery Plus, the aircraft will weigh more than 249g. \n*** All data was tested using a production model DJI Mini 4 Pro in a controlled environment. Actual experience may vary depending on the environment, usage, and firmware version.\n**** All videos and images on this page were shot in strict compliance with relevant local laws and regulations. Demos are for reference only. Always observe local laws and regulations and ensure the aircraft has obtained relevant certifications before flying.\n\nDJI Mini 4 Pro comes in four purchasing options:\n-DJI Mini 4 Pro (DJI RC-N2) includes the drone, DJI RC-N2 remote controller, and more. A great choice for beginners.\n-DJI Mini 4 Pro (DJI RC 2) includes the drone, DJI RC 2 remote controller, one DJI Mini 4 Pro Intelligent Flight Battery, and more. Get precision control with DJI RC 2 featuring a bright screen.\n-DJI Mini 4 Pro Fly More Combo (DJI RC 2) includes an RC 2, three Batteries, a Charging Hub, and more! Fast charge multiple batteries simultaneously & fly longer.\n-DJI Mini 4 Pro Fly More Combo Plus (DJI RC 2) includes RC 2, three Batteries Plus, Charging Hub, and Shoulder Bag for enhanced flight time with fast, efficient charging and convenient transportation & storage. ",
+      "index_in_file": 21,
+      "interest": "conflicting",
+      "price": 1081.16,
+      "title": "DJI Mini 4 Pro (DJI RC 2), Folding Mini-Drone with 4K HDR Video Camera for Adults, Under 0.549 lbs/249 g, 34 Mins Flight Time, 20 km Max Video Transmission Distance, Omnidirectional Vision Sensing"
+    },
+    "pins": {
+      "budget_ratio": 0.8,
+      "category_file_bytes": 58777,
+      "category_file_sha256": "18c4ddf974468b896c3877a147ad00b1d86f22964ceabd936848a9fd310cb91f",
+      "license": "Apache-2.0",
+      "max_turns": 6,
+      "upstream_commit": "834ad9066d0627f0332504d5fa6d236706f2402b",
+      "upstream_repo": "TianXiaSJTU/AmazonPriceHistory"
+    },
+    "product": {
+      "amazon_link": "https://www.amazon.com/dp/B0CFF1SJ3P",
+      "amazon_title": "DJI Mini 4 Pro (DJI RC 2), Folding Mini-Drone with 4K HDR Video Camera for Adults, Under 0.549 lbs/249 g, 34 Mins Flight Time, 20 km Max Video Transmission Distance, Omnidirectional Vision Sensing",
+      "average_price": "$1,002.04",
+      "badge": "Best Price",
+      "category": "toys-games",
+      "current_price": "$959.00",
+      "current_price_date": "Nov 15, 2023",
+      "description": "Notes：\n* The actual product weight may vary due to differences in batch materials and external factors.\n** When used only with DJI Mini 4 Pro Intelligent Flight Battery, the aircraft weighs less than 249g. With the Intelligent Flight Battery Plus, the aircraft will weigh more than 249g. \n*** All data was tested using a production model DJI Mini 4 Pro in a controlled environment. Actual experience may vary depending on the environment, usage, and firmware version.\n**** All videos and images on this page were shot in strict compliance with relevant local laws and regulations. Demos are for reference only. Always observe local laws and regulations and ensure the aircraft has obtained relevant certifications before flying.\n\nDJI Mini 4 Pro comes in four purchasing options:\n-DJI Mini 4 Pro (DJI RC-N2) includes the drone, DJI RC-N2 remote controller, and more. A great choice for beginners.\n-DJI Mini 4 Pro (DJI RC 2) includes the drone, DJI RC 2 remote controller, one DJI Mini 4 Pro Intelligent Flight Battery, and more. Get precision control with DJI RC 2 featuring a bright screen.\n-DJI Mini 4 Pro Fly More Combo (DJI RC 2) includes an RC 2, three Batteries, a Charging Hub, and more! Fast charge multiple batteries simultaneously & fly longer.\n-DJI Mini 4 Pro Fly More Combo Plus (DJI RC 2) includes RC 2, three Batteries Plus, Charging Hub, and Shoulder Bag for enhanced flight time with fast, efficient charging and convenient transportation & storage. ",
+      "features": "Under 249 g, No Registration Is Required[1] - Travel light and skip registration for a user-friendly, easy-to-carry experience on all your journeys. Enjoy the fun of flying without the tedious application process and waiting time.\nUnleash Stunning Vertical Videos in 4K/60fps HDR - Perfectly showcases sunrise, sunset, and night scenes with impressive clarity. Share videos instantly without the need for post-cutting. Enjoy high-quality footage straight out of the camera!\nOmnidirectional Obstacle Sensing for Enhanced Safety - With precise detection capabilities in all directions, you can fly with confidence, knowing that the drone will better detect obstacles. Worry less about collisions when flying, even first-time users!\nUninterrupted Flights with Extended Battery Life - Experience extended battery life for uninterrupted, longer flights[3]. Say goodbye to battery anxiety, let nothing hold you back as you explore vast landscapes.\nImmerse in Real-time Aerial Footage with 20km FHD Video Transmission[2] - An essential for long flights and great high-quality visuals. Experience lag-free image transmission, immersing yourself in real-time aerial views like never before.\nCustomize Intelligent Tracking with Ease - Take control of your drone's tracking trajectory with the new ActiveTrack 360°. Achieve complex and seamless operation effects. Even if you're a beginner, getting started and capturing smooth videos is effortless.\nIncludes DJI Mini 4 Pro, DJI RC 2, one 34 Mins Flight Time Battery, and more. Get precise control with DJI RC 2 featuring a bright screen. Monitor essential info in real time while flying the drone.\nNotes: The relevant regulatory requirements may vary depending on how you use your drone. For your safety, be sure to check and strictly follow the latest local laws and regulations before flying.",
+      "highest_price": "$1,081.16",
+      "highest_price_date": "Nov 14, 2023",
+      "img": "https://m.media-amazon.com/images/I/617rfzwf0fL.__AC_SX300_SY300_QL70_FMwebp_.jpg",
+      "link": "https://camelcamelcamel.com/product/B0CFF1SJ3P?active=price_amazon&context=popular",
+      "list_price": "$959.00",
+      "lowest_price": "$959.00",
+      "lowest_price_date": "Nov 15, 2023",
+      "title": "DJI Mini 4 Pro (DJI RC 2), Folding Mini-Drone with 4K HDR Video Camera for Adults, Under 0.549 lbs/249 g, 34 Mins Flight Time, 20 km Max Video Transmission Distance, Omnidirectional Vision Sensing"
+    }
+  },
+  "provenance": {
+    "generator_id": "amazonbarg_importer",
+    "generator_version": "0.1.0",
+    "review_status": "upstream_pinned"
+  },
+  "seats": [
+    {
+      "id": "buyer",
+      "role": "buyer"
+    },
+    {
+      "id": "seller",
+      "role": "seller"
+    }
+  ],
+  "spec_version": "aeread.case/0.1",
+  "split": "pilot",
+  "upstream_task_id": "toys-games_22",
+  "visibility_policy": "amazonbarg_seller_cost_private_v1",
+  "world_seed": 922
+}

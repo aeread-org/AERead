@@ -1,0 +1,16 @@
+# Build-time-only dependency of the pinned upstream STEER corpus importer
+# (narunraman/STEER, commit d66673c8277b9112fc5e39751524ccda6d852446).
+#
+# Every ``.pkl`` file under the pinned checkout's ``elements/<name>/`` is a
+# pandas-serialized dataframe (and, in the checked-in git repo, only a
+# git-LFS pointer to one -- see tools/steer_bridge/README.md). Unpickling it
+# requires pandas; the project's own venv (Python 3.11) does not carry it.
+#
+# This set is installed into a dedicated interpreter that ONLY flattens the
+# pinned corpus at Gate-1 build/test time. It is deliberately not merged into
+# the project's own dependencies, and pandas must never become a runtime or
+# test-time import outside this bridge -- see
+# docs/steer_adapter_spec.md section 3 and section 6's last stated limit.
+
+numpy==2.5.2
+pandas==3.0.5

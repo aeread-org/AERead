@@ -1,0 +1,78 @@
+{
+  "case_id": "amazonbarg.bilateral.home-kitchen_1",
+  "content_sha256": "19eafb2c3f791853fce9d8eca34e91ee0936e99a292de7041231abca37ebf4e5",
+  "episode": {
+    "max_logical_actions": 12,
+    "termination": [
+      "deal",
+      "quit",
+      "action_error",
+      "turn_limit"
+    ]
+  },
+  "family_id": "amazonbarg.bilateral",
+  "family_version": "0.1.0",
+  "payload": {
+    "derived": {
+      "budget": 439.992,
+      "category": "home-kitchen",
+      "category_file": "home-kitchen.json",
+      "codename": "home-kitchen_1",
+      "cost": 174.99,
+      "description": "Transform your home into a winter wonderland with National Tree Company's ‘Feel Real’ Artificial Christmas Tree. This majestic Downswept Douglas Fir tree is 7.5 feet tall and 59 inches in diameter at the bottom, giving the tree a wide profile. Friends and family alike will marvel at how the tree closely mimics those outside. Molded from real tree branches for an authentic living tree appearance, this tree features our trademarked ‘Feel Real’ technology. Hundreds of crush-resistant polyethylene tips form full bodied branches, creating a tree with remarkable realism. The tree is designed with a hinged branch system that allows the branches to swing down for a quick and simple set-up and fold back in for easy storage. Set aside 45-60 minutes after assembly to properly shape the tree by peeling back the branches and pulling the tips apart to give the branches a more full-bodied look. Once the tree is fluffed to your liking, weave your desired lights through the branches starting from the top and moving down towards the bottom. Before dressing the tree in twinkling lights and glistening ornaments, consider placing it in a living room or dining area where it can be viewed from multiple angles and does not block any entryways. Constructed with sturdy, high quality materials and hypo-allergenic, fire-resistant needles, this tree is built to bring holiday cheer for years to come. At National Tree Company, we strive to create high quality Christmas decorations to help you transform your home so you can keep making every holiday moment magical.",
+      "index_in_file": 0,
+      "interest": "mutual",
+      "price": 549.99,
+      "title": "National Tree Company 'Feel Real' Artificial Full Downswept Christmas Tree, Green, Douglas Fir, Includes Stand, 7.5 Feet"
+    },
+    "pins": {
+      "budget_ratio": 0.8,
+      "category_file_bytes": 56926,
+      "category_file_sha256": "8324c1c67b533bd0d2700edce852cc8ab3417c6cc1043e660a20b817bc8c910b",
+      "license": "Apache-2.0",
+      "max_turns": 6,
+      "upstream_commit": "834ad9066d0627f0332504d5fa6d236706f2402b",
+      "upstream_repo": "TianXiaSJTU/AmazonPriceHistory"
+    },
+    "product": {
+      "amazon_link": "https://www.amazon.com/dp/B0045VI3RC",
+      "amazon_title": "National Tree Company 'Feel Real' Artificial Full Downswept Christmas Tree, Green, Douglas Fir, Includes Stand, 7.5 Feet",
+      "average_price": "$274.56",
+      "badge": "",
+      "camel_img": "https://m.media-amazon.com/images/I/41zOnssBxqL._UL320_.jpg",
+      "category": "home-kitchen",
+      "current_price": "$196.64",
+      "current_price_date": "Nov 17, 2023",
+      "description": "Transform your home into a winter wonderland with National Tree Company's ‘Feel Real’ Artificial Christmas Tree. This majestic Downswept Douglas Fir tree is 7.5 feet tall and 59 inches in diameter at the bottom, giving the tree a wide profile. Friends and family alike will marvel at how the tree closely mimics those outside. Molded from real tree branches for an authentic living tree appearance, this tree features our trademarked ‘Feel Real’ technology. Hundreds of crush-resistant polyethylene tips form full bodied branches, creating a tree with remarkable realism. The tree is designed with a hinged branch system that allows the branches to swing down for a quick and simple set-up and fold back in for easy storage. Set aside 45-60 minutes after assembly to properly shape the tree by peeling back the branches and pulling the tips apart to give the branches a more full-bodied look. Once the tree is fluffed to your liking, weave your desired lights through the branches starting from the top and moving down towards the bottom. Before dressing the tree in twinkling lights and glistening ornaments, consider placing it in a living room or dining area where it can be viewed from multiple angles and does not block any entryways. Constructed with sturdy, high quality materials and hypo-allergenic, fire-resistant needles, this tree is built to bring holiday cheer for years to come. At National Tree Company, we strive to create high quality Christmas decorations to help you transform your home so you can keep making every holiday moment magical.",
+      "features": "This Downswept Douglas Fir Full Artificial Green Christmas Tree is 7.5 feet tall with a 59 inch base diameter. Featuring hundreds of 'Feel Real' individually crafted branch tips to create full bodied branches, this tree is designed to look and feel lifelike.\nDesigned to look and feel lifelike, this tree is defined by its close attention to detail, featuring hundreds of individually crafted branch tips that make up the wide, full-bodied branches that create space for your lights and ornaments.\nThis tree features pre-attached, hinged branches that drop down for a simple set-up and fold back in for quick and convenient storage. Set aside 45-60 minutes to properly shape the tree by peeling back the branches and pulling the tips apart.\nConstructed with sturdy, high quality materials, hypo-allergenic, fire-resistant needles, this tree is built to bring holiday cheer for years to come. Includes a durable metal base.\nAt National Tree Company, we believe that special holiday memories don’t have to be far and few between. This Christmas season, let our decorations transform your home while you focus on creating more of those magical moments.",
+      "highest_price": "$549.99",
+      "highest_price_date": "Mar 05, 2020",
+      "img": "https://m.media-amazon.com/images/I/815jXFdYWyL.__AC_SX300_SY300_QL70_FMwebp_.jpg",
+      "link": "https://camelcamelcamel.com/product/B0045VI3RC?active=price_amazon&context=popular",
+      "list_price": "$469.99",
+      "lowest_price": "$174.99",
+      "lowest_price_date": "Jan 28, 2017",
+      "title": "National Tree Company 'Feel Real' Artificial Full Downswept Christmas Tree, Green, Douglas Fir, Includes Stand, 7.5 Feet"
+    }
+  },
+  "provenance": {
+    "generator_id": "amazonbarg_importer",
+    "generator_version": "0.1.0",
+    "review_status": "upstream_pinned"
+  },
+  "seats": [
+    {
+      "id": "buyer",
+      "role": "buyer"
+    },
+    {
+      "id": "seller",
+      "role": "seller"
+    }
+  ],
+  "spec_version": "aeread.case/0.1",
+  "split": "pilot",
+  "upstream_task_id": "home-kitchen_1",
+  "visibility_policy": "amazonbarg_seller_cost_private_v1",
+  "world_seed": 329
+}

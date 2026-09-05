@@ -1,0 +1,77 @@
+{
+  "case_id": "amazonbarg.bilateral.home-kitchen_8",
+  "content_sha256": "8ac8bf9a8fa6685435c4825a29724871cad7439cf87d462b607ed62b1576a716",
+  "episode": {
+    "max_logical_actions": 12,
+    "termination": [
+      "deal",
+      "quit",
+      "action_error",
+      "turn_limit"
+    ]
+  },
+  "family_id": "amazonbarg.bilateral",
+  "family_version": "0.1.0",
+  "payload": {
+    "derived": {
+      "budget": 7.720000000000001,
+      "category": "home-kitchen",
+      "category_file": "home-kitchen.json",
+      "codename": "home-kitchen_8",
+      "cost": 1.0,
+      "description": "Adhesive Res Q Tape",
+      "index_in_file": 7,
+      "interest": "mutual",
+      "price": 9.65,
+      "title": "Dritz Adhesive Res Q Tape, 3/4-Inch x 5-Yards, Clear"
+    },
+    "pins": {
+      "budget_ratio": 0.8,
+      "category_file_bytes": 56926,
+      "category_file_sha256": "8324c1c67b533bd0d2700edce852cc8ab3417c6cc1043e660a20b817bc8c910b",
+      "license": "Apache-2.0",
+      "max_turns": 6,
+      "upstream_commit": "834ad9066d0627f0332504d5fa6d236706f2402b",
+      "upstream_repo": "TianXiaSJTU/AmazonPriceHistory"
+    },
+    "product": {
+      "amazon_link": "https://www.amazon.com/dp/B0019INGFS",
+      "amazon_title": "Dritz Adhesive Res Q Tape, 3/4-Inch x 5-Yards, Clear",
+      "average_price": "$4.70",
+      "badge": "",
+      "category": "home-kitchen",
+      "current_price": "$1.00",
+      "current_price_date": "Nov 17, 2023",
+      "description": "Adhesive Res Q Tape",
+      "features": "For temporary repair of hems and seams and quick basting without pins and general craft applications\nDouble-faced Clear adhesive tape\nClings to fabric, leather and paper without leaving any residue\nFor Fashion, Home Décor, Crafts",
+      "highest_price": "$9.65",
+      "highest_price_date": "Jul 25, 2022",
+      "img": "https://m.media-amazon.com/images/I/51mFqFXeriL.__AC_SX300_SY300_QL70_FMwebp_.jpg",
+      "link": "https://camelcamelcamel.com/product/B0019INGFS?active=price_amazon&context=popular",
+      "list_price": "$6.89",
+      "lowest_price": "$1.00",
+      "lowest_price_date": "Aug 19, 2023",
+      "title": "Dritz Adhesive Res Q Tape, 3/4-Inch x 5-Yards, Clear"
+    }
+  },
+  "provenance": {
+    "generator_id": "amazonbarg_importer",
+    "generator_version": "0.1.0",
+    "review_status": "upstream_pinned"
+  },
+  "seats": [
+    {
+      "id": "buyer",
+      "role": "buyer"
+    },
+    {
+      "id": "seller",
+      "role": "seller"
+    }
+  ],
+  "spec_version": "aeread.case/0.1",
+  "split": "pilot",
+  "upstream_task_id": "home-kitchen_8",
+  "visibility_policy": "amazonbarg_seller_cost_private_v1",
+  "world_seed": 336
+}
