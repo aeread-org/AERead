@@ -1772,6 +1772,240 @@ def test_determinism_precheck_adjacency_defeats_call_parity_aliasing(tmp_path: P
     ), "adjacency should have caught this scorer as nondeterministic, not let it slip through"
 
 
+# ---------------------------------------------------------------------------
+# Ruling R9/R10, end-to-end: the same mechanism the unit tests above exercise
+# against hand-built fixtures, now against REAL sealed episodes produced by
+# ``_TrajectoryEmbeddingPlugin``/``_TrajectoryIgnoringEmbeddingPlugin`` (both
+# defined earlier in this module, alongside ``_ReferencePlugin``). Mirrors
+# ``test_determinism_precheck_adjacency_defeats_call_parity_aliasing``'s
+# shape: build two real, differently-labelled episodes, replay each, and
+# drive the R9/R10 helper functions directly rather than going through
+# ``test_every_registered_family_obeys_the_scoring_contract`` (which has no
+# family enrolled whose outcome embeds its trajectory -- see this module's
+# docstring on why ``kernel_contract_reference_v1``'s outcome is deliberately
+# order-insensitive instead).
+# ---------------------------------------------------------------------------
+
+
+def test_r9_projection_pairs_a_trajectory_embedding_outcome_when_the_path_is_declared(
+    tmp_path: Path,
+) -> None:
+    """A REAL family whose outcome embeds its trajectory (mirroring
+    collusion's ``history``/datacenter_development's ``public_history``)
+    cannot produce a byte-identical raw outcome across two differing
+    trajectories -- ``_TrajectoryEmbeddingPlugin.outcome`` carries the full
+    ordered ``labels`` alongside the order-insensitive tally
+    ``_ReferencePlugin`` already returns. Declaring the embedding path
+    (``/labels``) lets the PROJECTION recover the pairing that R7's
+    byte-identical-outcome precondition would otherwise make unsatisfiable
+    by construction (ruling R9, round 3).
+    """
+    declared_paths = _embedding_family_manifest(
+        trajectory_outcome_paths=("/labels",)
+    ).measurement.trajectory_outcome_paths
+
+    left_setup, left_execution = asyncio.run(
+        _run_reference_episode(
+            ("x", "y"),
+            evidence_root=tmp_path / "embedding_left",
+            plugin_factory=_TrajectoryEmbeddingPlugin,
+        )
+    )
+    _right_setup, right_execution = asyncio.run(
+        _run_reference_episode(
+            ("y", "x"),
+            evidence_root=tmp_path / "embedding_right",
+            plugin_factory=_TrajectoryEmbeddingPlugin,
+        )
+    )
+    plugin = left_setup.registry.resolve_manifest(left_setup.plan.families[0])
+    family_case = plugin.validate_payload(left_setup.plan.cases[0].payload)
+
+    left_input = replay_family_scoring_input(
+        plugin=plugin, family_case=family_case, evidence=left_execution.evidence
+    )
+    right_input = replay_family_scoring_input(
+        plugin=plugin, family_case=family_case, evidence=right_execution.evidence
+    )
+
+    # The raw outcome is NOT byte-identical -- ``labels`` differs by
+    # construction -- so R7's original precondition is unsatisfiable here,
+    # exactly the shape ruling R9 exists for.
+    assert canonical_json_bytes(left_input.outcome) != canonical_json_bytes(
+        right_input.outcome
+    )
+    assert left_input.phase_instances != right_input.phase_instances
+
+    # The PROJECTION -- outcome minus the declared path -- IS byte-identical:
+    # both permutations of {"x", "y"} tally to the same x_count/y_count.
+    left_projection = project_outcome(left_input.outcome, declared_paths)
+    right_projection = project_outcome(right_input.outcome, declared_paths)
+    assert canonical_json_bytes(left_projection) == canonical_json_bytes(
+        right_projection
+    )
+
+    # Ruling R10: each fixture's own embedded copy of the trajectory agrees
+    # with its own canonical derivation from phase_instances.
+    _assert_trajectory_outcome_paths_are_consistent(left_input, declared_paths)
+    _assert_trajectory_outcome_paths_are_consistent(right_input, declared_paths)
+
+    scorer = plugin.build_scorer(family_case)
+    left_scores = normalize_family_score_set(
+        scorer(left_input, evidence_refs=left_input.evidence_refs)
+    )
+    right_scores = normalize_family_score_set(
+        scorer(right_input, evidence_refs=right_input.evidence_refs)
+    )
+
+    # Ruling R9(b), the sensitivity witness: the genuinely trajectory-scoped
+    # leaf changes across this pair.
+    witnesses = _assert_trajectory_leaves_are_witnessed(
+        [(left_input, left_scores), (right_input, right_scores)],
+        {_EMBEDDING_TRAJECTORY_LEAF_ID},
+        family_id=_EMBEDDING_FAMILY_ID,
+    )
+    assert witnesses == {_EMBEDDING_TRAJECTORY_LEAF_ID: (0, 1)}
+
+    # Ruling R7's contrapositive: the terminal_state-declared leaf is
+    # identical across the pair (both permutations tally the same).
+    left_balance = next(
+        score for score in left_scores.scores if score.leaf.leaf_id == _EMBEDDING_BALANCE_LEAF_ID
+    )
+    right_balance = next(
+        score for score in right_scores.scores if score.leaf.leaf_id == _EMBEDDING_BALANCE_LEAF_ID
+    )
+    assert _score_measurement_content(left_balance) == _score_measurement_content(
+        right_balance
+    )
+
+
+def test_r9_projection_fails_to_pair_when_the_embedded_path_is_not_declared(
+    tmp_path: Path,
+) -> None:
+    """Mutation check, over the SAME real fixture pair as the test above:
+    declaring NO paths for a family whose outcome genuinely embeds its
+    trajectory must not silently let the pairing through by accident -- the
+    one field that actually carries the trajectory (``labels``) must remain
+    visible in the projection and keep the two outcomes apart, proving the
+    declaration above is doing real work rather than coincidentally
+    matching."""
+    left_setup, left_execution = asyncio.run(
+        _run_reference_episode(
+            ("x", "y"),
+            evidence_root=tmp_path / "embedding_undeclared_left",
+            plugin_factory=_TrajectoryEmbeddingPlugin,
+        )
+    )
+    _right_setup, right_execution = asyncio.run(
+        _run_reference_episode(
+            ("y", "x"),
+            evidence_root=tmp_path / "embedding_undeclared_right",
+            plugin_factory=_TrajectoryEmbeddingPlugin,
+        )
+    )
+    plugin = left_setup.registry.resolve_manifest(left_setup.plan.families[0])
+    family_case = plugin.validate_payload(left_setup.plan.cases[0].payload)
+    left_input = replay_family_scoring_input(
+        plugin=plugin, family_case=family_case, evidence=left_execution.evidence
+    )
+    right_input = replay_family_scoring_input(
+        plugin=plugin, family_case=family_case, evidence=right_execution.evidence
+    )
+
+    undeclared_paths = _embedding_family_manifest(
+        trajectory_outcome_paths=()
+    ).measurement.trajectory_outcome_paths
+    assert undeclared_paths == ()
+
+    left_projection = project_outcome(left_input.outcome, undeclared_paths)
+    right_projection = project_outcome(right_input.outcome, undeclared_paths)
+    assert canonical_json_bytes(left_projection) != canonical_json_bytes(right_projection), (
+        "an undeclared trajectory field must not accidentally satisfy the "
+        "pairing precondition -- removing the declaration should make the "
+        "one field that differs (labels) visible in the projection again"
+    )
+
+
+def test_sensitivity_witness_rejects_a_trajectory_leaf_that_ignores_the_trajectory(
+    tmp_path: Path,
+) -> None:
+    """Ruling R9(b), mutation check, end-to-end:
+    ``_TrajectoryIgnoringEmbeddingPlugin``'s scorer returns a constant value
+    for its ``trajectory``-declared leaf regardless of ``scoring_input`` --
+    the witness must reject it, over the same real fixture shape the correct
+    scorer above is witnessed on."""
+    left_setup, left_execution = asyncio.run(
+        _run_reference_episode(
+            ("x", "y"),
+            evidence_root=tmp_path / "embedding_ignoring_left",
+            plugin_factory=_TrajectoryIgnoringEmbeddingPlugin,
+        )
+    )
+    _right_setup, right_execution = asyncio.run(
+        _run_reference_episode(
+            ("y", "x"),
+            evidence_root=tmp_path / "embedding_ignoring_right",
+            plugin_factory=_TrajectoryIgnoringEmbeddingPlugin,
+        )
+    )
+    plugin = left_setup.registry.resolve_manifest(left_setup.plan.families[0])
+    family_case = plugin.validate_payload(left_setup.plan.cases[0].payload)
+    left_input = replay_family_scoring_input(
+        plugin=plugin, family_case=family_case, evidence=left_execution.evidence
+    )
+    right_input = replay_family_scoring_input(
+        plugin=plugin, family_case=family_case, evidence=right_execution.evidence
+    )
+
+    scorer = plugin.build_scorer(family_case)
+    left_scores = normalize_family_score_set(
+        scorer(left_input, evidence_refs=left_input.evidence_refs)
+    )
+    right_scores = normalize_family_score_set(
+        scorer(right_input, evidence_refs=right_input.evidence_refs)
+    )
+
+    with pytest.raises(AssertionError, match="never changed"):
+        _assert_trajectory_leaves_are_witnessed(
+            [(left_input, left_scores), (right_input, right_scores)],
+            {_EMBEDDING_TRAJECTORY_LEAF_ID},
+            family_id=_EMBEDDING_FAMILY_ID,
+        )
+
+
+def test_r10_rejects_a_corrupted_trajectory_outcome_copy_end_to_end(
+    tmp_path: Path,
+) -> None:
+    """Ruling R10, mutation check, end-to-end: starting from a REAL sealed
+    episode's scoring input (not the hand-built fixture
+    ``test_r10_rejects_a_corrupted_trajectory_outcome_copy`` above uses),
+    tamper with the embedded copy alone -- ``phase_instances`` is untouched
+    -- and confirm R10 still catches the disagreement."""
+    setup, execution = asyncio.run(
+        _run_reference_episode(
+            ("x", "y"),
+            evidence_root=tmp_path / "embedding_corrupted",
+            plugin_factory=_TrajectoryEmbeddingPlugin,
+        )
+    )
+    plugin = setup.registry.resolve_manifest(setup.plan.families[0])
+    family_case = plugin.validate_payload(setup.plan.cases[0].payload)
+    scoring_input = replay_family_scoring_input(
+        plugin=plugin, family_case=family_case, evidence=execution.evidence
+    )
+    # ``replay_family_scoring_input`` freezes everything it reconstructs
+    # (spec section 1), so the list ``_TrajectoryEmbeddingPlugin.outcome``
+    # built comes back as a tuple here.
+    assert scoring_input.outcome["labels"] == ("x", "y")
+
+    corrupted = dataclasses.replace(
+        scoring_input,
+        outcome={**scoring_input.outcome, "labels": ("y", "x")},
+    )
+    with pytest.raises(AssertionError, match="does not match its canonical derivation"):
+        _assert_trajectory_outcome_paths_are_consistent(corrupted, ("/labels",))
+
+
 def test_score_measurement_content_includes_seat_breakdowns() -> None:
     """kernel_contract_gap_review.md finding 5, mutation check.
 
