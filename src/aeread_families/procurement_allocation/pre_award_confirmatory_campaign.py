@@ -64,7 +64,7 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 V1_CAMPAIGN_ID = (
     "procurement_allocation_glm53_flash_parasail_pre_award_check_v1"
 )
-CAMPAIGN_ID = "procurement_allocation_glm53_flash_parasail_pre_award_check_confirmatory_v2"
+CAMPAIGN_ID = "procurement_allocation_glm53_flash_parasail_pre_award_check_confirmatory_v3"
 FROZEN_V4_PROMPT_SHA256 = FROZEN_TREATMENT_PROMPT_SHA256
 FROZEN_SCAFFOLD_PROMPT_SHA256 = (
     "9a9e69f8a513e40499f83fe3648a316c49461645033ef009f43a2be3c515a813"
@@ -101,6 +101,7 @@ RETRY_AFTER_MAX_SECONDS = 60.0
 MAX_TRAJECTORY_COST_USD = 0.03
 MAX_CANARY_COST_USD = 0.03
 METRICS = (
+    "feasible_award",
     "feasible",
     "completed_kits",
     "contribution_margin_usd",
@@ -297,6 +298,8 @@ def build_plan() -> dict[str, Any]:
             "operational_changes_only": [
                 "four action attempts with a 15s retry base after V1 was sealed "
                 "twice by route rate limits before any panel row completed",
+                "guard feasible_award rather than terminal feasibility, which "
+                "counts an explicit defer as feasible",
                 "retain billed usage for empty completions and failed trajectories",
                 "retry empty_response within the existing three-attempt action bound",
             ],
@@ -367,7 +370,8 @@ def build_plan() -> dict[str, Any]:
             "bootstrap_resamples": BOOTSTRAP_RESAMPLES,
             "confirmation_rule": {
                 "primary_regret_delta_bootstrap_upper_strictly_below_usd": 0.0,
-                "overall_feasibility_delta_bootstrap_lower_at_least": -0.05,
+                "overall_feasible_award_delta_bootstrap_lower_at_least": -0.05,
+                "guarded_metric": "feasible_award, not terminal feasibility",
             },
             "secondary_outcomes": [
                 "surface-specific feasibility, completed kits, margin, and regret",
@@ -742,12 +746,15 @@ def build_confirmatory_comparison(*, run_root: Path) -> dict[str, Any]:
     }
     eligible = all(integrity.values())
     primary_regret = overall["regret_to_upper_bound_usd"]
-    feasibility = overall["feasible"]
+    # Guard feasible_award, not terminal feasibility: an explicit defer is
+    # terminally feasible and earns nothing, so a treatment that defers more
+    # could otherwise satisfy the guardrail while losing money.
+    feasibility = overall["feasible_award"]
     confirmation_checks = {
         "primary_regret_upper_below_zero": (
             primary_regret["world_cluster_bootstrap_95_interval"][1] < 0.0
         ),
-        "feasibility_noninferiority_lower_at_least_minus_0_05": (
+        "feasible_award_noninferiority_lower_at_least_minus_0_05": (
             feasibility["world_cluster_bootstrap_95_interval"][0] >= -0.05
         ),
     }

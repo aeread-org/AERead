@@ -30,3 +30,18 @@ def test_plan_runs_both_arms_fresh_on_one_environment() -> None:
     assert plan["prompts"]["control_sha256"] != plan["prompts"]["treatment_sha256"]
     assert plan["independent_world_count"] == 12
     assert build_plan()["plan_sha256"] == plan["plan_sha256"]
+
+
+def test_the_guardrail_is_feasible_award_not_terminal_feasibility() -> None:
+    """A defer is terminally feasible and earns nothing.
+
+    Guarding terminal feasibility would let a treatment that defers more satisfy
+    the non-inferiority check while losing money, which is exactly the failure
+    mode the pre-award check's fifteen deferrals exposed.
+    """
+    plan = build_plan()
+    rule = plan["analysis"]["confirmation_rule"]
+    assert "overall_feasible_award_delta_bootstrap_lower_at_least" in rule
+    assert "overall_feasibility_delta_bootstrap_lower_at_least" not in rule
+    assert rule["guarded_metric"].startswith("feasible_award")
+
