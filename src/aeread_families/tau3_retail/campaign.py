@@ -46,7 +46,7 @@ from .live import (
 from .tau2_bridge import Tau2Bridge
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
-CAMPAIGN_ID = "tau3_retail_glm5p2_arena_pipeline_proof_v5"
+CAMPAIGN_ID = "tau3_retail_glm5p2_arena_pipeline_proof_v6"
 CANARY_CASE_ID = "tau3.retail.base.53"
 PANEL_CASE_IDS = (
     "tau3.retail.base.14",
