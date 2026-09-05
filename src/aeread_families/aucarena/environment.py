@@ -99,7 +99,7 @@ def register_plugin(
 ) -> "AucArenaPlugin":
     """Register one exact family/version binding in the kernel registry."""
     resolved = plugin if plugin is not None else AucArenaPlugin()
-    registry.register(family_manifest(), resolved)
+    registry.register_trusted(family_manifest(), resolved)
     return resolved
 
 
