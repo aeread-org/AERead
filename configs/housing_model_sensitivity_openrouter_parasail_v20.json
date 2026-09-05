@@ -62,7 +62,9 @@
     "allow_fallbacks": false,
     "require_parameters": true,
     "retry_owner": "aeread_action_attempt_policy",
-    "raw_response_retention": "local_evidence_store"
+    "raw_response_retention": "local_evidence_store",
+    "route_status_policy": "allow_degraded_with_recorded_status",
+    "endpoint_snapshot_policy": "identity_only"
   },
   "models": {
     "glm_53_flash": {
@@ -73,7 +75,7 @@
       "input_per_million": 0.15,
       "cached_input_per_million": 0.03,
       "output_per_million": 0.5,
-      "endpoint_snapshot_sha256": "accd9d25a1a41c6e869c21f5154ada278938b676f7e78337085d6e4e5f311667",
+      "endpoint_snapshot_sha256": "9e454ee0c8ef4522d4868e06e2ca7d0663fe9be8168f6f36b6e8ab2d67f526f5",
       "tenant_profile_id": "housing_glm_53_flash_parasail_tenant_v20",
       "landlord_profile_id": "housing_glm_53_flash_parasail_landlord_v20"
     },
@@ -85,7 +87,7 @@
       "input_per_million": 0.14,
       "cached_input_per_million": 0.05,
       "output_per_million": 0.28,
-      "endpoint_snapshot_sha256": "bad3cd350aa1d33ec1a6f7b1f3f56b6910c63df741ec6506bec3cadd53309d08",
+      "endpoint_snapshot_sha256": "cf4ea974762598b45896a975bb7c7007d71160fe642432b76c581dbb4ca685b2",
       "tenant_profile_id": "housing_deepseek_v4_flash_parasail_tenant_v20",
       "landlord_profile_id": "housing_deepseek_v4_flash_parasail_landlord_v20"
     }

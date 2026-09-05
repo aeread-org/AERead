@@ -1447,6 +1447,37 @@ def test_v20_freezes_ten_visible_attempts_with_exponential_backoff() -> None:
     # safe to re-send; V18 and earlier lost whole cells to a single timeout.
     assert "timeout" in v20["controls"]["retryable_conditions"]
     assert "timeout" not in v18["controls"]["retryable_conditions"]
+    # A deranked catalog status is a routing hint, not an outage: Parasail
+    # served 10 of 10 strict-client calls while flagged -2. V20 records the
+    # observed status instead of refusing to launch on it.
+    assert v20["backend"]["route_status_policy"] == (
+        "allow_degraded_with_recorded_status"
+    )
+    assert "route_status_policy" not in v18["backend"]
+    # The endpoint digest pinned health alongside identity, so a derank made
+    # the route look like it had drifted. V20 pins identity only.
+    assert v20["backend"]["endpoint_snapshot_policy"] == "identity_only"
+    assert "endpoint_snapshot_policy" not in v18["backend"]
+    endpoint = {
+        "name": "Parasail | z-ai/glm-5.3-flash",
+        "provider_name": "Parasail",
+        "quantization": "fp8",
+        "pricing": {"prompt": "0.00000015", "completion": "0.0000005"},
+        "supported_parameters": ["seed", "temperature"],
+        "max_completion_tokens": 943718,
+        "status": 0,
+    }
+    deranked = {**endpoint, "status": -2}
+    from aeread_families.housing.backend_campaign import _endpoint_snapshot_sha256
+
+    assert _endpoint_snapshot_sha256(endpoint) != _endpoint_snapshot_sha256(deranked)
+    assert _endpoint_snapshot_sha256(
+        endpoint, policy="identity_only"
+    ) == _endpoint_snapshot_sha256(deranked, policy="identity_only")
+    repriced = {**endpoint, "pricing": {"prompt": "0.9", "completion": "0.9"}}
+    assert _endpoint_snapshot_sha256(
+        endpoint, policy="identity_only"
+    ) != _endpoint_snapshot_sha256(repriced, policy="identity_only")
     assert v20["controls"]["max_action_attempts"] == 10
     assert v20["controls"]["retry_backoff"] == {
         "policy": "exponential_jitter_v1",
@@ -1456,9 +1487,17 @@ def test_v20_freezes_ten_visible_attempts_with_exponential_backoff() -> None:
     assert v20["profile_admission"]["attempt_limit_per_probe"] == 10
     assert v20["profile_admission"]["sdk_retries"] == 0
     for model_id in ("glm_53_flash", "deepseek_v4_flash"):
-        assert v20["models"][model_id]["endpoint_snapshot_sha256"] == (
-            v18["models"][model_id]["endpoint_snapshot_sha256"]
-        )
+        # The snapshot digests differ by construction: V18 pinned health into
+        # the digest and V20 pins identity only. The route itself is unchanged.
+        for field in (
+            "requested_model",
+            "canonical_model",
+            "provider",
+            "quantization",
+            "input_per_million",
+            "output_per_million",
+        ):
+            assert v20["models"][model_id][field] == v18["models"][model_id][field]
     assert v20["execution"] == v18["execution"]
     for setup in build_setups(v20, routes=routes).values():
         for profile in setup.plan.agent_profiles:
@@ -1474,7 +1513,7 @@ def test_v20_freezes_ten_visible_attempts_with_exponential_backoff() -> None:
             assert profile.harness.config["retry_backoff"] == "exponential_jitter_v1"
             assert "retry_base_seconds" not in profile.harness.config
     assert design_artifact(v20, routes=routes)["artifact_sha256"] == (
-        "70e5d6f9f5708ccd5a062e690f68531c02969a7dc9159d04fbc6a843de63df30"
+        "dfed130346b4ab3da2213582c6fe77e57243f19fff938ba8dfb292579b2fb42c"
     )
     assert provider_free_artifact(v20)["artifact_sha256"] == (
         "7c45ba3ab4876e35fc72c85bfa66b842d6d58271c84cc531423997368c99ff8e"

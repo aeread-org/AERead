@@ -789,6 +789,8 @@ CAMPAIGN_SPECS = {
         ),
     },
     "housing_model_sensitivity_openrouter_parasail_v20": {
+        "route_status_policy": "allow_degraded_with_recorded_status",
+        "endpoint_snapshot_policy": "identity_only",
         "claim_status": "development_full_trajectory_gate_only",
         "catalog_retrieved_at": "2026-09-05",
         "reasoning_condition_id": (
@@ -863,6 +865,8 @@ CAMPAIGN_SPECS = {
         ),
     },
     "housing_model_sensitivity_openrouter_parasail_v21": {
+        "route_status_policy": "allow_degraded_with_recorded_status",
+        "endpoint_snapshot_policy": "identity_only",
         "claim_status": "exploratory_variance_pilot_only",
         "catalog_retrieved_at": "2026-09-05",
         "reasoning_condition_id": (
@@ -1125,7 +1129,7 @@ def load_contract(path: str | Path) -> dict[str, Any]:
             ]
     if controls != expected_controls:
         raise ValueError("fixed backend-campaign controls drifted")
-    if value["backend"] != {
+    expected_backend = {
         "gateway": "openrouter",
         "api_base": "https://openrouter.ai/api/v1",
         "catalog_source": "https://openrouter.ai/api/v1/models/{model}/endpoints",
@@ -1136,7 +1140,16 @@ def load_contract(path: str | Path) -> dict[str, Any]:
         "require_parameters": True,
         "retry_owner": "aeread_action_attempt_policy",
         "raw_response_retention": "local_evidence_store",
-    }:
+    }
+    if "route_status_policy" in campaign_spec:
+        expected_backend["route_status_policy"] = campaign_spec[
+            "route_status_policy"
+        ]
+    if "endpoint_snapshot_policy" in campaign_spec:
+        expected_backend["endpoint_snapshot_policy"] = campaign_spec[
+            "endpoint_snapshot_policy"
+        ]
+    if value["backend"] != expected_backend:
         raise ValueError("backend contract drifted")
     _validate_models(value["models"], campaign_id=campaign_id)
 
@@ -1257,26 +1270,46 @@ def _catalog_url(contract: Mapping[str, Any], model: str) -> str:
     return contract["backend"]["catalog_source"].format(model=model)
 
 
-def _endpoint_snapshot(endpoint: Mapping[str, Any]) -> dict[str, Any]:
-    """Return the stable, decision-relevant portion of one endpoint record."""
+def _endpoint_snapshot(
+    endpoint: Mapping[str, Any], *, policy: str = "full"
+) -> dict[str, Any]:
+    """Return the stable, decision-relevant portion of one endpoint record.
 
-    return {
+    The default ``full`` policy keeps the endpoint's health ``status`` inside
+    the digest. That conflates identity with health: a transient derank
+    changes the digest and blocks a campaign whose route has not actually
+    changed. The ``identity_only`` policy pins what defines the route -- name,
+    provider, quantization, pricing, parameters, completion limit -- and
+    leaves the observed status to ``route_status_policy``.
+    """
+
+    if policy not in {"full", "identity_only"}:
+        raise ValueError(f"unsupported endpoint snapshot policy: {policy!r}")
+    snapshot = {
         "name": endpoint.get("name"),
         "provider_name": endpoint.get("provider_name"),
         "quantization": endpoint.get("quantization"),
         "pricing": endpoint.get("pricing"),
         "supported_parameters": sorted(endpoint.get("supported_parameters", [])),
-        "status": endpoint.get("status"),
         "max_completion_tokens": endpoint.get("max_completion_tokens"),
     }
+    if policy == "full":
+        snapshot["status"] = endpoint.get("status")
+    return snapshot
 
 
-def _endpoint_snapshot_sha256(endpoint: Mapping[str, Any]) -> str:
-    return _sha256(_endpoint_snapshot(endpoint))
+def _endpoint_snapshot_sha256(
+    endpoint: Mapping[str, Any], *, policy: str = "full"
+) -> str:
+    return _sha256(_endpoint_snapshot(endpoint, policy=policy))
 
 
 def catalog_preflight(contract: Mapping[str, Any]) -> dict[str, Any]:
     rows: list[dict[str, Any]] = []
+    route_status_policy = contract["backend"].get(
+        "route_status_policy", "require_active"
+    )
+    snapshot_policy = contract["backend"].get("endpoint_snapshot_policy", "full")
     for model_id, model in contract["models"].items():
         with urllib.request.urlopen(
             _catalog_url(contract, model["requested_model"]), timeout=30
@@ -1307,14 +1340,17 @@ def catalog_preflight(contract: Mapping[str, Any]) -> dict[str, Any]:
         supported = set(endpoint.get("supported_parameters", []))
         if not REQUIRED_ROUTE_PARAMETERS <= supported:
             raise ValueError(f"catalog parameter support drifted for {model_id}")
-        if endpoint.get("status") != 0:
+        route_status = endpoint.get("status")
+        if route_status != 0 and route_status_policy == "require_active":
             raise ValueError(f"catalog route is not active for {model_id}")
         if (
             endpoint.get("max_completion_tokens", 0)
             < contract["controls"]["max_output_tokens"]
         ):
             raise ValueError(f"catalog completion limit is too small for {model_id}")
-        endpoint_snapshot_sha256 = _endpoint_snapshot_sha256(endpoint)
+        endpoint_snapshot_sha256 = _endpoint_snapshot_sha256(
+            endpoint, policy=snapshot_policy
+        )
         if (
             CAMPAIGN_SPECS[contract["campaign_id"]].get(
                 "verify_endpoint_snapshot", False
@@ -1343,6 +1379,11 @@ def catalog_preflight(contract: Mapping[str, Any]) -> dict[str, Any]:
         {
             "schema_version": "aeread.housing_backend_catalog_preflight/0.1",
             "campaign_id": contract["campaign_id"],
+            **(
+                {"route_status_policy": route_status_policy}
+                if "route_status_policy" in contract["backend"]
+                else {}
+            ),
             "status": "passed",
             "provider_inference_calls": 0,
             "routes": rows,
