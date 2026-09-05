@@ -1157,6 +1157,7 @@ def _profile(
     timeout_seconds: float | None = None,
     max_action_attempts: int | None = None,
     retryable_conditions: Sequence[str] | None = None,
+    max_cost_usd: float | None = None,
     openrouter_route: OpenRouterRoutePin = DEEPINFRA_HOUSING_ROUTE,
     harness_id: str = "minimal_chat",
     harness_version: str = "1.0",
@@ -1238,7 +1239,11 @@ def _profile(
                 "timeout_seconds": (
                     timeout_seconds if timeout_seconds is not None else 30.0
                 ),
-                "max_cost_usd": 0.01 if provider == "openrouter" else 0.001,
+                "max_cost_usd": (
+                    max_cost_usd
+                    if max_cost_usd is not None
+                    else (0.01 if provider == "openrouter" else 0.001)
+                ),
             },
             "retry_policy": {
                 "max_action_attempts": (
@@ -1291,6 +1296,7 @@ def build_housing_smoke(
     max_output_tokens_override: int | None = None,
     timeout_seconds_override: float | None = None,
     max_action_attempts_override: int | None = None,
+    max_cost_usd_override: float | None = None,
     retryable_conditions_override: Sequence[str] | None = None,
     implementation_digest_overrides: Mapping[str, str] | None = None,
     evaluation_kind: str = "controlled",
@@ -1556,6 +1562,11 @@ def build_housing_smoke(
             if tenant_provider == "openrouter" and experiment_mode
             else None
         ),
+        max_cost_usd=(
+            max_cost_usd_override
+            if tenant_provider == "openrouter" and experiment_mode
+            else None
+        ),
         retryable_conditions=(
             retryable_conditions_override
             if tenant_provider == "openrouter" and experiment_mode
@@ -1607,6 +1618,11 @@ def build_housing_smoke(
         ),
         max_action_attempts=(
             max_action_attempts_override
+            if landlord_provider == "openrouter" and experiment_mode
+            else None
+        ),
+        max_cost_usd=(
+            max_cost_usd_override
             if landlord_provider == "openrouter" and experiment_mode
             else None
         ),
