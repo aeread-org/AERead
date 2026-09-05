@@ -46,21 +46,21 @@ from .live import (
 from .tau2_bridge import Tau2Bridge
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
-CAMPAIGN_ID = "tau3_retail_glm5p2_arena_pipeline_proof_v8"
+CAMPAIGN_ID = "tau3_retail_glm5p2_arena_pipeline_proof_v9"
 CANARY_CASE_ID = "tau3.retail.base.53"
 PANEL_CASE_IDS = (
     "tau3.retail.base.14",
     "tau3.retail.base.10",
-    "tau3.retail.base.5",
-    "tau3.retail.base.16",
-    "tau3.retail.base.30",
+    "tau3.retail.base.73",
+    "tau3.retail.base.108",
+    "tau3.retail.base.83",
 )
 PANEL_STRATA = (
-    "direct_return_state_transition",
-    "payment_method_refusal_fallback",
-    "confirmation_changed_mind_nonmutation",
-    "compound_multi_order_state",
-    "lookup_conditional_fallback",
+    "multi_order_return_state_transition",
+    "payment_method_refusal_escalation",
+    "single_order_exclusion_return",
+    "return_with_refund_disclosure",
+    "unavailable_payment_method_fallback",
 )
 SEED = 300
 MAX_PARALLEL_CELLS = 1
