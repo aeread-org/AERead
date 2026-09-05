@@ -58,9 +58,9 @@ Arena reports request cost in each response, so the driver records and enforces
 those dollar ceilings. The canary reserves 256 output tokens because GLM 5.2
 uses the same completion budget for hidden reasoning and visible JSON.
 Arena may also return an ordinary customer-facing reply even when instructed
-to emit the reply envelope. The provider adapter preserves that text exactly;
-the tau3 harness classifies it as `malformed_structured_output`, so the same
-model output has the same meaning on every provider route.
+to emit the reply envelope. The adapter normalizes such completed prose only
+when the declared schema explicitly permits `kind=reply`; malformed JSON and
+non-reply schemas still fail the provider contract.
 The assistant request places the invariant policy and tool catalog before the
 changing conversation state. The harness supplies that same rendered message
 when the executor seals round 0, preserving a stable prompt prefix for later
