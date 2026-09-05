@@ -3,7 +3,7 @@
 Turns the 114 tasks in upstream's ``data/tau2/domains/retail/tasks.json``
 (pinned at commit ``fc0055dc4e0a316c3f83133267fbd6faaa770992``) into one
 ``CaseManifest`` JSON file per task plus a shared ``pins.json`` pin record and
-an 18-task pilot manifest.  See ``docs/tau3_retail_adapter_spec.md`` sections
+an 18-task pilot manifest.  See ``docs/families/tau3-retail/adapter_spec.md`` sections
 1-3 for the governing spec.
 
 This module never reimplements upstream tool bodies, scoring rules, or
@@ -29,7 +29,7 @@ import sys
 from pathlib import Path
 from typing import Any, Mapping
 
-from aeread.shared_runner.resolver import canonical_json_bytes, case_content_sha256
+from aeread.shared_runner.run.resolver import canonical_json_bytes, case_content_sha256
 from aeread.shared_runner.schemas import CaseManifest
 
 # --------------------------------------------------------------------------
@@ -45,7 +45,7 @@ CASE_ID_PREFIX = "tau3.retail.base"
 # ``user_scenario`` (the simulated customer's ground-truth persona and
 # instructions) is authored for the user seat only and is never shown to the
 # assistant seat -- mirroring upstream's own flip_roles design. UNRESOLVED per
-# docs/tau3_retail_adapter_spec.md Q3 (no registry of legal
+# docs/families/tau3-retail/adapter_spec.md Q3 (no registry of legal
 # ``visibility_policy`` values exists yet); revisit once the kernel owner
 # answers Q3.
 VISIBILITY_POLICY = "tau3_retail_user_scenario_private_v1"
@@ -87,8 +87,8 @@ JUDGE_ARGS: Mapping[str, Any] = {"temperature": 0.0}
 USER_SIM_MODEL = "gpt-4.1-2025-04-14"
 USER_SIM_ARGS: Mapping[str, Any] = {"temperature": 0.0}
 
-# 18-task pilot (docs/tau3_retail_adapter_spec.md section 3 and
-# docs/refund_external_benchmark_integration.md section 5); order matches the
+# 18-task pilot (docs/families/tau3-retail/adapter_spec.md section 3 and
+# docs/families/tau3-retail/refund_external_benchmark_integration.md section 5); order matches the
 # five documented strata concatenated in order.
 PILOT_UPSTREAM_TASK_IDS: tuple[str, ...] = (
     "14", "53", "73", "108",

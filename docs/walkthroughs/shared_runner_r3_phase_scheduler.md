@@ -1,8 +1,12 @@
 # Walkthrough: Shared-runner R3 provider-free phase scheduling
 
+> **Status (2026-09-02): Complete.** Provider-free scheduling and simultaneous/noninterference
+> contracts pass in the assessed checkout. See the
+> [roadmap implementation status](shared_runner_architecture_roadmap.md#implementation-status--2026-09-02).
+
 R3 consumes one sealed `PlanCell` and its `CaseManifest`, then executes a family plugin's
 declarative phase graph without importing a provider or a concrete family. The implementation
-is `src/aeread/shared_runner/scheduler.py`; the conformance fixtures are in
+is `src/aeread/shared_runner/task/scheduler.py`; the conformance fixtures are in
 `tests/test_shared_runner_scheduler.py`.
 
 ```text
@@ -56,4 +60,3 @@ does not create `ActionAttempt`, `ProviderCall`, tool, event, artifact, retry, c
 records. R4 must reconcile those side effects and return a canonical response through this
 interface. A direct provider function passed to R3 would bypass the evidence contract and is
 not a valid shared-runner model execution.
-

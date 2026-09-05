@@ -394,7 +394,7 @@ def test_registry_resolves_only_exact_trusted_family_version_and_plugin() -> Non
     manifest = FamilyManifest.from_dict(family_data())
     plugin = CompleteHousingPlugin()
     registry = PluginRegistry()
-    registry.register(manifest, plugin)
+    registry.register_trusted(manifest, plugin)
 
     assert registry.resolve("housing_v1", "1.0.0", "aeread.housing_v1") is plugin
     assert registry.resolve_manifest(manifest) is plugin
@@ -408,10 +408,10 @@ def test_registry_resolves_only_exact_trusted_family_version_and_plugin() -> Non
 def test_registry_rejects_duplicate_or_incomplete_plugins() -> None:
     manifest = FamilyManifest.from_dict(family_data())
     registry = PluginRegistry()
-    registry.register(manifest, CompleteHousingPlugin())
+    registry.register_trusted(manifest, CompleteHousingPlugin())
     with pytest.raises(DuplicatePluginError, match="already registered"):
-        registry.register(manifest, CompleteHousingPlugin())
+        registry.register_trusted(manifest, CompleteHousingPlugin())
 
     incomplete = object()
     with pytest.raises(IncompletePluginError, match="validate_payload"):
-        PluginRegistry().register(manifest, incomplete)
+        PluginRegistry().register_trusted(manifest, incomplete)
