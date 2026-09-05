@@ -52,6 +52,7 @@ from __future__ import annotations
 import asyncio
 import dataclasses
 import hashlib
+import itertools
 import json
 from pathlib import Path
 from typing import Any, Mapping, Sequence
@@ -113,6 +114,7 @@ from aeread.shared_runner.task.execution import (
 from aeread.shared_runner.task.scheduler import (
     LegalityResult,
     ParseResult,
+    PhaseInstance,
     PhaseSpec,
     TransitionResult,
 )
@@ -1024,6 +1026,169 @@ def _score_measurement_content(score: ScoreEnvelope) -> tuple[Any, ...]:
 
 
 # ---------------------------------------------------------------------------
+# Ruling R9/R10 (kernel_scoring_contract_spec.md, round 3): families whose
+# outcome embeds its own trajectory (collusion's ``history``,
+# datacenter_development's ``public_history``) cannot construct a paired
+# fixture with a byte-identical OUTCOME -- R7's precondition -- no matter how
+# their trajectories differ. The manifest's declared
+# ``trajectory_outcome_paths`` (schemas.py) names exactly the outcome fields
+# responsible, so the paired-history check below operates on the PROJECTION
+# (outcome minus those paths) instead of the whole outcome. A family that
+# declares no paths projects to its own whole outcome, so this is a strict
+# generalization: govsim and every terminal-only family are unaffected.
+#
+# Two duties come with the declaration:
+#   R9(b) the sensitivity witness -- each ``trajectory``-scoped leaf must be
+#     shown capable of changing on SOME fixture pair the family supplies (not
+#     necessarily THE paired-history pair -- R7 already rejected requiring
+#     that, since a legitimate trajectory metric may coincide on any one
+#     pair).
+#   R10 the consistency duty -- for every declared path, the outcome's copy
+#     of the trajectory must equal its canonical derivation from
+#     ``phase_instances``. The kernel does not need to understand a family's
+#     domain to check this: ``phase_instances[-1].transitions[-1].state`` is
+#     exactly the state ``plugin.terminal()`` was called on to produce the
+#     terminal result that ``outcome()`` was built from (scheduler.py's
+#     ``run_episode`` calls ``_terminal(plugin, family_case, state)``
+#     immediately after each ``_step``), so navigating the SAME declared
+#     JSON pointer into that state recovers the trajectory copy independent
+#     of the outcome the family actually sealed -- two disagreeing copies are
+#     exactly what this catches.
+# ---------------------------------------------------------------------------
+
+
+def _json_pointer_get(document: Any, pointer: str) -> Any:
+    """Navigate one RFC 6901 JSON pointer into a mapping/sequence document."""
+    node = document
+    for raw_segment in pointer.split("/")[1:]:
+        segment = raw_segment.replace("~1", "/").replace("~0", "~")
+        if isinstance(node, Mapping):
+            if segment not in node:
+                raise KeyError(f"{pointer!r} does not exist in this document")
+            node = node[segment]
+        elif isinstance(node, (list, tuple)):
+            node = node[int(segment)]
+        else:
+            raise KeyError(f"{pointer!r} does not exist in this document")
+    return node
+
+
+def _drop_json_pointer(document: Any, segments: tuple[str, ...]) -> Any:
+    if not isinstance(document, Mapping):
+        raise TypeError("a trajectory_outcome_path must navigate through JSON objects")
+    key = segments[0].replace("~1", "/").replace("~0", "~")
+    if key not in document:
+        raise KeyError(f"outcome has no {key!r} field to project away")
+    if len(segments) == 1:
+        return {k: v for k, v in document.items() if k != key}
+    return {
+        k: (_drop_json_pointer(v, segments[1:]) if k == key else v)
+        for k, v in document.items()
+    }
+
+
+def project_outcome(outcome: Mapping[str, Any], paths: tuple[str, ...]) -> Mapping[str, Any]:
+    """``outcome`` with every declared ``trajectory_outcome_path`` removed (R9).
+
+    A family declaring no paths projects to itself -- the paired-history
+    check below is then byte-for-byte the pre-R9 whole-outcome comparison.
+    """
+    projected: Any = outcome
+    for pointer in paths:
+        projected = _drop_json_pointer(projected, tuple(pointer.split("/")[1:]))
+    return projected
+
+
+def _final_replayed_state(phase_instances: tuple[PhaseInstance, ...]) -> Any:
+    """The family state ``plugin.terminal()`` was called on to end replay (R10).
+
+    See this section's banner: this is the LAST ``TransitionResult.state``
+    across every phase instance, in order -- exactly the state
+    ``_replay_family_trajectory`` held when it made its one successful
+    ``plugin.terminal(...)`` call.
+    """
+    for phase_instance in reversed(phase_instances):
+        if phase_instance.transitions:
+            return phase_instance.transitions[-1].state
+    raise ValueError(
+        "phase_instances contain no transitions to derive a terminal state from"
+    )
+
+
+def _assert_trajectory_outcome_paths_are_consistent(
+    scoring_input: "FamilyScoringInput", paths: tuple[str, ...]
+) -> None:
+    """Ruling R10: each declared path's outcome copy must match its derivation.
+
+    A family that embeds its trajectory in ``outcome`` is not a contract
+    violation (ruling R10) -- ``phase_instances`` remains the authoritative
+    scoring provenance; the embedded copy is for inspection. This is the duty
+    that comes with embedding it: two copies of the trajectory that disagree
+    must fail, whatever the disagreement's cause.
+    """
+    if not paths:
+        return
+    final_state = _final_replayed_state(scoring_input.phase_instances)
+    for pointer in paths:
+        outcome_value = _json_pointer_get(scoring_input.outcome, pointer)
+        derived_value = _json_pointer_get(final_state, pointer)
+        assert canonical_json_bytes(outcome_value) == canonical_json_bytes(
+            derived_value
+        ), (
+            f"outcome{pointer} does not match its canonical derivation from "
+            "phase_instances -- ruling R10 requires a declared "
+            "trajectory_outcome_path to agree with the verified re-execution, "
+            "not merely with whatever the family happened to seal"
+        )
+
+
+def _assert_trajectory_leaves_are_witnessed(
+    produced_by_case: Sequence[tuple[Any, "FamilyScoreSet"]],
+    trajectory_leaf_ids: "set[str]",
+    *,
+    family_id: str,
+) -> Mapping[str, tuple[int, int]]:
+    """Ruling R9(b): each trajectory-scoped leaf must change on SOME pair.
+
+    R7 rejected requiring a trajectory leaf to differ on THE paired-history
+    pair specifically: a legitimate trajectory metric may map two distinct
+    histories to the same value, so that would misreport a sound leaf as
+    mislabelled. This checks a weaker, still load-bearing property across
+    EVERY pair of fixtures the family supplies: the leaf must be shown
+    capable of changing on at least one of them. A leaf that is constant
+    across every supplied fixture is indistinguishable from one that
+    secretly ignores the trajectory entirely -- this witness is the one
+    check that tells them apart. Returns which pair witnessed each leaf, so
+    a caller can record it.
+    """
+    witness_pair_by_leaf: dict[str, tuple[int, int]] = {}
+    for leaf_id in trajectory_leaf_ids:
+        for (left_index, (_, left_scores)), (right_index, (_, right_scores)) in (
+            itertools.combinations(enumerate(produced_by_case), 2)
+        ):
+            left_score = next(
+                score for score in left_scores.scores if score.leaf.leaf_id == leaf_id
+            )
+            right_score = next(
+                score for score in right_scores.scores if score.leaf.leaf_id == leaf_id
+            )
+            if _score_measurement_content(left_score) != _score_measurement_content(
+                right_score
+            ):
+                witness_pair_by_leaf[leaf_id] = (left_index, right_index)
+                break
+    missing = sorted(trajectory_leaf_ids - set(witness_pair_by_leaf))
+    assert not missing, (
+        f"{family_id}: trajectory-scoped leaf(ves) {missing} never changed across "
+        f"any of the {len(produced_by_case)} supplied fixtures -- ruling R9's "
+        "sensitivity witness requires each trajectory leaf to be shown capable of "
+        "change on SOME pair; a leaf that is constant everywhere cannot be told "
+        "apart from one that secretly ignores the trajectory"
+    )
+    return witness_pair_by_leaf
+
+
+# ---------------------------------------------------------------------------
 # Ruling R6 (kernel_contract_gap_review.md finding 1): the protocol test's
 # closed-world assertion previously compared this test's own locally-built
 # registry against fixtures built by that same local construction -- true by
@@ -1495,3 +1660,162 @@ def test_score_measurement_content_ignores_metric_metadata() -> None:
     # dataclass equality) -- proving there is something for the guard to do.
     assert left.primary != right.primary
     assert _score_measurement_content(left) == _score_measurement_content(right)
+
+
+# ---------------------------------------------------------------------------
+# Ruling R9/R10 direct unit tests: each guard exercised in isolation, against
+# hand-built fixtures, before the full-episode integration tests further
+# below wire the same functions into a real replayed family.
+# ---------------------------------------------------------------------------
+
+
+def test_project_outcome_is_the_identity_when_no_paths_are_declared() -> None:
+    outcome = {"termination_reason": "max_periods", "rounds_played": 2, "history": ["x", "y"]}
+    assert project_outcome(outcome, ()) == outcome
+
+
+def test_project_outcome_removes_exactly_the_declared_paths() -> None:
+    outcome = {"termination_reason": "max_periods", "rounds_played": 2, "history": ["x", "y"]}
+    projected = project_outcome(outcome, ("/history",))
+    assert projected == {"termination_reason": "max_periods", "rounds_played": 2}
+    # The original is untouched -- projection must not mutate its input.
+    assert outcome["history"] == ["x", "y"]
+
+
+def test_project_outcome_supports_a_nested_path() -> None:
+    outcome = {"summary": {"history": ["x", "y"], "rounds": 2}}
+    assert project_outcome(outcome, ("/summary/history",)) == {"summary": {"rounds": 2}}
+
+
+def _phase_instance_ending_in_state(state: Mapping[str, Any]) -> PhaseInstance:
+    return PhaseInstance(
+        phase_instance_id="phase_instance_0",
+        phase_id="round_two",
+        ordinal=1,
+        mode="single",
+        eligible_actors=("participant_0",),
+        pre_state_sha256="0" * 64,
+        post_state_sha256="1" * 64,
+        observations={},
+        actions=(),
+        transitions=(TransitionResult(state=state, next_phase_id=None),),
+    )
+
+
+def test_final_replayed_state_reads_the_last_transitions_state() -> None:
+    phase_instances = (
+        _phase_instance_ending_in_state({"labels": ("x",)}),
+        dataclasses.replace(
+            _phase_instance_ending_in_state({"labels": ("x", "y")}), ordinal=2
+        ),
+    )
+    assert _final_replayed_state(phase_instances) == {"labels": ("x", "y")}
+
+
+def test_final_replayed_state_skips_a_trailing_phase_instance_with_no_transitions() -> None:
+    """A phase instance that never called ``step`` (an edge case the kernel does
+    not rule out structurally) must not hide the real final state behind it."""
+    phase_instances = (
+        _phase_instance_ending_in_state({"labels": ("x", "y")}),
+        dataclasses.replace(
+            _phase_instance_ending_in_state({"labels": ("x", "y")}),
+            ordinal=2,
+            transitions=(),
+        ),
+    )
+    assert _final_replayed_state(phase_instances) == {"labels": ("x", "y")}
+
+
+def test_final_replayed_state_rejects_no_transitions_anywhere() -> None:
+    phase_instances = (
+        dataclasses.replace(
+            _phase_instance_ending_in_state({"labels": ()}), transitions=()
+        ),
+    )
+    with pytest.raises(ValueError, match="no transitions"):
+        _final_replayed_state(phase_instances)
+
+
+def test_r10_accepts_an_outcome_copy_that_matches_its_derivation() -> None:
+    phase_instances = (_phase_instance_ending_in_state({"labels": ["x", "y"]}),)
+    scoring_input = FamilyScoringInput(
+        outcome={"labels": ["x", "y"]}, phase_instances=phase_instances, evidence_refs=()
+    )
+    # Tolerant of tuple-vs-list encoding, like every other canonical_json_bytes
+    # comparison in this module -- the state carries a list here and a tuple
+    # in the corrupted case below on purpose, to prove that is not what this
+    # guard is sensitive to.
+    _assert_trajectory_outcome_paths_are_consistent(scoring_input, ("/labels",))
+
+
+def test_r10_rejects_a_corrupted_trajectory_outcome_copy() -> None:
+    """Ruling R10, mutation check: two disagreeing copies of the trajectory
+    must fail, independent of what caused the disagreement."""
+    phase_instances = (_phase_instance_ending_in_state({"labels": ("x", "y")}),)
+    corrupted = FamilyScoringInput(
+        # The outcome's copy has been tampered with (order swapped) relative
+        # to what phase_instances actually replayed.
+        outcome={"labels": ["y", "x"]},
+        phase_instances=phase_instances,
+        evidence_refs=(),
+    )
+    with pytest.raises(AssertionError, match="does not match its canonical derivation"):
+        _assert_trajectory_outcome_paths_are_consistent(corrupted, ("/labels",))
+
+
+def test_r10_is_a_no_op_when_no_paths_are_declared() -> None:
+    """A family that declares no trajectory_outcome_paths gets no R10 check at
+    all -- there is nothing to be consistent about, and (unlike the projection
+    check) this must not even require phase_instances to have a transition."""
+    scoring_input = FamilyScoringInput(
+        outcome={"anything": "at all"}, phase_instances=(), evidence_refs=()
+    )
+    _assert_trajectory_outcome_paths_are_consistent(scoring_input, ())
+
+
+def _fake_trajectory_score(leaf_id: str, value: float) -> ScoreEnvelope:
+    return ScoreEnvelope(
+        status="ok",
+        leaf=_reference_leaf(leaf_id=leaf_id, input_scope="trajectory"),
+        primary=MetricValue(value, "indicator"),
+        metrics={},
+        reference_values={},
+        validity=ValidityReport("valid"),
+        evidence_refs=(),
+    )
+
+
+def test_sensitivity_witness_passes_when_a_trajectory_leaf_changes_on_some_pair() -> None:
+    leaf_id = "trajectory_leaf"
+    fixtures = [
+        (None, FamilyScoreSet(primary_leaf_id=leaf_id, scores=(_fake_trajectory_score(leaf_id, 1.0),))),
+        (None, FamilyScoreSet(primary_leaf_id=leaf_id, scores=(_fake_trajectory_score(leaf_id, 1.0),))),
+        (None, FamilyScoreSet(primary_leaf_id=leaf_id, scores=(_fake_trajectory_score(leaf_id, 0.0),))),
+    ]
+    witnesses = _assert_trajectory_leaves_are_witnessed(
+        fixtures, {leaf_id}, family_id="fixture_family"
+    )
+    # The leaf is constant across fixtures 0 and 1; only a pair touching
+    # fixture 2 can witness it, and that is exactly what is recorded.
+    assert witnesses == {leaf_id: (0, 2)}
+
+
+def test_sensitivity_witness_fails_when_a_trajectory_leaf_ignores_every_fixture() -> None:
+    """Ruling R9(b), mutation check: a leaf that never changes across ANY
+    supplied fixture pair cannot be told apart from one that ignores the
+    trajectory entirely, and must be rejected as such."""
+    leaf_id = "trajectory_leaf"
+    fixtures = [
+        (None, FamilyScoreSet(primary_leaf_id=leaf_id, scores=(_fake_trajectory_score(leaf_id, 1.0),))),
+        (None, FamilyScoreSet(primary_leaf_id=leaf_id, scores=(_fake_trajectory_score(leaf_id, 1.0),))),
+        (None, FamilyScoreSet(primary_leaf_id=leaf_id, scores=(_fake_trajectory_score(leaf_id, 1.0),))),
+    ]
+    with pytest.raises(AssertionError, match="never changed"):
+        _assert_trajectory_leaves_are_witnessed(fixtures, {leaf_id}, family_id="fixture_family")
+
+
+def test_sensitivity_witness_is_vacuous_with_no_trajectory_leaves() -> None:
+    fixtures = [
+        (None, FamilyScoreSet(primary_leaf_id="anything", scores=(_fake_trajectory_score("anything", 1.0),))),
+    ]
+    assert _assert_trajectory_leaves_are_witnessed(fixtures, set(), family_id="fixture_family") == {}
