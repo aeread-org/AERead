@@ -451,6 +451,15 @@ def build_setups(
         if controls.get("wire_live_profile_controls") is True
         else {}
     )
+    backoff = controls.get("retry_backoff")
+    if backoff is not None:
+        backoff_config = {
+            "retry_backoff": backoff["policy"],
+            "retry_base_seconds": backoff["retry_base_seconds"],
+            "retry_after_max_seconds": backoff["retry_after_max_seconds"],
+        }
+        tenant_harness_config = {**(tenant_harness_config or {}), **backoff_config}
+        landlord_harness_config = {**(landlord_harness_config or {}), **backoff_config}
     if live_profile_controls and controls.get("seat_max_cost_usd") is not None:
         # Only campaigns that freeze a seat budget carry the override, so the
         # design digests of earlier campaigns are unchanged.
@@ -854,7 +863,12 @@ def variance_pilot_analysis(
     attrition_adjusted_worlds: int | None = None
     recommended_worlds: int | None = None
     within_declared_maximum = False
-    if sample_standard_deviation is not None:
+    minimum_paired_worlds = analysis.get("minimum_paired_worlds_for_recommendation")
+    recommendation_suppressed = (
+        minimum_paired_worlds is not None
+        and paired_world_count < int(minimum_paired_worlds)
+    )
+    if sample_standard_deviation is not None and not recommendation_suppressed:
         z_alpha = 1.959963984540054
         z_power = 0.8416212335729143
         raw_required_worlds = math.ceil(
@@ -879,8 +893,16 @@ def variance_pilot_analysis(
             "schema_version": "aeread.housing_variance_pilot_analysis/0.1",
             "campaign_id": contract["campaign_id"],
             "status": (
-                "estimable" if paired_world_count >= 2 else "insufficient_paired_worlds"
+                "insufficient_paired_worlds"
+                if paired_world_count < 2
+                else (
+                    "variance_only_recommendation_withheld"
+                    if recommendation_suppressed
+                    else "estimable"
+                )
             ),
+            "minimum_paired_worlds_for_recommendation": minimum_paired_worlds,
+            "recommendation_suppressed": recommendation_suppressed,
             "claim_status": contract["claim_status"],
             "ranking_allowed": False,
             "independent_cluster": "world_seed",

@@ -1158,3 +1158,34 @@ the
 [`canonical_fact_index.json`](../../../evidence/housing_model_sensitivity_openrouter_parasail_v19/tables/canonical_fact_index.json),
 and the paired-world table.
 
+## 27. V20 preregistered gate with ten receipt-visible attempts per action
+
+V19's losses were not short bursts. From 10:10 to 12:15 UTC on 2026-09-05,
+about 40 percent of the calls in every ten-minute window returned HTTP 429
+from the Parasail shared pool while the remaining calls succeeded normally;
+464 calls failed in that window. Under four attempts per action, a sustained
+40 percent per-call failure rate loses roughly half of all cells, which is
+what happened. Under ten attempts the per-action loss falls below 0.1
+percent. The attempt count is a declared retry control, so
+[`housing_model_sensitivity_openrouter_parasail_v20`](../../../configs/housing_model_sensitivity_openrouter_parasail_v20.json)
+freezes it under a new gate identity rather than changing the route or
+requesting a private provider key.
+
+V20 keeps V18's Parasail FP8 routes and endpoint snapshots, world,
+configuration, conditions, 300-second wall time, `$0.03` seat budget,
+cooldown, and admission-timeout enforcement, and changes two controls:
+`max_action_attempts` rises from 4 to 10 for every seat, and the seat harness
+gains the runner's `exponential_jitter_v1` backoff (base 5 seconds, doubling
+to the 30-second cap, honouring `Retry-After` up to 60 seconds). Profile
+admission uses the same ten-attempt limit and base delay. SDK retries stay at
+zero, every attempt is sealed in the receipt, and a timeout still ends an
+action because the provider may have executed the call. V20 is a one-world
+promotion gate; a pass promotes a 48-cell pilot under a further identity.
+
+```bash
+python -m aeread_families.housing.backend_campaign \
+  --contract configs/housing_model_sensitivity_openrouter_parasail_v20.json \
+  --run-root runs/housing_model_sensitivity_openrouter_parasail_v20 \
+  --through full_trajectory
+```
+

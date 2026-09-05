@@ -127,6 +127,11 @@ V19_CONTRACT_PATH = (
     / "configs"
     / "housing_model_sensitivity_openrouter_parasail_v19.json"
 )
+V20_CONTRACT_PATH = (
+    Path(__file__).resolve().parents[1]
+    / "configs"
+    / "housing_model_sensitivity_openrouter_parasail_v20.json"
+)
 
 
 def test_contract_pins_new_routes_and_requires_admission_before_live() -> None:
@@ -1422,6 +1427,108 @@ def test_published_v19_pilot_has_two_paired_worlds_and_only_rate_limit_losses() 
     assert b'"raw_response":' not in published
     assert b"output_text" not in published
     assert b"/Users/" not in published
+
+
+def test_v20_freezes_ten_visible_attempts_with_exponential_backoff() -> None:
+    v18 = load_contract(V18_CONTRACT_PATH)
+    v20 = load_contract(V20_CONTRACT_PATH)
+    routes = route_table(v20)
+
+    changed = {
+        key for key in v20["controls"] if v20["controls"][key] != v18["controls"].get(key)
+    }
+    assert changed == {
+        "reasoning_condition_id",
+        "max_action_attempts",
+        "retry_backoff",
+        "retryable_conditions",
+    }
+    # A stateless chat completion has no side effect, so a timed-out call is
+    # safe to re-send; V18 and earlier lost whole cells to a single timeout.
+    assert "timeout" in v20["controls"]["retryable_conditions"]
+    assert "timeout" not in v18["controls"]["retryable_conditions"]
+    assert v20["controls"]["max_action_attempts"] == 10
+    assert v20["controls"]["retry_backoff"] == {
+        "policy": "exponential_jitter_v1",
+        "retry_base_seconds": 5.0,
+        "retry_after_max_seconds": 60.0,
+    }
+    assert v20["profile_admission"]["attempt_limit_per_probe"] == 10
+    assert v20["profile_admission"]["sdk_retries"] == 0
+    for model_id in ("glm_53_flash", "deepseek_v4_flash"):
+        assert v20["models"][model_id]["endpoint_snapshot_sha256"] == (
+            v18["models"][model_id]["endpoint_snapshot_sha256"]
+        )
+    assert v20["execution"] == v18["execution"]
+    for setup in build_setups(v20, routes=routes).values():
+        for profile in setup.plan.agent_profiles:
+            assert profile.retry_policy.max_action_attempts == 10
+            assert profile.harness.config["retry_backoff"] == "exponential_jitter_v1"
+            assert profile.harness.config["retry_base_seconds"] == 5.0
+            assert profile.budgets.timeout_seconds == 300.0
+            assert profile.budgets.max_cost_usd == 0.03
+    for setup in build_setups(v18, routes=route_table(v18)).values():
+        for profile in setup.plan.agent_profiles:
+            # V18 already backs off, but only 4 attempts from a 2-second base.
+            assert profile.retry_policy.max_action_attempts == 4
+            assert profile.harness.config["retry_backoff"] == "exponential_jitter_v1"
+            assert "retry_base_seconds" not in profile.harness.config
+    assert design_artifact(v20, routes=routes)["artifact_sha256"] == (
+        "70e5d6f9f5708ccd5a062e690f68531c02969a7dc9159d04fbc6a843de63df30"
+    )
+    assert provider_free_artifact(v20)["artifact_sha256"] == (
+        "7c45ba3ab4876e35fc72c85bfa66b842d6d58271c84cc531423997368c99ff8e"
+    )
+    expected_profiles = v20["profile_admission"]["profile_sha256s"]
+    for setup in build_setups(v20, routes=routes).values():
+        for profile in setup.plan.agent_profiles:
+            assert hashlib.sha256(canonical_json_bytes(profile)).hexdigest() == (
+                expected_profiles[profile.profile_id]
+            )
+
+
+def test_variance_recommendation_is_withheld_below_the_declared_paired_worlds() -> None:
+    def rows_for(paired_worlds: int, worlds: list[int]) -> list[dict[str, object]]:
+        rows = []
+        for index, seed in enumerate(worlds):
+            complete = index < paired_worlds
+            for subject, other in (
+                ("glm_53_flash", "deepseek_v4_flash"),
+                ("deepseek_v4_flash", "glm_53_flash"),
+            ):
+                for config in ("mild_cw085_r2", "moderate_cw085_r2", "severe_cw030_r2"):
+                    for opponent in (subject, other):
+                        rows.append(
+                            {
+                                "world_seed": seed,
+                                "subject": subject,
+                                "opponent": opponent,
+                                "config_id": config,
+                                "status": "completed" if complete else "operational_failure",
+                                "within_case_score": 0.8 if subject == "glm_53_flash" else 0.9,
+                            }
+                        )
+        return rows
+
+    contract = load_contract(V19_CONTRACT_PATH)
+    worlds = contract["execution"]["world_seeds"]
+
+    # Without the guard the analysis emits a recommendation from two worlds.
+    unguarded = variance_pilot_analysis(rows_for(2, worlds), contract)
+    assert unguarded["status"] == "estimable"
+    assert unguarded["recommended_confirmatory_worlds"] is not None
+    assert unguarded["recommendation_suppressed"] is False
+
+    guarded_contract = json.loads(json.dumps(contract))
+    guarded_contract["analysis"]["minimum_paired_worlds_for_recommendation"] = 6
+    guarded = variance_pilot_analysis(rows_for(2, worlds), guarded_contract)
+    assert guarded["status"] == "variance_only_recommendation_withheld"
+    assert guarded["recommendation_suppressed"] is True
+    assert guarded["recommended_confirmatory_worlds"] is None
+    assert guarded["raw_required_worlds"] is None
+    # The variance itself is still reported; only the sample size is withheld.
+    assert guarded["paired_world_count"] == 2
+    assert guarded["mean_paired_contrast"] is not None
 
 
 def test_published_v12_records_pacing_failure_and_zero_trajectories() -> None:
