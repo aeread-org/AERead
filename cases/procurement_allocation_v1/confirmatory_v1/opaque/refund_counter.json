@@ -1,0 +1,263 @@
+{
+  "case_id": "procurement_allocation_v1.confirmatory_v1_opaque.refund_counter",
+  "content_sha256": "8effd544cc15c8caa96ec289f252018f2808f2a4cc69106d00bb77949d1917df",
+  "episode": {
+    "max_logical_actions": 10,
+    "termination": [
+      "submitted",
+      "deferred",
+      "interaction_budget_exhausted",
+      "invalid_action"
+    ]
+  },
+  "family_id": "procurement_allocation_v1",
+  "family_version": "1.0.0",
+  "payload": {
+    "interaction": {
+      "counter_cost_usd": 0.15,
+      "counter_days": 1,
+      "inquiry_cost_usd": 0.05,
+      "inquiry_days": 1,
+      "max_actions": 10,
+      "quote_cost_usd": 0.1,
+      "quote_days": 1
+    },
+    "objective": {
+      "annual_financing_rate": 0.12,
+      "bom": {
+        "bh1750_gy302": 1,
+        "tp4056_usb_c_protected": 1
+      },
+      "cash_budget_usd": 90.0,
+      "deadline_days": 24,
+      "defect_detection_days": 20,
+      "defer_value_usd": 0.0,
+      "minimum_service_kits": 16,
+      "product_id": "battery_sensor_refund_counter_holdout",
+      "revenue_per_completed_kit_usd": 8.0,
+      "shortfall_penalty_per_kit_usd": 3.0,
+      "target_kits": 20,
+      "working_capital_horizon_days": 45
+    },
+    "policy": {
+      "award_requires": [
+        "unexpired_formal_offer",
+        "verified_sample",
+        "exact_variant"
+      ],
+      "inquiry_fields": [
+        "exact_variant",
+        "moq_capacity",
+        "lead_time",
+        "shipping",
+        "quality",
+        "return_refund_policy"
+      ],
+      "required_variant_by_component": {
+        "bh1750_gy302": "bh1750_gy302_i2c_module",
+        "tp4056_usb_c_protected": "usb_c_dw01a_8205a_separate_bat_out"
+      }
+    },
+    "suppliers": [
+      {
+        "component": "tp4056_usb_c_protected",
+        "listing": {
+          "claimed_lead_time_days": 4,
+          "claimed_variant": "usb c dw01a 8205a separate bat out",
+          "displayed_unit_price_usd": 0.5904,
+          "evidence_status": "marketplace_listing_unverified",
+          "supplier_name": "Supplier 3AA207B824BE"
+        },
+        "private_terms": {
+          "base_unit_price_usd": 0.72,
+          "capacity": 40,
+          "duty_rate": 0.05,
+          "lead_time_days": 6,
+          "moq": 10,
+          "negotiation": {
+            "floor_unit_price_usd": 0.71,
+            "maximum_payment_terms_days": 30,
+            "maximum_refund_window_days": 45,
+            "minimum_moq": 10,
+            "supplier_paid_return_freight_available": true
+          },
+          "offer_valid_days": 30,
+          "on_time_probability": 0.99,
+          "order_step": 10,
+          "payment_terms_days": 30,
+          "quality": {
+            "observed_defects": 10,
+            "sample_cost_usd": 0.4,
+            "sample_lead_time_days": 1,
+            "sample_size": 100,
+            "verified_yield_rate": 0.9
+          },
+          "return_policy": {
+            "claim_acceptance_probability": 0.98,
+            "refund_delay_days": 5,
+            "refund_window_days": 7,
+            "restocking_fee_rate": 0.0,
+            "return_freight_payer": "buyer",
+            "return_freight_per_unit_usd": 0.2
+          },
+          "shipping_per_unit_usd": 0.05,
+          "variant_id": "usb_c_dw01a_8205a_separate_bat_out"
+        },
+        "supplier_id": "supplier_3aa207b824be"
+      },
+      {
+        "component": "bh1750_gy302",
+        "listing": {
+          "claimed_lead_time_days": 4,
+          "claimed_variant": "bh1750 gy302 i2c module",
+          "displayed_unit_price_usd": 0.697,
+          "evidence_status": "marketplace_listing_unverified",
+          "supplier_name": "Supplier F80C159E6C4E"
+        },
+        "private_terms": {
+          "base_unit_price_usd": 0.85,
+          "capacity": 40,
+          "duty_rate": 0.05,
+          "lead_time_days": 6,
+          "moq": 10,
+          "negotiation": {
+            "floor_unit_price_usd": 0.84,
+            "maximum_payment_terms_days": 30,
+            "maximum_refund_window_days": 45,
+            "minimum_moq": 10,
+            "supplier_paid_return_freight_available": true
+          },
+          "offer_valid_days": 30,
+          "on_time_probability": 0.99,
+          "order_step": 10,
+          "payment_terms_days": 30,
+          "quality": {
+            "observed_defects": 10,
+            "sample_cost_usd": 0.4,
+            "sample_lead_time_days": 1,
+            "sample_size": 100,
+            "verified_yield_rate": 0.9
+          },
+          "return_policy": {
+            "claim_acceptance_probability": 0.98,
+            "refund_delay_days": 5,
+            "refund_window_days": 7,
+            "restocking_fee_rate": 0.0,
+            "return_freight_payer": "buyer",
+            "return_freight_per_unit_usd": 0.25
+          },
+          "shipping_per_unit_usd": 0.05,
+          "variant_id": "bh1750_gy302_i2c_module"
+        },
+        "supplier_id": "supplier_f80c159e6c4e"
+      },
+      {
+        "component": "bh1750_gy302",
+        "listing": {
+          "claimed_lead_time_days": 4,
+          "claimed_variant": "bh1750 gy302 i2c module",
+          "displayed_unit_price_usd": 1.025,
+          "evidence_status": "marketplace_listing_unverified",
+          "supplier_name": "Supplier E5FF73AADD71"
+        },
+        "private_terms": {
+          "base_unit_price_usd": 1.25,
+          "capacity": 40,
+          "duty_rate": 0.05,
+          "lead_time_days": 6,
+          "moq": 10,
+          "negotiation": {
+            "floor_unit_price_usd": 1.24,
+            "maximum_payment_terms_days": 30,
+            "maximum_refund_window_days": 30,
+            "minimum_moq": 10,
+            "supplier_paid_return_freight_available": true
+          },
+          "offer_valid_days": 30,
+          "on_time_probability": 0.99,
+          "order_step": 10,
+          "payment_terms_days": 30,
+          "quality": {
+            "observed_defects": 3,
+            "sample_cost_usd": 0.4,
+            "sample_lead_time_days": 1,
+            "sample_size": 100,
+            "verified_yield_rate": 0.97
+          },
+          "return_policy": {
+            "claim_acceptance_probability": 0.95,
+            "refund_delay_days": 5,
+            "refund_window_days": 30,
+            "restocking_fee_rate": 0.0,
+            "return_freight_payer": "supplier",
+            "return_freight_per_unit_usd": 0.0
+          },
+          "shipping_per_unit_usd": 0.05,
+          "variant_id": "bh1750_gy302_i2c_module"
+        },
+        "supplier_id": "supplier_e5ff73aadd71"
+      },
+      {
+        "component": "tp4056_usb_c_protected",
+        "listing": {
+          "claimed_lead_time_days": 4,
+          "claimed_variant": "usb c dw01a 8205a separate bat out",
+          "displayed_unit_price_usd": 0.861,
+          "evidence_status": "marketplace_listing_unverified",
+          "supplier_name": "Supplier 3EA7FF7DFAA6"
+        },
+        "private_terms": {
+          "base_unit_price_usd": 1.05,
+          "capacity": 40,
+          "duty_rate": 0.05,
+          "lead_time_days": 6,
+          "moq": 10,
+          "negotiation": {
+            "floor_unit_price_usd": 1.04,
+            "maximum_payment_terms_days": 30,
+            "maximum_refund_window_days": 30,
+            "minimum_moq": 10,
+            "supplier_paid_return_freight_available": true
+          },
+          "offer_valid_days": 30,
+          "on_time_probability": 0.99,
+          "order_step": 10,
+          "payment_terms_days": 30,
+          "quality": {
+            "observed_defects": 3,
+            "sample_cost_usd": 0.4,
+            "sample_lead_time_days": 1,
+            "sample_size": 100,
+            "verified_yield_rate": 0.97
+          },
+          "return_policy": {
+            "claim_acceptance_probability": 0.95,
+            "refund_delay_days": 5,
+            "refund_window_days": 30,
+            "restocking_fee_rate": 0.0,
+            "return_freight_payer": "supplier",
+            "return_freight_per_unit_usd": 0.0
+          },
+          "shipping_per_unit_usd": 0.05,
+          "variant_id": "usb_c_dw01a_8205a_separate_bat_out"
+        },
+        "supplier_id": "supplier_3ea7ff7dfaa6"
+      }
+    ]
+  },
+  "provenance": {
+    "generator_id": "procurement_allocation_confirmatory_case_matrix_v1",
+    "generator_version": "1.0.0",
+    "review_status": "curated"
+  },
+  "seats": [
+    {
+      "id": "buyer",
+      "role": "buyer"
+    }
+  ],
+  "spec_version": "aeread.case/0.1",
+  "split": "confirmatory_v1_opaque",
+  "visibility_policy": "procurement_allocation_public_listings_private_supplier_terms_v1",
+  "world_seed": 2313108
+}

@@ -1,0 +1,16 @@
+{
+  "case_id": "commercial_state_calibration_v1.pilot.payment-release-reconcile",
+  "states": {
+    "build_state": "completed_held_for_payment",
+    "tax_state": "tax_exemption_applied",
+    "shipment_state": "not_released"
+  },
+  "amounts": {
+    "combined_total": 476000.0,
+    "remaining_balance": 224800.0
+  },
+  "actions": ["report_payment_hold", "reconcile_shipping", "authorize_shipment"],
+  "claims": ["remaining_balance_is_due", "completed_is_not_released", "ready_to_ship"],
+  "evidence_ids": ["e01", "e02", "e03", "e04"],
+  "external_actions_attempted": ["sent_release_email"]
+}

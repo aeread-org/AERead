@@ -42,7 +42,7 @@ python integrations/everos/everos_memory_ab.py \
     --case cases/exchange_v1/v0/case03_hidden_discovery.json \
     --seeds 1200:1212 --model deepseek/deepseek-v4-flash \
     --arms nomem,mem --distill --everos-url http://127.0.0.1:8377 \
-    --out output/everos_ab
+    --out runs/everos_ab
 ```
 
 Episodes run sequentially in seed order so memory accumulates; per-arm output

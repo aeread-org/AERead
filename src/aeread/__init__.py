@@ -46,7 +46,7 @@ _LEGACY_MODULE_ALIASES = {
     "exchange_v1_validity": "aeread.exchange_v1.validity",
     "gemini_batch_pool": "aeread.inference.gemini_batch_pool",
     "gemini_llm": "aeread.inference.gemini",
-    "housing_env": "aeread.housing_v1.environment",
+    "housing_env": "aeread_families.housing.environment",
     "llm_agent": "aeread.inference.llm_agent",
     "nonir_classifier": "aeread.exchange_v1.nonir_classifier",
 }

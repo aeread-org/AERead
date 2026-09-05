@@ -1,4 +1,5 @@
 """Structural checks for the discoverable, versioned case catalog."""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -67,3 +68,45 @@ def test_procurement_grounding_development_case_is_discoverable() -> None:
     assert sorted(path.name for path in (family / "dev").glob("*.json")) == [
         "procurement_grounding_231_projects.json"
     ]
+
+
+def test_procurement_allocation_development_case_is_discoverable() -> None:
+    family = CASES / "procurement_allocation_v1"
+
+    assert (family / "README.md").is_file()
+    assert sorted(path.name for path in (family / "dev").glob("*.json")) == [
+        "deadline_cost.json",
+        "moq_capacity_split.json",
+        "quality_refund.json",
+        "quality_speed_margin.json",
+        "service_defer.json",
+        "variant_substitution.json",
+        "working_capital.json",
+    ]
+    assert sorted(path.name for path in (family / "blinded_v3").glob("*.json")) == [
+        "deadline_cost.json",
+        "moq_capacity_split.json",
+        "quality_refund.json",
+        "service_defer.json",
+        "variant_substitution.json",
+        "working_capital.json",
+    ]
+
+
+def test_datacenter_development_cases_are_discoverable() -> None:
+    family = CASES / "datacenter_development_v1"
+
+    assert (family / "README.md").is_file()
+    assert (family / "dev" / "service_loan_bankability_001.json").is_file()
+    assert (family / "v1" / "power_epc_bankability_001.json").is_file()
+    assert (family / "v2" / "full_stack_amendment_001.json").is_file()
+
+
+def test_commercial_state_calibration_pilot_is_discoverable() -> None:
+    family = CASES / "commercial_state_calibration_v1"
+    pilot = family / "pilot"
+
+    assert (family / "README.md").is_file()
+    assert (pilot / "manifest.json").is_file()
+    assert (pilot / "cases.jsonl").is_file()
+    assert (pilot / "source_catalog_private.json").is_file()
