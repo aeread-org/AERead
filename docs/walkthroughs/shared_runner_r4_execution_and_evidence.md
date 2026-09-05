@@ -1,12 +1,17 @@
 # Walkthrough: Shared-runner R4 model execution and evidence
 
+> **Status (2026-09-02): Complete for the shared execution path.** Write-before-side-effect,
+> explicit attempts, typed failures, budgets, reconciliation, and provider/tool evidence pass
+> the focused contracts. The legacy Exchange runner does not yet use these guarantees. See the
+> [roadmap implementation status](shared_runner_architecture_roadmap.md#implementation-status--2026-09-02).
+
 R4 is the first stage that may call an external model. It implements the R3 asynchronous
 response-source boundary with explicit logical actions, action attempts, provider calls, tool
 invocations, retry ownership, typed failures, cost accounting, canonical events, and
 content-addressed artifacts.
 
-The generic implementation is `src/aeread/shared_runner/execution.py`. The native one-action
-smoke family and CLI are in `src/aeread/shared_runner/smoke.py`. Executable contracts are in
+The generic implementation is `src/aeread/shared_runner/task/execution.py`. The native one-action
+smoke family and CLI are in `src/aeread_families/single_offer/runner.py`. Executable contracts are in
 `tests/test_shared_runner_execution.py` and `tests/test_shared_runner_smoke.py`.
 
 ## Complete R1-R4 path
@@ -133,41 +138,41 @@ page on 2026-08-26.
 Zero-cost integration proof from a source checkout:
 
 ```bash
-PYTHONPATH=src python -m aeread.shared_runner.smoke \
+PYTHONPATH=src python -m aeread_families.single_offer.runner \
   --provider fake \
-  --output /tmp/aeread-shared-runner-smoke
+  --run-root /tmp/aeread-shared-runner-smoke
 ```
 
 One live call with the pinned cheapest GPT-5 model:
 
 ```bash
 export OPENAI_API_KEY=...  # do not commit or print this value
-PYTHONPATH=src python -m aeread.shared_runner.smoke \
+PYTHONPATH=src python -m aeread_families.single_offer.runner \
   --provider openai \
   --model gpt-5-nano-2025-08-07 \
   --revision gpt-5-nano-2025-08-07 \
-  --output /tmp/aeread-shared-runner-openai-smoke
+  --run-root /tmp/aeread-shared-runner-openai-smoke
 ```
 
 One live call with the pinned DeepSeek/OpenRouter route:
 
 ```bash
 export OPENROUTER_API_KEY=...  # set locally; do not commit or print this value
-PYTHONPATH=src python -m aeread.shared_runner.smoke \
+PYTHONPATH=src python -m aeread_families.single_offer.runner \
   --provider openrouter \
   --model deepseek/deepseek-v4-flash-0731 \
   --revision deepseek/deepseek-v4-flash-20260731 \
-  --output /tmp/aeread-shared-runner-openrouter-deepseek-smoke
+  --run-root /tmp/aeread-shared-runner-openrouter-deepseek-smoke
 ```
 
 One live call through an authenticated Claude Code installation using the pinned Haiku snapshot:
 
 ```bash
-PYTHONPATH=src python -m aeread.shared_runner.smoke \
+PYTHONPATH=src python -m aeread_families.single_offer.runner \
   --provider claude_code \
   --model claude-haiku-4-5-20251001 \
   --revision claude-haiku-4-5-20251001 \
-  --output /tmp/aeread-shared-runner-claude-smoke
+  --run-root /tmp/aeread-shared-runner-claude-smoke
 ```
 
 After installing the package, the equivalent entry point is `aeread-shared-smoke`; the
@@ -185,7 +190,7 @@ termination, and outcome all succeeded. The runner recorded 2,000 input tokens, 
 tokens, and $0.005975 cost under a $0.01 ceiling. Recomputing the cost from the pinned $1/M input
 and $5/M output prices produces the same $0.005975. All 13 event links and payload artifacts
 verified and every started entity reconciled exactly once. The non-secret durable admission
-summary is [`../evidence/shared_runner_r4_claude_smoke_2026-08-26.json`](../evidence/shared_runner_r4_claude_smoke_2026-08-26.json).
+summary is [`claude.json`](../../evidence/shared_runner_r4_smoke_2026-08-26/reports/claude.json).
 
 The pinned OpenRouter command also completed one sealed cell on 2026-08-26. OpenRouter selected
 DeepInfra on the canonical `deepseek/deepseek-v4-flash-20260731` endpoint with routing attempt
@@ -195,7 +200,7 @@ recomputation is $0.00003498, equal to OpenRouter's reported upstream inference 
 charged cost is exactly 99% of that amount, so the admission retains both rather than claiming
 equality. All 13 event links and payload artifacts verified and every started entity reconciled
 exactly once. The non-secret durable admission summary is
-[`../evidence/shared_runner_r4_openrouter_deepseek_smoke_2026-08-26.json`](../evidence/shared_runner_r4_openrouter_deepseek_smoke_2026-08-26.json).
+[`openrouter_deepseek.json`](../../evidence/shared_runner_r4_smoke_2026-08-26/reports/openrouter_deepseek.json).
 
 OpenRouter reported 172 reasoning tokens while reporting 165 completion tokens. Because those
 fields are internally inconsistent, reasoning usage is retained only as provider diagnostic
@@ -203,9 +208,16 @@ metadata; actions and outcomes remain the primary evidence. The full raw respons
 provider-returned reasoning text, remains in the local content-addressed evidence and is not
 committed.
 
-## Exact R4 boundary
+## Exact R4 boundary and current downstream state
 
-R4 proves that the runner can call a model without hiding retries, side effects, outcomes, or
-cost. It does not yet provide an `EvaluationReceipt`, crash resume, deterministic replay,
-scoring, coverage reconciliation, Exchange compatibility, or Housing semantics. Those remain
-R5-R7. The smoke result is an instrumentation admission result, not a paper measurement.
+R4 proves that the shared runner can call a model without hiding retries, side effects,
+outcomes, or cost. Since this walkthrough was first written, R5 work has added typed
+`EvaluationReceipt` records, family-state replay, evidence-chain resume/audit, scoring, and
+coverage projections, and native Housing work has exercised the shared kernel. Those later
+components do not retroactively enlarge the R4 contract, and full interrupted-episode recovery
+has not yet passed every roadmap crash-point gate.
+
+Exchange compatibility remains the critical missing boundary: the public Exchange commands
+still execute the legacy monolithic runner, so its post-call recording, run-directory collision,
+global-hook, and engine-owned scheduling danger zones remain unresolved. The smoke result is an
+instrumentation admission result, not a paper measurement.

@@ -7,9 +7,21 @@ resolution (`resolver.py`) admits a run (§5.3).
 """
 from __future__ import annotations
 
+import dataclasses
+import hashlib
+import json
+import math
 from dataclasses import dataclass
-from typing import Any, Literal
+from pathlib import Path
+from typing import Any, Literal, Mapping
 
+from .quality import (
+    FamilyContribution,
+    QCContractError,
+    ResourceLimits,
+    evidence_coverage_complete,
+    verify_qc_evidence_files,
+)
 from .schemas import FamilyManifest
 
 
@@ -29,6 +41,10 @@ class PluginResolutionError(PluginRegistryError):
     """A manifest could not resolve to the exact registered implementation."""
 
 
+class ContributionAdmissionError(PluginRegistryError):
+    """A contributed family lacks one of the mandatory safety contracts."""
+
+
 REQUIRED_FAMILY_PLUGIN_HOOKS = (
     "validate_payload",
     "initial_state",
@@ -45,13 +61,166 @@ REQUIRED_FAMILY_PLUGIN_HOOKS = (
     "generator",
 )
 
+TRUSTED_BUILTIN_PLUGIN_KEYS = frozenset(
+    {
+        (
+            "commercial_state_calibration_v1",
+            "1.0.0",
+            "commercial_state_calibration_environment",
+        ),
+        ("consent_ir_v1", "1.0.0", "consent_ir_environment"),
+        (
+            "datacenter_development_v1",
+            "1.0.0",
+            "datacenter_development_environment",
+        ),
+        (
+            "datacenter_development_v1",
+            "1.1.0",
+            "datacenter_development_environment_v1",
+        ),
+        (
+            "datacenter_development_v1",
+            "2.0.0",
+            "datacenter_development_environment_v2",
+        ),
+        ("housing_v1", "1.0.0", "aeread.housing_v1"),
+        (
+            "procurement_allocation_v1",
+            "1.0.0",
+            "procurement_allocation_environment",
+        ),
+        (
+            "procurement_grounding_v1",
+            "1.0.0",
+            "procurement_grounding_environment",
+        ),
+        ("single_offer_v1", "1.0.0", "aeread.single_offer_v1"),
+        ("tau3.retail", "0.1.0", "tau3_retail_environment"),
+    }
+)
+
 
 @dataclass(frozen=True, slots=True)
 class RegisteredPlugin:
     family_id: str
     family_version: str
     plugin_id: str
+    registry_namespace: str
+    contribution_sha256: str | None
+    resource_limits: ResourceLimits | None
     plugin: Any
+
+
+def _strict_schema(schema: Mapping[str, Any], label: str) -> None:
+    """Require closed object shapes throughout a contributed JSON schema."""
+
+    def visit(node: Any, path: str) -> None:
+        if not isinstance(node, Mapping):
+            raise ContributionAdmissionError(f"{path} must be an object")
+        node_type = node.get("type")
+        if node_type == "object":
+            properties = node.get("properties")
+            required = node.get("required")
+            if not isinstance(properties, Mapping):
+                raise ContributionAdmissionError(
+                    f"{path}.properties must be an object"
+                )
+            if node.get("additionalProperties") is not False:
+                raise ContributionAdmissionError(
+                    f"{path}.additionalProperties must be false"
+                )
+            if not isinstance(required, (list, tuple)):
+                raise ContributionAdmissionError(
+                    f"{path}.required must list every property"
+                )
+            if (
+                len(required) != len(set(required))
+                or set(required) != set(properties)
+            ):
+                raise ContributionAdmissionError(
+                    f"{path}.required must equal the property names"
+                )
+            for name, child in properties.items():
+                if not isinstance(name, str) or not name:
+                    raise ContributionAdmissionError(
+                        f"{path}.properties keys must be non-empty strings"
+                    )
+                visit(child, f"{path}.properties.{name}")
+        elif node_type == "array":
+            if "items" not in node:
+                raise ContributionAdmissionError(f"{path}.items is required")
+            visit(node["items"], f"{path}.items")
+        elif node_type is None and not any(
+            key in node for key in ("anyOf", "oneOf", "allOf", "$ref")
+        ):
+            raise ContributionAdmissionError(
+                f"{path} must declare type or a schema composition"
+            )
+        for keyword in ("anyOf", "oneOf", "allOf"):
+            if keyword in node:
+                branches = node[keyword]
+                if not isinstance(branches, (list, tuple)) or not branches:
+                    raise ContributionAdmissionError(
+                        f"{path}.{keyword} must be a non-empty array"
+                    )
+                for index, branch in enumerate(branches):
+                    visit(branch, f"{path}.{keyword}[{index}]")
+        definitions = node.get("$defs")
+        if definitions is not None:
+            if not isinstance(definitions, Mapping):
+                raise ContributionAdmissionError(f"{path}.$defs must be an object")
+            for name, definition in definitions.items():
+                visit(definition, f"{path}.$defs.{name}")
+
+    visit(schema, label)
+    if schema.get("type") != "object":
+        raise ContributionAdmissionError(f"{label} root type must be object")
+
+
+def family_contribution_sha256(contribution: FamilyContribution) -> str:
+    """Digest the contribution contract that the human approval must bind."""
+
+    if not isinstance(contribution, FamilyContribution):
+        raise ContributionAdmissionError(
+            "contribution must be a FamilyContribution"
+        )
+    core = {
+        "family_id": contribution.family_id,
+        "family_version": contribution.family_version,
+        "plugin_id": contribution.plugin_id,
+        "registry_namespace": contribution.registry_namespace,
+        "action_schema": contribution.action_schema,
+        "observation_schema": contribution.observation_schema,
+        "provider_free_evidence": contribution.provider_free_evidence,
+        "resource_limits": contribution.resource_limits,
+    }
+    def canonical(value: Any) -> Any:
+        if dataclasses.is_dataclass(value) and not isinstance(value, type):
+            return {
+                field.name: canonical(getattr(value, field.name))
+                for field in dataclasses.fields(value)
+            }
+        if isinstance(value, Mapping):
+            return {key: canonical(item) for key, item in value.items()}
+        if isinstance(value, (list, tuple)):
+            return [canonical(item) for item in value]
+        if value is None or isinstance(value, (str, bool, int)):
+            return value
+        if isinstance(value, float) and math.isfinite(value):
+            return value
+        raise ContributionAdmissionError(
+            f"unsupported contribution value: {type(value).__name__}"
+        )
+
+    payload = json.dumps(
+        canonical(core),
+        ensure_ascii=False,
+        allow_nan=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    return hashlib.sha256(payload).hexdigest()
 
 
 class PluginRegistry:
@@ -64,8 +233,10 @@ class PluginRegistry:
 
     def __init__(self) -> None:
         self._plugins: dict[tuple[str, str], RegisteredPlugin] = {}
+        self._namespaces: dict[str, tuple[str, str]] = {}
 
-    def register(self, manifest: FamilyManifest, plugin: Any) -> None:
+    @staticmethod
+    def _validate_plugin(manifest: FamilyManifest, plugin: Any) -> None:
         if not isinstance(manifest, FamilyManifest):
             raise TypeError("manifest must be a validated FamilyManifest")
         missing = [
@@ -78,22 +249,167 @@ class PluginRegistry:
                 "family plugin is missing callable hooks: " + ", ".join(missing)
             )
 
+    def _register(
+        self,
+        manifest: FamilyManifest,
+        plugin: Any,
+        *,
+        registry_namespace: str,
+        contribution_sha256: str | None,
+        resource_limits: ResourceLimits | None,
+    ) -> None:
+        self._validate_plugin(manifest, plugin)
         identity = manifest.family
         key = (identity.id, identity.version)
         if key in self._plugins:
             raise DuplicatePluginError(
                 f"family plugin {identity.id}@{identity.version} is already registered"
             )
+        existing_namespace = self._namespaces.get(registry_namespace)
+        if existing_namespace is not None:
+            raise DuplicatePluginError(
+                f"registry namespace {registry_namespace!r} is already bound to "
+                f"{existing_namespace[0]}@{existing_namespace[1]}"
+            )
         self._plugins[key] = RegisteredPlugin(
             family_id=identity.id,
             family_version=identity.version,
             plugin_id=identity.plugin_id,
+            registry_namespace=registry_namespace,
+            contribution_sha256=contribution_sha256,
+            resource_limits=resource_limits,
             plugin=plugin,
+        )
+        self._namespaces[registry_namespace] = key
+
+    def register(
+        self,
+        manifest: FamilyManifest,
+        plugin: Any,
+        *,
+        contribution: FamilyContribution,
+        evidence_root: Path,
+    ) -> None:
+        """Register a new family only after every contribution gate passes."""
+
+        if not isinstance(manifest, FamilyManifest):
+            raise TypeError("manifest must be a validated FamilyManifest")
+        if not isinstance(contribution, FamilyContribution):
+            raise ContributionAdmissionError(
+                "new family registration requires a FamilyContribution"
+            )
+        identity = manifest.family
+        if (
+            contribution.family_id,
+            contribution.family_version,
+            contribution.plugin_id,
+        ) != (identity.id, identity.version, identity.plugin_id):
+            raise ContributionAdmissionError(
+                "contribution identity does not match the family manifest"
+            )
+        try:
+            provider_identity = (
+                contribution.provider_free_evidence.family_id,
+                contribution.provider_free_evidence.family_version,
+                contribution.provider_free_evidence.profile_id,
+            )
+            approval_identity = (
+                contribution.human_qc_approval.evidence.family_id,
+                contribution.human_qc_approval.evidence.family_version,
+                contribution.human_qc_approval.evidence.profile_id,
+            )
+            expected_identity = (
+                identity.id,
+                identity.version,
+                identity.id,
+            )
+            if provider_identity != expected_identity or approval_identity != expected_identity:
+                raise ContributionAdmissionError(
+                    "contribution evidence must bind the exact family, version, "
+                    "and family profile"
+                )
+            if (
+                contribution.provider_free_evidence.artifact_type
+                != "provider_free_conformance"
+            ):
+                raise ContributionAdmissionError(
+                    "provider-free evidence artifact_type must be "
+                    "provider_free_conformance"
+                )
+            if not evidence_coverage_complete(
+                (contribution.provider_free_evidence,),
+                "provider_free_validation",
+            ):
+                raise ContributionAdmissionError(
+                    "provider-free conformance coverage is incomplete"
+                )
+            if not evidence_coverage_complete(
+                (contribution.human_qc_approval.evidence,), "human_qc"
+            ):
+                raise ContributionAdmissionError(
+                    "human QC approval coverage is incomplete"
+                )
+            verify_qc_evidence_files(
+                (contribution.provider_free_evidence,),
+                evidence_root,
+                expected_artifact_types=("provider_free_conformance",),
+            )
+            verify_qc_evidence_files(
+                (contribution.human_qc_approval.evidence,),
+                evidence_root,
+                expected_artifact_types=("human_qc_approval",),
+            )
+        except QCContractError as error:
+            raise ContributionAdmissionError(str(error)) from error
+        _strict_schema(contribution.action_schema, "action_schema")
+        _strict_schema(contribution.observation_schema, "observation_schema")
+        digest = family_contribution_sha256(contribution)
+        if contribution.human_qc_approval.contribution_sha256 != digest:
+            raise ContributionAdmissionError(
+                "human QC approval does not bind this contribution digest"
+            )
+        self._register(
+            manifest,
+            plugin,
+            registry_namespace=contribution.registry_namespace,
+            contribution_sha256=digest,
+            resource_limits=contribution.resource_limits,
+        )
+
+    def register_trusted(self, manifest: FamilyManifest, plugin: Any) -> None:
+        """Register an in-tree family whose review predates contribution records."""
+
+        if not isinstance(manifest, FamilyManifest):
+            raise TypeError("manifest must be a validated FamilyManifest")
+        identity = manifest.family
+        key = (identity.id, identity.version, identity.plugin_id)
+        if key not in TRUSTED_BUILTIN_PLUGIN_KEYS:
+            raise ContributionAdmissionError(
+                f"family plugin {identity.id}@{identity.version} is not an "
+                "exact in-tree trusted plugin; "
+                "use qualified registration"
+            )
+        namespace = f"builtin.{identity.id}.{identity.version}"
+        self._register(
+            manifest,
+            plugin,
+            registry_namespace=namespace,
+            contribution_sha256=None,
+            resource_limits=None,
         )
 
     def resolve(
         self, family_id: str, family_version: str, plugin_id: str
     ) -> Any:
+        return self.resolve_registration(
+            family_id, family_version, plugin_id
+        ).plugin
+
+    def resolve_registration(
+        self, family_id: str, family_version: str, plugin_id: str
+    ) -> RegisteredPlugin:
+        """Resolve a plugin together with its admission and limit metadata."""
+
         key = (family_id, family_version)
         registered = self._plugins.get(key)
         if registered is None:
@@ -106,7 +422,7 @@ class PluginRegistry:
                 f"{family_id}@{family_version}: expected {registered.plugin_id!r}, "
                 f"got {plugin_id!r}"
             )
-        return registered.plugin
+        return registered
 
     def resolve_manifest(self, manifest: FamilyManifest) -> Any:
         if not isinstance(manifest, FamilyManifest):
@@ -215,6 +531,7 @@ class HarnessRegistry:
 
 
 __all__ = [
+    "ContributionAdmissionError",
     "DuplicateHarnessError",
     "DuplicatePluginError",
     "HarnessRegistry",
@@ -227,6 +544,8 @@ __all__ = [
     "PluginResolutionError",
     "ProviderCapabilities",
     "REQUIRED_FAMILY_PLUGIN_HOOKS",
+    "TRUSTED_BUILTIN_PLUGIN_KEYS",
     "RegisteredHarness",
     "RegisteredPlugin",
+    "family_contribution_sha256",
 ]

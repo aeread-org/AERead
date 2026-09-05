@@ -17,7 +17,7 @@ Example::
     python integrations/everos/everos_memory_ab.py \
         --case cases/exchange_v1/v0/case03_hidden_discovery.json \
         --seeds 1200:1212 --model deepseek/deepseek-v4-flash \
-        --everos-url http://127.0.0.1:8377 --out output/everos_ab
+        --everos-url http://127.0.0.1:8377 --out runs/everos_ab
 """
 from __future__ import annotations
 
@@ -163,7 +163,7 @@ def main() -> None:
     ap.add_argument("--everos-url", default="http://127.0.0.1:8377")
     ap.add_argument("--arms", default="nomem,mem",
                     help="comma list drawn from {nomem,mem}")
-    ap.add_argument("--out", default="output/everos_ab")
+    ap.add_argument("--out", default="runs/everos_ab")
     ap.add_argument("--temperature", type=float, default=0.7)
     ap.add_argument("--max-tokens", type=int, default=1200)
     ap.add_argument("--top-k", type=int, default=4)

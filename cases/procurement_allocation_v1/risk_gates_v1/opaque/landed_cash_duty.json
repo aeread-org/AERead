@@ -1,0 +1,263 @@
+{
+  "case_id": "procurement_allocation_v1.risk_gates_v1_opaque.landed_cash_duty",
+  "content_sha256": "c8a5c57ed78f144db423222bf8929f7f7b033feabcea11b951bffb16e96d242a",
+  "episode": {
+    "max_logical_actions": 10,
+    "termination": [
+      "submitted",
+      "deferred",
+      "interaction_budget_exhausted",
+      "invalid_action"
+    ]
+  },
+  "family_id": "procurement_allocation_v1",
+  "family_version": "1.0.0",
+  "payload": {
+    "interaction": {
+      "counter_cost_usd": 0.15,
+      "counter_days": 1,
+      "inquiry_cost_usd": 0.05,
+      "inquiry_days": 1,
+      "max_actions": 10,
+      "quote_cost_usd": 0.1,
+      "quote_days": 1
+    },
+    "objective": {
+      "annual_financing_rate": 0.12,
+      "bom": {
+        "mosfet_low_side_3v3": 1,
+        "tactile_switch_6x6x5": 2
+      },
+      "cash_budget_usd": 50.0,
+      "deadline_days": 22,
+      "defect_detection_days": 10,
+      "defer_value_usd": 0.0,
+      "minimum_service_kits": 18,
+      "product_id": "control_board_landed_cash_holdout_e",
+      "revenue_per_completed_kit_usd": 8.0,
+      "shortfall_penalty_per_kit_usd": 4.0,
+      "target_kits": 20,
+      "working_capital_horizon_days": 45
+    },
+    "policy": {
+      "award_requires": [
+        "unexpired_formal_offer",
+        "verified_sample",
+        "exact_variant"
+      ],
+      "inquiry_fields": [
+        "exact_variant",
+        "moq_capacity",
+        "lead_time",
+        "shipping",
+        "quality",
+        "return_refund_policy"
+      ],
+      "required_variant_by_component": {
+        "mosfet_low_side_3v3": "3v3_logic_level_low_side_module",
+        "tactile_switch_6x6x5": "6x6x5mm_four_pin_normally_open"
+      }
+    },
+    "suppliers": [
+      {
+        "component": "mosfet_low_side_3v3",
+        "listing": {
+          "claimed_lead_time_days": 4,
+          "claimed_variant": "3v3 logic level low side module",
+          "displayed_unit_price_usd": 0.4756,
+          "evidence_status": "marketplace_listing_unverified",
+          "supplier_name": "Supplier FE34311DD005"
+        },
+        "private_terms": {
+          "base_unit_price_usd": 0.58,
+          "capacity": 50,
+          "duty_rate": 0.35,
+          "lead_time_days": 6,
+          "moq": 10,
+          "negotiation": {
+            "floor_unit_price_usd": 0.58,
+            "maximum_payment_terms_days": 30,
+            "maximum_refund_window_days": 30,
+            "minimum_moq": 10,
+            "supplier_paid_return_freight_available": true
+          },
+          "offer_valid_days": 30,
+          "on_time_probability": 1.0,
+          "order_step": 10,
+          "payment_terms_days": 30,
+          "quality": {
+            "observed_defects": 0,
+            "sample_cost_usd": 0.4,
+            "sample_lead_time_days": 1,
+            "sample_size": 100,
+            "verified_yield_rate": 1.0
+          },
+          "return_policy": {
+            "claim_acceptance_probability": 0.95,
+            "refund_delay_days": 5,
+            "refund_window_days": 30,
+            "restocking_fee_rate": 0.0,
+            "return_freight_payer": "supplier",
+            "return_freight_per_unit_usd": 0.0
+          },
+          "shipping_per_unit_usd": 0.65,
+          "variant_id": "3v3_logic_level_low_side_module"
+        },
+        "supplier_id": "supplier_fe34311dd005"
+      },
+      {
+        "component": "tactile_switch_6x6x5",
+        "listing": {
+          "claimed_lead_time_days": 4,
+          "claimed_variant": "6x6x5mm four pin normally open",
+          "displayed_unit_price_usd": 0.1066,
+          "evidence_status": "marketplace_listing_unverified",
+          "supplier_name": "Supplier 7F8EFB991C2E"
+        },
+        "private_terms": {
+          "base_unit_price_usd": 0.13,
+          "capacity": 80,
+          "duty_rate": 0.02,
+          "lead_time_days": 6,
+          "moq": 10,
+          "negotiation": {
+            "floor_unit_price_usd": 0.13,
+            "maximum_payment_terms_days": 30,
+            "maximum_refund_window_days": 30,
+            "minimum_moq": 10,
+            "supplier_paid_return_freight_available": true
+          },
+          "offer_valid_days": 30,
+          "on_time_probability": 1.0,
+          "order_step": 10,
+          "payment_terms_days": 30,
+          "quality": {
+            "observed_defects": 0,
+            "sample_cost_usd": 0.4,
+            "sample_lead_time_days": 1,
+            "sample_size": 100,
+            "verified_yield_rate": 1.0
+          },
+          "return_policy": {
+            "claim_acceptance_probability": 0.95,
+            "refund_delay_days": 5,
+            "refund_window_days": 30,
+            "restocking_fee_rate": 0.0,
+            "return_freight_payer": "supplier",
+            "return_freight_per_unit_usd": 0.0
+          },
+          "shipping_per_unit_usd": 0.03,
+          "variant_id": "6x6x5mm_four_pin_normally_open"
+        },
+        "supplier_id": "supplier_7f8efb991c2e"
+      },
+      {
+        "component": "mosfet_low_side_3v3",
+        "listing": {
+          "claimed_lead_time_days": 4,
+          "claimed_variant": "3v3 logic level low side module",
+          "displayed_unit_price_usd": 0.7544,
+          "evidence_status": "marketplace_listing_unverified",
+          "supplier_name": "Supplier 6BD30D979B38"
+        },
+        "private_terms": {
+          "base_unit_price_usd": 0.92,
+          "capacity": 50,
+          "duty_rate": 0.02,
+          "lead_time_days": 6,
+          "moq": 10,
+          "negotiation": {
+            "floor_unit_price_usd": 0.92,
+            "maximum_payment_terms_days": 30,
+            "maximum_refund_window_days": 30,
+            "minimum_moq": 10,
+            "supplier_paid_return_freight_available": true
+          },
+          "offer_valid_days": 30,
+          "on_time_probability": 1.0,
+          "order_step": 10,
+          "payment_terms_days": 30,
+          "quality": {
+            "observed_defects": 0,
+            "sample_cost_usd": 0.4,
+            "sample_lead_time_days": 1,
+            "sample_size": 100,
+            "verified_yield_rate": 1.0
+          },
+          "return_policy": {
+            "claim_acceptance_probability": 0.95,
+            "refund_delay_days": 5,
+            "refund_window_days": 30,
+            "restocking_fee_rate": 0.0,
+            "return_freight_payer": "supplier",
+            "return_freight_per_unit_usd": 0.0
+          },
+          "shipping_per_unit_usd": 0.05,
+          "variant_id": "3v3_logic_level_low_side_module"
+        },
+        "supplier_id": "supplier_6bd30d979b38"
+      },
+      {
+        "component": "tactile_switch_6x6x5",
+        "listing": {
+          "claimed_lead_time_days": 4,
+          "claimed_variant": "6x6x5mm four pin normally open",
+          "displayed_unit_price_usd": 0.0492,
+          "evidence_status": "marketplace_listing_unverified",
+          "supplier_name": "Supplier AADBA0899424"
+        },
+        "private_terms": {
+          "base_unit_price_usd": 0.06,
+          "capacity": 80,
+          "duty_rate": 0.35,
+          "lead_time_days": 6,
+          "moq": 10,
+          "negotiation": {
+            "floor_unit_price_usd": 0.06,
+            "maximum_payment_terms_days": 30,
+            "maximum_refund_window_days": 30,
+            "minimum_moq": 10,
+            "supplier_paid_return_freight_available": true
+          },
+          "offer_valid_days": 30,
+          "on_time_probability": 1.0,
+          "order_step": 10,
+          "payment_terms_days": 30,
+          "quality": {
+            "observed_defects": 0,
+            "sample_cost_usd": 0.4,
+            "sample_lead_time_days": 1,
+            "sample_size": 100,
+            "verified_yield_rate": 1.0
+          },
+          "return_policy": {
+            "claim_acceptance_probability": 0.95,
+            "refund_delay_days": 5,
+            "refund_window_days": 30,
+            "restocking_fee_rate": 0.0,
+            "return_freight_payer": "supplier",
+            "return_freight_per_unit_usd": 0.0
+          },
+          "shipping_per_unit_usd": 0.35,
+          "variant_id": "6x6x5mm_four_pin_normally_open"
+        },
+        "supplier_id": "supplier_aadba0899424"
+      }
+    ]
+  },
+  "provenance": {
+    "generator_id": "procurement_allocation_risk_gate_case_matrix_v1",
+    "generator_version": "1.0.0",
+    "review_status": "curated"
+  },
+  "seats": [
+    {
+      "id": "buyer",
+      "role": "buyer"
+    }
+  ],
+  "spec_version": "aeread.case/0.1",
+  "split": "risk_gates_v1_opaque",
+  "visibility_policy": "procurement_allocation_public_listings_private_supplier_terms_v1",
+  "world_seed": 2313205
+}

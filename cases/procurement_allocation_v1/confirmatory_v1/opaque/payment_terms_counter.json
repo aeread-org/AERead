@@ -1,0 +1,263 @@
+{
+  "case_id": "procurement_allocation_v1.confirmatory_v1_opaque.payment_terms_counter",
+  "content_sha256": "3cd8f16626a84cf5b98e3bf558f1b3d35a62d7cd9bb93d4cb69fd5daf75398f7",
+  "episode": {
+    "max_logical_actions": 10,
+    "termination": [
+      "submitted",
+      "deferred",
+      "interaction_budget_exhausted",
+      "invalid_action"
+    ]
+  },
+  "family_id": "procurement_allocation_v1",
+  "family_version": "1.0.0",
+  "payload": {
+    "interaction": {
+      "counter_cost_usd": 0.15,
+      "counter_days": 1,
+      "inquiry_cost_usd": 0.05,
+      "inquiry_days": 1,
+      "max_actions": 10,
+      "quote_cost_usd": 0.1,
+      "quote_days": 1
+    },
+    "objective": {
+      "annual_financing_rate": 2.0,
+      "bom": {
+        "ds3231_at24c32": 1,
+        "ky040_encoder": 1
+      },
+      "cash_budget_usd": 100.0,
+      "deadline_days": 24,
+      "defect_detection_days": 10,
+      "defer_value_usd": 0.0,
+      "minimum_service_kits": 16,
+      "product_id": "encoder_clock_financing_holdout",
+      "revenue_per_completed_kit_usd": 8.0,
+      "shortfall_penalty_per_kit_usd": 3.0,
+      "target_kits": 20,
+      "working_capital_horizon_days": 180
+    },
+    "policy": {
+      "award_requires": [
+        "unexpired_formal_offer",
+        "verified_sample",
+        "exact_variant"
+      ],
+      "inquiry_fields": [
+        "exact_variant",
+        "moq_capacity",
+        "lead_time",
+        "shipping",
+        "quality",
+        "return_refund_policy"
+      ],
+      "required_variant_by_component": {
+        "ds3231_at24c32": "ds3231_at24c32_i2c_module",
+        "ky040_encoder": "ec11_ky040_module_with_pullups"
+      }
+    },
+    "suppliers": [
+      {
+        "component": "ky040_encoder",
+        "listing": {
+          "claimed_lead_time_days": 4,
+          "claimed_variant": "ec11 ky040 module with pullups",
+          "displayed_unit_price_usd": 0.615,
+          "evidence_status": "marketplace_listing_unverified",
+          "supplier_name": "Supplier 649E65215468"
+        },
+        "private_terms": {
+          "base_unit_price_usd": 0.75,
+          "capacity": 40,
+          "duty_rate": 0.05,
+          "lead_time_days": 6,
+          "moq": 10,
+          "negotiation": {
+            "floor_unit_price_usd": 0.74,
+            "maximum_payment_terms_days": 150,
+            "maximum_refund_window_days": 30,
+            "minimum_moq": 10,
+            "supplier_paid_return_freight_available": true
+          },
+          "offer_valid_days": 30,
+          "on_time_probability": 0.99,
+          "order_step": 10,
+          "payment_terms_days": 1,
+          "quality": {
+            "observed_defects": 1,
+            "sample_cost_usd": 0.4,
+            "sample_lead_time_days": 1,
+            "sample_size": 100,
+            "verified_yield_rate": 0.99
+          },
+          "return_policy": {
+            "claim_acceptance_probability": 0.95,
+            "refund_delay_days": 5,
+            "refund_window_days": 30,
+            "restocking_fee_rate": 0.0,
+            "return_freight_payer": "supplier",
+            "return_freight_per_unit_usd": 0.0
+          },
+          "shipping_per_unit_usd": 0.05,
+          "variant_id": "ec11_ky040_module_with_pullups"
+        },
+        "supplier_id": "supplier_649e65215468"
+      },
+      {
+        "component": "ds3231_at24c32",
+        "listing": {
+          "claimed_lead_time_days": 4,
+          "claimed_variant": "ds3231 at24c32 i2c module",
+          "displayed_unit_price_usd": 2.05,
+          "evidence_status": "marketplace_listing_unverified",
+          "supplier_name": "Supplier A377BE765E56"
+        },
+        "private_terms": {
+          "base_unit_price_usd": 2.5,
+          "capacity": 40,
+          "duty_rate": 0.05,
+          "lead_time_days": 6,
+          "moq": 10,
+          "negotiation": {
+            "floor_unit_price_usd": 2.48,
+            "maximum_payment_terms_days": 90,
+            "maximum_refund_window_days": 30,
+            "minimum_moq": 10,
+            "supplier_paid_return_freight_available": true
+          },
+          "offer_valid_days": 30,
+          "on_time_probability": 0.99,
+          "order_step": 10,
+          "payment_terms_days": 90,
+          "quality": {
+            "observed_defects": 1,
+            "sample_cost_usd": 0.4,
+            "sample_lead_time_days": 1,
+            "sample_size": 100,
+            "verified_yield_rate": 0.99
+          },
+          "return_policy": {
+            "claim_acceptance_probability": 0.95,
+            "refund_delay_days": 5,
+            "refund_window_days": 30,
+            "restocking_fee_rate": 0.0,
+            "return_freight_payer": "supplier",
+            "return_freight_per_unit_usd": 0.0
+          },
+          "shipping_per_unit_usd": 0.05,
+          "variant_id": "ds3231_at24c32_i2c_module"
+        },
+        "supplier_id": "supplier_a377be765e56"
+      },
+      {
+        "component": "ds3231_at24c32",
+        "listing": {
+          "claimed_lead_time_days": 4,
+          "claimed_variant": "ds3231 at24c32 i2c module",
+          "displayed_unit_price_usd": 1.804,
+          "evidence_status": "marketplace_listing_unverified",
+          "supplier_name": "Supplier 3B691CDD7B63"
+        },
+        "private_terms": {
+          "base_unit_price_usd": 2.2,
+          "capacity": 40,
+          "duty_rate": 0.05,
+          "lead_time_days": 6,
+          "moq": 10,
+          "negotiation": {
+            "floor_unit_price_usd": 2.18,
+            "maximum_payment_terms_days": 150,
+            "maximum_refund_window_days": 30,
+            "minimum_moq": 10,
+            "supplier_paid_return_freight_available": true
+          },
+          "offer_valid_days": 30,
+          "on_time_probability": 0.99,
+          "order_step": 10,
+          "payment_terms_days": 1,
+          "quality": {
+            "observed_defects": 1,
+            "sample_cost_usd": 0.4,
+            "sample_lead_time_days": 1,
+            "sample_size": 100,
+            "verified_yield_rate": 0.99
+          },
+          "return_policy": {
+            "claim_acceptance_probability": 0.95,
+            "refund_delay_days": 5,
+            "refund_window_days": 30,
+            "restocking_fee_rate": 0.0,
+            "return_freight_payer": "supplier",
+            "return_freight_per_unit_usd": 0.0
+          },
+          "shipping_per_unit_usd": 0.05,
+          "variant_id": "ds3231_at24c32_i2c_module"
+        },
+        "supplier_id": "supplier_3b691cdd7b63"
+      },
+      {
+        "component": "ky040_encoder",
+        "listing": {
+          "claimed_lead_time_days": 4,
+          "claimed_variant": "ec11 ky040 module with pullups",
+          "displayed_unit_price_usd": 0.779,
+          "evidence_status": "marketplace_listing_unverified",
+          "supplier_name": "Supplier 9345DFFE8A5F"
+        },
+        "private_terms": {
+          "base_unit_price_usd": 0.95,
+          "capacity": 40,
+          "duty_rate": 0.05,
+          "lead_time_days": 6,
+          "moq": 10,
+          "negotiation": {
+            "floor_unit_price_usd": 0.94,
+            "maximum_payment_terms_days": 90,
+            "maximum_refund_window_days": 30,
+            "minimum_moq": 10,
+            "supplier_paid_return_freight_available": true
+          },
+          "offer_valid_days": 30,
+          "on_time_probability": 0.99,
+          "order_step": 10,
+          "payment_terms_days": 90,
+          "quality": {
+            "observed_defects": 1,
+            "sample_cost_usd": 0.4,
+            "sample_lead_time_days": 1,
+            "sample_size": 100,
+            "verified_yield_rate": 0.99
+          },
+          "return_policy": {
+            "claim_acceptance_probability": 0.95,
+            "refund_delay_days": 5,
+            "refund_window_days": 30,
+            "restocking_fee_rate": 0.0,
+            "return_freight_payer": "supplier",
+            "return_freight_per_unit_usd": 0.0
+          },
+          "shipping_per_unit_usd": 0.05,
+          "variant_id": "ec11_ky040_module_with_pullups"
+        },
+        "supplier_id": "supplier_9345dffe8a5f"
+      }
+    ]
+  },
+  "provenance": {
+    "generator_id": "procurement_allocation_confirmatory_case_matrix_v1",
+    "generator_version": "1.0.0",
+    "review_status": "curated"
+  },
+  "seats": [
+    {
+      "id": "buyer",
+      "role": "buyer"
+    }
+  ],
+  "spec_version": "aeread.case/0.1",
+  "split": "confirmatory_v1_opaque",
+  "visibility_policy": "procurement_allocation_public_listings_private_supplier_terms_v1",
+  "world_seed": 2313109
+}

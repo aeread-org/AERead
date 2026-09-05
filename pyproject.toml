@@ -35,7 +35,7 @@ harness-bakeoff = [
 
 [project.scripts]
 aeread = "aeread.cli:main"
-aeread-shared-smoke = "aeread.shared_runner.smoke:main"
+aeread-shared-smoke = "aeread_families.single_offer.runner:main"
 
 # rLLM plugin discovery (https://docs.rllm-project.com): with rllm installed,
 # `rllm eval <dataset> --agent aeread` / `rllm train` resolve these by name.
@@ -50,7 +50,7 @@ Homepage = "https://aeread.org"
 Repository = "https://github.com/aeread-org/AERead"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/aeread"]
+packages = ["src/aeread", "src/aeread_families"]
 
 # Ship the public case catalog inside the wheel so `pip install aeread` followed by
 # `rllm eval` works without cloning. rllm_dataset._search_roots() looks here first.
