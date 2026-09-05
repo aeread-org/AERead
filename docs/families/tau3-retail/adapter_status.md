@@ -50,7 +50,7 @@ the owner explicitly selected Arena's `glm-5p2` model instead. It runs one
 unscored admission canary followed by five
 scored cases, one from each predeclared pilot stratum, sequentially and with no
 fallback. The driver aborts on the first operational failure, enforces a
-per-trajectory ceiling of $0.05 and a total ceiling of $0.30,
+per-trajectory ceiling of $0.075 and a total ceiling of $0.40,
 checkpoints only
 complete replayed receipts, and separates execution from publication.
 
@@ -68,8 +68,12 @@ ordering, repeated 5–8k-token uncached prefixes exhausted the assistant's
 case-level budget before the episode completed.
 Both model seats reserve 4096 completion tokens because Arena counts hidden
 reasoning and visible output against one limit. The dollar ceilings still
-govern actual spend, so this prevents reasoning-only or truncated responses
-without expanding the financial budget.
+govern actual spend independently of that token headroom.
+These ceilings replace the original $0.05/$0.30 estimate after the first
+pipeline attempts measured Arena support turns with 5–8k prompt tokens. The
+campaign gives each seat enough local headroom to avoid a false seat-budget
+failure, then enforces $0.075 on the combined completed trajectory and $0.40
+across the campaign.
 
 This is a **pipeline proof**, not an upstream behavioral-parity claim. Both the
 retail assistant and customer simulator use GLM 5.2, and the harness uses
@@ -81,7 +85,7 @@ Freeze and inspect the digest-bound plan before spending:
 
 ```bash
 PYTHONPATH=src python -m aeread_families.tau3_retail.campaign \
-  --run-root runs/tau3_retail_glm5p2_arena_pipeline_proof_v6
+  --run-root runs/tau3_retail_glm5p2_arena_pipeline_proof_v7
 ```
 
 Execute only with the pinned bridge and skip-fail gate enabled:
@@ -91,7 +95,7 @@ AEREAD_TAU2_UPSTREAM_ROOT=$PWD/runs/upstream-tau2 \
 AEREAD_TAU2_BRIDGE_PYTHON=$PWD/runs/tau2-bridge-venv/bin/python \
 AEREAD_TAU2_BRIDGE_REQUIRED=1 \
 PYTHONPATH=src python -m aeread_families.tau3_retail.campaign \
-  --run-root runs/tau3_retail_glm5p2_arena_pipeline_proof_v6 \
+  --run-root runs/tau3_retail_glm5p2_arena_pipeline_proof_v7 \
   --upstream-root runs/upstream-tau2 --execute
 ```
 
@@ -100,8 +104,8 @@ digest-mismatched checkpoints:
 
 ```bash
 PYTHONPATH=src python -m aeread_families.tau3_retail.campaign \
-  --run-root runs/tau3_retail_glm5p2_arena_pipeline_proof_v6 \
-  --publication-root evidence/tau3_retail_glm5p2_arena_pipeline_proof_v6 \
+  --run-root runs/tau3_retail_glm5p2_arena_pipeline_proof_v7 \
+  --publication-root evidence/tau3_retail_glm5p2_arena_pipeline_proof_v7 \
   --publish-only
 ```
 

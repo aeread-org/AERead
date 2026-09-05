@@ -46,7 +46,7 @@ from .live import (
 from .tau2_bridge import Tau2Bridge
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
-CAMPAIGN_ID = "tau3_retail_glm5p2_arena_pipeline_proof_v6"
+CAMPAIGN_ID = "tau3_retail_glm5p2_arena_pipeline_proof_v7"
 CANARY_CASE_ID = "tau3.retail.base.53"
 PANEL_CASE_IDS = (
     "tau3.retail.base.14",
@@ -64,10 +64,10 @@ PANEL_STRATA = (
 )
 SEED = 300
 MAX_PARALLEL_CELLS = 1
-MAX_CANARY_COST_USD = 0.025
+MAX_CANARY_COST_USD = 0.005
 MAX_CANARY_OUTPUT_TOKENS = 256
-MAX_TRAJECTORY_COST_USD = 0.05
-HARD_TOTAL_COST_CEILING_USD = 0.30
+MAX_TRAJECTORY_COST_USD = 0.075
+HARD_TOTAL_COST_CEILING_USD = 0.40
 
 
 def _digest(value: Any) -> str:
@@ -321,6 +321,8 @@ async def execute_campaign(*, run_root: Path, upstream_root: Path) -> None:
             if replayed.receipt_sha256 != receipt.receipt_sha256:
                 raise RuntimeError("receipt replay digest mismatch")
             cost = float(execution.total_cost_usd)
+            if cost > MAX_TRAJECTORY_COST_USD:
+                raise RuntimeError("tau3 retail case exceeded its cost ceiling")
             total_cost += cost
             if total_cost > HARD_TOTAL_COST_CEILING_USD:
                 raise RuntimeError("campaign exceeded its hard total cost ceiling")
