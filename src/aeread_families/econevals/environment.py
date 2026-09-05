@@ -270,7 +270,7 @@ def register_plugin(
     """Register one exact family/version binding in the kernel registry."""
     if plugin is None:
         plugin = EconevalsPlugin(bridge=bridge)
-    registry.register(family_manifest(), plugin)
+    registry.register_trusted(family_manifest(), plugin)
     return plugin
 
 
