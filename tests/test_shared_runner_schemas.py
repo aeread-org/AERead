@@ -6,6 +6,9 @@ import pytest
 
 from aeread.shared_runner.registry import (
     DuplicatePluginError,
+    HarnessRegistry,
+    HarnessRegistryError,
+    HarnessRequirements,
     IncompletePluginError,
     PluginRegistry,
     PluginResolutionError,
@@ -64,6 +67,52 @@ def test_case_id_rejects_colon_before_rllm_can_truncate_it() -> None:
 
     with pytest.raises(AuthoringValidationError, match="valid identifier"):
         CaseManifest.from_dict(data)
+
+
+def test_upstream_task_id_rejects_colon_before_rllm_can_collapse_grouping() -> None:
+    data = case_data()
+    data["upstream_task_id"] = "retail:14"
+
+    with pytest.raises(AuthoringValidationError, match="portable upstream identifier"):
+        CaseManifest.from_dict(data)
+
+
+@pytest.mark.parametrize(
+    "value",
+    ["Task 14", "retail:14", "a/b", "", "task\t1", "quote'd"],
+)
+def test_upstream_task_id_rejects_row_id_hazards(value: str) -> None:
+    data = case_data()
+    data["upstream_task_id"] = value
+
+    with pytest.raises(AuthoringValidationError, match="upstream_task_id"):
+        CaseManifest.from_dict(data)
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        # Real foreign ids from the landed external families: the field exists
+        # to record the upstream id VERBATIM, so case and underscores survive.
+        "Task1BasicPriceNegotiation",
+        "Task4_s1_beauty_product_negotiation",
+        "tau2_retail.14",
+        "14",
+        "GovSim-fishing_v6.4",
+    ],
+)
+def test_upstream_task_id_preserves_a_safe_foreign_id_verbatim(value: str) -> None:
+    data = case_data()
+    data["upstream_task_id"] = value
+
+    assert CaseManifest.from_dict(data).upstream_task_id == value
+
+
+def test_upstream_task_id_stays_optional() -> None:
+    data = case_data()
+    data.pop("upstream_task_id", None)
+
+    assert CaseManifest.from_dict(data).upstream_task_id is None
 
 
 def family_data() -> dict:
@@ -415,3 +464,71 @@ def test_registry_rejects_duplicate_or_incomplete_plugins() -> None:
     incomplete = object()
     with pytest.raises(IncompletePluginError, match="validate_payload"):
         PluginRegistry().register_trusted(manifest, incomplete)
+
+
+def _harness_requirements(memory: frozenset[str]) -> HarnessRequirements:
+    return HarnessRequirements(
+        provider=frozenset({"structured_output"}),
+        tools="none",
+        memory=memory,
+        owns_retries=False,
+        owns_tools=False,
+        replayable=True,
+        blocking=False,
+        spawns_subagents=False,
+    )
+
+
+class _ProtocolCompleteHarness:
+    id = "fixture_chat"
+    version = "1.0"
+    requires = _harness_requirements(frozenset({"disabled"}))
+
+    async def open_episode(self, episode):
+        return None
+
+    async def act(self, request, ctx):
+        raise NotImplementedError
+
+    async def close_episode(self, episode):
+        return None
+
+    def classify_failure(self, exc):
+        raise NotImplementedError
+
+    def state_reader(self):
+        return None
+
+
+def test_harness_registry_rejects_a_protocol_incomplete_harness() -> None:
+    class MissingHooks:
+        id = "fixture_chat"
+        version = "1.0"
+        requires = _harness_requirements(frozenset({"disabled"}))
+
+        async def act(self, request, ctx):
+            raise NotImplementedError
+
+    with pytest.raises(HarnessRegistryError, match="open_episode"):
+        HarnessRegistry().register(MissingHooks())
+
+    registry = HarnessRegistry()
+    registry.register(_ProtocolCompleteHarness())
+    assert registry.resolve("fixture_chat", "1.0") is not None
+
+
+def test_harness_registry_requires_state_reader_only_with_memory_enabled() -> None:
+    class MemoryWithoutReader(_ProtocolCompleteHarness):
+        requires = _harness_requirements(frozenset({"session"}))
+        state_reader = None
+
+    with pytest.raises(HarnessRegistryError, match="state_reader"):
+        HarnessRegistry().register(MemoryWithoutReader())
+
+    class DisabledMemoryWithoutReader(_ProtocolCompleteHarness):
+        id = "fixture_chat_no_reader"
+        state_reader = None
+
+    registry = HarnessRegistry()
+    registry.register(DisabledMemoryWithoutReader())
+    assert registry.resolve("fixture_chat_no_reader", "1.0") is not None
