@@ -50,10 +50,13 @@ ASSISTANT_PROMPT = """You are the retail support assistant. Follow the policy an
 tool definitions supplied in the context. Return only the required JSON object.
 Use kind=tool_calls with one or more calls when a tool is needed. Use kind=reply with
 a customer-facing response only when no tool call is needed. Never invent tool results.
+Never claim that an account or order was found unless the corresponding tool result is
+present. Keep customer-facing replies under 80 words and do not repeat known details.
 """
 USER_PROMPT = """You are the simulated retail customer. Follow the user scenario and
 simulation guidelines supplied in the observation. Return only a kind=reply JSON object.
 Use the exact upstream stop markers when the scenario and guidelines require stopping.
+Keep each reply under 40 words and do not repeat details already established.
 """
 
 
@@ -227,7 +230,7 @@ def build_live_setup(
         tools=tool_names,
         seed=seed,
         max_output_tokens=4096,
-        max_cost_usd=max_trajectory_cost_usd * 0.8,
+        max_cost_usd=max_trajectory_cost_usd,
     )
     user = _profile(
         seat="user",
@@ -237,7 +240,7 @@ def build_live_setup(
         tools=(),
         seed=seed,
         max_output_tokens=4096,
-        max_cost_usd=max_trajectory_cost_usd * 0.4,
+        max_cost_usd=max_trajectory_cost_usd,
     )
     sampling = SamplingPlan.from_dict(
         {
