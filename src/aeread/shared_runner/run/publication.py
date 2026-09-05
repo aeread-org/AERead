@@ -103,6 +103,7 @@ def receipt_projection(
         "cluster_id": receipt["cluster_id"],
         "cluster_level": receipt["cluster_level"],
         "primary_leaf_id": receipt["primary_leaf_id"],
+        "deferred_leaf_ids": receipt.get("deferred_leaf_ids", ()),
         "replay_level": receipt["replay_level"],
         "evidence": receipt["evidence"],
         "failure": safe_failure,

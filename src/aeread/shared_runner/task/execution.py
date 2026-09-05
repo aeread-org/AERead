@@ -45,6 +45,7 @@ if TYPE_CHECKING:
     # classes at runtime (harness registration, native tool-call construction)
     # import them lazily.
     from ..model_call.harness import CanonicalMessage, Harness, NativeToolCall, ToolSchema
+    from .tools import ToolRuntime
 
 
 class EvidenceIntegrityError(RuntimeError):
@@ -1645,6 +1646,218 @@ class OpenRouterChatClient:
         return canonical_model
 
 
+class ArenaChatClient:
+    """Arena OpenAI-compatible Chat Completions adapter."""
+
+    def __init__(
+        self,
+        *,
+        sdk_client: Any | None = None,
+        base_url: str = "https://api.preview.arena.ai/v1",
+    ) -> None:
+        self._base_url = base_url.rstrip("/")
+        if sdk_client is None:
+            try:
+                from openai import AsyncOpenAI
+            except ImportError as error:  # pragma: no cover - dependency error
+                raise EvidenceIntegrityError(
+                    "ArenaChatClient requires the openai package"
+                ) from error
+            api_key = os.environ.get("ARENA_API_KEY")
+            if not api_key:
+                raise EvidenceIntegrityError(
+                    "ARENA_API_KEY must be set before constructing the live Arena client"
+                )
+            sdk_client = AsyncOpenAI(
+                api_key=api_key,
+                base_url=self._base_url,
+                max_retries=0,
+            )
+        chat = getattr(sdk_client, "chat", None)
+        if chat is None or not hasattr(chat, "completions"):
+            raise EvidenceIntegrityError(
+                "installed OpenAI SDK does not expose Chat Completions"
+            )
+        self._client = sdk_client
+
+    async def complete(self, request: ProviderRequest) -> ProviderResult:
+        if request.messages is not None:
+            raise ProviderFailure(
+                "provider_contract",
+                "Arena adapter does not support native chat messages",
+                retryable=False,
+            )
+        if request.provider != "arena":
+            raise ProviderFailure(
+                "provider_contract",
+                f"Arena adapter received provider {request.provider!r}",
+                retryable=False,
+            )
+        requested_base_url = (request.base_url or "").rstrip("/")
+        if requested_base_url != self._base_url:
+            raise ProviderFailure(
+                "provider_contract",
+                f"request base URL {requested_base_url!r} does not match client base URL "
+                f"{self._base_url!r}",
+                retryable=False,
+            )
+        if not isinstance(request.output_schema, Mapping):
+            raise ProviderFailure(
+                "provider_contract",
+                "Arena adapter requires an output schema",
+                retryable=False,
+            )
+        schema_text = canonical_json_bytes(request.output_schema).decode("utf-8")
+        kwargs: dict[str, Any] = {
+            "model": request.model,
+            "messages": [
+                {
+                    "role": "system",
+                    "content": (
+                        f"{request.instructions}\nReturn only JSON matching this schema: "
+                        f"{schema_text}"
+                    ),
+                },
+                {"role": "user", "content": request.input_text},
+            ],
+            "temperature": request.temperature,
+            "max_tokens": request.max_output_tokens,
+            "stream": False,
+        }
+        if request.top_p is not None:
+            kwargs["top_p"] = request.top_p
+        if request.reasoning_effort not in (None, "none"):
+            kwargs["reasoning_effort"] = request.reasoning_effort
+        try:
+            response = await self._client.chat.completions.create(**kwargs)
+        except asyncio.CancelledError:
+            raise
+        except Exception as error:
+            raise OpenAIResponsesClient._classify_error(error) from error
+        try:
+            raw_response = response.model_dump(mode="json")
+        except Exception as error:
+            raise ProviderFailure(
+                "provider_contract",
+                "Arena response could not be serialized",
+                retryable=False,
+            ) from error
+        if not isinstance(raw_response, Mapping):
+            raise ProviderFailure(
+                "provider_contract", "Arena response must be an object", retryable=False
+            )
+        choices = raw_response.get("choices")
+        if not isinstance(choices, list) or len(choices) != 1:
+            raise ProviderFailure(
+                "provider_contract",
+                "Arena response must contain exactly one choice",
+                retryable=False,
+            )
+        choice = choices[0]
+        message = choice.get("message") if isinstance(choice, Mapping) else None
+        content = message.get("content") if isinstance(message, Mapping) else None
+        if not isinstance(content, str) or not content.strip():
+            finish_reason = choice.get("finish_reason") if isinstance(choice, Mapping) else None
+            raise ProviderFailure(
+                "length" if finish_reason == "length" else "empty_response",
+                "Arena returned no visible answer content",
+                retryable=True,
+            )
+        try:
+            structured_output = self._parse_structured_output(content, request.output_schema)
+        except ProviderFailure as error:
+            if choice.get("finish_reason") == "length":
+                raise ProviderFailure(
+                    "length",
+                    "Arena truncated the structured response at the output-token limit",
+                    retryable=True,
+                ) from error
+            raise
+        usage = raw_response.get("usage")
+        usage = usage if isinstance(usage, Mapping) else {}
+
+        def token_count(field: str) -> int:
+            value = usage.get(field, 0)
+            if isinstance(value, int) and not isinstance(value, bool) and value >= 0:
+                return value
+            return 0
+
+        details = usage.get("prompt_tokens_details")
+        cached_input_tokens = 0
+        if isinstance(details, Mapping):
+            cached = details.get("cached_tokens", 0)
+            if isinstance(cached, int) and not isinstance(cached, bool) and cached >= 0:
+                cached_input_tokens = cached
+        reported_cost = usage.get("cost")
+        cost_usd = (
+            float(reported_cost)
+            if isinstance(reported_cost, (int, float))
+            and not isinstance(reported_cost, bool)
+            and reported_cost >= 0
+            else None
+        )
+        completion_details = usage.get("completion_tokens_details")
+        reasoning_tokens = None
+        if isinstance(completion_details, Mapping):
+            reported_reasoning_tokens = completion_details.get("reasoning_tokens")
+            if (
+                isinstance(reported_reasoning_tokens, int)
+                and not isinstance(reported_reasoning_tokens, bool)
+                and reported_reasoning_tokens >= 0
+            ):
+                reasoning_tokens = reported_reasoning_tokens
+        return ProviderResult(
+            response_id=str(raw_response.get("id") or ""),
+            requested_model=request.model,
+            resolved_model=str(raw_response.get("model") or request.model),
+            output_text=canonical_json_bytes(structured_output).decode("utf-8"),
+            finish_reason=str(choice.get("finish_reason") or "unknown"),
+            input_tokens=token_count("prompt_tokens"),
+            cached_input_tokens=cached_input_tokens,
+            output_tokens=token_count("completion_tokens"),
+            cost_usd=cost_usd,
+            raw_response=raw_response,
+            reasoning_tokens=reasoning_tokens,
+        )
+
+    @staticmethod
+    def _parse_structured_output(
+        content: str, output_schema: Mapping[str, Any]
+    ) -> Mapping[str, Any]:
+        required = output_schema.get("required", ())
+        required_fields = (
+            {field for field in required if isinstance(field, str)}
+            if isinstance(required, (list, tuple))
+            else set()
+        )
+
+        def matches(value: Any) -> bool:
+            return isinstance(value, Mapping) and required_fields <= set(value)
+
+        stripped = content.strip()
+        try:
+            value = json.loads(stripped)
+        except json.JSONDecodeError:
+            value = None
+        if matches(value):
+            return value
+        decoder = json.JSONDecoder()
+        for index, character in enumerate(stripped):
+            if character != "{":
+                continue
+            try:
+                value, _end = decoder.raw_decode(stripped[index:])
+            except json.JSONDecodeError:
+                continue
+            if matches(value):
+                return value
+        raise ProviderFailure(
+            "provider_contract",
+            "Arena response contains no JSON action matching the schema",
+            retryable=False,
+        )
+
+
 CommandRunner = Callable[
     [tuple[str, ...], bytes], Awaitable[tuple[int, bytes, bytes]]
 ]
@@ -2466,7 +2679,7 @@ class MinimalChatExecutor:
                 session_mode=profile.retry_policy.session_mode,
                 status="succeeded",
                 provider_calls=(provider_record,),
-                tool_invocations=(),
+                tool_invocations=canonical.tool_invocation_ids,
                 canonical_response=canonical,
             )
             attempts.append(attempt)
@@ -3351,6 +3564,9 @@ async def execute_plan_cell(
     pricing: Mapping[str, TokenPricing],
     episode_attempt_ordinal: int = 0,
     harnesses: Mapping[str, "Harness"] | None = None,
+    tool_runtime_factories: Mapping[
+        str, Callable[[EvidenceStore], "ToolRuntime"]
+    ] | None = None,
 ) -> CellExecution:
     """Execute one sealed R2 cell through the R3 scheduler and R4 adapter."""
     from ..run.layout import RunLayout
@@ -3454,6 +3670,10 @@ async def execute_plan_cell(
         providers=providers,
         pricing=pricing,
         harnesses=default_harnesses() if harnesses is None else harnesses,
+        tool_runtimes={
+            profile_id: factory(evidence)
+            for profile_id, factory in (tool_runtime_factories or {}).items()
+        },
         request_seed_by_profile=request_seed_by_profile,
     )
     result = await run_episode(
@@ -3488,6 +3708,7 @@ __all__ = [
     "Event",
     "LogicalActionExecution",
     "MinimalChatExecutor",
+    "ArenaChatClient",
     "OpenAIResponsesClient",
     "OpenRouterChatClient",
     "ProviderCallRecord",

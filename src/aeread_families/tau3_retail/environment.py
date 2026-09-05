@@ -31,7 +31,12 @@ from .cases import (
     UPSTREAM_COMMIT,
     UPSTREAM_REPO,
 )
-from .measurement import Tau3RetailScorer, build_scorer as build_measurement_scorer
+from .measurement import (
+    DB_STATE_LEAF_ID,
+    NL_ASSERTIONS_LEAF_ID,
+    Tau3RetailScorer,
+    build_scorer as build_measurement_scorer,
+)
 from .tau2_bridge import Tau2Bridge
 
 PLUGIN_ID = "tau3_retail_environment"
@@ -88,8 +93,24 @@ def family_manifest() -> FamilyManifest:
                 "optimum_upper_bound_kind": "known",
                 "bound_status": "upstream_defined",
                 "outcome_support": "unit_interval",
+                "leaves": [
+                    {"leaf_id": DB_STATE_LEAF_ID, "scope": "finalize_time"},
+                    {
+                        "leaf_id": NL_ASSERTIONS_LEAF_ID,
+                        "scope": "deferred",
+                        "deferred_artifact": "tau3_retail_nl_judge_verdicts",
+                    },
+                ],
+                "primary_leaf_id": DB_STATE_LEAF_ID,
+                "admission_leaf_ids": [DB_STATE_LEAF_ID],
             },
-            "scoring": {"scorer_id": SCORER_ID},
+            "scoring": {
+                "scorer_id": SCORER_ID,
+                "reference_provider_ids": [
+                    "tau3_retail_base_domain_predicate",
+                    "tau3_retail_environment_evaluator_bridge",
+                ],
+            },
         }
     )
 
@@ -238,8 +259,8 @@ class Tau3RetailPlugin:
             )
         return data
 
-    def initial_state(self, family_case: Mapping[str, Any], cell: Any) -> dict[str, Any]:
-        del cell
+    def initial_state(self, family_case: Mapping[str, Any], run: Any) -> dict[str, Any]:
+        del run
         bridge = self._require_bridge()
         pins = family_case["pins"]
         schema = bridge.fetch_tool_schema()
@@ -340,6 +361,7 @@ class Tau3RetailPlugin:
                 "upstream_step_count": state["upstream_step_count"],
                 "num_tool_errors": state["num_tool_errors"],
                 "max_steps": family_case["pins"]["max_steps"],
+                "tools": self._require_bridge().fetch_tool_schema()["tools"],
             }
         if phase.phase_id == USER_PHASE and seat_id == "user":
             guidelines_path = (
@@ -629,7 +651,9 @@ class Tau3RetailPlugin:
         ``Tau3RetailScorer`` docstring); this makes the declaration and both
         scorers live the day it does.
         """
-        return build_measurement_scorer(family_case["task"], family_case["pins"])
+        return build_measurement_scorer(
+            family_case["task"], family_case["pins"], bridge=self.bridge
+        )
 
     def build_reference_providers(
         self, family_case: Mapping[str, Any]

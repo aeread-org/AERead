@@ -522,12 +522,16 @@ class ProcurementGroundingPlugin:
             text = response.text
         elif isinstance(response, str):
             text = response
+        elif isinstance(response, Mapping):
+            value = response
+            text = None
         else:
             return ParseResult.failure("noncanonical_response")
-        try:
-            value = json.loads(text)
-        except (TypeError, json.JSONDecodeError):
-            return ParseResult.failure("malformed_json")
+        if text is not None:
+            try:
+                value = json.loads(text)
+            except (TypeError, json.JSONDecodeError):
+                return ParseResult.failure("malformed_json")
         try:
             report = _validate_report_structure(value, family_case["oracle"])
         except ValueError:
