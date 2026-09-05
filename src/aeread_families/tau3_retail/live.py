@@ -236,7 +236,7 @@ def build_live_setup(
         output_schema=user_output_schema(),
         tools=(),
         seed=seed,
-        max_output_tokens=400,
+        max_output_tokens=4096,
         max_cost_usd=max_trajectory_cost_usd * 0.4,
     )
     sampling = SamplingPlan.from_dict(

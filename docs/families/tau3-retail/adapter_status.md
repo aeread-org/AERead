@@ -66,10 +66,10 @@ the changing conversation state. This preserves the same observation while
 giving Arena a stable prompt prefix to cache across turns; without that
 ordering, repeated 5–8k-token uncached prefixes exhausted the assistant's
 case-level budget before the episode completed.
-The support seat reserves 4096 completion tokens because Arena counts hidden
-reasoning and visible structured actions against one limit. The dollar ceiling
-still governs actual spend, so this prevents truncation without expanding the
-financial budget.
+Both model seats reserve 4096 completion tokens because Arena counts hidden
+reasoning and visible output against one limit. The dollar ceilings still
+govern actual spend, so this prevents reasoning-only or truncated responses
+without expanding the financial budget.
 
 This is a **pipeline proof**, not an upstream behavioral-parity claim. Both the
 retail assistant and customer simulator use GLM 5.2, and the harness uses
@@ -81,7 +81,7 @@ Freeze and inspect the digest-bound plan before spending:
 
 ```bash
 PYTHONPATH=src python -m aeread_families.tau3_retail.campaign \
-  --run-root runs/tau3_retail_glm5p2_arena_pipeline_proof_v5
+  --run-root runs/tau3_retail_glm5p2_arena_pipeline_proof_v6
 ```
 
 Execute only with the pinned bridge and skip-fail gate enabled:
@@ -91,7 +91,7 @@ AEREAD_TAU2_UPSTREAM_ROOT=$PWD/runs/upstream-tau2 \
 AEREAD_TAU2_BRIDGE_PYTHON=$PWD/runs/tau2-bridge-venv/bin/python \
 AEREAD_TAU2_BRIDGE_REQUIRED=1 \
 PYTHONPATH=src python -m aeread_families.tau3_retail.campaign \
-  --run-root runs/tau3_retail_glm5p2_arena_pipeline_proof_v5 \
+  --run-root runs/tau3_retail_glm5p2_arena_pipeline_proof_v6 \
   --upstream-root runs/upstream-tau2 --execute
 ```
 
@@ -100,8 +100,8 @@ digest-mismatched checkpoints:
 
 ```bash
 PYTHONPATH=src python -m aeread_families.tau3_retail.campaign \
-  --run-root runs/tau3_retail_glm5p2_arena_pipeline_proof_v5 \
-  --publication-root evidence/tau3_retail_glm5p2_arena_pipeline_proof_v5 \
+  --run-root runs/tau3_retail_glm5p2_arena_pipeline_proof_v6 \
+  --publication-root evidence/tau3_retail_glm5p2_arena_pipeline_proof_v6 \
   --publish-only
 ```
 
