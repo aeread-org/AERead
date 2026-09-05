@@ -39,7 +39,7 @@ from pathlib import Path
 import pytest
 
 from aeread.shared_runner.registry import PluginRegistry
-from aeread.shared_runner.scheduler import LegalityResult, run_episode
+from aeread.shared_runner.task.scheduler import LegalityResult, run_episode
 from aeread_families.aucarena import measurement as m
 from aeread_families.aucarena.environment import AucArenaPlugin, family_manifest, register_plugin
 

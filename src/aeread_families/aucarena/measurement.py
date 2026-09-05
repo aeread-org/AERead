@@ -72,8 +72,8 @@ from aeread.shared_runner.measurement import (
     ValidityReport,
     VerifierSpec,
 )
-from aeread.shared_runner.resolver import canonical_json_bytes
-from aeread.shared_runner.scheduler import EpisodeResult, PhaseInstance
+from aeread.shared_runner.run.resolver import canonical_json_bytes
+from aeread.shared_runner.task.scheduler import EpisodeResult, PhaseInstance
 
 from . import _vendored_upstream as vendored
 

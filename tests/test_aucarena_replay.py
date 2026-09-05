@@ -48,10 +48,10 @@ from pathlib import Path
 
 import pytest
 
-from aeread.shared_runner.execution import EvidenceStore
+from aeread.shared_runner.task.execution import EvidenceStore
 from aeread.shared_runner.registry import PluginRegistry
-from aeread.shared_runner.resolver import canonical_json_bytes
-from aeread.shared_runner.scheduler import (
+from aeread.shared_runner.run.resolver import canonical_json_bytes
+from aeread.shared_runner.task.scheduler import (
     EpisodeResult,
     SchedulerContractError,
     run_episode,
@@ -402,7 +402,7 @@ def test_tampering_decision_order_is_caught_by_the_response_source_itself(
     # this new order, so RecordedResponseSource itself must catch this
     # before the episode reaches an inconsistent state. The scheduler wraps
     # any exception a response_source raises into SchedulerContractError
-    # (aeread.shared_runner.scheduler._request_action); the underlying
+    # (aeread.shared_runner.task.scheduler._request_action); the underlying
     # ReplayError's own message survives inside it.
     decisions = list(recorded.decisions)
     decisions[0], decisions[1] = decisions[1], decisions[0]

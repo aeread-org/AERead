@@ -24,7 +24,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Mapping
 
-from aeread.shared_runner.resolver import case_content_sha256
+from aeread.shared_runner.run.resolver import case_content_sha256
 from aeread.shared_runner.schemas import CaseManifest
 
 # --------------------------------------------------------------------------

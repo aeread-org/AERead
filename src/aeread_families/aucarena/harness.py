@@ -27,8 +27,8 @@ from __future__ import annotations
 
 from typing import Any, Callable
 
-from aeread.shared_runner.execution import EvidenceStore
-from aeread.shared_runner.scheduler import DecisionRequest
+from aeread.shared_runner.task.execution import EvidenceStore
+from aeread.shared_runner.task.scheduler import DecisionRequest
 
 Policy = Callable[[str, Any], str]
 

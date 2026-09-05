@@ -1,7 +1,7 @@
 """Provider-free scheduler coverage for the ``aucarena`` environment plugin.
 
 Drives all five QC Gate-2 goldens (spec section 5) through the real kernel
-phase scheduler (``aeread.shared_runner.scheduler.run_episode``) with the
+phase scheduler (``aeread.shared_runner.task.scheduler.run_episode``) with the
 shipped ``ScriptedAucArenaHarness`` (``harness.py``, milestone 3 -- promoted
 from an in-test class milestone 1 defined here, back when no shipped module
 existed yet; see that spec section's milestone-1 note): the whole per-round
@@ -27,11 +27,11 @@ from typing import Any
 
 import pytest
 
-from aeread.shared_runner.execution import EvidenceSealedError, EvidenceStore
+from aeread.shared_runner.task.execution import EvidenceSealedError, EvidenceStore
 from aeread.shared_runner.registry import REQUIRED_FAMILY_PLUGIN_HOOKS, PluginRegistry
-from aeread.shared_runner.resolver import PlanCell, canonical_json_bytes, case_content_sha256
+from aeread.shared_runner.run.resolver import PlanCell, canonical_json_bytes, case_content_sha256
 from aeread.shared_runner.schemas import CaseManifest
-from aeread.shared_runner.scheduler import EpisodeResult, run_episode
+from aeread.shared_runner.task.scheduler import EpisodeResult, run_episode
 from aeread_families.aucarena import environment
 from aeread_families.aucarena.environment import (
     AucArenaPlugin,

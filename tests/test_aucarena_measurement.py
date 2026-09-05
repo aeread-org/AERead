@@ -12,7 +12,7 @@ split:
   before this module ever ran).
 * Golden-by-golden scorer tests -- one test per leaf per QC Gate-2 golden
   (section 5), run through the real kernel scheduler
-  (``aeread.shared_runner.scheduler.run_episode``) with the same scripted
+  (``aeread.shared_runner.task.scheduler.run_episode``) with the same scripted
   policies ``tests/test_aucarena_environment.py`` already established, then
   scored with ``AucArenaPlugin.build_scorer``'s real scorer.
 
@@ -34,8 +34,8 @@ from typing import Any
 import pytest
 
 from aeread.shared_runner.measurement import MeasurementContractError
-from aeread.shared_runner.resolver import canonical_json_bytes
-from aeread.shared_runner.scheduler import EpisodeResult, run_episode
+from aeread.shared_runner.run.resolver import canonical_json_bytes
+from aeread.shared_runner.task.scheduler import EpisodeResult, run_episode
 from aeread_families.aucarena import measurement as m
 from aeread_families.aucarena.environment import AucArenaPlugin, family_manifest, register_plugin
 from aeread.shared_runner.registry import PluginRegistry
