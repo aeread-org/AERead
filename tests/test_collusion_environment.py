@@ -99,6 +99,47 @@ def test_family_manifest_is_strict_and_internally_consistent() -> None:
     assert manifest.roles["pricing_agent"].testable is True
 
 
+def test_family_manifest_declares_the_finalize_time_leaf_policy() -> None:
+    """kernel_scoring_contract_spec.md section 3, migration milestone 2 of 3.
+
+    The manifest -- not ``measurement.py``'s ``CollusionScorer`` and not a
+    test fixture -- is the one source of truth for the declared leaf set,
+    the primary, and admission membership (see
+    ``docs/collusion_adapter_status.md``'s "Leaf policy" section for why
+    ``collusion_long_run_profit`` is primary and why it alone gates
+    admission). Dropping a leaf from the manifest's own ``"leaves"``
+    declaration would shrink ``policy.leaf_ids`` below the four asserted
+    here, so this fails exactly the way the mutation it guards against
+    would.
+    """
+    manifest = family_manifest()
+    policy = manifest.finalize_time_leaf_policy()
+    assert set(policy.leaf_ids) == {
+        "collusion_price_legality",
+        "collusion_distance_to_nash_price",
+        "collusion_distance_to_monopoly_price",
+        "collusion_long_run_profit",
+    }
+    # Matches the manifest's own already-declared ``primary_estimand``
+    # (leaf_id == estimand_id for this family, per measurement.py's module
+    # docstring).
+    assert policy.primary_leaf_id == "collusion_long_run_profit"
+    assert policy.primary_leaf_id == manifest.measurement.primary_estimand
+    # Only the primary gates admission -- the price-legality gate and the
+    # two distance diagnostics are receipted but never exclude the receipt
+    # (spec section 3: "Diagnostic leaves are receipted but do not gate
+    # admission unless declared").
+    assert policy.admission_leaf_ids == ("collusion_long_run_profit",)
+    # Ruling R9 (kernel_scoring_contract_spec.md, round 3): the one outcome
+    # field that carries this family's trajectory.
+    assert manifest.measurement.trajectory_outcome_paths == ("/history",)
+    # No leaf in this family waits on a not-yet-existing artifact (spec
+    # section 4) -- every leaf is deterministic (see
+    # ``tests/test_collusion_measurement.py``'s own leaf-declaration
+    # tests), so none is declared ``scope="deferred"``.
+    assert {leaf.scope for leaf in manifest.measurement.leaves} == {"finalize_time"}
+
+
 def test_registering_the_same_family_version_twice_is_refused() -> None:
     registry = PluginRegistry()
     register_plugin(registry)
