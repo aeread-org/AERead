@@ -57,6 +57,10 @@ complete replayed receipts, and separates execution from publication.
 Arena reports request cost in each response, so the driver records and enforces
 those dollar ceilings. The canary reserves 256 output tokens because GLM 5.2
 uses the same completion budget for hidden reasoning and visible JSON.
+Arena may also return an ordinary customer-facing reply even when instructed
+to emit the reply envelope. The adapter normalizes such completed prose only
+when the declared schema explicitly permits `kind=reply`; malformed JSON and
+non-reply schemas still fail the provider contract.
 
 This is a **pipeline proof**, not an upstream behavioral-parity claim. Both the
 retail assistant and customer simulator use GLM 5.2, and the harness uses
@@ -68,7 +72,7 @@ Freeze and inspect the digest-bound plan before spending:
 
 ```bash
 PYTHONPATH=src python -m aeread_families.tau3_retail.campaign \
-  --run-root runs/tau3_retail_glm5p2_arena_pipeline_proof_v2
+  --run-root runs/tau3_retail_glm5p2_arena_pipeline_proof_v3
 ```
 
 Execute only with the pinned bridge and skip-fail gate enabled:
@@ -78,7 +82,7 @@ AEREAD_TAU2_UPSTREAM_ROOT=$PWD/runs/upstream-tau2 \
 AEREAD_TAU2_BRIDGE_PYTHON=$PWD/runs/tau2-bridge-venv/bin/python \
 AEREAD_TAU2_BRIDGE_REQUIRED=1 \
 PYTHONPATH=src python -m aeread_families.tau3_retail.campaign \
-  --run-root runs/tau3_retail_glm5p2_arena_pipeline_proof_v2 \
+  --run-root runs/tau3_retail_glm5p2_arena_pipeline_proof_v3 \
   --upstream-root runs/upstream-tau2 --execute
 ```
 
@@ -87,8 +91,8 @@ digest-mismatched checkpoints:
 
 ```bash
 PYTHONPATH=src python -m aeread_families.tau3_retail.campaign \
-  --run-root runs/tau3_retail_glm5p2_arena_pipeline_proof_v2 \
-  --publication-root evidence/tau3_retail_glm5p2_arena_pipeline_proof_v2 \
+  --run-root runs/tau3_retail_glm5p2_arena_pipeline_proof_v3 \
+  --publication-root evidence/tau3_retail_glm5p2_arena_pipeline_proof_v3 \
   --publish-only
 ```
 
