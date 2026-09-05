@@ -21,6 +21,11 @@ _ID_RE = re.compile(r"^[a-z0-9](?:[a-z0-9_.-]*[a-z0-9])?$")
 _FOREIGN_ID_RE = re.compile(r"^[A-Za-z0-9](?:[A-Za-z0-9_.-]*[A-Za-z0-9])?$")
 _SEMVER_RE = re.compile(r"^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:[-+][A-Za-z0-9.-]+)?$")
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
+# Ruling R9 (kernel_scoring_contract_spec.md, round 3): a JSON pointer (RFC
+# 6901) naming one outcome field. Requires at least one non-empty segment --
+# "" (the whole document), "/", and a trailing "//" are all rejected -- so
+# ``trajectory_outcome_paths`` always names a specific field, never the root.
+_JSON_POINTER_RE = re.compile(r"^(?:/[^/]+)+$")
 
 
 def _as_mapping(value: Any, path: str) -> Mapping[str, Any]:
@@ -150,6 +155,27 @@ def _foreign_identifier(value: Any, path: str) -> str:
 
 def _optional_foreign_identifier(value: Any, path: str) -> str | None:
     return None if value is None else _foreign_identifier(value, path)
+
+
+def _json_pointer(value: Any, path: str) -> str:
+    result = _string(value, path)
+    if not _JSON_POINTER_RE.fullmatch(result):
+        raise AuthoringValidationError(
+            f"{path} must be a JSON pointer with at least one non-empty segment "
+            f"(e.g. '/history'): got {result!r}"
+        )
+    return result
+
+
+def _json_pointer_tuple(value: Any, path: str) -> tuple[str, ...]:
+    if not isinstance(value, (list, tuple)):
+        raise AuthoringValidationError(f"{path} must be an array")
+    result = tuple(
+        _json_pointer(item, f"{path}[{index}]") for index, item in enumerate(value)
+    )
+    if len(result) != len(set(result)):
+        raise AuthoringValidationError(f"{path} contains duplicate values")
+    return result
 
 
 def _optional_integer(
@@ -380,8 +406,12 @@ class MeasurementDeclaration:
     # drop these keys entirely when they hold their declared default, so a
     # manifest that does not use leaf policy hashes exactly as it did before this
     # schema addition. See ``test_measurement_declaration_without_leaves_is_digest_neutral``.
+    # ``trajectory_outcome_paths`` (ruling R9, round 3) is the same story one
+    # ruling later: added after leaf policy itself was already sealed into
+    # published digests, so it gets the identical digest-neutral treatment --
+    # see ``test_measurement_declaration_without_trajectory_paths_is_digest_neutral``.
     _CANONICAL_OMIT_IF_DEFAULT: ClassVar[frozenset[str]] = frozenset(
-        {"leaves", "primary_leaf_id", "admission_leaf_ids"}
+        {"leaves", "primary_leaf_id", "admission_leaf_ids", "trajectory_outcome_paths"}
     )
 
     primary_estimand: str
@@ -396,6 +426,16 @@ class MeasurementDeclaration:
     leaves: tuple[LeafPolicyDeclaration, ...] = ()
     primary_leaf_id: str | None = None
     admission_leaf_ids: tuple[str, ...] = ()
+    # Ruling R9 (kernel_scoring_contract_spec.md, round 3): an exhaustive list
+    # of the outcome fields (JSON pointers) that carry the family's trajectory
+    # -- e.g. ``("/history",)`` for collusion. A family whose outcome embeds
+    # its trajectory declares these so the scoring-contract protocol test can
+    # compare a PROJECTION (outcome minus these paths) instead of the whole
+    # outcome for the paired-history check (section 6/ruling R7), whose
+    # byte-identical-outcome precondition is otherwise unsatisfiable by
+    # construction for such a family. A family that declares none is checked
+    # on the whole outcome, exactly as before this ruling.
+    trajectory_outcome_paths: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         # kernel_contract_impl_review.md finding 4: ``from_dict`` validated
@@ -411,6 +451,19 @@ class MeasurementDeclaration:
             raise AuthoringValidationError(
                 "measurement.leaves contains a duplicate leaf_id"
             )
+        # Ruling R9: format/uniqueness is independent of whether a leaf policy
+        # is declared at all, so it is validated here unconditionally (not
+        # only inside the ``self.leaves`` branch below) -- the same reasoning
+        # as this method's own docstring note: every construction path,
+        # including ``dataclasses.replace``, must be guarded, not only
+        # ``from_dict``'s.
+        object.__setattr__(
+            self,
+            "trajectory_outcome_paths",
+            _json_pointer_tuple(
+                self.trajectory_outcome_paths, "measurement.trajectory_outcome_paths"
+            ),
+        )
         if not self.leaves:
             if self.primary_leaf_id is not None or self.admission_leaf_ids:
                 raise AuthoringValidationError(
@@ -473,6 +526,7 @@ class MeasurementDeclaration:
             "leaves",
             "primary_leaf_id",
             "admission_leaf_ids",
+            "trajectory_outcome_paths",
         }
         data = _fields(
             value,
@@ -543,6 +597,10 @@ class MeasurementDeclaration:
                 f"{path}.primary_leaf_id and admission_leaf_ids require "
                 f"{path}.leaves to be declared"
             )
+        trajectory_outcome_paths = _json_pointer_tuple(
+            data.get("trajectory_outcome_paths", ()),
+            f"{path}.trajectory_outcome_paths",
+        )
         return cls(
             primary_estimand=_identifier(data["primary_estimand"], f"{path}.primary_estimand"),
             measurement_kind=_enum(
@@ -560,6 +618,7 @@ class MeasurementDeclaration:
             leaves=leaves,
             primary_leaf_id=primary_leaf_id,
             admission_leaf_ids=admission_leaf_ids,
+            trajectory_outcome_paths=trajectory_outcome_paths,
         )
 
     def finalize_time_leaf_policy(self) -> FinalizeTimeLeafPolicy:
