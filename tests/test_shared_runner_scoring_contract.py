@@ -1208,6 +1208,22 @@ def _embedding_fixtures(
 # Kept out of _build_protocol_test_registry_and_fixtures/the always-on
 # ``test_every_registered_family_obeys_the_scoring_contract`` -- see
 # ``test_govsim_obeys_the_scoring_contract``'s own docstring for why.
+#
+# Ruling R9(b)'s sensitivity witness (``_assert_trajectory_leaves_are_
+# witnessed``) needs, additionally, a same-case pair on which each
+# trajectory leaf actually changes -- the paired-history pair above is a
+# poor witness for either: it is symmetric per-seat, so
+# govsim_threshold_adherence is very likely identical, and neither fixture
+# collapses, so govsim_no_collapse is identical too (proven below by
+# running the always-on test before these fixtures existed:
+# tests/test_shared_runner_scoring_contract.py::test_govsim_obeys_the_
+# scoring_contract failed with "trajectory-scoped leaf(ves)
+# ['govsim_no_collapse_leaf', 'govsim_threshold_adherence_leaf'] never
+# changed"). ``_GOVSIM_COLLAPSE_HARVEST_SCHEDULE`` and ``_GOVSIM_
+# ASYMMETRIC_THRESHOLD_BREACH_SCHEDULE`` below are same-case fixtures
+# (identical world_seed/env_cfg/scenario/personas/policy_assignment --
+# _govsim_fixture_pair's own case) added purely to satisfy that witness;
+# see each schedule's own comment for which leaf it witnesses and why.
 # ---------------------------------------------------------------------------
 
 _GOVSIM_LEFT_HARVEST_SCHEDULE: tuple[Mapping[str, int], ...] = (
@@ -1217,6 +1233,39 @@ _GOVSIM_LEFT_HARVEST_SCHEDULE: tuple[Mapping[str, int], ...] = (
 _GOVSIM_RIGHT_HARVEST_SCHEDULE: tuple[Mapping[str, int], ...] = (
     {"persona_0": 6, "persona_1": 2},
     {"persona_0": 2, "persona_1": 6},
+)
+
+# Witnesses govsim_no_collapse: upstream's own collapse test
+# (concurrent_env.py's step()) fires on the PRE-regeneration pool, so a
+# combined round-0 harvest of 98 (out of the case's initial_resource_in_
+# pool=100) leaves only 2 -- under the "< 5" test -- BEFORE this
+# environment's max_num_rounds=2 horizon, a genuine early collapse
+# (round_number=1 < max_num_rounds=2), unlike _GOVSIM_LEFT/RIGHT_HARVEST_
+# SCHEDULE above (which both reach the horizon and so can never
+# distinguish "collapsed" from "reached the horizon" -- see
+# _assert_trajectory_leaves_are_witnessed's own docstring for exactly this
+# govsim counterexample). Same case as the pair above (same world_seed,
+# env_cfg, scenario, personas, policy_assignment); only the trajectory
+# (and, as a side effect, the terminal outcome) differs.
+_GOVSIM_COLLAPSE_HARVEST_SCHEDULE: tuple[Mapping[str, int], ...] = (
+    {"persona_0": 49, "persona_1": 49},
+)
+
+# Witnesses govsim_threshold_adherence: round 0's advisory
+# sustainability_threshold starts at upstream's own reset()-time default of
+# 10 (concurrent_env.py); persona_0's harvest of 15 breaches it while
+# persona_1's 3 does not -- an ASYMMETRIC per-seat split
+# _GOVSIM_LEFT/RIGHT_HARVEST_SCHEDULE's symmetric swap can never produce
+# (swapping a symmetric pair leaves the same two values on each seat across
+# the pair, never one seat consistently over threshold and the other under
+# it). Round 1's harvest (5/5) stays far under the recomputed threshold
+# (25, from the regenerated, cap-100 pool) so the episode still reaches the
+# horizon normally -- govsim_no_collapse still passes here, isolating this
+# fixture's difference to the threshold leaf alone. Same case as the pair
+# above.
+_GOVSIM_ASYMMETRIC_THRESHOLD_BREACH_SCHEDULE: tuple[Mapping[str, int], ...] = (
+    {"persona_0": 15, "persona_1": 3},
+    {"persona_0": 5, "persona_1": 5},
 )
 
 
@@ -1241,7 +1290,21 @@ def _govsim_schedule_answer(
 
 def _govsim_fixture_pair(
     tmp_path: Path,
-) -> tuple[FamilyManifest, Any, tuple[FamilyScoringFixture, FamilyScoringFixture]]:
+) -> tuple[
+    FamilyManifest,
+    Any,
+    tuple[FamilyScoringFixture, FamilyScoringFixture, FamilyScoringFixture, FamilyScoringFixture],
+]:
+    """The paired-history pair, plus two same-case sensitivity-witness
+    fixtures (ruling R9(b)) -- see the module comment above this function
+    for why the pair alone cannot witness either trajectory leaf.
+
+    The paired-history pair (``left``, ``right``) is unchanged and stays
+    first: ``_assert_family_obeys_the_scoring_contract`` reads
+    ``produced_by_case[:2]`` for that check specifically, so its order and
+    content here must stay exactly what it was before the witness fixtures
+    were added.
+    """
     bridge_instance = _govsim_bridge()
     case = _govsim_two_agent_two_round_case(world_seed=0)
     setup = build_govsim_setup(bridge_instance, case, suffix="scoring_contract_pair")
@@ -1268,7 +1331,11 @@ def _govsim_fixture_pair(
 
     left = _run(_GOVSIM_LEFT_HARVEST_SCHEDULE, "left")
     right = _run(_GOVSIM_RIGHT_HARVEST_SCHEDULE, "right")
-    return family, plugin, (left, right)
+    collapse_witness = _run(_GOVSIM_COLLAPSE_HARVEST_SCHEDULE, "collapse_witness")
+    threshold_breach_witness = _run(
+        _GOVSIM_ASYMMETRIC_THRESHOLD_BREACH_SCHEDULE, "threshold_breach_witness"
+    )
+    return family, plugin, (left, right, collapse_witness, threshold_breach_witness)
 
 
 def _build_protocol_test_registry_and_fixtures(
@@ -2141,23 +2208,27 @@ def test_govsim_obeys_the_scoring_contract(tmp_path: Path) -> None:
 
     Runs the identical protocol check
     (``_assert_family_obeys_the_scoring_contract``) against govsim's own
-    registry registration and its two paired fixtures (``_govsim_fixture_pair``
-    -- byte-identical terminal outcome, genuinely differing trajectory,
-    verified constructible against the real bridge before being wired in
-    here), covering both of this family's genuine trajectory-scoped leaves
-    (``govsim_no_collapse``, ``govsim_threshold_adherence``) and ruling
-    R7's contrapositive for its three terminal_state-scoped leaves
+    registry registration and ``_govsim_fixture_pair``'s four fixtures: the
+    paired-history pair (byte-identical terminal outcome, genuinely
+    differing trajectory, verified constructible against the real bridge
+    before being wired in here) covering ruling R7's contrapositive for
+    this family's three terminal_state-scoped leaves
     (``govsim_survival_months``, ``govsim_total_harvest``,
-    ``govsim_equality_gini``).
+    ``govsim_equality_gini``), plus two same-case sensitivity-witness
+    fixtures (ruling R9(b)) covering both of this family's genuine
+    trajectory-scoped leaves (``govsim_no_collapse``,
+    ``govsim_threshold_adherence`` -- see ``_govsim_fixture_pair``'s own
+    docstring and the module comment above it for why the paired-history
+    pair alone cannot witness either).
     """
     registry = PluginRegistry()
-    manifest, plugin, fixture_pair = _govsim_fixture_pair(tmp_path)
+    manifest, plugin, fixtures = _govsim_fixture_pair(tmp_path)
     registry.register_trusted(manifest, plugin)
     (registration,) = registry.registrations()
     key = (registration.family_id, registration.family_version)
     assert key == ("govsim", "0.1.0")
 
-    _assert_family_obeys_the_scoring_contract(key, registration, fixture_pair)
+    _assert_family_obeys_the_scoring_contract(key, registration, fixtures)
 
 
 def test_determinism_precheck_adjacency_defeats_call_parity_aliasing(tmp_path: Path) -> None:
