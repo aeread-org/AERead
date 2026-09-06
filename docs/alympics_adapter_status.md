@@ -353,23 +353,131 @@ reporting another seat's own baseline-relative delta would need a
 SEPARATE baseline recompute for that seat — not cheap, and not this
 leaf's declared comparison for that seat.
 
-Leaf identity itself (each leaf's `MeasurementLeafSpec`, including
-`source_sha256`) does **not** depend on which seat is later resolved as
-the subject: `AlympicsWacScorer.leaves_for_focal_seat` builds leaves 1/2's
-content digest from the case's FULL declared policy assignment
-(`full_policy_assignment`), not "the other seats relative to some focal
-seat" — the same case therefore always yields byte-identical
-`MeasurementLeafSpec`s no matter which seat a given trial names as the
-subject, which is exactly what the scoring-contract protocol test's
-cross-fixture "leaf's declared identity must be stable" check requires
-once fixtures with different focal seats are compared side by side (see
-"Protocol-test fixtures" below).
+Leaves 1/2's reference identity (`source_sha256`/`reference_id`, via
+`_opponent_panel_sha256`) **does** depend on which seat is later resolved
+as the subject: `AlympicsWacScorer.leaves_for_focal_seat` builds it from
+`panel_policy_ids(focal_seat)` — every OTHER seat's own declared policy —
+because the baseline these leaves compare against is the SAME case
+recomputed with `focal_seat`'s OWN policy replaced by
+`baseline_policy_id`; a different focal seat is genuinely a different
+comparison, even for an identical panel. Every OTHER field of the leaf's
+`MeasurementLeafSpec` — estimand, verifier, the rest of the reference,
+scorer ref — stays fixed regardless of focal seat. This is exactly what
+the scoring-contract protocol test's cross-fixture "leaf's declared
+identity must be stable" check, reconciled with ruling R12
+(`docs/kernel_r12_seat_context.md`), permits: a `seat_scope=
+"subject_seat"` leaf may instantiate its reference's own identity per
+subject seat, never any invariant field. See "Reference-provenance
+finding (second review pass)" below for why this paragraph once said the
+opposite, and "Protocol-test fixtures" below for the fixture pair that
+exercises it.
 
 This replaces the former fixed convention (`measurement.FOCAL_SEAT =
 SEAT_ORDER[0]`, i.e. always `"alex"` regardless of which seat a plan
 actually tested) — the invented-evaluated-subject defect independent
 review Finding 1 confirmed; see that finding's "Post-R12 note" in
 `docs/alympics_migration_review.md` for the resolution record.
+
+### Reference-provenance finding (second review pass)
+
+A second, independent review pass found that the paragraph above used to
+have it backwards: an earlier version of this migration made
+`_opponent_panel_sha256` deliberately DROP `focal_seat` from its hash
+payload, so leaves 1/2 would hash identically regardless of which seat
+became the subject — purely to satisfy a gap in the kernel's own
+leaf-identity stability check (PR #103, `kernel_contract_gap_review.md`
+finding 7), which predates ruling R12 and had no notion of a per-seat
+leaf. That made two MATERIALLY DIFFERENT baselines — the SAME case
+recomputed with a DIFFERENT seat's policy replaced — collide on one
+`source_sha256`: false provenance, not a cosmetic gap. The workaround's
+own docstring said exactly this was why `focal_seat` was dropped.
+
+**Fixed on both branches.** `zeyu/kernel-r12-seat-context` (PR #109)
+reconciles the kernel's stability check with ruling R12: a `seat_scope=
+"subject_seat"` leaf may now instantiate its `ReferenceSpec`'s own
+identity — `reference_id`/`source_sha256` only — per subject seat, while
+every invariant field stays fixed, and two fixtures sharing the SAME
+subject seat must still be byte-identical (see
+`docs/kernel_r12_seat_context.md`). This branch, rebased onto that fix,
+reverts the workaround: `_opponent_panel_sha256` takes `focal_seat` again
+and includes it in its hash payload; `leaves_for_focal_seat` again passes
+`panel_policy_ids(focal_seat)`, not the case's full assignment; the
+now-dead `full_policy_assignment` helper is removed. Every other
+improvement the R12 migration made (the seat-context focal resolution,
+the typed invalid reasons, `utility_by_seat`, the `different_focal_seat`
+fixture below) is unchanged.
+
+**A related, narrower, PRE-EXISTING limit, also raised by this review
+pass and left as a stated limit rather than silently fixed (confirmed
+against `zeyu/kernel-r12-seat-context`'s copy of this file, which predates
+this migration branch entirely and already had the same shape):**
+`_opponent_panel_sha256`'s payload is `{focal_seat, panel_policy_ids,
+baseline_policy_id}` only — it does not cover `seat_order`, `personas`,
+`supply_schedule`, or `grid_cell["rounds"]`, all of which
+`_recompute_baseline_episode` also reads to determine the actual baseline
+trajectory. Two DIFFERENT cases that happen to share the same
+`(focal_seat, panel_policy_ids, baseline_policy_id)` tuple but differ in
+one of those four fields would produce the SAME `source_sha256` despite
+recomputing a genuinely different baseline. In practice this is not a
+live provenance hole: `EvaluationReceipt.case_id`/`case_sha256` (kernel
+fields on the enclosing receipt, never derived from the leaf's own
+`source_sha256`) already disambiguate any two receipts a real consumer
+would compare — the collision is confined to the bare leaf reference's
+own self-described identity, in isolation from the receipt that carries
+it, which nothing in this family or the kernel relies on as a
+cross-case identity key today. Left unfixed here, as a stated limit, not
+a defect this pass is chartered to fix.
+
+**Tests** (`tests/test_alympics_wac_measurement.py`), three:
+
+- `test_leaves_for_focal_seat_reference_identity_depends_on_the_focal_seat`
+  (replaces the previous, now-incorrect `test_leaves_for_focal_seat_
+  identity_does_not_depend_on_which_seat_is_focal`): for one case, leaves
+  1/2 built for two DIFFERENT focal seats differ in `source_sha256` and
+  agree on every invariant field; leaves 3/4 stay byte-identical
+  regardless of focal seat; the SAME focal seat called twice is
+  byte-identical.
+- `test_focal_seat_is_part_of_the_leaf_1_2_reference_identity_even_for_an_
+  identical_panel`: calls `build_terminal_wealth_leaf`/`build_survival_
+  leaf` directly with the IDENTICAL `panel_policy_ids` dict for two
+  DIFFERENT `focal_seat` values, isolating `_opponent_panel_sha256`'s own
+  `focal_seat` parameter from `leaves_for_focal_seat`'s separate choice of
+  which panel to pass (see next test) — otherwise `panel_policy_ids
+  (focal_seat)`'s own key set, which already differs by focal seat for
+  any case with more than one seat, would mask a regression in
+  `_opponent_panel_sha256` itself.
+- `test_leaves_for_focal_seat_builds_leaf_1_2_identity_from_the_opponent_
+  panel_not_the_full_assignment`: asserts `leaves_for_focal_seat`'s output
+  EQUALS `build_terminal_wealth_leaf`/`build_survival_leaf` called
+  directly with `panel_policy_ids(focal_seat)` — checked by equality, not
+  a hash inequality across focal seats, since `_opponent_panel_sha256`'s
+  own `focal_seat` parameter would make two leaves differ by focal seat
+  regardless of what panel `leaves_for_focal_seat` feeds in, masking a
+  regression in THIS half of the fix if checked by inequality alone.
+
+**Mutation** (two independent mutations, each isolating one half of the
+fix, `/tmp` copy, restored):
+
+- Dropping `focal_seat` from `_opponent_panel_sha256`'s payload again (but
+  leaving `leaves_for_focal_seat` correct) makes
+  `test_focal_seat_is_part_of_the_leaf_1_2_reference_identity_even_for_an_
+  identical_panel` fail on its `source_sha256 != ` assertion — and
+  correctly does NOT fail `test_leaves_for_focal_seat_reference_identity_
+  depends_on_the_focal_seat`, confirming that broader test alone would
+  have missed this specific regression (`panel_policy_ids(focal_seat)`'s
+  own key set already differs by focal seat, independent of whether
+  `_opponent_panel_sha256` also embeds it).
+- Reverting `leaves_for_focal_seat` to pass the case's full policy
+  assignment again (but leaving `_opponent_panel_sha256` correct) makes
+  `test_leaves_for_focal_seat_builds_leaf_1_2_identity_from_the_opponent_
+  panel_not_the_full_assignment` fail on the equality assertion — and
+  correctly does NOT fail either of the other two tests, confirming
+  `_opponent_panel_sha256`'s own `focal_seat` parameter alone would have
+  masked this regression from a hash-inequality check.
+
+Full record: `docs/alympics_migration_review.md`'s "Second review pass:
+reference-provenance finding" section (appended, not merged into that
+document's own first-pass disposition/summary).
 
 ### Receipt
 
@@ -555,7 +663,12 @@ evidence"). It raised three findings:
 Disposition tally (as this migration originally landed): 1 confirmed and
 escalated, 2 refuted, 0 fixed (neither refuted finding described an actual
 defect in this branch's code). Finding 1 has since been resolved by
-adopting ruling R12, above.
+adopting ruling R12, above. A SECOND, later review pass raised one further
+finding against the R12 adoption itself (the reference-provenance
+workaround) — see "Reference-provenance finding (second review pass)"
+above and `docs/alympics_migration_review.md`'s own second-pass section
+for the full record; that document's first-pass findings/disposition/
+summary above are unedited.
 
 ## Open questions for the kernel/spec owner
 
