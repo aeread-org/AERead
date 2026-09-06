@@ -30,7 +30,7 @@ learning/memo path are out of scope tonight (see §6).
   (`rule_bid_cnt` reset, `cur_item_id` advance, `withdraw` reset) — no LLM call is reachable on
   this path. `bidding_multithread` still calls these methods per bidder but they are no-ops for
   `rule` model names, so a scripted all-rule-bidder auction is deterministic end to end.
-- **`docs/benchmark_qc.md` does not exist in this repo** (checked worktree and main checkout).
+- **`docs/operations/benchmark_qc.md` does not exist in this repo** (checked worktree and main checkout).
   QC Gate 1/2 semantics below are inferred from `verifier_taxonomy.md` §9,
   `refund_external_benchmark_integration.md` §4, and this task's own five-golden enumeration.
 
@@ -86,8 +86,8 @@ settled that this section left implicit:
 
 ## 2. Verifier declaration
 
-Per `docs/verifier_taxonomy.md` §2.1 and the P21 row in both `verifier_taxonomy.md` §13 and
-`docs/problem_bound_case_audit.md:59`: **profit and TrueSkill do not solve the auction policy
+Per `docs/research/verifier_taxonomy.md` §2.1 and the P21 row in both `verifier_taxonomy.md` §13 and
+`docs/research/problem_bound_case_audit.md:59`: **profit and TrueSkill do not solve the auction policy
 game.** No `objective_reference` leaf is declared. Four leaves, all `composition_kind="leaf"`
 (no scalar collapse):
 
@@ -117,7 +117,7 @@ leaves in the scripted-rule-bidder scope of this spec (no sampling, no judge).
 
 ## 3. Adapter boundary
 
-Mirrors `docs/refund_external_benchmark_integration.md` §4.
+Mirrors `docs/families/tau3-retail/refund_external_benchmark_integration.md` §4.
 
 **Upstream remains authoritative for** (via vendored, provenance-headed copies, §4 below):
 the bid-legality rule (`bid_sanity_check`), the bid-increment rule (`bid_rule`), the
@@ -325,5 +325,5 @@ exactly one win (item 1, at $1700) before the remaining $1500 can no longer keep
 
 ---
 
-**Ledger note:** the missing `docs/benchmark_qc.md` (governing facts, above) is logged to
+**Ledger note:** the missing `docs/operations/benchmark_qc.md` (governing facts, above) is logged to
 `ledger_entries/aucarena.md` — not this spec's problem to fix.

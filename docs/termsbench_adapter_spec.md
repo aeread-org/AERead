@@ -57,7 +57,7 @@ hold cell count small; full corpus expansion adds it as a 6th factor).
 
 ## 2. Verifier declaration
 
-Per `docs/verifier_taxonomy.md` §6 and `docs/verifier_case_mapping.md`'s `comparative` /
+Per `docs/research/verifier_taxonomy.md` §6 and `docs/research/verifier_case_mapping.md`'s `comparative` /
 TERMS-Bench row: there is no defensible optimum without the deferred oracle, so the headline
 value axis is `comparative`, `reference_kind="head_to_head"` (evaluated against the declared,
 version-pinned counterpart family — not a paired cross-model design, though a paired
@@ -180,7 +180,7 @@ immediately as `τ_terminal=AgreementViolation`, `f=⊥` (App. C.2.3 already nam
 **4. Malformed/operational.** The agent's raw response for round `k` fails to parse into the
 `{d_k,p_k,l_k}` schema. Per §F.4 ("If the malformed output prevents recovery of a valid
 economic action, it is also counted as an invalid-action violation"), the episode is typed
-`invalid_measurement` at the receipt layer (`docs/verifier_taxonomy.md` §9): leaves 1–2 report
+`invalid_measurement` at the receipt layer (`docs/research/verifier_taxonomy.md` §9): leaves 1–2 report
 `ValidityReport(status="invalid", reasons=["malformed_action_schema"])` and are **excluded**
 from the SE⁺/AGR⁺ denominators for that cell (never scored as an economic zero), while leaf-4
 still records the violation (`InvalidAct%=1`) — the paper's own convention double-counts
@@ -225,7 +225,7 @@ upstream package, no network, no venv.
 
 - **Oracle-Cue Bayes-optimal DP (App. D–E) is explicitly deferred.** No `π*`, no `Gap_π`, no
   saturation or upper-bound claim is emitted tonight. All results are comparative/paired
-  against the declared counterpart only (`docs/verifier_taxonomy.md` §13's own
+  against the declared counterpart only (`docs/research/verifier_taxonomy.md` §13's own
   `not_demonstrated` framing for TERMS-Bench applies unchanged).
 - **`BE_type`** (opponent-modeling Brier score over `r_B,κ_B,η_B`, Table 1) is out of scope
   this cycle; cues (App. C.5) are modeled only as far as environment fidelity requires for the
@@ -297,7 +297,7 @@ mechanism into code (§3's ownership split), not a change to what the paper itse
   PascalCase (`AgentAccept`, ...): `CaseManifest.episode.termination` values must satisfy the
   identifier grammar, which forbids uppercase. The mapping to the paper's own vocabulary
   (App. C.2.3) is 1:1 and total; see `cases.TERMINATION_REASONS`.
-- **`docs/benchmark_qc.md` does not exist in this repository.** The build instructions for
+- **`docs/operations/benchmark_qc.md` does not exist in this repository.** The build instructions for
   this milestone named it as the source for QC Gate 1/2 definitions; this spec's own §1 and §4
   already restate every Gate 1 check (#1, #3, #5, #6) and the Gate 2 golden conventions inline,
   cited to this document, so no gate definition was actually missing — only the filename.

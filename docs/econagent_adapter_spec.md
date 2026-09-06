@@ -332,7 +332,7 @@ to: assert the three ids are distinct, assert no two share a `world_seed`, and r
 small-corpus size explicitly rather than silently treating it as adequate for a saturation
 claim (none is made — see §6).
 
-## 2. Verifier declaration (per `docs/verifier_taxonomy.md`)
+## 2. Verifier declaration (per `docs/research/verifier_taxonomy.md`)
 
 EconAgent has no upstream reward or task-success criterion at all — `simulate.py` never
 scores an episode; it only dumps `dense_log`. There is nothing to reproduce as a canonical
@@ -424,7 +424,7 @@ usable interpreter still produced a silent, zero-exit skip).
 
 ## 4. QC Gate 2 goldens
 
-Per `docs/benchmark_qc.md` §Gate 2 (see §6 on why this citation needed reconstruction),
+Per `docs/operations/benchmark_qc.md` §Gate 2 (see §6 on why this citation needed reconstruction),
 five goldens against `econagent.pilot.small10x12.seed0`:
 
 | Golden | Concrete planned instance |
@@ -536,8 +536,8 @@ upstream's actual floor. See "Milestone 2 corrections" above for the full reason
   `hybrid_gate`-eligible but no invalidating gate currently blocks a budget-identity
   violation from reaching the diagnostic leaves — logged as a limit, not silently assumed
   fixed.
-- **`docs/benchmark_qc.md` citation.** This spec's Gate 1/Gate 2 structure is taken from the
-  real `docs/benchmark_qc.md` (found at commit `2b831fe`, not yet merged to `main` or any
+- **`docs/operations/benchmark_qc.md` citation.** This spec's Gate 1/Gate 2 structure is taken from the
+  real `docs/operations/benchmark_qc.md` (found at commit `2b831fe`, not yet merged to `main` or any
   adapter branch checked) rather than independently reconstructed — see the econagent
   ledger for the discovery trail and reconciliation note against three prior independent
   reconstructions (aucarena, negarena, govsim).

@@ -138,7 +138,7 @@ made about them.
 The CI stratum here is `n=1` — enough to exercise the degenerate-reference path (§4, golden 5),
 not a powered sample for any CI-specific claim (restated in §6).
 
-## 2. Verifier declarations (families per `docs/verifier_taxonomy.md`; field names per the real
+## 2. Verifier declarations (families per `docs/research/verifier_taxonomy.md`; field names per the real
 `aeread.shared_runner.measurement` contract, not the prose-only names in taxonomy §5.1)
 
 Five leaves, `composition_kind="leaf"` throughout — no composite score is sealed by the kernel.
@@ -171,7 +171,7 @@ prior offer and matches need — upstream never checks price-vs-cost/budget); th
 **AERead-added** check over the same delegated `B`/`C`/`D` fields. A below-cost deal that
 upstream calls legitimate (§4, golden 3) is exactly the case that motivates keeping these
 separate — folding them into one leaf would silently import AERead's own added rule as if it
-were upstream's, contrary to `docs/refund_external_benchmark_integration.md` §3's rule against
+were upstream's, contrary to `docs/families/tau3-retail/refund_external_benchmark_integration.md` §3's rule against
 relabeling a benchmark's own semantics.
 
 `amazonbarg_bargained_ratio` direction is `maximize`, `units="ratio"`. It uses the plain
@@ -303,7 +303,7 @@ All five use real pilot-corpus numbers (`budget_ratio = 0.8`), each isolating on
   claim; do not report CI-vs-MI comparisons from tonight's pilot.
 - The scripted counterpart is a single fixed AERead-authored policy, not a distribution of
   opponents; `amazonbarg_bargained_ratio`'s claim is relative to *that one* opponent identity,
-  never a general capability score (`docs/verifier_taxonomy.md` §6).
+  never a general capability score (`docs/research/verifier_taxonomy.md` §6).
 - Only the 45-session pair actually runs; the other 885 are digested at the file level but get
   no `CaseManifest`, trajectory, golden, or score — declared enumeration and executed pilot are
   different, separately labeled claims.

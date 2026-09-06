@@ -2,7 +2,7 @@
 
 Scope: `git diff origin/main..HEAD` in this worktree (62 files, ~9.5k lines: cases/environment/
 measurement/harness/replay/upstream_shim + tests + docs + 45 pilot case JSON files). Read
-`docs/amazonbarg_adapter_spec.md` and `docs/verifier_taxonomy.md` first, then every source file
+`docs/amazonbarg_adapter_spec.md` and `docs/research/verifier_taxonomy.md` first, then every source file
 in the diff, then every test file. Actually **executed** the suite against the real pinned
 upstream checkout at `/Users/sunzeyu/Documents/econ benchmark/upstream-amazonbarg` (present and
 correct commit-era files) rather than trusting the status doc's claim: `106/106 passed, 0
@@ -21,7 +21,7 @@ re-read, dedup guard is real and exercised, no random/resampling anywhere, a che
 import byte-identity test exists and passes), verifier declarations are checked against the real
 `aeread.shared_runner.measurement` contract classes (not just the taxonomy doc's stale prose —
 the adapter's own docstrings/ledger entries correctly identify three places where
-`docs/verifier_taxonomy.md` §5.1 drifted from the real `_REFERENCE_KINDS`/`ObjectiveScopeSpec`/
+`docs/research/verifier_taxonomy.md` §5.1 drifted from the real `_REFERENCE_KINDS`/`ObjectiveScopeSpec`/
 `ScoreEnvelope.status` schema, and route around them instead of silently mislabeling), and replay
 is genuine re-execution (a second, independently-constructed `AmazonbargPlugin` instance is
 driven through `run_episode` with a `RecordedResponseSource` that re-serves the recorded raw text
@@ -140,7 +140,7 @@ attention before this is called done.
   the opposite — that the environment *does* let an economically-invalid deal through, and only
   scoring catches it.
 - Suggested fix: a one-line addition to `docs/amazonbarg_adapter_spec.md` §4's golden 3 entry
-  (and ideally the shared `docs/benchmark_qc.md` the ledger already recommends authoring) stating
+  (and ideally the shared `docs/operations/benchmark_qc.md` the ledger already recommends authoring) stating
   explicitly "this golden proves scoring-layer detection of an environment-permitted illegal
   deal, not state-layer prevention — see golden 4 for the latter," so the five-golden taxonomy's
   two different flavors of "invalid" are not conflated by a future reader.
@@ -157,7 +157,7 @@ attention before this is called done.
   (`test_checked_in_case_directory_matches_a_fresh_import`); duplicate `case_id`s raise
   (`cases.py:434-436`); `PILOT_CATEGORY_FILES` is a hardcoded tuple, no randomness/resampling
   anywhere in the selection path.
-- **Verifier declarations vs. `docs/verifier_taxonomy.md`.** All five leaves are
+- **Verifier declarations vs. `docs/research/verifier_taxonomy.md`.** All five leaves are
   `evaluation_class="deterministic"` and genuinely are (scripted trajectories, no sampling,
   nothing judge-dependent anywhere in this adapter). No derived quantity is sealed as if it were
   independent confirmation: the two bound leaves' `primary` is openly the same realized deal price

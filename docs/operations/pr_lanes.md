@@ -61,3 +61,18 @@ diff are worth less than a script that recomputes it.
 `enforce_admins` is off, so an admin can merge past a red `kernel-review`
 check. Doing so is an incident-log row (`docs/operations/incident_log.md`),
 not a shortcut: record why, and what verification replaced the review.
+
+## 5. A PR shows "kernel-review — expected, waiting for status"
+
+The check is a required status on `main`, and it is produced by the
+`pr-lanes` workflow on a pull-request event. A PR opened before that workflow
+existed on `main` receives the status only after a **push** to its branch
+(GitHub evaluates the new workflow on a fresh merge ref). A review comment or
+a close/reopen does not start it. An empty commit is enough:
+
+```bash
+git commit --allow-empty -m "chore: trigger lane check" && git push
+```
+
+The PR is labelled and checked within about a minute. Do this right before
+merging a stale PR rather than for every open PR at once.

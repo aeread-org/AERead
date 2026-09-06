@@ -175,7 +175,7 @@ changed" claim self-evident from the test body rather than inherited from
   import — no silent resampling or hand-edited case file was found (verified
   by re-running the importer against the real pinned upstream checkout;
   output matched byte-for-byte).
-- **Verifier declarations vs. `docs/verifier_taxonomy.md`:** all four leaves
+- **Verifier declarations vs. `docs/research/verifier_taxonomy.md`:** all four leaves
   (`agenticpay_deal_reached`, `agenticpay_contract_legality`,
   `agenticpay_buyer_surplus_share`, `agenticpay_seller_surplus_share`) are
   genuinely deterministic (`rule_constraint`/`objective_reference`,

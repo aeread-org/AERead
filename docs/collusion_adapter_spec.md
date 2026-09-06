@@ -111,7 +111,7 @@ private, per §2 above); `provenance`=`ProvenanceSpec(generator_id=
 rides in `payload`, the same schema gap `docs/econevals_adapter_spec.md` §1
 already logged).
 
-**Gate 1 checklist** (`docs/benchmark_qc.md` §2 — citation caveat in §6): checks
+**Gate 1 checklist** (`docs/operations/benchmark_qc.md` §2 — citation caveat in §6): checks
 1–3 and 5 are enforced by the build procedure above; checks 4 (difficulty
 stratification) and 6 (dev/confirmatory split) are `not_applicable` for this
 6-cell integration pilot, revisited at full-grid scope.
@@ -210,7 +210,7 @@ the exact retry count is an adapter constant, §6).
 
 ## 4. Five QC Gate-2 goldens
 
-Categories/behavior quoted from `docs/benchmark_qc.md` §2 Gate 2 (citation
+Categories/behavior quoted from `docs/operations/benchmark_qc.md` §2 Gate 2 (citation
 caveat, §6). One scripted fixture per category on cell
 `baseline-symmetric.alpha1.seed0` unless noted; no live model calls.
 
@@ -312,7 +312,7 @@ synonym for them.
   symmetric baseline's exact-match numbers above.
 - The 6-cell pilot is an integration gate, not a population estimate (mirrors
   `refund_external_benchmark_integration.md` §5's identical reasoning).
-- `docs/benchmark_qc.md` **is cited above but does not exist on `main` or this
+- `docs/operations/benchmark_qc.md` **is cited above but does not exist on `main` or this
   branch.** It exists at commit `2b831fec7d9962bebe4396108ad47a5e2321d9e7` on
   unmerged branch `codex/procurement-harness-bakeoff` — the seventh independent
   benchmark file to confirm this gap after `ledger_entries/{amazonbarg,aucarena,

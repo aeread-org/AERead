@@ -93,9 +93,9 @@ in `reset(seed=...)`; `world_seed` is that seed — deterministic and sufficient
 
 ## 2. Verifier declaration
 
-Per `docs/verifier_taxonomy.md` and validated against the live `_REFERENCE_KINDS` /
+Per `docs/research/verifier_taxonomy.md` and validated against the live `_REFERENCE_KINDS` /
 `_REFERENCE_SCOPE` enums in `src/aeread/shared_runner/measurement.py` (not just the doc
-prose). Per `docs/problem_bound_case_audit.md` row **P06** ("GovSim / Cooperate or Collapse
+prose). Per `docs/research/problem_bound_case_audit.md` row **P06** ("GovSim / Cooperate or Collapse
 … `baseline_only`; survival/efficiency/equality endpoints are not solved policies. A natural
 maximum score is not a certified policy upper bound."), **no `objective_reference` leaf is
 declared** — survival months, total harvest, and equality are declared purely `comparative`,
@@ -138,7 +138,7 @@ estimand: {input_scope: trajectory, direction: none, units: pass}
 
 ## 3. Adapter boundary
 
-Mirrors `docs/refund_external_benchmark_integration.md` §4.
+Mirrors `docs/families/tau3-retail/refund_external_benchmark_integration.md` §4.
 
 **Upstream remains authoritative for:**
 - `ConcurrentEnv.reset`/`step` state transitions, phase sequencing
@@ -317,8 +317,8 @@ govsim has no train/test split). `pins.json`'s `bridge_versions` field is popula
 `bridge_versions_unavailable_reason`, mirroring `tau3_retail`'s identical convention for
 `tool_schema_sha256`.
 
-**`docs/benchmark_qc.md`.** The QC Gate 1/2 terminology this spec uses is self-defined within
-this file (section 1 and section 4 respectively); the referenced `docs/benchmark_qc.md` does
+**`docs/operations/benchmark_qc.md`.** The QC Gate 1/2 terminology this spec uses is self-defined within
+this file (section 1 and section 4 respectively); the referenced `docs/operations/benchmark_qc.md` does
 not exist on this branch or on `main` as of this milestone (it exists only on an unmerged
 sibling branch/commit -- see `ledger_entries/govsim.md` for the exact commit and reconciliation
 note). Nothing in this milestone depends on that file's contents beyond the two section

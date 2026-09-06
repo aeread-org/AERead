@@ -3,7 +3,7 @@
 Scope: `docs/econevals_adapter_spec.md` + full diff vs `origin/main` (branch
 `zeyu/econevals-adapter`, 11 commits, working tree clean). Focus per
 assignment: QC Gate-2 compliance (five goldens), verifier-declaration
-correctness against `docs/verifier_taxonomy.md`, replay honesty, Gate-1
+correctness against `docs/research/verifier_taxonomy.md`, replay honesty, Gate-1
 corpus admission.
 
 Overall: the Gate-1 corpus-admission machinery (digests, double-generation

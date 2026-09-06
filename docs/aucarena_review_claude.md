@@ -2,7 +2,7 @@
 
 Scope: `git diff origin/main...HEAD` on `zeyu/aucarena-adapter`
 (commits `9b09d98`..`dea5337`), read against
-`docs/aucarena_adapter_spec.md`, `docs/verifier_taxonomy.md`, and the pinned
+`docs/aucarena_adapter_spec.md`, `docs/research/verifier_taxonomy.md`, and the pinned
 upstream checkout at `/Users/sunzeyu/Documents/econ benchmark/upstream-aucarena`
 (confirmed on disk at commit `d0f3bc851eb376d4ea5e69ae5fe52ec5be987bb3`,
 matching the pin). Verified: full aucarena suite (100 passed) and full repo
@@ -87,7 +87,7 @@ policy that emits a response containing a literal `-1` substring for a
 non-withdraw reason.
 
 **3. `docs/aucarena_adapter_spec.md`'s "Governing facts" say
-`docs/benchmark_qc.md` does not exist in this repo, but the review task
+`docs/operations/benchmark_qc.md` does not exist in this repo, but the review task
 (and file layout) implies a QC-gate contract exists elsewhere.** This is
 called out honestly in the spec itself (§ "Governing facts" and the
 ledger note at the bottom, "logged to `ledger_entries/aucarena.md`"), so it
