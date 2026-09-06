@@ -115,6 +115,34 @@ def family_manifest() -> FamilyManifest:
                 "primary_estimand": "negarena_seat_outcome",
                 "measurement_kind": "comparative_or_human_judged",
                 "direction": "maximize",
+                # kernel_scoring_contract_spec.md section 3 (migration
+                # milestone 2 of 3): every leaf this family publishes at
+                # finalize time, exactly one primary, and precisely the
+                # leaves that gate admission -- declared here, the one
+                # source of truth, never inferred from `build_scorer` or a
+                # test fixture. Both leaves are `scope="finalize_time"`:
+                # every scorer in measurement.py is
+                # `evaluation_class="deterministic"` with no judge, rater,
+                # or other not-yet-existing artifact dependency (spec
+                # section 4), so neither is `deferred`. Leaf 1
+                # (`negarena_seat_outcome`) is inherently per seat --
+                # "what did THIS seat realize" -- so it is declared
+                # `seat_scope="subject_seat"` (ruling R12); leaf 2 (the
+                # whole-episode agreement predicate) is not a function of
+                # which seat is the tested subject and stays the default
+                # `seat_scope="cell"`. See docs/negarena_adapter_status.md's
+                # "Leaf policy" section for why `negarena_seat_outcome` is
+                # primary and why it alone gates admission.
+                "leaves": [
+                    {
+                        "leaf_id": measurement.SEAT_OUTCOME_LEAF_ID,
+                        "scope": "finalize_time",
+                        "seat_scope": "subject_seat",
+                    },
+                    {"leaf_id": measurement.AGREEMENT_LEAF_ID, "scope": "finalize_time"},
+                ],
+                "primary_leaf_id": measurement.SEAT_OUTCOME_LEAF_ID,
+                "admission_leaf_ids": [measurement.SEAT_OUTCOME_LEAF_ID],
             },
             "scoring": {
                 "scorer_id": SCORER_ID,
@@ -508,11 +536,18 @@ class NegarenaPlugin:
         Settlement (``after_game_ends()``, delegated to the bridge) and the
         two declared verifier leaves (``negarena_seat_outcome``,
         ``negarena_agreement_reached``) live in ``measurement.py``; this
-        method only forwards ``family_case`` to it, mirroring
-        ``tau3_retail``'s identical ``build_scorer`` -> ``measurement.build_scorer``
-        hand-off.
+        method forwards ``family_case`` and this plugin's own ``bridge`` to
+        it, mirroring ``tau3_retail``'s identical
+        ``build_scorer`` -> ``measurement.build_scorer`` hand-off
+        (``Tau3RetailScorer.bridge``). The returned ``NegarenaScorer`` must
+        carry the bridge itself: kernel_scoring_contract_spec.md section 1's
+        production call site (``task.evaluation.finalize_family_execution``)
+        invokes it as ``plugin.build_scorer(family_case)(scoring_input,
+        evidence_refs=...)`` -- no bridge parameter reaches ``__call__`` at
+        that call site, so the scorer object itself is the only place left
+        to carry one.
         """
-        return measurement.build_scorer(family_case)
+        return measurement.build_scorer(family_case, bridge=self.bridge)
 
     def build_reference_providers(self, family_case: Mapping[str, Any]) -> tuple[Any, ...]:
         del family_case
