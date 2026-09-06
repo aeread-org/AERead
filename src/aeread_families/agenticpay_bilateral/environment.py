@@ -200,6 +200,51 @@ def family_manifest() -> FamilyManifest:
                 "optimum_upper_bound_kind": "known",
                 "bound_status": "family_defined",
                 "outcome_support": "unit_interval",
+                # kernel_scoring_contract_spec.md section 3 (migration
+                # milestone 2 of 3): every leaf this family publishes at
+                # finalize time, exactly one primary, and precisely the
+                # leaves that gate admission -- declared here, the one
+                # source of truth, never inferred from `build_scorer` or a
+                # test fixture. All three are `scope="finalize_time"`: every
+                # scorer in measurement.py is `evaluation_class="deterministic"`
+                # with no judge, rater, or other not-yet-existing artifact
+                # dependency (spec section 4), so none is `deferred`.
+                #
+                # `agenticpay_surplus_share` collapses what used to be two
+                # always-on, role-specific leaves
+                # (`agenticpay_buyer_surplus_share`/`agenticpay_seller_surplus_share`)
+                # into the one this family can actually publish without
+                # hard-coding an answer to "which seat is the tested
+                # subject" -- neither role name a real evaluation cell might
+                # test is knowable in advance (both are independently
+                # `testable` above), so it is declared
+                # `seat_scope="subject_seat"` (ruling R12).
+                # `agenticpay_contract_legality` is declared only for
+                # contract-mode cases (`measurement.is_contract_mode`), so it
+                # is declared `case_conditional=True` (ruling R13) --
+                # `AgenticpayBilateralPlugin.inapplicable_leaf_ids` below
+                # names it for a basic case. `agenticpay_deal_reached` is a
+                # whole-negotiation predicate, independent of which seat is
+                # the subject and of contract mode -- the default
+                # `seat_scope="cell"`, not `case_conditional`. See
+                # docs/agenticpay_adapter_status.md's "Leaf policy" section
+                # for why `agenticpay_surplus_share` is primary and why it
+                # alone gates admission.
+                "leaves": [
+                    {"leaf_id": measurement.DEAL_REACHED_LEAF_ID, "scope": "finalize_time"},
+                    {
+                        "leaf_id": measurement.SURPLUS_SHARE_LEAF_ID,
+                        "scope": "finalize_time",
+                        "seat_scope": "subject_seat",
+                    },
+                    {
+                        "leaf_id": measurement.CONTRACT_LEGALITY_LEAF_ID,
+                        "scope": "finalize_time",
+                        "case_conditional": True,
+                    },
+                ],
+                "primary_leaf_id": measurement.SURPLUS_SHARE_LEAF_ID,
+                "admission_leaf_ids": [measurement.SURPLUS_SHARE_LEAF_ID],
             },
             "scoring": {"scorer_id": SCORER_ID},
         }
@@ -513,13 +558,31 @@ class AgenticpayBilateralPlugin:
     def build_scorer(self, family_case: Mapping[str, Any]) -> Any:
         """Return this case's measurement leaves and scorers (spec section 2).
 
-        Delegates entirely to ``measurement.build_scorer`` -- the four
-        sanctioned leaves (``agenticpay_deal_reached``,
-        ``agenticpay_contract_legality`` when contract mode applies,
-        ``agenticpay_buyer_surplus_share``, ``agenticpay_seller_surplus_share``)
-        are declared and scored there, never here.
+        Delegates entirely to ``measurement.build_scorer`` -- every leaf
+        (``agenticpay_deal_reached``, ``agenticpay_contract_legality`` when
+        contract mode applies, and the leaves the returned
+        ``AgenticpayBilateralScorer`` computes surplus-share from) is
+        declared and scored there, never here. The returned
+        ``AgenticpayBilateralScorer`` is itself callable
+        (``__call__(scoring_input, evidence_refs=...)``,
+        kernel_scoring_contract_spec.md section 1): it returns exactly the
+        finalize-time leaves ``family_manifest()`` declares above --
+        ``agenticpay_deal_reached``, ``agenticpay_surplus_share``, and
+        ``agenticpay_contract_legality`` when this case is contract-mode
+        (spec section 5, migration milestone 2 of 3).
         """
         return measurement.build_scorer(family_case)
+
+    def inapplicable_leaf_ids(self, family_case: Mapping[str, Any]) -> "frozenset[str]":
+        """Ruling R13: ``agenticpay_contract_legality`` does not apply to a
+        basic (price-only) case -- ``measurement.build_contract_legality_leaf``
+        already returns ``None`` for exactly this reason, so this hook is a
+        direct restatement of the identical ``is_contract_mode`` predicate,
+        never a second, independently-maintained decision.
+        """
+        if measurement.is_contract_mode(family_case):
+            return frozenset()
+        return frozenset({measurement.CONTRACT_LEGALITY_LEAF_ID})
 
     def build_reference_providers(self, family_case: Mapping[str, Any]) -> tuple[Any, ...]:
         del family_case

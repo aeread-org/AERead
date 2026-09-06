@@ -157,3 +157,108 @@ AEREAD_AGENTICPAY_BRIDGE_REQUIRED=1 pytest   # fails if a fidelity test skips
 documented for a family with no tool-call surface; nothing required a workaround. The one
 pre-existing ledger entry (the missing `docs/benchmark_qc.md`) was re-verified, not
 re-derived, and needed no update.
+
+## Scoring-contract migration (kernel_scoring_contract_spec.md, migration milestone 2 of 3)
+
+Branch `zeyu/agenticpay-contract-migration`. Follows
+`docs/agenticpay_migration_plan.md`, whose "Seat scope" and "Case conditionality"
+sections argue the design below in full; this section records the reasoning
+spec section 5.5 requires a human to check, not a repeat of that argument.
+
+### Leaf policy declared in `family_manifest()`
+
+| Leaf id | Scope | `seat_scope` | `case_conditional` |
+|---|---|---|---|
+| `agenticpay_deal_reached_leaf` | `finalize_time` | `cell` | `False` |
+| `agenticpay_surplus_share_leaf` (**primary**, **admission**) | `finalize_time` | `subject_seat` | `False` |
+| `agenticpay_contract_legality_leaf` | `finalize_time` | `cell` | `True` |
+
+No leaf is `deferred`: every scorer in `measurement.py` is
+`evaluation_class="deterministic"` arithmetic over the verified re-executed
+episode's own terminal state / round trace, or a bridge call that only
+re-validates *this* episode's own already-submitted contract text (never a
+separate run, never a judge/rater verdict). There is no artifact any leaf is
+waiting on, so no `deferred_artifact` field is ever populated.
+
+### Why `agenticpay_surplus_share` is primary
+
+The manifest's coarse, family-level `primary_estimand` was already
+`"agenticpay_bilateral_surplus_share"` — a singular, role-neutral label, never
+`"...buyer_surplus_share"` or `"...seller_surplus_share"`. Only a surplus-share
+leaf is the `maximize`d, bounded `[0, 1]` quantity that wording, and the
+manifest's `optimum_lower_bound`/`optimum_upper_bound`, describe.
+`agenticpay_deal_reached` and `agenticpay_contract_legality` are rule/constraint
+gates over the negotiation's mechanics (did it conclude; did every attempted
+submission satisfy its declared bounds), not the substantive outcome quality
+the family's headline number is meant to report — and `agenticpay_deal_reached`
+is in fact the *simplest* of the three to compute (one boolean read off
+`terminal["reason"]`), so choosing surplus-share as primary is deliberately
+not "the one that was easiest" (the forbidden reasoning spec section 3 names).
+
+Before this milestone, "surplus share" was two always-on, role-specific leaves
+(`agenticpay_buyer_surplus_share`/`agenticpay_seller_surplus_share`), each
+published on every case regardless of which seat a real evaluation cell
+actually tests. Both `buyer` and `seller` are independently `testable` in this
+manifest's `roles` block, so neither leaf id was ever a safe stand-in for "the"
+primary: a cell testing the seller would have its real result sitting in
+`agenticpay_seller_surplus_share`, an admission leaf that was never declared as
+admission, while `agenticpay_buyer_surplus_share` silently reported the
+scripted opponent's own share instead. Ruling R12 names this precisely: "one
+value exists for each seat, and a summed or blended two-seat number is not the
+estimand." The fix collapses both into the one leaf actually declared —
+`agenticpay_surplus_share`, `seat_scope="subject_seat"` — scored for whichever
+seat the plan's `SeatContext.subject_seats` singleton actually names, via the
+exact same, unchanged `_score_surplus_share` formula/degeneracy rules
+(`measurement.py`'s `score_surplus_share`). `agenticpay_buyer_surplus_share`/
+`agenticpay_seller_surplus_share` themselves are **not removed**: they remain
+exactly as they scored before, kept for `replay.py`'s own pre-existing,
+independent `ReplayScoreResult` diagnostic (out of this migration's scope,
+spec section 5) and for the golden/fixture tests that already exercise their
+formula directly — they are simply no longer declared in the manifest, so
+`__call__` never emits them as finalize-time leaves.
+
+Ruling R12 rule 3 (an agent profile id may need mapping to an upstream policy
+id) does not apply to this leaf: unlike negarena's bridge-settled
+`score_seat_outcome` (which needs an `opponent_policy_id` to call
+`NegarenaBridge.settle`), neither side's surplus share depends on which policy
+sits in the opponent's seat — `_score_surplus_share` reads only
+`family_case`/`terminal`. No profile-id-to-policy-id mapping is declared, and
+`__call__` correctly never reads `seat_context.profile_by_seat` for this leaf.
+
+### Why these leaves gate admission
+
+`admission_leaf_ids = (agenticpay_surplus_share_leaf,)` — the primary alone,
+matching both reference migrations' own convention (govsim: primary alone;
+collusion: primary alone):
+
+- `agenticpay_deal_reached` is a diagnostic, not a gate: a `"timeout"`
+  negotiation is a genuine, meaningful failure the family wants to *report*,
+  not a case whose receipt should be excluded outright — and a `"timeout"`
+  already routes `agenticpay_surplus_share` itself to `invalid_measurement`
+  (reason `"no_agreement_reached"`), so gating on `agenticpay_deal_reached`
+  separately would be redundant with the primary's own admission behavior.
+- `agenticpay_contract_legality` is likewise a diagnostic, and is
+  independently *required* to be excluded from admission by ruling R13 rule 1
+  (a `case_conditional` leaf may not be `primary_leaf_id` or in
+  `admission_leaf_ids`, since both must exist for every execution admitted
+  under one static manifest, which a case-conditional leaf by definition does
+  not). A rejected submission is informative (per-round detail already
+  retained in `metrics`), not grounds by itself to exclude a receipt whose
+  surplus-share leaf still scored `ok`.
+
+### Case conditionality (ruling R13)
+
+`agenticpay_contract_legality` is declared `case_conditional=True`; the other
+two are not. `measurement.py::build_contract_legality_leaf` already returns
+`None` whenever `not is_contract_mode(family_case)` (the 3 basic price-only
+cases; present for the 25 contract-mode cases) — `AgenticpayBilateralPlugin
+.inapplicable_leaf_ids` is a direct restatement of that identical predicate,
+never a second, independently-maintained decision. A basic-case receipt
+carries `inapplicable_leaf_ids=("agenticpay_contract_legality_leaf",)` and is
+still `included` when `agenticpay_surplus_share` scores `ok` (R13 rule 4: an
+omitted diagnostic is a disposition, not a cell exclusion).
+
+### Deferred leaves: none
+
+Covered above under "Leaf policy" — no leaf waits on any not-yet-existing
+artifact.
