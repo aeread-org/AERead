@@ -147,6 +147,15 @@ def family_manifest() -> FamilyManifest:
                     {
                         "leaf_id": measurement.BARGAINED_RATIO_LEAF_ID,
                         "scope": "finalize_time",
+                        # Ruling R12 (kernel_scoring_contract_spec.md): this
+                        # leaf's own claim is inherently per seat -- the
+                        # tested seat's own bargained ratio, never a
+                        # blended one (measurement.py's own module
+                        # docstring) -- so no ``subject_reduction`` is
+                        # declared; two or more subject seats is reported
+                        # invalid_measurement("ambiguous_subject_seat"),
+                        # never a guessed mean.
+                        "seat_scope": "subject_seat",
                     },
                 ],
                 "primary_leaf_id": measurement.BARGAINED_RATIO_LEAF_ID,

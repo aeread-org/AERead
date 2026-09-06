@@ -35,7 +35,7 @@ from aeread.shared_runner.measurement import FamilyScoreSet, MeasurementContract
 from aeread.shared_runner.registry import PluginRegistry
 from aeread.shared_runner.run.resolver import PlanCell
 from aeread.shared_runner.schemas import CaseManifest
-from aeread.shared_runner.task.evaluation import FamilyScoringInput
+from aeread.shared_runner.task.evaluation import FamilyScoringInput, SeatContext
 from aeread.shared_runner.task.scheduler import DecisionRequest, run_episode
 from aeread_families.amazonbarg import measurement as m
 from aeread_families.amazonbarg import upstream_shim
@@ -447,7 +447,14 @@ def test_amazonbarg_scorer_call_returns_every_declared_leaf_never_just_the_prima
     """Runs golden 1 (the same successful $135 deal as the test above)
     through ``AmazonbargScorer.__call__`` and asserts every one of this
     family's five declared leaves comes back, not only
-    ``amazonbarg_bargained_ratio`` (the declared primary)."""
+    ``amazonbarg_bargained_ratio`` (the declared primary).
+
+    Ruling R12 (kernel_scoring_contract_spec.md): the exactly-one-subject
+    -seat ``SeatContext`` below is what makes ``amazonbarg_bargained_ratio``
+    come back ``status="ok"`` through THIS seam -- before R12 no seat
+    signal was reachable here at all and this leaf was always
+    ``invalid_measurement`` (see docs/amazonbarg_adapter_status.md's "Leaf
+    policy" section for the resolution)."""
     script = [
         (BUYER_PHASE, "buyer", "Thought: t\nTalk: hi\nAction: [BUY] $120 (1x home-kitchen_2)"),
         (SELLER_PHASE, "seller", "Thought: t\nTalk: ok\nAction: [SELL] $150 (1x home-kitchen_2)"),
@@ -461,6 +468,10 @@ def test_amazonbarg_scorer_call_returns_every_declared_leaf_never_just_the_prima
         outcome=result.outcome,
         phase_instances=result.phase_instances,
         evidence_refs=("evt_outcome_0",),
+        seat_context=SeatContext(
+            subject_seats=("buyer",),
+            profile_by_seat={"buyer": "amazonbarg_fixture_profile", "seller": "amazonbarg_fixture_profile"},
+        ),
     )
 
     score_set = scorer(scoring_input, evidence_refs=scoring_input.evidence_refs)
@@ -489,14 +500,16 @@ def test_amazonbarg_scorer_call_returns_every_declared_leaf_never_just_the_prima
     assert upper.primary.value == pytest.approx(135.0)
 
     # amazonbarg_bargained_ratio is this family's declared primary AND sole
-    # admission leaf, yet no `tested_seat` signal is reachable from a
-    # FamilyScoringInput alone (score_bargained_ratio's own docstring) --
-    # __call__ therefore reports it invalid_measurement through THIS seam
-    # specifically, never a fabricated side. Disclosed in
-    # docs/amazonbarg_adapter_status.md's "Leaf policy" section.
+    # admission leaf. Ruling R12 makes the tested seat reachable via
+    # seat_context, so this now comes back "ok" -- and, since this leaf is
+    # declared seat_scope="subject_seat", primary must equal
+    # utility_by_seat["buyer"] exactly (value and unit): the kernel enforces
+    # this identity at finalize (task/evaluation.py's
+    # _enforce_subject_seat_primaries), tested directly here too.
     ratio = next(s for s in score_set.scores if s.leaf.leaf_id == m.BARGAINED_RATIO_LEAF_ID)
-    assert ratio.status == "invalid_measurement"
-    assert m.reasons_include(ratio.validity, m.REASON_TESTED_SEAT_UNKNOWN)
+    assert ratio.status == "ok"
+    assert ratio.primary.value == ratio.utility_by_seat["buyer"].value
+    assert ratio.primary.unit == ratio.utility_by_seat["buyer"].unit
 
 
 def test_amazonbarg_scorer_call_orders_primary_first_then_lexical_leaf_id() -> None:
@@ -801,26 +814,117 @@ def test_score_bargained_ratio_rejects_an_unknown_tested_seat() -> None:
 
 
 @pytest.mark.no_upstream_checkout_required
-def test_score_bargained_ratio_reports_tested_seat_unknown_when_missing_never_fabricating_a_side() -> None:
-    """``tested_seat=None`` (widened for kernel_scoring_contract_spec.md:
-    no ``FamilyScoringInput`` can carry which seat a RunPlan is testing --
-    see this leaf's own docstring) seals ``invalid_measurement`` with the
-    named ``REASON_TESTED_SEAT_UNKNOWN`` reason, never a guessed
-    ``"buyer"``/``"seller"`` primary, even though the deal itself is
-    otherwise perfectly measurable (``wrongAction=0``, a closed deal, a
-    genuine ZOPA)."""
+def test_score_bargained_ratio_rejects_a_missing_tested_seat() -> None:
+    """Ruling R12 retires the pre-R12 widening of ``tested_seat`` to
+    ``str | None``: no caller of :func:`score_bargained_ratio` itself needs
+    ``None`` any more (``AmazonbargScorer.__call__`` now resolves a
+    concrete seat -- or reports one of three named seat-selection reasons
+    itself -- via :func:`score_bargained_ratio_for_subject_seats` *before*
+    ever calling here; ``replay.py`` always already knew its seat). ``None``
+    is therefore just another invalid value now, exactly like
+    ``"referee"`` in the test above -- this is a deliberate replacement of
+    the previous ``REASON_TESTED_SEAT_UNKNOWN`` invalid_measurement path,
+    not a weakening."""
     leaf = m.build_bargained_ratio_leaf()
-    envelope = m.score_bargained_ratio(
+    with pytest.raises(ValueError, match="tested_seat"):
+        m.score_bargained_ratio(
+            leaf,
+            family_case=_family_case("mutual"),
+            metrics_output={
+                "wrongAction": 0,
+                "closeADeal": 1,
+                "buyer_bargained_ratio": 0.5,
+                "seller_bargained_ratio": 0.5,
+            },
+            tested_seat=None,
+        )
+
+
+# ---------------------------------------------------------------------------
+# score_bargained_ratio_for_subject_seats (ruling R12, kernel_scoring_
+# contract_spec.md): resolves ``tested_seat`` from
+# ``FamilyScoringInput.seat_context.subject_seats`` and defers to
+# ``score_bargained_ratio`` alone for the arithmetic -- never reimplemented.
+# ---------------------------------------------------------------------------
+
+_SUBJECT_SEAT_METRICS_OUTPUT = {
+    "wrongAction": 0,
+    "closeADeal": 1,
+    "buyer_bargained_ratio": 0.49,
+    "seller_bargained_ratio": 0.51,
+}
+
+
+@pytest.mark.no_upstream_checkout_required
+def test_score_bargained_ratio_for_subject_seats_reports_no_subject_seat_when_empty() -> None:
+    leaf = m.build_bargained_ratio_leaf()
+    envelope = m.score_bargained_ratio_for_subject_seats(
         leaf,
         family_case=_family_case("mutual"),
-        metrics_output={
-            "wrongAction": 0,
-            "closeADeal": 1,
-            "buyer_bargained_ratio": 0.5,
-            "seller_bargained_ratio": 0.5,
-        },
-        tested_seat=None,
+        metrics_output=_SUBJECT_SEAT_METRICS_OUTPUT,
+        subject_seats=(),
     )
     assert envelope.status == "invalid_measurement"
     assert envelope.primary is None
-    assert m.reasons_include(envelope.validity, m.REASON_TESTED_SEAT_UNKNOWN)
+    assert m.reasons_include(envelope.validity, m.REASON_NO_SUBJECT_SEAT)
+
+
+@pytest.mark.no_upstream_checkout_required
+def test_score_bargained_ratio_for_subject_seats_reports_ambiguous_when_two_seats() -> None:
+    """This leaf declares no ``subject_reduction`` (measurement.py's own
+    module docstring: the ratio is one side's own, never blended), so two
+    subject seats is reported invalid_measurement, never a guessed mean --
+    and, per ruling R12 rule 2, the kernel itself does not raise for this
+    (an ``invalid_measurement`` envelope is exempt from
+    ``_enforce_subject_seat_primaries``), which is exercised end to end in
+    ``tests/test_amazonbarg_replay.py``."""
+    leaf = m.build_bargained_ratio_leaf()
+    envelope = m.score_bargained_ratio_for_subject_seats(
+        leaf,
+        family_case=_family_case("mutual"),
+        metrics_output=_SUBJECT_SEAT_METRICS_OUTPUT,
+        subject_seats=("buyer", "seller"),
+    )
+    assert envelope.status == "invalid_measurement"
+    assert envelope.primary is None
+    assert m.reasons_include(envelope.validity, m.REASON_AMBIGUOUS_SUBJECT_SEAT)
+
+
+@pytest.mark.no_upstream_checkout_required
+def test_score_bargained_ratio_for_subject_seats_reports_unknown_seat_id() -> None:
+    """A subject seat that is not one of this family's own seat ids
+    (``"buyer"``/``"seller"``) is reported invalid_measurement with its own
+    named reason, distinct from the zero/ambiguous cases above."""
+    leaf = m.build_bargained_ratio_leaf()
+    envelope = m.score_bargained_ratio_for_subject_seats(
+        leaf,
+        family_case=_family_case("mutual"),
+        metrics_output=_SUBJECT_SEAT_METRICS_OUTPUT,
+        subject_seats=("referee",),
+    )
+    assert envelope.status == "invalid_measurement"
+    assert envelope.primary is None
+    assert m.reasons_include(envelope.validity, m.REASON_UNKNOWN_SUBJECT_SEAT)
+
+
+@pytest.mark.no_upstream_checkout_required
+def test_score_bargained_ratio_for_subject_seats_delegates_arithmetic_for_one_valid_seat() -> None:
+    """Exactly one subject seat that is a real seat id resolves
+    ``tested_seat`` and defers to :func:`score_bargained_ratio` for the
+    actual ratio arithmetic -- never reimplemented here. ``primary`` must
+    equal ``utility_by_seat[tested_seat]`` exactly (value and unit): the
+    kernel enforces this identity at finalize
+    (task/evaluation.py's ``_enforce_subject_seat_primaries``), tested
+    directly here too."""
+    leaf = m.build_bargained_ratio_leaf()
+    envelope = m.score_bargained_ratio_for_subject_seats(
+        leaf,
+        family_case=_family_case("mutual"),
+        metrics_output=_SUBJECT_SEAT_METRICS_OUTPUT,
+        subject_seats=("seller",),
+    )
+    assert envelope.status == "ok"
+    assert envelope.primary.value == pytest.approx(0.51)
+    assert envelope.primary.value == envelope.utility_by_seat["seller"].value
+    assert envelope.primary.unit == envelope.utility_by_seat["seller"].unit
+    assert envelope.utility_by_seat["buyer"].value == pytest.approx(0.49)
