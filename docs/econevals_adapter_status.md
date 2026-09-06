@@ -120,34 +120,107 @@ that same attempt's achieved value against the case's own pinned
 on an artifact that "may not exist yet" (spec section 4), so both are
 declared `scope="finalize_time"` and neither is `scope="deferred"`.
 
-**Scope of this milestone.** This pass implements the three pieces spec
+**Scope of milestone 2.** That pass implemented the three pieces spec
 sections 3/5 require per family (manifest leaf policy, `__call__`/
 `score_all`, and this reasoning) plus family-level tests
 (`tests/test_econevals_measurement.py`) that construct a
 `FamilyScoringInput` by hand and mutation-verify the returned leaf set. It
-does **not** yet drive a real episode through
+deliberately did not yet drive a real episode through
 `aeread.shared_runner.task.evaluation.finalize_family_execution`
 end-to-end, nor enroll this family in
 `tests/test_shared_runner_scoring_contract.py`'s registry-driven protocol
-test (spec section 6) — both remain for a later milestone, matching how the
-reference migration's own finalizer-wiring and protocol-test-enrollment
-work landed as separate, later commits on top of the equivalent `__call__`
-change. `("econevals", "0.1.0")` therefore stays listed in that test
-file's own `_NOT_YET_MIGRATED_TRUSTED_KEYS` exemption for now.
+test (spec section 6) — both landed in milestone 3, below.
 
-**A latent signature mismatch, found but not yet fixed here.**
+**Two latent defects, found in milestone 2, fixed here in milestone 3.**
 `task.evaluation._replay_family_trajectory` calls `plugin.initial_state(family_case,
 run=None)` by keyword, but `EconevalsPlugin.initial_state`'s second
-parameter is still named `cell` (`environment.py`) — the same defect the
-reference migration's own `088e2693` fixed for govsim. Every existing call
-site in this family's own tests passes that argument positionally
-(`plugin.initial_state(family_case, None)`), so the rename is a safe,
-zero-behavior-change fix, but nothing in *this* milestone's own tests
-drives replay far enough to need it (they construct `FamilyScoringInput`
-directly, never through `replay_family_scoring_input`). Left unfixed here
-rather than expanding this milestone's scope; it will surface — and must be
-fixed — the moment a future milestone drives a real episode through
-`finalize_family_execution`, exactly as it did for govsim.
+parameter was still named `cell` — the same defect the reference
+migration's own `088e2693` fixed for govsim; every existing call site in
+this family's own tests already passed that argument positionally, so the
+rename (`environment.py`) is a safe, zero-behavior-change fix. Separately,
+`measurement.py` declares each of its two leaves' scorer implementation
+under its own distinct, per-track component id (`econevals_bridge.evaluate_alloc`,
+`econevals_bridge.is_valid_matching`, `econevals_pricing_gate_scorer`,
+`econevals_bridge.compute_opt`, `econevals_bridge.get_blocking_pairs`,
+`econevals_bridge.get_monopoly_prices`) plus one shared validity-domain
+predicate id (`econevals_base_domain_predicate`) — none of these seven were
+declared in `family_manifest()`'s `scoring.reference_provider_ids`, so
+`resolve_run_plan`'s own pin bookkeeping never admitted a pin for any of
+them and `EvaluationReceipt._validate_and_freeze_plan_pins` would reject
+any sealed receipt as missing implementations (the identical shape of
+defect govsim's own `088e2693` fixed there too). Neither defect was
+reachable before this family was ever driven through
+`finalize_family_execution` — both surfaced only once milestone 3 tried to.
+Fixed by declaring `measurement.reference_provider_ids()` (computed once
+from the leaf builders themselves, never hand-duplicated) as
+`family_manifest()`'s `scoring.reference_provider_ids`.
+
+## Enrollment and receipt (kernel_scoring_contract_spec.md, migration milestone 3 of 3)
+
+Distinct from `docs/econevals_adapter_spec.md`'s OWN, unrelated "milestone
+1/2/3" numbering for this adapter's build process (corpus generation,
+harness/scheduler integration — the "Milestone 3 additions" bullet list
+under "Evidence" below refers to THAT numbering, not this one). This
+section is the kernel scoring-contract migration's own milestone 3 of 3.
+
+**A real receipt now exists.** Before this milestone this family had never
+produced an `EvaluationReceipt`.
+`test_finalize_wires_econevals_to_the_shared_family_finalizer`
+(`tests/test_econevals_replay.py`) drives one small, real, two-period
+procurement episode through `EvidenceRecordingEconevalsHarness` (which
+writes the full generic evidence trail `finalize_family_execution`'s
+internal replay can consume, unlike `ScriptedEconevalsHarness`'s own
+`ToolRuntime`-only tool-invocation evidence) and then calls
+`aeread.shared_runner.task.evaluation.finalize_family_execution` directly —
+the real production finalizer, not a stand-in.
+
+**The receipt is genuinely `inclusion_status == "excluded"`, not
+"included."** The fixture's final submission is a deliberately illegal
+procurement offer (an unknown offer id, rejected by
+`EconevalsPlugin._submit_procurement`'s own pre-bridge `unknown_ids` check
+— never a bridge call). Per this family's own hybrid-gate composition
+(`measurement.py`'s module docstring, unchanged by this milestone), the
+objective leaf is never computed when the gate does not pass, for ANY
+reason; `_objective_not_computed` turns that into an explicit
+`invalid_measurement` envelope on `econevals_objective_leaf` — this
+family's sole admission leaf — so the sealed receipt is
+`status == "invalid_measurement"`, `inclusion_status == "excluded"`, and
+carries a typed `EvaluationFailure` naming `econevals_objective_leaf`
+invalid; the primary leaf's own `validity.reasons` names the gate failure
+("`objective_not_computed: gate_failed (unknown offer ids: [...])`"). This
+is asserted as the actual, observed result — not "included" — deliberately:
+a legal final submission (achievable, per
+`tests/test_econevals_environment.py`'s own
+`test_procurement_full_episode_runs_through_the_real_kernel_scheduler`) was
+not chosen for this fixture, because the illegal path needs no bridge call
+at all and is fully deterministic, making the finalizer test provider-free
+*and* bridge-free; a family author reusing this fixture shape for a
+different purpose should not assume "excluded" is unavoidable in general —
+only that it is what THIS deliberately-illegal fixture produces.
+
+**The scoring-contract protocol test is enrolled, directly, no bridge
+gating needed.** `_econevals_fixture_pair`
+(`tests/test_shared_runner_scoring_contract.py`) supplies a paired-history
+fixture — two episodes over the same hand-authored case whose FINAL
+period's illegal submission is identical (so `outcome`, i.e.
+`termination_reason`/`period_count`/`num_attempts`, is byte-identical) but
+whose EARLIER period's illegal offer id differs (a genuinely different
+trajectory) — verified in the test itself via
+`canonical_json_bytes(left_input.outcome) == canonical_json_bytes(right_input.outcome)`
+and `left_input.phase_instances != right_input.phase_instances`, never
+merely asserted in a comment. `("econevals", "0.1.0")` is removed from
+`_NOT_YET_MIGRATED_TRUSTED_KEYS` and enrolled directly in
+`_build_protocol_test_registry_and_fixtures` (the always-on registry), NOT
+through govsim's bridge-gated shape
+(`_BRIDGE_GATED_ENROLLED_FAMILY_VERSIONS` plus a separately-skippable
+test): every fixture here only ever drives the illegal, pre-bridge
+`_submit_procurement` path, so unlike govsim this family's own protocol
+coverage needs no bridge interpreter and cannot silently skip. This family
+was already in `TRUSTED_BUILTIN_PLUGIN_KEYS` since milestone 0; only the
+`_NOT_YET_MIGRATED_TRUSTED_KEYS` exemption is removed here. The pre-existing
+root `conftest.py` `AEREAD_ECONEVALS_BRIDGE_REQUIRED` gate (predating this
+migration, already covering this family's OTHER bridge-gated tests) is
+untouched — it has nothing to gate for these particular fixtures.
 
 ## What the adapter claims
 
@@ -174,8 +247,9 @@ against the pinned bridge and hard-fails on any divergence.
 
 ## Evidence
 
-**113 passed, 0 failed, 0 skipped**, the full econevals family test file set
-plus `tests/test_shared_runner_smoke.py`, re-verified both with
+**119 passed, 0 failed, 0 skipped**, the full econevals family test file set
+plus `tests/test_shared_runner_scoring_contract.py` and
+`tests/test_shared_runner_smoke.py`, re-verified both with
 `$AEREAD_ECONEVALS_BRIDGE_PYTHON`/`$AEREAD_ECONEVALS_UPSTREAM_ROOT` exported
 and with neither exported (this workspace's `discover_bridge_python`/
 `UPSTREAM_ROOT` both fall back to the same provisioned default paths either
@@ -189,13 +263,21 @@ export AEREAD_ECONEVALS_UPSTREAM_ROOT=<upstream-econevals checkout path>
 PYTHONPATH=src pytest \
   tests/test_econevals_cases.py tests/test_econevals_environment.py \
   tests/test_econevals_measurement.py tests/test_econevals_tools.py \
-  tests/test_econevals_replay.py tests/test_shared_runner_smoke.py -q
-# 113 passed in 142.33s (0:02:22)
+  tests/test_econevals_replay.py tests/test_shared_runner_scoring_contract.py \
+  tests/test_shared_runner_smoke.py -q
+# 119 passed in 331.75s (0:05:31) with the bridge exported
+# 119 passed in 336.57s (0:05:36) with neither exported (same reason as above)
 ```
 
-Breakdown: cases 22, environment 29, measurement 30, tools 12, replay 10,
-shared-runner smoke 10. The delta from the previous 107 (measurement 24) is
-this migration's six new `EconevalsScorer.__call__`/leaf-policy tests
+Breakdown: cases 22, environment 29, measurement 30, tools 12, replay 11,
+scoring-contract 5, shared-runner smoke 10. The delta from the previous 113
+(replay 10) is this milestone's one new
+`test_finalize_wires_econevals_to_the_shared_family_finalizer` test
+(`tests/test_econevals_replay.py`); `tests/test_shared_runner_scoring_contract.py`
+is newly run here at all (its own 5 tests, including this family's
+paired-history fixture, were not part of the milestone-2 evidence run). The
+delta from 107 to 113 (measurement 24 to 30) was this migration's six new
+`EconevalsScorer.__call__`/leaf-policy tests
 (`tests/test_econevals_measurement.py`); see "Leaf policy" above. The prior
 delta from 101 (cases 21, environment 25, replay 9) was the second-reviewer
 fix pass
