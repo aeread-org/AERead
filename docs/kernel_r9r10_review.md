@@ -536,3 +536,132 @@ Mutation results:
 ```
 
 129 passed, 0 failed.
+
+## Fourth pass
+
+A fourth-pass review reverses one decision from the second-pass review
+(cf85c02f + 42d9fd60), with a concrete counterexample from a real family
+under active migration, dated 2026-09-05.
+
+### W1 — the identical-projection form of the sensitivity witness is unsatisfiable for a real family
+
+**Finding 3's disposition is revised: PARTLY ACCEPTED.** The same-case
+tightening (second-pass review R1) is kept; the identical-projection
+restriction (second-pass review's own reading of finding 3, plus 42d9fd60)
+is REJECTED, with a counterexample read directly from source.
+
+The counterexample: `govsim` (branch `zeyu/govsim-contract-migration`,
+worktree `/Users/sunzeyu/Documents/econ benchmark/AERead/.worktrees/govsim-migrate`)
+declares `govsim_no_collapse` as `input_scope="trajectory"`. Verified
+directly against the source:
+`src/aeread_families/govsim/measurement.py`'s `score_no_collapse`
+(lines 518-551) reads `terminal["round_trace"]` and computes
+`collapse_round`/`rounds_completed = len(round_trace)`; `GovsimScorer.__call__`
+(lines 834-880) reconstructs that `round_trace` from
+`scoring_input.phase_instances` via `_round_trace_from_phase_instances`
+(lines 766-795), because `environment.py`'s `outcome()` (lines 704-722)
+never carries `round_trace` at all -- only `termination_reason`,
+`outcome_status`, `num_round`, `resource_in_pool`, `collected_resource`.
+This leaf's projection is therefore the WHOLE outcome, not a subtree of
+it. `environment.py`'s `step()`/`terminal()` (lines 605-696) set
+`num_round` to exactly the terminating round and halt the episode the
+FIRST round `collapsed_or_horizon` is true (upstream's own
+`resource_in_pool < 5 or num_round >= max_num_rounds` test). For
+`no_collapse` to differ between two fixtures, one must collapse before the
+round horizon and the other must reach it -- but that always changes
+`num_round`, part of the outcome/projection, so the pair can never be
+"controlled" under the second-pass rule. Two fixtures that both collapse
+at the same round share an identical outcome AND score `no_collapse`
+identically. No pair the family could honestly supply could ever have
+witnessed this leaf under the identical-projection rule -- it is
+unenrollable by construction, not by any defect in its scorer. This
+reasoning was verified directly against the govsim source (not merely
+asserted) before proceeding.
+
+Why the relaxation is sound: ruling R7 states that over-declaring
+trajectory scope is not the hazardous direction -- a terminal-reading leaf
+labelled `trajectory` still scores correctly, it is merely
+under-constrained; the check WITH TEETH is R7's own contrapositive on
+`terminal_state`-declared leaves. The witness is therefore a sanity check
+(a trajectory-declared leaf that is constant across every same-case
+fixture pair the family supplies cannot be told apart from one that
+ignores its input entirely), not a proof of trajectory-dependence -- a
+leaf that reads a differing OUTCOME field, never the trajectory, also
+passes it now, and that is accepted rather than guarded against.
+
+**FIXED.** `_assert_trajectory_leaves_are_witnessed`
+(`tests/test_shared_runner_scoring_contract.py:1502`) now requires only
+that a pair share the same `family_case` (kept from the second-pass
+review's R1) and differ in `phase_instances`; the identical-projection
+requirement (and the now-unused `trajectory_outcome_paths` parameter) was
+dropped. `_score_measurement_content` remains the compared content --
+only which pairs qualify changed. The docstring states what the witness
+proves (not constant across the family's own same-case fixtures), what it
+does not prove (trajectory-dependence specifically), why that is
+acceptable (R7, above), and cites the govsim counterexample as the reason
+the identical-projection form was rejected. The "no pair" assertion
+message now says "no same-case pair"; the "leaf never changed" message
+reports how many same-case pairs were examined.
+
+Commit: `330765c1` — "fix(scoring-contract): witness trajectory leaves on
+same-case pairs; the controlled-pair form is unsatisfiable".
+
+Tests changed:
+- `test_sensitivity_witness_passes_a_leaf_that_changes_only_via_a_differing_outcome_field`
+  (`:2676`) -- renamed and FLIPPED from
+  `test_sensitivity_witness_rejects_a_leaf_that_only_changes_on_an_uncontrolled_pair`
+  (the second-pass review's rejected case): a same-case pair with
+  differing outcomes and a leaf that differs now PASSES the witness,
+  citing the govsim counterexample in its docstring as the reason.
+- `test_sensitivity_witness_rejects_a_pair_whose_case_differs` (`:2720`,
+  renamed from `..._even_with_matching_projection`) -- a pair from
+  different cases still does not count, unchanged behavior.
+- `test_sensitivity_witness_fails_when_a_trajectory_leaf_ignores_every_fixture` --
+  a leaf constant across every same-case pair still fails, unchanged
+  behavior, docstring/message wording updated.
+- `test_sensitivity_witness_requires_at_least_one_same_case_pair` (`:2791`,
+  renamed from `..._requires_at_least_one_controlled_pair`, fixtures
+  redesigned to use two DIFFERENT cases so zero same-case pairs genuinely
+  exist under the new rule) -- zero same-case pairs is still rejected
+  loudly.
+- `test_sensitivity_witness_passes_when_a_trajectory_leaf_changes_on_some_pair`,
+  `test_sensitivity_witness_counts_a_status_only_flip` (renamed from
+  `..._on_a_controlled_pair`), `test_sensitivity_witness_is_vacuous_with_no_trajectory_leaves` --
+  call-site signature updated (dropped the `trajectory_outcome_paths`
+  argument); no behavioral change.
+- `test_r9_projection_fails_to_pair_when_the_embedded_path_is_not_declared`
+  (`:2150`) -- knock-on fix, not itself part of W1's named test list: with
+  the relaxation, the sensitivity witness no longer rejects this family
+  (same case, differing phase_instances is enough even with no declared
+  paths), so the protocol now fails one step later, at the unmodified,
+  message-less paired-history projection-equality assertion instead. The
+  `pytest.raises` match string was dropped (that assert carries no custom
+  message); the docstring explains why the failure point moved.
+
+Mutation results:
+- Re-adding a raw-outcome-equality clause to the pair-qualification
+  condition (approximating the old rule without re-plumbing the removed
+  `trajectory_outcome_paths` parameter) made
+  `test_sensitivity_witness_passes_a_leaf_that_changes_only_via_a_differing_outcome_field`
+  fail exactly as expected (proving the relaxation is what makes it pass).
+- Removing the case-equality clause entirely made
+  `test_sensitivity_witness_rejects_a_pair_whose_case_differs` and
+  `test_sensitivity_witness_requires_at_least_one_same_case_pair` fail
+  ("DID NOT RAISE AssertionError"), confirming the same-case requirement
+  from R1 is still load-bearing.
+- Both mutations restored from the `/tmp` backup; suite green again
+  (129/129 combined).
+
+### W2 — this document
+
+Commit: this section, "docs: record the fourth-pass R9/R10 review".
+
+### Fourth-pass final verification
+
+```
+../../.venv/bin/python -m pytest tests/test_shared_runner_schemas.py \
+  tests/test_shared_runner_scoring_contract.py tests/test_shared_runner_smoke.py \
+  -q -p no:cacheprovider
+```
+
+129 passed, 0 failed.
