@@ -158,7 +158,9 @@ Including both leaves in admission means that failure also excludes the
 receipt, which I judge correct given both are declared bridge/adapter-bug
 detectors, not diagnostics — but it is a judgment call, not a mechanical
 consequence of anything checked above, exactly as spec section 3/R8 says no
-identifier validation can catch a wrongly-scoped admission set.
+identifier validation can catch a wrongly-scoped admission set. [Milestone-3
+gate correction: as implemented, a `recompute_tax` failure raises out of the
+scorer and yields no receipt; see the status doc's Leaf policy section.]
 
 ## Deferred leaves: none
 

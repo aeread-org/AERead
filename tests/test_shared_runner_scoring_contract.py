@@ -2020,9 +2020,9 @@ def test_trusted_catalog_closure_rejects_an_unenrolled_key() -> None:
 # paired-history precondition R7/R9(a) itself asks for IS separately
 # constructible and IS verified directly, without going through this
 # exemption or ``_assert_family_obeys_the_scoring_contract`` at all --
-# see ``test_econagent_paired_history_pair_is_constructible_with_a_genuine_
-# trajectory_difference`` (tests/test_econagent_replay.py) and
-# ``docs/econagent_adapter_status.md``'s "Leaf policy" section for the full
+# see ``test_paired_history_pair_has_a_byte_identical_outcome_and_a_differing_
+# trajectory`` (tests/test_econagent_replay.py) and
+# ``docs/econagent_adapter_status.md``'s "Scoring-contract enrollment" section for the full
 # argument.
 # ---------------------------------------------------------------------------
 
