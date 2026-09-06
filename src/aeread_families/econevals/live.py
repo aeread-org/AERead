@@ -81,6 +81,10 @@ MODEL = "z-ai/glm-5.3-flash"
 REVISION = "z-ai/glm-5.3-flash-20260826"
 ROUTE_PROVIDER = "Parasail"
 QUANTIZATION = "fp8"
+# The adapter refuses any route whose advertised price exceeds these caps, so
+# a silent reroute to a pricier backend fails closed instead of billing.
+MAX_PROMPT_PRICE_PER_MILLION = "0.15"
+MAX_COMPLETION_PRICE_PER_MILLION = "0.50"
 PRICING = TokenPricing(
     input_per_million=0.15,
     cached_input_per_million=0.03,
@@ -95,6 +99,19 @@ the period. Return only the required JSON object: an ordered list of tool calls 
 LAST call is the submit tool. Call read-only tools first to gather what you need, then
 submit your decision for this period. Never invent tool results.
 """
+
+
+def route_metadata() -> dict[str, str]:
+    """The exact sealed route the OpenRouter adapter requires -- these five
+    fields and no others, or it refuses the call as a provider_contract
+    failure."""
+    return {
+        "route_provider": ROUTE_PROVIDER,
+        "quantization": QUANTIZATION,
+        "canonical_model": REVISION,
+        "max_prompt_price_per_million": MAX_PROMPT_PRICE_PER_MILLION,
+        "max_completion_price_per_million": MAX_COMPLETION_PRICE_PER_MILLION,
+    }
 
 
 def period_output_schema() -> dict[str, Any]:
@@ -385,11 +402,7 @@ def _profile(
                     "pricing_sha256": PRICING.content_sha256(),
                     "output_schema": period_output_schema(),
                     "max_rounds": 1,
-                    "provider_metadata": {
-                        "route_provider": ROUTE_PROVIDER,
-                        "quantization": QUANTIZATION,
-                        "allow_fallbacks": False,
-                    },
+                    "provider_metadata": route_metadata(),
                 },
             },
             "prompt": {
@@ -604,4 +617,5 @@ __all__ = [
     "build_live_setup",
     "load_case",
     "period_output_schema",
+    "route_metadata",
 ]
