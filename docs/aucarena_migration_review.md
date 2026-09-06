@@ -110,14 +110,10 @@ not just a longer trajectory
   `inclusion_status="included"`, all four declared leaf ids, and
   `primary_leaf_id="aucarena_profit_vs_field_leaf"` -- see
   `tests/test_aucarena_replay.py::test_finalize_wires_aucarena_to_the_shared_family_finalizer`.
-- **Stated limit**: `world_seed` is now pinned to the case's own declared value rather
-  than reachable from any per-replicate resampling a `RunPlan`'s sampling plan might
-  otherwise vary through `PlanCell.world_seed`. This mirrors the tradeoff every other
-  already-migrated family in this codebase that ignores its `initial_state`'s `run`/`cell`
-  parameter entirely has already made (negarena, steer, tau3_retail, procurement_*,
-  commercial_state_calibration, datacenter_development, consent_ir); it is not a new risk
-  introduced by this family specifically, but it is worth a reviewer's attention if this
-  family's sampling plan is ever changed to resample `world_seed` per replicate.
+- **Stated limit**: `run/resolver.py:588,1009` always sets `PlanCell.world_seed =
+  case.world_seed` and `task/scheduler.py:353` rejects any mismatch, so a per-replicate
+  `world_seed` resample is unreachable under the current kernel; the risk is hypothetical
+  until the kernel changes.
 
 ## Paired-history pair: constructible — yes, confirmed against real code
 
@@ -186,9 +182,12 @@ What does not hold is the conclusion that this violates
   calls the four existing named `score_*` methods and assembles a `FamilyScoreSet`, no
   arithmetic of its own -- and commit `24f07c4c` (the commit the review is describing)
   touches only the bodies of `score_budget_invariant`/`score_hammer_rule` themselves
-  (plus `__all__` exports and a `LEAF_VERSION` bump); `git show --stat 24f07c4c` and a
-  per-hunk read confirm `__call__`/`build_scorer` are untouched by that commit. The
-  clause the review cites does not, by its own text, reach this edit.
+  (plus `__all__` exports and swapping the bare component-id string literals in
+  `_validity_domain` and the four `build_*_leaf` declarations for the new named constants;
+  no version was bumped -- `LEAF_VERSION` is "1.0.0" on both zeyu/kernel-r9r10 and HEAD);
+  `git show --stat 24f07c4c` and a per-hunk read confirm `__call__`/`build_scorer` are
+  untouched by that commit. The clause the review cites does not, by its own text, reach
+  this edit.
 - The addition never changes `primary`, `status`, or `validity` -- confirmed by reading
   both functions end to end (`measurement.py:411-468`, `601-721`): `checked_transitions_count`
   is computed in a side counter and written into `metrics` after `primary` is already
