@@ -60,6 +60,7 @@ from typing import Any, Mapping, Sequence
 import pytest
 
 import aeread.shared_runner.task.execution as execution_module
+from aeread.shared_runner import episode_id_for_cell, run_episode
 from aeread.shared_runner.measurement import (
     EstimandSpec,
     FamilyScoreSet,
@@ -123,6 +124,7 @@ from aeread_families.commercial_state_calibration import build_offline_setup as 
 from aeread_families.commercial_state_calibration import (
     commercial_state_measurement_leaf,
 )
+from aeread_families.econevals.environment import EconevalsPlugin
 from aeread_families.housing.runner import (
     HousingScriptedLandlordProvider,
     HousingScriptedTenantProvider,
@@ -137,6 +139,13 @@ from aeread_families.procurement_grounding import (
 )
 from aeread_families.procurement_grounding import procurement_measurement_leaf
 from aeread_families.single_offer.runner import FixedResponseProvider
+
+from tests.test_econevals_replay import (
+    EvidenceRecordingEconevalsHarness,
+    _econevals_fixture_case,
+    build_econevals_setup,
+    econevals_illegal_procurement_script,
+)
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -1187,6 +1196,72 @@ def _embedding_fixtures(
     return manifest, plugin, fixtures
 
 
+def _econevals_fixture_pair(
+    tmp_path: Path,
+) -> tuple[FamilyManifest, Any, tuple[FamilyScoringFixture, FamilyScoringFixture]]:
+    """econevals: a real, already-migrated family whose production manifest
+    (``family_manifest()``, ``environment.py``) already declares its own
+    leaf policy (spec section 3) -- unlike the four families above, which
+    need ``_with_declared_leaf_policy`` because their production manifests
+    do not yet declare one (ruling R4). Used as-is here, no copy needed.
+
+    Neither of this family's two leaves is declared ``input_scope=
+    "trajectory"`` (both are ``"answer"``/``"terminal_state"``, scored from
+    the LAST recorded attempt only -- ``docs/econevals_migration_plan.md``'s
+    own "Paired-history pair: constructible" analysis), but ruling R7's
+    contrapositive still applies to the objective leaf
+    (``"terminal_state"``): two episodes over the SAME case whose FINAL
+    period's submission is identical -- so ``outcome`` (``termination_
+    reason``/``period_count``/``num_attempts``, per ``EconevalsPlugin.
+    outcome()``) is byte-identical -- but whose EARLIER period differs (a
+    genuinely different trajectory), verified below rather than merely
+    asserted.
+
+    Both fixtures deliberately drive an illegal (never legal) final
+    submission (``econevals_illegal_procurement_script``) -- this family's
+    own local, pre-bridge validation path, per
+    ``EconevalsPlugin._submit_procurement``'s own ``unknown_ids`` check --
+    so, unlike govsim's reference migration, this family's own fixtures need
+    no bridge interpreter at all and are not enrolled through the
+    bridge-gated shape.
+    """
+    case = _econevals_fixture_case(
+        world_seed=0, max_steps=2, case_id="econevals.kernel_contract_fixture.pair.0"
+    )
+    plugin = EconevalsPlugin(bridge=None)
+    setup = build_econevals_setup(plugin, case, suffix="scoring_contract_pair")
+    cell = setup.plan.cells[0]
+    family = setup.plan.families[0]
+    resolved_plugin = setup.registry.resolve_manifest(family)
+    family_case = resolved_plugin.validate_payload(case.payload)
+
+    def _run(first_period_offer_id: str, *, suffix: str) -> FamilyScoringFixture:
+        evidence = EvidenceStore(
+            tmp_path / f"econevals_{suffix}",
+            run_plan_id=setup.plan.run_plan_id,
+            cell_id=cell.cell_id,
+            episode_id=episode_id_for_cell(cell),
+            episode_attempt_id="attempt_1",
+        )
+        harness = EvidenceRecordingEconevalsHarness(
+            plugin=resolved_plugin,
+            family_case=family_case,
+            evidence=evidence,
+            script=[
+                econevals_illegal_procurement_script(first_period_offer_id),
+                econevals_illegal_procurement_script("shared_final_bad_offer"),
+            ],
+        )
+        asyncio.run(
+            run_episode(cell=cell, case=case, plugin=resolved_plugin, response_source=harness)
+        )
+        return FamilyScoringFixture(family_case=family_case, sealed_evidence=evidence)
+
+    left = _run("left_bad_offer", suffix="left")
+    right = _run("right_bad_offer", suffix="right")
+    return family, resolved_plugin, (left, right)
+
+
 def _build_protocol_test_registry_and_fixtures(
     tmp_path: Path,
 ) -> tuple[PluginRegistry, dict[tuple[str, str], tuple[FamilyScoringFixture, ...]]]:
@@ -1207,6 +1282,12 @@ def _build_protocol_test_registry_and_fixtures(
     registry.register_trusted(reference_manifest, reference_plugin)
     fixtures[(reference_manifest.family.id, reference_manifest.family.version)] = (
         reference_fixtures
+    )
+
+    econevals_manifest, econevals_plugin, econevals_fixtures = _econevals_fixture_pair(tmp_path)
+    registry.register_trusted(econevals_manifest, econevals_plugin)
+    fixtures[(econevals_manifest.family.id, econevals_manifest.family.version)] = (
+        econevals_fixtures
     )
 
     return registry, fixtures
@@ -1659,17 +1740,18 @@ _NOT_YET_MIGRATED_TRUSTED_KEYS: "frozenset[tuple[str, str]]" = frozenset(
         # External-benchmark adapter families enrolled in
         # TRUSTED_BUILTIN_PLUGIN_KEYS by maintainer ruling on 2026-09-04
         # (PRs #28-#38), landed on main after this branch forked. None of
-        # the eleven has a FamilyScoringInput-contract fixture yet; they
-        # migrate under the per-adapter follow-ups tracked alongside the
-        # other not-yet-migrated families above, not as part of this
-        # kernel change.
+        # the remaining ten has a FamilyScoringInput-contract fixture yet;
+        # they migrate under the per-adapter follow-ups tracked alongside
+        # the other not-yet-migrated families above, not as part of this
+        # kernel change. ``econevals`` is deliberately NOT here: it IS
+        # migrated and genuinely fixture-covered (_econevals_fixture_pair
+        # above) -- see kernel_scoring_contract_spec.md milestone 3.
         ("agenticpay.bilateral", "0.1.0"),
         ("alympics.wac", "0.1.0"),
         ("amazonbarg.bilateral", "0.1.0"),
         ("aucarena", "0.1.0"),
         ("collusion", "0.1.0"),
         ("econagent_v1", "0.1.0"),
-        ("econevals", "0.1.0"),
         ("govsim", "0.1.0"),
         ("negarena", "0.1.0"),
         ("steer", "0.1.0"),
