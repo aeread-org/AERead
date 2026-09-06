@@ -1,0 +1,73 @@
+# econevals first-light: incident ledger
+
+Every failed attempt at campaign `econevals_glm53_flash_parasail_first_light_v1`,
+in one place, so the run can be audited later without reconstructing it from
+scratchpad logs that are not in the repository.
+
+Each row is recovered from the sealed attempt root itself
+(`runs/econevals/econevals_glm53_flash_parasail_first_light_v1/qualification_attempt_NNN/`),
+not from notes. Costs are the sum of every sealed canary probe and case
+checkpoint in that root. Attempt roots are never reused: a root that failed
+stays sealed as evidence of what failed.
+
+## Attempts
+
+| Attempt | Reached | Failure | Cost (USD) | Cause | Fix |
+|---|---|---|---:|---|---|
+| 001 | canary rejected | `provider_contract` | 0.00000 | Route seal carried `allow_fallbacks`/`provider_cost_status`; the OpenRouter adapter accepts exactly five metadata fields and rejects anything else before the network. | `b7acb3fc` |
+| 002 | canary rejected | `rate_limit` | 0.00000 | Transient 429 on the unscored, zero-cost probe permanently sealed the root, because the canary was write-once. | `07d1f6f1` |
+| 003 | case 00 | `SchedulerContractError` | 0.00004 | Agent profile declared `seed: None`; the adapter refuses a diagnostic run whose seed is unstated. **Canary re-probe validated live**: probes 1-3 `rate_limit`, probe 4 admitted. | `8a19f021` |
+| 004 | case 00 | `SchedulerContractError` | 0.00004 | GLM returned a generic `submit` instead of `submit_purchase_plan`; the harness treated a first malformed burst as fatal instead of correctable. | `5904bf1a` |
+| 005 | case 00 | `SchedulerContractError` | 0.00003 | Response truncated mid-JSON (decode failed at char 910) against a 900-token output budget. | `eb689a4a` |
+| 006 | case 00 | `SchedulerContractError` | 0.00004 | Parasail shared-pool 429 with `max_action_attempts: 1` and no retryable conditions, inherited from tau3's profile. | `01bb1a07` |
+| 007 | case 00 | `RuntimeError` | 0.00004 | Ran all 100 periods; receipt `invalid_measurement`/`excluded` because GLM submitted `[]` where a mapping is required, in every period. Two defects: the interface never stated the shape, and the campaign aborted on a measurement verdict. | `40b7f08f` |
+| 008 | case 01 | `SchedulerContractError` | 0.01051 | Spurious Parasail **404** on an endpoint OpenRouter listed as available, after case 00 scored `ok/included`. Classified `provider_rejected`, deliberately not retryable. | none -- route fault |
+| 009 | case 02 | `SchedulerContractError` | 0.02164 | Scheduling case exhausted the harness's corrective rounds; the sealed responses show one round returned an **empty string**, spending a round on silence when `empty_response` is a typed provider condition. | `5b81cab4` |
+| 010 | case 00 | `SchedulerContractError` | 0.00004 | Ten attempts against a 429 burst exhausted in ~2 minutes: retry backoff is opt-in through `harness.config`, and with none declared the executor never sleeps. | `93f2f148` |
+| 011 | -- | -- | see below | First attempt to clear the panel. | -- |
+
+Total spent on failed attempts: **0.03238 USD**.
+
+## What the failures were, by kind
+
+- **Our contract errors (001, 003, 004, 005, 007-a)** -- five separate ways the
+  adapter did not say what the kernel or the provider required. All were
+  cheap, because each failed on the first action of the first case.
+- **Our operational-policy errors (002, 006, 007-b, 009, 010)** -- the retry,
+  backoff, probe and abort policies were inherited from tau3, whose episode
+  shape (12 rounds, Arena route) is nothing like this family's (100
+  sequential calls per case, shared-pool route). Four of the five were only
+  visible against a real route.
+- **Route faults (008, and the bursts inside 002/003/010)** -- Parasail's
+  shared upstream pool rate-limits in bursts and returned one spurious 404.
+  These are not fixable in our code and are recorded, not worked around: a
+  404 stays non-retryable so a genuinely misconfigured route cannot hide.
+
+## Two failures that would not have failed loudly
+
+Worth separating from the list above, because a passing run could have
+carried them:
+
+1. **Nondeterministic replay divergence (scheduling).** Upstream renders a
+   Python `set` into its failure message (`stable_matching_environment.py:22`),
+   and set order is not stable across processes, so the tool-replay
+   cross-check compared two strings with identical content and disagreed --
+   sometimes. Caught by a dry run, fixed at the bridge boundary (`5904bf1a`).
+2. **Half-executed periods.** The harness validated tool calls while
+   executing them, so a burst rejected partway left tool effects the
+   environment never scored. Fixed by validating a period as a unit before
+   any call runs (`5904bf1a`).
+
+## Cross-family findings
+
+Two of these are not econevals problems and are logged here only because
+this campaign is where they surfaced:
+
+- **`initial_state` call form** (`018b66b4`): the kernel called the hook with
+  a keyword in the replay path and positionally in the scheduler. Nine of the
+  eleven external adapters name that parameter `cell`, so **no external
+  adapter could produce a replayed receipt**. Blocks #91, #92 and #93 equally.
+- **Write-once canary** (`07d1f6f1`): already documented in
+  `docs/families/procurement-allocation/design_review.md` after it sealed two
+  attempt roots there. It sealed two more here (001, 002) before the fix, and
+  the fix then saved roots 003 and 010 on live 429 bursts.
