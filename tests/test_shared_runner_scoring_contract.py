@@ -57,7 +57,7 @@ import itertools
 import json
 from pathlib import Path
 from types import MappingProxyType
-from typing import Any, Mapping, Sequence
+from typing import Any, Callable, Mapping, Sequence
 
 import pytest
 
