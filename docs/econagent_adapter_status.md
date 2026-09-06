@@ -318,6 +318,17 @@ malformed-or-operational-failure, degenerate-reference) pass against the real br
 
 ## Open items noted in the ledger, not fixed here
 
+- **Escalated, not fixed here: two live episodes of the identical `family_case`,
+  finalized out of mint order, can consume each other's `bridge_session_id`.**
+  `docs/econagent_migration_review.md` finding 1 (independent review, 2026-09-06):
+  `_mint_session_id`'s no-cell fallback (`environment.py:645-716`) is an in-order FIFO,
+  and kernel replay has no way to name which live episode it is replaying — see that
+  method's own "Stated limit" paragraph. A genuine fix needs
+  `task.evaluation._replay_family_trajectory` to thread the sealed evidence's own
+  `cell_id` through as `run`, which is a shared-kernel change touching every migrated
+  family's replay path, not something this adapter's own code can fix. Confirmed
+  reachable (two evaluation blocks running the identical case) and recorded there with
+  full evidence for an owner decision.
 - No static Gate-1/Gate-2 check in the shared kernel cross-validates a case's declared
   `episode.max_logical_actions` against its phases' actual seat cardinality before an
   episode is really run through `run_episode` — the exact gap that let the
