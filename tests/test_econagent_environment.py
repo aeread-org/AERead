@@ -19,6 +19,7 @@ from aeread.shared_runner.registry import (
     PluginRegistry,
 )
 from aeread.shared_runner.schemas import CaseManifest
+from aeread_families.econagent_v1 import measurement
 from aeread_families.econagent_v1.cases import SCENARIOS
 from aeread_families.econagent_v1.econagent_bridge import (
     EconAgentBridgeUnavailableError,
@@ -90,6 +91,35 @@ def test_family_manifest_declares_no_optimum_and_one_scripted_policy() -> None:
     assert manifest.measurement.comparison_baseline is None
     assert manifest.roles["agent"].testable is True
     assert manifest.roles["agent"].scripted_policies == ("complex",)
+
+
+def test_family_manifest_declares_the_three_leaf_finalize_time_policy() -> None:
+    """kernel_scoring_contract_spec.md section 3, migration milestone 2 of 3.
+
+    ``econagent_budget_identity_leaf`` is this family's own already-declared
+    ``primary_estimand`` (mirrored above); it and
+    ``econagent_tax_bracket_arithmetic_leaf`` (the two ``rule_constraint``
+    accounting leaves) gate admission, and ``econagent_macro_trajectory_leaf``
+    (comparative, descriptive-only, per ``build_macro_trajectory_leaf``'s own
+    docstring) does not -- see ``docs/econagent_adapter_status.md``'s
+    "Leaf policy" section for the full reasoning.
+    """
+    manifest = family_manifest()
+    declared = manifest.measurement.finalize_time_leaf_policy()
+
+    assert set(declared.leaf_ids) == {
+        measurement.BUDGET_IDENTITY_LEAF_ID,
+        measurement.TAX_BRACKET_LEAF_ID,
+        measurement.MACRO_TRAJECTORY_LEAF_ID,
+    }
+    assert declared.primary_leaf_id == measurement.BUDGET_IDENTITY_LEAF_ID
+    assert declared.admission_leaf_ids == (
+        measurement.BUDGET_IDENTITY_LEAF_ID,
+        measurement.TAX_BRACKET_LEAF_ID,
+    )
+    # Ordering never encodes policy (spec section 3) -- primary first, then
+    # lexical leaf_id, matching FamilyScoreSet's own canonicalization.
+    assert declared.leaf_ids[0] == declared.primary_leaf_id
 
 
 def test_phases_is_one_self_looping_simultaneous_phase() -> None:
@@ -234,7 +264,7 @@ def test_scripted_tiny_episode_runs_end_to_end_through_the_real_bridge() -> None
     case = _case("econagent.pilot.tiny4x6.seed0")
     family_case = plugin.validate_payload(case.payload)
     phase = plugin.phases(family_case)[0]
-    state = plugin.initial_state(family_case, cell=None)
+    state = plugin.initial_state(family_case, run=None)
 
     n_agents = family_case["scenario"]["n_agents"]
     episode_length = family_case["scenario"]["episode_length"]
@@ -287,11 +317,11 @@ def test_two_bridge_sessions_do_not_share_state() -> None:
     plugin = EconAgentV1Plugin(upstream_root=UPSTREAM_ROOT)
     case_a = _case("econagent.pilot.tiny4x6.seed0")
     family_case_a = plugin.validate_payload(case_a.payload)
-    state_a = plugin.initial_state(family_case_a, cell=None)
+    state_a = plugin.initial_state(family_case_a, run=None)
 
     case_b = _case("econagent.pilot.small10x12.seed0")
     family_case_b = plugin.validate_payload(case_b.payload)
-    state_b = plugin.initial_state(family_case_b, cell=None)
+    state_b = plugin.initial_state(family_case_b, run=None)
 
     assert state_a["bridge_session_id"] != state_b["bridge_session_id"]
     assert state_a["n_agents"] == 4
