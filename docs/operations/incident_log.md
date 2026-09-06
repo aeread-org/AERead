@@ -34,6 +34,7 @@ are in `evidence/housing_failure_register/`.
 | D-10 | The analysis contract declares `minimum_confirmatory_worlds: 30` while the sealed sweep provided 16 holdout seeds. No confirmatory campaign could satisfy both, and no variance however small changes it because the floor dominates the powered estimate. The two numbers live in different artifacts and had never been compared. | fixed — `housing_case_config_sweep_v2` extends the holdout to 36 seeds, 35 usable |
 | D-11 | The sealed holdout contains a structurally unusable world: the severe configuration at seed `114691332` has a zero assignment upper bound, so it carries no normalized score. Found the first time the holdout was ever generated. | fixed — excluded before any outcome, exclusion re-derived from the generator at load |
 | D-12 | `_critical_failure` decides whether a campaign halts by matching substrings in exception messages. Rewording an error silently changes stopping behaviour. | open |
+| D-14 | A 404 meaning "no endpoint currently matches the pinned route" is typed `provider_rejected` and is not retryable, so a transient derank kills a cell outright. That is the same conflation of availability with identity as D-5, in the retry policy rather than the preflight. Whether it should be retryable is a measurement decision, not an obvious bug: retrying indefinitely against a genuinely absent route would hide a real pin failure. | open |
 | D-13 | The primary estimand averages self-play into the live-opponent aggregate, which QC §5 says to keep separate. Changing it after the pilot would invalidate the variance the sample size derives from. | mitigated — cross-play and self-play published as predeclared slices |
 
 ### operational
@@ -46,6 +47,7 @@ are in `evidence/housing_failure_register/`.
 | O-4 | V19 delivered 32/48 with 16 GLM-seat rate-limit losses concentrated in a two-hour burst; two paired worlds. | superseded by V23 |
 | O-5 | V23 delivered 186/192 with six losses, but four scattered worlds broke, leaving four paired against a declared six, so the sample size was withheld. | superseded by V26 |
 | O-6 | V25 blocked at admission: DeepSeek spent all 4096 completion tokens on reasoning and returned empty content. | fixed via T-2 and T-3 |
+| O-8 | V26, mid-run: both replicates of `severe_cw030_r2 / glm_53_flash__vs__glm_53_flash` at world `123194022` failed together with HTTP 404 typed `provider_rejected`, after 12 provider calls each. OpenRouter returns 404 when no endpoint satisfies the pinned provider under `require_parameters` with fallbacks disabled, so the pinned Parasail GLM endpoint briefly stopped matching. Recorded before diagnosis: at the time it was unclear whether this was a route disappearance, a parameter drift, or a content rejection. | open |
 | O-7 | Across ten campaigns, 47 of 48 trajectory failures carry a GLM seat, on Morph, DeepInfra, Friendli and Parasail alike. The only condition without a GLM seat failed once. This is a model-specific supply constraint through this gateway, not a sequence of provider incidents. | open |
 
 ### tooling
