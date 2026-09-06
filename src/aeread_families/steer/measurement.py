@@ -37,6 +37,7 @@ from typing import Any, Mapping
 
 from aeread.shared_runner.measurement import (
     EstimandSpec,
+    FamilyScoreSet,
     ImplementationRef,
     MeasurementLeafSpec,
     MetricValue,
@@ -241,12 +242,15 @@ class SteerScorer:
     ``aeread.shared_runner.task.evaluation.finalize_family_execution``,
     calls whatever ``build_scorer`` returns AS A CALLABLE, passing a
     ``FamilyScoringInput`` positionally
-    (``plugin.build_scorer(family_case)(scoring_input, evidence_refs=...)``),
-    mirroring ``datacenter_development``, ``procurement_grounding``,
-    ``procurement_allocation``, and ``commercial_state_calibration``'s
-    ``__call__`` methods -- so :meth:`__call__` below unwraps
-    ``scoring_input.outcome`` before delegating. :meth:`score` remains the
-    named entry point tests call directly with a bare outcome mapping.
+    (``plugin.build_scorer(family_case)(scoring_input,
+    evidence_refs=scoring_input.evidence_refs)``, per
+    kernel_scoring_contract_spec.md section 1) -- :meth:`__call__` below is
+    the seam that satisfies that exact production call and returns this
+    family's one declared finalize-time leaf (spec section 5) wrapped in a
+    ``FamilyScoreSet``, never a bare ``ScoreEnvelope`` a caller would have to
+    know to unwrap. :meth:`score` remains the named entry point tests call
+    directly with a bare outcome mapping; ``__call__`` is a thin wrapper
+    over it, no new scoring logic.
     """
 
     question_id: str
@@ -280,17 +284,28 @@ class SteerScorer:
 
     def __call__(
         self, scoring_input: FamilyScoringInput, *, evidence_refs: tuple[str, ...] = ()
-    ) -> ScoreEnvelope:
+    ) -> FamilyScoreSet:
         """The shape ``finalize_family_execution`` actually calls (spec
         section 2's own finding: production scoring invokes
         ``build_scorer(...)`` as a bare callable, never ``.score(...)``).
 
-        Unwraps ``scoring_input.outcome`` before delegating to :meth:`score`,
-        mirroring the other main-resident scorers' ``__call__`` methods --
-        the production finalizer passes a ``FamilyScoringInput``, not a bare
-        outcome mapping.
+        Unwraps ``scoring_input.outcome`` before delegating to :meth:`score`
+        -- a thin wrapper, no new scoring logic -- then packages the one
+        resulting envelope into a ``FamilyScoreSet`` whose primary and sole
+        admission leaf is this family's one declared leaf,
+        ``steer_answer_key`` (spec section 3: there is exactly one candidate,
+        so there is nothing to choose between; see
+        ``docs/steer_adapter_status.md``'s "Leaf policy" section). This
+        replaces the previous shape, which returned that same envelope bare
+        and left the caller to know it had to be unwrapped from a
+        ``FamilyScoreSet`` itself.
         """
-        return self.score(scoring_input.outcome, evidence_refs=evidence_refs)
+        score = self.score(scoring_input.outcome, evidence_refs=evidence_refs)
+        return FamilyScoreSet(
+            primary_leaf_id=self.leaf.leaf_id,
+            scores=(score,),
+            admission_leaf_ids=(self.leaf.leaf_id,),
+        )
 
 
 def build_scorer(row: Mapping[str, Any]) -> SteerScorer:

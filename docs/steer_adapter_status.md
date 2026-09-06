@@ -37,6 +37,52 @@ Milestone 3 (this session) adds:
 - Two new test modules exercising both: `tests/test_steer_e2e.py` (harness +
   sealed evidence) and `tests/test_steer_replay.py` (offline replay).
 
+## Leaf policy (kernel_scoring_contract_spec.md, migration milestone 2 of 3)
+
+`family_manifest()`'s `measurement` block now declares this family's leaf
+policy explicitly (spec section 3), and `SteerScorer.__call__` takes a
+`FamilyScoringInput` and returns a `FamilyScoreSet` carrying the one leaf
+below — the shim that previously returned a bare `ScoreEnvelope` and left
+the caller to unwrap it is gone.
+
+| Leaf | Scope | Primary | Admission |
+|---|---|---|---|
+| `steer_answer_key` | `finalize_time` | **yes** | **yes** |
+
+**Why `steer_answer_key` is primary.** It is the only leaf this family
+declares, so there is exactly one candidate — this is not "the one that was
+easiest to compute" chosen among alternatives (spec section 5's forbidden
+reasoning); there are no alternatives to choose between. The correspondence
+to the manifest is checked directly, not assumed from the id matching by
+coincidence: `family_manifest()`'s `measurement.primary_estimand =
+"steer_answer_key"` (already declared before this milestone) is exactly
+`ANSWER_KEY_ESTIMAND_ID` (`measurement.py`), the estimand id of this same
+leaf, and it agrees in meaning, not just spelling: the manifest's headline
+quantity *is* "does the submitted answer match the gold answer key," and
+that is exactly and only what `steer_answer_key` measures.
+
+**Why it alone gates admission.** Forced, not chosen:
+`MeasurementDeclaration.__post_init__` requires `admission_leaf_ids` to
+include the primary, and with only one declared `finalize_time` leaf,
+`admission_leaf_ids` defaults to `(primary_leaf_id,)` when left unset
+(`schemas.py`). There is no second, diagnostic leaf here to separately
+include or exclude from admission — unlike a family with rule-constraint or
+comparative diagnostics that stay outside the admission gate, STEER's MCQA
+answer key is a deterministic equality check end to end
+(`measurement.py`'s own module docstring), so its one leaf is both the
+headline quantity and the only thing that could possibly gate admission.
+
+**Deferred leaves: none.** `steer_answer_key`'s `evaluation_class` is
+`deterministic`, with no judge, rater, or other not-yet-existing artifact
+anywhere in its verifier declaration. Both values its scorer needs —
+`correct_option_id` (closed-form-from-case: recovered from the cached,
+flattened corpus row and validated by recomputing `source_sha256`) and
+`selected_option_id`/`failure_code` (replayed-episode: this episode's own
+terminal outcome) — are available the moment this episode's evidence is
+sealed, so nothing here waits on an artifact that "may not exist yet" (spec
+section 4). The leaf is declared `scope="finalize_time"`, and no
+`scope="deferred"` leaf exists for this family to wait on anything at all.
+
 ## Evidence
 
 **Family test suite: 138 passed, 0 failed** across all 6 `test_steer_*.py`
