@@ -11,6 +11,7 @@ from aeread.shared_runner import (
     ScoreEnvelope,
     ValidityReport,
     canonical_json_bytes,
+    seal_evaluation_receipt,
     verify_evaluation_receipt,
 )
 from aeread.shared_runner.task.execution import execute_plan_cell
@@ -228,3 +229,160 @@ def test_audit_and_replay_tolerate_kernel_pin_drift_but_not_family_drift(tmp_pat
         audit_family_receipt(setup=family_moved, receipt_path=receipt_path)
     with pytest.raises(ValueError, match="does not belong"):
         replay_housing_receipt(setup=family_moved, receipt=receipt, evidence_root=tmp_path)
+
+
+def test_finalizer_threads_seat_context_from_the_plan_block_and_cell(tmp_path) -> None:
+    """Ruling R12 rule 1: the scorer receives exactly the executed cell's
+    seat context -- the plan's evaluation block's ``subject_seats`` (matched
+    by ``cell.block_id``) and the cell's own ``profile_by_seat`` -- never
+    anything the live episode produced.
+    """
+    setup = build_housing_smoke(
+        tenant_provider="housing_scripted_tenant",
+        tenant_model="housing_scripted_tenant_v1",
+        tenant_revision="1.0.0",
+    )
+    plugin = setup.registry.resolve_manifest(setup.plan.families[0])
+    original_builder = plugin.build_scorer
+    received: dict[str, object] = {}
+
+    def build_scorer(case):
+        original_scorer = original_builder(case)
+
+        def score(scoring_input, *, evidence_refs=()):
+            received["seat_context"] = scoring_input.seat_context
+            return original_scorer(scoring_input, evidence_refs=evidence_refs)
+
+        return score
+
+    plugin.build_scorer = build_scorer
+
+    execution = asyncio.run(
+        execute_plan_cell(
+            plan=setup.plan,
+            cell_id=setup.plan.cells[0].cell_id,
+            registry=setup.registry,
+            evidence_root=tmp_path,
+            prompt_sources=setup.prompt_sources,
+            providers={
+                "housing_scripted_tenant": HousingScriptedTenantProvider(),
+                "housing_scripted_landlord": HousingScriptedLandlordProvider(),
+            },
+            pricing=setup.pricing,
+            episode_attempt_ordinal=0,
+        )
+    )
+    finalize_housing_execution(setup=setup, execution=execution)
+
+    assert "seat_context" in received
+    cell = setup.plan.cells[0]
+    block = next(
+        item for item in setup.plan.evaluation_blocks if item.block_id == cell.block_id
+    )
+    seat_context = received["seat_context"]
+    assert seat_context.subject_seats == block.subject_seats
+    assert dict(seat_context.profile_by_seat) == dict(cell.profile_by_seat)
+
+
+def _reseal_with_tampered_agent_profile_seats(receipt, *, extra_seat: str):
+    """A copy of ``receipt`` whose ``agent_profile_sha256_by_seat`` names one
+    seat the plan's cell does not carry -- self-consistent (freshly resealed,
+    so ``verify_evaluation_receipt`` does not itself object) but structurally
+    wrong for ruling R12 rule 1's dedicated seat-set check to catch.
+    """
+    tampered = dataclasses.replace(
+        receipt,
+        receipt_sha256=None,
+        agent_profile_sha256_by_seat={
+            **receipt.agent_profile_sha256_by_seat,
+            extra_seat: "0" * 64,
+        },
+    )
+    return seal_evaluation_receipt(tampered)
+
+
+def test_replay_rejects_a_receipt_whose_agent_profile_seats_disagree_with_the_plan(
+    tmp_path,
+) -> None:
+    """Ruling R12 rule 1: replay rejects a seat context whose seat set
+    disagrees with the receipt's recorded ``agent_profile_digests``.
+
+    Reachability note: ``PlanCell.profile_by_seat`` is itself part of what
+    makes ``RunPlan.plan_sha256``, so a receipt whose recorded seats
+    genuinely differ from the CURRENT plan's cell almost always fails the
+    earlier run_plan_id/plan_sha256 identity check first. This test reaches
+    the seat-context check specifically by tampering the durable evidence
+    directory's own receipt file directly (bypassing the write-once API,
+    exactly as a corrupted evidence directory would) and passing the
+    correspondingly tampered, freshly-resealed receipt object -- every other
+    check upstream of the seat-context one is engineered to agree, so this
+    check is the one that fires.
+    """
+    setup = build_housing_smoke(
+        tenant_provider="housing_scripted_tenant",
+        tenant_model="housing_scripted_tenant_v1",
+        tenant_revision="1.0.0",
+    )
+    execution = asyncio.run(
+        execute_plan_cell(
+            plan=setup.plan,
+            cell_id=setup.plan.cells[0].cell_id,
+            registry=setup.registry,
+            evidence_root=tmp_path,
+            prompt_sources=setup.prompt_sources,
+            providers={
+                "housing_scripted_tenant": HousingScriptedTenantProvider(),
+                "housing_scripted_landlord": HousingScriptedLandlordProvider(),
+            },
+            pricing=setup.pricing,
+            episode_attempt_ordinal=0,
+        )
+    )
+    receipt = finalize_housing_execution(setup=setup, execution=execution)
+    tampered = _reseal_with_tampered_agent_profile_seats(
+        receipt, extra_seat="nonexistent_seat"
+    )
+
+    receipt_path = execution.evidence.root / "evaluation_receipt.json"
+    receipt_path.write_bytes(canonical_json_bytes(tampered) + b"\n")
+
+    with pytest.raises(ValueError, match="seat context does not match the receipt"):
+        replay_housing_receipt(setup=setup, receipt=tampered, evidence_root=tmp_path)
+
+
+def test_audit_rejects_a_receipt_whose_agent_profile_seats_disagree_with_the_plan(
+    tmp_path,
+) -> None:
+    """Ruling R12 rule 1, the ``audit_family_receipt`` counterpart of the
+    replay test above -- same tampering, same reachability note.
+    """
+    setup = build_housing_smoke(
+        tenant_provider="housing_scripted_tenant",
+        tenant_model="housing_scripted_tenant_v1",
+        tenant_revision="1.0.0",
+    )
+    execution = asyncio.run(
+        execute_plan_cell(
+            plan=setup.plan,
+            cell_id=setup.plan.cells[0].cell_id,
+            registry=setup.registry,
+            evidence_root=tmp_path,
+            prompt_sources=setup.prompt_sources,
+            providers={
+                "housing_scripted_tenant": HousingScriptedTenantProvider(),
+                "housing_scripted_landlord": HousingScriptedLandlordProvider(),
+            },
+            pricing=setup.pricing,
+            episode_attempt_ordinal=0,
+        )
+    )
+    receipt = finalize_housing_execution(setup=setup, execution=execution)
+    tampered = _reseal_with_tampered_agent_profile_seats(
+        receipt, extra_seat="nonexistent_seat"
+    )
+
+    receipt_path = execution.evidence.root / "evaluation_receipt.json"
+    receipt_path.write_bytes(canonical_json_bytes(tampered) + b"\n")
+
+    with pytest.raises(ValueError, match="seat context does not match the receipt"):
+        audit_family_receipt(setup=setup, receipt_path=receipt_path)
