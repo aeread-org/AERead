@@ -191,7 +191,7 @@ def test_live_amendment_fields_follow_the_actual_diff_and_reject_no_op() -> None
     assert real.legal
 
 
-def test_parse_action_rejects_oversized_integers_as_malformed_json() -> None:
+def test_parse_action_rejects_oversized_integers_as_a_model_error() -> None:
     from aeread.shared_runner.task.execution import CanonicalResponse
 
     plugin = DataCenterStackPlugin("v2")
@@ -213,7 +213,9 @@ def test_parse_action_rejects_oversized_integers_as_malformed_json() -> None:
         cost_usd=0.0,
     )
     result = plugin.parse_action(case, plugin.initial_state(case, None), "developer", phase, response)
-    assert not result.ok and result.error_code == "malformed_json"
+    # Decoding now succeeds and the magnitude guard rejects the term, so the
+    # cell is booked against the model rather than against the provider.
+    assert not result.ok and result.error_code == "malformed_datacenter_stack_action"
 
 
 def _stack(payload, source):

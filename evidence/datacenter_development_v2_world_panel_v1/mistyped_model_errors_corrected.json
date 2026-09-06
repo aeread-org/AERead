@@ -1,0 +1,7 @@
+{
+  "by_model": {
+    "qwen3_235b_google": 14
+  },
+  "note": "recomputed from sealed receipts; these cells carry failure_condition child_provider_outcome_unknown but the underlying cause is a model-emitted integer beyond CPython's decode limit, which the magnitude guard now records as malformed_datacenter_stack_action",
+  "total": 14
+}

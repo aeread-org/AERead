@@ -160,6 +160,22 @@ coverage for those months. That is arguably correct, but it means the
 commencement date, not commercial operation, decides when the covenant starts
 biting.
 
+### A model error booked as an infrastructure failure
+
+Qwen emitted integers of 5,700 to 5,800 digits. CPython refuses to decode an
+integer past 4,300 digits, and that refusal is raised inside the provider call,
+before the family parser runs, so the scheduler recorded 14 cells as
+`child_provider_outcome_unknown` provider missingness. They are model errors.
+Mis-typing them inflates the provider's fault and understates the model's.
+
+The decode limit is now lifted in the plugin and any term beyond a quadrillion
+cents is rejected as a malformed action, so the cell is booked against the
+model. The affected cells in the calibrated run are listed in
+`mistyped_model_errors_corrected.json` alongside the published evidence.
+
+The general lesson is that a family must own the classification of anything a
+model can cause. If a model can trigger it, it is not infrastructure.
+
 ## How this family is quality controlled
 
 Golden-value tests pin what the engine returned last time. They do not say it
@@ -258,7 +274,24 @@ stratum compresses into a one-month distinction.
 
 ---
 
-## What the corrected panel showed
+## What the calibrated panel showed
+
+The 96-cell panel on the recalibrated 50 MW worlds, for $1.90:
+
+| Route | Admitted | Mean developer NPV | vs baseline | Typed failures |
+|---|---:|---:|---:|---:|
+| Gemini 3.8 Flash | 71% | $412.6M | -$148.5M | 0 |
+| gpt-oss-120b | 0% | -$10.7M | -$549.6M | 0 |
+| GLM-5.3-flash | 0% | n/a | n/a | 15 rate-limited |
+| Qwen3-235B | 0% | n/a | n/a | 14 oversized integers |
+
+Gemini transacts on most worlds and still leaves roughly $39M per world on the
+table, the counter-adoption gap the width fix created. gpt-oss now completes
+the panel without a single operational failure but is excluded on 18 of 24
+worlds for schema-invalid actions. Only Gemini and gpt-oss have complete,
+route-verified panels, so only they are ranked.
+
+## What the earlier toy-scale panel showed
 
 The final 96-cell panel on the corrected worlds is the first run in which the
 family measured what it was built to measure.

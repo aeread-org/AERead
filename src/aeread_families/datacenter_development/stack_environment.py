@@ -5,6 +5,7 @@ from __future__ import annotations
 import copy
 import dataclasses
 import json
+import sys
 from typing import Any, Mapping
 
 from aeread.shared_runner.task.execution import CanonicalResponse
@@ -67,6 +68,15 @@ COUNTERPART_BY_KEY = {
     "service": "customer",
     "loan": "lender",
 }
+# A model can emit a several-thousand-digit integer. CPython refuses to decode
+# one past 4,300 digits, and that refusal is raised inside the provider call,
+# before this plugin ever sees the response, so the scheduler records a model
+# error as provider missingness. Lift the decode limit here and reject the
+# value below as the malformed action it is.
+sys.set_int_max_str_digits(100_000)
+# No structured term in this family is plausibly larger than a quadrillion
+# cents (ten trillion dollars).
+MAXIMUM_TERM_MAGNITUDE = 10**15
 OPTIONAL_AGREEMENT_KEYS = frozenset({"land_amendment"})
 AGREEMENT_TYPE_BY_KEY = {
     **{key: key for key in ("land", "power", "epc", "service", "loan")},
@@ -127,6 +137,20 @@ def terms_acceptable(terms: AgreementTerms, policy: Mapping[str, Any]) -> bool:
             return False
     required = set(policy["required_conditions"])
     return required.issubset(set(values.get("conditions_precedent", ())))
+
+
+def _exceeds_magnitude(value: Any) -> bool:
+    """True when any nested integer is too large to be a real contract term."""
+
+    if isinstance(value, bool):
+        return False
+    if isinstance(value, int):
+        return abs(value) > MAXIMUM_TERM_MAGNITUDE
+    if isinstance(value, Mapping):
+        return any(_exceeds_magnitude(item) for item in value.values())
+    if isinstance(value, (list, tuple)):
+        return any(_exceeds_magnitude(item) for item in value)
+    return False
 
 
 def _phase_id(agreement_key: str, kind: str) -> str:
@@ -544,6 +568,8 @@ class DataCenterStackPlugin:
             return ParseResult.failure("malformed_json")
         if not isinstance(value, dict):
             return ParseResult.failure("malformed_action")
+        if _exceeds_magnitude(value):
+            return ParseResult.failure("malformed_datacenter_stack_action")
         key = self._phase_key(phase.phase_id)
         try:
             if phase.phase_id.endswith("_offer"):

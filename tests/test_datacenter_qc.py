@@ -225,3 +225,41 @@ def test_each_seat_has_its_own_discount_rate(field: str) -> None:
     assert facts[f"{field}_discount_rate_bps_annual"] > 0
     # Equity is priced above debt; a family that collapses them is mis-specified.
     assert rates["developer"] > rates["lender"]
+
+
+def test_an_absurd_integer_is_a_model_error_not_an_infrastructure_failure() -> None:
+    """A 6,000-digit term must be recorded against the model, not the provider.
+
+    CPython refuses to decode an integer past 4,300 digits, and that refusal is
+    raised inside the provider call, so without the guard the scheduler books a
+    model error as `child_provider_outcome_unknown` missingness.
+    """
+    from aeread.shared_runner.task.execution import CanonicalResponse
+    from aeread_families.datacenter_development.stack_environment import (
+        DataCenterStackPlugin,
+    )
+
+    plugin = DataCenterStackPlugin("v2")
+    case = plugin.validate_payload(_payload("covenant_cliff_001.json"))
+    phase = next(p for p in plugin.phases(case) if p.phase_id == "land_developer_offer")
+    absurd = "9" * 6_000
+    response = CanonicalResponse(
+        text='{"decision": "offer", "message": "m", "terms": {"purchase_price_cents": '
+        + absurd
+        + "}}",
+        finish_reason="stop",
+        empty=False,
+        truncated=False,
+        provider_call_ids=(),
+        tool_invocation_ids=(),
+        input_tokens=0,
+        cached_input_tokens=0,
+        output_tokens=0,
+        cost_usd=0.0,
+    )
+
+    result = plugin.parse_action(
+        case, plugin.initial_state(case, None), "developer", phase, response
+    )
+    assert not result.ok
+    assert result.error_code == "malformed_datacenter_stack_action"
