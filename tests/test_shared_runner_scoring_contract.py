@@ -125,6 +125,10 @@ from aeread_families.commercial_state_calibration import (
     commercial_state_measurement_leaf,
 )
 from aeread_families.govsim.environment import DISCUSS_PHASE, HARVEST_PHASE, REFLECT_PHASE
+from aeread_families.govsim.measurement import (
+    NO_COLLAPSE_LEAF_ID,
+    THRESHOLD_ADHERENCE_LEAF_ID,
+)
 from aeread_families.housing.runner import (
     HousingScriptedLandlordProvider,
     HousingScriptedTenantProvider,
@@ -2220,6 +2224,17 @@ def test_govsim_obeys_the_scoring_contract(tmp_path: Path) -> None:
     ``govsim_threshold_adherence`` -- see ``_govsim_fixture_pair``'s own
     docstring and the module comment above it for why the paired-history
     pair alone cannot witness either).
+
+    ``docs/govsim_migration_review.md``'s second review pass: the generic
+    helper above only proves each trajectory leaf changed on SOME same-case
+    pair -- it never asserts that ``collapse_witness`` actually collapsed,
+    or that ``threshold_breach_witness`` actually breached. Beside the
+    helper call, this test now also asserts each witness fixture's own
+    named postcondition directly (read off the real scores it produced),
+    plus the clean baseline on ``left``/``right``, so a drifting schedule
+    (an upstream threshold change, a clamped harvest, a differently
+    regenerated pool) that silently stops doing what the fixture is named
+    for fails here instead of rotting unnoticed.
     """
     registry = PluginRegistry()
     manifest, plugin, fixtures = _govsim_fixture_pair(tmp_path)
@@ -2228,7 +2243,101 @@ def test_govsim_obeys_the_scoring_contract(tmp_path: Path) -> None:
     key = (registration.family_id, registration.family_version)
     assert key == ("govsim", "0.1.0")
 
-    _assert_family_obeys_the_scoring_contract(key, registration, fixtures)
+    result = _assert_family_obeys_the_scoring_contract(key, registration, fixtures)
+
+    # produced_by_case is ordered exactly as _govsim_fixture_pair returns its
+    # fixtures: left, right, collapse_witness, threshold_breach_witness.
+    _left_input, left_scores, left_case = result.produced_by_case[0]
+    _right_input, right_scores, _right_case = result.produced_by_case[1]
+    collapse_input, collapse_scores, _collapse_case = result.produced_by_case[2]
+    breach_input, breach_scores, _breach_case = result.produced_by_case[3]
+    max_num_rounds = int(left_case["env_cfg"]["max_num_rounds"])
+
+    # collapse_witness (_GOVSIM_COLLAPSE_HARVEST_SCHEDULE): govsim_no_collapse
+    # (score_no_collapse, src/aeread_families/govsim/measurement.py) must
+    # report the collapsed verdict -- primary=0.0 and a collapse_round
+    # metric -- and the episode must have genuinely terminated by collapse
+    # (num_round < max_num_rounds), never by reaching the horizon.
+    collapse_no_collapse_score = next(
+        score for score in collapse_scores.scores if score.leaf.leaf_id == NO_COLLAPSE_LEAF_ID
+    )
+    assert collapse_no_collapse_score.primary.value == 0.0, (
+        "collapse_witness: govsim_no_collapse did not report the collapsed "
+        "verdict (primary != 0.0) -- this fixture is named for a genuine "
+        "early pool collapse"
+    )
+    assert "collapse_round" in collapse_no_collapse_score.metrics, (
+        "collapse_witness: govsim_no_collapse did not set a collapse_round "
+        "metric -- this fixture is named for a genuine early pool collapse"
+    )
+    assert collapse_no_collapse_score.metrics["collapse_round"].value == 1.0, (
+        "collapse_witness: collapse_round metric was "
+        f"{collapse_no_collapse_score.metrics['collapse_round'].value!r}, not the "
+        "expected round 1 -- this fixture's single-round 49+49 harvest is named "
+        "for collapsing that same round"
+    )
+    assert collapse_input.outcome["num_round"] < max_num_rounds, (
+        "collapse_witness: the episode reached the horizon "
+        f"(num_round={collapse_input.outcome['num_round']} == "
+        f"max_num_rounds={max_num_rounds}) instead of terminating by collapse -- "
+        "this fixture is named for a genuine early pool collapse, not for "
+        "reaching the horizon"
+    )
+
+    # threshold_breach_witness (_GOVSIM_ASYMMETRIC_THRESHOLD_BREACH_SCHEDULE):
+    # govsim_threshold_adherence (score_threshold_adherence, same module)
+    # must report the breaching verdict -- primary=0.0 -- with the per-agent
+    # detail identifying persona_0 (harvest 15 against round 0's threshold
+    # of 10) as the breaching seat and persona_1 (harvest 3) as compliant,
+    # AND the episode must still have reached the horizon
+    # (num_round == max_num_rounds), so this fixture genuinely isolates a
+    # threshold breach rather than re-testing collapse.
+    breach_threshold_score = next(
+        score
+        for score in breach_scores.scores
+        if score.leaf.leaf_id == THRESHOLD_ADHERENCE_LEAF_ID
+    )
+    assert breach_threshold_score.primary.value == 0.0, (
+        "threshold_breach_witness: govsim_threshold_adherence did not report "
+        "the breaching verdict (primary != 0.0) -- this fixture is named for "
+        "a genuine per-agent threshold breach"
+    )
+    assert breach_threshold_score.metrics["round_0_persona_0_within_threshold"].value == 0.0, (
+        "threshold_breach_witness: round_0_persona_0_within_threshold did not "
+        "report a breach -- this fixture is named for persona_0's round-0 "
+        "harvest of 15 breaching the threshold of 10"
+    )
+    assert breach_threshold_score.metrics["round_0_persona_1_within_threshold"].value == 1.0, (
+        "threshold_breach_witness: round_0_persona_1_within_threshold reported "
+        "a breach -- this fixture is named for an ASYMMETRIC breach (only "
+        "persona_0 over threshold), not a symmetric one"
+    )
+    assert breach_input.outcome["num_round"] == max_num_rounds, (
+        "threshold_breach_witness: the episode did not reach the horizon "
+        f"(num_round={breach_input.outcome['num_round']} != "
+        f"max_num_rounds={max_num_rounds}) -- this fixture is named to isolate a "
+        "threshold breach from collapse, and must reach the horizon normally"
+    )
+
+    # left/right: the clean paired-history baseline the check above
+    # compares -- neither collapses nor breaches, for either fixture.
+    for name, scores in (("left", left_scores), ("right", right_scores)):
+        no_collapse_score = next(
+            score for score in scores.scores if score.leaf.leaf_id == NO_COLLAPSE_LEAF_ID
+        )
+        threshold_score = next(
+            score
+            for score in scores.scores
+            if score.leaf.leaf_id == THRESHOLD_ADHERENCE_LEAF_ID
+        )
+        assert no_collapse_score.primary.value == 1.0, (
+            f"{name}: govsim_no_collapse reported a collapse -- {name} is the "
+            "clean paired-history baseline and must not collapse"
+        )
+        assert threshold_score.primary.value == 1.0, (
+            f"{name}: govsim_threshold_adherence reported a breach -- {name} is "
+            "the clean paired-history baseline and must not breach"
+        )
 
 
 def test_determinism_precheck_adjacency_defeats_call_parity_aliasing(tmp_path: Path) -> None:
