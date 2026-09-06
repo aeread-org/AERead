@@ -1,6 +1,7 @@
 # govsim adapter — status
 
-Branch `zeyu/govsim-adapter`. Last verified 2026-09-02.
+Branch `zeyu/govsim-contract-migration`, stacked on `zeyu/kernel-r9r10` (rulings
+R9/R10). Last verified 2026-09-06.
 
 ## What the adapter claims
 
@@ -26,6 +27,69 @@ This milestone (3 of 3) adds the scripted harness and the offline replayer,
 so an episode can now be driven end to end through the REAL kernel path and
 independently reproduced from a sealed record with zero further policy
 evaluation and zero network calls.
+
+## Leaf policy (kernel_scoring_contract_spec.md, migration milestone 2 of 3)
+
+`family_manifest()`'s `measurement` block now declares this family's leaf
+policy explicitly (spec section 3), and `GovsimScorer.__call__` takes a
+`FamilyScoringInput` and returns a `FamilyScoreSet` carrying every one of the
+five leaves below — the shim that previously returned only
+`govsim_survival_months` (see the retired "Known limits" entry below) is
+gone.
+
+| Leaf | Scope | Primary | Admission |
+|---|---|---|---|
+| `govsim_no_collapse_leaf` | `finalize_time` | no | no |
+| `govsim_threshold_adherence_leaf` | `finalize_time` | no | no |
+| `govsim_survival_months_leaf` | `finalize_time` | **yes** | **yes** |
+| `govsim_total_harvest_leaf` | `finalize_time` | no | no |
+| `govsim_equality_gini_leaf` | `finalize_time` | no | no |
+
+**Why `govsim_survival_months` is primary.** It is this family's own
+already-declared `primary_estimand` (`family_manifest()`'s `measurement`
+block, present since before this milestone) and its headline economic
+quantity: how long the commons survives before collapse-or-horizon under the
+policy being evaluated. It was not picked because it was the easiest leaf to
+compute through the pre-migration seam (if anything it is the opposite —
+`govsim_survival_months`'s inputs (`num_round`, `collected_resource`,
+`termination_reason`) come straight off `scoring_input.outcome`, while the
+two rule/constraint leaves are the ones that need trajectory reconstruction:
+they read `round_trace`, which `outcome` never carries, so
+`GovsimScorer.__call__` reconstructs it via
+`_round_trace_from_phase_instances`, off the last replayed `PhaseInstance`'s
+last transition state; the choice tracks the family's own declared
+estimand, not convenience).
+
+**Why it alone gates admission.** The other four are diagnostics, not
+admission gates, for two independent reasons already recorded in
+`measurement.py`'s own module docstring before this milestone:
+
+- `govsim_no_collapse_leaf`/`govsim_threshold_adherence_leaf` are
+  `rule_constraint` diagnostics per `docs/verifier_taxonomy.md` section 4
+  ("a hard gate … should not silently convert a normative tradeoff into
+  invalidity") — a policy that lets the commons collapse, or exceeds the
+  advisory threshold, did something economically informative, not something
+  unmeasurable.
+- `govsim_total_harvest_leaf`/`govsim_equality_gini_leaf` are `comparative`,
+  `direction="none"` leaves with no certified policy upper bound
+  (`docs/problem_bound_case_audit.md` row P06) and are explicitly flagged
+  unreliable for the degenerate `num_agents=1` golden. A low harvest or a
+  high Gini is a measured (`status="ok"`) outcome, never grounds to exclude
+  the receipt — gating admission on any of these would misuse
+  `invalid_measurement` for "the model did economically poorly" rather than
+  its actual meaning, "this could not be measured."
+
+Only an `operational_failure` termination invalidates every leaf at once
+(all five scorers share that one check), so in practice admission today
+tracks whether the episode could be measured at all, never a comparative
+value's magnitude.
+
+**Deferred leaves: none.** Every leaf in this family is
+`evaluation_class="deterministic"` with no judge, rater, or other
+not-yet-existing artifact anywhere in its verifier declaration
+(`measurement.py`'s `build_*_leaf` functions); nothing here waits on an
+artifact that "may not exist yet" (spec section 4), so all five are declared
+`scope="finalize_time"` and none is `scope="deferred"`.
 
 ## Evidence
 
@@ -86,26 +150,109 @@ from_the_original_and_is_caught_by_comparison` mutates one recorded
 `quantity` and confirms the replay's resulting state genuinely diverges and
 `assert_replay_matches` raises rather than silently passing.
 
-**Suite: 101 passed, 0 failed, 0 skipped** running the entire family test
-file set (`tests/test_govsim_cases.py`, `tests/test_govsim_environment.py`,
-`tests/test_govsim_measurement.py`, `tests/test_govsim_replay.py`) plus
-`tests/test_shared_runner_smoke.py`, with `$AEREAD_GOVSIM_BRIDGE_PYTHON`
-pointed at the provisioned `bridges/govsim-venv/bin/python` — every
-bridge-gated fidelity test (the five QC Gate-2 goldens against the real
-upstream checkout, the gini parity check, both replay episodes, and —
-following the independent review's fix pass (`docs/govsim_review_
-disposition.md`) — the `sheep`/`pollution` cross-scenario parity check and
-the `run_episode`-driven reject-policy abort test) actually ran, none merely
-skipped past. Without the bridge set, the same command reports 80 passed /
-21 skipped — the skips are exactly the bridge-gated tests above, each with a
-`pytest.skip` reason naming `$AEREAD_GOVSIM_BRIDGE_PYTHON` and
+**A real receipt now exists.** Before this milestone this family had never
+produced an `EvaluationReceipt`. `test_finalize_wires_govsim_to_the_shared_
+family_finalizer` (`tests/test_govsim_replay.py`) drives one small, real,
+bridge-backed two-agent/two-round episode through
+`EvidenceRecordingGovsimHarness` (which writes the full generic evidence
+trail `finalize_family_execution`'s internal replay can consume, unlike
+`ScriptedGovsimHarness`'s own convenience-only event) and then calls
+`aeread.shared_runner.task.evaluation.finalize_family_execution` directly —
+the real production finalizer, not a stand-in. The returned receipt has
+`status == "ok"`, `inclusion_status == "included"`, carries all five
+declared leaf ids, and `primary_leaf_id == govsim_survival_months_leaf`.
+
+**The scoring-contract protocol test is enrolled, and a silent skip is now
+caught.** `test_govsim_obeys_the_scoring_contract`
+(`tests/test_shared_runner_scoring_contract.py`) enrolls this family in the
+shared scoring-contract protocol check via `_govsim_fixture_pair`, a
+bridge-gated fixture set run through the same `_assert_family_obeys_the_
+scoring_contract` every other migrated family is checked against (renamed
+from `_assert_family_scoring_contract` when this branch stacked onto
+`zeyu/kernel-r9r10`, which had already extracted the identical per-family
+protocol body under that name for its own R9/R10 end-to-end tests — govsim's
+copy was dropped in favor of the kernel's one helper, never kept alongside
+it). Because that fixture set needs the real bridge, the test itself is
+per-test skipped when the bridge is unavailable — independent review
+finding 1 (`docs/govsim_migration_review.md`) flagged that a plain green CI
+run could hide this skip entirely, since the closed-world catalog closure
+counted govsim as enrolled regardless of whether this test ran. The fix
+(commit `b853ed74`, root `conftest.py`) added a dedicated
+`AEREAD_GOVSIM_BRIDGE_REQUIRED` entry: setting it to `1` turns that skip
+into a failed run instead of a silent pass, mirroring the already-
+established mechanism for tau2-bench/econ-evals/etc.
+`tests/test_govsim_bridge_required_gate.py`'s six cases verify this
+directly against the real `conftest.pytest_terminal_summary` hook, never a
+reimplementation of it.
+
+`_govsim_fixture_pair` now returns four fixtures, not two. The first two are
+unchanged from before this rebase — the paired-history pair (byte-identical
+terminal outcome, genuinely differing trajectory) `_assert_family_obeys_
+the_scoring_contract` reads via `produced_by_case[:2]` for ruling R7's
+mislabelling contrapositive over the three `terminal_state`-scoped leaves.
+The kernel's own ruling R9(b) sensitivity witness
+(`_assert_trajectory_leaves_are_witnessed`) additionally requires each
+`trajectory`-scoped leaf to change on some same-case pair (same
+`family_case`, differing `phase_instances`) — the paired-history pair alone
+cannot show this for either of govsim's two trajectory leaves: it is a
+symmetric per-seat swap, so `govsim_threshold_adherence` stays identical,
+and neither fixture collapses early, so `govsim_no_collapse` stays
+identical too (confirmed as a real, observed failure before the fixtures
+below were added, not assumed). Two more same-case fixtures were added
+purely to satisfy that witness: `_GOVSIM_COLLAPSE_HARVEST_SCHEDULE` (a
+round-0 harvest of 98 out of a pool of 100 drives the pre-regeneration pool
+under upstream's own `< 5` collapse test before the horizon, witnessing
+`govsim_no_collapse`) and `_GOVSIM_ASYMMETRIC_THRESHOLD_BREACH_SCHEDULE`
+(one seat harvests above round 0's advisory `sustainability_threshold` of
+10 while the other stays under it, witnessing `govsim_threshold_adherence`,
+then both seats harvest well under round 1's recomputed threshold so the
+episode still reaches the horizon, isolating the difference to that one
+leaf).
+
+**Suite (re-verified after stacking on `zeyu/kernel-r9r10`): 214 passed, 0
+failed, 0 skipped** (one pre-existing `RuntimeWarning` from
+`_vendored_gini`'s all-zero-array nan case, unrelated to this change) running
+the extended family test file set — the original file set below plus the
+two files this stack adds beyond the milestone-3 set
+(`tests/test_govsim_bridge_required_gate.py` and
+`tests/test_shared_runner_schemas.py`, the latter exercised because ruling
+R9 added `trajectory_outcome_paths` to the same `MeasurementDeclaration`
+schema this family's manifest uses) —
+`tests/test_govsim_bridge_driver.py`, `tests/test_govsim_cases.py`,
+`tests/test_govsim_environment.py`, `tests/test_govsim_measurement.py`,
+`tests/test_govsim_parity.py`, `tests/test_govsim_replay_skip_behavior.py`,
+`tests/test_govsim_replay.py`, `tests/test_shared_runner_smoke.py`, with
+`$AEREAD_GOVSIM_BRIDGE_PYTHON` and `$AEREAD_GOVSIM_UPSTREAM_ROOT` both
+pointed at the provisioned bridge — every bridge-gated fidelity test (the
+five QC Gate-2 goldens against the real upstream checkout, the gini parity
+check, both replay episodes, and — following the independent review's fix
+pass (`docs/govsim_review_disposition.md`) — the `sheep`/`pollution`
+cross-scenario parity check and the `run_episode`-driven reject-policy abort
+test) actually ran, none merely skipped past. Without the bridge set, the
+same command reports **188 passed, 26 skipped, 0 failed** — the skips are
+exactly the bridge-gated tests above, each with a `pytest.skip`
+reason naming `$AEREAD_GOVSIM_BRIDGE_PYTHON` and
 `tools/govsim_bridge/provision.sh`, never a silent pass.
+`tests/test_govsim_bridge_required_gate.py`'s own six cases never touch the
+bridge (they drive `conftest.py`'s hook against hand-built fakes), so they
+pass either way.
+
+`tests/test_shared_runner_scoring_contract.py` on its own (the full file —
+every test, not only `test_govsim_obeys_the_scoring_contract`), bridge
+exported: **32 passed, 0 failed, 0 skipped**, including the new
+`test_sensitivity_witness_*` cases ruling R9(b) adds and govsim's own
+four-fixture `test_govsim_obeys_the_scoring_contract` above.
 
 ```bash
 export AEREAD_GOVSIM_BRIDGE_PYTHON=<bridges/govsim-venv path>
-pytest tests/test_govsim_cases.py tests/test_govsim_environment.py \
-       tests/test_govsim_measurement.py tests/test_govsim_replay.py \
-       tests/test_shared_runner_smoke.py
+export AEREAD_GOVSIM_UPSTREAM_ROOT=<upstream-govsim checkout path>
+pytest tests/test_govsim_bridge_driver.py tests/test_govsim_cases.py \
+       tests/test_govsim_environment.py tests/test_govsim_measurement.py \
+       tests/test_govsim_parity.py tests/test_govsim_replay_skip_behavior.py \
+       tests/test_govsim_replay.py tests/test_shared_runner_smoke.py \
+       tests/test_govsim_bridge_required_gate.py \
+       tests/test_shared_runner_schemas.py \
+       tests/test_shared_runner_scoring_contract.py
 ```
 
 ## What it costs to run
@@ -113,10 +260,11 @@ pytest tests/test_govsim_cases.py tests/test_govsim_environment.py \
 Each bridge call spawns a fresh subprocess that replays `reset(seed=...)`
 plus the full ordered action history to date (O(n) upstream `step()` calls
 per bridge call, not O(1) — see `docs/govsim_adapter_spec.md` section 7),
-so cost grows with episode length. The full bridge-required run above (101
+so cost grows with episode length. The full bridge-required run above (127
 tests, including two full episodes driven live and then independently
-replayed, plus every gini-parity, golden-scenario, and cross-scenario
-parity bridge call) took **~206s wall-clock**. No persistent bridge daemon
+replayed, the finalizer-receipt episode, the scoring-contract fixture pair,
+plus every gini-parity, golden-scenario, and cross-scenario parity bridge
+call) took **~260s wall-clock**. No persistent bridge daemon
 is used; the same
 per-call isolation tradeoff `tau2_bridge.py` makes is repeated here
 deliberately, for the same reason — no state can leak between calls through
@@ -170,27 +318,19 @@ a long-lived interpreter.
   code** (`harness.py`, `replay.py`) the way `tau3_retail`'s adapter was
   mutation tested; the tampered-response test above covers one specific
   mutation (a changed `quantity`), not a systematic sweep.
-- **`GovsimScorer.__call__` (the production finalizer seam) surfaces only
-  ONE of this family's five declared leaves, never all five.** It
-  delegates exclusively to `govsim_survival_months` (this family's
-  declared `primary_estimand`) and silently omits `govsim_no_collapse`,
-  `govsim_threshold_adherence`, `govsim_total_harvest`, and
-  `govsim_equality_gini` whenever a caller reaches this family's score
-  through `plugin.build_scorer(family_case)(outcome, evidence_refs=...)`
-  — the exact call `family_evaluation.py`'s `finalize_family_execution`
-  makes. This is a stated limit, not a solved production path: the shared
-  kernel's finalizer call site expects exactly one `ScoreEnvelope` back,
-  while this family (like every family built against the verifier
-  taxonomy) publishes several separately-labelled typed leaves, and
-  picking one as "primary" here only satisfies the kernel's current
-  contract, it does not resolve the underlying mismatch. Tracked as
-  ledger entry **D-16** (`runner_defect_ledger.md`), which records this as
-  an open, kernel-owner decision (leaf-vector sealing vs. a declared
-  single kernel-facing leaf per family) — not something one adapter can
-  settle for itself, and this branch does not attempt to. Separately,
-  `finalize_family_execution`'s only current call site is
-  `housing.py:940`, so this family is not actually invoked through that
-  seam in production today; the gap above is latent, not live.
+- ~~**`GovsimScorer.__call__` surfaces only ONE of this family's five
+  declared leaves, never all five.**~~ **Resolved by this milestone**
+  (`kernel_scoring_contract_spec.md`'s `FamilyScoringInput`/`FamilyScoreSet`
+  contract, migration milestone 2 of 3). `__call__` now takes a
+  `FamilyScoringInput` and returns a `FamilyScoreSet` carrying every one of
+  the five declared leaves; see "Leaf policy" above. This resolves the
+  mismatch ledger entry **D-16** (`runner_defect_ledger.md`) recorded as an
+  open kernel-owner decision: the kernel's finalizer call site no longer
+  expects exactly one `ScoreEnvelope` back, so this family's five
+  separately-labelled leaves no longer need to be collapsed into one to
+  satisfy it. `runner_defect_ledger.md` is not tracked in this branch's
+  worktree, so its own entry is not updated here; this bullet records the
+  resolution from this adapter's side.
 
 ## Ledger
 

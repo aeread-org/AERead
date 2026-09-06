@@ -33,7 +33,15 @@ from typing import Any, Mapping
 import numpy as np
 import pytest
 
-from aeread.shared_runner.task.scheduler import ActionEnvelope, LegalityResult, ParseResult
+from aeread.shared_runner.measurement import FamilyScoreSet
+from aeread.shared_runner.task.evaluation import FamilyScoringInput
+from aeread.shared_runner.task.scheduler import (
+    ActionEnvelope,
+    LegalityResult,
+    ParseResult,
+    PhaseInstance,
+    TransitionResult,
+)
 from aeread_families.govsim import cases as govsim_cases
 from aeread_families.govsim import measurement as m
 from aeread_families.govsim import policies
@@ -41,6 +49,7 @@ from aeread_families.govsim.environment import (
     DISCUSS_PHASE,
     GovsimPlugin,
     HARVEST_PHASE,
+    REFLECT_PHASE,
 )
 from aeread_families.govsim.govsim_bridge import (
     GovsimBridge,
@@ -121,7 +130,7 @@ def _drive_episode(
     use, generalized here so every golden below can drive an arbitrary
     scenario/policy/``num_agents`` combination without repeating the loop.
     """
-    state = plugin.initial_state(family_case, cell=None)
+    state = plugin.initial_state(family_case, run=None)
     phases = {phase.phase_id: phase for phase in plugin.phases(family_case)}
     phase_id = HARVEST_PHASE
     for _ in range(max_phase_steps):
@@ -341,66 +350,165 @@ def test_every_scorer_returns_invalid_measurement_never_a_zero_on_operational_fa
 
 
 # ---------------------------------------------------------------------------
-# GovsimScorer.__call__ -- the production finalizer seam (triage Finding 1).
-# ``family_evaluation.py``'s ``finalize_family_execution`` executes
-# ``plugin.build_scorer(family_case)(recorded_outcome, evidence_refs=...)``
-# directly on whatever ``build_scorer`` returns -- never through a named
-# method the way every golden above does. Before the fix, ``GovsimScorer``
-# had no ``__call__`` and this raised ``TypeError: 'GovsimScorer' object is
-# not callable`` before any score was recorded or receipt issued. Pure, no
-# bridge needed: ``GovsimScorer.__call__`` never touches the bridge.
+# GovsimScorer.__call__ -- the production finalizer seam under the
+# kernel_scoring_contract_spec.md contract (milestone 2 of 3).
+# ``task.evaluation.finalize_family_execution`` executes
+# ``plugin.build_scorer(family_case)(scoring_input,
+# evidence_refs=scoring_input.evidence_refs)`` directly on whatever
+# ``build_scorer`` returns -- never through a named method the way every
+# golden above does. Pure, no bridge needed: ``GovsimScorer.__call__`` never
+# touches the bridge. Before this milestone, ``__call__`` took a raw
+# ``outcome`` mapping and returned exactly ONE of this family's five
+# declared leaves (``govsim_survival_months``), silently dropping the other
+# four; the tests below prove every declared leaf now comes back.
 # ---------------------------------------------------------------------------
 
-
-def test_govsim_scorer_is_callable_and_used_exactly_as_the_production_finalizer_calls_it() -> None:
-    family_case = _family_case("fishing", "sustainable_v1", num_agents=5)
-    scorer = m.build_scorer(family_case)
-    assert callable(scorer)
-
-    outcome = {
-        "termination_reason": "collapse_or_horizon",
-        "outcome_status": "known",
-        "num_round": 12,
-        "resource_in_pool": 40,
-        "collected_resource": {"persona_0": 10, "persona_1": 12},
+_ALL_FIVE_LEAF_IDS = frozenset(
+    {
+        m.NO_COLLAPSE_LEAF_ID,
+        m.THRESHOLD_ADHERENCE_LEAF_ID,
+        m.SURVIVAL_MONTHS_LEAF_ID,
+        m.TOTAL_HARVEST_LEAF_ID,
+        m.EQUALITY_GINI_LEAF_ID,
     }
-
-    score = scorer(outcome, evidence_refs=("evt_outcome_0",))
-
-    assert score.status == "ok"
-    assert score.leaf.leaf_id == m.SURVIVAL_MONTHS_LEAF_ID
-    assert score.primary.value == 12.0
-    # No baseline is reachable from a recorded outcome alone (measurement.py
-    # never re-runs a baseline episode itself): the comparative delta and
-    # reference value are honestly omitted here, never fabricated.
-    assert score.reference_values == {}
-    assert "delta_vs_baseline" not in score.metrics
-    assert score.evidence_refs == ("evt_outcome_0",)
+)
 
 
-def test_govsim_scorer_call_reports_invalid_measurement_for_an_operational_failure_outcome() -> None:
-    family_case = _family_case("fishing", "sustainable_v1", num_agents=5)
-    scorer = m.build_scorer(family_case)
-    outcome = {
-        "termination_reason": "operational_failure",
-        "outcome_status": "outcome_unknown",
-        "num_round": 3,
+def _scoring_input(
+    *,
+    reason: str = "collapse_or_horizon",
+    num_round: int = 12,
+    collected_resource: Mapping[str, int] | None = None,
+    round_trace: list[dict[str, Any]] | None = None,
+    evidence_refs: tuple[str, ...] = ("evt_outcome_0",),
+) -> FamilyScoringInput:
+    """Build a minimal, pure ``FamilyScoringInput`` -- no bridge, no replay.
+
+    ``round_trace`` is threaded through exactly the way a real replay
+    surfaces it: on the LAST phase instance's LAST transition's own
+    ``state`` (``environment.py``'s REFLECT branch accumulates it there and
+    nowhere else -- see ``measurement.py``'s own
+    ``_round_trace_from_phase_instances`` docstring for why ``__call__``
+    reads it from here rather than from ``outcome``).
+    """
+    outcome: dict[str, Any] = {
+        "termination_reason": reason,
+        "outcome_status": "outcome_unknown" if reason == "operational_failure" else "known",
+        "num_round": num_round,
         "resource_in_pool": 40,
-        "collected_resource": {"persona_0": 5},
-        "operational_failure": {
+        "collected_resource": dict(
+            collected_resource
+            if collected_resource is not None
+            else {"persona_0": 10, "persona_1": 12}
+        ),
+    }
+    if reason == "operational_failure":
+        outcome["operational_failure"] = {
             "error_type": "AssertionError",
             "message": "boom",
             "failed_action_index": 2,
+        }
+    phase_instance = PhaseInstance(
+        phase_instance_id="phase_instance_0",
+        phase_id=REFLECT_PHASE,
+        ordinal=0,
+        mode="simultaneous",
+        eligible_actors=tuple(sorted(outcome["collected_resource"])),
+        pre_state_sha256="0" * 64,
+        post_state_sha256="1" * 64,
+        observations={},
+        actions=(),
+        transitions=(
+            TransitionResult(
+                state={"round_trace": round_trace if round_trace is not None else []},
+                next_phase_id=None,
+            ),
+        ),
+    )
+    return FamilyScoringInput(
+        outcome=outcome,
+        phase_instances=(phase_instance,),
+        evidence_refs=evidence_refs,
+    )
+
+
+def test_govsim_scorer_call_returns_every_declared_leaf_never_just_the_primary() -> None:
+    family_case = _family_case("fishing", "sustainable_v1", num_agents=2)
+    scorer = m.build_scorer(family_case)
+    assert callable(scorer)
+
+    round_trace = [
+        {
+            "round_index": 0,
+            "wanted_resource": {"persona_0": 5, "persona_1": 5},
+            "sustainability_threshold": 6,
+            "resource_in_pool_after_regen": 90,
+            "collapsed_or_horizon": False,
         },
-    }
+    ]
+    scoring_input = _scoring_input(
+        num_round=12,
+        collected_resource={"persona_0": 10, "persona_1": 12},
+        round_trace=round_trace,
+        evidence_refs=("evt_outcome_0",),
+    )
 
-    score = scorer(outcome, evidence_refs=("evt_outcome_1",))
+    score_set = scorer(scoring_input, evidence_refs=scoring_input.evidence_refs)
 
-    assert score.status == "invalid_measurement"
-    assert score.primary is None
-    assert score.leaf.leaf_id == m.SURVIVAL_MONTHS_LEAF_ID
-    assert score.validity.status == "invalid"
-    assert score.evidence_refs == ("evt_outcome_1",)
+    assert isinstance(score_set, FamilyScoreSet)
+    assert {score.leaf.leaf_id for score in score_set.scores} == set(_ALL_FIVE_LEAF_IDS)
+    assert score_set.primary_leaf_id == m.SURVIVAL_MONTHS_LEAF_ID
+    assert score_set.admission_leaf_ids == (m.SURVIVAL_MONTHS_LEAF_ID,)
+    assert all(score.evidence_refs == ("evt_outcome_0",) for score in score_set.scores)
+
+    survival = next(s for s in score_set.scores if s.leaf.leaf_id == m.SURVIVAL_MONTHS_LEAF_ID)
+    assert survival.status == "ok"
+    assert survival.primary.value == 12.0
+    # No baseline is reachable from a FamilyScoringInput alone (measurement.py
+    # never re-runs a baseline episode itself): the comparative delta and
+    # reference value are honestly omitted here, never fabricated.
+    assert survival.reference_values == {}
+    assert "delta_vs_baseline" not in survival.metrics
+
+    total_harvest = next(s for s in score_set.scores if s.leaf.leaf_id == m.TOTAL_HARVEST_LEAF_ID)
+    assert total_harvest.status == "ok"
+    assert total_harvest.primary.value == 22.0
+    assert total_harvest.reference_values == {}
+
+    gini = next(s for s in score_set.scores if s.leaf.leaf_id == m.EQUALITY_GINI_LEAF_ID)
+    assert gini.status == "ok"
+    assert gini.reference_values == {}
+
+    no_collapse = next(s for s in score_set.scores if s.leaf.leaf_id == m.NO_COLLAPSE_LEAF_ID)
+    assert no_collapse.status == "ok"
+    assert no_collapse.primary.value == 1.0
+
+    threshold = next(
+        s for s in score_set.scores if s.leaf.leaf_id == m.THRESHOLD_ADHERENCE_LEAF_ID
+    )
+    assert threshold.status == "ok"
+    assert threshold.primary.value == 1.0
+
+
+def test_govsim_scorer_call_reports_invalid_measurement_for_every_leaf_on_operational_failure() -> None:
+    family_case = _family_case("fishing", "sustainable_v1", num_agents=5)
+    scorer = m.build_scorer(family_case)
+    scoring_input = _scoring_input(
+        reason="operational_failure",
+        num_round=3,
+        collected_resource={"persona_0": 5},
+        evidence_refs=("evt_outcome_1",),
+    )
+
+    score_set = scorer(scoring_input, evidence_refs=scoring_input.evidence_refs)
+
+    assert {score.leaf.leaf_id for score in score_set.scores} == set(_ALL_FIVE_LEAF_IDS)
+    assert score_set.primary_leaf_id == m.SURVIVAL_MONTHS_LEAF_ID
+    for score in score_set.scores:
+        assert score.status == "invalid_measurement"
+        assert score.primary is None
+        assert score.validity.status == "invalid"
+        assert score.evidence_refs == ("evt_outcome_1",)
 
 
 # ---------------------------------------------------------------------------
@@ -522,7 +630,7 @@ def test_golden_invalid_unauthorized_rejected_before_any_bridge_call_no_credit(
     plugin = GovsimPlugin(upstream_root=UPSTREAM_ROOT, bridge=counting_bridge)
     family_case = _family_case("fishing", "sustainable_v1", num_agents=5)
 
-    state = plugin.initial_state(family_case, cell=None)
+    state = plugin.initial_state(family_case, run=None)
     calls_after_reset = counting_bridge.call_count
     assert calls_after_reset == 1
 
@@ -564,7 +672,7 @@ def test_golden_malformed_operational_real_upstream_assertion_is_caught_typed(
     plugin = GovsimPlugin(upstream_root=UPSTREAM_ROOT, bridge=corrupting_bridge)
     family_case = _family_case("fishing", "sustainable_v1", num_agents=1)
 
-    state = plugin.initial_state(family_case, cell=None)
+    state = plugin.initial_state(family_case, run=None)
     phases = {phase.phase_id: phase for phase in plugin.phases(family_case)}
     actions = {"persona_0": _envelope("persona_0", {"quantity": 5})}
 

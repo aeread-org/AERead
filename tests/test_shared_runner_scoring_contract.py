@@ -55,11 +55,12 @@ import hashlib
 import itertools
 import json
 from pathlib import Path
-from typing import Any, Mapping, Sequence
+from typing import Any, Callable, Mapping, Sequence
 
 import pytest
 
 import aeread.shared_runner.task.execution as execution_module
+from aeread.shared_runner import episode_id_for_cell, run_episode
 from aeread.shared_runner.measurement import (
     EstimandSpec,
     FamilyScoreSet,
@@ -123,6 +124,11 @@ from aeread_families.commercial_state_calibration import build_offline_setup as 
 from aeread_families.commercial_state_calibration import (
     commercial_state_measurement_leaf,
 )
+from aeread_families.govsim.environment import DISCUSS_PHASE, HARVEST_PHASE, REFLECT_PHASE
+from aeread_families.govsim.measurement import (
+    NO_COLLAPSE_LEAF_ID,
+    THRESHOLD_ADHERENCE_LEAF_ID,
+)
 from aeread_families.housing.runner import (
     HousingScriptedLandlordProvider,
     HousingScriptedTenantProvider,
@@ -137,6 +143,13 @@ from aeread_families.procurement_grounding import (
 )
 from aeread_families.procurement_grounding import procurement_measurement_leaf
 from aeread_families.single_offer.runner import FixedResponseProvider
+
+from tests.test_govsim_replay import (
+    EvidenceRecordingGovsimHarness,
+    _bridge as _govsim_bridge,
+    _two_agent_two_round_case as _govsim_two_agent_two_round_case,
+    build_govsim_setup,
+)
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -1187,6 +1200,148 @@ def _embedding_fixtures(
     return manifest, plugin, fixtures
 
 
+# ---------------------------------------------------------------------------
+# govsim: a real, bridge-backed family with two genuine trajectory-scoped
+# leaves (govsim_no_collapse, govsim_threshold_adherence). Verified
+# constructible against the real bridge directly before being wired in
+# here: two harvest schedules whose per-round AGGREGATE demand (hence the
+# whole pool/regeneration trajectory) is identical, but whose per-seat
+# SPLIT is swapped between rounds, produce a byte-identical terminal
+# outcome (same num_round, resource_in_pool, collected_resource) from a
+# genuinely differing trajectory (differing per-round wanted_resource).
+# Kept out of _build_protocol_test_registry_and_fixtures/the always-on
+# ``test_every_registered_family_obeys_the_scoring_contract`` -- see
+# ``test_govsim_obeys_the_scoring_contract``'s own docstring for why.
+#
+# Ruling R9(b)'s sensitivity witness (``_assert_trajectory_leaves_are_
+# witnessed``) needs, additionally, a same-case pair on which each
+# trajectory leaf actually changes -- the paired-history pair above is a
+# poor witness for either: it is symmetric per-seat, so
+# govsim_threshold_adherence is very likely identical, and neither fixture
+# collapses, so govsim_no_collapse is identical too (proven below by
+# running the always-on test before these fixtures existed:
+# tests/test_shared_runner_scoring_contract.py::test_govsim_obeys_the_
+# scoring_contract failed with "trajectory-scoped leaf(ves)
+# ['govsim_no_collapse_leaf', 'govsim_threshold_adherence_leaf'] never
+# changed"). ``_GOVSIM_COLLAPSE_HARVEST_SCHEDULE`` and ``_GOVSIM_
+# ASYMMETRIC_THRESHOLD_BREACH_SCHEDULE`` below are same-case fixtures
+# (identical world_seed/env_cfg/scenario/personas/policy_assignment --
+# _govsim_fixture_pair's own case) added purely to satisfy that witness;
+# see each schedule's own comment for which leaf it witnesses and why.
+# ---------------------------------------------------------------------------
+
+_GOVSIM_LEFT_HARVEST_SCHEDULE: tuple[Mapping[str, int], ...] = (
+    {"persona_0": 2, "persona_1": 6},
+    {"persona_0": 6, "persona_1": 2},
+)
+_GOVSIM_RIGHT_HARVEST_SCHEDULE: tuple[Mapping[str, int], ...] = (
+    {"persona_0": 6, "persona_1": 2},
+    {"persona_0": 2, "persona_1": 6},
+)
+
+# Witnesses govsim_no_collapse: upstream's own collapse test
+# (concurrent_env.py's step()) fires on the PRE-regeneration pool, so a
+# combined round-0 harvest of 98 (out of the case's initial_resource_in_
+# pool=100) leaves only 2 -- under the "< 5" test -- BEFORE this
+# environment's max_num_rounds=2 horizon, a genuine early collapse
+# (round_number=1 < max_num_rounds=2), unlike _GOVSIM_LEFT/RIGHT_HARVEST_
+# SCHEDULE above (which both reach the horizon and so can never
+# distinguish "collapsed" from "reached the horizon" -- see
+# _assert_trajectory_leaves_are_witnessed's own docstring for exactly this
+# govsim counterexample). Same case as the pair above (same world_seed,
+# env_cfg, scenario, personas, policy_assignment); only the trajectory
+# (and, as a side effect, the terminal outcome) differs.
+_GOVSIM_COLLAPSE_HARVEST_SCHEDULE: tuple[Mapping[str, int], ...] = (
+    {"persona_0": 49, "persona_1": 49},
+)
+
+# Witnesses govsim_threshold_adherence: round 0's advisory
+# sustainability_threshold starts at upstream's own reset()-time default of
+# 10 (concurrent_env.py); persona_0's harvest of 15 breaches it while
+# persona_1's 3 does not -- an ASYMMETRIC per-seat split
+# _GOVSIM_LEFT/RIGHT_HARVEST_SCHEDULE's symmetric swap can never produce
+# (swapping a symmetric pair leaves the same two values on each seat across
+# the pair, never one seat consistently over threshold and the other under
+# it). Round 1's harvest (5/5) stays far under the recomputed threshold
+# (25, from the regenerated, cap-100 pool) so the episode still reaches the
+# horizon normally -- govsim_no_collapse still passes here, isolating this
+# fixture's difference to the threshold leaf alone. Same case as the pair
+# above.
+_GOVSIM_ASYMMETRIC_THRESHOLD_BREACH_SCHEDULE: tuple[Mapping[str, int], ...] = (
+    {"persona_0": 15, "persona_1": 3},
+    {"persona_0": 5, "persona_1": 5},
+)
+
+
+def _govsim_schedule_answer(
+    schedule: Sequence[Mapping[str, int]]
+) -> Callable[[Any], Mapping[str, Any]]:
+    """An ``answer`` callable for ``EvidenceRecordingGovsimHarness`` that
+    plays back a fixed per-round, per-seat harvest quantity; discuss/reflect
+    answer empty, mirroring ``ScriptedGovsimHarness``'s own phase branching.
+    """
+
+    def answer(request: Any) -> Mapping[str, Any]:
+        if request.phase_id == HARVEST_PHASE:
+            round_index = int(request.observation["num_round"])
+            return {"quantity": int(schedule[round_index][request.seat_id])}
+        if request.phase_id in (DISCUSS_PHASE, REFLECT_PHASE):
+            return {}
+        raise RuntimeError(f"no scheduled response for phase {request.phase_id!r}")
+
+    return answer
+
+
+def _govsim_fixture_pair(
+    tmp_path: Path,
+) -> tuple[
+    FamilyManifest,
+    Any,
+    tuple[FamilyScoringFixture, FamilyScoringFixture, FamilyScoringFixture, FamilyScoringFixture],
+]:
+    """The paired-history pair, plus two same-case sensitivity-witness
+    fixtures (ruling R9(b)) -- see the module comment above this function
+    for why the pair alone cannot witness either trajectory leaf.
+
+    The paired-history pair (``left``, ``right``) is unchanged and stays
+    first: ``_assert_family_obeys_the_scoring_contract`` reads
+    ``produced_by_case[:2]`` for that check specifically, so its order and
+    content here must stay exactly what it was before the witness fixtures
+    were added.
+    """
+    bridge_instance = _govsim_bridge()
+    case = _govsim_two_agent_two_round_case(world_seed=0)
+    setup = build_govsim_setup(bridge_instance, case, suffix="scoring_contract_pair")
+    cell = setup.plan.cells[0]
+    family = setup.plan.families[0]
+    plugin = setup.registry.resolve_manifest(family)
+    family_case = plugin.validate_payload(case.payload)
+
+    def _run(schedule: Sequence[Mapping[str, int]], suffix: str) -> FamilyScoringFixture:
+        evidence = EvidenceStore(
+            tmp_path / f"govsim_{suffix}",
+            run_plan_id=setup.plan.run_plan_id,
+            cell_id=cell.cell_id,
+            episode_id=episode_id_for_cell(cell),
+            episode_attempt_id="attempt_1",
+        )
+        harness = EvidenceRecordingGovsimHarness(
+            answer=_govsim_schedule_answer(schedule), evidence=evidence
+        )
+        asyncio.run(
+            run_episode(cell=cell, case=case, plugin=plugin, response_source=harness)
+        )
+        return FamilyScoringFixture(family_case=family_case, sealed_evidence=evidence)
+
+    left = _run(_GOVSIM_LEFT_HARVEST_SCHEDULE, "left")
+    right = _run(_GOVSIM_RIGHT_HARVEST_SCHEDULE, "right")
+    collapse_witness = _run(_GOVSIM_COLLAPSE_HARVEST_SCHEDULE, "collapse_witness")
+    threshold_breach_witness = _run(
+        _GOVSIM_ASYMMETRIC_THRESHOLD_BREACH_SCHEDULE, "threshold_breach_witness"
+    )
+    return family, plugin, (left, right, collapse_witness, threshold_breach_witness)
+
+
 def _build_protocol_test_registry_and_fixtures(
     tmp_path: Path,
 ) -> tuple[PluginRegistry, dict[tuple[str, str], tuple[FamilyScoringFixture, ...]]]:
@@ -1646,7 +1801,10 @@ def _trusted_family_versions(
 # deliberately named, not derived: adding a NEW trusted key -- the exact
 # attack the review demonstrated -- now requires either enrolling a real
 # fixture or explicitly widening this exemption; it can no longer happen
-# silently.
+# silently. ``govsim`` is deliberately NOT here: it IS migrated (see this
+# module's own docstring / _govsim_fixture_pair above) -- see
+# _BRIDGE_GATED_ENROLLED_FAMILY_VERSIONS below for where its migration is
+# accounted for instead.
 _NOT_YET_MIGRATED_TRUSTED_KEYS: "frozenset[tuple[str, str]]" = frozenset(
     {
         ("consent_ir_v1", "1.0.0"),
@@ -1659,9 +1817,9 @@ _NOT_YET_MIGRATED_TRUSTED_KEYS: "frozenset[tuple[str, str]]" = frozenset(
         # External-benchmark adapter families enrolled in
         # TRUSTED_BUILTIN_PLUGIN_KEYS by maintainer ruling on 2026-09-04
         # (PRs #28-#38), landed on main after this branch forked. None of
-        # the eleven has a FamilyScoringInput-contract fixture yet; they
-        # migrate under the per-adapter follow-ups tracked alongside the
-        # other not-yet-migrated families above, not as part of this
+        # the remaining ten has a FamilyScoringInput-contract fixture yet;
+        # they migrate under the per-adapter follow-ups tracked alongside
+        # the other not-yet-migrated families above, not as part of this
         # kernel change.
         ("agenticpay.bilateral", "0.1.0"),
         ("alympics.wac", "0.1.0"),
@@ -1670,11 +1828,27 @@ _NOT_YET_MIGRATED_TRUSTED_KEYS: "frozenset[tuple[str, str]]" = frozenset(
         ("collusion", "0.1.0"),
         ("econagent_v1", "0.1.0"),
         ("econevals", "0.1.0"),
-        ("govsim", "0.1.0"),
         ("negarena", "0.1.0"),
         ("steer", "0.1.0"),
         ("termsbench", "0.1.0"),
     }
+)
+
+# govsim IS migrated and genuinely fixture-covered (_govsim_fixture_pair,
+# test_govsim_obeys_the_scoring_contract below) -- but unlike every other
+# family this suite verifies unconditionally, its fixtures require the
+# real, provisioned govsim bridge (a subprocess executing the pinned
+# upstream simulation). Folding it into
+# _build_protocol_test_registry_and_fixtures/
+# test_every_registered_family_obeys_the_scoring_contract would make THAT
+# test -- and every other family's always-on coverage inside it -- newly
+# skip whenever the bridge is unavailable, which is exactly the kind of
+# quiet coverage loss this suite exists to prevent for everyone else. It is
+# therefore verified in its own per-test-skippable test instead, and named
+# here (not in _NOT_YET_MIGRATED_TRUSTED_KEYS, which would misdescribe it)
+# so ruling R6's closure check still has it accounted for.
+_BRIDGE_GATED_ENROLLED_FAMILY_VERSIONS: "frozenset[tuple[str, str]]" = frozenset(
+    {("govsim", "0.1.0")}
 )
 
 
@@ -2013,15 +2187,157 @@ def test_every_registered_family_obeys_the_scoring_contract(tmp_path: Path) -> N
     # world is TRUSTED_BUILTIN_PLUGIN_KEYS. The assertion above was true by
     # construction and could never fail; a family enrolled there without a
     # fixture (or an explicit, named "not yet migrated" exemption) now fails
-    # here instead.
+    # here instead. govsim is enrolled via _BRIDGE_GATED_ENROLLED_FAMILY_VERSIONS,
+    # not this test's own local ``fixtures`` -- see that set's own docstring.
     _assert_trusted_catalog_is_closed(
         trusted_keys=TRUSTED_BUILTIN_PLUGIN_KEYS,
-        enrolled_family_versions=set(fixtures),
+        enrolled_family_versions=set(fixtures) | _BRIDGE_GATED_ENROLLED_FAMILY_VERSIONS,
         exempt_family_versions=_NOT_YET_MIGRATED_TRUSTED_KEYS,
     )
 
     for key, registration in registrations.items():
         _assert_family_obeys_the_scoring_contract(key, registration, fixtures[key])
+
+
+def test_govsim_obeys_the_scoring_contract(tmp_path: Path) -> None:
+    """govsim's own contract check -- kept out of
+    ``test_every_registered_family_obeys_the_scoring_contract`` (see
+    ``_BRIDGE_GATED_ENROLLED_FAMILY_VERSIONS``'s own docstring for why):
+    this family's fixtures require the real, provisioned govsim bridge (a
+    subprocess executing the pinned upstream simulation), which every OTHER
+    family this suite verifies deliberately does not, so folding it into
+    that always-on test would make THEIR coverage newly skip too whenever
+    the bridge is unavailable. Per-test skip only, never module-level
+    (mirrors ``tests/test_govsim_replay.py``'s own documented convention).
+
+    Runs the identical protocol check
+    (``_assert_family_obeys_the_scoring_contract``) against govsim's own
+    registry registration and ``_govsim_fixture_pair``'s four fixtures: the
+    paired-history pair (byte-identical terminal outcome, genuinely
+    differing trajectory, verified constructible against the real bridge
+    before being wired in here) covering ruling R7's contrapositive for
+    this family's three terminal_state-scoped leaves
+    (``govsim_survival_months``, ``govsim_total_harvest``,
+    ``govsim_equality_gini``), plus two same-case sensitivity-witness
+    fixtures (ruling R9(b)) covering both of this family's genuine
+    trajectory-scoped leaves (``govsim_no_collapse``,
+    ``govsim_threshold_adherence`` -- see ``_govsim_fixture_pair``'s own
+    docstring and the module comment above it for why the paired-history
+    pair alone cannot witness either).
+
+    ``docs/govsim_migration_review.md``'s second review pass: the generic
+    helper above only proves each trajectory leaf changed on SOME same-case
+    pair -- it never asserts that ``collapse_witness`` actually collapsed,
+    or that ``threshold_breach_witness`` actually breached. Beside the
+    helper call, this test now also asserts each witness fixture's own
+    named postcondition directly (read off the real scores it produced),
+    plus the clean baseline on ``left``/``right``, so a drifting schedule
+    (an upstream threshold change, a clamped harvest, a differently
+    regenerated pool) that silently stops doing what the fixture is named
+    for fails here instead of rotting unnoticed.
+    """
+    registry = PluginRegistry()
+    manifest, plugin, fixtures = _govsim_fixture_pair(tmp_path)
+    registry.register_trusted(manifest, plugin)
+    (registration,) = registry.registrations()
+    key = (registration.family_id, registration.family_version)
+    assert key == ("govsim", "0.1.0")
+
+    result = _assert_family_obeys_the_scoring_contract(key, registration, fixtures)
+
+    # produced_by_case is ordered exactly as _govsim_fixture_pair returns its
+    # fixtures: left, right, collapse_witness, threshold_breach_witness.
+    _left_input, left_scores, left_case = result.produced_by_case[0]
+    _right_input, right_scores, _right_case = result.produced_by_case[1]
+    collapse_input, collapse_scores, _collapse_case = result.produced_by_case[2]
+    breach_input, breach_scores, _breach_case = result.produced_by_case[3]
+    max_num_rounds = int(left_case["env_cfg"]["max_num_rounds"])
+
+    # collapse_witness (_GOVSIM_COLLAPSE_HARVEST_SCHEDULE): govsim_no_collapse
+    # (score_no_collapse, src/aeread_families/govsim/measurement.py) must
+    # report the collapsed verdict -- primary=0.0 and a collapse_round
+    # metric -- and the episode must have genuinely terminated by collapse
+    # (num_round < max_num_rounds), never by reaching the horizon.
+    collapse_no_collapse_score = next(
+        score for score in collapse_scores.scores if score.leaf.leaf_id == NO_COLLAPSE_LEAF_ID
+    )
+    assert collapse_no_collapse_score.primary.value == 0.0, (
+        "collapse_witness: govsim_no_collapse did not report the collapsed "
+        "verdict (primary != 0.0) -- this fixture is named for a genuine "
+        "early pool collapse"
+    )
+    assert "collapse_round" in collapse_no_collapse_score.metrics, (
+        "collapse_witness: govsim_no_collapse did not set a collapse_round "
+        "metric -- this fixture is named for a genuine early pool collapse"
+    )
+    assert collapse_no_collapse_score.metrics["collapse_round"].value == 1.0, (
+        "collapse_witness: collapse_round metric was "
+        f"{collapse_no_collapse_score.metrics['collapse_round'].value!r}, not the "
+        "expected round 1 -- this fixture's single-round 49+49 harvest is named "
+        "for collapsing that same round"
+    )
+    assert collapse_input.outcome["num_round"] < max_num_rounds, (
+        "collapse_witness: the episode reached the horizon "
+        f"(num_round={collapse_input.outcome['num_round']} == "
+        f"max_num_rounds={max_num_rounds}) instead of terminating by collapse -- "
+        "this fixture is named for a genuine early pool collapse, not for "
+        "reaching the horizon"
+    )
+
+    # threshold_breach_witness (_GOVSIM_ASYMMETRIC_THRESHOLD_BREACH_SCHEDULE):
+    # govsim_threshold_adherence (score_threshold_adherence, same module)
+    # must report the breaching verdict -- primary=0.0 -- with the per-agent
+    # detail identifying persona_0 (harvest 15 against round 0's threshold
+    # of 10) as the breaching seat and persona_1 (harvest 3) as compliant,
+    # AND the episode must still have reached the horizon
+    # (num_round == max_num_rounds), so this fixture genuinely isolates a
+    # threshold breach rather than re-testing collapse.
+    breach_threshold_score = next(
+        score
+        for score in breach_scores.scores
+        if score.leaf.leaf_id == THRESHOLD_ADHERENCE_LEAF_ID
+    )
+    assert breach_threshold_score.primary.value == 0.0, (
+        "threshold_breach_witness: govsim_threshold_adherence did not report "
+        "the breaching verdict (primary != 0.0) -- this fixture is named for "
+        "a genuine per-agent threshold breach"
+    )
+    assert breach_threshold_score.metrics["round_0_persona_0_within_threshold"].value == 0.0, (
+        "threshold_breach_witness: round_0_persona_0_within_threshold did not "
+        "report a breach -- this fixture is named for persona_0's round-0 "
+        "harvest of 15 breaching the threshold of 10"
+    )
+    assert breach_threshold_score.metrics["round_0_persona_1_within_threshold"].value == 1.0, (
+        "threshold_breach_witness: round_0_persona_1_within_threshold reported "
+        "a breach -- this fixture is named for an ASYMMETRIC breach (only "
+        "persona_0 over threshold), not a symmetric one"
+    )
+    assert breach_input.outcome["num_round"] == max_num_rounds, (
+        "threshold_breach_witness: the episode did not reach the horizon "
+        f"(num_round={breach_input.outcome['num_round']} != "
+        f"max_num_rounds={max_num_rounds}) -- this fixture is named to isolate a "
+        "threshold breach from collapse, and must reach the horizon normally"
+    )
+
+    # left/right: the clean paired-history baseline the check above
+    # compares -- neither collapses nor breaches, for either fixture.
+    for name, scores in (("left", left_scores), ("right", right_scores)):
+        no_collapse_score = next(
+            score for score in scores.scores if score.leaf.leaf_id == NO_COLLAPSE_LEAF_ID
+        )
+        threshold_score = next(
+            score
+            for score in scores.scores
+            if score.leaf.leaf_id == THRESHOLD_ADHERENCE_LEAF_ID
+        )
+        assert no_collapse_score.primary.value == 1.0, (
+            f"{name}: govsim_no_collapse reported a collapse -- {name} is the "
+            "clean paired-history baseline and must not collapse"
+        )
+        assert threshold_score.primary.value == 1.0, (
+            f"{name}: govsim_threshold_adherence reported a breach -- {name} is "
+            "the clean paired-history baseline and must not breach"
+        )
 
 
 def test_determinism_precheck_adjacency_defeats_call_parity_aliasing(tmp_path: Path) -> None:

@@ -103,6 +103,19 @@ _BRIDGE_FAMILIES = (
             "pinned upstream EconAgent checkout not found",
         ),
     ),
+    (
+        "AEREAD_GOVSIM_BRIDGE_REQUIRED",
+        (
+            "Provide the pinned upstream checkout (AEREAD_GOVSIM_UPSTREAM_ROOT) and "
+            "an interpreter for it (tools/govsim_bridge/provision.sh, then export "
+            "$AEREAD_GOVSIM_BRIDGE_PYTHON), or unset $AEREAD_GOVSIM_BRIDGE_REQUIRED "
+            "to allow skipping."
+        ),
+        (
+            "no pinned upstream govsim Python interpreter found",
+            "pinned upstream govsim checkout not found",
+        ),
+    ),
 )
 
 
@@ -116,6 +129,7 @@ _BRIDGE_FAMILY_DISPLAY = {
     "AEREAD_AGENTICPAY_BRIDGE_REQUIRED": {"family": "AgenticPay (agenticpay_bilateral adapter)", "title": "upstream bridge required: AgenticPay (agenticpay_bilateral adapter)", "note_when_unenforced": False},
     "AEREAD_ALYMPICS_UPSTREAM_REQUIRED": {"family": "Alympics (alympics.wac adapter)", "title": "upstream required: alympics.wac", "note_when_unenforced": False},
     "AEREAD_ECONAGENT_BRIDGE_REQUIRED": {"family": "EconAgent (econagent_v1 adapter)", "title": "upstream bridge required: EconAgent (econagent_v1 adapter)", "note_when_unenforced": False},
+    "AEREAD_GOVSIM_BRIDGE_REQUIRED": {"family": "govsim (govsim adapter)", "title": "upstream bridge required: govsim (govsim adapter)", "note_when_unenforced": False},
 }
 
 

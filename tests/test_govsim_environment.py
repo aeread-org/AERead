@@ -24,6 +24,7 @@ from aeread.shared_runner.schemas import FamilyManifest
 from aeread.shared_runner.task.scheduler import ActionEnvelope, LegalityResult, ParseResult
 from aeread_families.govsim import cases as govsim_cases
 from aeread_families.govsim import environment
+from aeread_families.govsim import measurement
 from aeread_families.govsim.environment import (
     DISCUSS_PHASE,
     GovsimPlugin,
@@ -162,6 +163,30 @@ def test_family_manifest_round_trips_through_the_strict_grammar() -> None:
     assert manifest.measurement.optimum_upper_bound is None
 
 
+def test_family_manifest_declares_all_five_leaves_with_survival_months_primary() -> None:
+    """kernel_scoring_contract_spec.md section 3: the manifest, not the
+    scorer or a test fixture, is the one source of the leaf set, the
+    primary, and admission membership. See docs/govsim_adapter_status.md's
+    "Leaf policy" section for why ``govsim_survival_months`` is primary and
+    why it alone gates admission."""
+    manifest = family_manifest()
+    declared = manifest.measurement.finalize_time_leaf_policy()
+
+    assert set(declared.leaf_ids) == {
+        measurement.NO_COLLAPSE_LEAF_ID,
+        measurement.THRESHOLD_ADHERENCE_LEAF_ID,
+        measurement.SURVIVAL_MONTHS_LEAF_ID,
+        measurement.TOTAL_HARVEST_LEAF_ID,
+        measurement.EQUALITY_GINI_LEAF_ID,
+    }
+    assert declared.primary_leaf_id == measurement.SURVIVAL_MONTHS_LEAF_ID
+    assert declared.admission_leaf_ids == (measurement.SURVIVAL_MONTHS_LEAF_ID,)
+    # None of the five leaves waits on a judge verdict or any other
+    # not-yet-existing artifact -- every leaf here is deterministic and
+    # computable at finalize time (spec section 4); none is `deferred`.
+    assert all(leaf.scope == "finalize_time" for leaf in manifest.measurement.leaves)
+
+
 def test_register_plugin_succeeds_with_every_required_hook() -> None:
     registry = PluginRegistry()
     plugin = register_plugin(registry, plugin=_plugin())
@@ -205,7 +230,7 @@ def test_phases_budget_scales_with_num_agents() -> None:
 def test_eligible_actors_harvest_and_reflect_are_every_persona() -> None:
     plugin = _plugin()
     family_case = _family_case(num_agents=5)
-    state = plugin.initial_state(family_case, cell=None)
+    state = plugin.initial_state(family_case, run=None)
     phases = {phase.phase_id: phase for phase in plugin.phases(family_case)}
     personas = tuple(f"persona_{i}" for i in range(5))
     assert plugin.eligible_actors(family_case, state, phases[HARVEST_PHASE]) == personas
@@ -215,7 +240,7 @@ def test_eligible_actors_harvest_and_reflect_are_every_persona() -> None:
 def test_eligible_actors_discuss_is_only_the_fixed_spokesperson() -> None:
     plugin = _plugin()
     family_case = _family_case(num_agents=5)
-    state = plugin.initial_state(family_case, cell=None)
+    state = plugin.initial_state(family_case, run=None)
     phases = {phase.phase_id: phase for phase in plugin.phases(family_case)}
     assert plugin.eligible_actors(family_case, state, phases[DISCUSS_PHASE]) == ("persona_0",)
 
@@ -412,7 +437,7 @@ def test_legal_rejects_a_seat_that_is_not_eligible_for_the_phase() -> None:
     # configuring the fake bridge to accept a call at all.
     plugin = _plugin()
     family_case = _family_case(num_agents=5)
-    state = plugin.initial_state(family_case, cell=None)
+    state = plugin.initial_state(family_case, run=None)
     phases = {phase.phase_id: phase for phase in plugin.phases(family_case)}
     result = plugin.legal(
         family_case, state, "persona_1", phases[DISCUSS_PHASE], {"quantity": 5}
@@ -425,7 +450,7 @@ def test_legal_rejects_a_seat_that_is_not_eligible_for_the_phase() -> None:
 def test_legal_accepts_the_eligible_spokesperson_for_discuss() -> None:
     plugin = _plugin()
     family_case = _family_case(num_agents=5)
-    state = plugin.initial_state(family_case, cell=None)
+    state = plugin.initial_state(family_case, run=None)
     phases = {phase.phase_id: phase for phase in plugin.phases(family_case)}
     result = plugin.legal(family_case, state, "persona_0", phases[DISCUSS_PHASE], {})
     assert result.legal is True
@@ -439,7 +464,7 @@ def test_legal_accepts_the_eligible_spokesperson_for_discuss() -> None:
 def test_observe_rejects_an_ineligible_seat() -> None:
     plugin = _plugin()
     family_case = _family_case(num_agents=5)
-    state = plugin.initial_state(family_case, cell=None)
+    state = plugin.initial_state(family_case, run=None)
     phases = {phase.phase_id: phase for phase in plugin.phases(family_case)}
     with pytest.raises(ValueError, match="not active in phase"):
         plugin.observe(family_case, state, "persona_1", phases[DISCUSS_PHASE])
@@ -448,7 +473,7 @@ def test_observe_rejects_an_ineligible_seat() -> None:
 def test_observe_harvest_exposes_pool_and_threshold() -> None:
     plugin = _plugin()
     family_case = _family_case(num_agents=5)
-    state = plugin.initial_state(family_case, cell=None)
+    state = plugin.initial_state(family_case, run=None)
     phases = {phase.phase_id: phase for phase in plugin.phases(family_case)}
     observation = plugin.observe(family_case, state, "persona_0", phases[HARVEST_PHASE])
     assert observation["resource_in_pool"] == 100
@@ -483,7 +508,7 @@ def test_step_harvest_submits_2n_actions_in_agent_order_then_dummies() -> None:
     bridge = FakeGovsimBridge()
     plugin = _plugin(bridge=bridge)
     family_case = _family_case(num_agents=3)
-    state = plugin.initial_state(family_case, cell=None)
+    state = plugin.initial_state(family_case, run=None)
     phases = {phase.phase_id: phase for phase in plugin.phases(family_case)}
     actions = {
         f"persona_{i}": _envelope(f"persona_{i}", {"quantity": 4 + i})
@@ -505,7 +530,7 @@ def test_step_discuss_submits_one_chat_action_for_the_spokesperson() -> None:
     bridge = FakeGovsimBridge()
     plugin = _plugin(bridge=bridge)
     family_case = _family_case(num_agents=5)
-    state = plugin.initial_state(family_case, cell=None)
+    state = plugin.initial_state(family_case, run=None)
     phases = {phase.phase_id: phase for phase in plugin.phases(family_case)}
     transition = plugin.step(
         family_case, state, phases[DISCUSS_PHASE], {"persona_0": _envelope("persona_0", {})}
@@ -519,7 +544,7 @@ def test_step_reflect_submits_n_home_actions_and_loops_to_harvest() -> None:
     bridge = FakeGovsimBridge()
     plugin = _plugin(bridge=bridge)
     family_case = _family_case(num_agents=2)
-    state = plugin.initial_state(family_case, cell=None)
+    state = plugin.initial_state(family_case, run=None)
     phases = {phase.phase_id: phase for phase in plugin.phases(family_case)}
     actions = {f"persona_{i}": _envelope(f"persona_{i}", {}) for i in range(2)}
     transition = plugin.step(family_case, state, phases[REFLECT_PHASE], actions)
@@ -535,7 +560,7 @@ def test_full_episode_via_stub_bridge_terminates_after_max_num_rounds() -> None:
     bridge = FakeGovsimBridge()
     plugin = _plugin(bridge=bridge)
     family_case = _family_case(num_agents=2)
-    state = plugin.initial_state(family_case, cell=None)
+    state = plugin.initial_state(family_case, run=None)
     phases = {phase.phase_id: phase for phase in plugin.phases(family_case)}
     phase_id = HARVEST_PHASE
     rounds_completed = 0
@@ -570,7 +595,7 @@ def test_step_raises_if_called_after_termination() -> None:
     bridge = FakeGovsimBridge()
     plugin = _plugin(bridge=bridge)
     family_case = _family_case(num_agents=1)
-    state = plugin.initial_state(family_case, cell=None)
+    state = plugin.initial_state(family_case, run=None)
     state["termination"] = "collapse_or_horizon"
     phases = {phase.phase_id: phase for phase in plugin.phases(family_case)}
     with pytest.raises(ValueError, match="already terminated"):
@@ -594,7 +619,7 @@ def test_step_catches_a_bridge_action_error_as_a_typed_operational_failure() -> 
     bridge = FakeGovsimBridge(fail_at_action_count=1)
     plugin = _plugin(bridge=bridge)
     family_case = _family_case(num_agents=1)
-    state = plugin.initial_state(family_case, cell=None)
+    state = plugin.initial_state(family_case, run=None)
     phases = {phase.phase_id: phase for phase in plugin.phases(family_case)}
     actions = {"persona_0": _envelope("persona_0", {"quantity": 5})}
 
@@ -623,7 +648,7 @@ def test_step_catches_a_bridge_action_error_as_a_typed_operational_failure() -> 
 def test_terminal_is_none_before_the_episode_ends() -> None:
     plugin = _plugin()
     family_case = _family_case(num_agents=1)
-    state = plugin.initial_state(family_case, cell=None)
+    state = plugin.initial_state(family_case, run=None)
     assert plugin.terminal(family_case, state) is None
 
 
