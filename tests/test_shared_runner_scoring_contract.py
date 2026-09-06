@@ -36,15 +36,23 @@ that family's environment accumulates its full ordered public history
 directly into the terminal outcome (see ``environment.py``'s
 ``public_history``/``temporal_violations`` state fields, both copied
 verbatim into ``outcome``), so outcome is itself a function of the full
-trajectory: two runs cannot honestly produce a byte-identical outcome from
-differing trajectories, and ``_replay_family_trajectory`` correctly refuses
-any fabricated evidence where they disagree. There is no real family among
-the five already migrated for which the paired-history requirement can be
-honestly exercised today, so this module supplies one purpose-built,
+trajectory. Unlike ``collusion`` below, its manifest does not (yet) declare
+``trajectory_outcome_paths`` (ruling R9), so there is no projection today
+that would let two of its runs honestly produce a byte-identical PROJECTED
+outcome from differing trajectories -- declaring that list is per-family
+migration work a future agent still owes it, not something this module can
+supply on its behalf. This module also supplies one purpose-built,
 provider-free, kernel-owned fixture family (``kernel_contract_reference_v1``)
-solely to give the protocol test a genuine trajectory-scoped leaf it can
-pair honestly. See ``TRUSTED_BUILTIN_PLUGIN_KEYS`` in ``registry.py`` for the
-same note where that family is enrolled as trusted.
+to exercise the mechanics generically, independent of any one real family's
+migration state. See ``TRUSTED_BUILTIN_PLUGIN_KEYS`` in ``registry.py`` for
+the same note where that family is enrolled as trusted.
+
+``collusion`` (below, ``_collusion_fixtures``) is a real family in exactly
+``datacenter_development_v1``'s situation -- its outcome also embeds its
+full trajectory (``history``) -- but it DOES declare
+``trajectory_outcome_paths=("/history",)``, so the paired-history
+requirement is honestly exercised against a real family's own scorer here,
+not only against the kernel-owned fixture.
 """
 
 from __future__ import annotations
