@@ -439,7 +439,6 @@ class _CallParityAdversarialPlugin(_ReferencePlugin):
 # coincidence of the existing fixtures.
 # ---------------------------------------------------------------------------
 
-_EMBEDDING_FAMILY_ID = "kernel_contract_trajectory_embedding_v1"
 _EMBEDDING_BALANCE_LEAF_ID = "embedding_label_balance"
 _EMBEDDING_TRAJECTORY_LEAF_ID = "embedding_first_round_choice_is_x"
 
@@ -552,18 +551,59 @@ class _TrajectoryIgnoringScorer(_TrajectoryEmbeddingScorer):
         return dataclasses.replace(score_set, scores=scores)
 
 
-class _OverBroadTrajectoryEmbeddingPlugin(_ReferencePlugin):
-    """kernel_r9r10_review.md finding 1 (guard a) mutation fixture: nests
-    EVERY outcome field -- the terminal tally and the embedded trajectory
-    alike -- under one ``"/payload"`` key. Declaring ``"/payload"`` as the
-    trajectory_outcome_path therefore covers the WHOLE outcome, not just
-    the embedded trajectory, so projecting it away erases terminal facts
-    too and would make the paired-history check vacuous.
+_OVER_BROAD_TRAJECTORY_LEAF_ID = "over_broad_first_round_choice_is_x"
+
+
+class _OverBroadTrajectoryEmbeddingPlugin(_TrajectoryEmbeddingPlugin):
+    """kernel_r9r10_review.md finding 1 (guard a) mutation fixture, redriven
+    through the real protocol path by the second-pass review's finding R3:
+    outcome consists ENTIRELY of the per-step ``labels`` sequence -- a
+    genuine list (satisfying finding 1's guard b), at the SAME state key
+    ``_ReferencePlugin.step`` already uses (satisfying ruling R10's
+    same-pointer consistency check) -- but the ONLY field in the outcome.
+    Declaring ``"/labels"`` as the sole trajectory_outcome_path therefore
+    covers the WHOLE outcome, not just a trajectory subtree: projecting it
+    away erases every terminal fact too (there are none left) and would
+    make the paired-history check vacuous. This family has no
+    ``terminal_state``-scoped leaf at all -- its one leaf reads
+    ``phase_instances``, never ``outcome`` -- so nothing before the vacuous
+    guard has any other reason to fail it.
     """
 
     def outcome(self, family_case: Mapping[str, Any], terminal: Mapping[str, Any]) -> dict[str, Any]:
-        base = super().outcome(family_case, terminal)
-        return {"payload": {**base, "labels": list(terminal["labels"])}}
+        del family_case
+        return {"labels": list(terminal["labels"])}
+
+    def build_scorer(self, family_case: Mapping[str, Any]) -> "_OverBroadTrajectoryScorer":
+        del family_case
+        return _OverBroadTrajectoryScorer()
+
+
+class _OverBroadTrajectoryScorer:
+    """A single ``trajectory``-scoped leaf, read from ``phase_instances`` --
+    never from ``outcome``, since this family's outcome carries nothing
+    else."""
+
+    def __call__(
+        self, scoring_input: FamilyScoringInput, *, evidence_refs: tuple[str, ...] = ()
+    ) -> FamilyScoreSet:
+        leaf = _reference_leaf(leaf_id=_OVER_BROAD_TRAJECTORY_LEAF_ID, input_scope="trajectory")
+        first_action = scoring_input.phase_instances[0].actions[0]
+        first_choice_is_x = first_action.envelope.action["label"] == "x"
+        score = ScoreEnvelope(
+            status="ok",
+            leaf=leaf,
+            primary=MetricValue(1.0 if first_choice_is_x else 0.0, "indicator"),
+            metrics={},
+            reference_values={},
+            validity=ValidityReport("valid"),
+            evidence_refs=evidence_refs,
+        )
+        return FamilyScoreSet(
+            primary_leaf_id=_OVER_BROAD_TRAJECTORY_LEAF_ID,
+            scores=(score,),
+            admission_leaf_ids=(_OVER_BROAD_TRAJECTORY_LEAF_ID,),
+        )
 
 
 class _ScriptedChoiceProvider:
@@ -2168,15 +2208,17 @@ def test_trajectory_outcome_path_consistency_rejects_a_mapping_shaped_path() -> 
 def test_r9_projection_erases_the_entire_outcome_when_the_declared_path_is_over_broad(
     tmp_path: Path,
 ) -> None:
-    """kernel_r9r10_review.md finding 1 (guard a), end-to-end mirror of
-    ``test_r9_projection_fails_to_pair_when_the_embedded_path_is_not_declared``:
-    a REAL family whose outcome is entirely nested under one
-    ``"/payload"`` key -- terminal tally and embedded trajectory alike --
-    declares that whole key as its trajectory_outcome_path.
-    ``_OverBroadTrajectoryEmbeddingPlugin.outcome`` proves the resulting
-    projection is not merely small but genuinely empty for BOTH fixtures,
-    and the guard rejects it as vacuous rather than letting the
-    paired-history check pass by comparing ``{} == {}``.
+    """kernel_r9r10_review.md finding 1 (guard a), second-pass review R3:
+    a REAL family whose outcome is ENTIRELY the per-step ``labels``
+    sequence declares that one field as its trajectory_outcome_path.
+    Projecting it away erases the whole outcome, not merely a subtree.
+
+    Driven through ``_assert_family_obeys_the_scoring_contract`` -- the SAME
+    protocol path the registered-family test uses -- instead of calling
+    ``project_outcome``/``_assert_projection_is_not_vacuous`` directly: the
+    original shape of this test (kernel_r9r10_review.md finding 5's own
+    residual) would have stayed green even if the protocol path stopped
+    calling the vacuous-projection guard at all.
     """
     left_setup, left_execution = asyncio.run(
         _run_reference_episode(
@@ -2192,30 +2234,31 @@ def test_r9_projection_erases_the_entire_outcome_when_the_declared_path_is_over_
             plugin_factory=_OverBroadTrajectoryEmbeddingPlugin,
         )
     )
-    plugin = left_setup.registry.resolve_manifest(left_setup.plan.families[0])
-    family_case = plugin.validate_payload(left_setup.plan.cases[0].payload)
-    left_input = replay_family_scoring_input(
-        plugin=plugin, family_case=family_case, evidence=left_execution.evidence
+    case = left_setup.plan.cases[0]
+    family = left_setup.plan.families[0]
+    plugin = left_setup.registry.resolve_manifest(family)
+    family_case = plugin.validate_payload(case.payload)
+
+    manifest = _with_declared_leaf_policy(
+        family,
+        leaves=(LeafPolicyDeclaration(_OVER_BROAD_TRAJECTORY_LEAF_ID, "finalize_time", None),),
+        primary_leaf_id=_OVER_BROAD_TRAJECTORY_LEAF_ID,
+        admission_leaf_ids=(_OVER_BROAD_TRAJECTORY_LEAF_ID,),
+        trajectory_outcome_paths=("/labels",),
     )
-    right_input = replay_family_scoring_input(
-        plugin=plugin, family_case=family_case, evidence=right_execution.evidence
+    registry = PluginRegistry()
+    registry.register_trusted(manifest, plugin)
+    registration = registry.resolve_registration(
+        manifest.family.id, manifest.family.version, manifest.family.plugin_id
+    )
+    key = (manifest.family.id, manifest.family.version)
+    fixtures = (
+        FamilyScoringFixture(family_case=family_case, sealed_evidence=left_execution.evidence),
+        FamilyScoringFixture(family_case=family_case, sealed_evidence=right_execution.evidence),
     )
 
-    over_broad_paths = ("/payload",)
-    left_projection = project_outcome(left_input.outcome, over_broad_paths)
-    right_projection = project_outcome(right_input.outcome, over_broad_paths)
-    # Sanity: the projection really is empty for both fixtures, not merely
-    # small -- otherwise this would not be exercising the vacuous case.
-    assert left_projection == {} and right_projection == {}
-
     with pytest.raises(AssertionError, match="vacuous"):
-        _assert_projection_is_not_vacuous(
-            left_projection, family_id=_EMBEDDING_FAMILY_ID, trajectory_outcome_paths=over_broad_paths
-        )
-    with pytest.raises(AssertionError, match="vacuous"):
-        _assert_projection_is_not_vacuous(
-            right_projection, family_id=_EMBEDDING_FAMILY_ID, trajectory_outcome_paths=over_broad_paths
-        )
+        _assert_family_obeys_the_scoring_contract(key, registration, fixtures)
 
 
 def test_sensitivity_witness_rejects_a_trajectory_leaf_that_ignores_the_trajectory(
