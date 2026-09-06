@@ -126,10 +126,18 @@ until an owner-decided estimand change (the `_own`/`_vs_baseline` split
 above) lands. Admission itself is unaffected by the gap: a legal final
 submission is `inclusion_status="included"`
 (`test_call_returns_both_declared_leaves_for_a_legal_submission` shows both
-leaves `ok`), and only illegal/malformed/no-attempt episodes are
+leaves `ok`); inferred from the finalizer's `_score_admission`, which
+conditions inclusion solely on admission-leaf validity. No committed test
+seals an `included` receipt for this family; verified ad hoc at gate pass 3
+by driving an empty, feasible `purchase_plan` on
+`econevals.procurement.basic.0` (max_steps=1) through
+`finalize_family_execution` with the bridge: `status="ok"`,
+`inclusion_status="included"`, primary leaf estimand
+`econevals_procurement_utility`. Only illegal/malformed/no-attempt episodes are
 `excluded`. Nothing in this document certifies the family operationally;
-"certifying run" below refers only to the `AEREAD_ECONEVALS_BRIDGE_REQUIRED=1`
-test mode.
+"certifying run" in this document (the intro above) and in
+`docs/econevals_migration_review.md` refers only to the
+`AEREAD_ECONEVALS_BRIDGE_REQUIRED=1` test mode.
 
 **Why `econevals_objective_leaf` alone gates admission.** In this family's
 own vocabulary, `invalid_measurement` was, before this milestone, triggered
@@ -214,8 +222,10 @@ section is the kernel scoring-contract migration's own milestone 3 of 3.
 **A real receipt now exists.** Before this milestone this family had never
 produced an `EvaluationReceipt`.
 `test_finalize_wires_econevals_to_the_shared_family_finalizer`
-(`tests/test_econevals_replay.py`) drives one small, real, two-period
-procurement episode through `EvidenceRecordingEconevalsHarness` (which
+(`tests/test_econevals_replay.py`) drives one small, one-period
+procurement episode (the hand-authored `_econevals_fixture_case` stand-in,
+`max_steps=1`, not a pilot-corpus case) through the real `run_episode` via
+`EvidenceRecordingEconevalsHarness` (which
 writes the full generic evidence trail `finalize_family_execution`'s
 internal replay can consume, unlike `ScriptedEconevalsHarness`'s own
 `ToolRuntime`-only tool-invocation evidence) and then calls

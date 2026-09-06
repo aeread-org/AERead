@@ -88,7 +88,10 @@ milestone, not this one:** `FamilyScoreSet`/the finalizer's `_enforce_declared_l
 requires the scorer to return *exactly* the declared leaf set on every case
 (`set(produced_leaf_ids) == set(declared.leaf_ids)`), so a milestone-1 `__call__` must
 turn that `None` into an explicit `invalid_measurement` envelope for the objective leaf
-whenever the gate is malformed — a signature/plumbing widening, mirroring the worked
+whenever the gate is malformed (milestone 2 widened this to any gate non-pass —
+malformed, illegal, infeasible, or no attempt recorded — see
+docs/econevals_adapter_status.md, "Why `econevals_objective_leaf` alone gates
+admission") — a signature/plumbing widening, mirroring the worked
 example's trap 3 (govsim's `float | None` baseline), never a change to the scoring
 arithmetic itself.
 
