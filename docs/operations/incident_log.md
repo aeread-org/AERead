@@ -231,6 +231,22 @@ making 600 sequential calls.
 |---|---|---|---|---|
 | E-J-01 | sized the panel's retry policy by copying tau3's profile instead of multiplying out this family's call count | a 429 killing a run at case 00 | one attempt | attempts raised to 10 with declared backoff, and the arithmetic written into the profile |
 | E-J-03 | reported per-attempt costs from checkpoints that omit a failed case's spend, understating what the failures consumed by 44% | the operator asked whether a 429 costs anything | an understated incident ledger, corrected the same day | failure checkpoints now recover sealed spend; ledger figures restated |
+
+**E-J-03 is not econevals-only.** A survey of every family's failure path:
+
+| family | failed-case spend recorded? |
+|---|---|
+| housing | yes -- `cost_usd` plus a `billing_status` field on the failure row |
+| procurement allocation | yes -- `_sealed_failure_telemetry` recovers incurred usage from the sealed event ledger and flags `telemetry_complete` |
+| econevals | **was no**, fixed here |
+| tau3 retail (PR #97) | **no** -- the failure checkpoint records `failure_type` and `failure_condition` only, so a case killed after successful turns reports no spend |
+
+econevals inherited the omission by copying tau3's checkpoint shape, which
+is the same way it inherited tau3's retry and backoff policies (E-J-01).
+Procurement's `_sealed_failure_telemetry` is the better pattern of the two
+implementations -- it reads the event ledger rather than walking artifacts,
+and it says when telemetry is incomplete rather than silently summing what
+it found. Raised for tau3's owner rather than changed here.
 | E-J-02 | planned to truncate periods through the agent budget to fit the cost ceiling | a dry run showing it raises `SchedulerContractError` rather than terminating cleanly | none, caught pre-spend | cases run at their own pinned `max_steps`; it would have manufactured failed receipts |
 
 ## Standing lessons, added
