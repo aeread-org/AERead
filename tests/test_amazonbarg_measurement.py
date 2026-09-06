@@ -499,6 +499,54 @@ def test_amazonbarg_scorer_call_returns_every_declared_leaf_never_just_the_prima
     assert m.reasons_include(ratio.validity, m.REASON_TESTED_SEAT_UNKNOWN)
 
 
+def test_amazonbarg_scorer_call_orders_primary_first_then_lexical_leaf_id() -> None:
+    """kernel_scoring_contract_spec.md section 3: "Ordering. Primary first,
+    then lexical ``leaf_id``. Ordering never encodes policy." -- distinct
+    from mere leaf-SET membership (already covered by
+    ``test_amazonbarg_scorer_call_returns_every_declared_leaf_never_just_the_primary``,
+    which reduces ``score_set.scores`` to a ``set`` and therefore cannot
+    catch a wrong tuple order).
+
+    Regression-pins a fact that is easy to miss by reading only
+    ``AmazonbargScorer.score_all``/``__call__``: that code builds its
+    ``dict``/tuple in declaration order (authenticity, zopa, lower bound,
+    upper bound, then the primary bargained-ratio leaf LAST) and never
+    reorders it. The canonical primary-first-then-lexical order asserted
+    here is produced by the KERNEL, not this family: ``FamilyScoreSet
+    .__post_init__`` (``aeread/shared_runner/measurement.py``) unconditionally
+    re-sorts ``scores`` (and ``admission_leaf_ids``) by
+    ``(leaf_id != primary_leaf_id, leaf_id)`` on construction, regardless of
+    the order the family scorer originally supplied. A reviewer reading only
+    this family's own source would see the leaf5-inserted-last order and
+    could wrongly conclude the contract's ordering rule is violated.
+    """
+    script = [
+        (BUYER_PHASE, "buyer", "Thought: t\nTalk: hi\nAction: [BUY] $120 (1x home-kitchen_2)"),
+        (SELLER_PHASE, "seller", "Thought: t\nTalk: ok\nAction: [SELL] $150 (1x home-kitchen_2)"),
+        (BUYER_PHASE, "buyer", "Thought: t\nTalk: deal?\nAction: [BUY] $135 (1x home-kitchen_2)"),
+        (SELLER_PHASE, "seller", "Thought: t\nTalk: yes\nAction: [DEAL] $135 (1x home-kitchen_2)"),
+    ]
+    family_case, result = _run_full_episode("home-kitchen_2", script)
+    plugin = AmazonbargPlugin(upstream_root=UPSTREAM_ROOT)
+    scorer = plugin.build_scorer(family_case)
+    scoring_input = FamilyScoringInput(
+        outcome=result.outcome,
+        phase_instances=result.phase_instances,
+        evidence_refs=("evt_outcome_0",),
+    )
+
+    score_set = scorer(scoring_input, evidence_refs=scoring_input.evidence_refs)
+
+    produced_order = [score.leaf.leaf_id for score in score_set.scores]
+    assert produced_order == [
+        m.BARGAINED_RATIO_LEAF_ID,
+        m.DEAL_AUTHENTICITY_LEAF_ID,
+        m.DEAL_LOWER_BOUND_LEAF_ID,
+        m.DEAL_UPPER_BOUND_LEAF_ID,
+        m.ZOPA_MEMBERSHIP_LEAF_ID,
+    ]
+
+
 @pytest.mark.no_upstream_checkout_required
 def test_amazonbarg_scorer_call_raises_when_upstream_root_is_missing() -> None:
     """``build_scorer(family_case)`` (no ``upstream_root``) mirrors every
