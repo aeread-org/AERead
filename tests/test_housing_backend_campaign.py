@@ -1722,7 +1722,10 @@ def test_confirmatory_panel_is_bound_to_the_sealed_sweep_holdout() -> None:
     holdout = sweep["confirmatory_holdout"]
 
     assert panel["world_seeds"] == holdout["world_seeds"]
-    assert len(panel["world_seeds"]) == 16
+    # The sweep was extended to 36 seeds so a powered design could fit; the
+    # declared minimum of 30 confirmatory worlds could never be met by 16.
+    assert len(panel["world_seeds"]) == 36
+    assert panel["sweep_contract_path"].endswith("housing_case_config_sweep_v2.json")
     assert [config["config_id"] for config in panel["configs"]] == [
         "holdout_mild_unseen",
         "holdout_moderate_unseen",
@@ -1733,8 +1736,13 @@ def test_confirmatory_panel_is_bound_to_the_sealed_sweep_holdout() -> None:
     # One sealed world has a zero upper bound, so it carries no normalized
     # score and is excluded before any outcome exists.
     assert panel["excluded_world_seeds"] == {"114691332": "degenerate_upper_bound"}
-    assert contract["execution"]["world_seeds"] == panel["admitted_world_seeds"]
-    assert len(contract["execution"]["world_seeds"]) == 15
+    assert len(panel["admitted_world_seeds"]) == 35
+    # 30 admitted worlds are executed, the count the pilot's variance and the
+    # declared floor together require.
+    assert len(contract["execution"]["world_seeds"]) == 30
+    assert set(contract["execution"]["world_seeds"]) <= set(
+        panel["admitted_world_seeds"]
+    )
     assert 114691332 not in contract["execution"]["world_seeds"]
 
     # An exclusion the environment does not force must be rejected.
@@ -1762,10 +1770,10 @@ def test_confirmatory_provider_free_audits_the_sealed_holdout_worlds() -> None:
     assert artifact["provider_calls"] == 0
     assert artifact["confirmatory_holdout_status"] == "opened_for_confirmatory_freeze"
     # Every sealed world is audited, including the one that is excluded.
-    assert len(artifact["worlds"]) == 16 * 3
+    assert len(artifact["worlds"]) == 36 * 3
     assert artifact["degenerate_world_count"] == 1
-    assert artifact["admitted_world_count"] == 47
-    assert len(artifact["executed_world_seeds"]) == 15
+    assert artifact["admitted_world_count"] == 36 * 3 - 1
+    assert len(artifact["executed_world_seeds"]) == 30
     degenerate = [
         row for row in artifact["worlds"] if row["admission"] != "admitted"
     ]
@@ -1782,21 +1790,23 @@ def test_confirmatory_freeze_refuses_a_panel_below_the_recommended_worlds() -> N
     contract = load_contract(CONFIRMATORY_CONTRACT_PATH)
     routes = route_table(contract)
     design = design_artifact(contract, routes=routes)
-    # 15 admitted worlds, 3 holdout configurations, 4 conditions, 2 replicates.
-    assert design["planned_trajectories"] == 15 * 3 * 4 * 2
+    # 30 executed holdout worlds, 3 configurations, 4 conditions, 2 replicates.
+    assert design["planned_trajectories"] == 30 * 3 * 4 * 2
     assert contract["execution"]["replicates"] == 2
 
-    # The bound pilot (V19) recommends 32 worlds; the holdout admits 15, so
-    # the freeze must refuse rather than quietly run an underpowered design.
-    with pytest.raises(ValueError, match="smaller than the recommended world count"):
-        confirmatory_freeze_artifact(
-            contract,
-            routes=routes,
-            design=design,
-            provider_free={"artifact_sha256": "provider-free"},
-            catalog={"artifact_sha256": "catalog"},
-            admission={"artifact_sha256": "admission"},
-        )
+    # The bound pilot now recommends 30 worlds and the panel executes 30, so
+    # the freeze seals rather than refusing. The refusal path is covered by
+    # test_confirmatory_freeze_refuses_an_unusable_variance_pilot.
+    frozen = confirmatory_freeze_artifact(
+        contract,
+        routes=routes,
+        design=design,
+        provider_free={"artifact_sha256": "provider-free"},
+        catalog={"artifact_sha256": "catalog"},
+        admission={"artifact_sha256": "admission"},
+    )
+    assert frozen["holdout"]["world_seed_count"] == 30
+    assert frozen["variance_pilot"]["recommended_confirmatory_worlds"] == 30
 
 
 def test_declared_missingness_ceiling_fails_a_run_instead_of_reporting_it() -> None:
@@ -1941,18 +1951,18 @@ def test_confirmatory_freeze_refuses_an_unusable_variance_pilot(
 
     # A sufficiently powered pilot passes and seals the holdout it will run.
     powered = json.loads(json.dumps(real))
-    powered["variance_pilot_analysis"]["recommended_confirmatory_worlds"] = 15
+    powered["variance_pilot_analysis"]["recommended_confirmatory_worlds"] = 30
     powered["variance_pilot_analysis"]["paired_world_count"] = 8
     powered["variance_pilot_analysis"]["minimum_paired_worlds_for_recommendation"] = 6
     frozen = freeze_against(powered)
     assert frozen["gate_id"] == "confirmatory_freeze"
     assert frozen["frozen_before_any_holdout_outcome"] is True
-    assert frozen["holdout"]["world_seed_count"] == 15
-    assert frozen["holdout"]["sealed_world_seed_count"] == 16
+    assert frozen["holdout"]["world_seed_count"] == 30
+    assert frozen["holdout"]["sealed_world_seed_count"] == 36
     assert frozen["holdout"]["excluded_world_seeds"] == {
         "114691332": "degenerate_upper_bound"
     }
-    assert frozen["variance_pilot"]["recommended_confirmatory_worlds"] == 15
+    assert frozen["variance_pilot"]["recommended_confirmatory_worlds"] == 30
     assert frozen["contract_sha256"] == design["contract_sha256"]
     assert set(frozen["profiles_sha256"]) == set(
         contract["profile_admission"]["profile_sha256s"]
