@@ -127,8 +127,27 @@ from aeread.shared_runner.task.scheduler import (
     PhaseInstance,
     PhaseSpec,
     TransitionResult,
+    run_episode,
 )
 
+from aeread_families.agenticpay_bilateral.environment import (
+    AgenticpayBilateralPlugin,
+)
+from aeread_families.agenticpay_bilateral.environment import (
+    family_manifest as _agenticpay_family_manifest,
+)
+from aeread_families.agenticpay_bilateral.environment import (
+    register_plugin as _register_agenticpay_plugin,
+)
+from aeread_families.agenticpay_bilateral.measurement import (
+    CONTRACT_LEGALITY_LEAF_ID as _AGENTICPAY_CONTRACT_LEGALITY_LEAF_ID,
+)
+from aeread_families.agenticpay_bilateral.measurement import (
+    DEAL_REACHED_LEAF_ID as _AGENTICPAY_DEAL_REACHED_LEAF_ID,
+)
+from aeread_families.agenticpay_bilateral.measurement import (
+    SURPLUS_SHARE_LEAF_ID as _AGENTICPAY_SURPLUS_SHARE_LEAF_ID,
+)
 from aeread_families.commercial_state_calibration import build_offline_setup as _build_commercial_state_setup
 from aeread_families.commercial_state_calibration import (
     commercial_state_measurement_leaf,
@@ -147,6 +166,17 @@ from aeread_families.procurement_grounding import (
 )
 from aeread_families.procurement_grounding import procurement_measurement_leaf
 from aeread_families.single_offer.runner import FixedResponseProvider
+
+from tests.test_agenticpay_bilateral_replay import (
+    UPSTREAM_ROOT as _AGENTICPAY_UPSTREAM_ROOT,
+)
+from tests.test_agenticpay_bilateral_replay import (
+    EvidenceRecordingAgenticpayHarness,
+)
+from tests.test_agenticpay_bilateral_replay import _bridge as _agenticpay_bridge
+from tests.test_agenticpay_bilateral_replay import _case as _agenticpay_case
+from tests.test_agenticpay_bilateral_replay import _cell as _agenticpay_cell
+from tests.test_agenticpay_bilateral_replay import _script as _agenticpay_script
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -2215,6 +2245,183 @@ def _assert_trajectory_leaves_are_witnessed(
 
 
 # ---------------------------------------------------------------------------
+# agenticpay.bilateral: a real, bridge-backed family with a genuine
+# trajectory-scoped leaf (agenticpay_contract_legality, case_conditional --
+# ruling R13) and a genuine subject-seat-scoped leaf (agenticpay_surplus_share
+# -- ruling R12). Verified constructible against the real bridge directly
+# before being wired in here.
+#
+# Two SEPARATE paired-history pairs, not one four-fixture list, and this is a
+# deliberate choice, not an oversight: kernel_contract_gap_review.md finding
+# 7's leaf-identity-stability check (this module's own
+# ``_assert_family_obeys_the_scoring_contract``, "stable_leaf_specs") compares
+# the FULL ``MeasurementLeafSpec`` for a given leaf id across every fixture
+# passed to ONE call -- and ``agenticpay_surplus_share``'s own declared
+# reference legitimately varies its ``source_sha256`` by case (the ZOPA bound
+# for a basic case, the contract config for a contract-mode one; see
+# ``measurement.py``'s ``_surplus_share_reference_source_sha256``). Mixing a
+# basic-mode and a contract-mode fixture in the SAME call would therefore fail
+# that stability check for a reason that has nothing to do with the R13
+# case-conditional behavior it is meant to prove. Each pair below instead
+# shares one case across its own two fixtures (a real, same-case,
+# differing-trajectory pair, exactly like every other paired-history fixture
+# in this module), and ``test_agenticpay_obeys_the_scoring_contract`` calls
+# ``_assert_family_obeys_the_scoring_contract`` once per pair -- proving BOTH
+# case kinds through the protocol path without conflating their leaf
+# identities.
+#
+# Kept out of _build_protocol_test_registry_and_fixtures/the always-on
+# ``test_every_registered_family_obeys_the_scoring_contract`` -- see
+# ``test_agenticpay_obeys_the_scoring_contract``'s own docstring for why.
+# ---------------------------------------------------------------------------
+
+_AGENTICPAY_SUBJECT_SEATS: tuple[str, ...] = ("buyer",)
+_AGENTICPAY_PROFILE_BY_SEAT: Mapping[str, str] = MappingProxyType(
+    {"buyer": "agenticpay_scripted_buyer_v1", "seller": "agenticpay_scripted_seller_v1"}
+)
+
+# A legal contract (within s01_beauty_product's declared continuous_bounds/
+# discrete_options) and an otherwise-identical one with delivery_days=99 --
+# outside the declared [1, 7] bound, so upstream's own _validate_contract
+# rejects it (agenticpay_bridge_driver.py's _overlay_contract_validity
+# reports this round's buyer_contract_valid=False) without ever being stored
+# to state (upstream assigns a contract to state only after validating it),
+# so the negotiation does not agree on round 1 either way -- verified
+# directly against the real bridge that both rounds below converge to a
+# byte-identical terminal projection (agreed_price/contract/utility/z_max/
+# global_score all equal) from a genuinely differing round_trace.
+_AGENTICPAY_VALID_CONTRACT = (
+    '<contract>{"price": 5.39, "continuous_terms": {"delivery_days": 1}, '
+    '"discrete_terms": {"return_policy": "none", "packaging": "protective", '
+    '"user_product_preference": "strong_match"}}</contract>'
+)
+_AGENTICPAY_INVALID_CONTRACT = (
+    '<contract>{"price": 5.39, "continuous_terms": {"delivery_days": 99}, '
+    '"discrete_terms": {"return_policy": "none", "packaging": "protective", '
+    '"user_product_preference": "strong_match"}}</contract>'
+)
+_AGENTICPAY_CONTRACT_CASE_ID = "agenticpay.bilateral.realistic.s01_beauty_product"
+_AGENTICPAY_CONTRACT_ROUNDS_NO_REJECTION: list[tuple[str, str]] = [
+    ("Hi, let's talk terms.", "Sure, what did you have in mind?"),
+    (_AGENTICPAY_VALID_CONTRACT, _AGENTICPAY_VALID_CONTRACT),
+]
+_AGENTICPAY_CONTRACT_ROUNDS_WITH_REJECTION: list[tuple[str, str]] = [
+    (_AGENTICPAY_INVALID_CONTRACT, "Sure, what did you have in mind?"),
+    (_AGENTICPAY_VALID_CONTRACT, _AGENTICPAY_VALID_CONTRACT),
+]
+
+# Two different first-round price offers that both settle on the identical
+# $100 second round -- verified directly against the real bridge that both
+# converge to a byte-identical terminal projection (rounds/buyer_price/
+# seller_price/agreed_price/global_score/buyer_score/seller_score all equal)
+# from a genuinely differing round_trace. agenticpay_contract_legality does
+# not apply to this basic (price-only) case (ruling R13).
+_AGENTICPAY_BASIC_CASE_ID = "agenticpay.bilateral.basic.task1"
+_AGENTICPAY_BASIC_ROUNDS_A: list[tuple[str, str]] = [
+    ("### BUYER_PRICE($90) ###", "### SELLER_PRICE($130) ###"),
+    ("### BUYER_PRICE($100) ###", "### SELLER_PRICE($100) ###"),
+]
+_AGENTICPAY_BASIC_ROUNDS_B: list[tuple[str, str]] = [
+    ("### BUYER_PRICE($95) ###", "### SELLER_PRICE($140) ###"),
+    ("### BUYER_PRICE($100) ###", "### SELLER_PRICE($100) ###"),
+]
+
+
+def _agenticpay_registration_and_pairs(
+    tmp_path: Path,
+) -> tuple[Any, tuple[FamilyScoringFixture, FamilyScoringFixture], tuple[FamilyScoringFixture, FamilyScoringFixture]]:
+    bridge_instance = _agenticpay_bridge()
+    plugin = AgenticpayBilateralPlugin(
+        upstream_root=_AGENTICPAY_UPSTREAM_ROOT, bridge=bridge_instance
+    )
+    registry = PluginRegistry()
+    _register_agenticpay_plugin(registry, plugin=plugin)
+    resolved_plugin = registry.resolve_manifest(_agenticpay_family_manifest())
+    (registration,) = registry.registrations()
+
+    def _run(case_id: str, suffix: str, rounds: list[tuple[str, str]]) -> FamilyScoringFixture:
+        case = _agenticpay_case(case_id)
+        cell = _agenticpay_cell(case, suffix=suffix)
+        evidence = EvidenceStore(
+            tmp_path / f"agenticpay_scoring_contract_{suffix}",
+            run_plan_id=f"runplan_agenticpay_scoring_contract_{suffix}",
+            cell_id=cell.cell_id,
+            episode_id=f"episode_agenticpay_scoring_contract_{suffix}",
+            episode_attempt_id="attempt_1",
+        )
+        harness = EvidenceRecordingAgenticpayHarness(
+            evidence=evidence, script=_agenticpay_script(rounds)
+        )
+        asyncio.run(
+            run_episode(cell=cell, case=case, plugin=resolved_plugin, response_source=harness)
+        )
+        family_case = resolved_plugin.validate_payload(case.payload)
+        return FamilyScoringFixture(
+            family_case=family_case,
+            sealed_evidence=evidence,
+            subject_seats=_AGENTICPAY_SUBJECT_SEATS,
+            profile_by_seat=_AGENTICPAY_PROFILE_BY_SEAT,
+        )
+
+    contract_pair = (
+        _run(_AGENTICPAY_CONTRACT_CASE_ID, "contract_no_rejection", _AGENTICPAY_CONTRACT_ROUNDS_NO_REJECTION),
+        _run(_AGENTICPAY_CONTRACT_CASE_ID, "contract_with_rejection", _AGENTICPAY_CONTRACT_ROUNDS_WITH_REJECTION),
+    )
+    basic_pair = (
+        _run(_AGENTICPAY_BASIC_CASE_ID, "basic_a", _AGENTICPAY_BASIC_ROUNDS_A),
+        _run(_AGENTICPAY_BASIC_CASE_ID, "basic_b", _AGENTICPAY_BASIC_ROUNDS_B),
+    )
+    return registration, contract_pair, basic_pair
+
+
+def test_agenticpay_obeys_the_scoring_contract(tmp_path: Path) -> None:
+    """agenticpay.bilateral's own contract check -- kept out of
+    ``test_every_registered_family_obeys_the_scoring_contract`` (see the
+    comment block above this test for why): this family's fixtures require
+    the real, provisioned agenticpay bridge (a subprocess executing the
+    pinned upstream negotiation environment), which every OTHER family this
+    suite verifies deliberately does not, so folding it into that always-on
+    test would make THEIR coverage newly skip too whenever the bridge is
+    unavailable. Per-test skip only, never module-level (mirrors
+    ``tests/test_agenticpay_bilateral_environment.py``'s own documented
+    convention).
+
+    Two separate calls to ``_assert_family_obeys_the_scoring_contract``, one
+    per case kind (see the comment block above this test for why NOT one
+    combined call): the contract-mode pair proves ruling R13's "applies"
+    branch (all three leaves returned, ``agenticpay_contract_legality``'s own
+    sensitivity witness satisfied by the accepted-vs-rejected round-1
+    contract) and ruling R7's paired-history contrapositive for the two
+    terminal_state leaves; the basic-mode pair proves ruling R13's "does not
+    apply" branch (only the two unconditional leaves returned) under its own,
+    independent paired-history pair.
+    """
+    registration, contract_pair, basic_pair = _agenticpay_registration_and_pairs(tmp_path)
+    key = (registration.family_id, registration.family_version)
+    assert key == ("agenticpay.bilateral", "0.1.0")
+
+    contract_result = _assert_family_obeys_the_scoring_contract(
+        key, registration, contract_pair
+    )
+    contract_leaf_ids = {
+        score.leaf.leaf_id for score in contract_result.produced_by_case[0][1].scores
+    }
+    assert contract_leaf_ids == {
+        _AGENTICPAY_DEAL_REACHED_LEAF_ID,
+        _AGENTICPAY_SURPLUS_SHARE_LEAF_ID,
+        _AGENTICPAY_CONTRACT_LEGALITY_LEAF_ID,
+    }
+    assert _AGENTICPAY_CONTRACT_LEGALITY_LEAF_ID in contract_result.witness_pair_by_leaf
+
+    basic_result = _assert_family_obeys_the_scoring_contract(key, registration, basic_pair)
+    basic_leaf_ids = {score.leaf.leaf_id for score in basic_result.produced_by_case[0][1].scores}
+    assert basic_leaf_ids == {
+        _AGENTICPAY_DEAL_REACHED_LEAF_ID,
+        _AGENTICPAY_SURPLUS_SHARE_LEAF_ID,
+    }
+
+
+# ---------------------------------------------------------------------------
 # Ruling R6 (kernel_contract_gap_review.md finding 1): the protocol test's
 # closed-world assertion previously compared this test's own locally-built
 # registry against fixtures built by that same local construction -- true by
@@ -2241,7 +2448,11 @@ def _trusted_family_versions(
 # deliberately named, not derived: adding a NEW trusted key -- the exact
 # attack the review demonstrated -- now requires either enrolling a real
 # fixture or explicitly widening this exemption; it can no longer happen
-# silently.
+# silently. ``agenticpay.bilateral`` is deliberately NOT here: it IS
+# migrated (see this module's own ``_agenticpay_registration_and_pairs``/
+# ``test_agenticpay_obeys_the_scoring_contract`` above) -- see
+# ``_BRIDGE_GATED_ENROLLED_FAMILY_VERSIONS`` below for where its migration
+# is accounted for instead.
 _NOT_YET_MIGRATED_TRUSTED_KEYS: "frozenset[tuple[str, str]]" = frozenset(
     {
         ("consent_ir_v1", "1.0.0"),
@@ -2254,11 +2465,10 @@ _NOT_YET_MIGRATED_TRUSTED_KEYS: "frozenset[tuple[str, str]]" = frozenset(
         # External-benchmark adapter families enrolled in
         # TRUSTED_BUILTIN_PLUGIN_KEYS by maintainer ruling on 2026-09-04
         # (PRs #28-#38), landed on main after this branch forked. None of
-        # the eleven has a FamilyScoringInput-contract fixture yet; they
-        # migrate under the per-adapter follow-ups tracked alongside the
-        # other not-yet-migrated families above, not as part of this
+        # the remaining ten has a FamilyScoringInput-contract fixture yet;
+        # they migrate under the per-adapter follow-ups tracked alongside
+        # the other not-yet-migrated families above, not as part of this
         # kernel change.
-        ("agenticpay.bilateral", "0.1.0"),
         ("alympics.wac", "0.1.0"),
         ("amazonbarg.bilateral", "0.1.0"),
         ("aucarena", "0.1.0"),
@@ -2270,6 +2480,24 @@ _NOT_YET_MIGRATED_TRUSTED_KEYS: "frozenset[tuple[str, str]]" = frozenset(
         ("steer", "0.1.0"),
         ("termsbench", "0.1.0"),
     }
+)
+
+# agenticpay.bilateral IS migrated and genuinely fixture-covered
+# (``_agenticpay_registration_and_pairs``,
+# ``test_agenticpay_obeys_the_scoring_contract`` above) -- but unlike every
+# other family this suite verifies unconditionally, its fixtures require the
+# real, provisioned agenticpay bridge (a subprocess executing the pinned
+# upstream negotiation environment). Folding it into
+# _build_protocol_test_registry_and_fixtures/
+# test_every_registered_family_obeys_the_scoring_contract would make THAT
+# test -- and every other family's always-on coverage inside it -- newly
+# skip whenever the bridge is unavailable, which is exactly the kind of
+# quiet coverage loss this suite exists to prevent for everyone else. It is
+# therefore verified in its own per-test-skippable test instead, and named
+# here (not in _NOT_YET_MIGRATED_TRUSTED_KEYS, which would misdescribe it) so
+# ruling R6's closure check still has it accounted for.
+_BRIDGE_GATED_ENROLLED_FAMILY_VERSIONS: "frozenset[tuple[str, str]]" = frozenset(
+    {("agenticpay.bilateral", "0.1.0")}
 )
 
 
@@ -2673,10 +2901,12 @@ def test_every_registered_family_obeys_the_scoring_contract(tmp_path: Path) -> N
     # world is TRUSTED_BUILTIN_PLUGIN_KEYS. The assertion above was true by
     # construction and could never fail; a family enrolled there without a
     # fixture (or an explicit, named "not yet migrated" exemption) now fails
-    # here instead.
+    # here instead. agenticpay.bilateral is enrolled via
+    # _BRIDGE_GATED_ENROLLED_FAMILY_VERSIONS, not this test's own local
+    # ``fixtures`` -- see that set's own docstring.
     _assert_trusted_catalog_is_closed(
         trusted_keys=TRUSTED_BUILTIN_PLUGIN_KEYS,
-        enrolled_family_versions=set(fixtures),
+        enrolled_family_versions=set(fixtures) | _BRIDGE_GATED_ENROLLED_FAMILY_VERSIONS,
         exempt_family_versions=_NOT_YET_MIGRATED_TRUSTED_KEYS,
     )
 
