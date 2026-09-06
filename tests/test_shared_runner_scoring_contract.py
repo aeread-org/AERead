@@ -2532,7 +2532,8 @@ def test_every_registered_family_obeys_the_scoring_contract(tmp_path: Path) -> N
 # outcome minus `/eliminated_order`) byte-identical. Verified directly
 # against the real pinned upstream checkout before being wired in here
 # (never trusted as hand-derived arithmetic alone, per the worked example's
-# warning) -- see docs/alympics_migration_review.md.
+# warning) -- see docs/alympics_adapter_status.md, "Protocol-test fixtures
+# (paired history + sensitivity witness)".
 #
 # A third fixture ("alt", same case) has every seat bid illegally (exceeding
 # its own balance) every round: alex's own bid_legality gate fires from
@@ -2550,7 +2551,8 @@ _ALYMPICS_BIG_BID = 10**9
 # reach the SAME terminal (hp=0, no_drink=5) at DIFFERENT round counts:
 # "short" dies after round 5 (win once, then lose four times), "long" dies
 # after round 6 (win twice, then lose four times) -- see this section's own
-# banner and docs/alympics_migration_review.md for the arithmetic.
+# banner and docs/alympics_adapter_status.md, "Protocol-test fixtures
+# (paired history + sensitivity witness)" for the arithmetic.
 _ALYMPICS_SHORT_DEATH_BIDS = (120, _ALYMPICS_BIG_BID, _ALYMPICS_BIG_BID, _ALYMPICS_BIG_BID, _ALYMPICS_BIG_BID)
 _ALYMPICS_LONG_DEATH_BIDS = (120, 120, _ALYMPICS_BIG_BID, _ALYMPICS_BIG_BID, _ALYMPICS_BIG_BID, _ALYMPICS_BIG_BID)
 

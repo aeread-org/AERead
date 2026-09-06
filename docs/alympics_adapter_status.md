@@ -100,12 +100,15 @@ assumed.
 (2026-09-06): 151 passed, 0 failed, bridge exported.** The milestone-3
 per-module counts below were stale even before this migration branch
 forked (`cases.py`/`environment.py`/`measurement.py`'s own test modules
-grew independently of this migration — this branch's only test-file
-change is `tests/test_alympics_wac_replay.py`, `git diff --stat
+grew independently of this migration — this branch's only change to this
+family's own `test_alympics_wac_*` modules is
+`tests/test_alympics_wac_replay.py` (the shared
+`tests/test_shared_runner_scoring_contract.py` also changed, for the
+enrollment in commits 4e3bc842/4b4d05b5) — `git diff --stat
 zeyu/kernel-r9r10..HEAD` confirms); corrected here rather than carried
 forward unchecked, and `tests/test_shared_runner_scoring_contract.py` is
 now added to the reproduce command below, since this migration enrolled
-this family in it (see "Protocol-test fixtures" above) and it is
+this family in it (see "Protocol-test fixtures" below) and it is
 bridge-gated for this family's own slice the same way the other six files
 are:
 
@@ -147,7 +150,7 @@ Reproduce:
 
 ```bash
 cd AERead/.worktrees/alympics-migrate
-PYTHONPATH=src ../../.venv/bin/python -m pytest \
+AEREAD_ALYMPICS_UPSTREAM_ROOT=<pinned caed7c8c checkout> AEREAD_ALYMPICS_UPSTREAM_REQUIRED=1 PYTHONPATH=src ../../.venv/bin/python -m pytest \
   tests/test_alympics_wac_cases.py \
   tests/test_alympics_wac_environment.py \
   tests/test_alympics_wac_harness.py \
@@ -157,6 +160,10 @@ PYTHONPATH=src ../../.venv/bin/python -m pytest \
   tests/test_shared_runner_scoring_contract.py \
   tests/test_shared_runner_smoke.py -q
 ```
+
+(Optionally also list `tests/test_alympics_wac_upstream_required_gate.py` — 4
+tests, passes; included in the migration plan's 112-test baseline but
+omitted from the command above — with it the total is 155, not 151.)
 
 ## The four scripted policies (spec section 6: constants finalized here)
 
