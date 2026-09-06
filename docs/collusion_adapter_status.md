@@ -307,10 +307,11 @@ the diverged phase instances.
 **Timing, measured directly this session** (scripted, provider-free, no
 network): one 300-round episode takes **~14.4s** through bare `run_episode`
 and **~15.5s** through `ScriptedCollusionHarness` (600 evidence events,
-~1.1s / ~1.8ms per event) — consistent with the O(n²) scheduler cost already
-recorded in `ledger_entries/collusion.md` from milestone 2 (whole-state
-re-hash/re-freeze every round); the harness's own evidence bookkeeping adds
-only a small, expected fraction on top, not a new distinct cost.
+~1.1s / ~1.8ms per event) — consistent with the O(n²) scheduler cost milestone
+2 already recorded in the runner defect ledger outside this repository
+(whole-state re-hash/re-freeze every round); the harness's own evidence
+bookkeeping adds only a small, expected fraction on top, not a new distinct
+cost.
 
 ## Corpus quantization: why the committed gold_reference floats are rounded
 
@@ -359,12 +360,11 @@ rebuild, no second platform needed) and asserts every float in each case's
   Every trajectory in this repo, including this milestone's, is scripted
   and provider-free (ground rule, kept without exception).
 - **Mutation testing has been performed, but narrowly.** Commit
-  `5e593c8c`'s own message (and, at that commit, this file's now-superseded
-  finding-4 disposition — full text retrievable via
-  `git show 5e593c8c:docs/collusion_migration_review.md`) records neutering
-  `task/evaluation.py`'s `_check_evidence_refs_are_scoring_input_verbatim`
-  call site and confirming the resulting new evidence_refs-forgery
-  regression test
+  `5e593c8c`'s own message (and this file's Round 1, Finding 4 disposition —
+  see `docs/collusion_migration_review.md`'s "Round 1" section) records
+  neutering `task/evaluation.py`'s
+  `_check_evidence_refs_are_scoring_input_verbatim` call site and confirming
+  the resulting new evidence_refs-forgery regression test
   (`tests/test_collusion_replay.py::test_finalize_family_execution_rejects_a_collusion_scorer_that_forges_evidence_refs`,
   still present at HEAD) fails with `DID NOT RAISE ValueError` before the
   call site was restored; this doc's own "Ruling R9(b) sensitivity witness"
@@ -379,18 +379,16 @@ rebuild, no second platform needed) and asserts every float in each case's
   Treat "0 failed" as "the tests that exist all pass, and two specific
   guards were mutation-verified," not as "coverage is exhaustive."
 - **Two independent code reviews of this migration have occurred.** Round 1
-  (4 findings, reviewing commit `eeb59ecf`) was recorded in
-  `docs/collusion_migration_review.md` as of commit `5e593c8c` — full text
-  still retrievable via `git show 5e593c8c:docs/collusion_migration_review.md`
-  — and refuted findings 1 and 4 while confirming-but-escalating findings 2
-  and 3. Round 2 (1 finding, reviewing commit `5e593c8c`) rewrote that same
-  file in commit `bff8f588` to independently re-verify the identical
-  underlying defect as findings 2/3 directly against the code (not merely
-  cite round 1's disposition), confirming and escalating it again; the
-  current `docs/collusion_migration_review.md` documents round 2 in full
-  and references round 1's prior disposition in prose. Contrast
-  `tau3_adapter_status.md`'s single "independently reviewed" line — this
-  family now has two review rounds on record, not zero.
+  (4 findings, reviewing commit `eeb59ecf`) is recorded in
+  `docs/collusion_migration_review.md`'s "Round 1" section and refuted
+  findings 1 and 4 while confirming-but-escalating findings 2 and 3. Round 2
+  (1 finding, reviewing commit `5e593c8c`, committed in `bff8f588`)
+  independently re-verified the identical underlying defect as findings 2/3
+  directly against the code (not merely cite round 1's disposition),
+  confirming and escalating it again; it is recorded in the same file's
+  "Round 2" section, which cross-references round 1's disposition in prose.
+  Contrast `tau3_adapter_status.md`'s single "independently reviewed" line —
+  this family now has two review rounds on record, not zero.
 - **The confirmed, escalated finding from both review rounds: the primary
   and sole admission leaf can never score `"ok"` on a production receipt —
   a pre-existing estimand limit, not a migration defect.**
@@ -425,9 +423,9 @@ rebuild, no second platform needed) and asserts every float in each case's
   itself.
 - **The ceiling and price floor remain AERead's own construction**, not
   paper-verified (spec §6, unchanged by this milestone).
-- **`docs/benchmark_qc.md` still does not exist on this branch** (already
-  logged in `ledger_entries/collusion.md`, corroborating master ledger
-  `D-10`); nothing in this milestone depends on it beyond the citation
+- **`docs/benchmark_qc.md` still does not exist on this branch** (tracked as
+  master ledger `D-10`, in the runner defect ledger outside this
+  repository); nothing in this milestone depends on it beyond the citation
   already quoted into the spec.
 - **Leaf 4's baseline provenance is caller-trusted, not verified in code.**
   `score_long_run_profit`'s `baseline_profit_by_seat` argument is
@@ -469,7 +467,7 @@ reviews cross-family conventions next.
 ## No new kernel/runner defect found this session
 
 This milestone's timing measurement (above) reproduces, rather than adds
-to, the O(n²) scheduler cost already recorded in `ledger_entries/
-collusion.md` from milestone 2. No new defect in the shared runner, kernel,
-or environment was found while building the harness or replayer; nothing
-was appended to that ledger this session.
+to, the O(n²) scheduler cost milestone 2 already recorded in the runner
+defect ledger outside this repository. No new defect in the shared runner,
+kernel, or environment was found while building the harness or replayer;
+nothing new was added to that ledger this session.
