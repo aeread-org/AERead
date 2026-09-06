@@ -105,9 +105,31 @@ nothing and would misrepresent the trajectory as deliberated.
   and preflight refuses anything else (`python_version mismatch: pinned=3.11.3`).
   Provision with that interpreter, not merely "a 3.11".
 
+## Defects the offline pass caught
+
+Building the live path surfaced five contract defects, none of which cost a
+paid call because every one was found by a stub-provider dry run:
+
+| # | Defect | Why it mattered |
+|---|---|---|
+| 1 | scorer took a recorded-outcome `Mapping`, not `FamilyScoringInput` | four of five leaves could never reach a receipt (#76) |
+| 2 | manifest declared no `reference_provider_ids` | plan unresolvable |
+| 3 | `compute_baseline` called `asyncio.run` from inside the campaign's running loop | would have raised on the first live invocation, after the canary was paid for |
+| 4 | harness skipped the model call in `discuss`/`reflect` | kernel refuses: an action with no model call could be a trajectory no model took part in |
+| 5 | validity-domain predicate hangs off `leaf.estimand` here and `verifier.objective_scope` in econevals; only the second was walked | receipt refused to seal, **after** a full episode ran |
+
+Defect 4 is worth keeping in mind as a rule rather than an incident: skipping
+a model call in a contentless phase looked like the honest saving, and it is
+exactly what the kernel forbids. The invariant is what makes a sealed
+trajectory mean anything.
+
 ## Status
 
-Items 1, 2 and 4 are done: the finalizer is migrated (#76), the manifest
-declares the reference providers its leaves cite, and the pinned upstream
-checkout plus a 3.11.3 bridge are provisioned. Item 3, the live path,
-follows.
+**The live path is built and verified offline**: 132 model calls, termination
+`collapse_or_horizon` at 12 rounds, receipt `ok`/`included`, all five leaves
+sealed, replay digest matching the seal. That is #76 demonstrated on a real
+receipt rather than a unit test.
+
+Remaining: the live panel itself, which waits for a Parasail window --
+housing's confirmatory campaign is running on the same shared pool, and
+econevals' first light showed what contention on it costs.

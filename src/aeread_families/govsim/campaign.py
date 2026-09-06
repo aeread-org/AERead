@@ -60,6 +60,7 @@ from .baseline import (
     baseline_digest,
     baselines_for_scoring,
     compute_baseline,
+    compute_baseline_async,
     policy_source_sha256,
 )
 from .govsim_bridge import GovsimBridge
@@ -376,6 +377,7 @@ def _sealed_spend(evidence_root: Path) -> float:
 def compute_panel_baselines(
     *, upstream_root: Path, bridge: GovsimBridge
 ) -> dict[str, dict[str, Any]]:
+    """Synchronous form, for the plan-freeze CLI path."""
     return {
         case_id: compute_baseline(
             case=load_case(case_id), upstream_root=upstream_root, bridge=bridge
@@ -384,9 +386,22 @@ def compute_panel_baselines(
     }
 
 
+async def compute_panel_baselines_async(
+    *, upstream_root: Path, bridge: GovsimBridge
+) -> dict[str, dict[str, Any]]:
+    return {
+        case_id: await compute_baseline_async(
+            case=load_case(case_id), upstream_root=upstream_root, bridge=bridge
+        )
+        for case_id in PANEL_CASE_IDS
+    }
+
+
 async def execute_campaign(*, run_root: Path, upstream_root: Path) -> None:
     bridge = GovsimBridge.discover(upstream_root=upstream_root)
-    baselines = compute_panel_baselines(upstream_root=upstream_root, bridge=bridge)
+    baselines = await compute_panel_baselines_async(
+        upstream_root=upstream_root, bridge=bridge
+    )
     plan_path = run_root / "campaign_plan.json"
     plan = build_campaign_plan(baselines=baselines)
     _write_once_json(plan_path, plan)
