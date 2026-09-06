@@ -383,6 +383,7 @@ def _profile(
     tools: tuple[str, ...],
     max_periods: int,
     max_cost_usd: float,
+    seed: int,
 ) -> AgentProfile:
     return AgentProfile.from_dict(
         {
@@ -425,7 +426,10 @@ def _profile(
             "sampling": {
                 "temperature": 0.0,
                 "max_output_tokens": 900,
-                "seed": None,
+                # Declared, not None: the OpenRouter adapter refuses a
+                # diagnostic run whose seed is not stated, because an
+                # undeclared seed makes a re-run unfalsifiable.
+                "seed": seed,
                 "top_p": None,
             },
             "budgets": {
@@ -473,6 +477,7 @@ def build_live_setup(
         tools=tool_names,
         max_periods=int(family_case["pins"]["max_steps"]),
         max_cost_usd=max_trajectory_cost_usd,
+        seed=seed,
     )
     suffix = case_id.replace(".", "_")
     sampling = SamplingPlan.from_dict(
