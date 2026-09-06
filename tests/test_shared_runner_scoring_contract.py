@@ -2749,6 +2749,95 @@ def test_negarena_obeys_the_scoring_contract(tmp_path: Path) -> None:
     _assert_family_obeys_the_scoring_contract(key, registration, fixture_pair)
 
 
+class _NegarenaBridgeMustNotBeCalled:
+    """A sentinel ``bridge`` for the unconditional test below.
+
+    Passed only to satisfy ``NegarenaScorer``'s own ``self.bridge is None``
+    guard (``measurement.py``'s ``_score_seat_outcome_for_subject``) so
+    ``__call__`` can be exercised end-to-end without any real bridge. An
+    invalid termination reason must short-circuit both leaves before either
+    ever reaches ``.settle`` -- if it doesn't, this fails loudly instead of
+    silently succeeding against a real value.
+    """
+
+    def settle(self, **_kwargs: Any) -> Any:
+        raise AssertionError(
+            "negarena_seat_outcome must short-circuit on an invalid "
+            "termination reason before ever calling the bridge"
+        )
+
+
+def test_negarena_contract_leaf_set_determinism_and_provenance_without_the_bridge() -> None:
+    """negarena_migration_review.md finding 2, fix.
+
+    ``test_negarena_obeys_the_scoring_contract`` above needs the real,
+    provisioned NegotiationArena bridge for both its fixtures -- a genuinely
+    differing real settlement across the pair is the whole point of the
+    paired-history check -- so it skips whenever that bridge is unavailable.
+    Enrollment in ``_BRIDGE_GATED_ENROLLED_FAMILY_VERSIONS`` lets the
+    closed-world catalog check above pass regardless, so without this test a
+    normal run lacking the bridge could pass this whole module while never
+    once calling ``NegarenaScorer.__call__``.
+
+    This test needs no external fixture at all (no upstream checkout, no
+    bridge interpreter) and always runs: an ``invalid_measurement``/
+    ``malformed_action`` termination reason short-circuits both
+    ``score_seat_outcome`` and ``score_agreement_reached`` before either
+    reaches the bridge (``measurement.py``'s own
+    ``INVALID_TERMINATION_REASONS`` branch -- exercised directly, not
+    merely trusted, by ``test_negarena_measurement.py``'s
+    ``test_score_seat_outcome_never_touches_the_bridge_for_an_invalid_termination``
+    and ``test_score_agreement_reached_never_needs_the_bridge_for_a_malformed_termination``).
+
+    It closes three of the four gaps the bridge-gated test above cannot
+    cover unconditionally: the RETURNED leaf set matches the manifest's
+    declared one, determinism (the scorer is invoked twice on the identical
+    input), and provenance (every returned envelope's ``evidence_refs``
+    equals ``scoring_input.evidence_refs`` verbatim). It does NOT and
+    cannot cover ruling R7's terminal-state-isolation contrapositive, which
+    needs two REAL, genuinely differing settlements sharing a byte-identical
+    outcome -- proving that requires the real bridge by construction, and
+    stays covered only by ``test_negarena_obeys_the_scoring_contract``.
+    """
+    declared = negarena_environment_module.family_manifest().measurement.finalize_time_leaf_policy()
+
+    family_case = {"scenario": {"game_kind": "buy_sell"}}
+    scorer = negarena_measurement.build_scorer(
+        family_case, bridge=_NegarenaBridgeMustNotBeCalled()
+    )
+    scoring_input = FamilyScoringInput(
+        outcome={
+            "termination_reason": "malformed_action",
+            "iteration_count": 1,
+            "last_answer": None,
+            "last_trade": None,
+        },
+        phase_instances=(),
+        evidence_refs=("evt_negarena_no_bridge_check_0", "evt_negarena_no_bridge_check_1"),
+        seat_context=SeatContext(
+            subject_seats=(NEGARENA_RED,),
+            profile_by_seat={
+                NEGARENA_RED: "negarena_scripted_v1",
+                NEGARENA_BLUE: "negarena_scripted_v1",
+            },
+        ),
+    )
+
+    first = scorer(scoring_input, evidence_refs=scoring_input.evidence_refs)
+    second = scorer(scoring_input, evidence_refs=scoring_input.evidence_refs)
+    assert first == second  # determinism, same input called twice
+
+    produced_leaf_ids = {score.leaf.leaf_id for score in first.scores}
+    assert produced_leaf_ids == set(declared.leaf_ids)
+    assert first.primary_leaf_id == declared.primary_leaf_id
+    assert first.admission_leaf_ids == declared.admission_leaf_ids
+    assert all(
+        score.evidence_refs == scoring_input.evidence_refs for score in first.scores
+    )
+    for score in first.scores:
+        assert score.status == "invalid_measurement"
+
+
 def test_determinism_precheck_adjacency_defeats_call_parity_aliasing(tmp_path: Path) -> None:
     """kernel_contract_gap_review.md finding 4, mutation check.
 
