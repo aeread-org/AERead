@@ -206,3 +206,113 @@ def test_upstream_set_rendering_is_canonicalized() -> None:
     # Anything that is not a set rendering passes through untouched.
     assert _canonicalize_set_rendering("plain reason") == "plain reason"
     assert _canonicalize_set_rendering(None) is None
+
+
+def _fake_run_root(tmp_path, receipt_source, *, statuses) -> "Path":
+    """A run root shaped exactly like a completed attempt.
+
+    Reuses a real sealed receipt so the projection runs against a genuine
+    payload rather than a hand-built stand-in.
+    """
+    import hashlib
+    import shutil
+
+    from aeread.shared_runner.run.resolver import canonical_json_bytes
+    from aeread_families.econevals import campaign as module
+
+    root = tmp_path / "attempt"
+    (root / "checkpoints" / "canary_probes").mkdir(parents=True)
+    plan = module.build_campaign_plan()
+    module._write_once_json(root / "campaign_plan.json", plan)
+    probe = {
+        "schema_version": "aeread.provider_admission_canary/0.1",
+        "campaign_id": module.CAMPAIGN_ID,
+        "plan_sha256": plan["plan_sha256"],
+        "status": "admitted",
+        "cost_usd": 0.00004,
+        "probe_ordinal": 1,
+    }
+    probe["record_sha256"] = module._digest(probe)
+    module._write_once_json(root / "checkpoints" / "canary_probes" / "001.json", probe)
+
+    for ordinal, (case_id, status) in enumerate(
+        zip(module.PANEL_CASE_IDS, statuses, strict=True)
+    ):
+        destination = root / "receipts" / case_id / "evaluation_receipt.json"
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(receipt_source, destination)
+        checkpoint = {
+            "schema_version": "aeread.econevals_checkpoint/0.1",
+            "campaign_id": module.CAMPAIGN_ID,
+            "plan_sha256": plan["plan_sha256"],
+            "ordinal": ordinal,
+            "case_id": case_id,
+            "status": "complete",
+            "run_plan_id": "runplan_test",
+            "run_plan_sha256": "0" * 64,
+            "receipt_path": str(destination.relative_to(root)),
+            "receipt_sha256": "1" * 64,
+            "receipt_replayed": True,
+            "receipt_status": status,
+            "inclusion_status": "included" if status == "ok" else "excluded",
+            "cost_usd": 0.01,
+            "termination_reason": "max_periods",
+            "period_count": 100,
+        }
+        checkpoint["record_sha256"] = module._digest(checkpoint)
+        module._write_once_json(
+            root / "checkpoints" / f"{ordinal:02d}_{case_id}.json", checkpoint
+        )
+    return root
+
+
+def _sealed_receipt() -> "Path | None":
+    from pathlib import Path
+
+    roots = sorted(
+        Path("runs/econevals").rglob("evaluation_receipt.json")
+    )
+    return roots[0] if roots else None
+
+
+def test_publish_projects_every_case_and_records_the_publisher(tmp_path) -> None:
+    """Publishing must survive a mixed panel and name its own publisher.
+
+    Attempt 011 executed a full panel and could not be published, because a
+    publisher bug was unfixable once campaign.py was inside the execution
+    freeze. This test exercises the projection itself so the next such bug is
+    found before a panel pays for it.
+    """
+    import json
+
+    from aeread_families.econevals import campaign as module
+
+    receipt = _sealed_receipt()
+    if receipt is None:
+        pytest.skip("no sealed econevals receipt available to project")
+    statuses = ["ok"] * (len(module.PANEL_CASE_IDS) - 1) + ["invalid_measurement"]
+    root = _fake_run_root(tmp_path, receipt, statuses=statuses)
+    publication = tmp_path / "published"
+    module.publish_campaign(run_root=root, publication_root=publication)
+
+    summary = json.loads((publication / "reports" / "summary.json").read_text())
+    assert summary["planned_cases"] == len(module.PANEL_CASE_IDS)
+    assert summary["completed_cases"] == len(module.PANEL_CASE_IDS)
+    assert summary["included_cases"] == len(module.PANEL_CASE_IDS) - 1
+    assert summary["excluded_cases"] == 1
+
+    manifest = json.loads((publication / "publication_manifest.json").read_text())
+    # The publisher is named next to what was executed, never inside the
+    # execution freeze -- that is what makes a publisher fix possible.
+    assert len(manifest["publisher_implementation_sha256"]) == 64
+    assert "campaign.py" not in module.build_campaign_plan()["execution_source_sha256"]
+
+    rows = [
+        json.loads(line)
+        for line in (publication / "trajectories" / "archive.jsonl")
+        .read_text()
+        .splitlines()
+        if line.strip()
+    ]
+    assert len(rows) == len(module.PANEL_CASE_IDS)
+    assert {row["inclusion_status"] for row in rows} == {"included", "excluded"}
