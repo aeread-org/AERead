@@ -274,7 +274,66 @@ class EconevalsJsonHarness:
             normalized.append({"id": call_id, "name": name, "arguments": arguments})
         return tuple(normalized), ""
 
+    @staticmethod
+    def _validate_step(
+        calls: Any, *, submit_tool: str
+    ) -> tuple[tuple[dict[str, Any], ...] | None, bool, str]:
+        """Validate one step's calls: read-only calls, or the terminating submit.
+
+        Returns ``(normalized, submitted, reason)``. A step may issue any
+        number of read-only calls, or exactly one submit call which ends the
+        period. Mixing them in one step is rejected, because the submit must
+        be the period's final call and anything after it would never run.
+        """
+        if not isinstance(calls, list) or not calls:
+            return None, False, "return a non-empty calls list"
+        normalized: list[dict[str, Any]] = []
+        submit_index: int | None = None
+        for index, call in enumerate(calls):
+            if not isinstance(call, Mapping):
+                return None, False, f"call {index} must be an object"
+            call_id = call.get("id")
+            name = call.get("name")
+            arguments = call.get("arguments")
+            if not isinstance(call_id, str) or not call_id:
+                return None, False, f"call {index} needs a non-empty string id"
+            if not isinstance(name, str) or not name:
+                return None, False, f"call {index} needs a tool name"
+            if not isinstance(arguments, Mapping):
+                return None, False, f"call {index} needs an arguments object"
+            if name == submit_tool:
+                submit_index = index
+            normalized.append({"id": call_id, "name": name, "arguments": arguments})
+        if submit_index is not None:
+            if submit_index != len(normalized) - 1:
+                return None, False, (
+                    f"{submit_tool!r} ends the period, so it must be the last "
+                    "call of the step"
+                )
+            if len(normalized) > 1:
+                return None, False, (
+                    f"issue your read-only calls first and see their results, "
+                    f"then call {submit_tool!r} on its own to end the period"
+                )
+        return tuple(normalized), submit_index is not None, ""
+
     async def act(self, request: Any, ctx: AttemptContext) -> HarnessOutput:
+        """Run one period as an iterative tool loop, as upstream does.
+
+        Upstream's own runner loops within a period
+        (`run_procurement_experiment.py`: ``for i in range(max_queries)``),
+        appending every tool result to the message list before the next call,
+        so the agent SEES what it looked up before it decides. An earlier
+        version of this harness took a single burst and executed it
+        afterwards, which asked the model to submit blind to its own queries
+        -- a strictly harder, differently shaped task, and the reason the
+        first published panel scored gate=0.0 on five of six cases.
+
+        The period ends when the model calls the track's submit tool. Every
+        call across every step is accumulated into one action, read-only
+        calls first and the submit last, which is the shape
+        ``parse_action`` requires.
+        """
         if request.phase_id != PERIOD_PHASE or request.seat_id != SEAT_ID:
             raise ProviderFailure(
                 "harness_contract",
@@ -292,101 +351,126 @@ class EconevalsJsonHarness:
         read_only = tuple(TRACK_TOOLS[track]["read_only"])
 
         messages = (self._request_message(request),)
+        tool_calls: list[dict[str, Any]] = []
+        executions: list[dict[str, Any]] = []
+        claimed: list[ClaimedToolCall] = []
         rounds_used = 0
-        normalized_calls: tuple[dict[str, Any], ...] | None = None
-        turn = None
-        while rounds_used < max(1, ctx.budget.rounds_left):
+        budget = max(1, ctx.budget.rounds_left)
+        while rounds_used < budget:
             turn = await ctx.model.complete(
                 messages=messages, response_mode="json_dialect"
             )
             rounds_used += 1
             if not (turn.text or "").strip():
-                # An empty turn is a typed PROVIDER condition, not a malformed
-                # answer: there is nothing to give feedback about, and the
-                # executor's retry policy already lists empty_response. Raising
-                # it here hands the retry to the layer that owns it instead of
-                # spending a corrective round on silence.
                 raise ProviderFailure(
                     "empty_response",
                     "econevals period returned an empty response",
                     retryable=True,
                 )
             value, reason = self._decode(turn.text or "")
+            step: tuple[dict[str, Any], ...] | None = None
+            submitted = False
             if value is not None:
-                normalized_calls, reason = self._validate_burst(
+                step, submitted, reason = self._validate_step(
                     value.get("calls"), submit_tool=submit_tool
                 )
-                if normalized_calls is not None:
-                    break
             elif getattr(turn, "truncated", False):
-                # Say so explicitly: a bare "invalid JSON" sends the next
-                # round chasing syntax when the real problem is length.
                 reason = (
                     "your previous response was cut off by the output limit; "
                     "return fewer, shorter calls in one complete JSON object"
                 )
-            # Correctable: nothing has been executed yet, so hand back the
-            # exact violation and the legal tool names rather than failing the
-            # episode on a first malformed burst.
+            if step is None:
+                # Correctable: nothing in this step has been executed.
+                messages = messages + (
+                    CanonicalMessage(
+                        role="user",
+                        content=canonical_json_bytes(
+                            {
+                                "error": reason,
+                                "read_only_tools": list(read_only),
+                                "submit_tool": submit_tool,
+                            }
+                        ).decode("utf-8"),
+                    ),
+                )
+                continue
+            if len(tool_calls) + len(step) > MAX_LLM_QUERIES_PER_PERIOD + 1:
+                raise ProviderFailure(
+                    "malformed_structured_output",
+                    "econevals period exceeded its per-period query budget",
+                    retryable=False,
+                )
+
+            results: list[dict[str, Any]] = []
+            for offset, call in enumerate(step):
+                envelope = await ctx.tools.invoke(
+                    tool_id=call["name"],
+                    arguments=call["arguments"],
+                    source_provider_call_id=turn.provider_call_id,
+                    source_call_index=offset,
+                )
+                plain_arguments = json.loads(canonical_json_bytes(call["arguments"]))
+                plain_result = json.loads(canonical_json_bytes(envelope.result))
+                tool_calls.append(
+                    {
+                        "id": call["id"],
+                        "name": call["name"],
+                        "arguments": plain_arguments,
+                    }
+                )
+                executions.append(
+                    {
+                        "tool_call_id": call["id"],
+                        "name": call["name"],
+                        "arguments": plain_arguments,
+                        "result": plain_result,
+                        "invocation_record_id": (
+                            envelope.invocation_record.tool_invocation_id
+                        ),
+                    }
+                )
+                claimed.append(
+                    ClaimedToolCall(
+                        tool_id=call["name"],
+                        source_provider_call_id=turn.provider_call_id,
+                        source_call_index=offset,
+                    )
+                )
+                results.append(
+                    {
+                        "call_id": call["id"],
+                        "name": call["name"],
+                        "result": plain_result,
+                    }
+                )
+
+            if submitted:
+                self.session.advance_period(self.family_case)
+                return HarnessOutput(
+                    action={"tool_calls": tool_calls, "tool_executions": executions},
+                    claimed_tool_calls=tuple(claimed),
+                    rounds_used=rounds_used,
+                    notes={},
+                )
+            # Feed the results back, which is the whole point of the loop.
             messages = messages + (
                 CanonicalMessage(
                     role="user",
                     content=canonical_json_bytes(
                         {
-                            "error": reason,
-                            "read_only_tools": list(read_only),
-                            "submit_tool": submit_tool,
+                            "tool_results": results,
+                            "reminder": (
+                                f"call {submit_tool!r} on its own when you are "
+                                "ready to end this period"
+                            ),
                         }
                     ).decode("utf-8"),
                 ),
             )
-        if normalized_calls is None:
-            raise ProviderFailure(
-                "malformed_structured_output",
-                f"econevals period was still malformed after {rounds_used} rounds",
-                retryable=False,
-            )
-
-        tool_calls: list[dict[str, Any]] = []
-        executions: list[dict[str, Any]] = []
-        claimed: list[ClaimedToolCall] = []
-        for index, call in enumerate(normalized_calls):
-            envelope = await ctx.tools.invoke(
-                tool_id=call["name"],
-                arguments=call["arguments"],
-                source_provider_call_id=turn.provider_call_id,
-                source_call_index=index,
-            )
-            plain_arguments = json.loads(canonical_json_bytes(call["arguments"]))
-            plain_result = json.loads(canonical_json_bytes(envelope.result))
-            tool_calls.append(
-                {"id": call["id"], "name": call["name"], "arguments": plain_arguments}
-            )
-            executions.append(
-                {
-                    "tool_call_id": call["id"],
-                    "name": call["name"],
-                    "arguments": plain_arguments,
-                    "result": plain_result,
-                    "invocation_record_id": envelope.invocation_record.tool_invocation_id,
-                }
-            )
-            claimed.append(
-                ClaimedToolCall(
-                    tool_id=call["name"],
-                    source_provider_call_id=turn.provider_call_id,
-                    source_call_index=index,
-                )
-            )
-
-        # Mirror the post-period advance `step` applies, so the next period's
-        # read-only responses reflect this period's submitted attempt.
-        self.session.advance_period(self.family_case)
-        return HarnessOutput(
-            action={"tool_calls": tool_calls, "tool_executions": executions},
-            claimed_tool_calls=tuple(claimed),
-            rounds_used=rounds_used,
-            notes={},
+        raise ProviderFailure(
+            "malformed_structured_output",
+            f"econevals period did not submit within {rounds_used} steps",
+            retryable=False,
         )
 
 
@@ -473,7 +557,7 @@ def _profile(
                     "pricing_id": PRICING.pricing_id,
                     "pricing_sha256": PRICING.content_sha256(),
                     "output_schema": period_output_schema(),
-                    "max_rounds": 5,
+                    "max_rounds": 12,
                     # Backoff is opt-in: with no retry_backoff declared the
                     # executor returns without sleeping, so ten attempts fire
                     # back-to-back into the same burst and buy nothing. That

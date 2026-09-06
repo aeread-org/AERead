@@ -134,11 +134,20 @@ sees the previous period's summary through `get_previous_*` on the next
 turn, and must commit its submission blind to whatever it looked up in the
 same period.
 
-**Consequence:** headroom-capture numbers from this family are not
-comparable to the paper's. They measure a differently shaped and strictly
-harder task. The fix is an in-period loop in `EconevalsJsonHarness` feeding
-each tool result back before the next call -- the same shape its corrective
-rounds already use, so it is a contained change rather than a redesign.
+**Fixed 2026-09-06.** `EconevalsJsonHarness` now loops within the period:
+the model issues read-only calls, sees their results fed back, and calls the
+submit tool on its own to end the period. Every call across every step
+accumulates into one action with the submit last, which is the shape
+`parse_action` requires; mixing read-only calls and the submit in one step
+is rejected with feedback telling the model to look first and submit after.
+
+Verified offline: 200 model calls across 100 periods, **every period
+containing a step that saw tool results before submitting**, receipt
+`ok`/`included`. Under the old shape it was one blind call per period, which
+is why the first published panel scored `gate = 0.0` on five of six cases.
+
+The panel published from attempt 014 predates this fix and its scores should
+not be quoted; a re-run under the corrected shape supersedes it.
 
 ### Documented narrower limits
 
@@ -150,4 +159,26 @@ rounds already use, so it is a contained change rather than a redesign.
   computes `budget` from the global `numpy.random` state rather than the
   passed `RandomState`, so the bridge spawns a fresh subprocess per
   generation. Not our defect; it is why corpus work is slow.
+
+## An unreconciled-claims marker on every sealed receipt
+
+Every econevals receipt published so far carries
+`harness_claim_unreconciled` on **all 100 periods**
+(`claimed_tool_calls: 2, recorded_tool_calls: 0`). govsim's carry none.
+
+Cause: the kernel's `port.tool_calls_dispatched` counts only tool calls a
+provider returns through its **native** tool protocol
+(`model_call/harness.py`, `self.tool_calls_dispatched += len(tool_calls)`),
+while this harness -- like tau3.retail's -- speaks JSON dialect and
+dispatches through the explicit `ToolRuntime`. The reconciliation therefore
+compares a claim count against a denominator that is structurally zero for
+this harness style.
+
+The evidence itself is sound: every invocation is sealed as
+`tool_invocation_started`/`succeeded` and the receipt replays to a matching
+digest. What is wrong is the metric, and it is wrong for any family using
+this pattern, tau3 included. The honest fix is for the reconciliation to
+compare claims against the tool runtime's sealed invocations rather than the
+native-protocol counter; that is a kernel change and is left for a ruling
+rather than taken here.
 
