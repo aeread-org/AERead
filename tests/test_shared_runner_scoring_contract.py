@@ -2267,6 +2267,59 @@ def test_r9_projection_erases_the_entire_outcome_when_the_declared_path_is_over_
         _assert_family_obeys_the_scoring_contract(key, registration, fixtures)
 
 
+def test_projection_is_not_vacuous_rejects_each_fixtures_projection_independently(
+    tmp_path: Path,
+) -> None:
+    """kernel_r9r10_review.md finding 5, third-pass review C2: the protocol-
+    path version of the test above raises on the LEFT fixture's projection
+    before the RIGHT fixture's guard call is ever reached -- one raised
+    ``AssertionError`` aborts ``_assert_family_obeys_the_scoring_contract``
+    immediately, so that test alone no longer demonstrates the guard
+    rejecting the right fixture's projection too. This is a separate,
+    direct unit test of ``_assert_projection_is_not_vacuous`` restoring
+    that independent coverage over the SAME real over-broad fixture pair,
+    alongside (not instead of) the protocol-path test.
+    """
+    left_setup, left_execution = asyncio.run(
+        _run_reference_episode(
+            ("x", "y"),
+            evidence_root=tmp_path / "overbroad_independent_left",
+            plugin_factory=_OverBroadTrajectoryEmbeddingPlugin,
+        )
+    )
+    _right_setup, right_execution = asyncio.run(
+        _run_reference_episode(
+            ("y", "x"),
+            evidence_root=tmp_path / "overbroad_independent_right",
+            plugin_factory=_OverBroadTrajectoryEmbeddingPlugin,
+        )
+    )
+    plugin = left_setup.registry.resolve_manifest(left_setup.plan.families[0])
+    family_case = plugin.validate_payload(left_setup.plan.cases[0].payload)
+    left_input = replay_family_scoring_input(
+        plugin=plugin, family_case=family_case, evidence=left_execution.evidence
+    )
+    right_input = replay_family_scoring_input(
+        plugin=plugin, family_case=family_case, evidence=right_execution.evidence
+    )
+
+    over_broad_paths = ("/labels",)
+    left_projection = project_outcome(left_input.outcome, over_broad_paths)
+    right_projection = project_outcome(right_input.outcome, over_broad_paths)
+    # Sanity: the projection really is empty for both fixtures, not merely
+    # small -- otherwise this would not be exercising the vacuous case.
+    assert left_projection == {} and right_projection == {}
+
+    with pytest.raises(AssertionError, match="vacuous"):
+        _assert_projection_is_not_vacuous(
+            left_projection, family_id="over_broad_fixture_family", trajectory_outcome_paths=over_broad_paths
+        )
+    with pytest.raises(AssertionError, match="vacuous"):
+        _assert_projection_is_not_vacuous(
+            right_projection, family_id="over_broad_fixture_family", trajectory_outcome_paths=over_broad_paths
+        )
+
+
 def test_sensitivity_witness_rejects_a_trajectory_leaf_that_ignores_the_trajectory(
     tmp_path: Path,
 ) -> None:
