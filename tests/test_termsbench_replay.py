@@ -1094,3 +1094,115 @@ def test_finalize_wires_termsbench_nodeal_to_the_shared_family_finalizer(tmp_pat
     fagr = next(score for score in receipt.scores if score.leaf.leaf_id == m.NO_DEAL_AGREEMENT_LEAF_ID)
     assert fagr.status == "ok"
     assert fagr.primary.value == 0.0
+
+
+def test_finalize_wires_termsbench_nodeal_false_agreement_as_a_legitimate_fagr_minus_one(
+    tmp_path: Path,
+) -> None:
+    """Independent review finding F2: the receipt test above covers only a
+    walk-away No-deal episode (``FAGR- == 0.0``). This is the other real
+    branch of eq. 60 (Section F.2) through the SAME finalizer path: a
+    No-deal-regime case (``Delta_i < 0``, no positive ZOPA) where a price is
+    nonetheless bound -- a "false agreement," the wrong outcome for this
+    regime, and eq. 60's ``FAGR- = 1`` case.
+
+    Driven entirely through the real formulas, never a hand-constructed
+    outcome: the counterpart's own IR gate
+    (``kernel.acceptance_probability``'s ``delta_bar < 0.0`` hard return of
+    0) guarantees the STOCHASTIC KERNEL itself never accepts an
+    IR-violating offer, so the only way a real episode binds a price here
+    is the scripted AGENT accepting the counterpart's own (real,
+    kernel-computed) offer. ``counterpart_draws_by_round``'s ``u_accept``/
+    ``u_walkaway`` overrides only force the counterpart's round-1 turn into
+    its "offer" branch (mirroring
+    ``test_termsbench_environment.py::test_price_bound_violation_is_flagged_but_does_not_terminate``'s
+    identical technique) -- the counterpart's actual offer price is
+    computed by ``kernel.resolve_counterpart_turn``'s real opening-price
+    formula, never scripted. The agent's second turn then scripts
+    ``accept``, binding that real price.
+
+    The receipt must be ``status="ok"``/``inclusion_status="included"``
+    with ``termsbench_no_deal_agreement_leaf.primary.value == 1.0`` as a
+    legitimate, measured number -- never ``invalid_measurement`` and never
+    excluded: ``_value_axis_validity`` gates only on
+    ``malformed_action_schema`` (spec section 4 golden 4), and this episode
+    has none; the bound price being individually irrational for the agent
+    is exactly what makes it a false agreement, not a reason to discard the
+    measurement. ``family_manifest("nodeal").measurement.direction ==
+    "minimize"`` (confirmed below) -- and
+    ``termsbench_no_deal_agreement_leaf.estimand.direction`` is the same
+    ``"minimize"`` -- makes ``FAGR- == 1.0`` the WORSE value here (the
+    maximum of the leaf's own 0/1 range) and ``FAGR- == 0.0`` (the walk-away
+    companion test's value) the better one, the mirror image of AGR+'s
+    ``"maximize"`` for Overlap.
+    """
+    case = CaseManifest.from_dict(tb_cases.build_case("candid", "nodeal", 1010011))
+    setup = build_termsbench_setup(case, suffix="finalize_nodeal_false_agreement", regime="nodeal")
+    cell = setup.plan.cells[0]
+    family = setup.plan.families[0]
+    plugin = setup.registry.resolve_manifest(family)
+
+    assert family.measurement.direction == "minimize"
+
+    evidence = EvidenceStore(
+        tmp_path / "evidence_finalize_nodeal_false_agreement",
+        run_plan_id=setup.plan.run_plan_id,
+        cell_id=cell.cell_id,
+        episode_id=f"episode_{cell.cell_id}",
+        episode_attempt_id="attempt_1",
+    )
+    # chi="agent_opens" for this pilot case: round 1 is the agent's own
+    # opening offer; forcing the counterpart's round-1 turn away from
+    # accept/walk-away (both draws pinned high) falls through to its real
+    # "offer" branch (kernel.resolve_counterpart_turn, agent_offers
+    # non-empty, counterpart_offers still empty -> the opening-price
+    # formula) -- never a scripted or hand-picked price. The agent's own
+    # second scripted turn then accepts that real counterpart price.
+    assert case.payload["chi"] == "agent_opens"
+    harness = EvidenceRecordingTermsBenchHarness(
+        world_seed=case.world_seed,
+        script=[
+            {"decision": "offer", "price": 110.0, "message": "opening"},
+            {"decision": "accept", "price": None, "message": "deal"},
+        ],
+        counterpart_draws_by_round={1: {"u_accept": 0.999, "u_walkaway": 0.999}},
+        evidence=evidence,
+    )
+    result = asyncio.run(run_episode(cell=cell, case=case, plugin=plugin, response_source=harness))
+    assert result.terminal["reason"] == "agent_accept"
+    assert result.terminal["final_price"] is not None
+    # The bound price is a real false agreement: individually irrational for
+    # the agent (an IR critical violation), never a schema failure -- the
+    # distinction that keeps this a valid measurement (spec section 4
+    # golden 4's own rule: only malformed_action_schema invalidates leaves
+    # 1-3, never a plain critical violation).
+    assert result.outcome["critical_violations"]["individual_rationality"] is True
+    assert result.outcome["malformed_action_schema"] is False
+
+    execution = CellExecution(
+        run_plan_id=setup.plan.run_plan_id,
+        cell_id=cell.cell_id,
+        episode_attempt_id="attempt_1",
+        episode_result=result,
+        evidence=evidence,
+        action_executions=(),
+        total_cost_usd=0.0,
+    )
+
+    receipt = finalize_family_execution(setup=setup, execution=execution)
+
+    assert receipt.status == "ok"
+    assert receipt.inclusion_status == "included"
+    assert {score.leaf.leaf_id for score in receipt.scores} == {
+        m.NO_DEAL_AGREEMENT_LEAF_ID,
+        m.PROTOCOL_COMPLIANCE_LEAF_ID,
+    }
+    assert receipt.primary_leaf_id == m.NO_DEAL_AGREEMENT_LEAF_ID
+    evidence_refs = {score.evidence_refs for score in receipt.scores}
+    assert len(evidence_refs) == 1
+
+    fagr = next(score for score in receipt.scores if score.leaf.leaf_id == m.NO_DEAL_AGREEMENT_LEAF_ID)
+    assert fagr.status == "ok"
+    assert fagr.primary is not None
+    assert fagr.primary.value == 1.0
+    assert fagr.leaf.estimand.direction == "minimize"
