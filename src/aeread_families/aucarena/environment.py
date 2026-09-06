@@ -55,6 +55,7 @@ _REQUIRED_PAYLOAD_KEYS = {
     "roster",
     "min_markup_pct",
     "enable_discount",
+    "world_seed",
 }
 _REQUIRED_ITEM_KEYS = {"id", "name", "price", "desc", "true_value"}
 _REQUIRED_ROSTER_KEYS = {"seat_id", "model_name", "budget", "max_bid_cnt"}
@@ -237,9 +238,32 @@ class AucArenaPlugin:
                 "enable_discount must be False -- the price-cut path is out of "
                 "this adapter's scope (docs/aucarena_adapter_spec.md section 7)"
             )
+        world_seed = data["world_seed"]
+        if (
+            not isinstance(world_seed, int)
+            or isinstance(world_seed, bool)
+            or world_seed < 0
+        ):
+            raise ValueError("payload.world_seed must be a non-negative int")
         return data
 
-    def initial_state(self, family_case: Mapping[str, Any], cell: Any) -> dict[str, Any]:
+    def initial_state(self, family_case: Mapping[str, Any], run: Any) -> dict[str, Any]:
+        """Build the initial family state for one episode.
+
+        The second parameter is named ``run`` (not ``cell``) to match every
+        other migrated family's own ``initial_state`` hook -- required
+        because ``task.evaluation._replay_family_trajectory`` calls
+        ``plugin.initial_state(family_case, run=None)`` by keyword
+        (kernel_scoring_contract_spec.md's ``replay_family_scoring_input``
+        contract); the live scheduler (``task.scheduler.run_episode``) still
+        passes this positionally, so this rename does not change what value
+        actually arrives here. ``world_seed`` is read from ``family_case``
+        (declared in ``payload.world_seed``, validated above) rather than
+        from this parameter, since replay supplies ``None`` here and this
+        family's ``score_hammer_rule`` needs the SAME world_seed the live
+        episode used, byte for byte, to reproduce its RNG tie-break stream.
+        """
+        del run
         seat_order = [seat["seat_id"] for seat in family_case["roster"]]
         seats = {
             seat["seat_id"]: {
@@ -254,7 +278,7 @@ class AucArenaPlugin:
             for seat in family_case["roster"]
         }
         return {
-            "world_seed": int(cell.world_seed),
+            "world_seed": int(family_case["world_seed"]),
             "items": [dict(item) for item in family_case["items"]],
             "min_markup_pct": family_case["min_markup_pct"],
             "enable_discount": family_case["enable_discount"],

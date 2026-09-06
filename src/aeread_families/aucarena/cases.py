@@ -242,6 +242,13 @@ def build_case(scenario: GoldenScenario, item_pool: Mapping[int, Mapping[str, An
             "roster": roster,
             "min_markup_pct": MIN_MARKUP_PCT,
             "enable_discount": ENABLE_DISCOUNT,
+            # Duplicated from the outer CaseManifest.world_seed above, not
+            # an independent value: task.evaluation._replay_family_
+            # trajectory calls plugin.initial_state(family_case, run=None),
+            # so world_seed must be reachable from family_case alone for
+            # replay to reconstruct the identical initial state
+            # (environment.py's initial_state docstring).
+            "world_seed": scenario.world_seed,
         },
         "provenance": {
             "generator_id": "aucarena_importer",
