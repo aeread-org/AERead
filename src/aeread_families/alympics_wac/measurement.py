@@ -185,35 +185,57 @@ def _validity_domain() -> ValidityDomainSpec:
     )
 
 
-def _opponent_panel_sha256(panel_policy_ids: Mapping[str, str], baseline_policy_id: str) -> str:
+def _opponent_panel_sha256(
+    focal_seat: str, panel_policy_ids: Mapping[str, str], baseline_policy_id: str
+) -> str:
     """Content digest binding a leaf 1/2 reference to its exact comparison.
 
-    The declared policy panel is part of the estimand (spec section 2): two
-    leaves that differ only in which policies the panel's seats run are not
-    interchangeable, so they must not collide on ``source_sha256``. Neither
-    are two leaves that differ only in the *declared baseline policy* --
-    comparing a seat against "proportional" is a different claim than
-    comparing it against "aggressive", even for the identical panel (Codex
-    triage finding 2: ``baseline_policy_id`` used to be accepted by the leaf
-    builders but never referenced anywhere in either body).
+    The opponent panel (every OTHER seat's declared policy) is part of the
+    estimand (spec section 2): two leaves that differ only in which
+    policies the non-focal seats run are not interchangeable, so they must
+    not collide on ``source_sha256``. Neither are two leaves that differ
+    only in the *declared baseline policy* -- comparing the focal seat
+    against "proportional" is a different claim than comparing it against
+    "aggressive", even for the identical panel (Codex triage finding 2:
+    ``baseline_policy_id`` used to be accepted by the leaf builders but
+    never referenced anywhere in either body).
 
-    Deliberately does NOT take ``focal_seat``. Ruling R12 declares leaves
-    1/2 ``seat_scope="subject_seat"``, and the scoring-contract protocol
-    test (``_assert_family_obeys_the_scoring_contract``'s "leaf identity
-    must be stable across fixtures" check) requires this leaf's
-    ``MeasurementLeafSpec`` -- including ``source_sha256`` -- to be
-    IDENTICAL no matter which seat a given trial names as the subject: only
-    the case's own declared panel and the declared baseline are part of
-    this reference's identity; which physical seat later plays "the
-    subject" is not (``AlympicsWacScorer.leaves_for_focal_seat`` passes the
-    case's FULL policy assignment here for exactly this reason -- see that
-    method's own docstring). ``build_terminal_wealth_leaf``/
-    ``build_survival_leaf`` still accept ``focal_seat`` as their own
-    parameter, purely for call-site documentation and backward
-    compatibility with this module's existing direct callers/tests; it is
-    simply never forwarded into this digest.
+    Takes ``focal_seat`` because the reference this leaf claims genuinely
+    depends on it: the baseline leaves 1/2 compare against is this SAME
+    case recomputed with ``focal_seat``'s OWN policy replaced by
+    ``baseline_policy_id`` (``_recompute_baseline_episode``'s
+    ``policy_assignment[focal_seat] = baseline_policy_id``) -- swap a
+    DIFFERENT seat in for the baseline, for the identical panel, and the
+    recomputed trajectory (and therefore the comparison this leaf makes) is
+    a different object. Omitting ``focal_seat`` from this digest would let
+    two materially different baselines collide on one ``source_sha256`` --
+    false provenance, not a cosmetic gap. Ruling R12 declares leaves 1/2
+    ``seat_scope="subject_seat"`` for exactly this reason, and the kernel's
+    leaf-identity stability check (kernel_r12_seat_context.md; the
+    per-fixture ``_leaf_spec_stability_violation`` in
+    ``tests/test_shared_runner_scoring_contract.py``) was written to permit
+    precisely this: a ``seat_scope="subject_seat"`` leaf may instantiate
+    its reference's own identity -- ``source_sha256``/``reference_id`` --
+    per subject seat, while every other, invariant field of its
+    ``MeasurementLeafSpec`` (estimand, verifier, the rest of the reference,
+    scorer ref) stays fixed.
+
+    A previous version of this function deliberately DROPPED
+    ``focal_seat`` from this payload, purely so leaves 1/2 would hash
+    identically regardless of which seat later became the subject, to
+    satisfy a since-fixed gap in the kernel's own stability check (it
+    compared the full ``MeasurementLeafSpec`` with no notion of a per-seat
+    leaf at all, predating ruling R12 by several commits -- PR #103 vs
+    R12). That workaround is reverted here now that the kernel check it
+    was worked around is fixed; see docs/alympics_adapter_status.md's
+    "Reference-provenance finding" section and docs/kernel_r12_seat_
+    context.md for the kernel-side fix this reversion depends on.
+    ``AlympicsWacScorer.leaves_for_focal_seat`` correspondingly passes
+    ``panel_policy_ids(focal_seat)`` -- every OTHER seat's own policy --
+    never the case's full assignment; see that method's own docstring.
     """
     payload = {
+        "focal_seat": focal_seat,
         "panel_policy_ids": dict(sorted(panel_policy_ids.items())),
         "baseline_policy_id": baseline_policy_id,
     }
@@ -415,7 +437,7 @@ def build_terminal_wealth_leaf(
         reference_kind="baseline_delta",
         input_scope="trajectory",
         units="native_currency",
-        source_sha256=_opponent_panel_sha256(panel_policy_ids, baseline_policy_id),
+        source_sha256=_opponent_panel_sha256(focal_seat, panel_policy_ids, baseline_policy_id),
         implementation=_implementation(
             "alympics_wac_terminal_wealth_baseline_run", "measurement.py"
         ),
@@ -457,7 +479,7 @@ def build_survival_leaf(
         reference_kind="baseline_delta",
         input_scope="trajectory",
         units="rounds_survived",
-        source_sha256=_opponent_panel_sha256(panel_policy_ids, baseline_policy_id),
+        source_sha256=_opponent_panel_sha256(focal_seat, panel_policy_ids, baseline_policy_id),
         implementation=_implementation("alympics_wac_survival_baseline_run", "measurement.py"),
     )
     verifier = VerifierSpec(
@@ -1072,41 +1094,29 @@ class AlympicsWacScorer:
         assignment = self.family_case["grid_cell"]["policy_assignment"]
         return {seat: policy for seat, policy in assignment.items() if seat != focal_seat}
 
-    def full_policy_assignment(self) -> dict[str, str]:
-        """The case's own declared policy assignment, every seat, unchanged.
-
-        Used only to build leaves 1/2's identity (``leaves_for_focal_seat``
-        below) -- never to recompute a baseline episode (``panel_policy_ids``
-        stays the right method for that: the actual substitution needs
-        "every OTHER seat's policy", which genuinely differs by focal seat).
-        Unlike ``panel_policy_ids(focal_seat)``, this is the SAME dict no
-        matter which seat is later named the subject for the same case,
-        which is exactly the stability ruling R12's ``seat_scope=
-        "subject_seat"`` leaves need (see ``_opponent_panel_sha256``'s own
-        docstring).
-        """
-        return dict(self.family_case["grid_cell"]["policy_assignment"])
-
     def leaves_for_focal_seat(
         self,
         focal_seat: str,
         *,
         baseline_policy_id: str = DEFAULT_BASELINE_POLICY_ID,
     ) -> tuple[MeasurementLeafSpec, MeasurementLeafSpec, MeasurementLeafSpec, MeasurementLeafSpec]:
-        """Build this case's 4 leaves.
+        """Build this case's 4 leaves for one focal seat.
 
-        ``focal_seat`` is accepted for call-site parity with every other
-        method on this class and every direct caller in this module's own
-        tests, but -- ruling R12 -- it plays no part in the leaves' declared
-        identity: ``build_leaves`` is given the case's FULL policy
-        assignment (``full_policy_assignment``), not ``panel_policy_ids
-        (focal_seat)``, so the returned ``MeasurementLeafSpec``s are
-        identical regardless of which seat ``__call__`` later resolves as
-        the subject for this same case.
+        Leaves 1/2's reference identity (``source_sha256``/``reference_id``,
+        via ``_opponent_panel_sha256``) genuinely depends on ``focal_seat``:
+        the baseline each compares against is this SAME case recomputed
+        with ``focal_seat``'s OWN policy replaced by ``baseline_policy_id``,
+        so a different focal seat is a different comparison, even for an
+        identical panel. ``build_leaves`` is given
+        ``panel_policy_ids(focal_seat)`` -- every OTHER seat's own declared
+        policy -- never the case's full assignment: ruling R12 declares
+        leaves 1/2 ``seat_scope="subject_seat"`` for exactly this kind of
+        per-seat reference (see ``_opponent_panel_sha256``'s own docstring
+        for the kernel-side stability rule that permits it).
         """
         return build_leaves(
             focal_seat=focal_seat,
-            panel_policy_ids=self.full_policy_assignment(),
+            panel_policy_ids=self.panel_policy_ids(focal_seat),
             baseline_policy_id=baseline_policy_id,
         )
 

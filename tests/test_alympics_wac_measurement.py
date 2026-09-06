@@ -164,6 +164,64 @@ def test_opponent_panel_is_part_of_the_leaf_1_2_reference_identity() -> None:
     )
 
 
+def test_focal_seat_is_part_of_the_leaf_1_2_reference_identity_even_for_an_identical_panel() -> None:
+    """Reference-provenance finding (docs/alympics_migration_review.md,
+    second review pass): `_opponent_panel_sha256`'s own `focal_seat`
+    parameter, isolated from `leaves_for_focal_seat`'s separate choice of
+    WHICH panel dict to pass (`panel_policy_ids(focal_seat)` -- whose key
+    set already differs by focal seat for any case with more than one
+    seat, which would mask a regression in `_opponent_panel_sha256` itself
+    if this test relied on it). Calling `build_terminal_wealth_leaf`
+    directly with the IDENTICAL `panel_policy_ids` dict for two DIFFERENT
+    `focal_seat` values isolates exactly that: the baseline each leaf
+    compares against is this case recomputed with a DIFFERENT seat's
+    policy replaced, even for an identical panel, so the two must not
+    collide on `source_sha256`."""
+    same_panel = {"bob": "proportional", "cindy": "proportional"}
+    alex_leaf = m.build_terminal_wealth_leaf(focal_seat="alex", panel_policy_ids=same_panel)
+    david_leaf = m.build_terminal_wealth_leaf(focal_seat="david", panel_policy_ids=same_panel)
+    assert (
+        alex_leaf.verifier.reference.source_sha256
+        != david_leaf.verifier.reference.source_sha256
+    )
+
+    survival_alex_leaf = m.build_survival_leaf(focal_seat="alex", panel_policy_ids=same_panel)
+    survival_david_leaf = m.build_survival_leaf(focal_seat="david", panel_policy_ids=same_panel)
+    assert (
+        survival_alex_leaf.verifier.reference.source_sha256
+        != survival_david_leaf.verifier.reference.source_sha256
+    )
+
+
+def test_leaves_for_focal_seat_builds_leaf_1_2_identity_from_the_opponent_panel_not_the_full_assignment() -> None:
+    """`leaves_for_focal_seat` must feed `panel_policy_ids(focal_seat)` --
+    every OTHER seat's own declared policy -- into `build_leaves`, never
+    the case's full policy assignment (which still carries the focal
+    seat's OWN policy, a key that has no business inside "the opponent
+    panel"). Checked by EQUALITY against `build_terminal_wealth_leaf`/
+    `build_survival_leaf` called directly with that exact panel, not by a
+    hash inequality across focal seats -- `_opponent_panel_sha256`'s own
+    `focal_seat` parameter (see the test above) would make two leaves
+    differ by focal seat regardless of what panel `leaves_for_focal_seat`
+    feeds in, so an inequality check alone cannot isolate THIS
+    regression."""
+    plugin = _plugin()
+    case = _case("mixed_policies_a")
+    family_case = plugin.validate_payload(case.payload)
+    scorer = plugin.build_scorer(family_case)
+
+    focal_seat = "bob"
+    leaves = scorer.leaves_for_focal_seat(focal_seat)
+    expected_terminal_wealth = m.build_terminal_wealth_leaf(
+        focal_seat=focal_seat, panel_policy_ids=scorer.panel_policy_ids(focal_seat)
+    )
+    expected_survival = m.build_survival_leaf(
+        focal_seat=focal_seat, panel_policy_ids=scorer.panel_policy_ids(focal_seat)
+    )
+    assert leaves[0] == expected_terminal_wealth
+    assert leaves[1] == expected_survival
+
+
 # ---------------------------------------------------------------------------
 # Codex triage finding 2 -- `baseline_policy_id` was accepted by
 # build_terminal_wealth_leaf/build_survival_leaf but never referenced in
@@ -226,33 +284,78 @@ def test_scorer_leaves_for_focal_seat_threads_the_declared_baseline_policy_id_th
     )
 
 
-def test_leaves_for_focal_seat_identity_does_not_depend_on_which_seat_is_focal() -> None:
-    """Ruling R12: leaves 1-3's declared identity (their whole
-    `MeasurementLeafSpec`, including `source_sha256`) must be stable across
-    every possible focal seat for the SAME case -- the scoring-contract
-    protocol test's cross-fixture "leaf's declared identity must be
-    stable" check requires exactly this once fixtures naming different
-    focal seats are compared side by side
-    (`tests/test_shared_runner_scoring_contract.py`'s
-    `_alympics_kernel_contract_fixtures`). `mixed_policies_a`'s
-    heterogeneous panel (each seat a different declared policy) is the
-    sharpest case: `panel_policy_ids(focal_seat)` -- "every OTHER seat's
-    policy" -- genuinely differs in content by focal seat here, which is
-    exactly why `leaves_for_focal_seat` must NOT build leaf identity from
-    it (`full_policy_assignment` -- the case's FULL assignment -- instead)."""
+def test_leaves_for_focal_seat_reference_identity_depends_on_the_focal_seat() -> None:
+    """Reference-provenance finding (docs/alympics_migration_review.md,
+    second review pass): a previous version of `leaves_for_focal_seat`
+    built leaves 1/2's identity from the case's FULL policy assignment,
+    deliberately independent of `focal_seat`, purely to satisfy a
+    since-fixed gap in the kernel's own leaf-identity stability check
+    (kernel_r12_seat_context.md, PR #103 finding 7, predating ruling R12).
+    That made two MATERIALLY DIFFERENT baselines -- the SAME case
+    recomputed with a DIFFERENT seat's policy replaced -- collide on one
+    `source_sha256`: false provenance, not a cosmetic gap.
+
+    This test asserts the corrected property the workaround broke: for the
+    SAME case, two DIFFERENT focal seats' leaves 1/2 (terminal_wealth,
+    survival) must differ in their reference identity (`source_sha256`)
+    while agreeing on every invariant field (estimand, verifier, the rest
+    of the reference, scorer ref); for the SAME focal seat, calling
+    `leaves_for_focal_seat` twice must be byte-identical. Leaves 3/4
+    (bid_legality, settlement_exactness) carry no per-seat reference at
+    all and stay byte-identical regardless of focal seat.
+
+    `mixed_policies_a`'s heterogeneous panel (each seat a different
+    declared policy) is the sharpest case: `panel_policy_ids(focal_seat)`
+    -- "every OTHER seat's policy" -- genuinely differs in content by focal
+    seat here."""
     plugin = _plugin()
     case = _case("mixed_policies_a")
     family_case = plugin.validate_payload(case.payload)
     scorer = plugin.build_scorer(family_case)
 
-    leaves_by_seat = {seat: scorer.leaves_for_focal_seat(seat) for seat in SEAT_ORDER}
-    reference_leaves = leaves_by_seat[SEAT_ORDER[0]]
-    for seat in SEAT_ORDER[1:]:
-        assert leaves_by_seat[seat] == reference_leaves, (
-            f"leaves_for_focal_seat({seat!r}) differs from "
-            f"leaves_for_focal_seat({SEAT_ORDER[0]!r}) -- leaf identity must not "
-            "depend on which seat is focal"
+    # Same focal seat, called twice: byte-identical.
+    alex_leaves = scorer.leaves_for_focal_seat("alex")
+    assert scorer.leaves_for_focal_seat("alex") == alex_leaves
+
+    bob_leaves = scorer.leaves_for_focal_seat("bob")
+
+    # Leaves 3/4 (bid_legality, settlement_exactness) carry no per-seat
+    # reference at all -- byte-identical regardless of focal seat.
+    assert alex_leaves[2] == bob_leaves[2]
+    assert alex_leaves[3] == bob_leaves[3]
+
+    # Leaves 1/2 (terminal_wealth, survival): the reference's own identity
+    # differs by focal seat; every other, invariant field agrees.
+    for index, leaf_name in ((0, "terminal_wealth"), (1, "survival")):
+        alex_leaf = alex_leaves[index]
+        bob_leaf = bob_leaves[index]
+        assert alex_leaf.verifier.reference.source_sha256 != bob_leaf.verifier.reference.source_sha256, (
+            f"leaf {leaf_name}: source_sha256 was expected to depend on the focal seat"
         )
+        assert alex_leaf.estimand == bob_leaf.estimand
+        assert alex_leaf.verifier.verifier_family == bob_leaf.verifier.verifier_family
+        assert alex_leaf.verifier.evaluation_class == bob_leaf.verifier.evaluation_class
+        assert alex_leaf.verifier.objective_scope == bob_leaf.verifier.objective_scope
+        assert (
+            alex_leaf.verifier.reference.reference_version
+            == bob_leaf.verifier.reference.reference_version
+        )
+        assert (
+            alex_leaf.verifier.reference.reference_kind
+            == bob_leaf.verifier.reference.reference_kind
+        )
+        assert alex_leaf.verifier.reference.input_scope == bob_leaf.verifier.reference.input_scope
+        assert alex_leaf.verifier.reference.units == bob_leaf.verifier.reference.units
+        assert (
+            alex_leaf.verifier.reference.implementation
+            == bob_leaf.verifier.reference.implementation
+        )
+        assert alex_leaf.scorer == bob_leaf.scorer
+        # reference_id is a function of baseline_policy_id alone (not
+        # focal_seat) -- both leaves share the default baseline here, so it
+        # agrees too (permitted, not required, to vary by seat: the kernel
+        # stability rule exempts BOTH reference_id and source_sha256).
+        assert alex_leaf.verifier.reference.reference_id == bob_leaf.verifier.reference.reference_id
 
 
 def test_score_terminal_wealth_rejects_baseline_evidence_declared_under_a_mismatched_policy() -> None:
