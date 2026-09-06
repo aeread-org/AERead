@@ -322,3 +322,125 @@ tests/test_shared_runner_family_evaluation.py`): **149 passed, 0 failed.**
 
 Full suite (`pytest -q`, no bridges exported): **2271 passed, 125 skipped,
 1 xfailed (pre-existing, unrelated to this change), 0 failed.**
+
+## Review (post-implementation, independent)
+
+An independent review of the six commits above (`b0d8bebb` through
+`0f869a93`) reported eight items and rated six clean:
+(a), (c), (e), (f), (g), (h). This document does not restate their
+specific content beyond that verdict — the reviewer's summary named only
+the letters and dispositions for the clean items, not their individual
+descriptions, and this document will not invent line references for
+findings whose substance was not relayed, in keeping with this codebase's
+own standard of not dressing up an unverified claim as a verified one.
+
+The two remaining items were should-fix and are recorded in full below,
+each addressed in its own commit, test-first, mutation-verified.
+
+### F1 — `_seat_context_for_cell` did not check subject seats against profile_by_seat
+
+**Finding.** `_seat_context_for_cell` (`task/evaluation.py`, then around
+lines 165-181) returned the evaluation block's `subject_seats` without
+checking that each one is a key of the cell's `profile_by_seat`. A
+malformed resolved plan — `subject_seats=("x",)` with
+`profile_by_seat={"y": ...}` — would reach the scorer with a subject seat
+that has no assigned profile, and `_check_seat_context_seat_set`'s guard
+(which compares `profile_by_seat` keys against the receipt's recorded
+`agent_profile_digests` keys) does not catch it, since both sides of that
+specific comparison agree with each other.
+
+**Disposition — fixed, commit `c593f463`.** `_seat_context_for_cell` now
+raises a named `ValueError` listing
+`sorted(set(block.subject_seats) - set(cell.profile_by_seat))` before
+constructing the `SeatContext`.
+
+**Reachability, established before writing the fix.** `resolve_run_plan`
+(`run/resolver.py`) already requires `block.subject_seats` to be a subset
+of the case's seat ids, which must exactly equal `run_spec.seat_assignments`'
+keys, which is exactly what becomes `cell.profile_by_seat` (see
+`PlanCell` drafting in `resolve_run_plan`). A plan built the normal way can
+therefore never reach this branch — the resolver is the first line of
+defense, and this is recorded in the fix's own docstring. Separately,
+`verify_run_plan`'s `plan_sha256` recomputation (called first by every real
+entry point: `finalize_family_execution`, `replay_family_receipt`,
+`audit_family_receipt`) blocks reaching any of them with a plan/cell pair
+that disagrees with the plan's own declared digest, so a hand-mutated cell
+cannot reach this guard through a real finalizer call either. Per the
+review's own instruction for exactly this situation, the test drives
+`_seat_context_for_cell` directly against a `dataclasses.replace`-mutated
+`PlanCell` rather than through the finalizer.
+
+**Test.** `test_seat_context_for_cell_rejects_a_subject_seat_with_no_assigned_profile`
+(`tests/test_shared_runner_family_evaluation.py`) — builds a real housing
+plan, drops `"tenant_0"`'s entry from a copy of the resolved cell's
+`profile_by_seat` while leaving the block's `subject_seats` (which still
+names `"tenant_0"`) untouched, and asserts the named error names it.
+
+**Mutation.** Disabling the new guard in a `/tmp` copy of
+`task/evaluation.py` made the test fail with "DID NOT RAISE ValueError";
+restored from the same `/tmp` copy (never `git checkout` on the file
+holding uncommitted work).
+
+### F2 — the digest-neutrality test could pass while every migrated manifest's digest silently changed
+
+**Finding.** `test_leaf_policy_declaration_without_seat_scope_is_digest_neutral`
+(`tests/test_shared_runner_schemas.py`) compared two manifests both
+canonicalized by the CURRENT code — one omitting `seat_scope`, one passing
+`"cell"` explicitly. If nested `_CANONICAL_OMIT_IF_DEFAULT` recursion
+stopped being honoured for `LeafPolicyDeclaration` (which lives inside
+`MeasurementDeclaration.leaves`, not at the top level
+`run/resolver.py::_canonical_value` was originally proven against), both
+sides would serialize `"seat_scope":"cell"` identically and the test would
+stay green while every already-migrated manifest's real digest changed
+underneath it.
+
+**Disposition — fixed, commit `3426e890`.** Pinned
+`_PRE_R12_CELL_SCOPE_MEASUREMENT_SHA256 =
+"794e778702d6fffbf7ab92a038188f9071631c18afdc53027e994d289a639f88"`,
+computed from commit `78614540`'s actual kernel code (the fork point),
+not from anything in this worktree. Computed by:
+
+```
+git archive 78614540 src | tar -x -C /tmp/pre_r12/
+<venv python> -c '
+    import sys, json
+    sys.path.insert(0, "src"); sys.path.insert(0, "tests")
+    from test_shared_runner_schemas import _family_data_with_leaves
+    print(json.dumps(_family_data_with_leaves()))
+' > /tmp/pre_r12/family_data_with_leaves.json
+PYTHONPATH=/tmp/pre_r12/src <venv python> -c '
+    import json, hashlib
+    from aeread.shared_runner.schemas import FamilyManifest
+    from aeread.shared_runner.run.resolver import canonical_json_bytes
+    data = json.load(open("/tmp/pre_r12/family_data_with_leaves.json"))
+    family = FamilyManifest.from_dict(data)
+    print(hashlib.sha256(canonical_json_bytes(family.measurement)).hexdigest())
+'
+```
+
+Both computations built from the SAME JSON file (not a re-typed literal),
+eliminating transcription risk between the two sides. `PYTHONPATH` was
+confirmed (by printing `aeread.__file__` in each subprocess) to correctly
+shadow the editable-installed package with the archived pre-R12 `src/`.
+The existing two-object comparisons (`with_subject_seat` differs,
+`without_subject_seat` equals) were kept as second assertions, unweakened.
+
+**Test.** The same
+`test_leaf_policy_declaration_without_seat_scope_is_digest_neutral`, now
+also asserting `hashlib.sha256(cell_scope_bytes).hexdigest() ==
+_PRE_R12_CELL_SCOPE_MEASUREMENT_SHA256`.
+
+**Mutation.** Removed `"seat_scope"` from `LeafPolicyDeclaration.
+_CANONICAL_OMIT_IF_DEFAULT` in a `/tmp` copy of `schemas.py`: the golden
+assertion failed (`0420c888...` vs the pinned `794e7787...`), confirming
+this specific assertion — not merely the pre-existing two-object
+comparisons, which would have passed unchanged under this exact
+mutation — is what catches the regression the finding described.
+Restored from the `/tmp` copy.
+
+## Post-review verification
+
+Targeted (`tests/test_shared_runner_schemas.py
+tests/test_shared_runner_scoring_contract.py tests/test_shared_runner_smoke.py
+tests/test_shared_runner_family_evaluation.py`) after both fixes: 150 passed,
+0 failed.
