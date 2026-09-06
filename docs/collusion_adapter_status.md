@@ -1,7 +1,7 @@
 # collusion adapter — status
 
 Branch `zeyu/collusion-adapter`. Last verified 2026-09-05 (kernel scoring-
-contract migration, milestone 2 of 3).
+contract migration, milestone 3 of 3 — final).
 
 ## What the adapter claims
 
@@ -129,27 +129,124 @@ though, for this family, `outcome` also happens to carry the same data.
 a terminal fact every leaf's operational-failure gate checks, not itself
 trajectory content.
 
+## Receipt (kernel_scoring_contract_spec.md, migration milestone 3 of 3)
+
+This family has never produced an `EvaluationReceipt` before this milestone.
+`ScriptedCollusionHarness` (milestones 1–2, above) writes only its own
+convenience event and never wrote the full generic evidence trail
+(`logical_action_started`, `action_attempt_succeeded`, `action_parsed`,
+`action_legality_checked`, `logical_action_succeeded`/
+`logical_action_agent_action_failure`, `phase_instance_started`,
+`transition_applied`, `phase_instance_succeeded`, `episode_terminated`,
+`family_outcome_recorded`) that `task.evaluation.replay_family_scoring_input`
+needs to replay — so `task.evaluation.finalize_family_execution` (which
+calls that replayer internally) could never have been driven for this
+family at all. `EvidenceRecordingCollusionHarness`
+(`tests/test_collusion_replay.py`) reproduces that exact event vocabulary
+for a plain scripted pricing decision (mirroring `AttemptExecutor`'s own
+event shapes field-for-field, and govsim's identically-motivated
+`EvidenceRecordingGovsimHarness`), which is what makes this reachable.
+
+`tests/test_collusion_replay.py::test_finalize_wires_collusion_to_the_shared_family_finalizer`
+drives one small, real, provider-free episode (`firm_a` playing
+monopoly-play, `firm_b` playing Nash-play, horizon 4) end to end through the
+real `finalize_family_execution` and gets back a receipt carrying every one
+of this family's four declared finalize-time leaves
+(`collusion_price_legality`, `collusion_distance_to_nash_price`,
+`collusion_distance_to_monopoly_price`, `collusion_long_run_profit`), with
+`primary_leaf_id == collusion_long_run_profit` and one shared
+`evidence_refs` tuple across all four scores.
+
+**The receipt is `status="invalid_measurement"`, `inclusion_status="excluded"`
+— a documented, structural fact, not a fixture defect.**
+`CollusionScorer.__call__` always calls `score_all` with
+`baseline_profit_by_seat=None`, because no comparison baseline is reachable
+from a `FamilyScoringInput` alone (`score_long_run_profit`'s own docstring;
+the `FamilyScorer` protocol has no parameter for one — spec section 1).
+`collusion_long_run_profit` (the primary and sole admission leaf) is
+therefore always `invalid_measurement` with reason
+`baseline_profit_not_provided` whenever driven through this generic
+finalizer, for every case, regardless of trajectory. `collusion_price_legality`
+still scores `status="ok"`, `primary.value == 1.0` in this fixture (every
+round legal), and the two distance leaves score `status="ok"` with real
+computed distances — only the primary/admission leaf is gated.
+
+**Enrolled in the scoring-contract protocol test**
+(`kernel_scoring_contract_spec.md` section 6). `collusion` is now in
+`TRUSTED_BUILTIN_PLUGIN_KEYS` and has been removed from
+`_NOT_YET_MIGRATED_TRUSTED_KEYS` in
+`tests/test_shared_runner_scoring_contract.py` — the same closed-world
+check (ruling R6) that once exempted it as unmigrated now requires (and
+gets) a real fixture. Three fixtures are supplied
+(`_collusion_fixtures`), all provider-free, all driven through the real
+scheduler via `EvidenceRecordingCollusionHarness`:
+
+- `left`/`right` — the paired-history pair ruling R9 requires. Same
+  horizon, same two scripted policies (monopoly-play, Nash-play), swapped
+  across the two seats. Both reach `termination_reason="max_periods"` at
+  the same `rounds_played`, so the outcome **projection** (outcome minus
+  the declared `trajectory_outcome_paths=("/history",)`) is byte-identical
+  between them, while the per-round `history` genuinely differs — the
+  paired-history precondition this family's embedded trajectory would
+  otherwise make unconstructible on the whole outcome (ruling R9's own
+  motivating example for this family).
+- `malformed` — `firm_a` submits an unparseable price on round 0, gating
+  the episode to `termination_reason="retry_exhausted"` after one round.
+
+**Ruling R9(b) sensitivity witness — which pair witnesses which leaf.**
+`collusion_distance_to_nash_price`/`collusion_distance_to_monopoly_price`
+are witnessed by the `left`/`right` pair itself: swapping which seat plays
+which price swaps each leaf's per-seat `utility_by_seat` breakdown, even
+though the cross-seat mean each leaf's `primary` reports happens to
+coincide (ruling R7: a legitimate trajectory metric may coincide on any one
+pair — that coincidence is not itself a defect). `collusion_price_legality`
+and `collusion_long_run_profit` are witnessed only by pairing `malformed`
+against `left` or `right`: both are gated to the identical
+`invalid_measurement` result on every episode that completes normally
+(`ok`/`1.0` for price legality; `baseline_profit_not_provided` for long-run
+profit, since no baseline is ever reachable from a `FamilyScoringInput`
+alone), so only a termination-reason change — never a same-shaped normal
+fixture — can show either leaf capable of changing at all. Verified by
+mutation: dropping `malformed` from the supplied fixtures fails
+`test_every_registered_family_obeys_the_scoring_contract` with exactly that
+message for exactly those two leaves.
+
+**Ruling R10 consistency.** Every fixture's declared `/history` path is
+asserted to equal its canonical derivation from the verified re-execution's
+`phase_instances`, independent of whatever this family's own `outcome()`
+happened to seal — a no-op check in effect (this family's `outcome()` reads
+the identical `state["history"]` object `terminal()` was built from), but
+now enforced generically rather than assumed.
+
 ## Evidence
 
-**Family suite: 93 passed, 0 failed, 0 skipped** across the five
+**Family suite: 94 passed, 0 failed, 0 skipped** across the five
 `test_collusion_*.py` files (`AEREAD` project venv, Python 3.11) plus
 `tests/test_shared_runner_smoke.py`, re-verified against this milestone's
-leaf-policy/`__call__` migration (`kernel_scoring_contract_spec.md`):
+enrollment/receipt migration (`kernel_scoring_contract_spec.md`):
 
 | File | Tests |
 |---|---|
 | `tests/test_collusion_cases.py` | 18 |
-| `tests/test_collusion_environment.py` | 18 (+1 this milestone) |
-| `tests/test_collusion_measurement.py` | 25 (+2 this milestone) |
+| `tests/test_collusion_environment.py` | 18 |
+| `tests/test_collusion_measurement.py` | 25 |
 | `tests/test_collusion_harness.py` | 9 |
-| `tests/test_collusion_replay.py` | 13 |
+| `tests/test_collusion_replay.py` | 14 (+1 this milestone: `test_finalize_wires_collusion_to_the_shared_family_finalizer`) |
 | `tests/test_shared_runner_smoke.py` | 10 |
 
 Per-file counts above are measured directly against this branch today; the
 counts this table carried before this milestone had already drifted from
 tests landed in earlier sessions and were not reconciled at the time — this
-update corrects the table rather than only adding this milestone's three
-new tests to stale numbers.
+update corrects the table rather than only adding this milestone's new
+tests to stale numbers.
+
+**Plus the shared, cross-family `tests/test_shared_runner_scoring_contract.py`
+(21 passed, 0 failed, 0 skipped)** — not collusion-specific, so not counted
+in the family-suite total above, but this is where `collusion`'s own
+enrollment (this milestone's `## Receipt` section) is actually exercised:
+`test_every_registered_family_obeys_the_scoring_contract` now includes
+`collusion`'s three fixtures in its closed-world, registry-driven sweep over
+every `TRUSTED_BUILTIN_PLUGIN_KEYS` entry.
 
 ```bash
 pytest tests/test_collusion_cases.py tests/test_collusion_environment.py \
