@@ -284,10 +284,22 @@ submit call delegated to the pinned upstream scoring primitive
 two separately-labelled measurement leaves per track (spec section 2), never
 one blended number:
 
-| Leaf | Verifier family | Units | Declared when |
+| Leaf | Verifier family | Units | Declared |
 |---|---|---|---|
 | gate | `rule_constraint` | `pass` | always |
-| objective | `objective_reference` | track-native (`workers_supported` / `blocking_pairs` / `profit_usd`) | only when the gate passes |
+| objective | `objective_reference` | track-native (`workers_supported` / `blocking_pairs` / `profit_usd`) | always |
+
+`econevals_objective_leaf` is this family's primary leaf and its sole
+admission leaf (`family_manifest()`'s `primary_leaf_id`/`admission_leaf_ids`;
+see "Leaf policy" above); the gate leaf is neither. Both leaves are returned
+by every call to `EconevalsScorer.__call__` (`score_all` never returns `None`
+for either leaf), but when the gate does not pass, the objective envelope's
+own status is `invalid_measurement`, never `ok` with a fabricated achieved
+value: `_objective_not_computed` reasons it as `"objective_not_computed:
+gate_failed"` (with the gate's own failure detail appended in parentheses
+when present) for a well-formed-but-illegal submission, or as
+`"objective_not_computed: gate "` followed by the gate leaf's own
+`invalid_measurement` reasons when the gate leaf itself is malformed.
 
 A recorded episode replays offline — zero further model calls, and (unlike
 `tau3_retail`) zero re-timestamped state — reproducing the final FSM state
