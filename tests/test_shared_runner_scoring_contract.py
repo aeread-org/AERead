@@ -51,10 +51,12 @@ from __future__ import annotations
 
 import asyncio
 import dataclasses
+import functools
 import hashlib
 import itertools
 import json
 from pathlib import Path
+from types import MappingProxyType
 from typing import Any, Mapping, Sequence
 
 import pytest
@@ -100,6 +102,8 @@ from aeread.shared_runner.schemas import (
 )
 from aeread.shared_runner.task.evaluation import (
     FamilyScoringInput,
+    SeatContext,
+    finalize_family_execution,
     replay_family_scoring_input,
 )
 from aeread.shared_runner.task.execution import (
@@ -388,6 +392,190 @@ class _ReferenceScorer:
 
 
 # ---------------------------------------------------------------------------
+# Ruling R12 (kernel_scoring_contract_spec.md): a synthetic, kernel-owned,
+# per-seat family -- same trusted identity as ``_ReferencePlugin``
+# (``kernel_contract_reference_v1``), a ``_ReferencePlugin`` subclass in the
+# same style as ``_TrajectoryEmbeddingPlugin`` -- exercising rule 2's
+# subject-seat primary check. Two REAL seats, "x" and "y" (not the single
+# "participant_0" seat the label-tally family above reuses): "x" acts in
+# round_one, "y" in round_two, so the terminal outcome carries one label per
+# seat and a ``subject_seat``-scoped leaf can publish a genuine
+# ``utility_by_seat`` keyed by real plan seat ids.
+# ---------------------------------------------------------------------------
+
+_SEAT_SCOPED_LEAF_ID = "seat_scoped_utility"
+_SEAT_SCOPED_CASE_ID = "kernel_contract_seat_scoped_case_v1"
+_SEAT_SCOPED_SEAT_IDS = ("x", "y")
+
+
+class _SeatScopedPlugin(_ReferencePlugin):
+    """``_ReferencePlugin``'s two single-actor rounds, played by two
+    DIFFERENT seats (seat "x" acts in round_one, seat "y" in round_two)
+    instead of the same seat twice, so the terminal outcome carries one
+    label per seat.
+    """
+
+    def __init__(self, *, mode: str = "default") -> None:
+        self._mode = mode
+
+    def initial_state(self, family_case: Mapping[str, Any], run: Any) -> dict[str, Any]:
+        del family_case, run
+        return {"choices": {}}
+
+    def eligible_actors(self, family_case, state, phase) -> tuple[str, ...]:
+        del family_case, state
+        return ("x",) if phase.phase_id == "round_one" else ("y",)
+
+    def observe(self, family_case, state, seat, phase) -> dict[str, Any]:
+        del family_case, state, seat
+        return {"phase_id": phase.phase_id}
+
+    def step(self, family_case, state, phase, actions) -> TransitionResult:
+        del family_case
+        seat_id = "x" if phase.phase_id == "round_one" else "y"
+        label = actions[seat_id].action["label"]
+        next_state = {"choices": {**state["choices"], seat_id: label}}
+        next_phase = "round_two" if phase.phase_id == "round_one" else None
+        return TransitionResult(state=next_state, next_phase_id=next_phase)
+
+    def terminal(self, family_case, state) -> dict[str, Any] | None:
+        del family_case
+        choices = state["choices"]
+        return dict(choices) if {"x", "y"} <= set(choices) else None
+
+    def outcome(self, family_case, terminal) -> dict[str, Any]:
+        del family_case
+        return {"label_by_seat": dict(sorted(terminal.items()))}
+
+    def build_scorer(self, family_case: Mapping[str, Any]) -> "_SeatScopedScorer":
+        del family_case
+        return _SeatScopedScorer(mode=self._mode)
+
+
+class _SeatScopedScorer:
+    """Publishes ``utility_by_seat`` for both seats and a ``primary`` that
+    follows ruling R12 rule 2's reduction -- plus, via ``mode``, three
+    adversarial behaviours, each named for the exact finalizer-side
+    violation it exists to exercise: ``"wrong_primary"`` (the singleton
+    primary disagrees with ``utility_by_seat``) and
+    ``"ok_despite_zero_seats"`` (claims a scalar with no subject seat at
+    all). The ``"default"`` mode is otherwise correct for zero/one subject
+    seats, and for two or more it always attempts a mean reduction --
+    whether that ``ok`` envelope is actually PERMITTED then depends solely
+    on whether the manifest declares ``subject_reduction``, which is the
+    kernel's decision to make (task/evaluation.py's
+    ``_enforce_subject_seat_primaries``), not this scorer's.
+    """
+
+    def __init__(self, *, mode: str = "default") -> None:
+        self._mode = mode
+
+    def __call__(
+        self, scoring_input: FamilyScoringInput, *, evidence_refs: tuple[str, ...] = ()
+    ) -> ScoreEnvelope:
+        outcome = scoring_input.outcome
+        leaf = _reference_leaf(leaf_id=_SEAT_SCOPED_LEAF_ID, input_scope="terminal_state")
+        # _reference_leaf gives a "terminal_state" leaf units "count" (see
+        # its own input_scope -> units mapping); every MetricValue on this
+        # envelope must match that unit, including per-seat ones.
+        utility_by_seat = {
+            seat_id: MetricValue(1.0 if label == "x" else 0.0, "count")
+            for seat_id, label in outcome["label_by_seat"].items()
+        }
+        subject_seats = scoring_input.seat_context.subject_seats
+
+        def ok(primary_value: float, *, seat_utility: Mapping[str, MetricValue] | None = None) -> ScoreEnvelope:
+            return ScoreEnvelope(
+                status="ok",
+                leaf=leaf,
+                primary=MetricValue(primary_value, "count"),
+                metrics={},
+                reference_values={},
+                validity=ValidityReport("valid"),
+                evidence_refs=evidence_refs,
+                utility_by_seat=utility_by_seat if seat_utility is None else seat_utility,
+            )
+
+        def invalid(reason: str) -> ScoreEnvelope:
+            return ScoreEnvelope(
+                status="invalid_measurement",
+                leaf=leaf,
+                primary=None,
+                metrics={},
+                reference_values={},
+                validity=ValidityReport("invalid", (reason,)),
+                evidence_refs=evidence_refs,
+                utility_by_seat=utility_by_seat,
+            )
+
+        if len(subject_seats) == 0:
+            if self._mode == "ok_despite_zero_seats":
+                return ok(0.0)
+            return invalid("no_subject_seat")
+        if len(subject_seats) == 1:
+            subject = subject_seats[0]
+            if self._mode == "missing_utility_seat":
+                # The OTHER half of rule 2's singleton condition: the
+                # subject seat is not even a key of utility_by_seat, even
+                # though the leaf claims a scalar "ok" for it.
+                return ok(
+                    1.0,
+                    seat_utility={
+                        seat_id: value
+                        for seat_id, value in utility_by_seat.items()
+                        if seat_id != subject
+                    },
+                )
+            value = utility_by_seat[subject].value
+            if self._mode == "wrong_primary":
+                return ok(value + 1.0)
+            return ok(value)
+        mean_value = sum(utility_by_seat[seat_id].value for seat_id in subject_seats) / len(
+            subject_seats
+        )
+        return ok(mean_value)
+
+
+def _seat_scoped_case() -> CaseManifest:
+    return _reference_case(seat_ids=_SEAT_SCOPED_SEAT_IDS, case_id=_SEAT_SCOPED_CASE_ID)
+
+
+def _seat_scoped_family_manifest(*, subject_reduction: str | None = None) -> FamilyManifest:
+    manifest = _with_declared_leaf_policy(
+        _reference_family_manifest(),
+        leaves=(
+            LeafPolicyDeclaration(
+                _SEAT_SCOPED_LEAF_ID,
+                "finalize_time",
+                None,
+                seat_scope="subject_seat",
+                subject_reduction=subject_reduction,
+            ),
+        ),
+        primary_leaf_id=_SEAT_SCOPED_LEAF_ID,
+        admission_leaf_ids=(_SEAT_SCOPED_LEAF_ID,),
+    )
+    # resolve_run_plan's own pin-completeness check (run/resolver.py's
+    # _required_pin_kinds) derives which "reference"-kind components a plan
+    # must pin from family.scoring.reference_provider_ids -- it has no way
+    # to know, at plan-resolution time, which implementation refs a leaf's
+    # ScoreEnvelope will carry at finalize time. Declaring this leaf's two
+    # _reference_leaf-minted component ids here is what makes
+    # _run_seat_scoped_episode's extra_pins for them required (and
+    # therefore accepted, not "unreferenced") by resolve_run_plan.
+    return dataclasses.replace(
+        manifest,
+        scoring=dataclasses.replace(
+            manifest.scoring,
+            reference_provider_ids=(
+                f"{_SEAT_SCOPED_LEAF_ID}_validity_v1",
+                f"{_SEAT_SCOPED_LEAF_ID}_reference_v1",
+            ),
+        ),
+    )
+
+
+# ---------------------------------------------------------------------------
 # kernel_contract_gap_review.md finding 4's exact adversary: a scorer whose
 # output alternates strictly by a GLOBAL call counter -- never by
 # ``scoring_input`` -- so fresh ``build_scorer(...)`` instances (as every
@@ -643,18 +831,20 @@ class _ReferenceSetup:
     harnesses: Mapping[str, Any]
 
 
-def _reference_case() -> CaseManifest:
+def _reference_case(
+    *, seat_ids: Sequence[str] = ("participant_0",), case_id: str = "kernel_contract_reference_case_v1"
+) -> CaseManifest:
     raw = {
         "spec_version": CaseManifest.SPEC_VERSION,
-        "case_id": "kernel_contract_reference_case_v1",
+        "case_id": case_id,
         "family_id": _REFERENCE_FAMILY_ID,
         "family_version": _REFERENCE_FAMILY_VERSION,
         "split": "dev",
         "world_seed": 1,
-        "seats": [{"id": "participant_0", "role": "participant"}],
+        "seats": [{"id": seat_id, "role": "participant"} for seat_id in seat_ids],
         "episode": {"max_logical_actions": 2, "termination": ["both_rounds_recorded"]},
         "visibility_policy": "kernel_contract_reference_full_visibility_v1",
-        "payload": {"scenario_id": "kernel_contract_reference_case_v1"},
+        "payload": {"scenario_id": case_id},
         "provenance": {
             "generator_id": "kernel_contract_reference_generator_v1",
             "generator_version": "1.0.0",
@@ -666,15 +856,23 @@ def _reference_case() -> CaseManifest:
     return CaseManifest.from_dict(raw)
 
 
-def _build_reference_setup(*, plugin_factory: Any = _ReferencePlugin) -> _ReferenceSetup:
-    case = _reference_case()
-    family = _reference_family_manifest()
+def _build_reference_setup(
+    *,
+    plugin_factory: Any = _ReferencePlugin,
+    case: CaseManifest | None = None,
+    family_manifest: FamilyManifest | None = None,
+    subject_seats: Sequence[str] | None = None,
+    extra_pins: tuple[ImplementationPin, ...] = (),
+) -> _ReferenceSetup:
+    case = case if case is not None else _reference_case()
+    family = family_manifest if family_manifest is not None else _reference_family_manifest()
+    seat_ids = tuple(seat.id for seat in case.seats)
     sampling = SamplingPlan.from_dict(
         {
             "spec_version": SamplingPlan.SPEC_VERSION,
             "sampling_plan_id": "kernel_contract_reference_sample_v1",
             "estimand": "fixed_two_round_label_choice_case",
-            "target": "kernel_contract_reference_case_v1",
+            "target": case.case_id,
             "selection": "fixed_curated",
             "seeds": [case.world_seed],
             "replicates": 1,
@@ -690,12 +888,20 @@ def _build_reference_setup(*, plugin_factory: Any = _ReferencePlugin) -> _Refere
             "spec_version": EvaluationBlock.SPEC_VERSION,
             "block_id": "kernel_contract_reference_self_play_v1",
             "kind": "self_play",
-            "subject_seats": ["participant_0"],
+            # EvaluationBlock.from_dict requires a non-empty subject_seats
+            # (its own authoring-layer constraint) -- a placeholder is used
+            # here when the caller explicitly wants zero, and dropped via
+            # dataclasses.replace right below, which is the only way to
+            # construct a legitimate-but-unauthorable zero-subject-seat
+            # block for ruling R12's own zero-seat kernel check.
+            "subject_seats": list(subject_seats) if subject_seats else list(seat_ids),
             "controlled_profiles": {},
             "repetitions": 1,
             "seed_policy": "fixed",
         }
     )
+    if subject_seats is not None and len(subject_seats) == 0:
+        block = dataclasses.replace(block, subject_seats=())
     analysis = AnalysisPlan.from_dict(
         {
             "spec_version": AnalysisPlan.SPEC_VERSION,
@@ -784,7 +990,7 @@ def _build_reference_setup(*, plugin_factory: Any = _ReferencePlugin) -> _Refere
             "suite_id": suite.suite_id,
             "evaluation_block_ids": [block.block_id],
             "agent_profile_ids": [profile.profile_id],
-            "seat_assignments": {"participant_0": profile.profile_id},
+            "seat_assignments": {seat_id: profile.profile_id for seat_id in seat_ids},
             "execution_mode": "evaluate",
             "replicate_override": None,
             "budget_overrides": None,
@@ -829,6 +1035,7 @@ def _build_reference_setup(*, plugin_factory: Any = _ReferencePlugin) -> _Refere
                 "sha256": _REFERENCE_MODULE_DIGEST,
             }
         ),
+        *extra_pins,
     )
     plan = resolve_run_plan(
         families=(family,),
@@ -867,9 +1074,22 @@ def _build_reference_setup(*, plugin_factory: Any = _ReferencePlugin) -> _Refere
 
 
 async def _run_reference_episode(
-    labels: Sequence[str], *, evidence_root: Path, plugin_factory: Any = _ReferencePlugin
+    labels: Sequence[str],
+    *,
+    evidence_root: Path,
+    plugin_factory: Any = _ReferencePlugin,
+    case: CaseManifest | None = None,
+    family_manifest: FamilyManifest | None = None,
+    subject_seats: Sequence[str] | None = None,
+    extra_pins: tuple[ImplementationPin, ...] = (),
 ):
-    setup = _build_reference_setup(plugin_factory=plugin_factory)
+    setup = _build_reference_setup(
+        plugin_factory=plugin_factory,
+        case=case,
+        family_manifest=family_manifest,
+        subject_seats=subject_seats,
+        extra_pins=extra_pins,
+    )
     execution = await execute_plan_cell(
         plan=setup.plan,
         cell_id=setup.plan.cells[0].cell_id,
@@ -890,8 +1110,20 @@ async def _run_reference_episode(
 
 @dataclasses.dataclass(frozen=True, slots=True)
 class FamilyScoringFixture:
+    """One replay-able episode, plus the seat context (ruling R12) the real
+    finalizer would have derived for it from the plan's evaluation block and
+    the resolved cell. ``subject_seats``/``profile_by_seat`` default to
+    empty -- a seat-insensitive family's fixtures pass nothing here and its
+    scorer sees the same empty ``SeatContext`` it always has; only the
+    synthetic per-seat fixture below sets them.
+    """
+
     family_case: Mapping[str, Any]
     sealed_evidence: EvidenceStore
+    subject_seats: tuple[str, ...] = ()
+    profile_by_seat: Mapping[str, str] = dataclasses.field(
+        default_factory=lambda: MappingProxyType({})
+    )
 
 
 def _with_declared_leaf_policy(
@@ -1753,6 +1985,19 @@ _SINGLE_FIXTURE_EXEMPT_FAMILIES: "frozenset[tuple[str, str]]" = frozenset(
         ("procurement_allocation_v1", "1.0.0"),
         ("procurement_grounding_v1", "1.0.0"),
         ("commercial_state_calibration_v1", "1.0.0"),
+        # Ruling R12: a fictional key -- deliberately NOT
+        # ("kernel_contract_reference_v1", "1.0.0") -- used only as the
+        # ``key`` argument passed directly to
+        # ``_assert_family_obeys_the_scoring_contract`` by the synthetic
+        # per-seat family test below. That test is not enrolled in
+        # ``TRUSTED_BUILTIN_PLUGIN_KEYS`` or ``FAMILY_SCORING_FIXTURES`` and
+        # never reaches ``test_every_registered_family_obeys_the_scoring_
+        # contract``; its one purpose is exercising ruling R12 rule 2's
+        # singleton check, which needs no second, outcome-identical,
+        # trajectory-differing fixture (seat "x" always acts in round_one
+        # and seat "y" always in round_two, so no order-swap analogous to
+        # the label-tally family's exists to construct one honestly).
+        ("kernel_contract_seat_scoped_v1", "1.0.0"),
     }
 )
 
@@ -1799,6 +2044,10 @@ def _assert_family_obeys_the_scoring_contract(
             plugin=registration.plugin,
             family_case=case.family_case,
             evidence=case.sealed_evidence,
+            seat_context=SeatContext(
+                subject_seats=case.subject_seats,
+                profile_by_seat=case.profile_by_seat,
+            ),
         )
         # Ruling R10: this fixture's OWN outcome must agree with its OWN
         # phase_instances at every declared path -- independent of any
@@ -2065,10 +2314,16 @@ def test_determinism_precheck_adjacency_defeats_call_parity_aliasing(tmp_path: P
     family_case = plugin.validate_payload(left_setup.plan.cases[0].payload)
 
     left_scoring_input = replay_family_scoring_input(
-        plugin=plugin, family_case=family_case, evidence=left_execution.evidence
+        plugin=plugin,
+        family_case=family_case,
+        evidence=left_execution.evidence,
+        seat_context=SeatContext((), {}),
     )
     right_scoring_input = replay_family_scoring_input(
-        plugin=plugin, family_case=family_case, evidence=right_execution.evidence
+        plugin=plugin,
+        family_case=family_case,
+        evidence=right_execution.evidence,
+        seat_context=SeatContext((), {}),
     )
     # Sanity: this really is a byte-identical-outcome, differing-trajectory
     # pair, exactly what the main protocol test requires for the pairing.
@@ -2329,10 +2584,16 @@ def test_projection_is_not_vacuous_rejects_each_fixtures_projection_independentl
     plugin = left_setup.registry.resolve_manifest(left_setup.plan.families[0])
     family_case = plugin.validate_payload(left_setup.plan.cases[0].payload)
     left_input = replay_family_scoring_input(
-        plugin=plugin, family_case=family_case, evidence=left_execution.evidence
+        plugin=plugin,
+        family_case=family_case,
+        evidence=left_execution.evidence,
+        seat_context=SeatContext((), {}),
     )
     right_input = replay_family_scoring_input(
-        plugin=plugin, family_case=family_case, evidence=right_execution.evidence
+        plugin=plugin,
+        family_case=family_case,
+        evidence=right_execution.evidence,
+        seat_context=SeatContext((), {}),
     )
 
     over_broad_paths = ("/labels",)
@@ -2840,3 +3101,179 @@ def test_sensitivity_witness_requires_at_least_one_same_case_pair() -> None:
     ]
     with pytest.raises(AssertionError, match="no same-case pair"):
         _assert_trajectory_leaves_are_witnessed(fixtures, {leaf_id}, family_id="fixture_family")
+
+
+# ---------------------------------------------------------------------------
+# Ruling R12: the synthetic per-seat family (``_SeatScopedPlugin``/
+# ``_SeatScopedScorer``, defined alongside ``_ReferencePlugin`` above)
+# exercises rule 2's subject-seat primary check -- the singleton case
+# through the real protocol path, and the zero-seat/ambiguous/wrong-primary/
+# declared-reduction cases through the real finalizer (``_enforce_declared_
+# leaf_policy`` -> ``_enforce_subject_seat_primaries`` in task/evaluation.py),
+# since those are contract violations the finalizer raises on, not something
+# the registry-driven protocol test's leaf-set/primary/admission equality
+# checks would ever see.
+# ---------------------------------------------------------------------------
+
+
+async def _run_seat_scoped_episode(
+    *,
+    evidence_root: Path,
+    subject_seats: Sequence[str],
+    mode: str = "default",
+    subject_reduction: str | None = None,
+):
+    """Seat "x" always chooses label "x" (utility 1.0), seat "y" always
+    chooses label "y" (utility 0.0) -- so a declared "mean" reduction over
+    both seats is exactly 0.5, and the singleton seat "x"'s own value is
+    exactly 1.0, giving each test below an unambiguous expected number.
+
+    ``extra_pins`` supplies the two implementation refs ``_reference_leaf``
+    mints for THIS leaf's validity domain and reference (component ids
+    ``f"{_SEAT_SCOPED_LEAF_ID}_validity_v1"``/``f"{_SEAT_SCOPED_LEAF_ID}_reference_v1"``)
+    -- required by ``EvaluationReceipt``'s own plan-pin-completeness check,
+    only reachable for a fixture that goes all the way through
+    ``finalize_family_execution`` (the label-tally/embedding fixtures above
+    never do; only this synthetic family's "accepted" test does).
+    """
+    extra_pins = tuple(
+        ImplementationPin.from_dict(
+            {
+                "component_id": f"{_SEAT_SCOPED_LEAF_ID}_{suffix}_v1",
+                "kind": "reference",
+                "version": "1.0.0",
+                "sha256": _REFERENCE_MODULE_DIGEST,
+            }
+        )
+        for suffix in ("validity", "reference")
+    )
+    return await _run_reference_episode(
+        ("x", "y"),
+        evidence_root=evidence_root,
+        plugin_factory=functools.partial(_SeatScopedPlugin, mode=mode),
+        case=_seat_scoped_case(),
+        family_manifest=_seat_scoped_family_manifest(subject_reduction=subject_reduction),
+        subject_seats=subject_seats,
+        extra_pins=extra_pins,
+    )
+
+
+def test_seat_scoped_singleton_subject_seat_primary_passes_the_protocol_path(
+    tmp_path: Path,
+) -> None:
+    """Ruling R12 rule 2's singleton check: exactly one subject seat, an
+    "ok" envelope whose primary equals ``utility_by_seat[subject]`` --
+    driven through ``_assert_family_obeys_the_scoring_contract`` exactly as
+    ``test_every_registered_family_obeys_the_scoring_contract`` drives every
+    real registered family (see ``_SINGLE_FIXTURE_EXEMPT_FAMILIES`` for why
+    this family supplies only one fixture)."""
+    setup, execution = asyncio.run(
+        _run_seat_scoped_episode(
+            evidence_root=tmp_path / "seat_scoped_singleton", subject_seats=("x",)
+        )
+    )
+    case = setup.plan.cases[0]
+    cell = setup.plan.cells[0]
+    family = setup.plan.families[0]
+    registration = setup.registry.resolve_registration(
+        family.family.id, family.family.version, family.family.plugin_id
+    )
+    family_case = registration.plugin.validate_payload(case.payload)
+    fixture = FamilyScoringFixture(
+        family_case=family_case,
+        sealed_evidence=execution.evidence,
+        subject_seats=("x",),
+        profile_by_seat=cell.profile_by_seat,
+    )
+
+    _assert_family_obeys_the_scoring_contract(
+        ("kernel_contract_seat_scoped_v1", "1.0.0"), registration, [fixture]
+    )
+
+
+def test_seat_scoped_singleton_primary_mismatch_is_rejected_at_finalize(
+    tmp_path: Path,
+) -> None:
+    """Ruling R12 rule 2: a scorer that returns ``primary != utility_by_seat[S]``
+    for its one subject seat is rejected by the kernel check, not silently
+    receipted."""
+    setup, execution = asyncio.run(
+        _run_seat_scoped_episode(
+            evidence_root=tmp_path / "seat_scoped_wrong_primary",
+            subject_seats=("x",),
+            mode="wrong_primary",
+        )
+    )
+    with pytest.raises(ValueError, match="primary does not equal utility_by_seat"):
+        finalize_family_execution(setup=setup, execution=execution)
+
+
+def test_seat_scoped_singleton_missing_utility_seat_is_rejected_at_finalize(
+    tmp_path: Path,
+) -> None:
+    """Ruling R12 rule 2, the OTHER half of the singleton condition: ``S``
+    must be a key of ``utility_by_seat`` at all, independent of whether
+    ``primary`` happens to be numerically right."""
+    setup, execution = asyncio.run(
+        _run_seat_scoped_episode(
+            evidence_root=tmp_path / "seat_scoped_missing_utility_seat",
+            subject_seats=("x",),
+            mode="missing_utility_seat",
+        )
+    )
+    with pytest.raises(ValueError, match="utility_by_seat does not carry that seat"):
+        finalize_family_execution(setup=setup, execution=execution)
+
+
+def test_seat_scoped_zero_subject_seats_ok_is_rejected_at_finalize(tmp_path: Path) -> None:
+    """Ruling R12 rule 2: zero subject seats with an "ok" envelope is a
+    contract violation ("scored ok with no subject seat"), even when the
+    scorer itself (wrongly) claims one."""
+    setup, execution = asyncio.run(
+        _run_seat_scoped_episode(
+            evidence_root=tmp_path / "seat_scoped_zero_seats",
+            subject_seats=(),
+            mode="ok_despite_zero_seats",
+        )
+    )
+    with pytest.raises(ValueError, match="scored ok with no subject seat"):
+        finalize_family_execution(setup=setup, execution=execution)
+
+
+def test_seat_scoped_two_subject_seats_without_reduction_is_rejected_at_finalize(
+    tmp_path: Path,
+) -> None:
+    """Ruling R12 rule 2: two subject seats or more (self-play) with an "ok"
+    envelope is a contract violation unless the manifest declares
+    ``subject_reduction`` -- the scorer here computes a perfectly reasonable
+    mean, but the manifest never declared it may, so the kernel still
+    rejects: it catches a scorer that claims a scalar it may not claim,
+    regardless of what the scorer itself believed."""
+    setup, execution = asyncio.run(
+        _run_seat_scoped_episode(
+            evidence_root=tmp_path / "seat_scoped_ambiguous",
+            subject_seats=("x", "y"),
+            subject_reduction=None,
+        )
+    )
+    with pytest.raises(ValueError, match="without a declared subject_reduction"):
+        finalize_family_execution(setup=setup, execution=execution)
+
+
+def test_seat_scoped_two_subject_seats_with_declared_reduction_is_accepted_at_finalize(
+    tmp_path: Path,
+) -> None:
+    """Ruling R12 rule 2: the same two-subject-seat "ok" envelope as the
+    test above is accepted once the manifest declares ``subject_reduction``
+    -- the kernel never interprets what "mean" means, it only requires the
+    declaration existed before the scalar was claimed."""
+    setup, execution = asyncio.run(
+        _run_seat_scoped_episode(
+            evidence_root=tmp_path / "seat_scoped_reduction_accepted",
+            subject_seats=("x", "y"),
+            subject_reduction="mean",
+        )
+    )
+    receipt = finalize_family_execution(setup=setup, execution=execution)
+    assert receipt.status == "ok"
+    assert receipt.scores[0].primary.value == pytest.approx(0.5)
