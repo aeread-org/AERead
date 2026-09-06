@@ -49,10 +49,14 @@ already-declared `primary_estimand` (`family_manifest()`'s `measurement`
 block, present since before this milestone) and its headline economic
 quantity: how long the commons survives before collapse-or-horizon under the
 policy being evaluated. It was not picked because it was the easiest leaf to
-compute through the pre-migration seam (it happened to be exactly the
-opposite — the two rule/constraint leaves are readable straight off
-`outcome` with no trajectory reconstruction, while `govsim_survival_months`
-needs nothing extra either; the choice tracks the family's own declared
+compute through the pre-migration seam (if anything it is the opposite —
+`govsim_survival_months`'s inputs (`num_round`, `collected_resource`,
+`termination_reason`) come straight off `scoring_input.outcome`, while the
+two rule/constraint leaves are the ones that need trajectory reconstruction:
+they read `round_trace`, which `outcome` never carries, so
+`GovsimScorer.__call__` reconstructs it via
+`_round_trace_from_phase_instances`, off the last replayed `PhaseInstance`'s
+last transition state; the choice tracks the family's own declared
 estimand, not convenience).
 
 **Why it alone gates admission.** The other four are diagnostics, not
@@ -145,30 +149,74 @@ from_the_original_and_is_caught_by_comparison` mutates one recorded
 `quantity` and confirms the replay's resulting state genuinely diverges and
 `assert_replay_matches` raises rather than silently passing.
 
-**Suite: 119 passed, 0 failed, 0 skipped** running the entire family test
-file set (`tests/test_govsim_bridge_driver.py`, `tests/test_govsim_cases.py`,
-`tests/test_govsim_environment.py`, `tests/test_govsim_measurement.py`,
-`tests/test_govsim_parity.py`, `tests/test_govsim_replay_skip_behavior.py`,
-`tests/test_govsim_replay.py`) plus `tests/test_shared_runner_smoke.py`,
-with `$AEREAD_GOVSIM_BRIDGE_PYTHON` pointed at the provisioned
-`bridges/govsim-venv/bin/python` — every bridge-gated fidelity test (the five
-QC Gate-2 goldens against the real upstream checkout, the gini parity check,
-both replay episodes, and — following the independent review's fix pass
+**A real receipt now exists.** Before this milestone this family had never
+produced an `EvaluationReceipt`. `test_finalize_wires_govsim_to_the_shared_
+family_finalizer` (`tests/test_govsim_replay.py`) drives one small, real,
+bridge-backed two-agent/two-round episode through
+`EvidenceRecordingGovsimHarness` (which writes the full generic evidence
+trail `finalize_family_execution`'s internal replay can consume, unlike
+`ScriptedGovsimHarness`'s own convenience-only event) and then calls
+`aeread.shared_runner.task.evaluation.finalize_family_execution` directly —
+the real production finalizer, not a stand-in. The returned receipt has
+`status == "ok"`, `inclusion_status == "included"`, carries all five
+declared leaf ids, and `primary_leaf_id == govsim_survival_months_leaf`.
+
+**The scoring-contract protocol test is enrolled, and a silent skip is now
+caught.** `test_govsim_obeys_the_scoring_contract`
+(`tests/test_shared_runner_scoring_contract.py`) enrolls this family in the
+shared scoring-contract protocol check via `_govsim_fixture_pair`, a
+bridge-gated fixture pair (byte-identical terminal outcome, genuinely
+differing trajectory) run through the same `_assert_family_scoring_contract`
+every other migrated family is checked against. Because that fixture pair
+needs the real bridge, the test itself is per-test skipped when the bridge
+is unavailable — independent review finding 1
+(`docs/govsim_migration_review.md`) flagged that a plain green CI run could
+hide this skip entirely, since the closed-world catalog closure counted
+govsim as enrolled regardless of whether this test ran. The fix (commit
+`b853ed74`, root `conftest.py`) added a dedicated
+`AEREAD_GOVSIM_BRIDGE_REQUIRED` entry: setting it to `1` turns that skip
+into a failed run instead of a silent pass, mirroring the already-
+established mechanism for tau2-bench/econ-evals/etc.
+`tests/test_govsim_bridge_required_gate.py`'s six cases verify this
+directly against the real `conftest.pytest_terminal_summary` hook, never a
+reimplementation of it.
+
+**Suite: 127 passed, 0 failed, 0 skipped** running the extended
+family test file set — the original file set below plus
+the two files this milestone adds
+(`tests/test_govsim_bridge_required_gate.py` and, from
+`tests/test_shared_runner_scoring_contract.py`, only
+`test_govsim_obeys_the_scoring_contract`, never that file's other,
+non-bridge-gated tests) — `tests/test_govsim_bridge_driver.py`,
+`tests/test_govsim_cases.py`, `tests/test_govsim_environment.py`,
+`tests/test_govsim_measurement.py`, `tests/test_govsim_parity.py`,
+`tests/test_govsim_replay_skip_behavior.py`, `tests/test_govsim_replay.py`,
+`tests/test_shared_runner_smoke.py`, with `$AEREAD_GOVSIM_BRIDGE_PYTHON` and
+`$AEREAD_GOVSIM_UPSTREAM_ROOT` both pointed at the provisioned bridge —
+every bridge-gated fidelity test (the five QC Gate-2 goldens against the
+real upstream checkout, the gini parity check, both replay episodes, and —
+following the independent review's fix pass
 (`docs/govsim_review_disposition.md`) — the `sheep`/`pollution`
 cross-scenario parity check and the `run_episode`-driven reject-policy abort
 test) actually ran, none merely skipped past. Without the bridge set, the
-same command reports 94 passed / 25 skipped — the skips are exactly the
-bridge-gated tests above, each with a `pytest.skip` reason naming
-`$AEREAD_GOVSIM_BRIDGE_PYTHON` and `tools/govsim_bridge/provision.sh`, never
-a silent pass. Re-verified against this milestone's leaf-policy/`__call__`
-migration (`kernel_scoring_contract_spec.md`).
+same command reports 100 passed / 27 skipped — the skips are exactly the
+bridge-gated tests above, each with a `pytest.skip`
+reason naming `$AEREAD_GOVSIM_BRIDGE_PYTHON` and
+`tools/govsim_bridge/provision.sh`, never a silent pass.
+`tests/test_govsim_bridge_required_gate.py`'s own six cases never touch the
+bridge (they drive `conftest.py`'s hook against hand-built fakes), so they
+pass either way. Re-verified against this milestone's finalizer-wiring and
+scoring-contract-enrollment tests (`kernel_scoring_contract_spec.md`).
 
 ```bash
 export AEREAD_GOVSIM_BRIDGE_PYTHON=<bridges/govsim-venv path>
+export AEREAD_GOVSIM_UPSTREAM_ROOT=<upstream-govsim checkout path>
 pytest tests/test_govsim_bridge_driver.py tests/test_govsim_cases.py \
        tests/test_govsim_environment.py tests/test_govsim_measurement.py \
        tests/test_govsim_parity.py tests/test_govsim_replay_skip_behavior.py \
-       tests/test_govsim_replay.py tests/test_shared_runner_smoke.py
+       tests/test_govsim_replay.py tests/test_shared_runner_smoke.py \
+       tests/test_govsim_bridge_required_gate.py \
+       tests/test_shared_runner_scoring_contract.py::test_govsim_obeys_the_scoring_contract
 ```
 
 ## What it costs to run
@@ -176,10 +224,11 @@ pytest tests/test_govsim_bridge_driver.py tests/test_govsim_cases.py \
 Each bridge call spawns a fresh subprocess that replays `reset(seed=...)`
 plus the full ordered action history to date (O(n) upstream `step()` calls
 per bridge call, not O(1) — see `docs/govsim_adapter_spec.md` section 7),
-so cost grows with episode length. The full bridge-required run above (119
+so cost grows with episode length. The full bridge-required run above (127
 tests, including two full episodes driven live and then independently
-replayed, plus every gini-parity, golden-scenario, and cross-scenario
-parity bridge call) took **~259s wall-clock**. No persistent bridge daemon
+replayed, the finalizer-receipt episode, the scoring-contract fixture pair,
+plus every gini-parity, golden-scenario, and cross-scenario parity bridge
+call) took **~260s wall-clock**. No persistent bridge daemon
 is used; the same
 per-call isolation tradeoff `tau2_bridge.py` makes is repeated here
 deliberately, for the same reason — no state can leak between calls through
