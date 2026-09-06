@@ -92,6 +92,7 @@ from aeread.shared_runner.run.resolver import (
 from aeread.shared_runner.schemas import (
     AgentProfile,
     AnalysisPlan,
+    AuthoringValidationError,
     CaseManifest,
     EvaluationBlock,
     FamilyManifest,
@@ -103,7 +104,9 @@ from aeread.shared_runner.schemas import (
 from aeread.shared_runner.task.evaluation import (
     FamilyScoringInput,
     SeatContext,
+    audit_family_receipt,
     finalize_family_execution,
+    replay_family_receipt,
     replay_family_scoring_input,
 )
 from aeread.shared_runner.task.execution import (
@@ -115,6 +118,7 @@ from aeread.shared_runner.task.execution import (
     TokenPricing,
     execute_plan_cell,
 )
+from aeread.shared_runner.task.receipts import seal_evaluation_receipt
 from aeread.shared_runner.task.scheduler import (
     LegalityResult,
     ParseResult,
@@ -576,6 +580,213 @@ def _seat_scoped_family_manifest(*, subject_reduction: str | None = None) -> Fam
 
 
 # ---------------------------------------------------------------------------
+# Ruling R13 (kernel_scoring_contract_spec.md): a synthetic, kernel-owned
+# family exercising the case-conditional leaf -- same trusted identity as
+# ``_ReferencePlugin`` (``kernel_contract_reference_v1``), a
+# ``_ReferencePlugin`` subclass in the same style as ``_SeatScopedPlugin``.
+# One unconditional primary leaf (``label_balance``, the same terminal-state
+# tally ``_ReferenceScorer`` already computes) and one declared
+# ``case_conditional`` diagnostic leaf that applies only to the case's
+# "contract" mode, mirroring the agenticpay migration's motivating shape
+# (``contract_legality`` exists for its contract-mode cases, not its basic
+# ones).
+# ---------------------------------------------------------------------------
+
+_CASE_CONDITIONAL_DIAGNOSTIC_LEAF_ID = "case_conditional_diagnostic"
+_CASE_CONDITIONAL_APPLICABLE_CASE_ID = "kernel_contract_case_conditional_contract_case_v1"
+_CASE_CONDITIONAL_INAPPLICABLE_CASE_ID = "kernel_contract_case_conditional_basic_case_v1"
+
+
+class _CaseConditionalPlugin(_ReferencePlugin):
+    """``_ReferencePlugin``'s two-round label choice, plus a ``mode`` field
+    on the case payload ("basic" or "contract") that decides whether the
+    diagnostic leaf applies. ``mode`` (the constructor argument -- distinct
+    from the case payload's own ``"mode"`` field) selects the plugin's own
+    adversarial behaviours, each named for the exact enforcement branch it
+    exercises; the default behaves correctly and follows the case's own
+    mode faithfully in both the hook and the scorer.
+    """
+
+    def __init__(self, *, mode: str = "default") -> None:
+        self._mode = mode
+
+    def validate_payload(self, payload: Mapping[str, Any]) -> dict[str, Any]:
+        if (
+            not isinstance(payload, Mapping)
+            or set(payload) != {"scenario_id", "mode"}
+            or not isinstance(payload["scenario_id"], str)
+            or payload["mode"] not in {"basic", "contract"}
+        ):
+            raise ValueError(
+                "payload must contain a string scenario_id and a basic/contract mode"
+            )
+        return {"scenario_id": payload["scenario_id"], "mode": payload["mode"]}
+
+    def inapplicable_leaf_ids(self, family_case: Mapping[str, Any]) -> "frozenset[str]":
+        if self._mode == "hook_returns_undeclared":
+            # Adversary for "a hook returning an undeclared id": names the
+            # PRIMARY leaf, which is never declared case_conditional at
+            # all, regardless of what the case's own mode is.
+            return frozenset({_REFERENCE_BALANCE_LEAF_ID})
+        if family_case["mode"] == "basic":
+            return frozenset({_CASE_CONDITIONAL_DIAGNOSTIC_LEAF_ID})
+        return frozenset()
+
+    def build_scorer(self, family_case: Mapping[str, Any]) -> "_CaseConditionalScorer":
+        return _CaseConditionalScorer(
+            mode=self._mode, applicable=family_case["mode"] != "basic"
+        )
+
+
+class _CaseConditionalScorer:
+    """Always returns the unconditional primary; the diagnostic leaf's
+    presence follows ``applicable`` by default, or one of two named
+    adversarial overrides regardless of what is actually applicable.
+    """
+
+    def __init__(self, *, mode: str = "default", applicable: bool) -> None:
+        self._mode = mode
+        self._applicable = applicable
+
+    def __call__(
+        self, scoring_input: FamilyScoringInput, *, evidence_refs: tuple[str, ...] = ()
+    ) -> FamilyScoreSet:
+        outcome = scoring_input.outcome
+        balance_leaf = _reference_leaf(
+            leaf_id=_REFERENCE_BALANCE_LEAF_ID, input_scope="terminal_state"
+        )
+        scores = [
+            ScoreEnvelope(
+                status="ok",
+                leaf=balance_leaf,
+                primary=MetricValue(
+                    float(outcome["x_count"] - outcome["y_count"]), "count"
+                ),
+                metrics={},
+                reference_values={},
+                validity=ValidityReport("valid"),
+                evidence_refs=evidence_refs,
+            )
+        ]
+        include_diagnostic = self._applicable
+        if self._mode == "returns_when_inapplicable":
+            include_diagnostic = True
+        elif self._mode == "omits_when_applicable":
+            include_diagnostic = False
+        if include_diagnostic:
+            diagnostic_leaf = _reference_leaf(
+                leaf_id=_CASE_CONDITIONAL_DIAGNOSTIC_LEAF_ID, input_scope="terminal_state"
+            )
+            scores.append(
+                ScoreEnvelope(
+                    status="ok",
+                    leaf=diagnostic_leaf,
+                    primary=MetricValue(1.0, "count"),
+                    metrics={},
+                    reference_values={},
+                    validity=ValidityReport("valid"),
+                    evidence_refs=evidence_refs,
+                )
+            )
+        return FamilyScoreSet(
+            primary_leaf_id=_REFERENCE_BALANCE_LEAF_ID,
+            scores=tuple(scores),
+            admission_leaf_ids=(_REFERENCE_BALANCE_LEAF_ID,),
+        )
+
+
+def _case_conditional_case(*, mode: str) -> CaseManifest:
+    case_id = (
+        _CASE_CONDITIONAL_INAPPLICABLE_CASE_ID
+        if mode == "basic"
+        else _CASE_CONDITIONAL_APPLICABLE_CASE_ID
+    )
+    return _reference_case(case_id=case_id, payload={"scenario_id": case_id, "mode": mode})
+
+
+def _case_conditional_family_manifest(*, primary_case_conditional: bool = False) -> FamilyManifest:
+    """The declared leaf policy: one unconditional primary, one
+    ``case_conditional`` diagnostic. ``primary_case_conditional=True``
+    deliberately builds an INVALID manifest (case_conditional on the
+    primary) to exercise ruling R13 rule 1's declaration-time rejection --
+    ``_with_declared_leaf_policy``'s own ``dataclasses.replace`` raises
+    before this function returns.
+    """
+    leaves = (
+        LeafPolicyDeclaration(
+            _REFERENCE_BALANCE_LEAF_ID,
+            "finalize_time",
+            None,
+            case_conditional=primary_case_conditional,
+        ),
+        LeafPolicyDeclaration(
+            _CASE_CONDITIONAL_DIAGNOSTIC_LEAF_ID,
+            "finalize_time",
+            None,
+            case_conditional=True,
+        ),
+    )
+    manifest = _with_declared_leaf_policy(
+        _reference_family_manifest(),
+        leaves=leaves,
+        primary_leaf_id=_REFERENCE_BALANCE_LEAF_ID,
+        admission_leaf_ids=(_REFERENCE_BALANCE_LEAF_ID,),
+    )
+    # Same reasoning as _seat_scoped_family_manifest's own comment: declare
+    # both leaves' _reference_leaf-minted components so resolve_run_plan's
+    # pin-completeness check accepts (rather than rejects as
+    # "unreferenced") the extra_pins a real finalizer call needs -- the
+    # balance leaf's components too, since this manifest (unlike the seat-
+    # scoped one) has two leaves, not one, and either may appear on a
+    # sealed receipt depending on the case's mode.
+    return dataclasses.replace(
+        manifest,
+        scoring=dataclasses.replace(
+            manifest.scoring,
+            reference_provider_ids=(
+                f"{_REFERENCE_BALANCE_LEAF_ID}_validity_v1",
+                f"{_REFERENCE_BALANCE_LEAF_ID}_reference_v1",
+                f"{_CASE_CONDITIONAL_DIAGNOSTIC_LEAF_ID}_validity_v1",
+                f"{_CASE_CONDITIONAL_DIAGNOSTIC_LEAF_ID}_reference_v1",
+            ),
+        ),
+    )
+
+
+def _case_conditional_extra_pins() -> tuple[ImplementationPin, ...]:
+    return tuple(
+        ImplementationPin.from_dict(
+            {
+                "component_id": f"{leaf_id}_{suffix}_v1",
+                "kind": "reference",
+                "version": "1.0.0",
+                "sha256": _REFERENCE_MODULE_DIGEST,
+            }
+        )
+        for leaf_id in (_REFERENCE_BALANCE_LEAF_ID, _CASE_CONDITIONAL_DIAGNOSTIC_LEAF_ID)
+        for suffix in ("validity", "reference")
+    )
+
+
+async def _run_case_conditional_episode(
+    *, evidence_root: Path, mode: str, plugin_mode: str = "default"
+):
+    """Seat "participant_0" chooses "x" then "y" -- an arbitrary, fixed
+    trajectory; this family's leaves are terminal-state-scoped and this
+    synthetic family is exempt from the paired-history requirement (see
+    ``_SINGLE_FIXTURE_EXEMPT_FAMILIES``), so no second fixture is needed.
+    """
+    return await _run_reference_episode(
+        ("x", "y"),
+        evidence_root=evidence_root,
+        plugin_factory=functools.partial(_CaseConditionalPlugin, mode=plugin_mode),
+        case=_case_conditional_case(mode=mode),
+        family_manifest=_case_conditional_family_manifest(),
+        extra_pins=_case_conditional_extra_pins(),
+    )
+
+
+# ---------------------------------------------------------------------------
 # kernel_contract_gap_review.md finding 4's exact adversary: a scorer whose
 # output alternates strictly by a GLOBAL call counter -- never by
 # ``scoring_input`` -- so fresh ``build_scorer(...)`` instances (as every
@@ -832,7 +1043,10 @@ class _ReferenceSetup:
 
 
 def _reference_case(
-    *, seat_ids: Sequence[str] = ("participant_0",), case_id: str = "kernel_contract_reference_case_v1"
+    *,
+    seat_ids: Sequence[str] = ("participant_0",),
+    case_id: str = "kernel_contract_reference_case_v1",
+    payload: Mapping[str, Any] | None = None,
 ) -> CaseManifest:
     raw = {
         "spec_version": CaseManifest.SPEC_VERSION,
@@ -844,7 +1058,12 @@ def _reference_case(
         "seats": [{"id": seat_id, "role": "participant"} for seat_id in seat_ids],
         "episode": {"max_logical_actions": 2, "termination": ["both_rounds_recorded"]},
         "visibility_policy": "kernel_contract_reference_full_visibility_v1",
-        "payload": {"scenario_id": case_id},
+        # Ruling R13: ``payload`` lets a subclass's ``validate_payload``
+        # (e.g. ``_CaseConditionalPlugin``'s ``scenario_id``/``mode``) carry
+        # more than the base ``_ReferencePlugin``'s bare ``scenario_id`` --
+        # every other caller passes nothing and gets the exact payload this
+        # always produced.
+        "payload": dict(payload) if payload is not None else {"scenario_id": case_id},
         "provenance": {
             "generator_id": "kernel_contract_reference_generator_v1",
             "generator_version": "1.0.0",
@@ -1998,8 +2217,31 @@ _SINGLE_FIXTURE_EXEMPT_FAMILIES: "frozenset[tuple[str, str]]" = frozenset(
         # and seat "y" always in round_two, so no order-swap analogous to
         # the label-tally family's exists to construct one honestly).
         ("kernel_contract_seat_scoped_v1", "1.0.0"),
+        # Ruling R13: same reasoning as the seat-scoped key above -- a
+        # fictional key used only by the synthetic case-conditional family
+        # tests below, which drive one fixture at a time (one case-mode
+        # per call) rather than a paired-history pair.
+        ("kernel_contract_case_conditional_v1", "1.0.0"),
     }
 )
+
+
+def _hook_inapplicable_leaf_ids(
+    plugin: Any, family_case: Mapping[str, Any]
+) -> "frozenset[str]":
+    """The protocol path's own probe for ruling R13's optional plugin hook.
+
+    Same optional-hook shape as ``task/evaluation.py``'s
+    ``_inapplicable_leaf_ids`` (``getattr`` with a ``None`` default, called
+    only when callable) -- kept as its own small function here rather than
+    importing the kernel's private helper, since this module exercises the
+    PROTOCOL (what a plugin publishes and what the manifest declares), not
+    the kernel's internal call graph.
+    """
+    hook = getattr(plugin, "inapplicable_leaf_ids", None)
+    if not callable(hook):
+        return frozenset()
+    return frozenset(hook(family_case))
 
 
 @dataclasses.dataclass(frozen=True, slots=True)
@@ -2061,7 +2303,16 @@ def _assert_family_obeys_the_scoring_contract(
                 scoring_input, evidence_refs=scoring_input.evidence_refs
             )
         )
-        assert {score.leaf.leaf_id for score in produced.scores} == set(declared.leaf_ids)
+        # Ruling R13: the leaf set a fixture's scorer must produce is the
+        # declared finalize-time leaves minus this fixture's inapplicable
+        # ones (empty for every family with no case_conditional leaf, so
+        # this is byte-for-byte the pre-R13 equality for them).
+        inapplicable_ids = _hook_inapplicable_leaf_ids(
+            registration.plugin, case.family_case
+        )
+        assert {score.leaf.leaf_id for score in produced.scores} == (
+            set(declared.leaf_ids) - inapplicable_ids
+        )
         assert produced.primary_leaf_id == declared.primary_leaf_id
         assert produced.admission_leaf_ids == declared.admission_leaf_ids
         assert all(
@@ -3277,3 +3528,255 @@ def test_seat_scoped_two_subject_seats_with_declared_reduction_is_accepted_at_fi
     receipt = finalize_family_execution(setup=setup, execution=execution)
     assert receipt.status == "ok"
     assert receipt.scores[0].primary.value == pytest.approx(0.5)
+
+
+# ---------------------------------------------------------------------------
+# Ruling R13: the synthetic case-conditional family (``_CaseConditionalPlugin``/
+# ``_CaseConditionalScorer``, defined alongside ``_ReferencePlugin`` above)
+# exercises rule 3's enforcement -- both case kinds through the protocol
+# path (``_assert_family_obeys_the_scoring_contract``'s own set rule,
+# extended above to subtract the hook's result), and every adversarial
+# branch through the real finalizer, since those are contract violations
+# the finalizer raises on, not something the registry-driven protocol
+# test's leaf-set/primary/admission equality checks alone would exercise.
+# ---------------------------------------------------------------------------
+
+_CASE_CONDITIONAL_KEY: tuple[str, str] = ("kernel_contract_case_conditional_v1", "1.0.0")
+
+
+def test_case_conditional_applicable_case_returns_both_leaves_through_the_protocol_path(
+    tmp_path: Path,
+) -> None:
+    """Ruling R13 rule 3: on a case where the diagnostic leaf applies
+    (mode="contract"), the protocol path's set rule (declared finalize_time
+    minus I, with I empty here) is exactly the pre-R13 equality -- both
+    leaves are returned."""
+    setup, execution = asyncio.run(
+        _run_case_conditional_episode(
+            evidence_root=tmp_path / "case_conditional_protocol_applicable",
+            mode="contract",
+        )
+    )
+    case = setup.plan.cases[0]
+    family = setup.plan.families[0]
+    registration = setup.registry.resolve_registration(
+        family.family.id, family.family.version, family.family.plugin_id
+    )
+    family_case = registration.plugin.validate_payload(case.payload)
+    fixture = FamilyScoringFixture(family_case=family_case, sealed_evidence=execution.evidence)
+
+    result = _assert_family_obeys_the_scoring_contract(
+        _CASE_CONDITIONAL_KEY, registration, [fixture]
+    )
+    produced = result.produced_by_case[0][1]
+    assert {score.leaf.leaf_id for score in produced.scores} == {
+        _REFERENCE_BALANCE_LEAF_ID,
+        _CASE_CONDITIONAL_DIAGNOSTIC_LEAF_ID,
+    }
+
+
+def test_case_conditional_inapplicable_case_omits_the_diagnostic_leaf_through_the_protocol_path(
+    tmp_path: Path,
+) -> None:
+    """Ruling R13 rule 3: on a case where the diagnostic leaf does not apply
+    (mode="basic"), the protocol path's set rule requires ONLY the primary
+    -- a scorer that (correctly) omits the diagnostic leaf here passes,
+    which the pre-R13 equality (declared finalize_time leaves, full stop)
+    would have wrongly rejected."""
+    setup, execution = asyncio.run(
+        _run_case_conditional_episode(
+            evidence_root=tmp_path / "case_conditional_protocol_inapplicable",
+            mode="basic",
+        )
+    )
+    case = setup.plan.cases[0]
+    family = setup.plan.families[0]
+    registration = setup.registry.resolve_registration(
+        family.family.id, family.family.version, family.family.plugin_id
+    )
+    family_case = registration.plugin.validate_payload(case.payload)
+    fixture = FamilyScoringFixture(family_case=family_case, sealed_evidence=execution.evidence)
+
+    result = _assert_family_obeys_the_scoring_contract(
+        _CASE_CONDITIONAL_KEY, registration, [fixture]
+    )
+    produced = result.produced_by_case[0][1]
+    assert {score.leaf.leaf_id for score in produced.scores} == {_REFERENCE_BALANCE_LEAF_ID}
+
+
+def test_case_conditional_applicable_case_returns_both_leaves_at_finalize(
+    tmp_path: Path,
+) -> None:
+    """Ruling R13 rule 4: on an applicable case, both leaves are returned
+    and the receipt's inapplicable_leaf_ids is empty."""
+    setup, execution = asyncio.run(
+        _run_case_conditional_episode(
+            evidence_root=tmp_path / "case_conditional_finalize_applicable",
+            mode="contract",
+        )
+    )
+    receipt = finalize_family_execution(setup=setup, execution=execution)
+    assert {score.leaf.leaf_id for score in receipt.scores} == {
+        _REFERENCE_BALANCE_LEAF_ID,
+        _CASE_CONDITIONAL_DIAGNOSTIC_LEAF_ID,
+    }
+    assert receipt.inapplicable_leaf_ids == ()
+    assert receipt.status == "ok"
+    assert receipt.inclusion_status == "included"
+
+
+def test_case_conditional_inapplicable_case_omits_the_diagnostic_leaf_at_finalize(
+    tmp_path: Path,
+) -> None:
+    """Ruling R13 rule 4: on an inapplicable case, only the primary is
+    returned, the diagnostic leaf is receipted as inapplicable (never
+    invalid_measurement, never deferred), and the receipt is still "ok"/
+    "included" -- inapplicability is a leaf disposition, not a cell
+    exclusion."""
+    setup, execution = asyncio.run(
+        _run_case_conditional_episode(
+            evidence_root=tmp_path / "case_conditional_finalize_inapplicable",
+            mode="basic",
+        )
+    )
+    receipt = finalize_family_execution(setup=setup, execution=execution)
+    assert {score.leaf.leaf_id for score in receipt.scores} == {_REFERENCE_BALANCE_LEAF_ID}
+    assert receipt.inapplicable_leaf_ids == (_CASE_CONDITIONAL_DIAGNOSTIC_LEAF_ID,)
+    assert receipt.deferred_leaf_ids == ()
+    assert receipt.status == "ok"
+    assert receipt.inclusion_status == "included"
+
+
+def test_case_conditional_hook_returning_an_undeclared_id_is_rejected_at_finalize(
+    tmp_path: Path,
+) -> None:
+    """Ruling R13 rule 3: I must name only declared case_conditional leaves
+    -- an undeclared id (here, the primary) is the plugin's own contract
+    violation, independent of anything the scorer does."""
+    setup, execution = asyncio.run(
+        _run_case_conditional_episode(
+            evidence_root=tmp_path / "case_conditional_hook_undeclared",
+            mode="contract",
+            plugin_mode="hook_returns_undeclared",
+        )
+    )
+    with pytest.raises(ValueError, match="not declared case_conditional"):
+        finalize_family_execution(setup=setup, execution=execution)
+
+
+def test_case_conditional_scorer_omitting_an_applicable_leaf_is_rejected_at_finalize(
+    tmp_path: Path,
+) -> None:
+    """Ruling R13 rule 3: a scorer that omits a leaf the hook says applies
+    is rejected, distinctly from returning an inapplicable or undeclared
+    one."""
+    setup, execution = asyncio.run(
+        _run_case_conditional_episode(
+            evidence_root=tmp_path / "case_conditional_omits_applicable",
+            mode="contract",
+            plugin_mode="omits_when_applicable",
+        )
+    )
+    with pytest.raises(ValueError, match="omitted an applicable leaf"):
+        finalize_family_execution(setup=setup, execution=execution)
+
+
+def test_case_conditional_scorer_returning_an_inapplicable_leaf_is_rejected_at_finalize(
+    tmp_path: Path,
+) -> None:
+    """Ruling R13 rule 3: a scorer that returns a leaf the hook says does
+    NOT apply is rejected -- an inapplicable leaf is never returned, never
+    invalid_measurement, never deferred."""
+    setup, execution = asyncio.run(
+        _run_case_conditional_episode(
+            evidence_root=tmp_path / "case_conditional_returns_inapplicable",
+            mode="basic",
+            plugin_mode="returns_when_inapplicable",
+        )
+    )
+    with pytest.raises(ValueError, match="returned an inapplicable leaf"):
+        finalize_family_execution(setup=setup, execution=execution)
+
+
+def test_case_conditional_manifest_rejects_a_case_conditional_primary_at_declaration() -> None:
+    """Ruling R13 rule 1: a case_conditional leaf may not be primary_leaf_id
+    -- rejected when the manifest is declared, before any execution."""
+    with pytest.raises(AuthoringValidationError, match="case_conditional"):
+        _case_conditional_family_manifest(primary_case_conditional=True)
+
+
+def _reseal_with_tampered_inapplicable_leaf_ids(
+    receipt: Any, *, inapplicable_leaf_ids: tuple[str, ...]
+) -> Any:
+    """A copy of ``receipt`` whose ``inapplicable_leaf_ids`` disagrees with
+    what the plugin's hook actually recomputes for the same case -- self-
+    consistent (freshly resealed) but wrong for ruling R13's dedicated
+    replay/audit comparison to catch. Same tampering shape as ruling R12's
+    ``_reseal_with_tampered_agent_profile_seats``."""
+    tampered = dataclasses.replace(
+        receipt,
+        receipt_sha256=None,
+        inapplicable_leaf_ids=inapplicable_leaf_ids,
+    )
+    return seal_evaluation_receipt(tampered)
+
+
+def test_case_conditional_replay_rejects_a_receipt_whose_inapplicable_leaf_ids_disagree_with_the_recomputed_hook(
+    tmp_path: Path,
+) -> None:
+    """Ruling R13 rule 4: replay recomputes I from the plugin's hook and
+    rejects a receipt whose recorded inapplicable_leaf_ids disagrees --
+    mirroring the existing deferred_leaf_ids check at the same call site.
+
+    Reachability note, same shape as ruling R12's seat-context tampering
+    tests: this durable evidence directory's own receipt file is tampered
+    directly (bypassing the write-once API, exactly as a corrupted evidence
+    directory would look), since a receipt sealed honestly by
+    finalize_family_execution can never disagree with what the SAME
+    plugin's hook recomputes for the SAME case.
+    """
+    setup, execution = asyncio.run(
+        _run_case_conditional_episode(
+            evidence_root=tmp_path / "case_conditional_replay_tamper",
+            mode="basic",
+        )
+    )
+    receipt = finalize_family_execution(setup=setup, execution=execution)
+    assert receipt.inapplicable_leaf_ids == (_CASE_CONDITIONAL_DIAGNOSTIC_LEAF_ID,)
+    tampered = _reseal_with_tampered_inapplicable_leaf_ids(
+        receipt, inapplicable_leaf_ids=()
+    )
+
+    receipt_path = execution.evidence.root / "evaluation_receipt.json"
+    receipt_path.write_bytes(canonical_json_bytes(tampered) + b"\n")
+
+    with pytest.raises(
+        ValueError, match="receipt inapplicable_leaf_ids does not match the declared policy"
+    ):
+        replay_family_receipt(
+            setup=setup, receipt=tampered, evidence_root=tmp_path / "case_conditional_replay_tamper"
+        )
+
+
+def test_case_conditional_audit_rejects_a_receipt_whose_inapplicable_leaf_ids_disagree_with_the_recomputed_hook(
+    tmp_path: Path,
+) -> None:
+    """Ruling R13 rule 4, the ``audit_family_receipt`` counterpart of the
+    replay test above -- same tampering, same reachability note."""
+    setup, execution = asyncio.run(
+        _run_case_conditional_episode(
+            evidence_root=tmp_path / "case_conditional_audit_tamper",
+            mode="basic",
+        )
+    )
+    receipt = finalize_family_execution(setup=setup, execution=execution)
+    assert receipt.inapplicable_leaf_ids == (_CASE_CONDITIONAL_DIAGNOSTIC_LEAF_ID,)
+    tampered = _reseal_with_tampered_inapplicable_leaf_ids(
+        receipt, inapplicable_leaf_ids=()
+    )
+
+    receipt_path = execution.evidence.root / "evaluation_receipt.json"
+    receipt_path.write_bytes(canonical_json_bytes(tampered) + b"\n")
+
+    with pytest.raises(ValueError, match="receipt admission does not match the replayed score"):
+        audit_family_receipt(setup=setup, receipt_path=receipt_path)
