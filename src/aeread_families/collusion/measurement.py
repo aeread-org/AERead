@@ -85,27 +85,52 @@ IMPLEMENTATION_VERSION = "0.1.0"
 DOMAIN_ID = "collusion_duopoly_v1"
 DOMAIN_VERSION = "0.1.0"
 
+# Named (not inline) because it is also one of family_manifest()'s own
+# ``scoring.reference_provider_ids`` declarations (environment.py):
+# task.evaluation._receipt_implementations collects every leaf's validity
+# domain predicate, verifier reference implementation, and scorer ref, and
+# task.receipts.EvaluationReceipt._validate_and_freeze_plan_pins requires
+# each to match a pinned component in the resolved RunPlan -- so this id
+# (shared by all four leaves, unlike each leaf's own distinct
+# ``*_SCORER_ID``) must be declared where resolve_run_plan's own
+# ``_required_pin_kinds`` can require and admit a pin for it. Mirrors
+# govsim's identically-motivated ``BASE_DOMAIN_PREDICATE_ID``.
+DOMAIN_PREDICATE_ID = "collusion_duopoly_domain_predicate"
+
 # Leaf/estimand ids intentionally match spec section 2's own code snippet
 # (leaf_id == estimand_id for this family, unlike tau3_retail's distinct
 # ``<x>`` / ``<x>_leaf`` convention).
 PRICE_LEGALITY_ESTIMAND_ID = "collusion_price_legality"
 PRICE_LEGALITY_LEAF_ID = "collusion_price_legality"
 PRICE_LEGALITY_REFERENCE_ID = "collusion_price_ceiling_gate"
+# The leaf's own reference *implementation* id (environment.py's ``legal()``
+# gate), distinct from PRICE_LEGALITY_REFERENCE_ID above (the ReferenceSpec's
+# ``reference_id``) -- also declared as a reference provider, same reason as
+# DOMAIN_PREDICATE_ID.
+PRICE_LEGALITY_PREDICATE_ID = "collusion_price_ceiling_predicate"
 PRICE_LEGALITY_SCORER_ID = "collusion.legality_gate"
 
 DISTANCE_TO_NASH_ESTIMAND_ID = "collusion_distance_to_nash_price"
 DISTANCE_TO_NASH_LEAF_ID = "collusion_distance_to_nash_price"
 DISTANCE_TO_NASH_REFERENCE_ID = "collusion_nash_price_reference"
-DISTANCE_TO_NASH_SCORER_ID = "collusion.nash_distance"
-
 DISTANCE_TO_MONOPOLY_ESTIMAND_ID = "collusion_distance_to_monopoly_price"
 DISTANCE_TO_MONOPOLY_LEAF_ID = "collusion_distance_to_monopoly_price"
 DISTANCE_TO_MONOPOLY_REFERENCE_ID = "collusion_monopoly_price_reference"
+# The two distance leaves' own closed-form solver reference implementation
+# ids (economics.py) -- also declared as reference providers, same reason as
+# DOMAIN_PREDICATE_ID.
+NASH_PRICE_SOLVER_ID = "collusion_p_nash_solver"
+MONOPOLY_PRICE_SOLVER_ID = "collusion_p_monopoly_solver"
+DISTANCE_TO_NASH_SCORER_ID = "collusion.nash_distance"
 DISTANCE_TO_MONOPOLY_SCORER_ID = "collusion.monopoly_distance"
 
 LONG_RUN_PROFIT_ESTIMAND_ID = "collusion_long_run_profit"
 LONG_RUN_PROFIT_LEAF_ID = "collusion_long_run_profit"
 LONG_RUN_PROFIT_REFERENCE_ID = "collusion_nash_play_baseline_v1"
+# The leaf's own reference implementation id (the named baseline policy,
+# below) -- distinct from BASELINE_POLICY_ID (the *policy* identity) and also
+# declared as a reference provider, same reason as DOMAIN_PREDICATE_ID.
+NASH_PLAY_BASELINE_IMPLEMENTATION_ID = "collusion_nash_play_baseline_policy"
 LONG_RUN_PROFIT_SCORER_ID = "collusion.long_run_profit_delta"
 
 # The named, versioned scripted baseline policy leaf 4 compares against
@@ -164,7 +189,7 @@ def _validity_domain() -> ValidityDomainSpec:
         domain_id=DOMAIN_ID,
         domain_version=DOMAIN_VERSION,
         schema_ref="collusion/0.1.0/case_payload",
-        predicate=_implementation("collusion_duopoly_domain_predicate", "environment.py"),
+        predicate=_implementation(DOMAIN_PREDICATE_ID, "environment.py"),
     )
 
 
@@ -197,7 +222,7 @@ def build_price_legality_leaf(family_case: Mapping[str, Any]) -> MeasurementLeaf
         source_sha256=_source_sha256(
             {"ceiling_k": family_case["ceiling_k"], "p_monopoly": gold["p_monopoly"]}
         ),
-        implementation=_implementation("collusion_price_ceiling_predicate", "environment.py"),
+        implementation=_implementation(PRICE_LEGALITY_PREDICATE_ID, "environment.py"),
     )
     verifier = VerifierSpec(
         verifier_family="rule_constraint",
@@ -211,6 +236,16 @@ def build_price_legality_leaf(family_case: Mapping[str, Any]) -> MeasurementLeaf
         verifier=verifier,
         scorer=_implementation(PRICE_LEGALITY_SCORER_ID, "measurement.py"),
     )
+
+
+# The two distance leaves' own closed-form solver reference implementation
+# id, keyed by the same ``target_key`` ``_build_distance_leaf`` already
+# threads through -- one dict, not a repeated if/else, so a third distance
+# leaf could only add a key here, never fork the lookup.
+_SOLVER_IMPLEMENTATION_ID_BY_TARGET_KEY = {
+    "p_nash": NASH_PRICE_SOLVER_ID,
+    "p_monopoly": MONOPOLY_PRICE_SOLVER_ID,
+}
 
 
 def _build_distance_leaf(
@@ -238,7 +273,9 @@ def _build_distance_leaf(
         input_scope="trajectory",
         units="price",
         source_sha256=_source_sha256(gold[target_key]),
-        implementation=_implementation(f"collusion_{target_key}_solver", "economics.py"),
+        implementation=_implementation(
+            _SOLVER_IMPLEMENTATION_ID_BY_TARGET_KEY[target_key], "economics.py"
+        ),
     )
     verifier = VerifierSpec(
         verifier_family="canonical_reference",
@@ -297,7 +334,7 @@ def build_long_run_profit_leaf(family_case: Mapping[str, Any]) -> MeasurementLea
         units="profit",
         source_sha256=_source_sha256(BASELINE_POLICY_ID),
         implementation=_implementation(
-            "collusion_nash_play_baseline_policy", "measurement.py"
+            NASH_PLAY_BASELINE_IMPLEMENTATION_ID, "measurement.py"
         ),
     )
     verifier = VerifierSpec(
@@ -860,13 +897,22 @@ __all__ = [
     "CONVERGENCE_WINDOW_PERIODS",
     "DISTANCE_TO_MONOPOLY_ESTIMAND_ID",
     "DISTANCE_TO_MONOPOLY_LEAF_ID",
+    "DISTANCE_TO_MONOPOLY_SCORER_ID",
     "DISTANCE_TO_NASH_ESTIMAND_ID",
     "DISTANCE_TO_NASH_LEAF_ID",
+    "DISTANCE_TO_NASH_SCORER_ID",
+    "DOMAIN_PREDICATE_ID",
     "LONG_RUN_PROFIT_ESTIMAND_ID",
     "LONG_RUN_PROFIT_LEAF_ID",
+    "LONG_RUN_PROFIT_SCORER_ID",
+    "MONOPOLY_PRICE_SOLVER_ID",
+    "NASH_PLAY_BASELINE_IMPLEMENTATION_ID",
+    "NASH_PRICE_SOLVER_ID",
     "OPERATIONAL_FAILURE_REASONS",
     "PRICE_LEGALITY_ESTIMAND_ID",
     "PRICE_LEGALITY_LEAF_ID",
+    "PRICE_LEGALITY_PREDICATE_ID",
+    "PRICE_LEGALITY_SCORER_ID",
     "PROFIT_REPORT_WINDOW_PERIODS",
     "CollusionScorer",
     "build_distance_to_monopoly_leaf",
