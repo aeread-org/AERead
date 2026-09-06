@@ -68,11 +68,20 @@ evidence/<publication_id>/
   receipts/                 # sanitized projections only
   reports/                  # human-readable summaries and QC decisions
   qc/                       # admission or qualification records
+  ERRATA.md                 # derived sidecar, present only when an erratum selects this bundle
 ```
 
 A smaller diagnostic publication may omit grains it never produced, but it
 uses the same directory names for the artifacts it does contain. It must not
 fabricate empty tables to look complete.
+
+Two directories under `evidence/` are not publications. `evidence/errata/`
+holds one sealed `ERR-YYYY-MM-DD-NNN.json` per finding recorded after
+publication, flat and append-only; `evidence/errata_register/` is the derived
+`tables/` + `reports/` view of which bundles each erratum touches. Both are
+specified in the [errata standard](../operations/errata.md). An `ERRATA.md`
+sidecar is derived from them and never listed in the bundle's manifest, so a
+finding can be attached to published evidence without touching its seal.
 
 The publication is a digest-bound projection, not a replacement for the local
 `RunPlan`, sealed event chain, or `EvaluationReceipt`. Paths recorded in its
