@@ -1,5 +1,7 @@
 # Procurement allocation v1: design review
 
+**QC profile:** [qc.md](qc.md), which records these findings as gate statuses.
+
 What the family measures well, what it does not measure at all, and the specific
 defects behind each gap. Every claim below is backed by a number recomputed from
 the tracked cases or the published evidence bundles; the command that produces it

@@ -44,6 +44,14 @@ supporting evidence, not a substitute for an explicit QC record.
 QC evidence may be reused across campaigns only when every bound input still
 matches by typed identifier and digest.
 
+A required check is evidence only once it has been **observed to fail on a
+counterexample**. Demonstrate this by mutation: revert the guard, confirm the
+check dies for the intended reason, restore it, confirm the check passes, and
+record that the kill was real. A check that has never failed may be asserting
+something true by construction; three defects fixed on 2026-09-05 passed every
+existing suite for exactly that reason. Where a mutation does not kill a check,
+record that rather than glossing it.
+
 Every machine-consumed evidence reference records the artifact type, path,
 SHA-256 digest, family ID and version, profile ID, and explicit required and
 observed coverage IDs. At admission, the path is resolved inside an explicitly
@@ -234,7 +242,14 @@ Required sequence:
    task-quality zero.
 6. Report paired cluster-level intervals, predeclared slices, reliability,
    exclusions, and missingness alongside aggregates.
-7. Publish canonical fact tables and a manifest whose rows trace to admitted
+7. Prove every guarded metric is falsifiable. For each quantity a promotion rule
+   guards, construct a synthetic arm that maximizes it through behavior the rule
+   is meant to reject, and require the rule to reject that arm. A metric is a
+   guardrail only when some behavior fails it. Terminal feasibility is the worked
+   example: it counts an explicit deferral as a success, so a treatment that
+   defers more can satisfy a feasibility guardrail while earning nothing, and the
+   guarded quantity must instead be one that a deferral fails.
+8. Publish canonical fact tables and a manifest whose rows trace to admitted
    profiles, plans, receipts, and evidence.
 
 This gate is enforced through `variance_pilot`, `confirmatory_freeze`,
@@ -242,8 +257,9 @@ This gate is enforced through `variance_pilot`, `confirmatory_freeze`,
 [campaign SOP](experiment_campaign_sop.md).
 
 Stop when the pilot design is incomplete, the powered sample exceeds the
-declared budget, a frozen control changes, missingness is selective, or
-published aggregates cannot be reconstructed from canonical facts.
+declared budget, a frozen control changes, missingness is selective, a guarded
+metric has no failing counterexample, or published aggregates cannot be
+reconstructed from canonical facts.
 
 ## 3. Mapping QC to campaign promotion
 
@@ -279,9 +295,25 @@ traceable.
 ## 5. Case-specific profiles
 
 Each profile must state current implementation coverage and must not translate
-`partial` into `passed`. Housing is defined in the
-[Housing V1 QC profile](../families/housing/qc.md). Procurement, refund, and future families
-should add profiles that reference this standard instead of copying it.
+`partial` into `passed`. A family without a published profile has **no recorded
+gate status**, so a failing gate has nowhere to be recorded and surfaces only as
+an incidental campaign finding. Procurement is the worked example: its
+deterministic baselines beat the subject by $28.50 per world, that result was
+published as campaign evidence in
+`evidence/procurement_allocation_public_policy_baselines_v1/`, and for want of a
+profile no gate ever turned red.
+
+Published profiles:
+
+| Family | Profile | Normative status |
+|---|---|---|
+| Housing V1 | [housing/qc.md](../families/housing/qc.md) | `partial` |
+| Procurement allocation V1 | [procurement-allocation/qc.md](../families/procurement-allocation/qc.md) | `partial`, construct gate `failed` |
+
+A family may run development campaigns without a profile, but no family may
+publish a result described as measuring its declared construct until its profile
+exists and records that gate. Refund and every future family owe one under that
+rule.
 
 ## 6. New-family contribution admission
 

@@ -1,5 +1,8 @@
 # Procurement allocation v1
 
+**QC profile:** [`docs/families/procurement-allocation/qc.md`](../../docs/families/procurement-allocation/qc.md)
+— construct gate is `failed`; read it before citing any result as buyer competence.
+
 This family tests an interactive buyer that must acquire and negotiate supplier
 information before allocating an electronics BOM. Marketplace listings and verbal
 claims are provisional. Only environment-issued formal offers and verified sample
