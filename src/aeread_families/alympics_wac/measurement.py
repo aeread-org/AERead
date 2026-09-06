@@ -76,6 +76,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
+from aeread.shared_runner import FamilyScoreSet, PhaseInstance
 from aeread.shared_runner.measurement import (
     EstimandSpec,
     ImplementationRef,
@@ -88,8 +89,9 @@ from aeread.shared_runner.measurement import (
     VerifierSpec,
 )
 from aeread.shared_runner.run.resolver import canonical_json_bytes
+from aeread.shared_runner.task.evaluation import FamilyScoringInput
 
-from .cases import STARTING_BALANCE, STARTING_HP, STARTING_NO_DRINK
+from .cases import SEAT_ORDER, STARTING_BALANCE, STARTING_HP, STARTING_NO_DRINK
 from .environment import _delegate_round
 from .harness import POLICY_FUNCTIONS
 
@@ -102,6 +104,21 @@ DOMAIN_ID = "alympics_wac_base_v1"
 DOMAIN_VERSION = "1.0.0"
 
 DEFAULT_BASELINE_POLICY_ID = "proportional"
+
+# kernel_scoring_contract_spec.md ruling R12 draws a line between families
+# whose case names the tested seat and families whose primary is inherently
+# per-seat (negarena's `seat_outcome`); this family's `family_case` does not
+# yet carry a `focal_seat` field at all (every existing caller -- this
+# family's own unit tests, `replay.score_replayed_episode` -- passes
+# `focal_seat` in explicitly; spec section 2's "one seat rotates as focal
+# across paired trials" is a cross-trial authoring convention, not something
+# `family_case` encodes today). `AlympicsWacScorer.__call__` -- the seam the
+# finalizer actually calls, with no external `focal_seat` parameter -- has
+# to pick ONE deterministic seat, and this is that declared convention: the
+# first seat in `SEAT_ORDER`. See docs/alympics_adapter_status.md's "Leaf
+# policy" section for why this is stated as a known limit, not invented
+# silently.
+FOCAL_SEAT = SEAT_ORDER[0]
 
 TERMINAL_WEALTH_ESTIMAND_ID = "alympics_wac_terminal_wealth"
 TERMINAL_WEALTH_LEAF_ID = "alympics_wac_terminal_wealth_leaf"
@@ -921,6 +938,31 @@ def score_survival(
     )
 
 
+def _final_state_from_phase_instances(
+    phase_instances: tuple[PhaseInstance, ...],
+) -> Mapping[str, Any]:
+    """The family state ``plugin.terminal()`` was called on to end replay.
+
+    Mirrors ``tests/test_shared_runner_scoring_contract.py``'s own
+    ``_final_replayed_state``: the LAST ``TransitionResult.state`` across
+    every phase instance, in order. ``environment.py``'s ``step()`` mutates
+    ``round_log``/``players``/``eliminated_order`` directly into this state
+    dict and never resets any of them, so this is exactly what
+    ``environment.py``'s ``terminal()`` itself reads (``state["players"]``,
+    ``state["round_log"]``). Ruling R3 (kernel_scoring_contract_spec.md):
+    reading it here is safe because every phase boundary's post-state hash
+    is cross-checked against sealed evidence during replay, so a state that
+    diverged from the real run would already have failed finalization
+    before this scorer is ever called.
+    """
+    for phase_instance in reversed(phase_instances):
+        if phase_instance.transitions:
+            return phase_instance.transitions[-1].state
+    raise ValueError(
+        "phase_instances contain no transitions to derive a terminal state from"
+    )
+
+
 # ---------------------------------------------------------------------------
 # Case-bound scorer (environment.py's ``build_scorer`` hook).
 # ---------------------------------------------------------------------------
@@ -938,6 +980,16 @@ class AlympicsWacScorer:
     """
 
     family_case: Mapping[str, Any]
+    # kernel_scoring_contract_spec.md section 1: ``__call__`` below (the seam
+    # ``task.evaluation.finalize_family_execution`` actually calls) needs a
+    # real, imported upstream module for the baseline recompute and leaf 4's
+    # shadow-recompute; ``environment.py``'s ``build_scorer`` hook supplies
+    # it via ``self._require_upstream()``. Every other existing caller of
+    # this dataclass (this family's own unit tests, ``build_scorer`` used
+    # directly with no plugin) supplies its own ``upstream_module`` to the
+    # named ``score_*`` methods explicitly and never touches this field, so
+    # its default of ``None`` is backward-compatible.
+    upstream_module: Any = None
 
     def panel_policy_ids(self, focal_seat: str) -> dict[str, str]:
         assignment = self.family_case["grid_cell"]["policy_assignment"]
@@ -1082,10 +1134,116 @@ class AlympicsWacScorer:
             evidence_refs=evidence_refs,
         )
 
+    def __call__(
+        self, scoring_input: FamilyScoringInput, *, evidence_refs: tuple[str, ...] = ()
+    ) -> FamilyScoreSet:
+        """Score one finalized episode exactly as the production finalizer
+        calls it: ``plugin.build_scorer(family_case)(scoring_input,
+        evidence_refs=scoring_input.evidence_refs)``
+        (``task.evaluation.finalize_family_execution``, per
+        kernel_scoring_contract_spec.md section 1).
 
-def build_scorer(family_case: Mapping[str, Any]) -> AlympicsWacScorer:
-    """Build the one ``AlympicsWacScorer`` for a case's ``family_case``."""
-    return AlympicsWacScorer(family_case=family_case)
+        Returns every one of this family's four declared finalize-time
+        leaves (spec section 5) -- a thin wrapper over the existing named
+        ``score_*`` methods, this family's single source of truth for each
+        leaf; no new scoring logic is written here. All four leaves are
+        declared ``input_scope="trajectory"`` (``build_leaves``), so the
+        actual ``round_log``/``players`` this reads come from
+        ``scoring_input.phase_instances`` (via
+        ``_final_state_from_phase_instances`` -- see that function's own
+        docstring for why this is safe under ruling R3), never from
+        ``scoring_input.outcome`` -- even though, for this family,
+        ``outcome`` also happens to carry the trajectory-bearing
+        ``eliminated_order`` field (ruling R9,
+        ``family_manifest().trajectory_outcome_paths``).
+        ``termination_reason`` is read from ``scoring_input.outcome``
+        directly: it is the terminal fact every leaf's operational-failure
+        gate checks, not itself trajectory content.
+
+        ``focal_seat`` is fixed at module-level ``FOCAL_SEAT`` (see that
+        constant's own docstring): this family's ``family_case`` does not
+        yet declare which seat is focal, so this is the one, stated,
+        deterministic convention this seam uses -- never invented per call.
+        The baseline episode is independently recomputed from the case
+        alone (``_recompute_baseline_episode``, via the named
+        ``score_terminal_wealth``/``score_survival`` methods below), never
+        supplied by a caller: nothing here depends on a second, separately
+        run episode.
+        """
+        if self.upstream_module is None:
+            raise RuntimeError(
+                "AlympicsWacScorer.__call__ requires upstream_module -- "
+                "build_scorer(family_case) must be called through "
+                "AlympicsWacPlugin.build_scorer, which supplies it"
+            )
+        focal_seat = FOCAL_SEAT
+        final_state = _final_state_from_phase_instances(scoring_input.phase_instances)
+        actual_round_log = list(final_state["round_log"])
+        actual_final_players = final_state["players"]
+        actual_termination_reason = scoring_input.outcome["termination_reason"]
+        baseline_final_players, baseline_round_log = _recompute_baseline_episode(
+            self.upstream_module,
+            self.family_case,
+            focal_seat=focal_seat,
+            panel_policy_ids=self.panel_policy_ids(focal_seat),
+            baseline_policy_id=DEFAULT_BASELINE_POLICY_ID,
+        )
+        terminal_wealth = self.score_terminal_wealth(
+            focal_seat=focal_seat,
+            actual_final_players=actual_final_players,
+            actual_round_log=actual_round_log,
+            actual_termination_reason=actual_termination_reason,
+            baseline_final_players=baseline_final_players,
+            upstream_module=self.upstream_module,
+            evidence_refs=evidence_refs,
+        )
+        survival = self.score_survival(
+            focal_seat=focal_seat,
+            actual_round_log=actual_round_log,
+            actual_final_players=actual_final_players,
+            actual_termination_reason=actual_termination_reason,
+            baseline_round_log=baseline_round_log,
+            baseline_final_players=baseline_final_players,
+            upstream_module=self.upstream_module,
+            evidence_refs=evidence_refs,
+        )
+        bid_legality = self.score_bid_legality(
+            focal_seat=focal_seat,
+            round_log=actual_round_log,
+            termination_reason=actual_termination_reason,
+            evidence_refs=evidence_refs,
+        )
+        settlement_exactness = self.score_settlement_exactness(
+            focal_seat=focal_seat,
+            upstream_module=self.upstream_module,
+            round_log=actual_round_log,
+            termination_reason=actual_termination_reason,
+            evidence_refs=evidence_refs,
+        )
+        return FamilyScoreSet(
+            primary_leaf_id=TERMINAL_WEALTH_LEAF_ID,
+            scores=(terminal_wealth, survival, bid_legality, settlement_exactness),
+            admission_leaf_ids=(
+                TERMINAL_WEALTH_LEAF_ID,
+                BID_LEGALITY_LEAF_ID,
+                SETTLEMENT_EXACTNESS_LEAF_ID,
+            ),
+        )
+
+
+def build_scorer(
+    family_case: Mapping[str, Any], *, upstream_module: Any = None
+) -> AlympicsWacScorer:
+    """Build the one ``AlympicsWacScorer`` for a case's ``family_case``.
+
+    ``upstream_module`` is optional here (``None`` by default) so this
+    family's own unit tests can keep building a scorer directly, without a
+    plugin, to exercise the named ``score_*`` methods in isolation (each
+    already takes ``upstream_module`` explicitly). The real production path
+    -- ``AlympicsWacPlugin.build_scorer`` -- always supplies it, since
+    ``AlympicsWacScorer.__call__`` (the seam the finalizer calls) needs one.
+    """
+    return AlympicsWacScorer(family_case=family_case, upstream_module=upstream_module)
 
 
 __all__ = [
@@ -1093,6 +1251,7 @@ __all__ = [
     "BID_LEGALITY_ESTIMAND_ID",
     "BID_LEGALITY_LEAF_ID",
     "DEFAULT_BASELINE_POLICY_ID",
+    "FOCAL_SEAT",
     "SETTLEMENT_EXACTNESS_ESTIMAND_ID",
     "SETTLEMENT_EXACTNESS_LEAF_ID",
     "SURVIVAL_ESTIMAND_ID",
