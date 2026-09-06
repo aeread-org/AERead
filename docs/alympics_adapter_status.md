@@ -1,6 +1,6 @@
 # alympics.wac adapter — status
 
-Branch `zeyu/alympics-adapter`. Last verified 2026-09-02. Milestone 3 of 3
+Originally built on branch `zeyu/alympics-adapter` (last verified 2026-09-02); now carried on `zeyu/alympics-contract-migration`, re-verified 2026-09-06 (see update below). Milestone 3 of 3
 (scripted harness + end-to-end + replay); milestones 1-2 (cases,
 environment, measurement) landed earlier on this branch.
 
@@ -104,7 +104,8 @@ grew independently of this migration — this branch's only change to this
 family's own `test_alympics_wac_*` modules is
 `tests/test_alympics_wac_replay.py` (the shared
 `tests/test_shared_runner_scoring_contract.py` also changed, for the
-enrollment in commits 4e3bc842/4b4d05b5) — `git diff --stat
+enrollment in commits 4e3bc842/4b4d05b5, plus a comment-only
+cross-reference fix in 14146c2a) — `git diff --stat
 zeyu/kernel-r9r10..HEAD` confirms); corrected here rather than carried
 forward unchecked, and `tests/test_shared_runner_scoring_contract.py` is
 now added to the reproduce command below, since this migration enrolled
@@ -262,7 +263,7 @@ unaffected.
   and negarena's 6 scenarios, not a claim of full 7-cell coverage.
 - **No provider or model call anywhere in this milestone.** Every "full
   episode" claim is against scripted policies; per P01's audit verdict
-  (`docs/problem_bound_case_audit.md`) the family stays `baseline_only` —
+  (`docs/research/problem_bound_case_audit.md`) the family stays `baseline_only` —
   none of this demonstrates anything about live agent behavior or a
   solved policy optimum.
 - **Kernel exception-wrapping (ledgered, generic, not alympics-specific):**
@@ -272,7 +273,8 @@ unaffected.
   `run_episode` is ever called); an exhaustion/ordering error raised from
   inside a live scheduler turn surfaces as `SchedulerContractError` instead
   (the original type is still recoverable via `.__cause__`). See
-  `ledger_entries/alympics.md` for the full write-up; this is core kernel
+  the cross-agent ledger at `econ benchmark/ledger_entries/alympics.md`
+  (outside this repo) for the full write-up; this is core kernel
   behavior and was not changed here.
 
 ## Scoring contract migration (`zeyu/alympics-contract-migration`)
@@ -503,5 +505,6 @@ and there under one disposition, not two independent open items.
 
 The two open items already on record before this migration
 (`docs/benchmark_qc.md` unmerged to `main`; `observe()`'s balance-credit
-lag) are unchanged and are tracked in `ledger_entries/alympics.md`, not
+lag) are unchanged and are tracked in the cross-agent ledger at
+`econ benchmark/ledger_entries/alympics.md` (outside this repo), not
 repeated here.
