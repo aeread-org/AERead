@@ -83,6 +83,17 @@ ROUTE_PROVIDER = "Parasail"
 QUANTIZATION = "fp8"
 # The adapter refuses any route whose advertised price exceeds these caps, so
 # a silent reroute to a pricier backend fails closed instead of billing.
+MAX_ACTION_ATTEMPTS = 10
+# "length" and "empty_response" are the kernel's own typed response
+# conditions; declaring them lets the executor retry a truncated or empty
+# turn one layer below the harness's corrective rounds.
+RETRYABLE_CONDITIONS = (
+    "rate_limit",
+    "provider_5xx",
+    "timeout",
+    "length",
+    "empty_response",
+)
 MAX_PROMPT_PRICE_PER_MILLION = "0.15"
 MAX_COMPLETION_PRICE_PER_MILLION = "0.50"
 PRICING = TokenPricing(
@@ -485,8 +496,16 @@ def _profile(
                 "max_cost_usd": max_cost_usd,
             },
             "retry_policy": {
-                "max_action_attempts": 1,
-                "retryable_conditions": [],
+                # Do the arithmetic the housing V19 postmortem says to do at
+                # design time. This family makes ONE call per period and 100
+                # periods per case, so a six-case panel is ~600 sequential
+                # calls; a single unretried 429 anywhere kills the whole run,
+                # which is what tau3's one-attempt policy did here. Parasail
+                # serves GLM 5.3 Flash from a shared upstream pool that
+                # rate-limits in bursts, so attempts are set high enough that
+                # a burst has to persist across all of them to lose a case.
+                "max_action_attempts": MAX_ACTION_ATTEMPTS,
+                "retryable_conditions": list(RETRYABLE_CONDITIONS),
                 "session_mode": "restart",
                 "sdk_retries": 0,
             },
