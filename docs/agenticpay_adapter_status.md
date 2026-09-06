@@ -1,6 +1,7 @@
 # agenticpay.bilateral adapter — status
 
-Branch `zeyu/agenticpay-adapter`. Last verified 2026-09-02.
+Branch `zeyu/agenticpay-contract-migration` (adapter work originally on
+`zeyu/agenticpay-adapter`). Last verified 2026-09-06.
 
 ## What the adapter claims
 
@@ -8,16 +9,14 @@ For the pinned bilateral topology (`single_buyer_product_seller`) of SafeRL-Lab/
 (commit `1ff4e1a2686eac6a07ff559df6d50329c6fd9f69`), it reproduces upstream's deterministic
 `step()`/scoring result exactly, by delegating every price/contract extraction, legality
 check, and scoring formula to the pinned upstream checkout across a subprocess bridge —
-never reimplementing any of it. It publishes four separately-labelled measurement leaves
-rather than one blended number, plus upstream's own `GlobalScore`/`BuyerScore`/`SellerScore`
-carried forward verbatim as a labeled compatibility artifact (spec section 2):
-
-| Leaf | Verifier family | Evaluation class | Declared when |
-|---|---|---|---|
-| `agenticpay_deal_reached` | `rule_constraint` | `deterministic` | always |
-| `agenticpay_buyer_surplus_share` | `objective_reference` | `deterministic` | always (`invalid_measurement` when the ZOPA denominator is degenerate) |
-| `agenticpay_seller_surplus_share` | `objective_reference` | `deterministic` | always (same degeneracy rule) |
-| `agenticpay_contract_legality` | `rule_constraint` | `deterministic` | only for contract-mode (realistic-split) cases |
+never reimplementing any of it. It publishes three separately-labelled finalize-time
+leaves (manifest leaf policy, see "Scoring-contract migration" below):
+`agenticpay_deal_reached` (`rule_constraint`, always), `agenticpay_surplus_share`
+(`objective_reference`, `seat_scope=subject_seat`, always; `invalid_measurement` on
+timeout or a degenerate ZOPA denominator), `agenticpay_contract_legality`
+(`rule_constraint`, contract-mode cases only). The pre-migration
+`agenticpay_buyer_surplus_share`/`agenticpay_seller_surplus_share` leaves survive only as
+`replay.py`'s `ReplayScoreResult` diagnostic and are no longer declared or emitted.
 
 This milestone (3 of 3) adds the scripted harness, an end-to-end run through the real
 kernel scheduler with sealed evidence, and an offline replayer:
@@ -73,7 +72,7 @@ in the replayed path (verified directly: no `datetime`/`time.time`/`random`/`uui
 own `agenticpay_bridge.py`/`agenticpay_bridge_driver.py`), so raw state equality holds
 without stripping anything.
 
-All four declared leaves were also recomputed from the replayed episode and matched the
+All four legacy replay-diagnostic leaves (`ReplayScoreResult`) were also recomputed from the replayed episode and matched the
 originally-computed values (`agenticpay_deal_reached=1.0`; both surplus-share leaves equal
 to the original run's; `agenticpay_contract_legality=1.0` for the contract-mode episode).
 Unlike tau3.retail's DB-equivalence leaf (which needs a fresh `Tau2Bridge.evaluate_env` call
@@ -181,14 +180,30 @@ AEREAD_AGENTICPAY_BRIDGE_REQUIRED=1 pytest   # fails if a fidelity test skips
   this session (still absent), no new entry needed there either, since D-10 already covers
   it.
 
-## No new kernel/runner defects found this milestone
+## Kernel/runner defects touched by this branch
 
 `EvidenceStore.append_event`, `run_episode`, and `PluginRegistry` all behaved exactly as
-documented for a family with no tool-call surface; nothing required a workaround. The one
-pre-existing shared-ledger entry that names this family (`runner_defect_ledger.md`'s D-10,
-the missing `docs/benchmark_qc.md`) was re-verified, not re-derived, and needed no update;
-no family-specific `ledger_entries/agenticpay.md` file exists to update (see "Known limits"
-above).
+documented for a family with no tool-call surface; nothing required a workaround for
+those three. This branch did, however, find and fix one kernel defect in-branch:
+`task/evaluation.py`'s `_replay_family_trajectory` called `plugin.initial_state(family_case,
+run=None)` by keyword, raising `TypeError` for any family (this one among them) whose
+second `initial_state` parameter is named `cell` rather than `run`; it now passes that
+argument positionally, matching every other hook call in that function. This fix has not
+been added to the shared ledger — flag it to the kernel owner at PR time, since it lands
+on a family branch rather than a kernel-owner branch.
+
+Ledger entries that name this family: **D-10** (`docs/benchmark_qc.md` missing,
+unchanged this milestone). **D-15** (the census at `runner_defect_ledger.md` listed
+`agenticpay` among the families whose `build_scorer` lacked `__call__`; closed for this
+family by commit `b2df23ec`, which added `AgenticpayBilateralScorer.__call__` — the
+ledger's own census text has not been updated to reflect this). **D-16** (open: nothing
+in the shared runner declares a minimum evidence contract for a family-owned,
+non-scheduler harness, and `ScriptedAgenticpayBilateralHarness` seals no replayable
+evidence of its own — exactly the gap the test-only
+`EvidenceRecordingAgenticpayHarness` (see "Conformance enrollment" below) works
+around for this family's finalizer test; D-16 itself remains open, and the production
+harness is unchanged). **D-18** (a declared upstream pin is not the same as a verified
+checkout; cross-family, open, unchanged this milestone).
 
 ## Scoring-contract migration (kernel_scoring_contract_spec.md, migration milestone 2 of 3)
 
@@ -285,10 +300,15 @@ two are not. `measurement.py::build_contract_legality_leaf` already returns
 `None` whenever `not is_contract_mode(family_case)` (the 3 basic price-only
 cases; present for the 25 contract-mode cases) — `AgenticpayBilateralPlugin
 .inapplicable_leaf_ids` is a direct restatement of that identical predicate,
-never a second, independently-maintained decision. A basic-case receipt
-carries `inapplicable_leaf_ids=("agenticpay_contract_legality_leaf",)` and is
-still `included` when `agenticpay_surplus_share` scores `ok` (R13 rule 4: an
-omitted diagnostic is a disposition, not a cell exclusion).
+never a second, independently-maintained decision. For a basic case the scorer
+returns only the two unconditional leaves and `inapplicable_leaf_ids` names
+`agenticpay_contract_legality_leaf` (both proven:
+`test_agenticpay_obeys_the_scoring_contract`'s basic-mode pair and
+`test_agenticpay_bilateral_measurement.py`'s hook tests); the resulting receipt is
+expected to carry `inapplicable_leaf_ids=("agenticpay_contract_legality_leaf",)` and
+`inclusion_status="included"` per R13 rule 4, but no basic-case episode has been
+driven through `finalize_family_execution` — only the contract-mode receipt in
+`test_finalize_wires_agenticpay_to_the_shared_family_finalizer` has.
 
 ### Deferred leaves: none
 

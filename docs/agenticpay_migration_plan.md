@@ -214,7 +214,7 @@ constraint and this migration's own primary/admission choice agree, so
 nothing about those two sections changes as a result of this classification.
 
 The receipt for a contract-mode case will carry `inapplicable_leaf_ids=()`
-(all four leaves returned); for a basic case it will carry
+(all three post-redesign leaves returned); for a basic case it will carry
 `inapplicable_leaf_ids=("agenticpay_contract_legality_leaf",)` and the
 finalizer will accept a returned set of the other three, per R13 rule 3
 (`{returned} == {declared finalize_time} − inapplicable`). A basic-case
