@@ -243,12 +243,15 @@ def register_plugin(
     plugin: "GovsimPlugin | None" = None,
     upstream_root: Path | str | None = None,
     bridge: GovsimBridge | None = None,
+    baselines: Mapping[str, float] | None = None,
 ) -> "GovsimPlugin":
     """Register one exact family/version binding in the kernel registry."""
     if plugin is None:
         if upstream_root is None:
             raise ValueError("upstream_root is required when plugin is not supplied")
-        plugin = GovsimPlugin(upstream_root=upstream_root, bridge=bridge)
+        plugin = GovsimPlugin(
+            upstream_root=upstream_root, bridge=bridge, baselines=baselines
+        )
     registry.register_trusted(family_manifest(), plugin)
     return plugin
 
@@ -261,9 +264,19 @@ class GovsimPlugin:
         *,
         upstream_root: Path | str,
         bridge: GovsimBridge | None,
+        baselines: Mapping[str, float] | None = None,
     ) -> None:
         self.upstream_root = Path(upstream_root)
         self.bridge = bridge
+        # This family is comparative (`bound_status: baseline_only`), so three
+        # of its five leaves need reference values. They are produced by
+        # running the declared scripted policy (`govsim_sustainable_v1`)
+        # through this same environment, provider-free, and frozen into the
+        # campaign plan -- so a reader can see which policy, at which digest,
+        # produced the numbers every comparative claim is measured against.
+        # A plugin built without them scores the three baseline-free leaves
+        # rather than inventing a reference.
+        self.baselines = dict(baselines) if baselines is not None else None
 
     # ------------------------------------------------------------------
     # validate_payload
@@ -685,7 +698,17 @@ class GovsimPlugin:
         leaves' named methods are still exercised directly by
         ``tests/test_govsim_measurement.py`` today.
         """
-        return measurement.build_scorer(family_case)
+        return measurement.build_scorer(
+            family_case,
+            # The scorer must not rewrite `terminal()`; it is handed this
+            # plugin's own, bound to this case.
+            terminal_builder=lambda state: self.terminal(family_case, state),
+            # Comparative reference values, produced by a scripted policy run
+            # and frozen by the campaign that constructed this plugin. Absent
+            # outside a campaign, in which case the scorer emits the three
+            # baseline-free leaves rather than fabricating a reference.
+            baselines=self.baselines,
+        )
 
     def build_reference_providers(self, family_case: Mapping[str, Any]) -> tuple[Any, ...]:
         del family_case

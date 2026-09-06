@@ -92,6 +92,7 @@ from typing import Any, Mapping, Sequence
 import numpy as np
 
 from aeread.shared_runner.measurement import (
+    FamilyScoreSet,
     EstimandSpec,
     ImplementationRef,
     MeasurementLeafSpec,
@@ -747,6 +748,14 @@ class GovsimScorer:
     num_agents: int
     max_num_rounds: int
     leaves: tuple[MeasurementLeafSpec, ...]
+    # Injected by ``environment.build_scorer``. ``terminal_builder`` turns a
+    # replayed state into the ``terminal`` mapping the leaf scorers read, so
+    # that logic is never written twice. ``baselines`` carries the comparative
+    # reference values this family's three comparative leaves need; they are
+    # produced by a scripted policy run and frozen by the campaign, never
+    # entered by hand and never fabricated here.
+    terminal_builder: Any | None = None
+    baselines: Mapping[str, float] | None = None
 
     @property
     def no_collapse_leaf(self) -> MeasurementLeafSpec:
@@ -769,6 +778,73 @@ class GovsimScorer:
         return self.leaves[4]
 
     def __call__(
+        self, scoring_input: Any, *, evidence_refs: tuple[str, ...] = ()
+    ) -> FamilyScoreSet:
+        """The kernel's once-per-episode scoring hook (issue #76).
+
+        ``evaluation.py`` passes a ``FamilyScoringInput`` and expects every
+        declared leaf. This surfaces all five when the comparative baselines
+        are available and the three baseline-free ones when they are not,
+        rather than fabricating a reference: ``govsim_survival_months`` is
+        this family's declared primary estimand and is always present, so an
+        included receipt always carries the leaf the family is defined by.
+
+        The terminal mapping comes from the last transition of the verified
+        re-execution, never from the live episode.
+        """
+        final_state: Mapping[str, Any] | None = None
+        for phase in reversed(scoring_input.phase_instances):
+            if phase.transitions:
+                candidate = phase.transitions[-1].state
+                if isinstance(candidate, Mapping):
+                    final_state = candidate
+                    break
+        if final_state is None:
+            raise ValueError("govsim scoring input has no replayed terminal state")
+        if self.terminal_builder is None:
+            raise ValueError(
+                "govsim scorer needs its terminal_builder; build it through "
+                "environment.build_scorer rather than constructing it bare"
+            )
+        terminal = self.terminal_builder(final_state)
+        if terminal is None:
+            raise ValueError("govsim episode replayed without reaching a terminal")
+
+        scores = [
+            self.score_no_collapse(terminal=terminal, evidence_refs=evidence_refs),
+            self.score_threshold_adherence(
+                terminal=terminal, evidence_refs=evidence_refs
+            ),
+            self.score_survival_months(
+                terminal=terminal,
+                baseline_survival_months=(
+                    self.baselines.get("survival_months") if self.baselines else None
+                ),
+                evidence_refs=evidence_refs,
+            ),
+        ]
+        if self.baselines is not None:
+            scores.append(
+                self.score_total_harvest(
+                    terminal=terminal,
+                    baseline_total_harvest=float(self.baselines["total_harvest"]),
+                    evidence_refs=evidence_refs,
+                )
+            )
+            scores.append(
+                self.score_equality_gini(
+                    terminal=terminal,
+                    baseline_gini=float(self.baselines["gini"]),
+                    evidence_refs=evidence_refs,
+                )
+            )
+        return FamilyScoreSet(
+            primary_leaf_id=self.survival_months_leaf.leaf_id,
+            scores=tuple(scores),
+            admission_leaf_ids=(self.survival_months_leaf.leaf_id,),
+        )
+
+    def score_recorded_outcome(
         self, outcome: Mapping[str, Any], *, evidence_refs: tuple[str, ...] = ()
     ) -> ScoreEnvelope:
         """Score one recorded ``family_outcome`` exactly as the production
@@ -898,7 +974,12 @@ class GovsimScorer:
         }
 
 
-def build_scorer(family_case: Mapping[str, Any]) -> GovsimScorer:
+def build_scorer(
+    family_case: Mapping[str, Any],
+    *,
+    terminal_builder: Any | None = None,
+    baselines: Mapping[str, float] | None = None,
+) -> GovsimScorer:
     """Build the one ``GovsimScorer`` for a case's ``family_case`` payload.
 
     Unlike ``tau3_retail`` (whose declared leaves vary per task), every
@@ -913,6 +994,8 @@ def build_scorer(family_case: Mapping[str, Any]) -> GovsimScorer:
         num_agents=int(env_cfg["num_agents"]),
         max_num_rounds=int(env_cfg["max_num_rounds"]),
         leaves=build_leaves(),
+        terminal_builder=terminal_builder,
+        baselines=baselines,
     )
 
 
