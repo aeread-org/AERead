@@ -1002,10 +1002,15 @@ def declared_reference_implementations() -> tuple[ImplementationRef, ...]:
         reference = getattr(verifier, "reference", None)
         if reference is not None:
             add(reference.implementation)
-        scope = getattr(verifier, "objective_scope", None)
-        domain = getattr(scope, "validity_domain", None) if scope else None
-        if domain is not None:
-            add(domain.predicate)
+        # A validity domain can hang off either the estimand or the
+        # verifier's objective scope depending on the leaf's shape -- this
+        # family uses the first, econevals the second -- so both are walked.
+        # Missing one is not a soft failure: the receipt refuses to seal.
+        for owner in (getattr(leaf, "estimand", None), verifier):
+            scope = getattr(owner, "objective_scope", owner)
+            domain = getattr(scope, "validity_domain", None) if scope else None
+            if domain is not None:
+                add(domain.predicate)
     return tuple(refs[key] for key in sorted(refs))
 
 

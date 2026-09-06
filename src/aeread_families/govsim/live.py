@@ -9,13 +9,15 @@ actually enabled, an output budget sized to a real response, and empty turns
 raised as typed provider conditions rather than eaten as malformed answers.
 
 What a model actually decides here: only the harvest quantity. This
-adapter's `discuss` and `reflect` actions are both `{}` -- they carry no
-content -- so the harness makes **no model call at all** in those phases.
-Calling a model to produce an empty action would spend money to record
-nothing and would misrepresent the trajectory as deliberated. See
-`docs/families/govsim/campaign_scoping.md`: a live panel here measures the
-common-pool dilemma with communication removed, which is a real result but
-not what a reader assumes GovSim measures.
+adapter's `discuss` and `reflect` actions are both `{}` -- the action schema
+has no field for content -- so nothing said in those phases can be recorded
+or scored. The model is still called in them, because the kernel requires
+every harness-produced action to trace to a real model call, and a harness
+that skipped it could fabricate a trajectory no model took part in. The
+calls are therefore made and their content discarded, which the campaign
+plan records: a live panel here measures the common-pool dilemma with
+communication removed, which is a real result but not what a reader assumes
+GovSim measures.
 """
 from __future__ import annotations
 
@@ -192,12 +194,22 @@ class GovsimJsonHarness:
         return quantity, ""
 
     async def act(self, request: Any, ctx: AttemptContext) -> HarnessOutput:
-        # `discuss` and `reflect` accept `{}` and carry no content, so a model
-        # call there would buy nothing and imply deliberation that did not
-        # happen.
+        # `discuss` and `reflect` accept `{}` -- the action schema has no
+        # field for content -- so nothing the model says in those phases can
+        # be recorded. The model is still consulted, because the kernel
+        # requires every harness-produced action to trace to a real model
+        # call: a harness that returns an action without one could fabricate
+        # a trajectory no model participated in, which is precisely the
+        # property receipts exist to rule out. So the call is made and its
+        # content is deliberately discarded, and the campaign plan says so
+        # rather than letting a reader assume the phases were deliberated.
         if request.phase_id in {DISCUSS_PHASE, REFLECT_PHASE}:
+            await ctx.model.complete(
+                messages=(self._request_message(request),),
+                response_mode="json_dialect",
+            )
             return HarnessOutput(
-                action={}, claimed_tool_calls=(), rounds_used=0, notes={}
+                action={}, claimed_tool_calls=(), rounds_used=1, notes={}
             )
         if request.phase_id != HARVEST_PHASE:
             raise ProviderFailure(
