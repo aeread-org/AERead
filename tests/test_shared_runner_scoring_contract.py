@@ -2332,6 +2332,13 @@ def _amazonbarg_fixture_pair(
 ) -> tuple[FamilyManifest, Any, tuple[FamilyScoringFixture, FamilyScoringFixture]]:
     _require_amazonbarg_upstream()
     case = _amazonbarg_case("home-kitchen_2")
+    # Ruling R12 (kernel_scoring_contract_spec.md): build_amazonbarg_setup's
+    # default subject_seats=("buyer",) puts the tested profile in that one
+    # seat via the plan's evaluation block, so amazonbarg_bargained_ratio
+    # (seat_scope="subject_seat") resolves and comes back "ok" through the
+    # protocol path below, exactly as it does through finalize_family_execution
+    # (tests/test_amazonbarg_replay.py's
+    # test_finalize_wires_amazonbarg_to_the_shared_family_finalizer).
     setup = build_amazonbarg_setup(case, suffix="scoring_contract_pair")
     cell = setup.plan.cells[0]
     family = setup.plan.families[0]
@@ -2353,7 +2360,12 @@ def _amazonbarg_fixture_pair(
         asyncio.run(
             run_episode(cell=cell, case=case, plugin=plugin, response_source=harness)
         )
-        return FamilyScoringFixture(family_case=family_case, sealed_evidence=evidence)
+        return FamilyScoringFixture(
+            family_case=family_case,
+            sealed_evidence=evidence,
+            subject_seats=("buyer",),
+            profile_by_seat=cell.profile_by_seat,
+        )
 
     left = _run(_AMAZONBARG_LEFT_SCRIPT, "left")
     right = _run(_AMAZONBARG_RIGHT_SCRIPT, "right")
