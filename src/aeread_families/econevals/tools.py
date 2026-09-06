@@ -42,7 +42,12 @@ from typing import Any, Mapping
 
 from aeread.shared_runner.task.tools import ToolBinding, ToolDefinition
 
-from .environment import EconevalsPlugin, TRACK_TOOLS, advance_period
+from .environment import (
+    SUBMIT_ARG_FORMATS,
+    TRACK_TOOLS,
+    EconevalsPlugin,
+    advance_period,
+)
 
 TOOL_VERSION = "0.1.0"
 
@@ -75,6 +80,15 @@ _READ_ONLY_SCHEMA_OVERRIDES: Mapping[str, Mapping[str, Any]] = {
 }
 
 
+# Keyed by submit argument name; the text is the same declaration
+# ``environment.SUBMIT_ARG_FORMATS`` puts in the observation, so a model
+# reading either surface is told the same thing.
+_SUBMIT_ARG_DESCRIPTION: Mapping[str, str] = {
+    TRACK_TOOLS[track]["submit_arg"]: SUBMIT_ARG_FORMATS[track]
+    for track in TRACK_TOOLS
+}
+
+
 def _submit_schema(arg_name: str) -> dict[str, Any]:
     """The one terminating submit tool's argument: exactly one named field,
     whose own value has no fixed shape (``environment._parse_dict`` accepts
@@ -82,7 +96,11 @@ def _submit_schema(arg_name: str) -> dict[str, Any]:
     own ``parse_dict`` 3-strategy fallback, spec's "Governing facts")."""
     return {
         "type": "object",
-        "properties": {arg_name: {}},
+        "properties": {
+            arg_name: {
+                "description": _SUBMIT_ARG_DESCRIPTION.get(arg_name, ""),
+            }
+        },
         "required": [arg_name],
         "additionalProperties": False,
     }
