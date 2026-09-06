@@ -222,6 +222,7 @@ parent test then asserted must be `0` and failed instead.
 - Fix: `_run_pytest` now strips every `AEREAD_*_BRIDGE_REQUIRED` flag from
   the child's environment before launching it, with a comment stating this
   checkout-less child must never be asked to enforce any family's bridge.
+  (Commit `25d46831`.)
 - Test: `test_the_checkout_less_child_never_inherits_a_bridge_required_flag`
   (`tests/test_amazonbarg_upstream_skip_scope.py`) sets
   `AEREAD_AMAZONBARG_BRIDGE_REQUIRED=1` in the parent (via `monkeypatch`,
@@ -251,7 +252,7 @@ ran in CI, under either job.
 - Guard test added (no prior test of this shape existed —
   `test_ci_actually_runs_every_amazonbarg_fidelity_test_file_under_the_
   bridge_gate` only checks a fixed, hand-maintained list, which is exactly
-  what missed this file):
+  what missed this file), both landed in commit `0a5dafb9`:
   `test_every_amazonbarg_test_file_is_covered_by_some_ci_job`
   (`tests/test_amazonbarg_bilateral_ci_bridge_requirement.py`). It globs
   every `tests/test_amazonbarg_*.py` file and, for each, checks the file is
@@ -267,7 +268,8 @@ ran in CI, under either job.
   `tests/test_amazonbarg_bilateral_ci_bridge_requirement.py` — `4 passed`
   (all four tests, including the new guard, now run rather than skip).
 
-Both fixes verified together: full repo suite under the plain job's own
+Both fixes documented here in commit `15ab68f3`. Both fixes verified
+together: full repo suite under the plain job's own
 environment (`pytest tests/ -q`, no bridge/upstream variables set) —
 `2230 passed, 125 skipped, 1 xfailed, 0 failed`; the amazonbarg-fidelity
 job's exact file list under its own environment — `130 passed, 0 failed`;
