@@ -319,25 +319,57 @@ component at all"), so none is `deferred`.
   `docs/alympics_migration_plan.md`'s "Does `outcome()` embed the
   trajectory?" section for the full argument.
 - **No leaf is deferred.**
+- **Leaves 1-3 declare `seat_scope="subject_seat"`; leaf 4 stays the
+  default `seat_scope="cell"`** (ruling R12, adopted post-R12 — see "The
+  seat-context rule" below). No leaf declares `subject_reduction`: this
+  family's cluster mapping is one focal seat per trial (spec section 2),
+  never several subject seats scored together, so a self-play plan (more
+  than one subject seat) is reported `ambiguous_subject_seat`, never
+  silently averaged.
 
-### The focal-seat convention (a stated limit, not an invented one)
+### The seat-context rule (replaces the former fixed-focal-seat convention)
 
-Ruling R12 (kernel_scoring_contract_spec.md) says families whose case
-names the tested seat "ignore seat context" and are unaffected by that
-ruling's per-seat-primary machinery. On this branch, that premise does not
-hold: `family_case` (the validated `payload`) does **not** carry a
-`focal_seat` field — every existing caller (this family's own unit tests,
-`replay.score_replayed_episode`) passes `focal_seat` in explicitly, and
-spec section 2's "one seat rotates as focal across paired trials" is a
-cross-trial *authoring* convention, never something a single case encodes.
-`AlympicsWacScorer.__call__` — the seam the finalizer calls, with no
-external `focal_seat` parameter reachable from `FamilyScoringInput` alone
-— therefore fixes one declared, deterministic convention:
-`measurement.FOCAL_SEAT = SEAT_ORDER[0]` (`"alex"`), matching every
-existing test's own default focal seat. This is stated here, not invented
-silently: a future extension that lets a case (or an `EvaluationBlock`)
-name a rotating focal seat per trial would change only this one constant's
-resolution, not the four leaves' own scoring logic.
+`AlympicsWacScorer.__call__` resolves its focal seat per call from
+`scoring_input.seat_context.subject_seats` (ruling R12), never from a
+fixed module constant. `_resolve_focal_seat` (`measurement.py`) applies
+ruling R12 rule 2's cases to leaves 1-3 (terminal wealth, survival, bid
+legality): exactly one subject seat in `SEAT_ORDER` resolves it; zero
+subject seats reports `invalid_measurement("no_subject_seat")`; two or
+more reports `invalid_measurement("ambiguous_subject_seat")` (this family
+declares no `subject_reduction`); exactly one subject seat outside
+`SEAT_ORDER` reports `invalid_measurement("unknown_subject_seat")`. Leaf 4
+(`alympics_wac_settlement_exactness_leaf`) is whole-round and needs no
+focal seat at all — it is scored identically regardless of how seat-context
+resolution went.
+
+Each per-seat leaf's `ok` envelope carries the focal seat's own value in
+`utility_by_seat` (key: the focal seat) with `primary` equal to it — the
+kernel's own `_enforce_subject_seat_primaries` enforces that identity at
+finalize time. Leaf 3 (bid legality) additionally carries every OTHER
+participating seat's own legality gate in `utility_by_seat`, computed for
+free from the same already-recorded `round_log` (`_bid_legality_utility_by_seat`);
+leaves 1/2 (terminal wealth, survival) carry only the focal seat, since
+reporting another seat's own baseline-relative delta would need a
+SEPARATE baseline recompute for that seat — not cheap, and not this
+leaf's declared comparison for that seat.
+
+Leaf identity itself (each leaf's `MeasurementLeafSpec`, including
+`source_sha256`) does **not** depend on which seat is later resolved as
+the subject: `AlympicsWacScorer.leaves_for_focal_seat` builds leaves 1/2's
+content digest from the case's FULL declared policy assignment
+(`full_policy_assignment`), not "the other seats relative to some focal
+seat" — the same case therefore always yields byte-identical
+`MeasurementLeafSpec`s no matter which seat a given trial names as the
+subject, which is exactly what the scoring-contract protocol test's
+cross-fixture "leaf's declared identity must be stable" check requires
+once fixtures with different focal seats are compared side by side (see
+"Protocol-test fixtures" below).
+
+This replaces the former fixed convention (`measurement.FOCAL_SEAT =
+SEAT_ORDER[0]`, i.e. always `"alex"` regardless of which seat a plan
+actually tested) — the invented-evaluated-subject defect independent
+review Finding 1 confirmed; see that finding's "Post-R12 note" in
+`docs/alympics_migration_review.md` for the resolution record.
 
 ### Receipt
 
@@ -345,9 +377,15 @@ resolution, not the four leaves' own scoring logic.
 drives one small, real, upstream-backed clean episode (every seat bids a
 fixed, always-legal `1` every round; nobody is ever eliminated) through
 `task.evaluation.finalize_family_execution` for the first time this family
-has ever produced an `EvaluationReceipt`. The receipt comes back with
-`status="ok"`, `inclusion_status="included"`, exactly the four declared
-leaf ids, and `primary_leaf_id="alympics_wac_terminal_wealth_leaf"`.
+has ever produced an `EvaluationReceipt`. `build_alympics_setup`'s resolved
+plan declares an `EvaluationBlock` with `kind="controlled"` naming exactly
+one subject seat (`focal_seat="alex"`, an arbitrary choice among an
+all-legal episode's five seats) — `finalize_family_execution`'s own
+`_seat_context_for_cell` reads that into `scoring_input.seat_context`,
+which `AlympicsWacScorer.__call__` resolves to that one seat. The receipt
+comes back with `status="ok"`, `inclusion_status="included"`, exactly the
+four declared leaf ids, and
+`primary_leaf_id="alympics_wac_terminal_wealth_leaf"`.
 
 ### Protocol-test fixtures (paired history + sensitivity witness)
 
@@ -357,7 +395,10 @@ leaf ids, and `primary_leaf_id="alympics_wac_terminal_wealth_leaf"`.
 `_BRIDGE_GATED_ENROLLED_FAMILY_VERSIONS`'s own docstring for why: this
 family's fixtures need the pinned upstream Alympics checkout, which every
 other family that test verifies deliberately does not) drives three real
-episodes on one small, shared case (six rounds, constant supply 100):
+episodes on one small, shared case (six rounds, constant supply 100), then
+reuses two of those SAME sealed episodes under a different declared
+`subject_seats` (ruling R12) for two additional fixtures — five fixtures
+total, three real episodes:
 
 - **`left`/`right` — the paired-history pair.** `alex`/`bob`/`cindy` bid a
   fixed, always-legal `1` every round in both; `david` and `eric` each
@@ -397,19 +438,39 @@ episodes on one small, shared case (six rounds, constant supply 100):
   trusting an unconfirmed pair.
 - **`alt` — the sensitivity witness (ruling R9(b)).** None of the four
   leaves changes between `left` and `right` alone, because `alex`'s own
-  row (the focal seat every leaf actually measures) is identical in both.
-  `alt` (same case) has every seat, including `alex`, bid illegally
-  (`10**9`) every round: `alex`'s own `bid_legality` invalid reason fires
-  from round 1, flipping `terminal_wealth`/`survival`/`bid_legality` (all
-  three gated by the same `_bid_legality_invalid_reason` check) to
-  `invalid_measurement`; all five seats reach `hp=-2, no_drink=5`
-  simultaneously at round 4 (`all_seats_eliminated`), giving
-  `settlement_exactness` a different `rounds_checked` metric (`4.0` vs
-  `6.0` on `left`/`right`) even though its own `status` stays `"ok"`. This
-  is what witnesses all four leaves' sensitivity — none of them changes on
-  `left`/`right` alone.
+  row (`left`/`right`/`alt` all declare `subject_seats=("alex",)`) is
+  identical in `left`/`right`. `alt` (same case) has every seat, including
+  `alex`, bid illegally (`10**9`) every round: `alex`'s own `bid_legality`
+  invalid reason fires from round 1, flipping
+  `terminal_wealth`/`survival`/`bid_legality` (all three gated by the same
+  `_bid_legality_invalid_reason` check) to `invalid_measurement`; all five
+  seats reach `hp=-2, no_drink=5` simultaneously at round 4
+  (`all_seats_eliminated`), giving `settlement_exactness` a different
+  `rounds_checked` metric (`4.0` vs `6.0` on `left`/`right`) even though
+  its own `status` stays `"ok"`. This is what witnesses all four leaves'
+  sensitivity — none of them changes on `left`/`right` alone.
+- **`different_focal_seat` — ruling R12's subject-dependence witness.**
+  Reuses `left`'s own sealed evidence (same case, same trajectory) with
+  `subject_seats=("bob",)` instead of `("alex",)`. `bob` bids the same
+  fixed, always-legal `1` every round as `alex` in `left` (neither is on
+  the short/long-death schedule), so both resolve `"ok"` — but their
+  personas' differing requirement/salary still make their terminal wealth
+  genuinely different (hand-verified against the real upstream checkout:
+  `alex` `138.0`, `bob` `156.0`). Proves the per-seat leaves depend on
+  which seat `seat_context` names, never a fixed convention. (`david`/
+  `eric` — the short/long-death seats — are deliberately not used here:
+  their own oversized bids are independently illegal, which would gate
+  their leaves to `invalid_measurement` for an unrelated reason.)
+- **`ambiguous_subject_seats` — the honest `ambiguous_subject_seat` path.**
+  Reuses `alt`'s own sealed evidence with TWO subject seats
+  (`"alex", "bob"`) declared. This family declares no `subject_reduction`
+  (its cluster mapping is one focal seat per trial), so
+  `terminal_wealth`/`survival`/`bid_legality` all report
+  `invalid_measurement("ambiguous_subject_seat")` — never a silently
+  averaged self-play claim — while `settlement_exactness` stays `"ok"`
+  (whole-round, unaffected by seat-context resolution).
 
-Full protocol-test file: 32 passed with the checkout present; 31 passed, 1
+Full protocol-test file: 38 passed with the checkout present; 37 passed, 1
 skipped without it (every other family's own always-on coverage in that
 file is unaffected either way — verified directly, see the mutation note
 below).
@@ -461,13 +522,17 @@ code, in `docs/alympics_migration_review.md` (committed as `b97bd9de`,
 evidence"). It raised three findings:
 
 - **Finding 1 (High — this family's `alex`-as-evaluated-subject
-  convention): confirmed, escalated to the owner.** This is the same
-  `measurement.FOCAL_SEAT` gap the "Open questions" section below already
-  states as a limit — the review independently confirmed it from the code
-  and recorded two remediation options (extend `family_case`/grid-cell
+  convention): confirmed, escalated to the owner, RESOLVED post-R12.** The
+  review recorded two remediation options (extend `family_case`/grid-cell
   schema with a `focal_seat` field, or wire ruling R12's `SeatContext`
-  through), neither of which this migration implements, since either would
-  redefine the primary estimand's inputs rather than merely its plumbing.
+  through). The owner's ruling adopted the second: `AlympicsWacScorer.
+  __call__` now resolves its focal seat per call from
+  `scoring_input.seat_context.subject_seats`, replacing
+  `measurement.FOCAL_SEAT = SEAT_ORDER[0]` entirely. See "The seat-context
+  rule" above for what changed, and that finding's own "Post-R12 note" in
+  `docs/alympics_migration_review.md` for the resolution record (the
+  original finding text is left unchanged there, per that document's own
+  policy of recording findings, not rewriting them).
 - **Finding 2 (Medium — score provenance caller-controlled via
   `evidence_refs`): refuted.** `AlympicsWacScorer.__call__`'s
   `evidence_refs`-threading signature matches the contract's mandated
@@ -487,21 +552,20 @@ evidence"). It raised three findings:
   pass-while-skipping scenario into a hard failure (exit code 1) — the
   certifying-run protocol this migration operates under.
 
-Disposition tally: 1 confirmed and escalated, 2 refuted, 0 fixed (neither
-refuted finding described an actual defect in this branch's code).
+Disposition tally (as this migration originally landed): 1 confirmed and
+escalated, 2 refuted, 0 fixed (neither refuted finding described an actual
+defect in this branch's code). Finding 1 has since been resolved by
+adopting ruling R12, above.
 
 ## Open questions for the kernel/spec owner
 
-The focal-seat convention above (`measurement.FOCAL_SEAT`) is a genuine
-gap between ruling R12's stated premise for this family and this branch's
-actual `family_case` schema — flagged for the spec owner to confirm
-whether `family_case` should eventually carry a `focal_seat` field (or
-whether R12's own per-seat machinery, once a kernel `SeatContext` lands,
-should cover this family after all). Not blocking: the fixed convention
-above is stated, deterministic, and matches every existing test's own
-default. This is the same gap independent review Finding 1 above confirmed
-and escalated (`docs/alympics_migration_review.md`); it is recorded here
-and there under one disposition, not two independent open items.
+**Resolved.** The former focal-seat convention (`measurement.FOCAL_SEAT`)
+was a genuine gap between ruling R12's stated premise for this family and
+this branch's actual `family_case` schema, escalated here and in
+independent review Finding 1 (`docs/alympics_migration_review.md`) for the
+owner to choose between two remediation options. The owner adopted ruling
+R12's `SeatContext` machinery (see "The seat-context rule" above); this is
+no longer an open question.
 
 The two open items already on record before this migration
 (`docs/benchmark_qc.md` unmerged to `main`; `observe()`'s balance-credit
