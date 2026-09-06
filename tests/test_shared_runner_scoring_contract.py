@@ -117,6 +117,7 @@ from aeread.shared_runner.task.scheduler import (
     PhaseInstance,
     PhaseSpec,
     TransitionResult,
+    run_episode,
 )
 
 from aeread_families.commercial_state_calibration import build_offline_setup as _build_commercial_state_setup
@@ -137,6 +138,15 @@ from aeread_families.procurement_grounding import (
 )
 from aeread_families.procurement_grounding import procurement_measurement_leaf
 from aeread_families.single_offer.runner import FixedResponseProvider
+
+from tests.test_aucarena_replay import (
+    EvidenceRecordingAucArenaHarness,
+    build_aucarena_setup,
+    illegal_bid_answer,
+    kernel_contract_fixture_case,
+    long_path_answer,
+    short_path_answer,
+)
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -1187,6 +1197,63 @@ def _embedding_fixtures(
     return manifest, plugin, fixtures
 
 
+
+# ---------------------------------------------------------------------------
+# aucarena: a real, provider-free family with three genuine trajectory-
+# scoped leaves (aucarena_budget_invariant, aucarena_bid_legality,
+# aucarena_hammer_rule) alongside its terminal-state-scoped primary
+# (aucarena_profit_vs_field). Unlike govsim/collusion this family has no
+# bridge process at all -- its scorers are hand-vendored pure functions over
+# a checked-in item pool constant, so these fixtures build a small, custom
+# case directly (tests.test_aucarena_replay.kernel_contract_fixture_case)
+# rather than needing any upstream checkout.
+#
+# ``short_path_answer``/``long_path_answer`` are the paired-history pair
+# ``_assert_family_obeys_the_scoring_contract`` needs (docs/
+# aucarena_migration_plan.md's own constructibility finding, verified
+# empirically before being wired in here): byte-identical terminal outcome
+# (same item, same winner, same hammer price), genuinely differing
+# ``phase_instances`` (one round vs. three). ``illegal_bid_answer`` shares
+# the SAME case (a same-case pair, ruling R9(b)) and is the fixture that
+# witnesses ``aucarena_bid_legality`` changing (its metrics are empty on
+# both clean fixtures, since neither's independent recompute ever finds a
+# violation) -- mirrors golden 3's own scenario shape. Three fixtures, not
+# two: the paired-history precondition and R7's contrapositive check use
+# only the first two (``produced_by_case[:2]``); the sensitivity witness
+# considers every same-case pair among all three.
+# ---------------------------------------------------------------------------
+
+
+def _aucarena_fixtures(
+    tmp_path: Path,
+) -> tuple[FamilyManifest, Any, tuple[FamilyScoringFixture, FamilyScoringFixture, FamilyScoringFixture]]:
+    case = kernel_contract_fixture_case(world_seed=0)
+    setup = build_aucarena_setup(case, suffix="scoring_contract_fixtures")
+    cell = setup.plan.cells[0]
+    family = setup.plan.families[0]
+    plugin = setup.registry.resolve_manifest(family)
+    family_case = plugin.validate_payload(case.payload)
+
+    def _run(answer: Any, suffix: str) -> FamilyScoringFixture:
+        evidence = EvidenceStore(
+            tmp_path / f"aucarena_{suffix}",
+            run_plan_id=setup.plan.run_plan_id,
+            cell_id=cell.cell_id,
+            episode_id=f"episode_{cell.cell_id}_{suffix}",
+            episode_attempt_id="attempt_1",
+        )
+        harness = EvidenceRecordingAucArenaHarness(answer=answer, evidence=evidence)
+        asyncio.run(
+            run_episode(cell=cell, case=case, plugin=plugin, response_source=harness)
+        )
+        return FamilyScoringFixture(family_case=family_case, sealed_evidence=evidence)
+
+    short_fixture = _run(short_path_answer, "short")
+    long_fixture = _run(long_path_answer, "long")
+    illegal_fixture = _run(illegal_bid_answer, "illegal")
+    return family, plugin, (short_fixture, long_fixture, illegal_fixture)
+
+
 def _build_protocol_test_registry_and_fixtures(
     tmp_path: Path,
 ) -> tuple[PluginRegistry, dict[tuple[str, str], tuple[FamilyScoringFixture, ...]]]:
@@ -1207,6 +1274,12 @@ def _build_protocol_test_registry_and_fixtures(
     registry.register_trusted(reference_manifest, reference_plugin)
     fixtures[(reference_manifest.family.id, reference_manifest.family.version)] = (
         reference_fixtures
+    )
+
+    aucarena_manifest, aucarena_plugin, aucarena_fixtures = _aucarena_fixtures(tmp_path)
+    registry.register_trusted(aucarena_manifest, aucarena_plugin)
+    fixtures[(aucarena_manifest.family.id, aucarena_manifest.family.version)] = (
+        aucarena_fixtures
     )
 
     return registry, fixtures
@@ -1659,14 +1732,14 @@ _NOT_YET_MIGRATED_TRUSTED_KEYS: "frozenset[tuple[str, str]]" = frozenset(
         # External-benchmark adapter families enrolled in
         # TRUSTED_BUILTIN_PLUGIN_KEYS by maintainer ruling on 2026-09-04
         # (PRs #28-#38), landed on main after this branch forked. None of
-        # the eleven has a FamilyScoringInput-contract fixture yet; they
-        # migrate under the per-adapter follow-ups tracked alongside the
-        # other not-yet-migrated families above, not as part of this
-        # kernel change.
+        # the remaining ten has a FamilyScoringInput-contract fixture yet
+        # (aucarena is migrated -- see _aucarena_fixtures above -- and
+        # deliberately NOT named here); they migrate under the per-adapter
+        # follow-ups tracked alongside the other not-yet-migrated families
+        # above, not as part of this kernel change.
         ("agenticpay.bilateral", "0.1.0"),
         ("alympics.wac", "0.1.0"),
         ("amazonbarg.bilateral", "0.1.0"),
-        ("aucarena", "0.1.0"),
         ("collusion", "0.1.0"),
         ("econagent_v1", "0.1.0"),
         ("econevals", "0.1.0"),
