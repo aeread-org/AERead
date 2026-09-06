@@ -55,11 +55,12 @@ import hashlib
 import itertools
 import json
 from pathlib import Path
-from typing import Any, Mapping, Sequence
+from typing import Any, Callable, Mapping, Sequence
 
 import pytest
 
 import aeread.shared_runner.task.execution as execution_module
+from aeread.shared_runner import episode_id_for_cell, run_episode
 from aeread.shared_runner.measurement import (
     EstimandSpec,
     FamilyScoreSet,
@@ -123,6 +124,7 @@ from aeread_families.commercial_state_calibration import build_offline_setup as 
 from aeread_families.commercial_state_calibration import (
     commercial_state_measurement_leaf,
 )
+from aeread_families.govsim.environment import DISCUSS_PHASE, HARVEST_PHASE, REFLECT_PHASE
 from aeread_families.housing.runner import (
     HousingScriptedLandlordProvider,
     HousingScriptedTenantProvider,
@@ -137,6 +139,13 @@ from aeread_families.procurement_grounding import (
 )
 from aeread_families.procurement_grounding import procurement_measurement_leaf
 from aeread_families.single_offer.runner import FixedResponseProvider
+
+from tests.test_govsim_replay import (
+    EvidenceRecordingGovsimHarness,
+    _bridge as _govsim_bridge,
+    _two_agent_two_round_case as _govsim_two_agent_two_round_case,
+    build_govsim_setup,
+)
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -1187,6 +1196,81 @@ def _embedding_fixtures(
     return manifest, plugin, fixtures
 
 
+# ---------------------------------------------------------------------------
+# govsim: a real, bridge-backed family with two genuine trajectory-scoped
+# leaves (govsim_no_collapse, govsim_threshold_adherence). Verified
+# constructible against the real bridge directly before being wired in
+# here: two harvest schedules whose per-round AGGREGATE demand (hence the
+# whole pool/regeneration trajectory) is identical, but whose per-seat
+# SPLIT is swapped between rounds, produce a byte-identical terminal
+# outcome (same num_round, resource_in_pool, collected_resource) from a
+# genuinely differing trajectory (differing per-round wanted_resource).
+# Kept out of _build_protocol_test_registry_and_fixtures/the always-on
+# ``test_every_registered_family_obeys_the_scoring_contract`` -- see
+# ``test_govsim_obeys_the_scoring_contract``'s own docstring for why.
+# ---------------------------------------------------------------------------
+
+_GOVSIM_LEFT_HARVEST_SCHEDULE: tuple[Mapping[str, int], ...] = (
+    {"persona_0": 2, "persona_1": 6},
+    {"persona_0": 6, "persona_1": 2},
+)
+_GOVSIM_RIGHT_HARVEST_SCHEDULE: tuple[Mapping[str, int], ...] = (
+    {"persona_0": 6, "persona_1": 2},
+    {"persona_0": 2, "persona_1": 6},
+)
+
+
+def _govsim_schedule_answer(
+    schedule: Sequence[Mapping[str, int]]
+) -> Callable[[Any], Mapping[str, Any]]:
+    """An ``answer`` callable for ``EvidenceRecordingGovsimHarness`` that
+    plays back a fixed per-round, per-seat harvest quantity; discuss/reflect
+    answer empty, mirroring ``ScriptedGovsimHarness``'s own phase branching.
+    """
+
+    def answer(request: Any) -> Mapping[str, Any]:
+        if request.phase_id == HARVEST_PHASE:
+            round_index = int(request.observation["num_round"])
+            return {"quantity": int(schedule[round_index][request.seat_id])}
+        if request.phase_id in (DISCUSS_PHASE, REFLECT_PHASE):
+            return {}
+        raise RuntimeError(f"no scheduled response for phase {request.phase_id!r}")
+
+    return answer
+
+
+def _govsim_fixture_pair(
+    tmp_path: Path,
+) -> tuple[FamilyManifest, Any, tuple[FamilyScoringFixture, FamilyScoringFixture]]:
+    bridge_instance = _govsim_bridge()
+    case = _govsim_two_agent_two_round_case(world_seed=0)
+    setup = build_govsim_setup(bridge_instance, case, suffix="scoring_contract_pair")
+    cell = setup.plan.cells[0]
+    family = setup.plan.families[0]
+    plugin = setup.registry.resolve_manifest(family)
+    family_case = plugin.validate_payload(case.payload)
+
+    def _run(schedule: Sequence[Mapping[str, int]], suffix: str) -> FamilyScoringFixture:
+        evidence = EvidenceStore(
+            tmp_path / f"govsim_{suffix}",
+            run_plan_id=setup.plan.run_plan_id,
+            cell_id=cell.cell_id,
+            episode_id=episode_id_for_cell(cell),
+            episode_attempt_id="attempt_1",
+        )
+        harness = EvidenceRecordingGovsimHarness(
+            answer=_govsim_schedule_answer(schedule), evidence=evidence
+        )
+        asyncio.run(
+            run_episode(cell=cell, case=case, plugin=plugin, response_source=harness)
+        )
+        return FamilyScoringFixture(family_case=family_case, sealed_evidence=evidence)
+
+    left = _run(_GOVSIM_LEFT_HARVEST_SCHEDULE, "left")
+    right = _run(_GOVSIM_RIGHT_HARVEST_SCHEDULE, "right")
+    return family, plugin, (left, right)
+
+
 def _build_protocol_test_registry_and_fixtures(
     tmp_path: Path,
 ) -> tuple[PluginRegistry, dict[tuple[str, str], tuple[FamilyScoringFixture, ...]]]:
@@ -1646,7 +1730,10 @@ def _trusted_family_versions(
 # deliberately named, not derived: adding a NEW trusted key -- the exact
 # attack the review demonstrated -- now requires either enrolling a real
 # fixture or explicitly widening this exemption; it can no longer happen
-# silently.
+# silently. ``govsim`` is deliberately NOT here: it IS migrated (see this
+# module's own docstring / _govsim_fixture_pair above) -- see
+# _BRIDGE_GATED_ENROLLED_FAMILY_VERSIONS below for where its migration is
+# accounted for instead.
 _NOT_YET_MIGRATED_TRUSTED_KEYS: "frozenset[tuple[str, str]]" = frozenset(
     {
         ("consent_ir_v1", "1.0.0"),
@@ -1659,9 +1746,9 @@ _NOT_YET_MIGRATED_TRUSTED_KEYS: "frozenset[tuple[str, str]]" = frozenset(
         # External-benchmark adapter families enrolled in
         # TRUSTED_BUILTIN_PLUGIN_KEYS by maintainer ruling on 2026-09-04
         # (PRs #28-#38), landed on main after this branch forked. None of
-        # the eleven has a FamilyScoringInput-contract fixture yet; they
-        # migrate under the per-adapter follow-ups tracked alongside the
-        # other not-yet-migrated families above, not as part of this
+        # the remaining ten has a FamilyScoringInput-contract fixture yet;
+        # they migrate under the per-adapter follow-ups tracked alongside
+        # the other not-yet-migrated families above, not as part of this
         # kernel change.
         ("agenticpay.bilateral", "0.1.0"),
         ("alympics.wac", "0.1.0"),
@@ -1670,11 +1757,27 @@ _NOT_YET_MIGRATED_TRUSTED_KEYS: "frozenset[tuple[str, str]]" = frozenset(
         ("collusion", "0.1.0"),
         ("econagent_v1", "0.1.0"),
         ("econevals", "0.1.0"),
-        ("govsim", "0.1.0"),
         ("negarena", "0.1.0"),
         ("steer", "0.1.0"),
         ("termsbench", "0.1.0"),
     }
+)
+
+# govsim IS migrated and genuinely fixture-covered (_govsim_fixture_pair,
+# test_govsim_obeys_the_scoring_contract below) -- but unlike every other
+# family this suite verifies unconditionally, its fixtures require the
+# real, provisioned govsim bridge (a subprocess executing the pinned
+# upstream simulation). Folding it into
+# _build_protocol_test_registry_and_fixtures/
+# test_every_registered_family_obeys_the_scoring_contract would make THAT
+# test -- and every other family's always-on coverage inside it -- newly
+# skip whenever the bridge is unavailable, which is exactly the kind of
+# quiet coverage loss this suite exists to prevent for everyone else. It is
+# therefore verified in its own per-test-skippable test instead, and named
+# here (not in _NOT_YET_MIGRATED_TRUSTED_KEYS, which would misdescribe it)
+# so ruling R6's closure check still has it accounted for.
+_BRIDGE_GATED_ENROLLED_FAMILY_VERSIONS: "frozenset[tuple[str, str]]" = frozenset(
+    {("govsim", "0.1.0")}
 )
 
 
@@ -2013,15 +2116,48 @@ def test_every_registered_family_obeys_the_scoring_contract(tmp_path: Path) -> N
     # world is TRUSTED_BUILTIN_PLUGIN_KEYS. The assertion above was true by
     # construction and could never fail; a family enrolled there without a
     # fixture (or an explicit, named "not yet migrated" exemption) now fails
-    # here instead.
+    # here instead. govsim is enrolled via _BRIDGE_GATED_ENROLLED_FAMILY_VERSIONS,
+    # not this test's own local ``fixtures`` -- see that set's own docstring.
     _assert_trusted_catalog_is_closed(
         trusted_keys=TRUSTED_BUILTIN_PLUGIN_KEYS,
-        enrolled_family_versions=set(fixtures),
+        enrolled_family_versions=set(fixtures) | _BRIDGE_GATED_ENROLLED_FAMILY_VERSIONS,
         exempt_family_versions=_NOT_YET_MIGRATED_TRUSTED_KEYS,
     )
 
     for key, registration in registrations.items():
         _assert_family_obeys_the_scoring_contract(key, registration, fixtures[key])
+
+
+def test_govsim_obeys_the_scoring_contract(tmp_path: Path) -> None:
+    """govsim's own contract check -- kept out of
+    ``test_every_registered_family_obeys_the_scoring_contract`` (see
+    ``_BRIDGE_GATED_ENROLLED_FAMILY_VERSIONS``'s own docstring for why):
+    this family's fixtures require the real, provisioned govsim bridge (a
+    subprocess executing the pinned upstream simulation), which every OTHER
+    family this suite verifies deliberately does not, so folding it into
+    that always-on test would make THEIR coverage newly skip too whenever
+    the bridge is unavailable. Per-test skip only, never module-level
+    (mirrors ``tests/test_govsim_replay.py``'s own documented convention).
+
+    Runs the identical protocol check
+    (``_assert_family_obeys_the_scoring_contract``) against govsim's own
+    registry registration and its two paired fixtures (``_govsim_fixture_pair``
+    -- byte-identical terminal outcome, genuinely differing trajectory,
+    verified constructible against the real bridge before being wired in
+    here), covering both of this family's genuine trajectory-scoped leaves
+    (``govsim_no_collapse``, ``govsim_threshold_adherence``) and ruling
+    R7's contrapositive for its three terminal_state-scoped leaves
+    (``govsim_survival_months``, ``govsim_total_harvest``,
+    ``govsim_equality_gini``).
+    """
+    registry = PluginRegistry()
+    manifest, plugin, fixture_pair = _govsim_fixture_pair(tmp_path)
+    registry.register_trusted(manifest, plugin)
+    (registration,) = registry.registrations()
+    key = (registration.family_id, registration.family_version)
+    assert key == ("govsim", "0.1.0")
+
+    _assert_family_obeys_the_scoring_contract(key, registration, fixture_pair)
 
 
 def test_determinism_precheck_adjacency_defeats_call_parity_aliasing(tmp_path: Path) -> None:
