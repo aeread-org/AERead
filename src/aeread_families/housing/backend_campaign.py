@@ -866,6 +866,7 @@ CAMPAIGN_SPECS = {
         ),
     },
     "housing_model_sensitivity_openrouter_parasail_v21": {
+        "maximum_operational_failure_fraction": 0.10,
         "replicates": 2,
         "route_status_policy": "allow_degraded_with_recorded_status",
         "endpoint_snapshot_policy": "identity_only",
@@ -965,6 +966,7 @@ CAMPAIGN_SPECS = {
         ),
     },
     "housing_confirmatory_parasail_v1": {
+        "maximum_operational_failure_fraction": 0.05,
         "replicates": 2,
         "claim_status": "confirmatory_model_comparison",
         "catalog_retrieved_at": "2026-09-05",
@@ -1345,6 +1347,10 @@ def load_contract(path: str | Path) -> dict[str, Any]:
         "winner_claim_allowed": False,
         "completeness_policy": "retain_typed_missingness_without_selective_retry",
     }
+    if "maximum_operational_failure_fraction" in campaign_spec:
+        expected_execution["maximum_operational_failure_fraction"] = campaign_spec[
+            "maximum_operational_failure_fraction"
+        ]
     if "execution_stage" in campaign_spec:
         expected_execution.update(
             {

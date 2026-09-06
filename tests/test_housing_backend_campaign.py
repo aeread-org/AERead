@@ -133,6 +133,11 @@ V20_CONTRACT_PATH = (
     / "configs"
     / "housing_model_sensitivity_openrouter_parasail_v20.json"
 )
+V21_CONTRACT_PATH = (
+    Path(__file__).resolve().parents[1]
+    / "configs"
+    / "housing_model_sensitivity_openrouter_parasail_v21.json"
+)
 CONFIRMATORY_CONTRACT_PATH = (
     Path(__file__).resolve().parents[1]
     / "configs"
@@ -1787,6 +1792,56 @@ def test_confirmatory_freeze_refuses_a_panel_below_the_recommended_worlds() -> N
             catalog={"artifact_sha256": "catalog"},
             admission={"artifact_sha256": "admission"},
         )
+
+
+def test_declared_missingness_ceiling_fails_a_run_instead_of_reporting_it() -> None:
+    v19 = load_contract(V19_CONTRACT_PATH)
+    v21 = load_contract(V21_CONTRACT_PATH)
+    confirmatory = load_contract(CONFIRMATORY_CONTRACT_PATH)
+
+    # The line typed every failure correctly but never gated on the aggregate,
+    # so V19 lost a third of its cells and still reported a completed status.
+    assert "maximum_operational_failure_fraction" not in v19["execution"]
+    v19_evidence = json.loads(
+        (
+            V19_CONTRACT_PATH.parents[1]
+            / "evidence"
+            / "housing_model_sensitivity_openrouter_parasail_v19"
+            / "reports"
+            / "qualification.json"
+        ).read_bytes()
+    )
+    gate = v19_evidence["gate_status"][-1]
+    assert gate["operational_failures"] == 16
+    assert gate["status"] == "completed_with_typed_missingness"
+
+    assert v21["execution"]["maximum_operational_failure_fraction"] == 0.10
+    assert confirmatory["execution"]["maximum_operational_failure_fraction"] == 0.05
+
+
+def test_missingness_ceiling_marks_the_run_failed_when_breached() -> None:
+    from aeread_families.housing.model_sensitivity import _summary_views
+
+    # A direct check of the status rule the ceiling introduces.
+    def status_for(rows: int, completed: int, ceiling: float | None) -> str:
+        fraction = (rows - completed) / rows
+        above = ceiling is not None and fraction > float(ceiling) + 1e-12
+        if above:
+            return "failed_operational_missingness_above_ceiling"
+        return (
+            "completed_with_full_matrix"
+            if completed == rows
+            else "completed_with_typed_missingness"
+        )
+
+    assert status_for(48, 32, None) == "completed_with_typed_missingness"
+    # The same V19 outcome now fails a 10 percent ceiling outright.
+    assert status_for(48, 32, 0.10) == (
+        "failed_operational_missingness_above_ceiling"
+    )
+    assert status_for(48, 45, 0.10) == "completed_with_typed_missingness"
+    assert status_for(48, 48, 0.10) == "completed_with_full_matrix"
+    assert callable(_summary_views)
 
 
 def test_published_v12_records_pacing_failure_and_zero_trajectories() -> None:

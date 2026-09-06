@@ -1525,11 +1525,25 @@ async def run_live(
     total_cost = sum(float(row.get("cost_usd", 0.0)) for row in rows)
     if total_cost > execution_contract["cost_ceiling_usd"] + 1e-12:
         raise RuntimeError("model-sensitivity run exceeded its hard cost ceiling")
+    # Typing a failure correctly is not the same as tolerating it. The family
+    # reported missingness but never gated on it, so a run that lost a third
+    # of its cells still reported a completed status. A declared ceiling makes
+    # the aggregate a pass/fail condition instead of a footnote.
+    failure_fraction = (len(rows) - len(completed)) / len(rows) if rows else 0.0
+    missingness_ceiling = execution_contract.get(
+        "maximum_operational_failure_fraction"
+    )
+    missingness_above_ceiling = bool(
+        missingness_ceiling is not None
+        and failure_fraction > float(missingness_ceiling) + 1e-12
+    )
     artifact_core: dict[str, Any] = {
         "schema_version": "aeread.housing_model_sensitivity_results/0.1",
         "campaign_id": contract["campaign_id"],
         "status": (
-            "completed_with_full_matrix"
+            "failed_operational_missingness_above_ceiling"
+            if missingness_above_ceiling
+            else "completed_with_full_matrix"
             if len(completed) == expected
             else (
                 "completed_with_typed_missingness"
@@ -1537,6 +1551,9 @@ async def run_live(
                 else "stopped_with_typed_missingness"
             )
         ),
+        "operational_failure_fraction": failure_fraction,
+        "maximum_operational_failure_fraction": missingness_ceiling,
+        "operational_missingness_above_ceiling": missingness_above_ceiling,
         "claim_status": contract["claim_status"],
         "winner_claim_allowed": False,
         "ranking_allowed": False,

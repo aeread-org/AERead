@@ -153,7 +153,8 @@
     "cost_ceiling_usd": 2.0,
     "per_trajectory_cost_reserve_usd": 0.06,
     "winner_claim_allowed": false,
-    "completeness_policy": "retain_typed_missingness_without_selective_retry"
+    "completeness_policy": "retain_typed_missingness_without_selective_retry",
+    "maximum_operational_failure_fraction": 0.1
   },
   "analysis": {
     "primary_view": "paired_world_subject_mean_within_case_score",
