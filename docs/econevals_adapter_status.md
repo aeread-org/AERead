@@ -1,12 +1,38 @@
 # econevals adapter — status
 
-Branch `zeyu/econevals-contract-migration`. Last verified 2026-09-05.
+Branch `zeyu/econevals-contract-migration`. Last verified 2026-09-06.
 
 A second-reviewer fix pass ran against `docs/econevals_review_claude.md`
 (`docs/econevals_review_codex.md` was never produced) this session; see
 `docs/econevals_review_disposition.md` for the per-finding verification and
 fix record. Nothing found was a kernel/runner defect, so no
-`ledger_entries/econevals.md` entry was added on this pass.
+`ledger_entries/econevals.md` entry was added on this pass. That pass
+reviewed the pre-migration pilot-corpus build (branch `zeyu/econevals-adapter`),
+not this scoring-contract migration.
+
+**An independent review of THIS scoring-contract migration did occur,**
+separately from the pass above: `docs/econevals_migration_review.md` records
+2 findings (High, Medium) against `measurement.py`, both independently
+re-verified against the code and **refuted** -- 0 fixed, 0 escalated. Finding
+1 claimed the objective leaf's declared `input_scope="terminal_state"`
+contradicts reading `scoring_input.phase_instances`; refuted because the
+returned score is a pure function of the final recorded attempt only
+(`score_terminal_state`'s own indexing, confirmed by constructing adversarial
+attempt histories that differ everywhere except the final entry and getting
+bit-identical `EconevalsScorer.score_all` output), and the committed
+paired-history fixture (`_econevals_fixture_pair`) already exercises a
+genuinely differing trajectory under a byte-identical outcome and passes.
+Finding 2 claimed `_objective_not_computed` invents an admission-affecting
+`invalid_measurement` envelope; refuted because turning
+`score_terminal_state`'s pre-existing `None` into `invalid_measurement` is
+the frozen contract's own mandatory consequence (spec sections 3-4: every
+declared leaf on every case, only two statuses exist), not new business
+logic, and exclusion is conditioned on the submission genuinely being
+illegal/malformed/infeasible -- never the unconditional exclusion that would
+warrant escalation the way a structurally-always-invalid leaf would.
+Re-verification (the same seven test files listed under "Evidence" below,
+with `AEREAD_ECONEVALS_BRIDGE_REQUIRED=1`, a certifying run) reported 119
+passed, 0 failed, 0 skipped.
 
 ## Leaf policy (kernel_scoring_contract_spec.md, migration milestone 2 of 3)
 
