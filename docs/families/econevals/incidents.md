@@ -26,10 +26,22 @@ stays sealed as evidence of what failed.
 | 010 | case 00 | `SchedulerContractError` | 0.00004 | Ten attempts against a 429 burst exhausted in ~2 minutes: retry backoff is opt-in through `harness.config`, and with none declared the executor never sleeps. | `93f2f148` |
 | 011 | all 6 cases | publish only | 0.09250 | **Execution succeeded**: 6/6 cases `ok/included`, 100 periods each, `exit=0`. Publishing then crashed on `ValidityReport.valid` (the field is `.status`), and the fix could not be applied to this run -- see below. | `d3f0c1` design split |
 | 012 | case 00 | `SchedulerContractError` | 0.00003 | Spurious Parasail **404** again, on the first action. Second occurrence after attempt 008. | none -- route fault |
-| 013 | -- | -- | see below | Re-run under the execution/publisher split. | -- |
+| 013 | case 02 | `SchedulerContractError` | 0.02151 | Sustained 429: ten attempts **with backoff** (~3 minutes of spread) all refused, after two procurement cases scored. | none -- route fault |
 
-Total spent on failed attempts: **0.12488 USD**, of which 0.09250 bought a
+Total spent on failed attempts: **0.14639 USD**, of which 0.09250 bought a
 complete but unpublishable panel.
+
+## Disposition 2026-09-06: route-availability block
+
+Attempts 012 and 013 failed on the route, not on our code: a spurious 404,
+then a sustained 429 that exhausted ten attempts spread over ~3 minutes.
+Attempt 011 had already run the identical panel to completion, so the
+campaign is not in question; the shared Parasail pool is.
+
+Per the risk-gate V4 precedent this stops here rather than burning further
+attempt roots. The identical frozen plan is re-run in a later availability
+window. Nothing about the plan, the panel, or the analysis changes -- a
+re-run is not a re-tune.
 
 ## The freeze defect attempt 011 exposed
 
