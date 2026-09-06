@@ -232,7 +232,17 @@ def family_manifest() -> FamilyManifest:
                 "bound_status": "baseline_only",
                 "outcome_support": "bounded_by_max_num_rounds",
             },
-            "scoring": {"scorer_id": SCORER_ID},
+            "scoring": {
+                "scorer_id": SCORER_ID,
+                # Every implementation the declared leaves cite must also be
+                # declared here: the resolver rejects a plan pin nothing
+                # references, while the receipt rejects a cited
+                # implementation that is not pinned. Computed from the leaf
+                # builders so the two cannot drift.
+                "reference_provider_ids": list(
+                    measurement.declared_reference_provider_ids()
+                ),
+            },
         }
     )
 

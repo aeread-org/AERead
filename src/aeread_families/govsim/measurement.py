@@ -974,6 +974,49 @@ class GovsimScorer:
         }
 
 
+def declared_reference_implementations() -> tuple[ImplementationRef, ...]:
+    """Every implementation this family's leaves cite.
+
+    The plan resolver requires exactly the manifest's declared reference
+    providers -- no more, no fewer -- while the receipt requires a pin for
+    every implementation the scored leaves cite. Enumerated from the leaf
+    builders so the manifest and the pins cannot drift apart; econevals had
+    the same gap, and it makes a plan unresolvable until it is closed.
+    """
+    refs: dict[tuple[str, str, str], ImplementationRef] = {}
+
+    def add(implementation: ImplementationRef | None) -> None:
+        if implementation is None:
+            return
+        refs[
+            (
+                implementation.implementation_id,
+                implementation.version,
+                implementation.content_sha256,
+            )
+        ] = implementation
+
+    for leaf in build_leaves():
+        add(getattr(leaf, "scorer", None))
+        verifier = leaf.verifier
+        reference = getattr(verifier, "reference", None)
+        if reference is not None:
+            add(reference.implementation)
+        scope = getattr(verifier, "objective_scope", None)
+        domain = getattr(scope, "validity_domain", None) if scope else None
+        if domain is not None:
+            add(domain.predicate)
+    return tuple(refs[key] for key in sorted(refs))
+
+
+def declared_reference_provider_ids() -> tuple[str, ...]:
+    """The manifest's ``scoring.reference_provider_ids``, in canonical order."""
+    return tuple(
+        sorted({ref.implementation_id for ref in declared_reference_implementations()})
+    )
+
+
+
 def build_scorer(
     family_case: Mapping[str, Any],
     *,
