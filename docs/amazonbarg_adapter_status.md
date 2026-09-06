@@ -1,12 +1,17 @@
 # amazonbarg bilateral-bargaining adapter — status
 
 Branch `zeyu/amazonbarg-contract-migration`. Last verified 2026-09-06, after
-the kernel-scoring-contract migration's milestone 3 of 3 (protocol-test
-enrollment + first real receipt; see "Enrollment in the scoring-contract
-protocol test" below), which itself sits on milestone 2 of 3 (leaf policy +
-`__call__`; see the "Leaf policy" section below), on top of the milestone-3
-adapter build (scripted harness, end-to-end, replay) and a post-review fix
-pass (`docs/amazonbarg_review_disposition.md`).
+rebasing onto `zeyu/kernel-r9r10` + `zeyu/kernel-r12-seat-context` and
+adopting ruling R12 (kernel_scoring_contract_spec.md, "seat context reaches
+the scorer") — see "Leaf policy" below for the resolution this milestone's
+own "Disclosed consequence"/"single most consequential finding" language
+described, now superseded. That sits on the kernel-scoring-contract
+migration's milestone 3 of 3 (protocol-test enrollment + first real
+receipt; see "Enrollment in the scoring-contract protocol test" below),
+which itself sits on milestone 2 of 3 (leaf policy + `__call__`; see the
+"Leaf policy" section below), on top of the milestone-3 adapter build
+(scripted harness, end-to-end, replay) and a post-review fix pass
+(`docs/amazonbarg_review_disposition.md`).
 
 ## What the adapter claims
 
@@ -126,29 +131,57 @@ of which is this milestone's job). Not filed as a new numbered ledger entry
 in this pass; recorded here for a reviewer to weigh against the same
 question for `tau3_retail`.
 
-**Disclosed consequence: `amazonbarg_bargained_ratio` is always
-`invalid_measurement` through this specific seam.** Which seat (`buyer` or
-`seller`) a `RunPlan` is testing is a policy-binding fact
-(`PlanCell.profile_by_seat`), not part of `FamilyScoringInput`
-(outcome/phase_instances/evidence_refs only, spec section 1) and not part
-of `family_case` either — nothing in the current contract lets `__call__`
-recover it. `score_bargained_ratio`'s `tested_seat` parameter is widened to
-`str | None` (mirroring the optional-baseline pattern the govsim migration
-used for the identical class of problem — a value no `FamilyScoringInput`
-can carry), and `__call__` always passes `tested_seat=None`, sealing
-`REASON_TESTED_SEAT_UNKNOWN` rather than guessing a side. Because
-`amazonbarg_bargained_ratio` is both primary and the sole admission leaf,
-**every receipt scored through this exact seam is non-admitted today** —
-this is a real, stated limitation of the current contract, not a defect in
-this implementation: the alternative (guessing a seat, or silently
-returning a half-populated `ok` envelope with no `primary`) would be
-exactly the kind of fabrication the spec forbids. Resolving it needs either
-a kernel-level way to thread the tested seat into `FamilyScoringInput` (or
-a sibling parameter alongside it), or a different family-level convention
-for pinning it per `family_case`; neither is decided here. Every named
-caller that already knows which seat it tested (every existing test in
-this suite, `replay.py`'s `score_replayed_episode`) is unaffected — this
-gap is specific to the `__call__` production seam.
+**Resolved by ruling R12 (kernel_scoring_contract_spec.md, 2026-09-06):
+`amazonbarg_bargained_ratio` is no longer always `invalid_measurement`
+through this seam.** This section previously disclosed a real gap: which
+seat (`buyer` or `seller`) a `RunPlan` is testing is a policy-binding fact
+(`PlanCell.profile_by_seat`), and before ruling R12 nothing in
+`FamilyScoringInput` (outcome/phase_instances/evidence_refs only, spec
+section 1) or `family_case` let `__call__` recover it, so it always sealed
+`REASON_TESTED_SEAT_UNKNOWN` and every receipt scored through this exact
+seam was non-admitted. Ruling R12 adds `FamilyScoringInput.seat_context`
+(`subject_seats`/`profile_by_seat`, populated by the finalizer from the
+plan's evaluation block and the resolved cell — never the live episode,
+so ruling R2 still holds) and lets a leaf declare
+`seat_scope="subject_seat"` in its `LeafPolicyDeclaration`.
+`amazonbarg_bargained_ratio_leaf` now declares exactly that (no
+`subject_reduction` — this section's own claim above, "the tested seat's
+own ratio ... against the fixed scripted counterpart", is one side's,
+never blended), and `AmazonbargScorer.__call__` resolves `tested_seat`
+from `scoring_input.seat_context.subject_seats` via the new
+`score_bargained_ratio_for_subject_seats`, which defers to
+`score_bargained_ratio` alone for the arithmetic (never reimplemented):
+
+- Exactly one subject seat that is `"buyer"`/`"seller"` → scored normally,
+  `status="ok"`, with `primary == utility_by_seat[tested_seat]` (the
+  kernel itself enforces this identity at finalize for every
+  `subject_seat` leaf, `task/evaluation.py`'s
+  `_enforce_subject_seat_primaries`; asserted directly too, in
+  `test_score_bargained_ratio_for_subject_seats_delegates_arithmetic_for_one_valid_seat`
+  and `test_finalize_wires_amazonbarg_to_the_shared_family_finalizer`).
+- Zero subject seats → `invalid_measurement` with the named
+  `REASON_NO_SUBJECT_SEAT` (`test_score_bargained_ratio_for_subject_seats_reports_no_subject_seat_when_empty`).
+- Two or more subject seats (this leaf declares no `subject_reduction`) →
+  `invalid_measurement` with `REASON_AMBIGUOUS_SUBJECT_SEAT`, and the
+  kernel does not raise for it (`_enforce_subject_seat_primaries` only
+  applies to a `status="ok"` `subject_seat` leaf) —
+  `test_score_bargained_ratio_for_subject_seats_reports_ambiguous_when_two_seats`
+  and `test_finalize_reports_ambiguous_subject_seat_honestly_and_does_not_raise`.
+- A subject seat that is not one of this family's own seat ids →
+  `invalid_measurement` with `REASON_UNKNOWN_SUBJECT_SEAT`
+  (`test_score_bargained_ratio_for_subject_seats_reports_unknown_seat_id`).
+
+The pre-R12 `REASON_TESTED_SEAT_UNKNOWN` and `score_bargained_ratio`'s
+widened `tested_seat: str | None` are retired along with the gap they
+existed to disclose: `tested_seat` is a required `str` again, since no
+caller needs `None` any more (`__call__` resolves a concrete seat, or
+reports one of the three reasons above, before ever calling it; every
+named caller that already knew which seat it tested -- every direct test
+in this suite, `replay.py`'s `score_replayed_episode` -- is unaffected, as
+before). See `test_finalize_wires_amazonbarg_to_the_shared_family_finalizer`
+below for the first genuinely `status="ok"`/`inclusion_status="included"`
+receipt this family has ever produced through the production finalizer
+seam.
 
 ## Enrollment in the scoring-contract protocol test (migration milestone 3 of 3)
 
@@ -159,7 +192,13 @@ registry-driven protocol test (spec section 6): removed from
 reference migration exactly, because this family's fixtures need the real,
 pinned upstream AmazonPriceHistory checkout rather than being provider-free
 in-process. `test_amazonbarg_obeys_the_scoring_contract` runs the identical
-per-family check (`_assert_family_scoring_contract`) that every other
+per-family check (`_assert_family_obeys_the_scoring_contract` — the
+kernel's own canonical protocol-check function; this family's test called
+it through a family-local copy, `_assert_family_scoring_contract`, until
+the ruling-R12 rebase deleted that copy in favour of calling the kernel's
+canonical one directly, so this family's fixtures are checked against
+every rule the kernel's own protocol test enforces, including rulings
+added after this milestone originally wrote its own copy) that every other
 enrolled family runs, skipping (never failing) when the checkout is
 missing; `conftest.py`'s new `AEREAD_AMAZONBARG_BRIDGE_REQUIRED` entry lets
 a certifying run turn that skip into a failure instead — closing not only
@@ -173,11 +212,20 @@ plan's "Paired-history pair: constructible — yes" finding is realized as
 against a new `GOLDEN_1_PAIRED_HISTORY_SCRIPT` for the *same* case that
 closes at the *same* $135 price through genuinely different intermediate
 offers and dialogue. The byte-identity claim is asserted in the test itself
-(`_assert_family_scoring_contract`'s own
-`canonical_json_bytes(left_input.outcome) == canonical_json_bytes(right_input.outcome)`
-and `left_input.phase_instances != right_input.phase_instances`), not merely
+(`_assert_family_obeys_the_scoring_contract`'s own projection comparison —
+`canonical_json_bytes(left_projection) == canonical_json_bytes(right_projection)`,
+byte-for-byte the pre-ruling-R9 whole-outcome comparison this family's own
+retired local copy ran, since this family declares no
+`trajectory_outcome_paths` — and
+`left_input.phase_instances != right_input.phase_instances`), not merely
 claimed in a comment, and was independently verified against the real
-pinned upstream checkout before being wired in. Because the pair shares one
+pinned upstream checkout before being wired in. Post-rebase, a third
+fixture (`GOLDEN_1_WRONG_ACTION_WITNESS_SCRIPT`, a genuinely different,
+no-deal outcome for the same case) was added alongside this pair to
+witness ruling R9(b)'s sensitivity requirement for this family's
+trajectory-scoped leaves — see the dedicated `fix(amazonbarg):` commit;
+the pair described here is unaffected and remains exactly
+`produced_by_case[:2]`. Because the pair shares one
 realized deal price `D`, the two leaves forced to stay declared
 `input_scope="terminal_state"` (`amazonbarg_deal_lower_bound`,
 `amazonbarg_deal_upper_bound` — see "Leaf policy" above) score identically
@@ -217,21 +265,23 @@ this family was ever driven through finalize_family_execution":
   perturb (ruling R1 is not implicated: this family has no published
   campaign evidence yet).
 
-**The receipt confirms, rather than merely discloses, the `tested_seat` gap
-above.** Driving golden 1 — a clean, successful $135 deal, nothing
-malformed — through the real finalizer produces a receipt carrying every
-one of the five declared leaves with the correct primary
-(`amazonbarg_bargained_ratio_leaf`) and every non-primary diagnostic leaf
-`status="ok"`, but the receipt's own top-level `status` is
-`"invalid_measurement"` and `inclusion_status` is `"excluded"`: the primary
-and sole admission leaf is sealed `invalid_measurement` with
-`REASON_TESTED_SEAT_UNKNOWN`, exactly as "Leaf policy"'s own "Disclosed
-consequence" predicted. This is not a defect this milestone introduces or
-is scoped to fix — resolving it needs the same kernel-level channel or
-family-level convention already named there, undecided as of this
-milestone — but it means **every receipt this family produces through
-`AmazonbargScorer.__call__` today is non-admitted, for any episode, clean
-or not**, now demonstrated rather than only argued.
+**Post-R12: the receipt now confirms the gap above is resolved, not merely
+disclosed.** Driving golden 1 — a clean, successful $135 deal, nothing
+malformed — through the real finalizer with `build_amazonbarg_setup`'s
+default single subject seat (`subject_seats=("buyer",)`) produces a
+receipt carrying every one of the five declared leaves `status="ok"`,
+including the primary and sole admission leaf
+(`amazonbarg_bargained_ratio_leaf`, `primary == utility_by_seat["buyer"]`),
+with the receipt's own top-level `status="ok"` and
+`inclusion_status="included"` — this family's first genuinely admitted
+receipt through the production finalizer seam
+(`test_finalize_wires_amazonbarg_to_the_shared_family_finalizer`). Driving
+the identical golden with two subject seats instead
+(`subject_seats=("buyer", "seller")`) reports the primary leaf honestly
+`invalid_measurement`/`REASON_AMBIGUOUS_SUBJECT_SEAT`, receipt
+`status="invalid_measurement"`/`inclusion_status="excluded"`, and does not
+raise (`test_finalize_reports_ambiguous_subject_seat_honestly_and_does_not_raise`)
+— ruling R12 rule 2's ambiguous-seat path, not a regression.
 
 **Suite, with the bridge exported:** the full family test-file set —
 now `test_amazonbarg_cases.py`, `test_amazonbarg_environment.py`,
@@ -266,6 +316,30 @@ as before, including both of the prior milestone's new tests
 `test_amazonbarg_obeys_the_scoring_contract`) — verified individually, not
 merely counted.
 
+**Post-R12 count update (2026-09-06):** re-verified after rebasing this
+branch onto `zeyu/kernel-r9r10` + `zeyu/kernel-r12-seat-context` and
+adopting ruling R12 (see "Leaf policy" above). Same file list, bridge
+exported: **181 passed, 0 failed, 0 skipped** (up from 144). Without the
+bridge: **93 passed, 88 skipped** (up from 57/87). The great majority of
+this increase is `test_shared_runner_scoring_contract.py` itself growing
+by dozens of tests across rulings R7/R9/R10/R12 on the kernel side (a
+shared, not per-family, file this family's own fixtures already ran
+against before this rebase, on a much smaller version of it) — not new
+tests this migration authored. This migration's own net contribution to
+the counts above: `test_score_bargained_ratio_reports_tested_seat_unknown
+_when_missing_never_fabricating_a_side` retired in favour of
+`test_score_bargained_ratio_rejects_a_missing_tested_seat` (net 0, a
+deliberate replacement, not a weakening — see "Leaf policy" above), plus
+four new `score_bargained_ratio_for_subject_seats` unit tests and
+`test_finalize_reports_ambiguous_subject_seat_honestly_and_does_not_raise`
+(net +5) in this family's own test files, and one additional fixture
+(`GOLDEN_1_WRONG_ACTION_WITNESS_SCRIPT`, witnessing ruling R9(b)'s
+sensitivity requirement for this family's three trajectory-scoped leaves —
+a gap the rebase surfaced, not one ruling R12 itself created; see the
+dedicated `fix(amazonbarg):` commit for the full account) driven through
+the already-existing `test_amazonbarg_obeys_the_scoring_contract`, adding
+no new test function there.
+
 **Gate follow-up (2026-09-06):** a final gate found two CI-wiring defects in
 the finding-4 fix below. See "Gate follow-up" under finding 4 in
 `docs/amazonbarg_migration_review.md` for the full reproduction and fix
@@ -276,15 +350,23 @@ detail; summarized here for the count reconciliation above.
 against the code and disposed by the migration agent in the same session
 (commits `44b31dda`, `d44e9a50`, `44ff2156`):
 
-- Two are **CONFIRMED, ESCALATED (owner decision)** — the two bound leaves'
-  forced `terminal_state` declaration over a trajectory-derived deal price,
-  and every `__call__`-produced receipt being non-admitted via
+- Two were **CONFIRMED, ESCALATED (owner decision)** at review time — the
+  two bound leaves' forced `terminal_state` declaration over a
+  trajectory-derived deal price (still open, unaffected by ruling R12), and
+  every `__call__`-produced receipt being non-admitted via
   `REASON_TESTED_SEAT_UNKNOWN` — matching, not adding to, what "Leaf policy"
   above and "Kernel/runner defects" below already disclosed before the
-  review ran; no code change was made or is available to a migration agent
-  for either (spec section 5 forbids changing an estimand's declared
-  `input_scope`/`reference_kind`, or moving the primary/admission leaf away
-  from `amazonbarg_bargained_ratio_leaf`).
+  review ran; no code change was made or was available to a migration
+  agent for either at the time (spec section 5 forbade changing an
+  estimand's declared `input_scope`/`reference_kind`, or moving the
+  primary/admission leaf away from `amazonbarg_bargained_ratio_leaf`).
+  **Post-R12 (2026-09-06): the `REASON_TESTED_SEAT_UNKNOWN` finding is
+  resolved**, not by either of the two options the escalation named
+  (neither was exercised), but by the kernel itself gaining a third option
+  this review could not have anticipated — ruling R12's `seat_context` —
+  see "Leaf policy" above and `docs/amazonbarg_migration_review.md`'s
+  dated "Post-R12 note" for the full account. The bound-leaves escalation
+  remains open.
 - One is **REFUTED**: the claim that `score_all()` inserting the primary
   leaf last means a positional consumer sees it out of order.
   `FamilyScoreSet.__post_init__` (`src/aeread/shared_runner/measurement.py`)
@@ -525,28 +607,32 @@ instances, and `tau3_retail` already migrated too per
 kernel_scoring_contract_spec.md ruling R4) — flagged here for whoever owns
 that ledger, not edited directly by this branch.
 
-**Two new, disclosed limitations from this milestone, recorded in full
-under "Leaf policy" above rather than repeated here:** (1) the two bound
+**One remaining disclosed limitation from milestone 3, recorded in full
+under "Leaf policy" above rather than repeated here:** the two bound
 leaves' `input_scope="terminal_state"` declaration is forced by
 `measurement.py`'s `_REFERENCE_SCOPE` table even though their own
 delegated computation is genuinely trajectory-dependent, an
 already-precedented shape (`tau3_retail`'s `db_state` leaf) rather than a
 novel gap, but one a reviewer should weigh against ruling R7 for both
-families; and (2) `amazonbarg_bargained_ratio` — this family's primary and
-sole admission leaf — is always sealed `invalid_measurement` through the
-`__call__` production seam specifically, because no `tested_seat` signal is
-reachable from a `FamilyScoringInput`. **Concretely: every receipt scored
-through `AmazonbargScorer.__call__` today is non-admitted**, until either
-a kernel-level channel for the tested seat is added or a different
-family-level convention is agreed. This is the single most consequential
-finding of this milestone and should be weighed before treating this
-family as production-ready under the new contract.
+families. This remains open, independently confirmed and escalated for an
+owner decision in `docs/amazonbarg_migration_review.md` (finding 1,
+2026-09-05 review; no code change was available to a migration agent).
 
-Both are independently confirmed and escalated for an owner decision in
-`docs/amazonbarg_migration_review.md` (findings 1 and 2, 2026-09-05 review)
-— the review found nothing beyond what was already disclosed here, and
-made no code change for either, since none is available to a migration
-agent.
+**Resolved (see "Leaf policy" above and `docs/amazonbarg_migration_review.md`'s
+dated "Post-R12 note"): `amazonbarg_bargained_ratio` — this family's
+primary and sole admission leaf — was always sealed `invalid_measurement`
+through the `__call__` production seam specifically, because no
+`tested_seat` signal was reachable from a `FamilyScoringInput`, making
+every receipt scored through that seam non-admitted.** This was milestone
+3's single most consequential finding, independently confirmed and
+escalated in `docs/amazonbarg_migration_review.md` (finding 2, 2026-09-05
+review). Ruling R12 (kernel_scoring_contract_spec.md, adopted 2026-09-06)
+resolves it at the kernel level — `FamilyScoringInput.seat_context` — not
+by either of the two options the escalation named. This family's first
+genuinely admitted receipt through the production finalizer seam is now
+demonstrated, not merely disclosed as impossible; see "Leaf policy" above
+for the full account and the ambiguous-seat path that remains honestly
+`invalid_measurement`.
 
 The three kernel-contract limitations already on file from milestones 1-2
 (`ledger_entries/amazonbarg.md`: the two-value `ScoreEnvelope.status` enum
