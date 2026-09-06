@@ -86,6 +86,7 @@ from .cases import (
 from .econevals_bridge import EconevalsBridge
 from .measurement import GATE_LEAF_ID, OBJECTIVE_LEAF_ID, EconevalsScorer
 from .measurement import build_scorer as _build_measurement_scorer
+from .measurement import reference_provider_ids as _measurement_reference_provider_ids
 
 PLUGIN_ID = "econevals_environment"
 SCORER_ID = "econevals_scorer"
@@ -281,7 +282,20 @@ def family_manifest() -> FamilyManifest:
                 "measurement_kind": "optimizable_outcome",
                 "direction": "maximize",
             },
-            "scoring": {"scorer_id": SCORER_ID},
+            # measurement.py declares each of its two leaves' scorer
+            # implementation under its own distinct, per-track component id
+            # (never reusing SCORER_ID), plus one shared validity-domain
+            # predicate id -- resolve_run_plan's own pin bookkeeping only
+            # requires and admits a pin for a component named here or as
+            # scorer_id (_required_pin_kinds), and
+            # EvaluationReceipt._validate_and_freeze_plan_pins requires every
+            # leaf-declared implementation ref to match one, so all seven
+            # must be declared as reference providers here (the same defect
+            # the reference migration's own 088e2693 fixed for govsim).
+            "scoring": {
+                "scorer_id": SCORER_ID,
+                "reference_provider_ids": list(_measurement_reference_provider_ids()),
+            },
         }
     )
 
@@ -329,8 +343,20 @@ class EconevalsPlugin:
             raise ValueError("payload.pins.max_steps must be positive")
         return data
 
-    def initial_state(self, family_case: Mapping[str, Any], cell: Any) -> dict[str, Any]:
-        del cell
+    def initial_state(self, family_case: Mapping[str, Any], run: Any) -> dict[str, Any]:
+        """Build the initial family state for one episode.
+
+        The second parameter is named ``run`` (not ``cell``) to match every
+        other family's own ``initial_state`` hook -- required because
+        ``task.evaluation._replay_family_trajectory`` calls
+        ``plugin.initial_state(family_case, run=None)`` by keyword
+        (kernel_scoring_contract_spec.md's ``replay_family_scoring_input``
+        contract); the live scheduler (``task.scheduler.run_episode``) still
+        passes this positionally, so this rename does not change what value
+        actually arrives here. The same latent defect the reference
+        migration's own ``088e2693`` fixed for govsim.
+        """
+        del run
         return {
             "track": family_case["track"],
             "period": 0,

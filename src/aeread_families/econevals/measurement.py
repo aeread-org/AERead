@@ -89,6 +89,18 @@ IMPLEMENTATION_VERSION = "0.1.0"
 DOMAIN_ID = "econevals_base_v1"
 DOMAIN_VERSION = "0.1.0"
 
+# Named (not inline) because it is also one of family_manifest()'s own
+# ``scoring.reference_provider_ids`` declarations (environment.py):
+# task.evaluation._receipt_implementations collects every leaf's validity
+# domain predicate, verifier reference implementation, and scorer ref, and
+# task.receipts.EvaluationReceipt._validate_and_freeze_plan_pins requires
+# each to match a pinned component in the resolved RunPlan -- so this id
+# (shared by both leaves across all three tracks) must be declared where
+# resolve_run_plan's own ``_required_pin_kinds`` can require and admit a
+# pin for it. Mirrors govsim's identical ``BASE_DOMAIN_PREDICATE_ID`` fix
+# (kernel_scoring_contract_spec.md migration, ``088e2693``).
+BASE_DOMAIN_PREDICATE_ID = "econevals_base_domain_predicate"
+
 # kernel_scoring_contract_spec.md section 3: the manifest's leaf policy
 # declares ONE static leaf set per family/version (`_enforce_declared_leaf_policy`
 # compares `set(produced_leaf_ids) == set(declared.leaf_ids)` against a single
@@ -225,8 +237,31 @@ def _validity_domain() -> ValidityDomainSpec:
         domain_id=DOMAIN_ID,
         domain_version=DOMAIN_VERSION,
         schema_ref="econevals_base_v1/case_payload",
-        predicate=_implementation_from_file("econevals_base_domain_predicate", "environment.py"),
+        predicate=_implementation_from_file(BASE_DOMAIN_PREDICATE_ID, "environment.py"),
     )
+
+
+def reference_provider_ids() -> tuple[str, ...]:
+    """Every implementation id any of the six leaf declarations (two per
+    track) pins, plus the shared validity-domain predicate -- the exact set
+    ``family_manifest()``'s ``scoring.reference_provider_ids`` must declare.
+
+    ``resolve_run_plan``'s own ``_required_pin_kinds`` only requires (and
+    admits) a pin for a component named by ``family.scoring.scorer_id`` or
+    ``family.scoring.reference_provider_ids`` -- every leaf's own
+    ``estimand.validity_domain.predicate``/``verifier.reference.implementation``/
+    ``scorer`` must be reachable through one of those two, or
+    ``EvaluationReceipt._validate_and_freeze_plan_pins`` rejects the sealed
+    receipt as missing implementations (the exact defect govsim's own
+    ``088e2693`` fixed). Computed once, from the leaf builders themselves,
+    rather than hand-duplicated, so this can never drift from what
+    ``build_gate_leaf``/``build_objective_leaf`` actually declare.
+    """
+    ids: set[str] = {BASE_DOMAIN_PREDICATE_ID}
+    for track in TRACKS:
+        ids.add(build_gate_leaf(track).scorer.implementation_id)
+        ids.add(build_objective_leaf(track, {}).scorer.implementation_id)
+    return tuple(sorted(ids))
 
 
 def _gate_scorer_implementation(track: str) -> ImplementationRef:
@@ -774,6 +809,7 @@ def build_scorer(family_case: Mapping[str, Any]) -> EconevalsScorer:
 
 
 __all__ = [
+    "BASE_DOMAIN_PREDICATE_ID",
     "GATE_LEAF_ID",
     "OBJECTIVE_LEAF_ID",
     "EconevalsScorer",
@@ -781,6 +817,7 @@ __all__ = [
     "build_leaves",
     "build_objective_leaf",
     "build_scorer",
+    "reference_provider_ids",
     "score_pricing",
     "score_procurement",
     "score_scheduling",
