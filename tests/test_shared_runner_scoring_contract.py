@@ -137,6 +137,8 @@ from aeread_families.procurement_grounding import (
 )
 from aeread_families.procurement_grounding import procurement_measurement_leaf
 from aeread_families.single_offer.runner import FixedResponseProvider
+from aeread_families.steer import cases as steer_cases
+from aeread_families.steer.environment import SteerPlugin, family_manifest, register_plugin
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -1187,6 +1189,353 @@ def _embedding_fixtures(
     return manifest, plugin, fixtures
 
 
+# ---------------------------------------------------------------------------
+# steer: a real family with exactly one declared finalize-time leaf,
+# ``steer_answer_key``, declared ``input_scope="answer"`` -- neither
+# ``"terminal_state"`` nor ``"trajectory"`` (docs/steer_migration_plan.md),
+# so ruling R7's mislabelling contrapositive applies vacuously here
+# (``terminal_leaf_ids`` is empty for this family). The unconditional
+# paired-history cardinality check still applies, though (this family is not
+# in ``_SINGLE_FIXTURE_EXEMPT_FAMILIES``), so a genuine, byte-identical-
+# outcome/differing-trajectory pair is still required and supplied below.
+#
+# Unlike every family enrolled directly in
+# ``_build_protocol_test_registry_and_fixtures``, this family's runtime
+# reads the cached, flattened STEER corpus (``AEREAD_STEER_DATA_ROOT``) --
+# an out-of-repo, license-constrained fixture -- so, mirroring govsim's own
+# bridge-gated shape, this family's fixture builder and behavioral check are
+# kept out of that always-on registry/test; see
+# ``test_steer_obeys_the_scoring_contract``'s own docstring for why.
+#
+# tests/test_steer_e2e.py's and tests/test_steer_replay.py's own
+# ``_cache_root()`` calls ``pytest.skip(..., allow_module_level=True)``
+# EAGERLY, at module import time -- safe for those files (nothing else
+# imports them at module scope), but exactly the trap this module's own
+# govsim precedent had to avoid: importing either module HERE would
+# propagate that skip into every OTHER family's own always-on coverage in
+# THIS file the moment the cache is missing. ``_steer_cache_root`` below is
+# therefore its own, local, lazy helper -- mirroring
+# tests/test_govsim_replay.py's own eager-path-check/lazy-skip split
+# (``UPSTREAM_ROOT``/``_bridge()``) -- never imported from either steer test
+# module, and never called except from inside ``_steer_fixture_pair``, which
+# itself is only ever reached from the one bridge-gated test that uses it.
+# ---------------------------------------------------------------------------
+
+_STEER_CASES_DIR = ROOT / "cases" / "steer"
+
+
+def _steer_cache_root() -> Path:
+    root = steer_cases.default_cache_root()
+    marker = root / "transitivity" / "cases.jsonl"
+    if not marker.is_file():
+        pytest.skip(
+            f"flattened cache not built yet at {root}; run "
+            "src/aeread_families/steer/cases.py first"
+        )
+    return root
+
+
+def _steer_first_admitted_row(cache_root: Path, element: str) -> dict[str, Any]:
+    path = cache_root / element / "cases.jsonl"
+    with path.open("r", encoding="utf-8") as handle:
+        return json.loads(handle.readline())
+
+
+def _steer_case(element: str, question_id: str) -> CaseManifest:
+    branch = steer_cases.BRANCH_BY_ELEMENT[element]
+    path = _STEER_CASES_DIR / branch / f"steer.{element}.{question_id}.json"
+    if not path.is_file():
+        pytest.skip(f"case file not built yet at {path}")
+    return CaseManifest.from_dict(json.loads(path.read_text(encoding="utf-8")))
+
+
+_STEER_PAIR_PROVIDER_ID = "steer_scoring_contract_fixture_provider"
+
+
+def _build_steer_pair_plan(
+    family: FamilyManifest, case: CaseManifest, cache_root: Path
+) -> tuple[RunPlan, PluginRegistry, Mapping[str, str], Mapping[str, TokenPricing]]:
+    """Resolve one real, sealed ``RunPlan`` for ``case`` through the REAL
+    ``minimal_chat`` harness/provider stack -- this family's actual
+    production path (unlike govsim's, this family's real runtime already
+    goes through ``execute_plan_cell``'s harness/provider stack, so no
+    custom, harness-bypassing response source is needed here at all).
+    Mirrors tests/test_steer_e2e.py's own ``_steer_finalize_setup`` shape.
+    """
+    registry = PluginRegistry()
+    register_plugin(registry, plugin=SteerPlugin(steer_data_root=cache_root))
+
+    sampling = SamplingPlan.from_dict(
+        {
+            "spec_version": SamplingPlan.SPEC_VERSION,
+            "sampling_plan_id": "sampling_steer_scoring_contract_pair_v1",
+            "estimand": "steer_answer_key",
+            "target": "steer_scoring_contract_pair_fixture",
+            "selection": "fixed_curated",
+            "seeds": [case.world_seed],
+            "replicates": 1,
+            "cluster_level": "world_seed",
+            "cluster_id_fields": ["generator_version", "world_seed"],
+            "paired_fields": [],
+            "replicate_level": "episode_attempt",
+            "panel_mode": "fixed_panel",
+        }
+    )
+    block = EvaluationBlock.from_dict(
+        {
+            "spec_version": EvaluationBlock.SPEC_VERSION,
+            "block_id": "block_steer_scoring_contract_pair",
+            "kind": "self_play",
+            "subject_seats": ["agent"],
+            "controlled_profiles": {},
+            "repetitions": 1,
+            "seed_policy": "fixed",
+        }
+    )
+    analysis = AnalysisPlan.from_dict(
+        {
+            "spec_version": AnalysisPlan.SPEC_VERSION,
+            "analysis_plan_id": "analysis_steer_scoring_contract_pair_v1",
+            "estimands": ["steer_answer_key"],
+            "group_by": ["family_id"],
+            "missingness": "report_separately",
+            "resampling_unit": "cluster_id",
+            "uncertainty": "none",
+            "multiplicity": "none",
+            "sensitivity": [],
+            "cross_family_scalar": "disabled",
+        }
+    )
+    suite = SuiteManifest.from_dict(
+        {
+            "spec_version": SuiteManifest.SPEC_VERSION,
+            "suite_id": "suite_steer_scoring_contract_pair_v1",
+            "version": "0.1.0",
+            "family_ids": [steer_cases.FAMILY_ID],
+            "case_ids": [case.case_id],
+            "sampling_plan_id": sampling.sampling_plan_id,
+            "evaluation_block_ids": [block.block_id],
+            "analysis_plan_id": analysis.analysis_plan_id,
+        }
+    )
+    pricing = TokenPricing(0.0, 0.0, 0.0, "steer_scoring_contract_pair_zero_cost_v1")
+    profile = AgentProfile.from_dict(
+        {
+            "spec_version": AgentProfile.SPEC_VERSION,
+            "profile_id": "steer_scoring_contract_pair_agent_v1",
+            "model": {
+                "provider": _STEER_PAIR_PROVIDER_ID,
+                "model": "steer_scoring_contract_pair_fixture_model_v1",
+                "revision": "1.0.0",
+                "base_url": None,
+            },
+            "harness": {
+                "id": "minimal_chat",
+                "version": "1.0",
+                "config": {
+                    "pricing_id": pricing.pricing_id,
+                    "pricing_sha256": pricing.content_sha256(),
+                },
+            },
+            "prompt": {
+                "prompt_id": "steer_scoring_contract_pair_prompt_v1",
+                "sha256": hashlib.sha256(
+                    b"steer scoring-contract fixture: no prompt is ever sent"
+                ).hexdigest(),
+            },
+            "runtime": {
+                "kind": "python",
+                "implementation": "aeread.shared_runner.task.execution",
+                "version": "0.1.0",
+            },
+            "tools": [],
+            "memory": {"mode": "disabled"},
+            "reasoning": {
+                "condition_id": "steer_scoring_contract_pair_no_reasoning_v1",
+                "effort": None,
+                "token_budget": None,
+                "rationale_visibility": "hidden",
+            },
+            "sampling": {
+                "temperature": 0.0,
+                "max_output_tokens": 64,
+                "seed": None,
+                "top_p": None,
+            },
+            "budgets": {
+                "max_logical_actions": case.episode.max_logical_actions,
+                "timeout_seconds": 30.0,
+                "max_cost_usd": 0.001,
+            },
+            "retry_policy": {
+                "max_action_attempts": 1,
+                "retryable_conditions": [],
+                "session_mode": "restart",
+                "sdk_retries": 0,
+            },
+        }
+    )
+    run_spec = RunSpec.from_dict(
+        {
+            "spec_version": RunSpec.SPEC_VERSION,
+            "run_spec_id": "run_spec_steer_scoring_contract_pair_v1",
+            "suite_id": suite.suite_id,
+            "evaluation_block_ids": [block.block_id],
+            "agent_profile_ids": [profile.profile_id],
+            "seat_assignments": {"agent": profile.profile_id},
+            "execution_mode": "evaluate",
+            "replicate_override": None,
+            "budget_overrides": None,
+        }
+    )
+    steer_src = ROOT / "src" / "aeread_families" / "steer"
+    environment_bytes = (steer_src / "environment.py").read_bytes()
+    measurement_bytes = (steer_src / "measurement.py").read_bytes()
+    execution_bytes = Path(execution_module.__file__).read_bytes()
+    # Mirrors ``measurement._predicate_and_scorer_sha256`` exactly: the
+    # predicate and the scorer share one pinned id/digest (both named by
+    # ``family.scoring.scorer_id``), so this single "scorer" pin also
+    # satisfies the leaf's ``estimand.validity_domain.predicate``
+    # ImplementationRef -- never an unreferenced pin ``resolve_run_plan``
+    # would reject.
+    predicate_and_scorer_sha256 = hashlib.sha256(
+        environment_bytes + measurement_bytes
+    ).hexdigest()
+    pins = (
+        ImplementationPin.from_dict(
+            {
+                "component_id": family.family.plugin_id,
+                "kind": "family_plugin",
+                "version": family.family.version,
+                "sha256": hashlib.sha256(environment_bytes).hexdigest(),
+            }
+        ),
+        ImplementationPin.from_dict(
+            {
+                "component_id": family.scoring.scorer_id,
+                "kind": "scorer",
+                "version": family.family.version,
+                "sha256": predicate_and_scorer_sha256,
+            }
+        ),
+        ImplementationPin.from_dict(
+            {
+                "component_id": family.scoring.oracle_id,
+                "kind": "reference",
+                "version": family.family.version,
+                "sha256": hashlib.sha256(
+                    (steer_src / "steer_bridge_driver.py").read_bytes()
+                ).hexdigest(),
+            }
+        ),
+        ImplementationPin.from_dict(
+            {
+                "component_id": profile.harness.id,
+                "kind": "harness",
+                "version": profile.harness.version,
+                "sha256": hashlib.sha256(execution_bytes).hexdigest(),
+            }
+        ),
+        ImplementationPin.from_dict(
+            {
+                "component_id": profile.runtime.implementation,
+                "kind": "runtime",
+                "version": profile.runtime.version,
+                "sha256": hashlib.sha256(execution_bytes).hexdigest(),
+            }
+        ),
+    )
+    harness_registry = HarnessRegistry()
+    for harness in default_harnesses().values():
+        harness_registry.register(harness)
+    plan = resolve_run_plan(
+        families=(family,),
+        cases=(case,),
+        suite=suite,
+        sampling=sampling,
+        evaluation_blocks=(block,),
+        analysis=analysis,
+        agent_profiles=(profile,),
+        run_spec=run_spec,
+        registry=registry,
+        implementation_pins=pins,
+        harness_registry=harness_registry,
+        provider_capabilities={
+            _STEER_PAIR_PROVIDER_ID: ProviderCapabilities(
+                native_tools=False,
+                structured_output=False,
+                seed=False,
+                system_prompt=True,
+                reasoning_budget=False,
+                reasoning_token_report=False,
+                max_context_tokens=None,
+            )
+        },
+    )
+    prompt_sources = {
+        "steer_scoring_contract_pair_prompt_v1": (
+            "steer scoring-contract fixture: no prompt is ever sent"
+        )
+    }
+    return plan, registry, prompt_sources, {"steer_scoring_contract_pair_fixture_model_v1": pricing}
+
+
+def _steer_fixture_pair(
+    tmp_path: Path,
+) -> tuple[FamilyManifest, Any, tuple[FamilyScoringFixture, FamilyScoringFixture]]:
+    """Two real, cache-backed episodes of the SAME checked-in case (same
+    question, same ``source_sha256`` -- so this leaf's declared identity
+    stays stable across both, per the check above) that submit two
+    different, both out-of-range ``option_id`` values.
+
+    ``SteerPlugin.legal()``/``environment.py``'s golden 3 rejects any
+    ``option_id`` outside ``[0, options_count)`` with the SAME
+    ``failure_code`` (``"option_id_out_of_range"``) and the SAME
+    ``selected_option_id`` (``None``) regardless of exactly how far out of
+    range it is -- so ``outcome()`` is byte-identical for both submissions
+    while the underlying trajectory (the actually-submitted, differently-
+    valued response recorded in each episode's own sealed
+    ``action_parsed``/``action_attempt_succeeded`` evidence) genuinely
+    differs. Both fixtures share one ``RunPlan``/cell -- built once, run
+    twice with different providers -- so ``phase_instance_id``/
+    ``logical_action_id`` (a deterministic function of ``cell_id``,
+    identical for both) never masquerade as the "difference" this pair is
+    meant to exercise; only the submitted content does.
+    """
+    cache_root = _steer_cache_root()
+    element = "transitivity"
+    row = _steer_first_admitted_row(cache_root, element)
+    case = _steer_case(element, row["question_id"])
+    family = family_manifest()
+    plan, registry, prompt_sources, pricing = _build_steer_pair_plan(family, case, cache_root)
+    plugin = registry.resolve_manifest(family)
+    family_case = plugin.validate_payload(case.payload)
+    cell_id = plan.cells[0].cell_id
+    options_count = len(row["options"])
+
+    def _run(option_id: int, suffix: str) -> FamilyScoringFixture:
+        execution = asyncio.run(
+            execute_plan_cell(
+                plan=plan,
+                cell_id=cell_id,
+                registry=registry,
+                evidence_root=tmp_path / f"steer_scoring_contract_{suffix}",
+                prompt_sources=prompt_sources,
+                providers={
+                    _STEER_PAIR_PROVIDER_ID: FixedResponseProvider(
+                        json.dumps({"option_id": option_id})
+                    )
+                },
+                pricing=pricing,
+            )
+        )
+        return FamilyScoringFixture(family_case=family_case, sealed_evidence=execution.evidence)
+
+    left = _run(options_count, "left")
+    right = _run(options_count + 3, "right")
+    return family, plugin, (left, right)
+
+
 def _build_protocol_test_registry_and_fixtures(
     tmp_path: Path,
 ) -> tuple[PluginRegistry, dict[tuple[str, str], tuple[FamilyScoringFixture, ...]]]:
@@ -1646,7 +1995,10 @@ def _trusted_family_versions(
 # deliberately named, not derived: adding a NEW trusted key -- the exact
 # attack the review demonstrated -- now requires either enrolling a real
 # fixture or explicitly widening this exemption; it can no longer happen
-# silently.
+# silently. ``steer`` is deliberately NOT here: it IS migrated (see this
+# module's own docstring / _steer_fixture_pair above) -- see
+# _BRIDGE_GATED_ENROLLED_FAMILY_VERSIONS below for where its migration is
+# accounted for instead.
 _NOT_YET_MIGRATED_TRUSTED_KEYS: "frozenset[tuple[str, str]]" = frozenset(
     {
         ("consent_ir_v1", "1.0.0"),
@@ -1659,9 +2011,9 @@ _NOT_YET_MIGRATED_TRUSTED_KEYS: "frozenset[tuple[str, str]]" = frozenset(
         # External-benchmark adapter families enrolled in
         # TRUSTED_BUILTIN_PLUGIN_KEYS by maintainer ruling on 2026-09-04
         # (PRs #28-#38), landed on main after this branch forked. None of
-        # the eleven has a FamilyScoringInput-contract fixture yet; they
-        # migrate under the per-adapter follow-ups tracked alongside the
-        # other not-yet-migrated families above, not as part of this
+        # the remaining ten has a FamilyScoringInput-contract fixture yet;
+        # they migrate under the per-adapter follow-ups tracked alongside
+        # the other not-yet-migrated families above, not as part of this
         # kernel change.
         ("agenticpay.bilateral", "0.1.0"),
         ("alympics.wac", "0.1.0"),
@@ -1672,9 +2024,25 @@ _NOT_YET_MIGRATED_TRUSTED_KEYS: "frozenset[tuple[str, str]]" = frozenset(
         ("econevals", "0.1.0"),
         ("govsim", "0.1.0"),
         ("negarena", "0.1.0"),
-        ("steer", "0.1.0"),
         ("termsbench", "0.1.0"),
     }
+)
+
+# steer IS migrated and genuinely fixture-covered (_steer_fixture_pair,
+# test_steer_obeys_the_scoring_contract below) -- but unlike every family
+# enrolled directly in _build_protocol_test_registry_and_fixtures, its
+# fixtures require the real, cached, flattened STEER corpus
+# (AEREAD_STEER_DATA_ROOT) -- an out-of-repo, license-constrained fixture.
+# Folding it into _build_protocol_test_registry_and_fixtures/
+# test_every_registered_family_obeys_the_scoring_contract would make THAT
+# test -- and every other family's always-on coverage inside it -- newly
+# skip whenever that cache is unavailable, which is exactly the kind of
+# quiet coverage loss this suite exists to prevent for everyone else. It is
+# therefore verified in its own per-test-skippable test instead, and named
+# here (not in _NOT_YET_MIGRATED_TRUSTED_KEYS, which would misdescribe it)
+# so ruling R6's closure check still has it accounted for.
+_BRIDGE_GATED_ENROLLED_FAMILY_VERSIONS: "frozenset[tuple[str, str]]" = frozenset(
+    {("steer", "0.1.0")}
 )
 
 
@@ -2013,15 +2381,52 @@ def test_every_registered_family_obeys_the_scoring_contract(tmp_path: Path) -> N
     # world is TRUSTED_BUILTIN_PLUGIN_KEYS. The assertion above was true by
     # construction and could never fail; a family enrolled there without a
     # fixture (or an explicit, named "not yet migrated" exemption) now fails
-    # here instead.
+    # here instead. steer is enrolled via _BRIDGE_GATED_ENROLLED_FAMILY_VERSIONS,
+    # not this test's own local ``fixtures`` -- see that set's own docstring.
     _assert_trusted_catalog_is_closed(
         trusted_keys=TRUSTED_BUILTIN_PLUGIN_KEYS,
-        enrolled_family_versions=set(fixtures),
+        enrolled_family_versions=set(fixtures) | _BRIDGE_GATED_ENROLLED_FAMILY_VERSIONS,
         exempt_family_versions=_NOT_YET_MIGRATED_TRUSTED_KEYS,
     )
 
     for key, registration in registrations.items():
         _assert_family_obeys_the_scoring_contract(key, registration, fixtures[key])
+
+
+def test_steer_obeys_the_scoring_contract(tmp_path: Path) -> None:
+    """steer's own contract check -- kept out of
+    ``test_every_registered_family_obeys_the_scoring_contract`` (see
+    ``_BRIDGE_GATED_ENROLLED_FAMILY_VERSIONS``'s own docstring for why): this
+    family's fixtures require the real, cached, flattened STEER corpus
+    (``AEREAD_STEER_DATA_ROOT``, an out-of-repo, license-constrained
+    fixture), which every OTHER family this suite verifies deliberately
+    does not, so folding it into that always-on test would make THEIR
+    coverage newly skip too whenever the cache is unavailable. Per-test skip
+    only, never module-level (mirrors ``tests/test_steer_e2e.py``'s/
+    ``tests/test_steer_replay.py``'s own documented convention -- but see
+    ``_steer_cache_root``'s own docstring above for why THIS module cannot
+    simply import their eager ``_cache_root()``).
+
+    Runs the identical protocol check
+    (``_assert_family_obeys_the_scoring_contract``) against steer's own
+    registry registration and its two paired fixtures (``_steer_fixture_pair``
+    -- byte-identical terminal outcome, genuinely differing trajectory, both
+    derived from the real, checked-in case/cache row), covering this
+    family's one declared leaf (``steer_answer_key``,
+    ``input_scope="answer"`` -- ruling R7's contrapositive therefore applies
+    vacuously, since this family has no leaf declared
+    ``input_scope="terminal_state"``, and ruling R9(b)'s sensitivity witness
+    also applies vacuously, since this family has no leaf declared
+    ``input_scope="trajectory"``).
+    """
+    registry = PluginRegistry()
+    manifest, plugin, fixture_pair = _steer_fixture_pair(tmp_path)
+    registry.register_trusted(manifest, plugin)
+    (registration,) = registry.registrations()
+    key = (registration.family_id, registration.family_version)
+    assert key == ("steer", "0.1.0")
+
+    _assert_family_obeys_the_scoring_contract(key, registration, fixture_pair)
 
 
 def test_determinism_precheck_adjacency_defeats_call_parity_aliasing(tmp_path: Path) -> None:
