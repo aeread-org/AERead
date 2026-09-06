@@ -1,6 +1,6 @@
 {
   "case_id": "aucarena.pilot.malformed_operational_01",
-  "content_sha256": "1db3bab3f135ed16f88876bba40bc661836918818f0ad7e9fc2758b29c26df2e",
+  "content_sha256": "fffcb85403e27cf591b02d5649f82e13da418c276fb5914f8d380d5c80e1b8d8",
   "episode": {
     "max_logical_actions": 200,
     "termination": [
@@ -44,7 +44,8 @@
         "model_name": "rule",
         "seat_id": "field_high"
       }
-    ]
+    ],
+    "world_seed": 1004
   },
   "provenance": {
     "generator_id": "aucarena_importer",
