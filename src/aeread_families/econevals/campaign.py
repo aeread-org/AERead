@@ -103,8 +103,15 @@ MAX_CANARY_OUTPUT_TOKENS = 256
 CANARY_TRANSIENT_CONDITIONS = ("rate_limit", "provider_5xx", "timeout")
 MAX_CANARY_PROBES = 6
 CANARY_RETRY_BASE_SECONDS = 15.0
-MAX_TRAJECTORY_COST_USD = 0.06
-HARD_TOTAL_COST_CEILING_USD = 0.40
+# The in-period loop costs more than the blind single-burst shape: measured
+# $0.0614 for 78 periods against v1's $0.0109 for 100. Not because the loop
+# makes many more calls -- it averages 1.01 per period -- but because the
+# provider bills growing input against a request that never changes (see
+# issue #130; our own request is flat at ~1.1KB, verified with a stub over
+# 100 periods). The ceiling is raised to fit the measurement rather than the
+# estimate, and the panel ceiling with it.
+MAX_TRAJECTORY_COST_USD = 0.20
+HARD_TOTAL_COST_CEILING_USD = 1.30
 
 
 def _digest(value: Any) -> str:
