@@ -47,3 +47,8 @@ Current campaign directories include:
   probes; DeepInfra GLM passed 6/9 before three probe-index-2 rate limits.
   Admission blocked all four trajectories, so this is reusable route-capacity
   and gate evidence rather than model-performance evidence.
+- `housing_model_sensitivity_openrouter_deepinfra_v12/`: the same
+  four-condition gate under a digest-pinned 15-second start-to-start pacing
+  treatment. Admission passed 17/18 probes; one zero-wait DeepInfra follow-on
+  call returned HTTP 429, so all trajectories remained blocked. The canonical
+  admission table reports elapsed time and pacing delivery for every probe.

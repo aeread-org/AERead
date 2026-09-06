@@ -46,6 +46,7 @@ from .population_campaign import (
     _role_metrics,
 )
 from .qc import audit_bid_world
+from .provider_pacing import PacedProviderClient
 
 
 CONTRACT_SCHEMA_VERSION = "aeread.housing_model_sensitivity/0.1"
@@ -75,6 +76,13 @@ _HISTORICAL_IMPLEMENTATION_DIGESTS = {
         "harness": "c7dd0cd5a2eb1f557df24a1f3e7bd731938b6938523799ee02a4273229c25590",
     },
     "housing_model_sensitivity_openrouter_deepinfra_v11": {
+        "housing": "4182057475816840253a8421fc461c09fa6bbb8ea0659e742f6d98ebc2a74a33",
+        "bridge": "5cc23b0340eb39a6d49d8885169c32b5a975b1c80ba858d932e32d179c6b1fae",
+        "combined": "2a7c062960c060f78b85258f0b86768fd3133fb37def9ccd5e534e3a82ad08ab",
+        "execution": "7b963ccc739e007504c4df5f6abce1748c295b20e2b6887599b88ee0108f7f7f",
+        "harness": "063a26de9bd05b7ac0ac400a84e933beffec413ef4eb1ca50794f7e790fc4275",
+    },
+    "housing_model_sensitivity_openrouter_deepinfra_v12": {
         "housing": "4182057475816840253a8421fc461c09fa6bbb8ea0659e742f6d98ebc2a74a33",
         "bridge": "5cc23b0340eb39a6d49d8885169c32b5a975b1c80ba858d932e32d179c6b1fae",
         "combined": "2a7c062960c060f78b85258f0b86768fd3133fb37def9ccd5e534e3a82ad08ab",
@@ -860,6 +868,7 @@ async def run_live(
     output_root: Path,
     routes: Mapping[str, OpenRouterRoutePin] | None = None,
     stage_id: str = "live",
+    provider_client: Any | None = None,
 ) -> dict[str, Any]:
     if stage_id not in {"live", "full_trajectory"}:
         raise ValueError("stage_id must be live or full_trajectory")
@@ -882,7 +891,7 @@ async def run_live(
             "live Housing execution runtime differs from the frozen implementation "
             "pin; create a new campaign identity"
         )
-    client = OpenRouterChatClient()
+    client = provider_client or OpenRouterChatClient()
     conditions = list(contract["conditions"])
     execution_contract = contract["execution"]
     rows: list[dict[str, Any]] = []
@@ -934,6 +943,11 @@ async def run_live(
             break
         evidence_root = live_root / config["config_id"] / condition_id / "evidence"
         started = time.perf_counter()
+        pacing_observation_index = (
+            client.observation_count
+            if isinstance(client, PacedProviderClient)
+            else None
+        )
         critical_error = False
         try:
             execution = await execute_plan_cell(
@@ -1031,6 +1045,10 @@ async def run_live(
                 "elapsed_seconds": time.perf_counter() - started,
             }
             critical_error = _critical_failure(error)
+        if pacing_observation_index is not None:
+            row["call_pacing"] = client.pacing_summary_since(
+                pacing_observation_index
+            )
         sealed_row = _sealed(row)
         _write_json(result_path, sealed_row)
         rows.append(sealed_row)
@@ -1095,6 +1113,15 @@ async def run_live(
                 ),
             }
         )
+    if "call_pacing" in contract["controls"]:
+        artifact_core["call_pacing"] = {
+            **contract["controls"]["call_pacing"],
+            "observed": (
+                client.pacing_summary_since(0)
+                if isinstance(client, PacedProviderClient)
+                else None
+            ),
+        }
     artifact = _sealed(artifact_core)
     _write_json(summary_path, artifact)
     return artifact

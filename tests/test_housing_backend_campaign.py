@@ -6,6 +6,7 @@ import hashlib
 import io
 import json
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -20,6 +21,7 @@ from aeread_families.housing.backend_campaign import (
 )
 from aeread.shared_runner.task.execution import EvidenceIntegrityError, ProviderResult
 from aeread_families.housing.model_sensitivity import (
+    PacedProviderClient,
     build_setups,
     design_artifact,
     provider_free_artifact,
@@ -78,6 +80,11 @@ V11_CONTRACT_PATH = (
     Path(__file__).resolve().parents[1]
     / "configs"
     / "housing_model_sensitivity_openrouter_deepinfra_v11.json"
+)
+V12_CONTRACT_PATH = (
+    Path(__file__).resolve().parents[1]
+    / "configs"
+    / "housing_model_sensitivity_openrouter_deepinfra_v12.json"
 )
 
 
@@ -304,6 +311,152 @@ def test_v11_freezes_a_four_condition_full_trajectory_gate() -> None:
             assert hashlib.sha256(canonical_json_bytes(profile)).hexdigest() == (
                 expected_profiles[profile.profile_id]
             )
+
+
+def test_v12_changes_only_campaign_identity_profiles_and_call_pacing() -> None:
+    v11 = load_contract(V11_CONTRACT_PATH)
+    v12 = load_contract(V12_CONTRACT_PATH)
+    routes = route_table(v12)
+
+    assert v12["execution"] == v11["execution"]
+    assert v12["analysis"] == v11["analysis"]
+    assert v12["conditions"] == v11["conditions"]
+    assert v12["controls"]["call_pacing"] == {
+        "clock": "monotonic_start_to_start",
+        "minimum_interval_seconds_by_provider": {
+            "DeepInfra": 15.0,
+            "Parasail": 15.0,
+        },
+        "first_call_delay_seconds": 15.0,
+        "scope": "shared_across_profile_admission_and_full_trajectory",
+        "implementation_sha256": (
+            "6e51c13330a2aa73e4b9f8e7610c0cc232873b1aecaf1b85960a3db2ab8790cd"
+        ),
+    }
+    assert routes["glm_53_flash"].provider == "DeepInfra"
+    assert routes["deepseek_v4_flash"].provider == "Parasail"
+    assert (
+        v12["profile_admission"]["cost_ceiling_usd"]
+        + v12["execution"]["cost_ceiling_usd"]
+        == pytest.approx(0.14)
+    )
+    assert design_artifact(v12, routes=routes)["artifact_sha256"] == (
+        "e26b9f1e43ce5976f5e17c53749880f1f4512e5f3442f386edcffc176d8c08c5"
+    )
+    assert provider_free_artifact(v12)["artifact_sha256"] == (
+        "a0e032b4f6a8131845879addbc9a837e47b77d64eac15a9742a41d8eca246203"
+    )
+
+    expected_profiles = v12["profile_admission"]["profile_sha256s"]
+    for setup in build_setups(v12, routes=routes).values():
+        for profile in setup.plan.agent_profiles:
+            assert hashlib.sha256(canonical_json_bytes(profile)).hexdigest() == (
+                expected_profiles[profile.profile_id]
+            )
+
+
+def test_paced_provider_client_enforces_route_specific_start_intervals() -> None:
+    class Clock:
+        def __init__(self) -> None:
+            self.now = 0.0
+            self.waits: list[float] = []
+
+        def __call__(self) -> float:
+            return self.now
+
+        async def sleep(self, seconds: float) -> None:
+            self.waits.append(seconds)
+            self.now += seconds
+
+    class Delegate:
+        def __init__(self) -> None:
+            self.providers: list[str] = []
+
+        async def complete(self, request: object) -> object:
+            self.providers.append(request.provider_metadata["route_provider"])
+            return object()
+
+    async def exercise() -> tuple[Clock, Delegate, PacedProviderClient]:
+        clock = Clock()
+        delegate = Delegate()
+        client = PacedProviderClient(
+            delegate,
+            minimum_interval_seconds_by_provider={
+                "DeepInfra": 15.0,
+                "Parasail": 10.0,
+            },
+            first_call_delay_seconds=5.0,
+            clock=clock,
+            sleeper=clock.sleep,
+        )
+        for provider in ("DeepInfra", "DeepInfra", "Parasail", "Parasail"):
+            await client.complete(
+                SimpleNamespace(provider_metadata={"route_provider": provider})
+            )
+        return clock, delegate, client
+
+    clock, delegate, client = asyncio.run(exercise())
+
+    assert clock.waits == [5.0, 15.0, 5.0, 10.0]
+    assert delegate.providers == ["DeepInfra", "DeepInfra", "Parasail", "Parasail"]
+    assert client.pacing_summary_since(0) == {
+        "provider_calls": 4,
+        "paced_call_count": 4,
+        "pacing_wait_seconds": 35.0,
+        "by_provider": {
+            "DeepInfra": {"provider_calls": 2, "pacing_wait_seconds": 20.0},
+            "Parasail": {"provider_calls": 2, "pacing_wait_seconds": 15.0},
+        },
+    }
+
+
+def test_published_v12_records_pacing_failure_and_zero_trajectories() -> None:
+    evidence_root = (
+        V12_CONTRACT_PATH.parents[1]
+        / "evidence"
+        / "housing_model_sensitivity_openrouter_deepinfra_v12"
+    )
+    qualification = json.loads(
+        (evidence_root / "reports" / "qualification.json").read_bytes()
+    )
+    fact_manifest = json.loads(
+        (evidence_root / "tables" / "fact_manifest.json").read_bytes()
+    )
+    trajectories = json.loads(
+        (evidence_root / "trajectories" / "attempted.json").read_bytes()
+    )
+    with (evidence_root / "tables" / "profile_admission.csv").open(
+        newline="", encoding="utf-8"
+    ) as handle:
+        admission_rows = list(csv.DictReader(handle))
+
+    assert qualification["artifact_sha256"] == (
+        "7c8e2d24135d21ebd279fb3bea4a31ed693e1575d5ea81296051e4d842ddc5f1"
+    )
+    assert fact_manifest["artifact_sha256"] == (
+        "b8e3b77011d932d1f23cb9fa8389d2df0512a5f246adaac26ba00033a37a2558"
+    )
+    assert trajectories["artifact_sha256"] == (
+        "06eddf1bcf66de662a2b2413e2d838a3db6f3aed2e43b866f012411e3385bec8"
+    )
+    assert qualification["status"] == "blocked_by_profile_admission"
+    assert qualification["gate_status"][-1]["attempted_trajectories"] == 0
+    assert qualification["gate_status"][-1]["not_started_trajectories"] == 4
+    assert qualification["gate_status"][-1]["provider_calls"] == 0
+    assert len(admission_rows) == 18
+    failures = [row for row in admission_rows if row["status"] != "passed"]
+    assert len(failures) == 1
+    assert failures[0]["model_id"] == "glm_53_flash"
+    assert failures[0]["failure_condition"] == "rate_limit"
+    assert failures[0]["failure_status_code"] == "429"
+    assert failures[0]["pacing_provider_calls"] == "1"
+    assert failures[0]["paced_call_count"] == "0"
+    assert failures[0]["pacing_wait_seconds"] == "0.0"
+    assert float(admission_rows[0]["elapsed_seconds"]) > 120.0
+    published = b"".join(path.read_bytes() for path in evidence_root.rglob("*.*"))
+    assert b'"raw_response":' not in published
+    assert b"output_text" not in published
+    assert b"/Users/" not in published
 
 
 def test_v11_failed_admission_blocks_the_full_trajectory_gate(
