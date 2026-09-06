@@ -773,8 +773,15 @@ def simulate_project(
             - energy_cost
             - tax_and_insurance
         )
+        # Debt-service coverage is a periodic ratio. A bullet repayment at
+        # maturity is refinancing risk, not a coverage failure, and is already
+        # tested by `maturity_nonpayment`; including it would make every
+        # realistic bullet loan breach its covenant in its final month.
+        scheduled_debt_service = interest + (
+            0 if month == loan.maturity_month else principal_repayment
+        )
         debt_service = interest + principal_repayment
-        dscr_bps = _ratio_bps(net_operating_cashflow, debt_service)
+        dscr_bps = _ratio_bps(net_operating_cashflow, scheduled_debt_service)
         if (
             month >= service.service_commencement_month
             and debt_service > 0

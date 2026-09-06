@@ -271,6 +271,9 @@ def test_no_within_policy_stack_earns_unbounded_self_written_damages() -> None:
     for world in manifest["worlds"]:
         payload = json.loads((DEFAULT_OUTPUT_ROOT / world["file"]).read_text())["payload"]
         inflated = json.loads(json.dumps(_stack(payload, "scripted")))
+        # Scale-independent: an order of magnitude above the EPC contract, so
+        # the assertion cannot silently pass by inflating to a small number.
+        outrageous = inflated["epc"]["contract_price_cents"] * 10
         for key, field in (
             ("power", "delay_liquidated_damages_cents_per_month"),
             ("power", "delay_liquidated_damages_cap_cents"),
@@ -278,7 +281,7 @@ def test_no_within_policy_stack_earns_unbounded_self_written_damages() -> None:
             ("epc", "delay_liquidated_damages_cap_cents"),
             ("epc", "completion_guarantee_cents"),
         ):
-            inflated[key][field] = 100_000_000
+            inflated[key][field] = outrageous
         assert not all(
             terms_acceptable(
                 TERM_PARSER_BY_TYPE[AGREEMENT_TYPE_BY_KEY[key]](inflated[key]),

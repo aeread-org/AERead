@@ -41,7 +41,8 @@ PACK_ID = "datacenter_development_v2_worlds_v1"
 MASTER_SEED = 20260903
 SPLIT = "worlds_v2"
 SCOPE_VERSION = "v2"
-HORIZON = 6
+HORIZON = 36
+CAPACITY_KW = 50_000
 VARIANTS_PER_STRATUM = 4
 MAX_ROUNDS = 3
 STRATA = (
@@ -142,123 +143,157 @@ def _months(*values: int) -> list[int]:
 
 
 def _base_world(rng: random.Random) -> dict[str, Any]:
-    """One feasible V2 world with small seeded jitter on public economics."""
+    """One feasible 50 MW world calibrated to published 2026 market figures.
 
-    epc_price = rng.choice((280_000, 300_000, 320_000))
-    terminal_value = rng.choice((650_000, 700_000, 750_000))
-    capacity_price = rng.choice((95, 100, 105))
-    demand_charge = rng.choice((4, 5, 6))
-    sunk_cents = rng.choice((25_000, 30_000, 40_000, 50_000))
-    ready_month = 3
+    Anchors, all per published industry benchmarks rather than invented:
+    construction near $10M per MW, wholesale colocation near $200 per kW-month,
+    construction debt at a floating benchmark plus 250-400bps at 60-70 percent
+    loan-to-cost, EPC delay damages around 3 percent of contract value per
+    month capped near 8 percent, and 15-year take-or-pay leases.
+    """
+
+    # $9.6M to $11.2M per MW of turnkey construction.
+    epc_per_mw = rng.choice((960_000_000, 1_000_000_000, 1_120_000_000))
+    epc_price = epc_per_mw * (CAPACITY_KW // 1000)
+    # $185 to $215 per kW per month wholesale.
+    capacity_price = rng.choice((18_500, 20_000, 21_500))
+    # $10 to $14 per kW per month utility demand charge.
+    demand_charge = rng.choice((1_000, 1_200, 1_400))
+    # Land at $400k to $700k per acre over a 100 acre campus.
+    land_price = rng.choice((4_000_000_000, 5_000_000_000, 7_000_000_000))
+    # Sunk predevelopment cost if the developer walks: $8M to $15M.
+    sunk_cents = rng.choice((800_000_000, 1_100_000_000, 1_500_000_000))
+    energization_month = 22
+    completion_month = 24
+    commencement_month = 25
+
+    def ramp(first_month: int) -> list[int]:
+        return [0 if month < first_month else CAPACITY_KW for month in range(1, HORIZON + 1)]
+
+    monthly_noi = CAPACITY_KW * (capacity_price - 4_000)
     facts = {
         "horizon_months": HORIZON,
         "construction_cost_cents_by_month": [0] * HORIZON,
         "development_cost_cents_by_month": [0] * HORIZON,
-        "built_capacity_kw_by_month": _months(0, 0, 1000, 1000, 1000, 1000),
-        "energized_capacity_kw_by_month": _months(0, 0, 1000, 1000, 1000, 1000),
-        "customer_usage_kw_by_month": [1000] * HORIZON,
-        "base_rate_bps_by_month": [0] * HORIZON,
-        "energy_cost_cents_per_kwh_by_month": [0] * HORIZON,
+        "built_capacity_kw_by_month": ramp(completion_month),
+        "energized_capacity_kw_by_month": ramp(energization_month),
+        "customer_usage_kw_by_month": [CAPACITY_KW] * HORIZON,
+        # SOFR near 4 percent, expressed in annual basis points.
+        "base_rate_bps_by_month": [400] * HORIZON,
+        # Wholesale power near $0.07 per kWh.
+        "energy_cost_cents_per_kwh_by_month": [7] * HORIZON,
         "tax_and_insurance_cents_by_month": [0] * HORIZON,
-        "operating_cost_cents_per_kw_month": 10,
-        "energy_kwh_per_kw_month": 0,
-        "customer_value_cents_per_kw_month": 150,
-        "developer_equity_budget_cents": 200_000,
-        "appraised_value_cents": 1_000_000,
-        "terminal_value_cents": terminal_value,
-        "developer_discount_rate_bps_annual": 0,
-        "lender_discount_rate_bps_annual": 0,
-        "customer_discount_rate_bps_annual": 0,
-        "base_rate_curve_id": "base_curve_v1",
+        # Operating cost near $40 per kW per month.
+        "operating_cost_cents_per_kw_month": 4_000,
+        # About 70 percent utilisation of a kW over a 730 hour month.
+        "energy_kwh_per_kw_month": 500,
+        # The tenant values capacity above the rent it agrees to pay.
+        "customer_value_cents_per_kw_month": capacity_price + 6_000,
+        "developer_equity_budget_cents": 30_000_000_000,
+        "appraised_value_cents": 130_000_000_000,
+        # Stabilised asset value at a 7 percent capitalisation rate.
+        "terminal_value_cents": (monthly_noi * 12 * 10_000) // 700,
+        # Equity 12 percent, debt 7 percent, tenant 8 percent.
+        "developer_discount_rate_bps_annual": 1_200,
+        "lender_discount_rate_bps_annual": 700,
+        "customer_discount_rate_bps_annual": 800,
+        "base_rate_curve_id": "sofr_forward_2026_v1",
         "condition_satisfaction": [
-            {"condition_id": "zoning_approval", "satisfied_month": 1},
-            {"condition_id": "site_control", "satisfied_month": 1},
-            {"condition_id": "power_commitment", "satisfied_month": 2},
-            {"condition_id": "power_ready", "satisfied_month": ready_month},
-            {"condition_id": "construction_complete", "satisfied_month": ready_month},
+            {"condition_id": "zoning_approval", "satisfied_month": 2},
+            {"condition_id": "site_control", "satisfied_month": 2},
+            {"condition_id": "power_commitment", "satisfied_month": 4},
+            {"condition_id": "power_ready", "satisfied_month": energization_month},
+            {"condition_id": "construction_complete", "satisfied_month": completion_month},
         ],
         "customer_termination_month": None,
     }
-    half = epc_price // 2
+    quarter = epc_price // 4
     terms = {
         "land": {
             "site_control_start_month": 1,
-            "closing_month": 1,
-            "site_control_expiry_month": 4,
-            "purchase_price_cents": 20_000,
-            "extension_option_months": 2,
-            "extension_price_cents": 5_000,
-            "permitted_use_capacity_kw": 1000,
+            "closing_month": 2,
+            "site_control_expiry_month": 30,
+            "purchase_price_cents": land_price,
+            "extension_option_months": 6,
+            "extension_price_cents": land_price // 25,
+            "permitted_use_capacity_kw": CAPACITY_KW,
             "conditions_precedent": ["zoning_approval"],
         },
         "power": {
-            "contracted_capacity_kw": 1000,
-            "energization_month": ready_month,
-            "interconnection_cost_cents": 20_000,
+            "contracted_capacity_kw": CAPACITY_KW,
+            "energization_month": energization_month,
+            # $20M of interconnection and network upgrades.
+            "interconnection_cost_cents": 2_000_000_000,
             "monthly_demand_charge_cents_per_kw": demand_charge,
-            "energy_charge_cents_per_kwh": 0,
-            "delay_liquidated_damages_cents_per_month": 10_000,
-            "delay_liquidated_damages_cap_cents": 20_000,
-            "developer_security_cents": 0,
-            "initial_term_months": 24,
+            "energy_charge_cents_per_kwh": 7,
+            "delay_liquidated_damages_cents_per_month": 200_000_000,
+            "delay_liquidated_damages_cap_cents": 1_000_000_000,
+            # Queue deposit near $4,000 per MW.
+            "developer_security_cents": 20_000_000,
+            "initial_term_months": 180,
             "conditions_precedent": ["site_control", "power_commitment"],
         },
         "epc": {
-            "notice_to_proceed_month": 1,
-            "guaranteed_completion_month": ready_month,
-            "guaranteed_capacity_kw": 1000,
+            "notice_to_proceed_month": 3,
+            "guaranteed_completion_month": completion_month,
+            "guaranteed_capacity_kw": CAPACITY_KW,
             "contract_price_cents": epc_price,
             "payment_schedule": [
-                {"month": 1, "amount_cents": half},
-                {"month": 2, "amount_cents": epc_price - half},
+                {"month": 4, "amount_cents": quarter},
+                {"month": 10, "amount_cents": quarter},
+                {"month": 16, "amount_cents": quarter},
+                {"month": 22, "amount_cents": epc_price - 3 * quarter},
             ],
-            "delay_liquidated_damages_cents_per_month": 15_000,
-            "delay_liquidated_damages_cap_cents": 30_000,
+            # About 3 percent of contract value per month, capped near 8 percent.
+            "delay_liquidated_damages_cents_per_month": epc_price * 3 // 100,
+            "delay_liquidated_damages_cap_cents": epc_price * 8 // 100,
             "cost_overrun_cap_cents": 0,
-            "completion_guarantee_cents": 50_000,
+            "completion_guarantee_cents": epc_price // 10,
             "conditions_precedent": ["site_control"],
         },
         "service": {
-            "committed_capacity_kw": 1000,
-            "service_commencement_month": ready_month,
-            "ramp_schedule": [{"month": ready_month, "capacity_kw": 1000}],
+            "committed_capacity_kw": CAPACITY_KW,
+            "service_commencement_month": commencement_month,
+            "ramp_schedule": [{"month": commencement_month, "capacity_kw": CAPACITY_KW}],
             "monthly_capacity_charge_cents_per_kw": capacity_price,
-            "energy_pass_through_cents_per_kwh": 0,
+            "energy_pass_through_cents_per_kwh": 7,
             "take_or_pay_bps": 10_000,
-            "initial_term_months": 24,
-            "renewal_option_months": 0,
-            "sla_credit_cap_bps": 10_000,
+            "initial_term_months": 180,
+            "renewal_option_months": 60,
+            # SLA credits capped at 5 percent of the monthly charge.
+            "sla_credit_cap_bps": 500,
             "customer_termination_option_month": None,
             "customer_termination_fee_cents": 0,
-            "delay_damages_cents_per_month": 0,
-            "delay_damages_cap_cents": 0,
-            "credit_support_cents": 100_000,
+            "delay_damages_cents_per_month": 50_000_000,
+            "delay_damages_cap_cents": 200_000_000,
+            # Six months of rent as credit support.
+            "credit_support_cents": CAPACITY_KW * capacity_price * 6,
             "conditions_precedent": ["power_ready", "construction_complete"],
         },
         "loan": {
-            "maximum_commitment_cents": 250_000,
-            "advance_rate_bps": 6000,
-            "base_rate_curve_id": "base_curve_v1",
-            "spread_bps": 0,
-            "unused_commitment_fee_bps_annual": 0,
-            "origination_fee_bps": 0,
+            "maximum_commitment_cents": 40_000_000_000,
+            "advance_rate_bps": 6_500,
+            "base_rate_curve_id": "sofr_forward_2026_v1",
+            "spread_bps": 300,
+            "unused_commitment_fee_bps_annual": 50,
+            "origination_fee_bps": 100,
             "interest_reserve_cents": 0,
-            "draw_start_month": 1,
-            "minimum_contracted_capacity_kw": 1000,
-            "minimum_take_or_pay_bps": 8000,
-            "minimum_customer_credit_support_cents": 50_000,
-            "minimum_dscr_bps": 4000,
-            "maximum_loan_to_cost_bps": 6000,
-            "maximum_loan_to_value_bps": 10_000,
+            "draw_start_month": 3,
+            "minimum_contracted_capacity_kw": CAPACITY_KW,
+            "minimum_take_or_pay_bps": 9_000,
+            "minimum_customer_credit_support_cents": CAPACITY_KW * 18_500 * 6,
+            "minimum_dscr_bps": 12_500,
+            "maximum_loan_to_cost_bps": 6_500,
+            "maximum_loan_to_value_bps": 6_000,
             "maturity_month": HORIZON,
-            "extension_option_months": 0,
+            "extension_option_months": 12,
             "completion_guarantee_cents": 0,
             "conditions_precedent": ["site_control", "power_commitment"],
         },
     }
     terms["land_amendment"] = {
         **copy.deepcopy(terms["land"]),
-        "site_control_expiry_month": terms["land"]["site_control_expiry_month"] + 1,
+        "site_control_expiry_month": terms["land"]["site_control_expiry_month"] + 3,
     }
     return {
         "facts": facts,
@@ -266,9 +301,9 @@ def _base_world(rng: random.Random) -> dict[str, Any]:
         "sunk_cents": sunk_cents,
         "knobs": {
             "epc_price_cents": epc_price,
-            "terminal_value_cents": terminal_value,
             "capacity_price_cents_per_kw": capacity_price,
             "demand_charge_cents_per_kw": demand_charge,
+            "land_price_cents": land_price,
             "sunk_cents": sunk_cents,
         },
     }
@@ -278,7 +313,7 @@ def _round_div(numerator: int, denominator: int) -> int:
     return (numerator + denominator // 2) // denominator
 
 
-def _floor(value: int, *, width_bps: int = 3000) -> int:
+def _floor(value: int, *, width_bps: int = 1500) -> int:
     """The developer-favourable edge of a negotiated price band.
 
     The counterparty's opening counter sits at the ceiling it already quotes,
@@ -302,7 +337,7 @@ def _default_policies(terms: Mapping[str, Mapping[str, Any]]) -> dict[str, dict[
         "land": {
             "minimums": {
                 "purchase_price_cents": land["purchase_price_cents"],
-                "permitted_use_capacity_kw": 1000,
+                "permitted_use_capacity_kw": CAPACITY_KW,
             },
             "maximums": {
                 "closing_month": land["closing_month"],
@@ -317,7 +352,7 @@ def _default_policies(terms: Mapping[str, Mapping[str, Any]]) -> dict[str, dict[
             # Two-sided bands: the utility will not supply below its own cost,
             # and will not underwrite unbounded delay liability.
             "minimums": {
-                "contracted_capacity_kw": 1000,
+                "contracted_capacity_kw": CAPACITY_KW,
                 "interconnection_cost_cents": _floor(
                     power["interconnection_cost_cents"]
                 ),
@@ -331,8 +366,8 @@ def _default_policies(terms: Mapping[str, Mapping[str, Any]]) -> dict[str, dict[
                 "monthly_demand_charge_cents_per_kw": power[
                     "monthly_demand_charge_cents_per_kw"
                 ],
-                "energy_charge_cents_per_kwh": 0,
-                "developer_security_cents": 0,
+                "energy_charge_cents_per_kwh": power["energy_charge_cents_per_kwh"],
+                "developer_security_cents": power["developer_security_cents"],
                 "delay_liquidated_damages_cents_per_month": power[
                     "delay_liquidated_damages_cents_per_month"
                 ],
@@ -345,8 +380,12 @@ def _default_policies(terms: Mapping[str, Mapping[str, Any]]) -> dict[str, dict[
         },
         "epc": {
             "minimums": {
-                "guaranteed_capacity_kw": 1000,
-                "contract_price_cents": _floor(epc["contract_price_cents"]),
+                "guaranteed_capacity_kw": CAPACITY_KW,
+                # Contractors concede far less than utilities or lenders, and a
+                # deeper discount would put the negotiated price below market.
+                "contract_price_cents": _floor(
+                    epc["contract_price_cents"], width_bps=800
+                ),
             },
             "maximums": {
                 "guaranteed_completion_month": epc["guaranteed_completion_month"],
@@ -365,7 +404,7 @@ def _default_policies(terms: Mapping[str, Mapping[str, Any]]) -> dict[str, dict[
         },
         "service": {
             "minimums": {
-                "committed_capacity_kw": 1000,
+                "committed_capacity_kw": CAPACITY_KW,
                 "sla_credit_cap_bps": service["sla_credit_cap_bps"],
             },
             "maximums": {
@@ -388,7 +427,7 @@ def _default_policies(terms: Mapping[str, Mapping[str, Any]]) -> dict[str, dict[
         "land_amendment": {
             "minimums": {
                 "purchase_price_cents": amendment["purchase_price_cents"],
-                "permitted_use_capacity_kw": 1000,
+                "permitted_use_capacity_kw": CAPACITY_KW,
             },
             "maximums": {
                 "closing_month": amendment["closing_month"],
@@ -406,7 +445,7 @@ def _default_policies(terms: Mapping[str, Mapping[str, Any]]) -> dict[str, dict[
                 "unused_commitment_fee_bps_annual": _floor(
                     loan["unused_commitment_fee_bps_annual"]
                 ),
-                "minimum_contracted_capacity_kw": 1000,
+                "minimum_contracted_capacity_kw": CAPACITY_KW,
                 "minimum_take_or_pay_bps": loan["minimum_take_or_pay_bps"],
                 "minimum_customer_credit_support_cents": loan[
                     "minimum_customer_credit_support_cents"
@@ -432,16 +471,21 @@ def _default_policies(terms: Mapping[str, Mapping[str, Any]]) -> dict[str, dict[
 
 
 def _stratum_revenue_without_bankability(world: dict[str, Any], rng: random.Random) -> dict[str, Any]:
-    minimum_take_or_pay = rng.choice((8000, 8500, 9000, 9500))
-    minimum_credit = rng.choice((50_000, 60_000, 75_000, 90_000))
+    minimum_take_or_pay = rng.choice((8500, 9000, 9500))
+    monthly_rent = (
+        CAPACITY_KW * world["terms"]["service"]["monthly_capacity_charge_cents_per_kw"]
+    )
+    minimum_credit = monthly_rent * rng.choice((5, 6, 7, 8))
     terms = world["terms"]
     terms["loan"]["minimum_take_or_pay_bps"] = minimum_take_or_pay
     terms["loan"]["minimum_customer_credit_support_cents"] = minimum_credit
+    terms["service"]["credit_support_cents"] = minimum_credit
     policies = _default_policies(terms)
     # The customer accepts any weaker take-or-pay or credit support.
     trap = copy.deepcopy(terms)
-    trap["service"]["take_or_pay_bps"] = minimum_take_or_pay - 1000
-    trap["service"]["credit_support_cents"] = max(0, minimum_credit - 20_000)
+    terms["service"]["credit_support_cents"] = minimum_credit
+    trap["service"]["take_or_pay_bps"] = minimum_take_or_pay - 500
+    trap["service"]["credit_support_cents"] = max(0, minimum_credit - monthly_rent)
     return {
         "policies": policies,
         "feasible": terms,
@@ -461,26 +505,32 @@ def _stratum_revenue_without_bankability(world: dict[str, Any], rng: random.Rand
 
 
 def _stratum_delayed_revenue(world: dict[str, Any], rng: random.Random) -> dict[str, Any]:
-    ready_month = rng.choice((4, 5))
-    spread_bps = rng.choice((1200, 1800, 2400))
+    ready_month = rng.choice((26, 28, 30))
+    spread_bps = rng.choice((300, 350, 400))
     facts = world["facts"]
     vector = [0] * HORIZON
     for month in range(ready_month, HORIZON + 1):
-        vector[month - 1] = 1000
+        vector[month - 1] = CAPACITY_KW
     facts["built_capacity_kw_by_month"] = list(vector)
     facts["energized_capacity_kw_by_month"] = list(vector)
     for condition in facts["condition_satisfaction"]:
         if condition["condition_id"] in {"power_ready", "construction_complete"}:
             condition["satisfied_month"] = ready_month
     terms = world["terms"]
-    terms["power"]["energization_month"] = ready_month
-    terms["epc"]["guaranteed_completion_month"] = ready_month
+    terms["power"]["energization_month"] = ready_month - 2
+    terms["epc"]["guaranteed_completion_month"] = ready_month - 1
+    terms["epc"]["payment_schedule"] = [
+        {**step, "month": min(step["month"], ready_month - 2)}
+        for step in terms["epc"]["payment_schedule"]
+    ]
     terms["service"]["service_commencement_month"] = ready_month
-    terms["service"]["ramp_schedule"] = [{"month": ready_month, "capacity_kw": 1000}]
+    terms["service"]["ramp_schedule"] = [
+        {"month": ready_month, "capacity_kw": CAPACITY_KW}
+    ]
     terms["land"]["site_control_expiry_month"] = ready_month + 1
     terms["land_amendment"]["site_control_expiry_month"] = ready_month + 2
     terms["loan"]["spread_bps"] = spread_bps
-    terms["loan"]["minimum_dscr_bps"] = 2000
+    terms["loan"]["minimum_dscr_bps"] = 10_000
     policies = _default_policies(terms)
     # The lender accepts any maturity up to the horizon and any spread.
     trap = copy.deepcopy(terms)
@@ -501,9 +551,9 @@ def _stratum_delayed_revenue(world: dict[str, Any], rng: random.Random) -> dict[
 
 
 def _stratum_restrictive_draws(world: dict[str, Any], rng: random.Random) -> dict[str, Any]:
-    origination_fee_bps = rng.choice((150, 200, 250))
-    trap_advance = rng.choice((2000, 2500, 3000))
-    equity_budget = rng.choice((190_000, 200_000, 210_000))
+    origination_fee_bps = rng.choice((100, 125, 150))
+    trap_advance = rng.choice((3000, 3500, 4000))
+    equity_budget = rng.choice((28_000_000_000, 30_000_000_000, 32_000_000_000))
     world["facts"]["developer_equity_budget_cents"] = equity_budget
     terms = world["terms"]
     terms["loan"]["origination_fee_bps"] = origination_fee_bps
@@ -511,9 +561,9 @@ def _stratum_restrictive_draws(world: dict[str, Any], rng: random.Random) -> dic
     policies["loan"]["maximums"]["origination_fee_bps"] = origination_fee_bps
     policies["loan"]["minimums"]["origination_fee_bps"] = origination_fee_bps
     # A larger headline commitment is fine with the lender; draws are what bind.
-    policies["loan"]["maximums"]["maximum_commitment_cents"] = 400_000
+    policies["loan"]["maximums"]["maximum_commitment_cents"] = 60_000_000_000
     trap = copy.deepcopy(terms)
-    trap["loan"]["maximum_commitment_cents"] = 400_000
+    trap["loan"]["maximum_commitment_cents"] = 60_000_000_000
     trap["loan"]["advance_rate_bps"] = trap_advance
     trap["loan"]["maximum_loan_to_cost_bps"] = trap_advance
     return {
@@ -536,49 +586,76 @@ def _stratum_restrictive_draws(world: dict[str, Any], rng: random.Random) -> dic
 
 
 def _stratum_covenant_cliff(world: dict[str, Any], rng: random.Random) -> dict[str, Any]:
-    minimum_dscr = rng.choice((4000, 4100))
-    trap_advance = rng.choice((7000, 7500, 8000))
-    operating_cost = rng.choice((10, 12))
+    minimum_dscr = rng.choice((12_500, 13_000, 13_500))
+    trap_advance = rng.choice((6800, 6900, 7000))
+    operating_cost = rng.choice((4_000, 4_400))
     world["facts"]["operating_cost_cents_per_kw_month"] = operating_cost
     terms = world["terms"]
     terms["loan"]["minimum_dscr_bps"] = minimum_dscr
+    # A phased tenant ramp: coverage is tightest while revenue is partial.
+    commencement = terms["service"]["service_commencement_month"]
+    terms["service"]["ramp_schedule"] = [
+        {"month": commencement, "capacity_kw": CAPACITY_KW // 2},
+        {"month": commencement + 4, "capacity_kw": CAPACITY_KW},
+    ]
     policies = _default_policies(terms)
-    policies["loan"]["maximums"]["advance_rate_bps"] = 8000
-    policies["loan"]["maximums"]["maximum_loan_to_cost_bps"] = 8000
-    policies["loan"]["maximums"]["maximum_commitment_cents"] = 320_000
+    # The tenant will pay a premium for a slower ramp, and the lender's
+    # coverage covenant is what that trade actually spends.
+    premium = terms["service"]["monthly_capacity_charge_cents_per_kw"] + 2_000
+    policies["service"]["maximums"]["monthly_capacity_charge_cents_per_kw"] = premium
     trap = copy.deepcopy(terms)
-    trap["loan"]["advance_rate_bps"] = trap_advance
-    trap["loan"]["maximum_loan_to_cost_bps"] = trap_advance
-    trap["loan"]["maximum_commitment_cents"] = 320_000
+    trap["service"]["monthly_capacity_charge_cents_per_kw"] = premium
+    trap["service"]["ramp_schedule"] = [
+        {"month": commencement, "capacity_kw": CAPACITY_KW // 3},
+        {"month": commencement + 4, "capacity_kw": CAPACITY_KW},
+    ]
     return {
         "policies": policies,
         "feasible": terms,
         "trap": trap,
         "knobs": {
             "minimum_dscr_bps": minimum_dscr,
-            "trap_advance_rate_bps": trap_advance,
+            "premium_price_cents_per_kw": premium,
             "operating_cost_cents_per_kw_month": operating_cost,
         },
         "expected_failure": "minimum_dscr_breach",
         "explanation": (
-            "The priced facility clears the debt-service covenant by a thin "
-            "margin. Pushing leverage up within the lender's stated window "
-            "raises the maturity repayment enough to breach the minimum DSCR."
+            "The priced facility clears its coverage covenant by a thin margin "
+            "during the tenant ramp. The tenant offers a higher rate in return "
+            "for a slower ramp, which reads as more revenue but removes the "
+            "early-period cash the covenant is measured on, and the loan "
+            "breaches its minimum DSCR before the ramp completes. Leverage is "
+            "not the lever here: loan-to-cost caps well below the point where "
+            "stabilised coverage is at risk."
         ),
     }
 
 
 def _stratum_liability_transfer(world: dict[str, Any], rng: random.Random) -> dict[str, Any]:
-    premium_price = rng.choice((130, 140, 150))
-    delay_damages = rng.choice((30_000, 40_000))
+    premium_price = world["terms"]["service"][
+        "monthly_capacity_charge_cents_per_kw"
+    ] + rng.choice((4_000, 5_000, 6_000))
+    delay_damages = rng.choice((40_000_000, 50_000_000))
     facts = world["facts"]
-    facts["built_capacity_kw_by_month"] = _months(0, 0, 0, 0, 1000, 1000)
+    late_month = 28
+    facts["built_capacity_kw_by_month"] = [
+        0 if month < late_month else CAPACITY_KW for month in range(1, HORIZON + 1)
+    ]
     for condition in facts["condition_satisfaction"]:
         if condition["condition_id"] == "construction_complete":
-            condition["satisfied_month"] = 5
+            condition["satisfied_month"] = late_month
+    # The prudent package starts billing when capacity actually exists, so no
+    # month carries debt service against a contractual date it cannot serve.
     terms = world["terms"]
+    terms["service"]["service_commencement_month"] = late_month
+    terms["service"]["ramp_schedule"] = [
+        {"month": late_month, "capacity_kw": CAPACITY_KW}
+    ]
+    terms["service"]["delay_damages_cents_per_month"] = delay_damages
+    terms["service"]["delay_damages_cap_cents"] = 2 * delay_damages
     policies = _default_policies(terms)
     policies["service"]["required_conditions"] = ["power_ready"]
+    policies["service"]["maximums"]["service_commencement_month"] = late_month
     policies["service"]["maximums"]["monthly_capacity_charge_cents_per_kw"] = premium_price
     policies["service"]["maximums"]["delay_damages_cents_per_month"] = delay_damages
     policies["service"]["maximums"]["delay_damages_cap_cents"] = 2 * delay_damages
@@ -589,6 +666,11 @@ def _stratum_liability_transfer(world: dict[str, Any], rng: random.Random) -> di
     trap = copy.deepcopy(terms)
     trap["service"]["monthly_capacity_charge_cents_per_kw"] = premium_price
     trap["service"]["conditions_precedent"] = ["power_ready"]
+    # Billing nominally starts at energization, months before capacity exists.
+    trap["service"]["service_commencement_month"] = terms["power"]["energization_month"]
+    trap["service"]["ramp_schedule"] = [
+        {"month": terms["power"]["energization_month"], "capacity_kw": CAPACITY_KW}
+    ]
     trap["service"]["delay_damages_cents_per_month"] = delay_damages
     trap["service"]["delay_damages_cap_cents"] = 2 * delay_damages
     return {
@@ -599,12 +681,14 @@ def _stratum_liability_transfer(world: dict[str, Any], rng: random.Random) -> di
             "premium_price_cents_per_kw": premium_price,
             "delay_damages_cents_per_month": delay_damages,
         },
-        "expected_failure": "funding_shortfall",
+        "expected_failure": "minimum_dscr_breach",
         "explanation": (
-            "Construction lands two months after energization. The customer "
-            "pays a premium for service gated only on power readiness, but "
-            "that schedule bills nothing while SLA credits and delay damages "
-            "accrue, so the premium becomes a liability transfer."
+            "Construction lands several months after energization. The customer "
+            "pays a premium for service gated only on power readiness, so "
+            "billing nominally starts before any capacity exists: the schedule "
+            "earns nothing while SLA credits and delay damages accrue against "
+            "it, and debt service is left uncovered. The premium is a liability "
+            "transfer dressed as revenue."
         ),
     }
 
