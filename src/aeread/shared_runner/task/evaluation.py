@@ -656,7 +656,68 @@ def _declared_deferred_leaf_ids(manifest: Any) -> tuple[str, ...]:
     )
 
 
-def _enforce_declared_leaf_policy(score_set: FamilyScoreSet, manifest: Any) -> None:
+def _enforce_subject_seat_primaries(
+    score_set: FamilyScoreSet, manifest: Any, seat_context: SeatContext
+) -> None:
+    """Ruling R12 rule 2: a status "ok" ``subject_seat`` leaf may only claim
+    the one true reduction over ``seat_context.subject_seats``.
+
+    This is a contract violation the kernel raises on, not
+    ``invalid_measurement`` -- reporting ``invalid_measurement`` for these
+    same three cases (no subject seat, an ambiguous subject seat with no
+    declared reduction, or a wrong value) is the scorer's own job (reasons
+    ``no_subject_seat`` / ``ambiguous_subject_seat``); this check exists to
+    catch a scorer that claims a scalar it may not claim, regardless of
+    whatever the scorer itself believed. Applies to nothing when
+    ``seat_scope`` is "cell" (the default).
+    """
+    leaf_policy_by_id = {leaf.leaf_id: leaf for leaf in manifest.measurement.leaves}
+    subject_seats = seat_context.subject_seats
+    for score in score_set.scores:
+        leaf_policy = leaf_policy_by_id.get(score.leaf.leaf_id)
+        if leaf_policy is None or leaf_policy.seat_scope != "subject_seat":
+            continue
+        if score.status != "ok":
+            continue
+        leaf_id = score.leaf.leaf_id
+        if len(subject_seats) == 0:
+            raise ValueError(
+                f"leaf {leaf_id!r} is declared seat_scope=subject_seat and "
+                "scored ok with no subject seat"
+            )
+        if len(subject_seats) == 1:
+            subject = subject_seats[0]
+            if subject not in score.utility_by_seat:
+                raise ValueError(
+                    f"leaf {leaf_id!r} scored ok for subject seat {subject!r} "
+                    "but its utility_by_seat does not carry that seat"
+                )
+            subject_value = score.utility_by_seat[subject]
+            if (
+                score.primary is None
+                or score.primary.value != subject_value.value
+                or score.primary.unit != subject_value.unit
+            ):
+                raise ValueError(
+                    f"leaf {leaf_id!r} scored ok for subject seat {subject!r} "
+                    "but its primary does not equal utility_by_seat[subject]"
+                )
+            continue
+        # Two or more subject seats (self-play): an "ok" envelope is only
+        # permitted when the manifest declares which reduction over those
+        # seats the family means. The kernel does not interpret the
+        # reduction identifier itself -- it only requires it was declared
+        # before a scalar is claimed.
+        if leaf_policy.subject_reduction is None:
+            raise ValueError(
+                f"leaf {leaf_id!r} scored ok over {len(subject_seats)} subject "
+                "seats without a declared subject_reduction"
+            )
+
+
+def _enforce_declared_leaf_policy(
+    score_set: FamilyScoreSet, manifest: Any, seat_context: SeatContext
+) -> None:
     """The manifest is the source of truth for a family that declares one.
 
     kernel_contract_impl_review.md finding 5: nothing previously obtained or
@@ -689,6 +750,7 @@ def _enforce_declared_leaf_policy(score_set: FamilyScoreSet, manifest: Any) -> N
             f"policy: produced {score_set.admission_leaf_ids}, declared "
             f"{declared.admission_leaf_ids}"
         )
+    _enforce_subject_seat_primaries(score_set, manifest, seat_context)
 
 
 def _check_evidence_refs_are_scoring_input_verbatim(
@@ -767,7 +829,7 @@ def finalize_family_execution(
         )
     )
     _check_evidence_refs_are_scoring_input_verbatim(score_set, scoring_input)
-    _enforce_declared_leaf_policy(score_set, registration.manifest)
+    _enforce_declared_leaf_policy(score_set, registration.manifest, seat_context)
     deferred_leaf_ids = _declared_deferred_leaf_ids(registration.manifest)
     execution.evidence.append_event(
         "score_recorded",
@@ -1016,7 +1078,7 @@ def replay_family_receipt(
         )
     )
     _check_evidence_refs_are_scoring_input_verbatim(replayed_score_set, scoring_input)
-    _enforce_declared_leaf_policy(replayed_score_set, registration.manifest)
+    _enforce_declared_leaf_policy(replayed_score_set, registration.manifest, seat_context)
     if canonical_json_bytes(score_payload) != canonical_json_bytes(
         _score_event_payload(
             replayed_score_set, outcome_event_id=scoring_input.evidence_refs[-1]
@@ -1184,7 +1246,7 @@ def audit_family_receipt(
             )
         )
         _check_evidence_refs_are_scoring_input_verbatim(score_set, scoring_input)
-        _enforce_declared_leaf_policy(score_set, registration.manifest)
+        _enforce_declared_leaf_policy(score_set, registration.manifest, seat_context)
         events = [e for e in evidence.read_events() if e.event_type == "score_recorded"]
         expected_status, expected_inclusion, expected_failure = _score_admission(
             score_set
