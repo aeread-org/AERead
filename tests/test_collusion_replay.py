@@ -17,6 +17,7 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import json
+import dataclasses
 from dataclasses import dataclass
 from pathlib import Path
 from types import MappingProxyType
@@ -1277,3 +1278,85 @@ def test_finalize_wires_collusion_to_the_shared_family_finalizer(tmp_path: Any) 
     )
     assert long_run_profit.status == "invalid_measurement"
     assert long_run_profit.validity.reasons == ("baseline_profit_not_provided",)
+
+
+def test_finalize_family_execution_rejects_a_collusion_scorer_that_forges_evidence_refs(
+    tmp_path: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """``evidence_refs`` provenance is enforced by the caller, not trusted
+    from the callee (independent review, ``docs/collusion_migration_review.md``
+    finding 4): ``CollusionScorer.__call__`` -- like every migrated family's
+    own ``__call__`` (kernel_scoring_contract_spec.md section 2's call site)
+    -- takes ``evidence_refs`` as an independent keyword argument and
+    forwards it verbatim, trusting its caller for that value; nothing in
+    ``measurement.py`` cross-checks it against ``scoring_input.evidence_refs``
+    itself. ``task.evaluation.finalize_family_execution``
+    (``_check_evidence_refs_are_scoring_input_verbatim``) is what makes
+    ``scoring_input.evidence_refs`` authoritative: every real call already
+    supplies the matching value (this file's own
+    ``test_finalize_wires_collusion_to_the_shared_family_finalizer``), which
+    is exactly why that check never previously fired for this family. This
+    test forges a stale, non-matching ``evidence_refs`` tuple onto every
+    returned score to prove the check actually rejects it, not merely that
+    the happy path (where the two values already agree) passes.
+    """
+    real_call = m.CollusionScorer.__call__
+
+    def _forging_call(
+        self: m.CollusionScorer,
+        scoring_input: FamilyScoringInput,
+        *,
+        evidence_refs: tuple[str, ...] = (),
+    ) -> Any:
+        score_set = real_call(self, scoring_input, evidence_refs=evidence_refs)
+        forged_refs = ("forged_evidence_ref_0",)
+        assert forged_refs != scoring_input.evidence_refs
+        return dataclasses.replace(
+            score_set,
+            scores=tuple(
+                dataclasses.replace(score, evidence_refs=forged_refs)
+                for score in score_set.scores
+            ),
+        )
+
+    monkeypatch.setattr(m.CollusionScorer, "__call__", _forging_call)
+
+    case = _short_case(horizon=4)
+    setup = build_collusion_setup(case, suffix="finalize_forged_refs")
+    cell = setup.plan.cells[0]
+    family = setup.plan.families[0]
+    plugin = setup.registry.resolve_manifest(family)
+
+    evidence = EvidenceStore(
+        tmp_path / "evidence_finalize_forged_refs",
+        run_plan_id=setup.plan.run_plan_id,
+        cell_id=cell.cell_id,
+        episode_id=f"episode_{cell.cell_id}",
+        episode_attempt_id="attempt_1",
+    )
+    family_case = plugin.validate_payload(case.payload)
+    gold = family_case["gold_reference"]
+    harness = EvidenceRecordingCollusionHarness(
+        answer=_policy_answer(
+            {
+                "firm_a": monopoly_play_policy(gold["p_monopoly"]["firm_a"]),
+                "firm_b": nash_play_policy(gold["p_nash"]["firm_b"]),
+            }
+        ),
+        evidence=evidence,
+    )
+    result = asyncio.run(
+        run_episode(cell=cell, case=case, plugin=plugin, response_source=harness)
+    )
+    execution = CellExecution(
+        run_plan_id=setup.plan.run_plan_id,
+        cell_id=cell.cell_id,
+        episode_attempt_id="attempt_1",
+        episode_result=result,
+        evidence=evidence,
+        action_executions=(),
+        total_cost_usd=0.0,
+    )
+
+    with pytest.raises(ValueError, match="evidence_refs that disagree"):
+        finalize_family_execution(setup=setup, execution=execution)
