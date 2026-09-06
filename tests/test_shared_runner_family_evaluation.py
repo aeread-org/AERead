@@ -15,7 +15,7 @@ from aeread.shared_runner import (
     verify_evaluation_receipt,
 )
 from aeread.shared_runner.task.execution import execute_plan_cell
-from aeread.shared_runner.task.evaluation import audit_family_receipt
+from aeread.shared_runner.task.evaluation import _seat_context_for_cell, audit_family_receipt
 from aeread_families.housing.runner import (
     HousingScriptedLandlordProvider,
     HousingScriptedTenantProvider,
@@ -386,3 +386,43 @@ def test_audit_rejects_a_receipt_whose_agent_profile_seats_disagree_with_the_pla
 
     with pytest.raises(ValueError, match="seat context does not match the receipt"):
         audit_family_receipt(setup=setup, receipt_path=receipt_path)
+
+
+def test_seat_context_for_cell_rejects_a_subject_seat_with_no_assigned_profile() -> None:
+    """Ruling R12 rule 1, review finding F1: a resolved plan can never
+    legitimately reach this shape -- resolve_run_plan (run/resolver.py)
+    already requires block.subject_seats to be a subset of the case's seat
+    ids, which must exactly equal run_spec.seat_assignments' keys, which is
+    exactly what becomes cell.profile_by_seat (see PlanCell drafting in
+    resolve_run_plan). The resolver is therefore the first line of defense,
+    and verify_run_plan's plan_sha256 recomputation blocks any attempt to
+    reach a real finalizer entry point (finalize_family_execution,
+    replay_family_receipt, audit_family_receipt) with a plan/cell pair that
+    disagrees with it -- a directly hand-mutated cell (dataclasses.replace,
+    below) is the only way to construct this shape at all, so this test
+    drives _seat_context_for_cell directly rather than through the
+    finalizer, exactly as a plan/cell pair this malformed can only arise
+    from a bug elsewhere in the kernel, not from any authored plan.
+    """
+    setup = build_housing_smoke(
+        tenant_provider="housing_scripted_tenant",
+        tenant_model="housing_scripted_tenant_v1",
+        tenant_revision="1.0.0",
+    )
+    cell = setup.plan.cells[0]
+    block = next(
+        item for item in setup.plan.evaluation_blocks if item.block_id == cell.block_id
+    )
+    assert "tenant_0" in block.subject_seats
+
+    mutated_cell = dataclasses.replace(
+        cell,
+        profile_by_seat={
+            seat_id: profile_id
+            for seat_id, profile_id in cell.profile_by_seat.items()
+            if seat_id != "tenant_0"
+        },
+    )
+
+    with pytest.raises(ValueError, match="tenant_0"):
+        _seat_context_for_cell(setup.plan, mutated_cell)
