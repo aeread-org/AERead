@@ -54,6 +54,7 @@ import dataclasses
 import hashlib
 import itertools
 import json
+import os
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
@@ -1235,6 +1236,23 @@ def _steer_cache_root() -> Path:
     return root
 
 
+def _steer_cache_available() -> bool:
+    """Non-skipping counterpart to ``_steer_cache_root``.
+
+    docs/steer_migration_review.md finding 1: the trusted-catalog closure
+    check needs to know whether ``test_steer_obeys_the_scoring_contract``
+    will actually be able to run ``_assert_family_scoring_contract`` for
+    steer this session, WITHOUT itself skipping (that would propagate a
+    skip onto every other family's own always-on coverage in the same
+    test, exactly what ``_BRIDGE_GATED_ENROLLED_FAMILY_VERSIONS``'s own
+    docstring says this module must avoid). ``_steer_cache_root`` cannot be
+    reused directly for that: it calls ``pytest.skip`` the moment the cache
+    is missing.
+    """
+    root = steer_cases.default_cache_root()
+    return (root / "transitivity" / "cases.jsonl").is_file()
+
+
 def _steer_first_admitted_row(cache_root: Path, element: str) -> dict[str, Any]:
     path = cache_root / element / "cases.jsonl"
     with path.open("r", encoding="utf-8") as handle:
@@ -2046,6 +2064,50 @@ _BRIDGE_GATED_ENROLLED_FAMILY_VERSIONS: "frozenset[tuple[str, str]]" = frozenset
 )
 
 
+def _steer_fixtures_required_env() -> bool:
+    return os.environ.get("AEREAD_STEER_FIXTURES_REQUIRED", "") in {"1", "true", "yes"}
+
+
+def _assert_steer_bridge_gated_enrollment_is_honest(
+    *, cache_available: bool, fixtures_required: bool
+) -> None:
+    """docs/steer_migration_review.md finding 1.
+
+    ``_BRIDGE_GATED_ENROLLED_FAMILY_VERSIONS`` tells
+    ``_assert_trusted_catalog_is_closed`` steer is enrolled unconditionally,
+    even on a run where ``test_steer_obeys_the_scoring_contract`` skips for
+    want of the cache and therefore never executes
+    ``_assert_family_scoring_contract`` for it. That is the sanctioned,
+    documented behaviour for a run nobody has asked to certify fidelity
+    (``AEREAD_STEER_FIXTURES_REQUIRED`` unset -- matches every other
+    bridge-gated family's own tests, root ``conftest.py``): a green,
+    without-bridge run legitimately means "the fidelity checks that need the
+    bridge did not run", not "steer's scorer was verified".
+
+    It stops being sanctioned the moment ``AEREAD_STEER_FIXTURES_REQUIRED=1``
+    IS set: that variable's whole documented purpose is "a missing bridge
+    FAILS instead of skipping". This assertion must not depend on
+    ``conftest.py``'s own ``pytest_terminal_summary`` hook to deliver that
+    guarantee for the closure check specifically -- that hook only reacts to
+    a *skip it can see in the same session* (matched by a reason substring
+    from ``test_steer_obeys_the_scoring_contract``), so a narrower invocation
+    that never collects that test (e.g. ``-k
+    test_every_registered_family_obeys_the_scoring_contract``) leaves the
+    closure check silently green, with exit status 0, even with
+    ``AEREAD_STEER_FIXTURES_REQUIRED=1`` set and the cache missing. Calling
+    this directly from inside the closure check makes that guarantee
+    self-contained instead.
+    """
+    if not cache_available and fixtures_required:
+        pytest.fail(
+            "AEREAD_STEER_FIXTURES_REQUIRED is set but the flattened STEER "
+            "cache is unavailable -- test_steer_obeys_the_scoring_contract "
+            "cannot execute _assert_family_scoring_contract for steer this "
+            "run, so steer must not be counted as enrolled in the trusted-"
+            "catalog closure while its own contract check cannot run"
+        )
+
+
 def _assert_trusted_catalog_is_closed(
     *,
     trusted_keys: "frozenset[tuple[str, str, str]]",
@@ -2098,6 +2160,66 @@ def test_trusted_catalog_closure_rejects_an_unenrolled_key() -> None:
             enrolled_family_versions={("fam_a_v1", "1.0.0")},
             exempt_family_versions=frozenset(),
         )
+
+
+def test_steer_bridge_gated_enrollment_is_not_honest_about_required_fixtures() -> None:
+    """docs/steer_migration_review.md finding 1, mutation check.
+
+    Without ``_assert_steer_bridge_gated_enrollment_is_honest`` (or with its
+    body neutered), ``test_every_registered_family_obeys_the_scoring_contract``
+    counts steer as enrolled via the static ``_BRIDGE_GATED_ENROLLED_FAMILY_VERSIONS``
+    set no matter what -- so a run that sets ``AEREAD_STEER_FIXTURES_REQUIRED=1``
+    (asking for certification) while the cache is genuinely missing would still
+    report a green closure check, even though
+    ``test_steer_obeys_the_scoring_contract`` cannot execute
+    ``_assert_family_scoring_contract`` for steer at all this run -- the
+    review's exact demonstrated attack. Proven here directly, without
+    touching the real cache path or environment.
+    """
+
+    # Sanctioned, documented mode: bridge missing, nobody asked to certify.
+    # Must not fail -- this is every bridge-gated family's own convention.
+    _assert_steer_bridge_gated_enrollment_is_honest(
+        cache_available=False, fixtures_required=False
+    )
+    # Bridge present: never fails regardless of the flag.
+    _assert_steer_bridge_gated_enrollment_is_honest(
+        cache_available=True, fixtures_required=False
+    )
+    _assert_steer_bridge_gated_enrollment_is_honest(
+        cache_available=True, fixtures_required=True
+    )
+    # Bridge missing AND certification was demanded -- must fail, not pass
+    # silently.
+    with pytest.raises(pytest.fail.Exception):
+        _assert_steer_bridge_gated_enrollment_is_honest(
+            cache_available=False, fixtures_required=True
+        )
+
+
+def test_steer_fixtures_required_env_reads_the_documented_truthy_values() -> None:
+    """``_steer_fixtures_required_env`` mirrors root ``conftest.py``'s own
+    ``_truthy`` reading of ``AEREAD_STEER_FIXTURES_REQUIRED`` -- proven
+    directly rather than assumed, since a typo here (e.g. checking the wrong
+    variable name) would silently defeat
+    ``_assert_steer_bridge_gated_enrollment_is_honest`` in every real run.
+    """
+
+    original = os.environ.get("AEREAD_STEER_FIXTURES_REQUIRED")
+    try:
+        for value in ("1", "true", "yes"):
+            os.environ["AEREAD_STEER_FIXTURES_REQUIRED"] = value
+            assert _steer_fixtures_required_env() is True
+        for value in ("", "0", "false", "no"):
+            os.environ["AEREAD_STEER_FIXTURES_REQUIRED"] = value
+            assert _steer_fixtures_required_env() is False
+        del os.environ["AEREAD_STEER_FIXTURES_REQUIRED"]
+        assert _steer_fixtures_required_env() is False
+    finally:
+        if original is None:
+            os.environ.pop("AEREAD_STEER_FIXTURES_REQUIRED", None)
+        else:
+            os.environ["AEREAD_STEER_FIXTURES_REQUIRED"] = original
 
 
 # ---------------------------------------------------------------------------
@@ -2376,6 +2498,17 @@ def test_every_registered_family_obeys_the_scoring_contract(tmp_path: Path) -> N
     # local registry, not TRUSTED_BUILTIN_PLUGIN_KEYS -- see the assertion
     # below for that check.)
     assert set(fixtures) == set(registrations)
+
+    # docs/steer_migration_review.md finding 1: steer's enrollment via
+    # _BRIDGE_GATED_ENROLLED_FAMILY_VERSIONS below is a promise that
+    # test_steer_obeys_the_scoring_contract actually checks it elsewhere --
+    # a promise that stops being true the moment AEREAD_STEER_FIXTURES_REQUIRED
+    # asks for certification and the cache still cannot deliver it. Checked
+    # here, self-contained, before the closure assertion can silently pass.
+    _assert_steer_bridge_gated_enrollment_is_honest(
+        cache_available=_steer_cache_available(),
+        fixtures_required=_steer_fixtures_required_env(),
+    )
 
     # Ruling R6 (kernel_contract_gap_review.md finding 1): the real closed
     # world is TRUSTED_BUILTIN_PLUGIN_KEYS. The assertion above was true by
