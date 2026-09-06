@@ -1,7 +1,7 @@
 # collusion adapter — status
 
-Branch `zeyu/collusion-adapter`. Last verified 2026-09-05 (kernel scoring-
-contract migration, milestone 3 of 3 — final).
+Branch `zeyu/collusion-contract-migration`. Last verified 2026-09-05 (kernel
+scoring-contract migration, milestone 3 of 3 — final).
 
 ## What the adapter claims
 
@@ -220,10 +220,10 @@ now enforced generically rather than assumed.
 
 ## Evidence
 
-**Family suite: 94 passed, 0 failed, 0 skipped** across the five
+**Family suite: 95 passed, 0 failed, 0 skipped** across the five
 `test_collusion_*.py` files (`AEREAD` project venv, Python 3.11) plus
-`tests/test_shared_runner_smoke.py`, re-verified against this milestone's
-enrollment/receipt migration (`kernel_scoring_contract_spec.md`):
+`tests/test_shared_runner_smoke.py`, re-verified against this branch's
+current HEAD (`bff8f588`):
 
 | File | Tests |
 |---|---|
@@ -231,14 +231,17 @@ enrollment/receipt migration (`kernel_scoring_contract_spec.md`):
 | `tests/test_collusion_environment.py` | 18 |
 | `tests/test_collusion_measurement.py` | 25 |
 | `tests/test_collusion_harness.py` | 9 |
-| `tests/test_collusion_replay.py` | 14 (+1 this milestone: `test_finalize_wires_collusion_to_the_shared_family_finalizer`) |
+| `tests/test_collusion_replay.py` | 15 (14 from milestone 3, +1 from commit `5e593c8c`: `test_finalize_family_execution_rejects_a_collusion_scorer_that_forges_evidence_refs`) |
 | `tests/test_shared_runner_smoke.py` | 10 |
 
-Per-file counts above are measured directly against this branch today; the
-counts this table carried before this milestone had already drifted from
-tests landed in earlier sessions and were not reconciled at the time — this
-update corrects the table rather than only adding this milestone's new
-tests to stale numbers.
+Per-file counts above are measured directly against this branch today
+(`pytest tests/test_collusion_cases.py tests/test_collusion_environment.py
+tests/test_collusion_harness.py tests/test_collusion_measurement.py
+tests/test_collusion_replay.py tests/test_shared_runner_smoke.py -p
+no:cacheprovider`: 95 passed in 118.25s); the counts this table carried
+before milestone 3 had already drifted from tests landed in earlier
+sessions and were not reconciled at the time — this update corrects the
+table rather than only adding new tests to stale numbers.
 
 **Plus the shared, cross-family `tests/test_shared_runner_scoring_contract.py`
 (21 passed, 0 failed, 0 skipped)** — not collusion-specific, so not counted
@@ -355,15 +358,59 @@ rebuild, no second platform needed) and asserts every float in each case's
 - **No live-agent (LLM) run exists yet for this family**, at any milestone.
   Every trajectory in this repo, including this milestone's, is scripted
   and provider-free (ground rule, kept without exception).
-- **No mutation testing was performed this session.** Unlike
-  `tau3_adapter_status.md` (which reports 3 injected defects, 2 initially
-  uncaught), this milestone's harness/replay coverage was not stress-tested
-  by deliberately injecting a defect and confirming the suite catches it,
-  beyond the one tamper test described above (which targets the replay
-  comparator specifically, not the harness or scorer). Treat "0 failed" as
-  "the tests that exist all pass," not as "coverage is exhaustive."
-- **No independent code review of this milestone has occurred** (contrast
-  `tau3_adapter_status.md`'s "independently reviewed" line).
+- **Mutation testing has been performed, but narrowly.** Commit
+  `5e593c8c`'s own message (and, at that commit, this file's now-superseded
+  finding-4 disposition — full text retrievable via
+  `git show 5e593c8c:docs/collusion_migration_review.md`) records neutering
+  `task/evaluation.py`'s `_check_evidence_refs_are_scoring_input_verbatim`
+  call site and confirming the resulting new evidence_refs-forgery
+  regression test
+  (`tests/test_collusion_replay.py::test_finalize_family_execution_rejects_a_collusion_scorer_that_forges_evidence_refs`,
+  still present at HEAD) fails with `DID NOT RAISE ValueError` before the
+  call site was restored; this doc's own "Ruling R9(b) sensitivity witness"
+  section above records a second mutation check (dropping `malformed` from
+  the supplied fixtures fails the sensitivity witness for exactly the two
+  leaves it should). Beyond those two targeted checks, this
+  family's harness/replay coverage overall was not stress-tested by
+  deliberately injecting a defect and confirming the suite catches it —
+  unlike `tau3_adapter_status.md`'s broader campaign (3 injected defects, 2
+  initially uncaught) — beyond the one tamper test described above (which
+  targets the replay comparator specifically, not the harness or scorer).
+  Treat "0 failed" as "the tests that exist all pass, and two specific
+  guards were mutation-verified," not as "coverage is exhaustive."
+- **Two independent code reviews of this migration have occurred.** Round 1
+  (4 findings, reviewing commit `eeb59ecf`) was recorded in
+  `docs/collusion_migration_review.md` as of commit `5e593c8c` — full text
+  still retrievable via `git show 5e593c8c:docs/collusion_migration_review.md`
+  — and refuted findings 1 and 4 while confirming-but-escalating findings 2
+  and 3. Round 2 (1 finding, reviewing commit `5e593c8c`) rewrote that same
+  file in commit `bff8f588` to independently re-verify the identical
+  underlying defect as findings 2/3 directly against the code (not merely
+  cite round 1's disposition), confirming and escalating it again; the
+  current `docs/collusion_migration_review.md` documents round 2 in full
+  and references round 1's prior disposition in prose. Contrast
+  `tau3_adapter_status.md`'s single "independently reviewed" line — this
+  family now has two review rounds on record, not zero.
+- **The confirmed, escalated finding from both review rounds: the primary
+  and sole admission leaf can never score `"ok"` on a production receipt —
+  a pre-existing estimand limit, not a migration defect.**
+  `collusion_long_run_profit` requires `baseline_profit_by_seat`, which is
+  the output of a separate baseline-policy episode and is never present in
+  a single episode's `FamilyScoringInput`. `CollusionScorer.__call__`
+  (`src/aeread_families/collusion/measurement.py`, the
+  `baseline_profit_by_seat=None` call near line 874) therefore always
+  drives this leaf to `invalid_measurement("baseline_profit_not_provided")`
+  when scored through the real finalizer, so every production episode's
+  receipt currently has `inclusion_status == "excluded"` (see "Receipt"
+  above). This is the family's pre-existing estimand made visible by the
+  first receipt this migration produced, not a migration defect
+  (`docs/collusion_migration_review.md`: findings 2/3 in round 1, finding 1
+  in round 2 — the same underlying defect under both numberings). The
+  proposed resolution — splitting the leaf into a finalize-time
+  `collusion_long_run_own_profit` primary (self-contained own realized
+  profit) plus the existing delta-vs-baseline leaf re-scoped as
+  `scope="deferred"` on the baseline run — is an owner decision tracked in
+  GitHub issue #100 and is **not implemented on this branch**.
 - **Policy-combination coverage is partial.** The two full 300-round
   episodes each exercise one fixed policy pairing (monopoly-vs-monopoly,
   monopoly-vs-tit-for-tat). Other pairings (e.g. two tit-for-tat agents,
