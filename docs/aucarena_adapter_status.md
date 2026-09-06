@@ -381,6 +381,44 @@ nothing left to delegate to a subprocess, and nothing to provision.
   episode from the payload while cell/case bookkeeping carries the manifest value.
   `build_case` writes them equal and `content_sha256` pins both; all five goldens verified
   consistent.
+- **`aucarena_budget_invariant`'s and `aucarena_hammer_rule`'s R9(b) witness is satisfied by
+  check-extent, not by verdict variation — stated plainly, not softened.** Both leaves are
+  declared `input_scope="trajectory"`. `checked_transitions_count`/`replayed_rounds_count`
+  (`24f07c4c`) are the *only* thing that ever differs across this family's own same-`family_case`
+  fixture pairs; neither leaf's `status`/`primary` can vary on any trajectory this family can
+  seal:
+  - `aucarena_budget_invariant`'s only violation path is `budget < 0` at a recorded post-round
+    state. `envelope.valid` — the sole gate through which a bid can ever reach `step()`'s state
+    mutation — is computed by the shared kernel scheduler itself
+    (`task/scheduler.py`: `valid = parsed.ok and legality is not None and legality.legal`, not
+    by this family's own code), and `AucArenaPlugin.legal()` calls the same
+    `vendored.bid_sanity_check` that already rejects `bid_price > budget`; `step()` never folds
+    an invalid action into `round_bids` (`if not envelope.valid: continue`). By induction over
+    every item a seat bids on — each `win_bid` call only ever subtracts an already-legal,
+    budget-bounded amount from that seat's *current* (possibly already-reduced-by-a-prior-win)
+    budget — no sequence of raw scripted responses, adversarial or malformed included, driven
+    through the real scheduler can ever produce a negative recorded budget. This is a structural
+    property of the kernel's own `valid` computation, not an untried case; the only way around it
+    is to fabricate `TransitionResult.state` directly instead of deriving it from a live episode,
+    which would not be a sealed fixture in the sense this family's other witnesses are, and was
+    rejected rather than done.
+  - `aucarena_hammer_rule`'s only disagreement path — its independent `record_bid`/
+    `check_hammer` replay disagreeing with the environment's own recorded consequences — raises
+    `AucArenaMeasurementError` immediately instead of returning a differing `ScoreEnvelope`; a
+    disagreement, if one were ever reachable, aborts finalization rather than scoring
+    differently. On every successful (non-raising) replay this leaf's `status`/`primary` is
+    unconditionally `("ok", 1.0)` regardless of how the auction played out.
+  - The 2026-09-06 second independent review's failure scenario is accurate and is recorded
+    here rather than argued away: deleting the budget inspection body (`measurement.py`
+    ~443-455) or the hammer recomputation/comparison (~661-706) while leaving the counters in
+    place would still pass `_assert_trajectory_leaves_are_witnessed` — the witness cannot detect
+    that regression, because it is a same-case-pair check over `ScoreEnvelope` content and the
+    counters are the only content that varies. This is disclosed, not fixed: no sealable
+    same-`family_case` fixture can make either leaf's real verdict vary (see above), and
+    fabricating one would misrepresent what was actually checked. Full disposition, including
+    why the collusion-family precedent (a malformed-round fixture that changes the leaf's own
+    verdict) does not transfer here, is in `docs/aucarena_migration_review.md`'s "Second
+    independent review" section.
 
 ## Ledger
 
