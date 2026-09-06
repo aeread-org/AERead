@@ -32,6 +32,7 @@ invented, downloaded, or installed on the fly.
 from __future__ import annotations
 
 import json
+import re
 import os
 import subprocess
 from pathlib import Path
@@ -46,6 +47,28 @@ DEFAULT_BRIDGE_VENV = Path(
 
 _DRIVER_SCRIPT = Path(__file__).with_name("econevals_bridge_driver.py")
 _DEFAULT_TIMEOUT_SECONDS = 120.0
+
+
+_SET_RENDERING = re.compile(r"\{('[^']*'(?:,\s*'[^']*')*)\}")
+
+
+def _canonicalize_set_rendering(reason: Any) -> Any:
+    """Rewrite a ``str(set)`` fragment into sorted order, leaving the rest.
+
+    Only touches a brace-delimited run of single-quoted tokens, which is what
+    CPython's set repr produces; any other text passes through untouched.
+    """
+    if not isinstance(reason, str):
+        return reason
+
+    def _sorted(match: "re.Match[str]") -> str:
+        items = sorted(
+            item.strip()[1:-1] for item in match.group(1).split(",")
+        )
+        return "{" + ", ".join(f"'{item}'" for item in items) + "}"
+
+    return _SET_RENDERING.sub(_sorted, reason)
+
 
 
 class EconevalsBridgeUnavailableError(RuntimeError):
@@ -326,7 +349,18 @@ class EconevalsBridge:
                 "task_ids": list(task_ids),
             }
         )
-        return {"valid": response["valid"], "reason": response["reason"]}
+        # Upstream renders a Python set straight into this message
+        # (`"Assignment doesn't include workers: " + str(unmatched_workers)`,
+        # stable_matching_environment.py line 22). Set iteration order is not
+        # stable across processes, so the raw string differs run to run and
+        # the kernel's tool-replay cross-check reports a spurious divergence
+        # -- nondeterministically, which is the worst kind. Upstream is
+        # pinned and read-only, so the boundary canonicalizes the rendering
+        # here. No information is dropped: the same ids, in sorted order.
+        return {
+            "valid": response["valid"],
+            "reason": _canonicalize_set_rendering(response["reason"]),
+        }
 
     def scheduling_blocking_pairs(
         self,
