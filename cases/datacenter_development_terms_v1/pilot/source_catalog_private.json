@@ -1,0 +1,18 @@
+{
+  "catalog_version": "1.0.0",
+  "catalog_kind": "synthetic_source_role_catalog",
+  "lineage_scope": "synthetic_authored_no_historical_provenance",
+  "rights_status": "authored_for_benchmark",
+  "original_artifacts_included": false,
+  "historical_provenance": false,
+  "independence_assumption": "the one runnable case is one synthetic project cluster",
+  "sources": {
+    "synthetic_verbal_update": {"kind": "call_note", "role": "nonbinding verbal alignment evidence", "origin": "authored_synthetic", "original_included": false},
+    "synthetic_land_option": {"kind": "executed_agreement_summary", "role": "binding site-control and extension-payment evidence", "origin": "authored_synthetic", "original_included": false},
+    "synthetic_power_agreement": {"kind": "executed_agreement_summary", "role": "binding deposit and earliest energization evidence", "origin": "authored_synthetic", "original_included": false},
+    "synthetic_epc_proposal": {"kind": "unsigned_proposal_summary", "role": "construction price and schedule proposal without authorization", "origin": "authored_synthetic", "original_included": false},
+    "synthetic_loan_term_sheet": {"kind": "nonbinding_term_sheet_summary", "role": "conditional financing indication without committed capital", "origin": "authored_synthetic", "original_included": false},
+    "synthetic_service_redline": {"kind": "unsigned_redline_summary", "role": "proposed customer economics without contracted revenue", "origin": "authored_synthetic", "original_included": false},
+    "synthetic_internal_schedule": {"kind": "internal_schedule_summary", "role": "critical-path reconciliation evidence", "origin": "authored_synthetic", "original_included": false}
+  }
+}

@@ -1,0 +1,59 @@
+{
+  "benchmark_id": "datacenter_development_terms_v1",
+  "version": "1.0.0",
+  "pack_id": "datacenter_development_terms_public_v1",
+  "case_count": 5,
+  "construct": "Public-evidence agreement-state and cash-flow-boundary reconstruction for data-center development",
+  "measurement_kind": "property_or_answer",
+  "evidence_basis": "public_primary_sec_filings_paraphrased",
+  "historical_grounding_status": "public_source_reproducible_from_sec_accessions_and_locators",
+  "independent_sampling_unit": "public_filing_cluster",
+  "independence_cluster_count": 5,
+  "inference_status": "exploratory_five_public_filing_clusters",
+  "authority_modes_exercised": [
+    "report"
+  ],
+  "state_value_vocabulary": [
+    "conditional_customer_approval_required",
+    "conditional_final_plans_approval_required",
+    "conditional_on_executed_contract",
+    "conditional_precommencement_access",
+    "cost_plus_fee_gmp_change_order_adjustable",
+    "delivery_obligation_subject_to_rfs",
+    "executed",
+    "executed_pending_utility_consent",
+    "expired_superseded",
+    "linked_coterminous",
+    "not_authorized",
+    "not_commenced",
+    "not_drawn",
+    "not_due_rfs_unproven",
+    "not_effective",
+    "not_executed",
+    "not_fixed",
+    "not_proven",
+    "not_yet_effective",
+    "reverts_to_landlord_on_termination",
+    "study_only",
+    "study_reimbursement_only",
+    "unavailable_conditions_precedent"
+  ],
+  "scoring_policy": {
+    "primary": "hard_gate_conditioned_component_mean",
+    "components": [
+      "state_accuracy",
+      "amount_accuracy",
+      "required_action_recall",
+      "required_claim_recall",
+      "evidence_coverage"
+    ],
+    "hard_gates": [
+      "strict_schema",
+      "no_forbidden_action",
+      "no_forbidden_claim",
+      "no_unauthorized_external_action"
+    ],
+    "llm_judge_scope": "none"
+  }
+}
+

@@ -1,0 +1,54 @@
+{
+  "benchmark_id": "datacenter_development_terms_v1",
+  "version": "1.0.0",
+  "pack_id": "datacenter_development_terms_public_integrated_expansion_v1",
+  "case_count": 3,
+  "construct": "Integrated public-evidence data-center agreement terms, project state, and future cash-flow boundary reconstruction",
+  "measurement_kind": "property_or_answer",
+  "evidence_basis": "public_primary_sec_filings_paraphrased",
+  "historical_grounding_status": "public_source_reproducible_from_sec_accessions_and_locators",
+  "independent_sampling_unit": "public_filing_project_cluster",
+  "independence_cluster_count": 3,
+  "inference_status": "exploratory_three_additional_integrated_public_project_clusters",
+  "authority_modes_exercised": [
+    "report"
+  ],
+  "state_value_vocabulary": [
+    "advance_billings_deferred_zero_revenue_recognized",
+    "approved_capacity_partly_contracted_remainder_available",
+    "cost_estimate_not_fixed_price_or_cap",
+    "customer_specific_additional_work_controls_commencement",
+    "equipment_at_owner_risk_and_procured_without_markup",
+    "executed_open_book_cost_plus_design_build",
+    "executed_three_phase_long_term_leases",
+    "existing_mining_site_under_ai_conversion",
+    "four_executed_two_commenced_two_pending",
+    "indicative_until_project_group_determines_no_daily_penalty",
+    "initial_phase_under_retrofit_later_phases_future",
+    "joint_project_group_with_monthly_cost_approval",
+    "leasehold_land_and_improvements_revert_at_expiry",
+    "monthly_arrears_cash_neutral_with_notice_based_suspension",
+    "operating_critical_it_below_conditional_expansion",
+    "partly_drawn_up_to_secured_facility",
+    "pre_and_post_stabilization_financial_covenants",
+    "prepaid_rent_partly_applied_remainder_deferred",
+    "power_access_up_to_limit_not_operating_capacity"
+  ],
+  "scoring_policy": {
+    "primary": "hard_gate_conditioned_component_mean",
+    "components": [
+      "state_accuracy",
+      "amount_accuracy",
+      "required_action_recall",
+      "required_claim_recall",
+      "evidence_coverage"
+    ],
+    "hard_gates": [
+      "strict_schema",
+      "no_forbidden_action",
+      "no_forbidden_claim",
+      "no_unauthorized_external_action"
+    ],
+    "llm_judge_scope": "none"
+  }
+}

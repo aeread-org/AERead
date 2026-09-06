@@ -83,6 +83,11 @@ TRUSTED_BUILTIN_PLUGIN_KEYS = frozenset(
         ),
         ("consent_ir_v1", "1.0.0", "consent_ir_environment"),
         (
+            "datacenter_development_terms_v1",
+            "1.0.0",
+            "datacenter_development_terms_environment",
+        ),
+        (
             "datacenter_development_v1",
             "1.0.0",
             "datacenter_development_environment",
@@ -96,6 +101,41 @@ TRUSTED_BUILTIN_PLUGIN_KEYS = frozenset(
             "datacenter_development_v1",
             "2.0.0",
             "datacenter_development_environment_v2",
+        ),
+        (
+            "datacenter_development_v1",
+            "2.1.0",
+            "datacenter_development_objective_environment_v1",
+        ),
+        (
+            "datacenter_counteroffer_adoption_v1",
+            "1.0.0",
+            "datacenter_counteroffer_adoption_environment_v1",
+        ),
+        (
+            "datacenter_counteroffer_adoption_v1",
+            "1.1.0",
+            "datacenter_counteroffer_adoption_environment_v2",
+        ),
+        (
+            "datacenter_counteroffer_adoption_v1",
+            "1.2.0",
+            "datacenter_counteroffer_adoption_environment_v3",
+        ),
+        (
+            "datacenter_counteroffer_salience_v1",
+            "1.0.0",
+            "datacenter_counteroffer_salience_environment_v1",
+        ),
+        (
+            "datacenter_counteroffer_affordance_v1",
+            "1.0.0",
+            "datacenter_counteroffer_affordance_environment_v1",
+        ),
+        (
+            "datacenter_counteroffer_action_schema_v1",
+            "1.0.0",
+            "datacenter_counteroffer_action_schema_environment_v1",
         ),
         ("housing_v1", "1.0.0", "aeread.housing_v1"),
         (

@@ -54,6 +54,14 @@ Every receipt attempt remains in the attempt table. A failed attempt followed by
 attempt therefore stays observable without double-counting the cell. More than one included
 receipt for a cell is rejected as ambiguous.
 
+This uniqueness rule is permanent: a planned cell may have **at most one included receipt**.
+At campaign closure, every cell must have one terminal disposition—one included receipt, a
+typed exclusion, or `not_started`—under a selection and retry policy sealed before execution.
+Prior `EpisodeAttempt` executions remain as excluded receipt/attempt rows. Retries internal to
+one episode, such as `ActionAttempt`, `ProviderCall`, or `ToolInvocation` retries, remain in that
+episode attempt's event evidence rather than becoming independent receipt rows. An operational
+failure is retained as missingness and never converted to an economic zero.
+
 The campaign row reports expected, receipted, included, excluded, and not-started cell counts,
 plus coverage. Performance is intentionally not aggregated here; each family's typed
 `ScoreEnvelope` retains its own units and meaning.
@@ -65,6 +73,14 @@ treatment block, cluster and pairing identity, resolved profiles by seat, execut
 budgets, harness/runtime configuration, and implementation pins. It excludes repetition and
 sampling-replicate ordinals.
 
+In schema `0.1`, the price-catalog ID and digest are nested in harness configuration and are
+therefore hash-bound through the resolved profile. Before the first paper campaign, the plan
+schema must promote that dependency to an explicit plan-level pin referenced by each applicable
+profile. Pricing affects cost-budget enforcement and can therefore change execution, not merely
+post-hoc reporting. Prefer a `price_catalog` pin kind in `0.1`; a later schema may separate
+executable `ImplementationPin` values from non-executable `InputArtifactPin` values or rename
+the common abstraction to `ComponentPin`.
+
 Thus two attempts may be treated as replicates only when their scientifically relevant setup
 matches. The digest is stricter than a hand-authored `repeat_group_id` and can be compared
 across run plans.
@@ -73,7 +89,7 @@ across run plans.
 
 `project_evidence_events(evidence)` adds a runner-operational phase:
 
-- `planning`: the runner opens a declared family phase;
+- `planning`: schema `0.1` label for the runner opening a declared family phase;
 - `execution`: model actions, provider calls, parsing, legality, and tools;
 - `recovery`: attempts explicitly caused by a recorded retry reason;
 - `finalization`: state transition, phase close, episode termination, and family outcome.
@@ -84,6 +100,10 @@ workflow. Reasoning text remains diagnostic evidence rather than the primary out
 
 An unknown canonical event type has no guessed phase. Projection fails until its mapping is
 reviewed, making event-schema drift visible.
+
+The next projection schema will rename `planning` to `phase_setup`. The current event is an
+orchestration boundary, not evidence that a model planned. Versioned readers must continue to
+accept legacy `planning` rows; published `0.1` datasets are not silently rewritten.
 
 ### 4. Experimental-design preflight
 
@@ -189,20 +209,24 @@ The complete directory contract is [artifact_layout.md](artifact_layout.md).
 
 - No automatic `EvaluationReceipt` finalizer or interrupted-run resume.
 - No Parquet, database, or remote trajectory storage backend.
-- No repricing. Cost fields project the canonical recorded price result; price-catalog identity
-  remains declared in the plan and campaign view.
+- No repricing. Cost fields project the canonical recorded price result. Schema `0.1` retains
+  price-catalog identity in hash-bound harness configuration; the pre-paper migration promotes
+  it to an explicit plan-level pin.
 - No statistical power calculation, effect model, leaderboard, or universal cross-family
   score.
 - No Housing, Tau3/refund, or supply-chain semantics in the shared module.
 
-## Reviewer decisions requested
+## Resolved reviewer decisions — 2026-09-03
 
-1. Should price catalogs become first-class `RunPlan.implementation_pins` rather than profile
-   harness configuration before the first paper campaign?
-2. Is “opening a family phase” the right operational meaning for `planning`, or should the
-   operational taxonomy use a less model-like label in the next schema version?
-3. Should one included receipt per planned cell remain a hard invariant, with all prior retries
-   preserved only as excluded attempt rows?
+| Decision | Resolution | Migration boundary |
+|---|---|---|
+| Price-catalog identity | Promote every execution-relevant catalog to a first-class, content-hashed plan pin referenced by the applicable profiles. Do not leave the only identity inside generic harness configuration. | Required before the first paper campaign. Add `price_catalog` to the current pin contract or introduce a typed non-executable artifact pin in the next plan schema. |
+| Operational phase label | Use `phase_setup`; “planning” is too easily confused with model cognition and overstates what `phase_instance_started` records. | Change in the next projection schema. Continue reading legacy `planning` values and do not rewrite published `0.1` exports. |
+| Included receipt cardinality | Retain the hard **at-most-one included receipt per planned cell** invariant. Preserve all episode attempts; prior attempts are excluded, while action-level retries remain nested event evidence. | Effective immediately. Campaign closure additionally requires one terminal disposition per cell: included, typed exclusion, or `not_started`. |
+
+These decisions do not authorize selective replacement. Any successor attempt admitted after an
+operational failure must follow the sealed retry/selection policy symmetrically across treatment
+conditions; the ledger must never select the highest-scoring attempt after observing outcomes.
 
 ## Code and tests
 

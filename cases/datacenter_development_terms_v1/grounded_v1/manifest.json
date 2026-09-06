@@ -1,0 +1,47 @@
+{
+  "benchmark_id": "datacenter_development_terms_v1",
+  "version": "1.0.0",
+  "pack_id": "datacenter_development_terms_grounded_v1",
+  "case_count": 4,
+  "construct": "Evidence-grounded commercial-state reconstruction for data-center development and deployment",
+  "measurement_kind": "property_or_answer",
+  "evidence_basis": "verified_before_sanitization_user_provided_pack",
+  "historical_grounding_status": "verified_before_sanitization_nonreproducible_from_public_pack",
+  "independent_sampling_unit": "conservative_source_archive_cluster",
+  "independence_cluster_count": 1,
+  "inference_status": "diagnostic_only",
+  "authority_modes_exercised": [
+    "report"
+  ],
+  "state_value_vocabulary": [
+    "conditional_only",
+    "countersigned_order_processing",
+    "not_auditable",
+    "not_directly_comparable",
+    "not_proven",
+    "not_ready",
+    "sales_pricing_not_margin_model",
+    "sent_not_executed",
+    "single_cabinet_mid_20kw",
+    "site_west",
+    "stale_conflicting"
+  ],
+  "scoring_policy": {
+    "primary": "hard_gate_conditioned_component_mean",
+    "components": [
+      "state_accuracy",
+      "amount_accuracy",
+      "required_action_recall",
+      "required_claim_recall",
+      "evidence_coverage"
+    ],
+    "hard_gates": [
+      "strict_schema",
+      "no_forbidden_action",
+      "no_forbidden_claim",
+      "no_unauthorized_external_action"
+    ],
+    "llm_judge_scope": "none"
+  }
+}
+
