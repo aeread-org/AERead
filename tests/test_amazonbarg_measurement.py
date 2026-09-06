@@ -31,10 +31,11 @@ from typing import Any
 
 import pytest
 
-from aeread.shared_runner.measurement import MeasurementContractError, ScoreEnvelope
+from aeread.shared_runner.measurement import FamilyScoreSet, MeasurementContractError, ScoreEnvelope
 from aeread.shared_runner.registry import PluginRegistry
 from aeread.shared_runner.run.resolver import PlanCell
 from aeread.shared_runner.schemas import CaseManifest
+from aeread.shared_runner.task.evaluation import FamilyScoringInput
 from aeread.shared_runner.task.scheduler import DecisionRequest, run_episode
 from aeread_families.amazonbarg import measurement as m
 from aeread_families.amazonbarg import upstream_shim
@@ -155,6 +156,30 @@ def _run_transcript(codename: str, script: list[tuple[str, str, str]]) -> tuple[
     )
     assert scripted.exhausted
     return case, family_case, result.final_state["history"]
+
+
+def _run_full_episode(codename: str, script: list[tuple[str, str, str]]) -> tuple[dict[str, Any], Any]:
+    """Run one scripted golden through the real scheduler; return the full result.
+
+    Unlike ``_run_transcript`` (which returns only ``history``), this keeps
+    the whole ``EpisodeResult`` -- ``outcome``/``phase_instances`` too -- so
+    a test can build a ``FamilyScoringInput`` directly and exercise
+    ``AmazonbargScorer.__call__`` in isolation, mirroring govsim's
+    already-migrated ``__call__`` tests' own "pure FamilyScoringInput, no
+    evidence-store replay wiring needed" shape.
+    """
+    case = _case(codename)
+    plugin = AmazonbargPlugin(upstream_root=UPSTREAM_ROOT)
+    family_case = plugin.validate_payload(case.payload)
+    registry = PluginRegistry()
+    register_plugin(registry, plugin=plugin)
+    resolved_plugin = registry.resolve_manifest(family_manifest())
+    scripted = _ScriptedReplies(script)
+    result = asyncio.run(
+        run_episode(cell=_cell(case), case=case, plugin=resolved_plugin, response_source=scripted)
+    )
+    assert scripted.exhausted
+    return family_case, result
 
 
 # ---------------------------------------------------------------------------
@@ -392,6 +417,99 @@ def test_golden_1_successful_deal_shark_vacuum() -> None:
     assert envelopes["ratio_buyer"].primary.value == pytest.approx(0.49, abs=0.01)
     assert envelopes["ratio_seller"].primary.value == pytest.approx(0.51, abs=0.01)
     assert envelopes["ratio_buyer"].utility_by_seat["seller"].value == envelopes["ratio_seller"].primary.value
+
+
+# ---------------------------------------------------------------------------
+# AmazonbargScorer.__call__ -- the production finalizer seam under the
+# kernel_scoring_contract_spec.md contract (migration milestone 2 of 3).
+# ``task.evaluation.finalize_family_execution`` executes
+# ``plugin.build_scorer(family_case)(scoring_input,
+# evidence_refs=scoring_input.evidence_refs)`` directly on whatever
+# ``build_scorer`` returns -- never through a named method the way every
+# golden above does. Before this milestone, ``AmazonbargScorer`` had no
+# ``__call__`` at all and this raised ``TypeError: 'AmazonbargScorer' object
+# is not callable`` before any score was recorded or receipt issued (ledger
+# D-15).
+# ---------------------------------------------------------------------------
+
+_ALL_FIVE_LEAF_IDS = frozenset(
+    {
+        m.DEAL_AUTHENTICITY_LEAF_ID,
+        m.ZOPA_MEMBERSHIP_LEAF_ID,
+        m.DEAL_LOWER_BOUND_LEAF_ID,
+        m.DEAL_UPPER_BOUND_LEAF_ID,
+        m.BARGAINED_RATIO_LEAF_ID,
+    }
+)
+
+
+def test_amazonbarg_scorer_call_returns_every_declared_leaf_never_just_the_primary() -> None:
+    """Runs golden 1 (the same successful $135 deal as the test above)
+    through ``AmazonbargScorer.__call__`` and asserts every one of this
+    family's five declared leaves comes back, not only
+    ``amazonbarg_bargained_ratio`` (the declared primary)."""
+    script = [
+        (BUYER_PHASE, "buyer", "Thought: t\nTalk: hi\nAction: [BUY] $120 (1x home-kitchen_2)"),
+        (SELLER_PHASE, "seller", "Thought: t\nTalk: ok\nAction: [SELL] $150 (1x home-kitchen_2)"),
+        (BUYER_PHASE, "buyer", "Thought: t\nTalk: deal?\nAction: [BUY] $135 (1x home-kitchen_2)"),
+        (SELLER_PHASE, "seller", "Thought: t\nTalk: yes\nAction: [DEAL] $135 (1x home-kitchen_2)"),
+    ]
+    family_case, result = _run_full_episode("home-kitchen_2", script)
+    plugin = AmazonbargPlugin(upstream_root=UPSTREAM_ROOT)
+    scorer = plugin.build_scorer(family_case)
+    scoring_input = FamilyScoringInput(
+        outcome=result.outcome,
+        phase_instances=result.phase_instances,
+        evidence_refs=("evt_outcome_0",),
+    )
+
+    score_set = scorer(scoring_input, evidence_refs=scoring_input.evidence_refs)
+
+    assert isinstance(score_set, FamilyScoreSet)
+    assert {score.leaf.leaf_id for score in score_set.scores} == set(_ALL_FIVE_LEAF_IDS)
+    assert score_set.primary_leaf_id == m.BARGAINED_RATIO_LEAF_ID
+    assert score_set.admission_leaf_ids == (m.BARGAINED_RATIO_LEAF_ID,)
+    assert all(score.evidence_refs == ("evt_outcome_0",) for score in score_set.scores)
+
+    authenticity = next(s for s in score_set.scores if s.leaf.leaf_id == m.DEAL_AUTHENTICITY_LEAF_ID)
+    assert authenticity.status == "ok"
+    assert authenticity.primary.value == 1.0
+
+    zopa = next(s for s in score_set.scores if s.leaf.leaf_id == m.ZOPA_MEMBERSHIP_LEAF_ID)
+    assert zopa.status == "ok"
+    assert zopa.primary.value == 1.0
+    assert zopa.metrics["deal_price"].value == pytest.approx(135.0)
+
+    lower = next(s for s in score_set.scores if s.leaf.leaf_id == m.DEAL_LOWER_BOUND_LEAF_ID)
+    assert lower.status == "ok"
+    assert lower.primary.value == pytest.approx(135.0)
+
+    upper = next(s for s in score_set.scores if s.leaf.leaf_id == m.DEAL_UPPER_BOUND_LEAF_ID)
+    assert upper.status == "ok"
+    assert upper.primary.value == pytest.approx(135.0)
+
+    # amazonbarg_bargained_ratio is this family's declared primary AND sole
+    # admission leaf, yet no `tested_seat` signal is reachable from a
+    # FamilyScoringInput alone (score_bargained_ratio's own docstring) --
+    # __call__ therefore reports it invalid_measurement through THIS seam
+    # specifically, never a fabricated side. Disclosed in
+    # docs/amazonbarg_adapter_status.md's "Leaf policy" section.
+    ratio = next(s for s in score_set.scores if s.leaf.leaf_id == m.BARGAINED_RATIO_LEAF_ID)
+    assert ratio.status == "invalid_measurement"
+    assert m.reasons_include(ratio.validity, m.REASON_TESTED_SEAT_UNKNOWN)
+
+
+@pytest.mark.no_upstream_checkout_required
+def test_amazonbarg_scorer_call_raises_when_upstream_root_is_missing() -> None:
+    """``build_scorer(family_case)`` (no ``upstream_root``) mirrors every
+    existing direct-scorer test in this file; ``__call__`` -- the one seam
+    that actually needs the pinned checkout to delegate to
+    ``eval.py:Metrics`` -- must raise before touching it, never score
+    silently with a missing bridge."""
+    scorer = m.build_scorer(_family_case("mutual"))
+    scoring_input = FamilyScoringInput(outcome={}, phase_instances=(), evidence_refs=())
+    with pytest.raises(ValueError, match="upstream_root"):
+        scorer(scoring_input)
 
 
 def test_golden_2_valid_but_poor_deal_calphalon() -> None:
@@ -632,3 +750,29 @@ def test_score_bargained_ratio_rejects_an_unknown_tested_seat() -> None:
             metrics_output={"wrongAction": 0, "closeADeal": 1, "buyer_bargained_ratio": 0.5, "seller_bargained_ratio": 0.5},
             tested_seat="referee",
         )
+
+
+@pytest.mark.no_upstream_checkout_required
+def test_score_bargained_ratio_reports_tested_seat_unknown_when_missing_never_fabricating_a_side() -> None:
+    """``tested_seat=None`` (widened for kernel_scoring_contract_spec.md:
+    no ``FamilyScoringInput`` can carry which seat a RunPlan is testing --
+    see this leaf's own docstring) seals ``invalid_measurement`` with the
+    named ``REASON_TESTED_SEAT_UNKNOWN`` reason, never a guessed
+    ``"buyer"``/``"seller"`` primary, even though the deal itself is
+    otherwise perfectly measurable (``wrongAction=0``, a closed deal, a
+    genuine ZOPA)."""
+    leaf = m.build_bargained_ratio_leaf()
+    envelope = m.score_bargained_ratio(
+        leaf,
+        family_case=_family_case("mutual"),
+        metrics_output={
+            "wrongAction": 0,
+            "closeADeal": 1,
+            "buyer_bargained_ratio": 0.5,
+            "seller_bargained_ratio": 0.5,
+        },
+        tested_seat=None,
+    )
+    assert envelope.status == "invalid_measurement"
+    assert envelope.primary is None
+    assert m.reasons_include(envelope.validity, m.REASON_TESTED_SEAT_UNKNOWN)
