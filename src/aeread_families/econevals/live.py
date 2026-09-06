@@ -310,6 +310,14 @@ class EconevalsJsonHarness:
             if not isinstance(arguments, Mapping):
                 return None, False, f"call {index} needs an arguments object"
             if name == submit_tool:
+                if submit_index is not None:
+                    # Two submits in one step: the first would sit mid-list in
+                    # the accumulated action and the environment would reject
+                    # the whole period (submit_tool_must_be_the_final_call).
+                    # Checking only the LAST occurrence let this through.
+                    return None, False, (
+                        f"call {submit_tool!r} exactly once, as the final call"
+                    )
                 submit_index = index
             normalized.append({"id": call_id, "name": name, "arguments": arguments})
         if submit_index is not None and submit_index != len(normalized) - 1:

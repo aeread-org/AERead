@@ -368,3 +368,18 @@ def test_failure_register_types_conditions_from_the_sealed_ledger() -> None:
     assert "source_artifact_sha256" in header
     for row in rows:
         assert len(row.rsplit(",", 1)[-1]) == 64
+
+
+def test_a_step_may_not_submit_twice() -> None:
+    """Two submits in one step would put the first mid-list in the accumulated
+    action, and the environment rejects the whole period for it. Checking only
+    the last occurrence let this through and cost a live case."""
+    from aeread_families.econevals.live import EconevalsJsonHarness as H
+
+    calls = [
+        {"id": "a", "name": "submit_purchase_plan", "arguments": {}},
+        {"id": "b", "name": "submit_purchase_plan", "arguments": {}},
+    ]
+    step, submitted, reason = H._validate_step(calls, submit_tool="submit_purchase_plan")
+    assert step is None and submitted is False
+    assert "exactly once" in reason
