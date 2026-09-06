@@ -79,6 +79,33 @@ genuinely misconfigured route. When a burst is sustained, the disposition is
 the risk-gate V4 precedent -- seal the audit and re-run the identical frozen
 plan in a later availability window.
 
+## Result, attempt 014 (published 2026-09-06)
+
+6/6 cases completed, 5 included, 1 excluded, **0 operational failures**,
+$0.0961 against a $0.40 ceiling, canary admitted on the first probe.
+
+| track | case | inclusion | gate | objective |
+|---|---|---|---|---|
+| procurement | 0 | excluded | -- | -- |
+| procurement | 1 | included | 1.0 | 0.0 |
+| scheduling | 0 | included | 0.0 | -- |
+| scheduling | 1 | included | 0.0 | -- |
+| pricing | 0 | included | 0.0 | -- |
+| pricing | 1 | included | 0.0 | -- |
+
+**Do not read this as a model result.** Five of six cases have `gate = 0.0`:
+the final submission failed the legality gate, so no objective was scored.
+The one case that passed the gate captured zero headroom. Under the
+interaction shape described below -- one model call per period, the burst
+executed afterwards, no tool result ever visible within the period -- the
+agent must submit a valid assignment or price vector blind to everything it
+just looked up. A gate of 0.0 under those conditions measures the adapter's
+interaction shape, not the model's economic reasoning.
+
+What the panel does establish is the pipeline: live model -> declared tools
+-> sealed receipt -> offline replay -> measurement against upstream's own
+exact optimum, six times, with no operational failures.
+
 ## Fidelity against the original paper (checked 2026-09-06)
 
 Verified against the pinned checkout `sara-fish/econ-evals-paper` @
