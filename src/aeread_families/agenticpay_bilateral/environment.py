@@ -169,6 +169,57 @@ def _round_trace_entry(
     }
 
 
+def _measurement_reference_provider_ids() -> list[str]:
+    """Every implementation id one of this family's three finalize-time
+    leaves actually references (validity-domain predicate, verifier
+    reference implementation, scorer) -- derived from ``measurement.py``'s
+    own leaf builders, never a duplicated literal here, so this list can
+    never drift from what the leaves really declare (mirrors
+    ``negarena.environment``'s identical ``_measurement_reference_provider_ids``
+    convention). A minimal, synthetic contract-mode ``family_case`` is used
+    only so ``build_contract_legality_leaf`` returns non-``None`` -- its
+    reference's ``source_sha256`` (which genuinely varies per real case) is
+    never read here, only each ref's stable ``implementation_id``;
+    ``family_manifest()`` itself is case-independent and is never called
+    with a real case.
+
+    Required so ``resolve_run_plan`` reserves and admits an
+    ``ImplementationPin`` for each one: without this,
+    ``EvaluationReceipt``'s own pin/implementation cross-check
+    (``receipts.py``'s ``_validate_and_freeze_plan_pins``) rejects every
+    agenticpay.bilateral receipt outright, since none of these ids were
+    ever declared anywhere a plan's required pins are computed from --
+    migration milestone 3 of 3 is the first thing in this repo to actually
+    seal an agenticpay.bilateral ``EvaluationReceipt`` and is what surfaced
+    this gap.
+    """
+    synthetic_contract_case: dict[str, Any] = {
+        "constructor_kwargs": {
+            "max_rounds": 1,
+            "environment_info": {
+                "contract_config": {"continuous_bounds": {}, "discrete_options": {}},
+            },
+        },
+    }
+    deal_leaf = measurement.build_deal_reached_leaf(synthetic_contract_case)
+    surplus_leaf = measurement.build_surplus_share_leaf(synthetic_contract_case)
+    contract_leaf = measurement.build_contract_legality_leaf(synthetic_contract_case)
+    assert contract_leaf is not None
+    return sorted(
+        {
+            deal_leaf.estimand.validity_domain.predicate.implementation_id,
+            deal_leaf.verifier.reference.implementation.implementation_id,
+            deal_leaf.scorer.implementation_id,
+            surplus_leaf.estimand.validity_domain.predicate.implementation_id,
+            surplus_leaf.verifier.reference.implementation.implementation_id,
+            surplus_leaf.scorer.implementation_id,
+            contract_leaf.estimand.validity_domain.predicate.implementation_id,
+            contract_leaf.verifier.reference.implementation.implementation_id,
+            contract_leaf.scorer.implementation_id,
+        }
+    )
+
+
 def family_manifest() -> FamilyManifest:
     """Return the strict family declaration used by the trusted registry."""
     return FamilyManifest.from_dict(
@@ -190,8 +241,9 @@ def family_manifest() -> FamilyManifest:
                 # registry requires (mirrors tau3_retail's own
                 # "retail_task_reward" label, which never matches either of
                 # its two real leaf ids either) -- not the same object as
-                # the four concrete MeasurementLeafSpec declarations
-                # measurement.py builds per case (build_scorer, below).
+                # the concrete MeasurementLeafSpec declarations
+                # measurement.py builds per case (three declared finalize-time
+                # leaves; build_scorer, below).
                 "primary_estimand": "agenticpay_bilateral_surplus_share",
                 "measurement_kind": "optimizable_outcome",
                 "direction": "maximize",
@@ -200,8 +252,79 @@ def family_manifest() -> FamilyManifest:
                 "optimum_upper_bound_kind": "known",
                 "bound_status": "family_defined",
                 "outcome_support": "unit_interval",
+                # kernel_scoring_contract_spec.md section 3 (migration
+                # milestone 2 of 3): every leaf this family publishes at
+                # finalize time, exactly one primary, and precisely the
+                # leaves that gate admission -- declared here, the one
+                # source of truth, never inferred from `build_scorer` or a
+                # test fixture. All three are `scope="finalize_time"`: every
+                # scorer in measurement.py is `evaluation_class="deterministic"`
+                # with no judge, rater, or other not-yet-existing artifact
+                # dependency (spec section 4), so none is `deferred`.
+                #
+                # `agenticpay_surplus_share` collapses what used to be two
+                # always-on, role-specific leaves
+                # (`agenticpay_buyer_surplus_share`/`agenticpay_seller_surplus_share`)
+                # into the one this family can actually publish without
+                # hard-coding an answer to "which seat is the tested
+                # subject" -- neither role name a real evaluation cell might
+                # test is knowable in advance (both are independently
+                # `testable` above), so it is declared
+                # `seat_scope="subject_seat"` (ruling R12).
+                # `agenticpay_contract_legality` is declared only for
+                # contract-mode cases (`measurement.is_contract_mode`), so it
+                # is declared `case_conditional=True` (ruling R13) --
+                # `AgenticpayBilateralPlugin.inapplicable_leaf_ids` below
+                # names it for a basic case. `agenticpay_deal_reached` is a
+                # whole-negotiation predicate, independent of which seat is
+                # the subject and of contract mode -- the default
+                # `seat_scope="cell"`, not `case_conditional`. See
+                # docs/agenticpay_adapter_status.md's "Leaf policy" section
+                # for why `agenticpay_surplus_share` is primary and why it
+                # alone gates admission.
+                "leaves": [
+                    {"leaf_id": measurement.DEAL_REACHED_LEAF_ID, "scope": "finalize_time"},
+                    {
+                        "leaf_id": measurement.SURPLUS_SHARE_LEAF_ID,
+                        "scope": "finalize_time",
+                        "seat_scope": "subject_seat",
+                    },
+                    {
+                        "leaf_id": measurement.CONTRACT_LEGALITY_LEAF_ID,
+                        "scope": "finalize_time",
+                        "case_conditional": True,
+                    },
+                ],
+                "primary_leaf_id": measurement.SURPLUS_SHARE_LEAF_ID,
+                "admission_leaf_ids": [measurement.SURPLUS_SHARE_LEAF_ID],
+                # Ruling R9 (migration milestone 3 of 3): outcome() (below)
+                # returns dict(terminal) verbatim, which embeds
+                # `round_trace` -- the full per-round negotiation history --
+                # so two episodes with different transcripts essentially
+                # never produce a byte-identical outcome (the same shape as
+                # collusion's `history`, not govsim's aggregates-only
+                # outcome). Declaring this path is what lets the protocol
+                # test's paired-history precondition compare the PROJECTION
+                # (outcome minus this path) instead of requiring a
+                # byte-identical whole outcome no two genuinely different
+                # trajectories could ever produce.
+                "trajectory_outcome_paths": ["/round_trace"],
             },
-            "scoring": {"scorer_id": SCORER_ID},
+            "scoring": {
+                "scorer_id": SCORER_ID,
+                # See `_measurement_reference_provider_ids()` above: without
+                # this, `resolve_run_plan` never reserves a pin for any of
+                # these components (`_required_pin_kinds`/`_check_pins`
+                # reject a pin whose component id is not `scoring`-declared
+                # as "unreferenced"), and `EvaluationReceipt`'s own
+                # `_validate_and_freeze_plan_pins` then rejects the sealed
+                # receipt as missing implementations -- no real evaluation
+                # of this family could ever finalize through a genuine
+                # `RunPlan` otherwise. A latent gap from Milestone 1/2,
+                # closed here because proving a receipt comes back is this
+                # milestone's point.
+                "reference_provider_ids": _measurement_reference_provider_ids(),
+            },
         }
     )
 
@@ -513,13 +636,31 @@ class AgenticpayBilateralPlugin:
     def build_scorer(self, family_case: Mapping[str, Any]) -> Any:
         """Return this case's measurement leaves and scorers (spec section 2).
 
-        Delegates entirely to ``measurement.build_scorer`` -- the four
-        sanctioned leaves (``agenticpay_deal_reached``,
-        ``agenticpay_contract_legality`` when contract mode applies,
-        ``agenticpay_buyer_surplus_share``, ``agenticpay_seller_surplus_share``)
-        are declared and scored there, never here.
+        Delegates entirely to ``measurement.build_scorer`` -- every leaf
+        (``agenticpay_deal_reached``, ``agenticpay_contract_legality`` when
+        contract mode applies, and the leaves the returned
+        ``AgenticpayBilateralScorer`` computes surplus-share from) is
+        declared and scored there, never here. The returned
+        ``AgenticpayBilateralScorer`` is itself callable
+        (``__call__(scoring_input, evidence_refs=...)``,
+        kernel_scoring_contract_spec.md section 1): it returns exactly the
+        finalize-time leaves ``family_manifest()`` declares above --
+        ``agenticpay_deal_reached``, ``agenticpay_surplus_share``, and
+        ``agenticpay_contract_legality`` when this case is contract-mode
+        (spec section 5, migration milestone 2 of 3).
         """
         return measurement.build_scorer(family_case)
+
+    def inapplicable_leaf_ids(self, family_case: Mapping[str, Any]) -> "frozenset[str]":
+        """Ruling R13: ``agenticpay_contract_legality`` does not apply to a
+        basic (price-only) case -- ``measurement.build_contract_legality_leaf``
+        already returns ``None`` for exactly this reason, so this hook is a
+        direct restatement of the identical ``is_contract_mode`` predicate,
+        never a second, independently-maintained decision.
+        """
+        if measurement.is_contract_mode(family_case):
+            return frozenset()
+        return frozenset({measurement.CONTRACT_LEGALITY_LEAF_ID})
 
     def build_reference_providers(self, family_case: Mapping[str, Any]) -> tuple[Any, ...]:
         del family_case
