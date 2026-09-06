@@ -233,23 +233,68 @@ milestone — but it means **every receipt this family produces through
 `AmazonbargScorer.__call__` today is non-admitted, for any episode, clean
 or not**, now demonstrated rather than only argued.
 
-**Suite, with the bridge exported:** the full family test-file set plus
-`test_shared_runner_scoring_contract.py` and `test_shared_runner_smoke.py`
-— **138 passed, 0 failed, 0 skipped**. Without the bridge (upstream root
-pointed at a nonexistent path): **53 passed, 85 skipped**, every skip
-carrying the same named reason as before, including both of this
+**Suite, with the bridge exported:** the full family test-file set —
+now `test_amazonbarg_cases.py`, `test_amazonbarg_environment.py`,
+`test_amazonbarg_harness.py`, `test_amazonbarg_measurement.py`,
+`test_amazonbarg_replay.py`, `test_amazonbarg_shim.py`,
+`test_amazonbarg_upstream_skip_scope.py`, and
+`test_amazonbarg_bilateral_ci_bridge_requirement.py` (new, added by the
+independent-review fix pass above) — plus `test_shared_runner_scoring_contract.py`
+and `test_shared_runner_smoke.py` — **142 passed, 0 failed, 0 skipped**
+(re-verified 2026-09-05; up from 138 by the 4 tests the review fix pass
+added: the ordering regression above and the three
+`test_amazonbarg_bilateral_ci_bridge_requirement.py` tests). Without the
+bridge (upstream root pointed at a nonexistent path): **53 passed, 89
+skipped** (up from 85 by the same 4 tests — including the three CI-bridge
+-requirement tests, which need no real upstream bytes themselves but are
+still swept into the blanket skip because `conftest.py`'s
+`pytest_collection_modifyitems` gates on any `test_amazonbarg_` filename
+prefix, not on whether a given test actually touches the checkout), every
+skip carrying the same named reason as before, including both of the prior
 milestone's new tests
 (`test_finalize_wires_amazonbarg_to_the_shared_family_finalizer`,
 `test_amazonbarg_obeys_the_scoring_contract`) — verified individually, not
 merely counted.
 
-No `docs/amazonbarg_migration_review.md` is added this milestone: unlike
-the govsim reference migration's `b853ed74` (which recorded an independent
-review actually supplied to that migration), no review was supplied for
-this one, and fabricating one to match the reference shape would misrepresent
-provenance. The `conftest.py` bridge-required gate (govsim's own review
-finding 1's fix) is applied directly instead, since it does not depend on a
-review having occurred.
+**Independent review supplied and disposed
+(`docs/amazonbarg_migration_review.md`, 2026-09-05).** Four findings, verified
+against the code and disposed by the migration agent in the same session
+(commits `44b31dda`, `d44e9a50`, `44ff2156`):
+
+- Two are **CONFIRMED, ESCALATED (owner decision)** — the two bound leaves'
+  forced `terminal_state` declaration over a trajectory-derived deal price,
+  and every `__call__`-produced receipt being non-admitted via
+  `REASON_TESTED_SEAT_UNKNOWN` — matching, not adding to, what "Leaf policy"
+  above and "Kernel/runner defects" below already disclosed before the
+  review ran; no code change was made or is available to a migration agent
+  for either (spec section 5 forbids changing an estimand's declared
+  `input_scope`/`reference_kind`, or moving the primary/admission leaf away
+  from `amazonbarg_bargained_ratio_leaf`).
+- One is **REFUTED**: the claim that `score_all()` inserting the primary
+  leaf last means a positional consumer sees it out of order.
+  `FamilyScoreSet.__post_init__` (`src/aeread/shared_runner/measurement.py`)
+  unconditionally re-sorts `scores`/`admission_leaf_ids`
+  primary-first-then-lexical on construction regardless of the order a
+  family scorer supplies — verified against a real replayed golden-1
+  episode, then pinned by a new regression test,
+  `test_amazonbarg_scorer_call_orders_primary_first_then_lexical_leaf_id`
+  (`tests/test_amazonbarg_measurement.py`, commit `44b31dda`).
+- One is **CONFIRMED, FIXED**: the scoring-contract protocol test's
+  trusted-catalog closure counts amazonbarg as covered via
+  `_BRIDGE_GATED_ENROLLED_FAMILY_VERSIONS` regardless of whether
+  `test_amazonbarg_obeys_the_scoring_contract` actually ran, and — the
+  sharper mechanism the disposition adds — **nothing in this project's CI
+  ever set `AEREAD_AMAZONBARG_BRIDGE_REQUIRED`**, so a real CI run always
+  skipped that test (and every other amazonbarg fidelity test) and always
+  reported green. Fixed by commit `d44e9a50`: a new `amazonbarg-fidelity`
+  job in `.github/workflows/ci.yml` (mirroring `agenticpay-fidelity`)
+  checks out the pinned upstream `TianXiaSJTU/AmazonPriceHistory` repository
+  and runs every amazonbarg fidelity test file plus
+  `test_shared_runner_scoring_contract.py` with
+  `AEREAD_AMAZONBARG_BRIDGE_REQUIRED: "1"` set;
+  `tests/test_amazonbarg_bilateral_ci_bridge_requirement.py` (new, mirrors
+  `test_agenticpay_bilateral_ci_bridge_requirement.py`) regression-pins that
+  the job stays wired that way, rather than merely asserting it once.
 
 ## Evidence
 
@@ -473,6 +518,12 @@ a kernel-level channel for the tested seat is added or a different
 family-level convention is agreed. This is the single most consequential
 finding of this milestone and should be weighed before treating this
 family as production-ready under the new contract.
+
+Both are independently confirmed and escalated for an owner decision in
+`docs/amazonbarg_migration_review.md` (findings 1 and 2, 2026-09-05 review)
+— the review found nothing beyond what was already disclosed here, and
+made no code change for either, since none is available to a migration
+agent.
 
 The three kernel-contract limitations already on file from milestones 1-2
 (`ledger_entries/amazonbarg.md`: the two-value `ScoreEnvelope.status` enum
