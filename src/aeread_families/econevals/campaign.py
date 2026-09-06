@@ -307,6 +307,39 @@ async def _probe_canary(
     return record
 
 
+def _sealed_spend(evidence_root: Path) -> float:
+    """Provider spend already sealed under a run, receipted or not.
+
+    A case that dies partway has run real calls and paid for them, but its
+    failure checkpoint has no completed execution to read a cost from. The
+    spend is in the evidence tree regardless, so it is recovered from there:
+    an unrecorded cost is still a cost, and a ledger that omits it
+    understates what a failed attempt consumed.
+    """
+    total = 0.0
+
+    def walk(value: Any) -> None:
+        nonlocal total
+        if isinstance(value, Mapping):
+            cost = value.get("cost_usd")
+            if isinstance(cost, (int, float)) and not isinstance(cost, bool):
+                total += float(cost)
+            for item in value.values():
+                walk(item)
+        elif isinstance(value, list):
+            for item in value:
+                walk(item)
+
+    for path in evidence_root.rglob("artifacts/sha256/*/*"):
+        if not path.is_file():
+            continue
+        try:
+            walk(json.loads(path.read_text(encoding="utf-8")))
+        except (ValueError, OSError):
+            continue
+    return total
+
+
 async def run_canary(*, run_root: Path, plan_sha256: str) -> dict[str, Any]:
     """Admit the route, re-probing only on typed transient conditions.
 
@@ -432,6 +465,11 @@ async def execute_campaign(*, run_root: Path) -> None:
                 "status": "operational_failure",
                 "failure_type": type(error).__name__,
                 "failure_condition": getattr(error, "condition", "execution_failure"),
+                # What this case consumed before it died. Recovered from the
+                # sealed evidence because there is no completed execution to
+                # read it from; without it the incident ledger understates a
+                # failed attempt's true cost.
+                "cost_usd": _sealed_spend(execution_root),
             }
             failure["record_sha256"] = _digest(failure)
             _write_once_json(checkpoint_path, failure)

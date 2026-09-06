@@ -316,3 +316,28 @@ def test_publish_projects_every_case_and_records_the_publisher(tmp_path) -> None
     ]
     assert len(rows) == len(module.PANEL_CASE_IDS)
     assert {row["inclusion_status"] for row in rows} == {"included", "excluded"}
+
+
+def test_sealed_spend_counts_calls_a_failed_case_already_paid_for(tmp_path) -> None:
+    """A case that dies partway has still paid for the periods it ran.
+
+    Failure checkpoints carried no cost field, so 0.0635 USD of real spend
+    across three attempts was invisible to the incident ledger -- a 44%
+    understatement of what the failed attempts consumed.
+    """
+    import json
+
+    from aeread_families.econevals.campaign import _sealed_spend
+
+    root = tmp_path / "executions" / "case"
+    shard = root / "run" / "artifacts" / "sha256" / "ab"
+    shard.mkdir(parents=True)
+    (shard / "one").write_text(
+        json.dumps({"canonical_response": {"cost_usd": 0.25, "text": "x"}})
+    )
+    (shard / "two").write_text(json.dumps([{"nested": {"cost_usd": 0.5}}]))
+    (shard / "three").write_text("not json at all")
+    # A boolean must not be counted as a number.
+    (shard / "four").write_text(json.dumps({"cost_usd": True}))
+    assert _sealed_spend(root) == pytest.approx(0.75)
+    assert _sealed_spend(tmp_path / "absent") == 0.0
