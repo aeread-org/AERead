@@ -575,6 +575,45 @@ def _seat_scoped_family_manifest(*, subject_reduction: str | None = None) -> Fam
     )
 
 
+def _seat_scoped_reference_leaf(
+    *, seat: str | None, reference_version: str = "1.0.0"
+) -> MeasurementLeafSpec:
+    """A ``_SEAT_SCOPED_LEAF_ID`` leaf spec for the kernel_r12_seat_context.md
+    stability-rule tests below, built on ``_reference_leaf``.
+
+    ``seat`` drives the REFERENCE's own identity -- ``reference_id`` and
+    ``source_sha256`` -- the only two fields the stability rule permits a
+    ``seat_scope="subject_seat"`` leaf to vary per subject seat, because
+    that reference genuinely names a different computed object depending
+    on which seat is the subject (kernel_r12_seat_context.md). ``seat=None``
+    reuses ``_reference_leaf``'s fixed, seat-independent reference exactly.
+
+    ``reference_version`` is left at ``_reference_leaf``'s own fixed value
+    by default; passing a different one simulates an INVARIANT field
+    drifting (illegally) alongside the reference identity, for the
+    negative test that varies one.
+    """
+    base = _reference_leaf(leaf_id=_SEAT_SCOPED_LEAF_ID, input_scope="terminal_state")
+    if seat is None and reference_version == "1.0.0":
+        return base
+    reference = base.verifier.reference
+    varied_reference = dataclasses.replace(
+        reference,
+        reference_id=(
+            f"{reference.reference_id}_{seat}" if seat is not None else reference.reference_id
+        ),
+        source_sha256=(
+            hashlib.sha256(seat.encode()).hexdigest()
+            if seat is not None
+            else reference.source_sha256
+        ),
+        reference_version=reference_version,
+    )
+    return dataclasses.replace(
+        base, verifier=dataclasses.replace(base.verifier, reference=varied_reference)
+    )
+
+
 # ---------------------------------------------------------------------------
 # kernel_contract_gap_review.md finding 4's exact adversary: a scorer whose
 # output alternates strictly by a GLOBAL call counter -- never by
@@ -2002,6 +2041,150 @@ _SINGLE_FIXTURE_EXEMPT_FAMILIES: "frozenset[tuple[str, str]]" = frozenset(
 )
 
 
+def _leaf_spec_fields(
+    leaf: MeasurementLeafSpec, *, include_reference_identity: bool
+) -> dict[str, Any]:
+    """A field-by-field breakdown of a ``MeasurementLeafSpec``, for the
+    stability check below.
+
+    kernel_r12_seat_context.md: a ``seat_scope="subject_seat"`` leaf may
+    legitimately instantiate its REFERENCE's own identity -- ``reference_id``
+    and ``source_sha256`` -- differently per subject seat, because that
+    reference genuinely names a different computed object (e.g. a baseline
+    recomputed with a different seat's policy substituted) depending on
+    which seat is the subject. ``include_reference_identity=False`` omits
+    exactly those two fields; every other field -- including the REST of
+    ``ReferenceSpec`` (``reference_version``, ``reference_kind``,
+    ``input_scope``, ``units``, ``implementation``) -- is part of the leaf's
+    invariant, seat-independent declaration and is always included.
+    """
+    reference = leaf.verifier.reference
+    fields: dict[str, Any] = {
+        "leaf_id": leaf.leaf_id,
+        "leaf_version": leaf.leaf_version,
+        "estimand": leaf.estimand,
+        "verifier.verifier_family": leaf.verifier.verifier_family,
+        "verifier.evaluation_class": leaf.verifier.evaluation_class,
+        "verifier.objective_scope": leaf.verifier.objective_scope,
+        "reference.reference_version": reference.reference_version,
+        "reference.reference_kind": reference.reference_kind,
+        "reference.input_scope": reference.input_scope,
+        "reference.units": reference.units,
+        "reference.implementation": reference.implementation,
+        "scorer": leaf.scorer,
+    }
+    if include_reference_identity:
+        fields["reference.reference_id"] = reference.reference_id
+        fields["reference.source_sha256"] = reference.source_sha256
+    return fields
+
+
+def _first_mismatched_leaf_field(
+    left: Mapping[str, Any], right: Mapping[str, Any]
+) -> str | None:
+    """The name of the first field on which two ``_leaf_spec_fields()``
+    breakdowns disagree, or ``None`` if none do -- used only to name the
+    disagreeing field in an assertion message; the boolean equality check
+    itself is done separately by the caller."""
+    for name, left_value in left.items():
+        if right[name] != left_value:
+            return name
+    return None
+
+
+def _leaf_spec_stability_violation(
+    *,
+    leaf_id: str,
+    seat_scope: str,
+    subject_seats: tuple[str, ...],
+    leaf_spec: MeasurementLeafSpec,
+    stable_leaf_specs: "dict[str, MeasurementLeafSpec]",
+    subject_seat_leaf_specs_by_group: "dict[str, dict[tuple[str, ...], MeasurementLeafSpec]]",
+) -> str | None:
+    """kernel_contract_gap_review.md finding 7, reconciled with ruling R12
+    (kernel_r12_seat_context.md): one fixture's worth of one leaf's
+    declared identity, checked against every OTHER fixture already seen
+    for that same leaf_id (recorded into the two mutable dicts, which the
+    caller owns and reuses across the whole family).
+
+    For ``seat_scope != "subject_seat"`` (``"cell"``, the default):
+    unchanged from before R12 -- the full ``MeasurementLeafSpec`` must be
+    identical across every fixture, regardless of subject seat.
+
+    For ``seat_scope == "subject_seat"``: rule (ii) -- two fixtures with
+    the SAME subject seat(s) must still produce a byte-identical spec,
+    reference identity included; rule (iii) -- two fixtures with DIFFERENT
+    subject seats may differ only in the reference's own identity
+    (``reference_id``/``source_sha256``), never in an invariant field. A
+    family that only ever supplies one subject seat has exactly one group,
+    so rule (ii) degenerates to the cell-scoped check above and rule (iii)
+    never runs (there is no second group) -- vacuously true, not weaker.
+
+    Returns the first violation found, as a message fragment (the caller
+    prepends the family id), or ``None``. Pure with respect to its return
+    value -- the two dicts are the only mutation -- so it can be driven
+    directly, one fixture at a time, without any of the episode/outcome/
+    trajectory machinery ``_assert_family_obeys_the_scoring_contract``
+    otherwise requires; see the ``test_seat_scoped_leaf_identity_*`` unit
+    tests below.
+    """
+    if seat_scope != "subject_seat":
+        existing = stable_leaf_specs.setdefault(leaf_id, leaf_spec)
+        if leaf_spec != existing:
+            mismatch = _first_mismatched_leaf_field(
+                _leaf_spec_fields(leaf_spec, include_reference_identity=True),
+                _leaf_spec_fields(existing, include_reference_identity=True),
+            )
+            return (
+                f"{leaf_id} returned a different MeasurementLeafSpec across "
+                f"fixtures ({mismatch!r} disagreed) -- a leaf's declared identity "
+                "must be stable for the family version"
+            )
+        return None
+
+    groups = subject_seat_leaf_specs_by_group.setdefault(leaf_id, {})
+
+    # Rule (ii): two fixtures with the SAME subject seat(s) must still
+    # produce byte-identical leaf specs, reference identity included -- a
+    # per-seat leaf may vary its reference with the SEAT, never with
+    # anything else.
+    same_seat_existing = groups.get(subject_seats)
+    if same_seat_existing is None:
+        groups[subject_seats] = leaf_spec
+    elif leaf_spec != same_seat_existing:
+        mismatch = _first_mismatched_leaf_field(
+            _leaf_spec_fields(leaf_spec, include_reference_identity=True),
+            _leaf_spec_fields(same_seat_existing, include_reference_identity=True),
+        )
+        return (
+            f"{leaf_id} returned a different MeasurementLeafSpec for two "
+            f"fixtures sharing the SAME subject seat(s) {subject_seats!r} "
+            f"({mismatch!r} disagreed) -- a seat_scope=\"subject_seat\" leaf may "
+            "vary its reference identity with the subject seat, never with "
+            "anything else"
+        )
+
+    # Rule (iii): two fixtures with DIFFERENT subject seats must differ
+    # ONLY in the reference's own identity fields (reference_id,
+    # source_sha256) -- every invariant field (estimand, the rest of the
+    # reference, verifier, scorer ref) must still agree.
+    this_invariant = _leaf_spec_fields(leaf_spec, include_reference_identity=False)
+    for other_seats, other_leaf in groups.items():
+        if other_seats == subject_seats:
+            continue
+        other_invariant = _leaf_spec_fields(other_leaf, include_reference_identity=False)
+        mismatch = _first_mismatched_leaf_field(this_invariant, other_invariant)
+        if mismatch is not None:
+            return (
+                f"{leaf_id} disagreed on invariant field {mismatch!r} between "
+                f"subject seat(s) {subject_seats!r} and {other_seats!r} -- a "
+                "seat_scope=\"subject_seat\" leaf's reference identity may vary "
+                "with the subject seat, but every other field, including the "
+                "rest of its reference, must stay fixed"
+            )
+    return None
+
+
 @dataclasses.dataclass(frozen=True, slots=True)
 class _FamilyContractResult:
     """What ``_assert_family_obeys_the_scoring_contract`` found, for callers
@@ -2037,7 +2220,31 @@ def _assert_family_obeys_the_scoring_contract(
     # one -- govsim and the four already-migrated families below).
     trajectory_outcome_paths = registration.manifest.measurement.trajectory_outcome_paths
     produced_by_case: list[tuple[Any, FamilyScoreSet, Any]] = []
+    # Ruling R12 introduced ``seat_scope="subject_seat"`` leaves without
+    # reconciling them against finding 7's stability check below: such a
+    # leaf's REFERENCE legitimately depends on which seat is the subject
+    # (kernel_r12_seat_context.md), so a fixture-keyed-only-by-leaf_id
+    # comparison of the FULL spec is unsound for it. ``leaf_policy_by_id``
+    # is how each score's ``seat_scope`` is looked up below to decide which
+    # of the two comparisons (full spec, or invariant-fields-only) applies.
+    leaf_policy_by_id = {
+        leaf.leaf_id: leaf for leaf in registration.manifest.measurement.leaves
+    }
+    # Cell-scoped (the default) leaves: keyed by leaf_id alone, exactly as
+    # before -- the full MeasurementLeafSpec must be identical across every
+    # fixture, regardless of subject seat.
     stable_leaf_specs: dict[str, Any] = {}
+    # subject_seat-scoped leaves: keyed by leaf_id, then by the fixture's
+    # OWN subject seats -- rule (ii) below compares within a group (same
+    # subject seat(s): full spec, reference identity included, must be
+    # byte-identical); rule (iii) compares across groups (different subject
+    # seat(s): only the invariant fields, i.e. everything except the
+    # reference's own reference_id/source_sha256, must agree). A family
+    # that supplies fixtures for only one subject seat has exactly one
+    # group, so (ii) degenerates to the cell-scoped check above and (iii)
+    # never runs (there is no second group to compare against) --
+    # vacuously true, not weaker.
+    subject_seat_leaf_specs_by_group: dict[str, dict[tuple[str, ...], MeasurementLeafSpec]] = {}
 
     for index, case in enumerate(cases):
         scoring_input = replay_family_scoring_input(
@@ -2069,22 +2276,24 @@ def _assert_family_obeys_the_scoring_contract(
             for score in produced.scores
         )
 
-        # kernel_contract_gap_review.md finding 7: a leaf's declared
-        # identity -- its estimand (including input_scope), verifier, and
-        # scorer ref -- must be stable across fixtures for the same
-        # family/version. Nothing previously compared the FULL
-        # MeasurementLeafSpec across cases, only leaf_id membership, so a
-        # scorer could vary a leaf's input_scope, estimand_version, or
-        # scorer implementation between fixtures without any conformance
-        # failure.
+        # kernel_contract_gap_review.md finding 7, reconciled with ruling
+        # R12 (kernel_r12_seat_context.md): a leaf's declared identity must
+        # be stable across fixtures for the same family/version -- except a
+        # seat_scope="subject_seat" leaf's own reference identity
+        # (reference_id, source_sha256), which may legitimately vary WITH
+        # the fixture's subject seat (see _leaf_spec_stability_violation).
         for score in produced.scores:
-            existing = stable_leaf_specs.setdefault(score.leaf.leaf_id, score.leaf)
-            assert score.leaf == existing, (
-                f"{key[0]}/{score.leaf.leaf_id} returned a different "
-                "MeasurementLeafSpec across fixtures (differing input_scope, "
-                "estimand_version, verifier, or scorer ref) -- a leaf's "
-                "declared identity must be stable for the family version"
+            leaf_policy = leaf_policy_by_id.get(score.leaf.leaf_id)
+            seat_scope = leaf_policy.seat_scope if leaf_policy is not None else "cell"
+            violation = _leaf_spec_stability_violation(
+                leaf_id=score.leaf.leaf_id,
+                seat_scope=seat_scope,
+                subject_seats=case.subject_seats,
+                leaf_spec=score.leaf,
+                stable_leaf_specs=stable_leaf_specs,
+                subject_seat_leaf_specs_by_group=subject_seat_leaf_specs_by_group,
             )
+            assert violation is None, f"{key[0]}/{violation}"
 
         # Determinism pre-check (ruling R7), made adjacent to the
         # original call for THIS case (kernel_contract_gap_review.md
@@ -3277,3 +3486,160 @@ def test_seat_scoped_two_subject_seats_with_declared_reduction_is_accepted_at_fi
     receipt = finalize_family_execution(setup=setup, execution=execution)
     assert receipt.status == "ok"
     assert receipt.scores[0].primary.value == pytest.approx(0.5)
+
+
+# ---------------------------------------------------------------------------
+# kernel_r12_seat_context.md: the stability rule that reconciles ruling R12
+# (seat_scope="subject_seat" leaves) with kernel_contract_gap_review.md
+# finding 7 (a leaf's declared identity must be stable across fixtures).
+# Driven directly against ``_leaf_spec_stability_violation`` -- the exact
+# per-fixture function ``_assert_family_obeys_the_scoring_contract`` calls
+# in its loop -- rather than through the full registry-driven protocol
+# path: ``_seat_scoped_family_manifest``'s family is deliberately kept to
+# ONE fixture there (see ``_SINGLE_FIXTURE_EXEMPT_FAMILIES``'s comment)
+# because its outcome is keyed by seat, not order, so no honest
+# outcome-identical/trajectory-differing pair -- ruling R9's paired-history
+# precondition, unrelated to this rule -- can be constructed for it; two
+# fixtures naming DIFFERENT subject seats necessarily also disagree on that
+# leaf's primary (by ruling R12 rule 2's own design), which the unrelated
+# R7 terminal-state contrapositive check would then reject for a reason
+# that has nothing to do with leaf-identity stability. Testing the
+# stability function directly exercises the real implementation without
+# tripping that unrelated, pre-existing constraint.
+# ---------------------------------------------------------------------------
+
+
+def test_seat_scoped_leaf_identity_varies_by_subject_seat_passes() -> None:
+    """Rules (i)/(iii): a seat_scope="subject_seat" leaf whose reference
+    identity (reference_id/source_sha256) varies WITH the subject seat, and
+    agrees on every invariant field, passes for both fixtures."""
+    stable_leaf_specs: dict[str, MeasurementLeafSpec] = {}
+    groups: dict[str, dict[tuple[str, ...], MeasurementLeafSpec]] = {}
+    leaf_x = _seat_scoped_reference_leaf(seat="x")
+    leaf_y = _seat_scoped_reference_leaf(seat="y")
+    assert leaf_x.verifier.reference.reference_id != leaf_y.verifier.reference.reference_id
+    assert leaf_x.verifier.reference.source_sha256 != leaf_y.verifier.reference.source_sha256
+
+    violation_x = _leaf_spec_stability_violation(
+        leaf_id=_SEAT_SCOPED_LEAF_ID,
+        seat_scope="subject_seat",
+        subject_seats=("x",),
+        leaf_spec=leaf_x,
+        stable_leaf_specs=stable_leaf_specs,
+        subject_seat_leaf_specs_by_group=groups,
+    )
+    violation_y = _leaf_spec_stability_violation(
+        leaf_id=_SEAT_SCOPED_LEAF_ID,
+        seat_scope="subject_seat",
+        subject_seats=("y",),
+        leaf_spec=leaf_y,
+        stable_leaf_specs=stable_leaf_specs,
+        subject_seat_leaf_specs_by_group=groups,
+    )
+    assert violation_x is None
+    assert violation_y is None
+
+
+def test_seat_scoped_leaf_identity_varying_for_the_same_subject_seat_fails() -> None:
+    """Rule (ii): a seat_scope="subject_seat" leaf may vary its reference
+    identity WITH the subject seat, never between two fixtures sharing the
+    SAME subject seat -- this is what keeps rule (iii)'s exemption from
+    being a hole: a scorer that varies its reference on every call,
+    independent of the seat, must still be caught."""
+    stable_leaf_specs: dict[str, MeasurementLeafSpec] = {}
+    groups: dict[str, dict[tuple[str, ...], MeasurementLeafSpec]] = {}
+    leaf_first = _seat_scoped_reference_leaf(seat="x")
+    leaf_second = _seat_scoped_reference_leaf(seat="y")
+
+    first = _leaf_spec_stability_violation(
+        leaf_id=_SEAT_SCOPED_LEAF_ID,
+        seat_scope="subject_seat",
+        subject_seats=("x",),
+        leaf_spec=leaf_first,
+        stable_leaf_specs=stable_leaf_specs,
+        subject_seat_leaf_specs_by_group=groups,
+    )
+    assert first is None
+
+    second = _leaf_spec_stability_violation(
+        leaf_id=_SEAT_SCOPED_LEAF_ID,
+        seat_scope="subject_seat",
+        subject_seats=("x",),
+        leaf_spec=leaf_second,
+        stable_leaf_specs=stable_leaf_specs,
+        subject_seat_leaf_specs_by_group=groups,
+    )
+    assert second is not None
+    assert "SAME subject seat" in second
+    assert "('x',)" in second
+    assert "reference.reference_id" in second
+
+
+def test_seat_scoped_leaf_identity_varying_an_invariant_field_across_subject_seats_fails() -> None:
+    """Rule (iii): a seat_scope="subject_seat" leaf's reference identity
+    may vary with the subject seat, but every OTHER field -- including the
+    rest of its own reference (here, reference_version) -- must stay fixed;
+    varying it across subject seats is still a stability violation, not a
+    legitimate per-seat instantiation."""
+    stable_leaf_specs: dict[str, MeasurementLeafSpec] = {}
+    groups: dict[str, dict[tuple[str, ...], MeasurementLeafSpec]] = {}
+    leaf_x = _seat_scoped_reference_leaf(seat="x")
+    leaf_y = _seat_scoped_reference_leaf(seat="y", reference_version="1.0.1")
+
+    first = _leaf_spec_stability_violation(
+        leaf_id=_SEAT_SCOPED_LEAF_ID,
+        seat_scope="subject_seat",
+        subject_seats=("x",),
+        leaf_spec=leaf_x,
+        stable_leaf_specs=stable_leaf_specs,
+        subject_seat_leaf_specs_by_group=groups,
+    )
+    assert first is None
+
+    second = _leaf_spec_stability_violation(
+        leaf_id=_SEAT_SCOPED_LEAF_ID,
+        seat_scope="subject_seat",
+        subject_seats=("y",),
+        leaf_spec=leaf_y,
+        stable_leaf_specs=stable_leaf_specs,
+        subject_seat_leaf_specs_by_group=groups,
+    )
+    assert second is not None
+    assert "invariant field" in second
+    assert "reference.reference_version" in second
+    assert "('x',)" in second and "('y',)" in second
+
+
+def test_cell_scoped_leaf_identity_varying_across_fixtures_still_fails() -> None:
+    """seat_scope="cell" (the default) is untouched by ruling R12's
+    exemption: the full MeasurementLeafSpec, reference identity included,
+    must be identical across every fixture -- exactly as before finding
+    7's stability check was reconciled with R12. Reuses the very same
+    reference-identity change that PASSES for a subject_seat leaf (the
+    first test above) to show the exemption is scoped to seat_scope, not
+    to the field."""
+    stable_leaf_specs: dict[str, MeasurementLeafSpec] = {}
+    groups: dict[str, dict[tuple[str, ...], MeasurementLeafSpec]] = {}
+    leaf_first = _seat_scoped_reference_leaf(seat=None)
+    leaf_second = _seat_scoped_reference_leaf(seat="x")
+
+    first = _leaf_spec_stability_violation(
+        leaf_id=_SEAT_SCOPED_LEAF_ID,
+        seat_scope="cell",
+        subject_seats=(),
+        leaf_spec=leaf_first,
+        stable_leaf_specs=stable_leaf_specs,
+        subject_seat_leaf_specs_by_group=groups,
+    )
+    assert first is None
+
+    second = _leaf_spec_stability_violation(
+        leaf_id=_SEAT_SCOPED_LEAF_ID,
+        seat_scope="cell",
+        subject_seats=(),
+        leaf_spec=leaf_second,
+        stable_leaf_specs=stable_leaf_specs,
+        subject_seat_leaf_specs_by_group=groups,
+    )
+    assert second is not None
+    assert "declared identity must be stable" in second
