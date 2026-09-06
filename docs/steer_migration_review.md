@@ -137,3 +137,14 @@ smaller fix scoped entirely to `test_shared_runner_scoring_contract.py` instead 
   unqualified* pass when certification was explicitly requested and could not be
   delivered; it does not (and cannot) run `_assert_family_scoring_contract` itself
   without the real, license-constrained cache.
+
+## Post-stacking note, 2026-09-06
+
+After rebasing this branch onto the R9/R10 kernel branch (`zeyu/kernel-r9r10`,
+PR #103), the family-local `_assert_family_scoring_contract` named throughout
+the sections above was removed in favour of that kernel branch's own,
+identically-shaped `_assert_family_obeys_the_scoring_contract`
+(`tests/test_shared_runner_scoring_contract.py`); `test_steer_obeys_the_scoring_contract`
+now calls the kernel's helper directly. Every reference to
+`_assert_family_scoring_contract` above describes the pre-rebase state of the
+code and is left as originally written, not restated.
