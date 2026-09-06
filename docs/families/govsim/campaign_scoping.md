@@ -88,10 +88,36 @@ Now:
 - The scripted harness produces utterances too, so a baseline exercises the
   same content-carrying action a live persona does.
 
-Verified offline: 12 transcript entries over a 12-round episode, **126 of
-132 observations carrying a prior utterance**, reflections stored for all
-five personas, receipt `ok`/`included` with five leaves, replay digest
-matching. Before the change that middle number was zero.
+### The first attempt at this was fake, and how it was caught
+
+Attempt 002 ran with dialogue "enabled" and produced a transcript in which
+**every utterance was identical**: `"I will take my usual share this
+round."` -- a fallback string the harness substituted, not a word the model
+wrote.
+
+`output_schema` is a **profile-level** setting, not a per-call one, so the
+harvest-only schema forced structured output to `{"quantity": n}` in every
+phase. The model was structurally incapable of returning a `message`, the
+harness found none, and the fallback filled the gap -- into the public
+transcript, into every other agent's observation, as if it were real.
+
+The offline dry run did not catch it because the stub returned
+`{"message": ...}`: it validated the plumbing and the fallback at once and
+could not tell them apart. Only reading the sealed utterances from a live
+run showed ten identical strings.
+
+Fixed two ways. The schema now admits `quantity`, `message` and
+`reflection` with nothing `required`, and the prompt says which field
+belongs to which phase; a live probe confirms the model answers each phase
+correctly. And **the fallback is gone** -- an empty utterance now raises,
+because inventing dialogue is fabricating evidence, which is worse than
+failing the period.
+
+Verified offline before that: 12 transcript entries over a 12-round
+episode, 126 of 132 observations carrying a prior utterance, reflections
+stored for all five personas, receipt `ok`/`included`, replay matching.
+Those numbers show the mechanism works; attempt 003 is the first run where
+the content is the model's own.
 
 **Still short of upstream**, and worth stating rather than glossing:
 
