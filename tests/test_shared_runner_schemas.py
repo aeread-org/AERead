@@ -1041,3 +1041,62 @@ def test_measurement_declaration_rejects_a_trajectory_outcome_path_from_dataclas
     no_policy = FamilyManifest.from_dict(family_data())
     with pytest.raises(AuthoringValidationError, match="JSON pointer"):
         dataclasses.replace(no_policy.measurement, trajectory_outcome_paths=("bad",))
+
+
+def test_measurement_declaration_rejects_an_array_index_trajectory_outcome_path() -> None:
+    """kernel_r9r10_review.md finding 4: ``_JSON_POINTER_RE`` alone accepts an
+    RFC 6901 array-index segment (e.g. "/history/0"), but the
+    scoring-contract protocol test's projection helper can only navigate
+    JSON objects and raises on a list -- a manifest accepted here could
+    never complete the protocol. Rejected at the schema instead.
+    """
+    for indexed in ("/history/0", "/0", "/history/12/label"):
+        with pytest.raises(AuthoringValidationError, match="object field"):
+            FamilyManifest.from_dict(
+                _family_data_with_leaves(trajectory_outcome_paths=[indexed])
+            )
+
+
+def test_measurement_declaration_rejects_an_array_index_trajectory_outcome_path_from_dataclasses_replace() -> None:
+    """Same bypass concern as the other ``trajectory_outcome_paths`` guards:
+    a ``dataclasses.replace`` must not smuggle an array-index segment past
+    this check either."""
+
+    import dataclasses
+
+    manifest = FamilyManifest.from_dict(_family_data_with_leaves())
+    with pytest.raises(AuthoringValidationError, match="object field"):
+        dataclasses.replace(manifest.measurement, trajectory_outcome_paths=("/history/0",))
+
+
+def test_measurement_declaration_rejects_overlapping_trajectory_outcome_paths() -> None:
+    """kernel_r9r10_review.md finding 4: one declared path being a strict
+    prefix of another is redundant overlap -- projecting the shorter path
+    away already drops everything the longer path would have named."""
+    with pytest.raises(AuthoringValidationError, match="overlapping"):
+        FamilyManifest.from_dict(
+            _family_data_with_leaves(
+                trajectory_outcome_paths=["/history", "/history/participant_x"]
+            )
+        )
+
+
+def test_measurement_declaration_rejects_overlapping_trajectory_outcome_paths_from_dataclasses_replace() -> None:
+    import dataclasses
+
+    manifest = FamilyManifest.from_dict(_family_data_with_leaves())
+    with pytest.raises(AuthoringValidationError, match="overlapping"):
+        dataclasses.replace(
+            manifest.measurement,
+            trajectory_outcome_paths=("/history", "/history/participant_x"),
+        )
+
+
+def test_measurement_declaration_accepts_a_nested_object_field_trajectory_outcome_path() -> None:
+    """Mutation check: a valid nested OBJECT field path -- unlike the
+    array-index and overlapping-prefix cases above -- must still be
+    accepted; this guard restricts pointer SHAPE, not nesting depth."""
+    family = FamilyManifest.from_dict(
+        _family_data_with_leaves(trajectory_outcome_paths=["/payload/history"])
+    )
+    assert family.measurement.trajectory_outcome_paths == ("/payload/history",)
