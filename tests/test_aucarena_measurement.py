@@ -33,7 +33,7 @@ from typing import Any
 
 import pytest
 
-from aeread.shared_runner.measurement import FamilyScoreSet, MeasurementContractError
+from aeread.shared_runner.measurement import FamilyScoreSet, MeasurementContractError, MetricValue
 from aeread.shared_runner.run.resolver import canonical_json_bytes
 from aeread.shared_runner.task.evaluation import FamilyScoringInput
 from aeread.shared_runner.task.scheduler import EpisodeResult, run_episode
@@ -215,8 +215,19 @@ def test_golden_1_all_rule_constraint_leaves_pass() -> None:
     # kernel_scoring_contract_spec.md ruling R9(b): a "checked_transitions_count"
     # diagnostic is always present (measurement.py's own docstring for
     # score_budget_invariant) -- never a violation entry, since this golden
-    # is clean.
-    assert set(budget_score.metrics) == {"checked_transitions_count"}
+    # is clean. Exact value AND unit, not just the key (restoring the
+    # pre-24f07c4c exact-equality assertion this metric weakened -- see
+    # docs/aucarena_migration_review.md's second independent review):
+    # golden 1 auctions four items, one recorded ``TransitionResult`` per
+    # bid round, agent/field_high alternating minimum-markup raises with
+    # field_low never bidding (``max_bid_cnt=0``) -- item 1 sells in 9
+    # rounds (bid_round 0-8, agent wins at $1700), item 2 in 8 rounds (0-7,
+    # field_high wins at $1600), item 3 in 8 rounds (0-7, field_high wins at
+    # $1600), item 4 in 7 rounds (0-6, field_high wins at $1500); one
+    # transition per round: 9 + 8 + 8 + 7 == 32.
+    assert budget_score.metrics == {
+        "checked_transitions_count": MetricValue(32.0, "count"),
+    }
 
     legality_score = scorer.score_bid_legality(result=result)
     assert legality_score.primary.value == 1.0
@@ -224,6 +235,13 @@ def test_golden_1_all_rule_constraint_leaves_pass() -> None:
 
     hammer_score = scorer.score_hammer_rule(result=result)
     assert hammer_score.primary.value == 1.0
+    # Same per-item round arithmetic as checked_transitions_count above (one
+    # recorded round per phase_instance, no repeats and no disagreement):
+    # replayed_rounds_count == 9 + 8 + 8 + 7 == 32. This metric was not
+    # inspected at all before this restoration.
+    assert hammer_score.metrics == {
+        "replayed_rounds_count": MetricValue(32.0, "count"),
+    }
 
 
 def test_golden_1_profit_vs_field_is_finite_and_mixed_sign() -> None:
