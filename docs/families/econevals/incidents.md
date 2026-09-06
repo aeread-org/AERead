@@ -125,3 +125,43 @@ this campaign is where they surfaced:
   `docs/families/procurement-allocation/design_review.md` after it sealed two
   attempt roots there. It sealed two more here (001, 002) before the fix, and
   the fix then saved roots 003 and 010 on live 429 bursts.
+
+## The in-period loop's own attempts (tool_loop_v2)
+
+| Attempt | Reached | Failure | Cost (USD) | Cause | Fix |
+|---|---|---|---:|---|---|
+| 001 | case 00 | `SchedulerContractError` | 0.0012 | the harness forbade mixing read-only calls with the submit in one step -- **stricter than the environment**, which only requires the submit to be last. GLM gathers and submits together, got bounced, and never converged in 12 rounds | permit multi-step without mandating it |
+| 002 | case 00 | cost ceiling | 0.1827 | $0.0614 for 78 periods against v1's $0.0109 for 100; the ceiling was sized from the old shape | ceilings sized from measurement (#130) |
+| 003 | case 01 | `submit_tool_must_be_the_final_call` | 0.1093 | GLM returned the submit **twice** in one step; the validator recorded only the LAST occurrence, so the first sat mid-list in the accumulated action and the environment rejected the period | reject a second submit in a step |
+| 004 | -- | -- | -- | running | -- |
+
+### The shared cause
+
+All three are the same mistake in different clothes: **the validator did not
+reproduce the environment's contract.** Once it was stricter (001), once it
+was sized against the wrong shape (002), once it checked a property of the
+last element instead of the whole burst (003).
+
+`parse_action` is the specification. A harness-side validator exists only to
+reject early, with feedback, in exactly the cases the environment would
+reject -- no more and no less. Every divergence in either direction costs a
+case: too strict and the model is bounced for something legal, too loose and
+the environment rejects a period after the work is done.
+
+### What the loop bought
+
+Attempt 003's case 00 is the measurement that justifies the whole exercise.
+Same model, same case, same route:
+
+| | v1 (blind submission) | v2 (in-period loop) |
+|---|---|---|
+| inclusion | **excluded**, malformed submission | **included** |
+| gate leaf | -- | **1.0** |
+| objective (workers supported) | -- | **6.07** |
+| cost | $0.011 | $0.099 |
+
+Under v1 five of six cases scored `gate = 0.0`, and the published write-up
+said those numbers measured the adapter rather than the model. This is the
+confirmation: nothing about GLM changed, only whether it could see what it
+had looked up before committing.
+
