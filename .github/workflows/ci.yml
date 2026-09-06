@@ -62,3 +62,49 @@ jobs:
           tests/test_agenticpay_bilateral_measurement.py
           tests/test_agenticpay_bilateral_replay.py
           -q
+
+  # Bridge-gated upstream-fidelity certification for the amazonbarg.bilateral
+  # adapter. Kept separate from the `test` job above (which never provisions any
+  # family's bridge) so a checkout/fidelity failure here never blocks the
+  # provider-free suite that every other family's PR relies on. Without this job,
+  # `AEREAD_AMAZONBARG_BRIDGE_REQUIRED` is never set anywhere in CI, and
+  # conftest.py's skip-to-failure hook (off by default) never fires -- a plain
+  # `pytest tests/ -q` run can go green while amazonbarg's own registry-driven
+  # scoring-contract protocol test (`test_amazonbarg_obeys_the_scoring_contract`)
+  # and every other amazonbarg upstream-fidelity assertion silently skipped
+  # (amazonbarg migration review finding 4; see
+  # tests/test_amazonbarg_bilateral_ci_bridge_requirement.py, which asserts this
+  # job stays wired). Unlike agenticpay above, amazonbarg's upstream shim imports
+  # in-process (upstream_shim.py) under this project's own venv -- no separate
+  # bridge interpreter needs provisioning, only the pinned upstream checkout
+  # itself.
+  amazonbarg-fidelity:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Checkout pinned upstream AmazonPriceHistory
+        uses: actions/checkout@v4
+        with:
+          repository: TianXiaSJTU/AmazonPriceHistory
+          ref: 834ad9066d0627f0332504d5fa6d236706f2402b
+          path: upstream-amazonbarg
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install AERead
+        run: pip install -e '.[dev]'
+      - name: Fidelity tests (bridge required -- must not silently skip)
+        env:
+          AEREAD_AMAZONBARG_UPSTREAM_ROOT: ${{ github.workspace }}/upstream-amazonbarg
+          AEREAD_AMAZONBARG_BRIDGE_REQUIRED: "1"
+        run: >
+          pytest
+          tests/test_amazonbarg_cases.py
+          tests/test_amazonbarg_environment.py
+          tests/test_amazonbarg_harness.py
+          tests/test_amazonbarg_measurement.py
+          tests/test_amazonbarg_replay.py
+          tests/test_amazonbarg_shim.py
+          tests/test_amazonbarg_upstream_skip_scope.py
+          tests/test_shared_runner_scoring_contract.py
+          -q

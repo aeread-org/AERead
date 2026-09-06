@@ -143,6 +143,32 @@ def _run(case: CaseManifest, script: list[tuple[str, str, str]]):
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.no_upstream_checkout_required
+def test_family_manifest_declares_all_five_leaves_with_bargained_ratio_primary() -> None:
+    """kernel_scoring_contract_spec.md section 3: the manifest, not the
+    scorer or a test fixture, is the one source of the leaf set, the
+    primary, and admission membership. See
+    docs/amazonbarg_adapter_status.md's "Leaf policy" section for why
+    ``amazonbarg_bargained_ratio`` is primary and why it alone gates
+    admission."""
+    manifest = family_manifest()
+    declared = manifest.measurement.finalize_time_leaf_policy()
+
+    assert set(declared.leaf_ids) == {
+        amazonbarg_measurement.DEAL_AUTHENTICITY_LEAF_ID,
+        amazonbarg_measurement.ZOPA_MEMBERSHIP_LEAF_ID,
+        amazonbarg_measurement.DEAL_LOWER_BOUND_LEAF_ID,
+        amazonbarg_measurement.DEAL_UPPER_BOUND_LEAF_ID,
+        amazonbarg_measurement.BARGAINED_RATIO_LEAF_ID,
+    }
+    assert declared.primary_leaf_id == amazonbarg_measurement.BARGAINED_RATIO_LEAF_ID
+    assert declared.admission_leaf_ids == (amazonbarg_measurement.BARGAINED_RATIO_LEAF_ID,)
+    # None of the five leaves waits on a judge verdict or any other
+    # not-yet-existing artifact -- every leaf here is deterministic and
+    # computable at finalize time (spec section 4); none is `deferred`.
+    assert all(leaf.scope == "finalize_time" for leaf in manifest.measurement.leaves)
+
+
 def test_plugin_registers_every_required_hook_through_normal_registry() -> None:
     plugin = AmazonbargPlugin(upstream_root=UPSTREAM_ROOT)
     registry = PluginRegistry()
@@ -440,7 +466,7 @@ def test_eligible_actors_are_exactly_one_seat_per_phase() -> None:
     plugin = AmazonbargPlugin(upstream_root=UPSTREAM_ROOT)
     case = _case("home-kitchen_2")
     family_case = plugin.validate_payload(case.payload)
-    state = plugin.initial_state(family_case, cell=None)
+    state = plugin.initial_state(family_case, run=None)
     buyer_phase, seller_phase = plugin.phases(family_case)
 
     assert plugin.eligible_actors(family_case, state, buyer_phase) == ("buyer",)
@@ -459,7 +485,7 @@ def test_empty_reply_content_fails_to_parse_like_upstreams_own_guard() -> None:
     plugin = AmazonbargPlugin(upstream_root=UPSTREAM_ROOT)
     case = _case("home-kitchen_2")
     family_case = plugin.validate_payload(case.payload)
-    state = plugin.initial_state(family_case, cell=None)
+    state = plugin.initial_state(family_case, run=None)
     buyer_phase, _seller_phase = plugin.phases(family_case)
 
     result = plugin.parse_action(family_case, state, "buyer", buyer_phase, {"content": ""})
@@ -471,7 +497,7 @@ def test_a_non_deal_non_quit_reply_never_terminates_the_episode() -> None:
     plugin = AmazonbargPlugin(upstream_root=UPSTREAM_ROOT)
     case = _case("home-kitchen_2")
     family_case = plugin.validate_payload(case.payload)
-    state = plugin.initial_state(family_case, cell=None)
+    state = plugin.initial_state(family_case, run=None)
     buyer_phase, _seller_phase = plugin.phases(family_case)
 
     parsed = plugin.parse_action(
