@@ -893,7 +893,7 @@ CAMPAIGN_SPECS = {
                 "reports/qualification.json"
             ),
             "qualification_artifact_sha256": (
-                "PENDING_V20_QUALIFICATION_SHA"
+                "b94856f81c209e1b518112db03d1a755eb8af0f80e94058bf583632d579d2ecd"
             ),
         },
         "route_selection_probe": {
