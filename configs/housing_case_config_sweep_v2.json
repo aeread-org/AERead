@@ -1,0 +1,282 @@
+{
+  "schema_version": "aeread.housing_case_config_sweep/0.1",
+  "sweep_id": "housing_case_config_sweep_v2",
+  "claim_status": "development_case_qualification",
+  "question": "Which Housing V1 case configurations are valid, beatable, and informative enough to admit before comparing models? The confirmatory holdout is extended to 36 sealed world seeds so a powered confirmatory design can fit inside it; the development split, generator, configurations, policies and selection rule are unchanged.",
+  "independent_cluster": "world_seed",
+  "generator": {
+    "family": "housing_v1",
+    "generator": "make_bid_world",
+    "version": "1.0"
+  },
+  "development": {
+    "split": "development",
+    "world_seeds": [
+      1971418798,
+      1460378342,
+      981417412,
+      123194022,
+      145537168,
+      264284765,
+      722524881,
+      227922569,
+      1535604354,
+      366965770,
+      1063943031,
+      647986875,
+      1758927083,
+      237549679,
+      1515521562,
+      905398266
+    ],
+    "candidate_configs": [
+      {
+        "config_id": "mild_cw030_r2",
+        "difficulty_stratum": "mild_1p2",
+        "tenants": 6,
+        "listings": 5,
+        "rounds": 2,
+        "common_weight": 0.3
+      },
+      {
+        "config_id": "mild_cw030_r4",
+        "difficulty_stratum": "mild_1p2",
+        "tenants": 6,
+        "listings": 5,
+        "rounds": 4,
+        "common_weight": 0.3
+      },
+      {
+        "config_id": "mild_cw060_r2",
+        "difficulty_stratum": "mild_1p2",
+        "tenants": 6,
+        "listings": 5,
+        "rounds": 2,
+        "common_weight": 0.6
+      },
+      {
+        "config_id": "mild_cw060_r4",
+        "difficulty_stratum": "mild_1p2",
+        "tenants": 6,
+        "listings": 5,
+        "rounds": 4,
+        "common_weight": 0.6
+      },
+      {
+        "config_id": "mild_cw085_r2",
+        "difficulty_stratum": "mild_1p2",
+        "tenants": 6,
+        "listings": 5,
+        "rounds": 2,
+        "common_weight": 0.85
+      },
+      {
+        "config_id": "mild_cw085_r4",
+        "difficulty_stratum": "mild_1p2",
+        "tenants": 6,
+        "listings": 5,
+        "rounds": 4,
+        "common_weight": 0.85
+      },
+      {
+        "config_id": "moderate_cw030_r2",
+        "difficulty_stratum": "moderate_1p5",
+        "tenants": 6,
+        "listings": 4,
+        "rounds": 2,
+        "common_weight": 0.3
+      },
+      {
+        "config_id": "moderate_cw030_r4",
+        "difficulty_stratum": "moderate_1p5",
+        "tenants": 6,
+        "listings": 4,
+        "rounds": 4,
+        "common_weight": 0.3
+      },
+      {
+        "config_id": "moderate_cw060_r2",
+        "difficulty_stratum": "moderate_1p5",
+        "tenants": 6,
+        "listings": 4,
+        "rounds": 2,
+        "common_weight": 0.6
+      },
+      {
+        "config_id": "moderate_cw060_r4",
+        "difficulty_stratum": "moderate_1p5",
+        "tenants": 6,
+        "listings": 4,
+        "rounds": 4,
+        "common_weight": 0.6
+      },
+      {
+        "config_id": "moderate_cw085_r2",
+        "difficulty_stratum": "moderate_1p5",
+        "tenants": 6,
+        "listings": 4,
+        "rounds": 2,
+        "common_weight": 0.85
+      },
+      {
+        "config_id": "moderate_cw085_r4",
+        "difficulty_stratum": "moderate_1p5",
+        "tenants": 6,
+        "listings": 4,
+        "rounds": 4,
+        "common_weight": 0.85
+      },
+      {
+        "config_id": "severe_cw030_r2",
+        "difficulty_stratum": "severe_2p0",
+        "tenants": 6,
+        "listings": 3,
+        "rounds": 2,
+        "common_weight": 0.3
+      },
+      {
+        "config_id": "severe_cw030_r4",
+        "difficulty_stratum": "severe_2p0",
+        "tenants": 6,
+        "listings": 3,
+        "rounds": 4,
+        "common_weight": 0.3
+      },
+      {
+        "config_id": "severe_cw060_r2",
+        "difficulty_stratum": "severe_2p0",
+        "tenants": 6,
+        "listings": 3,
+        "rounds": 2,
+        "common_weight": 0.6
+      },
+      {
+        "config_id": "severe_cw060_r4",
+        "difficulty_stratum": "severe_2p0",
+        "tenants": 6,
+        "listings": 3,
+        "rounds": 4,
+        "common_weight": 0.6
+      },
+      {
+        "config_id": "severe_cw085_r2",
+        "difficulty_stratum": "severe_2p0",
+        "tenants": 6,
+        "listings": 3,
+        "rounds": 2,
+        "common_weight": 0.85
+      },
+      {
+        "config_id": "severe_cw085_r4",
+        "difficulty_stratum": "severe_2p0",
+        "tenants": 6,
+        "listings": 3,
+        "rounds": 4,
+        "common_weight": 0.85
+      }
+    ]
+  },
+  "confirmatory_holdout": {
+    "status": "sealed_not_executed",
+    "access_rule": "new_campaign_id_after_confirmatory_freeze",
+    "world_seeds": [
+      369623215,
+      1207545696,
+      1737316725,
+      935421243,
+      1307871977,
+      144531421,
+      744028935,
+      114691332,
+      1419988216,
+      8919439,
+      1640977697,
+      1628619353,
+      1502627411,
+      1746020508,
+      2115856512,
+      449124770,
+      1907374266,
+      805162878,
+      657531977,
+      978077348,
+      1255654432,
+      210011375,
+      84125567,
+      1263145380,
+      1078198037,
+      545292283,
+      1291027571,
+      1268106556,
+      27562482,
+      2085097730,
+      1665492486,
+      114234343,
+      2012092143,
+      2087483793,
+      426579320,
+      550453552
+    ],
+    "parameter_combinations": [
+      {
+        "config_id": "holdout_mild_unseen",
+        "difficulty_stratum": "mild_holdout",
+        "tenants": 8,
+        "listings": 6,
+        "rounds": 3,
+        "common_weight": 0.45
+      },
+      {
+        "config_id": "holdout_moderate_unseen",
+        "difficulty_stratum": "moderate_holdout",
+        "tenants": 8,
+        "listings": 5,
+        "rounds": 3,
+        "common_weight": 0.7
+      },
+      {
+        "config_id": "holdout_severe_unseen",
+        "difficulty_stratum": "severe_holdout",
+        "tenants": 8,
+        "listings": 4,
+        "rounds": 3,
+        "common_weight": 0.95
+      }
+    ]
+  },
+  "policies": [
+    "no_op",
+    "seeded_random",
+    "naive",
+    "adaptive",
+    "oracle_informed"
+  ],
+  "selection_rule": {
+    "stratum_field": "difficulty_stratum",
+    "selections_per_stratum": 1,
+    "eligibility": {
+      "duplicate_rate_max": 0.0,
+      "degenerate_rate_max": 0.0,
+      "deterministic_regeneration_rate_min": 1.0,
+      "finite_values_rate_min": 1.0,
+      "valid_dimensions_rate_min": 1.0,
+      "oracle_crosscheck_rate_min": 1.0,
+      "oracle_active_ceiling_rate_min": 1.0,
+      "naive_beatable_rate_min": 0.8,
+      "median_naive_normalized_min": 0.35,
+      "median_naive_normalized_max": 0.9,
+      "median_oracle_gap_normalized_min": 0.1
+    },
+    "target_naive_normalized_median": 0.75,
+    "target_oracle_gap_normalized_median": 0.25,
+    "distance": "unweighted_l1_to_targets",
+    "tie_break": "config_id_ascending"
+  },
+  "outputs": {
+    "world_facts": "tables/housing_case_facts.csv",
+    "config_summary": "tables/housing_config_summary.csv",
+    "selected_configs": "reports/selected_development_configs.json",
+    "fact_manifest": "tables/fact_manifest.json",
+    "sweep_summary": "reports/sweep_summary.json"
+  }
+}

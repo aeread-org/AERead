@@ -212,7 +212,10 @@ def load_contract(path: str | Path) -> dict[str, Any]:
         raise ValueError("case-sweep contract fields are incomplete or unexpected")
     if value["schema_version"] != CONTRACT_SCHEMA_VERSION:
         raise ValueError("unsupported Housing case-sweep contract schema")
-    if value["sweep_id"] != "housing_case_config_sweep_v1":
+    if value["sweep_id"] not in {
+        "housing_case_config_sweep_v1",
+        "housing_case_config_sweep_v2",
+    }:
         raise ValueError("this driver accepts only housing_case_config_sweep_v1")
     if value["claim_status"] != "development_case_qualification":
         raise ValueError("case sweep cannot carry a model-performance claim")
