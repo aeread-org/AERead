@@ -58,17 +58,18 @@ Arena reports request cost in each response, so the driver records and enforces
 those dollar ceilings. The canary reserves 256 output tokens because GLM 5.2
 uses the same completion budget for hidden reasoning and visible JSON.
 Arena may also return an ordinary customer-facing reply even when instructed
-to emit the reply envelope. The adapter normalizes such completed prose only
-when the declared schema explicitly permits `kind=reply`; malformed JSON and
-non-reply schemas still fail the provider contract.
-The assistant request also places the invariant policy and tool catalog before
-the changing conversation state. This preserves the same observation while
-giving Arena a stable prompt prefix to cache across turns; without that
-ordering, repeated 5–8k-token uncached prefixes exhausted the assistant's
-case-level budget before the episode completed.
+to emit the reply envelope. The provider adapter preserves that text exactly;
+the tau3 harness classifies it as `malformed_structured_output`, so the same
+model output has the same meaning on every provider route.
+The assistant request places the invariant policy and tool catalog before the
+changing conversation state. The harness supplies that same rendered message
+when the executor seals round 0, preserving a stable prompt prefix for later
+rounds; without that ordering, repeated 5–8k-token uncached prefixes exhausted
+the assistant's case-level budget before the episode completed.
 Both model seats reserve 4096 completion tokens because Arena counts hidden
-reasoning and visible output against one limit. The dollar ceilings still
-govern actual spend independently of that token headroom.
+reasoning and visible output against one limit. The $0.075 case ceiling is
+shared by the two seats, with 60% reserved for the assistant and 40% for the
+customer simulator; the runner also checks the combined post-charge total.
 These ceilings replace the original $0.05/$0.30 estimate after the first
 pipeline attempts measured Arena support turns with 5–8k prompt tokens. The
 campaign gives each seat enough local headroom to avoid a false seat-budget
@@ -84,11 +85,17 @@ schema-constrained JSON actions rather than upstream's GPT-4.1 user simulator
 and native provider tool calling. The deterministic database-state scorer and
 pinned tau2 bridge remain the authoritative evaluation path.
 
+The published v9 bundle predates the merged kernel fix that accumulates every
+model round, so its sealed `total_cost_usd` remains a historical lower bound.
+Do not edit that sealed manifest in place; once the errata-layer change lands,
+run `aeread errata --write-notes` to write the sidecar note, or republish from
+raw responses with corrected totals.
+
 Freeze and inspect the digest-bound plan before spending:
 
 ```bash
 PYTHONPATH=src python -m aeread_families.tau3_retail.campaign \
-  --run-root runs/tau3_retail_glm5p2_arena_pipeline_proof_v8
+  --run-root runs/tau3_retail_glm5p2_arena_pipeline_proof_v9
 ```
 
 Execute only with the pinned bridge and skip-fail gate enabled:
@@ -98,7 +105,7 @@ AEREAD_TAU2_UPSTREAM_ROOT=$PWD/runs/upstream-tau2 \
 AEREAD_TAU2_BRIDGE_PYTHON=$PWD/runs/tau2-bridge-venv/bin/python \
 AEREAD_TAU2_BRIDGE_REQUIRED=1 \
 PYTHONPATH=src python -m aeread_families.tau3_retail.campaign \
-  --run-root runs/tau3_retail_glm5p2_arena_pipeline_proof_v8 \
+  --run-root runs/tau3_retail_glm5p2_arena_pipeline_proof_v9 \
   --upstream-root runs/upstream-tau2 --execute
 ```
 
@@ -107,8 +114,8 @@ digest-mismatched checkpoints:
 
 ```bash
 PYTHONPATH=src python -m aeread_families.tau3_retail.campaign \
-  --run-root runs/tau3_retail_glm5p2_arena_pipeline_proof_v8 \
-  --publication-root evidence/tau3_retail_glm5p2_arena_pipeline_proof_v8 \
+  --run-root runs/tau3_retail_glm5p2_arena_pipeline_proof_v9 \
+  --publication-root evidence/tau3_retail_glm5p2_arena_pipeline_proof_v9 \
   --publish-only
 ```
 

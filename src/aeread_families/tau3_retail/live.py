@@ -44,8 +44,8 @@ PRICING = TokenPricing(
     output_per_million=0.0,
     pricing_id="arena_2026-09-05_glm5p2_response_reported_cost",
 )
-ASSISTANT_PROMPT_ID = "tau3_retail_assistant_json_v1"
-USER_PROMPT_ID = "tau3_retail_user_sim_json_v1"
+ASSISTANT_PROMPT_ID = "tau3_retail_assistant_json_v2"
+USER_PROMPT_ID = "tau3_retail_user_sim_json_v2"
 ASSISTANT_PROMPT = """You are the retail support assistant. Follow the policy and
 tool definitions supplied in the context. Return only the required JSON object.
 Use kind=tool_calls with one or more calls when a tool is needed. Use kind=reply with
@@ -135,7 +135,7 @@ def _profile(
     max_output_tokens: int,
     max_cost_usd: float,
 ) -> AgentProfile:
-    profile_id = f"tau3_retail_{seat}_glm5p2_arena_v1"
+    profile_id = f"tau3_retail_{seat}_glm5p2_arena_v2"
     return AgentProfile.from_dict(
         {
             "spec_version": AgentProfile.SPEC_VERSION,
@@ -230,7 +230,7 @@ def build_live_setup(
         tools=tool_names,
         seed=seed,
         max_output_tokens=4096,
-        max_cost_usd=max_trajectory_cost_usd,
+        max_cost_usd=max_trajectory_cost_usd * 0.6,
     )
     user = _profile(
         seat="user",
@@ -240,7 +240,7 @@ def build_live_setup(
         tools=(),
         seed=seed,
         max_output_tokens=4096,
-        max_cost_usd=max_trajectory_cost_usd,
+        max_cost_usd=max_trajectory_cost_usd * 0.4,
     )
     sampling = SamplingPlan.from_dict(
         {
