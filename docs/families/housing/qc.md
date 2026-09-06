@@ -1414,3 +1414,10 @@ Read this way, the delivery work in sections 20 to 30 was treating a
 model-specific supply constraint as though it were a series of unrelated
 provider incidents.
 
+Incidents from this family are recorded in two tiers under the repository
+[working rules](../../../CLAUDE.md). Tier 1 is the derived machine register
+above; Tier 2 is the [incident log](../../operations/incident_log.md), which
+holds the design defects, operational stops, tooling faults and judgment
+errors that no artifact can derive. Sections 20 to 31 are the narrative of
+those rows, not a substitute for them.
+
