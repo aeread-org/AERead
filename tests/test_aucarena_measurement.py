@@ -212,7 +212,11 @@ def test_golden_1_all_rule_constraint_leaves_pass() -> None:
 
     budget_score = scorer.score_budget_invariant(result=result)
     assert budget_score.primary.value == 1.0
-    assert budget_score.metrics == {}
+    # kernel_scoring_contract_spec.md ruling R9(b): a "checked_transitions_count"
+    # diagnostic is always present (measurement.py's own docstring for
+    # score_budget_invariant) -- never a violation entry, since this golden
+    # is clean.
+    assert set(budget_score.metrics) == {"checked_transitions_count"}
 
     legality_score = scorer.score_bid_legality(result=result)
     assert legality_score.primary.value == 1.0
