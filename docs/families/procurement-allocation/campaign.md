@@ -1160,3 +1160,54 @@ run the frozen control and the deterministic policy baselines on them
 provider-free or cheaply, and admit a world only when the control leaves a
 declared minimum share of rows failing. That is a Gate 1 admission criterion the
 standard does not yet contain; it is recorded as design-review defect 14.
+
+## Due-diligence panel, first diagnostic 2026-09-06
+
+The first panel built under the [positioning decision](positioning.md): six
+worlds, six suppliers each, a **seven-action budget** so that verifying everyone
+costs nine and is impossible, and listings that all claim the same headline yield
+so price cannot rank suppliers. The trap sits at a different price tier in each
+world, so no fixed heuristic wins across the panel.
+
+**Admitted on measured headroom.** A one-seed control screen costing $0.0139
+found the frozen V4 control failing 3 of 6 worlds. The two panels this screen
+rejected earlier saturated at 7 of 12 and 7 of 7.
+
+**Run.** Both arms, V4 scaffold against the pre-award check, six worlds by two
+surfaces by three seeds: 72 rows, 69 completed, 3 missing to rate limits, $0.201.
+
+**Result: the check does not pay under scarcity, and one world carries the whole
+effect.**
+
+| outcome, treatment minus control | mean per world | interval |
+|---|---|---|
+| feasible award | -0.100 | [-0.300, 0.000] |
+| regret | +$14.99 | [-$0.31, $45.42] |
+| completed kits | -5.03 | [-8.83, -1.25] |
+
+Five of the six worlds show a delta of exactly zero. `traps_differ_by_component`
+supplies all of it, at -0.600 feasible awards and +$90.98 regret. **This is a
+one-world artifact, not a treatment effect**, and the bootstrap over six worlds
+cannot say otherwise.
+
+**The mechanism is visible in the traces, and it is worth a proper test.** On the
+driving world the control plays `q q S q S S A`: batch the quotes, batch the
+samples, award, exactly seven actions, and it wins on five of six completed rows.
+The treatment interleaves, `q S q S q S A`, verifying each supplier before moving
+on. When that ordering costs one action more than the budget allows it ends
+`q S q q S K d` or `q S q S q d`: out of actions, and it **defers** rather than
+awarding. Every loss on that world is a deferral, not a violation.
+
+The check action itself is cheap, only 20 of 219 treatment actions. What costs is
+the discipline the procedure imposes around it. Under a ten-action budget that
+discipline was free and produced the development result; under seven it competes
+directly with the verification it exists to protect.
+
+**Claim scope.** A hypothesis, not a finding: *a procedure that adds ordering
+discipline buys reliability with actions, and under a tight verification budget
+that trade can invert.* Testing it needs a panel of twelve or more worlds where
+several show the effect, and a budget sweep rather than a single budget. This run
+had no frozen plan digest, having been driven through the qualification engine
+directly, so it is a diagnostic and cannot become a confirmatory claim without
+being rebuilt as a campaign.
+

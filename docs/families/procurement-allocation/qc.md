@@ -48,7 +48,8 @@ Admitted panels:
 | `risk_gates_v1/` | 6 | labeled + opaque | sample-schedule and landed-cash factorial |
 | `qwen_holdout_v1/` | 6 | opaque | targeted residual-capability holdout |
 | `confirmatory_v2/` | 12 | labeled + opaque | held-out panel for the pre-award check; **inadmissible**, control saturates 7 of 12 worlds |
-| `information_v1/` | 8 | labeled + opaque | information and negotiation worlds |
+| `information_v1/` | 8 | labeled + opaque | information worlds; **inadmissible**, control saturates 7 of 7 and the biased channel is unread |
+| `duediligence_v1/` | 6 | labeled + opaque | verification-scarce worlds; **admitted** on a measured control failure rate of 3 of 6 |
 
 Validate for every world:
 
