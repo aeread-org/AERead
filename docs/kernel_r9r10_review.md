@@ -441,3 +441,98 @@ from the backup, suite green again (31/31).
 ```
 
 129 passed, 0 failed.
+
+## Third pass
+
+A third-pass review of the second pass's three commits (`cf85c02f`,
+`177c9b9d`, `c1ecd6cb`) closed R1 (same-case controlled pair) and R3
+(protocol-path over-broad test), accepted the finding-1 semantic residual
+(R2(b)) as documented, and raised two corrections against R2(a) and against
+`c1ecd6cb`'s own replacement test, dated 2026-09-05.
+
+### C1 — the empty-trajectory guard (R2(a)) asserted a false necessity and guarded nothing
+
+**FIXED by deliberate removal.** The guard added in `177c9b9d` (second-pass
+R2(a)), inside `_assert_trajectory_outcome_paths_are_consistent`
+(`tests/test_shared_runner_scoring_contract.py:1426`), asserted that a
+declared trajectory sequence must be non-empty whenever `phase_instances`
+replayed at least one transition. Two problems: it asserted an assumption
+the specification does not make -- that one replayed transition implies at
+least one trajectory record -- and could misfire on a family whose
+per-round history is appended only when a round completes, with a fixture
+ending mid-round. More decisively, it guarded nothing: under ruling R10, an
+empty declared trajectory must equal an empty list read from the final
+replayed state (the very next assertion already enforces exactly that), and
+projecting an empty list away leaves the whole outcome in the projection
+unchanged -- the paired-history check becomes the whole-outcome check,
+which is STRONGER, not weaker. An empty embedded trajectory is therefore
+not a hole. Removed the assertion and its unit test,
+`test_r10_rejects_an_empty_embedded_trajectory_beside_a_non_empty_replay`;
+every other assertion from `177c9b9d` is unchanged, including the R2(b)
+structural-guard-residual documentation (kept, and its one now-inaccurate
+cross-reference to "the non-empty check just below" corrected). This is a
+deliberate deletion of a guard added earlier in this same branch, not a
+weakening of any pre-existing coverage: no assertion that predates this
+branch is touched.
+
+Commit: `10c2abab` — "fix(scoring-contract): drop the empty-trajectory
+guard; an empty path strengthens the projection".
+
+Test removed: `test_r10_rejects_an_empty_embedded_trajectory_beside_a_non_empty_replay`.
+
+Verification: full suite green both immediately before and immediately
+after this commit (`tests/test_shared_runner_scoring_contract.py`: 31 before
+removing the test, 30 after -- one test fewer, zero failures either side).
+
+### C2 — `c1ecd6cb`'s protocol-path test lost the guard's per-fixture independence coverage
+
+**FIXED by restoring the coverage as a separate unit test.** The test
+`c1ecd6cb` replaced originally called `_assert_projection_is_not_vacuous`
+directly on BOTH the left and the right fixture's (real, replayed)
+projection, independently asserting each one raised. Its
+protocol-path replacement,
+`test_r9_projection_erases_the_entire_outcome_when_the_declared_path_is_over_broad`
+(`tests/test_shared_runner_scoring_contract.py:2214`), drives both fixtures
+through `_assert_family_obeys_the_scoring_contract`, which calls the guard
+on the left fixture first: that call raises and aborts the function before
+the right fixture's guard call is ever reached, so the protocol-path test
+alone no longer demonstrates the guard rejecting the right fixture's
+projection. Added a new, separate direct unit test,
+`test_projection_is_not_vacuous_rejects_each_fixtures_projection_independently`
+(`:2270`), over the SAME real over-broad fixture pair, calling
+`_assert_projection_is_not_vacuous` on the left and right projections as two
+independent assertions (alongside, not instead of, the protocol-path test).
+
+Commit: `128bae53` — "test(scoring-contract): cover the vacuous-projection
+guard on each fixture independently".
+
+Test added: `test_projection_is_not_vacuous_rejects_each_fixtures_projection_independently`.
+
+Mutation results:
+- With `_assert_projection_is_not_vacuous`'s own assertion body replaced by
+  `pass`, all three tests that exercise it
+  (`test_projection_is_not_vacuous_rejects_a_projection_erased_to_an_empty_mapping`,
+  `test_r9_projection_erases_the_entire_outcome_when_the_declared_path_is_over_broad`,
+  and the new `test_projection_is_not_vacuous_rejects_each_fixtures_projection_independently`)
+  failed with "DID NOT RAISE AssertionError"; restored from the `/tmp`
+  backup, suite green again.
+- Separately, reproducing the exact regression C2 describes -- removing
+  ONLY the right-fixture `_assert_projection_is_not_vacuous` call inside
+  `_assert_family_obeys_the_scoring_contract`, leaving the left-fixture call
+  intact -- confirmed the motivating claim: the protocol-path test still
+  passed (the left call alone still raises "vacuous", which is all that
+  test checks), while the new direct unit test is unaffected by this
+  protocol-helper-internal change either way, since it calls the guard
+  function directly rather than through the protocol path -- exactly the
+  independence C2 asked to restore. Restored from the `/tmp` backup, suite
+  green again (129/129 combined).
+
+### Third-pass final verification
+
+```
+../../.venv/bin/python -m pytest tests/test_shared_runner_schemas.py \
+  tests/test_shared_runner_scoring_contract.py tests/test_shared_runner_smoke.py \
+  -q -p no:cacheprovider
+```
+
+129 passed, 0 failed.
