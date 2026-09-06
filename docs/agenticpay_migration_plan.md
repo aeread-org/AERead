@@ -6,23 +6,36 @@ milestone. Shape to follow is the reference migration
 zeyu/kernel-r9r10..HEAD`) and the R9/R10 precedent
 (worktree `.../AERead/.worktrees/collusion-migrate`), both read in full before
 writing this plan. Neither reference migration exercises ruling R12
-(seat context); this family needs it, so the design decision below has no
-committed in-repo precedent to copy and is argued from the spec text and the
-kernel's own R12 protocol-test fixture instead (see "Seat scope" below).
+(seat context) or ruling R13 (case-conditional leaves); this family needs
+both, so the design decisions below have no committed in-repo precedent to
+copy and are argued from the spec text and the kernel's own protocol-test
+fixtures instead (see "Seat scope" and "Case conditionality" below). R13
+itself did not exist when this family's `contract_legality` leaf was first
+inspected under this migration — the spec's R13 section is explicit that its
+problem statement was "found by the agenticpay migration, 2026-09-06," naming
+this exact leaf. This document's own earlier pass (written against the prior
+`zeyu/kernel-r12-seat-context` base, before the base moved to
+`zeyu/kernel-r13-conditional-leaves`) predates that ruling and never
+classified this leaf against it; the "Case conditionality" section below
+closes that gap by applying R13 back onto the leaf that motivated it.
 
 ## Preconditions confirmed on this base
 
 - Worktree is on branch `zeyu/agenticpay-contract-migration`; `git log --oneline
-  zeyu/kernel-r12-seat-context..HEAD` is empty (HEAD *is* the base commit,
-  `cda0a7363bab11a3a80f884d32040c411b343e6e`) — nothing to migrate onto yet,
-  confirmed after `git fetch origin`.
+  zeyu/kernel-r13-conditional-leaves..HEAD` is empty (HEAD *is* the base
+  commit, `5d8761cf1a4ae4c44b442168a5723fd350246944`) — nothing to migrate
+  onto yet, confirmed after `git fetch origin`. (Superseded note: an earlier
+  pass of this section checked this same thing against the branch's prior
+  base, `zeyu/kernel-r12-seat-context` at `cda0a7363bab11a3a80f884d32040c411b343e6e`;
+  the base has since moved forward to carry ruling R13, and every check below
+  is re-run fresh against the new base, not copied from that earlier pass.)
 - `FamilyScoringInput` exists in `src/aeread/shared_runner/task/evaluation.py`;
   `LeafPolicyDeclaration` exists in `src/aeread/shared_runner/schemas.py`
   (confirmed by `grep -l`, both non-empty).
 - `('agenticpay.bilateral', '0.1.0', 'agenticpay_bilateral_environment')` is in
-  `TRUSTED_BUILTIN_PLUGIN_KEYS` (`src/aeread/shared_runner/registry.py:68`), and
+  `TRUSTED_BUILTIN_PLUGIN_KEYS` (`src/aeread/shared_runner/registry.py:81`), and
   `("agenticpay.bilateral", "0.1.0")` is in `_NOT_YET_MIGRATED_TRUSTED_KEYS`
-  (`tests/test_shared_runner_scoring_contract.py:1898`). `environment.py`'s
+  (`tests/test_shared_runner_scoring_contract.py:2261`). `environment.py`'s
   `register_plugin` already calls `registry.register_trusted(...)`, so this
   family is not exposed to the worked example's registration-breaks-after-rebase
   trap — it was already carried this way before this branch forked.
@@ -36,6 +49,13 @@ kernel's own R12 protocol-test fixture instead (see "Seat scope" below).
   `LeafPolicyDeclaration.seat_scope`/`subject_reduction` also exist in
   `schemas.py`, both `_CANONICAL_OMIT_IF_DEFAULT` (digest-neutral per R1's
   principle).
+- `grep -c inapplicable_leaf_ids src/aeread/shared_runner/task/evaluation.py` →
+  `31` (nonzero — R13 machinery exists on this base: the finalizer/replayer/
+  auditor all call `plugin.inapplicable_leaf_ids(family_case)` and enforce
+  `{returned} == {declared finalize_time} − inapplicable`). This family
+  declares one case-conditional leaf (`agenticpay_contract_legality`; see
+  "Case conditionality" below), so this check is required, not merely
+  informative, and it passes.
 - Family test suite, bridge exported (`AEREAD_AGENTICPAY_BRIDGE_PYTHON`,
   `AEREAD_AGENTICPAY_UPSTREAM_ROOT`): `tests/test_agenticpay_bilateral_cases.py`,
   `test_agenticpay_bilateral_environment.py`,
@@ -142,6 +162,66 @@ the joint negotiation trajectory, identical however the manifest's
 `subject_seats` are set for a given cell. Both stay `seat_scope="cell"` (the
 default).
 
+## Case conditionality (ruling R13)
+
+**`agenticpay_contract_legality` is a `case_conditional` leaf; the other three
+are not.** `measurement.py::build_leaves` always appends
+`build_deal_reached_leaf`, `build_buyer_surplus_share_leaf`, and
+`build_seller_surplus_share_leaf`, but calls
+`build_contract_legality_leaf(family_case)` and appends its result only when
+it is not `None`; `build_contract_legality_leaf` itself returns `None`
+whenever `not is_contract_mode(family_case)`. This is exactly R13's problem
+statement in this family's own words — the spec's R13 section names this
+family's `contract_legality` leaf as its own motivating example ("agenticpay's
+`contract_legality` exists for the 25 contract-mode cases and not for the 3
+basic cases") — so the classification is not a judgment call, it is reading
+back a leaf the spec already used this family to describe.
+
+- **Conditional leaf:** `agenticpay_contract_legality` (leaf id
+  `agenticpay_contract_legality_leaf`).
+- **Case predicate:** `measurement.is_contract_mode(family_case)`, i.e.
+  `bool(family_case["constructor_kwargs"]["environment_info"].get("contract_config"))`
+  — mirrors upstream's own `use_contract_mode = bool(contract_config)` rule
+  verbatim (`measurement.py`'s `is_contract_mode` docstring), never a
+  re-derivation. The leaf applies when this is `True` (contract-mode /
+  realistic-split cases) and does not apply when it is `False` (basic
+  price-only cases).
+- **Not conditional:** `agenticpay_deal_reached`, `agenticpay_buyer_surplus_share`,
+  `agenticpay_seller_surplus_share` are all built unconditionally by
+  `build_leaves` for every case, contract-mode or not.
+
+`AgenticpayBilateralPlugin` will therefore declare
+`LeafPolicyDeclaration(case_conditional=True)` for the contract-legality leaf
+only, and implement
+`inapplicable_leaf_ids(family_case) -> frozenset[str]`, returning
+`frozenset({CONTRACT_LEGALITY_LEAF_ID})` when `not is_contract_mode(family_case)`
+and `frozenset()` otherwise — i.e. the hook is a direct restatement of the
+same `is_contract_mode` predicate `build_contract_legality_leaf` already
+applies, not a new decision. This has no committed in-repo family precedent
+to copy (no family in this repo has adopted `case_conditional`/
+`inapplicable_leaf_ids` yet), so the shape above is argued from ruling R13's
+text and the kernel's own R13 protocol-test fixture
+(`tests/test_shared_runner_scoring_contract.py`'s `_CaseConditionalPlugin`/
+`_CaseConditionalScorer`, whose own comment records that it was built
+"mirroring the agenticpay migration's motivating shape" — this exact leaf).
+
+No conflict with the decisions already made above: R13 rule 1 forbids a
+`case_conditional` leaf from being `primary_leaf_id` or in
+`admission_leaf_ids`. `agenticpay_contract_legality` is already proposed as
+neither (see "Proposed primary" and "Admission" below, decided independently
+on rule/diagnostic grounds before this section was written) — the R13
+constraint and this migration's own primary/admission choice agree, so
+nothing about those two sections changes as a result of this classification.
+
+The receipt for a contract-mode case will carry `inapplicable_leaf_ids=()`
+(all four leaves returned); for a basic case it will carry
+`inapplicable_leaf_ids=("agenticpay_contract_legality_leaf",)` and the
+finalizer will accept a returned set of the other three, per R13 rule 3
+(`{returned} == {declared finalize_time} − inapplicable`). A basic-case
+receipt is still `included` when its admission leaf (surplus-share) is `ok`,
+per R13 rule 4 — the missing diagnostic is a disposition, not a cell
+exclusion.
+
 ## Proposed primary: the seat-scoped surplus-share leaf
 
 `family_manifest()`'s coarse family-level `measurement.primary_estimand` is
@@ -178,9 +258,13 @@ two rule-constraint leaves from the two `objective_reference` leaves):
   on `agenticpay_deal_reached` separately would be redundant with the primary's
   own admission behavior, not an independent check.
 - `agenticpay_contract_legality` is likewise a diagnostic: it is declared only
-  for a subset of cases (contract-mode) and a rejected submission is
-  informative (per-round detail already retained in `metrics`), not grounds by
-  itself to exclude the receipt while the surplus-share leaf still scored `ok`.
+  for a subset of cases (contract-mode; see "Case conditionality" below,
+  where this leaf is classified `case_conditional`) and a rejected submission
+  is informative (per-round detail already retained in `metrics`), not
+  grounds by itself to exclude the receipt while the surplus-share leaf still
+  scored `ok`. This is independently required by R13 rule 1 regardless of the
+  diagnostic-vs-gate reasoning: a `case_conditional` leaf may not be an
+  admission leaf.
 
 So `admission_leaf_ids = (<surplus_share_leaf>,)`, trivially satisfying
 `MeasurementDeclaration.__post_init__`'s "primary is in admission" rule.
@@ -251,6 +335,10 @@ framing text describing collusion's identical shape.
 - **R12**: the two existing per-role surplus-share leaves are collapsed
   (milestone-2 work, not done here) into one `seat_scope="subject_seat"` leaf;
   `agenticpay_deal_reached`/`agenticpay_contract_legality` stay `seat_scope="cell"`.
+- **R13**: `agenticpay_contract_legality` is declared `case_conditional=True`;
+  `inapplicable_leaf_ids` restates `is_contract_mode(family_case)` directly;
+  it is already neither primary nor an admission leaf, so no other decision
+  in this plan changes.
 
 ## What is not decided here
 
