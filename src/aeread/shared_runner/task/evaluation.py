@@ -168,7 +168,12 @@ def _replay_family_trajectory(
     """
     events = evidence.read_events()
     phase_by_id = {phase.phase_id: phase for phase in plugin.phases(family_case)}
-    state = plugin.initial_state(family_case, run=None)
+    # Positional, matching scheduler.py's own call site. The hook's second
+    # parameter is named `cell` by every external adapter and `run` by the
+    # natively-built families; a keyword call here silently admitted the
+    # latter and TypeError'd the former, so no external adapter could ever
+    # produce a replayed receipt.
+    state = plugin.initial_state(family_case, None)
     phase_events = tuple(
         event for event in events if event.event_type == "phase_instance_started"
     )

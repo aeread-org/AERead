@@ -64,6 +64,7 @@ from typing import Any, Mapping
 
 from aeread.shared_runner.measurement import (
     EstimandSpec,
+    FamilyScoreSet,
     ImplementationRef,
     MeasurementLeafSpec,
     MetricValue,
@@ -601,6 +602,97 @@ class EconevalsScorer:
         return self.score_attempt(attempts[-1], evidence_refs=evidence_refs)
 
 
+
+    def __call__(
+        self,
+        scoring_input: Any,
+        *,
+        evidence_refs: tuple[str, ...] = (),
+    ) -> FamilyScoreSet:
+        """The kernel's once-per-episode scoring hook (issue #74).
+
+        Surfaces BOTH declared leaves rather than collapsing to one. The
+        terminal state comes from the verified re-execution's last recorded
+        transition -- never from the live episode -- so the score the receipt
+        asserts is computed from the same replay the kernel cross-checked
+        against the seal.
+
+        Leaf roles. The gate leaf is always an admission leaf: an invalid
+        gate is an invalid measurement and excludes the receipt. The
+        objective leaf exists only when the gate admitted the attempt (the
+        track scorers return ``None`` for it otherwise), so it is the primary
+        leaf exactly when it is present, and the gate is primary on the
+        excluded path. Across INCLUDED receipts the primary leaf is therefore
+        always the objective leaf -- the family's declared
+        ``econevals_headroom_capture`` estimand.
+        """
+        final_state: Mapping[str, Any] | None = None
+        for phase in reversed(scoring_input.phase_instances):
+            if phase.transitions:
+                candidate = phase.transitions[-1].state
+                if isinstance(candidate, Mapping):
+                    final_state = candidate
+                    break
+        if final_state is None:
+            raise ValueError("econevals scoring input has no replayed terminal state")
+        gate, objective = self.score_terminal_state(
+            final_state, evidence_refs=evidence_refs
+        )
+        if objective is None:
+            return FamilyScoreSet(
+                primary_leaf_id=gate.leaf.leaf_id,
+                scores=(gate,),
+                admission_leaf_ids=(gate.leaf.leaf_id,),
+            )
+        return FamilyScoreSet(
+            primary_leaf_id=objective.leaf.leaf_id,
+            scores=(gate, objective),
+            admission_leaf_ids=(objective.leaf.leaf_id, gate.leaf.leaf_id),
+        )
+
+def declared_reference_implementations() -> tuple[ImplementationRef, ...]:
+    """Every implementation this family's leaves cite, across all tracks.
+
+    The plan resolver requires exactly the manifest's declared reference
+    providers -- no more, no fewer -- while the receipt requires a pin for
+    every implementation the scored leaves actually cite. A per-case pin set
+    satisfies the second and violates the first (a procurement plan would
+    omit scheduling's references), so plans pin this family-wide union and
+    the manifest declares the same ids. Enumerated from the leaf builders
+    themselves so the two can never drift apart.
+    """
+    refs: dict[tuple[str, str, str], ImplementationRef] = {}
+
+    def add(implementation: ImplementationRef | None) -> None:
+        if implementation is None:
+            return
+        refs[
+            (
+                implementation.implementation_id,
+                implementation.version,
+                implementation.content_sha256,
+            )
+        ] = implementation
+
+    for track in TRACKS:
+        for leaf in build_leaves(track, {}):
+            reference = getattr(leaf.verifier, "reference", None)
+            if reference is not None:
+                add(reference.implementation)
+            scope = getattr(leaf.verifier, "objective_scope", None)
+            domain = getattr(scope, "validity_domain", None) if scope else None
+            if domain is not None:
+                add(domain.predicate)
+    return tuple(refs[key] for key in sorted(refs))
+
+
+def declared_reference_provider_ids() -> tuple[str, ...]:
+    """The manifest's ``scoring.reference_provider_ids``, in canonical order."""
+    return tuple(
+        sorted({ref.implementation_id for ref in declared_reference_implementations()})
+    )
+
+
 def build_scorer(family_case: Mapping[str, Any]) -> EconevalsScorer:
     """Build the one ``EconevalsScorer`` for a case's validated ``family_case``."""
     track = family_case["track"]
@@ -616,6 +708,8 @@ def build_scorer(family_case: Mapping[str, Any]) -> EconevalsScorer:
 
 __all__ = [
     "EconevalsScorer",
+    "declared_reference_implementations",
+    "declared_reference_provider_ids",
     "build_gate_leaf",
     "build_leaves",
     "build_objective_leaf",

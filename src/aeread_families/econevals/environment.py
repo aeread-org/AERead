@@ -86,12 +86,37 @@ from .cases import (
 from .econevals_bridge import EconevalsBridge
 from .measurement import EconevalsScorer
 from .measurement import build_scorer as _build_measurement_scorer
+from .measurement import (
+    declared_reference_provider_ids as _declared_reference_provider_ids,
+)
 
 PLUGIN_ID = "econevals_environment"
 SCORER_ID = "econevals_scorer"
 PERIOD_PHASE = "period"
 SEAT_ID = "agent"
 ROLE_ID = "assistant"
+
+# What the submit argument must contain, per track. The environment parses
+# it with upstream's own dict fallback and records a malformed attempt for
+# anything else; stating the shape here is interface documentation, not a
+# hint -- upstream's own econ-evals prompts document their tool arguments
+# too. Withholding it and then scoring the result measures our omission
+# rather than the model (GLM submitted `[]` for all 100 periods of the first
+# live attempt, because nothing said a mapping was required).
+SUBMIT_ARG_FORMATS: Mapping[str, str] = {
+    "procurement": (
+        "a JSON object mapping each offer id you want to buy to an integer "
+        'quantity, e.g. {"Offer_3": 2, "Offer_7": 1}; never a list'
+    ),
+    "scheduling": (
+        "a JSON object mapping every worker id to the task id you assign it, "
+        'e.g. {"W1": "T3", "W2": "T1"}; every worker must appear; never a list'
+    ),
+    "pricing": (
+        "a JSON object mapping each product id to its price as a number, "
+        'e.g. {"P1": 12.5}; never a list'
+    ),
+}
 
 # Track -> (read-only tool names, submit tool name, submit argument name).
 TRACK_TOOLS: Mapping[str, Mapping[str, Any]] = {
@@ -256,7 +281,18 @@ def family_manifest() -> FamilyManifest:
                 "measurement_kind": "optimizable_outcome",
                 "direction": "maximize",
             },
-            "scoring": {"scorer_id": SCORER_ID},
+            "scoring": {
+                "scorer_id": SCORER_ID,
+                # Every implementation the declared leaves cite must also be
+                # declared here: the resolver rejects a plan pin nothing
+                # references, while the receipt rejects a measurement
+                # implementation that is not pinned. Both are the same three
+                # for every track -- upstream's own solver entry points and
+                # this family's validity-domain predicate.
+                "reference_provider_ids": list(
+                    _declared_reference_provider_ids()
+                ),
+            },
         }
     )
 
@@ -376,6 +412,7 @@ class EconevalsPlugin:
             "read_only_tools": list(tools["read_only"]),
             "submit_tool": tools["submit_tool"],
             "submit_arg": tools["submit_arg"],
+            "submit_arg_format": SUBMIT_ARG_FORMATS[track],
         }
 
     # -- action parsing ----------------------------------------------
