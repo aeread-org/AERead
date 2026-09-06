@@ -1604,6 +1604,239 @@ _SINGLE_FIXTURE_EXEMPT_FAMILIES: "frozenset[tuple[str, str]]" = frozenset(
 )
 
 
+@dataclasses.dataclass(frozen=True, slots=True)
+class _FamilyContractResult:
+    """What ``_assert_family_obeys_the_scoring_contract`` found, for callers
+    that need to make their OWN additional assertions on top of it (see the
+    R9/R10 end-to-end tests below) -- everything it already verified
+    internally is not repeated here, only the data those extra assertions
+    need."""
+
+    produced_by_case: tuple[tuple[Any, FamilyScoreSet], ...]
+    witness_pair_by_leaf: Mapping[str, tuple[int, int]]
+
+
+def _assert_family_obeys_the_scoring_contract(
+    key: tuple[str, str],
+    registration: Any,
+    cases: Sequence[FamilyScoringFixture],
+) -> _FamilyContractResult:
+    """One family's full scoring-contract protocol check (spec section 6).
+
+    kernel_r9r10_review.md finding 5, pure extraction: this is the per-family
+    body ``test_every_registered_family_obeys_the_scoring_contract`` used to
+    run inline in its own loop. Moving it here, unchanged, lets the R9/R10
+    end-to-end tests below drive their synthetic embedding families through
+    the SAME protocol path the registered-family test uses, instead of
+    calling ``project_outcome``/``_assert_trajectory_*`` directly and
+    bypassing everything else this function checks (leaf-set/primary/
+    admission conformance, evidence provenance, leaf-identity stability, the
+    determinism pre-check, ...).
+    """
+    declared = registration.manifest.finalize_time_leaf_policy()
+    # Ruling R9: an exhaustive, family-declared list of the outcome fields
+    # that carry the trajectory (empty for every family that does not embed
+    # one -- govsim and the four already-migrated families below).
+    trajectory_outcome_paths = registration.manifest.measurement.trajectory_outcome_paths
+    produced_by_case: list[tuple[Any, FamilyScoreSet]] = []
+    stable_leaf_specs: dict[str, Any] = {}
+
+    for index, case in enumerate(cases):
+        scoring_input = replay_family_scoring_input(
+            plugin=registration.plugin,
+            family_case=case.family_case,
+            evidence=case.sealed_evidence,
+        )
+        # Ruling R10: this fixture's OWN outcome must agree with its OWN
+        # phase_instances at every declared path -- independent of any
+        # pairing with another fixture, and a no-op when the family
+        # declares no paths.
+        _assert_trajectory_outcome_paths_are_consistent(
+            scoring_input, trajectory_outcome_paths
+        )
+        produced = normalize_family_score_set(
+            registration.plugin.build_scorer(case.family_case)(
+                scoring_input, evidence_refs=scoring_input.evidence_refs
+            )
+        )
+        assert {score.leaf.leaf_id for score in produced.scores} == set(declared.leaf_ids)
+        assert produced.primary_leaf_id == declared.primary_leaf_id
+        assert produced.admission_leaf_ids == declared.admission_leaf_ids
+        assert all(
+            score.evidence_refs == scoring_input.evidence_refs
+            for score in produced.scores
+        )
+
+        # kernel_contract_gap_review.md finding 7: a leaf's declared
+        # identity -- its estimand (including input_scope), verifier, and
+        # scorer ref -- must be stable across fixtures for the same
+        # family/version. Nothing previously compared the FULL
+        # MeasurementLeafSpec across cases, only leaf_id membership, so a
+        # scorer could vary a leaf's input_scope, estimand_version, or
+        # scorer implementation between fixtures without any conformance
+        # failure.
+        for score in produced.scores:
+            existing = stable_leaf_specs.setdefault(score.leaf.leaf_id, score.leaf)
+            assert score.leaf == existing, (
+                f"{key[0]}/{score.leaf.leaf_id} returned a different "
+                "MeasurementLeafSpec across fixtures (differing input_scope, "
+                "estimand_version, verifier, or scorer ref) -- a leaf's "
+                "declared identity must be stable for the family version"
+            )
+
+        # Determinism pre-check (ruling R7), made adjacent to the
+        # original call for THIS case (kernel_contract_gap_review.md
+        # finding 4): the previous structure batched both fixtures'
+        # original calls, then both fixtures' repeat calls -- call order
+        # original-left, original-right, repeat-left, repeat-right -- so
+        # a scorer whose output merely alternates by global call-count
+        # parity (independent of scoring_input) could still coincide on
+        # both same-input comparisons (calls 1 and 3 share parity, as do
+        # 2 and 4) and only disagree on the cross-fixture contrapositive
+        # below, misreporting nondeterminism as mislabelling. Calling the
+        # repeat immediately -- call 2 right after call 1, for this case,
+        # before moving to the next -- closes that specific route: such a
+        # scorer now disagrees with itself on the very next call.
+        if index < 2:
+            case_terminal_leaf_ids = {
+                score.leaf.leaf_id
+                for score in produced.scores
+                if score.leaf.estimand.input_scope == "terminal_state"
+            }
+            repeat = normalize_family_score_set(
+                registration.plugin.build_scorer(case.family_case)(
+                    scoring_input, evidence_refs=scoring_input.evidence_refs
+                )
+            )
+            for leaf_id in case_terminal_leaf_ids:
+                first_score = next(
+                    score for score in produced.scores if score.leaf.leaf_id == leaf_id
+                )
+                second_score = next(
+                    score for score in repeat.scores if score.leaf.leaf_id == leaf_id
+                )
+                assert _score_measurement_content(
+                    first_score
+                ) == _score_measurement_content(second_score), (
+                    f"{key[0]}/{leaf_id} is nondeterministic: invoking the scorer "
+                    "twice on the SAME scoring input produced two different "
+                    "measurements, so no conclusion about terminal_state "
+                    "mislabelling can be drawn from the paired-fixture comparison "
+                    "below"
+                )
+
+        produced_by_case.append((scoring_input, produced))
+
+    # kernel_contract_gap_review.md finding 3: the paired-history
+    # requirement is now unconditional except for the named exemption
+    # above -- it no longer depends on the scorer's OWN (possibly
+    # mislabelled) output already declaring a trajectory leaf.
+    if key not in _SINGLE_FIXTURE_EXEMPT_FAMILIES:
+        assert len(produced_by_case) >= 2, (
+            f"{key[0]}@{key[1]} supplies fewer than two contract fixtures and is "
+            "not in _SINGLE_FIXTURE_EXEMPT_FAMILIES -- ruling R7's paired-history "
+            "contrapositive cannot verify any of its declared terminal_state "
+            "leaves without a second, outcome-identical, trajectory-differing "
+            "fixture"
+        )
+
+    if len(produced_by_case) < 2:
+        # No paired fixtures to compare -- nothing further to check for
+        # this family. Only the four families named in
+        # _SINGLE_FIXTURE_EXEMPT_FAMILIES reach this today.
+        return _FamilyContractResult(
+            produced_by_case=tuple(produced_by_case), witness_pair_by_leaf={}
+        )
+
+    # trajectory_leaf_ids / terminal_leaf_ids are derived from the leaf's
+    # declared EstimandSpec.input_scope (ruling R5), not from a
+    # hand-maintained list: whichever leaves the scorer actually produced
+    # with a given input_scope are the ones the checks below apply to.
+    # Safe to derive from case 0 alone: the stability check above already
+    # proved every other case's leaves are identical to case 0's.
+    first_case_scores = produced_by_case[0][1].scores
+    terminal_leaf_ids = {
+        score.leaf.leaf_id
+        for score in first_case_scores
+        if score.leaf.estimand.input_scope == "terminal_state"
+    }
+    trajectory_leaf_ids = {
+        score.leaf.leaf_id
+        for score in first_case_scores
+        if score.leaf.estimand.input_scope == "trajectory"
+    }
+
+    # Ruling R9(b), the sensitivity witness: every trajectory-scoped leaf
+    # must be shown capable of changing across SOME CONTROLLED pair of
+    # this family's supplied fixtures (not necessarily the
+    # paired-history pair below specifically). See this function's
+    # docstring for why "must differ on THE pair" was rejected, and for
+    # what makes a pair "controlled".
+    witness_pair_by_leaf = _assert_trajectory_leaves_are_witnessed(
+        produced_by_case, trajectory_leaf_ids, trajectory_outcome_paths, family_id=key[0]
+    )
+
+    (left_input, left_scores), (right_input, right_scores) = produced_by_case[:2]
+    # Ruling R9: the paired-history precondition compares the PROJECTION
+    # (outcome minus every declared trajectory_outcome_path), not the
+    # whole outcome. A family declaring no paths projects to itself, so
+    # this is byte-for-byte the pre-R9 check for govsim and every
+    # terminal-only family.
+    left_projection = project_outcome(left_input.outcome, trajectory_outcome_paths)
+    right_projection = project_outcome(right_input.outcome, trajectory_outcome_paths)
+    # kernel_r9r10_review.md finding 1 (guard a): an over-broad declared
+    # path (one covering an object subtree wider than the trajectory
+    # itself) can project BOTH fixtures down to an empty mapping, which
+    # would make the equality check below pass vacuously -- {} == {} --
+    # without ever comparing terminal state. Each fixture's own
+    # projection is checked individually, before they are compared.
+    _assert_projection_is_not_vacuous(
+        left_projection, family_id=key[0], trajectory_outcome_paths=trajectory_outcome_paths
+    )
+    _assert_projection_is_not_vacuous(
+        right_projection, family_id=key[0], trajectory_outcome_paths=trajectory_outcome_paths
+    )
+    assert canonical_json_bytes(left_projection) == canonical_json_bytes(
+        right_projection
+    )
+    assert left_input.phase_instances != right_input.phase_instances
+
+    # Ruling R7: a legitimate trajectory metric may legitimately map two
+    # distinct histories to the same value (e.g. "did the actor ever
+    # concede" being false on both trajectories), so asserting that
+    # trajectory-declared leaves must *differ* here is unsound and has
+    # been removed rather than corrected. There is no reverse trap for
+    # trajectory-declared leaves; the check with teeth is the
+    # contrapositive below, for terminal_state-declared leaves.
+
+    # Ruling R7's contrapositive, and the check with teeth: for every
+    # leaf declared input_scope="terminal_state", its score must be
+    # IDENTICAL across the two fixtures whose terminal outcomes are
+    # byte-identical and whose trajectories differ (asserted above). A
+    # leaf that varies here is secretly trajectory-dependent and
+    # mislabelled -- this is exactly the leaf the paired-history check
+    # previously gave no coverage to, since only trajectory-declared
+    # leaves were ever compared across the pair.
+    for leaf_id in terminal_leaf_ids:
+        left_score = next(
+            score for score in left_scores.scores if score.leaf.leaf_id == leaf_id
+        )
+        right_score = next(
+            score for score in right_scores.scores if score.leaf.leaf_id == leaf_id
+        )
+        assert _score_measurement_content(left_score) == _score_measurement_content(
+            right_score
+        ), (
+            f"{key[0]}/{leaf_id} is declared input_scope=terminal_state but its score "
+            "differs between two fixtures with a byte-identical outcome and a differing "
+            "trajectory -- it is secretly trajectory-dependent and mislabelled"
+        )
+
+    return _FamilyContractResult(
+        produced_by_case=tuple(produced_by_case), witness_pair_by_leaf=witness_pair_by_leaf
+    )
+
+
 def test_every_registered_family_obeys_the_scoring_contract(tmp_path: Path) -> None:
     registry, fixtures = _build_protocol_test_registry_and_fixtures(tmp_path)
     registrations = {
@@ -1629,203 +1862,7 @@ def test_every_registered_family_obeys_the_scoring_contract(tmp_path: Path) -> N
     )
 
     for key, registration in registrations.items():
-        declared = registration.manifest.finalize_time_leaf_policy()
-        # Ruling R9: an exhaustive, family-declared list of the outcome
-        # fields that carry the trajectory (empty for every family that does
-        # not embed one -- govsim and the four already-migrated families
-        # below).
-        trajectory_outcome_paths = registration.manifest.measurement.trajectory_outcome_paths
-        produced_by_case: list[tuple[Any, FamilyScoreSet]] = []
-        stable_leaf_specs: dict[str, Any] = {}
-
-        for index, case in enumerate(fixtures[key]):
-            scoring_input = replay_family_scoring_input(
-                plugin=registration.plugin,
-                family_case=case.family_case,
-                evidence=case.sealed_evidence,
-            )
-            # Ruling R10: this fixture's OWN outcome must agree with its OWN
-            # phase_instances at every declared path -- independent of any
-            # pairing with another fixture, and a no-op when the family
-            # declares no paths.
-            _assert_trajectory_outcome_paths_are_consistent(
-                scoring_input, trajectory_outcome_paths
-            )
-            produced = normalize_family_score_set(
-                registration.plugin.build_scorer(case.family_case)(
-                    scoring_input, evidence_refs=scoring_input.evidence_refs
-                )
-            )
-            assert {score.leaf.leaf_id for score in produced.scores} == set(declared.leaf_ids)
-            assert produced.primary_leaf_id == declared.primary_leaf_id
-            assert produced.admission_leaf_ids == declared.admission_leaf_ids
-            assert all(
-                score.evidence_refs == scoring_input.evidence_refs
-                for score in produced.scores
-            )
-
-            # kernel_contract_gap_review.md finding 7: a leaf's declared
-            # identity -- its estimand (including input_scope), verifier, and
-            # scorer ref -- must be stable across fixtures for the same
-            # family/version. Nothing previously compared the FULL
-            # MeasurementLeafSpec across cases, only leaf_id membership, so a
-            # scorer could vary a leaf's input_scope, estimand_version, or
-            # scorer implementation between fixtures without any conformance
-            # failure.
-            for score in produced.scores:
-                existing = stable_leaf_specs.setdefault(score.leaf.leaf_id, score.leaf)
-                assert score.leaf == existing, (
-                    f"{key[0]}/{score.leaf.leaf_id} returned a different "
-                    "MeasurementLeafSpec across fixtures (differing input_scope, "
-                    "estimand_version, verifier, or scorer ref) -- a leaf's "
-                    "declared identity must be stable for the family version"
-                )
-
-            # Determinism pre-check (ruling R7), made adjacent to the
-            # original call for THIS case (kernel_contract_gap_review.md
-            # finding 4): the previous structure batched both fixtures'
-            # original calls, then both fixtures' repeat calls -- call order
-            # original-left, original-right, repeat-left, repeat-right -- so
-            # a scorer whose output merely alternates by global call-count
-            # parity (independent of scoring_input) could still coincide on
-            # both same-input comparisons (calls 1 and 3 share parity, as do
-            # 2 and 4) and only disagree on the cross-fixture contrapositive
-            # below, misreporting nondeterminism as mislabelling. Calling the
-            # repeat immediately -- call 2 right after call 1, for this case,
-            # before moving to the next -- closes that specific route: such a
-            # scorer now disagrees with itself on the very next call.
-            if index < 2:
-                case_terminal_leaf_ids = {
-                    score.leaf.leaf_id
-                    for score in produced.scores
-                    if score.leaf.estimand.input_scope == "terminal_state"
-                }
-                repeat = normalize_family_score_set(
-                    registration.plugin.build_scorer(case.family_case)(
-                        scoring_input, evidence_refs=scoring_input.evidence_refs
-                    )
-                )
-                for leaf_id in case_terminal_leaf_ids:
-                    first_score = next(
-                        score for score in produced.scores if score.leaf.leaf_id == leaf_id
-                    )
-                    second_score = next(
-                        score for score in repeat.scores if score.leaf.leaf_id == leaf_id
-                    )
-                    assert _score_measurement_content(
-                        first_score
-                    ) == _score_measurement_content(second_score), (
-                        f"{key[0]}/{leaf_id} is nondeterministic: invoking the scorer "
-                        "twice on the SAME scoring input produced two different "
-                        "measurements, so no conclusion about terminal_state "
-                        "mislabelling can be drawn from the paired-fixture comparison "
-                        "below"
-                    )
-
-            produced_by_case.append((scoring_input, produced))
-
-        # kernel_contract_gap_review.md finding 3: the paired-history
-        # requirement is now unconditional except for the named exemption
-        # above -- it no longer depends on the scorer's OWN (possibly
-        # mislabelled) output already declaring a trajectory leaf.
-        if key not in _SINGLE_FIXTURE_EXEMPT_FAMILIES:
-            assert len(produced_by_case) >= 2, (
-                f"{key[0]}@{key[1]} supplies fewer than two contract fixtures and is "
-                "not in _SINGLE_FIXTURE_EXEMPT_FAMILIES -- ruling R7's paired-history "
-                "contrapositive cannot verify any of its declared terminal_state "
-                "leaves without a second, outcome-identical, trajectory-differing "
-                "fixture"
-            )
-
-        if len(produced_by_case) < 2:
-            # No paired fixtures to compare -- nothing further to check for
-            # this family. Only the four families named in
-            # _SINGLE_FIXTURE_EXEMPT_FAMILIES reach this today.
-            continue
-
-        # trajectory_leaf_ids / terminal_leaf_ids are derived from the leaf's
-        # declared EstimandSpec.input_scope (ruling R5), not from a
-        # hand-maintained list: whichever leaves the scorer actually produced
-        # with a given input_scope are the ones the checks below apply to.
-        # Safe to derive from case 0 alone: the stability check above already
-        # proved every other case's leaves are identical to case 0's.
-        first_case_scores = produced_by_case[0][1].scores
-        terminal_leaf_ids = {
-            score.leaf.leaf_id
-            for score in first_case_scores
-            if score.leaf.estimand.input_scope == "terminal_state"
-        }
-        trajectory_leaf_ids = {
-            score.leaf.leaf_id
-            for score in first_case_scores
-            if score.leaf.estimand.input_scope == "trajectory"
-        }
-
-        # Ruling R9(b), the sensitivity witness: every trajectory-scoped leaf
-        # must be shown capable of changing across SOME CONTROLLED pair of
-        # this family's supplied fixtures (not necessarily the
-        # paired-history pair below specifically). See this function's
-        # docstring for why "must differ on THE pair" was rejected, and for
-        # what makes a pair "controlled".
-        _assert_trajectory_leaves_are_witnessed(
-            produced_by_case, trajectory_leaf_ids, trajectory_outcome_paths, family_id=key[0]
-        )
-
-        (left_input, left_scores), (right_input, right_scores) = produced_by_case[:2]
-        # Ruling R9: the paired-history precondition compares the PROJECTION
-        # (outcome minus every declared trajectory_outcome_path), not the
-        # whole outcome. A family declaring no paths projects to itself, so
-        # this is byte-for-byte the pre-R9 check for govsim and every
-        # terminal-only family.
-        left_projection = project_outcome(left_input.outcome, trajectory_outcome_paths)
-        right_projection = project_outcome(right_input.outcome, trajectory_outcome_paths)
-        # kernel_r9r10_review.md finding 1 (guard a): an over-broad declared
-        # path (one covering an object subtree wider than the trajectory
-        # itself) can project BOTH fixtures down to an empty mapping, which
-        # would make the equality check below pass vacuously -- {} == {} --
-        # without ever comparing terminal state. Each fixture's own
-        # projection is checked individually, before they are compared.
-        _assert_projection_is_not_vacuous(
-            left_projection, family_id=key[0], trajectory_outcome_paths=trajectory_outcome_paths
-        )
-        _assert_projection_is_not_vacuous(
-            right_projection, family_id=key[0], trajectory_outcome_paths=trajectory_outcome_paths
-        )
-        assert canonical_json_bytes(left_projection) == canonical_json_bytes(
-            right_projection
-        )
-        assert left_input.phase_instances != right_input.phase_instances
-
-        # Ruling R7: a legitimate trajectory metric may legitimately map two
-        # distinct histories to the same value (e.g. "did the actor ever
-        # concede" being false on both trajectories), so asserting that
-        # trajectory-declared leaves must *differ* here is unsound and has
-        # been removed rather than corrected. There is no reverse trap for
-        # trajectory-declared leaves; the check with teeth is the
-        # contrapositive below, for terminal_state-declared leaves.
-
-        # Ruling R7's contrapositive, and the check with teeth: for every
-        # leaf declared input_scope="terminal_state", its score must be
-        # IDENTICAL across the two fixtures whose terminal outcomes are
-        # byte-identical and whose trajectories differ (asserted above). A
-        # leaf that varies here is secretly trajectory-dependent and
-        # mislabelled -- this is exactly the leaf the paired-history check
-        # previously gave no coverage to, since only trajectory-declared
-        # leaves were ever compared across the pair.
-        for leaf_id in terminal_leaf_ids:
-            left_score = next(
-                score for score in left_scores.scores if score.leaf.leaf_id == leaf_id
-            )
-            right_score = next(
-                score for score in right_scores.scores if score.leaf.leaf_id == leaf_id
-            )
-            assert _score_measurement_content(left_score) == _score_measurement_content(
-                right_score
-            ), (
-                f"{key[0]}/{leaf_id} is declared input_scope=terminal_state but its score "
-                "differs between two fixtures with a byte-identical outcome and a differing "
-                "trajectory -- it is secretly trajectory-dependent and mislabelled"
-            )
+        _assert_family_obeys_the_scoring_contract(key, registration, fixtures[key])
 
 
 def test_determinism_precheck_adjacency_defeats_call_parity_aliasing(tmp_path: Path) -> None:
