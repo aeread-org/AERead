@@ -56,6 +56,7 @@ not intended as a second reading order.
 - [Experiment campaign SOP](operations/experiment_campaign_sop.md)
 - [Open-harness testing and leaderboards](operations/open_harness_testing.md)
 - [QC and SOP open items](operations/qc_sop_open_items.md)
+- [Pull-request lanes and limits](operations/pr_lanes.md)
 
 ## Benchmark families
 
