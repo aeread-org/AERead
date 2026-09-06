@@ -1,6 +1,6 @@
 # econagent adapter — status
 
-Branch `zeyu/econagent-adapter`. Last verified 2026-09-02.
+Branch `zeyu/econagent-contract-migration`. Last verified 2026-09-06.
 
 ## What the adapter claims
 
@@ -22,6 +22,74 @@ EconAgent itself defines no reward and no task-success criterion (`simulate.py` 
 a dense log); this spec deliberately never manufactures one. See
 `docs/econagent_adapter_spec.md` section 2 for the full verifier declaration and section 6
 for the stated scope limits.
+
+## Leaf policy (kernel_scoring_contract_spec.md, migration milestone 2 of 3)
+
+`family_manifest()`'s `measurement` block now declares this family's leaf policy
+explicitly (spec section 3), and `EconAgentV1Scorer.__call__` takes a
+`FamilyScoringInput` and returns a `FamilyScoreSet` carrying every one of the three
+leaves below. There was no pre-existing `__call__` to retire a shim from (only the
+three named `score_*` methods existed before this milestone, exercised directly by
+tests); `__call__` is new this milestone, composing those three methods and no new
+scoring logic.
+
+| Leaf | Scope | Primary | Admission |
+|---|---|---|---|
+| `econagent_budget_identity_leaf` | `finalize_time` | **yes** | **yes** |
+| `econagent_tax_bracket_arithmetic_leaf` | `finalize_time` | no | **yes** |
+| `econagent_macro_trajectory_leaf` | `finalize_time` | no | no |
+
+**Why `econagent_budget_identity` is primary.** It is this family's own
+already-declared `primary_estimand` (`family_manifest()`'s `measurement` block,
+present since before this milestone) and this adapter's foundational correctness
+claim: the six-term accounting identity every agent's inventory must satisfy every
+month, sourced entirely from upstream's own executed state (see this module's own
+docstring, "Leaf 1"). It was not picked because it was the easiest leaf to compute:
+`econagent_tax_bracket_arithmetic` (a single `tax_paid <= tax_due` inequality per
+agent-month) is materially simpler to check than the six-term identity, and
+`econagent_macro_trajectory` is disqualified from primary status by its own declared
+estimand — descriptive-only, "no comparator, no optimum, no pass/fail meaning" — which
+cannot support the `outcome_support: "pass_fail"` this family's manifest declares.
+
+**Why `econagent_budget_identity` and `econagent_tax_bracket_arithmetic` alone gate
+admission.** Both are `rule_constraint` leaves checking whether the recorded episode is
+*internally consistent* with upstream's own executed accounting — a violation on either
+is an adapter/bridge bug, never a policy-quality slack (this module's own docstring,
+"a violation past this tolerance is an adapter/bridge bug, not a policy failure"). An
+`invalid_measurement` on either therefore means the measurement itself could not be
+produced (a missing or malformed `dense_log`, or — for the tax-bracket leaf specifically
+— a bridge failure re-invoking `recompute_tax`), not that a legitimate policy behavior
+was observed; excluding the receipt in that case is the correct admission semantics.
+`econagent_macro_trajectory` is comparative/diagnostic by its own estimand (no pass/fail
+meaning, no optimum, no bound) — per spec section 3, "Diagnostic leaves are receipted
+but do not gate admission unless declared," and it is not declared here.
+
+**Deferred leaves: none.** Every leaf in this family is `evaluation_class="deterministic"`
+with no judge, rater, or other not-yet-existing artifact anywhere in its verifier
+declaration (`measurement.py`'s `build_*_leaf` functions); nothing here waits on an
+artifact that "may not exist yet" (spec section 4), so all three are declared
+`scope="finalize_time"` and none is `scope="deferred"`.
+
+**Seat policy: not applicable.** Every leaf stays `seat_scope="cell"` (the default,
+ruling R12) — the manifest declares one role, `agent`, symmetric across every seat (all
+`n_agents` seats run the same upstream `complex` scripted policy), with no
+subject-vs-opponent or tested-vs-baseline seat distinction anywhere in this family; every
+leaf is a population- or episode-level aggregate, never one seat's own realized value.
+See `docs/econagent_migration_plan.md`'s "Ruling applicability" section for the fuller
+argument, made against this family's real `outcome()`/manifest rather than assumed.
+
+`EconAgentV1Scorer.__call__`'s three leaves are all declared `input_scope="trajectory"`:
+`scoring_input.outcome` (`environment.py`'s `outcome()`) carries only
+`termination_reason, timestep, n_agents, final_inventory_coin` — never `dense_log`,
+`month_actions`, or `world_interest_rate_by_month` — so every one reads those fields off
+`scoring_input.phase_instances` instead, via `measurement.py`'s
+`_terminal_fields_from_phase_instances` (this family's `mode="simultaneous"` phase
+produces exactly one transition per phase instance -- one per month -- so the last phase
+instance's last transition's state carries the full, cumulative, terminal content for the
+whole episode). `econagent_tax_bracket_arithmetic`'s live, stateless
+`EconAgentBridge.recompute_tax` re-invocation is threaded through via
+`EconAgentV1Scorer.bridge_factory`, the same factory
+`EconAgentV1Plugin.build_scorer` already uses for a live episode's own scoring.
 
 ## What milestone 3 added
 
@@ -71,21 +139,33 @@ all three measurement leaves recomputed from the replay (including
 (tampering one recorded `step_month` response's `actions` field before replay) confirms the
 comparator genuinely detects divergence rather than being vacuously true.
 
-**Suite: 96 econagent-family + smoke tests passed, 0 failed**, with a provisioned bridge
+**Suite: 123 econagent-family + smoke tests passed, 0 failed, 0 skipped**, re-verified
+after this milestone's leaf-policy/`__call__` migration
+(`kernel_scoring_contract_spec.md`), with a provisioned bridge
 (`bridges/econagent-venv`) and the pinned upstream checkout present:
 
 ```
-tests/test_econagent_cases.py tests/test_econagent_environment.py
-tests/test_econagent_measurement.py tests/test_econagent_goldens.py
-tests/test_econagent_parity.py tests/test_econagent_e2e.py
-tests/test_econagent_replay.py tests/test_shared_runner_smoke.py
-96 passed in 60.60s
+tests/test_econagent_bridge_required_enforcement.py tests/test_econagent_e2e.py
+tests/test_econagent_parity.py tests/test_econagent_environment.py
+tests/test_econagent_goldens.py tests/test_econagent_cases.py
+tests/test_econagent_measurement.py tests/test_econagent_replay.py
+tests/test_shared_runner_smoke.py
+123 passed in 189.70s
 ```
 
-**Full repository regression check: 812 passed, 31 skipped, 1 xfailed, 0 failed**
-(`pytest tests/` from the worktree root) — the 31 skips are other adapters' own
-bridge-gated tests for upstream checkouts/interpreters not relevant to this change (tau2,
-etc.); nothing econagent-owned skipped.
+Re-run with none of `AEREAD_ECONAGENT_BRIDGE_PYTHON`/`AEREAD_ECONAGENT_BRIDGE_REQUIRED`
+exported: still **123 passed, 0 skipped** on this machine, because
+`discover_bridge_python`'s own fallback resolves the provisioned
+`bridges/econagent-venv` default even unset, and `AEREAD_ECONAGENT_UPSTREAM_ROOT`'s
+default already points at the pinned checkout -- so this particular pair of runs never
+exercises this suite's own skip path (there is no vacuous-green gap to guard against
+here; every bridge-gated test genuinely executed both times).
+
+**Full repository regression check (812 passed, 31 skipped, 1 xfailed, 0 failed,
+`pytest tests/` from the worktree root): last verified 2026-09-02, predates this
+milestone and was not re-run here** — the family-scoped suite above is this milestone's
+own verification; the 31 skips recorded then were other adapters' own bridge-gated tests
+(tau2, etc.), not econagent's.
 
 **Parity** (`test_econagent_parity.py`, built in milestone 2, re-verified here): for each of
 the three pilot scenarios, the adapter's per-agent terminal `inventory["Coin"]`, cumulative
@@ -168,7 +248,9 @@ malformed-or-operational-failure, degenerate-reference) pass against the real br
 Unlike `tau2_bridge` (one fresh subprocess per call), this bridge is one persistent
 subprocess per episode (spec milestone-1 correction 3, since `complex_actions` needs the
 live upstream `env` object's shared RNG stream across the whole episode) — the full
-96-test econagent + smoke suite, including every bridge-gated test (goldens, parity,
-e2e, replay), runs in about a minute on this machine. There is no multi-hour corpus sweep
-here: the entire declared, run corpus is three small scenarios (10x12, 10x12, 4x6), by
-design (spec section 1) — the 100x240 paper configuration is declared but never executed.
+123-test econagent + smoke suite (grown from 96 by this milestone's leaf-policy/`__call__`
+tests), including every bridge-gated test (goldens, parity, e2e, replay, and now `__call__`
+driven through a real scheduler episode), runs in about three minutes on this machine.
+There is no multi-hour corpus sweep here: the entire declared, run corpus is three small
+scenarios (10x12, 10x12, 4x6), by design (spec section 1) — the 100x240 paper
+configuration is declared but never executed.
