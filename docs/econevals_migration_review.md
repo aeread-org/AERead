@@ -168,4 +168,14 @@ tests/test_econevals_replay.py tests/test_shared_runner_scoring_contract.py
 tests/test_shared_runner_smoke.py
 ```
 
-Result: 142 passed, 0 failed, 0 skipped, 0 errors.
+Result: 119 passed, 0 failed, 0 skipped, 0 errors. `collected 119 items` in the
+session header matches `--collect-only`'s count for this exact file list, and this
+count/outcome reproduced identically across two subsequent full runs and two
+independent `--collect-only` checks. One earlier run in this session (before the
+review doc's commit, under much lighter concurrent load) reported `142 passed`
+with no failures/skips/errors either; that count could not be reproduced afterward
+and the cause is unexplained (no source file changed between that run and the
+later ones). Recorded here rather than silently dropped: the 119-item count is the
+one that matches static collection of the current, committed source, so it is
+reported as the authoritative result, but the anomaly is not fully understood and
+is worth a second look if it recurs.
