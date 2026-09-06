@@ -48,6 +48,13 @@ Admitted panels:
 | `risk_gates_v1/` | 6 | labeled + opaque | sample-schedule and landed-cash factorial |
 | `qwen_holdout_v1/` | 6 | opaque | targeted residual-capability holdout |
 | `confirmatory_v2/` | 12 | labeled + opaque | held-out panel for the pre-award check; **inadmissible**, control saturates 7 of 12 worlds |
+| `duediligence_v1/` | 6 | labeled + opaque | first information panel; **inadmissible**, 1 of 6 worlds can express a difference. Retained as the screen's regression fixture |
+| due-diligence recalibration | 6 | not committed | one trap per component so a single recovery fits the budget; **inadmissible**, control saturates 6 of 6 at four seeds while all baselines lose. Not written to `cases/`; its measurement is defect 17 |
+
+Admission is decided by `headroom_screen.classify_world`, which rejects a world
+on three separate grounds -- trivial, floored, saturated -- measured over at
+least three seeds. No panel has yet passed it. That is the current state of the
+family and is reported as such rather than worked around.
 | `information_v1/` | 8 | labeled + opaque | information worlds; **inadmissible**, control saturates 7 of 7 and the biased channel is unread |
 | `duediligence_v1/` | 6 | labeled + opaque | verification-scarce worlds; **admitted** on a measured control failure rate of 3 of 6 |
 
@@ -236,8 +243,26 @@ evidence. Those that bound what this family can currently claim:
 6. Replaying every prefix of the fifteen pre-award deferrals shows no point at
    which a feasible award was constructible, so the family measures irreversible
    early commitment without giving feedback until the end.
+7. `validate_payload` rejects a world whose full-information optimum does not
+   beat deferring, and computes that optimum under the action budget, so the rule
+   admitting a world is the rule making it hard. A budget sweep found every world
+   at 0/3 or 3/3 with no fractional cell, so the panel-level 50% award rate at
+   budget 6 is a mixture of deterministic worlds rather than headroom.
+8. Within-world seed variance is zero on every world measured, across two
+   independent runs. Seeds are repeats, not replicates: the effective sample
+   size of a panel is its world count, and any interval computed across rows is
+   narrower than the truth by construction.
 
-Until defects 1 through 4 are exercised on a live panel, procurement results
-describe **award feasibility under declared constraints**. They do not describe
-information acquisition, negotiation, or buyer competence in general, and no
-status report may translate the narrower claim into the broader one.
+Defects 7 and 8 bound this family harder than 1 through 4, because they say no
+panel built on the current environment can express a treatment effect on award
+feasibility within a world, however it is tuned. The unblocking change is noisy
+sampling, which turns a one-draw settlement into an accumulation and creates both
+the interior band defect 7 says is missing and the variance defect 8 says is
+absent.
+
+Until then, procurement results describe **award feasibility under declared
+constraints**. They do not describe information acquisition, negotiation, or
+buyer competence in general, and no status report may translate the narrower
+claim into the broader one. Seed count must not be used to buy precision on this
+family, and the variance pilot must refuse to proceed on zero within-world
+variance rather than reading it as a tight measurement.
