@@ -214,6 +214,11 @@ uses.
 | 09-06 | 010 | ten attempts against a 429 burst exhausted in two minutes: backoff is opt-in and none was declared | $0.00004 |
 | 09-06 | 011 | **6/6 cases `ok/included`**, 100 periods each -- unpublishable, see E-D-02 | $0.0925 |
 | 09-06 | 012 | spurious Parasail **404** again, on the first action | $0.00003 |
+| 09-06 | 013 | two procurement cases scored, then a sustained 429 exhausted ten attempts **with** backoff (~3 min of spread) | $0.0215 |
+
+Disposition: a route-availability block, not a campaign defect. Attempt 011
+ran the identical panel to completion, so the frozen plan is re-run in a
+later window rather than adjusted.
 
 Two operational findings promoted: the write-once canary (D-10 in the
 procurement section) sealed two roots here before the fix and then saved two
