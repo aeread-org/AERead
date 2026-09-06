@@ -18,23 +18,33 @@ split:
 """
 from __future__ import annotations
 
+import asyncio
 import copy
 import json
 import os
 from pathlib import Path
+from types import MappingProxyType
 from typing import Any
 
 import pytest
 
 from aeread.shared_runner.registry import PluginRegistry
+from aeread.shared_runner.run.resolver import PlanCell
 from aeread.shared_runner.schemas import CaseManifest
+from aeread.shared_runner.task.evaluation import FamilyScoringInput
+from aeread.shared_runner.task.scheduler import run_episode
 from aeread_families.econagent_v1 import measurement as m
 from aeread_families.econagent_v1.econagent_bridge import (
     EconAgentBridge,
     EconAgentBridgeUnavailableError,
     discover_bridge_python,
 )
-from aeread_families.econagent_v1.environment import EconAgentV1Plugin, register_plugin
+from aeread_families.econagent_v1.environment import (
+    EconAgentV1Plugin,
+    family_manifest,
+    register_plugin,
+)
+from aeread_families.econagent_v1.harness import ScriptedEconAgentHarness
 
 
 def _upstream_root() -> Path:
@@ -638,3 +648,184 @@ def test_score_macro_trajectory_reports_real_descriptive_series() -> None:
     for key, metric in score.metrics.items():
         if key.startswith("unemployment_rate_month_"):
             assert 0.0 <= metric.value <= 1.0
+
+
+# ---------------------------------------------------------------------------
+# __call__ / FamilyScoreSet -- kernel_scoring_contract_spec.md migration
+# milestone 2 of 3 (declare leaf policy + implement __call__).
+# ---------------------------------------------------------------------------
+
+_DECLARED_LEAF_IDS = {
+    m.BUDGET_IDENTITY_LEAF_ID,
+    m.TAX_BRACKET_LEAF_ID,
+    m.MACRO_TRAJECTORY_LEAF_ID,
+}
+
+
+def _cell(case: CaseManifest, *, suffix: str) -> PlanCell:
+    n_agents = case.payload["scenario"]["n_agents"]
+    profile_by_seat = {
+        f"agent_{index}": "econagent_v1_scripted_complex" for index in range(n_agents)
+    }
+    return PlanCell(
+        spec_version="aeread.run_plan/0.1",
+        cell_id=f"cell_econagent_call_contract_{suffix}",
+        case_id=case.case_id,
+        case_sha256=case.content_sha256,
+        family_id=case.family_id,
+        family_version=case.family_version,
+        suite_id="suite_econagent_call_contract",
+        suite_version="0.1.0",
+        block_id="block_econagent_call_contract",
+        sampling_plan_id="sampling_econagent_call_contract",
+        analysis_plan_id="analysis_econagent_call_contract",
+        world_seed=case.world_seed,
+        sampling_seed=case.world_seed,
+        block_repetition=0,
+        sampling_replicate=0,
+        replicate_index=0,
+        cluster_id=f"cluster_econagent_call_contract_{suffix}",
+        cluster_level="case",
+        observations_per_cluster=1,
+        pair_id=None,
+        paired_fields=MappingProxyType({}),
+        panel_mode="independent",
+        profile_by_seat=MappingProxyType(profile_by_seat),
+        execution_mode="evaluate",
+        case_max_logical_actions=case.episode.max_logical_actions,
+    )
+
+
+def test_call_reports_invalid_measurement_for_every_leaf_when_phase_instances_is_empty() -> None:
+    """Provider-free: no bridge needed since a missing dense_log short-
+    circuits every ``score_*`` call before ``econagent_tax_bracket_arithmetic``
+    would ever touch ``bridge_factory`` (mirrors
+    ``test_score_tax_bracket_arithmetic_reports_invalid_measurement_when_dense_log_is_none``'s
+    ``bridge=None`` case above, now exercised through ``__call__`` itself).
+
+    Structural leaf-set coverage for ``__call__`` -- proves every one of the
+    three declared leaves comes back (never dropped), even when none of them
+    can be scored ``ok``. Mutation-verified: removing a leaf from
+    ``EconAgentV1Scorer.__call__``'s returned ``scores`` tuple makes the
+    ``leaf ids`` assertion below fail.
+    """
+    scenario = _case().payload["scenario"]
+    pins = _pins()
+    scorer = m.build_scorer(scenario, pins)
+    scoring_input = FamilyScoringInput(outcome={}, phase_instances=(), evidence_refs=())
+
+    score_set = scorer(scoring_input, evidence_refs=())
+
+    assert {score.leaf.leaf_id for score in score_set.scores} == _DECLARED_LEAF_IDS
+    assert score_set.primary_leaf_id == m.BUDGET_IDENTITY_LEAF_ID
+    assert score_set.admission_leaf_ids == (
+        m.BUDGET_IDENTITY_LEAF_ID,
+        m.TAX_BRACKET_LEAF_ID,
+    )
+    for score in score_set.scores:
+        assert score.status == "invalid_measurement"
+        assert score.evidence_refs == ()
+
+
+def test_call_returns_every_declared_finalize_time_leaf_for_a_real_episode() -> None:
+    """Bridge-gated: drives one real episode through the real scheduler
+    (``run_episode``, not the hand-wired hook loop ``_run_episode_and_score``
+    uses above) so ``scoring_input.phase_instances`` is genuine replayed
+    trajectory data, then calls ``EconAgentV1Scorer.__call__`` exactly as
+    ``task.evaluation.finalize_family_execution`` would.
+
+    Mutation-verified: removing a leaf from ``__call__``'s returned tuple, or
+    from ``family_manifest()``'s declared ``leaves``, makes the leaf-set
+    assertion below (or ``test_family_manifest_declares_the_three_leaf_
+    finalize_time_policy``) fail.
+    """
+    _require_bridge()
+    os.environ["AEREAD_ECONAGENT_BRIDGE_PYTHON"] = str(BRIDGE_PYTHON)
+
+    case = _case("econagent.pilot.tiny4x6.seed0")
+    cell = _cell(case, suffix="full")
+    plugin = EconAgentV1Plugin(upstream_root=UPSTREAM_ROOT)
+    registry = PluginRegistry()
+    register_plugin(registry, plugin=plugin)
+    resolved_plugin = registry.resolve_manifest(family_manifest())
+    harness = ScriptedEconAgentHarness()
+    result = asyncio.run(
+        run_episode(cell=cell, case=case, plugin=resolved_plugin, response_source=harness)
+    )
+
+    family_case = plugin.validate_payload(case.payload)
+    scorer = plugin.build_scorer(family_case)
+    scoring_input = FamilyScoringInput(
+        outcome=result.outcome,
+        phase_instances=result.phase_instances,
+        evidence_refs=(),
+    )
+
+    score_set = scorer(scoring_input, evidence_refs=())
+
+    assert {score.leaf.leaf_id for score in score_set.scores} == _DECLARED_LEAF_IDS
+    assert score_set.primary_leaf_id == m.BUDGET_IDENTITY_LEAF_ID
+    assert score_set.admission_leaf_ids == (
+        m.BUDGET_IDENTITY_LEAF_ID,
+        m.TAX_BRACKET_LEAF_ID,
+    )
+    by_leaf = {score.leaf.leaf_id: score for score in score_set.scores}
+    assert by_leaf[m.BUDGET_IDENTITY_LEAF_ID].status == "ok"
+    assert by_leaf[m.BUDGET_IDENTITY_LEAF_ID].primary.value == 1.0
+    assert by_leaf[m.TAX_BRACKET_LEAF_ID].status == "ok"
+    assert by_leaf[m.TAX_BRACKET_LEAF_ID].primary.value == 1.0
+    assert by_leaf[m.MACRO_TRAJECTORY_LEAF_ID].status == "ok"
+    for score in score_set.scores:
+        assert score.evidence_refs == ()
+
+
+def test_call_scores_match_scoring_the_same_episode_via_terminal_directly() -> None:
+    """``__call__``'s ``_terminal_fields_from_phase_instances`` must read the
+    SAME content ``EconAgentV1Plugin.terminal()`` does, not a corrupted or
+    fabricated substitute: score the identical real episode both ways and
+    require every metric to agree exactly.
+    """
+    _require_bridge()
+    os.environ["AEREAD_ECONAGENT_BRIDGE_PYTHON"] = str(BRIDGE_PYTHON)
+
+    case = _case("econagent.pilot.tiny4x6.seed0")
+    cell = _cell(case, suffix="cross_check")
+    plugin = EconAgentV1Plugin(upstream_root=UPSTREAM_ROOT)
+    registry = PluginRegistry()
+    register_plugin(registry, plugin=plugin)
+    resolved_plugin = registry.resolve_manifest(family_manifest())
+    harness = ScriptedEconAgentHarness()
+    result = asyncio.run(
+        run_episode(cell=cell, case=case, plugin=resolved_plugin, response_source=harness)
+    )
+
+    family_case = plugin.validate_payload(case.payload)
+    scorer = plugin.build_scorer(family_case)
+    scoring_input = FamilyScoringInput(
+        outcome=result.outcome,
+        phase_instances=result.phase_instances,
+        evidence_refs=(),
+    )
+    score_set = scorer(scoring_input, evidence_refs=())
+    by_leaf = {score.leaf.leaf_id: score for score in score_set.scores}
+
+    terminal = plugin.terminal(family_case, result.final_state)
+    n_agents = family_case["scenario"]["n_agents"]
+    world_period = terminal["final_world"]["period"]
+    direct_budget_identity = scorer.score_budget_identity(
+        dense_log=terminal["dense_log"],
+        n_agents=n_agents,
+        world_period=world_period,
+        month_actions=terminal["month_actions"],
+        world_interest_rate_by_month=terminal["world_interest_rate_by_month"],
+    )
+    direct_macro_trajectory = scorer.score_macro_trajectory(
+        dense_log=terminal["dense_log"],
+        n_agents=n_agents,
+        month_actions=terminal["month_actions"],
+    )
+
+    assert by_leaf[m.BUDGET_IDENTITY_LEAF_ID].metrics == direct_budget_identity.metrics
+    assert by_leaf[m.BUDGET_IDENTITY_LEAF_ID].primary == direct_budget_identity.primary
+    assert by_leaf[m.MACRO_TRAJECTORY_LEAF_ID].metrics == direct_macro_trajectory.metrics
+    assert by_leaf[m.MACRO_TRAJECTORY_LEAF_ID].primary == direct_macro_trajectory.primary

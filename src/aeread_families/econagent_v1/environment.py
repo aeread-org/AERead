@@ -127,6 +127,29 @@ def family_manifest() -> FamilyManifest:
                 "measurement_kind": "property_or_answer",
                 "direction": "none",
                 "outcome_support": "pass_fail",
+                # kernel_scoring_contract_spec.md section 3: every leaf this
+                # family publishes at finalize time, exactly one primary, and
+                # precisely the leaves that gate admission -- declared here,
+                # the one source of truth, never inferred from
+                # ``build_scorer`` or a test fixture. All three are
+                # ``scope="finalize_time"``: every leaf in measurement.py is
+                # ``evaluation_class="deterministic"`` with no judge, rater,
+                # or other not-yet-existing artifact dependency (spec
+                # section 4), so none is ``deferred``. See
+                # docs/econagent_adapter_status.md's "Leaf policy" section
+                # for why ``econagent_budget_identity`` is primary and why it
+                # and ``econagent_tax_bracket_arithmetic`` alone gate
+                # admission.
+                "leaves": [
+                    {"leaf_id": measurement.BUDGET_IDENTITY_LEAF_ID, "scope": "finalize_time"},
+                    {"leaf_id": measurement.TAX_BRACKET_LEAF_ID, "scope": "finalize_time"},
+                    {"leaf_id": measurement.MACRO_TRAJECTORY_LEAF_ID, "scope": "finalize_time"},
+                ],
+                "primary_leaf_id": measurement.BUDGET_IDENTITY_LEAF_ID,
+                "admission_leaf_ids": [
+                    measurement.BUDGET_IDENTITY_LEAF_ID,
+                    measurement.TAX_BRACKET_LEAF_ID,
+                ],
             },
             "scoring": {"scorer_id": SCORER_ID},
         }
@@ -518,17 +541,26 @@ class EconAgentV1Plugin:
     def build_scorer(self, family_case: Mapping[str, Any]) -> Any:
         """Return the one ``EconAgentV1Scorer`` declaring this case's leaves.
 
-        Built in milestone 2 (measurement.py) -- the two ``rule_constraint``
-        accounting leaves and the ``baseline_only`` macro diagnostics (spec
-        section 2). Only the leaves are declared here; scoring itself
-        happens against a terminated episode's ``terminal()`` output (see
-        ``measurement.score_budget_identity``/``score_tax_bracket_arithmetic``/
-        ``score_macro_trajectory``, mirroring ``tau3_retail``'s identical
-        split between "declare the leaves" and "score a specific episode").
+        The two ``rule_constraint`` accounting leaves and the
+        ``baseline_only`` macro diagnostic (spec section 2) are declared in
+        ``measurement.py``. ``task.evaluation.finalize_family_execution``
+        calls the returned ``EconAgentV1Scorer`` directly
+        (``plugin.build_scorer(family_case)(scoring_input,
+        evidence_refs=scoring_input.evidence_refs)``, per
+        kernel_scoring_contract_spec.md section 1);
+        ``EconAgentV1Scorer.__call__`` is the seam that satisfies that call
+        and returns every one of this family's three declared finalize-time
+        leaves (section 5), not just the primary. Each leaf's own named
+        ``score_*`` method is still exercised directly by
+        ``tests/test_econagent_measurement.py``'s goldens today.
+        ``bridge_factory=self._bridge_factory`` gives ``__call__`` the same
+        live, stateless bridge handle a real episode's own scoring already
+        uses for ``econagent_tax_bracket_arithmetic``'s
+        ``recompute_tax`` re-invocation.
         """
         scenario = family_case["scenario"]
         pins = family_case["pins"]
-        return measurement.build_scorer(scenario, pins)
+        return measurement.build_scorer(scenario, pins, bridge_factory=self._bridge_factory)
 
     def build_reference_providers(self, family_case: Mapping[str, Any]) -> tuple[Any, ...]:
         del family_case
