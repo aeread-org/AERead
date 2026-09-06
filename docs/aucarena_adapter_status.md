@@ -183,10 +183,15 @@ checkout in CI, a separate, out-of-scope decision this pass does not make.
 
 ```bash
 AEREAD_AUCARENA_UPSTREAM_ROOT=<pinned-checkout> PYTHONPATH=src pytest tests/test_aucarena_*.py -q
-# 111 passed (100 passed before this milestone's leaf-policy/__call__ migration
-# added the manifest leaf-policy test and the golden-5 __call__ case)
+# 112 passed, 0 failed, 0 skipped (re-verified 2026-09-06; unchanged with the env
+# var unset too, since this module's own default checkout path already resolves
+# on this machine -- see the "conditional, not unconditional" note above). 109
+# passed before this milestone's leaf-policy/__call__ migration began (the same
+# number `docs/aucarena_migration_plan.md`'s own milestone-0 precondition check
+# recorded), so this milestone's own commits added three tests, not one.
 AEREAD_AUCARENA_QC_GATE_REQUIRED=1 PYTHONPATH=src pytest tests/test_aucarena_cases.py -q
-# fails loudly, with a provisioning hint, if that checkout is absent
+# fails loudly (nonzero exit, though the printed summary line still reads "1
+# skipped"), with a provisioning hint, if that checkout is absent
 ```
 
 **Full repo suite: 826 passed, 31 skipped, 1 xfailed, 0 failed** (pre-migration baseline;
@@ -196,17 +201,24 @@ named 'rllm'`) and `tau3_retail` tests gated on a pinned upstream tau2-bench Pyt
 interpreter (`$AEREAD_TAU2_BRIDGE_PYTHON`). Re-ran with and without this branch's changes to
 confirm the skip set is unchanged by this work.
 
-**This milestone's own family suite: 121 passed, 0 failed, 0 skipped** (the seven family
-test files above plus `tests/test_shared_runner_smoke.py`), re-verified both with
+**This milestone's own family suite: 153 passed, 0 failed, 0 skipped** (the seven family
+test files above, plus `tests/test_shared_runner_scoring_contract.py` -- the file this
+milestone's own enrollment commit, `246bd71a`, added this family's fixtures to
+(`_aucarena_fixtures`, exercised by the always-on
+`test_every_registered_family_obeys_the_scoring_contract`) -- plus
+`tests/test_shared_runner_smoke.py`), re-verified both with
 `AEREAD_AUCARENA_UPSTREAM_ROOT` exported and with it unset -- unchanged either way on this
 machine, since `tests/test_aucarena_cases.py`'s own default checkout path (see the
-"conditional, not unconditional" note above) already resolves to a present checkout here;
-the skip this family's QC-Gate-1 tests would show on a machine without that checkout, or
-without the env var override, is unaffected by this migration.
+"conditional, not unconditional" note above) already resolves to a present checkout here,
+and `test_shared_runner_scoring_contract.py`'s own fixtures build a small, checked-in-corpus-
+independent case directly and never touch the upstream checkout at all; the skip this
+family's QC-Gate-1 tests would show on a machine without that checkout, or without the env
+var override, is unaffected by this migration.
 
 ```bash
-PYTHONPATH=src pytest tests/test_shared_runner_smoke.py -q
-# 10 passed
+PYTHONPATH=src pytest tests/test_shared_runner_scoring_contract.py tests/test_shared_runner_smoke.py -q
+# 31 passed; 10 passed (run separately above; combined with the seven
+# test_aucarena_*.py files above: 153 passed, 0 failed, 0 skipped)
 ```
 
 **Every one of the five goldens replays byte-identically, state and score.**
@@ -320,6 +332,28 @@ nothing left to delegate to a subprocess, and nothing to provision.
   this family by the `kernel_scoring_contract_spec.md` migration; whether the other three
   families D-19 named (`govsim`, `steer`, `negarena`) have migrated is tracked in their own
   status docs, not here.
+- **A single-seat-roster case's receipt is always excluded, not merely flagged on one leaf.**
+  `aucarena_profit_vs_field_leaf` is this family's sole admission leaf
+  (`AucArenaScorer.__call__`'s `admission_leaf_ids=(profit_vs_field_leaf_id,)`, "Leaf policy"
+  above), and `score_profit_vs_field`'s empty-`field_seats` branch (`measurement.py`) returns
+  `status="invalid_measurement"` unconditionally whenever `build_scorer` finds no roster seat
+  other than the tested one — golden 5's `degenerate_reference` shape, and any future case
+  authored the same way, every time, not just occasionally. Per `task.evaluation`'s generic
+  `_score_admission` rule (an invalid admission leaf excludes the whole receipt, never only
+  that leaf), every such case's receipt comes back `status="invalid_measurement"`,
+  `inclusion_status="excluded"` regardless of how the three `rule_constraint` diagnostics or
+  the tested seat's own play went — confirmed at the `FamilyScoreSet` level by
+  `tests/test_aucarena_measurement.py::test_scorer_call_reports_invalid_measurement_on_the_primary_leaf_alone_for_golden_5`
+  (`score_set.invalid_admission_leaf_ids == (PROFIT_VS_FIELD_LEAF_ID,)`). No test in this
+  family currently drives a single-seat-roster case through `finalize_family_execution`
+  itself to pin the resulting receipt's `status`/`inclusion_status` directly — the one
+  finalizer test, `test_finalize_wires_aucarena_to_the_shared_family_finalizer`, uses the
+  two-seat `short_path_answer` fixture — so the receipt-level consequence above is read off
+  the kernel's own generic admission code, not off a family-specific test asserting it end to
+  end. This is a structural consequence of the estimand's own frozen-field design (spec
+  section 2), not a bug, but it means a single-seat-roster scenario can never contribute an
+  included score to any benchmark aggregate, which matters if the corpus is ever grown to add
+  more single-seat scenarios expecting them to score normally.
 - **Two Finding-5/Finding-2 codex-review findings are confirmed but not auto-fixed this pass**
   (see `docs/aucarena_review_disposition.md`'s "Codex-review findings" section for the full
   reasoning): whether a malformed/illegal bid should still terminate a round with no retry
