@@ -788,18 +788,21 @@ def _enforce_declared_leaf_policy(
     (:func:`_inapplicable_leaf_ids`), computed once by the caller and
     threaded here (and separately into the receipt -- see
     ``finalize_family_execution``/``replay_family_receipt``/
-    ``audit_family_receipt``). Two checks, in order, distinguish three
-    failure modes with three different messages: first, ``I`` may only name
-    declared ``case_conditional`` leaves (an undeclared id in ``I`` is the
-    plugin's own contract violation, independent of anything the scorer
-    does); second, the scorer's returned set must be exactly the declared
-    finalize-time leaves minus ``I`` -- an inapplicable leaf the scorer
-    still returns, an applicable leaf the scorer omits, and an undeclared
-    leaf the scorer invents are each named separately.
+    ``audit_family_receipt``). ``I`` may only name declared
+    ``case_conditional`` leaves (an undeclared id in ``I`` is the plugin's
+    own contract violation, independent of anything the scorer does or
+    whether the manifest declares a leaf policy at all -- checked BEFORE
+    the no-declared-policy early return below, review finding 1: a legacy
+    family with no leaf policy declares zero case_conditional leaves, so
+    ANY non-empty ``I`` from a hook it happens to define is already a
+    violation, and must be caught here rather than silently reaching a
+    receipt). Once a leaf policy is declared, three more failure modes get
+    three more distinct messages: the scorer's returned set must be
+    exactly the declared finalize-time leaves minus ``I`` -- an
+    inapplicable leaf the scorer still returns, an applicable leaf the
+    scorer omits, and an undeclared leaf the scorer invents are each named
+    separately.
     """
-    if not _manifest_declares_leaf_policy(manifest):
-        return
-    declared = manifest.measurement.finalize_time_leaf_policy()
     declared_case_conditional_ids = _declared_case_conditional_leaf_ids(manifest)
     undeclared_inapplicable = sorted(
         inapplicable_leaf_ids - declared_case_conditional_ids
@@ -809,6 +812,9 @@ def _enforce_declared_leaf_policy(
             "plugin inapplicable_leaf_ids named a leaf that is not declared "
             f"case_conditional: {undeclared_inapplicable}"
         )
+    if not _manifest_declares_leaf_policy(manifest):
+        return
+    declared = manifest.measurement.finalize_time_leaf_policy()
     produced_leaf_ids = tuple(score.leaf.leaf_id for score in score_set.scores)
     produced_leaf_id_set = set(produced_leaf_ids)
     # Ruling R13: the set the scorer must produce is the declared
