@@ -87,25 +87,62 @@ IMPLEMENTATION_VERSION = "0.1.0"
 DOMAIN_ID = "aucarena_base_v1"
 DOMAIN_VERSION = "1.0.0"
 
+# Named, exported component ids for every distinct implementation this
+# family's four leaves pin (``ReferenceSpec.implementation``/
+# ``MeasurementLeafSpec.scorer``) -- previously bare string literals inline
+# in each ``build_*_leaf`` below. A caller resolving a real ``RunPlan``
+# (``resolve_run_plan``) needs every one of these named here, not just
+# inline, to declare ``family_manifest()``'s own ``scoring.
+# reference_provider_ids`` (kernel_scoring_contract_spec.md milestone 3) --
+# mirrors ``govsim.measurement``'s identical ``BASE_DOMAIN_PREDICATE_ID``/
+# ``*_SCORER_ID`` exports, except aucarena's ``reference.implementation``
+# genuinely differs from its ``scorer`` per leaf (the independent-recompute
+# vendored-rule check and the ``measurement.py``-side scorer are two
+# distinct pinned files), so each leaf needs its own distinct reference-check
+# id in addition to its already-exported ``*_SCORER_ID``.
+BASE_DOMAIN_PREDICATE_ID = "aucarena_base_domain_predicate"
+
 BUDGET_INVARIANT_ESTIMAND_ID = "aucarena_budget_invariant"
 BUDGET_INVARIANT_LEAF_ID = "aucarena_budget_invariant_leaf"
 BUDGET_INVARIANT_REFERENCE_ID = "aucarena_budget_invariant_rule"
+BUDGET_INVARIANT_CHECK_ID = "aucarena_budget_invariant_state_check"
 BUDGET_INVARIANT_SCORER_ID = "aucarena_budget_invariant_scorer"
 
 BID_LEGALITY_ESTIMAND_ID = "aucarena_bid_legality"
 BID_LEGALITY_LEAF_ID = "aucarena_bid_legality_leaf"
 BID_LEGALITY_REFERENCE_ID = "aucarena_bid_legality_rule"
+BID_LEGALITY_CHECK_ID = "aucarena_bid_legality_independent_check"
 BID_LEGALITY_SCORER_ID = "aucarena_bid_legality_scorer"
 
 HAMMER_RULE_ESTIMAND_ID = "aucarena_hammer_rule"
 HAMMER_RULE_LEAF_ID = "aucarena_hammer_rule_leaf"
 HAMMER_RULE_REFERENCE_ID = "aucarena_hammer_rule_trace"
+HAMMER_RULE_CHECK_ID = "aucarena_hammer_rule_independent_replay"
 HAMMER_RULE_SCORER_ID = "aucarena_hammer_rule_scorer"
 
 PROFIT_VS_FIELD_ESTIMAND_ID = "aucarena_profit_vs_field"
 PROFIT_VS_FIELD_LEAF_ID = "aucarena_profit_vs_field_leaf"
 PROFIT_VS_FIELD_REFERENCE_ID = "aucarena_frozen_field_v1"
+PROFIT_VS_FIELD_CHECK_ID = "aucarena_profit_vs_field_delta"
 PROFIT_VS_FIELD_SCORER_ID = "aucarena_profit_vs_field_scorer"
+
+# Every distinct component id ``family_manifest()`` must list under
+# ``scoring.reference_provider_ids`` for ``resolve_run_plan`` to accept a
+# pin for it (``resolver.py``'s ``_required_pin_kinds``/``_check_pins``) --
+# the exact set ``_receipt_implementations`` collects from this family's
+# ``FamilyScoreSet`` at finalize time (the domain predicate, reused by all
+# four leaves, plus each leaf's own distinct reference-check and scorer).
+REFERENCE_PROVIDER_IDS = (
+    BASE_DOMAIN_PREDICATE_ID,
+    BUDGET_INVARIANT_CHECK_ID,
+    BUDGET_INVARIANT_SCORER_ID,
+    BID_LEGALITY_CHECK_ID,
+    BID_LEGALITY_SCORER_ID,
+    HAMMER_RULE_CHECK_ID,
+    HAMMER_RULE_SCORER_ID,
+    PROFIT_VS_FIELD_CHECK_ID,
+    PROFIT_VS_FIELD_SCORER_ID,
+)
 
 DEFAULT_TESTED_SEAT_ID = "agent"
 
@@ -147,7 +184,7 @@ def _validity_domain() -> ValidityDomainSpec:
         domain_id=DOMAIN_ID,
         domain_version=DOMAIN_VERSION,
         schema_ref="aucarena_base_v1/case_payload",
-        predicate=_implementation("aucarena_base_domain_predicate", "environment.py"),
+        predicate=_implementation(BASE_DOMAIN_PREDICATE_ID, "environment.py"),
     )
 
 
@@ -181,7 +218,7 @@ def build_budget_invariant_leaf() -> MeasurementLeafSpec:
         units="pass",
         source_sha256=_file_sha256("_vendored_upstream.py"),
         implementation=_implementation(
-            "aucarena_budget_invariant_state_check", "_vendored_upstream.py"
+            BUDGET_INVARIANT_CHECK_ID, "_vendored_upstream.py"
         ),
     )
     verifier = VerifierSpec(
@@ -217,7 +254,7 @@ def build_bid_legality_leaf() -> MeasurementLeafSpec:
         units="pass",
         source_sha256=_file_sha256("_vendored_upstream.py"),
         implementation=_implementation(
-            "aucarena_bid_legality_independent_check", "_vendored_upstream.py"
+            BID_LEGALITY_CHECK_ID, "_vendored_upstream.py"
         ),
     )
     verifier = VerifierSpec(
@@ -253,7 +290,7 @@ def build_hammer_rule_leaf() -> MeasurementLeafSpec:
         units="pass",
         source_sha256=_file_sha256("_vendored_upstream.py"),
         implementation=_implementation(
-            "aucarena_hammer_rule_independent_replay", "_vendored_upstream.py"
+            HAMMER_RULE_CHECK_ID, "_vendored_upstream.py"
         ),
     )
     verifier = VerifierSpec(
@@ -332,7 +369,7 @@ def build_profit_vs_field_leaf(
         units="usd",
         source_sha256=_field_roster_sha256(field_seats, item_ids),
         implementation=_implementation(
-            "aucarena_profit_vs_field_delta", "measurement.py"
+            PROFIT_VS_FIELD_CHECK_ID, "measurement.py"
         ),
     )
     verifier = VerifierSpec(
@@ -382,10 +419,27 @@ def score_budget_invariant(
     Checked directly against every ``TransitionResult.state`` the scheduler
     already recorded (one per bidding round) -- never a re-derivation of the
     auction policy, only a read of already-computed state.
+
+    ``checked_transitions_count`` is a diagnostic, not a violation-detection
+    input: it records how many recorded states this check actually examined
+    (``kernel_scoring_contract_spec.md`` ruling R9(b), the sensitivity
+    witness -- this leaf's only violation path, ``budget < 0``, is
+    structurally unreachable through this environment's own legality gate,
+    since ``environment.py``'s ``step()`` never applies a bid that fails
+    ``bid_sanity_check`` in the first place, so ``violations`` is always
+    empty on any legitimately-scripted episode; without a diagnostic that
+    genuinely varies with the recorded trajectory, no fixture pair could
+    ever show this leaf reading its declared ``trajectory`` input at all).
+    Always present, present even when a violation is also recorded, and
+    never folded into ``primary`` -- purely "how much was checked," the same
+    role ``score_bid_legality``'s own ``malformed_action_count`` already
+    plays alongside its violations.
     """
     violations: dict[str, MetricValue] = {}
+    checked_transitions_count = 0
     for phase_instance in result.phase_instances:
         for transition in phase_instance.transitions:
+            checked_transitions_count += 1
             seats = transition.state.get("seats", {})
             for seat_id, seat in seats.items():
                 budget = seat["budget"]
@@ -399,11 +453,15 @@ def score_budget_invariant(
                             "phase_instance_id": phase_instance.phase_instance_id,
                         },
                     )
+    metrics: dict[str, MetricValue] = dict(violations)
+    metrics["checked_transitions_count"] = MetricValue(
+        float(checked_transitions_count), "count"
+    )
     return ScoreEnvelope(
         status="ok",
         leaf=leaf,
         primary=MetricValue(0.0 if violations else 1.0, "pass"),
-        metrics=violations,
+        metrics=metrics,
         reference_values={},
         validity=ValidityReport("valid"),
         evidence_refs=evidence_refs,
@@ -568,6 +626,18 @@ def score_hammer_rule(
     on ``environment.py``'s own legality gate having already run correctly;
     it recomputes both *which* bids counted and *what they resolved to*
     from nothing but the sealed episode evidence.
+
+    ``replayed_rounds_count`` is a diagnostic, not a parity-check input: it
+    records how many recorded rounds this replay actually walked
+    (``kernel_scoring_contract_spec.md`` ruling R9(b), the sensitivity
+    witness -- this leaf's only disagreement path raises
+    ``AucArenaMeasurementError`` rather than producing a differing score, so
+    on any successful replay ``primary``/``metrics`` are otherwise identical
+    regardless of how the auction actually played out; without a diagnostic
+    that genuinely varies with the recorded trajectory, no fixture pair
+    could ever show this leaf reading its declared ``trajectory`` input at
+    all). Never folded into ``primary``, and never itself compared against
+    the environment's own record -- purely "how much was replayed."
     """
     world_seed = result.final_state["world_seed"]
     enable_discount = result.final_state["enable_discount"]
@@ -577,7 +647,9 @@ def score_hammer_rule(
     prev_round_max_bid = -1
     current_item_id: Any = object()  # sentinel: never equals a real item id
 
+    replayed_rounds_count = 0
     for phase_instance in result.phase_instances:
+        replayed_rounds_count += 1
         transition = phase_instance.transitions[0]
         consequences = transition.consequences
         item_id = consequences["item_id"]
@@ -640,7 +712,9 @@ def score_hammer_rule(
         status="ok",
         leaf=leaf,
         primary=MetricValue(1.0, "pass"),
-        metrics={},
+        metrics={
+            "replayed_rounds_count": MetricValue(float(replayed_rounds_count), "count")
+        },
         reference_values={},
         validity=ValidityReport("valid"),
         evidence_refs=evidence_refs,
@@ -869,15 +943,25 @@ def build_scorer(
 __all__ = [
     "AucArenaMeasurementError",
     "AucArenaScorer",
+    "BASE_DOMAIN_PREDICATE_ID",
+    "BID_LEGALITY_CHECK_ID",
     "BID_LEGALITY_ESTIMAND_ID",
     "BID_LEGALITY_LEAF_ID",
+    "BID_LEGALITY_SCORER_ID",
+    "BUDGET_INVARIANT_CHECK_ID",
     "BUDGET_INVARIANT_ESTIMAND_ID",
     "BUDGET_INVARIANT_LEAF_ID",
+    "BUDGET_INVARIANT_SCORER_ID",
     "DEFAULT_TESTED_SEAT_ID",
+    "HAMMER_RULE_CHECK_ID",
     "HAMMER_RULE_ESTIMAND_ID",
     "HAMMER_RULE_LEAF_ID",
+    "HAMMER_RULE_SCORER_ID",
+    "PROFIT_VS_FIELD_CHECK_ID",
     "PROFIT_VS_FIELD_ESTIMAND_ID",
     "PROFIT_VS_FIELD_LEAF_ID",
+    "PROFIT_VS_FIELD_SCORER_ID",
+    "REFERENCE_PROVIDER_IDS",
     "build_bid_legality_leaf",
     "build_budget_invariant_leaf",
     "build_hammer_rule_leaf",
