@@ -22,7 +22,7 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 from types import MappingProxyType
-from typing import Any, Callable, Mapping
+from typing import Any, Callable, Mapping, Sequence
 
 import pytest
 
@@ -954,13 +954,23 @@ def _pin(
     )
 
 
-def build_amazonbarg_setup(case: CaseManifest, *, suffix: str) -> AmazonbargSetup:
+def build_amazonbarg_setup(
+    case: CaseManifest, *, suffix: str, subject_seats: Sequence[str] = ("buyer",)
+) -> AmazonbargSetup:
     """Resolve a real, one-cell ``RunPlan`` for ``case`` (spec section 5.4).
 
     Both seats share one placeholder agent profile: this family's real
     runtime never invokes it (see ``AmazonbargSetup``'s own docstring), so
     the harness/provider it names exist only to satisfy
     ``resolve_run_plan``'s structural checks.
+
+    ``subject_seats`` (ruling R12, kernel_scoring_contract_spec.md) becomes
+    the resolved plan's one evaluation block's own ``subject_seats`` --
+    defaulting to ``("buyer",)`` alone so a caller that does not pass it
+    gets a genuine, single, resolvable tested seat (the shape
+    ``amazonbarg_bargained_ratio`` needs to come back ``"ok"``); a caller
+    exercising ruling R12 rule 2's ambiguous-seat path passes both seats
+    explicitly.
     """
     family = family_manifest()
     seat_ids = ["buyer", "seller"]
@@ -985,7 +995,7 @@ def build_amazonbarg_setup(case: CaseManifest, *, suffix: str) -> AmazonbargSetu
             "spec_version": EvaluationBlock.SPEC_VERSION,
             "block_id": f"amazonbarg_{suffix}_block",
             "kind": "self_play",
-            "subject_seats": list(seat_ids),
+            "subject_seats": list(subject_seats),
             "controlled_profiles": {},
             "repetitions": 1,
             "seed_policy": "fixed",
@@ -1141,7 +1151,8 @@ def build_amazonbarg_setup(case: CaseManifest, *, suffix: str) -> AmazonbargSetu
 
 
 def test_finalize_wires_amazonbarg_to_the_shared_family_finalizer(tmp_path: Path) -> None:
-    """This family has never produced an ``EvaluationReceipt``.
+    """This family has never produced an ``EvaluationReceipt`` before this
+    milestone.
 
     Every other already-migrated family has at least one test driving a
     real episode through ``task.evaluation.finalize_family_execution`` (see
@@ -1156,21 +1167,23 @@ def test_finalize_wires_amazonbarg_to_the_shared_family_finalizer(tmp_path: Path
     every other amazonbarg test file already exercises) end to end through
     the real finalizer.
 
-    The receipt DOES carry every one of this family's five declared
-    finalize-time leaves, with the declared primary
-    (``amazonbarg_bargained_ratio_leaf``) and the four diagnostics all
-    ``status="ok"`` -- proving the wiring is genuinely complete, not merely
-    reachable. It does NOT come back ``status="ok"``/``inclusion_status=
-    "included"``: ``AmazonbargScorer.__call__`` (measurement.py) always
-    calls ``score_bargained_ratio`` with ``tested_seat=None`` because no
-    ``FamilyScoringInput`` can carry which seat a ``RunPlan`` is testing
-    (docs/amazonbarg_adapter_status.md's "Leaf policy" section, "Disclosed
-    consequence" -- a stated, disclosed limitation of the current contract
-    for THIS family, not a defect introduced here), so the declared primary
-    and sole admission leaf is sealed ``invalid_measurement`` with
-    ``REASON_TESTED_SEAT_UNKNOWN`` through this exact seam, for every
-    episode, clean or not. Asserting a fabricated ``"ok"``/``"included"``
-    here would misreport that limitation as fixed.
+    The receipt carries every one of this family's five declared
+    finalize-time leaves, with the four diagnostics all ``status="ok"`` --
+    proving the wiring is genuinely complete, not merely reachable. Ruling
+    R12 (kernel_scoring_contract_spec.md) makes which seat a ``RunPlan`` is
+    testing reachable via ``FamilyScoringInput.seat_context.subject_seats``
+    -- ``build_amazonbarg_setup``'s default ``subject_seats=("buyer",)``
+    puts the tested profile in that one seat via the plan's evaluation
+    block, so ``AmazonbargScorer.__call__`` resolves ``tested_seat="buyer"``
+    and the declared primary and sole admission leaf now comes back
+    ``status="ok"``/``inclusion_status="included"`` for the first time
+    through this seam: this is the very gap
+    docs/amazonbarg_adapter_status.md's "Leaf policy" section previously
+    disclosed as "every receipt scored through this exact seam is
+    non-admitted today", now resolved. See
+    ``test_finalize_reports_ambiguous_subject_seat_honestly_and_does_not_raise``
+    below for ruling R12 rule 2's ambiguous-seat path, still honestly
+    ``invalid_measurement``/``"excluded"``.
     """
     case = _case("home-kitchen_2")
     setup = build_amazonbarg_setup(case, suffix="finalize_receipt")
@@ -1225,7 +1238,75 @@ def test_finalize_wires_amazonbarg_to_the_shared_family_finalizer(tmp_path: Path
     primary = next(
         score for score in receipt.scores if score.leaf.leaf_id == m.BARGAINED_RATIO_LEAF_ID
     )
+    assert primary.status == "ok"
+    # Ruling R12 rule 2's singleton identity, tested directly (the kernel
+    # enforces it too, at finalize, task/evaluation.py's
+    # _enforce_subject_seat_primaries -- this assertion would have failed
+    # loudly, not silently, had that enforcement not already run).
+    assert primary.primary.value == primary.utility_by_seat["buyer"].value
+    assert primary.primary.unit == primary.utility_by_seat["buyer"].unit
+    assert receipt.status == "ok"
+    assert receipt.inclusion_status == "included"
+
+
+def test_finalize_reports_ambiguous_subject_seat_honestly_and_does_not_raise(
+    tmp_path: Path,
+) -> None:
+    """Ruling R12 rule 2 (kernel_scoring_contract_spec.md): two subject
+    seats is ambiguous for a leaf that declares no ``subject_reduction``
+    (measurement.py's own module docstring: the ratio is one side's own,
+    never blended) -- ``AmazonbargScorer.__call__`` reports this honestly
+    as ``invalid_measurement``/``REASON_AMBIGUOUS_SUBJECT_SEAT``, and
+    because that envelope's ``status`` is not ``"ok"``,
+    ``task/evaluation.py``'s ``_enforce_subject_seat_primaries`` does not
+    apply to it at all (it only raises for a status="ok" subject_seat leaf)
+    -- ``finalize_family_execution`` itself must not raise here, which this
+    test proves simply by not raising."""
+    case = _case("home-kitchen_2")
+    setup = build_amazonbarg_setup(
+        case, suffix="finalize_ambiguous_seat", subject_seats=("buyer", "seller")
+    )
+    cell = setup.plan.cells[0]
+    family = setup.plan.families[0]
+    plugin = setup.registry.resolve_manifest(family)
+
+    evidence = EvidenceStore(
+        tmp_path / "evidence_finalize_ambiguous_seat",
+        run_plan_id=setup.plan.run_plan_id,
+        cell_id=cell.cell_id,
+        episode_id=f"episode_{cell.cell_id}",
+        episode_attempt_id="attempt_1",
+    )
+    harness = EvidenceRecordingAmazonbargHarness(
+        answer=amazonbarg_script_answer(list(GOLDEN_1_SCRIPT)), evidence=evidence
+    )
+    result = asyncio.run(
+        run_episode(cell=cell, case=case, plugin=plugin, response_source=harness)
+    )
+    execution = CellExecution(
+        run_plan_id=setup.plan.run_plan_id,
+        cell_id=cell.cell_id,
+        episode_attempt_id="attempt_1",
+        episode_result=result,
+        evidence=evidence,
+        action_executions=(),
+        total_cost_usd=0.0,
+    )
+
+    receipt = finalize_family_execution(setup=setup, execution=execution)
+
+    diagnostics = {
+        score.leaf.leaf_id: score
+        for score in receipt.scores
+        if score.leaf.leaf_id != m.BARGAINED_RATIO_LEAF_ID
+    }
+    for leaf_id, score in diagnostics.items():
+        assert score.status == "ok", f"{leaf_id} unexpectedly invalid: {score.validity.reasons}"
+
+    primary = next(
+        score for score in receipt.scores if score.leaf.leaf_id == m.BARGAINED_RATIO_LEAF_ID
+    )
     assert primary.status == "invalid_measurement"
-    assert m.reasons_include(primary.validity, m.REASON_TESTED_SEAT_UNKNOWN)
+    assert m.reasons_include(primary.validity, m.REASON_AMBIGUOUS_SUBJECT_SEAT)
     assert receipt.status == "invalid_measurement"
     assert receipt.inclusion_status == "excluded"
