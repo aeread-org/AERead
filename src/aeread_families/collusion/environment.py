@@ -194,8 +194,66 @@ def family_manifest() -> FamilyManifest:
                 "primary_estimand": "collusion_long_run_profit",
                 "measurement_kind": "comparative_or_human_judged",
                 "direction": "maximize",
+                # kernel_scoring_contract_spec.md section 3: every leaf this
+                # family publishes at finalize time, exactly one primary, and
+                # precisely the leaves that gate admission -- declared here,
+                # the one source of truth, never inferred from
+                # ``CollusionScorer.__call__`` or a test fixture. All four
+                # are ``scope="finalize_time"``: every leaf in
+                # ``measurement.py`` is ``evaluation_class="deterministic"``
+                # with no judge, rater, or other not-yet-existing artifact
+                # dependency (spec section 4), so none is ``deferred``. See
+                # ``docs/collusion_adapter_status.md``'s "Leaf policy"
+                # section for why ``collusion_long_run_profit`` is primary
+                # and why it alone gates admission.
+                "leaves": [
+                    {"leaf_id": measurement.PRICE_LEGALITY_LEAF_ID, "scope": "finalize_time"},
+                    {
+                        "leaf_id": measurement.DISTANCE_TO_NASH_LEAF_ID,
+                        "scope": "finalize_time",
+                    },
+                    {
+                        "leaf_id": measurement.DISTANCE_TO_MONOPOLY_LEAF_ID,
+                        "scope": "finalize_time",
+                    },
+                    {"leaf_id": measurement.LONG_RUN_PROFIT_LEAF_ID, "scope": "finalize_time"},
+                ],
+                "primary_leaf_id": measurement.LONG_RUN_PROFIT_LEAF_ID,
+                "admission_leaf_ids": [measurement.LONG_RUN_PROFIT_LEAF_ID],
+                # Ruling R9 (kernel_scoring_contract_spec.md, round 3):
+                # ``outcome()`` below embeds the full trajectory at
+                # ``history`` (unlike govsim's own ``outcome()``, which omits
+                # it) -- this is the exhaustive list of the trajectory-
+                # bearing outcome fields, so the scoring-contract protocol
+                # test can project it out for the paired-history check.
+                "trajectory_outcome_paths": ["/history"],
             },
-            "scoring": {"scorer_id": SCORER_ID},
+            # Every one of measurement.py's four leaves pins its own
+            # validity-domain predicate, reference implementation, and
+            # scorer under a distinct component id (unlike, e.g.,
+            # commercial_state_calibration's single leaf, which reuses
+            # ``scorer_id`` itself for both) -- ``resolve_run_plan``'s own
+            # pin bookkeeping only requires and admits a pin for a
+            # component named here or as ``scorer_id``
+            # (``_required_pin_kinds``), and
+            # ``EvaluationReceipt._validate_and_freeze_plan_pins`` requires
+            # every leaf-declared implementation ref to match one, so all
+            # nine must be declared as reference providers (mirrors
+            # govsim's identically-motivated fix).
+            "scoring": {
+                "scorer_id": SCORER_ID,
+                "reference_provider_ids": [
+                    measurement.DOMAIN_PREDICATE_ID,
+                    measurement.PRICE_LEGALITY_PREDICATE_ID,
+                    measurement.PRICE_LEGALITY_SCORER_ID,
+                    measurement.NASH_PRICE_SOLVER_ID,
+                    measurement.DISTANCE_TO_NASH_SCORER_ID,
+                    measurement.MONOPOLY_PRICE_SOLVER_ID,
+                    measurement.DISTANCE_TO_MONOPOLY_SCORER_ID,
+                    measurement.NASH_PLAY_BASELINE_IMPLEMENTATION_ID,
+                    measurement.LONG_RUN_PROFIT_SCORER_ID,
+                ],
+            },
         }
     )
 
@@ -287,8 +345,19 @@ class CollusionPlugin:
 
         return data
 
-    def initial_state(self, family_case: Mapping[str, Any], cell: Any) -> dict[str, Any]:
-        del family_case, cell
+    def initial_state(self, family_case: Mapping[str, Any], run: Any) -> dict[str, Any]:
+        """Build the initial family state for one episode.
+
+        The second parameter is named ``run`` (not ``cell``) to match every
+        other family's own ``initial_state`` hook -- required because
+        ``task.evaluation._replay_family_trajectory`` calls
+        ``plugin.initial_state(family_case, run=None)`` by keyword
+        (kernel_scoring_contract_spec.md's ``replay_family_scoring_input``
+        contract); the live scheduler (``task.scheduler.run_episode``) still
+        passes this positionally, so this rename does not change what value
+        actually arrives here.
+        """
+        del family_case, run
         return {
             "round": 0,
             "history": [],
@@ -556,12 +625,16 @@ class CollusionPlugin:
 
         See ``measurement.py`` (spec section 2): ``collusion_price_legality``,
         ``collusion_distance_to_nash_price``, ``collusion_distance_to_monopoly_price``,
-        and ``collusion_long_run_profit`` are declared for every case. The
-        current kernel does not yet call ``build_scorer`` itself through the
-        generic single-callable path (see ``measurement.py``'s
-        ``CollusionScorer`` docstring, mirroring ``tau3_retail``'s identical
-        note); this makes the declaration and all four scorers live the day
-        it does.
+        and ``collusion_long_run_profit`` are declared for every case.
+        ``task.evaluation.finalize_family_execution`` calls the returned
+        ``CollusionScorer`` directly (``plugin.build_scorer(family_case)(
+        scoring_input, evidence_refs=scoring_input.evidence_refs)``, per
+        kernel_scoring_contract_spec.md section 1); ``measurement.py``'s
+        ``CollusionScorer.__call__`` is the seam that satisfies that call and
+        returns every one of this family's four declared finalize-time
+        leaves (section 5), not just the primary. Each leaf's own named
+        method is still exercised directly by
+        ``tests/test_collusion_measurement.py``'s goldens today.
         """
         return measurement.build_scorer(family_case)
 

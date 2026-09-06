@@ -15,19 +15,44 @@ real, full 300-round trajectory.
 from __future__ import annotations
 
 import asyncio
+import hashlib
+import json
+import dataclasses
+from dataclasses import dataclass
+from pathlib import Path
 from types import MappingProxyType
-from typing import Any, Mapping
+from typing import Any, Callable, Mapping
 
 import pytest
 
-from aeread.shared_runner.task.execution import EvidenceStore
-from aeread.shared_runner.run.resolver import PlanCell, case_content_sha256
-from aeread.shared_runner.schemas import CaseManifest
-from aeread.shared_runner.task.scheduler import run_episode
+import aeread.shared_runner.task.execution as execution_module
+from aeread.shared_runner.model_call.harness import default_harnesses
+from aeread.shared_runner.registry import HarnessRegistry, PluginRegistry, ProviderCapabilities
+from aeread.shared_runner.run.resolver import (
+    ImplementationPin,
+    PlanCell,
+    RunPlan,
+    case_content_sha256,
+    resolve_run_plan,
+)
+from aeread.shared_runner.schemas import (
+    AgentProfile,
+    AnalysisPlan,
+    CaseManifest,
+    EvaluationBlock,
+    RunSpec,
+    SamplingPlan,
+    SuiteManifest,
+)
+from aeread.shared_runner.task.evaluation import FamilyScoringInput, finalize_family_execution
+from aeread.shared_runner.task.execution import CanonicalResponse, CellExecution, EvidenceStore
+from aeread.shared_runner.task.scheduler import EpisodeResult, run_episode
 from aeread_families.collusion import cases as collusion_cases
+from aeread_families.collusion import environment as collusion_environment
 from aeread_families.collusion import measurement as m
 from aeread_families.collusion.environment import CollusionPlugin
 from aeread_families.collusion.harness import (
+    PolicyFn,
     ScriptedCollusionHarness,
     constant_policy,
     monopoly_play_policy,
@@ -700,3 +725,638 @@ def test_replay_and_verify_reproduces_state_and_score_byte_identically_with_zero
     assert replayed_scores == original_scores == report.scores
     for leaf_id, score in report.scores.items():
         assert score.status == "ok", leaf_id
+
+
+# ---------------------------------------------------------------------------
+# Evidence-complete episode driving (kernel_scoring_contract_spec.md
+# milestone 3): a response source that ALSO writes the full generic
+# evidence trail ``task.evaluation.replay_family_scoring_input`` needs to
+# replay, plus a real, ``resolve_run_plan``-resolved ``RunPlan`` -- both
+# required to drive ``task.evaluation.finalize_family_execution`` for this
+# family for the first time, and reused by
+# ``tests/test_shared_runner_scoring_contract.py`` for its own
+# paired-history fixtures.
+# ---------------------------------------------------------------------------
+
+
+class EvidenceRecordingCollusionHarness:
+    """A ``run_episode`` response source that writes the full generic
+    replay-required evidence trail (``logical_action_started``,
+    ``action_attempt_succeeded``, ``action_parsed``,
+    ``action_legality_checked``, ``logical_action_succeeded``,
+    ``phase_instance_started``, ``transition_applied``,
+    ``phase_instance_succeeded``, ``episode_terminated``,
+    ``family_outcome_recorded``) -- exactly the event vocabulary
+    ``aeread.shared_runner.task.execution.MinimalChatExecutor``/
+    ``AttemptExecutor`` write for every LLM-harness-backed family's own
+    evidence, reproduced here without any of that class's provider/retry/
+    cost machinery, since every collusion pricing decision here is a plain
+    scripted mapping, never a provider completion.
+
+    ``ScriptedCollusionHarness`` (this file's own existing scripted
+    response source, above) writes only its own convenience event
+    (``collusion_price_submitted``) and has never produced evidence
+    ``aeread.shared_runner.task.evaluation.replay_family_scoring_input`` can
+    replay -- ``finalize_family_execution`` calls that replay internally, so
+    this class is what makes driving THAT finalizer for this family possible
+    at all. ``answer`` supplies the raw scripted decision for one request (a
+    mapping shaped for ``CollusionPlugin.parse_action``'s own ``Mapping``
+    branch, e.g. ``{"price": 1.5}`` or a deliberately malformed one); this
+    class owns only the evidence-recording seam around it, mirroring
+    ``AttemptExecutor``'s own event shapes field-for-field (and govsim's
+    identically-motivated ``EvidenceRecordingGovsimHarness``).
+    """
+
+    def __init__(
+        self, *, answer: Callable[[Any], Mapping[str, Any]], evidence: EvidenceStore
+    ) -> None:
+        self._answer = answer
+        self._evidence = evidence
+
+    async def __call__(self, request: Any) -> dict[str, Any]:
+        response = dict(self._answer(request))
+        self._evidence.append_event(
+            "logical_action_started",
+            {"request": request},
+            phase_instance_id=request.phase_instance_id,
+            logical_action_id=request.logical_action_id,
+            visibility=f"seat:{request.seat_id}",
+        )
+        # A CanonicalResponse-shaped placeholder purely for replay provenance
+        # (``LogicalActionRecord.response``): ``CollusionPlugin.parse_action``
+        # never reads it (the scheduler hands it the raw ``response`` mapping
+        # returned above, unchanged -- see ``ScriptedCollusionHarness``'s
+        # identical contract), and replay itself reconstructs ``parse``/
+        # ``legality`` directly from the "action_parsed"/
+        # "action_legality_checked" events below, never from this response.
+        canonical = CanonicalResponse(
+            text=json.dumps(response, sort_keys=True),
+            finish_reason="stop",
+            empty=False,
+            truncated=False,
+            provider_call_ids=(),
+            tool_invocation_ids=(),
+            input_tokens=0,
+            cached_input_tokens=0,
+            output_tokens=0,
+            cost_usd=0.0,
+            action=response,
+        )
+        self._evidence.append_event(
+            "action_attempt_succeeded",
+            {"canonical_response": canonical},
+            phase_instance_id=request.phase_instance_id,
+            logical_action_id=request.logical_action_id,
+            visibility=f"seat:{request.seat_id}",
+        )
+        return response
+
+    def finalize_action(self, record: Any) -> None:
+        envelope = record.envelope
+        failure_code = None
+        if not envelope.valid:
+            failure_code = (
+                envelope.parse.error_code
+                if not envelope.parse.ok
+                else envelope.legality.reason
+            )
+        self._evidence.append_event(
+            "action_parsed",
+            {"parse_result": envelope.parse},
+            phase_instance_id=record.request.phase_instance_id,
+            logical_action_id=record.logical_action_id,
+            visibility=f"seat:{record.seat_id}",
+        )
+        if envelope.legality is not None:
+            self._evidence.append_event(
+                "action_legality_checked",
+                {"legality_result": envelope.legality},
+                phase_instance_id=record.request.phase_instance_id,
+                logical_action_id=record.logical_action_id,
+            )
+        event_type = (
+            "logical_action_succeeded"
+            if envelope.valid
+            else "logical_action_agent_action_failure"
+        )
+        self._evidence.append_event(
+            event_type,
+            {"valid": envelope.valid, "failure_code": failure_code},
+            logical_action_id=record.logical_action_id,
+        )
+
+    def fail_logical_action(self, logical_action_id: str, *, failure_code: str) -> None:
+        self._evidence.append_event(
+            "logical_action_failed",
+            {"failure_condition": failure_code},
+            logical_action_id=logical_action_id,
+        )
+
+    def phase_started(
+        self,
+        *,
+        phase_instance_id: str,
+        phase: Any,
+        eligible_actors: tuple[str, ...],
+        pre_state_sha256: str,
+    ) -> None:
+        self._evidence.append_event(
+            "phase_instance_started",
+            {
+                "phase": phase,
+                "eligible_actors": eligible_actors,
+                "pre_state_sha256": pre_state_sha256,
+            },
+            phase_instance_id=phase_instance_id,
+        )
+
+    def transition_applied(
+        self,
+        *,
+        phase_instance_id: str,
+        phase: Any,
+        transition: Any,
+        post_state_sha256: str,
+    ) -> None:
+        self._evidence.append_event(
+            "transition_applied",
+            {
+                "phase_id": phase.phase_id,
+                "transition": transition,
+                "post_state_sha256": post_state_sha256,
+            },
+            phase_instance_id=phase_instance_id,
+        )
+
+    def phase_completed(self, *, phase_instance: Any) -> None:
+        self._evidence.append_event(
+            "phase_instance_succeeded",
+            {
+                "phase_id": phase_instance.phase_id,
+                "post_state_sha256": phase_instance.post_state_sha256,
+                "logical_action_ids": tuple(
+                    action.logical_action_id for action in phase_instance.actions
+                ),
+            },
+            phase_instance_id=phase_instance.phase_instance_id,
+        )
+
+    def episode_completed(self, *, episode_result: EpisodeResult) -> None:
+        self._evidence.append_event(
+            "episode_terminated",
+            {
+                "terminal": episode_result.terminal,
+                "logical_action_count": episode_result.logical_action_count,
+            },
+        )
+        self._evidence.append_event(
+            "family_outcome_recorded",
+            {"outcome": episode_result.outcome},
+        )
+
+
+def _policy_answer(policy_by_seat: Mapping[str, PolicyFn]) -> Callable[[Any], Mapping[str, Any]]:
+    """An ``answer`` callable for ``EvidenceRecordingCollusionHarness`` that
+    mirrors ``ScriptedCollusionHarness.__call__``'s exact per-seat policy
+    dispatch, returning ``{"price": price}`` for whichever seat is asked."""
+
+    def answer(request: Any) -> Mapping[str, Any]:
+        policy = policy_by_seat[request.seat_id]
+        return {"price": policy(request.observation)}
+
+    return answer
+
+
+def _malformed_first_round_answer(
+    *, malformed_seat: str, other_policy: PolicyFn
+) -> Callable[[Any], Mapping[str, Any]]:
+    """An ``answer`` callable where ``malformed_seat`` always submits a
+    price string with no extractable number (``CollusionPlugin.parse_action``'s
+    ``Mapping`` branch fails it as ``"malformed_price"``) while every other
+    seat plays ``other_policy`` normally. With no legality data to check for
+    the malformed seat, ``CollusionPlugin.step`` classifies the round
+    ``"retry_exhausted"`` (``environment.py``'s own docstring on that
+    distinction) and the episode ends after round 0 -- deliberately
+    constructed so this family's operational-failure gate
+    (``measurement.OPERATIONAL_FAILURE_REASONS``) fires, which is the only
+    way ``collusion_long_run_profit`` -- whose comparative delta is
+    otherwise gated to the identical ``"baseline_profit_not_provided"``
+    ``invalid_measurement`` reason on every fixture, since no baseline is
+    ever reachable from a ``FamilyScoringInput`` alone -- can be shown
+    capable of changing at all (ruling R9(b)'s sensitivity witness)."""
+
+    def answer(request: Any) -> Mapping[str, Any]:
+        if request.seat_id == malformed_seat:
+            return {"price": "not-a-number"}
+        return {"price": other_policy(request.observation)}
+
+    return answer
+
+
+@dataclass(frozen=True, slots=True)
+class CollusionSetup:
+    """A resolved, provider-free ``RunPlan`` for one collusion case.
+
+    Unlike a real LLM-harness-backed family (housing, procurement_*,
+    commercial_state_calibration), this family's real runtime never goes
+    through ``execute_plan_cell``'s harness/provider stack at all -- every
+    seat is answered directly through ``run_episode``'s ``response_source``
+    (``ScriptedCollusionHarness``/``EvidenceRecordingCollusionHarness``
+    above), matching govsim's identically-shaped ``GovsimSetup``. The
+    declared ``minimal_chat`` harness and fixture provider below exist
+    purely to satisfy ``resolve_run_plan``'s structural pin/capability
+    checks and are never actually invoked.
+    """
+
+    plan: RunPlan
+    registry: PluginRegistry
+    prompt_sources: Mapping[str, str]
+    pricing: Mapping[str, Any]
+
+
+_COLLUSION_FIXTURE_PROFILE_ID = "collusion_unused_fixture_profile_v1"
+_COLLUSION_FIXTURE_PROVIDER_ID = "collusion_unused_fixture_provider"
+_COLLUSION_FIXTURE_RUNTIME_ID = "aeread.shared_runner.task.execution"
+
+
+def _pin(
+    component_id: str, kind: str, source_path: Path, *, version: str = "0.1.0"
+) -> ImplementationPin:
+    return ImplementationPin.from_dict(
+        {
+            "component_id": component_id,
+            "kind": kind,
+            "version": version,
+            "sha256": hashlib.sha256(source_path.read_bytes()).hexdigest(),
+        }
+    )
+
+
+def build_collusion_setup(case: CaseManifest, *, suffix: str) -> CollusionSetup:
+    """Resolve a real, one-cell ``RunPlan`` for ``case`` (spec section 5.3).
+
+    Every seat shares one placeholder agent profile: this family's real
+    runtime never invokes it (see ``CollusionSetup``'s own docstring), so
+    the harness/provider it names exist only to satisfy
+    ``resolve_run_plan``'s structural checks.
+    """
+    family = collusion_environment.family_manifest()
+    seat_ids = [seat.id for seat in case.seats]
+    sampling = SamplingPlan.from_dict(
+        {
+            "spec_version": SamplingPlan.SPEC_VERSION,
+            "sampling_plan_id": f"collusion_{suffix}_sample_v1",
+            "estimand": "fixed_collusion_case",
+            "target": case.case_id,
+            "selection": "fixed_curated",
+            "seeds": [case.world_seed],
+            "replicates": 1,
+            "cluster_level": "world_seed",
+            "cluster_id_fields": ["generator_version", "world_seed"],
+            "paired_fields": [],
+            "replicate_level": "episode_attempt",
+            "panel_mode": "fixed_panel",
+        }
+    )
+    block = EvaluationBlock.from_dict(
+        {
+            "spec_version": EvaluationBlock.SPEC_VERSION,
+            "block_id": f"collusion_{suffix}_block",
+            "kind": "self_play",
+            "subject_seats": list(seat_ids),
+            "controlled_profiles": {},
+            "repetitions": 1,
+            "seed_policy": "fixed",
+        }
+    )
+    analysis = AnalysisPlan.from_dict(
+        {
+            "spec_version": AnalysisPlan.SPEC_VERSION,
+            "analysis_plan_id": f"collusion_{suffix}_analysis_v1",
+            "estimands": [m.LONG_RUN_PROFIT_ESTIMAND_ID],
+            "group_by": ["family_id"],
+            "missingness": "report_separately",
+            "resampling_unit": "world_seed",
+            "uncertainty": "none",
+            "multiplicity": "none",
+            "sensitivity": [],
+            "cross_family_scalar": "disabled",
+        }
+    )
+    suite = SuiteManifest.from_dict(
+        {
+            "spec_version": SuiteManifest.SPEC_VERSION,
+            "suite_id": f"collusion_{suffix}_suite_v1",
+            "version": "1.0.0",
+            "family_ids": [family.family.id],
+            "case_ids": [case.case_id],
+            "sampling_plan_id": sampling.sampling_plan_id,
+            "evaluation_block_ids": [block.block_id],
+            "analysis_plan_id": analysis.analysis_plan_id,
+        }
+    )
+    profile = AgentProfile.from_dict(
+        {
+            "spec_version": AgentProfile.SPEC_VERSION,
+            "profile_id": _COLLUSION_FIXTURE_PROFILE_ID,
+            "model": {
+                "provider": _COLLUSION_FIXTURE_PROVIDER_ID,
+                "model": "collusion_unused_fixture_model_v1",
+                "revision": "1.0.0",
+                "base_url": None,
+            },
+            "harness": {
+                "id": "minimal_chat",
+                "version": "1.0",
+                "config": {},
+            },
+            "prompt": {
+                "prompt_id": f"collusion_{suffix}_prompt_v1",
+                "sha256": hashlib.sha256(
+                    b"collusion scripted pricing agent: no prompt is ever sent"
+                ).hexdigest(),
+            },
+            "runtime": {
+                "kind": "python",
+                "implementation": _COLLUSION_FIXTURE_RUNTIME_ID,
+                "version": "0.1.0",
+            },
+            "tools": [],
+            "memory": {"mode": "disabled"},
+            "reasoning": {
+                "condition_id": "collusion_scripted_no_reasoning_v1",
+                "effort": None,
+                "token_budget": None,
+                "rationale_visibility": "hidden",
+            },
+            "sampling": {
+                "temperature": 0.0,
+                "max_output_tokens": 64,
+                "seed": None,
+                "top_p": None,
+            },
+            "budgets": {
+                "max_logical_actions": case.episode.max_logical_actions,
+                "timeout_seconds": 30.0,
+                "max_cost_usd": 0.0,
+            },
+            "retry_policy": {
+                "max_action_attempts": 1,
+                "retryable_conditions": [],
+                "session_mode": "restart",
+                "sdk_retries": 0,
+            },
+        }
+    )
+    run_spec = RunSpec.from_dict(
+        {
+            "spec_version": RunSpec.SPEC_VERSION,
+            "run_spec_id": f"collusion_{suffix}_run_spec_v1",
+            "suite_id": suite.suite_id,
+            "evaluation_block_ids": [block.block_id],
+            "agent_profile_ids": [profile.profile_id],
+            "seat_assignments": {seat_id: profile.profile_id for seat_id in seat_ids},
+            "execution_mode": "evaluate",
+            "replicate_override": None,
+            "budget_overrides": None,
+        }
+    )
+
+    registry = PluginRegistry()
+    collusion_environment.register_plugin(registry)
+    harness_registry = HarnessRegistry()
+    for harness in default_harnesses().values():
+        harness_registry.register(harness)
+
+    environment_path = Path(collusion_environment.__file__)
+    execution_path = Path(execution_module.__file__)
+    measurement_path = Path(m.__file__)
+    economics_path = environment_path.with_name("economics.py")
+    # measurement.py declares each of its four leaves' validity-domain
+    # predicate, reference implementation, and scorer implementation under
+    # its own distinct component id (see environment.py's family_manifest()
+    # docstring on scoring.reference_provider_ids); every one of those nine
+    # must also be pinned here, or
+    # EvaluationReceipt._validate_and_freeze_plan_pins rejects the sealed
+    # receipt as missing implementations. The source file named for each id
+    # below matches measurement.py's own ``_implementation(id, filename)``
+    # call for that id exactly (``_file_sha256`` hashes a sibling file by
+    # name), since the receipt's own implementation_refs carry that same
+    # content hash.
+    pins = (
+        _pin(collusion_environment.PLUGIN_ID, "family_plugin", environment_path),
+        _pin(collusion_environment.SCORER_ID, "scorer", environment_path),
+        _pin("minimal_chat", "harness", execution_path, version="1.0"),
+        _pin(_COLLUSION_FIXTURE_RUNTIME_ID, "runtime", execution_path, version="0.1.0"),
+        _pin(m.DOMAIN_PREDICATE_ID, "reference", environment_path),
+        _pin(m.PRICE_LEGALITY_PREDICATE_ID, "reference", environment_path),
+        _pin(m.PRICE_LEGALITY_SCORER_ID, "reference", measurement_path),
+        _pin(m.NASH_PRICE_SOLVER_ID, "reference", economics_path),
+        _pin(m.DISTANCE_TO_NASH_SCORER_ID, "reference", measurement_path),
+        _pin(m.MONOPOLY_PRICE_SOLVER_ID, "reference", economics_path),
+        _pin(m.DISTANCE_TO_MONOPOLY_SCORER_ID, "reference", measurement_path),
+        _pin(m.NASH_PLAY_BASELINE_IMPLEMENTATION_ID, "reference", measurement_path),
+        _pin(m.LONG_RUN_PROFIT_SCORER_ID, "reference", measurement_path),
+    )
+    plan = resolve_run_plan(
+        families=(family,),
+        cases=(case,),
+        suite=suite,
+        sampling=sampling,
+        evaluation_blocks=(block,),
+        analysis=analysis,
+        agent_profiles=(profile,),
+        run_spec=run_spec,
+        registry=registry,
+        implementation_pins=pins,
+        harness_registry=harness_registry,
+        provider_capabilities={
+            _COLLUSION_FIXTURE_PROVIDER_ID: ProviderCapabilities(
+                native_tools=False,
+                structured_output=False,
+                seed=False,
+                system_prompt=True,
+                reasoning_budget=False,
+                reasoning_token_report=False,
+                max_context_tokens=None,
+            )
+        },
+    )
+    return CollusionSetup(plan=plan, registry=registry, prompt_sources={}, pricing={})
+
+
+# ---------------------------------------------------------------------------
+# finalize_family_execution (kernel_scoring_contract_spec.md milestone 3).
+# ---------------------------------------------------------------------------
+
+
+def test_finalize_wires_collusion_to_the_shared_family_finalizer(tmp_path: Any) -> None:
+    """This family has never produced an ``EvaluationReceipt``.
+
+    Every other already-migrated family has at least one test driving a
+    real episode through ``task.evaluation.finalize_family_execution``
+    (e.g. ``test_commercial_state_calibration.py``'s identically-purposed
+    ``test_finalize_wires_commercial_state_to_the_shared_family_finalizer``);
+    collusion had none, because its existing scripted response source
+    (``ScriptedCollusionHarness``) writes only its own convenience event and
+    has never produced evidence ``finalize_family_execution``'s internal
+    ``replay_family_scoring_input`` call can replay --
+    ``EvidenceRecordingCollusionHarness`` (this module, above) is what makes
+    this reachable. Drives one small, real, provider-free episode end to end
+    through the real finalizer and asserts a receipt comes back carrying
+    every one of this family's four declared finalize-time leaves.
+
+    ``collusion_long_run_profit`` (the primary and sole admission leaf) is
+    asserted ``invalid_measurement`` here, not ``ok`` -- a documented,
+    structural fact, not a fixture defect: ``CollusionScorer.__call__``
+    always calls ``score_all`` with ``baseline_profit_by_seat=None``,
+    because no comparison baseline is reachable from a
+    ``FamilyScoringInput`` alone (this leaf's own docstring; the
+    ``FamilyScorer`` protocol has no parameter for one). The receipt is
+    therefore always ``inclusion_status="excluded"`` for this family when
+    driven through the generic finalizer -- see
+    ``docs/collusion_adapter_status.md``'s "Receipt" section.
+    """
+    case = _short_case(horizon=4)
+    setup = build_collusion_setup(case, suffix="finalize_receipt")
+    cell = setup.plan.cells[0]
+    family = setup.plan.families[0]
+    plugin = setup.registry.resolve_manifest(family)
+
+    evidence = EvidenceStore(
+        tmp_path / "evidence_finalize_receipt",
+        run_plan_id=setup.plan.run_plan_id,
+        cell_id=cell.cell_id,
+        episode_id=f"episode_{cell.cell_id}",
+        episode_attempt_id="attempt_1",
+    )
+    family_case = plugin.validate_payload(case.payload)
+    gold = family_case["gold_reference"]
+    harness = EvidenceRecordingCollusionHarness(
+        answer=_policy_answer(
+            {
+                "firm_a": monopoly_play_policy(gold["p_monopoly"]["firm_a"]),
+                "firm_b": nash_play_policy(gold["p_nash"]["firm_b"]),
+            }
+        ),
+        evidence=evidence,
+    )
+    result = asyncio.run(
+        run_episode(cell=cell, case=case, plugin=plugin, response_source=harness)
+    )
+    execution = CellExecution(
+        run_plan_id=setup.plan.run_plan_id,
+        cell_id=cell.cell_id,
+        episode_attempt_id="attempt_1",
+        episode_result=result,
+        evidence=evidence,
+        action_executions=(),
+        total_cost_usd=0.0,
+    )
+
+    receipt = finalize_family_execution(setup=setup, execution=execution)
+
+    assert receipt.status == "invalid_measurement"
+    assert receipt.inclusion_status == "excluded"
+    assert {score.leaf.leaf_id for score in receipt.scores} == {
+        m.PRICE_LEGALITY_LEAF_ID,
+        m.DISTANCE_TO_NASH_LEAF_ID,
+        m.DISTANCE_TO_MONOPOLY_LEAF_ID,
+        m.LONG_RUN_PROFIT_LEAF_ID,
+    }
+    assert receipt.primary_leaf_id == m.LONG_RUN_PROFIT_LEAF_ID
+    evidence_refs = {score.evidence_refs for score in receipt.scores}
+    assert len(evidence_refs) == 1
+    price_legality = next(
+        score for score in receipt.scores if score.leaf.leaf_id == m.PRICE_LEGALITY_LEAF_ID
+    )
+    assert price_legality.status == "ok"
+    assert price_legality.primary is not None
+    assert price_legality.primary.value == 1.0
+    long_run_profit = next(
+        score for score in receipt.scores if score.leaf.leaf_id == m.LONG_RUN_PROFIT_LEAF_ID
+    )
+    assert long_run_profit.status == "invalid_measurement"
+    assert long_run_profit.validity.reasons == ("baseline_profit_not_provided",)
+
+
+def test_finalize_family_execution_rejects_a_collusion_scorer_that_forges_evidence_refs(
+    tmp_path: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """``evidence_refs`` provenance is enforced by the caller, not trusted
+    from the callee (independent review, ``docs/collusion_migration_review.md``
+    finding 4): ``CollusionScorer.__call__`` -- like every migrated family's
+    own ``__call__`` (kernel_scoring_contract_spec.md section 2's call site)
+    -- takes ``evidence_refs`` as an independent keyword argument and
+    forwards it verbatim, trusting its caller for that value; nothing in
+    ``measurement.py`` cross-checks it against ``scoring_input.evidence_refs``
+    itself. ``task.evaluation.finalize_family_execution``
+    (``_check_evidence_refs_are_scoring_input_verbatim``) is what makes
+    ``scoring_input.evidence_refs`` authoritative: every real call already
+    supplies the matching value (this file's own
+    ``test_finalize_wires_collusion_to_the_shared_family_finalizer``), which
+    is exactly why that check never previously fired for this family. This
+    test forges a stale, non-matching ``evidence_refs`` tuple onto every
+    returned score to prove the check actually rejects it, not merely that
+    the happy path (where the two values already agree) passes.
+    """
+    real_call = m.CollusionScorer.__call__
+
+    def _forging_call(
+        self: m.CollusionScorer,
+        scoring_input: FamilyScoringInput,
+        *,
+        evidence_refs: tuple[str, ...] = (),
+    ) -> Any:
+        score_set = real_call(self, scoring_input, evidence_refs=evidence_refs)
+        forged_refs = ("forged_evidence_ref_0",)
+        assert forged_refs != scoring_input.evidence_refs
+        return dataclasses.replace(
+            score_set,
+            scores=tuple(
+                dataclasses.replace(score, evidence_refs=forged_refs)
+                for score in score_set.scores
+            ),
+        )
+
+    monkeypatch.setattr(m.CollusionScorer, "__call__", _forging_call)
+
+    case = _short_case(horizon=4)
+    setup = build_collusion_setup(case, suffix="finalize_forged_refs")
+    cell = setup.plan.cells[0]
+    family = setup.plan.families[0]
+    plugin = setup.registry.resolve_manifest(family)
+
+    evidence = EvidenceStore(
+        tmp_path / "evidence_finalize_forged_refs",
+        run_plan_id=setup.plan.run_plan_id,
+        cell_id=cell.cell_id,
+        episode_id=f"episode_{cell.cell_id}",
+        episode_attempt_id="attempt_1",
+    )
+    family_case = plugin.validate_payload(case.payload)
+    gold = family_case["gold_reference"]
+    harness = EvidenceRecordingCollusionHarness(
+        answer=_policy_answer(
+            {
+                "firm_a": monopoly_play_policy(gold["p_monopoly"]["firm_a"]),
+                "firm_b": nash_play_policy(gold["p_nash"]["firm_b"]),
+            }
+        ),
+        evidence=evidence,
+    )
+    result = asyncio.run(
+        run_episode(cell=cell, case=case, plugin=plugin, response_source=harness)
+    )
+    execution = CellExecution(
+        run_plan_id=setup.plan.run_plan_id,
+        cell_id=cell.cell_id,
+        episode_attempt_id="attempt_1",
+        episode_result=result,
+        evidence=evidence,
+        action_executions=(),
+        total_cost_usd=0.0,
+    )
+
+    with pytest.raises(ValueError, match="evidence_refs that disagree"):
+        finalize_family_execution(setup=setup, execution=execution)

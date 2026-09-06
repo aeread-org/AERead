@@ -36,15 +36,23 @@ that family's environment accumulates its full ordered public history
 directly into the terminal outcome (see ``environment.py``'s
 ``public_history``/``temporal_violations`` state fields, both copied
 verbatim into ``outcome``), so outcome is itself a function of the full
-trajectory: two runs cannot honestly produce a byte-identical outcome from
-differing trajectories, and ``_replay_family_trajectory`` correctly refuses
-any fabricated evidence where they disagree. There is no real family among
-the five already migrated for which the paired-history requirement can be
-honestly exercised today, so this module supplies one purpose-built,
+trajectory. Unlike ``collusion`` below, its manifest does not (yet) declare
+``trajectory_outcome_paths`` (ruling R9), so there is no projection today
+that would let two of its runs honestly produce a byte-identical PROJECTED
+outcome from differing trajectories -- declaring that list is per-family
+migration work a future agent still owes it, not something this module can
+supply on its behalf. This module also supplies one purpose-built,
 provider-free, kernel-owned fixture family (``kernel_contract_reference_v1``)
-solely to give the protocol test a genuine trajectory-scoped leaf it can
-pair honestly. See ``TRUSTED_BUILTIN_PLUGIN_KEYS`` in ``registry.py`` for the
-same note where that family is enrolled as trusted.
+to exercise the mechanics generically, independent of any one real family's
+migration state. See ``TRUSTED_BUILTIN_PLUGIN_KEYS`` in ``registry.py`` for
+the same note where that family is enrolled as trusted.
+
+``collusion`` (below, ``_collusion_fixtures``) is a real family in exactly
+``datacenter_development_v1``'s situation -- its outcome also embeds its
+full trajectory (``history``) -- but it DOES declare
+``trajectory_outcome_paths=("/history",)``, so the paired-history
+requirement is honestly exercised against a real family's own scorer here,
+not only against the kernel-owned fixture.
 """
 
 from __future__ import annotations
@@ -55,7 +63,7 @@ import hashlib
 import itertools
 import json
 from pathlib import Path
-from typing import Any, Mapping, Sequence
+from typing import Any, Callable, Mapping, Sequence
 
 import pytest
 
@@ -117,12 +125,14 @@ from aeread.shared_runner.task.scheduler import (
     PhaseInstance,
     PhaseSpec,
     TransitionResult,
+    run_episode,
 )
 
 from aeread_families.commercial_state_calibration import build_offline_setup as _build_commercial_state_setup
 from aeread_families.commercial_state_calibration import (
     commercial_state_measurement_leaf,
 )
+from aeread_families.collusion.harness import monopoly_play_policy, nash_play_policy
 from aeread_families.housing.runner import (
     HousingScriptedLandlordProvider,
     HousingScriptedTenantProvider,
@@ -137,6 +147,14 @@ from aeread_families.procurement_grounding import (
 )
 from aeread_families.procurement_grounding import procurement_measurement_leaf
 from aeread_families.single_offer.runner import FixedResponseProvider
+
+from tests.test_collusion_replay import (
+    EvidenceRecordingCollusionHarness,
+    _malformed_first_round_answer,
+    _policy_answer,
+    _short_case,
+    build_collusion_setup,
+)
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -1187,6 +1205,140 @@ def _embedding_fixtures(
     return manifest, plugin, fixtures
 
 
+# ---------------------------------------------------------------------------
+# collusion: a real, provider-free family whose outcome embeds its own
+# trajectory (``history``), so the paired-history precondition can only be
+# satisfied on the PROJECTION (ruling R9, ``trajectory_outcome_paths=
+# ("/history",)`` on its manifest -- see environment.py's family_manifest()).
+# All four of its leaves are declared input_scope="trajectory" (measurement.py's
+# module docstring), so R7's terminal_state contrapositive is vacuous here and
+# what matters is R9(b)'s sensitivity witness: each leaf must be shown capable
+# of changing on SOME supplied pair.
+#
+# Three fixtures, driven through the real scheduler via
+# ``EvidenceRecordingCollusionHarness`` (tests/test_collusion_replay.py -- the
+# only response source for this family that writes evidence
+# ``replay_family_scoring_input`` can replay):
+#
+# * ``left``/``right`` -- the paired-history pair. Same horizon, same two
+#   policies (monopoly-play, Nash-play), swapped across the two seats
+#   (mirrors this module's own ``_reference_fixtures`` ("x","y")/("y","x")
+#   swap). Both reach ``max_periods`` at the same horizon, so
+#   ``termination_reason``/``rounds_played`` -- the outcome projection with
+#   ``/history`` removed -- are byte-identical, while the per-round history
+#   genuinely differs (a different firm charges the monopoly price in each).
+#   This alone witnesses ``collusion_distance_to_nash_price``/
+#   ``collusion_distance_to_monopoly_price``: swapping which seat plays which
+#   price swaps their ``utility_by_seat`` per-seat breakdown, even though the
+#   cross-seat MEAN each leaf's ``primary`` reports coincides (R7 already
+#   holds a trajectory leaf may legitimately coincide on any one pair, so
+#   that coincidence is not itself a defect).
+# * ``malformed`` -- ``firm_a`` submits an unparseable price on round 0
+#   (``_malformed_first_round_answer``), gating the episode to
+#   ``termination_reason="retry_exhausted"`` after one round
+#   (``OPERATIONAL_FAILURE_REASONS``). This is the only way to witness
+#   ``collusion_price_legality`` (``ok``/1.0 on left/right vs
+#   ``invalid_measurement`` here) and ``collusion_long_run_profit`` (gated to
+#   the identical ``baseline_profit_not_provided`` reason on every fixture
+#   whose episode completes normally, since no baseline is ever reachable
+#   from a ``FamilyScoringInput`` alone -- here it is ``invalid_measurement``
+#   for the different reason ``termination_reason_retry_exhausted``, which is
+#   a real difference in ``validity.reasons``). It is not part of the
+#   paired-history pair itself (only ``produced_by_case[:2]`` -- left/right --
+#   is used for that comparison); it only needs to be a genuine, correctly
+#   produced third fixture, which the sensitivity witness's
+#   ``itertools.combinations`` over every supplied fixture then picks up.
+# ---------------------------------------------------------------------------
+
+
+def _collusion_policy_answer(
+    *, monopoly_seat: str, nash_seat: str
+) -> Callable[[Mapping[str, Any]], Callable[[Any], Mapping[str, Any]]]:
+    def build(family_case: Mapping[str, Any]) -> Callable[[Any], Mapping[str, Any]]:
+        gold = family_case["gold_reference"]
+        return _policy_answer(
+            {
+                monopoly_seat: monopoly_play_policy(gold["p_monopoly"][monopoly_seat]),
+                nash_seat: nash_play_policy(gold["p_nash"][nash_seat]),
+            }
+        )
+
+    return build
+
+
+def _collusion_malformed_answer(
+    *, malformed_seat: str, other_seat: str
+) -> Callable[[Mapping[str, Any]], Callable[[Any], Mapping[str, Any]]]:
+    def build(family_case: Mapping[str, Any]) -> Callable[[Any], Mapping[str, Any]]:
+        gold = family_case["gold_reference"]
+        return _malformed_first_round_answer(
+            malformed_seat=malformed_seat,
+            other_policy=nash_play_policy(gold["p_nash"][other_seat]),
+        )
+
+    return build
+
+
+def _collusion_episode_fixture(
+    *,
+    tmp_path: Path,
+    suffix: str,
+    horizon: int,
+    build_answer: Callable[[Mapping[str, Any]], Callable[[Any], Mapping[str, Any]]],
+) -> tuple[FamilyManifest, Any, FamilyScoringFixture]:
+    case = _short_case(horizon=horizon)
+    setup = build_collusion_setup(case, suffix=suffix)
+    cell = setup.plan.cells[0]
+    family = setup.plan.families[0]
+    plugin = setup.registry.resolve_manifest(family)
+    family_case = plugin.validate_payload(case.payload)
+    evidence = EvidenceStore(
+        tmp_path / f"collusion_{suffix}",
+        run_plan_id=setup.plan.run_plan_id,
+        cell_id=cell.cell_id,
+        episode_id=f"episode_{cell.cell_id}",
+        episode_attempt_id="attempt_1",
+    )
+    harness = EvidenceRecordingCollusionHarness(
+        answer=build_answer(family_case), evidence=evidence
+    )
+    asyncio.run(run_episode(cell=cell, case=case, plugin=plugin, response_source=harness))
+    return (
+        family,
+        plugin,
+        FamilyScoringFixture(family_case=family_case, sealed_evidence=evidence),
+    )
+
+
+def _collusion_fixtures(
+    tmp_path: Path,
+) -> tuple[FamilyManifest, Any, tuple[FamilyScoringFixture, ...]]:
+    horizon = 4
+    left_family, left_plugin, left_fixture = _collusion_episode_fixture(
+        tmp_path=tmp_path,
+        suffix="collusion_scoring_left",
+        horizon=horizon,
+        build_answer=_collusion_policy_answer(monopoly_seat="firm_a", nash_seat="firm_b"),
+    )
+    _right_family, _right_plugin, right_fixture = _collusion_episode_fixture(
+        tmp_path=tmp_path,
+        suffix="collusion_scoring_right",
+        horizon=horizon,
+        build_answer=_collusion_policy_answer(monopoly_seat="firm_b", nash_seat="firm_a"),
+    )
+    _malformed_family, _malformed_plugin, malformed_fixture = _collusion_episode_fixture(
+        tmp_path=tmp_path,
+        suffix="collusion_scoring_malformed",
+        horizon=horizon,
+        build_answer=_collusion_malformed_answer(malformed_seat="firm_a", other_seat="firm_b"),
+    )
+    return (
+        left_family,
+        left_plugin,
+        (left_fixture, right_fixture, malformed_fixture),
+    )
+
+
 def _build_protocol_test_registry_and_fixtures(
     tmp_path: Path,
 ) -> tuple[PluginRegistry, dict[tuple[str, str], tuple[FamilyScoringFixture, ...]]]:
@@ -1207,6 +1359,12 @@ def _build_protocol_test_registry_and_fixtures(
     registry.register_trusted(reference_manifest, reference_plugin)
     fixtures[(reference_manifest.family.id, reference_manifest.family.version)] = (
         reference_fixtures
+    )
+
+    collusion_manifest, collusion_plugin, collusion_fixtures = _collusion_fixtures(tmp_path)
+    registry.register_trusted(collusion_manifest, collusion_plugin)
+    fixtures[(collusion_manifest.family.id, collusion_manifest.family.version)] = (
+        collusion_fixtures
     )
 
     return registry, fixtures
@@ -1646,7 +1804,9 @@ def _trusted_family_versions(
 # deliberately named, not derived: adding a NEW trusted key -- the exact
 # attack the review demonstrated -- now requires either enrolling a real
 # fixture or explicitly widening this exemption; it can no longer happen
-# silently.
+# silently. ``collusion`` is deliberately NOT here: it IS migrated (see
+# this module's own docstring / _collusion_fixtures above) and enrolled via
+# _build_protocol_test_registry_and_fixtures like every other real fixture.
 _NOT_YET_MIGRATED_TRUSTED_KEYS: "frozenset[tuple[str, str]]" = frozenset(
     {
         ("consent_ir_v1", "1.0.0"),
@@ -1659,15 +1819,15 @@ _NOT_YET_MIGRATED_TRUSTED_KEYS: "frozenset[tuple[str, str]]" = frozenset(
         # External-benchmark adapter families enrolled in
         # TRUSTED_BUILTIN_PLUGIN_KEYS by maintainer ruling on 2026-09-04
         # (PRs #28-#38), landed on main after this branch forked. None of
-        # the eleven has a FamilyScoringInput-contract fixture yet; they
-        # migrate under the per-adapter follow-ups tracked alongside the
-        # other not-yet-migrated families above, not as part of this
-        # kernel change.
+        # the remaining ten has a FamilyScoringInput-contract fixture yet
+        # (``collusion`` migrated separately, above); they migrate under
+        # the per-adapter follow-ups tracked alongside the other
+        # not-yet-migrated families above, not as part of this kernel
+        # change.
         ("agenticpay.bilateral", "0.1.0"),
         ("alympics.wac", "0.1.0"),
         ("amazonbarg.bilateral", "0.1.0"),
         ("aucarena", "0.1.0"),
-        ("collusion", "0.1.0"),
         ("econagent_v1", "0.1.0"),
         ("econevals", "0.1.0"),
         ("govsim", "0.1.0"),
