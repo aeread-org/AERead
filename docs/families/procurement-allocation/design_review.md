@@ -296,6 +296,28 @@ old plans keep validating on `plan_sha256` alone and new plans carry both
 digests, which is a kernel change rather than a family change and belongs with
 the shared-runner contract work.
 
+## 13. Eligibility cannot be checked without seeing the effect
+
+`build_confirmatory_comparison` returns one object holding the integrity checks,
+the eligibility verdict, and the effect estimates. There is no way to ask whether
+a run is eligible without receiving its efficacy in the same value. Gate 5
+forbids early efficacy inspection and the campaign plan declares
+`no_early_efficacy_stopping`, yet the only available API makes the two
+inseparable.
+
+This was hit on 2026-09-06. The confirmatory holdout was checked for eligibility,
+failed on the per-arm missingness ceiling, and the effect estimates were visible
+in the same output. Nothing was changed as a result, and the plan is frozen, so
+no harm followed; but the protection was procedural rather than structural, and
+a procedure that depends on a reader ignoring a value already in front of them
+is not a control.
+
+**Fix.** Split the call. `assess_eligibility(run_root)` returns integrity checks,
+missingness, and the verdict, and nothing derived from outcomes. `build_comparison`
+takes an eligibility result and refuses to compute effects unless it passed.
+Publication already refuses an unqualified run; the same discipline belongs one
+step earlier, where a human looks.
+
 ---
 
 ## Status of the fixes
@@ -314,7 +336,8 @@ the shared-runner contract work.
 | 10 canary sealed by a transient 429 | open; hit repeatedly while running the holdout on 2026-09-05 |
 | 11 abort-on-first-failure caps panel size | **fixed** — typed missingness with a declared ceiling; took the run from 24 rows across seven attempts to a single completing attempt |
 | 12 one digest for scientific and operational parameters | open; needs a versioned plan schema, so it is kernel work, not a family change |
+| 13 eligibility and effect returned together | open; split into `assess_eligibility` and a comparison that requires it |
 
-Defects 4, 6, 8, 10, and 12 are the remaining work. None of them blocks the panels
+Defects 4, 6, 8, 10, 12, and 13 are the remaining work. None of them blocks the panels
 above; each is a bounded change with the fix already described in its section.
 

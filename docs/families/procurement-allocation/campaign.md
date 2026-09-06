@@ -1107,3 +1107,52 @@ Two operational findings worth fixing, both recorded in the design review:
 - No partial efficacy was inspected in any sealed attempt, and none of the 24
   rows contributes to a claim.
 
+### Observed confirmatory result, 2026-09-06: ineligible, and it does not replicate
+
+The V4 attempt completed all 144 rows for $0.4512 with 12 typed missing rows.
+It is **ineligible**, and separately its point estimate does not reproduce the
+development result. Both facts matter and neither should be read as the other.
+
+**Eligibility: failed on the per-arm missingness ceiling.**
+
+| arm | missing of 36 | ceiling |
+|---|---:|---:|
+| labeled_control | 1 | 3 |
+| labeled_treatment | 4 | 3 |
+| opaque_control | 4 | 3 |
+| opaque_treatment | 3 | 3 |
+
+The panel total, 12 of 144 or 8.3%, sits inside the declared 10% ceiling, but the
+ceiling is enforced per arm, where 10% of 36 rounds down to 3. Two arms exceeded
+it. Concentrated missingness in one arm is worse than the same count spread
+across four, so the per-arm rule is the right one; it simply binds much harder
+than the panel figure suggests. This is a property of the frozen plan and is not
+revisited after seeing the outcome.
+
+**The estimate, reported as non-confirmatory.** Treatment minus control, over
+twelve held-out worlds and both surfaces:
+
+| outcome | holdout estimate | development estimate |
+|---|---|---|
+| regret | -$5.15, interval [-$18.02, $8.88] | -$28.15, [-$56.02, -$4.58] |
+| feasible award | +0.021, [-0.056, 0.097] | not guarded then |
+| terminal feasibility | +0.056, [-0.014, 0.125] | +0.389, [0.167, 0.611] |
+
+The regret point estimate is about one fifth of the development value and its
+interval crosses zero. Terminal feasibility, the quantity the development run
+guarded, falls from +0.389 to +0.056. That is the pattern expected when an
+adaptive result was fit to the worlds on which the intervention was selected,
+and it is the reason the standard requires a holdout at all.
+
+**What may be claimed.** Nothing confirmatory. The development result on
+`confirmatory_v1` stands as adaptive development evidence and must keep that
+label. The pre-award check remains a demonstrated mechanism for removing
+quantity, sample, and service violations on the worlds it was built for; it is
+not demonstrated to transfer to worlds it has not seen.
+
+**What happens next.** A fresh attempt under this identical frozen plan in a
+later route-availability window is the only legitimate route to eligibility. The
+plan, the guarded metric, the ceiling, and the analysis are unchanged and must
+stay unchanged; re-running is not re-tuning. The observed estimate above does not
+license adjusting any of them.
+

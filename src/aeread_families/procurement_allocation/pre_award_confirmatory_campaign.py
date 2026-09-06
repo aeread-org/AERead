@@ -740,11 +740,15 @@ def build_confirmatory_comparison(*, run_root: Path) -> dict[str, Any]:
     cross_surface_bounds = True
     for slug in CASE_SLUGS:
         for seed in INFERENCE_SEEDS:
+            # A row sealed as typed missingness carries no bound, so compare
+            # only the arms that completed this world-seed pair.
             values = {
-                float(indexes[name][(slug, seed)]["upper_bound_usd"])
+                float(row["upper_bound_usd"])
                 for name in specs
+                if (row := indexes[name].get((slug, seed))) is not None
+                and row.get("status") == "completed"
             }
-            cross_surface_bounds = cross_surface_bounds and len(values) == 1
+            cross_surface_bounds = cross_surface_bounds and len(values) <= 1
     integrity["cross_surface_upper_bounds_match"] = cross_surface_bounds
     integrity["economic_world_pairing_bound"] = len(
         {pair["economic_world_sha256"] for pair in recorded_plan["world_pairs"]}
