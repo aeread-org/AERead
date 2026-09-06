@@ -1,6 +1,9 @@
 # econevals adapter — status
 
-Branch `zeyu/econevals-contract-migration`. Last verified 2026-09-06.
+Branch `zeyu/econevals-contract-migration`. Last verified 2026-09-06; rebased
+onto `zeyu/kernel-r9r10` (PR #103) on 2026-09-06 -- see "The scoring-contract
+protocol test is enrolled" below for what that rebase changed and what it did
+not.
 
 A second-reviewer fix pass ran against `docs/econevals_review_claude.md` on
 2026-09-02; `docs/econevals_review_codex.md` was recovered from that
@@ -266,12 +269,14 @@ period's illegal submission is identical (so `outcome`, i.e.
 `termination_reason`/`period_count`/`num_attempts`, is byte-identical) but
 whose EARLIER period's illegal offer id differs (a genuinely different
 trajectory) — verified in the test itself via
-`canonical_json_bytes(left_input.outcome) == canonical_json_bytes(right_input.outcome)`
-and `left_input.phase_instances != right_input.phase_instances`, never
-merely asserted in a comment. `("econevals", "0.1.0")` is removed from
-`_NOT_YET_MIGRATED_TRUSTED_KEYS` and enrolled directly in
-`_build_protocol_test_registry_and_fixtures` (the always-on registry), NOT
-through govsim's bridge-gated shape
+`canonical_json_bytes(left_projection) == canonical_json_bytes(right_projection)`,
+where each `_projection` is `project_outcome(outcome, trajectory_outcome_paths)`
+— the identity function here, since this family declares no
+`trajectory_outcome_paths` — and `left_input.phase_instances !=
+right_input.phase_instances`, never merely asserted in a comment.
+`("econevals", "0.1.0")` is removed from `_NOT_YET_MIGRATED_TRUSTED_KEYS` and
+enrolled directly in `_build_protocol_test_registry_and_fixtures` (the
+always-on registry), NOT through govsim's bridge-gated shape
 (`_BRIDGE_GATED_ENROLLED_FAMILY_VERSIONS` plus a separately-skippable
 test): every fixture here only ever drives the illegal, pre-bridge
 `_submit_procurement` path, so unlike govsim this family's own protocol
@@ -281,6 +286,26 @@ was already in `TRUSTED_BUILTIN_PLUGIN_KEYS` since milestone 0; only the
 root `conftest.py` `AEREAD_ECONEVALS_BRIDGE_REQUIRED` gate (predating this
 migration, already covering this family's OTHER bridge-gated tests) is
 untouched — it has nothing to gate for these particular fixtures.
+
+**2026-09-06 rebase onto `zeyu/kernel-r9r10`.** That kernel branch's own
+`4e05bc3b refactor(scoring-contract): extract the per-family protocol check`
+extracted the per-family body `test_every_registered_family_obeys_the_scoring_contract`
+used to run inline into `_assert_family_obeys_the_scoring_contract`. This
+family never carried its own separately-extracted copy of that body (unlike
+govsim's/steer's own reference migrations), so the rebase's only conflict
+was purely additive -- `_econevals_fixture_pair` and its registration in
+`_build_protocol_test_registry_and_fixtures` kept, unchanged, alongside the
+kernel's own new synthetic-family fixtures at the same insertion point --
+and `test_every_registered_family_obeys_the_scoring_contract` still calls
+this family through the identical path, now via the extracted helper.
+Neither of this family's two leaves is `input_scope="trajectory"` (see
+"Enrollment and receipt" above), so ruling R9(b)'s sensitivity witness
+(added by the same kernel branch) is vacuous for econevals and required no
+new fixture. The kernel branch's own new rulings-R9/R10 coverage (synthetic
+trajectory-embedding families, projection guards, the sensitivity witness)
+grew `tests/test_shared_runner_scoring_contract.py`'s own total test count
+from 5 to 31 -- none of the 26 added tests concern econevals; see "Evidence"
+below for the updated combined count this changes.
 
 ## What the adapter claims
 
@@ -319,31 +344,39 @@ against the pinned bridge and hard-fails on any divergence.
 
 ## Evidence
 
-**119 passed, 0 failed, 0 skipped**, the full econevals family test file set
-plus `tests/test_shared_runner_scoring_contract.py` and
-`tests/test_shared_runner_smoke.py`, re-verified both with
-`$AEREAD_ECONEVALS_BRIDGE_PYTHON`/`$AEREAD_ECONEVALS_UPSTREAM_ROOT` exported
-and with neither exported (this workspace's `discover_bridge_python`/
-`UPSTREAM_ROOT` both fall back to the same provisioned default paths either
-way, so both runs are bridge-backed here and neither shows a skip; a machine
-without that default provisioned would see the documented bridge-gated
-skips instead, never a silent pass):
+**145 passed, 0 failed, 0 skipped** (up from 119 as of the 2026-09-05
+milestone-3 verification; the 2026-09-06 rebase onto `zeyu/kernel-r9r10`
+added 26 of the kernel's own rulings-R9/R10 tests to
+`tests/test_shared_runner_scoring_contract.py`, none of which concern
+econevals -- see "The scoring-contract protocol test is enrolled" above),
+the full econevals family test file set plus
+`tests/test_shared_runner_scoring_contract.py` and
+`tests/test_shared_runner_smoke.py`, re-verified with
+`$AEREAD_ECONEVALS_BRIDGE_PYTHON`/`$AEREAD_ECONEVALS_UPSTREAM_ROOT` and
+`AEREAD_ECONEVALS_BRIDGE_REQUIRED=1` exported (a certifying run):
 
 ```bash
 export AEREAD_ECONEVALS_BRIDGE_PYTHON=<bridges/econevals-venv path>
 export AEREAD_ECONEVALS_UPSTREAM_ROOT=<upstream-econevals checkout path>
+export AEREAD_ECONEVALS_BRIDGE_REQUIRED=1
 PYTHONPATH=src pytest \
   tests/test_econevals_cases.py tests/test_econevals_environment.py \
   tests/test_econevals_measurement.py tests/test_econevals_tools.py \
   tests/test_econevals_replay.py tests/test_shared_runner_scoring_contract.py \
   tests/test_shared_runner_smoke.py -q
-# 119 passed in 331.75s (0:05:31) with the bridge exported
-# 119 passed in 336.57s (0:05:36) with neither exported (same reason as above)
+# 145 passed in 146.41s (0:02:26) with the bridge exported, post-rebase
 ```
 
+The prior "119 passed... with neither exported" cross-check (this
+workspace's `discover_bridge_python`/`UPSTREAM_ROOT` both fall back to the
+same provisioned default paths either way, so that variant was also
+bridge-backed and showed no skip) was not re-run as part of this stacking
+pass; nothing in the rebase touches that fallback behavior.
+
 Breakdown: cases 22, environment 29, measurement 30, tools 12, replay 11,
-scoring-contract 5, shared-runner smoke 10. The delta from the previous 113
-(replay 10) is this milestone's one new
+scoring-contract 31 (5 econevals/shared plus 26 from the kernel's own
+rulings-R9/R10 coverage, post-rebase), shared-runner smoke 10. The delta
+from the previous 113 (replay 10) is this milestone's one new
 `test_finalize_wires_econevals_to_the_shared_family_finalizer` test
 (`tests/test_econevals_replay.py`); `tests/test_shared_runner_scoring_contract.py`
 is newly run here at all (its own 5 tests, including this family's
