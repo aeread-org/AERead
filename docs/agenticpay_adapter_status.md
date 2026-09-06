@@ -84,18 +84,34 @@ its own.
 **Suite: 787 passed, 31 skipped, 1 xfailed** for the full repository, with
 `AEREAD_AGENTICPAY_BRIDGE_PYTHON` pointed at the provisioned bridge venv. The 31 skips are
 other families' bridges not provisioned in this session (tau2/tau3-bench, and similar) —
-unrelated to this family, and none of them mention `agenticpay`.
+unrelated to this family, and none of them mention `agenticpay`. Recorded before the
+contract-migration and conformance-enrollment work below added this family's own new test
+files; not re-run this session (a full-repository run did not complete in reasonable time),
+so treat it as historical Milestone-3 evidence, not a live count — the table immediately
+below is this family's own re-verified, current count.
 
-This family's own five test files plus the required smoke-regression check:
+This family's own test files plus the required smoke-regression check. Since
+the "787 passed" full-suite figure above was recorded, the contract-migration
+and conformance-enrollment work added three more files this family's own
+coverage now depends on — a bridge-required CI gate check
+(`test_agenticpay_bilateral_ci_bridge_requirement.py`, present before this
+migration but never previously listed here), a regression test for migration
+review finding 1 (`test_agenticpay_bilateral_replay_skip_scope.py`, new this
+milestone), and this family's hunk of the shared protocol test
+(`test_shared_runner_scoring_contract.py`, new this milestone) — so the
+command below now names eight files, not five:
 
 | File | Passed |
 |---|---|
 | `tests/test_agenticpay_bilateral_cases.py` | 20 |
-| `tests/test_agenticpay_bilateral_environment.py` | 9 |
-| `tests/test_agenticpay_bilateral_measurement.py` | 20 |
-| `tests/test_agenticpay_bilateral_replay.py` (new this milestone) | 12 |
+| `tests/test_agenticpay_bilateral_environment.py` | 10 |
+| `tests/test_agenticpay_bilateral_measurement.py` | 32 |
+| `tests/test_agenticpay_bilateral_replay.py` | 14 |
+| `tests/test_agenticpay_bilateral_replay_skip_scope.py` (migration review finding 1 regression) | 2 |
+| `tests/test_agenticpay_bilateral_ci_bridge_requirement.py` (bridge-required CI gate check) | 2 |
+| `tests/test_shared_runner_scoring_contract.py` (this family's protocol-test hunk; the file also carries every other enrolled family's always-on coverage) | 59 |
 | `tests/test_shared_runner_smoke.py` (required regression check) | 10 |
-| **Total** | **71, 0 failed** |
+| **Total** | **149, 0 failed** |
 
 Run with:
 
@@ -103,8 +119,15 @@ Run with:
 export AEREAD_AGENTICPAY_BRIDGE_PYTHON="/Users/sunzeyu/Documents/econ benchmark/bridges/agenticpay-venv/bin/python"
 python -m pytest tests/test_agenticpay_bilateral_cases.py tests/test_agenticpay_bilateral_environment.py \
   tests/test_agenticpay_bilateral_measurement.py tests/test_agenticpay_bilateral_replay.py \
-  tests/test_shared_runner_smoke.py -q
+  tests/test_agenticpay_bilateral_replay_skip_scope.py tests/test_agenticpay_bilateral_ci_bridge_requirement.py \
+  tests/test_shared_runner_scoring_contract.py tests/test_shared_runner_smoke.py -q
 ```
+
+Without `AEREAD_AGENTICPAY_BRIDGE_PYTHON` set (upstream checkout present, no
+bridge interpreter provisioned), the identical command reports `123 passed,
+26 skipped` — 0 failed, and every skip is one of the bridge-gated fidelity
+tests named in "Why the bridge needs provisioning" below, never a whole
+module (migration review finding 1's fix).
 
 ## Why the bridge needs provisioning
 
@@ -147,16 +170,25 @@ AEREAD_AGENTICPAY_BRIDGE_REQUIRED=1 pytest   # fails if a fidelity test skips
   `final_state_matches=False` the next time these tests run.
 - **Mode C (multi-party topologies) remains entirely deferred**, as declared in the spec
   (section 6) since Milestone 1 — unchanged this milestone.
-- **`docs/benchmark_qc.md` still does not exist on this branch/`main`**, already logged in
-  `ledger_entries/agenticpay.md` from Milestone 1; re-checked this session (still absent), no
-  new ledger entry needed.
+- **`docs/benchmark_qc.md` still does not exist on this branch/`main`.** The Milestone-1
+  claim that this gap was "already logged in `ledger_entries/agenticpay.md`" was itself
+  never true: no such file has ever been committed
+  (`git log --all --follow -- ledger_entries/agenticpay.md` returns nothing) — the same
+  over-claimed-but-never-committed ledger entry `ledger_entries/govsim.md`'s own entry 1
+  documents for that family. The gap itself is real and is tracked in the shared
+  `runner_defect_ledger.md` instead (entry D-10, `docs/benchmark_qc.md` referenced by
+  several adapters as a canonical QC-gate source that does not exist on `main`); re-checked
+  this session (still absent), no new entry needed there either, since D-10 already covers
+  it.
 
 ## No new kernel/runner defects found this milestone
 
 `EvidenceStore.append_event`, `run_episode`, and `PluginRegistry` all behaved exactly as
 documented for a family with no tool-call surface; nothing required a workaround. The one
-pre-existing ledger entry (the missing `docs/benchmark_qc.md`) was re-verified, not
-re-derived, and needed no update.
+pre-existing shared-ledger entry that names this family (`runner_defect_ledger.md`'s D-10,
+the missing `docs/benchmark_qc.md`) was re-verified, not re-derived, and needed no update;
+no family-specific `ledger_entries/agenticpay.md` file exists to update (see "Known limits"
+above).
 
 ## Scoring-contract migration (kernel_scoring_contract_spec.md, migration milestone 2 of 3)
 
@@ -326,3 +358,54 @@ and exactly the three declared finalize-time leaf ids
 `agenticpay_contract_legality_leaf`) with `primary_leaf_id` equal to the
 declared `agenticpay_surplus_share_leaf` — this family had never produced
 an `EvaluationReceipt` before this milestone.
+
+### Independent review (docs/agenticpay_migration_review.md)
+
+An independent review of this branch found two findings. Both were
+independently re-verified against the code (never a hand-called stand-in for
+a real `pytest` process) before any fix was written, both are **confirmed and
+fixed**, and neither was escalated — see that document's "Disposition"
+section for the full verification and mutation-check evidence. Neither fix
+touches the leaf set, the primary leaf, admission membership, or any
+estimand definition; both are test-collection-scope and CI-wiring fixes.
+
+- **Finding 1 — a missing upstream checkout's module-level skip cascaded
+  into the shared protocol module.** Before the fix,
+  `tests/test_agenticpay_bilateral_replay.py`'s `_upstream_root()` called
+  `pytest.skip(..., allow_module_level=True)` at import time; because
+  `tests/test_shared_runner_scoring_contract.py` imports that module's
+  helpers at module scope, a missing AgenticPay checkout used to collapse
+  that shared file's own always-on
+  `test_every_registered_family_obeys_the_scoring_contract` to "no tests
+  collected" too — hiding housing's, procurement_allocation's,
+  procurement_grounding's, commercial_state_calibration's, and the
+  kernel-owned reference family's protocol coverage behind AgenticPay's own
+  missing checkout. Fixed by renaming it to `_find_upstream_root() -> Path |
+  None` and moving every checkout-presence check into the per-test
+  `_bridge()` skip (mirroring `tests/test_govsim_replay.py`'s identical
+  shape). Regression coverage:
+  `tests/test_agenticpay_bilateral_replay_skip_scope.py` (two
+  subprocess-level tests, new this milestone; each spawns a real, separate
+  `pytest` process, since collection-time behavior cannot be observed by
+  importing an already-collected module in-process).
+- **Finding 2 — the always-on protocol test treats AgenticPay as enrolled
+  without running its scorer, and CI never certified the test that does.**
+  `_BRIDGE_GATED_ENROLLED_FAMILY_VERSIONS` is consulted only by the trusted-
+  catalog closure check (ruling R6), which asserts every trusted key is
+  *accounted for*, never that its scorer ran; the only test that actually
+  runs AgenticPay's scorer (`test_agenticpay_obeys_the_scoring_contract`)
+  lived outside `.github/workflows/ci.yml`'s `agenticpay-fidelity` job, so no
+  CI job ever set `AEREAD_AGENTICPAY_BRIDGE_REQUIRED=1` for it — a fully
+  green CI run could report success while AgenticPay's scoring-contract
+  behavior never actually executed. Fixed by adding
+  `tests/test_shared_runner_scoring_contract.py` to that job's `pytest`
+  invocation, alongside the four family test files already there.
+  Regression coverage: `tests/test_agenticpay_bilateral_ci_bridge_requirement.py`'s
+  `_FIDELITY_TEST_FILES` tuple (and docstring), extended to include that
+  file, so this wiring is itself enforced and cannot silently regress.
+
+Both fixes were mutation-checked: the pre-fix shape was restored via a
+`/tmp` copy (never `git checkout` over uncommitted work), the relevant
+regression test was confirmed to fail against it with the same evidence the
+review itself observed, then the fix was restored from the `/tmp` copy and
+the test re-confirmed to pass.
