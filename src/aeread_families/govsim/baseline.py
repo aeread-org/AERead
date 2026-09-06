@@ -76,7 +76,7 @@ def policy_source_sha256() -> str:
     ).hexdigest()
 
 
-def compute_baseline(
+async def compute_baseline_async(
     *, case: CaseManifest, upstream_root: Path, bridge: GovsimBridge
 ) -> dict[str, Any]:
     """Run `govsim_sustainable_v1` on one case and report its three values.
@@ -93,13 +93,11 @@ def compute_baseline(
     harness = ScriptedGovsimHarness(
         policy_assignment={seat: SCRIPTED_POLICY for seat in seats}
     )
-    result = asyncio.run(
-        run_episode(
-            cell=_cell(case, seats),
-            case=case,
-            plugin=plugin,
-            response_source=harness,
-        )
+    result = await run_episode(
+        cell=_cell(case, seats),
+        case=case,
+        plugin=plugin,
+        response_source=harness,
     )
     terminal = result.terminal
     if terminal is None:
@@ -119,6 +117,22 @@ def compute_baseline(
     }
 
 
+def compute_baseline(
+    *, case: CaseManifest, upstream_root: Path, bridge: GovsimBridge
+) -> dict[str, Any]:
+    """Synchronous wrapper, for callers that are not already in a loop.
+
+    The campaign's executor IS in one, so it awaits the coroutine directly:
+    calling ``asyncio.run`` from inside a running loop raises, and this split
+    is what keeps the same code usable from both.
+    """
+    return asyncio.run(
+        compute_baseline_async(
+            case=case, upstream_root=upstream_root, bridge=bridge
+        )
+    )
+
+
 def baselines_for_scoring(baseline: Mapping[str, Any]) -> dict[str, float]:
     """The three values `GovsimScorer` consumes, without the provenance."""
     return {
@@ -134,6 +148,7 @@ def baseline_digest(baseline: Mapping[str, Any]) -> str:
 
 __all__ = [
     "BASELINE_POLICY_ID",
+    "compute_baseline_async",
     "baseline_digest",
     "baselines_for_scoring",
     "compute_baseline",
