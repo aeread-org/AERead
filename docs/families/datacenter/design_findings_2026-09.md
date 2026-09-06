@@ -176,6 +176,35 @@ model. The affected cells in the calibrated run are listed in
 The general lesson is that a family must own the classification of anything a
 model can cause. If a model can trigger it, it is not infrastructure.
 
+## Where the failures live
+
+Failure evidence used to scatter across per-cell results, run summaries, two ad
+hoc correction files, prose in this document, and five archived aborted runs.
+It is now collected in one committed artifact,
+`evidence/datacenter_failure_register.json`, with a rendered summary beside it.
+
+Every incident carries an attribution, because the question worth asking later
+is whose fault it was:
+
+| Attribution | As recorded | After reclassification |
+|---|---:|---:|
+| model | 281 | 298 |
+| negotiation | 170 | 170 |
+| provider | 64 | 47 |
+| budget | 16 | 16 |
+| environment | 10 | 10 |
+
+541 incidents across 573 cells in 10 runs. Seventeen were recorded under one
+attribution and belong to another, all of them model errors booked against the
+provider; the original condition is kept beside the correction rather than
+overwritten, so a mis-typed incident stays auditable. Superseded runs stay in
+the register and are marked, so a stale result cannot be quoted as current.
+
+The register also carries the defect list, each closed entry naming the
+regression test that keeps it closed, and a test asserts those tests exist. It
+is validated without reading `runs/` at all, so the checks survive a clean
+checkout.
+
 ## How this family is quality controlled
 
 Golden-value tests pin what the engine returned last time. They do not say it
