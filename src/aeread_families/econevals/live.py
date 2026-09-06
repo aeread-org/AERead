@@ -294,6 +294,17 @@ class EconevalsJsonHarness:
                 messages=messages, response_mode="json_dialect"
             )
             rounds_used += 1
+            if not (turn.text or "").strip():
+                # An empty turn is a typed PROVIDER condition, not a malformed
+                # answer: there is nothing to give feedback about, and the
+                # executor's retry policy already lists empty_response. Raising
+                # it here hands the retry to the layer that owns it instead of
+                # spending a corrective round on silence.
+                raise ProviderFailure(
+                    "empty_response",
+                    "econevals period returned an empty response",
+                    retryable=True,
+                )
             value, reason = self._decode(turn.text or "")
             if value is not None:
                 normalized_calls, reason = self._validate_burst(
@@ -456,7 +467,7 @@ def _profile(
                     "pricing_id": PRICING.pricing_id,
                     "pricing_sha256": PRICING.content_sha256(),
                     "output_schema": period_output_schema(),
-                    "max_rounds": 3,
+                    "max_rounds": 5,
                     "provider_metadata": route_metadata(),
                 },
             },
