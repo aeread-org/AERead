@@ -1,12 +1,153 @@
 # econevals adapter — status
 
-Branch `zeyu/econevals-adapter`. Last verified 2026-09-02.
+Branch `zeyu/econevals-contract-migration`. Last verified 2026-09-05.
 
 A second-reviewer fix pass ran against `docs/econevals_review_claude.md`
 (`docs/econevals_review_codex.md` was never produced) this session; see
 `docs/econevals_review_disposition.md` for the per-finding verification and
 fix record. Nothing found was a kernel/runner defect, so no
 `ledger_entries/econevals.md` entry was added on this pass.
+
+## Leaf policy (kernel_scoring_contract_spec.md, migration milestone 2 of 3)
+
+`family_manifest()`'s `measurement` block now declares this family's leaf
+policy explicitly (spec section 3), and `EconevalsScorer.__call__`
+(`measurement.py`) takes a `FamilyScoringInput` and returns a
+`FamilyScoreSet` carrying both leaves below. Before this milestone this
+family had no `__call__` at all — spec section 7 named econevals as one of
+the three terminal-only families deliberately held back from migrating
+under the old, single-envelope convention, so there is no pre-existing shim
+to retire here, only new code to add.
+
+| Leaf | Scope | Primary | Admission |
+|---|---|---|---|
+| `econevals_gate_leaf` | `finalize_time` | no | no |
+| `econevals_objective_leaf` | `finalize_time` | **yes** | **yes** |
+
+Both `leaf_id`s are now track-agnostic (`econevals_{track}_gate_leaf` /
+`econevals_{track}_objective_leaf` before this milestone): the manifest
+declares ONE static leaf set for the whole family/version, but the pre-
+migration ids were parameterized by track, so a procurement case and a
+scheduling case produced disjoint `leaf_id` sets — incompatible with one
+static declaration (`docs/econevals_migration_plan.md`'s "Leaf-identity
+finding"). The per-track distinctions — `estimand_id`, `units`, `direction`,
+`reference.source_sha256` — are untouched by this rename; they still live
+one level down inside each case's own `MeasurementLeafSpec`, and
+`_enforce_declared_leaf_policy` never inspects them.
+
+**Why `econevals_objective_leaf` is primary.** The manifest's own
+`primary_estimand` field names `econevals_headroom_capture`, but **no leaf
+realizes it** — this is a recorded reference gap, not an oversight; see
+below. Per ruling R8 (kernel_scoring_contract_spec.md), a leaf-policy
+primary need not name the same estimand as `primary_estimand`, so this is
+not a same-named coincidence being forced apart, it is a real gap with a
+closest-available substitute: `econevals_objective_leaf` is the leaf that
+already reports this family's substantive economic headline — the achieved
+value `V_agent`, in the track's own native units, against the case's own
+pinned exact optimum `V*` (`measurement.py`'s own module docstring,
+`docs/econevals_adapter_spec.md`'s milestone-2 build note: "the objective
+leaf primary is native-units, not `headroom_capture`"). `headroom_capture`'s
+own formula (`(V_agent - B) / (V_UB - B)`, verifier_taxonomy.md 5.3) divides
+an achieved-value-vs-optimum quantity by a baseline-relative denominator;
+the achieved-value-vs-optimum half is exactly what the objective leaf
+already reports, without the baseline term this family cannot yet compute.
+The gate leaf is not proposed as primary: it is a legality precondition
+(`hybrid_gate`'s "deterministic prerequisite"), not the outcome being
+measured.
+
+**The `econevals_headroom_capture` reference gap, and why it is not
+implemented as a leaf.** `headroom_capture`'s own definition needs a
+`comparison_baseline` separate-run artifact — the output of an executable
+baseline policy's own episode under the same case — which no leaf in this
+family can honestly produce today: `measurement.py`'s own module docstring
+states plainly that it "deliberately never computes `headroom_capture`
+itself," and no baseline-episode machinery exists anywhere in this adapter.
+Declaring a leaf for it and having that leaf report
+`invalid_measurement` on every production episode was considered and
+rejected for this family, for a reason specific to econevals rather than a
+general objection to that pattern: `docs/econevals_migration_plan.md`'s own
+milestone-0 analysis already established that **no `MeasurementLeafSpec`
+for `headroom_capture` exists anywhere in this codebase** — there is no
+estimand, verifier, or reference declared for it to attach a scope to, only
+a bare `primary_estimand` string naming something no leaf realizes.
+Inventing one now, solely so it can always fail, would be new leaf
+authorship this migration's own rule forbids ("no family invents its own
+finalize glue" / never write new scoring logic during this migration), not
+a plumbing widening of something that already exists the way
+`_objective_not_computed` below is. The estimand split this would properly
+need — an `_own` finalize-time metric (what the two existing leaves already
+report) plus a `_vs_baseline` deferred metric, once a baseline-run artifact
+exists — is recorded here as an owner decision outside this migration's
+scope, exactly as the plan states; `primary_estimand`, the manifest's
+declared primary leaf, and admission membership are all left exactly as
+this migration set them, not adjusted to manufacture an included
+`headroom_capture` receipt.
+
+**Why `econevals_objective_leaf` alone gates admission.** In this family's
+own vocabulary, `invalid_measurement` was, before this milestone, triggered
+only by a malformed/unparseable submission on the gate leaf — never by a
+well-formed-but-illegal one, which stays `status="ok", primary=0.0`, a real
+scored domain fact (`_gate_fail`'s own contract, unchanged). The pre-
+migration `score_procurement`/`score_scheduling`/`score_pricing` return
+`None` for the objective whenever the gate does not pass, for ANY reason
+(malformed, illegal, or infeasible) — never only for the malformed case.
+kernel_scoring_contract_spec.md section 3 requires every declared leaf to
+be returned on every case, and `ScoreEnvelope` has only two statuses, so
+this milestone's `_objective_not_computed` (`measurement.py`) turns that
+`None` into an explicit `invalid_measurement` for the objective leaf,
+reasoned distinctly from the malformed case but sharing its status — there
+is no achieved value to report when the gate did not pass, for any reason,
+and fabricating one is exactly what this module refuses to do. Concretely,
+this means a well-formed-but-illegal submission (spec golden 3) now also
+excludes the receipt from the family's own admitted-episode aggregate, via
+the objective leaf alone, even though its GATE leaf stays `ok` and fully
+receipted. This is an honest consequence, not a design flaw: there is no
+legally-scoreable `V_agent` to average in for that episode, so excluding it
+from the objective-based aggregate is correct; the gate's own `0.0` fact
+remains visible on the receipt regardless of admission. `admission_leaf_ids
+= (econevals_objective_leaf,)` is the default the spec gives when nothing
+beyond the primary is declared, and nothing here motivates widening it to
+include the gate leaf, which would be redundant with the objective leaf's
+own invalid_measurement on exactly the cases that should exclude a receipt.
+
+**Deferred leaves: none.** Both leaves are `evaluation_class="deterministic"`
+with no judge, rater, or other not-yet-existing artifact anywhere in either
+leaf's own verifier declaration (`measurement.py`'s `build_gate_leaf`/
+`build_objective_leaf`): the gate reads this episode's own last recorded
+attempt against a deterministic legality rule, and the objective compares
+that same attempt's achieved value against the case's own pinned
+`gold_optimum`, computed once at case-generation time. Nothing here waits
+on an artifact that "may not exist yet" (spec section 4), so both are
+declared `scope="finalize_time"` and neither is `scope="deferred"`.
+
+**Scope of this milestone.** This pass implements the three pieces spec
+sections 3/5 require per family (manifest leaf policy, `__call__`/
+`score_all`, and this reasoning) plus family-level tests
+(`tests/test_econevals_measurement.py`) that construct a
+`FamilyScoringInput` by hand and mutation-verify the returned leaf set. It
+does **not** yet drive a real episode through
+`aeread.shared_runner.task.evaluation.finalize_family_execution`
+end-to-end, nor enroll this family in
+`tests/test_shared_runner_scoring_contract.py`'s registry-driven protocol
+test (spec section 6) — both remain for a later milestone, matching how the
+reference migration's own finalizer-wiring and protocol-test-enrollment
+work landed as separate, later commits on top of the equivalent `__call__`
+change. `("econevals", "0.1.0")` therefore stays listed in that test
+file's own `_NOT_YET_MIGRATED_TRUSTED_KEYS` exemption for now.
+
+**A latent signature mismatch, found but not yet fixed here.**
+`task.evaluation._replay_family_trajectory` calls `plugin.initial_state(family_case,
+run=None)` by keyword, but `EconevalsPlugin.initial_state`'s second
+parameter is still named `cell` (`environment.py`) — the same defect the
+reference migration's own `088e2693` fixed for govsim. Every existing call
+site in this family's own tests passes that argument positionally
+(`plugin.initial_state(family_case, None)`), so the rename is a safe,
+zero-behavior-change fix, but nothing in *this* milestone's own tests
+drives replay far enough to need it (they construct `FamilyScoringInput`
+directly, never through `replay_family_scoring_input`). Left unfixed here
+rather than expanding this milestone's scope; it will surface — and must be
+fixed — the moment a future milestone drives a real episode through
+`finalize_family_execution`, exactly as it did for govsim.
 
 ## What the adapter claims
 
@@ -33,20 +174,31 @@ against the pinned bridge and hard-fails on any divergence.
 
 ## Evidence
 
-**107 passed, 0 failed**, the full econevals family test file set plus
-`tests/test_shared_runner_smoke.py`:
+**113 passed, 0 failed, 0 skipped**, the full econevals family test file set
+plus `tests/test_shared_runner_smoke.py`, re-verified both with
+`$AEREAD_ECONEVALS_BRIDGE_PYTHON`/`$AEREAD_ECONEVALS_UPSTREAM_ROOT` exported
+and with neither exported (this workspace's `discover_bridge_python`/
+`UPSTREAM_ROOT` both fall back to the same provisioned default paths either
+way, so both runs are bridge-backed here and neither shows a skip; a machine
+without that default provisioned would see the documented bridge-gated
+skips instead, never a silent pass):
 
 ```bash
+export AEREAD_ECONEVALS_BRIDGE_PYTHON=<bridges/econevals-venv path>
+export AEREAD_ECONEVALS_UPSTREAM_ROOT=<upstream-econevals checkout path>
 PYTHONPATH=src pytest \
   tests/test_econevals_cases.py tests/test_econevals_environment.py \
   tests/test_econevals_measurement.py tests/test_econevals_tools.py \
   tests/test_econevals_replay.py tests/test_shared_runner_smoke.py -q
-# 107 passed in 154.80s (0:02:34)
+# 113 passed in 142.33s (0:02:22)
 ```
 
-Breakdown: cases 22, environment 29, measurement 24, tools 12, replay 10,
-shared-runner smoke 10. The delta from the previous 101 (cases 21,
-environment 25, replay 9) is the second-reviewer fix pass
+Breakdown: cases 22, environment 29, measurement 30, tools 12, replay 10,
+shared-runner smoke 10. The delta from the previous 107 (measurement 24) is
+this migration's six new `EconevalsScorer.__call__`/leaf-policy tests
+(`tests/test_econevals_measurement.py`); see "Leaf policy" above. The prior
+delta from 101 (cases 21, environment 25, replay 9) was the second-reviewer
+fix pass
 (`docs/econevals_review_disposition.md`): a `conftest.py` marker-coverage
 regression test in `test_econevals_cases.py`; four goldens (1, 2, 3, 5)
 driven through the real `step()` path in `test_econevals_environment.py`;
