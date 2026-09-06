@@ -1417,7 +1417,7 @@ def _assert_trajectory_outcome_paths_are_consistent(
 
 
 def _assert_trajectory_leaves_are_witnessed(
-    produced_by_case: Sequence[tuple[Any, "FamilyScoreSet"]],
+    produced_by_case: Sequence[tuple[Any, "FamilyScoreSet", Any]],
     trajectory_leaf_ids: "set[str]",
     trajectory_outcome_paths: tuple[str, ...],
     *,
@@ -1432,15 +1432,29 @@ def _assert_trajectory_leaves_are_witnessed(
     outcome/case field that differs between two arbitrary fixtures would
     still pass, defeating the witness's whole purpose (catching a family
     that relabels a terminal leaf as ``trajectory``-scoped to dodge R7's
-    contrapositive). A CONTROLLED pair is one whose PROJECTED outcome (per
+    contrapositive). A CONTROLLED pair is the SAME case (byte-identical
+    ``family_case``), a byte-identical PROJECTED outcome (per
     ``project_outcome`` with this family's declared
-    ``trajectory_outcome_paths``) is byte-identical under
-    ``canonical_json_bytes`` AND whose ``phase_instances`` differ -- exactly
-    R7's own paired-history precondition. On such a pair, nothing outside
-    the trajectory differs, so ANY difference in
-    ``_score_measurement_content`` (including a bare status/validity flip,
-    not only ``primary``) can only be trajectory-caused; that is why the
-    content comparison itself is unchanged from before this finding.
+    ``trajectory_outcome_paths``, under ``canonical_json_bytes``), AND
+    differing ``phase_instances`` -- R7's own paired-history precondition,
+    plus the case check the second-pass review's finding R1 added: two
+    fixtures built from DIFFERENT cases can share a byte-identical
+    projection while still disagreeing on the case payload, and a leaf that
+    reads only that payload -- never the trajectory -- would then be
+    (wrongly) witnessed by the case difference alone.
+
+    On a controlled pair, the only remaining uncontrolled input is
+    ``evidence_refs`` -- and the contract designates that provenance-only,
+    excluded from ``_score_measurement_content`` (ruling R7's own
+    measurement/provenance boundary). So ANY
+    ``_score_measurement_content`` difference on a controlled pair
+    (including a bare status/validity flip, not only ``primary``) can only
+    be trajectory-caused; that is why the content comparison itself is
+    unchanged from before finding 3. The one accepted residual: a scorer
+    that turns a sealed event id (or other ``evidence_refs`` content) into
+    measurement content already violates the provenance rule on its own
+    terms -- that is out of scope for THIS witness, exactly as it is out of
+    scope for R7's contrapositive.
 
     R7 rejected requiring a trajectory leaf to differ on THE paired-history
     pair specifically: a legitimate trajectory metric may map two distinct
@@ -1456,21 +1470,22 @@ def _assert_trajectory_leaves_are_witnessed(
     if not trajectory_leaf_ids:
         return {}
     controlled_pairs: list[tuple[int, int]] = []
-    for (left_index, (left_input, _)), (right_index, (right_input, _)) in (
+    for (left_index, (left_input, _, left_case)), (right_index, (right_input, _, right_case)) in (
         itertools.combinations(enumerate(produced_by_case), 2)
     ):
         left_projection = project_outcome(left_input.outcome, trajectory_outcome_paths)
         right_projection = project_outcome(right_input.outcome, trajectory_outcome_paths)
         if (
-            canonical_json_bytes(left_projection) == canonical_json_bytes(right_projection)
+            canonical_json_bytes(left_case) == canonical_json_bytes(right_case)
+            and canonical_json_bytes(left_projection) == canonical_json_bytes(right_projection)
             and left_input.phase_instances != right_input.phase_instances
         ):
             controlled_pairs.append((left_index, right_index))
     assert controlled_pairs, (
-        f"{family_id}: no controlled pair (byte-identical projected outcome, "
-        f"differing phase_instances) exists among the {len(produced_by_case)} "
-        "supplied fixtures -- ruling R9(b)'s sensitivity witness requires the "
-        "family to supply at least one controlled pair"
+        f"{family_id}: no controlled pair (same case, byte-identical projected "
+        f"outcome, differing phase_instances) exists among the "
+        f"{len(produced_by_case)} supplied fixtures -- ruling R9(b)'s sensitivity "
+        "witness requires the family to supply at least one controlled pair"
     )
 
     witness_pair_by_leaf: dict[str, tuple[int, int]] = {}
@@ -1649,7 +1664,7 @@ class _FamilyContractResult:
     internally is not repeated here, only the data those extra assertions
     need."""
 
-    produced_by_case: tuple[tuple[Any, FamilyScoreSet], ...]
+    produced_by_case: tuple[tuple[Any, FamilyScoreSet, Any], ...]
     witness_pair_by_leaf: Mapping[str, tuple[int, int]]
 
 
@@ -1675,7 +1690,7 @@ def _assert_family_obeys_the_scoring_contract(
     # that carry the trajectory (empty for every family that does not embed
     # one -- govsim and the four already-migrated families below).
     trajectory_outcome_paths = registration.manifest.measurement.trajectory_outcome_paths
-    produced_by_case: list[tuple[Any, FamilyScoreSet]] = []
+    produced_by_case: list[tuple[Any, FamilyScoreSet, Any]] = []
     stable_leaf_specs: dict[str, Any] = {}
 
     for index, case in enumerate(cases):
@@ -1762,7 +1777,7 @@ def _assert_family_obeys_the_scoring_contract(
                     "below"
                 )
 
-        produced_by_case.append((scoring_input, produced))
+        produced_by_case.append((scoring_input, produced, case.family_case))
 
     # kernel_contract_gap_review.md finding 3: the paired-history
     # requirement is now unconditional except for the named exemption
@@ -1813,7 +1828,7 @@ def _assert_family_obeys_the_scoring_contract(
         produced_by_case, trajectory_leaf_ids, trajectory_outcome_paths, family_id=key[0]
     )
 
-    (left_input, left_scores), (right_input, right_scores) = produced_by_case[:2]
+    (left_input, left_scores, _left_case), (right_input, right_scores, _right_case) = produced_by_case[:2]
     # Ruling R9: the paired-history precondition compares the PROJECTION
     # (outcome minus every declared trajectory_outcome_path), not the
     # whole outcome. A family declaring no paths projects to itself, so
@@ -2040,7 +2055,7 @@ def test_r9_projection_pairs_a_trajectory_embedding_outcome_when_the_path_is_dec
     # identical across the pair (both permutations tally the same). Already
     # asserted internally by the helper above; re-asserted here as the
     # specific, named claim this test exists to make.
-    (_, left_scores), (_, right_scores) = result.produced_by_case
+    (_, left_scores, _), (_, right_scores, _) = result.produced_by_case
     left_balance = next(
         score for score in left_scores.scores if score.leaf.leaf_id == _EMBEDDING_BALANCE_LEAF_ID
     )
@@ -2456,25 +2471,32 @@ def _fake_scoring_input(labels: Sequence[str], *, outcome: Mapping[str, Any]) ->
     )
 
 
+_FAKE_CASE = {"case_id": "fixture_case"}
+
+
 def test_sensitivity_witness_passes_when_a_trajectory_leaf_changes_on_some_pair() -> None:
-    """A CONTROLLED pair (kernel_r9r10_review.md finding 3): every fixture
-    below shares the same outcome (so every pair projects byte-identically
-    with no declared paths) and a distinct ``phase_instances``, so every
-    pair here is controlled."""
+    """A CONTROLLED pair (kernel_r9r10_review.md finding 3, tightened by the
+    second-pass review's R1): every fixture below shares the same outcome
+    (so every pair projects byte-identically with no declared paths), the
+    same ``family_case``, and a distinct ``phase_instances``, so every pair
+    here is controlled."""
     leaf_id = "trajectory_leaf"
     outcome = {"tally": 1}
     fixtures = [
         (
             _fake_scoring_input(("x",), outcome=outcome),
             FamilyScoreSet(primary_leaf_id=leaf_id, scores=(_fake_trajectory_score(leaf_id, 1.0),)),
+            _FAKE_CASE,
         ),
         (
             _fake_scoring_input(("x", "y"), outcome=outcome),
             FamilyScoreSet(primary_leaf_id=leaf_id, scores=(_fake_trajectory_score(leaf_id, 1.0),)),
+            _FAKE_CASE,
         ),
         (
             _fake_scoring_input(("y", "x"), outcome=outcome),
             FamilyScoreSet(primary_leaf_id=leaf_id, scores=(_fake_trajectory_score(leaf_id, 0.0),)),
+            _FAKE_CASE,
         ),
     ]
     witnesses = _assert_trajectory_leaves_are_witnessed(
@@ -2496,14 +2518,17 @@ def test_sensitivity_witness_fails_when_a_trajectory_leaf_ignores_every_fixture(
         (
             _fake_scoring_input(("x",), outcome=outcome),
             FamilyScoreSet(primary_leaf_id=leaf_id, scores=(_fake_trajectory_score(leaf_id, 1.0),)),
+            _FAKE_CASE,
         ),
         (
             _fake_scoring_input(("x", "y"), outcome=outcome),
             FamilyScoreSet(primary_leaf_id=leaf_id, scores=(_fake_trajectory_score(leaf_id, 1.0),)),
+            _FAKE_CASE,
         ),
         (
             _fake_scoring_input(("y", "x"), outcome=outcome),
             FamilyScoreSet(primary_leaf_id=leaf_id, scores=(_fake_trajectory_score(leaf_id, 1.0),)),
+            _FAKE_CASE,
         ),
     ]
     with pytest.raises(AssertionError, match="never changed"):
@@ -2515,36 +2540,70 @@ def test_sensitivity_witness_rejects_a_leaf_that_only_changes_on_an_uncontrolled
     controlled-pair restriction, a leaf that ignores the trajectory but
     happens to read some outcome field could piggyback on ANY pair whose
     outcome merely differs -- exactly the relabeling attack this witness
-    exists to catch. Fixtures 0 and 1 are a CONTROLLED pair (byte-identical
-    outcome, differing phase_instances); the leaf is constant across them.
-    Fixture 2 has a genuinely different outcome (making (0, 2) and (1, 2)
-    UNCONTROLLED), and the leaf differs there too -- but that difference
-    must not count as a witness.
+    exists to catch. Fixtures 0 and 1 are a CONTROLLED pair (same case,
+    byte-identical outcome, differing phase_instances); the leaf is
+    constant across them. Fixture 2 has a genuinely different outcome
+    (making (0, 2) and (1, 2) UNCONTROLLED), and the leaf differs there too
+    -- but that difference must not count as a witness.
     """
     leaf_id = "trajectory_leaf"
     fixtures = [
         (
             _fake_scoring_input(("x",), outcome={"tag": "same"}),
             FamilyScoreSet(primary_leaf_id=leaf_id, scores=(_fake_trajectory_score(leaf_id, 1.0),)),
+            _FAKE_CASE,
         ),
         (
             _fake_scoring_input(("x", "y"), outcome={"tag": "same"}),
             FamilyScoreSet(primary_leaf_id=leaf_id, scores=(_fake_trajectory_score(leaf_id, 1.0),)),
+            _FAKE_CASE,
         ),
         (
             _fake_scoring_input(("y", "x"), outcome={"tag": "different"}),
             FamilyScoreSet(primary_leaf_id=leaf_id, scores=(_fake_trajectory_score(leaf_id, 0.0),)),
+            _FAKE_CASE,
         ),
     ]
     with pytest.raises(AssertionError, match="never changed"):
         _assert_trajectory_leaves_are_witnessed(fixtures, {leaf_id}, (), family_id="fixture_family")
 
 
+def test_sensitivity_witness_rejects_a_pair_whose_case_differs_even_with_matching_projection() -> None:
+    """kernel_r9r10_review.md finding 3, second-pass review R1, mutation
+    check: "controlled pair" required a byte-identical projection and
+    differing ``phase_instances`` but NOT the same ``family_case``. Two
+    fixtures from DIFFERENT cases can have identical projections (same
+    outcome shape, no declared paths) and differing ``phase_instances``,
+    and a leaf that reads only the case payload -- never the trajectory --
+    would then be (wrongly) witnessed by the case difference alone. With
+    the case check added, this pair is UNCONTROLLED, and the family has
+    supplied no other pair, so the witness is rejected outright rather than
+    accepting this one.
+    """
+    leaf_id = "trajectory_leaf"
+    fixtures = [
+        (
+            _fake_scoring_input(("x",), outcome={"tally": 1}),
+            FamilyScoreSet(primary_leaf_id=leaf_id, scores=(_fake_trajectory_score(leaf_id, 1.0),)),
+            {"case_id": "case_a"},
+        ),
+        (
+            _fake_scoring_input(("x", "y"), outcome={"tally": 1}),
+            FamilyScoreSet(primary_leaf_id=leaf_id, scores=(_fake_trajectory_score(leaf_id, 0.0),)),
+            {"case_id": "case_b"},
+        ),
+    ]
+    with pytest.raises(AssertionError, match="no controlled pair"):
+        _assert_trajectory_leaves_are_witnessed(fixtures, {leaf_id}, (), family_id="fixture_family")
+
+
 def test_sensitivity_witness_counts_a_status_only_flip_on_a_controlled_pair() -> None:
     """kernel_r9r10_review.md finding 3: on a controlled pair, nothing
-    outside the trajectory differs, so ANY ``_score_measurement_content``
-    difference is trajectory-caused -- including a bare status/validity
-    flip, not only a ``primary`` value change."""
+    uncontrolled differs except ``evidence_refs`` (provenance, excluded
+    from ``_score_measurement_content``), so ANY
+    ``_score_measurement_content`` difference is trajectory-caused --
+    including a bare status/validity flip, not only a ``primary`` value
+    change."""
     leaf_id = "trajectory_leaf"
     left_score = _fake_trajectory_score(leaf_id, 1.0)
     right_score = dataclasses.replace(
@@ -2557,10 +2616,12 @@ def test_sensitivity_witness_counts_a_status_only_flip_on_a_controlled_pair() ->
         (
             _fake_scoring_input(("x",), outcome={"tag": "same"}),
             FamilyScoreSet(primary_leaf_id=leaf_id, scores=(left_score,)),
+            _FAKE_CASE,
         ),
         (
             _fake_scoring_input(("x", "y"), outcome={"tag": "same"}),
             FamilyScoreSet(primary_leaf_id=leaf_id, scores=(right_score,)),
+            _FAKE_CASE,
         ),
     ]
     witnesses = _assert_trajectory_leaves_are_witnessed(
@@ -2571,7 +2632,11 @@ def test_sensitivity_witness_counts_a_status_only_flip_on_a_controlled_pair() ->
 
 def test_sensitivity_witness_is_vacuous_with_no_trajectory_leaves() -> None:
     fixtures = [
-        (None, FamilyScoreSet(primary_leaf_id="anything", scores=(_fake_trajectory_score("anything", 1.0),))),
+        (
+            None,
+            FamilyScoreSet(primary_leaf_id="anything", scores=(_fake_trajectory_score("anything", 1.0),)),
+            None,
+        ),
     ]
     assert (
         _assert_trajectory_leaves_are_witnessed(fixtures, set(), (), family_id="fixture_family") == {}
@@ -2580,19 +2645,21 @@ def test_sensitivity_witness_is_vacuous_with_no_trajectory_leaves() -> None:
 
 def test_sensitivity_witness_requires_at_least_one_controlled_pair() -> None:
     """kernel_r9r10_review.md finding 3: if no supplied pair is controlled
-    (byte-identical projected outcome, differing phase_instances), the
-    family has not given the witness anything sound to check -- rejected
-    explicitly, naming the cause, rather than silently accepting an
-    uncontrolled pair."""
+    (same case, byte-identical projected outcome, differing
+    phase_instances), the family has not given the witness anything sound
+    to check -- rejected explicitly, naming the cause, rather than silently
+    accepting an uncontrolled pair."""
     leaf_id = "trajectory_leaf"
     fixtures = [
         (
             _fake_scoring_input(("x",), outcome={"tag": "left"}),
             FamilyScoreSet(primary_leaf_id=leaf_id, scores=(_fake_trajectory_score(leaf_id, 1.0),)),
+            _FAKE_CASE,
         ),
         (
             _fake_scoring_input(("y",), outcome={"tag": "right"}),
             FamilyScoreSet(primary_leaf_id=leaf_id, scores=(_fake_trajectory_score(leaf_id, 0.0),)),
+            _FAKE_CASE,
         ),
     ]
     with pytest.raises(AssertionError, match="no controlled pair"):
