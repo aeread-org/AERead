@@ -226,6 +226,35 @@ def test_scorer_leaves_for_focal_seat_threads_the_declared_baseline_policy_id_th
     )
 
 
+def test_leaves_for_focal_seat_identity_does_not_depend_on_which_seat_is_focal() -> None:
+    """Ruling R12: leaves 1-3's declared identity (their whole
+    `MeasurementLeafSpec`, including `source_sha256`) must be stable across
+    every possible focal seat for the SAME case -- the scoring-contract
+    protocol test's cross-fixture "leaf's declared identity must be
+    stable" check requires exactly this once fixtures naming different
+    focal seats are compared side by side
+    (`tests/test_shared_runner_scoring_contract.py`'s
+    `_alympics_kernel_contract_fixtures`). `mixed_policies_a`'s
+    heterogeneous panel (each seat a different declared policy) is the
+    sharpest case: `panel_policy_ids(focal_seat)` -- "every OTHER seat's
+    policy" -- genuinely differs in content by focal seat here, which is
+    exactly why `leaves_for_focal_seat` must NOT build leaf identity from
+    it (`full_policy_assignment` -- the case's FULL assignment -- instead)."""
+    plugin = _plugin()
+    case = _case("mixed_policies_a")
+    family_case = plugin.validate_payload(case.payload)
+    scorer = plugin.build_scorer(family_case)
+
+    leaves_by_seat = {seat: scorer.leaves_for_focal_seat(seat) for seat in SEAT_ORDER}
+    reference_leaves = leaves_by_seat[SEAT_ORDER[0]]
+    for seat in SEAT_ORDER[1:]:
+        assert leaves_by_seat[seat] == reference_leaves, (
+            f"leaves_for_focal_seat({seat!r}) differs from "
+            f"leaves_for_focal_seat({SEAT_ORDER[0]!r}) -- leaf identity must not "
+            "depend on which seat is focal"
+        )
+
+
 def test_score_terminal_wealth_rejects_baseline_evidence_declared_under_a_mismatched_policy() -> None:
     """The scorer used to accept `baseline_final_players` with zero check
     that it came from running the leaf's own declared baseline policy --
@@ -491,6 +520,13 @@ def test_golden_1_successful_reports_positive_wealth_and_the_actual_elimination_
         assert wealth.metrics["actual_alive_at_terminal"].value == (
             1.0 if m.alive_at_terminal(final_players, focal_seat) else 0.0
         )
+        # Ruling R12: leaf 1's `utility_by_seat` carries ONLY the focal
+        # seat (unlike leaf 3's, which carries every participating seat for
+        # free) -- reporting another seat's own baseline-relative delta
+        # would need a SEPARATE baseline recompute for that seat.
+        assert set(wealth.utility_by_seat) == {focal_seat}
+        assert wealth.utility_by_seat[focal_seat].value == wealth.primary.value
+        assert wealth.utility_by_seat[focal_seat].unit == wealth.primary.unit
 
         survival_leaf = m.build_survival_leaf(
             focal_seat=focal_seat,
@@ -506,6 +542,9 @@ def test_golden_1_successful_reports_positive_wealth_and_the_actual_elimination_
             baseline_final_players=final_players,
         )
         assert survival.status == "ok"
+        assert set(survival.utility_by_seat) == {focal_seat}
+        assert survival.utility_by_seat[focal_seat].value == survival.primary.value
+        assert survival.utility_by_seat[focal_seat].unit == survival.primary.unit
 
         legality_leaf = m.build_bid_legality_leaf()
         legality = m.score_bid_legality(
@@ -761,6 +800,13 @@ def test_golden_3_over_balance_bid_end_to_end_through_run_episode_becomes_invali
         legality_leaf, focal_seat="bob", round_log=round_log, termination_reason=terminal["reason"]
     )
     assert bob_legality.status == "ok"
+    # Ruling R12: leaf 3's `utility_by_seat` is cheap to compute for EVERY
+    # participating seat from this same `round_log` (unlike leaves 1/2,
+    # which only carry the focal seat) -- alex's own illegal bid is visible
+    # here for free, even though this leaf's focal seat is "bob".
+    assert bob_legality.utility_by_seat["bob"].value == bob_legality.primary.value
+    assert bob_legality.utility_by_seat["bob"].unit == bob_legality.primary.unit
+    assert bob_legality.utility_by_seat["alex"].value == 0.0
 
 
 # ---------------------------------------------------------------------------
