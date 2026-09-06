@@ -53,11 +53,17 @@ def test_qwen235b_google_plan_freezes_route_diagnostic() -> None:
     assert scored["conservative_cost_ceiling_usd"] == pytest.approx(0.44352)
     assert plan["conservative_total_cost_ceiling_usd"] == pytest.approx(0.47352)
     assert plan["hard_total_cost_ceiling_usd"] == pytest.approx(0.57)
+    # Plan identity, not a seal. The seal is the campaign_plan.json inside the
+    # published bundle, which digests its own content and is verified by
+    # tests/test_procurement_sealed_plan_digests.py without reference to source.
+    # This literal moved when the environment gained check_award, listing-level
+    # verbal bias, and a relaxed action-budget range; the sealed value it
+    # superseded is recorded in design_review defect 19.
     assert plan["plan_sha256"] == (
-        "7c90ba968b369ab0b03c080ea734f6aa71efdfb981d160d9ac795a2a56fff862"
+        "cf248557aa7deb9b2b3073cfad4029e39066efd301482878fc2a495dcd4b76c7"
     )
     assert scored["plan_sha256"] == (
-        "549e68683167339bd20d1370ae2c2abaf00077625ef792a563520b7887f62524"
+        "dc5f9ba6e132d03a3565186992c01b0543431350fb3723cf4e03eece19b4da42"
     )
 
 

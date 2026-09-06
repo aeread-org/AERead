@@ -512,6 +512,45 @@ the within-world variance it actually observes, and refuse to proceed when it is
 zero, since a zero there means the design is deterministic rather than that the
 measurement is precise.
 
+## 19. A same-family environment change re-dated the identity of every sealed campaign
+
+Fixing defects 5 and 7, adding `check_award`, moving the verbal bias onto the
+listing, and relaxing the action-budget range changed `plan_sha256` for **ten
+frozen plans across seven campaign tests**, none of which the changes were about.
+CI went red on a commit that touched only documentation, because the digests had
+already moved under it.
+
+| campaign | sealed digest | digest under current source |
+|---|---|---|
+| qwen3-235b atlascloud case variance v1 | `9b7b2fbe` | `5259917e` |
+| qwen3-235b google case variance v1 | `7c90ba96` | `cf248557` |
+| qwen3-235b google constraint ledger v1 | `af36b608` | `148f4233` |
+| qwen3-235b google constraint ledger v2 | `b08c0d86` | `16ba9ad6` |
+| qwen3-30b coreweave case variance v2 | `cef886b5` | `cd5fda83` |
+| qwen holdout v1 | `5ae0b914` | `48e512e3` |
+| risk gate factorial | `f17d77f2` | `79000523` |
+
+This is defect 12 arriving with a bill. A digest that mixes the scientific
+description of a campaign with the environment's implementation detail cannot
+distinguish "the experiment changed" from "an unrelated action was added to the
+action space", so every environment fix looks like a new experiment.
+
+**What is not damaged, and why.** The seal that matters is not the test literal.
+Each published bundle's `reports/campaign_plan.json` digests its own content, so
+a sealed campaign remains verifiable from the bundle alone, with no reference to
+the source that produced it. All five published procurement plans were checked
+and all five still verify. The receipts also still replay: the regret
+decomposition reproduces all 216 rows after these changes. So the evidence is
+intact, and what moved is the identity a fresh run would receive.
+
+`tests/test_procurement_sealed_plan_digests.py` now asserts that property
+directly, for every bundle, and records each published digest so a bundle cannot
+be rewritten together with its own seal. That test is the one that must never be
+edited to make a run pass. The seven campaign-test literals are the opposite kind
+of assertion, and are now labelled as such in place: they pin what current source
+produces, and they will move again for the same reason until the plan schema
+separates its two parameter classes.
+
 ## Status of the fixes
 
 | defect | state |
@@ -533,6 +572,7 @@ measurement is precise.
 | 16 control-only screen admits floored worlds | open; the due-diligence panel had 1 of 6 worlds able to express a difference |
 | 15 biased channel unread, and financing immaterial at this scale | open; found by a $0.0153 screen that also saturated the information panel 7 of 7 |
 | 17 validity and difficulty are the same knob | open, and it subsumes 14 and 16; a budget sweep found every world at 0/3 or 3/3, so the panel-level 50% at budget 6 is a mixture and not headroom |
+| 19 environment change re-dates every sealed campaign identity | open; ten frozen digests across seven tests moved for changes unrelated to any of those campaigns, and the sealed bundles still self-verify |
 | 18 no seed variance within a world | open; margin, regret and action count are identical at every seed across two independent runs, so seeds are repeats and not replicates |
 
 Defects 4, 6, 8, 10, and 12 through 14 are the remaining work, and defects 17

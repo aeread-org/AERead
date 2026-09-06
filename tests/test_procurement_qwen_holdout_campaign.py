@@ -190,8 +190,14 @@ def test_qwen_holdout_plan_freezes_targeted_paired_design_and_budget() -> None:
     assert plan["arm_execution_order"] == ["control", "treatment"]
     assert plan["analysis"]["bootstrap_resamples"] == BOOTSTRAP_RESAMPLES
     assert plan["analysis"]["no_early_efficacy_stopping"] is True
+    # Plan identity, not a seal. The seal is the campaign_plan.json inside the
+    # published bundle, which digests its own content and is verified by
+    # tests/test_procurement_sealed_plan_digests.py without reference to source.
+    # This literal moved when the environment gained check_award, listing-level
+    # verbal bias, and a relaxed action-budget range; the sealed value it
+    # superseded is recorded in design_review defect 19.
     assert plan["plan_sha256"] == (
-        "5ae0b91427f07c024120de0e96698ceafe1343c55d95e07b867b5cc8c479efde"
+        "48e512e30b9f158f6d02cf03c668424d6f0b338473bff01549a5b5e28d60b7f4"
     )
     for name, arm in plan["arms"].items():
         assert arm["scored_plan"]["planned_trajectory_count"] == 18

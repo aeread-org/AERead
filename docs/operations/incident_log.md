@@ -87,6 +87,7 @@ All mine, all during this session.
 | T-05 | a run driver started without `--resume` against an existing attempt root, so the campaign raised `FileExistsError` and the driver reported "no rows" | reading the driver log | one restart | driver now resumes when the root exists |
 | T-06 | the driver's no-progress guard fired on a *completed* panel and reported it as stopped | reconciling the log against the run root | a moment's confusion about whether the panel finished | benign; the guard needs a completion check before a progress check |
 | T-07 | campaign exit codes still treated any typed missingness as an abort after the policy changed to tolerate it, so a resuming driver stopped at 24 of 144 rows | the run stalled at a checkpoint | one restart | exit codes now return the abort code only when the declared ceiling is breached |
+| T-10 | CI went red on a commit that touched only two documentation files. The cause was already on the branch: environment fixes for defects 5 and 7 had moved ten frozen `plan_sha256` literals across seven campaign tests, and no commit since had run the full suite | a documentation-only push failing CI, which is the signal that the failure predates it | roughly 50 minutes of CI and local suite time spread over three pushes, since each new push restarted a 35-minute run | literals updated and labelled as current-source identity rather than as seals; a new test pins the published bundles' self-verifying digests, which are the actual seals and all five still verify. Recorded as design defect 19 |
 | T-09 | cleaning up a rejected panel, `rm -f .../trap_*.json` also matched `trap_is_cheapest`, `trap_is_midpriced` and `trap_is_priciest`, three cases of the *retained* fixture that the rejected panel was never meant to touch | `git status` immediately after showed three deletions that should not have been there | none; restored from the index in the same minute | the near-miss is the point: a glob written for files created minutes earlier reached files created days earlier, in a directory that J-05 explicitly designates as evidence to preserve. Deletions in an evidence directory should name their files or be a `git clean` of untracked paths only |
 | T-08 | a scripted port of the missingness policy into a sibling campaign module failed midway on a text-block extraction | the module failed to build its plan | reverted, no lasting effect | the screen was run through the qualification engine directly instead, which needed 35 lines rather than a 1,100-line campaign clone |
 
@@ -145,3 +146,8 @@ per-policy outcomes rather than only its verdict.
    them turns a broken instrument into a confident result (J-06).
 7. **A unanimous result is a reason to check the instrument**, not to proceed.
    Both screen defects announced themselves as a suspiciously clean sweep.
+8. **Distinguish a seal from a pin.** A digest inside a published bundle that
+   verifies against its own content is a seal and must never be edited to make a
+   run pass. A digest written into a test is a pin on current source and will
+   move whenever anything upstream does. Conflating them makes every environment
+   fix look like tampering, and makes real tampering look routine (T-10, D-19).

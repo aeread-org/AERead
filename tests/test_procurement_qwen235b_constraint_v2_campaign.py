@@ -49,11 +49,17 @@ def test_constraint_v2_plan_freezes_message_contract_repair() -> None:
     assert scored["conservative_cost_ceiling_usd"] == pytest.approx(0.44352)
     assert plan["conservative_total_cost_ceiling_usd"] == pytest.approx(0.47352)
     assert plan["hard_total_cost_ceiling_usd"] == pytest.approx(0.57)
+    # Plan identity, not a seal. The seal is the campaign_plan.json inside the
+    # published bundle, which digests its own content and is verified by
+    # tests/test_procurement_sealed_plan_digests.py without reference to source.
+    # This literal moved when the environment gained check_award, listing-level
+    # verbal bias, and a relaxed action-budget range; the sealed value it
+    # superseded is recorded in design_review defect 19.
     assert plan["plan_sha256"] == (
-        "b08c0d86956ce522b7bd401d617acf110fabea0f4637b077749e7722043ff308"
+        "16ba9ad637fcc349f298f3d22e8754800921ada79505ab9198d44a16d3240239"
     )
     assert scored["plan_sha256"] == (
-        "b94067f4cab43bc1b885061e229b669b7986d715080a7f48cfdb09cbc437b24a"
+        "3045c4741916f274138a0836a294c0eec66edc15f9962d32e79ba74862b91995"
     )
 
 
