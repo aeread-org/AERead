@@ -91,6 +91,91 @@ whole episode). `econagent_tax_bracket_arithmetic`'s live, stateless
 `EconAgentV1Scorer.bridge_factory`, the same factory
 `EconAgentV1Plugin.build_scorer` already uses for a live episode's own scoring.
 
+## Scoring-contract enrollment (kernel_scoring_contract_spec.md, migration milestone 3 of 3)
+
+`econagent_v1` is dropped from `_NOT_YET_MIGRATED_TRUSTED_KEYS` in
+`tests/test_shared_runner_scoring_contract.py` and enrolled via
+`_BRIDGE_GATED_ENROLLED_FAMILY_VERSIONS` (mirroring govsim's identical treatment): its
+fixture needs the real, provisioned EconAgent bridge, so it is verified in its own
+per-test-skippable `test_econagent_obeys_the_scoring_contract`, not folded into the
+always-on `test_every_registered_family_obeys_the_scoring_contract` (which would make
+every other family's own coverage there skip too whenever the bridge is unavailable).
+`AEREAD_ECONAGENT_BRIDGE_REQUIRED` already existed in the root `conftest.py` before this
+milestone (see "Open items" below — the prior note there describing it as unwired was
+stale) and needed no change: it already turns a skip of any econagent-family test,
+including the new one, into a failed run when set.
+
+**A receipt now comes back — this family's first.** `tests/test_econagent_replay.py`'s
+new `test_finalize_wires_econagent_to_the_shared_family_finalizer` drives one real,
+bridge-backed episode (the checked-in `tiny4x6.seed0` case) end to end through
+`task.evaluation.finalize_family_execution` and asserts `status == "ok"`,
+`inclusion_status == "included"`, exactly the three declared leaves, and
+`primary_leaf_id == econagent_budget_identity_leaf`.
+
+**A genuine kernel-replay defect this milestone's own first attempt surfaced and fixed**
+(mirrors the worked example's own trap 1, a different instance of "the rebase-era kernel
+contract breaks an assumption no earlier milestone exercised"): `task.evaluation.
+_replay_family_trajectory` calls `plugin.initial_state(family_case, run=None)` — no
+`PlanCell` at all, unlike the real scheduler. `EconAgentV1Plugin.initial_state` used to
+derive `bridge_session_id` from `cell.cell_id` (docs/econagent_codex_triage.md finding 6,
+deliberately, to make a live run byte-identical to its own `replay.py`-driven offline
+replay, which always reuses the same real `cell`) and fall back to a random id when no
+cell was given — a random id can never be reproduced by kernel replay, so every phase's
+`pre_state_sha256` cross-check failed on the very first phase boundary. Fixed by having
+`EconAgentV1Plugin` remember, per distinct `family_case` digest, a FIFO queue of every id
+a real cell minted for it; the no-cell fallback consumes the oldest still-queued entry
+instead of minting a random one. This preserves the existing, test-guarded property that
+two different cells of the identical case never share a session id (`_mint_session_id`'s
+own docstring and `test_initial_state_mints_distinct_session_ids_for_two_different_cells_
+of_the_same_case` are unaffected — that path is untouched), while letting kernel replay
+reproduce whichever real cell's id the corresponding live run actually used. Also renamed
+`initial_state`'s second parameter from `cell` to `run` (the kernel calls it by that
+keyword; a positional call from the real scheduler is unaffected) — the identical fix
+`govsim`'s own migration needed for the identical reason.
+
+**The whole-outcome paired-history pair is constructible — verified, not merely asserted.**
+The migration plan flagged this as "to be verified against the real bridge in a later
+milestone." Verified here:
+`tests/test_econagent_replay.py::test_paired_history_pair_has_a_byte_identical_outcome_and_a_differing_trajectory`
+drives two real episodes (`world_seed=0` and `world_seed=1`, `gamma=-1.0`) and asserts,
+directly (not in a comment), `canonical_json_bytes(left.outcome) ==
+canonical_json_bytes(right.outcome)` (both `{"termination_reason":
+"episode_length_reached", "timestep": 1, "n_agents": 2, "final_inventory_coin": {"0": 0.0,
+"1": 0.0}}`) and `left.phase_instances != right.phase_instances`. The construction is
+domain reasoning, not luck: upstream's own `complex_actions` decides labor via
+`int(np.random.uniform() < (income / (wealth * (1+interest_rate) + 1e-8)) ** gamma)`; at
+month 1 every agent's `wealth` is exactly the pinned config's own starting balance of `0`
+(seed-independent), so a negative `gamma` makes the huge positive base raised to a negative
+power underflow to `0.0`, forcing every agent's labor draw to `False` with certainty
+regardless of `world_seed` — zero income, zero tax, zero lump-sum redistribution, and
+upstream's own consumption components clip nominal spend to available wealth (`0`), so
+actual `consumption_spend` is also `0`. Two different seeds therefore land on the identical
+(degenerate) terminal Coin balance from genuinely different skill draws, prices, and
+nominal per-agent actions (also asserted in the test, not merely claimed).
+
+**Ruling R9(b)'s same-case sensitivity witness cannot be satisfied by this family, and the
+pair above cannot be routed through `_assert_family_obeys_the_scoring_contract`.** That
+witness requires a SAME-CASE pair (byte-identical `family_case`) whose score differs for
+each trajectory leaf. This family's whole trajectory is a deterministic function of
+`family_case` alone (every seat's action is a content-free acknowledgment, spec
+milestone-1 correction 4 — confirmed directly against the real bridge: running the
+identical scenario twice reproduces the identical `dense_log`/`month_actions`/final state
+bit-for-bit), so any two same-case fixtures always share identical economics, hence
+identical `ScoreEnvelope` content for every leaf — the witness can never fire `True` for
+this family, by construction. (The FIFO fix above makes a same-case pair *replayable* at
+all; replayability was never the blocker, identical scoring content is.) Since every one
+of this family's three leaves is genuinely `input_scope="trajectory"` — no
+`terminal_state` leaf exists at all — supplying a second, different-case fixture (like the
+pair above) still trips the SAME witness check, which runs unconditionally whenever a
+family has any trajectory leaf and two or more supplied fixtures. `econagent_v1` is
+therefore added to `tests/test_shared_runner_scoring_contract.py`'s
+`_SINGLE_FIXTURE_EXEMPT_FAMILIES` — for a different, stronger reason than that set's four
+existing members ("not yet supplied" there; "cannot be supplied at all" here) — and
+`test_econagent_obeys_the_scoring_contract` therefore supplies exactly one fixture. The
+paired-history pair's own byte-identity and differing-trajectory claims are still verified,
+directly, by the dedicated test named above; only routing them through this one shared
+helper is what the witness makes impossible.
+
 ## What milestone 3 added
 
 Milestones 1-2 (cases, environment, measurement, goldens, parity) all exercised
@@ -239,9 +324,13 @@ malformed-or-operational-failure, degenerate-reference) pass against the real br
   `n_agents`-undercounted budget above survive two milestones of hand-wired tests
   undetected. See `ledger_entries/econagent.md` for the reproduction and a suggested static
   preflight check.
-- `AEREAD_ECONAGENT_BRIDGE_REQUIRED` has no enforcement hook generalized beyond tau2 in the
-  shared root `conftest.py` — a missing bridge still skips silently rather than failing CI.
-  See `ledger_entries/econagent.md`.
+- ~~`AEREAD_ECONAGENT_BRIDGE_REQUIRED` has no enforcement hook generalized beyond tau2 in
+  the shared root `conftest.py`~~ — stale as of the kernel_scoring_contract_spec.md
+  migration milestone-3 pass: `conftest.py`'s `_BRIDGE_FAMILIES`/`_BRIDGE_FAMILY_DISPLAY`
+  already carry a dedicated `AEREAD_ECONAGENT_BRIDGE_REQUIRED` entry (confirmed directly
+  against this base's `conftest.py`, not assumed from the earlier note), which already
+  turns a matching skip — including the new scoring-contract fixture/receipt tests this
+  milestone added — into a failed run when set. No remaining gap here.
 
 ## What it costs to run
 
