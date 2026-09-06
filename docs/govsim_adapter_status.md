@@ -1,6 +1,7 @@
 # govsim adapter — status
 
-Branch `zeyu/govsim-contract-migration`. Last verified 2026-09-05.
+Branch `zeyu/govsim-contract-migration`, stacked on `zeyu/kernel-r9r10` (rulings
+R9/R10). Last verified 2026-09-06.
 
 ## What the adapter claims
 
@@ -165,15 +166,18 @@ declared leaf ids, and `primary_leaf_id == govsim_survival_months_leaf`.
 caught.** `test_govsim_obeys_the_scoring_contract`
 (`tests/test_shared_runner_scoring_contract.py`) enrolls this family in the
 shared scoring-contract protocol check via `_govsim_fixture_pair`, a
-bridge-gated fixture pair (byte-identical terminal outcome, genuinely
-differing trajectory) run through the same `_assert_family_scoring_contract`
-every other migrated family is checked against. Because that fixture pair
-needs the real bridge, the test itself is per-test skipped when the bridge
-is unavailable — independent review finding 1
-(`docs/govsim_migration_review.md`) flagged that a plain green CI run could
-hide this skip entirely, since the closed-world catalog closure counted
-govsim as enrolled regardless of whether this test ran. The fix (commit
-`b853ed74`, root `conftest.py`) added a dedicated
+bridge-gated fixture set run through the same `_assert_family_obeys_the_
+scoring_contract` every other migrated family is checked against (renamed
+from `_assert_family_scoring_contract` when this branch stacked onto
+`zeyu/kernel-r9r10`, which had already extracted the identical per-family
+protocol body under that name for its own R9/R10 end-to-end tests — govsim's
+copy was dropped in favor of the kernel's one helper, never kept alongside
+it). Because that fixture set needs the real bridge, the test itself is
+per-test skipped when the bridge is unavailable — independent review
+finding 1 (`docs/govsim_migration_review.md`) flagged that a plain green CI
+run could hide this skip entirely, since the closed-world catalog closure
+counted govsim as enrolled regardless of whether this test ran. The fix
+(commit `b853ed74`, root `conftest.py`) added a dedicated
 `AEREAD_GOVSIM_BRIDGE_REQUIRED` entry: setting it to `1` turns that skip
 into a failed run instead of a silent pass, mirroring the already-
 established mechanism for tau2-bench/econ-evals/etc.
@@ -181,32 +185,63 @@ established mechanism for tau2-bench/econ-evals/etc.
 directly against the real `conftest.pytest_terminal_summary` hook, never a
 reimplementation of it.
 
-**Suite: 127 passed, 0 failed, 0 skipped** running the extended
-family test file set — the original file set below plus
-the two files this milestone adds
-(`tests/test_govsim_bridge_required_gate.py` and, from
-`tests/test_shared_runner_scoring_contract.py`, only
-`test_govsim_obeys_the_scoring_contract`, never that file's other,
-non-bridge-gated tests) — `tests/test_govsim_bridge_driver.py`,
-`tests/test_govsim_cases.py`, `tests/test_govsim_environment.py`,
-`tests/test_govsim_measurement.py`, `tests/test_govsim_parity.py`,
-`tests/test_govsim_replay_skip_behavior.py`, `tests/test_govsim_replay.py`,
-`tests/test_shared_runner_smoke.py`, with `$AEREAD_GOVSIM_BRIDGE_PYTHON` and
-`$AEREAD_GOVSIM_UPSTREAM_ROOT` both pointed at the provisioned bridge —
-every bridge-gated fidelity test (the five QC Gate-2 goldens against the
-real upstream checkout, the gini parity check, both replay episodes, and —
-following the independent review's fix pass
-(`docs/govsim_review_disposition.md`) — the `sheep`/`pollution`
+`_govsim_fixture_pair` now returns four fixtures, not two. The first two are
+unchanged from before this rebase — the paired-history pair (byte-identical
+terminal outcome, genuinely differing trajectory) `_assert_family_obeys_
+the_scoring_contract` reads via `produced_by_case[:2]` for ruling R7's
+mislabelling contrapositive over the three `terminal_state`-scoped leaves.
+The kernel's own ruling R9(b) sensitivity witness
+(`_assert_trajectory_leaves_are_witnessed`) additionally requires each
+`trajectory`-scoped leaf to change on some same-case pair (same
+`family_case`, differing `phase_instances`) — the paired-history pair alone
+cannot show this for either of govsim's two trajectory leaves: it is a
+symmetric per-seat swap, so `govsim_threshold_adherence` stays identical,
+and neither fixture collapses early, so `govsim_no_collapse` stays
+identical too (confirmed as a real, observed failure before the fixtures
+below were added, not assumed). Two more same-case fixtures were added
+purely to satisfy that witness: `_GOVSIM_COLLAPSE_HARVEST_SCHEDULE` (a
+round-0 harvest of 98 out of a pool of 100 drives the pre-regeneration pool
+under upstream's own `< 5` collapse test before the horizon, witnessing
+`govsim_no_collapse`) and `_GOVSIM_ASYMMETRIC_THRESHOLD_BREACH_SCHEDULE`
+(one seat harvests above round 0's advisory `sustainability_threshold` of
+10 while the other stays under it, witnessing `govsim_threshold_adherence`,
+then both seats harvest well under round 1's recomputed threshold so the
+episode still reaches the horizon, isolating the difference to that one
+leaf).
+
+**Suite (re-verified after stacking on `zeyu/kernel-r9r10`): 214 passed, 0
+failed, 0 skipped** (one pre-existing `RuntimeWarning` from
+`_vendored_gini`'s all-zero-array nan case, unrelated to this change) running
+the extended family test file set — the original file set below plus the
+two files this stack adds beyond the milestone-3 set
+(`tests/test_govsim_bridge_required_gate.py` and
+`tests/test_shared_runner_schemas.py`, the latter exercised because ruling
+R9 added `trajectory_outcome_paths` to the same `MeasurementDeclaration`
+schema this family's manifest uses) —
+`tests/test_govsim_bridge_driver.py`, `tests/test_govsim_cases.py`,
+`tests/test_govsim_environment.py`, `tests/test_govsim_measurement.py`,
+`tests/test_govsim_parity.py`, `tests/test_govsim_replay_skip_behavior.py`,
+`tests/test_govsim_replay.py`, `tests/test_shared_runner_smoke.py`, with
+`$AEREAD_GOVSIM_BRIDGE_PYTHON` and `$AEREAD_GOVSIM_UPSTREAM_ROOT` both
+pointed at the provisioned bridge — every bridge-gated fidelity test (the
+five QC Gate-2 goldens against the real upstream checkout, the gini parity
+check, both replay episodes, and — following the independent review's fix
+pass (`docs/govsim_review_disposition.md`) — the `sheep`/`pollution`
 cross-scenario parity check and the `run_episode`-driven reject-policy abort
 test) actually ran, none merely skipped past. Without the bridge set, the
-same command reports 100 passed / 27 skipped — the skips are exactly the
-bridge-gated tests above, each with a `pytest.skip`
+same command reports **188 passed, 26 skipped, 0 failed** — the skips are
+exactly the bridge-gated tests above, each with a `pytest.skip`
 reason naming `$AEREAD_GOVSIM_BRIDGE_PYTHON` and
 `tools/govsim_bridge/provision.sh`, never a silent pass.
 `tests/test_govsim_bridge_required_gate.py`'s own six cases never touch the
 bridge (they drive `conftest.py`'s hook against hand-built fakes), so they
-pass either way. Re-verified against this milestone's finalizer-wiring and
-scoring-contract-enrollment tests (`kernel_scoring_contract_spec.md`).
+pass either way.
+
+`tests/test_shared_runner_scoring_contract.py` on its own (the full file —
+every test, not only `test_govsim_obeys_the_scoring_contract`), bridge
+exported: **32 passed, 0 failed, 0 skipped**, including the new
+`test_sensitivity_witness_*` cases ruling R9(b) adds and govsim's own
+four-fixture `test_govsim_obeys_the_scoring_contract` above.
 
 ```bash
 export AEREAD_GOVSIM_BRIDGE_PYTHON=<bridges/govsim-venv path>
@@ -216,7 +251,8 @@ pytest tests/test_govsim_bridge_driver.py tests/test_govsim_cases.py \
        tests/test_govsim_parity.py tests/test_govsim_replay_skip_behavior.py \
        tests/test_govsim_replay.py tests/test_shared_runner_smoke.py \
        tests/test_govsim_bridge_required_gate.py \
-       tests/test_shared_runner_scoring_contract.py::test_govsim_obeys_the_scoring_contract
+       tests/test_shared_runner_schemas.py \
+       tests/test_shared_runner_scoring_contract.py
 ```
 
 ## What it costs to run
