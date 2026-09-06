@@ -56,6 +56,7 @@ not intended as a second reading order.
 - [Experiment campaign SOP](operations/experiment_campaign_sop.md)
 - [Open-harness testing and leaderboards](operations/open_harness_testing.md)
 - [QC and SOP open items](operations/qc_sop_open_items.md)
+- [Errata: flagging published evidence after the fact](operations/errata.md)
 
 ## Benchmark families
 

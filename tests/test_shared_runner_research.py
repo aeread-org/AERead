@@ -829,3 +829,36 @@ def test_research_ledger_tolerates_kernel_pin_drift_but_not_family_drift() -> No
     scorer = next(pin for pin in plan.implementation_pins if pin.kind == "scorer")
     with pytest.raises(ResearchContractError, match="implementation"):
         build_research_ledger(moved(scorer, "b" * 64), (receipt,))
+
+
+def test_research_ledger_attempts_carry_matching_errata_ids() -> None:
+    from aeread.shared_runner.analysis.errata import Erratum
+
+    plan = _plan()
+    receipt = _receipt(plan)
+    erratum = Erratum.from_dict(
+        {
+            "errata_id": "ERR-2026-09-06-001",
+            "opened_at": "2026-09-06",
+            "category": "kernel",
+            "effect": "cost_lower_bound",
+            "title": "t",
+            "description": "d",
+            "selectors": {
+                "campaign_ids": [],
+                "run_plan_sha256s": [plan.plan_sha256],
+                "receipt_sha256s": [],
+                "implementation_pins": [],
+                "family_ids": [],
+            },
+            "fix_ref": None,
+            "disposition": "open",
+            "superseded_by": None,
+            "evidence_refs": [],
+        }
+    )
+    plain = build_research_ledger(plan, (receipt,))
+    assert plain.attempts[0].errata_ids == ()
+    flagged = build_research_ledger(plan, (receipt,), errata=(erratum,))
+    assert flagged.attempts[0].errata_ids == ("ERR-2026-09-06-001",)
+    assert research_tables(flagged)["attempts"][0]["errata_ids"] == ("ERR-2026-09-06-001",)

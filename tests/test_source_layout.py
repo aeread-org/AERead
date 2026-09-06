@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import re
+
 from importlib import import_module
 from pathlib import Path
 
@@ -74,9 +76,13 @@ def test_housing_family_owns_its_complete_execution_surface() -> None:
 
 
 def test_cli_verb_modules_use_the_organized_package_paths() -> None:
+    shared_runner_verbs = {
+        "export-tables": "aeread.shared_runner.analysis.research",
+        "errata": "aeread.shared_runner.analysis.errata",
+    }
     for verb, (module_name, _description) in cli.VERBS.items():
-        if verb == "export-tables":
-            assert module_name == "aeread.shared_runner.analysis.research"
+        if verb in shared_runner_verbs:
+            assert module_name == shared_runner_verbs[verb]
         else:
             assert module_name.startswith("aeread.exchange_v1.")
         import_module(module_name)
@@ -109,13 +115,25 @@ def test_artifact_roots_have_one_meaning_and_no_generic_output_aliases() -> None
 
 
 def test_evidence_bundles_use_the_standard_publication_categories() -> None:
-    allowed_root_files = {"README.md", "publication_manifest.json"}
+    allowed_root_files = {"README.md", "publication_manifest.json", "ERRATA.md"}
     allowed_categories = {"tables", "trajectories", "receipts", "reports", "qc"}
+    erratum_file = re.compile(r"^ERR-\d{4}-\d{2}-\d{2}-\d{3}\.json$")
 
     assert {path.name for path in EVIDENCE_ROOT.iterdir() if path.is_file()} == {
         "README.md"
     }
-    for bundle in (path for path in EVIDENCE_ROOT.iterdir() if path.is_dir()):
+    errata_root = EVIDENCE_ROOT / "errata"
+    if errata_root.is_dir():
+        # evidence/errata/ is the one flat directory: sealed erratum records,
+        # never subdirectories, never anything but ERR-*.json beside a README.
+        assert not [path for path in errata_root.iterdir() if path.is_dir()]
+        assert all(
+            path.name == "README.md" or erratum_file.match(path.name)
+            for path in errata_root.iterdir()
+        ), sorted(path.name for path in errata_root.iterdir())
+    for bundle in (
+        path for path in EVIDENCE_ROOT.iterdir() if path.is_dir() and path != errata_root
+    ):
         unexpected_files = {
             path.name
             for path in bundle.iterdir()

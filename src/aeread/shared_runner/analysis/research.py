@@ -325,6 +325,7 @@ class AttemptResearchRow:
     artifact_count: int
     event_root_sha256: str
     artifact_root_sha256: str
+    errata_ids: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -463,7 +464,9 @@ def _validate_receipt_against_plan(
         )
 
 
-def _attempt_row(receipt: EvaluationReceipt) -> AttemptResearchRow:
+def _attempt_row(
+    receipt: EvaluationReceipt, errata: Sequence[Any] = ()
+) -> AttemptResearchRow:
     primary = next(
         (score for score in receipt.scores if score.leaf.leaf_id == receipt.primary_leaf_id),
         None,
@@ -471,7 +474,18 @@ def _attempt_row(receipt: EvaluationReceipt) -> AttemptResearchRow:
     metric = None if primary is None else primary.primary
     failure = receipt.failure
     assert receipt.receipt_sha256 is not None
+    errata_ids: tuple[str, ...] = ()
+    if errata:
+        from .errata import errata_for
+
+        errata_ids = errata_for(
+            errata,
+            run_plan_sha256=receipt.run_plan_sha256,
+            receipt_sha256=receipt.receipt_sha256,
+            implementation_pins=receipt.plan_implementation_pins,
+        )
     return AttemptResearchRow(
+        errata_ids=errata_ids,
         run_plan_id=receipt.run_plan_id,
         cell_id=receipt.cell_id,
         episode_id=receipt.episode_id,
@@ -495,8 +509,15 @@ def _attempt_row(receipt: EvaluationReceipt) -> AttemptResearchRow:
 def build_research_ledger(
     plan: RunPlan,
     receipts: Sequence[EvaluationReceipt],
+    *,
+    errata: Sequence[Any] = (),
 ) -> ResearchLedger:
-    """Project a complete planned-cell grid plus every verified receipt attempt."""
+    """Project a complete planned-cell grid plus every verified receipt attempt.
+
+    ``errata`` (see ``analysis.errata``) tags each attempt with the ids of the
+    errata whose selectors hit its plan, receipt, or implementation pins, so a
+    later finding travels with the row instead of living only in a log.
+    """
 
     try:
         verify_run_plan(plan)
@@ -556,7 +577,7 @@ def build_research_ledger(
         )
 
     attempts = tuple(
-        _attempt_row(receipt)
+        _attempt_row(receipt, errata)
         for receipt in sorted(
             receipt_values, key=lambda item: (item.cell_id, item.episode_attempt_id)
         )
