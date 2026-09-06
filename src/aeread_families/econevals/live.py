@@ -96,8 +96,10 @@ PROMPT_ID = "econevals_period_json_v1"
 PROMPT = """You are running one period of an economic decision task. The observation
 names the track, the read-only tools you may call, and the single submit tool that ends
 the period. Return only the required JSON object: an ordered list of tool calls whose
-LAST call is the submit tool. Call read-only tools first to gather what you need, then
-submit your decision for this period. Never invent tool results.
+LAST call is the submit tool. Use tool names exactly as given in the observation's
+read_only_tools and submit_tool fields -- do not invent or abbreviate a name. Call
+read-only tools first to gather what you need, then submit your decision for this
+period. Never invent tool results.
 """
 
 
@@ -215,6 +217,48 @@ class EconevalsJsonHarness:
             )
         return value
 
+    @staticmethod
+    def _validate_burst(
+        calls: Any, *, submit_tool: str
+    ) -> tuple[tuple[dict[str, Any], ...] | None, str]:
+        """Check a whole period's calls before executing any of them.
+
+        Returns ``(normalized_calls, "")`` or ``(None, reason)``. Validating
+        the burst as a unit matters: a period half-executed and then rejected
+        would leave tool effects the environment never scored.
+        """
+        if not isinstance(calls, list) or not calls:
+            return None, "return a non-empty calls list"
+        if len(calls) > MAX_LLM_QUERIES_PER_PERIOD + 1:
+            return None, (
+                f"use at most {MAX_LLM_QUERIES_PER_PERIOD + 1} calls in one period"
+            )
+        normalized: list[dict[str, Any]] = []
+        for index, call in enumerate(calls):
+            if not isinstance(call, Mapping):
+                return None, f"call {index} must be an object"
+            call_id = call.get("id")
+            name = call.get("name")
+            arguments = call.get("arguments")
+            if not isinstance(call_id, str) or not call_id:
+                return None, f"call {index} needs a non-empty string id"
+            if not isinstance(name, str) or not name:
+                return None, f"call {index} needs a tool name"
+            if not isinstance(arguments, Mapping):
+                return None, f"call {index} needs an arguments object"
+            is_last = index == len(calls) - 1
+            if is_last and name != submit_tool:
+                return None, (
+                    f"the last call of the period must be {submit_tool!r}, "
+                    f"got {name!r}"
+                )
+            if not is_last and name == submit_tool:
+                return None, (
+                    f"{submit_tool!r} ends the period, so it must be the last call"
+                )
+            normalized.append({"id": call_id, "name": name, "arguments": arguments})
+        return tuple(normalized), ""
+
     async def act(self, request: Any, ctx: AttemptContext) -> HarnessOutput:
         if request.phase_id != PERIOD_PHASE or request.seat_id != SEAT_ID:
             raise ProviderFailure(
@@ -228,73 +272,66 @@ class EconevalsJsonHarness:
                 "econevals period requires its declared tool runtime",
                 retryable=False,
             )
-        submit_tool = TRACK_TOOLS[self.family_case["track"]]["submit_tool"]
+        track = self.family_case["track"]
+        submit_tool = TRACK_TOOLS[track]["submit_tool"]
+        read_only = tuple(TRACK_TOOLS[track]["read_only"])
 
-        turn = await ctx.model.complete(
-            messages=(self._request_message(request),),
-            response_mode="json_dialect",
-        )
-        value = self._decode(turn.text or "")
-        calls = value.get("calls")
-        if not isinstance(calls, list) or not calls:
-            raise ProviderFailure(
-                "malformed_structured_output",
-                "econevals period must return a non-empty calls list",
-                retryable=False,
+        messages = (self._request_message(request),)
+        rounds_used = 0
+        normalized_calls: tuple[dict[str, Any], ...] | None = None
+        turn = None
+        while rounds_used < max(1, ctx.budget.rounds_left):
+            turn = await ctx.model.complete(
+                messages=messages, response_mode="json_dialect"
             )
-        if len(calls) > MAX_LLM_QUERIES_PER_PERIOD + 1:
+            rounds_used += 1
+            value = self._decode(turn.text or "")
+            normalized_calls, reason = self._validate_burst(
+                value.get("calls"), submit_tool=submit_tool
+            )
+            if normalized_calls is not None:
+                break
+            # Correctable: nothing has been executed yet, so hand back the
+            # exact violation and the legal tool names rather than failing the
+            # episode on a first malformed burst.
+            messages = messages + (
+                CanonicalMessage(
+                    role="user",
+                    content=canonical_json_bytes(
+                        {
+                            "error": reason,
+                            "read_only_tools": list(read_only),
+                            "submit_tool": submit_tool,
+                        }
+                    ).decode("utf-8"),
+                ),
+            )
+        if normalized_calls is None:
             raise ProviderFailure(
                 "malformed_structured_output",
-                "econevals period exceeded its per-period query budget",
+                f"econevals period was still malformed after {rounds_used} rounds",
                 retryable=False,
             )
 
         tool_calls: list[dict[str, Any]] = []
         executions: list[dict[str, Any]] = []
         claimed: list[ClaimedToolCall] = []
-        for index, call in enumerate(calls):
-            if not isinstance(call, Mapping):
-                raise ProviderFailure(
-                    "malformed_structured_output",
-                    "econevals tool call must be an object",
-                    retryable=False,
-                )
-            call_id = call.get("id")
-            name = call.get("name")
-            arguments = call.get("arguments")
-            if (
-                not isinstance(call_id, str)
-                or not call_id
-                or not isinstance(name, str)
-                or not name
-                or not isinstance(arguments, Mapping)
-            ):
-                raise ProviderFailure(
-                    "malformed_structured_output",
-                    "econevals tool call fields are invalid",
-                    retryable=False,
-                )
-            # parse_action's own rule, enforced before spending a tool call on
-            # a burst the environment would reject wholesale.
-            if (index == len(calls) - 1) != (name == submit_tool):
-                raise ProviderFailure(
-                    "malformed_structured_output",
-                    "econevals submit tool must be the final call of the period",
-                    retryable=False,
-                )
+        for index, call in enumerate(normalized_calls):
             envelope = await ctx.tools.invoke(
-                tool_id=name,
-                arguments=arguments,
+                tool_id=call["name"],
+                arguments=call["arguments"],
                 source_provider_call_id=turn.provider_call_id,
                 source_call_index=index,
             )
-            plain_arguments = json.loads(canonical_json_bytes(arguments))
+            plain_arguments = json.loads(canonical_json_bytes(call["arguments"]))
             plain_result = json.loads(canonical_json_bytes(envelope.result))
-            tool_calls.append({"id": call_id, "name": name, "arguments": plain_arguments})
+            tool_calls.append(
+                {"id": call["id"], "name": call["name"], "arguments": plain_arguments}
+            )
             executions.append(
                 {
-                    "tool_call_id": call_id,
-                    "name": name,
+                    "tool_call_id": call["id"],
+                    "name": call["name"],
                     "arguments": plain_arguments,
                     "result": plain_result,
                     "invocation_record_id": envelope.invocation_record.tool_invocation_id,
@@ -302,7 +339,7 @@ class EconevalsJsonHarness:
             )
             claimed.append(
                 ClaimedToolCall(
-                    tool_id=name,
+                    tool_id=call["name"],
                     source_provider_call_id=turn.provider_call_id,
                     source_call_index=index,
                 )
@@ -314,7 +351,7 @@ class EconevalsJsonHarness:
         return HarnessOutput(
             action={"tool_calls": tool_calls, "tool_executions": executions},
             claimed_tool_calls=tuple(claimed),
-            rounds_used=1,
+            rounds_used=rounds_used,
             notes={},
         )
 
@@ -402,7 +439,7 @@ def _profile(
                     "pricing_id": PRICING.pricing_id,
                     "pricing_sha256": PRICING.content_sha256(),
                     "output_schema": period_output_schema(),
-                    "max_rounds": 1,
+                    "max_rounds": 3,
                     "provider_metadata": route_metadata(),
                 },
             },

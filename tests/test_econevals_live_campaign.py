@@ -186,3 +186,23 @@ def test_canary_stops_immediately_on_a_non_transient_rejection(tmp_path, monkeyp
     record = asyncio.run(module.run_canary(run_root=tmp_path, plan_sha256="x"))
     assert record["status"] == "rejected"
     assert attempts == [1]
+
+
+def test_upstream_set_rendering_is_canonicalized() -> None:
+    """Upstream renders a Python set into its message; order is not stable.
+
+    Left raw, the kernel's tool-replay cross-check fails nondeterministically
+    on scheduling cases -- the harness execution and the environment's
+    independent re-derivation disagree on a string that means the same thing.
+    """
+    from aeread_families.econevals.econevals_bridge import (
+        _canonicalize_set_rendering,
+    )
+
+    one = "Assignment doesn't include workers: {'W5', 'W9', 'W10', 'W2'}"
+    two = "Assignment doesn't include workers: {'W2', 'W10', 'W9', 'W5'}"
+    assert _canonicalize_set_rendering(one) == _canonicalize_set_rendering(two)
+    assert "W10" in _canonicalize_set_rendering(one)
+    # Anything that is not a set rendering passes through untouched.
+    assert _canonicalize_set_rendering("plain reason") == "plain reason"
+    assert _canonicalize_set_rendering(None) is None
