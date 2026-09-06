@@ -464,3 +464,75 @@ def test_se_plus_equals_agr_plus_times_cse_plus_on_a_small_mixed_corpus() -> Non
     assert aggregate["SE_plus"] == pytest.approx(
         aggregate["AGR_plus"] * aggregate["CSE_plus"], abs=1e-9
     )
+
+
+# ---------------------------------------------------------------------------
+# TermsBenchScorer.__call__ -- the kernel's finalizer contract (issue #75).
+# ---------------------------------------------------------------------------
+
+
+def _scoring_input(outcome):
+    from types import SimpleNamespace
+
+    return SimpleNamespace(outcome=outcome, phase_instances=(), evidence_refs=())
+
+
+def _minimal_outcome(payload) -> dict:
+    """An outcome shaped like the plugin's, valid for either regime."""
+    regime = payload["regime"]
+    return {
+        "termination_reason": "agent_accept" if regime == "overlap" else "no_deal",
+        "final_price": 145.0 if regime == "overlap" else None,
+        "rounds_used": 1,
+        "critical_violations": {
+            "price_bound": False,
+            "individual_rationality": False,
+            "invalid_action": False,
+        },
+        "secondary_violations": {"monotonicity": False, "turn_budget": False},
+        "malformed_action_schema": False,
+        "regime": regime,
+        "family": payload.get("family", "candid"),
+        "agent_role": payload.get("agent_role", "buyer"),
+        "r_a": 150.0,
+        "delta": 50.0,
+    }
+
+
+def _case_payload(regime: str):
+    import glob
+    import json
+
+    for path in sorted(glob.glob("cases/termsbench/pilot/termsbench.*.json")):
+        payload = json.load(open(path))["payload"]
+        if payload.get("regime") == regime:
+            return payload
+    raise AssertionError(f"no {regime} case in the pilot corpus")
+
+
+@pytest.mark.parametrize("regime", ["overlap", "nodeal"])
+def test_call_scores_exactly_the_leaves_the_regime_declares(regime: str) -> None:
+    """Leaves are regime-dependent; a case must never be scored on one it
+    does not declare."""
+    from aeread.shared_runner.measurement import FamilyScoreSet
+    import aeread_families.termsbench.measurement as m
+
+    payload = _case_payload(regime)
+    scorer = m.build_scorer(payload)
+    declared = {leaf.leaf_id for leaf in scorer.leaves}
+    outcome = _minimal_outcome(payload)
+    result = scorer(_scoring_input(outcome))
+    assert isinstance(result, FamilyScoreSet)
+    assert {score.leaf.leaf_id for score in result.scores} == declared
+    # Protocol compliance is declared by every regime and is an admission
+    # leaf: a broken protocol is an invalid measurement, not a low score.
+    assert m.PROTOCOL_COMPLIANCE_LEAF_ID in result.admission_leaf_ids
+    assert result.primary_leaf_id in declared
+
+
+def test_call_requires_an_outcome_mapping() -> None:
+    import aeread_families.termsbench.measurement as m
+
+    scorer = m.build_scorer(_case_payload("overlap"))
+    with pytest.raises(ValueError, match="carries no outcome mapping"):
+        scorer(_scoring_input(None))

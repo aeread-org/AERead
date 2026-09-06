@@ -30,7 +30,11 @@ from aeread.shared_runner.task.scheduler import (
 
 from . import kernel as k
 from .cases import FAMILY_ID, FAMILY_VERSION, TERMINATION_REASONS
-from .measurement import TermsBenchScorer, build_scorer as build_measurement_scorer
+from .measurement import (
+    TermsBenchScorer,
+    build_scorer as build_measurement_scorer,
+    declared_reference_provider_ids as _declared_reference_provider_ids,
+)
 
 PLUGIN_ID = "termsbench_environment"
 SCORER_ID = "termsbench_scorer"
@@ -111,7 +115,17 @@ def family_manifest() -> FamilyManifest:
                 "outcome_support": "zopa_fraction",
                 "bound_status": "not_demonstrated",
             },
-            "scoring": {"scorer_id": SCORER_ID},
+            "scoring": {
+                "scorer_id": SCORER_ID,
+                # The union across both regimes: the resolver rejects a plan
+                # pin nothing references, the receipt rejects a cited
+                # implementation that is not pinned, and a case's leaves are
+                # regime-dependent -- so the manifest declares every id
+                # either regime can cite.
+                "reference_provider_ids": list(
+                    _declared_reference_provider_ids()
+                ),
+            },
         }
     )
 
