@@ -258,6 +258,24 @@ and it says when telemetry is incomplete rather than silently summing what
 it found. Raised for tau3's owner rather than changed here.
 | E-J-02 | planned to truncate periods through the agent budget to fit the cost ceiling | a dry run showing it raises `SchedulerContractError` rather than terminating cleanly | none, caught pre-spend | cases run at their own pinned `max_steps`; it would have manufactured failed receipts |
 
+### Cross-family: the scorer contract is unenforced
+
+A signature test over every registered family (`test_family_hook_call_compatibility.py`)
+finds **three** scorers still taking a recorded-outcome `Mapping` where the
+kernel passes a `FamilyScoringInput`:
+
+| family | tracked as |
+|---|---|
+| govsim | #76 |
+| aucarena | **untracked -- needs an issue** |
+| consent_ir | **untracked -- needs an issue** |
+
+Two of the three were not on anyone's list. The existing widening issues
+(#74-#84) were written per-adapter from a `FamilyScoreSet` angle; nothing
+asserted the call shape, so a family could look migrated and still fail on
+the kernel's first subscript. The test is a ratchet: green today against the
+known list, red the moment a new family joins it.
+
 ## Standing lessons, added
 
 6. **A first live campaign is a defect detector.** econevals had four
@@ -269,5 +287,9 @@ it found. Raised for tau3's owner rather than changed here.
 8. **Copying an execution profile copies its assumptions.** tau3's retry,
    backoff and round policies are correct for 12-round chat episodes and
    wrong for 100 sequential calls per case.
-9. **A verifier rejecting the model is not a broken pipeline.** Conflating
+9. **A contract with no test is a naming coincidence.** Both cross-family
+   defects found here -- `initial_state`'s call form and the scorer's first
+   argument -- passed for years because the families that exercised them
+   happened to match. Assert the shape, not the behaviour of one caller.
+10. **A verifier rejecting the model is not a broken pipeline.** Conflating
    the two makes a panel unable to report the thing it measures.
