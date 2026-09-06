@@ -32,9 +32,10 @@ participate in and must not be miscounted against.
 from __future__ import annotations
 
 import copy
+import json
 from typing import Any, Mapping, Sequence
 
-from aeread.shared_runner.task.execution import EvidenceStore
+from aeread.shared_runner.task.execution import CanonicalResponse, EvidenceStore
 from aeread.shared_runner.task.scheduler import EpisodeResult, run_episode
 
 
@@ -113,7 +114,7 @@ def record_full_evidence_lifecycle(
     completely and correctly, on the ``EpisodeResult`` the scheduler returns
     once the episode finishes; this function's only job is to translate that
     already-computed result into the same durable event types/payloads the
-    shared kernel's own ``MinimalChatExecutor`` (``aeread.shared_runner.execution``)
+    shared kernel's own ``MinimalChatExecutor`` (``aeread.shared_runner.task.execution``)
     would have appended live, so ``family_evaluation.replay_family_state`` --
     the same generic replay ``finalize_family_execution``/
     ``replay_family_receipt``/``audit_family_receipt`` all use -- can read
@@ -124,6 +125,25 @@ def record_full_evidence_lifecycle(
 
     Call once, after ``run_episode`` returns a terminated ``EpisodeResult``,
     against the same ``EvidenceStore`` the harness used to serve decisions.
+
+    Also emits ``action_attempt_succeeded`` (one per logical action, carrying
+    a ``CanonicalResponse``-shaped ``canonical_response``) and
+    ``phase_instance_succeeded`` (one per phase instance) -- the two event
+    types ``task.evaluation._replay_family_trajectory`` now requires that an
+    earlier revision of this function never emitted (kernel_scoring_contract_spec.md
+    migration milestone 3: "the family's evidence-recording harness ...
+    emits an event vocabulary the kernel replayer no longer accepts").
+    ``action_attempt_succeeded`` is deliberately never tagged with
+    ``action_attempt_id`` -- mirroring ``ScriptedNegarenaHarness``'s own
+    ``negarena_decision_served`` convention (see this module's docstring) --
+    so it never enters ``EvidenceStore.audit_reconciliation``'s
+    ``action_attempt`` pairing check, which would otherwise require a
+    matching ``action_attempt_started`` this adapter has no live executor to
+    emit. The ``CanonicalResponse`` built here is never read back by
+    ``parse_action`` (which already ran, live, against the harness's own raw
+    response) -- it exists purely so replay's provenance record is well-typed,
+    exactly like ``EvidenceRecordingGovsimHarness``'s identical placeholder
+    (``tests/test_govsim_replay.py``, migration reference).
     """
     phase_by_id = {phase.phase_id: phase for phase in plugin.phases(family_case)}
     for instance in result.phase_instances:
@@ -140,6 +160,25 @@ def record_full_evidence_lifecycle(
             evidence.append_event(
                 "logical_action_started",
                 {"profile_id": action.request.profile_id, "request": action.request},
+                phase_instance_id=instance.phase_instance_id,
+                logical_action_id=action.logical_action_id,
+                visibility=f"seat:{action.seat_id}",
+            )
+            canonical = CanonicalResponse(
+                text=json.dumps(_plain(action.response), sort_keys=True),
+                finish_reason="stop",
+                empty=False,
+                truncated=False,
+                provider_call_ids=(),
+                tool_invocation_ids=(),
+                input_tokens=0,
+                cached_input_tokens=0,
+                output_tokens=0,
+                cost_usd=0.0,
+            )
+            evidence.append_event(
+                "action_attempt_succeeded",
+                {"canonical_response": canonical},
                 phase_instance_id=instance.phase_instance_id,
                 logical_action_id=action.logical_action_id,
                 visibility=f"seat:{action.seat_id}",
@@ -186,6 +225,17 @@ def record_full_evidence_lifecycle(
                 },
                 phase_instance_id=instance.phase_instance_id,
             )
+        evidence.append_event(
+            "phase_instance_succeeded",
+            {
+                "phase_id": instance.phase_id,
+                "post_state_sha256": instance.post_state_sha256,
+                "logical_action_ids": tuple(
+                    action.logical_action_id for action in instance.actions
+                ),
+            },
+            phase_instance_id=instance.phase_instance_id,
+        )
     evidence.append_event(
         "episode_terminated",
         {"terminal": result.terminal, "logical_action_count": result.logical_action_count},
