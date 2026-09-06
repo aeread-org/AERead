@@ -396,3 +396,85 @@ def test_declining_the_amendment_completes_a_scripted_episode(tmp_path) -> None:
     assert outcome["project_constraints_satisfied"] is True
     assert receipt.inclusion_status == "included"
     assert replay_stack_receipt(setup=setup, receipt=receipt, evidence_root=tmp_path) == receipt
+
+
+def test_verbal_written_diagnostic_counts_adopted_undisclosed_terms() -> None:
+    """Adopting a counter whose prose hid a changed term must be recorded."""
+    plugin = DataCenterStackPlugin("v2")
+    payload = json.loads(
+        (DEFAULT_OUTPUT_ROOT / "verbal_written_divergence_001.json").read_text()
+    )["payload"]
+    case = plugin.validate_payload(payload)
+    counter = case["policies"]["loan"]["counter_terms"]
+
+    terminal = {
+        "public_history": [
+            {"agreement_key": "loan", "decision": "counter", "terms": dict(counter)}
+        ],
+        "executed": {"loan": {"terms": dict(counter)}},
+    }
+    adopted = plugin._verbal_written_mismatch(case, terminal)
+    assert adopted["undisclosed_counters_presented"] == 1
+    assert adopted["undisclosed_counters_adopted"] == 1
+    assert adopted["declared_fields"]["loan"] == [
+        "advance_rate_bps",
+        "maximum_loan_to_cost_bps",
+    ]
+
+    # A counter recorded without structured terms still resolves through the
+    # declared package rather than silently counting zero.
+    terminal["public_history"][0].pop("terms")
+    assert plugin._verbal_written_mismatch(case, terminal)[
+        "undisclosed_counters_adopted"
+    ] == 1
+
+    # A developer that held its own advance rate is not counted as adopting.
+    held = dict(counter)
+    held["advance_rate_bps"] = case["scripted_developer"]["loan_terms"]["advance_rate_bps"]
+    held["maximum_loan_to_cost_bps"] = case["scripted_developer"]["loan_terms"][
+        "maximum_loan_to_cost_bps"
+    ]
+    terminal["executed"]["loan"]["terms"] = held
+    assert plugin._verbal_written_mismatch(case, terminal)[
+        "undisclosed_counters_adopted"
+    ] == 0
+
+
+def test_counter_terms_are_recorded_in_public_history() -> None:
+    plugin = DataCenterStackPlugin("v2")
+    payload = json.loads((DEFAULT_OUTPUT_ROOT / "covenant_cliff_001.json").read_text())
+    case = plugin.validate_payload(payload["payload"])
+    state = plugin.initial_state(case, None)
+    terms = dict(case["policies"]["land"]["counter_terms"])
+    state["offers"].append(
+        {
+            "offer_id": "offer_a",
+            "case_id": case["scenario_id"],
+            "agreement_type": "land",
+            "proposer_seat_id": "developer",
+            "round_index": 0,
+            "message": "m",
+            "terms": dict(case["scripted_developer"]["land_terms"]),
+        }
+    )
+    state["latest_offer_id"]["land"] = "offer_a"
+    state["rounds"]["land"] = 1
+    phase = next(p for p in plugin.phases(case) if p.phase_id == "land_landowner_response")
+    action = {
+        "decision": "counter",
+        "offer_id": "offer_a",
+        "message": "landowner counterproposal.",
+        "terms": terms,
+    }
+    envelope = ActionEnvelope(
+        seat_id="landowner",
+        valid=True,
+        action=action,
+        parse=ParseResult.success(action),
+        legality=LegalityResult.legal_action(),
+    )
+    result = plugin.step(case, state, phase, {"landowner": envelope})
+    recorded = result.state["public_history"][-1]
+
+    assert recorded["decision"] == "counter"
+    assert recorded["terms"] == terms

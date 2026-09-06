@@ -656,7 +656,10 @@ class DataCenterStackPlugin:
             next_state["public_history"].append({"phase_id": phase.phase_id, "seat_id": seat, "agreement_key": key, "decision": "offer", "offer_id": offer.offer_id, "terms": _plain(offer.terms), "message": offer.message, "supersedes_offer_id": offer.supersedes_offer_id, "amended_fields": list(offer.amended_fields)})
             return TransitionResult(next_state, _phase_id(key, "response"), {"valid": True, "offer_id": offer.offer_id})
         if phase.phase_id.endswith("_response"):
-            next_state["public_history"].append({"phase_id": phase.phase_id, "seat_id": seat, "agreement_key": key, "decision": action["decision"], "offer_id": action["offer_id"], "message": action.get("message")})
+            # Record the structured counter terms. They are already disclosed to
+            # the developer through pending_counter_terms, so this reveals
+            # nothing new, but without them a counter is unauditable.
+            next_state["public_history"].append({"phase_id": phase.phase_id, "seat_id": seat, "agreement_key": key, "decision": action["decision"], "offer_id": action["offer_id"], "message": action.get("message"), "terms": _plain(action.get("terms"))})
             if action["decision"] == "accept":
                 next_state["accepted_offer_id"][key] = action["offer_id"]
                 next_phase = _phase_id(key, "commit")
@@ -794,7 +797,12 @@ class DataCenterStackPlugin:
             executed = terminal["executed"].get(agreement_key)
             if executed is None:
                 continue
-            counter_terms = counters[-1].get("terms") or {}
+            # The declared counter package is authoritative: a counter recorded
+            # before this field existed carries no terms at all.
+            counter_terms = (
+                counters[-1].get("terms")
+                or family_case["policies"][agreement_key]["counter_terms"]
+            )
             executed_terms = executed.get("terms", {})
             if any(
                 field in counter_terms

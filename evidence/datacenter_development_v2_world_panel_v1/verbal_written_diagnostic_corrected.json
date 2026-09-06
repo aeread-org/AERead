@@ -1,0 +1,17 @@
+{
+  "by_model": {
+    "gemini38_flash_aistudio": {
+      "adopted": 4,
+      "presented": 4
+    },
+    "qwen3_235b_google": {
+      "adopted": 0,
+      "presented": 3
+    }
+  },
+  "note": "recomputed from sealed public history; receipts in this run carry an under-counted value because counter terms were not recorded at execution time",
+  "totals": {
+    "adopted": 4,
+    "presented": 7
+  }
+}

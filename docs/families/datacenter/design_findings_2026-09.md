@@ -87,7 +87,22 @@ completes, seals and replays. The lesson is that testing `legal()` in
 isolation was not enough; the phase graph is a separate declaration that has
 to agree with every transition the environment can take.
 
-### 1.5 Three smaller correctness defects
+### 1.5 Counter terms were never recorded, so the diagnostic read empty
+
+The environment recorded structured terms for offers but not for counters, so
+a counter in the trajectory was unauditable and the verbal/written diagnostic
+compared against an empty package and always reported zero adoptions. The
+first panel run reported `undisclosed_counters_adopted: 0` for cells that had
+demonstrably adopted the hidden term.
+
+Counters now record their structured terms, which discloses nothing new since
+the developer already receives them through `pending_counter_terms`, and the
+diagnostic falls back to the world's declared counter package. Recomputed from
+the sealed receipts of the final panel, the true figure is **4 adoptions of 4
+presentations** for Gemini and 0 of 3 for Qwen, published alongside the run as
+`verbal_written_diagnostic_corrected.json`.
+
+### 1.6 Three smaller correctness defects
 
 - **Amendment fields crashed the environment.** A live developer whose
   amendment changed fields other than the scripted ones raised
@@ -172,6 +187,34 @@ stratum compresses into a one-month distinction.
   involves the negotiation-stack modules.
 
 ---
+
+## What the corrected panel showed
+
+The final 96-cell panel on the corrected worlds is the first run in which the
+family measured what it was built to measure.
+
+| Route | Admitted | Mean developer NPV | vs scripted baseline |
+|---|---:|---:|---:|
+| Gemini 3.8 Flash | 54% | $6,426 | -$1,028 |
+| Qwen3-235B | 0% | -$338 | -$7,895 |
+| GLM-5.3-flash | 0% | n/a | n/a |
+| gpt-oss-120b | 0% | n/a | n/a |
+
+Gemini is the only route that transacts, and its admitted NPV equals **pure
+counter-adoption to the cent** in every completed stack: it accepts whatever
+each counterparty counters with and leaves about 12 percent on the table. On
+the pre-fix worlds that same behaviour would have scored exactly at baseline
+and looked like flawless play, which is precisely why 1.1 mattered.
+
+The strata now discriminate. Gemini clears revenue-without-bankability and
+liability-transfer 4 of 4, but the covenant-cliff and restrictive-draws traps
+catch it 3 of 4 each, and the verbal/written trap catches it 4 of 4: it signs
+a loan whose prose claimed only the fee moved while the terms also cut the
+advance rate, and the project then fails on a funding shortfall.
+
+Paired world-clustered intervals separate Gemini from every open-weight route
+by +0.54 admission rate [+0.33, +0.75]. The three routes at zero admission are
+not separable from each other.
 
 ## What the panels can and cannot support today
 
