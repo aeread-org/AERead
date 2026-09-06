@@ -341,3 +341,30 @@ def test_sealed_spend_counts_calls_a_failed_case_already_paid_for(tmp_path) -> N
     (shard / "four").write_text(json.dumps({"cost_usd": True}))
     assert _sealed_spend(root) == pytest.approx(0.75)
     assert _sealed_spend(tmp_path / "absent") == 0.0
+
+
+def test_failure_register_types_conditions_from_the_sealed_ledger() -> None:
+    """The register must not inherit the checkpoint's generic label.
+
+    A checkpoint records `execution_failure` whenever the exception carries no
+    condition -- true of every SchedulerContractError -- which would hide
+    whether a case died on a 429, a 404 or a contract error. The typed
+    conditions come from the sealed event ledger instead.
+    """
+    from pathlib import Path
+
+    from aeread_families.econevals.failure_register import build
+
+    run_root = Path("runs/econevals/econevals_glm53_flash_parasail_first_light_v1")
+    if not run_root.exists():
+        pytest.skip("no sealed econevals runs available")
+    table, summary = build(run_root=run_root, repository_root=Path("."))
+    assert summary["failure_count"] > 0
+    assert summary["cost_is_a_floor"] is True
+    # Generic labels must not survive into the register.
+    assert "execution_failure" not in summary["by_failure_condition"]
+    # Every row carries the artifact it came from, and that artifact's digest.
+    header, *rows = table.decode("utf-8").strip().splitlines()
+    assert "source_artifact_sha256" in header
+    for row in rows:
+        assert len(row.rsplit(",", 1)[-1]) == 64

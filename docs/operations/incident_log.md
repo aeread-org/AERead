@@ -83,10 +83,19 @@ document; this file is the index and the disposition.
 | housing | `evidence/housing_failure_register/` | 56 typed failures over 10 campaigns (45 `rate_limit`, 9 `timeout`, 1 `transport`, 1 `execution_error`; 48 trajectory, 8 profile-admission) | `docs/operations/benchmark_qc.md` |
 | datacenter | `evidence/datacenter_failure_register.{json,md}` -- **to be moved** to the layout above | 541 incidents over 573 cells in 10 runs; attribution after correction: model 298, negotiation 170, provider 47, budget 16, environment 10; 17 rows reclassified | its own register `.md` |
 | procurement allocation | not yet built -- **owed** | 39 of 222 provider calls failed across the confirmatory work (17.6%) | `docs/families/procurement-allocation/design_review.md`, and the D/O/T/J sections below |
-| econevals | not yet built -- **owed** | 13 attempt roots, 12 failed; $0.125 spent, of which $0.0925 bought a complete but unpublishable panel | `docs/families/econevals/incidents.md` |
+| econevals | `evidence/econevals_failure_register/` | 19 typed failures over 13 attempt roots (10 `rate_limit`, 3 `malformed_structured_output`, 2 `provider_rejected`, 2 `provider_contract`, 2 `invalid_measurement`); 176 retried provider-call failures beneath them; attribution provider 12, model 5, environment 2 | `docs/families/econevals/incidents.md` |
 
-Two registers exist in the required shape, two are owed. The gap is recorded
-rather than quietly closed.
+Three registers exist in the required shape; procurement still owes one, and
+the data-center register needs moving to the standard layout. The gap is
+recorded rather than quietly closed.
+
+A note the econevals register makes concrete: a checkpoint records
+`execution_failure` whenever the exception carries no `condition`, which is
+true of every `SchedulerContractError`, so a register built from checkpoints
+alone cannot tell a 429 from a 404 from a contract error. The typed
+conditions must be recovered from the sealed event ledger. Any family
+building a Tier 1 register should do the same rather than trusting the
+checkpoint's label.
 
 
 ---
