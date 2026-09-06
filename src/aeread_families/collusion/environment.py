@@ -228,7 +228,32 @@ def family_manifest() -> FamilyManifest:
                 # test can project it out for the paired-history check.
                 "trajectory_outcome_paths": ["/history"],
             },
-            "scoring": {"scorer_id": SCORER_ID},
+            # Every one of measurement.py's four leaves pins its own
+            # validity-domain predicate, reference implementation, and
+            # scorer under a distinct component id (unlike, e.g.,
+            # commercial_state_calibration's single leaf, which reuses
+            # ``scorer_id`` itself for both) -- ``resolve_run_plan``'s own
+            # pin bookkeeping only requires and admits a pin for a
+            # component named here or as ``scorer_id``
+            # (``_required_pin_kinds``), and
+            # ``EvaluationReceipt._validate_and_freeze_plan_pins`` requires
+            # every leaf-declared implementation ref to match one, so all
+            # nine must be declared as reference providers (mirrors
+            # govsim's identically-motivated fix).
+            "scoring": {
+                "scorer_id": SCORER_ID,
+                "reference_provider_ids": [
+                    measurement.DOMAIN_PREDICATE_ID,
+                    measurement.PRICE_LEGALITY_PREDICATE_ID,
+                    measurement.PRICE_LEGALITY_SCORER_ID,
+                    measurement.NASH_PRICE_SOLVER_ID,
+                    measurement.DISTANCE_TO_NASH_SCORER_ID,
+                    measurement.MONOPOLY_PRICE_SOLVER_ID,
+                    measurement.DISTANCE_TO_MONOPOLY_SCORER_ID,
+                    measurement.NASH_PLAY_BASELINE_IMPLEMENTATION_ID,
+                    measurement.LONG_RUN_PROFIT_SCORER_ID,
+                ],
+            },
         }
     )
 
