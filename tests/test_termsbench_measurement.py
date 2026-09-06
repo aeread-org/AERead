@@ -24,10 +24,15 @@ import pytest
 from aeread.shared_runner.registry import PluginRegistry
 from aeread.shared_runner.run.resolver import PlanCell, case_content_sha256
 from aeread.shared_runner.schemas import CaseManifest
+from aeread.shared_runner.task.evaluation import FamilyScoringInput
 from aeread.shared_runner.task.scheduler import run_episode
 from aeread_families.termsbench import cases as tb_cases
 from aeread_families.termsbench import measurement as m
-from aeread_families.termsbench.environment import TermsBenchPlugin, register_plugin
+from aeread_families.termsbench.environment import (
+    TermsBenchPlugin,
+    family_manifest,
+    register_plugin,
+)
 from aeread_families.termsbench.harness import ScriptedTermsBenchHarness
 
 # ---------------------------------------------------------------------------
@@ -152,7 +157,12 @@ def test_leaf_families_and_directions_match_the_spec_verifier_table() -> None:
     assert cv_leaf.verifier.verifier_family == "rule_constraint"
     assert cv_leaf.verifier.reference.reference_kind == "constraint_satisfaction"
     assert cv_leaf.estimand.direction == "minimize"
-    assert cv_leaf.estimand.input_scope == "trajectory"
+    # Corrected by the scoring-contract migration (kernel_scoring_contract_spec.md
+    # section 1): score_protocol_compliance reads only outcome["critical_violations"]/
+    # ["secondary_violations"]/["malformed_action_schema"] -- terminal
+    # aggregates, never phase_instances directly -- so "trajectory" was a
+    # mislabelling this corrects, not a change to the arithmetic.
+    assert cv_leaf.estimand.input_scope == "terminal_state"
 
     nodeal_payload = _common_setup_payload(regime="nodeal", chi="agent_opens", r_a=100.0, r_b=150.0)
     no_deal_leaf, _cv_leaf2 = m.build_leaves(nodeal_payload)
@@ -464,3 +474,130 @@ def test_se_plus_equals_agr_plus_times_cse_plus_on_a_small_mixed_corpus() -> Non
     assert aggregate["SE_plus"] == pytest.approx(
         aggregate["AGR_plus"] * aggregate["CSE_plus"], abs=1e-9
     )
+
+
+# ---------------------------------------------------------------------------
+# The scoring contract (kernel_scoring_contract_spec.md sections 1-3):
+# family_manifest's declared leaf policy per family version, and
+# TermsBenchScorer.__call__ -- the exact seam
+# task.evaluation.finalize_family_execution calls
+# (plugin.build_scorer(family_case)(scoring_input, evidence_refs=...)).
+# ---------------------------------------------------------------------------
+
+
+def test_manifest_declares_the_overlap_leaf_policy() -> None:
+    declared = family_manifest("overlap").finalize_time_leaf_policy()
+    assert declared.leaf_ids == (
+        m.SURPLUS_EFFICIENCY_LEAF_ID,
+        m.FEASIBLE_AGREEMENT_LEAF_ID,
+        m.PROTOCOL_COMPLIANCE_LEAF_ID,
+    )
+    assert declared.primary_leaf_id == m.SURPLUS_EFFICIENCY_LEAF_ID
+    assert declared.admission_leaf_ids == (m.SURPLUS_EFFICIENCY_LEAF_ID,)
+
+
+def test_manifest_declares_the_nodeal_leaf_policy() -> None:
+    declared = family_manifest("nodeal").finalize_time_leaf_policy()
+    assert declared.leaf_ids == (m.NO_DEAL_AGREEMENT_LEAF_ID, m.PROTOCOL_COMPLIANCE_LEAF_ID)
+    assert declared.primary_leaf_id == m.NO_DEAL_AGREEMENT_LEAF_ID
+    assert declared.admission_leaf_ids == (m.NO_DEAL_AGREEMENT_LEAF_ID,)
+
+
+def _cell_for(case: CaseManifest, *, suffix: str) -> PlanCell:
+    return PlanCell(
+        spec_version="aeread.run_plan/0.1",
+        cell_id=f"cell_termsbench_measurement_call_{suffix}",
+        case_id=case.case_id,
+        case_sha256=case.content_sha256,
+        family_id=case.family_id,
+        family_version=case.family_version,
+        suite_id="suite_termsbench_measurement_call",
+        suite_version="0.1.0",
+        block_id="block_termsbench_measurement_call",
+        sampling_plan_id="sampling_termsbench_measurement_call",
+        analysis_plan_id="analysis_termsbench_measurement_call",
+        world_seed=case.world_seed,
+        sampling_seed=case.world_seed,
+        block_repetition=0,
+        sampling_replicate=0,
+        replicate_index=0,
+        cluster_id=f"cluster_termsbench_measurement_call_{suffix}",
+        cluster_level="case",
+        observations_per_cluster=1,
+        pair_id=None,
+        paired_fields=MappingProxyType({}),
+        panel_mode="independent",
+        profile_by_seat=MappingProxyType(
+            {"agent": "scripted_agent", "counterpart": "termsbench_counterpart_kernel_v1"}
+        ),
+        execution_mode="evaluate",
+        case_max_logical_actions=case.episode.max_logical_actions,
+    )
+
+
+def test_call_returns_every_declared_leaf_for_an_overlap_case() -> None:
+    """The exact production call shape: ``plugin.build_scorer(family_case)(
+    scoring_input, evidence_refs=scoring_input.evidence_refs)`` must return a
+    ``FamilyScoreSet`` carrying exactly ``termsbench.overlap``'s three
+    declared leaves, with the manifest's own primary/admission -- never
+    inferred from what the scorer happens to compute (mutation-verified:
+    dropping a leaf from ``TermsBenchScorer.__call__``'s returned tuple
+    fails this assertion, see docs/termsbench_adapter_status.md)."""
+    case = CaseManifest.from_dict(tb_cases.build_case("candid", "overlap", 1000046))
+    cell = _cell_for(case, suffix="overlap")
+    registry = PluginRegistry()
+    plugin = register_plugin(registry, regime="overlap")
+    harness = ScriptedTermsBenchHarness(
+        world_seed=case.world_seed,
+        script=[{"decision": "offer", "price": 110.0, "message": "opening"}],
+        counterpart_draws_by_round={1: {"u_accept": 0.10, "sentiment_noise": 0.0}},
+    )
+    result = asyncio.run(run_episode(cell=cell, case=case, plugin=plugin, response_source=harness))
+
+    family_case = plugin.validate_payload(case.payload)
+    scorer = plugin.build_scorer(family_case)
+    scoring_input = FamilyScoringInput(
+        outcome=result.outcome, phase_instances=result.phase_instances, evidence_refs=("ev-overlap",)
+    )
+    score_set = scorer(scoring_input, evidence_refs=scoring_input.evidence_refs)
+
+    declared = family_manifest("overlap").finalize_time_leaf_policy()
+    assert {score.leaf.leaf_id for score in score_set.scores} == set(declared.leaf_ids)
+    assert score_set.primary_leaf_id == declared.primary_leaf_id
+    assert score_set.admission_leaf_ids == declared.admission_leaf_ids
+    assert all(score.evidence_refs == ("ev-overlap",) for score in score_set.scores)
+
+    se = next(s for s in score_set.scores if s.leaf.leaf_id == m.SURPLUS_EFFICIENCY_LEAF_ID)
+    assert se.status == "ok"
+    assert se.primary.value > 0.0
+
+
+def test_call_returns_every_declared_leaf_for_a_nodeal_case() -> None:
+    """Companion to the overlap test above, for ``termsbench.nodeal``'s two
+    declared leaves (FAGR-, CritViol%)."""
+    case = CaseManifest.from_dict(tb_cases.build_case("candid", "nodeal", 1010011))
+    cell = _cell_for(case, suffix="nodeal")
+    registry = PluginRegistry()
+    plugin = register_plugin(registry, regime="nodeal")
+    harness = ScriptedTermsBenchHarness(
+        world_seed=case.world_seed,
+        script=[{"decision": "reject", "price": None, "message": "no deal"}],
+    )
+    result = asyncio.run(run_episode(cell=cell, case=case, plugin=plugin, response_source=harness))
+
+    family_case = plugin.validate_payload(case.payload)
+    scorer = plugin.build_scorer(family_case)
+    scoring_input = FamilyScoringInput(
+        outcome=result.outcome, phase_instances=result.phase_instances, evidence_refs=("ev-nodeal",)
+    )
+    score_set = scorer(scoring_input, evidence_refs=scoring_input.evidence_refs)
+
+    declared = family_manifest("nodeal").finalize_time_leaf_policy()
+    assert {score.leaf.leaf_id for score in score_set.scores} == set(declared.leaf_ids)
+    assert score_set.primary_leaf_id == declared.primary_leaf_id
+    assert score_set.admission_leaf_ids == declared.admission_leaf_ids
+    assert all(score.evidence_refs == ("ev-nodeal",) for score in score_set.scores)
+
+    fagr = next(s for s in score_set.scores if s.leaf.leaf_id == m.NO_DEAL_AGREEMENT_LEAF_ID)
+    assert fagr.status == "ok"
+    assert fagr.primary.value == 0.0

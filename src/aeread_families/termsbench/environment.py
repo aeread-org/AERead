@@ -45,8 +45,17 @@ from aeread.shared_runner.task.scheduler import (
 from . import kernel as k
 from .cases import FAMILY_ID_BY_REGIME, FAMILY_VERSION, REGIMES, TERMINATION_REASONS
 from .measurement import (
+    DOMAIN_PREDICATE_ID,
+    FEASIBLE_AGREEMENT_LEAF_ID,
+    FEASIBLE_AGREEMENT_SCORER_ID,
     NO_DEAL_AGREEMENT_ESTIMAND_ID,
+    NO_DEAL_AGREEMENT_LEAF_ID,
+    NO_DEAL_AGREEMENT_SCORER_ID,
+    PROTOCOL_COMPLIANCE_LEAF_ID,
+    PROTOCOL_COMPLIANCE_SCORER_ID,
     SURPLUS_EFFICIENCY_ESTIMAND_ID,
+    SURPLUS_EFFICIENCY_LEAF_ID,
+    SURPLUS_EFFICIENCY_SCORER_ID,
     TermsBenchScorer,
     build_scorer as build_measurement_scorer,
 )
@@ -118,6 +127,39 @@ def family_manifest(regime: str) -> FamilyManifest:
         raise ValueError(f"unknown regime: {regime!r}")
     direction = "maximize" if regime == "overlap" else "minimize"
     outcome_support = "zopa_fraction" if regime == "overlap" else "pass"
+    if regime == "overlap":
+        # termsbench.overlap's static leaf set (docs/termsbench_migration_plan.md):
+        # SE+ (primary, sole admission), AGR+, CritViol% -- all finalize_time,
+        # none case_conditional (ruling R13's hook is not needed: every case
+        # this family version ever sees is Overlap, by validate_payload).
+        leaves = [
+            {"leaf_id": SURPLUS_EFFICIENCY_LEAF_ID, "scope": "finalize_time"},
+            {"leaf_id": FEASIBLE_AGREEMENT_LEAF_ID, "scope": "finalize_time"},
+            {"leaf_id": PROTOCOL_COMPLIANCE_LEAF_ID, "scope": "finalize_time"},
+        ]
+        primary_leaf_id = SURPLUS_EFFICIENCY_LEAF_ID
+        admission_leaf_ids = [SURPLUS_EFFICIENCY_LEAF_ID]
+        reference_provider_ids = [
+            DOMAIN_PREDICATE_ID,
+            SURPLUS_EFFICIENCY_SCORER_ID,
+            FEASIBLE_AGREEMENT_SCORER_ID,
+            PROTOCOL_COMPLIANCE_SCORER_ID,
+        ]
+    else:
+        # termsbench.nodeal's static leaf set: FAGR- (primary, sole
+        # admission), CritViol% -- both finalize_time, neither
+        # case_conditional.
+        leaves = [
+            {"leaf_id": NO_DEAL_AGREEMENT_LEAF_ID, "scope": "finalize_time"},
+            {"leaf_id": PROTOCOL_COMPLIANCE_LEAF_ID, "scope": "finalize_time"},
+        ]
+        primary_leaf_id = NO_DEAL_AGREEMENT_LEAF_ID
+        admission_leaf_ids = [NO_DEAL_AGREEMENT_LEAF_ID]
+        reference_provider_ids = [
+            DOMAIN_PREDICATE_ID,
+            NO_DEAL_AGREEMENT_SCORER_ID,
+            PROTOCOL_COMPLIANCE_SCORER_ID,
+        ]
     return FamilyManifest.from_dict(
         {
             "spec_version": FamilyManifest.SPEC_VERSION,
@@ -152,8 +194,22 @@ def family_manifest(regime: str) -> FamilyManifest:
                 "direction": direction,
                 "outcome_support": outcome_support,
                 "bound_status": "not_demonstrated",
+                # kernel_scoring_contract_spec.md section 3: every leaf this
+                # family version publishes at finalize time, exactly one
+                # primary, and precisely the leaves that gate admission --
+                # declared here, the one source of truth, never inferred
+                # from TermsBenchScorer.__call__ or a test fixture. See
+                # docs/termsbench_adapter_status.md's "Leaf policy" section
+                # for why this leaf is primary and why it alone gates
+                # admission.
+                "leaves": leaves,
+                "primary_leaf_id": primary_leaf_id,
+                "admission_leaf_ids": admission_leaf_ids,
             },
-            "scoring": {"scorer_id": SCORER_ID_BY_REGIME[regime]},
+            "scoring": {
+                "scorer_id": SCORER_ID_BY_REGIME[regime],
+                "reference_provider_ids": reference_provider_ids,
+            },
         }
     )
 
@@ -647,11 +703,17 @@ class TermsBenchPlugin:
 
     def build_scorer(self, family_case: Mapping[str, Any]) -> TermsBenchScorer:
         """Return the declared measurement leaves plus their scorers
-        (``measurement.py``, spec section 2): 3 leaves for an Overlap-regime
-        case, 2 for a No-deal-regime case. The current kernel does not yet
-        call ``build_scorer`` itself (mirrors ``Tau3RetailPlugin``'s
-        identical note), so ``measurement.py``'s ``score_*`` functions are
-        also exercised directly by tests today.
+        (``measurement.py``, spec section 2): 3 leaves (SE+, AGR+, CritViol%)
+        for a ``termsbench.overlap`` case, 2 (FAGR-, CritViol%) for a
+        ``termsbench.nodeal`` case -- guaranteed by this regime, since
+        ``validate_payload`` rejects any other. ``task.evaluation.
+        finalize_family_execution`` calls the returned ``TermsBenchScorer``
+        directly (``plugin.build_scorer(family_case)(scoring_input,
+        evidence_refs=scoring_input.evidence_refs)``, per
+        kernel_scoring_contract_spec.md section 1); ``TermsBenchScorer.__call__``
+        is the seam that satisfies that call. Each leaf's own named method is
+        still exercised directly by ``tests/test_termsbench_measurement.py``'s
+        goldens.
         """
         return build_measurement_scorer(family_case)
 

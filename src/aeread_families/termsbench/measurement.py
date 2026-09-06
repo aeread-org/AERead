@@ -51,6 +51,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
+from aeread.shared_runner import FamilyScoreSet
 from aeread.shared_runner.measurement import (
     EstimandSpec,
     ImplementationRef,
@@ -63,6 +64,7 @@ from aeread.shared_runner.measurement import (
     VerifierSpec,
 )
 from aeread.shared_runner.run.resolver import canonical_json_bytes
+from aeread.shared_runner.task.evaluation import FamilyScoringInput
 
 from . import kernel as k
 
@@ -94,6 +96,16 @@ PROTOCOL_COMPLIANCE_LEAF_ID = "termsbench_protocol_compliance_leaf"
 PROTOCOL_COMPLIANCE_REFERENCE_ID = "termsbench_protocol_compliance_case_constants"
 PROTOCOL_COMPLIANCE_SCORER_ID = "termsbench_protocol_compliance_scorer"
 
+# Named (not inline) because it is also one of family_manifest()'s own
+# ``scoring.reference_provider_ids`` declarations (environment.py): every
+# leaf's ``ValidityDomainSpec.predicate`` shares this one id, distinct from
+# ``scoring.scorer_id``, so ``run.resolver._required_pin_kinds`` must be told
+# to require (and admit) a pin for it too, or
+# ``EvaluationReceipt._validate_and_freeze_plan_pins`` rejects every sealed
+# receipt as missing an implementation (mirrors govsim's identically-motivated
+# ``BASE_DOMAIN_PREDICATE_ID``).
+DOMAIN_PREDICATE_ID = "termsbench_environment_domain_predicate"
+
 
 def _file_sha256(name: str) -> str:
     return hashlib.sha256(Path(__file__).with_name(name).read_bytes()).hexdigest()
@@ -117,7 +129,7 @@ def _validity_domain() -> ValidityDomainSpec:
         domain_id=DOMAIN_ID,
         domain_version=DOMAIN_VERSION,
         schema_ref="termsbench_pilot_v1/case_payload",
-        predicate=_implementation("termsbench_environment_domain_predicate", "environment.py"),
+        predicate=_implementation(DOMAIN_PREDICATE_ID, "environment.py"),
     )
 
 
@@ -284,12 +296,25 @@ def build_no_deal_agreement_leaf(payload: Mapping[str, Any]) -> MeasurementLeafS
 def build_protocol_compliance_leaf(payload: Mapping[str, Any]) -> MeasurementLeafSpec:
     """Leaf 4: ``CritViol%`` (eq. 66, App. B.3/F.4). Declared for every
     episode -- a genuine ``rule_constraint`` check that does not depend on
-    the counterpart at all (spec section 2)."""
+    the counterpart at all (spec section 2).
+
+    ``input_scope="terminal_state"``, not ``"trajectory"``:
+    ``score_protocol_compliance`` below reads only
+    ``outcome["critical_violations"]``/``["secondary_violations"]``/
+    ``["malformed_action_schema"]`` -- terminal aggregates ``step()`` already
+    folds into the outcome dict every round, never
+    ``FamilyScoringInput.phase_instances`` directly (kernel_scoring_contract_spec.md
+    section 1's terminal/trajectory split; the worked example's own rule:
+    "Trajectory-scoped leaves read ``scoring_input.phase_instances``; terminal
+    ones read ``scoring_input.outcome``"). It was declared ``"trajectory"``
+    before this migration; that was a mislabelling this migration corrects,
+    not a change to what the leaf measures -- the arithmetic is unchanged.
+    """
     domain = _validity_domain()
     estimand = EstimandSpec(
         estimand_id=PROTOCOL_COMPLIANCE_ESTIMAND_ID,
         estimand_version=ESTIMAND_VERSION,
-        input_scope="trajectory",
+        input_scope="terminal_state",
         direction="minimize",
         units="violation_rate",
         validity_domain=domain,
@@ -298,7 +323,7 @@ def build_protocol_compliance_leaf(payload: Mapping[str, Any]) -> MeasurementLea
         reference_id=PROTOCOL_COMPLIANCE_REFERENCE_ID,
         reference_version=REFERENCE_VERSION,
         reference_kind="constraint_satisfaction",
-        input_scope="trajectory",
+        input_scope="terminal_state",
         units="violation_rate",
         source_sha256=_case_constants_sha256(payload),
         implementation=_implementation(PROTOCOL_COMPLIANCE_SCORER_ID, "measurement.py"),
@@ -580,6 +605,65 @@ class TermsBenchScorer:
             self.protocol_compliance_leaf, outcome=outcome, evidence_refs=evidence_refs
         )
 
+    def __call__(
+        self, scoring_input: FamilyScoringInput, *, evidence_refs: tuple[str, ...] = ()
+    ) -> FamilyScoreSet:
+        """Score one finalized episode exactly as the production finalizer
+        calls it: ``plugin.build_scorer(family_case)(scoring_input,
+        evidence_refs=scoring_input.evidence_refs)``
+        (``task.evaluation.finalize_family_execution``, per
+        kernel_scoring_contract_spec.md section 1).
+
+        Every leaf either family version declares is ``input_scope=
+        "terminal_state"`` (``build_protocol_compliance_leaf``'s own
+        docstring covers leaf 4; leaves 1-3 always were), so every score
+        below reads only ``scoring_input.outcome`` -- never
+        ``scoring_input.phase_instances`` -- via the same named ``score_*``
+        methods this class already exposes above (the single source of
+        truth; no new scoring logic is written here).
+
+        ``self.leaves`` was built by ``build_leaves(self.payload)`` from
+        THIS case's own payload, whose ``regime`` is guaranteed (by
+        ``TermsBenchPlugin.validate_payload``, which rejects any other
+        regime before this scorer is ever built) to match whichever family
+        version this scorer belongs to -- so exactly one of
+        ``surplus_efficiency_leaf``/``no_deal_agreement_leaf`` is ever
+        populated below, never both, never neither, and the returned
+        ``FamilyScoreSet`` always carries exactly that family version's own
+        static declared leaf set: three leaves (SE+, AGR+, CritViol%) for
+        ``termsbench.overlap``, two (FAGR-, CritViol%) for
+        ``termsbench.nodeal``. No leaf is ``case_conditional`` -- ruling
+        R13's hook is not needed here, and none is used.
+        """
+        outcome = scoring_input.outcome
+        if self.surplus_efficiency_leaf is not None:
+            # termsbench.overlap's static leaf set.
+            return FamilyScoreSet(
+                primary_leaf_id=SURPLUS_EFFICIENCY_LEAF_ID,
+                scores=(
+                    self.score_surplus_efficiency(outcome=outcome, evidence_refs=evidence_refs),
+                    self.score_feasible_agreement(outcome=outcome, evidence_refs=evidence_refs),
+                    self.score_protocol_compliance(outcome=outcome, evidence_refs=evidence_refs),
+                ),
+                admission_leaf_ids=(SURPLUS_EFFICIENCY_LEAF_ID,),
+            )
+        if self.no_deal_agreement_leaf is not None:
+            # termsbench.nodeal's static leaf set.
+            return FamilyScoreSet(
+                primary_leaf_id=NO_DEAL_AGREEMENT_LEAF_ID,
+                scores=(
+                    self.score_no_deal_agreement(outcome=outcome, evidence_refs=evidence_refs),
+                    self.score_protocol_compliance(outcome=outcome, evidence_refs=evidence_refs),
+                ),
+                admission_leaf_ids=(NO_DEAL_AGREEMENT_LEAF_ID,),
+            )
+        raise AssertionError(
+            "this case declares neither termsbench_surplus_efficiency nor "
+            "termsbench_no_deal_agreement -- build_leaves only returns this "
+            "shape for regime in ('overlap', 'nodeal'), already enforced by "
+            "TermsBenchPlugin.validate_payload"
+        )
+
 
 def build_scorer(payload: Mapping[str, Any]) -> TermsBenchScorer:
     """Build the one ``TermsBenchScorer`` for a case's ``family_case``
@@ -630,14 +714,19 @@ def aggregate_surplus_efficiency_corpus(
 
 
 __all__ = [
+    "DOMAIN_PREDICATE_ID",
     "FEASIBLE_AGREEMENT_ESTIMAND_ID",
     "FEASIBLE_AGREEMENT_LEAF_ID",
+    "FEASIBLE_AGREEMENT_SCORER_ID",
     "NO_DEAL_AGREEMENT_ESTIMAND_ID",
+    "NO_DEAL_AGREEMENT_SCORER_ID",
     "NO_DEAL_AGREEMENT_LEAF_ID",
     "PROTOCOL_COMPLIANCE_ESTIMAND_ID",
     "PROTOCOL_COMPLIANCE_LEAF_ID",
+    "PROTOCOL_COMPLIANCE_SCORER_ID",
     "SURPLUS_EFFICIENCY_ESTIMAND_ID",
     "SURPLUS_EFFICIENCY_LEAF_ID",
+    "SURPLUS_EFFICIENCY_SCORER_ID",
     "TermsBenchScorer",
     "aggregate_surplus_efficiency_corpus",
     "build_feasible_agreement_leaf",
