@@ -221,9 +221,22 @@ def register_plugin(
 
     ``regime`` is required (no default): a caller must say which of the two
     split family versions it is registering, never leave it implicit.
+
+    A supplied ``plugin``'s own ``regime`` must match ``regime`` exactly: the
+    manifest returned by ``family_manifest(regime)`` declares that regime's
+    own static leaf set/primary/admission, and binding it to a plugin built
+    for the OTHER regime would register (say) the overlap manifest against
+    a nodeal validator/scorer -- a nodeal payload would then be accepted
+    and scored under the overlap identity, silently. Rejected here, before
+    registration, never left for a mismatched receipt to surface later.
     """
     if plugin is None:
         plugin = TermsBenchPlugin(regime=regime)
+    elif plugin.regime != regime:
+        raise ValueError(
+            f"plugin.regime {plugin.regime!r} does not match the manifest "
+            f"regime {regime!r} being registered for it"
+        )
     registry.register_trusted(family_manifest(regime), plugin)
     return plugin
 
