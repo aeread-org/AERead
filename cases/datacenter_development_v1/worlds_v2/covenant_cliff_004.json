@@ -1,6 +1,6 @@
 {
   "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_004",
-  "content_sha256": "34651237fbebe6abfd66c48e087e517bea4e94b17635b5b37b819a62b609f600",
+  "content_sha256": "9e97b1a590db69e5240627cb3d042e2a2e5f58a8c809c7f18dc4edc05d9dfd1c",
   "episode": {
     "max_logical_actions": 30,
     "termination": [
@@ -189,7 +189,7 @@
             "site_control",
             "power_commitment"
           ],
-          "contracted_capacity_kw": 50000,
+          "contracted_capacity_kw": 40000,
           "delay_liquidated_damages_cap_cents": 1000000000,
           "delay_liquidated_damages_cents_per_month": 200000000,
           "developer_security_cents": 20000000,
@@ -209,7 +209,7 @@
           "monthly_demand_charge_cents_per_kw": 1400
         },
         "minimums": {
-          "contracted_capacity_kw": 50000,
+          "contracted_capacity_kw": 40000,
           "interconnection_cost_cents": 1700000000,
           "monthly_demand_charge_cents_per_kw": 1190
         },

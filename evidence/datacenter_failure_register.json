@@ -1,5 +1,5 @@
 {
-  "artifact_sha256": "3a5b12ad2ee3a4b690525778c1d586d0b75bbebf4f3f988b42f9f898ea0aba21",
+  "artifact_sha256": "465ad8eaf5c13c3a33344c4cbee22a2e6eb3477a235309411f86b1efc83df44f",
   "by_attribution_as_recorded": {
     "budget": 16,
     "environment": 10,
@@ -95,20 +95,20 @@
     },
     {
       "detected_by": "offline probe plus the calibrated live panel",
-      "fix": null,
+      "fix": "the utility now counters with an undersized connection, so every world punishes blind counter-adoption rather than rewarding it",
       "id": "traps-unreachable-by-counter-adopters",
-      "regression_test": null,
+      "regression_test": "tests/test_datacenter_qc.py::test_the_task_cannot_be_solved_without_cross_agreement_lookahead",
       "severity": "strata_do_not_test_what_they_claim",
-      "status": "open",
+      "status": "fixed",
       "summary": "In four of six strata the counterparty's counter package is the safe one, so an agent that adopts every counter walks past the trap without ever facing the decision the stratum exists to test. Only verbal/written baits with the counter. Against the one route that transacts, which adopts counters verbatim, five of six strata are inert: it was admitted in 17 of 24 worlds and failed every verbal/written world and almost nothing else."
     },
     {
       "detected_by": "offline probe over the generated pack",
-      "fix": null,
+      "fix": "the counter package is now jointly infeasible on capacity, so a commitment made two agreements early decides whether the lease can be signed at all",
       "id": "planning-decoupled-from-negotiation",
-      "regression_test": null,
+      "regression_test": "tests/test_datacenter_qc.py::test_the_lookahead_has_a_reachable_solution_and_a_closed_alternative",
       "severity": "under-tests_declared_capability",
-      "status": "open",
+      "status": "fixed",
       "summary": "Price negotiation cannot break the structural plan: in 19 of 24 worlds both adopting every counter and negotiating every price to the floor are structurally valid. The counter package is internally consistent, so cross-agreement planning is solved for free and the sequence order is fixed rather than chosen. The family currently measures distributive pricing and schema compliance far more than it measures planning."
     },
     {
@@ -6202,8 +6202,6 @@
     }
   ],
   "open_defects": [
-    "traps-unreachable-by-counter-adopters",
-    "planning-decoupled-from-negotiation",
     "suite-needs-gitignored-artifacts"
   ],
   "reclassified_incidents": 17,

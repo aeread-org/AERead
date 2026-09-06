@@ -1,6 +1,6 @@
 {
   "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_001",
-  "content_sha256": "95132dd9135092c404704feb605fbd281ff771869fa8ad2c3eea85b710573964",
+  "content_sha256": "5aa0cd12eaf0182f71b96bd081923d6a70c33501a006c0e48045ae49c6582dce",
   "episode": {
     "max_logical_actions": 30,
     "termination": [
@@ -189,7 +189,7 @@
             "site_control",
             "power_commitment"
           ],
-          "contracted_capacity_kw": 50000,
+          "contracted_capacity_kw": 40000,
           "delay_liquidated_damages_cap_cents": 1000000000,
           "delay_liquidated_damages_cents_per_month": 200000000,
           "developer_security_cents": 20000000,
@@ -209,7 +209,7 @@
           "monthly_demand_charge_cents_per_kw": 1200
         },
         "minimums": {
-          "contracted_capacity_kw": 50000,
+          "contracted_capacity_kw": 40000,
           "interconnection_cost_cents": 1700000000,
           "monthly_demand_charge_cents_per_kw": 1020
         },

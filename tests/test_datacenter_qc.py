@@ -44,6 +44,12 @@ def _scripted(payload: dict) -> dict:
     return {k: payload["scripted_developer"][f"{k}_terms"] for k in SEQUENCE}
 
 
+def _stack(payload: dict, source: str) -> dict:
+    if source == "scripted":
+        return _scripted(payload)
+    return {k: payload["policies"][k]["counter_terms"] for k in SEQUENCE}
+
+
 def _evaluate(payload: dict, terms: dict) -> dict:
     return evaluate_stack(payload["project_facts"], terms)
 
@@ -263,3 +269,122 @@ def test_an_absurd_integer_is_a_model_error_not_an_infrastructure_failure() -> N
     )
     assert not result.ok
     assert result.error_code == "malformed_datacenter_stack_action"
+
+
+# ------------------------------------------------------------------ planning
+
+
+def test_the_task_cannot_be_solved_without_cross_agreement_lookahead() -> None:
+    """Adopting every counter must strand the project, in every world.
+
+    The utility is agreed two steps before the tenant and executed agreements
+    cannot be reopened, so a developer that accepts its smaller, cheaper
+    connection has already lost by the time the lease demands full capacity.
+    Without this the counter package is a complete, consistent answer and no
+    planning is required at all.
+    """
+    from aeread_families.datacenter_development.stack_environment import (
+        TERM_PARSER_BY_TYPE,
+        terms_acceptable,
+    )
+
+    for world in load_pack_manifest()["worlds"]:
+        payload = _payload(world["file"])
+        name = world["file"]
+        counters = _stack(payload, "counter")
+        scripted = _stack(payload, "scripted")
+
+        # Each counter is individually acceptable to the seat that made it.
+        for key, terms in counters.items():
+            assert terms_acceptable(
+                TERM_PARSER_BY_TYPE[
+                    "land" if key == "land_amendment" else key
+                ](terms),
+                payload["policies"][key],
+            ), f"{name}: {key} counter must be admissible on its own"
+
+        # Jointly they are infeasible, and specifically on capacity.
+        adopted = _evaluate(payload, counters)
+        assert adopted["constraints_satisfied"] is False, name
+        assert (
+            counters["power"]["contracted_capacity_kw"]
+            < counters["service"]["committed_capacity_kw"]
+        ), name
+
+        # The scripted plan resolves it, so the world remains solvable.
+        assert _evaluate(payload, scripted)["constraints_satisfied"] is True, name
+
+
+def test_the_capacity_gap_is_a_planning_failure_not_a_cash_failure() -> None:
+    """Where the counter carries no cash trap, the money still works.
+
+    Some strata additionally bait the counter with a financing trap, and those
+    worlds demand that both problems be solved. But the capacity gap must stand
+    on its own as a planning failure somewhere, or it is indistinguishable from
+    running out of cash.
+    """
+    pure = 0
+    for world in load_pack_manifest()["worlds"]:
+        payload = _payload(world["file"])
+        adopted = _evaluate(payload, _stack(payload, "counter"))
+        if adopted["financing_succeeded"] and not adopted["default_reasons"]:
+            assert adopted["constraints_satisfied"] is False, world["file"]
+            pure += 1
+    assert pure >= 18, f"only {pure} of 24 worlds isolate the planning failure"
+
+
+def test_the_lookahead_has_a_reachable_solution_and_a_closed_alternative() -> None:
+    """The developer can insist on full capacity; it cannot shrink the lease."""
+    import copy
+
+    from aeread_families.datacenter_development.stack_environment import (
+        TERM_PARSER_BY_TYPE,
+        terms_acceptable,
+    )
+
+    for world in load_pack_manifest()["worlds"]:
+        payload = _payload(world["file"])
+        name = world["file"]
+        counters = _stack(payload, "counter")
+        required = counters["service"]["committed_capacity_kw"]
+
+        insisted = copy.deepcopy(counters)
+        insisted["power"]["contracted_capacity_kw"] = required
+        assert terms_acceptable(
+            TERM_PARSER_BY_TYPE["power"](insisted["power"]),
+            payload["policies"]["power"],
+        ), f"{name}: the utility must accept a full-size connection"
+        adopted = _evaluate(payload, counters)
+        if adopted["financing_succeeded"] and not adopted["default_reasons"]:
+            # Where capacity is the only defect, correcting it is sufficient.
+            assert _evaluate(payload, insisted)["constraints_satisfied"] is True, name
+        # Everywhere, the scripted plan is a complete solution.
+        assert _evaluate(payload, _stack(payload, "scripted"))[
+            "constraints_satisfied"
+        ] is True, name
+
+        # Downsizing the lease to match is not a way out: the tenant's floor is
+        # full capacity, so exactly one plan survives.
+        reduced = counters["power"]["contracted_capacity_kw"]
+        shrunk = copy.deepcopy(counters)
+        shrunk["service"]["committed_capacity_kw"] = reduced
+        shrunk["service"]["ramp_schedule"] = [
+            {**step, "capacity_kw": min(step["capacity_kw"], reduced)}
+            for step in shrunk["service"]["ramp_schedule"]
+        ]
+        shrunk["service"]["ramp_schedule"][-1]["capacity_kw"] = reduced
+        assert not terms_acceptable(
+            TERM_PARSER_BY_TYPE["service"](shrunk["service"]),
+            payload["policies"]["service"],
+        ), f"{name}: shrinking the lease must not be an escape"
+
+
+def test_the_requirement_is_visible_before_the_binding_commitment() -> None:
+    """A planning test is unfair if the constraint only appears after the fact."""
+    for world in load_pack_manifest()["worlds"]:
+        facts = _payload(world["file"])["project_facts"]
+        required = max(facts["customer_usage_kw_by_month"])
+
+        assert required == CAPACITY_KW, world["file"]
+        assert max(facts["built_capacity_kw_by_month"]) == required, world["file"]
+        assert max(facts["energized_capacity_kw_by_month"]) == required, world["file"]

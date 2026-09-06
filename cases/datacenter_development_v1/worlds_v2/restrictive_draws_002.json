@@ -1,6 +1,6 @@
 {
   "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_002",
-  "content_sha256": "974b65923e53be74adbe30cced02e9af8335cfc8c721b313b85eec3f72d54969",
+  "content_sha256": "162f9929f0464045c40f0be368dbdaf1e59b1a42ef4d979139ff836385249433",
   "episode": {
     "max_logical_actions": 30,
     "termination": [
@@ -190,7 +190,7 @@
             "site_control",
             "power_commitment"
           ],
-          "contracted_capacity_kw": 50000,
+          "contracted_capacity_kw": 40000,
           "delay_liquidated_damages_cap_cents": 1000000000,
           "delay_liquidated_damages_cents_per_month": 200000000,
           "developer_security_cents": 20000000,
@@ -210,7 +210,7 @@
           "monthly_demand_charge_cents_per_kw": 1000
         },
         "minimums": {
-          "contracted_capacity_kw": 50000,
+          "contracted_capacity_kw": 40000,
           "interconnection_cost_cents": 1700000000,
           "monthly_demand_charge_cents_per_kw": 850
         },

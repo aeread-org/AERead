@@ -215,13 +215,45 @@ stratum does nearly all the discriminating. This corrects the claim made from
 the earlier toy-scale panel that the strata discriminate broadly; at market
 calibration they do not.
 
-**What it is today**, then: a schema-compliance and instruction-following case
-with a distributive-pricing gradient and one genuine reading-comprehension
-trap. Making it a planning case needs the counter package to be internally
-inconsistent so that adopting creates a violation that only surfaces later, the
-agreement order to be chosen rather than fixed, and a counterparty that
-responds to what was actually offered. Both gaps are tracked as open defects in
-the failure register.
+**What it was**, then: a schema-compliance and instruction-following case with
+a distributive-pricing gradient and one genuine reading-comprehension trap. The
+environment was correct and the engine sound, but the task handed to the agent
+never required planning, because the counterparties handed over a complete,
+mutually consistent, safe answer.
+
+### Designing the test that was missing
+
+The fix is to make the counter package jointly infeasible. The utility now
+counters with a connection sized at 80 percent of the project, which is locally
+rational for it, individually admissible, and visibly cheaper through lower
+per-kW demand charges. Power is agreed two steps before the lease and executed
+agreements cannot be reopened, so a developer that accepts it has already lost
+by the time the tenant demands full capacity.
+
+| Property | Before | After |
+|---|---:|---:|
+| Worlds where adopting every counter is structurally valid | 19 of 24 | 0 of 24 |
+| Worlds where the scripted plan is valid | 24 of 24 | 24 of 24 |
+
+Four properties are pinned by tests, because a planning test is only fair if it
+is solvable, informed, and not solvable by accident:
+
+1. **It cannot be solved by adoption.** Every counter is admissible on its own,
+   and jointly they violate the capacity chain, in all 24 worlds.
+2. **It is a planning failure, not a cash failure.** In at least 18 worlds the
+   financing still succeeds with no defaults, so the capacity gap stands alone
+   and is not confounded with running out of money.
+3. **It is reachable.** Insisting on full capacity is accepted by the utility
+   and repairs the stack wherever capacity is the only defect.
+4. **The escape is closed and the information is timely.** Shrinking the lease
+   to match the smaller connection is refused by the tenant, so exactly one
+   plan survives, and the requirement is visible in public project facts two
+   agreements before the binding commitment.
+
+What remains undone is the rest of the plan's ambition: the agreement order is
+still imposed rather than chosen, and the counterparty is still static, so
+integrative bargaining remains unmeasurable. Those are limits on the
+negotiation dimension, not the planning one.
 
 ## Where the failures live
 

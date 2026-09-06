@@ -45,6 +45,11 @@ HORIZON = 36
 CAPACITY_KW = 50_000
 VARIANTS_PER_STRATUM = 4
 MAX_ROUNDS = 3
+# The utility will happily sell less capacity than the project needs. Because
+# power is agreed two steps before the lease and executed agreements cannot be
+# reopened, accepting its smaller, cheaper package is an irreversible planning
+# error that only surfaces when the tenant asks for full capacity.
+UNDERSIZED_CAPACITY_BPS = 8_000
 STRATA = (
     "revenue_without_bankability",
     "delayed_revenue",
@@ -352,7 +357,11 @@ def _default_policies(terms: Mapping[str, Mapping[str, Any]]) -> dict[str, dict[
             # Two-sided bands: the utility will not supply below its own cost,
             # and will not underwrite unbounded delay liability.
             "minimums": {
-                "contracted_capacity_kw": CAPACITY_KW,
+                # The utility's own floor is below what the project needs, so a
+                # developer that simply adopts its counter strands the lease.
+                "contracted_capacity_kw": _round_div(
+                    CAPACITY_KW * UNDERSIZED_CAPACITY_BPS, 10_000
+                ),
                 "interconnection_cost_cents": _floor(
                     power["interconnection_cost_cents"]
                 ),
@@ -376,7 +385,15 @@ def _default_policies(terms: Mapping[str, Mapping[str, Any]]) -> dict[str, dict[
                 ],
             },
             "required_conditions": ["site_control", "power_commitment"],
-            "counter_terms": copy.deepcopy(power),
+            "counter_terms": {
+                **copy.deepcopy(power),
+                # Locally rational for the utility and visibly cheaper: a
+                # smaller connection carries proportionally lower demand
+                # charges. Jointly infeasible with the tenant's requirement.
+                "contracted_capacity_kw": _round_div(
+                    CAPACITY_KW * UNDERSIZED_CAPACITY_BPS, 10_000
+                ),
+            },
         },
         "epc": {
             "minimums": {

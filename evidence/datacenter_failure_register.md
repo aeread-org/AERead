@@ -41,8 +41,8 @@ Attribution answers the question worth asking later: whose fault was it? Anythin
 | coverage-counted-the-balloon | invalidates_measurement | fixed | `test_a_bullet_repayment_at_maturity_is_not_a_coverage_breach` |
 | model-error-booked-as-provider | mis-attributes_failure | fixed | `test_an_absurd_integer_is_a_model_error_not_an_infrastructure_failure` |
 | covenant-cliff-unbuildable-from-leverage | specification_not_realisable | worked_around | `test_every_world_has_feasible_trap_and_walk_away_paths` |
-| traps-unreachable-by-counter-adopters | strata_do_not_test_what_they_claim | open | `none` |
-| planning-decoupled-from-negotiation | under-tests_declared_capability | open | `none` |
+| traps-unreachable-by-counter-adopters | strata_do_not_test_what_they_claim | fixed | `test_the_task_cannot_be_solved_without_cross_agreement_lookahead` |
+| planning-decoupled-from-negotiation | under-tests_declared_capability | fixed | `test_the_lookahead_has_a_reachable_solution_and_a_closed_alternative` |
 | suite-needs-gitignored-artifacts | blocks_clean_checkout | open | `none` |
 
-Open: traps-unreachable-by-counter-adopters, planning-decoupled-from-negotiation, suite-needs-gitignored-artifacts.
+Open: suite-needs-gitignored-artifacts.

@@ -1,6 +1,6 @@
 {
   "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_003",
-  "content_sha256": "3d19075e6b79bfd95bc70c74eab6de02191f1205a84892b9f601070ebd98763f",
+  "content_sha256": "9e33ad3b2b7395e0f549dc816a82e94ff4feb701fd6f71c1c416597ab03659b2",
   "episode": {
     "max_logical_actions": 30,
     "termination": [
@@ -199,7 +199,7 @@
             "site_control",
             "power_commitment"
           ],
-          "contracted_capacity_kw": 50000,
+          "contracted_capacity_kw": 40000,
           "delay_liquidated_damages_cap_cents": 1000000000,
           "delay_liquidated_damages_cents_per_month": 200000000,
           "developer_security_cents": 20000000,
@@ -219,7 +219,7 @@
           "monthly_demand_charge_cents_per_kw": 1200
         },
         "minimums": {
-          "contracted_capacity_kw": 50000,
+          "contracted_capacity_kw": 40000,
           "interconnection_cost_cents": 1700000000,
           "monthly_demand_charge_cents_per_kw": 1020
         },

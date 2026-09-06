@@ -1,6 +1,6 @@
 {
   "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_002",
-  "content_sha256": "36488602c3fdd75e2dec126883a1c2c7cd3a5e8665fcf5b63d3bdd89c663c388",
+  "content_sha256": "4060c0bc720976208f027a9c6ccfc63a80b2efe69f8824eeca286101dc3d822d",
   "episode": {
     "max_logical_actions": 30,
     "termination": [
@@ -189,7 +189,7 @@
             "site_control",
             "power_commitment"
           ],
-          "contracted_capacity_kw": 50000,
+          "contracted_capacity_kw": 40000,
           "delay_liquidated_damages_cap_cents": 1000000000,
           "delay_liquidated_damages_cents_per_month": 200000000,
           "developer_security_cents": 20000000,
@@ -209,7 +209,7 @@
           "monthly_demand_charge_cents_per_kw": 1200
         },
         "minimums": {
-          "contracted_capacity_kw": 50000,
+          "contracted_capacity_kw": 40000,
           "interconnection_cost_cents": 1700000000,
           "monthly_demand_charge_cents_per_kw": 1020
         },

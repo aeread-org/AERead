@@ -212,9 +212,15 @@ KNOWN_DEFECTS = (
         ),
         "detected_by": "offline probe plus the calibrated live panel",
         "severity": "strata_do_not_test_what_they_claim",
-        "status": "open",
-        "fix": None,
-        "regression_test": None,
+        "status": "fixed",
+        "fix": (
+            "the utility now counters with an undersized connection, so every "
+            "world punishes blind counter-adoption rather than rewarding it"
+        ),
+        "regression_test": (
+            "tests/test_datacenter_qc.py::"
+            "test_the_task_cannot_be_solved_without_cross_agreement_lookahead"
+        ),
     },
     {
         "id": "planning-decoupled-from-negotiation",
@@ -229,9 +235,16 @@ KNOWN_DEFECTS = (
         ),
         "detected_by": "offline probe over the generated pack",
         "severity": "under-tests_declared_capability",
-        "status": "open",
-        "fix": None,
-        "regression_test": None,
+        "status": "fixed",
+        "fix": (
+            "the counter package is now jointly infeasible on capacity, so a "
+            "commitment made two agreements early decides whether the lease "
+            "can be signed at all"
+        ),
+        "regression_test": (
+            "tests/test_datacenter_qc.py::"
+            "test_the_lookahead_has_a_reachable_solution_and_a_closed_alternative"
+        ),
     },
     {
         "id": "suite-needs-gitignored-artifacts",
