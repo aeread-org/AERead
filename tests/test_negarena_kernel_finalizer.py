@@ -426,6 +426,17 @@ def test_finalize_family_execution_does_not_crash_and_seals_a_typed_receipt(
     score was recorded, before evidence was sealed, and before a receipt
     was written. It must now reach a well-formed, sealed, typed receipt
     instead.
+
+    ``_build_negarena_run_plan`` declares a self-play block naming BOTH
+    seats as subjects; under ruling R12 rule 2 that is
+    ``invalid_measurement("ambiguous_subject_seat")`` for
+    ``negarena_seat_outcome`` (no ``subject_reduction`` is declared -- see
+    ``docs/negarena_migration_plan.md``'s seat-scope classification), not
+    the pre-migration shim's ``"...seat_pairing_context"`` reason this
+    assertion originally named. ``negarena_agreement_reached`` is unaffected
+    by seat context and scores ``"ok"`` here (the golden-1 transcript ends
+    in ``"accepted"``) -- the scorer now returns BOTH declared leaves, never
+    only the primary, which is exactly what this finding required.
     """
     receipt, evidence, _family_case = _run_negarena_episode_through_finalizer(
         bridge, tmp_path
@@ -435,13 +446,19 @@ def test_finalize_family_execution_does_not_crash_and_seals_a_typed_receipt(
     assert receipt.inclusion_status == "excluded"
     assert receipt.replay_level == "state_and_score"
     assert receipt.primary_leaf_id == measurement.SEAT_OUTCOME_LEAF_ID
-    assert len(receipt.scores) == 1
-    assert receipt.scores[0].status == "invalid_measurement"
-    assert receipt.scores[0].leaf.leaf_id == measurement.SEAT_OUTCOME_LEAF_ID
-    assert receipt.scores[0].primary is None
+    assert len(receipt.scores) == 2
+    seat_score = next(
+        score for score in receipt.scores if score.leaf.leaf_id == measurement.SEAT_OUTCOME_LEAF_ID
+    )
+    agreement_score = next(
+        score for score in receipt.scores if score.leaf.leaf_id == measurement.AGREEMENT_LEAF_ID
+    )
+    assert seat_score.status == "invalid_measurement"
+    assert seat_score.primary is None
+    assert agreement_score.status == "ok"
     assert receipt.failure is not None
     assert receipt.failure.condition == "invalid_family_measurement"
-    assert "seat_pairing_context" in receipt.failure.message
+    assert "ambiguous_subject_seat" in receipt.failure.message
 
     # Evidence really was sealed with a durable receipt on disk -- the
     # concrete failure this finding named ("before score_recorded, evidence
