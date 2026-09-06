@@ -130,7 +130,7 @@ def _drive_episode(
     use, generalized here so every golden below can drive an arbitrary
     scenario/policy/``num_agents`` combination without repeating the loop.
     """
-    state = plugin.initial_state(family_case, cell=None)
+    state = plugin.initial_state(family_case, run=None)
     phases = {phase.phase_id: phase for phase in plugin.phases(family_case)}
     phase_id = HARVEST_PHASE
     for _ in range(max_phase_steps):
@@ -630,7 +630,7 @@ def test_golden_invalid_unauthorized_rejected_before_any_bridge_call_no_credit(
     plugin = GovsimPlugin(upstream_root=UPSTREAM_ROOT, bridge=counting_bridge)
     family_case = _family_case("fishing", "sustainable_v1", num_agents=5)
 
-    state = plugin.initial_state(family_case, cell=None)
+    state = plugin.initial_state(family_case, run=None)
     calls_after_reset = counting_bridge.call_count
     assert calls_after_reset == 1
 
@@ -672,7 +672,7 @@ def test_golden_malformed_operational_real_upstream_assertion_is_caught_typed(
     plugin = GovsimPlugin(upstream_root=UPSTREAM_ROOT, bridge=corrupting_bridge)
     family_case = _family_case("fishing", "sustainable_v1", num_agents=1)
 
-    state = plugin.initial_state(family_case, cell=None)
+    state = plugin.initial_state(family_case, run=None)
     phases = {phase.phase_id: phase for phase in plugin.phases(family_case)}
     actions = {"persona_0": _envelope("persona_0", {"quantity": 5})}
 

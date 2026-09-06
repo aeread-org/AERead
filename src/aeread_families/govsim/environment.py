@@ -251,7 +251,27 @@ def family_manifest() -> FamilyManifest:
                 "primary_leaf_id": measurement.SURVIVAL_MONTHS_LEAF_ID,
                 "admission_leaf_ids": [measurement.SURVIVAL_MONTHS_LEAF_ID],
             },
-            "scoring": {"scorer_id": SCORER_ID},
+            # Every one of measurement.py's five leaves pins its own
+            # validity-domain predicate and scorer implementation under a
+            # distinct component id (unlike, e.g., procurement_grounding's
+            # single leaf, which reuses `scorer_id` itself for both) --
+            # `resolve_run_plan`'s own pin bookkeeping only requires and
+            # admits a pin for a component named here or as `scorer_id`
+            # (`_required_pin_kinds`), and
+            # `EvaluationReceipt._validate_and_freeze_plan_pins` requires
+            # every leaf-declared implementation ref to match one, so all
+            # six must be declared as reference providers.
+            "scoring": {
+                "scorer_id": SCORER_ID,
+                "reference_provider_ids": [
+                    measurement.BASE_DOMAIN_PREDICATE_ID,
+                    measurement.NO_COLLAPSE_SCORER_ID,
+                    measurement.THRESHOLD_ADHERENCE_SCORER_ID,
+                    measurement.SURVIVAL_MONTHS_SCORER_ID,
+                    measurement.TOTAL_HARVEST_SCORER_ID,
+                    measurement.EQUALITY_GINI_SCORER_ID,
+                ],
+            },
         }
     )
 
@@ -379,8 +399,19 @@ class GovsimPlugin:
     # initial_state / phases / eligible_actors
     # ------------------------------------------------------------------
 
-    def initial_state(self, family_case: Mapping[str, Any], cell: Any) -> dict[str, Any]:
-        del cell
+    def initial_state(self, family_case: Mapping[str, Any], run: Any) -> dict[str, Any]:
+        """Build the initial family state for one episode.
+
+        The second parameter is named ``run`` (not ``cell``) to match every
+        other family's own ``initial_state`` hook -- required because
+        ``task.evaluation._replay_family_trajectory`` calls
+        ``plugin.initial_state(family_case, run=None)`` by keyword
+        (kernel_scoring_contract_spec.md's ``replay_family_scoring_input``
+        contract); the live scheduler (``task.scheduler.run_episode``) still
+        passes this positionally, so this rename does not change what value
+        actually arrives here.
+        """
+        del run
         bridge = self._require_bridge()
         projection = bridge.run_actions(
             scenario=family_case["scenario"],

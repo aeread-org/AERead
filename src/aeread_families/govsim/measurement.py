@@ -115,6 +115,17 @@ IMPLEMENTATION_VERSION = "0.1.0"
 DOMAIN_ID = "govsim_common_pool_v1"
 DOMAIN_VERSION = "1.0.0"
 
+# Named (not inline) because it is also one of family_manifest()'s own
+# ``scoring.reference_provider_ids`` declarations (environment.py):
+# task.evaluation._receipt_implementations collects every leaf's validity
+# domain predicate, verifier reference implementation, and scorer ref, and
+# task.receipts.EvaluationReceipt._validate_and_freeze_plan_pins requires
+# each to match a pinned component in the resolved RunPlan -- so this id
+# (shared by all five leaves, unlike each leaf's own distinct
+# ``*_SCORER_ID``) must be declared where resolve_run_plan's own
+# ``_required_pin_kinds`` can require and admit a pin for it.
+BASE_DOMAIN_PREDICATE_ID = "govsim_base_domain_predicate"
+
 # Matches family_manifest()'s own "comparison_baseline" declaration
 # (environment.py) exactly -- an AERead-authored scripted policy, never an
 # upstream oracle (spec section 2).
@@ -201,7 +212,7 @@ def _validity_domain() -> ValidityDomainSpec:
         domain_id=DOMAIN_ID,
         domain_version=DOMAIN_VERSION,
         schema_ref="govsim/v1/case_payload",
-        predicate=_implementation("govsim_base_domain_predicate", "environment.py"),
+        predicate=_implementation(BASE_DOMAIN_PREDICATE_ID, "environment.py"),
     )
 
 
@@ -995,6 +1006,7 @@ def build_scorer(family_case: Mapping[str, Any]) -> GovsimScorer:
 
 __all__ = [
     "BASELINE_POLICY_ID",
+    "BASE_DOMAIN_PREDICATE_ID",
     "EQUALITY_GINI_ESTIMAND_ID",
     "EQUALITY_GINI_LEAF_ID",
     "EQUALITY_GINI_REFERENCE_ID",
