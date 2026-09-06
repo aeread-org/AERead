@@ -123,6 +123,31 @@ def _attempt_dir(
 
 
 
+
+def verify_confirmatory_freeze(
+    *, run_root: Path, contract_sha256: str
+) -> dict[str, Any]:
+    """Return the sealed freeze, refusing a comparison that was never frozen.
+
+    A confirmatory result is only pre-registered if the freeze exists and the
+    contract it sealed is the contract that ran. Publishing without either
+    check would let a comparison be re-published against a contract edited
+    once its outcomes were known.
+    """
+
+    freeze_path = Path(run_root) / "confirmatory_freeze" / "summary.json"
+    if not freeze_path.exists():
+        raise ValueError(
+            "a confirmatory publication requires a sealed freeze artifact"
+        )
+    freeze = _read_sealed(freeze_path)
+    if freeze["contract_sha256"] != contract_sha256:
+        raise ValueError(
+            "the confirmatory contract changed after the freeze was sealed"
+        )
+    return freeze
+
+
 def _verified_prerequisite_gate(
     contract: Mapping[str, Any],
 ) -> dict[str, Any] | None:
@@ -943,16 +968,9 @@ def publish_campaign(
     is_confirmatory = isinstance(confirmatory, Mapping)
     freeze = None
     if is_confirmatory:
-        freeze_path = run_root / "confirmatory_freeze" / "summary.json"
-        if not freeze_path.exists():
-            raise ValueError(
-                "a confirmatory publication requires a sealed freeze artifact"
-            )
-        freeze = _read_sealed(freeze_path)
-        if freeze["contract_sha256"] != design["contract_sha256"]:
-            raise ValueError(
-                "the confirmatory contract changed after the freeze was sealed"
-            )
+        freeze = verify_confirmatory_freeze(
+            run_root=run_root, contract_sha256=design["contract_sha256"]
+        )
     qualification = _sealed(
         {
             "schema_version": QUALIFICATION_SCHEMA_VERSION,

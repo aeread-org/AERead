@@ -1312,6 +1312,38 @@ def confirmatory_analysis(
     )
 
 
+
+def run_status_for(
+    *,
+    attempted: int,
+    completed: int,
+    expected: int,
+    missingness_ceiling: float | None,
+) -> tuple[float, float | None, bool, str]:
+    """Decide a run's status from its delivery, not only from its typing.
+
+    Typing a failure correctly is not the same as tolerating it. This family
+    reported missingness and never gated on the aggregate, so a run that lost
+    a third of its cells still sealed a completed status. When the contract
+    declares a ceiling the breach becomes the status itself.
+    """
+
+    failure_fraction = (attempted - completed) / attempted if attempted else 0.0
+    above = bool(
+        missingness_ceiling is not None
+        and failure_fraction > float(missingness_ceiling) + 1e-12
+    )
+    if above:
+        status = "failed_operational_missingness_above_ceiling"
+    elif completed == expected:
+        status = "completed_with_full_matrix"
+    elif attempted == expected:
+        status = "completed_with_typed_missingness"
+    else:
+        status = "stopped_with_typed_missingness"
+    return failure_fraction, missingness_ceiling, above, status
+
+
 async def run_live(
     contract: Mapping[str, Any],
     *,
@@ -1525,32 +1557,20 @@ async def run_live(
     total_cost = sum(float(row.get("cost_usd", 0.0)) for row in rows)
     if total_cost > execution_contract["cost_ceiling_usd"] + 1e-12:
         raise RuntimeError("model-sensitivity run exceeded its hard cost ceiling")
-    # Typing a failure correctly is not the same as tolerating it. The family
-    # reported missingness but never gated on it, so a run that lost a third
-    # of its cells still reported a completed status. A declared ceiling makes
-    # the aggregate a pass/fail condition instead of a footnote.
-    failure_fraction = (len(rows) - len(completed)) / len(rows) if rows else 0.0
-    missingness_ceiling = execution_contract.get(
-        "maximum_operational_failure_fraction"
-    )
-    missingness_above_ceiling = bool(
-        missingness_ceiling is not None
-        and failure_fraction > float(missingness_ceiling) + 1e-12
+    failure_fraction, missingness_ceiling, missingness_above_ceiling, run_status = (
+        run_status_for(
+            attempted=len(rows),
+            completed=len(completed),
+            expected=expected,
+            missingness_ceiling=execution_contract.get(
+                "maximum_operational_failure_fraction"
+            ),
+        )
     )
     artifact_core: dict[str, Any] = {
         "schema_version": "aeread.housing_model_sensitivity_results/0.1",
         "campaign_id": contract["campaign_id"],
-        "status": (
-            "failed_operational_missingness_above_ceiling"
-            if missingness_above_ceiling
-            else "completed_with_full_matrix"
-            if len(completed) == expected
-            else (
-                "completed_with_typed_missingness"
-                if len(rows) == expected
-                else "stopped_with_typed_missingness"
-            )
-        ),
+        "status": run_status,
         "operational_failure_fraction": failure_fraction,
         "maximum_operational_failure_fraction": missingness_ceiling,
         "operational_missingness_above_ceiling": missingness_above_ceiling,

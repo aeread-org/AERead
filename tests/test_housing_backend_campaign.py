@@ -1820,28 +1820,274 @@ def test_declared_missingness_ceiling_fails_a_run_instead_of_reporting_it() -> N
 
 
 def test_missingness_ceiling_marks_the_run_failed_when_breached() -> None:
-    from aeread_families.housing.model_sensitivity import _summary_views
+    from aeread_families.housing.model_sensitivity import run_status_for
 
-    # A direct check of the status rule the ceiling introduces.
-    def status_for(rows: int, completed: int, ceiling: float | None) -> str:
-        fraction = (rows - completed) / rows
-        above = ceiling is not None and fraction > float(ceiling) + 1e-12
-        if above:
-            return "failed_operational_missingness_above_ceiling"
-        return (
-            "completed_with_full_matrix"
-            if completed == rows
-            else "completed_with_typed_missingness"
+    # V19's actual delivery: 32 of 48 cells, every failure correctly typed.
+    fraction, ceiling, above, status = run_status_for(
+        attempted=48, completed=32, expected=48, missingness_ceiling=None
+    )
+    assert fraction == pytest.approx(1 / 3)
+    assert ceiling is None
+    assert above is False
+    assert status == "completed_with_typed_missingness"
+
+    # The same delivery against a declared ceiling fails outright.
+    fraction, ceiling, above, status = run_status_for(
+        attempted=48, completed=32, expected=48, missingness_ceiling=0.10
+    )
+    assert above is True
+    assert ceiling == 0.10
+    assert status == "failed_operational_missingness_above_ceiling"
+
+    # Losses inside the ceiling stay a completed run with typed missingness.
+    assert run_status_for(
+        attempted=48, completed=45, expected=48, missingness_ceiling=0.10
+    )[3] == "completed_with_typed_missingness"
+    # Exactly at the ceiling is not a breach.
+    assert run_status_for(
+        attempted=100, completed=90, expected=100, missingness_ceiling=0.10
+    )[3] == "completed_with_typed_missingness"
+    assert run_status_for(
+        attempted=48, completed=48, expected=48, missingness_ceiling=0.10
+    )[3] == "completed_with_full_matrix"
+    # A driver stop is distinguished from a delivered run that lost cells.
+    assert run_status_for(
+        attempted=3, completed=3, expected=48, missingness_ceiling=0.10
+    )[3] == "stopped_with_typed_missingness"
+
+
+def test_confirmatory_publication_requires_an_untampered_freeze(
+    tmp_path: Path,
+) -> None:
+    from aeread_families.housing.backend_publication import (
+        verify_confirmatory_freeze,
+    )
+    from aeread_families.housing.model_sensitivity import _sealed
+
+    run_root = tmp_path / "run"
+    freeze_dir = run_root / "confirmatory_freeze"
+    freeze_dir.mkdir(parents=True)
+
+    # No freeze at all: a comparison that was never pre-registered.
+    with pytest.raises(ValueError, match="requires a sealed freeze artifact"):
+        verify_confirmatory_freeze(run_root=run_root, contract_sha256="abc")
+
+    sealed = _sealed({"contract_sha256": "abc", "gate_id": "confirmatory_freeze"})
+    (freeze_dir / "summary.json").write_bytes(canonical_json_bytes(sealed))
+    assert verify_confirmatory_freeze(
+        run_root=run_root, contract_sha256="abc"
+    )["contract_sha256"] == "abc"
+
+    # The contract that ran is not the contract that was frozen.
+    with pytest.raises(ValueError, match="changed after the freeze was sealed"):
+        verify_confirmatory_freeze(run_root=run_root, contract_sha256="edited")
+
+
+def test_confirmatory_freeze_refuses_an_unusable_variance_pilot(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import aeread_families.housing.backend_campaign as campaign
+
+    contract = load_contract(CONFIRMATORY_CONTRACT_PATH)
+    routes = route_table(contract)
+    design = design_artifact(contract, routes=routes)
+    spec = campaign.CAMPAIGN_SPECS[contract["campaign_id"]]
+    real = campaign._confirmatory_pilot_qualification(
+        spec["variance_pilot_reference"]
+    )
+
+    def freeze_against(qualification: dict[str, object]):
+        monkeypatch.setattr(
+            campaign, "_confirmatory_pilot_qualification", lambda _p: qualification
+        )
+        return campaign.confirmatory_freeze_artifact(
+            contract,
+            routes=routes,
+            design=design,
+            provider_free={"artifact_sha256": "pf"},
+            catalog={"artifact_sha256": "cat"},
+            admission={"artifact_sha256": "adm"},
         )
 
-    assert status_for(48, 32, None) == "completed_with_typed_missingness"
-    # The same V19 outcome now fails a 10 percent ceiling outright.
-    assert status_for(48, 32, 0.10) == (
-        "failed_operational_missingness_above_ceiling"
+    # A tampered pilot cannot stand as the justification for the sample size.
+    tampered = json.loads(json.dumps(real))
+    tampered["artifact_sha256"] = "0" * 64
+    with pytest.raises(ValueError, match="qualification digest drifted"):
+        freeze_against(tampered)
+
+    # A pilot whose recommendation was withheld cannot size a confirmatory run.
+    withheld = json.loads(json.dumps(real))
+    withheld["variance_pilot_analysis"]["recommended_confirmatory_worlds"] = None
+    with pytest.raises(ValueError, match="withheld a confirmatory world count"):
+        freeze_against(withheld)
+
+    # Nor can one that never reached its own declared paired minimum.
+    short = json.loads(json.dumps(real))
+    short["variance_pilot_analysis"]["paired_world_count"] = 2
+    short["variance_pilot_analysis"]["minimum_paired_worlds_for_recommendation"] = 6
+    with pytest.raises(ValueError, match="declared paired worlds"):
+        freeze_against(short)
+
+    # A pilot whose variance was never estimable cannot either.
+    unestimable = json.loads(json.dumps(real))
+    unestimable["variance_pilot_analysis"]["status"] = "insufficient_paired_worlds"
+    with pytest.raises(ValueError, match="did not produce an estimable variance"):
+        freeze_against(unestimable)
+
+    # A sufficiently powered pilot passes and seals the holdout it will run.
+    powered = json.loads(json.dumps(real))
+    powered["variance_pilot_analysis"]["recommended_confirmatory_worlds"] = 15
+    powered["variance_pilot_analysis"]["paired_world_count"] = 8
+    powered["variance_pilot_analysis"]["minimum_paired_worlds_for_recommendation"] = 6
+    frozen = freeze_against(powered)
+    assert frozen["gate_id"] == "confirmatory_freeze"
+    assert frozen["frozen_before_any_holdout_outcome"] is True
+    assert frozen["holdout"]["world_seed_count"] == 15
+    assert frozen["holdout"]["sealed_world_seed_count"] == 16
+    assert frozen["holdout"]["excluded_world_seeds"] == {
+        "114691332": "degenerate_upper_bound"
+    }
+    assert frozen["variance_pilot"]["recommended_confirmatory_worlds"] == 15
+    assert frozen["contract_sha256"] == design["contract_sha256"]
+    assert set(frozen["profiles_sha256"]) == set(
+        contract["profile_admission"]["profile_sha256s"]
     )
-    assert status_for(48, 45, 0.10) == "completed_with_typed_missingness"
-    assert status_for(48, 48, 0.10) == "completed_with_full_matrix"
-    assert callable(_summary_views)
+
+
+def test_confirmatory_panel_rejects_overlap_with_the_development_split(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import aeread_families.housing.model_sensitivity as sensitivity
+
+    contract = json.loads(json.dumps(load_contract(CONFIRMATORY_CONTRACT_PATH)))
+    panel = contract["confirmatory_panel"]
+    sweep = json.loads(
+        (CONFIRMATORY_CONTRACT_PATH.parents[1] / panel["sweep_contract_path"]).read_bytes()
+    )
+
+    # A sweep whose own holdout leaks a development world. The panel matches
+    # it exactly, so only the overlap check can catch this.
+    leaked_seed = sweep["development"]["world_seeds"][0]
+    sweep["confirmatory_holdout"]["world_seeds"] = [
+        leaked_seed
+    ] + sweep["confirmatory_holdout"]["world_seeds"][1:]
+    forged = tmp_path / "configs" / "forged_sweep.json"
+    forged.parent.mkdir(parents=True)
+    forged.write_text(json.dumps(sweep))
+    monkeypatch.setattr(sensitivity, "_REPO_ROOT", tmp_path)
+
+    panel["sweep_contract_path"] = "configs/forged_sweep.json"
+    panel["sweep_contract_file_sha256"] = hashlib.sha256(
+        forged.read_bytes()
+    ).hexdigest()
+    panel["world_seeds"] = sweep["confirmatory_holdout"]["world_seeds"]
+    panel["admitted_world_seeds"] = [
+        seed
+        for seed in panel["world_seeds"]
+        if str(seed) not in panel["excluded_world_seeds"]
+    ]
+
+    with pytest.raises(ValueError, match="overlaps the development split"):
+        sensitivity.confirmatory_panel(contract)
+
+
+def test_catalog_preflight_honours_the_declared_route_status_policy(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import io
+    import urllib.request
+
+    import aeread_families.housing.backend_campaign as campaign
+
+    def endpoint_for(model: dict) -> dict:
+        return {
+            "name": f"Parasail | {model['canonical_model']}",
+            "provider_name": "Parasail",
+            "quantization": model["quantization"],
+            "pricing": {
+                "prompt": repr(model["input_per_million"] / 1e6),
+                "completion": repr(model["output_per_million"] / 1e6),
+                "input_cache_read": repr(model["cached_input_per_million"] / 1e6),
+            },
+            "supported_parameters": sorted(campaign.REQUIRED_ROUTE_PARAMETERS),
+            "max_completion_tokens": 900000,
+        }
+
+    def prepare(contract_path: Path, status: int) -> dict:
+        contract = json.loads(json.dumps(load_contract(contract_path)))
+        policy = contract["backend"].get("endpoint_snapshot_policy", "full")
+        built = {}
+        for model_id, model in contract["models"].items():
+            endpoint = {**endpoint_for(model), "status": status}
+            built[model["requested_model"]] = endpoint
+            model["endpoint_snapshot_sha256"] = campaign._endpoint_snapshot_sha256(
+                endpoint, policy=policy
+            )
+
+        def fake_urlopen(url, timeout=None):  # noqa: ANN001
+            slug = next(key for key in built if key in str(url))
+            payload = json.dumps({"data": {"endpoints": [built[slug]]}}).encode()
+            return io.BytesIO(payload)
+
+        monkeypatch.setattr(urllib.request, "urlopen", fake_urlopen)
+        return contract
+
+    # V18 requires an active route, so a derank blocks the campaign outright.
+    with pytest.raises(ValueError, match="not active"):
+        campaign.catalog_preflight(prepare(V18_CONTRACT_PATH, -2))
+
+    # V20 declares that a derank is recorded rather than fatal. Parasail served
+    # ten of ten strict-client calls while flagged -2, so the flag is a routing
+    # hint rather than an outage.
+    artifact = campaign.catalog_preflight(prepare(V20_CONTRACT_PATH, -2))
+    assert artifact["status"] == "passed"
+    assert artifact["route_status_policy"] == "allow_degraded_with_recorded_status"
+    # The observed status is sealed into the evidence, not silently dropped.
+    assert {row["status"] for row in artifact["routes"]} == {-2}
+
+    # A healthy route still passes under the strict default.
+    assert campaign.catalog_preflight(prepare(V18_CONTRACT_PATH, 0))["status"] == (
+        "passed"
+    )
+
+
+def test_identity_snapshot_survives_a_derank_but_catches_a_repricing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import aeread_families.housing.backend_campaign as campaign
+
+    healthy = {
+        "name": "Parasail | z-ai/glm-5.3-flash-20260826",
+        "provider_name": "Parasail",
+        "quantization": "fp8",
+        "pricing": {"prompt": "0.00000015", "completion": "0.0000005"},
+        "supported_parameters": ["seed", "temperature"],
+        "max_completion_tokens": 943718,
+        "status": 0,
+    }
+    deranked = {**healthy, "status": -2}
+    repriced = {**healthy, "pricing": {"prompt": "0.9", "completion": "0.9"}}
+    requantised = {**healthy, "quantization": "fp4"}
+
+    # The default digest treats a health flag as part of route identity, so a
+    # derank alone makes an unchanged route look as though it had drifted.
+    assert campaign._endpoint_snapshot_sha256(
+        healthy
+    ) != campaign._endpoint_snapshot_sha256(deranked)
+
+    # identity_only pins what defines the route and leaves health to the
+    # status policy.
+    def identity(endpoint: dict) -> str:
+        return campaign._endpoint_snapshot_sha256(endpoint, policy="identity_only")
+
+    assert identity(healthy) == identity(deranked)
+    assert identity(healthy) != identity(repriced)
+    assert identity(healthy) != identity(requantised)
+    assert "status" not in campaign._endpoint_snapshot(
+        healthy, policy="identity_only"
+    )
+    with pytest.raises(ValueError, match="unsupported endpoint snapshot policy"):
+        campaign._endpoint_snapshot_sha256(healthy, policy="whatever")
 
 
 def test_published_v12_records_pacing_failure_and_zero_trajectories() -> None:

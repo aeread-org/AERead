@@ -1878,6 +1878,16 @@ async def run_profile_admission(
     return artifact
 
 
+
+def _confirmatory_pilot_qualification(
+    pilot: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Load the bound variance pilot's published qualification."""
+
+    repo_root = Path(__file__).resolve().parents[3]
+    return json.loads((repo_root / pilot["qualification_path"]).read_bytes())
+
+
 def confirmatory_freeze_artifact(
     contract: Mapping[str, Any],
     *,
@@ -1902,10 +1912,7 @@ def confirmatory_freeze_artifact(
         raise ValueError("a confirmatory freeze requires a sealed holdout panel")
     spec = CAMPAIGN_SPECS[contract["campaign_id"]]
     pilot = spec["variance_pilot_reference"]
-    repo_root = Path(__file__).resolve().parents[3]
-    pilot_qualification = json.loads(
-        (repo_root / pilot["qualification_path"]).read_bytes()
-    )
+    pilot_qualification = _confirmatory_pilot_qualification(pilot)
     if pilot_qualification["artifact_sha256"] != pilot["qualification_artifact_sha256"]:
         raise ValueError("variance-pilot qualification digest drifted")
     if pilot_qualification["campaign_id"] != pilot["campaign_id"]:
