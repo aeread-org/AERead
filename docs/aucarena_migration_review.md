@@ -139,3 +139,94 @@ Yes. `test_finalize_wires_aucarena_to_the_shared_family_finalizer`
 `inclusion_status == "included"`, exactly the four declared finalize-time leaf ids, and
 `primary_leaf_id == aucarena_profit_vs_field_leaf` -- this family had never produced one
 before this milestone (Finding 3).
+
+---
+
+## Independent review received 2026-09-06
+Appended verbatim below, unedited; verification and disposition follow in the section after it.
+
+### 5. Scoring logic newly written during migration
+
+**Budget score gains a synthetic trajectory-length metric**
+`src/aeread_families/aucarena/measurement.py:423-459`
+
+The migration adds `checked_transitions_count` to the returned score specifically because the pre-existing violation path is unreachable. For the same case and byte-identical terminal outcome, the one-round fixture returns `1` while the three-round fixture returns `3`. Thus the budget measurement changes despite both runs satisfying the invariant, violating section 5's requirement to compose pre-existing scoring methods without inventing new scoring behavior.
+
+**Hammer score gains a synthetic trajectory-length metric**
+`src/aeread_families/aucarena/measurement.py:630-640,650-717`
+
+The migration similarly adds `replayed_rounds_count` because successful hammer-rule checks previously produced identical scores. The one-round and three-round paths at `tests/test_aucarena_replay.py:757-785` now emit different hammer-leaf metrics solely from episode length, even though both reach the same winner, price, and terminal outcome. This manufactures sensitivity by changing the score schema rather than composing the family's pre-existing hammer score.
+
+FINDINGS: 2
+
+## Disposition of the 2026-09-06 independent review
+
+Both findings were re-verified directly against the code and the frozen spec (not
+re-read from the review's own characterization) before reaching a disposition, per this
+task's standing instruction that reviews on this project contain false positives.
+
+### Finding — budget score's `checked_transitions_count` (section 5, "Budget score gains a synthetic trajectory-length metric")
+
+**Disposition: refuted.**
+
+The factual observation is correct and was already disclosed, in the same terms, by this
+document's own Finding 1 above (written during the migration, before this review
+arrived): the one-round/three-round pair does yield `checked_transitions_count == 1` vs.
+`== 3` for a byte-identical outcome, and the field exists only because
+`aucarena_budget_invariant`'s violation path (`budget < 0`) is structurally unreachable
+through this environment's own legality gate.
+
+What does not hold is the conclusion that this violates
+`kernel_scoring_contract_spec.md` section 5. Re-read against the code:
+
+- Section 5 step 3's "no new scoring logic is written" clause is scoped, in the spec's
+  own text, to `__call__`: "where it does not [have `score_all()`], `__call__` composes
+  the existing named `score_*` methods and no new scoring logic is written." Verified
+  directly: `AucArenaScorer.__call__` (`measurement.py:843-872`) does exactly that --
+  calls the four existing named `score_*` methods and assembles a `FamilyScoreSet`, no
+  arithmetic of its own -- and commit `24f07c4c` (the commit the review is describing)
+  touches only the bodies of `score_budget_invariant`/`score_hammer_rule` themselves
+  (plus `__all__` exports and a `LEAF_VERSION` bump); `git show --stat 24f07c4c` and a
+  per-hunk read confirm `__call__`/`build_scorer` are untouched by that commit. The
+  clause the review cites does not, by its own text, reach this edit.
+- The addition never changes `primary`, `status`, or `validity` -- confirmed by reading
+  both functions end to end (`measurement.py:411-468`, `601-721`): `checked_transitions_count`
+  is computed in a side counter and written into `metrics` after `primary` is already
+  determined from `violations`; `replayed_rounds_count` is written into `metrics`
+  alongside an unconditional `primary=1.0` that was unconditional before this commit too.
+  Nothing about what either leaf measures or what counts as a violation changed.
+- This is not a novel pattern for this module: `score_bid_legality`'s
+  `malformed_action_count` (`measurement.py`, present since `0da9d811`, which predates
+  every commit in this migration's own range `zeyu/kernel-r9r10..HEAD`) is the same shape
+  -- a bookkeeping count of how much the check examined, alongside its violations, never
+  folded into `primary`.
+- Most directly: `kernel_scoring_contract_spec.md` ruling R9(b), together with its
+  fourth-pass refinement (`docs/kernel_r9r10_review.md`, "W1", lines 546-654, commit
+  `330765c1`, dated one day before this migration's own fix commit), is a *kernel-level*,
+  already-ratified decision that the sensitivity witness is deliberately weak: "a sanity
+  check... not a proof of trajectory-dependence" that is satisfied by *any* same-case pair
+  on which the leaf's measurement content differs, including — the ruling's own worked
+  counterexample, govsim's `no_collapse` — a leaf whose witnessing difference comes from
+  an outcome field, never the trajectory at all, "and that is accepted rather than guarded
+  against." A diagnostic that counts genuinely-read trajectory content
+  (`phase_instances`/`transitions`, not an outcome field) satisfies that already-accepted
+  bar by a comfortably wider margin than the counterexample the kernel authors
+  themselves designed the rule around.
+
+No code change made. This document's own pre-existing "Stated limit" note under Finding 1
+already says plainly that the diagnostic is not a proof either leaf could catch a real
+violation on this environment — the same substantive point the independent review makes —
+so nothing here is newly disclosed; only the "spec violation" characterization is rejected.
+
+### Finding — hammer score's `replayed_rounds_count` (section 5, "Hammer score gains a synthetic trajectory-length metric")
+
+**Disposition: refuted**, for the same reasons as the budget finding above, verified
+independently against `score_hammer_rule` (`measurement.py:601-721`) rather than assumed
+to follow from the budget finding's disposition: `replayed_rounds_count` is written into
+`metrics` only, `primary` remains the unconditional `MetricValue(1.0, "pass")` it was
+before commit `24f07c4c`, and the modification lives in the pre-existing named
+`score_hammer_rule` method, not in `AucArenaScorer.__call__`. The same kernel-level R9(b)/W1
+ruling governs both leaves identically, since both are declared `input_scope="trajectory"`
+leaves facing the same sensitivity-witness requirement.
+
+No code change made.
