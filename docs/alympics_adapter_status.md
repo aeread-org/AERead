@@ -96,28 +96,57 @@ assignment for its own focal seat is identical to the actual one, so the
 comparative wealth/survival deltas are exactly `0.0` — checked, not
 assumed.
 
-**Full family test suite + kernel smoke: 99 passed, 0 failed.**
+**Full family test suite + kernel smoke, re-verified on this branch's HEAD
+(2026-09-06): 151 passed, 0 failed, bridge exported.** The milestone-3
+per-module counts below were stale even before this migration branch
+forked (`cases.py`/`environment.py`/`measurement.py`'s own test modules
+grew independently of this migration — this branch's only test-file
+change is `tests/test_alympics_wac_replay.py`, `git diff --stat
+zeyu/kernel-r9r10..HEAD` confirms); corrected here rather than carried
+forward unchecked, and `tests/test_shared_runner_scoring_contract.py` is
+now added to the reproduce command below, since this migration enrolled
+this family in it (see "Protocol-test fixtures" above) and it is
+bridge-gated for this family's own slice the same way the other six files
+are:
 
 ```
-cases        27 passed
-environment  21 passed
-harness      13 passed   (new, milestone 3)
-measurement  15 passed
-parity        2 passed
-replay       11 passed   (new, milestone 3)
-smoke        10 passed   (tests/test_shared_runner_smoke.py)
+cases              30 passed
+environment        25 passed
+harness            13 passed
+measurement        26 passed
+parity              2 passed
+replay             13 passed
+scoring-contract    1 alympics-specific test + 31 other-family tests, 32
+                     total passed (shared file — see "Protocol-test
+                     fixtures" above; do not read the 31 as this family's
+                     own coverage)
+smoke              10 passed   (tests/test_shared_runner_smoke.py)
 ```
 
-**Full repository suite (all families): 815 passed, 31 skipped, 1 xfailed,
-0 failed.** The skips are pre-existing bridge-gated tests belonging to
-other families (e.g. tau2/tau3, rLLM integration) whose provisioned
-interpreters are not present in this environment; none belong to this
-family, and none were introduced or affected by this milestone.
+Without the bridge (`AEREAD_ALYMPICS_UPSTREAM_ROOT` pointed at a path that
+does not carry the pinned checkout): **71 passed, 0 failed, 6 skipped** —
+`environment`/`harness`/`measurement`/`parity`/`replay` each skip as one
+module-level skip (5), plus `test_alympics_wac_obeys_the_scoring_contract`
+skips as one test-level skip (1); `cases`, `smoke`, and the other 31 tests
+in `test_shared_runner_scoring_contract.py` are unaffected. (Merely leaving
+`AEREAD_ALYMPICS_UPSTREAM_ROOT` unset does not exercise this path in every
+checkout: several of these test modules fall back to a hard-coded
+development-machine path when the variable is absent, so an unset-but-
+present-by-coincidence checkout still runs green — point the variable at a
+genuinely missing path, as above, to observe the skip.)
+
+**Full repository suite (all families): historically reported as 815
+passed, 31 skipped, 1 xfailed, 0 failed** (bridge exported); not
+re-verified line-for-line on this pass because of the full suite's runtime,
+so treat that specific figure as unconfirmed rather than re-certified here.
+The qualitative claim — that the skips belong to other bridge-gated
+families (tau2/tau3, rLLM integration) and none belong to this family —
+still holds given the per-family numbers just verified above.
 
 Reproduce:
 
 ```bash
-cd AERead/.worktrees/alympics
+cd AERead/.worktrees/alympics-migrate
 PYTHONPATH=src ../../.venv/bin/python -m pytest \
   tests/test_alympics_wac_cases.py \
   tests/test_alympics_wac_environment.py \
@@ -125,6 +154,7 @@ PYTHONPATH=src ../../.venv/bin/python -m pytest \
   tests/test_alympics_wac_measurement.py \
   tests/test_alympics_wac_parity.py \
   tests/test_alympics_wac_replay.py \
+  tests/test_shared_runner_scoring_contract.py \
   tests/test_shared_runner_smoke.py -q
 ```
 
@@ -165,50 +195,60 @@ unaffected.
   `replay_episode` alone succeeds and produces a different, but internally
   consistent, outcome. Verified directly:
   `test_replay_detects_a_tampered_bid_only_via_comparison_against_the_original`.
-- **Baseline comparisons are not auto-derived via `replay.py`'s own calling
-  convention, but they are now verified — and the finalize-time seam no
-  longer needs a caller-supplied one at all.**
-  `score_replayed_episode` still requires the caller to already have run
-  and replayed a second, baseline episode (`harness.
-  baseline_policy_assignment` + a second `ScriptedAlympicsWacHarness`/
-  `run_episode`/`replay_episode` pass); this module does not generate,
-  cache, or memoize that baseline itself. **Update (scoring contract
-  migration):** `AlympicsWacScorer.__call__` — the seam
-  `task.evaluation.finalize_family_execution` actually calls — calls
-  `_recompute_baseline_episode` directly and never depends on a second,
-  separately run episode; this closes the migration plan's own "plumbing
-  note" (docs/alympics_migration_plan.md, "Today's declared leaves"
-  section) without changing `replay.py`'s own external convention, which
-  is unchanged and still described above. What changed
+- **Resolved by this migration (commit `286fd246`, "feat(alympics): migrate
+  to the FamilyScoringInput scoring contract"): the finalize-time seam no
+  longer needs a caller-supplied baseline episode at all.** Before this
+  migration, the only production-reachable path
+  (`replay.score_replayed_episode`) required the caller to already have run
+  and replayed a second, baseline episode. `AlympicsWacScorer.__call__` —
+  the seam `task.evaluation.finalize_family_execution` actually calls now —
+  calls `_recompute_baseline_episode` directly instead and never depends on
+  a second, separately run episode, closing the migration plan's own
+  "plumbing note" (docs/alympics_migration_plan.md, "Today's declared
+  leaves" section). This is no longer listed as a known limit of the
+  production scoring path. For the record, not as a limitation:
+  `replay.py`'s own `score_replayed_episode` helper (used only by this
+  family's unit tests in isolation, not by production scoring) keeps its
+  pre-migration calling convention unchanged, still requiring a
+  caller-supplied baseline. Both paths — old and new — already
+  independently recompute and reconcile that baseline before accepting it
   (docs/alympics_fix_verification.md finding 2): `AlympicsWacScorer.
-  score_terminal_wealth`/`score_survival` now independently recompute the
-  declared baseline episode from the case's own frozen supply schedule/
-  personas/starting state and reject a supplied baseline that does not
-  reconcile with it exactly — a caller can no longer submit a fabricated
-  `baseline_final_players`/`baseline_round_log` and have it accepted merely
-  because its `baseline_policy_id` label matches. The bare
+  score_terminal_wealth`/`score_survival` reject a supplied baseline that
+  does not match `_recompute_baseline_episode` exactly, seat by seat, so a
+  caller could never submit a fabricated `baseline_final_players`/
+  `baseline_round_log` and have it accepted merely because its
+  `baseline_policy_id` label matches. Only the bare
   `measurement.score_terminal_wealth`/`score_survival` functions (used
-  directly by this family's own unit tests to isolate other gates) still
-  only check the label; only the case-bound `AlympicsWacScorer` path — the
-  one every production caller actually uses — performs the recompute.
+  directly by this family's own unit tests to isolate other gates, never by
+  a production caller) check only the label.
 - **A routine CI run does not, by itself, prove this family's
   upstream-fidelity tests ran.** Every environment/measurement/harness/
   parity/replay test module here skips, module-level, when the pinned
   upstream Alympics checkout is absent, and `.github/workflows/ci.yml` runs
   plain `pytest tests/ -q` with neither the checkout provisioned nor
   `AEREAD_ALYMPICS_UPSTREAM_REQUIRED` set (docs/alympics_fix_verification.md
-  finding 9). `conftest.py`'s `pytest_terminal_summary` hook can turn a
-  matching skip into a failed run, but only when that env var is
-  explicitly set — off by default, mirroring the project's own existing
-  tau2/tau3 convention, and left that way deliberately: wiring it into
-  default CI would mean provisioning a third-party checkout over the
-  network, which this family's own provider-free/no-network posture rules
-  out. A green default CI run therefore certifies only that
-  `test_alympics_wac_cases.py`'s upstream-free tests ran; certifying the
-  rest requires explicitly setting `AEREAD_ALYMPICS_UPSTREAM_REQUIRED=1`
-  (locally, or in a dedicated CI job that does provision the checkout) —
-  the same posture tau2/tau3 already have, not a new inconsistency
-  introduced here.
+  finding 9). Since this migration (commit `4e3bc842`, "test(alympics):
+  enroll in the scoring-contract protocol test"),
+  `tests/test_shared_runner_scoring_contract.py::test_alympics_wac_obeys_the_scoring_contract`
+  skips the same way — a per-test skip carrying the identical
+  "pinned upstream Alympics checkout not found" substring, deliberately
+  deferred so it never propagates to that shared file's other-family
+  coverage. `conftest.py`'s `pytest_terminal_summary` hook can turn any
+  matching skip (this new one included, since it reuses the same substring
+  rather than a separate `AEREAD_ALYMPICS_BRIDGE_REQUIRED` switch — a
+  deliberate deviation from the govsim reference shape, recorded in commit
+  `4e3bc842`'s own message) into a failed run, but only when
+  `AEREAD_ALYMPICS_UPSTREAM_REQUIRED` is explicitly set — off by default,
+  mirroring the project's own existing tau2/tau3 convention, and left that
+  way deliberately: wiring it into default CI would mean provisioning a
+  third-party checkout over the network, which this family's own
+  provider-free/no-network posture rules out. A green default CI run
+  therefore certifies only that `test_alympics_wac_cases.py`'s
+  upstream-free tests ran, plus whichever of `test_shared_runner_scoring_contract.py`'s
+  other-family tests do not need this bridge; certifying the rest requires
+  explicitly setting `AEREAD_ALYMPICS_UPSTREAM_REQUIRED=1` (locally, or in a
+  dedicated CI job that does provision the checkout) — the same posture
+  tau2/tau3 already have, not a new inconsistency introduced here.
 - **Milestone 3 exercises 2 of the 7 grid cells end-to-end**
   (`reference_baseline`, `mixed_policies_a`, plus one derived baseline
   variant of each) — the same pilot-scope posture as tau3's 18-task pilot
@@ -403,6 +443,44 @@ Verified directly (temporary edit, run, restore — never committed):
   `MeasurementContractError: admission leaves are absent from the family
   score set: alympics_wac_settlement_exactness_leaf`.
 
+### Independent review
+
+An independent, diff-only, read-only review of this migration was
+performed and recorded, with this branch's own re-verification against the
+code, in `docs/alympics_migration_review.md` (committed as `b97bd9de`,
+"docs(alympics): record independent review dispositions with mutation
+evidence"). It raised three findings:
+
+- **Finding 1 (High — this family's `alex`-as-evaluated-subject
+  convention): confirmed, escalated to the owner.** This is the same
+  `measurement.FOCAL_SEAT` gap the "Open questions" section below already
+  states as a limit — the review independently confirmed it from the code
+  and recorded two remediation options (extend `family_case`/grid-cell
+  schema with a `focal_seat` field, or wire ruling R12's `SeatContext`
+  through), neither of which this migration implements, since either would
+  redefine the primary estimand's inputs rather than merely its plumbing.
+- **Finding 2 (Medium — score provenance caller-controlled via
+  `evidence_refs`): refuted.** `AlympicsWacScorer.__call__`'s
+  `evidence_refs`-threading signature matches the contract's mandated
+  shape verbatim (kernel_scoring_contract_spec.md section 2) and the
+  reference migration's identical pattern; more directly, a mutation check
+  recorded in that file — forging `__call__`'s `terminal_wealth` call to a
+  fixed, unrelated `evidence_refs` value — was run and restored, and it
+  failed both `test_alympics_wac_obeys_the_scoring_contract` (assertion)
+  and, independently, the **production** finalizer itself
+  (`task/evaluation.py`'s `_check_evidence_refs_are_scoring_input_verbatim`
+  raised `ValueError` before a receipt could be sealed).
+- **Finding 3 (High — trusted-catalog closure passing while this family's
+  only protocol test skips): refuted.** Confirmed as the deliberate,
+  already-precedented tau2/tau3/govsim mitigation shape, not a gap
+  introduced here; verified directly that
+  `AEREAD_ALYMPICS_UPSTREAM_REQUIRED=1` converts the described
+  pass-while-skipping scenario into a hard failure (exit code 1) — the
+  certifying-run protocol this migration operates under.
+
+Disposition tally: 1 confirmed and escalated, 2 refuted, 0 fixed (neither
+refuted finding described an actual defect in this branch's code).
+
 ## Open questions for the kernel/spec owner
 
 The focal-seat convention above (`measurement.FOCAL_SEAT`) is a genuine
@@ -412,7 +490,9 @@ whether `family_case` should eventually carry a `focal_seat` field (or
 whether R12's own per-seat machinery, once a kernel `SeatContext` lands,
 should cover this family after all). Not blocking: the fixed convention
 above is stated, deterministic, and matches every existing test's own
-default.
+default. This is the same gap independent review Finding 1 above confirmed
+and escalated (`docs/alympics_migration_review.md`); it is recorded here
+and there under one disposition, not two independent open items.
 
 The two open items already on record before this migration
 (`docs/benchmark_qc.md` unmerged to `main`; `observe()`'s balance-credit
