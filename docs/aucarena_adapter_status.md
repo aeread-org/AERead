@@ -118,6 +118,40 @@ or parse/legality determinations — only per-item final dispositions and per-se
 final tallies — so the whole-outcome paired-history pair is constructible without a
 projection, unlike `collusion`/`datacenter_development`.
 
+## Enrollment and receipt (kernel_scoring_contract_spec.md, migration milestone 3 of 3)
+
+`aucarena` is dropped from `_NOT_YET_MIGRATED_TRUSTED_KEYS` in
+`tests/test_shared_runner_scoring_contract.py` and enrolled with real fixtures
+(`_aucarena_fixtures`) in the always-on
+`test_every_registered_family_obeys_the_scoring_contract` — no bridge-gated test or
+conftest.py gate is needed (unlike `govsim`): this family has no bridge process at all,
+and its scoring-contract fixtures build a small, custom, checked-in-corpus-independent
+case directly (`tests/test_aucarena_replay.py`'s own `kernel_contract_fixture_case`).
+
+Three findings surfaced while implementing this milestone, investigated and fixed before
+enrolling — full disposition, empirical verification, and mutation-test evidence in
+`docs/aucarena_migration_review.md`:
+
+1. `aucarena_budget_invariant_leaf`/`aucarena_hammer_rule_leaf` could not satisfy ruling
+   R9(b)'s sensitivity witness (neither has any way to produce a differing score on a
+   legitimately-scripted episode) — fixed with an additive, violation-arithmetic-untouched
+   diagnostic metric on each.
+2. `aucarena_bid_legality_leaf`'s witness additionally needed a same-case fixture
+   carrying a genuine illegal bid, not just a longer trajectory.
+3. This family had never produced an `EvaluationReceipt` at all: `initial_state`'s second
+   parameter was named `cell` and dereferenced, but replay calls it with `run=None`; fixed
+   by renaming to `run` and making `world_seed` reachable from `family_case` instead
+   (duplicated from the outer `CaseManifest.world_seed`, mirrored into the five checked-in
+   goldens via the real import CLI), plus declaring `scoring.reference_provider_ids` (nine
+   component ids, previously unreferenced by the manifest) so a `RunPlan` pinning them
+   resolves at all.
+
+`tests/test_aucarena_replay.py::test_finalize_wires_aucarena_to_the_shared_family_finalizer`
+drives one real, provider-free episode through `task.evaluation.finalize_family_execution`
+and asserts `status == "ok"`, `inclusion_status == "included"`, exactly the four declared
+finalize-time leaves, and the declared `primary_leaf_id` — the first receipt this family
+has ever produced.
+
 ## Evidence
 
 **On this machine, with the pinned upstream auction-arena checkout present: 0 failed, 0
