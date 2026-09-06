@@ -115,6 +115,43 @@ def test_family_manifest_declares_mode_b_two_seat_alternation() -> None:
     assert manifest.measurement.direction == "maximize"
 
 
+def test_family_manifest_declares_both_leaves_with_seat_outcome_primary() -> None:
+    """kernel_scoring_contract_spec.md section 3: the manifest, not the
+    scorer or a test fixture, is the one source of the leaf set, the
+    primary, and admission membership. See docs/negarena_adapter_status.md's
+    "Leaf policy" section for why `negarena_seat_outcome` is primary and why
+    it alone gates admission.
+
+    Mutation-verified: removing either leaf's dict from `family_manifest`'s
+    `measurement.leaves` (or changing `primary_leaf_id`/`admission_leaf_ids`)
+    fails this test's `set(declared.leaf_ids)`/`primary_leaf_id`/
+    `admission_leaf_ids` assertions directly.
+    """
+    from aeread_families.negarena import measurement
+
+    manifest = family_manifest()
+    declared = manifest.measurement.finalize_time_leaf_policy()
+
+    assert set(declared.leaf_ids) == {
+        measurement.SEAT_OUTCOME_LEAF_ID,
+        measurement.AGREEMENT_LEAF_ID,
+    }
+    assert declared.primary_leaf_id == measurement.SEAT_OUTCOME_LEAF_ID
+    assert declared.admission_leaf_ids == (measurement.SEAT_OUTCOME_LEAF_ID,)
+    # Neither leaf waits on a judge verdict or any other not-yet-existing
+    # artifact -- every scorer in measurement.py is deterministic (spec
+    # section 4); neither is `deferred`.
+    assert all(leaf.scope == "finalize_time" for leaf in manifest.measurement.leaves)
+
+    # Ruling R12: leaf 1's estimand is inherently per seat ("what did THIS
+    # seat realize"), so it is declared seat_scope="subject_seat"; leaf 2 (a
+    # single fact about the whole episode, not a function of which seat is
+    # the tested subject) stays the default seat_scope="cell".
+    leaves_by_id = {leaf.leaf_id: leaf for leaf in manifest.measurement.leaves}
+    assert leaves_by_id[measurement.SEAT_OUTCOME_LEAF_ID].seat_scope == "subject_seat"
+    assert leaves_by_id[measurement.AGREEMENT_LEAF_ID].seat_scope == "cell"
+
+
 def test_register_plugin_succeeds_against_the_real_registry() -> None:
     registry = PluginRegistry()
     plugin = NegarenaPlugin(upstream_root=UPSTREAM_ROOT, bridge=None)

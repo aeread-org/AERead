@@ -1,6 +1,7 @@
 # negarena adapter — status
 
-Branch `zeyu/negarena-adapter`. Last verified 2026-09-02.
+Branch `zeyu/negarena-contract-migration`, stacked on
+`zeyu/kernel-r12-seat-context` (ruling R12). Last verified 2026-09-06.
 
 ## What the adapter claims
 
@@ -51,10 +52,157 @@ Milestone 3 adds the scripted harness (`harness.py`) and offline replayer
   terminal record, the outcome, and the final state, and independently
   recomputes both measurement leaves from the replayed episode.
 
+## Leaf policy (kernel_scoring_contract_spec.md, migration milestone 2 of 3)
+
+`family_manifest()`'s `measurement` block now declares this family's leaf
+policy explicitly (spec section 3), and `NegarenaScorer.__call__` takes a
+`FamilyScoringInput` and returns a `FamilyScoreSet` carrying both declared
+leaves — the shim that previously always reported `negarena_seat_outcome` as
+`invalid_measurement("negarena_kernel_finalizer_lacks_seat_pairing_context")`
+and never returned `negarena_agreement_reached` at all (see the retired
+"Known limits" entry below, previously citing ledger D-15) is gone. Ruling
+R12 (found by this exact family during this migration, per the spec's own
+round-3 rulings) supplies what that shim was missing: `FamilyScoringInput`
+now carries `seat_context` (`subject_seats`, `profile_by_seat`), populated by
+the kernel from the plan's evaluation block and the resolved cell, never
+from the live episode (R2 still holds).
+
+| Leaf | Scope | Seat scope | Primary | Admission |
+|---|---|---|---|---|
+| `negarena_seat_outcome_leaf` | `finalize_time` | `subject_seat` | **yes** | **yes** |
+| `negarena_agreement_reached_leaf` | `finalize_time` | `cell` (default) | no | no |
+
+**Why `negarena_seat_outcome` is primary.** It is this family's own
+already-declared `primary_estimand` (`family_manifest()`'s `measurement`
+block, present since before this milestone) and the adapter's own stated
+headline number: this module's docstring opens with it as leaf 1, and both
+this status doc's original leaf table and `measurement.py` label leaf 2
+explicitly "diagnostic". It is not the leaf that was easiest to reach through
+the pre-migration seam — if anything the opposite is true: leaf 2
+(`negarena_agreement_reached`) needs only `scoring_input.outcome`'s
+termination reason and no bridge call at all, while leaf 1 needs a real
+settlement call (`NegarenaBridge.settle`, upstream's own `after_game_ends()`)
+plus the seat-context machinery ruling R12 added — the choice tracks the
+family's own declared estimand ("what did *this* seat realize under its own
+valuation, against the specific opponent it was paired with" — this module's
+own docstring), not convenience.
+
+**Why it alone gates admission.** `negarena_agreement_reached` is a
+`rule_constraint` diagnostic, already labelled as such in this module's own
+docstring before this milestone, and its reason for existing separately
+predates this migration too: "so a degenerate no-agreement episode is never
+silently averaged into the payoff leaderboard as a 'loss'"
+(`docs/verifier_taxonomy.md` section 9). Whether an episode ended in
+agreement is a measured (`status="ok"`) fact regardless of which way it
+went — a `REJECT`/iteration-cap termination is not grounds to exclude the
+receipt, only to record the fact honestly. Only an
+`invalid_measurement`/`malformed_action` termination invalidates both
+leaves at once (both scorers share that one check), so in practice
+admission today tracks whether the episode could be measured at all, never
+which way the negotiation went.
+
+**Why `negarena_seat_outcome_leaf` is `seat_scope="subject_seat"`, and
+`negarena_agreement_reached_leaf` is not.** Leaf 1's estimand is inherently
+per seat — "what did *this* seat realize", one value for RED, a different
+one for BLUE, never a summed/blended two-seat number (this module's own
+docstring, and ruling R12's own problem statement, which names this exact
+family: "found by the negarena migration, 2026-09-06"). Under R12 rule 2,
+for the ordinary case (one seat is the tested model, the other a fixed
+scripted/pinned opponent — every case in today's six-scenario corpus,
+`cases.py`), `seat_context.subject_seats` has exactly one entry, so
+`__call__` scores that one subject seat via the existing
+`score_seat_outcome` method and reports its own value as `primary`; the
+kernel's `_enforce_subject_seat_primaries` then verifies `primary ==
+utility_by_seat[subject]` directly (`tests/test_negarena_measurement.py`'s
+`test_call_returns_both_declared_leaves_for_a_single_subject_seat` asserts
+this identity itself, not merely trusts the kernel to catch a violation).
+Zero subject seats or several with no declared `subject_reduction` are
+`invalid_measurement("no_subject_seat")`/`invalid_measurement
+("ambiguous_subject_seat")` respectively — no case in today's corpus pairs
+the tested seat against itself, so no `subject_reduction` is declared; a
+future self-play negarena case would need that decision made explicitly,
+which is out of this migration's scope. `negarena_agreement_reached_leaf`'s
+estimand ("did the episode end via an in-band `ACCEPT`") is a single fact
+about the whole episode, not a function of which seat is the tested
+subject — both seats experience the same termination — so it stays the
+default `seat_scope="cell"`.
+
+**Opponent identity: an agent profile id is not an upstream policy id.**
+`score_seat_outcome`'s `opponent_policy_id` parameter is score-time metadata
+only (`primary.metadata["opponent_policy_id"]`), never consumed by
+`bridge.settle`'s arithmetic — but it still must name a real upstream policy
+identity, never the kernel's own profile id
+(`seat_context.profile_by_seat[opponent_seat]`). `measurement.py`'s
+`OPPONENT_PROFILE_TO_POLICY_ID` is a small, pinned, deterministic mapping
+(today: `{"negarena_scripted_v1": "scripted"}`, matching every existing call
+site's hardcoded `opponent_policy_id="scripted"` — `replay.py`, `parity.py`,
+`tests/test_negarena_harness.py` — and the one `AgentProfile.profile_id`
+`tests/test_negarena_kernel_finalizer.py` actually registers). An opponent
+profile id absent from this mapping is
+`invalid_measurement("unknown_opponent_profile")`, never a guessed policy id.
+
+**Deferred leaves: none.** Both leaves are `evaluation_class="deterministic"`
+with no judge, rater, or other not-yet-existing artifact anywhere in their
+verifier declarations (`measurement.py`'s `build_*_leaf` functions); neither
+waits on an artifact that "may not exist yet" (spec section 4), so both are
+declared `scope="finalize_time"` and neither is `scope="deferred"`.
+
+**What this milestone does not touch.** `tests/test_shared_runner_scoring_contract.py`'s
+closed-world enrollment (`_NOT_YET_MIGRATED_TRUSTED_KEYS`,
+`FAMILY_SCORING_FIXTURES`) needs sealed evidence produced through
+`finalize_family_execution`, which is currently blocked by the
+finalizer-wiring gap recorded below (`docs/negarena_migration_plan.md`'s
+"Baseline failures to fix in milestone 3") — per spec section 5's own
+ordering (item 4, wiring to the finalizer, comes after item 2/3, leaf
+policy and `__call__`), enrollment is milestone 3's job, not this one.
+`tests/test_shared_runner_scoring_contract.py` was not edited in this
+migration.
+
 ## Evidence
 
-**89 of 89 negarena-family tests pass with the bridge genuinely wired in — not
-skipped.** Running the entire family test file set
+**Updated for this milestone (2026-09-06): 96 passed, 2 failed, 0 skipped
+with the bridge genuinely wired in — not stale.** The "89 of 89" figure
+below this paragraph predates both the kernel path reorg
+(`src/aeread/shared_runner/execution.py` -> `.../task/execution.py`) and a
+second, unrelated baseline defect this migration found but did not fix (see
+`docs/negarena_migration_plan.md`'s "Baseline: not clean before the fix");
+neither is reproducible on this base without accounting for both. Running
+the entire family test file set (`test_negarena_environment.py`,
+`test_negarena_cases.py`, `test_negarena_harness.py`,
+`test_negarena_parity.py`, `test_negarena_measurement.py`,
+`test_negarena_kernel_finalizer.py`, `test_negarena_provisioning.py`) plus
+`test_shared_runner_smoke.py`, with both bridge env vars unset, collects
+**47 passed, 49 skipped, 0 failed** — every skip carries the identical,
+documented "upstream NegotiationArena Python interpreter unavailable"
+reason (checked directly, not assumed: no skip masks an old calling
+convention, the exact trap the reference migration's worked example warns
+about). With the bridge genuinely exported, the same suite collects **96
+passed, 2 failed, 0 skipped**: the 2 failures are
+`test_negarena_kernel_finalizer.py::test_finalize_family_execution_does_not_crash_and_seals_a_typed_receipt`
+and `::test_finalize_family_execution_seals_the_complete_evidence_lifecycle`,
+both pre-existing, both unrelated to this milestone's leaf-policy/`__call__`
+work (they fail identically before and after this milestone's changes, with
+`ValueError: family replay action lacks one successful attempt` raised
+*before* `NegarenaScorer.__call__` is ever reached — see
+`docs/negarena_migration_plan.md`'s "Baseline failures to fix in milestone 3
+(finalizer wiring)" for the full cause and the two test ids). This milestone
+added 7 new tests (1 manifest leaf-policy test, 6 `NegarenaScorer.__call__`
+tests covering both leaves, the single/other/zero/several-subject-seat
+cases, and the unmapped-opponent-profile case), all passing; 89 + 7 = 96.
+
+```bash
+export AEREAD_NEGARENA_UPSTREAM_ROOT="/Users/sunzeyu/Documents/econ benchmark/upstream-negarena"
+export AEREAD_NEGARENA_BRIDGE_PYTHON="/Users/sunzeyu/Documents/econ benchmark/bridges/negarena-venv/bin/python"
+PY="/Users/sunzeyu/Documents/econ benchmark/AERead/.venv/bin/python"
+"$PY" -m pytest tests/test_negarena_environment.py tests/test_negarena_cases.py \
+  tests/test_negarena_harness.py tests/test_negarena_parity.py \
+  tests/test_negarena_measurement.py tests/test_negarena_kernel_finalizer.py \
+  tests/test_negarena_provisioning.py tests/test_shared_runner_smoke.py -q
+```
+
+**Below this point, the original milestone-1/pre-reorg claim, kept for
+history.** "89 of 89 negarena-family tests pass with the bridge genuinely
+wired in — not skipped." Running the entire family test file set
 (`test_negarena_environment.py`, `test_negarena_cases.py`,
 `test_negarena_harness.py`, `test_negarena_parity.py`,
 `test_negarena_measurement.py`, `test_negarena_kernel_finalizer.py`,
@@ -66,15 +214,6 @@ reason — bridge tests skip cleanly when unprovisioned, `test_negarena_provisio
 interpreter exported, the same 89 tests collect as **89 passed, 0 skipped, 0
 failed**. Per-file collection: environment 21, cases 22, harness 11, parity 3,
 measurement 14, kernel_finalizer 3, provisioning 5, shared-runner smoke 10.
-
-```bash
-export AEREAD_NEGARENA_BRIDGE_PYTHON="/Users/sunzeyu/Documents/econ benchmark/bridges/negarena-venv/bin/python"
-PY="/Users/sunzeyu/Documents/econ benchmark/AERead/.venv/bin/python"
-"$PY" -m pytest tests/test_negarena_environment.py tests/test_negarena_cases.py \
-  tests/test_negarena_harness.py tests/test_negarena_parity.py \
-  tests/test_negarena_measurement.py tests/test_negarena_kernel_finalizer.py \
-  tests/test_negarena_provisioning.py tests/test_shared_runner_smoke.py -q
-```
 
 **Two full episodes driven through the real scheduler, both sealed.**
 `test_negarena_harness.py` runs golden-1 of `buy_sell` (8 logical actions,
@@ -167,33 +306,25 @@ notes the same effect at ~1.95s/call under lower contention).
   where a response missing e.g. `<player answer>` used to parse "clean"
   with a garbage value instead of surfacing as `malformed_action`
   (docs/negarena_review_claude.md CRITICAL-1).
-- **`NegarenaScorer.__call__` (the shared kernel's generic
-  `build_scorer(family_case)(outcome, evidence_refs=...)` call site,
-  `finalize_family_execution` et al.) surfaces neither declared leaf as a
-  real score — this is a stated limit, not a claimed working path.** The
-  kernel expects exactly one `ScoreEnvelope` per call
-  (`runner_defect_ledger.md` D-15: "the only production call site that
-  invokes `build_scorer` assumes a single-`ScoreEnvelope`-per-family
-  contract that no real family plugin satisfies"), while negarena publishes
-  two typed leaves (`negarena_seat_outcome`, `negarena_agreement_reached`).
-  Per D-15's ruling ("no adapter may add a `__call__` that silently picks
-  one leaf as primary... satisfying the kernel by contradicting the
-  measurement design is not a fix"), `__call__` does not compute a real
-  per-seat/agreement score at all: it always reports the primary leaf
-  (`negarena_seat_outcome`) as a typed `invalid_measurement`
-  ("`negarena_kernel_finalizer_lacks_seat_pairing_context`") because the
-  generic call site carries no seat/opponent-pairing context real per-seat
-  scoring needs, and it never returns anything for the second leaf
-  (`negarena_agreement_reached`) at all — that leaf is simply absent from
-  this path, not fabricated. So a caller reaching `finalize_family_execution`
-  through this call site alone sees 0 of 2 leaves scored; the real per-seat
-  and agreement scores are only ever produced by calling
-  `score_seat_outcome`/`score_agreement_reached` directly (as
-  `tests/test_negarena_harness.py` and `replay.py::score_replayed_episode`
-  already do), which is what every negarena test that asserts a real score
-  value uses. Whether `finalize_family_execution` should instead seal a leaf
-  *vector* is the kernel-owner decision D-15 defers; not this branch's to
-  resolve.
+- **RESOLVED by the scoring-contract migration (see "Leaf policy" above).**
+  This entry previously read: "`NegarenaScorer.__call__` (the shared
+  kernel's generic `build_scorer(family_case)(outcome, evidence_refs=...)`
+  call site, `finalize_family_execution` et al.) surfaces neither declared
+  leaf as a real score" — the kernel used to expect exactly one
+  `ScoreEnvelope` per call (`runner_defect_ledger.md` D-15), while negarena
+  publishes two typed leaves, so `__call__` always reported the primary leaf
+  as a typed `invalid_measurement`
+  (`"negarena_kernel_finalizer_lacks_seat_pairing_context"`) and never
+  returned the second leaf at all. `kernel_scoring_contract_spec.md`
+  replaces that single-envelope call site with
+  `plugin.build_scorer(family_case)(scoring_input,
+  evidence_refs=scoring_input.evidence_refs)` returning a `FamilyScoreSet`,
+  and ruling R12 supplies the seat/opponent-pairing context D-15's ruling
+  said the kernel — not the adapter — must carry. `NegarenaScorer.__call__`
+  now returns both declared leaves for real through this exact call site;
+  `score_seat_outcome`/`score_agreement_reached` remain the single source of
+  truth `__call__` composes (spec section 5), and are still exercised
+  directly by every negarena golden test.
 - **`RecordedEpisode` binds a replay to case/cell *content* identity, not to
   the implementation that produced it.** `record_episode`/`replay_episode`
   (`replay.py`) now reject a mismatched case or cell by content hash
