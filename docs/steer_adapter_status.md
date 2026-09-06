@@ -1,6 +1,8 @@
 # steer adapter — status
 
-Branch `zeyu/steer-contract-migration`. Last verified 2026-09-05.
+Branch `zeyu/steer-contract-migration`. Last verified 2026-09-05; rebased onto
+`zeyu/kernel-r9r10` (PR #103) on 2026-09-06 -- see "Scoring-contract
+enrollment" below for what that rebase changed and what it did not.
 
 ## What the adapter claims
 
@@ -97,6 +99,25 @@ OTHER family's own coverage inside that test newly skip whenever the cache is
 missing. `test_steer_obeys_the_scoring_contract` runs the identical protocol
 check in its own, separately skippable test instead.
 
+**2026-09-06 rebase onto `zeyu/kernel-r9r10`.** That kernel branch's own
+`4e05bc3b refactor(scoring-contract): extract the per-family protocol check`
+extracted the identical per-family body this branch had independently
+extracted as `_assert_family_scoring_contract`, under the name
+`_assert_family_obeys_the_scoring_contract` (returning a `_FamilyContractResult`
+carrying rulings R9/R10's own witness/consistency bookkeeping, which this
+family does not otherwise need -- its one leaf declares neither
+`"terminal_state"` nor `"trajectory"` scope, so that extra bookkeeping is
+always empty for it). Resolving the rebase kept the kernel's helper and
+deleted this branch's own duplicate; `test_steer_obeys_the_scoring_contract`
+now calls `_assert_family_obeys_the_scoring_contract` directly, unchanged in
+every other respect. The kernel branch's own new rulings-R9/R10 coverage
+(synthetic trajectory-embedding families, projection guards, the sensitivity
+witness) grew `tests/test_shared_runner_scoring_contract.py`'s own total test
+count from 8 to 34 -- none of the 26 added tests concern steer, and re-running
+the family's own paired fixture through the new helper (bridge fixtures
+present, `AEREAD_STEER_FIXTURES_REQUIRED=1`) reconfirms 0 failed, 0 skipped;
+see the "Evidence" section below for the updated combined count this changes.
+
 Its paired-history fixture (`_steer_fixture_pair`) drives two real episodes of
 the SAME checked-in case (same `question_id`, same `source_sha256`, so this
 leaf's declared identity stays stable across both) through the real
@@ -107,8 +128,10 @@ out-of-range `option_id`. `SteerPlugin.legal()` rejects both with the same
 is byte-identical for both while the underlying trajectory (the differently-
 valued submitted response recorded in each episode's own sealed evidence)
 genuinely differs — verified directly in the test
-(`canonical_json_bytes(left_input.outcome) ==
-canonical_json_bytes(right_input.outcome)` and
+(`canonical_json_bytes(left_projection) == canonical_json_bytes(right_projection)`,
+where each `_projection` is `project_outcome(outcome, trajectory_outcome_paths)` --
+the identity function here, since this family declares no
+`trajectory_outcome_paths` -- and
 `left_input.phase_instances != right_input.phase_instances`), not merely
 asserted in a comment. `docs/steer_migration_plan.md`'s milestone-0
 determination that this pair is "constructible" is therefore now actually
@@ -134,8 +157,11 @@ docs/steer_migration_plan.md's milestone-0 baseline note) and, separately, with
 `AEREAD_STEER_FIXTURES_REQUIRED=1` set against the real, provisioned cache
 (a genuine certifying run): `tests/test_steer_*.py` (7 modules) +
 `tests/test_shared_runner_scoring_contract.py` +
-`tests/test_shared_runner_smoke.py` — **175 passed, 0 failed, 0 skipped**, all
-three ways.
+`tests/test_shared_runner_smoke.py` — **201 passed, 0 failed, 0 skipped**, all
+three ways (up from 175 as of the 2026-09-05 milestone-3 verification: the
+2026-09-06 rebase onto `zeyu/kernel-r9r10` added 26 of the kernel's own
+rulings-R9/R10 tests to `tests/test_shared_runner_scoring_contract.py`, none
+of which concern steer -- see "Scoring-contract enrollment" above).
 
 `docs/steer_migration_review.md` records one independently-supplied finding
 against this exact enrollment shape: the trusted-catalog closure counted
@@ -143,7 +169,9 @@ steer as enrolled via the static `_BRIDGE_GATED_ENROLLED_FAMILY_VERSIONS`
 entry even on a narrower invocation that never collected
 `test_steer_obeys_the_scoring_contract`, so a missing cache with
 `AEREAD_STEER_FIXTURES_REQUIRED=1` set could stay silently green (exit
-status 0) despite `_assert_family_scoring_contract` never having run for
+status 0) despite `_assert_family_scoring_contract` (renamed
+`_assert_family_obeys_the_scoring_contract` by the 2026-09-06 rebase above;
+same behavior, see that note) never having run for
 steer. **Confirmed, and fixed**, in
 `test(steer): make bridge-gated closure honest about required fixtures`:
 `_steer_cache_available`/`_steer_fixtures_required_env`/
@@ -168,15 +196,16 @@ modules (`test_steer_cases.py` 70, `test_steer_environment.py` 37,
 `test_steer_measurement.py` 14, `test_steer_goldens.py` 7,
 `test_steer_e2e.py` 14, `test_steer_replay.py` 13), plus **2 passed** in
 `tests/test_steer_fixtures_required.py` (the bridge-required-fixtures gate
-test, omitted from an earlier version of this command) and **8 passed** in
-`tests/test_shared_runner_scoring_contract.py` (this family's hunk of the
-always-on protocol-test module — see "Scoring-contract enrollment" above),
-plus **10 passed** in `tests/test_shared_runner_smoke.py` (the generic R1–R4
-kernel smoke path, untouched by this family) — **175 passed, 0 failed
-total**, run all three ways (bridge fixtures exported, without, and with
-`AEREAD_STEER_FIXTURES_REQUIRED=1` set as a certifying run) with identical
-results, matching the "Scoring-contract enrollment" section's own count
-above exactly — both commands now cover the same test set.
+test, omitted from an earlier version of this command) and **34 passed** in
+`tests/test_shared_runner_scoring_contract.py` (this family's own hunk plus,
+since the 2026-09-06 rebase onto `zeyu/kernel-r9r10`, that kernel branch's own
+26 rulings-R9/R10 tests sharing the same module -- see "Scoring-contract
+enrollment" above), plus **10 passed** in `tests/test_shared_runner_smoke.py`
+(the generic R1–R4 kernel smoke path, untouched by this family) — **201
+passed, 0 failed total**, run all three ways (bridge fixtures exported,
+without, and with `AEREAD_STEER_FIXTURES_REQUIRED=1` set as a certifying run)
+with identical results, matching the "Scoring-contract enrollment" section's
+own count above exactly — both commands now cover the same test set.
 
 ```bash
 PYTHONPATH=src python -m pytest \
@@ -198,8 +227,8 @@ The opt-in guard that turns such a skip into a failure (root `conftest.py`,
 `tools/steer_bridge/README.md`) is itself regression-tested both ways
 (`tests/test_steer_fixtures_required.py`), and re-running the exact extended
 command above with that variable set reports the identical pass count with
-zero skips -- reconfirmed directly during this reconciliation (175 passed, 0
-failed, 0 skipped against the real, provisioned cache; see also
+zero skips -- reconfirmed directly during this reconciliation (201 passed, 0
+failed, 0 skipped against the real, provisioned cache, post-rebase; see also
 `docs/steer_review_disposition.md`'s "Verification follow-up" section for an
 earlier re-run of the same shape). What remains explicitly out of scope for this
 adapter: the variable is not set by `.github/workflows/ci.yml`'s generic
@@ -265,7 +294,8 @@ without qualification here.
    not merely asserted-and-never-exercised.
 
 Both mutations were reverted; the suite returned to 148/148 green
-afterward (the 2026-09-02 milestone-3 count; 175 today).
+afterward (the 2026-09-02 milestone-3 count; 175 as of the 2026-09-05
+verification; 201 today, post-rebase onto `zeyu/kernel-r9r10`).
 
 **Deterministic across runs.** `test_steer_e2e.py` + `test_steer_replay.py`
 were executed twice, independently, both times 24/24 passed with no
