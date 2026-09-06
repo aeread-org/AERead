@@ -1380,6 +1380,27 @@ def project_outcome(outcome: Mapping[str, Any], paths: tuple[str, ...]) -> Mappi
     return projected
 
 
+def _first_differing_top_level_key_hint(
+    left: Mapping[str, Any], right: Mapping[str, Any]
+) -> str:
+    """A cheap, human-readable hint naming the first top-level key (by
+    sorted order) at which two mappings disagree -- present in one but not
+    the other, or a differing value -- for an assertion message.
+
+    Only ever called on the FAILURE path: Python's ``assert x, msg`` short-
+    circuits evaluating ``msg`` unless ``x`` is falsy, so this one pass over
+    the union of keys is never paid when the two mappings already agree.
+    """
+    for key in sorted(set(left) | set(right)):
+        if key not in left:
+            return f" (first differing top-level key: {key!r}, only in the right projection)"
+        if key not in right:
+            return f" (first differing top-level key: {key!r}, only in the left projection)"
+        if canonical_json_bytes(left[key]) != canonical_json_bytes(right[key]):
+            return f" (first differing top-level key: {key!r})"
+    return ""
+
+
 def _assert_projection_is_not_vacuous(
     projection: Any, *, family_id: str, trajectory_outcome_paths: tuple[str, ...]
 ) -> None:
@@ -1930,6 +1951,12 @@ def _assert_family_obeys_the_scoring_contract(
     )
     assert canonical_json_bytes(left_projection) == canonical_json_bytes(
         right_projection
+    ), (
+        f"{key[0]}: the two paired-history fixtures' projected outcomes are not "
+        "byte-identical -- the paired-history precondition is unmet; if this "
+        "family's outcome embeds its trajectory, declare trajectory_outcome_paths "
+        "(ruling R9)"
+        + _first_differing_top_level_key_hint(left_projection, right_projection)
     )
     assert left_input.phase_instances != right_input.phase_instances
 
@@ -2163,10 +2190,14 @@ def test_r9_projection_fails_to_pair_when_the_embedded_path_is_not_declared(
     projection -- same case and differing phase_instances are enough, which
     this pair still satisfies even with no declared paths -- so the witness
     itself no longer rejects this family. The protocol still fails, at the
-    (unmodified) paired-history projection-equality check further down:
-    with no declared paths, ``project_outcome`` is the identity, and the
-    one field that actually carries the trajectory (``labels``) remains
-    visible and keeps the two raw outcomes apart.
+    paired-history projection-equality check further down: with no
+    declared paths, ``project_outcome`` is the identity, and the one field
+    that actually carries the trajectory (``labels``) remains visible and
+    keeps the two raw outcomes apart. That check now names the failure
+    (root-fix, follow-up to the fourth pass): matching on a fragment of its
+    own message, not a bare ``AssertionError``, so this test is sensitive
+    to THIS precondition failing specifically, not to any assertion
+    anywhere in the protocol path.
     """
     manifest, plugin, fixtures = _embedding_fixtures(
         tmp_path,
@@ -2181,7 +2212,7 @@ def test_r9_projection_fails_to_pair_when_the_embedded_path_is_not_declared(
     )
     key = (manifest.family.id, manifest.family.version)
 
-    with pytest.raises(AssertionError):
+    with pytest.raises(AssertionError, match="paired-history precondition is unmet"):
         _assert_family_obeys_the_scoring_contract(key, registration, fixtures)
 
 
