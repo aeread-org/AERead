@@ -1904,3 +1904,111 @@ def test_a_tool_using_profile_is_accepted_by_a_tool_capable_harness(tmp_path) ->
             pricing={base.model.model: FAKE_PRICING},
             harnesses={"minimal_chat/1.0": MinimalChatHarness()},
         )
+
+
+# --- KernelModelPort: every round is ledgered and reaches evidence ---
+
+
+def _sealed_request(profile: AgentProfile) -> ProviderRequest:
+    return ProviderRequest(
+        provider_call_id="provider_call_round0",
+        provider=profile.model.provider,
+        base_url=profile.model.base_url,
+        model=profile.model.model,
+        revision=profile.model.revision,
+        instructions=SYSTEM_PROMPT,
+        input_text='{"messages":[]}',
+        temperature=None,
+        top_p=None,
+        max_output_tokens=profile.sampling.max_output_tokens,
+        reasoning_effort=None,
+        timeout_seconds=30.0,
+        request_sha256="",
+        max_cost_usd=profile.budgets.max_cost_usd,
+    ).with_computed_hash()
+
+
+def test_model_port_ledgers_every_round_and_terminalizes_the_rounds_it_opens(tmp_path) -> None:
+    """The executor seals and opens round 0; the port owns every later round.
+
+    Before this, a multi-round turn kept only ``last_result``: rounds 1..N-1
+    were never costed and never reached evidence, so a tool-calling assistant
+    turn billed N calls and reported one.
+    """
+
+    evidence = _evidence(tmp_path)
+    profile = _profile()
+    sealed = _sealed_request(profile)
+    provider = ScriptedProvider(
+        [
+            _result(
+                text="",
+                finish_reason="tool_calls",
+                tool_calls=(
+                    NativeToolCall(call_id="call_0", tool_id="get_balance", arguments={}),
+                ),
+            ),
+            _result(text="done", finish_reason="stop"),
+        ]
+    )
+    port = KernelModelPort(
+        evidence=evidence,
+        provider=provider,
+        pricing=FAKE_PRICING,
+        profile=profile,
+        instructions=SYSTEM_PROMPT,
+        action_attempt_id="action_attempt_fixture",
+        emit_events=False,
+        sealed_request=sealed,
+    )
+    messages = (CanonicalMessage(role="user", content="hi"),)
+    first = asyncio.run(port.complete(messages=messages, response_mode="native_tools"))
+    second = asyncio.run(port.complete(messages=messages, response_mode="text"))
+
+    per_round = FAKE_PRICING.cost(input_tokens=20, cached_input_tokens=0, output_tokens=5)
+    assert [entry.round for entry in port.rounds] == [0, 1]
+    assert port.rounds[0].request is sealed
+    assert port.rounds[0].provider_call_id == first.provider_call_id == sealed.provider_call_id
+    assert port.rounds[1].provider_call_id == second.provider_call_id != sealed.provider_call_id
+    assert [entry.cost_usd for entry in port.rounds] == [per_round, per_round]
+    assert port.cost_usd_total == pytest.approx(2 * per_round)
+    assert port.rounds[0].result.tool_calls and port.rounds[1].result.output_text == "done"
+    assert port.last_result is port.rounds[1].result
+
+    events = [(event.event_type, event.provider_call_id) for event in evidence.read_events()]
+    assert events == [
+        ("provider_call_succeeded", sealed.provider_call_id),
+        ("provider_call_started", second.provider_call_id),
+        ("provider_call_succeeded", second.provider_call_id),
+    ]
+
+
+def test_model_port_terminalizes_a_failed_later_round(tmp_path) -> None:
+    evidence = _evidence(tmp_path)
+    profile = _profile()
+    provider = ScriptedProvider(
+        [
+            _result(text="", finish_reason="tool_calls", tool_calls=(
+                NativeToolCall(call_id="call_0", tool_id="get_balance", arguments={}),
+            )),
+            ProviderFailure("rate_limit", "429", retryable=True),
+        ]
+    )
+    port = KernelModelPort(
+        evidence=evidence,
+        provider=provider,
+        pricing=FAKE_PRICING,
+        profile=profile,
+        instructions=SYSTEM_PROMPT,
+        action_attempt_id="action_attempt_fixture",
+        emit_events=False,
+        sealed_request=_sealed_request(profile),
+    )
+    messages = (CanonicalMessage(role="user", content="hi"),)
+    asyncio.run(port.complete(messages=messages, response_mode="native_tools"))
+    with pytest.raises(ProviderFailure) as captured:
+        asyncio.run(port.complete(messages=messages, response_mode="text"))
+    assert captured.value.condition == "rate_limit"
+    kinds = [event.event_type for event in evidence.read_events()]
+    assert kinds == ["provider_call_succeeded", "provider_call_started", "provider_call_failed"]
+    assert len(port.rounds) == 1 and port.cost_usd_total == pytest.approx(port.rounds[0].cost_usd)

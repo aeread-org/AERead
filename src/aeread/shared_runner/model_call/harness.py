@@ -29,6 +29,8 @@ from ..task.execution import (
     ProviderFailure,
     ProviderRequest,
     MinimalChatExecutor,
+    ModelRound,
+    PendingRound,
     ProviderResult,
     TokenPricing,
     ToolFailure,
@@ -232,6 +234,14 @@ class KernelModelPort:
         harness reports what it believes it did, the kernel knows what it
         recorded, and a divergence is evidence rather than an exception."""
         self.last_result: ProviderResult | None = None
+        self.rounds: list[ModelRound] = []
+        """Every completed provider call, in order. All of them were billed."""
+        self.pending_round: PendingRound | None = None
+        """The call in flight, or the one that just failed, until the next round."""
+
+    @property
+    def cost_usd_total(self) -> float:
+        return sum(entry.cost_usd for entry in self.rounds)
 
     async def complete(
         self,
@@ -289,7 +299,12 @@ class KernelModelPort:
                 tools=tools if response_mode == "native_tools" and tools else None,
             ).with_computed_hash()
 
-        if self._emit_events:
+        # With emit_events=False the executor sealed round 0 and already wrote
+        # its provider_call_started; the port owns every later round's opening
+        # event and every round's terminal event, so no billed call is missing
+        # from evidence.
+        owns_opening = self._emit_events or round_ordinal > 0
+        if owns_opening:
             self._evidence.append_event(
                 "provider_call_started",
                 {"request": request, "round": round_ordinal},
@@ -299,7 +314,39 @@ class KernelModelPort:
                 provider_call_id=provider_call_id,
                 visibility=self._visibility,
             )
-        result = await self._provider.complete(request)
+        self.pending_round = PendingRound(
+            round=round_ordinal,
+            provider_call_id=provider_call_id,
+            request=request,
+            terminalized=False,
+        )
+        try:
+            result = await self._provider.complete(request)
+        except ProviderFailure as failure:
+            outcome_unknown = failure.condition in {"timeout", "transport"}
+            self._evidence.append_event(
+                "provider_call_outcome_unknown" if outcome_unknown else "provider_call_failed",
+                {
+                    "failure_condition": failure.condition,
+                    "message": str(failure),
+                    "retryable": failure.retryable,
+                    "status_code": failure.status_code,
+                    "cost_usd": "unknown" if outcome_unknown else 0.0,
+                    "round": round_ordinal,
+                },
+                phase_instance_id=self._phase_instance_id,
+                logical_action_id=self._logical_action_id,
+                action_attempt_id=self._action_attempt_id,
+                provider_call_id=provider_call_id,
+                visibility=self._visibility,
+            )
+            self.pending_round = PendingRound(
+                round=round_ordinal,
+                provider_call_id=provider_call_id,
+                request=request,
+                terminalized=True,
+            )
+            raise
         if not isinstance(result, ProviderResult):
             raise ProviderFailure(
                 "provider_contract",
@@ -315,23 +362,32 @@ class KernelModelPort:
                 output_tokens=result.output_tokens,
             )
         )
-        if self._emit_events:
-            self._evidence.append_event(
-                "provider_call_succeeded",
-                {
-                    # The full raw_response is sealed as part of this artifact.
-                    "provider_result": result,
-                    "request_sha256": request.request_sha256,
-                    "pricing_id": self._pricing.pricing_id,
-                    "cost_usd": cost,
-                    "round": round_ordinal,
-                },
-                phase_instance_id=self._phase_instance_id,
-                logical_action_id=self._logical_action_id,
-                action_attempt_id=self._action_attempt_id,
+        self._evidence.append_event(
+            "provider_call_succeeded",
+            {
+                # The full raw_response is sealed as part of this artifact.
+                "provider_result": result,
+                "request_sha256": request.request_sha256,
+                "pricing_id": self._pricing.pricing_id,
+                "cost_usd": cost,
+                "round": round_ordinal,
+            },
+            phase_instance_id=self._phase_instance_id,
+            logical_action_id=self._logical_action_id,
+            action_attempt_id=self._action_attempt_id,
+            provider_call_id=provider_call_id,
+            visibility=self._visibility,
+        )
+        self.pending_round = None
+        self.rounds.append(
+            ModelRound(
+                round=round_ordinal,
                 provider_call_id=provider_call_id,
-                visibility=self._visibility,
+                request=request,
+                result=result,
+                cost_usd=cost,
             )
+        )
         self.last_result = result
         tool_calls = result.tool_calls or ()
         text = result.output_text.strip()
@@ -956,6 +1012,7 @@ class AttemptExecutor(MinimalChatExecutor):
     ) -> None:
         self._harnesses = dict(harnesses)
         self._tool_runtimes = dict(tool_runtimes) if tool_runtimes else {}
+        self._ports: dict[str, KernelModelPort] = {}
         self._pending_actions: dict[str, Mapping[str, Any] | None] = {}
         self._pending_tool_ids: dict[str, tuple[str, ...]] = {}
         super().__init__(
@@ -1000,6 +1057,14 @@ class AttemptExecutor(MinimalChatExecutor):
                 f"mode {profile.memory.mode!r}"
             )
 
+    def _attempt_rounds(self, action_attempt_id: str) -> tuple[ModelRound, ...]:
+        port = self._ports.get(action_attempt_id)
+        return tuple(port.rounds) if port is not None else ()
+
+    def _attempt_pending_round(self, action_attempt_id: str) -> PendingRound | None:
+        port = self._ports.get(action_attempt_id)
+        return port.pending_round if port is not None else None
+
     async def _obtain_result(
         self,
         *,
@@ -1027,6 +1092,7 @@ class AttemptExecutor(MinimalChatExecutor):
             emit_events=False,
             sealed_request=request,
         )
+        self._ports[action_attempt_id] = port
         tools_port: Any = None
         if profile.tools and harness.requires.tools != "none":
             # A live port is only ever handed to a harness whose profile

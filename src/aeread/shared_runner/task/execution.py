@@ -886,6 +886,38 @@ class ProviderCallRecord:
 
 
 @dataclass(frozen=True, slots=True)
+class ModelRound:
+    """One completed provider call inside a multi-round attempt.
+
+    A harness may call the model several times for one action attempt (ask,
+    dispatch tools, ask again). Every round is billed, so every round is
+    ledgered here and settled into the attempt's cost and provider-call
+    records; the final round's text is the attempt's canonical response.
+    """
+
+    round: int
+    provider_call_id: str
+    request: ProviderRequest
+    result: ProviderResult
+    cost_usd: float
+
+
+@dataclass(frozen=True, slots=True)
+class PendingRound:
+    """The provider call an attempt was inside when it failed or was interrupted.
+
+    ``terminalized`` is true when the port already wrote this call's terminal
+    event, so the executor must attribute the failure to it without emitting a
+    second terminal event.
+    """
+
+    round: int
+    provider_call_id: str
+    request: ProviderRequest
+    terminalized: bool
+
+
+@dataclass(frozen=True, slots=True)
 class ActionAttemptRecord:
     action_attempt_id: str
     logical_action_id: str
@@ -2254,6 +2286,51 @@ class MinimalChatExecutor:
             provider.complete(request), timeout=profile.budgets.timeout_seconds
         )
 
+    def _attempt_rounds(self, action_attempt_id: str) -> tuple[ModelRound, ...]:
+        """Every completed provider call a harness made for this attempt.
+
+        Empty for the direct single-call path, whose one call the attempt
+        lifecycle records itself. A harness-driven executor returns its port's
+        ledger so all rounds are charged and recorded, not only the last.
+        """
+
+        del action_attempt_id
+        return ()
+
+    def _attempt_pending_round(self, action_attempt_id: str) -> PendingRound | None:
+        """The provider call in flight when a harness-driven attempt failed."""
+
+        del action_attempt_id
+        return None
+
+    def _round_records(
+        self, rounds: Sequence[ModelRound], action_attempt_id: str
+    ) -> tuple[ProviderCallRecord, ...]:
+        return tuple(
+            ProviderCallRecord(
+                provider_call_id=entry.provider_call_id,
+                action_attempt_id=action_attempt_id,
+                status="succeeded",
+                request_sha256=entry.request.request_sha256,
+                requested_model=entry.result.requested_model,
+                resolved_model=entry.result.resolved_model,
+                response_id=entry.result.response_id,
+                finish_reason=entry.result.finish_reason,
+                input_tokens=entry.result.input_tokens,
+                cached_input_tokens=entry.result.cached_input_tokens,
+                output_tokens=entry.result.output_tokens,
+                cost_usd=entry.cost_usd,
+                failure_condition=None,
+            )
+            for entry in rounds
+        )
+
+    def _charge(self, profile: AgentProfile, cost: float) -> float:
+        profile_cost = self._cost_by_profile.get(profile.profile_id, 0.0) + cost
+        self._cost_by_profile[profile.profile_id] = profile_cost
+        self.total_cost_usd += cost
+        return profile_cost
+
     def _harness_action(self, action_attempt_id: str) -> Mapping[str, Any] | None:
         """The opaque action a harness produced for this attempt, if any.
 
@@ -2453,6 +2530,8 @@ class MinimalChatExecutor:
                     retry_reason,
                     attempts,
                     failure,
+                    prior_rounds=self._settle_prior_rounds(profile, action_attempt_id),
+                    pending=self._attempt_pending_round(action_attempt_id),
                 )
                 if should_retry:
                     await self._wait_before_provider_retry(
@@ -2476,6 +2555,8 @@ class MinimalChatExecutor:
                     retry_reason,
                     attempts,
                     failure,
+                    prior_rounds=self._settle_prior_rounds(profile, action_attempt_id),
+                    pending=self._attempt_pending_round(action_attempt_id),
                 )
                 if should_retry:
                     await self._wait_before_provider_retry(
@@ -2490,13 +2571,21 @@ class MinimalChatExecutor:
                     continue
                 raise
             except asyncio.CancelledError:
+                self._settle_prior_rounds(profile, action_attempt_id)
                 self._record_unknown(
-                    decision, request.provider_call_id, action_attempt_id, attempts
+                    decision,
+                    self._interrupted_provider_call_id(request, action_attempt_id),
+                    action_attempt_id,
+                    attempts,
                 )
                 raise
             except BaseException:
+                self._settle_prior_rounds(profile, action_attempt_id)
                 self._record_unknown(
-                    decision, request.provider_call_id, action_attempt_id, attempts
+                    decision,
+                    self._interrupted_provider_call_id(request, action_attempt_id),
+                    action_attempt_id,
+                    attempts,
                 )
                 raise
 
@@ -2518,47 +2607,66 @@ class MinimalChatExecutor:
                 )
                 raise failure
             pricing = self._pricing[profile.model.model]
-            cost = (
-                result.cost_usd
-                if result.cost_usd is not None
-                else pricing.cost(
-                    input_tokens=result.input_tokens,
-                    cached_input_tokens=result.cached_input_tokens,
-                    output_tokens=result.output_tokens,
+            rounds = self._attempt_rounds(action_attempt_id)
+            if rounds:
+                # A harness-driven attempt: the port billed and terminalized
+                # every round in evidence as it happened. Settle all of them
+                # here so the attempt's cost, tokens, and provider-call records
+                # cover what was actually spent, not only the final reply.
+                provider_records = self._round_records(rounds, action_attempt_id)
+                cost = sum(entry.cost_usd for entry in rounds)
+                input_tokens = sum(entry.result.input_tokens for entry in rounds)
+                cached_input_tokens = sum(
+                    entry.result.cached_input_tokens for entry in rounds
                 )
-            )
-            profile_cost = self._cost_by_profile.get(profile.profile_id, 0.0) + cost
-            self._cost_by_profile[profile.profile_id] = profile_cost
-            self.total_cost_usd += cost
-            provider_record = ProviderCallRecord(
-                provider_call_id=request.provider_call_id,
-                action_attempt_id=action_attempt_id,
-                status="succeeded",
-                request_sha256=request.request_sha256,
-                requested_model=result.requested_model,
-                resolved_model=result.resolved_model,
-                response_id=result.response_id,
-                finish_reason=result.finish_reason,
-                input_tokens=result.input_tokens,
-                cached_input_tokens=result.cached_input_tokens,
-                output_tokens=result.output_tokens,
-                cost_usd=cost,
-                failure_condition=None,
-            )
-            self.evidence.append_event(
-                "provider_call_succeeded",
-                {
-                    "provider_result": result,
-                    "request_sha256": request.request_sha256,
-                    "pricing_id": pricing.pricing_id,
-                    "cost_usd": cost,
-                },
-                phase_instance_id=decision.phase_instance_id,
-                logical_action_id=decision.logical_action_id,
-                action_attempt_id=action_attempt_id,
-                provider_call_id=request.provider_call_id,
-                visibility=f"seat:{decision.seat_id}",
-            )
+                output_tokens = sum(entry.result.output_tokens for entry in rounds)
+                provider_call_ids = tuple(entry.provider_call_id for entry in rounds)
+            else:
+                cost = (
+                    result.cost_usd
+                    if result.cost_usd is not None
+                    else pricing.cost(
+                        input_tokens=result.input_tokens,
+                        cached_input_tokens=result.cached_input_tokens,
+                        output_tokens=result.output_tokens,
+                    )
+                )
+                provider_records = (
+                    ProviderCallRecord(
+                        provider_call_id=request.provider_call_id,
+                        action_attempt_id=action_attempt_id,
+                        status="succeeded",
+                        request_sha256=request.request_sha256,
+                        requested_model=result.requested_model,
+                        resolved_model=result.resolved_model,
+                        response_id=result.response_id,
+                        finish_reason=result.finish_reason,
+                        input_tokens=result.input_tokens,
+                        cached_input_tokens=result.cached_input_tokens,
+                        output_tokens=result.output_tokens,
+                        cost_usd=cost,
+                        failure_condition=None,
+                    ),
+                )
+                input_tokens = result.input_tokens
+                cached_input_tokens = result.cached_input_tokens
+                output_tokens = result.output_tokens
+                provider_call_ids = (request.provider_call_id,)
+                self.evidence.append_event(
+                    "provider_call_succeeded",
+                    {
+                        "provider_result": result,
+                        "request_sha256": request.request_sha256,
+                        "pricing_id": pricing.pricing_id,
+                        "cost_usd": cost,
+                    },
+                    phase_instance_id=decision.phase_instance_id,
+                    logical_action_id=decision.logical_action_id,
+                    action_attempt_id=action_attempt_id,
+                    provider_call_id=request.provider_call_id,
+                    visibility=f"seat:{decision.seat_id}",
+                )
+            profile_cost = self._charge(profile, cost)
             if (
                 profile.budgets.max_cost_usd is not None
                 and profile_cost > profile.budgets.max_cost_usd
@@ -2570,7 +2678,7 @@ class MinimalChatExecutor:
                     retry_reason=retry_reason,
                     session_mode=profile.retry_policy.session_mode,
                     status="failed",
-                    provider_calls=(provider_record,),
+                    provider_calls=provider_records,
                     tool_invocations=(),
                     canonical_response=None,
                 )
@@ -2594,13 +2702,13 @@ class MinimalChatExecutor:
                 finish_reason=result.finish_reason,
                 empty=not bool(result.output_text.strip()),
                 truncated=result.finish_reason in {"length", "max_output_tokens"},
-                provider_call_ids=(request.provider_call_id,),
+                provider_call_ids=provider_call_ids,
                 tool_invocation_ids=self._harness_tool_invocation_ids(
                     action_attempt_id
                 ),
-                input_tokens=result.input_tokens,
-                cached_input_tokens=result.cached_input_tokens,
-                output_tokens=result.output_tokens,
+                input_tokens=input_tokens,
+                cached_input_tokens=cached_input_tokens,
+                output_tokens=output_tokens,
                 cost_usd=cost,
                 action=self._harness_action(action_attempt_id),
             )
@@ -2622,7 +2730,7 @@ class MinimalChatExecutor:
                     retry_reason=retry_reason,
                     session_mode=profile.retry_policy.session_mode,
                     status="failed",
-                    provider_calls=(provider_record,),
+                    provider_calls=provider_records,
                     tool_invocations=(),
                     canonical_response=canonical,
                 )
@@ -2651,7 +2759,7 @@ class MinimalChatExecutor:
                     retry_reason=retry_reason,
                     session_mode=profile.retry_policy.session_mode,
                     status="failed",
-                    provider_calls=(provider_record,),
+                    provider_calls=provider_records,
                     tool_invocations=(),
                     canonical_response=canonical,
                 )
@@ -2678,7 +2786,7 @@ class MinimalChatExecutor:
                 retry_reason=retry_reason,
                 session_mode=profile.retry_policy.session_mode,
                 status="succeeded",
-                provider_calls=(provider_record,),
+                provider_calls=provider_records,
                 tool_invocations=canonical.tool_invocation_ids,
                 canonical_response=canonical,
             )
@@ -2807,14 +2915,21 @@ class MinimalChatExecutor:
         retry_reason: str | None,
         attempts: list[ActionAttemptRecord],
         failure: ProviderFailure,
+        *,
+        prior_rounds: tuple[ProviderCallRecord, ...] = (),
+        pending: PendingRound | None = None,
     ) -> bool:
         outcome_unknown = failure.condition in {"timeout", "transport"}
+        # A harness-driven attempt fails inside whichever round it reached;
+        # attribute the failure to that call, not to the sealed round-0 request
+        # that may already have succeeded.
+        failed_request = pending.request if pending is not None else request
         provider_record = ProviderCallRecord(
-            provider_call_id=request.provider_call_id,
+            provider_call_id=failed_request.provider_call_id,
             action_attempt_id=action_attempt_id,
             status="outcome_unknown" if outcome_unknown else "failed",
-            request_sha256=request.request_sha256,
-            requested_model=request.model,
+            request_sha256=failed_request.request_sha256,
+            requested_model=failed_request.model,
             resolved_model=None,
             response_id=None,
             finish_reason=None,
@@ -2824,24 +2939,25 @@ class MinimalChatExecutor:
             cost_usd=0.0,
             failure_condition=failure.condition,
         )
-        self.evidence.append_event(
-            (
-                "provider_call_outcome_unknown"
-                if outcome_unknown
-                else "provider_call_failed"
-            ),
-            {
-                "failure_condition": failure.condition,
-                "message": str(failure),
-                "retryable": failure.retryable,
-                "status_code": failure.status_code,
-                "cost_usd": "unknown" if outcome_unknown else 0.0,
-            },
-            phase_instance_id=decision.phase_instance_id,
-            logical_action_id=decision.logical_action_id,
-            action_attempt_id=action_attempt_id,
-            provider_call_id=request.provider_call_id,
-        )
+        if pending is None or not pending.terminalized:
+            self.evidence.append_event(
+                (
+                    "provider_call_outcome_unknown"
+                    if outcome_unknown
+                    else "provider_call_failed"
+                ),
+                {
+                    "failure_condition": failure.condition,
+                    "message": str(failure),
+                    "retryable": failure.retryable,
+                    "status_code": failure.status_code,
+                    "cost_usd": "unknown" if outcome_unknown else 0.0,
+                },
+                phase_instance_id=decision.phase_instance_id,
+                logical_action_id=decision.logical_action_id,
+                action_attempt_id=action_attempt_id,
+                provider_call_id=failed_request.provider_call_id,
+            )
         attempt = ActionAttemptRecord(
             action_attempt_id=action_attempt_id,
             logical_action_id=decision.logical_action_id,
@@ -2849,7 +2965,7 @@ class MinimalChatExecutor:
             retry_reason=retry_reason,
             session_mode=profile.retry_policy.session_mode,
             status="failed",
-            provider_calls=(provider_record,),
+            provider_calls=prior_rounds + (provider_record,),
             tool_invocations=(),
             canonical_response=None,
         )
@@ -2878,21 +2994,54 @@ class MinimalChatExecutor:
             )
         return should_retry
 
+    def _settle_prior_rounds(
+        self, profile: AgentProfile, action_attempt_id: str
+    ) -> tuple[ProviderCallRecord, ...]:
+        """Charge and record the rounds that succeeded before an attempt failed.
+
+        Those calls were billed whatever happened afterwards; dropping them
+        would under-report spend exactly when a run is going wrong.
+        """
+
+        rounds = self._attempt_rounds(action_attempt_id)
+        if not rounds:
+            return ()
+        self._charge(profile, sum(entry.cost_usd for entry in rounds))
+        return self._round_records(rounds, action_attempt_id)
+
+    def _interrupted_provider_call_id(
+        self, request: ProviderRequest, action_attempt_id: str
+    ) -> str | None:
+        """Which provider call, if any, an interruption caught in flight.
+
+        Round 0 for the direct path. For a harness-driven attempt, the pending
+        round; ``None`` when no call was open, so a call that already
+        terminalized is not given a second, contradictory terminal event.
+        """
+
+        pending = self._attempt_pending_round(action_attempt_id)
+        if pending is not None:
+            return None if pending.terminalized else pending.provider_call_id
+        if self._attempt_rounds(action_attempt_id):
+            return None
+        return request.provider_call_id
+
     def _record_unknown(
         self,
         decision: DecisionRequest,
-        provider_call_id: str,
+        provider_call_id: str | None,
         action_attempt_id: str,
         attempts: list[ActionAttemptRecord],
     ) -> None:
-        self.evidence.append_event(
-            "provider_call_outcome_unknown",
-            {"failure_condition": "interrupted_during_provider_call"},
-            phase_instance_id=decision.phase_instance_id,
-            logical_action_id=decision.logical_action_id,
-            action_attempt_id=action_attempt_id,
-            provider_call_id=provider_call_id,
-        )
+        if provider_call_id is not None:
+            self.evidence.append_event(
+                "provider_call_outcome_unknown",
+                {"failure_condition": "interrupted_during_provider_call"},
+                phase_instance_id=decision.phase_instance_id,
+                logical_action_id=decision.logical_action_id,
+                action_attempt_id=action_attempt_id,
+                provider_call_id=provider_call_id,
+            )
         self.evidence.append_event(
             "action_attempt_outcome_unknown",
             {"failure_condition": "child_provider_outcome_unknown"},
