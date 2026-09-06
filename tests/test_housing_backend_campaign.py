@@ -2090,6 +2090,204 @@ def test_identity_snapshot_survives_a_derank_but_catches_a_repricing(
         campaign._endpoint_snapshot_sha256(healthy, policy="whatever")
 
 
+class _ScriptedHousingClient:
+    """A provider that always returns a schema-valid, legal Housing action."""
+
+    def __init__(self, delay: float = 0.0) -> None:
+        self.delay = delay
+        self.calls = 0
+
+    async def complete(self, request):  # noqa: ANN001, ANN201
+        self.calls += 1
+        if self.delay:
+            await asyncio.sleep(self.delay)
+        payload = json.loads(request.input_text)
+        schema = payload["action_schema"]
+        if schema == "housing_contact_v1":
+            content = json.dumps(
+                {"decision": "pass", "listing_id": None, "rent": None}
+            )
+        elif schema == "housing_commit_v1":
+            content = json.dumps({"decision": "pass", "hold_id": None})
+        else:
+            content = json.dumps(
+                {"decision": "reject_all", "offer_id": None, "counter_rent": None}
+            )
+        return ProviderResult(
+            response_id=f"scripted-{self.calls}",
+            requested_model=request.model,
+            resolved_model=request.revision,
+            output_text=content,
+            finish_reason="stop",
+            input_tokens=100,
+            cached_input_tokens=0,
+            output_tokens=12,
+            cost_usd=0.00001,
+            raw_response={"id": "scripted", "model": request.revision},
+        )
+
+
+def test_concurrent_cell_batches_produce_the_same_rows_as_serial(
+    tmp_path: Path,
+) -> None:
+    from aeread_families.housing.model_sensitivity import run_live
+
+    contract = json.loads(json.dumps(load_contract(V20_CONTRACT_PATH)))
+    routes = route_table(contract)
+
+    def execute(max_concurrent: int, root: Path) -> dict:
+        run = json.loads(json.dumps(contract))
+        run["execution"]["max_concurrent_cells"] = max_concurrent
+        return asyncio.run(
+            run_live(
+                run,
+                output_root=root,
+                routes=routes,
+                stage_id="full_trajectory",
+                provider_client=_ScriptedHousingClient(),
+            )
+        )
+
+    serial = execute(1, tmp_path / "serial")
+    concurrent = execute(4, tmp_path / "concurrent")
+
+    assert serial["attempted_trajectories"] == 4
+    assert serial["completed_trajectories"] == 4
+    assert concurrent["completed_trajectories"] == 4
+
+    def comparable(summary: dict) -> list[dict]:
+        drop = {"elapsed_seconds", "call_pacing", "artifact_sha256", "receipt_sha256"}
+        return sorted(
+            (
+                {k: v for k, v in row.items() if k not in drop}
+                for row in summary["rows"]
+            ),
+            key=lambda row: (row["config_id"], row["condition_id"], row["world_seed"]),
+        )
+
+    # Running four cells at once must not change a single measured value.
+    assert comparable(serial) == comparable(concurrent)
+    assert [row["within_case_score"] for row in comparable(serial)] == [
+        row["within_case_score"] for row in comparable(concurrent)
+    ]
+    # Per-cell pacing attribution is only recorded when cells run one at a time,
+    # because interleaved calls cannot be attributed to a single cell.
+    assert all("call_pacing" not in row for row in concurrent["rows"])
+
+
+def test_batch_cost_reserve_scales_with_batch_size_and_stops_the_run(
+    tmp_path: Path,
+) -> None:
+    from aeread_families.housing.model_sensitivity import run_live
+
+    base = json.loads(json.dumps(load_contract(V20_CONTRACT_PATH)))
+    routes = route_table(base)
+
+    def execute(max_concurrent: int, ceiling: float, root: Path) -> dict:
+        run = json.loads(json.dumps(base))
+        run["execution"]["max_concurrent_cells"] = max_concurrent
+        run["execution"]["cost_ceiling_usd"] = ceiling
+        run["execution"]["per_trajectory_cost_reserve_usd"] = 0.05
+        return asyncio.run(
+            run_live(
+                run,
+                output_root=root,
+                routes=routes,
+                stage_id="full_trajectory",
+                provider_client=_ScriptedHousingClient(),
+            )
+        )
+
+    # A ceiling that admits one reserve but not four must stop a batch of four
+    # before it starts, because all four could bill against the same ceiling.
+    stopped = execute(4, 0.12, tmp_path / "batched")
+    assert stopped["critical_stop"] is True
+    assert stopped["stop_reason"] == "campaign_cost_reserve_reached"
+    assert stopped["attempted_trajectories"] == 0
+
+    # The same ceiling admits cells one at a time, where only one reserve is
+    # ever outstanding, so the reserve must scale with how many cells a batch
+    # can bill at once rather than with a single cell.
+    serial = execute(1, 0.12, tmp_path / "serial")
+    assert serial["attempted_trajectories"] == 4
+    assert serial["critical_stop"] is False
+
+    # A ceiling with room for the whole batch runs it.
+    full = execute(4, 1.0, tmp_path / "full")
+    assert full["completed_trajectories"] == 4
+    assert full["critical_stop"] is False
+
+
+def test_bounded_concurrency_client_spaces_starts_and_caps_overlap() -> None:
+    from aeread_families.housing.provider_concurrency import (
+        BoundedConcurrencyProviderClient,
+    )
+
+    class Clock:
+        def __init__(self) -> None:
+            self.now = 0.0
+
+        def __call__(self) -> float:
+            return self.now
+
+        async def sleep(self, seconds: float) -> None:
+            self.now += seconds
+
+    class Delegate:
+        def __init__(self, clock: Clock) -> None:
+            self.clock = clock
+            self.in_flight = 0
+            self.peak = 0
+
+        async def complete(self, request):  # noqa: ANN001, ANN201
+            self.in_flight += 1
+            self.peak = max(self.peak, self.in_flight)
+            try:
+                await asyncio.sleep(0)
+                return object()
+            finally:
+                self.in_flight -= 1
+
+    async def exercise():
+        clock = Clock()
+        delegate = Delegate(clock)
+        client = BoundedConcurrencyProviderClient(
+            delegate,
+            minimum_start_interval_seconds_by_provider={"Parasail": 5.0},
+            maximum_concurrent_calls_by_provider={"Parasail": 3},
+            first_call_delay_seconds=0.0,
+            clock=clock,
+            sleeper=clock.sleep,
+        )
+        await asyncio.gather(
+            *(
+                client.complete(
+                    SimpleNamespace(provider_metadata={"route_provider": "Parasail"})
+                )
+                for _ in range(6)
+            )
+        )
+        return clock, delegate, client
+
+    clock, delegate, client = asyncio.run(exercise())
+    summary = client.pacing_summary_since(0)
+    assert summary["provider_calls"] == 6
+    # Five gaps of five seconds: starts are spaced even under concurrency, so a
+    # burst can never be issued back to back.
+    assert clock.now == pytest.approx(25.0)
+    assert summary["pacing_wait_seconds"] == pytest.approx(25.0)
+    assert delegate.peak <= 3
+    assert summary["by_provider"]["Parasail"]["peak_in_flight"] <= 3
+
+    with pytest.raises(ValueError, match="concurrent-call limit"):
+        BoundedConcurrencyProviderClient(
+            Delegate(Clock()),
+            minimum_start_interval_seconds_by_provider={"Parasail": 5.0},
+            maximum_concurrent_calls_by_provider={"Parasail": 0},
+            first_call_delay_seconds=0.0,
+        )
+
+
 def test_published_v12_records_pacing_failure_and_zero_trajectories() -> None:
     evidence_root = (
         V12_CONTRACT_PATH.parents[1]

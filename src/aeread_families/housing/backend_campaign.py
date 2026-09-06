@@ -39,6 +39,7 @@ from .runner import (
     OpenRouterRoutePin,
 )
 from .model_sensitivity import (
+    BoundedConcurrencyProviderClient,
     CooldownProviderClient,
     confirmatory_panel,
     PacedProviderClient,
@@ -59,6 +60,7 @@ from .population_campaign import (
     _validate_admission_action,
 )
 from aeread.shared_runner.run.resolver import canonical_json_bytes
+from . import provider_concurrency as provider_concurrency_module
 from . import provider_cooldown as provider_cooldown_module
 from . import provider_pacing as provider_pacing_module
 
@@ -1347,6 +1349,10 @@ def load_contract(path: str | Path) -> dict[str, Any]:
         "winner_claim_allowed": False,
         "completeness_policy": "retain_typed_missingness_without_selective_retry",
     }
+    if "max_concurrent_cells" in campaign_spec:
+        expected_execution["max_concurrent_cells"] = campaign_spec[
+            "max_concurrent_cells"
+        ]
     if "maximum_operational_failure_fraction" in campaign_spec:
         expected_execution["maximum_operational_failure_fraction"] = campaign_spec[
             "maximum_operational_failure_fraction"
@@ -1623,6 +1629,8 @@ def _campaign_provider_client(contract: Mapping[str, Any]) -> Any:
         module_path = Path(provider_pacing_module.__file__)
     elif clock == "monotonic_completion_to_start":
         module_path = Path(provider_cooldown_module.__file__)
+    elif clock == "monotonic_bounded_concurrency":
+        module_path = Path(provider_concurrency_module.__file__)
     else:
         raise ValueError(f"unsupported provider pacing clock {clock!r}")
     implementation_sha256 = hashlib.sha256(module_path.read_bytes()).hexdigest()
@@ -1635,6 +1643,17 @@ def _campaign_provider_client(contract: Mapping[str, Any]) -> Any:
             client,
             minimum_interval_seconds_by_provider=pacing[
                 "minimum_interval_seconds_by_provider"
+            ],
+            first_call_delay_seconds=pacing["first_call_delay_seconds"],
+        )
+    if clock == "monotonic_bounded_concurrency":
+        return BoundedConcurrencyProviderClient(
+            client,
+            minimum_start_interval_seconds_by_provider=pacing[
+                "minimum_start_interval_seconds_by_provider"
+            ],
+            maximum_concurrent_calls_by_provider=pacing[
+                "maximum_concurrent_calls_by_provider"
             ],
             first_call_delay_seconds=pacing["first_call_delay_seconds"],
         )
@@ -1704,7 +1723,14 @@ async def run_profile_admission(
         started = time.perf_counter()
         pacing_observation_index = (
             client.observation_count
-            if isinstance(client, (PacedProviderClient, CooldownProviderClient))
+            if isinstance(
+                client,
+                (
+                    PacedProviderClient,
+                    CooldownProviderClient,
+                    BoundedConcurrencyProviderClient,
+                ),
+            )
             else None
         )
         attempt_limit = int(admission["attempt_limit_per_probe"])

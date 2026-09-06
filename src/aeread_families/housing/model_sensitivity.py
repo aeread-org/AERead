@@ -46,6 +46,7 @@ from .population_campaign import (
     _role_metrics,
 )
 from .qc import audit_bid_world
+from .provider_concurrency import BoundedConcurrencyProviderClient
 from .provider_cooldown import CooldownProviderClient
 from .provider_pacing import PacedProviderClient
 
@@ -1405,31 +1406,23 @@ async def run_live(
                         raise ValueError("frozen execution cell did not resolve uniquely")
                     ordered_cells.append((config, condition, setup, matches[0]))
 
-    for config, condition, setup, cell in ordered_cells:
+    max_concurrent_cells = int(execution_contract.get("max_concurrent_cells", 1))
+
+    async def _run_cell(config, condition, setup, cell, result_path):
         condition_id = condition["condition_id"]
-        result_path = (
-            live_root
-            / config["config_id"]
-            / condition_id
-            / "results"
-            / f"world_{cell.world_seed}__rep_{cell.replicate_index}.json"
-        )
-        if result_path.exists():
-            rows.append(_read_sealed(result_path))
-            continue
-        cost_so_far = sum(float(row.get("cost_usd", 0.0)) for row in rows)
-        if (
-            cost_so_far + execution_contract["per_trajectory_cost_reserve_usd"]
-            > execution_contract["cost_ceiling_usd"]
-        ):
-            critical_stop = True
-            stop_reason = "campaign_cost_reserve_reached"
-            break
         evidence_root = live_root / config["config_id"] / condition_id / "evidence"
         started = time.perf_counter()
         pacing_observation_index = (
             client.observation_count
-            if isinstance(client, (PacedProviderClient, CooldownProviderClient))
+            if max_concurrent_cells == 1
+            and isinstance(
+                client,
+                (
+                    PacedProviderClient,
+                    CooldownProviderClient,
+                    BoundedConcurrencyProviderClient,
+                ),
+            )
             else None
         )
         critical_error = False
@@ -1540,10 +1533,47 @@ async def run_live(
             )
         sealed_row = _sealed(row)
         _write_json(result_path, sealed_row)
-        rows.append(sealed_row)
-        if critical_error:
+        return sealed_row, critical_error
+
+    pending: list[tuple[Any, Any, Any, Any, Path]] = []
+    for config, condition, setup, cell in ordered_cells:
+        result_path = (
+            live_root
+            / config["config_id"]
+            / condition["condition_id"]
+            / "results"
+            / f"world_{cell.world_seed}__rep_{cell.replicate_index}.json"
+        )
+        if result_path.exists():
+            rows.append(_read_sealed(result_path))
+            continue
+        pending.append((config, condition, setup, cell, result_path))
+
+    # Cells run in bounded batches. The provider pacing policy still governs
+    # every call, so concurrency raises throughput only as far as that policy
+    # allows. The reserve is checked per batch against the worst case that the
+    # batch can add, so the ceiling cannot be crossed by cells already in
+    # flight.
+    for offset in range(0, len(pending), max_concurrent_cells):
+        batch = pending[offset : offset + max_concurrent_cells]
+        cost_so_far = sum(float(row.get("cost_usd", 0.0)) for row in rows)
+        reserve = execution_contract["per_trajectory_cost_reserve_usd"] * len(batch)
+        if cost_so_far + reserve > execution_contract["cost_ceiling_usd"]:
             critical_stop = True
-            stop_reason = "critical_route_replay_or_cost_failure"
+            stop_reason = "campaign_cost_reserve_reached"
+            break
+        results = await asyncio.gather(
+            *(_run_cell(*entry) for entry in batch), return_exceptions=True
+        )
+        for result in results:
+            if isinstance(result, BaseException):
+                raise result
+            sealed_row, critical_error = result
+            rows.append(sealed_row)
+            if critical_error:
+                critical_stop = True
+                stop_reason = "critical_route_replay_or_cost_failure"
+        if critical_stop:
             break
 
     expected = (
