@@ -1,11 +1,25 @@
 """Tests for the agenticpay.bilateral scripted harness and offline replayer
 (harness.py/replay.py, spec section 5, Milestone 3).
 
-Follows the same ``_bridge()``/skip convention as
-``tests/test_agenticpay_bilateral_environment.py``: pure structural tests run
-everywhere; tests that actually drive the real upstream bridge run for real when a
-pinned upstream Python interpreter is provisioned, and are skipped (never faked)
-otherwise.
+Per-test skip, never module-level (migration review finding 1,
+docs/agenticpay_migration_review.md): a module-level skip -- this module's
+own convention before that fix -- suppresses collection of every test in
+this file, including the bridge-INDEPENDENT ones below (JSON round-tripping,
+recorded-response ordering, mismatch reporting), hiding a regression in any
+of those behind a missing-checkout skip instead of running and failing it.
+Worse, ``tests/test_shared_runner_scoring_contract.py`` imports this
+module's ``UPSTREAM_ROOT``/``_bridge``/``_case``/``_cell``/``_script``
+helpers at module scope to build its own AgenticPay contract fixtures: a
+module-level ``pytest.skip(allow_module_level=True)`` raised while THIS
+module is being imported re-raises during THAT module's own collection too,
+which used to skip the entire shared protocol test -- including every OTHER
+migrated family's always-on coverage -- whenever the AgenticPay upstream
+checkout was merely absent. Mirrors
+``tests/test_govsim_replay.py``'s and ``tests/test_amazonbarg_shim.py``'s
+identical per-test-skip fix for the same failure mode. Pure, provider-free
+structural tests run everywhere; tests that actually drive the real
+upstream bridge run for real when a pinned upstream Python interpreter is
+provisioned, and are skipped (never faked) otherwise.
 """
 from __future__ import annotations
 
@@ -74,34 +88,48 @@ from aeread_families.agenticpay_bilateral.replay import (
 )
 
 
-def _upstream_root() -> Path:
+def _find_upstream_root() -> Path | None:
+    """Locate the pinned upstream checkout, or report it missing -- never a
+    module-level skip (finding 1: a module-level skip here would suppress
+    every bridge-INDEPENDENT test below too, and -- because
+    ``tests/test_shared_runner_scoring_contract.py`` imports this module's
+    helpers at module scope -- would also skip that shared protocol test
+    module wholesale, hiding every OTHER migrated family's coverage behind
+    a missing AgenticPay checkout). Mirrors
+    ``tests/test_govsim_replay.py``'s identical per-test-skip convention.
+    """
     candidate = os.environ.get(
         "AEREAD_AGENTICPAY_UPSTREAM_ROOT",
         "/Users/sunzeyu/Documents/econ benchmark/upstream-agenticpay",
     )
     root = Path(candidate)
     marker = root / "agenticpay" / "envs" / "single_buyer_product_seller" / "Task1_basic_price_negotiation.py"
-    if not marker.is_file():
-        pytest.skip(
-            f"pinned upstream AgenticPay checkout not found at {root}",
-            allow_module_level=True,
-        )
-    return root
+    return root if marker.is_file() else None
 
 
-UPSTREAM_ROOT = _upstream_root()
+UPSTREAM_ROOT = _find_upstream_root()
 
-try:
-    BRIDGE_PYTHON = discover_bridge_python(upstream_root=UPSTREAM_ROOT)
-except AgenticpayBridgeUnavailableError as error:
-    BRIDGE_PYTHON = None
-    _BRIDGE_SKIP_REASON = str(error)
+if UPSTREAM_ROOT is not None:
+    try:
+        BRIDGE_PYTHON = discover_bridge_python(upstream_root=UPSTREAM_ROOT)
+    except AgenticpayBridgeUnavailableError as error:
+        BRIDGE_PYTHON = None
+        _BRIDGE_SKIP_REASON = str(error)
+    else:
+        _BRIDGE_SKIP_REASON = ""
 else:
-    _BRIDGE_SKIP_REASON = ""
+    BRIDGE_PYTHON = None
+    _BRIDGE_SKIP_REASON = (
+        "pinned upstream AgenticPay checkout not found at "
+        + os.environ.get(
+            "AEREAD_AGENTICPAY_UPSTREAM_ROOT",
+            "/Users/sunzeyu/Documents/econ benchmark/upstream-agenticpay",
+        )
+    )
 
 
 def _bridge() -> AgenticpayBridge:
-    if BRIDGE_PYTHON is None:
+    if UPSTREAM_ROOT is None or BRIDGE_PYTHON is None:
         pytest.skip(_BRIDGE_SKIP_REASON or "upstream AgenticPay Python interpreter unavailable")
     return AgenticpayBridge(python_executable=BRIDGE_PYTHON, upstream_root=UPSTREAM_ROOT)
 
