@@ -24,9 +24,27 @@ stays sealed as evidence of what failed.
 | 008 | case 01 | `SchedulerContractError` | 0.01051 | Spurious Parasail **404** on an endpoint OpenRouter listed as available, after case 00 scored `ok/included`. Classified `provider_rejected`, deliberately not retryable. | none -- route fault |
 | 009 | case 02 | `SchedulerContractError` | 0.02164 | Scheduling case exhausted the harness's corrective rounds; the sealed responses show one round returned an **empty string**, spending a round on silence when `empty_response` is a typed provider condition. | `5b81cab4` |
 | 010 | case 00 | `SchedulerContractError` | 0.00004 | Ten attempts against a 429 burst exhausted in ~2 minutes: retry backoff is opt-in through `harness.config`, and with none declared the executor never sleeps. | `93f2f148` |
-| 011 | -- | -- | see below | First attempt to clear the panel. | -- |
+| 011 | all 6 cases | publish only | 0.09250 | **Execution succeeded**: 6/6 cases `ok/included`, 100 periods each, `exit=0`. Publishing then crashed on `ValidityReport.valid` (the field is `.status`), and the fix could not be applied to this run -- see below. | `d3f0c1` design split |
+| 012 | -- | -- | see below | First attempt under the execution/publisher split. | -- |
 
-Total spent on failed attempts: **0.03238 USD**.
+Total spent on failed attempts: **0.12488 USD**, of which 0.09250 bought a
+complete but unpublishable panel.
+
+## The freeze defect attempt 011 exposed
+
+`build_campaign_plan` hashed `campaign.py` into the plan's source digests,
+and `campaign.py` carries the **publisher** as well as the executor. So a
+publisher bug is unfixable for a completed run: publish with the bug and it
+crashes, fix the bug and `_verify_plan` rejects the very run the plan
+governed. Attempt 011 executed perfectly and cannot be published.
+
+Relaxing the verification rule after seeing the outcome was rejected as the
+same move as post-outcome tuning. Instead the freeze now covers **execution
+sources only** (`execution_source_sha256`), and the publisher's digest is
+recorded in the publication manifest as `publisher_implementation_sha256`,
+next to what was executed rather than inside it -- which is where the
+datacenter and procurement families already keep it. That re-freezes the
+plan, so the panel is re-run rather than retro-published.
 
 ## What the failures were, by kind
 
