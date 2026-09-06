@@ -160,8 +160,8 @@ migration.
 
 ## Evidence
 
-**Updated for this milestone (2026-09-06): 96 passed, 2 failed, 0 skipped
-with the bridge genuinely wired in — not stale.** The "89 of 89" figure
+**Updated for this milestone (2026-09-06): 96 collected, 94 passed, 2 failed,
+0 skipped with the bridge genuinely wired in — not stale.** The "89 of 89" figure
 below this paragraph predates both the kernel path reorg
 (`src/aeread/shared_runner/execution.py` -> `.../task/execution.py`) and a
 second, unrelated baseline defect this migration found but did not fix (see
@@ -177,7 +177,7 @@ documented "upstream NegotiationArena Python interpreter unavailable"
 reason (checked directly, not assumed: no skip masks an old calling
 convention, the exact trap the reference migration's worked example warns
 about). With the bridge genuinely exported, the same suite collects **96
-passed, 2 failed, 0 skipped**: the 2 failures are
+collected, 94 passed, 2 failed, 0 skipped**: the 2 failures are
 `test_negarena_kernel_finalizer.py::test_finalize_family_execution_does_not_crash_and_seals_a_typed_receipt`
 and `::test_finalize_family_execution_seals_the_complete_evidence_lifecycle`,
 both pre-existing, both unrelated to this milestone's leaf-policy/`__call__`
