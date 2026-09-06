@@ -103,6 +103,14 @@ _BRIDGE_FAMILIES = (
             "pinned upstream EconAgent checkout not found",
         ),
     ),
+    (
+        "AEREAD_AMAZONBARG_BRIDGE_REQUIRED",
+        (
+            "Provide the pinned upstream checkout (AEREAD_AMAZONBARG_UPSTREAM_ROOT), "
+            "or unset $AEREAD_AMAZONBARG_BRIDGE_REQUIRED to allow skipping."
+        ),
+        ("pinned upstream AmazonPriceHistory checkout not found",),
+    ),
 )
 
 
@@ -116,6 +124,7 @@ _BRIDGE_FAMILY_DISPLAY = {
     "AEREAD_AGENTICPAY_BRIDGE_REQUIRED": {"family": "AgenticPay (agenticpay_bilateral adapter)", "title": "upstream bridge required: AgenticPay (agenticpay_bilateral adapter)", "note_when_unenforced": False},
     "AEREAD_ALYMPICS_UPSTREAM_REQUIRED": {"family": "Alympics (alympics.wac adapter)", "title": "upstream required: alympics.wac", "note_when_unenforced": False},
     "AEREAD_ECONAGENT_BRIDGE_REQUIRED": {"family": "EconAgent (econagent_v1 adapter)", "title": "upstream bridge required: EconAgent (econagent_v1 adapter)", "note_when_unenforced": False},
+    "AEREAD_AMAZONBARG_BRIDGE_REQUIRED": {"family": "AmazonPriceHistory (amazonbarg.bilateral adapter)", "title": "upstream bridge required: AmazonPriceHistory (amazonbarg.bilateral adapter)", "note_when_unenforced": False},
 }
 
 
