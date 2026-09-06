@@ -281,9 +281,17 @@ class EconevalsJsonHarness:
         """Validate one step's calls: read-only calls, or the terminating submit.
 
         Returns ``(normalized, submitted, reason)``. A step may issue any
-        number of read-only calls, or exactly one submit call which ends the
-        period. Mixing them in one step is rejected, because the submit must
-        be the period's final call and anything after it would never run.
+        number of read-only calls, and may end with the submit call, which
+        ends the period.
+
+        The loop PERMITS multi-step exploration; it does not mandate it. An
+        earlier version rejected a step that mixed read-only calls with the
+        submit, which was stricter than ``parse_action`` -- the environment
+        only requires the submit to be last. That extra rule fought the
+        model: it wanted to gather and submit in one burst, was bounced with
+        "look first, submit after", and in one period never converged within
+        the round budget. What matters for fidelity is that results ARE fed
+        back when the model splits its work, not that it is forced to.
         """
         if not isinstance(calls, list) or not calls:
             return None, False, "return a non-empty calls list"
@@ -304,17 +312,12 @@ class EconevalsJsonHarness:
             if name == submit_tool:
                 submit_index = index
             normalized.append({"id": call_id, "name": name, "arguments": arguments})
-        if submit_index is not None:
-            if submit_index != len(normalized) - 1:
-                return None, False, (
-                    f"{submit_tool!r} ends the period, so it must be the last "
-                    "call of the step"
-                )
-            if len(normalized) > 1:
-                return None, False, (
-                    f"issue your read-only calls first and see their results, "
-                    f"then call {submit_tool!r} on its own to end the period"
-                )
+        if submit_index is not None and submit_index != len(normalized) - 1:
+            # The environment's own rule, and the only one worth enforcing
+            # here: anything after the submit would never run.
+            return None, False, (
+                f"{submit_tool!r} ends the period, so it must be the last call"
+            )
         return tuple(normalized), submit_index is not None, ""
 
     async def act(self, request: Any, ctx: AttemptContext) -> HarnessOutput:
