@@ -978,8 +978,10 @@ CAMPAIGN_SPECS = {
         "endpoint_snapshot_policy": "identity_only",
         "per_probe_cost_reserve_usd": 0.003,
         "admission_cost_ceiling_usd": 0.06,
-        "admission_attempt_limit": 10,
-        "max_action_attempts": 10,
+        "admission_attempt_limit": 30,
+        "max_concurrent_cells": 8,
+        "replicates": 2,
+        "max_action_attempts": 30,
         "timeout_seconds": 300.0,
         "seat_max_cost_usd": 0.03,
         "retry_backoff": {
@@ -989,13 +991,13 @@ CAMPAIGN_SPECS = {
         },
         "confirmatory_panel": True,
         "variance_pilot_reference": {
-            "campaign_id": "housing_model_sensitivity_openrouter_parasail_v19",
+            "campaign_id": "housing_model_sensitivity_openrouter_parasail_v26",
             "qualification_path": (
-                "evidence/housing_model_sensitivity_openrouter_parasail_v19/"
+                "evidence/housing_model_sensitivity_openrouter_parasail_v26/"
                 "reports/qualification.json"
             ),
             "qualification_artifact_sha256": (
-                "7b72914c34f0461e190215906a735a64ddccd3e4943c79e1e1b87b11c64df3e1"
+                "6bace0d9c20448c7e03826b528bc790fb0dc84652baaa6ba5557edf07c7de071"
             ),
         },
         "execution_stage": "confirmatory_execution",
@@ -1025,6 +1027,21 @@ CAMPAIGN_SPECS = {
             1746020508,
             2115856512,
             449124770,
+            1907374266,
+            805162878,
+            657531977,
+            978077348,
+            1255654432,
+            210011375,
+            84125567,
+            1263145380,
+            1078198037,
+            545292283,
+            1291027571,
+            1268106556,
+            27562482,
+            2085097730,
+            1665492486,
         ],
         "condition_order": "rotate_by_world_and_case_configuration",
         "analysis": {
@@ -1060,14 +1077,17 @@ CAMPAIGN_SPECS = {
         "wire_live_profile_controls": True,
         "verify_endpoint_snapshot": True,
         "call_pacing": {
-            "clock": "monotonic_completion_to_start",
-            "cooldown_seconds_by_provider": {
-                "Parasail": 10.0,
+            "clock": "monotonic_bounded_concurrency",
+            "minimum_start_interval_seconds_by_provider": {
+                "Parasail": 3.0,
+            },
+            "maximum_concurrent_calls_by_provider": {
+                "Parasail": 8,
             },
             "first_call_delay_seconds": 0.0,
             "scope": "shared_across_profile_admission_and_full_trajectory",
             "implementation_sha256": (
-                "4dc67f4ae81395166264049bbf917d8d42e69c5d6069c97fea981c4b419415d3"
+                "4ef6e84e699a1a7135366cfa03197f62300b7e339349fb5454259d0208434cef"
             ),
         },
         "admission_timeout_enforcement": (

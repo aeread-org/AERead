@@ -22,7 +22,7 @@
     "max_output_tokens": 4096,
     "timeout_seconds": 300.0,
     "sdk_retries": 0,
-    "max_action_attempts": 10,
+    "max_action_attempts": 30,
     "tenant_max_logical_actions": 48,
     "landlord_max_logical_actions": 16,
     "retryable_conditions": [
@@ -38,13 +38,16 @@
     "action_schema_version": "housing_actions/2.0",
     "wire_live_profile_controls": true,
     "call_pacing": {
-      "clock": "monotonic_completion_to_start",
-      "cooldown_seconds_by_provider": {
-        "Parasail": 10.0
+      "clock": "monotonic_bounded_concurrency",
+      "minimum_start_interval_seconds_by_provider": {
+        "Parasail": 3.0
+      },
+      "maximum_concurrent_calls_by_provider": {
+        "Parasail": 8
       },
       "first_call_delay_seconds": 0.0,
       "scope": "shared_across_profile_admission_and_full_trajectory",
-      "implementation_sha256": "4dc67f4ae81395166264049bbf917d8d42e69c5d6069c97fea981c4b419415d3"
+      "implementation_sha256": "4ef6e84e699a1a7135366cfa03197f62300b7e339349fb5454259d0208434cef"
     },
     "admission_timeout_enforcement": "asyncio_wait_for_controls_timeout_seconds",
     "seat_max_cost_usd": 0.03,
@@ -125,16 +128,16 @@
       103002,
       103003
     ],
-    "attempt_limit_per_probe": 10,
+    "attempt_limit_per_probe": 30,
     "sdk_retries": 0,
     "hidden_repair_allowed": false,
     "per_probe_cost_reserve_usd": 0.003,
     "cost_ceiling_usd": 0.06,
     "profile_sha256s": {
-      "housing_glm_53_flash_parasail_tenant_confirmatory_v1": "201ed03dbe2f1fba163263af3eee42857b4747896c9adf7629a1fd57c362603f",
-      "housing_glm_53_flash_parasail_landlord_confirmatory_v1": "4b3720c959d7908ca0a5be9bc571f4427977a3fbdf91bda146ac60f5b2b82981",
-      "housing_deepseek_v4_flash_parasail_tenant_confirmatory_v1": "3a56c4c3277e97ffb4a747039b9bd0fd59e46a26b4afe8223585b0f78f219e98",
-      "housing_deepseek_v4_flash_parasail_landlord_confirmatory_v1": "1c912af10463d5c8b586fa41719b4a0e107a61b2182a63c7082254dabec8e2d4"
+      "housing_glm_53_flash_parasail_tenant_confirmatory_v1": "7abbba17d7a03fd0480adf4662d322e1c27112d0b87c90f3c272f6106fded217",
+      "housing_glm_53_flash_parasail_landlord_confirmatory_v1": "f35f435d09f21df5442cbbb8a13fda4999ad0b898f85da0fd095ab70378c0e3b",
+      "housing_deepseek_v4_flash_parasail_tenant_confirmatory_v1": "b20d264861f108ad0fe397ff8aef4cda643a6eae27d562e5a862071078407be7",
+      "housing_deepseek_v4_flash_parasail_landlord_confirmatory_v1": "1d952ce99d7392c082df776fd33ca3b0f2f325846ba9b13ad0b18ac0631d22e2"
     }
   },
   "execution": {
@@ -159,7 +162,22 @@
       1502627411,
       1746020508,
       2115856512,
-      449124770
+      449124770,
+      1907374266,
+      805162878,
+      657531977,
+      978077348,
+      1255654432,
+      210011375,
+      84125567,
+      1263145380,
+      1078198037,
+      545292283,
+      1291027571,
+      1268106556,
+      27562482,
+      2085097730,
+      1665492486
     ],
     "replicates": 2,
     "attempt_limit": 1,
@@ -167,7 +185,8 @@
     "per_trajectory_cost_reserve_usd": 0.06,
     "winner_claim_allowed": false,
     "completeness_policy": "retain_typed_missingness_without_selective_retry",
-    "maximum_operational_failure_fraction": 0.05
+    "maximum_operational_failure_fraction": 0.05,
+    "max_concurrent_cells": 8
   },
   "analysis": {
     "primary_view": "paired_world_subject_mean_within_case_score",
@@ -186,8 +205,8 @@
   "missingness": "typed_operational_missingness_reported_separately",
   "stopping_rule": "profile_admission_must_pass_before_confirmatory_freeze; confirmatory_freeze_must_be_sealed_before_execution; stop_immediately_on_route_drift_or_replay_failure",
   "confirmatory_panel": {
-    "sweep_contract_path": "configs/housing_case_config_sweep_v1.json",
-    "sweep_contract_file_sha256": "6e5d6a6bb6f03c9952f2b9ab2d0190a550321cd5bd568bbc406b8932c69094bc",
+    "sweep_contract_path": "configs/housing_case_config_sweep_v2.json",
+    "sweep_contract_file_sha256": "a77aefe056f9c2a35c5cb98c51bc77a119cb8fea3e8b6808aa4642d06d918b59",
     "configs": [
       {
         "config_id": "holdout_mild_unseen",
@@ -230,7 +249,27 @@
       1502627411,
       1746020508,
       2115856512,
-      449124770
+      449124770,
+      1907374266,
+      805162878,
+      657531977,
+      978077348,
+      1255654432,
+      210011375,
+      84125567,
+      1263145380,
+      1078198037,
+      545292283,
+      1291027571,
+      1268106556,
+      27562482,
+      2085097730,
+      1665492486,
+      114234343,
+      2012092143,
+      2087483793,
+      426579320,
+      550453552
     ],
     "excluded_world_seeds": {
       "114691332": "degenerate_upper_bound"
@@ -250,7 +289,27 @@
       1502627411,
       1746020508,
       2115856512,
-      449124770
+      449124770,
+      1907374266,
+      805162878,
+      657531977,
+      978077348,
+      1255654432,
+      210011375,
+      84125567,
+      1263145380,
+      1078198037,
+      545292283,
+      1291027571,
+      1268106556,
+      27562482,
+      2085097730,
+      1665492486,
+      114234343,
+      2012092143,
+      2087483793,
+      426579320,
+      550453552
     ]
   }
 }
