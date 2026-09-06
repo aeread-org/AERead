@@ -1,6 +1,6 @@
 {
-  "case_id": "procurement_allocation_v1.confirmatory_v1_opaque.cheap_listing_hides_yield",
-  "content_sha256": "895b9a4b035b795e9e26527e2a9476de9f69538204d1806b07a1319f7f9f7940",
+  "case_id": "procurement_allocation_v1.confirmatory_v1_labeled.trap_is_priciest",
+  "content_sha256": "3f97ff955adf34b403274412375a13430b36283f2aee9fd8f8a624be22403842",
   "episode": {
     "max_logical_actions": 7,
     "termination": [
@@ -25,17 +25,17 @@
     "objective": {
       "annual_financing_rate": 0.12,
       "bom": {
-        "bh1750_gy302": 1,
-        "sht30_i2c": 1
+        "ky040_encoder": 1,
+        "tactile_switch_6x6x5": 1
       },
       "cash_budget_usd": 200.0,
-      "deadline_days": 20,
+      "deadline_days": 22,
       "defect_detection_days": 10,
       "defer_value_usd": 0.0,
       "minimum_service_kits": 18,
-      "product_id": "duediligence_yield",
-      "revenue_per_completed_kit_usd": 10.0,
-      "shortfall_penalty_per_kit_usd": 4.0,
+      "product_id": "duediligence_trap_pricy",
+      "revenue_per_completed_kit_usd": 9.0,
+      "shortfall_penalty_per_kit_usd": 3.0,
       "target_kits": 20,
       "working_capital_horizon_days": 45
     },
@@ -54,28 +54,77 @@
         "return_refund_policy"
       ],
       "required_variant_by_component": {
-        "bh1750_gy302": "bh1750_gy302_i2c_module",
-        "sht30_i2c": "sht30_i2c_module_3v3"
+        "ky040_encoder": "ec11_ky040_module_with_pullups",
+        "tactile_switch_6x6x5": "6x6x5mm_four_pin_normally_open"
       }
     },
     "suppliers": [
       {
-        "component": "sht30_i2c",
+        "component": "tactile_switch_6x6x5",
         "listing": {
           "claimed_lead_time_days": 4,
-          "claimed_variant": "sht30 i2c module 3v3",
-          "displayed_unit_price_usd": 1.476,
+          "claimed_variant": "6x6x5mm four pin normally open",
+          "displayed_unit_price_usd": 0.082,
           "evidence_status": "marketplace_listing_unverified",
-          "supplier_name": "Supplier 4676E559BC84"
+          "supplier_name": "Synthetic Low supplier"
         },
         "private_terms": {
-          "base_unit_price_usd": 1.8,
+          "base_unit_price_usd": 0.1,
           "capacity": 20,
           "duty_rate": 0.05,
           "lead_time_days": 6,
           "moq": 10,
           "negotiation": {
-            "floor_unit_price_usd": 1.8,
+            "floor_unit_price_usd": 0.1,
+            "maximum_payment_terms_days": 30,
+            "maximum_refund_window_days": 30,
+            "minimum_moq": 10,
+            "supplier_paid_return_freight_available": true
+          },
+          "offer_valid_days": 30,
+          "on_time_probability": 0.99,
+          "order_step": 10,
+          "payment_terms_days": 30,
+          "quality": {
+            "observed_defects": 1,
+            "sample_cost_usd": 0.4,
+            "sample_lead_time_days": 1,
+            "sample_size": 100,
+            "verified_yield_rate": 0.99
+          },
+          "return_policy": {
+            "claim_acceptance_probability": 0.95,
+            "refund_delay_days": 5,
+            "refund_window_days": 30,
+            "restocking_fee_rate": 0.0,
+            "return_freight_payer": "supplier",
+            "return_freight_per_unit_usd": 0.0
+          },
+          "shipping_per_unit_usd": 0.05,
+          "variant_id": "6x6x5mm_four_pin_normally_open",
+          "verbal_bias": {
+            "verified_yield_rate": 0.99
+          }
+        },
+        "supplier_id": "tactile_switch_6x6x5_low"
+      },
+      {
+        "component": "tactile_switch_6x6x5",
+        "listing": {
+          "claimed_lead_time_days": 4,
+          "claimed_variant": "6x6x5mm four pin normally open",
+          "displayed_unit_price_usd": 0.1312,
+          "evidence_status": "marketplace_listing_unverified",
+          "supplier_name": "Synthetic Mid supplier"
+        },
+        "private_terms": {
+          "base_unit_price_usd": 0.16,
+          "capacity": 20,
+          "duty_rate": 0.05,
+          "lead_time_days": 6,
+          "moq": 10,
+          "negotiation": {
+            "floor_unit_price_usd": 0.16,
             "maximum_payment_terms_days": 30,
             "maximum_refund_window_days": 30,
             "minimum_moq": 10,
@@ -101,27 +150,30 @@
             "return_freight_per_unit_usd": 0.0
           },
           "shipping_per_unit_usd": 0.05,
-          "variant_id": "sht30_i2c_module_3v3"
+          "variant_id": "6x6x5mm_four_pin_normally_open",
+          "verbal_bias": {
+            "verified_yield_rate": 0.99
+          }
         },
-        "supplier_id": "supplier_4676e559bc84"
+        "supplier_id": "tactile_switch_6x6x5_mid"
       },
       {
-        "component": "sht30_i2c",
+        "component": "tactile_switch_6x6x5",
         "listing": {
           "claimed_lead_time_days": 4,
-          "claimed_variant": "sht30 i2c module 3v3",
-          "displayed_unit_price_usd": 0.574,
+          "claimed_variant": "6x6x5mm four pin normally open",
+          "displayed_unit_price_usd": 0.1968,
           "evidence_status": "marketplace_listing_unverified",
-          "supplier_name": "Supplier CD5FC33198B9"
+          "supplier_name": "Synthetic High supplier"
         },
         "private_terms": {
-          "base_unit_price_usd": 0.7,
+          "base_unit_price_usd": 0.24,
           "capacity": 20,
           "duty_rate": 0.05,
           "lead_time_days": 6,
           "moq": 10,
           "negotiation": {
-            "floor_unit_price_usd": 0.7,
+            "floor_unit_price_usd": 0.24,
             "maximum_payment_terms_days": 30,
             "maximum_refund_window_days": 30,
             "minimum_moq": 10,
@@ -132,11 +184,11 @@
           "order_step": 10,
           "payment_terms_days": 30,
           "quality": {
-            "observed_defects": 22,
+            "observed_defects": 23,
             "sample_cost_usd": 0.4,
             "sample_lead_time_days": 1,
             "sample_size": 100,
-            "verified_yield_rate": 0.78
+            "verified_yield_rate": 0.77
           },
           "return_policy": {
             "claim_acceptance_probability": 0.95,
@@ -147,30 +199,30 @@
             "return_freight_per_unit_usd": 0.0
           },
           "shipping_per_unit_usd": 0.05,
-          "variant_id": "sht30_i2c_module_3v3",
+          "variant_id": "6x6x5mm_four_pin_normally_open",
           "verbal_bias": {
             "verified_yield_rate": 0.99
           }
         },
-        "supplier_id": "supplier_cd5fc33198b9"
+        "supplier_id": "tactile_switch_6x6x5_high"
       },
       {
-        "component": "bh1750_gy302",
+        "component": "ky040_encoder",
         "listing": {
           "claimed_lead_time_days": 4,
-          "claimed_variant": "bh1750 gy302 i2c module",
-          "displayed_unit_price_usd": 0.369,
+          "claimed_variant": "ec11 ky040 module with pullups",
+          "displayed_unit_price_usd": 0.492,
           "evidence_status": "marketplace_listing_unverified",
-          "supplier_name": "Supplier 05BF96FFC8A4"
+          "supplier_name": "Synthetic Low supplier"
         },
         "private_terms": {
-          "base_unit_price_usd": 0.45,
+          "base_unit_price_usd": 0.6,
           "capacity": 20,
           "duty_rate": 0.05,
           "lead_time_days": 6,
           "moq": 10,
           "negotiation": {
-            "floor_unit_price_usd": 0.45,
+            "floor_unit_price_usd": 0.6,
             "maximum_payment_terms_days": 30,
             "maximum_refund_window_days": 30,
             "minimum_moq": 10,
@@ -181,11 +233,11 @@
           "order_step": 10,
           "payment_terms_days": 30,
           "quality": {
-            "observed_defects": 22,
+            "observed_defects": 1,
             "sample_cost_usd": 0.4,
             "sample_lead_time_days": 1,
             "sample_size": 100,
-            "verified_yield_rate": 0.78
+            "verified_yield_rate": 0.99
           },
           "return_policy": {
             "claim_acceptance_probability": 0.95,
@@ -196,21 +248,21 @@
             "return_freight_per_unit_usd": 0.0
           },
           "shipping_per_unit_usd": 0.05,
-          "variant_id": "bh1750_gy302_i2c_module",
+          "variant_id": "ec11_ky040_module_with_pullups",
           "verbal_bias": {
             "verified_yield_rate": 0.99
           }
         },
-        "supplier_id": "supplier_05bf96ffc8a4"
+        "supplier_id": "ky040_encoder_low"
       },
       {
-        "component": "bh1750_gy302",
+        "component": "ky040_encoder",
         "listing": {
           "claimed_lead_time_days": 4,
-          "claimed_variant": "bh1750 gy302 i2c module",
+          "claimed_variant": "ec11 ky040 module with pullups",
           "displayed_unit_price_usd": 0.738,
           "evidence_status": "marketplace_listing_unverified",
-          "supplier_name": "Supplier 73986B63843D"
+          "supplier_name": "Synthetic Mid supplier"
         },
         "private_terms": {
           "base_unit_price_usd": 0.9,
@@ -234,7 +286,7 @@
             "sample_cost_usd": 0.4,
             "sample_lead_time_days": 1,
             "sample_size": 100,
-            "verified_yield_rate": 0.99
+            "verified_yield_rate": 0.995
           },
           "return_policy": {
             "claim_acceptance_probability": 0.95,
@@ -245,18 +297,21 @@
             "return_freight_per_unit_usd": 0.0
           },
           "shipping_per_unit_usd": 0.05,
-          "variant_id": "bh1750_gy302_i2c_module"
+          "variant_id": "ec11_ky040_module_with_pullups",
+          "verbal_bias": {
+            "verified_yield_rate": 0.99
+          }
         },
-        "supplier_id": "supplier_73986b63843d"
+        "supplier_id": "ky040_encoder_mid"
       },
       {
-        "component": "sht30_i2c",
+        "component": "ky040_encoder",
         "listing": {
           "claimed_lead_time_days": 4,
-          "claimed_variant": "sht30 i2c module 3v3",
+          "claimed_variant": "ec11 ky040 module with pullups",
           "displayed_unit_price_usd": 1.066,
           "evidence_status": "marketplace_listing_unverified",
-          "supplier_name": "Supplier F27FD1E5F31A"
+          "supplier_name": "Synthetic High supplier"
         },
         "private_terms": {
           "base_unit_price_usd": 1.3,
@@ -276,70 +331,27 @@
           "order_step": 10,
           "payment_terms_days": 30,
           "quality": {
-            "observed_defects": 1,
+            "observed_defects": 23,
             "sample_cost_usd": 0.4,
             "sample_lead_time_days": 1,
             "sample_size": 100,
+            "verified_yield_rate": 0.77
+          },
+          "return_policy": {
+            "claim_acceptance_probability": 0.95,
+            "refund_delay_days": 5,
+            "refund_window_days": 30,
+            "restocking_fee_rate": 0.0,
+            "return_freight_payer": "supplier",
+            "return_freight_per_unit_usd": 0.0
+          },
+          "shipping_per_unit_usd": 0.05,
+          "variant_id": "ec11_ky040_module_with_pullups",
+          "verbal_bias": {
             "verified_yield_rate": 0.99
-          },
-          "return_policy": {
-            "claim_acceptance_probability": 0.95,
-            "refund_delay_days": 5,
-            "refund_window_days": 30,
-            "restocking_fee_rate": 0.0,
-            "return_freight_payer": "supplier",
-            "return_freight_per_unit_usd": 0.0
-          },
-          "shipping_per_unit_usd": 0.05,
-          "variant_id": "sht30_i2c_module_3v3"
+          }
         },
-        "supplier_id": "supplier_f27fd1e5f31a"
-      },
-      {
-        "component": "bh1750_gy302",
-        "listing": {
-          "claimed_lead_time_days": 4,
-          "claimed_variant": "bh1750 gy302 i2c module",
-          "displayed_unit_price_usd": 1.025,
-          "evidence_status": "marketplace_listing_unverified",
-          "supplier_name": "Supplier 2F77FD760A7B"
-        },
-        "private_terms": {
-          "base_unit_price_usd": 1.25,
-          "capacity": 20,
-          "duty_rate": 0.05,
-          "lead_time_days": 6,
-          "moq": 10,
-          "negotiation": {
-            "floor_unit_price_usd": 1.25,
-            "maximum_payment_terms_days": 30,
-            "maximum_refund_window_days": 30,
-            "minimum_moq": 10,
-            "supplier_paid_return_freight_available": true
-          },
-          "offer_valid_days": 30,
-          "on_time_probability": 0.99,
-          "order_step": 10,
-          "payment_terms_days": 30,
-          "quality": {
-            "observed_defects": 1,
-            "sample_cost_usd": 0.4,
-            "sample_lead_time_days": 1,
-            "sample_size": 100,
-            "verified_yield_rate": 0.995
-          },
-          "return_policy": {
-            "claim_acceptance_probability": 0.95,
-            "refund_delay_days": 5,
-            "refund_window_days": 30,
-            "restocking_fee_rate": 0.0,
-            "return_freight_payer": "supplier",
-            "return_freight_per_unit_usd": 0.0
-          },
-          "shipping_per_unit_usd": 0.05,
-          "variant_id": "bh1750_gy302_i2c_module"
-        },
-        "supplier_id": "supplier_2f77fd760a7b"
+        "supplier_id": "ky040_encoder_high"
       }
     ]
   },
@@ -355,7 +367,7 @@
     }
   ],
   "spec_version": "aeread.case/0.1",
-  "split": "confirmatory_v1_opaque",
+  "split": "confirmatory_v1_labeled",
   "visibility_policy": "procurement_allocation_public_listings_private_supplier_terms_v1",
-  "world_seed": 2614101
+  "world_seed": 2614103
 }

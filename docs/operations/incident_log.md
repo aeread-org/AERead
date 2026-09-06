@@ -8,6 +8,21 @@ The QC standard requires preserving failed attempts as evidence and forbids
 deleting history after a later fix. This is where that evidence is indexed. Detail
 lives in the linked documents; this file is the index and the disposition.
 
+## Two tiers
+
+| tier | artifact | written by | contains |
+|---|---|---|---|
+| 1 | `evidence/<family>_failure_register/` | a generator, from published evidence only | every executed row that failed or carried a violation, and every rejected canary |
+| 2 | this file | a person | design, operational, tooling, and judgment failures, including those that leave no trace in evidence |
+
+Tier 1 for procurement is
+`aeread_families.procurement_allocation.failure_register`. It is regenerable and
+digest-bound, so it cannot omit a failure by accident or by preference, and any
+drift between it and this file is itself a finding. Tier 2 exists because the
+failures that cost the most this session -- a panel authored against an
+unmeasured intuition, a claim reported too strongly, a script that committed to
+the wrong checkout -- leave no row anywhere.
+
 ## How to use it
 
 - Add a row when something fails, not when it is fixed.

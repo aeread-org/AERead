@@ -1,6 +1,6 @@
 {
-  "case_id": "procurement_allocation_v1.confirmatory_v1_opaque.cheap_listing_hides_capacity",
-  "content_sha256": "74feb4368c26100eed8334308a627992f379597ab8a79d17f527718b9c15e53d",
+  "case_id": "procurement_allocation_v1.confirmatory_v1_labeled.decoy_variant_and_trap",
+  "content_sha256": "a0737f8de119a531cb4c29eb11a63d0ddcfb35dedbd2b42599e1566c18c3d26d",
   "episode": {
     "max_logical_actions": 7,
     "termination": [
@@ -26,16 +26,16 @@
       "annual_financing_rate": 0.12,
       "bom": {
         "ky040_encoder": 1,
-        "tactile_switch_6x6x5": 1
+        "tp4056_usb_c_protected": 1
       },
       "cash_budget_usd": 200.0,
-      "deadline_days": 22,
+      "deadline_days": 20,
       "defect_detection_days": 10,
       "defer_value_usd": 0.0,
       "minimum_service_kits": 18,
-      "product_id": "duediligence_capacity",
-      "revenue_per_completed_kit_usd": 9.0,
-      "shortfall_penalty_per_kit_usd": 3.0,
+      "product_id": "duediligence_decoy",
+      "revenue_per_completed_kit_usd": 10.0,
+      "shortfall_penalty_per_kit_usd": 4.0,
       "target_kits": 20,
       "working_capital_horizon_days": 45
     },
@@ -55,27 +55,27 @@
       ],
       "required_variant_by_component": {
         "ky040_encoder": "ec11_ky040_module_with_pullups",
-        "tactile_switch_6x6x5": "6x6x5mm_four_pin_normally_open"
+        "tp4056_usb_c_protected": "usb_c_dw01a_8205a_separate_bat_out"
       }
     },
     "suppliers": [
       {
-        "component": "ky040_encoder",
+        "component": "tp4056_usb_c_protected",
         "listing": {
           "claimed_lead_time_days": 4,
-          "claimed_variant": "ec11 ky040 module with pullups",
-          "displayed_unit_price_usd": 0.451,
+          "claimed_variant": "usb c unprotected no separate outputs",
+          "displayed_unit_price_usd": 0.246,
           "evidence_status": "marketplace_listing_unverified",
-          "supplier_name": "Supplier EBB56F332FDF"
+          "supplier_name": "Synthetic Decoy supplier"
         },
         "private_terms": {
-          "base_unit_price_usd": 0.55,
+          "base_unit_price_usd": 0.3,
           "capacity": 20,
           "duty_rate": 0.05,
           "lead_time_days": 6,
           "moq": 10,
           "negotiation": {
-            "floor_unit_price_usd": 0.55,
+            "floor_unit_price_usd": 0.3,
             "maximum_payment_terms_days": 30,
             "maximum_refund_window_days": 30,
             "minimum_moq": 10,
@@ -91,6 +91,202 @@
             "sample_lead_time_days": 1,
             "sample_size": 100,
             "verified_yield_rate": 0.99
+          },
+          "return_policy": {
+            "claim_acceptance_probability": 0.95,
+            "refund_delay_days": 5,
+            "refund_window_days": 30,
+            "restocking_fee_rate": 0.0,
+            "return_freight_payer": "supplier",
+            "return_freight_per_unit_usd": 0.0
+          },
+          "shipping_per_unit_usd": 0.05,
+          "variant_id": "usb_c_unprotected_no_separate_outputs",
+          "verbal_bias": {
+            "verified_yield_rate": 0.99
+          }
+        },
+        "supplier_id": "tp4056_usb_c_protected_decoy"
+      },
+      {
+        "component": "tp4056_usb_c_protected",
+        "listing": {
+          "claimed_lead_time_days": 4,
+          "claimed_variant": "usb c dw01a 8205a separate bat out",
+          "displayed_unit_price_usd": 0.492,
+          "evidence_status": "marketplace_listing_unverified",
+          "supplier_name": "Synthetic Low supplier"
+        },
+        "private_terms": {
+          "base_unit_price_usd": 0.6,
+          "capacity": 20,
+          "duty_rate": 0.05,
+          "lead_time_days": 6,
+          "moq": 10,
+          "negotiation": {
+            "floor_unit_price_usd": 0.6,
+            "maximum_payment_terms_days": 30,
+            "maximum_refund_window_days": 30,
+            "minimum_moq": 10,
+            "supplier_paid_return_freight_available": true
+          },
+          "offer_valid_days": 30,
+          "on_time_probability": 0.99,
+          "order_step": 10,
+          "payment_terms_days": 30,
+          "quality": {
+            "observed_defects": 22,
+            "sample_cost_usd": 0.4,
+            "sample_lead_time_days": 1,
+            "sample_size": 100,
+            "verified_yield_rate": 0.78
+          },
+          "return_policy": {
+            "claim_acceptance_probability": 0.95,
+            "refund_delay_days": 5,
+            "refund_window_days": 30,
+            "restocking_fee_rate": 0.0,
+            "return_freight_payer": "supplier",
+            "return_freight_per_unit_usd": 0.0
+          },
+          "shipping_per_unit_usd": 0.05,
+          "variant_id": "usb_c_dw01a_8205a_separate_bat_out",
+          "verbal_bias": {
+            "verified_yield_rate": 0.99
+          }
+        },
+        "supplier_id": "tp4056_usb_c_protected_low"
+      },
+      {
+        "component": "tp4056_usb_c_protected",
+        "listing": {
+          "claimed_lead_time_days": 4,
+          "claimed_variant": "usb c dw01a 8205a separate bat out",
+          "displayed_unit_price_usd": 0.861,
+          "evidence_status": "marketplace_listing_unverified",
+          "supplier_name": "Synthetic High supplier"
+        },
+        "private_terms": {
+          "base_unit_price_usd": 1.05,
+          "capacity": 20,
+          "duty_rate": 0.05,
+          "lead_time_days": 6,
+          "moq": 10,
+          "negotiation": {
+            "floor_unit_price_usd": 1.05,
+            "maximum_payment_terms_days": 30,
+            "maximum_refund_window_days": 30,
+            "minimum_moq": 10,
+            "supplier_paid_return_freight_available": true
+          },
+          "offer_valid_days": 30,
+          "on_time_probability": 0.99,
+          "order_step": 10,
+          "payment_terms_days": 30,
+          "quality": {
+            "observed_defects": 1,
+            "sample_cost_usd": 0.4,
+            "sample_lead_time_days": 1,
+            "sample_size": 100,
+            "verified_yield_rate": 0.995
+          },
+          "return_policy": {
+            "claim_acceptance_probability": 0.95,
+            "refund_delay_days": 5,
+            "refund_window_days": 30,
+            "restocking_fee_rate": 0.0,
+            "return_freight_payer": "supplier",
+            "return_freight_per_unit_usd": 0.0
+          },
+          "shipping_per_unit_usd": 0.05,
+          "variant_id": "usb_c_dw01a_8205a_separate_bat_out",
+          "verbal_bias": {
+            "verified_yield_rate": 0.99
+          }
+        },
+        "supplier_id": "tp4056_usb_c_protected_high"
+      },
+      {
+        "component": "ky040_encoder",
+        "listing": {
+          "claimed_lead_time_days": 4,
+          "claimed_variant": "ec11 rotary no switch",
+          "displayed_unit_price_usd": 0.328,
+          "evidence_status": "marketplace_listing_unverified",
+          "supplier_name": "Synthetic Decoy supplier"
+        },
+        "private_terms": {
+          "base_unit_price_usd": 0.4,
+          "capacity": 20,
+          "duty_rate": 0.05,
+          "lead_time_days": 6,
+          "moq": 10,
+          "negotiation": {
+            "floor_unit_price_usd": 0.4,
+            "maximum_payment_terms_days": 30,
+            "maximum_refund_window_days": 30,
+            "minimum_moq": 10,
+            "supplier_paid_return_freight_available": true
+          },
+          "offer_valid_days": 30,
+          "on_time_probability": 0.99,
+          "order_step": 10,
+          "payment_terms_days": 30,
+          "quality": {
+            "observed_defects": 1,
+            "sample_cost_usd": 0.4,
+            "sample_lead_time_days": 1,
+            "sample_size": 100,
+            "verified_yield_rate": 0.99
+          },
+          "return_policy": {
+            "claim_acceptance_probability": 0.95,
+            "refund_delay_days": 5,
+            "refund_window_days": 30,
+            "restocking_fee_rate": 0.0,
+            "return_freight_payer": "supplier",
+            "return_freight_per_unit_usd": 0.0
+          },
+          "shipping_per_unit_usd": 0.05,
+          "variant_id": "ec11_rotary_no_switch",
+          "verbal_bias": {
+            "verified_yield_rate": 0.99
+          }
+        },
+        "supplier_id": "ky040_encoder_decoy"
+      },
+      {
+        "component": "ky040_encoder",
+        "listing": {
+          "claimed_lead_time_days": 4,
+          "claimed_variant": "ec11 ky040 module with pullups",
+          "displayed_unit_price_usd": 0.574,
+          "evidence_status": "marketplace_listing_unverified",
+          "supplier_name": "Synthetic Low supplier"
+        },
+        "private_terms": {
+          "base_unit_price_usd": 0.7,
+          "capacity": 20,
+          "duty_rate": 0.05,
+          "lead_time_days": 6,
+          "moq": 10,
+          "negotiation": {
+            "floor_unit_price_usd": 0.7,
+            "maximum_payment_terms_days": 30,
+            "maximum_refund_window_days": 30,
+            "minimum_moq": 10,
+            "supplier_paid_return_freight_available": true
+          },
+          "offer_valid_days": 30,
+          "on_time_probability": 0.99,
+          "order_step": 10,
+          "payment_terms_days": 30,
+          "quality": {
+            "observed_defects": 22,
+            "sample_cost_usd": 0.4,
+            "sample_lead_time_days": 1,
+            "sample_size": 100,
+            "verified_yield_rate": 0.78
           },
           "return_policy": {
             "claim_acceptance_probability": 0.95,
@@ -103,74 +299,28 @@
           "shipping_per_unit_usd": 0.05,
           "variant_id": "ec11_ky040_module_with_pullups",
           "verbal_bias": {
-            "capacity": 20
+            "verified_yield_rate": 0.99
           }
         },
-        "supplier_id": "supplier_ebb56f332fdf"
-      },
-      {
-        "component": "tactile_switch_6x6x5",
-        "listing": {
-          "claimed_lead_time_days": 4,
-          "claimed_variant": "6x6x5mm four pin normally open",
-          "displayed_unit_price_usd": 0.164,
-          "evidence_status": "marketplace_listing_unverified",
-          "supplier_name": "Supplier 3C658B17BE62"
-        },
-        "private_terms": {
-          "base_unit_price_usd": 0.2,
-          "capacity": 20,
-          "duty_rate": 0.05,
-          "lead_time_days": 6,
-          "moq": 10,
-          "negotiation": {
-            "floor_unit_price_usd": 0.2,
-            "maximum_payment_terms_days": 30,
-            "maximum_refund_window_days": 30,
-            "minimum_moq": 10,
-            "supplier_paid_return_freight_available": true
-          },
-          "offer_valid_days": 30,
-          "on_time_probability": 0.99,
-          "order_step": 10,
-          "payment_terms_days": 30,
-          "quality": {
-            "observed_defects": 1,
-            "sample_cost_usd": 0.4,
-            "sample_lead_time_days": 1,
-            "sample_size": 100,
-            "verified_yield_rate": 0.99
-          },
-          "return_policy": {
-            "claim_acceptance_probability": 0.95,
-            "refund_delay_days": 5,
-            "refund_window_days": 30,
-            "restocking_fee_rate": 0.0,
-            "return_freight_payer": "supplier",
-            "return_freight_per_unit_usd": 0.0
-          },
-          "shipping_per_unit_usd": 0.05,
-          "variant_id": "6x6x5mm_four_pin_normally_open"
-        },
-        "supplier_id": "supplier_3c658b17be62"
+        "supplier_id": "ky040_encoder_low"
       },
       {
         "component": "ky040_encoder",
         "listing": {
           "claimed_lead_time_days": 4,
           "claimed_variant": "ec11 ky040 module with pullups",
-          "displayed_unit_price_usd": 0.902,
+          "displayed_unit_price_usd": 0.943,
           "evidence_status": "marketplace_listing_unverified",
-          "supplier_name": "Supplier 41F2ED101516"
+          "supplier_name": "Synthetic High supplier"
         },
         "private_terms": {
-          "base_unit_price_usd": 1.1,
+          "base_unit_price_usd": 1.15,
           "capacity": 20,
           "duty_rate": 0.05,
           "lead_time_days": 6,
           "moq": 10,
           "negotiation": {
-            "floor_unit_price_usd": 1.1,
+            "floor_unit_price_usd": 1.15,
             "maximum_payment_terms_days": 30,
             "maximum_refund_window_days": 30,
             "minimum_moq": 10,
@@ -185,7 +335,7 @@
             "sample_cost_usd": 0.4,
             "sample_lead_time_days": 1,
             "sample_size": 100,
-            "verified_yield_rate": 0.99
+            "verified_yield_rate": 0.995
           },
           "return_policy": {
             "claim_acceptance_probability": 0.95,
@@ -196,150 +346,12 @@
             "return_freight_per_unit_usd": 0.0
           },
           "shipping_per_unit_usd": 0.05,
-          "variant_id": "ec11_ky040_module_with_pullups"
-        },
-        "supplier_id": "supplier_41f2ed101516"
-      },
-      {
-        "component": "ky040_encoder",
-        "listing": {
-          "claimed_lead_time_days": 4,
-          "claimed_variant": "ec11 ky040 module with pullups",
-          "displayed_unit_price_usd": 0.697,
-          "evidence_status": "marketplace_listing_unverified",
-          "supplier_name": "Supplier 8ED8D61722D6"
-        },
-        "private_terms": {
-          "base_unit_price_usd": 0.85,
-          "capacity": 20,
-          "duty_rate": 0.05,
-          "lead_time_days": 6,
-          "moq": 10,
-          "negotiation": {
-            "floor_unit_price_usd": 0.85,
-            "maximum_payment_terms_days": 30,
-            "maximum_refund_window_days": 30,
-            "minimum_moq": 10,
-            "supplier_paid_return_freight_available": true
-          },
-          "offer_valid_days": 30,
-          "on_time_probability": 0.99,
-          "order_step": 10,
-          "payment_terms_days": 30,
-          "quality": {
-            "observed_defects": 1,
-            "sample_cost_usd": 0.4,
-            "sample_lead_time_days": 1,
-            "sample_size": 100,
-            "verified_yield_rate": 0.99
-          },
-          "return_policy": {
-            "claim_acceptance_probability": 0.95,
-            "refund_delay_days": 5,
-            "refund_window_days": 30,
-            "restocking_fee_rate": 0.0,
-            "return_freight_payer": "supplier",
-            "return_freight_per_unit_usd": 0.0
-          },
-          "shipping_per_unit_usd": 0.05,
-          "variant_id": "ec11_ky040_module_with_pullups"
-        },
-        "supplier_id": "supplier_8ed8d61722d6"
-      },
-      {
-        "component": "tactile_switch_6x6x5",
-        "listing": {
-          "claimed_lead_time_days": 4,
-          "claimed_variant": "6x6x5mm four pin normally open",
-          "displayed_unit_price_usd": 0.0738,
-          "evidence_status": "marketplace_listing_unverified",
-          "supplier_name": "Supplier 2D336F4BD61B"
-        },
-        "private_terms": {
-          "base_unit_price_usd": 0.09,
-          "capacity": 20,
-          "duty_rate": 0.05,
-          "lead_time_days": 6,
-          "moq": 10,
-          "negotiation": {
-            "floor_unit_price_usd": 0.09,
-            "maximum_payment_terms_days": 30,
-            "maximum_refund_window_days": 30,
-            "minimum_moq": 10,
-            "supplier_paid_return_freight_available": true
-          },
-          "offer_valid_days": 30,
-          "on_time_probability": 0.99,
-          "order_step": 10,
-          "payment_terms_days": 30,
-          "quality": {
-            "observed_defects": 1,
-            "sample_cost_usd": 0.4,
-            "sample_lead_time_days": 1,
-            "sample_size": 100,
-            "verified_yield_rate": 0.99
-          },
-          "return_policy": {
-            "claim_acceptance_probability": 0.95,
-            "refund_delay_days": 5,
-            "refund_window_days": 30,
-            "restocking_fee_rate": 0.0,
-            "return_freight_payer": "supplier",
-            "return_freight_per_unit_usd": 0.0
-          },
-          "shipping_per_unit_usd": 0.05,
-          "variant_id": "6x6x5mm_four_pin_normally_open",
+          "variant_id": "ec11_ky040_module_with_pullups",
           "verbal_bias": {
-            "capacity": 20
+            "verified_yield_rate": 0.99
           }
         },
-        "supplier_id": "supplier_2d336f4bd61b"
-      },
-      {
-        "component": "tactile_switch_6x6x5",
-        "listing": {
-          "claimed_lead_time_days": 4,
-          "claimed_variant": "6x6x5mm four pin normally open",
-          "displayed_unit_price_usd": 0.123,
-          "evidence_status": "marketplace_listing_unverified",
-          "supplier_name": "Supplier A4F5E04C0A2D"
-        },
-        "private_terms": {
-          "base_unit_price_usd": 0.15,
-          "capacity": 20,
-          "duty_rate": 0.05,
-          "lead_time_days": 6,
-          "moq": 10,
-          "negotiation": {
-            "floor_unit_price_usd": 0.15,
-            "maximum_payment_terms_days": 30,
-            "maximum_refund_window_days": 30,
-            "minimum_moq": 10,
-            "supplier_paid_return_freight_available": true
-          },
-          "offer_valid_days": 30,
-          "on_time_probability": 0.99,
-          "order_step": 10,
-          "payment_terms_days": 30,
-          "quality": {
-            "observed_defects": 1,
-            "sample_cost_usd": 0.4,
-            "sample_lead_time_days": 1,
-            "sample_size": 100,
-            "verified_yield_rate": 0.99
-          },
-          "return_policy": {
-            "claim_acceptance_probability": 0.95,
-            "refund_delay_days": 5,
-            "refund_window_days": 30,
-            "restocking_fee_rate": 0.0,
-            "return_freight_payer": "supplier",
-            "return_freight_per_unit_usd": 0.0
-          },
-          "shipping_per_unit_usd": 0.05,
-          "variant_id": "6x6x5mm_four_pin_normally_open"
-        },
-        "supplier_id": "supplier_a4f5e04c0a2d"
+        "supplier_id": "ky040_encoder_high"
       }
     ]
   },
@@ -355,7 +367,7 @@
     }
   ],
   "spec_version": "aeread.case/0.1",
-  "split": "confirmatory_v1_opaque",
+  "split": "confirmatory_v1_labeled",
   "visibility_policy": "procurement_allocation_public_listings_private_supplier_terms_v1",
-  "world_seed": 2614103
+  "world_seed": 2614106
 }

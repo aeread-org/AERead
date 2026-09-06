@@ -1,6 +1,6 @@
 {
-  "case_id": "procurement_allocation_v1.confirmatory_v1_opaque.decoy_variant_and_yield",
-  "content_sha256": "e3d624a50982731fa71fa35d35f567d9b44d518975f065f40847d1256eab947b",
+  "case_id": "procurement_allocation_v1.confirmatory_v1_opaque.trap_is_midpriced",
+  "content_sha256": "7ca6a83cc48fff39c5ad8e8d91591435fd60a98c8355eee4ab489efcc8449710",
   "episode": {
     "max_logical_actions": 7,
     "termination": [
@@ -25,7 +25,7 @@
     "objective": {
       "annual_financing_rate": 0.12,
       "bom": {
-        "ky040_encoder": 1,
+        "mosfet_low_side_3v3": 1,
         "tp4056_usb_c_protected": 1
       },
       "cash_budget_usd": 200.0,
@@ -33,8 +33,8 @@
       "defect_detection_days": 10,
       "defer_value_usd": 0.0,
       "minimum_service_kits": 18,
-      "product_id": "duediligence_decoy_variant",
-      "revenue_per_completed_kit_usd": 10.0,
+      "product_id": "duediligence_trap_mid",
+      "revenue_per_completed_kit_usd": 9.0,
       "shortfall_penalty_per_kit_usd": 4.0,
       "target_kits": 20,
       "working_capital_horizon_days": 45
@@ -54,169 +54,28 @@
         "return_refund_policy"
       ],
       "required_variant_by_component": {
-        "ky040_encoder": "ec11_ky040_module_with_pullups",
+        "mosfet_low_side_3v3": "3v3_logic_level_low_side_module",
         "tp4056_usb_c_protected": "usb_c_dw01a_8205a_separate_bat_out"
       }
     },
     "suppliers": [
       {
-        "component": "ky040_encoder",
-        "listing": {
-          "claimed_lead_time_days": 4,
-          "claimed_variant": "ec11 ky040 module with pullups",
-          "displayed_unit_price_usd": 0.574,
-          "evidence_status": "marketplace_listing_unverified",
-          "supplier_name": "Supplier AB25124D6710"
-        },
-        "private_terms": {
-          "base_unit_price_usd": 0.7,
-          "capacity": 20,
-          "duty_rate": 0.05,
-          "lead_time_days": 6,
-          "moq": 10,
-          "negotiation": {
-            "floor_unit_price_usd": 0.7,
-            "maximum_payment_terms_days": 30,
-            "maximum_refund_window_days": 30,
-            "minimum_moq": 10,
-            "supplier_paid_return_freight_available": true
-          },
-          "offer_valid_days": 30,
-          "on_time_probability": 0.99,
-          "order_step": 10,
-          "payment_terms_days": 30,
-          "quality": {
-            "observed_defects": 22,
-            "sample_cost_usd": 0.4,
-            "sample_lead_time_days": 1,
-            "sample_size": 100,
-            "verified_yield_rate": 0.78
-          },
-          "return_policy": {
-            "claim_acceptance_probability": 0.95,
-            "refund_delay_days": 5,
-            "refund_window_days": 30,
-            "restocking_fee_rate": 0.0,
-            "return_freight_payer": "supplier",
-            "return_freight_per_unit_usd": 0.0
-          },
-          "shipping_per_unit_usd": 0.05,
-          "variant_id": "ec11_ky040_module_with_pullups",
-          "verbal_bias": {
-            "verified_yield_rate": 0.99
-          }
-        },
-        "supplier_id": "supplier_ab25124d6710"
-      },
-      {
-        "component": "tp4056_usb_c_protected",
-        "listing": {
-          "claimed_lead_time_days": 4,
-          "claimed_variant": "usb c unprotected no separate outputs",
-          "displayed_unit_price_usd": 0.246,
-          "evidence_status": "marketplace_listing_unverified",
-          "supplier_name": "Supplier AC420AF1E72B"
-        },
-        "private_terms": {
-          "base_unit_price_usd": 0.3,
-          "capacity": 20,
-          "duty_rate": 0.05,
-          "lead_time_days": 6,
-          "moq": 10,
-          "negotiation": {
-            "floor_unit_price_usd": 0.3,
-            "maximum_payment_terms_days": 30,
-            "maximum_refund_window_days": 30,
-            "minimum_moq": 10,
-            "supplier_paid_return_freight_available": true
-          },
-          "offer_valid_days": 30,
-          "on_time_probability": 0.99,
-          "order_step": 10,
-          "payment_terms_days": 30,
-          "quality": {
-            "observed_defects": 1,
-            "sample_cost_usd": 0.4,
-            "sample_lead_time_days": 1,
-            "sample_size": 100,
-            "verified_yield_rate": 0.99
-          },
-          "return_policy": {
-            "claim_acceptance_probability": 0.95,
-            "refund_delay_days": 5,
-            "refund_window_days": 30,
-            "restocking_fee_rate": 0.0,
-            "return_freight_payer": "supplier",
-            "return_freight_per_unit_usd": 0.0
-          },
-          "shipping_per_unit_usd": 0.05,
-          "variant_id": "usb_c_unprotected_no_separate_outputs"
-        },
-        "supplier_id": "supplier_ac420af1e72b"
-      },
-      {
-        "component": "ky040_encoder",
-        "listing": {
-          "claimed_lead_time_days": 4,
-          "claimed_variant": "ec11 rotary no switch",
-          "displayed_unit_price_usd": 0.328,
-          "evidence_status": "marketplace_listing_unverified",
-          "supplier_name": "Supplier D98C0F42C5A3"
-        },
-        "private_terms": {
-          "base_unit_price_usd": 0.4,
-          "capacity": 20,
-          "duty_rate": 0.05,
-          "lead_time_days": 6,
-          "moq": 10,
-          "negotiation": {
-            "floor_unit_price_usd": 0.4,
-            "maximum_payment_terms_days": 30,
-            "maximum_refund_window_days": 30,
-            "minimum_moq": 10,
-            "supplier_paid_return_freight_available": true
-          },
-          "offer_valid_days": 30,
-          "on_time_probability": 0.99,
-          "order_step": 10,
-          "payment_terms_days": 30,
-          "quality": {
-            "observed_defects": 1,
-            "sample_cost_usd": 0.4,
-            "sample_lead_time_days": 1,
-            "sample_size": 100,
-            "verified_yield_rate": 0.99
-          },
-          "return_policy": {
-            "claim_acceptance_probability": 0.95,
-            "refund_delay_days": 5,
-            "refund_window_days": 30,
-            "restocking_fee_rate": 0.0,
-            "return_freight_payer": "supplier",
-            "return_freight_per_unit_usd": 0.0
-          },
-          "shipping_per_unit_usd": 0.05,
-          "variant_id": "ec11_rotary_no_switch"
-        },
-        "supplier_id": "supplier_d98c0f42c5a3"
-      },
-      {
         "component": "tp4056_usb_c_protected",
         "listing": {
           "claimed_lead_time_days": 4,
           "claimed_variant": "usb c dw01a 8205a separate bat out",
-          "displayed_unit_price_usd": 0.492,
+          "displayed_unit_price_usd": 0.5904,
           "evidence_status": "marketplace_listing_unverified",
-          "supplier_name": "Supplier C7EFF9DB1F05"
+          "supplier_name": "Supplier 27FB82D14FE8"
         },
         "private_terms": {
-          "base_unit_price_usd": 0.6,
+          "base_unit_price_usd": 0.72,
           "capacity": 20,
           "duty_rate": 0.05,
           "lead_time_days": 6,
           "moq": 10,
           "negotiation": {
-            "floor_unit_price_usd": 0.6,
+            "floor_unit_price_usd": 0.72,
             "maximum_payment_terms_days": 30,
             "maximum_refund_window_days": 30,
             "minimum_moq": 10,
@@ -227,11 +86,11 @@
           "order_step": 10,
           "payment_terms_days": 30,
           "quality": {
-            "observed_defects": 22,
+            "observed_defects": 24,
             "sample_cost_usd": 0.4,
             "sample_lead_time_days": 1,
             "sample_size": 100,
-            "verified_yield_rate": 0.78
+            "verified_yield_rate": 0.76
           },
           "return_policy": {
             "claim_acceptance_probability": 0.95,
@@ -247,7 +106,56 @@
             "verified_yield_rate": 0.99
           }
         },
-        "supplier_id": "supplier_c7eff9db1f05"
+        "supplier_id": "supplier_27fb82d14fe8"
+      },
+      {
+        "component": "tp4056_usb_c_protected",
+        "listing": {
+          "claimed_lead_time_days": 4,
+          "claimed_variant": "usb c dw01a 8205a separate bat out",
+          "displayed_unit_price_usd": 0.369,
+          "evidence_status": "marketplace_listing_unverified",
+          "supplier_name": "Supplier B6000D47D85F"
+        },
+        "private_terms": {
+          "base_unit_price_usd": 0.45,
+          "capacity": 20,
+          "duty_rate": 0.05,
+          "lead_time_days": 6,
+          "moq": 10,
+          "negotiation": {
+            "floor_unit_price_usd": 0.45,
+            "maximum_payment_terms_days": 30,
+            "maximum_refund_window_days": 30,
+            "minimum_moq": 10,
+            "supplier_paid_return_freight_available": true
+          },
+          "offer_valid_days": 30,
+          "on_time_probability": 0.99,
+          "order_step": 10,
+          "payment_terms_days": 30,
+          "quality": {
+            "observed_defects": 1,
+            "sample_cost_usd": 0.4,
+            "sample_lead_time_days": 1,
+            "sample_size": 100,
+            "verified_yield_rate": 0.99
+          },
+          "return_policy": {
+            "claim_acceptance_probability": 0.95,
+            "refund_delay_days": 5,
+            "refund_window_days": 30,
+            "restocking_fee_rate": 0.0,
+            "return_freight_payer": "supplier",
+            "return_freight_per_unit_usd": 0.0
+          },
+          "shipping_per_unit_usd": 0.05,
+          "variant_id": "usb_c_dw01a_8205a_separate_bat_out",
+          "verbal_bias": {
+            "verified_yield_rate": 0.99
+          }
+        },
+        "supplier_id": "supplier_b6000d47d85f"
       },
       {
         "component": "tp4056_usb_c_protected",
@@ -256,7 +164,7 @@
           "claimed_variant": "usb c dw01a 8205a separate bat out",
           "displayed_unit_price_usd": 0.861,
           "evidence_status": "marketplace_listing_unverified",
-          "supplier_name": "Supplier A1340C5619FA"
+          "supplier_name": "Supplier 673A97746457"
         },
         "private_terms": {
           "base_unit_price_usd": 1.05,
@@ -291,27 +199,128 @@
             "return_freight_per_unit_usd": 0.0
           },
           "shipping_per_unit_usd": 0.05,
-          "variant_id": "usb_c_dw01a_8205a_separate_bat_out"
+          "variant_id": "usb_c_dw01a_8205a_separate_bat_out",
+          "verbal_bias": {
+            "verified_yield_rate": 0.99
+          }
         },
-        "supplier_id": "supplier_a1340c5619fa"
+        "supplier_id": "supplier_673a97746457"
       },
       {
-        "component": "ky040_encoder",
+        "component": "mosfet_low_side_3v3",
         "listing": {
           "claimed_lead_time_days": 4,
-          "claimed_variant": "ec11 ky040 module with pullups",
-          "displayed_unit_price_usd": 0.943,
+          "claimed_variant": "3v3 logic level low side module",
+          "displayed_unit_price_usd": 0.5576,
           "evidence_status": "marketplace_listing_unverified",
-          "supplier_name": "Supplier D5F7C8DAA45B"
+          "supplier_name": "Supplier D52F23C6F7B3"
         },
         "private_terms": {
-          "base_unit_price_usd": 1.15,
+          "base_unit_price_usd": 0.68,
           "capacity": 20,
           "duty_rate": 0.05,
           "lead_time_days": 6,
           "moq": 10,
           "negotiation": {
-            "floor_unit_price_usd": 1.15,
+            "floor_unit_price_usd": 0.68,
+            "maximum_payment_terms_days": 30,
+            "maximum_refund_window_days": 30,
+            "minimum_moq": 10,
+            "supplier_paid_return_freight_available": true
+          },
+          "offer_valid_days": 30,
+          "on_time_probability": 0.99,
+          "order_step": 10,
+          "payment_terms_days": 30,
+          "quality": {
+            "observed_defects": 24,
+            "sample_cost_usd": 0.4,
+            "sample_lead_time_days": 1,
+            "sample_size": 100,
+            "verified_yield_rate": 0.76
+          },
+          "return_policy": {
+            "claim_acceptance_probability": 0.95,
+            "refund_delay_days": 5,
+            "refund_window_days": 30,
+            "restocking_fee_rate": 0.0,
+            "return_freight_payer": "supplier",
+            "return_freight_per_unit_usd": 0.0
+          },
+          "shipping_per_unit_usd": 0.05,
+          "variant_id": "3v3_logic_level_low_side_module",
+          "verbal_bias": {
+            "verified_yield_rate": 0.99
+          }
+        },
+        "supplier_id": "supplier_d52f23c6f7b3"
+      },
+      {
+        "component": "mosfet_low_side_3v3",
+        "listing": {
+          "claimed_lead_time_days": 4,
+          "claimed_variant": "3v3 logic level low side module",
+          "displayed_unit_price_usd": 0.328,
+          "evidence_status": "marketplace_listing_unverified",
+          "supplier_name": "Supplier BBD4976B2329"
+        },
+        "private_terms": {
+          "base_unit_price_usd": 0.4,
+          "capacity": 20,
+          "duty_rate": 0.05,
+          "lead_time_days": 6,
+          "moq": 10,
+          "negotiation": {
+            "floor_unit_price_usd": 0.4,
+            "maximum_payment_terms_days": 30,
+            "maximum_refund_window_days": 30,
+            "minimum_moq": 10,
+            "supplier_paid_return_freight_available": true
+          },
+          "offer_valid_days": 30,
+          "on_time_probability": 0.99,
+          "order_step": 10,
+          "payment_terms_days": 30,
+          "quality": {
+            "observed_defects": 1,
+            "sample_cost_usd": 0.4,
+            "sample_lead_time_days": 1,
+            "sample_size": 100,
+            "verified_yield_rate": 0.99
+          },
+          "return_policy": {
+            "claim_acceptance_probability": 0.95,
+            "refund_delay_days": 5,
+            "refund_window_days": 30,
+            "restocking_fee_rate": 0.0,
+            "return_freight_payer": "supplier",
+            "return_freight_per_unit_usd": 0.0
+          },
+          "shipping_per_unit_usd": 0.05,
+          "variant_id": "3v3_logic_level_low_side_module",
+          "verbal_bias": {
+            "verified_yield_rate": 0.99
+          }
+        },
+        "supplier_id": "supplier_bbd4976b2329"
+      },
+      {
+        "component": "mosfet_low_side_3v3",
+        "listing": {
+          "claimed_lead_time_days": 4,
+          "claimed_variant": "3v3 logic level low side module",
+          "displayed_unit_price_usd": 0.779,
+          "evidence_status": "marketplace_listing_unverified",
+          "supplier_name": "Supplier 2D27E72F64E6"
+        },
+        "private_terms": {
+          "base_unit_price_usd": 0.95,
+          "capacity": 20,
+          "duty_rate": 0.05,
+          "lead_time_days": 6,
+          "moq": 10,
+          "negotiation": {
+            "floor_unit_price_usd": 0.95,
             "maximum_payment_terms_days": 30,
             "maximum_refund_window_days": 30,
             "minimum_moq": 10,
@@ -337,9 +346,12 @@
             "return_freight_per_unit_usd": 0.0
           },
           "shipping_per_unit_usd": 0.05,
-          "variant_id": "ec11_ky040_module_with_pullups"
+          "variant_id": "3v3_logic_level_low_side_module",
+          "verbal_bias": {
+            "verified_yield_rate": 0.99
+          }
         },
-        "supplier_id": "supplier_d5f7c8daa45b"
+        "supplier_id": "supplier_2d27e72f64e6"
       }
     ]
   },
@@ -357,5 +369,5 @@
   "spec_version": "aeread.case/0.1",
   "split": "confirmatory_v1_opaque",
   "visibility_policy": "procurement_allocation_public_listings_private_supplier_terms_v1",
-  "world_seed": 2614106
+  "world_seed": 2614102
 }

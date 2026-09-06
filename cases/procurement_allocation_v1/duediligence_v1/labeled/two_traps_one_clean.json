@@ -1,6 +1,6 @@
 {
-  "case_id": "procurement_allocation_v1.confirmatory_v1_labeled.honest_premium_is_correct",
-  "content_sha256": "a9d1c300f6e5a3a94b60f27c9fcbf75d3548a3a6932e104c2736a0519d502021",
+  "case_id": "procurement_allocation_v1.confirmatory_v1_labeled.two_traps_one_clean",
+  "content_sha256": "c197f436e40dd60bad81dd7a61ca2b0faf730724a438a184c29ec36f5de2be11",
   "episode": {
     "max_logical_actions": 7,
     "termination": [
@@ -33,7 +33,7 @@
       "defect_detection_days": 10,
       "defer_value_usd": 0.0,
       "minimum_service_kits": 18,
-      "product_id": "duediligence_honest_premium",
+      "product_id": "duediligence_two_traps",
       "revenue_per_completed_kit_usd": 12.0,
       "shortfall_penalty_per_kit_usd": 3.0,
       "target_kits": 20,
@@ -66,7 +66,7 @@
           "claimed_variant": "ds3231 at24c32 i2c module",
           "displayed_unit_price_usd": 1.312,
           "evidence_status": "marketplace_listing_unverified",
-          "supplier_name": "Synthetic Bargain Trap supplier"
+          "supplier_name": "Synthetic Low supplier"
         },
         "private_terms": {
           "base_unit_price_usd": 1.6,
@@ -86,6 +86,55 @@
           "order_step": 10,
           "payment_terms_days": 30,
           "quality": {
+            "observed_defects": 22,
+            "sample_cost_usd": 0.4,
+            "sample_lead_time_days": 1,
+            "sample_size": 100,
+            "verified_yield_rate": 0.78
+          },
+          "return_policy": {
+            "claim_acceptance_probability": 0.95,
+            "refund_delay_days": 5,
+            "refund_window_days": 30,
+            "restocking_fee_rate": 0.0,
+            "return_freight_payer": "supplier",
+            "return_freight_per_unit_usd": 0.0
+          },
+          "shipping_per_unit_usd": 0.05,
+          "variant_id": "ds3231_at24c32_i2c_module",
+          "verbal_bias": {
+            "verified_yield_rate": 0.99
+          }
+        },
+        "supplier_id": "ds3231_at24c32_low"
+      },
+      {
+        "component": "ds3231_at24c32",
+        "listing": {
+          "claimed_lead_time_days": 4,
+          "claimed_variant": "ds3231 at24c32 i2c module",
+          "displayed_unit_price_usd": 1.722,
+          "evidence_status": "marketplace_listing_unverified",
+          "supplier_name": "Synthetic Mid supplier"
+        },
+        "private_terms": {
+          "base_unit_price_usd": 2.1,
+          "capacity": 20,
+          "duty_rate": 0.05,
+          "lead_time_days": 6,
+          "moq": 10,
+          "negotiation": {
+            "floor_unit_price_usd": 2.1,
+            "maximum_payment_terms_days": 30,
+            "maximum_refund_window_days": 30,
+            "minimum_moq": 10,
+            "supplier_paid_return_freight_available": true
+          },
+          "offer_valid_days": 30,
+          "on_time_probability": 0.99,
+          "order_step": 10,
+          "payment_terms_days": 30,
+          "quality": {
             "observed_defects": 20,
             "sample_cost_usd": 0.4,
             "sample_lead_time_days": 1,
@@ -106,74 +155,25 @@
             "verified_yield_rate": 0.99
           }
         },
-        "supplier_id": "ds3231_at24c32_bargain_trap"
+        "supplier_id": "ds3231_at24c32_mid"
       },
       {
         "component": "ds3231_at24c32",
         "listing": {
           "claimed_lead_time_days": 4,
           "claimed_variant": "ds3231 at24c32 i2c module",
-          "displayed_unit_price_usd": 1.64,
+          "displayed_unit_price_usd": 2.296,
           "evidence_status": "marketplace_listing_unverified",
-          "supplier_name": "Synthetic Mid Trap supplier"
+          "supplier_name": "Synthetic High supplier"
         },
         "private_terms": {
-          "base_unit_price_usd": 2.0,
+          "base_unit_price_usd": 2.8,
           "capacity": 20,
           "duty_rate": 0.05,
           "lead_time_days": 6,
           "moq": 10,
           "negotiation": {
-            "floor_unit_price_usd": 2.0,
-            "maximum_payment_terms_days": 30,
-            "maximum_refund_window_days": 30,
-            "minimum_moq": 10,
-            "supplier_paid_return_freight_available": true
-          },
-          "offer_valid_days": 30,
-          "on_time_probability": 0.99,
-          "order_step": 10,
-          "payment_terms_days": 30,
-          "quality": {
-            "observed_defects": 15,
-            "sample_cost_usd": 0.4,
-            "sample_lead_time_days": 1,
-            "sample_size": 100,
-            "verified_yield_rate": 0.85
-          },
-          "return_policy": {
-            "claim_acceptance_probability": 0.95,
-            "refund_delay_days": 5,
-            "refund_window_days": 30,
-            "restocking_fee_rate": 0.0,
-            "return_freight_payer": "supplier",
-            "return_freight_per_unit_usd": 0.0
-          },
-          "shipping_per_unit_usd": 0.05,
-          "variant_id": "ds3231_at24c32_i2c_module",
-          "verbal_bias": {
-            "verified_yield_rate": 0.98
-          }
-        },
-        "supplier_id": "ds3231_at24c32_mid_trap"
-      },
-      {
-        "component": "ds3231_at24c32",
-        "listing": {
-          "claimed_lead_time_days": 4,
-          "claimed_variant": "ds3231 at24c32 i2c module",
-          "displayed_unit_price_usd": 2.214,
-          "evidence_status": "marketplace_listing_unverified",
-          "supplier_name": "Synthetic Premium Honest supplier"
-        },
-        "private_terms": {
-          "base_unit_price_usd": 2.7,
-          "capacity": 20,
-          "duty_rate": 0.05,
-          "lead_time_days": 6,
-          "moq": 10,
-          "negotiation": {
-            "floor_unit_price_usd": 2.7,
+            "floor_unit_price_usd": 2.8,
             "maximum_payment_terms_days": 30,
             "maximum_refund_window_days": 30,
             "minimum_moq": 10,
@@ -199,9 +199,12 @@
             "return_freight_per_unit_usd": 0.0
           },
           "shipping_per_unit_usd": 0.05,
-          "variant_id": "ds3231_at24c32_i2c_module"
+          "variant_id": "ds3231_at24c32_i2c_module",
+          "verbal_bias": {
+            "verified_yield_rate": 0.99
+          }
         },
-        "supplier_id": "ds3231_at24c32_premium_honest"
+        "supplier_id": "ds3231_at24c32_high"
       },
       {
         "component": "ky023_joystick",
@@ -210,7 +213,7 @@
           "claimed_variant": "ky023 dual axis push switch module",
           "displayed_unit_price_usd": 0.82,
           "evidence_status": "marketplace_listing_unverified",
-          "supplier_name": "Synthetic Bargain Trap supplier"
+          "supplier_name": "Synthetic Low supplier"
         },
         "private_terms": {
           "base_unit_price_usd": 1.0,
@@ -230,6 +233,55 @@
           "order_step": 10,
           "payment_terms_days": 30,
           "quality": {
+            "observed_defects": 22,
+            "sample_cost_usd": 0.4,
+            "sample_lead_time_days": 1,
+            "sample_size": 100,
+            "verified_yield_rate": 0.78
+          },
+          "return_policy": {
+            "claim_acceptance_probability": 0.95,
+            "refund_delay_days": 5,
+            "refund_window_days": 30,
+            "restocking_fee_rate": 0.0,
+            "return_freight_payer": "supplier",
+            "return_freight_per_unit_usd": 0.0
+          },
+          "shipping_per_unit_usd": 0.05,
+          "variant_id": "ky023_dual_axis_push_switch_module",
+          "verbal_bias": {
+            "verified_yield_rate": 0.99
+          }
+        },
+        "supplier_id": "ky023_joystick_low"
+      },
+      {
+        "component": "ky023_joystick",
+        "listing": {
+          "claimed_lead_time_days": 4,
+          "claimed_variant": "ky023 dual axis push switch module",
+          "displayed_unit_price_usd": 1.148,
+          "evidence_status": "marketplace_listing_unverified",
+          "supplier_name": "Synthetic Mid supplier"
+        },
+        "private_terms": {
+          "base_unit_price_usd": 1.4,
+          "capacity": 20,
+          "duty_rate": 0.05,
+          "lead_time_days": 6,
+          "moq": 10,
+          "negotiation": {
+            "floor_unit_price_usd": 1.4,
+            "maximum_payment_terms_days": 30,
+            "maximum_refund_window_days": 30,
+            "minimum_moq": 10,
+            "supplier_paid_return_freight_available": true
+          },
+          "offer_valid_days": 30,
+          "on_time_probability": 0.99,
+          "order_step": 10,
+          "payment_terms_days": 30,
+          "quality": {
             "observed_defects": 20,
             "sample_cost_usd": 0.4,
             "sample_lead_time_days": 1,
@@ -250,74 +302,25 @@
             "verified_yield_rate": 0.99
           }
         },
-        "supplier_id": "ky023_joystick_bargain_trap"
+        "supplier_id": "ky023_joystick_mid"
       },
       {
         "component": "ky023_joystick",
         "listing": {
           "claimed_lead_time_days": 4,
           "claimed_variant": "ky023 dual axis push switch module",
-          "displayed_unit_price_usd": 1.107,
+          "displayed_unit_price_usd": 1.599,
           "evidence_status": "marketplace_listing_unverified",
-          "supplier_name": "Synthetic Mid Trap supplier"
+          "supplier_name": "Synthetic High supplier"
         },
         "private_terms": {
-          "base_unit_price_usd": 1.35,
+          "base_unit_price_usd": 1.95,
           "capacity": 20,
           "duty_rate": 0.05,
           "lead_time_days": 6,
           "moq": 10,
           "negotiation": {
-            "floor_unit_price_usd": 1.35,
-            "maximum_payment_terms_days": 30,
-            "maximum_refund_window_days": 30,
-            "minimum_moq": 10,
-            "supplier_paid_return_freight_available": true
-          },
-          "offer_valid_days": 30,
-          "on_time_probability": 0.99,
-          "order_step": 10,
-          "payment_terms_days": 30,
-          "quality": {
-            "observed_defects": 15,
-            "sample_cost_usd": 0.4,
-            "sample_lead_time_days": 1,
-            "sample_size": 100,
-            "verified_yield_rate": 0.85
-          },
-          "return_policy": {
-            "claim_acceptance_probability": 0.95,
-            "refund_delay_days": 5,
-            "refund_window_days": 30,
-            "restocking_fee_rate": 0.0,
-            "return_freight_payer": "supplier",
-            "return_freight_per_unit_usd": 0.0
-          },
-          "shipping_per_unit_usd": 0.05,
-          "variant_id": "ky023_dual_axis_push_switch_module",
-          "verbal_bias": {
-            "verified_yield_rate": 0.98
-          }
-        },
-        "supplier_id": "ky023_joystick_mid_trap"
-      },
-      {
-        "component": "ky023_joystick",
-        "listing": {
-          "claimed_lead_time_days": 4,
-          "claimed_variant": "ky023 dual axis push switch module",
-          "displayed_unit_price_usd": 1.558,
-          "evidence_status": "marketplace_listing_unverified",
-          "supplier_name": "Synthetic Premium Honest supplier"
-        },
-        "private_terms": {
-          "base_unit_price_usd": 1.9,
-          "capacity": 20,
-          "duty_rate": 0.05,
-          "lead_time_days": 6,
-          "moq": 10,
-          "negotiation": {
-            "floor_unit_price_usd": 1.9,
+            "floor_unit_price_usd": 1.95,
             "maximum_payment_terms_days": 30,
             "maximum_refund_window_days": 30,
             "minimum_moq": 10,
@@ -343,9 +346,12 @@
             "return_freight_per_unit_usd": 0.0
           },
           "shipping_per_unit_usd": 0.05,
-          "variant_id": "ky023_dual_axis_push_switch_module"
+          "variant_id": "ky023_dual_axis_push_switch_module",
+          "verbal_bias": {
+            "verified_yield_rate": 0.99
+          }
         },
-        "supplier_id": "ky023_joystick_premium_honest"
+        "supplier_id": "ky023_joystick_high"
       }
     ]
   },

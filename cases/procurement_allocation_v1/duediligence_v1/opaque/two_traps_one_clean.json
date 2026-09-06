@@ -1,6 +1,6 @@
 {
-  "case_id": "procurement_allocation_v1.confirmatory_v1_opaque.honest_premium_is_correct",
-  "content_sha256": "f6127496c4379d45dfe4d9db4f544d70b2243cec5f021960853d04feb3715cee",
+  "case_id": "procurement_allocation_v1.confirmatory_v1_opaque.two_traps_one_clean",
+  "content_sha256": "2c02d08b9cb93accff4a3928abf34f33f2e1a5d7f37bcab430ed7f6ed1385a49",
   "episode": {
     "max_logical_actions": 7,
     "termination": [
@@ -33,7 +33,7 @@
       "defect_detection_days": 10,
       "defer_value_usd": 0.0,
       "minimum_service_kits": 18,
-      "product_id": "duediligence_honest_premium",
+      "product_id": "duediligence_two_traps",
       "revenue_per_completed_kit_usd": 12.0,
       "shortfall_penalty_per_kit_usd": 3.0,
       "target_kits": 20,
@@ -64,55 +64,9 @@
         "listing": {
           "claimed_lead_time_days": 4,
           "claimed_variant": "ky023 dual axis push switch module",
-          "displayed_unit_price_usd": 1.558,
-          "evidence_status": "marketplace_listing_unverified",
-          "supplier_name": "Supplier 8D3B3A0ECB1A"
-        },
-        "private_terms": {
-          "base_unit_price_usd": 1.9,
-          "capacity": 20,
-          "duty_rate": 0.05,
-          "lead_time_days": 6,
-          "moq": 10,
-          "negotiation": {
-            "floor_unit_price_usd": 1.9,
-            "maximum_payment_terms_days": 30,
-            "maximum_refund_window_days": 30,
-            "minimum_moq": 10,
-            "supplier_paid_return_freight_available": true
-          },
-          "offer_valid_days": 30,
-          "on_time_probability": 0.99,
-          "order_step": 10,
-          "payment_terms_days": 30,
-          "quality": {
-            "observed_defects": 1,
-            "sample_cost_usd": 0.4,
-            "sample_lead_time_days": 1,
-            "sample_size": 100,
-            "verified_yield_rate": 0.995
-          },
-          "return_policy": {
-            "claim_acceptance_probability": 0.95,
-            "refund_delay_days": 5,
-            "refund_window_days": 30,
-            "restocking_fee_rate": 0.0,
-            "return_freight_payer": "supplier",
-            "return_freight_per_unit_usd": 0.0
-          },
-          "shipping_per_unit_usd": 0.05,
-          "variant_id": "ky023_dual_axis_push_switch_module"
-        },
-        "supplier_id": "supplier_8d3b3a0ecb1a"
-      },
-      {
-        "component": "ky023_joystick",
-        "listing": {
-          "claimed_lead_time_days": 4,
-          "claimed_variant": "ky023 dual axis push switch module",
           "displayed_unit_price_usd": 0.82,
           "evidence_status": "marketplace_listing_unverified",
-          "supplier_name": "Supplier 30875C399CA9"
+          "supplier_name": "Supplier 9465A41E4400"
         },
         "private_terms": {
           "base_unit_price_usd": 1.0,
@@ -132,11 +86,11 @@
           "order_step": 10,
           "payment_terms_days": 30,
           "quality": {
-            "observed_defects": 20,
+            "observed_defects": 22,
             "sample_cost_usd": 0.4,
             "sample_lead_time_days": 1,
             "sample_size": 100,
-            "verified_yield_rate": 0.8
+            "verified_yield_rate": 0.78
           },
           "return_policy": {
             "claim_acceptance_probability": 0.95,
@@ -152,172 +106,25 @@
             "verified_yield_rate": 0.99
           }
         },
-        "supplier_id": "supplier_30875c399ca9"
-      },
-      {
-        "component": "ds3231_at24c32",
-        "listing": {
-          "claimed_lead_time_days": 4,
-          "claimed_variant": "ds3231 at24c32 i2c module",
-          "displayed_unit_price_usd": 1.64,
-          "evidence_status": "marketplace_listing_unverified",
-          "supplier_name": "Supplier 7B139BDE7431"
-        },
-        "private_terms": {
-          "base_unit_price_usd": 2.0,
-          "capacity": 20,
-          "duty_rate": 0.05,
-          "lead_time_days": 6,
-          "moq": 10,
-          "negotiation": {
-            "floor_unit_price_usd": 2.0,
-            "maximum_payment_terms_days": 30,
-            "maximum_refund_window_days": 30,
-            "minimum_moq": 10,
-            "supplier_paid_return_freight_available": true
-          },
-          "offer_valid_days": 30,
-          "on_time_probability": 0.99,
-          "order_step": 10,
-          "payment_terms_days": 30,
-          "quality": {
-            "observed_defects": 15,
-            "sample_cost_usd": 0.4,
-            "sample_lead_time_days": 1,
-            "sample_size": 100,
-            "verified_yield_rate": 0.85
-          },
-          "return_policy": {
-            "claim_acceptance_probability": 0.95,
-            "refund_delay_days": 5,
-            "refund_window_days": 30,
-            "restocking_fee_rate": 0.0,
-            "return_freight_payer": "supplier",
-            "return_freight_per_unit_usd": 0.0
-          },
-          "shipping_per_unit_usd": 0.05,
-          "variant_id": "ds3231_at24c32_i2c_module",
-          "verbal_bias": {
-            "verified_yield_rate": 0.98
-          }
-        },
-        "supplier_id": "supplier_7b139bde7431"
+        "supplier_id": "supplier_9465a41e4400"
       },
       {
         "component": "ky023_joystick",
         "listing": {
           "claimed_lead_time_days": 4,
           "claimed_variant": "ky023 dual axis push switch module",
-          "displayed_unit_price_usd": 1.107,
+          "displayed_unit_price_usd": 1.599,
           "evidence_status": "marketplace_listing_unverified",
-          "supplier_name": "Supplier 64171EA9F923"
+          "supplier_name": "Supplier 93E0AD4F38C2"
         },
         "private_terms": {
-          "base_unit_price_usd": 1.35,
+          "base_unit_price_usd": 1.95,
           "capacity": 20,
           "duty_rate": 0.05,
           "lead_time_days": 6,
           "moq": 10,
           "negotiation": {
-            "floor_unit_price_usd": 1.35,
-            "maximum_payment_terms_days": 30,
-            "maximum_refund_window_days": 30,
-            "minimum_moq": 10,
-            "supplier_paid_return_freight_available": true
-          },
-          "offer_valid_days": 30,
-          "on_time_probability": 0.99,
-          "order_step": 10,
-          "payment_terms_days": 30,
-          "quality": {
-            "observed_defects": 15,
-            "sample_cost_usd": 0.4,
-            "sample_lead_time_days": 1,
-            "sample_size": 100,
-            "verified_yield_rate": 0.85
-          },
-          "return_policy": {
-            "claim_acceptance_probability": 0.95,
-            "refund_delay_days": 5,
-            "refund_window_days": 30,
-            "restocking_fee_rate": 0.0,
-            "return_freight_payer": "supplier",
-            "return_freight_per_unit_usd": 0.0
-          },
-          "shipping_per_unit_usd": 0.05,
-          "variant_id": "ky023_dual_axis_push_switch_module",
-          "verbal_bias": {
-            "verified_yield_rate": 0.98
-          }
-        },
-        "supplier_id": "supplier_64171ea9f923"
-      },
-      {
-        "component": "ds3231_at24c32",
-        "listing": {
-          "claimed_lead_time_days": 4,
-          "claimed_variant": "ds3231 at24c32 i2c module",
-          "displayed_unit_price_usd": 1.312,
-          "evidence_status": "marketplace_listing_unverified",
-          "supplier_name": "Supplier 4E9E770DC0CB"
-        },
-        "private_terms": {
-          "base_unit_price_usd": 1.6,
-          "capacity": 20,
-          "duty_rate": 0.05,
-          "lead_time_days": 6,
-          "moq": 10,
-          "negotiation": {
-            "floor_unit_price_usd": 1.6,
-            "maximum_payment_terms_days": 30,
-            "maximum_refund_window_days": 30,
-            "minimum_moq": 10,
-            "supplier_paid_return_freight_available": true
-          },
-          "offer_valid_days": 30,
-          "on_time_probability": 0.99,
-          "order_step": 10,
-          "payment_terms_days": 30,
-          "quality": {
-            "observed_defects": 20,
-            "sample_cost_usd": 0.4,
-            "sample_lead_time_days": 1,
-            "sample_size": 100,
-            "verified_yield_rate": 0.8
-          },
-          "return_policy": {
-            "claim_acceptance_probability": 0.95,
-            "refund_delay_days": 5,
-            "refund_window_days": 30,
-            "restocking_fee_rate": 0.0,
-            "return_freight_payer": "supplier",
-            "return_freight_per_unit_usd": 0.0
-          },
-          "shipping_per_unit_usd": 0.05,
-          "variant_id": "ds3231_at24c32_i2c_module",
-          "verbal_bias": {
-            "verified_yield_rate": 0.99
-          }
-        },
-        "supplier_id": "supplier_4e9e770dc0cb"
-      },
-      {
-        "component": "ds3231_at24c32",
-        "listing": {
-          "claimed_lead_time_days": 4,
-          "claimed_variant": "ds3231 at24c32 i2c module",
-          "displayed_unit_price_usd": 2.214,
-          "evidence_status": "marketplace_listing_unverified",
-          "supplier_name": "Supplier F6EA4D5B0142"
-        },
-        "private_terms": {
-          "base_unit_price_usd": 2.7,
-          "capacity": 20,
-          "duty_rate": 0.05,
-          "lead_time_days": 6,
-          "moq": 10,
-          "negotiation": {
-            "floor_unit_price_usd": 2.7,
+            "floor_unit_price_usd": 1.95,
             "maximum_payment_terms_days": 30,
             "maximum_refund_window_days": 30,
             "minimum_moq": 10,
@@ -343,9 +150,208 @@
             "return_freight_per_unit_usd": 0.0
           },
           "shipping_per_unit_usd": 0.05,
-          "variant_id": "ds3231_at24c32_i2c_module"
+          "variant_id": "ky023_dual_axis_push_switch_module",
+          "verbal_bias": {
+            "verified_yield_rate": 0.99
+          }
         },
-        "supplier_id": "supplier_f6ea4d5b0142"
+        "supplier_id": "supplier_93e0ad4f38c2"
+      },
+      {
+        "component": "ds3231_at24c32",
+        "listing": {
+          "claimed_lead_time_days": 4,
+          "claimed_variant": "ds3231 at24c32 i2c module",
+          "displayed_unit_price_usd": 1.722,
+          "evidence_status": "marketplace_listing_unverified",
+          "supplier_name": "Supplier FABC1B69035D"
+        },
+        "private_terms": {
+          "base_unit_price_usd": 2.1,
+          "capacity": 20,
+          "duty_rate": 0.05,
+          "lead_time_days": 6,
+          "moq": 10,
+          "negotiation": {
+            "floor_unit_price_usd": 2.1,
+            "maximum_payment_terms_days": 30,
+            "maximum_refund_window_days": 30,
+            "minimum_moq": 10,
+            "supplier_paid_return_freight_available": true
+          },
+          "offer_valid_days": 30,
+          "on_time_probability": 0.99,
+          "order_step": 10,
+          "payment_terms_days": 30,
+          "quality": {
+            "observed_defects": 20,
+            "sample_cost_usd": 0.4,
+            "sample_lead_time_days": 1,
+            "sample_size": 100,
+            "verified_yield_rate": 0.8
+          },
+          "return_policy": {
+            "claim_acceptance_probability": 0.95,
+            "refund_delay_days": 5,
+            "refund_window_days": 30,
+            "restocking_fee_rate": 0.0,
+            "return_freight_payer": "supplier",
+            "return_freight_per_unit_usd": 0.0
+          },
+          "shipping_per_unit_usd": 0.05,
+          "variant_id": "ds3231_at24c32_i2c_module",
+          "verbal_bias": {
+            "verified_yield_rate": 0.99
+          }
+        },
+        "supplier_id": "supplier_fabc1b69035d"
+      },
+      {
+        "component": "ky023_joystick",
+        "listing": {
+          "claimed_lead_time_days": 4,
+          "claimed_variant": "ky023 dual axis push switch module",
+          "displayed_unit_price_usd": 1.148,
+          "evidence_status": "marketplace_listing_unverified",
+          "supplier_name": "Supplier 1AFBDD794966"
+        },
+        "private_terms": {
+          "base_unit_price_usd": 1.4,
+          "capacity": 20,
+          "duty_rate": 0.05,
+          "lead_time_days": 6,
+          "moq": 10,
+          "negotiation": {
+            "floor_unit_price_usd": 1.4,
+            "maximum_payment_terms_days": 30,
+            "maximum_refund_window_days": 30,
+            "minimum_moq": 10,
+            "supplier_paid_return_freight_available": true
+          },
+          "offer_valid_days": 30,
+          "on_time_probability": 0.99,
+          "order_step": 10,
+          "payment_terms_days": 30,
+          "quality": {
+            "observed_defects": 20,
+            "sample_cost_usd": 0.4,
+            "sample_lead_time_days": 1,
+            "sample_size": 100,
+            "verified_yield_rate": 0.8
+          },
+          "return_policy": {
+            "claim_acceptance_probability": 0.95,
+            "refund_delay_days": 5,
+            "refund_window_days": 30,
+            "restocking_fee_rate": 0.0,
+            "return_freight_payer": "supplier",
+            "return_freight_per_unit_usd": 0.0
+          },
+          "shipping_per_unit_usd": 0.05,
+          "variant_id": "ky023_dual_axis_push_switch_module",
+          "verbal_bias": {
+            "verified_yield_rate": 0.99
+          }
+        },
+        "supplier_id": "supplier_1afbdd794966"
+      },
+      {
+        "component": "ds3231_at24c32",
+        "listing": {
+          "claimed_lead_time_days": 4,
+          "claimed_variant": "ds3231 at24c32 i2c module",
+          "displayed_unit_price_usd": 1.312,
+          "evidence_status": "marketplace_listing_unverified",
+          "supplier_name": "Supplier 3E5715D65858"
+        },
+        "private_terms": {
+          "base_unit_price_usd": 1.6,
+          "capacity": 20,
+          "duty_rate": 0.05,
+          "lead_time_days": 6,
+          "moq": 10,
+          "negotiation": {
+            "floor_unit_price_usd": 1.6,
+            "maximum_payment_terms_days": 30,
+            "maximum_refund_window_days": 30,
+            "minimum_moq": 10,
+            "supplier_paid_return_freight_available": true
+          },
+          "offer_valid_days": 30,
+          "on_time_probability": 0.99,
+          "order_step": 10,
+          "payment_terms_days": 30,
+          "quality": {
+            "observed_defects": 22,
+            "sample_cost_usd": 0.4,
+            "sample_lead_time_days": 1,
+            "sample_size": 100,
+            "verified_yield_rate": 0.78
+          },
+          "return_policy": {
+            "claim_acceptance_probability": 0.95,
+            "refund_delay_days": 5,
+            "refund_window_days": 30,
+            "restocking_fee_rate": 0.0,
+            "return_freight_payer": "supplier",
+            "return_freight_per_unit_usd": 0.0
+          },
+          "shipping_per_unit_usd": 0.05,
+          "variant_id": "ds3231_at24c32_i2c_module",
+          "verbal_bias": {
+            "verified_yield_rate": 0.99
+          }
+        },
+        "supplier_id": "supplier_3e5715d65858"
+      },
+      {
+        "component": "ds3231_at24c32",
+        "listing": {
+          "claimed_lead_time_days": 4,
+          "claimed_variant": "ds3231 at24c32 i2c module",
+          "displayed_unit_price_usd": 2.296,
+          "evidence_status": "marketplace_listing_unverified",
+          "supplier_name": "Supplier 0E0859E14A13"
+        },
+        "private_terms": {
+          "base_unit_price_usd": 2.8,
+          "capacity": 20,
+          "duty_rate": 0.05,
+          "lead_time_days": 6,
+          "moq": 10,
+          "negotiation": {
+            "floor_unit_price_usd": 2.8,
+            "maximum_payment_terms_days": 30,
+            "maximum_refund_window_days": 30,
+            "minimum_moq": 10,
+            "supplier_paid_return_freight_available": true
+          },
+          "offer_valid_days": 30,
+          "on_time_probability": 0.99,
+          "order_step": 10,
+          "payment_terms_days": 30,
+          "quality": {
+            "observed_defects": 1,
+            "sample_cost_usd": 0.4,
+            "sample_lead_time_days": 1,
+            "sample_size": 100,
+            "verified_yield_rate": 0.995
+          },
+          "return_policy": {
+            "claim_acceptance_probability": 0.95,
+            "refund_delay_days": 5,
+            "refund_window_days": 30,
+            "restocking_fee_rate": 0.0,
+            "return_freight_payer": "supplier",
+            "return_freight_per_unit_usd": 0.0
+          },
+          "shipping_per_unit_usd": 0.05,
+          "variant_id": "ds3231_at24c32_i2c_module",
+          "verbal_bias": {
+            "verified_yield_rate": 0.99
+          }
+        },
+        "supplier_id": "supplier_0e0859e14a13"
       }
     ]
   },

@@ -1,6 +1,6 @@
 {
-  "case_id": "procurement_allocation_v1.confirmatory_v1_opaque.two_traps_one_budget",
-  "content_sha256": "c3c1182d6c37c4ea24ac1e0bddd98d9a632e5bc7ffb4a3592317d54c90512c37",
+  "case_id": "procurement_allocation_v1.confirmatory_v1_labeled.traps_differ_by_component",
+  "content_sha256": "5063696aafe44f103d39a06e4c4378f6f10230732a076df89348c1d212e58eea",
   "episode": {
     "max_logical_actions": 7,
     "termination": [
@@ -25,16 +25,16 @@
     "objective": {
       "annual_financing_rate": 0.12,
       "bom": {
-        "mosfet_low_side_3v3": 1,
-        "tp4056_usb_c_protected": 1
+        "esp32_s3_n8r8": 1,
+        "ssd1306_oled_096": 1
       },
-      "cash_budget_usd": 200.0,
-      "deadline_days": 14,
+      "cash_budget_usd": 240.0,
+      "deadline_days": 20,
       "defect_detection_days": 10,
       "defer_value_usd": 0.0,
       "minimum_service_kits": 18,
-      "product_id": "duediligence_two_traps",
-      "revenue_per_completed_kit_usd": 9.0,
+      "product_id": "duediligence_split_traps",
+      "revenue_per_completed_kit_usd": 13.0,
       "shortfall_penalty_per_kit_usd": 4.0,
       "target_kits": 20,
       "working_capital_horizon_days": 45
@@ -54,28 +54,77 @@
         "return_refund_policy"
       ],
       "required_variant_by_component": {
-        "mosfet_low_side_3v3": "3v3_logic_level_low_side_module",
-        "tp4056_usb_c_protected": "usb_c_dw01a_8205a_separate_bat_out"
+        "esp32_s3_n8r8": "esp32_s3_devkitc_1_n8r8",
+        "ssd1306_oled_096": "096in_128x64_four_pin_i2c_ssd1306"
       }
     },
     "suppliers": [
       {
-        "component": "mosfet_low_side_3v3",
+        "component": "esp32_s3_n8r8",
         "listing": {
-          "claimed_lead_time_days": 2,
-          "claimed_variant": "3v3 logic level low side module",
-          "displayed_unit_price_usd": 0.779,
+          "claimed_lead_time_days": 4,
+          "claimed_variant": "esp32 s3 devkitc 1 n8r8",
+          "displayed_unit_price_usd": 2.132,
           "evidence_status": "marketplace_listing_unverified",
-          "supplier_name": "Supplier 76832559DE2A"
+          "supplier_name": "Synthetic Low supplier"
         },
         "private_terms": {
-          "base_unit_price_usd": 0.95,
+          "base_unit_price_usd": 2.6,
           "capacity": 20,
           "duty_rate": 0.05,
-          "lead_time_days": 4,
+          "lead_time_days": 6,
           "moq": 10,
           "negotiation": {
-            "floor_unit_price_usd": 0.95,
+            "floor_unit_price_usd": 2.6,
+            "maximum_payment_terms_days": 30,
+            "maximum_refund_window_days": 30,
+            "minimum_moq": 10,
+            "supplier_paid_return_freight_available": true
+          },
+          "offer_valid_days": 30,
+          "on_time_probability": 0.99,
+          "order_step": 10,
+          "payment_terms_days": 30,
+          "quality": {
+            "observed_defects": 23,
+            "sample_cost_usd": 0.4,
+            "sample_lead_time_days": 1,
+            "sample_size": 100,
+            "verified_yield_rate": 0.77
+          },
+          "return_policy": {
+            "claim_acceptance_probability": 0.95,
+            "refund_delay_days": 5,
+            "refund_window_days": 30,
+            "restocking_fee_rate": 0.0,
+            "return_freight_payer": "supplier",
+            "return_freight_per_unit_usd": 0.0
+          },
+          "shipping_per_unit_usd": 0.05,
+          "variant_id": "esp32_s3_devkitc_1_n8r8",
+          "verbal_bias": {
+            "verified_yield_rate": 0.99
+          }
+        },
+        "supplier_id": "esp32_s3_n8r8_low"
+      },
+      {
+        "component": "esp32_s3_n8r8",
+        "listing": {
+          "claimed_lead_time_days": 4,
+          "claimed_variant": "esp32 s3 devkitc 1 n8r8",
+          "displayed_unit_price_usd": 2.788,
+          "evidence_status": "marketplace_listing_unverified",
+          "supplier_name": "Synthetic Mid supplier"
+        },
+        "private_terms": {
+          "base_unit_price_usd": 3.4,
+          "capacity": 20,
+          "duty_rate": 0.05,
+          "lead_time_days": 6,
+          "moq": 10,
+          "negotiation": {
+            "floor_unit_price_usd": 3.4,
             "maximum_payment_terms_days": 30,
             "maximum_refund_window_days": 30,
             "minimum_moq": 10,
@@ -101,125 +150,30 @@
             "return_freight_per_unit_usd": 0.0
           },
           "shipping_per_unit_usd": 0.05,
-          "variant_id": "3v3_logic_level_low_side_module"
+          "variant_id": "esp32_s3_devkitc_1_n8r8",
+          "verbal_bias": {
+            "verified_yield_rate": 0.99
+          }
         },
-        "supplier_id": "supplier_76832559de2a"
+        "supplier_id": "esp32_s3_n8r8_mid"
       },
       {
-        "component": "tp4056_usb_c_protected",
+        "component": "esp32_s3_n8r8",
         "listing": {
           "claimed_lead_time_days": 4,
-          "claimed_variant": "usb c dw01a 8205a separate bat out",
-          "displayed_unit_price_usd": 0.287,
+          "claimed_variant": "esp32 s3 devkitc 1 n8r8",
+          "displayed_unit_price_usd": 3.444,
           "evidence_status": "marketplace_listing_unverified",
-          "supplier_name": "Supplier FD7C428704ED"
+          "supplier_name": "Synthetic High supplier"
         },
         "private_terms": {
-          "base_unit_price_usd": 0.35,
+          "base_unit_price_usd": 4.2,
           "capacity": 20,
           "duty_rate": 0.05,
           "lead_time_days": 6,
           "moq": 10,
           "negotiation": {
-            "floor_unit_price_usd": 0.35,
-            "maximum_payment_terms_days": 30,
-            "maximum_refund_window_days": 30,
-            "minimum_moq": 10,
-            "supplier_paid_return_freight_available": true
-          },
-          "offer_valid_days": 30,
-          "on_time_probability": 0.99,
-          "order_step": 10,
-          "payment_terms_days": 30,
-          "quality": {
-            "observed_defects": 25,
-            "sample_cost_usd": 0.4,
-            "sample_lead_time_days": 1,
-            "sample_size": 100,
-            "verified_yield_rate": 0.75
-          },
-          "return_policy": {
-            "claim_acceptance_probability": 0.95,
-            "refund_delay_days": 5,
-            "refund_window_days": 30,
-            "restocking_fee_rate": 0.0,
-            "return_freight_payer": "supplier",
-            "return_freight_per_unit_usd": 0.0
-          },
-          "shipping_per_unit_usd": 0.05,
-          "variant_id": "usb_c_dw01a_8205a_separate_bat_out",
-          "verbal_bias": {
-            "verified_yield_rate": 0.99
-          }
-        },
-        "supplier_id": "supplier_fd7c428704ed"
-      },
-      {
-        "component": "mosfet_low_side_3v3",
-        "listing": {
-          "claimed_lead_time_days": 16,
-          "claimed_variant": "3v3 logic level low side module",
-          "displayed_unit_price_usd": 0.246,
-          "evidence_status": "marketplace_listing_unverified",
-          "supplier_name": "Supplier 60B6389A16CD"
-        },
-        "private_terms": {
-          "base_unit_price_usd": 0.3,
-          "capacity": 20,
-          "duty_rate": 0.05,
-          "lead_time_days": 18,
-          "moq": 10,
-          "negotiation": {
-            "floor_unit_price_usd": 0.3,
-            "maximum_payment_terms_days": 30,
-            "maximum_refund_window_days": 30,
-            "minimum_moq": 10,
-            "supplier_paid_return_freight_available": true
-          },
-          "offer_valid_days": 30,
-          "on_time_probability": 0.99,
-          "order_step": 10,
-          "payment_terms_days": 30,
-          "quality": {
-            "observed_defects": 1,
-            "sample_cost_usd": 0.4,
-            "sample_lead_time_days": 1,
-            "sample_size": 100,
-            "verified_yield_rate": 0.99
-          },
-          "return_policy": {
-            "claim_acceptance_probability": 0.95,
-            "refund_delay_days": 5,
-            "refund_window_days": 30,
-            "restocking_fee_rate": 0.0,
-            "return_freight_payer": "supplier",
-            "return_freight_per_unit_usd": 0.0
-          },
-          "shipping_per_unit_usd": 0.05,
-          "variant_id": "3v3_logic_level_low_side_module",
-          "verbal_bias": {
-            "lead_time_days": 5
-          }
-        },
-        "supplier_id": "supplier_60b6389a16cd"
-      },
-      {
-        "component": "tp4056_usb_c_protected",
-        "listing": {
-          "claimed_lead_time_days": 4,
-          "claimed_variant": "usb c dw01a 8205a separate bat out",
-          "displayed_unit_price_usd": 0.82,
-          "evidence_status": "marketplace_listing_unverified",
-          "supplier_name": "Supplier 5F09AC297F81"
-        },
-        "private_terms": {
-          "base_unit_price_usd": 1.0,
-          "capacity": 20,
-          "duty_rate": 0.05,
-          "lead_time_days": 6,
-          "moq": 10,
-          "negotiation": {
-            "floor_unit_price_usd": 1.0,
+            "floor_unit_price_usd": 4.2,
             "maximum_payment_terms_days": 30,
             "maximum_refund_window_days": 30,
             "minimum_moq": 10,
@@ -245,27 +199,30 @@
             "return_freight_per_unit_usd": 0.0
           },
           "shipping_per_unit_usd": 0.05,
-          "variant_id": "usb_c_dw01a_8205a_separate_bat_out"
+          "variant_id": "esp32_s3_devkitc_1_n8r8",
+          "verbal_bias": {
+            "verified_yield_rate": 0.99
+          }
         },
-        "supplier_id": "supplier_5f09ac297f81"
+        "supplier_id": "esp32_s3_n8r8_high"
       },
       {
-        "component": "tp4056_usb_c_protected",
+        "component": "ssd1306_oled_096",
         "listing": {
           "claimed_lead_time_days": 4,
-          "claimed_variant": "usb c dw01a 8205a separate bat out",
-          "displayed_unit_price_usd": 0.615,
+          "claimed_variant": "096in 128x64 four pin i2c ssd1306",
+          "displayed_unit_price_usd": 0.697,
           "evidence_status": "marketplace_listing_unverified",
-          "supplier_name": "Supplier D31F1D56091D"
+          "supplier_name": "Synthetic Low supplier"
         },
         "private_terms": {
-          "base_unit_price_usd": 0.75,
+          "base_unit_price_usd": 0.85,
           "capacity": 20,
           "duty_rate": 0.05,
           "lead_time_days": 6,
           "moq": 10,
           "negotiation": {
-            "floor_unit_price_usd": 0.75,
+            "floor_unit_price_usd": 0.85,
             "maximum_payment_terms_days": 30,
             "maximum_refund_window_days": 30,
             "minimum_moq": 10,
@@ -291,27 +248,79 @@
             "return_freight_per_unit_usd": 0.0
           },
           "shipping_per_unit_usd": 0.05,
-          "variant_id": "usb_c_dw01a_8205a_separate_bat_out"
+          "variant_id": "096in_128x64_four_pin_i2c_ssd1306",
+          "verbal_bias": {
+            "verified_yield_rate": 0.99
+          }
         },
-        "supplier_id": "supplier_d31f1d56091d"
+        "supplier_id": "ssd1306_oled_096_low"
       },
       {
-        "component": "mosfet_low_side_3v3",
+        "component": "ssd1306_oled_096",
         "listing": {
           "claimed_lead_time_days": 4,
-          "claimed_variant": "3v3 logic level low side module",
-          "displayed_unit_price_usd": 0.574,
+          "claimed_variant": "096in 128x64 four pin i2c ssd1306",
+          "displayed_unit_price_usd": 1.107,
           "evidence_status": "marketplace_listing_unverified",
-          "supplier_name": "Supplier 4106C9B93C2D"
+          "supplier_name": "Synthetic Mid supplier"
         },
         "private_terms": {
-          "base_unit_price_usd": 0.7,
+          "base_unit_price_usd": 1.35,
           "capacity": 20,
           "duty_rate": 0.05,
           "lead_time_days": 6,
           "moq": 10,
           "negotiation": {
-            "floor_unit_price_usd": 0.7,
+            "floor_unit_price_usd": 1.35,
+            "maximum_payment_terms_days": 30,
+            "maximum_refund_window_days": 30,
+            "minimum_moq": 10,
+            "supplier_paid_return_freight_available": true
+          },
+          "offer_valid_days": 30,
+          "on_time_probability": 0.99,
+          "order_step": 10,
+          "payment_terms_days": 30,
+          "quality": {
+            "observed_defects": 24,
+            "sample_cost_usd": 0.4,
+            "sample_lead_time_days": 1,
+            "sample_size": 100,
+            "verified_yield_rate": 0.76
+          },
+          "return_policy": {
+            "claim_acceptance_probability": 0.95,
+            "refund_delay_days": 5,
+            "refund_window_days": 30,
+            "restocking_fee_rate": 0.0,
+            "return_freight_payer": "supplier",
+            "return_freight_per_unit_usd": 0.0
+          },
+          "shipping_per_unit_usd": 0.05,
+          "variant_id": "096in_128x64_four_pin_i2c_ssd1306",
+          "verbal_bias": {
+            "verified_yield_rate": 0.99
+          }
+        },
+        "supplier_id": "ssd1306_oled_096_mid"
+      },
+      {
+        "component": "ssd1306_oled_096",
+        "listing": {
+          "claimed_lead_time_days": 4,
+          "claimed_variant": "096in 128x64 four pin i2c ssd1306",
+          "displayed_unit_price_usd": 1.476,
+          "evidence_status": "marketplace_listing_unverified",
+          "supplier_name": "Synthetic High supplier"
+        },
+        "private_terms": {
+          "base_unit_price_usd": 1.8,
+          "capacity": 20,
+          "duty_rate": 0.05,
+          "lead_time_days": 6,
+          "moq": 10,
+          "negotiation": {
+            "floor_unit_price_usd": 1.8,
             "maximum_payment_terms_days": 30,
             "maximum_refund_window_days": 30,
             "minimum_moq": 10,
@@ -326,7 +335,7 @@
             "sample_cost_usd": 0.4,
             "sample_lead_time_days": 1,
             "sample_size": 100,
-            "verified_yield_rate": 0.99
+            "verified_yield_rate": 0.995
           },
           "return_policy": {
             "claim_acceptance_probability": 0.95,
@@ -337,9 +346,12 @@
             "return_freight_per_unit_usd": 0.0
           },
           "shipping_per_unit_usd": 0.05,
-          "variant_id": "3v3_logic_level_low_side_module"
+          "variant_id": "096in_128x64_four_pin_i2c_ssd1306",
+          "verbal_bias": {
+            "verified_yield_rate": 0.99
+          }
         },
-        "supplier_id": "supplier_4106c9b93c2d"
+        "supplier_id": "ssd1306_oled_096_high"
       }
     ]
   },
@@ -355,7 +367,7 @@
     }
   ],
   "spec_version": "aeread.case/0.1",
-  "split": "confirmatory_v1_opaque",
+  "split": "confirmatory_v1_labeled",
   "visibility_policy": "procurement_allocation_public_listings_private_supplier_terms_v1",
   "world_seed": 2614104
 }
