@@ -101,11 +101,13 @@ from aeread.shared_runner.schemas import (
     SamplingPlan,
     SuiteManifest,
 )
+from aeread.shared_runner.run.layout import RunLayout
 from aeread.shared_runner.task.evaluation import (
     FamilyScoringInput,
     SeatContext,
     audit_family_receipt,
     finalize_family_execution,
+    finalize_family_failure,
     replay_family_receipt,
     replay_family_scoring_input,
 )
@@ -3779,4 +3781,133 @@ def test_case_conditional_audit_rejects_a_receipt_whose_inapplicable_leaf_ids_di
     receipt_path.write_bytes(canonical_json_bytes(tampered) + b"\n")
 
     with pytest.raises(ValueError, match="receipt admission does not match the replayed score"):
+        audit_family_receipt(setup=setup, receipt_path=receipt_path)
+
+
+# ---------------------------------------------------------------------------
+# R13 review finding 3: leaf disposition is a case property, not a scoring
+# outcome. An operational exclusion (finalize_family_failure) never calls
+# the scorer, but the plugin's inapplicable_leaf_ids hook still answers for
+# this cell's case and must be recorded on the receipt -- and
+# audit_family_receipt's unscored branch must recompute and compare it, not
+# skip leaf-disposition checking entirely just because there is no score.
+# ---------------------------------------------------------------------------
+
+
+def _build_case_conditional_operational_failure(
+    *, evidence_root: Path, mode: str = "basic"
+):
+    """Drives a genuine reconciled failure: one scripted label for a
+    two-round episode, so round_two's provider call fails closed
+    (``_ScriptedChoiceProvider``'s own documented behaviour) and the
+    scheduler raises with the failure trail already sealed to durable
+    evidence -- exactly the shape ``finalize_family_failure`` documents
+    itself as sealing ("one reconciled failed attempt").
+    """
+    setup = _build_reference_setup(
+        plugin_factory=functools.partial(_CaseConditionalPlugin, mode="default"),
+        case=_case_conditional_case(mode=mode),
+        family_manifest=_case_conditional_family_manifest(),
+        extra_pins=_case_conditional_extra_pins(),
+    )
+    caught: BaseException | None = None
+    try:
+        asyncio.run(
+            execute_plan_cell(
+                plan=setup.plan,
+                cell_id=setup.plan.cells[0].cell_id,
+                registry=setup.registry,
+                evidence_root=evidence_root,
+                prompt_sources=setup.prompt_sources,
+                providers={_REFERENCE_PROVIDER_ID: _ScriptedChoiceProvider(("x",))},
+                pricing=setup.pricing,
+                harnesses=setup.harnesses,
+            )
+        )
+    except Exception as error:  # the scheduler's own contract-failure wrapper
+        caught = error
+    assert caught is not None, "expected the scripted provider to fail closed"
+    return setup, caught
+
+
+def _finalize_case_conditional_failure(setup, caught, *, evidence_root: Path):
+    return finalize_family_failure(
+        setup=setup,
+        cell_id=setup.plan.cells[0].cell_id,
+        evidence_root=evidence_root,
+        error=caught,
+        leaf_builder=lambda family_case: _reference_leaf(
+            leaf_id=_REFERENCE_BALANCE_LEAF_ID, input_scope="terminal_state"
+        ),
+    )
+
+
+def test_case_conditional_finalize_family_failure_records_inapplicable_leaf_ids(
+    tmp_path: Path,
+) -> None:
+    evidence_root = tmp_path / "case_conditional_failure_records"
+    setup, caught = _build_case_conditional_operational_failure(
+        evidence_root=evidence_root, mode="basic"
+    )
+    receipt = _finalize_case_conditional_failure(setup, caught, evidence_root=evidence_root)
+    assert receipt.status == "invalid_measurement"
+    assert receipt.inclusion_status == "excluded"
+    assert receipt.scores == ()
+    assert receipt.inapplicable_leaf_ids == (_CASE_CONDITIONAL_DIAGNOSTIC_LEAF_ID,)
+
+
+def test_case_conditional_finalize_family_failure_records_empty_inapplicable_leaf_ids_when_applicable(
+    tmp_path: Path,
+) -> None:
+    """The other case mode: the diagnostic leaf applies, so I is empty even
+    on the failure path -- proving the recorded value tracks the real case,
+    not a fixed constant."""
+    evidence_root = tmp_path / "case_conditional_failure_applicable"
+    setup, caught = _build_case_conditional_operational_failure(
+        evidence_root=evidence_root, mode="contract"
+    )
+    receipt = _finalize_case_conditional_failure(setup, caught, evidence_root=evidence_root)
+    assert receipt.inapplicable_leaf_ids == ()
+
+
+def _receipt_path_for(evidence_root: Path, receipt) -> Path:
+    return (
+        RunLayout(evidence_root, receipt.run_plan_id).resolve_attempt_dir(
+            receipt.cell_id, receipt.episode_attempt_id
+        )
+        / "evaluation_receipt.json"
+    )
+
+
+def test_case_conditional_audit_accepts_an_unscored_receipts_recomputed_inapplicable_leaf_ids(
+    tmp_path: Path,
+) -> None:
+    evidence_root = tmp_path / "case_conditional_failure_audit_ok"
+    setup, caught = _build_case_conditional_operational_failure(
+        evidence_root=evidence_root, mode="basic"
+    )
+    receipt = _finalize_case_conditional_failure(setup, caught, evidence_root=evidence_root)
+    audited = audit_family_receipt(
+        setup=setup, receipt_path=_receipt_path_for(evidence_root, receipt)
+    )
+    assert audited.get("inapplicable_leaf_ids") == [_CASE_CONDITIONAL_DIAGNOSTIC_LEAF_ID]
+
+
+def test_case_conditional_audit_rejects_an_unscored_receipt_whose_inapplicable_leaf_ids_disagree_with_the_recomputed_hook(
+    tmp_path: Path,
+) -> None:
+    evidence_root = tmp_path / "case_conditional_failure_audit_tamper"
+    setup, caught = _build_case_conditional_operational_failure(
+        evidence_root=evidence_root, mode="basic"
+    )
+    receipt = _finalize_case_conditional_failure(setup, caught, evidence_root=evidence_root)
+    assert receipt.inapplicable_leaf_ids == (_CASE_CONDITIONAL_DIAGNOSTIC_LEAF_ID,)
+    tampered = dataclasses.replace(receipt, receipt_sha256=None, inapplicable_leaf_ids=())
+    tampered = seal_evaluation_receipt(tampered)
+    receipt_path = _receipt_path_for(evidence_root, receipt)
+    receipt_path.write_bytes(canonical_json_bytes(tampered) + b"\n")
+
+    with pytest.raises(
+        ValueError, match="receipt inapplicable_leaf_ids does not match the declared policy"
+    ):
         audit_family_receipt(setup=setup, receipt_path=receipt_path)

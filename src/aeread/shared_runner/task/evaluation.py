@@ -790,6 +790,32 @@ def _enforce_subject_seat_primaries(
             )
 
 
+def _reject_undeclared_inapplicable_ids(
+    manifest: Any, inapplicable_leaf_ids: frozenset[str]
+) -> None:
+    """``I`` may only name leaves the manifest actually declares
+    ``case_conditional`` -- checked independent of whether a leaf policy is
+    declared at all (a legacy family with none declares zero
+    ``case_conditional`` leaves, so ANY non-empty ``I`` from a hook it
+    happens to define is already a violation) and independent of whether
+    the execution produced any scores (an operational exclusion still has
+    a case, and the hook still answers for it). Shared by
+    ``_enforce_declared_leaf_policy``, ``finalize_family_failure``, and
+    ``audit_family_receipt``'s unscored branch (R13 review finding 1 and
+    finding 3) so the same violation is caught the same way on every path
+    that ever calls the hook, not only the scored one.
+    """
+    declared_case_conditional_ids = _declared_case_conditional_leaf_ids(manifest)
+    undeclared_inapplicable = sorted(
+        inapplicable_leaf_ids - declared_case_conditional_ids
+    )
+    if undeclared_inapplicable:
+        raise ValueError(
+            "plugin inapplicable_leaf_ids named a leaf that is not declared "
+            f"case_conditional: {undeclared_inapplicable}"
+        )
+
+
 def _enforce_declared_leaf_policy(
     score_set: FamilyScoreSet,
     manifest: Any,
@@ -827,15 +853,7 @@ def _enforce_declared_leaf_policy(
     scorer omits, and an undeclared leaf the scorer invents are each named
     separately.
     """
-    declared_case_conditional_ids = _declared_case_conditional_leaf_ids(manifest)
-    undeclared_inapplicable = sorted(
-        inapplicable_leaf_ids - declared_case_conditional_ids
-    )
-    if undeclared_inapplicable:
-        raise ValueError(
-            "plugin inapplicable_leaf_ids named a leaf that is not declared "
-            f"case_conditional: {undeclared_inapplicable}"
-        )
+    _reject_undeclared_inapplicable_ids(manifest, inapplicable_leaf_ids)
     if not _manifest_declares_leaf_policy(manifest):
         return
     declared = manifest.measurement.finalize_time_leaf_policy()
@@ -1100,6 +1118,14 @@ def finalize_family_failure(
     plugin = setup.registry.resolve_manifest(family)
     family_case = plugin.validate_payload(case.payload)
     leaf = leaf_builder(family_case)
+    # Ruling R13 review finding 3: leaf disposition is a case property, not
+    # a scoring outcome -- an operational exclusion never calls the scorer,
+    # but the plugin's inapplicable_leaf_ids hook still applies to this
+    # cell's case and is recorded here so audit_family_receipt's unscored
+    # branch has a real value (not a silent default) to recompute and
+    # compare against.
+    inapplicable_ids = _inapplicable_leaf_ids(plugin, family_case)
+    _reject_undeclared_inapplicable_ids(family, inapplicable_ids)
     receipt = seal_evaluation_receipt(
         EvaluationReceipt(
             spec_version=EvaluationReceipt.SPEC_VERSION,
@@ -1136,6 +1162,7 @@ def finalize_family_failure(
             evidence=evidence_seal,
             primary_leaf_id=leaf.leaf_id,
             scores=(),
+            inapplicable_leaf_ids=tuple(sorted(inapplicable_ids)),
             failure=EvaluationFailure(
                 failure_class=failure_class,
                 condition=condition,
@@ -1446,12 +1473,38 @@ def audit_family_receipt(
             != tuple(sorted(inapplicable_ids))
         ):
             raise ValueError("receipt admission does not match the replayed score")
-    elif (
-        receipt.get("status") != "invalid_measurement"
-        or receipt.get("inclusion_status") != "excluded"
-        or receipt.get("replay_level") != "none"
-        or not isinstance(receipt.get("failure"), Mapping)
-    ):
-        raise ValueError("unscored receipt must be a typed operational exclusion")
+    else:
+        if (
+            receipt.get("status") != "invalid_measurement"
+            or receipt.get("inclusion_status") != "excluded"
+            or receipt.get("replay_level") != "none"
+            or not isinstance(receipt.get("failure"), Mapping)
+        ):
+            raise ValueError("unscored receipt must be a typed operational exclusion")
+        # Ruling R13 review finding 3: leaf disposition is a case property,
+        # not a scoring outcome -- an operational exclusion never calls the
+        # scorer, but the plugin's inapplicable_leaf_ids hook still applies
+        # to this cell's case (finalize_family_failure records it -- see
+        # its own comment) and must still be checked here, or an unscored
+        # receipt's inapplicable_leaf_ids would carry no audit coverage at
+        # all. replay_family_receipt has no equivalent branch to fix: it
+        # unconditionally requires exactly one score_recorded event and so
+        # structurally never receives an unscored (operational-exclusion)
+        # receipt in the first place.
+        family = next(f for f in setup.plan.families if f.family.id == cell.family_id)
+        case = next(c for c in setup.plan.cases if c.case_id == cell.case_id)
+        registration = setup.registry.resolve_registration(
+            family.family.id, family.family.version, family.family.plugin_id
+        )
+        plugin = registration.plugin
+        family_case = plugin.validate_payload(case.payload)
+        inapplicable_ids = _inapplicable_leaf_ids(plugin, family_case)
+        _reject_undeclared_inapplicable_ids(registration.manifest, inapplicable_ids)
+        if tuple(receipt.get("inapplicable_leaf_ids") or ()) != tuple(
+            sorted(inapplicable_ids)
+        ):
+            raise ValueError(
+                "receipt inapplicable_leaf_ids does not match the declared policy"
+            )
     evidence.close()
     return receipt
