@@ -176,6 +176,28 @@ paired-history pair's own byte-identity and differing-trajectory claims are stil
 directly, by the dedicated test named above; only routing them through this one shared
 helper is what the witness makes impossible.
 
+**Independent review finding 3, confirmed and fixed.** Because the exemption above keeps
+`econagent_v1` out of `_assert_family_obeys_the_scoring_contract`'s multi-fixture path
+entirely, R9(b)'s sensitivity witness never runs for this family at all, and the
+paired-history test's own final loop asserts only `status == "ok"` for each leaf on each
+fixture — no metric or content comparison. `docs/econagent_migration_review.md` finding 3
+(independent review, 2026-09-06) confirmed this as a genuine gap: a scorer regressed to a
+constant, always-`"ok"` output that never read its own call's `scoring_input.
+phase_instances` would still pass every check above. Fixed with a new test,
+`tests/test_econagent_replay.py::
+test_call_output_is_sensitive_to_phase_instances_for_every_declared_leaf`, that witnesses
+non-constancy a different way that needs no same-case pair: two fixtures with the same
+`world_seed` but a different `episode_length` (one month vs. two) must report a different
+`checked_agent_months` metric for both `rule_constraint` leaves and a different metric
+count for `econagent_macro_trajectory`, since both are derived from that call's own
+`phase_instances`. This proves non-constancy, not genuine economic trajectory-dependence —
+the same class of claim R9(b)'s own (unavailable, for this family) same-case witness
+makes. Verified by mutation: caching `__call__`'s first call's trajectory fields and
+reusing them for every later call makes the new test fail with exactly the
+`AssertionError` `docs/econagent_migration_review.md`'s finding 3 disposition records
+(`checked_agent_months is identical across two fixtures with a different
+episode_length`), reverted immediately after.
+
 ## What milestone 3 added
 
 Milestones 1-2 (cases, environment, measurement, goldens, parity) all exercised
@@ -192,8 +214,9 @@ real scheduler. Milestone 3 built:
   importer-determinism check (running the importer twice, and against the committed case
   files, produces byte-identical output for all three scenario ids).
 - **`replay.py`/`tests/test_econagent_replay.py`** — offline replay with the real upstream
-  bridge subprocess never spawned. See "Evidence" and "Known limits" below for what this
-  actually proves and where its one real caveat is.
+  bridge subprocess never spawned. See "Evidence" below for what this actually proves and
+  "Open items" below for its one real residual caveat (out-of-order replay of same-case
+  episodes).
 - **A real defect this pass's own first scheduler-driven run exposed and fixed**: `cases.py`
   and `environment.py` had set the per-episode logical-action budget to `episode_length`
   (months) rather than `n_agents * episode_length` (one logical action per agent seat per
@@ -212,7 +235,9 @@ episode, terminal reason `episode_length_reached` both times, with genuinely dif
 agent states (different `world_seed`).
 
 **Replay reproduces state and score with the real bridge subprocess never spawned**
-(`test_econagent_replay.py`, 12 tests). A live 4-agent x 6-month episode's bridge call log
+(`test_econagent_replay.py`'s other 22 tests — the file's remaining three tests, the
+finalizer receipt test and the two scoring-contract witness tests, are described in the
+"Scoring-contract enrollment" section above). A live 4-agent x 6-month episode's bridge call log
 (`start_episode`, `agent_snapshot`, then `(step_month, agent_snapshot)` x 6, then
 `dense_log`, `close` — 16 calls) is recorded, round-tripped through plain JSON text, and
 replayed through the real scheduler with `EconAgentBridge._spawn` monkeypatched to raise if
@@ -224,9 +249,11 @@ all three measurement leaves recomputed from the replay (including
 (tampering one recorded `step_month` response's `actions` field before replay) confirms the
 comparator genuinely detects divergence rather than being vacuously true.
 
-**Suite: 123 econagent-family + smoke tests passed, 0 failed, 0 skipped**, re-verified
-after this milestone's leaf-policy/`__call__` migration
-(`kernel_scoring_contract_spec.md`), with a provisioned bridge
+**Suite: 164 econagent-family + smoke + scoring-contract-protocol tests passed, 0 failed,
+0 skipped**, re-verified against this branch's HEAD (this list now also includes
+`tests/test_shared_runner_scoring_contract.py` — this family's own hunk there,
+`_econagent_fixture`/`test_econagent_obeys_the_scoring_contract` plus the rest of that
+file's protocol-test suite, was not previously listed here), with a provisioned bridge
 (`bridges/econagent-venv`) and the pinned upstream checkout present:
 
 ```
@@ -234,12 +261,12 @@ tests/test_econagent_bridge_required_enforcement.py tests/test_econagent_e2e.py
 tests/test_econagent_parity.py tests/test_econagent_environment.py
 tests/test_econagent_goldens.py tests/test_econagent_cases.py
 tests/test_econagent_measurement.py tests/test_econagent_replay.py
-tests/test_shared_runner_smoke.py
-123 passed in 189.70s
+tests/test_shared_runner_smoke.py tests/test_shared_runner_scoring_contract.py
+164 passed in 110.34s
 ```
 
 Re-run with none of `AEREAD_ECONAGENT_BRIDGE_PYTHON`/`AEREAD_ECONAGENT_BRIDGE_REQUIRED`
-exported: still **123 passed, 0 skipped** on this machine, because
+exported: still **164 passed, 0 skipped** on this machine, because
 `discover_bridge_python`'s own fallback resolves the provisioned
 `bridges/econagent-venv` default even unset, and `AEREAD_ECONAGENT_UPSTREAM_ROOT`'s
 default already points at the pinned checkout -- so this particular pair of runs never
@@ -264,16 +291,6 @@ malformed-or-operational-failure, degenerate-reference) pass against the real br
 
 ## Known limits, stated rather than implied
 
-- **A live episode's raw, byte-exact state never matches its own replay.**
-  `EconAgentV1Plugin.initial_state` mints a fresh `uuid.uuid4().hex` `bridge_session_id`
-  bookkeeping key on every call — never surfaced through `terminal()`/`outcome()`, never
-  causally relevant to any accounting leaf, but part of the full state the scheduler hashes
-  and freezes. `replay.py`'s `StateComparison` reports this honestly: raw fields
-  (`state_hashes_match`, `final_state_matches`) are `False` by construction on every replay,
-  always; only the session-id-stripped content comparison
-  (`final_state_content_matches`) — the actual replay guarantee — is asserted as the pass/
-  fail signal. Same shape of finding as `tau3_retail/replay.py`'s message-timestamp
-  non-determinism, unrelated cause.
 - **A lost `step_month` response leaves genuine mutation-outcome ambiguity that is
   contained, not eliminated.** `econagent_bridge_driver.py`'s `_op_step_month` runs the
   real, mutating `env.step(actions)` before its response is ever computed and flushed
@@ -348,9 +365,12 @@ malformed-or-operational-failure, degenerate-reference) pass against the real br
 Unlike `tau2_bridge` (one fresh subprocess per call), this bridge is one persistent
 subprocess per episode (spec milestone-1 correction 3, since `complex_actions` needs the
 live upstream `env` object's shared RNG stream across the whole episode) — the full
-123-test econagent + smoke suite (grown from 96 by this milestone's leaf-policy/`__call__`
-tests), including every bridge-gated test (goldens, parity, e2e, replay, and now `__call__`
-driven through a real scheduler episode), runs in about three minutes on this machine.
+164-test econagent + smoke + scoring-contract-protocol suite (grown from 96 by milestone
+2's leaf-policy/`__call__` tests, then further grown by milestone 3's finalizer/
+paired-history/sensitivity-witness tests and by this list now folding in this family's own
+hunk of `tests/test_shared_runner_scoring_contract.py`), including every bridge-gated test
+(goldens, parity, e2e, replay, and `__call__` driven both through a real scheduler episode
+and through the scoring-contract protocol test), runs in under two minutes on this machine.
 There is no multi-hour corpus sweep here: the entire declared, run corpus is three small
 scenarios (10x12, 10x12, 4x6), by design (spec section 1) — the 100x240 paper
 configuration is declared but never executed.
