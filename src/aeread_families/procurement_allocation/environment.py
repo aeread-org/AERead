@@ -153,6 +153,33 @@ def _exact_fields(value: Any, fields: set[str], path: str) -> dict[str, Any]:
     return value
 
 
+def stated_listing(supplier: Mapping[str, Any]) -> dict[str, Any]:
+    """The public listing, which may overstate the supplier's true terms.
+
+    Every evaluated policy reads the listing; a screen on 2026-09-06 recorded
+    zero ``inquire`` actions across a whole panel, so a supplier that overstated
+    only when asked verbally was lying into a channel nothing reads. A declared
+    ``verbal_bias`` therefore also drives the listing's own claimed figures,
+    leaving formal offers and verified samples truthful.
+    """
+    listing = _plain(supplier["listing"])
+    bias = supplier["private_terms"].get("verbal_bias") or {}
+    if "base_unit_price_usd" in bias:
+        listing["displayed_unit_price_usd"] = round(
+            float(bias["base_unit_price_usd"]) * 0.82, 6
+        )
+    if "lead_time_days" in bias:
+        listing["claimed_lead_time_days"] = max(1, int(bias["lead_time_days"]) - 2)
+    for field, key in (
+        ("verified_yield_rate", "claimed_yield_rate"),
+        ("capacity", "claimed_capacity"),
+        ("moq", "claimed_moq"),
+    ):
+        if field in bias:
+            listing[key] = bias[field]
+    return listing
+
+
 def _stated_terms(supplier: Mapping[str, Any]) -> dict[str, Any]:
     """The terms a supplier states verbally, which may be optimistic.
 
@@ -223,8 +250,14 @@ def _validate_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
         _text(component, "objective.bom key")
         _positive_int(units, f"objective.bom.{component}")
 
-    if interaction.get("max_actions") != 10:
-        raise ValueError("interaction.max_actions must equal the case's 10-action budget")
+    # The action budget is the family's only genuinely scarce resource: money
+    # never binds at this scale. A panel that wants selective verification to be
+    # a decision must be able to declare a budget too small to verify every
+    # supplier, so the budget is a declared positive integer rather than a fixed
+    # ten. Panels that do not declare one keep the historical value.
+    _positive_int(interaction.get("max_actions"), "interaction.max_actions")
+    if not 3 <= int(interaction["max_actions"]) <= 20:
+        raise ValueError("interaction.max_actions must be between 3 and 20")
     for field in ("inquiry_days", "quote_days", "counter_days"):
         _positive_int(interaction.get(field), f"interaction.{field}")
     for field in ("inquiry_cost_usd", "quote_cost_usd", "counter_cost_usd"):
@@ -1009,7 +1042,7 @@ class ProcurementAllocationPlugin:
                 {
                     "supplier_id": supplier["supplier_id"],
                     "component": supplier["component"],
-                    "listing": _plain(supplier["listing"]),
+                    "listing": stated_listing(supplier),
                 }
                 for supplier in family_case["suppliers"]
             ],

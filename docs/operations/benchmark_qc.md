@@ -44,6 +44,12 @@ supporting evidence, not a substitute for an explicit QC record.
 QC evidence may be reused across campaigns only when every bound input still
 matches by typed identifier and digest.
 
+Every failure -- a design defect, a sealed attempt, a broken tool, or a claim
+that turned out to be wrong -- is indexed in the
+[incident log](incident_log.md). Preserving failed attempts is already required;
+the register is where they are findable. A row is added when something fails, not
+when it is fixed, and rows are never deleted.
+
 A required check is evidence only once it has been **observed to fail on a
 counterexample**. Demonstrate this by mutation: revert the guard, confirm the
 check dies for the intended reason, restore it, confirm the check passes, and
