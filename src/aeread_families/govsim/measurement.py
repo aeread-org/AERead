@@ -93,6 +93,7 @@ import numpy as np
 
 from aeread.shared_runner.measurement import (
     EstimandSpec,
+    FamilyScoreSet,
     ImplementationRef,
     MeasurementLeafSpec,
     MetricValue,
@@ -103,6 +104,8 @@ from aeread.shared_runner.measurement import (
     VerifierSpec,
 )
 from aeread.shared_runner.run.resolver import canonical_json_bytes
+from aeread.shared_runner.task.evaluation import FamilyScoringInput
+from aeread.shared_runner.task.scheduler import PhaseInstance
 
 LEAF_VERSION = "1.0.0"
 ESTIMAND_VERSION = "1.0.0"
@@ -607,9 +610,9 @@ def score_survival_months(
     module's own docstring): ``reference_values``/``metrics`` simply omit
     the baseline/delta in that case rather than fabricating one -- this is
     exactly the shape ``GovsimScorer.__call__`` (the production finalizer
-    seam, ``family_evaluation.py``'s ``plugin.build_scorer(family_case)(
-    recorded_outcome, ...)``) hits, since no baseline is reachable from a
-    recorded ``outcome`` alone.
+    seam, ``task.evaluation.finalize_family_execution``'s
+    ``plugin.build_scorer(family_case)(scoring_input, ...)``) hits, since no
+    baseline is reachable from a ``FamilyScoringInput`` alone.
     """
     if terminal["reason"] == "operational_failure":
         return _operational_failure_envelope(leaf, evidence_refs)
@@ -639,7 +642,7 @@ def score_total_harvest(
     leaf: MeasurementLeafSpec,
     *,
     terminal: Mapping[str, Any],
-    baseline_total_harvest: float,
+    baseline_total_harvest: float | None,
     num_agents: int,
     evidence_refs: tuple[str, ...] = (),
 ) -> ScoreEnvelope:
@@ -650,17 +653,30 @@ def score_total_harvest(
     episode (``concurrent_env.py``'s ``_assign_resource``:
     ``collected_resource[agent] += res`` every round; never reset until the
     next episode), never re-derived from a per-round trace.
+
+    ``baseline_total_harvest`` is ``None`` when no caller supplied one (this
+    module never re-runs a baseline episode itself, per this module's own
+    docstring): ``reference_values``/``metrics`` simply omit the
+    baseline/delta in that case rather than fabricating one -- mirrors
+    ``score_survival_months``'s identical pattern, which is exactly the
+    shape ``GovsimScorer.__call__`` (the production finalizer seam) hits,
+    since no baseline is reachable from a ``FamilyScoringInput`` alone.
     """
     if terminal["reason"] == "operational_failure":
         return _operational_failure_envelope(leaf, evidence_refs)
     collected = terminal["collected_resource"]
     total = float(sum(collected.values()))
-    delta = total - float(baseline_total_harvest)
     metrics = {
         f"collected_{agent_id}": MetricValue(float(quantity), "resource_units")
         for agent_id, quantity in sorted(collected.items())
     }
-    metrics["delta_vs_baseline"] = MetricValue(delta, "resource_units")
+    reference_values: dict[str, MetricValue] = {}
+    if baseline_total_harvest is not None:
+        delta = total - float(baseline_total_harvest)
+        metrics["delta_vs_baseline"] = MetricValue(delta, "resource_units")
+        reference_values["baseline"] = MetricValue(
+            float(baseline_total_harvest), "resource_units"
+        )
     return ScoreEnvelope(
         status="ok",
         leaf=leaf,
@@ -670,9 +686,7 @@ def score_total_harvest(
             metadata={"degenerate_single_agent": num_agents == 1},
         ),
         metrics=metrics,
-        reference_values={
-            "baseline": MetricValue(float(baseline_total_harvest), "resource_units")
-        },
+        reference_values=reference_values,
         validity=ValidityReport("valid"),
         evidence_refs=evidence_refs,
     )
@@ -682,7 +696,7 @@ def score_equality_gini(
     leaf: MeasurementLeafSpec,
     *,
     terminal: Mapping[str, Any],
-    baseline_gini: float,
+    baseline_gini: float | None,
     num_agents: int,
     evidence_refs: tuple[str, ...] = (),
 ) -> ScoreEnvelope:
@@ -695,6 +709,14 @@ def score_equality_gini(
     flags this explicitly rather than silently reporting a "perfectly
     equal" verdict for a case with no peer to be unequal against (spec
     section 4's degenerate-reference golden).
+
+    ``baseline_gini`` is ``None`` when no caller supplied one (this module
+    never re-runs a baseline episode itself, per this module's own
+    docstring): ``reference_values``/``metrics`` simply omit the
+    baseline/delta in that case rather than fabricating one -- mirrors
+    ``score_survival_months``'s identical pattern, which is exactly the
+    shape ``GovsimScorer.__call__`` (the production finalizer seam) hits,
+    since no baseline is reachable from a ``FamilyScoringInput`` alone.
     """
     if terminal["reason"] == "operational_failure":
         return _operational_failure_envelope(leaf, evidence_refs)
@@ -704,7 +726,12 @@ def score_equality_gini(
         dtype=float,
     )
     gini_value = _vendored_gini(values)
-    delta = gini_value - float(baseline_gini)
+    metrics: dict[str, MetricValue] = {}
+    reference_values: dict[str, MetricValue] = {}
+    if baseline_gini is not None:
+        delta = gini_value - float(baseline_gini)
+        metrics["delta_vs_baseline"] = MetricValue(delta, "gini_coefficient")
+        reference_values["baseline"] = MetricValue(float(baseline_gini), "gini_coefficient")
     return ScoreEnvelope(
         status="ok",
         leaf=leaf,
@@ -713,10 +740,8 @@ def score_equality_gini(
             "gini_coefficient",
             metadata={"degenerate_single_agent": num_agents == 1},
         ),
-        metrics={"delta_vs_baseline": MetricValue(delta, "gini_coefficient")},
-        reference_values={
-            "baseline": MetricValue(float(baseline_gini), "gini_coefficient")
-        },
+        metrics=metrics,
+        reference_values=reference_values,
         validity=ValidityReport("valid"),
         evidence_refs=evidence_refs,
     )
@@ -727,18 +752,52 @@ def score_equality_gini(
 # ---------------------------------------------------------------------------
 
 
+def _round_trace_from_phase_instances(
+    phase_instances: tuple[PhaseInstance, ...],
+) -> list[Any]:
+    """Read the cumulative ``round_trace`` off the last replayed phase state.
+
+    ``scoring_input.outcome`` never carries ``round_trace``
+    (``environment.py``'s ``outcome()`` omits it -- see that module's own
+    ``terminal()``/``outcome()`` split), so the two trajectory-scoped leaves
+    (``govsim_no_collapse``, ``govsim_threshold_adherence``) read it from
+    ``scoring_input.phase_instances`` instead.
+
+    ``environment.py``'s ``step()`` REFLECT branch is the only place that
+    appends to ``round_trace``, directly into its own state dict, and never
+    resets it, so by the LAST phase instance's LAST transition, that state
+    carries the full, cumulative trace for the whole episode -- exactly what
+    ``GovsimPlugin.terminal()`` itself reads off that same state
+    (``state.get("round_trace", [])``). Ruling R3
+    (kernel_scoring_contract_spec.md): reading it here is safe because every
+    phase boundary's post-state hash is cross-checked against sealed
+    evidence during replay, so a ``round_trace`` that diverged from the real
+    run would already have failed finalization before this scorer is ever
+    called -- this only reads what the verified re-execution produced, never
+    re-derives it independently.
+    """
+    if not phase_instances:
+        return []
+    last_state = phase_instances[-1].transitions[-1].state
+    if not isinstance(last_state, Mapping):
+        return []
+    return list(last_state.get("round_trace", ()))
+
+
 @dataclass(frozen=True, slots=True)
 class GovsimScorer:
     """One case's fixed set of five declared leaves, plus their scorers.
 
     ``environment.py``'s ``build_scorer`` hook returns one of these.
-    ``family_evaluation.py``'s ``finalize_family_execution`` calls the
-    returned object directly (``plugin.build_scorer(family_case)(
-    recorded_outcome, evidence_refs=(...))``) -- ``__call__`` below is the
-    seam that satisfies that exact production call, delegating to the
-    ``govsim_survival_months`` leaf (this family's declared
-    ``primary_estimand``, ``environment.py``'s ``family_manifest()``). The
-    other four leaves' named methods are still exercised directly by
+    ``task.evaluation.finalize_family_execution`` calls the returned object
+    directly (``plugin.build_scorer(family_case)(scoring_input,
+    evidence_refs=scoring_input.evidence_refs)``, per
+    kernel_scoring_contract_spec.md section 1) -- ``__call__`` below is the
+    seam that satisfies that exact production call and returns every one of
+    this family's five declared finalize-time leaves (section 5), via
+    ``score_all`` (the single source of truth for the full set; ``__call__``
+    is a thin wrapper over it, never new scoring logic). Each leaf's own
+    named method is still exercised directly by
     ``tests/test_govsim_measurement.py``'s goldens, mirroring
     ``tau3_retail``'s identical convention for its own non-primary leaf.
     """
@@ -769,36 +828,54 @@ class GovsimScorer:
         return self.leaves[4]
 
     def __call__(
-        self, outcome: Mapping[str, Any], *, evidence_refs: tuple[str, ...] = ()
-    ) -> ScoreEnvelope:
-        """Score one recorded ``family_outcome`` exactly as the production
-        finalizer calls it: ``plugin.build_scorer(family_case)(
-        recorded_outcome, evidence_refs=(...))`` (``family_evaluation.py``'s
-        ``finalize_family_execution``).
+        self, scoring_input: FamilyScoringInput, *, evidence_refs: tuple[str, ...] = ()
+    ) -> FamilyScoreSet:
+        """Score one finalized episode exactly as the production finalizer
+        calls it: ``plugin.build_scorer(family_case)(scoring_input,
+        evidence_refs=scoring_input.evidence_refs)``
+        (``task.evaluation.finalize_family_execution``, per
+        kernel_scoring_contract_spec.md section 1).
 
-        ``outcome`` is ``environment.py``'s ``GovsimPlugin.outcome()``
-        output, never a ``terminal`` mapping (it carries no ``round_trace``,
-        so the two rule/constraint leaves are not reachable through this
-        seam -- their own named methods above remain the way
-        ``tests/test_govsim_measurement.py``'s goldens exercise them).
-        Delegates to ``score_survival_months`` -- this family's declared
-        ``primary_estimand`` (``environment.py``'s ``family_manifest()``)
-        -- with no baseline: this module never re-runs a baseline episode
-        itself, and none is reachable from a recorded outcome alone, so the
-        comparative delta/reference is honestly omitted rather than
-        fabricated (see ``score_survival_months``'s own docstring).
+        Returns every one of this family's five declared finalize-time
+        leaves (spec section 5) -- a thin wrapper over ``score_all``, this
+        family's single source of truth for the full set; no new scoring
+        logic is written here. ``scoring_input.outcome`` never carries
+        ``round_trace`` (``environment.py``'s ``outcome()`` omits it), so
+        the two trajectory-scoped leaves' input is read off
+        ``scoring_input.phase_instances`` instead, via
+        ``_round_trace_from_phase_instances`` (see that function's own
+        docstring for why this is safe under ruling R3). No baseline is
+        reachable from a ``FamilyScoringInput`` alone (this module never
+        re-runs a baseline episode itself): every comparative leaf's delta
+        and reference value are honestly omitted here, never fabricated
+        (see ``score_survival_months``'s own docstring, and its identical
+        pattern now mirrored by ``score_total_harvest``/
+        ``score_equality_gini``).
         """
-        reason = outcome["termination_reason"]
-        if reason == "operational_failure":
-            return _operational_failure_envelope(self.survival_months_leaf, evidence_refs)
-        terminal_like = {"reason": reason, "num_round": outcome["num_round"]}
-        return score_survival_months(
-            self.survival_months_leaf,
+        outcome = scoring_input.outcome
+        terminal_like: dict[str, Any] = {
+            "reason": outcome["termination_reason"],
+            "num_round": outcome["num_round"],
+            "collected_resource": outcome["collected_resource"],
+            "round_trace": _round_trace_from_phase_instances(scoring_input.phase_instances),
+        }
+        scored = self.score_all(
             terminal=terminal_like,
             baseline_survival_months=None,
-            max_num_rounds=self.max_num_rounds,
-            num_agents=self.num_agents,
+            baseline_total_harvest=None,
+            baseline_gini=None,
             evidence_refs=evidence_refs,
+        )
+        return FamilyScoreSet(
+            primary_leaf_id=self.survival_months_leaf.leaf_id,
+            scores=(
+                scored[NO_COLLAPSE_ESTIMAND_ID],
+                scored[THRESHOLD_ADHERENCE_ESTIMAND_ID],
+                scored[SURVIVAL_MONTHS_ESTIMAND_ID],
+                scored[TOTAL_HARVEST_ESTIMAND_ID],
+                scored[EQUALITY_GINI_ESTIMAND_ID],
+            ),
+            admission_leaf_ids=(self.survival_months_leaf.leaf_id,),
         )
 
     def score_no_collapse(
@@ -838,7 +915,7 @@ class GovsimScorer:
         self,
         *,
         terminal: Mapping[str, Any],
-        baseline_total_harvest: float,
+        baseline_total_harvest: float | None,
         evidence_refs: tuple[str, ...] = (),
     ) -> ScoreEnvelope:
         return score_total_harvest(
@@ -853,7 +930,7 @@ class GovsimScorer:
         self,
         *,
         terminal: Mapping[str, Any],
-        baseline_gini: float,
+        baseline_gini: float | None,
         evidence_refs: tuple[str, ...] = (),
     ) -> ScoreEnvelope:
         return score_equality_gini(
@@ -868,9 +945,9 @@ class GovsimScorer:
         self,
         *,
         terminal: Mapping[str, Any],
-        baseline_survival_months: float,
-        baseline_total_harvest: float,
-        baseline_gini: float,
+        baseline_survival_months: float | None,
+        baseline_total_harvest: float | None,
+        baseline_gini: float | None,
         evidence_refs: tuple[str, ...] = (),
     ) -> dict[str, ScoreEnvelope]:
         """All five leaves at once -- still five separate typed envelopes,

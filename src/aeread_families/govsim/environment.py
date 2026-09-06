@@ -207,12 +207,7 @@ def family_manifest() -> FamilyManifest:
                 # policy upper bound exists for any of this family's
                 # comparative leaves (spec section 2/6); this declaration is
                 # comparative-only against an AERead-authored baseline
-                # policy, never framed as an approach to a bound. The five
-                # per-leaf declarations (govsim_no_collapse,
-                # govsim_threshold_adherence, govsim_survival_months,
-                # govsim_total_harvest, govsim_equality_gini) are
-                # measurement.py's job, deferred to a later milestone (see
-                # `build_scorer` below).
+                # policy, never framed as an approach to a bound.
                 "primary_estimand": "govsim_survival_months",
                 # "comparative_or_human_judged" is the closest legal value in
                 # schemas.py's MeasurementDeclaration enum
@@ -231,6 +226,30 @@ def family_manifest() -> FamilyManifest:
                 "comparison_baseline": "govsim_sustainable_v1",
                 "bound_status": "baseline_only",
                 "outcome_support": "bounded_by_max_num_rounds",
+                # kernel_scoring_contract_spec.md section 3: every leaf this
+                # family publishes at finalize time, exactly one primary, and
+                # precisely the leaves that gate admission -- declared here,
+                # the one source of truth, never inferred from `build_scorer`
+                # or a test fixture. All five are `scope="finalize_time"`:
+                # every leaf in measurement.py is
+                # `evaluation_class="deterministic"` with no judge, rater, or
+                # other not-yet-existing artifact dependency (spec section
+                # 4), so none is `deferred`. See
+                # docs/govsim_adapter_status.md's "Leaf policy" section for
+                # why `govsim_survival_months` is primary and why it alone
+                # gates admission.
+                "leaves": [
+                    {"leaf_id": measurement.NO_COLLAPSE_LEAF_ID, "scope": "finalize_time"},
+                    {
+                        "leaf_id": measurement.THRESHOLD_ADHERENCE_LEAF_ID,
+                        "scope": "finalize_time",
+                    },
+                    {"leaf_id": measurement.SURVIVAL_MONTHS_LEAF_ID, "scope": "finalize_time"},
+                    {"leaf_id": measurement.TOTAL_HARVEST_LEAF_ID, "scope": "finalize_time"},
+                    {"leaf_id": measurement.EQUALITY_GINI_LEAF_ID, "scope": "finalize_time"},
+                ],
+                "primary_leaf_id": measurement.SURVIVAL_MONTHS_LEAF_ID,
+                "admission_leaf_ids": [measurement.SURVIVAL_MONTHS_LEAF_ID],
             },
             "scoring": {"scorer_id": SCORER_ID},
         }
@@ -677,13 +696,16 @@ class GovsimPlugin:
         Delegates entirely to ``measurement.py`` (spec section 2), mirroring
         ``tau3_retail``'s identical convention of keeping every estimand/
         reference/scorer declaration in that one module and having this hook
-        just wire it in. ``family_evaluation.py``'s ``finalize_family_execution``
-        calls the returned ``GovsimScorer`` directly
-        (``plugin.build_scorer(family_case)(recorded_outcome,
-        evidence_refs=(...))``); ``measurement.py``'s ``GovsimScorer.__call__``
-        is the seam that satisfies that call. The other four (non-primary)
-        leaves' named methods are still exercised directly by
-        ``tests/test_govsim_measurement.py`` today.
+        just wire it in. ``task.evaluation.finalize_family_execution`` calls
+        the returned ``GovsimScorer`` directly
+        (``plugin.build_scorer(family_case)(scoring_input,
+        evidence_refs=scoring_input.evidence_refs)``, per
+        kernel_scoring_contract_spec.md section 1); ``measurement.py``'s
+        ``GovsimScorer.__call__`` is the seam that satisfies that call and
+        returns every one of this family's five declared finalize-time
+        leaves (section 5), not just the primary. Each leaf's own named
+        method is still exercised directly by
+        ``tests/test_govsim_measurement.py``'s goldens today.
         """
         return measurement.build_scorer(family_case)
 

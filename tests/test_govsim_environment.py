@@ -24,6 +24,7 @@ from aeread.shared_runner.schemas import FamilyManifest
 from aeread.shared_runner.task.scheduler import ActionEnvelope, LegalityResult, ParseResult
 from aeread_families.govsim import cases as govsim_cases
 from aeread_families.govsim import environment
+from aeread_families.govsim import measurement
 from aeread_families.govsim.environment import (
     DISCUSS_PHASE,
     GovsimPlugin,
@@ -160,6 +161,30 @@ def test_family_manifest_round_trips_through_the_strict_grammar() -> None:
     assert manifest.measurement.measurement_kind == "comparative_or_human_judged"
     assert manifest.measurement.bound_status == "baseline_only"
     assert manifest.measurement.optimum_upper_bound is None
+
+
+def test_family_manifest_declares_all_five_leaves_with_survival_months_primary() -> None:
+    """kernel_scoring_contract_spec.md section 3: the manifest, not the
+    scorer or a test fixture, is the one source of the leaf set, the
+    primary, and admission membership. See docs/govsim_adapter_status.md's
+    "Leaf policy" section for why ``govsim_survival_months`` is primary and
+    why it alone gates admission."""
+    manifest = family_manifest()
+    declared = manifest.measurement.finalize_time_leaf_policy()
+
+    assert set(declared.leaf_ids) == {
+        measurement.NO_COLLAPSE_LEAF_ID,
+        measurement.THRESHOLD_ADHERENCE_LEAF_ID,
+        measurement.SURVIVAL_MONTHS_LEAF_ID,
+        measurement.TOTAL_HARVEST_LEAF_ID,
+        measurement.EQUALITY_GINI_LEAF_ID,
+    }
+    assert declared.primary_leaf_id == measurement.SURVIVAL_MONTHS_LEAF_ID
+    assert declared.admission_leaf_ids == (measurement.SURVIVAL_MONTHS_LEAF_ID,)
+    # None of the five leaves waits on a judge verdict or any other
+    # not-yet-existing artifact -- every leaf here is deterministic and
+    # computable at finalize time (spec section 4); none is `deferred`.
+    assert all(leaf.scope == "finalize_time" for leaf in manifest.measurement.leaves)
 
 
 def test_register_plugin_succeeds_with_every_required_hook() -> None:

@@ -43,6 +43,7 @@ from aeread.shared_runner.task.execution import EvidenceStore
 from aeread.shared_runner.registry import PluginRegistry
 from aeread.shared_runner.run.resolver import PlanCell, canonical_json_bytes
 from aeread.shared_runner.schemas import CaseManifest
+from aeread.shared_runner.task.evaluation import FamilyScoringInput
 from aeread.shared_runner.task.scheduler import EpisodeResult, SchedulerContractError, run_episode
 from aeread_families.govsim import measurement as m
 from aeread_families.govsim.environment import (
@@ -581,30 +582,60 @@ def test_replayed_episode_recomputes_all_five_leaves_matching_the_live_scores(
 def test_govsim_scorer_is_callable_through_the_real_finalizer_seam_on_a_live_outcome(
     live_sustainable: LiveRun,
 ) -> None:
-    """Closes triage Finding 1 on a real episode's real recorded outcome.
+    """Closes triage Finding 1 on a real episode's real recorded outcome,
+    now under the ``FamilyScoringInput`` contract
+    (kernel_scoring_contract_spec.md, milestone 2 of 3).
 
-    ``family_evaluation.py``'s ``finalize_family_execution`` executes
-    ``plugin.build_scorer(family_case)(recorded_outcome, evidence_refs=...)``
-    directly on whatever ``build_scorer`` returns -- never through a named
-    method the way ``tests/test_govsim_measurement.py``'s goldens do
-    (``scorer.score_survival_months(terminal=...)``). Before the fix,
-    ``GovsimScorer`` had no ``__call__`` and this raised ``TypeError:
-    'GovsimScorer' object is not callable``. Uses ``live_sustainable.result
-    .outcome`` -- ``GovsimPlugin.outcome()``'s own output, produced by the
-    REAL kernel scheduler (``run_episode``), never a synthetic dict or the
-    ad hoc ``_drive_episode`` loop's raw ``terminal``.
+    ``task.evaluation.finalize_family_execution`` executes
+    ``plugin.build_scorer(family_case)(scoring_input,
+    evidence_refs=scoring_input.evidence_refs)`` directly on whatever
+    ``build_scorer`` returns -- never through a named method the way
+    ``tests/test_govsim_measurement.py``'s goldens do
+    (``scorer.score_survival_months(terminal=...)``). Uses
+    ``live_sustainable.result.outcome``/``.phase_instances`` --
+    ``GovsimPlugin.outcome()``'s own output plus the REAL kernel
+    scheduler's own recorded trajectory (``run_episode``), never a
+    synthetic dict or the ad hoc ``_drive_episode`` loop's raw ``terminal``.
+    ``__call__`` must return every one of this family's five declared
+    finalize-time leaves, not just ``govsim_survival_months`` the way the
+    pre-migration shim did.
     """
     scorer = m.build_scorer(dict(live_sustainable.case.payload))
     assert callable(scorer)
 
-    score = scorer(live_sustainable.result.outcome, evidence_refs=("evt_outcome_0",))
+    scoring_input = FamilyScoringInput(
+        outcome=live_sustainable.result.outcome,
+        phase_instances=live_sustainable.result.phase_instances,
+        evidence_refs=("evt_outcome_0",),
+    )
+    score_set = scorer(scoring_input, evidence_refs=scoring_input.evidence_refs)
 
-    assert score.status == "ok"
-    assert score.leaf.leaf_id == m.SURVIVAL_MONTHS_LEAF_ID
-    assert score.primary.value == 12.0  # full horizon, matches the golden above
-    assert score.reference_values == {}
-    assert "delta_vs_baseline" not in score.metrics
-    assert score.evidence_refs == ("evt_outcome_0",)
+    assert {score.leaf.leaf_id for score in score_set.scores} == {
+        m.NO_COLLAPSE_LEAF_ID,
+        m.THRESHOLD_ADHERENCE_LEAF_ID,
+        m.SURVIVAL_MONTHS_LEAF_ID,
+        m.TOTAL_HARVEST_LEAF_ID,
+        m.EQUALITY_GINI_LEAF_ID,
+    }
+    assert score_set.primary_leaf_id == m.SURVIVAL_MONTHS_LEAF_ID
+    assert score_set.admission_leaf_ids == (m.SURVIVAL_MONTHS_LEAF_ID,)
+    assert all(score.evidence_refs == ("evt_outcome_0",) for score in score_set.scores)
+
+    survival = next(s for s in score_set.scores if s.leaf.leaf_id == m.SURVIVAL_MONTHS_LEAF_ID)
+    assert survival.status == "ok"
+    assert survival.primary.value == 12.0  # full horizon, matches the golden above
+    assert survival.reference_values == {}
+    assert "delta_vs_baseline" not in survival.metrics
+
+    no_collapse = next(s for s in score_set.scores if s.leaf.leaf_id == m.NO_COLLAPSE_LEAF_ID)
+    assert no_collapse.status == "ok"
+    assert no_collapse.primary.value == 1.0
+
+    threshold = next(
+        s for s in score_set.scores if s.leaf.leaf_id == m.THRESHOLD_ADHERENCE_LEAF_ID
+    )
+    assert threshold.status == "ok"
+    assert threshold.primary.value == 1.0
 
 
 def test_replay_and_verify_end_to_end_returns_a_matching_report(
