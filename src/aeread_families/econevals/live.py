@@ -53,6 +53,7 @@ from aeread.shared_runner.schemas import (
     SuiteManifest,
 )
 from aeread.shared_runner.task.execution import (
+    POST_ADMISSION_REJECTION,
     ProviderFailure,
     TokenPricing,
     ToolFailure,
@@ -93,6 +94,11 @@ RETRYABLE_CONDITIONS = (
     "timeout",
     "length",
     "empty_response",
+    # A rejection that arrives after this route has already answered cannot
+    # mean the route does not exist. Parasail returned a spurious 404 twice
+    # during this family's first light, killing a panel mid-run each time. A
+    # FIRST-call rejection is untyped by this and still fails fast.
+    POST_ADMISSION_REJECTION,
 )
 MAX_PROMPT_PRICE_PER_MILLION = "0.15"
 MAX_COMPLETION_PRICE_PER_MILLION = "0.50"
