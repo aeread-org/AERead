@@ -1,5 +1,20 @@
 # AERead project instructions
 
+## When you find a problem: fix it, or file it — never leave it in your head
+
+Two options, and only two. **Fix it directly** if you can do it now and the
+change is yours to make. **File an issue** if it needs a decision, belongs to
+someone else's lane, or is bigger than the task in hand. Either way it also
+gets a row in the incident register below, with the issue number if there is
+one.
+
+What does not count: mentioning it in a message and moving on. A problem
+described in conversation is gone the moment the session ends.
+
+A problem that turns out to be in shared code (the kernel, another family,
+the corpus) is still filed, not silently worked around in your own family:
+a workaround hides the defect from everyone else who will hit it.
+
 ## Record every failure, as it happens
 
 `docs/operations/incident_log.md` is the single register of things that went
