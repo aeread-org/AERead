@@ -1346,32 +1346,72 @@ def _assert_trajectory_outcome_paths_are_consistent(
 def _assert_trajectory_leaves_are_witnessed(
     produced_by_case: Sequence[tuple[Any, "FamilyScoreSet"]],
     trajectory_leaf_ids: "set[str]",
+    trajectory_outcome_paths: tuple[str, ...],
     *,
     family_id: str,
 ) -> Mapping[str, tuple[int, int]]:
-    """Ruling R9(b): each trajectory-scoped leaf must change on SOME pair.
+    """Ruling R9(b): each trajectory-scoped leaf must change on SOME
+    CONTROLLED pair.
+
+    kernel_r9r10_review.md finding 3: scanning EVERY pair of fixtures (the
+    original shape of this check) accepts an UNCONTROLLED witness -- a leaf
+    that ignores the trajectory entirely but happens to read some
+    outcome/case field that differs between two arbitrary fixtures would
+    still pass, defeating the witness's whole purpose (catching a family
+    that relabels a terminal leaf as ``trajectory``-scoped to dodge R7's
+    contrapositive). A CONTROLLED pair is one whose PROJECTED outcome (per
+    ``project_outcome`` with this family's declared
+    ``trajectory_outcome_paths``) is byte-identical under
+    ``canonical_json_bytes`` AND whose ``phase_instances`` differ -- exactly
+    R7's own paired-history precondition. On such a pair, nothing outside
+    the trajectory differs, so ANY difference in
+    ``_score_measurement_content`` (including a bare status/validity flip,
+    not only ``primary``) can only be trajectory-caused; that is why the
+    content comparison itself is unchanged from before this finding.
 
     R7 rejected requiring a trajectory leaf to differ on THE paired-history
     pair specifically: a legitimate trajectory metric may map two distinct
     histories to the same value, so that would misreport a sound leaf as
     mislabelled. This checks a weaker, still load-bearing property across
-    EVERY pair of fixtures the family supplies: the leaf must be shown
+    EVERY controlled pair the family supplies: the leaf must be shown
     capable of changing on at least one of them. A leaf that is constant
-    across every supplied fixture is indistinguishable from one that
+    across every controlled pair is indistinguishable from one that
     secretly ignores the trajectory entirely -- this witness is the one
     check that tells them apart. Returns which pair witnessed each leaf, so
     a caller can record it.
     """
+    if not trajectory_leaf_ids:
+        return {}
+    controlled_pairs: list[tuple[int, int]] = []
+    for (left_index, (left_input, _)), (right_index, (right_input, _)) in (
+        itertools.combinations(enumerate(produced_by_case), 2)
+    ):
+        left_projection = project_outcome(left_input.outcome, trajectory_outcome_paths)
+        right_projection = project_outcome(right_input.outcome, trajectory_outcome_paths)
+        if (
+            canonical_json_bytes(left_projection) == canonical_json_bytes(right_projection)
+            and left_input.phase_instances != right_input.phase_instances
+        ):
+            controlled_pairs.append((left_index, right_index))
+    assert controlled_pairs, (
+        f"{family_id}: no controlled pair (byte-identical projected outcome, "
+        f"differing phase_instances) exists among the {len(produced_by_case)} "
+        "supplied fixtures -- ruling R9(b)'s sensitivity witness requires the "
+        "family to supply at least one controlled pair"
+    )
+
     witness_pair_by_leaf: dict[str, tuple[int, int]] = {}
     for leaf_id in trajectory_leaf_ids:
-        for (left_index, (_, left_scores)), (right_index, (_, right_scores)) in (
-            itertools.combinations(enumerate(produced_by_case), 2)
-        ):
+        for left_index, right_index in controlled_pairs:
             left_score = next(
-                score for score in left_scores.scores if score.leaf.leaf_id == leaf_id
+                score
+                for score in produced_by_case[left_index][1].scores
+                if score.leaf.leaf_id == leaf_id
             )
             right_score = next(
-                score for score in right_scores.scores if score.leaf.leaf_id == leaf_id
+                score
+                for score in produced_by_case[right_index][1].scores
+                if score.leaf.leaf_id == leaf_id
             )
             if _score_measurement_content(left_score) != _score_measurement_content(
                 right_score
@@ -1381,10 +1421,11 @@ def _assert_trajectory_leaves_are_witnessed(
     missing = sorted(trajectory_leaf_ids - set(witness_pair_by_leaf))
     assert not missing, (
         f"{family_id}: trajectory-scoped leaf(ves) {missing} never changed across "
-        f"any of the {len(produced_by_case)} supplied fixtures -- ruling R9's "
-        "sensitivity witness requires each trajectory leaf to be shown capable of "
-        "change on SOME pair; a leaf that is constant everywhere cannot be told "
-        "apart from one that secretly ignores the trajectory"
+        f"any of the {len(controlled_pairs)} controlled pair(s) among the "
+        f"{len(produced_by_case)} supplied fixtures -- ruling R9's sensitivity "
+        "witness requires each trajectory leaf to be shown capable of change on "
+        "SOME controlled pair; a leaf that is constant on every controlled pair "
+        "cannot be told apart from one that secretly ignores the trajectory"
     )
     return witness_pair_by_leaf
 
@@ -1685,12 +1726,13 @@ def test_every_registered_family_obeys_the_scoring_contract(tmp_path: Path) -> N
         }
 
         # Ruling R9(b), the sensitivity witness: every trajectory-scoped leaf
-        # must be shown capable of changing across SOME pair of this
-        # family's supplied fixtures (not necessarily the paired-history
-        # pair below specifically). See this function's docstring for why
-        # "must differ on THE pair" was rejected.
+        # must be shown capable of changing across SOME CONTROLLED pair of
+        # this family's supplied fixtures (not necessarily the
+        # paired-history pair below specifically). See this function's
+        # docstring for why "must differ on THE pair" was rejected, and for
+        # what makes a pair "controlled".
         _assert_trajectory_leaves_are_witnessed(
-            produced_by_case, trajectory_leaf_ids, family_id=key[0]
+            produced_by_case, trajectory_leaf_ids, trajectory_outcome_paths, family_id=key[0]
         )
 
         (left_input, left_scores), (right_input, right_scores) = produced_by_case[:2]
@@ -1920,6 +1962,7 @@ def test_r9_projection_pairs_a_trajectory_embedding_outcome_when_the_path_is_dec
     witnesses = _assert_trajectory_leaves_are_witnessed(
         [(left_input, left_scores), (right_input, right_scores)],
         {_EMBEDDING_TRAJECTORY_LEAF_ID},
+        declared_paths,
         family_id=_EMBEDDING_FAMILY_ID,
     )
     assert witnesses == {_EMBEDDING_TRAJECTORY_LEAF_ID: (0, 1)}
@@ -2107,6 +2150,7 @@ def test_sensitivity_witness_rejects_a_trajectory_leaf_that_ignores_the_trajecto
         _assert_trajectory_leaves_are_witnessed(
             [(left_input, left_scores), (right_input, right_scores)],
             {_EMBEDDING_TRAJECTORY_LEAF_ID},
+            ("/labels",),
             family_id=_EMBEDDING_FAMILY_ID,
         )
 
@@ -2345,37 +2389,157 @@ def _fake_trajectory_score(leaf_id: str, value: float) -> ScoreEnvelope:
     )
 
 
+def _fake_scoring_input(labels: Sequence[str], *, outcome: Mapping[str, Any]) -> FamilyScoringInput:
+    """A ``FamilyScoringInput`` stand-in whose only load-bearing content is
+    its ``outcome`` (for the controlled-pair projection check) and its
+    ``phase_instances`` (for the controlled-pair phase_instances-differ
+    check) -- ``labels`` only needs to differ across fixtures that must
+    disagree on ``phase_instances``."""
+    return FamilyScoringInput(
+        outcome=outcome,
+        phase_instances=(_phase_instance_ending_in_state({"labels": tuple(labels)}),),
+        evidence_refs=(),
+    )
+
+
 def test_sensitivity_witness_passes_when_a_trajectory_leaf_changes_on_some_pair() -> None:
+    """A CONTROLLED pair (kernel_r9r10_review.md finding 3): every fixture
+    below shares the same outcome (so every pair projects byte-identically
+    with no declared paths) and a distinct ``phase_instances``, so every
+    pair here is controlled."""
     leaf_id = "trajectory_leaf"
+    outcome = {"tally": 1}
     fixtures = [
-        (None, FamilyScoreSet(primary_leaf_id=leaf_id, scores=(_fake_trajectory_score(leaf_id, 1.0),))),
-        (None, FamilyScoreSet(primary_leaf_id=leaf_id, scores=(_fake_trajectory_score(leaf_id, 1.0),))),
-        (None, FamilyScoreSet(primary_leaf_id=leaf_id, scores=(_fake_trajectory_score(leaf_id, 0.0),))),
+        (
+            _fake_scoring_input(("x",), outcome=outcome),
+            FamilyScoreSet(primary_leaf_id=leaf_id, scores=(_fake_trajectory_score(leaf_id, 1.0),)),
+        ),
+        (
+            _fake_scoring_input(("x", "y"), outcome=outcome),
+            FamilyScoreSet(primary_leaf_id=leaf_id, scores=(_fake_trajectory_score(leaf_id, 1.0),)),
+        ),
+        (
+            _fake_scoring_input(("y", "x"), outcome=outcome),
+            FamilyScoreSet(primary_leaf_id=leaf_id, scores=(_fake_trajectory_score(leaf_id, 0.0),)),
+        ),
     ]
     witnesses = _assert_trajectory_leaves_are_witnessed(
-        fixtures, {leaf_id}, family_id="fixture_family"
+        fixtures, {leaf_id}, (), family_id="fixture_family"
     )
-    # The leaf is constant across fixtures 0 and 1; only a pair touching
-    # fixture 2 can witness it, and that is exactly what is recorded.
+    # The leaf is constant across the controlled pair (0, 1); only a pair
+    # touching fixture 2 can witness it, and that is exactly what is
+    # recorded.
     assert witnesses == {leaf_id: (0, 2)}
 
 
 def test_sensitivity_witness_fails_when_a_trajectory_leaf_ignores_every_fixture() -> None:
     """Ruling R9(b), mutation check: a leaf that never changes across ANY
-    supplied fixture pair cannot be told apart from one that ignores the
+    controlled pair cannot be told apart from one that ignores the
     trajectory entirely, and must be rejected as such."""
     leaf_id = "trajectory_leaf"
+    outcome = {"tally": 1}
     fixtures = [
-        (None, FamilyScoreSet(primary_leaf_id=leaf_id, scores=(_fake_trajectory_score(leaf_id, 1.0),))),
-        (None, FamilyScoreSet(primary_leaf_id=leaf_id, scores=(_fake_trajectory_score(leaf_id, 1.0),))),
-        (None, FamilyScoreSet(primary_leaf_id=leaf_id, scores=(_fake_trajectory_score(leaf_id, 1.0),))),
+        (
+            _fake_scoring_input(("x",), outcome=outcome),
+            FamilyScoreSet(primary_leaf_id=leaf_id, scores=(_fake_trajectory_score(leaf_id, 1.0),)),
+        ),
+        (
+            _fake_scoring_input(("x", "y"), outcome=outcome),
+            FamilyScoreSet(primary_leaf_id=leaf_id, scores=(_fake_trajectory_score(leaf_id, 1.0),)),
+        ),
+        (
+            _fake_scoring_input(("y", "x"), outcome=outcome),
+            FamilyScoreSet(primary_leaf_id=leaf_id, scores=(_fake_trajectory_score(leaf_id, 1.0),)),
+        ),
     ]
     with pytest.raises(AssertionError, match="never changed"):
-        _assert_trajectory_leaves_are_witnessed(fixtures, {leaf_id}, family_id="fixture_family")
+        _assert_trajectory_leaves_are_witnessed(fixtures, {leaf_id}, (), family_id="fixture_family")
+
+
+def test_sensitivity_witness_rejects_a_leaf_that_only_changes_on_an_uncontrolled_pair() -> None:
+    """kernel_r9r10_review.md finding 3, mutation check: without the
+    controlled-pair restriction, a leaf that ignores the trajectory but
+    happens to read some outcome field could piggyback on ANY pair whose
+    outcome merely differs -- exactly the relabeling attack this witness
+    exists to catch. Fixtures 0 and 1 are a CONTROLLED pair (byte-identical
+    outcome, differing phase_instances); the leaf is constant across them.
+    Fixture 2 has a genuinely different outcome (making (0, 2) and (1, 2)
+    UNCONTROLLED), and the leaf differs there too -- but that difference
+    must not count as a witness.
+    """
+    leaf_id = "trajectory_leaf"
+    fixtures = [
+        (
+            _fake_scoring_input(("x",), outcome={"tag": "same"}),
+            FamilyScoreSet(primary_leaf_id=leaf_id, scores=(_fake_trajectory_score(leaf_id, 1.0),)),
+        ),
+        (
+            _fake_scoring_input(("x", "y"), outcome={"tag": "same"}),
+            FamilyScoreSet(primary_leaf_id=leaf_id, scores=(_fake_trajectory_score(leaf_id, 1.0),)),
+        ),
+        (
+            _fake_scoring_input(("y", "x"), outcome={"tag": "different"}),
+            FamilyScoreSet(primary_leaf_id=leaf_id, scores=(_fake_trajectory_score(leaf_id, 0.0),)),
+        ),
+    ]
+    with pytest.raises(AssertionError, match="never changed"):
+        _assert_trajectory_leaves_are_witnessed(fixtures, {leaf_id}, (), family_id="fixture_family")
+
+
+def test_sensitivity_witness_counts_a_status_only_flip_on_a_controlled_pair() -> None:
+    """kernel_r9r10_review.md finding 3: on a controlled pair, nothing
+    outside the trajectory differs, so ANY ``_score_measurement_content``
+    difference is trajectory-caused -- including a bare status/validity
+    flip, not only a ``primary`` value change."""
+    leaf_id = "trajectory_leaf"
+    left_score = _fake_trajectory_score(leaf_id, 1.0)
+    right_score = dataclasses.replace(
+        left_score,
+        status="invalid_measurement",
+        primary=None,
+        validity=ValidityReport("invalid", ("trajectory_flip",)),
+    )
+    fixtures = [
+        (
+            _fake_scoring_input(("x",), outcome={"tag": "same"}),
+            FamilyScoreSet(primary_leaf_id=leaf_id, scores=(left_score,)),
+        ),
+        (
+            _fake_scoring_input(("x", "y"), outcome={"tag": "same"}),
+            FamilyScoreSet(primary_leaf_id=leaf_id, scores=(right_score,)),
+        ),
+    ]
+    witnesses = _assert_trajectory_leaves_are_witnessed(
+        fixtures, {leaf_id}, (), family_id="fixture_family"
+    )
+    assert witnesses == {leaf_id: (0, 1)}
 
 
 def test_sensitivity_witness_is_vacuous_with_no_trajectory_leaves() -> None:
     fixtures = [
         (None, FamilyScoreSet(primary_leaf_id="anything", scores=(_fake_trajectory_score("anything", 1.0),))),
     ]
-    assert _assert_trajectory_leaves_are_witnessed(fixtures, set(), family_id="fixture_family") == {}
+    assert (
+        _assert_trajectory_leaves_are_witnessed(fixtures, set(), (), family_id="fixture_family") == {}
+    )
+
+
+def test_sensitivity_witness_requires_at_least_one_controlled_pair() -> None:
+    """kernel_r9r10_review.md finding 3: if no supplied pair is controlled
+    (byte-identical projected outcome, differing phase_instances), the
+    family has not given the witness anything sound to check -- rejected
+    explicitly, naming the cause, rather than silently accepting an
+    uncontrolled pair."""
+    leaf_id = "trajectory_leaf"
+    fixtures = [
+        (
+            _fake_scoring_input(("x",), outcome={"tag": "left"}),
+            FamilyScoreSet(primary_leaf_id=leaf_id, scores=(_fake_trajectory_score(leaf_id, 1.0),)),
+        ),
+        (
+            _fake_scoring_input(("y",), outcome={"tag": "right"}),
+            FamilyScoreSet(primary_leaf_id=leaf_id, scores=(_fake_trajectory_score(leaf_id, 0.0),)),
+        ),
+    ]
+    with pytest.raises(AssertionError, match="no controlled pair"):
+        _assert_trajectory_leaves_are_witnessed(fixtures, {leaf_id}, (), family_id="fixture_family")
