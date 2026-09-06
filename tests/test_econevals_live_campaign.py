@@ -134,3 +134,55 @@ def test_scorer_requires_a_replayed_terminal_state() -> None:
     empty = SimpleNamespace(outcome={}, phase_instances=(), evidence_refs=())
     with pytest.raises(ValueError, match="no replayed terminal state"):
         scorer(empty)
+
+
+def test_plan_declares_the_canary_reprobe_budget() -> None:
+    """A transient 429 on a zero-cost probe must not seal the attempt root."""
+    canary = build_campaign_plan()["canary"]
+    assert canary["scored"] is False
+    assert canary["max_probes"] >= 2
+    assert "rate_limit" in canary["transient_conditions"]
+    assert canary["probes_are_recorded_individually"] is True
+
+
+def test_canary_reprobes_a_transient_rejection_then_admits(tmp_path, monkeypatch) -> None:
+    import asyncio
+
+    from aeread_families.econevals import campaign as module
+
+    attempts: list[int] = []
+
+    async def fake_probe(*, path, plan_sha256, ordinal):
+        attempts.append(ordinal)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        if ordinal < 3:
+            return {"status": "rejected", "failure_condition": "rate_limit",
+                    "cost_usd": 0.0, "probe_ordinal": ordinal}
+        return {"status": "admitted", "cost_usd": 0.0, "probe_ordinal": ordinal}
+
+    async def no_sleep(_seconds):
+        return None
+
+    monkeypatch.setattr(module, "_probe_canary", fake_probe)
+    monkeypatch.setattr(module.asyncio, "sleep", no_sleep)
+    record = asyncio.run(module.run_canary(run_root=tmp_path, plan_sha256="x"))
+    assert record["status"] == "admitted"
+    assert attempts == [1, 2, 3]
+
+
+def test_canary_stops_immediately_on_a_non_transient_rejection(tmp_path, monkeypatch) -> None:
+    import asyncio
+
+    from aeread_families.econevals import campaign as module
+
+    attempts: list[int] = []
+
+    async def fake_probe(*, path, plan_sha256, ordinal):
+        attempts.append(ordinal)
+        return {"status": "rejected", "failure_condition": "provider_contract",
+                "cost_usd": 0.0, "probe_ordinal": ordinal}
+
+    monkeypatch.setattr(module, "_probe_canary", fake_probe)
+    record = asyncio.run(module.run_canary(run_root=tmp_path, plan_sha256="x"))
+    assert record["status"] == "rejected"
+    assert attempts == [1]
