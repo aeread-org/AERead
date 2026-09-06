@@ -105,20 +105,20 @@ DOMAIN_VERSION = "1.0.0"
 
 DEFAULT_BASELINE_POLICY_ID = "proportional"
 
-# kernel_scoring_contract_spec.md ruling R12 draws a line between families
-# whose case names the tested seat and families whose primary is inherently
-# per-seat (negarena's `seat_outcome`); this family's `family_case` does not
-# yet carry a `focal_seat` field at all (every existing caller -- this
-# family's own unit tests, `replay.score_replayed_episode` -- passes
-# `focal_seat` in explicitly; spec section 2's "one seat rotates as focal
-# across paired trials" is a cross-trial authoring convention, not something
-# `family_case` encodes today). `AlympicsWacScorer.__call__` -- the seam the
-# finalizer actually calls, with no external `focal_seat` parameter -- has
-# to pick ONE deterministic seat, and this is that declared convention: the
-# first seat in `SEAT_ORDER`. See docs/alympics_adapter_status.md's "The
-# focal-seat convention (a stated limit, not an invented one)" section
-# for why this is stated as a known limit, not invented silently.
-FOCAL_SEAT = SEAT_ORDER[0]
+# kernel_scoring_contract_spec.md ruling R12: the finalizer now threads
+# `scoring_input.seat_context.subject_seats` -- read from the plan's
+# evaluation block, never invented -- so `AlympicsWacScorer.__call__` below
+# resolves the focal seat per call instead of a fixed module constant. See
+# `_resolve_focal_seat` and `__call__`'s own docstring.
+
+# Typed reasons `_resolve_focal_seat` returns for leaves 1-3 (terminal
+# wealth, survival, bid legality) when `seat_context.subject_seats` cannot
+# be resolved to exactly one seat the family recognizes. Leaf 4
+# (settlement_exactness) never depends on a focal seat and is unaffected by
+# any of these.
+NO_SUBJECT_SEAT_REASON = "no_subject_seat"
+AMBIGUOUS_SUBJECT_SEAT_REASON = "ambiguous_subject_seat"
+UNKNOWN_SUBJECT_SEAT_REASON = "unknown_subject_seat"
 
 TERMINAL_WEALTH_ESTIMAND_ID = "alympics_wac_terminal_wealth"
 TERMINAL_WEALTH_LEAF_ID = "alympics_wac_terminal_wealth_leaf"
@@ -185,23 +185,35 @@ def _validity_domain() -> ValidityDomainSpec:
     )
 
 
-def _opponent_panel_sha256(
-    focal_seat: str, panel_policy_ids: Mapping[str, str], baseline_policy_id: str
-) -> str:
+def _opponent_panel_sha256(panel_policy_ids: Mapping[str, str], baseline_policy_id: str) -> str:
     """Content digest binding a leaf 1/2 reference to its exact comparison.
 
-    The opponent panel (the other 4 seats' declared policies) is part of
-    the estimand (spec section 2): two leaves that differ only in which
-    policies the non-focal seats run are not interchangeable, so they must
-    not collide on ``source_sha256``. Neither are two leaves that differ
-    only in the *declared baseline policy* -- comparing the focal seat
-    against "proportional" is a different claim than comparing it against
-    "aggressive", even for the identical panel (Codex triage finding 2:
-    ``baseline_policy_id`` used to be accepted by the leaf builders but
-    never referenced anywhere in either body).
+    The declared policy panel is part of the estimand (spec section 2): two
+    leaves that differ only in which policies the panel's seats run are not
+    interchangeable, so they must not collide on ``source_sha256``. Neither
+    are two leaves that differ only in the *declared baseline policy* --
+    comparing a seat against "proportional" is a different claim than
+    comparing it against "aggressive", even for the identical panel (Codex
+    triage finding 2: ``baseline_policy_id`` used to be accepted by the leaf
+    builders but never referenced anywhere in either body).
+
+    Deliberately does NOT take ``focal_seat``. Ruling R12 declares leaves
+    1/2 ``seat_scope="subject_seat"``, and the scoring-contract protocol
+    test (``_assert_family_obeys_the_scoring_contract``'s "leaf identity
+    must be stable across fixtures" check) requires this leaf's
+    ``MeasurementLeafSpec`` -- including ``source_sha256`` -- to be
+    IDENTICAL no matter which seat a given trial names as the subject: only
+    the case's own declared panel and the declared baseline are part of
+    this reference's identity; which physical seat later plays "the
+    subject" is not (``AlympicsWacScorer.leaves_for_focal_seat`` passes the
+    case's FULL policy assignment here for exactly this reason -- see that
+    method's own docstring). ``build_terminal_wealth_leaf``/
+    ``build_survival_leaf`` still accept ``focal_seat`` as their own
+    parameter, purely for call-site documentation and backward
+    compatibility with this module's existing direct callers/tests; it is
+    simply never forwarded into this digest.
     """
     payload = {
-        "focal_seat": focal_seat,
         "panel_policy_ids": dict(sorted(panel_policy_ids.items())),
         "baseline_policy_id": baseline_policy_id,
     }
@@ -403,7 +415,7 @@ def build_terminal_wealth_leaf(
         reference_kind="baseline_delta",
         input_scope="trajectory",
         units="native_currency",
-        source_sha256=_opponent_panel_sha256(focal_seat, panel_policy_ids, baseline_policy_id),
+        source_sha256=_opponent_panel_sha256(panel_policy_ids, baseline_policy_id),
         implementation=_implementation(
             "alympics_wac_terminal_wealth_baseline_run", "measurement.py"
         ),
@@ -445,7 +457,7 @@ def build_survival_leaf(
         reference_kind="baseline_delta",
         input_scope="trajectory",
         units="rounds_survived",
-        source_sha256=_opponent_panel_sha256(focal_seat, panel_policy_ids, baseline_policy_id),
+        source_sha256=_opponent_panel_sha256(panel_policy_ids, baseline_policy_id),
         implementation=_implementation("alympics_wac_survival_baseline_run", "measurement.py"),
     )
     verifier = VerifierSpec(
@@ -663,6 +675,36 @@ def _malformed_round_entry(round_log: Sequence[Mapping[str, Any]]) -> Mapping[st
     raise ValueError("round_log contains no malformed_action entry")
 
 
+def _resolve_focal_seat(subject_seats: tuple[str, ...]) -> tuple[str | None, str | None]:
+    """Resolve ``scoring_input.seat_context.subject_seats`` to one focal seat.
+
+    Ruling R12 rule 2's cases, applied to this family's leaves 1-3
+    (``AlympicsWacScorer.__call__``'s own docstring explains why the
+    previous fixed ``FOCAL_SEAT`` convention was replaced with this):
+
+    * exactly one subject seat, and it is one this family recognizes ->
+      ``(seat, None)``.
+    * zero subject seats -> ``(None, NO_SUBJECT_SEAT_REASON)``.
+    * two or more subject seats -> ``(None, AMBIGUOUS_SUBJECT_SEAT_REASON)``
+      -- this family's manifest declares no ``subject_reduction`` for these
+      leaves (its cluster mapping is one focal seat per trial, spec section
+      2), so self-play is never silently averaged.
+    * exactly one subject seat this family does not recognize (not a key of
+      ``SEAT_ORDER``) -> ``(None, UNKNOWN_SUBJECT_SEAT_REASON)``.
+
+    Returns exactly one of ``(seat, None)`` or ``(None, reason)`` --  never
+    both non-``None``, never both ``None``.
+    """
+    if len(subject_seats) == 0:
+        return None, NO_SUBJECT_SEAT_REASON
+    if len(subject_seats) > 1:
+        return None, AMBIGUOUS_SUBJECT_SEAT_REASON
+    (seat,) = subject_seats
+    if seat not in SEAT_ORDER:
+        return None, UNKNOWN_SUBJECT_SEAT_REASON
+    return seat, None
+
+
 def _invalid_envelope(
     leaf: MeasurementLeafSpec,
     *,
@@ -702,6 +744,25 @@ def _malformed_envelope(
 # ---------------------------------------------------------------------------
 # Scorers.
 # ---------------------------------------------------------------------------
+
+
+def _bid_legality_utility_by_seat(round_log: Sequence[Mapping[str, Any]]) -> dict[str, MetricValue]:
+    """Every participating seat's own legality gate, from the SAME already-
+    recorded ``round_log`` this leaf already reads.
+
+    Ruling R12 note (leaf 3's own ``__call__`` docstring): unlike leaves 1/2
+    (whose baseline-relative comparison would need a SEPARATE baseline
+    recompute per seat to report another seat's own value -- not cheap, so
+    those only carry the focal seat), legality is a pure per-seat reduction
+    of evidence every seat already has recorded, so every seat that ever
+    bid is included here for free.
+    """
+    participated = {seat for entry in round_log for seat in entry.get("bids", {})}
+    return {
+        seat: MetricValue(1.0 if bid_legality_ok(round_log, seat) else 0.0, "pass")
+        for seat in SEAT_ORDER
+        if seat in participated
+    }
 
 
 def score_bid_legality(
@@ -745,6 +806,7 @@ def score_bid_legality(
         reference_values={},
         validity=ValidityReport("valid"),
         evidence_refs=evidence_refs,
+        utility_by_seat=_bid_legality_utility_by_seat(round_log),
     )
 
 
@@ -880,6 +942,17 @@ def score_terminal_wealth(
         },
         validity=ValidityReport("valid"),
         evidence_refs=evidence_refs,
+        # Ruling R12: `utility_by_seat` carries only the focal seat's own
+        # value -- unlike leaf 3's legality gate, this leaf's baseline
+        # comparison is per-seat by construction (`_recompute_baseline_
+        # episode` swaps only `focal_seat`'s policy for `baseline_policy_id`
+        # while holding every other seat at its case-declared policy), so
+        # reporting another seat's own delta would need a SEPARATE baseline
+        # recompute for that seat -- not cheap, and not this leaf's declared
+        # comparison for that seat. `primary` is `utility_by_seat[focal_seat]`
+        # by construction (same object), satisfying the kernel's identity
+        # check trivially.
+        utility_by_seat={focal_seat: primary},
     )
 
 
@@ -935,6 +1008,10 @@ def score_survival(
         },
         validity=ValidityReport("valid"),
         evidence_refs=evidence_refs,
+        # Ruling R12: only the focal seat -- see score_terminal_wealth's
+        # identical note just above; the same per-seat baseline-recompute
+        # cost applies here.
+        utility_by_seat={focal_seat: primary},
     )
 
 
@@ -995,15 +1072,41 @@ class AlympicsWacScorer:
         assignment = self.family_case["grid_cell"]["policy_assignment"]
         return {seat: policy for seat, policy in assignment.items() if seat != focal_seat}
 
+    def full_policy_assignment(self) -> dict[str, str]:
+        """The case's own declared policy assignment, every seat, unchanged.
+
+        Used only to build leaves 1/2's identity (``leaves_for_focal_seat``
+        below) -- never to recompute a baseline episode (``panel_policy_ids``
+        stays the right method for that: the actual substitution needs
+        "every OTHER seat's policy", which genuinely differs by focal seat).
+        Unlike ``panel_policy_ids(focal_seat)``, this is the SAME dict no
+        matter which seat is later named the subject for the same case,
+        which is exactly the stability ruling R12's ``seat_scope=
+        "subject_seat"`` leaves need (see ``_opponent_panel_sha256``'s own
+        docstring).
+        """
+        return dict(self.family_case["grid_cell"]["policy_assignment"])
+
     def leaves_for_focal_seat(
         self,
         focal_seat: str,
         *,
         baseline_policy_id: str = DEFAULT_BASELINE_POLICY_ID,
     ) -> tuple[MeasurementLeafSpec, MeasurementLeafSpec, MeasurementLeafSpec, MeasurementLeafSpec]:
+        """Build this case's 4 leaves.
+
+        ``focal_seat`` is accepted for call-site parity with every other
+        method on this class and every direct caller in this module's own
+        tests, but -- ruling R12 -- it plays no part in the leaves' declared
+        identity: ``build_leaves`` is given the case's FULL policy
+        assignment (``full_policy_assignment``), not ``panel_policy_ids
+        (focal_seat)``, so the returned ``MeasurementLeafSpec``s are
+        identical regardless of which seat ``__call__`` later resolves as
+        the subject for this same case.
+        """
         return build_leaves(
             focal_seat=focal_seat,
-            panel_policy_ids=self.panel_policy_ids(focal_seat),
+            panel_policy_ids=self.full_policy_assignment(),
             baseline_policy_id=baseline_policy_id,
         )
 
@@ -1160,10 +1263,28 @@ class AlympicsWacScorer:
         directly: it is the terminal fact every leaf's operational-failure
         gate checks, not itself trajectory content.
 
-        ``focal_seat`` is fixed at module-level ``FOCAL_SEAT`` (see that
-        constant's own docstring): this family's ``family_case`` does not
-        yet declare which seat is focal, so this is the one, stated,
-        deterministic convention this seam uses -- never invented per call.
+        ``focal_seat`` is resolved per call from
+        ``scoring_input.seat_context.subject_seats`` (ruling R12), never
+        from a fixed module constant. ``docs/alympics_migration_review.md``
+        Finding 1 recorded a genuine tension in the frozen spec: ruling R12
+        names alympics as a family "whose case names the tested seat" and
+        therefore unaffected by ``SeatContext`` -- but this family's own
+        ``family_case`` does not, in fact, carry a ``focal_seat`` field, so
+        that premise did not hold here. The owner's resolution (Finding 1's
+        option (b), "docs/alympics_migration_review.md" post-R12 note) is
+        implemented here: read the plan's declared subject seat instead of
+        a fixed convention (previously ``FOCAL_SEAT = SEAT_ORDER[0]``,
+        i.e. always "alex", regardless of which seat a plan actually
+        tested -- exactly the invented-subject defect Finding 1 confirmed).
+        ``_resolve_focal_seat`` applies rule 2's cases: exactly one subject
+        seat in ``SEAT_ORDER`` resolves it; zero, several, or an unknown
+        seat each report a distinct typed ``invalid_measurement`` reason
+        for leaves 1-3 (terminal wealth, survival, bid legality) -- never a
+        guessed seat. Leaf 4 (settlement_exactness) is whole-round,
+        ``seat_scope="cell"`` (the default): it needs no focal seat at all
+        and is scored identically regardless of how seat-context
+        resolution went.
+
         The baseline episode is independently recomputed from the case
         alone (``_recompute_baseline_episode``, via the named
         ``score_terminal_wealth``/``score_survival`` methods below), never
@@ -1176,50 +1297,72 @@ class AlympicsWacScorer:
                 "build_scorer(family_case) must be called through "
                 "AlympicsWacPlugin.build_scorer, which supplies it"
             )
-        focal_seat = FOCAL_SEAT
         final_state = _final_state_from_phase_instances(scoring_input.phase_instances)
         actual_round_log = list(final_state["round_log"])
         actual_final_players = final_state["players"]
         actual_termination_reason = scoring_input.outcome["termination_reason"]
-        baseline_final_players, baseline_round_log = _recompute_baseline_episode(
-            self.upstream_module,
-            self.family_case,
-            focal_seat=focal_seat,
-            panel_policy_ids=self.panel_policy_ids(focal_seat),
-            baseline_policy_id=DEFAULT_BASELINE_POLICY_ID,
-        )
-        terminal_wealth = self.score_terminal_wealth(
-            focal_seat=focal_seat,
-            actual_final_players=actual_final_players,
-            actual_round_log=actual_round_log,
-            actual_termination_reason=actual_termination_reason,
-            baseline_final_players=baseline_final_players,
-            upstream_module=self.upstream_module,
-            evidence_refs=evidence_refs,
-        )
-        survival = self.score_survival(
-            focal_seat=focal_seat,
-            actual_round_log=actual_round_log,
-            actual_final_players=actual_final_players,
-            actual_termination_reason=actual_termination_reason,
-            baseline_round_log=baseline_round_log,
-            baseline_final_players=baseline_final_players,
-            upstream_module=self.upstream_module,
-            evidence_refs=evidence_refs,
-        )
-        bid_legality = self.score_bid_legality(
-            focal_seat=focal_seat,
-            round_log=actual_round_log,
-            termination_reason=actual_termination_reason,
-            evidence_refs=evidence_refs,
-        )
+
+        # Leaf 4 is unaffected by seat-context resolution -- always scored,
+        # from a placeholder-focal-seat leaf spec whose identity does not
+        # depend on which seat that placeholder names (leaves_for_focal_
+        # seat's own docstring).
         settlement_exactness = self.score_settlement_exactness(
-            focal_seat=focal_seat,
+            focal_seat=SEAT_ORDER[0],
             upstream_module=self.upstream_module,
             round_log=actual_round_log,
             termination_reason=actual_termination_reason,
             evidence_refs=evidence_refs,
         )
+
+        focal_seat, invalid_reason = _resolve_focal_seat(scoring_input.seat_context.subject_seats)
+        if invalid_reason is not None:
+            # Leaves 1-3's own MeasurementLeafSpecs still need building --
+            # SEAT_ORDER[0] is a placeholder here too (see
+            # leaves_for_focal_seat), never a guessed subject: no score
+            # below reads any focal-seat-specific evidence.
+            invalid_leaves = self.leaves_for_focal_seat(SEAT_ORDER[0])
+            terminal_wealth = _invalid_envelope(
+                invalid_leaves[0], reasons=(invalid_reason,), evidence_refs=evidence_refs
+            )
+            survival = _invalid_envelope(
+                invalid_leaves[1], reasons=(invalid_reason,), evidence_refs=evidence_refs
+            )
+            bid_legality = _invalid_envelope(
+                invalid_leaves[2], reasons=(invalid_reason,), evidence_refs=evidence_refs
+            )
+        else:
+            baseline_final_players, baseline_round_log = _recompute_baseline_episode(
+                self.upstream_module,
+                self.family_case,
+                focal_seat=focal_seat,
+                panel_policy_ids=self.panel_policy_ids(focal_seat),
+                baseline_policy_id=DEFAULT_BASELINE_POLICY_ID,
+            )
+            terminal_wealth = self.score_terminal_wealth(
+                focal_seat=focal_seat,
+                actual_final_players=actual_final_players,
+                actual_round_log=actual_round_log,
+                actual_termination_reason=actual_termination_reason,
+                baseline_final_players=baseline_final_players,
+                upstream_module=self.upstream_module,
+                evidence_refs=evidence_refs,
+            )
+            survival = self.score_survival(
+                focal_seat=focal_seat,
+                actual_round_log=actual_round_log,
+                actual_final_players=actual_final_players,
+                actual_termination_reason=actual_termination_reason,
+                baseline_round_log=baseline_round_log,
+                baseline_final_players=baseline_final_players,
+                upstream_module=self.upstream_module,
+                evidence_refs=evidence_refs,
+            )
+            bid_legality = self.score_bid_legality(
+                focal_seat=focal_seat,
+                round_log=actual_round_log,
+                termination_reason=actual_termination_reason,
+                evidence_refs=evidence_refs,
+            )
         return FamilyScoreSet(
             primary_leaf_id=TERMINAL_WEALTH_LEAF_ID,
             scores=(terminal_wealth, survival, bid_legality, settlement_exactness),
@@ -1251,7 +1394,6 @@ __all__ = [
     "BID_LEGALITY_ESTIMAND_ID",
     "BID_LEGALITY_LEAF_ID",
     "DEFAULT_BASELINE_POLICY_ID",
-    "FOCAL_SEAT",
     "SETTLEMENT_EXACTNESS_ESTIMAND_ID",
     "SETTLEMENT_EXACTNESS_LEAF_ID",
     "SURVIVAL_ESTIMAND_ID",
