@@ -29,27 +29,50 @@ carries no such field -- see ``replay.py``'s module docstring).
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import json
 import os
 from dataclasses import dataclass
 from pathlib import Path
 from types import MappingProxyType
-from typing import Any, Mapping
+from typing import Any, Callable, Mapping
 
 import numpy as np
 import pytest
 
-from aeread.shared_runner.task.execution import EvidenceStore
-from aeread.shared_runner.registry import PluginRegistry
-from aeread.shared_runner.run.resolver import PlanCell, canonical_json_bytes
-from aeread.shared_runner.schemas import CaseManifest
-from aeread.shared_runner.task.evaluation import FamilyScoringInput
+import aeread.shared_runner.task.execution as execution_module
+from aeread.shared_runner.task.execution import CanonicalResponse, CellExecution, EvidenceStore
+from aeread.shared_runner.model_call.harness import default_harnesses
+from aeread.shared_runner.registry import HarnessRegistry, PluginRegistry, ProviderCapabilities
+from aeread.shared_runner.run.resolver import (
+    ImplementationPin,
+    PlanCell,
+    RunPlan,
+    canonical_json_bytes,
+    case_content_sha256,
+    resolve_run_plan,
+)
+from aeread.shared_runner.schemas import (
+    AgentProfile,
+    AnalysisPlan,
+    CaseManifest,
+    EvaluationBlock,
+    RunSpec,
+    SamplingPlan,
+    SuiteManifest,
+)
+from aeread.shared_runner.task.evaluation import FamilyScoringInput, finalize_family_execution
 from aeread.shared_runner.task.scheduler import EpisodeResult, SchedulerContractError, run_episode
+from aeread_families.govsim import cases as govsim_cases
+from aeread_families.govsim import environment as govsim_environment
 from aeread_families.govsim import measurement as m
+from aeread_families.govsim import policies
 from aeread_families.govsim.environment import (
     DISCUSS_PHASE,
     HARVEST_PHASE,
+    PLUGIN_ID,
     REFLECT_PHASE,
+    SCORER_ID,
     GovsimPlugin,
     family_manifest,
     register_plugin,
@@ -192,6 +215,490 @@ def _baseline_values(terminal: Mapping[str, Any], *, max_num_rounds: int) -> dic
         "total_harvest": total_harvest,
         "gini": gini,
     }
+
+
+# ---------------------------------------------------------------------------
+# Evidence-complete episode driving (kernel_scoring_contract_spec.md
+# milestone 3): a response source that ALSO writes the full generic evidence
+# trail ``task.evaluation.replay_family_scoring_input`` needs to replay, plus
+# a real, ``resolve_run_plan``-resolved ``RunPlan`` -- both required to drive
+# ``task.evaluation.finalize_family_execution`` for this family for the
+# first time, and reused by ``tests/test_shared_runner_scoring_contract.py``
+# for its own paired-history fixtures.
+# ---------------------------------------------------------------------------
+
+
+class EvidenceRecordingGovsimHarness:
+    """A ``run_episode`` response source that writes the full generic
+    replay-required evidence trail (``logical_action_started``,
+    ``action_attempt_succeeded``, ``action_parsed``,
+    ``action_legality_checked``, ``logical_action_succeeded``,
+    ``phase_instance_started``, ``transition_applied``,
+    ``phase_instance_succeeded``, ``episode_terminated``,
+    ``family_outcome_recorded``) -- exactly the event vocabulary
+    ``aeread.shared_runner.task.execution.MinimalChatExecutor``/
+    ``AttemptExecutor`` write for every LLM-harness-backed family's own
+    evidence, reproduced here without any of that class's provider/retry/
+    cost machinery, since every govsim decision is a plain scripted dict,
+    never a provider completion.
+
+    ``ScriptedGovsimHarness`` (this family's existing scripted response
+    source, above) writes only its own convenience event
+    (``govsim_logical_action_completed``) and has never produced evidence
+    ``aeread.shared_runner.task.evaluation.replay_family_scoring_input`` can
+    replay -- ``finalize_family_execution`` calls that replay internally, so
+    this class is what makes driving THAT finalizer for this family possible
+    at all. ``answer`` supplies the raw scripted decision for one request
+    (a policy function or a fixed per-round schedule); this class owns only
+    the evidence-recording seam around it, mirroring
+    ``AttemptExecutor``'s own event shapes field-for-field.
+    """
+
+    def __init__(
+        self, *, answer: Callable[[Any], Mapping[str, Any]], evidence: EvidenceStore
+    ) -> None:
+        self._answer = answer
+        self._evidence = evidence
+
+    async def __call__(self, request: Any) -> dict[str, Any]:
+        response = dict(self._answer(request))
+        self._evidence.append_event(
+            "logical_action_started",
+            {"request": request},
+            phase_instance_id=request.phase_instance_id,
+            logical_action_id=request.logical_action_id,
+            visibility=f"seat:{request.seat_id}",
+        )
+        # A CanonicalResponse-shaped placeholder purely for replay provenance
+        # (``LogicalActionRecord.response``): govsim's own ``parse_action``
+        # never reads it (the scheduler hands it the raw ``response`` dict
+        # returned above, unchanged -- see ``ScriptedGovsimHarness``'s
+        # identical contract), and replay itself reconstructs ``parse``/
+        # ``legality`` directly from the "action_parsed"/
+        # "action_legality_checked" events below, never from this response.
+        canonical = CanonicalResponse(
+            text=json.dumps(response, sort_keys=True),
+            finish_reason="stop",
+            empty=False,
+            truncated=False,
+            provider_call_ids=(),
+            tool_invocation_ids=(),
+            input_tokens=0,
+            cached_input_tokens=0,
+            output_tokens=0,
+            cost_usd=0.0,
+            action=response,
+        )
+        self._evidence.append_event(
+            "action_attempt_succeeded",
+            {"canonical_response": canonical},
+            phase_instance_id=request.phase_instance_id,
+            logical_action_id=request.logical_action_id,
+            visibility=f"seat:{request.seat_id}",
+        )
+        return response
+
+    def finalize_action(self, record: Any) -> None:
+        envelope = record.envelope
+        failure_code = None
+        if not envelope.valid:
+            failure_code = (
+                envelope.parse.error_code
+                if not envelope.parse.ok
+                else envelope.legality.reason
+            )
+        self._evidence.append_event(
+            "action_parsed",
+            {"parse_result": envelope.parse},
+            phase_instance_id=record.request.phase_instance_id,
+            logical_action_id=record.logical_action_id,
+            visibility=f"seat:{record.seat_id}",
+        )
+        if envelope.legality is not None:
+            self._evidence.append_event(
+                "action_legality_checked",
+                {"legality_result": envelope.legality},
+                phase_instance_id=record.request.phase_instance_id,
+                logical_action_id=record.logical_action_id,
+            )
+        event_type = (
+            "logical_action_succeeded"
+            if envelope.valid
+            else "logical_action_agent_action_failure"
+        )
+        self._evidence.append_event(
+            event_type,
+            {"valid": envelope.valid, "failure_code": failure_code},
+            logical_action_id=record.logical_action_id,
+        )
+
+    def fail_logical_action(self, logical_action_id: str, *, failure_code: str) -> None:
+        self._evidence.append_event(
+            "logical_action_failed",
+            {"failure_condition": failure_code},
+            logical_action_id=logical_action_id,
+        )
+
+    def phase_started(
+        self,
+        *,
+        phase_instance_id: str,
+        phase: Any,
+        eligible_actors: tuple[str, ...],
+        pre_state_sha256: str,
+    ) -> None:
+        self._evidence.append_event(
+            "phase_instance_started",
+            {
+                "phase": phase,
+                "eligible_actors": eligible_actors,
+                "pre_state_sha256": pre_state_sha256,
+            },
+            phase_instance_id=phase_instance_id,
+        )
+
+    def transition_applied(
+        self,
+        *,
+        phase_instance_id: str,
+        phase: Any,
+        transition: Any,
+        post_state_sha256: str,
+    ) -> None:
+        self._evidence.append_event(
+            "transition_applied",
+            {
+                "phase_id": phase.phase_id,
+                "transition": transition,
+                "post_state_sha256": post_state_sha256,
+            },
+            phase_instance_id=phase_instance_id,
+        )
+
+    def phase_completed(self, *, phase_instance: Any) -> None:
+        self._evidence.append_event(
+            "phase_instance_succeeded",
+            {
+                "phase_id": phase_instance.phase_id,
+                "post_state_sha256": phase_instance.post_state_sha256,
+                "logical_action_ids": tuple(
+                    action.logical_action_id for action in phase_instance.actions
+                ),
+            },
+            phase_instance_id=phase_instance.phase_instance_id,
+        )
+
+    def episode_completed(self, *, episode_result: EpisodeResult) -> None:
+        self._evidence.append_event(
+            "episode_terminated",
+            {
+                "terminal": episode_result.terminal,
+                "logical_action_count": episode_result.logical_action_count,
+            },
+        )
+        self._evidence.append_event(
+            "family_outcome_recorded",
+            {"outcome": episode_result.outcome},
+        )
+
+
+def _policy_answer(policy_assignment: Mapping[str, str]) -> Callable[[Any], Mapping[str, Any]]:
+    """An ``answer`` callable for ``EvidenceRecordingGovsimHarness`` that
+    mirrors ``ScriptedGovsimHarness.__call__``'s exact phase branching."""
+
+    def answer(request: Any) -> Mapping[str, Any]:
+        if request.phase_id == HARVEST_PHASE:
+            policy_id = policy_assignment[request.seat_id]
+            policy = policies.SCRIPTED_POLICIES[policy_id]
+            return {"quantity": int(policy(request.observation))}
+        if request.phase_id in (DISCUSS_PHASE, REFLECT_PHASE):
+            return {}
+        raise RuntimeError(f"no scripted response for phase {request.phase_id!r}")
+
+    return answer
+
+
+def _two_agent_two_round_case(*, world_seed: int = 0) -> CaseManifest:
+    """A small, fast, fully-controlled 2-persona/2-round govsim case.
+
+    Distinct from the checked-in 9-cell corpus (always
+    ``govsim_cases.DEFAULT_NUM_AGENTS`` personas over the pinned
+    ``max_num_rounds=12`` horizon): this fixture case exists only so
+    ``tests/test_shared_runner_scoring_contract.py``'s paired-history
+    fixtures and this module's own ``finalize_family_execution`` receipt
+    test can drive real, bridge-backed episodes quickly and
+    deterministically. Never written to the on-disk corpus.
+    """
+    num_agents = 2
+    max_num_rounds = 2
+    persona_ids = [f"persona_{i}" for i in range(num_agents)]
+    env_cfg = {
+        "num_agents": num_agents,
+        "initial_resource_in_pool": 100,
+        "max_num_rounds": max_num_rounds,
+        "harvesting_order": "concurrent",
+        "assign_resource_strategy": "stochastic",
+        "inject_universalization": False,
+    }
+    raw: dict[str, Any] = {
+        "spec_version": CaseManifest.SPEC_VERSION,
+        "case_id": "govsim.kernel_contract_fixture.two_agent_two_round.0",
+        "family_id": govsim_cases.FAMILY_ID,
+        "family_version": govsim_cases.FAMILY_VERSION,
+        "split": "dev",
+        "world_seed": world_seed,
+        "seats": [{"id": persona_id, "role": "persona"} for persona_id in persona_ids],
+        "episode": {
+            "max_logical_actions": (2 * num_agents + 1) * max_num_rounds,
+            "termination": list(govsim_cases.TERMINATION_REASONS),
+        },
+        "visibility_policy": govsim_cases.VISIBILITY_POLICY,
+        "payload": {
+            "upstream_repo": govsim_cases.UPSTREAM_REPO,
+            "upstream_commit": govsim_cases.UPSTREAM_COMMIT,
+            "scenario": "fishing",
+            "env_cfg": env_cfg,
+            "personas": ["Fixture0", "Fixture1"],
+            "policy_assignment": {
+                persona_id: "sustainable_v1" for persona_id in persona_ids
+            },
+            "world_seed": world_seed,
+        },
+        "provenance": {
+            "generator_id": "govsim_kernel_contract_fixture_generator_v1",
+            "generator_version": "1.0.0",
+            "review_status": "curated",
+        },
+        "upstream_task_id": None,
+        "content_sha256": "0" * 64,
+    }
+    raw["content_sha256"] = case_content_sha256(raw)
+    return CaseManifest.from_dict(raw)
+
+
+@dataclass(frozen=True, slots=True)
+class GovsimSetup:
+    """A resolved, provider-free ``RunPlan`` for one govsim case.
+
+    Unlike every LLM-harness-backed family's own setup (housing,
+    procurement_*, commercial_state_calibration), this family's real runtime
+    never goes through ``execute_plan_cell``'s harness/provider stack at
+    all -- every seat is answered directly through ``run_episode``'s
+    ``response_source`` (``ScriptedGovsimHarness``/
+    ``EvidenceRecordingGovsimHarness`` above), matching this module's own
+    ``_run_live``. The declared ``minimal_chat`` harness and fixture
+    provider below exist purely to satisfy ``resolve_run_plan``'s
+    structural pin/capability checks and are never actually invoked.
+    """
+
+    plan: RunPlan
+    registry: PluginRegistry
+    prompt_sources: Mapping[str, str]
+    pricing: Mapping[str, Any]
+
+
+_GOVSIM_FIXTURE_PROFILE_ID = "govsim_unused_fixture_profile_v1"
+_GOVSIM_FIXTURE_PROVIDER_ID = "govsim_unused_fixture_provider"
+_GOVSIM_FIXTURE_RUNTIME_ID = "aeread.shared_runner.task.execution"
+
+
+def _pin(
+    component_id: str, kind: str, source_path: Path, *, version: str = "0.1.0"
+) -> ImplementationPin:
+    return ImplementationPin.from_dict(
+        {
+            "component_id": component_id,
+            "kind": kind,
+            "version": version,
+            "sha256": hashlib.sha256(source_path.read_bytes()).hexdigest(),
+        }
+    )
+
+
+def build_govsim_setup(
+    bridge_instance: GovsimBridge, case: CaseManifest, *, suffix: str
+) -> GovsimSetup:
+    """Resolve a real, one-cell ``RunPlan`` for ``case`` (spec section 5.3).
+
+    Every persona seat shares one placeholder agent profile: this family's
+    real runtime never invokes it (see ``GovsimSetup``'s own docstring), so
+    the harness/provider it names exist only to satisfy
+    ``resolve_run_plan``'s structural checks.
+    """
+    family = family_manifest()
+    seat_ids = [seat.id for seat in case.seats]
+    sampling = SamplingPlan.from_dict(
+        {
+            "spec_version": SamplingPlan.SPEC_VERSION,
+            "sampling_plan_id": f"govsim_{suffix}_sample_v1",
+            "estimand": "fixed_govsim_case",
+            "target": case.case_id,
+            "selection": "fixed_curated",
+            "seeds": [case.world_seed],
+            "replicates": 1,
+            "cluster_level": "world_seed",
+            "cluster_id_fields": ["generator_version", "world_seed"],
+            "paired_fields": [],
+            "replicate_level": "episode_attempt",
+            "panel_mode": "fixed_panel",
+        }
+    )
+    block = EvaluationBlock.from_dict(
+        {
+            "spec_version": EvaluationBlock.SPEC_VERSION,
+            "block_id": f"govsim_{suffix}_block",
+            "kind": "self_play",
+            "subject_seats": list(seat_ids),
+            "controlled_profiles": {},
+            "repetitions": 1,
+            "seed_policy": "fixed",
+        }
+    )
+    analysis = AnalysisPlan.from_dict(
+        {
+            "spec_version": AnalysisPlan.SPEC_VERSION,
+            "analysis_plan_id": f"govsim_{suffix}_analysis_v1",
+            "estimands": [m.SURVIVAL_MONTHS_ESTIMAND_ID],
+            "group_by": ["family_id"],
+            "missingness": "report_separately",
+            "resampling_unit": "world_seed",
+            "uncertainty": "none",
+            "multiplicity": "none",
+            "sensitivity": [],
+            "cross_family_scalar": "disabled",
+        }
+    )
+    suite = SuiteManifest.from_dict(
+        {
+            "spec_version": SuiteManifest.SPEC_VERSION,
+            "suite_id": f"govsim_{suffix}_suite_v1",
+            "version": "1.0.0",
+            "family_ids": [family.family.id],
+            "case_ids": [case.case_id],
+            "sampling_plan_id": sampling.sampling_plan_id,
+            "evaluation_block_ids": [block.block_id],
+            "analysis_plan_id": analysis.analysis_plan_id,
+        }
+    )
+    profile = AgentProfile.from_dict(
+        {
+            "spec_version": AgentProfile.SPEC_VERSION,
+            "profile_id": _GOVSIM_FIXTURE_PROFILE_ID,
+            "model": {
+                "provider": _GOVSIM_FIXTURE_PROVIDER_ID,
+                "model": "govsim_unused_fixture_model_v1",
+                "revision": "1.0.0",
+                "base_url": None,
+            },
+            "harness": {
+                "id": "minimal_chat",
+                "version": "1.0",
+                "config": {},
+            },
+            "prompt": {
+                "prompt_id": f"govsim_{suffix}_prompt_v1",
+                "sha256": hashlib.sha256(
+                    b"govsim scripted persona: no prompt is ever sent"
+                ).hexdigest(),
+            },
+            "runtime": {
+                "kind": "python",
+                "implementation": _GOVSIM_FIXTURE_RUNTIME_ID,
+                "version": "0.1.0",
+            },
+            "tools": [],
+            "memory": {"mode": "disabled"},
+            "reasoning": {
+                "condition_id": "govsim_scripted_no_reasoning_v1",
+                "effort": None,
+                "token_budget": None,
+                "rationale_visibility": "hidden",
+            },
+            "sampling": {
+                "temperature": 0.0,
+                "max_output_tokens": 64,
+                "seed": None,
+                "top_p": None,
+            },
+            "budgets": {
+                "max_logical_actions": case.episode.max_logical_actions,
+                "timeout_seconds": 30.0,
+                "max_cost_usd": 0.0,
+            },
+            "retry_policy": {
+                "max_action_attempts": 1,
+                "retryable_conditions": [],
+                "session_mode": "restart",
+                "sdk_retries": 0,
+            },
+        }
+    )
+    run_spec = RunSpec.from_dict(
+        {
+            "spec_version": RunSpec.SPEC_VERSION,
+            "run_spec_id": f"govsim_{suffix}_run_spec_v1",
+            "suite_id": suite.suite_id,
+            "evaluation_block_ids": [block.block_id],
+            "agent_profile_ids": [profile.profile_id],
+            "seat_assignments": {seat_id: profile.profile_id for seat_id in seat_ids},
+            "execution_mode": "evaluate",
+            "replicate_override": None,
+            "budget_overrides": None,
+        }
+    )
+
+    registry = PluginRegistry()
+    register_plugin(registry, upstream_root=UPSTREAM_ROOT, bridge=bridge_instance)
+    harness_registry = HarnessRegistry()
+    for harness in default_harnesses().values():
+        harness_registry.register(harness)
+
+    environment_path = Path(govsim_environment.__file__)
+    execution_path = Path(execution_module.__file__)
+    measurement_path = Path(m.__file__)
+    pins = (
+        _pin(PLUGIN_ID, "family_plugin", environment_path),
+        _pin(SCORER_ID, "scorer", environment_path),
+        _pin("minimal_chat", "harness", execution_path, version="1.0"),
+        _pin(_GOVSIM_FIXTURE_RUNTIME_ID, "runtime", execution_path, version="0.1.0"),
+        # measurement.py declares each leaf's validity-domain predicate and
+        # scorer implementation under its own distinct component id (see
+        # environment.py's family_manifest() docstring on
+        # scoring.reference_provider_ids); every one of those six must also
+        # be pinned here, or EvaluationReceipt._validate_and_freeze_plan_pins
+        # rejects the sealed receipt as missing implementations.
+        _pin(m.BASE_DOMAIN_PREDICATE_ID, "reference", environment_path),
+        _pin(m.NO_COLLAPSE_SCORER_ID, "reference", measurement_path),
+        _pin(m.THRESHOLD_ADHERENCE_SCORER_ID, "reference", measurement_path),
+        _pin(m.SURVIVAL_MONTHS_SCORER_ID, "reference", measurement_path),
+        _pin(m.TOTAL_HARVEST_SCORER_ID, "reference", measurement_path),
+        _pin(m.EQUALITY_GINI_SCORER_ID, "reference", measurement_path),
+    )
+    plan = resolve_run_plan(
+        families=(family,),
+        cases=(case,),
+        suite=suite,
+        sampling=sampling,
+        evaluation_blocks=(block,),
+        analysis=analysis,
+        agent_profiles=(profile,),
+        run_spec=run_spec,
+        registry=registry,
+        implementation_pins=pins,
+        harness_registry=harness_registry,
+        provider_capabilities={
+            _GOVSIM_FIXTURE_PROVIDER_ID: ProviderCapabilities(
+                native_tools=False,
+                structured_output=False,
+                seed=False,
+                system_prompt=True,
+                reasoning_budget=False,
+                reasoning_token_report=False,
+                max_context_tokens=None,
+            )
+        },
+    )
+    return GovsimSetup(plan=plan, registry=registry, prompt_sources={}, pricing={})
 
 
 @dataclass(frozen=True, slots=True)
@@ -841,3 +1348,71 @@ def test_a_malformed_first_harvest_response_aborts_the_real_scheduler_with_a_rej
                 response_source=_malformed_first_harvest_response,
             )
         )
+
+
+def test_finalize_wires_govsim_to_the_shared_family_finalizer(tmp_path: Path) -> None:
+    """This family has never produced an ``EvaluationReceipt``.
+
+    Every other family already migrated to the ``FamilyScoringInput``
+    contract has at least one test driving a real episode through
+    ``task.evaluation.finalize_family_execution`` (see
+    ``tests/test_commercial_state_calibration.py``'s identically-purposed
+    ``test_finalize_wires_commercial_state_to_the_shared_family_finalizer``);
+    govsim had none, because its existing scripted response source
+    (``ScriptedGovsimHarness``) writes only its own convenience event and
+    has never produced evidence ``finalize_family_execution``'s internal
+    ``replay_family_scoring_input`` call can replay --
+    ``EvidenceRecordingGovsimHarness`` (this module, above) is what makes
+    this reachable. Drives one small, real, bridge-backed episode (this
+    module's own ``_two_agent_two_round_case``) end to end through the real
+    finalizer and asserts a receipt comes back carrying every one of this
+    family's five declared finalize-time leaves.
+    """
+    bridge_instance = _bridge()
+    case = _two_agent_two_round_case(world_seed=0)
+    setup = build_govsim_setup(bridge_instance, case, suffix="finalize_receipt")
+    cell = setup.plan.cells[0]
+    family = setup.plan.families[0]
+    plugin = setup.registry.resolve_manifest(family)
+
+    evidence = EvidenceStore(
+        tmp_path / "evidence_finalize_receipt",
+        run_plan_id=setup.plan.run_plan_id,
+        cell_id=cell.cell_id,
+        episode_id=f"episode_{cell.cell_id}",
+        episode_attempt_id="attempt_1",
+    )
+    harness = EvidenceRecordingGovsimHarness(
+        answer=_policy_answer(case.payload["policy_assignment"]), evidence=evidence
+    )
+    result = asyncio.run(
+        run_episode(cell=cell, case=case, plugin=plugin, response_source=harness)
+    )
+    execution = CellExecution(
+        run_plan_id=setup.plan.run_plan_id,
+        cell_id=cell.cell_id,
+        episode_attempt_id="attempt_1",
+        episode_result=result,
+        evidence=evidence,
+        action_executions=(),
+        total_cost_usd=0.0,
+    )
+
+    receipt = finalize_family_execution(setup=setup, execution=execution)
+
+    assert receipt.status == "ok"
+    assert receipt.inclusion_status == "included"
+    assert {score.leaf.leaf_id for score in receipt.scores} == {
+        m.NO_COLLAPSE_LEAF_ID,
+        m.THRESHOLD_ADHERENCE_LEAF_ID,
+        m.SURVIVAL_MONTHS_LEAF_ID,
+        m.TOTAL_HARVEST_LEAF_ID,
+        m.EQUALITY_GINI_LEAF_ID,
+    }
+    assert receipt.primary_leaf_id == m.SURVIVAL_MONTHS_LEAF_ID
+    evidence_refs = {score.evidence_refs for score in receipt.scores}
+    assert len(evidence_refs) == 1
+    survival = next(
+        score for score in receipt.scores if score.leaf.leaf_id == m.SURVIVAL_MONTHS_LEAF_ID
+    )
+    assert survival.status == "ok"
