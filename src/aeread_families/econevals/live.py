@@ -200,22 +200,20 @@ class EconevalsJsonHarness:
         )
 
     @staticmethod
-    def _decode(text: str) -> Mapping[str, Any]:
+    def _decode(text: str) -> tuple[Mapping[str, Any] | None, str]:
+        """Decode a period response, reporting failure instead of raising.
+
+        A malformed or truncated response is correctable -- nothing has been
+        executed when it arrives -- so it feeds the corrective round loop
+        rather than killing the episode outright.
+        """
         try:
             value = json.loads(text)
-        except json.JSONDecodeError as error:
-            raise ProviderFailure(
-                "malformed_structured_output",
-                "econevals response is not valid JSON",
-                retryable=False,
-            ) from error
+        except json.JSONDecodeError:
+            return None, "return one complete JSON object and nothing else"
         if not isinstance(value, Mapping):
-            raise ProviderFailure(
-                "malformed_structured_output",
-                "econevals response must be an object",
-                retryable=False,
-            )
-        return value
+            return None, "the response must be a JSON object"
+        return value, ""
 
     @staticmethod
     def _validate_burst(
@@ -285,12 +283,20 @@ class EconevalsJsonHarness:
                 messages=messages, response_mode="json_dialect"
             )
             rounds_used += 1
-            value = self._decode(turn.text or "")
-            normalized_calls, reason = self._validate_burst(
-                value.get("calls"), submit_tool=submit_tool
-            )
-            if normalized_calls is not None:
-                break
+            value, reason = self._decode(turn.text or "")
+            if value is not None:
+                normalized_calls, reason = self._validate_burst(
+                    value.get("calls"), submit_tool=submit_tool
+                )
+                if normalized_calls is not None:
+                    break
+            elif getattr(turn, "truncated", False):
+                # Say so explicitly: a bare "invalid JSON" sends the next
+                # round chasing syntax when the real problem is length.
+                reason = (
+                    "your previous response was cut off by the output limit; "
+                    "return fewer, shorter calls in one complete JSON object"
+                )
             # Correctable: nothing has been executed yet, so hand back the
             # exact violation and the legal tool names rather than failing the
             # episode on a first malformed burst.
@@ -462,7 +468,10 @@ def _profile(
             },
             "sampling": {
                 "temperature": 0.0,
-                "max_output_tokens": 900,
+                # A procurement period names six read-only tools and then
+                # submits a full purchase plan; 900 truncated that mid-JSON
+                # on the first live attempt (decode failed at char 910).
+                "max_output_tokens": 2400,
                 # Declared, not None: the OpenRouter adapter refuses a
                 # diagnostic run whose seed is not stated, because an
                 # undeclared seed makes a re-run unfalsifiable.
