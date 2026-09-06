@@ -33,6 +33,7 @@ from aeread.shared_runner.run.resolver import PlanCell, canonical_json_bytes, ca
 from aeread.shared_runner.schemas import CaseManifest
 from aeread.shared_runner.task.scheduler import EpisodeResult, run_episode
 from aeread_families.aucarena import environment
+from aeread_families.aucarena import measurement
 from aeread_families.aucarena.environment import (
     AucArenaPlugin,
     BID_ROUND_PHASE,
@@ -163,6 +164,30 @@ def test_build_scorer_returns_the_four_declared_leaves() -> None:
     family_case = plugin.validate_payload(case.payload)
     scorer = plugin.build_scorer(family_case)
     assert len(scorer.leaves) == 4
+
+
+def test_family_manifest_declares_all_four_leaves_with_profit_vs_field_primary() -> None:
+    """kernel_scoring_contract_spec.md section 3: the manifest, not the
+    scorer or a test fixture, is the one source of the leaf set, the
+    primary, and admission membership. See
+    docs/aucarena_adapter_status.md's "Leaf policy" section for why
+    ``aucarena_profit_vs_field`` is primary and why it alone gates
+    admission."""
+    manifest = family_manifest()
+    declared = manifest.measurement.finalize_time_leaf_policy()
+
+    assert set(declared.leaf_ids) == {
+        measurement.BUDGET_INVARIANT_LEAF_ID,
+        measurement.BID_LEGALITY_LEAF_ID,
+        measurement.HAMMER_RULE_LEAF_ID,
+        measurement.PROFIT_VS_FIELD_LEAF_ID,
+    }
+    assert declared.primary_leaf_id == measurement.PROFIT_VS_FIELD_LEAF_ID
+    assert declared.admission_leaf_ids == (measurement.PROFIT_VS_FIELD_LEAF_ID,)
+    # None of the four leaves waits on a judge verdict or any other
+    # not-yet-existing artifact -- every leaf here is deterministic and
+    # computable at finalize time (spec section 4); none is `deferred`.
+    assert all(leaf.scope == "finalize_time" for leaf in manifest.measurement.leaves)
 
 
 # ---------------------------------------------------------------------------
