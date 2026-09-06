@@ -21,15 +21,24 @@ stays sealed as evidence of what failed.
 | 005 | case 00 | `SchedulerContractError` | 0.00003 | Response truncated mid-JSON (decode failed at char 910) against a 900-token output budget. | `eb689a4a` |
 | 006 | case 00 | `SchedulerContractError` | 0.00004 | Parasail shared-pool 429 with `max_action_attempts: 1` and no retryable conditions, inherited from tau3's profile. | `01bb1a07` |
 | 007 | case 00 | `RuntimeError` | 0.00004 | Ran all 100 periods; receipt `invalid_measurement`/`excluded` because GLM submitted `[]` where a mapping is required, in every period. Two defects: the interface never stated the shape, and the campaign aborted on a measurement verdict. | `40b7f08f` |
-| 008 | case 01 | `SchedulerContractError` | 0.01051 | Spurious Parasail **404** on an endpoint OpenRouter listed as available, after case 00 scored `ok/included`. Classified `provider_rejected`, deliberately not retryable. | none -- route fault |
-| 009 | case 02 | `SchedulerContractError` | 0.02164 | Scheduling case exhausted the harness's corrective rounds; the sealed responses show one round returned an **empty string**, spending a round on silence when `empty_response` is a typed provider condition. | `5b81cab4` |
+| 008 | case 01 | `SchedulerContractError` | 0.02551 | Spurious Parasail **404** on an endpoint OpenRouter listed as available, after case 00 scored `ok/included`. Classified `provider_rejected`, deliberately not retryable. | none -- route fault |
+| 009 | case 02 | `SchedulerContractError` | 0.02278 | Scheduling case exhausted the harness's corrective rounds; the sealed responses show one round returned an **empty string**, spending a round on silence when `empty_response` is a typed provider condition. | `5b81cab4` |
 | 010 | case 00 | `SchedulerContractError` | 0.00004 | Ten attempts against a 429 burst exhausted in ~2 minutes: retry backoff is opt-in through `harness.config`, and with none declared the executor never sleeps. | `93f2f148` |
 | 011 | all 6 cases | publish only | 0.09250 | **Execution succeeded**: 6/6 cases `ok/included`, 100 periods each, `exit=0`. Publishing then crashed on `ValidityReport.valid` (the field is `.status`), and the fix could not be applied to this run -- see below. | `d3f0c1` design split |
 | 012 | case 00 | `SchedulerContractError` | 0.00003 | Spurious Parasail **404** again, on the first action. Second occurrence after attempt 008. | none -- route fault |
-| 013 | case 02 | `SchedulerContractError` | 0.02151 | Sustained 429: ten attempts **with backoff** (~3 minutes of spread) all refused, after two procurement cases scored. | none -- route fault |
+| 013 | case 02 | `SchedulerContractError` | 0.06887 | Sustained 429: ten attempts **with backoff** (~3 minutes of spread) all refused, after two procurement cases scored. | none -- route fault |
 
-Total spent on failed attempts: **0.14639 USD**, of which 0.09250 bought a
+Total spent on failed attempts: **0.20989 USD**, of which 0.09250 bought a
 complete but unpublishable panel.
+
+These figures were corrected on 2026-09-06 after a question about whether a
+429 costs anything. It does not -- a refused call bills nothing, and every
+rejected canary probe records `cost_usd 0.0`. But a case killed *after*
+running successfully had paid for those periods, and the failure checkpoint
+carried no cost field at all, so 0.0635 USD across attempts 008, 009 and 013
+was real, sealed in the evidence, and invisible to this ledger: a 44%
+understatement. Failure checkpoints now recover the spend from the sealed
+evidence (`_sealed_spend`).
 
 ## Disposition 2026-09-06: route-availability block
 

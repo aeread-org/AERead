@@ -209,12 +209,12 @@ uses.
 | 09-06 | 001, 002 | canary rejected: route seal shape, then a transient 429 that sealed the root | $0 |
 | 09-06 | 003-006 | four contract errors, each dying on the first action: undeclared seed, invented tool name, truncation at 900 tokens, an unretried 429 | $0.00015 |
 | 09-06 | 007 | 100 periods, receipt excluded on a malformed submission; campaign wrongly aborted on a measurement verdict | $0.00004 |
-| 09-06 | 008 | case 00 scored `included`, then a spurious Parasail **404** | $0.0105 |
-| 09-06 | 009 | two procurement cases scored, then an empty turn exhausted the harness's corrective rounds | $0.0216 |
+| 09-06 | 008 | case 00 scored `included`, then a spurious Parasail **404** | $0.0255 |
+| 09-06 | 009 | two procurement cases scored, then an empty turn exhausted the harness's corrective rounds | $0.0228 |
 | 09-06 | 010 | ten attempts against a 429 burst exhausted in two minutes: backoff is opt-in and none was declared | $0.00004 |
 | 09-06 | 011 | **6/6 cases `ok/included`**, 100 periods each -- unpublishable, see E-D-02 | $0.0925 |
 | 09-06 | 012 | spurious Parasail **404** again, on the first action | $0.00003 |
-| 09-06 | 013 | two procurement cases scored, then a sustained 429 exhausted ten attempts **with** backoff (~3 min of spread) | $0.0215 |
+| 09-06 | 013 | two procurement cases scored, then a sustained 429 exhausted ten attempts **with** backoff (~3 min of spread) | $0.0689 |
 
 Disposition: a route-availability block, not a campaign defect. Attempt 011
 ran the identical panel to completion, so the frozen plan is re-run in a
@@ -230,6 +230,7 @@ making 600 sequential calls.
 | id | what happened | detection | cost | disposition |
 |---|---|---|---|---|
 | E-J-01 | sized the panel's retry policy by copying tau3's profile instead of multiplying out this family's call count | a 429 killing a run at case 00 | one attempt | attempts raised to 10 with declared backoff, and the arithmetic written into the profile |
+| E-J-03 | reported per-attempt costs from checkpoints that omit a failed case's spend, understating what the failures consumed by 44% | the operator asked whether a 429 costs anything | an understated incident ledger, corrected the same day | failure checkpoints now recover sealed spend; ledger figures restated |
 | E-J-02 | planned to truncate periods through the agent budget to fit the cost ceiling | a dry run showing it raises `SchedulerContractError` rather than terminating cleanly | none, caught pre-spend | cases run at their own pinned `max_steps`; it would have manufactured failed receipts |
 
 ## Standing lessons, added
