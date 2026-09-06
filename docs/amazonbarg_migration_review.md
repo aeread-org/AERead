@@ -283,3 +283,63 @@ bridge exported — `144 passed, 0 failed`.
 - Fixed: 1 (finding 4)
 - Refuted: 1 (finding 3)
 - Escalated (confirmed, owner decision required): 2 (findings 1 and 2)
+
+## Post-R12 note (2026-09-06)
+
+Appended, not a rewrite of anything above — the disposition and its
+reasoning above are the historical record of what was true when this
+review ran on 2026-09-05, and stay as written.
+
+**Finding 2 is resolved.** The escalation above named exactly two ways to
+resolve it: (a) a kernel-level channel to thread `tested_seat` into or
+alongside `FamilyScoringInput`, or (b) moving the primary/admission leaf
+away from `amazonbarg_bargained_ratio_leaf` (forbidden to a migration
+agent). Neither was exercised. Instead, this branch was rebased onto
+`zeyu/kernel-r9r10` (PR #103) + `zeyu/kernel-r12-seat-context` (PR #109),
+which implements ruling R12 of `kernel_scoring_contract_spec.md` ("seat
+context reaches the scorer; per-seat primaries are declared, not
+guessed") — a third option this review, and the milestone it reviewed,
+could not have anticipated: `FamilyScoringInput` gains `seat_context`
+(`subject_seats`/`profile_by_seat`), populated by the finalizer from the
+plan's evaluation block and the resolved cell, never the live episode.
+
+`amazonbarg_bargained_ratio_leaf` now declares
+`seat_scope="subject_seat"` (`environment.py`'s `family_manifest()`, no
+`subject_reduction` — this family's own ratio is one side's, never
+blended). `AmazonbargScorer.__call__` resolves `tested_seat` from
+`scoring_input.seat_context.subject_seats` via the new
+`score_bargained_ratio_for_subject_seats`, which defers to
+`score_bargained_ratio` alone for the arithmetic this review already
+verified is untouched. `REASON_TESTED_SEAT_UNKNOWN` — the reason this
+finding named at `measurement.py:896-902` — is retired along with the
+`tested_seat: str | None` widening that produced it; three new named
+reasons (`REASON_NO_SUBJECT_SEAT`, `REASON_AMBIGUOUS_SUBJECT_SEAT`,
+`REASON_UNKNOWN_SUBJECT_SEAT`) replace it, none of them reachable through
+`__call__` for a plan naming exactly one of this family's own seats.
+
+`test_finalize_wires_amazonbarg_to_the_shared_family_finalizer`
+(`tests/test_amazonbarg_replay.py`) — the same production-finalizer test
+this finding cited as demonstrating the excluded receipt — now drives the
+identical golden-1 episode with a plan naming subject seat `"buyer"` and
+asserts `status="ok"`/`inclusion_status="included"`: this family's first
+genuinely admitted receipt through the production finalizer seam.
+`test_finalize_reports_ambiguous_subject_seat_honestly_and_does_not_raise`
+(same file) drives the identical golden with both seats named instead and
+asserts the primary leaf is honestly `invalid_measurement` with
+`REASON_AMBIGUOUS_SUBJECT_SEAT`, the receipt `excluded`, and
+`finalize_family_execution` does not raise — ruling R12 rule 2's
+ambiguous-seat path, which the kernel enforces only for a `status="ok"`
+`subject_seat` leaf.
+
+Full account, resolution narrative, and updated test counts:
+`docs/amazonbarg_adapter_status.md`'s "Leaf policy" and "Enrollment in the
+scoring-contract protocol test" sections.
+
+Finding 1 (the two bound leaves' forced `terminal_state` declaration)
+remains open and unaffected by ruling R12 — it is a different escalation,
+about `input_scope`/`reference_kind`, not `seat_scope`.
+
+Updated summary as of this note: Fixed: 2 (findings 2, 4). Refuted: 1
+(finding 3). Escalated (confirmed, owner decision required): 1 (finding
+1). The "## Summary" section above is left as originally written, per
+this note's own first line.
