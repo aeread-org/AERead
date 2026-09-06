@@ -380,13 +380,14 @@ malformed-or-operational-failure, degenerate-reference) pass against the real br
 Unlike `tau2_bridge` (one fresh subprocess per call), this bridge is one persistent
 subprocess per episode (spec milestone-1 correction 3, since `complex_actions` needs the
 live upstream `env` object's shared RNG stream across the whole episode) — the full
-164-test econagent + smoke + scoring-contract-protocol suite (grown from 96 by milestone
-2's leaf-policy/`__call__` tests, then further grown by milestone 3's finalizer/
-paired-history/sensitivity-witness tests and by this list now folding in this family's own
-hunk of `tests/test_shared_runner_scoring_contract.py`), including every bridge-gated test
-(goldens, parity, e2e, replay, and `__call__` driven both through a real scheduler episode
-and through the scoring-contract protocol test), runs in roughly two to three minutes on
-this machine (110s in the Evidence section's run; 191s on the final-gate rerun).
+164-test econagent + smoke + scoring-contract-protocol suite (156 on this branch's base
+commit `cda0a736` for the identical ten files, collected there; this migration added the
+other eight -- +3 test_econagent_measurement.py, +1 test_econagent_environment.py, +3
+test_econagent_replay.py, +1 test_shared_runner_scoring_contract.py; the earlier status
+doc's figure of 96 covered only the family + smoke files at an earlier point), including
+every bridge-gated test (goldens, parity, e2e, replay, and `__call__` driven both through
+a real scheduler episode and through the scoring-contract protocol test), runs in roughly
+two to four minutes on this machine (110s, 191s, and 235s across three certifying runs).
 There is no multi-hour corpus sweep here: the entire declared, run corpus is three small
 scenarios (10x12, 10x12, 4x6), by design (spec section 1) — the 100x240 paper
 configuration is declared but never executed.
