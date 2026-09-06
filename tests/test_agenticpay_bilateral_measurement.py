@@ -41,11 +41,18 @@ from types import MappingProxyType
 
 import pytest
 
-from aeread.shared_runner.measurement import MeasurementContractError, MetricValue
+from aeread.shared_runner.measurement import FamilyScoreSet, MeasurementContractError, MetricValue
 from aeread.shared_runner.registry import PluginRegistry
 from aeread.shared_runner.run.resolver import PlanCell, canonical_json_bytes
 from aeread.shared_runner.schemas import CaseManifest
-from aeread.shared_runner.task.scheduler import DecisionRequest, run_episode
+from aeread.shared_runner.task import evaluation as _evaluation
+from aeread.shared_runner.task.evaluation import FamilyScoringInput, SeatContext
+from aeread.shared_runner.task.scheduler import (
+    DecisionRequest,
+    PhaseInstance,
+    TransitionResult,
+    run_episode,
+)
 from aeread_families.agenticpay_bilateral import measurement as m
 from aeread_families.agenticpay_bilateral.agenticpay_bridge import (
     AgenticpayBridge,
@@ -745,3 +752,322 @@ def test_surplus_share_leaves_recombine_to_upstream_recorded_global_score_contra
     discount = 0.99 ** (result.terminal["rounds"] - 1)
     reconstructed_global_score = (10.0 + 80.0 * quality + 10.0) * discount
     assert reconstructed_global_score == pytest.approx(result.terminal["global_score"])
+
+
+# ---------------------------------------------------------------------------
+# AgenticpayBilateralScorer.__call__ -- the production finalizer seam under
+# the kernel_scoring_contract_spec.md scoring contract (migration milestone 2
+# of 3). ``task.evaluation.finalize_family_execution`` executes
+# ``plugin.build_scorer(family_case)(scoring_input,
+# evidence_refs=scoring_input.evidence_refs)`` directly on whatever
+# ``build_scorer`` returns -- never through a named method the way every
+# golden above does. Before this milestone, ``AgenticpayBilateralScorer`` had
+# no ``__call__`` at all, so this family could never be finalized through the
+# contract; the tests below prove every declared leaf now comes back, that
+# ruling R12's seat-scoped primary is wired correctly, and that ruling R13's
+# case-conditional ``agenticpay_contract_legality`` is included/omitted
+# exactly when the manifest's own ``inapplicable_leaf_ids`` says it should
+# be. Pure, no bridge needed: every ``FamilyScoringInput`` below is
+# hand-built, mirroring ``govsim.measurement``'s/``negarena.measurement``'s
+# identical migration-commit test shape.
+# ---------------------------------------------------------------------------
+
+_ALL_BASIC_LEAF_IDS = frozenset({m.DEAL_REACHED_LEAF_ID, m.SURPLUS_SHARE_LEAF_ID})
+_ALL_CONTRACT_LEAF_IDS = frozenset(
+    {m.DEAL_REACHED_LEAF_ID, m.SURPLUS_SHARE_LEAF_ID, m.CONTRACT_LEGALITY_LEAF_ID}
+)
+
+_BASIC_FAMILY_CASE = _family_case(BASIC_CASE_ID)  # buyer_max=150, seller_min=80 -> Z=70
+_CONTRACT_FAMILY_CASE = _family_case(REALISTIC_CASE_ID)
+
+_BASIC_OUTCOME: dict = {
+    "reason": "agreed",
+    "rounds": 2,
+    "buyer_price": 100.0,
+    "seller_price": 100.0,
+    "agreed_price": 100.0,
+    "buyer_contract": None,
+    "seller_contract": None,
+    "agreed_contract": None,
+    "buyer_utility": None,
+    "seller_utility": None,
+    "z_max": None,
+    "global_score": 92.0,
+    "buyer_score": None,
+    "seller_score": None,
+    "round_trace": [],
+}
+
+_CONTRACT_OUTCOME: dict = {
+    "reason": "agreed",
+    "rounds": 1,
+    "buyer_price": None,
+    "seller_price": None,
+    "agreed_price": None,
+    "buyer_contract": {"price": 5.39},
+    "seller_contract": {"price": 5.39},
+    "agreed_contract": {"price": 5.39},
+    "buyer_utility": 0.6,
+    "seller_utility": 0.5,
+    "z_max": 1.2,
+    "global_score": 90.0,
+    "buyer_score": None,
+    "seller_score": None,
+    "round_trace": [],
+}
+
+
+def _phase_instances_for(round_trace: list) -> tuple:
+    """One synthetic ``PhaseInstance`` carrying ``round_trace`` on the LAST
+    transition's ``state`` -- exactly the way a real verified re-execution
+    surfaces it (``measurement.py``'s own
+    ``_round_trace_from_phase_instances`` docstring: ``environment.py``'s
+    ``step()`` SELLER_PHASE branch accumulates ``round_trace`` there and
+    nowhere else).
+    """
+    return (
+        PhaseInstance(
+            phase_instance_id="phase_instance_0",
+            phase_id=SELLER_PHASE,
+            ordinal=0,
+            mode="single",
+            eligible_actors=("seller",),
+            pre_state_sha256="0" * 64,
+            post_state_sha256="1" * 64,
+            observations={},
+            actions=(),
+            transitions=(TransitionResult(state={"round_trace": round_trace}, next_phase_id=None),),
+        ),
+    )
+
+
+def _scoring_input_for(
+    *,
+    outcome: dict,
+    phase_instances_round_trace: list,
+    subject_seats: tuple,
+    profile_by_seat: dict,
+    evidence_refs: tuple = ("evt_outcome_0",),
+) -> FamilyScoringInput:
+    return FamilyScoringInput(
+        outcome=outcome,
+        phase_instances=_phase_instances_for(phase_instances_round_trace),
+        evidence_refs=evidence_refs,
+        seat_context=SeatContext(subject_seats=subject_seats, profile_by_seat=profile_by_seat),
+    )
+
+
+def test_call_returns_both_declared_leaves_for_a_basic_case_with_one_subject_seat() -> None:
+    scorer = m.build_scorer(_BASIC_FAMILY_CASE)
+    scoring_input = _scoring_input_for(
+        outcome=_BASIC_OUTCOME,
+        phase_instances_round_trace=[],
+        subject_seats=("buyer",),
+        profile_by_seat={"buyer": "scripted_buyer", "seller": "scripted_seller"},
+    )
+
+    score_set = scorer(scoring_input, evidence_refs=scoring_input.evidence_refs)
+
+    assert isinstance(score_set, FamilyScoreSet)
+    # Mutation-verified: dropping either leaf from __call__'s returned tuple
+    # (or from family_manifest's declared leaves) fails this assertion.
+    assert {score.leaf.leaf_id for score in score_set.scores} == _ALL_BASIC_LEAF_IDS
+    assert score_set.primary_leaf_id == m.SURPLUS_SHARE_LEAF_ID
+    assert score_set.admission_leaf_ids == (m.SURPLUS_SHARE_LEAF_ID,)
+    assert all(score.evidence_refs == scoring_input.evidence_refs for score in score_set.scores)
+
+    by_leaf = {score.leaf.leaf_id: score for score in score_set.scores}
+    surplus = by_leaf[m.SURPLUS_SHARE_LEAF_ID]
+    assert surplus.status == "ok"
+    assert surplus.primary.value == pytest.approx(50.0 / 70.0)  # buyer's own share
+    # Ruling R12 rule 2: the kernel enforces primary == utility_by_seat[S]
+    # at finalize -- test that identity directly.
+    assert surplus.primary.value == surplus.utility_by_seat["buyer"].value
+    assert surplus.primary.unit == surplus.utility_by_seat["buyer"].unit
+    # Every seat's own value is carried, not only the subject's.
+    assert surplus.utility_by_seat["seller"].value == pytest.approx(20.0 / 70.0)
+
+    deal = by_leaf[m.DEAL_REACHED_LEAF_ID]
+    assert deal.status == "ok"
+    assert deal.primary.value == 1.0
+
+
+def test_call_returns_the_other_seats_own_value_when_it_is_the_subject() -> None:
+    scorer = m.build_scorer(_BASIC_FAMILY_CASE)
+    scoring_input = _scoring_input_for(
+        outcome=_BASIC_OUTCOME,
+        phase_instances_round_trace=[],
+        subject_seats=("seller",),
+        profile_by_seat={"buyer": "scripted_buyer", "seller": "scripted_seller"},
+    )
+
+    score_set = scorer(scoring_input, evidence_refs=scoring_input.evidence_refs)
+
+    surplus = next(s for s in score_set.scores if s.leaf.leaf_id == m.SURPLUS_SHARE_LEAF_ID)
+    assert surplus.status == "ok"
+    assert surplus.primary.value == pytest.approx(20.0 / 70.0)  # seller's own share
+    assert surplus.primary.value == surplus.utility_by_seat["seller"].value
+    assert surplus.primary.unit == surplus.utility_by_seat["seller"].unit
+    assert surplus.utility_by_seat["buyer"].value == pytest.approx(50.0 / 70.0)
+
+
+def test_call_reports_no_subject_seat_for_zero_subject_seats() -> None:
+    scorer = m.build_scorer(_BASIC_FAMILY_CASE)
+    scoring_input = _scoring_input_for(
+        outcome=_BASIC_OUTCOME,
+        phase_instances_round_trace=[],
+        subject_seats=(),
+        profile_by_seat={"buyer": "scripted_buyer", "seller": "scripted_seller"},
+    )
+
+    score_set = scorer(scoring_input, evidence_refs=scoring_input.evidence_refs)
+
+    surplus = next(s for s in score_set.scores if s.leaf.leaf_id == m.SURPLUS_SHARE_LEAF_ID)
+    assert surplus.status == "invalid_measurement"
+    assert surplus.primary is None
+    assert surplus.validity.reasons == ("no_subject_seat",)
+    # The other declared leaf is unaffected -- it is cell-scoped, not
+    # subject-seat-scoped.
+    deal = next(s for s in score_set.scores if s.leaf.leaf_id == m.DEAL_REACHED_LEAF_ID)
+    assert deal.status == "ok"
+
+
+def test_call_reports_ambiguous_subject_seat_for_two_subject_seats_with_no_declared_reduction() -> None:
+    scorer = m.build_scorer(_BASIC_FAMILY_CASE)
+    scoring_input = _scoring_input_for(
+        outcome=_BASIC_OUTCOME,
+        phase_instances_round_trace=[],
+        subject_seats=("buyer", "seller"),
+        profile_by_seat={"buyer": "scripted_buyer", "seller": "scripted_seller"},
+    )
+
+    score_set = scorer(scoring_input, evidence_refs=scoring_input.evidence_refs)
+
+    surplus = next(s for s in score_set.scores if s.leaf.leaf_id == m.SURPLUS_SHARE_LEAF_ID)
+    assert surplus.status == "invalid_measurement"
+    assert surplus.primary is None
+    assert surplus.validity.reasons == ("ambiguous_subject_seat",)
+
+
+def test_call_returns_all_three_declared_leaves_for_a_contract_mode_case() -> None:
+    scorer = m.build_scorer(_CONTRACT_FAMILY_CASE)
+    round_trace = [
+        {
+            "round": 1,
+            "buyer_contract_attempted": True,
+            "buyer_contract_valid": True,
+            "seller_contract_attempted": True,
+            "seller_contract_valid": True,
+        }
+    ]
+    scoring_input = _scoring_input_for(
+        outcome={**_CONTRACT_OUTCOME, "round_trace": round_trace},
+        phase_instances_round_trace=round_trace,
+        subject_seats=("buyer",),
+        profile_by_seat={"buyer": "scripted_buyer", "seller": "scripted_seller"},
+    )
+
+    score_set = scorer(scoring_input, evidence_refs=scoring_input.evidence_refs)
+
+    assert {score.leaf.leaf_id for score in score_set.scores} == _ALL_CONTRACT_LEAF_IDS
+    assert score_set.primary_leaf_id == m.SURPLUS_SHARE_LEAF_ID
+    assert score_set.admission_leaf_ids == (m.SURPLUS_SHARE_LEAF_ID,)
+
+    by_leaf = {score.leaf.leaf_id: score for score in score_set.scores}
+    surplus = by_leaf[m.SURPLUS_SHARE_LEAF_ID]
+    assert surplus.status == "ok"
+    assert surplus.primary.value == pytest.approx(0.6 / 1.2)
+    assert surplus.primary.value == surplus.utility_by_seat["buyer"].value
+
+    legality = by_leaf[m.CONTRACT_LEGALITY_LEAF_ID]
+    assert legality.status == "ok"
+    assert legality.primary.value == 1.0
+
+
+def test_contract_legality_leaf_reads_phase_instances_round_trace_not_outcomes() -> None:
+    """Spec section 5 (migration milestone 2 of 3): a ``trajectory``-scoped
+    leaf reads ``scoring_input.phase_instances``, never
+    ``scoring_input.outcome`` -- proved here by deliberately making the two
+    disagree. ``outcome["round_trace"]`` records a rejected submission (which
+    would score 0.0); the verified re-execution's own
+    ``phase_instances``-derived trace records only accepted ones (1.0). If
+    ``__call__`` were changed to read ``outcome["round_trace"]`` instead
+    (rulings R9/R10's embedded copy), this assertion would fail.
+    """
+    scorer = m.build_scorer(_CONTRACT_FAMILY_CASE)
+    outcome_round_trace_with_a_rejection = [
+        {
+            "round": 1,
+            "buyer_contract_attempted": True,
+            "buyer_contract_valid": False,
+            "seller_contract_attempted": False,
+        }
+    ]
+    phase_instances_round_trace_all_legal = [
+        {
+            "round": 1,
+            "buyer_contract_attempted": True,
+            "buyer_contract_valid": True,
+            "seller_contract_attempted": False,
+        }
+    ]
+    scoring_input = _scoring_input_for(
+        outcome={**_CONTRACT_OUTCOME, "round_trace": outcome_round_trace_with_a_rejection},
+        phase_instances_round_trace=phase_instances_round_trace_all_legal,
+        subject_seats=("buyer",),
+        profile_by_seat={"buyer": "scripted_buyer", "seller": "scripted_seller"},
+    )
+
+    score_set = scorer(scoring_input, evidence_refs=scoring_input.evidence_refs)
+
+    legality = next(s for s in score_set.scores if s.leaf.leaf_id == m.CONTRACT_LEGALITY_LEAF_ID)
+    assert legality.primary.value == 1.0
+
+
+def test_inapplicable_leaf_ids_names_contract_legality_only_for_a_basic_case() -> None:
+    """Ruling R13, both case kinds: the hook is a direct restatement of
+    ``is_contract_mode`` -- empty for a contract-mode case, exactly
+    ``{agenticpay_contract_legality_leaf}`` for a basic one.
+    """
+    plugin = AgenticpayBilateralPlugin(upstream_root=Path("."), bridge=None)
+    assert plugin.inapplicable_leaf_ids(_BASIC_FAMILY_CASE) == frozenset(
+        {m.CONTRACT_LEGALITY_LEAF_ID}
+    )
+    assert plugin.inapplicable_leaf_ids(_CONTRACT_FAMILY_CASE) == frozenset()
+
+
+class _BadInapplicablePlugin(AgenticpayBilateralPlugin):
+    """A mutated hook that names an undeclared leaf id as inapplicable."""
+
+    def inapplicable_leaf_ids(self, family_case):
+        del family_case
+        return frozenset({m.SURPLUS_SHARE_LEAF_ID})  # never declared case_conditional
+
+
+def test_kernel_rejects_a_hook_that_names_an_undeclared_case_conditional_leaf() -> None:
+    """Mutation-verified: a plugin whose ``inapplicable_leaf_ids`` hook names
+    a leaf the manifest never declared ``case_conditional`` (here,
+    ``agenticpay_surplus_share_leaf``, the primary leaf) is rejected by the
+    kernel's own enforcement (``task.evaluation``), not by anything this
+    family re-implements.
+    """
+    plugin = _BadInapplicablePlugin(upstream_root=Path("."), bridge=None)
+    ids = _evaluation._inapplicable_leaf_ids(plugin, _BASIC_FAMILY_CASE)
+    with pytest.raises(ValueError, match="not declared case_conditional"):
+        _evaluation._reject_undeclared_inapplicable_ids(family_manifest(), ids)
+
+
+def test_family_manifest_declares_the_leaf_policy_spec_section_3_requires() -> None:
+    manifest = family_manifest()
+    declared = manifest.measurement.finalize_time_leaf_policy()
+    assert set(declared.leaf_ids) == _ALL_CONTRACT_LEAF_IDS
+    assert declared.primary_leaf_id == m.SURPLUS_SHARE_LEAF_ID
+    assert declared.admission_leaf_ids == (m.SURPLUS_SHARE_LEAF_ID,)
+
+    leaf_by_id = {leaf.leaf_id: leaf for leaf in manifest.measurement.leaves}
+    assert leaf_by_id[m.SURPLUS_SHARE_LEAF_ID].seat_scope == "subject_seat"
+    assert leaf_by_id[m.SURPLUS_SHARE_LEAF_ID].case_conditional is False
+    assert leaf_by_id[m.CONTRACT_LEGALITY_LEAF_ID].case_conditional is True
+    assert leaf_by_id[m.CONTRACT_LEGALITY_LEAF_ID].seat_scope == "cell"
+    assert leaf_by_id[m.DEAL_REACHED_LEAF_ID].seat_scope == "cell"
+    assert leaf_by_id[m.DEAL_REACHED_LEAF_ID].case_conditional is False
