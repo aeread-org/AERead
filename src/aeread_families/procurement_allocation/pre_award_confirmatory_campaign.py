@@ -1,11 +1,15 @@
-"""Frozen held-out confirmation of the verifier-visible pre-award check.
+"""Held-out confirmation of the pre-award check, tolerant of typed missingness.
 
-Twelve worlds generated after the pre-award-check prompt was frozen and after
-the development result on the confirmatory v1 panel was read. Unlike the
-development campaign, the control arm is re-run here on the same environment
-that exposes ``check_award``, so the estimated effect is the prompt's use of the
-action rather than the action's presence. Control is the frozen V4 strategy
-scaffold; treatment is the frozen pre-award-check procedure.
+V3 could not complete on a throttled route: an attempt aborts on the first typed
+operational failure, so at the 17.6% per-call failure rate measured on
+2026-09-05 a 144-row panel completes about 38% of the time, and seven attempt
+roots produced 24 rows. V4 keeps every scientific control and changes only that
+policy, the way commercial-state already does: a typed operational failure seals
+that row as missingness and the panel continues, eligibility requires the
+missing fraction to stay under a declared ceiling, and a world-seed pair is used
+only when both arms have it. Nothing is retried into an existing row and no
+provider substitution is permitted, so transient availability still cannot
+choose which rows survive -- it can only make a row missing, visibly.
 """
 
 from __future__ import annotations
@@ -64,7 +68,7 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 V1_CAMPAIGN_ID = (
     "procurement_allocation_glm53_flash_parasail_pre_award_check_v1"
 )
-CAMPAIGN_ID = "procurement_allocation_glm53_flash_parasail_pre_award_check_confirmatory_v3"
+CAMPAIGN_ID = "procurement_allocation_glm53_flash_parasail_pre_award_check_confirmatory_v4"
 FROZEN_V4_PROMPT_SHA256 = FROZEN_TREATMENT_PROMPT_SHA256
 FROZEN_SCAFFOLD_PROMPT_SHA256 = (
     "9a9e69f8a513e40499f83fe3648a316c49461645033ef009f43a2be3c515a813"
@@ -89,7 +93,8 @@ INFERENCE_SEEDS = tuple(
         campaign_id=V1_CAMPAIGN_ID,
     )
 )
-BOOTSTRAP_SEED = 20260906
+BOOTSTRAP_SEED = 20260908
+MAX_OPERATIONAL_MISSINGNESS_FRACTION = 0.10
 BOOTSTRAP_RESAMPLES = 50_000
 CONFIRMATORY_BATCH_SIZE = 12
 CONFIRMATORY_MAX_PARALLEL_CELLS = 1
@@ -253,7 +258,7 @@ def build_plan() -> dict[str, Any]:
             inference_seeds=INFERENCE_SEEDS,
             max_parallel_cells=CONFIRMATORY_MAX_PARALLEL_CELLS,
             campaign_id=f"{CAMPAIGN_ID}.{name}",
-            abort_on_operational_failure=True,
+            abort_on_operational_failure=False,
             candidate=GLM_PARASAIL_CANDIDATE,
             prompt=spec["prompt"],
             prompt_id=spec["prompt_id"],
@@ -298,6 +303,9 @@ def build_plan() -> dict[str, Any]:
             "operational_changes_only": [
                 "four action attempts with a 15s retry base after V1 was sealed "
                 "twice by route rate limits before any panel row completed",
+                "a typed operational failure seals that row as missingness and "
+                "the panel continues; eligibility requires the missing fraction "
+                "to stay under the declared ceiling and pairs both arms row-wise",
                 "guard feasible_award rather than terminal feasibility, which "
                 "counts an explicit defer as feasible",
                 "retain billed usage for empty completions and failed trajectories",
@@ -331,7 +339,8 @@ def build_plan() -> dict[str, Any]:
         ),
         "max_parallel_cells": CONFIRMATORY_MAX_PARALLEL_CELLS,
         "batch_size": CONFIRMATORY_BATCH_SIZE,
-        "abort_on_operational_failure": True,
+        "abort_on_operational_failure": False,
+        "max_operational_missingness_fraction": MAX_OPERATIONAL_MISSINGNESS_FRACTION,
         "admission_canaries": ["control", "treatment"],
         "admission_canaries_scored": False,
         "conservative_scored_cost_ceiling_usd": sum(
@@ -635,16 +644,21 @@ def build_confirmatory_comparison(*, run_root: Path) -> dict[str, Any]:
             (str(row["case_id"]).rsplit(".", 1)[-1], row["case_content_sha256"])
             for row in artifact["rows"]
         } == expected_case_digests
-        integrity[f"{name}_all_pairs_present"] = set(index) == expected_keys
-        integrity[f"{name}_execution_qualified"] = (
-            artifact.get("summary", {}).get("readiness", {}).get("execution_qualified")
-            is True
+        integrity[f"{name}_no_unexpected_keys"] = set(index) <= expected_keys
+        summary = artifact.get("summary", {})
+        planned_rows = len(CASE_SLUGS) * len(INFERENCE_SEEDS)
+        integrity[f"{name}_every_row_attempted"] = (
+            int(summary.get("row_count", 0)) == planned_rows
         )
-        integrity[f"{name}_rows_completed_replayed_revision_pinned"] = all(
-            row.get("status") == "completed"
-            and row.get("receipt_replayed") is True
+        integrity[f"{name}_missingness_within_ceiling"] = (
+            int(summary.get("operational_failure_count", 0))
+            <= int(planned_rows * MAX_OPERATIONAL_MISSINGNESS_FRACTION)
+        )
+        integrity[f"{name}_completed_rows_replayed_revision_pinned"] = all(
+            row.get("receipt_replayed") is True
             and row.get("resolved_models") == [GLM_PARASAIL_CANDIDATE.route.revision]
             for row in artifact["rows"]
+            if row.get("status") == "completed"
         )
     first_plan = artifacts["labeled_control"]["plan"]
     integrity["route_harness_and_retry_policy_match"] = all(
@@ -659,6 +673,8 @@ def build_confirmatory_comparison(*, run_root: Path) -> dict[str, Any]:
 
     surface_effects: dict[str, Any] = {}
     per_surface_world_delta: dict[str, dict[str, dict[str, float]]] = {}
+    usable_pairs: dict[str, dict[str, int]] = {"labeled": {}, "opaque": {}}
+    dropped_pairs: Counter[str] = Counter()
     all_upper_bounds_match = True
     case_content_match = True
     for surface in ("labeled", "opaque"):
@@ -666,8 +682,19 @@ def build_confirmatory_comparison(*, run_root: Path) -> dict[str, Any]:
         treatment = indexes[f"{surface}_treatment"]
         metric_worlds: dict[str, dict[str, float]] = {metric: {} for metric in METRICS}
         transitions: Counter[str] = Counter()
+        # A world-seed pair is usable only when both arms completed it. A row
+        # sealed as typed missingness removes its pair from the estimate rather
+        # than being replaced, and the count of dropped pairs is reported.
         for slug in CASE_SLUGS:
-            for seed in INFERENCE_SEEDS:
+            usable_seeds = [
+                seed
+                for seed in INFERENCE_SEEDS
+                if control.get((slug, seed), {}).get("status") == "completed"
+                and treatment.get((slug, seed), {}).get("status") == "completed"
+            ]
+            usable_pairs[surface][slug] = len(usable_seeds)
+            dropped_pairs[surface] += len(INFERENCE_SEEDS) - len(usable_seeds)
+            for seed in usable_seeds:
                 left = control[(slug, seed)]
                 right = treatment[(slug, seed)]
                 case_content_match = case_content_match and (
@@ -680,15 +707,22 @@ def build_confirmatory_comparison(*, run_root: Path) -> dict[str, Any]:
                     f"{'pass' if left['feasible'] else 'fail'}_"
                     f"{'pass' if right['feasible'] else 'fail'}"
                 ] += 1
+            if not usable_seeds:
+                raise ValueError(
+                    f"world {slug} on the {surface} surface retains no usable "
+                    "pair; the estimate would silently drop a world"
+                )
             for metric in METRICS:
                 metric_worlds[metric][slug] = statistics.fmean(
                     _metric(treatment[(slug, seed)], metric)
                     - _metric(control[(slug, seed)], metric)
-                    for seed in INFERENCE_SEEDS
+                    for seed in usable_seeds
                 )
         per_surface_world_delta[surface] = metric_worlds
         surface_effects[surface] = {
             "feasibility_transition_counts": dict(sorted(transitions.items())),
+            "usable_pairs_by_world": dict(usable_pairs[surface]),
+            "dropped_pairs": dropped_pairs[surface],
             "treatment_minus_control": {
                 metric: _aggregate(
                     [metric_worlds[metric][slug] for slug in CASE_SLUGS],
@@ -784,6 +818,15 @@ def build_confirmatory_comparison(*, run_root: Path) -> dict[str, Any]:
                 for slug in CASE_SLUGS
             },
         },
+        "missingness": {
+            "dropped_pairs_by_surface": dict(dropped_pairs),
+            "planned_pairs_per_surface": len(CASE_SLUGS) * len(INFERENCE_SEEDS),
+            "ceiling_fraction": MAX_OPERATIONAL_MISSINGNESS_FRACTION,
+            "policy": (
+                "a typed operational failure seals that row as missingness; its "
+                "world-seed pair is dropped from the estimate and never replaced"
+            ),
+        },
         "bootstrap": {
             "independent_unit": "economic world",
             "world_count": len(CASE_SLUGS),
@@ -855,8 +898,18 @@ def _execution_status(run_root: Path, canaries: Mapping[str, Mapping[str, Any]])
             "scored_cost_usd": scored_cost,
             "canary_cost_usd": canary_cost,
             "total_cost_including_canaries_usd": scored_cost + canary_cost,
-            "execution_qualified": admitted and completed == planned and failures == 0,
-            "failure_free_checkpoint": admitted and 0 < completed < planned and failures == 0,
+            "execution_qualified": (
+                admitted
+                and row_count == planned
+                and failures <= int(planned * MAX_OPERATIONAL_MISSINGNESS_FRACTION)
+            ),
+            "operational_missingness_fraction": (
+                failures / planned if planned else 0.0
+            ),
+            "max_operational_missingness_fraction": (
+                MAX_OPERATIONAL_MISSINGNESS_FRACTION
+            ),
+            "failure_free_checkpoint": admitted and 0 < row_count < planned,
         },
     }
     status["artifact_sha256"] = hashlib.sha256(canonical_json_bytes(status)).hexdigest()
@@ -888,9 +941,7 @@ async def run_confirmatory_campaign(
     else:
         _write_once_json(plan_path, plan)
     for name in _arm_specs():
-        path = run_root / "arms" / name / "summary.json"
-        if path.exists() and json.loads(path.read_text())["summary"]["operational_failure_count"]:
-            raise ValueError("cannot resume an attempt containing an operational failure")
+        del name
     canaries: dict[str, Mapping[str, Any]] = {}
     for condition in ("control", "treatment"):
         if canaries and any(item.get("status") != "admitted" for item in canaries.values()):
@@ -912,7 +963,8 @@ async def run_confirmatory_campaign(
             if summary_path.exists():
                 prior = json.loads(summary_path.read_text())
                 prior_count = int(prior["summary"]["row_count"])
-                if prior["summary"]["readiness"]["execution_qualified"]:
+                planned_rows = len(CASE_SLUGS) * len(INFERENCE_SEEDS)
+                if int(prior["summary"]["row_count"]) >= planned_rows:
                     continue
             if remaining_batch < 1:
                 break
@@ -926,7 +978,7 @@ async def run_confirmatory_campaign(
                 provider_factory=provider_factory,
                 preflight_fn=lambda _candidate: preflight,
                 campaign_id=f"{CAMPAIGN_ID}.{name}",
-                abort_on_operational_failure=True,
+                abort_on_operational_failure=False,
                 candidate=GLM_PARASAIL_CANDIDATE,
                 prompt=spec["prompt"],
                 prompt_id=spec["prompt_id"],
@@ -940,8 +992,7 @@ async def run_confirmatory_campaign(
             )
             new_count = int(artifact["summary"]["row_count"]) - prior_count
             remaining_batch -= new_count
-            if artifact["summary"]["operational_failure_count"]:
-                break
+            del artifact
     status = _execution_status(run_root, canaries)
     _replace_json(run_root / "campaign_status.json", status)
     if status["summary"]["execution_qualified"]:

@@ -45,3 +45,26 @@ def test_the_guardrail_is_feasible_award_not_terminal_feasibility() -> None:
     assert "overall_feasibility_delta_bootstrap_lower_at_least" not in rule
     assert rule["guarded_metric"].startswith("feasible_award")
 
+
+
+def test_a_typed_missing_row_drops_its_pair_instead_of_the_panel() -> None:
+    """Design review defect 11.
+
+    An attempt that aborts on the first typed operational failure completes with
+    probability 38% at 144 rows on a route failing 17.6% of calls, which is why
+    the two largest panels in this family have never completed. The panel now
+    continues, seals that row as missingness, drops only its world-seed pair,
+    and requires the missing fraction to stay under a declared ceiling.
+    """
+    from aeread_families.procurement_allocation.pre_award_confirmatory_campaign import (
+        MAX_OPERATIONAL_MISSINGNESS_FRACTION,
+    )
+
+    plan = build_plan()
+    assert plan["abort_on_operational_failure"] is False
+    assert plan["max_operational_missingness_fraction"] == (
+        MAX_OPERATIONAL_MISSINGNESS_FRACTION
+    )
+    assert 0 < MAX_OPERATIONAL_MISSINGNESS_FRACTION < 0.25
+    for arm in plan["arms"].values():
+        assert arm["abort_on_operational_failure"] is False
