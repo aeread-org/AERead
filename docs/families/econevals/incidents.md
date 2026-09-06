@@ -89,8 +89,13 @@ plan, so the panel is re-run rather than retro-published.
   calls on the identical pinned request, a 404 cannot mean "wrong endpoint",
   so a **post-admission** 404 could carry a typed retryable condition
   distinct from a first-call 404. That is the same route-health vs
-  route-identity distinction commit `50de3447` drew for preflight. Until it
-  is ruled on, the disposition stays: re-run the identical frozen plan.
+  route-identity distinction commit `50de3447` drew for preflight.
+
+  **Ruled and implemented 2026-09-06.** The kernel now types a rejection that
+  arrives after the same profile's pinned route has already answered as
+  `provider_rejected_after_route_proven`, and econevals lists it among its
+  retryable conditions. A FIRST-call rejection is untouched and still fails
+  fast, because a wrong model id must not retry ten times behind a backoff.
 
 ## Two failures that would not have failed loudly
 

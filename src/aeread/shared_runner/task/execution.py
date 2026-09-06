@@ -847,6 +847,13 @@ class ProviderResult:
     visible_output_tokens: int | None = None
 
 
+# A provider rejection that arrived after the same pinned route had already
+# answered successfully in this run. Typed separately from "provider_rejected"
+# so a family can retry the provably-transient case without making a genuine
+# route-identity error retryable.
+POST_ADMISSION_REJECTION = "provider_rejected_after_route_proven"
+
+
 @dataclass(frozen=True, slots=True)
 class CanonicalResponse:
     text: str
@@ -2146,6 +2153,10 @@ class MinimalChatExecutor:
         self._profiles: dict[str, AgentProfile] = {}
         self._prompt_text: dict[str, str] = {}
         self._executions: dict[str, LogicalActionExecution] = {}
+        # Profiles whose pinned route has already answered successfully in
+        # this run. A 4xx that arrives after a success cannot mean "this
+        # route does not exist"; see _is_post_admission_rejection.
+        self._routes_proven: set[str] = set()
         self._logical_actions_by_profile: dict[str, int] = {}
         self._cost_by_profile: dict[str, float] = {}
         self._request_seed_by_profile = dict(request_seed_by_profile or {})
@@ -2545,6 +2556,7 @@ class MinimalChatExecutor:
                 cost_usd=cost,
                 failure_condition=None,
             )
+            self._routes_proven.add(profile.profile_id)
             self.evidence.append_event(
                 "provider_call_succeeded",
                 {
@@ -2797,6 +2809,28 @@ class MinimalChatExecutor:
             logical_action_id=decision.logical_action_id,
         )
 
+
+    # Route health versus route identity, at the retry seam. A 404 normally
+    # means the model id or endpoint is wrong, and must fail fast: retrying it
+    # ten times turns an instant, obvious error into a slow, confusing one.
+    # But once this profile's pinned route has answered successfully, "the
+    # route does not exist" is no longer a possible reading of a later 4xx --
+    # the same bytes worked minutes earlier -- so it is a provider fault and
+    # can be retried like any other. Parasail returned exactly this twice
+    # during the econevals first light, each time killing a panel mid-run
+    # while OpenRouter's own metadata listed the endpoint as available.
+    #
+    # The distinction is typed, not permissive: a family still has to list
+    # POST_ADMISSION_REJECTION in retryable_conditions to get the retry, and a
+    # FIRST-call 404 keeps the old non-retryable behaviour whatever it lists.
+    def _is_post_admission_rejection(
+        self, profile: AgentProfile, failure: ProviderFailure
+    ) -> bool:
+        return (
+            failure.condition == "provider_rejected"
+            and profile.profile_id in self._routes_proven
+        )
+
     def _record_provider_failure(
         self,
         decision: DecisionRequest,
@@ -2861,9 +2895,14 @@ class MinimalChatExecutor:
             logical_action_id=decision.logical_action_id,
             action_attempt_id=action_attempt_id,
         )
+        condition = failure.condition
+        retryable = failure.retryable
+        if self._is_post_admission_rejection(profile, failure):
+            condition = POST_ADMISSION_REJECTION
+            retryable = True
         should_retry = (
-            failure.retryable
-            and failure.condition in profile.retry_policy.retryable_conditions
+            retryable
+            and condition in profile.retry_policy.retryable_conditions
             and ordinal + 1 < profile.retry_policy.max_action_attempts
         )
         if not should_retry:
@@ -2874,7 +2913,7 @@ class MinimalChatExecutor:
                 profile_id=profile.profile_id,
                 status="retrying",
                 attempts=tuple(attempts),
-                failure_code=failure.condition,
+                failure_code=condition,
             )
         return should_retry
 
