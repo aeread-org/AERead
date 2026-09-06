@@ -4,6 +4,15 @@ Branch `zeyu/alympics-adapter`. Last verified 2026-09-02. Milestone 3 of 3
 (scripted harness + end-to-end + replay); milestones 1-2 (cases,
 environment, measurement) landed earlier on this branch.
 
+**Update, `zeyu/alympics-contract-migration` (this branch, 2026-09-06):**
+this family is now migrated to `kernel_scoring_contract_spec.md`'s
+`FamilyScoringInput` scoring contract and enrolled in
+`tests/test_shared_runner_scoring_contract.py`'s protocol test. See
+"Scoring contract migration" below for the leaf policy, the receipt, and
+what changed from the description above (most of the rest of this doc,
+describing the original adapter build, is otherwise unchanged and still
+accurate).
+
 ## What the adapter claims
 
 For the pinned Water Allocation Challenge (`microsoft/Alympics`, commit
@@ -156,12 +165,21 @@ unaffected.
   `replay_episode` alone succeeds and produces a different, but internally
   consistent, outcome. Verified directly:
   `test_replay_detects_a_tampered_bid_only_via_comparison_against_the_original`.
-- **Baseline comparisons are not auto-derived, but they are now verified.**
+- **Baseline comparisons are not auto-derived via `replay.py`'s own calling
+  convention, but they are now verified — and the finalize-time seam no
+  longer needs a caller-supplied one at all.**
   `score_replayed_episode` still requires the caller to already have run
   and replayed a second, baseline episode (`harness.
   baseline_policy_assignment` + a second `ScriptedAlympicsWacHarness`/
   `run_episode`/`replay_episode` pass); this module does not generate,
-  cache, or memoize that baseline itself. What changed
+  cache, or memoize that baseline itself. **Update (scoring contract
+  migration):** `AlympicsWacScorer.__call__` — the seam
+  `task.evaluation.finalize_family_execution` actually calls — calls
+  `_recompute_baseline_episode` directly and never depends on a second,
+  separately run episode; this closes the migration plan's own "plumbing
+  note" (docs/alympics_migration_plan.md, "Today's declared leaves"
+  section) without changing `replay.py`'s own external convention, which
+  is unchanged and still described above. What changed
   (docs/alympics_fix_verification.md finding 2): `AlympicsWacScorer.
   score_terminal_wealth`/`score_survival` now independently recompute the
   declared baseline episode from the case's own frozen supply schedule/
@@ -210,9 +228,193 @@ unaffected.
   `ledger_entries/alympics.md` for the full write-up; this is core kernel
   behavior and was not changed here.
 
+## Scoring contract migration (`zeyu/alympics-contract-migration`)
+
+### Leaf policy
+
+`family_manifest()` (`environment.py`) declares all four leaves
+`scope="finalize_time"`: every leaf in `measurement.py` is
+`evaluation_class="deterministic"` with no judge/rater/deferred-artifact
+dependency (module docstring: "this family declares no rater/judge
+component at all"), so none is `deferred`.
+
+- **`alympics_wac_terminal_wealth_leaf` is primary.** Three independent
+  sources already agreed before this migration (`measurement.py`'s module
+  docstring, `docs/alympics_adapter_spec.md` section 2, and the manifest's
+  own pre-existing `measurement.primary_estimand` field) — this is not "the
+  one that was easiest to compute" (leaf 3, a single recorded-flag lookup,
+  is materially simpler and is not primary). See
+  `docs/alympics_migration_plan.md`'s "Proposed primary" section for the
+  full argument.
+- **`alympics_wac_bid_legality_leaf` and `alympics_wac_settlement_exactness_leaf`
+  join it in admission.** Unlike a strategic-tradeoff rule-constraint leaf,
+  both are measurement-integrity checks, not normative judgments about
+  strategy: bid legality catches upstream's own silent bid-exceeds-balance
+  exclusion "masquerading as an ordinary legal loss" (spec section 4 golden
+  3), and settlement exactness catches a sealed `round_log` entry whose
+  recorded post-state cannot be reproduced from its recorded pre-state and
+  bids. Both already gate leaves 1/2 *internally* (`score_terminal_wealth`/
+  `score_survival` call the same `_bid_legality_invalid_reason` helper), so
+  admission membership is largely confirmatory for bid legality, but
+  genuinely load-bearing for settlement exactness — a distinct failure mode
+  not otherwise mirrored in leaf 1/2's own status.
+- **`alympics_wac_survival_leaf` is diagnostic, not in admission** — matching
+  its own declared status ("reported *separately* from wealth so a
+  degenerate zero-information elimination is never averaged into wealth as
+  if it were an ordinary loss").
+- **`trajectory_outcome_paths = ("/eliminated_order",)`** (ruling R9):
+  `outcome()` embeds this one trajectory-bearing field — an accumulated,
+  per-round record of *when* each seat died, not a final aggregate (unlike
+  `final_round_id`/`final_players`, both non-declared for the same reason
+  govsim's own `num_round`/`resource_in_pool` are). See
+  `docs/alympics_migration_plan.md`'s "Does `outcome()` embed the
+  trajectory?" section for the full argument.
+- **No leaf is deferred.**
+
+### The focal-seat convention (a stated limit, not an invented one)
+
+Ruling R12 (kernel_scoring_contract_spec.md) says families whose case
+names the tested seat "ignore seat context" and are unaffected by that
+ruling's per-seat-primary machinery. On this branch, that premise does not
+hold: `family_case` (the validated `payload`) does **not** carry a
+`focal_seat` field — every existing caller (this family's own unit tests,
+`replay.score_replayed_episode`) passes `focal_seat` in explicitly, and
+spec section 2's "one seat rotates as focal across paired trials" is a
+cross-trial *authoring* convention, never something a single case encodes.
+`AlympicsWacScorer.__call__` — the seam the finalizer calls, with no
+external `focal_seat` parameter reachable from `FamilyScoringInput` alone
+— therefore fixes one declared, deterministic convention:
+`measurement.FOCAL_SEAT = SEAT_ORDER[0]` (`"alex"`), matching every
+existing test's own default focal seat. This is stated here, not invented
+silently: a future extension that lets a case (or an `EvaluationBlock`)
+name a rotating focal seat per trial would change only this one constant's
+resolution, not the four leaves' own scoring logic.
+
+### Receipt
+
+`tests/test_alympics_wac_replay.py::test_finalize_wires_alympics_wac_to_the_shared_family_finalizer`
+drives one small, real, upstream-backed clean episode (every seat bids a
+fixed, always-legal `1` every round; nobody is ever eliminated) through
+`task.evaluation.finalize_family_execution` for the first time this family
+has ever produced an `EvaluationReceipt`. The receipt comes back with
+`status="ok"`, `inclusion_status="included"`, exactly the four declared
+leaf ids, and `primary_leaf_id="alympics_wac_terminal_wealth_leaf"`.
+
+### Protocol-test fixtures (paired history + sensitivity witness)
+
+`tests/test_shared_runner_scoring_contract.py::test_alympics_wac_obeys_the_scoring_contract`
+(kept out of the always-on
+`test_every_registered_family_obeys_the_scoring_contract` — see
+`_BRIDGE_GATED_ENROLLED_FAMILY_VERSIONS`'s own docstring for why: this
+family's fixtures need the pinned upstream Alympics checkout, which every
+other family that test verifies deliberately does not) drives three real
+episodes on one small, shared case (six rounds, constant supply 100):
+
+- **`left`/`right` — the paired-history pair.** `alex`/`bob`/`cindy` bid a
+  fixed, always-legal `1` every round in both; `david` and `eric` each
+  follow one of two hand-derived bid sequences that reach the identical
+  terminal state — `hp=0, no_drink=5, balance=480, alive=False` — at two
+  different round counts:
+  - **short (5 rounds):** win round 1 (bid `120`, exactly the daily
+    salary — legal, since `bid <= balance` holds with equality), then bid
+    illegally (`10**9`, exceeding balance) rounds 2–5. Arithmetic: round 1
+    win takes `hp: 8 → min(10, 10) = 10`, `no_drink → 1`, `balance:
+    120 − 120 = 0`; rounds 2–5 each add one salary payment (`+120`) then
+    lose (`hp -= no_drink; no_drink += 1`): `hp: 10→9→7→4→0`,
+    `no_drink: 2→3→4→5`, ending `balance = 480` (four salary payments, no
+    further bid cost) at `hp=0` — eliminated.
+  - **long (6 rounds):** win rounds 1–2 (bids `120` then `120` — the
+    second win's bid exactly cancels the extra round's salary: balance
+    after round 2's win is `(120 − 120) + 120 − 120 = 0`, i.e. two salary
+    payments minus two winning bids of `120` each), then bid illegally
+    rounds 3–6. `hp` after both wins stays capped at `10` (`min(10, 10+2)`
+    on the second win), `no_drink` resets to `1` each win; rounds 3–6 lose
+    identically to the short sequence's rounds 2–5 (`hp: 10→9→7→4→0`,
+    `no_drink: 2→3→4→5`), ending `balance = 720 − 120 − 120 = 480` (six
+    salary payments minus the two winning bids) at `hp=0` — eliminated one
+    round later than `short`.
+
+  Swapping which of `david`/`eric` gets `short` vs `long` between `left`
+  and `right` swaps their relative death order — `eliminated_order` is
+  `["david", "eric"]` in `left` and `["eric", "david"]` in `right` — while
+  `termination_reason="rounds_exhausted"`, `final_round_id=6`, and every
+  seat's `final_players` entry (including `david`'s and `eric`'s own,
+  since both sequences reach the identical terminal values) stay
+  byte-identical: exactly the projected-outcome-identical,
+  trajectory-differing pair ruling R9 requires. **Verified directly
+  against the real pinned upstream checkout** (`_delegate_round`, driven
+  by a standalone script reproducing this exact schedule) before being
+  wired into the test file, per the worked example's warning against
+  trusting an unconfirmed pair.
+- **`alt` — the sensitivity witness (ruling R9(b)).** None of the four
+  leaves changes between `left` and `right` alone, because `alex`'s own
+  row (the focal seat every leaf actually measures) is identical in both.
+  `alt` (same case) has every seat, including `alex`, bid illegally
+  (`10**9`) every round: `alex`'s own `bid_legality` invalid reason fires
+  from round 1, flipping `terminal_wealth`/`survival`/`bid_legality` (all
+  three gated by the same `_bid_legality_invalid_reason` check) to
+  `invalid_measurement`; all five seats reach `hp=-2, no_drink=5`
+  simultaneously at round 4 (`all_seats_eliminated`), giving
+  `settlement_exactness` a different `rounds_checked` metric (`4.0` vs
+  `6.0` on `left`/`right`) even though its own `status` stays `"ok"`. This
+  is what witnesses all four leaves' sensitivity — none of them changes on
+  `left`/`right` alone.
+
+Full protocol-test file: 32 passed with the checkout present; 31 passed, 1
+skipped without it (every other family's own always-on coverage in that
+file is unaffected either way — verified directly, see the mutation note
+below).
+
+### On ruling R11 (verbatim conformance note): does not apply here
+
+Ruling R11 requires a family with **no upstream code** (collusion,
+termsbench) to state that its conformance goldens are independently
+hand-derived from the paper, not parity with upstream code. That premise
+does not hold for this family: `environment.py` imports and runs the real,
+pinned, unmodified `microsoft/Alympics` checkout directly (`_delegate_round`
+calls upstream's own `_get_salary`/`_check_winner`/`_round_settlement`
+verbatim), and this family's own goldens (spec section 4, `parity.py`) are
+already checked for parity against that real upstream code, not against an
+independent paper derivation. Stating R11's verbatim sentence here would
+misrepresent this family as having no upstream implementation when it has
+one; it is deliberately not stated.
+
+### Mutation-test evidence
+
+Verified directly (temporary edit, run, restore — never committed):
+
+- Emptying `_BRIDGE_GATED_ENROLLED_FAMILY_VERSIONS` reproduces ruling R6's
+  closure failure exactly:
+  `AssertionError: trusted plugin key(s) [('alympics.wac', '0.1.0')] are
+  neither enrolled in this test's FAMILY_SCORING_FIXTURES nor named in
+  _NOT_YET_MIGRATED_TRUSTED_KEYS`.
+- Dropping the `alt` fixture from `_alympics_kernel_contract_fixtures`'s
+  returned tuple (leaving only `left`/`right`) reproduces the R9(b)
+  sensitivity-witness failure, naming all four leaf ids:
+  `AssertionError: alympics.wac: trajectory-scoped leaf(ves)
+  ['alympics_wac_bid_legality_leaf', 'alympics_wac_settlement_exactness_leaf',
+  'alympics_wac_survival_leaf', 'alympics_wac_terminal_wealth_leaf'] never
+  changed across any of the 1 same-case pair(s) examined among the 2
+  supplied fixtures`.
+- Dropping `settlement_exactness` from `AlympicsWacScorer.__call__`'s
+  returned `FamilyScoreSet.scores` (leaving it in `admission_leaf_ids`)
+  fails both `test_finalize_wires_alympics_wac_to_the_shared_family_finalizer`
+  and `test_alympics_wac_obeys_the_scoring_contract` with
+  `MeasurementContractError: admission leaves are absent from the family
+  score set: alympics_wac_settlement_exactness_leaf`.
+
 ## Open questions for the kernel/spec owner
 
-None new from this milestone. The two open items already on record
+The focal-seat convention above (`measurement.FOCAL_SEAT`) is a genuine
+gap between ruling R12's stated premise for this family and this branch's
+actual `family_case` schema — flagged for the spec owner to confirm
+whether `family_case` should eventually carry a `focal_seat` field (or
+whether R12's own per-seat machinery, once a kernel `SeatContext` lands,
+should cover this family after all). Not blocking: the fixed convention
+above is stated, deterministic, and matches every existing test's own
+default.
+
+The two open items already on record before this migration
 (`docs/benchmark_qc.md` unmerged to `main`; `observe()`'s balance-credit
 lag) are unchanged and are tracked in `ledger_entries/alympics.md`, not
 repeated here.
