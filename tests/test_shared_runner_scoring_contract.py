@@ -3585,8 +3585,6 @@ def _leaf_spec_stability_violation(
                 "rest of its reference, must stay fixed"
             )
     return None
-
-
 def _hook_inapplicable_leaf_ids(
     plugin: Any, family_case: Mapping[str, Any]
 ) -> "frozenset[str]":
@@ -5599,8 +5597,6 @@ def test_cell_scoped_leaf_identity_varying_across_fixtures_still_fails() -> None
     )
     assert second is not None
     assert "declared identity must be stable" in second
-
-
 # Ruling R13: the synthetic case-conditional family (``_CaseConditionalPlugin``/
 # ``_CaseConditionalScorer``, defined alongside ``_ReferencePlugin`` above)
 # exercises rule 3's enforcement -- both case kinds through the protocol
