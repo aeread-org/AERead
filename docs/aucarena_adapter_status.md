@@ -152,6 +152,10 @@ and asserts `status == "ok"`, `inclusion_status == "included"`, exactly the four
 finalize-time leaves, and the declared `primary_leaf_id` — the first receipt this family
 has ever produced.
 
+An independent 2026-09-06 review raised two findings on the budget/hammer diagnostic
+metrics; both were refuted against the spec text and the diff
+(`docs/aucarena_migration_review.md`, "Disposition of the 2026-09-06 independent review").
+
 ## Evidence
 
 **On this machine, with the pinned upstream auction-arena checkout present: 0 failed, 0
@@ -195,11 +199,13 @@ AEREAD_AUCARENA_QC_GATE_REQUIRED=1 PYTHONPATH=src pytest tests/test_aucarena_cas
 ```
 
 **Full repo suite: 826 passed, 31 skipped, 1 xfailed, 0 failed** (pre-migration baseline;
-not re-run whole-repo this milestone, which touched only this family's own files). The 31
-skips are pre-existing and unrelated to this family: `rllm` integration tests (`No module
-named 'rllm'`) and `tau3_retail` tests gated on a pinned upstream tau2-bench Python
-interpreter (`$AEREAD_TAU2_BRIDGE_PYTHON`). Re-ran with and without this branch's changes to
-confirm the skip set is unchanged by this work.
+not re-run whole-repo this milestone, which touched only this family's own files plus the
+shared tests/test_shared_runner_scoring_contract.py, re-run separately below: 31 passed).
+The 31 skips are pre-existing and unrelated to this family: `rllm` integration tests (`No
+module named 'rllm'`) and `tau3_retail` tests gated on a pinned upstream tau2-bench Python
+interpreter (`$AEREAD_TAU2_BRIDGE_PYTHON`). That baseline and its with/without comparison
+were taken on zeyu/aucarena-adapter; the whole-repo suite has not been re-run on this
+branch.
 
 **This milestone's own family suite: 153 passed, 0 failed, 0 skipped** (the seven family
 test files above, plus `tests/test_shared_runner_scoring_contract.py` -- the file this
@@ -328,10 +334,10 @@ nothing left to delegate to a subprocess, and nothing to provision.
 - ~~**`AucArenaScorer.__call__` can surface only one of this family's four declared leaves...**~~
   **Retired 2026-09-06.** `AucArenaScorer.__call__` now takes a `FamilyScoringInput` and returns
   a `FamilyScoreSet` carrying all four declared leaves (see "Leaf policy" above) — the kernel
-  contract gap this entry described (`runner_defect_ledger.md` entry **D-19**) is resolved for
+  contract gap this entry described (`runner_defect_ledger.md` entry **D-15**) is resolved for
   this family by the `kernel_scoring_contract_spec.md` migration; whether the other three
-  families D-19 named (`govsim`, `steer`, `negarena`) have migrated is tracked in their own
-  status docs, not here.
+  families D-15's 2026-09-02 census named (`govsim`, `steer`, `negarena`) have migrated is
+  tracked in their own status docs, not here.
 - **A single-seat-roster case's receipt is always excluded, not merely flagged on one leaf.**
   `aucarena_profit_vs_field_leaf` is this family's sole admission leaf
   (`AucArenaScorer.__call__`'s `admission_leaf_ids=(profit_vs_field_leaf_id,)`, "Leaf policy"
@@ -369,10 +375,17 @@ nothing left to delegate to a subprocess, and nothing to provision.
   `::test_golden_1_profit_vs_field_is_finite_and_mixed_sign` pins the exact unweighted-mean
   formula (Finding 5) — a future silent change to either behavior breaks a named test instead of
   slipping through unremarked.
+- **`payload.world_seed` duplicates `CaseManifest.world_seed` (`b3a800f4`) and nothing checks
+  they agree**: `validate_payload` sees only the payload and the scheduler compares only
+  `PlanCell.world_seed` to `CaseManifest.world_seed`; a hand-authored mismatch would seed the
+  episode from the payload while cell/case bookkeeping carries the manifest value.
+  `build_case` writes them equal and `content_sha256` pins both; all five goldens verified
+  consistent.
 
 ## Ledger
 
-No new kernel/runner defect found this milestone. Three pre-existing entries from earlier
-milestones remain open in `ledger_entries/aucarena.md` (missing `docs/benchmark_qc.md`;
-`build_scorer` receiving no seed-bearing object, worked around by this family persisting
-`world_seed` in its own state) — unchanged by this work, not re-litigated here.
+No new kernel/runner defect found this milestone. Three pre-existing entries in `econ
+benchmark/ledger_entries/aucarena.md` (outside this repo): the benchmark_qc.md gap (folded
+into master D-10), the P21 taxonomy confirmation (informational, no action), and
+`build_scorer`'s missing seed route (master D-12; this branch additionally duplicates
+`world_seed` into `payload`) — unchanged by this work, not re-litigated here.
