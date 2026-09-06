@@ -406,6 +406,112 @@ and roughly $1 of runs that single-sided screening has now failed to protect.
 
 ---
 
+## 17. Validity and difficulty are the same knob, so the interior is nearly empty
+
+The recalibration of the due-diligence panel on 2026-09-06 was meant to fix
+defect 16 by putting one trap per component instead of two, so that a single
+recovery fits the action budget and a second does not. It did exactly that, and
+the panel still failed admission -- for the opposite reason.
+
+Measured at four seeds per world, with three deterministic public-observation
+baselines replayed offline:
+
+| world | control award rate | any baseline wins | margin | bound | regret |
+|---|---:|---|---:|---:|---:|
+| trap_high_a | 100% | no | 167.54 | 167.54 | 0.00 |
+| trap_low_a | 100% | no | 147.90 | 148.40 | 0.50 |
+| trap_low_b | 100% | no | 139.98 | 140.48 | 0.50 |
+| trap_mid_a | 100% | no | 150.26 | 150.26 | 0.00 |
+| trap_mid_b | 100% | no | 167.76 | 167.76 | 0.00 |
+| trap_split_components | 100% | no | 148.95 | 149.45 | 0.50 |
+
+Every world is saturated, and none is trivial: the baselines lose everywhere, so
+verification is genuinely required and the control genuinely performs it. The
+panel is not badly built. It is as well built as this parameterisation allows.
+
+The reason is structural. `validate_payload` rejects a case whose
+full-information optimum does not beat deferring, and that optimum is computed
+under the action budget. Below a threshold budget the world is illegal; at or
+above it the world is legal *and* a fixed procedure of quote, sample, award
+attains the bound. For every world in this panel the threshold is five actions:
+
+| budget | 3 | 4 | 5 | 6 | 7 |
+|---|---|---|---|---|---|
+| legal in all six worlds | no | no | yes | yes | yes |
+
+So the same quantity that decides whether a world may exist also decides whether
+it is hard. A budget sweep over the legal interior, three seeds per cell, says
+precisely how sharply:
+
+| world | budget 5 | budget 6 | budget 7 |
+|---|---|---|---|
+| trap_high_a | 3/3 | 3/3 | 3/3 |
+| trap_low_a | 0/3 | 0/3 | 3/3 |
+| trap_low_b | 0/3 | 0/3 | 3/3 |
+| trap_mid_a | 3/3 | 3/3 | 3/3 |
+| trap_mid_b | 3/3 | 3/3 | 3/3 |
+| trap_split_components | 0/3 | 0/3 | 2/2 |
+| **panel award rate** | **50%** | **50%** | **100%** |
+| **mean regret** | $73.47 | $73.56 | $0.73 |
+
+Read carefully, because the panel row is misleading on its own. A 50% award rate
+at budget 5 looks like healthy headroom. It is not headroom; it is a mixture of
+three worlds that always succeed and three that always fail. **No world takes a
+fractional value at any budget.** Every cell is 0/3 or 3/3.
+
+That distinction decides what a panel can measure. Headroom within a world means
+a treatment can raise the probability of success there. A mixture across
+deterministic worlds means a treatment can only move a world bodily across its
+own step, and when it does, every seed in that world moves together. The
+quantity a treatment must shift is therefore the number of worlds flipped, out
+of six -- not the number of rows, whatever the row count suggests.
+
+Two further readings from the same table. Budgets 5 and 6 are identical in every
+cell, so the extra action bought nothing at all and the step for the hard worlds
+sits between 6 and 7. And mean regret moves a hundredfold across that step,
+because a world that fails forfeits its entire margin rather than part of it,
+which is what makes the metric a step rather than a slope.
+
+So the earlier claim that there is no interior band needs narrowing, and the
+narrower version is worse rather than better. A panel-level interior does exist
+and is easy to hit: budget 6 gives a 50% rate. A *within-world* interior does
+not exist anywhere that was measured. Panels tuned on the panel-level number
+will look well calibrated and still carry an effective sample size of six.
+Defects 14 and 16 are both instances of this, and it explains why they kept
+recurring under tuning: each new panel was landing on one side of a step that
+the legality rule makes sharp.
+
+The fix is not another panel. It is to break the coupling, by making the optimum
+depend on something the budget does not buy -- noisy samples, so that evidence
+accumulates instead of resolving in one draw, and a stopping decision exists.
+The [positioning note](positioning.md) already lists noisy sampling as required
+to make its questions 1 and 2 real. This measurement upgrades that from a
+desirable addition to a precondition: until sampling is stochastic, award
+feasibility is a deterministic function of the world and the budget, and no
+prompt treatment can move it within a world.
+
+## 18. The trajectories carry no seed variance, so replication is not measuring what it appears to
+
+Across the same 24 rows, `contribution_margin_usd`, `regret_to_upper_bound_usd`,
+`completed_kits`, and `action_count` are **constant within every world at all four
+seeds**. Only token counts and wall-clock time vary. The model emits the same
+action sequence every time. The budget sweep reproduced this independently at
+three different seeds and three budgets: all 53 cells are 0/3 or 3/3, with no
+fractional value anywhere.
+
+This matters beyond tidiness. Variance estimates, the pilot that sizes them, and
+the cluster bootstrap over economic worlds all assume seeds are draws from a
+distribution. Here the within-world variance is exactly zero, so a seed is a
+repeat, not a replicate, and any confidence interval computed across seeds is
+narrower than the truth by construction. The effective sample size of a panel is
+its number of worlds, not its number of rows.
+
+Two consequences, both cheap. Seed count should not be used to buy precision on
+this family until sampling is stochastic. And the variance pilot should report
+the within-world variance it actually observes, and refuse to proceed when it is
+zero, since a zero there means the design is deterministic rather than that the
+measurement is precise.
+
 ## Status of the fixes
 
 | defect | state |
@@ -426,8 +532,21 @@ and roughly $1 of runs that single-sided screening has now failed to protect.
 | 14 no check that a holdout leaves the control room to fail | open; cost a full 144-row run to discover, and is the reason the confirmatory holdout is uninformative |
 | 16 control-only screen admits floored worlds | open; the due-diligence panel had 1 of 6 worlds able to express a difference |
 | 15 biased channel unread, and financing immaterial at this scale | open; found by a $0.0153 screen that also saturated the information panel 7 of 7 |
+| 17 validity and difficulty are the same knob | open, and it subsumes 14 and 16; a budget sweep found every world at 0/3 or 3/3, so the panel-level 50% at budget 6 is a mixture and not headroom |
+| 18 no seed variance within a world | open; margin, regret and action count are identical at every seed across two independent runs, so seeds are repeats and not replicates |
 
-Defects 4, 6, 8, 10, and 12 through 14 are the remaining work. Defect 14 is the
-most urgent: until it is closed, any new holdout can repeat the same waste. None of them blocks the panels
-above; each is a bounded change with the fix already described in its section.
+Defects 4, 6, 8, 10, and 12 through 14 are the remaining work, and defects 17
+and 18 reorder it. Defect 17 is now the most urgent, because it explains why 14
+and 16 kept recurring: panels were being tuned across a step that the
+environment's own legality rule makes sharp, so each new panel landed on one
+side or the other. Tuning cannot fix that, and two panels and roughly $0.30 of
+screening were spent establishing it.
+
+The unblocking change is noisy sampling. It converts a one-draw settlement into
+an accumulation, which creates the interior band defect 17 says is missing and
+the within-world variance defect 18 says is absent, and it makes the stopping
+question in the positioning note real rather than nominal. Until it lands, no
+result from this family should be reported as a treatment effect on award
+feasibility, and the existing evidence keeps its narrower label: award
+feasibility under declared constraints.
 

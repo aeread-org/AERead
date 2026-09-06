@@ -87,6 +87,7 @@ All mine, all during this session.
 | T-05 | a run driver started without `--resume` against an existing attempt root, so the campaign raised `FileExistsError` and the driver reported "no rows" | reading the driver log | one restart | driver now resumes when the root exists |
 | T-06 | the driver's no-progress guard fired on a *completed* panel and reported it as stopped | reconciling the log against the run root | a moment's confusion about whether the panel finished | benign; the guard needs a completion check before a progress check |
 | T-07 | campaign exit codes still treated any typed missingness as an abort after the policy changed to tolerate it, so a resuming driver stopped at 24 of 144 rows | the run stalled at a checkpoint | one restart | exit codes now return the abort code only when the declared ceiling is breached |
+| T-09 | cleaning up a rejected panel, `rm -f .../trap_*.json` also matched `trap_is_cheapest`, `trap_is_midpriced` and `trap_is_priciest`, three cases of the *retained* fixture that the rejected panel was never meant to touch | `git status` immediately after showed three deletions that should not have been there | none; restored from the index in the same minute | the near-miss is the point: a glob written for files created minutes earlier reached files created days earlier, in a directory that J-05 explicitly designates as evidence to preserve. Deletions in an evidence directory should name their files or be a `git clean` of untracked paths only |
 | T-08 | a scripted port of the missingness policy into a sibling campaign module failed midway on a text-block extraction | the module failed to build its plan | reverted, no lasting effect | the screen was run through the qualification engine directly instead, which needed 35 lines rather than a 1,100-line campaign clone |
 
 T-08 is worth reading twice: it is the cost of design defect D-12 made concrete.
@@ -106,11 +107,22 @@ Also mine. These are the ones no test would have caught.
 | J-04 | recommended cutting working capital because it is "arithmetic over facts already held" | the operator asked whether it models a reselling process | an incorrect rationale in a design document, corrected the same day | the real objection is scale: $50 lines against ~70% margins make the term worth ~$0.72 at honest parameters, and the six cases where it matters use 150-200% annual financing |
 
 | J-05 | built the due-diligence panel and admitted it on a control-only screen; only 1 of 6 worlds could express a difference, 2 saturated and 2 floored | the operator asked whether the zero-delta worlds were saturated or non-discriminatory, which I had not checked | $0.20 on a comparison that is effectively one world | D-16 raised; Gate 1 now requires two-sided headroom screened with two policies; the campaign write-up was corrected from "one-world artifact" to "one-world comparison" |
+| J-06 | the two-sided screen built to fix J-05 called the baseline policy with a positional argument where the parameter is keyword-only, and its `except Exception: return None` reported the resulting `TypeError` as "the baseline lost". Every baseline in every world raised, so the screen printed `admitted 6/6` having never run its second policy | the uniformity was implausible, so the baselines were traced before the verdict was used | none: caught before the panel was frozen, and the corrected screen reached the same admission decision for real | exception handling removed from the screen's action loop, so a broken policy aborts instead of scoring; a screen whose baselines all reach no terminal now rejects rather than admits |
+| J-07 | the same screen's admission rule was "the two policies disagree", which admits a world where the control already wins every seed -- the precise saturation of J-01 and D-14, re-created inside the fix for D-16 | re-reading the rule against the earlier per-world control rates | none: caught before spending | admission now tests three separable conditions -- trivial, floored, saturated -- and measures the control at four seeds, because one seed cannot distinguish a ceiling from a lucky draw |
 
 J-01, J-03 and J-05 share a cause: a panel was authored against an intuition about what
 would be hard, and neither intuition was measured before the panel was frozen.
 The $0.015 control screen now exists precisely because it is three orders of
 magnitude cheaper than discovering the same thing from a completed run.
+
+J-06 and J-07 are the more uncomfortable pair, because both are defects *in the
+instrument built to catch the previous defect*. J-06 is a swallowed exception
+that made "could not run" indistinguishable from "ran and lost". J-07 is a
+weakened admission rule that let ceiling-saturated worlds back in through the
+door opened for floored ones. Neither would have been caught by the screen
+itself; both were caught by distrusting a clean result. A screen is evidence and
+is owed the same scepticism as a run, which is why the screen now prints its
+per-policy outcomes rather than only its verdict.
 
 ---
 
@@ -125,4 +137,11 @@ magnitude cheaper than discovering the same thing from a completed run.
 4. **A check that has never failed may be true by construction.** Kill it by
    mutation, and record when a mutation survives.
 5. **Scripted git belongs in a scratch worktree**, with `cd ... || exit` and a
-   branch assertion, never in a checkout someone is using.
+   branch assertion, never in a checkout someone is using. Deletions inside an
+   evidence directory name their files or restrict themselves to untracked
+   paths; a wildcard there will eventually match something older (T-09).
+6. **Never catch an exception in a measurement loop.** A policy that cannot run
+   and a policy that runs and loses must not produce the same value; conflating
+   them turns a broken instrument into a confident result (J-06).
+7. **A unanimous result is a reason to check the instrument**, not to proceed.
+   Both screen defects announced themselves as a suspiciously clean sweep.
