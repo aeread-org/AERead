@@ -1,7 +1,9 @@
 # amazonbarg bilateral-bargaining adapter — status
 
 Branch `zeyu/amazonbarg-contract-migration`. Last verified 2026-09-05, after
-the kernel-scoring-contract migration's milestone 2 of 3 (leaf policy +
+the kernel-scoring-contract migration's milestone 3 of 3 (protocol-test
+enrollment + first real receipt; see "Enrollment in the scoring-contract
+protocol test" below), which itself sits on milestone 2 of 3 (leaf policy +
 `__call__`; see the "Leaf policy" section below), on top of the milestone-3
 adapter build (scripted harness, end-to-end, replay) and a post-review fix
 pass (`docs/amazonbarg_review_disposition.md`).
@@ -147,6 +149,107 @@ for pinning it per `family_case`; neither is decided here. Every named
 caller that already knows which seat it tested (every existing test in
 this suite, `replay.py`'s `score_replayed_episode`) is unaffected — this
 gap is specific to the `__call__` production seam.
+
+## Enrollment in the scoring-contract protocol test (migration milestone 3 of 3)
+
+This family is enrolled in `tests/test_shared_runner_scoring_contract.py`'s
+registry-driven protocol test (spec section 6): removed from
+`_NOT_YET_MIGRATED_TRUSTED_KEYS` and added to
+`_BRIDGE_GATED_ENROLLED_FAMILY_VERSIONS` instead, mirroring the govsim
+reference migration exactly, because this family's fixtures need the real,
+pinned upstream AmazonPriceHistory checkout rather than being provider-free
+in-process. `test_amazonbarg_obeys_the_scoring_contract` runs the identical
+per-family check (`_assert_family_scoring_contract`) that every other
+enrolled family runs, skipping (never failing) when the checkout is
+missing; `conftest.py`'s new `AEREAD_AMAZONBARG_BRIDGE_REQUIRED` entry lets
+a certifying run turn that skip into a failure instead — closing not only
+this new test's own gap but a pre-existing one (before this milestone,
+every `test_amazonbarg_*.py` skip on a missing checkout was already
+unguarded by any `_BRIDGE_FAMILIES` entry).
+
+**Paired-history fixture: constructible, and now built.** The migration
+plan's "Paired-history pair: constructible — yes" finding is realized as
+`GOLDEN_1_SCRIPT` (the existing golden 1 home-kitchen_2 $135 deal) paired
+against a new `GOLDEN_1_PAIRED_HISTORY_SCRIPT` for the *same* case that
+closes at the *same* $135 price through genuinely different intermediate
+offers and dialogue. The byte-identity claim is asserted in the test itself
+(`_assert_family_scoring_contract`'s own
+`canonical_json_bytes(left_input.outcome) == canonical_json_bytes(right_input.outcome)`
+and `left_input.phase_instances != right_input.phase_instances`), not merely
+claimed in a comment, and was independently verified against the real
+pinned upstream checkout before being wired in. Because the pair shares one
+realized deal price `D`, the two leaves forced to stay declared
+`input_scope="terminal_state"` (`amazonbarg_deal_lower_bound`,
+`amazonbarg_deal_upper_bound` — see "Leaf policy" above) score identically
+across it, satisfying ruling R7's contrapositive; mutation-verified by
+temporarily changing the paired fixture's deal price to $140, which fails
+the contrapositive assertion with a precise diff naming the mislabelled
+leaf, then reverted.
+
+**First real receipt: `test_finalize_wires_amazonbarg_to_the_shared_family_finalizer`
+(`tests/test_amazonbarg_replay.py`).** This family had never produced an
+`EvaluationReceipt` before this milestone — `ScriptedAmazonbargHarness`
+writes only its own convenience event, never the generic evidence
+vocabulary `task.evaluation.replay_family_scoring_input` needs to replay.
+`EvidenceRecordingAmazonbargHarness` (new, mirrors govsim's identically
+-purposed class field-for-field) and `build_amazonbarg_setup` (a real,
+`resolve_run_plan`-resolved, provider-free `RunPlan`) close that gap. Two
+defects surfaced only once this family was actually driven through
+`finalize_family_execution` for the first time — exactly the govsim
+reference migration's own experience, "neither defect was reachable before
+this family was ever driven through finalize_family_execution":
+
+- `AmazonbargPlugin.initial_state`'s second parameter was named `cell`;
+  `task.evaluation._replay_family_trajectory` calls it by keyword
+  (`run=None`), matching every other family's own hook. Renamed to `run`
+  (the live scheduler still passes it positionally, so this is a pure
+  signature rename, not a behavior change); the three call sites in
+  `tests/test_amazonbarg_environment.py` that called it by keyword were
+  updated to match.
+- `measurement.py` declares each of its five leaves' scorer implementation
+  (and the shared upstream-metrics-bridge reference and shared base-domain
+  predicate) under its own distinct component id, never reusing the
+  family-level `scorer_id` — `family_manifest()`'s `"scoring"` block now
+  declares all seven as `reference_provider_ids`, or
+  `resolve_run_plan`/`EvaluationReceipt._validate_and_freeze_plan_pins`
+  reject the plan/receipt as missing implementations. This is an additive,
+  amazonbarg-scoped manifest field with no existing frozen digest to
+  perturb (ruling R1 is not implicated: this family has no published
+  campaign evidence yet).
+
+**The receipt confirms, rather than merely discloses, the `tested_seat` gap
+above.** Driving golden 1 — a clean, successful $135 deal, nothing
+malformed — through the real finalizer produces a receipt carrying every
+one of the five declared leaves with the correct primary
+(`amazonbarg_bargained_ratio_leaf`) and every non-primary diagnostic leaf
+`status="ok"`, but the receipt's own top-level `status` is
+`"invalid_measurement"` and `inclusion_status` is `"excluded"`: the primary
+and sole admission leaf is sealed `invalid_measurement` with
+`REASON_TESTED_SEAT_UNKNOWN`, exactly as "Leaf policy"'s own "Disclosed
+consequence" predicted. This is not a defect this milestone introduces or
+is scoped to fix — resolving it needs the same kernel-level channel or
+family-level convention already named there, undecided as of this
+milestone — but it means **every receipt this family produces through
+`AmazonbargScorer.__call__` today is non-admitted, for any episode, clean
+or not**, now demonstrated rather than only argued.
+
+**Suite, with the bridge exported:** the full family test-file set plus
+`test_shared_runner_scoring_contract.py` and `test_shared_runner_smoke.py`
+— **138 passed, 0 failed, 0 skipped**. Without the bridge (upstream root
+pointed at a nonexistent path): **53 passed, 85 skipped**, every skip
+carrying the same named reason as before, including both of this
+milestone's new tests
+(`test_finalize_wires_amazonbarg_to_the_shared_family_finalizer`,
+`test_amazonbarg_obeys_the_scoring_contract`) — verified individually, not
+merely counted.
+
+No `docs/amazonbarg_migration_review.md` is added this milestone: unlike
+the govsim reference migration's `b853ed74` (which recorded an independent
+review actually supplied to that migration), no review was supplied for
+this one, and fabricating one to match the reference shape would misrepresent
+provenance. The `conftest.py` bridge-required gate (govsim's own review
+finding 1's fix) is applied directly instead, since it does not depend on a
+review having occurred.
 
 ## Evidence
 
