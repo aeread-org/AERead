@@ -87,6 +87,16 @@ SEED = 300
 MAX_PARALLEL_CELLS = 1
 MAX_CANARY_COST_USD = 0.01
 MAX_CANARY_OUTPUT_TOKENS = 256
+# A transient condition on an UNSCORED, zero-cost probe must not seal the
+# attempt root: the probe produces no measurement, so re-probing changes
+# nothing about what is measured. Every probe is still recorded write-once
+# under its own ordinal, so the audit trail shows exactly how many were
+# needed and why each failed. Non-transient rejections still stop the run.
+# See docs/families/procurement-allocation/design_review.md, which recorded
+# this defect after it sealed two attempt roots there.
+CANARY_TRANSIENT_CONDITIONS = ("rate_limit", "provider_5xx", "timeout")
+MAX_CANARY_PROBES = 6
+CANARY_RETRY_BASE_SECONDS = 15.0
 MAX_TRAJECTORY_COST_USD = 0.06
 HARD_TOTAL_COST_CEILING_USD = 0.40
 
@@ -149,6 +159,12 @@ def build_campaign_plan() -> dict[str, Any]:
             "scored": False,
             "max_cost_usd": MAX_CANARY_COST_USD,
             "max_output_tokens": MAX_CANARY_OUTPUT_TOKENS,
+            # Declared before execution so the re-probe budget is part of the
+            # frozen contract, not an operator decision taken after a 429.
+            "max_probes": MAX_CANARY_PROBES,
+            "transient_conditions": list(CANARY_TRANSIENT_CONDITIONS),
+            "retry_base_seconds": CANARY_RETRY_BASE_SECONDS,
+            "probes_are_recorded_individually": True,
         },
         "panel": [
             {
@@ -197,7 +213,9 @@ def _route_metadata() -> dict[str, str]:
     return route_metadata()
 
 
-async def run_canary(*, path: Path, plan_sha256: str) -> dict[str, Any]:
+async def _probe_canary(
+    *, path: Path, plan_sha256: str, ordinal: int
+) -> dict[str, Any]:
     if path.exists():
         value = json.loads(path.read_text(encoding="utf-8"))
         if value.get("plan_sha256") != plan_sha256 or value.get(
@@ -240,6 +258,7 @@ async def run_canary(*, path: Path, plan_sha256: str) -> dict[str, Any]:
         "plan_sha256": plan_sha256,
         "case_id": CANARY_CASE_ID,
         "scored": False,
+        "probe_ordinal": ordinal,
         "request_sha256": request.request_sha256,
         "model": MODEL,
         "revision": REVISION,
@@ -282,16 +301,36 @@ async def run_canary(*, path: Path, plan_sha256: str) -> dict[str, Any]:
     return record
 
 
+async def run_canary(*, run_root: Path, plan_sha256: str) -> dict[str, Any]:
+    """Admit the route, re-probing only on typed transient conditions.
+
+    Returns the admitted probe, or the last rejection when every allowed
+    probe failed. Each probe is sealed write-once under its own ordinal.
+    """
+    directory = run_root / "checkpoints" / "canary_probes"
+    record: dict[str, Any] = {}
+    for ordinal in range(1, MAX_CANARY_PROBES + 1):
+        record = await _probe_canary(
+            path=directory / f"{ordinal:03d}.json",
+            plan_sha256=plan_sha256,
+            ordinal=ordinal,
+        )
+        if record.get("status") == "admitted":
+            return record
+        if record.get("failure_condition") not in CANARY_TRANSIENT_CONDITIONS:
+            return record
+        if ordinal < MAX_CANARY_PROBES:
+            await asyncio.sleep(CANARY_RETRY_BASE_SECONDS * ordinal)
+    return record
+
+
 async def execute_campaign(*, run_root: Path) -> None:
     plan_path = run_root / "campaign_plan.json"
     plan = build_campaign_plan()
     _write_once_json(plan_path, plan)
     _verify_plan(json.loads(plan_path.read_text(encoding="utf-8")))
     bridge = EconevalsBridge(python_executable=discover_bridge_python())
-    canary = await run_canary(
-        path=run_root / "checkpoints" / "canary.json",
-        plan_sha256=plan["plan_sha256"],
-    )
+    canary = await run_canary(run_root=run_root, plan_sha256=plan["plan_sha256"])
     if canary.get("status") != "admitted":
         raise RuntimeError("econevals canary was rejected; campaign stopped")
     total_cost = float(canary["cost_usd"])
@@ -387,9 +426,11 @@ async def execute_campaign(*, run_root: Path) -> None:
 def publish_campaign(*, run_root: Path, publication_root: Path) -> None:
     plan = json.loads((run_root / "campaign_plan.json").read_text(encoding="utf-8"))
     _verify_plan(plan)
-    canary = json.loads(
-        (run_root / "checkpoints" / "canary.json").read_text(encoding="utf-8")
-    )
+    probes = sorted((run_root / "checkpoints" / "canary_probes").glob("*.json"))
+    if not probes:
+        raise RuntimeError("cannot publish a campaign with no recorded canary probe")
+    records = [json.loads(path.read_text(encoding="utf-8")) for path in probes]
+    canary = records[-1]
     canary_payload = {k: v for k, v in canary.items() if k != "record_sha256"}
     if (
         canary.get("status") != "admitted"
@@ -447,14 +488,18 @@ def publish_campaign(*, run_root: Path, publication_root: Path) -> None:
                 "receipt_replayed": checkpoint["receipt_replayed"],
             }
         )
-    total_cost = float(canary["cost_usd"]) + sum(
+    total_cost = sum(float(record["cost_usd"]) for record in records) + sum(
         float(row["cost_usd"]) for row in trajectory_rows
     )
     summary = {
         "campaign_id": CAMPAIGN_ID,
         "plan_sha256": plan["plan_sha256"],
         "canary_status": canary["status"],
-        "canary_cost_usd": canary["cost_usd"],
+        "canary_cost_usd": sum(float(record["cost_usd"]) for record in records),
+        "canary_probe_count": len(records),
+        "canary_probe_conditions": [
+            record.get("failure_condition") for record in records[:-1]
+        ],
         "planned_cases": len(PANEL_CASE_IDS),
         "completed_cases": len(trajectory_rows),
         "operational_failures": 0,
