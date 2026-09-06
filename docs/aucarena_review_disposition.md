@@ -306,7 +306,7 @@ Source: `docs/aucarena_fix_verification.md`, a read-only, independent re-check o
 and 8 claimed fixed but incomplete; Findings 2, 5, and 7 explicitly unresolved (already
 disclosed as such above, not claimed fixed); Finding 0 unchanged. Worked in that order. One
 additional, already-decided item was folded in per standing instruction: `AucArenaScorer`'s
-`__call__` (added for Finding 1) is a real instance of ledger entry **D-19**
+`__call__` (added for Finding 1) is a real instance of ledger entry **D-15**
 (`runner_defect_ledger.md`) and is disclosed here rather than fixed, per that ledger entry's
 own explicit warning against giving a multi-leaf scorer a `__call__` that silently picks one
 leaf as primary.
@@ -383,15 +383,15 @@ report file; there is no way to reconstruct whatever a lost ninth item might hav
 what remains. Correctly excluded from the numbered findings above; this is an explicit
 confirmation that the exclusion was re-checked, not a silent drop.
 
-**D-19 — `AucArenaScorer.__call__` collapses four leaves to one.** *Disclosed, not fixed,
+**D-15 — `AucArenaScorer.__call__` collapses four leaves to one.** *Disclosed, not fixed,
 per standing instruction.* Confirmed `__call__` (commit `059f46a`) forwards only to
 `score_profit_vs_field`, the sole leaf reachable from a bare terminal `outcome`, and has no way
 to also surface `aucarena_budget_invariant`, `aucarena_bid_legality`, or
 `aucarena_hammer_rule` when invoked through the kernel's real single-`ScoreEnvelope` calling
-convention — exactly the risk `runner_defect_ledger.md` entry D-19's 2026-09-02 addendum warns
+convention — exactly the risk `runner_defect_ledger.md` entry D-15's 2026-09-02 census warns
 against ("do NOT paper over this per-adapter"). Not aucarena-specific: three other families
 (`govsim`, `steer`, `negarena`) independently added the same shape of `__call__` while closing
-their own reviews, and D-19 is already open, tracked, and awaiting a kernel-owner ruling on
+their own reviews, and D-15 is already open, tracked, and awaiting a kernel-owner ruling on
 whether `finalize_family_execution` should seal a leaf vector or a family-declared primary.
 Added a "Known limits" bullet to `docs/aucarena_adapter_status.md` stating this plainly instead
 of leaving `__call__`'s docstring (which frames the single-leaf forward as simply "the
@@ -408,11 +408,11 @@ learn this. No code change: `__call__` is not touched, and no leaf-picking logic
 | 6 | comparator identity narrower than spec claims | narrowed (status doc now states the case_id/world_seed exclusion explicitly) |
 | 7 | self-referential parity tests | unchanged (disclosure re-confirmed accurate) |
 | 8 | module-wide silent skip | fixed further (always-visible note; test + mutation-verified) |
-| D-19 | `AucArenaScorer.__call__` collapses four leaves to one | disclosed (status doc bullet added; ledger entry unchanged, per standing instruction) |
+| D-15 | `AucArenaScorer.__call__` collapses four leaves to one | disclosed (status doc bullet added; ledger entry unchanged, per standing instruction) |
 
 Fixed further, with a failing-first test and a confirmed-dying mutation: 1 (Finding 8).
 Narrowed (documentation only, existing tests already bite where applicable): 4 (Findings 2, 5,
-6, and D-19's disclosure). Unchanged, re-confirmed as already correctly handled: 2 (Findings 0,
+6, and D-15's disclosure). Unchanged, re-confirmed as already correctly handled: 2 (Findings 0,
 7).
 
 Re-ran after this pass: family test files (`tests/test_aucarena_cases.py`,

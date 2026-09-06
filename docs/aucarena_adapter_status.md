@@ -26,7 +26,7 @@ measurement leaves, never one blended number (`docs/aucarena_adapter_spec.md` se
 | `aucarena_profit_vs_field` | `comparative` | `head_to_head` | terminal_state | always; `invalid_measurement` when the roster's field is empty (golden 5) |
 
 No `objective_reference` leaf is declared: per the P21 row in both
-`docs/verifier_taxonomy.md` §13 and `docs/problem_bound_case_audit.md`, profit and TrueSkill
+`docs/research/verifier_taxonomy.md` §13 and `docs/research/problem_bound_case_audit.md`, profit and TrueSkill
 do not solve the auction policy game, so `aucarena_profit_vs_field` stays a head-to-head
 comparison against a *named, declared* frozen rule-bidder field — never a universal
 auction-skill score.
@@ -66,8 +66,8 @@ the retired "Known limits" entry below) is gone.
 **Why `aucarena_profit_vs_field` is primary.** It is this family's own
 already-declared `primary_estimand` (`family_manifest()`'s `measurement` block,
 present since before this milestone), and it names the estimand of primary interest
-by design: per the P21 row in both `docs/verifier_taxonomy.md` §13 and
-`docs/problem_bound_case_audit.md`, profit and TrueSkill do not solve the auction
+by design: per the P21 row in both `docs/research/verifier_taxonomy.md` §13 and
+`docs/research/problem_bound_case_audit.md`, profit and TrueSkill do not solve the auction
 policy game, so no `objective_reference` leaf is declared at all, and the
 comparative head-to-head leaf is the one this family stakes its headline claim on
 (`measurement.py`'s own module docstring makes the identical statement). It was not
@@ -282,7 +282,7 @@ nothing left to delegate to a subprocess, and nothing to provision.
   require the `langchain`-chained prompt/parse path this adapter deliberately never imports
   (`docs/aucarena_adapter_spec.md` section 7).
 - **`aucarena_profit_vs_field` is a head-to-head comparison, not a policy optimum.** Per the
-  P21 row in both `docs/verifier_taxonomy.md` and `docs/problem_bound_case_audit.md`, this
+  P21 row in both `docs/research/verifier_taxonomy.md` and `docs/research/problem_bound_case_audit.md`, this
   route is `not_demonstrated` for saturation and must stay that way in any paper claim.
 - **The scenario corpus is AERead-authored, not an upstream-published task list** — upstream
   ships only a raw 26-item pool and a generator, not an enumerable task set
