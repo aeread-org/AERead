@@ -581,14 +581,16 @@ class AucArenaPlugin:
         See ``measurement.py`` (spec section 2): ``aucarena_budget_invariant``,
         ``aucarena_bid_legality``, ``aucarena_hammer_rule``, and
         ``aucarena_profit_vs_field`` are declared for every case -- no
-        ``objective_reference`` leaf, no scalar collapse. The returned
-        ``AucArenaScorer`` is itself callable (``__call__(outcome,
-        evidence_refs=...)``) -- the shared kernel's real calling convention
-        (``finalize_family_execution`` in
-        ``aeread/shared_runner/family_evaluation.py`` already calls whatever
-        this method returns as a function; see ``AucArenaScorer.__call__``'s
-        own docstring for exactly which one of the four leaves that
-        convention can reach).
+        ``objective_reference`` leaf, no scalar collapse.
+        ``task.evaluation.finalize_family_execution`` calls the returned
+        ``AucArenaScorer`` directly (``plugin.build_scorer(family_case)(
+        scoring_input, evidence_refs=scoring_input.evidence_refs)``, per
+        kernel_scoring_contract_spec.md section 1); ``measurement.py``'s
+        ``AucArenaScorer.__call__`` is the seam that satisfies that call and
+        returns every one of this family's four declared finalize-time
+        leaves (section 5), not just the primary. Each leaf's own named
+        method is still exercised directly by every golden-by-golden test in
+        this family.
         """
         return build_measurement_scorer(family_case)
 
