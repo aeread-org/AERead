@@ -84,8 +84,9 @@ from .cases import (
     TRACKS,
 )
 from .econevals_bridge import EconevalsBridge
-from .measurement import EconevalsScorer
+from .measurement import GATE_LEAF_ID, OBJECTIVE_LEAF_ID, EconevalsScorer
 from .measurement import build_scorer as _build_measurement_scorer
+from .measurement import reference_provider_ids as _measurement_reference_provider_ids
 
 PLUGIN_ID = "econevals_environment"
 SCORER_ID = "econevals_scorer"
@@ -252,11 +253,49 @@ def family_manifest() -> FamilyManifest:
                 # verifier_taxonomy.md section 5.3 explicitly warns
                 # headroom-capture-style statistics are not automatically a
                 # score in [0, 1].
+                #
+                # kernel_scoring_contract_spec.md section 3: `primary_estimand`
+                # above ("econevals_headroom_capture") names an estimand no
+                # leaf realizes today -- headroom_capture's own formula
+                # (verifier_taxonomy.md 5.3) needs a comparison_baseline
+                # separate-run artifact (an executable baseline policy's own
+                # episode under the same case) that does not exist for this
+                # family. Per ruling R8, a leaf-policy primary need not name
+                # the same estimand as `primary_estimand` -- see
+                # docs/econevals_adapter_status.md's "Leaf policy" section
+                # for why `econevals_objective_leaf` (not a headroom_capture
+                # leaf, which this migration does not invent) is declared
+                # primary below, and why it alone gates admission. Both
+                # leaves are `scope="finalize_time"`: everything either one
+                # depends on -- the case's own pinned gold_optimum, and this
+                # episode's own last recorded attempt -- is available at
+                # finalization, with no judge, rater, or other not-yet-
+                # existing artifact dependency (spec section 4), so neither
+                # is `deferred`.
+                "leaves": [
+                    {"leaf_id": GATE_LEAF_ID, "scope": "finalize_time"},
+                    {"leaf_id": OBJECTIVE_LEAF_ID, "scope": "finalize_time"},
+                ],
+                "primary_leaf_id": OBJECTIVE_LEAF_ID,
+                "admission_leaf_ids": [OBJECTIVE_LEAF_ID],
                 "primary_estimand": "econevals_headroom_capture",
                 "measurement_kind": "optimizable_outcome",
                 "direction": "maximize",
             },
-            "scoring": {"scorer_id": SCORER_ID},
+            # measurement.py declares each of its two leaves' scorer
+            # implementation under its own distinct, per-track component id
+            # (never reusing SCORER_ID), plus one shared validity-domain
+            # predicate id -- resolve_run_plan's own pin bookkeeping only
+            # requires and admits a pin for a component named here or as
+            # scorer_id (_required_pin_kinds), and
+            # EvaluationReceipt._validate_and_freeze_plan_pins requires every
+            # leaf-declared implementation ref to match one, so all seven
+            # must be declared as reference providers here (the same defect
+            # the reference migration's own 088e2693 fixed for govsim).
+            "scoring": {
+                "scorer_id": SCORER_ID,
+                "reference_provider_ids": list(_measurement_reference_provider_ids()),
+            },
         }
     )
 
@@ -304,8 +343,20 @@ class EconevalsPlugin:
             raise ValueError("payload.pins.max_steps must be positive")
         return data
 
-    def initial_state(self, family_case: Mapping[str, Any], cell: Any) -> dict[str, Any]:
-        del cell
+    def initial_state(self, family_case: Mapping[str, Any], run: Any) -> dict[str, Any]:
+        """Build the initial family state for one episode.
+
+        The second parameter is named ``run`` (not ``cell``) to match every
+        other family's own ``initial_state`` hook -- required because
+        ``task.evaluation._replay_family_trajectory`` calls
+        ``plugin.initial_state(family_case, run=None)`` by keyword
+        (kernel_scoring_contract_spec.md's ``replay_family_scoring_input``
+        contract); the live scheduler (``task.scheduler.run_episode``) still
+        passes this positionally, so this rename does not change what value
+        actually arrives here. The same latent defect the reference
+        migration's own ``088e2693`` fixed for govsim.
+        """
+        del run
         return {
             "track": family_case["track"],
             "period": 0,
@@ -537,6 +588,15 @@ class EconevalsPlugin:
         Delegates entirely to ``measurement.build_scorer``: this hook is
         just the ``PluginRegistry``-facing entry point, never a second
         place that declares or computes a leaf.
+        ``task.evaluation.finalize_family_execution`` calls the returned
+        ``EconevalsScorer`` directly (``plugin.build_scorer(family_case)(
+        scoring_input, evidence_refs=scoring_input.evidence_refs)``, per
+        kernel_scoring_contract_spec.md section 1); ``measurement.py``'s
+        ``EconevalsScorer.__call__`` is the seam that satisfies that call
+        and returns both of this family's declared finalize-time leaves
+        (section 5). Each leaf's own named method is still exercised
+        directly by ``tests/test_econevals_measurement.py``'s goldens
+        today.
         """
         return _build_measurement_scorer(family_case)
 

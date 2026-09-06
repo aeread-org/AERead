@@ -64,6 +64,7 @@ from typing import Any, Mapping
 
 from aeread.shared_runner.measurement import (
     EstimandSpec,
+    FamilyScoreSet,
     ImplementationRef,
     MeasurementLeafSpec,
     MetricValue,
@@ -75,6 +76,8 @@ from aeread.shared_runner.measurement import (
     VerifierSpec,
 )
 from aeread.shared_runner.run.resolver import canonical_json_bytes
+from aeread.shared_runner.task.evaluation import FamilyScoringInput
+from aeread.shared_runner.task.scheduler import PhaseInstance
 
 from .cases import MODULE_SHA256, TRACKS
 
@@ -85,6 +88,32 @@ IMPLEMENTATION_VERSION = "0.1.0"
 
 DOMAIN_ID = "econevals_base_v1"
 DOMAIN_VERSION = "0.1.0"
+
+# Named (not inline) because it is also one of family_manifest()'s own
+# ``scoring.reference_provider_ids`` declarations (environment.py):
+# task.evaluation._receipt_implementations collects every leaf's validity
+# domain predicate, verifier reference implementation, and scorer ref, and
+# task.receipts.EvaluationReceipt._validate_and_freeze_plan_pins requires
+# each to match a pinned component in the resolved RunPlan -- so this id
+# (shared by both leaves across all three tracks) must be declared where
+# resolve_run_plan's own ``_required_pin_kinds`` can require and admit a
+# pin for it. Mirrors govsim's identical ``BASE_DOMAIN_PREDICATE_ID`` fix
+# (kernel_scoring_contract_spec.md migration, ``088e2693``).
+BASE_DOMAIN_PREDICATE_ID = "econevals_base_domain_predicate"
+
+# kernel_scoring_contract_spec.md section 3: the manifest's leaf policy
+# declares ONE static leaf set per family/version (`_enforce_declared_leaf_policy`
+# compares `set(produced_leaf_ids) == set(declared.leaf_ids)` against a single
+# manifest read once, never per-case), but the pre-migration ids below were
+# track-parameterized (`econevals_{track}_gate_leaf`), so a procurement case and
+# a scheduling case produced disjoint leaf_id sets -- incompatible with one
+# static declaration. These two track-agnostic ids are what the manifest
+# declares and what `build_gate_leaf`/`build_objective_leaf` now use; the
+# per-track distinctions (estimand_id, units, direction, reference.source_sha256)
+# still live one level down inside each MeasurementLeafSpec, untouched by this
+# rename -- see docs/econevals_migration_plan.md's "Leaf-identity finding".
+GATE_LEAF_ID = "econevals_gate_leaf"
+OBJECTIVE_LEAF_ID = "econevals_objective_leaf"
 
 # --------------------------------------------------------------------------
 # Per-track declarative tables (spec section 2's per-track table).
@@ -208,8 +237,31 @@ def _validity_domain() -> ValidityDomainSpec:
         domain_id=DOMAIN_ID,
         domain_version=DOMAIN_VERSION,
         schema_ref="econevals_base_v1/case_payload",
-        predicate=_implementation_from_file("econevals_base_domain_predicate", "environment.py"),
+        predicate=_implementation_from_file(BASE_DOMAIN_PREDICATE_ID, "environment.py"),
     )
+
+
+def reference_provider_ids() -> tuple[str, ...]:
+    """Every implementation id any of the six leaf declarations (two per
+    track) pins, plus the shared validity-domain predicate -- the exact set
+    ``family_manifest()``'s ``scoring.reference_provider_ids`` must declare.
+
+    ``resolve_run_plan``'s own ``_required_pin_kinds`` only requires (and
+    admits) a pin for a component named by ``family.scoring.scorer_id`` or
+    ``family.scoring.reference_provider_ids`` -- every leaf's own
+    ``estimand.validity_domain.predicate``/``verifier.reference.implementation``/
+    ``scorer`` must be reachable through one of those two, or
+    ``EvaluationReceipt._validate_and_freeze_plan_pins`` rejects the sealed
+    receipt as missing implementations (the exact defect govsim's own
+    ``088e2693`` fixed). Computed once, from the leaf builders themselves,
+    rather than hand-duplicated, so this can never drift from what
+    ``build_gate_leaf``/``build_objective_leaf`` actually declare.
+    """
+    ids: set[str] = {BASE_DOMAIN_PREDICATE_ID}
+    for track in TRACKS:
+        ids.add(build_gate_leaf(track).scorer.implementation_id)
+        ids.add(build_objective_leaf(track, {}).scorer.implementation_id)
+    return tuple(sorted(ids))
 
 
 def _gate_scorer_implementation(track: str) -> ImplementationRef:
@@ -252,7 +304,7 @@ def build_gate_leaf(track: str) -> MeasurementLeafSpec:
         reference=reference,
     )
     return MeasurementLeafSpec(
-        leaf_id=f"econevals_{track}_gate_leaf",
+        leaf_id=GATE_LEAF_ID,
         leaf_version=LEAF_VERSION,
         estimand=estimand,
         verifier=verifier,
@@ -314,7 +366,7 @@ def build_objective_leaf(track: str, gold_optimum: Mapping[str, Any]) -> Measure
         objective_scope=objective_scope,
     )
     return MeasurementLeafSpec(
-        leaf_id=f"econevals_{track}_objective_leaf",
+        leaf_id=OBJECTIVE_LEAF_ID,
         leaf_version=LEAF_VERSION,
         estimand=estimand,
         verifier=verifier,
@@ -387,6 +439,46 @@ def _invalid_measurement(
         validity=ValidityReport("invalid", reasons=(reason,)),
         evidence_refs=evidence_refs,
     )
+
+
+def _objective_not_computed(
+    leaf: MeasurementLeafSpec, *, gate: ScoreEnvelope, evidence_refs: tuple[str, ...] = ()
+) -> ScoreEnvelope:
+    """The objective leaf's own envelope whenever the gate did not pass.
+
+    ``score_attempt``/``score_terminal_state`` (unchanged by this function)
+    return ``None`` for the objective in exactly this case -- per this
+    module's own docstring, "only when the gate passes does it compute the
+    objective." kernel_scoring_contract_spec.md section 3 requires a family's
+    scorer to return every declared leaf on every case, and ``ScoreEnvelope``
+    has only two statuses (``measurement.py``'s own two-state contract): with
+    no legally-scoreable achieved value to report -- fabricating one is
+    exactly what this module refuses to do -- ``invalid_measurement`` is the
+    only honest status left for the objective leaf itself.
+
+    This does not relabel the GATE's own status: a well-formed-but-illegal
+    submission keeps its gate ``status="ok", primary=0.0`` real domain fact
+    (``_gate_fail``), and only a malformed one keeps the gate's own
+    ``invalid_measurement`` (``_invalid_measurement``) -- both are read here,
+    never overwritten, only to build a reason string that keeps a malformed
+    submission and a domain-illegal one distinguishable in the OBJECTIVE
+    leaf's own record even though this leaf's own status cannot separate them
+    the way the gate leaf's status still does. Because this leaf is the
+    family's sole admission leaf (see ``docs/econevals_adapter_status.md``'s
+    "Leaf policy" section), any case reaching this function -- malformed,
+    illegal, infeasible, or no attempt recorded at all -- excludes the
+    receipt from the family's own admitted-episode aggregate; that is an
+    honest consequence of there being no achieved value to include, not a
+    mislabelling of the submission itself.
+    """
+    if gate.status == "invalid_measurement":
+        reason = f"objective_not_computed: gate {'; '.join(gate.validity.reasons)}"
+    else:
+        gate_reason = gate.primary.metadata.get("reason") if gate.primary is not None else None
+        reason = "objective_not_computed: gate_failed" + (
+            f" ({gate_reason})" if gate_reason else ""
+        )
+    return _invalid_measurement(leaf, reason=reason, evidence_refs=evidence_refs)
 
 
 def _objective_ok(
@@ -531,6 +623,48 @@ def score_pricing(
 
 
 # --------------------------------------------------------------------------
+# FamilyScoringInput plumbing (kernel_scoring_contract_spec.md section 1).
+# --------------------------------------------------------------------------
+
+
+def _state_from_phase_instances(phase_instances: tuple[PhaseInstance, ...]) -> Mapping[str, Any]:
+    """The FSM state after the final logical action of the final phase instance.
+
+    Both of this family's leaves are declared ``input_scope="answer"``/
+    ``"terminal_state"`` (never ``"trajectory"``) -- correctly, since each
+    scores only the LAST recorded attempt (``score_terminal_state``'s own
+    ``horizon``), never anything earlier. But ``EconevalsPlugin.outcome()``
+    carries only ``{termination_reason, period_count, num_attempts}`` --
+    never the ``attempts`` list itself (docs/econevals_migration_plan.md's
+    "Paired-history pair: constructible" section confirms this directly
+    against this base) -- so ``scoring_input.outcome`` alone cannot supply
+    what ``score_terminal_state`` needs. ``scoring_input.phase_instances``
+    is the only carrier that reconstructs it: ``step()`` writes
+    ``new_state["attempts"]`` once per period and never resets it, so the
+    LAST phase instance's LAST transition's ``state`` carries the full,
+    cumulative attempt history, from which only the final entry is ever
+    read. This mirrors govsim's own
+    ``_round_trace_from_phase_instances``, applied here to a
+    terminal-scoped leaf rather than a trajectory-scoped one, for the same
+    underlying reason: the leaf's declared scope is about WHAT it depends
+    on (only the final state), not about WHICH ``FamilyScoringInput`` field
+    happens to carry that final state.
+
+    Ruling R3 (kernel_scoring_contract_spec.md): reading this is safe
+    because every phase boundary's post-state hash is cross-checked against
+    sealed evidence during the verified re-execution that produces
+    ``phase_instances``, so a state that diverged from the real run would
+    already have failed finalization before this scorer is ever called --
+    this only reads what that re-execution produced, never re-derives
+    anything independently.
+    """
+    if not phase_instances:
+        return {}
+    last_state = phase_instances[-1].transitions[-1].state
+    return last_state if isinstance(last_state, Mapping) else {}
+
+
+# --------------------------------------------------------------------------
 # One case's fixed set of declared leaves, plus the scorer for it.
 # --------------------------------------------------------------------------
 
@@ -542,7 +676,17 @@ class EconevalsScorer:
     Mirrors ``tau3_retail.measurement.Tau3RetailScorer``'s shape: a small,
     case-bound wrapper around the module-level ``score_*``/``build_*``
     functions, exercised directly by tests and returned from
-    ``environment.py``'s ``build_scorer`` hook.
+    ``environment.py``'s ``build_scorer`` hook. ``task.evaluation.finalize_family_execution``
+    calls the returned object directly
+    (``plugin.build_scorer(family_case)(scoring_input, evidence_refs=scoring_input.evidence_refs)``,
+    per kernel_scoring_contract_spec.md section 1) -- ``__call__`` below is
+    the seam that satisfies that exact production call and returns both of
+    this family's declared finalize-time leaves (section 5), via
+    ``score_all`` (the single source of truth for the full set; ``__call__``
+    is a thin wrapper over it, never new scoring logic). Each leaf's own
+    named method (``score_attempt``/``score_terminal_state``) is still
+    exercised directly by ``tests/test_econevals_measurement.py``'s goldens,
+    unchanged by this migration.
     """
 
     track: str
@@ -600,6 +744,56 @@ class EconevalsScorer:
             )
         return self.score_attempt(attempts[-1], evidence_refs=evidence_refs)
 
+    def score_all(
+        self, state: Mapping[str, Any], *, evidence_refs: tuple[str, ...] = ()
+    ) -> tuple[ScoreEnvelope, ScoreEnvelope]:
+        """Both declared leaves, always both, never ``None`` -- the single
+        source of truth ``__call__`` wraps (spec section 5, item 3).
+
+        Delegates entirely to ``score_terminal_state`` (unchanged by this
+        migration): whenever the gate did not pass, ``score_terminal_state``
+        returns ``None`` for the objective, and only here does that ``None``
+        become an explicit ``invalid_measurement`` envelope
+        (``_objective_not_computed`` -- see its own docstring for why this
+        is a plumbing widening, never a change to the underlying arithmetic).
+        """
+        gate, objective = self.score_terminal_state(state, evidence_refs=evidence_refs)
+        if objective is None:
+            objective = _objective_not_computed(
+                self.objective_leaf, gate=gate, evidence_refs=evidence_refs
+            )
+        return gate, objective
+
+    def __call__(
+        self, scoring_input: FamilyScoringInput, *, evidence_refs: tuple[str, ...] = ()
+    ) -> FamilyScoreSet:
+        """Score one finalized episode exactly as the production finalizer
+        calls it: ``plugin.build_scorer(family_case)(scoring_input,
+        evidence_refs=scoring_input.evidence_refs)``
+        (``task.evaluation.finalize_family_execution``, per
+        kernel_scoring_contract_spec.md section 1).
+
+        Returns both of this family's declared finalize-time leaves (spec
+        section 5) -- a thin wrapper over ``score_all``, this family's
+        single source of truth for the full set; no new scoring logic is
+        written here. Neither leaf's declared ``input_scope`` is
+        ``"trajectory"`` (both score only the last recorded attempt, per
+        each leaf's own ``horizon``), but ``scoring_input.outcome`` never
+        carries the ``attempts`` list either kind of leaf needs
+        (``EconevalsPlugin.outcome()`` omits it), so the terminal FSM state
+        is read off ``scoring_input.phase_instances`` instead, via
+        ``_state_from_phase_instances`` (see that function's own docstring
+        for why this is safe under ruling R3 and consistent with a
+        terminal-scoped leaf's own contract).
+        """
+        state = _state_from_phase_instances(scoring_input.phase_instances)
+        gate, objective = self.score_all(state, evidence_refs=evidence_refs)
+        return FamilyScoreSet(
+            primary_leaf_id=self.objective_leaf.leaf_id,
+            scores=(gate, objective),
+            admission_leaf_ids=(self.objective_leaf.leaf_id,),
+        )
+
 
 def build_scorer(family_case: Mapping[str, Any]) -> EconevalsScorer:
     """Build the one ``EconevalsScorer`` for a case's validated ``family_case``."""
@@ -615,11 +809,15 @@ def build_scorer(family_case: Mapping[str, Any]) -> EconevalsScorer:
 
 
 __all__ = [
+    "BASE_DOMAIN_PREDICATE_ID",
+    "GATE_LEAF_ID",
+    "OBJECTIVE_LEAF_ID",
     "EconevalsScorer",
     "build_gate_leaf",
     "build_leaves",
     "build_objective_leaf",
     "build_scorer",
+    "reference_provider_ids",
     "score_pricing",
     "score_procurement",
     "score_scheduling",

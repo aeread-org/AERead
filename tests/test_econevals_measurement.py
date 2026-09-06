@@ -27,10 +27,14 @@ from typing import Any
 import pytest
 
 from aeread.shared_runner.measurement import (
+    FamilyScoreSet,
     MeasurementContractError,
     ScoreEnvelope,
     ValidityReport,
 )
+from aeread.shared_runner.task.evaluation import FamilyScoringInput
+from aeread.shared_runner.task.scheduler import PhaseInstance, TransitionResult
+from aeread_families.econevals import environment as env_module
 from aeread_families.econevals import measurement as m
 from aeread_families.econevals.cases import TRACKS
 from aeread_families.econevals.econevals_bridge import (
@@ -498,6 +502,170 @@ def test_unrecognized_attempt_error_is_refused_rather_than_silently_scored() -> 
     scorer = m.build_scorer(payload)
     with pytest.raises(ValueError):
         scorer.score_attempt({"period": 0, "error": "not_a_real_error_code"})
+
+
+# ---------------------------------------------------------------------------
+# FamilyScoringInput contract (kernel_scoring_contract_spec.md sections 3/5):
+# the manifest declares both leaves as finalize_time, and EconevalsScorer's
+# ``__call__``/``score_all`` must return BOTH on every case -- never ``None``
+# for the objective the way ``score_terminal_state`` still legitimately does
+# (unchanged above). No bridge is needed for any test below: every attempt
+# is hand-typed or reuses a checked-in case's own ``gold_optimum``, exactly
+# like golden 1/3's bridge-free construction earlier in this file. Mutation-
+# verified: deleting either score from ``FamilyScoreSet.scores`` inside
+# ``EconevalsScorer.__call__`` makes the leaf-set assertion below fail.
+# ---------------------------------------------------------------------------
+
+_BOTH_LEAF_IDS = frozenset({m.GATE_LEAF_ID, m.OBJECTIVE_LEAF_ID})
+
+
+def _scoring_input(
+    state: dict[str, Any], *, evidence_refs: tuple[str, ...] = ("evt_outcome_0",)
+) -> FamilyScoringInput:
+    """Build a minimal, pure ``FamilyScoringInput`` -- no bridge, no replay.
+
+    ``state`` is threaded through exactly the way a real replay surfaces it:
+    on the LAST phase instance's LAST transition's own ``state`` (mirrors
+    ``measurement.py``'s own ``_state_from_phase_instances`` docstring for
+    why ``__call__`` reads the terminal attempt from here rather than from
+    ``outcome``, which never carries ``attempts``).
+    """
+    attempts = state.get("attempts") or []
+    outcome = {
+        "termination_reason": "max_periods",
+        "period_count": len(attempts),
+        "num_attempts": len(attempts),
+    }
+    phase_instance = PhaseInstance(
+        phase_instance_id="phase_instance_0",
+        phase_id=env_module.PERIOD_PHASE,
+        ordinal=0,
+        mode="single",
+        eligible_actors=(env_module.SEAT_ID,),
+        pre_state_sha256="0" * 64,
+        post_state_sha256="1" * 64,
+        observations={},
+        actions=(),
+        transitions=(TransitionResult(state=state, next_phase_id=None),),
+    )
+    return FamilyScoringInput(
+        outcome=outcome, phase_instances=(phase_instance,), evidence_refs=evidence_refs
+    )
+
+
+def test_family_manifest_declares_both_leaves_as_finalize_time_with_objective_primary() -> None:
+    policy = env_module.family_manifest().finalize_time_leaf_policy()
+    assert set(policy.leaf_ids) == _BOTH_LEAF_IDS
+    assert policy.primary_leaf_id == m.OBJECTIVE_LEAF_ID
+    assert policy.admission_leaf_ids == (m.OBJECTIVE_LEAF_ID,)
+
+
+def test_call_returns_both_declared_leaves_for_a_legal_submission() -> None:
+    payload = _payload("pricing_basic", "econevals.pricing.basic.0")
+    gold_optimum = payload["gold_optimum"]
+    product_ids = payload["generated_instance"]["product_ids"]
+    period = payload["pins"]["max_steps"] - 1
+    prices = dict(zip(product_ids, gold_optimum["prices_by_period"][period]))
+    profits = dict(zip(product_ids, gold_optimum["profits_by_period"][period]))
+    attempt = {"period": period, "error": False, "prices": prices, "profits": profits}
+
+    scorer = m.build_scorer(payload)
+    scoring_input = _scoring_input({"attempts": [attempt]}, evidence_refs=("evt_0",))
+    score_set = scorer(scoring_input, evidence_refs=scoring_input.evidence_refs)
+
+    assert isinstance(score_set, FamilyScoreSet)
+    assert {score.leaf.leaf_id for score in score_set.scores} == _BOTH_LEAF_IDS
+    assert score_set.primary_leaf_id == m.OBJECTIVE_LEAF_ID
+    assert score_set.admission_leaf_ids == (m.OBJECTIVE_LEAF_ID,)
+    assert all(score.evidence_refs == ("evt_0",) for score in score_set.scores)
+
+    gate = next(s for s in score_set.scores if s.leaf.leaf_id == m.GATE_LEAF_ID)
+    objective = next(s for s in score_set.scores if s.leaf.leaf_id == m.OBJECTIVE_LEAF_ID)
+    assert gate.status == "ok"
+    assert gate.primary.value == 1.0
+    assert objective.status == "ok"
+    v_star = objective.reference_values["v_star"].value
+    assert objective.primary.value == pytest.approx(v_star, abs=1e-6)
+
+
+def test_call_reports_invalid_measurement_for_the_objective_when_input_is_malformed() -> None:
+    payload = _payload("scheduling_basic", "econevals.scheduling.basic.1")
+    attempt = {
+        "period": 0,
+        "error": "malformed_input",
+        "error_message": "could not parse assignment as a dict",
+    }
+
+    scorer = m.build_scorer(payload)
+    scoring_input = _scoring_input({"attempts": [attempt]})
+    score_set = scorer(scoring_input, evidence_refs=scoring_input.evidence_refs)
+
+    assert {score.leaf.leaf_id for score in score_set.scores} == _BOTH_LEAF_IDS
+    gate = next(s for s in score_set.scores if s.leaf.leaf_id == m.GATE_LEAF_ID)
+    objective = next(s for s in score_set.scores if s.leaf.leaf_id == m.OBJECTIVE_LEAF_ID)
+    assert gate.status == "invalid_measurement"
+    assert gate.validity.reasons == ("malformed_submission",)
+    # Never fabricated as an economic zero, and (see the next test) never
+    # conflated with a domain-illegal failure's own reason, even though both
+    # share this leaf's only available "not computed" status.
+    assert objective.status == "invalid_measurement"
+    assert objective.primary is None
+    assert "malformed_submission" in objective.validity.reasons[0]
+
+
+def test_call_reports_invalid_measurement_for_the_objective_when_the_gate_fails_domain_legality() -> None:
+    """Golden 3's domain-illegal failure: the gate stays an ``ok`` real fact
+    (never ``invalid_measurement`` -- ``_gate_fail``'s own contract,
+    unchanged by this migration), but the objective leaf still has no
+    legally-scoreable achieved value to report, so it becomes
+    ``invalid_measurement`` for a reason distinguishable from -- never equal
+    to -- the malformed case above.
+    """
+    payload = _payload("procurement_basic", "econevals.procurement.basic.0")
+    attempt = {
+        "period": 0,
+        "error": "illegal_action",
+        "error_message": "unknown offer ids: ['Offer_does_not_exist']",
+    }
+
+    scorer = m.build_scorer(payload)
+    scoring_input = _scoring_input({"attempts": [attempt]})
+    score_set = scorer(scoring_input, evidence_refs=scoring_input.evidence_refs)
+
+    assert {score.leaf.leaf_id for score in score_set.scores} == _BOTH_LEAF_IDS
+    gate = next(s for s in score_set.scores if s.leaf.leaf_id == m.GATE_LEAF_ID)
+    objective = next(s for s in score_set.scores if s.leaf.leaf_id == m.OBJECTIVE_LEAF_ID)
+    assert gate.status == "ok"
+    assert gate.primary.value == 0.0
+    assert objective.status == "invalid_measurement"
+    assert objective.validity.reasons != ("malformed_submission",)
+    assert "malformed_submission" not in objective.validity.reasons[0]
+
+
+def test_call_reports_invalid_measurement_when_no_attempts_are_recorded() -> None:
+    payload = _payload("procurement_basic", "econevals.procurement.basic.0")
+    scorer = m.build_scorer(payload)
+    scoring_input = _scoring_input({"attempts": []})
+    score_set = scorer(scoring_input, evidence_refs=scoring_input.evidence_refs)
+
+    assert {score.leaf.leaf_id for score in score_set.scores} == _BOTH_LEAF_IDS
+    gate = next(s for s in score_set.scores if s.leaf.leaf_id == m.GATE_LEAF_ID)
+    objective = next(s for s in score_set.scores if s.leaf.leaf_id == m.OBJECTIVE_LEAF_ID)
+    assert gate.status == "invalid_measurement"
+    assert objective.status == "invalid_measurement"
+
+
+def test_call_with_no_phase_instances_reports_invalid_measurement_rather_than_crashing() -> None:
+    payload = _payload("procurement_basic", "econevals.procurement.basic.0")
+    scorer = m.build_scorer(payload)
+    scoring_input = FamilyScoringInput(
+        outcome={"termination_reason": "max_periods", "period_count": 0, "num_attempts": 0},
+        phase_instances=(),
+        evidence_refs=("evt_0",),
+    )
+    score_set = scorer(scoring_input, evidence_refs=scoring_input.evidence_refs)
+    assert {score.leaf.leaf_id for score in score_set.scores} == _BOTH_LEAF_IDS
+    assert all(score.status == "invalid_measurement" for score in score_set.scores)
 
 
 def test_score_envelope_contract_refuses_an_ok_status_without_a_primary() -> None:

@@ -1,9 +1,11 @@
 # econevals adapter — review disposition
 
 Fix pass against the second-reviewer read in `docs/econevals_review_codex.md`
-(missing — that reviewer did not produce a report; nothing to reconcile
-against it) and `docs/econevals_review_claude.md` (present, 5 findings: 2
-CRITICAL, 1 MAJOR, 2 MINOR). Every finding below was independently
+(recovered from that reviewer's transcript after this disposition was
+written, in `c866b50d` on origin/main; it declares 0 findings but carries
+nine prepared findings that remain un-dispositioned here) and
+`docs/econevals_review_claude.md` (present, 5 findings: 2 CRITICAL, 1 MAJOR,
+2 MINOR). Every finding below was independently
 re-verified against the code before any fix was made. All 5 are about the
 econevals adapter's own code/docs (`src/aeread_families/econevals/`,
 `docs/econevals_adapter_spec.md`, `tests/test_econevals_*.py`,

@@ -127,7 +127,7 @@ legality primitive — see table below for which primitive each track binds):
 
 ```python
 objective = MeasurementLeafSpec(
-  leaf_id="econevals_procurement_utility", leaf_version="0.1.0",
+  leaf_id="econevals_objective_leaf", leaf_version="0.1.0",
   estimand=EstimandSpec(estimand_id="econevals_procurement_utility",
     estimand_version="0.1.0", input_scope="terminal_state", direction="maximize",
     units="workers_supported", validity_domain=...),
@@ -145,6 +145,8 @@ objective = MeasurementLeafSpec(
   scorer=ImplementationRef(implementation_id="econevals_bridge.compute_opt",
     version="0.1.0", content_sha256="<opt_solver.py hash above>"))
 ```
+
+Leaf ids are track-agnostic since the scoring-contract migration (`measurement.py`'s `GATE_LEAF_ID`/`OBJECTIVE_LEAF_ID`, shared by all three tracks); per-track identity lives in `estimand_id`/`units`/`direction`/`reference.source_sha256`, not in the leaf id.
 
 `gold_optimum` in the case payload is this scorer's output, computed once at
 import time by the bridge (§1) — never recomputed live, so a live gurobi call
