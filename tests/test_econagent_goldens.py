@@ -181,7 +181,7 @@ def _run_episode(
     """Run one episode to termination; return (family_case, terminal, n_agents)."""
     family_case = plugin.validate_payload(payload)
     phase = plugin.phases(family_case)[0]
-    state = plugin.initial_state(family_case, cell=None)
+    state = plugin.initial_state(family_case, run=None)
     n_agents = family_case["scenario"]["n_agents"]
     while state["termination"] is None:
         actors = plugin.eligible_actors(family_case, state, phase)
@@ -345,7 +345,7 @@ def test_golden_invalid_action_never_reaches_step_and_touches_no_protected_state
     registry_plugin = EconAgentV1Plugin(upstream_root=UPSTREAM_ROOT)
     registry = PluginRegistry()
     register_plugin(registry, plugin=registry_plugin)
-    state = registry_plugin.initial_state(family_case, cell=None)
+    state = registry_plugin.initial_state(family_case, run=None)
     n_agents = family_case["scenario"]["n_agents"]
     actors = registry_plugin.eligible_actors(family_case, state, phase)
     incomplete_actions = {
@@ -484,7 +484,7 @@ def test_golden_bridge_killed_mid_episode_yields_a_typed_failure_never_a_scored_
     case = _case("econagent.pilot.small10x12.seed0")
     family_case = plugin.validate_payload(case.payload)
     phase = plugin.phases(family_case)[0]
-    state = plugin.initial_state(family_case, cell=None)
+    state = plugin.initial_state(family_case, run=None)
     n_agents = family_case["scenario"]["n_agents"]
 
     # Run months 1-5 normally.

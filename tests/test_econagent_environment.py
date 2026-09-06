@@ -264,7 +264,7 @@ def test_scripted_tiny_episode_runs_end_to_end_through_the_real_bridge() -> None
     case = _case("econagent.pilot.tiny4x6.seed0")
     family_case = plugin.validate_payload(case.payload)
     phase = plugin.phases(family_case)[0]
-    state = plugin.initial_state(family_case, cell=None)
+    state = plugin.initial_state(family_case, run=None)
 
     n_agents = family_case["scenario"]["n_agents"]
     episode_length = family_case["scenario"]["episode_length"]
@@ -317,11 +317,11 @@ def test_two_bridge_sessions_do_not_share_state() -> None:
     plugin = EconAgentV1Plugin(upstream_root=UPSTREAM_ROOT)
     case_a = _case("econagent.pilot.tiny4x6.seed0")
     family_case_a = plugin.validate_payload(case_a.payload)
-    state_a = plugin.initial_state(family_case_a, cell=None)
+    state_a = plugin.initial_state(family_case_a, run=None)
 
     case_b = _case("econagent.pilot.small10x12.seed0")
     family_case_b = plugin.validate_payload(case_b.payload)
-    state_b = plugin.initial_state(family_case_b, cell=None)
+    state_b = plugin.initial_state(family_case_b, run=None)
 
     assert state_a["bridge_session_id"] != state_b["bridge_session_id"]
     assert state_a["n_agents"] == 4
