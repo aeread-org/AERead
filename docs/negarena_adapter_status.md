@@ -204,37 +204,77 @@ leaves score `"ok"`, `receipt.status == "ok"`,
 finalize-time set and primary, produced for real rather than asserted in
 a comment.
 
+**Independently reviewed; disposition recorded, not merely claimed.**
+`docs/negarena_migration_review.md` records two findings from an
+independent adversarial review of this exact scoring-contract migration,
+each re-verified against the code directly before any action was taken.
+Finding 1 (that `__call__`'s separately-named `evidence_refs` keyword lets
+a caller fabricate or drop provenance) is **REFUTED**: it is the spec's own
+`FamilyScorer` Protocol signature, byte-for-byte the same shape as the
+reference migration (`govsim/measurement.py:841-878`), and every production
+call site (finalize/replay/audit) already enforces `evidence_refs ==
+scoring_input.evidence_refs` before a receipt can seal, making the
+fabrication scenario unreachable through any real path. Finding 2 (that
+negarena counts as enrolled in the protocol suite's closed-world catalog
+while its only behavioral check, `test_negarena_obeys_the_scoring_contract`,
+skips whenever the bridge is unavailable, so a normal run never exercises
+its returned leaf set, determinism, provenance, or terminal-state isolation)
+is **CONFIRMED; fixed for three of its four named gaps**. The added,
+always-on fix is `tests/test_shared_runner_scoring_contract.py::test_negarena_contract_leaf_set_determinism_and_provenance_without_the_bridge`
+(commit `21413b74`), which drives `NegarenaScorer.__call__` end-to-end
+against a hand-built invalid-termination `FamilyScoringInput` and a bridge
+stub that raises if `.settle` is ever called, and asserts the returned leaf
+set matches the manifest's declaration, primary/admission match it,
+`__call__` is deterministic across two calls, and every returned envelope's
+`evidence_refs` equals `scoring_input.evidence_refs` verbatim — requiring no
+upstream checkout and no bridge interpreter. Mutation-verified: with
+`NegarenaScorer.__call__` mutated (via a `/tmp` copy of `measurement.py`,
+never a `git checkout` of uncommitted work) to drop
+`negarena_agreement_reached` from its returned tuple, this test fails with
+`AssertionError: assert {'negarena_seat_outcome_leaf'} ==
+{'negarena_agreement_reached_leaf', 'negarena_seat_outcome_leaf'}`; the
+original file was restored and diff-confirmed byte-identical before
+continuing. The fourth named gap — ruling R7's terminal-state-isolation
+contrapositive and R9's trajectory-sensitivity witness for
+`negarena_seat_outcome` — is **not** fixed and is recorded as a residual,
+stated limit below ("Known limits"): both require two real, genuinely
+differing bridge-backed settlements sharing a byte-identical outcome, which
+only the real bridge can produce without this module reimplementing
+settlement arithmetic itself.
+
 ## Evidence
 
-**Updated for this milestone (2026-09-06): 96 collected, 94 passed, 2 failed,
-0 skipped with the bridge genuinely wired in — not stale.** The "89 of 89" figure
-below this paragraph predates both the kernel path reorg
-(`src/aeread/shared_runner/execution.py` -> `.../task/execution.py`) and a
-second, unrelated baseline defect this migration found but did not fix (see
-`docs/negarena_migration_plan.md`'s "Baseline: not clean before the fix");
-neither is reproducible on this base without accounting for both. Running
-the entire family test file set (`test_negarena_environment.py`,
-`test_negarena_cases.py`, `test_negarena_harness.py`,
-`test_negarena_parity.py`, `test_negarena_measurement.py`,
-`test_negarena_kernel_finalizer.py`, `test_negarena_provisioning.py`) plus
-`test_shared_runner_smoke.py`, with both bridge env vars unset, collects
-**47 passed, 49 skipped, 0 failed** — every skip carries the identical,
-documented "upstream NegotiationArena Python interpreter unavailable"
-reason (checked directly, not assumed: no skip masks an old calling
-convention, the exact trap the reference migration's worked example warns
-about). With the bridge genuinely exported, the same suite collects **96
-collected, 94 passed, 2 failed, 0 skipped**: the 2 failures are
-`test_negarena_kernel_finalizer.py::test_finalize_family_execution_does_not_crash_and_seals_a_typed_receipt`
-and `::test_finalize_family_execution_seals_the_complete_evidence_lifecycle`,
-both pre-existing, both unrelated to this milestone's leaf-policy/`__call__`
-work (they fail identically before and after this milestone's changes, with
-`ValueError: family replay action lacks one successful attempt` raised
-*before* `NegarenaScorer.__call__` is ever reached — see
-`docs/negarena_migration_plan.md`'s "Baseline failures to fix in milestone 3
-(finalizer wiring)" for the full cause and the two test ids). This milestone
-added 7 new tests (1 manifest leaf-policy test, 6 `NegarenaScorer.__call__`
-tests covering both leaves, the single/other/zero/several-subject-seat
-cases, and the unmapped-opponent-profile case), all passing; 89 + 7 = 96.
+**Updated 2026-09-06, after the finalizer-wiring fix (commit `77383297`):
+the extended family test-file set collects 105 items; all 105 pass, 0
+failed, 0 skipped, with the bridge genuinely wired in.** The "94 passed, 2
+failed" figure this paragraph previously reported (recorded by commit
+`232cd9d7`, before the finalizer-wiring fix landed later the same day; kept
+below as a superseded, labelled historical block, per this doc's own
+convention) is stale: `77383297 fix(negarena): wire the scripted harness to
+the replay event vocabulary` fixed the exact
+`ValueError: family replay action lacks one successful attempt` defect that
+produced those two failures (see "Enrollment" above), and a fresh run
+confirms both named tests — `test_finalize_family_execution_does_not_crash_and_seals_a_typed_receipt`
+and `test_finalize_family_execution_seals_the_complete_evidence_lifecycle` —
+now pass.
+
+The command below extends the file set this doc previously listed with two
+test files/node-ids this branch added that were not yet named here:
+`tests/test_negarena_bridge_required_gate.py` (this branch's own
+skip-to-failure gate test, 6 tests, none need the bridge) and, from
+`tests/test_shared_runner_scoring_contract.py`, the two node ids specific to
+this family — `test_negarena_obeys_the_scoring_contract` and
+`test_negarena_contract_leaf_set_determinism_and_provenance_without_the_bridge`
+— rather than the whole file, which also exercises every other registered
+family and would mix in their own bridge/skip conditions. With both bridge
+env vars unset, this extended set collects **105 items: 54 passed, 51
+skipped, 0 failed**; every skip carries the identical, documented "upstream
+NegotiationArena Python interpreter unavailable" reason (checked directly
+with `-rs`, not assumed: no skip masks an old calling convention). With the
+bridge genuinely exported, the same extended set collects **105 passed, 0
+failed, 0 skipped**, in 600.88s on this run (see "What it costs to run"
+below for load-sensitivity caveats — this run, like the figures recorded
+there, is not a clean per-call baseline).
 
 ```bash
 export AEREAD_NEGARENA_UPSTREAM_ROOT="/Users/sunzeyu/Documents/econ benchmark/upstream-negarena"
@@ -243,8 +283,44 @@ PY="/Users/sunzeyu/Documents/econ benchmark/AERead/.venv/bin/python"
 "$PY" -m pytest tests/test_negarena_environment.py tests/test_negarena_cases.py \
   tests/test_negarena_harness.py tests/test_negarena_parity.py \
   tests/test_negarena_measurement.py tests/test_negarena_kernel_finalizer.py \
-  tests/test_negarena_provisioning.py tests/test_shared_runner_smoke.py -q
+  tests/test_negarena_provisioning.py tests/test_negarena_bridge_required_gate.py \
+  tests/test_shared_runner_smoke.py \
+  "tests/test_shared_runner_scoring_contract.py::test_negarena_obeys_the_scoring_contract" \
+  "tests/test_shared_runner_scoring_contract.py::test_negarena_contract_leaf_set_determinism_and_provenance_without_the_bridge" \
+  -q
 ```
+
+**Below this point, two superseded claims, kept for history rather than
+deleted.**
+
+**Milestone-2 claim (commit `232cd9d7`), superseded by the finalizer-wiring
+fix above.** "96 collected, 94 passed, 2 failed, 0 skipped with the bridge
+genuinely wired in." The "89 of 89" figure below this paragraph predates
+both the kernel path reorg (`src/aeread/shared_runner/execution.py` ->
+`.../task/execution.py`) and a second, unrelated baseline defect this
+migration found but did not fix at the time (see
+`docs/negarena_migration_plan.md`'s "Baseline: not clean before the fix");
+neither is reproducible on this base without accounting for both. Running
+the entire family test file set (`test_negarena_environment.py`,
+`test_negarena_cases.py`, `test_negarena_harness.py`,
+`test_negarena_parity.py`, `test_negarena_measurement.py`,
+`test_negarena_kernel_finalizer.py`, `test_negarena_provisioning.py`) plus
+`test_shared_runner_smoke.py`, with both bridge env vars unset, collected
+**47 passed, 49 skipped, 0 failed** at the time. With the bridge genuinely
+exported, the same suite collected **96 collected, 94 passed, 2 failed, 0
+skipped**: the 2 failures were
+`test_negarena_kernel_finalizer.py::test_finalize_family_execution_does_not_crash_and_seals_a_typed_receipt`
+and `::test_finalize_family_execution_seals_the_complete_evidence_lifecycle`,
+both pre-existing at the time, both unrelated to that milestone's
+leaf-policy/`__call__` work (they failed identically before and after that
+milestone's changes, with `ValueError: family replay action lacks one
+successful attempt` raised *before* `NegarenaScorer.__call__` was ever
+reached). That milestone added 7 new tests (1 manifest leaf-policy test, 6
+`NegarenaScorer.__call__` tests covering both leaves, the
+single/other/zero/several-subject-seat cases, and the unmapped-opponent-
+profile case), all passing; 89 + 7 = 96. The two finalizer-wiring failures
+were fixed the same day by commit `77383297` — see the current figures
+above.
 
 **Below this point, the original milestone-1/pre-reorg claim, kept for
 history.** "89 of 89 negarena-family tests pass with the bridge genuinely
@@ -335,6 +411,20 @@ notes the same effect at ~1.95s/call under lower contention).
 - **`is_exportable_id`'s legal `visibility_policy`/`SeatSpec.role` vocabulary**
   for a two-seat adversarial dialogue is unconfirmed — the same open question
   tau3 already raised (its UNRESOLVED Q3), not re-litigated here.
+- **`negarena_seat_outcome`'s terminal-state-isolation contrapositive (ruling
+  R7) and trajectory-sensitivity witness (ruling R9) are checked only when
+  the bridge is provisioned** — confirmed and escalated by an independent
+  review (`docs/negarena_migration_review.md` Finding 2's residual limit,
+  see "Independently reviewed; disposition recorded, not merely claimed"
+  above). Both checks require two real,
+  genuinely differing settlements from `NegarenaBridge`'s own
+  `after_game_ends()` that share a byte-identical outcome; fabricating that
+  pair without the real bridge would mean this module reimplementing
+  `Trade.execute_trade`/`Valuation.value` itself, exactly what the adapter's
+  own design rule (spec section 3) forbids. `AEREAD_NEGARENA_BRIDGE_REQUIRED=1`
+  converts the skip into a hard failure for a certifying run; it is off by
+  default, mirroring five other pre-existing families' identical bridge-gate
+  convention (tau2, econevals, agenticpay, alympics, econagent).
 - **Upstream's ultimatum outcome reduction is asymmetric between seats**
   (RED reports absolute final holdings, BLUE reports a delta from its own
   initial holdings) — numerically coincidental for this corpus because every
