@@ -63,6 +63,7 @@ from typing import Any, Mapping, Sequence
 
 from aeread.shared_runner.measurement import (
     EstimandSpec,
+    FamilyScoreSet,
     ImplementationRef,
     MeasurementLeafSpec,
     MetricValue,
@@ -73,6 +74,7 @@ from aeread.shared_runner.measurement import (
     VerifierSpec,
 )
 from aeread.shared_runner.run.resolver import canonical_json_bytes
+from aeread.shared_runner.task.evaluation import FamilyScoringInput
 from aeread.shared_runner.task.scheduler import EpisodeResult, PhaseInstance
 
 from . import _vendored_upstream as vendored
@@ -705,17 +707,45 @@ def score_profit_vs_field(
 
 
 @dataclass(frozen=True, slots=True)
-class _OutcomeOnlyResult:
-    """Adapt a bare terminal ``outcome`` mapping to look like the one
-    ``EpisodeResult`` attribute :func:`score_profit_vs_field` actually reads
-    (``result.outcome["seats"]``) -- nothing else. Lets ``AucArenaScorer.
-    __call__`` accept exactly the argument the shared kernel's real calling
-    convention supplies (see that method's docstring) without changing
-    ``score_profit_vs_field``'s own signature or any of its existing
-    ``EpisodeResult``-taking call sites.
+class _ScoringInputResult:
+    """Adapt a ``FamilyScoringInput`` to look like the ``EpisodeResult``
+    attributes this family's four named ``score_*`` methods actually read --
+    ``phase_instances`` (all three trajectory-scoped leaves),
+    ``outcome["seats"]`` (:func:`score_profit_vs_field`), and
+    ``final_state["world_seed"]``/``["enable_discount"]``
+    (:func:`score_hammer_rule`) -- nothing else. Lets ``AucArenaScorer.
+    __call__`` compose the existing named methods unchanged (spec section 5:
+    no new scoring logic) over exactly the argument the shared kernel's real
+    calling convention supplies.
+
+    ``FamilyScoringInput`` carries no ``final_state`` field at all
+    (kernel_scoring_contract_spec.md section 1). ``world_seed``/
+    ``enable_discount`` are never carried by ``scoring_input.outcome``
+    either (``environment.py``'s ``outcome()`` omits both), but both are
+    static: set once in ``initial_state`` and never mutated by ``step()``
+    (that method's own body never assigns either key), so every recorded
+    ``TransitionResult.state`` -- including the LAST one -- carries them
+    unchanged. Reading them off the last replayed phase instance's last
+    transition is therefore the same value ``EpisodeResult.final_state``
+    itself would have carried. Ruling R3 (kernel_scoring_contract_spec.md)
+    makes this safe: it is the verified re-execution's own cross-checked
+    state, never independently re-derived -- a state that diverged from the
+    sealed run would already have failed finalization before this scorer
+    is ever called.
     """
 
     outcome: Mapping[str, Any]
+    phase_instances: tuple[PhaseInstance, ...]
+    final_state: Mapping[str, Any]
+
+    @classmethod
+    def from_scoring_input(cls, scoring_input: FamilyScoringInput) -> "_ScoringInputResult":
+        last_state = scoring_input.phase_instances[-1].transitions[-1].state
+        return cls(
+            outcome=scoring_input.outcome,
+            phase_instances=scoring_input.phase_instances,
+            final_state=last_state,
+        )
 
 
 @dataclass(frozen=True, slots=True)
@@ -725,14 +755,11 @@ class AucArenaScorer:
     Mirrors ``tau3_retail.measurement.Tau3RetailScorer``'s shape (four named
     methods, one per declared leaf), each still callable directly by any
     caller holding a full ``EpisodeResult`` -- every test in this family
-    does exactly that. ``__call__`` (below) is the *additional* surface the
-    real kernel calling convention needs (spec `docs/aucarena_codex_triage.md`
-    Finding 1): unlike the false claim this class's docstring used to make
-    ("the current kernel does not yet call ``build_scorer`` itself"),
-    ``finalize_family_execution`` (``aeread/shared_runner/family_evaluation.py``)
-    already calls whatever ``build_scorer(family_case)`` returns *as a
-    function* of ``(outcome, evidence_refs=...)`` -- see ``housing.py``'s
-    identical, already-exercised convention.
+    does exactly that. ``__call__`` (below) is the seam
+    ``task.evaluation.finalize_family_execution`` calls directly
+    (``plugin.build_scorer(family_case)(scoring_input,
+    evidence_refs=scoring_input.evidence_refs)``, per
+    kernel_scoring_contract_spec.md section 1).
     """
 
     field_seats: tuple[Mapping[str, Any], ...]
@@ -740,30 +767,34 @@ class AucArenaScorer:
     leaves: tuple[MeasurementLeafSpec, ...]
 
     def __call__(
-        self, outcome: Mapping[str, Any], *, evidence_refs: tuple[str, ...] = ()
-    ) -> ScoreEnvelope:
-        """The one ``ScoreEnvelope`` the shared kernel's real calling
-        convention can obtain from this family: ``finalize_family_execution``
-        passes only the terminal ``outcome`` mapping (never a full
-        ``EpisodeResult`` -- it has none to give), so only this family's one
-        *terminal-state-scoped* leaf, ``aucarena_profit_vs_field`` (the
-        family manifest's own declared ``primary_estimand``), is computable
-        from it. The other three declared leaves are *trajectory-scoped*
-        (spec section 2): they independently recompute vendored bid/hammer
-        rules from every recorded action's own frozen pre-round observation
-        (``EpisodeResult.phase_instances``), data this single-argument
-        convention does not carry -- exactly the same terminal-state-only
-        shape ``housing.py``'s own one declared leaf uses. Those three
-        remain available as named methods below for any caller holding a
-        full ``EpisodeResult`` (every test in this family, and ``replay.py``,
-        already are such callers).
+        self, scoring_input: FamilyScoringInput, *, evidence_refs: tuple[str, ...] = ()
+    ) -> FamilyScoreSet:
+        """Score one finalized episode exactly as the production finalizer
+        calls it: ``plugin.build_scorer(family_case)(scoring_input,
+        evidence_refs=scoring_input.evidence_refs)``
+        (``task.evaluation.finalize_family_execution``, per
+        kernel_scoring_contract_spec.md section 1).
+
+        Returns every one of this family's four declared finalize-time
+        leaves (spec section 5) -- this family has no ``score_all``, so
+        this composes the four existing named ``score_*`` methods directly;
+        no new scoring logic is written here.
+        ``_ScoringInputResult.from_scoring_input`` adapts ``scoring_input``
+        to the one shape all four already accept (see that class's own
+        docstring for exactly what each field is read for and why that is
+        safe with no ``EpisodeResult`` reachable from this signature).
         """
-        return score_profit_vs_field(
-            self.profit_vs_field_leaf,
-            result=_OutcomeOnlyResult(outcome),
-            field_seats=self.field_seats,
-            tested_seat_id=self.tested_seat_id,
-            evidence_refs=evidence_refs,
+        result = _ScoringInputResult.from_scoring_input(scoring_input)
+        scores = (
+            self.score_budget_invariant(result=result, evidence_refs=evidence_refs),
+            self.score_bid_legality(result=result, evidence_refs=evidence_refs),
+            self.score_hammer_rule(result=result, evidence_refs=evidence_refs),
+            self.score_profit_vs_field(result=result, evidence_refs=evidence_refs),
+        )
+        return FamilyScoreSet(
+            primary_leaf_id=self.profit_vs_field_leaf.leaf_id,
+            scores=scores,
+            admission_leaf_ids=(self.profit_vs_field_leaf.leaf_id,),
         )
 
     @property
