@@ -131,6 +131,22 @@ With guard (b)'s assertion removed, `test_trajectory_outcome_path_consistency_re
 failed the same way. Both guards restored from the `/tmp` backup; full file
 green again (25/25, then 29/29 after later findings added more tests).
 
+**Accepted residual (second-pass review, findings R2(a)/R2(b)):** a second
+review pass found the shape guards above satisfiable by an empty list, and
+found that they are structural regardless -- they check byte-equality and
+shape, not domain meaning, so a family that declares a field holding its
+actual terminal result as a `trajectory_outcome_path` (a list-shaped one)
+still passes every guard here. R2(a) (mechanical, closed) added a fourth
+guard: a declared trajectory sequence must be non-empty whenever
+`phase_instances` replayed at least one transition. R2(b) (documentation,
+accepted as a permanent residual, not a code change) records plainly, in
+`project_outcome`'s docstring and both projection guards' docstrings/comments,
+that no structural guard can decide WHICH residual field is a genuine
+terminal fact -- that declaration is reviewed by a human exactly like the
+primary-leaf choice (spec section 5), and the family's own supplied fixtures
+are the conformance evidence for it, not an adversarial boundary this kernel
+enforces unattended. See "Second pass" below for the full disposition.
+
 ### Finding 2 — R10's docstring/message overstate "canonical derivation from phase_instances"
 
 **PARTLY REFUTED, and fixed as a wording/error-handling correction.** The
