@@ -37,13 +37,31 @@ except amazonbarg needs no separate bridge-interpreter provisioning step
 (``upstream_shim.py``'s own module docstring: the delegated import runs
 in-process, under this project's own venv) -- only the pinned upstream
 checkout itself.
+
+Gate follow-up: this file's own basename contains ``test_amazonbarg_``, so
+``conftest.py``'s ``pytest_collection_modifyitems`` swept its three tests into
+a skip under the plain ``test`` job whenever the upstream checkout was
+missing (true for every real CI runner, since that job never provisions any
+family's checkout) -- and this file was never added to
+``_FIDELITY_TEST_FILES`` above either, so the ``amazonbarg-fidelity`` job
+never ran it. The three tests here read only the checked-in workflow YAML
+text; they touch no upstream bytes at all, so they are marked
+``@pytest.mark.no_upstream_checkout_required`` below to run unconditionally
+under the plain job instead of being added to the fidelity job (which would
+gate them on a checkout they do not need).
+``test_every_amazonbarg_test_file_is_covered_by_some_ci_job`` guards against
+this exact shape of gap recurring for any amazonbarg test file.
 """
 from __future__ import annotations
 
+import ast
 import re
 from pathlib import Path
 
+import pytest
+
 _CI_WORKFLOW = Path(__file__).resolve().parent.parent / ".github" / "workflows" / "ci.yml"
+_TESTS_DIR = Path(__file__).resolve().parent
 
 _FIDELITY_TEST_FILES = (
     "tests/test_amazonbarg_cases.py",
@@ -79,6 +97,7 @@ def _workflow_code() -> str:
     return "\n".join(lines)
 
 
+@pytest.mark.no_upstream_checkout_required
 def test_ci_sets_the_amazonbarg_bridge_required_switch() -> None:
     text = _workflow_code()
     assert re.search(
@@ -94,6 +113,7 @@ def test_ci_sets_the_amazonbarg_bridge_required_switch() -> None:
     )
 
 
+@pytest.mark.no_upstream_checkout_required
 def test_ci_provisions_the_pinned_upstream_amazonbarg_checkout() -> None:
     text = _workflow_code()
     assert "AEREAD_AMAZONBARG_UPSTREAM_ROOT" in text, (
@@ -106,6 +126,7 @@ def test_ci_provisions_the_pinned_upstream_amazonbarg_checkout() -> None:
     )
 
 
+@pytest.mark.no_upstream_checkout_required
 def test_ci_actually_runs_every_amazonbarg_fidelity_test_file_under_the_bridge_gate() -> None:
     text = _workflow_code()
     for test_file in _FIDELITY_TEST_FILES:
@@ -113,3 +134,62 @@ def test_ci_actually_runs_every_amazonbarg_fidelity_test_file_under_the_bridge_g
             f"no CI job invokes {test_file}; requiring the bridge is meaningless if "
             "the gated job never actually runs this family's fidelity/protocol tests"
         )
+
+
+def _module_level_test_functions(path: Path) -> list[ast.FunctionDef | ast.AsyncFunctionDef]:
+    tree = ast.parse(path.read_text(encoding="utf-8"))
+    return [
+        node
+        for node in tree.body
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        and node.name.startswith("test_")
+    ]
+
+
+def _is_marked_no_upstream_checkout_required(
+    node: ast.FunctionDef | ast.AsyncFunctionDef,
+) -> bool:
+    return any(
+        isinstance(decorator, ast.Attribute)
+        and decorator.attr == "no_upstream_checkout_required"
+        and isinstance(decorator.value, ast.Attribute)
+        and decorator.value.attr == "mark"
+        for decorator in node.decorator_list
+    )
+
+
+def _exempt_from_the_plain_jobs_amazonbarg_skip(path: Path) -> bool:
+    """True if every test in ``path`` is marked so the plain ``test`` job's
+    blanket amazonbarg skip (``conftest.py``'s ``pytest_collection_modifyitems``,
+    keyed off ``test_amazonbarg_`` in the basename) never touches it."""
+    test_functions = _module_level_test_functions(path)
+    return bool(test_functions) and all(
+        _is_marked_no_upstream_checkout_required(node) for node in test_functions
+    )
+
+
+@pytest.mark.no_upstream_checkout_required
+def test_every_amazonbarg_test_file_is_covered_by_some_ci_job() -> None:
+    """Guard for the gate-follow-up defect above: a
+    ``tests/test_amazonbarg_*.py`` file that is neither listed in the fidelity
+    job's own invocation nor exempted -- every one of its tests marked
+    ``no_upstream_checkout_required`` -- from the plain job's blanket
+    amazonbarg skip runs in *no* CI job at all. That is exactly what happened
+    to this very file before this test existed: it was absent from
+    ``_FIDELITY_TEST_FILES`` and carried no marker, so the plain job skipped
+    it (no upstream checkout on a real runner) and the fidelity job never
+    invoked it either.
+    """
+    text = _workflow_code()
+    uncovered = [
+        f"tests/{path.name}"
+        for path in sorted(_TESTS_DIR.glob("test_amazonbarg_*.py"))
+        if f"tests/{path.name}" not in text
+        and not _exempt_from_the_plain_jobs_amazonbarg_skip(path)
+    ]
+    assert not uncovered, (
+        "these amazonbarg test files run under no CI job at all -- neither "
+        "listed in the amazonbarg-fidelity job's pytest invocation nor "
+        "exempted (every test marked no_upstream_checkout_required) from the "
+        f"plain job's blanket amazonbarg skip: {uncovered}"
+    )
