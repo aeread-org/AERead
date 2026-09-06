@@ -10,19 +10,42 @@ otherwise.
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import json
 import os
+from dataclasses import dataclass
 from pathlib import Path
 from types import MappingProxyType
 from typing import Any, Mapping
 
 import pytest
 
-from aeread.shared_runner.task.execution import CanonicalResponse, EvidenceStore
-from aeread.shared_runner.registry import PluginRegistry
-from aeread.shared_runner.run.resolver import PlanCell, canonical_json_bytes
-from aeread.shared_runner.schemas import CaseManifest
+from aeread.shared_runner.task.execution import (
+    CanonicalResponse,
+    CellExecution,
+    EvidenceStore,
+)
+from aeread.shared_runner.task.evaluation import finalize_family_execution
+from aeread.shared_runner.model_call.harness import default_harnesses
+from aeread.shared_runner.registry import HarnessRegistry, PluginRegistry, ProviderCapabilities
+from aeread.shared_runner.run.resolver import (
+    ImplementationPin,
+    PlanCell,
+    RunPlan,
+    canonical_json_bytes,
+    resolve_run_plan,
+)
+from aeread.shared_runner.schemas import (
+    AgentProfile,
+    AnalysisPlan,
+    CaseManifest,
+    EvaluationBlock,
+    RunSpec,
+    SamplingPlan,
+    SuiteManifest,
+)
 from aeread.shared_runner.task.scheduler import EpisodeResult, run_episode
+from aeread_families.agenticpay_bilateral import measurement
 from aeread_families.agenticpay_bilateral.agenticpay_bridge import (
     AgenticpayBridge,
     AgenticpayBridgeUnavailableError,
@@ -713,3 +736,391 @@ def test_replay_without_an_original_run_still_replays_and_scores(tmp_path: Path)
     assert report.comparison is None
     assert report.status == "not_comparable"
     assert report.scores.deal_reached.primary.value == 1.0
+
+
+# ---------------------------------------------------------------------------
+# Bridge-gated: a real episode driven all the way to a sealed
+# EvaluationReceipt through the shared kernel finalizer (kernel_scoring_
+# contract_spec.md section 5, migration milestone 3 of 3). This family has
+# never produced an EvaluationReceipt before this test: the pinned upstream
+# checkout's own scripted response source
+# (``ScriptedAgenticpayBilateralHarness``) writes only its own convenience
+# event and never produces evidence
+# ``task.evaluation.replay_family_scoring_input`` can replay --
+# ``EvidenceRecordingAgenticpayHarness`` (above) is what makes this
+# reachable. Mirrors ``tests/test_negarena_kernel_finalizer.py``'s
+# identically-purposed ``_build_negarena_run_plan``/
+# ``_run_negarena_episode_through_finalizer`` shape exactly.
+# ---------------------------------------------------------------------------
+
+
+@dataclass(frozen=True, slots=True)
+class _EvaluationSetup:
+    """Minimal ``EvaluationSetup`` (task/evaluation.py) implementation.
+
+    ``prompt_sources``/``pricing`` are never read by
+    ``finalize_family_execution`` itself (only by ``execute_plan_cell``'s
+    provider-calling path, which this module deliberately bypasses -- the
+    episode is driven directly through ``run_episode`` +
+    ``EvidenceRecordingAgenticpayHarness``), so both are left empty here.
+    """
+
+    plan: RunPlan
+    registry: PluginRegistry
+    prompt_sources: Mapping[str, str]
+    pricing: Mapping[str, Any]
+
+
+_AGENTICPAY_FIXTURE_PROFILE_ID = "agenticpay_unused_fixture_profile_v1"
+_AGENTICPAY_FIXTURE_PROVIDER_ID = "agenticpay_unused_fixture_provider"
+_AGENTICPAY_FIXTURE_RUNTIME_ID = "aeread.shared_runner.task.execution"
+
+
+def _build_agenticpay_run_plan(
+    *, plugin: AgenticpayBilateralPlugin, case: CaseManifest, family_case: Mapping[str, Any]
+) -> tuple[RunPlan, PluginRegistry]:
+    """One fully-resolved, sealed agenticpay.bilateral ``RunPlan`` for a
+    single contract-mode case.
+
+    ``buyer`` is the tested subject seat (ruling R12); ``seller`` is a
+    ``controlled`` (fixed) counterpart -- both share one placeholder agent
+    profile, since nothing in this module ever calls a ``ProviderClient``
+    (the episode is driven directly through ``run_episode`` +
+    ``EvidenceRecordingAgenticpayHarness``), so the profile only needs to be
+    schema-valid and admitted, never actually invoked.
+    """
+    registry = PluginRegistry()
+    register_plugin(registry, plugin=plugin)
+
+    profile = AgentProfile.from_dict(
+        {
+            "spec_version": "aeread.agent_profile/0.1",
+            "profile_id": _AGENTICPAY_FIXTURE_PROFILE_ID,
+            "model": {
+                "provider": _AGENTICPAY_FIXTURE_PROVIDER_ID,
+                "model": "agenticpay-unused-fixture-model-v1",
+                "revision": "1.0.0",
+                "base_url": None,
+            },
+            "harness": {"id": "minimal_chat", "version": "1.0", "config": {}},
+            "prompt": {
+                "prompt_id": "agenticpay_scripted_prompt_v1",
+                "sha256": hashlib.sha256(
+                    b"agenticpay scripted seats: no prompt is ever sent"
+                ).hexdigest(),
+            },
+            "runtime": {
+                "kind": "python",
+                "implementation": _AGENTICPAY_FIXTURE_RUNTIME_ID,
+                "version": "0.1.0",
+            },
+            "tools": [],
+            "memory": {"mode": "disabled"},
+            "reasoning": {
+                "condition_id": "agenticpay_scripted_no_reasoning_v1",
+                "effort": None,
+                "token_budget": None,
+                "rationale_visibility": "hidden",
+            },
+            "sampling": {
+                "temperature": 0.0,
+                "max_output_tokens": 64,
+                "seed": None,
+                "top_p": None,
+            },
+            "budgets": {
+                "max_logical_actions": case.episode.max_logical_actions,
+                "timeout_seconds": 30.0,
+                "max_cost_usd": 0.0,
+            },
+            "retry_policy": {
+                "max_action_attempts": 1,
+                "retryable_conditions": [],
+                "session_mode": "restart",
+                "sdk_retries": 0,
+            },
+        }
+    )
+
+    sampling = SamplingPlan.from_dict(
+        {
+            "spec_version": "aeread.sampling/0.1",
+            "sampling_plan_id": "agenticpay_kernel_finalizer_sample_v1",
+            "estimand": "fixed_smoke_case",
+            "target": case.case_id,
+            "selection": "fixed_curated",
+            "seeds": [case.world_seed],
+            "replicates": 1,
+            "cluster_level": "world_seed",
+            "cluster_id_fields": ["generator_version", "world_seed"],
+            "paired_fields": [],
+            "replicate_level": "episode_attempt",
+            "panel_mode": "fixed_panel",
+        }
+    )
+    block = EvaluationBlock.from_dict(
+        {
+            "spec_version": "aeread.evaluation_block/0.1",
+            "block_id": "agenticpay_kernel_finalizer_block",
+            "kind": "controlled",
+            "subject_seats": ["buyer"],
+            "controlled_profiles": {"seller": profile.profile_id},
+            "repetitions": 1,
+            "seed_policy": "fixed",
+        }
+    )
+    family = family_manifest()
+    analysis = AnalysisPlan.from_dict(
+        {
+            "spec_version": "aeread.analysis/0.1",
+            "analysis_plan_id": "agenticpay_kernel_finalizer_analysis_v1",
+            "estimands": [family.measurement.primary_estimand],
+            "group_by": ["family_id"],
+            "missingness": "report_separately",
+            "resampling_unit": "world_seed",
+            "uncertainty": "none",
+            "multiplicity": "none",
+            "sensitivity": [],
+            "cross_family_scalar": "disabled",
+        }
+    )
+    suite = SuiteManifest.from_dict(
+        {
+            "spec_version": "aeread.suite/0.1",
+            "suite_id": "agenticpay_kernel_finalizer_suite_v1",
+            "version": "1.0.0",
+            "family_ids": [case.family_id],
+            "case_ids": [case.case_id],
+            "sampling_plan_id": sampling.sampling_plan_id,
+            "evaluation_block_ids": [block.block_id],
+            "analysis_plan_id": analysis.analysis_plan_id,
+        }
+    )
+    run_spec = RunSpec.from_dict(
+        {
+            "spec_version": "aeread.run_spec/0.1",
+            "run_spec_id": "agenticpay_kernel_finalizer_run_v1",
+            "suite_id": suite.suite_id,
+            "evaluation_block_ids": [block.block_id],
+            "agent_profile_ids": [profile.profile_id],
+            "seat_assignments": {"buyer": profile.profile_id, "seller": profile.profile_id},
+            "execution_mode": "evaluate",
+            "replicate_override": None,
+            "budget_overrides": None,
+        }
+    )
+
+    harness_registry = HarnessRegistry()
+    for harness in default_harnesses().values():
+        harness_registry.register(harness)
+
+    environment_sha256 = hashlib.sha256(
+        Path(__file__).parents[1].joinpath(
+            "src", "aeread_families", "agenticpay_bilateral", "environment.py"
+        ).read_bytes()
+    ).hexdigest()
+    execution_sha256 = hashlib.sha256(
+        Path(__file__).parents[1].joinpath(
+            "src", "aeread", "shared_runner", "task", "execution.py"
+        ).read_bytes()
+    ).hexdigest()
+    # Every implementation id one of this case's three actual leaves
+    # references (validity-domain predicate, reference implementation,
+    # scorer), read straight off the leaves themselves so this can never
+    # drift from ``family_manifest``'s own
+    # ``_measurement_reference_provider_ids()``. Required for
+    # ``EvaluationReceipt``'s own pin/implementation cross-check to pass at
+    # all -- this case is contract-mode, so all three leaves (including
+    # ``agenticpay_contract_legality``) exist and cover the full declared
+    # ``reference_provider_ids`` set.
+    deal_leaf = measurement.build_deal_reached_leaf(family_case)
+    surplus_leaf = measurement.build_surplus_share_leaf(family_case)
+    contract_leaf = measurement.build_contract_legality_leaf(family_case)
+    assert contract_leaf is not None
+    reference_refs = {
+        deal_leaf.estimand.validity_domain.predicate,
+        deal_leaf.verifier.reference.implementation,
+        deal_leaf.scorer,
+        surplus_leaf.estimand.validity_domain.predicate,
+        surplus_leaf.verifier.reference.implementation,
+        surplus_leaf.scorer,
+        contract_leaf.estimand.validity_domain.predicate,
+        contract_leaf.verifier.reference.implementation,
+        contract_leaf.scorer,
+    }
+    reference_pins = tuple(
+        ImplementationPin.from_dict(
+            {
+                "component_id": ref.implementation_id,
+                "kind": "reference",
+                "version": ref.version,
+                "sha256": ref.content_sha256,
+            }
+        )
+        for ref in reference_refs
+    )
+    pins = (
+        ImplementationPin.from_dict(
+            {
+                "component_id": family.family.plugin_id,
+                "kind": "family_plugin",
+                "version": "0.1.0",
+                "sha256": environment_sha256,
+            }
+        ),
+        ImplementationPin.from_dict(
+            {
+                "component_id": family.scoring.scorer_id,
+                "kind": "scorer",
+                "version": "0.1.0",
+                "sha256": environment_sha256,
+            }
+        ),
+        *reference_pins,
+        ImplementationPin.from_dict(
+            {
+                "component_id": "minimal_chat",
+                "kind": "harness",
+                "version": "1.0",
+                "sha256": execution_sha256,
+            }
+        ),
+        ImplementationPin.from_dict(
+            {
+                "component_id": _AGENTICPAY_FIXTURE_RUNTIME_ID,
+                "kind": "runtime",
+                "version": "0.1.0",
+                "sha256": execution_sha256,
+            }
+        ),
+    )
+
+    plan = resolve_run_plan(
+        families=(family,),
+        cases=(case,),
+        suite=suite,
+        sampling=sampling,
+        evaluation_blocks=(block,),
+        analysis=analysis,
+        agent_profiles=(profile,),
+        run_spec=run_spec,
+        registry=registry,
+        implementation_pins=pins,
+        harness_registry=harness_registry,
+        provider_capabilities={
+            _AGENTICPAY_FIXTURE_PROVIDER_ID: ProviderCapabilities(
+                native_tools=False,
+                structured_output=False,
+                seed=False,
+                system_prompt=True,
+                reasoning_budget=False,
+                reasoning_token_report=False,
+                max_context_tokens=None,
+            )
+        },
+    )
+    return plan, registry
+
+
+def _run_agenticpay_episode_through_finalizer(bridge: AgenticpayBridge, tmp_path: Path):
+    """Drive one s01_beauty_product contract-mode episode all the way to a
+    sealed receipt.
+
+    Returns ``(receipt, evidence, family_case)``.
+    """
+    case = _case("agenticpay.bilateral.realistic.s01_beauty_product")
+    plugin = AgenticpayBilateralPlugin(upstream_root=UPSTREAM_ROOT, bridge=bridge)
+    family_case = plugin.validate_payload(case.payload)
+
+    plan, registry = _build_agenticpay_run_plan(plugin=plugin, case=case, family_case=family_case)
+    cell = plan.cells[0]
+    resolved_plugin = registry.resolve_manifest(family_manifest())
+
+    evidence = EvidenceStore(
+        tmp_path / "evidence_finalize_receipt",
+        run_plan_id=plan.run_plan_id,
+        cell_id=cell.cell_id,
+        episode_id=f"episode_{cell.cell_id}",
+        episode_attempt_id="attempt_1",
+    )
+    harness = EvidenceRecordingAgenticpayHarness(
+        evidence=evidence,
+        script=_script(
+            [
+                ("Hi, let's talk terms.", "Sure, what did you have in mind?"),
+                (_CONTRACT, _CONTRACT),
+            ]
+        ),
+    )
+    result = asyncio.run(
+        run_episode(cell=cell, case=case, plugin=resolved_plugin, response_source=harness)
+    )
+    evidence.audit_reconciliation()
+
+    execution = CellExecution(
+        run_plan_id=plan.run_plan_id,
+        cell_id=cell.cell_id,
+        episode_attempt_id="attempt_1",
+        episode_result=result,
+        evidence=evidence,
+        action_executions=(),
+        total_cost_usd=0.0,
+    )
+    setup = _EvaluationSetup(plan=plan, registry=registry, prompt_sources={}, pricing={})
+    receipt = finalize_family_execution(setup=setup, execution=execution)
+    return receipt, evidence, family_case
+
+
+def test_finalize_wires_agenticpay_to_the_shared_family_finalizer(tmp_path: Path) -> None:
+    """This family has never produced an ``EvaluationReceipt`` before this
+    test (spec section 5, migration milestone 3 of 3): drives one small,
+    real, bridge-backed contract-mode episode end to end through the real
+    finalizer and asserts a receipt comes back carrying EXACTLY this
+    family's three declared finalize-time leaves and the declared primary --
+    not merely that a receipt came back.
+    """
+    bridge = _bridge()
+    receipt, evidence, _family_case = _run_agenticpay_episode_through_finalizer(bridge, tmp_path)
+
+    assert receipt.status == "ok"
+    assert receipt.inclusion_status == "included"
+    assert receipt.replay_level == "state_and_score"
+    assert receipt.primary_leaf_id == measurement.SURPLUS_SHARE_LEAF_ID
+    assert {score.leaf.leaf_id for score in receipt.scores} == {
+        measurement.DEAL_REACHED_LEAF_ID,
+        measurement.SURPLUS_SHARE_LEAF_ID,
+        measurement.CONTRACT_LEGALITY_LEAF_ID,
+    }
+    assert receipt.inapplicable_leaf_ids == ()
+    assert receipt.deferred_leaf_ids == ()
+
+    surplus = next(
+        score for score in receipt.scores if score.leaf.leaf_id == measurement.SURPLUS_SHARE_LEAF_ID
+    )
+    assert surplus.status == "ok"
+    assert surplus.primary is not None
+    assert surplus.primary.value == pytest.approx(0.6 / 1.2)  # buyer's own share
+    assert surplus.utility_by_seat["buyer"].value == surplus.primary.value
+
+    deal = next(
+        score for score in receipt.scores if score.leaf.leaf_id == measurement.DEAL_REACHED_LEAF_ID
+    )
+    assert deal.status == "ok"
+    assert deal.primary.value == 1.0
+
+    legality = next(
+        score
+        for score in receipt.scores
+        if score.leaf.leaf_id == measurement.CONTRACT_LEGALITY_LEAF_ID
+    )
+    assert legality.status == "ok"
+    assert legality.primary.value == 1.0
+
+    evidence_refs = {score.evidence_refs for score in receipt.scores}
+    assert len(evidence_refs) == 1
+
+    # Evidence really was sealed with a durable receipt on disk.
+    assert evidence.verify_seal() == receipt.evidence
+    receipt_path = evidence.root / "evaluation_receipt.json"
+    assert receipt_path.is_file()
+    assert receipt_path.read_bytes() == canonical_json_bytes(receipt) + b"\n"
