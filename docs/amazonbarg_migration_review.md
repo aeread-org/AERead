@@ -181,6 +181,101 @@ import runs in-process, under this project's own venv.
   failed as expected (the other two assertions, which check different lines,
   continued to pass); restoring the line made all three pass again.
 
+#### Gate follow-up (2026-09-06): the "FIXED" job was red as shipped, plus a second file that ran under no job at all
+
+A final gate found two CI-wiring defects in the fix above, both now fixed.
+
+**Defect 1 — the fidelity job itself failed.**
+`tests/test_amazonbarg_upstream_skip_scope.py::_run_pytest` builds its
+deliberately checkout-less child pytest's environment via `dict(os.environ)`
+— a verbatim copy of the parent's environment, including
+`AEREAD_AMAZONBARG_BRIDGE_REQUIRED` when the parent has it set. The new
+`amazonbarg-fidelity` job sets exactly that variable to `"1"` while listing
+this very file, so every real run of the job it was meant to certify
+inherited the flag into the child. The child's own `conftest.py` skip-to-
+failure hook then converted the child's two intentionally-skipped tests
+(`test_an_upstream_dependent_shim_test_skips_individually_not_the_whole_
+module`, `test_running_the_whole_pure_and_impure_mix_reports_both_outcomes_
+honestly`) into a failed child run (`session.exitstatus = 1`), which the
+parent test then asserted must be `0` and failed instead.
+
+- Reproduction (the fidelity job's exact command and environment):
+  ```
+  AEREAD_AMAZONBARG_UPSTREAM_ROOT="<pinned upstream checkout>" \
+  AEREAD_AMAZONBARG_BRIDGE_REQUIRED=1 \
+  pytest -q tests/test_amazonbarg_cases.py tests/test_amazonbarg_environment.py \
+    tests/test_amazonbarg_harness.py tests/test_amazonbarg_measurement.py \
+    tests/test_amazonbarg_replay.py tests/test_amazonbarg_shim.py \
+    tests/test_amazonbarg_upstream_skip_scope.py \
+    tests/test_shared_runner_scoring_contract.py
+  ```
+  Reproduced: `2 failed, 127 passed` — the same two tests the gate named
+  (`test_an_upstream_dependent_shim_test_skips_individually_not_the_whole_
+  module`, `test_running_the_whole_pure_and_impure_mix_reports_both_outcomes_
+  honestly`), the same assertion, the same cause. (`--collect-only` over
+  this exact file set confirms 129 items pre-fix, matching this run's
+  127+2; the gate's own reported `130 passed` total is 3 higher and remains
+  unexplained — not attributable to
+  `tests/test_amazonbarg_bilateral_ci_bridge_requirement.py`, which is not
+  part of this file set either way (Defect 2 below); the substance of the
+  finding — which two tests fail and why — reproduced exactly regardless.)
+- Fix: `_run_pytest` now strips every `AEREAD_*_BRIDGE_REQUIRED` flag from
+  the child's environment before launching it, with a comment stating this
+  checkout-less child must never be asked to enforce any family's bridge.
+- Test: `test_the_checkout_less_child_never_inherits_a_bridge_required_flag`
+  (`tests/test_amazonbarg_upstream_skip_scope.py`) sets
+  `AEREAD_AMAZONBARG_BRIDGE_REQUIRED=1` in the parent (via `monkeypatch`,
+  mirroring the fidelity job's own env) and asserts the child still exits `0`
+  with its expected `1 skipped`. Confirmed failing before the fix (child
+  returncode `1`, same skip-to-failure output as the reproduction above) and
+  passing after, with the rest of the file (5 tests total) still green.
+- Re-run under the fidelity job's exact command/environment above, fix
+  applied: `130 passed`.
+
+**Defect 2 — `tests/test_amazonbarg_bilateral_ci_bridge_requirement.py` ran
+under no CI job at all.** Its own basename contains `test_amazonbarg_`, so
+`conftest.py`'s `pytest_collection_modifyitems` swept its three tests into a
+skip under the plain `test` job whenever the upstream checkout was absent —
+true for every real CI runner, since the plain job never provisions any
+family's checkout — and the file was never added to the fidelity job's own
+test-file list either. Net effect: this file's three tests, including the
+ones asserting the fidelity job itself stays correctly wired, never actually
+ran in CI, under either job.
+
+- Fix: read what the three tests need — only the checked-in workflow YAML
+  text, no upstream bytes at all — and marked them (plus the new guard test
+  below) `@pytest.mark.no_upstream_checkout_required`, so the plain job's
+  filename-based sweep no longer touches them and they run there instead of
+  being added to the fidelity job, which would gate them on a checkout they
+  do not need.
+- Guard test added (no prior test of this shape existed —
+  `test_ci_actually_runs_every_amazonbarg_fidelity_test_file_under_the_
+  bridge_gate` only checks a fixed, hand-maintained list, which is exactly
+  what missed this file):
+  `test_every_amazonbarg_test_file_is_covered_by_some_ci_job`
+  (`tests/test_amazonbarg_bilateral_ci_bridge_requirement.py`). It globs
+  every `tests/test_amazonbarg_*.py` file and, for each, checks the file is
+  either named in the fidelity job's own test-file list or has every one of
+  its `test_*` functions (parsed via `ast`, not a substring search) marked
+  `no_upstream_checkout_required`; asserts none are covered by neither.
+  Confirmed failing before the fix (flagged this exact file as uncovered —
+  demonstrated directly by temporarily stripping the four
+  `no_upstream_checkout_required` markers back out and re-running, restored
+  from a `/tmp` copy afterward, never via `git checkout`) and passing after.
+- Re-run under the plain job's exact environment (no
+  `AEREAD_AMAZONBARG_UPSTREAM_ROOT`, no `AEREAD_AMAZONBARG_BRIDGE_REQUIRED`):
+  `tests/test_amazonbarg_bilateral_ci_bridge_requirement.py` — `4 passed`
+  (all four tests, including the new guard, now run rather than skip).
+
+Both fixes verified together: full repo suite under the plain job's own
+environment (`pytest tests/ -q`, no bridge/upstream variables set) —
+`2230 passed, 125 skipped, 1 xfailed, 0 failed`; the amazonbarg-fidelity
+job's exact file list under its own environment — `130 passed, 0 failed`;
+the full amazonbarg family file set (including
+`test_amazonbarg_bilateral_ci_bridge_requirement.py`) plus
+`test_shared_runner_scoring_contract.py` and `test_shared_runner_smoke.py`,
+bridge exported — `144 passed, 0 failed`.
+
 ## Summary
 
 - Fixed: 1 (finding 4)

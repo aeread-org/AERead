@@ -240,21 +240,36 @@ now `test_amazonbarg_cases.py`, `test_amazonbarg_environment.py`,
 `test_amazonbarg_upstream_skip_scope.py`, and
 `test_amazonbarg_bilateral_ci_bridge_requirement.py` (new, added by the
 independent-review fix pass above) — plus `test_shared_runner_scoring_contract.py`
-and `test_shared_runner_smoke.py` — **142 passed, 0 failed, 0 skipped**
-(re-verified 2026-09-05; up from 138 by the 4 tests the review fix pass
-added: the ordering regression above and the three
+and `test_shared_runner_smoke.py` — **144 passed, 0 failed, 0 skipped**
+(re-verified 2026-09-06, gate follow-up pass; up from 142 by the 2 tests the
+gate follow-up added — `test_the_checkout_less_child_never_inherits_a_bridge_
+required_flag` in `test_amazonbarg_upstream_skip_scope.py`, and
+`test_every_amazonbarg_test_file_is_covered_by_some_ci_job` in
+`test_amazonbarg_bilateral_ci_bridge_requirement.py`; the prior 142 count was
+itself up from 138 by the 4 tests the independent-review fix pass added: the
+ordering regression above and the three original
 `test_amazonbarg_bilateral_ci_bridge_requirement.py` tests). Without the
-bridge (upstream root pointed at a nonexistent path): **53 passed, 89
-skipped** (up from 85 by the same 4 tests — including the three CI-bridge
--requirement tests, which need no real upstream bytes themselves but are
-still swept into the blanket skip because `conftest.py`'s
-`pytest_collection_modifyitems` gates on any `test_amazonbarg_` filename
-prefix, not on whether a given test actually touches the checkout), every
-skip carrying the same named reason as before, including both of the prior
-milestone's new tests
+bridge (upstream root pointed at a nonexistent path): **57 passed, 87
+skipped** (up from 53/89 by the gate follow-up's fix (b): the three original
+`test_amazonbarg_bilateral_ci_bridge_requirement.py` tests, plus its new
+guard test, are now marked `no_upstream_checkout_required` — they read only
+the checked-in workflow YAML, need no real upstream bytes, and previously
+skipped anyway because `conftest.py`'s `pytest_collection_modifyitems` gates
+on any `test_amazonbarg_` filename prefix, not on whether a given test
+actually touches the checkout, so all four now run and pass instead of
+skipping; the one offsetting new skip is
+`test_the_checkout_less_child_never_inherits_a_bridge_required_flag`, left
+unmarked like its sibling tests in that file since it drives a real
+checkout-less child subprocess), every skip carrying the same named reason
+as before, including both of the prior milestone's new tests
 (`test_finalize_wires_amazonbarg_to_the_shared_family_finalizer`,
 `test_amazonbarg_obeys_the_scoring_contract`) — verified individually, not
 merely counted.
+
+**Gate follow-up (2026-09-06):** a final gate found two CI-wiring defects in
+the finding-4 fix above. See "Gate follow-up" under finding 4 in
+`docs/amazonbarg_migration_review.md` for the full reproduction and fix
+detail; summarized here for the count reconciliation above.
 
 **Independent review supplied and disposed
 (`docs/amazonbarg_migration_review.md`, 2026-09-05).** Four findings, verified
