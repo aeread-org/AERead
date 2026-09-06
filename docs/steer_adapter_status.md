@@ -130,7 +130,7 @@ existing `status == "ok"` / `inclusion_status == "included"` assertions.
 
 Verified both with the bridge fixtures exported and without (both fall back
 to the same on-disk cache path either way, so neither run hides a skip — see
-the milestone-0 baseline note above) and, separately, with
+docs/steer_migration_plan.md's milestone-0 baseline note) and, separately, with
 `AEREAD_STEER_FIXTURES_REQUIRED=1` set against the real, provisioned cache
 (a genuine certifying run): `tests/test_steer_*.py` (7 modules) +
 `tests/test_shared_runner_scoring_contract.py` +
@@ -189,8 +189,9 @@ PYTHONPATH=src python -m pytest \
 ```
 
 **Narrowed claim (finding 5 follow-up, docs/steer_fix_verification.md):**
-the run above did not set `AEREAD_STEER_FIXTURES_REQUIRED=1`, so on its own
-it cannot prove none of the run's seven `test_steer_*.py` modules or
+the command block as printed above does not set
+`AEREAD_STEER_FIXTURES_REQUIRED=1`, so that invocation on its own cannot
+prove none of the run's seven `test_steer_*.py` modules or
 `tests/test_shared_runner_scoring_contract.py`'s own steer coverage silently
 skipped for want of the flattened cache -- only that whatever ran, passed.
 The opt-in guard that turns such a skip into a failure (root `conftest.py`,
@@ -264,11 +265,11 @@ without qualification here.
    not merely asserted-and-never-exercised.
 
 Both mutations were reverted; the suite returned to 148/148 green
-afterward.
+afterward (the 2026-09-02 milestone-3 count; 175 today).
 
 **Deterministic across runs.** `test_steer_e2e.py` + `test_steer_replay.py`
 were executed twice, independently, both times 24/24 passed with no
-differences in behavior.
+differences in behavior (milestone-3 count; those two modules total 27 today).
 
 **Corpus/Gate-1 status is unchanged from milestones 1–2** (not re-verified
 tonight beyond re-running its existing test file): 1,595 admitted cases
