@@ -138,6 +138,11 @@ V21_CONTRACT_PATH = (
     / "configs"
     / "housing_model_sensitivity_openrouter_parasail_v21.json"
 )
+V24_CONTRACT_PATH = (
+    Path(__file__).resolve().parents[1]
+    / "configs"
+    / "housing_model_sensitivity_openrouter_parasail_v24.json"
+)
 CONFIRMATORY_CONTRACT_PATH = (
     Path(__file__).resolve().parents[1]
     / "configs"
@@ -2286,6 +2291,112 @@ def test_bounded_concurrency_client_spaces_starts_and_caps_overlap() -> None:
             maximum_concurrent_calls_by_provider={"Parasail": 0},
             first_call_delay_seconds=0.0,
         )
+
+
+def test_truncated_admission_is_a_length_failure_not_an_invalid_action(
+    tmp_path: Path,
+) -> None:
+    contract = load_contract(V24_CONTRACT_PATH)
+    seen: list[int] = []
+
+    class TruncatingClient:
+        """Truncates until the output budget is large enough."""
+
+        async def complete(self, request):  # noqa: ANN001, ANN201
+            seen.append(request.max_output_tokens)
+            truncated = request.max_output_tokens < 8192
+            payload = json.loads(request.input_text)
+            schema = payload["action_schema"]
+            if schema == "housing_contact_v1":
+                body = {"decision": "pass", "listing_id": None, "rent": None}
+            elif schema == "housing_commit_v1":
+                body = {"decision": "pass", "hold_id": None}
+            else:
+                body = {
+                    "decision": "reject_all",
+                    "offer_id": None,
+                    "counter_rent": None,
+                }
+            return ProviderResult(
+                response_id="truncating",
+                requested_model=request.model,
+                resolved_model=request.revision,
+                # A truncated completion returns no usable text at all.
+                output_text="" if truncated else json.dumps(body),
+                finish_reason="length" if truncated else "stop",
+                input_tokens=400,
+                cached_input_tokens=0,
+                output_tokens=request.max_output_tokens if truncated else 20,
+                cost_usd=0.0001,
+                raw_response={"id": "truncating"},
+            )
+
+    result = asyncio.run(
+        run_profile_admission(
+            contract,
+            output_root=tmp_path / "admission",
+            provider_client=TruncatingClient(),
+        )
+    )
+
+    assert result["status"] == "passed"
+    rows = result["rows"]
+    assert len(rows) == 18
+    # Truncation is a delivery failure, so it is retried rather than charged
+    # to the model as a malformed action.
+    assert all(row["status"] == "passed" for row in rows)
+    assert all(
+        row["failure_condition"] != "invalid_admission_action"
+        for row in rows
+        if row.get("failure_condition")
+    )
+    first = rows[0]
+    assert first["visible_attempt_count"] == 2
+    attempts = first["attempts"]
+    assert attempts[0]["failure_condition"] == "length"
+    # The retry doubles the output budget, as trajectory execution does.
+    assert attempts[0]["prior_max_output_tokens"] == 4096
+    assert attempts[0]["next_max_output_tokens"] == 8192
+    assert 8192 in seen
+
+
+def test_genuinely_invalid_admission_action_is_still_not_retried(
+    tmp_path: Path,
+) -> None:
+    contract = load_contract(V24_CONTRACT_PATH)
+    calls: list[str] = []
+
+    class NonsenseClient:
+        async def complete(self, request):  # noqa: ANN001, ANN201
+            calls.append(request.provider_call_id)
+            return ProviderResult(
+                response_id="nonsense",
+                requested_model=request.model,
+                resolved_model=request.revision,
+                output_text='{"decision":"teleport"}',
+                finish_reason="stop",
+                input_tokens=400,
+                cached_input_tokens=0,
+                output_tokens=8,
+                cost_usd=0.0001,
+                raw_response={"id": "nonsense"},
+            )
+
+    result = asyncio.run(
+        run_profile_admission(
+            contract,
+            output_root=tmp_path / "admission",
+            provider_client=NonsenseClient(),
+        )
+    )
+
+    assert result["status"] == "failed_with_typed_missingness"
+    assert {row["failure_condition"] for row in result["rows"]} == {
+        "invalid_admission_action"
+    }
+    # A model that answers nonsense is a model fault, so it gets one attempt
+    # even though the contract allows thirty.
+    assert len(calls) == len(set(calls)) == 18
 
 
 def test_published_v12_records_pacing_failure_and_zero_trajectories() -> None:

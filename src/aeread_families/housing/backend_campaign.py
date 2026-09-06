@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import dataclasses
 import hashlib
 import json
 import os
@@ -1373,7 +1374,7 @@ CAMPAIGN_SPECS = {
                 "reports/qualification.json"
             ),
             "qualification_artifact_sha256": (
-                "PENDING_V24_SHA"
+                "244f9e3c30514051ea4fabc5809633694eea86be2657a0572879038605539035"
             ),
         },
         "route_selection_probe": {
@@ -2115,8 +2116,11 @@ async def run_profile_admission(
             result = None
             try:
                 result = await _admission_complete(contract, client, request)
+                # One file per visible attempt. A single fixed name made the
+                # immutability guard refuse a retry whose response differed,
+                # which silently broke every retry that reached the provider.
                 raw_path = result_path.with_name(
-                    f"probe_{spec['probe_index']}_raw.json"
+                    f"probe_{spec['probe_index']}_attempt_{ordinal + 1}_raw.json"
                 )
                 _write_json(
                     raw_path,
@@ -2127,6 +2131,17 @@ async def run_profile_admission(
                         }
                     ),
                 )
+                if str(getattr(result, "finish_reason", "")) == "length":
+                    # A truncated completion is a delivery failure, not a
+                    # malformed action. Trajectory execution already treats it
+                    # as retryable and doubles the limit; admission used to
+                    # report it as an invalid action, which charged a model
+                    # with a fault that belonged to the output budget.
+                    raise ProviderFailure(
+                        "length",
+                        "admission completion was truncated before an action",
+                        retryable=True,
+                    )
                 action = _validate_admission_action(
                     spec["action_schema"],
                     result.output_text,
@@ -2180,6 +2195,9 @@ async def run_profile_admission(
                     "attempt": ordinal + 1,
                     "status": "operational_failure",
                     "failure_type": type(error).__name__,
+                    # Without the message an admission failure cannot be
+                    # diagnosed from the sealed evidence alone.
+                    "failure_message": str(error)[:400],
                     "failure_condition": failure_condition,
                     "failure_status_code": _exception_attribute(
                         error, "status_code"
@@ -2200,6 +2218,15 @@ async def run_profile_admission(
                     backoff = contract["controls"].get("retry_backoff") or {}
                     base = float(backoff.get("retry_base_seconds", 2.0))
                     attempt_row["retry_delay_seconds"] = min(30.0, base * (2**ordinal))
+                    if failure_condition == "length":
+                        prior = request.max_output_tokens
+                        request = dataclasses.replace(
+                            request, max_output_tokens=prior * 2
+                        ).with_computed_hash()
+                        attempt_row["prior_max_output_tokens"] = prior
+                        attempt_row["next_max_output_tokens"] = (
+                            request.max_output_tokens
+                        )
                 attempts.append(attempt_row)
                 if retry:
                     await asyncio.sleep(attempt_row["retry_delay_seconds"])
