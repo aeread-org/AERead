@@ -43,9 +43,10 @@ Gate follow-up: this file's own basename contains ``test_amazonbarg_``, so
 a skip under the plain ``test`` job whenever the upstream checkout was
 missing (true for every real CI runner, since that job never provisions any
 family's checkout) -- and this file was never added to
-``_FIDELITY_TEST_FILES`` above either, so the ``amazonbarg-fidelity`` job
-never ran it. The three tests here read only the checked-in workflow YAML
-text; they touch no upstream bytes at all, so they are marked
+``_FIDELITY_TEST_FILES`` below either, so the ``amazonbarg-fidelity`` job
+never ran it. The three original tests here (plus the guard test) read only
+the checked-in workflow YAML text; they touch no upstream bytes at all, so
+they are marked
 ``@pytest.mark.no_upstream_checkout_required`` below to run unconditionally
 under the plain job instead of being added to the fidelity job (which would
 gate them on a checkout they do not need).
