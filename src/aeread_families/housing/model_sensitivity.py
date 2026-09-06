@@ -1657,7 +1657,14 @@ async def run_live(
             **contract["controls"]["call_pacing"],
             "observed": (
                 client.pacing_summary_since(0)
-                if isinstance(client, (PacedProviderClient, CooldownProviderClient))
+                if isinstance(
+                    client,
+                    (
+                        PacedProviderClient,
+                        CooldownProviderClient,
+                        BoundedConcurrencyProviderClient,
+                    ),
+                )
                 else None
             ),
         }
