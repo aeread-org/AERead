@@ -468,6 +468,16 @@ def _profile(
                     "pricing_sha256": PRICING.content_sha256(),
                     "output_schema": period_output_schema(),
                     "max_rounds": 5,
+                    # Backoff is opt-in: with no retry_backoff declared the
+                    # executor returns without sleeping, so ten attempts fire
+                    # back-to-back into the same burst and buy nothing. That
+                    # is exactly what killed attempt 010 in two minutes.
+                    # Base 5s doubling (capped at 30s) spreads ten attempts
+                    # over several minutes, which is the housing d78a1bc8
+                    # lesson applied here.
+                    "retry_backoff": "exponential_jitter_v1",
+                    "retry_base_seconds": 5.0,
+                    "retry_after_max_seconds": 60.0,
                     "provider_metadata": route_metadata(),
                 },
             },
