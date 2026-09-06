@@ -1,6 +1,6 @@
 # steer adapter — status
 
-Branch `zeyu/steer-adapter`. Last verified 2026-09-02.
+Branch `zeyu/steer-contract-migration`. Last verified 2026-09-05.
 
 ## What the adapter claims
 
@@ -23,7 +23,7 @@ its own evaluation submodule (`git show d66673c --stat`: "Remove STEER
 evaluation submodule") — there is no upstream scorer to delegate to or achieve
 parity against, unlike `tau3_retail`.
 
-Milestone 3 (this session) adds:
+Milestone 3 (prior session, 2026-09-02) adds:
 
 - **`ScriptedSteerHarness`** (`src/aeread_families/steer/harness.py`) — a
   provider-free response source, driving episodes through the real
@@ -134,37 +134,73 @@ the milestone-0 baseline note above) and, separately, with
 `AEREAD_STEER_FIXTURES_REQUIRED=1` set against the real, provisioned cache
 (a genuine certifying run): `tests/test_steer_*.py` (7 modules) +
 `tests/test_shared_runner_scoring_contract.py` +
-`tests/test_shared_runner_smoke.py` — **173 passed, 0 failed, 0 skipped**, all
+`tests/test_shared_runner_smoke.py` — **175 passed, 0 failed, 0 skipped**, all
 three ways.
+
+`docs/steer_migration_review.md` records one independently-supplied finding
+against this exact enrollment shape: the trusted-catalog closure counted
+steer as enrolled via the static `_BRIDGE_GATED_ENROLLED_FAMILY_VERSIONS`
+entry even on a narrower invocation that never collected
+`test_steer_obeys_the_scoring_contract`, so a missing cache with
+`AEREAD_STEER_FIXTURES_REQUIRED=1` set could stay silently green (exit
+status 0) despite `_assert_family_scoring_contract` never having run for
+steer. **Confirmed, and fixed**, in
+`test(steer): make bridge-gated closure honest about required fixtures`:
+`_steer_cache_available`/`_steer_fixtures_required_env`/
+`_assert_steer_bridge_gated_enrollment_is_honest` now fail
+`test_every_registered_family_obeys_the_scoring_contract` itself whenever
+certification is requested and the cache is unavailable, independent of
+which other tests happen to be collected in the same run. The two tests that
+fix added —
+`test_steer_bridge_gated_enrollment_is_not_honest_about_required_fixtures`
+and `test_steer_fixtures_required_env_reads_the_documented_truthy_values` —
+are exactly the delta between this section's earlier 173 count and the 175
+above. The fix's own stated residual limit still holds: it prevents a
+*silent, unqualified* pass when certification was requested and could not be
+delivered; it does not, and cannot, make a genuinely offline run detect a
+*wrong* scorer, which still requires the real cache to be present
+(`docs/steer_migration_review.md`'s "Stated limits").
 
 ## Evidence
 
-**Family test suite: 138 passed, 0 failed** across all 6 `test_steer_*.py`
-modules (`test_steer_cases.py` 60, `test_steer_environment.py` 35,
-`test_steer_measurement.py` 12, `test_steer_goldens.py` 7,
-`test_steer_e2e.py` 12, `test_steer_replay.py` 12), plus **10 passed** in
-`tests/test_shared_runner_smoke.py` (the generic R1–R4 kernel smoke path,
-untouched by this family) — **148 passed, 0 failed total**, run twice
-independently with identical results.
+**Family test suite: 155 passed, 0 failed** across all 6 `test_steer_*.py`
+modules (`test_steer_cases.py` 70, `test_steer_environment.py` 37,
+`test_steer_measurement.py` 14, `test_steer_goldens.py` 7,
+`test_steer_e2e.py` 14, `test_steer_replay.py` 13), plus **2 passed** in
+`tests/test_steer_fixtures_required.py` (the bridge-required-fixtures gate
+test, omitted from an earlier version of this command) and **8 passed** in
+`tests/test_shared_runner_scoring_contract.py` (this family's hunk of the
+always-on protocol-test module — see "Scoring-contract enrollment" above),
+plus **10 passed** in `tests/test_shared_runner_smoke.py` (the generic R1–R4
+kernel smoke path, untouched by this family) — **175 passed, 0 failed
+total**, run all three ways (bridge fixtures exported, without, and with
+`AEREAD_STEER_FIXTURES_REQUIRED=1` set as a certifying run) with identical
+results, matching the "Scoring-contract enrollment" section's own count
+above exactly — both commands now cover the same test set.
 
 ```bash
 PYTHONPATH=src python -m pytest \
   tests/test_steer_cases.py tests/test_steer_environment.py \
   tests/test_steer_measurement.py tests/test_steer_goldens.py \
   tests/test_steer_e2e.py tests/test_steer_replay.py \
+  tests/test_steer_fixtures_required.py \
+  tests/test_shared_runner_scoring_contract.py \
   tests/test_shared_runner_smoke.py -q
 ```
 
 **Narrowed claim (finding 5 follow-up, docs/steer_fix_verification.md):**
 the run above did not set `AEREAD_STEER_FIXTURES_REQUIRED=1`, so on its own
-it cannot prove none of the six `test_steer_*.py` modules silently skipped
-for want of the flattened cache -- only that whatever ran, passed. The
-opt-in guard that turns such a skip into a failure (root `conftest.py`,
+it cannot prove none of the run's seven `test_steer_*.py` modules or
+`tests/test_shared_runner_scoring_contract.py`'s own steer coverage silently
+skipped for want of the flattened cache -- only that whatever ran, passed.
+The opt-in guard that turns such a skip into a failure (root `conftest.py`,
 `tools/steer_bridge/README.md`) is itself regression-tested both ways
-(`tests/test_steer_fixtures_required.py`), and re-running the command above
-with that variable set reports the identical pass count with zero skips
-(see `docs/steer_review_disposition.md`'s "Verification follow-up" section
-for the exact re-run). What remains explicitly out of scope for this
+(`tests/test_steer_fixtures_required.py`), and re-running the exact extended
+command above with that variable set reports the identical pass count with
+zero skips -- reconfirmed directly during this reconciliation (175 passed, 0
+failed, 0 skipped against the real, provisioned cache; see also
+`docs/steer_review_disposition.md`'s "Verification follow-up" section for an
+earlier re-run of the same shape). What remains explicitly out of scope for this
 adapter: the variable is not set by `.github/workflows/ci.yml`'s generic
 `test` job, and should not be, without also automatically fetching the
 no-license upstream corpus over the network on every push -- a design
@@ -173,8 +209,12 @@ choice this family deliberately avoids elsewhere (`steer_bridge_driver.py`'s
 fidelity must set `AEREAD_STEER_FIXTURES_REQUIRED=1` itself; nothing in
 this repo's CI does that for steer today.
 
-The whole-repo test collection (896 tests across every family) succeeds with
-no import errors after these changes; a full-repo execution was not run to
+The whole-repo test collection (2,350 tests across every family, as of this
+reconciliation -- up from 896 at the 2026-09-02 milestone-3 baseline, mostly
+from the ten external-benchmark adapter families landed on `main` by
+maintainer ruling on 2026-09-04, PRs #28-#38, after that baseline and before
+this branch forked) succeeds with no import errors after these changes; a
+full-repo execution was not run to
 completion tonight because of unrelated CPU contention from concurrent
 sibling adapter work on the same machine, not because of anything this
 family's tests do — the scoped run above is the one this milestone asks for
@@ -281,7 +321,8 @@ tests.
 ## Open item
 
 `docs/benchmark_qc.md`, referenced by this task's own brief as the source for
-"Gates 1–2" conventions, does not exist anywhere in this repo (also logged in
-`ledger_entries/steer.md` from an earlier milestone). This adapter's Gate-1/
+"Gates 1–2" conventions, does not exist anywhere in this repo; `ledger_entries/`
+holds no `steer.md` either (only `govsim.md`), so this gap is not otherwise
+logged anywhere in this repo. This adapter's Gate-1/
 Gate-2 vocabulary was reconstructed from `docs/steer_adapter_spec.md` itself,
 consistent with milestones 1–2, not from that missing canonical source.
