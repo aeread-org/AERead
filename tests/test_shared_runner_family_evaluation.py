@@ -15,7 +15,11 @@ from aeread.shared_runner import (
     verify_evaluation_receipt,
 )
 from aeread.shared_runner.task.execution import execute_plan_cell
-from aeread.shared_runner.task.evaluation import _seat_context_for_cell, audit_family_receipt
+from aeread.shared_runner.task.evaluation import (
+    _inapplicable_leaf_ids,
+    _seat_context_for_cell,
+    audit_family_receipt,
+)
 from aeread_families.housing.runner import (
     HousingScriptedLandlordProvider,
     HousingScriptedTenantProvider,
@@ -467,3 +471,55 @@ def test_finalize_rejects_a_legacy_familys_hook_returning_an_undeclared_inapplic
     )
     with pytest.raises(ValueError, match="not declared case_conditional"):
         finalize_housing_execution(setup=setup, execution=execution)
+
+
+class _HookReturnsList:
+    """R13 review finding 2: an adversarial plugin whose hook returns a
+    ``list`` instead of a ``frozenset``/``set``."""
+
+    def inapplicable_leaf_ids(self, family_case):
+        del family_case
+        return ["some_leaf"]
+
+
+class _HookReturnsStr:
+    """R13 review finding 2: ``frozenset("some_leaf")`` would silently
+    become a set of individual characters -- the motivating adversary."""
+
+    def inapplicable_leaf_ids(self, family_case):
+        del family_case
+        return "some_leaf"
+
+
+class _HookReturnsSetWithANonStringMember:
+    def inapplicable_leaf_ids(self, family_case):
+        del family_case
+        return {"some_leaf", 1}
+
+
+def test_inapplicable_leaf_ids_rejects_a_hook_returning_a_list() -> None:
+    with pytest.raises(TypeError, match="frozenset or set of str"):
+        _inapplicable_leaf_ids(_HookReturnsList(), {})
+
+
+def test_inapplicable_leaf_ids_rejects_a_hook_returning_a_str() -> None:
+    with pytest.raises(TypeError, match="frozenset or set of str"):
+        _inapplicable_leaf_ids(_HookReturnsStr(), {})
+
+
+def test_inapplicable_leaf_ids_rejects_a_hook_returning_a_set_with_a_non_string_member() -> None:
+    with pytest.raises(TypeError, match="member of type int"):
+        _inapplicable_leaf_ids(_HookReturnsSetWithANonStringMember(), {})
+
+
+def test_inapplicable_leaf_ids_accepts_a_plain_set_of_str() -> None:
+    """R13 review finding 2 explicitly permits ``set``, not only
+    ``frozenset`` -- the type hint says ``frozenset[str]``, but the
+    validation is deliberately looser than the hint on this one point."""
+
+    class _HookReturnsSet:
+        def inapplicable_leaf_ids(self, family_case):
+            del family_case
+            return {"some_leaf"}
+
+    assert _inapplicable_leaf_ids(_HookReturnsSet(), {}) == frozenset({"some_leaf"})

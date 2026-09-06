@@ -700,11 +700,35 @@ def _inapplicable_leaf_ids(plugin: Any, family_case: Mapping[str, Any]) -> froze
     default is empty, following the same optional-hook pattern
     ``task/scheduler.py``'s ``close`` teardown hook uses (``getattr`` with a
     ``None`` default, called only when callable).
+
+    R13 review finding 2: the hook's return value is validated here, not
+    coerced -- ``frozenset(value)`` would silently turn a returned ``str``
+    into a set of its individual characters, an ``int`` into a ``TypeError``
+    a caller might not expect from THIS function, and any other iterable
+    into a set whose members were never checked to be leaf ids at all. Only
+    an actual ``frozenset`` or ``set``, every member a ``str``, is accepted;
+    anything else raises here, naming the plugin and the offending type,
+    rather than producing a confusing failure deeper in
+    ``_enforce_declared_leaf_policy`` or the receipt.
     """
     hook = getattr(plugin, "inapplicable_leaf_ids", None)
     if not callable(hook):
         return frozenset()
-    return frozenset(hook(family_case))
+    result = hook(family_case)
+    plugin_id = type(plugin).__qualname__
+    if not isinstance(result, (frozenset, set)):
+        raise TypeError(
+            f"plugin {plugin_id!r}'s inapplicable_leaf_ids hook must return a "
+            f"frozenset or set of str, got {type(result).__name__}"
+        )
+    non_string_members = [item for item in result if not isinstance(item, str)]
+    if non_string_members:
+        raise TypeError(
+            f"plugin {plugin_id!r}'s inapplicable_leaf_ids hook must return a "
+            "frozenset or set of str, got a member of type "
+            f"{type(non_string_members[0]).__name__}"
+        )
+    return frozenset(result)
 
 
 def _enforce_subject_seat_primaries(
