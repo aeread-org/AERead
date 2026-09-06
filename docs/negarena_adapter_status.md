@@ -92,7 +92,7 @@ own docstring), not convenience.
 docstring before this milestone, and its reason for existing separately
 predates this migration too: "so a degenerate no-agreement episode is never
 silently averaged into the payoff leaderboard as a 'loss'"
-(`docs/verifier_taxonomy.md` section 9). Whether an episode ended in
+(`docs/research/verifier_taxonomy.md` section 9). Whether an episode ended in
 agreement is a measured (`status="ok"`) fact regardless of which way it
 went — a `REJECT`/iteration-cap termination is not grounds to exclude the
 receipt, only to record the fact honestly. Only an
@@ -156,7 +156,9 @@ The finalizer-wiring gap the previous milestone recorded (`docs/negarena_migrati
 `canonical_response`) and `phase_instance_succeeded` per phase instance —
 exactly the generic event vocabulary `task.evaluation._replay_family_trajectory`
 requires, mirroring `EvidenceRecordingGovsimHarness`'s identical placeholder
-(the migration reference). Both previously-failing tests
+(`tests/test_govsim_replay.py` on branch `zeyu/govsim-contract-migration`,
+the migration reference; not on this branch or main). Both previously-failing
+tests
 (`tests/test_negarena_kernel_finalizer.py::test_finalize_family_execution_does_not_crash_and_seals_a_typed_receipt`,
 `::test_finalize_family_execution_seals_the_complete_evidence_lifecycle`) pass.
 
@@ -371,9 +373,11 @@ byte-identically on `player_outcome`.
 
 ## What it costs to run
 
-The full 89-test bridge-backed run took 315.28s on a heavily shared, 10-core
-machine at load average ~10-12 (many concurrent unrelated test runs). Each
-bridge call spawns a fresh subprocess that imports the pinned upstream
+The full 105-test bridge-backed run took 600.88s (the earlier 89-test run
+took 315.28s) on a heavily shared, 10-core machine at load average ~10-12
+(many concurrent unrelated test runs). This gate's superset run of 142 tests
+(adding the whole scoring-contract file) took 667.98s at load average ~16.
+Each bridge call spawns a fresh subprocess that imports the pinned upstream
 checkout (and transitively `openai`/`anthropic`) from scratch, so this number
 is dominated by import cost under contention, not settlement work; treat it as
 an upper bound rather than a clean per-call baseline (tau3's own status doc
@@ -397,7 +401,7 @@ notes the same effect at ~1.95s/call under lower contention).
   `NegarenaPlugin.parse_action`/`legal`/`build_scorer` delegate to
   `NegarenaBridge` identically whether the episode is live or replayed, so a
   replay still spawns bridge subprocesses. What *is* proved, and is the
-  guarantee `docs/shared_runner_portability_contract.md` §5.4 actually names
+  guarantee `docs/architecture/shared_runner_portability_contract.md` §5.4 actually names
   ("a provider-free replay must pass all deterministic fields before paid
   model runs"), is zero further *model/LLM* calls — `RecordedResponseSource`
   makes no call of its own, and negarena's family plugin never had a model
@@ -413,8 +417,9 @@ notes the same effect at ~1.95s/call under lower contention).
   tau3 already raised (its UNRESOLVED Q3), not re-litigated here.
 - **`negarena_seat_outcome`'s terminal-state-isolation contrapositive (ruling
   R7) and trajectory-sensitivity witness (ruling R9) are checked only when
-  the bridge is provisioned** — confirmed and escalated by an independent
-  review (`docs/negarena_migration_review.md` Finding 2's residual limit,
+  the bridge is provisioned** — confirmed by an independent review and
+  recorded as a stated limit, not escalated as an open owner-decision
+  question (`docs/negarena_migration_review.md` Finding 2's residual limit,
   see "Independently reviewed; disposition recorded, not merely claimed"
   above). Both checks require two real,
   genuinely differing settlements from `NegarenaBridge`'s own
