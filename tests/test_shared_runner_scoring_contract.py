@@ -582,6 +582,20 @@ class _TrajectoryIgnoringScorer(_TrajectoryEmbeddingScorer):
         return dataclasses.replace(score_set, scores=scores)
 
 
+class _OverBroadTrajectoryEmbeddingPlugin(_ReferencePlugin):
+    """kernel_r9r10_review.md finding 1 (guard a) mutation fixture: nests
+    EVERY outcome field -- the terminal tally and the embedded trajectory
+    alike -- under one ``"/payload"`` key. Declaring ``"/payload"`` as the
+    trajectory_outcome_path therefore covers the WHOLE outcome, not just
+    the embedded trajectory, so projecting it away erases terminal facts
+    too and would make the paired-history check vacuous.
+    """
+
+    def outcome(self, family_case: Mapping[str, Any], terminal: Mapping[str, Any]) -> dict[str, Any]:
+        base = super().outcome(family_case, terminal)
+        return {"payload": {**base, "labels": list(terminal["labels"])}}
+
+
 class _ScriptedChoiceProvider:
     """Serves one scripted label per call, in order, then fails closed."""
 
@@ -1254,6 +1268,26 @@ def project_outcome(outcome: Mapping[str, Any], paths: tuple[str, ...]) -> Mappi
     return projected
 
 
+def _assert_projection_is_not_vacuous(
+    projection: Any, *, family_id: str, trajectory_outcome_paths: tuple[str, ...]
+) -> None:
+    """kernel_r9r10_review.md finding 1 (guard a): a declared
+    ``trajectory_outcome_paths`` that covers an object subtree wider than
+    the trajectory itself (e.g. ``"/payload"`` when ``payload`` holds both
+    terminal fields and the history) projects EVERY fixture's outcome down
+    to ``{}``. The paired-history check below would then compare ``{} ==
+    {}``, which trivially passes without ever comparing terminal state --
+    exactly the vacuous check ruling R7 exists to prevent. This guard fires
+    before that comparison, on each fixture's own projection individually.
+    """
+    assert isinstance(projection, Mapping) and projection, (
+        f"{family_id}: trajectory_outcome_paths {list(trajectory_outcome_paths)} erased "
+        "the entire outcome down to an empty mapping -- the paired-history check "
+        "(ruling R7) would be vacuous, comparing {} == {} without ever comparing "
+        "terminal state"
+    )
+
+
 def _final_replayed_state(phase_instances: tuple[PhaseInstance, ...]) -> Any:
     """The family state ``plugin.terminal()`` was called on to end replay (R10).
 
@@ -1286,6 +1320,18 @@ def _assert_trajectory_outcome_paths_are_consistent(
     final_state = _final_replayed_state(scoring_input.phase_instances)
     for pointer in paths:
         outcome_value = _json_pointer_get(scoring_input.outcome, pointer)
+        # kernel_r9r10_review.md finding 1 (guard b): a declared path that
+        # navigates to an object subtree, not a per-step record sequence,
+        # may hide terminal facts behind the projection (``project_outcome``
+        # drops the WHOLE subtree, not just a trajectory-shaped part of it).
+        # This fires before the equality check below, independent of
+        # whether the two copies happen to agree.
+        assert isinstance(outcome_value, (list, tuple)), (
+            f"outcome{pointer} is a {type(outcome_value).__name__}, not a "
+            "sequence -- a declared trajectory_outcome_path must point at a "
+            "sequence of per-step records; an object subtree may hide "
+            "terminal facts behind the projection"
+        )
         derived_value = _json_pointer_get(final_state, pointer)
         assert canonical_json_bytes(outcome_value) == canonical_json_bytes(
             derived_value
@@ -1655,6 +1701,18 @@ def test_every_registered_family_obeys_the_scoring_contract(tmp_path: Path) -> N
         # terminal-only family.
         left_projection = project_outcome(left_input.outcome, trajectory_outcome_paths)
         right_projection = project_outcome(right_input.outcome, trajectory_outcome_paths)
+        # kernel_r9r10_review.md finding 1 (guard a): an over-broad declared
+        # path (one covering an object subtree wider than the trajectory
+        # itself) can project BOTH fixtures down to an empty mapping, which
+        # would make the equality check below pass vacuously -- {} == {} --
+        # without ever comparing terminal state. Each fixture's own
+        # projection is checked individually, before they are compared.
+        _assert_projection_is_not_vacuous(
+            left_projection, family_id=key[0], trajectory_outcome_paths=trajectory_outcome_paths
+        )
+        _assert_projection_is_not_vacuous(
+            right_projection, family_id=key[0], trajectory_outcome_paths=trajectory_outcome_paths
+        )
         assert canonical_json_bytes(left_projection) == canonical_json_bytes(
             right_projection
         )
@@ -1924,6 +1982,86 @@ def test_r9_projection_fails_to_pair_when_the_embedded_path_is_not_declared(
         "pairing precondition -- removing the declaration should make the "
         "one field that differs (labels) visible in the projection again"
     )
+
+
+def test_projection_is_not_vacuous_rejects_a_projection_erased_to_an_empty_mapping() -> None:
+    """kernel_r9r10_review.md finding 1 (guard a), unit check."""
+    with pytest.raises(AssertionError, match="vacuous"):
+        _assert_projection_is_not_vacuous(
+            {}, family_id="fixture_family", trajectory_outcome_paths=("/payload",)
+        )
+
+
+def test_projection_is_not_vacuous_accepts_a_non_empty_projection() -> None:
+    _assert_projection_is_not_vacuous(
+        {"x_count": 1}, family_id="fixture_family", trajectory_outcome_paths=("/history",)
+    )
+
+
+def test_trajectory_outcome_path_consistency_rejects_a_mapping_shaped_path() -> None:
+    """kernel_r9r10_review.md finding 1 (guard b), unit check: a declared
+    path that navigates to an object subtree, not a per-step record
+    sequence, is rejected before the equality check ever runs -- an object
+    subtree may hide terminal facts behind the projection."""
+    phase_instances = (_phase_instance_ending_in_state({"history": {"round_1": "x"}}),)
+    scoring_input = FamilyScoringInput(
+        outcome={"history": {"round_1": "x"}}, phase_instances=phase_instances, evidence_refs=()
+    )
+    with pytest.raises(AssertionError, match="sequence"):
+        _assert_trajectory_outcome_paths_are_consistent(scoring_input, ("/history",))
+
+
+def test_r9_projection_erases_the_entire_outcome_when_the_declared_path_is_over_broad(
+    tmp_path: Path,
+) -> None:
+    """kernel_r9r10_review.md finding 1 (guard a), end-to-end mirror of
+    ``test_r9_projection_fails_to_pair_when_the_embedded_path_is_not_declared``:
+    a REAL family whose outcome is entirely nested under one
+    ``"/payload"`` key -- terminal tally and embedded trajectory alike --
+    declares that whole key as its trajectory_outcome_path.
+    ``_OverBroadTrajectoryEmbeddingPlugin.outcome`` proves the resulting
+    projection is not merely small but genuinely empty for BOTH fixtures,
+    and the guard rejects it as vacuous rather than letting the
+    paired-history check pass by comparing ``{} == {}``.
+    """
+    left_setup, left_execution = asyncio.run(
+        _run_reference_episode(
+            ("x", "y"),
+            evidence_root=tmp_path / "overbroad_left",
+            plugin_factory=_OverBroadTrajectoryEmbeddingPlugin,
+        )
+    )
+    _right_setup, right_execution = asyncio.run(
+        _run_reference_episode(
+            ("y", "x"),
+            evidence_root=tmp_path / "overbroad_right",
+            plugin_factory=_OverBroadTrajectoryEmbeddingPlugin,
+        )
+    )
+    plugin = left_setup.registry.resolve_manifest(left_setup.plan.families[0])
+    family_case = plugin.validate_payload(left_setup.plan.cases[0].payload)
+    left_input = replay_family_scoring_input(
+        plugin=plugin, family_case=family_case, evidence=left_execution.evidence
+    )
+    right_input = replay_family_scoring_input(
+        plugin=plugin, family_case=family_case, evidence=right_execution.evidence
+    )
+
+    over_broad_paths = ("/payload",)
+    left_projection = project_outcome(left_input.outcome, over_broad_paths)
+    right_projection = project_outcome(right_input.outcome, over_broad_paths)
+    # Sanity: the projection really is empty for both fixtures, not merely
+    # small -- otherwise this would not be exercising the vacuous case.
+    assert left_projection == {} and right_projection == {}
+
+    with pytest.raises(AssertionError, match="vacuous"):
+        _assert_projection_is_not_vacuous(
+            left_projection, family_id=_EMBEDDING_FAMILY_ID, trajectory_outcome_paths=over_broad_paths
+        )
+    with pytest.raises(AssertionError, match="vacuous"):
+        _assert_projection_is_not_vacuous(
+            right_projection, family_id=_EMBEDDING_FAMILY_ID, trajectory_outcome_paths=over_broad_paths
+        )
 
 
 def test_sensitivity_witness_rejects_a_trajectory_leaf_that_ignores_the_trajectory(
