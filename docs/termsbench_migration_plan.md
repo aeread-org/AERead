@@ -152,13 +152,23 @@ section).
 ## What the rejected attempt's `__call__` did
 
 `termsbench-attempt1`'s `TermsBenchScorer.__call__` always declared all four
-leaves in one manifest and returned `invalid_measurement("wrong_regime")`
-for whichever of `SE+`/`AGR+`/`FAGR-` did not apply to a case's own regime.
-It was never reachable by `finalize_family_execution` in production either
-(the branch never wired a finalizer receipt test), so this was never
-exercised against a real receipt before being reset out of this branch's
-history. No `_wrong_regime_envelope` helper or comparable mechanism exists
-in the design actually implemented: the rejection now happens once, in
-`TermsBenchPlugin.validate_payload`, before any measurement code ever sees
-a wrong-regime case — there is no "wrong_regime" status anywhere in this
-migration's code.
+leaves in one manifest and, for whichever of `SE+`/`AGR+`/`FAGR-` did not
+apply to a case's own regime, returned a `_wrong_regime_envelope` helper's
+`invalid_measurement` envelope with `validity.reasons == ("wrong_regime",)`
+— never omitted, per that design's own "no more, no fewer at the leaf-id
+level" reading. It WAS driven through `finalize_family_execution` in that
+branch's own tests (`test_finalize_wires_termsbench_to_the_shared_family_
+finalizer` and its No-deal-regime companion): an Overlap-regime receipt
+came back `status="ok"`/`inclusion_status="included"` (SE+, the sole
+admission leaf, was a genuine measurement there), but the No-deal-regime
+receipt came back `status="invalid_measurement"`/`inclusion_status=
+"excluded"` — because SE+ is `invalid_measurement("wrong_regime")` for
+every No-deal case by construction, and SE+ was that design's sole
+admission leaf regardless of regime. This is ruling R13's motivating
+problem demonstrated end to end, not merely asserted: every No-deal
+receipt was structurally excluded, which is exactly why that design was
+rejected rather than kept. No `_wrong_regime_envelope` helper or comparable
+mechanism exists in the design actually implemented: the rejection now
+happens once, in `TermsBenchPlugin.validate_payload`, before any
+measurement code ever sees a wrong-regime case — there is no "wrong_regime"
+status anywhere in this migration's code.

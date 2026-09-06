@@ -30,15 +30,22 @@ Two alternatives were considered and rejected:
 - **The regime-conditional design this branch originally implemented**
   (tag `termsbench-attempt1`, reset out of this branch's history before this
   migration): one manifest declaring all four leaves unconditionally,
-  returning `invalid_measurement("wrong_regime")` for whichever leaf(s) did
-  not apply to a given case's regime, with `termsbench_surplus_efficiency_leaf`
-  as the sole primary/admission leaf. This is exactly ruling R13's
-  motivating problem, not a solution to it: every No-deal-regime receipt
-  would be structurally excluded from admission by construction (SE+ is
-  `invalid_measurement` for 100% of them), and a `case_conditional` leaf
-  would still need to be either the primary or excluded from admission on
-  half the corpus. Never merged; kept reachable only as a git tag, described
-  here rather than referenced as a branch.
+  with a `_wrong_regime_envelope` helper returning
+  `invalid_measurement("wrong_regime")` for whichever leaf(s) did not apply
+  to a given case's regime, and `termsbench_surplus_efficiency_leaf` as the
+  sole primary/admission leaf regardless of regime. That branch's own
+  finalizer receipt tests proved this end to end, not merely as a
+  hypothetical: an Overlap-regime receipt came back
+  `status="ok"`/`inclusion_status="included"`, but the No-deal-regime
+  receipt came back `status="invalid_measurement"`/`inclusion_status=
+  "excluded"` — SE+ is `invalid_measurement("wrong_regime")` for 100% of
+  No-deal cases by construction, and it was that design's sole admission
+  leaf regardless of regime. This is exactly ruling R13's motivating
+  problem, not a solution to it: every No-deal-regime receipt was
+  structurally excluded from admission, and a `case_conditional` leaf still
+  needed to be either the primary or excluded from admission on half the
+  corpus. Never merged; kept reachable only as a git tag, described here
+  rather than referenced as a branch.
 
 **This is what was built instead:** two regime-specific family VERSIONS,
 each with its own static leaf set, primary, and admission — `termsbench.overlap`
