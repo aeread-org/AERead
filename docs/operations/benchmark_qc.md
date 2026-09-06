@@ -124,6 +124,26 @@ duplicate and cluster assignments, split membership, and typed exclusions.
 Stop on invalid or non-finite inputs, resolution drift, an unverified bound,
 duplicate leakage across independent clusters, or development/holdout overlap.
 
+#### Measured headroom
+
+A panel is *informative* only if the declared control leaves rows it can fail.
+Establish this by measurement, not by inspecting world definitions:
+
+1. Before freezing a panel, run the frozen control, or a cheaper declared
+   baseline policy, across every candidate world.
+2. Admit a world only when the control fails at least a declared minimum share of
+   its rows, and publish the measured control rate per admitted world in the
+   panel manifest.
+3. A holdout must additionally preserve the difficulty of the panel it holds out
+   from. Matching a panel's failure *themes* does not match its difficulty.
+
+Skipping this produces a panel that passes every other Gate 1 check and still
+cannot measure anything. Procurement's `confirmatory_v2` is the worked example:
+twelve worlds with distinct seeds, distinct economic-world digests, and positive
+reachable bounds, on which the control scored 97% against 56% on the panel it
+replaced and won every completed row in seven of twelve worlds. A 144-row run was
+spent discovering it.
+
 ### Gate 2: Environment and verifier
 
 **Purpose:** prove that actions change the intended state and that scores are

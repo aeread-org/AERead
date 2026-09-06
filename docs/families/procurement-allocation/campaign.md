@@ -1107,11 +1107,12 @@ Two operational findings worth fixing, both recorded in the design review:
 - No partial efficacy was inspected in any sealed attempt, and none of the 24
   rows contributes to a claim.
 
-### Observed confirmatory result, 2026-09-06: ineligible, and it does not replicate
+### Observed confirmatory result, 2026-09-06: ineligible, and uninformative by construction
 
-The V4 attempt completed all 144 rows for $0.4512 with 12 typed missing rows.
-It is **ineligible**, and separately its point estimate does not reproduce the
-development result. Both facts matter and neither should be read as the other.
+The V4 attempt completed all 144 rows for $0.4512 with 12 typed missing rows. It
+is ineligible, and separately it cannot measure the treatment at all. The second
+fact is a defect in the holdout panel, authored in this branch, and it supersedes
+any reading of the effect estimate.
 
 **Eligibility: failed on the per-arm missingness ceiling.**
 
@@ -1122,37 +1123,40 @@ development result. Both facts matter and neither should be read as the other.
 | opaque_control | 4 | 3 |
 | opaque_treatment | 3 | 3 |
 
-The panel total, 12 of 144 or 8.3%, sits inside the declared 10% ceiling, but the
-ceiling is enforced per arm, where 10% of 36 rounds down to 3. Two arms exceeded
-it. Concentrated missingness in one arm is worse than the same count spread
-across four, so the per-arm rule is the right one; it simply binds much harder
-than the panel figure suggests. This is a property of the frozen plan and is not
-revisited after seeing the outcome.
+Ten of the twelve missing rows were `rate_limit`, one `provider_rejected`, one
+`timeout`: route throttling, with chance concentrating four and four into two
+arms. The panel total of 8.3% sits inside the declared 10% ceiling, but the
+ceiling binds per arm, where 10% of 36 rounds down to 3. That is a property of
+the frozen plan and is not revisited after seeing the outcome.
 
-**The estimate, reported as non-confirmatory.** Treatment minus control, over
-twelve held-out worlds and both surfaces:
+**The panel cannot measure the treatment: the control saturates it.**
 
-| outcome | holdout estimate | development estimate |
+| panel | control feasible-award rate | control mean regret |
 |---|---|---|
-| regret | -$5.15, interval [-$18.02, $8.88] | -$28.15, [-$56.02, -$4.58] |
-| feasible award | +0.021, [-0.056, 0.097] | not guarded then |
-| terminal feasibility | +0.056, [-0.014, 0.125] | +0.389, [0.167, 0.611] |
+| `confirmatory_v1` development | 56% labeled, 53% opaque | $66.86, $68.85 |
+| `confirmatory_v2` holdout | **97% labeled**, 78% opaque | $15.59, $36.24 |
 
-The regret point estimate is about one fifth of the development value and its
-interval crosses zero. Terminal feasibility, the quantity the development run
-guarded, falls from +0.389 to +0.056. That is the pattern expected when an
-adaptive result was fit to the worlds on which the intervention was selected,
-and it is the reason the standard requires a holdout at all.
+In **7 of 12** holdout worlds the V4 control wins every completed row, leaving no
+rows a treatment could improve. An overall effect near zero is what a ceiling
+produces; it is not evidence about the mechanism.
 
-**What may be claimed.** Nothing confirmatory. The development result on
-`confirmatory_v1` stands as adaptive development evidence and must keep that
-label. The pre-award check remains a demonstrated mechanism for removing
-quantity, sample, and service violations on the worlds it was built for; it is
-not demonstrated to transfer to worlds it has not seen.
+The cause is an authoring error in this branch. The holdout was built to target
+the failure *themes* the check removes -- unsampled award lines, order-step
+rounding, capacity ceilings, service floors -- and each world exercises one of
+them cleanly. The development worlds were harder in a way that was not
+reproduced: they combine several of those pressures in a single world, which is
+why their control fails about 45% of the time. Matching the themes is not
+matching the difficulty.
 
-**What happens next.** A fresh attempt under this identical frozen plan in a
-later route-availability window is the only legitimate route to eligibility. The
-plan, the guarded metric, the ceiling, and the analysis are unchanged and must
-stay unchanged; re-running is not re-tuning. The observed estimate above does not
-license adjusting any of them.
+**What may be claimed.** Nothing, in either direction. The pre-award check is
+neither confirmed nor refuted by this run. The development result on
+`confirmatory_v1` stands as adaptive development evidence and keeps that label.
+Re-running this panel in a better route window would fix eligibility and still
+measure nothing.
 
+**What is actually required.** A holdout admitted against a *measured* control
+baseline, not an authored intuition about difficulty. Generate candidate worlds,
+run the frozen control and the deterministic policy baselines on them
+provider-free or cheaply, and admit a world only when the control leaves a
+declared minimum share of rows failing. That is a Gate 1 admission criterion the
+standard does not yet contain; it is recorded as design-review defect 14.

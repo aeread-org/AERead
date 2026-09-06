@@ -318,6 +318,33 @@ takes an eligibility result and refuses to compute effects unless it passed.
 Publication already refuses an unqualified run; the same discipline belongs one
 step earlier, where a human looks.
 
+## 14. Nothing checks that a holdout leaves the control room to fail
+
+Gate 1 admits a world on validity, distinctness, a positive reachable bound, and
+digest disjointness. None of those detects a world the control already solves.
+
+The confirmatory holdout authored in this branch is the demonstration. Its twelve
+worlds targeted exactly the failure modes the pre-award check removes, and every
+Gate 1 check passed: distinct seeds, distinct economic-world digests, positive
+bounds reachable inside the action budget, paired surfaces. The V4 control then
+scored 97% feasible awards on the labeled surface against 56% on the development
+panel, and won every completed row in 7 of 12 worlds. The panel is uninformative
+by construction and cost a full 144-row run to discover.
+
+A holdout must preserve the *difficulty* of the panel it holds out from, not only
+its themes. Difficulty is a property of the control's performance, so it cannot
+be established by inspecting the world definition; it has to be measured.
+
+**Fix.** Add a Gate 1 admission criterion: before a panel is frozen, run the
+frozen control -- or, more cheaply, the deterministic policy baselines that
+already exist -- across the candidate worlds, and admit a world only when the
+control fails a declared minimum share of its rows. Publish the measured control
+rate per admitted world as part of the panel manifest, so a reader can see the
+headroom the panel offers before any treatment is run. The same measurement
+answers design-review defect 9, since a panel whose control saturates and a panel
+whose subject reaches the bound exactly are the same failure seen from the two
+ends.
+
 ---
 
 ## Status of the fixes
@@ -337,7 +364,9 @@ step earlier, where a human looks.
 | 11 abort-on-first-failure caps panel size | **fixed** — typed missingness with a declared ceiling; took the run from 24 rows across seven attempts to a single completing attempt |
 | 12 one digest for scientific and operational parameters | open; needs a versioned plan schema, so it is kernel work, not a family change |
 | 13 eligibility and effect returned together | open; split into `assess_eligibility` and a comparison that requires it |
+| 14 no check that a holdout leaves the control room to fail | open; cost a full 144-row run to discover, and is the reason the confirmatory holdout is uninformative |
 
-Defects 4, 6, 8, 10, 12, and 13 are the remaining work. None of them blocks the panels
+Defects 4, 6, 8, 10, and 12 through 14 are the remaining work. Defect 14 is the
+most urgent: until it is closed, any new holdout can repeat the same waste. None of them blocks the panels
 above; each is a bounded change with the fix already described in its section.
 

@@ -47,7 +47,7 @@ Admitted panels:
 | `confirmatory_v1/` | 12 | labeled + opaque | held-out panel for the V4 scaffold |
 | `risk_gates_v1/` | 6 | labeled + opaque | sample-schedule and landed-cash factorial |
 | `qwen_holdout_v1/` | 6 | opaque | targeted residual-capability holdout |
-| `confirmatory_v2/` | 12 | labeled + opaque | held-out panel for the pre-award check |
+| `confirmatory_v2/` | 12 | labeled + opaque | held-out panel for the pre-award check; **inadmissible**, control saturates 7 of 12 worlds |
 | `information_v1/` | 8 | labeled + opaque | information and negotiation worlds |
 
 Validate for every world:
@@ -65,12 +65,30 @@ Generation refuses a world whose supplier-by-quantity enumeration exceeds
 bound existed the generator appeared to hang, which silently made fine-grained
 quantity worlds unauthorable; see design-review defect 7.
 
-**Not yet enforced.** The standard requires admitted instances to be
-*informative*. Procurement has no per-dimension headroom check, and its absence
-is why `negotiated_moq` shipped with the only real MOQ headroom in a corpus of
-147 supplier records while the other worlds advertised negotiation that was
-worth cents. A world claiming to exercise a dimension must show that dimension
-is worth a declared minimum share of the bound.
+**Not yet enforced, and it has now cost a full run.** The standard requires
+admitted instances to be *informative*, and procurement checks nothing about
+headroom. Two consequences are measured:
+
+- `negotiated_moq` shipped with the only real MOQ headroom in a corpus of 147
+  supplier records, while other worlds advertised negotiation worth cents.
+- `confirmatory_v2` passed every Gate 1 check and is still uninformative: the V4
+  control scores 97% feasible awards on its labeled surface against 56% on the
+  development panel, and wins every completed row in 7 of its 12 worlds. A
+  144-row run was spent discovering this.
+
+Two admission criteria are therefore owed, and neither exists yet:
+
+1. **Dimension headroom.** A world claiming to exercise a dimension must show
+   that dimension is worth a declared minimum share of its bound.
+2. **Control headroom.** A panel must be admitted against a *measured* control
+   rate, not an authored intuition about difficulty. Run the frozen control or
+   the deterministic policy baselines across candidate worlds and admit a world
+   only when the control fails a declared minimum share of rows; publish the
+   measured rate per world in the panel manifest.
+
+Until criterion 2 exists, `confirmatory_v2` is recorded here as **inadmissible**:
+it is a validly generated panel that cannot measure the treatment it was built
+for. See design-review defect 14.
 
 ## 2. Environment and verifier
 
@@ -198,7 +216,7 @@ defect 11.
 | Environment and verifier | Seven goldens, leakage audit, and full-corpus replay of 216 published rows | No independent oracle implementation; exhaustive enumeration is the oracle |
 | Construct validity and baselines | Four deterministic policies across both surfaces, 48 rows, zero provider cost | **Failed:** the greedy baseline beats the subject by $28.50 labeled and $54.92 opaque |
 | Attribution and controls | Single-seat pairing by case and seed, digest-bound parents, prohibited substitution | No blocker; cross-play requirements are `not_applicable` |
-| Confirmatory reliability | `confirmatory_v2` frozen with `feasible_award` guarded and a declared missingness ceiling | Execution incomplete; the route failure rate has repeatedly sealed attempts |
+| Confirmatory reliability | `confirmatory_v2` frozen with `feasible_award` guarded and a declared missingness ceiling; 144 rows executed | The panel is inadmissible: its control saturates, so no confirmatory claim is available from it in either direction. A replacement panel admitted against a measured control rate is required |
 
 ## 7. Known construct limits
 

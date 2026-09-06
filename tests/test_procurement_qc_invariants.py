@@ -342,3 +342,72 @@ def test_an_arm_that_defers_everything_cannot_pass_the_guardrail(
         ]
         is False
     )
+
+
+# ------------------------------------------------------- measured headroom
+
+
+def _control_rate(run_root: Path, arm_suffix: str = "control") -> dict[str, float]:
+    """Feasible-award rate per world for the control arms of a completed run."""
+    import collections
+
+    tally: dict[str, list[int]] = collections.defaultdict(lambda: [0, 0])
+    for summary in run_root.glob(f"arms/*{arm_suffix}/summary.json"):
+        for row in json.loads(summary.read_text(encoding="utf-8"))["rows"]:
+            if row.get("status") != "completed":
+                continue
+            world = row["case_id"].rsplit(".", 1)[-1]
+            tally[world][0] += 1
+            tally[world][1] += 1 if row.get("feasible_award") else 0
+    return {w: won / total for w, (total, won) in tally.items() if total}
+
+
+def test_a_saturated_control_is_detectable_from_a_completed_run() -> None:
+    """Design review defect 14, made checkable.
+
+    A panel whose control already wins every row cannot measure a treatment. The
+    confirmatory holdout passed every other Gate 1 check and still saturated in 7
+    of 12 worlds, which cost a 144-row run to discover. This asserts the
+    detector works on that run, so a future panel can be screened before it is
+    spent rather than after.
+    """
+    run_root = (
+        REPOSITORY_ROOT
+        / "runs/procurement_allocation"
+        / "procurement_allocation_glm53_flash_parasail_pre_award_check_confirmatory_v4"
+        / "qualification_attempt_001"
+    )
+    if not run_root.is_dir():
+        pytest.skip("confirmatory run root is operational state, not tracked")
+
+    rates = _control_rate(run_root)
+    assert rates, "no completed control rows found"
+    saturated = sorted(w for w, rate in rates.items() if rate >= 1.0)
+    # This panel is known-bad and is retained as the regression fixture for the
+    # detector. If a future edit makes it look admissible, the detector broke.
+    assert len(saturated) >= 6, (
+        "the known-saturated holdout no longer registers as saturated, so the "
+        f"headroom detector is broken; saturated worlds: {saturated}"
+    )
+
+
+def test_headroom_screening_would_reject_the_holdout_panel() -> None:
+    """The admission rule the standard now requires, applied to the bad panel."""
+    run_root = (
+        REPOSITORY_ROOT
+        / "runs/procurement_allocation"
+        / "procurement_allocation_glm53_flash_parasail_pre_award_check_confirmatory_v4"
+        / "qualification_attempt_001"
+    )
+    if not run_root.is_dir():
+        pytest.skip("confirmatory run root is operational state, not tracked")
+
+    minimum_control_failure_share = 0.25
+    rates = _control_rate(run_root)
+    admissible = {
+        w for w, rate in rates.items() if (1.0 - rate) >= minimum_control_failure_share
+    }
+    assert len(admissible) < len(rates) / 2, (
+        "fewer than half of this panel's worlds should survive a 25% control-"
+        f"failure admission rule; admissible: {sorted(admissible)}"
+    )
