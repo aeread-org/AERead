@@ -115,9 +115,9 @@ DEFAULT_BASELINE_POLICY_ID = "proportional"
 # `family_case` encodes today). `AlympicsWacScorer.__call__` -- the seam the
 # finalizer actually calls, with no external `focal_seat` parameter -- has
 # to pick ONE deterministic seat, and this is that declared convention: the
-# first seat in `SEAT_ORDER`. See docs/alympics_adapter_status.md's "Leaf
-# policy" section for why this is stated as a known limit, not invented
-# silently.
+# first seat in `SEAT_ORDER`. See docs/alympics_adapter_status.md's "The
+# focal-seat convention (a stated limit, not an invented one)" section
+# for why this is stated as a known limit, not invented silently.
 FOCAL_SEAT = SEAT_ORDER[0]
 
 TERMINAL_WEALTH_ESTIMAND_ID = "alympics_wac_terminal_wealth"
