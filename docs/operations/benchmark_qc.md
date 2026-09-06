@@ -62,6 +62,40 @@ collectively cover every required ID in that gate's scope.
 
 ## 2. Standard gates
 
+### Gate 0: Profile admission
+
+**Purpose:** establish that this family has somewhere to record a gate result.
+
+This is the first reject gate and it is evaluated before every other gate. A
+family without a published QC profile is `failed`, not `not_run`: the remaining
+gates are not merely unevaluated, they are unevaluable, because no artifact
+exists that can hold their status.
+
+Require, before Gate 1 is considered:
+
+1. a profile at `docs/families/<family>/qc.md` that references this standard;
+2. a typed normative status for the family, and a typed status for each of
+   Gates 1 through 5;
+3. a stated blocker for every gate that is not `passed`.
+
+**Rejecting on a missing profile is not bureaucracy; it is the gate that makes
+the others load-bearing.** Procurement is the worked example. Its Gate 3 check
+ran, found that a deterministic policy reading only the displayed price beat the
+qualified subject by $28.50 per world, and published that as campaign evidence
+in `evidence/procurement_allocation_public_policy_baselines_v1/`. Because no
+profile existed, the failing result had nowhere to be recorded and was read as
+an interesting campaign finding rather than a construct-validity failure. The
+gate had been performed and its verdict was lost.
+
+This gate is enforced by `tests/test_benchmark_qc_profiles.py`, which fails when
+a trusted family has neither a profile nor a named entry in that file's dated
+exemption list. The exemption list is the backlog for families that predate this
+gate; its length is asserted, so adding a family to it is visible in review
+rather than silent.
+
+Stop when a family is registered, promoted, or described as measuring its
+declared construct without a profile.
+
 ### Gate 1: Task-distribution admission
 
 **Purpose:** establish that sampled tasks are valid, distinct, informative
@@ -265,6 +299,7 @@ reconstructed from canonical facts.
 
 | Benchmark QC evidence | Campaign gates that consume it |
 |---|---|
+| Profile admission | every gate; a missing profile rejects before evaluation |
 | Task-distribution admission | `design_contract`, `confirmatory_freeze` |
 | Environment and verifier | `provider_free_validation`, `publication` |
 | Construct validity and baselines | `design_contract`, `provider_free_validation` |
@@ -295,13 +330,8 @@ traceable.
 ## 5. Case-specific profiles
 
 Each profile must state current implementation coverage and must not translate
-`partial` into `passed`. A family without a published profile has **no recorded
-gate status**, so a failing gate has nowhere to be recorded and surfaces only as
-an incidental campaign finding. Procurement is the worked example: its
-deterministic baselines beat the subject by $28.50 per world, that result was
-published as campaign evidence in
-`evidence/procurement_allocation_public_policy_baselines_v1/`, and for want of a
-profile no gate ever turned red.
+`partial` into `passed`. A missing profile is rejected at
+[Gate 0](#gate-0-profile-admission) before any other gate is evaluated.
 
 Published profiles:
 
@@ -310,10 +340,9 @@ Published profiles:
 | Housing V1 | [housing/qc.md](../families/housing/qc.md) | `partial` |
 | Procurement allocation V1 | [procurement-allocation/qc.md](../families/procurement-allocation/qc.md) | `partial`, construct gate `failed` |
 
-A family may run development campaigns without a profile, but no family may
-publish a result described as measuring its declared construct until its profile
-exists and records that gate. Refund and every future family owe one under that
-rule.
+A family may run development campaigns while carrying a dated Gate 0 exemption,
+but no family may publish a result described as measuring its declared construct
+until its profile exists and records that gate.
 
 ## 6. New-family contribution admission
 

@@ -24,6 +24,14 @@ This profile binds the shared gates to procurement allocation V1. Requirements
 inherited from the standard are not repeated unless procurement supplies a
 specific implementation, threshold, policy, or artifact.
 
+## 0. Profile admission
+
+`passed` as of 2026-09-06: this document is the profile, and it records a typed
+status for the family and for each of Gates 1 through 5, with a stated blocker
+for every gate that is not `passed`. Before it existed, procurement was `failed`
+at this gate for the whole life of the family, which is why its construct
+failure went unrecorded.
+
 ## 1. Task-distribution admission
 
 The independent unit is the **economic world**: one BOM, objective, and supplier
