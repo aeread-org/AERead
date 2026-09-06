@@ -170,6 +170,16 @@ def _seat_context_for_cell(plan: RunPlan, cell: Any) -> SeatContext:
     Ruling R12 rule 1: matches the evaluation block by ``cell.block_id`` --
     never the live episode -- and takes ``subject_seats`` from that block and
     ``profile_by_seat`` from the cell itself.
+
+    Review finding F1: every subject seat must be a key of the cell's own
+    ``profile_by_seat``. ``resolve_run_plan`` (run/resolver.py) is the first
+    line of defense here -- it already requires ``block.subject_seats`` to
+    be a subset of the case's seat ids, which must exactly equal
+    ``run_spec.seat_assignments``' keys, which is exactly what becomes
+    ``cell.profile_by_seat`` -- so a plan built the normal way can never
+    reach this branch. This check exists for a plan/cell pair constructed
+    or mutated directly (bypassing ``resolve_run_plan``), so a subject seat
+    with no assigned profile never silently reaches the scorer.
     """
 
     block = next(
@@ -178,6 +188,13 @@ def _seat_context_for_cell(plan: RunPlan, cell: Any) -> SeatContext:
     )
     if block is None:
         raise ValueError("cell names an evaluation block absent from the plan")
+    missing_profiles = sorted(set(block.subject_seats) - set(cell.profile_by_seat))
+    if missing_profiles:
+        raise ValueError(
+            f"evaluation block {block.block_id!r} names subject seat(s) "
+            f"{missing_profiles} with no assigned profile in cell "
+            f"{cell.cell_id!r}: profile_by_seat carries {sorted(cell.profile_by_seat)}"
+        )
     return SeatContext(
         subject_seats=block.subject_seats,
         profile_by_seat=cell.profile_by_seat,
