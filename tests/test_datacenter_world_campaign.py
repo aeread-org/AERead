@@ -28,8 +28,8 @@ def test_world_panel_design_is_paired_rotated_and_budget_bounded() -> None:
     assert design["independent_cluster_count"] == 24
     assert design["paired_seed_count"] == 1
     assert design["planned_cells"] == 24 * 1 * 4 == 96
-    assert design["worst_case_declared_cost_usd"] == pytest.approx(4.56)
-    assert design["campaign_max_cost_usd"] == pytest.approx(4.6)
+    assert design["worst_case_declared_cost_usd"] == pytest.approx(6.96)
+    assert design["campaign_max_cost_usd"] == pytest.approx(7.0)
     assert design["worst_case_declared_cost_usd"] <= design["campaign_max_cost_usd"]
     assert all(cell["live_profile_count"] == 1 for cell in design["cells"])
     assert all(cell["evaluation_block_kind"] == "controlled" for cell in design["cells"])
@@ -73,7 +73,7 @@ def test_world_panel_contract_pins_the_generated_pack() -> None:
 def test_world_panel_rejects_budget_overflow_and_drifted_pack(tmp_path) -> None:
     contract = load_contract()
     over_budget = copy.deepcopy(contract)
-    over_budget["execution"]["max_cost_usd_per_live_profile"] = 0.08
+    over_budget["execution"]["max_cost_usd_per_live_profile"] = 0.30
     path = tmp_path / "over_budget.json"
     path.write_text(json.dumps(over_budget), encoding="utf-8")
     with pytest.raises(ValueError, match="cost ceiling"):

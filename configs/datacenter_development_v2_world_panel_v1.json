@@ -31,7 +31,7 @@
       },
       "max_prompt_price_per_million": "1.35",
       "max_completion_price_per_million": "6.75",
-      "max_cost_usd_per_live_profile": 0.1
+      "max_cost_usd_per_live_profile": 0.2
     },
     "glm53_parasail": {
       "profile_id": "datacenter_v2_glm53_parasail_world_panel_v1",
@@ -96,10 +96,10 @@
     "max_output_tokens_per_action": 6000,
     "timeout_seconds_per_action": 180.0,
     "max_cost_usd_per_live_profile": 0.03,
-    "campaign_max_cost_usd": 4.6,
+    "campaign_max_cost_usd": 7.0,
     "concurrency": 3,
     "max_concurrent_cells_per_route_provider": 1,
-    "provider_cooldown_seconds_after_cell": 15.0,
+    "provider_cooldown_seconds_after_cell": 25.0,
     "max_action_attempts": 1,
     "sdk_retries": 0,
     "response_cache": false,
