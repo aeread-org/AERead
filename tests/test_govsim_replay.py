@@ -581,23 +581,22 @@ def test_replayed_episode_recomputes_all_five_leaves_matching_the_live_scores(
 def test_govsim_scorer_is_callable_through_the_real_finalizer_seam_on_a_live_outcome(
     live_sustainable: LiveRun,
 ) -> None:
-    """Closes triage Finding 1 on a real episode's real recorded outcome.
+    """The recorded-outcome seam, on a real episode's real recorded outcome.
 
-    ``family_evaluation.py``'s ``finalize_family_execution`` executes
-    ``plugin.build_scorer(family_case)(recorded_outcome, evidence_refs=...)``
-    directly on whatever ``build_scorer`` returns -- never through a named
-    method the way ``tests/test_govsim_measurement.py``'s goldens do
-    (``scorer.score_survival_months(terminal=...)``). Before the fix,
-    ``GovsimScorer`` had no ``__call__`` and this raised ``TypeError:
-    'GovsimScorer' object is not callable``. Uses ``live_sustainable.result
-    .outcome`` -- ``GovsimPlugin.outcome()``'s own output, produced by the
-    REAL kernel scheduler (``run_episode``), never a synthetic dict or the
-    ad hoc ``_drive_episode`` loop's raw ``terminal``.
+    ``finalize_family_execution`` once executed
+    ``plugin.build_scorer(family_case)(recorded_outcome, evidence_refs=...)``.
+    It now passes a ``FamilyScoringInput`` and expects every declared leaf
+    (issue #76), so that contract is ``__call__`` and this recorded-outcome
+    path keeps its own name -- still exercised here on
+    ``GovsimPlugin.outcome()``'s own output, produced by the REAL kernel
+    scheduler (``run_episode``), never a synthetic dict.
     """
     scorer = m.build_scorer(dict(live_sustainable.case.payload))
     assert callable(scorer)
 
-    score = scorer(live_sustainable.result.outcome, evidence_refs=("evt_outcome_0",))
+    score = scorer.score_recorded_outcome(
+        live_sustainable.result.outcome, evidence_refs=("evt_outcome_0",)
+    )
 
     assert score.status == "ok"
     assert score.leaf.leaf_id == m.SURVIVAL_MONTHS_LEAF_ID
