@@ -34,6 +34,7 @@ from aeread.shared_runner.task.scheduler import (
 )
 
 from . import _vendored_upstream as vendored
+from . import measurement
 from .cases import (
     FAMILY_ID,
     FAMILY_VERSION,
@@ -88,6 +89,32 @@ def family_manifest() -> FamilyManifest:
                 "measurement_kind": "comparative_or_human_judged",
                 "direction": "maximize",
                 "outcome_support": "case_specific",
+                # kernel_scoring_contract_spec.md section 3: every leaf this
+                # family publishes at finalize time, exactly one primary, and
+                # precisely the leaves that gate admission -- declared here,
+                # the one source of truth, never inferred from `build_scorer`
+                # or a test fixture. All four are `scope="finalize_time"`:
+                # every leaf in measurement.py is
+                # `evaluation_class="deterministic"` with no judge, rater, or
+                # other not-yet-existing artifact dependency (spec section
+                # 4), so none is `deferred`. See
+                # docs/aucarena_adapter_status.md's "Leaf policy" section for
+                # why `aucarena_profit_vs_field` is primary and why it alone
+                # gates admission.
+                "leaves": [
+                    {
+                        "leaf_id": measurement.BUDGET_INVARIANT_LEAF_ID,
+                        "scope": "finalize_time",
+                    },
+                    {"leaf_id": measurement.BID_LEGALITY_LEAF_ID, "scope": "finalize_time"},
+                    {"leaf_id": measurement.HAMMER_RULE_LEAF_ID, "scope": "finalize_time"},
+                    {
+                        "leaf_id": measurement.PROFIT_VS_FIELD_LEAF_ID,
+                        "scope": "finalize_time",
+                    },
+                ],
+                "primary_leaf_id": measurement.PROFIT_VS_FIELD_LEAF_ID,
+                "admission_leaf_ids": [measurement.PROFIT_VS_FIELD_LEAF_ID],
             },
             "scoring": {"scorer_id": SCORER_ID},
         }
