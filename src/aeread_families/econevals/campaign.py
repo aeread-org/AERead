@@ -61,6 +61,7 @@ from .live import (
     build_live_setup,
     load_case,
     period_output_schema,
+    route_metadata,
 )
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
@@ -191,13 +192,9 @@ def _verify_plan(value: Mapping[str, Any]) -> None:
         raise ValueError("campaign plan differs from the frozen implementation")
 
 
-def _route_metadata() -> dict[str, Any]:
-    return {
-        "route_provider": ROUTE_PROVIDER,
-        "quantization": QUANTIZATION,
-        "allow_fallbacks": False,
-        "provider_cost_status": "response_reported",
-    }
+def _route_metadata() -> dict[str, str]:
+    """One shared route seal for the canary and every panel cell."""
+    return route_metadata()
 
 
 async def run_canary(*, path: Path, plan_sha256: str) -> dict[str, Any]:
