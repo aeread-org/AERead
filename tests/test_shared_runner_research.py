@@ -117,6 +117,7 @@ def _receipt(
     *,
     attempt_id: str = "attempt_000",
     deferred_leaf_ids: tuple[str, ...] = (),
+    inapplicable_leaf_ids: tuple[str, ...] = (),
 ) -> EvaluationReceipt:
     cell = plan.cells[0]
     score = _score(plan)
@@ -172,6 +173,7 @@ def _receipt(
             failure=None,
             replay_level="state_and_score",
             deferred_leaf_ids=deferred_leaf_ids,
+            inapplicable_leaf_ids=inapplicable_leaf_ids,
         )
     )
 
@@ -224,6 +226,31 @@ def test_deserialize_evaluation_receipt_round_trips_deferred_leaf_ids() -> None:
 
     assert rebuilt == receipt
     assert rebuilt.deferred_leaf_ids == ("some_other_deferred_leaf_v1",)
+
+
+def test_deserialize_evaluation_receipt_round_trips_inapplicable_leaf_ids() -> None:
+    """R13 review finding 6: ``inapplicable_leaf_ids`` (ruling R13) needs the
+    exact same round-trip guard as ``deferred_leaf_ids`` above, for the
+    exact same reason -- ``_deserialize_receipt`` previously had no line
+    reading it back at all, so the first family to declare a
+    case_conditional leaf would have silently lost the field here."""
+
+    plan = _plan()
+    receipt = _receipt(
+        plan,
+        deferred_leaf_ids=("some_other_deferred_leaf_v1",),
+        inapplicable_leaf_ids=("some_other_inapplicable_leaf_v1",),
+    )
+    assert receipt.deferred_leaf_ids == ("some_other_deferred_leaf_v1",)
+    assert receipt.inapplicable_leaf_ids == ("some_other_inapplicable_leaf_v1",)
+
+    serialized = json.loads(canonical_json_bytes(receipt))
+    rebuilt = deserialize_evaluation_receipt(serialized)
+
+    assert rebuilt == receipt
+    assert rebuilt.deferred_leaf_ids == ("some_other_deferred_leaf_v1",)
+    assert rebuilt.inapplicable_leaf_ids == ("some_other_inapplicable_leaf_v1",)
+
 
 
 def test_research_ledger_rejects_multiple_included_attempts_for_one_cell() -> None:

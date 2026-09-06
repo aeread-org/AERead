@@ -2461,6 +2461,13 @@ def _deserialize_receipt(value: Mapping[str, Any]) -> EvaluationReceipt:
             observability_limits=tuple(value.get("observability_limits", ())),
             replay_level=value.get("replay_level", "none"),
             deferred_leaf_ids=tuple(value.get("deferred_leaf_ids", ())),
+            # Ruling R13 review finding 6: this line was missing entirely --
+            # a receipt with a genuinely non-empty inapplicable_leaf_ids
+            # would silently lose the field on this round trip (falling
+            # back to EvaluationReceipt's own default, ()). deferred_leaf_ids
+            # immediately above was already carried correctly; this mirrors
+            # it exactly.
+            inapplicable_leaf_ids=tuple(value.get("inapplicable_leaf_ids", ())),
         )
         verify_evaluation_receipt(receipt)
         return receipt
