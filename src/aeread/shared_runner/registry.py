@@ -61,6 +61,19 @@ REQUIRED_FAMILY_PLUGIN_HOOKS = (
     "generator",
 )
 
+# Optional plugin hooks -- unlike the required boundary above, a plugin that
+# never needs one of these defines nothing at all, and the kernel falls back
+# to a safe default (``getattr(plugin, hook, None)``, called only when
+# callable):
+#   - ``close(family_case, state)`` -- teardown for a family owning a
+#     long-lived external resource; see task/scheduler.py's
+#     ``_close_family``.
+#   - ``inapplicable_leaf_ids(family_case) -> frozenset[str]`` -- ruling R13
+#     (kernel_scoring_contract_spec.md): which of this execution's declared
+#     ``case_conditional`` leaves (``schemas.py``'s
+#     ``LeafPolicyDeclaration.case_conditional``) do not apply to this case.
+#     Default: empty. See task/evaluation.py's ``_inapplicable_leaf_ids``.
+
 TRUSTED_BUILTIN_PLUGIN_KEYS = frozenset(
     {
         # External-benchmark adapter families accepted by maintainer ruling on
