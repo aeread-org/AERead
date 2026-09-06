@@ -77,6 +77,11 @@ Current campaign directories include:
 - `housing_operational_feasibility_2026-09-06/`: the serial wall-time
   projection the campaign SOP requires before a variance pilot, which stopped
   the first attempt at this pilot.
+- `housing_failure_register/`: every typed Housing failure across all
+  campaigns in one canonical table, derived only from published evidence so
+  each row traces to a committed artifact by digest. Regenerate it with
+  `python -m aeread_families.housing.failure_register`; the output must be
+  byte-identical or the register and the evidence have diverged.
 - `housing_glm_route_probe_2026-09-05/`: one-hour strict-client probe of all
   12 parameter-complete GLM 5.3 Flash routes on OpenRouter, 100 calls each.
   Sanitized per-call record plus a digest-bound summary; Parasail FP8 was the

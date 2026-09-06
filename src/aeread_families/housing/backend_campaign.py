@@ -1449,6 +1449,110 @@ CAMPAIGN_SPECS = {
             "asyncio_wait_for_controls_timeout_seconds"
         ),
     },
+    "housing_model_sensitivity_openrouter_parasail_v26": {
+        "maximum_operational_failure_fraction": 0.10,
+        "replicates": 2,
+        "route_status_policy": "allow_degraded_with_recorded_status",
+        "endpoint_snapshot_policy": "identity_only",
+        "claim_status": "exploratory_variance_pilot_only",
+        "catalog_retrieved_at": "2026-09-05",
+        "reasoning_condition_id": (
+            "model_sensitivity_openrouter_parasail_low_v25"
+        ),
+        "per_probe_cost_reserve_usd": 0.003,
+        "admission_cost_ceiling_usd": 0.06,
+        "admission_attempt_limit": 30,
+        "max_concurrent_cells": 8,
+        "max_action_attempts": 30,
+        "retry_backoff": {
+            "policy": "exponential_jitter_v1",
+            "retry_base_seconds": 5.0,
+            "retry_after_max_seconds": 60.0,
+        },
+        "timeout_seconds": 300.0,
+        "seat_max_cost_usd": 0.03,
+        "prerequisite_full_trajectory_gate": {
+            "campaign_id": "housing_model_sensitivity_openrouter_parasail_v24",
+            "qualification_path": (
+                "evidence/housing_model_sensitivity_openrouter_parasail_v24/"
+                "reports/qualification.json"
+            ),
+            "qualification_artifact_sha256": (
+                "244f9e3c30514051ea4fabc5809633694eea86be2657a0572879038605539035"
+            ),
+        },
+        "route_selection_probe": {
+            "probe_id": "housing_glm_route_probe_2026-09-05",
+            "summary_path": (
+                "evidence/housing_glm_route_probe_2026-09-05/reports/summary.json"
+            ),
+            "summary_artifact_sha256": (
+                "54406a94d4dacc0d1c0b6533ff67cdcfbbc4a20b56fdb91d98a7a551ac8cb63c"
+            ),
+        },
+        "execution_cost_ceiling_usd": 2.00,
+        "per_trajectory_cost_reserve_usd": 0.06,
+        "world_seeds": [
+            1971418798,
+            1460378342,
+            981417412,
+            123194022,
+            145537168,
+            264284765,
+            722524881,
+            1535604354,
+        ],
+        "condition_order": "rotate_by_world_and_case_configuration",
+        "analysis": {
+            "primary_view": "paired_world_subject_mean_within_case_score",
+            "aggregation": "equal_weight_configs_and_opponents_within_world",
+            "primary_contrast": "glm_53_flash_minus_deepseek_v4_flash",
+            "uncertainty": "sample_variance_over_world_level_paired_contrasts",
+            "minimum_meaningful_effect": 0.05,
+            "alpha": 0.05,
+            "power": 0.8,
+            "minimum_confirmatory_worlds": 30,
+            "maximum_confirmatory_worlds": 100,
+            "attrition_fraction": 0.1,
+            "minimum_paired_worlds_for_recommendation": 6,
+            "ranking_allowed": False,
+        },
+        "providers": {
+            "glm_53_flash": "Parasail",
+            "deepseek_v4_flash": "Parasail",
+        },
+        "quantizations": {
+            "glm_53_flash": "fp8",
+            "deepseek_v4_flash": "fp8",
+        },
+        "retryable_conditions": [
+            "length",
+            "rate_limit",
+            "provider_5xx",
+            "empty_response",
+            "timeout",
+        ],
+        "action_schema_version": "housing_actions/2.0",
+        "wire_live_profile_controls": True,
+        "verify_endpoint_snapshot": True,
+        "call_pacing": {
+            "clock": "monotonic_bounded_concurrency",
+            "minimum_start_interval_seconds_by_provider": {
+                "Parasail": 3.0,
+            },
+            "maximum_concurrent_calls_by_provider": {
+                "Parasail": 8,
+            },
+            "first_call_delay_seconds": 0.0,
+            "scope": "shared_across_profile_admission_and_full_trajectory",
+            "implementation_sha256": (
+                "4ef6e84e699a1a7135366cfa03197f62300b7e339349fb5454259d0208434cef"
+            ),
+        },
+        "admission_timeout_enforcement": (
+            "asyncio_wait_for_controls_timeout_seconds"
+        ),
+    },
 }
 REQUIRED_ROUTE_PARAMETERS = {
     "max_tokens",

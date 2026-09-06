@@ -63,6 +63,7 @@ def test_housing_family_owns_its_complete_execution_surface() -> None:
         "backend_publication.py",
         "case_sweep.py",
         "environment.py",
+        "failure_register.py",
         "harness_bakeoff.py",
         "harness_leaderboard.py",
         "model_sensitivity.py",

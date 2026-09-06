@@ -2399,6 +2399,60 @@ def test_genuinely_invalid_admission_action_is_still_not_retried(
     assert len(calls) == len(set(calls)) == 18
 
 
+def test_failure_register_is_reproducible_and_traces_to_committed_evidence(
+    tmp_path: Path,
+) -> None:
+    import csv as _csv
+
+    from aeread_families.housing.failure_register import build_register, publish
+
+    evidence_root = CONFIRMATORY_CONTRACT_PATH.parents[1] / "evidence"
+    register_root = evidence_root / "housing_failure_register"
+
+    payload, summary = build_register(evidence_root)
+    committed = (register_root / "tables" / "failures.csv").read_bytes()
+    committed_summary = json.loads(
+        (register_root / "reports" / "summary.json").read_bytes()
+    )
+
+    # Derived, not written: regenerating must reproduce the committed bytes.
+    assert payload == committed
+    assert summary == committed_summary
+    assert summary["rows_sha256"] == hashlib.sha256(committed).hexdigest()
+    core = {k: v for k, v in summary.items() if k != "artifact_sha256"}
+    assert hashlib.sha256(canonical_json_bytes(core)).hexdigest() == (
+        summary["artifact_sha256"]
+    )
+
+    rebuilt = publish(evidence_root, tmp_path / "register")
+    assert rebuilt == committed_summary
+
+    rows = list(_csv.DictReader(committed.decode().splitlines()))
+    assert len(rows) == summary["failure_count"]
+    assert {row["stage"] for row in rows} == {"profile_admission", "trajectory"}
+
+    # Every row names a committed artifact and the digest it came from.
+    for row in rows:
+        source = evidence_root.parents[0] / row["source_artifact"]
+        assert source.exists(), row["source_artifact"]
+        assert len(row["source_artifact_sha256"]) == 64
+
+    # Known bundles must be represented with the counts they published.
+    v19 = [
+        row
+        for row in rows
+        if row["campaign_id"] == "housing_model_sensitivity_openrouter_parasail_v19"
+    ]
+    assert len(v19) == 16
+    assert {row["failure_condition"] for row in v19} == {"rate_limit"}
+
+    # The cross-campaign pattern the register exists to surface: failures
+    # concentrate on conditions carrying a GLM seat.
+    trajectory = [row for row in rows if row["stage"] == "trajectory"]
+    with_glm = [row for row in trajectory if "glm_53_flash" in row["condition_id"]]
+    assert len(trajectory) - len(with_glm) <= 1
+
+
 def test_published_v12_records_pacing_failure_and_zero_trajectories() -> None:
     evidence_root = (
         V12_CONTRACT_PATH.parents[1]

@@ -1378,3 +1378,39 @@ precisely because no holdout outcome has been observed, or change the
 declared minimum, which after seeing pilot outcomes would be post-outcome
 tuning and is excluded.
 
+## 31. The cross-campaign failure register
+
+Every failure in this family was recorded faithfully and only ever inside the
+campaign that produced it. A pattern spanning campaigns was therefore
+invisible without opening a dozen bundles by hand, which is how the same
+provider defect kept being rediscovered under a new identity.
+
+[`evidence/housing_failure_register/`](../../../evidence/housing_failure_register/reports/summary.json)
+collects all of them in one place. It reads only published evidence, never
+the ignored local run directories, so every row carries the committed
+artifact it came from and that artifact's digest. It is derived rather than
+written: `python -m aeread_families.housing.failure_register` must reproduce
+the committed bytes exactly, and a test asserts it does.
+
+The register holds 56 typed failures across ten campaigns, 8 at profile
+admission and 48 in trajectories. What it makes visible immediately is a
+distribution nobody could see one bundle at a time.
+
+| Condition | Trajectory failures |
+|---|---|
+| GLM vs DeepSeek | 18 |
+| GLM vs GLM | 17 |
+| DeepSeek vs GLM | 12 |
+| DeepSeek vs DeepSeek | 1 |
+
+Forty-seven of forty-eight trajectory failures carry a GLM seat. The single
+condition with no GLM seat failed once. This holds across Morph, DeepInfra,
+Friendli and Parasail, so it is a property of serving that model through this
+gateway rather than of any one provider, and it is the reason a route change
+never fixed it. By condition the register is 45 rate limits, 9 timeouts, one
+transport failure and one execution error.
+
+Read this way, the delivery work in sections 20 to 30 was treating a
+model-specific supply constraint as though it were a series of unrelated
+provider incidents.
+
