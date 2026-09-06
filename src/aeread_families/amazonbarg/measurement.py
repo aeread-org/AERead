@@ -36,14 +36,22 @@ reimplemented -- adapter rule 2):
 * **``amazonbarg_bargained_ratio`` (AERead-owned scorer, delegated
   arithmetic, comparative).** The tested seat's own ``buyer_bargained_ratio``
   / ``seller_bargained_ratio`` against the fixed scripted counterpart.
-  ``build_scorer`` (the kernel's required, single-argument
-  ``family_case``-only hook) cannot know which seat will be tested, so this
-  leaf's declaration is seat-neutral; ``tested_seat`` is a parameter of
-  :func:`score_bargained_ratio` alone, and both seats' ratios are always
-  recorded together in the returned envelope's ``utility_by_seat`` /
-  ``capture_by_seat`` (never only the tested seat's number, so a poor
-  ratio for one seat is never silently hidden -- spec section 4 golden 1's
-  "comparative ratios ~=0.49/0.51").
+  Ruling R12 (kernel_scoring_contract_spec.md): this is a genuinely
+  per-seat primary, declared ``seat_scope="subject_seat"`` in
+  ``environment.py``'s ``family_manifest()`` (no ``subject_reduction`` --
+  this family's own docs already say the ratio is one side's, never
+  blended); ``AmazonbargScorer.__call__`` resolves *which* seat from
+  ``FamilyScoringInput.seat_context.subject_seats`` via
+  :func:`score_bargained_ratio_for_subject_seats`, which alone decides
+  ``tested_seat`` and then defers to :func:`score_bargained_ratio` for the
+  actual ratio arithmetic (never reimplemented there). Both seats' ratios
+  are always recorded together in the returned envelope's
+  ``utility_by_seat`` / ``capture_by_seat`` (never only the tested seat's
+  number, so a poor ratio for one seat is never silently hidden -- spec
+  section 4 golden 1's "comparative ratios ~=0.49/0.51"), and the kernel
+  itself enforces ``primary == utility_by_seat[tested_seat]`` for every
+  ``status="ok"`` envelope (``task/evaluation.py``'s
+  ``_enforce_subject_seat_primaries``).
 
 **Measurement validity gate** (spec section 2): whenever upstream's
 delegated ``Metrics`` output cannot support a deal-price claim -- upstream
@@ -69,16 +77,21 @@ claim that a higher deal price is "better" (also logged to the ledger:
 ``objective_reference`` cannot express a genuinely directionless bound).
 
 **Leaf policy and the finalizer seam** (kernel_scoring_contract_spec.md,
-migration milestone 2 of 3): ``environment.py``'s ``family_manifest()``
-declares all five leaves ``scope="finalize_time"``,
-``amazonbarg_bargained_ratio_leaf`` as primary, and it alone gating
+migration milestone 2 of 3, extended by ruling R12): ``environment.py``'s
+``family_manifest()`` declares all five leaves ``scope="finalize_time"``,
+``amazonbarg_bargained_ratio_leaf`` as primary and it alone gating
 admission (see ``docs/amazonbarg_adapter_status.md``'s "Leaf policy"
-section for why). ``AmazonbargScorer.__call__`` is the seam
+section for why), and ``amazonbarg_bargained_ratio_leaf`` alone
+``seat_scope="subject_seat"``. ``AmazonbargScorer.__call__`` is the seam
 ``task.evaluation.finalize_family_execution`` calls; it returns every
-declared leaf via ``score_all``, the single source of truth, and never
-fabricates the ``tested_seat`` no ``FamilyScoringInput`` can carry (see
-:func:`score_bargained_ratio`'s own docstring for the disclosed
-consequence).
+declared leaf, the four seat-neutral diagnostics via their own named
+methods and ``amazonbarg_bargained_ratio`` via
+:func:`score_bargained_ratio_for_subject_seats`, which reads
+``FamilyScoringInput.seat_context.subject_seats`` (ruling R12) and never
+fabricates a seat: zero, several, or an unrecognized subject seat is
+reported ``invalid_measurement`` with a named reason
+(``REASON_NO_SUBJECT_SEAT`` / ``REASON_AMBIGUOUS_SUBJECT_SEAT`` /
+``REASON_UNKNOWN_SUBJECT_SEAT``), never guessed.
 """
 from __future__ import annotations
 
@@ -162,15 +175,18 @@ REASON_NO_EVIDENCE = "no_evidence"
 REASON_ACTION_ERROR = "action_error"
 REASON_DEGENERATE_NO_ZOPA = "degenerate_no_zopa"
 REASON_NO_DEAL = "no_deal"
-# kernel_scoring_contract_spec.md: which seat (buyer or seller) a RunPlan is
-# testing is a policy-binding fact (``PlanCell.profile_by_seat``), not part
-# of ``FamilyScoringInput`` (outcome/phase_instances/evidence_refs only, spec
-# section 1) and not part of ``family_case`` either -- there is no field
-# anywhere this scorer can read it from. ``AmazonbargScorer.__call__`` (the
-# production finalizer seam) therefore cannot supply ``tested_seat`` to
-# ``score_bargained_ratio`` and reports this reason instead of fabricating a
-# side (see that method's own docstring for the full account).
-REASON_TESTED_SEAT_UNKNOWN = "tested_seat_unknown"
+# Ruling R12 (kernel_scoring_contract_spec.md): which seat (buyer or
+# seller) a RunPlan is testing now reaches this scorer via
+# ``FamilyScoringInput.seat_context.subject_seats`` --
+# ``AmazonbargScorer.__call__`` reads it and resolves it through
+# :func:`score_bargained_ratio_for_subject_seats` before ever calling
+# :func:`score_bargained_ratio`'s own arithmetic. These three reasons
+# replace the pre-R12 ``REASON_TESTED_SEAT_UNKNOWN`` (retired: no path
+# reaches "no signal at all" any more, only these three, more specific,
+# named failures of the seat context itself):
+REASON_NO_SUBJECT_SEAT = "no_subject_seat"
+REASON_AMBIGUOUS_SUBJECT_SEAT = "ambiguous_subject_seat"
+REASON_UNKNOWN_SUBJECT_SEAT = "unknown_subject_seat"
 
 
 def _file_sha256(name: str) -> str:
@@ -445,16 +461,22 @@ def build_deal_upper_bound_leaf() -> MeasurementLeafSpec:
 
 
 def build_bargained_ratio_leaf() -> MeasurementLeafSpec:
-    """The one, seat-neutral ``amazonbarg_bargained_ratio`` leaf declaration.
+    """The one ``amazonbarg_bargained_ratio`` leaf declaration.
 
     ``AmazonbargPlugin.build_scorer`` (the kernel's required hook) takes
     only ``family_case`` -- it has no way to know in advance which seat a
     RunPlan will test -- so this leaf's own identity/``validity_domain``
-    cannot vary per seat. The fixed scripted-counterpart identity (spec:
-    "opponent identity recorded in the estimand's validity_domain") is
-    recorded here as ``SCRIPTED_COUNTERPART_POLICY_ID``/``_VERSION``;
-    *which* seat is tested, and which seat's ratio becomes this leaf's
-    ``primary``, is a parameter of :func:`score_bargained_ratio` alone.
+    cannot vary per seat and stays seat-neutral here. The fixed
+    scripted-counterpart identity (spec: "opponent identity recorded in the
+    estimand's validity_domain") is recorded here as
+    ``SCRIPTED_COUNTERPART_POLICY_ID``/``_VERSION``. *Which* seat is
+    tested, and which seat's ratio becomes this leaf's ``primary``, is
+    resolved at finalize time from ``FamilyScoringInput.seat_context``
+    (ruling R12) by :func:`score_bargained_ratio_for_subject_seats` --
+    this leaf's own *policy* (declared separately, in
+    ``environment.py``'s ``family_manifest()``) is
+    ``seat_scope="subject_seat"``, even though this declaration itself
+    carries no seat.
     """
     domain = ValidityDomainSpec(
         domain_id=f"amazonbarg_bargained_ratio_domain_{SCRIPTED_COUNTERPART_POLICY_ID}",
@@ -859,7 +881,7 @@ def score_bargained_ratio(
     *,
     family_case: Mapping[str, Any],
     metrics_output: Mapping[str, Any],
-    tested_seat: str | None,
+    tested_seat: str,
     evidence_refs: tuple[str, ...] = (),
 ) -> ScoreEnvelope:
     """Score leaf 5: ``tested_seat``'s own bargained ratio.
@@ -870,38 +892,27 @@ def score_bargained_ratio(
     ``buyer_offer_num``, ``seller_offer_num``, raw ``wrongAction``) live in
     ``metrics``, never ``primary`` (spec section 2).
 
-    ``tested_seat`` is ``str | None`` (widened for
-    kernel_scoring_contract_spec.md, mirroring the optional-baseline pattern
-    the govsim migration used for a parameter no ``FamilyScoringInput`` can
-    carry): which seat a RunPlan is testing is a policy-binding fact
-    (``PlanCell.profile_by_seat``), not part of ``FamilyScoringInput``
-    (outcome/phase_instances/evidence_refs only) and not part of
-    ``family_case`` either. ``AmazonbargScorer.__call__`` -- the production
-    finalizer seam -- therefore always calls this with ``tested_seat=None``
-    and this reports ``invalid_measurement`` with
-    ``REASON_TESTED_SEAT_UNKNOWN`` rather than guessing a side; every named
-    caller that already knows which seat it tested (every test in this
-    suite, ``replay.py``'s ``score_replayed_episode``) keeps passing an
-    explicit ``"buyer"``/``"seller"`` string and is unaffected. A missing
-    ``tested_seat`` seals the WHOLE envelope ``invalid_measurement``
-    (``primary`` is the only thing this leaf reports, spec section 2:
-    "diagnostics ... never primary" -- there is no seat-neutral primary to
-    fall back to), never a half-populated ``ok`` envelope with
-    ``utility_by_seat`` but no ``primary``.
+    ``tested_seat`` is a required ``"buyer"``/``"seller"`` string: every
+    caller of this function already knows which seat it tested --
+    ``AmazonbargScorer.__call__`` resolves it from
+    ``FamilyScoringInput.seat_context.subject_seats`` (ruling R12) via
+    :func:`score_bargained_ratio_for_subject_seats` before ever calling
+    here; ``replay.py``'s ``score_replayed_episode`` and every test in this
+    suite already pass an explicit ``"buyer"``/``"seller"`` string. Before
+    ruling R12, no ``FamilyScoringInput`` could carry which seat a RunPlan
+    was testing, so this parameter was widened to ``str | None`` and
+    ``AmazonbargScorer.__call__`` always called this with
+    ``tested_seat=None``, sealing ``invalid_measurement`` with a since
+    -retired ``REASON_TESTED_SEAT_UNKNOWN``; ruling R12 makes the seat
+    reachable, so that widening and its reason are retired here in favour
+    of :func:`score_bargained_ratio_for_subject_seats`'s three named seat
+    -selection reasons.
     """
-    if tested_seat is not None and tested_seat not in ("buyer", "seller"):
+    if tested_seat not in ("buyer", "seller"):
         raise ValueError(f"tested_seat must be 'buyer' or 'seller', got {tested_seat!r}")
     gate_reasons = _measurement_gate(family_case=family_case, metrics_output=metrics_output)
-    reasons: tuple[str, ...] = gate_reasons or ()
-    if tested_seat is None:
-        reasons = reasons + (
-            f"{REASON_TESTED_SEAT_UNKNOWN}: no signal identifying which seat "
-            "was under test is reachable from family_case or metrics_output "
-            "(and, via __call__, FamilyScoringInput carries none either); "
-            "tested_seat must be supplied by a caller that knows it",
-        )
-    if reasons:
-        return _invalid(leaf, reasons, evidence_refs)
+    if gate_reasons:
+        return _invalid(leaf, gate_reasons, evidence_refs)
     buyer_ratio = float(metrics_output["buyer_bargained_ratio"])
     seller_ratio = float(metrics_output["seller_bargained_ratio"])
     primary_ratio = buyer_ratio if tested_seat == "buyer" else seller_ratio
@@ -925,6 +936,73 @@ def score_bargained_ratio(
         evidence_refs=evidence_refs,
         utility_by_seat=utility_by_seat,
         capture_by_seat=utility_by_seat,
+    )
+
+
+def score_bargained_ratio_for_subject_seats(
+    leaf: MeasurementLeafSpec,
+    *,
+    family_case: Mapping[str, Any],
+    metrics_output: Mapping[str, Any],
+    subject_seats: tuple[str, ...],
+    evidence_refs: tuple[str, ...] = (),
+) -> ScoreEnvelope:
+    """Ruling R12: resolve ``tested_seat`` from seat context, then defer to
+    :func:`score_bargained_ratio` alone for the actual ratio arithmetic
+    (never reimplemented here).
+
+    ``subject_seats`` is ``scoring_input.seat_context.subject_seats`` --
+    the RunPlan's own record of which seat(s) are the tested subjects
+    (kernel_scoring_contract_spec.md ruling R12). Exactly one subject seat
+    that is one of this family's own seat ids (``"buyer"``/``"seller"``)
+    resolves ``tested_seat`` and is scored normally; every other shape is
+    reported ``invalid_measurement`` with a named reason, never a guessed
+    side:
+
+    * zero subject seats -> ``REASON_NO_SUBJECT_SEAT``
+    * two or more subject seats (this leaf declares no
+      ``subject_reduction`` -- the ratio is one side's, never blended) ->
+      ``REASON_AMBIGUOUS_SUBJECT_SEAT``
+    * a subject seat that is not ``"buyer"``/``"seller"`` ->
+      ``REASON_UNKNOWN_SUBJECT_SEAT``
+    """
+    if not subject_seats:
+        return _invalid(
+            leaf,
+            (
+                f"{REASON_NO_SUBJECT_SEAT}: seat_context.subject_seats is "
+                "empty; there is no seat to score amazonbarg_bargained_ratio for",
+            ),
+            evidence_refs,
+        )
+    if len(subject_seats) > 1:
+        return _invalid(
+            leaf,
+            (
+                f"{REASON_AMBIGUOUS_SUBJECT_SEAT}: seat_context.subject_seats "
+                f"names {len(subject_seats)} seats {sorted(subject_seats)!r}, but "
+                "amazonbarg_bargained_ratio declares no subject_reduction -- "
+                "the ratio is one side's own, never blended across seats",
+            ),
+            evidence_refs,
+        )
+    tested_seat = subject_seats[0]
+    if tested_seat not in ("buyer", "seller"):
+        return _invalid(
+            leaf,
+            (
+                f"{REASON_UNKNOWN_SUBJECT_SEAT}: seat_context names subject "
+                f"seat {tested_seat!r}, which is not one of this family's own "
+                "seat ids ('buyer', 'seller')",
+            ),
+            evidence_refs,
+        )
+    return score_bargained_ratio(
+        leaf,
+        family_case=family_case,
+        metrics_output=metrics_output,
+        tested_seat=tested_seat,
+        evidence_refs=evidence_refs,
     )
 
 
@@ -1052,7 +1130,7 @@ class AmazonbargScorer:
         self,
         *,
         metrics_output: Mapping[str, Any],
-        tested_seat: str | None,
+        tested_seat: str,
         evidence_refs: tuple[str, ...] = (),
     ) -> ScoreEnvelope:
         return score_bargained_ratio(
@@ -1063,14 +1141,29 @@ class AmazonbargScorer:
             evidence_refs=evidence_refs,
         )
 
-    def score_all(
+    def score_bargained_ratio_for_subject_seats(
         self,
         *,
         metrics_output: Mapping[str, Any],
-        tested_seat: str | None,
+        subject_seats: tuple[str, ...],
         evidence_refs: tuple[str, ...] = (),
+    ) -> ScoreEnvelope:
+        return score_bargained_ratio_for_subject_seats(
+            self.bargained_ratio_leaf,
+            family_case=self.family_case,
+            metrics_output=metrics_output,
+            subject_seats=subject_seats,
+            evidence_refs=evidence_refs,
+        )
+
+    def _score_diagnostics(
+        self, *, metrics_output: Mapping[str, Any], evidence_refs: tuple[str, ...] = ()
     ) -> dict[str, ScoreEnvelope]:
-        """All five leaves' envelopes, keyed by ``leaf_id``, in one call."""
+        """The four seat-neutral diagnostic leaves, shared by ``score_all``
+        (``replay.py``'s seam, which already knows ``tested_seat``) and
+        ``__call__`` (the finalizer seam, which resolves it from
+        ``FamilyScoringInput.seat_context`` instead) -- never duplicated
+        between them."""
         return {
             self.deal_authenticity_leaf.leaf_id: self.score_deal_authenticity(
                 metrics_output=metrics_output, evidence_refs=evidence_refs
@@ -1084,6 +1177,25 @@ class AmazonbargScorer:
             self.deal_upper_bound_leaf.leaf_id: self.score_deal_upper_bound(
                 metrics_output=metrics_output, evidence_refs=evidence_refs
             ),
+        }
+
+    def score_all(
+        self,
+        *,
+        metrics_output: Mapping[str, Any],
+        tested_seat: str,
+        evidence_refs: tuple[str, ...] = (),
+    ) -> dict[str, ScoreEnvelope]:
+        """All five leaves' envelopes, keyed by ``leaf_id``, in one call.
+
+        ``replay.py``'s ``score_replayed_episode`` -- which already knows
+        which seat it tested -- is this method's one remaining caller;
+        ``__call__`` below resolves ``tested_seat`` from seat context
+        instead and no longer goes through this method (see its own
+        docstring).
+        """
+        return {
+            **self._score_diagnostics(metrics_output=metrics_output, evidence_refs=evidence_refs),
             self.bargained_ratio_leaf.leaf_id: self.score_bargained_ratio(
                 metrics_output=metrics_output, tested_seat=tested_seat, evidence_refs=evidence_refs
             ),
@@ -1099,12 +1211,16 @@ class AmazonbargScorer:
         kernel_scoring_contract_spec.md section 1).
 
         Returns every one of this family's five declared finalize-time
-        leaves (spec section 5) -- a thin wrapper over ``score_all``, this
-        family's single source of truth for the full set; no new scoring
-        logic is written here. ``scoring_input.outcome`` never carries
-        ``history`` (``environment.py``'s ``outcome()`` omits it), so the
-        full transcript every leaf's delegated ``eval.py:Metrics`` call
-        needs is read off ``scoring_input.phase_instances`` via
+        leaves (spec section 5): the four seat-neutral diagnostics via
+        ``_score_diagnostics`` and ``amazonbarg_bargained_ratio`` via
+        :meth:`score_bargained_ratio_for_subject_seats`, which resolves
+        ``tested_seat`` from ``scoring_input.seat_context.subject_seats``
+        (ruling R12, kernel_scoring_contract_spec.md) and defers to
+        ``score_bargained_ratio`` alone for the actual arithmetic -- no new
+        scoring logic is written here. ``scoring_input.outcome`` never
+        carries ``history`` (``environment.py``'s ``outcome()`` omits it),
+        so the full transcript every leaf's delegated ``eval.py:Metrics``
+        call needs is read off ``scoring_input.phase_instances`` via
         :func:`_history_from_phase_instances` -- including for the two
         bound leaves, which stay declared ``input_scope="terminal_state"``
         (forced by ``measurement.py``'s ``_REFERENCE_SCOPE`` restriction on
@@ -1112,15 +1228,15 @@ class AmazonbargScorer:
         own build functions for the full account, and
         ``docs/amazonbarg_adapter_status.md``'s "Leaf policy" section).
 
-        No ``tested_seat`` signal is reachable from a ``FamilyScoringInput``
-        alone (see :func:`score_bargained_ratio`'s own docstring): this
-        always calls ``score_all`` with ``tested_seat=None``, so
-        ``amazonbarg_bargained_ratio_leaf`` -- this family's declared
-        primary and sole admission leaf -- is sealed
-        ``invalid_measurement`` with ``REASON_TESTED_SEAT_UNKNOWN`` through
-        THIS seam specifically, never a fabricated side. This is a stated,
-        disclosed limitation of the current contract, not a bug in this
-        method; it is recorded in ``docs/amazonbarg_adapter_status.md``.
+        Before ruling R12, no ``tested_seat`` signal was reachable from a
+        ``FamilyScoringInput`` at all, so this always called ``score_all``
+        with ``tested_seat=None`` and ``amazonbarg_bargained_ratio_leaf`` --
+        this family's declared primary and sole admission leaf -- was
+        sealed ``invalid_measurement`` with a since-retired
+        ``REASON_TESTED_SEAT_UNKNOWN`` through this exact seam, for every
+        episode, clean or not. Ruling R12 makes the seat reachable; see
+        ``docs/amazonbarg_adapter_status.md``'s "Leaf policy" section for
+        the resolution and the first included receipt.
         """
         if self.upstream_root is None:
             raise ValueError(
@@ -1133,11 +1249,14 @@ class AmazonbargScorer:
             family_case=self.family_case,
             history=history,
         )
-        scored = self.score_all(
-            metrics_output=metrics_output,
-            tested_seat=None,
-            evidence_refs=evidence_refs,
-        )
+        scored = {
+            **self._score_diagnostics(metrics_output=metrics_output, evidence_refs=evidence_refs),
+            self.bargained_ratio_leaf.leaf_id: self.score_bargained_ratio_for_subject_seats(
+                metrics_output=metrics_output,
+                subject_seats=scoring_input.seat_context.subject_seats,
+                evidence_refs=evidence_refs,
+            ),
+        }
         return FamilyScoreSet(
             primary_leaf_id=self.bargained_ratio_leaf.leaf_id,
             scores=tuple(scored.values()),
@@ -1167,10 +1286,12 @@ __all__ = [
     "DEAL_UPPER_BOUND_ESTIMAND_ID",
     "DEAL_UPPER_BOUND_LEAF_ID",
     "REASON_ACTION_ERROR",
+    "REASON_AMBIGUOUS_SUBJECT_SEAT",
     "REASON_DEGENERATE_NO_ZOPA",
     "REASON_NO_DEAL",
     "REASON_NO_EVIDENCE",
-    "REASON_TESTED_SEAT_UNKNOWN",
+    "REASON_NO_SUBJECT_SEAT",
+    "REASON_UNKNOWN_SUBJECT_SEAT",
     "SCRIPTED_COUNTERPART_POLICY_ID",
     "SCRIPTED_COUNTERPART_POLICY_VERSION",
     "ZOPA_MEMBERSHIP_ESTIMAND_ID",
@@ -1186,6 +1307,7 @@ __all__ = [
     "compute_upstream_metrics",
     "reasons_include",
     "score_bargained_ratio",
+    "score_bargained_ratio_for_subject_seats",
     "score_deal_authenticity",
     "score_deal_lower_bound",
     "score_deal_upper_bound",
