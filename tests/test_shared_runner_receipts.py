@@ -4,6 +4,8 @@ import dataclasses
 
 import pytest
 
+import hashlib
+
 from aeread.shared_runner import (
     EvaluationFailure,
     EvaluationReceipt,
@@ -20,6 +22,7 @@ from aeread.shared_runner import (
     ValidityDomainSpec,
     ValidityReport,
     VerifierSpec,
+    canonical_json_bytes,
     read_evaluation_receipt,
     seal_evaluation_receipt,
     verify_evaluation_receipt,
@@ -289,3 +292,118 @@ def test_durable_receipt_round_trip_is_canonical_and_tamper_evident(tmp_path) ->
     )
     with pytest.raises(MeasurementContractError, match="receipt_sha256"):
         read_evaluation_receipt(destination)
+
+
+def test_receipt_inapplicable_leaf_ids_defaults_to_empty_and_is_sorted() -> None:
+    receipt = _receipt(inapplicable_leaf_ids=("housing_capture_diagnostic", "housing_social_welfare_leaf_diagnostic"))
+    assert receipt.inapplicable_leaf_ids == (
+        "housing_capture_diagnostic",
+        "housing_social_welfare_leaf_diagnostic",
+    )
+    assert _receipt().inapplicable_leaf_ids == ()
+
+
+def test_receipt_rejects_duplicate_inapplicable_leaf_ids() -> None:
+    with pytest.raises(MeasurementContractError, match="inapplicable_leaf_ids"):
+        _receipt(
+            inapplicable_leaf_ids=("some_leaf_v1", "some_leaf_v1"),
+        )
+
+
+def test_receipt_rejects_an_inapplicable_leaf_id_that_overlaps_a_produced_score() -> None:
+    score = _score()
+    with pytest.raises(MeasurementContractError, match="inapplicable_leaf_ids"):
+        _receipt(inapplicable_leaf_ids=(score.leaf.leaf_id,))
+
+
+def test_receipt_rejects_an_inapplicable_leaf_id_that_overlaps_deferred_leaf_ids() -> None:
+    """Ruling R13 rule 4: every declared leaf has exactly one disposition on
+    every receipt -- returned, deferred, or inapplicable -- so the two
+    fields the kernel is not itself sealing here (this is a direct
+    construction, not a finalize call) must still be mutually exclusive.
+    """
+    with pytest.raises(MeasurementContractError, match="inapplicable_leaf_ids"):
+        _receipt(
+            deferred_leaf_ids=("some_other_leaf_v1",),
+            inapplicable_leaf_ids=("some_other_leaf_v1",),
+        )
+
+
+# Ruling R13 (kernel_scoring_contract_spec.md): a golden digest computed
+# against the PRE-R13 kernel (commit cda0a736 -- this branch's own fork
+# point, before EvaluationReceipt carried inapplicable_leaf_ids at all),
+# pinned so this test cannot pass merely because both sides of a same-code
+# comparison happen to agree with each other -- see
+# test_leaf_policy_declaration_without_seat_scope_is_digest_neutral's own
+# docstring in test_shared_runner_schemas.py for why that distinction
+# matters. Produced by:
+#
+#   git archive cda0a736 src | tar -x -C /tmp/pre_r13/src/
+#   git show cda0a736:tests/test_shared_runner_receipts.py \
+#       > /tmp/pre_r13/receipts_test_pre_r13.py
+#   <this repo's venv python> -c '
+#       import sys, hashlib
+#       sys.path.insert(0, "/tmp/pre_r13/src/src")
+#       sys.path.insert(0, "/tmp/pre_r13")
+#       import aeread.shared_runner as sr
+#       import receipts_test_pre_r13 as t
+#       sealed = t.seal_evaluation_receipt(t._receipt())
+#       print(hashlib.sha256(sr.canonical_json_bytes(sealed)).hexdigest())
+#   '
+_PRE_R13_RECEIPT_WITHOUT_INAPPLICABLE_LEAF_IDS_SHA256 = (
+    "4a8c8e334387725cf6a393addb95600c8061de554c757313e96aa9a362352269"
+)
+
+
+def test_receipt_without_inapplicable_leaf_ids_is_digest_neutral() -> None:
+    """Ruling R13: ``inapplicable_leaf_ids`` is added to ``EvaluationReceipt``
+    after receipts with an empty (or absent) leaf policy were already being
+    sealed, written, and replayed. A receipt that never uses it (every
+    receipt sealed by every family today, since none declares a
+    case_conditional leaf) must hash byte-for-byte as it did before this
+    field existed -- both the canonical JSON bytes AND the ``receipt_sha256``
+    digest computed over them (``_receipt_content_sha256``), since those two
+    must stay mutually consistent for ``write_evaluation_receipt`` +
+    ``read_evaluation_receipt`` to round-trip at all (see
+    ``test_durable_receipt_round_trip_is_canonical_and_tamper_evident``,
+    which exercises exactly that round trip and would itself start failing
+    for every receipt if this omission were ever inconsistent between the
+    two).
+    """
+    sealed = seal_evaluation_receipt(_receipt())
+    assert (
+        hashlib.sha256(canonical_json_bytes(sealed)).hexdigest()
+        == _PRE_R13_RECEIPT_WITHOUT_INAPPLICABLE_LEAF_IDS_SHA256
+    )
+    assert '"inapplicable_leaf_ids"' not in canonical_json_bytes(sealed).decode("utf-8")
+
+    # Setting inapplicable_leaf_ids to a non-empty, disjoint value must
+    # change the digest -- proving the field is not silently dropped the
+    # way an unguarded _CANONICAL_OMIT_IF_DEFAULT regression (or a
+    # _receipt_content_sha256 that forgot to honour it) would drop it.
+    with_inapplicable = seal_evaluation_receipt(
+        _receipt(inapplicable_leaf_ids=("some_other_leaf_v1",))
+    )
+    assert canonical_json_bytes(with_inapplicable) != canonical_json_bytes(sealed)
+    verify_evaluation_receipt(with_inapplicable)
+
+
+def test_durable_receipt_round_trip_preserves_a_non_default_inapplicable_leaf_ids(
+    tmp_path,
+) -> None:
+    """The write/verify/read triad must stay consistent for a receipt that
+    actually uses the new field, not only for the digest-neutral default
+    case above -- a regression in ``_receipt_content_sha256``'s
+    omit-if-default handling could plausibly break one case and not the
+    other (the default case incorrectly omitting when it should not, or
+    the non-default case incorrectly omitting when it must not), so both
+    are exercised end to end through durable JSON.
+    """
+    receipt = seal_evaluation_receipt(
+        _receipt(inapplicable_leaf_ids=("some_other_leaf_v1",))
+    )
+    destination = tmp_path / "evaluation_receipt.json"
+    write_evaluation_receipt(receipt, destination)
+    loaded = read_evaluation_receipt(destination)
+    assert loaded["inapplicable_leaf_ids"] == ["some_other_leaf_v1"]
+    assert loaded["receipt_sha256"] == receipt.receipt_sha256

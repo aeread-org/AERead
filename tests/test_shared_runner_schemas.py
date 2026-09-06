@@ -1060,6 +1060,14 @@ def test_leaf_policy_declaration_without_seat_scope_is_digest_neutral() -> None:
     byte-for-byte as it did before this change -- see
     ``test_measurement_declaration_without_leaves_is_digest_neutral`` for the
     same guard on the fields that predate this one.
+
+    Ruling R13 extends this same test rather than adding a parallel one:
+    ``case_conditional`` is added to the exact same class, after the exact
+    same digests were sealed, so the SAME pinned golden below must still
+    hold with ``case_conditional`` present-but-default -- if it did not,
+    R13 would have silently perturbed every already-migrated manifest's
+    digest exactly the way R1/R9/R12 each guard against for their own
+    fields.
     """
     cell_scope_bytes = canonical_json_bytes(
         FamilyManifest.from_dict(_family_data_with_leaves()).measurement
@@ -1073,7 +1081,9 @@ def test_leaf_policy_declaration_without_seat_scope_is_digest_neutral() -> None:
     # "seat_scope":"cell" identically and stay equal to each other while
     # every already-migrated manifest's real digest changed underneath
     # them. Pinning against a digest the PRE-R12 kernel actually produced
-    # catches exactly that.
+    # catches exactly that. The same pin catches an equivalent regression
+    # in R13's own ``case_conditional`` omission, since it was computed
+    # before either field existed.
     assert (
         hashlib.sha256(cell_scope_bytes).hexdigest()
         == _PRE_R12_CELL_SCOPE_MEASUREMENT_SHA256
@@ -1091,6 +1101,27 @@ def test_leaf_policy_declaration_without_seat_scope_is_digest_neutral() -> None:
     without_subject_seat["measurement"]["leaves"][0]["seat_scope"] = "cell"
     assert (
         canonical_json_bytes(FamilyManifest.from_dict(without_subject_seat).measurement)
+        == cell_scope_bytes
+    )
+
+    # Ruling R13: setting case_conditional=True on the NON-primary leaf
+    # (leaves[1], the deferred tenant_nl_assertions_leaf -- a
+    # case_conditional leaf may also be deferred, per R13 rule 4) must
+    # change the digest, proving the field is not silently dropped the way
+    # an unguarded _CANONICAL_OMIT_IF_DEFAULT regression would drop it.
+    with_case_conditional = _family_data_with_leaves()
+    with_case_conditional["measurement"]["leaves"][1]["case_conditional"] = True
+    with_case_conditional_bytes = canonical_json_bytes(
+        FamilyManifest.from_dict(with_case_conditional).measurement
+    )
+    assert with_case_conditional_bytes != cell_scope_bytes
+
+    without_case_conditional = _family_data_with_leaves()
+    without_case_conditional["measurement"]["leaves"][1]["case_conditional"] = False
+    assert (
+        canonical_json_bytes(
+            FamilyManifest.from_dict(without_case_conditional).measurement
+        )
         == cell_scope_bytes
     )
 
@@ -1148,6 +1179,99 @@ def test_leaf_policy_declaration_post_init_rejects_subject_reduction_bypassing_f
 
     with pytest.raises(AuthoringValidationError, match="seat_scope"):
         dataclasses.replace(leaf, seat_scope="planet")
+
+
+def test_leaf_policy_declaration_without_case_conditional_defaults_to_false() -> None:
+    family = FamilyManifest.from_dict(_family_data_with_leaves())
+    assert family.measurement.leaves[0].case_conditional is False
+
+
+def _family_data_with_a_case_conditional_admission_leaf() -> dict:
+    """Three leaves: the primary, a second unconditional finalize_time leaf
+    named in admission_leaf_ids, and the original deferred leaf --
+    exercising ruling R13's admission-membership guard against a leaf that
+    is a genuine (non-primary) admission member, distinct from
+    ``_family_data_with_leaves``'s single-admission-leaf shape.
+    """
+    data = family_data()
+    data["measurement"] = {
+        **data["measurement"],
+        "leaves": [
+            {"leaf_id": "tenant_realized_utility_leaf", "scope": "finalize_time"},
+            {"leaf_id": "tenant_secondary_admission_leaf", "scope": "finalize_time"},
+            {
+                "leaf_id": "tenant_nl_assertions_leaf",
+                "scope": "deferred",
+                "deferred_artifact": "nl_judge_verdict",
+            },
+        ],
+        "primary_leaf_id": "tenant_realized_utility_leaf",
+        "admission_leaf_ids": [
+            "tenant_realized_utility_leaf",
+            "tenant_secondary_admission_leaf",
+        ],
+    }
+    return data
+
+
+def test_measurement_declaration_rejects_a_case_conditional_primary_leaf() -> None:
+    """Ruling R13 rule 1: a case_conditional leaf may not be primary_leaf_id
+    -- both must exist for every execution admitted under one static
+    manifest, which a case-conditional leaf by definition does not.
+    """
+    data = _family_data_with_leaves()
+    data["measurement"]["leaves"][0]["case_conditional"] = True
+    with pytest.raises(AuthoringValidationError, match="case_conditional"):
+        FamilyManifest.from_dict(data)
+
+
+def test_measurement_declaration_rejects_a_case_conditional_admission_leaf() -> None:
+    """Ruling R13 rule 1, the admission half: a case_conditional leaf may
+    not be in admission_leaf_ids either, even when it is not the primary.
+    """
+    data = _family_data_with_a_case_conditional_admission_leaf()
+    data["measurement"]["leaves"][1]["case_conditional"] = True
+    with pytest.raises(AuthoringValidationError, match="case_conditional"):
+        FamilyManifest.from_dict(data)
+
+
+def test_measurement_declaration_post_init_rejects_a_case_conditional_primary_bypassing_from_dict() -> None:
+    """Ruling R13, same pattern as kernel_contract_impl_review.md finding
+    4's ``scope``/``deferred_artifact`` guard: ``__post_init__`` must reject
+    the same invalid combination ``from_dict`` rejects, so a
+    ``dataclasses.replace`` on an already-validated manifest cannot smuggle
+    a case_conditional primary past parsing.
+    """
+    import dataclasses
+
+    manifest = FamilyManifest.from_dict(_family_data_with_leaves())
+    measurement = manifest.measurement
+    case_conditional_primary_leaves = tuple(
+        dataclasses.replace(leaf, case_conditional=True)
+        if leaf.leaf_id == measurement.primary_leaf_id
+        else leaf
+        for leaf in measurement.leaves
+    )
+    with pytest.raises(AuthoringValidationError, match="case_conditional"):
+        dataclasses.replace(measurement, leaves=case_conditional_primary_leaves)
+
+
+def test_measurement_declaration_post_init_rejects_a_case_conditional_admission_leaf_bypassing_from_dict() -> None:
+    """Ruling R13, the admission half of the bypass guard above."""
+    import dataclasses
+
+    manifest = FamilyManifest.from_dict(
+        _family_data_with_a_case_conditional_admission_leaf()
+    )
+    measurement = manifest.measurement
+    case_conditional_admission_leaves = tuple(
+        dataclasses.replace(leaf, case_conditional=True)
+        if leaf.leaf_id == "tenant_secondary_admission_leaf"
+        else leaf
+        for leaf in measurement.leaves
+    )
+    with pytest.raises(AuthoringValidationError, match="case_conditional"):
+        dataclasses.replace(measurement, leaves=case_conditional_admission_leaves)
 
 
 def test_measurement_declaration_rejects_a_trajectory_outcome_path_from_dataclasses_replace() -> None:

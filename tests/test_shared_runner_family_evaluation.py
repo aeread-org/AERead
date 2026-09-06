@@ -15,7 +15,11 @@ from aeread.shared_runner import (
     verify_evaluation_receipt,
 )
 from aeread.shared_runner.task.execution import execute_plan_cell
-from aeread.shared_runner.task.evaluation import _seat_context_for_cell, audit_family_receipt
+from aeread.shared_runner.task.evaluation import (
+    _inapplicable_leaf_ids,
+    _seat_context_for_cell,
+    audit_family_receipt,
+)
 from aeread_families.housing.runner import (
     HousingScriptedLandlordProvider,
     HousingScriptedTenantProvider,
@@ -426,3 +430,96 @@ def test_seat_context_for_cell_rejects_a_subject_seat_with_no_assigned_profile()
 
     with pytest.raises(ValueError, match="tenant_0"):
         _seat_context_for_cell(setup.plan, mutated_cell)
+
+
+def test_finalize_rejects_a_legacy_familys_hook_returning_an_undeclared_inapplicable_id(
+    tmp_path,
+) -> None:
+    """R13 review finding 1 (blocker): ``_enforce_declared_leaf_policy``'s
+    ``I`` subset-of-declared-``case_conditional`` check must run even for a
+    family with no declared leaf policy at all -- Housing's production
+    manifest is exactly such a family (see this module's own docstring
+    note in test_shared_runner_scoring_contract.py: none of the five
+    already-migrated families declare a leaf policy on their production
+    manifest yet). A hook that returns a non-empty set here is already a
+    violation and must be caught before the no-declared-policy early
+    return, not silently passed through onto the receipt.
+    """
+    setup = build_housing_smoke(
+        tenant_provider="housing_scripted_tenant",
+        tenant_model="housing_scripted_tenant_v1",
+        tenant_revision="1.0.0",
+    )
+    assert setup.plan.families[0].measurement.leaves == ()
+    plugin = setup.registry.resolve_manifest(setup.plan.families[0])
+    plugin.inapplicable_leaf_ids = lambda family_case: frozenset({"typo_leaf"})
+
+    execution = asyncio.run(
+        execute_plan_cell(
+            plan=setup.plan,
+            cell_id=setup.plan.cells[0].cell_id,
+            registry=setup.registry,
+            evidence_root=tmp_path,
+            prompt_sources=setup.prompt_sources,
+            providers={
+                "housing_scripted_tenant": HousingScriptedTenantProvider(),
+                "housing_scripted_landlord": HousingScriptedLandlordProvider(),
+            },
+            pricing=setup.pricing,
+            episode_attempt_ordinal=0,
+        )
+    )
+    with pytest.raises(ValueError, match="not declared case_conditional"):
+        finalize_housing_execution(setup=setup, execution=execution)
+
+
+class _HookReturnsList:
+    """R13 review finding 2: an adversarial plugin whose hook returns a
+    ``list`` instead of a ``frozenset``/``set``."""
+
+    def inapplicable_leaf_ids(self, family_case):
+        del family_case
+        return ["some_leaf"]
+
+
+class _HookReturnsStr:
+    """R13 review finding 2: ``frozenset("some_leaf")`` would silently
+    become a set of individual characters -- the motivating adversary."""
+
+    def inapplicable_leaf_ids(self, family_case):
+        del family_case
+        return "some_leaf"
+
+
+class _HookReturnsSetWithANonStringMember:
+    def inapplicable_leaf_ids(self, family_case):
+        del family_case
+        return {"some_leaf", 1}
+
+
+def test_inapplicable_leaf_ids_rejects_a_hook_returning_a_list() -> None:
+    with pytest.raises(TypeError, match="frozenset or set of str"):
+        _inapplicable_leaf_ids(_HookReturnsList(), {})
+
+
+def test_inapplicable_leaf_ids_rejects_a_hook_returning_a_str() -> None:
+    with pytest.raises(TypeError, match="frozenset or set of str"):
+        _inapplicable_leaf_ids(_HookReturnsStr(), {})
+
+
+def test_inapplicable_leaf_ids_rejects_a_hook_returning_a_set_with_a_non_string_member() -> None:
+    with pytest.raises(TypeError, match="member of type int"):
+        _inapplicable_leaf_ids(_HookReturnsSetWithANonStringMember(), {})
+
+
+def test_inapplicable_leaf_ids_accepts_a_plain_set_of_str() -> None:
+    """R13 review finding 2 explicitly permits ``set``, not only
+    ``frozenset`` -- the type hint says ``frozenset[str]``, but the
+    validation is deliberately looser than the hint on this one point."""
+
+    class _HookReturnsSet:
+        def inapplicable_leaf_ids(self, family_case):
+            del family_case
+            return {"some_leaf"}
+
+    assert _inapplicable_leaf_ids(_HookReturnsSet(), {}) == frozenset({"some_leaf"})
