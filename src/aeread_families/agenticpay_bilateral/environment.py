@@ -169,6 +169,57 @@ def _round_trace_entry(
     }
 
 
+def _measurement_reference_provider_ids() -> list[str]:
+    """Every implementation id one of this family's three finalize-time
+    leaves actually references (validity-domain predicate, verifier
+    reference implementation, scorer) -- derived from ``measurement.py``'s
+    own leaf builders, never a duplicated literal here, so this list can
+    never drift from what the leaves really declare (mirrors
+    ``negarena.environment``'s identical ``_measurement_reference_provider_ids``
+    convention). A minimal, synthetic contract-mode ``family_case`` is used
+    only so ``build_contract_legality_leaf`` returns non-``None`` -- its
+    reference's ``source_sha256`` (which genuinely varies per real case) is
+    never read here, only each ref's stable ``implementation_id``;
+    ``family_manifest()`` itself is case-independent and is never called
+    with a real case.
+
+    Required so ``resolve_run_plan`` reserves and admits an
+    ``ImplementationPin`` for each one: without this,
+    ``EvaluationReceipt``'s own pin/implementation cross-check
+    (``receipts.py``'s ``_validate_and_freeze_plan_pins``) rejects every
+    agenticpay.bilateral receipt outright, since none of these ids were
+    ever declared anywhere a plan's required pins are computed from --
+    migration milestone 3 of 3 is the first thing in this repo to actually
+    seal an agenticpay.bilateral ``EvaluationReceipt`` and is what surfaced
+    this gap.
+    """
+    synthetic_contract_case: dict[str, Any] = {
+        "constructor_kwargs": {
+            "max_rounds": 1,
+            "environment_info": {
+                "contract_config": {"continuous_bounds": {}, "discrete_options": {}},
+            },
+        },
+    }
+    deal_leaf = measurement.build_deal_reached_leaf(synthetic_contract_case)
+    surplus_leaf = measurement.build_surplus_share_leaf(synthetic_contract_case)
+    contract_leaf = measurement.build_contract_legality_leaf(synthetic_contract_case)
+    assert contract_leaf is not None
+    return sorted(
+        {
+            deal_leaf.estimand.validity_domain.predicate.implementation_id,
+            deal_leaf.verifier.reference.implementation.implementation_id,
+            deal_leaf.scorer.implementation_id,
+            surplus_leaf.estimand.validity_domain.predicate.implementation_id,
+            surplus_leaf.verifier.reference.implementation.implementation_id,
+            surplus_leaf.scorer.implementation_id,
+            contract_leaf.estimand.validity_domain.predicate.implementation_id,
+            contract_leaf.verifier.reference.implementation.implementation_id,
+            contract_leaf.scorer.implementation_id,
+        }
+    )
+
+
 def family_manifest() -> FamilyManifest:
     """Return the strict family declaration used by the trusted registry."""
     return FamilyManifest.from_dict(
@@ -245,8 +296,34 @@ def family_manifest() -> FamilyManifest:
                 ],
                 "primary_leaf_id": measurement.SURPLUS_SHARE_LEAF_ID,
                 "admission_leaf_ids": [measurement.SURPLUS_SHARE_LEAF_ID],
+                # Ruling R9 (migration milestone 3 of 3): outcome() (below)
+                # returns dict(terminal) verbatim, which embeds
+                # `round_trace` -- the full per-round negotiation history --
+                # so two episodes with different transcripts essentially
+                # never produce a byte-identical outcome (the same shape as
+                # collusion's `history`, not govsim's aggregates-only
+                # outcome). Declaring this path is what lets the protocol
+                # test's paired-history precondition compare the PROJECTION
+                # (outcome minus this path) instead of requiring a
+                # byte-identical whole outcome no two genuinely different
+                # trajectories could ever produce.
+                "trajectory_outcome_paths": ["/round_trace"],
             },
-            "scoring": {"scorer_id": SCORER_ID},
+            "scoring": {
+                "scorer_id": SCORER_ID,
+                # See `_measurement_reference_provider_ids()` above: without
+                # this, `resolve_run_plan` never reserves a pin for any of
+                # these components (`_required_pin_kinds`/`_check_pins`
+                # reject a pin whose component id is not `scoring`-declared
+                # as "unreferenced"), and `EvaluationReceipt`'s own
+                # `_validate_and_freeze_plan_pins` then rejects the sealed
+                # receipt as missing implementations -- no real evaluation
+                # of this family could ever finalize through a genuine
+                # `RunPlan` otherwise. A latent gap from Milestone 1/2,
+                # closed here because proving a receipt comes back is this
+                # milestone's point.
+                "reference_provider_ids": _measurement_reference_provider_ids(),
+            },
         }
     )
 

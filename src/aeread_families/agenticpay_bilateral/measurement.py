@@ -92,6 +92,21 @@ IMPLEMENTATION_VERSION = "0.1.0"
 DOMAIN_ID = "agenticpay_bilateral_terminal_domain"
 DOMAIN_VERSION = "1.0.0"
 
+# Named (not inline-literal) implementation-pin component ids (migration
+# milestone 3 of 3): `environment.py`'s `family_manifest()` must declare
+# these as `scoring.reference_provider_ids` so `resolve_run_plan` admits a
+# plan that pins them and `EvaluationReceipt`'s own
+# `_validate_and_freeze_plan_pins` accepts the sealed receipt -- otherwise
+# this family could never finalize through a real `RunPlan` at all, since
+# `resolve_run_plan`'s `_check_pins` rejects any pin whose component id is
+# not `scoring`-declared. Naming them here (rather than leaving them as
+# string literals inline in each leaf builder below) is what lets
+# `environment.py` reference the identical ids without risking drift.
+TERMINAL_DOMAIN_PREDICATE_ID = "agenticpay_bilateral_terminal_domain_predicate"
+DEAL_REACHED_RULE_ID = "agenticpay_bilateral_deal_reached_rule"
+ZOPA_SUPPORT_BOUND_ID = "agenticpay_bilateral_zopa_support_bound"
+CONTRACT_LEGALITY_RULE_ID = "agenticpay_bilateral_contract_legality_rule"
+
 DEAL_REACHED_ESTIMAND_ID = "agenticpay_deal_reached"
 DEAL_REACHED_LEAF_ID = "agenticpay_deal_reached_leaf"
 DEAL_REACHED_REFERENCE_ID = "agenticpay_deal_reached_rule"
@@ -166,9 +181,7 @@ def _validity_domain() -> ValidityDomainSpec:
         domain_id=DOMAIN_ID,
         domain_version=DOMAIN_VERSION,
         schema_ref="agenticpay_bilateral_v1/terminal_payload",
-        predicate=_implementation(
-            "agenticpay_bilateral_terminal_domain_predicate", "environment.py"
-        ),
+        predicate=_implementation(TERMINAL_DOMAIN_PREDICATE_ID, "environment.py"),
     )
 
 
@@ -210,9 +223,7 @@ def build_deal_reached_leaf(family_case: Mapping[str, Any]) -> MeasurementLeafSp
         input_scope="terminal_state",
         units="pass",
         source_sha256=source_sha256,
-        implementation=_implementation(
-            "agenticpay_bilateral_deal_reached_rule", "environment.py"
-        ),
+        implementation=_implementation(DEAL_REACHED_RULE_ID, "environment.py"),
     )
     verifier = VerifierSpec(
         verifier_family="rule_constraint",
@@ -334,9 +345,7 @@ def build_contract_legality_leaf(family_case: Mapping[str, Any]) -> MeasurementL
         input_scope="trajectory",
         units="pass",
         source_sha256=source_sha256,
-        implementation=_implementation(
-            "agenticpay_bilateral_contract_legality_rule", "environment.py"
-        ),
+        implementation=_implementation(CONTRACT_LEGALITY_RULE_ID, "environment.py"),
     )
     verifier = VerifierSpec(
         verifier_family="rule_constraint",
@@ -450,9 +459,7 @@ def _build_surplus_share_leaf(
         input_scope="terminal_state",
         units="share_of_zopa",
         source_sha256=_surplus_share_reference_source_sha256(family_case),
-        implementation=_implementation(
-            "agenticpay_bilateral_zopa_support_bound", "environment.py"
-        ),
+        implementation=_implementation(ZOPA_SUPPORT_BOUND_ID, "environment.py"),
     )
     objective_scope = ObjectiveScopeSpec(
         objective_id=estimand_id,
@@ -976,9 +983,16 @@ __all__ = [
     "CONTRACT_LEGALITY_ESTIMAND_ID",
     "CONTRACT_LEGALITY_LEAF_ID",
     "CONTRACT_LEGALITY_REFERENCE_ID",
+    "CONTRACT_LEGALITY_RULE_ID",
     "DEAL_REACHED_ESTIMAND_ID",
     "DEAL_REACHED_LEAF_ID",
     "DEAL_REACHED_REFERENCE_ID",
+    "DEAL_REACHED_RULE_ID",
+    "DEAL_REACHED_SCORER_ID",
+    "CONTRACT_LEGALITY_SCORER_ID",
+    "SURPLUS_SHARE_SCORER_ID",
+    "TERMINAL_DOMAIN_PREDICATE_ID",
+    "ZOPA_SUPPORT_BOUND_ID",
     "SELLER_SURPLUS_ESTIMAND_ID",
     "SELLER_SURPLUS_LEAF_ID",
     "SELLER_SURPLUS_REFERENCE_ID",
