@@ -134,8 +134,14 @@ def _drive_episode(
                 policy_id = family_case["policy_assignment"][seat_id]
                 quantity = policies.SCRIPTED_POLICIES[policy_id](observation)
                 response: dict[str, Any] = {"quantity": quantity}
+            elif phase.phase_id == DISCUSS_PHASE:
+                # discuss and reflect now carry content: the utterance is
+                # public and reaches every agent's next observation, the
+                # reflection is private to its author.
+                policy_id = family_case["policy_assignment"][seat_id]
+                response = {"message": f"following {policy_id} this round"}
             else:
-                response = {}
+                response = {"reflection": ""}
             parse = plugin.parse_action(family_case, state, seat_id, phase, response)
             assert parse.ok, parse.error_code
             legality = plugin.legal(family_case, state, seat_id, phase, parse.action)
@@ -341,14 +347,13 @@ def test_every_scorer_returns_invalid_measurement_never_a_zero_on_operational_fa
 
 
 # ---------------------------------------------------------------------------
-# GovsimScorer.__call__ -- the production finalizer seam (triage Finding 1).
-# ``family_evaluation.py``'s ``finalize_family_execution`` executes
-# ``plugin.build_scorer(family_case)(recorded_outcome, evidence_refs=...)``
-# directly on whatever ``build_scorer`` returns -- never through a named
-# method the way every golden above does. Before the fix, ``GovsimScorer``
-# had no ``__call__`` and this raised ``TypeError: 'GovsimScorer' object is
-# not callable`` before any score was recorded or receipt issued. Pure, no
-# bridge needed: ``GovsimScorer.__call__`` never touches the bridge.
+# GovsimScorer.score_recorded_outcome -- the OLD finalizer seam.
+# ``finalize_family_execution`` once executed
+# ``plugin.build_scorer(family_case)(recorded_outcome, evidence_refs=...)``.
+# It now passes a ``FamilyScoringInput`` and expects every declared leaf
+# (issue #76), so ``__call__`` implements that contract and this recorded-
+# outcome path keeps its own name. Both are kept: the goldens below pin the
+# survival-months scoring itself, independently of which seam reaches it.
 # ---------------------------------------------------------------------------
 
 
@@ -365,7 +370,7 @@ def test_govsim_scorer_is_callable_and_used_exactly_as_the_production_finalizer_
         "collected_resource": {"persona_0": 10, "persona_1": 12},
     }
 
-    score = scorer(outcome, evidence_refs=("evt_outcome_0",))
+    score = scorer.score_recorded_outcome(outcome, evidence_refs=("evt_outcome_0",))
 
     assert score.status == "ok"
     assert score.leaf.leaf_id == m.SURVIVAL_MONTHS_LEAF_ID
@@ -394,7 +399,7 @@ def test_govsim_scorer_call_reports_invalid_measurement_for_an_operational_failu
         },
     }
 
-    score = scorer(outcome, evidence_refs=("evt_outcome_1",))
+    score = scorer.score_recorded_outcome(outcome, evidence_refs=("evt_outcome_1",))
 
     assert score.status == "invalid_measurement"
     assert score.primary is None
@@ -724,3 +729,89 @@ def test_vendored_gini_matches_upstreams_own_gini_with_nans_removed(
     upstream_value = bridge.call_upstream_gini(array)
     vendored_value = m._vendored_gini(np.array(array, dtype=float))
     assert upstream_value == vendored_value
+
+
+# ---------------------------------------------------------------------------
+# GovsimScorer.__call__ -- the kernel's finalizer contract (issue #76).
+# ---------------------------------------------------------------------------
+
+
+def _scoring_input(state, *, refs=()):
+    from types import SimpleNamespace
+
+    return SimpleNamespace(
+        outcome={},
+        phase_instances=(
+            SimpleNamespace(transitions=(SimpleNamespace(state=state),)),
+        ),
+        evidence_refs=refs,
+    )
+
+
+def _terminal_for(num_round: int, *, agents: int) -> dict:
+    share = 10.0
+    return {
+        "reason": "max_num_rounds",
+        "num_round": num_round,
+        "resource_in_pool": 50.0,
+        "collected_resource": {f"agent_{i}": share for i in range(agents)},
+        # The shape environment.step() actually appends, not an invented one.
+        "round_trace": [
+            {
+                "round_index": index,
+                "wanted_resource": {f"agent_{i}": 1.0 for i in range(agents)},
+                "sustainability_threshold": 10.0,
+                "resource_in_pool_after_regen": 100.0,
+                "collapsed_or_horizon": False,
+            }
+            for index in range(num_round)
+        ],
+    }
+
+
+def test_call_surfaces_every_leaf_when_baselines_are_present() -> None:
+    """The kernel expects all declared leaves, not just the primary one."""
+    import aeread_families.govsim.measurement as m
+
+    family_case = _family_case("fishing", "sustainable_v1", num_agents=5)
+    terminal = _terminal_for(12, agents=5)
+    scorer = m.build_scorer(
+        family_case,
+        terminal_builder=lambda state: terminal,
+        baselines={"survival_months": 12.0, "total_harvest": 50.0, "gini": 0.0},
+    )
+    result = scorer(_scoring_input({"any": "state"}))
+    assert isinstance(result, m.FamilyScoreSet)
+    assert len(result.scores) == 5
+    assert result.primary_leaf_id == m.SURVIVAL_MONTHS_LEAF_ID
+
+
+def test_call_omits_the_comparative_leaves_rather_than_inventing_a_baseline() -> None:
+    """Without reference values, report less -- never fabricate a comparison."""
+    import aeread_families.govsim.measurement as m
+
+    family_case = _family_case("fishing", "sustainable_v1", num_agents=5)
+    terminal = _terminal_for(12, agents=5)
+    scorer = m.build_scorer(
+        family_case, terminal_builder=lambda state: terminal, baselines=None
+    )
+    result = scorer(_scoring_input({"any": "state"}))
+    leaf_ids = {score.leaf.leaf_id for score in result.scores}
+    assert m.TOTAL_HARVEST_LEAF_ID not in leaf_ids
+    assert m.EQUALITY_GINI_LEAF_ID not in leaf_ids
+    # The family's declared primary estimand is always present, so an
+    # included receipt always carries the leaf the family is defined by.
+    assert result.primary_leaf_id == m.SURVIVAL_MONTHS_LEAF_ID
+
+
+def test_call_refuses_a_scoring_input_with_no_replayed_state() -> None:
+    import aeread_families.govsim.measurement as m
+    from types import SimpleNamespace
+
+    scorer = m.build_scorer(
+        _family_case("fishing", "sustainable_v1", num_agents=5),
+        terminal_builder=lambda state: None,
+    )
+    empty = SimpleNamespace(outcome={}, phase_instances=(), evidence_refs=())
+    with pytest.raises(ValueError, match="no replayed terminal state"):
+        scorer(empty)
