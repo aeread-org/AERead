@@ -2268,7 +2268,12 @@ _NOT_YET_MIGRATED_TRUSTED_KEYS: "frozenset[tuple[str, str]]" = frozenset(
         ("govsim", "0.1.0"),
         ("negarena", "0.1.0"),
         ("steer", "0.1.0"),
-        ("termsbench", "0.1.0"),
+        # termsbench split into two regime-specific family versions (owner
+        # decision, ruling R13 rule 1); neither has a FamilyScoringInput-
+        # contract fixture yet -- both migrate together, later in this same
+        # branch's own commit sequence (docs/termsbench_migration_plan.md).
+        ("termsbench.overlap", "0.1.0"),
+        ("termsbench.nodeal", "0.1.0"),
     }
 )
 

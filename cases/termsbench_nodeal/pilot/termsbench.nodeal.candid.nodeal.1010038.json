@@ -1,0 +1,128 @@
+{
+  "case_id": "termsbench.nodeal.candid.nodeal.1010038",
+  "content_sha256": "87e909d34ab613325b9267f929a32665da7a427c22076fc4d07aa3ad1621325e",
+  "episode": {
+    "max_logical_actions": 20,
+    "termination": [
+      "agent_accept",
+      "counterpart_accept",
+      "agent_reject",
+      "counterpart_walk_away",
+      "timeout",
+      "agreement_violation"
+    ]
+  },
+  "family_id": "termsbench.nodeal",
+  "family_version": "0.1.0",
+  "payload": {
+    "agent": {
+      "kappa_a": 0.6162957545955741,
+      "r_a": 44.09889628108476,
+      "role": "buyer"
+    },
+    "chi": "counterpart_opens",
+    "counterpart_role": "seller",
+    "delta": -96.20160983363041,
+    "difficulty_score": 0.3708959660977693,
+    "family": "candid",
+    "geometry_percentile": 0.9525201229203802,
+    "horizon": 10,
+    "hyperparameters": {
+      "acceptance_model": {
+        "alpha": 6.0,
+        "beta": 1.0,
+        "gamma": 2.0
+      },
+      "counter_offer_model": {
+        "lambda_0": 0.12,
+        "lambda_1": 0.28,
+        "lambda_3": 0.1,
+        "lambda_4": 0.1,
+        "price_noise_tier": "low",
+        "sigma_bar_p": 0.01
+      },
+      "cue_model": {
+        "alpha_c": 2.0,
+        "alpha_p": 2.0,
+        "b_concede": 1.0,
+        "b_hold": 0.5,
+        "b_pressure": 1.0,
+        "beta_c": 1.0,
+        "cue_channel": "accurate",
+        "mu_s": 1.0,
+        "sigma_s": 0.75,
+        "tau_conc": 0.1,
+        "tau_dead": 0.8,
+        "tau_s": 0.5
+      },
+      "economic_preset": {
+        "lambda2": {
+          "aggressive": 1.0,
+          "conciliatory": 0.3,
+          "neutral": 0.5
+        },
+        "name": "type_instrumental",
+        "rho": {
+          "aggressive": -0.75,
+          "conciliatory": 0.0,
+          "neutral": -0.25
+        },
+        "xi": {
+          "aggressive": -0.5,
+          "conciliatory": 0.4,
+          "neutral": 0.0
+        }
+      },
+      "history_features": {
+        "tau_rigid": 0.1
+      },
+      "opening_offer_model": {
+        "d_open_max": 0.8,
+        "d_open_min": 0.2,
+        "omega_eta": 0.15,
+        "omega_eta_prime": 0.15,
+        "omega_kappa": 0.3,
+        "phi_max": 1.5,
+        "phi_min": 0.5,
+        "sigma_bar_0": 0.02
+      },
+      "walkaway_model": {
+        "k_walk": 5,
+        "phi_0": -4.5,
+        "phi_delta": 30.0,
+        "phi_t": 1.5
+      }
+    },
+    "opening_harshness": 0.6836080619322353,
+    "price_bounds": {
+      "p_max": 200.0,
+      "p_min": 0.0
+    },
+    "regime": "nodeal",
+    "t_b": {
+      "eta_b": "aggressive",
+      "kappa_b": 0.0747595945798286,
+      "r_b": 140.30050611471518
+    }
+  },
+  "provenance": {
+    "generator_id": "termsbench_generator",
+    "generator_version": "0.1.0",
+    "review_status": "generated"
+  },
+  "seats": [
+    {
+      "id": "agent",
+      "role": "agent"
+    },
+    {
+      "id": "counterpart",
+      "role": "counterpart"
+    }
+  ],
+  "spec_version": "aeread.case/0.1",
+  "split": "candid",
+  "upstream_task_id": null,
+  "visibility_policy": "termsbench_hidden_counterpart_type_v1",
+  "world_seed": 1010038
+}

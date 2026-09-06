@@ -1,0 +1,129 @@
+{
+  "case_ids": [
+    "termsbench.overlap.candid.overlap.1000046",
+    "termsbench.overlap.candid.overlap.1000001",
+    "termsbench.overlap.candid.overlap.1000025",
+    "termsbench.overlap.candid.overlap.1000053",
+    "termsbench.overlap.candid.overlap.1000042",
+    "termsbench.overlap.taciturn.overlap.1100039",
+    "termsbench.overlap.taciturn.overlap.1100009",
+    "termsbench.overlap.taciturn.overlap.1100038",
+    "termsbench.overlap.taciturn.overlap.1100004",
+    "termsbench.overlap.taciturn.overlap.1100040",
+    "termsbench.overlap.expressive.overlap.1200012",
+    "termsbench.overlap.expressive.overlap.1200005",
+    "termsbench.overlap.expressive.overlap.1200042",
+    "termsbench.overlap.expressive.overlap.1200031",
+    "termsbench.overlap.expressive.overlap.1200045"
+  ],
+  "cells": [
+    {
+      "case_id": "termsbench.overlap.candid.overlap.1000046",
+      "difficulty_bin": 0,
+      "family": "candid",
+      "regime": "overlap",
+      "world_seed": 1000046
+    },
+    {
+      "case_id": "termsbench.overlap.candid.overlap.1000001",
+      "difficulty_bin": 1,
+      "family": "candid",
+      "regime": "overlap",
+      "world_seed": 1000001
+    },
+    {
+      "case_id": "termsbench.overlap.candid.overlap.1000025",
+      "difficulty_bin": 2,
+      "family": "candid",
+      "regime": "overlap",
+      "world_seed": 1000025
+    },
+    {
+      "case_id": "termsbench.overlap.candid.overlap.1000053",
+      "difficulty_bin": 3,
+      "family": "candid",
+      "regime": "overlap",
+      "world_seed": 1000053
+    },
+    {
+      "case_id": "termsbench.overlap.candid.overlap.1000042",
+      "difficulty_bin": 4,
+      "family": "candid",
+      "regime": "overlap",
+      "world_seed": 1000042
+    },
+    {
+      "case_id": "termsbench.overlap.taciturn.overlap.1100039",
+      "difficulty_bin": 0,
+      "family": "taciturn",
+      "regime": "overlap",
+      "world_seed": 1100039
+    },
+    {
+      "case_id": "termsbench.overlap.taciturn.overlap.1100009",
+      "difficulty_bin": 1,
+      "family": "taciturn",
+      "regime": "overlap",
+      "world_seed": 1100009
+    },
+    {
+      "case_id": "termsbench.overlap.taciturn.overlap.1100038",
+      "difficulty_bin": 2,
+      "family": "taciturn",
+      "regime": "overlap",
+      "world_seed": 1100038
+    },
+    {
+      "case_id": "termsbench.overlap.taciturn.overlap.1100004",
+      "difficulty_bin": 3,
+      "family": "taciturn",
+      "regime": "overlap",
+      "world_seed": 1100004
+    },
+    {
+      "case_id": "termsbench.overlap.taciturn.overlap.1100040",
+      "difficulty_bin": 4,
+      "family": "taciturn",
+      "regime": "overlap",
+      "world_seed": 1100040
+    },
+    {
+      "case_id": "termsbench.overlap.expressive.overlap.1200012",
+      "difficulty_bin": 0,
+      "family": "expressive",
+      "regime": "overlap",
+      "world_seed": 1200012
+    },
+    {
+      "case_id": "termsbench.overlap.expressive.overlap.1200005",
+      "difficulty_bin": 1,
+      "family": "expressive",
+      "regime": "overlap",
+      "world_seed": 1200005
+    },
+    {
+      "case_id": "termsbench.overlap.expressive.overlap.1200042",
+      "difficulty_bin": 2,
+      "family": "expressive",
+      "regime": "overlap",
+      "world_seed": 1200042
+    },
+    {
+      "case_id": "termsbench.overlap.expressive.overlap.1200031",
+      "difficulty_bin": 3,
+      "family": "expressive",
+      "regime": "overlap",
+      "world_seed": 1200031
+    },
+    {
+      "case_id": "termsbench.overlap.expressive.overlap.1200045",
+      "difficulty_bin": 4,
+      "family": "expressive",
+      "regime": "overlap",
+      "world_seed": 1200045
+    }
+  ],
+  "content_sha256": "f31c8e7a0a0986ec968db614cf1179fd3e06c2e0d14e50115bf20a1aecb54078",
+  "family_id": "termsbench.overlap",
+  "pilot_id": "termsbench_overlap_pilot_v1"
+}

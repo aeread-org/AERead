@@ -1,0 +1,129 @@
+{
+  "case_ids": [
+    "termsbench.nodeal.candid.nodeal.1010038",
+    "termsbench.nodeal.candid.nodeal.1010031",
+    "termsbench.nodeal.candid.nodeal.1010055",
+    "termsbench.nodeal.candid.nodeal.1010011",
+    "termsbench.nodeal.candid.nodeal.1010013",
+    "termsbench.nodeal.taciturn.nodeal.1110012",
+    "termsbench.nodeal.taciturn.nodeal.1110005",
+    "termsbench.nodeal.taciturn.nodeal.1110019",
+    "termsbench.nodeal.taciturn.nodeal.1110041",
+    "termsbench.nodeal.taciturn.nodeal.1110020",
+    "termsbench.nodeal.expressive.nodeal.1210010",
+    "termsbench.nodeal.expressive.nodeal.1210050",
+    "termsbench.nodeal.expressive.nodeal.1210016",
+    "termsbench.nodeal.expressive.nodeal.1210027",
+    "termsbench.nodeal.expressive.nodeal.1210052"
+  ],
+  "cells": [
+    {
+      "case_id": "termsbench.nodeal.candid.nodeal.1010038",
+      "difficulty_bin": 0,
+      "family": "candid",
+      "regime": "nodeal",
+      "world_seed": 1010038
+    },
+    {
+      "case_id": "termsbench.nodeal.candid.nodeal.1010031",
+      "difficulty_bin": 1,
+      "family": "candid",
+      "regime": "nodeal",
+      "world_seed": 1010031
+    },
+    {
+      "case_id": "termsbench.nodeal.candid.nodeal.1010055",
+      "difficulty_bin": 2,
+      "family": "candid",
+      "regime": "nodeal",
+      "world_seed": 1010055
+    },
+    {
+      "case_id": "termsbench.nodeal.candid.nodeal.1010011",
+      "difficulty_bin": 3,
+      "family": "candid",
+      "regime": "nodeal",
+      "world_seed": 1010011
+    },
+    {
+      "case_id": "termsbench.nodeal.candid.nodeal.1010013",
+      "difficulty_bin": 4,
+      "family": "candid",
+      "regime": "nodeal",
+      "world_seed": 1010013
+    },
+    {
+      "case_id": "termsbench.nodeal.taciturn.nodeal.1110012",
+      "difficulty_bin": 0,
+      "family": "taciturn",
+      "regime": "nodeal",
+      "world_seed": 1110012
+    },
+    {
+      "case_id": "termsbench.nodeal.taciturn.nodeal.1110005",
+      "difficulty_bin": 1,
+      "family": "taciturn",
+      "regime": "nodeal",
+      "world_seed": 1110005
+    },
+    {
+      "case_id": "termsbench.nodeal.taciturn.nodeal.1110019",
+      "difficulty_bin": 2,
+      "family": "taciturn",
+      "regime": "nodeal",
+      "world_seed": 1110019
+    },
+    {
+      "case_id": "termsbench.nodeal.taciturn.nodeal.1110041",
+      "difficulty_bin": 3,
+      "family": "taciturn",
+      "regime": "nodeal",
+      "world_seed": 1110041
+    },
+    {
+      "case_id": "termsbench.nodeal.taciturn.nodeal.1110020",
+      "difficulty_bin": 4,
+      "family": "taciturn",
+      "regime": "nodeal",
+      "world_seed": 1110020
+    },
+    {
+      "case_id": "termsbench.nodeal.expressive.nodeal.1210010",
+      "difficulty_bin": 0,
+      "family": "expressive",
+      "regime": "nodeal",
+      "world_seed": 1210010
+    },
+    {
+      "case_id": "termsbench.nodeal.expressive.nodeal.1210050",
+      "difficulty_bin": 1,
+      "family": "expressive",
+      "regime": "nodeal",
+      "world_seed": 1210050
+    },
+    {
+      "case_id": "termsbench.nodeal.expressive.nodeal.1210016",
+      "difficulty_bin": 2,
+      "family": "expressive",
+      "regime": "nodeal",
+      "world_seed": 1210016
+    },
+    {
+      "case_id": "termsbench.nodeal.expressive.nodeal.1210027",
+      "difficulty_bin": 3,
+      "family": "expressive",
+      "regime": "nodeal",
+      "world_seed": 1210027
+    },
+    {
+      "case_id": "termsbench.nodeal.expressive.nodeal.1210052",
+      "difficulty_bin": 4,
+      "family": "expressive",
+      "regime": "nodeal",
+      "world_seed": 1210052
+    }
+  ],
+  "content_sha256": "ca43de5055b33d4de6bc2b7fab44571a74a1b35fdc91d04a1c6a9599665624b0",
+  "family_id": "termsbench.nodeal",
+  "pilot_id": "termsbench_nodeal_pilot_v1"
+}

@@ -1,7 +1,8 @@
 """Scripted harness + end-to-end coverage for termsbench (milestone 3).
 
 Drives at least 2 full episodes -- one Overlap-regime, one No-deal-regime --
-against real, on-disk pilot case files (``cases/termsbench/pilot/``) through
+against real, on-disk pilot case files (``cases/termsbench_overlap/pilot/``,
+``cases/termsbench_nodeal/pilot/``) through
 the REAL shared-runner path: ``PluginRegistry.resolve_manifest`` ->
 ``run_episode`` -> ``TermsBenchPlugin``'s own ``step``/``terminal``/
 ``outcome`` hooks, never a hand-wired shortcut that calls plugin methods
@@ -35,11 +36,12 @@ from aeread_families.termsbench.environment import TermsBenchPlugin, register_pl
 from aeread_families.termsbench.harness import ScriptedTermsBenchHarness
 from aeread_families.termsbench.measurement import build_scorer
 
-PILOT_DIR = Path("cases/termsbench/pilot")
+OVERLAP_PILOT_DIR = Path("cases/termsbench_overlap/pilot")
+NODEAL_PILOT_DIR = Path("cases/termsbench_nodeal/pilot")
 
 
-def _case(case_id: str) -> CaseManifest:
-    path = PILOT_DIR / f"{case_id}.json"
+def _case(pilot_dir: Path, case_id: str) -> CaseManifest:
+    path = pilot_dir / f"{case_id}.json"
     return CaseManifest.from_dict(json.loads(path.read_text(encoding="utf-8")))
 
 
@@ -90,12 +92,12 @@ def _evidence(tmp_path: Path, *, suffix: str, case: CaseManifest, cell: PlanCell
 # 2 counterpart rounds, ends agent_accept.
 # ---------------------------------------------------------------------------
 
-OVERLAP_CASE_ID = "termsbench.candid.overlap.1000001"
-NODEAL_CASE_ID = "termsbench.candid.nodeal.1010011"
+OVERLAP_CASE_ID = "termsbench.overlap.candid.overlap.1000001"
+NODEAL_CASE_ID = "termsbench.nodeal.candid.nodeal.1010011"
 
 
 def _run_overlap_episode(tmp_path: Path, *, suffix: str = "overlap"):
-    case = _case(OVERLAP_CASE_ID)
+    case = _case(OVERLAP_PILOT_DIR, OVERLAP_CASE_ID)
     assert case.payload["chi"] == "agent_opens"
     r_a = float(case.payload["agent"]["r_a"])
     r_b = float(case.payload["t_b"]["r_b"])
@@ -118,7 +120,7 @@ def _run_overlap_episode(tmp_path: Path, *, suffix: str = "overlap"):
         world_seed=case.world_seed, script=script, counterpart_draws_by_round=draws, evidence=evidence
     )
     registry = PluginRegistry()
-    plugin = register_plugin(registry)
+    plugin = register_plugin(registry, regime="overlap")
     result = asyncio.run(
         run_episode(cell=cell, case=case, plugin=plugin, response_source=harness)
     )
@@ -133,7 +135,7 @@ def _run_overlap_episode(tmp_path: Path, *, suffix: str = "overlap"):
 
 
 def _run_nodeal_episode(tmp_path: Path, *, suffix: str = "nodeal"):
-    case = _case(NODEAL_CASE_ID)
+    case = _case(NODEAL_PILOT_DIR, NODEAL_CASE_ID)
     assert case.payload["chi"] == "agent_opens"
     r_a = float(case.payload["agent"]["r_a"])
     r_b = float(case.payload["t_b"]["r_b"])
@@ -148,7 +150,7 @@ def _run_nodeal_episode(tmp_path: Path, *, suffix: str = "nodeal"):
         world_seed=case.world_seed, script=script, counterpart_draws_by_round=draws, evidence=evidence
     )
     registry = PluginRegistry()
-    plugin = register_plugin(registry)
+    plugin = register_plugin(registry, regime="nodeal")
     result = asyncio.run(
         run_episode(cell=cell, case=case, plugin=plugin, response_source=harness)
     )
@@ -172,7 +174,7 @@ def test_overlap_episode_runs_end_to_end_through_the_real_scheduler(tmp_path: Pa
     assert result.logical_action_count == 5
     assert len(result.phase_instances) == 5
 
-    plugin = TermsBenchPlugin()
+    plugin = TermsBenchPlugin(regime="overlap")
     family_case = plugin.validate_payload(case.payload)
     scorer = build_scorer(family_case)
     se = scorer.score_surplus_efficiency(outcome=result.outcome)
@@ -196,7 +198,7 @@ def test_nodeal_episode_runs_end_to_end_through_the_real_scheduler(tmp_path: Pat
     # entry is deliberate headroom, not a bug.
     assert harness.exhausted is False
 
-    plugin = TermsBenchPlugin()
+    plugin = TermsBenchPlugin(regime="nodeal")
     family_case = plugin.validate_payload(case.payload)
     scorer = build_scorer(family_case)
     fagr = scorer.score_no_deal_agreement(outcome=result.outcome)
@@ -264,7 +266,7 @@ def test_sealed_evidence_rejects_further_writes(tmp_path: Path) -> None:
 def test_harness_without_an_evidence_store_still_runs(tmp_path: Path) -> None:
     """Backward compatibility: evidence is optional (default None) -- every
     existing provider-free unit test that never passes one keeps working."""
-    case = _case(OVERLAP_CASE_ID)
+    case = _case(OVERLAP_PILOT_DIR, OVERLAP_CASE_ID)
     cell = _cell(case, suffix="noevidence")
     r_a = float(case.payload["agent"]["r_a"])
     r_b = float(case.payload["t_b"]["r_b"])
@@ -274,7 +276,7 @@ def test_harness_without_an_evidence_store_still_runs(tmp_path: Path) -> None:
         counterpart_draws_by_round={1: {"u_accept": 0.0}},
     )
     registry = PluginRegistry()
-    plugin = register_plugin(registry)
+    plugin = register_plugin(registry, regime="overlap")
     result = asyncio.run(run_episode(cell=cell, case=case, plugin=plugin, response_source=harness))
     assert result.terminal["reason"] == "counterpart_accept"
     assert harness.evidence is None

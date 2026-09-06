@@ -102,12 +102,12 @@ def _cell(case: CaseManifest) -> PlanCell:
 
 def _run(case: CaseManifest, harness: ScriptedTermsBenchHarness):
     registry = PluginRegistry()
-    plugin = register_plugin(registry)
+    plugin = register_plugin(registry, regime=case.payload["regime"])
     return asyncio.run(run_episode(cell=_cell(case), case=case, plugin=plugin, response_source=harness))
 
 
 def _scorer_for(case: CaseManifest) -> m.TermsBenchScorer:
-    plugin = TermsBenchPlugin()
+    plugin = TermsBenchPlugin(regime=case.payload["regime"])
     family_case = plugin.validate_payload(case.payload)
     return m.build_scorer(family_case)
 
@@ -189,7 +189,7 @@ def test_protocol_compliance_reference_hash_changes_with_the_agent_ir_anchor() -
 
 def test_plugin_build_scorer_hook_returns_the_same_leaves_as_measurement_py() -> None:
     payload = _common_setup_payload(regime="overlap", chi="agent_opens", r_a=150.0, r_b=100.0)
-    plugin = TermsBenchPlugin()
+    plugin = TermsBenchPlugin(regime="overlap")
     family_case = plugin.validate_payload(payload)
 
     scorer = plugin.build_scorer(family_case)

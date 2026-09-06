@@ -73,7 +73,7 @@ def _seed_with_chi(family: str, regime: str, chi: str, start: int = 1000000) -> 
 
 def _run(case: CaseManifest, harness: ScriptedTermsBenchHarness):
     registry = PluginRegistry()
-    plugin = register_plugin(registry)
+    plugin = register_plugin(registry, regime=case.payload["regime"])
     return asyncio.run(run_episode(cell=_cell(case), case=case, plugin=plugin, response_source=harness))
 
 
@@ -84,8 +84,8 @@ def _run(case: CaseManifest, harness: ScriptedTermsBenchHarness):
 
 def test_plugin_registers_every_required_hook_through_normal_registry() -> None:
     registry = PluginRegistry()
-    plugin = register_plugin(registry)
-    resolved = registry.resolve_manifest(family_manifest())
+    plugin = register_plugin(registry, regime="overlap")
+    resolved = registry.resolve_manifest(family_manifest("overlap"))
     assert resolved is plugin
     for hook in REQUIRED_FAMILY_PLUGIN_HOOKS:
         assert callable(getattr(plugin, hook))
@@ -94,7 +94,7 @@ def test_plugin_registers_every_required_hook_through_normal_registry() -> None:
 def test_phase_graph_starts_with_agent_turn_when_agent_opens() -> None:
     seed = _seed_with_chi("candid", "overlap", "agent_opens")
     case = _case("candid", "overlap", seed)
-    plugin = TermsBenchPlugin()
+    plugin = TermsBenchPlugin(regime="overlap")
     family_case = plugin.validate_payload(case.payload)
     phases = plugin.phases(family_case)
     assert phases[0].phase_id == AGENT_PHASE
@@ -106,7 +106,7 @@ def test_phase_graph_starts_with_agent_turn_when_agent_opens() -> None:
 def test_phase_graph_starts_with_counterpart_turn_when_counterpart_opens() -> None:
     seed = _seed_with_chi("candid", "overlap", "counterpart_opens")
     case = _case("candid", "overlap", seed)
-    plugin = TermsBenchPlugin()
+    plugin = TermsBenchPlugin(regime="overlap")
     family_case = plugin.validate_payload(case.payload)
     phases = plugin.phases(family_case)
     assert phases[0].phase_id == COUNTERPART_PHASE
@@ -238,7 +238,7 @@ def test_price_bound_violation_is_flagged_but_does_not_terminate() -> None:
     harness = ScriptedTermsBenchHarness(
         world_seed=case.world_seed, script=script, counterpart_draws_by_round={1: {"u_accept": 0.999, "u_walkaway": 0.999}}
     )
-    plugin = TermsBenchPlugin()
+    plugin = TermsBenchPlugin(regime="overlap")
     family_case = plugin.validate_payload(case.payload)
     state = plugin.initial_state(family_case, None)
     phase = plugin.phases(family_case)[0]
@@ -257,7 +257,7 @@ def test_monotonicity_violation_is_secondary_and_does_not_terminate() -> None:
     seed = _seed_with_chi("candid", "overlap", "agent_opens")
     case = _case("candid", "overlap", seed)
     r_a = case.payload["agent"]["r_a"]
-    plugin = TermsBenchPlugin()
+    plugin = TermsBenchPlugin(regime="overlap")
     family_case = plugin.validate_payload(case.payload)
     state = plugin.initial_state(family_case, None)
     phase = plugin.phases(family_case)[0]

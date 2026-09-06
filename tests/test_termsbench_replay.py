@@ -36,13 +36,14 @@ from aeread_families.termsbench.replay import (
     score_replayed_episode,
 )
 
-PILOT_DIR = Path("cases/termsbench/pilot")
-OVERLAP_CASE_ID = "termsbench.candid.overlap.1000001"
-NODEAL_CASE_ID = "termsbench.candid.nodeal.1010011"
+OVERLAP_PILOT_DIR = Path("cases/termsbench_overlap/pilot")
+NODEAL_PILOT_DIR = Path("cases/termsbench_nodeal/pilot")
+OVERLAP_CASE_ID = "termsbench.overlap.candid.overlap.1000001"
+NODEAL_CASE_ID = "termsbench.nodeal.candid.nodeal.1010011"
 
 
-def _case(case_id: str) -> CaseManifest:
-    path = PILOT_DIR / f"{case_id}.json"
+def _case(pilot_dir: Path, case_id: str) -> CaseManifest:
+    path = pilot_dir / f"{case_id}.json"
     return CaseManifest.from_dict(json.loads(path.read_text(encoding="utf-8")))
 
 
@@ -79,7 +80,7 @@ def _cell(case: CaseManifest, *, suffix: str) -> PlanCell:
 
 
 def _run_live_overlap(tmp_path: Path, *, suffix: str):
-    case = _case(OVERLAP_CASE_ID)
+    case = _case(OVERLAP_PILOT_DIR, OVERLAP_CASE_ID)
     r_a = float(case.payload["agent"]["r_a"])
     r_b = float(case.payload["t_b"]["r_b"])
     cell = _cell(case, suffix=suffix)
@@ -103,14 +104,14 @@ def _run_live_overlap(tmp_path: Path, *, suffix: str):
         world_seed=case.world_seed, script=script, counterpart_draws_by_round=draws, evidence=evidence
     )
     registry = PluginRegistry()
-    plugin = register_plugin(registry)
+    plugin = register_plugin(registry, regime="overlap")
     result = asyncio.run(run_episode(cell=cell, case=case, plugin=plugin, response_source=harness))
     evidence.seal()
     return case, cell, plugin, evidence, result
 
 
 def _run_live_nodeal(tmp_path: Path, *, suffix: str):
-    case = _case(NODEAL_CASE_ID)
+    case = _case(NODEAL_PILOT_DIR, NODEAL_CASE_ID)
     r_a = float(case.payload["agent"]["r_a"])
     r_b = float(case.payload["t_b"]["r_b"])
     cell = _cell(case, suffix=suffix)
@@ -129,7 +130,7 @@ def _run_live_nodeal(tmp_path: Path, *, suffix: str):
         world_seed=case.world_seed, script=script, counterpart_draws_by_round=draws, evidence=evidence
     )
     registry = PluginRegistry()
-    plugin = register_plugin(registry)
+    plugin = register_plugin(registry, regime="nodeal")
     result = asyncio.run(run_episode(cell=cell, case=case, plugin=plugin, response_source=harness))
     evidence.seal()
     return case, cell, plugin, evidence, result
@@ -141,7 +142,7 @@ def _run_live_overlap_immediate_accept(tmp_path: Path, *, suffix: str, price: fl
     for any positive acceptance probability). Gives an independently
     hand-derivable ``final_price`` (the agent's own scripted offer),
     unlike ``_run_live_overlap``'s multi-round "moving closer" scenario."""
-    case = _case(OVERLAP_CASE_ID)
+    case = _case(OVERLAP_PILOT_DIR, OVERLAP_CASE_ID)
     cell = _cell(case, suffix=suffix)
     evidence = EvidenceStore(
         tmp_path / f"evidence_{suffix}",
@@ -156,7 +157,7 @@ def _run_live_overlap_immediate_accept(tmp_path: Path, *, suffix: str, price: fl
         world_seed=case.world_seed, script=script, counterpart_draws_by_round=draws, evidence=evidence
     )
     registry = PluginRegistry()
-    plugin = register_plugin(registry)
+    plugin = register_plugin(registry, regime="overlap")
     result = asyncio.run(run_episode(cell=cell, case=case, plugin=plugin, response_source=harness))
     evidence.seal()
     return case, cell, plugin, evidence, result
@@ -167,7 +168,7 @@ def _run_live_overlap_agreement_violation(tmp_path: Path, *, suffix: str):
     store: an unauthorized Accept with no counterpart offer observed yet --
     a critical protocol violation (``invalid_action``), unlike every other
     replay fixture in this file."""
-    case = _case(OVERLAP_CASE_ID)
+    case = _case(OVERLAP_PILOT_DIR, OVERLAP_CASE_ID)
     cell = _cell(case, suffix=suffix)
     evidence = EvidenceStore(
         tmp_path / f"evidence_{suffix}",
@@ -181,14 +182,14 @@ def _run_live_overlap_agreement_violation(tmp_path: Path, *, suffix: str):
         world_seed=case.world_seed, script=script, evidence=evidence
     )
     registry = PluginRegistry()
-    plugin = register_plugin(registry)
+    plugin = register_plugin(registry, regime="overlap")
     result = asyncio.run(run_episode(cell=cell, case=case, plugin=plugin, response_source=harness))
     evidence.seal()
     return case, cell, plugin, evidence, result
 
 
 def _scorer_for(case: CaseManifest):
-    plugin = TermsBenchPlugin()
+    plugin = TermsBenchPlugin(regime=case.payload["regime"])
     family_case = plugin.validate_payload(case.payload)
     return build_scorer(family_case)
 
@@ -303,7 +304,7 @@ def test_replay_from_a_json_round_tripped_record_reproduces_the_live_overlap_run
     # A second, independent plugin instance -- not the one that produced the
     # original run -- drives the replay.
     registry = PluginRegistry()
-    replay_plugin = register_plugin(registry)
+    replay_plugin = register_plugin(registry, regime="overlap")
 
     replayed = asyncio.run(
         replay_episode(cell=cell, case=case, plugin=replay_plugin, recorded=recorded)
@@ -362,7 +363,7 @@ def test_replayed_episode_surplus_efficiency_matches_an_independently_derived_va
 
     recorded = record_episode(original)
     registry = PluginRegistry()
-    replay_plugin = register_plugin(registry)
+    replay_plugin = register_plugin(registry, regime="overlap")
     replayed = asyncio.run(replay_episode(cell=cell, case=case, plugin=replay_plugin, recorded=recorded))
 
     scorer = _scorer_for(case)
@@ -397,7 +398,7 @@ def test_replayed_episode_protocol_compliance_matches_an_independently_derived_v
 
     recorded = record_episode(original)
     registry = PluginRegistry()
-    replay_plugin = register_plugin(registry)
+    replay_plugin = register_plugin(registry, regime="overlap")
     replayed = asyncio.run(replay_episode(cell=cell, case=case, plugin=replay_plugin, recorded=recorded))
 
     scorer = _scorer_for(case)
@@ -448,7 +449,7 @@ def test_replay_and_verify_without_an_original_is_not_comparable_not_a_fabricate
     scorer = _scorer_for(case)
 
     registry = PluginRegistry()
-    replay_plugin = register_plugin(registry)
+    replay_plugin = register_plugin(registry, regime="nodeal")
 
     report = asyncio.run(
         replay_and_verify(cell=cell, case=case, plugin=replay_plugin, scorer=scorer, recorded=recorded)
