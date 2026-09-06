@@ -258,6 +258,15 @@ published aggregates cannot be reconstructed from canonical facts.
 Campaign records reference QC artifacts rather than duplicating them. If a
 referenced QC digest changes, the consuming campaign gate must be retried.
 
+## 3a. Incident recording
+
+Record every failure when it happens, not when it is understood. A failure
+written down only after diagnosis loses the state that made it worth
+recording. Two tiers, described in the repository working rules: a derived
+per-family machine register under `evidence/<family>_failure_register/`, and
+the judgment log at `docs/operations/incident_log.md`. Rows are never deleted;
+only their disposition changes.
+
 ## 4. Change invalidation
 
 Re-run at least the listed gates after a bound input changes:

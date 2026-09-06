@@ -1,0 +1,5 @@
+campaign_id,world_seed,complete_pair,glm_53_flash_mean,deepseek_v4_flash_mean,contrast,glm_53_flash_completed_cells,deepseek_v4_flash_completed_cells
+housing_model_sensitivity_openrouter_friendli_v15,264284765,False,,,,5,5
+housing_model_sensitivity_openrouter_friendli_v15,722524881,False,,0.7102932604526457,,5,6
+housing_model_sensitivity_openrouter_friendli_v15,1535604354,False,,0.8933726332464286,,5,6
+housing_model_sensitivity_openrouter_friendli_v15,366965770,False,,0.735484170264269,,5,6

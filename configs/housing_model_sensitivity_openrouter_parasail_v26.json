@@ -1,0 +1,179 @@
+{
+  "schema_version": "aeread.housing_backend_campaign/0.1",
+  "campaign_id": "housing_model_sensitivity_openrouter_parasail_v26",
+  "claim_status": "exploratory_variance_pilot_only",
+  "question": "What is the paired world-level variance of the frozen GLM 5.3 Flash versus DeepSeek V4 Flash Housing contrast over eight development worlds with two replicates, after repairing the admission defect that recorded a truncated completion as an invalid action and blocked every retry that reached the provider? No frozen control differs from the V24 gate.",
+  "independent_cluster": "world_seed",
+  "source_case_selection": {
+    "path": "evidence/housing_case_config_sweep_v1/reports/selected_development_configs.json",
+    "artifact_sha256": "a4ace08e1504b66eabeb92ca22ec47be25cb034ce2c262e66d96265710e34727",
+    "file_sha256": "b05945926fe0dfa4569d8b58f70d62ec1d41597b16b615928be3c8752066a163",
+    "fact_manifest_path": "evidence/housing_case_config_sweep_v1/tables/fact_manifest.json",
+    "fact_manifest_file_sha256": "7eca47be207f85bda990b68c4653d8539bc9f0c56560f9b3d7dea61bc7b16727"
+  },
+  "controls": {
+    "harness": "minimal_chat/1.0",
+    "tools": "disabled",
+    "memory": "disabled",
+    "reasoning_condition_id": "model_sensitivity_openrouter_parasail_low_v25",
+    "reasoning_effort": "low",
+    "temperature": 0.0,
+    "top_p": 1.0,
+    "max_output_tokens": 4096,
+    "timeout_seconds": 300.0,
+    "sdk_retries": 0,
+    "max_action_attempts": 30,
+    "tenant_max_logical_actions": 48,
+    "landlord_max_logical_actions": 16,
+    "retryable_conditions": [
+      "length",
+      "rate_limit",
+      "provider_5xx",
+      "empty_response",
+      "timeout"
+    ],
+    "tenant_inference_seed_base": 87001,
+    "landlord_inference_seed_base": 97001,
+    "condition_order": "rotate_by_world_and_case_configuration",
+    "action_schema_version": "housing_actions/2.0",
+    "wire_live_profile_controls": true,
+    "call_pacing": {
+      "clock": "monotonic_bounded_concurrency",
+      "minimum_start_interval_seconds_by_provider": {
+        "Parasail": 3.0
+      },
+      "maximum_concurrent_calls_by_provider": {
+        "Parasail": 8
+      },
+      "first_call_delay_seconds": 0.0,
+      "scope": "shared_across_profile_admission_and_full_trajectory",
+      "implementation_sha256": "4ef6e84e699a1a7135366cfa03197f62300b7e339349fb5454259d0208434cef"
+    },
+    "admission_timeout_enforcement": "asyncio_wait_for_controls_timeout_seconds",
+    "seat_max_cost_usd": 0.03,
+    "retry_backoff": {
+      "policy": "exponential_jitter_v1",
+      "retry_base_seconds": 5.0,
+      "retry_after_max_seconds": 60.0
+    }
+  },
+  "backend": {
+    "gateway": "openrouter",
+    "api_base": "https://openrouter.ai/api/v1",
+    "catalog_source": "https://openrouter.ai/api/v1/models/{model}/endpoints",
+    "catalog_retrieved_at": "2026-09-05",
+    "allow_fallbacks": false,
+    "require_parameters": true,
+    "retry_owner": "aeread_action_attempt_policy",
+    "raw_response_retention": "local_evidence_store",
+    "route_status_policy": "allow_degraded_with_recorded_status",
+    "endpoint_snapshot_policy": "identity_only"
+  },
+  "models": {
+    "glm_53_flash": {
+      "requested_model": "z-ai/glm-5.3-flash",
+      "canonical_model": "z-ai/glm-5.3-flash-20260826",
+      "provider": "Parasail",
+      "quantization": "fp8",
+      "input_per_million": 0.15,
+      "cached_input_per_million": 0.03,
+      "output_per_million": 0.5,
+      "endpoint_snapshot_sha256": "9e454ee0c8ef4522d4868e06e2ca7d0663fe9be8168f6f36b6e8ab2d67f526f5",
+      "tenant_profile_id": "housing_glm_53_flash_parasail_tenant_v26",
+      "landlord_profile_id": "housing_glm_53_flash_parasail_landlord_v26"
+    },
+    "deepseek_v4_flash": {
+      "requested_model": "deepseek/deepseek-v4-flash-0731",
+      "canonical_model": "deepseek/deepseek-v4-flash-20260731",
+      "provider": "Parasail",
+      "quantization": "fp8",
+      "input_per_million": 0.14,
+      "cached_input_per_million": 0.05,
+      "output_per_million": 0.28,
+      "endpoint_snapshot_sha256": "cf4ea974762598b45896a975bb7c7007d71160fe642432b76c581dbb4ca685b2",
+      "tenant_profile_id": "housing_deepseek_v4_flash_parasail_tenant_v26",
+      "landlord_profile_id": "housing_deepseek_v4_flash_parasail_landlord_v26"
+    }
+  },
+  "conditions": [
+    {
+      "condition_id": "deepseek_v4_flash__vs__deepseek_v4_flash",
+      "subject": "deepseek_v4_flash",
+      "opponent": "deepseek_v4_flash",
+      "evaluation_kind": "self_play"
+    },
+    {
+      "condition_id": "glm_53_flash__vs__deepseek_v4_flash",
+      "subject": "glm_53_flash",
+      "opponent": "deepseek_v4_flash",
+      "evaluation_kind": "cross_play"
+    },
+    {
+      "condition_id": "deepseek_v4_flash__vs__glm_53_flash",
+      "subject": "deepseek_v4_flash",
+      "opponent": "glm_53_flash",
+      "evaluation_kind": "cross_play"
+    },
+    {
+      "condition_id": "glm_53_flash__vs__glm_53_flash",
+      "subject": "glm_53_flash",
+      "opponent": "glm_53_flash",
+      "evaluation_kind": "self_play"
+    }
+  ],
+  "profile_admission": {
+    "probes_per_action_schema": 3,
+    "probe_seeds": [
+      103001,
+      103002,
+      103003
+    ],
+    "attempt_limit_per_probe": 30,
+    "sdk_retries": 0,
+    "hidden_repair_allowed": false,
+    "per_probe_cost_reserve_usd": 0.003,
+    "cost_ceiling_usd": 0.06,
+    "profile_sha256s": {
+      "housing_glm_53_flash_parasail_tenant_v26": "327bd0073c1f2aec2a3c6f55e2d93938abab6dc961beea8cb408afc4e1a33b70",
+      "housing_glm_53_flash_parasail_landlord_v26": "dc8c5a18656eaf59a7184fbcceba88f355f91d2411b613d2c49caff010d3c8ba",
+      "housing_deepseek_v4_flash_parasail_tenant_v26": "f59552be2d1283236b991c75f894f5e0f86e76501bc18ddb4d31b37f2a9894fc",
+      "housing_deepseek_v4_flash_parasail_landlord_v26": "2da6bfd4ec11209100356d8934f5713634ceb72535ffef84d9545cef8e87128e"
+    }
+  },
+  "execution": {
+    "world_seeds": [
+      1971418798,
+      1460378342,
+      981417412,
+      123194022,
+      145537168,
+      264284765,
+      722524881,
+      1535604354
+    ],
+    "replicates": 2,
+    "attempt_limit": 1,
+    "cost_ceiling_usd": 2.0,
+    "per_trajectory_cost_reserve_usd": 0.06,
+    "winner_claim_allowed": false,
+    "completeness_policy": "retain_typed_missingness_without_selective_retry",
+    "maximum_operational_failure_fraction": 0.1,
+    "max_concurrent_cells": 8
+  },
+  "analysis": {
+    "primary_view": "paired_world_subject_mean_within_case_score",
+    "aggregation": "equal_weight_configs_and_opponents_within_world",
+    "primary_contrast": "glm_53_flash_minus_deepseek_v4_flash",
+    "uncertainty": "sample_variance_over_world_level_paired_contrasts",
+    "minimum_meaningful_effect": 0.05,
+    "alpha": 0.05,
+    "power": 0.8,
+    "minimum_confirmatory_worlds": 30,
+    "maximum_confirmatory_worlds": 100,
+    "attrition_fraction": 0.1,
+    "minimum_paired_worlds_for_recommendation": 6,
+    "ranking_allowed": false
+  },
+  "missingness": "typed_operational_missingness_reported_separately",
+  "stopping_rule": "profile_admission_must_pass_before_live; stop_before_next_trajectory_when_remaining_campaign_budget_is_below_the_declared_reserve; stop_immediately_on_route_drift_or_replay_failure"
+}

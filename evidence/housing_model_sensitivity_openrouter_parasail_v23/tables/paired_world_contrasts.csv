@@ -1,0 +1,9 @@
+campaign_id,world_seed,complete_pair,glm_53_flash_mean,deepseek_v4_flash_mean,contrast,glm_53_flash_completed_cells,deepseek_v4_flash_completed_cells
+housing_model_sensitivity_openrouter_parasail_v23,1971418798,True,0.8642571236349775,0.8676897996081397,-0.0034326759731622136,12,12
+housing_model_sensitivity_openrouter_parasail_v23,1460378342,False,,0.6957591885001793,,11,12
+housing_model_sensitivity_openrouter_parasail_v23,981417412,True,0.828507809808427,0.787515327490177,0.04099248231824992,12,12
+housing_model_sensitivity_openrouter_parasail_v23,123194022,True,0.8116421657611955,0.7811831874851901,0.03045897827600541,12,12
+housing_model_sensitivity_openrouter_parasail_v23,145537168,False,,0.8272175608773974,,11,12
+housing_model_sensitivity_openrouter_parasail_v23,264284765,True,0.7456247262455443,0.7900350686375329,-0.0444103423919886,12,12
+housing_model_sensitivity_openrouter_parasail_v23,722524881,False,,0.7958964681910201,,11,12
+housing_model_sensitivity_openrouter_parasail_v23,1535604354,False,,0.883572092419152,,9,12

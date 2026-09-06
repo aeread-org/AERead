@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import dataclasses
 import hashlib
 import json
 import os
@@ -19,7 +20,11 @@ from typing import Any, Mapping, Sequence
 
 from aeread_families.housing import environment as hz
 
-from aeread.shared_runner.task.execution import OpenRouterChatClient, ProviderRequest
+from aeread.shared_runner.task.execution import (
+    OpenRouterChatClient,
+    ProviderFailure,
+    ProviderRequest,
+)
 
 from .runner import (
     GLM_53_FLASH_MODEL,
@@ -35,6 +40,9 @@ from .runner import (
     OpenRouterRoutePin,
 )
 from .model_sensitivity import (
+    BoundedConcurrencyProviderClient,
+    CooldownProviderClient,
+    confirmatory_panel,
     PacedProviderClient,
     _exception_attribute,
     _read_sealed,
@@ -53,6 +61,8 @@ from .population_campaign import (
     _validate_admission_action,
 )
 from aeread.shared_runner.run.resolver import canonical_json_bytes
+from . import provider_concurrency as provider_concurrency_module
+from . import provider_cooldown as provider_cooldown_module
 from . import provider_pacing as provider_pacing_module
 
 
@@ -309,6 +319,1260 @@ CAMPAIGN_SPECS = {
             "reserve; stop_immediately_on_route_drift_or_replay_failure"
         ),
     },
+    "housing_model_sensitivity_openrouter_friendli_v13": {
+        "claim_status": "development_full_trajectory_gate_only",
+        "catalog_retrieved_at": "2026-09-03",
+        "reasoning_condition_id": (
+            "model_sensitivity_openrouter_friendli_low_v13"
+        ),
+        "per_probe_cost_reserve_usd": 0.003,
+        "admission_cost_ceiling_usd": 0.06,
+        "execution_stage": "full_trajectory",
+        "execution_config_ids": ["moderate_cw085_r2"],
+        "execution_cost_ceiling_usd": 0.08,
+        "per_trajectory_cost_reserve_usd": 0.02,
+        "world_seeds": [227922569],
+        "condition_order": "listed",
+        "analysis": {
+            "primary_view": "full_trajectory_condition_coverage",
+            "aggregation": "none_promotion_gate",
+            "uncertainty": "not_estimable_from_one_world_cluster",
+            "ranking_allowed": False,
+        },
+        "providers": {
+            "glm_53_flash": "Friendli",
+            "deepseek_v4_flash": "Parasail",
+        },
+        "quantizations": {
+            "glm_53_flash": "unknown",
+            "deepseek_v4_flash": "fp8",
+        },
+        "retryable_conditions": [
+            "length",
+            "rate_limit",
+            "provider_5xx",
+            "empty_response",
+        ],
+        "action_schema_version": "housing_actions/2.0",
+        "wire_live_profile_controls": True,
+        "verify_endpoint_snapshot": True,
+        "call_pacing": {
+            "clock": "monotonic_completion_to_start",
+            "cooldown_seconds_by_provider": {
+                "Friendli": 10.0,
+                "Parasail": 10.0,
+            },
+            "first_call_delay_seconds": 0.0,
+            "scope": "shared_across_profile_admission_and_full_trajectory",
+            "implementation_sha256": (
+                "4dc67f4ae81395166264049bbf917d8d42e69c5d6069c97fea981c4b419415d3"
+            ),
+        },
+        "admission_timeout_enforcement": (
+            "asyncio_wait_for_controls_timeout_seconds"
+        ),
+        "stopping_rule": (
+            "profile_admission_must_pass_before_full_trajectory; stop_before_next_"
+            "trajectory_when_remaining_campaign_budget_is_below_the_declared_"
+            "reserve; stop_immediately_on_route_drift_or_replay_failure"
+        ),
+    },
+    "housing_model_sensitivity_openrouter_friendli_v14": {
+        "claim_status": "exploratory_variance_pilot_only",
+        "catalog_retrieved_at": "2026-09-03",
+        "reasoning_condition_id": (
+            "model_sensitivity_openrouter_friendli_low_v14"
+        ),
+        "per_probe_cost_reserve_usd": 0.003,
+        "admission_cost_ceiling_usd": 0.06,
+        "execution_cost_ceiling_usd": 0.45,
+        "per_trajectory_cost_reserve_usd": 0.01,
+        "world_seeds": [264284765, 722524881, 1535604354, 366965770],
+        "condition_order": "rotate_by_world_and_case_configuration",
+        "analysis": {
+            "primary_view": "paired_world_subject_mean_within_case_score",
+            "aggregation": "equal_weight_configs_and_opponents_within_world",
+            "primary_contrast": "glm_53_flash_minus_deepseek_v4_flash",
+            "uncertainty": "sample_variance_over_world_level_paired_contrasts",
+            "minimum_meaningful_effect": 0.05,
+            "alpha": 0.05,
+            "power": 0.8,
+            "minimum_confirmatory_worlds": 30,
+            "maximum_confirmatory_worlds": 100,
+            "attrition_fraction": 0.1,
+            "ranking_allowed": False,
+        },
+        "providers": {
+            "glm_53_flash": "Friendli",
+            "deepseek_v4_flash": "Parasail",
+        },
+        "quantizations": {
+            "glm_53_flash": "unknown",
+            "deepseek_v4_flash": "fp8",
+        },
+        "retryable_conditions": [
+            "length",
+            "rate_limit",
+            "provider_5xx",
+            "empty_response",
+        ],
+        "action_schema_version": "housing_actions/2.0",
+        "wire_live_profile_controls": True,
+        "verify_endpoint_snapshot": True,
+        "call_pacing": {
+            "clock": "monotonic_completion_to_start",
+            "cooldown_seconds_by_provider": {
+                "Friendli": 10.0,
+                "Parasail": 10.0,
+            },
+            "first_call_delay_seconds": 0.0,
+            "scope": "shared_across_profile_admission_and_full_trajectory",
+            "implementation_sha256": (
+                "4dc67f4ae81395166264049bbf917d8d42e69c5d6069c97fea981c4b419415d3"
+            ),
+        },
+        "admission_timeout_enforcement": (
+            "asyncio_wait_for_controls_timeout_seconds"
+        ),
+    },
+    "housing_model_sensitivity_openrouter_friendli_v15": {
+        "claim_status": "exploratory_variance_pilot_only",
+        "catalog_retrieved_at": "2026-09-03",
+        "reasoning_condition_id": (
+            "model_sensitivity_openrouter_friendli_low_v15"
+        ),
+        "per_probe_cost_reserve_usd": 0.003,
+        "admission_cost_ceiling_usd": 0.06,
+        "admission_attempt_limit": 4,
+        "prerequisite_full_trajectory_gate": {
+            "campaign_id": "housing_model_sensitivity_openrouter_friendli_v13",
+            "qualification_path": (
+                "evidence/housing_model_sensitivity_openrouter_friendli_v13/"
+                "reports/qualification.json"
+            ),
+            "qualification_artifact_sha256": (
+                "4a976375fbed6fb1dd1e0f2c14dceaaafa825a2209c17b3906841b05281c5605"
+            ),
+        },
+        "execution_cost_ceiling_usd": 0.45,
+        "per_trajectory_cost_reserve_usd": 0.01,
+        "world_seeds": [264284765, 722524881, 1535604354, 366965770],
+        "condition_order": "rotate_by_world_and_case_configuration",
+        "analysis": {
+            "primary_view": "paired_world_subject_mean_within_case_score",
+            "aggregation": "equal_weight_configs_and_opponents_within_world",
+            "primary_contrast": "glm_53_flash_minus_deepseek_v4_flash",
+            "uncertainty": "sample_variance_over_world_level_paired_contrasts",
+            "minimum_meaningful_effect": 0.05,
+            "alpha": 0.05,
+            "power": 0.8,
+            "minimum_confirmatory_worlds": 30,
+            "maximum_confirmatory_worlds": 100,
+            "attrition_fraction": 0.1,
+            "ranking_allowed": False,
+        },
+        "providers": {
+            "glm_53_flash": "Friendli",
+            "deepseek_v4_flash": "Parasail",
+        },
+        "quantizations": {
+            "glm_53_flash": "unknown",
+            "deepseek_v4_flash": "fp8",
+        },
+        "retryable_conditions": [
+            "length",
+            "rate_limit",
+            "provider_5xx",
+            "empty_response",
+        ],
+        "action_schema_version": "housing_actions/2.0",
+        "wire_live_profile_controls": True,
+        "verify_endpoint_snapshot": True,
+        "call_pacing": {
+            "clock": "monotonic_completion_to_start",
+            "cooldown_seconds_by_provider": {
+                "Friendli": 10.0,
+                "Parasail": 10.0,
+            },
+            "first_call_delay_seconds": 0.0,
+            "scope": "shared_across_profile_admission_and_full_trajectory",
+            "implementation_sha256": (
+                "4dc67f4ae81395166264049bbf917d8d42e69c5d6069c97fea981c4b419415d3"
+            ),
+        },
+        "admission_timeout_enforcement": (
+            "asyncio_wait_for_controls_timeout_seconds"
+        ),
+    },
+    "housing_model_sensitivity_openrouter_parasail_v16": {
+        "claim_status": "development_full_trajectory_gate_only",
+        "catalog_retrieved_at": "2026-09-05",
+        "reasoning_condition_id": (
+            "model_sensitivity_openrouter_parasail_low_v16"
+        ),
+        "per_probe_cost_reserve_usd": 0.003,
+        "admission_cost_ceiling_usd": 0.06,
+        "admission_attempt_limit": 4,
+        "route_selection_probe": {
+            "probe_id": "housing_glm_route_probe_2026-09-05",
+            "summary_path": (
+                "evidence/housing_glm_route_probe_2026-09-05/reports/summary.json"
+            ),
+            "summary_artifact_sha256": "54406a94d4dacc0d1c0b6533ff67cdcfbbc4a20b56fdb91d98a7a551ac8cb63c",
+        },
+        "execution_stage": "full_trajectory",
+        "execution_config_ids": ["moderate_cw085_r2"],
+        "execution_cost_ceiling_usd": 0.08,
+        "per_trajectory_cost_reserve_usd": 0.02,
+        "world_seeds": [227922569],
+        "condition_order": "listed",
+        "analysis": {
+            "primary_view": "full_trajectory_condition_coverage",
+            "aggregation": "none_promotion_gate",
+            "uncertainty": "not_estimable_from_one_world_cluster",
+            "ranking_allowed": False,
+        },
+        "providers": {
+            "glm_53_flash": "Parasail",
+            "deepseek_v4_flash": "Parasail",
+        },
+        "quantizations": {
+            "glm_53_flash": "fp8",
+            "deepseek_v4_flash": "fp8",
+        },
+        "retryable_conditions": [
+            "length",
+            "rate_limit",
+            "provider_5xx",
+            "empty_response",
+        ],
+        "action_schema_version": "housing_actions/2.0",
+        "wire_live_profile_controls": True,
+        "verify_endpoint_snapshot": True,
+        "call_pacing": {
+            "clock": "monotonic_completion_to_start",
+            "cooldown_seconds_by_provider": {
+                "Parasail": 10.0,
+            },
+            "first_call_delay_seconds": 0.0,
+            "scope": "shared_across_profile_admission_and_full_trajectory",
+            "implementation_sha256": (
+                "4dc67f4ae81395166264049bbf917d8d42e69c5d6069c97fea981c4b419415d3"
+            ),
+        },
+        "admission_timeout_enforcement": (
+            "asyncio_wait_for_controls_timeout_seconds"
+        ),
+        "stopping_rule": (
+            "profile_admission_must_pass_before_full_trajectory; stop_before_next_"
+            "trajectory_when_remaining_campaign_budget_is_below_the_declared_"
+            "reserve; stop_immediately_on_route_drift_or_replay_failure"
+        ),
+    },
+    "housing_model_sensitivity_openrouter_parasail_v17": {
+        "claim_status": "exploratory_variance_pilot_only",
+        "catalog_retrieved_at": "2026-09-05",
+        "reasoning_condition_id": (
+            "model_sensitivity_openrouter_parasail_low_v17"
+        ),
+        "per_probe_cost_reserve_usd": 0.003,
+        "admission_cost_ceiling_usd": 0.06,
+        "admission_attempt_limit": 4,
+        "prerequisite_full_trajectory_gate": {
+            "campaign_id": "housing_model_sensitivity_openrouter_parasail_v16",
+            "qualification_path": (
+                "evidence/housing_model_sensitivity_openrouter_parasail_v16/"
+                "reports/qualification.json"
+            ),
+            "qualification_artifact_sha256": (
+                "221ebfa55ba6aecd89546f74b7851deac869a8f68277ed51b366ef13088a2abb"
+            ),
+        },
+        "route_selection_probe": {
+            "probe_id": "housing_glm_route_probe_2026-09-05",
+            "summary_path": (
+                "evidence/housing_glm_route_probe_2026-09-05/reports/summary.json"
+            ),
+            "summary_artifact_sha256": (
+                "54406a94d4dacc0d1c0b6533ff67cdcfbbc4a20b56fdb91d98a7a551ac8cb63c"
+            ),
+        },
+        "execution_cost_ceiling_usd": 0.45,
+        "per_trajectory_cost_reserve_usd": 0.01,
+        "world_seeds": [1063943031, 647986875, 1758927083, 237549679],
+        "condition_order": "rotate_by_world_and_case_configuration",
+        "analysis": {
+            "primary_view": "paired_world_subject_mean_within_case_score",
+            "aggregation": "equal_weight_configs_and_opponents_within_world",
+            "primary_contrast": "glm_53_flash_minus_deepseek_v4_flash",
+            "uncertainty": "sample_variance_over_world_level_paired_contrasts",
+            "minimum_meaningful_effect": 0.05,
+            "alpha": 0.05,
+            "power": 0.8,
+            "minimum_confirmatory_worlds": 30,
+            "maximum_confirmatory_worlds": 100,
+            "attrition_fraction": 0.1,
+            "ranking_allowed": False,
+        },
+        "providers": {
+            "glm_53_flash": "Parasail",
+            "deepseek_v4_flash": "Parasail",
+        },
+        "quantizations": {
+            "glm_53_flash": "fp8",
+            "deepseek_v4_flash": "fp8",
+        },
+        "retryable_conditions": [
+            "length",
+            "rate_limit",
+            "provider_5xx",
+            "empty_response",
+        ],
+        "action_schema_version": "housing_actions/2.0",
+        "wire_live_profile_controls": True,
+        "verify_endpoint_snapshot": True,
+        "call_pacing": {
+            "clock": "monotonic_completion_to_start",
+            "cooldown_seconds_by_provider": {
+                "Parasail": 10.0,
+            },
+            "first_call_delay_seconds": 0.0,
+            "scope": "shared_across_profile_admission_and_full_trajectory",
+            "implementation_sha256": (
+                "4dc67f4ae81395166264049bbf917d8d42e69c5d6069c97fea981c4b419415d3"
+            ),
+        },
+        "admission_timeout_enforcement": (
+            "asyncio_wait_for_controls_timeout_seconds"
+        ),
+    },
+    "housing_model_sensitivity_openrouter_parasail_v18": {
+        "claim_status": "development_full_trajectory_gate_only",
+        "catalog_retrieved_at": "2026-09-05",
+        "reasoning_condition_id": (
+            "model_sensitivity_openrouter_parasail_low_v18"
+        ),
+        "per_probe_cost_reserve_usd": 0.003,
+        "admission_cost_ceiling_usd": 0.06,
+        "admission_attempt_limit": 4,
+        "timeout_seconds": 300.0,
+        "seat_max_cost_usd": 0.03,
+        "route_selection_probe": {
+            "probe_id": "housing_glm_route_probe_2026-09-05",
+            "summary_path": (
+                "evidence/housing_glm_route_probe_2026-09-05/reports/summary.json"
+            ),
+            "summary_artifact_sha256": "54406a94d4dacc0d1c0b6533ff67cdcfbbc4a20b56fdb91d98a7a551ac8cb63c",
+        },
+        "execution_stage": "full_trajectory",
+        "execution_config_ids": ["moderate_cw085_r2"],
+        "execution_cost_ceiling_usd": 0.30,
+        "per_trajectory_cost_reserve_usd": 0.06,
+        "world_seeds": [227922569],
+        "condition_order": "listed",
+        "analysis": {
+            "primary_view": "full_trajectory_condition_coverage",
+            "aggregation": "none_promotion_gate",
+            "uncertainty": "not_estimable_from_one_world_cluster",
+            "ranking_allowed": False,
+        },
+        "providers": {
+            "glm_53_flash": "Parasail",
+            "deepseek_v4_flash": "Parasail",
+        },
+        "quantizations": {
+            "glm_53_flash": "fp8",
+            "deepseek_v4_flash": "fp8",
+        },
+        "retryable_conditions": [
+            "length",
+            "rate_limit",
+            "provider_5xx",
+            "empty_response",
+        ],
+        "action_schema_version": "housing_actions/2.0",
+        "wire_live_profile_controls": True,
+        "verify_endpoint_snapshot": True,
+        "call_pacing": {
+            "clock": "monotonic_completion_to_start",
+            "cooldown_seconds_by_provider": {
+                "Parasail": 10.0,
+            },
+            "first_call_delay_seconds": 0.0,
+            "scope": "shared_across_profile_admission_and_full_trajectory",
+            "implementation_sha256": (
+                "4dc67f4ae81395166264049bbf917d8d42e69c5d6069c97fea981c4b419415d3"
+            ),
+        },
+        "admission_timeout_enforcement": (
+            "asyncio_wait_for_controls_timeout_seconds"
+        ),
+        "stopping_rule": (
+            "profile_admission_must_pass_before_full_trajectory; stop_before_next_"
+            "trajectory_when_remaining_campaign_budget_is_below_the_declared_"
+            "reserve; stop_immediately_on_route_drift_or_replay_failure"
+        ),
+    },
+    "housing_model_sensitivity_openrouter_parasail_v19": {
+        "claim_status": "exploratory_variance_pilot_only",
+        "catalog_retrieved_at": "2026-09-05",
+        "reasoning_condition_id": (
+            "model_sensitivity_openrouter_parasail_low_v19"
+        ),
+        "per_probe_cost_reserve_usd": 0.003,
+        "admission_cost_ceiling_usd": 0.06,
+        "admission_attempt_limit": 4,
+        "timeout_seconds": 300.0,
+        "seat_max_cost_usd": 0.03,
+        "prerequisite_full_trajectory_gate": {
+            "campaign_id": "housing_model_sensitivity_openrouter_parasail_v18",
+            "qualification_path": (
+                "evidence/housing_model_sensitivity_openrouter_parasail_v18/"
+                "reports/qualification.json"
+            ),
+            "qualification_artifact_sha256": (
+                "061aab759f4a632e336546b8b0b1ea38caeead15c528b936534835d7dbfae43b"
+            ),
+        },
+        "route_selection_probe": {
+            "probe_id": "housing_glm_route_probe_2026-09-05",
+            "summary_path": (
+                "evidence/housing_glm_route_probe_2026-09-05/reports/summary.json"
+            ),
+            "summary_artifact_sha256": (
+                "54406a94d4dacc0d1c0b6533ff67cdcfbbc4a20b56fdb91d98a7a551ac8cb63c"
+            ),
+        },
+        "execution_cost_ceiling_usd": 1.0,
+        "per_trajectory_cost_reserve_usd": 0.06,
+        "world_seeds": [647986875, 1758927083, 237549679, 1515521562],
+        "condition_order": "rotate_by_world_and_case_configuration",
+        "analysis": {
+            "primary_view": "paired_world_subject_mean_within_case_score",
+            "aggregation": "equal_weight_configs_and_opponents_within_world",
+            "primary_contrast": "glm_53_flash_minus_deepseek_v4_flash",
+            "uncertainty": "sample_variance_over_world_level_paired_contrasts",
+            "minimum_meaningful_effect": 0.05,
+            "alpha": 0.05,
+            "power": 0.8,
+            "minimum_confirmatory_worlds": 30,
+            "maximum_confirmatory_worlds": 100,
+            "attrition_fraction": 0.1,
+            "ranking_allowed": False,
+        },
+        "providers": {
+            "glm_53_flash": "Parasail",
+            "deepseek_v4_flash": "Parasail",
+        },
+        "quantizations": {
+            "glm_53_flash": "fp8",
+            "deepseek_v4_flash": "fp8",
+        },
+        "retryable_conditions": [
+            "length",
+            "rate_limit",
+            "provider_5xx",
+            "empty_response",
+        ],
+        "action_schema_version": "housing_actions/2.0",
+        "wire_live_profile_controls": True,
+        "verify_endpoint_snapshot": True,
+        "call_pacing": {
+            "clock": "monotonic_completion_to_start",
+            "cooldown_seconds_by_provider": {
+                "Parasail": 10.0,
+            },
+            "first_call_delay_seconds": 0.0,
+            "scope": "shared_across_profile_admission_and_full_trajectory",
+            "implementation_sha256": (
+                "4dc67f4ae81395166264049bbf917d8d42e69c5d6069c97fea981c4b419415d3"
+            ),
+        },
+        "admission_timeout_enforcement": (
+            "asyncio_wait_for_controls_timeout_seconds"
+        ),
+    },
+    "housing_model_sensitivity_openrouter_parasail_v20": {
+        "route_status_policy": "allow_degraded_with_recorded_status",
+        "endpoint_snapshot_policy": "identity_only",
+        "claim_status": "development_full_trajectory_gate_only",
+        "catalog_retrieved_at": "2026-09-05",
+        "reasoning_condition_id": (
+            "model_sensitivity_openrouter_parasail_low_v20"
+        ),
+        "per_probe_cost_reserve_usd": 0.003,
+        "admission_cost_ceiling_usd": 0.06,
+        "admission_attempt_limit": 10,
+        "max_action_attempts": 10,
+        "retry_backoff": {
+            "policy": "exponential_jitter_v1",
+            "retry_base_seconds": 5.0,
+            "retry_after_max_seconds": 60.0,
+        },
+        "timeout_seconds": 300.0,
+        "seat_max_cost_usd": 0.03,
+        "route_selection_probe": {
+            "probe_id": "housing_glm_route_probe_2026-09-05",
+            "summary_path": (
+                "evidence/housing_glm_route_probe_2026-09-05/reports/summary.json"
+            ),
+            "summary_artifact_sha256": "54406a94d4dacc0d1c0b6533ff67cdcfbbc4a20b56fdb91d98a7a551ac8cb63c",
+        },
+        "execution_stage": "full_trajectory",
+        "execution_config_ids": ["moderate_cw085_r2"],
+        "execution_cost_ceiling_usd": 0.30,
+        "per_trajectory_cost_reserve_usd": 0.06,
+        "world_seeds": [227922569],
+        "condition_order": "listed",
+        "analysis": {
+            "primary_view": "full_trajectory_condition_coverage",
+            "aggregation": "none_promotion_gate",
+            "uncertainty": "not_estimable_from_one_world_cluster",
+            "ranking_allowed": False,
+        },
+        "providers": {
+            "glm_53_flash": "Parasail",
+            "deepseek_v4_flash": "Parasail",
+        },
+        "quantizations": {
+            "glm_53_flash": "fp8",
+            "deepseek_v4_flash": "fp8",
+        },
+        "retryable_conditions": [
+            "length",
+            "rate_limit",
+            "provider_5xx",
+            "empty_response",
+            "timeout",
+        ],
+        "action_schema_version": "housing_actions/2.0",
+        "wire_live_profile_controls": True,
+        "verify_endpoint_snapshot": True,
+        "call_pacing": {
+            "clock": "monotonic_completion_to_start",
+            "cooldown_seconds_by_provider": {
+                "Parasail": 10.0,
+            },
+            "first_call_delay_seconds": 0.0,
+            "scope": "shared_across_profile_admission_and_full_trajectory",
+            "implementation_sha256": (
+                "4dc67f4ae81395166264049bbf917d8d42e69c5d6069c97fea981c4b419415d3"
+            ),
+        },
+        "admission_timeout_enforcement": (
+            "asyncio_wait_for_controls_timeout_seconds"
+        ),
+        "stopping_rule": (
+            "profile_admission_must_pass_before_full_trajectory; stop_before_next_"
+            "trajectory_when_remaining_campaign_budget_is_below_the_declared_"
+            "reserve; stop_immediately_on_route_drift_or_replay_failure"
+        ),
+    },
+    "housing_model_sensitivity_openrouter_parasail_v21": {
+        "maximum_operational_failure_fraction": 0.10,
+        "replicates": 2,
+        "route_status_policy": "allow_degraded_with_recorded_status",
+        "endpoint_snapshot_policy": "identity_only",
+        "claim_status": "exploratory_variance_pilot_only",
+        "catalog_retrieved_at": "2026-09-05",
+        "reasoning_condition_id": (
+            "model_sensitivity_openrouter_parasail_low_v21"
+        ),
+        "per_probe_cost_reserve_usd": 0.003,
+        "admission_cost_ceiling_usd": 0.06,
+        "admission_attempt_limit": 10,
+        "max_action_attempts": 10,
+        "retry_backoff": {
+            "policy": "exponential_jitter_v1",
+            "retry_base_seconds": 5.0,
+            "retry_after_max_seconds": 60.0,
+        },
+        "timeout_seconds": 300.0,
+        "seat_max_cost_usd": 0.03,
+        "prerequisite_full_trajectory_gate": {
+            "campaign_id": "housing_model_sensitivity_openrouter_parasail_v20",
+            "qualification_path": (
+                "evidence/housing_model_sensitivity_openrouter_parasail_v20/"
+                "reports/qualification.json"
+            ),
+            "qualification_artifact_sha256": (
+                "b94856f81c209e1b518112db03d1a755eb8af0f80e94058bf583632d579d2ecd"
+            ),
+        },
+        "route_selection_probe": {
+            "probe_id": "housing_glm_route_probe_2026-09-05",
+            "summary_path": (
+                "evidence/housing_glm_route_probe_2026-09-05/reports/summary.json"
+            ),
+            "summary_artifact_sha256": (
+                "54406a94d4dacc0d1c0b6533ff67cdcfbbc4a20b56fdb91d98a7a551ac8cb63c"
+            ),
+        },
+        "execution_cost_ceiling_usd": 2.00,
+        "per_trajectory_cost_reserve_usd": 0.06,
+        "world_seeds": [
+            1971418798,
+            1460378342,
+            981417412,
+            123194022,
+            145537168,
+            264284765,
+            722524881,
+            1535604354,
+        ],
+        "condition_order": "rotate_by_world_and_case_configuration",
+        "analysis": {
+            "primary_view": "paired_world_subject_mean_within_case_score",
+            "aggregation": "equal_weight_configs_and_opponents_within_world",
+            "primary_contrast": "glm_53_flash_minus_deepseek_v4_flash",
+            "uncertainty": "sample_variance_over_world_level_paired_contrasts",
+            "minimum_meaningful_effect": 0.05,
+            "alpha": 0.05,
+            "power": 0.8,
+            "minimum_confirmatory_worlds": 30,
+            "maximum_confirmatory_worlds": 100,
+            "attrition_fraction": 0.1,
+            "minimum_paired_worlds_for_recommendation": 6,
+            "ranking_allowed": False,
+        },
+        "providers": {
+            "glm_53_flash": "Parasail",
+            "deepseek_v4_flash": "Parasail",
+        },
+        "quantizations": {
+            "glm_53_flash": "fp8",
+            "deepseek_v4_flash": "fp8",
+        },
+        "retryable_conditions": [
+            "length",
+            "rate_limit",
+            "provider_5xx",
+            "empty_response",
+            "timeout",
+        ],
+        "action_schema_version": "housing_actions/2.0",
+        "wire_live_profile_controls": True,
+        "verify_endpoint_snapshot": True,
+        "call_pacing": {
+            "clock": "monotonic_completion_to_start",
+            "cooldown_seconds_by_provider": {
+                "Parasail": 10.0,
+            },
+            "first_call_delay_seconds": 0.0,
+            "scope": "shared_across_profile_admission_and_full_trajectory",
+            "implementation_sha256": (
+                "4dc67f4ae81395166264049bbf917d8d42e69c5d6069c97fea981c4b419415d3"
+            ),
+        },
+        "admission_timeout_enforcement": (
+            "asyncio_wait_for_controls_timeout_seconds"
+        ),
+    },
+    "housing_confirmatory_parasail_v1": {
+        "maximum_operational_failure_fraction": 0.05,
+        "replicates": 2,
+        "claim_status": "confirmatory_model_comparison",
+        "catalog_retrieved_at": "2026-09-05",
+        "reasoning_condition_id": "confirmatory_parasail_low_v1",
+        "route_status_policy": "allow_degraded_with_recorded_status",
+        "endpoint_snapshot_policy": "identity_only",
+        "per_probe_cost_reserve_usd": 0.003,
+        "admission_cost_ceiling_usd": 0.06,
+        "admission_attempt_limit": 30,
+        "max_concurrent_cells": 8,
+        "replicates": 2,
+        "max_action_attempts": 30,
+        "timeout_seconds": 300.0,
+        "seat_max_cost_usd": 0.03,
+        "retry_backoff": {
+            "policy": "exponential_jitter_v1",
+            "retry_base_seconds": 5.0,
+            "retry_after_max_seconds": 60.0,
+        },
+        "confirmatory_panel": True,
+        "variance_pilot_reference": {
+            "campaign_id": "housing_model_sensitivity_openrouter_parasail_v26",
+            "qualification_path": (
+                "evidence/housing_model_sensitivity_openrouter_parasail_v26/"
+                "reports/qualification.json"
+            ),
+            "qualification_artifact_sha256": (
+                "6bace0d9c20448c7e03826b528bc790fb0dc84652baaa6ba5557edf07c7de071"
+            ),
+        },
+        "execution_stage": "confirmatory_execution",
+        "execution_config_ids": [
+            "holdout_mild_unseen",
+            "holdout_moderate_unseen",
+            "holdout_severe_unseen",
+        ],
+        "execution_cost_ceiling_usd": 3.0,
+        "per_trajectory_cost_reserve_usd": 0.06,
+        # 114691332 is excluded: its severe holdout configuration has a zero
+        # upper bound, so that world carries no normalized score. The
+        # exclusion is forced by the generator and is re-derived at load.
+        "world_seeds": [
+            369623215,
+            1207545696,
+            1737316725,
+            935421243,
+            1307871977,
+            144531421,
+            744028935,
+            1419988216,
+            8919439,
+            1640977697,
+            1628619353,
+            1502627411,
+            1746020508,
+            2115856512,
+            449124770,
+            1907374266,
+            805162878,
+            657531977,
+            978077348,
+            1255654432,
+            210011375,
+            84125567,
+            1263145380,
+            1078198037,
+            545292283,
+            1291027571,
+            1268106556,
+            27562482,
+            2085097730,
+            1665492486,
+        ],
+        "condition_order": "rotate_by_world_and_case_configuration",
+        "analysis": {
+            "primary_view": "paired_world_subject_mean_within_case_score",
+            "aggregation": "equal_weight_configs_and_opponents_within_world",
+            "primary_contrast": "glm_53_flash_minus_deepseek_v4_flash",
+            "uncertainty": "paired_world_level_t_interval",
+            "minimum_meaningful_effect": 0.05,
+            "alpha": 0.05,
+            "power": 0.8,
+            "minimum_confirmatory_worlds": 30,
+            "maximum_confirmatory_worlds": 100,
+            "attrition_fraction": 0.1,
+            "minimum_paired_worlds_for_decision": 13,
+            "ranking_allowed": True,
+        },
+        "providers": {
+            "glm_53_flash": "Parasail",
+            "deepseek_v4_flash": "Parasail",
+        },
+        "quantizations": {
+            "glm_53_flash": "fp8",
+            "deepseek_v4_flash": "fp8",
+        },
+        "retryable_conditions": [
+            "length",
+            "rate_limit",
+            "provider_5xx",
+            "empty_response",
+            "timeout",
+        ],
+        "action_schema_version": "housing_actions/2.0",
+        "wire_live_profile_controls": True,
+        "verify_endpoint_snapshot": True,
+        "call_pacing": {
+            "clock": "monotonic_bounded_concurrency",
+            "minimum_start_interval_seconds_by_provider": {
+                "Parasail": 3.0,
+            },
+            "maximum_concurrent_calls_by_provider": {
+                "Parasail": 8,
+            },
+            "first_call_delay_seconds": 0.0,
+            "scope": "shared_across_profile_admission_and_full_trajectory",
+            "implementation_sha256": (
+                "4ef6e84e699a1a7135366cfa03197f62300b7e339349fb5454259d0208434cef"
+            ),
+        },
+        "admission_timeout_enforcement": (
+            "asyncio_wait_for_controls_timeout_seconds"
+        ),
+        "stopping_rule": (
+            "profile_admission_must_pass_before_confirmatory_freeze; "
+            "confirmatory_freeze_must_be_sealed_before_execution; "
+            "stop_immediately_on_route_drift_or_replay_failure"
+        ),
+    },
+    "housing_model_sensitivity_openrouter_parasail_v22": {
+        "route_status_policy": "allow_degraded_with_recorded_status",
+        "endpoint_snapshot_policy": "identity_only",
+        "claim_status": "development_full_trajectory_gate_only",
+        "catalog_retrieved_at": "2026-09-05",
+        "reasoning_condition_id": (
+            "model_sensitivity_openrouter_parasail_low_v22"
+        ),
+        "per_probe_cost_reserve_usd": 0.003,
+        "admission_cost_ceiling_usd": 0.06,
+        "admission_attempt_limit": 10,
+        "max_concurrent_cells": 8,
+        "maximum_operational_failure_fraction": 0.10,
+        "max_action_attempts": 10,
+        "retry_backoff": {
+            "policy": "exponential_jitter_v1",
+            "retry_base_seconds": 5.0,
+            "retry_after_max_seconds": 60.0,
+        },
+        "timeout_seconds": 300.0,
+        "seat_max_cost_usd": 0.03,
+        "route_selection_probe": {
+            "probe_id": "housing_glm_route_probe_2026-09-05",
+            "summary_path": (
+                "evidence/housing_glm_route_probe_2026-09-05/reports/summary.json"
+            ),
+            "summary_artifact_sha256": "54406a94d4dacc0d1c0b6533ff67cdcfbbc4a20b56fdb91d98a7a551ac8cb63c",
+        },
+        "execution_stage": "full_trajectory",
+        "execution_config_ids": ["moderate_cw085_r2"],
+        "execution_cost_ceiling_usd": 0.30,
+        "per_trajectory_cost_reserve_usd": 0.06,
+        "world_seeds": [227922569],
+        "condition_order": "listed",
+        "analysis": {
+            "primary_view": "full_trajectory_condition_coverage",
+            "aggregation": "none_promotion_gate",
+            "uncertainty": "not_estimable_from_one_world_cluster",
+            "ranking_allowed": False,
+        },
+        "providers": {
+            "glm_53_flash": "Parasail",
+            "deepseek_v4_flash": "Parasail",
+        },
+        "quantizations": {
+            "glm_53_flash": "fp8",
+            "deepseek_v4_flash": "fp8",
+        },
+        "retryable_conditions": [
+            "length",
+            "rate_limit",
+            "provider_5xx",
+            "empty_response",
+            "timeout",
+        ],
+        "action_schema_version": "housing_actions/2.0",
+        "wire_live_profile_controls": True,
+        "verify_endpoint_snapshot": True,
+        "call_pacing": {
+            "clock": "monotonic_bounded_concurrency",
+            "minimum_start_interval_seconds_by_provider": {
+                "Parasail": 3.0,
+            },
+            "maximum_concurrent_calls_by_provider": {
+                "Parasail": 8,
+            },
+            "first_call_delay_seconds": 0.0,
+            "scope": "shared_across_profile_admission_and_full_trajectory",
+            "implementation_sha256": (
+                "4ef6e84e699a1a7135366cfa03197f62300b7e339349fb5454259d0208434cef"
+            ),
+        },
+        "admission_timeout_enforcement": (
+            "asyncio_wait_for_controls_timeout_seconds"
+        ),
+        "stopping_rule": (
+            "profile_admission_must_pass_before_full_trajectory; stop_before_next_"
+            "trajectory_when_remaining_campaign_budget_is_below_the_declared_"
+            "reserve; stop_immediately_on_route_drift_or_replay_failure"
+        ),
+    },
+    "housing_model_sensitivity_openrouter_parasail_v23": {
+        "maximum_operational_failure_fraction": 0.10,
+        "replicates": 2,
+        "route_status_policy": "allow_degraded_with_recorded_status",
+        "endpoint_snapshot_policy": "identity_only",
+        "claim_status": "exploratory_variance_pilot_only",
+        "catalog_retrieved_at": "2026-09-05",
+        "reasoning_condition_id": (
+            "model_sensitivity_openrouter_parasail_low_v23"
+        ),
+        "per_probe_cost_reserve_usd": 0.003,
+        "admission_cost_ceiling_usd": 0.06,
+        "admission_attempt_limit": 10,
+        "max_concurrent_cells": 8,
+        "max_action_attempts": 10,
+        "retry_backoff": {
+            "policy": "exponential_jitter_v1",
+            "retry_base_seconds": 5.0,
+            "retry_after_max_seconds": 60.0,
+        },
+        "timeout_seconds": 300.0,
+        "seat_max_cost_usd": 0.03,
+        "prerequisite_full_trajectory_gate": {
+            "campaign_id": "housing_model_sensitivity_openrouter_parasail_v22",
+            "qualification_path": (
+                "evidence/housing_model_sensitivity_openrouter_parasail_v22/"
+                "reports/qualification.json"
+            ),
+            "qualification_artifact_sha256": (
+                "8dff8f2f5b0445a9945dc54d0e9913c8345233e4093d908e7e2aa75d13f81062"
+            ),
+        },
+        "route_selection_probe": {
+            "probe_id": "housing_glm_route_probe_2026-09-05",
+            "summary_path": (
+                "evidence/housing_glm_route_probe_2026-09-05/reports/summary.json"
+            ),
+            "summary_artifact_sha256": (
+                "54406a94d4dacc0d1c0b6533ff67cdcfbbc4a20b56fdb91d98a7a551ac8cb63c"
+            ),
+        },
+        "execution_cost_ceiling_usd": 2.00,
+        "per_trajectory_cost_reserve_usd": 0.06,
+        "world_seeds": [
+            1971418798,
+            1460378342,
+            981417412,
+            123194022,
+            145537168,
+            264284765,
+            722524881,
+            1535604354,
+        ],
+        "condition_order": "rotate_by_world_and_case_configuration",
+        "analysis": {
+            "primary_view": "paired_world_subject_mean_within_case_score",
+            "aggregation": "equal_weight_configs_and_opponents_within_world",
+            "primary_contrast": "glm_53_flash_minus_deepseek_v4_flash",
+            "uncertainty": "sample_variance_over_world_level_paired_contrasts",
+            "minimum_meaningful_effect": 0.05,
+            "alpha": 0.05,
+            "power": 0.8,
+            "minimum_confirmatory_worlds": 30,
+            "maximum_confirmatory_worlds": 100,
+            "attrition_fraction": 0.1,
+            "minimum_paired_worlds_for_recommendation": 6,
+            "ranking_allowed": False,
+        },
+        "providers": {
+            "glm_53_flash": "Parasail",
+            "deepseek_v4_flash": "Parasail",
+        },
+        "quantizations": {
+            "glm_53_flash": "fp8",
+            "deepseek_v4_flash": "fp8",
+        },
+        "retryable_conditions": [
+            "length",
+            "rate_limit",
+            "provider_5xx",
+            "empty_response",
+            "timeout",
+        ],
+        "action_schema_version": "housing_actions/2.0",
+        "wire_live_profile_controls": True,
+        "verify_endpoint_snapshot": True,
+        "call_pacing": {
+            "clock": "monotonic_bounded_concurrency",
+            "minimum_start_interval_seconds_by_provider": {
+                "Parasail": 3.0,
+            },
+            "maximum_concurrent_calls_by_provider": {
+                "Parasail": 8,
+            },
+            "first_call_delay_seconds": 0.0,
+            "scope": "shared_across_profile_admission_and_full_trajectory",
+            "implementation_sha256": (
+                "4ef6e84e699a1a7135366cfa03197f62300b7e339349fb5454259d0208434cef"
+            ),
+        },
+        "admission_timeout_enforcement": (
+            "asyncio_wait_for_controls_timeout_seconds"
+        ),
+    },
+    "housing_model_sensitivity_openrouter_parasail_v24": {
+        "route_status_policy": "allow_degraded_with_recorded_status",
+        "endpoint_snapshot_policy": "identity_only",
+        "claim_status": "development_full_trajectory_gate_only",
+        "catalog_retrieved_at": "2026-09-05",
+        "reasoning_condition_id": (
+            "model_sensitivity_openrouter_parasail_low_v24"
+        ),
+        "per_probe_cost_reserve_usd": 0.003,
+        "admission_cost_ceiling_usd": 0.06,
+        "admission_attempt_limit": 30,
+        "max_concurrent_cells": 8,
+        "maximum_operational_failure_fraction": 0.10,
+        "max_action_attempts": 30,
+        "retry_backoff": {
+            "policy": "exponential_jitter_v1",
+            "retry_base_seconds": 5.0,
+            "retry_after_max_seconds": 60.0,
+        },
+        "timeout_seconds": 300.0,
+        "seat_max_cost_usd": 0.03,
+        "route_selection_probe": {
+            "probe_id": "housing_glm_route_probe_2026-09-05",
+            "summary_path": (
+                "evidence/housing_glm_route_probe_2026-09-05/reports/summary.json"
+            ),
+            "summary_artifact_sha256": "54406a94d4dacc0d1c0b6533ff67cdcfbbc4a20b56fdb91d98a7a551ac8cb63c",
+        },
+        "execution_stage": "full_trajectory",
+        "execution_config_ids": ["moderate_cw085_r2"],
+        "execution_cost_ceiling_usd": 0.30,
+        "per_trajectory_cost_reserve_usd": 0.06,
+        "world_seeds": [227922569],
+        "condition_order": "listed",
+        "analysis": {
+            "primary_view": "full_trajectory_condition_coverage",
+            "aggregation": "none_promotion_gate",
+            "uncertainty": "not_estimable_from_one_world_cluster",
+            "ranking_allowed": False,
+        },
+        "providers": {
+            "glm_53_flash": "Parasail",
+            "deepseek_v4_flash": "Parasail",
+        },
+        "quantizations": {
+            "glm_53_flash": "fp8",
+            "deepseek_v4_flash": "fp8",
+        },
+        "retryable_conditions": [
+            "length",
+            "rate_limit",
+            "provider_5xx",
+            "empty_response",
+            "timeout",
+        ],
+        "action_schema_version": "housing_actions/2.0",
+        "wire_live_profile_controls": True,
+        "verify_endpoint_snapshot": True,
+        "call_pacing": {
+            "clock": "monotonic_bounded_concurrency",
+            "minimum_start_interval_seconds_by_provider": {
+                "Parasail": 3.0,
+            },
+            "maximum_concurrent_calls_by_provider": {
+                "Parasail": 8,
+            },
+            "first_call_delay_seconds": 0.0,
+            "scope": "shared_across_profile_admission_and_full_trajectory",
+            "implementation_sha256": (
+                "4ef6e84e699a1a7135366cfa03197f62300b7e339349fb5454259d0208434cef"
+            ),
+        },
+        "admission_timeout_enforcement": (
+            "asyncio_wait_for_controls_timeout_seconds"
+        ),
+        "stopping_rule": (
+            "profile_admission_must_pass_before_full_trajectory; stop_before_next_"
+            "trajectory_when_remaining_campaign_budget_is_below_the_declared_"
+            "reserve; stop_immediately_on_route_drift_or_replay_failure"
+        ),
+    },
+    "housing_model_sensitivity_openrouter_parasail_v25": {
+        "maximum_operational_failure_fraction": 0.10,
+        "replicates": 2,
+        "route_status_policy": "allow_degraded_with_recorded_status",
+        "endpoint_snapshot_policy": "identity_only",
+        "claim_status": "exploratory_variance_pilot_only",
+        "catalog_retrieved_at": "2026-09-05",
+        "reasoning_condition_id": (
+            "model_sensitivity_openrouter_parasail_low_v25"
+        ),
+        "per_probe_cost_reserve_usd": 0.003,
+        "admission_cost_ceiling_usd": 0.06,
+        "admission_attempt_limit": 30,
+        "max_concurrent_cells": 8,
+        "max_action_attempts": 30,
+        "retry_backoff": {
+            "policy": "exponential_jitter_v1",
+            "retry_base_seconds": 5.0,
+            "retry_after_max_seconds": 60.0,
+        },
+        "timeout_seconds": 300.0,
+        "seat_max_cost_usd": 0.03,
+        "prerequisite_full_trajectory_gate": {
+            "campaign_id": "housing_model_sensitivity_openrouter_parasail_v24",
+            "qualification_path": (
+                "evidence/housing_model_sensitivity_openrouter_parasail_v24/"
+                "reports/qualification.json"
+            ),
+            "qualification_artifact_sha256": (
+                "244f9e3c30514051ea4fabc5809633694eea86be2657a0572879038605539035"
+            ),
+        },
+        "route_selection_probe": {
+            "probe_id": "housing_glm_route_probe_2026-09-05",
+            "summary_path": (
+                "evidence/housing_glm_route_probe_2026-09-05/reports/summary.json"
+            ),
+            "summary_artifact_sha256": (
+                "54406a94d4dacc0d1c0b6533ff67cdcfbbc4a20b56fdb91d98a7a551ac8cb63c"
+            ),
+        },
+        "execution_cost_ceiling_usd": 2.00,
+        "per_trajectory_cost_reserve_usd": 0.06,
+        "world_seeds": [
+            1971418798,
+            1460378342,
+            981417412,
+            123194022,
+            145537168,
+            264284765,
+            722524881,
+            1535604354,
+        ],
+        "condition_order": "rotate_by_world_and_case_configuration",
+        "analysis": {
+            "primary_view": "paired_world_subject_mean_within_case_score",
+            "aggregation": "equal_weight_configs_and_opponents_within_world",
+            "primary_contrast": "glm_53_flash_minus_deepseek_v4_flash",
+            "uncertainty": "sample_variance_over_world_level_paired_contrasts",
+            "minimum_meaningful_effect": 0.05,
+            "alpha": 0.05,
+            "power": 0.8,
+            "minimum_confirmatory_worlds": 30,
+            "maximum_confirmatory_worlds": 100,
+            "attrition_fraction": 0.1,
+            "minimum_paired_worlds_for_recommendation": 6,
+            "ranking_allowed": False,
+        },
+        "providers": {
+            "glm_53_flash": "Parasail",
+            "deepseek_v4_flash": "Parasail",
+        },
+        "quantizations": {
+            "glm_53_flash": "fp8",
+            "deepseek_v4_flash": "fp8",
+        },
+        "retryable_conditions": [
+            "length",
+            "rate_limit",
+            "provider_5xx",
+            "empty_response",
+            "timeout",
+        ],
+        "action_schema_version": "housing_actions/2.0",
+        "wire_live_profile_controls": True,
+        "verify_endpoint_snapshot": True,
+        "call_pacing": {
+            "clock": "monotonic_bounded_concurrency",
+            "minimum_start_interval_seconds_by_provider": {
+                "Parasail": 3.0,
+            },
+            "maximum_concurrent_calls_by_provider": {
+                "Parasail": 8,
+            },
+            "first_call_delay_seconds": 0.0,
+            "scope": "shared_across_profile_admission_and_full_trajectory",
+            "implementation_sha256": (
+                "4ef6e84e699a1a7135366cfa03197f62300b7e339349fb5454259d0208434cef"
+            ),
+        },
+        "admission_timeout_enforcement": (
+            "asyncio_wait_for_controls_timeout_seconds"
+        ),
+    },
+    "housing_model_sensitivity_openrouter_parasail_v26": {
+        "maximum_operational_failure_fraction": 0.10,
+        "replicates": 2,
+        "route_status_policy": "allow_degraded_with_recorded_status",
+        "endpoint_snapshot_policy": "identity_only",
+        "claim_status": "exploratory_variance_pilot_only",
+        "catalog_retrieved_at": "2026-09-05",
+        "reasoning_condition_id": (
+            "model_sensitivity_openrouter_parasail_low_v25"
+        ),
+        "per_probe_cost_reserve_usd": 0.003,
+        "admission_cost_ceiling_usd": 0.06,
+        "admission_attempt_limit": 30,
+        "max_concurrent_cells": 8,
+        "max_action_attempts": 30,
+        "retry_backoff": {
+            "policy": "exponential_jitter_v1",
+            "retry_base_seconds": 5.0,
+            "retry_after_max_seconds": 60.0,
+        },
+        "timeout_seconds": 300.0,
+        "seat_max_cost_usd": 0.03,
+        "prerequisite_full_trajectory_gate": {
+            "campaign_id": "housing_model_sensitivity_openrouter_parasail_v24",
+            "qualification_path": (
+                "evidence/housing_model_sensitivity_openrouter_parasail_v24/"
+                "reports/qualification.json"
+            ),
+            "qualification_artifact_sha256": (
+                "244f9e3c30514051ea4fabc5809633694eea86be2657a0572879038605539035"
+            ),
+        },
+        "route_selection_probe": {
+            "probe_id": "housing_glm_route_probe_2026-09-05",
+            "summary_path": (
+                "evidence/housing_glm_route_probe_2026-09-05/reports/summary.json"
+            ),
+            "summary_artifact_sha256": (
+                "54406a94d4dacc0d1c0b6533ff67cdcfbbc4a20b56fdb91d98a7a551ac8cb63c"
+            ),
+        },
+        "execution_cost_ceiling_usd": 2.00,
+        "per_trajectory_cost_reserve_usd": 0.06,
+        "world_seeds": [
+            1971418798,
+            1460378342,
+            981417412,
+            123194022,
+            145537168,
+            264284765,
+            722524881,
+            1535604354,
+        ],
+        "condition_order": "rotate_by_world_and_case_configuration",
+        "analysis": {
+            "primary_view": "paired_world_subject_mean_within_case_score",
+            "aggregation": "equal_weight_configs_and_opponents_within_world",
+            "primary_contrast": "glm_53_flash_minus_deepseek_v4_flash",
+            "uncertainty": "sample_variance_over_world_level_paired_contrasts",
+            "minimum_meaningful_effect": 0.05,
+            "alpha": 0.05,
+            "power": 0.8,
+            "minimum_confirmatory_worlds": 30,
+            "maximum_confirmatory_worlds": 100,
+            "attrition_fraction": 0.1,
+            "minimum_paired_worlds_for_recommendation": 6,
+            "ranking_allowed": False,
+        },
+        "providers": {
+            "glm_53_flash": "Parasail",
+            "deepseek_v4_flash": "Parasail",
+        },
+        "quantizations": {
+            "glm_53_flash": "fp8",
+            "deepseek_v4_flash": "fp8",
+        },
+        "retryable_conditions": [
+            "length",
+            "rate_limit",
+            "provider_5xx",
+            "empty_response",
+            "timeout",
+        ],
+        "action_schema_version": "housing_actions/2.0",
+        "wire_live_profile_controls": True,
+        "verify_endpoint_snapshot": True,
+        "call_pacing": {
+            "clock": "monotonic_bounded_concurrency",
+            "minimum_start_interval_seconds_by_provider": {
+                "Parasail": 3.0,
+            },
+            "maximum_concurrent_calls_by_provider": {
+                "Parasail": 8,
+            },
+            "first_call_delay_seconds": 0.0,
+            "scope": "shared_across_profile_admission_and_full_trajectory",
+            "implementation_sha256": (
+                "4ef6e84e699a1a7135366cfa03197f62300b7e339349fb5454259d0208434cef"
+            ),
+        },
+        "admission_timeout_enforcement": (
+            "asyncio_wait_for_controls_timeout_seconds"
+        ),
+    },
 }
 REQUIRED_ROUTE_PARAMETERS = {
     "max_tokens",
@@ -363,6 +1627,7 @@ def _validate_models(value: Any, *, campaign_id: str) -> None:
     }:
         raise ValueError("backend campaign requires exactly GLM and DeepSeek")
     providers = CAMPAIGN_SPECS[campaign_id]["providers"]
+    quantizations = CAMPAIGN_SPECS[campaign_id].get("quantizations", {})
     expected = {
         "glm_53_flash": (
             GLM_53_FLASH_MODEL,
@@ -396,7 +1661,10 @@ def _validate_models(value: Any, *, campaign_id: str) -> None:
             canonical,
         ):
             raise ValueError(f"model identity drifted for {model_id}")
-        if (model["provider"], model["quantization"]) != (provider, "fp8"):
+        if (model["provider"], model["quantization"]) != (
+            provider,
+            quantizations.get(model_id, "fp8"),
+        ):
             raise ValueError(f"alternate route drifted for {model_id}")
         if any(
             isinstance(model[field], bool)
@@ -418,7 +1686,10 @@ def _validate_models(value: Any, *, campaign_id: str) -> None:
 
 def load_contract(path: str | Path) -> dict[str, Any]:
     value = json.loads(Path(path).read_bytes())
-    if not isinstance(value, dict) or set(value) != _ROOT_FIELDS:
+    expected_fields = set(_ROOT_FIELDS)
+    if "confirmatory_panel" in CAMPAIGN_SPECS.get(value.get("campaign_id"), {}):
+        expected_fields.add("confirmatory_panel")
+    if not isinstance(value, dict) or set(value) != expected_fields:
         raise ValueError("backend campaign fields are incomplete or unexpected")
     if value["schema_version"] != CONTRACT_SCHEMA_VERSION:
         raise ValueError("unsupported backend campaign contract schema")
@@ -444,9 +1715,9 @@ def load_contract(path: str | Path) -> dict[str, Any]:
         "temperature": 0.0,
         "top_p": 1.0,
         "max_output_tokens": 4096,
-        "timeout_seconds": 120.0,
+        "timeout_seconds": campaign_spec.get("timeout_seconds", 120.0),
         "sdk_retries": 0,
-        "max_action_attempts": 4,
+        "max_action_attempts": campaign_spec.get("max_action_attempts", 4),
         "tenant_max_logical_actions": 48,
         "landlord_max_logical_actions": 16,
         "retryable_conditions": CAMPAIGN_SPECS[campaign_id].get(
@@ -462,6 +1733,9 @@ def load_contract(path: str | Path) -> dict[str, Any]:
         "action_schema_version",
         "wire_live_profile_controls",
         "call_pacing",
+        "admission_timeout_enforcement",
+        "seat_max_cost_usd",
+        "retry_backoff",
     ):
         if optional_control in CAMPAIGN_SPECS[campaign_id]:
             expected_controls[optional_control] = CAMPAIGN_SPECS[campaign_id][
@@ -469,7 +1743,7 @@ def load_contract(path: str | Path) -> dict[str, Any]:
             ]
     if controls != expected_controls:
         raise ValueError("fixed backend-campaign controls drifted")
-    if value["backend"] != {
+    expected_backend = {
         "gateway": "openrouter",
         "api_base": "https://openrouter.ai/api/v1",
         "catalog_source": "https://openrouter.ai/api/v1/models/{model}/endpoints",
@@ -480,7 +1754,16 @@ def load_contract(path: str | Path) -> dict[str, Any]:
         "require_parameters": True,
         "retry_owner": "aeread_action_attempt_policy",
         "raw_response_retention": "local_evidence_store",
-    }:
+    }
+    if "route_status_policy" in campaign_spec:
+        expected_backend["route_status_policy"] = campaign_spec[
+            "route_status_policy"
+        ]
+    if "endpoint_snapshot_policy" in campaign_spec:
+        expected_backend["endpoint_snapshot_policy"] = campaign_spec[
+            "endpoint_snapshot_policy"
+        ]
+    if value["backend"] != expected_backend:
         raise ValueError("backend contract drifted")
     _validate_models(value["models"], campaign_id=campaign_id)
 
@@ -528,7 +1811,9 @@ def load_contract(path: str | Path) -> dict[str, Any]:
     } != {
         "probes_per_action_schema": 3,
         "probe_seeds": [103001, 103002, 103003],
-        "attempt_limit_per_probe": 1,
+        "attempt_limit_per_probe": CAMPAIGN_SPECS[campaign_id].get(
+            "admission_attempt_limit", 1
+        ),
         "sdk_retries": 0,
         "hidden_repair_allowed": False,
         "per_probe_cost_reserve_usd": CAMPAIGN_SPECS[campaign_id][
@@ -550,7 +1835,7 @@ def load_contract(path: str | Path) -> dict[str, Any]:
 
     expected_execution = {
         "world_seeds": campaign_spec.get("world_seeds", [1971418798]),
-        "replicates": 1,
+        "replicates": campaign_spec.get("replicates", 1),
         "attempt_limit": 1,
         "cost_ceiling_usd": campaign_spec.get("execution_cost_ceiling_usd", 0.05),
         "per_trajectory_cost_reserve_usd": campaign_spec.get(
@@ -559,6 +1844,14 @@ def load_contract(path: str | Path) -> dict[str, Any]:
         "winner_claim_allowed": False,
         "completeness_policy": "retain_typed_missingness_without_selective_retry",
     }
+    if "max_concurrent_cells" in campaign_spec:
+        expected_execution["max_concurrent_cells"] = campaign_spec[
+            "max_concurrent_cells"
+        ]
+    if "maximum_operational_failure_fraction" in campaign_spec:
+        expected_execution["maximum_operational_failure_fraction"] = campaign_spec[
+            "maximum_operational_failure_fraction"
+        ]
     if "execution_stage" in campaign_spec:
         expected_execution.update(
             {
@@ -599,26 +1892,46 @@ def _catalog_url(contract: Mapping[str, Any], model: str) -> str:
     return contract["backend"]["catalog_source"].format(model=model)
 
 
-def _endpoint_snapshot(endpoint: Mapping[str, Any]) -> dict[str, Any]:
-    """Return the stable, decision-relevant portion of one endpoint record."""
+def _endpoint_snapshot(
+    endpoint: Mapping[str, Any], *, policy: str = "full"
+) -> dict[str, Any]:
+    """Return the stable, decision-relevant portion of one endpoint record.
 
-    return {
+    The default ``full`` policy keeps the endpoint's health ``status`` inside
+    the digest. That conflates identity with health: a transient derank
+    changes the digest and blocks a campaign whose route has not actually
+    changed. The ``identity_only`` policy pins what defines the route -- name,
+    provider, quantization, pricing, parameters, completion limit -- and
+    leaves the observed status to ``route_status_policy``.
+    """
+
+    if policy not in {"full", "identity_only"}:
+        raise ValueError(f"unsupported endpoint snapshot policy: {policy!r}")
+    snapshot = {
         "name": endpoint.get("name"),
         "provider_name": endpoint.get("provider_name"),
         "quantization": endpoint.get("quantization"),
         "pricing": endpoint.get("pricing"),
         "supported_parameters": sorted(endpoint.get("supported_parameters", [])),
-        "status": endpoint.get("status"),
         "max_completion_tokens": endpoint.get("max_completion_tokens"),
     }
+    if policy == "full":
+        snapshot["status"] = endpoint.get("status")
+    return snapshot
 
 
-def _endpoint_snapshot_sha256(endpoint: Mapping[str, Any]) -> str:
-    return _sha256(_endpoint_snapshot(endpoint))
+def _endpoint_snapshot_sha256(
+    endpoint: Mapping[str, Any], *, policy: str = "full"
+) -> str:
+    return _sha256(_endpoint_snapshot(endpoint, policy=policy))
 
 
 def catalog_preflight(contract: Mapping[str, Any]) -> dict[str, Any]:
     rows: list[dict[str, Any]] = []
+    route_status_policy = contract["backend"].get(
+        "route_status_policy", "require_active"
+    )
+    snapshot_policy = contract["backend"].get("endpoint_snapshot_policy", "full")
     for model_id, model in contract["models"].items():
         with urllib.request.urlopen(
             _catalog_url(contract, model["requested_model"]), timeout=30
@@ -649,14 +1962,17 @@ def catalog_preflight(contract: Mapping[str, Any]) -> dict[str, Any]:
         supported = set(endpoint.get("supported_parameters", []))
         if not REQUIRED_ROUTE_PARAMETERS <= supported:
             raise ValueError(f"catalog parameter support drifted for {model_id}")
-        if endpoint.get("status") != 0:
+        route_status = endpoint.get("status")
+        if route_status != 0 and route_status_policy == "require_active":
             raise ValueError(f"catalog route is not active for {model_id}")
         if (
             endpoint.get("max_completion_tokens", 0)
             < contract["controls"]["max_output_tokens"]
         ):
             raise ValueError(f"catalog completion limit is too small for {model_id}")
-        endpoint_snapshot_sha256 = _endpoint_snapshot_sha256(endpoint)
+        endpoint_snapshot_sha256 = _endpoint_snapshot_sha256(
+            endpoint, policy=snapshot_policy
+        )
         if (
             CAMPAIGN_SPECS[contract["campaign_id"]].get(
                 "verify_endpoint_snapshot", False
@@ -685,6 +2001,11 @@ def catalog_preflight(contract: Mapping[str, Any]) -> dict[str, Any]:
         {
             "schema_version": "aeread.housing_backend_catalog_preflight/0.1",
             "campaign_id": contract["campaign_id"],
+            **(
+                {"route_status_policy": route_status_policy}
+                if "route_status_policy" in contract["backend"]
+                else {}
+            ),
             "status": "passed",
             "provider_inference_calls": 0,
             "routes": rows,
@@ -798,20 +2119,69 @@ def _campaign_provider_client(contract: Mapping[str, Any]) -> Any:
     pacing = contract["controls"].get("call_pacing")
     if pacing is None:
         return client
-    implementation_sha256 = hashlib.sha256(
-        Path(provider_pacing_module.__file__).read_bytes()
-    ).hexdigest()
+    clock = pacing.get("clock")
+    if clock == "monotonic_start_to_start":
+        module_path = Path(provider_pacing_module.__file__)
+    elif clock == "monotonic_completion_to_start":
+        module_path = Path(provider_cooldown_module.__file__)
+    elif clock == "monotonic_bounded_concurrency":
+        module_path = Path(provider_concurrency_module.__file__)
+    else:
+        raise ValueError(f"unsupported provider pacing clock {clock!r}")
+    implementation_sha256 = hashlib.sha256(module_path.read_bytes()).hexdigest()
     if implementation_sha256 != pacing["implementation_sha256"]:
         raise ValueError(
             "provider pacing implementation differs from the frozen campaign pin"
         )
-    return PacedProviderClient(
+    if clock == "monotonic_start_to_start":
+        return PacedProviderClient(
+            client,
+            minimum_interval_seconds_by_provider=pacing[
+                "minimum_interval_seconds_by_provider"
+            ],
+            first_call_delay_seconds=pacing["first_call_delay_seconds"],
+        )
+    if clock == "monotonic_bounded_concurrency":
+        return BoundedConcurrencyProviderClient(
+            client,
+            minimum_start_interval_seconds_by_provider=pacing[
+                "minimum_start_interval_seconds_by_provider"
+            ],
+            maximum_concurrent_calls_by_provider=pacing[
+                "maximum_concurrent_calls_by_provider"
+            ],
+            first_call_delay_seconds=pacing["first_call_delay_seconds"],
+        )
+    return CooldownProviderClient(
         client,
-        minimum_interval_seconds_by_provider=pacing[
-            "minimum_interval_seconds_by_provider"
-        ],
+        cooldown_seconds_by_provider=pacing["cooldown_seconds_by_provider"],
         first_call_delay_seconds=pacing["first_call_delay_seconds"],
     )
+
+
+async def _admission_complete(
+    contract: Mapping[str, Any], client: Any, request: ProviderRequest
+) -> Any:
+    """Delegate one admission call under the same wall-time budget as execution.
+
+    Campaigns before V13 invoked the adapter directly, so a probe could exceed
+    ``controls.timeout_seconds`` without a typed failure. When the contract
+    freezes ``admission_timeout_enforcement`` the call is wrapped in the same
+    ``asyncio.wait_for`` budget that the shared-runner attempt loop applies.
+    """
+
+    if contract["controls"].get("admission_timeout_enforcement") is None:
+        return await client.complete(request)
+    try:
+        return await asyncio.wait_for(
+            client.complete(request), timeout=request.timeout_seconds
+        )
+    except asyncio.TimeoutError as error:
+        raise ProviderFailure(
+            "timeout",
+            f"admission call exceeded {request.timeout_seconds} seconds",
+            retryable=True,
+        ) from error
 
 
 async def run_profile_admission(
@@ -848,71 +2218,168 @@ async def run_profile_admission(
         started = time.perf_counter()
         pacing_observation_index = (
             client.observation_count
-            if isinstance(client, PacedProviderClient)
+            if isinstance(
+                client,
+                (
+                    PacedProviderClient,
+                    CooldownProviderClient,
+                    BoundedConcurrencyProviderClient,
+                ),
+            )
             else None
         )
-        result = None
-        try:
-            result = await client.complete(request)
-            raw_path = result_path.with_name(f"probe_{spec['probe_index']}_raw.json")
-            _write_json(
-                raw_path,
-                _sealed(
+        attempt_limit = int(admission["attempt_limit_per_probe"])
+        retryable_conditions = (
+            set(contract["controls"]["retryable_conditions"])
+            if attempt_limit > 1
+            else set()
+        )
+        attempts: list[dict[str, Any]] = []
+        for ordinal in range(attempt_limit):
+            attempt_started = time.perf_counter()
+            result = None
+            try:
+                result = await _admission_complete(contract, client, request)
+                # One file per visible attempt. A single fixed name made the
+                # immutability guard refuse a retry whose response differed,
+                # which silently broke every retry that reached the provider.
+                raw_path = result_path.with_name(
+                    f"probe_{spec['probe_index']}_attempt_{ordinal + 1}_raw.json"
+                )
+                _write_json(
+                    raw_path,
+                    _sealed(
+                        {
+                            "request_sha256": request.request_sha256,
+                            "raw_response": result.raw_response,
+                        }
+                    ),
+                )
+                if str(getattr(result, "finish_reason", "")) == "length":
+                    # A truncated completion is a delivery failure, not a
+                    # malformed action. Trajectory execution already treats it
+                    # as retryable and doubles the limit; admission used to
+                    # report it as an invalid action, which charged a model
+                    # with a fault that belonged to the output budget.
+                    raise ProviderFailure(
+                        "length",
+                        "admission completion was truncated before an action",
+                        retryable=True,
+                    )
+                action = _validate_admission_action(
+                    spec["action_schema"],
+                    result.output_text,
+                    observations[spec["action_schema"]],
+                )
+                if result.cost_usd is None:
+                    raise ValueError("admission call omitted provider billing")
+                attempts.append(
                     {
-                        "request_sha256": request.request_sha256,
-                        "raw_response": result.raw_response,
+                        "attempt": ordinal + 1,
+                        "status": "passed",
+                        "cost_usd": result.cost_usd,
+                        "billing_status": "provider_reported",
+                        "elapsed_seconds": time.perf_counter() - attempt_started,
                     }
-                ),
-            )
-            action = _validate_admission_action(
-                spec["action_schema"],
-                result.output_text,
-                observations[spec["action_schema"]],
-            )
-            if result.cost_usd is None:
-                raise ValueError("admission call omitted provider billing")
-            row = {
-                **spec,
-                "status": "passed",
-                "request_sha256": request.request_sha256,
-                "response_id": result.response_id,
-                "resolved_model": result.resolved_model,
-                "action_sha256": _sha256(action),
-                "raw_response_sha256": _sha256(result.raw_response),
-                "input_tokens": result.input_tokens,
-                "cached_input_tokens": result.cached_input_tokens,
-                "output_tokens": result.output_tokens,
-                "cost_usd": result.cost_usd,
-                "billing_status": "provider_reported",
-                "elapsed_seconds": time.perf_counter() - started,
-                "route_verified": True,
-                "sdk_retries": 0,
-            }
-        except Exception as error:
-            provider_completed = result is not None
-            failure_condition = _exception_attribute(error, "condition")
-            if provider_completed and isinstance(error, ValueError):
-                failure_condition = "invalid_admission_action"
-            row = {
-                **spec,
-                "status": "operational_failure",
-                "request_sha256": request.request_sha256,
-                "failure_type": type(error).__name__,
-                "failure_condition": failure_condition or "execution_error",
-                "failure_status_code": _exception_attribute(error, "status_code"),
-                "raw_response_sha256": (
-                    _sha256(result.raw_response) if provider_completed else None
-                ),
-                "cost_usd": result.cost_usd if provider_completed else None,
-                "billing_status": (
-                    "provider_reported"
-                    if provider_completed and result.cost_usd is not None
-                    else "unavailable_on_failed_call"
-                ),
-                "elapsed_seconds": time.perf_counter() - started,
-                "route_verified": provider_completed,
-                "sdk_retries": 0,
-            }
+                )
+                billed = [
+                    attempt
+                    for attempt in attempts
+                    if attempt["billing_status"] == "provider_reported"
+                ]
+                row = {
+                    **spec,
+                    "status": "passed",
+                    "request_sha256": request.request_sha256,
+                    "response_id": result.response_id,
+                    "resolved_model": result.resolved_model,
+                    "action_sha256": _sha256(action),
+                    "raw_response_sha256": _sha256(result.raw_response),
+                    "input_tokens": result.input_tokens,
+                    "cached_input_tokens": result.cached_input_tokens,
+                    "output_tokens": result.output_tokens,
+                    "cost_usd": sum(float(attempt["cost_usd"]) for attempt in billed),
+                    "billing_status": (
+                        "provider_reported"
+                        if len(billed) == len(attempts)
+                        else "provider_reported_with_unbilled_failed_attempts"
+                    ),
+                    "elapsed_seconds": time.perf_counter() - started,
+                    "route_verified": True,
+                    "sdk_retries": 0,
+                }
+                break
+            except Exception as error:
+                provider_completed = result is not None
+                failure_condition = _exception_attribute(error, "condition")
+                if provider_completed and isinstance(error, ValueError):
+                    failure_condition = "invalid_admission_action"
+                failure_condition = failure_condition or "execution_error"
+                attempt_row = {
+                    "attempt": ordinal + 1,
+                    "status": "operational_failure",
+                    "failure_type": type(error).__name__,
+                    # Without the message an admission failure cannot be
+                    # diagnosed from the sealed evidence alone.
+                    "failure_message": str(error)[:400],
+                    "failure_condition": failure_condition,
+                    "failure_status_code": _exception_attribute(
+                        error, "status_code"
+                    ),
+                    "cost_usd": result.cost_usd if provider_completed else None,
+                    "billing_status": (
+                        "provider_reported"
+                        if provider_completed and result.cost_usd is not None
+                        else "unavailable_on_failed_call"
+                    ),
+                    "elapsed_seconds": time.perf_counter() - attempt_started,
+                }
+                retry = (
+                    failure_condition in retryable_conditions
+                    and ordinal + 1 < attempt_limit
+                )
+                if retry:
+                    backoff = contract["controls"].get("retry_backoff") or {}
+                    base = float(backoff.get("retry_base_seconds", 2.0))
+                    attempt_row["retry_delay_seconds"] = min(30.0, base * (2**ordinal))
+                    if failure_condition == "length":
+                        prior = request.max_output_tokens
+                        request = dataclasses.replace(
+                            request, max_output_tokens=prior * 2
+                        ).with_computed_hash()
+                        attempt_row["prior_max_output_tokens"] = prior
+                        attempt_row["next_max_output_tokens"] = (
+                            request.max_output_tokens
+                        )
+                attempts.append(attempt_row)
+                if retry:
+                    await asyncio.sleep(attempt_row["retry_delay_seconds"])
+                    continue
+                row = {
+                    **spec,
+                    "status": "operational_failure",
+                    "request_sha256": request.request_sha256,
+                    "failure_type": type(error).__name__,
+                    "failure_condition": failure_condition,
+                    "failure_status_code": _exception_attribute(error, "status_code"),
+                    "raw_response_sha256": (
+                        _sha256(result.raw_response) if provider_completed else None
+                    ),
+                    "cost_usd": result.cost_usd if provider_completed else None,
+                    "billing_status": (
+                        "provider_reported"
+                        if provider_completed and result.cost_usd is not None
+                        else "unavailable_on_failed_call"
+                    ),
+                    "elapsed_seconds": time.perf_counter() - started,
+                    "route_verified": provider_completed,
+                    "sdk_retries": 0,
+                }
+                break
+        if attempt_limit > 1:
+            row["visible_attempt_count"] = len(attempts)
+            row["effective_retry_count"] = len(attempts) - 1
+            row["attempts"] = attempts
         if pacing_observation_index is not None:
             row["call_pacing"] = client.pacing_summary_since(
                 pacing_observation_index
@@ -958,6 +2425,121 @@ async def run_profile_admission(
     return artifact
 
 
+
+def _confirmatory_pilot_qualification(
+    pilot: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Load the bound variance pilot's published qualification."""
+
+    repo_root = Path(__file__).resolve().parents[3]
+    return json.loads((repo_root / pilot["qualification_path"]).read_bytes())
+
+
+def confirmatory_freeze_artifact(
+    contract: Mapping[str, Any],
+    *,
+    routes: Mapping[str, OpenRouterRoutePin],
+    design: Mapping[str, Any],
+    provider_free: Mapping[str, Any],
+    catalog: Mapping[str, Any],
+    admission: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Seal every confirmatory control before a single holdout outcome exists.
+
+    The QC standard requires the holdout tasks, seeds, profiles, prompts,
+    harness, retry rules, execution order, analysis plan, missingness policy,
+    stopping rule, implementation pins and cost ceiling to be hashed before
+    outcomes are inspected. This artifact is that hash, and it also binds the
+    variance pilot whose paired standard deviation justified the world count,
+    so the sample size cannot be re-derived after the fact.
+    """
+
+    panel = confirmatory_panel(contract)
+    if panel is None:
+        raise ValueError("a confirmatory freeze requires a sealed holdout panel")
+    spec = CAMPAIGN_SPECS[contract["campaign_id"]]
+    pilot = spec["variance_pilot_reference"]
+    pilot_qualification = _confirmatory_pilot_qualification(pilot)
+    if pilot_qualification["artifact_sha256"] != pilot["qualification_artifact_sha256"]:
+        raise ValueError("variance-pilot qualification digest drifted")
+    if pilot_qualification["campaign_id"] != pilot["campaign_id"]:
+        raise ValueError("variance-pilot identity drifted")
+    analysis = pilot_qualification["variance_pilot_analysis"]
+    if analysis is None or analysis.get("status") != "estimable":
+        raise ValueError("variance pilot did not produce an estimable variance")
+    minimum_paired = analysis.get("minimum_paired_worlds_for_recommendation")
+    if minimum_paired is not None and analysis["paired_world_count"] < int(
+        minimum_paired
+    ):
+        raise ValueError("variance pilot did not reach its declared paired worlds")
+    recommended = analysis["recommended_confirmatory_worlds"]
+    if recommended is None:
+        raise ValueError("variance pilot withheld a confirmatory world count")
+    # Count the worlds that will actually be executed, not the sealed list:
+    # a structurally excluded world contributes no contrast.
+    planned_worlds = len(contract["execution"]["world_seeds"])
+    if planned_worlds < recommended:
+        raise ValueError(
+            "confirmatory panel is smaller than the recommended world count: "
+            f"{planned_worlds} < {recommended}"
+        )
+    setups = build_setups(contract, routes=routes)
+    profiles = {}
+    for setup in setups.values():
+        for profile in setup.plan.agent_profiles:
+            profiles[profile.profile_id] = hashlib.sha256(
+                canonical_json_bytes(profile)
+            ).hexdigest()
+    return _sealed(
+        {
+            "schema_version": "aeread.housing_confirmatory_freeze/0.1",
+            "campaign_id": contract["campaign_id"],
+            "gate_id": "confirmatory_freeze",
+            "claim_status": contract["claim_status"],
+            "frozen_before_any_holdout_outcome": True,
+            "holdout": {
+                "sweep_contract_path": panel["sweep_contract_path"],
+                "sweep_contract_file_sha256": panel["sweep_contract_file_sha256"],
+                "sealed_world_seed_count": len(panel["world_seeds"]),
+                "excluded_world_seeds": dict(panel.get("excluded_world_seeds", {})),
+                "world_seed_count": planned_worlds,
+                "world_seeds_sha256": _sha256(panel["world_seeds"]),
+                "configs_sha256": _sha256(panel["configs"]),
+                "config_ids": [config["config_id"] for config in panel["configs"]],
+            },
+            "variance_pilot": {
+                "campaign_id": pilot["campaign_id"],
+                "qualification_artifact_sha256": pilot[
+                    "qualification_artifact_sha256"
+                ],
+                "paired_world_count": analysis["paired_world_count"],
+                "sample_standard_deviation": analysis[
+                    "sample_standard_deviation"
+                ],
+                "minimum_meaningful_effect": analysis["minimum_meaningful_effect"],
+                "recommended_confirmatory_worlds": recommended,
+            },
+            "prior_gates": {
+                "design": design["artifact_sha256"],
+                "provider_free": provider_free["artifact_sha256"],
+                "catalog_preflight": catalog["artifact_sha256"],
+                "profile_admission": admission["artifact_sha256"],
+            },
+            "profiles_sha256": dict(sorted(profiles.items())),
+            "controls_sha256": _sha256(contract["controls"]),
+            "conditions_sha256": _sha256(contract["conditions"]),
+            "analysis": contract["analysis"],
+            "missingness": contract["missingness"],
+            "stopping_rule": contract["stopping_rule"],
+            "execution": contract["execution"],
+            "planned_trajectories": design["planned_trajectories"],
+            "contract_sha256": _sha256(contract),
+            "winner_claim_allowed": True,
+            "ranking_allowed": True,
+        }
+    )
+
+
 async def execute_campaign(
     *, contract_path: str | Path, output_root: str | Path, through: str
 ) -> dict[str, Any]:
@@ -965,7 +2547,10 @@ async def execute_campaign(
     terminal_stage = CAMPAIGN_SPECS[contract["campaign_id"]].get(
         "execution_stage", "live"
     )
+    freezes = terminal_stage == "confirmatory_execution"
     stages = {"design", "provider_free", "profile_admission", terminal_stage}
+    if freezes:
+        stages.add("confirmatory_freeze")
     if through not in stages:
         raise ValueError(f"through must be one of {sorted(stages)}")
     routes = route_table(contract)
@@ -973,7 +2558,10 @@ async def execute_campaign(
     design = design_artifact(contract, routes=routes)
     _write_json(root / "design" / "summary.json", design)
     result: dict[str, Any] = {"design": design}
-    if through in {"provider_free", "profile_admission", terminal_stage}:
+    later_stages = {"provider_free", "profile_admission", terminal_stage}
+    if freezes:
+        later_stages.add("confirmatory_freeze")
+    if through in later_stages:
         provider_free = provider_free_artifact(contract)
         catalog_path = root / "catalog_preflight" / "summary.json"
         catalog = (
@@ -984,7 +2572,10 @@ async def execute_campaign(
         _write_json(root / "provider_free" / "summary.json", provider_free)
         _write_json(catalog_path, catalog)
         result.update(provider_free=provider_free, catalog_preflight=catalog)
-    if through in {"profile_admission", terminal_stage}:
+    admission_stages = {"profile_admission", terminal_stage}
+    if freezes:
+        admission_stages.add("confirmatory_freeze")
+    if through in admission_stages:
         if not os.getenv("OPENROUTER_API_KEY"):
             raise RuntimeError(
                 "OPENROUTER_API_KEY is required for the profile-admission stage"
@@ -996,6 +2587,26 @@ async def execute_campaign(
             provider_client=provider_client,
         )
         result["profile_admission"] = admission
+        if freezes and through in {"confirmatory_freeze", terminal_stage}:
+            if admission["status"] != "passed":
+                raise ValueError(
+                    "a confirmatory freeze requires a passed profile admission"
+                )
+            freeze_path = root / "confirmatory_freeze" / "summary.json"
+            freeze = (
+                _read_sealed(freeze_path)
+                if freeze_path.exists()
+                else confirmatory_freeze_artifact(
+                    contract,
+                    routes=routes,
+                    design=design,
+                    provider_free=provider_free,
+                    catalog=catalog,
+                    admission=admission,
+                )
+            )
+            _write_json(freeze_path, freeze)
+            result["confirmatory_freeze"] = freeze
         if through == terminal_stage:
             if admission["status"] != "passed":
                 blocked = _sealed(
@@ -1048,6 +2659,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             "profile_admission",
             "full_trajectory",
             "live",
+            "confirmatory_freeze",
+            "confirmatory_execution",
         ),
         default="provider_free",
     )

@@ -713,3 +713,711 @@ the zero-attempt
 [`attempted.json`](../../../evidence/housing_model_sensitivity_openrouter_deepinfra_v12/trajectories/attempted.json),
 and the pacing-aware canonical
 [`fact_manifest.json`](../../../evidence/housing_model_sensitivity_openrouter_deepinfra_v12/tables/fact_manifest.json).
+
+## 20. V13 preregistered cooldown and admission-timeout gate
+
+[`housing_model_sensitivity_openrouter_friendli_v13`](../../../configs/housing_model_sensitivity_openrouter_friendli_v13.json)
+is a new campaign identity created in response to the V12 result. It does not
+retry or amend V12. V13 keeps the same selected configuration, development
+world, four subject-opponent conditions, schemas, prompts, sampling, retry
+ownership, and the `$0.14` maximum exposure (`$0.06` admission plus `$0.08`
+full trajectory).
+
+V13 changes three frozen things:
+
+1. **GLM route.** DeepInfra blocked V11 and V12 with upstream HTTP 429s. V13
+   pins GLM 5.3 Flash to Friendli, whose catalog record reports every required
+   parameter, an active status, and the same `$0.15/$0.50` per-million pricing
+   as the other full-featured GLM routes. Friendli reports its quantization as
+   `unknown`; the pin records that literally instead of asserting FP8. DeepSeek
+   V4 Flash stays on Parasail FP8 with the same endpoint snapshot digest as
+   V12. Before freezing, five spaced strict-client probes per route returned
+   five valid actions on Friendli, Parasail, and Sail Research; only Friendli
+   held catalog status `0` across three samples, so the other two are not
+   admissible pins.
+2. **Completion-to-next-start cooldown.** The V12 scheduler measured
+   start-to-start, so a 147-second call was followed immediately by another
+   call. V13 replaces it with a per-route cooldown of 10 seconds measured from
+   the previous call's completion, success or failure, with no first-call
+   delay. Calls to one route are serialised. One scheduler instance is shared
+   across profile admission and the full-trajectory stage. The implementation
+   file is digest-pinned in the contract; the V12 module is untouched.
+3. **Admission timeout enforcement.** V12 showed profile admission invoking
+   the adapter without a wall-time budget. V13 wraps every admission call in
+   the same `asyncio.wait_for` budget the shared-runner attempt loop applies,
+   using the frozen 120-second `timeout_seconds`, and records an over-budget
+   call as a typed `timeout` failure.
+
+V13 remains a one-world promotion gate. It may establish only whether every
+frozen model pairing completes one replay-verified trajectory under the
+cooldown condition. It cannot support a winner, model ranking, variance
+estimate, or confirmatory claim. If any admission probe fails, all four
+trajectories remain blocked; if any trajectory fails, the missing cell remains
+typed missingness and is not selectively rerun.
+
+```bash
+python -m aeread_families.housing.backend_campaign \
+  --contract configs/housing_model_sensitivity_openrouter_friendli_v13.json \
+  --run-root runs/housing_model_sensitivity_openrouter_friendli_v13 \
+  --through provider_free
+
+python -m aeread_families.housing.backend_campaign \
+  --contract configs/housing_model_sensitivity_openrouter_friendli_v13.json \
+  --run-root runs/housing_model_sensitivity_openrouter_friendli_v13 \
+  --through full_trajectory
+```
+
+The executed gate passed. All 18 admission probes passed on the first attempt
+for `$0.003589443` with complete provider billing: Friendli/GLM 9 of 9 and
+Parasail/DeepSeek 9 of 9. All four full trajectories then completed with
+verified routes, complete billing, and exact score replay for
+`$0.0223814646`; zero trajectories failed operationally and none were
+retried. The combined provider-reported cost was `$0.0259709076` against the
+`$0.14` ceiling. The shared scheduler delivered 132 trajectory provider calls
+(65 Friendli, 67 Parasail) with 115 paced waits totalling about 1147 seconds;
+no admission call exceeded the 120-second budget.
+
+The descriptive within-case scores range from `0.8331363374` to
+`0.9330865186`, but this is a one-world promotion gate, not a leaderboard. It
+establishes only that the frozen model pairings complete under the cooldown
+condition. The next campaign must freeze a new identity for a multi-world
+variance pilot that carries the V13 routes, cooldown, and admission-timeout
+controls forward unchanged; V13's single world must not be pooled into it.
+Review the digest-bound
+[`qualification.json`](../../../evidence/housing_model_sensitivity_openrouter_friendli_v13/reports/qualification.json),
+the four-trajectory
+[`attempted.json`](../../../evidence/housing_model_sensitivity_openrouter_friendli_v13/trajectories/attempted.json),
+and the
+[`canonical_fact_index.json`](../../../evidence/housing_model_sensitivity_openrouter_friendli_v13/tables/canonical_fact_index.json).
+Raw provider payloads and reasoning remain only under ignored local `runs/`.
+
+## 21. V14 preregistered four-world variance pilot on the V13 routes
+
+[`housing_model_sensitivity_openrouter_friendli_v14`](../../../configs/housing_model_sensitivity_openrouter_friendli_v14.json)
+is the multi-world variance pilot that V13's full-trajectory gate promotes. It
+carries V13's Friendli and Parasail routes, endpoint snapshot digests,
+completion-to-next-start cooldown, and admission-timeout enforcement forward
+unchanged, under a new campaign identity and fresh profile digests. Its design
+is the V9/V10 pilot design: the three selected development configurations,
+four world clusters, and the four subject-opponent conditions, executed in the
+rotate-by-world-and-configuration order, for 48 frozen cells. The primary
+estimand is the paired world-level GLM-minus-DeepSeek contrast after equal
+weighting across configurations and opponents within a world.
+
+The four worlds are the next unused development seeds (`264284765`,
+`722524881`, `1535604354`, `366965770`). They are disjoint from V9/V10's four
+worlds, from V11 to V13's single world, and from the sealed confirmatory
+holdout. V13's world is not pooled in.
+
+The execution ceiling is `$0.45`, sized from V13's observed per-trajectory
+range (`$0.0022` to `$0.0084`) times 48 cells with a `$0.01` next-cell
+reserve; admission keeps its `$0.06` ceiling, for `$0.51` maximum exposure.
+Every cell is one attempt; typed operational failures are retained and never
+selectively rerun. The pilot is exploratory: it may estimate the paired-world
+variance and a confirmatory sample size, but it cannot support a winner, a
+ranking, or a confirmatory claim.
+
+```bash
+python -m aeread_families.housing.backend_campaign \
+  --contract configs/housing_model_sensitivity_openrouter_friendli_v14.json \
+  --run-root runs/housing_model_sensitivity_openrouter_friendli_v14 \
+  --through provider_free
+
+python -m aeread_families.housing.backend_campaign \
+  --contract configs/housing_model_sensitivity_openrouter_friendli_v14.json \
+  --run-root runs/housing_model_sensitivity_openrouter_friendli_v14 \
+  --through live
+```
+
+The executed pilot blocked at profile admission. Both routes were active at
+catalog preflight with V13's endpoint snapshots. Admission attempted all 18
+single-attempt probes under the shared cooldown: Parasail/DeepSeek passed 9 of
+9, and Friendli/GLM passed 6 of 9. The three failures (tenant commit probes 0
+and 2, landlord respond probe 0) were typed HTTP 429 rate limits returned
+about 6.5 seconds after each call started, each after the full 10-second
+cooldown had been delivered. Provider-reported billing for the 15 passed
+probes was `$0.0022604868`; the failed calls exposed no cost. All 48
+trajectories remain not started with zero trajectory provider calls.
+
+V13 passed 9 of 9 on the same Friendli route four hours earlier, and the
+route's catalog uptime stayed above 99 percent through the failure window.
+The cooldown therefore does not by itself protect a single-attempt admission
+probe from OpenRouter's upstream shared-pool rate limiting, which has now
+blocked DeepInfra (V11, V12), Reka, Parasail, and Friendli at different times.
+Do not rerun or amend V14. Review the digest-bound
+[`qualification.json`](../../../evidence/housing_model_sensitivity_openrouter_friendli_v14/reports/qualification.json),
+the zero-attempt
+[`attempted.json`](../../../evidence/housing_model_sensitivity_openrouter_friendli_v14/trajectories/attempted.json),
+and the admission
+[`fact_manifest.json`](../../../evidence/housing_model_sensitivity_openrouter_friendli_v14/tables/fact_manifest.json).
+
+## 22. V15 preregistered pilot with receipt-visible admission attempts
+
+[`housing_model_sensitivity_openrouter_friendli_v15`](../../../configs/housing_model_sensitivity_openrouter_friendli_v15.json)
+repeats the V14 pilot design unchanged: the same Friendli and Parasail routes
+and endpoint snapshots, cooldown, admission-timeout enforcement, three
+configurations, the same four fresh development worlds, four conditions, 48
+cells, and the `$0.51` maximum exposure. It changes one frozen thing.
+
+Profile admission may now make up to four receipt-visible attempts per probe,
+the same attempt limit and retryable-condition set (`length`, `rate_limit`,
+`provider_5xx`, `empty_response`) that trajectory execution has used since
+V1. SDK retries stay at zero and hidden repair stays disallowed. Each attempt
+re-sends the identical sealed request after a recorded delay of 2, 4, or 8
+seconds on top of the shared cooldown; every attempt's outcome, status code,
+elapsed time, and billing status is sealed in the probe row, and the summary
+still counts zero hidden retries. A probe that passes after a failed attempt
+carries a `provider_reported_with_unbilled_failed_attempts` billing status,
+so the admission cost is a lower bound whenever a failed call exposed no cost.
+Non-retryable failures, including semantically invalid actions, still end the
+probe on the first attempt.
+
+This closes the asymmetry that V14 exposed: single-attempt admission was
+stricter than the trajectory policy it gates, so shared-pool rate limiting
+could block a pilot whose trajectories would have tolerated the same event.
+The population cross-play driver has used four visible admission attempts
+since V0. V15 is still an exploratory pilot and supports no ranking.
+
+```bash
+python -m aeread_families.housing.backend_campaign \
+  --contract configs/housing_model_sensitivity_openrouter_friendli_v15.json \
+  --run-root runs/housing_model_sensitivity_openrouter_friendli_v15 \
+  --through provider_free
+
+python -m aeread_families.housing.backend_campaign \
+  --contract configs/housing_model_sensitivity_openrouter_friendli_v15.json \
+  --run-root runs/housing_model_sensitivity_openrouter_friendli_v15 \
+  --through live
+```
+
+The executed pilot attempted all 48 frozen cells. Both routes were active at
+catalog preflight with V13's endpoint snapshots. All 18 admission probes
+passed on their first attempt for `$0.0029824542`; the four-attempt policy was
+available but unused. Execution then completed 43 of 48 trajectories with
+verified routes, complete billing, and exact score replay for
+`$0.2280142062`, a combined `$0.2309966604` against the `$0.51` ceiling. The
+shared cooldown delivered 1248 trajectory provider calls (625 Friendli, 623
+Parasail) with 1128 paced waits totalling about 10992 seconds.
+
+Five trajectories are retained as typed operational missingness: four Friendli
+rate-limit exhaustions (all four visible attempts on one GLM action returned
+HTTP 429) and one Friendli timeout. Every failed cell contains a GLM seat;
+Parasail/DeepSeek produced no operational failure in 623 calls. The failures
+fall one or two per world, so no world has a complete GLM-subject block and the
+paired-world count is zero. Variance, the confirmatory sample size, and any
+contrast are therefore not estimable, exactly as in V10, though the completion
+rate rose from 31 of 48 to 43 of 48.
+
+The pilot is protocol-conformant: the V13 full-trajectory gate passed on the
+same routes and endpoint snapshots under its own identity, and the publisher
+verifies that gate's committed digest before recording conformance. Do not
+rerun or impute the five missing cells. The descriptive within-case scores
+span `0.1940733781` to `1.0` and support no ranking. Review the digest-bound
+[`qualification.json`](../../../evidence/housing_model_sensitivity_openrouter_friendli_v15/reports/qualification.json),
+the all-attempt
+[`attempted.json`](../../../evidence/housing_model_sensitivity_openrouter_friendli_v15/trajectories/attempted.json),
+and the
+[`canonical_fact_index.json`](../../../evidence/housing_model_sensitivity_openrouter_friendli_v15/tables/canonical_fact_index.json).
+
+Three pilots on three GLM routes have now produced the same shape: the
+DeepSeek arm completes, and shared-pool rate limiting on the GLM arm leaves
+every world one cell short. The next campaign must change the GLM delivery
+treatment explicitly under a new identity, for example a route with a
+dedicated provider key or a batch backend under the SOP's escalation rule,
+rather than repeat this design on another shared-pool route.
+
+## 23. GLM route probe and the V16 Parasail full-trajectory gate
+
+Three pilots on three shared-pool GLM routes had produced the same one-cell-
+per-world loss, and each route had been chosen from five spaced calls over
+about a minute. That window cannot detect a route that bursts HTTP 429 for a
+few seconds every twenty minutes. Before spending again, a one-hour route
+probe ran every GLM endpoint that advertises the strict client's required
+parameters: 12 routes, 100 calls each, 36 seconds apart, through the V15
+admission request builder with the 120-second wall-time cap, no retries, and
+V2 schema validation. The sanitized per-call record and digest-bound summary
+are published under
+[`evidence/housing_glm_route_probe_2026-09-05/`](../../../evidence/housing_glm_route_probe_2026-09-05/reports/summary.json).
+
+| Route | Valid | 429 | Other failures |
+|---|---|---|---|
+| Parasail FP8 | 100 / 100 | 0 | 0 |
+| Cloudflare | 99 / 100 | 1 | 0 |
+| Morph FP8 | 95 / 100 | 5 | 0 |
+| Reka FP8 | 92 / 99 | 0 | 7 HTTP 502 |
+| Friendli | 90 / 100 | 10 | 0 |
+| Sail Research, Makora, NextBit | 82 to 84 / 100 | 16 to 17 | 0 |
+| Wafer, CoreWeave, DeepInfra | 31 to 55 / 100 | 19 to 69 | 3 timeouts |
+| Phala FP8 | 20 / 82 | 1 | 61 invalid actions |
+
+Every 429 carried OpenRouter's `upstream_provider_shared_pool` limit source;
+the account is paid-tier with no request limit, so the bursts are provider
+saturation, not client throttling. Parasail was the only route with zero
+operational failures and zero invalid actions across the window.
+
+[`housing_model_sensitivity_openrouter_parasail_v16`](../../../configs/housing_model_sensitivity_openrouter_parasail_v16.json)
+is the SOP-required full-trajectory gate for the changed GLM route. It pins
+both models to Parasail FP8, keeps V13's world, configuration, four
+conditions, `$0.14` exposure, cooldown module, admission-timeout
+enforcement, and V15's four receipt-visible admission attempts, and binds the
+route probe's summary digest in its campaign spec. Because both models share
+one provider, the 10-second cooldown now serialises every provider call in a
+trajectory, so wall time roughly doubles relative to V13. Promotion requires
+one completed trajectory per condition; a passing gate is the declared
+prerequisite for a 48-cell pilot under a further identity.
+
+```bash
+python -m aeread_families.housing.backend_campaign \
+  --contract configs/housing_model_sensitivity_openrouter_parasail_v16.json \
+  --run-root runs/housing_model_sensitivity_openrouter_parasail_v16 \
+  --through provider_free
+
+python -m aeread_families.housing.backend_campaign \
+  --contract configs/housing_model_sensitivity_openrouter_parasail_v16.json \
+  --run-root runs/housing_model_sensitivity_openrouter_parasail_v16 \
+  --through full_trajectory
+```
+
+The executed gate passed. All 18 admission probes passed on their first
+attempt for `$0.0026201538` with complete billing. All four trajectories
+completed with verified routes, complete billing, and exact score replay for
+`$0.021948696`, a combined `$0.0245688498`. Zero operational failures, zero
+hidden retries. The shared Parasail cooldown delivered 132 trajectory calls
+with 131 paced waits totalling about 1307 seconds. Descriptive within-case
+scores span `0.8856512098` to `0.9201434`, and support no ranking. Review the
+digest-bound
+[`qualification.json`](../../../evidence/housing_model_sensitivity_openrouter_parasail_v16/reports/qualification.json),
+the four-trajectory
+[`attempted.json`](../../../evidence/housing_model_sensitivity_openrouter_parasail_v16/trajectories/attempted.json),
+and the
+[`canonical_fact_index.json`](../../../evidence/housing_model_sensitivity_openrouter_parasail_v16/tables/canonical_fact_index.json).
+
+## 24. V17 preregistered four-world variance pilot on the Parasail routes
+
+[`housing_model_sensitivity_openrouter_parasail_v17`](../../../configs/housing_model_sensitivity_openrouter_parasail_v17.json)
+is the multi-world variance pilot that the V16 gate promotes. It carries V16's
+Parasail FP8 routes and endpoint snapshots, cooldown, admission-timeout
+enforcement, and four receipt-visible admission attempts forward unchanged,
+under a new identity and fresh profile digests, on the V9/V10 pilot design:
+three selected configurations, four world clusters, four conditions, 48
+cells, rotate-by-world ordering, `$0.51` maximum exposure. Its campaign spec
+binds both the V16 qualification digest as the verified prerequisite gate and
+the route-probe summary digest as the route-selection record.
+
+The four worlds are the next unused development seeds (`1063943031`,
+`647986875`, `1758927083`, `237549679`), disjoint from every earlier campaign
+and from the sealed holdout. V15's worlds are deliberately not reused, so no
+cell from a different route can be mistaken for a rerun.
+
+Because both models share one provider, the cooldown serialises every call;
+expect roughly twice V15's wall time. The pilot is exploratory: it may
+estimate the paired-world variance and a confirmatory sample size, but it
+cannot support a winner, a ranking, or a confirmatory claim.
+
+```bash
+python -m aeread_families.housing.backend_campaign \
+  --contract configs/housing_model_sensitivity_openrouter_parasail_v17.json \
+  --run-root runs/housing_model_sensitivity_openrouter_parasail_v17 \
+  --through provider_free
+
+python -m aeread_families.housing.backend_campaign \
+  --contract configs/housing_model_sensitivity_openrouter_parasail_v17.json \
+  --run-root runs/housing_model_sensitivity_openrouter_parasail_v17 \
+  --through live
+```
+
+The executed pilot stopped after three cells. Admission passed 18 of 18 on
+the first attempt for `$0.003019401`. The first two trajectories then failed
+on single 120-second timeouts of DeepSeek seats on Parasail, one of them
+after a `length` escalation had doubled that seat's output cap from 4096 to
+8192 tokens; a timeout is deliberately not retryable because the provider may
+already have executed the call. The third trajectory failed when its DeepSeek
+tenant seat exceeded a hardcoded `$0.01` per-seat cost budget after the same
+length escalation, and the driver classified that `EvidenceIntegrityError`
+as a critical campaign failure, stopping the pilot with 45 cells never
+attempted for `$0.0222467553` of spend. Parasail delivered every one of the
+74 provider calls; no route or rate-limit failure occurred.
+
+This is a driver defect, not a route result. A seat exhausting its own
+budget is cell-level typed missingness and should not stop the campaign; the
+`$0.01` seat budget was never contract-visible; and the 120-second wall-time
+cap cannot accommodate the length policy's own 8192-token retry at Parasail's
+observed DeepSeek throughput. V17 is not rerun or amended. The publisher now
+records stopped pilots, marking `all_frozen_cells_attempted` false and the
+never-attempted count. Review the digest-bound
+[`qualification.json`](../../../evidence/housing_model_sensitivity_openrouter_parasail_v17/reports/qualification.json)
+and the three-attempt
+[`attempted.json`](../../../evidence/housing_model_sensitivity_openrouter_parasail_v17/trajectories/attempted.json).
+
+## 25. V18 preregistered gate with contract-visible seat budget and wall time
+
+[`housing_model_sensitivity_openrouter_parasail_v18`](../../../configs/housing_model_sensitivity_openrouter_parasail_v18.json)
+is a new full-trajectory gate identity created in response to V17. It keeps
+V16's Parasail FP8 routes and endpoint snapshots, world, configuration, four
+conditions, cooldown, admission-timeout enforcement, and four receipt-visible
+admission attempts, and changes three frozen controls:
+
+1. `timeout_seconds` rises from 120 to 300 so that the frozen length policy's
+   8192-token retry can complete at observed throughput.
+2. `seat_max_cost_usd` freezes each seat's per-trajectory cost budget at
+   `$0.03` in the contract, replacing the hidden `$0.01` runner default. The
+   per-trajectory reserve rises to `$0.06` (two seats) and the gate's
+   execution ceiling to `$0.30`, for `$0.36` maximum exposure.
+3. A seat budget exhaustion is typed `cost_budget_exceeded` cell-level
+   missingness and no longer stops the campaign; route drift, replay failure,
+   provider-contract failure, and the campaign cost ceiling remain critical.
+
+Executed campaigns V13 to V17 keep their original implementation digests via
+the historical pin table, so their sealed designs still reproduce. V18 is a
+one-world promotion gate and supports no ranking.
+
+```bash
+python -m aeread_families.housing.backend_campaign \
+  --contract configs/housing_model_sensitivity_openrouter_parasail_v18.json \
+  --run-root runs/housing_model_sensitivity_openrouter_parasail_v18 \
+  --through full_trajectory
+```
+
+The executed gate passed. All 18 admission probes passed on their first
+attempt for `$0.002637261`. All four trajectories completed with verified
+routes, complete billing, and exact score replay for `$0.0277184754`, a
+combined `$0.0303557364` against the `$0.36` ceiling; zero operational
+failures, zero hidden retries, 135 Parasail calls with 134 paced waits. One
+cross-play cell cost `$0.0117`, above the hidden `$0.01` seat budget that
+stopped V17, and completed under the frozen `$0.03`. Descriptive scores span
+`0.5751824247` to `0.9167928417` and support no ranking. Review the
+digest-bound
+[`qualification.json`](../../../evidence/housing_model_sensitivity_openrouter_parasail_v18/reports/qualification.json),
+[`attempted.json`](../../../evidence/housing_model_sensitivity_openrouter_parasail_v18/trajectories/attempted.json),
+and
+[`canonical_fact_index.json`](../../../evidence/housing_model_sensitivity_openrouter_parasail_v18/tables/canonical_fact_index.json).
+
+## 26. V19 preregistered four-world variance pilot on the V18 controls
+
+[`housing_model_sensitivity_openrouter_parasail_v19`](../../../configs/housing_model_sensitivity_openrouter_parasail_v19.json)
+is the multi-world variance pilot that the V18 gate promotes. It carries
+V18's Parasail FP8 routes and snapshots, 300-second wall time, `$0.03` seat
+budget, cooldown, admission-timeout enforcement, and four receipt-visible
+admission attempts forward unchanged, under a new identity and fresh profile
+digests, on the V9/V10 pilot design: three configurations, four worlds, four
+conditions, 48 cells, rotate-by-world ordering. Its spec binds the V18
+qualification digest as the verified prerequisite gate and the route-probe
+summary digest as the route-selection record.
+
+The four worlds are V17's three never-attempted worlds (`647986875`,
+`1758927083`, `237549679`) plus the next unused development seed
+(`1515521562`). V17 executed cells only on `1063943031`, which is excluded,
+so no V19 cell repeats an executed cell. The per-trajectory reserve is
+`$0.06` (two seats at `$0.03`) and the execution ceiling `$1.00`, sized so
+the reserve rule cannot stop the pilot before its 48th cell at the V18
+observed cost of `$0.002` to `$0.012` per cell; `$1.06` maximum exposure.
+The pilot is exploratory and supports no winner, ranking, or confirmatory
+claim.
+
+```bash
+python -m aeread_families.housing.backend_campaign \
+  --contract configs/housing_model_sensitivity_openrouter_parasail_v19.json \
+  --run-root runs/housing_model_sensitivity_openrouter_parasail_v19 \
+  --through live
+```
+
+The executed pilot attempted all 48 cells. Admission passed 18 of 18 on the
+first attempt for `$0.0031506552`. Thirty-two trajectories completed with
+verified routes, complete billing, and exact score replay for
+`$0.2003244111`; the shared Parasail cooldown delivered 1048 provider calls.
+Sixteen trajectories are typed operational missingness, every one a Parasail
+GLM seat exhausting its four visible attempts on HTTP 429. The failures are
+not spread evenly: worlds `647986875` and `1758927083` completed all 24 of
+their cells with zero failures, then a rate-limit burst that began during
+world `237549679` and persisted through world `1515521562` cost 16 of the
+remaining 24 cells. No timeout and no seat-budget exhaustion occurred under
+the V18 controls.
+
+Two worlds therefore have a complete subject pair, the first paired worlds in
+this family. The paired world-level GLM-minus-DeepSeek contrast is
+`-0.1412` and `-0.0098`, mean `-0.0755` with sample standard deviation
+`0.0930`, which the frozen analysis converts to 28 raw and 32
+attrition-adjusted confirmatory worlds, inside the declared maximum of 100.
+Two paired worlds cannot support that sample-size claim with any confidence,
+and the estimate remains exploratory: no winner, ranking, or confirmatory
+claim is supported, and `paired_worlds_complete` is false.
+
+The reliability finding is now precise. Parasail GLM sustained 24 clean
+cells over roughly four hours and then lost 16 of 24 in a burst that the
+one-hour selection probe could not have predicted. Shared-pool rate limiting
+on OpenRouter is time-varying at the scale of hours, so no route selection
+procedure on a shared key can make a 48-cell serial pilot reliable. The next
+delivery treatment must remove the shared pool: a dedicated GLM provider key
+attached to the OpenRouter account, or a batch backend under the SOP's
+escalation rule, each under a new campaign identity with a fresh gate. Do
+not rerun or impute the 16 missing cells. Review the digest-bound
+[`qualification.json`](../../../evidence/housing_model_sensitivity_openrouter_parasail_v19/reports/qualification.json),
+the all-attempt
+[`attempted.json`](../../../evidence/housing_model_sensitivity_openrouter_parasail_v19/trajectories/attempted.json),
+the
+[`canonical_fact_index.json`](../../../evidence/housing_model_sensitivity_openrouter_parasail_v19/tables/canonical_fact_index.json),
+and the paired-world table.
+
+## 27. V20 preregistered gate with ten receipt-visible attempts per action
+
+V19's losses were not short bursts. From 10:10 to 12:15 UTC on 2026-09-05,
+about 40 percent of the calls in every ten-minute window returned HTTP 429
+from the Parasail shared pool while the remaining calls succeeded normally;
+464 calls failed in that window. Under four attempts per action, a sustained
+40 percent per-call failure rate loses roughly half of all cells, which is
+what happened. Under ten attempts the per-action loss falls below 0.1
+percent. The attempt count is a declared retry control, so
+[`housing_model_sensitivity_openrouter_parasail_v20`](../../../configs/housing_model_sensitivity_openrouter_parasail_v20.json)
+freezes it under a new gate identity rather than changing the route or
+requesting a private provider key.
+
+V20 keeps V18's Parasail FP8 routes and endpoint snapshots, world,
+configuration, conditions, 300-second wall time, `$0.03` seat budget,
+cooldown, and admission-timeout enforcement, and changes two controls:
+`max_action_attempts` rises from 4 to 10 for every seat, and the seat harness
+gains the runner's `exponential_jitter_v1` backoff (base 5 seconds, doubling
+to the 30-second cap, honouring `Retry-After` up to 60 seconds). Profile
+admission uses the same ten-attempt limit and base delay. SDK retries stay at
+zero, every attempt is sealed in the receipt, and a timeout still ends an
+action because the provider may have executed the call. V20 is a one-world
+promotion gate; a pass promotes a 48-cell pilot under a further identity.
+
+```bash
+python -m aeread_families.housing.backend_campaign \
+  --contract configs/housing_model_sensitivity_openrouter_parasail_v20.json \
+  --run-root runs/housing_model_sensitivity_openrouter_parasail_v20 \
+  --through full_trajectory
+```
+
+## 28. V21 preregistered eight-world pilot and the holdout capacity question
+
+V19 produced two paired worlds, which is too few to size a confirmatory run.
+[`housing_model_sensitivity_openrouter_parasail_v21`](../../../configs/housing_model_sensitivity_openrouter_parasail_v21.json)
+is the corrected pilot that V20 promotes. It carries V20's Parasail FP8
+routes, ten receipt-visible attempts per action, five-second exponential
+backoff, retryable timeouts, 300-second wall time, `$0.03` seat budget,
+cooldown, and admission-timeout enforcement, and changes the panel.
+
+The pilot moves from four worlds to eight, chosen by a declared rule rather
+than by outcome: the first eight development seeds in frozen sweep order,
+excluding the world used by the full-trajectory gates. V19's worlds are not
+reused, so no world can be suspected of selection on its result.
+
+It also restores stochastic replicates. Section 5 of this profile requires
+repeats to be averaged within a world before worlds are treated as
+independent evidence, and the whole model-sensitivity line ran a single
+replicate per cell, which folds provider noise into the between-world term
+and inflates both the variance and the world count derived from it. The
+replicate index is hashed into the request seed, so a second replicate is a
+genuine repeat draw rather than a duplicate call. The panel is eight worlds,
+three configurations, four conditions and two replicates, for 192 cells at an
+execution ceiling of `$2.00`. The confirmatory campaign uses the same
+replicate count, because a variance measured at one replicate count cannot
+size a run at another. The analysis declares
+`minimum_paired_worlds_for_recommendation` of six, so a confirmatory sample
+size is emitted only if at least six of the eight worlds complete both
+subject blocks; below that the variance and mean contrast are still published
+and the recommendation is withheld.
+
+### The holdout capacity question
+
+The campaign analysis contract declares a minimum of 30 confirmatory worlds
+and the frozen case sweep seals 16 holdout seeds. No confirmatory campaign
+can satisfy both, and this contradiction predates the current work. It does
+not need to be resolved yet, because whether it binds depends on a quantity
+the corrected pilot has not measured.
+
+With 16 holdout worlds and the declared 10 percent attrition allowance, the
+powered design fits inside the existing holdout precisely when the paired
+world-level standard deviation is at most `0.0668` at the declared minimum
+meaningful effect of `0.05`. V19 reported `0.0930`, but that figure is
+inflated twice over: it comes from two worlds, and with one replicate per
+cell it folds within-world provider noise into the between-world term. A
+properly estimated standard deviation may fall below the threshold.
+
+The decision rule is therefore fixed in advance, before any holdout outcome
+is inspected. If V21 reports a paired standard deviation at or below
+`0.0668`, the sealed 16-world holdout is sufficient and the confirmatory
+freeze proceeds against it unchanged. If V21 reports more, the holdout must
+be extended under a new case-sweep identity with additional seeds drawn
+disjointly from the development split. Extending it remains legitimate at
+that point only because the holdout is still sealed and unexecuted; once any
+holdout outcome is seen, neither the seed list nor the minimum meaningful
+effect may change. Lowering the declared effect to fit the existing holdout
+is not an option, because the pilot effect size has already been observed and
+choosing the detectable effect around it would be post-outcome tuning.
+
+```bash
+python -m aeread_families.housing.backend_campaign \
+  --contract configs/housing_model_sensitivity_openrouter_parasail_v21.json \
+  --run-root runs/housing_model_sensitivity_openrouter_parasail_v21 \
+  --through live
+```
+
+## 29. Confirmatory gates, the sealed holdout, and its degenerate world
+
+The kernel has always named `confirmatory_freeze` and
+`confirmatory_execution`, but nothing implemented them for Housing, so the
+family could not reach the comparison it was designed for. Both gates now
+exist, together with a confirmatory campaign over the sealed holdout:
+[`housing_confirmatory_parasail_v1`](../../../configs/housing_confirmatory_parasail_v1.json).
+
+### The holdout panel is verified, not trusted
+
+The confirmatory contract inlines the holdout configurations and world seeds
+so the freeze can hash them, and every inlined value is checked against the
+frozen case sweep at load. The sweep contract is digest-checked, the holdout
+must still be sealed with its declared access rule, the inlined
+configurations and seeds must match it exactly, and the panel must not
+intersect the development split. A confirmatory campaign therefore cannot
+widen or reshape its own evaluation set.
+
+### One holdout world is structurally unusable
+
+Auditing the holdout for the first time exposed a defect that had never
+surfaced, because the holdout was sealed and had never been generated. The
+severe holdout configuration at world seed `114691332` produces an assignment
+upper bound of zero. Section 1 of this profile already rules that such a
+world receives `degenerate_upper_bound`, carries no normalized score, and
+stays outside normalized-score inference, so it cannot contribute a paired
+contrast.
+
+That world is excluded before any outcome exists, and the exclusion is
+re-derived from the generator whenever the contract loads, so no world can be
+dropped for a reason the environment does not force. Usable holdout capacity
+is 15 worlds rather than 16, and the standard deviation the powered design
+must meet tightens from `0.0668` to `0.0643`. The confirmatory panel is
+therefore 15 worlds, three configurations and four conditions, for 180 cells.
+
+The provider-free gate cannot cross-check these worlds against the
+development facts table, because the holdout was deliberately never swept. It
+audits every sealed world directly instead, including the excluded one, and
+records the content digests that the freeze seals.
+
+### What the freeze seals, and when
+
+`confirmatory_freeze` is its own stopping point so that it can be committed
+before a single holdout call is made. It seals the holdout seeds and
+configurations, the profiles, controls, conditions, analysis plan,
+missingness policy, stopping rule, execution block, prior gate digests and
+cost ceiling, and it binds the variance pilot whose paired standard deviation
+justified the world count. It refuses a pilot whose variance was not
+estimable or whose recommendation was withheld, and it refuses a panel
+smaller than the recommended world count, so an underpowered confirmatory run
+cannot start by accident.
+
+### What the confirmatory analysis reports
+
+The primary estimand stays the one the variance pilot measured, because the
+world count was derived from that estimand's variance; changing it here would
+invalidate the sample size. Cross-play and self-play are reported as
+predeclared secondary slices rather than folded into the headline, as section
+5 requires. A world that lost any expected cell contributes no contrast, so
+partial delivery cannot tilt the estimate. A ranking, a winner claim and
+leaderboard eligibility are all withheld unless the declared paired minimum
+is met and every planned cell was attempted, and the publisher refuses to
+publish a confirmatory result whose contract digest changed after the freeze
+was sealed.
+
+## 30. V23 pilot result and a correction to the holdout decision rule
+
+V23 executed all 192 cells for `$0.9095553819` with six operational
+failures, a 3.1 percent cell loss well inside the declared 10 percent
+ceiling. Delivery improved sharply against V19, which lost a third of its
+cells on the same route: ten receipt-visible attempts with backoff, retryable
+timeouts and bounded-concurrency pacing absorbed a continuous stream of
+upstream rate limits, several hundred retried attempts spread across every
+minute of the run.
+
+The measured variance is much tighter than V19's exploratory figure.
+
+| Quantity | V19 | V23 |
+|---|---|---|
+| Paired worlds | 2 | 4 |
+| Mean paired contrast | -0.0755 | 0.0059 |
+| Paired standard deviation | 0.0930 | 0.0385 |
+
+The contrast is close to zero, which is a substantive result in itself, but
+four paired worlds is below the declared minimum of six, so the analysis
+withheld the confirmatory world count exactly as designed. The recommendation
+is suppressed and the freeze will refuse to size a run from this pilot.
+
+### Why six of eight worlds failed to pair from six lost cells
+
+All six failures fell in one condition, GLM as tenant against DeepSeek as
+landlord, spread across four separate worlds and four hours. Each one
+exhausted all ten attempts on a single action. The retry ledger shows the
+blocks lasted between 304 and 762 seconds, while ten attempts under a
+five-second base capped at thirty seconds cover only about 245 seconds. The
+policy gives up before the block clears. These are sustained upstream blocks,
+not unlucky individual calls, and the retry window is simply too short for
+them.
+
+The arithmetic then amplifies. A world needs all 24 of its cells, so at a 3.1
+percent cell loss a world survives with probability `0.969` to the 24th,
+about 47 percent. Four of eight paired is exactly what that predicts. To
+reach six of eight the cell loss must fall to roughly 1.2 percent.
+
+### Correction: the declared minimum binds, not the variance
+
+Section 28 stated that a paired standard deviation at or below `0.0668` would
+let the sealed holdout carry the confirmatory comparison. That rule was
+incomplete and the conclusion it implied was wrong.
+
+The recommended world count is the larger of the powered estimate and the
+contract's declared `minimum_confirmatory_worlds`, which is 30. V23's
+standard deviation implies only five raw worlds and six after attrition, but
+the floor of 30 dominates. The holdout admits 15 usable worlds. No standard
+deviation, however small, can make 15 satisfy a declared minimum of 30.
+
+The holdout capacity conflict is therefore unconditional rather than
+contingent on the pilot, and better data cannot resolve it. The remaining
+options are unchanged in kind: extend the holdout under a new case-sweep
+identity while it is still sealed and unexecuted, which stays legitimate
+precisely because no holdout outcome has been observed, or change the
+declared minimum, which after seeing pilot outcomes would be post-outcome
+tuning and is excluded.
+
+## 31. The cross-campaign failure register
+
+Every failure in this family was recorded faithfully and only ever inside the
+campaign that produced it. A pattern spanning campaigns was therefore
+invisible without opening a dozen bundles by hand, which is how the same
+provider defect kept being rediscovered under a new identity.
+
+[`evidence/housing_failure_register/`](../../../evidence/housing_failure_register/reports/summary.json)
+collects all of them in one place. It reads only published evidence, never
+the ignored local run directories, so every row carries the committed
+artifact it came from and that artifact's digest. It is derived rather than
+written: `python -m aeread_families.housing.failure_register` must reproduce
+the committed bytes exactly, and a test asserts it does.
+
+The register holds 56 typed failures across ten campaigns, 8 at profile
+admission and 48 in trajectories. What it makes visible immediately is a
+distribution nobody could see one bundle at a time.
+
+| Condition | Trajectory failures |
+|---|---|
+| GLM vs DeepSeek | 18 |
+| GLM vs GLM | 17 |
+| DeepSeek vs GLM | 12 |
+| DeepSeek vs DeepSeek | 1 |
+
+Forty-seven of forty-eight trajectory failures carry a GLM seat. The single
+condition with no GLM seat failed once. This holds across Morph, DeepInfra,
+Friendli and Parasail, so it is a property of serving that model through this
+gateway rather than of any one provider, and it is the reason a route change
+never fixed it. By condition the register is 45 rate limits, 9 timeouts, one
+transport failure and one execution error.
+
+Read this way, the delivery work in sections 20 to 30 was treating a
+model-specific supply constraint as though it were a series of unrelated
+provider incidents.
+
+Incidents from this family are recorded in two tiers under the repository
+[working rules](../../../CLAUDE.md). Tier 1 is the derived machine register
+above; Tier 2 is the [incident log](../../operations/incident_log.md), which
+holds the design defects, operational stops, tooling faults and judgment
+errors that no artifact can derive. Sections 20 to 31 are the narrative of
+those rows, not a substitute for them.
+
