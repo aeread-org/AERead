@@ -354,3 +354,210 @@ top-level report for the exact pass count from the background run.
 
 Full suite (`pytest -q`, no bridges exported): see the top-level report for
 the exact pass/skip/xfail counts from the background run.
+
+## Review (post-implementation, independent)
+
+An independent review of the five commits above (`be001ab6` through
+`262b5137`) reported six items. All six were accepted and fixed, test-first,
+mutation-verified, one commit per item.
+
+### 1 (blocker) — `I ⊆ declared case_conditional ids` was skipped for a legacy family
+
+**Finding.** `_enforce_declared_leaf_policy` returned early for a family
+with no declared leaf policy BEFORE validating `I` at all. A legacy
+family's plugin whose hook returns a non-empty set (a typo, or a stale
+hook left over from a prior manifest version) would finalize a receipt
+recording an undeclared inapplicable leaf; replay and audit would repeat
+the same unchecked value indefinitely, since both recompute `I` from the
+same broken hook and compare against the receipt's own (equally wrong)
+recorded value.
+
+**Disposition — fixed, commit `139757a1`.** The subset check
+(`I ⊆ declared_case_conditional_ids`) now runs unconditionally, before the
+no-declared-policy early return. A legacy family declares zero
+`case_conditional` leaves, so any non-empty `I` from a hook it happens to
+define is now caught immediately.
+
+**Test.** `tests/test_shared_runner_family_evaluation.py::test_finalize_rejects_a_legacy_familys_hook_returning_an_undeclared_inapplicable_id`
+-- Housing's real, production, no-leaf-policy manifest, plugin
+monkey-patched with `inapplicable_leaf_ids` returning `{"typo_leaf"}`.
+
+**Mutation.** Restoring the pre-fix ordering (early return before the
+subset check) made the test fail with "DID NOT RAISE ValueError".
+
+### 2 (should-fix) — the hook's return value was coerced, not validated
+
+**Finding.** `frozenset(hook(family_case))` accepted any iterable: a `str`
+silently became a set of its individual characters; other non-iterable
+types raised a confusing `TypeError` from the wrong function; no member
+type was ever checked.
+
+**Disposition — fixed, commit `466a3006`.** `_inapplicable_leaf_ids` now
+requires an actual `frozenset` or `set` (both, per the review; the type
+hint says `frozenset[str]` but the validation is deliberately looser than
+the hint on this one point) whose every member is `str`, raising a named
+`TypeError` mentioning the plugin (`type(plugin).__qualname__`, since the
+hook only receives the plugin instance, not its registered `plugin_id`)
+and the offending type.
+
+**Tests** (`tests/test_shared_runner_family_evaluation.py`):
+`test_inapplicable_leaf_ids_rejects_a_hook_returning_a_list`,
+`test_inapplicable_leaf_ids_rejects_a_hook_returning_a_str`,
+`test_inapplicable_leaf_ids_rejects_a_hook_returning_a_set_with_a_non_string_member`,
+and (positive control) `test_inapplicable_leaf_ids_accepts_a_plain_set_of_str`.
+
+**Mutation.** Restoring the pre-fix `return frozenset(hook(family_case))`
+made all three negative tests fail with "DID NOT RAISE TypeError".
+
+### 3 (should-fix) — the unscored (operational-exclusion) path was never checked
+
+**Finding.** `audit_family_receipt` evaluated the hook and compared
+`inapplicable_leaf_ids` only inside `if receipt.get("scores")`. An unscored
+receipt (`finalize_family_failure`'s typed operational exclusion) never
+called the hook at all -- `finalize_family_failure` did not record a real
+`I` (it silently defaulted to `()`, the same way `deferred_leaf_ids`
+already does and continues to on this path -- confirmed by reading the
+function directly, not assumed), so there was nothing meaningful for
+audit to recompute and compare against even if it tried.
+
+**Disposition — fixed, commit `90515de2`.** Leaf disposition is a case
+property, not a scoring outcome, so:
+
+- `finalize_family_failure` now computes `I` from the plugin's hook (the
+  `family_case` it already computes) and records it on the receipt, and
+  validates `I` against the manifest's declared `case_conditional` ids
+  (the same check extracted into a shared
+  `_reject_undeclared_inapplicable_ids` helper, now used by
+  `_enforce_declared_leaf_policy`, `finalize_family_failure`, and audit's
+  unscored branch).
+- `audit_family_receipt`'s unscored branch now resolves the plugin/case,
+  recomputes `I`, validates it, and compares it against the receipt's
+  recorded value.
+- `replay_family_receipt` has no equivalent branch to fix: it
+  unconditionally requires exactly one `score_recorded` event
+  (`if len(score_events) != 1: raise ...`) and so structurally never
+  receives an unscored receipt at all -- confirmed by reading the function,
+  not assumed. Recorded here rather than silently adding a no-op check to
+  satisfy the letter of "replay/audit" without substance.
+- `deferred_leaf_ids` on this path is left as `finalize_family_failure`
+  already had it (always `()`, since no leaf is ever scored) -- that
+  predates R13 and is out of this ruling's scope; only `inapplicable_leaf_ids`
+  is R13's to make consistent here.
+
+**Tests** (`tests/test_shared_runner_scoring_contract.py`), driven through a
+genuine reconciled failure (one scripted label for a two-round episode, so
+round_two's provider call fails closed and the scheduler raises with the
+failure trail already sealed -- exactly what `finalize_family_failure`
+documents itself as sealing):
+`test_case_conditional_finalize_family_failure_records_inapplicable_leaf_ids`,
+`test_case_conditional_finalize_family_failure_records_empty_inapplicable_leaf_ids_when_applicable`,
+`test_case_conditional_audit_accepts_an_unscored_receipts_recomputed_inapplicable_leaf_ids`,
+`test_case_conditional_audit_rejects_an_unscored_receipt_whose_inapplicable_leaf_ids_disagree_with_the_recomputed_hook`.
+
+**Mutation.** Removing `finalize_family_failure`'s new `inapplicable_leaf_ids=`
+kwarg made the "records" test fail on the exact assertion (`() ==
+('case_conditional_diagnostic',)`). Removing audit's new unscored-branch
+comparison made the "rejects" test fail with "DID NOT RAISE ValueError".
+
+### 4 (should-fix) — precedence proven only for a finalize_time conditional leaf
+
+**Finding.** The deferred/inapplicable disjointness precedence (rule 4)
+was implemented identically at all three call sites but only exercised by
+`_CaseConditionalPlugin`'s finalize_time diagnostic -- no fixture had a
+leaf that is BOTH `deferred` and `case_conditional`.
+
+**Disposition — fixed, commit `7e036d73`.** A new, deliberately SEPARATE
+synthetic family (`_CaseConditionalDeferredPlugin`, its own manifest and
+case builders) with one leaf that is both `scope="deferred"` and
+`case_conditional=True` -- kept separate from `_case_conditional_family_manifest`
+so this fixture could not perturb any already-committed case-conditional
+test's exact leaf-set assertions. Since a deferred leaf never appears in
+`scores` regardless of applicability, the scorer here is simpler than
+`_CaseConditionalScorer`: it always returns only the primary.
+
+**Tests** (`tests/test_shared_runner_scoring_contract.py`), both case
+modes, through all three real entry points:
+`test_case_conditional_deferred_precedence_applicable_case_at_finalize`,
+`test_case_conditional_deferred_precedence_inapplicable_case_at_finalize`,
+`test_case_conditional_deferred_precedence_replay_applicable_case`,
+`test_case_conditional_deferred_precedence_replay_inapplicable_case`,
+`test_case_conditional_deferred_precedence_audit_applicable_case`,
+`test_case_conditional_deferred_precedence_audit_inapplicable_case`.
+
+**Mutation**, one per path's own `- inapplicable_ids` subtraction:
+removing it in `finalize_family_execution` made the inapplicable-case
+finalize test fail with the receipt's own disjointness guard
+(`MeasurementContractError: inapplicable_leaf_ids must not overlap with
+deferred_leaf_ids`); removing it in `replay_family_receipt`'s
+`deferred_leaf_ids` comparison made the inapplicable-case replay test fail
+with "receipt deferred_leaf_ids does not match the declared policy";
+removing it in `audit_family_receipt`'s scored-branch comparison made the
+inapplicable-case audit test fail with "receipt admission does not match
+the replayed score".
+
+### 5 (should-fix) — the protocol helper never checked `I`'s subset property
+
+**Finding.** `_assert_family_obeys_the_scoring_contract` checked
+`returned == declared - I` but never `I ⊆ declared case_conditional ids`.
+A hook returning an id that names NO declared leaf at all (not even the
+primary) subtracts nothing from `declared.leaf_ids`; a scorer unaffected
+by the hook's lie (returning exactly the declared set) then satisfies the
+equality regardless -- the broken hook passes silently.
+
+**Disposition — fixed, commit `db7525e5`.** The helper now asserts
+`I ⊆ declared_case_conditional_ids` (computed from
+`registration.manifest.measurement.leaves`) with a message naming the
+family and the offending ids, before the leaf-set equality.
+
+**Test.** `tests/test_shared_runner_scoring_contract.py::test_case_conditional_protocol_helper_rejects_an_undeclared_inapplicable_id`
+-- a new `_CaseConditionalPlugin` mode, `"hook_returns_a_typo"`, returning
+an id that is not even the primary (the earlier `"hook_returns_undeclared"`
+mode, which names the primary, was tried first and rejected for this
+specific test: subtracting a real declared id from `declared.leaf_ids`
+collaterally breaks the leaf-set equality too, which would have let the
+test pass for the wrong reason -- see the mutation below for why this
+distinction mattered in practice).
+
+**Mutation.** Removing the new subset assertion made the test fail with
+"DID NOT RAISE AssertionError" -- a genuine silent pass, not merely a
+differently-worded failure (confirmed by first attempting the mutation
+against the `"hook_returns_undeclared"` adversary, where removing the
+assertion produced a *different* AssertionError rather than none at all,
+which is why the test uses `"hook_returns_a_typo"` instead).
+
+### 6 (blocker) — `research.py::_deserialize_receipt` dropped `inapplicable_leaf_ids`
+
+**Finding.** `docs/kernel_r13_conditional_leaves.md` itself recorded this
+as a known, unfixed gap: `_deserialize_receipt` never read
+`inapplicable_leaf_ids` back from the serialized mapping, so the first
+family to declare a `case_conditional` leaf would lose the field on this
+specific round trip (research.py's own serialize/deserialize path, not
+the kernel's `write_evaluation_receipt`/`read_evaluation_receipt`, which
+was already proven correct in commit `08148388`).
+
+**Disposition — fixed, commit `6ac18352`.** Checked `deferred_leaf_ids`
+first, as instructed: it was already correctly read back
+(`tuple(value.get("deferred_leaf_ids", ()))`), a pre-existing, correct
+line -- not a defect. `inapplicable_leaf_ids` gets the identical treatment,
+newly added: `tuple(value.get("inapplicable_leaf_ids", ()))`.
+
+**Test.** `tests/test_shared_runner_research.py::test_deserialize_evaluation_receipt_round_trips_inapplicable_leaf_ids`
+-- mirrors the file's own existing `..._round_trips_deferred_leaf_ids` test
+exactly, extended to also carry a non-empty `deferred_leaf_ids` in the same
+receipt (proving both fields survive together, not just in isolation).
+`_receipt()`'s test fixture builder gained an `inapplicable_leaf_ids`
+keyword to support this.
+
+**Mutation.** Removing the new `inapplicable_leaf_ids=` line from
+`_deserialize_receipt` made the test fail with
+`ResearchContractError: serialized EvaluationReceipt is invalid` (the
+rebuilt receipt's `receipt_sha256` no longer matches, since the rebuilt
+object silently defaulted the field to `()` instead of the original's
+non-empty value).
+
+### Deviation update
+
+The doc's earlier "Deviations" section (recording `research.py`'s gap as
+known-but-unfixed, out of the original file scope) is superseded by finding
+6 above: the file was brought into scope for this review round and the gap
+is now fixed, not merely documented.
