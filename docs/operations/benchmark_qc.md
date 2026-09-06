@@ -139,16 +139,47 @@ Establish this by measurement, not by inspecting world definitions:
    candidate world, at one seed if budget is tight. A cheaper proxy policy is not
    a substitute unless that proxy is first shown to track the control on a panel
    of known difficulty.
-2. Admit a world only when it can express a difference **in both directions**:
-   the control must fail a declared minimum share of rows, and at least one other
-   policy must succeed on a declared minimum share. Screening a single policy
-   detects saturation and nothing else; a world no policy can solve is exactly as
-   uninformative as one every policy solves, and it passes a control-only screen
-   precisely because the control fails there. Screen at least two policies with
-   different failure modes and require the world to separate them. Publish both
-   measured rates per admitted world in the panel manifest.
-3. A holdout must additionally preserve the difficulty of the panel it holds out
+2. Admit a world only after rejecting it on **three separate grounds**, each
+   testable and each cheap. A world is *trivial* if a deterministic policy
+   reading only public observations already succeeds, so the family's subject is
+   not under test. It is *floored* if the control never succeeds. It is
+   *saturated* if the control always succeeds. Publish the measured control rate
+   and each baseline outcome per admitted world in the panel manifest.
+
+   "The two policies disagree" is **not** a sufficient rule, and looks like one.
+   It admits a saturated world whenever a baseline happens to lose there, which
+   reintroduces the exact failure the two-sided screen was built to prevent.
+   State the three conditions separately and test them separately.
+
+3. Measure the control at **several seeds per world**, not one. One seed cannot
+   distinguish a ceiling from a lucky draw, and both rejection grounds above are
+   claims about a rate.
+
+4. Report the **within-world variance** the screen observes, and treat zero as a
+   finding rather than as precision. If every seed in a world returns the same
+   outcome, seeds are repeats rather than replicates: the effective sample size
+   is the number of worlds, and any interval computed across rows is narrower
+   than the truth by construction. A panel-level rate near 50% is compatible with
+   every individual world being deterministic, so it is not evidence of headroom
+   on its own. Procurement's due-diligence sweep is the worked example: a 50%
+   panel rate at budget 6 decomposes into three worlds at 3/3 and three at 0/3,
+   with no fractional cell anywhere.
+
+5. **Never catch an exception inside a screening loop.** A policy that cannot run
+   and a policy that runs and loses must not produce the same value. Procurement's
+   first two-sided screen called its baseline with a positional argument where the
+   parameter is keyword-only, scored the resulting `TypeError` as a loss in every
+   world, and reported a fabricated unanimous admission. A screen is evidence and
+   is owed the scepticism owed to a run; a unanimous verdict is a reason to check
+   the instrument.
+6. A holdout must additionally preserve the difficulty of the panel it holds out
    from. Matching a panel's failure *themes* does not match its difficulty.
+
+If a family cannot produce worlds that pass all three grounds, the finding is
+about the environment and not about the panel. Check whether the rule admitting a
+world and the quantity making it hard are the same quantity; when they are, the
+outcome is a step and no amount of re-tuning will find an interior. Procurement
+defect 17 is that case written out.
 
 Substituting a cheap proxy without validating it is its own trap. Procurement's
 deterministic policy baselines solve **zero** worlds on the good development
