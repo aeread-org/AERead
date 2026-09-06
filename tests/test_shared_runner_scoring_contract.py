@@ -1213,16 +1213,24 @@ def _score_measurement_content(score: ScoreEnvelope) -> tuple[Any, ...]:
 #     that, since a legitimate trajectory metric may coincide on any one
 #     pair).
 #   R10 the consistency duty -- for every declared path, the outcome's copy
-#     of the trajectory must equal its canonical derivation from
-#     ``phase_instances``. The kernel does not need to understand a family's
-#     domain to check this: ``phase_instances[-1].transitions[-1].state`` is
-#     exactly the state ``plugin.terminal()`` was called on to produce the
-#     terminal result that ``outcome()`` was built from (scheduler.py's
-#     ``run_episode`` calls ``_terminal(plugin, family_case, state)``
-#     immediately after each ``_step``), so navigating the SAME declared
-#     JSON pointer into that state recovers the trajectory copy independent
-#     of the outcome the family actually sealed -- two disagreeing copies are
-#     exactly what this catches.
+#     of the trajectory must equal the SAME pointer read from the final
+#     replayed state. kernel_r9r10_review.md finding 2: this is NOT a
+#     "canonical derivation" of history from actions -- the kernel does not
+#     re-derive anything. It only re-reads
+#     ``phase_instances[-1].transitions[-1].state`` -- exactly the state
+#     ``plugin.terminal()`` was called on to produce the terminal result
+#     that ``outcome()`` was built from (scheduler.py's ``run_episode``
+#     calls ``_terminal(plugin, family_case, state)`` immediately after each
+#     ``_step``) -- at the same declared JSON pointer, and requires it to
+#     agree with the outcome's sealed copy. Two limits follow directly: a
+#     family whose OWN transition function mis-records history is out of
+#     scope (both sides would agree, and agree wrongly); and a family whose
+#     outcome stores the trajectory under a DIFFERENT field name than its
+#     own state (e.g. outcome ``"/public_history"`` copied from state
+#     ``"/history"``) cannot declare that path -- the pointer read below is
+#     family-agnostic and has no way to know the field was renamed, so it
+#     fails loudly (as a named assertion, not a raw ``KeyError``) rather
+#     than silently comparing the wrong thing.
 # ---------------------------------------------------------------------------
 
 
@@ -1307,13 +1315,25 @@ def _final_replayed_state(phase_instances: tuple[PhaseInstance, ...]) -> Any:
 def _assert_trajectory_outcome_paths_are_consistent(
     scoring_input: "FamilyScoringInput", paths: tuple[str, ...]
 ) -> None:
-    """Ruling R10: each declared path's outcome copy must match its derivation.
+    """Ruling R10: each declared path's outcome copy must equal the SAME
+    pointer read from the final replayed state.
 
-    A family that embeds its trajectory in ``outcome`` is not a contract
-    violation (ruling R10) -- ``phase_instances`` remains the authoritative
-    scoring provenance; the embedded copy is for inspection. This is the duty
-    that comes with embedding it: two copies of the trajectory that disagree
-    must fail, whatever the disagreement's cause.
+    kernel_r9r10_review.md finding 2: this is precisely what is compared,
+    and no more. This does NOT re-derive history from actions -- it re-reads
+    ``_final_replayed_state`` (the state ``plugin.terminal()`` was called on,
+    the product of replaying the family's own sealed transitions through its
+    own transition function) at the same declared JSON pointer, and requires
+    the outcome's sealed copy to agree with it. A family that embeds its
+    trajectory in ``outcome`` is not a contract violation (ruling R10) --
+    ``phase_instances`` remains the authoritative scoring provenance; the
+    embedded copy is for inspection. This is the duty that comes with
+    embedding it: two copies of the trajectory that disagree must fail,
+    whatever the disagreement's cause -- WITHIN this check's limits: a
+    family whose own transition function mis-records history is out of
+    scope, and a family whose outcome stores the trajectory under a
+    different field name than its own state cannot declare that path at all
+    (the pointer read below fails loudly instead of silently comparing the
+    wrong thing).
     """
     if not paths:
         return
@@ -1332,12 +1352,28 @@ def _assert_trajectory_outcome_paths_are_consistent(
             "sequence of per-step records; an object subtree may hide "
             "terminal facts behind the projection"
         )
-        derived_value = _json_pointer_get(final_state, pointer)
+        try:
+            derived_value = _json_pointer_get(final_state, pointer)
+        except KeyError as error:
+            # kernel_r9r10_review.md finding 2: ruling R10 reads the SAME
+            # pointer from both the outcome and the final replayed state --
+            # a family whose outcome stores its trajectory under a
+            # different field name than its own state (e.g. outcome
+            # "/public_history" copied from state "/history") cannot
+            # declare this path; this is now a named limitation, not a raw
+            # KeyError leaking out of a helper the caller never touched.
+            raise AssertionError(
+                f"outcome{pointer} does not exist in the final replayed state -- "
+                "ruling R10 reads the SAME pointer from both the outcome and the "
+                "final replayed state; a family whose outcome stores its "
+                "trajectory under a different field name than its own state "
+                "cannot declare this path"
+            ) from error
         assert canonical_json_bytes(outcome_value) == canonical_json_bytes(
             derived_value
         ), (
-            f"outcome{pointer} does not match its canonical derivation from "
-            "phase_instances -- ruling R10 requires a declared "
+            f"outcome{pointer} does not match the same pointer read from the "
+            "final replayed state -- ruling R10 requires a declared "
             "trajectory_outcome_path to agree with the verified re-execution, "
             "not merely with whatever the family happened to seal"
         )
@@ -1945,7 +1981,7 @@ def test_r9_projection_pairs_a_trajectory_embedding_outcome_when_the_path_is_dec
     )
 
     # Ruling R10: each fixture's own embedded copy of the trajectory agrees
-    # with its own canonical derivation from phase_instances.
+    # with the same pointer read from its own final replayed state.
     _assert_trajectory_outcome_paths_are_consistent(left_input, declared_paths)
     _assert_trajectory_outcome_paths_are_consistent(right_input, declared_paths)
 
@@ -2184,7 +2220,7 @@ def test_r10_rejects_a_corrupted_trajectory_outcome_copy_end_to_end(
         scoring_input,
         outcome={**scoring_input.outcome, "labels": ("y", "x")},
     )
-    with pytest.raises(AssertionError, match="does not match its canonical derivation"):
+    with pytest.raises(AssertionError, match="does not match the same pointer read"):
         _assert_trajectory_outcome_paths_are_consistent(corrupted, ("/labels",))
 
 
@@ -2363,8 +2399,27 @@ def test_r10_rejects_a_corrupted_trajectory_outcome_copy() -> None:
         phase_instances=phase_instances,
         evidence_refs=(),
     )
-    with pytest.raises(AssertionError, match="does not match its canonical derivation"):
+    with pytest.raises(AssertionError, match="does not match the same pointer read"):
         _assert_trajectory_outcome_paths_are_consistent(corrupted, ("/labels",))
+
+
+def test_r10_rejects_a_declared_path_the_final_state_does_not_have() -> None:
+    """kernel_r9r10_review.md finding 2, mutation check: ruling R10 reads the
+    SAME pointer from both the outcome and the final replayed state. A
+    family whose outcome stores its trajectory under a different field name
+    than its own state (e.g. "/public_history" copied from state
+    "/history") cannot declare that path -- the raw ``KeyError`` this used
+    to raise is now a clear, named assertion rather than an opaque crash."""
+    phase_instances = (_phase_instance_ending_in_state({"history": ["x", "y"]}),)
+    scoring_input = FamilyScoringInput(
+        outcome={"public_history": ["x", "y"]},
+        phase_instances=phase_instances,
+        evidence_refs=(),
+    )
+    with pytest.raises(
+        AssertionError, match="does not exist in the final replayed state"
+    ):
+        _assert_trajectory_outcome_paths_are_consistent(scoring_input, ("/public_history",))
 
 
 def test_r10_is_a_no_op_when_no_paths_are_declared() -> None:
