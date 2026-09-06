@@ -147,16 +147,62 @@ verifier declarations (`measurement.py`'s `build_*_leaf` functions); neither
 waits on an artifact that "may not exist yet" (spec section 4), so both are
 declared `scope="finalize_time"` and neither is `scope="deferred"`.
 
-**What this milestone does not touch.** `tests/test_shared_runner_scoring_contract.py`'s
-closed-world enrollment (`_NOT_YET_MIGRATED_TRUSTED_KEYS`,
-`FAMILY_SCORING_FIXTURES`) needs sealed evidence produced through
-`finalize_family_execution`, which is currently blocked by the
-finalizer-wiring gap recorded below (`docs/negarena_migration_plan.md`'s
-"Baseline failures to fix in milestone 3") — per spec section 5's own
-ordering (item 4, wiring to the finalizer, comes after item 2/3, leaf
-policy and `__call__`), enrollment is milestone 3's job, not this one.
-`tests/test_shared_runner_scoring_contract.py` was not edited in this
-migration.
+## Enrollment (kernel_scoring_contract_spec.md, migration milestone 3 of 3)
+
+The finalizer-wiring gap the previous milestone recorded (`docs/negarena_migration_plan.md`'s
+"Baseline failures to fix in milestone 3") is fixed:
+`harness.py`'s `record_full_evidence_lifecycle` now emits
+`action_attempt_succeeded` (carrying a `CanonicalResponse`-shaped
+`canonical_response`) and `phase_instance_succeeded` per phase instance —
+exactly the generic event vocabulary `task.evaluation._replay_family_trajectory`
+requires, mirroring `EvidenceRecordingGovsimHarness`'s identical placeholder
+(the migration reference). Both previously-failing tests
+(`tests/test_negarena_kernel_finalizer.py::test_finalize_family_execution_does_not_crash_and_seals_a_typed_receipt`,
+`::test_finalize_family_execution_seals_the_complete_evidence_lifecycle`) pass.
+
+`("negarena", "0.1.0")` is dropped from `_NOT_YET_MIGRATED_TRUSTED_KEYS`
+(`tests/test_shared_runner_scoring_contract.py`) — it is genuinely migrated
+— and added to `_BRIDGE_GATED_ENROLLED_FAMILY_VERSIONS` instead: like
+`govsim` (the migration reference for this exact shape), negarena's
+fixtures need the real, provisioned `NegarenaBridge`, so its protocol
+check runs in its own separately-skippable `test_negarena_obeys_the_scoring_contract`
+rather than inside the always-on `test_every_registered_family_obeys_the_scoring_contract`,
+which would otherwise make every OTHER family's own unconditional coverage
+skip too whenever the negarena bridge happens to be unavailable. An
+`AEREAD_NEGARENA_BRIDGE_REQUIRED` entry in the root `conftest.py` (mirroring
+the existing tau2/econevals/agenticpay/alympics/econagent gates) lets a
+certifying run turn that skip into a hard failure instead of a silent
+pass; `tests/test_negarena_bridge_required_gate.py` exercises the gate
+itself directly against the real `conftest.pytest_terminal_summary` hook.
+
+**Paired-history pair: confirmed constructible, exactly as the migration
+plan predicted.** `_negarena_fixture_pair` (`tests/test_shared_runner_scoring_contract.py`)
+drives two real, bridge-backed `negarena.buy_sell.0` episodes whose only
+difference is the offer price on the turn immediately before BLUE's
+ACCEPT (40 ZUP vs. 45 ZUP — both already proven legal within golden-1's
+own transcript). `outcome()` reports only `{termination_reason,
+iteration_count, last_answer, last_trade}`, none of which vary with that
+price, so the two fixtures' outcomes are byte-identical
+(`canonical_json_bytes` equality asserted directly in
+`_assert_family_obeys_the_scoring_contract`, never merely stated) while
+`phase_instances` genuinely differ. `negarena_seat_outcome` (trajectory)
+scores differently across the pair — RED realizes `0.0` at 40 ZUP vs.
+`5.0` at 45 ZUP — giving ruling R9(b)'s sensitivity witness;
+`negarena_agreement_reached` (terminal_state) scores identically across
+the pair (`1.0` both times), satisfying ruling R7's contrapositive.
+
+**A receipt now comes back.** `tests/test_negarena_kernel_finalizer.py::test_finalize_wires_negarena_to_the_shared_family_finalizer`
+drives one real, single-subject-seat (`RED`) episode through
+`finalize_family_execution` for the first time (every pre-existing
+finalizer test in that module names BOTH seats as subjects, which is
+ruling R12 rule 2's ambiguous-subject-seat branch, and always excludes).
+The golden-1 buy_sell transcript ends in `"accepted"`, so both declared
+leaves score `"ok"`, `receipt.status == "ok"`,
+`receipt.inclusion_status == "included"`, the returned leaf set is exactly
+`{negarena_seat_outcome_leaf, negarena_agreement_reached_leaf}`, and
+`receipt.primary_leaf_id == negarena_seat_outcome_leaf` — the declared
+finalize-time set and primary, produced for real rather than asserted in
+a comment.
 
 ## Evidence
 
