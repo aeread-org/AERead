@@ -16,22 +16,45 @@ on invalid input" and had never been proven at the replay level before.
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import json
 import os
+from dataclasses import dataclass
 from pathlib import Path
 from types import MappingProxyType
+from typing import Any, Callable, Mapping
 
 import pytest
 
-from aeread.shared_runner.task.execution import EvidenceStore
-from aeread.shared_runner.registry import PluginRegistry
-from aeread.shared_runner.run.resolver import PlanCell, canonical_json_bytes
-from aeread.shared_runner.schemas import CaseManifest
+import aeread.shared_runner.task.execution as execution_module
+from aeread.shared_runner.task.execution import CanonicalResponse, CellExecution, EvidenceStore
+from aeread.shared_runner.model_call.harness import default_harnesses
+from aeread.shared_runner.registry import HarnessRegistry, PluginRegistry, ProviderCapabilities
+from aeread.shared_runner.run.resolver import (
+    ImplementationPin,
+    PlanCell,
+    RunPlan,
+    canonical_json_bytes,
+    resolve_run_plan,
+)
+from aeread.shared_runner.schemas import (
+    AgentProfile,
+    AnalysisPlan,
+    CaseManifest,
+    EvaluationBlock,
+    RunSpec,
+    SamplingPlan,
+    SuiteManifest,
+)
+from aeread.shared_runner.task.evaluation import finalize_family_execution
 from aeread.shared_runner.task.scheduler import EpisodeResult, run_episode
 from aeread_families.amazonbarg import cases as amazonbarg_cases
+from aeread_families.amazonbarg import environment as amazonbarg_environment
 from aeread_families.amazonbarg import measurement as m
 from aeread_families.amazonbarg.environment import (
     BUYER_PHASE,
+    PLUGIN_ID,
+    SCORER_ID,
     SELLER_PHASE,
     AmazonbargPlugin,
     family_manifest,
@@ -158,6 +181,28 @@ GOLDEN_5_SCRIPT = [
     (BUYER_PHASE, "buyer", {"content": "Thought: t\nTalk: hi\nAction: [BUY] $850 (1x toys-games_22)"}),
     (SELLER_PHASE, "seller", {"content": "Thought: t\nTalk: no\nAction: [REJECT]"}),
     (BUYER_PHASE, "buyer", {"content": "Thought: t\nTalk: bye\nAction: [QUIT]"}),
+]
+
+# kernel_scoring_contract_spec.md section 6 / ruling R7: a paired-history
+# fixture for the same case (home-kitchen_2) as GOLDEN_1_SCRIPT, closing at
+# the identical $135 deal through genuinely different intermediate offers
+# (different opening bids and counter-offers, different "Talk:" text).
+# Verified directly against the real bridge before being wired in here
+# (never merely asserted): `outcome()` (termination_reason,
+# terminating_actor, turns_completed, message_count) is byte-identical to
+# GOLDEN_1_SCRIPT's, and `phase_instances` genuinely differ, and upstream's
+# own delegated `D` (the realized deal price) is identical -- $135 in both
+# -- which is exactly what the two forced-`terminal_state` bound leaves'
+# `primary` reads (see measurement.py's `_score_bound`), so those two leaves
+# stay invariant across the pair while the three genuinely
+# `input_scope="trajectory"` leaves are free to (and, for
+# `amazonbarg_deal_authenticity`/`amazonbarg_zopa_membership`, in this pair,
+# do not need to) differ.
+GOLDEN_1_PAIRED_HISTORY_SCRIPT = [
+    (BUYER_PHASE, "buyer", {"content": "Thought: t2\nTalk: yo\nAction: [BUY] $100 (1x home-kitchen_2)"}),
+    (SELLER_PHASE, "seller", {"content": "Thought: t2\nTalk: nope\nAction: [SELL] $160 (1x home-kitchen_2)"}),
+    (BUYER_PHASE, "buyer", {"content": "Thought: t2\nTalk: final\nAction: [BUY] $135 (1x home-kitchen_2)"}),
+    (SELLER_PHASE, "seller", {"content": "Thought: t2\nTalk: fine\nAction: [DEAL] $135 (1x home-kitchen_2)"}),
 ]
 
 
@@ -658,3 +703,529 @@ def test_replay_of_a_tampered_response_diverges_rather_than_raising(tmp_path: Pa
     original_last_action = original.final_state["history"][-1][-1]["action"]
     replayed_last_action = replayed.final_state["history"][-1][-1]["action"]
     assert original_last_action != replayed_last_action
+
+
+# ---------------------------------------------------------------------------
+# Evidence-complete episode driving (kernel_scoring_contract_spec.md
+# migration milestone 3): a response source that ALSO writes the full
+# generic evidence trail ``task.evaluation.replay_family_scoring_input``
+# needs to replay, plus a real, ``resolve_run_plan``-resolved ``RunPlan`` --
+# both required to drive ``task.evaluation.finalize_family_execution`` for
+# this family for the first time, and reused by
+# ``tests/test_shared_runner_scoring_contract.py`` for its own paired-
+# history fixtures. Mirrors govsim's identically-purposed
+# ``EvidenceRecordingGovsimHarness``/``build_govsim_setup``
+# (``tests/test_govsim_replay.py``, kernel_scoring_contract_spec.md's own
+# reference migration) field-for-field -- both classes are entirely generic
+# over ``task.scheduler``'s ``ResponseSource`` lifecycle hooks, so nothing
+# here is amazonbarg-specific except the ``answer`` callable and the
+# resolved ``RunPlan``'s own family/case/profile wiring below.
+# ---------------------------------------------------------------------------
+
+
+class EvidenceRecordingAmazonbargHarness:
+    """A ``run_episode`` response source that writes the full generic
+    replay-required evidence trail (``logical_action_started``,
+    ``action_attempt_succeeded``, ``action_parsed``,
+    ``action_legality_checked``, ``logical_action_succeeded``,
+    ``phase_instance_started``, ``transition_applied``,
+    ``phase_instance_succeeded``, ``episode_terminated``,
+    ``family_outcome_recorded``) -- exactly the event vocabulary
+    ``aeread.shared_runner.task.execution.MinimalChatExecutor``/
+    ``AttemptExecutor`` write for every LLM-harness-backed family's own
+    evidence, reproduced here without any of that class's provider/retry/
+    cost machinery, since every amazonbarg decision is a plain scripted
+    dict, never a provider completion.
+
+    ``ScriptedAmazonbargHarness`` (this family's existing scripted response
+    source, ``harness.py``) writes only its own convenience event
+    (``amazonbarg_decision_served``) and has never produced evidence
+    ``aeread.shared_runner.task.evaluation.replay_family_scoring_input`` can
+    replay -- ``finalize_family_execution`` calls that replay internally, so
+    this class is what makes driving THAT finalizer for this family
+    possible at all. ``answer`` supplies the raw scripted decision for one
+    request; this class owns only the evidence-recording seam around it,
+    mirroring ``AttemptExecutor``'s own event shapes field-for-field.
+    """
+
+    def __init__(
+        self, *, answer: Callable[[Any], Mapping[str, Any]], evidence: EvidenceStore
+    ) -> None:
+        self._answer = answer
+        self._evidence = evidence
+
+    async def __call__(self, request: Any) -> dict[str, Any]:
+        response = dict(self._answer(request))
+        self._evidence.append_event(
+            "logical_action_started",
+            {"request": request},
+            phase_instance_id=request.phase_instance_id,
+            logical_action_id=request.logical_action_id,
+            visibility=f"seat:{request.seat_id}",
+        )
+        # A CanonicalResponse-shaped placeholder purely for replay provenance
+        # (``LogicalActionRecord.response``): amazonbarg's own
+        # ``parse_action`` never reads it (the scheduler hands it the raw
+        # ``response`` dict returned above, unchanged -- see
+        # ``ScriptedAmazonbargHarness``'s identical contract), and replay
+        # itself reconstructs ``parse``/``legality`` directly from the
+        # "action_parsed"/"action_legality_checked" events below, never
+        # from this response.
+        canonical = CanonicalResponse(
+            text=json.dumps(response, sort_keys=True),
+            finish_reason="stop",
+            empty=False,
+            truncated=False,
+            provider_call_ids=(),
+            tool_invocation_ids=(),
+            input_tokens=0,
+            cached_input_tokens=0,
+            output_tokens=0,
+            cost_usd=0.0,
+            action=response,
+        )
+        self._evidence.append_event(
+            "action_attempt_succeeded",
+            {"canonical_response": canonical},
+            phase_instance_id=request.phase_instance_id,
+            logical_action_id=request.logical_action_id,
+            visibility=f"seat:{request.seat_id}",
+        )
+        return response
+
+    def finalize_action(self, record: Any) -> None:
+        envelope = record.envelope
+        failure_code = None
+        if not envelope.valid:
+            failure_code = (
+                envelope.parse.error_code
+                if not envelope.parse.ok
+                else envelope.legality.reason
+            )
+        self._evidence.append_event(
+            "action_parsed",
+            {"parse_result": envelope.parse},
+            phase_instance_id=record.request.phase_instance_id,
+            logical_action_id=record.logical_action_id,
+            visibility=f"seat:{record.seat_id}",
+        )
+        if envelope.legality is not None:
+            self._evidence.append_event(
+                "action_legality_checked",
+                {"legality_result": envelope.legality},
+                phase_instance_id=record.request.phase_instance_id,
+                logical_action_id=record.logical_action_id,
+            )
+        event_type = (
+            "logical_action_succeeded"
+            if envelope.valid
+            else "logical_action_agent_action_failure"
+        )
+        self._evidence.append_event(
+            event_type,
+            {"valid": envelope.valid, "failure_code": failure_code},
+            logical_action_id=record.logical_action_id,
+        )
+
+    def fail_logical_action(self, logical_action_id: str, *, failure_code: str) -> None:
+        self._evidence.append_event(
+            "logical_action_failed",
+            {"failure_condition": failure_code},
+            logical_action_id=logical_action_id,
+        )
+
+    def phase_started(
+        self,
+        *,
+        phase_instance_id: str,
+        phase: Any,
+        eligible_actors: tuple[str, ...],
+        pre_state_sha256: str,
+    ) -> None:
+        self._evidence.append_event(
+            "phase_instance_started",
+            {
+                "phase": phase,
+                "eligible_actors": eligible_actors,
+                "pre_state_sha256": pre_state_sha256,
+            },
+            phase_instance_id=phase_instance_id,
+        )
+
+    def transition_applied(
+        self,
+        *,
+        phase_instance_id: str,
+        phase: Any,
+        transition: Any,
+        post_state_sha256: str,
+    ) -> None:
+        self._evidence.append_event(
+            "transition_applied",
+            {
+                "phase_id": phase.phase_id,
+                "transition": transition,
+                "post_state_sha256": post_state_sha256,
+            },
+            phase_instance_id=phase_instance_id,
+        )
+
+    def phase_completed(self, *, phase_instance: Any) -> None:
+        self._evidence.append_event(
+            "phase_instance_succeeded",
+            {
+                "phase_id": phase_instance.phase_id,
+                "post_state_sha256": phase_instance.post_state_sha256,
+                "logical_action_ids": tuple(
+                    action.logical_action_id for action in phase_instance.actions
+                ),
+            },
+            phase_instance_id=phase_instance.phase_instance_id,
+        )
+
+    def episode_completed(self, *, episode_result: EpisodeResult) -> None:
+        self._evidence.append_event(
+            "episode_terminated",
+            {
+                "terminal": episode_result.terminal,
+                "logical_action_count": episode_result.logical_action_count,
+            },
+        )
+        self._evidence.append_event(
+            "family_outcome_recorded",
+            {"outcome": episode_result.outcome},
+        )
+
+
+def amazonbarg_script_answer(
+    script: list[tuple[str, str, Mapping[str, Any]]]
+) -> Callable[[Any], Mapping[str, Any]]:
+    """An ``answer`` callable for ``EvidenceRecordingAmazonbargHarness`` that
+    serves a fixed ordered script exactly like ``ScriptedAmazonbargHarness``
+    (``harness.py``) does, but without any evidence-writing of its own --
+    this class writes the full generic vocabulary instead (above)."""
+    iterator = iter(script)
+
+    def answer(request: Any) -> Mapping[str, Any]:
+        expected_phase, expected_seat, response = next(iterator)
+        if request.phase_id != expected_phase or request.seat_id != expected_seat:
+            raise RuntimeError(
+                f"script expected phase={expected_phase!r} seat={expected_seat!r}, "
+                f"got phase={request.phase_id!r} seat={request.seat_id!r}"
+            )
+        return response
+
+    return answer
+
+
+@dataclass(frozen=True, slots=True)
+class AmazonbargSetup:
+    """A resolved, provider-free ``RunPlan`` for one amazonbarg case.
+
+    Like govsim's own ``GovsimSetup``, this family's real runtime never
+    goes through ``execute_plan_cell``'s harness/provider stack at all --
+    every seat is answered directly through ``run_episode``'s
+    ``response_source`` (``ScriptedAmazonbargHarness``/
+    ``EvidenceRecordingAmazonbargHarness`` above). The declared
+    ``minimal_chat`` harness and fixture provider below exist purely to
+    satisfy ``resolve_run_plan``'s structural pin/capability checks and are
+    never actually invoked.
+    """
+
+    plan: RunPlan
+    registry: PluginRegistry
+
+
+_AMAZONBARG_FIXTURE_PROFILE_ID = "amazonbarg_unused_fixture_profile_v1"
+_AMAZONBARG_FIXTURE_PROVIDER_ID = "amazonbarg_unused_fixture_provider"
+_AMAZONBARG_FIXTURE_RUNTIME_ID = "aeread.shared_runner.task.execution"
+
+
+def _pin(
+    component_id: str, kind: str, source_path: Path, *, version: str = "0.1.0"
+) -> ImplementationPin:
+    return ImplementationPin.from_dict(
+        {
+            "component_id": component_id,
+            "kind": kind,
+            "version": version,
+            "sha256": hashlib.sha256(source_path.read_bytes()).hexdigest(),
+        }
+    )
+
+
+def build_amazonbarg_setup(case: CaseManifest, *, suffix: str) -> AmazonbargSetup:
+    """Resolve a real, one-cell ``RunPlan`` for ``case`` (spec section 5.4).
+
+    Both seats share one placeholder agent profile: this family's real
+    runtime never invokes it (see ``AmazonbargSetup``'s own docstring), so
+    the harness/provider it names exist only to satisfy
+    ``resolve_run_plan``'s structural checks.
+    """
+    family = family_manifest()
+    seat_ids = ["buyer", "seller"]
+    sampling = SamplingPlan.from_dict(
+        {
+            "spec_version": SamplingPlan.SPEC_VERSION,
+            "sampling_plan_id": f"amazonbarg_{suffix}_sample_v1",
+            "estimand": "fixed_amazonbarg_case",
+            "target": case.case_id,
+            "selection": "fixed_curated",
+            "seeds": [case.world_seed],
+            "replicates": 1,
+            "cluster_level": "world_seed",
+            "cluster_id_fields": ["generator_version", "world_seed"],
+            "paired_fields": [],
+            "replicate_level": "episode_attempt",
+            "panel_mode": "fixed_panel",
+        }
+    )
+    block = EvaluationBlock.from_dict(
+        {
+            "spec_version": EvaluationBlock.SPEC_VERSION,
+            "block_id": f"amazonbarg_{suffix}_block",
+            "kind": "self_play",
+            "subject_seats": list(seat_ids),
+            "controlled_profiles": {},
+            "repetitions": 1,
+            "seed_policy": "fixed",
+        }
+    )
+    analysis = AnalysisPlan.from_dict(
+        {
+            "spec_version": AnalysisPlan.SPEC_VERSION,
+            "analysis_plan_id": f"amazonbarg_{suffix}_analysis_v1",
+            "estimands": [m.BARGAINED_RATIO_ESTIMAND_ID],
+            "group_by": ["family_id"],
+            "missingness": "report_separately",
+            "resampling_unit": "world_seed",
+            "uncertainty": "none",
+            "multiplicity": "none",
+            "sensitivity": [],
+            "cross_family_scalar": "disabled",
+        }
+    )
+    suite = SuiteManifest.from_dict(
+        {
+            "spec_version": SuiteManifest.SPEC_VERSION,
+            "suite_id": f"amazonbarg_{suffix}_suite_v1",
+            "version": "1.0.0",
+            "family_ids": [family.family.id],
+            "case_ids": [case.case_id],
+            "sampling_plan_id": sampling.sampling_plan_id,
+            "evaluation_block_ids": [block.block_id],
+            "analysis_plan_id": analysis.analysis_plan_id,
+        }
+    )
+    profile = AgentProfile.from_dict(
+        {
+            "spec_version": AgentProfile.SPEC_VERSION,
+            "profile_id": _AMAZONBARG_FIXTURE_PROFILE_ID,
+            "model": {
+                "provider": _AMAZONBARG_FIXTURE_PROVIDER_ID,
+                "model": "amazonbarg_unused_fixture_model_v1",
+                "revision": "1.0.0",
+                "base_url": None,
+            },
+            "harness": {
+                "id": "minimal_chat",
+                "version": "1.0",
+                "config": {},
+            },
+            "prompt": {
+                "prompt_id": f"amazonbarg_{suffix}_prompt_v1",
+                "sha256": hashlib.sha256(
+                    b"amazonbarg scripted seat: no prompt is ever sent"
+                ).hexdigest(),
+            },
+            "runtime": {
+                "kind": "python",
+                "implementation": _AMAZONBARG_FIXTURE_RUNTIME_ID,
+                "version": "0.1.0",
+            },
+            "tools": [],
+            "memory": {"mode": "disabled"},
+            "reasoning": {
+                "condition_id": "amazonbarg_scripted_no_reasoning_v1",
+                "effort": None,
+                "token_budget": None,
+                "rationale_visibility": "hidden",
+            },
+            "sampling": {
+                "temperature": 0.0,
+                "max_output_tokens": 64,
+                "seed": None,
+                "top_p": None,
+            },
+            "budgets": {
+                "max_logical_actions": case.episode.max_logical_actions,
+                "timeout_seconds": 30.0,
+                "max_cost_usd": 0.0,
+            },
+            "retry_policy": {
+                "max_action_attempts": 1,
+                "retryable_conditions": [],
+                "session_mode": "restart",
+                "sdk_retries": 0,
+            },
+        }
+    )
+    run_spec = RunSpec.from_dict(
+        {
+            "spec_version": RunSpec.SPEC_VERSION,
+            "run_spec_id": f"amazonbarg_{suffix}_run_spec_v1",
+            "suite_id": suite.suite_id,
+            "evaluation_block_ids": [block.block_id],
+            "agent_profile_ids": [profile.profile_id],
+            "seat_assignments": {seat_id: profile.profile_id for seat_id in seat_ids},
+            "execution_mode": "evaluate",
+            "replicate_override": None,
+            "budget_overrides": None,
+        }
+    )
+
+    registry = PluginRegistry()
+    register_plugin(registry, upstream_root=UPSTREAM_ROOT)
+    harness_registry = HarnessRegistry()
+    for harness in default_harnesses().values():
+        harness_registry.register(harness)
+
+    environment_path = Path(amazonbarg_environment.__file__)
+    execution_path = Path(execution_module.__file__)
+    measurement_path = Path(m.__file__)
+    upstream_shim_path = measurement_path.with_name("upstream_shim.py")
+    # measurement.py declares each of its five leaves' validity-domain
+    # predicate and scorer implementation under its own distinct component
+    # id (see environment.py's family_manifest() docstring on
+    # scoring.reference_provider_ids); every one of those seven must also
+    # be pinned here, or EvaluationReceipt._validate_and_freeze_plan_pins
+    # rejects the sealed receipt as missing implementations.
+    pins = (
+        _pin(PLUGIN_ID, "family_plugin", environment_path),
+        _pin(SCORER_ID, "scorer", environment_path),
+        _pin("minimal_chat", "harness", execution_path, version="1.0"),
+        _pin(_AMAZONBARG_FIXTURE_RUNTIME_ID, "runtime", execution_path, version="0.1.0"),
+        _pin("amazonbarg_upstream_metrics_bridge", "reference", upstream_shim_path),
+        _pin("amazonbarg_base_domain_predicate", "reference", environment_path),
+        _pin(m.DEAL_AUTHENTICITY_SCORER_ID, "reference", measurement_path),
+        _pin(m.ZOPA_MEMBERSHIP_SCORER_ID, "reference", measurement_path),
+        _pin(m.DEAL_LOWER_BOUND_SCORER_ID, "reference", measurement_path),
+        _pin(m.DEAL_UPPER_BOUND_SCORER_ID, "reference", measurement_path),
+        _pin(m.BARGAINED_RATIO_SCORER_ID, "reference", measurement_path),
+    )
+    plan = resolve_run_plan(
+        families=(family,),
+        cases=(case,),
+        suite=suite,
+        sampling=sampling,
+        evaluation_blocks=(block,),
+        analysis=analysis,
+        agent_profiles=(profile,),
+        run_spec=run_spec,
+        registry=registry,
+        implementation_pins=pins,
+        harness_registry=harness_registry,
+        provider_capabilities={
+            _AMAZONBARG_FIXTURE_PROVIDER_ID: ProviderCapabilities(
+                native_tools=False,
+                structured_output=False,
+                seed=False,
+                system_prompt=True,
+                reasoning_budget=False,
+                reasoning_token_report=False,
+                max_context_tokens=None,
+            )
+        },
+    )
+    return AmazonbargSetup(plan=plan, registry=registry)
+
+
+def test_finalize_wires_amazonbarg_to_the_shared_family_finalizer(tmp_path: Path) -> None:
+    """This family has never produced an ``EvaluationReceipt``.
+
+    Every other already-migrated family has at least one test driving a
+    real episode through ``task.evaluation.finalize_family_execution`` (see
+    ``tests/test_govsim_replay.py``'s identically-purposed
+    ``test_finalize_wires_govsim_to_the_shared_family_finalizer``);
+    amazonbarg had none, because its existing scripted response source
+    (``ScriptedAmazonbargHarness``) writes only its own convenience event
+    and has never produced evidence ``finalize_family_execution``'s
+    internal ``replay_family_scoring_input`` call can replay --
+    ``EvidenceRecordingAmazonbargHarness`` (above) is what makes this
+    reachable. Drives golden 1 (the same successful $135 Shark-vacuum deal
+    every other amazonbarg test file already exercises) end to end through
+    the real finalizer.
+
+    The receipt DOES carry every one of this family's five declared
+    finalize-time leaves, with the declared primary
+    (``amazonbarg_bargained_ratio_leaf``) and the four diagnostics all
+    ``status="ok"`` -- proving the wiring is genuinely complete, not merely
+    reachable. It does NOT come back ``status="ok"``/``inclusion_status=
+    "included"``: ``AmazonbargScorer.__call__`` (measurement.py) always
+    calls ``score_bargained_ratio`` with ``tested_seat=None`` because no
+    ``FamilyScoringInput`` can carry which seat a ``RunPlan`` is testing
+    (docs/amazonbarg_adapter_status.md's "Leaf policy" section, "Disclosed
+    consequence" -- a stated, disclosed limitation of the current contract
+    for THIS family, not a defect introduced here), so the declared primary
+    and sole admission leaf is sealed ``invalid_measurement`` with
+    ``REASON_TESTED_SEAT_UNKNOWN`` through this exact seam, for every
+    episode, clean or not. Asserting a fabricated ``"ok"``/``"included"``
+    here would misreport that limitation as fixed.
+    """
+    case = _case("home-kitchen_2")
+    setup = build_amazonbarg_setup(case, suffix="finalize_receipt")
+    cell = setup.plan.cells[0]
+    family = setup.plan.families[0]
+    plugin = setup.registry.resolve_manifest(family)
+
+    evidence = EvidenceStore(
+        tmp_path / "evidence_finalize_receipt",
+        run_plan_id=setup.plan.run_plan_id,
+        cell_id=cell.cell_id,
+        episode_id=f"episode_{cell.cell_id}",
+        episode_attempt_id="attempt_1",
+    )
+    harness = EvidenceRecordingAmazonbargHarness(
+        answer=amazonbarg_script_answer(list(GOLDEN_1_SCRIPT)), evidence=evidence
+    )
+    result = asyncio.run(
+        run_episode(cell=cell, case=case, plugin=plugin, response_source=harness)
+    )
+    execution = CellExecution(
+        run_plan_id=setup.plan.run_plan_id,
+        cell_id=cell.cell_id,
+        episode_attempt_id="attempt_1",
+        episode_result=result,
+        evidence=evidence,
+        action_executions=(),
+        total_cost_usd=0.0,
+    )
+
+    receipt = finalize_family_execution(setup=setup, execution=execution)
+
+    assert {score.leaf.leaf_id for score in receipt.scores} == {
+        m.DEAL_AUTHENTICITY_LEAF_ID,
+        m.ZOPA_MEMBERSHIP_LEAF_ID,
+        m.DEAL_LOWER_BOUND_LEAF_ID,
+        m.DEAL_UPPER_BOUND_LEAF_ID,
+        m.BARGAINED_RATIO_LEAF_ID,
+    }
+    assert receipt.primary_leaf_id == m.BARGAINED_RATIO_LEAF_ID
+    evidence_refs = {score.evidence_refs for score in receipt.scores}
+    assert len(evidence_refs) == 1
+
+    diagnostics = {
+        score.leaf.leaf_id: score
+        for score in receipt.scores
+        if score.leaf.leaf_id != m.BARGAINED_RATIO_LEAF_ID
+    }
+    for leaf_id, score in diagnostics.items():
+        assert score.status == "ok", f"{leaf_id} unexpectedly invalid: {score.validity.reasons}"
+
+    primary = next(
+        score for score in receipt.scores if score.leaf.leaf_id == m.BARGAINED_RATIO_LEAF_ID
+    )
+    assert primary.status == "invalid_measurement"
+    assert m.reasons_include(primary.validity, m.REASON_TESTED_SEAT_UNKNOWN)
+    assert receipt.status == "invalid_measurement"
+    assert receipt.inclusion_status == "excluded"
