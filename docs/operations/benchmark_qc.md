@@ -129,13 +129,22 @@ duplicate leakage across independent clusters, or development/holdout overlap.
 A panel is *informative* only if the declared control leaves rows it can fail.
 Establish this by measurement, not by inspecting world definitions:
 
-1. Before freezing a panel, run the frozen control, or a cheaper declared
-   baseline policy, across every candidate world.
+1. Before freezing a panel, run **the frozen control itself** across every
+   candidate world, at one seed if budget is tight. A cheaper proxy policy is not
+   a substitute unless that proxy is first shown to track the control on a panel
+   of known difficulty.
 2. Admit a world only when the control fails at least a declared minimum share of
    its rows, and publish the measured control rate per admitted world in the
    panel manifest.
 3. A holdout must additionally preserve the difficulty of the panel it holds out
    from. Matching a panel's failure *themes* does not match its difficulty.
+
+Substituting a cheap proxy without validating it is its own trap. Procurement's
+deterministic policy baselines solve **zero** worlds on the good development
+panel, the known-bad holdout, and the confirmatory panel alike, so they cannot
+distinguish a panel the model control saturates from one it fails; they beat the
+model on the six `dev` worlds and lose everywhere else. A screen that returns the
+same answer for a good and a bad panel is not a screen.
 
 Skipping this produces a panel that passes every other Gate 1 check and still
 cannot measure anything. Procurement's `confirmatory_v2` is the worked example:

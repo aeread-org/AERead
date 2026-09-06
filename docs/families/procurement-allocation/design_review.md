@@ -345,13 +345,49 @@ answers design-review defect 9, since a panel whose control saturates and a pane
 whose subject reaches the bound exactly are the same failure seen from the two
 ends.
 
+## 15. The biased channel is one no policy reads, and financing cannot be material at this scale
+
+Two findings from a $0.0153 control screen on 2026-09-06, both of which say a
+dimension was added without checking that the toy can carry it.
+
+**The `verbal_bias` fix is unreachable.** The screen recorded **zero `inquire`
+actions** across a whole panel: the frozen procedures instruct the buyer to
+request a formal quote directly rather than inquire first, and formal quotes and
+verified samples are truthful by construction. A supplier that overstates only
+when asked verbally is lying into a channel nothing listens to. Defect 1 is
+therefore **reopened**: the mechanism is correct and tested, and it is inert. The
+bias must sit on the **listing**, which every policy reads, with truth available
+only through a quote or a sample.
+
+**Even reachable, the budget defeats it.** Four suppliers and ten actions means
+quoting all four, sampling the two chosen, and awarding costs seven actions. A
+buyer can afford to verify everything, so it never has to trust a claim.
+Information cost cannot bind while full verification fits inside the action
+budget, and pricing actions in dollars does not change that, because dollars are
+not the scarce resource. Panels must have more suppliers than the budget can
+verify.
+
+**Working capital cannot be material at this scale.** The term models a real cash
+conversion cycle and `payment_terms_days` is genuinely private, so it could be an
+information dimension. But cost scales with order value times rate times days,
+and this family has $50 lines against roughly 70% gross margins. At the realistic
+45-day, 12% setting the term is worth about $0.72 against margins of $100 to
+$180; 89 of 95 cases sit there. The six cases where it matters reach 150% and
+200% annual financing, which is not a business. Either the toy's orders grow and
+its margins thin, or the term goes.
+
+**Fix.** Before adding an economic dimension, check that the toy's own scale makes
+it material at plausible parameters, and that the channel carrying its
+information is one an evaluated policy actually reads. Both checks are cheap and
+neither was performed.
+
 ---
 
 ## Status of the fixes
 
 | defect | state |
 |---|---|
-| 1 verbal claims always true | **fixed** — `verbal_bias`; `information_v1` proves it bites |
+| 1 verbal claims always true | **reopened** — `verbal_bias` works but is unreachable; no policy inquires, so the bias must move to the listing (defect 15) |
 | 2 information too cheap | **addressed in worlds** — `information_v1` prices it at 15-48% of gross |
 | 3 no negotiation headroom | **addressed in worlds** — floors 15-30% below quote, real MOQ headroom |
 | 4 rejected counter teaches nothing | open; needs an environment change to the counter reply |
@@ -365,6 +401,7 @@ ends.
 | 12 one digest for scientific and operational parameters | open; needs a versioned plan schema, so it is kernel work, not a family change |
 | 13 eligibility and effect returned together | open; split into `assess_eligibility` and a comparison that requires it |
 | 14 no check that a holdout leaves the control room to fail | open; cost a full 144-row run to discover, and is the reason the confirmatory holdout is uninformative |
+| 15 biased channel unread, and financing immaterial at this scale | open; found by a $0.0153 screen that also saturated the information panel 7 of 7 |
 
 Defects 4, 6, 8, 10, and 12 through 14 are the remaining work. Defect 14 is the
 most urgent: until it is closed, any new holdout can repeat the same waste. None of them blocks the panels
