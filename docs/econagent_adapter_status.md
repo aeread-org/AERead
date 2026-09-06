@@ -57,9 +57,17 @@ admission.** Both are `rule_constraint` leaves checking whether the recorded epi
 is an adapter/bridge bug, never a policy-quality slack (this module's own docstring,
 "a violation past this tolerance is an adapter/bridge bug, not a policy failure"). An
 `invalid_measurement` on either therefore means the measurement itself could not be
-produced (a missing or malformed `dense_log`, or — for the tax-bracket leaf specifically
-— a bridge failure re-invoking `recompute_tax`), not that a legitimate policy behavior
-was observed; excluding the receipt in that case is the correct admission semantics.
+produced (a missing `dense_log`, or one lacking the `states`/`PeriodicTax` keys --
+both leaves share `_require_dense_log`), not that a legitimate policy behavior was
+observed; excluding the receipt in that case is the correct admission semantics. The
+tax-bracket leaf's live `recompute_tax` re-invocation is NOT wrapped: a bridge failure
+at scoring time (or a structurally malformed `PeriodicTax` entry) raises
+`EconAgentBridgeError`/`KeyError` out of `__call__` and `finalize_family_execution`,
+producing no receipt at all rather than an excluded one -- pre-existing behavior in
+`score_tax_bracket_arithmetic` (unchanged by this migration; the budget and macro
+leaves catch the same malformed-shape errors and return `invalid_measurement`).
+Whether the finalizer should catch scorer exceptions into a typed exclusion is a
+kernel-level receipt-closure question, not this family's.
 `econagent_macro_trajectory` is comparative/diagnostic by its own estimand (no pass/fail
 meaning, no optimum, no bound) — per spec section 3, "Diagnostic leaves are receipted
 but do not gate admission unless declared," and it is not declared here.
@@ -150,8 +158,10 @@ power underflow to `0.0`, forcing every agent's labor draw to `False` with certa
 regardless of `world_seed` — zero income, zero tax, zero lump-sum redistribution, and
 upstream's own consumption components clip nominal spend to available wealth (`0`), so
 actual `consumption_spend` is also `0`. Two different seeds therefore land on the identical
-(degenerate) terminal Coin balance from genuinely different skill draws, prices, and
-nominal per-agent actions (also asserted in the test, not merely claimed).
+(degenerate) terminal Coin balance from a genuinely differing trajectory
+(`left.phase_instances != right.phase_instances`, asserted in the test); the differing
+skill draws, prices, and nominal actions are the domain reason for that difference and
+are not separately asserted.
 
 **Ruling R9(b)'s same-case sensitivity witness cannot be satisfied by this family, and the
 pair above cannot be routed through `_assert_family_obeys_the_scoring_contract`.** That
@@ -350,8 +360,13 @@ malformed-or-operational-failure, degenerate-reference) pass against the real br
   `episode.max_logical_actions` against its phases' actual seat cardinality before an
   episode is really run through `run_episode` — the exact gap that let the
   `n_agents`-undercounted budget above survive two milestones of hand-wired tests
-  undetected. See `ledger_entries/econagent.md` for the reproduction and a suggested static
-  preflight check.
+  undetected. There is no `ledger_entries/econagent.md` (unlike
+  `ledger_entries/govsim.md`, the only file under `ledger_entries/`); the reproduction
+  itself — the `SchedulerContractError: case logical-action budget exceeded before
+  termination` and its fix in `cases.py`'s `build_case` and `environment.py`'s
+  `phases()` — is recorded in `docs/econagent_adapter_spec.md`'s "Milestone 3
+  correction" section, item 1. No suggested static preflight check has been written up
+  anywhere yet.
 - ~~`AEREAD_ECONAGENT_BRIDGE_REQUIRED` has no enforcement hook generalized beyond tau2 in
   the shared root `conftest.py`~~ — stale as of the kernel_scoring_contract_spec.md
   migration milestone-3 pass: `conftest.py`'s `_BRIDGE_FAMILIES`/`_BRIDGE_FAMILY_DISPLAY`
@@ -370,7 +385,8 @@ live upstream `env` object's shared RNG stream across the whole episode) — the
 paired-history/sensitivity-witness tests and by this list now folding in this family's own
 hunk of `tests/test_shared_runner_scoring_contract.py`), including every bridge-gated test
 (goldens, parity, e2e, replay, and `__call__` driven both through a real scheduler episode
-and through the scoring-contract protocol test), runs in under two minutes on this machine.
+and through the scoring-contract protocol test), runs in roughly two to three minutes on
+this machine (110s in the Evidence section's run; 191s on the final-gate rerun).
 There is no multi-hour corpus sweep here: the entire declared, run corpus is three small
 scenarios (10x12, 10x12, 4x6), by design (spec section 1) — the 100x240 paper
 configuration is declared but never executed.
