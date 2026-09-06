@@ -12,7 +12,11 @@ from aeread.shared_runner.task.evaluation import (
     finalize_family_execution,
     replay_family_receipt,
 )
-from aeread.shared_runner.task.execution import ProviderResult, execute_plan_cell
+from aeread.shared_runner.task.execution import (
+    ProviderFailure,
+    ProviderResult,
+    execute_plan_cell,
+)
 from aeread_families.tau3_retail.campaign import (
     CAMPAIGN_ID,
     PANEL_CASE_IDS,
@@ -49,7 +53,7 @@ def test_campaign_plan_freezes_route_panel_order_and_budget() -> None:
 
 
 def test_assistant_request_places_static_policy_and_tools_before_turn_state() -> None:
-    message = Tau3RetailJsonHarness._request_message(
+    message = Tau3RetailJsonHarness.request_message(
         SimpleNamespace(
             phase_id="assistant_turn",
             seat_id="assistant",
@@ -70,6 +74,15 @@ def test_assistant_request_places_static_policy_and_tools_before_turn_state() ->
     assert message.content.startswith("STATIC_CONTEXT\n")
     assert message.content.index("fixed policy") < message.content.index("TURN_CONTEXT")
     assert message.content.index("fixed tool") < message.content.index("hello")
+
+
+def test_tau3_harness_rejects_prose_prefixed_structured_output() -> None:
+    with pytest.raises(ProviderFailure) as captured:
+        Tau3RetailJsonHarness._decode(
+            'Let me look that up.\n{"kind":"tool_calls","calls":[]}'
+        )
+
+    assert captured.value.condition == "malformed_structured_output"
 
 
 def test_publish_only_is_provider_free_digest_bound_and_repeatable(
@@ -170,6 +183,7 @@ def _bridge() -> tuple[Path, Tau2Bridge]:
 
 class _ToolPathProvider:
     def __init__(self) -> None:
+        self.requests = []
         self._outputs = iter(
             (
                 {"kind": "reply", "text": "Please check order #W5272531."},
@@ -190,6 +204,7 @@ class _ToolPathProvider:
         )
 
     async def complete(self, request):
+        self.requests.append(request)
         output = json.dumps(next(self._outputs), separators=(",", ":"))
         return ProviderResult(
             response_id="fixture",
@@ -213,6 +228,13 @@ def test_live_tool_path_finalizes_and_replays_a_shared_runner_receipt(tmp_path) 
         bridge=bridge,
         seed=300,
     )
+    profiles = {profile.profile_id: profile for profile in setup.plan.agent_profiles}
+    assert profiles["tau3_retail_assistant_glm5p2_arena_v2"].budgets.max_cost_usd == pytest.approx(
+        0.03
+    )
+    assert profiles["tau3_retail_user_glm5p2_arena_v2"].budgets.max_cost_usd == pytest.approx(
+        0.02
+    )
     execution = asyncio.run(
         execute_plan_cell(
             plan=setup.plan,
@@ -225,6 +247,17 @@ def test_live_tool_path_finalizes_and_replays_a_shared_runner_receipt(tmp_path) 
             harnesses=setup.harnesses,
             tool_runtime_factories=setup.tool_runtime_factories,
         )
+    )
+    assistant_requests = [
+        json.loads(request.input_text)
+        for request in provider.requests
+        if "messages" in json.loads(request.input_text)
+        and "STATIC_CONTEXT"
+        in json.loads(request.input_text)["messages"][0]["content"]
+    ]
+    assert assistant_requests
+    assert assistant_requests[0]["messages"][0]["content"].startswith(
+        "STATIC_CONTEXT\n"
     )
     receipt = finalize_family_execution(setup=setup, execution=execution)
     replayed = replay_family_receipt(
