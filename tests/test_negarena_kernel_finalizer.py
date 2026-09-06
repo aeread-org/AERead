@@ -267,7 +267,7 @@ def _build_negarena_run_plan(*, plugin: NegarenaPlugin, case: CaseManifest) -> t
     ).hexdigest()
     execution_sha256 = hashlib.sha256(
         Path(__file__).parents[1].joinpath(
-            "src", "aeread", "shared_runner", "execution.py"
+            "src", "aeread", "shared_runner", "task", "execution.py"
         ).read_bytes()
     ).hexdigest()
     # Every implementation id either declared measurement leaf actually
