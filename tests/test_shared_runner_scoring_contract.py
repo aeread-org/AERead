@@ -630,6 +630,14 @@ class _CaseConditionalPlugin(_ReferencePlugin):
             # PRIMARY leaf, which is never declared case_conditional at
             # all, regardless of what the case's own mode is.
             return frozenset({_REFERENCE_BALANCE_LEAF_ID})
+        if self._mode == "hook_returns_a_typo":
+            # R13 review finding 5's exact adversary: an id that names NO
+            # declared leaf at all (not even the primary) -- subtracting it
+            # from declared.leaf_ids is a no-op, so a scorer that otherwise
+            # returns exactly the declared set (unaffected by this mode)
+            # would satisfy the leaf-set equality regardless, and only a
+            # dedicated subset check ever notices the hook lied.
+            return frozenset({"typo_leaf_zzz"})
         if family_case["mode"] == "basic":
             return frozenset({_CASE_CONDITIONAL_DIAGNOSTIC_LEAF_ID})
         return frozenset()
@@ -2446,6 +2454,22 @@ def _assert_family_obeys_the_scoring_contract(
         inapplicable_ids = _hook_inapplicable_leaf_ids(
             registration.plugin, case.family_case
         )
+        # R13 review finding 5: I must only name leaves the manifest
+        # actually declares case_conditional -- without this, a hook
+        # returning an unrelated "typo" id would still let a scorer that
+        # returns EVERY declared leaf pass the equality below (I subtracts
+        # nothing that was ever produced), silently accepting a plugin
+        # whose hook is broken.
+        declared_case_conditional_ids = {
+            leaf.leaf_id
+            for leaf in registration.manifest.measurement.leaves
+            if leaf.case_conditional
+        }
+        undeclared_inapplicable = sorted(inapplicable_ids - declared_case_conditional_ids)
+        assert not undeclared_inapplicable, (
+            f"{key[0]}: inapplicable_leaf_ids hook named a leaf that is not "
+            f"declared case_conditional: {undeclared_inapplicable}"
+        )
         assert {score.leaf.leaf_id for score in produced.scores} == (
             set(declared.leaf_ids) - inapplicable_ids
         )
@@ -4147,3 +4171,35 @@ def test_case_conditional_deferred_precedence_audit_inapplicable_case(
     )
     assert audited.get("deferred_leaf_ids") in (None, [])
     assert audited.get("inapplicable_leaf_ids") == [_CASE_CONDITIONAL_DEFERRED_LEAF_ID]
+
+
+def test_case_conditional_protocol_helper_rejects_an_undeclared_inapplicable_id(
+    tmp_path: Path,
+) -> None:
+    """R13 review finding 5: the protocol helper itself must reject a hook
+    naming an undeclared leaf, not only the finalizer. ``"hook_returns_a_typo"``
+    names an id that is not even the primary -- subtracting it from
+    declared.leaf_ids is a no-op, so the scorer (unaffected by this mode,
+    returning exactly the declared set) satisfies the pre-fix leaf-set
+    equality regardless: without the dedicated subset check added here,
+    this exact scenario passes silently.
+    """
+    setup, execution = asyncio.run(
+        _run_case_conditional_episode(
+            evidence_root=tmp_path / "case_conditional_protocol_hook_undeclared",
+            mode="contract",
+            plugin_mode="hook_returns_a_typo",
+        )
+    )
+    case = setup.plan.cases[0]
+    family = setup.plan.families[0]
+    registration = setup.registry.resolve_registration(
+        family.family.id, family.family.version, family.family.plugin_id
+    )
+    family_case = registration.plugin.validate_payload(case.payload)
+    fixture = FamilyScoringFixture(family_case=family_case, sealed_evidence=execution.evidence)
+
+    with pytest.raises(AssertionError, match="not declared case_conditional"):
+        _assert_family_obeys_the_scoring_contract(
+            _CASE_CONDITIONAL_KEY, registration, [fixture]
+        )
