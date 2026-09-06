@@ -93,7 +93,17 @@ def _set_termination(state: dict[str, Any], reason: str) -> None:
 
 
 def family_manifest() -> FamilyManifest:
-    """Return the strict family declaration used by the trusted registry."""
+    """Return the strict family declaration used by the trusted registry.
+
+    Leaf ids below are literal strings, not imports from ``measurement.py``:
+    that module imports ``_delegate_round`` from this one at its own top
+    level, so importing it back here (at THIS module's top level) would be
+    circular. ``family_manifest`` is never called until this module has
+    finished importing (mirrors ``build_scorer``'s own deferred import,
+    below), but the literals still must be kept in sync with
+    ``measurement.py``'s ``*_LEAF_ID`` constants -- ``tests/
+    test_alympics_wac_measurement.py`` pins that equality.
+    """
     return FamilyManifest.from_dict(
         {
             "spec_version": FamilyManifest.SPEC_VERSION,
@@ -117,14 +127,119 @@ def family_manifest() -> FamilyManifest:
                 # `baseline_only` -- never equate survival/wealth here with a
                 # solved policy optimum. The full leaf vector (terminal
                 # wealth, survival, bid legality, settlement exactness) is
-                # built in milestone 2's measurement.py, not here.
+                # built in measurement.py.
                 "primary_estimand": "alympics_wac_terminal_wealth",
                 "measurement_kind": "optimizable_outcome",
                 "direction": "maximize",
                 "comparison_baseline": "proportional_all_seats",
                 "bound_status": "baseline_only",
+                # kernel_scoring_contract_spec.md section 3: every leaf this
+                # family publishes at finalize time, exactly one primary,
+                # and precisely the leaves that gate admission. All four are
+                # scope="finalize_time" -- none is judge/rater-dependent
+                # (measurement.py's module docstring: "this family declares
+                # no rater/judge component at all"), so none is `deferred`.
+                # See docs/alympics_adapter_status.md's "Leaf policy"
+                # section for why terminal_wealth is primary and why
+                # bid_legality/settlement_exactness (but not survival) join
+                # it in admission.
+                #
+                # Ruling R12: leaves 1-3 (terminal_wealth, survival,
+                # bid_legality) are per-seat -- AlympicsWacScorer.__call__
+                # resolves ONE focal seat from
+                # `scoring_input.seat_context.subject_seats` and reports
+                # that seat's own value -- so each declares
+                # `seat_scope="subject_seat"`, with no `subject_reduction`:
+                # this family's cluster mapping is one focal seat per
+                # trial (spec section 2), never several subject seats
+                # scored together, so self-play is never silently
+                # averaged (measurement.py's `_resolve_focal_seat` reports
+                # `ambiguous_subject_seat` instead of attempting one).
+                # Leaf 4 (settlement_exactness) is whole-round and needs
+                # no focal seat at all, so it stays the default
+                # `seat_scope="cell"` (omitted here, digest-neutral).
+                "leaves": [
+                    {
+                        "leaf_id": "alympics_wac_terminal_wealth_leaf",
+                        "scope": "finalize_time",
+                        "seat_scope": "subject_seat",
+                    },
+                    {
+                        "leaf_id": "alympics_wac_survival_leaf",
+                        "scope": "finalize_time",
+                        "seat_scope": "subject_seat",
+                    },
+                    {
+                        "leaf_id": "alympics_wac_bid_legality_leaf",
+                        "scope": "finalize_time",
+                        "seat_scope": "subject_seat",
+                    },
+                    {
+                        "leaf_id": "alympics_wac_settlement_exactness_leaf",
+                        "scope": "finalize_time",
+                    },
+                ],
+                "primary_leaf_id": "alympics_wac_terminal_wealth_leaf",
+                "admission_leaf_ids": [
+                    "alympics_wac_terminal_wealth_leaf",
+                    "alympics_wac_bid_legality_leaf",
+                    "alympics_wac_settlement_exactness_leaf",
+                ],
+                # Ruling R9 (kernel_scoring_contract_spec.md, round 3):
+                # `outcome()` below embeds one trajectory-bearing field,
+                # `eliminated_order` -- an accumulated, per-round record of
+                # *when* each seat died, not a final aggregate (see
+                # docs/alympics_migration_plan.md's "Does outcome() embed
+                # the trajectory?" section). `final_round_id`/`final_players`
+                # are NOT trajectory-bearing by the same test: a scalar count
+                # and a final-aggregate snapshot, respectively.
+                "trajectory_outcome_paths": ["/eliminated_order"],
             },
-            "scoring": {"scorer_id": SCORER_ID},
+            "scoring": {
+                "scorer_id": SCORER_ID,
+                # ``measurement.py`` declares each of the four leaves' own
+                # validity-domain predicate and reference/scorer
+                # implementation under its own distinct component id (never
+                # reusing this family-level ``scorer_id``). Surfaced here
+                # (mirroring govsim's identical fix) because
+                # ``EvaluationReceipt``'s own pin bookkeeping requires every
+                # such id to be pinned in the resolved ``RunPlan``, and
+                # ``resolve_run_plan`` only admits a pin for a component it
+                # already requires -- these nine are exactly the distinct
+                # ``implementation_id``s the four leaves' ``ImplementationRef``s
+                # name (one shared domain predicate, two baseline-run
+                # references, and one scorer per leaf).
+                #
+                # Ruling R12: none of these nine needs a per-focal-seat
+                # variant, and none may -- these are ``ImplementationRef``
+                # ids (which adapter source file backs a component), whose
+                # ``content_sha256`` is that file's own hash, never anything
+                # about which seat a given trial names as the subject.
+                # ``measurement.py``'s ``_opponent_panel_sha256`` (leaf 1/2's
+                # own content digest, a DIFFERENT field --
+                # ``ReferenceSpec.source_sha256``, not ``implementation_id``)
+                # is deliberately focal-seat-independent for the identical
+                # reason: this family's declared leaves must have ONE stable
+                # identity across every possible focal seat for the same
+                # case (the scoring-contract protocol test's cross-fixture
+                # leaf-identity check enforces this; see
+                # ``AlympicsWacScorer.leaves_for_focal_seat``'s docstring).
+                # A dedicated test resolves a run plan with each of the 5
+                # seats as the sole subject and confirms these same nine
+                # pins resolve every time (tests/test_alympics_wac_
+                # environment.py).
+                "reference_provider_ids": [
+                    "alympics_wac_base_domain_predicate",
+                    "alympics_wac_bid_legality_gate",
+                    "alympics_wac_settlement_shadow_recompute",
+                    "alympics_wac_terminal_wealth_baseline_run",
+                    "alympics_wac_survival_baseline_run",
+                    "alympics_wac_terminal_wealth_scorer",
+                    "alympics_wac_survival_scorer",
+                    "alympics_wac_bid_legality_scorer",
+                    "alympics_wac_settlement_exactness_scorer",
+                ],
+            },
         }
     )
 
@@ -470,8 +585,18 @@ class AlympicsWacPlugin:
 
     # -- phase graph and initial state ---------------------------------
 
-    def initial_state(self, family_case: Mapping[str, Any], cell: Any) -> dict[str, Any]:
-        del cell
+    def initial_state(self, family_case: Mapping[str, Any], run: Any) -> dict[str, Any]:
+        """Build the initial family state for one episode.
+
+        The second parameter is named ``run`` (not ``cell``) to match every
+        other family's own ``initial_state`` hook -- required because
+        ``task.evaluation._replay_family_trajectory`` calls
+        ``plugin.initial_state(family_case, run=None)`` by keyword
+        (kernel_scoring_contract_spec.md's ``replay_family_scoring_input``
+        contract); the live scheduler still passes this positionally, so
+        this rename does not change what value actually arrives here.
+        """
+        del run
         grid_cell = family_case["grid_cell"]
         players = {
             seat: {
@@ -761,7 +886,16 @@ class AlympicsWacPlugin:
         # environment.py).
         from .measurement import build_scorer as build_measurement_scorer
 
-        return build_measurement_scorer(family_case)
+        # kernel_scoring_contract_spec.md section 1: the finalizer calls
+        # this returned scorer directly (`plugin.build_scorer(family_case)(
+        # scoring_input, evidence_refs=...)`), and AlympicsWacScorer.__call__
+        # needs a real, imported upstream module for its baseline recompute
+        # (`_recompute_baseline_episode`) and leaf 4's shadow-recompute --
+        # both call `environment._delegate_round`, which takes the module
+        # object, never a fresh import of its own.
+        return build_measurement_scorer(
+            family_case, upstream_module=self._require_upstream()
+        )
 
     def build_reference_providers(
         self, family_case: Mapping[str, Any]
