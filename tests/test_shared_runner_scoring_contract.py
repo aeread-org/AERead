@@ -127,6 +127,7 @@ from aeread.shared_runner.task.scheduler import (
     PhaseInstance,
     PhaseSpec,
     TransitionResult,
+    run_episode,
 )
 
 from aeread_families.commercial_state_calibration import build_offline_setup as _build_commercial_state_setup
@@ -147,6 +148,12 @@ from aeread_families.procurement_grounding import (
 )
 from aeread_families.procurement_grounding import procurement_measurement_leaf
 from aeread_families.single_offer.runner import FixedResponseProvider
+from aeread_families.termsbench import cases as termsbench_cases
+
+from tests.test_termsbench_replay import (
+    EvidenceRecordingTermsBenchHarness,
+    build_termsbench_setup,
+)
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -1782,6 +1789,125 @@ def _embedding_fixtures(
     return manifest, plugin, fixtures
 
 
+# ---------------------------------------------------------------------------
+# termsbench.overlap / termsbench.nodeal: two real, provider-free, no-bridge
+# family versions (owner decision, ruling R13 rule 1 -- the split itself is
+# documented in docs/termsbench_migration_plan.md). Every leaf either family
+# version declares is input_scope="terminal_state" (measurement.py's
+# build_protocol_compliance_leaf docstring covers leaf 4; leaves 1-3 always
+# were) -- there is no trajectory-scoped leaf in either manifest, so the
+# paired-history pair below exercises ONLY ruling R7's contrapositive (every
+# terminal_state leaf must score identically across a byte-identical-outcome,
+# differing-trajectory pair) and the R9(b) sensitivity witness is vacuous
+# (empty trajectory_leaf_ids -- kernel-level behavior already covered by
+# test_sensitivity_witness_is_vacuous_with_no_trajectory_leaves above).
+#
+# left/right vary ONLY the agent's own scripted message text, holding every
+# economically meaningful input (price, decision, counterpart draws)
+# identical: TermsBenchPlugin.outcome() never reads message/transcript, so
+# the two runs' outcomes are byte-identical while their sealed
+# phase_instances genuinely differ (the agent's own logical-action response
+# differs) -- exactly the pair ruling R7 needs, without touching any field
+# that could change what is measured.
+# ---------------------------------------------------------------------------
+
+
+def _termsbench_episode_fixture(
+    *,
+    tmp_path: Path,
+    suffix: str,
+    regime: str,
+    case: CaseManifest,
+    script: Sequence[Mapping[str, Any]],
+    counterpart_draws_by_round: Mapping[int, Mapping[str, float]] | None,
+) -> tuple[FamilyManifest, Any, FamilyScoringFixture]:
+    setup = build_termsbench_setup(case, suffix=suffix, regime=regime)
+    cell = setup.plan.cells[0]
+    family = setup.plan.families[0]
+    plugin = setup.registry.resolve_manifest(family)
+    family_case = plugin.validate_payload(case.payload)
+    evidence = EvidenceStore(
+        tmp_path / f"termsbench_{suffix}",
+        run_plan_id=setup.plan.run_plan_id,
+        cell_id=cell.cell_id,
+        episode_id=f"episode_{cell.cell_id}",
+        episode_attempt_id="attempt_1",
+    )
+    harness = EvidenceRecordingTermsBenchHarness(
+        world_seed=case.world_seed,
+        script=script,
+        counterpart_draws_by_round=counterpart_draws_by_round,
+        evidence=evidence,
+    )
+    asyncio.run(run_episode(cell=cell, case=case, plugin=plugin, response_source=harness))
+    return (
+        family,
+        plugin,
+        FamilyScoringFixture(family_case=family_case, sealed_evidence=evidence),
+    )
+
+
+def _termsbench_overlap_fixtures(
+    tmp_path: Path,
+) -> tuple[FamilyManifest, Any, tuple[FamilyScoringFixture, ...]]:
+    case = CaseManifest.from_dict(
+        termsbench_cases.build_case("candid", "overlap", 1000046)
+    )
+    draws = {1: {"u_accept": 0.10, "sentiment_noise": 0.0}}
+    left_family, left_plugin, left_fixture = _termsbench_episode_fixture(
+        tmp_path=tmp_path,
+        suffix="termsbench_overlap_left",
+        regime="overlap",
+        case=case,
+        script=[{"decision": "offer", "price": 110.0, "message": "opening: left"}],
+        counterpart_draws_by_round=draws,
+    )
+    _right_family, _right_plugin, right_fixture = _termsbench_episode_fixture(
+        tmp_path=tmp_path,
+        suffix="termsbench_overlap_right",
+        regime="overlap",
+        case=case,
+        script=[
+            {"decision": "offer", "price": 110.0, "message": "opening: right -- a different message"}
+        ],
+        counterpart_draws_by_round=draws,
+    )
+    return left_family, left_plugin, (left_fixture, right_fixture)
+
+
+def _termsbench_nodeal_fixtures(
+    tmp_path: Path,
+) -> tuple[FamilyManifest, Any, tuple[FamilyScoringFixture, ...]]:
+    case = CaseManifest.from_dict(
+        termsbench_cases.build_case("candid", "nodeal", 1010011)
+    )
+    r_a = float(case.payload["agent"]["r_a"])
+    r_b = float(case.payload["t_b"]["r_b"])
+    lowball = max(0.0, r_b - 90.0)
+    assert lowball < r_a
+    draws = {round_k: {"u_accept": 0.999, "u_walkaway": 0.0} for round_k in range(1, 7)}
+    left_family, left_plugin, left_fixture = _termsbench_episode_fixture(
+        tmp_path=tmp_path,
+        suffix="termsbench_nodeal_left",
+        regime="nodeal",
+        case=case,
+        script=[{"decision": "offer", "price": lowball, "message": "lowball: left"}] * 6,
+        counterpart_draws_by_round=draws,
+    )
+    _right_family, _right_plugin, right_fixture = _termsbench_episode_fixture(
+        tmp_path=tmp_path,
+        suffix="termsbench_nodeal_right",
+        regime="nodeal",
+        case=case,
+        script=[
+            {"decision": "offer", "price": lowball, "message": "lowball: right -- a different message"}
+        ]
+        * 6,
+        counterpart_draws_by_round=draws,
+    )
+    return left_family, left_plugin, (left_fixture, right_fixture)
+
+
 def _build_protocol_test_registry_and_fixtures(
     tmp_path: Path,
 ) -> tuple[PluginRegistry, dict[tuple[str, str], tuple[FamilyScoringFixture, ...]]]:
@@ -1803,6 +1929,11 @@ def _build_protocol_test_registry_and_fixtures(
     fixtures[(reference_manifest.family.id, reference_manifest.family.version)] = (
         reference_fixtures
     )
+
+    for build in (_termsbench_overlap_fixtures, _termsbench_nodeal_fixtures):
+        manifest, plugin, fixture = build(tmp_path)
+        registry.register_trusted(manifest, plugin)
+        fixtures[(manifest.family.id, manifest.family.version)] = fixture
 
     return registry, fixtures
 
@@ -2268,12 +2399,11 @@ _NOT_YET_MIGRATED_TRUSTED_KEYS: "frozenset[tuple[str, str]]" = frozenset(
         ("govsim", "0.1.0"),
         ("negarena", "0.1.0"),
         ("steer", "0.1.0"),
-        # termsbench split into two regime-specific family versions (owner
-        # decision, ruling R13 rule 1); neither has a FamilyScoringInput-
-        # contract fixture yet -- both migrate together, later in this same
-        # branch's own commit sequence (docs/termsbench_migration_plan.md).
-        ("termsbench.overlap", "0.1.0"),
-        ("termsbench.nodeal", "0.1.0"),
+        # termsbench.overlap/termsbench.nodeal are deliberately NOT here:
+        # both ARE migrated (see this module's own docstring /
+        # _termsbench_overlap_fixtures/_termsbench_nodeal_fixtures above) and
+        # enrolled via _build_protocol_test_registry_and_fixtures like every
+        # other real fixture.
     }
 )
 

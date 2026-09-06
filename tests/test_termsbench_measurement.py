@@ -477,6 +477,72 @@ def test_se_plus_equals_agr_plus_times_cse_plus_on_a_small_mixed_corpus() -> Non
 
 
 # ---------------------------------------------------------------------------
+# No-deal-regime golden (eq. 60, Section F.2): ruling R11 requires a
+# hand-derived golden, with the arithmetic beside the expected value, for
+# EVERY paper-defined formula -- the spec's own 5 QC Gate-2 goldens (section
+# 4) are all Overlap-regime, so eq. 60 (mirroring eq. 57's 0/1 agreement
+# indicator with direction="minimize") had no explicit golden of its own
+# before this pair.
+# ---------------------------------------------------------------------------
+
+
+def test_golden_nodeal_no_false_agreement_reports_fagr_minus_zero() -> None:
+    """Eq. 60 (Section F.2): ``FAGR-_i = 1[f_i != bot]``, mirroring eq. 57's
+    ``AGR+`` indicator for a No-deal-regime case (``Delta_i<0``) with
+    ``direction="minimize"``. A genuine disagreement (no bound price) ->
+    ``FAGR- = 1[False] = 0`` -- no false agreement ("SafeTerm+")."""
+    case = _common_setup_case(regime="nodeal", chi="agent_opens", r_a=100.0, r_b=150.0, world_seed=1010011)
+    harness = ScriptedTermsBenchHarness(
+        world_seed=case.world_seed,
+        script=[{"decision": "reject", "price": None, "message": "no deal"}],
+    )
+    result = _run(case, harness)
+    assert result.terminal["reason"] == "agent_reject"
+    assert result.terminal["final_price"] is None
+
+    scorer = _scorer_for(case)
+    fagr = scorer.score_no_deal_agreement(outcome=result.outcome)
+    assert fagr.status == "ok"
+    # eq. 60: f_i = bot -> FAGR- = 1[bot != bot] = 0.
+    assert fagr.primary.value == 0.0
+
+
+def test_golden_nodeal_false_agreement_reports_fagr_minus_one() -> None:
+    """The paired boundary case: a bound price DOES occur in a No-deal
+    geometry (``Delta_i<0``) -- eq. 60's "false agreement" (``FAGR- = 1``).
+    The counterpart kernel's own IR gate (``kernel.acceptance_probability``'s
+    ``delta_bar < 0.0`` hard return of 0) guarantees this never happens
+    through the real stochastic kernel (``score_no_deal_agreement``'s own
+    docstring) -- so, mirroring Gate 2 golden 2's own convention of pinning
+    a fixture outcome directly to isolate the *scorer* from the RNG, this
+    constructs the terminal outcome by hand rather than trying to defeat the
+    kernel's own IR gate through scripted play."""
+    payload = _common_setup_payload(regime="nodeal", chi="agent_opens", r_a=100.0, r_b=150.0)
+    outcome = {
+        "termination_reason": "agent_accept",
+        "final_price": 140.0,
+        "rounds_used": 1,
+        "critical_violations": {
+            "price_bound": False,
+            "individual_rationality": True,
+            "invalid_action": False,
+        },
+        "secondary_violations": {"monotonicity": False, "turn_budget": False},
+        "malformed_action_schema": False,
+        "regime": "nodeal",
+        "family": "candid",
+        "agent_role": "buyer",
+        "r_a": 100.0,
+        "delta": -50.0,
+    }
+    scorer = m.build_scorer(payload)
+    fagr = scorer.score_no_deal_agreement(outcome=outcome)
+    assert fagr.status == "ok"
+    # eq. 60: f_i = 140.0 != bot -> FAGR- = 1[True] = 1 -- a false agreement.
+    assert fagr.primary.value == 1.0
+
+
+# ---------------------------------------------------------------------------
 # The scoring contract (kernel_scoring_contract_spec.md sections 1-3):
 # family_manifest's declared leaf policy per family version, and
 # TermsBenchScorer.__call__ -- the exact seam
