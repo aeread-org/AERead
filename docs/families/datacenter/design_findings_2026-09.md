@@ -176,6 +176,53 @@ model. The affected cells in the calibrated run are listed in
 The general lesson is that a family must own the classification of anything a
 model can cause. If a model can trigger it, it is not infrastructure.
 
+## Is this a planning and negotiation case?
+
+Partly, and less than the plan claims. Measured rather than asserted:
+
+**Negotiation: the distributive half only.** There is a real gradient. Adopting
+every counter is admissible but leaves a median $39.5M per world, and the
+reservation prices are private, so an agent must probe for them inside three
+rounds. That is distributive bargaining under incomplete information. What is
+absent is everything integrative: the counterparty answers with the same
+package regardless of what was offered, and acceptance is field-wise against
+independent bands, so no concession can be traded for another. Logrolling
+cannot appear in a score. Empirically the only route that transacts does none
+of it, landing on pure counter-adoption to the cent.
+
+**Planning: present in the traps, inert almost everywhere else.** Price
+negotiation cannot break the structural plan: in 19 of 24 worlds both adopting
+every counter and negotiating every price to the floor are structurally valid.
+The counter package is internally consistent, so the cross-agreement
+constraints that would require lookahead are solved for free, and the sequence
+order is imposed rather than chosen.
+
+**The traps are mostly unreachable by the behaviour models actually exhibit.**
+A trap only catches an agent that deviates from the counters, because in four
+of six strata the counter package *is* the safe one:
+
+| Stratum | Adopting every counter | Caught Gemini |
+|---|---|---:|
+| verbal/written divergence | enters the trap, 0 of 4 admissible | 4 of 4 |
+| delayed revenue | enters it in 1 of 4 | 1 of 4 |
+| covenant cliff | avoids it, 4 of 4 admissible | 0 of 4 |
+| restrictive draws | avoids it | 0 of 4 |
+| revenue without bankability | avoids it | 0 of 4 |
+| liability transfer | avoids it | 1 of 4 |
+
+So against a counter-adopting agent, five of six strata are inert and one
+stratum does nearly all the discriminating. This corrects the claim made from
+the earlier toy-scale panel that the strata discriminate broadly; at market
+calibration they do not.
+
+**What it is today**, then: a schema-compliance and instruction-following case
+with a distributive-pricing gradient and one genuine reading-comprehension
+trap. Making it a planning case needs the counter package to be internally
+inconsistent so that adopting creates a violation that only surfaces later, the
+agreement order to be chosen rather than fixed, and a counterparty that
+responds to what was actually offered. Both gaps are tracked as open defects in
+the failure register.
+
 ## Where the failures live
 
 Failure evidence used to scatter across per-cell results, run summaries, two ad

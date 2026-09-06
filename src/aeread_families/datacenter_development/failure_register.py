@@ -200,6 +200,40 @@ KNOWN_DEFECTS = (
         ),
     },
     {
+        "id": "traps-unreachable-by-counter-adopters",
+        "summary": (
+            "In four of six strata the counterparty's counter package is the "
+            "safe one, so an agent that adopts every counter walks past the "
+            "trap without ever facing the decision the stratum exists to test. "
+            "Only verbal/written baits with the counter. Against the one route "
+            "that transacts, which adopts counters verbatim, five of six "
+            "strata are inert: it was admitted in 17 of 24 worlds and failed "
+            "every verbal/written world and almost nothing else."
+        ),
+        "detected_by": "offline probe plus the calibrated live panel",
+        "severity": "strata_do_not_test_what_they_claim",
+        "status": "open",
+        "fix": None,
+        "regression_test": None,
+    },
+    {
+        "id": "planning-decoupled-from-negotiation",
+        "summary": (
+            "Price negotiation cannot break the structural plan: in 19 of 24 "
+            "worlds both adopting every counter and negotiating every price to "
+            "the floor are structurally valid. The counter package is "
+            "internally consistent, so cross-agreement planning is solved for "
+            "free and the sequence order is fixed rather than chosen. The "
+            "family currently measures distributive pricing and schema "
+            "compliance far more than it measures planning."
+        ),
+        "detected_by": "offline probe over the generated pack",
+        "severity": "under-tests_declared_capability",
+        "status": "open",
+        "fix": None,
+        "regression_test": None,
+    },
+    {
         "id": "suite-needs-gitignored-artifacts",
         "summary": (
             "Fifteen datacenter_development_terms tests read artifacts under "

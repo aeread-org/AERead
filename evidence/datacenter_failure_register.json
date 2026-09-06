@@ -1,5 +1,5 @@
 {
-  "artifact_sha256": "8686e1a8691399709b5a7c84eda8db3ce06e1044ed5c1b1da9e3ecfe5b757703",
+  "artifact_sha256": "3a5b12ad2ee3a4b690525778c1d586d0b75bbebf4f3f988b42f9f898ea0aba21",
   "by_attribution_as_recorded": {
     "budget": 16,
     "environment": 10,
@@ -92,6 +92,24 @@
       "severity": "specification_not_realisable",
       "status": "worked_around",
       "summary": "The plan specifies leverage as a covenant-cliff lever. At a realistic loan-to-cost cap the commitment binds before the advance rate does, so leverage changes coverage not at all and the stratum cannot be built from it."
+    },
+    {
+      "detected_by": "offline probe plus the calibrated live panel",
+      "fix": null,
+      "id": "traps-unreachable-by-counter-adopters",
+      "regression_test": null,
+      "severity": "strata_do_not_test_what_they_claim",
+      "status": "open",
+      "summary": "In four of six strata the counterparty's counter package is the safe one, so an agent that adopts every counter walks past the trap without ever facing the decision the stratum exists to test. Only verbal/written baits with the counter. Against the one route that transacts, which adopts counters verbatim, five of six strata are inert: it was admitted in 17 of 24 worlds and failed every verbal/written world and almost nothing else."
+    },
+    {
+      "detected_by": "offline probe over the generated pack",
+      "fix": null,
+      "id": "planning-decoupled-from-negotiation",
+      "regression_test": null,
+      "severity": "under-tests_declared_capability",
+      "status": "open",
+      "summary": "Price negotiation cannot break the structural plan: in 19 of 24 worlds both adopting every counter and negotiating every price to the floor are structurally valid. The counter package is internally consistent, so cross-agreement planning is solved for free and the sequence order is fixed rather than chosen. The family currently measures distributive pricing and schema compliance far more than it measures planning."
     },
     {
       "detected_by": "running the suite in a fresh worktree",
@@ -6184,6 +6202,8 @@
     }
   ],
   "open_defects": [
+    "traps-unreachable-by-counter-adopters",
+    "planning-decoupled-from-negotiation",
     "suite-needs-gitignored-artifacts"
   ],
   "reclassified_incidents": 17,
