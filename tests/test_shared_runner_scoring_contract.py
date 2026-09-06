@@ -2582,12 +2582,33 @@ def _alympics_all_illegal_answer(request: Any) -> Mapping[str, Any]:
 
 def _alympics_kernel_contract_fixtures(
     tmp_path: Path,
-) -> tuple[FamilyManifest, Any, tuple[FamilyScoringFixture, FamilyScoringFixture, FamilyScoringFixture]]:
-    """Left/right (paired-history) plus a third, alt (sensitivity-witness)
-    fixture -- all three on the SAME case, driven through the real
-    scheduler via ``EvidenceRecordingAlympicsWacHarness``
+) -> tuple[FamilyManifest, Any, tuple[FamilyScoringFixture, ...]]:
+    """Left/right (paired-history) plus alt (sensitivity-witness), plus two
+    ruling-R12 fixtures -- five total, all on the SAME case, driven through
+    the real scheduler via ``EvidenceRecordingAlympicsWacHarness``
     (``tests/test_alympics_wac_replay.py`` -- the only response source for
     this family that writes evidence the kernel replayer can replay).
+
+    Every fixture declares ``subject_seats=("alex",)`` except the last two,
+    which ruling R12 adds:
+
+    * ``different_focal_seat`` reuses ``left``'s own evidence (same case,
+      same sealed episode) with ``subject_seats=("bob",)`` instead of
+      ``("alex",)`` -- "bob" bids the same fixed, always-legal ``1`` every
+      round as "alex" in ``left`` (neither is on the short/long-death
+      schedule), so both resolve "ok"; their personas' differing
+      requirement/salary still make their terminal wealth genuinely
+      different (hand-verified against the real upstream checkout: alex
+      138.0, bob 156.0), showing the per-seat leaves depend on which seat
+      ``seat_context`` names, never a fixed convention. ("david"/"eric" --
+      the short/long-death seats -- are deliberately NOT used here: their
+      own oversized bids are independently illegal, which would gate their
+      leaves to invalid_measurement for an unrelated reason.)
+    * ``ambiguous_subject_seats`` reuses ``alt``'s own evidence with TWO
+      subject seats (``"alex", "bob"``) -- the honest
+      ``ambiguous_subject_seat`` invalid path (this family declares no
+      ``subject_reduction``: its cluster mapping is one focal seat per
+      trial, never several scored together).
 
     Deferred imports (never at this module's top level): ``tests.
     test_alympics_wac_replay`` skips its own module-level collection,
@@ -2609,7 +2630,7 @@ def _alympics_kernel_contract_fixtures(
     )
 
     case = kernel_contract_fixture_case(rounds=6, suffix="scoring_contract_pair")
-    setup = build_alympics_setup(case, suffix="scoring_contract_pair")
+    setup = build_alympics_setup(case, suffix="scoring_contract_pair", focal_seat="alex")
     cell = setup.plan.cells[0]
     family = setup.plan.families[0]
     plugin = setup.registry.resolve_manifest(family)
@@ -2627,7 +2648,12 @@ def _alympics_kernel_contract_fixtures(
         asyncio.run(
             run_episode(cell=cell, case=case, plugin=plugin, response_source=harness)
         )
-        return FamilyScoringFixture(family_case=family_case, sealed_evidence=evidence)
+        return FamilyScoringFixture(
+            family_case=family_case,
+            sealed_evidence=evidence,
+            subject_seats=("alex",),
+            profile_by_seat=cell.profile_by_seat,
+        )
 
     left = _run(
         _alympics_paired_history_answer(short_seat="david", long_seat="eric"), "left"
@@ -2636,7 +2662,9 @@ def _alympics_kernel_contract_fixtures(
         _alympics_paired_history_answer(short_seat="eric", long_seat="david"), "right"
     )
     alt = _run(_alympics_all_illegal_answer, "alt")
-    return family, plugin, (left, right, alt)
+    different_focal_seat = dataclasses.replace(left, subject_seats=("bob",))
+    ambiguous_subject_seats = dataclasses.replace(alt, subject_seats=("alex", "bob"))
+    return family, plugin, (left, right, alt, different_focal_seat, ambiguous_subject_seats)
 
 
 def test_alympics_wac_obeys_the_scoring_contract(tmp_path: Path) -> None:
@@ -2653,16 +2681,25 @@ def test_alympics_wac_obeys_the_scoring_contract(tmp_path: Path) -> None:
     runs (see ``_alympics_kernel_contract_fixtures``'s own docstring).
 
     Runs the identical protocol check (``_assert_family_obeys_the_scoring_contract``)
-    against alympics.wac's own registry registration and its three fixtures
+    against alympics.wac's own registry registration and its five fixtures
     (``_alympics_kernel_contract_fixtures`` -- byte-identical projected
-    outcome / genuinely differing trajectory for the first two, plus a third
-    that witnesses all four leaves' sensitivity), covering all four of this
-    family's genuine trajectory-scoped leaves (terminal_wealth, survival,
-    bid_legality, settlement_exactness) -- none is declared
-    ``terminal_state``, so ruling R7's contrapositive is vacuous here; what
-    matters is ruling R9(b)'s sensitivity witness.
+    outcome / genuinely differing trajectory for the first two, a third
+    that witnesses all four leaves' sensitivity, and ruling R12's two added
+    fixtures: a different subject seat on the SAME evidence as the first,
+    and an ambiguous two-subject-seat case on the SAME evidence as the
+    third), covering all four of this family's genuine trajectory-scoped
+    leaves (terminal_wealth, survival, bid_legality, settlement_exactness)
+    -- none is declared ``terminal_state``, so ruling R7's contrapositive is
+    vacuous here; what matters is ruling R9(b)'s sensitivity witness. The
+    per-fixture ``MeasurementLeafSpec`` stability check
+    (``_assert_family_obeys_the_scoring_contract``'s own "leaf's declared
+    identity must be stable") is exactly what proves leaves 1-3's identity
+    does not vary with the resolved focal seat -- see
+    ``AlympicsWacScorer.leaves_for_focal_seat``'s docstring for why.
     """
-    family, plugin, fixture_triplet = _alympics_kernel_contract_fixtures(tmp_path)
+    from aeread_families.alympics_wac import measurement as alympics_measurement
+
+    family, plugin, fixtures = _alympics_kernel_contract_fixtures(tmp_path)
 
     registry = PluginRegistry()
     registry.register_trusted(family, plugin)
@@ -2670,7 +2707,36 @@ def test_alympics_wac_obeys_the_scoring_contract(tmp_path: Path) -> None:
     key = (registration.family_id, registration.family_version)
     assert key == ("alympics.wac", "0.1.0")
 
-    _assert_family_obeys_the_scoring_contract(key, registration, fixture_triplet)
+    result = _assert_family_obeys_the_scoring_contract(key, registration, fixtures)
+
+    def _terminal_wealth(index: int) -> Any:
+        return next(
+            score
+            for score in result.produced_by_case[index][1].scores
+            if score.leaf.leaf_id == alympics_measurement.TERMINAL_WEALTH_LEAF_ID
+        )
+
+    # Ruling R12: fixtures 0 ("left", subject "alex") and 3
+    # ("different_focal_seat", subject "bob") replay the IDENTICAL sealed
+    # evidence -- same case, same trajectory -- and differ only in which
+    # seat seat_context names. Both must score "ok" (leaf identity
+    # stability is already proven by
+    # _assert_family_obeys_the_scoring_contract above), and their
+    # primaries must genuinely differ: the per-seat leaf depends on the
+    # subject, never a fixed convention.
+    alex_wealth = _terminal_wealth(0)
+    bob_wealth = _terminal_wealth(3)
+    assert alex_wealth.status == "ok"
+    assert bob_wealth.status == "ok"
+    assert alex_wealth.primary.value != bob_wealth.primary.value
+
+    # Ruling R12: fixture 4 ("ambiguous_subject_seats") replays the SAME
+    # evidence as fixture 2 ("alt") with two subject seats declared -- the
+    # honest ambiguous_subject_seat invalid path, never a silently averaged
+    # self-play claim.
+    ambiguous_wealth = _terminal_wealth(4)
+    assert ambiguous_wealth.status == "invalid_measurement"
+    assert ambiguous_wealth.validity.reasons == ("ambiguous_subject_seat",)
 
 
 def test_determinism_precheck_adjacency_defeats_call_parity_aliasing(tmp_path: Path) -> None:
