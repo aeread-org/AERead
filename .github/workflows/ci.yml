@@ -31,6 +31,15 @@ jobs:
   # assertion silently skipped (second-review Codex finding 6; see
   # docs/agenticpay_codex_triage.md and tests/test_agenticpay_bilateral_ci_bridge_
   # requirement.py, which asserts this job stays wired).
+  #
+  # tests/test_shared_runner_scoring_contract.py is included here too (migration
+  # review finding 2, docs/agenticpay_migration_review.md): its
+  # test_agenticpay_obeys_the_scoring_contract is AgenticPay's own scoring-contract
+  # fidelity test, per-test-skipped when the bridge is unavailable, and the
+  # always-on test_every_registered_family_obeys_the_scoring_contract in that same
+  # file only marks AgenticPay "enrolled" for closure purposes without ever
+  # invoking its scorer -- so this is the only place that test actually gets
+  # certified as run, not merely skipped.
   agenticpay-fidelity:
     runs-on: ubuntu-latest
     steps:
@@ -61,4 +70,5 @@ jobs:
           tests/test_agenticpay_bilateral_environment.py
           tests/test_agenticpay_bilateral_measurement.py
           tests/test_agenticpay_bilateral_replay.py
+          tests/test_shared_runner_scoring_contract.py
           -q
