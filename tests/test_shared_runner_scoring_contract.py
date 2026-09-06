@@ -789,6 +789,140 @@ async def _run_case_conditional_episode(
 
 
 # ---------------------------------------------------------------------------
+# R13 review finding 4: a synthetic family with a leaf that is BOTH
+# ``deferred`` and ``case_conditional`` -- proving the disjointness
+# precedence rule (rule 4: inapplicability wins) on a leaf that ITSELF
+# never appears in ``scores`` regardless of applicability, unlike
+# ``_CaseConditionalPlugin``'s finalize_time diagnostic. Deliberately a
+# SEPARATE family from ``_case_conditional_family_manifest`` (not a third
+# leaf bolted onto it) so this fixture cannot perturb any already-committed
+# case-conditional test's exact leaf-set assertions.
+# ---------------------------------------------------------------------------
+
+_CASE_CONDITIONAL_DEFERRED_LEAF_ID = "case_conditional_deferred_diagnostic"
+_CASE_CONDITIONAL_DEFERRED_APPLICABLE_CASE_ID = (
+    "kernel_contract_case_conditional_deferred_contract_case_v1"
+)
+_CASE_CONDITIONAL_DEFERRED_INAPPLICABLE_CASE_ID = (
+    "kernel_contract_case_conditional_deferred_basic_case_v1"
+)
+
+
+class _CaseConditionalDeferredPlugin(_CaseConditionalPlugin):
+    """Same ``mode``-on-payload shape as ``_CaseConditionalPlugin``
+    (inherits its ``validate_payload``), but the one conditional leaf here
+    is ALSO ``scope="deferred"`` -- it never appears in ``scores`` at all,
+    regardless of applicability (that is what ``deferred`` means), so the
+    scorer below is simpler than ``_CaseConditionalScorer``: it always
+    returns only the primary.
+    """
+
+    def __init__(self) -> None:
+        super().__init__(mode="default")
+
+    def inapplicable_leaf_ids(self, family_case: Mapping[str, Any]) -> "frozenset[str]":
+        if family_case["mode"] == "basic":
+            return frozenset({_CASE_CONDITIONAL_DEFERRED_LEAF_ID})
+        return frozenset()
+
+    def build_scorer(self, family_case: Mapping[str, Any]) -> "_CaseConditionalDeferredScorer":
+        del family_case
+        return _CaseConditionalDeferredScorer()
+
+
+class _CaseConditionalDeferredScorer:
+    def __call__(
+        self, scoring_input: FamilyScoringInput, *, evidence_refs: tuple[str, ...] = ()
+    ) -> FamilyScoreSet:
+        outcome = scoring_input.outcome
+        balance_leaf = _reference_leaf(
+            leaf_id=_REFERENCE_BALANCE_LEAF_ID, input_scope="terminal_state"
+        )
+        balance_score = ScoreEnvelope(
+            status="ok",
+            leaf=balance_leaf,
+            primary=MetricValue(float(outcome["x_count"] - outcome["y_count"]), "count"),
+            metrics={},
+            reference_values={},
+            validity=ValidityReport("valid"),
+            evidence_refs=evidence_refs,
+        )
+        return FamilyScoreSet(
+            primary_leaf_id=_REFERENCE_BALANCE_LEAF_ID,
+            scores=(balance_score,),
+            admission_leaf_ids=(_REFERENCE_BALANCE_LEAF_ID,),
+        )
+
+
+def _case_conditional_deferred_case(*, mode: str) -> CaseManifest:
+    case_id = (
+        _CASE_CONDITIONAL_DEFERRED_INAPPLICABLE_CASE_ID
+        if mode == "basic"
+        else _CASE_CONDITIONAL_DEFERRED_APPLICABLE_CASE_ID
+    )
+    return _reference_case(case_id=case_id, payload={"scenario_id": case_id, "mode": mode})
+
+
+def _case_conditional_deferred_family_manifest() -> FamilyManifest:
+    leaves = (
+        LeafPolicyDeclaration(_REFERENCE_BALANCE_LEAF_ID, "finalize_time", None),
+        LeafPolicyDeclaration(
+            _CASE_CONDITIONAL_DEFERRED_LEAF_ID,
+            "deferred",
+            "case_conditional_deferred_judge_verdict",
+            case_conditional=True,
+        ),
+    )
+    manifest = _with_declared_leaf_policy(
+        _reference_family_manifest(),
+        leaves=leaves,
+        primary_leaf_id=_REFERENCE_BALANCE_LEAF_ID,
+        admission_leaf_ids=(_REFERENCE_BALANCE_LEAF_ID,),
+    )
+    # Only the balance leaf ever appears in scores (the deferred leaf never
+    # does, by definition), so only its two _reference_leaf-minted
+    # components need declaring/pinning -- see _case_conditional_family_
+    # manifest's own comment for why this declaration is what makes
+    # resolve_run_plan accept (not reject as "unreferenced") the matching
+    # extra_pins below.
+    return dataclasses.replace(
+        manifest,
+        scoring=dataclasses.replace(
+            manifest.scoring,
+            reference_provider_ids=(
+                f"{_REFERENCE_BALANCE_LEAF_ID}_validity_v1",
+                f"{_REFERENCE_BALANCE_LEAF_ID}_reference_v1",
+            ),
+        ),
+    )
+
+
+def _case_conditional_deferred_extra_pins() -> tuple[ImplementationPin, ...]:
+    return tuple(
+        ImplementationPin.from_dict(
+            {
+                "component_id": f"{_REFERENCE_BALANCE_LEAF_ID}_{suffix}_v1",
+                "kind": "reference",
+                "version": "1.0.0",
+                "sha256": _REFERENCE_MODULE_DIGEST,
+            }
+        )
+        for suffix in ("validity", "reference")
+    )
+
+
+async def _run_case_conditional_deferred_episode(*, evidence_root: Path, mode: str):
+    return await _run_reference_episode(
+        ("x", "y"),
+        evidence_root=evidence_root,
+        plugin_factory=_CaseConditionalDeferredPlugin,
+        case=_case_conditional_deferred_case(mode=mode),
+        family_manifest=_case_conditional_deferred_family_manifest(),
+        extra_pins=_case_conditional_deferred_extra_pins(),
+    )
+
+
+# ---------------------------------------------------------------------------
 # kernel_contract_gap_review.md finding 4's exact adversary: a scorer whose
 # output alternates strictly by a GLOBAL call counter -- never by
 # ``scoring_input`` -- so fresh ``build_scorer(...)`` instances (as every
@@ -3911,3 +4045,105 @@ def test_case_conditional_audit_rejects_an_unscored_receipt_whose_inapplicable_l
         ValueError, match="receipt inapplicable_leaf_ids does not match the declared policy"
     ):
         audit_family_receipt(setup=setup, receipt_path=receipt_path)
+
+
+def test_case_conditional_deferred_precedence_applicable_case_at_finalize(
+    tmp_path: Path,
+) -> None:
+    """R13 review finding 4: on an applicable case, a leaf that is both
+    ``case_conditional`` and ``deferred`` is declared-and-deferred, not
+    declared-and-inapplicable."""
+    setup, execution = asyncio.run(
+        _run_case_conditional_deferred_episode(
+            evidence_root=tmp_path / "case_conditional_deferred_finalize_applicable",
+            mode="contract",
+        )
+    )
+    receipt = finalize_family_execution(setup=setup, execution=execution)
+    assert receipt.deferred_leaf_ids == (_CASE_CONDITIONAL_DEFERRED_LEAF_ID,)
+    assert receipt.inapplicable_leaf_ids == ()
+
+
+def test_case_conditional_deferred_precedence_inapplicable_case_at_finalize(
+    tmp_path: Path,
+) -> None:
+    """R13 review finding 4: on an inapplicable case, the same leaf is
+    declared-and-inapplicable, not declared-and-deferred -- inapplicability
+    takes precedence."""
+    setup, execution = asyncio.run(
+        _run_case_conditional_deferred_episode(
+            evidence_root=tmp_path / "case_conditional_deferred_finalize_inapplicable",
+            mode="basic",
+        )
+    )
+    receipt = finalize_family_execution(setup=setup, execution=execution)
+    assert receipt.deferred_leaf_ids == ()
+    assert receipt.inapplicable_leaf_ids == (_CASE_CONDITIONAL_DEFERRED_LEAF_ID,)
+
+
+def _finalize_case_conditional_deferred(tmp_path: Path, *, label: str, mode: str):
+    setup, execution = asyncio.run(
+        _run_case_conditional_deferred_episode(
+            evidence_root=tmp_path / label, mode=mode
+        )
+    )
+    receipt = finalize_family_execution(setup=setup, execution=execution)
+    return setup, execution, receipt
+
+
+def test_case_conditional_deferred_precedence_replay_applicable_case(
+    tmp_path: Path,
+) -> None:
+    setup, execution, receipt = _finalize_case_conditional_deferred(
+        tmp_path, label="case_conditional_deferred_replay_applicable", mode="contract"
+    )
+    replayed = replay_family_receipt(
+        setup=setup,
+        receipt=receipt,
+        evidence_root=tmp_path / "case_conditional_deferred_replay_applicable",
+    )
+    assert replayed.deferred_leaf_ids == (_CASE_CONDITIONAL_DEFERRED_LEAF_ID,)
+    assert replayed.inapplicable_leaf_ids == ()
+
+
+def test_case_conditional_deferred_precedence_replay_inapplicable_case(
+    tmp_path: Path,
+) -> None:
+    setup, execution, receipt = _finalize_case_conditional_deferred(
+        tmp_path, label="case_conditional_deferred_replay_inapplicable", mode="basic"
+    )
+    replayed = replay_family_receipt(
+        setup=setup,
+        receipt=receipt,
+        evidence_root=tmp_path / "case_conditional_deferred_replay_inapplicable",
+    )
+    assert replayed.deferred_leaf_ids == ()
+    assert replayed.inapplicable_leaf_ids == (_CASE_CONDITIONAL_DEFERRED_LEAF_ID,)
+
+
+def test_case_conditional_deferred_precedence_audit_applicable_case(
+    tmp_path: Path,
+) -> None:
+    evidence_root = tmp_path / "case_conditional_deferred_audit_applicable"
+    setup, execution, receipt = _finalize_case_conditional_deferred(
+        tmp_path, label="case_conditional_deferred_audit_applicable", mode="contract"
+    )
+    audited = audit_family_receipt(
+        setup=setup, receipt_path=_receipt_path_for(evidence_root, receipt)
+    )
+    assert audited.get("deferred_leaf_ids") == [_CASE_CONDITIONAL_DEFERRED_LEAF_ID]
+    assert audited.get("inapplicable_leaf_ids") in (None, [])
+
+
+def test_case_conditional_deferred_precedence_audit_inapplicable_case(
+    tmp_path: Path,
+) -> None:
+    evidence_root = tmp_path / "case_conditional_deferred_audit_inapplicable"
+    setup, execution, receipt = _finalize_case_conditional_deferred(
+        tmp_path, label="case_conditional_deferred_audit_inapplicable", mode="basic"
+    )
+    audited = audit_family_receipt(
+        setup=setup, receipt_path=_receipt_path_for(evidence_root, receipt)
+    )
+    assert audited.get("deferred_leaf_ids") in (None, [])
+    assert audited.get("inapplicable_leaf_ids") == [_CASE_CONDITIONAL_DEFERRED_LEAF_ID]
