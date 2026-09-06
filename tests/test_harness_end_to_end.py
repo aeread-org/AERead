@@ -417,3 +417,110 @@ def test_a_family_tool_outside_the_profile_grant_is_refused_at_the_port(
             for suffix in ("succeeded", "failed", "outcome_unknown")
         )
         assert opened == closed, f"{entity}: {opened} opened, {closed} closed"
+
+
+def _two_round_tool_executor(tmp_path, *, max_cost_usd: float | None = None):
+    import dataclasses
+
+    from aeread.shared_runner.task.execution import EvidenceStore
+    from aeread.shared_runner.model_call.harness import (
+        AttemptExecutor,
+        NativeToolCall,
+        NativeToolChatHarness,
+    )
+    from tests.test_shared_runner_execution import SYSTEM_PROMPT as EXEC_PROMPT
+    from tests.test_shared_runner_execution import _decision, _profile
+    from tests.test_shared_runner_harness import (
+        FAKE_PRICING,
+        ScriptedProvider,
+        _result,
+        _tool_runtime,
+    )
+
+    decision = _decision()
+    evidence = EvidenceStore(
+        tmp_path / "two_round_attempt",
+        run_plan_id="runplan_fixture",
+        cell_id=decision.cell_id,
+        episode_id=decision.episode_id,
+        episode_attempt_id="episode_attempt_fixture",
+    )
+    runtime, _balance_db = _tool_runtime(tmp_path, evidence)
+    base = _profile() if max_cost_usd is None else _profile(max_cost_usd=max_cost_usd)
+    profile = dataclasses.replace(
+        base,
+        harness=dataclasses.replace(
+            base.harness,
+            id="native_tool_chat",
+            config={**dict(base.harness.config), "max_rounds": 4},
+        ),
+        tools=("get_balance",),
+    )
+    provider = ScriptedProvider(
+        [
+            _result(
+                text="",
+                finish_reason="tool_calls",
+                tool_calls=(
+                    NativeToolCall(call_id="call_0", tool_id="get_balance", arguments={}),
+                ),
+            ),
+            _result(text='{"offer":7}', finish_reason="stop"),
+        ]
+    )
+    executor = AttemptExecutor(
+        evidence=evidence,
+        profiles=[profile],
+        prompt_sources={profile.prompt.prompt_id: EXEC_PROMPT},
+        providers={profile.model.provider: provider},
+        pricing={profile.model.model: FAKE_PRICING},
+        harnesses={"native_tool_chat/1.0": NativeToolChatHarness()},
+        tool_runtimes={profile.profile_id: runtime},
+    )
+    per_round = FAKE_PRICING.cost(input_tokens=20, cached_input_tokens=0, output_tokens=5)
+    return executor, decision, evidence, provider, per_round
+
+
+def test_a_multi_round_attempt_costs_and_records_every_provider_call(tmp_path) -> None:
+    executor, decision, evidence, provider, per_round = _two_round_tool_executor(tmp_path)
+
+    response = asyncio.run(executor(decision))
+
+    assert len(provider.requests) == 2
+    assert executor.total_cost_usd == pytest.approx(2 * per_round)
+    assert response.cost_usd == pytest.approx(2 * per_round)
+    assert response.input_tokens == 40 and response.output_tokens == 10
+    assert len(set(response.provider_call_ids)) == 2
+
+    (execution,) = executor.executions()
+    (attempt,) = execution.attempts
+    assert attempt.status == "succeeded"
+    assert [record.status for record in attempt.provider_calls] == ["succeeded", "succeeded"]
+    assert len({record.request_sha256 for record in attempt.provider_calls}) == 2
+    assert sum(record.cost_usd for record in attempt.provider_calls) == pytest.approx(2 * per_round)
+
+    events = [
+        json.loads(line) for line in evidence.events_path.read_text().splitlines()
+    ]
+    started = [e["provider_call_id"] for e in events if e["event_type"] == "provider_call_started"]
+    succeeded = [e["provider_call_id"] for e in events if e["event_type"] == "provider_call_succeeded"]
+    assert len(started) == 2 and sorted(started) == sorted(succeeded)
+    # Round 0's terminal event carries round 0's own result, not the final reply.
+    first_success = next(e for e in events if e["event_type"] == "provider_call_succeeded")
+    payload = json.loads((evidence.root / first_success["payload_ref"]).read_bytes())
+    assert first_success["provider_call_id"] == started[0]
+    assert payload["provider_result"]["finish_reason"] == "tool_calls"
+    assert payload["cost_usd"] == pytest.approx(per_round)
+
+
+def test_a_multi_round_attempt_is_bounded_by_the_accumulated_profile_cost(tmp_path) -> None:
+    from aeread.shared_runner.task.execution import EvidenceIntegrityError
+    from tests.test_shared_runner_harness import FAKE_PRICING
+
+    per_round = FAKE_PRICING.cost(input_tokens=20, cached_input_tokens=0, output_tokens=5)
+    executor, decision, _evidence, _provider, _ = _two_round_tool_executor(
+        tmp_path, max_cost_usd=1.5 * per_round
+    )
+    with pytest.raises(EvidenceIntegrityError, match="cost budget exceeded"):
+        asyncio.run(executor(decision))
+    assert executor.total_cost_usd == pytest.approx(2 * per_round)
