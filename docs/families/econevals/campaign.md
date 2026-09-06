@@ -78,3 +78,49 @@ deliberately **not** in the retryable set: making it retryable would hide a
 genuinely misconfigured route. When a burst is sustained, the disposition is
 the risk-gate V4 precedent -- seal the audit and re-run the identical frozen
 plan in a later availability window.
+
+## Fidelity against the original paper (checked 2026-09-06)
+
+Verified against the pinned checkout `sara-fish/econ-evals-paper` @
+`e1f2a40`, not from memory.
+
+### The interaction shape differs, and it matters
+
+Upstream runs a multi-turn loop **inside each period**
+(`experiments/procurement/run_procurement_experiment.py`):
+
+```python
+messages = [{"role": "user", "content": initial_prompt}]
+for i in range(max_queries):          # max_llm_queries_per_period = 40
+    log, response, completion = call_llm(..., messages=messages)
+    messages.append({"role": "assistant", "content": completion["content"]})
+    # every tool result is appended to messages before the next call
+```
+
+The agent calls a tool, sees the result, and decides what to do next. That
+observe -> act -> observe loop is the agentic capability the benchmark
+exists to measure.
+
+This adapter makes ONE model call per period and executes the returned burst
+afterwards, so the model never sees a tool result within the period -- it
+sees the previous period's summary through `get_previous_*` on the next
+turn, and must commit its submission blind to whatever it looked up in the
+same period.
+
+**Consequence:** headroom-capture numbers from this family are not
+comparable to the paper's. They measure a differently shaped and strictly
+harder task. The fix is an in-period loop in `EconevalsJsonHarness` feeding
+each tool result back before the next call -- the same shape its corrective
+rounds already use, so it is a contained change rather than a redesign.
+
+### Documented narrower limits
+
+- **Basic difficulty only.** Upstream supports `Basic | Medium | Hard`
+  (`run_procurement_batch.py`); the pip-installed gurobipy free license
+  silently rejects models past a size cap, so this corpus is Basic. Results
+  speak to the easiest tier.
+- **Upstream's global-RNG bug**, already worked around: `generate_instance`
+  computes `budget` from the global `numpy.random` state rather than the
+  passed `RandomState`, so the bridge spawns a fresh subprocess per
+  generation. Not our defect; it is why corpus work is slow.
+
