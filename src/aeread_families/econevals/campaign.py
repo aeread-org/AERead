@@ -371,9 +371,16 @@ async def execute_campaign(*, run_root: Path) -> None:
                 tool_runtime_factories=setup.tool_runtime_factories,
             )
             receipt = finalize_family_execution(setup=setup, execution=execution)
-            if receipt.status != "ok" or receipt.inclusion_status != "included":
+            # An excluded receipt is a MEASUREMENT outcome, not an operational
+            # failure: the pipeline ran, the episode sealed, and the verifier
+            # judged the model's own submission invalid. Aborting the panel on
+            # it would make the panel unable to report the very thing it
+            # measures. Only a broken pipeline (a receipt that did not finalize
+            # at all) stops the run; inclusion is recorded per case and the
+            # publisher reports it.
+            if receipt.status not in {"ok", "invalid_measurement"}:
                 raise RuntimeError(
-                    "econevals case did not produce an included successful receipt"
+                    f"econevals case produced an unusable receipt: {receipt.status}"
                 )
             replayed = replay_family_receipt(
                 setup=setup,
@@ -399,6 +406,8 @@ async def execute_campaign(*, run_root: Path) -> None:
                 "receipt_path": str(receipt_path.relative_to(run_root)),
                 "receipt_sha256": receipt.receipt_sha256,
                 "receipt_replayed": True,
+                "receipt_status": receipt.status,
+                "inclusion_status": receipt.inclusion_status,
                 "cost_usd": cost,
                 "termination_reason": execution.episode_result.outcome[
                     "termination_reason"
@@ -472,6 +481,8 @@ def publish_campaign(*, run_root: Path, publication_root: Path) -> None:
                 "stratum": PANEL_STRATA[ordinal],
                 "termination_reason": checkpoint["termination_reason"],
                 "period_count": checkpoint["period_count"],
+                "receipt_status": checkpoint["receipt_status"],
+                "inclusion_status": checkpoint["inclusion_status"],
                 "gate_leaf_id": gate.leaf.leaf_id if gate else None,
                 "gate_valid": gate.validity.valid if gate else None,
                 "gate_value": (
@@ -502,6 +513,12 @@ def publish_campaign(*, run_root: Path, publication_root: Path) -> None:
         ],
         "planned_cases": len(PANEL_CASE_IDS),
         "completed_cases": len(trajectory_rows),
+        "included_cases": sum(
+            1 for row in trajectory_rows if row["inclusion_status"] == "included"
+        ),
+        "excluded_cases": sum(
+            1 for row in trajectory_rows if row["inclusion_status"] != "included"
+        ),
         "operational_failures": 0,
         "total_cost_usd": total_cost,
         "hard_total_cost_ceiling_usd": HARD_TOTAL_COST_CEILING_USD,
