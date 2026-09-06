@@ -55,6 +55,7 @@ import functools
 import hashlib
 import itertools
 import json
+import os
 from pathlib import Path
 from types import MappingProxyType
 from typing import Any, Mapping, Sequence
@@ -62,6 +63,7 @@ from typing import Any, Mapping, Sequence
 import pytest
 
 import aeread.shared_runner.task.execution as execution_module
+from aeread.shared_runner import episode_id_for_cell, run_episode
 from aeread.shared_runner.measurement import (
     EstimandSpec,
     FamilyScoreSet,
@@ -132,6 +134,18 @@ from aeread_families.housing.runner import (
     HousingScriptedTenantProvider,
     build_housing_smoke,
 )
+import aeread_families.negarena.environment as negarena_environment_module
+from aeread_families.negarena import measurement as negarena_measurement
+from aeread_families.negarena.cases import BLUE as NEGARENA_BLUE, RED as NEGARENA_RED
+from aeread_families.negarena.environment import (
+    BLUE_PHASE as NEGARENA_BLUE_PHASE,
+    PLUGIN_ID as NEGARENA_PLUGIN_ID,
+    RED_PHASE as NEGARENA_RED_PHASE,
+    SCORER_ID as NEGARENA_SCORER_ID,
+    NegarenaPlugin,
+    register_plugin as negarena_register_plugin,
+)
+from aeread_families.negarena.harness import run_scripted_negarena_episode as negarena_run_scripted_episode
 from aeread_families.procurement_allocation import (
     procurement_allocation_measurement_leaf,
     run_fixture_script,
@@ -1419,6 +1433,415 @@ def _embedding_fixtures(
     return manifest, plugin, fixtures
 
 
+# ---------------------------------------------------------------------------
+# negarena: a real, bridge-backed family whose primary leaf
+# (negarena_seat_outcome) is genuinely seat-scoped (ruling R12) and
+# trajectory-scoped. Verified constructible against the real bridge
+# directly before being wired in here
+# (docs/negarena_migration_plan.md's "Paired-history pair: constructible"):
+# golden-1's buy_sell transcript (parity.build_buy_sell_golden_one) ends in
+# an ACCEPT whose own trade tag upstream's parser always reduces to the
+# fixed sentinel ``{"kind": "none"}`` (environment.py's ``terminal()``
+# docstring) -- the trade that actually settles is the turn proposed
+# immediately before the ACCEPT (``state["history"][-2]``,
+# ``measurement.py``'s ``_accepted_trade_give``). Varying only that one
+# turn's offer price leaves ``outcome()`` (only ``{termination_reason,
+# iteration_count, last_answer, last_trade}``) byte-identical while
+# changing what actually settles -- giving ``negarena_seat_outcome``
+# (trajectory) a genuine sensitivity witness (ruling R9(b)) and
+# ``negarena_agreement_reached`` (terminal_state) a non-trivial pair to
+# check under ruling R7's contrapositive.
+#
+# Unlike every other family this suite verifies unconditionally,
+# negarena's fixtures need the real, provisioned negarena bridge (a
+# subprocess executing the pinned upstream NegotiationArena checkout).
+# Folding it into test_every_registered_family_obeys_the_scoring_contract
+# would make that test -- and every other family's own always-on coverage
+# inside it -- newly skip whenever the bridge is unavailable. It is
+# therefore verified in its own per-test-skippable test instead (mirrors
+# govsim's identical treatment via _BRIDGE_GATED_ENROLLED_FAMILY_VERSIONS,
+# the migration reference).
+# ---------------------------------------------------------------------------
+
+_NEGARENA_UPSTREAM_ROOT = Path(
+    os.environ.get(
+        "AEREAD_NEGARENA_UPSTREAM_ROOT",
+        "/Users/sunzeyu/Documents/econ benchmark/upstream-negarena",
+    )
+)
+
+
+def _negarena_bridge() -> Any:
+    """Discover the real ``NegarenaBridge``, or skip this test cleanly.
+
+    Deliberately a per-test skip (called from inside a test function),
+    never a module-level ``pytest.skip(..., allow_module_level=True)`` --
+    unlike ``tests/test_negarena_kernel_finalizer.py``'s identical-looking
+    helper, this module is imported unconditionally by
+    ``test_every_registered_family_obeys_the_scoring_contract``'s own
+    always-on coverage of every OTHER family, so a module-level skip here
+    would take their coverage down with it whenever negarena's bridge is
+    unavailable -- exactly the failure mode this section's own docstring
+    exists to avoid.
+    """
+    from aeread_families.negarena.negarena_bridge import (
+        NegarenaBridge,
+        NegarenaBridgeUnavailableError,
+    )
+
+    if not (_NEGARENA_UPSTREAM_ROOT / "negotiationarena").is_dir():
+        pytest.skip(
+            f"pinned upstream NegotiationArena checkout not found at {_NEGARENA_UPSTREAM_ROOT}"
+        )
+    try:
+        return NegarenaBridge.discover(_NEGARENA_UPSTREAM_ROOT)
+    except NegarenaBridgeUnavailableError as error:
+        pytest.skip(f"upstream NegotiationArena Python interpreter unavailable: {error}")
+
+
+def _negarena_buy_sell_response(
+    trade_text: str, *, answer: str = "PROPOSAL", resources_text: str = "X: 1"
+) -> str:
+    return (
+        "<message> negotiating </message>\n"
+        f"<player answer> {answer} </player answer>\n"
+        f"<newly proposed trade> {trade_text} </newly proposed trade>\n"
+        f"<my resources> {resources_text} </my resources>\n"
+        "<my goals> goal </my goals>\n"
+        "<reason> r </reason>\n"
+        "<proposal count> 1 </proposal count>"
+    )
+
+
+def _negarena_buy_sell_script(offers: Sequence[int]) -> list[tuple[str, str, dict[str, str]]]:
+    """An 8-turn buy_sell script (7 alternating offers, then BLUE ACCEPTs),
+    in ``ScriptedNegarenaHarness``'s ``(phase_id, seat_id, response)``
+    format (``harness.run_scripted_negarena_episode``'s own ``script``
+    parameter). Only ``offers[-1]`` -- the turn immediately before
+    ACCEPT -- is what settlement actually reads; every earlier offer is
+    filler that must merely be legal.
+    """
+    turns: list[tuple[str, str, dict[str, str]]] = []
+    for index, price in enumerate(offers):
+        seat = NEGARENA_RED if index % 2 == 0 else NEGARENA_BLUE
+        phase = NEGARENA_RED_PHASE if seat == NEGARENA_RED else NEGARENA_BLUE_PHASE
+        resources_text = "X: 1" if seat == NEGARENA_RED else "ZUP: 1000"
+        text = _negarena_buy_sell_response(
+            f"Player RED Gives X: 1 | Player BLUE Gives ZUP: {price}",
+            resources_text=resources_text,
+        )
+        turns.append((phase, seat, {"response": text}))
+    turns.append(
+        (
+            NEGARENA_BLUE_PHASE,
+            NEGARENA_BLUE,
+            {
+                "response": _negarena_buy_sell_response(
+                    "NONE", answer="ACCEPT", resources_text="ZUP: 1000"
+                )
+            },
+        )
+    )
+    return turns
+
+
+# Golden-1 itself (parity.build_buy_sell_golden_one, spec section 4 golden
+# 1): settles at 40 ZUP. The paired fixture settles at 45 ZUP instead -- a
+# price already proven legal earlier in the SAME golden-1 transcript
+# (offers[2] == 45) -- changing only the turn immediately before ACCEPT.
+_NEGARENA_LEFT_OFFERS: tuple[int, ...] = (50, 30, 45, 35, 42, 38, 40)
+_NEGARENA_RIGHT_OFFERS: tuple[int, ...] = (50, 30, 45, 35, 42, 38, 45)
+
+
+def _build_negarena_setup(bridge_instance: Any, case: CaseManifest) -> tuple[RunPlan, PluginRegistry]:
+    """Resolve a real, one-cell negarena ``RunPlan`` for ``case``.
+
+    Both seats share one scripted profile (self-play): nothing here ever
+    calls a ``ProviderClient`` -- every episode is driven directly through
+    ``run_episode``/``ScriptedNegarenaHarness`` -- so the profile only
+    needs to be schema-valid and admitted, mirroring
+    ``tests/test_negarena_kernel_finalizer.py``'s identical
+    ``_build_negarena_run_plan``. The block's own ``subject_seats`` (both
+    seats) is irrelevant to the fixtures below: ``FamilyScoringFixture``'s
+    own ``subject_seats``/``profile_by_seat`` fields are what
+    ``_assert_family_obeys_the_scoring_contract`` actually reads (ruling
+    R12) -- this plan exists only to produce a genuine, sealed
+    ``EvidenceStore`` through the real scheduler.
+    """
+    plugin = NegarenaPlugin(upstream_root=_NEGARENA_UPSTREAM_ROOT, bridge=bridge_instance)
+    registry = PluginRegistry()
+    negarena_register_plugin(registry, plugin=plugin)
+
+    profile = AgentProfile.from_dict(
+        {
+            "spec_version": "aeread.agent_profile/0.1",
+            "profile_id": "negarena_scripted_v1",
+            "model": {
+                "provider": "negarena_scripted",
+                "model": "negarena-scripted-v1",
+                "revision": "1.0.0",
+                "base_url": None,
+            },
+            "harness": {"id": "minimal_chat", "version": "1.0", "config": {}},
+            "prompt": {
+                "prompt_id": "negarena_scripted_prompt_v1",
+                "sha256": hashlib.sha256(b"negarena scripted seat").hexdigest(),
+            },
+            "runtime": {
+                "kind": "python",
+                "implementation": "aeread.shared_runner.task.execution",
+                "version": "0.1.0",
+            },
+            "tools": [],
+            "memory": {"mode": "disabled"},
+            "reasoning": {
+                "condition_id": "reasoning_none_v1",
+                "effort": None,
+                "token_budget": None,
+                "rationale_visibility": "hidden",
+            },
+            "sampling": {
+                "temperature": 0.0,
+                "max_output_tokens": 512,
+                "seed": None,
+                "top_p": None,
+            },
+            "budgets": {
+                "max_logical_actions": 20,
+                "timeout_seconds": 30.0,
+                "max_cost_usd": None,
+            },
+            "retry_policy": {
+                "max_action_attempts": 1,
+                "retryable_conditions": [],
+                "session_mode": "restart",
+                "sdk_retries": 0,
+            },
+        }
+    )
+    sampling = SamplingPlan.from_dict(
+        {
+            "spec_version": "aeread.sampling/0.1",
+            "sampling_plan_id": "negarena_scoring_contract_sample_v1",
+            "estimand": "fixed_smoke_case",
+            "target": "negarena_scoring_contract_fixture",
+            "selection": "fixed_curated",
+            "seeds": [case.world_seed],
+            "replicates": 1,
+            "cluster_level": "world_seed",
+            "cluster_id_fields": ["generator_version", "world_seed"],
+            "paired_fields": [],
+            "replicate_level": "episode_attempt",
+            "panel_mode": "fixed_panel",
+        }
+    )
+    block = EvaluationBlock.from_dict(
+        {
+            "spec_version": "aeread.evaluation_block/0.1",
+            "block_id": "negarena_scoring_contract_block",
+            "kind": "self_play",
+            "subject_seats": [NEGARENA_RED, NEGARENA_BLUE],
+            "controlled_profiles": {},
+            "repetitions": 1,
+            "seed_policy": "fixed",
+        }
+    )
+    analysis = AnalysisPlan.from_dict(
+        {
+            "spec_version": "aeread.analysis/0.1",
+            "analysis_plan_id": "negarena_scoring_contract_analysis_v1",
+            "estimands": [negarena_measurement.SEAT_OUTCOME_ESTIMAND_ID],
+            "group_by": ["family_id"],
+            "missingness": "report_separately",
+            "resampling_unit": "cluster_id",
+            "uncertainty": "none",
+            "multiplicity": "none",
+            "sensitivity": [],
+            "cross_family_scalar": "disabled",
+        }
+    )
+    suite = SuiteManifest.from_dict(
+        {
+            "spec_version": "aeread.suite/0.1",
+            "suite_id": "negarena_scoring_contract_suite_v1",
+            "version": "1.0.0",
+            "family_ids": [case.family_id],
+            "case_ids": [case.case_id],
+            "sampling_plan_id": sampling.sampling_plan_id,
+            "evaluation_block_ids": [block.block_id],
+            "analysis_plan_id": analysis.analysis_plan_id,
+        }
+    )
+    run_spec = RunSpec.from_dict(
+        {
+            "spec_version": "aeread.run_spec/0.1",
+            "run_spec_id": "negarena_scoring_contract_run_v1",
+            "suite_id": suite.suite_id,
+            "evaluation_block_ids": [block.block_id],
+            "agent_profile_ids": [profile.profile_id],
+            "seat_assignments": {
+                NEGARENA_RED: profile.profile_id,
+                NEGARENA_BLUE: profile.profile_id,
+            },
+            "execution_mode": "evaluate",
+            "replicate_override": None,
+            "budget_overrides": None,
+        }
+    )
+
+    harness_registry = HarnessRegistry()
+    for harness in default_harnesses().values():
+        harness_registry.register(harness)
+
+    environment_sha256 = hashlib.sha256(
+        Path(negarena_environment_module.__file__).read_bytes()
+    ).hexdigest()
+    execution_sha256 = hashlib.sha256(
+        Path(execution_module.__file__).read_bytes()
+    ).hexdigest()
+    # Every implementation id either declared leaf actually references
+    # (validity-domain predicate, reference implementation, scorer -- for
+    # both leaves), read straight off the leaves themselves so this can
+    # never drift from what they really declare -- mirrors
+    # ``tests/test_negarena_kernel_finalizer.py``'s identical
+    # ``reference_refs`` construction.
+    seat_leaf = negarena_measurement.build_seat_outcome_leaf()
+    agreement_leaf = negarena_measurement.build_agreement_reached_leaf()
+    reference_refs = {
+        seat_leaf.estimand.validity_domain.predicate,
+        seat_leaf.verifier.reference.implementation,
+        seat_leaf.scorer,
+        agreement_leaf.verifier.reference.implementation,
+        agreement_leaf.scorer,
+    }
+    reference_pins = tuple(
+        ImplementationPin.from_dict(
+            {
+                "component_id": ref.implementation_id,
+                "kind": "reference",
+                "version": ref.version,
+                "sha256": ref.content_sha256,
+            }
+        )
+        for ref in reference_refs
+    )
+    pins = (
+        ImplementationPin.from_dict(
+            {
+                "component_id": NEGARENA_PLUGIN_ID,
+                "kind": "family_plugin",
+                "version": "0.1.0",
+                "sha256": environment_sha256,
+            }
+        ),
+        ImplementationPin.from_dict(
+            {
+                "component_id": NEGARENA_SCORER_ID,
+                "kind": "scorer",
+                "version": "0.1.0",
+                "sha256": environment_sha256,
+            }
+        ),
+        *reference_pins,
+        ImplementationPin.from_dict(
+            {
+                "component_id": "minimal_chat",
+                "kind": "harness",
+                "version": "1.0",
+                "sha256": execution_sha256,
+            }
+        ),
+        ImplementationPin.from_dict(
+            {
+                "component_id": "aeread.shared_runner.task.execution",
+                "kind": "runtime",
+                "version": "0.1.0",
+                "sha256": execution_sha256,
+            }
+        ),
+    )
+
+    plan = resolve_run_plan(
+        families=(negarena_environment_module.family_manifest(),),
+        cases=(case,),
+        suite=suite,
+        sampling=sampling,
+        evaluation_blocks=(block,),
+        analysis=analysis,
+        agent_profiles=(profile,),
+        run_spec=run_spec,
+        registry=registry,
+        implementation_pins=pins,
+        harness_registry=harness_registry,
+        provider_capabilities={
+            "negarena_scripted": ProviderCapabilities(
+                native_tools=False,
+                structured_output=False,
+                seed=False,
+                system_prompt=True,
+                reasoning_budget=False,
+                reasoning_token_report=False,
+                max_context_tokens=None,
+            )
+        },
+    )
+    return plan, registry
+
+
+def _negarena_fixture_pair(
+    tmp_path: Path,
+) -> tuple[FamilyManifest, Any, tuple[FamilyScoringFixture, FamilyScoringFixture]]:
+    """The byte-identical-outcome, differing-trajectory negarena pair.
+
+    Both fixtures replay the SAME case (``negarena.buy_sell.0``) through
+    the SAME single-cell plan, each in its own sealed ``EvidenceStore``.
+    ``subject_seats=(NEGARENA_RED,)`` on both: RED is the declared subject
+    in both fixtures, BLUE the fixed scripted opponent
+    (``negarena_scripted_v1`` -> ``"scripted"``,
+    ``measurement.OPPONENT_PROFILE_TO_POLICY_ID``) -- the ordinary,
+    single-subject-seat case this corpus's real evaluation cells are
+    shaped like (docs/negarena_adapter_status.md's seat-scope
+    classification), never the self-play/ambiguous shape
+    ``tests/test_negarena_kernel_finalizer.py``'s own fixtures use.
+    """
+    bridge_instance = _negarena_bridge()
+    case_path = ROOT / "cases" / "negarena" / "buy_sell" / "negarena.buy_sell.0.json"
+    case = CaseManifest.from_dict(json.loads(case_path.read_text(encoding="utf-8")))
+    plan, registry = _build_negarena_setup(bridge_instance, case)
+    cell = plan.cells[0]
+    family = plan.families[0]
+    plugin = registry.resolve_manifest(family)
+    family_case = plugin.validate_payload(case.payload)
+
+    def _run(offers: Sequence[int], suffix: str) -> FamilyScoringFixture:
+        evidence = EvidenceStore(
+            tmp_path / f"negarena_{suffix}",
+            run_plan_id=plan.run_plan_id,
+            cell_id=cell.cell_id,
+            episode_id=episode_id_for_cell(cell),
+            episode_attempt_id="attempt_1",
+        )
+        asyncio.run(
+            negarena_run_scripted_episode(
+                cell=cell,
+                case=case,
+                plugin=plugin,
+                evidence=evidence,
+                script=_negarena_buy_sell_script(offers),
+            )
+        )
+        return FamilyScoringFixture(
+            family_case=family_case,
+            sealed_evidence=evidence,
+            subject_seats=(NEGARENA_RED,),
+            profile_by_seat=cell.profile_by_seat,
+        )
+
+    left = _run(_NEGARENA_LEFT_OFFERS, "left")
+    right = _run(_NEGARENA_RIGHT_OFFERS, "right")
+    return family, plugin, (left, right)
+
+
 def _build_protocol_test_registry_and_fixtures(
     tmp_path: Path,
 ) -> tuple[PluginRegistry, dict[tuple[str, str], tuple[FamilyScoringFixture, ...]]]:
@@ -1878,7 +2301,10 @@ def _trusted_family_versions(
 # deliberately named, not derived: adding a NEW trusted key -- the exact
 # attack the review demonstrated -- now requires either enrolling a real
 # fixture or explicitly widening this exemption; it can no longer happen
-# silently.
+# silently. ``negarena`` is deliberately NOT here: it IS migrated (see this
+# module's own docstring / _negarena_fixture_pair above) -- see
+# _BRIDGE_GATED_ENROLLED_FAMILY_VERSIONS below for where its migration is
+# accounted for instead.
 _NOT_YET_MIGRATED_TRUSTED_KEYS: "frozenset[tuple[str, str]]" = frozenset(
     {
         ("consent_ir_v1", "1.0.0"),
@@ -1891,9 +2317,9 @@ _NOT_YET_MIGRATED_TRUSTED_KEYS: "frozenset[tuple[str, str]]" = frozenset(
         # External-benchmark adapter families enrolled in
         # TRUSTED_BUILTIN_PLUGIN_KEYS by maintainer ruling on 2026-09-04
         # (PRs #28-#38), landed on main after this branch forked. None of
-        # the eleven has a FamilyScoringInput-contract fixture yet; they
-        # migrate under the per-adapter follow-ups tracked alongside the
-        # other not-yet-migrated families above, not as part of this
+        # the remaining ten has a FamilyScoringInput-contract fixture yet;
+        # they migrate under the per-adapter follow-ups tracked alongside
+        # the other not-yet-migrated families above, not as part of this
         # kernel change.
         ("agenticpay.bilateral", "0.1.0"),
         ("alympics.wac", "0.1.0"),
@@ -1903,10 +2329,26 @@ _NOT_YET_MIGRATED_TRUSTED_KEYS: "frozenset[tuple[str, str]]" = frozenset(
         ("econagent_v1", "0.1.0"),
         ("econevals", "0.1.0"),
         ("govsim", "0.1.0"),
-        ("negarena", "0.1.0"),
         ("steer", "0.1.0"),
         ("termsbench", "0.1.0"),
     }
+)
+
+# negarena IS migrated and genuinely fixture-covered
+# (_negarena_fixture_pair, test_negarena_obeys_the_scoring_contract below)
+# -- but unlike every other family this suite verifies unconditionally, its
+# fixtures require the real, provisioned negarena bridge (a subprocess
+# executing the pinned upstream NegotiationArena checkout). Folding it into
+# _build_protocol_test_registry_and_fixtures/
+# test_every_registered_family_obeys_the_scoring_contract would make THAT
+# test -- and every other family's own always-on coverage inside it --
+# newly skip whenever the bridge is unavailable, which is exactly the kind
+# of quiet coverage loss this suite exists to prevent for everyone else. It
+# is therefore verified in its own per-test-skippable test instead, and
+# named here (not in _NOT_YET_MIGRATED_TRUSTED_KEYS, which would
+# misdescribe it) so ruling R6's closure check still has it accounted for.
+_BRIDGE_GATED_ENROLLED_FAMILY_VERSIONS: "frozenset[tuple[str, str]]" = frozenset(
+    {("negarena", "0.1.0")}
 )
 
 
@@ -2262,15 +2704,49 @@ def test_every_registered_family_obeys_the_scoring_contract(tmp_path: Path) -> N
     # world is TRUSTED_BUILTIN_PLUGIN_KEYS. The assertion above was true by
     # construction and could never fail; a family enrolled there without a
     # fixture (or an explicit, named "not yet migrated" exemption) now fails
-    # here instead.
+    # here instead. negarena is enrolled via
+    # _BRIDGE_GATED_ENROLLED_FAMILY_VERSIONS, not this test's own local
+    # ``fixtures`` -- see that set's own docstring.
     _assert_trusted_catalog_is_closed(
         trusted_keys=TRUSTED_BUILTIN_PLUGIN_KEYS,
-        enrolled_family_versions=set(fixtures),
+        enrolled_family_versions=set(fixtures) | _BRIDGE_GATED_ENROLLED_FAMILY_VERSIONS,
         exempt_family_versions=_NOT_YET_MIGRATED_TRUSTED_KEYS,
     )
 
     for key, registration in registrations.items():
         _assert_family_obeys_the_scoring_contract(key, registration, fixtures[key])
+
+
+def test_negarena_obeys_the_scoring_contract(tmp_path: Path) -> None:
+    """negarena's own contract check -- kept out of
+    ``test_every_registered_family_obeys_the_scoring_contract`` (see
+    ``_BRIDGE_GATED_ENROLLED_FAMILY_VERSIONS``'s own docstring for why):
+    this family's fixtures require the real, provisioned negarena bridge (a
+    subprocess executing the pinned upstream NegotiationArena checkout),
+    which every OTHER family this suite verifies deliberately does not, so
+    folding it into that always-on test would make THEIR coverage newly
+    skip too whenever the bridge is unavailable. Per-test skip only, never
+    module-level (mirrors ``tests/test_negarena_environment.py``'s own
+    documented convention).
+
+    Runs the identical protocol check
+    (``_assert_family_obeys_the_scoring_contract``) against negarena's own
+    registry registration and its two paired fixtures
+    (``_negarena_fixture_pair`` -- byte-identical terminal outcome,
+    genuinely differing trajectory, verified constructible against the
+    real bridge before being wired in here), covering both this family's
+    genuinely seat-scoped, trajectory-scoped primary leaf
+    (``negarena_seat_outcome``) and ruling R7's contrapositive for its one
+    terminal_state-scoped diagnostic leaf (``negarena_agreement_reached``).
+    """
+    registry = PluginRegistry()
+    family, plugin, fixture_pair = _negarena_fixture_pair(tmp_path)
+    registry.register_trusted(family, plugin)
+    (registration,) = registry.registrations()
+    key = (registration.family_id, registration.family_version)
+    assert key == ("negarena", "0.1.0")
+
+    _assert_family_obeys_the_scoring_contract(key, registration, fixture_pair)
 
 
 def test_determinism_precheck_adjacency_defeats_call_parity_aliasing(tmp_path: Path) -> None:
