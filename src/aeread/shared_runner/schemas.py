@@ -335,6 +335,12 @@ class RoleSpec:
 
 
 _LEAF_SCOPES = {"finalize_time", "deferred"}
+# Ruling R12 (kernel_scoring_contract_spec.md): "cell" (the default) is an
+# ordinary, family-wide scalar; "subject_seat" declares that the leaf's
+# primary is a reduction over the plan's tested subject seats -- see
+# ``subject_reduction`` below and ``task/evaluation.py``'s
+# ``_enforce_subject_seat_primaries``.
+_SEAT_SCOPES = {"cell", "subject_seat"}
 
 
 @dataclass(frozen=True, slots=True)
@@ -347,11 +353,28 @@ class LeafPolicyDeclaration:
     than mislabelled ``invalid_measurement``. A leaf may not be marked
     ``deferred`` merely because computing it is inconvenient --
     ``deferred_artifact`` must name what it waits on.
+
+    Ruling R12: ``seat_scope`` and ``subject_reduction`` are added after
+    leaf policy was already sealed into published digests, so both are
+    ``_CANONICAL_OMIT_IF_DEFAULT`` on this class -- a leaf that does not use
+    them (the ``seat_scope="cell"`` default) hashes exactly as it did before
+    this change. ``subject_reduction`` is a family-interpreted identifier
+    (e.g. ``"mean"``) naming how the family reduces several subject seats'
+    values into one primary; the kernel never interprets it, only requires
+    it was declared before a ``subject_seat`` leaf may score a scalar over
+    more than one subject seat (task/evaluation.py's
+    ``_enforce_subject_seat_primaries``).
     """
+
+    _CANONICAL_OMIT_IF_DEFAULT: ClassVar[frozenset[str]] = frozenset(
+        {"seat_scope", "subject_reduction"}
+    )
 
     leaf_id: str
     scope: str
     deferred_artifact: str | None
+    seat_scope: str = "cell"
+    subject_reduction: str | None = None
 
     def __post_init__(self) -> None:
         # kernel_contract_impl_review.md finding 4: these invariants were
@@ -377,13 +400,26 @@ class LeafPolicyDeclaration:
             raise AuthoringValidationError(
                 "deferred_artifact is only valid for a deferred leaf"
             )
+        # Ruling R12: same "every construction path" reasoning as the
+        # ``scope``/``deferred_artifact`` pair above -- a ``dataclasses.replace``
+        # must not be able to smuggle a ``subject_reduction`` onto a
+        # ``cell``-scoped leaf either.
+        if self.seat_scope not in _SEAT_SCOPES:
+            raise AuthoringValidationError(
+                f"leaf policy seat_scope must be one of {sorted(_SEAT_SCOPES)}, "
+                f"got {self.seat_scope!r}"
+            )
+        if self.seat_scope != "subject_seat" and self.subject_reduction is not None:
+            raise AuthoringValidationError(
+                "subject_reduction is only valid for a subject_seat leaf"
+            )
 
     @classmethod
     def from_dict(cls, value: Any, path: str) -> "LeafPolicyDeclaration":
         data = _fields(
             value,
             required={"leaf_id", "scope"},
-            optional={"deferred_artifact"},
+            optional={"deferred_artifact", "seat_scope", "subject_reduction"},
             path=path,
         )
         scope = _enum(data["scope"], f"{path}.scope", _LEAF_SCOPES)
@@ -398,10 +434,22 @@ class LeafPolicyDeclaration:
             raise AuthoringValidationError(
                 f"{path}.deferred_artifact is only valid for a deferred leaf"
             )
+        seat_scope = _enum(
+            data.get("seat_scope", "cell"), f"{path}.seat_scope", _SEAT_SCOPES
+        )
+        subject_reduction = _optional_string(
+            data.get("subject_reduction"), f"{path}.subject_reduction"
+        )
+        if seat_scope != "subject_seat" and subject_reduction is not None:
+            raise AuthoringValidationError(
+                f"{path}.subject_reduction is only valid for a subject_seat leaf"
+            )
         return cls(
             leaf_id=_identifier(data["leaf_id"], f"{path}.leaf_id"),
             scope=scope,
             deferred_artifact=deferred_artifact,
+            seat_scope=seat_scope,
+            subject_reduction=subject_reduction,
         )
 
 
