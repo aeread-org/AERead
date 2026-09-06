@@ -843,6 +843,39 @@ def test_attempt_executor_drives_a_registered_harness_end_to_end(tmp_path) -> No
     assert kinds.index("provider_call_started") < kinds.index("action_attempt_succeeded")
 
 
+def test_attempt_executor_uses_the_harness_renderer_for_sealed_round_zero(tmp_path) -> None:
+    from aeread.shared_runner.model_call.harness import AttemptExecutor, MinimalChatHarness
+
+    class RenderingHarness(MinimalChatHarness):
+        @staticmethod
+        def request_message(request):
+            return CanonicalMessage(role="user", content="STATIC_CONTEXT\nTURN_CONTEXT")
+
+    decision = _executor_decision()
+    evidence = EvidenceStore(
+        tmp_path / "round_zero_renderer_evidence",
+        run_plan_id="runplan_harness_fixture",
+        cell_id=decision.cell_id,
+        episode_id=decision.episode_id,
+        episode_attempt_id="episode_attempt_harness_fixture",
+    )
+    profile = _executor_profile()
+    provider = ScriptedProvider([_result(text="an offer", finish_reason="stop")])
+    executor = AttemptExecutor(
+        evidence=evidence,
+        profiles=[profile],
+        prompt_sources={profile.prompt.prompt_id: _executor_prompt()},
+        providers={profile.model.provider: provider},
+        pricing={profile.model.model: FAKE_PRICING},
+        harnesses={"minimal_chat/1.0": RenderingHarness()},
+    )
+
+    asyncio.run(executor(decision))
+
+    sealed = json.loads(provider.requests[0].input_text)
+    assert sealed["messages"][0]["content"] == "STATIC_CONTEXT\nTURN_CONTEXT"
+
+
 def test_attempt_executor_enforces_a_combined_cost_ceiling_across_actions(tmp_path) -> None:
     from aeread.shared_runner.model_call.harness import AttemptExecutor, default_harnesses
 

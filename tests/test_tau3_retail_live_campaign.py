@@ -222,6 +222,7 @@ class _ToolPathProvider:
 
 def test_live_tool_path_finalizes_and_replays_a_shared_runner_receipt(tmp_path) -> None:
     upstream_root, bridge = _bridge()
+    provider = _ToolPathProvider()
     setup = build_live_setup(
         case_id="tau3.retail.base.14",
         upstream_root=upstream_root,
@@ -242,7 +243,7 @@ def test_live_tool_path_finalizes_and_replays_a_shared_runner_receipt(tmp_path) 
             registry=setup.registry,
             evidence_root=tmp_path / "run",
             prompt_sources=setup.prompt_sources,
-            providers={PROVIDER: _ToolPathProvider()},
+            providers={PROVIDER: provider},
             pricing=setup.pricing,
             harnesses=setup.harnesses,
             tool_runtime_factories=setup.tool_runtime_factories,

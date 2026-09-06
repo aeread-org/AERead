@@ -87,9 +87,8 @@ pinned tau2 bridge remain the authoritative evaluation path.
 
 The published v9 bundle predates the merged kernel fix that accumulates every
 model round, so its sealed `total_cost_usd` remains a historical lower bound.
-Do not edit that sealed manifest in place; once the errata-layer change lands,
-run `aeread errata --write-notes` to write the sidecar note, or republish from
-raw responses with corrected totals.
+The bundle README carries the same disclosure, and its publication manifest
+seals that text. Republish from raw responses if corrected totals are needed.
 
 Freeze and inspect the digest-bound plan before spending:
 
