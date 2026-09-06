@@ -46,7 +46,7 @@ def test_build_case_round_trips_through_the_strict_r1_grammar(family: str, regim
     case = tb_cases.build_case(family, regime, 1000046)
     manifest = CaseManifest.from_dict(case)
     assert manifest.case_id == case["case_id"]
-    assert manifest.family_id == tb_cases.FAMILY_ID
+    assert manifest.family_id == tb_cases.FAMILY_ID_BY_REGIME[regime]
     assert manifest.upstream_task_id is None
     assert manifest.provenance.review_status == "generated"
 
@@ -70,7 +70,7 @@ def test_case_id_grammar_forbids_colons() -> None:
     case = tb_cases.build_case("taciturn", "nodeal", 1110003)
     assert ":" not in case["case_id"]
     assert is_exportable_id(case["case_id"])
-    assert case["case_id"] == f"termsbench.taciturn.nodeal.1110003"
+    assert case["case_id"] == "termsbench.nodeal.taciturn.nodeal.1110003"
 
 
 def test_case_id_grammar_rejects_a_naive_colon_joined_id() -> None:
@@ -178,7 +178,7 @@ def test_difficulty_score_is_unaffected_by_an_actually_completed_production_epis
         case_max_logical_actions=case.episode.max_logical_actions,
     )
     registry = PluginRegistry()
-    plugin = register_plugin(registry)
+    plugin = register_plugin(registry, regime="overlap")
     harness = ScriptedTermsBenchHarness(
         world_seed=case.world_seed,
         script=[{"decision": "reject", "price": None, "message": "no deal"}],
@@ -266,32 +266,39 @@ def test_select_pilot_cell_seed_picks_first_rank_not_smallest_seed_within_a_bin(
     assert seed == base + 1  # first rank (lowest score), not base + 0 (smallest seed in the bin)
 
 
-def test_build_pilot_manifest_has_30_cases_and_stable_hash() -> None:
-    cases = tb_cases.build_pilot_cases()
-    assert len(cases) == 30
-    manifest = tb_cases.build_pilot_manifest(cases)
-    assert manifest["family_id"] == tb_cases.FAMILY_ID
-    assert len(manifest["case_ids"]) == 30
-    assert len(set(manifest["case_ids"])) == 30
+@pytest.mark.parametrize("regime", tb_cases.REGIMES)
+def test_build_pilot_manifest_has_15_cases_and_stable_hash(regime: str) -> None:
+    """Each regime's own pilot manifest carries only its own 15 cases and its
+    own family id -- there is no longer a single 30-case, single-family-id
+    manifest spanning both regimes (owner decision, ruling R13 rule 1)."""
+    cases = tb_cases.build_pilot_cases_for_regime(regime)
+    assert len(cases) == 15
+    manifest = tb_cases.build_pilot_manifest(regime, cases)
+    assert manifest["family_id"] == tb_cases.FAMILY_ID_BY_REGIME[regime]
+    assert len(manifest["case_ids"]) == 15
+    assert len(set(manifest["case_ids"])) == 15
+    assert all(cid.startswith(tb_cases.FAMILY_ID_BY_REGIME[regime] + ".") for cid in manifest["case_ids"])
     assert len(manifest["content_sha256"]) == 64
     int(manifest["content_sha256"], 16)
 
-    manifest_again = tb_cases.build_pilot_manifest(cases)
+    manifest_again = tb_cases.build_pilot_manifest(regime, cases)
     assert manifest_again == manifest
 
 
 def test_pilot_manifest_hash_changes_if_the_case_id_list_changes() -> None:
-    cases = tb_cases.build_pilot_cases()
-    manifest = tb_cases.build_pilot_manifest(cases)
+    cases = tb_cases.build_pilot_cases_for_regime("overlap")
+    manifest = tb_cases.build_pilot_manifest("overlap", cases)
     mutated = dict(manifest)
-    mutated["case_ids"] = list(manifest["case_ids"][:-1]) + ["termsbench.candid.overlap.999999999"]
+    mutated["case_ids"] = list(manifest["case_ids"][:-1]) + [
+        "termsbench.overlap.candid.overlap.999999999"
+    ]
     mutated_digest = tb_cases._pilot_content_sha256(mutated)
     assert mutated_digest != manifest["content_sha256"]
 
 
 def test_build_pilot_manifest_raises_on_unresolved_pilot_id() -> None:
     with pytest.raises(ValueError, match="not found"):
-        tb_cases.build_pilot_manifest({})
+        tb_cases.build_pilot_manifest("overlap", {})
 
 
 # ---------------------------------------------------------------------------
@@ -299,27 +306,41 @@ def test_build_pilot_manifest_raises_on_unresolved_pilot_id() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_run_generate_is_byte_identical_across_two_runs(tmp_path) -> None:
+@pytest.mark.parametrize("regime", tb_cases.REGIMES)
+def test_run_generate_is_byte_identical_across_two_runs(tmp_path, regime: str) -> None:
     out_a = tmp_path / "run_a"
     out_b = tmp_path / "run_b"
 
-    tb_cases.run_generate(out_a)
-    tb_cases.run_generate(out_b)
+    tb_cases.run_generate(out_a, regime=regime)
+    tb_cases.run_generate(out_b, regime=regime)
 
     files_a = sorted(p.relative_to(out_a) for p in out_a.rglob("*.json"))
     files_b = sorted(p.relative_to(out_b) for p in out_b.rglob("*.json"))
     assert files_a == files_b
-    # 30 case files + pilot_manifest.json
-    assert len(files_a) == 31
+    # 15 case files + pilot_manifest.json
+    assert len(files_a) == 16
 
     for rel in files_a:
         assert (out_a / rel).read_bytes() == (out_b / rel).read_bytes(), f"{rel} differs across two runs"
 
 
-def test_run_generate_writes_the_committed_pilot_corpus(tmp_path) -> None:
+@pytest.mark.parametrize("regime", tb_cases.REGIMES)
+def test_run_generate_writes_the_committed_pilot_corpus(tmp_path, regime: str) -> None:
     out_dir = tmp_path / "run"
-    tb_cases.run_generate(out_dir)
-    case_files = sorted(out_dir.glob("termsbench.*.json"))
-    assert len(case_files) == 30
+    tb_cases.run_generate(out_dir, regime=regime)
+    case_files = sorted(out_dir.glob(f"{tb_cases.FAMILY_ID_BY_REGIME[regime]}.*.json"))
+    assert len(case_files) == 15
     pilot = __import__("json").loads((out_dir / "pilot_manifest.json").read_text(encoding="utf-8"))
-    assert len(pilot["case_ids"]) == 30
+    assert len(pilot["case_ids"]) == 15
+
+
+def test_run_generate_all_writes_both_regimes_into_their_own_default_directories(tmp_path) -> None:
+    """The CLI's no-``--regime`` default: both family versions' corpora are
+    generated in one call, each into its own ``cases/termsbench_<regime>/pilot``
+    -- never one combined directory."""
+    tb_cases.run_generate_all(output_root=tmp_path)
+    for regime in tb_cases.REGIMES:
+        pilot_dir = tmp_path / f"termsbench_{regime}" / "pilot"
+        case_files = sorted(pilot_dir.glob(f"{tb_cases.FAMILY_ID_BY_REGIME[regime]}.*.json"))
+        assert len(case_files) == 15
+        assert (pilot_dir / "pilot_manifest.json").is_file()

@@ -9,6 +9,20 @@ never an LLM). Which phase starts is an episode attribute (the opener ``chi``
 frozen into the case payload), not a fixed property of the phase graph, so
 ``phases()`` orders the two phases per case.
 
+Owner decision (kernel_scoring_contract_spec.md ruling R13 rule 1): this
+family is split into two regime-specific family VERSIONS -- ``termsbench.overlap``
+and ``termsbench.nodeal`` -- each with its OWN static leaf set, rather than one
+family declaring a leaf conditionally by case regime (the rejected design;
+see ``docs/termsbench_migration_plan.md``). One ``TermsBenchPlugin`` class,
+carrying a ``regime`` attribute fixed at construction, is registered as TWO
+separate instances -- this is what the registry mechanism supports most
+simply: ``PluginRegistry`` keys a registration by ``(family_id,
+family_version, plugin_id)`` on the MANIFEST and PLUGIN INSTANCE it is given,
+never by class identity, so two instances of one class bound to two distinct
+manifests need no subclassing at all. ``validate_payload`` rejects any case
+whose own ``regime`` does not match the instance's ``regime`` -- a
+wrong-regime case can never reach either instance's scorer.
+
 Milestone 1 built the environment only: cases + phase graph + counterpart
 kernel + scripted harness. Milestone 2 (docs/termsbench_adapter_spec.md
 section 2) adds the 4 measurement leaves (SE+/AGR+/FAGR-/CritViol%) in
@@ -29,11 +43,43 @@ from aeread.shared_runner.task.scheduler import (
 )
 
 from . import kernel as k
-from .cases import FAMILY_ID, FAMILY_VERSION, TERMINATION_REASONS
-from .measurement import TermsBenchScorer, build_scorer as build_measurement_scorer
+from .cases import FAMILY_ID_BY_REGIME, FAMILY_VERSION, REGIMES, TERMINATION_REASONS
+from .measurement import (
+    DOMAIN_PREDICATE_ID,
+    FEASIBLE_AGREEMENT_LEAF_ID,
+    FEASIBLE_AGREEMENT_SCORER_ID,
+    NO_DEAL_AGREEMENT_ESTIMAND_ID,
+    NO_DEAL_AGREEMENT_LEAF_ID,
+    NO_DEAL_AGREEMENT_SCORER_ID,
+    PROTOCOL_COMPLIANCE_LEAF_ID,
+    PROTOCOL_COMPLIANCE_SCORER_ID,
+    SURPLUS_EFFICIENCY_ESTIMAND_ID,
+    SURPLUS_EFFICIENCY_LEAF_ID,
+    SURPLUS_EFFICIENCY_SCORER_ID,
+    TermsBenchScorer,
+    build_scorer as build_measurement_scorer,
+)
 
-PLUGIN_ID = "termsbench_environment"
-SCORER_ID = "termsbench_scorer"
+# One plugin id and one scorer id per regime -- the two family versions are
+# distinct trusted registrations (registry.py's TRUSTED_BUILTIN_PLUGIN_KEYS),
+# never a shared identity distinguished only by manifest content.
+PLUGIN_ID_BY_REGIME: Mapping[str, str] = {
+    "overlap": "termsbench_overlap_environment",
+    "nodeal": "termsbench_nodeal_environment",
+}
+SCORER_ID_BY_REGIME: Mapping[str, str] = {
+    "overlap": "termsbench_overlap_scorer",
+    "nodeal": "termsbench_nodeal_scorer",
+}
+# Each family version's own headline estimand -- SE+ for Overlap, FAGR- for
+# No-deal (docs/termsbench_migration_plan.md's leaf tables). Before the split
+# this was one family-wide field fixed at "termsbench_surplus_efficiency"
+# even for No-deal cases, for which it never applied; the split makes each
+# family's own value correct instead of merely legal.
+PRIMARY_ESTIMAND_BY_REGIME: Mapping[str, str] = {
+    "overlap": SURPLUS_EFFICIENCY_ESTIMAND_ID,
+    "nodeal": NO_DEAL_AGREEMENT_ESTIMAND_ID,
+}
 AGENT_PHASE = "agent_turn"
 COUNTERPART_PHASE = "counterpart_turn"
 
@@ -69,15 +115,58 @@ def _set_termination(state: dict[str, Any], reason: str) -> None:
     state["termination"] = reason
 
 
-def family_manifest() -> FamilyManifest:
-    """Return the strict family declaration used by the trusted registry."""
+def family_manifest(regime: str) -> FamilyManifest:
+    """Return the strict family declaration for one regime's family version.
+
+    ``regime`` selects which of the two split identities this manifest
+    declares -- ``termsbench.overlap`` or ``termsbench.nodeal``
+    (owner decision, ruling R13 rule 1). There is no longer a single
+    cross-regime ``termsbench`` manifest.
+    """
+    if regime not in REGIMES:
+        raise ValueError(f"unknown regime: {regime!r}")
+    direction = "maximize" if regime == "overlap" else "minimize"
+    outcome_support = "zopa_fraction" if regime == "overlap" else "pass"
+    if regime == "overlap":
+        # termsbench.overlap's static leaf set (docs/termsbench_migration_plan.md):
+        # SE+ (primary, sole admission), AGR+, CritViol% -- all finalize_time,
+        # none case_conditional (ruling R13's hook is not needed: every case
+        # this family version ever sees is Overlap, by validate_payload).
+        leaves = [
+            {"leaf_id": SURPLUS_EFFICIENCY_LEAF_ID, "scope": "finalize_time"},
+            {"leaf_id": FEASIBLE_AGREEMENT_LEAF_ID, "scope": "finalize_time"},
+            {"leaf_id": PROTOCOL_COMPLIANCE_LEAF_ID, "scope": "finalize_time"},
+        ]
+        primary_leaf_id = SURPLUS_EFFICIENCY_LEAF_ID
+        admission_leaf_ids = [SURPLUS_EFFICIENCY_LEAF_ID]
+        reference_provider_ids = [
+            DOMAIN_PREDICATE_ID,
+            SURPLUS_EFFICIENCY_SCORER_ID,
+            FEASIBLE_AGREEMENT_SCORER_ID,
+            PROTOCOL_COMPLIANCE_SCORER_ID,
+        ]
+    else:
+        # termsbench.nodeal's static leaf set: FAGR- (primary, sole
+        # admission), CritViol% -- both finalize_time, neither
+        # case_conditional.
+        leaves = [
+            {"leaf_id": NO_DEAL_AGREEMENT_LEAF_ID, "scope": "finalize_time"},
+            {"leaf_id": PROTOCOL_COMPLIANCE_LEAF_ID, "scope": "finalize_time"},
+        ]
+        primary_leaf_id = NO_DEAL_AGREEMENT_LEAF_ID
+        admission_leaf_ids = [NO_DEAL_AGREEMENT_LEAF_ID]
+        reference_provider_ids = [
+            DOMAIN_PREDICATE_ID,
+            NO_DEAL_AGREEMENT_SCORER_ID,
+            PROTOCOL_COMPLIANCE_SCORER_ID,
+        ]
     return FamilyManifest.from_dict(
         {
             "spec_version": FamilyManifest.SPEC_VERSION,
             "family": {
-                "id": FAMILY_ID,
+                "id": FAMILY_ID_BY_REGIME[regime],
                 "version": FAMILY_VERSION,
-                "plugin_id": PLUGIN_ID,
+                "plugin_id": PLUGIN_ID_BY_REGIME[regime],
             },
             "environment": {
                 "topology": "bilateral_alternating_offer",
@@ -93,41 +182,78 @@ def family_manifest() -> FamilyManifest:
                 },
             },
             "measurement": {
-                # Declared only for Overlap-regime cases -- per
-                # ``measurement.py``'s regime-conditional ``build_leaves``,
-                # No-deal cases never emit this leaf (only
-                # ``termsbench_no_deal_agreement`` +
-                # ``termsbench_protocol_compliance``). The kernel resolver
-                # only checks that the suite's AnalysisPlan *knows about*
-                # this id (``resolver.py``'s ``missing_estimands`` check),
-                # never that every case actually emits it, so this is a
-                # legal declaration -- but a suite-level report keyed on
-                # "the family's primary estimand" will be silently empty
-                # for the No-deal half of any termsbench corpus unless the
-                # analysis/reporting layer is aware of the regime split.
-                "primary_estimand": "termsbench_surplus_efficiency",
+                # This family version's own headline estimand -- SE+ for
+                # Overlap, FAGR- for No-deal (docs/termsbench_migration_plan.md).
+                # Every case admitted by this instance's validate_payload has
+                # this regime (self.regime == regime), so this id is never
+                # vacuous for any case this family version ever scores --
+                # unlike the retired single-manifest design, where the same
+                # field was fixed at the Overlap value even for No-deal cases.
+                "primary_estimand": PRIMARY_ESTIMAND_BY_REGIME[regime],
                 "measurement_kind": "comparative_or_human_judged",
-                "direction": "maximize",
-                "outcome_support": "zopa_fraction",
+                "direction": direction,
+                "outcome_support": outcome_support,
                 "bound_status": "not_demonstrated",
+                # kernel_scoring_contract_spec.md section 3: every leaf this
+                # family version publishes at finalize time, exactly one
+                # primary, and precisely the leaves that gate admission --
+                # declared here, the one source of truth, never inferred
+                # from TermsBenchScorer.__call__ or a test fixture. See
+                # docs/termsbench_adapter_status.md's "Leaf policy" section
+                # for why this leaf is primary and why it alone gates
+                # admission.
+                "leaves": leaves,
+                "primary_leaf_id": primary_leaf_id,
+                "admission_leaf_ids": admission_leaf_ids,
             },
-            "scoring": {"scorer_id": SCORER_ID},
+            "scoring": {
+                "scorer_id": SCORER_ID_BY_REGIME[regime],
+                "reference_provider_ids": reference_provider_ids,
+            },
         }
     )
 
 
 def register_plugin(
-    registry: PluginRegistry, *, plugin: "TermsBenchPlugin | None" = None
+    registry: PluginRegistry, *, regime: str, plugin: "TermsBenchPlugin | None" = None
 ) -> "TermsBenchPlugin":
-    """Register one exact family/version binding in the kernel registry."""
+    """Register one exact family/version binding in the kernel registry.
+
+    ``regime`` is required (no default): a caller must say which of the two
+    split family versions it is registering, never leave it implicit.
+
+    A supplied ``plugin``'s own ``regime`` must match ``regime`` exactly: the
+    manifest returned by ``family_manifest(regime)`` declares that regime's
+    own static leaf set/primary/admission, and binding it to a plugin built
+    for the OTHER regime would register (say) the overlap manifest against
+    a nodeal validator/scorer -- a nodeal payload would then be accepted
+    and scored under the overlap identity, silently. Rejected here, before
+    registration, never left for a mismatched receipt to surface later.
+    """
     if plugin is None:
-        plugin = TermsBenchPlugin()
-    registry.register_trusted(family_manifest(), plugin)
+        plugin = TermsBenchPlugin(regime=regime)
+    elif plugin.regime != regime:
+        raise ValueError(
+            f"plugin.regime {plugin.regime!r} does not match the manifest "
+            f"regime {regime!r} being registered for it"
+        )
+    registry.register_trusted(family_manifest(regime), plugin)
     return plugin
 
 
 class TermsBenchPlugin:
-    """The complete family-owned hook boundary required by ``PluginRegistry``."""
+    """The complete family-owned hook boundary required by ``PluginRegistry``.
+
+    One instance is bound to exactly one regime, fixed at construction --
+    ``termsbench.overlap`` and ``termsbench.nodeal`` are two separate
+    ``TermsBenchPlugin(regime=...)`` instances, each registered under its own
+    manifest (``register_plugin``), never one instance shared across both.
+    """
+
+    def __init__(self, *, regime: str) -> None:
+        if regime not in REGIMES:
+            raise ValueError(f"unknown regime: {regime!r}")
+        self.regime = regime
 
     # -- validate_payload ---------------------------------------------------
 
@@ -135,6 +261,17 @@ class TermsBenchPlugin:
         data = _plain(payload)
         if data.get("regime") not in ("overlap", "nodeal"):
             raise ValueError("payload.regime must be 'overlap' or 'nodeal'")
+        if data["regime"] != self.regime:
+            # Ruling R13 rule 1's split: a wrong-regime case can no longer
+            # reach a family version's scorer at all -- not even as a named
+            # "wrong_regime" invalid_measurement (the rejected design,
+            # tag termsbench-attempt1). It is rejected here, at validation,
+            # before any measurement machinery ever sees it.
+            raise ValueError(
+                f"payload.regime {data['regime']!r} does not match this family "
+                f"version's own regime {self.regime!r} -- "
+                f"termsbench.{self.regime} only accepts {self.regime!r} cases"
+            )
         family = data.get("family")
         if family not in k.FAMILY_PRESETS:
             raise ValueError(f"payload.family must be one of {list(k.FAMILY_PRESETS)}")
@@ -185,8 +322,19 @@ class TermsBenchPlugin:
 
     # -- initial_state / phases / eligible_actors ---------------------------
 
-    def initial_state(self, family_case: Mapping[str, Any], cell: Any) -> dict[str, Any]:
-        del cell
+    def initial_state(self, family_case: Mapping[str, Any], run: Any) -> dict[str, Any]:
+        """Build the initial family state for one episode.
+
+        The second parameter is named ``run`` (not ``cell``) to match every
+        other family's own ``initial_state`` hook -- required because
+        ``task.evaluation._replay_family_trajectory`` calls
+        ``plugin.initial_state(family_case, run=None)`` by keyword
+        (kernel_scoring_contract_spec.md's ``replay_family_scoring_input``
+        contract); the live scheduler (``task.scheduler.run_episode``) still
+        passes this positionally, so this rename does not change what value
+        actually arrives here.
+        """
+        del family_case, run
         return {
             "round": 1,
             "agent_offers": [],
@@ -568,11 +716,17 @@ class TermsBenchPlugin:
 
     def build_scorer(self, family_case: Mapping[str, Any]) -> TermsBenchScorer:
         """Return the declared measurement leaves plus their scorers
-        (``measurement.py``, spec section 2): 3 leaves for an Overlap-regime
-        case, 2 for a No-deal-regime case. The current kernel does not yet
-        call ``build_scorer`` itself (mirrors ``Tau3RetailPlugin``'s
-        identical note), so ``measurement.py``'s ``score_*`` functions are
-        also exercised directly by tests today.
+        (``measurement.py``, spec section 2): 3 leaves (SE+, AGR+, CritViol%)
+        for a ``termsbench.overlap`` case, 2 (FAGR-, CritViol%) for a
+        ``termsbench.nodeal`` case -- guaranteed by this regime, since
+        ``validate_payload`` rejects any other. ``task.evaluation.
+        finalize_family_execution`` calls the returned ``TermsBenchScorer``
+        directly (``plugin.build_scorer(family_case)(scoring_input,
+        evidence_refs=scoring_input.evidence_refs)``, per
+        kernel_scoring_contract_spec.md section 1); ``TermsBenchScorer.__call__``
+        is the seam that satisfies that call. Each leaf's own named method is
+        still exercised directly by ``tests/test_termsbench_measurement.py``'s
+        goldens.
         """
         return build_measurement_scorer(family_case)
 
@@ -590,8 +744,9 @@ class TermsBenchPlugin:
 __all__ = [
     "AGENT_PHASE",
     "COUNTERPART_PHASE",
-    "PLUGIN_ID",
-    "SCORER_ID",
+    "PLUGIN_ID_BY_REGIME",
+    "PRIMARY_ESTIMAND_BY_REGIME",
+    "SCORER_ID_BY_REGIME",
     "TermsBenchPlugin",
     "family_manifest",
     "register_plugin",

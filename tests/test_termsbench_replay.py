@@ -9,17 +9,40 @@ produced with **zero random draws and zero provider calls**.
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import json
+from dataclasses import dataclass
 from pathlib import Path
 from types import MappingProxyType
+from typing import Any, Mapping, Sequence
 
 import pytest
 
-from aeread.shared_runner.task.execution import EvidenceStore
-from aeread.shared_runner.registry import PluginRegistry
-from aeread.shared_runner.run.resolver import PlanCell, canonical_json_bytes
-from aeread.shared_runner.schemas import CaseManifest
+import aeread.shared_runner.task.execution as execution_module
+from aeread.shared_runner.model_call.harness import default_harnesses
+from aeread.shared_runner.registry import HarnessRegistry, PluginRegistry, ProviderCapabilities
+from aeread.shared_runner.run.resolver import (
+    ImplementationPin,
+    PlanCell,
+    RunPlan,
+    canonical_json_bytes,
+    resolve_run_plan,
+)
+from aeread.shared_runner.schemas import (
+    AgentProfile,
+    AnalysisPlan,
+    CaseManifest,
+    EvaluationBlock,
+    RunSpec,
+    SamplingPlan,
+    SuiteManifest,
+)
+from aeread.shared_runner.task.evaluation import finalize_family_execution
+from aeread.shared_runner.task.execution import CanonicalResponse, CellExecution, EvidenceStore
 from aeread.shared_runner.task.scheduler import SchedulerContractError, run_episode
+from aeread_families.termsbench import cases as tb_cases
+from aeread_families.termsbench import environment as tb_environment
+from aeread_families.termsbench import measurement as m
 from aeread_families.termsbench.environment import TermsBenchPlugin, register_plugin
 from aeread_families.termsbench.harness import ScriptedTermsBenchHarness
 from aeread_families.termsbench.measurement import build_scorer
@@ -36,13 +59,14 @@ from aeread_families.termsbench.replay import (
     score_replayed_episode,
 )
 
-PILOT_DIR = Path("cases/termsbench/pilot")
-OVERLAP_CASE_ID = "termsbench.candid.overlap.1000001"
-NODEAL_CASE_ID = "termsbench.candid.nodeal.1010011"
+OVERLAP_PILOT_DIR = Path("cases/termsbench_overlap/pilot")
+NODEAL_PILOT_DIR = Path("cases/termsbench_nodeal/pilot")
+OVERLAP_CASE_ID = "termsbench.overlap.candid.overlap.1000001"
+NODEAL_CASE_ID = "termsbench.nodeal.candid.nodeal.1010011"
 
 
-def _case(case_id: str) -> CaseManifest:
-    path = PILOT_DIR / f"{case_id}.json"
+def _case(pilot_dir: Path, case_id: str) -> CaseManifest:
+    path = pilot_dir / f"{case_id}.json"
     return CaseManifest.from_dict(json.loads(path.read_text(encoding="utf-8")))
 
 
@@ -79,7 +103,7 @@ def _cell(case: CaseManifest, *, suffix: str) -> PlanCell:
 
 
 def _run_live_overlap(tmp_path: Path, *, suffix: str):
-    case = _case(OVERLAP_CASE_ID)
+    case = _case(OVERLAP_PILOT_DIR, OVERLAP_CASE_ID)
     r_a = float(case.payload["agent"]["r_a"])
     r_b = float(case.payload["t_b"]["r_b"])
     cell = _cell(case, suffix=suffix)
@@ -103,14 +127,14 @@ def _run_live_overlap(tmp_path: Path, *, suffix: str):
         world_seed=case.world_seed, script=script, counterpart_draws_by_round=draws, evidence=evidence
     )
     registry = PluginRegistry()
-    plugin = register_plugin(registry)
+    plugin = register_plugin(registry, regime="overlap")
     result = asyncio.run(run_episode(cell=cell, case=case, plugin=plugin, response_source=harness))
     evidence.seal()
     return case, cell, plugin, evidence, result
 
 
 def _run_live_nodeal(tmp_path: Path, *, suffix: str):
-    case = _case(NODEAL_CASE_ID)
+    case = _case(NODEAL_PILOT_DIR, NODEAL_CASE_ID)
     r_a = float(case.payload["agent"]["r_a"])
     r_b = float(case.payload["t_b"]["r_b"])
     cell = _cell(case, suffix=suffix)
@@ -129,7 +153,7 @@ def _run_live_nodeal(tmp_path: Path, *, suffix: str):
         world_seed=case.world_seed, script=script, counterpart_draws_by_round=draws, evidence=evidence
     )
     registry = PluginRegistry()
-    plugin = register_plugin(registry)
+    plugin = register_plugin(registry, regime="nodeal")
     result = asyncio.run(run_episode(cell=cell, case=case, plugin=plugin, response_source=harness))
     evidence.seal()
     return case, cell, plugin, evidence, result
@@ -141,7 +165,7 @@ def _run_live_overlap_immediate_accept(tmp_path: Path, *, suffix: str, price: fl
     for any positive acceptance probability). Gives an independently
     hand-derivable ``final_price`` (the agent's own scripted offer),
     unlike ``_run_live_overlap``'s multi-round "moving closer" scenario."""
-    case = _case(OVERLAP_CASE_ID)
+    case = _case(OVERLAP_PILOT_DIR, OVERLAP_CASE_ID)
     cell = _cell(case, suffix=suffix)
     evidence = EvidenceStore(
         tmp_path / f"evidence_{suffix}",
@@ -156,7 +180,7 @@ def _run_live_overlap_immediate_accept(tmp_path: Path, *, suffix: str, price: fl
         world_seed=case.world_seed, script=script, counterpart_draws_by_round=draws, evidence=evidence
     )
     registry = PluginRegistry()
-    plugin = register_plugin(registry)
+    plugin = register_plugin(registry, regime="overlap")
     result = asyncio.run(run_episode(cell=cell, case=case, plugin=plugin, response_source=harness))
     evidence.seal()
     return case, cell, plugin, evidence, result
@@ -167,7 +191,7 @@ def _run_live_overlap_agreement_violation(tmp_path: Path, *, suffix: str):
     store: an unauthorized Accept with no counterpart offer observed yet --
     a critical protocol violation (``invalid_action``), unlike every other
     replay fixture in this file."""
-    case = _case(OVERLAP_CASE_ID)
+    case = _case(OVERLAP_PILOT_DIR, OVERLAP_CASE_ID)
     cell = _cell(case, suffix=suffix)
     evidence = EvidenceStore(
         tmp_path / f"evidence_{suffix}",
@@ -181,14 +205,14 @@ def _run_live_overlap_agreement_violation(tmp_path: Path, *, suffix: str):
         world_seed=case.world_seed, script=script, evidence=evidence
     )
     registry = PluginRegistry()
-    plugin = register_plugin(registry)
+    plugin = register_plugin(registry, regime="overlap")
     result = asyncio.run(run_episode(cell=cell, case=case, plugin=plugin, response_source=harness))
     evidence.seal()
     return case, cell, plugin, evidence, result
 
 
 def _scorer_for(case: CaseManifest):
-    plugin = TermsBenchPlugin()
+    plugin = TermsBenchPlugin(regime=case.payload["regime"])
     family_case = plugin.validate_payload(case.payload)
     return build_scorer(family_case)
 
@@ -303,7 +327,7 @@ def test_replay_from_a_json_round_tripped_record_reproduces_the_live_overlap_run
     # A second, independent plugin instance -- not the one that produced the
     # original run -- drives the replay.
     registry = PluginRegistry()
-    replay_plugin = register_plugin(registry)
+    replay_plugin = register_plugin(registry, regime="overlap")
 
     replayed = asyncio.run(
         replay_episode(cell=cell, case=case, plugin=replay_plugin, recorded=recorded)
@@ -362,7 +386,7 @@ def test_replayed_episode_surplus_efficiency_matches_an_independently_derived_va
 
     recorded = record_episode(original)
     registry = PluginRegistry()
-    replay_plugin = register_plugin(registry)
+    replay_plugin = register_plugin(registry, regime="overlap")
     replayed = asyncio.run(replay_episode(cell=cell, case=case, plugin=replay_plugin, recorded=recorded))
 
     scorer = _scorer_for(case)
@@ -397,7 +421,7 @@ def test_replayed_episode_protocol_compliance_matches_an_independently_derived_v
 
     recorded = record_episode(original)
     registry = PluginRegistry()
-    replay_plugin = register_plugin(registry)
+    replay_plugin = register_plugin(registry, regime="overlap")
     replayed = asyncio.run(replay_episode(cell=cell, case=case, plugin=replay_plugin, recorded=recorded))
 
     scorer = _scorer_for(case)
@@ -448,7 +472,7 @@ def test_replay_and_verify_without_an_original_is_not_comparable_not_a_fabricate
     scorer = _scorer_for(case)
 
     registry = PluginRegistry()
-    replay_plugin = register_plugin(registry)
+    replay_plugin = register_plugin(registry, regime="nodeal")
 
     report = asyncio.run(
         replay_and_verify(cell=cell, case=case, plugin=replay_plugin, scorer=scorer, recorded=recorded)
@@ -531,3 +555,654 @@ def test_replay_raises_when_the_record_is_truncated(tmp_path: Path) -> None:
 
     with pytest.raises(SchedulerContractError, match="exhausted"):
         asyncio.run(replay_episode(cell=cell, case=case, plugin=plugin, recorded=truncated))
+
+
+# ---------------------------------------------------------------------------
+# finalize_family_execution (kernel_scoring_contract_spec.md milestone 3).
+# ---------------------------------------------------------------------------
+
+
+class EvidenceRecordingTermsBenchHarness:
+    """A ``run_episode`` response source that writes the full generic
+    replay-required evidence trail (``logical_action_started``,
+    ``action_attempt_succeeded``, ``action_parsed``,
+    ``action_legality_checked``, ``logical_action_succeeded``,
+    ``phase_instance_started``, ``transition_applied``,
+    ``phase_instance_succeeded``, ``episode_terminated``,
+    ``family_outcome_recorded``) -- exactly the event vocabulary
+    ``aeread.shared_runner.task.execution.MinimalChatExecutor``/
+    ``AttemptExecutor`` write for every LLM-harness-backed family's own
+    evidence, reproduced here without any of that class's provider/retry/
+    cost machinery (mirrors collusion's/govsim's identically-motivated
+    ``EvidenceRecordingCollusionHarness``/``EvidenceRecordingGovsimHarness``).
+
+    ``ScriptedTermsBenchHarness`` (this module's own existing scripted
+    response source, imported above) already seals ITS OWN two evidence
+    event types (``termsbench_agent_response``, ``termsbench_counterpart_draws``)
+    when given an ``EvidenceStore`` -- but neither is
+    ``phase_instance_started``/``logical_action_started``, the vocabulary
+    ``task.evaluation._replay_family_trajectory`` actually reads, so a
+    ``ScriptedTermsBenchHarness``-only run has never produced evidence
+    ``finalize_family_execution`` (which calls that replayer internally) can
+    replay. Rather than re-implement the agent-script cursor and the
+    counterpart kernel's draw/resolve plumbing a second time, this class
+    WRAPS one ``ScriptedTermsBenchHarness`` instance (with ``evidence=None``,
+    so it never seals its own two event types) for response generation, and
+    adds only the generic AttemptExecutor-shaped trail on top.
+    """
+
+    def __init__(
+        self,
+        *,
+        world_seed: int,
+        script: Sequence[Mapping[str, Any]],
+        counterpart_draws_by_round: Mapping[int, Mapping[str, float]] | None = None,
+        evidence: EvidenceStore,
+    ) -> None:
+        self._inner = ScriptedTermsBenchHarness(
+            world_seed=world_seed,
+            script=script,
+            counterpart_draws_by_round=counterpart_draws_by_round,
+            evidence=None,
+        )
+        self._evidence = evidence
+
+    async def __call__(self, request: Any) -> dict[str, Any]:
+        response = await self._inner(request)
+        self._evidence.append_event(
+            "logical_action_started",
+            {"request": request},
+            phase_instance_id=request.phase_instance_id,
+            logical_action_id=request.logical_action_id,
+            visibility=f"seat:{request.seat_id}",
+        )
+        # A CanonicalResponse-shaped placeholder purely for replay provenance
+        # (``LogicalActionRecord.response``): ``TermsBenchPlugin.parse_action``
+        # never reads it -- the scheduler hands it the raw ``response`` dict
+        # returned above, unchanged (same contract as ``ScriptedTermsBenchHarness``
+        # itself) -- and replay reconstructs ``parse``/``legality`` directly
+        # from the "action_parsed"/"action_legality_checked" events below,
+        # never from this response.
+        canonical = CanonicalResponse(
+            text=json.dumps(response, sort_keys=True),
+            finish_reason="stop",
+            empty=False,
+            truncated=False,
+            provider_call_ids=(),
+            tool_invocation_ids=(),
+            input_tokens=0,
+            cached_input_tokens=0,
+            output_tokens=0,
+            cost_usd=0.0,
+            action=response,
+        )
+        self._evidence.append_event(
+            "action_attempt_succeeded",
+            {"canonical_response": canonical},
+            phase_instance_id=request.phase_instance_id,
+            logical_action_id=request.logical_action_id,
+            visibility=f"seat:{request.seat_id}",
+        )
+        return response
+
+    @property
+    def exhausted(self) -> bool:
+        return self._inner.exhausted
+
+    def finalize_action(self, record: Any) -> None:
+        envelope = record.envelope
+        failure_code = None
+        if not envelope.valid:
+            failure_code = (
+                envelope.parse.error_code if not envelope.parse.ok else envelope.legality.reason
+            )
+        self._evidence.append_event(
+            "action_parsed",
+            {"parse_result": envelope.parse},
+            phase_instance_id=record.request.phase_instance_id,
+            logical_action_id=record.logical_action_id,
+            visibility=f"seat:{record.seat_id}",
+        )
+        if envelope.legality is not None:
+            self._evidence.append_event(
+                "action_legality_checked",
+                {"legality_result": envelope.legality},
+                phase_instance_id=record.request.phase_instance_id,
+                logical_action_id=record.logical_action_id,
+            )
+        event_type = (
+            "logical_action_succeeded" if envelope.valid else "logical_action_agent_action_failure"
+        )
+        self._evidence.append_event(
+            event_type,
+            {"valid": envelope.valid, "failure_code": failure_code},
+            logical_action_id=record.logical_action_id,
+        )
+
+    def fail_logical_action(self, logical_action_id: str, *, failure_code: str) -> None:
+        self._evidence.append_event(
+            "logical_action_failed",
+            {"failure_condition": failure_code},
+            logical_action_id=logical_action_id,
+        )
+
+    def phase_started(
+        self,
+        *,
+        phase_instance_id: str,
+        phase: Any,
+        eligible_actors: tuple[str, ...],
+        pre_state_sha256: str,
+    ) -> None:
+        self._evidence.append_event(
+            "phase_instance_started",
+            {
+                "phase": phase,
+                "eligible_actors": eligible_actors,
+                "pre_state_sha256": pre_state_sha256,
+            },
+            phase_instance_id=phase_instance_id,
+        )
+
+    def transition_applied(
+        self,
+        *,
+        phase_instance_id: str,
+        phase: Any,
+        transition: Any,
+        post_state_sha256: str,
+    ) -> None:
+        self._evidence.append_event(
+            "transition_applied",
+            {
+                "phase_id": phase.phase_id,
+                "transition": transition,
+                "post_state_sha256": post_state_sha256,
+            },
+            phase_instance_id=phase_instance_id,
+        )
+
+    def phase_completed(self, *, phase_instance: Any) -> None:
+        self._evidence.append_event(
+            "phase_instance_succeeded",
+            {
+                "phase_id": phase_instance.phase_id,
+                "post_state_sha256": phase_instance.post_state_sha256,
+                "logical_action_ids": tuple(
+                    action.logical_action_id for action in phase_instance.actions
+                ),
+            },
+            phase_instance_id=phase_instance.phase_instance_id,
+        )
+
+    def episode_completed(self, *, episode_result: Any) -> None:
+        self._evidence.append_event(
+            "episode_terminated",
+            {
+                "terminal": episode_result.terminal,
+                "logical_action_count": episode_result.logical_action_count,
+            },
+        )
+        self._evidence.append_event(
+            "family_outcome_recorded",
+            {"outcome": episode_result.outcome},
+        )
+
+
+@dataclass(frozen=True, slots=True)
+class TermsBenchSetup:
+    """A resolved, provider-free ``RunPlan`` for one termsbench case.
+
+    Like govsim/collusion, this family's real runtime never goes through
+    ``execute_plan_cell``'s harness/provider stack at all -- every seat is
+    answered directly through ``run_episode``'s ``response_source``
+    (``ScriptedTermsBenchHarness``/``EvidenceRecordingTermsBenchHarness``
+    above). The declared ``minimal_chat`` harness and fixture provider below
+    exist purely to satisfy ``resolve_run_plan``'s structural pin/capability
+    checks and are never actually invoked.
+    """
+
+    plan: RunPlan
+    registry: PluginRegistry
+
+
+_TERMSBENCH_FIXTURE_PROFILE_ID = "termsbench_unused_fixture_profile_v1"
+_TERMSBENCH_FIXTURE_PROVIDER_ID = "termsbench_unused_fixture_provider"
+_TERMSBENCH_FIXTURE_RUNTIME_ID = "aeread.shared_runner.task.execution"
+
+
+def _pin(component_id: str, kind: str, source_path: Path, *, version: str = "0.1.0") -> ImplementationPin:
+    return ImplementationPin.from_dict(
+        {
+            "component_id": component_id,
+            "kind": kind,
+            "version": version,
+            "sha256": hashlib.sha256(source_path.read_bytes()).hexdigest(),
+        }
+    )
+
+
+def build_termsbench_setup(case: CaseManifest, *, suffix: str, regime: str) -> TermsBenchSetup:
+    """Resolve a real, one-cell ``RunPlan`` for ``case`` (spec section 5.3).
+
+    Every seat shares one placeholder agent profile: this family's real
+    runtime never invokes it (see ``TermsBenchSetup``'s own docstring), so
+    the harness/provider it names exist only to satisfy
+    ``resolve_run_plan``'s structural checks.
+    """
+    family = tb_environment.family_manifest(regime)
+    seat_ids = [seat.id for seat in case.seats]
+    primary_estimand = tb_environment.PRIMARY_ESTIMAND_BY_REGIME[regime]
+    sampling = SamplingPlan.from_dict(
+        {
+            "spec_version": SamplingPlan.SPEC_VERSION,
+            "sampling_plan_id": f"termsbench_{suffix}_sample_v1",
+            "estimand": "fixed_termsbench_case",
+            "target": case.case_id,
+            "selection": "fixed_curated",
+            "seeds": [case.world_seed],
+            "replicates": 1,
+            "cluster_level": "world_seed",
+            "cluster_id_fields": ["generator_version", "world_seed"],
+            "paired_fields": [],
+            "replicate_level": "episode_attempt",
+            "panel_mode": "fixed_panel",
+        }
+    )
+    block = EvaluationBlock.from_dict(
+        {
+            "spec_version": EvaluationBlock.SPEC_VERSION,
+            "block_id": f"termsbench_{suffix}_block",
+            "kind": "self_play",
+            "subject_seats": list(seat_ids),
+            "controlled_profiles": {},
+            "repetitions": 1,
+            "seed_policy": "fixed",
+        }
+    )
+    analysis = AnalysisPlan.from_dict(
+        {
+            "spec_version": AnalysisPlan.SPEC_VERSION,
+            "analysis_plan_id": f"termsbench_{suffix}_analysis_v1",
+            "estimands": [primary_estimand],
+            "group_by": ["family_id"],
+            "missingness": "report_separately",
+            "resampling_unit": "world_seed",
+            "uncertainty": "none",
+            "multiplicity": "none",
+            "sensitivity": [],
+            "cross_family_scalar": "disabled",
+        }
+    )
+    suite = SuiteManifest.from_dict(
+        {
+            "spec_version": SuiteManifest.SPEC_VERSION,
+            "suite_id": f"termsbench_{suffix}_suite_v1",
+            "version": "1.0.0",
+            "family_ids": [family.family.id],
+            "case_ids": [case.case_id],
+            "sampling_plan_id": sampling.sampling_plan_id,
+            "evaluation_block_ids": [block.block_id],
+            "analysis_plan_id": analysis.analysis_plan_id,
+        }
+    )
+    profile = AgentProfile.from_dict(
+        {
+            "spec_version": AgentProfile.SPEC_VERSION,
+            "profile_id": _TERMSBENCH_FIXTURE_PROFILE_ID,
+            "model": {
+                "provider": _TERMSBENCH_FIXTURE_PROVIDER_ID,
+                "model": "termsbench_unused_fixture_model_v1",
+                "revision": "1.0.0",
+                "base_url": None,
+            },
+            "harness": {"id": "minimal_chat", "version": "1.0", "config": {}},
+            "prompt": {
+                "prompt_id": f"termsbench_{suffix}_prompt_v1",
+                "sha256": hashlib.sha256(
+                    b"termsbench scripted negotiation: no prompt is ever sent"
+                ).hexdigest(),
+            },
+            "runtime": {
+                "kind": "python",
+                "implementation": _TERMSBENCH_FIXTURE_RUNTIME_ID,
+                "version": "0.1.0",
+            },
+            "tools": [],
+            "memory": {"mode": "disabled"},
+            "reasoning": {
+                "condition_id": "termsbench_scripted_no_reasoning_v1",
+                "effort": None,
+                "token_budget": None,
+                "rationale_visibility": "hidden",
+            },
+            "sampling": {
+                "temperature": 0.0,
+                "max_output_tokens": 64,
+                "seed": None,
+                "top_p": None,
+            },
+            "budgets": {
+                "max_logical_actions": case.episode.max_logical_actions,
+                "timeout_seconds": 30.0,
+                "max_cost_usd": 0.0,
+            },
+            "retry_policy": {
+                "max_action_attempts": 1,
+                "retryable_conditions": [],
+                "session_mode": "restart",
+                "sdk_retries": 0,
+            },
+        }
+    )
+    run_spec = RunSpec.from_dict(
+        {
+            "spec_version": RunSpec.SPEC_VERSION,
+            "run_spec_id": f"termsbench_{suffix}_run_spec_v1",
+            "suite_id": suite.suite_id,
+            "evaluation_block_ids": [block.block_id],
+            "agent_profile_ids": [profile.profile_id],
+            "seat_assignments": {seat_id: profile.profile_id for seat_id in seat_ids},
+            "execution_mode": "evaluate",
+            "replicate_override": None,
+            "budget_overrides": None,
+        }
+    )
+
+    registry = PluginRegistry()
+    register_plugin(registry, regime=regime)
+    harness_registry = HarnessRegistry()
+    for harness in default_harnesses().values():
+        harness_registry.register(harness)
+
+    environment_path = Path(tb_environment.__file__)
+    execution_path = Path(execution_module.__file__)
+    measurement_path = Path(m.__file__)
+
+    # measurement.py declares every leaf's validity-domain predicate and
+    # scorer implementation under its own distinct component id (see
+    # environment.py's family_manifest() docstring on
+    # scoring.reference_provider_ids); every one of those must also be
+    # pinned here, or EvaluationReceipt._validate_and_freeze_plan_pins
+    # rejects the sealed receipt as missing implementations.
+    if regime == "overlap":
+        reference_pins = (
+            _pin(m.DOMAIN_PREDICATE_ID, "reference", environment_path),
+            _pin(m.SURPLUS_EFFICIENCY_SCORER_ID, "reference", measurement_path),
+            _pin(m.FEASIBLE_AGREEMENT_SCORER_ID, "reference", measurement_path),
+            _pin(m.PROTOCOL_COMPLIANCE_SCORER_ID, "reference", measurement_path),
+        )
+    else:
+        reference_pins = (
+            _pin(m.DOMAIN_PREDICATE_ID, "reference", environment_path),
+            _pin(m.NO_DEAL_AGREEMENT_SCORER_ID, "reference", measurement_path),
+            _pin(m.PROTOCOL_COMPLIANCE_SCORER_ID, "reference", measurement_path),
+        )
+    pins = (
+        _pin(family.family.plugin_id, "family_plugin", environment_path),
+        _pin(family.scoring.scorer_id, "scorer", environment_path),
+        _pin("minimal_chat", "harness", execution_path, version="1.0"),
+        _pin(_TERMSBENCH_FIXTURE_RUNTIME_ID, "runtime", execution_path, version="0.1.0"),
+    ) + reference_pins
+    plan = resolve_run_plan(
+        families=(family,),
+        cases=(case,),
+        suite=suite,
+        sampling=sampling,
+        evaluation_blocks=(block,),
+        analysis=analysis,
+        agent_profiles=(profile,),
+        run_spec=run_spec,
+        registry=registry,
+        implementation_pins=pins,
+        harness_registry=harness_registry,
+        provider_capabilities={
+            _TERMSBENCH_FIXTURE_PROVIDER_ID: ProviderCapabilities(
+                native_tools=False,
+                structured_output=False,
+                seed=False,
+                system_prompt=True,
+                reasoning_budget=False,
+                reasoning_token_report=False,
+                max_context_tokens=None,
+            )
+        },
+    )
+    return TermsBenchSetup(plan=plan, registry=registry)
+
+
+def test_finalize_wires_termsbench_overlap_to_the_shared_family_finalizer(tmp_path: Path) -> None:
+    """This family has never produced an ``EvaluationReceipt``.
+    ``ScriptedTermsBenchHarness`` writes only its own two convenience events
+    and never the generic evidence trail
+    ``task.evaluation.replay_family_scoring_input`` needs to replay --
+    ``EvidenceRecordingTermsBenchHarness`` (this module, above) is what makes
+    this reachable. Drives one small, real, provider-free Overlap episode
+    end to end through the real finalizer and asserts a receipt comes back
+    carrying every one of ``termsbench.overlap``'s three declared leaves.
+
+    Unlike collusion/govsim (whose primary leaf needs a comparison baseline
+    that a single episode's ``FamilyScoringInput`` never carries, so their
+    receipts are always ``invalid_measurement``/``excluded`` when driven
+    through this generic finalizer), every termsbench leaf is computed
+    purely from THIS episode's own outcome -- so this receipt is genuinely
+    ``status="ok"``, ``inclusion_status="included"``.
+    """
+    case = CaseManifest.from_dict(tb_cases.build_case("candid", "overlap", 1000046))
+    setup = build_termsbench_setup(case, suffix="finalize_overlap", regime="overlap")
+    cell = setup.plan.cells[0]
+    family = setup.plan.families[0]
+    plugin = setup.registry.resolve_manifest(family)
+
+    evidence = EvidenceStore(
+        tmp_path / "evidence_finalize_overlap",
+        run_plan_id=setup.plan.run_plan_id,
+        cell_id=cell.cell_id,
+        episode_id=f"episode_{cell.cell_id}",
+        episode_attempt_id="attempt_1",
+    )
+    harness = EvidenceRecordingTermsBenchHarness(
+        world_seed=case.world_seed,
+        script=[{"decision": "offer", "price": 110.0, "message": "opening"}],
+        counterpart_draws_by_round={1: {"u_accept": 0.10, "sentiment_noise": 0.0}},
+        evidence=evidence,
+    )
+    result = asyncio.run(run_episode(cell=cell, case=case, plugin=plugin, response_source=harness))
+    execution = CellExecution(
+        run_plan_id=setup.plan.run_plan_id,
+        cell_id=cell.cell_id,
+        episode_attempt_id="attempt_1",
+        episode_result=result,
+        evidence=evidence,
+        action_executions=(),
+        total_cost_usd=0.0,
+    )
+
+    receipt = finalize_family_execution(setup=setup, execution=execution)
+
+    assert receipt.status == "ok"
+    assert receipt.inclusion_status == "included"
+    assert {score.leaf.leaf_id for score in receipt.scores} == {
+        m.SURPLUS_EFFICIENCY_LEAF_ID,
+        m.FEASIBLE_AGREEMENT_LEAF_ID,
+        m.PROTOCOL_COMPLIANCE_LEAF_ID,
+    }
+    assert receipt.primary_leaf_id == m.SURPLUS_EFFICIENCY_LEAF_ID
+    evidence_refs = {score.evidence_refs for score in receipt.scores}
+    assert len(evidence_refs) == 1
+    se = next(score for score in receipt.scores if score.leaf.leaf_id == m.SURPLUS_EFFICIENCY_LEAF_ID)
+    assert se.status == "ok"
+    assert se.primary.value > 0.0
+    agr = next(score for score in receipt.scores if score.leaf.leaf_id == m.FEASIBLE_AGREEMENT_LEAF_ID)
+    assert agr.status == "ok"
+    assert agr.primary.value == 1.0
+
+
+def test_finalize_wires_termsbench_nodeal_to_the_shared_family_finalizer(tmp_path: Path) -> None:
+    """Companion to the overlap test above, for ``termsbench.nodeal``'s two
+    declared leaves (FAGR-, CritViol%). Six lowball offers with a forced
+    walk-away hazard reach ``counterpart_walk_away`` -- no bound price, so
+    ``FAGR- == 0`` (no false agreement) -- exactly
+    ``tests/test_termsbench_harness.py``'s own No-deal scenario, driven here
+    through the real finalizer instead of scored directly."""
+    case = CaseManifest.from_dict(tb_cases.build_case("candid", "nodeal", 1010011))
+    setup = build_termsbench_setup(case, suffix="finalize_nodeal", regime="nodeal")
+    cell = setup.plan.cells[0]
+    family = setup.plan.families[0]
+    plugin = setup.registry.resolve_manifest(family)
+
+    evidence = EvidenceStore(
+        tmp_path / "evidence_finalize_nodeal",
+        run_plan_id=setup.plan.run_plan_id,
+        cell_id=cell.cell_id,
+        episode_id=f"episode_{cell.cell_id}",
+        episode_attempt_id="attempt_1",
+    )
+    r_a = float(case.payload["agent"]["r_a"])
+    r_b = float(case.payload["t_b"]["r_b"])
+    lowball = max(0.0, r_b - 90.0)
+    assert lowball < r_a
+    harness = EvidenceRecordingTermsBenchHarness(
+        world_seed=case.world_seed,
+        script=[{"decision": "offer", "price": lowball, "message": "lowball"}] * 6,
+        counterpart_draws_by_round={round_k: {"u_accept": 0.999, "u_walkaway": 0.0} for round_k in range(1, 7)},
+        evidence=evidence,
+    )
+    result = asyncio.run(run_episode(cell=cell, case=case, plugin=plugin, response_source=harness))
+    assert result.terminal["reason"] == "counterpart_walk_away"
+    execution = CellExecution(
+        run_plan_id=setup.plan.run_plan_id,
+        cell_id=cell.cell_id,
+        episode_attempt_id="attempt_1",
+        episode_result=result,
+        evidence=evidence,
+        action_executions=(),
+        total_cost_usd=0.0,
+    )
+
+    receipt = finalize_family_execution(setup=setup, execution=execution)
+
+    assert receipt.status == "ok"
+    assert receipt.inclusion_status == "included"
+    assert {score.leaf.leaf_id for score in receipt.scores} == {
+        m.NO_DEAL_AGREEMENT_LEAF_ID,
+        m.PROTOCOL_COMPLIANCE_LEAF_ID,
+    }
+    assert receipt.primary_leaf_id == m.NO_DEAL_AGREEMENT_LEAF_ID
+    evidence_refs = {score.evidence_refs for score in receipt.scores}
+    assert len(evidence_refs) == 1
+    fagr = next(score for score in receipt.scores if score.leaf.leaf_id == m.NO_DEAL_AGREEMENT_LEAF_ID)
+    assert fagr.status == "ok"
+    assert fagr.primary.value == 0.0
+
+
+def test_finalize_wires_termsbench_nodeal_false_agreement_as_a_legitimate_fagr_minus_one(
+    tmp_path: Path,
+) -> None:
+    """Independent review finding F2: the receipt test above covers only a
+    walk-away No-deal episode (``FAGR- == 0.0``). This is the other real
+    branch of eq. 60 (Section F.2) through the SAME finalizer path: a
+    No-deal-regime case (``Delta_i < 0``, no positive ZOPA) where a price is
+    nonetheless bound -- a "false agreement," the wrong outcome for this
+    regime, and eq. 60's ``FAGR- = 1`` case.
+
+    Driven entirely through the real formulas, never a hand-constructed
+    outcome: the counterpart's own IR gate
+    (``kernel.acceptance_probability``'s ``delta_bar < 0.0`` hard return of
+    0) guarantees the STOCHASTIC KERNEL itself never accepts an
+    IR-violating offer, so the only way a real episode binds a price here
+    is the scripted AGENT accepting the counterpart's own (real,
+    kernel-computed) offer. ``counterpart_draws_by_round``'s ``u_accept``/
+    ``u_walkaway`` overrides only force the counterpart's round-1 turn into
+    its "offer" branch (mirroring
+    ``test_termsbench_environment.py::test_price_bound_violation_is_flagged_but_does_not_terminate``'s
+    identical technique) -- the counterpart's actual offer price is
+    computed by ``kernel.resolve_counterpart_turn``'s real opening-price
+    formula, never scripted. The agent's second turn then scripts
+    ``accept``, binding that real price.
+
+    The receipt must be ``status="ok"``/``inclusion_status="included"``
+    with ``termsbench_no_deal_agreement_leaf.primary.value == 1.0`` as a
+    legitimate, measured number -- never ``invalid_measurement`` and never
+    excluded: ``_value_axis_validity`` gates only on
+    ``malformed_action_schema`` (spec section 4 golden 4), and this episode
+    has none; the bound price being individually irrational for the agent
+    is exactly what makes it a false agreement, not a reason to discard the
+    measurement. ``family_manifest("nodeal").measurement.direction ==
+    "minimize"`` (confirmed below) -- and
+    ``termsbench_no_deal_agreement_leaf.estimand.direction`` is the same
+    ``"minimize"`` -- makes ``FAGR- == 1.0`` the WORSE value here (the
+    maximum of the leaf's own 0/1 range) and ``FAGR- == 0.0`` (the walk-away
+    companion test's value) the better one, the mirror image of AGR+'s
+    ``"maximize"`` for Overlap.
+    """
+    case = CaseManifest.from_dict(tb_cases.build_case("candid", "nodeal", 1010011))
+    setup = build_termsbench_setup(case, suffix="finalize_nodeal_false_agreement", regime="nodeal")
+    cell = setup.plan.cells[0]
+    family = setup.plan.families[0]
+    plugin = setup.registry.resolve_manifest(family)
+
+    assert family.measurement.direction == "minimize"
+
+    evidence = EvidenceStore(
+        tmp_path / "evidence_finalize_nodeal_false_agreement",
+        run_plan_id=setup.plan.run_plan_id,
+        cell_id=cell.cell_id,
+        episode_id=f"episode_{cell.cell_id}",
+        episode_attempt_id="attempt_1",
+    )
+    # chi="agent_opens" for this pilot case: round 1 is the agent's own
+    # opening offer; forcing the counterpart's round-1 turn away from
+    # accept/walk-away (both draws pinned high) falls through to its real
+    # "offer" branch (kernel.resolve_counterpart_turn, agent_offers
+    # non-empty, counterpart_offers still empty -> the opening-price
+    # formula) -- never a scripted or hand-picked price. The agent's own
+    # second scripted turn then accepts that real counterpart price.
+    assert case.payload["chi"] == "agent_opens"
+    harness = EvidenceRecordingTermsBenchHarness(
+        world_seed=case.world_seed,
+        script=[
+            {"decision": "offer", "price": 110.0, "message": "opening"},
+            {"decision": "accept", "price": None, "message": "deal"},
+        ],
+        counterpart_draws_by_round={1: {"u_accept": 0.999, "u_walkaway": 0.999}},
+        evidence=evidence,
+    )
+    result = asyncio.run(run_episode(cell=cell, case=case, plugin=plugin, response_source=harness))
+    assert result.terminal["reason"] == "agent_accept"
+    assert result.terminal["final_price"] is not None
+    # The bound price is a real false agreement: individually irrational for
+    # the agent (an IR critical violation), never a schema failure -- the
+    # distinction that keeps this a valid measurement (spec section 4
+    # golden 4's own rule: only malformed_action_schema invalidates leaves
+    # 1-3, never a plain critical violation).
+    assert result.outcome["critical_violations"]["individual_rationality"] is True
+    assert result.outcome["malformed_action_schema"] is False
+
+    execution = CellExecution(
+        run_plan_id=setup.plan.run_plan_id,
+        cell_id=cell.cell_id,
+        episode_attempt_id="attempt_1",
+        episode_result=result,
+        evidence=evidence,
+        action_executions=(),
+        total_cost_usd=0.0,
+    )
+
+    receipt = finalize_family_execution(setup=setup, execution=execution)
+
+    assert receipt.status == "ok"
+    assert receipt.inclusion_status == "included"
+    assert {score.leaf.leaf_id for score in receipt.scores} == {
+        m.NO_DEAL_AGREEMENT_LEAF_ID,
+        m.PROTOCOL_COMPLIANCE_LEAF_ID,
+    }
+    assert receipt.primary_leaf_id == m.NO_DEAL_AGREEMENT_LEAF_ID
+    evidence_refs = {score.evidence_refs for score in receipt.scores}
+    assert len(evidence_refs) == 1
+
+    fagr = next(score for score in receipt.scores if score.leaf.leaf_id == m.NO_DEAL_AGREEMENT_LEAF_ID)
+    assert fagr.status == "ok"
+    assert fagr.primary is not None
+    assert fagr.primary.value == 1.0
+    assert fagr.leaf.estimand.direction == "minimize"

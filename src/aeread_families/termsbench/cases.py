@@ -9,6 +9,14 @@ formula this module calls lives in ``kernel.py`` (cited to its paper
 equation); this module owns only RNG-seeded sampling, difficulty-bin
 assignment (Gate 1 check #3: computed solely from steps 1-3, never from
 realized play), payload freezing, and the pilot manifest.
+
+Owner decision (kernel_scoring_contract_spec.md ruling R13 rule 1): this
+family is split into two regime-specific family VERSIONS, ``termsbench.overlap``
+and ``termsbench.nodeal``, each with its own static leaf set. This module is
+one package, parametrized by regime -- ``FAMILY_ID_BY_REGIME`` below is the
+single place that names which AERead family id a given regime's cases belong
+to; every case this module builds carries the family id for ITS OWN regime,
+never the other one's.
 """
 from __future__ import annotations
 
@@ -29,12 +37,25 @@ from . import kernel as k
 # Family / case identity constants (docs/termsbench_adapter_spec.md section 1).
 # --------------------------------------------------------------------------
 
-FAMILY_ID = "termsbench"
 FAMILY_VERSION = "0.1.0"
 GENERATOR_ID = "termsbench_generator"
 GENERATOR_VERSION = FAMILY_VERSION
 
 REGIMES: tuple[str, ...] = ("overlap", "nodeal")
+
+# The one AERead family id a case belongs to is determined entirely by its
+# own regime -- there is no case that is ambiguous between the two, and no
+# cross-regime family id exists (retired; see registry.py).
+FAMILY_ID_BY_REGIME: Mapping[str, str] = {
+    "overlap": "termsbench.overlap",
+    "nodeal": "termsbench.nodeal",
+}
+
+# Each regime's own pilot identity (used by build_pilot_manifest below).
+PILOT_ID_BY_REGIME: Mapping[str, str] = {
+    "overlap": "termsbench_overlap_pilot_v1",
+    "nodeal": "termsbench_nodeal_pilot_v1",
+}
 
 # Paper vocabulary (App. C.2.3) uses PascalCase (AgentAccept, ...); the case
 # identifier grammar forbids uppercase, so the manifest-facing termination
@@ -276,7 +297,12 @@ def select_pilot_cell_seed(
 
 
 def pilot_cells() -> list[tuple[str, str, int, int]]:
-    """Enumerate the 30 (family, regime, difficulty_bin, world_seed) pilot cells."""
+    """Enumerate all 30 (family, regime, difficulty_bin, world_seed) cells,
+    across BOTH regimes -- an internal enumeration convenience only (each
+    regime's own seed range is disjoint by construction, ``_candidate_seed_base``),
+    never written to disk as one corpus. ``pilot_cells_for_regime`` below is
+    what a single family version's own corpus is built from.
+    """
     cells: list[tuple[str, str, int, int]] = []
     for family in k.FAMILIES:
         for regime in REGIMES:
@@ -284,6 +310,14 @@ def pilot_cells() -> list[tuple[str, str, int, int]]:
                 seed = select_pilot_cell_seed(family, regime, difficulty_bin)
                 cells.append((family, regime, difficulty_bin, seed))
     return cells
+
+
+def pilot_cells_for_regime(regime: str) -> list[tuple[str, str, int, int]]:
+    """The 15 pilot cells (3 families x 5 difficulty bins) for one regime --
+    exactly the cases that belong to ``FAMILY_ID_BY_REGIME[regime]``."""
+    if regime not in REGIMES:
+        raise ValueError(f"unknown regime: {regime!r}")
+    return [cell for cell in pilot_cells() if cell[1] == regime]
 
 
 # --------------------------------------------------------------------------
@@ -298,13 +332,18 @@ def build_case(family: str, regime: str, world_seed: int) -> dict[str, Any]:
     dict byte-for-byte (Gate 1 check #1): every input is a pure function of
     world_seed via a freshly seeded RNG, and content_sha256 covers only the
     generated payload, never a network or filesystem artifact.
+
+    ``family_id`` is ``FAMILY_ID_BY_REGIME[regime]`` -- this case's own
+    regime, and only its own regime, decides which of the two split family
+    versions it belongs to (owner decision, ruling R13 rule 1).
     """
     payload = generate_payload(family, regime, world_seed)
-    case_id = f"{FAMILY_ID}.{family}.{regime}.{world_seed}"
+    family_id = FAMILY_ID_BY_REGIME[regime]
+    case_id = f"{family_id}.{family}.{regime}.{world_seed}"
     data: dict[str, Any] = {
         "spec_version": CaseManifest.SPEC_VERSION,
         "case_id": case_id,
-        "family_id": FAMILY_ID,
+        "family_id": family_id,
         "family_version": FAMILY_VERSION,
         "split": family,
         "world_seed": world_seed,
@@ -337,24 +376,27 @@ def build_case(family: str, regime: str, world_seed: int) -> dict[str, Any]:
     return data
 
 
-def build_pilot_cases() -> dict[str, dict[str, Any]]:
-    """Build all 30 pilot cases, keyed by case_id."""
+def build_pilot_cases_for_regime(regime: str) -> dict[str, dict[str, Any]]:
+    """Build one regime's 15 pilot cases, keyed by case_id.
+
+    Every case built here carries ``family_id == FAMILY_ID_BY_REGIME[regime]``
+    (``build_case``) -- this is one family version's own corpus, never a
+    cross-regime mix.
+    """
     cases: dict[str, dict[str, Any]] = {}
-    for family, regime, _difficulty_bin, world_seed in pilot_cells():
-        case = build_case(family, regime, world_seed)
+    for family, cell_regime, _difficulty_bin, world_seed in pilot_cells_for_regime(regime):
+        case = build_case(family, cell_regime, world_seed)
         if case["case_id"] in cases:
             raise ValueError(f"duplicate case_id: {case['case_id']!r}")
         cases[case["case_id"]] = case
     return cases
 
 
-PILOT_ID = "termsbench_pilot_v1"
-
-
-def build_pilot_manifest(cases: Mapping[str, Mapping[str, Any]]) -> dict[str, Any]:
-    """Build the 30-case pilot manifest and its own content hash."""
-    cells = pilot_cells()
-    case_ids = [f"{FAMILY_ID}.{family}.{regime}.{seed}" for family, regime, _bin, seed in cells]
+def build_pilot_manifest(regime: str, cases: Mapping[str, Mapping[str, Any]]) -> dict[str, Any]:
+    """Build one regime's 15-case pilot manifest and its own content hash."""
+    cells = pilot_cells_for_regime(regime)
+    family_id = FAMILY_ID_BY_REGIME[regime]
+    case_ids = [f"{family_id}.{family}.{r}.{seed}" for family, r, _bin, seed in cells]
     missing = [cid for cid in case_ids if cid not in cases]
     if missing:
         raise ValueError(f"pilot case ids not found in the generated corpus: {missing}")
@@ -362,18 +404,18 @@ def build_pilot_manifest(cases: Mapping[str, Mapping[str, Any]]) -> dict[str, An
         raise ValueError("pilot case ids are not unique (Gate 1 check #5)")
 
     data: dict[str, Any] = {
-        "pilot_id": PILOT_ID,
-        "family_id": FAMILY_ID,
+        "pilot_id": PILOT_ID_BY_REGIME[regime],
+        "family_id": family_id,
         "case_ids": case_ids,
         "cells": [
             {
                 "family": family,
-                "regime": regime,
+                "regime": r,
                 "difficulty_bin": difficulty_bin,
                 "world_seed": world_seed,
                 "case_id": case_id,
             }
-            for (family, regime, difficulty_bin, world_seed), case_id in zip(cells, case_ids)
+            for (family, r, difficulty_bin, world_seed), case_id in zip(cells, case_ids)
         ],
         "content_sha256": "0" * 64,
     }
@@ -410,29 +452,55 @@ def write_cases(
     _dump_json(output_dir / "pilot_manifest.json", pilot_manifest)
 
 
-def run_generate(output_dir: Path) -> None:
-    """End-to-end: generate the 30-case pilot corpus and its manifest."""
-    cases = build_pilot_cases()
-    pilot_manifest = build_pilot_manifest(cases)
+def run_generate(output_dir: Path, *, regime: str) -> None:
+    """End-to-end: generate one regime's 15-case pilot corpus and its manifest."""
+    cases = build_pilot_cases_for_regime(regime)
+    pilot_manifest = build_pilot_manifest(regime, cases)
     write_cases(output_dir, cases, pilot_manifest)
 
 
-def _default_output_dir() -> Path:
+def run_generate_all(output_root: Path | None = None) -> None:
+    """Generate every regime's pilot corpus into its own default directory."""
+    for regime in REGIMES:
+        output_dir = (
+            _default_output_dir(regime)
+            if output_root is None
+            else output_root / f"termsbench_{regime}" / "pilot"
+        )
+        run_generate(output_dir, regime=regime)
+
+
+def _default_output_dir(regime: str) -> Path:
     # src/aeread_families/termsbench/cases.py -> repo root is parents[3]
     repo_root = Path(__file__).resolve().parents[3]
-    return repo_root / "cases" / "termsbench" / "pilot"
+    return repo_root / "cases" / f"termsbench_{regime}" / "pilot"
 
 
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
+        "--regime",
+        choices=REGIMES,
+        default=None,
+        help="regime to generate; default: both, each into its own default directory",
+    )
+    parser.add_argument(
         "--output-dir",
         type=Path,
-        default=_default_output_dir(),
-        help="directory to write the 30 pilot case files and pilot_manifest.json",
+        default=None,
+        help=(
+            "directory to write the 15 pilot case files and pilot_manifest.json "
+            "(requires --regime; default: cases/termsbench_<regime>/pilot)"
+        ),
     )
     args = parser.parse_args(argv)
-    run_generate(args.output_dir)
+    if args.regime is None:
+        if args.output_dir is not None:
+            parser.error("--output-dir requires --regime")
+        run_generate_all()
+    else:
+        output_dir = args.output_dir or _default_output_dir(args.regime)
+        run_generate(output_dir, regime=args.regime)
 
 
 if __name__ == "__main__":

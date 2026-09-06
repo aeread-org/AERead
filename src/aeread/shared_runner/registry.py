@@ -88,7 +88,17 @@ TRUSTED_BUILTIN_PLUGIN_KEYS = frozenset(
         ('govsim', '0.1.0', 'govsim_environment'),
         ('negarena', '0.1.0', 'negarena_environment'),
         ('steer', '0.1.0', 'steer_environment'),
-        ('termsbench', '0.1.0', 'termsbench_environment'),
+        # termsbench split into two regime-specific family versions (owner
+        # decision, kernel_scoring_contract_spec.md ruling R13 rule 1: a
+        # case-conditional leaf may not be primary or admission, so a family
+        # whose headline is regime-conditional either chooses an
+        # unconditional cross-regime primary or splits the regime into a
+        # distinct family version with its own static manifest). The single
+        # ('termsbench', '0.1.0', 'termsbench_environment') identity is
+        # retired -- no receipt was ever produced under it, so nothing is
+        # orphaned (docs/termsbench_adapter_status.md).
+        ('termsbench.overlap', '0.1.0', 'termsbench_overlap_environment'),
+        ('termsbench.nodeal', '0.1.0', 'termsbench_nodeal_environment'),
         (
             "commercial_state_calibration_v1",
             "1.0.0",

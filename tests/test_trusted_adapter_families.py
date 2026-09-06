@@ -14,7 +14,8 @@ EXTERNAL_ADAPTER_KEYS = {
     ("govsim", "0.1.0", "govsim_environment"),
     ("negarena", "0.1.0", "negarena_environment"),
     ("steer", "0.1.0", "steer_environment"),
-    ("termsbench", "0.1.0", "termsbench_environment"),
+    ("termsbench.overlap", "0.1.0", "termsbench_overlap_environment"),
+    ("termsbench.nodeal", "0.1.0", "termsbench_nodeal_environment"),
 }
 
 
