@@ -255,6 +255,34 @@ still imposed rather than chosen, and the counterparty is still static, so
 integrative bargaining remains unmeasurable. Those are limits on the
 negotiation dimension, not the planning one.
 
+### What the planning test measured
+
+The first panel on worlds that require cross-agreement lookahead, 96 cells for
+$1.89, with no environment failures and no budget truncations.
+
+| Route | Admitted | Was admitted before | Signed an incoherent stack |
+|---|---:|---:|---:|
+| Gemini 3.8 Flash | 17% | 71% | 12 of 16 completed stacks |
+| Qwen3-235B | 0% | 0% | 0 |
+| GLM-5.3-flash | 0% | 0% | 0 |
+| gpt-oss-120b | 0% | 0% | 0 |
+
+Gemini's admission collapsed from 71 percent to 17. The mechanism is exactly
+the one the test was built to expose: among the stacks it completed, it
+accepted the utility's undersized 40,000 kW connection in 12 and insisted on
+the full 50,000 kW in only 4. Every one of those 12 signed a complete,
+internally executed agreement stack that could not serve its own tenant.
+
+That is the finding. The only route that transacts does not plan across
+agreements: it treats each negotiation as a local, self-contained deal and
+accepts the locally cheaper offer, two steps before the commitment that makes
+it fatal. Under the previous design the same behaviour scored 71 percent
+admission and looked competent.
+
+The other three routes never reach the trap, failing earlier on schema
+compliance or exhausting their rounds, so the test does not yet discriminate
+among them.
+
 ## Where the failures live
 
 Failure evidence used to scatter across per-cell results, run summaries, two ad

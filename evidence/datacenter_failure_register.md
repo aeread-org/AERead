@@ -1,24 +1,24 @@
 # Data-center family failure register
 
-541 incidents across 573 cells in 10 runs of `datacenter_development_v2_world_panel_v1`.
+699 incidents across 736 cells in 13 runs of `datacenter_development_v2_world_panel_v1`.
 
 Attribution answers the question worth asking later: whose fault was it? Anything a model can trigger is the model's, never the provider's.
 
 | Attribution | As recorded | After reclassification |
 |---|---:|---:|
-| budget | 16 | 16 |
-| environment | 10 | 10 |
-| model | 281 | 298 |
-| negotiation | 170 | 170 |
-| provider | 64 | 47 |
+| budget | 21 | 23 |
+| environment | 12 | 10 |
+| model | 346 | 363 |
+| negotiation | 240 | 240 |
+| provider | 80 | 63 |
 
-17 incidents were recorded under one attribution and belong to another. The original condition is kept beside the correction.
+19 incidents were recorded under one attribution and belong to another. The original condition is kept beside the correction.
 
 ## Runs
 
 | Run | Cells | Incidents | Superseded |
 |---|---:|---:|---|
-| `datacenter_development_v2_world_panel_v1` | 96 | 79 | no |
+| `datacenter_development_v2_world_panel_v1` | 96 | 92 | no |
 | `datacenter_development_v2_world_panel_v1_aborted_deepinfra_venice_20260903` | 3 | 3 | yes |
 | `datacenter_development_v2_world_panel_v1_aborted_mistral_20260903` | 3 | 3 | yes |
 | `datacenter_development_v2_world_panel_v1_aborted_reka_mistral_20260903` | 7 | 7 | yes |
@@ -28,6 +28,9 @@ Attribution answers the question worth asking later: whose fault was it? Anythin
 | `datacenter_development_v2_world_panel_v1_run3_partial_predegeneracy_fix_20260904` | 4 | 4 | yes |
 | `datacenter_development_v2_world_panel_v1_run4_phasegraph_bug_20260904` | 25 | 25 | yes |
 | `datacenter_development_v2_world_panel_v1_run5_precalibration_20260905` | 96 | 83 | yes |
+| `datacenter_development_v2_world_panel_v1_run6_preplanning_20260906` | 96 | 79 | yes |
+| `datacenter_development_v2_world_panel_v1_run7_action_budget_bug_20260906` | 33 | 32 | yes |
+| `datacenter_development_v2_world_panel_v1_run8_cost_cap_too_tight_20260906` | 34 | 34 | yes |
 
 ## Defects
 
