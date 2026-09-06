@@ -255,6 +255,47 @@ rather than on zero failures. Keep the current abort for untyped or contract
 failures, where continuing really would be unsound. Without this, panel size is
 capped by route reliability rather than by statistical need.
 
+## 12. One digest for two kinds of parameter turns every operational change into a new campaign
+
+The SOP explicitly permits an operational change to keep its campaign identity:
+"a purely mechanical correction may be published only when both the original and
+corrected artifacts remain traceable and the scientific contract is unchanged."
+The implementation does not allow it.
+
+`plan_sha256` hashes the scientific and operational parameters together. The
+frozen plan contains `world_pairs`, `inference_seeds`, `prompts`, the route, and
+the analysis rule, and in the same object it contains
+`abort_on_operational_failure`, `batch_size`, `max_parallel_cells`, and
+`retry_policy`. Change a retry delay and the digest moves; the comparison then
+raises "recorded campaign plan differs from frozen plan"; the only way forward is
+a new campaign identity.
+
+The cost is measurable. Confirming one hypothesis on 2026-09-05 took four
+campaign identities in about an hour. Exactly one change was scientific, the
+guarded metric moving from terminal feasibility to `feasible_award`. The other
+three were retry pacing, process exit codes, and missingness tolerance, all of
+which the SOP would have allowed under one identity. The same pressure explains
+the shape of the tree: the family carries 11,439 lines of campaign and analysis
+code around a 1,480-line environment, and the four newest campaign modules are
+1,027, 1,011, 1,215, and 1,164 lines of near-identical code, because a fork is
+the cheapest way to obtain a new digest.
+
+**Fix.** Compute two digests. `scientific_contract_sha256` covers cases, seeds,
+prompts, route identity, the analysis rule, and the guarded metric.
+`operational_sha256` covers retries, batching, parallelism, ceilings, and the
+missingness policy. Comparison verifies the scientific digest and reports
+operational drift as a recorded field rather than an invalidation. A campaign
+identity changes only when the scientific digest changes.
+
+**Migration note, and why this was not done on 2026-09-06.** `plan_sha256` is
+verified by recomputing the hash of the plan with that one key removed, so
+*adding any key* to the plan changes the recomputed value and fails every frozen
+plan check, including the confirmatory run in flight at the time. The split
+therefore cannot be applied additively. It needs a versioned plan schema in which
+old plans keep validating on `plan_sha256` alone and new plans carry both
+digests, which is a kernel change rather than a family change and belongs with
+the shared-runner contract work.
+
 ---
 
 ## Status of the fixes
@@ -271,8 +312,9 @@ capped by route reliability rather than by statistical need.
 | 8 labeled ids leak the answer | open; opaque mirrors exist and should become the primary surface |
 | 9 headroom exhausted | **addressed in worlds** — `information_v1` and `confirmatory_v2` |
 | 10 canary sealed by a transient 429 | open; hit repeatedly while running the holdout on 2026-09-05 |
-| 11 abort-on-first-failure caps panel size | open; the two 144-row panels are the two that have never completed |
+| 11 abort-on-first-failure caps panel size | **fixed** — typed missingness with a declared ceiling; took the run from 24 rows across seven attempts to a single completing attempt |
+| 12 one digest for scientific and operational parameters | open; needs a versioned plan schema, so it is kernel work, not a family change |
 
-Defects 4, 6, 8, 10, and 11 are the remaining work. None of them blocks the panels
+Defects 4, 6, 8, 10, and 12 are the remaining work. None of them blocks the panels
 above; each is a bounded change with the fix already described in its section.
 
