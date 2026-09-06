@@ -79,7 +79,13 @@ from .live import (
 )
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
-CAMPAIGN_ID = "govsim_glm53_flash_parasail_first_light_v1"
+# v1 measured the commons with communication REMOVED: discuss and reflect
+# carried no content, so nothing an agent said could reach anyone. v2 is a
+# different experiment, not a re-run of the same one -- agents speak, and
+# what they say reaches every other agent's next observation -- so it gets
+# its own identity rather than overwriting v1's published bundle. Both stay
+# readable side by side, which is the comparison worth having.
+CAMPAIGN_ID = "govsim_glm53_flash_parasail_dialogue_v2"
 CANARY_CASE_ID = "govsim.fishing.sustainable.0"
 # One per scenario; see the module docstring on why not all nine.
 PANEL_CASE_IDS = (
