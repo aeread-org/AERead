@@ -86,6 +86,9 @@ from .cases import (
 from .econevals_bridge import EconevalsBridge
 from .measurement import EconevalsScorer
 from .measurement import build_scorer as _build_measurement_scorer
+from .measurement import (
+    declared_reference_provider_ids as _declared_reference_provider_ids,
+)
 
 PLUGIN_ID = "econevals_environment"
 SCORER_ID = "econevals_scorer"
@@ -256,7 +259,18 @@ def family_manifest() -> FamilyManifest:
                 "measurement_kind": "optimizable_outcome",
                 "direction": "maximize",
             },
-            "scoring": {"scorer_id": SCORER_ID},
+            "scoring": {
+                "scorer_id": SCORER_ID,
+                # Every implementation the declared leaves cite must also be
+                # declared here: the resolver rejects a plan pin nothing
+                # references, while the receipt rejects a measurement
+                # implementation that is not pinned. Both are the same three
+                # for every track -- upstream's own solver entry points and
+                # this family's validity-domain predicate.
+                "reference_provider_ids": list(
+                    _declared_reference_provider_ids()
+                ),
+            },
         }
     )
 
