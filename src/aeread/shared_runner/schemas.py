@@ -364,10 +364,24 @@ class LeafPolicyDeclaration:
     it was declared before a ``subject_seat`` leaf may score a scalar over
     more than one subject seat (task/evaluation.py's
     ``_enforce_subject_seat_primaries``).
+
+    Ruling R13: ``case_conditional`` (default ``False``, also
+    ``_CANONICAL_OMIT_IF_DEFAULT`` for the same reason) declares that this
+    leaf applies to only some of the family's own cases (agenticpay's
+    ``contract_legality``, present for its contract-mode cases and absent
+    for its basic ones). Applicability is decided by the plugin's
+    ``inapplicable_leaf_ids(family_case)`` hook at finalize/replay/audit
+    time (task/evaluation.py), never by data in the manifest itself. A
+    ``case_conditional`` leaf may not be ``primary_leaf_id`` and may not be
+    in ``admission_leaf_ids`` -- both must exist for every execution
+    admitted under one static manifest, which a case-conditional leaf by
+    definition does not (``MeasurementDeclaration.__post_init__``/
+    ``from_dict`` enforce this, since it is a cross-field invariant against
+    fields this class does not itself carry).
     """
 
     _CANONICAL_OMIT_IF_DEFAULT: ClassVar[frozenset[str]] = frozenset(
-        {"seat_scope", "subject_reduction"}
+        {"seat_scope", "subject_reduction", "case_conditional"}
     )
 
     leaf_id: str
@@ -375,6 +389,7 @@ class LeafPolicyDeclaration:
     deferred_artifact: str | None
     seat_scope: str = "cell"
     subject_reduction: str | None = None
+    case_conditional: bool = False
 
     def __post_init__(self) -> None:
         # kernel_contract_impl_review.md finding 4: these invariants were
@@ -419,7 +434,12 @@ class LeafPolicyDeclaration:
         data = _fields(
             value,
             required={"leaf_id", "scope"},
-            optional={"deferred_artifact", "seat_scope", "subject_reduction"},
+            optional={
+                "deferred_artifact",
+                "seat_scope",
+                "subject_reduction",
+                "case_conditional",
+            },
             path=path,
         )
         scope = _enum(data["scope"], f"{path}.scope", _LEAF_SCOPES)
@@ -444,12 +464,16 @@ class LeafPolicyDeclaration:
             raise AuthoringValidationError(
                 f"{path}.subject_reduction is only valid for a subject_seat leaf"
             )
+        case_conditional = _boolean(
+            data.get("case_conditional", False), f"{path}.case_conditional"
+        )
         return cls(
             leaf_id=_identifier(data["leaf_id"], f"{path}.leaf_id"),
             scope=scope,
             deferred_artifact=deferred_artifact,
             seat_scope=seat_scope,
             subject_reduction=subject_reduction,
+            case_conditional=case_conditional,
         )
 
 
@@ -572,6 +596,17 @@ class MeasurementDeclaration:
             raise AuthoringValidationError(
                 "measurement.primary_leaf_id must be a finalize_time leaf"
             )
+        # Ruling R13: a case_conditional leaf may not be primary -- both
+        # must exist for every execution admitted under one static
+        # manifest, which a case-conditional leaf by definition does not.
+        case_conditional_ids = {
+            leaf.leaf_id for leaf in self.leaves if leaf.case_conditional
+        }
+        if self.primary_leaf_id in case_conditional_ids:
+            raise AuthoringValidationError(
+                "measurement.primary_leaf_id must not be a case_conditional leaf: "
+                f"{self.primary_leaf_id!r}"
+            )
         admission_leaf_ids = self.admission_leaf_ids or (self.primary_leaf_id,)
         if len(set(admission_leaf_ids)) != len(admission_leaf_ids):
             raise AuthoringValidationError(
@@ -589,6 +624,16 @@ class MeasurementDeclaration:
             raise AuthoringValidationError(
                 f"measurement.admission_leaf_ids must not include a deferred leaf: "
                 f"{deferred_admission}"
+            )
+        # Ruling R13: same reasoning as the deferred-admission guard above,
+        # for case_conditional leaves.
+        case_conditional_admission = sorted(
+            set(admission_leaf_ids) & case_conditional_ids
+        )
+        if case_conditional_admission:
+            raise AuthoringValidationError(
+                "measurement.admission_leaf_ids must not include a case_conditional "
+                f"leaf: {case_conditional_admission}"
             )
         if self.primary_leaf_id not in admission_leaf_ids:
             raise AuthoringValidationError(
@@ -656,6 +701,16 @@ class MeasurementDeclaration:
                 raise AuthoringValidationError(
                     f"{path}.primary_leaf_id must be a finalize_time leaf"
                 )
+            # Ruling R13: same cross-field invariant as __post_init__'s --
+            # a case_conditional leaf may not be primary.
+            case_conditional_ids = {
+                leaf.leaf_id for leaf in leaves if leaf.case_conditional
+            }
+            if primary_leaf_id in case_conditional_ids:
+                raise AuthoringValidationError(
+                    f"{path}.primary_leaf_id must not be a case_conditional leaf: "
+                    f"{primary_leaf_id!r}"
+                )
             admission_leaf_ids = admission_leaf_ids or (primary_leaf_id,)
             unknown_admission = sorted(set(admission_leaf_ids) - set(leaf_ids))
             if unknown_admission:
@@ -669,6 +724,16 @@ class MeasurementDeclaration:
                 raise AuthoringValidationError(
                     f"{path}.admission_leaf_ids must not include a deferred leaf: "
                     f"{deferred_admission}"
+                )
+            # Ruling R13: same reasoning as the deferred-admission guard
+            # above, for case_conditional leaves.
+            case_conditional_admission = sorted(
+                set(admission_leaf_ids) & case_conditional_ids
+            )
+            if case_conditional_admission:
+                raise AuthoringValidationError(
+                    f"{path}.admission_leaf_ids must not include a case_conditional "
+                    f"leaf: {case_conditional_admission}"
                 )
             if primary_leaf_id not in admission_leaf_ids:
                 raise AuthoringValidationError(
