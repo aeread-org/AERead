@@ -205,6 +205,29 @@ GOLDEN_1_PAIRED_HISTORY_SCRIPT = [
     (SELLER_PHASE, "seller", {"content": "Thought: t2\nTalk: fine\nAction: [DEAL] $135 (1x home-kitchen_2)"}),
 ]
 
+# kernel_r9r10_review.md rule R9(b) sensitivity witness (surfaced only once
+# amazonbarg was stacked onto the kernel branch carrying that rule --
+# amazonbarg's own pre-stacking protocol check never exercised it): each
+# trajectory-scoped leaf must be shown capable of CHANGING on some
+# same-case pair, and GOLDEN_1_SCRIPT/GOLDEN_1_PAIRED_HISTORY_SCRIPT alone
+# never witness this -- both close the identical $135 deal for the same
+# case with wrongAction=0, and buyer_bargained_ratio/seller_bargained_ratio
+# (eval.py:Metrics.evaluate) depend only on the realized deal price and the
+# case's own cost/budget, never on turn count or intermediate offers, so
+# amazonbarg_bargained_ratio is genuinely constant across that pair -- as
+# are amazonbarg_deal_authenticity (wrongAction=0 in both) and
+# amazonbarg_zopa_membership ($135 is in-bounds in both). This third script,
+# for the SAME case (home-kitchen_2), is a single unparseable buyer turn:
+# wrongAction=1, closeADeal=0 (verified directly against the real pinned
+# upstream checkout before being wired in), so amazonbarg_deal_authenticity's
+# primary flips (0.0, not 1.0) and amazonbarg_zopa_membership/
+# amazonbarg_bargained_ratio both flip status to invalid_measurement
+# (REASON_NO_DEAL) against either of the two fixtures above -- witnessing
+# all three previously-unwitnessed leaves in one additional fixture.
+GOLDEN_1_WRONG_ACTION_WITNESS_SCRIPT = [
+    (BUYER_PHASE, "buyer", {"content": "Thought: t3\nTalk: no action line here"}),
+]
+
 
 def _run_live(codename: str, script, tmp_path: Path, *, suffix: str):
     case = _case(codename)

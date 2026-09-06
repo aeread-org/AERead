@@ -147,6 +147,7 @@ from aeread_families.single_offer.runner import FixedResponseProvider
 from tests.test_amazonbarg_replay import (
     GOLDEN_1_PAIRED_HISTORY_SCRIPT as _AMAZONBARG_RIGHT_SCRIPT,
     GOLDEN_1_SCRIPT as _AMAZONBARG_LEFT_SCRIPT,
+    GOLDEN_1_WRONG_ACTION_WITNESS_SCRIPT as _AMAZONBARG_WITNESS_SCRIPT,
     EvidenceRecordingAmazonbargHarness,
     _case as _amazonbarg_case,
     amazonbarg_script_answer,
@@ -1906,7 +1907,7 @@ _NOT_YET_MIGRATED_TRUSTED_KEYS: "frozenset[tuple[str, str]]" = frozenset(
         # they migrate under the per-adapter follow-ups tracked alongside
         # the other not-yet-migrated families above, not as part of this
         # kernel change. amazonbarg.bilateral is deliberately NOT here: it
-        # IS migrated (see _amazonbarg_fixture_pair/
+        # IS migrated (see _amazonbarg_fixtures/
         # test_amazonbarg_obeys_the_scoring_contract below) --
         # _BRIDGE_GATED_ENROLLED_FAMILY_VERSIONS is where its migration is
         # accounted for instead.
@@ -2327,9 +2328,18 @@ def _require_amazonbarg_upstream() -> Path:
     return root
 
 
-def _amazonbarg_fixture_pair(
+def _amazonbarg_fixtures(
     tmp_path: Path,
-) -> tuple[FamilyManifest, Any, tuple[FamilyScoringFixture, FamilyScoringFixture]]:
+) -> tuple[FamilyManifest, Any, tuple[FamilyScoringFixture, FamilyScoringFixture, FamilyScoringFixture]]:
+    """Three fixtures, all for the SAME case (home-kitchen_2): the first
+    two are the paired-history pair (byte-identical $135-deal outcome,
+    genuinely differing trajectory -- ruling R7's contrapositive for the
+    two forced-terminal_state bound leaves); the third is a genuinely
+    different outcome (a malformed buyer action, no deal) that witnesses
+    ruling R9(b)'s sensitivity requirement for the three trajectory-scoped
+    leaves, which the first two alone cannot (see
+    ``GOLDEN_1_WRONG_ACTION_WITNESS_SCRIPT``'s own comment in
+    tests/test_amazonbarg_replay.py for why)."""
     _require_amazonbarg_upstream()
     case = _amazonbarg_case("home-kitchen_2")
     # Ruling R12 (kernel_scoring_contract_spec.md): build_amazonbarg_setup's
@@ -2369,11 +2379,12 @@ def _amazonbarg_fixture_pair(
 
     left = _run(_AMAZONBARG_LEFT_SCRIPT, "left")
     right = _run(_AMAZONBARG_RIGHT_SCRIPT, "right")
-    return family, plugin, (left, right)
+    witness = _run(_AMAZONBARG_WITNESS_SCRIPT, "witness")
+    return family, plugin, (left, right, witness)
 
 
 # amazonbarg IS migrated and genuinely fixture-covered
-# (_amazonbarg_fixture_pair, test_amazonbarg_obeys_the_scoring_contract
+# (_amazonbarg_fixtures, test_amazonbarg_obeys_the_scoring_contract
 # below) -- but unlike every other family this suite verifies
 # unconditionally, its fixtures require the real, pinned upstream
 # AmazonPriceHistory checkout. Folding it into
@@ -2402,24 +2413,25 @@ def test_amazonbarg_obeys_the_scoring_contract(tmp_path: Path) -> None:
     ``tests/test_amazonbarg_replay.py``'s own documented convention).
 
     Runs the identical protocol check (``_assert_family_obeys_the_scoring_contract``)
-    against amazonbarg's own registry registration and its two paired
-    fixtures (``_amazonbarg_fixture_pair`` -- byte-identical terminal
-    outcome, genuinely differing trajectory, verified constructible against
-    the real pinned upstream checkout before being wired in here), covering
-    this family's three genuine trajectory-scoped leaves
-    (``amazonbarg_deal_authenticity``, ``amazonbarg_zopa_membership``,
-    ``amazonbarg_bargained_ratio``) and ruling R7's contrapositive for its
-    two terminal_state-scoped leaves (``amazonbarg_deal_lower_bound``,
-    ``amazonbarg_deal_upper_bound``).
+    against amazonbarg's own registry registration and its three fixtures
+    (``_amazonbarg_fixtures`` -- a byte-identical-terminal-outcome,
+    genuinely-differing-trajectory pair, verified constructible against the
+    real pinned upstream checkout before being wired in here, plus a third,
+    genuinely-different-outcome fixture witnessing ruling R9(b)'s
+    sensitivity requirement), covering this family's three genuine
+    trajectory-scoped leaves (``amazonbarg_deal_authenticity``,
+    ``amazonbarg_zopa_membership``, ``amazonbarg_bargained_ratio``) and
+    ruling R7's contrapositive for its two terminal_state-scoped leaves
+    (``amazonbarg_deal_lower_bound``, ``amazonbarg_deal_upper_bound``).
     """
     registry = PluginRegistry()
-    manifest, plugin, fixture_pair = _amazonbarg_fixture_pair(tmp_path)
+    manifest, plugin, fixtures = _amazonbarg_fixtures(tmp_path)
     registry.register_trusted(manifest, plugin)
     (registration,) = registry.registrations()
     key = (registration.family_id, registration.family_version)
     assert key == ("amazonbarg.bilateral", "0.1.0")
 
-    _assert_family_obeys_the_scoring_contract(key, registration, fixture_pair)
+    _assert_family_obeys_the_scoring_contract(key, registration, fixtures)
 
 
 def test_determinism_precheck_adjacency_defeats_call_parity_aliasing(tmp_path: Path) -> None:
