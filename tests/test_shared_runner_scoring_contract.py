@@ -1878,7 +1878,10 @@ def _trusted_family_versions(
 # deliberately named, not derived: adding a NEW trusted key -- the exact
 # attack the review demonstrated -- now requires either enrolling a real
 # fixture or explicitly widening this exemption; it can no longer happen
-# silently.
+# silently. ``econagent_v1`` is deliberately NOT here: it IS migrated (see
+# this module's docstring / _econagent_fixture above) -- see
+# _BRIDGE_GATED_ENROLLED_FAMILY_VERSIONS below for where its migration is
+# accounted for instead.
 _NOT_YET_MIGRATED_TRUSTED_KEYS: "frozenset[tuple[str, str]]" = frozenset(
     {
         ("consent_ir_v1", "1.0.0"),
@@ -1891,22 +1894,38 @@ _NOT_YET_MIGRATED_TRUSTED_KEYS: "frozenset[tuple[str, str]]" = frozenset(
         # External-benchmark adapter families enrolled in
         # TRUSTED_BUILTIN_PLUGIN_KEYS by maintainer ruling on 2026-09-04
         # (PRs #28-#38), landed on main after this branch forked. None of
-        # the eleven has a FamilyScoringInput-contract fixture yet; they
-        # migrate under the per-adapter follow-ups tracked alongside the
-        # other not-yet-migrated families above, not as part of this
+        # the remaining ten has a FamilyScoringInput-contract fixture yet;
+        # they migrate under the per-adapter follow-ups tracked alongside
+        # the other not-yet-migrated families above, not as part of this
         # kernel change.
         ("agenticpay.bilateral", "0.1.0"),
         ("alympics.wac", "0.1.0"),
         ("amazonbarg.bilateral", "0.1.0"),
         ("aucarena", "0.1.0"),
         ("collusion", "0.1.0"),
-        ("econagent_v1", "0.1.0"),
         ("econevals", "0.1.0"),
         ("govsim", "0.1.0"),
         ("negarena", "0.1.0"),
         ("steer", "0.1.0"),
         ("termsbench", "0.1.0"),
     }
+)
+
+# econagent_v1 IS migrated and genuinely fixture-covered (_econagent_fixture,
+# test_econagent_obeys_the_scoring_contract below) -- but unlike every other
+# family this suite verifies unconditionally, its fixture requires the real,
+# provisioned EconAgent bridge (a subprocess executing the pinned upstream
+# simulation). Folding it into
+# _build_protocol_test_registry_and_fixtures/
+# test_every_registered_family_obeys_the_scoring_contract would make THAT
+# test -- and every other family's always-on coverage inside it -- newly
+# skip whenever the bridge is unavailable, which is exactly the kind of
+# quiet coverage loss this suite exists to prevent for everyone else. It is
+# therefore verified in its own per-test-skippable test instead, and named
+# here (not in _NOT_YET_MIGRATED_TRUSTED_KEYS, which would misdescribe it)
+# so ruling R6's closure check still has it accounted for.
+_BRIDGE_GATED_ENROLLED_FAMILY_VERSIONS: "frozenset[tuple[str, str]]" = frozenset(
+    {("econagent_v1", "0.1.0")}
 )
 
 
@@ -1977,6 +1996,34 @@ def test_trusted_catalog_closure_rejects_an_unenrolled_key() -> None:
 # providing the second, terminal-outcome-identical, trajectory-differing
 # fixture is per-family domain work (spec section 5) this kernel change does
 # not perform for any of the four.
+#
+# ``econagent_v1`` is exempted for a DIFFERENT, stronger reason than the four
+# above: not "not yet supplied" but "cannot be supplied at all" for ruling
+# R9(b)'s specific sensitivity witness. Every one of its three leaves is
+# genuinely ``input_scope="trajectory"`` (measurement.py has no
+# ``terminal_state`` leaf, so R7's own contrapositive has nothing to check
+# either), and R9(b)'s witness requires a SAME-CASE pair (byte-identical
+# ``family_case``) whose score DIFFERS for that leaf. This family's own case
+# (world_seed/beta/gamma/h) fully and deterministically determines its whole
+# trajectory (spec milestone-1 correction 4: every seat's action is a
+# content-free acknowledgment, never a decision the trajectory could depend
+# on) -- confirmed directly against the real bridge (running the identical
+# scenario twice reproduces the identical dense_log/month_actions/final
+# state bit-for-bit). Two fixtures sharing one ``family_case`` therefore
+# always share identical economics, hence identical ``ScoreEnvelope``
+# content for every leaf -- R9(b)'s witness can never fire ``True`` for any
+# same-case pair this family could honestly supply, by construction, not by
+# lack of effort. (A genuine same-case pair CAN now be minted and correctly
+# replayed at all -- see ``EconAgentV1Plugin._mint_session_id``'s FIFO
+# queue, kernel_scoring_contract_spec.md milestone 3 -- but replayability was
+# never the blocker; identical scoring content is.) The WHOLE-OUTCOME
+# paired-history precondition R7/R9(a) itself asks for IS separately
+# constructible and IS verified directly, without going through this
+# exemption or ``_assert_family_obeys_the_scoring_contract`` at all --
+# see ``test_econagent_paired_history_pair_is_constructible_with_a_genuine_
+# trajectory_difference`` (tests/test_econagent_replay.py) and
+# ``docs/econagent_adapter_status.md``'s "Leaf policy" section for the full
+# argument.
 # ---------------------------------------------------------------------------
 
 _SINGLE_FIXTURE_EXEMPT_FAMILIES: "frozenset[tuple[str, str]]" = frozenset(
@@ -1985,6 +2032,7 @@ _SINGLE_FIXTURE_EXEMPT_FAMILIES: "frozenset[tuple[str, str]]" = frozenset(
         ("procurement_allocation_v1", "1.0.0"),
         ("procurement_grounding_v1", "1.0.0"),
         ("commercial_state_calibration_v1", "1.0.0"),
+        ("econagent_v1", "0.1.0"),
         # Ruling R12: a fictional key -- deliberately NOT
         # ("kernel_contract_reference_v1", "1.0.0") -- used only as the
         # ``key`` argument passed directly to
@@ -2262,15 +2310,98 @@ def test_every_registered_family_obeys_the_scoring_contract(tmp_path: Path) -> N
     # world is TRUSTED_BUILTIN_PLUGIN_KEYS. The assertion above was true by
     # construction and could never fail; a family enrolled there without a
     # fixture (or an explicit, named "not yet migrated" exemption) now fails
-    # here instead.
+    # here instead. econagent_v1 is enrolled via
+    # _BRIDGE_GATED_ENROLLED_FAMILY_VERSIONS, not this test's own local
+    # ``fixtures`` -- see that set's own docstring.
     _assert_trusted_catalog_is_closed(
         trusted_keys=TRUSTED_BUILTIN_PLUGIN_KEYS,
-        enrolled_family_versions=set(fixtures),
+        enrolled_family_versions=set(fixtures) | _BRIDGE_GATED_ENROLLED_FAMILY_VERSIONS,
         exempt_family_versions=_NOT_YET_MIGRATED_TRUSTED_KEYS,
     )
 
     for key, registration in registrations.items():
         _assert_family_obeys_the_scoring_contract(key, registration, fixtures[key])
+
+
+# ---------------------------------------------------------------------------
+# econagent_v1: a real, bridge-backed family with three genuine
+# trajectory-scoped leaves (econagent_budget_identity, econagent_tax_
+# bracket_arithmetic, econagent_macro_trajectory) and NO terminal_state
+# leaf at all. Kept out of _build_protocol_test_registry_and_fixtures/the
+# always-on test_every_registered_family_obeys_the_scoring_contract -- see
+# test_econagent_obeys_the_scoring_contract's own docstring for why.
+# ---------------------------------------------------------------------------
+
+
+def _econagent_fixture(
+    tmp_path: Path,
+) -> tuple[Any, tuple[FamilyScoringFixture, ...]]:
+    """This family's single scoring-contract fixture -- exactly one, not
+    two; see ``_SINGLE_FIXTURE_EXEMPT_FAMILIES``'s own entry for this
+    family for the structural reason a same-case pair cannot be honestly
+    supplied here.
+
+    A lazy, FUNCTION-LOCAL import from ``tests.test_econagent_replay``:
+    that module resolves its own bridge availability with a MODULE-LEVEL
+    ``pytest.skip(..., allow_module_level=True)`` on a missing checkout
+    (unlike govsim's own test module, which defers that exact check into a
+    lazily-called ``_bridge()`` specifically to avoid this -- triage
+    finding 7 there). Importing it at THIS module's own top level would
+    risk skipping this entire shared test file -- and every other family's
+    always-on coverage inside it -- whenever the econagent bridge happens
+    to be unavailable, which is precisely the coverage loss
+    ``_BRIDGE_GATED_ENROLLED_FAMILY_VERSIONS`` exists to prevent for
+    everyone else. Importing it here, inside this function, confines any
+    such skip to this one fixture/test.
+    """
+    from tests.test_econagent_replay import run_kernel_contract_fixture
+
+    setup, _plugin, family_case, evidence = run_kernel_contract_fixture(
+        tmp_path, world_seed=0, suffix="scoring_contract_fixture"
+    )
+    # setup.registry already carries exactly this one registration, built
+    # from the SAME plugin instance that ran the fixture live (register_plugin
+    # inside build_econagent_setup) -- reusing it, rather than registering a
+    # second time, is what lets replay's bridge_session_id fallback (see
+    # EconAgentV1Plugin._mint_session_id) resolve correctly.
+    (registration,) = setup.registry.registrations()
+    return registration, (
+        FamilyScoringFixture(family_case=family_case, sealed_evidence=evidence),
+    )
+
+
+def test_econagent_obeys_the_scoring_contract(tmp_path: Path) -> None:
+    """econagent_v1's own contract check -- kept out of
+    ``test_every_registered_family_obeys_the_scoring_contract`` (see
+    ``_BRIDGE_GATED_ENROLLED_FAMILY_VERSIONS``'s own docstring for why):
+    this family's fixture requires the real, provisioned EconAgent bridge
+    (a subprocess executing the pinned upstream simulation), which every
+    OTHER family this suite verifies deliberately does not, so folding it
+    into that always-on test would make THEIR coverage newly skip too
+    whenever the bridge is unavailable. Per-test skip only, never
+    module-level (mirrors ``tests/test_econagent_replay.py``'s own
+    documented convention; see ``_econagent_fixture``'s own docstring for
+    why the import into THIS module is deferred rather than top-level).
+
+    Runs the identical protocol check
+    (``_assert_family_obeys_the_scoring_contract``) against econagent_v1's
+    own registry registration and its ONE fixture -- see
+    ``_SINGLE_FIXTURE_EXEMPT_FAMILIES``'s entry for this family for why
+    exactly one, not a paired-history pair, is supplied here: this
+    family's whole-outcome paired-history pair IS constructible and IS
+    verified directly, but ruling R9(b)'s SEPARATE same-case
+    sensitivity-witness requirement cannot be satisfied by any fixture
+    this family could honestly supply, so routing a second fixture through
+    THIS shared helper would fail on that check regardless of how the pair
+    is built. See ``tests/test_econagent_replay.py``'s own
+    ``test_paired_history_pair_has_a_byte_identical_outcome_and_a_differing_
+    trajectory`` for that separate, direct verification.
+    """
+    registration, fixtures = _econagent_fixture(tmp_path)
+    key = (registration.family_id, registration.family_version)
+    assert key == ("econagent_v1", "0.1.0")
+
+    _assert_family_obeys_the_scoring_contract(key, registration, fixtures)
 
 
 def test_determinism_precheck_adjacency_defeats_call_parity_aliasing(tmp_path: Path) -> None:
