@@ -152,7 +152,30 @@ def family_manifest() -> FamilyManifest:
                 "primary_leaf_id": measurement.BARGAINED_RATIO_LEAF_ID,
                 "admission_leaf_ids": [measurement.BARGAINED_RATIO_LEAF_ID],
             },
-            "scoring": {"scorer_id": SCORER_ID},
+            # measurement.py declares each of its five leaves' validity-domain
+            # predicate and scorer implementation under its own distinct
+            # component id (never reusing the family-level scorer_id, unlike,
+            # e.g., procurement_grounding's single leaf) -- resolve_run_plan's
+            # own pin bookkeeping (_required_pin_kinds) only requires and
+            # admits a pin for a component named here or as `scorer_id`, and
+            # EvaluationReceipt._validate_and_freeze_plan_pins requires every
+            # leaf-declared implementation ref to match one, so all seven
+            # (the shared upstream-metrics-bridge reference, the shared base
+            # domain predicate, and each of the five leaves' own scorer id)
+            # must be declared as reference providers. Mirrors govsim's
+            # identical fix for the identical gap.
+            "scoring": {
+                "scorer_id": SCORER_ID,
+                "reference_provider_ids": [
+                    "amazonbarg_upstream_metrics_bridge",
+                    "amazonbarg_base_domain_predicate",
+                    measurement.DEAL_AUTHENTICITY_SCORER_ID,
+                    measurement.ZOPA_MEMBERSHIP_SCORER_ID,
+                    measurement.DEAL_LOWER_BOUND_SCORER_ID,
+                    measurement.DEAL_UPPER_BOUND_SCORER_ID,
+                    measurement.BARGAINED_RATIO_SCORER_ID,
+                ],
+            },
         }
     )
 
@@ -299,8 +322,19 @@ class AmazonbargPlugin:
 
     # -- episode lifecycle ---------------------------------------------
 
-    def initial_state(self, family_case: Mapping[str, Any], cell: Any) -> dict[str, Any]:
-        del cell
+    def initial_state(self, family_case: Mapping[str, Any], run: Any) -> dict[str, Any]:
+        """Build the initial family state for one episode.
+
+        The second parameter is named ``run`` (not ``cell``) to match every
+        other family's own ``initial_state`` hook -- required because
+        ``task.evaluation._replay_family_trajectory`` calls
+        ``plugin.initial_state(family_case, run=None)`` by keyword
+        (kernel_scoring_contract_spec.md's ``replay_family_scoring_input``
+        contract); the live scheduler (``task.scheduler.run_episode``) still
+        passes this positionally, so this rename does not change what value
+        actually arrives here.
+        """
+        del run
         derived = family_case["derived"]
         # Cross-check the payload's derived fields against a fresh delegated
         # recomputation (upstream's own product.CamelAmazon loader), never a

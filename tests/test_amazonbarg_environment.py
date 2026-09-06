@@ -466,7 +466,7 @@ def test_eligible_actors_are_exactly_one_seat_per_phase() -> None:
     plugin = AmazonbargPlugin(upstream_root=UPSTREAM_ROOT)
     case = _case("home-kitchen_2")
     family_case = plugin.validate_payload(case.payload)
-    state = plugin.initial_state(family_case, cell=None)
+    state = plugin.initial_state(family_case, run=None)
     buyer_phase, seller_phase = plugin.phases(family_case)
 
     assert plugin.eligible_actors(family_case, state, buyer_phase) == ("buyer",)
@@ -485,7 +485,7 @@ def test_empty_reply_content_fails_to_parse_like_upstreams_own_guard() -> None:
     plugin = AmazonbargPlugin(upstream_root=UPSTREAM_ROOT)
     case = _case("home-kitchen_2")
     family_case = plugin.validate_payload(case.payload)
-    state = plugin.initial_state(family_case, cell=None)
+    state = plugin.initial_state(family_case, run=None)
     buyer_phase, _seller_phase = plugin.phases(family_case)
 
     result = plugin.parse_action(family_case, state, "buyer", buyer_phase, {"content": ""})
@@ -497,7 +497,7 @@ def test_a_non_deal_non_quit_reply_never_terminates_the_episode() -> None:
     plugin = AmazonbargPlugin(upstream_root=UPSTREAM_ROOT)
     case = _case("home-kitchen_2")
     family_case = plugin.validate_payload(case.payload)
-    state = plugin.initial_state(family_case, cell=None)
+    state = plugin.initial_state(family_case, run=None)
     buyer_phase, _seller_phase = plugin.phases(family_case)
 
     parsed = plugin.parse_action(
