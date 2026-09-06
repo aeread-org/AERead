@@ -14,14 +14,15 @@ import json
 import os
 from pathlib import Path
 from types import MappingProxyType
+from typing import Any, Mapping
 
 import pytest
 
-from aeread.shared_runner.task.execution import EvidenceStore
+from aeread.shared_runner.task.execution import CanonicalResponse, EvidenceStore
 from aeread.shared_runner.registry import PluginRegistry
 from aeread.shared_runner.run.resolver import PlanCell, canonical_json_bytes
 from aeread.shared_runner.schemas import CaseManifest
-from aeread.shared_runner.task.scheduler import run_episode
+from aeread.shared_runner.task.scheduler import EpisodeResult, run_episode
 from aeread_families.agenticpay_bilateral.agenticpay_bridge import (
     AgenticpayBridge,
     AgenticpayBridgeUnavailableError,
@@ -155,6 +156,196 @@ def _run_live(bridge: AgenticpayBridge, tmp_path: Path, *, case_id: str, suffix:
         run_episode(cell=cell, case=case, plugin=resolved_plugin, response_source=harness)
     )
     return case, cell, resolved_plugin, result, evidence, harness
+
+
+class EvidenceRecordingAgenticpayHarness:
+    """A ``run_episode`` response source that writes the full generic
+    replay-required evidence trail (``logical_action_started``,
+    ``action_attempt_succeeded``, ``action_parsed``,
+    ``action_legality_checked``, ``logical_action_succeeded``,
+    ``phase_instance_started``, ``transition_applied``,
+    ``phase_instance_succeeded``, ``episode_terminated``,
+    ``family_outcome_recorded``) -- exactly the event vocabulary
+    ``aeread.shared_runner.task.execution``'s ``AttemptExecutor`` writes for
+    every LLM-harness-backed family's own evidence, reproduced here without
+    any of that class's provider/retry/cost machinery, since every scripted
+    agenticpay.bilateral decision is a plain ``{"message": str}`` dict,
+    never a provider completion.
+
+    ``ScriptedAgenticpayBilateralHarness`` (this family's existing scripted
+    response source, above) writes only its own convenience event
+    (``agenticpay_bilateral_decision_served``) and has never produced
+    evidence ``aeread.shared_runner.task.evaluation.replay_family_scoring_input``
+    can replay -- ``finalize_family_execution`` calls that replay internally,
+    so this class is what makes driving THAT finalizer, and the scoring-
+    contract protocol test's own paired fixtures, possible for this family at
+    all (mirrors ``govsim``'s identically-purposed
+    ``EvidenceRecordingGovsimHarness``). ``script`` is the same
+    ``[(phase_id, response), ...]`` shape ``_script``/
+    ``ScriptedAgenticpayBilateralHarness`` already use; this class owns only
+    the evidence-recording seam around it, mirroring ``AttemptExecutor``'s
+    own event shapes field-for-field.
+    """
+
+    def __init__(
+        self,
+        *,
+        evidence: EvidenceStore,
+        script: list[tuple[str, Mapping[str, Any]]],
+    ) -> None:
+        self._evidence = evidence
+        self._script = list(script)
+        self._cursor = 0
+
+    async def __call__(self, request: Any) -> dict[str, Any]:
+        if self._cursor >= len(self._script):
+            raise RuntimeError("script exhausted before episode termination")
+        expected_phase, response = self._script[self._cursor]
+        self._cursor += 1
+        if request.phase_id != expected_phase:
+            raise RuntimeError(
+                f"script expected phase {expected_phase!r}, got {request.phase_id!r}"
+            )
+        response = dict(response)
+        self._evidence.append_event(
+            "logical_action_started",
+            {"request": request},
+            phase_instance_id=request.phase_instance_id,
+            logical_action_id=request.logical_action_id,
+            visibility=f"seat:{request.seat_id}",
+        )
+        # A CanonicalResponse-shaped placeholder purely for replay provenance
+        # (``LogicalActionRecord.response``): this family's own
+        # ``parse_action`` never reads it (the scheduler hands it the raw
+        # ``response`` dict returned below, unchanged -- see
+        # ``ScriptedAgenticpayBilateralHarness``'s identical contract), and
+        # replay itself reconstructs ``parse``/``legality`` directly from
+        # the "action_parsed"/"action_legality_checked" events below, never
+        # from this response.
+        canonical = CanonicalResponse(
+            text=json.dumps(response, sort_keys=True),
+            finish_reason="stop",
+            empty=False,
+            truncated=False,
+            provider_call_ids=(),
+            tool_invocation_ids=(),
+            input_tokens=0,
+            cached_input_tokens=0,
+            output_tokens=0,
+            cost_usd=0.0,
+            action=response,
+        )
+        self._evidence.append_event(
+            "action_attempt_succeeded",
+            {"canonical_response": canonical},
+            phase_instance_id=request.phase_instance_id,
+            logical_action_id=request.logical_action_id,
+            visibility=f"seat:{request.seat_id}",
+        )
+        return response
+
+    def finalize_action(self, record: Any) -> None:
+        envelope = record.envelope
+        failure_code = None
+        if not envelope.valid:
+            failure_code = (
+                envelope.parse.error_code
+                if not envelope.parse.ok
+                else envelope.legality.reason
+            )
+        self._evidence.append_event(
+            "action_parsed",
+            {"parse_result": envelope.parse},
+            phase_instance_id=record.request.phase_instance_id,
+            logical_action_id=record.logical_action_id,
+            visibility=f"seat:{record.seat_id}",
+        )
+        if envelope.legality is not None:
+            self._evidence.append_event(
+                "action_legality_checked",
+                {"legality_result": envelope.legality},
+                phase_instance_id=record.request.phase_instance_id,
+                logical_action_id=record.logical_action_id,
+            )
+        event_type = (
+            "logical_action_succeeded"
+            if envelope.valid
+            else "logical_action_agent_action_failure"
+        )
+        self._evidence.append_event(
+            event_type,
+            {"valid": envelope.valid, "failure_code": failure_code},
+            logical_action_id=record.logical_action_id,
+        )
+
+    def fail_logical_action(self, logical_action_id: str, *, failure_code: str) -> None:
+        self._evidence.append_event(
+            "logical_action_failed",
+            {"failure_condition": failure_code},
+            logical_action_id=logical_action_id,
+        )
+
+    def phase_started(
+        self,
+        *,
+        phase_instance_id: str,
+        phase: Any,
+        eligible_actors: tuple[str, ...],
+        pre_state_sha256: str,
+    ) -> None:
+        self._evidence.append_event(
+            "phase_instance_started",
+            {
+                "phase": phase,
+                "eligible_actors": eligible_actors,
+                "pre_state_sha256": pre_state_sha256,
+            },
+            phase_instance_id=phase_instance_id,
+        )
+
+    def transition_applied(
+        self,
+        *,
+        phase_instance_id: str,
+        phase: Any,
+        transition: Any,
+        post_state_sha256: str,
+    ) -> None:
+        self._evidence.append_event(
+            "transition_applied",
+            {
+                "phase_id": phase.phase_id,
+                "transition": transition,
+                "post_state_sha256": post_state_sha256,
+            },
+            phase_instance_id=phase_instance_id,
+        )
+
+    def phase_completed(self, *, phase_instance: Any) -> None:
+        self._evidence.append_event(
+            "phase_instance_succeeded",
+            {
+                "phase_id": phase_instance.phase_id,
+                "post_state_sha256": phase_instance.post_state_sha256,
+                "logical_action_ids": tuple(
+                    action.logical_action_id for action in phase_instance.actions
+                ),
+            },
+            phase_instance_id=phase_instance.phase_instance_id,
+        )
+
+    def episode_completed(self, *, episode_result: EpisodeResult) -> None:
+        self._evidence.append_event(
+            "episode_terminated",
+            {
+                "terminal": episode_result.terminal,
+                "logical_action_count": episode_result.logical_action_count,
+            },
+        )
+        self._evidence.append_event(
+            "family_outcome_recorded",
+            {"outcome": episode_result.outcome},
+        )
 
 
 # ---------------------------------------------------------------------------
