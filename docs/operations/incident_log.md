@@ -267,8 +267,8 @@ kernel passes a `FamilyScoringInput`:
 | family | tracked as |
 |---|---|
 | govsim | #76 |
-| aucarena | **untracked -- needs an issue** |
-| consent_ir | **untracked -- needs an issue** |
+| aucarena | #119, filed from this test |
+| consent_ir | #120, filed from this test |
 
 Two of the three were not on anyone's list. The existing widening issues
 (#74-#84) were written per-adapter from a `FamilyScoreSet` angle; nothing

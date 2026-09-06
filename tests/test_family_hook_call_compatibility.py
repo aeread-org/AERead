@@ -82,9 +82,9 @@ SCORERS = _scorer_builders()
 # an issue.
 KNOWN_UNMIGRATED_SCORERS = {
     "govsim": "#76",
-    # Found by this test, not previously tracked:
-    "aucarena": "untracked -- needs an issue",
-    "consent_ir": "untracked -- needs an issue",
+    # Found by this test, filed from it:
+    "aucarena": "#119",
+    "consent_ir": "#120",
 }
 
 
