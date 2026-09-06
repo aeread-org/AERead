@@ -1,6 +1,6 @@
 # amazonbarg bilateral-bargaining adapter — status
 
-Branch `zeyu/amazonbarg-contract-migration`. Last verified 2026-09-05, after
+Branch `zeyu/amazonbarg-contract-migration`. Last verified 2026-09-06, after
 the kernel-scoring-contract migration's milestone 3 of 3 (protocol-test
 enrollment + first real receipt; see "Enrollment in the scoring-contract
 protocol test" below), which itself sits on milestone 2 of 3 (leaf policy +
@@ -267,7 +267,7 @@ as before, including both of the prior milestone's new tests
 merely counted.
 
 **Gate follow-up (2026-09-06):** a final gate found two CI-wiring defects in
-the finding-4 fix above. See "Gate follow-up" under finding 4 in
+the finding-4 fix below. See "Gate follow-up" under finding 4 in
 `docs/amazonbarg_migration_review.md` for the full reproduction and fix
 detail; summarized here for the count reconciliation above.
 
@@ -301,7 +301,10 @@ against the code and disposed by the migration agent in the same session
   sharper mechanism the disposition adds — **nothing in this project's CI
   ever set `AEREAD_AMAZONBARG_BRIDGE_REQUIRED`**, so a real CI run always
   skipped that test (and every other amazonbarg fidelity test) and always
-  reported green. Fixed by commit `d44e9a50`: a new `amazonbarg-fidelity`
+  reported green. Fixed by commit `d44e9a50`, completed by the gate
+  follow-up commits `25d46831` (child pytest strips
+  AEREAD_*_BRIDGE_REQUIRED) and `0a5dafb9` (no_upstream_checkout_required
+  markers + coverage guard), docs in `15ab68f3`: a new `amazonbarg-fidelity`
   job in `.github/workflows/ci.yml` (mirroring `agenticpay-fidelity`)
   checks out the pinned upstream `TianXiaSJTU/AmazonPriceHistory` repository
   and runs every amazonbarg fidelity test file plus
@@ -315,8 +318,8 @@ against the code and disposed by the migration agent in the same session
 
 **All five QC Gate-2 goldens run end to end through the real scheduler,
 sealed as durable evidence, then replayed by a second, independent plugin
-instance with zero provider calls, reproducing state and score
-byte-identically.**
+instance with zero provider calls, reproducing state byte-identically for
+all five goldens and score byte-identically for goldens 1, 4, and 5.**
 
 - All five goldens — golden 1 (`home-kitchen_2`, Shark vacuum, closes
   `[DEAL] $135`), golden 2 (`home-kitchen_3`, Calphalon, an authenticated
@@ -374,6 +377,8 @@ byte-identically.**
     `compare_episode_results`/`assert_replay_matches` being run and checked
     by the caller.
 
+Milestone-2 snapshot, superseded by the 144 / 57+87 counts under
+"Enrollment" above (those files are now 24, 19, and 5 tests):
 **Suite: 131/131 passed**, bridge exported, for the full amazonbarg
 family test-file set (`test_amazonbarg_cases.py` 34,
 `test_amazonbarg_environment.py` 21, `test_amazonbarg_measurement.py` 23,
@@ -410,13 +415,16 @@ goldens (2, 3, 4 state-reproduction plus a golden-4 score-recompute), and 1
 new measurement regression test (`docs/amazonbarg_review_disposition.md`
 findings W1/W2).
 
-**No regression (as of milestone 3, not re-run this migration milestone):
-full repo suite 830 passed, 31 skipped, 1 xfailed.** The 31 skips are
-pre-existing, unrelated external-bridge dependencies for other adapter
-families (confirmed none is amazonbarg-related by grepping the skip report
-for `amazonbarg` — zero hits). This migration milestone's own verification
-scope was the family test-file set plus `test_shared_runner_smoke.py`
-(above), not a fresh full-repo run.
+**No regression: full repo suite re-run 2026-09-06 under the plain CI
+environment (no bridge/upstream variables): 2230 passed, 125 skipped, 1
+xfailed, 0 failed (docs/amazonbarg_migration_review.md, "Gate follow-up");
+the earlier milestone-3 count with bridges was 830/31/1.** The 31 skips
+under that earlier count are pre-existing, unrelated external-bridge
+dependencies for other adapter families (confirmed none is
+amazonbarg-related by grepping the skip report for `amazonbarg` — zero
+hits). This migration milestone's own verification scope was the family
+test-file set plus `test_shared_runner_smoke.py` (above), not a fresh
+full-repo run.
 
 **Provider-free, network-free throughout.** Every test in this milestone
 runs entirely in-process, through `upstream_shim`'s delegation mechanism —
