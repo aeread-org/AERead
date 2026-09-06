@@ -1319,3 +1319,62 @@ is met and every planned cell was attempted, and the publisher refuses to
 publish a confirmatory result whose contract digest changed after the freeze
 was sealed.
 
+## 30. V23 pilot result and a correction to the holdout decision rule
+
+V23 executed all 192 cells for `$0.9095553819` with six operational
+failures, a 3.1 percent cell loss well inside the declared 10 percent
+ceiling. Delivery improved sharply against V19, which lost a third of its
+cells on the same route: ten receipt-visible attempts with backoff, retryable
+timeouts and bounded-concurrency pacing absorbed a continuous stream of
+upstream rate limits, several hundred retried attempts spread across every
+minute of the run.
+
+The measured variance is much tighter than V19's exploratory figure.
+
+| Quantity | V19 | V23 |
+|---|---|---|
+| Paired worlds | 2 | 4 |
+| Mean paired contrast | -0.0755 | 0.0059 |
+| Paired standard deviation | 0.0930 | 0.0385 |
+
+The contrast is close to zero, which is a substantive result in itself, but
+four paired worlds is below the declared minimum of six, so the analysis
+withheld the confirmatory world count exactly as designed. The recommendation
+is suppressed and the freeze will refuse to size a run from this pilot.
+
+### Why six of eight worlds failed to pair from six lost cells
+
+All six failures fell in one condition, GLM as tenant against DeepSeek as
+landlord, spread across four separate worlds and four hours. Each one
+exhausted all ten attempts on a single action. The retry ledger shows the
+blocks lasted between 304 and 762 seconds, while ten attempts under a
+five-second base capped at thirty seconds cover only about 245 seconds. The
+policy gives up before the block clears. These are sustained upstream blocks,
+not unlucky individual calls, and the retry window is simply too short for
+them.
+
+The arithmetic then amplifies. A world needs all 24 of its cells, so at a 3.1
+percent cell loss a world survives with probability `0.969` to the 24th,
+about 47 percent. Four of eight paired is exactly what that predicts. To
+reach six of eight the cell loss must fall to roughly 1.2 percent.
+
+### Correction: the declared minimum binds, not the variance
+
+Section 28 stated that a paired standard deviation at or below `0.0668` would
+let the sealed holdout carry the confirmatory comparison. That rule was
+incomplete and the conclusion it implied was wrong.
+
+The recommended world count is the larger of the powered estimate and the
+contract's declared `minimum_confirmatory_worlds`, which is 30. V23's
+standard deviation implies only five raw worlds and six after attrition, but
+the floor of 30 dominates. The holdout admits 15 usable worlds. No standard
+deviation, however small, can make 15 satisfy a declared minimum of 30.
+
+The holdout capacity conflict is therefore unconditional rather than
+contingent on the pilot, and better data cannot resolve it. The remaining
+options are unchanged in kind: extend the holdout under a new case-sweep
+identity while it is still sealed and unexecuted, which stays legitimate
+precisely because no holdout outcome has been observed, or change the
+declared minimum, which after seeing pilot outcomes would be post-outcome
+tuning and is excluded.
+

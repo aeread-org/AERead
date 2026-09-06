@@ -68,6 +68,15 @@ Current campaign directories include:
   cells (four rate-limit exhaustions, one timeout) leave every world without
   a complete subject pair, so variance is not estimable and no ranking is
   supported. Protocol-conformant against the recorded V13 gate.
+- `housing_model_sensitivity_openrouter_parasail_v22/` and
+  `housing_model_sensitivity_openrouter_parasail_v23/`: the bounded-concurrency
+  gate and the 192-cell, eight-world, two-replicate pilot it promoted. The
+  pilot lost 3.1 percent of cells, measured a paired standard deviation of
+  0.0385 around a near-zero contrast, and withheld the confirmatory world
+  count because only four of eight worlds paired.
+- `housing_operational_feasibility_2026-09-06/`: the serial wall-time
+  projection the campaign SOP requires before a variance pilot, which stopped
+  the first attempt at this pilot.
 - `housing_glm_route_probe_2026-09-05/`: one-hour strict-client probe of all
   12 parameter-complete GLM 5.3 Flash routes on OpenRouter, 100 calls each.
   Sanitized per-call record plus a digest-bound summary; Parasail FP8 was the
