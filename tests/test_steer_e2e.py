@@ -673,6 +673,15 @@ def test_finalize_family_execution_scores_a_real_steer_episode_through_the_produ
 
     receipt = finalize_family_execution(setup=setup, execution=execution)
 
+    # kernel_scoring_contract_spec.md milestone 3: the receipt must carry
+    # EXACTLY the manifest's own declared finalize-time leaf set and primary
+    # -- not merely "a receipt came back" -- checked against
+    # ``family_manifest()``'s real declaration itself, never a hand-copied
+    # string literal that could silently drift from it.
+    declared = family_manifest().measurement.finalize_time_leaf_policy()
+    assert {score.leaf.leaf_id for score in receipt.scores} == set(declared.leaf_ids)
+    assert receipt.primary_leaf_id == declared.primary_leaf_id
+
     assert receipt.status == "ok"
     assert receipt.inclusion_status == "included"
     assert len(receipt.scores) == 1
