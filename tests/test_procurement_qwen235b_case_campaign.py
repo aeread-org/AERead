@@ -50,8 +50,14 @@ def test_qwen235b_plan_freezes_adaptive_matched_panel() -> None:
     assert scored["conservative_cost_ceiling_usd"] == pytest.approx(0.42912)
     assert plan["conservative_total_cost_ceiling_usd"] == pytest.approx(0.45912)
     assert plan["hard_total_cost_ceiling_usd"] == pytest.approx(0.57)
+    # Plan identity, not a seal. The seal is the campaign_plan.json inside the
+    # published bundle, which digests its own content and is verified by
+    # tests/test_procurement_sealed_plan_digests.py without reference to source.
+    # This literal moved when the environment gained check_award, listing-level
+    # verbal bias, and a relaxed action-budget range; the sealed value it
+    # superseded is recorded in design_review defect 19.
     assert plan["plan_sha256"] == (
-        "9b7b2fbea8200eb9900ee063bf34255c3162f9aa7e733a5d76adb7224507a78f"
+        "5259917ebd495adcbb7f5a14fe265cfbd2b9329be753c9d07432a61e34e343e0"
     )
 
 

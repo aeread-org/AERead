@@ -44,6 +44,20 @@ supporting evidence, not a substitute for an explicit QC record.
 QC evidence may be reused across campaigns only when every bound input still
 matches by typed identifier and digest.
 
+Every failure -- a design defect, a sealed attempt, a broken tool, or a claim
+that turned out to be wrong -- is indexed in the
+[incident log](incident_log.md). Preserving failed attempts is already required;
+the register is where they are findable. A row is added when something fails, not
+when it is fixed, and rows are never deleted.
+
+A required check is evidence only once it has been **observed to fail on a
+counterexample**. Demonstrate this by mutation: revert the guard, confirm the
+check dies for the intended reason, restore it, confirm the check passes, and
+record that the kill was real. A check that has never failed may be asserting
+something true by construction; three defects fixed on 2026-09-05 passed every
+existing suite for exactly that reason. Where a mutation does not kill a check,
+record that rather than glossing it.
+
 Every machine-consumed evidence reference records the artifact type, path,
 SHA-256 digest, family ID and version, profile ID, and explicit required and
 observed coverage IDs. At admission, the path is resolved inside an explicitly
@@ -53,6 +67,40 @@ only when its canonical artifact type matches and its bound artifacts
 collectively cover every required ID in that gate's scope.
 
 ## 2. Standard gates
+
+### Gate 0: Profile admission
+
+**Purpose:** establish that this family has somewhere to record a gate result.
+
+This is the first reject gate and it is evaluated before every other gate. A
+family without a published QC profile is `failed`, not `not_run`: the remaining
+gates are not merely unevaluated, they are unevaluable, because no artifact
+exists that can hold their status.
+
+Require, before Gate 1 is considered:
+
+1. a profile at `docs/families/<family>/qc.md` that references this standard;
+2. a typed normative status for the family, and a typed status for each of
+   Gates 1 through 5;
+3. a stated blocker for every gate that is not `passed`.
+
+**Rejecting on a missing profile is not bureaucracy; it is the gate that makes
+the others load-bearing.** Procurement is the worked example. Its Gate 3 check
+ran, found that a deterministic policy reading only the displayed price beat the
+qualified subject by $28.50 per world, and published that as campaign evidence
+in `evidence/procurement_allocation_public_policy_baselines_v1/`. Because no
+profile existed, the failing result had nowhere to be recorded and was read as
+an interesting campaign finding rather than a construct-validity failure. The
+gate had been performed and its verdict was lost.
+
+This gate is enforced by `tests/test_benchmark_qc_profiles.py`, which fails when
+a trusted family has neither a profile nor a named entry in that file's dated
+exemption list. The exemption list is the backlog for families that predate this
+gate; its length is asserted, so adding a family to it is visible in review
+rather than silent.
+
+Stop when a family is registered, promoted, or described as measuring its
+declared construct without a profile.
 
 ### Gate 1: Task-distribution admission
 
@@ -81,6 +129,71 @@ duplicate and cluster assignments, split membership, and typed exclusions.
 
 Stop on invalid or non-finite inputs, resolution drift, an unverified bound,
 duplicate leakage across independent clusters, or development/holdout overlap.
+
+#### Measured headroom
+
+A panel is *informative* only if the declared control leaves rows it can fail.
+Establish this by measurement, not by inspecting world definitions:
+
+1. Before freezing a panel, run **the frozen control itself** across every
+   candidate world, at one seed if budget is tight. A cheaper proxy policy is not
+   a substitute unless that proxy is first shown to track the control on a panel
+   of known difficulty.
+2. Admit a world only after rejecting it on **three separate grounds**, each
+   testable and each cheap. A world is *trivial* if a deterministic policy
+   reading only public observations already succeeds, so the family's subject is
+   not under test. It is *floored* if the control never succeeds. It is
+   *saturated* if the control always succeeds. Publish the measured control rate
+   and each baseline outcome per admitted world in the panel manifest.
+
+   "The two policies disagree" is **not** a sufficient rule, and looks like one.
+   It admits a saturated world whenever a baseline happens to lose there, which
+   reintroduces the exact failure the two-sided screen was built to prevent.
+   State the three conditions separately and test them separately.
+
+3. Measure the control at **several seeds per world**, not one. One seed cannot
+   distinguish a ceiling from a lucky draw, and both rejection grounds above are
+   claims about a rate.
+
+4. Report the **within-world variance** the screen observes, and treat zero as a
+   finding rather than as precision. If every seed in a world returns the same
+   outcome, seeds are repeats rather than replicates: the effective sample size
+   is the number of worlds, and any interval computed across rows is narrower
+   than the truth by construction. A panel-level rate near 50% is compatible with
+   every individual world being deterministic, so it is not evidence of headroom
+   on its own. Procurement's due-diligence sweep is the worked example: a 50%
+   panel rate at budget 6 decomposes into three worlds at 3/3 and three at 0/3,
+   with no fractional cell anywhere.
+
+5. **Never catch an exception inside a screening loop.** A policy that cannot run
+   and a policy that runs and loses must not produce the same value. Procurement's
+   first two-sided screen called its baseline with a positional argument where the
+   parameter is keyword-only, scored the resulting `TypeError` as a loss in every
+   world, and reported a fabricated unanimous admission. A screen is evidence and
+   is owed the scepticism owed to a run; a unanimous verdict is a reason to check
+   the instrument.
+6. A holdout must additionally preserve the difficulty of the panel it holds out
+   from. Matching a panel's failure *themes* does not match its difficulty.
+
+If a family cannot produce worlds that pass all three grounds, the finding is
+about the environment and not about the panel. Check whether the rule admitting a
+world and the quantity making it hard are the same quantity; when they are, the
+outcome is a step and no amount of re-tuning will find an interior. Procurement
+defect 17 is that case written out.
+
+Substituting a cheap proxy without validating it is its own trap. Procurement's
+deterministic policy baselines solve **zero** worlds on the good development
+panel, the known-bad holdout, and the confirmatory panel alike, so they cannot
+distinguish a panel the model control saturates from one it fails; they beat the
+model on the six `dev` worlds and lose everywhere else. A screen that returns the
+same answer for a good and a bad panel is not a screen.
+
+Skipping this produces a panel that passes every other Gate 1 check and still
+cannot measure anything. Procurement's `confirmatory_v2` is the worked example:
+twelve worlds with distinct seeds, distinct economic-world digests, and positive
+reachable bounds, on which the control scored 97% against 56% on the panel it
+replaced and won every completed row in seven of twelve worlds. A 144-row run was
+spent discovering it.
 
 ### Gate 2: Environment and verifier
 
@@ -234,7 +347,14 @@ Required sequence:
    task-quality zero.
 6. Report paired cluster-level intervals, predeclared slices, reliability,
    exclusions, and missingness alongside aggregates.
-7. Publish canonical fact tables and a manifest whose rows trace to admitted
+7. Prove every guarded metric is falsifiable. For each quantity a promotion rule
+   guards, construct a synthetic arm that maximizes it through behavior the rule
+   is meant to reject, and require the rule to reject that arm. A metric is a
+   guardrail only when some behavior fails it. Terminal feasibility is the worked
+   example: it counts an explicit deferral as a success, so a treatment that
+   defers more can satisfy a feasibility guardrail while earning nothing, and the
+   guarded quantity must instead be one that a deferral fails.
+8. Publish canonical fact tables and a manifest whose rows trace to admitted
    profiles, plans, receipts, and evidence.
 
 This gate is enforced through `variance_pilot`, `confirmatory_freeze`,
@@ -242,13 +362,15 @@ This gate is enforced through `variance_pilot`, `confirmatory_freeze`,
 [campaign SOP](experiment_campaign_sop.md).
 
 Stop when the pilot design is incomplete, the powered sample exceeds the
-declared budget, a frozen control changes, missingness is selective, or
-published aggregates cannot be reconstructed from canonical facts.
+declared budget, a frozen control changes, missingness is selective, a guarded
+metric has no failing counterexample, or published aggregates cannot be
+reconstructed from canonical facts.
 
 ## 3. Mapping QC to campaign promotion
 
 | Benchmark QC evidence | Campaign gates that consume it |
 |---|---|
+| Profile admission | every gate; a missing profile rejects before evaluation |
 | Task-distribution admission | `design_contract`, `confirmatory_freeze` |
 | Environment and verifier | `provider_free_validation`, `publication` |
 | Construct validity and baselines | `design_contract`, `provider_free_validation` |
@@ -279,9 +401,19 @@ traceable.
 ## 5. Case-specific profiles
 
 Each profile must state current implementation coverage and must not translate
-`partial` into `passed`. Housing is defined in the
-[Housing V1 QC profile](../families/housing/qc.md). Procurement, refund, and future families
-should add profiles that reference this standard instead of copying it.
+`partial` into `passed`. A missing profile is rejected at
+[Gate 0](#gate-0-profile-admission) before any other gate is evaluated.
+
+Published profiles:
+
+| Family | Profile | Normative status |
+|---|---|---|
+| Housing V1 | [housing/qc.md](../families/housing/qc.md) | `partial` |
+| Procurement allocation V1 | [procurement-allocation/qc.md](../families/procurement-allocation/qc.md) | `partial`, construct gate `failed` |
+
+A family may run development campaigns while carrying a dated Gate 0 exemption,
+but no family may publish a result described as measuring its declared construct
+until its profile exists and records that gate.
 
 ## 6. New-family contribution admission
 

@@ -1049,3 +1049,186 @@ under opaque labels. The 2x2 prompt factorial would spend about $3 to measure tw
 more such gates. The next procurement intervention changes the decision interface
 instead: a verifier-visible pre-award check. The V1 through V4 risk-gate audits
 remain as the operational record of the Parasail route's throttling behavior.
+
+## Held-out confirmation of the pre-award check
+
+The development result (PR #87) was supported but adaptive: the worlds were the
+ones the intervention was selected on, and the control arm had run on an
+environment without `check_award`, so the estimate bundled the action's presence
+with the prompt's use of it. `confirmatory_v2/` closes both gaps. Its twelve
+worlds were generated after the pre-award prompt was frozen at digest
+`600828117b31f363232085cfcf088bfa20ba0207adeed05e83255c55f5f7a871` and after the
+development result was read, with zero case-digest, economic-world-digest, or
+seed collisions against the development, confirmatory v1, risk-gate, blinded, and
+Qwen holdout panels. Both arms run fresh on the same environment: control is the
+frozen V4 scaffold, treatment the frozen pre-award procedure, 144 rows across
+twelve worlds, two surfaces, and three seeds.
+
+The guarded metric changed. Every campaign before this one guarded terminal
+feasibility, which `outcome` reports as true for an explicit defer; the
+development run passed that guardrail at +0.389 while producing fifteen
+deferrals. The confirmatory rule guards `feasible_award`, true only for a
+submitted award that passed every gate, and reports terminal feasibility as a
+diagnostic.
+
+### Operational audit, 2026-09-05
+
+The GLM 5.3 Flash/Parasail route was throttling heavily and no attempt reached
+the 144-row panel. Seven attempt roots across three campaign identities:
+
+| identity | attempt | rows | operational failures | provider calls ok / failed |
+|---|---|---|---|---|
+| v1 | 001 | 0 | 0 (canary rejected, `rate_limit`) | 0 / 0 |
+| v1 | 002 | 1 | 1 | 1 / 4 |
+| v1 | 003 | 2 | 1 | 13 / 4 |
+| v2 (paced) | 003 | 10 | 1 | 69 / 13 |
+| v2 (paced) | 004 | 0 | 0 (canary rejected) | 29 / 6 |
+| v3 (paced, `feasible_award`) | 003 | 7 | 1 | 44 / 4 |
+| v3 | 004 | 4 | 1 | 27 / 8 |
+
+Aggregate: 24 scored rows, $0.0636 spent, and **39 of 222 provider calls failed,
+a 17.6% failure rate**. V2 added the risk-gate pacing (four action attempts, 15s
+retry base) after V1 was sealed twice before any panel row completed; pacing
+raised the best attempt from 2 rows to 10 but did not clear the panel. V3 is the
+same plan with the corrected guardrail.
+
+Following the risk-gate V4 precedent, the response is a fresh attempt under the
+identical frozen plan in a later availability window, not more retries inside an
+action: four failures already span roughly 77 seconds, and the observed failures
+are route-wide rather than request-specific.
+
+Two operational findings worth fixing, both recorded in the design review:
+
+- A transient rate limit on the **unscored, zero-cost admission canary**
+  permanently seals an attempt root, because the canary is write-once. That cost
+  two of the seven attempts above before a single panel row ran. A typed
+  transient condition on a probe that produces no measurement should be
+  re-probeable within the attempt, with every probe recorded.
+- No partial efficacy was inspected in any sealed attempt, and none of the 24
+  rows contributes to a claim.
+
+### Observed confirmatory result, 2026-09-06: ineligible, and uninformative by construction
+
+The V4 attempt completed all 144 rows for $0.4512 with 12 typed missing rows. It
+is ineligible, and separately it cannot measure the treatment at all. The second
+fact is a defect in the holdout panel, authored in this branch, and it supersedes
+any reading of the effect estimate.
+
+**Eligibility: failed on the per-arm missingness ceiling.**
+
+| arm | missing of 36 | ceiling |
+|---|---:|---:|
+| labeled_control | 1 | 3 |
+| labeled_treatment | 4 | 3 |
+| opaque_control | 4 | 3 |
+| opaque_treatment | 3 | 3 |
+
+Ten of the twelve missing rows were `rate_limit`, one `provider_rejected`, one
+`timeout`: route throttling, with chance concentrating four and four into two
+arms. The panel total of 8.3% sits inside the declared 10% ceiling, but the
+ceiling binds per arm, where 10% of 36 rounds down to 3. That is a property of
+the frozen plan and is not revisited after seeing the outcome.
+
+**The panel cannot measure the treatment: the control saturates it.**
+
+| panel | control feasible-award rate | control mean regret |
+|---|---|---|
+| `confirmatory_v1` development | 56% labeled, 53% opaque | $66.86, $68.85 |
+| `confirmatory_v2` holdout | **97% labeled**, 78% opaque | $15.59, $36.24 |
+
+In **7 of 12** holdout worlds the V4 control wins every completed row, leaving no
+rows a treatment could improve. An overall effect near zero is what a ceiling
+produces; it is not evidence about the mechanism.
+
+The cause is an authoring error in this branch. The holdout was built to target
+the failure *themes* the check removes -- unsampled award lines, order-step
+rounding, capacity ceilings, service floors -- and each world exercises one of
+them cleanly. The development worlds were harder in a way that was not
+reproduced: they combine several of those pressures in a single world, which is
+why their control fails about 45% of the time. Matching the themes is not
+matching the difficulty.
+
+**What may be claimed.** Nothing, in either direction. The pre-award check is
+neither confirmed nor refuted by this run. The development result on
+`confirmatory_v1` stands as adaptive development evidence and keeps that label.
+Re-running this panel in a better route window would fix eligibility and still
+measure nothing.
+
+**What is actually required.** A holdout admitted against a *measured* control
+baseline, not an authored intuition about difficulty. Generate candidate worlds,
+run the frozen control and the deterministic policy baselines on them
+provider-free or cheaply, and admit a world only when the control leaves a
+declared minimum share of rows failing. That is a Gate 1 admission criterion the
+standard does not yet contain; it is recorded as design-review defect 14.
+
+## Due-diligence panel, first diagnostic 2026-09-06
+
+The first panel built under the [positioning decision](positioning.md): six
+worlds, six suppliers each, a **seven-action budget** so that verifying everyone
+costs nine and is impossible, and listings that all claim the same headline yield
+so price cannot rank suppliers. The trap sits at a different price tier in each
+world, so no fixed heuristic wins across the panel.
+
+**Admitted on measured headroom, by a screen that turned out to be half a
+screen.** A one-seed control screen costing $0.0139 found the frozen V4 control
+failing 3 of 6 worlds, and the two panels it rejected earlier saturated at 7 of
+12 and 7 of 7. But screening one policy detects only saturation. All three worlds
+that "passed" by having the control fail turned out to fail for both arms. See
+design-review defect 16.
+
+**Run.** Both arms, V4 scaffold against the pre-award check, six worlds by two
+surfaces by three seeds: 72 rows, 69 completed, 3 missing to rate limits, $0.201.
+
+**Result: the check does not pay under scarcity, and one world carries the whole
+effect.**
+
+| outcome, treatment minus control | mean per world | interval |
+|---|---|---|
+| feasible award | -0.100 | [-0.300, 0.000] |
+| regret | +$14.99 | [-$0.31, $45.42] |
+| completed kits | -5.03 | [-8.83, -1.25] |
+
+Five of the six worlds show a delta of exactly zero, and checking *why* is more
+damning than the delta. Only one world can express a difference at all:
+
+| world | control | treatment | verdict |
+|---|---|---|---|
+| trap_is_midpriced | 100% | 100% | saturated |
+| trap_is_priciest | 100% | 100% | saturated |
+| trap_is_cheapest | 0% | 0% | floored |
+| two_traps_one_clean | 0% | 0% | floored |
+| decoy_variant_and_trap | 17% | 17% | non-discriminating |
+| traps_differ_by_component | 100% | 50% | **discriminates** |
+
+**This is a one-world comparison, not a six-world one.** Five worlds are
+structurally incapable of showing an effect: two because both arms always win,
+two because both arms always lose, one because both land on the same rate. A
+bootstrap over six worlds where five cannot move is not a wide interval, it is a
+meaningless one, and the reported intervals should be read as describing a single
+world.
+
+The two floored worlds are the other half of the lesson: the traps are now too
+harsh, not merely the budget too tight. `trap_is_cheapest` and
+`two_traps_one_clean` are unsolvable by either arm within seven actions.
+
+**The mechanism is visible in the traces, and it is worth a proper test.** On the
+driving world the control plays `q q S q S S A`: batch the quotes, batch the
+samples, award, exactly seven actions, and it wins on five of six completed rows.
+The treatment interleaves, `q S q S q S A`, verifying each supplier before moving
+on. When that ordering costs one action more than the budget allows it ends
+`q S q q S K d` or `q S q S q d`: out of actions, and it **defers** rather than
+awarding. Every loss on that world is a deferral, not a violation.
+
+The check action itself is cheap, only 20 of 219 treatment actions. What costs is
+the discipline the procedure imposes around it. Under a ten-action budget that
+discipline was free and produced the development result; under seven it competes
+directly with the verification it exists to protect.
+
+**Claim scope.** A hypothesis, not a finding: *a procedure that adds ordering
+discipline buys reliability with actions, and under a tight verification budget
+that trade can invert.* Testing it needs a panel of twelve or more worlds where
+several show the effect, and a budget sweep rather than a single budget. This run
+had no frozen plan digest, having been driven through the qualification engine
+directly, so it is a diagnostic and cannot become a confirmatory claim without
+being rebuilt as a campaign.
+

@@ -1,0 +1,263 @@
+{
+  "case_id": "procurement_allocation_v1.confirmatory_v1_opaque.service_floor_cheap_bait",
+  "content_sha256": "c88d0cd1c9894c7587d77c60ef2a74ba707750f3665ec656e1c708ed1a2d2317",
+  "episode": {
+    "max_logical_actions": 10,
+    "termination": [
+      "submitted",
+      "deferred",
+      "interaction_budget_exhausted",
+      "invalid_action"
+    ]
+  },
+  "family_id": "procurement_allocation_v1",
+  "family_version": "1.0.0",
+  "payload": {
+    "interaction": {
+      "counter_cost_usd": 0.15,
+      "counter_days": 1,
+      "inquiry_cost_usd": 0.05,
+      "inquiry_days": 1,
+      "max_actions": 10,
+      "quote_cost_usd": 0.1,
+      "quote_days": 1
+    },
+    "objective": {
+      "annual_financing_rate": 0.12,
+      "bom": {
+        "ky023_joystick": 1,
+        "ssd1306_oled_096": 1
+      },
+      "cash_budget_usd": 160.0,
+      "deadline_days": 20,
+      "defect_detection_days": 10,
+      "defer_value_usd": 0.0,
+      "minimum_service_kits": 18,
+      "product_id": "joystick_service_floor_holdout",
+      "revenue_per_completed_kit_usd": 11.0,
+      "shortfall_penalty_per_kit_usd": 5.0,
+      "target_kits": 20,
+      "working_capital_horizon_days": 45
+    },
+    "policy": {
+      "award_requires": [
+        "unexpired_formal_offer",
+        "verified_sample",
+        "exact_variant"
+      ],
+      "inquiry_fields": [
+        "exact_variant",
+        "moq_capacity",
+        "lead_time",
+        "shipping",
+        "quality",
+        "return_refund_policy"
+      ],
+      "required_variant_by_component": {
+        "ky023_joystick": "ky023_dual_axis_push_switch_module",
+        "ssd1306_oled_096": "096in_128x64_four_pin_i2c_ssd1306"
+      }
+    },
+    "suppliers": [
+      {
+        "component": "ky023_joystick",
+        "listing": {
+          "claimed_lead_time_days": 4,
+          "claimed_variant": "ky023 dual axis push switch module",
+          "displayed_unit_price_usd": 1.312,
+          "evidence_status": "marketplace_listing_unverified",
+          "supplier_name": "Supplier 404C81905629"
+        },
+        "private_terms": {
+          "base_unit_price_usd": 1.6,
+          "capacity": 40,
+          "duty_rate": 0.05,
+          "lead_time_days": 6,
+          "moq": 10,
+          "negotiation": {
+            "floor_unit_price_usd": 1.6,
+            "maximum_payment_terms_days": 30,
+            "maximum_refund_window_days": 30,
+            "minimum_moq": 10,
+            "supplier_paid_return_freight_available": true
+          },
+          "offer_valid_days": 30,
+          "on_time_probability": 0.99,
+          "order_step": 10,
+          "payment_terms_days": 30,
+          "quality": {
+            "observed_defects": 1,
+            "sample_cost_usd": 0.4,
+            "sample_lead_time_days": 1,
+            "sample_size": 100,
+            "verified_yield_rate": 0.99
+          },
+          "return_policy": {
+            "claim_acceptance_probability": 0.95,
+            "refund_delay_days": 5,
+            "refund_window_days": 30,
+            "restocking_fee_rate": 0.0,
+            "return_freight_payer": "supplier",
+            "return_freight_per_unit_usd": 0.0
+          },
+          "shipping_per_unit_usd": 0.05,
+          "variant_id": "ky023_dual_axis_push_switch_module"
+        },
+        "supplier_id": "supplier_404c81905629"
+      },
+      {
+        "component": "ssd1306_oled_096",
+        "listing": {
+          "claimed_lead_time_days": 4,
+          "claimed_variant": "096in 128x64 four pin i2c ssd1306",
+          "displayed_unit_price_usd": 0.697,
+          "evidence_status": "marketplace_listing_unverified",
+          "supplier_name": "Supplier A9B619DEF12F"
+        },
+        "private_terms": {
+          "base_unit_price_usd": 0.85,
+          "capacity": 40,
+          "duty_rate": 0.05,
+          "lead_time_days": 6,
+          "moq": 10,
+          "negotiation": {
+            "floor_unit_price_usd": 0.85,
+            "maximum_payment_terms_days": 30,
+            "maximum_refund_window_days": 30,
+            "minimum_moq": 10,
+            "supplier_paid_return_freight_available": true
+          },
+          "offer_valid_days": 30,
+          "on_time_probability": 0.95,
+          "order_step": 10,
+          "payment_terms_days": 30,
+          "quality": {
+            "observed_defects": 20,
+            "sample_cost_usd": 0.4,
+            "sample_lead_time_days": 1,
+            "sample_size": 100,
+            "verified_yield_rate": 0.8
+          },
+          "return_policy": {
+            "claim_acceptance_probability": 0.95,
+            "refund_delay_days": 5,
+            "refund_window_days": 30,
+            "restocking_fee_rate": 0.0,
+            "return_freight_payer": "supplier",
+            "return_freight_per_unit_usd": 0.0
+          },
+          "shipping_per_unit_usd": 0.05,
+          "variant_id": "096in_128x64_four_pin_i2c_ssd1306"
+        },
+        "supplier_id": "supplier_a9b619def12f"
+      },
+      {
+        "component": "ssd1306_oled_096",
+        "listing": {
+          "claimed_lead_time_days": 4,
+          "claimed_variant": "096in 128x64 four pin i2c ssd1306",
+          "displayed_unit_price_usd": 1.558,
+          "evidence_status": "marketplace_listing_unverified",
+          "supplier_name": "Supplier 5818FCBE9CBB"
+        },
+        "private_terms": {
+          "base_unit_price_usd": 1.9,
+          "capacity": 40,
+          "duty_rate": 0.05,
+          "lead_time_days": 6,
+          "moq": 10,
+          "negotiation": {
+            "floor_unit_price_usd": 1.9,
+            "maximum_payment_terms_days": 30,
+            "maximum_refund_window_days": 30,
+            "minimum_moq": 10,
+            "supplier_paid_return_freight_available": true
+          },
+          "offer_valid_days": 30,
+          "on_time_probability": 0.99,
+          "order_step": 10,
+          "payment_terms_days": 30,
+          "quality": {
+            "observed_defects": 1,
+            "sample_cost_usd": 0.4,
+            "sample_lead_time_days": 1,
+            "sample_size": 100,
+            "verified_yield_rate": 0.99
+          },
+          "return_policy": {
+            "claim_acceptance_probability": 0.95,
+            "refund_delay_days": 5,
+            "refund_window_days": 30,
+            "restocking_fee_rate": 0.0,
+            "return_freight_payer": "supplier",
+            "return_freight_per_unit_usd": 0.0
+          },
+          "shipping_per_unit_usd": 0.05,
+          "variant_id": "096in_128x64_four_pin_i2c_ssd1306"
+        },
+        "supplier_id": "supplier_5818fcbe9cbb"
+      },
+      {
+        "component": "ky023_joystick",
+        "listing": {
+          "claimed_lead_time_days": 4,
+          "claimed_variant": "ky023 dual axis push switch module",
+          "displayed_unit_price_usd": 0.451,
+          "evidence_status": "marketplace_listing_unverified",
+          "supplier_name": "Supplier 44243301A253"
+        },
+        "private_terms": {
+          "base_unit_price_usd": 0.55,
+          "capacity": 40,
+          "duty_rate": 0.05,
+          "lead_time_days": 6,
+          "moq": 10,
+          "negotiation": {
+            "floor_unit_price_usd": 0.55,
+            "maximum_payment_terms_days": 30,
+            "maximum_refund_window_days": 30,
+            "minimum_moq": 10,
+            "supplier_paid_return_freight_available": true
+          },
+          "offer_valid_days": 30,
+          "on_time_probability": 0.95,
+          "order_step": 10,
+          "payment_terms_days": 30,
+          "quality": {
+            "observed_defects": 20,
+            "sample_cost_usd": 0.4,
+            "sample_lead_time_days": 1,
+            "sample_size": 100,
+            "verified_yield_rate": 0.8
+          },
+          "return_policy": {
+            "claim_acceptance_probability": 0.95,
+            "refund_delay_days": 5,
+            "refund_window_days": 30,
+            "restocking_fee_rate": 0.0,
+            "return_freight_payer": "supplier",
+            "return_freight_per_unit_usd": 0.0
+          },
+          "shipping_per_unit_usd": 0.05,
+          "variant_id": "ky023_dual_axis_push_switch_module"
+        },
+        "supplier_id": "supplier_44243301a253"
+      }
+    ]
+  },
+  "provenance": {
+    "generator_id": "procurement_allocation_confirmatory_v2_case_matrix_v1",
+    "generator_version": "1.0.0",
+    "review_status": "curated"
+  },
+  "seats": [
+    {
+      "id": "buyer",
+      "role": "buyer"
+    }
+  ],
+  "spec_version": "aeread.case/0.1",
+  "split": "confirmatory_v1_opaque",
+  "visibility_policy": "procurement_allocation_public_listings_private_supplier_terms_v1",
+  "world_seed": 2414104
+}

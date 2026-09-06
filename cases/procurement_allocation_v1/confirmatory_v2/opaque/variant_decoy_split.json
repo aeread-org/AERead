@@ -1,0 +1,263 @@
+{
+  "case_id": "procurement_allocation_v1.confirmatory_v1_opaque.variant_decoy_split",
+  "content_sha256": "a4270db73f612240109599aba610a6a83cc2ef1827c3c0c592c99a420d98e1c9",
+  "episode": {
+    "max_logical_actions": 10,
+    "termination": [
+      "submitted",
+      "deferred",
+      "interaction_budget_exhausted",
+      "invalid_action"
+    ]
+  },
+  "family_id": "procurement_allocation_v1",
+  "family_version": "1.0.0",
+  "payload": {
+    "interaction": {
+      "counter_cost_usd": 0.15,
+      "counter_days": 1,
+      "inquiry_cost_usd": 0.05,
+      "inquiry_days": 1,
+      "max_actions": 10,
+      "quote_cost_usd": 0.1,
+      "quote_days": 1
+    },
+    "objective": {
+      "annual_financing_rate": 0.12,
+      "bom": {
+        "ky040_encoder": 1,
+        "tp4056_usb_c_protected": 1
+      },
+      "cash_budget_usd": 140.0,
+      "deadline_days": 20,
+      "defect_detection_days": 10,
+      "defer_value_usd": 0.0,
+      "minimum_service_kits": 18,
+      "product_id": "variant_decoy_split_holdout",
+      "revenue_per_completed_kit_usd": 9.0,
+      "shortfall_penalty_per_kit_usd": 4.0,
+      "target_kits": 20,
+      "working_capital_horizon_days": 45
+    },
+    "policy": {
+      "award_requires": [
+        "unexpired_formal_offer",
+        "verified_sample",
+        "exact_variant"
+      ],
+      "inquiry_fields": [
+        "exact_variant",
+        "moq_capacity",
+        "lead_time",
+        "shipping",
+        "quality",
+        "return_refund_policy"
+      ],
+      "required_variant_by_component": {
+        "ky040_encoder": "ec11_ky040_module_with_pullups",
+        "tp4056_usb_c_protected": "usb_c_dw01a_8205a_separate_bat_out"
+      }
+    },
+    "suppliers": [
+      {
+        "component": "tp4056_usb_c_protected",
+        "listing": {
+          "claimed_lead_time_days": 4,
+          "claimed_variant": "usb c unprotected no separate outputs",
+          "displayed_unit_price_usd": 0.246,
+          "evidence_status": "marketplace_listing_unverified",
+          "supplier_name": "Supplier C58C4A2E5B0D"
+        },
+        "private_terms": {
+          "base_unit_price_usd": 0.3,
+          "capacity": 40,
+          "duty_rate": 0.05,
+          "lead_time_days": 6,
+          "moq": 10,
+          "negotiation": {
+            "floor_unit_price_usd": 0.3,
+            "maximum_payment_terms_days": 30,
+            "maximum_refund_window_days": 30,
+            "minimum_moq": 10,
+            "supplier_paid_return_freight_available": true
+          },
+          "offer_valid_days": 30,
+          "on_time_probability": 0.99,
+          "order_step": 10,
+          "payment_terms_days": 30,
+          "quality": {
+            "observed_defects": 1,
+            "sample_cost_usd": 0.4,
+            "sample_lead_time_days": 1,
+            "sample_size": 100,
+            "verified_yield_rate": 0.99
+          },
+          "return_policy": {
+            "claim_acceptance_probability": 0.95,
+            "refund_delay_days": 5,
+            "refund_window_days": 30,
+            "restocking_fee_rate": 0.0,
+            "return_freight_payer": "supplier",
+            "return_freight_per_unit_usd": 0.0
+          },
+          "shipping_per_unit_usd": 0.05,
+          "variant_id": "usb_c_unprotected_no_separate_outputs"
+        },
+        "supplier_id": "supplier_c58c4a2e5b0d"
+      },
+      {
+        "component": "tp4056_usb_c_protected",
+        "listing": {
+          "claimed_lead_time_days": 4,
+          "claimed_variant": "usb c dw01a 8205a separate bat out",
+          "displayed_unit_price_usd": 0.6068,
+          "evidence_status": "marketplace_listing_unverified",
+          "supplier_name": "Supplier 88121563ADFA"
+        },
+        "private_terms": {
+          "base_unit_price_usd": 0.74,
+          "capacity": 10,
+          "duty_rate": 0.05,
+          "lead_time_days": 6,
+          "moq": 10,
+          "negotiation": {
+            "floor_unit_price_usd": 0.74,
+            "maximum_payment_terms_days": 30,
+            "maximum_refund_window_days": 30,
+            "minimum_moq": 10,
+            "supplier_paid_return_freight_available": true
+          },
+          "offer_valid_days": 30,
+          "on_time_probability": 0.99,
+          "order_step": 10,
+          "payment_terms_days": 30,
+          "quality": {
+            "observed_defects": 1,
+            "sample_cost_usd": 0.4,
+            "sample_lead_time_days": 1,
+            "sample_size": 100,
+            "verified_yield_rate": 0.99
+          },
+          "return_policy": {
+            "claim_acceptance_probability": 0.95,
+            "refund_delay_days": 5,
+            "refund_window_days": 30,
+            "restocking_fee_rate": 0.0,
+            "return_freight_payer": "supplier",
+            "return_freight_per_unit_usd": 0.0
+          },
+          "shipping_per_unit_usd": 0.05,
+          "variant_id": "usb_c_dw01a_8205a_separate_bat_out"
+        },
+        "supplier_id": "supplier_88121563adfa"
+      },
+      {
+        "component": "ky040_encoder",
+        "listing": {
+          "claimed_lead_time_days": 4,
+          "claimed_variant": "ec11 ky040 module with pullups",
+          "displayed_unit_price_usd": 0.574,
+          "evidence_status": "marketplace_listing_unverified",
+          "supplier_name": "Supplier D1E6DBE25C0B"
+        },
+        "private_terms": {
+          "base_unit_price_usd": 0.7,
+          "capacity": 40,
+          "duty_rate": 0.05,
+          "lead_time_days": 6,
+          "moq": 10,
+          "negotiation": {
+            "floor_unit_price_usd": 0.7,
+            "maximum_payment_terms_days": 30,
+            "maximum_refund_window_days": 30,
+            "minimum_moq": 10,
+            "supplier_paid_return_freight_available": true
+          },
+          "offer_valid_days": 30,
+          "on_time_probability": 0.99,
+          "order_step": 10,
+          "payment_terms_days": 30,
+          "quality": {
+            "observed_defects": 1,
+            "sample_cost_usd": 0.4,
+            "sample_lead_time_days": 1,
+            "sample_size": 100,
+            "verified_yield_rate": 0.99
+          },
+          "return_policy": {
+            "claim_acceptance_probability": 0.95,
+            "refund_delay_days": 5,
+            "refund_window_days": 30,
+            "restocking_fee_rate": 0.0,
+            "return_freight_payer": "supplier",
+            "return_freight_per_unit_usd": 0.0
+          },
+          "shipping_per_unit_usd": 0.05,
+          "variant_id": "ec11_ky040_module_with_pullups"
+        },
+        "supplier_id": "supplier_d1e6dbe25c0b"
+      },
+      {
+        "component": "tp4056_usb_c_protected",
+        "listing": {
+          "claimed_lead_time_days": 4,
+          "claimed_variant": "usb c dw01a 8205a separate bat out",
+          "displayed_unit_price_usd": 0.656,
+          "evidence_status": "marketplace_listing_unverified",
+          "supplier_name": "Supplier 20D0FA7B0D91"
+        },
+        "private_terms": {
+          "base_unit_price_usd": 0.8,
+          "capacity": 10,
+          "duty_rate": 0.05,
+          "lead_time_days": 6,
+          "moq": 10,
+          "negotiation": {
+            "floor_unit_price_usd": 0.8,
+            "maximum_payment_terms_days": 30,
+            "maximum_refund_window_days": 30,
+            "minimum_moq": 10,
+            "supplier_paid_return_freight_available": true
+          },
+          "offer_valid_days": 30,
+          "on_time_probability": 0.99,
+          "order_step": 10,
+          "payment_terms_days": 30,
+          "quality": {
+            "observed_defects": 1,
+            "sample_cost_usd": 0.4,
+            "sample_lead_time_days": 1,
+            "sample_size": 100,
+            "verified_yield_rate": 0.99
+          },
+          "return_policy": {
+            "claim_acceptance_probability": 0.95,
+            "refund_delay_days": 5,
+            "refund_window_days": 30,
+            "restocking_fee_rate": 0.0,
+            "return_freight_payer": "supplier",
+            "return_freight_per_unit_usd": 0.0
+          },
+          "shipping_per_unit_usd": 0.05,
+          "variant_id": "usb_c_dw01a_8205a_separate_bat_out"
+        },
+        "supplier_id": "supplier_20d0fa7b0d91"
+      }
+    ]
+  },
+  "provenance": {
+    "generator_id": "procurement_allocation_confirmatory_v2_case_matrix_v1",
+    "generator_version": "1.0.0",
+    "review_status": "curated"
+  },
+  "seats": [
+    {
+      "id": "buyer",
+      "role": "buyer"
+    }
+  ],
+  "spec_version": "aeread.case/0.1",
+  "split": "confirmatory_v1_opaque",
+  "visibility_policy": "procurement_allocation_public_listings_private_supplier_terms_v1",
+  "world_seed": 2414112
+}

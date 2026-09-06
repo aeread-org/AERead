@@ -1,5 +1,8 @@
 # Procurement allocation v1
 
+**QC profile:** [`docs/families/procurement-allocation/qc.md`](../../docs/families/procurement-allocation/qc.md)
+— construct gate is `failed`; read it before citing any result as buyer competence.
+
 This family tests an interactive buyer that must acquire and negotiate supplier
 information before allocating an electronics BOM. Marketplace listings and verbal
 claims are provisional. Only environment-issued formal offers and verified sample
@@ -464,4 +467,41 @@ awards followed a clean check on identical lines. Remaining regret is deferral a
 a failing check on budget-constrained worlds and the MOQ price counter, which a
 feasibility check cannot surface. See
 `evidence/procurement_allocation_glm53_flash_parasail_pre_award_check_v1/`.
+
+## Design review and the information panel
+
+`docs/families/procurement-allocation/design_review.md` records what this family
+measures, what it does not, and the ten defects behind the gaps, each with a
+recomputed number. In short: feasibility is measured and near-saturated;
+information cost and most of negotiation are not measurable with the v1 worlds.
+
+Three of those defects are now fixed in the environment, all additive and
+digest-neutral for existing cases:
+
+- **Optimistic verbal claims.** A supplier may declare `verbal_bias` in its
+  private terms. An `inquire` reply then states the biased value while formal
+  offers, verified samples, and the award evaluation keep using the truth, so a
+  claim can be wrong and only a quote or a sample catches it. A supplier without
+  the field states the truth, so every case authored before this is unchanged.
+- **`feasible_award` in the outcome.** Terminal feasibility counts an explicit
+  defer as feasible. `feasible_award` is true only for a submitted award that
+  passed every gate, and is the field a campaign guarding procurement success
+  should use.
+- **A bounded oracle enumeration.** The full-information solver now refuses a
+  world whose supplier-by-quantity product exceeds its limit, naming the fix,
+  instead of appearing to hang.
+
+`information_v1/` is an eight-world panel built on those fixes: suppliers overstate
+yield, lead time, and capacity; information costs 15 to 48 percent of gross
+revenue so buying all of it is a real loss; and price floors sit 15 to 30 percent
+below the quote with MOQ limits well under the quoted minimum, so a counter is
+worth tens of dollars. Regenerate with:
+
+```bash
+python -m aeread_families.procurement_allocation.information_case_matrix --surface labeled --write
+python -m aeread_families.procurement_allocation.information_case_matrix --surface opaque --write
+```
+
+`confirmatory_v2/` is the twelve-world held-out panel for the pre-award check,
+generated after that prompt was frozen and its development result read.
 
