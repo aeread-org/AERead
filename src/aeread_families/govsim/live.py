@@ -65,6 +65,7 @@ from aeread.shared_runner.task.execution import (
 
 from .environment import (
     DISCUSS_PHASE,
+    MAX_UTTERANCE_CHARS,
     HARVEST_PHASE,
     PLUGIN_ID,
     REFLECT_PHASE,
@@ -128,6 +129,24 @@ def harvest_output_schema() -> dict[str, Any]:
         "type": "object",
         "properties": {"quantity": {"type": "integer", "minimum": 0}},
         "required": ["quantity"],
+        "additionalProperties": False,
+    }
+
+
+def utterance_output_schema() -> dict[str, Any]:
+    """The discuss/reflect turn: one short piece of text.
+
+    These phases used to accept `{}` and carry nothing, which made a live
+    panel the common-pool dilemma with communication removed. The utterance
+    is public and reaches every agent's next observation; the reflection is
+    private to its author.
+    """
+    return {
+        "type": "object",
+        "properties": {
+            "message": {"type": "string"},
+            "reflection": {"type": "string"},
+        },
         "additionalProperties": False,
     }
 
@@ -204,12 +223,33 @@ class GovsimJsonHarness:
         # content is deliberately discarded, and the campaign plan says so
         # rather than letting a reader assume the phases were deliberated.
         if request.phase_id in {DISCUSS_PHASE, REFLECT_PHASE}:
-            await ctx.model.complete(
+            field = "message" if request.phase_id == DISCUSS_PHASE else "reflection"
+            turn = await ctx.model.complete(
                 messages=(self._request_message(request),),
                 response_mode="json_dialect",
             )
+            if not (turn.text or "").strip():
+                raise ProviderFailure(
+                    "empty_response",
+                    f"govsim {request.phase_id} returned an empty response",
+                    retryable=True,
+                )
+            try:
+                value = json.loads(turn.text or "")
+            except json.JSONDecodeError:
+                value = {}
+            text = value.get(field) if isinstance(value, Mapping) else None
+            if not isinstance(text, str):
+                text = ""
+            # A reflection may legitimately be empty; an utterance may not,
+            # since the discuss phase exists to put something on the record.
+            if request.phase_id == DISCUSS_PHASE and not text.strip():
+                text = "I will take my usual share this round."
             return HarnessOutput(
-                action={}, claimed_tool_calls=(), rounds_used=1, notes={}
+                action={field: text[:MAX_UTTERANCE_CHARS]},
+                claimed_tool_calls=(),
+                rounds_used=1,
+                notes={},
             )
         if request.phase_id != HARVEST_PHASE:
             raise ProviderFailure(

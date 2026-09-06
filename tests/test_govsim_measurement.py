@@ -134,8 +134,14 @@ def _drive_episode(
                 policy_id = family_case["policy_assignment"][seat_id]
                 quantity = policies.SCRIPTED_POLICIES[policy_id](observation)
                 response: dict[str, Any] = {"quantity": quantity}
+            elif phase.phase_id == DISCUSS_PHASE:
+                # discuss and reflect now carry content: the utterance is
+                # public and reaches every agent's next observation, the
+                # reflection is private to its author.
+                policy_id = family_case["policy_assignment"][seat_id]
+                response = {"message": f"following {policy_id} this round"}
             else:
-                response = {}
+                response = {"reflection": ""}
             parse = plugin.parse_action(family_case, state, seat_id, phase, response)
             assert parse.ok, parse.error_code
             legality = plugin.legal(family_case, state, seat_id, phase, parse.action)

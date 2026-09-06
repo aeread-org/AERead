@@ -133,6 +133,13 @@ SCORER_ID = "govsim_scorer"
 
 HARVEST_PHASE = "harvest"
 DISCUSS_PHASE = "discuss"
+# Bounded so one turn cannot blow the context or the output budget; upstream
+# has no explicit cap, its prompts simply ask for a short utterance.
+MAX_UTTERANCE_CHARS = 600
+# How much of the public transcript an agent sees. Upstream carries the whole
+# group conversation; this is a window, and the difference is recorded in
+# docs/families/govsim/campaign_scoping.md rather than papered over.
+TRANSCRIPT_WINDOW = 6
 REFLECT_PHASE = "reflect"
 
 PERSONA_ROLE = "persona"
@@ -403,6 +410,15 @@ class GovsimPlugin:
             # see step()'s HARVEST/REFLECT branches for how each entry is
             # assembled.
             "round_trace": [],
+            # Upstream's agents converse and reflect (persona_v3's
+            # cognition/converse.py and reflect.py, with utterances recorded
+            # per round and analysed). Milestone 1-3 carried neither, which
+            # made a live panel "the common-pool dilemma with communication
+            # removed". The transcript is public: every agent sees what was
+            # said. Reflections are private to their author, which is what
+            # makes them memory rather than speech.
+            "transcript": [],
+            "reflections": {},
         }
 
     def phases(self, family_case: Mapping[str, Any]) -> tuple[PhaseSpec, ...]:
@@ -492,6 +508,11 @@ class GovsimPlugin:
             "num_round": projection["num_round"],
             "resource_in_pool": projection["resource_in_pool"],
             "sustainability_threshold": projection["sustainability_threshold"],
+            # What everyone heard, and what this agent alone remembers.
+            "recent_utterances": [
+                dict(entry) for entry in state.get("transcript", [])[-TRANSCRIPT_WINDOW:]
+            ],
+            "your_last_reflection": state.get("reflections", {}).get(seat_id, ""),
         }
 
     def parse_action(
@@ -512,9 +533,23 @@ class GovsimPlugin:
                 return ParseResult.failure("invalid_harvest_quantity")
             return ParseResult.success({"quantity": quantity})
         if phase.phase_id == DISCUSS_PHASE:
-            return ParseResult.success({})
+            message = raw.get("message")
+            if not isinstance(message, str):
+                return ParseResult.failure("invalid_message")
+            message = message.strip()
+            if not message:
+                return ParseResult.failure("empty_message")
+            if len(message) > MAX_UTTERANCE_CHARS:
+                return ParseResult.failure("message_too_long")
+            return ParseResult.success({"message": message})
         if phase.phase_id == REFLECT_PHASE:
-            return ParseResult.success({})
+            reflection = raw.get("reflection")
+            if not isinstance(reflection, str):
+                return ParseResult.failure("invalid_reflection")
+            reflection = reflection.strip()
+            if len(reflection) > MAX_UTTERANCE_CHARS:
+                return ParseResult.failure("reflection_too_long")
+            return ParseResult.success({"reflection": reflection})
         return ParseResult.failure("unknown_phase")
 
     def legal(
@@ -565,10 +600,32 @@ class GovsimPlugin:
         elif phase.phase_id == DISCUSS_PHASE:
             (spokesperson,) = self.eligible_actors(family_case, state, phase)
             new_actions.append({"kind": "chat", "agent_id": spokesperson})
+            # Record what was actually said. Upstream keeps the group's
+            # utterances and its analysis plots them; the transcript is the
+            # channel through which one agent's stated intent can change
+            # another's harvest, which is the mechanism GovSim exists to
+            # study. The utterance is public.
+            transcript = list(new_state.get("transcript", []))
+            transcript.append(
+                {
+                    "round_index": len(new_state.get("round_trace", [])),
+                    "agent_id": spokesperson,
+                    "message": actions[spokesperson].action["message"],
+                }
+            )
+            new_state["transcript"] = transcript
             next_phase = REFLECT_PHASE
         elif phase.phase_id == REFLECT_PHASE:
             for persona_id in personas:
                 new_actions.append({"kind": "home", "agent_id": persona_id})
+            # Private to its author: this is memory, not speech, and only
+            # that agent's own observation carries it back.
+            reflections = dict(new_state.get("reflections", {}))
+            for persona_id in personas:
+                text = actions[persona_id].action.get("reflection", "")
+                if text:
+                    reflections[persona_id] = text
+            new_state["reflections"] = reflections
             next_phase = HARVEST_PHASE
         else:
             raise ValueError(f"unknown phase: {phase.phase_id}")
