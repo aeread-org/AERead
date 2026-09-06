@@ -1425,7 +1425,7 @@ def test_openrouter_adapter_pins_deepseek_route_and_parses_usage() -> None:
     assert result.cost_usd == pytest.approx(0.00001726)
 
 
-def test_arena_adapter_sends_selected_model_and_parses_json() -> None:
+def test_arena_adapter_sends_selected_model_and_preserves_response_text() -> None:
     response = SimpleNamespace(
         model_dump=lambda mode: {
             "id": "arena-response",
@@ -1481,7 +1481,7 @@ def test_arena_adapter_sends_selected_model_and_parses_json() -> None:
 
     assert completions.kwargs["model"] == "glm-5p2"
     assert completions.kwargs["reasoning_effort"] == "low"
-    assert result.output_text == '{"offer":7}'
+    assert result.output_text == 'Result: {"offer":7}'
     assert result.resolved_model == "glm-5p2"
     assert result.input_tokens == 21
     assert result.cached_input_tokens == 3
@@ -1541,6 +1541,65 @@ def test_arena_adapter_classifies_truncated_json_as_length() -> None:
 
     assert captured.value.condition == "length"
     assert captured.value.retryable is True
+
+
+def test_arena_adapter_preserves_plain_text_for_harness_validation() -> None:
+    response = SimpleNamespace(
+        model_dump=lambda mode: {
+            "id": "arena-plain-reply",
+            "model": "accounts/fireworks/models/glm-5p2",
+            "choices": [
+                {
+                    "message": {"content": "Please provide your account email."},
+                    "finish_reason": "stop",
+                }
+            ],
+            "usage": {
+                "completion_tokens": 12,
+                "prompt_tokens": 100,
+                "cost": 0.0002,
+            },
+        }
+    )
+
+    class Completions:
+        async def create(self, **kwargs):
+            return response
+
+    client = ArenaChatClient(
+        sdk_client=SimpleNamespace(chat=SimpleNamespace(completions=Completions()))
+    )
+    request = ProviderRequest(
+        provider_call_id="arena-plain-reply-call",
+        provider="arena",
+        base_url="https://api.preview.arena.ai/v1",
+        model="glm-5p2",
+        revision="glm-5p2",
+        instructions=SYSTEM_PROMPT,
+        input_text='{"observation":{}}',
+        temperature=0.0,
+        top_p=None,
+        max_output_tokens=900,
+        reasoning_effort="low",
+        timeout_seconds=120.0,
+        request_sha256="",
+        output_schema={
+            "type": "object",
+            "properties": {
+                "kind": {"type": "string", "enum": ["reply", "tool_calls"]},
+                "text": {"type": ["string", "null"]},
+                "calls": {"type": "array", "items": {"type": "object"}},
+            },
+            "required": ["kind", "text", "calls"],
+            "additionalProperties": False,
+        },
+    ).with_computed_hash()
+
+    result = asyncio.run(client.complete(request))
+
+    assert result.output_text == "Please provide your account email."
+    assert result.resolved_model == "accounts/fireworks/models/glm-5p2"
+    assert result.cost_usd == pytest.approx(0.0002)
 
 
 def test_openrouter_adapter_serializes_a_frozen_schema_as_plain_json() -> None:

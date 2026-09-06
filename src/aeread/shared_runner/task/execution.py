@@ -1795,16 +1795,12 @@ class ArenaChatClient:
                 "Arena returned no visible answer content",
                 retryable=True,
             )
-        try:
-            structured_output = self._parse_structured_output(content, request.output_schema)
-        except ProviderFailure as error:
-            if choice.get("finish_reason") == "length":
-                raise ProviderFailure(
-                    "length",
-                    "Arena truncated the structured response at the output-token limit",
-                    retryable=True,
-                ) from error
-            raise
+        if choice.get("finish_reason") == "length":
+            raise ProviderFailure(
+                "length",
+                "Arena truncated the structured response at the output-token limit",
+                retryable=True,
+            )
         usage = raw_response.get("usage")
         usage = usage if isinstance(usage, Mapping) else {}
 
@@ -1842,7 +1838,7 @@ class ArenaChatClient:
             response_id=str(raw_response.get("id") or ""),
             requested_model=request.model,
             resolved_model=str(raw_response.get("model") or request.model),
-            output_text=canonical_json_bytes(structured_output).decode("utf-8"),
+            output_text=content,
             finish_reason=str(choice.get("finish_reason") or "unknown"),
             input_tokens=token_count("prompt_tokens"),
             cached_input_tokens=cached_input_tokens,
@@ -1851,44 +1847,6 @@ class ArenaChatClient:
             raw_response=raw_response,
             reasoning_tokens=reasoning_tokens,
         )
-
-    @staticmethod
-    def _parse_structured_output(
-        content: str, output_schema: Mapping[str, Any]
-    ) -> Mapping[str, Any]:
-        required = output_schema.get("required", ())
-        required_fields = (
-            {field for field in required if isinstance(field, str)}
-            if isinstance(required, (list, tuple))
-            else set()
-        )
-
-        def matches(value: Any) -> bool:
-            return isinstance(value, Mapping) and required_fields <= set(value)
-
-        stripped = content.strip()
-        try:
-            value = json.loads(stripped)
-        except json.JSONDecodeError:
-            value = None
-        if matches(value):
-            return value
-        decoder = json.JSONDecoder()
-        for index, character in enumerate(stripped):
-            if character != "{":
-                continue
-            try:
-                value, _end = decoder.raw_decode(stripped[index:])
-            except json.JSONDecodeError:
-                continue
-            if matches(value):
-                return value
-        raise ProviderFailure(
-            "provider_contract",
-            "Arena response contains no JSON action matching the schema",
-            retryable=False,
-        )
-
 
 CommandRunner = Callable[
     [tuple[str, ...], bytes], Awaitable[tuple[int, bytes, bytes]]
@@ -2169,6 +2127,7 @@ class MinimalChatExecutor:
         providers: Mapping[str, ProviderClient],
         pricing: Mapping[str, TokenPricing],
         request_seed_by_profile: Mapping[str, int] | None = None,
+        combined_cost_ceiling_usd: float | None = None,
     ) -> None:
         if not isinstance(evidence, EvidenceStore):
             raise EvidenceIntegrityError("evidence must be an EvidenceStore")
@@ -2181,6 +2140,15 @@ class MinimalChatExecutor:
         self._logical_actions_by_profile: dict[str, int] = {}
         self._cost_by_profile: dict[str, float] = {}
         self._request_seed_by_profile = dict(request_seed_by_profile or {})
+        if combined_cost_ceiling_usd is not None and (
+            isinstance(combined_cost_ceiling_usd, bool)
+            or not isinstance(combined_cost_ceiling_usd, (int, float))
+            or combined_cost_ceiling_usd <= 0
+        ):
+            raise EvidenceIntegrityError(
+                "combined_cost_ceiling_usd must be a positive number when provided"
+            )
+        self._combined_cost_ceiling_usd = combined_cost_ceiling_usd
         self.total_cost_usd = 0.0
         for profile in profiles:
             if not isinstance(profile, AgentProfile):
@@ -2365,16 +2333,7 @@ class MinimalChatExecutor:
             "provider_call",
             {"action_attempt_id": action_attempt_id, "ordinal": 0},
         )
-        input_text = canonical_json_bytes(
-            {
-                "phase_id": decision.phase_id,
-                "seat_id": decision.seat_id,
-                "role": decision.role,
-                "observation_schema": decision.observation_schema,
-                "action_schema": decision.action_schema,
-                "observation": decision.observation,
-            }
-        ).decode("utf-8")
+        input_text = self._request_input_text(decision)
         sampling_controls = profile.harness.config.get("sampling_controls")
         temperature = profile.sampling.temperature
         if (
@@ -2428,6 +2387,18 @@ class MinimalChatExecutor:
             ),
         ).with_computed_hash()
 
+    def _request_input_text(self, decision: DecisionRequest) -> str:
+        return canonical_json_bytes(
+            {
+                "phase_id": decision.phase_id,
+                "seat_id": decision.seat_id,
+                "role": decision.role,
+                "observation_schema": decision.observation_schema,
+                "action_schema": decision.action_schema,
+                "observation": decision.observation,
+            }
+        ).decode("utf-8")
+
     async def __call__(self, decision: DecisionRequest) -> CanonicalResponse:
         if not isinstance(decision, DecisionRequest):
             raise EvidenceIntegrityError("minimal chat input must be DecisionRequest")
@@ -2452,6 +2423,14 @@ class MinimalChatExecutor:
         if profile is None:
             raise EvidenceIntegrityError(
                 f"unknown agent profile: {decision.profile_id!r}"
+            )
+        if (
+            self._combined_cost_ceiling_usd is not None
+            and self.total_cost_usd >= self._combined_cost_ceiling_usd
+        ):
+            raise EvidenceIntegrityError(
+                "combined cost ceiling already exhausted for the execution cell: "
+                f"{self.total_cost_usd} >= {self._combined_cost_ceiling_usd}"
             )
         profile_count = self._logical_actions_by_profile.get(profile.profile_id, 0) + 1
         if profile_count > profile.budgets.max_logical_actions:
@@ -2667,10 +2646,20 @@ class MinimalChatExecutor:
                     visibility=f"seat:{decision.seat_id}",
                 )
             profile_cost = self._charge(profile, cost)
-            if (
+            combined_cost_exceeded = (
+                self._combined_cost_ceiling_usd is not None
+                and self.total_cost_usd > self._combined_cost_ceiling_usd
+            )
+            profile_cost_exceeded = (
                 profile.budgets.max_cost_usd is not None
                 and profile_cost > profile.budgets.max_cost_usd
-            ):
+            )
+            if profile_cost_exceeded or combined_cost_exceeded:
+                failure_condition = (
+                    "combined_cost_budget_exceeded"
+                    if combined_cost_exceeded
+                    else "cost_budget_exceeded"
+                )
                 attempt = ActionAttemptRecord(
                     action_attempt_id=action_attempt_id,
                     logical_action_id=decision.logical_action_id,
@@ -2685,14 +2674,24 @@ class MinimalChatExecutor:
                 attempts.append(attempt)
                 self.evidence.append_event(
                     "action_attempt_failed",
-                    {"failure_condition": "cost_budget_exceeded"},
+                    {
+                        "failure_condition": failure_condition,
+                        "profile_cost_usd": profile_cost,
+                        "combined_cost_usd": self.total_cost_usd,
+                        "combined_cost_ceiling_usd": self._combined_cost_ceiling_usd,
+                    },
                     phase_instance_id=decision.phase_instance_id,
                     logical_action_id=decision.logical_action_id,
                     action_attempt_id=action_attempt_id,
                 )
                 self._finish_logical_failure(
-                    decision, attempts, "cost_budget_exceeded"
+                    decision, attempts, failure_condition
                 )
+                if combined_cost_exceeded:
+                    raise EvidenceIntegrityError(
+                        "combined cost budget exceeded for execution cell: "
+                        f"{self.total_cost_usd} > {self._combined_cost_ceiling_usd}"
+                    )
                 raise EvidenceIntegrityError(
                     f"cost budget exceeded for profile {profile.profile_id!r}: "
                     f"{profile_cost} > {profile.budgets.max_cost_usd}"
@@ -3716,6 +3715,7 @@ async def execute_plan_cell(
     tool_runtime_factories: Mapping[
         str, Callable[[EvidenceStore], "ToolRuntime"]
     ] | None = None,
+    combined_cost_ceiling_usd: float | None = None,
 ) -> CellExecution:
     """Execute one sealed R2 cell through the R3 scheduler and R4 adapter."""
     from ..run.layout import RunLayout
@@ -3824,6 +3824,7 @@ async def execute_plan_cell(
             for profile_id, factory in (tool_runtime_factories or {}).items()
         },
         request_seed_by_profile=request_seed_by_profile,
+        combined_cost_ceiling_usd=combined_cost_ceiling_usd,
     )
     result = await run_episode(
         cell=cell,

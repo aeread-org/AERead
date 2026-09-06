@@ -1009,6 +1009,7 @@ class AttemptExecutor(MinimalChatExecutor):
         harnesses: Mapping[str, Any],
         tool_runtimes: Mapping[str, ToolRuntime] | None = None,
         request_seed_by_profile: Mapping[str, int] | None = None,
+        combined_cost_ceiling_usd: float | None = None,
     ) -> None:
         self._harnesses = dict(harnesses)
         self._tool_runtimes = dict(tool_runtimes) if tool_runtimes else {}
@@ -1022,11 +1023,39 @@ class AttemptExecutor(MinimalChatExecutor):
             providers=providers,
             pricing=pricing,
             request_seed_by_profile=request_seed_by_profile,
+            combined_cost_ceiling_usd=combined_cost_ceiling_usd,
         )
 
     @staticmethod
     def _harness_key(profile: AgentProfile) -> str:
         return f"{profile.harness.id}/{profile.harness.version}"
+
+    def _request_input_text(self, decision: Any) -> str:
+        """Seal the first harness request with the same renderer as round one."""
+
+        profile = self._profiles.get(decision.profile_id)
+        if profile is None:
+            # A few low-level tests construct a request before registering the
+            # profile on the executor; preserve the base renderer for those
+            # direct calls.
+            return super()._request_input_text(decision)
+        harness = self._harnesses[self._harness_key(profile)]
+        renderer = getattr(harness, "request_message", None)
+        if renderer is None:
+            return super()._request_input_text(decision)
+        message = renderer(decision)
+        if not isinstance(message, CanonicalMessage):
+            raise EvidenceIntegrityError(
+                f"harness {self._harness_key(self._profiles[decision.profile_id])!r} "
+                "request_message must return CanonicalMessage"
+            )
+        return canonical_json_bytes(
+            {
+                "messages": (message,),
+                "tools": (),
+                "response_mode": "json_dialect",
+            }
+        ).decode("utf-8")
 
     def _validate_profile(
         self, profile: AgentProfile, prompt_sources: Mapping[str, str | bytes]
@@ -1111,13 +1140,38 @@ class AttemptExecutor(MinimalChatExecutor):
                 action_attempt_id=action_attempt_id,
                 granted_tools=frozenset(profile.tools),
             )
+        profile_cost_left = (
+            None
+            if profile.budgets.max_cost_usd is None
+            else max(
+                profile.budgets.max_cost_usd
+                - self._cost_by_profile.get(profile.profile_id, 0.0),
+                0.0,
+            )
+        )
+        combined_cost_left = (
+            None
+            if self._combined_cost_ceiling_usd is None
+            else max(self._combined_cost_ceiling_usd - self.total_cost_usd, 0.0)
+        )
+        cost_left = next(
+            (
+                value
+                for value in sorted(
+                    value
+                    for value in (profile_cost_left, combined_cost_left)
+                    if value is not None
+                )
+            ),
+            None,
+        )
         context = _KernelAttemptContext(
             attempt_id=action_attempt_id,
             seed=profile.sampling.seed or 0,
             budget=BudgetView(
                 rounds_left=_rounds_budget(profile),
                 tokens_left=profile.sampling.max_output_tokens,
-                cost_left=profile.budgets.max_cost_usd,
+                cost_left=cost_left,
             ),
             model=port,
             tools=tools_port,

@@ -11,6 +11,7 @@ from aeread.shared_runner.model_call.harness import (
     ClaimedToolCall,
     FailureCondition,
     HarnessOutput,
+    _request_input_text,
 )
 from aeread.shared_runner.registry import HarnessRequirements
 from aeread.shared_runner.run.resolver import canonical_json_bytes
@@ -155,19 +156,40 @@ class Tau3RetailJsonHarness:
         return None
 
     @staticmethod
-    def _request_message(request: Any) -> CanonicalMessage:
+    def request_message(request: Any) -> CanonicalMessage:
+        observation = request.observation
+        if request.phase_id == "assistant_turn" and isinstance(observation, Mapping):
+            static_keys = (
+                "policy",
+                "policy_sha256",
+                "tool_schema_sha256",
+                "tools",
+            )
+            static_context = {
+                key: observation[key] for key in static_keys if key in observation
+            }
+            turn_observation = {
+                key: value for key, value in observation.items() if key not in static_context
+            }
+            turn_context = {
+                "phase_id": request.phase_id,
+                "seat_id": request.seat_id,
+                "role": request.role,
+                "observation_schema": request.observation_schema,
+                "action_schema": request.action_schema,
+                "observation": turn_observation,
+            }
+            content = (
+                "STATIC_CONTEXT\n"
+                + canonical_json_bytes(static_context).decode("utf-8")
+                + "\nTURN_CONTEXT\n"
+                + canonical_json_bytes(turn_context).decode("utf-8")
+            )
+        else:
+            content = _request_input_text(request)
         return CanonicalMessage(
             role="user",
-            content=canonical_json_bytes(
-                {
-                    "phase_id": request.phase_id,
-                    "seat_id": request.seat_id,
-                    "role": request.role,
-                    "observation_schema": request.observation_schema,
-                    "action_schema": request.action_schema,
-                    "observation": request.observation,
-                }
-            ).decode("utf-8"),
+            content=content,
         )
 
     @staticmethod
@@ -189,7 +211,7 @@ class Tau3RetailJsonHarness:
         return value
 
     async def act(self, request: Any, ctx: AttemptContext) -> HarnessOutput:
-        messages = (self._request_message(request),)
+        messages = (self.request_message(request),)
         if request.phase_id == "user_turn":
             turn = await ctx.model.complete(messages=messages, response_mode="json_dialect")
             value = self._decode(turn.text or "")

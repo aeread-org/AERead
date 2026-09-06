@@ -50,13 +50,34 @@ the owner explicitly selected Arena's `glm-5p2` model instead. It runs one
 unscored admission canary followed by five
 scored cases, one from each predeclared pilot stratum, sequentially and with no
 fallback. The driver aborts on the first operational failure, enforces a
-per-trajectory ceiling of $0.05 and a total ceiling of $0.30,
+per-trajectory ceiling of $0.075 and a total ceiling of $0.40,
 checkpoints only
 complete replayed receipts, and separates execution from publication.
 
 Arena reports request cost in each response, so the driver records and enforces
 those dollar ceilings. The canary reserves 256 output tokens because GLM 5.2
 uses the same completion budget for hidden reasoning and visible JSON.
+Arena may also return an ordinary customer-facing reply even when instructed
+to emit the reply envelope. The provider adapter preserves that text exactly;
+the tau3 harness classifies it as `malformed_structured_output`, so the same
+model output has the same meaning on every provider route.
+The assistant request places the invariant policy and tool catalog before the
+changing conversation state. The harness supplies that same rendered message
+when the executor seals round 0, preserving a stable prompt prefix for later
+rounds; without that ordering, repeated 5–8k-token uncached prefixes exhausted
+the assistant's case-level budget before the episode completed.
+Both model seats reserve 4096 completion tokens because Arena counts hidden
+reasoning and visible output against one limit. The $0.075 case ceiling is
+shared by the two seats, with 60% reserved for the assistant and 40% for the
+customer simulator; the runner also checks the combined post-charge total.
+These ceilings replace the original $0.05/$0.30 estimate after the first
+pipeline attempts measured Arena support turns with 5–8k prompt tokens. The
+campaign gives each seat enough local headroom to avoid a false seat-budget
+failure, then enforces $0.075 on the combined completed trajectory and $0.40
+across the campaign.
+Both frozen role prompts require concise, non-repetitive replies so conversation
+growth does not turn later calls into 9–12k-token requests. The support prompt
+also restates that account and order claims require actual tool results.
 
 This is a **pipeline proof**, not an upstream behavioral-parity claim. Both the
 retail assistant and customer simulator use GLM 5.2, and the harness uses
@@ -64,11 +85,16 @@ schema-constrained JSON actions rather than upstream's GPT-4.1 user simulator
 and native provider tool calling. The deterministic database-state scorer and
 pinned tau2 bridge remain the authoritative evaluation path.
 
+The published v9 bundle predates the merged kernel fix that accumulates every
+model round, so its sealed `total_cost_usd` remains a historical lower bound.
+The bundle README carries the same disclosure, and its publication manifest
+seals that text. Republish from raw responses if corrected totals are needed.
+
 Freeze and inspect the digest-bound plan before spending:
 
 ```bash
 PYTHONPATH=src python -m aeread_families.tau3_retail.campaign \
-  --run-root runs/tau3_retail_glm5p2_arena_pipeline_proof_v2
+  --run-root runs/tau3_retail_glm5p2_arena_pipeline_proof_v9
 ```
 
 Execute only with the pinned bridge and skip-fail gate enabled:
@@ -78,7 +104,7 @@ AEREAD_TAU2_UPSTREAM_ROOT=$PWD/runs/upstream-tau2 \
 AEREAD_TAU2_BRIDGE_PYTHON=$PWD/runs/tau2-bridge-venv/bin/python \
 AEREAD_TAU2_BRIDGE_REQUIRED=1 \
 PYTHONPATH=src python -m aeread_families.tau3_retail.campaign \
-  --run-root runs/tau3_retail_glm5p2_arena_pipeline_proof_v2 \
+  --run-root runs/tau3_retail_glm5p2_arena_pipeline_proof_v9 \
   --upstream-root runs/upstream-tau2 --execute
 ```
 
@@ -87,8 +113,8 @@ digest-mismatched checkpoints:
 
 ```bash
 PYTHONPATH=src python -m aeread_families.tau3_retail.campaign \
-  --run-root runs/tau3_retail_glm5p2_arena_pipeline_proof_v2 \
-  --publication-root evidence/tau3_retail_glm5p2_arena_pipeline_proof_v2 \
+  --run-root runs/tau3_retail_glm5p2_arena_pipeline_proof_v9 \
+  --publication-root evidence/tau3_retail_glm5p2_arena_pipeline_proof_v9 \
   --publish-only
 ```
 

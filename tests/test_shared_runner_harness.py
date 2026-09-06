@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import json
+from dataclasses import replace
 
 import pytest
 
@@ -840,6 +841,83 @@ def test_attempt_executor_drives_a_registered_harness_end_to_end(tmp_path) -> No
     kinds = [e["event_type"] for e in events]
     assert "action_attempt_succeeded" in kinds
     assert kinds.index("provider_call_started") < kinds.index("action_attempt_succeeded")
+
+
+def test_attempt_executor_uses_the_harness_renderer_for_sealed_round_zero(tmp_path) -> None:
+    from aeread.shared_runner.model_call.harness import AttemptExecutor, MinimalChatHarness
+
+    class RenderingHarness(MinimalChatHarness):
+        @staticmethod
+        def request_message(request):
+            return CanonicalMessage(role="user", content="STATIC_CONTEXT\nTURN_CONTEXT")
+
+    decision = _executor_decision()
+    evidence = EvidenceStore(
+        tmp_path / "round_zero_renderer_evidence",
+        run_plan_id="runplan_harness_fixture",
+        cell_id=decision.cell_id,
+        episode_id=decision.episode_id,
+        episode_attempt_id="episode_attempt_harness_fixture",
+    )
+    profile = _executor_profile()
+    provider = ScriptedProvider([_result(text="an offer", finish_reason="stop")])
+    executor = AttemptExecutor(
+        evidence=evidence,
+        profiles=[profile],
+        prompt_sources={profile.prompt.prompt_id: _executor_prompt()},
+        providers={profile.model.provider: provider},
+        pricing={profile.model.model: FAKE_PRICING},
+        harnesses={"minimal_chat/1.0": RenderingHarness()},
+    )
+
+    asyncio.run(executor(decision))
+
+    sealed = json.loads(provider.requests[0].input_text)
+    assert sealed["messages"][0]["content"] == "STATIC_CONTEXT\nTURN_CONTEXT"
+
+
+def test_attempt_executor_enforces_a_combined_cost_ceiling_across_actions(tmp_path) -> None:
+    from aeread.shared_runner.model_call.harness import AttemptExecutor, default_harnesses
+
+    decision = _executor_decision()
+    second_decision = replace(
+        decision,
+        phase_instance_id="phase_instance_fixture_second",
+        logical_action_id="logical_action_fixture_second",
+    )
+    evidence = EvidenceStore(
+        tmp_path / "combined_cost_evidence",
+        run_plan_id="runplan_harness_fixture",
+        cell_id=decision.cell_id,
+        episode_id=decision.episode_id,
+        episode_attempt_id="episode_attempt_harness_fixture",
+    )
+    profile = _executor_profile()
+    per_call = FAKE_PRICING.cost(input_tokens=20, cached_input_tokens=0, output_tokens=5)
+    provider = ScriptedProvider([_result(text="first"), _result(text="second")])
+    executor = AttemptExecutor(
+        evidence=evidence,
+        profiles=[profile],
+        prompt_sources={profile.prompt.prompt_id: _executor_prompt()},
+        providers={profile.model.provider: provider},
+        pricing={profile.model.model: FAKE_PRICING},
+        harnesses=default_harnesses(),
+        combined_cost_ceiling_usd=per_call * 1.5,
+    )
+
+    asyncio.run(executor(decision))
+    with pytest.raises(EvidenceIntegrityError, match="combined cost budget exceeded"):
+        asyncio.run(executor(second_decision))
+
+    assert executor.total_cost_usd == pytest.approx(2 * per_call)
+    failed = [
+        event
+        for event in evidence.read_events()
+        if event.event_type == "action_attempt_failed"
+    ]
+    assert failed
+    failure_payload = json.loads((evidence.root / failed[-1].payload_ref).read_bytes())
+    assert failure_payload["failure_condition"] == "combined_cost_budget_exceeded"
 
 
 def test_attempt_executor_carries_a_harness_action_onto_the_canonical_response(

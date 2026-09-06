@@ -44,16 +44,19 @@ PRICING = TokenPricing(
     output_per_million=0.0,
     pricing_id="arena_2026-09-05_glm5p2_response_reported_cost",
 )
-ASSISTANT_PROMPT_ID = "tau3_retail_assistant_json_v1"
-USER_PROMPT_ID = "tau3_retail_user_sim_json_v1"
+ASSISTANT_PROMPT_ID = "tau3_retail_assistant_json_v2"
+USER_PROMPT_ID = "tau3_retail_user_sim_json_v2"
 ASSISTANT_PROMPT = """You are the retail support assistant. Follow the policy and
-tool definitions supplied in the observation. Return only the required JSON object.
+tool definitions supplied in the context. Return only the required JSON object.
 Use kind=tool_calls with one or more calls when a tool is needed. Use kind=reply with
 a customer-facing response only when no tool call is needed. Never invent tool results.
+Never claim that an account or order was found unless the corresponding tool result is
+present. Keep customer-facing replies under 80 words and do not repeat known details.
 """
 USER_PROMPT = """You are the simulated retail customer. Follow the user scenario and
 simulation guidelines supplied in the observation. Return only a kind=reply JSON object.
 Use the exact upstream stop markers when the scenario and guidelines require stopping.
+Keep each reply under 40 words and do not repeat details already established.
 """
 
 
@@ -132,7 +135,7 @@ def _profile(
     max_output_tokens: int,
     max_cost_usd: float,
 ) -> AgentProfile:
-    profile_id = f"tau3_retail_{seat}_glm5p2_arena_v1"
+    profile_id = f"tau3_retail_{seat}_glm5p2_arena_v2"
     return AgentProfile.from_dict(
         {
             "spec_version": AgentProfile.SPEC_VERSION,
@@ -226,7 +229,7 @@ def build_live_setup(
         output_schema=assistant_output_schema(),
         tools=tool_names,
         seed=seed,
-        max_output_tokens=900,
+        max_output_tokens=4096,
         max_cost_usd=max_trajectory_cost_usd * 0.6,
     )
     user = _profile(
@@ -236,7 +239,7 @@ def build_live_setup(
         output_schema=user_output_schema(),
         tools=(),
         seed=seed,
-        max_output_tokens=400,
+        max_output_tokens=4096,
         max_cost_usd=max_trajectory_cost_usd * 0.4,
     )
     sampling = SamplingPlan.from_dict(
