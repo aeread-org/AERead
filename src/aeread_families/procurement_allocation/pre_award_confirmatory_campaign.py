@@ -1179,13 +1179,18 @@ def main(argv: Sequence[str] | None = None) -> int:
         )
     )
     print(json.dumps(status, indent=2, sort_keys=True))
-    if status["summary"]["execution_qualified"]:
+    summary = status["summary"]
+    if summary["execution_qualified"]:
         return 0
-    if status["summary"]["operational_failure_count"]:
+    # A typed operational failure is missingness here, not an abort, so it does
+    # not by itself end the attempt. Only breaching the declared ceiling does.
+    planned = int(summary["planned_trajectory_count"])
+    ceiling = int(planned * MAX_OPERATIONAL_MISSINGNESS_FRACTION)
+    if int(summary["operational_failure_count"]) > ceiling:
         return 2
-    if not status["summary"]["failure_free_checkpoint"]:
-        return 3
-    return 4
+    if summary["failure_free_checkpoint"]:
+        return 4
+    return 3
 
 
 if __name__ == "__main__":
