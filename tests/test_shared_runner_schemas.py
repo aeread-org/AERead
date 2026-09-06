@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 from dataclasses import FrozenInstanceError
 
 import pytest
@@ -1024,6 +1025,33 @@ def test_leaf_policy_declaration_without_seat_scope_defaults_to_cell() -> None:
     assert leaf.subject_reduction is None
 
 
+# Review finding F2: a golden digest computed against the PRE-R12 kernel
+# (commit 78614540 -- the fork point this branch's kernel work started
+# from, before LeafPolicyDeclaration carried seat_scope/subject_reduction
+# at all), pinned so this test cannot pass merely because BOTH sides of a
+# same-code comparison happen to agree -- see the test below for why that
+# matters. Produced by:
+#
+#   git archive 78614540 src | tar -x -C /tmp/pre_r12/
+#   <this repo's venv python> -c '
+#       import sys, json
+#       sys.path.insert(0, "src"); sys.path.insert(0, "tests")
+#       from test_shared_runner_schemas import _family_data_with_leaves
+#       print(json.dumps(_family_data_with_leaves()))
+#   ' > /tmp/pre_r12/family_data_with_leaves.json
+#   PYTHONPATH=/tmp/pre_r12/src <this repo's venv python> -c '
+#       import json, hashlib
+#       from aeread.shared_runner.schemas import FamilyManifest
+#       from aeread.shared_runner.run.resolver import canonical_json_bytes
+#       data = json.load(open("/tmp/pre_r12/family_data_with_leaves.json"))
+#       family = FamilyManifest.from_dict(data)
+#       print(hashlib.sha256(canonical_json_bytes(family.measurement)).hexdigest())
+#   '
+_PRE_R12_CELL_SCOPE_MEASUREMENT_SHA256 = (
+    "794e778702d6fffbf7ab92a038188f9071631c18afdc53027e994d289a639f88"
+)
+
+
 def test_leaf_policy_declaration_without_seat_scope_is_digest_neutral() -> None:
     """Ruling R12 (kernel_scoring_contract_spec.md), same story as R1/R9:
     ``seat_scope``/``subject_reduction`` are added to ``LeafPolicyDeclaration``
@@ -1035,6 +1063,20 @@ def test_leaf_policy_declaration_without_seat_scope_is_digest_neutral() -> None:
     """
     cell_scope_bytes = canonical_json_bytes(
         FamilyManifest.from_dict(_family_data_with_leaves()).measurement
+    )
+    # Review finding F2: comparing two objects both canonicalized by the
+    # CURRENT code (the assertions below) cannot detect a regression that
+    # broke _CANONICAL_OMIT_IF_DEFAULT for a NESTED dataclass (this class
+    # lives inside MeasurementDeclaration.leaves, not at the top level
+    # _canonical_value was originally proven against) -- if that recursion
+    # silently stopped omitting the default, BOTH sides would serialize
+    # "seat_scope":"cell" identically and stay equal to each other while
+    # every already-migrated manifest's real digest changed underneath
+    # them. Pinning against a digest the PRE-R12 kernel actually produced
+    # catches exactly that.
+    assert (
+        hashlib.sha256(cell_scope_bytes).hexdigest()
+        == _PRE_R12_CELL_SCOPE_MEASUREMENT_SHA256
     )
 
     with_subject_seat = _family_data_with_leaves()
