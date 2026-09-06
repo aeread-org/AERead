@@ -2,13 +2,20 @@
 
 Branch `zeyu/econevals-contract-migration`. Last verified 2026-09-06.
 
-A second-reviewer fix pass ran against `docs/econevals_review_claude.md`
-(`docs/econevals_review_codex.md` was never produced) this session; see
-`docs/econevals_review_disposition.md` for the per-finding verification and
-fix record. Nothing found was a kernel/runner defect, so no
-`ledger_entries/econevals.md` entry was added on this pass. That pass
-reviewed the pre-migration pilot-corpus build (branch `zeyu/econevals-adapter`),
-not this scoring-contract migration.
+A second-reviewer fix pass ran against `docs/econevals_review_claude.md` on
+2026-09-02; `docs/econevals_review_codex.md` was recovered from that
+reviewer's transcript afterwards (`c866b50d`, on origin/main). It declares 0
+findings but carries nine prepared findings that neither
+`docs/econevals_review_disposition.md` nor this migration ever
+dispositioned; three of them (procurement/pricing/scheduling leaves report
+the final attempt's native value, not upstream's max-over-attempts ratio or
+a baseline-normalized score) bear directly on what
+`econevals_objective_leaf`'s `primary` reports and remain open, un-verified
+and un-refuted; see `docs/econevals_review_disposition.md` for the
+per-finding verification and fix record. Nothing found was a kernel/runner
+defect, so no `ledger_entries/econevals.md` entry was added on this pass.
+That pass reviewed the pre-migration pilot-corpus build (branch
+`zeyu/econevals-adapter`), not this scoring-contract migration.
 
 **An independent review of THIS scoring-contract migration did occur,**
 separately from the pass above: `docs/econevals_migration_review.md` records
@@ -108,6 +115,21 @@ scope, exactly as the plan states; `primary_estimand`, the manifest's
 declared primary leaf, and admission membership are all left exactly as
 this migration set them, not adjusted to manufacture an included
 `headroom_capture` receipt.
+
+**Consequence for every production receipt, stated plainly:** no receipt
+this family produces carries `econevals_headroom_capture`, the manifest's
+declared `primary_estimand`; an admitted receipt's primary is
+`econevals_objective_leaf`'s native-units `V_agent` (with `v_star` as its
+reference value), a substitute, not a headroom ratio, so no
+`headroom_capture` aggregate can be formed from this family's receipts
+until an owner-decided estimand change (the `_own`/`_vs_baseline` split
+above) lands. Admission itself is unaffected by the gap: a legal final
+submission is `inclusion_status="included"`
+(`test_call_returns_both_declared_leaves_for_a_legal_submission` shows both
+leaves `ok`), and only illegal/malformed/no-attempt episodes are
+`excluded`. Nothing in this document certifies the family operationally;
+"certifying run" below refers only to the `AEREAD_ECONEVALS_BRIDGE_REQUIRED=1`
+test mode.
 
 **Why `econevals_objective_leaf` alone gates admission.** In this family's
 own vocabulary, `invalid_measurement` was, before this milestone, triggered
@@ -212,7 +234,9 @@ reason; `_objective_not_computed` turns that into an explicit
 family's sole admission leaf — so the sealed receipt is
 `status == "invalid_measurement"`, `inclusion_status == "excluded"`, and
 carries a typed `EvaluationFailure` naming `econevals_objective_leaf`
-invalid; the primary leaf's own `validity.reasons` names the gate failure
+invalid (produced by the finalizer's own `_score_admission`; not asserted
+by the receipt test); the primary leaf's own `validity.reasons` names the
+gate failure
 ("`objective_not_computed: gate_failed (unknown offer ids: [...])`"). This
 is asserted as the actual, observed result — not "included" — deliberately:
 a legal final submission (achievable, per
