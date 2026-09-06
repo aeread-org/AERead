@@ -23,7 +23,8 @@ from pathlib import Path
 
 import pytest
 
-from aeread.shared_runner.measurement import MeasurementLeafSpec
+from aeread.shared_runner.measurement import FamilyScoreSet, MeasurementLeafSpec
+from aeread.shared_runner.task.evaluation import FamilyScoringInput
 from aeread_families.steer import cases as steer_cases
 from aeread_families.steer import measurement as m
 from aeread_families.steer.environment import SteerPlugin
@@ -275,6 +276,68 @@ def test_steer_scorer_score_delegates_to_score_answer_key_for_an_invalid_outcome
     envelope = scorer.score(outcome)
     assert envelope.status == "invalid_measurement"
     assert envelope.validity.reasons == ("malformed_answer_json",)
+
+
+# ---------------------------------------------------------------------------
+# SteerScorer.__call__ -- the production finalizer seam under the
+# kernel_scoring_contract_spec.md contract (migration milestone 2 of 3).
+# ``task.evaluation.finalize_family_execution`` executes
+# ``plugin.build_scorer(family_case)(scoring_input,
+# evidence_refs=scoring_input.evidence_refs)`` directly on whatever
+# ``build_scorer`` returns -- never through ``.score(...)`` the way every
+# golden above does. Before this milestone, ``__call__`` took a
+# ``FamilyScoringInput`` but returned a bare ``ScoreEnvelope``, leaving the
+# caller to know it had to be unwrapped from a ``FamilyScoreSet`` itself;
+# the tests below prove the declared leaf set now comes back wrapped.
+# ---------------------------------------------------------------------------
+
+
+def test_steer_scorer_call_returns_a_family_score_set_with_the_one_declared_leaf() -> None:
+    row = _first_row("certainty_effect")
+    scorer = m.build_scorer(row)
+    scoring_input = FamilyScoringInput(
+        outcome={
+            "termination_reason": "answered",
+            "selected_option_id": row["correct_option_id"],
+            "failure_code": None,
+        },
+        phase_instances=(),
+        evidence_refs=("evt_outcome_0",),
+    )
+
+    score_set = scorer(scoring_input, evidence_refs=scoring_input.evidence_refs)
+
+    assert isinstance(score_set, FamilyScoreSet)
+    assert {score.leaf.leaf_id for score in score_set.scores} == {m.ANSWER_KEY_LEAF_ID}
+    assert score_set.primary_leaf_id == m.ANSWER_KEY_LEAF_ID
+    assert score_set.admission_leaf_ids == (m.ANSWER_KEY_LEAF_ID,)
+
+    answer_key = score_set.scores[0]
+    assert answer_key.status == "ok"
+    assert answer_key.primary.value == 1.0
+    assert answer_key.evidence_refs == ("evt_outcome_0",)
+
+
+def test_steer_scorer_call_reports_invalid_measurement_for_an_invalid_submission() -> None:
+    row = _first_row("backward_induction")
+    scorer = m.build_scorer(row)
+    scoring_input = FamilyScoringInput(
+        outcome={
+            "termination_reason": "error",
+            "selected_option_id": None,
+            "failure_code": "malformed_answer_json",
+        },
+        phase_instances=(),
+        evidence_refs=("evt_outcome_0",),
+    )
+
+    score_set = scorer(scoring_input, evidence_refs=scoring_input.evidence_refs)
+
+    assert isinstance(score_set, FamilyScoreSet)
+    answer_key = score_set.scores[0]
+    assert answer_key.leaf.leaf_id == m.ANSWER_KEY_LEAF_ID
+    assert answer_key.status == "invalid_measurement"
+    assert answer_key.validity.reasons == ("malformed_answer_json",)
 
 
 # ---------------------------------------------------------------------------
