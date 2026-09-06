@@ -116,7 +116,22 @@ def family_manifest() -> FamilyManifest:
                 "primary_leaf_id": measurement.PROFIT_VS_FIELD_LEAF_ID,
                 "admission_leaf_ids": [measurement.PROFIT_VS_FIELD_LEAF_ID],
             },
-            "scoring": {"scorer_id": SCORER_ID},
+            "scoring": {
+                "scorer_id": SCORER_ID,
+                # Every distinct implementation component id this family's
+                # four leaves pin (measurement.py's own
+                # REFERENCE_PROVIDER_IDS docstring) -- required for
+                # resolve_run_plan to accept a plan pin for any of them
+                # (resolver.py's _required_pin_kinds/_check_pins rejects an
+                # "unreferenced" pin not named here). Without this,
+                # finalize_family_execution can never seal a real
+                # EvaluationReceipt for this family: EvaluationReceipt's own
+                # _validate_and_freeze_plan_pins requires every leaf's
+                # validity-domain predicate, verifier reference, and scorer
+                # to be pinned, and resolve_run_plan requires every pin to be
+                # named as "required" first.
+                "reference_provider_ids": list(measurement.REFERENCE_PROVIDER_IDS),
+            },
         }
     )
 
