@@ -122,8 +122,14 @@ def _write_once_json(path: Path, value: Mapping[str, Any]) -> None:
 
 def build_campaign_plan() -> dict[str, Any]:
     cases = [load_case(case_id) for case_id in PANEL_CASE_IDS]
+    # EXECUTION sources only. campaign.py is deliberately absent: it carries
+    # the publisher as well as the executor, so hashing it here would make a
+    # publisher bug unfixable for a completed run -- publish with the bug, or
+    # fix it and have the freeze reject the very run it governed. The
+    # publisher's own digest is recorded in the publication manifest instead,
+    # where it belongs: it describes how evidence was projected, not what was
+    # executed.
     source_names = (
-        "campaign.py",
         "cases.py",
         "econevals_bridge.py",
         "environment.py",
@@ -192,7 +198,7 @@ def build_campaign_plan() -> dict[str, Any]:
             + len(PANEL_CASE_IDS) * MAX_TRAJECTORY_COST_USD,
             "canary_included": True,
         },
-        "source_sha256": source_hashes,
+        "execution_source_sha256": source_hashes,
     }
     plan["plan_sha256"] = _digest(plan)
     return plan
@@ -484,7 +490,7 @@ def publish_campaign(*, run_root: Path, publication_root: Path) -> None:
                 "receipt_status": checkpoint["receipt_status"],
                 "inclusion_status": checkpoint["inclusion_status"],
                 "gate_leaf_id": gate.leaf.leaf_id if gate else None,
-                "gate_valid": gate.validity.valid if gate else None,
+                "gate_validity": gate.validity.status if gate else None,
                 "gate_value": (
                     gate.primary.value if gate is not None and gate.primary else None
                 ),
@@ -556,6 +562,11 @@ def publish_campaign(*, run_root: Path, publication_root: Path) -> None:
         "publication_id": CAMPAIGN_ID,
         "campaign_id": CAMPAIGN_ID,
         "plan_sha256": plan["plan_sha256"],
+        # How the evidence was projected, recorded next to what was executed
+        # rather than inside the execution freeze.
+        "publisher_implementation_sha256": hashlib.sha256(
+            Path(__file__).read_bytes()
+        ).hexdigest(),
         "artifacts": artifact_rows,
         "sanitization": dict(SANITIZATION_DECLARATION),
     }
