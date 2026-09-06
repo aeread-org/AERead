@@ -596,12 +596,11 @@ class TermsBenchScorer:
         protocol_compliance)` for No-deal -- rather than a fixed set, so a
         case is never scored on a leaf it does not declare.
 
-        `protocol_compliance` is the admission leaf: it is the one leaf every
-        regime declares, and a trajectory that broke the protocol is an
-        invalid measurement rather than a low score. The primary leaf is the
-        family's declared estimand where the regime has it, and the
-        compliance leaf otherwise, so an included receipt always carries a
-        primary that case actually declares.
+        `protocol_compliance` is both the primary and the admission leaf: it
+        is the only leaf both regimes declare, a trajectory that broke the
+        protocol is an invalid measurement rather than a low score, and R13
+        requires the primary to be unconditional so it can be aggregated
+        across cases.
         """
         outcome = scoring_input.outcome
         if not isinstance(outcome, Mapping):
@@ -629,16 +628,24 @@ class TermsBenchScorer:
             outcome=outcome, evidence_refs=evidence_refs
         )
         scores.append(compliance)
-        primary = (
-            self.surplus_efficiency_leaf
-            or self.no_deal_agreement_leaf
-            or self.protocol_compliance_leaf
-        )
-        admission = {compliance.leaf.leaf_id, primary.leaf_id}
+        # The primary and the admission leaf must be UNCONDITIONAL: both have
+        # to exist for every execution admitted under one static manifest, and
+        # a primary whose identity changes by case cannot be aggregated across
+        # cases. `protocol_compliance` is the only leaf both regimes declare,
+        # so it is both. The regime-conditional leaves (surplus_efficiency,
+        # feasible_agreement, no_deal_agreement) are scored and reported, but
+        # never carry the primary role.
+        #
+        # This follows ruling R13 (PR #112). An earlier version made the
+        # conditional leaf primary, which R13 forbids for exactly the reason
+        # above; that version was wrong. Note the family manifest's declared
+        # `primary_estimand` is `termsbench_surplus_efficiency`, which itself
+        # exists only in the overlap regime -- a separate inconsistency,
+        # raised on #112 rather than papered over here.
         return FamilyScoreSet(
-            primary_leaf_id=primary.leaf_id,
+            primary_leaf_id=compliance.leaf.leaf_id,
             scores=tuple(scores),
-            admission_leaf_ids=tuple(sorted(admission)),
+            admission_leaf_ids=(compliance.leaf.leaf_id,),
         )
 
 

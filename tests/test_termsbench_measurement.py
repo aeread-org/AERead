@@ -527,7 +527,10 @@ def test_call_scores_exactly_the_leaves_the_regime_declares(regime: str) -> None
     # Protocol compliance is declared by every regime and is an admission
     # leaf: a broken protocol is an invalid measurement, not a low score.
     assert m.PROTOCOL_COMPLIANCE_LEAF_ID in result.admission_leaf_ids
-    assert result.primary_leaf_id in declared
+    # R13: the primary must be unconditional, so it is always the compliance
+    # leaf -- never a regime-conditional one.
+    assert result.primary_leaf_id == m.PROTOCOL_COMPLIANCE_LEAF_ID
+    assert result.admission_leaf_ids == (m.PROTOCOL_COMPLIANCE_LEAF_ID,)
 
 
 def test_call_requires_an_outcome_mapping() -> None:
