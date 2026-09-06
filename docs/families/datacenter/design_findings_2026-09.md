@@ -116,12 +116,82 @@ presentations** for Gemini and 0 of 3 for Qwen, published alongside the run as
 
 ---
 
+## Part 1b: recalibration to published market figures
+
+Section 2.1 below recorded that the economics were four orders of magnitude
+too small. They now are not. The worlds are a 50 MW project over 36 months,
+with every magnitude anchored to a published 2026 benchmark rather than
+invented, and `tests/test_datacenter_qc.py` fails if any of them drifts out of
+range.
+
+| Quantity | Calibrated world | Published range |
+|---|---:|---|
+| Construction | $10.3M per MW | $8M to $13M per MW |
+| Lease rate | $185 per kW-month | $130 to $400 wholesale |
+| Loan spread | SOFR + 255bps | 250 to 450bps |
+| Loan-to-cost | 65% | 50% to 70% |
+| EPC delay cap | 9% of contract | 5% to 10% |
+| Lease term | 15 years, take-or-pay | 15 to 20 years |
+
+Energy throughput and pass-through, a floating base-rate curve, and per-seat
+discount rates of 12, 7 and 8 percent are now live, which closes 2.2 and most
+of 2.5. A successful developer clears about $404M against an $8M walk-away,
+and negotiating rather than adopting counters is worth a median $39.5M.
+
+Two engine defects surfaced only once the world was realistic:
+
+- **Coverage counted the balloon.** Debt-service coverage included the bullet
+  principal repayment at maturity, so every realistic term loan breached its
+  covenant in its final month purely because principal came due. Coverage is
+  now measured on scheduled service, and repayment ability is still tested
+  separately as `maturity_nonpayment`.
+- **The covenant-cliff stratum was unbuildable from leverage.** Section 8 of
+  the plan specifies that stratum as "small changes in price, ramp, or
+  leverage" causing a breach. Once loan-to-cost is capped at a realistic 65 to
+  70 percent, stabilised coverage runs 2 to 4x and *no admissible leverage
+  breaches it*: the commitment binds before the advance rate does, so raising
+  leverage changes nothing at all. The stratum now uses the tenant ramp. Price
+  and ramp are the real levers; leverage is not one.
+
+A third point is recorded but not fixed: the coverage covenant is gated on the
+contractual service commencement date rather than on first revenue, so a
+package that commences before its conditions precedent are met reports zero
+coverage for those months. That is arguably correct, but it means the
+commencement date, not commercial operation, decides when the covenant starts
+biting.
+
+## How this family is quality controlled
+
+Golden-value tests pin what the engine returned last time. They do not say it
+is right. Three layers do:
+
+1. **Accounting identities**, checked for all 24 worlds rather than one
+   fixture: monthly sources equal uses, principal rolls forward, and the three
+   seat NPVs sum to the reported total. `simulate_project` raises on any
+   violation, so every world that generates has already proved them.
+2. **Metamorphic properties**: a directional input change must move the
+   outcome the way finance requires. Raising the capacity charge must not
+   lower developer value; raising the EPC price must not raise it; a delay
+   that moves commercial operation must destroy value; a positive discount
+   rate must reduce a future-weighted NPV. These catch sign errors and
+   mis-wired terms that no golden value can.
+3. **Calibration and structural bounds**: every magnitude sits in a published
+   range, every world exercises energy, floating rates and discounting, and
+   equity is priced above debt. Blind counter-adoption must stay admissible
+   but never optimal, and inflated liability terms must be rejected at any
+   scale.
+
+The value of the layer is not theoretical. Writing it caught that the pack on
+disk was still toy-scale, that the bargaining band pushed the negotiated EPC
+price below market, and that one property I asserted about energisation was
+simply false.
+
 ## Part 2: modelling limits that are still open
 
 These do not corrupt the current measurement, but each one caps what the
 family can claim. They need a decision, not a patch.
 
-### 2.1 The economics are four orders of magnitude too small
+### 2.1 The economics were four orders of magnitude too small (now fixed, see Part 1b)
 
 A world's EPC contract is 224,000 cents (**$2,240**) for a 1 MW data centre,
 and a successful developer clears about **$7,080**. Real 1 MW capacity is
@@ -133,7 +203,7 @@ was rejected as outside the band. The benchmark currently penalises correct
 domain intuition. Either scale the worlds to realistic magnitudes or state
 explicitly in the observation that amounts are scenario-scaled.
 
-### 2.2 There is no time value of money
+### 2.2 There was no time value of money (now fixed, see Part 1b)
 
 Every discount rate is zero and the base-rate curve is all zeros, so
 `developer_equity_npv` is an undiscounted sum. Deferring a payment is free,
