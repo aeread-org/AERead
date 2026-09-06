@@ -19,7 +19,9 @@ from typing import Any
 
 import pytest
 
-from aeread.shared_runner.task.scheduler import ActionEnvelope
+from aeread.shared_runner.measurement import FamilyScoreSet
+from aeread.shared_runner.task.evaluation import FamilyScoringInput, SeatContext
+from aeread.shared_runner.task.scheduler import ActionEnvelope, PhaseInstance, TransitionResult
 from aeread_families.negarena import measurement as m
 from aeread_families.negarena.cases import BLUE, RED
 from aeread_families.negarena.environment import (
@@ -394,3 +396,244 @@ def test_golden_5_analogue_ultimatum_zero_endowment_settles_at_zero(plugin, brid
     assert scores["red"].primary.value == 0.0
     assert scores["blue"].primary.value == 0.0
     assert scores["agreement"].primary.value == 0.0
+
+
+# ---------------------------------------------------------------------------
+# NegarenaScorer.__call__ -- the production finalizer seam under the
+# kernel_scoring_contract_spec.md contract (migration milestone 2 of 3).
+# ``task.evaluation.finalize_family_execution`` executes
+# ``plugin.build_scorer(family_case)(scoring_input,
+# evidence_refs=scoring_input.evidence_refs)`` directly on whatever
+# ``build_scorer`` returns -- never through a named method the way every
+# golden above does. Before this milestone, ``__call__`` took a raw
+# ``outcome`` mapping and always reported the primary leaf
+# (``negarena_seat_outcome``) as ``invalid_measurement``, and never
+# returned ``negarena_agreement_reached`` at all; the tests below prove
+# both declared leaves now come back for real, and that ruling R12's
+# seat-scoped primary is wired correctly.
+# ---------------------------------------------------------------------------
+
+_ALL_DECLARED_LEAF_IDS = frozenset({m.SEAT_OUTCOME_LEAF_ID, m.AGREEMENT_LEAF_ID})
+
+
+def _scoring_input_for(
+    plugin: NegarenaPlugin,
+    family_case: dict,
+    state: dict,
+    terminal: dict,
+    *,
+    subject_seats: tuple[str, ...],
+    profile_by_seat: dict[str, str],
+    evidence_refs: tuple[str, ...] = ("evt_outcome_0",),
+) -> FamilyScoringInput:
+    """A real ``FamilyScoringInput`` built off an actually-driven transcript.
+
+    ``state`` is threaded onto the LAST phase instance's LAST transition,
+    exactly the way a real verified re-execution surfaces it
+    (``measurement.py``'s own ``_final_state_from_phase_instances``
+    docstring): ``environment.py``'s ``step()`` accumulates
+    ``state["history"]`` there and nowhere else, so this is the one place
+    ``__call__`` can read the full history from.
+    """
+    outcome = plugin.outcome(family_case, terminal)
+    phase_instance = PhaseInstance(
+        phase_instance_id="phase_instance_0",
+        phase_id=RED_PHASE,
+        ordinal=0,
+        mode="single",
+        eligible_actors=(RED,),
+        pre_state_sha256="0" * 64,
+        post_state_sha256="1" * 64,
+        observations={},
+        actions=(),
+        transitions=(TransitionResult(state=state, next_phase_id=None),),
+    )
+    return FamilyScoringInput(
+        outcome=outcome,
+        phase_instances=(phase_instance,),
+        evidence_refs=evidence_refs,
+        seat_context=SeatContext(
+            subject_seats=subject_seats, profile_by_seat=profile_by_seat
+        ),
+    )
+
+
+def _golden_1_buy_sell_transcript(plugin: NegarenaPlugin, family_case: dict) -> tuple[dict, dict]:
+    offers = [50, 30, 45, 35, 42, 38, 40]
+    turns: list[tuple[str, str]] = []
+    for index, price in enumerate(offers):
+        seat = RED if index % 2 == 0 else BLUE
+        resources_text = "X: 1" if seat == RED else "ZUP: 1000"
+        turns.append(
+            (
+                seat,
+                _buy_sell_response(
+                    f"Player RED Gives X: 1 | Player BLUE Gives ZUP: {price}",
+                    resources_text=resources_text,
+                ),
+            )
+        )
+    turns.append((BLUE, _buy_sell_response("NONE", answer="ACCEPT", resources_text="ZUP: 1000")))
+    return _run_transcript(plugin, family_case, turns)
+
+
+def test_call_returns_both_declared_leaves_for_a_single_subject_seat(plugin, bridge) -> None:
+    case = _load_case("negarena.buy_sell.0", "buy_sell")
+    family_case = plugin.validate_payload(case["payload"])
+    state, terminal = _golden_1_buy_sell_transcript(plugin, family_case)
+    assert terminal["reason"] == "accepted"
+
+    scoring_input = _scoring_input_for(
+        plugin,
+        family_case,
+        state,
+        terminal,
+        subject_seats=(RED,),
+        profile_by_seat={RED: "negarena_scripted_v1", BLUE: "negarena_scripted_v1"},
+    )
+    scorer = plugin.build_scorer(family_case)
+    score_set = scorer(scoring_input, evidence_refs=scoring_input.evidence_refs)
+
+    assert isinstance(score_set, FamilyScoreSet)
+    # Mutation-verified: dropping either leaf from __call__'s returned tuple
+    # (or from family_manifest's declared leaves) fails this assertion.
+    assert {score.leaf.leaf_id for score in score_set.scores} == set(_ALL_DECLARED_LEAF_IDS)
+    assert score_set.primary_leaf_id == m.SEAT_OUTCOME_LEAF_ID
+    assert score_set.admission_leaf_ids == (m.SEAT_OUTCOME_LEAF_ID,)
+    assert all(score.evidence_refs == scoring_input.evidence_refs for score in score_set.scores)
+
+    by_leaf = {score.leaf.leaf_id: score for score in score_set.scores}
+    seat_score = by_leaf[m.SEAT_OUTCOME_LEAF_ID]
+    assert seat_score.status == "ok"
+    assert seat_score.primary.value == 0.0  # RED's own realized value.
+    # Ruling R12 rule 2: the kernel enforces primary == utility_by_seat[S]
+    # at finalize -- test that identity directly.
+    assert seat_score.primary.value == seat_score.utility_by_seat[RED].value
+    assert seat_score.primary.unit == seat_score.utility_by_seat[RED].unit
+    # Every seat's own value is carried, not only the subject's.
+    assert seat_score.utility_by_seat[BLUE].value == 20.0
+
+    agreement_score = by_leaf[m.AGREEMENT_LEAF_ID]
+    assert agreement_score.status == "ok"
+    assert agreement_score.primary.value == 1.0
+
+
+def test_call_returns_the_other_seats_own_value_when_it_is_the_subject(plugin, bridge) -> None:
+    case = _load_case("negarena.buy_sell.0", "buy_sell")
+    family_case = plugin.validate_payload(case["payload"])
+    state, terminal = _golden_1_buy_sell_transcript(plugin, family_case)
+
+    scoring_input = _scoring_input_for(
+        plugin,
+        family_case,
+        state,
+        terminal,
+        subject_seats=(BLUE,),
+        profile_by_seat={RED: "negarena_scripted_v1", BLUE: "negarena_scripted_v1"},
+    )
+    scorer = plugin.build_scorer(family_case)
+    score_set = scorer(scoring_input, evidence_refs=scoring_input.evidence_refs)
+
+    seat_score = next(s for s in score_set.scores if s.leaf.leaf_id == m.SEAT_OUTCOME_LEAF_ID)
+    assert seat_score.status == "ok"
+    assert seat_score.primary.value == 20.0  # BLUE's own realized value.
+    assert seat_score.primary.value == seat_score.utility_by_seat[BLUE].value
+    assert seat_score.primary.unit == seat_score.utility_by_seat[BLUE].unit
+    assert seat_score.utility_by_seat[RED].value == 0.0
+
+
+def test_call_reports_no_subject_seat_for_zero_subject_seats(plugin, bridge) -> None:
+    case = _load_case("negarena.buy_sell.0", "buy_sell")
+    family_case = plugin.validate_payload(case["payload"])
+    state, terminal = _golden_1_buy_sell_transcript(plugin, family_case)
+
+    scoring_input = _scoring_input_for(
+        plugin,
+        family_case,
+        state,
+        terminal,
+        subject_seats=(),
+        profile_by_seat={RED: "negarena_scripted_v1", BLUE: "negarena_scripted_v1"},
+    )
+    scorer = plugin.build_scorer(family_case)
+    score_set = scorer(scoring_input, evidence_refs=scoring_input.evidence_refs)
+
+    seat_score = next(s for s in score_set.scores if s.leaf.leaf_id == m.SEAT_OUTCOME_LEAF_ID)
+    assert seat_score.status == "invalid_measurement"
+    assert seat_score.primary is None
+    assert seat_score.validity.reasons == ("no_subject_seat",)
+    # The other declared leaf is unaffected -- it is cell-scoped, not
+    # subject-seat-scoped.
+    agreement_score = next(s for s in score_set.scores if s.leaf.leaf_id == m.AGREEMENT_LEAF_ID)
+    assert agreement_score.status == "ok"
+
+
+def test_call_reports_ambiguous_subject_seat_for_self_play_with_no_declared_reduction(
+    plugin, bridge
+) -> None:
+    case = _load_case("negarena.buy_sell.0", "buy_sell")
+    family_case = plugin.validate_payload(case["payload"])
+    state, terminal = _golden_1_buy_sell_transcript(plugin, family_case)
+
+    scoring_input = _scoring_input_for(
+        plugin,
+        family_case,
+        state,
+        terminal,
+        subject_seats=(RED, BLUE),
+        profile_by_seat={RED: "negarena_scripted_v1", BLUE: "negarena_scripted_v1"},
+    )
+    scorer = plugin.build_scorer(family_case)
+    score_set = scorer(scoring_input, evidence_refs=scoring_input.evidence_refs)
+
+    seat_score = next(s for s in score_set.scores if s.leaf.leaf_id == m.SEAT_OUTCOME_LEAF_ID)
+    assert seat_score.status == "invalid_measurement"
+    assert seat_score.primary is None
+    assert seat_score.validity.reasons == ("ambiguous_subject_seat",)
+
+
+def test_call_reports_unknown_opponent_profile_for_an_unmapped_profile_id(plugin, bridge) -> None:
+    case = _load_case("negarena.buy_sell.0", "buy_sell")
+    family_case = plugin.validate_payload(case["payload"])
+    state, terminal = _golden_1_buy_sell_transcript(plugin, family_case)
+
+    scoring_input = _scoring_input_for(
+        plugin,
+        family_case,
+        state,
+        terminal,
+        subject_seats=(RED,),
+        profile_by_seat={RED: "negarena_scripted_v1", BLUE: "some_unpinned_profile"},
+    )
+    scorer = plugin.build_scorer(family_case)
+    score_set = scorer(scoring_input, evidence_refs=scoring_input.evidence_refs)
+
+    seat_score = next(s for s in score_set.scores if s.leaf.leaf_id == m.SEAT_OUTCOME_LEAF_ID)
+    assert seat_score.status == "invalid_measurement"
+    assert seat_score.primary is None
+    assert seat_score.validity.reasons == ("unknown_opponent_profile",)
+
+
+def test_call_reports_invalid_measurement_for_both_leaves_on_an_invalid_termination(
+    plugin, bridge
+) -> None:
+    case = _load_case("negarena.buy_sell.0", "buy_sell")
+    family_case = plugin.validate_payload(case["payload"])
+    turns = [(RED, _buy_sell_response("Player RED Gives X: 5 | Player BLUE Gives ZUP: 100"))]
+    state, terminal = _run_transcript(plugin, family_case, turns)
+    assert terminal["reason"] == "invalid_measurement"
+
+    scoring_input = _scoring_input_for(
+        plugin,
+        family_case,
+        state,
+        terminal,
+        subject_seats=(RED,),
+        profile_by_seat={RED: "negarena_scripted_v1", BLUE: "negarena_scripted_v1"},
+    )
+    scorer = plugin.build_scorer(family_case)
+    score_set = scorer(scoring_input, evidence_refs=scoring_input.evidence_refs)
+
+    for score in score_set.scores:
+        assert score.status == "invalid_measurement"
+        assert score.primary is None
