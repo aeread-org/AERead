@@ -412,7 +412,7 @@ async def execute_campaign(*, run_root: Path) -> None:
                 "termination_reason": execution.episode_result.outcome[
                     "termination_reason"
                 ],
-                "period_count": execution.episode_result.outcome.get("period"),
+                "period_count": execution.episode_result.outcome.get("period_count"),
             }
             checkpoint["record_sha256"] = _digest(checkpoint)
             _write_once_json(checkpoint_path, checkpoint)
