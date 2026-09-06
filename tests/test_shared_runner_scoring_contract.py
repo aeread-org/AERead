@@ -121,6 +121,7 @@ from aeread.shared_runner.task.scheduler import (
     PhaseInstance,
     PhaseSpec,
     TransitionResult,
+    run_episode,
 )
 
 from aeread_families.commercial_state_calibration import build_offline_setup as _build_commercial_state_setup
@@ -1917,7 +1918,9 @@ def _trusted_family_versions(
 # deliberately named, not derived: adding a NEW trusted key -- the exact
 # attack the review demonstrated -- now requires either enrolling a real
 # fixture or explicitly widening this exemption; it can no longer happen
-# silently.
+# silently. ``alympics.wac`` is deliberately NOT here: it IS migrated (see
+# ``_BRIDGE_GATED_ENROLLED_FAMILY_VERSIONS`` below for how its migration is
+# accounted for instead).
 _NOT_YET_MIGRATED_TRUSTED_KEYS: "frozenset[tuple[str, str]]" = frozenset(
     {
         ("consent_ir_v1", "1.0.0"),
@@ -1930,12 +1933,12 @@ _NOT_YET_MIGRATED_TRUSTED_KEYS: "frozenset[tuple[str, str]]" = frozenset(
         # External-benchmark adapter families enrolled in
         # TRUSTED_BUILTIN_PLUGIN_KEYS by maintainer ruling on 2026-09-04
         # (PRs #28-#38), landed on main after this branch forked. None of
-        # the eleven has a FamilyScoringInput-contract fixture yet; they
-        # migrate under the per-adapter follow-ups tracked alongside the
-        # other not-yet-migrated families above, not as part of this
-        # kernel change.
+        # the remaining ten has a FamilyScoringInput-contract fixture yet
+        # (``alympics.wac`` migrated separately, above); they migrate under
+        # the per-adapter follow-ups tracked alongside the other
+        # not-yet-migrated families above, not as part of this kernel
+        # change.
         ("agenticpay.bilateral", "0.1.0"),
-        ("alympics.wac", "0.1.0"),
         ("amazonbarg.bilateral", "0.1.0"),
         ("aucarena", "0.1.0"),
         ("collusion", "0.1.0"),
@@ -1946,6 +1949,37 @@ _NOT_YET_MIGRATED_TRUSTED_KEYS: "frozenset[tuple[str, str]]" = frozenset(
         ("steer", "0.1.0"),
         ("termsbench", "0.1.0"),
     }
+)
+
+# alympics.wac IS migrated and genuinely fixture-covered
+# (_alympics_kernel_contract_fixtures, test_alympics_wac_obeys_the_scoring_contract
+# below) -- but unlike every other family this suite verifies
+# unconditionally, its fixtures require the pinned upstream Alympics
+# checkout (a direct, in-process import of the real ``waterAllocation``
+# module -- environment.py's own "no bridge" decision, spec section 1).
+# Folding it into _build_protocol_test_registry_and_fixtures/
+# test_every_registered_family_obeys_the_scoring_contract would make THAT
+# test -- and every other family's always-on coverage inside it -- newly
+# skip whenever the checkout is unavailable, which is exactly the kind of
+# quiet coverage loss this suite exists to prevent for everyone else. It is
+# therefore verified in its own per-test-skippable test instead (mirroring
+# govsim's identical shape, tests/test_govsim_replay.py/
+# test_govsim_obeys_the_scoring_contract), and named here (not in
+# _NOT_YET_MIGRATED_TRUSTED_KEYS, which would misdescribe it) so ruling R6's
+# closure check still has it accounted for.
+#
+# Deliberate deviation from the govsim shape, stated: no NEW
+# AEREAD_ALYMPICS_BRIDGE_REQUIRED env var is added to conftest.py.
+# tests/test_alympics_wac_upstream_required_gate.py already turns any skip
+# whose reason contains "pinned upstream Alympics checkout not found" into a
+# failed run when AEREAD_ALYMPICS_UPSTREAM_REQUIRED=1 (conftest.py's
+# _BRIDGE_FAMILIES, substring-matched against every skip's reason, not tied
+# to a specific test module) -- predates this migration. The skip reason
+# below reuses that exact substring so a certifying run's existing gate
+# covers this test too, instead of fragmenting one family's policy across
+# two env vars.
+_BRIDGE_GATED_ENROLLED_FAMILY_VERSIONS: "frozenset[tuple[str, str]]" = frozenset(
+    {("alympics.wac", "0.1.0")}
 )
 
 
@@ -2471,15 +2505,170 @@ def test_every_registered_family_obeys_the_scoring_contract(tmp_path: Path) -> N
     # world is TRUSTED_BUILTIN_PLUGIN_KEYS. The assertion above was true by
     # construction and could never fail; a family enrolled there without a
     # fixture (or an explicit, named "not yet migrated" exemption) now fails
-    # here instead.
+    # here instead. alympics.wac is enrolled via
+    # _BRIDGE_GATED_ENROLLED_FAMILY_VERSIONS, not this test's own local
+    # ``fixtures`` -- see that set's own docstring.
     _assert_trusted_catalog_is_closed(
         trusted_keys=TRUSTED_BUILTIN_PLUGIN_KEYS,
-        enrolled_family_versions=set(fixtures),
+        enrolled_family_versions=set(fixtures) | _BRIDGE_GATED_ENROLLED_FAMILY_VERSIONS,
         exempt_family_versions=_NOT_YET_MIGRATED_TRUSTED_KEYS,
     )
 
     for key, registration in registrations.items():
         _assert_family_obeys_the_scoring_contract(key, registration, fixtures[key])
+
+
+# ---------------------------------------------------------------------------
+# alympics.wac: a real, upstream-backed family whose outcome embeds its
+# trajectory (`eliminated_order`, ruling R9) and whose four leaves are all
+# declared input_scope="trajectory". Two fixtures ("left"/"right") supply
+# the paired-history pair: same case, same boring alex/bob/cindy schedule
+# every round, but david and eric each follow one of two hand-verified bid
+# sequences that reach the IDENTICAL terminal (hp=0, no_drink=5, balance=480,
+# alive=False) at two DIFFERENT round counts (5 vs 6) -- swapping which of
+# the two seats gets the 5-round sequence and which gets the 6-round one
+# swaps their relative death order (`eliminated_order`) while leaving
+# `termination_reason`/`final_round_id`/`final_players` (the projection,
+# outcome minus `/eliminated_order`) byte-identical. Verified directly
+# against the real pinned upstream checkout before being wired in here
+# (never trusted as hand-derived arithmetic alone, per the worked example's
+# warning) -- see docs/alympics_migration_review.md.
+#
+# A third fixture ("alt", same case) has every seat bid illegally (exceeding
+# its own balance) every round: alex's own bid_legality gate fires from
+# round 1, flipping leaves 1/2/3 (gated by the same
+# `_bid_legality_invalid_reason` check) to `invalid_measurement`, and all
+# five seats die together at round 4 (`all_seats_eliminated`), giving
+# settlement_exactness a different `rounds_checked` metric (4 vs 6) than the
+# left/right pair -- this is what witnesses all four trajectory leaves'
+# sensitivity (ruling R9(b)): none of the four ever changes on the
+# left/right pair alone, since alex's own row is identical there.
+# ---------------------------------------------------------------------------
+
+_ALYMPICS_BIG_BID = 10**9
+# Two hand-verified (against the real upstream checkout) bid sequences that
+# reach the SAME terminal (hp=0, no_drink=5) at DIFFERENT round counts:
+# "short" dies after round 5 (win once, then lose four times), "long" dies
+# after round 6 (win twice, then lose four times) -- see this section's own
+# banner and docs/alympics_migration_review.md for the arithmetic.
+_ALYMPICS_SHORT_DEATH_BIDS = (120, _ALYMPICS_BIG_BID, _ALYMPICS_BIG_BID, _ALYMPICS_BIG_BID, _ALYMPICS_BIG_BID)
+_ALYMPICS_LONG_DEATH_BIDS = (120, 120, _ALYMPICS_BIG_BID, _ALYMPICS_BIG_BID, _ALYMPICS_BIG_BID, _ALYMPICS_BIG_BID)
+
+
+def _alympics_paired_history_answer(
+    *, short_seat: str, long_seat: str
+) -> Callable[[Any], Mapping[str, Any]]:
+    schedule_by_seat = {short_seat: _ALYMPICS_SHORT_DEATH_BIDS, long_seat: _ALYMPICS_LONG_DEATH_BIDS}
+
+    def answer(request: Any) -> Mapping[str, Any]:
+        round_id = int(request.observation["round_id"])
+        schedule = schedule_by_seat.get(request.seat_id)
+        # alex/bob/cindy: a fixed, always-legal, always-winning bid every
+        # round -- identical across every fixture this section builds, so
+        # their own final state (and alex's own leaf 1/2/3 measurements)
+        # never differs because of this pair.
+        bid = schedule[round_id - 1] if schedule is not None else 1
+        return {"bid": bid}
+
+    return answer
+
+
+def _alympics_all_illegal_answer(request: Any) -> Mapping[str, Any]:
+    del request
+    return {"bid": _ALYMPICS_BIG_BID}
+
+
+def _alympics_kernel_contract_fixtures(
+    tmp_path: Path,
+) -> tuple[FamilyManifest, Any, tuple[FamilyScoringFixture, FamilyScoringFixture, FamilyScoringFixture]]:
+    """Left/right (paired-history) plus a third, alt (sensitivity-witness)
+    fixture -- all three on the SAME case, driven through the real
+    scheduler via ``EvidenceRecordingAlympicsWacHarness``
+    (``tests/test_alympics_wac_replay.py`` -- the only response source for
+    this family that writes evidence the kernel replayer can replay).
+
+    Deferred imports (never at this module's top level): ``tests.
+    test_alympics_wac_replay`` skips its own module-level collection,
+    ``allow_module_level=True``, when the pinned upstream Alympics checkout
+    is absent (its own pre-existing convention, predating this migration).
+    A top-level import here would propagate that skip to THIS ENTIRE FILE
+    -- silently hiding housing/procurement_allocation/procurement_grounding/
+    commercial_state_calibration's own always-on coverage whenever the
+    alympics checkout happens to be missing, exactly the failure mode
+    ``_BRIDGE_GATED_ENROLLED_FAMILY_VERSIONS`` above exists to avoid.
+    Deferring the import into this function (called only from
+    ``test_alympics_wac_obeys_the_scoring_contract``, itself the only test
+    this skip should ever affect) confines the skip to that one test.
+    """
+    from tests.test_alympics_wac_replay import (
+        EvidenceRecordingAlympicsWacHarness,
+        build_alympics_setup,
+        kernel_contract_fixture_case,
+    )
+
+    case = kernel_contract_fixture_case(rounds=6, suffix="scoring_contract_pair")
+    setup = build_alympics_setup(case, suffix="scoring_contract_pair")
+    cell = setup.plan.cells[0]
+    family = setup.plan.families[0]
+    plugin = setup.registry.resolve_manifest(family)
+    family_case = plugin.validate_payload(case.payload)
+
+    def _run(answer: Callable[[Any], Mapping[str, Any]], suffix: str) -> FamilyScoringFixture:
+        evidence = EvidenceStore(
+            tmp_path / f"alympics_{suffix}",
+            run_plan_id=setup.plan.run_plan_id,
+            cell_id=cell.cell_id,
+            episode_id=f"episode_{cell.cell_id}",
+            episode_attempt_id="attempt_1",
+        )
+        harness = EvidenceRecordingAlympicsWacHarness(answer=answer, evidence=evidence)
+        asyncio.run(
+            run_episode(cell=cell, case=case, plugin=plugin, response_source=harness)
+        )
+        return FamilyScoringFixture(family_case=family_case, sealed_evidence=evidence)
+
+    left = _run(
+        _alympics_paired_history_answer(short_seat="david", long_seat="eric"), "left"
+    )
+    right = _run(
+        _alympics_paired_history_answer(short_seat="eric", long_seat="david"), "right"
+    )
+    alt = _run(_alympics_all_illegal_answer, "alt")
+    return family, plugin, (left, right, alt)
+
+
+def test_alympics_wac_obeys_the_scoring_contract(tmp_path: Path) -> None:
+    """alympics.wac's own contract check -- kept out of
+    ``test_every_registered_family_obeys_the_scoring_contract`` (see
+    ``_BRIDGE_GATED_ENROLLED_FAMILY_VERSIONS``'s own docstring for why):
+    this family's fixtures require the pinned upstream Alympics checkout
+    (a direct, in-process import of the real ``waterAllocation`` module),
+    which every OTHER family this suite verifies deliberately does not, so
+    folding it into that always-on test would make THEIR coverage newly
+    skip too whenever the checkout is unavailable. Per-test skip only,
+    never module-level -- this test function is the only thing that
+    imports ``tests.test_alympics_wac_replay``, and only when it actually
+    runs (see ``_alympics_kernel_contract_fixtures``'s own docstring).
+
+    Runs the identical protocol check (``_assert_family_obeys_the_scoring_contract``)
+    against alympics.wac's own registry registration and its three fixtures
+    (``_alympics_kernel_contract_fixtures`` -- byte-identical projected
+    outcome / genuinely differing trajectory for the first two, plus a third
+    that witnesses all four leaves' sensitivity), covering all four of this
+    family's genuine trajectory-scoped leaves (terminal_wealth, survival,
+    bid_legality, settlement_exactness) -- none is declared
+    ``terminal_state``, so ruling R7's contrapositive is vacuous here; what
+    matters is ruling R9(b)'s sensitivity witness.
+    """
+    family, plugin, fixture_triplet = _alympics_kernel_contract_fixtures(tmp_path)
+
+    registry = PluginRegistry()
+    registry.register_trusted(family, plugin)
+    (registration,) = registry.registrations()
+    key = (registration.family_id, registration.family_version)
+    assert key == ("alympics.wac", "0.1.0")
+
+    _assert_family_obeys_the_scoring_contract(key, registration, fixture_triplet)
 
 
 def test_determinism_precheck_adjacency_defeats_call_parity_aliasing(tmp_path: Path) -> None:
