@@ -245,7 +245,7 @@ def run_adapter(
     }
     family_case = plugin.validate_payload(payload)
     phase = plugin.phases(family_case)[0]
-    state = plugin.initial_state(family_case, cell=None)
+    state = plugin.initial_state(family_case, run=None)
     while state["termination"] is None:
         actors = plugin.eligible_actors(family_case, state, phase)
         actions = {

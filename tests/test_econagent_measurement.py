@@ -94,7 +94,7 @@ def _run_episode_and_score(case_id: str) -> tuple[dict[str, Any], m.EconAgentV1S
     case = _case(case_id)
     family_case = plugin.validate_payload(case.payload)
     phase = plugin.phases(family_case)[0]
-    state = plugin.initial_state(family_case, cell=None)
+    state = plugin.initial_state(family_case, run=None)
     n_agents = family_case["scenario"]["n_agents"]
     while state["termination"] is None:
         actors = plugin.eligible_actors(family_case, state, phase)

@@ -65,19 +65,33 @@ IMPLEMENTATION_VERSION = "0.1.0"
 DOMAIN_ID = "econagent_v1_pilot_v1"
 DOMAIN_VERSION = "1.0.0"
 
+# The one validity-domain predicate every leaf below shares (``_validity_domain()``).
+# Named here -- rather than left as the inline literal `_validity_domain()`
+# passes to `_implementation` -- so `environment.py`'s `family_manifest()` can
+# declare it under `scoring.reference_provider_ids` without a second,
+# independently-typed copy of the same string (mirrors govsim's identically-
+# purposed `BASE_DOMAIN_PREDICATE_ID`).
+DOMAIN_PREDICATE_ID = "econagent_v1_domain_predicate"
+
 BUDGET_IDENTITY_ESTIMAND_ID = "econagent_budget_identity"
 BUDGET_IDENTITY_LEAF_ID = "econagent_budget_identity_leaf"
 BUDGET_IDENTITY_REFERENCE_ID = "econagent_budget_identity_reference"
+# The reference's own IMPLEMENTATION id (`ReferenceSpec.implementation`) --
+# distinct from `BUDGET_IDENTITY_REFERENCE_ID` above (`ReferenceSpec.reference_id`,
+# a different field). Named for the same reason as `DOMAIN_PREDICATE_ID`.
+BUDGET_IDENTITY_REFERENCE_IMPLEMENTATION_ID = "econagent_budget_identity_check"
 BUDGET_IDENTITY_SCORER_ID = "econagent_budget_identity_scorer"
 
 TAX_BRACKET_ESTIMAND_ID = "econagent_tax_bracket_arithmetic"
 TAX_BRACKET_LEAF_ID = "econagent_tax_bracket_arithmetic_leaf"
 TAX_BRACKET_REFERENCE_ID = "econagent_tax_bracket_reference"
+TAX_BRACKET_REFERENCE_IMPLEMENTATION_ID = "econagent_tax_bracket_bridge_recompute"
 TAX_BRACKET_SCORER_ID = "econagent_tax_bracket_arithmetic_scorer"
 
 MACRO_TRAJECTORY_ESTIMAND_ID = "econagent_macro_trajectory"
 MACRO_TRAJECTORY_LEAF_ID = "econagent_macro_trajectory_leaf"
 MACRO_TRAJECTORY_REFERENCE_ID = "econagent_macro_trajectory_reference"
+MACRO_TRAJECTORY_REFERENCE_IMPLEMENTATION_ID = "econagent_macro_trajectory_descriptive"
 MACRO_TRAJECTORY_SCORER_ID = "econagent_macro_trajectory_scorer"
 
 # Floating-point residue tolerance only -- a violation past this tolerance is
@@ -110,7 +124,7 @@ def _validity_domain() -> ValidityDomainSpec:
         domain_id=DOMAIN_ID,
         domain_version=DOMAIN_VERSION,
         schema_ref="econagent_v1/case_payload",
-        predicate=_implementation("econagent_v1_domain_predicate", "environment.py"),
+        predicate=_implementation(DOMAIN_PREDICATE_ID, "environment.py"),
     )
 
 
@@ -142,7 +156,7 @@ def build_budget_identity_leaf(pins: Mapping[str, Any]) -> MeasurementLeafSpec:
         input_scope="trajectory",
         units="pass",
         source_sha256=pins["config_yaml_sha256"],
-        implementation=_implementation("econagent_budget_identity_check", "measurement.py"),
+        implementation=_implementation(BUDGET_IDENTITY_REFERENCE_IMPLEMENTATION_ID, "measurement.py"),
     )
     verifier = VerifierSpec(
         verifier_family="rule_constraint",
@@ -177,7 +191,7 @@ def build_tax_bracket_leaf(pins: Mapping[str, Any]) -> MeasurementLeafSpec:
         units="pass",
         source_sha256=pins["config_yaml_sha256"],
         implementation=_implementation(
-            "econagent_tax_bracket_bridge_recompute", "econagent_bridge.py"
+            TAX_BRACKET_REFERENCE_IMPLEMENTATION_ID, "econagent_bridge.py"
         ),
     )
     verifier = VerifierSpec(
@@ -222,7 +236,7 @@ def build_macro_trajectory_leaf(pins: Mapping[str, Any]) -> MeasurementLeafSpec:
         input_scope="trajectory",
         units="coin",
         source_sha256=pins["config_yaml_sha256"],
-        implementation=_implementation("econagent_macro_trajectory_descriptive", "measurement.py"),
+        implementation=_implementation(MACRO_TRAJECTORY_REFERENCE_IMPLEMENTATION_ID, "measurement.py"),
     )
     verifier = VerifierSpec(
         verifier_family="comparative",
@@ -1044,13 +1058,20 @@ def build_scorer(
 __all__ = [
     "BUDGET_IDENTITY_ESTIMAND_ID",
     "BUDGET_IDENTITY_LEAF_ID",
+    "BUDGET_IDENTITY_REFERENCE_IMPLEMENTATION_ID",
+    "BUDGET_IDENTITY_SCORER_ID",
     "BudgetIdentityResidual",
+    "DOMAIN_PREDICATE_ID",
     "EconAgentV1Scorer",
     "MACRO_TRAJECTORY_ESTIMAND_ID",
     "MACRO_TRAJECTORY_LEAF_ID",
+    "MACRO_TRAJECTORY_REFERENCE_IMPLEMENTATION_ID",
+    "MACRO_TRAJECTORY_SCORER_ID",
     "MacroTrajectory",
     "TAX_BRACKET_ESTIMAND_ID",
     "TAX_BRACKET_LEAF_ID",
+    "TAX_BRACKET_REFERENCE_IMPLEMENTATION_ID",
+    "TAX_BRACKET_SCORER_ID",
     "build_budget_identity_leaf",
     "build_leaves",
     "build_macro_trajectory_leaf",
