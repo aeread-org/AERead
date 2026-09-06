@@ -6,17 +6,29 @@ in full before writing this plan. The second reference
 (`.../AERead/.worktrees/collusion-migrate`) is read for the R9/R10
 (trajectory-embedded-in-outcome) case, which does not apply here (see below).
 
-**This revision supersedes the plan committed at `d7c6e955`.** That commit
-misidentified the branch's base as `zeyu/kernel-r9r10`; `git merge-base` shows
-the actual base is `zeyu/kernel-r12-seat-context` (whose own history includes
-the R12 ruling this document analyzes below). Re-checking every precondition
-against the real base surfaced a second, real baseline defect that the stale
-`execution.py` path fix had been masking — see "Baseline: not clean, in two
-layers" below —
-so this milestone ends in a **STOP**, not a green baseline. No family code
-(`environment.py`/`measurement.py`/`replay.py`) was changed; the only code
-change in this milestone is the one authorized mechanical import-path fix
-(commit `dd69c703`).
+**This revision supersedes the plan committed at `d7c6e955`, and corrects that
+revision's own misclassification of the layer-2 baseline failure.** The
+superseded plan misidentified the branch's base as `zeyu/kernel-r9r10`;
+`git merge-base` shows the actual base is `zeyu/kernel-r12-seat-context`
+(whose own history includes the R12 ruling this document analyzes below).
+Re-checking every precondition against the real base surfaced a second, real
+baseline defect that the stale `execution.py` path fix had been masking — see
+"Baseline: not clean before the fix, one layer fixed, one recorded for
+milestone 3" below. That second defect is an evidence-
+vocabulary mismatch between this family's hand-rolled finalizer-lifecycle
+helper and what the kernel's replay path now requires — exactly the pattern
+this milestone's own instructions name as **finalizer wiring** (spec section 5
+item 4: `logical_action_succeeded` where the scheduler now seals
+`action_attempt_succeeded` plus a `canonical_response` event). Per those
+instructions this is recorded under "Baseline failures to fix in milestone 3
+(finalizer wiring)" below and the milestone **continues** rather than
+stopping; `baseline_failure_class = "finalizer_wiring"`, not `"other"`, and no
+STOP is reported. (A prior draft of this revision called this a STOP before
+checking it against the finalizer-wiring carve-out in the milestone's own
+instructions; that was wrong and is corrected here — see that heading for the
+test ids and cause.) No family code (`environment.py`/`measurement.py`/
+`replay.py`) was changed; the only code change in this milestone is the one
+authorized mechanical import-path fix (commit `dd69c703`).
 
 ## Preconditions confirmed on this base (`git fetch origin`, then checked directly)
 
@@ -55,7 +67,7 @@ change in this milestone is the one authorized mechanical import-path fix
   per-seat leaf is not itself a reference gap when this machinery exists to
   carry seat identity to the scorer.
 
-## Baseline: not clean, in two layers
+## Baseline: not clean before the fix, one layer fixed, one recorded for milestone 3
 
 ### Layer 1 (fixed this milestone): stale `execution.py` path, spec section 5 item 1
 
@@ -87,7 +99,7 @@ and was fixed now, mechanically, in its own commit: `dd69c703 fix(negarena):
 update stale execution.py path to task/execution.py`. No behavior changed
 beyond pointing the hash at the file that actually exists.
 
-### Layer 2 (not fixed — STOP): evidence-vocabulary mismatch, not an import issue
+### Baseline failures to fix in milestone 3 (finalizer wiring)
 
 Re-running the identical suite after the fix: **87 passed, 2 failed**, in
 ~317s. The one test from layer 1 that never calls `finalize_family_execution`
@@ -133,21 +145,53 @@ shape* between a hand-rolled helper this family package owns and what the
 kernel's `finalize_family_execution` replay path currently expects — fixing
 it correctly means deciding how (or whether) `ScriptedNegarenaHarness`/
 `record_full_evidence_lifecycle` should model per-attempt retries the way the
-real executor does, not a one-line rename. Per this milestone's own rule
-("Any other baseline failure is a STOP"), this is reported, not fixed, here.
+real executor does, not a one-line rename. It matches this milestone's own
+instructions' example of **finalizer wiring** verbatim ("a family's
+evidence-recording harness ... emits an event vocabulary the kernel replayer
+no longer accepts — for example `logical_action_succeeded` where the
+scheduler now seals `action_attempt_succeeded` plus a `canonical_response`
+event" —
+negarena's `logical_action_succeeded`/`logical_action_agent_action_failure`
+vs. the kernel's required `action_attempt_succeeded` +
+`canonical_response`), which is spec section 5 item 4 ("wire the family to
+the finalizer") and is fixed in milestone 3, not here. Per the milestone's
+own instruction this is *recorded, not fixed, here, and the milestone
+continues* — it is not a STOP, and `baseline_failure_class` is
+`"finalizer_wiring"`, not `"other"`.
+
+**Failing test ids and cause, for milestone 3:**
+
+| Test id | Cause |
+|---|---|
+| `tests/test_negarena_kernel_finalizer.py::test_finalize_family_execution_does_not_crash_and_seals_a_typed_receipt` | Drives `finalize_family_execution`; its replay walk requires one `action_attempt_succeeded` event (with `canonical_response`) per logical action, which `harness.py::record_full_evidence_lifecycle` never emits. |
+| `tests/test_negarena_kernel_finalizer.py::test_finalize_family_execution_seals_the_complete_evidence_lifecycle` | Same cause as above. |
 
 **Baseline after the one authorized fix: 87 passed, 2 failed, 0 skipped —
-not clean. This milestone stops here rather than guess at the harness fix.**
-The two failing tests are exactly the ones spec section 5 item 4 ("wire the
-family to the finalizer") cares about — they are pre-existing tests already
-written for that purpose (`docs/negarena_codex_triage.md` Findings 1/3), now
-blocked again by a different defect than the one they were closed against
-before. `docs/negarena_adapter_status.md`'s "89 of 89, last verified
-2026-09-02" is stale for both reasons in sequence: it predates the path reorg
-(layer 1) and, since it must have passed the `action_attempt_succeeded` check
-at the time, it also predates whatever kernel-side change introduced or
-tightened that requirement (layer 2) — the status doc's own claim is not
-reproducible on this base until layer 2 is resolved.
+not clean, but the failure class is finalizer wiring (milestone 3), so this
+milestone's own analysis (leaf classification, primary, admission, deferred,
+reference gap, constructibility — all below) continues rather than stopping
+here.** The two failing tests are exactly the ones spec section 5 item 4
+("wire the family to the finalizer") cares about — they are pre-existing
+tests already written for that purpose (`docs/negarena_codex_triage.md`
+Findings 1/3), now blocked again by a different defect than the one they were
+closed against before. `docs/negarena_adapter_status.md`'s "89 of 89, last
+verified 2026-09-02" is stale for both reasons in sequence: it predates the
+path reorg (layer 1) and, since it must have passed the
+`action_attempt_succeeded` check at the time, it also predates whatever
+kernel-side change introduced or tightened that requirement (layer 2) — the
+status doc's own claim is not reproducible on this base until milestone 3
+resolves it.
+
+Per spec section 5's own ordering, item 4 (wire to the finalizer) comes
+*after* item 2 (declare leaf policy) and item 3 (implement `__call__`), so
+this finalizer-wiring gap does not block milestones 1/2: the protocol test
+(`tests/test_shared_runner_scoring_contract.py`) builds `FamilyScoringInput`
+via `replay_family_scoring_input` against sealed-evidence fixtures directly,
+never through `finalize_family_execution`, so leaf-policy declaration and
+`__call__` can be implemented and verified against it independently of this
+fix. It only blocks the family's own
+`tests/test_negarena_kernel_finalizer.py` integration tests and full
+end-to-end enrollment, which is exactly what milestone 3 is for.
 
 ```bash
 export AEREAD_NEGARENA_UPSTREAM_ROOT="/Users/sunzeyu/Documents/econ benchmark/upstream-negarena"
@@ -339,17 +383,25 @@ resolved by declaring `seat_scope="subject_seat"` and letting the kernel
 supply `seat_context`, which the next milestone's `__call__` implementation
 will use.
 
-## What blocks the next milestone
+## What milestone 3 still needs to do
 
-This milestone ends in a STOP, not a green baseline. Before any manifest/
-`__call__` change: `harness.py`'s `record_full_evidence_lifecycle` (and, by
-extension, `ScriptedNegarenaHarness`/`run_scripted_negarena_episode`) needs a
-real decision — outside this milestone's scope, and outside the "one
-mechanical fix" carve-out — about how to emit an `action_attempt_succeeded`
-event (with `canonical_response` and, if the family ever needs retries,
+This milestone does **not** end in a STOP — the baseline's one remaining
+failure class is finalizer wiring (spec section 5 item 4), which this
+milestone's own instructions route to milestone 3 rather than fixing here;
+see "Baseline failures to fix in milestone 3 (finalizer wiring)" above for
+the two test ids and the cause. It does not block milestones 1
+(declare leaf policy) or 2 (implement `__call__`), which the protocol test
+exercises through `replay_family_scoring_input` against sealed-evidence
+fixtures, never through `finalize_family_execution`.
+
+Before milestone 3 can close, `harness.py`'s `record_full_evidence_lifecycle`
+(and, by extension, `ScriptedNegarenaHarness`/`run_scripted_negarena_episode`)
+needs a real decision about how to emit an `action_attempt_succeeded` event
+(with `canonical_response` and, if the family ever needs retries,
 `action_attempt_id`) per logical action so that
 `finalize_family_execution`'s replay walk can read it back. Until that is
 resolved, `test_finalize_family_execution_does_not_crash_and_seals_a_typed_receipt`
 and `test_finalize_family_execution_seals_the_complete_evidence_lifecycle`
-cannot pass, and this migration should not proceed to declaring leaf policy
-or implementing `__call__` against an unverifiable finalizer path.
+cannot pass, and the family's own finalizer-integration suite stays red —
+but that is milestone 3's decision to make, not a precondition for starting
+milestones 1 or 2.
