@@ -52,6 +52,7 @@ from pathlib import Path
 from typing import Any, Mapping, Sequence
 
 from aeread.shared_runner.measurement import (
+    FamilyScoreSet,
     EstimandSpec,
     ImplementationRef,
     MeasurementLeafSpec,
@@ -579,6 +580,94 @@ class TermsBenchScorer:
         return score_protocol_compliance(
             self.protocol_compliance_leaf, outcome=outcome, evidence_refs=evidence_refs
         )
+
+
+    def __call__(
+        self, scoring_input: Any, *, evidence_refs: tuple[str, ...] = ()
+    ) -> FamilyScoreSet:
+        """The kernel's once-per-episode scoring hook (issue #75).
+
+        ``evaluation.py`` passes a ``FamilyScoringInput`` and expects every
+        declared leaf; this family had no ``__call__`` at all, so the
+        finalizer could not score it and none of its leaves could reach a
+        receipt. Scores exactly the leaves this case declares -- they are
+        regime-dependent, `(surplus_efficiency, feasible_agreement,
+        protocol_compliance)` for Overlap and `(no_deal_agreement,
+        protocol_compliance)` for No-deal -- rather than a fixed set, so a
+        case is never scored on a leaf it does not declare.
+
+        `protocol_compliance` is the admission leaf: it is the one leaf every
+        regime declares, and a trajectory that broke the protocol is an
+        invalid measurement rather than a low score. The primary leaf is the
+        family's declared estimand where the regime has it, and the
+        compliance leaf otherwise, so an included receipt always carries a
+        primary that case actually declares.
+        """
+        outcome = scoring_input.outcome
+        if not isinstance(outcome, Mapping):
+            raise ValueError("termsbench scoring input carries no outcome mapping")
+        scores: list[ScoreEnvelope] = []
+        if self.surplus_efficiency_leaf is not None:
+            scores.append(
+                self.score_surplus_efficiency(
+                    outcome=outcome, evidence_refs=evidence_refs
+                )
+            )
+        if self.feasible_agreement_leaf is not None:
+            scores.append(
+                self.score_feasible_agreement(
+                    outcome=outcome, evidence_refs=evidence_refs
+                )
+            )
+        if self.no_deal_agreement_leaf is not None:
+            scores.append(
+                self.score_no_deal_agreement(
+                    outcome=outcome, evidence_refs=evidence_refs
+                )
+            )
+        compliance = self.score_protocol_compliance(
+            outcome=outcome, evidence_refs=evidence_refs
+        )
+        scores.append(compliance)
+        primary = (
+            self.surplus_efficiency_leaf
+            or self.no_deal_agreement_leaf
+            or self.protocol_compliance_leaf
+        )
+        admission = {compliance.leaf.leaf_id, primary.leaf_id}
+        return FamilyScoreSet(
+            primary_leaf_id=primary.leaf_id,
+            scores=tuple(scores),
+            admission_leaf_ids=tuple(sorted(admission)),
+        )
+
+
+def declared_reference_implementations() -> tuple[ImplementationRef, ...]:
+    """Every implementation this family's leaves cite, across both regimes.
+
+    The resolver requires exactly the manifest's declared reference
+    providers while the receipt requires a pin for every cited
+    implementation, so the set must be the family-wide union: a No-deal case
+    cites the no-deal scorer, an Overlap case the surplus and feasibility
+    scorers, and every case the compliance scorer and the domain predicate.
+    Built from the same `_implementation` helper the leaves use, so a pin and
+    a leaf can never disagree about a digest.
+    """
+    return (
+        _implementation("termsbench_environment_domain_predicate", "environment.py"),
+        _implementation(FEASIBLE_AGREEMENT_SCORER_ID, "measurement.py"),
+        _implementation(NO_DEAL_AGREEMENT_SCORER_ID, "measurement.py"),
+        _implementation(PROTOCOL_COMPLIANCE_SCORER_ID, "measurement.py"),
+        _implementation(SURPLUS_EFFICIENCY_SCORER_ID, "measurement.py"),
+    )
+
+
+def declared_reference_provider_ids() -> tuple[str, ...]:
+    """The manifest's ``scoring.reference_provider_ids``, in canonical order."""
+    return tuple(
+        sorted({ref.implementation_id for ref in declared_reference_implementations()})
+    )
+
 
 
 def build_scorer(payload: Mapping[str, Any]) -> TermsBenchScorer:
