@@ -229,3 +229,116 @@ ruling governs both leaves identically, since both are declared `input_scope="tr
 leaves facing the same sensitivity-witness requirement.
 
 No code change made.
+
+---
+
+## Second independent review (2026-09-06)
+
+A second, later independent review of the same `24f07c4c` diagnostic-metric change raised two
+new findings, distinct from the ones dispositioned immediately above (those argued the metrics
+violated a spec clause; these accept the leaf scoping and the "no new scoring logic" reading and
+instead attack the *quality* of the R9(b) witness itself, plus a test regression in the same
+commit). Recorded verbatim below, then disposition, test names, and mutation results.
+
+### Finding 1 (should-fix, medium) — verbatim
+
+> the witness is satisfied only by trajectory CARDINALITY, which hollows out its signal.
+> `checked_transitions_count` counts transitions and `replayed_rounds_count` counts phase
+> instances; neither reflects budgets, violations or state content (measurement.py around lines
+> 438, 456, 650, 661). The family's fixture pair differs only in round count (1 round vs 3
+> rounds). The reviewer's concrete failure scenario: delete the budget inspection
+> (measurement.py ~443-455) or the hammer recomputation/comparison (~661-706), keep the
+> counters, and R9(b) still passes even though the leaf no longer checks anything.
+
+The finding's requested fix, in order of preference: (a) follow `collusion`'s precedent and make
+each leaf's own `status`/`primary` vary on a same-`family_case` fixture, sealed adversarially or
+malformed if necessary; (b) if a genuine violation cannot be sealed for a leaf, do not fabricate
+one — keep the counter, and write the limit down precisely (which leaf, why its verdict cannot
+vary on any sealable trajectory, that R9(b) is satisfied by check-extent rather than verdict
+variation, and the failure scenario above as a stated limit), stated plainly, not softened.
+
+**Disposition for `aucarena_budget_invariant`: (b) — a genuine violation cannot be sealed.**
+Verified by reading, not assumed: `envelope.valid` (the only gate through which a bid can ever
+reach `step()`'s state mutation) is computed by the *shared kernel scheduler itself*
+(`src/aeread/shared_runner/task/scheduler.py`: `valid = parsed.ok and legality is not None and
+legality.legal`), never by this family's own code, and `AucArenaPlugin.legal()`
+(`environment.py`) calls the same `vendored.bid_sanity_check` that already rejects `bid_price >
+budget`; `step()` never folds an invalid action into `round_bids`
+(`if not envelope.valid: continue`). Chasing this through `win_bid`
+(`_vendored_upstream.py`: `new_budget = budget - bid`) by induction over every item a seat bids
+on — each win only ever subtracts an already-legal, budget-bounded amount from that seat's
+*current* budget (already reduced by any prior win) — shows no sequence of raw scripted
+responses driven through the real scheduler can ever produce a negative recorded budget,
+regardless of how adversarial or malformed the responses are. The `illegal_bid_answer` fixture
+already checked into this repo (`tests/test_aucarena_replay.py`, used by
+`tests/test_shared_runner_scoring_contract.py`'s `_aucarena_fixtures` to witness
+`aucarena_bid_legality`) is exactly this family's version of collusion's malformed-round
+precedent — a scripted response that is illegal (`"500"`, below the item's starting price) — and
+it does *not* move `aucarena_budget_invariant`'s verdict, because the illegal bid is rejected by
+`legal()` before it can ever reach `step()`'s budget mutation; that is concrete evidence a
+fixture was tried, not merely argued to be impossible. The only way to force a negative recorded
+budget would be to fabricate `TransitionResult.state` directly instead of deriving it from a
+live episode — not a sealed fixture in the sense this family's other witnesses are — so no
+fixture was added. Limit written down in `docs/aucarena_adapter_status.md`'s "Known limits"
+section (new bullet), stated plainly rather than softened, including the reviewer's own failure
+scenario verbatim.
+
+**Disposition for `aucarena_hammer_rule`: (b) — a differing verdict is unreachable by
+construction.** `score_hammer_rule`'s only disagreement path (`measurement.py`, the
+`if recorded != recomputed: raise AucArenaMeasurementError(...)` branch) raises immediately
+rather than returning a differing `ScoreEnvelope`; a disagreement, if one were ever reachable,
+aborts finalization instead of scoring differently — so `status`/`primary` are unconditionally
+`("ok", 1.0)` on every successful (non-raising) replay, and no fixture, sealed or otherwise,
+could ever witness a varying verdict for this leaf. Same disclosure location and treatment as
+`aucarena_budget_invariant` above.
+
+Both leaves resolve as (b), so no fixture was added and this finding's commit is a docs-only
+commit (`docs(aucarena): state the witness limit for structurally-constant rule leaves`), per
+this task's own standing instruction for that case.
+
+### Finding 2 (should-fix, low) — verbatim
+
+> commit `24f07c4c` WEAKENED an existing assertion. `tests/test_aucarena_measurement.py` around
+> lines 213-225: a golden that previously asserted exact metric equality now checks only the
+> metrics' KEY SET, and the hammer golden does not inspect its new metric at all. The reviewer's
+> failure scenario: return arbitrary differing negative counts with unit `"usd"` and both the
+> golden and the R9 inequality still pass.
+
+**Disposition: CONFIRMED, fixed.** Verified against the actual diff
+(`git show 24f07c4c -- tests/test_aucarena_measurement.py`): the pre-`24f07c4c` assertion was
+`assert budget_score.metrics == {}` (exact); the commit replaced it with
+`assert set(budget_score.metrics) == {"checked_transitions_count"}` (key-set only, no value, no
+unit) and added no assertion at all against `hammer_score`'s new `replayed_rounds_count`.
+
+Fixed in `tests/test_aucarena_measurement.py::test_golden_1_all_rule_constraint_leaves_pass`:
+restored exact-equality assertions for both leaves' `metrics` dicts —
+`assert budget_score.metrics == {"checked_transitions_count": MetricValue(32.0, "count")}` and
+`assert hammer_score.metrics == {"replayed_rounds_count": MetricValue(32.0, "count")}` — pinning
+both the numeric value and the unit, not just the key. The expected value (`32.0` for both, on
+golden 1, `cases/aucarena/pilot/aucarena.pilot.successful_01.json`) is derived from the fixture's
+own known shape, not read off a run and copied blind: golden 1 auctions four items under
+`_min_markup_policy` (agent bids the legal minimum every round it can afford; `field_low` never
+bids, `max_bid_cnt=0`; `field_high` raises by the same 10% minimum markup). Driving the real
+scheduler and reading the recorded `phase_instances`/`consequences` in order gives item 1 sold in
+9 rounds (bid_round 0-8, agent wins at $1700), item 2 in 8 rounds (0-7, `field_high` wins at
+$1600), item 3 in 8 rounds (0-7, `field_high` wins at $1600), item 4 in 7 rounds (0-6,
+`field_high` wins at $1500) — one recorded `TransitionResult`/round per phase instance, so
+`checked_transitions_count == replayed_rounds_count == 9 + 8 + 8 + 7 == 32`. The arithmetic is
+spelled out in a comment at each assertion site, not only here.
+
+**Mutation check.** Backed up `src/aeread_families/aucarena/measurement.py` to `/tmp` (never
+`git checkout` on a file with committed-but-not-yet-pushed history), then, one change at a time,
+restoring from the `/tmp` copy between each:
+- changed `checked_transitions_count`'s unit from `"count"` to `"usd"` (value held at `32.0`) —
+  `test_golden_1_all_rule_constraint_leaves_pass` failed on the budget assertion, exactly as the
+  reviewer's failure scenario predicts;
+- changed `checked_transitions_count`'s value to `33.0` (unit held at `"count"`) — failed on the
+  same assertion;
+- changed `replayed_rounds_count`'s unit from `"count"` to `"usd"` (value held at `32.0`) —
+  failed on the hammer assertion;
+- changed `replayed_rounds_count`'s value to `27.0` (unit held at `"count"`) — failed on the same
+  assertion.
+
+All four mutations independently reproduced a failure; restored the file from the `/tmp` backup
+and reverified `git diff --stat` reports no change and the full
+`tests/test_aucarena_measurement.py` suite (20 tests) passes before committing.
