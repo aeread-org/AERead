@@ -143,10 +143,37 @@ def family_manifest() -> FamilyManifest:
                 # section for why terminal_wealth is primary and why
                 # bid_legality/settlement_exactness (but not survival) join
                 # it in admission.
+                #
+                # Ruling R12: leaves 1-3 (terminal_wealth, survival,
+                # bid_legality) are per-seat -- AlympicsWacScorer.__call__
+                # resolves ONE focal seat from
+                # `scoring_input.seat_context.subject_seats` and reports
+                # that seat's own value -- so each declares
+                # `seat_scope="subject_seat"`, with no `subject_reduction`:
+                # this family's cluster mapping is one focal seat per
+                # trial (spec section 2), never several subject seats
+                # scored together, so self-play is never silently
+                # averaged (measurement.py's `_resolve_focal_seat` reports
+                # `ambiguous_subject_seat` instead of attempting one).
+                # Leaf 4 (settlement_exactness) is whole-round and needs
+                # no focal seat at all, so it stays the default
+                # `seat_scope="cell"` (omitted here, digest-neutral).
                 "leaves": [
-                    {"leaf_id": "alympics_wac_terminal_wealth_leaf", "scope": "finalize_time"},
-                    {"leaf_id": "alympics_wac_survival_leaf", "scope": "finalize_time"},
-                    {"leaf_id": "alympics_wac_bid_legality_leaf", "scope": "finalize_time"},
+                    {
+                        "leaf_id": "alympics_wac_terminal_wealth_leaf",
+                        "scope": "finalize_time",
+                        "seat_scope": "subject_seat",
+                    },
+                    {
+                        "leaf_id": "alympics_wac_survival_leaf",
+                        "scope": "finalize_time",
+                        "seat_scope": "subject_seat",
+                    },
+                    {
+                        "leaf_id": "alympics_wac_bid_legality_leaf",
+                        "scope": "finalize_time",
+                        "seat_scope": "subject_seat",
+                    },
                     {
                         "leaf_id": "alympics_wac_settlement_exactness_leaf",
                         "scope": "finalize_time",
@@ -182,6 +209,25 @@ def family_manifest() -> FamilyManifest:
                 # ``implementation_id``s the four leaves' ``ImplementationRef``s
                 # name (one shared domain predicate, two baseline-run
                 # references, and one scorer per leaf).
+                #
+                # Ruling R12: none of these nine needs a per-focal-seat
+                # variant, and none may -- these are ``ImplementationRef``
+                # ids (which adapter source file backs a component), whose
+                # ``content_sha256`` is that file's own hash, never anything
+                # about which seat a given trial names as the subject.
+                # ``measurement.py``'s ``_opponent_panel_sha256`` (leaf 1/2's
+                # own content digest, a DIFFERENT field --
+                # ``ReferenceSpec.source_sha256``, not ``implementation_id``)
+                # is deliberately focal-seat-independent for the identical
+                # reason: this family's declared leaves must have ONE stable
+                # identity across every possible focal seat for the same
+                # case (the scoring-contract protocol test's cross-fixture
+                # leaf-identity check enforces this; see
+                # ``AlympicsWacScorer.leaves_for_focal_seat``'s docstring).
+                # A dedicated test resolves a run plan with each of the 5
+                # seats as the sole subject and confirms these same nine
+                # pins resolve every time (tests/test_alympics_wac_
+                # environment.py).
                 "reference_provider_ids": [
                     "alympics_wac_base_domain_predicate",
                     "alympics_wac_bid_legality_gate",
