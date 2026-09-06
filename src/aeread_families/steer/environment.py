@@ -38,6 +38,7 @@ from .cases import (
     UPSTREAM_REPO,
 )
 from .measurement import (
+    ANSWER_KEY_LEAF_ID,
     ANSWER_KEY_REFERENCE_IMPLEMENTATION_ID,
     SteerScorer,
     build_scorer as build_measurement_scorer,
@@ -122,6 +123,22 @@ def family_manifest() -> FamilyManifest:
                 "optimum_upper_bound_kind": "known",
                 "bound_status": "upstream_defined",
                 "outcome_support": "unit_interval",
+                # kernel_scoring_contract_spec.md section 3: every leaf this
+                # family publishes at finalize time, exactly one primary, and
+                # precisely the leaves that gate admission -- declared here,
+                # the one source of truth, never inferred from
+                # ``build_scorer`` or a test fixture. There is exactly one
+                # declared leaf (``steer_answer_key``, ``scope="finalize_time"``:
+                # it is a deterministic equality check with no judge/rater
+                # dependency, per spec section 4), so it is trivially both
+                # primary and the sole admission gate. See
+                # docs/steer_adapter_status.md's "Leaf policy" section for
+                # why.
+                "leaves": [
+                    {"leaf_id": ANSWER_KEY_LEAF_ID, "scope": "finalize_time"},
+                ],
+                "primary_leaf_id": ANSWER_KEY_LEAF_ID,
+                "admission_leaf_ids": [ANSWER_KEY_LEAF_ID],
             },
             "scoring": {
                 "scorer_id": SCORER_ID,
