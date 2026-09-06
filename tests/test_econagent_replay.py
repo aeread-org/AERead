@@ -887,6 +887,114 @@ def test_paired_history_pair_has_a_byte_identical_outcome_and_a_differing_trajec
         assert right_score.status == "ok"
 
 
+def test_call_output_is_sensitive_to_phase_instances_for_every_declared_leaf(
+    tmp_path: Path,
+) -> None:
+    """docs/econagent_migration_review.md finding 3: neither existing check
+    would catch ``EconAgentV1Scorer.__call__`` regressing to a constant,
+    always-``"ok"`` output that never actually reads its OWN call's
+    ``scoring_input.phase_instances``. ``tests/test_shared_runner_scoring_
+    contract.py``'s ``_SINGLE_FIXTURE_EXEMPT_FAMILIES`` entry for this
+    family means the shared protocol's ``_assert_trajectory_leaves_are_
+    witnessed`` (ruling R9(b)) never runs for ``econagent_v1`` at all --
+    and the paired-history test immediately above checks only
+    ``status == "ok"`` for both fixtures, never any measurement content,
+    so a scorer collapsed to a constant would pass it too.
+
+    A true R9(b) SAME-CASE witness is structurally impossible for this
+    family (see that test module's own comment on
+    ``_SINGLE_FIXTURE_EXEMPT_FAMILIES``'s ``econagent_v1`` entry:
+    ``world_seed``/``beta``/``gamma``/``h`` fully and deterministically
+    determine the whole trajectory, so two fixtures sharing one
+    ``family_case`` always share one trajectory too, and R9(b) needs a
+    byte-identical ``family_case`` with a DIFFERING trajectory). This test
+    therefore witnesses non-constancy a different, weaker way that needs
+    no economic coincidence and no same-case pair: two fixtures differing
+    ONLY in ``episode_length`` (one month vs. two, same ``world_seed``)
+    produce, by construction, a different NUMBER of agent-months in their
+    dense logs -- so ``econagent_budget_identity``'s and
+    ``econagent_tax_bracket_arithmetic``'s own ``checked_agent_months``
+    metric, and ``econagent_macro_trajectory``'s own per-month metric
+    count, MUST differ between the two if ``__call__`` genuinely reads its
+    OWN call's ``phase_instances``, and CANNOT differ if it reads a
+    cached, hardcoded, or otherwise constant trajectory instead. This
+    proves non-constancy, not genuine economic trajectory-dependence
+    (ruling R9(b)'s own stated limit) -- the paired-history test above
+    already establishes the byte-identical-outcome precondition
+    separately, and is not repeated here.
+    """
+    left_setup, left_plugin, left_case, left_evidence = run_kernel_contract_fixture(
+        tmp_path, world_seed=0, suffix="sensitivity_left", episode_length=1
+    )
+    right_setup, right_plugin, right_case, right_evidence = run_kernel_contract_fixture(
+        tmp_path, world_seed=0, suffix="sensitivity_right", episode_length=2
+    )
+    del left_setup, right_setup
+
+    left_input = replay_family_scoring_input(
+        plugin=left_plugin,
+        family_case=left_case,
+        evidence=left_evidence,
+        seat_context=SeatContext((), {}),
+    )
+    right_input = replay_family_scoring_input(
+        plugin=right_plugin,
+        family_case=right_case,
+        evidence=right_evidence,
+        seat_context=SeatContext((), {}),
+    )
+    # A genuinely different trajectory, not a coincidence of identical
+    # replayed state.
+    assert left_input.phase_instances != right_input.phase_instances
+
+    left_scores = normalize_family_score_set(
+        left_plugin.build_scorer(left_case)(
+            left_input, evidence_refs=left_input.evidence_refs
+        )
+    )
+    right_scores = normalize_family_score_set(
+        right_plugin.build_scorer(right_case)(
+            right_input, evidence_refs=right_input.evidence_refs
+        )
+    )
+
+    for leaf_id in (m.BUDGET_IDENTITY_LEAF_ID, m.TAX_BRACKET_LEAF_ID):
+        left_score = next(
+            score for score in left_scores.scores if score.leaf.leaf_id == leaf_id
+        )
+        right_score = next(
+            score for score in right_scores.scores if score.leaf.leaf_id == leaf_id
+        )
+        assert left_score.status == "ok"
+        assert right_score.status == "ok"
+        assert (
+            left_score.metrics["checked_agent_months"].value
+            != right_score.metrics["checked_agent_months"].value
+        ), (
+            f"{leaf_id}: checked_agent_months is identical across two fixtures "
+            "with a different episode_length -- __call__ is not reading this "
+            "call's own phase_instances"
+        )
+
+    left_macro = next(
+        score
+        for score in left_scores.scores
+        if score.leaf.leaf_id == m.MACRO_TRAJECTORY_LEAF_ID
+    )
+    right_macro = next(
+        score
+        for score in right_scores.scores
+        if score.leaf.leaf_id == m.MACRO_TRAJECTORY_LEAF_ID
+    )
+    assert left_macro.status == "ok"
+    assert right_macro.status == "ok"
+    assert len(left_macro.metrics) != len(right_macro.metrics), (
+        "econagent_macro_trajectory: metric count is identical across two "
+        "fixtures with a different episode_length -- __call__ is not reading "
+        "this call's own phase_instances"
+    )
+
+
 # ---------------------------------------------------------------------------
 # Pure, no bridge: RecordedBridgeCall/RecordedEconAgentEpisode round-tripping
 # and RecordedEconAgentBridge's ordering/exhaustion contract.
