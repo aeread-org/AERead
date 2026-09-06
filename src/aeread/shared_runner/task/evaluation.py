@@ -673,6 +673,40 @@ def _declared_deferred_leaf_ids(manifest: Any) -> tuple[str, ...]:
     )
 
 
+def _declared_case_conditional_leaf_ids(manifest: Any) -> frozenset[str]:
+    """The manifest's declared ``case_conditional`` leaf ids (ruling R13).
+
+    Not restricted to ``finalize_time`` leaves: rule 4 lets a leaf be both
+    ``case_conditional`` and ``deferred`` (declared-and-inapplicable on a
+    case where it does not apply, declared-and-deferred otherwise), so a
+    deferred, case-conditional leaf's id belongs here too. Empty when the
+    family declares no leaf policy at all.
+    """
+    if not _manifest_declares_leaf_policy(manifest):
+        return frozenset()
+    return frozenset(
+        leaf.leaf_id for leaf in manifest.measurement.leaves if leaf.case_conditional
+    )
+
+
+def _inapplicable_leaf_ids(plugin: Any, family_case: Mapping[str, Any]) -> frozenset[str]:
+    """Ruling R13 rule 2: the plugin's optional case-conditional applicability hook.
+
+    Applicability is decided by code over the validated case, not a
+    predicate language in data: ``plugin.inapplicable_leaf_ids(family_case)``
+    returns the ids of this execution's inapplicable, declared
+    ``case_conditional`` leaves. A plugin that declares no
+    ``case_conditional`` leaf need not define this hook at all -- the
+    default is empty, following the same optional-hook pattern
+    ``task/scheduler.py``'s ``close`` teardown hook uses (``getattr`` with a
+    ``None`` default, called only when callable).
+    """
+    hook = getattr(plugin, "inapplicable_leaf_ids", None)
+    if not callable(hook):
+        return frozenset()
+    return frozenset(hook(family_case))
+
+
 def _enforce_subject_seat_primaries(
     score_set: FamilyScoreSet, manifest: Any, seat_context: SeatContext
 ) -> None:
@@ -733,7 +767,10 @@ def _enforce_subject_seat_primaries(
 
 
 def _enforce_declared_leaf_policy(
-    score_set: FamilyScoreSet, manifest: Any, seat_context: SeatContext
+    score_set: FamilyScoreSet,
+    manifest: Any,
+    seat_context: SeatContext,
+    inapplicable_leaf_ids: frozenset[str],
 ) -> None:
     """The manifest is the source of truth for a family that declares one.
 
@@ -745,16 +782,64 @@ def _enforce_declared_leaf_policy(
     manifest is per-family migration work (spec section 5, item 2), not
     performed by this kernel change for any of the five already-migrated
     families (spec ruling R4).
+
+    Ruling R13: ``inapplicable_leaf_ids`` is ``I``, the plugin's
+    ``inapplicable_leaf_ids(family_case)`` hook result for this execution
+    (:func:`_inapplicable_leaf_ids`), computed once by the caller and
+    threaded here (and separately into the receipt -- see
+    ``finalize_family_execution``/``replay_family_receipt``/
+    ``audit_family_receipt``). Two checks, in order, distinguish three
+    failure modes with three different messages: first, ``I`` may only name
+    declared ``case_conditional`` leaves (an undeclared id in ``I`` is the
+    plugin's own contract violation, independent of anything the scorer
+    does); second, the scorer's returned set must be exactly the declared
+    finalize-time leaves minus ``I`` -- an inapplicable leaf the scorer
+    still returns, an applicable leaf the scorer omits, and an undeclared
+    leaf the scorer invents are each named separately.
     """
     if not _manifest_declares_leaf_policy(manifest):
         return
     declared = manifest.measurement.finalize_time_leaf_policy()
+    declared_case_conditional_ids = _declared_case_conditional_leaf_ids(manifest)
+    undeclared_inapplicable = sorted(
+        inapplicable_leaf_ids - declared_case_conditional_ids
+    )
+    if undeclared_inapplicable:
+        raise ValueError(
+            "plugin inapplicable_leaf_ids named a leaf that is not declared "
+            f"case_conditional: {undeclared_inapplicable}"
+        )
     produced_leaf_ids = tuple(score.leaf.leaf_id for score in score_set.scores)
-    if set(produced_leaf_ids) != set(declared.leaf_ids):
+    produced_leaf_id_set = set(produced_leaf_ids)
+    # Ruling R13: the set the scorer must produce is the declared
+    # finalize-time leaves minus I, not the raw declared set -- an
+    # inapplicable leaf being correctly omitted is not a violation.
+    expected_leaf_ids = set(declared.leaf_ids) - inapplicable_leaf_ids
+    # Each branch below keeps the pre-R13 "does not match its declared
+    # finalize-time leaf policy" phrase (kernel_contract_impl_review.md
+    # finding 5's original wording, matched by name in
+    # tests/test_shared_runner_family_scoring_policy_enforcement.py) AND
+    # names the specific violation ruling R13 requires distinguished --
+    # returning an inapplicable leaf, omitting an applicable one, and
+    # returning an undeclared one are three different mistakes with three
+    # different fixes, not one generic mismatch.
+    returned_inapplicable = sorted(produced_leaf_id_set & inapplicable_leaf_ids)
+    if returned_inapplicable:
         raise ValueError(
             "family scorer output does not match its declared finalize-time "
-            f"leaf policy: produced {sorted(produced_leaf_ids)}, declared "
-            f"{sorted(declared.leaf_ids)}"
+            f"leaf policy: returned an inapplicable leaf: {returned_inapplicable}"
+        )
+    omitted_applicable = sorted(expected_leaf_ids - produced_leaf_id_set)
+    if omitted_applicable:
+        raise ValueError(
+            "family scorer output does not match its declared finalize-time "
+            f"leaf policy: omitted an applicable leaf: {omitted_applicable}"
+        )
+    undeclared_returned = sorted(produced_leaf_id_set - expected_leaf_ids)
+    if undeclared_returned:
+        raise ValueError(
+            "family scorer output does not match its declared finalize-time "
+            f"leaf policy: returned an undeclared leaf: {undeclared_returned}"
         )
     if score_set.primary_leaf_id != declared.primary_leaf_id:
         raise ValueError(
@@ -846,8 +931,22 @@ def finalize_family_execution(
         )
     )
     _check_evidence_refs_are_scoring_input_verbatim(score_set, scoring_input)
-    _enforce_declared_leaf_policy(score_set, registration.manifest, seat_context)
-    deferred_leaf_ids = _declared_deferred_leaf_ids(registration.manifest)
+    # Ruling R13: the hook is called exactly once here, and its result is
+    # threaded into both the enforcement check and the receipt below --
+    # never recomputed a second time for either purpose.
+    inapplicable_ids = _inapplicable_leaf_ids(plugin, family_case)
+    _enforce_declared_leaf_policy(
+        score_set, registration.manifest, seat_context, inapplicable_ids
+    )
+    # Inapplicability takes precedence over deferral (rule 4): a
+    # case_conditional leaf that is also deferred is declared-and-deferred
+    # only on a case where it applies; on a case where it does not, it is
+    # declared-and-inapplicable instead, and the two receipt fields are
+    # disjoint by construction here.
+    deferred_leaf_ids = tuple(
+        sorted(set(_declared_deferred_leaf_ids(registration.manifest)) - inapplicable_ids)
+    )
+    inapplicable_leaf_ids = tuple(sorted(inapplicable_ids))
     execution.evidence.append_event(
         "score_recorded",
         # _replay_family_trajectory always appends the outcome event last.
@@ -892,6 +991,7 @@ def finalize_family_execution(
             primary_leaf_id=score_set.primary_leaf_id,
             scores=score_set.scores,
             deferred_leaf_ids=deferred_leaf_ids,
+            inapplicable_leaf_ids=inapplicable_leaf_ids,
             failure=failure,
             observability_limits=_observability_limits(setup.plan, cell),
             replay_level="state_and_score",
@@ -1095,7 +1195,12 @@ def replay_family_receipt(
         )
     )
     _check_evidence_refs_are_scoring_input_verbatim(replayed_score_set, scoring_input)
-    _enforce_declared_leaf_policy(replayed_score_set, registration.manifest, seat_context)
+    # Ruling R13: same "exactly once, threaded to both" discipline as
+    # finalize_family_execution.
+    inapplicable_ids = _inapplicable_leaf_ids(plugin, family_case)
+    _enforce_declared_leaf_policy(
+        replayed_score_set, registration.manifest, seat_context, inapplicable_ids
+    )
     if canonical_json_bytes(score_payload) != canonical_json_bytes(
         _score_event_payload(
             replayed_score_set, outcome_event_id=scoring_input.evidence_refs[-1]
@@ -1106,8 +1211,14 @@ def replay_family_receipt(
         replayed_score_set.scores
     ):
         raise ValueError("receipt family score does not replay deterministically")
-    if receipt.deferred_leaf_ids != _declared_deferred_leaf_ids(registration.manifest):
+    if receipt.deferred_leaf_ids != tuple(
+        sorted(set(_declared_deferred_leaf_ids(registration.manifest)) - inapplicable_ids)
+    ):
         raise ValueError("receipt deferred_leaf_ids does not match the declared policy")
+    if receipt.inapplicable_leaf_ids != tuple(sorted(inapplicable_ids)):
+        raise ValueError(
+            "receipt inapplicable_leaf_ids does not match the declared policy"
+        )
     expected_status, expected_inclusion, expected_failure = _score_admission(
         replayed_score_set
     )
@@ -1263,7 +1374,12 @@ def audit_family_receipt(
             )
         )
         _check_evidence_refs_are_scoring_input_verbatim(score_set, scoring_input)
-        _enforce_declared_leaf_policy(score_set, registration.manifest, seat_context)
+        # Ruling R13: same "exactly once, threaded to both" discipline as
+        # finalize_family_execution/replay_family_receipt.
+        inapplicable_ids = _inapplicable_leaf_ids(plugin, family_case)
+        _enforce_declared_leaf_policy(
+            score_set, registration.manifest, seat_context, inapplicable_ids
+        )
         events = [e for e in evidence.read_events() if e.event_type == "score_recorded"]
         expected_status, expected_inclusion, expected_failure = _score_admission(
             score_set
@@ -1290,7 +1406,14 @@ def audit_family_receipt(
             or canonical_json_bytes(receipt.get("failure"))
             != canonical_json_bytes(expected_failure)
             or tuple(receipt.get("deferred_leaf_ids") or ())
-            != _declared_deferred_leaf_ids(registration.manifest)
+            != tuple(
+                sorted(
+                    set(_declared_deferred_leaf_ids(registration.manifest))
+                    - inapplicable_ids
+                )
+            )
+            or tuple(receipt.get("inapplicable_leaf_ids") or ())
+            != tuple(sorted(inapplicable_ids))
         ):
             raise ValueError("receipt admission does not match the replayed score")
     elif (
