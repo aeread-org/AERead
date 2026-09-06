@@ -25,7 +25,7 @@ answer, one score.
 - **No scoring code exists upstream to delegate to.** The pinned commit's own message is
   "Remove STEER evaluation submodule" (`git show d66673c --stat`: deletes `.gitmodules`
   and the `STEER-evaluation` submodule reference). `canonical_point` equality is therefore
-  entirely AERead-authored per `docs/verifier_taxonomy.md` §3 — there is nothing to
+  entirely AERead-authored per `docs/research/verifier_taxonomy.md` §3 — there is nothing to
   import or subprocess-bridge for scoring, unlike tau3/econevals.
 - **The `Answers` schema is not uniform**, and upstream's own `README.md` documents it
   wrong (`correct: bool`) for several elements. Of the 8 declared elements: `transitivity`,
@@ -116,7 +116,7 @@ Branch assignment was done from element name + README description, **not** by pa
 `taxonomy.pkl` (itself another unfetched LFS pointer) — a stated limit (§6), not a silent
 claim of upstream's own taxonomy structure.
 
-## 2. Verifier declaration (per `docs/verifier_taxonomy.md`)
+## 2. Verifier declaration (per `docs/research/verifier_taxonomy.md`)
 
 One leaf per case, identical shape for all 8 elements:
 
@@ -142,7 +142,7 @@ equals the gold option_id from `Answers`, else 0.0; an out-of-range or non-numer
 is rejected as illegal/malformed before scoring (§4 goldens 3-4), never coerced.
 
 **Direction is declared `"maximize"` (higher-is-better) explicitly for every one of the 8
-elements.** This is not automatic: `docs/problem_bound_case_audit.md` P09 (GARP-violation
+elements.** This is not automatic: `docs/research/problem_bound_case_audit.md` P09 (GARP-violation
 scoring, on the same audit row-class as P22/STEER) is **lower-is-better** on the same
 general "property/answer" kind — the two must not be conflated by inheriting one
 direction convention. All 8 declared elements are accuracy-against-answer-key, not

@@ -89,7 +89,7 @@ executed and carries irrelevant CLI/argparse code).
 The importer must run twice and produce byte-identical manifests (parity check P1, §5),
 exactly as tau3's `cases.py` does.
 
-## 2. Verifier declaration (per `docs/verifier_taxonomy.md`)
+## 2. Verifier declaration (per `docs/research/verifier_taxonomy.md`)
 
 All leaves are deterministic (`evaluation_class="deterministic"`); there is no LLM judge
 anywhere in upstream's retail-negotiation scoring path, so `composition="leaf"` throughout —
@@ -225,7 +225,7 @@ inside `_calculate_global_score`; a corpus/doc footnote, not a scored discrepanc
   implementation comparison the way tau3's judge/DB parity is. A stronger check would require
   an independently-authored re-implementation of `_calculate_global_score`, which this spec
   does not schedule.
-- **`docs/benchmark_qc.md` does not exist on `main`** (its Gate 1/Gate 2 language quoted in
+- **`docs/operations/benchmark_qc.md` does not exist on `main`** (its Gate 1/Gate 2 language quoted in
   this spec's §0/§4 headers was read from the real, unmerged file at commit `2b831fec` on
   `origin/codex/procurement-harness-bakeoff`) — logged to the ledger (below) rather than
   re-derived, consistent with five other sibling adapter tasks' entries.

@@ -1,7 +1,7 @@
 # econagent_v1 adapter — second-reviewer adversarial pass (Claude)
 
 Scope: diff of `AERead/.worktrees/econagent` vs `origin/main` (26 files, ~7.4k
-lines). Read `docs/econagent_adapter_spec.md` in full, `docs/verifier_taxonomy.md`
+lines). Read `docs/econagent_adapter_spec.md` in full, `docs/research/verifier_taxonomy.md`
 in full, then every changed source/test/case file. Independently re-derived
 upstream facts against the actual pinned checkout at
 `/Users/sunzeyu/Documents/econ benchmark/upstream-econagent` (git HEAD =
@@ -38,11 +38,11 @@ hidden-skip issues.
 
 ---
 
-## WARNING 1 — `econagent_macro_trajectory` is declared `comparative`/`baseline_delta` with no comparator, which is exactly the mislabeling `docs/verifier_taxonomy.md` §6 warns against
+## WARNING 1 — `econagent_macro_trajectory` is declared `comparative`/`baseline_delta` with no comparator, which is exactly the mislabeling `docs/research/verifier_taxonomy.md` §6 warns against
 
 **File:** `src/aeread_families/econagent_v1/measurement.py:194-235` (`build_macro_trajectory_leaf`), also `docs/econagent_adapter_spec.md:346-354`.
 
-`docs/verifier_taxonomy.md` §6 defines `comparative`/`baseline_delta` as:
+`docs/research/verifier_taxonomy.md` §6 defines `comparative`/`baseline_delta` as:
 "Compare native outcomes with a named, versioned, executable policy under the
 same design," and explicitly requires "The comparator, opponent population,
 matching rule, and cluster structure are part of the estimand." Leaf 3 here has
@@ -75,7 +75,7 @@ reference kind — there isn't one, and nothing in the typed schema (only a
 docstring) discloses that. This is a schema-level ambiguity, not a coding
 mistake local to this adapter: the same tension would recur for any future
 family with a purely descriptive diagnostic and no objective/comparator. Worth
-raising to whoever owns `docs/verifier_taxonomy.md`/`aeread/shared_runner/
+raising to whoever owns `docs/research/verifier_taxonomy.md`/`aeread/shared_runner/
 measurement.py` — either add a `descriptive_only`/`objective_value_only`-shaped
 option outside the objective-scope requirement, or accept this as a documented,
 known misfit rather than a silently-taken shortcut. As shipped, the risk is

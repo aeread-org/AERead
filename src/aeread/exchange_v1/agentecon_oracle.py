@@ -1,5 +1,5 @@
 """Unified CaseOracle + Bayes-optimal carve-out (Slice 1 of the oracle carve-out spec,
-docs/experiments/2026-07-06_oracle_carveout_spec.md).
+docs/experiments/2026-07-06_oracle_carveout_spec.md, historical: not on main, see `git show d9f143ef:docs/design/2026-07-06_oracle_carveout_spec.md`).
 
 Scores an agent by welfare-efficiency against the *achievable* frontier W_bayes (not the god's-eye
 W*), and reports Delta_unc = W* - W_bayes (the Myerson-Satterthwaite floor) separately from the charged

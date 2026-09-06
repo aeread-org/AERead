@@ -64,6 +64,67 @@ not intended as a second reading order.
 - Tau3 retail: [adapter specification](families/tau3-retail/adapter_spec.md), [implementation status](families/tau3-retail/adapter_status.md), and [refund integration plan](families/tau3-retail/refund_external_benchmark_integration.md)
 - Data-center development: [negotiation implementation plan](families/datacenter/development_negotiation_implementation_plan.md)
 
+## External benchmark adapters
+
+Eleven external benchmarks are wrapped as shared-runner families. Each carries
+an implementation specification (what is wrapped, at which pinned commit, with
+which verifier shape), an implementation status (what is proven, what is a
+stated limit), and a review trail (independent reviews, the triage of their
+findings, the disposition, and the fix verification). The trail is kept because
+the disposition is only meaningful next to the findings it answers.
+
+| Adapter | Family package | Spec | Status | Disposition | Review trail |
+|---|---|---|---|---|---|
+| AgenticPay | `agenticpay_bilateral` | [spec](agenticpay_adapter_spec.md) | [status](agenticpay_adapter_status.md) | [disposition](agenticpay_review_disposition.md) | [claude](agenticpay_review_claude.md), [codex](agenticpay_review_codex.md), [triage](agenticpay_codex_triage.md) |
+| Alympics WAC | `alympics_wac` | [spec](alympics_adapter_spec.md) | [status](alympics_adapter_status.md) | [disposition](alympics_review_disposition.md) | [claude](alympics_review_claude.md), [codex](alympics_review_codex.md), [triage](alympics_codex_triage.md), [fix verification](alympics_fix_verification.md) |
+| AmazonHistoryPrice | `amazonbarg` | [spec](amazonbarg_adapter_spec.md) | [status](amazonbarg_adapter_status.md) | [disposition](amazonbarg_review_disposition.md) | [claude](amazonbarg_review_claude.md), [codex](amazonbarg_review_codex.md), [triage](amazonbarg_codex_triage.md), [fix verification](amazonbarg_fix_verification.md) |
+| AucArena | `aucarena` | [spec](aucarena_adapter_spec.md) | [status](aucarena_adapter_status.md) | [disposition](aucarena_review_disposition.md) | [claude](aucarena_review_claude.md), [codex](aucarena_review_codex.md), [triage](aucarena_codex_triage.md), [fix verification](aucarena_fix_verification.md) |
+| Algorithmic collusion | `collusion` | [spec](collusion_adapter_spec.md) | [status](collusion_adapter_status.md) | [disposition](collusion_review_disposition.md) | [claude](collusion_review_claude.md), [codex](collusion_review_codex.md), [triage](collusion_codex_triage.md), [fix verification](collusion_fix_verification.md) |
+| EconAgent | `econagent_v1` | [spec](econagent_adapter_spec.md) | [status](econagent_adapter_status.md) | [disposition](econagent_review_disposition.md) | [claude](econagent_review_claude.md), [codex](econagent_review_codex.md), [triage](econagent_codex_triage.md), [fix verification](econagent_fix_verification.md) |
+| EconEvals | `econevals` | [spec](econevals_adapter_spec.md) | [status](econevals_adapter_status.md) | [disposition](econevals_review_disposition.md) | [claude](econevals_review_claude.md), [codex](econevals_review_codex.md) |
+| GovSim | `govsim` | [spec](govsim_adapter_spec.md) | [status](govsim_adapter_status.md) | [disposition](govsim_review_disposition.md) | [claude](govsim_review_claude.md), [codex](govsim_review_codex.md), [triage](govsim_codex_triage.md), [fix verification](govsim_fix_verification.md) |
+| NegotiationArena | `negarena` | [spec](negarena_adapter_spec.md) | [status](negarena_adapter_status.md) | [disposition](negarena_review_disposition.md) | [claude](negarena_review_claude.md), [codex](negarena_review_codex.md), [triage](negarena_codex_triage.md), [fix verification](negarena_fix_verification.md) |
+| STEER | `steer` | [spec](steer_adapter_spec.md) | [status](steer_adapter_status.md) | [disposition](steer_review_disposition.md) | [claude](steer_review_claude.md), [codex](steer_review_codex.md), [triage](steer_codex_triage.md), [fix verification](steer_fix_verification.md) |
+| TERMS-Bench | `termsbench` | [spec](termsbench_adapter_spec.md) | [status](termsbench_adapter_status.md) | [disposition](termsbench_review_disposition.md) | [claude](termsbench_review_claude.md), [codex](termsbench_review_codex.md), [triage](termsbench_codex_triage.md) |
+
+These files sit at the root of `docs/` today. Their home is
+`families/<adapter>/` (`adapter_spec.md`, `adapter_status.md`, `reviews/`),
+matching Tau3 retail; the move is deferred until the open adapter migration
+stack lands, because every one of those pull requests edits these files. New
+adapter documents go straight to `families/<adapter>/`. See §Placement.
+
+## Kernel reviews and reports
+
+Point-in-time reviews of the shared runner. Each records what was examined at
+one commit and what was ruled; later rulings live in the issues they cite.
+
+- [Kernel scoring-contract design critique](kernel_contract_design_critique.md)
+- [Kernel scoring-contract conformance-gap review](kernel_contract_gap_review.md)
+- [Kernel scoring-contract implementation review](kernel_contract_impl_review.md)
+- [Kernel contract rebase review](kernel_contract_rebase_review.md)
+- [Shared-runner kernel hardening report](runner_hardening_report.md) (nineteen ledger entries, branch `zeyu/runner-hardening`, #55)
+- [CI cancellation-context diagnosis](ci_cancellation_context_diagnosis.md)
+
+Their home is `architecture/reviews/`; same deferral as above.
+
+## Placement
+
+Where a new document goes, so `docs/` stays navigable from this page:
+
+| Kind | Location |
+|---|---|
+| How to run, submit, review | `getting-started/` |
+| Kernel design, contracts, custody, package layout | `architecture/`; point-in-time kernel reviews and reports under `architecture/reviews/` |
+| Standards and procedures (QC, campaign SOP, errata, PR lanes, incident log) | `operations/` |
+| One family's case contract, QC profile, campaign design, adapter spec/status | `families/<family>/`; review trails under `families/<family>/reviews/`; checked-in parity receipts under `families/<family>/receipts/` |
+| Cross-family research: taxonomies, audits, experiment design, trajectory analyses | `research/` |
+| Ordered walkthroughs of the architecture | `walkthroughs/` |
+
+The root of `docs/` holds this index only. Every document is linked from here
+or from its section's `README.md`. Repository-root-style paths
+(`docs/operations/benchmark_qc.md`) are used for cross-references inside
+documents so they survive moves.
+
 ## Research and measurement
 
 - [Verifier taxonomy](research/verifier_taxonomy.md)

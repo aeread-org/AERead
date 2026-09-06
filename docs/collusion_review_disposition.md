@@ -154,7 +154,7 @@ designate for defect entries, and the same location every other family's
 ledger file lives: `ledger_entries/{agenticpay,alympics,amazonbarg,
 aucarena,econagent,econevals,govsim,negarena,steer}.md` all sit alongside
 it). It was already populated (three entries: the `D-10`
-`docs/benchmark_qc.md` corroboration, a `verifier_taxonomy.md` §11 drift
+`docs/operations/benchmark_qc.md` corroboration, a `verifier_taxonomy.md` §11 drift
 note, and an O(n²) scheduler-cost measurement) *before* the review was
 written (file mtime 10:30 vs. the review's own 11:10 write time on the same
 day), with real, checkable content matching exactly what the spec and

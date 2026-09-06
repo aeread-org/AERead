@@ -4,7 +4,7 @@
 commit `c447fafd439a20b84cdedeb2f8a85c4fad764745`: `buy_sell_game` (bilateral price negotiation,
 real-life grounding) and `ultimatum` (`MultiTurnUltimatumGame`, multi-round split-the-resource).
 `trading_game` is stretch and not covered here. Family name inside AERead is `negarena`; "upstream"
-always means the pinned checkout. Per the problem-bound audit (`docs/problem_bound_case_audit.md`,
+always means the pinned checkout. Per the problem-bound audit (`docs/research/problem_bound_case_audit.md`,
 row P17), this is a **comparative, opponent-dependent** measurement: utilities are known exactly,
 but win/gain depends on the paired opponent, so opponent identity and pairing are part of the
 estimand, not incidental run configuration.
@@ -78,7 +78,7 @@ estimand, not incidental run configuration.
 
 ## 1. Upstream dependency, pinning, and corpus enumeration (Gate 1)
 
-No `docs/benchmark_qc.md` exists in this repo to cite for the Gate-1/Gate-2 contract (see the
+No `docs/operations/benchmark_qc.md` exists in this repo to cite for the Gate-1/Gate-2 contract (see the
 ledger); this section states the convention this spec follows, reconstructed from
 `tau3_retail_adapter_spec.md` §1/§8 and `refund_external_benchmark_integration.md` §5-6.
 
@@ -124,7 +124,7 @@ ledger); this section states the convention this spec follows, reconstructed fro
   parameters, `iterations`, seat roles, upstream pin) — computed once by the importer, checked
   twice-run-identical (parity check analogous to tau3's P1), same as every other family.
 
-## 2. Verifier declaration (per `docs/verifier_taxonomy.md`)
+## 2. Verifier declaration (per `docs/research/verifier_taxonomy.md`)
 
 Two separate leaves; `composition_kind` fixed to `"leaf"` — no cross-seat or cross-scenario scalar.
 

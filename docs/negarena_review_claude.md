@@ -2,7 +2,7 @@
 
 Scope: `git diff origin/main` on `.worktrees/negarena` (branch `zeyu/negarena-adapter`,
 10 commits ahead of `origin/main`), read against `docs/negarena_adapter_spec.md` and
-`docs/verifier_taxonomy.md`. This is the second review of a cross-model pair; findings
+`docs/research/verifier_taxonomy.md`. This is the second review of a cross-model pair; findings
 below were independently reproduced against the real pinned upstream checkout
 (`/Users/sunzeyu/Documents/econ benchmark/upstream-negarena`, commit
 `c447fafd439a20b84cdedeb2f8a85c4fad764745`) and the provisioned bridge venv
@@ -59,7 +59,7 @@ below were independently reproduced against the real pinned upstream checkout
   terminal reason. `evaluation_class="deterministic"` for the `comparative` family is
   legal per the kernel's own `VerifierSpec.__post_init__` (only `rater_judge` is
   restricted to `judge_dependent`), and matches the taxonomy's explicit statement that
-  evaluation mode is orthogonal to verifier family (`docs/verifier_taxonomy.md` §2.2,
+  evaluation mode is orthogonal to verifier family (`docs/research/verifier_taxonomy.md` §2.2,
   §6).
 - No derived field is dressed up as independent confirmation: the parity harness's
   "upstream_direct" side (`parity.py::_run_upstream_direct` →

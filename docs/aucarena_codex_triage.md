@@ -251,7 +251,7 @@ currently covers — `test_record_bid_breaks_a_tie_via_the_injected_rng`
 `score_profit_vs_field` (`src/aeread_families/aucarena/measurement.py:626-680`)
 reports `primary = tested_profit - mean_field_profit`, an unweighted
 arithmetic mean of every field seat's terminal profit. Nowhere in
-`docs/aucarena_adapter_spec.md` or `docs/verifier_taxonomy.md` is "mean" (or
+`docs/aucarena_adapter_spec.md` or `docs/research/verifier_taxonomy.md` is "mean" (or
 any other aggregation rule) specified as the estimand's definition — the
 spec only says "against the named, declared field" (`aucarena_adapter_spec.md`
 line ~101), and `verifier_taxonomy.md`'s `head_to_head` definition ("field,

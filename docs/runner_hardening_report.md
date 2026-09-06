@@ -210,7 +210,7 @@ guard, additive/behavior-preserving for existing callers.
 
 ## Per-defect record (round 2)
 
-### D-10 — `docs/benchmark_qc.md` missing from main — BLOCKED (confirm-only, by brief)
+### D-10 — `docs/operations/benchmark_qc.md` missing from main — BLOCKED (confirm-only, by brief)
 Independently re-confirmed from this worktree: no `*benchmark_qc*` file and no
 "QC Gate" phrase anywhere in docs/ at the 2c913dd base; the file exists only at
 `2b831fe`, reachable solely from `origin/codex/procurement-harness-bakeoff`, which is

@@ -3,7 +3,7 @@
 Scope: `git diff origin/main...zeyu/collusion-adapter` in this worktree (23 files,
 ~5300 insertions — cases, `environment.py`, `economics.py`, `harness.py`,
 `measurement.py`, `replay.py`, and the five `test_collusion_*.py` files), read
-against `docs/collusion_adapter_spec.md` and `docs/verifier_taxonomy.md`.
+against `docs/collusion_adapter_spec.md` and `docs/research/verifier_taxonomy.md`.
 Verified independently: ran the full family suite (74 passed, 0 skipped,
 `test_collusion_cases/environment/measurement/harness/replay.py` +
 `test_case_catalog.py`) and ran four targeted mutation tests (backed up via
@@ -86,7 +86,7 @@ baseline profit (`~22.29`) while scoring an `alpha=10` agent trajectory
 meaningless "profit delta" that looks like an enormous collusion gain, with
 no error, no `invalid_measurement`, and no cross-check against
 `family_case["cost_scale"]` or any opponent identity. The taxonomy
-(`docs/verifier_taxonomy.md` §6) requires "the comparator, opponent
+(`docs/research/verifier_taxonomy.md` §6) requires "the comparator, opponent
 population, matching rule... are part of the estimand" for a `comparative`
 verifier — here that binding exists only in prose, not in code.
 
@@ -149,7 +149,7 @@ anywhere in this repository's history on any local or fetched remote branch
 no created file matching `collusion.md`, or in fact any `ledger_entries/*.md`
 file actually committed anywhere — the string only ever appears inside
 commit-message prose). This is the same class of gap the spec explicitly
-and correctly discloses for `docs/benchmark_qc.md` ("does not exist on
+and correctly discloses for `docs/operations/benchmark_qc.md` ("does not exist on
 main or this branch... the seventh independent benchmark file to confirm
 this gap," spec §6) — but that disclosure is not extended to
 `ledger_entries/collusion.md`, so a reviewer following the citation to
@@ -190,7 +190,7 @@ guarantee it's resting on.
   (`rule_constraint`/`constraint_satisfaction`, two `canonical_reference`/
   `canonical_point`, `comparative`/`baseline_delta`) are genuinely pure,
   closed-form arithmetic over a sealed trajectory — there is no rater/judge
-  anywhere in this family, consistent with `docs/verifier_taxonomy.md` §7.
+  anywhere in this family, consistent with `docs/research/verifier_taxonomy.md` §7.
   The `converged_<seat>` boolean is correctly presented as a diagnostic
   metric *inside* the distance leaves, not fabricated as an independent
   leaf or promoted to `objective_reference` (P04's warning is respected:

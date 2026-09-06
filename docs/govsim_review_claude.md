@@ -1,8 +1,8 @@
 # govsim adapter — independent review (second reviewer, Claude)
 
 Scope: `git diff origin/main...zeyu/govsim-adapter` (33 files, ~6950 lines added),
-read against `docs/govsim_adapter_spec.md`, `docs/verifier_taxonomy.md`,
-`docs/problem_bound_case_audit.md`. Reviewed read-only; no files under review were
+read against `docs/govsim_adapter_spec.md`, `docs/research/verifier_taxonomy.md`,
+`docs/research/problem_bound_case_audit.md`. Reviewed read-only; no files under review were
 modified.
 
 **Method note (goes beyond static reading):** the claims in
@@ -116,7 +116,7 @@ falsified verifier claim was located.
   `measurement_kind` field (rather than reading each leaf's own
   `verifier_family`/`evaluation_class`) to decide whether rater-provenance
   fields (rubric hash, rater identity, replicate count — per
-  `docs/verifier_taxonomy.md` section 7) are required would incorrectly expect
+  `docs/research/verifier_taxonomy.md` section 7) are required would incorrectly expect
   them for this family. Worth a one-line comment at the declaration site (there
   already is one, `environment.py:130-139`, but it doesn't call out the
   enum's imprecision) or a kernel-level enum split, tracked as a follow-up

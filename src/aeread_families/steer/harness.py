@@ -8,7 +8,7 @@ mutating tool calls -- this harness has no tool loop to drive at all: its
 only job is to serve the one scripted answer this family's single phase ever
 asks for, and to record that decision -- and, via :meth:`ScriptedSteerHarness
 .record_score`, the score computed from it -- as durable, sealed evidence
-events (``EvidenceSeal``, ``docs/shared_runner_portability_contract.md``
+events (``EvidenceSeal``, ``docs/architecture/shared_runner_portability_contract.md``
 section 2), so a harness-driven run's seal is genuinely auditable as a
 *scored* episode, not merely "some text was served" (docs/steer_codex_triage
 .md finding 8), even though this family owns no tool evidence of its own.

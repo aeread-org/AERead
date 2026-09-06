@@ -12,7 +12,7 @@ before any fix was made or disposition assigned.
 
 **Disposition: DEFERRED TO LEDGER.**
 
-**Confirmed independently.** Read `docs/verifier_taxonomy.md` §5.1/§6 and
+**Confirmed independently.** Read `docs/research/verifier_taxonomy.md` §5.1/§6 and
 `src/aeread_families/econagent_v1/measurement.py::build_macro_trajectory_leaf` directly. Leaf 3
 genuinely has no comparator, baseline, or optimum of any kind — a pure descriptive time series
 correctly labelled as such in its own docstring and in `docs/econagent_adapter_spec.md` §2/§6.
@@ -31,11 +31,11 @@ imperfect one in three places (spec §2, spec §6, the leaf builder's own docstr
 correct response to a kernel limitation, not a shortcut to fix from this branch.
 
 **Why deferred rather than fixed here.** This is squarely a kernel/taxonomy-owned defect
-(`docs/verifier_taxonomy.md` and `src/aeread/shared_runner/measurement.py`), not this adapter's
+(`docs/research/verifier_taxonomy.md` and `src/aeread/shared_runner/measurement.py`), not this adapter's
 own code, per this task's ground rules ("If a finding is about OUR kernel/runner rather than the
 adapter, append it to the ledger instead of fixing kernel code"). It is also not a new discovery:
 this exact class of gap was already logged once from this same adapter
-(`ledger_entries/econagent.md`'s milestone-2 entry, "docs/verifier_taxonomy.md's five semantic
+(`ledger_entries/econagent.md`'s milestone-2 entry, "docs/research/verifier_taxonomy.md's five semantic
 verifier families...") and once independently from a sibling adapter
 (`ledger_entries/amazonbarg.md`'s finding 2, already folded into master ledger `D-11`). Appended
 a new, corroborating entry to `ledger_entries/econagent.md` that cross-references both prior

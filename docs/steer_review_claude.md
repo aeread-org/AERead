@@ -8,7 +8,7 @@ skipped — the pinned upstream checkout, bridge venv, and flattened cache are
 all present on this machine).
 
 Focus per assignment: QC Gate-2 golden realness/state-protection proof,
-verifier-declaration correctness vs. `docs/verifier_taxonomy.md`, replay
+verifier-declaration correctness vs. `docs/research/verifier_taxonomy.md`, replay
 honesty, and Gate-1 corpus admission (digests/dedup/no silent resampling).
 
 ---
@@ -169,7 +169,7 @@ A reviewer or future maintainer following this citation to audit the
 schema-drift finding (`correct` vs `correct_answer`, `pure_nash` carrying
 both) has nothing to read. `docs/steer_adapter_status.md`'s own "Open item"
 section already flags a related but different missing file
-(`docs/benchmark_qc.md`); this second dangling reference is not flagged
+(`docs/operations/benchmark_qc.md`); this second dangling reference is not flagged
 anywhere.
 
 ### N2. `cases/steer/README.md` is stale and contradicts the rest of this diff: it says scoring isn't implemented yet
@@ -247,7 +247,7 @@ than a clear "set this env var" message (contrast with
   fixture (`pins.json`'s `zero_correct_sample_by_element.dsic_mechanism ==
   "6_0"`) is real upstream data, confirmed non-null and confirmed absent from
   both the committed case files and the cached admitted rows.
-- **Verifier declaration matches `docs/verifier_taxonomy.md` correctly**:
+- **Verifier declaration matches `docs/research/verifier_taxonomy.md` correctly**:
   `canonical_reference` / `canonical_point` / `deterministic` is an
   appropriate, non-judge-dependent label for an exact index-equality MCQA
   check (confirmed against `aeread/shared_runner/measurement.py`'s own

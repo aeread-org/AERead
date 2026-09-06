@@ -3,7 +3,7 @@
 Scope: full diff vs `origin/main` (23 files, ~6.5k lines: `cases/alympics_wac/base/*`,
 `docs/alympics_adapter_spec.md`, `docs/alympics_adapter_status.md`,
 `src/aeread_families/alympics_wac/*`, `tests/test_alympics_wac_*.py`), read against
-`docs/alympics_adapter_spec.md` and `docs/verifier_taxonomy.md`. Read-only; nothing edited.
+`docs/alympics_adapter_spec.md` and `docs/research/verifier_taxonomy.md`. Read-only; nothing edited.
 Verified: pinned upstream checkout present at commit `caed7c8c3b8f9de9ac8be1ba54407a51087affc5`
 (clean, matches the pin); full family suite (89 tests) passes locally; the checked-in
 `cases/alympics_wac/base/*.json` are byte-identical to a fresh `cases.py` regeneration
@@ -93,7 +93,7 @@ the adapter's real interface at all.
   invariant survives the real `step()`/`run_episode` plumbing (see M1) — the golden
   proves the upstream mechanics and the adapter's isolated helper are safe, not that the
   wired-together kernel path preserves the invariant.
-- **Verifier-declaration correctness against `docs/verifier_taxonomy.md`:** No
+- **Verifier-declaration correctness against `docs/research/verifier_taxonomy.md`:** No
   judge-dependent claim is mislabeled deterministic — this family declares no rater/judge
   leaf at all, and all 4 leaves are legitimately `evaluation_class="deterministic"` given
   a complete scripted trajectory (`measurement.py:41-54`). Leaf 1/2 correctly use
@@ -161,7 +161,7 @@ different claims about when the gate runs.
 ---
 
 ## Files read for this review
-- `docs/alympics_adapter_spec.md`, `docs/alympics_adapter_status.md`, `docs/verifier_taxonomy.md`
+- `docs/alympics_adapter_spec.md`, `docs/alympics_adapter_status.md`, `docs/research/verifier_taxonomy.md`
 - `src/aeread_families/alympics_wac/{__init__.py,cases.py,environment.py,measurement.py,harness.py,parity.py,replay.py}`
 - `tests/test_alympics_wac_{cases,environment,harness,measurement,parity,replay}.py`
 - `cases/alympics_wac/base/*.json`

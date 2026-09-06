@@ -17,7 +17,7 @@ draws and raises on divergence; verified this by hand — flipping
 `u_accept` after the fact does trigger `SchedulerContractError("... replay
 mismatch ...")`), Gate-1 digests are stable and dedup is a hard failure (not
 silent resampling), and the verifier declarations mostly follow
-`docs/verifier_taxonomy.md` correctly (comparative/head_to_head for the
+`docs/research/verifier_taxonomy.md` correctly (comparative/head_to_head for the
 value-axis leaves, rule_constraint/constraint_satisfaction for compliance,
 `evaluation_class="deterministic"` per realized/sealed episode is a legitimate
 application of taxonomy §2.2/§8's "a stochastic process can still feed a
@@ -167,7 +167,7 @@ analysis/reporting layer is aware of the regime split, and nothing in
   fail, not silent resampling); seed ranges are disjoint per
   `(family, regime)` by construction (`_candidate_seed_base`); 30/30 unique
   seeds and case ids confirmed on-disk.
-- **Verifier declarations vs. `docs/verifier_taxonomy.md`:** the four leaves'
+- **Verifier declarations vs. `docs/research/verifier_taxonomy.md`:** the four leaves'
   `verifier_family`/`reference_kind` pairs are valid combinations under
   `_REFERENCE_KINDS` (`comparative`/`head_to_head` for leaves 1-3,
   `rule_constraint`/`constraint_satisfaction` for leaf 4); nothing

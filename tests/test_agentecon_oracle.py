@@ -1,5 +1,5 @@
 """Probe test for the unified CaseOracle + Bayes-optimal carve-out (Slice 1 of
-docs/experiments/2026-07-06_oracle_carveout_spec.md).
+docs/experiments/2026-07-06_oracle_carveout_spec.md, historical: not on main, see `git show d9f143ef:docs/design/2026-07-06_oracle_carveout_spec.md`).
 
 Provider-free: exercises the exact 2x2 bilateral backend only (no LLM). Verifies the §7 carve-out
 invariants and the two anchors (degenerate-prior => Delta_unc = 0; information-matters => Delta_unc > 0).
