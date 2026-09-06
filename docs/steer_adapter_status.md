@@ -83,6 +83,60 @@ sealed, so nothing here waits on an artifact that "may not exist yet" (spec
 section 4). The leaf is declared `scope="finalize_time"`, and no
 `scope="deferred"` leaf exists for this family to wait on anything at all.
 
+## Scoring-contract enrollment (kernel_scoring_contract_spec.md, migration milestone 3 of 3)
+
+This family is dropped from `_NOT_YET_MIGRATED_TRUSTED_KEYS`
+(`tests/test_shared_runner_scoring_contract.py`) and accounted for instead in
+the new `_BRIDGE_GATED_ENROLLED_FAMILY_VERSIONS` set, mirroring govsim's own
+bridge-gated shape (`docs/govsim_migration_review.md` in the reference
+migration): this family's fixtures need the real, cached, flattened STEER
+corpus (`AEREAD_STEER_DATA_ROOT`, an out-of-repo, license-constrained
+fixture), so folding it into the always-on
+`test_every_registered_family_obeys_the_scoring_contract` would make every
+OTHER family's own coverage inside that test newly skip whenever the cache is
+missing. `test_steer_obeys_the_scoring_contract` runs the identical protocol
+check in its own, separately skippable test instead.
+
+Its paired-history fixture (`_steer_fixture_pair`) drives two real episodes of
+the SAME checked-in case (same `question_id`, same `source_sha256`, so this
+leaf's declared identity stays stable across both) through the real
+`minimal_chat` harness/provider stack, each submitting a different
+out-of-range `option_id`. `SteerPlugin.legal()` rejects both with the same
+`failure_code` (`"option_id_out_of_range"`) and the same `selected_option_id`
+(`None`) regardless of exactly how far out of range each is, so `outcome()`
+is byte-identical for both while the underlying trajectory (the differently-
+valued submitted response recorded in each episode's own sealed evidence)
+genuinely differs — verified directly in the test
+(`canonical_json_bytes(left_input.outcome) ==
+canonical_json_bytes(right_input.outcome)` and
+`left_input.phase_instances != right_input.phase_instances`), not merely
+asserted in a comment. `docs/steer_migration_plan.md`'s milestone-0
+determination that this pair is "constructible" is therefore now actually
+exercised, not just recorded.
+
+`steer_answer_key` is declared `input_scope="answer"` — neither
+`"terminal_state"` nor `"trajectory"` — so ruling R7's mislabelling
+contrapositive applies vacuously to this family (`terminal_leaf_ids` is
+empty); the pair above satisfies the protocol test's unconditional
+paired-history cardinality requirement, not R7's contrapositive itself.
+
+`tests/test_steer_e2e.py::test_finalize_family_execution_scores_a_real_steer_episode_through_the_production_path`
+(pre-existing, driving `resolve_run_plan` → `execute_plan_cell` →
+`finalize_family_execution` for a correct submission) now additionally
+asserts that the returned `EvaluationReceipt` carries EXACTLY
+`family_manifest().measurement.finalize_time_leaf_policy()`'s declared leaf
+set and primary — not merely that a receipt came back — alongside its
+existing `status == "ok"` / `inclusion_status == "included"` assertions.
+
+Verified both with the bridge fixtures exported and without (both fall back
+to the same on-disk cache path either way, so neither run hides a skip — see
+the milestone-0 baseline note above) and, separately, with
+`AEREAD_STEER_FIXTURES_REQUIRED=1` set against the real, provisioned cache
+(a genuine certifying run): `tests/test_steer_*.py` (7 modules) +
+`tests/test_shared_runner_scoring_contract.py` +
+`tests/test_shared_runner_smoke.py` — **173 passed, 0 failed, 0 skipped**, all
+three ways.
+
 ## Evidence
 
 **Family test suite: 138 passed, 0 failed** across all 6 `test_steer_*.py`
