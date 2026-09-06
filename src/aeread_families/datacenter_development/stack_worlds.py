@@ -70,8 +70,12 @@ SEATS = (
     {"id": "customer", "role": "customer"},
     {"id": "lender", "role": "lender"},
 )
+# Every agreement can run its full allowance: MAX_ROUNDS offers, MAX_ROUNDS
+# responses and one commit. Anything less silently penalises a developer for
+# using the negotiation rounds the world grants it.
+WORST_CASE_ACTIONS = len(SEQUENCE) * (2 * MAX_ROUNDS + 1)
 EPISODE = {
-    "max_logical_actions": 30,
+    "max_logical_actions": WORST_CASE_ACTIONS,
     "termination": [
         "agreement_stack_executed",
         "developer_walk",

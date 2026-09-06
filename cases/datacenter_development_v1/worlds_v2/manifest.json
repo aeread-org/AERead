@@ -1,7 +1,7 @@
 {
-  "artifact_sha256": "cbb14cdbb9885b2c67233fc3a9876e64ed9e44f3d8d39e411801285e27bafec6",
+  "artifact_sha256": "a93715ef7592a8620a3d3d74cc784e7ccdbf2f63c216bb96b8a22a270d6a3f68",
   "generator_id": "datacenter_v2_world_generator",
-  "generator_sha256": "fe0871eef7d4c95aebe4b3ef942dbbd9ccea09b9bb83e115694493048a1b062b",
+  "generator_sha256": "8efbd0c7e46e277447f532b4460c51e7aa8aa73e1c440d8821d9d72546fc71a8",
   "generator_version": "1.0.0",
   "master_seed": 20260903,
   "pack_id": "datacenter_development_v2_worlds_v1",
@@ -20,7 +20,7 @@
   "worlds": [
     {
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_001",
-      "content_sha256": "5aa0cd12eaf0182f71b96bd081923d6a70c33501a006c0e48045ae49c6582dce",
+      "content_sha256": "f69db55b282c1c287a58bb30b4c85e67d82d13d16a6bc81724dd58732e76fddc",
       "explanation": "The customer accepts a weaker take-or-pay and credit-support package, but the lender's private minimums make that service agreement unbankable, so the loan never funds and construction spend exhausts the equity budget.",
       "file": "revenue_without_bankability_001.json",
       "knobs": {
@@ -75,7 +75,7 @@
     },
     {
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_002",
-      "content_sha256": "7116166e3755b0b071857294ac7087e69d26b3e7e572ceef85165596bfae7aa1",
+      "content_sha256": "749b6b801614a03e4f6c3358543257a140285a3e1b5c2a84e1918217c049b6c7",
       "explanation": "The customer accepts a weaker take-or-pay and credit-support package, but the lender's private minimums make that service agreement unbankable, so the loan never funds and construction spend exhausts the equity budget.",
       "file": "revenue_without_bankability_002.json",
       "knobs": {
@@ -130,7 +130,7 @@
     },
     {
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_003",
-      "content_sha256": "cfd8cfb32ade3ad69b8c2cfdf72faa69ce05ba37be113eef4af71207acea0d62",
+      "content_sha256": "14738b6d2c71cb5865aee23d24903245e89445da0665121a65a14490646686a3",
       "explanation": "The customer accepts a weaker take-or-pay and credit-support package, but the lender's private minimums make that service agreement unbankable, so the loan never funds and construction spend exhausts the equity budget.",
       "file": "revenue_without_bankability_003.json",
       "knobs": {
@@ -185,7 +185,7 @@
     },
     {
       "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_004",
-      "content_sha256": "b5dd66f3a7aa31e45cf5c2437163d29ae7dd8219a36c326909c98c563b181573",
+      "content_sha256": "27caa8f1b45ef20a9582426e8387b3a6cff9d443ea622d8588bb9f872bb12fbb",
       "explanation": "The customer accepts a weaker take-or-pay and credit-support package, but the lender's private minimums make that service agreement unbankable, so the loan never funds and construction spend exhausts the equity budget.",
       "file": "revenue_without_bankability_004.json",
       "knobs": {
@@ -240,7 +240,7 @@
     },
     {
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_001",
-      "content_sha256": "ffcc23b4fb876b8bbd925b154d34e75ff888dd05f6cdcb9606b008428f202ce0",
+      "content_sha256": "f300f404a1129e7a565fc1798bf813215cd50b82e9fd001b88b7ac03e13e7cc8",
       "explanation": "Revenue only begins once construction and energization land in the ready month. A loan maturing in that same month looks like a shorter, cheaper tenor, but the project cannot repay principal before revenue has accumulated.",
       "file": "delayed_revenue_001.json",
       "knobs": {
@@ -295,7 +295,7 @@
     },
     {
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_002",
-      "content_sha256": "e481ab75381882f78e06950071f9f27b533feacb63b35320ff0fd6369096bdfc",
+      "content_sha256": "cf790e1871811904f05fa4eca69d1d72fa515ab94fe94dbbdd7cd52ff2f908ff",
       "explanation": "Revenue only begins once construction and energization land in the ready month. A loan maturing in that same month looks like a shorter, cheaper tenor, but the project cannot repay principal before revenue has accumulated.",
       "file": "delayed_revenue_002.json",
       "knobs": {
@@ -350,7 +350,7 @@
     },
     {
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_003",
-      "content_sha256": "32ecd81fe27f77c723106d637ce5e0d7b0392830301118196f0a482d69a6d2e7",
+      "content_sha256": "395538eb0d2618ee58304388bb26059aad75c5d9dacc99096d1433847ef3933e",
       "explanation": "Revenue only begins once construction and energization land in the ready month. A loan maturing in that same month looks like a shorter, cheaper tenor, but the project cannot repay principal before revenue has accumulated.",
       "file": "delayed_revenue_003.json",
       "knobs": {
@@ -405,7 +405,7 @@
     },
     {
       "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_004",
-      "content_sha256": "4119f7813ede3e100252df761199aad202dca555ff59fe01ce82e2ab590187ba",
+      "content_sha256": "7f908f98af8b830585a37407de6989fb5bbc6c13f90841a3b9bb9932c53f43e7",
       "explanation": "Revenue only begins once construction and energization land in the ready month. A loan maturing in that same month looks like a shorter, cheaper tenor, but the project cannot repay principal before revenue has accumulated.",
       "file": "delayed_revenue_004.json",
       "knobs": {
@@ -461,7 +461,7 @@
     },
     {
       "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_001",
-      "content_sha256": "5098fab5812a904c5ec6f8192182238c5cc59d794b03613ff89f95258e107ee9",
+      "content_sha256": "84590a5fd1f58bf5c4286e5bbb35ee767d4986da6d9040f36159aa003c73c709",
       "explanation": "A larger headline commitment reads as generous, but the advance-rate and loan-to-cost draw conditions fund far less of each month's spend than the priced facility, so equity runs out before completion.",
       "file": "restrictive_draws_001.json",
       "knobs": {
@@ -517,7 +517,7 @@
     },
     {
       "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_002",
-      "content_sha256": "162f9929f0464045c40f0be368dbdaf1e59b1a42ef4d979139ff836385249433",
+      "content_sha256": "cb9b8f3893ef043b5c26f6f56625d3af4ae7bf30bdd3b5e34d3b07a86b6b8284",
       "explanation": "A larger headline commitment reads as generous, but the advance-rate and loan-to-cost draw conditions fund far less of each month's spend than the priced facility, so equity runs out before completion.",
       "file": "restrictive_draws_002.json",
       "knobs": {
@@ -573,7 +573,7 @@
     },
     {
       "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_003",
-      "content_sha256": "3fbf44fd3860117bae6846b42175240edf98b004ccd63a75a34965824a4181bb",
+      "content_sha256": "0a6fd5e2d38b10f3fa2210b6c36ed2ca2117e537bd5417a1d0e249ae80d2d3da",
       "explanation": "A larger headline commitment reads as generous, but the advance-rate and loan-to-cost draw conditions fund far less of each month's spend than the priced facility, so equity runs out before completion.",
       "file": "restrictive_draws_003.json",
       "knobs": {
@@ -629,7 +629,7 @@
     },
     {
       "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_004",
-      "content_sha256": "7dfc975c12fa2d8cf543f3a91fb14e4f09f6e37b6021a3a3dfdc72b4c44c5f70",
+      "content_sha256": "3b360dea3259742bc0e31232bd19e113d80072769705f3abe8b3ff10a06c3f9d",
       "explanation": "A larger headline commitment reads as generous, but the advance-rate and loan-to-cost draw conditions fund far less of each month's spend than the priced facility, so equity runs out before completion.",
       "file": "restrictive_draws_004.json",
       "knobs": {
@@ -685,7 +685,7 @@
     },
     {
       "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_001",
-      "content_sha256": "178c4c08c1021206ded6879bdb2f89c65a948e38985151f0aed07cf6491a0536",
+      "content_sha256": "e211630ede5e79df0b6b80b71bf027e5d681ed36ed65ce72a5dd23a4afeba789",
       "explanation": "The priced facility clears its coverage covenant by a thin margin during the tenant ramp. The tenant offers a higher rate in return for a slower ramp, which reads as more revenue but removes the early-period cash the covenant is measured on, and the loan breaches its minimum DSCR before the ramp completes. Leverage is not the lever here: loan-to-cost caps well below the point where stabilised coverage is at risk.",
       "file": "covenant_cliff_001.json",
       "knobs": {
@@ -741,7 +741,7 @@
     },
     {
       "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_002",
-      "content_sha256": "28fd21790a68305c6ed5e0e35c1a9a95ab1c51554d4b960c4428127884c2947f",
+      "content_sha256": "72394f4d432e78ddd50386ff46cd16144ca6a94f96628df2c172822f2b7507c9",
       "explanation": "The priced facility clears its coverage covenant by a thin margin during the tenant ramp. The tenant offers a higher rate in return for a slower ramp, which reads as more revenue but removes the early-period cash the covenant is measured on, and the loan breaches its minimum DSCR before the ramp completes. Leverage is not the lever here: loan-to-cost caps well below the point where stabilised coverage is at risk.",
       "file": "covenant_cliff_002.json",
       "knobs": {
@@ -797,7 +797,7 @@
     },
     {
       "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_003",
-      "content_sha256": "5746d6efb89f929e4823bf300987b6816caf6b2c7cafc1df1b0c1f62f7d0816b",
+      "content_sha256": "044d214a792feba3c2cf8bfe30f87e90638e34a1fc69f5cc7d0af1d51315148d",
       "explanation": "The priced facility clears its coverage covenant by a thin margin during the tenant ramp. The tenant offers a higher rate in return for a slower ramp, which reads as more revenue but removes the early-period cash the covenant is measured on, and the loan breaches its minimum DSCR before the ramp completes. Leverage is not the lever here: loan-to-cost caps well below the point where stabilised coverage is at risk.",
       "file": "covenant_cliff_003.json",
       "knobs": {
@@ -853,7 +853,7 @@
     },
     {
       "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_004",
-      "content_sha256": "9e97b1a590db69e5240627cb3d042e2a2e5f58a8c809c7f18dc4edc05d9dfd1c",
+      "content_sha256": "49aa205cfe2b1ddd2965c60e1957b6436b1e7a09453d338cdf76b899085a65f7",
       "explanation": "The priced facility clears its coverage covenant by a thin margin during the tenant ramp. The tenant offers a higher rate in return for a slower ramp, which reads as more revenue but removes the early-period cash the covenant is measured on, and the loan breaches its minimum DSCR before the ramp completes. Leverage is not the lever here: loan-to-cost caps well below the point where stabilised coverage is at risk.",
       "file": "covenant_cliff_004.json",
       "knobs": {
@@ -909,7 +909,7 @@
     },
     {
       "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_001",
-      "content_sha256": "a82295ebb52bed025b9d22fe4f38e03362ee3d51c125d4c2e5f0809d69597a21",
+      "content_sha256": "182d1cdd161a52add0d28b3ba942f6b55569cb233f503d22b935bc177e40d6af",
       "explanation": "Construction lands several months after energization. The customer pays a premium for service gated only on power readiness, so billing nominally starts before any capacity exists: the schedule earns nothing while SLA credits and delay damages accrue against it, and debt service is left uncovered. The premium is a liability transfer dressed as revenue.",
       "file": "liability_transfer_001.json",
       "knobs": {
@@ -964,7 +964,7 @@
     },
     {
       "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_002",
-      "content_sha256": "4060c0bc720976208f027a9c6ccfc63a80b2efe69f8824eeca286101dc3d822d",
+      "content_sha256": "a8f385dea0e2dfe52ef35e7f5209a3fdeb030cff6970bfed96a81bbdafa99309",
       "explanation": "Construction lands several months after energization. The customer pays a premium for service gated only on power readiness, so billing nominally starts before any capacity exists: the schedule earns nothing while SLA credits and delay damages accrue against it, and debt service is left uncovered. The premium is a liability transfer dressed as revenue.",
       "file": "liability_transfer_002.json",
       "knobs": {
@@ -1019,7 +1019,7 @@
     },
     {
       "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_003",
-      "content_sha256": "2c68cb52d37be07a3a7520960d966e3fcb541a8382b2ff8d882212e4f7009447",
+      "content_sha256": "4ef1566fba5750eb08af21bedc7b35056da377e466adfc7283b067547bd2075d",
       "explanation": "Construction lands several months after energization. The customer pays a premium for service gated only on power readiness, so billing nominally starts before any capacity exists: the schedule earns nothing while SLA credits and delay damages accrue against it, and debt service is left uncovered. The premium is a liability transfer dressed as revenue.",
       "file": "liability_transfer_003.json",
       "knobs": {
@@ -1075,7 +1075,7 @@
     },
     {
       "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_004",
-      "content_sha256": "a5fb7eec8800a408c0094420c4c4584b409574d129796afbd4fe2ffef2bf49a7",
+      "content_sha256": "1cea6a699e0555a9e845f94a3734016846fb8d88e9f3b94d93fb605edd1f5839",
       "explanation": "Construction lands several months after energization. The customer pays a premium for service gated only on power readiness, so billing nominally starts before any capacity exists: the schedule earns nothing while SLA credits and delay damages accrue against it, and debt service is left uncovered. The premium is a liability transfer dressed as revenue.",
       "file": "liability_transfer_004.json",
       "knobs": {
@@ -1130,7 +1130,7 @@
     },
     {
       "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_001",
-      "content_sha256": "18776608c33e9b2f97a0ae0eda9cb39c549c6146923b028d57e5b46536f3687d",
+      "content_sha256": "baa803e2ffcfda06e4cb9889b271a7ff52dedaa55a83c330ba3aa60b5c5b9a2f",
       "explanation": "A fee-free loan offer is countered with a message that claims only the fee changed, while the written counter also cuts the advance rate and loan-to-cost limit. Adopting the counter as described leaves the project underfunded.",
       "file": "verbal_written_divergence_001.json",
       "knobs": {
@@ -1185,7 +1185,7 @@
     },
     {
       "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_002",
-      "content_sha256": "c2674a23118ca59dcfa3022347ef2b858c33ca4bda06ea9039211283067e3a39",
+      "content_sha256": "523c0d88e23e08ade7a14fbed1312cecc8d747d549d1d13f205d8105269a3042",
       "explanation": "A fee-free loan offer is countered with a message that claims only the fee changed, while the written counter also cuts the advance rate and loan-to-cost limit. Adopting the counter as described leaves the project underfunded.",
       "file": "verbal_written_divergence_002.json",
       "knobs": {
@@ -1240,7 +1240,7 @@
     },
     {
       "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_003",
-      "content_sha256": "9e33ad3b2b7395e0f549dc816a82e94ff4feb701fd6f71c1c416597ab03659b2",
+      "content_sha256": "c41103af6b29a871e0b720f48a9686615086633ece41ffcca349c120e73936dc",
       "explanation": "A fee-free loan offer is countered with a message that claims only the fee changed, while the written counter also cuts the advance rate and loan-to-cost limit. Adopting the counter as described leaves the project underfunded.",
       "file": "verbal_written_divergence_003.json",
       "knobs": {
@@ -1295,7 +1295,7 @@
     },
     {
       "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_004",
-      "content_sha256": "9b94f69a0422ba4615e5509c2d2927ab370927b6972375e8f58b249d9431696c",
+      "content_sha256": "0a461cf4f022a3ef1f249c37d9b920630082607aae846c24a22e648e38ed3d25",
       "explanation": "A fee-free loan offer is countered with a message that claims only the fee changed, while the written counter also cuts the advance rate and loan-to-cost limit. Adopting the counter as described leaves the project underfunded.",
       "file": "verbal_written_divergence_004.json",
       "knobs": {

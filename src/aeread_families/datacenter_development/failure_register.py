@@ -58,6 +58,13 @@ ATTRIBUTION_BY_CONDITION = {
 # original condition stays visible.
 RECLASSIFY_BY_MESSAGE = (
     (
+        "logical-action budget exceeded",
+        "budget",
+        "episode_action_budget_exhausted",
+        "The developer used its negotiation rounds and ran out of episode "
+        "actions. That is a declared ceiling, not a fault in the environment.",
+    ),
+    (
         "digits) for integer string conversion",
         "model",
         "oversized_integer_beyond_decode_limit",

@@ -388,3 +388,25 @@ def test_the_requirement_is_visible_before_the_binding_commitment() -> None:
         assert required == CAPACITY_KW, world["file"]
         assert max(facts["built_capacity_kw_by_month"]) == required, world["file"]
         assert max(facts["energized_capacity_kw_by_month"]) == required, world["file"]
+
+
+def test_the_episode_budget_covers_a_fully_negotiated_stack() -> None:
+    """A developer must never be cut off for using the rounds it was granted.
+
+    Each agreement allows MAX_ROUNDS offers, the same number of responses, and
+    one commit. An episode budget below that silently penalises negotiation,
+    which is one of the two things this family exists to measure.
+    """
+    from aeread_families.datacenter_development.stack_worlds import (
+        MAX_ROUNDS,
+        SEQUENCE,
+        WORST_CASE_ACTIONS,
+    )
+
+    assert WORST_CASE_ACTIONS == len(SEQUENCE) * (2 * MAX_ROUNDS + 1)
+    for world in load_pack_manifest()["worlds"]:
+        document = json.loads((DEFAULT_OUTPUT_ROOT / world["file"]).read_text())
+        rounds = document["payload"]["negotiation"]["max_rounds"]
+        needed = sum(2 * value + 1 for value in rounds.values())
+
+        assert document["episode"]["max_logical_actions"] >= needed, world["file"]

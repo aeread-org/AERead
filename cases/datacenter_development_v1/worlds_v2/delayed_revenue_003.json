@@ -1,8 +1,8 @@
 {
   "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_003",
-  "content_sha256": "32ecd81fe27f77c723106d637ce5e0d7b0392830301118196f0a482d69a6d2e7",
+  "content_sha256": "395538eb0d2618ee58304388bb26059aad75c5d9dacc99096d1433847ef3933e",
   "episode": {
-    "max_logical_actions": 30,
+    "max_logical_actions": 42,
     "termination": [
       "agreement_stack_executed",
       "developer_walk",

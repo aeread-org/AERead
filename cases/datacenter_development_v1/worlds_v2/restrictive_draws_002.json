@@ -1,8 +1,8 @@
 {
   "case_id": "datacenter_development_v1.worlds_v2.restrictive_draws_002",
-  "content_sha256": "162f9929f0464045c40f0be368dbdaf1e59b1a42ef4d979139ff836385249433",
+  "content_sha256": "cb9b8f3893ef043b5c26f6f56625d3af4ae7bf30bdd3b5e34d3b07a86b6b8284",
   "episode": {
-    "max_logical_actions": 30,
+    "max_logical_actions": 42,
     "termination": [
       "agreement_stack_executed",
       "developer_walk",

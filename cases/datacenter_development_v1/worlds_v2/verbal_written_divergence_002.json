@@ -1,8 +1,8 @@
 {
   "case_id": "datacenter_development_v1.worlds_v2.verbal_written_divergence_002",
-  "content_sha256": "c2674a23118ca59dcfa3022347ef2b858c33ca4bda06ea9039211283067e3a39",
+  "content_sha256": "523c0d88e23e08ade7a14fbed1312cecc8d747d549d1d13f205d8105269a3042",
   "episode": {
-    "max_logical_actions": 30,
+    "max_logical_actions": 42,
     "termination": [
       "agreement_stack_executed",
       "developer_walk",

@@ -1,8 +1,8 @@
 {
   "case_id": "datacenter_development_v1.worlds_v2.revenue_without_bankability_001",
-  "content_sha256": "5aa0cd12eaf0182f71b96bd081923d6a70c33501a006c0e48045ae49c6582dce",
+  "content_sha256": "f69db55b282c1c287a58bb30b4c85e67d82d13d16a6bc81724dd58732e76fddc",
   "episode": {
-    "max_logical_actions": 30,
+    "max_logical_actions": 42,
     "termination": [
       "agreement_stack_executed",
       "developer_walk",

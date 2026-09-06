@@ -1,8 +1,8 @@
 {
   "case_id": "datacenter_development_v1.worlds_v2.covenant_cliff_002",
-  "content_sha256": "28fd21790a68305c6ed5e0e35c1a9a95ab1c51554d4b960c4428127884c2947f",
+  "content_sha256": "72394f4d432e78ddd50386ff46cd16144ca6a94f96628df2c172822f2b7507c9",
   "episode": {
-    "max_logical_actions": 30,
+    "max_logical_actions": 42,
     "termination": [
       "agreement_stack_executed",
       "developer_walk",

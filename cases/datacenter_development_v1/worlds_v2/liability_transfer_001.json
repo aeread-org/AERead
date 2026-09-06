@@ -1,8 +1,8 @@
 {
   "case_id": "datacenter_development_v1.worlds_v2.liability_transfer_001",
-  "content_sha256": "a82295ebb52bed025b9d22fe4f38e03362ee3d51c125d4c2e5f0809d69597a21",
+  "content_sha256": "182d1cdd161a52add0d28b3ba942f6b55569cb233f503d22b935bc177e40d6af",
   "episode": {
-    "max_logical_actions": 30,
+    "max_logical_actions": 42,
     "termination": [
       "agreement_stack_executed",
       "developer_walk",
