@@ -262,3 +262,67 @@ omitted diagnostic is a disposition, not a cell exclusion).
 
 Covered above under "Leaf policy" — no leaf waits on any not-yet-existing
 artifact.
+
+## Conformance enrollment (kernel_scoring_contract_spec.md, migration milestone 3 of 3)
+
+Branch `zeyu/agenticpay-contract-migration`. `("agenticpay.bilateral",
+"0.1.0")` is removed from `_NOT_YET_MIGRATED_TRUSTED_KEYS` in
+`tests/test_shared_runner_scoring_contract.py` and added to that module's
+`_BRIDGE_GATED_ENROLLED_FAMILY_VERSIONS` instead — this family's fixtures
+require the real, provisioned upstream bridge (like govsim's), so they run
+in their own per-test-skippable `test_agenticpay_obeys_the_scoring_contract`
+rather than inside the always-on
+`test_every_registered_family_obeys_the_scoring_contract`. Two separate
+same-case paired-history pairs are supplied (one contract-mode, one basic),
+not one four-fixture list: `agenticpay_surplus_share`'s own declared
+reference legitimately varies its `source_sha256` by case (the ZOPA bound
+vs. the contract config), so mixing case kinds in one protocol-test call
+would fail the kernel's leaf-identity-stability check for a reason that has
+nothing to do with ruling R13's case-conditional behavior it is meant to
+prove. Both pairs, and the sensitivity-witness round-trace pair for
+`agenticpay_contract_legality`, were verified constructible against the
+real bridge directly before being wired into the test.
+
+Also fixed as part of reaching this milestone (all case-independent, none
+change scoring arithmetic):
+
+- `family_manifest()` now declares `trajectory_outcome_paths=("/round_trace",)`
+  (ruling R9) and `scoring.reference_provider_ids` (derived from
+  `measurement.py`'s own leaf builders via a new
+  `_measurement_reference_provider_ids()` helper, mirroring
+  `negarena.environment`'s identical convention) — without the latter,
+  `resolve_run_plan` never reserves an `ImplementationPin` for any of this
+  family's leaf validity-domain predicates, reference implementations, or
+  scorers, and `EvaluationReceipt`'s own pin/implementation cross-check
+  rejects every sealed receipt outright. A latent gap from Milestone 1/2;
+  this family had never been driven through a real `RunPlan`/finalizer
+  before this milestone, so nothing had ever exercised it.
+- A kernel bug in `task/evaluation.py`'s `_replay_family_trajectory`:
+  `plugin.initial_state(family_case, run=None)` called the hook by keyword,
+  raising `TypeError` for any family (this one among them) whose second
+  parameter is named `cell` instead of `run` — every other hook call in
+  that function is already positional, matching `scheduler.py`'s own live
+  call. This blocked replay (and so finalize) for every "cell"-named family
+  on this base; none had reached this code path before this migration.
+- `ScriptedAgenticpayBilateralHarness` seals only its own convenience event
+  and had never produced evidence `replay_family_scoring_input` can
+  replay. `EvidenceRecordingAgenticpayHarness`
+  (`tests/test_agenticpay_bilateral_replay.py`) reproduces
+  `AttemptExecutor`'s own generic event vocabulary around the same scripted
+  script, mirroring govsim's identically-purposed
+  `EvidenceRecordingGovsimHarness`, and is what makes replay — and so both
+  the finalizer test below and the protocol test's fixtures — reachable for
+  this family at all.
+
+### A receipt now comes back
+
+`tests/test_agenticpay_bilateral_replay.py::test_finalize_wires_agenticpay_to_the_shared_family_finalizer`
+drives one real, bridge-backed, contract-mode episode
+(`agenticpay.bilateral.realistic.s01_beauty_product`) through
+`task.evaluation.finalize_family_execution` and asserts the returned
+`EvaluationReceipt` carries `status="ok"`, `inclusion_status="included"`,
+and exactly the three declared finalize-time leaf ids
+(`agenticpay_deal_reached_leaf`, `agenticpay_surplus_share_leaf`,
+`agenticpay_contract_legality_leaf`) with `primary_leaf_id` equal to the
+declared `agenticpay_surplus_share_leaf` — this family had never produced
+an `EvaluationReceipt` before this milestone.
