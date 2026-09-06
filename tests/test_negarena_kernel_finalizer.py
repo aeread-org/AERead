@@ -33,7 +33,7 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 from types import MappingProxyType
-from typing import Any, Mapping
+from typing import Any, Mapping, Sequence
 
 import pytest
 
@@ -130,13 +130,24 @@ class _EvaluationSetup:
     pricing: Mapping[str, Any]
 
 
-def _build_negarena_run_plan(*, plugin: NegarenaPlugin, case: CaseManifest) -> tuple[RunPlan, PluginRegistry]:
+def _build_negarena_run_plan(
+    *,
+    plugin: NegarenaPlugin,
+    case: CaseManifest,
+    subject_seats: Sequence[str] = (RED, BLUE),
+) -> tuple[RunPlan, PluginRegistry]:
     """One fully-resolved, sealed negarena ``RunPlan`` for a single case.
 
     Both seats share one scripted profile (self-play): nothing in this
     module ever calls a ``ProviderClient`` (the episode is driven directly
     through ``run_episode`` + ``ScriptedNegarenaHarness``), so the profile
     only needs to be schema-valid and admitted, never actually invoked.
+
+    ``subject_seats`` defaults to naming BOTH seats (the pre-existing tests
+    below all exercise ruling R12 rule 2's ambiguous-subject-seat branch);
+    ``kernel_scoring_contract_spec.md`` migration milestone 3's own receipt
+    test passes exactly one seat instead, so ``negarena_seat_outcome`` can
+    score ``"ok"`` for a real, single-subject-seat cell.
     """
     registry = PluginRegistry()
     register_plugin(registry, plugin=plugin)
@@ -210,7 +221,7 @@ def _build_negarena_run_plan(*, plugin: NegarenaPlugin, case: CaseManifest) -> t
             "spec_version": "aeread.evaluation_block/0.1",
             "block_id": "negarena_kernel_finalizer_block",
             "kind": "self_play",
-            "subject_seats": [RED, BLUE],
+            "subject_seats": list(subject_seats),
             "controlled_profiles": {},
             "repetitions": 1,
             "seed_policy": "fixed",
@@ -360,7 +371,9 @@ def _build_negarena_run_plan(*, plugin: NegarenaPlugin, case: CaseManifest) -> t
     return plan, registry
 
 
-def _run_negarena_episode_through_finalizer(bridge, tmp_path: Path):
+def _run_negarena_episode_through_finalizer(
+    bridge, tmp_path: Path, *, subject_seats: Sequence[str] = (RED, BLUE)
+):
     """Drive one buy_sell golden-1 episode all the way to a sealed receipt.
 
     Uses ``run_scripted_negarena_episode`` -- this adapter's one production
@@ -370,6 +383,10 @@ def _run_negarena_episode_through_finalizer(bridge, tmp_path: Path):
     only place in the repository that reaches ``finalize_family_execution``)
     can no longer forget the step (docs/negarena_codex_triage.md Finding 3).
 
+    ``subject_seats`` defaults to naming BOTH seats, matching every
+    pre-existing caller below; kernel_scoring_contract_spec.md migration
+    milestone 3's own receipt test passes exactly one seat instead.
+
     Returns ``(receipt, evidence, family_case)``.
     """
     case = _load_case("negarena.buy_sell.0", "buy_sell")
@@ -377,7 +394,9 @@ def _run_negarena_episode_through_finalizer(bridge, tmp_path: Path):
     family_case = plugin.validate_payload(case.payload)
     transcript = parity.build_buy_sell_golden_one(family_case)
 
-    plan, registry = _build_negarena_run_plan(plugin=plugin, case=case)
+    plan, registry = _build_negarena_run_plan(
+        plugin=plugin, case=case, subject_seats=subject_seats
+    )
     cell = plan.cells[0]
     resolved_plugin = registry.resolve_manifest(family_manifest())
 
@@ -562,3 +581,53 @@ def test_run_scripted_negarena_episode_seals_the_complete_lifecycle_automaticall
     ):
         assert required in event_types, f"missing evidence event type: {required}"
     evidence.audit_reconciliation()
+
+
+def test_finalize_wires_negarena_to_the_shared_family_finalizer(
+    tmp_path: Path, bridge
+) -> None:
+    """kernel_scoring_contract_spec.md migration milestone 3: this family
+    has never produced an ``EvaluationReceipt`` for a genuinely clean
+    episode -- the two tests above both name BOTH seats as subjects (ruling
+    R12 rule 2's self-play/ambiguous branch), so ``negarena_seat_outcome``
+    is always ``invalid_measurement`` there and the receipt is always
+    ``excluded``. This is the one production call site
+    (``task.evaluation.finalize_family_execution``) driven for a real
+    single-subject-seat cell instead: RED is the plan's sole subject seat,
+    BLUE is the fixed scripted opponent (``negarena_scripted_v1`` ->
+    ``"scripted"``, ``measurement.OPPONENT_PROFILE_TO_POLICY_ID``) -- the
+    ordinary case this corpus's every real evaluation cell is shaped like
+    (docs/negarena_adapter_status.md's seat-scope classification). The
+    golden-1 buy_sell transcript ends in ``"accepted"``, so both declared
+    leaves must come back ``status="ok"`` and the receipt must be
+    ``included`` -- this family's whole migration exists to make this
+    possible.
+    """
+    receipt, evidence, _family_case = _run_negarena_episode_through_finalizer(
+        bridge, tmp_path, subject_seats=(RED,)
+    )
+    del evidence
+
+    assert receipt.status == "ok"
+    assert receipt.inclusion_status == "included"
+    assert {score.leaf.leaf_id for score in receipt.scores} == {
+        measurement.SEAT_OUTCOME_LEAF_ID,
+        measurement.AGREEMENT_LEAF_ID,
+    }
+    assert receipt.primary_leaf_id == measurement.SEAT_OUTCOME_LEAF_ID
+
+    seat_score = next(
+        score for score in receipt.scores if score.leaf.leaf_id == measurement.SEAT_OUTCOME_LEAF_ID
+    )
+    agreement_score = next(
+        score for score in receipt.scores if score.leaf.leaf_id == measurement.AGREEMENT_LEAF_ID
+    )
+    assert seat_score.status == "ok"
+    # Golden-1 buy_sell settles at 40 ZUP: RED's own valuation is 40, so
+    # RED's own realized value is 0.0 (spec section 4 golden 1; matches
+    # tests/test_negarena_measurement.py's identical assertion).
+    assert seat_score.primary.value == 0.0
+    assert seat_score.primary.value == seat_score.utility_by_seat[RED].value
+    assert agreement_score.status == "ok"
+    assert agreement_score.primary.value == 1.0
+    assert receipt.failure is None
