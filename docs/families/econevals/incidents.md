@@ -25,7 +25,8 @@ stays sealed as evidence of what failed.
 | 009 | case 02 | `SchedulerContractError` | 0.02164 | Scheduling case exhausted the harness's corrective rounds; the sealed responses show one round returned an **empty string**, spending a round on silence when `empty_response` is a typed provider condition. | `5b81cab4` |
 | 010 | case 00 | `SchedulerContractError` | 0.00004 | Ten attempts against a 429 burst exhausted in ~2 minutes: retry backoff is opt-in through `harness.config`, and with none declared the executor never sleeps. | `93f2f148` |
 | 011 | all 6 cases | publish only | 0.09250 | **Execution succeeded**: 6/6 cases `ok/included`, 100 periods each, `exit=0`. Publishing then crashed on `ValidityReport.valid` (the field is `.status`), and the fix could not be applied to this run -- see below. | `d3f0c1` design split |
-| 012 | -- | -- | see below | First attempt under the execution/publisher split. | -- |
+| 012 | case 00 | `SchedulerContractError` | 0.00003 | Spurious Parasail **404** again, on the first action. Second occurrence after attempt 008. | none -- route fault |
+| 013 | -- | -- | see below | Re-run under the execution/publisher split. | -- |
 
 Total spent on failed attempts: **0.12488 USD**, of which 0.09250 bought a
 complete but unpublishable panel.
@@ -56,10 +57,19 @@ plan, so the panel is re-run rather than retro-published.
   shape (12 rounds, Arena route) is nothing like this family's (100
   sequential calls per case, shared-pool route). Four of the five were only
   visible against a real route.
-- **Route faults (008, and the bursts inside 002/003/010)** -- Parasail's
+- **Route faults (008, 012, and the bursts inside 002/003/010)** -- Parasail's
   shared upstream pool rate-limits in bursts and returned one spurious 404.
   These are not fixable in our code and are recorded, not worked around: a
   404 stays non-retryable so a genuinely misconfigured route cannot hide.
+
+  The 404 has now happened twice (008, 012), so it is a recurring fault
+  rather than a one-off. There is a principled middle worth raising rather
+  than taking unilaterally: after the admission canary and N successful
+  calls on the identical pinned request, a 404 cannot mean "wrong endpoint",
+  so a **post-admission** 404 could carry a typed retryable condition
+  distinct from a first-call 404. That is the same route-health vs
+  route-identity distinction commit `50de3447` drew for preflight. Until it
+  is ruled on, the disposition stays: re-run the identical frozen plan.
 
 ## Two failures that would not have failed loudly
 
