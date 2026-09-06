@@ -58,6 +58,27 @@ and escalated, with the two code citations above as evidence, for the owner to c
 between (a) and (b) (or to accept the current stated-limit as-is for this family
 version).
 
+**Post-R12 note (2026-09-06): RESOLVED.** The owner's ruling adopted option (b) above.
+`zeyu/kernel-r12-seat-context` (PR #109) implements ruling R12's `SeatContext`
+machinery, and this branch (rebased onto it) wires it through:
+`AlympicsWacScorer.__call__` now resolves its focal seat per call from
+`scoring_input.seat_context.subject_seats` (`measurement.py`'s `_resolve_focal_seat`)
+instead of the fixed `FOCAL_SEAT = SEAT_ORDER[0]` constant this finding names, which is
+deleted. `family_manifest()` declares leaves 1-3 `seat_scope="subject_seat"`
+(no `subject_reduction`: this family's cluster mapping is one focal seat per trial,
+never several subject seats scored together). This also resolves the "genuine tension
+in the frozen spec" this finding separately reported: R12's stated premise that
+"alympics' focal seat" is a case that names its own tested seat was, in fact, false for
+this family (as this finding itself demonstrated) — the family now genuinely reads the
+tested seat from `SeatContext`, which is what R12's premise implicitly assumed a family
+in this position would already be doing. Leaf identity itself (each leaf's
+`MeasurementLeafSpec`) does not depend on which seat is resolved as the subject
+(`AlympicsWacScorer.leaves_for_focal_seat`'s own docstring), which the scoring-contract
+protocol test's cross-fixture "leaf's declared identity must be stable" check verifies
+directly once fixtures naming different focal seats are compared side by side. This
+note records the resolution; the finding and disposition text above are left as
+originally recorded, not rewritten.
+
 ### Finding 2 (Medium — score provenance caller-controlled): REFUTED
 
 The code citations are accurate (`__call__`'s signature at 1137-1139, the four

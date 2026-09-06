@@ -245,3 +245,18 @@ that way).
   auto-derived" known limit is a candidate to close as a byproduct of this
   migration (see the plumbing note above) — the migration should update that
   doc if `__call__` stops depending on a caller-supplied second episode.
+
+## Post-R12 note: where `focal_seat` comes from
+
+This plan treats `focal_seat` throughout (the table above, `panel_policy_ids`)
+as an already-available parameter without saying where a real call site
+sources it — that question was open when this plan was written (milestone 0)
+and was answered two ways at different points in this family's history: first
+by `AlympicsWacScorer.__call__` fixing a module constant
+(`measurement.FOCAL_SEAT = SEAT_ORDER[0]`, i.e. always `"alex"`), which
+independent review Finding 1 confirmed as an invented-evaluated-subject defect
+and escalated; then, adopting ruling R12 (kernel_scoring_contract_spec.md),
+by resolving it per call from `scoring_input.seat_context.subject_seats` — the
+plan's own analysis above (the leaf table, the closed-form baseline argument)
+is otherwise unaffected, since it never depended on which mechanism supplied
+`focal_seat`, only on it being available.
