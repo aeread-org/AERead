@@ -1349,16 +1349,30 @@ def project_outcome(outcome: Mapping[str, Any], paths: tuple[str, ...]) -> Mappi
 
     kernel_r9r10_review.md finding 1, second-pass review R2(b), accepted
     residual: this function and the guards built on it (non-empty
-    projection, sequence-shaped path, non-empty embedded trajectory) are
-    STRUCTURAL checks on shape and byte-equality -- they cannot decide which
-    of a family's OWN residual (non-projected) outcome fields are genuine
-    terminal facts versus incidental bookkeeping. A family that declares a
-    field holding its actual terminal result as a ``trajectory_outcome_path``
-    (a list-shaped one, satisfying every structural guard) would have that
-    field projected away and pass. That declaration is reviewed by a human
-    exactly like the primary-leaf choice (spec section 5); the family's own
-    supplied fixtures are the conformance evidence for it, not an
-    adversarial boundary this kernel enforces unattended.
+    projection, sequence-shaped path) are STRUCTURAL checks on shape and
+    byte-equality -- they cannot decide which of a family's OWN residual
+    (non-projected) outcome fields are genuine terminal facts versus
+    incidental bookkeeping. A family that declares a field holding its
+    actual terminal result as a ``trajectory_outcome_path`` (a list-shaped
+    one, satisfying every structural guard) would have that field projected
+    away and pass. That declaration is reviewed by a human exactly like the
+    primary-leaf choice (spec section 5); the family's own supplied fixtures
+    are the conformance evidence for it, not an adversarial boundary this
+    kernel enforces unattended.
+
+    Third-pass review C1: an earlier revision of this module also asserted
+    a declared trajectory sequence must be non-empty whenever
+    ``phase_instances`` replayed at least one transition. That guard was
+    removed: it asserted an assumption the specification does not make (one
+    replayed transition implies at least one trajectory record), it could
+    misfire on a family whose per-round history is appended only when a
+    round completes with a fixture ending mid-round, and -- the decisive
+    reason -- it guarded nothing. Under ruling R10, an empty embedded
+    trajectory must equal an empty list read from the final replayed state,
+    and projecting away an empty list leaves the WHOLE outcome in the
+    projection unchanged: the paired-history check becomes the
+    whole-outcome check, which is STRONGER, not weaker. An empty embedded
+    trajectory is therefore not a hole.
     """
     projected: Any = outcome
     for pointer in paths:
@@ -1444,27 +1458,19 @@ def _assert_trajectory_outcome_paths_are_consistent(
         # This fires before the equality check below, independent of
         # whether the two copies happen to agree. Second-pass review R2(b),
         # accepted residual: this is a STRUCTURAL shape check -- a sequence
-        # is required, but nothing here (or in the non-empty check just
-        # below) can tell a genuine per-step trajectory apart from some
-        # OTHER list-shaped field the family mistakenly (or deliberately)
-        # declared instead; see ``project_outcome``'s docstring.
+        # is required, but nothing here can tell a genuine per-step
+        # trajectory apart from some OTHER list-shaped field the family
+        # mistakenly (or deliberately) declared instead; see
+        # ``project_outcome``'s docstring. Third-pass review C1: an EMPTY
+        # sequence is deliberately not rejected here (a guard doing exactly
+        # that was added in the second pass and removed in the third --
+        # see this module's docstring banner and kernel_r9r10_review.md for
+        # why an empty declared trajectory is not a hole).
         assert isinstance(outcome_value, (list, tuple)), (
             f"outcome{pointer} is a {type(outcome_value).__name__}, not a "
             "sequence -- a declared trajectory_outcome_path must point at a "
             "sequence of per-step records; an object subtree may hide "
             "terminal facts behind the projection"
-        )
-        # kernel_r9r10_review.md finding 1, second-pass review R2(a): the
-        # guard above is satisfiable by an EMPTY list. Reaching this line at
-        # all already means ``_final_replayed_state`` (above) found at
-        # least one transition among ``phase_instances`` -- it raises
-        # ``ValueError`` otherwise, before this loop ever starts -- so an
-        # empty embedded trajectory here is never honest: the family's own
-        # replay produced steps, but its sealed copy claims none.
-        assert outcome_value, (
-            f"outcome{pointer} is an empty sequence, but phase_instances "
-            "replayed at least one transition -- an empty embedded "
-            "trajectory alongside a non-empty replay is inconsistent"
         )
         try:
             derived_value = _json_pointer_get(final_state, pointer)
@@ -2514,23 +2520,6 @@ def test_r10_rejects_a_declared_path_the_final_state_does_not_have() -> None:
         AssertionError, match="does not exist in the final replayed state"
     ):
         _assert_trajectory_outcome_paths_are_consistent(scoring_input, ("/public_history",))
-
-
-def test_r10_rejects_an_empty_embedded_trajectory_beside_a_non_empty_replay() -> None:
-    """kernel_r9r10_review.md finding 1, second-pass review R2(a): the shape
-    guards (a non-empty projection, a sequence-shaped path) are satisfiable
-    by an EMPTY list -- an outcome that declares ``"labels": []`` while
-    ``phase_instances`` actually replayed at least one transition is
-    inconsistent (the family's own replay produced steps; its sealed
-    trajectory copy claims none), but nothing before this guard caught it:
-    an empty list is still a list (guard b) and still equal to an equally
-    empty derived value (the R10 equality check)."""
-    phase_instances = (_phase_instance_ending_in_state({"labels": []}),)
-    scoring_input = FamilyScoringInput(
-        outcome={"labels": []}, phase_instances=phase_instances, evidence_refs=()
-    )
-    with pytest.raises(AssertionError, match="empty"):
-        _assert_trajectory_outcome_paths_are_consistent(scoring_input, ("/labels",))
 
 
 def test_r10_is_a_no_op_when_no_paths_are_declared() -> None:
