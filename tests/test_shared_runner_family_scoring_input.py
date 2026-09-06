@@ -21,6 +21,7 @@ from aeread.shared_runner import canonical_json_bytes
 from aeread.shared_runner.task.execution import execute_plan_cell
 from aeread.shared_runner.task.evaluation import (
     FamilyScoringInput,
+    SeatContext,
     replay_family_scoring_input,
     replay_family_state,
 )
@@ -66,7 +67,10 @@ def test_replay_family_scoring_input_reconstructs_phase_instances(tmp_path) -> N
     _setup, execution, plugin, family_case = _run_housing_episode(tmp_path)
 
     scoring_input = replay_family_scoring_input(
-        plugin=plugin, family_case=family_case, evidence=execution.evidence
+        plugin=plugin,
+        family_case=family_case,
+        evidence=execution.evidence,
+        seat_context=SeatContext((), {}),
     )
 
     assert isinstance(scoring_input, FamilyScoringInput)
@@ -104,7 +108,12 @@ def test_replay_family_scoring_input_has_no_episode_result_parameter() -> None:
 
     signature = inspect.signature(replay_family_scoring_input)
     assert "episode_result" not in signature.parameters
-    assert set(signature.parameters) == {"plugin", "family_case", "evidence"}
+    assert set(signature.parameters) == {
+        "plugin",
+        "family_case",
+        "evidence",
+        "seat_context",
+    }
 
 
 def test_replay_family_scoring_input_rejects_tampered_event_stream(tmp_path) -> None:
@@ -112,7 +121,10 @@ def test_replay_family_scoring_input_rejects_tampered_event_stream(tmp_path) -> 
 
     # A sanity replay succeeds before tampering.
     replay_family_scoring_input(
-        plugin=plugin, family_case=family_case, evidence=execution.evidence
+        plugin=plugin,
+        family_case=family_case,
+        evidence=execution.evidence,
+        seat_context=SeatContext((), {}),
     )
 
     events_path = execution.evidence.root / "events.jsonl"
@@ -130,7 +142,10 @@ def test_replay_family_scoring_input_rejects_tampered_event_stream(tmp_path) -> 
 
     with pytest.raises(ValueError, match="successful attempt"):
         replay_family_scoring_input(
-            plugin=plugin, family_case=family_case, evidence=execution.evidence
+            plugin=plugin,
+            family_case=family_case,
+            evidence=execution.evidence,
+            seat_context=SeatContext((), {}),
         )
 
 
@@ -138,7 +153,10 @@ def test_replay_family_scoring_input_result_is_deeply_immutable(tmp_path) -> Non
     _setup, execution, plugin, family_case = _run_housing_episode(tmp_path)
 
     scoring_input = replay_family_scoring_input(
-        plugin=plugin, family_case=family_case, evidence=execution.evidence
+        plugin=plugin,
+        family_case=family_case,
+        evidence=execution.evidence,
+        seat_context=SeatContext((), {}),
     )
 
     with pytest.raises(dataclasses.FrozenInstanceError):

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 from dataclasses import FrozenInstanceError
 
 import pytest
@@ -1015,6 +1016,138 @@ def test_measurement_declaration_rejects_duplicate_trajectory_outcome_paths() ->
                 trajectory_outcome_paths=["/history", "/history"]
             )
         )
+
+
+def test_leaf_policy_declaration_without_seat_scope_defaults_to_cell() -> None:
+    family = FamilyManifest.from_dict(_family_data_with_leaves())
+    leaf = family.measurement.leaves[0]
+    assert leaf.seat_scope == "cell"
+    assert leaf.subject_reduction is None
+
+
+# Review finding F2: a golden digest computed against the PRE-R12 kernel
+# (commit 78614540 -- the fork point this branch's kernel work started
+# from, before LeafPolicyDeclaration carried seat_scope/subject_reduction
+# at all), pinned so this test cannot pass merely because BOTH sides of a
+# same-code comparison happen to agree -- see the test below for why that
+# matters. Produced by:
+#
+#   git archive 78614540 src | tar -x -C /tmp/pre_r12/
+#   <this repo's venv python> -c '
+#       import sys, json
+#       sys.path.insert(0, "src"); sys.path.insert(0, "tests")
+#       from test_shared_runner_schemas import _family_data_with_leaves
+#       print(json.dumps(_family_data_with_leaves()))
+#   ' > /tmp/pre_r12/family_data_with_leaves.json
+#   PYTHONPATH=/tmp/pre_r12/src <this repo's venv python> -c '
+#       import json, hashlib
+#       from aeread.shared_runner.schemas import FamilyManifest
+#       from aeread.shared_runner.run.resolver import canonical_json_bytes
+#       data = json.load(open("/tmp/pre_r12/family_data_with_leaves.json"))
+#       family = FamilyManifest.from_dict(data)
+#       print(hashlib.sha256(canonical_json_bytes(family.measurement)).hexdigest())
+#   '
+_PRE_R12_CELL_SCOPE_MEASUREMENT_SHA256 = (
+    "794e778702d6fffbf7ab92a038188f9071631c18afdc53027e994d289a639f88"
+)
+
+
+def test_leaf_policy_declaration_without_seat_scope_is_digest_neutral() -> None:
+    """Ruling R12 (kernel_scoring_contract_spec.md), same story as R1/R9:
+    ``seat_scope``/``subject_reduction`` are added to ``LeafPolicyDeclaration``
+    after leaf policy was already sealed into published digests, so a leaf
+    that does not use them (the ``seat_scope="cell"`` default) must hash
+    byte-for-byte as it did before this change -- see
+    ``test_measurement_declaration_without_leaves_is_digest_neutral`` for the
+    same guard on the fields that predate this one.
+    """
+    cell_scope_bytes = canonical_json_bytes(
+        FamilyManifest.from_dict(_family_data_with_leaves()).measurement
+    )
+    # Review finding F2: comparing two objects both canonicalized by the
+    # CURRENT code (the assertions below) cannot detect a regression that
+    # broke _CANONICAL_OMIT_IF_DEFAULT for a NESTED dataclass (this class
+    # lives inside MeasurementDeclaration.leaves, not at the top level
+    # _canonical_value was originally proven against) -- if that recursion
+    # silently stopped omitting the default, BOTH sides would serialize
+    # "seat_scope":"cell" identically and stay equal to each other while
+    # every already-migrated manifest's real digest changed underneath
+    # them. Pinning against a digest the PRE-R12 kernel actually produced
+    # catches exactly that.
+    assert (
+        hashlib.sha256(cell_scope_bytes).hexdigest()
+        == _PRE_R12_CELL_SCOPE_MEASUREMENT_SHA256
+    )
+
+    with_subject_seat = _family_data_with_leaves()
+    with_subject_seat["measurement"]["leaves"][0]["seat_scope"] = "subject_seat"
+    with_subject_seat["measurement"]["leaves"][0]["subject_reduction"] = "mean"
+    with_subject_seat_bytes = canonical_json_bytes(
+        FamilyManifest.from_dict(with_subject_seat).measurement
+    )
+    assert with_subject_seat_bytes != cell_scope_bytes
+
+    without_subject_seat = _family_data_with_leaves()
+    without_subject_seat["measurement"]["leaves"][0]["seat_scope"] = "cell"
+    assert (
+        canonical_json_bytes(FamilyManifest.from_dict(without_subject_seat).measurement)
+        == cell_scope_bytes
+    )
+
+
+def test_leaf_policy_declaration_accepts_a_subject_seat_leaf_with_a_reduction() -> None:
+    data = _family_data_with_leaves()
+    data["measurement"]["leaves"][0]["seat_scope"] = "subject_seat"
+    data["measurement"]["leaves"][0]["subject_reduction"] = "mean"
+    family = FamilyManifest.from_dict(data)
+    leaf = family.measurement.leaves[0]
+    assert leaf.seat_scope == "subject_seat"
+    assert leaf.subject_reduction == "mean"
+
+
+def test_leaf_policy_declaration_accepts_a_subject_seat_leaf_without_a_reduction() -> None:
+    # Ruling R12 rule 2: a subject_seat leaf need not declare a reduction --
+    # only a singleton subject seat is possible, or the family never
+    # supports self-play evaluation for it. The reduction is required only
+    # when the kernel later sees two or more subject seats and an "ok"
+    # envelope (task/evaluation.py's ``_enforce_subject_seat_primaries``).
+    data = _family_data_with_leaves()
+    data["measurement"]["leaves"][0]["seat_scope"] = "subject_seat"
+    family = FamilyManifest.from_dict(data)
+    leaf = family.measurement.leaves[0]
+    assert leaf.seat_scope == "subject_seat"
+    assert leaf.subject_reduction is None
+
+
+def test_leaf_policy_declaration_rejects_an_unknown_seat_scope() -> None:
+    data = _family_data_with_leaves()
+    data["measurement"]["leaves"][0]["seat_scope"] = "planet"
+    with pytest.raises(AuthoringValidationError, match="seat_scope"):
+        FamilyManifest.from_dict(data)
+
+
+def test_leaf_policy_declaration_rejects_subject_reduction_on_a_cell_scoped_leaf() -> None:
+    data = _family_data_with_leaves()
+    data["measurement"]["leaves"][0]["subject_reduction"] = "mean"
+    with pytest.raises(AuthoringValidationError, match="subject_reduction"):
+        FamilyManifest.from_dict(data)
+
+
+def test_leaf_policy_declaration_post_init_rejects_subject_reduction_bypassing_from_dict() -> None:
+    """Ruling R12, same pattern as kernel_contract_impl_review.md finding 4's
+    ``scope``/``deferred_artifact`` guard: ``__post_init__`` must reject the
+    same invalid combination ``from_dict`` rejects, so a ``dataclasses.replace``
+    cannot smuggle a ``subject_reduction`` onto a ``cell``-scoped leaf past
+    parsing.
+    """
+    import dataclasses
+
+    leaf = LeafPolicyDeclaration("tenant_realized_utility_leaf", "finalize_time", None)
+    with pytest.raises(AuthoringValidationError, match="subject_reduction"):
+        dataclasses.replace(leaf, subject_reduction="mean")
+
+    with pytest.raises(AuthoringValidationError, match="seat_scope"):
+        dataclasses.replace(leaf, seat_scope="planet")
 
 
 def test_measurement_declaration_rejects_a_trajectory_outcome_path_from_dataclasses_replace() -> None:

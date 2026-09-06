@@ -9,6 +9,7 @@ from __future__ import annotations
 import hashlib
 from dataclasses import dataclass
 from pathlib import Path
+from types import MappingProxyType
 from typing import Any, Callable, Mapping, Protocol, Sequence
 
 from .execution import CanonicalResponse, CellExecution, EvidenceStore, TokenPricing
@@ -133,6 +134,101 @@ def _agent_profile_digests(plan: RunPlan, cell: Any) -> dict[str, str]:
         seat_id: hashlib.sha256(canonical_json_bytes(profiles[profile_id])).hexdigest()
         for seat_id, profile_id in sorted(cell.profile_by_seat.items())
     }
+
+
+@dataclass(frozen=True, slots=True)
+class SeatContext:
+    """Which seats are the tested subjects, and which profile sits in each.
+
+    Ruling R12 (kernel_scoring_contract_spec.md): populated by
+    ``finalize_family_execution``, ``replay_family_receipt``, and
+    ``audit_family_receipt`` from the plan's evaluation block
+    (``EvaluationBlock.subject_seats``, matched to the executed cell by
+    ``cell.block_id``) and the resolved cell's own ``profile_by_seat`` --
+    never from the live episode, so ruling R2's guarantee still holds: this
+    is plan/receipt data, not anything ``plugin.step``/``observe`` produced.
+
+    The dataclass field itself defaults to an explicit empty
+    ``SeatContext((), {})`` so a test that constructs ``FamilyScoringInput``
+    directly (without naming this type) keeps working; every production
+    finalize/replay/audit path always supplies the real one.
+    """
+
+    subject_seats: tuple[str, ...]
+    profile_by_seat: Mapping[str, str]
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "subject_seats", tuple(self.subject_seats))
+        object.__setattr__(
+            self, "profile_by_seat", MappingProxyType(dict(self.profile_by_seat))
+        )
+
+
+def _seat_context_for_cell(plan: RunPlan, cell: Any) -> SeatContext:
+    """The ``SeatContext`` for one resolved cell, read from the plan alone.
+
+    Ruling R12 rule 1: matches the evaluation block by ``cell.block_id`` --
+    never the live episode -- and takes ``subject_seats`` from that block and
+    ``profile_by_seat`` from the cell itself.
+
+    Review finding F1: every subject seat must be a key of the cell's own
+    ``profile_by_seat``. ``resolve_run_plan`` (run/resolver.py) is the first
+    line of defense here -- it already requires ``block.subject_seats`` to
+    be a subset of the case's seat ids, which must exactly equal
+    ``run_spec.seat_assignments``' keys, which is exactly what becomes
+    ``cell.profile_by_seat`` -- so a plan built the normal way can never
+    reach this branch. This check exists for a plan/cell pair constructed
+    or mutated directly (bypassing ``resolve_run_plan``), so a subject seat
+    with no assigned profile never silently reaches the scorer.
+    """
+
+    block = next(
+        (item for item in plan.evaluation_blocks if item.block_id == cell.block_id),
+        None,
+    )
+    if block is None:
+        raise ValueError("cell names an evaluation block absent from the plan")
+    missing_profiles = sorted(set(block.subject_seats) - set(cell.profile_by_seat))
+    if missing_profiles:
+        raise ValueError(
+            f"evaluation block {block.block_id!r} names subject seat(s) "
+            f"{missing_profiles} with no assigned profile in cell "
+            f"{cell.cell_id!r}: profile_by_seat carries {sorted(cell.profile_by_seat)}"
+        )
+    return SeatContext(
+        subject_seats=block.subject_seats,
+        profile_by_seat=cell.profile_by_seat,
+    )
+
+
+def _check_seat_context_seat_set(
+    seat_context: SeatContext, recorded_agent_profile_digests: Mapping[str, str]
+) -> None:
+    """Ruling R12 rule 1: reject a seat context naming a different seat set
+    than the receipt's recorded ``agent_profile_digests``.
+
+    Named explicitly per the ruling, not merely for a clearer message: a
+    receipt whose recorded seats genuinely disagree with the CURRENT plan's
+    cell is normally caught earlier, transitively, by the run_plan_id/
+    plan_sha256 identity check every caller performs first (``PlanCell.
+    profile_by_seat`` is itself part of what makes ``plan_sha256``) --
+    ``audit_family_receipt`` additionally already re-derives and compares
+    the full digest mapping generically. For ``replay_family_receipt``,
+    though, this is the ONLY guard against a durable evidence directory
+    whose on-disk receipt was corrupted directly (bypassing the write-once
+    API) to a self-consistent but wrong ``agent_profile_sha256_by_seat`` --
+    see docs/kernel_r12_seat_context.md and the mutation test that proved
+    this by disabling this exact check.
+    """
+
+    context_seats = set(seat_context.profile_by_seat)
+    recorded_seats = set(recorded_agent_profile_digests)
+    if context_seats != recorded_seats:
+        raise ValueError(
+            "seat context does not match the receipt: seat_context names "
+            f"seats {sorted(context_seats)}, receipt agent_profile_digests "
+            f"names seats {sorted(recorded_seats)}"
+        )
 
 
 def _observability_limits(plan: RunPlan, cell: Any) -> tuple[str, ...]:
@@ -486,15 +582,27 @@ class FamilyScoringInput:
     hash mismatch, which fails re-execution before such an observation could
     ever be returned. A future family author must not read "observations"
     and assume it was transcribed verbatim from evidence.
+
+    Ruling R12: ``seat_context`` carries which seats are the tested subjects
+    and which profile sits in each, read from the plan's evaluation block
+    and the resolved cell -- see ``SeatContext`` and ``_seat_context_for_cell``.
+    It defaults to an empty ``SeatContext`` only so a test may construct this
+    dataclass directly without naming that type; every production caller of
+    :func:`replay_family_scoring_input` supplies the real one.
     """
 
     outcome: Mapping[str, Any]
     phase_instances: tuple[PhaseInstance, ...]
     evidence_refs: tuple[str, ...]
+    seat_context: SeatContext = SeatContext((), {})
 
 
 def replay_family_scoring_input(
-    *, plugin: Any, family_case: Mapping[str, Any], evidence: EvidenceStore
+    *,
+    plugin: Any,
+    family_case: Mapping[str, Any],
+    evidence: EvidenceStore,
+    seat_context: SeatContext,
 ) -> FamilyScoringInput:
     """Produce one family's scoring input by verified deterministic re-execution.
 
@@ -505,6 +613,12 @@ def replay_family_scoring_input(
     construction, so a caller cannot silently fall back to it when replay is
     incomplete. A disagreement between the re-execution and the sealed
     evidence raises rather than returning a partial result.
+
+    Ruling R12: ``seat_context`` is a required keyword with no default --
+    every production call site (``finalize_family_execution``,
+    ``replay_family_receipt``, ``audit_family_receipt``) reads it from the
+    plan via ``_seat_context_for_cell`` and must pass it explicitly, so a
+    caller cannot silently omit seat context the way a default would allow.
     """
     outcome, phase_instances, _outcome_event, evidence_refs = (
         _replay_family_trajectory(
@@ -515,6 +629,7 @@ def replay_family_scoring_input(
         outcome=outcome,
         phase_instances=phase_instances,
         evidence_refs=evidence_refs,
+        seat_context=seat_context,
     )
 
 
@@ -558,7 +673,68 @@ def _declared_deferred_leaf_ids(manifest: Any) -> tuple[str, ...]:
     )
 
 
-def _enforce_declared_leaf_policy(score_set: FamilyScoreSet, manifest: Any) -> None:
+def _enforce_subject_seat_primaries(
+    score_set: FamilyScoreSet, manifest: Any, seat_context: SeatContext
+) -> None:
+    """Ruling R12 rule 2: a status "ok" ``subject_seat`` leaf may only claim
+    the one true reduction over ``seat_context.subject_seats``.
+
+    This is a contract violation the kernel raises on, not
+    ``invalid_measurement`` -- reporting ``invalid_measurement`` for these
+    same three cases (no subject seat, an ambiguous subject seat with no
+    declared reduction, or a wrong value) is the scorer's own job (reasons
+    ``no_subject_seat`` / ``ambiguous_subject_seat``); this check exists to
+    catch a scorer that claims a scalar it may not claim, regardless of
+    whatever the scorer itself believed. Applies to nothing when
+    ``seat_scope`` is "cell" (the default).
+    """
+    leaf_policy_by_id = {leaf.leaf_id: leaf for leaf in manifest.measurement.leaves}
+    subject_seats = seat_context.subject_seats
+    for score in score_set.scores:
+        leaf_policy = leaf_policy_by_id.get(score.leaf.leaf_id)
+        if leaf_policy is None or leaf_policy.seat_scope != "subject_seat":
+            continue
+        if score.status != "ok":
+            continue
+        leaf_id = score.leaf.leaf_id
+        if len(subject_seats) == 0:
+            raise ValueError(
+                f"leaf {leaf_id!r} is declared seat_scope=subject_seat and "
+                "scored ok with no subject seat"
+            )
+        if len(subject_seats) == 1:
+            subject = subject_seats[0]
+            if subject not in score.utility_by_seat:
+                raise ValueError(
+                    f"leaf {leaf_id!r} scored ok for subject seat {subject!r} "
+                    "but its utility_by_seat does not carry that seat"
+                )
+            subject_value = score.utility_by_seat[subject]
+            if (
+                score.primary is None
+                or score.primary.value != subject_value.value
+                or score.primary.unit != subject_value.unit
+            ):
+                raise ValueError(
+                    f"leaf {leaf_id!r} scored ok for subject seat {subject!r} "
+                    "but its primary does not equal utility_by_seat[subject]"
+                )
+            continue
+        # Two or more subject seats (self-play): an "ok" envelope is only
+        # permitted when the manifest declares which reduction over those
+        # seats the family means. The kernel does not interpret the
+        # reduction identifier itself -- it only requires it was declared
+        # before a scalar is claimed.
+        if leaf_policy.subject_reduction is None:
+            raise ValueError(
+                f"leaf {leaf_id!r} scored ok over {len(subject_seats)} subject "
+                "seats without a declared subject_reduction"
+            )
+
+
+def _enforce_declared_leaf_policy(
+    score_set: FamilyScoreSet, manifest: Any, seat_context: SeatContext
+) -> None:
     """The manifest is the source of truth for a family that declares one.
 
     kernel_contract_impl_review.md finding 5: nothing previously obtained or
@@ -591,6 +767,7 @@ def _enforce_declared_leaf_policy(score_set: FamilyScoreSet, manifest: Any) -> N
             f"policy: produced {score_set.admission_leaf_ids}, declared "
             f"{declared.admission_leaf_ids}"
         )
+    _enforce_subject_seat_primaries(score_set, manifest, seat_context)
 
 
 def _check_evidence_refs_are_scoring_input_verbatim(
@@ -649,11 +826,13 @@ def finalize_family_execution(
     plugin = registration.plugin
     family_case = plugin.validate_payload(case.payload)
 
+    seat_context = _seat_context_for_cell(setup.plan, cell)
     execution.evidence.audit_reconciliation()
     scoring_input = replay_family_scoring_input(
         plugin=plugin,
         family_case=family_case,
         evidence=execution.evidence,
+        seat_context=seat_context,
     )
     if canonical_json_bytes(scoring_input.outcome) != canonical_json_bytes(
         execution.episode_result.outcome
@@ -667,7 +846,7 @@ def finalize_family_execution(
         )
     )
     _check_evidence_refs_are_scoring_input_verbatim(score_set, scoring_input)
-    _enforce_declared_leaf_policy(score_set, registration.manifest)
+    _enforce_declared_leaf_policy(score_set, registration.manifest, seat_context)
     deferred_leaf_ids = _declared_deferred_leaf_ids(registration.manifest)
     execution.evidence.append_event(
         "score_recorded",
@@ -870,6 +1049,8 @@ def replay_family_receipt(
     )
     if cell is None or cell.case_sha256 != receipt.case_sha256:
         raise ValueError("receipt cell/case identity does not match the family plan")
+    seat_context = _seat_context_for_cell(setup.plan, cell)
+    _check_seat_context_seat_set(seat_context, receipt.agent_profile_sha256_by_seat)
     evidence_path = RunLayout(
         Path(evidence_root), receipt.run_plan_id
     ).resolve_attempt_dir(receipt.cell_id, receipt.episode_attempt_id)
@@ -905,6 +1086,7 @@ def replay_family_receipt(
         plugin=plugin,
         family_case=family_case,
         evidence=evidence,
+        seat_context=seat_context,
     )
     replayed_score_set = normalize_family_score_set(
         plugin.build_scorer(family_case)(
@@ -913,7 +1095,7 @@ def replay_family_receipt(
         )
     )
     _check_evidence_refs_are_scoring_input_verbatim(replayed_score_set, scoring_input)
-    _enforce_declared_leaf_policy(replayed_score_set, registration.manifest)
+    _enforce_declared_leaf_policy(replayed_score_set, registration.manifest, seat_context)
     if canonical_json_bytes(score_payload) != canonical_json_bytes(
         _score_event_payload(
             replayed_score_set, outcome_event_id=scoring_input.evidence_refs[-1]
@@ -1010,6 +1192,10 @@ def audit_family_receipt(
     )
     if cell is None:
         raise ValueError("receipt cell is absent from the family plan")
+    seat_context = _seat_context_for_cell(setup.plan, cell)
+    _check_seat_context_seat_set(
+        seat_context, receipt.get("agent_profile_sha256_by_seat") or {}
+    )
     expected_plan = _plan_recorded_by(setup.plan, receipt)
     expected = {
         "run_plan_id": expected_plan.run_plan_id,
@@ -1066,7 +1252,10 @@ def audit_family_receipt(
         plugin = registration.plugin
         family_case = plugin.validate_payload(case.payload)
         scoring_input = replay_family_scoring_input(
-            plugin=plugin, family_case=family_case, evidence=evidence
+            plugin=plugin,
+            family_case=family_case,
+            evidence=evidence,
+            seat_context=seat_context,
         )
         score_set = normalize_family_score_set(
             plugin.build_scorer(family_case)(
@@ -1074,7 +1263,7 @@ def audit_family_receipt(
             )
         )
         _check_evidence_refs_are_scoring_input_verbatim(score_set, scoring_input)
-        _enforce_declared_leaf_policy(score_set, registration.manifest)
+        _enforce_declared_leaf_policy(score_set, registration.manifest, seat_context)
         events = [e for e in evidence.read_events() if e.event_type == "score_recorded"]
         expected_status, expected_inclusion, expected_failure = _score_admission(
             score_set
