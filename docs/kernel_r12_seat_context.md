@@ -444,3 +444,123 @@ Targeted (`tests/test_shared_runner_schemas.py
 tests/test_shared_runner_scoring_contract.py tests/test_shared_runner_smoke.py
 tests/test_shared_runner_family_evaluation.py`) after both fixes: 150 passed,
 0 failed.
+
+## The stability check predates R12 and was never reconciled with it
+
+**Provenance.** Found downstream, by the alympics family adapter hitting
+it while migrating to `seat_scope="subject_seat"` leaves (see
+`docs/alympics_migration_review.md`), not by the independent review above.
+
+**Finding.** `tests/test_shared_runner_scoring_contract.py`'s
+`_assert_family_obeys_the_scoring_contract` has, since PR #103
+(`kernel_contract_gap_review.md` finding 7), compared the FULL
+`MeasurementLeafSpec` across every fixture for the same `leaf_id`,
+asserting a leaf's declared identity — estimand, verifier, reference,
+scorer ref — is stable for the family/version. That is correct for a
+leaf's invariant declaration.
+
+Ruling R12 then introduced `seat_scope="subject_seat"` leaves — leaves
+scored for whichever seat the run plan names as the subject — without
+reconciling them against this pre-existing check. For a per-seat leaf
+whose *reference* legitimately depends on which seat is the subject (e.g.
+a baseline recomputed by substituting a different seat's policy), the two
+rules contradict: two fixtures naming different subject seats prove the
+seat context is genuinely used exactly by producing two different
+reference identities, and the old full-spec comparison then fails.
+
+The alympics family adapter worked around this the wrong way: it dropped
+`focal_seat` from its baseline reference's hash payload so the leaf spec
+would be identical regardless of subject seat, making two materially
+different references collide on one `source_sha256`. That workaround is
+reverted on `zeyu/alympics-contract-migration` once this fix lands; see
+`docs/alympics_adapter_status.md`.
+
+**Disposition — fixed.** `_assert_family_obeys_the_scoring_contract`'s
+stability check is reconciled with R12 via a new pure helper,
+`_leaf_spec_stability_violation`, driven once per fixture per score
+inside the same loop (unchanged call site otherwise):
+
+- For a leaf whose declared `seat_scope` is **not** `"subject_seat"`
+  (`"cell"`, the default): unchanged — the full `MeasurementLeafSpec`
+  must be identical across every fixture, regardless of subject seat.
+  Nothing about this path was relaxed.
+- For a leaf declared `seat_scope="subject_seat"`: the leaf's INVARIANT
+  fields must still be identical across every fixture; the only fields
+  exempted from that requirement are the ones on `ReferenceSpec` that name
+  the reference itself — **`reference_id` and `source_sha256`** — because
+  those two are precisely what a per-seat reference legitimately
+  re-instantiates when the subject seat changes (e.g. alympics'
+  `_opponent_panel_sha256`, which is a function of `focal_seat`). Every
+  other field of `ReferenceSpec` (`reference_version`, `reference_kind`,
+  `input_scope`, `units`, `implementation`) and every field outside it
+  (`estimand`, `verifier_family`, `evaluation_class`, `objective_scope`,
+  `scorer`) remains part of the leaf's invariant, seat-independent
+  declaration.
+  - Rule (ii): two fixtures sharing the SAME subject seat(s) must still
+    produce a byte-identical spec, reference identity included — a
+    per-seat leaf may vary its reference WITH the seat, never with
+    anything else (this is what keeps rule (iii)'s exemption from being a
+    hole for a scorer whose reference merely drifts from call to call).
+  - Rule (iii): two fixtures naming DIFFERENT subject seats may differ
+    only in the two exempted fields; any invariant-field disagreement
+    still fails.
+  - A family that only ever supplies fixtures for one subject seat has
+    exactly one seat-group: rule (ii) degenerates to the cell-scoped
+    check above, and rule (iii) never runs (there is no second group to
+    compare against) — vacuously true, not weaker.
+
+Every assertion message names the family, the leaf, the subject seat(s)
+of the fixtures being compared, and the specific field that disagreed.
+
+**Tests** (`tests/test_shared_runner_scoring_contract.py`), driven
+directly against `_leaf_spec_stability_violation` — the exact per-fixture
+function the protocol path calls — rather than through the full
+registry-driven path: the synthetic per-seat family's own fixture is kept
+to one contract fixture there (`_SINGLE_FIXTURE_EXEMPT_FAMILIES`) because
+its outcome is keyed by seat, not order, so no honest
+outcome-identical/trajectory-differing pair (ruling R9's paired-history
+precondition, unrelated to this rule) can be built for it, and two
+fixtures naming different subject seats necessarily also disagree on that
+leaf's primary (by ruling R12 rule 2's own design), which would trip the
+unrelated R7 terminal-state contrapositive check for a reason that has
+nothing to do with leaf-identity stability.
+
+| Rule | Test (pass) | Test (fail) |
+|---|---|---|
+| (i)/(iii): reference identity varies by subject seat, invariant fields agree | `test_seat_scoped_leaf_identity_varies_by_subject_seat_passes` | — |
+| (ii): reference identity must not vary for the SAME subject seat | (same test, seat "x" and seat "y" each checked once) | `test_seat_scoped_leaf_identity_varying_for_the_same_subject_seat_fails` |
+| (iii): an invariant field (`reference.reference_version`) may not vary across subject seats | — | `test_seat_scoped_leaf_identity_varying_an_invariant_field_across_subject_seats_fails` |
+| Cell-scoped leaves: still no exemption, anything varying still fails | (unchanged pre-R12 behaviour, exercised throughout this module) | `test_cell_scoped_leaf_identity_varying_across_fixtures_still_fails` |
+
+**Mutation.** Each of the four tests was verified against a `/tmp` copy of
+`tests/test_shared_runner_scoring_contract.py` with the corresponding
+branch of `_leaf_spec_stability_violation` disabled, then restored from
+the `/tmp` copy (never `git checkout` on the file holding uncommitted
+work):
+
+- Rule (i)/(iii)'s exemption disabled (forcing
+  `include_reference_identity=True` in the cross-group comparison):
+  `test_seat_scoped_leaf_identity_varies_by_subject_seat_passes` failed
+  with the invariant-field-disagreement message naming
+  `reference.reference_id`.
+- Rule (ii)'s same-seat comparison disabled (`elif False and leaf_spec !=
+  same_seat_existing`): `test_seat_scoped_leaf_identity_varying_for_the_
+  same_subject_seat_fails` failed (`assert None is not None`).
+- Rule (iii)'s cross-group mismatch return disabled (`if False and
+  mismatch is not None`): `test_seat_scoped_leaf_identity_varying_an_
+  invariant_field_across_subject_seats_fails` failed (`assert None is not
+  None`).
+- The cell-scoped branch's comparison disabled (`if False and leaf_spec !=
+  existing`): `test_cell_scoped_leaf_identity_varying_across_fixtures_
+  still_fails` failed (`assert None is not None`).
+
+All four mutations were confirmed to make the matching test fail, then the
+file was restored byte-identical to its pre-mutation state (checked with
+`diff`) before the next mutation.
+
+## Post-stability-fix verification
+
+Targeted (`tests/test_shared_runner_scoring_contract.py
+tests/test_shared_runner_schemas.py tests/test_shared_runner_smoke.py
+tests/test_shared_runner_family_evaluation.py`): see commit history for
+the exact pass count recorded at push time.
