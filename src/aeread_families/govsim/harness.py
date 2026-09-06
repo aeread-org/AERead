@@ -68,8 +68,19 @@ class ScriptedGovsimHarness:
             policy = policies.SCRIPTED_POLICIES[policy_id]
             quantity = policy(request.observation)
             return {"quantity": int(quantity)}
-        if request.phase_id in (DISCUSS_PHASE, REFLECT_PHASE):
-            return {}
+        if request.phase_id == DISCUSS_PHASE:
+            # A scripted utterance that states the policy the seat is
+            # following, so a scripted baseline exercises the same
+            # content-carrying action a live persona does.
+            policy_id = self._policy_assignment.get(request.seat_id, "sustainable_v1")
+            return {
+                "message": (
+                    f"I am following the {policy_id} policy and will take my "
+                    "share accordingly."
+                )
+            }
+        if request.phase_id == REFLECT_PHASE:
+            return {"reflection": ""}
         raise RuntimeError(
             f"ScriptedGovsimHarness has no response for phase {request.phase_id!r}"
         )

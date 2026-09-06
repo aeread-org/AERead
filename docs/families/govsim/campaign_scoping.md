@@ -67,6 +67,44 @@ the plan is the same discipline every other campaign parameter gets. But it
 determines what the family's headline numbers *mean*, so it is a ruling, not
 an implementation detail.
 
+## Communication restored (2026-09-06)
+
+The first published panel measured the common-pool dilemma **with
+communication removed**: `discuss` and `reflect` both accepted `{}` and
+carried no content, so nothing an agent said could reach anyone. Upstream's
+whole contribution is that dialogue changes the outcome
+(`persona_v3/cognition/converse.py`, `prompt_converse_utterance_in_group`,
+utterances recorded per round and plotted in `analysis/details.py`), so the
+panel was not measuring what GovSim measures.
+
+Now:
+
+- `discuss` carries `{"message": str}`. The utterance goes into a **public
+  transcript** that appears in every agent's next observation, so one
+  agent's stated intent can change another's harvest -- the mechanism the
+  benchmark exists to study.
+- `reflect` carries `{"reflection": str}`, stored **per agent** and returned
+  only to its author. That is memory, not speech.
+- The scripted harness produces utterances too, so a baseline exercises the
+  same content-carrying action a live persona does.
+
+Verified offline: 12 transcript entries over a 12-round episode, **126 of
+132 observations carrying a prior utterance**, reflections stored for all
+five personas, receipt `ok`/`included` with five leaves, replay digest
+matching. Before the change that middle number was zero.
+
+**Still short of upstream**, and worth stating rather than glossing:
+
+| | upstream | here |
+|---|---|---|
+| speakers per round | the whole group converses, multiple turns | one fixed spokesperson, one turn |
+| transcript visible | the full conversation | a six-entry window (`TRANSCRIPT_WINDOW`) |
+| memory | a retrieval-backed store (`cognition/store.py`) | the agent's own last reflection |
+
+So dialogue now exists and demonstrably influences other agents, but it is a
+single-speaker channel rather than a group conversation. Closing that gap
+means multi-speaker turns in the discuss phase and is the next step.
+
 ## What a live panel can and cannot exercise
 
 The action contract limits what an LLM can do here, and the limit is not
@@ -75,8 +113,8 @@ obvious from the family's name:
 | phase | action schema | what a model contributes |
 |---|---|---|
 | `harvest` | `{"quantity": int >= 0}` per persona seat, simultaneous | the whole decision |
-| `discuss` | `{}` | **nothing** -- the action carries no content |
-| `reflect` | `{}` | **nothing** |
+| `discuss` | `{"message": str}` | a public utterance every agent then sees |
+| `reflect` | `{"reflection": str}` | a private memory returned to its author |
 
 `observe()` says as much in its own comment: the observation is "deliberately
 symmetric across seats", and "a richer, seat-private observation is a
