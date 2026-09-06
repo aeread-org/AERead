@@ -216,8 +216,9 @@ nothing about those two sections changes as a result of this classification.
 The receipt for a contract-mode case will carry `inapplicable_leaf_ids=()`
 (all three post-redesign leaves returned); for a basic case it will carry
 `inapplicable_leaf_ids=("agenticpay_contract_legality_leaf",)` and the
-finalizer will accept a returned set of the other three, per R13 rule 3
-(`{returned} == {declared finalize_time} − inapplicable`). A basic-case
+finalizer will accept a returned set of the other two post-redesign leaves
+(`agenticpay_deal_reached_leaf`, `agenticpay_surplus_share_leaf`), per R13
+rule 3 (`{returned} == {declared finalize_time} − inapplicable`). A basic-case
 receipt is still `included` when its admission leaf (surplus-share) is `ok`,
 per R13 rule 4 — the missing diagnostic is a disposition, not a cell
 exclusion.

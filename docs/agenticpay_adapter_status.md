@@ -192,7 +192,9 @@ argument positionally, matching every other hook call in that function. This fix
 been added to the shared ledger — flag it to the kernel owner at PR time, since it lands
 on a family branch rather than a kernel-owner branch.
 
-Ledger entries that name this family: **D-10** (`docs/benchmark_qc.md` missing,
+Ledger entries relevant to this family: **D-10** (`docs/benchmark_qc.md` missing;
+the entry itself lists amazonbarg/aucarena/econevals/govsim/negarena/steer and does
+not literally name agenticpay, but it covers the same gap this family shares;
 unchanged this milestone). **D-15** (the census at `runner_defect_ledger.md` listed
 `agenticpay` among the families whose `build_scorer` lacked `__call__`; closed for this
 family by commit `b2df23ec`, which added `AgenticpayBilateralScorer.__call__` — the
@@ -222,10 +224,11 @@ spec section 5.5 requires a human to check, not a repeat of that argument.
 
 No leaf is `deferred`: every scorer in `measurement.py` is
 `evaluation_class="deterministic"` arithmetic over the verified re-executed
-episode's own terminal state / round trace, or a bridge call that only
-re-validates *this* episode's own already-submitted contract text (never a
-separate run, never a judge/rater verdict). There is no artifact any leaf is
-waiting on, so no `deferred_artifact` field is ever populated.
+episode's own terminal state / round trace (the per-round `*_contract_valid`
+verdicts `score_contract_legality` reads were produced by the bridge driver
+during the verified re-execution; no scorer makes a bridge call of its own).
+There is no artifact any leaf is waiting on, so no `deferred_artifact` field
+is ever populated.
 
 ### Why `agenticpay_surplus_share` is primary
 
@@ -282,7 +285,9 @@ collusion: primary alone):
   negotiation is a genuine, meaningful failure the family wants to *report*,
   not a case whose receipt should be excluded outright — and a `"timeout"`
   already routes `agenticpay_surplus_share` itself to `invalid_measurement`
-  (reason `"no_agreement_reached"`), so gating on `agenticpay_deal_reached`
+  (reason `"no_agreement_reached"` in basic mode; `"denominator_degenerate"`/
+  `"contract_utility_not_available"` in contract mode, where a timed-out
+  episode carries no `z_max`/utility), so gating on `agenticpay_deal_reached`
   separately would be redundant with the primary's own admission behavior.
 - `agenticpay_contract_legality` is likewise a diagnostic, and is
   independently *required* to be excluded from admission by ruling R13 rule 1

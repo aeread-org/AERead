@@ -241,8 +241,9 @@ def family_manifest() -> FamilyManifest:
                 # registry requires (mirrors tau3_retail's own
                 # "retail_task_reward" label, which never matches either of
                 # its two real leaf ids either) -- not the same object as
-                # the four concrete MeasurementLeafSpec declarations
-                # measurement.py builds per case (build_scorer, below).
+                # the concrete MeasurementLeafSpec declarations
+                # measurement.py builds per case (three declared finalize-time
+                # leaves; build_scorer, below).
                 "primary_estimand": "agenticpay_bilateral_surplus_share",
                 "measurement_kind": "optimizable_outcome",
                 "direction": "maximize",
