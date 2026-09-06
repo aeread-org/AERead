@@ -315,3 +315,129 @@ All three mutations were restored from the `/tmp` backup; suite green again
 ```
 
 127 passed, 0 failed.
+
+## Second pass
+
+A second-pass review of the seven first-pass commits (`51105424` through
+`2fa14a9f`) closed findings 2, 4, and 5's original gap, and raised three
+residuals against the first pass's own fixes, dated 2026-09-05.
+
+### R1 (finding 3, tighten) — a controlled pair did not require the same case
+
+**FIXED.** `_assert_trajectory_leaves_are_witnessed`
+(`tests/test_shared_runner_scoring_contract.py:1496`) required a
+byte-identical projected outcome and differing `phase_instances` for a pair
+to count as "controlled," but not the same `family_case`. Two fixtures from
+DIFFERENT cases can share a byte-identical projection (same outcome shape,
+no declared paths) while disagreeing on the case payload; a leaf that reads
+only that payload -- never the trajectory -- would then be wrongly witnessed
+by the case difference alone. Fixed: `produced_by_case` (built in
+`_assert_family_obeys_the_scoring_contract`) now carries each fixture's
+`family_case` alongside its scoring input and score set, and a controlled
+pair additionally requires `canonical_json_bytes(left_case) ==
+canonical_json_bytes(right_case)`. The "no controlled pair" message now says
+"same case, byte-identical projected outcome, differing phase_instances".
+The docstring's causality claim was reworded: on a controlled pair the only
+remaining uncontrolled input is `evidence_refs`, which the contract
+designates provenance-only (excluded from `_score_measurement_content`); a
+scorer that turns sealed event ids into measurement content violates the
+provenance rule on its own terms and is out of scope for this witness,
+exactly as it is out of scope for R7's contrapositive -- stated as the
+accepted residual.
+
+Commit: `cf85c02f` — "fix(scoring-contract): a controlled witness pair must
+share its case".
+
+Test added: `test_sensitivity_witness_rejects_a_pair_whose_case_differs_even_with_matching_projection`
+(`tests/test_shared_runner_scoring_contract.py:2668`) — two fixtures with
+identical outcome/projection and differing `phase_instances` but different
+cases; the pair must not count as controlled, and with no other pair
+supplied the witness is rejected with "no controlled pair". The existing
+positive test (`test_sensitivity_witness_passes_when_a_trajectory_leaf_changes_on_some_pair`)
+was updated to share one case across all its fixtures and confirmed still
+passing.
+
+Mutation result: with the case-equality clause removed from the controlled-
+pair condition, exactly the new test failed ("DID NOT RAISE AssertionError");
+all seven other witness tests, including the positive controlled-pair test,
+remained green. Restored from the `/tmp` backup; suite green again (30/30).
+
+### R2 (finding 1, residual) — shape guards satisfiable by an empty list; guards are structural, not semantic
+
+**R2(a) FIXED.** `_assert_trajectory_outcome_paths_are_consistent`
+(`tests/test_shared_runner_scoring_contract.py:1412`) required a declared
+path's outcome value to be A sequence (guard b, finding 1), but not a
+NON-EMPTY one. Reaching that line already means
+`_final_replayed_state(scoring_input.phase_instances)` found at least one
+transition (it raises `ValueError` otherwise, before the per-path loop ever
+starts) -- so an empty embedded trajectory at that point is never honest: the
+family's own replay produced steps, but its sealed copy claims none. Added a
+fourth guard, immediately after guard (b): the declared path's outcome value
+must be non-empty. Test added:
+`test_r10_rejects_an_empty_embedded_trajectory_beside_a_non_empty_replay`
+(`tests/test_shared_runner_scoring_contract.py:2519`) — `phase_instances`
+replays one transition, but the declared path's outcome copy is `[]`;
+rejected with a message naming the inconsistency. Mutation result: with the
+new assertion removed, the test failed ("DID NOT RAISE AssertionError");
+restored from the `/tmp` backup, suite green again (31/31).
+
+**R2(b) is an accepted, documented residual, not a code change.** All of the
+projection/consistency guards (`project_outcome`, `_assert_projection_is_not_vacuous`,
+guard (b), and R2(a)'s new non-empty check) are STRUCTURAL: they check shape
+and byte-equality, never domain meaning. None of them can tell a genuine
+per-step trajectory field apart from some OTHER list-shaped field the family
+declared instead, and none of them can tell whether a family's declared
+trajectory path happens to ALSO be where its real terminal result lives. A
+family that declares its actual terminal-result field (list-shaped) as a
+`trajectory_outcome_path` would have it projected away and pass every guard
+here. This is now stated plainly in `project_outcome`'s docstring
+(`tests/test_shared_runner_scoring_contract.py:1344`), in
+`_assert_projection_is_not_vacuous`'s docstring (`:1369`), and in the guard
+(b)/R2(a) comments inside `_assert_trajectory_outcome_paths_are_consistent`
+(`:1412`): that declaration is reviewed by a human exactly like the
+primary-leaf choice (spec section 5), and the family's own supplied fixtures
+are the conformance evidence for it, not an adversarial boundary this kernel
+enforces unattended. No further code change is planned against this residual.
+
+Commit: `177c9b9d` — "fix(scoring-contract): an embedded trajectory may not
+be empty beside a non-empty replay" (includes the R2(b) doc wording and the
+Finding 1 update in this document).
+
+### R3 (finding 5, residual) — the over-broad-projection end-to-end test still bypassed the protocol path
+
+**FIXED.** `test_r9_projection_erases_the_entire_outcome_when_the_declared_path_is_over_broad`
+(`tests/test_shared_runner_scoring_contract.py:2208`) called
+`project_outcome`/`_assert_projection_is_not_vacuous` directly on a
+hand-replayed scoring input, so it would have stayed green even if
+`_assert_family_obeys_the_scoring_contract` stopped calling the
+vacuous-projection guard entirely. Re-pointed through that helper: a new
+synthetic single-leaf family (`_OverBroadTrajectoryEmbeddingPlugin`,
+`:557`) whose outcome consists ENTIRELY of the per-step `labels` sequence
+(a genuine, non-empty list, at the same state key `_ReferencePlugin.step`
+already uses, so it also satisfies finding 1's guard (b), R2(a)'s non-empty
+guard, and ruling R10's same-pointer consistency check) declares `"/labels"`
+as its sole `trajectory_outcome_path`. Its one leaf is `trajectory`-scoped
+and reads only `phase_instances`, so nothing upstream of the vacuous guard
+has any other reason to reject it. The test builds a real two-fixture
+episode pair, attaches the leaf policy and declaration to a copy of the
+trusted `kernel_contract_reference_v1` manifest (`_with_declared_leaf_policy`),
+registers it, and asserts `_assert_family_obeys_the_scoring_contract` raises
+with the "vacuous" message.
+
+Commit: `c1ecd6cb` — "test(scoring-contract): drive the over-broad
+projection case through the protocol path".
+
+Mutation result: with the two `_assert_projection_is_not_vacuous` calls
+inside `_assert_family_obeys_the_scoring_contract` commented out (via a
+`/tmp` copy), this test failed ("DID NOT RAISE AssertionError"); restored
+from the backup, suite green again (31/31).
+
+### Second-pass final verification
+
+```
+../../.venv/bin/python -m pytest tests/test_shared_runner_schemas.py \
+  tests/test_shared_runner_scoring_contract.py tests/test_shared_runner_smoke.py \
+  -q -p no:cacheprovider
+```
+
+129 passed, 0 failed.
