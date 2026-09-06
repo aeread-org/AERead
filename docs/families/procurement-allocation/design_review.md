@@ -381,6 +381,29 @@ it material at plausible parameters, and that the channel carrying its
 information is one an evaluated policy actually reads. Both checks are cheap and
 neither was performed.
 
+## 16. A control-only headroom screen admits floored worlds
+
+Defect 14 established that a panel must be admitted against a measured control
+rate. The screen built for it measures one policy, so it detects saturation and
+nothing else, and a world that no policy can solve passes it *because* the
+control fails there.
+
+The due-diligence panel is the demonstration. Its screen found the control
+failing 3 of 6 worlds and admitted the panel. Running both arms showed 2 worlds
+saturated, 2 floored where both arms score zero, 1 where both arms land on the
+same rate, and **1 world able to express a difference**. All three worlds the
+screen credited as headroom were floored or non-discriminating.
+
+A world is informative only if some policy can succeed and some policy can fail.
+That is a property of at least two policies, and no single-policy measurement can
+establish it.
+
+**Fix.** Screen two policies with different failure modes -- the frozen control
+and the deterministic greedy baseline are already available and cost nothing
+extra -- and admit a world only when they separate. Publish both rates per
+admitted world. This costs one additional screening pass, against the two panels
+and roughly $1 of runs that single-sided screening has now failed to protect.
+
 ---
 
 ## Status of the fixes
@@ -401,6 +424,7 @@ neither was performed.
 | 12 one digest for scientific and operational parameters | open; needs a versioned plan schema, so it is kernel work, not a family change |
 | 13 eligibility and effect returned together | open; split into `assess_eligibility` and a comparison that requires it |
 | 14 no check that a holdout leaves the control room to fail | open; cost a full 144-row run to discover, and is the reason the confirmatory holdout is uninformative |
+| 16 control-only screen admits floored worlds | open; the due-diligence panel had 1 of 6 worlds able to express a difference |
 | 15 biased channel unread, and financing immaterial at this scale | open; found by a $0.0153 screen that also saturated the information panel 7 of 7 |
 
 Defects 4, 6, 8, 10, and 12 through 14 are the remaining work. Defect 14 is the

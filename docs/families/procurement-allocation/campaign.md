@@ -1169,9 +1169,12 @@ costs nine and is impossible, and listings that all claim the same headline yiel
 so price cannot rank suppliers. The trap sits at a different price tier in each
 world, so no fixed heuristic wins across the panel.
 
-**Admitted on measured headroom.** A one-seed control screen costing $0.0139
-found the frozen V4 control failing 3 of 6 worlds. The two panels this screen
-rejected earlier saturated at 7 of 12 and 7 of 7.
+**Admitted on measured headroom, by a screen that turned out to be half a
+screen.** A one-seed control screen costing $0.0139 found the frozen V4 control
+failing 3 of 6 worlds, and the two panels it rejected earlier saturated at 7 of
+12 and 7 of 7. But screening one policy detects only saturation. All three worlds
+that "passed" by having the control fail turned out to fail for both arms. See
+design-review defect 16.
 
 **Run.** Both arms, V4 scaffold against the pre-award check, six worlds by two
 surfaces by three seeds: 72 rows, 69 completed, 3 missing to rate limits, $0.201.
@@ -1185,10 +1188,28 @@ effect.**
 | regret | +$14.99 | [-$0.31, $45.42] |
 | completed kits | -5.03 | [-8.83, -1.25] |
 
-Five of the six worlds show a delta of exactly zero. `traps_differ_by_component`
-supplies all of it, at -0.600 feasible awards and +$90.98 regret. **This is a
-one-world artifact, not a treatment effect**, and the bootstrap over six worlds
-cannot say otherwise.
+Five of the six worlds show a delta of exactly zero, and checking *why* is more
+damning than the delta. Only one world can express a difference at all:
+
+| world | control | treatment | verdict |
+|---|---|---|---|
+| trap_is_midpriced | 100% | 100% | saturated |
+| trap_is_priciest | 100% | 100% | saturated |
+| trap_is_cheapest | 0% | 0% | floored |
+| two_traps_one_clean | 0% | 0% | floored |
+| decoy_variant_and_trap | 17% | 17% | non-discriminating |
+| traps_differ_by_component | 100% | 50% | **discriminates** |
+
+**This is a one-world comparison, not a six-world one.** Five worlds are
+structurally incapable of showing an effect: two because both arms always win,
+two because both arms always lose, one because both land on the same rate. A
+bootstrap over six worlds where five cannot move is not a wide interval, it is a
+meaningless one, and the reported intervals should be read as describing a single
+world.
+
+The two floored worlds are the other half of the lesson: the traps are now too
+harsh, not merely the budget too tight. `trap_is_cheapest` and
+`two_traps_one_clean` are unsolvable by either arm within seven actions.
 
 **The mechanism is visible in the traces, and it is worth a proper test.** On the
 driving world the control plays `q q S q S S A`: batch the quotes, batch the

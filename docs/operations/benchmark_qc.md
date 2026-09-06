@@ -139,9 +139,14 @@ Establish this by measurement, not by inspecting world definitions:
    candidate world, at one seed if budget is tight. A cheaper proxy policy is not
    a substitute unless that proxy is first shown to track the control on a panel
    of known difficulty.
-2. Admit a world only when the control fails at least a declared minimum share of
-   its rows, and publish the measured control rate per admitted world in the
-   panel manifest.
+2. Admit a world only when it can express a difference **in both directions**:
+   the control must fail a declared minimum share of rows, and at least one other
+   policy must succeed on a declared minimum share. Screening a single policy
+   detects saturation and nothing else; a world no policy can solve is exactly as
+   uninformative as one every policy solves, and it passes a control-only screen
+   precisely because the control fails there. Screen at least two policies with
+   different failure modes and require the world to separate them. Publish both
+   measured rates per admitted world in the panel manifest.
 3. A holdout must additionally preserve the difficulty of the panel it holds out
    from. Matching a panel's failure *themes* does not match its difficulty.
 

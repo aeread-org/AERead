@@ -105,7 +105,9 @@ Also mine. These are the ones no test would have caught.
 | J-03 | fixed "verbal claims are always true" by biasing the verbal reply, without checking that any evaluated policy reads verbal replies; a screen recorded zero `inquire` actions across a whole panel | a $0.0153 control screen | would have wasted a $0.30 run; caught before spending | D-01 reopened, D-15 raised; the bias must sit on the listing |
 | J-04 | recommended cutting working capital because it is "arithmetic over facts already held" | the operator asked whether it models a reselling process | an incorrect rationale in a design document, corrected the same day | the real objection is scale: $50 lines against ~70% margins make the term worth ~$0.72 at honest parameters, and the six cases where it matters use 150-200% annual financing |
 
-J-01 and J-03 share a cause: a panel was authored against an intuition about what
+| J-05 | built the due-diligence panel and admitted it on a control-only screen; only 1 of 6 worlds could express a difference, 2 saturated and 2 floored | the operator asked whether the zero-delta worlds were saturated or non-discriminatory, which I had not checked | $0.20 on a comparison that is effectively one world | D-16 raised; Gate 1 now requires two-sided headroom screened with two policies; the campaign write-up was corrected from "one-world artifact" to "one-world comparison" |
+
+J-01, J-03 and J-05 share a cause: a panel was authored against an intuition about what
 would be hard, and neither intuition was measured before the panel was frozen.
 The $0.015 control screen now exists precisely because it is three orders of
 magnitude cheaper than discovering the same thing from a completed run.
