@@ -65,7 +65,13 @@ from .live import (
 )
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
-CAMPAIGN_ID = "econevals_glm53_flash_parasail_first_light_v1"
+# v1 asked the model to submit BLIND: one call per period, the whole burst
+# executed afterwards, so nothing it looked up could inform what it
+# submitted. That is not upstream's task -- upstream loops within the period
+# and feeds each tool result back -- and it is why v1 scored gate = 0.0 on
+# five of six cases. v2 runs the loop, which makes it a different experiment
+# rather than a re-run, so it publishes alongside v1 instead of over it.
+CAMPAIGN_ID = "econevals_glm53_flash_parasail_tool_loop_v2"
 CANARY_CASE_ID = "econevals.procurement.basic.0"
 PANEL_CASE_IDS = (
     "econevals.procurement.basic.0",
