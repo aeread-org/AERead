@@ -284,7 +284,10 @@ def sanitized_trajectory_rows(evidence: Any, receipt: Any) -> tuple[dict[str, An
                 payload.get("legality_result") if isinstance(payload, Mapping) else None,
                 ("legal", "reason"),
             )
-        elif kind in ("logical_action_succeeded", "logical_action_failed", "logical_action_outcome_unknown"):
+        elif kind.startswith("logical_action_"):
+            # Every terminal disposition the executor records: succeeded, failed,
+            # outcome_unknown, and agent_action_failure (an invalid action the
+            # environment answered with its default transition).
             payload = evidence.read_event_payload(event)
             row["outcome"] = {
                 "status": kind.removeprefix("logical_action_"),

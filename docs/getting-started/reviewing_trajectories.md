@@ -142,7 +142,9 @@ order (`schema_version: aeread.sanitized_trajectory_row/0.1`). A row carries:
 - `action`: the parsed, structured action the environment received (this is
   model-authored content, but it is the typed action, not the provider text);
 - `parse` (`ok`, `error_code`), `legality` (`legal`, `reason`), `outcome`
-  (`status`, `valid`, `failure_code`);
+  (`status`, `valid`, `failure_code`); `status` is one of `succeeded`,
+  `failed`, `outcome_unknown`, or `agent_action_failure` (an invalid action
+  the environment answered with its default transition);
 - `attempts[]`: each retry with its `provider_calls[]` — requested and resolved
   model, `pricing_id`, `request_sha256`, token counts, `cost_usd`, finish
   reason, or the typed failure condition — and the canonical response's

@@ -340,3 +340,34 @@ def test_publish_trajectories_verb_is_registered_and_refuses_an_unpublished_rece
     count, manifest = publish_trajectory_grain(bundle, [attempt_dir])
     assert count > 0
     assert manifest["artifacts"][GRAIN] == hashlib.sha256((bundle / GRAIN).read_bytes()).hexdigest()
+
+
+def test_sanitized_trajectory_rows_record_an_agent_action_failure_as_the_outcome():
+    """A parse failure ends in logical_action_agent_action_failure, not _failed."""
+
+    from types import SimpleNamespace
+
+    from aeread.shared_runner.run.publication import sanitized_trajectory_rows
+
+    ids = {"run_plan_id": "plan", "cell_id": "cell", "episode_id": "ep", "episode_attempt_id": "att"}
+    events = [
+        SimpleNamespace(
+            event_type=kind, sequence=i, logical_action_id="la1", phase_instance_id="ph1",
+            action_attempt_id=None, provider_call_id=None, tool_invocation_id=None,
+            payload={"request": {"phase_id": "p", "seat_id": "s", "role": "r", "profile_id": "pr"}}
+            if kind == "logical_action_started"
+            else {"valid": False, "failure_code": "unknown_procurement_action"},
+        )
+        for i, kind in enumerate(["logical_action_started", "logical_action_agent_action_failure"])
+    ]
+    evidence = SimpleNamespace(
+        verify_seal=lambda: SimpleNamespace(**ids),
+        read_events=lambda: iter(events),
+        read_event_payload=lambda event: event.payload,
+    )
+    (row,) = sanitized_trajectory_rows(evidence, {**ids, "receipt_sha256": "r", "run_plan_sha256": "p", "case_id": "c"})
+    assert row["outcome"] == {
+        "status": "agent_action_failure",
+        "valid": False,
+        "failure_code": "unknown_procurement_action",
+    }
