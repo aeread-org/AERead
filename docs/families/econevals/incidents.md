@@ -190,8 +190,31 @@ time and proves nothing.
 **Resume when the machine is quiet:**
 
 ```
-ATTEMPT=009 zsh <scratchpad>/run_econ.sh
+ATTEMPT=012 zsh <scratchpad>/run_econ_resilient.sh
 ```
+
+The resilient driver makes progress monotonic: completed cases keep their
+checkpoints and are skipped, and an interrupted case has its partial evidence
+moved aside and restarts clean. A kill costs one case, not the panel -- unless
+the driver itself is killed, which is what happened to attempts 010 and 011.
+
+**Why it keeps dying.** Not the campaign. The host kills long background
+tasks under memory pressure, and the pressure is external: ChatGPT.app alone
+held 3.1 GB at the last kill, against ~300 MB per Claude session. A six-case
+panel needs an uninterrupted hour. Closing that application, or running the
+driver from a terminal outside this session, is the fix.
+
+**Configuration is now complete and correct**, and every defect found along
+the way is fixed:
+
+| what | value | why |
+|---|---|---|
+| in-period tool loop | on | upstream feeds tool results back within a period |
+| `max_output_tokens` | 4,000 | modest; truncation handled by retry, not headroom |
+| `length` retryable | yes | needed, because a truncated-and-empty response is labelled `length` |
+| length-retry growth | capped 8x / half context | #131, fixed in the kernel |
+| duplicate submit | rejected | the environment rejects the whole period otherwise |
+| killed-case resume | evidence moved aside | partial event logs cannot be appended to |
 
 Nothing about the plan changes; the identity, the panel and the analysis are
 frozen. What is already established and does not need re-running:
