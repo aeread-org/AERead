@@ -410,3 +410,132 @@ def test_the_episode_budget_covers_a_fully_negotiated_stack() -> None:
         needed = sum(2 * value + 1 for value in rounds.values())
 
         assert document["episode"]["max_logical_actions"] >= needed, world["file"]
+
+
+# --------------------------------------------------------------- integrative
+
+
+def test_a_purely_distributive_offer_is_refused() -> None:
+    """Pushing every price to its floor without conceding anything must fail.
+
+    This is the difference between haggling and bargaining. The counterparty
+    values terms on its own scale, and the cash concessions alone sit below its
+    reservation, so an agent that only pushes prices is refused.
+    """
+    import copy
+
+    from aeread_families.datacenter_development.stack_environment import (
+        TERM_PARSER_BY_TYPE,
+        counterparty_utility,
+        terms_acceptable,
+    )
+
+    refused = 0
+    for world in load_pack_manifest()["worlds"]:
+        payload = _payload(world["file"])
+        policy = payload["policies"]["power"]
+        assert "utility" in policy, world["file"]
+        scripted = payload["scripted_developer"]["power_terms"]
+
+        greedy = copy.deepcopy(scripted)
+        greedy["energization_month"] = policy["utility"]["reference"][
+            "energization_month"
+        ]
+        parsed = TERM_PARSER_BY_TYPE["power"](greedy)
+        if not terms_acceptable(parsed, policy):
+            refused += 1
+            assert counterparty_utility(parsed, policy) < policy["utility"][
+                "reservation"
+            ], world["file"]
+    assert refused == 24, f"only {refused} of 24 worlds refuse a price-only offer"
+
+
+def test_the_same_prices_become_acceptable_once_a_concession_is_offered() -> None:
+    """The trade is what unlocks the price, and it pays both sides."""
+    from aeread_families.datacenter_development.stack_environment import (
+        TERM_PARSER_BY_TYPE,
+        counterparty_utility,
+        terms_acceptable,
+    )
+
+    for world in load_pack_manifest()["worlds"]:
+        payload = _payload(world["file"])
+        policy = payload["policies"]["power"]
+        scripted = payload["scripted_developer"]["power_terms"]
+        parsed = TERM_PARSER_BY_TYPE["power"](scripted)
+        name = world["file"]
+
+        # Acceptable, and only just: the concession exactly pays for the prices.
+        assert terms_acceptable(parsed, policy), name
+        assert counterparty_utility(parsed, policy) >= policy["utility"][
+            "reservation"
+        ], name
+        # The concession is a genuine deferral, not a no-op.
+        assert (
+            scripted["energization_month"]
+            > policy["utility"]["reference"]["energization_month"]
+        ), name
+        # And the prices really are better than the counterparty's opening.
+        counter = policy["counter_terms"]
+        assert (
+            scripted["interconnection_cost_cents"]
+            < counter["interconnection_cost_cents"]
+        ), name
+        assert (
+            scripted["monthly_demand_charge_cents_per_kw"]
+            < counter["monthly_demand_charge_cents_per_kw"]
+        ), name
+
+
+def test_the_concession_costs_the_developer_less_than_it_buys() -> None:
+    """Joint gains, not a zero-sum split, are what make the trade integrative.
+
+    The deferral is not always free. Where construction is the binding
+    constraint it costs nothing at all; where revenue timing is tight it costs
+    real money. What must hold everywhere is that it costs less than the price
+    concession it unlocks, so taking the trade beats accepting the
+    counterparty's package.
+    """
+    import copy
+
+    free_of_charge = 0
+    for world in load_pack_manifest()["worlds"]:
+        payload = _payload(world["file"])
+        name = world["file"]
+        scripted = _stack(payload, "scripted")
+        reference = payload["policies"]["power"]["utility"]["reference"][
+            "energization_month"
+        ]
+        deferred = scripted["power"]["energization_month"]
+        assert deferred > reference, name
+
+        # What the concession alone costs, holding the prices won.
+        undeferred = copy.deepcopy(scripted)
+        undeferred["power"]["energization_month"] = reference
+        concession_cost = (
+            _evaluate(payload, undeferred)["developer_equity_npv_cents"]
+            - _evaluate(payload, scripted)["developer_equity_npv_cents"]
+        )
+        if concession_cost <= 0:
+            free_of_charge += 1
+
+        # What taking the trade is worth against the counterparty's package,
+        # with capacity corrected so the planning trap is not double counted.
+        accepted = copy.deepcopy(scripted)
+        accepted["power"] = {
+            **copy.deepcopy(payload["policies"]["power"]["counter_terms"]),
+            "contracted_capacity_kw": scripted["service"]["committed_capacity_kw"],
+        }
+        gain = (
+            _evaluate(payload, scripted)["developer_equity_npv_cents"]
+            - _evaluate(payload, accepted)["developer_equity_npv_cents"]
+        )
+        assert gain > 0, f"{name}: the trade must beat accepting the package"
+        assert gain > concession_cost, name
+
+        weights = payload["policies"]["power"]["utility"]["weights"]
+        assert weights["energization_month"] * (deferred - reference) > 0, name
+
+    assert free_of_charge >= 12, (
+        f"only {free_of_charge} of 24 worlds make the concession outright free"
+    )

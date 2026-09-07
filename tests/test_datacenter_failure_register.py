@@ -64,19 +64,36 @@ def test_model_errors_are_never_charged_to_the_provider() -> None:
     register = load_register()
     reclassified = [i for i in register["incidents"] if "reclassified" in i]
 
-    assert reclassified, "expected the mis-typed oversized-integer incidents"
+    assert reclassified, "expected the mis-typed incidents"
     assert register["reclassified_incidents"] == len(reclassified)
     for incident in reclassified:
-        assert incident["attribution"] == "provider"
-        assert incident["reclassified"]["corrected_attribution"] == "model"
-        assert incident["reclassified"]["reason"]
+        correction = incident["reclassified"]
         assert incident["condition"] in ATTRIBUTION_BY_CONDITION
+        assert correction["reason"]
+        assert correction["corrected_attribution"] != incident["attribution"]
 
     corrected = register["by_attribution_corrected"]
     recorded = register["by_attribution_as_recorded"]
+
+    # Model errors raised inside the provider call were booked as provider
+    # missingness; correcting them moves work from the provider to the model.
+    to_model = [
+        i for i in reclassified if i["reclassified"]["corrected_attribution"] == "model"
+    ]
+    assert to_model
     assert corrected["provider"] < recorded["provider"]
     assert corrected["model"] > recorded["model"]
-    assert recorded["provider"] - corrected["provider"] == len(reclassified)
+    assert recorded["provider"] - corrected["provider"] == len(to_model)
+
+    # Exhausting a declared ceiling was booked against the environment; it is a
+    # budget outcome, and the environment must not be blamed for it.
+    to_budget = [
+        i for i in reclassified if i["reclassified"]["corrected_attribution"] == "budget"
+    ]
+    if to_budget:
+        assert corrected["environment"] < recorded["environment"]
+        assert corrected["budget"] > recorded["budget"]
+        assert recorded["environment"] - corrected["environment"] == len(to_budget)
 
 
 def test_every_closed_defect_names_a_regression_test() -> None:

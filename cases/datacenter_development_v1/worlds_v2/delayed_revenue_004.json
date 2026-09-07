@@ -1,6 +1,6 @@
 {
   "case_id": "datacenter_development_v1.worlds_v2.delayed_revenue_004",
-  "content_sha256": "7f908f98af8b830585a37407de6989fb5bbc6c13f90841a3b9bb9932c53f43e7",
+  "content_sha256": "80814e14833d3a9715348589e796f0afff0c51e49b47f8e587161ab4f142635d",
   "episode": {
     "max_logical_actions": 42,
     "termination": [
@@ -15,9 +15,9 @@
   "payload": {
     "baseline": {
       "customer_npv_cents": 702778859,
-      "developer_equity_npv_cents": 58720984539,
-      "lender_npv_cents": 771658509,
-      "total_project_npv_cents": 60195421907
+      "developer_equity_npv_cents": 58618966296,
+      "lender_npv_cents": 771662168,
+      "total_project_npv_cents": 60093407323
     },
     "negotiation": {
       "max_rounds": {
@@ -203,7 +203,7 @@
           "delay_liquidated_damages_cap_cents": 1000000000,
           "delay_liquidated_damages_cents_per_month": 200000000,
           "developer_security_cents": 20000000,
-          "energization_month": 28,
+          "energization_month": 29,
           "energy_charge_cents_per_kwh": 7,
           "interconnection_cost_cents": 2000000000,
           "monthly_demand_charge_cents_per_kw": 1200
@@ -216,7 +216,20 @@
         "required_conditions": [
           "site_control",
           "power_commitment"
-        ]
+        ],
+        "utility": {
+          "reference": {
+            "energization_month": 28,
+            "interconnection_cost_cents": 2000000000,
+            "monthly_demand_charge_cents_per_kw": 1200
+          },
+          "reservation": 0,
+          "weights": {
+            "energization_month": 372000000,
+            "interconnection_cost_cents": 1,
+            "monthly_demand_charge_cents_per_kw": 400000
+          }
+        }
       },
       "service": {
         "counter_terms": {
@@ -687,7 +700,7 @@
         "delay_liquidated_damages_cap_cents": 1000000000,
         "delay_liquidated_damages_cents_per_month": 200000000,
         "developer_security_cents": 20000000,
-        "energization_month": 28,
+        "energization_month": 29,
         "energy_charge_cents_per_kwh": 7,
         "initial_term_months": 180,
         "interconnection_cost_cents": 1700000000,

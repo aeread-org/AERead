@@ -333,6 +333,49 @@ def _floor(value: int, *, width_bps: int = 1500) -> int:
     return max(0, value - _round_div(value * width_bps, 10_000))
 
 
+def _power_utility(
+    power: Mapping[str, Any], epc: Mapping[str, Any]
+) -> dict[str, Any]:
+    """The utility's own valuation, which differs from the developer's.
+
+    Priced so that pushing both cash terms to their floors falls short of the
+    reservation on its own, and is affordable exactly when the developer also
+    concedes the energisation date. That date is close to free for the
+    developer while construction is the binding constraint, and expensive for
+    the utility, which is what makes the trade joint rather than zero-sum.
+    """
+
+    deferrable = epc["guaranteed_completion_month"] - power["energization_month"]
+    # Months of demand charge inside the horizon, used to value a rate change.
+    charged_months = HORIZON - epc["guaranteed_completion_month"] + 1
+    interconnection_concession = power["interconnection_cost_cents"] - _floor(
+        power["interconnection_cost_cents"]
+    )
+    demand_units = CAPACITY_KW * charged_months
+    demand_concession = demand_units * (
+        power["monthly_demand_charge_cents_per_kw"]
+        - _floor(power["monthly_demand_charge_cents_per_kw"])
+    )
+    cash_concession = interconnection_concession + demand_concession
+    per_month = _round_div(cash_concession, max(1, deferrable))
+    return {
+        "weights": {
+            "interconnection_cost_cents": 1,
+            "monthly_demand_charge_cents_per_kw": demand_units,
+            "energization_month": per_month,
+        },
+        "reference": {
+            "interconnection_cost_cents": power["interconnection_cost_cents"],
+            "monthly_demand_charge_cents_per_kw": power[
+                "monthly_demand_charge_cents_per_kw"
+            ],
+            "energization_month": power["energization_month"],
+        },
+        # It will concede the cash terms, but only against the deferral.
+        "reservation": per_month * deferrable - cash_concession,
+    }
+
+
 def _default_policies(terms: Mapping[str, Mapping[str, Any]]) -> dict[str, dict[str, Any]]:
     """Two-sided acceptance bands with real width, opened per stratum."""
 
@@ -374,7 +417,11 @@ def _default_policies(terms: Mapping[str, Mapping[str, Any]]) -> dict[str, dict[
                 ),
             },
             "maximums": {
-                "energization_month": power["energization_month"],
+                # Energisation may slip as far as mechanical completion. Beyond
+                # that it delays operations and destroys value; up to it the
+                # developer gives up nothing that construction was not already
+                # withholding, which is what makes it tradeable.
+                "energization_month": epc["guaranteed_completion_month"],
                 "interconnection_cost_cents": power["interconnection_cost_cents"],
                 "monthly_demand_charge_cents_per_kw": power[
                     "monthly_demand_charge_cents_per_kw"
@@ -389,6 +436,7 @@ def _default_policies(terms: Mapping[str, Mapping[str, Any]]) -> dict[str, dict[
                 ],
             },
             "required_conditions": ["site_control", "power_commitment"],
+            "utility": _power_utility(power, epc),
             "counter_terms": {
                 **copy.deepcopy(power),
                 # Locally rational for the utility and visibly cheaper: a
@@ -802,6 +850,8 @@ def _verify_world(world: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+# Terms the developer concedes to the counterparty's ceiling in exchange.
+CONCESSION_CEILING_FIELDS = {"power": ("energization_month",)}
 NEGOTIABLE_FLOOR_FIELDS = {
     "power": ("interconnection_cost_cents", "monthly_demand_charge_cents_per_kw"),
     "epc": ("contract_price_cents",),
@@ -820,6 +870,11 @@ def _drive_to_floor(
         for field in fields:
             if field in minimums:
                 driven[agreement_key][field] = minimums[field]
+    for agreement_key, fields in CONCESSION_CEILING_FIELDS.items():
+        maximums = policies[agreement_key]["maximums"]
+        for field in fields:
+            if field in maximums:
+                driven[agreement_key][field] = maximums[field]
     if "payment_schedule" in driven["epc"]:
         price = driven["epc"]["contract_price_cents"]
         half = price // 2

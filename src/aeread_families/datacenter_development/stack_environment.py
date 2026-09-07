@@ -127,7 +127,34 @@ def _term_values(terms: AgreementTerms) -> dict[str, Any]:
     return dataclasses.asdict(terms)
 
 
+def counterparty_utility(
+    terms: AgreementTerms, policy: Mapping[str, Any]
+) -> int | None:
+    """What this package is worth to the counterparty, or None if it has no view.
+
+    A linear valuation over a few terms, measured against the counterparty's own
+    opening package, so its own counter is worth exactly zero. Weights are the
+    counterparty's, not the developer's, which is what makes a trade possible:
+    a term the developer can concede cheaply may be worth a great deal here, and
+    the reservation is what it will give up before walking.
+    """
+
+    specification = policy.get("utility")
+    if specification is None:
+        return None
+    values = _term_values(terms)
+    reference = specification["reference"]
+    total = 0
+    for field, weight in specification["weights"].items():
+        if field not in values or field not in reference:
+            return None
+        total += int(weight) * (int(values[field]) - int(reference[field]))
+    return total
+
+
 def terms_acceptable(terms: AgreementTerms, policy: Mapping[str, Any]) -> bool:
+    """Hard constraints first, then the counterparty's own valuation."""
+
     values = _term_values(terms)
     for field, minimum in policy["minimums"].items():
         if field not in values or values[field] < minimum:
@@ -136,7 +163,10 @@ def terms_acceptable(terms: AgreementTerms, policy: Mapping[str, Any]) -> bool:
         if field not in values or values[field] > maximum:
             return False
     required = set(policy["required_conditions"])
-    return required.issubset(set(values.get("conditions_precedent", ())))
+    if not required.issubset(set(values.get("conditions_precedent", ()))):
+        return False
+    utility = counterparty_utility(terms, policy)
+    return utility is None or utility >= int(policy["utility"]["reservation"])
 
 
 def _exceeds_magnitude(value: Any) -> bool:
@@ -389,6 +419,22 @@ class DataCenterStackPlugin:
             if not isinstance(value, dict):
                 raise ValueError(f"policies.{key} must be an object")
             policy_fields = {"minimums", "maximums", "required_conditions", "counter_terms"}
+            if "utility" in value:
+                utility = _exact(
+                    value["utility"],
+                    {"weights", "reservation", "reference"},
+                    f"policies.{key}.utility",
+                )
+                if not isinstance(utility["weights"], dict) or not utility["weights"]:
+                    raise ValueError(f"policies.{key}.utility.weights must be non-empty")
+                if not isinstance(utility["reference"], dict):
+                    raise ValueError(f"policies.{key}.utility.reference must be an object")
+                missing = set(utility["weights"]) - set(utility["reference"])
+                if missing:
+                    raise ValueError(
+                        f"policies.{key}.utility.reference omits {sorted(missing)}"
+                    )
+                policy_fields.add("utility")
             if "counter_message" in value:
                 if not isinstance(value["counter_message"], str) or not value["counter_message"]:
                     raise ValueError(f"policies.{key}.counter_message must be non-empty")

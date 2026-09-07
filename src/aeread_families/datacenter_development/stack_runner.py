@@ -54,6 +54,8 @@ from aeread.shared_runner.schemas import (
 from .measurement import implementation_refs, primary_measurement_leaf
 from .stack_environment import (
     OPTIONAL_AGREEMENT_KEYS,
+    TERM_PARSER_BY_TYPE,
+    terms_acceptable,
     COUNTERPART_BY_KEY,
     SCORER_ID,
     SCOPE_CONFIG,
@@ -1106,16 +1108,11 @@ class StackScriptedCounterpartyProvider:
             raise ProviderFailure("provider_contract", "counterparty received wrong phase", retryable=False)
         observation = payload["observation"]
         offer = observation["latest_offer"]
-        values = offer["terms"]
         policy = observation["private_policy"]
-        acceptable = all(
-            field in values and values[field] >= minimum
-            for field, minimum in policy["minimums"].items()
-        ) and all(
-            field in values and values[field] <= maximum
-            for field, maximum in policy["maximums"].items()
-        ) and set(policy["required_conditions"]).issubset(
-            set(values.get("conditions_precedent", ()))
+        # One acceptance rule, shared with the generator and the tests. Two
+        # implementations of "would I sign this" is one too many.
+        acceptable = terms_acceptable(
+            TERM_PARSER_BY_TYPE[offer["agreement_type"]](offer["terms"]), policy
         )
         output = (
             {"decision": "accept", "offer_id": offer["offer_id"], "message": f"{self._seat_id} accepts the written terms.", "terms": None}

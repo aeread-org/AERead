@@ -283,6 +283,45 @@ The other three routes never reach the trap, failing earlier on schema
 compliance or exhausting their rounds, so the test does not yet discriminate
 among them.
 
+### Designing the integrative half
+
+The counterparty had no view of its own: it accepted any package inside
+independent per-field bands, so no concession could be traded for another and
+haggling was the only strategy available.
+
+Each counterparty now carries a linear valuation of the terms it cares about,
+measured against its own opening package, with a reservation it will not go
+below. Because the weights are the counterparty's and not the developer's, a
+term that is cheap for one side can be dear to the other, which is what makes
+a trade possible at all.
+
+The power agreement carries the trade. Energisation may slip as far as
+mechanical completion, and up to that point the developer gives up little,
+because construction was withholding the capacity anyway. The utility values
+that deferral highly. So:
+
+| Offer | Counterparty utility | Accepted |
+|---|---:|---|
+| the utility's own opening package | 0 | yes |
+| both prices pushed to their floors | -417,000,000 | **no** |
+| the same prices plus the deferral | 0 | yes |
+
+An agent that only pushes prices is refused. The identical prices become
+available the moment the deferral is offered, and taking that trade is worth
+about $4.5M to the developer while costing the utility nothing against its
+reservation. This is the difference between haggling and bargaining, and it is
+now the difference between a rejected offer and an accepted one.
+
+The concession is not free everywhere, and the tests say so. Where revenue
+timing is tight the deferral costs real money; what holds in all 24 worlds is
+that it costs less than the price concession it unlocks. In at least half the
+worlds it is free outright.
+
+One defect surfaced while building this: acceptance was implemented twice, once
+in the generator and once inline in the runtime counterparty, so the two could
+drift and the utility model would have applied to only one of them. There is
+now a single acceptance rule.
+
 ## Where the failures live
 
 Failure evidence used to scatter across per-cell results, run summaries, two ad
