@@ -92,14 +92,14 @@ RETRYABLE_CONDITIONS = (
     "rate_limit",
     "provider_5xx",
     "timeout",
-    # "length" is deliberately NOT here. The executor doubles
-    # max_output_tokens on every length retry and nothing caps it
-    # (execution.py: `next_limit = max_output_tokens * 2`), so with ten
-    # attempts a 2,400-token budget becomes 1,228,800 and the request is
-    # refused for exceeding the model's context window -- which is exactly
-    # how attempt 004 died. This harness already handles truncation itself,
-    # with a corrective round that tells the model it was cut off, so the
-    # kernel-side doubling buys nothing here. See issue #131.
+    # "length" is back, now that the doubling is bounded (#131: capped at
+    # 8x the declared budget and half the context window). It is needed:
+    # the executor labels a response that is BOTH truncated and empty as
+    # "length", and this model occasionally spends its whole output budget
+    # on reasoning and emits nothing -- at 2,400, at 6,000 and again at
+    # 12,000, since it expands to fill whatever it is given. Headroom does
+    # not fix that; a retry does.
+    "length",
     "empty_response",
     # A rejection that arrives after this route has already answered cannot
     # mean the route does not exist. Parasail returned a spurious 404 twice
@@ -615,16 +615,13 @@ def _profile(
                 # the environment as a null action (response_not_object) and
                 # failed the case. 900 truncated a burst mid-JSON before
                 # that. 6,000 leaves room for the thinking and a full
-                # purchase plan. Raised again to 12,000 after a scheduling
-                # call burned all 6,000 on reasoning and emitted nothing:
-                # normal calls finish at ~2,600, so this is ~4x headroom for
-                # an occasional deep-reasoning turn. Headroom is the only
-                # lever available while #131 is open -- the executor labels a
-                # response that is BOTH truncated and empty as "length", and
-                # "length" cannot be retryable here because its uncapped
-                # doubling walks past the context window. Cap the doubling
-                # and this can go back to a smaller budget with a retry.
-                "max_output_tokens": 12000,
+                # Normal calls finish at ~2,600 output tokens. Over-
+                # provisioning does not help -- the model expanded to fill
+                # 6,000 and then 12,000 and still emitted nothing on the
+                # occasional deep-reasoning turn -- so the budget is modest
+                # and truncation is handled by a bounded length retry
+                # instead (#131).
+                "max_output_tokens": 4000,
                 # Declared, not None: the OpenRouter adapter refuses a
                 # diagnostic run whose seed is not stated, because an
                 # undeclared seed makes a re-run unfalsifiable.
