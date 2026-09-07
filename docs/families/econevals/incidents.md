@@ -133,7 +133,11 @@ this campaign is where they surfaced:
 | 001 | case 00 | `SchedulerContractError` | 0.0012 | the harness forbade mixing read-only calls with the submit in one step -- **stricter than the environment**, which only requires the submit to be last. GLM gathers and submits together, got bounced, and never converged in 12 rounds | permit multi-step without mandating it |
 | 002 | case 00 | cost ceiling | 0.1827 | $0.0614 for 78 periods against v1's $0.0109 for 100; the ceiling was sized from the old shape | ceilings sized from measurement (#130) |
 | 003 | case 01 | `submit_tool_must_be_the_final_call` | 0.1093 | GLM returned the submit **twice** in one step; the validator recorded only the LAST occurrence, so the first sat mid-list in the accumulated action and the environment rejected the period | reject a second submit in a step |
-| 004 | -- | -- | -- | running | -- |
+| 004 | case 03 | 400, context length | 0.2754 | executor doubles `max_output_tokens` on every `length` retry, uncapped: 2,400 became 1,228,800, larger than the model's context window | stop declaring `length` retryable (#131) |
+| 005 | case 00 | killed | 0.0000 | machine memory watchdog | -- |
+| 006 | case 01 | killed, then `EvidenceIntegrityError` | 0.2940 | killed mid-case, then resume tried to append to the partial event log | move a killed case's evidence aside; a failed checkpoint still seals the root |
+| 007 | case 01 | `response_not_object` | 0.1067 | `output_tokens` 2,400 at exactly the cap with `output_text ""` -- the model spent the whole budget on reasoning, ten empty retries handed the environment a null action | budget covers reasoning **plus** answer: 6,000 |
+| 008 | case 00 | killed | 0.0000 | machine memory watchdog, third time | paused; see below |
 
 ### The shared cause
 
@@ -164,4 +168,40 @@ Under v1 five of six cases scored `gate = 0.0`, and the published write-up
 said those numbers measured the adapter rather than the model. This is the
 confirmation: nothing about GLM changed, only whether it could see what it
 had looked up before committing.
+
+## Paused 2026-09-07: machine memory, not the campaign
+
+Attempts 005, 006 and 008 were killed by the host's memory watchdog, not by
+anything in the run. At the time of the third kill the machine's largest
+consumers were desktop applications, not this work:
+
+| process | RSS |
+|---|---|
+| ChatGPT.app (node) | 3,092 MB |
+| Antigravity IDE | 757 MB |
+| Safari | 301 MB |
+| claude sessions | ~505 MB combined |
+
+A six-case econevals panel runs ~1 hour and holds a bridge subprocess plus
+an evidence store the whole time, so it is a reliable victim whenever the
+machine is otherwise loaded. Retrying into that costs an attempt root each
+time and proves nothing.
+
+**Resume when the machine is quiet:**
+
+```
+ATTEMPT=009 zsh <scratchpad>/run_econ.sh
+```
+
+Nothing about the plan changes; the identity, the panel and the analysis are
+frozen. What is already established and does not need re-running:
+
+- The in-period loop is correct and paper-faithful, verified offline (200
+  calls over 100 periods, every period seeing tool results before it
+  submitted).
+- It changes the measurement: `procurement.basic.0` scored **gate 1.0,
+  objective 6.07** under the loop in attempts 003, 004 and 007, where the
+  blind v1 shape produced an excluded, malformed submission.
+- It is also genuinely variable: the same case came back excluded in
+  attempt 006. One sample per case, unseeded route.
 
