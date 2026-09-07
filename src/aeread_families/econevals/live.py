@@ -615,8 +615,16 @@ def _profile(
                 # the environment as a null action (response_not_object) and
                 # failed the case. 900 truncated a burst mid-JSON before
                 # that. 6,000 leaves room for the thinking and a full
-                # purchase plan.
-                "max_output_tokens": 6000,
+                # purchase plan. Raised again to 12,000 after a scheduling
+                # call burned all 6,000 on reasoning and emitted nothing:
+                # normal calls finish at ~2,600, so this is ~4x headroom for
+                # an occasional deep-reasoning turn. Headroom is the only
+                # lever available while #131 is open -- the executor labels a
+                # response that is BOTH truncated and empty as "length", and
+                # "length" cannot be retryable here because its uncapped
+                # doubling walks past the context window. Cap the doubling
+                # and this can go back to a smaller budget with a retry.
+                "max_output_tokens": 12000,
                 # Declared, not None: the OpenRouter adapter refuses a
                 # diagnostic run whose seed is not stated, because an
                 # undeclared seed makes a re-run unfalsifiable.
