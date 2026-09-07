@@ -76,6 +76,18 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 # changed frozen control takes a new campaign identity rather than a new
 # attempt under the old one (CLAUDE.md, "Campaign discipline"). v2's three
 # scored cases stand as v2's; they are not pooled with these.
+# v7: v6 ran at a 12,000 output budget and that made things worse -- reasoning
+# expands to fill whatever it is given -- so the budget is back at 4,000. That
+# is a changed frozen control, hence a new identity rather than another
+# attempt under v6.
+#
+# The declaration is now final and deliberately minimal: no reasoning control
+# (this route honours none), 4,000 output tokens, canary given the same
+# headroom as the panel. Nothing here is tuned to a case. The residual failure
+# mode -- an episode where the model emits no parseable action -- is a
+# property of the route and is recorded as an operational failure when it
+# happens, not designed around.
+#
 # v6: the reasoning controls were never the lever. This route honours neither
 # `reasoning.effort` nor `reasoning.max_tokens`, and the budget that governs is
 # `profile.sampling.max_output_tokens`, which the harness clamps every request
@@ -93,7 +105,7 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 # with a 400 (#133). v3 therefore produced no measurement at all -- one
 # operational-failure checkpoint at $0.00, billed nothing -- and is retired
 # rather than reused, so a campaign identity never names two declarations.
-CAMPAIGN_ID = "econevals_glm53_flash_parasail_output_budget_v6"
+CAMPAIGN_ID = "econevals_glm53_flash_parasail_provider_default_v7"
 CANARY_CASE_ID = "econevals.procurement.basic.0"
 PANEL_CASE_IDS = (
     "econevals.procurement.basic.0",
