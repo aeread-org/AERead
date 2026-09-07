@@ -4511,6 +4511,34 @@ def test_case_conditional_finalize_family_failure_records_inapplicable_leaf_ids(
     assert receipt.inapplicable_leaf_ids == (_CASE_CONDITIONAL_DIAGNOSTIC_LEAF_ID,)
 
 
+def test_case_conditional_finalize_family_failure_rejects_plan_registry_policy_drift(
+    tmp_path: Path,
+) -> None:
+    """Failure finalization validates I against the trusted manifest, not the plan copy."""
+    evidence_root = tmp_path / "case_conditional_failure_policy_drift"
+    setup, caught = _build_case_conditional_operational_failure(
+        evidence_root=evidence_root, mode="basic"
+    )
+    plan_manifest = setup.plan.families[0]
+    trusted_manifest = _reference_family_manifest()
+    assert plan_manifest.family == trusted_manifest.family
+    assert _CASE_CONDITIONAL_DIAGNOSTIC_LEAF_ID in {
+        leaf.leaf_id for leaf in plan_manifest.measurement.leaves
+    }
+    assert _CASE_CONDITIONAL_DIAGNOSTIC_LEAF_ID not in {
+        leaf.leaf_id for leaf in trusted_manifest.measurement.leaves
+    }
+
+    trusted_registry = PluginRegistry()
+    trusted_registry.register_trusted(trusted_manifest, _CaseConditionalPlugin())
+    drifted_setup = dataclasses.replace(setup, registry=trusted_registry)
+
+    with pytest.raises(ValueError, match="not declared case_conditional"):
+        _finalize_case_conditional_failure(
+            drifted_setup, caught, evidence_root=evidence_root
+        )
+
+
 def test_case_conditional_finalize_family_failure_records_empty_inapplicable_leaf_ids_when_applicable(
     tmp_path: Path,
 ) -> None:

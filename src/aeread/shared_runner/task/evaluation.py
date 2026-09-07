@@ -1118,7 +1118,10 @@ def finalize_family_failure(
     family = next(
         item for item in setup.plan.families if item.family.id == cell.family_id
     )
-    plugin = setup.registry.resolve_manifest(family)
+    registration = setup.registry.resolve_registration(
+        family.family.id, family.family.version, family.family.plugin_id
+    )
+    plugin = registration.plugin
     family_case = plugin.validate_payload(case.payload)
     leaf = leaf_builder(family_case)
     # Ruling R13 review finding 3: leaf disposition is a case property, not
@@ -1128,7 +1131,7 @@ def finalize_family_failure(
     # branch has a real value (not a silent default) to recompute and
     # compare against.
     inapplicable_ids = _inapplicable_leaf_ids(plugin, family_case)
-    _reject_undeclared_inapplicable_ids(family, inapplicable_ids)
+    _reject_undeclared_inapplicable_ids(registration.manifest, inapplicable_ids)
     receipt = seal_evaluation_receipt(
         EvaluationReceipt(
             spec_version=EvaluationReceipt.SPEC_VERSION,
