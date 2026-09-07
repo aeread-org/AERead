@@ -29,9 +29,9 @@ from aeread.shared_runner.task.evaluation import finalize_family_execution, repl
 from aeread.shared_runner.task.execution import ArenaChatClient, execute_plan_cell
 from aeread.shared_runner.task.receipts import read_evaluation_receipt
 
-from .live import build_live_setup, load_case
+from .live import MAX_OUTPUT_TOKENS, build_live_setup, load_case
 
-CAMPAIGN_ID = "steer_glm5p2_arena_first_light_v1"
+CAMPAIGN_ID = "steer_glm5p2_arena_first_light_v2"
 CASE_IDS = (
     "steer.transitivity.0_0",
     "steer.certainty_effect.0_0",
@@ -66,6 +66,7 @@ def campaign_plan() -> dict[str, Any]:
             "sequential": True,
             "abort_on_operational_failure": True,
             "replay_every_receipt": True,
+            "max_output_tokens": MAX_OUTPUT_TOKENS,
         },
         "budget": {
             "max_case_cost_usd": MAX_CASE_COST_USD,
@@ -190,7 +191,7 @@ def publish(*, run_root: Path, publication_root: Path) -> None:
         "sanitization": dict(SANITIZATION_DECLARATION),
     }
     files: dict[str, bytes] = {
-        "README.md": b"# STEER GLM 5.2 Arena first-light panel\n\nSix fixed cases; receipts replayed and sanitized.\n",
+        "README.md": b"# STEER GLM 5.2 Arena first-light panel v2\n\nSix fixed cases; receipts replayed and sanitized.\n",
         "reports/summary.json": canonical_json_bytes(summary) + b"\n",
         "trajectories/archive.jsonl": jsonl(rows),
     }
@@ -272,7 +273,7 @@ def publish_failure(*, run_root: Path, publication_root: Path) -> None:
     }
     files: dict[str, bytes] = {
         "README.md": (
-            b"# STEER GLM 5.2 Arena first-light attempt\n\n"
+            b"# STEER GLM 5.2 Arena first-light attempt v2\n\n"
             b"The canary was admitted. The campaign aborted on the first operational "
             b"failure; unattempted cells were not run.\n"
         ),

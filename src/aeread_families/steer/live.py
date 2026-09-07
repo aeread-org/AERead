@@ -31,6 +31,7 @@ PROMPT = """Answer the economics multiple-choice question in the observation.
 Return only a JSON object with one integer field, option_id. option_id is the
 zero-based index of the best answer. Do not include prose or another field."""
 PRICING = TokenPricing(0.0, 0.0, 0.0, "arena_2026-09-06_glm5p2_reported_cost")
+MAX_OUTPUT_TOKENS = 512
 
 
 def output_schema() -> dict[str, Any]:
@@ -122,7 +123,7 @@ def build_live_setup(
     profile = AgentProfile.from_dict(
         {
             "spec_version": AgentProfile.SPEC_VERSION,
-            "profile_id": "steer_glm5p2_arena_v1",
+            "profile_id": "steer_glm5p2_arena_v2",
             "model": {
                 "provider": PROVIDER,
                 "model": MODEL,
@@ -158,7 +159,7 @@ def build_live_setup(
             },
             "sampling": {
                 "temperature": 0.0,
-                "max_output_tokens": 128,
+                "max_output_tokens": MAX_OUTPUT_TOKENS,
                 "seed": None,
                 "top_p": None,
             },
@@ -235,4 +236,3 @@ def build_live_setup(
         pricing={MODEL: PRICING},
         case=case,
     )
-
